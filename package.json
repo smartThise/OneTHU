@@ -1,0 +1,23 @@
+{
+  "name": "onethu",
+  "private": true,
+  "version": "0.1.0",
+  "description": "OneTHU — 清华万物，汇合于一体",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @onethu/desktop dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @onethu/core test"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

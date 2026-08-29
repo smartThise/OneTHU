@@ -1,0 +1,81 @@
+import { Shell } from "./components/Layout.js";
+import { FilePreviewHost } from "./components/FilePreview.js";
+import { LearnPage } from "./pages/Learn.js";
+import { AssignmentDetailPage } from "./pages/learn/AssignmentDetailPage.js";
+import { AssignmentsPage } from "./pages/learn/AssignmentsPage.js";
+import { CourseDetailPage } from "./pages/learn/CourseDetailPage.js";
+import { FileDetailPage } from "./pages/learn/FileDetailPage.js";
+import { FilesPage } from "./pages/learn/FilesPage.js";
+import { NoticeDetailPage } from "./pages/learn/NoticeDetailPage.js";
+import { NoticesPage } from "./pages/learn/NoticesPage.js";
+import { SearchPage } from "./pages/learn/SearchPage.js";
+import { SemesterSelectionPage } from "./pages/learn/SemesterSelectionPage.js";
+import { LoginPage, TwoFactorPage } from "./pages/Login.js";
+import { SchedulePage } from "./pages/Schedule.js";
+import { SettingsPage } from "./pages/Settings.js";
+import { TodayPage } from "./pages/Today.js";
+import { InfoPage } from "./pages/info/InfoPage.js";
+import { LifePage } from "./pages/info/LifePage.js";
+import { ReservePage } from "./pages/info/ReservePage.js";
+import { ZhjwxkCoursesPage } from "./pages/zhjwxk/Courses.js";
+import { AppProvider } from "./state/app.js";
+import { useApp } from "./state/context.js";
+
+function Routed() {
+  const { status, page } = useApp();
+
+  const body = (() => {
+    if (status === "booting") {
+      return (
+        <div className="login-wrap">
+          <div style={{ color: "var(--ink-3)", fontSize: "var(--text-sm)" }}>正在恢复会话…</div>
+        </div>
+      );
+    }
+
+    if (status === "2fa") {
+      return <TwoFactorPage />;
+    }
+
+    if (status === "logged-out" || status === "connecting") {
+      return <LoginPage />;
+    }
+
+    return (
+      <Shell>
+        {page === "today" && <TodayPage />}
+        {page === "learn" && <LearnPage />}
+        {page === "schedule" && <SchedulePage />}
+        {page === "info" && <InfoPage />}
+        {page === "life" && <LifePage />}
+        {page === "reserve" && <ReservePage />}
+        {page === "zhjwxk" && <ZhjwxkCoursesPage />}
+        {page === "settings" && <SettingsPage />}
+        {page === "learn-course" && <CourseDetailPage />}
+        {page === "learn-assignments" && <AssignmentsPage />}
+        {page === "learn-notices" && <NoticesPage />}
+        {page === "learn-files" && <FilesPage />}
+        {page === "learn-search" && <SearchPage />}
+        {page === "learn-semester" && <SemesterSelectionPage />}
+        {page === "learn-assignment-detail" && <AssignmentDetailPage />}
+        {page === "learn-notice-detail" && <NoticeDetailPage />}
+        {page === "learn-file-detail" && <FileDetailPage />}
+      </Shell>
+    );
+  })();
+
+  return (
+    <>
+      {body}
+      <FilePreviewHost />
+    </>
+  );
+}
+
+export function App() {
+  return (
+    <AppProvider>
+      <Routed />
+    </AppProvider>
+  );
+}

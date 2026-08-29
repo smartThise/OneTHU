@@ -1,0 +1,80 @@
+/* ============================================================
+   OneTHU 设计令牌 v3 —— 仅亮色，对齐 DeepSeek Harness 设计语言
+   中性蓝灰阶 + 黑 primary 按钮 + 业务蓝强调；pill 控件；紧凑字号。
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* 面 */
+  --bg: #ffffff;
+  --bg-soft: #f9fafb;
+  --surface: #ffffff;
+  --surface-2: #f9fafb;
+  --surface-3: #ebeef2;
+  --skeleton: rgba(0, 0, 0, 0.04);
+
+  /* 线 */
+  --border: rgba(0, 0, 0, 0.1);
+  --border-soft: rgba(0, 0, 0, 0.04);
+  --border-strong: rgba(0, 0, 0, 0.16);
+
+  /* 字色 */
+  --text-1: #0f1115;
+  --text-2: #61666b;
+  --text-3: #81858c;
+  --text-dim: #d5dbe3;
+
+  /* 品牌 / 强调 */
+  --primary: #0f1115;          /* 主按钮：黑 */
+  --primary-hover: #43454a;
+  --on-primary: #ffffff;
+  --accent: #4176e6;           /* 业务蓝：链接、激活、信息 */
+  --accent-soft: #edf3fe;
+  --accent-border: #c9d9f9;
+
+  /* 功能色 */
+  --red: #e5484d;
+  --red-soft: #feecec;
+  --amber: #d9730d;
+  --amber-soft: #fdf2e2;
+  --green: #22c55e;
+  --green-soft: #e6f9ee;
+
+  /* 交互 */
+  --hover: rgba(38, 49, 72, 0.06);
+  --active: rgba(38, 49, 72, 0.1);
+
+  /* 阴影 */
+  --shadow-1: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+  --shadow-3: 0 0 1px rgba(0, 0, 0, 0.2), 0 12px 32px rgba(0, 0, 0, 0.08);
+  --ring: 0 0 0 3px rgba(65, 118, 230, 0.25);
+
+  /* 字体 */
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+    "Hiragino Sans GB", "Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  /* 字号（harness 刻度） */
+  --text-xxs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+
+  /* 间距 / 形状 */
+  --gap-1: 4px;
+  --gap-2: 8px;
+  --gap-3: 12px;
+  --gap-4: 16px;
+  --gap-5: 24px;
+  --gap-6: 32px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-pill: 999px;
+  --sidebar-w: 224px;
+}

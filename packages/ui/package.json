@@ -1,0 +1,14 @@
+{
+  "name": "@onethu/ui",
+  "version": "0.1.0",
+  "description": "OneTHU 设计令牌：纸面墨线 · 清华紫",
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./src/tokens.css",
+    "./base.css": "./src/base.css"
+  },
+  "scripts": {
+    "build": "echo nothing to build",
+    "typecheck": "echo nothing to typecheck"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "主窗口能力：仅核心权限（自定义 http_request 命令不需要插件授权）",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}
