@@ -34,6 +34,9 @@ export function ClassroomTab() {
   const [rUnavailable, setRUnavailable] = useState(false);
   const [rError, setRError] = useState<string | null>(null);
 
+  /* 大节筛选：空集=显示全部 6 节；选中集合=只显示所选大节列 */
+  const [selSlots, setSelSlots] = useState<Set<number>>(new Set());
+
   const loadBuildings = useCallback(async () => {
     if (status !== "ready") return;
     setBState("loading");
@@ -73,6 +76,8 @@ export function ClassroomTab() {
   /** 今天在 7 天列中的下标（周一=0） */
   const todayCol = (new Date().getDay() + 6) % 7;
   const rows = result?.classroomStates ?? [];
+  /** 当前显示的大节下标：空选=全部 6 节，否则按所选升序 */
+  const shownSlots = selSlots.size > 0 ? [...selSlots].sort((a, b) => a - b) : SLOT_LABELS.map((_, i) => i);
   const freeToday = rows.filter((r) =>
     SLOT_LABELS.some((_, s) => (r.status?.[todayCol * 6 + s] ?? -1) === AVAILABLE),
   ).length;
@@ -112,7 +117,11 @@ export function ClassroomTab() {
         <>
           <SectionHead
             title={`${sel.name} · 本周`}
-            aside={result?.currentWeekNumber ? `第 ${result.currentWeekNumber} 教学周 · 今日空闲 ${freeToday} 间（下表为今日）` : undefined}
+            aside={
+            result?.currentWeekNumber
+              ? `第 ${result.currentWeekNumber} 教学周 · 今日空闲 ${freeToday} 间${selSlots.size > 0 ? ` · 已选 ${selSlots.size} 大节` : ""}（下表为今日）`
+              : undefined
+          }
           />
           {rState === "error" ? (
             <TabError unavailable={rUnavailable} text={rError} onRetry={() => void loadState(sel)} />
@@ -122,35 +131,64 @@ export function ClassroomTab() {
           ) : rState === "ready" && rows.length === 0 ? (
             <TabEmpty text="该教学楼本周暂无教室状态数据（可能不在上课周期）。" />
           ) : rState === "ready" ? (
-            <Card style={{ padding: 0, overflow: "auto" }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>教室</th>
-                    {SLOT_LABELS.map((s) => (
-                      <th key={s} className="num">
-                        {s}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r, i) => (
-                    <tr key={`${r.name}-${i}`} style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}>
-                      <td className="cell-title" style={{ whiteSpace: "nowrap" }}>{r.name}</td>
-                      {SLOT_LABELS.map((s, si) => {
-                        const free = (r.status?.[todayCol * 6 + si] ?? -1) === AVAILABLE;
-                        return (
-                          <td key={s} className="num">
-                            <span className={free ? "chip chip-green" : "chip chip-gray"}>{free ? "空闲" : "占用"}</span>
-                          </td>
-                        );
-                      })}
+            <>
+              <div className="chips" style={{ marginBottom: 12 }}>
+                <span style={{ fontSize: 12, opacity: 0.7, alignSelf: "center", marginRight: 4 }}>大节筛选</span>
+                {SLOT_LABELS.map((s, si) => {
+                  const on = selSlots.has(si);
+                  return (
+                    <button
+                      key={s}
+                      className={"chip" + (on ? " chip-blue" : "")}
+                      onClick={() =>
+                        setSelSlots((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(si)) next.delete(si);
+                          else next.add(si);
+                          return next;
+                        })
+                      }
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+                {selSlots.size > 0 ? (
+                  <button className="chip" onClick={() => setSelSlots(new Set())}>
+                    清空（显示全部）
+                  </button>
+                ) : null}
+              </div>
+              <Card style={{ padding: 0, overflow: "auto" }}>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>教室</th>
+                      {shownSlots.map((si) => (
+                        <th key={si} className="num">
+                          {SLOT_LABELS[si]}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
+                  </thead>
+                  <tbody>
+                    {rows.map((r, i) => (
+                      <tr key={`${r.name}-${i}`} style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}>
+                        <td className="cell-title" style={{ whiteSpace: "nowrap" }}>{r.name}</td>
+                        {shownSlots.map((si) => {
+                          const free = (r.status?.[todayCol * 6 + si] ?? -1) === AVAILABLE;
+                          return (
+                            <td key={si} className="num">
+                              <span className={free ? "chip chip-green" : "chip chip-gray"}>{free ? "空闲" : "占用"}</span>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Card>
+            </>
           ) : null}
         </>
       ) : null}

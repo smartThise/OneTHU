@@ -107,31 +107,32 @@ export function parseClassroomState(html: string, week: number): ClassroomStateR
     throw new Error(`教室状态页日期单元格不足 7 个（实得 ${dates.length}）`);
   }
 
-  // 教室占用（lib $("#scrollContent>table>tbody") 逐行；td[1]=教室名，td[3:]=状态格）
+  // 教室占用。真实页结构（16:41 落盘实证）：数据行 = td0=教室名(width 218) +
+  // td1..42=状态格（7 天 × 6 大节，周一起）；表头行（星期+7 个 colspan6 日期）只有
+  // 8 个 td，用 cells.length>=20 过滤。lib children[] 索引含文本节点（children[1]=
+  // 首个 td，slice(3) 滤 td 后=除名格外全部状态格），换算成 td 下标即 0=名、1:=状态。
+  // 仅解析 scrollContent 标记之后的区域（lib $("#scrollContent>table>tbody") 语义，
+  // 页内另有一份无滚动条的镜像表，两份全解析会重复）。
   const classroomStates: ClassroomState[] = [];
   const scIdx = html.search(/id=["']scrollContent["']/i);
-  if (scIdx >= 0) {
-    const tail = html.slice(scIdx);
-    for (const tbody of tail.matchAll(/<tbody[^>]*>([\s\S]*?)<\/tbody>/gi)) {
-      for (const tr of (tbody[1] ?? "").matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)) {
-        const cells = tdCells(tr[1] ?? "");
-        if (cells.length <= 3) continue;
-        // lib：tr.children[1].children[2] 文本节点 = 教室名（页内含链接装饰时
-        // 取整格文本的近似等价）
-        const name = cellText(innerOfTd(cells[1] ?? ""));
-        const status: ClassroomStatus[] = [];
-        for (const td of cells.slice(3)) {
-          // class 拆分后剔除 colBound（lib 同款过滤），多 class 即抛错
-          const classNames = (findAttr(td, "class") ?? "")
-            .split(" ")
-            .filter((it) => it !== "" && it !== "colBound");
-          if (classNames.length > 1) {
-            throw new Error(`教室状态单元格多 class：${classNames.join(" ")}`);
-          }
-          status.push(statusFromClassName(classNames[0]));
+  const region = scIdx >= 0 ? html.slice(scIdx) : html;
+  for (const tbody of region.matchAll(/<tbody[^>]*>([\s\S]*?)<\/tbody>/gi)) {
+    for (const tr of (tbody[1] ?? "").matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)) {
+      const cells = tdCells(tr[1] ?? "");
+      if (cells.length < 20) continue; // 表头/图例行（8 td）不是教室行
+      const name = cellText(innerOfTd(cells[0] ?? ""));
+      const status: ClassroomStatus[] = [];
+      for (const td of cells.slice(1)) {
+        // class 拆分后剔除 colBound（lib 同款过滤），多 class 即抛错
+        const classNames = (findAttr(td, "class") ?? "")
+          .split(" ")
+          .filter((it) => it !== "" && it !== "colBound");
+        if (classNames.length > 1) {
+          throw new Error(`教室状态单元格多 class：${classNames.join(" ")}`);
         }
-        classroomStates.push({ name, status });
+        status.push(statusFromClassName(classNames[0]));
       }
+      if (name !== "") classroomStates.push({ name, status });
     }
   }
   return {

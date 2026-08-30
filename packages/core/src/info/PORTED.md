@@ -60,6 +60,24 @@ classroom/calendar/neth + htmltext 共享工具），I/O 全部挂在 `InfoClien
 | `getCalendarYear()` | `getSchoolCalendarYear` | app.cs `GET /Api/SchoolCalendarYear`（公网直连） | `number` |
 | `getCalendarImageUrl(year, semester, lang)` | `getCalendarImageUrl` | 纯拼接 `https://app.cs.tsinghua.edu.cn/xiaoli/{lang}/{year}-{1\|2}.jpg` | `string` |
 
+### 课表夏季学期 CR 兜底（crSchedule.ts；thu-info-community 0317434e #910）
+
+夏季学期（学期号以 -3 结尾）教务 `bks_jxrl_all` JSONP 恒为空 → 课程安排改取 CR
+选课系统一级课表。`getSchedule()` 内嵌兜底：JSONP 为空且区间末端月份在 6-8 月
+→ 由区间推导 `(y-1)-y-3`，firstDay/weekCount 取校历同号学期，经 zhjwxk 模块
+`fetchZhjwxkPage`（xklogin SSO 链 + crFetch 三判据）抓 `xkBks.vxkBksXkbBs.do?m=kbSearch`。
+
+| 函数 | lib 来源 | 说明 |
+| --- | --- | --- |
+| `parseSecondaryWeek` | 同名逐字 | 逗号分隔范围表达式（"8-11,13"）→ 逐周回调 |
+| `parseWeekPattern` | 同名逐字 | 全周/单周/双周/前八周/后八周/范围（归一化去「第」「周」后匹配） |
+| `parseCRSchedule` | 同名逐字 | setInitValue 函数体 strHTML/strHTML1 块解析（块锚 `a{session}_{day}`；`\s+` 宽松换行为上游第三次修复） |
+
+OneTHU 映射差异：`ScheduleEntry` 扁平结构 → 按（块，周）展开逐次条目
+（date = firstDay+(week-1)*7+dayOfWeek-1），无需 lib Schedule{activeTime} 归并与
+scheduleTimeAdd；日期运算本地 Date（无 dayjs）。兜底任何失败静默返回 `[]`（查不到
+就是查不到）。CR 会话按用户名缓存 `ZhjwxkSession`（zhjwxk ensure 60s 热缓存按对象身份）。
+
 ### 校园网 thos/usereg（neth.ts；lib network.ts —— 上游已瘫痪，照抄移植）
 
 | 方法 | lib 来源 | 端点 | 返回 |
@@ -76,6 +94,10 @@ classroom/calendar/neth + htmltext 共享工具），I/O 全部挂在 `InfoClien
 
 ## 已知偏差（有意为之）
 
+- 研讨间（cab.lib）认证在 `#libraryAccessToken` 同款 10 分钟 TTL + 跨实例单飞缓存上：
+  实测每次进图书馆页重跑整条 cab 漫游链（ic-web/auth/address → authcenter →
+  lbredirect×2）是预约/记录页慢的根因。会话真失效由 `#cabFetch` 失效钩子 +
+  `#withLibRoom` 重试自愈；`forceEnsure("libroom")` 亦清缓存。
 - cheerio 遍历以「逐 td 正则 / 微 DOM」等价实现；银行代发金额列、教室名取整格文本
   （lib 取首子元素/特定文本节点，HTML 空白敏感），解析更宽容。
 - lib `AssessmentError`/`ClassroomStateError`/`DormAuthError` 等按铁律重新归类：
