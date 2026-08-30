@@ -25,6 +25,24 @@ export function physicalExamTotal(json: Record<string, unknown>): number {
 const s = (json: Record<string, unknown>, key: string): string => String(json[key] ?? "");
 
 /**
+ * 体测响应 → JSON。实测存在两种形态：裸 JSON 与 JSONP 括号包裹
+ * `({'success':'false'})`，且括号内是**单引号非严格 JSON**。
+ * 剥首尾括号（及可能的 `;`）→ 严格 parse → 失败则单引号归一为双引号再 parse
+ * （成绩字段为数字/汉字，值内不含单引号，整体替换安全）。
+ */
+export function parsePhysicalExamJson(text: string): Record<string, unknown> {
+  let t = text.trim();
+  const open = t.indexOf("(");
+  const close = t.lastIndexOf(")");
+  if (open >= 0 && close > open) t = t.slice(open + 1, close).trim().replace(/;\s*$/, "");
+  try {
+    return JSON.parse(t) as Record<string, unknown>;
+  } catch {
+    return JSON.parse(t.replace(/'/g, '"')) as Record<string, unknown>;
+  }
+}
+
+/**
  * 体测 JSON → [项目, 结果] 行（lib getPhysicalExamResult 逐字段对照）。
  * success === "false"（注意是字符串形态）→ null = 暂无可查成绩。
  */

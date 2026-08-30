@@ -2300,11 +2300,11 @@ export class InfoClient {
   /* 无数据 → 空结果；服务瘫痪/解析失败 → ServiceUnavailableError。             */
   /* ===================================================================== */
 
-  /** 文本响应的登录/超时页特征检测（业务页通用判据，命中即会话失效） */
+  /** 文本响应的登录页特征检测（业务页通用判据，命中即会话失效）。
+   *  铁律：只有登录页/门户页才算失登 —— 「time out用户登陆超时或访问内容不存在」
+   *  是教务通用错误页（内容不存在/无权限同文案），不是登录页，绝不能映射为
+   *  AuthRequiredError（否则本科生查研究生专项目会被误报「登录已过期」）。 */
   #assertNotLoginGate(text: string, what: string): void {
-    if (/用户登陆超时|time out/i.test(text)) {
-      throw new AuthRequiredError(`${what}：服务端会话已超时`);
-    }
     if (text.includes("<title>清华大学WebVPN</title>")) {
       throw new AuthRequiredError(`${what}：落在 WebVPN 门户页（会话失效）`);
     }
@@ -2313,18 +2313,21 @@ export class InfoClient {
     }
   }
 
-  /** 业务服务会话兜底（lib roamingWrapper 同构）：首试 → 失败则漫游对应 yyfw
-   *  业务（roam 自身失败同样重试一次，lib 同款）→ 再试一次。 */
-  async #serviceRoamed<T>(yyfwid: string, op: () => Promise<T>): Promise<T> {
+  /** 业务服务会话兜底（lib roamingWrapper 同构）：首试（无漫游页）→ 失败则漫游
+   *  对应 yyfw 业务（roam 自身失败同样重试一次，lib 同款）→ 带漫游落地页重试。
+   *  op 首试收到 undefined；lib 用「s===undefined 即 throw」强制先漫游的方法
+   *  （如银行代发，年份选项必须取自漫游落地页）沿用同款判据。 */
+  async #serviceRoamed<T>(yyfwid: string, op: (roamPage?: string) => Promise<T>): Promise<T> {
     try {
       return await op();
-    } catch (e) {
+    } catch {
+      let page: string;
       try {
-        await this.#roamInfoService(yyfwid);
+        ({ page } = await this.#roamInfoService(yyfwid));
       } catch {
-        await this.#roamInfoService(yyfwid);
+        ({ page } = await this.#roamInfoService(yyfwid));
       }
-      return await op();
+      return await op(page);
     }
   }
 
@@ -2383,22 +2386,33 @@ export class InfoClient {
 
   /* ------------------------------ 体测成绩 ------------------------------ */
 
-  /** 体测成绩（basics.ts getPhysicalExamResult；zhjw /tyjx.tyjx_tc_xscjb.do?m=jsonCj）。
-   *  返回 [项目, 结果] 行；「暂无可查成绩」（success==="false"）→ []（UI 显示「暂无」） */
+  /** 体测成绩（basics.ts getPhysicalExamResult；GET zhjw /tyjx.tyjx_tc_xscjb.do?m=jsonCj
+   *  → JSON → 固定 26 行字段映射）。
+   *  会话路径：叠加 #ensureZhjw（与课表同款、产线已验证的 zhjw 会话建立）与
+   *  lib 的 tyjx 业务漫游（serviceRoamed 兜底），两路都通。
+   *  success==="false" → [["状态","暂无可查成绩"]]（lib 原样，UI 显示暂无）；
+   *  响应非 JSON：维护页特征 → ServiceUnavailableError；登录/门户 → AuthRequiredError；
+   *  其余 HTML（会话/传输异常态，无法证实上游瘫痪）→ 普通 Error 诚实报获取失败。 */
   async getPhysicalExamResult(): Promise<Array<[string, string]>> {
     return this.#withRenew(() =>
       this.#serviceRoamed(urls.PHYSICAL_EXAM_ROAM_ID, async () => {
+        await this.#ensureZhjw();
         const text = await this.#http.text(urls.PHYSICAL_EXAM());
-        this.#assertNotLoginGate(text, "体测成绩");
+        // 实测响应可能为 JSONP 括号包裹 + 单引号非严格 JSON `({'success':'false'})`：
+        // parsePhysicalExamJson 剥括号并归一引号（裸 JSON 原样通过）
         let json: Record<string, unknown>;
         try {
-          json = JSON.parse(text) as Record<string, unknown>;
+          json = fitness.parsePhysicalExamJson(text);
         } catch {
-          throw new ServiceUnavailableError(
-            `体测成绩解析失败（resp=${text.slice(0, 80).replace(/\s+/g, " ")}）`,
+          this.#assertNotLoginGate(text, "体测成绩");
+          if (/维护|升级|停机|系统公告/.test(text)) {
+            throw new ServiceUnavailableError("体测服务维护中（上游公告维护页）");
+          }
+          throw new Error(
+            `体测成绩响应异常（resp=${text.slice(0, 80).replace(/\s+/g, " ")}）`,
           );
         }
-        return fitness.parsePhysicalExamResult(json) ?? [];
+        return fitness.parsePhysicalExamResult(json) ?? [["状态", "暂无可查成绩"]];
       }),
     );
   }
@@ -2521,32 +2535,47 @@ export class InfoClient {
 
   /* ------------------------------ 银行代发 ------------------------------ */
 
-  /** 银行代发记录（basics.ts getBankPayment/getBankPaymentParellize；yhdf search.do）。
-   *  foundation=基金会（经建会，独立 yyfw 业务 id C1ADD6B6…）；loadPartial=仅近 3 个月。
-   *  查询页无年份选项（非登录页）→ []（lib options.length===0 语义）；年份按
-   *  lib ceil(n/3) 三分并行检索后逐月解析。 */
+  /** 银行代发记录（basics.ts getBankPayment；yhdf search.do）。
+   *  foundation=基金会（经建会，独立 yyfw 业务 id C1ADD6B6…）；loadPartial=仅最近
+   *  3 个年份（UI 默认 true）。实测漫游链路 roam.jsp?ticket → login.do → 第二次
+   *  roam.jsp 后才落查询页，故取年份下拉的顺序：漫游落地页 → 页内跳转一跳
+   *  （meta refresh / JS location；302 已由 fetch redirect:follow 等价处理）→
+   *  直接 GET search.do 兜底；仅真登录/门户页报 AuthRequired，否则无下拉 → []
+   *  （lib options.length===0 语义）。POST：单次 body=`year=<Y>` 同名重复键
+   *  （lib 序列化语义），解析照 lib parseAndFilterBankPayment；POST 前写调试日志。 */
   async getBankPayment(foundation = false, loadPartial = false): Promise<BankPaymentByMonth[]> {
     const roamId = foundation ? urls.BANK_FOUNDATION_ROAM_ID : urls.BANK_ROAM_ID;
+    const searchUrl = foundation
+      ? urls.FOUNDATION_BANK_PAYMENT_SEARCH()
+      : urls.BANK_PAYMENT_SEARCH();
     return this.#withRenew(() =>
-      this.#serviceRoamed(roamId, async () => {
-        const searchUrl = foundation
-          ? urls.FOUNDATION_BANK_PAYMENT_SEARCH()
-          : urls.BANK_PAYMENT_SEARCH();
-        const page = await this.#http.text(searchUrl);
-        this.#assertNotLoginGate(page, "银行代发");
-        const options = finance.parseBankYearOptions(page);
+      this.#serviceRoamed(roamId, async (roamPage) => {
+        if (roamPage === undefined) {
+          throw new Error("银行代发需要先漫游（lib s===undefined 同款强制漫游判据）");
+        }
+        const hasOptions = (html: string): boolean => /<option\b[^>]*\bvalue=/.test(html);
+        let queryPage = roamPage;
+        if (!hasOptions(queryPage)) {
+          const jump = finance.extractPageJump(queryPage);
+          if (jump) {
+            const base = this.#http.lastTarget || searchUrl;
+            queryPage = await this.#http.text(new URL(jump, base).toString());
+          }
+        }
+        if (!hasOptions(queryPage)) {
+          queryPage = await this.#http.text(searchUrl);
+        }
+        this.#assertNotLoginGate(queryPage, "银行代发");
+        const options = finance.parseBankYearOptions(queryPage);
         if (options.length === 0) return [];
-        const batches = finance.splitBankYearBatches(options, loadPartial);
-        const responses = await Promise.all(
-          batches
-            .filter((years) => years.length > 0)
-            .map((years) => {
-              const form = new URLSearchParams();
-              for (const y of years) form.append("year", y);
-              return this.#http.postForm(searchUrl, form);
-            }),
+        const years = loadPartial ? options.slice(0, Math.min(3, options.length)) : options;
+        const form = new URLSearchParams();
+        for (const y of years) form.append("year", y);
+        this.#http.debug?.(
+          `[BANK] POST search.do years=${years.length} [${years.join(",")}] loadPartial=${loadPartial}`,
         );
-        return responses.flatMap((r) => finance.parseBankPayment(r));
+        const result = await this.#http.postForm(searchUrl, form);
+        return finance.parseBankPayment(result);
       }),
     );
   }
@@ -2554,8 +2583,11 @@ export class InfoClient {
   /* ----------------------------- 研究生收入 ----------------------------- */
 
   /** 研究生收入（basics.ts getGraduateIncome；zzjl.graduate pageList POST，
-   *  begin/end 为 YYYYMMDD）→ 收入记录数组（无记录 → []）。 */
-  async getGraduateIncome(begin: string, end: string): Promise<GraduateIncome[]> {
+   *  begin/end 为 YYYYMMDD）→ 收入记录数组；null=无权限/无数据（本科生常态，
+   *  服务端返回错误页/登录页而非 JSON —— UI 显示「研究生专项目」，绝不报失登）。
+   *  真·会话失效由漫游路径（serviceRoamed/withRenew）抛 AuthRequiredError，
+   *  本方法对 POST 响应不做失登判定；JSON 结构破损才 ServiceUnavailableError。 */
+  async getGraduateIncome(begin: string, end: string): Promise<GraduateIncome[] | null> {
     return this.#withRenew(() =>
       this.#serviceRoamed(urls.GRADUATE_INCOME_ROAM_ID, async () => {
         const text = await this.#http.postForm(
@@ -2571,11 +2603,13 @@ export class InfoClient {
             sord: "asc",
           }),
         );
-        this.#assertNotLoginGate(text, "研究生收入");
+        const trimmed = text.trim();
+        if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+          return null; // HTML 错误页/权限页/登录页 → 无权限或无数据（lib 同样直接炸，此处按产品语义归 null）
+        }
         try {
           return finance.parseGraduateIncome(text);
         } catch (e) {
-          if (e instanceof AuthRequiredError) throw e;
           throw new ServiceUnavailableError(e instanceof Error ? e.message : String(e));
         }
       }),
@@ -2587,7 +2621,8 @@ export class InfoClient {
   /** 宿舍卫生成绩（dorm.ts getDormScore；id roam 0a993de7…/0 → m.myhome
    *  weixin/weixin_health_linechart.aspx?id=0 → 图表图片字节 base64）。
    *  无卫生检查数据（页内无图表元素）→ null（UI 显示「暂无」）；
-   *  m.myhome 登录页 → AuthRequiredError。 */
+   *  仅 m.myhome 真登录页（net_Default_LoginCtrl1 登录控件）→ AuthRequiredError；
+   *  教务通用错误页/无权限页不算失登——查不到就是查不到，返回 null。 */
   async getDormScore(): Promise<string | null> {
     return this.#withRenew(async () => {
       const fetchOnce = async (): Promise<string | null> => {
@@ -2595,7 +2630,6 @@ export class InfoClient {
         if (hygiene.hasHygieneLogin(page)) {
           throw new AuthRequiredError("宿舍卫生：m.myhome 会话未建立（落在登录页）");
         }
-        this.#assertNotLoginGate(page, "宿舍卫生");
         const src = hygiene.parseHygieneChartSrc(page);
         if (src === null) return null; // 暂无卫生检查数据
         const imgUrl = /^https?:/i.test(src)

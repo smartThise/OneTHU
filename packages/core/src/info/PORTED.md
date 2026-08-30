@@ -10,9 +10,9 @@ classroom/calendar/neth + htmltext 共享工具），I/O 全部挂在 `InfoClien
 
 | 情形 | 行为 |
 | --- | --- |
-| 登录/超时页特征（`用户登陆超时`、WebVPN 门户页、登录页 title、m.myhome 登录控件） | `AuthRequiredError` |
-| 无成绩 / 成绩未出 / 非评估期 / 无卫生检查数据 / 无代发记录 | 空数组 / `null`（UI 显示「暂无」） |
-| 上游瘫痪 / 响应结构无法解析 | `ServiceUnavailableError`（name 精确，UI 静态维护文案，绝不触发失登自愈） |
+| 登录页特征（WebVPN 门户页 title、登录页 title、m.myhome 登录控件、usereg 验证码页） | `AuthRequiredError`。**注意**：「time out用户登陆超时或访问内容不存在」是教务通用错误页（内容不存在/无权限同文案），**不是**登录页，不触发失登 |
+| 无成绩 / 成绩未出 / 非评估期 / 无卫生检查数据 / 无代发记录 / 无权限（本科生查研究生专项目） | 空数组 / `null` / 「暂无可查成绩」行（UI 显示「暂无」或「专项目」） |
+| 上游瘫痪 / 确认维护页 / JSON 结构破损 | `ServiceUnavailableError`（name 精确，UI 静态维护文案，绝不触发失登自愈）；无法证实瘫痪的异常响应 → 普通 Error 诚实报「获取失败」 |
 
 ## 方法清单
 
@@ -22,20 +22,20 @@ classroom/calendar/neth + htmltext 共享工具），I/O 全部挂在 `InfoClien
 | --- | --- | --- | --- |
 | `getInvoiceList(page)` | `getInvoiceList` | dzpj `POST /invoiceSys/getList.do`（page/limit:20/columnName:"inv_date"/sort:"desc"；先 `#roamInvoice` 取票兑付 `/roam/roamAuth.do`） | `InvoicePage { data: Invoice[]; count }` |
 | `getInvoicePDF(uuid)` | `getInvoicePDF` | dzpj `GET /invoice/showInvPdf.do?uuid=` → 字节 base64 | `string` |
-| `getBankPayment(foundation?, loadPartial?)` | `getBankPayment` + `getBankPaymentParellize` | yhdf `GET/POST /yhdfcx/search.do`（基金会 `/yhdfcx_jjh/search.do`）；`year=` 重复键按 ceil(n/3) 三分并行 | `BankPaymentByMonth[] { month, payment[11 列] }`（无选项 → `[]`） |
-| `getGraduateIncome(begin, end)` | `getGraduateIncome` | zzjl.graduate `POST /b/yjsjzxt/v_yjszzjl_yjscwdfmx_cx/pageList`（ffkssj/ffjssj/nd/rows:1000/page/sidx:id/sord:asc） | `GraduateIncome[]`（无记录 → `[]`） |
+| `getBankPayment(foundation?, loadPartial?)` | `getBankPayment` | yhdf `POST /yhdfcx/search.do`（基金会 `/yhdfcx_jjh/search.do`）。实测漫游链路 roam.jsp?ticket→login.do→roam.jsp 后经页面跳转才落查询页：取年份顺序 = 漫游落地页 → 页内跳转一跳（meta refresh / JS location）→ 直接 GET search.do 兜底；单次 POST `year=` 同名重复键（`loadPartial`=前 3 个年份，UI 默认 true，POST 前写 `[BANK]` 调试日志） | `BankPaymentByMonth[] { month, payment[11 列] }`（无选项 → `[]`） |
+| `getGraduateIncome(begin, end)` | `getGraduateIncome` | zzjl.graduate `POST /b/yjsjzxt/v_yjszzjl_yjscwdfmx_cx/pageList`（ffkssj/ffjssj/nd/rows:1000/page/sidx:id/sord:asc） | `GraduateIncome[]`；**null = 无权限/无数据**（响应非 JSON，本科生常态，UI 显示「研究生专项目」，绝不报失登）；JSON 但缺 object.rows → `ServiceUnavailableError` |
 
 ### 宿舍卫生（hygiene.ts；lib dorm.ts）
 
 | 方法 | lib 来源 | 端点 | 返回 |
 | --- | --- | --- | --- |
-| `getDormScore()` | `getDormScore` | id roam `0a993de7…/0` → m.myhome `GET /weixin/weixin_health_linechart.aspx?id=0` → 图表图 `#weixin_health_linechartCtrl1_Chart1` src 字节 base64 | `string \| null`（无数据 → `null`） |
+| `getDormScore()` | `getDormScore` | id roam `0a993de7…/0` → m.myhome `GET /weixin/weixin_health_linechart.aspx?id=0` → 图表图 `#weixin_health_linechartCtrl1_Chart1` src 字节 base64 | `string \| null`（无图表元素 → `null`；仅 m.myhome 真登录页控件 → `AuthRequiredError`，教务通用错误页/无权限页不算失登） |
 
 ### 体测成绩（fitness.ts；lib basics.ts）
 
 | 方法 | lib 来源 | 端点 | 返回 |
 | --- | --- | --- | --- |
-| `getPhysicalExamResult()` | `getPhysicalExamResult`（含 `physicalExamResultTotal` 参考总分公式逐字） | zhjw `GET /tyjx.tyjx_tc_xscjb.do?m=jsonCj` | `[项目, 结果][]`；`success==="false"` → `[]` |
+| `getPhysicalExamResult()` | `getPhysicalExamResult`（含 `physicalExamResultTotal` 参考总分公式逐字，固定 27 行字段映射） | zhjw `GET /tyjx.tyjx_tc_xscjb.do?m=jsonCj`（会话路径 = `#ensureZhjw` 与课表同款 + lib tyjx yyfw 漫游兜底） | `[项目, 结果][]` 固定 27 行；`success==="false"` → `[["状态","暂无可查成绩"]]`（lib 原样）；响应非 JSON：维护页 → `ServiceUnavailableError`，登录/门户 → `AuthRequiredError`，其余 → 普通 Error |
 
 ### 教学评估（evaluation.ts；lib basics.ts + models/home/assessment.ts）
 

@@ -5,10 +5,11 @@
  *
  * - 发票：dzpj getList.do POST {page,limit:20,columnName:"inv_date",sort:"desc"}
  *   → {data,count}；PDF 端点响应字节 → base64（lib uFetch base64 路径等价）。
- * - 银行代发：查询页 <option value=年份> 多选，POST year=…&year=…（UTF-8 编码，
- *   同名重复键），响应 HTML 逐月分块：<strong>YYYY年MM月银行代发结果</strong>
- *   后随 <table>，行切片(1,-1) 去表头/合计，列 1-6 全文本、列 7-11 取首个子元素
- *   文本（lib getCheerioText(td.children[0])），行内反序（lib .get().reverse()）。
+ * - 银行代发：年份选项取自漫游落地页 <option value=年份>，POST year=…&year=…
+ *   （同名重复键，单次请求；lib getBankPayment 序列化语义），响应 HTML 逐月分块：
+ *   <strong>YYYY年MM月银行代发结果</strong>后随 <table>，行切片(1,-1) 去表头/合计，
+ *   列 1-6 全文本、列 7-11 取首个子元素文本（lib getCheerioText(td.children[0])），
+ *   行内反序（lib .get().reverse()）。
  * - 研究生收入：zzjl pageList POST → {object:{rows}} 字段逐一映射。
  * - 错误语义：无数据一律空数组/空对象，不抛会话错误；结构异常抛普通 Error
  *   由 client 层归类。
@@ -56,6 +57,20 @@ export function parseBankYearOptions(html: string): string[] {
   );
 }
 
+/** 页面内跳转目标（meta refresh / JS location；302 已由 fetch redirect:follow
+ *  等价处理）。实测银行代发漫游链路 roam.jsp?ticket → login.do → roam.jsp 后
+ *  由页面跳转才落查询页，取年份下拉前需要跟随。 */
+export function extractPageJump(html: string): string | null {
+  const meta =
+    /<meta[^>]+http-equiv=["']?refresh["']?[^>]*content=["'][^"']*url=([^"';]+)/i.exec(html)?.[1];
+  if (meta) return meta.trim();
+  const loc =
+    /location\.href\s*=\s*["']([^"']+)["']/i.exec(html)?.[1] ??
+    /location\.replace\(\s*["']([^"']+)["']\s*\)/i.exec(html)?.[1] ??
+    /window\.location\s*=\s*["']([^"']+)["']/i.exec(html)?.[1];
+  return loc ?? null;
+}
+
 /**
  * 代发结果 HTML → 按月分组（lib parseAndFilterBankPayment 逐字移植）。
  * <strong>YYYY年MM月银行代发结果</strong> 命中的，取其后至下一个 strong 之间
@@ -97,25 +112,6 @@ export function parseBankPayment(html: string): BankPaymentByMonth[] {
     out.push({ month: res[1] ?? "", payment });
   }
   return out;
-}
-
-/**
- * 银行代发检索的并行分块（lib getBankPaymentParellize 逐字移植）：
- * loadPartial → 前 3 个月一次请求；否则全部年份按 ceil(n/3) 均分为 3 份并行。
- */
-export function splitBankYearBatches(
-  options: string[],
-  loadPartial: boolean,
-): string[][] {
-  const PARTIAL_NUM = 3;
-  const MAX_PARALLEL_TASKS = 3;
-  if (loadPartial) {
-    return [options.slice(0, Math.min(PARTIAL_NUM, options.length))];
-  }
-  const chunk = Math.ceil(options.length / MAX_PARALLEL_TASKS);
-  return Array.from({ length: MAX_PARALLEL_TASKS }, (_, i) =>
-    options.slice(i * chunk, (i + 1) * chunk),
-  );
 }
 
 /* ------------------------------ 研究生收入 ------------------------------ */

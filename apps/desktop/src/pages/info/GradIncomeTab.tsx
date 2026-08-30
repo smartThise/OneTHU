@@ -1,6 +1,7 @@
 /**
  * 研究生收入 —— info.getGraduateIncome（thu-info-app income.tsx 移植）。
  * 近 12 个月助研津贴/补助发放记录（发放日期 · 项目 · 实发）。
+ * core 返回 null = 无权限/无数据（本科生常态）→ 「研究生专项目」空态，绝不报失登。
  * 空数据/维护态铁律见 tabStates.tsx；绝不自动整页刷新。
  */
 import { useCallback, useEffect, useState } from "react";
@@ -9,9 +10,9 @@ import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
 import { TabEmpty, TabError, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
 
-type LoadState = "loading" | "error" | "ready";
+type LoadState = "loading" | "error" | "ready" | "none";
 /** core getGraduateIncome → 发放记录（ym=发放日期中文，afterTax=实发） */
-type GradIncomeRow = Awaited<ReturnType<typeof info.getGraduateIncome>>[number];
+type GradIncomeRow = NonNullable<Awaited<ReturnType<typeof info.getGraduateIncome>>>[number];
 
 /** 近 12 个月窗口（YYYYMMDD，core getGraduateIncome(begin, end) 参数约定） */
 function recentRange(): { begin: string; end: string } {
@@ -38,8 +39,14 @@ export function GradIncomeTab() {
     setError(null);
     try {
       const range = recentRange();
-      setRows(await info.getGraduateIncome(range.begin, range.end));
-      setState("ready");
+      const data = await info.getGraduateIncome(range.begin, range.end);
+      if (data === null) {
+        setRows(null);
+        setState("none"); // 研究生专项目（本科生无权限/无数据）：友好空态，绝非错误
+      } else {
+        setRows(data);
+        setState("ready");
+      }
     } catch (err) {
       logTabErr("GRADINCOME", err);
       setUnavailable(isServiceUnavailable(err));
@@ -67,7 +74,9 @@ export function GradIncomeTab() {
 
       {state === "loading" && !rows ? (
         <SkeletonRows rows={5} />
-      ) : (rows?.length ?? 0) === 0 ? (
+      ) : state === "none" ? (
+        <TabEmpty text="研究生专项目，本科生无此数据。" />
+      ) : state !== "ready" ? null : (rows?.length ?? 0) === 0 ? (
         <TabEmpty text="暂无收入记录（助研津贴等发放后才可查询）。" />
       ) : (
         <>

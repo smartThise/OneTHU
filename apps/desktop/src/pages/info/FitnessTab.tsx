@@ -52,7 +52,7 @@ export function FitnessTab() {
 
       {state === "loading" && !rows ? (
         <SkeletonRows rows={5} />
-      ) : (rows?.length ?? 0) === 0 ? (
+      ) : state !== "ready" ? null : (rows?.length ?? 0) === 0 ? (
         <TabEmpty text="暂无成绩（本学期体测成绩可能尚未发布）。" />
       ) : (
         <Card style={{ padding: 0, overflow: "hidden" }}>

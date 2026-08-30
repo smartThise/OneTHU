@@ -25,7 +25,7 @@ export function PayrollTab() {
     setUnavailable(false);
     setError(null);
     try {
-      setMonths(await info.getBankPayment());
+      setMonths(await info.getBankPayment(false, true)); // loadPartial=true：最近 3 个年份（lib loadPartial 语义）
       setState("ready");
     } catch (err) {
       logTabErr("PAYROLL", err);
@@ -51,7 +51,7 @@ export function PayrollTab() {
 
       {state === "loading" && !months ? (
         <SkeletonRows rows={5} />
-      ) : (months?.length ?? 0) === 0 ? (
+      ) : state !== "ready" ? null : (months?.length ?? 0) === 0 ? (
         <TabEmpty text="暂无银行代发记录（工资条可能尚未生成，或无代发项目）。" />
       ) : (
         months!.map((m) => (
