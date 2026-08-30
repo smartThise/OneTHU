@@ -2572,12 +2572,19 @@ export class InfoClient {
         }
         this.#assertNotLoginGate(queryPage, "银行代发");
         const options = finance.parseBankYearOptions(queryPage);
-        if (options.length === 0) return [];
-        const years = loadPartial ? options.slice(0, Math.min(3, options.length)) : options;
+        // 壳页兜底（webvpn worker 模式拿不到真页面）：直接构造最近 3 个年份 POST——
+        // UI 默认 loadPartial 也只查最近 3 年，行为等价；search.do 接受任意 year 集合。
+        const fallbackYears = (() => {
+          const y = new Date().getFullYear();
+          return [String(y), String(y - 1), String(y - 2)];
+        })();
+        const years = options.length
+          ? (loadPartial ? options.slice(0, Math.min(3, options.length)) : options)
+          : fallbackYears;
         const form = new URLSearchParams();
         for (const y of years) form.append("year", y);
         this.#http.debug?.(
-          `[BANK] POST search.do years=${years.length} [${years.join(",")}] loadPartial=${loadPartial}`,
+          `[BANK] POST search.do years=${years.length} [${years.join(",")}] opts=${options.length} loadPartial=${loadPartial}`,
         );
         const result = await this.#http.postForm(searchUrl, form);
         this.#http.debug?.(`[BANK] POST resp len=${result.length} head=${result.slice(0, 300).replace(/\s+/g, " ")}`);
