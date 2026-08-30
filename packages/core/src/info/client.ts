@@ -2587,7 +2587,9 @@ export class InfoClient {
           `[BANK] POST search.do years=${years.length} [${years.join(",")}] opts=${options.length} loadPartial=${loadPartial}`,
         );
         const result = await this.#http.postForm(searchUrl, form);
-        this.#http.debug?.(`[BANK] POST resp len=${result.length} head=${result.slice(0, 300).replace(/\s+/g, " ")}`);
+        this.#http.debug?.(
+          `[BANK] POST resp len=${result.length} cookies=${this.#http.lastCookieNames} body=${result.replace(/\s+/g, " ").slice(0, 2400)}`,
+        );
         return finance.parseBankPayment(result);
       }),
     );
