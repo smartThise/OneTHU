@@ -1227,3 +1227,292 @@
 }
 .washer-card .chip { flex: none; }
 .stat-label { letter-spacing: .1px; }
+
+/* ============================================================
+   首页卡片系统（今日页全量卡片化）
+   CardShell（标题行+折叠箭头+编辑工具）/ 入口大卡 / 添加卡片弹层。
+   沿用 minmax(0,1fr) 体系：所有行容器 min-width:0 + max-width:100%，
+   文本一律 ellipsis，窄窗口不横向溢出。
+   ============================================================ */
+
+/* 主栏列容器（侧栏 .today-rail 复用同款纵排 + 间距） */
+.today-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.today-rail { gap: 14px; }
+
+/* ---------- 卡片外壳 ---------- */
+
+.home-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden; /* 头部行圆角裁剪 */
+  animation: page-in 240ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* 编辑模式：虚线描边点出「可整理」状态 */
+.home-card.is-editing { border-style: dashed; border-color: var(--accent-border); }
+
+.home-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 16px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* 展开的 bespoke 卡：标题行下加分隔线（折叠/入口卡不需要） */
+.home-card:not(.is-collapsed):not(.home-entry) .home-card-head {
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* 标题按钮（bespoke）：整行可点 = 折叠/展开 */
+.home-card-title {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-card-title h2 {
+  margin: 0;
+  font-size: var(--text-md);
+  line-height: 24px;
+  font-weight: 600;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-card-aside {
+  font-size: var(--text-xs);
+  line-height: 18px;
+  color: var(--text-3);
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-card-title:focus-visible,
+.home-entry-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--r-sm);
+}
+
+/* 通用小图标按钮（折叠箭头 / 编辑 ↑↓←→） */
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  flex: none;
+  font: inherit;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.icon-btn:hover { background: var(--hover); color: var(--text-1); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.icon-btn[disabled] { opacity: 0.3; cursor: default; pointer-events: none; }
+
+/* 折叠箭头：展开朝下 / 收起朝右（旋转过渡） */
+.home-card-fold svg { transition: transform 140ms cubic-bezier(0.2, 0.7, 0.3, 1); transform: rotate(90deg); }
+.home-card.is-collapsed .home-card-fold svg { transform: rotate(0deg); }
+
+/* 编辑工具组：↑↓（列内移动）←→（跨栏移动）✕（移除入口卡） */
+.home-card-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
+.tool-up svg { transform: rotate(-90deg); }
+.tool-down svg { transform: rotate(90deg); }
+.tool-left svg { transform: rotate(180deg); }
+.tool-x { font-size: 13px; line-height: 1; font-weight: 500; }
+
+/* 卡体：内嵌 Card 去边框（外壳即边界，列表行沿用分隔线） */
+.home-card-body {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.home-card-body .card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.home-card-body .stats { margin: 0; }
+
+/* ---------- 入口大卡（entry 卡：图标+名称+说明，hover 高亮） ---------- */
+
+.home-entry .home-card-head { padding: 12px 10px 12px 16px; }
+
+.home-entry-btn {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-entry-btn[disabled] { color: var(--text-1); opacity: 0.85; cursor: default; }
+
+/* 非编辑态整行 hover 高亮（编辑态行内是工具按钮，不做整行反馈） */
+.home-entry:not(.is-editing) .home-card-head:hover { background: var(--hover); }
+
+.home-entry-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  flex: none;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.home-entry-btn:hover .home-entry-icon { background: var(--accent); color: var(--on-primary); }
+
+.home-entry-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.home-entry-name {
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-entry-hint {
+  font-size: var(--text-xs);
+  line-height: 17px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 入口卡折叠 = 卡体收起只留标题行：藏图标与说明，收紧行距 */
+.home-entry.is-collapsed .home-card-head { padding-top: 7px; padding-bottom: 7px; }
+.home-entry.is-collapsed .home-entry-icon,
+.home-entry.is-collapsed .home-entry-hint { display: none; }
+.home-entry.is-collapsed .home-entry-name { font-size: var(--text-md); line-height: 24px; }
+
+/* ---------- 添加卡片弹层（NewsTab 订阅弹层同款：portal+遮罩居中） ---------- */
+
+.home-modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.home-modal {
+  width: 100%;
+  max-width: 520px;
+  max-height: 76vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+  animation: page-in 180ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.home-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.home-modal-head h3 { margin: 0; font-size: 16px; line-height: 22px; }
+
+.home-modal-body {
+  padding: 12px 20px 20px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.home-modal-hint {
+  font-size: var(--text-xs);
+  line-height: 18px;
+  color: var(--text-3);
+  margin-bottom: 8px;
+}
+
+.home-modal-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-soft);
+  min-width: 0;
+}
+
+.home-modal-row:first-of-type { border-top: 0; }
+
+.home-modal-row .home-entry-icon { width: 34px; height: 34px; border-radius: 10px; }
+
+.home-modal-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.home-modal-row .btn {
+  flex: none;
+  height: 28px;
+  padding: 0 10px;
+  font-size: var(--text-sm);
+}
