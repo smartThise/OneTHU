@@ -1173,6 +1173,109 @@ export function useCard(days = 30) {
   return { data, state, error, reload };
 }
 
+/* ============ 今日预约（首页聚合卡：图书馆座位 + 研讨间，按「今天」过滤） ============ */
+
+export interface TodayReservation {
+  key: string;
+  /** seat=图书馆座位（记录只有开始时间），room=研讨间（有起止时段） */
+  kind: "seat" | "room";
+  /** 场馆：座位=pos 冒号前段；研讨间=kindName */
+  venue: string;
+  /** 位置：座位号 / 房间名 */
+  place: string;
+  start: Date;
+  /** 座位预约记录无结束时间 */
+  end: Date | null;
+  /** 附加说明（座位状态 / 研讨间成员数） */
+  note?: string;
+}
+
+/** "YYYY-MM-DD HH:mm"（getLibBookRecords.time）→ 本地 Date；不匹配返回 null */
+function parseYmdHm(raw: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(raw.trim());
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]));
+}
+
+/**
+ * 今日预约数据源（首页「今日预约」卡）：图书馆座位（getLibBookRecords）
+ * + 研讨间（getLibRoomRecords，core 返回未来 6 天）按今天过滤后按开始时间排序。
+ * 两路 allSettled 互相独立：任一失败落日志并按「无预约」处理，不阻塞另一路；
+ * 今天没有预约即空列表（卡片整卡不渲染，不占位）。
+ */
+export function useTodayReservations() {
+  const { status } = useApp();
+  const [list, setList] = useState<TodayReservation[] | null>(null);
+  const [state, setState] = useState<DataState>("loading");
+
+  const load = useCallback(async () => {
+    setState("loading");
+    if (status === "demo") {
+      const base = new Date();
+      const at = (h: number, m: number) =>
+        new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, m);
+      setList([
+        { key: "demo-seat", kind: "seat", venue: "逸夫馆 三层", place: "037 号", start: at(14, 0), end: null, note: "正常" },
+        { key: "demo-room", kind: "room", venue: "研讨间", place: "三教 1302", start: at(18, 0), end: at(20, 0), note: "成员 3 人" },
+      ]);
+      setState("ready");
+      return;
+    }
+    const [seatRes, roomRes] = await Promise.allSettled([
+      info.getLibBookRecords(),
+      info.getLibRoomRecords(session.username),
+    ]);
+    const seats: TodayReservation[] = [];
+    if (seatRes.status === "fulfilled") {
+      const today = fmtDate(new Date());
+      for (const r of seatRes.value) {
+        const start = parseYmdHm(r.time);
+        if (!start || fmtDate(start) !== today) continue; // 只聚合今天的
+        if (/取消|违约|作废/.test(r.status)) continue;
+        const idx = r.pos.indexOf(":");
+        seats.push({
+          key: `seat-${r.id}-${r.time}`,
+          kind: "seat",
+          venue: (idx >= 0 ? r.pos.slice(0, idx) : r.pos || "图书馆").replace(/-/g, " ").trim(),
+          place: idx >= 0 ? r.pos.slice(idx + 1).trim() : "",
+          start,
+          end: null,
+          note: r.status || undefined,
+        });
+      }
+    } else {
+      logPageError("TODAY-RESV-SEAT", seatRes.reason);
+    }
+    const rooms: TodayReservation[] = [];
+    if (roomRes.status === "fulfilled") {
+      const today = fmtDate(new Date());
+      for (const r of roomRes.value) {
+        if (r.date !== today) continue;
+        if (Number.isNaN(r.begin.getTime())) continue; // 服务端字段缺失 → Invalid Date
+        rooms.push({
+          key: `room-${r.uuid || r.rsvId}`,
+          kind: "room",
+          venue: r.kindName || "研讨间",
+          place: r.devName,
+          start: r.begin,
+          end: r.end,
+          note: r.members.length > 0 ? `成员 ${r.members.length} 人` : undefined,
+        });
+      }
+    } else {
+      logPageError("TODAY-RESV-ROOM", roomRes.reason);
+    }
+    setList([...seats, ...rooms].sort((a, b) => a.start.getTime() - b.start.getTime()));
+    setState("ready");
+  }, [status]);
+
+  useEffect(() => {
+    if (status === "ready" || status === "demo") void load();
+  }, [status, load]);
+
+  return { list, state, reload: load };
+}
+
 /** 考试安排（zhjw 课表 JSONP 分类「考试」） */
 /** 校历（当前 + 未来学期；learn 直连 getCurrentAndNextSemester） */
 export function useCalendar() {

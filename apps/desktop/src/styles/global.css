@@ -162,7 +162,7 @@
 
 /* ---------- 列表行 ---------- */
 
-.list { display: flex; flex-direction: column; }
+.list { display: flex; flex-direction: column; min-width: 0; max-width: 100%; }
 
 .row {
   display: flex;
@@ -172,6 +172,8 @@
   border-top: 1px solid var(--border-soft);
   transition: background 100ms ease;
   animation: row-in 260ms ease both;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .row:first-child {
@@ -237,7 +239,13 @@
   line-height: 18px;
   font-weight: 500;
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+/* 列表行内的徽标不参与收缩：徽标文本很短，挤窄的是标题/副标题（min-width:0） */
+.row .chip { flex: none; }
 
 .chip-red { background: var(--red-soft); color: var(--red); }
 .chip-amber { background: var(--amber-soft); color: var(--amber); }
@@ -249,9 +257,11 @@
 
 /* ---------- 统计卡 ---------- */
 
+/* 统计卡网格：1fr = minmax(auto,1fr)，内容一宽就撑破容器把页面顶出横向滚动
+   （快捷入口一加就溢出的病根）→ 一律 minmax(0,1fr) 锁死轨道可收缩 */
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--gap-3);
   margin-bottom: var(--gap-2);
 }
@@ -261,6 +271,8 @@
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
+  min-width: 0; /* grid/flex 子项允许收缩，内部文本走 ellipsis */
+  max-width: 100%;
 }
 
 .stat-icon {
@@ -283,9 +295,21 @@
   line-height: 24px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.stat-label { font-size: var(--text-xs); line-height: 18px; color: var(--text-3); }
+.stat-label {
+  font-size: var(--text-xs);
+  line-height: 18px;
+  color: var(--text-3);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .today-grid {
   display: grid;
@@ -294,7 +318,16 @@
   align-items: start;
 }
 
-.today-rail { display: flex; flex-direction: column; }
+.today-rail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* 固定 312px 轨道内：stats/卡片都不得外溢 */
+}
+
+/* 右栏快捷入口竖排单列：312px 里塞 3 列入口必然撑破 → 单列后每卡整行宽 */
+.today-rail .stats {
+  grid-template-columns: minmax(0, 1fr);
+}
 
 /* ---------- 时间线 ---------- */
 
@@ -326,9 +359,25 @@
   flex-shrink: 0;
 }
 
-.tl-main { min-width: 0; }
-.tl-title { font-size: var(--text-sm); line-height: 20px; font-weight: 500; }
-.tl-sub { font-size: var(--text-xs); line-height: 18px; color: var(--text-3); margin-top: 1px; }
+.tl-main { flex: 1 1 auto; min-width: 0; }
+/* 长课名/长标题默认单行省略（通知行内联 whiteSpace:normal 覆盖换行） */
+.tl-title {
+  font-size: var(--text-sm);
+  line-height: 20px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tl-sub {
+  font-size: var(--text-xs);
+  line-height: 18px;
+  color: var(--text-3);
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ---------- 按钮（pill） ---------- */
 
@@ -693,8 +742,8 @@
 .hero-count { color: var(--accent); font-weight: 500; }
 
 @media (max-width: 980px) {
-  .today-grid { grid-template-columns: 1fr; }
-  .stats { grid-template-columns: 1fr 1fr; }
+  .today-grid { grid-template-columns: minmax(0, 1fr); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 860px) {
@@ -813,8 +862,10 @@
   cursor: pointer;
   font: inherit;
   text-align: left;
+  min-width: 0;
+  max-width: 100%;
 }
-.stat-text { display: flex; flex-direction: column; }
+.stat-text { display: flex; flex-direction: column; min-width: 0; max-width: 100%; }
 
 /* 课程详情：上课时间条 */
 .course-meta {
@@ -985,7 +1036,7 @@
 /* 校园卡余额主卡 */
 /* 病根：.card-hero 的 flex:1.6 在 .stats 的 grid 里无效，主卡只拿 1/3 宽
    还塞满卡号/院系/单笔上限 meta → 全挤一起。改为：主卡独占整行，两张统计卡对半第二行。 */
-.stats.stats-hero { grid-template-columns: repeat(2, 1fr); }
+.stats.stats-hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .stats.stats-hero .card-hero { grid-column: 1 / -1; padding: 20px 24px; }
 .stats.stats-hero .card-hero-main { gap: 16px; }
 .stats.stats-hero .card-hero-amount { font-size: 32px; line-height: 38px; }
