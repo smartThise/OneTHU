@@ -14,3 +14,16 @@ export function autoFullReload(scope: string): boolean {
   setTimeout(() => location.reload(), 150);
   return true;
 }
+
+/** 全局失登看门狗：core 任何模块抛 AuthRequiredError → 整页重载兜底（autoFullReload
+ *  自带 2 分钟 sessionStorage 节流，坏会话不会死循环）。应用启动时调用一次。 */
+export function installAuthWatchdog(): void {
+  void (async () => {
+    try {
+      const { onAuthRequired } = await import("@onethu/core");
+      onAuthRequired(() => autoFullReload("global"));
+    } catch {
+      /* core 不可用时静默（仅存在于非打包预览环境） */
+    }
+  })();
+}

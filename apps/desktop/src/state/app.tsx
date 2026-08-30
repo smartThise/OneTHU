@@ -35,6 +35,13 @@ export interface LearnNav {
   /** 信息页新闻直达：携带 xxid 时 InfoPage 初始落在新闻 tab，并把该条新闻打开详情。
    *  不带此参数时 InfoPage 行为与旧版完全一致（默认成绩 tab）。 */
   infoNewsId?: string;
+  /** 聚合页初始子栏（首页入口化直达）：各聚合页 segmented 的初始 tab。
+   *  仅作挂载初始落点 / 已挂载时的直达落点，页内切换不回写；不带对应参数时
+   *  各页保持原默认（info=成绩 / life=宿舍 / reserve=图书馆座位）。
+   *  reserveTab 的 "lib"/"room" 分别对应 ReservePage 页内 library/libroom 栏。 */
+  infoTab?: "report" | "exams" | "news" | "profile";
+  lifeTab?: "dorm" | "washer" | "card";
+  reserveTab?: "lib" | "room";
 }
 
 const TOP_PAGES = ["today", "learn", "schedule", "info", "life", "reserve", "zhjwxk", "settings"] as const;

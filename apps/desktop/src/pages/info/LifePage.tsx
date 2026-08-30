@@ -3,9 +3,14 @@
  * 三块自「信息」页拆出，tab 组件原样复用（各自自带三态与重试）。
  * 页内分栏（segmented）：与 InfoPage 同款交互，每个 tab 首次激活时挂载并
  * 保持挂载（visited + hidden），切回不重复请求，切页返回才重新拉取。
+ *
+ * 子栏直达（首页入口化）：navigate("life", { lifeTab }) 指定初始 tab（缺省宿舍），
+ * 与 InfoPage 的 infoNewsId 同款消费模式（挂载初值 + navParams 身份触发的
+ * effect）；页内切换不回写参数。
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHead } from "../../components/Layout.js";
+import { useApp } from "../../state/context.js";
 import { CardTab } from "./CardTab.js";
 import { DormTab } from "./DormTab.js";
 import { WasherTab } from "./WasherTab.js";
@@ -19,9 +24,17 @@ const TABS: Array<{ id: LifeTab; label: string }> = [
 ];
 
 export function LifePage() {
-  const [tab, setTab] = useState<LifeTab>("dorm");
+  const { navParams } = useApp();
+  const [tab, setTab] = useState<LifeTab>(() => navParams?.lifeTab ?? "dorm");
   /** 已激活过的 tab 保持挂载：切回即显（数据在 hook 里，无需重复请求） */
-  const [visited, setVisited] = useState<ReadonlySet<LifeTab>>(() => new Set(["dorm"]));
+  const [visited, setVisited] = useState<ReadonlySet<LifeTab>>(() => new Set([navParams?.lifeTab ?? "dorm"]));
+
+  useEffect(() => {
+    const direct = navParams?.lifeTab;
+    if (!direct) return; // 无参数导航（侧栏点击等）：不改变当前 tab
+    setTab((t) => (t === direct ? t : direct));
+    setVisited((prev) => (prev.has(direct) ? prev : new Set(prev).add(direct)));
+  }, [navParams]);
 
   const activate = (id: LifeTab) => {
     setTab(id);

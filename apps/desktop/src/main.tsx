@@ -1,6 +1,9 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "@onethu/ui/tokens.css";
+import { installAuthWatchdog } from "./lib/reload.js";
+
+installAuthWatchdog();
 import "@onethu/ui/base.css";
 import "./styles/global.css";
 import { App } from "./App.js";

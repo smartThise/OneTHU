@@ -1,7 +1,7 @@
 /** @onethu/core —— 清华万物，汇合于一体 */
 
 // 传输层
-export { HttpClient, MemoryCookieJar, AuthRequiredError, DEFAULT_USER_AGENT } from "./http.js";
+export { HttpClient, MemoryCookieJar, AuthRequiredError, DEFAULT_USER_AGENT, onAuthRequired } from "./http.js";
 export type { CookieJar, CookieRecord, FetchLike, HttpClientOptions } from "./http.js";
 
 // 加密

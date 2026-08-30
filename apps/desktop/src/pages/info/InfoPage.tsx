@@ -8,6 +8,10 @@
  * 新闻直达（首页新闻行点击 → navigate("info", { infoNewsId: xxid })）：
  * 带 infoNewsId 参数时初始 tab 落在「新闻」，并把 xxid 下传 NewsTab 打开该条详情；
  * 不带参数时行为与旧版一致（默认成绩 tab，不打开任何详情）——向后兼容。
+ *
+ * 子栏直达（首页入口化）：navigate("info", { infoTab }) 指定 segmented 初始 tab，
+ * 与 infoNewsId 同款消费模式（挂载初值 + navParams 身份触发的 effect）；页内切换
+ * 不回写参数，缺省时保持原默认成绩 tab。
  */
 import { useEffect, useState } from "react";
 import { PageHead } from "../../components/Layout.js";
@@ -32,15 +36,23 @@ export function InfoPage() {
    *  用 navParams 对象身份作 effect 依赖：navigate 每次都新建参数对象，
    *  同一条新闻重复点击也能再次触发打开。 */
   const [newsId, setNewsId] = useState<string | null>(() => navParams?.infoNewsId ?? null);
-  const [tab, setTab] = useState<InfoTab>(() => (navParams?.infoNewsId ? "news" : "report"));
+  const [tab, setTab] = useState<InfoTab>(() => (navParams?.infoNewsId ? "news" : (navParams?.infoTab ?? "report")));
   /** 已激活过的 tab 保持挂载：切回即显（数据在 hook 里，无需重复请求） */
   const [visited, setVisited] = useState<ReadonlySet<InfoTab>>(
-    () => new Set(navParams?.infoNewsId ? ["report", "news"] : ["report"]),
+    () => new Set(navParams?.infoNewsId ? ["report", "news"] : [navParams?.infoTab ?? "report"]),
   );
 
   useEffect(() => {
-    const id = navParams?.infoNewsId;
-    if (!id) return; // 无参数导航（侧栏点击等）：不改变当前 tab / 详情态
+    const params = navParams;
+    if (!params) return; // 无参数导航（侧栏点击等）：不改变当前 tab / 详情态
+    // 子栏直达（首页入口化）：infoTab 仅作落点，切换后不回写（消费即弃）
+    const direct = params.infoTab;
+    if (direct) {
+      setTab((t) => (t === direct ? t : direct));
+      setVisited((prev) => (prev.has(direct) ? prev : new Set(prev).add(direct)));
+    }
+    const id = params.infoNewsId;
+    if (!id) return; // 无新闻直达参数：不动详情态
     setTab((t) => (t === "news" ? t : "news"));
     setVisited((prev) => (prev.has("news") ? prev : new Set(prev).add("news")));
     setNewsId(id);

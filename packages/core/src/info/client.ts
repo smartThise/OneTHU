@@ -1428,7 +1428,10 @@ export class InfoClient {
    * 兑付 → 探针核实。注意 ef84f6d6… 在 lib 中是 id CAS 表单 hash，不是 yyfw 业务 id。
    */
   async #ensureLibrary(force = false): Promise<void> {
-    if (force) this.#libRoamed = false; // 强制重建（forceEnsure 自愈入口）：清标记重走
+    if (force) {
+      this.#libRoamed = false; // 强制重建（forceEnsure 自愈入口）：清标记重走
+      this.#libToken = ""; // token 一并失效，避免拿旧会话的 token 撞新会话
+    }
     if (this.#libRoamed) return;
     await this.#roamIdService(urls.LIBRARY_CAS_FORM());
     if (!(await this.#libAlive())) {
@@ -1815,7 +1818,12 @@ export class InfoClient {
    * getAccessToken 每次调用前都先 roam("id") 重建 id→座位系统会话 —— 首页无
    * token 时 core 同样重走 #roamIdService 再取一次。失败带抓取页 URL 前 120 字符。
    */
+  #libToken = "";
+  #libTokenTs = 0;
+
   async #libraryAccessToken(): Promise<string> {
+    // 10 分钟缓存：access_token 每次都整页抓 LIBRARY_HOME 是预约区加载慢的根因
+    if (this.#libToken && Date.now() - this.#libTokenTs < 600_000) return this.#libToken;
     const home = urls.LIBRARY_HOME();
     const grab = async (): Promise<string> => {
       const page = await this.#http.text(home, this.#campusInit());
@@ -1893,6 +1901,8 @@ export class InfoClient {
       const tbody = /<tbody[^>]*>([\s\S]*?)<\/tbody>/i.exec(html)?.[1];
       if (!tbody) {
         if (!html.includes("tbody")) {
+          // 登录页形态（ XHTML/表单）= 会话失效 → 走失登自愈（整页重载兜底），别当解析错误
+          if (/<form|登录|login|password|用户名/i.test(html)) throw new AuthRequiredError();
           throw new Error(
             `预约记录页解析失败（body首段: ${html.slice(0, 200).replace(/\s+/g, " ")} | 现场: ${String(this.#http.lastDebug ?? "").slice(0, 160)}）`,
           );

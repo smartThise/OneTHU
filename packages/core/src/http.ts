@@ -184,10 +184,26 @@ export class MemoryCookieJar implements CookieJar {
   }
 }
 
+/** 全局失登监听（硬刷新兜底模块的钩子）：任何模块抛 AuthRequiredError 都会广播。
+ *  桌面端启动时安装一次 → 触发整页重载（2 分钟节流），给所有已稳定功能兜底。 */
+type AuthListener = () => void;
+const authListeners = new Set<AuthListener>();
+export function onAuthRequired(cb: AuthListener): () => void {
+  authListeners.add(cb);
+  return () => authListeners.delete(cb);
+}
+
 export class AuthRequiredError extends Error {
   constructor(message = "会话已失效，需要重新登录") {
     super(message);
     this.name = "AuthRequiredError";
+    for (const cb of authListeners) {
+      try {
+        cb();
+      } catch {
+        /* 监听器异常不影响错误传播 */
+      }
+    }
   }
 }
 
