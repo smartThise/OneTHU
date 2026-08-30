@@ -230,16 +230,16 @@ export function DormTab() {
             </button>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <div className="field" style={{ flex: 1, minWidth: 160 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0 14px" }}>
+          <div className="field">
             <label htmlFor="water-contact">联系人</label>
             <input id="water-contact" className="input" value={contact} onChange={(e) => setContact(e.target.value)} />
           </div>
-          <div className="field" style={{ flex: 1, minWidth: 160 }}>
+          <div className="field">
             <label htmlFor="water-num">订水量（桶）</label>
             <input id="water-num" className="input" type="number" min={1} value={num} onChange={(e) => setNum(e.target.value)} />
           </div>
-          <div className="field" style={{ flex: 1, minWidth: 160 }}>
+          <div className="field">
             <label htmlFor="water-num1">水票数</label>
             <input id="water-num1" className="input" type="number" min={0} value={num1} onChange={(e) => setNum1(e.target.value)} />
           </div>

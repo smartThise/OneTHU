@@ -2871,6 +2871,9 @@ export class InfoClient {
     const res = await this.#http.request(urls.NETH_CAPTCHA(), { redirect: "follow" });
     const mime = res.headers.get("content-type") ?? "image/jpeg";
     const buf = new Uint8Array(await res.arrayBuffer());
+    this.#http.debug?.(
+      `[NETH] captcha mime=${mime} bytes=${buf.length} head=${[...buf.subarray(0, 16)].map((b) => b.toString(16).padStart(2, "0")).join(" ")}`,
+    );
     let bin = "";
     for (let i = 0; i < buf.length; i += 0x8000) {
       bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));

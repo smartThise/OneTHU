@@ -419,11 +419,12 @@
 
 /* ---------- 表单 ---------- */
 
-.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
 
 .field label {
   font-size: var(--text-xs);
-  line-height: 18px;
+  line-height: 20px;
+  letter-spacing: 0.2px;
   font-weight: 500;
   color: var(--text-2);
 }

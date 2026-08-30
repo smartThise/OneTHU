@@ -162,12 +162,12 @@ export function NetworkTab() {
       ) : null}
 
       {state === "captcha" ? (
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>usereg 验证码登录</div>
-          <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 10 }}>
+        <Card style={{ marginBottom: 20, padding: 18 }}>
+          <div style={{ fontWeight: 600, marginBottom: 10, fontSize: 14 }}>usereg 验证码登录</div>
+          <div style={{ fontSize: 13, opacity: 0.75, marginBottom: 14, lineHeight: 1.6 }}>
             密码与 INFO 密码一致；输入右侧图内验证码后登录（与网页端流程相同）。
           </div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
             <div
               onClick={() => !captchaLoading && void refreshCaptcha()}
               style={{
@@ -199,19 +199,19 @@ export function NetworkTab() {
                 if (e.key === "Enter") void doLogin();
               }}
               placeholder="验证码"
-              style={{ width: 120, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border, #ccc)" }}
+              style={{ width: 130, height: 38, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border, #ccc)", fontSize: 14 }}
             />
             <button
-              className="chip chip-blue"
+              className="btn"
               onClick={() => void doLogin()}
               disabled={loginBusy || !code.trim()}
               style={{ opacity: loginBusy || !code.trim() ? 0.6 : 1 }}
             >
-              {loginBusy ? "登录中…" : "登录"}
+              {loginBusy ? "登录中…" : "登录 usereg"}
             </button>
           </div>
           {loginErr ? (
-            <div style={{ marginTop: 10, fontSize: 12, color: "#d33" }}>{loginErr}</div>
+            <div style={{ marginTop: 12, fontSize: 13, lineHeight: 1.5, color: "#d33" }}>{loginErr}</div>
           ) : null}
         </Card>
       ) : null}
