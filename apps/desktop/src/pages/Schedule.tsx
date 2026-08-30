@@ -144,7 +144,7 @@ export function SchedulePage() {
   return (
     <>
       <PageHead
-        title="课表"
+        title="课表 v3·自由时间轴"
         meta={
           semester
             ? `${semester.semesterName || semester.semesterId} · 第 ${weekNo} 周 / 共 ${semester.weekCount} 周`
