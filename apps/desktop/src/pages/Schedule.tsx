@@ -138,8 +138,9 @@ export function SchedulePage() {
   }, [semester, weekNo]);
 
   const loading = semester ? weekData.state === "loading" && !weekData.data : campus.state === "loading" && !campus.data;
-  const axisEnd = maxEnd >= 14 ? END_MIN[14] ?? 1305 : END_MIN[maxEnd] ?? 1200;
-  const canvasH = y(axisEnd) + 8;
+  // 全天轴：无论有几节课，画布恒为 08:00–21:45 满高（自由轴的意义）
+  const axisEnd = END_MIN[14] ?? 1305;
+  const canvasH = y(axisEnd) + 10;
 
   return (
     <>
@@ -230,7 +231,7 @@ export function SchedulePage() {
               {/* 时间刻度列：小节号+开始时刻，绝对高度对齐画布 */}
               <div style={{ width: 52, flexShrink: 0, position: "relative", height: canvasH }}>
                 {BEGIN_TIME.map((t, sec) =>
-                  sec === 0 || sec > maxEnd ? null : (
+                  sec === 0 ? null : (
                     <div
                       key={sec}
                       style={{
@@ -285,6 +286,38 @@ export function SchedulePage() {
                     />
                   ),
                 )}
+                {/* 当前时刻红线（所视周含今天时） */}
+                {dayDates[todayIdx] ? (
+                  (() => {
+                    const now = new Date();
+                    const nm = now.getHours() * 60 + now.getMinutes();
+                    if (nm < AXIS_BEGIN || nm > axisEnd) return null;
+                    return (
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: `${(todayIdx * 100) / 7}%`,
+                          width: `${100 / 7}%`,
+                          top: y(nm),
+                          borderTop: "2px solid #e5484d",
+                          zIndex: 5,
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: -3,
+                            top: -4,
+                            width: 6,
+                            height: 6,
+                            borderRadius: 3,
+                            background: "#e5484d",
+                          }}
+                        />
+                      </div>
+                    );
+                  })()
+                ) : null}
                 {/* 课程块 */}
                 {placed.map((p, i) => {
                   const laneW = 100 / p.lanes; // 一天内每道次占比（%）
