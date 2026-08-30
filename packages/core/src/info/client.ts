@@ -2554,6 +2554,9 @@ export class InfoClient {
           throw new Error("银行代发需要先漫游（lib s===undefined 同款强制漫游判据）");
         }
         const hasOptions = (html: string): boolean => /<option\b[^>]*\bvalue=/.test(html);
+        this.#http.debug?.(
+          `[BANK] roamPage len=${roamPage.length} hasOptions=${hasOptions(roamPage)} head=${roamPage.slice(0, 600).replace(/\s+/g, " ")}`,
+        );
         let queryPage = roamPage;
         if (!hasOptions(queryPage)) {
           const jump = finance.extractPageJump(queryPage);
