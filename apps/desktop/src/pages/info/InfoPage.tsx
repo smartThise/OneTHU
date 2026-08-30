@@ -1,6 +1,7 @@
 /**
  * 信息中心 —— info 门户核心功能聚合页（thu-info-app 功能移植到桌面端）。
- * 子页：成绩（getReport）/ 考试安排（课表分类「考试」）/ 新闻（getNewsList）/
+ * 子页：成绩（getReport）/ 体测成绩（成绩后）/ 考试安排（课表分类「考试」）/
+ *       教学评估（考试后）/ 校历（图片版，新闻前）/ 新闻（getNewsList）/
  *       个人信息（grjbxx）。
  * 校园卡 / 宿舍 / 洗衣机已拆至「生活」页，图书馆拆至「预约」页。
  * 每个 tab 首次激活时拉取并保持挂载，切回不重复请求；各 tab 自带三态与重试。
@@ -20,12 +21,18 @@ import { ExamsTab } from "./ExamsTab.js";
 import { NewsTab } from "./NewsTab.js";
 import { ProfileTab } from "./ProfileTab.js";
 import { ReportTab } from "./ReportTab.js";
+import { FitnessTab } from "./FitnessTab.js";
+import { EvaluationTab } from "./EvaluationTab.js";
+import { CalendarTab } from "./CalendarTab.js";
 
-export type InfoTab = "report" | "exams" | "news" | "profile";
+export type InfoTab = "report" | "fitness" | "exams" | "evaluation" | "calendar" | "news" | "profile";
 
 const TABS: Array<{ id: InfoTab; label: string }> = [
   { id: "report", label: "成绩" },
+  { id: "fitness", label: "体测成绩" },
   { id: "exams", label: "考试" },
+  { id: "evaluation", label: "教学评估" },
+  { id: "calendar", label: "校历" },
   { id: "news", label: "新闻" },
   { id: "profile", label: "个人信息" },
 ];
@@ -66,7 +73,7 @@ export function InfoPage() {
   return (
     <>
       <PageHead title="信息" meta="信息门户 · 教务" />
-      <div className="segmented" role="tablist" aria-label="信息功能" style={{ marginBottom: 14 }}>
+      <div className="segmented" role="tablist" aria-label="信息功能" style={{ marginBottom: 14, flexWrap: "wrap" }}>
         {TABS.map(({ id, label }) => (
           <button
             key={id}
@@ -81,7 +88,10 @@ export function InfoPage() {
       </div>
 
       <div hidden={tab !== "report"}>{visited.has("report") ? <ReportTab /> : null}</div>
+      <div hidden={tab !== "fitness"}>{visited.has("fitness") ? <FitnessTab /> : null}</div>
       <div hidden={tab !== "exams"}>{visited.has("exams") ? <ExamsTab /> : null}</div>
+      <div hidden={tab !== "evaluation"}>{visited.has("evaluation") ? <EvaluationTab /> : null}</div>
+      <div hidden={tab !== "calendar"}>{visited.has("calendar") ? <CalendarTab /> : null}</div>
       <div hidden={tab !== "news"}>{visited.has("news") ? <NewsTab newsId={newsId} onConsumeNewsId={() => setNewsId(null)} /> : null}</div>
       <div hidden={tab !== "profile"}>{visited.has("profile") ? <ProfileTab /> : null}</div>
     </>

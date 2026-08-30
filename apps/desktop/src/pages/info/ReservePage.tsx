@@ -1,11 +1,12 @@
 /**
  * 预约页 —— 页内分栏（segmented）：「图书馆座位」（LibraryTab 原样复用，
  * 自带分区标题与三态重试）/「研讨间」（LibRoomTab，cab.lib ic-web）/
+ * 「空教室」（ClassroomTab，教学 Tina 空闲状态只读查询）/
  * 「更多场馆」占位（游泳馆、健身房等陆续接入）。
  * 与 InfoPage 同款交互：每个 tab 首次激活时挂载并保持挂载（visited + hidden）。
  *
  * 子栏直达（首页入口化）：navigate("reserve", { reserveTab }) 指定初始 tab，
- * 契约值 "lib"/"room" 映射页内 library/libroom 栏（缺省图书馆座位），
+ * 契约值 "lib"/"room"/"classroom" 映射页内 library/libroom/classroom 栏（缺省图书馆座位），
  * 与 InfoPage 的 infoNewsId 同款消费模式（挂载初值 + navParams 身份触发的
  * effect）；页内切换不回写参数。
  */
@@ -15,12 +16,14 @@ import type { LearnNav } from "../../state/app.js";
 import { useApp } from "../../state/context.js";
 import { LibraryTab } from "./LibraryTab.js";
 import { LibRoomTab } from "./LibRoomTab.js";
+import { ClassroomTab } from "./ClassroomTab.js";
 
-export type ReserveTab = "library" | "libroom" | "more";
+export type ReserveTab = "library" | "libroom" | "classroom" | "more";
 
 const TABS: Array<{ id: ReserveTab; label: string }> = [
   { id: "library", label: "图书馆座位" },
   { id: "libroom", label: "研讨间" },
+  { id: "classroom", label: "空教室" },
   { id: "more", label: "更多场馆" },
 ];
 
@@ -28,6 +31,7 @@ const TABS: Array<{ id: ReserveTab; label: string }> = [
 const PARAM_TO_TAB: Record<NonNullable<LearnNav["reserveTab"]>, ReserveTab> = {
   lib: "library",
   room: "libroom",
+  classroom: "classroom",
 };
 
 export function ReservePage() {
@@ -52,8 +56,8 @@ export function ReservePage() {
 
   return (
     <>
-      <PageHead title="预约" meta="图书馆座位 · 研讨间 · 更多场馆陆续接入" />
-      <div className="segmented" role="tablist" aria-label="预约功能" style={{ marginBottom: 14 }}>
+      <PageHead title="预约" meta="图书馆座位 · 研讨间 · 空教室 · 更多场馆陆续接入" />
+      <div className="segmented" role="tablist" aria-label="预约功能" style={{ marginBottom: 14, flexWrap: "wrap" }}>
         {TABS.map(({ id, label }) => (
           <button
             key={id}
@@ -70,6 +74,7 @@ export function ReservePage() {
       {/* LibraryTab 自带「图书馆座位」分区标题，不再叠加模块头 */}
       <div hidden={tab !== "library"}>{visited.has("library") ? <LibraryTab /> : null}</div>
       <div hidden={tab !== "libroom"}>{visited.has("libroom") ? <LibRoomTab /> : null}</div>
+      <div hidden={tab !== "classroom"}>{visited.has("classroom") ? <ClassroomTab /> : null}</div>
       <div hidden={tab !== "more"}>
         {visited.has("more") ? (
           <Card>

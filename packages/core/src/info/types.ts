@@ -306,3 +306,225 @@ export interface LibRoomBookRecord {
   kindName: string;
   members: Array<{ name: string; userId: string }>;
 }
+
+/* ---------------- 财务三件（finance.ts 移植：lib models/home/invoice.ts / bank.ts） ---------------- */
+
+/** 电子发票 —— lib models/home/invoice.ts Invoice 逐字段对齐（getList.do 原始字段） */
+export interface Invoice {
+  bill_amount: number;
+  bmdm: string;
+  bus_no: string;
+  cust_email: string;
+  cust_mob: string;
+  cust_name: string;
+  cust_tax_no: string;
+  cust_ts_cardno: string;
+  cust_type: string;
+  file_name: string;
+  financial_dept_name: string;
+  financial_item_name: string;
+  inv_amount: number;
+  inv_code: string;
+  inv_crc: string;
+  inv_data_id: number;
+  inv_date: string;
+  inv_isred: string;
+  inv_no: string;
+  inv_note: string;
+  inv_red_no: string;
+  inv_type: string;
+  inv_typeStr: string;
+  is_allow_reimbursement: string;
+  ists: string;
+  payment_item_type_name: string;
+  red_bus_no: string;
+  tax_amount: number;
+  uuid: number;
+}
+
+/** 发票分页 —— lib getInvoiceList 返回形状（getList.do {data,count}） */
+export interface InvoicePage {
+  data: Invoice[];
+  count: number;
+}
+
+/** 银行代发单条 —— lib models/home/bank.ts BankPayment 逐字段对齐 */
+export interface BankPayment {
+  /** 代发部门 */
+  department: string;
+  /** 代发项目 */
+  project: string;
+  /** 代发用途 */
+  usage: string;
+  /** 代发说明 */
+  description: string;
+  /** 开户银行 */
+  bank: string;
+  /** 计税时间 */
+  time: string;
+  /** 应发金额 */
+  total: string;
+  /** 扣税金额 */
+  deduction: string;
+  /** 实发金额 */
+  actual: string;
+  /** 存折金额 */
+  deposit: string;
+  /** 现金金额 */
+  cash: string;
+}
+
+/** 银行代发按月分组 —— lib models/home/bank.ts BankPaymentByMonth */
+export interface BankPaymentByMonth {
+  /** "2021年12月" */
+  month: string;
+  payment: BankPayment[];
+}
+
+/** 研究生收入 —— lib models/home/bank.ts GraduateIncome 逐字段对齐（pageList row 字段） */
+export interface GraduateIncome {
+  id: string;
+  /** 发放年（ffnf） */
+  year: string;
+  /** 发放月（ffyf） */
+  month: string;
+  /** 发放日期（ffrq） */
+  date: string;
+  /** 发放日期中文（ffrqChs） */
+  ym: string;
+  /** 项目名（dfytmc） */
+  name: string;
+  /** 部门（xmssbmmc） */
+  department: string;
+  /** 应发（yfje） */
+  beforeTax: number;
+  /** 实发（sfje） */
+  afterTax: number;
+  /** 扣税（ksje） */
+  tax: number;
+}
+
+/* ---------------- 教学评估（evaluation.ts 移植：lib models/home/assessment.ts） ---------------- */
+
+/** 表单最小单元 —— lib assessment.ts InputTag（name=字段名，value=分值/文本） */
+export interface AssessmentInputTag {
+  name: string;
+  value: string;
+}
+
+/** 单个题项 —— lib assessment.ts InputGroup */
+export interface AssessmentInputGroup {
+  question: string;
+  /** 建议输入（页内唯一带 class 的 input） */
+  suggestion: AssessmentInputTag;
+  /** 评分输入（ul 直下唯一 input） */
+  score: AssessmentInputTag;
+  /** 其余隐藏 input（无 class、无 avgfs 属性） */
+  others: AssessmentInputTag[];
+}
+
+/** 被评人（教师/助教） —— lib assessment.ts Person */
+export interface AssessmentPerson {
+  name: string;
+  inputGroups: AssessmentInputGroup[];
+}
+
+/** 评估表单 —— lib assessment.ts Form（overall.suggestion 为整体建议文本，
+ *  字段名固定 kcpgjgDtos[0].jtjy；score 为整体评分输入） */
+export interface AssessmentForm {
+  basics: AssessmentInputTag[];
+  overall: { suggestion: string; score: AssessmentInputTag };
+  teachers: AssessmentPerson[];
+  assistants: AssessmentPerson[];
+}
+
+/* ---------------- 教室资源（classroom.ts 移植：lib models/home/classroom.ts） ---------------- */
+
+/** 教学楼 —— lib classroom.ts Classroom */
+export interface Classroom {
+  /** 教学楼名（链接文本） */
+  name: string;
+  /** 链接内嵌的当前周次 */
+  weekNumber: number;
+  /** 查询用名（href classroom= 参数原文，查询时按 GB2312 编码） */
+  searchName: string;
+}
+
+/** 教室状态 —— lib ClassroomStatus 数值枚举（const 对象保持数值，兼容 node --experimental-strip-types） */
+export const ClassroomStatus = {
+  TEACHING: 0,
+  EXAM: 1,
+  BORROWED: 2,
+  DISABLED: 3,
+  RESERVED_FOR_COMPAT: 4,
+  AVAILABLE: 5,
+} as const;
+export type ClassroomStatus = (typeof ClassroomStatus)[keyof typeof ClassroomStatus];
+
+/** 单间教室一周状态 —— lib classroom.ts ClassroomState（status=42 个状态，周一起） */
+export interface ClassroomState {
+  name: string;
+  status: ClassroomStatus[];
+}
+
+/** 教室状态查询结果 —— lib classroom.ts ClassroomStateResult */
+export interface ClassroomStateResult {
+  validWeekNumbers: number[];
+  currentWeekNumber: number;
+  /** 周一到周日 7 个日期串（页面 colspan=6 单元格括号内） */
+  datesOfCurrentWeek: [string, string, string, string, string, string, string];
+  classroomStates: ClassroomState[];
+}
+
+/* ---------------- 校历（calendar.ts 移植：lib models/schedule/calendar.ts） ---------------- */
+
+/** 学期 —— lib calendar.ts Semester（firstDay 对齐到教学周周一） */
+export interface SchoolSemester {
+  /** "YYYY-MM-DD"（教学周第一天=周一） */
+  firstDay: string;
+  /** 学期号（如 "2024-2025-1"） */
+  semesterId: string;
+  /** 学期名（如 "2024-2025秋季学期"） */
+  semesterName: string;
+  /** 教学周数 */
+  weekCount: number;
+}
+
+/** 校历数据 —— lib calendar.ts CalendarData（改名避开 learn 模块 CalendarData） */
+export interface SchoolCalendarData extends SchoolSemester {
+  nextSemesterList: SchoolSemester[];
+}
+
+/* ---------------- 校园网 thos/usereg（neth.ts 移植：lib models/network/*） ---------------- */
+
+/** 在线设备 —— lib models/network/device.ts Device */
+export interface NetworkDevice {
+  key: number;
+  ip4: string;
+  ip6: string;
+  loggedAt: string;
+  mac: string;
+  authPermission: string;
+}
+
+/** 流量/余额 —— lib models/network/balance.ts Balance（页面原文，未归一） */
+export interface NetworkBalance {
+  productName: string;
+  usedBytes: string;
+  usedSeconds: string;
+  accountBalance: string;
+  settlementDate: string;
+}
+
+/** 上网账号资料 —— lib models/network/account.ts AccountInfo */
+export interface NetworkAccountInfo {
+  username: string;
+  contactEmail: string;
+  contactPhone: string;
+  contactLandline: string;
+  realName: string;
+  status: string;
+  userGroup: string;
+  location: string;
+  allowedDevices: number;
+}

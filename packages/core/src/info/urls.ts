@@ -209,3 +209,110 @@ export const LIBROOM_CANCEL = () => `${LIBROOM_PREFIX}/ic-web/reserve/delete`;
 
 /** 首次预约前须绑定邮箱（library.ts LIBRARY_ROOM_UPDATE_EMAIL_URL；POST JSON {email}） */
 export const LIBROOM_UPDATE_EMAIL = () => `${LIBROOM_PREFIX}/ic-web/account/update`;
+
+/* ------------------------------------------------------------------ */
+/* 财务三件 / 体测 / 教学评估 / 教室资源 / 校历 / 宿舍卫生 / 校园网 ——
+ * thu-info-lib basics.ts / network.ts / dorm.ts(getDormScore) / schedule.ts(getCalendar)
+ * 逐条移植。lib 内为 webvpn 硬编码 hex（core.ts HOST_MAP，AES key=wrdvpnisthebest!
+ * 已逐一解码核实真实域），此处存真实域 URL，由 HttpClient 按分流规则动态包装：
+ * 校内非公网域名（jxgl.cic/zhjw.cic/dzpj/yhdf/zzjl.graduate/m.myhome/usereg）恒走
+ * WebVPN；app.cs.tsinghua.edu.cn 为公网站点（lib 亦直连），调用方须 direct:true。 */
+/* ------------------------------------------------------------------ */
+
+/** 教学评估（jxgl.cic —— lib ASSESSMENT_*；yyfw 业务漫游 id 0D8B99BA…） */
+export const JXGL_PREFIX = "http://jxgl.cic.tsinghua.edu.cn";
+export const ASSESSMENT_ROAM_ID = "0D8B99BA23FD2BA22428D9C8AA0AB508";
+/** 评估课程列表（lib ASSESSMENT_LIST_URL；HTML 表） */
+export const ASSESSMENT_LIST = () => `${JXGL_PREFIX}/jxpg/f/jxpg/wj/xs/pgkcList`;
+/** 评估表单提交（lib ASSESSMENT_SUBMIT_URL；POST 表单，响应 {result,msg}） */
+export const ASSESSMENT_SUBMIT = () => `${JXGL_PREFIX}/jxpg/b/jxpg/pgjg/xs/zancunjs`;
+
+/** 体测成绩（zhjw —— lib PHYSICAL_EXAM_URL；yyfw 业务漫游 id 8BF4F9A7…；JSON） */
+export const PHYSICAL_EXAM_ROAM_ID = "8BF4F9A706589060488B6B6179E462E5";
+export const PHYSICAL_EXAM = () => `${ZHJW_PREFIX}/tyjx.tyjx_tc_xscjb.do?m=jsonCj`;
+
+/** 教室资源（zhjw —— lib CLASSROOM_*；yyfw 业务漫游 id 40470BB4…；HTML） */
+export const CLASSROOM_ROAM_ID = "40470BB47E0849E9EF717983490BC964";
+/** 教学楼列表页（lib CLASSROOM_LIST_URL；链接 href 内嵌 classroom=…&weeknumber=…） */
+export const CLASSROOM_LIST = () =>
+  `${ZHJW_PREFIX}/portal3rd.do?url=/portal3rd.do&m=jasJy_Xs_Js_index`;
+/** 教室占用状态（lib CLASSROOM_STATE_PREFIX/MIDDLE；classroom 参数由调用方做
+ *  GB2312 百分号编码，见 classroom.ts arbitraryEncodeGb2312） */
+export const CLASSROOM_STATE = (encodedBuilding: string, week: number) =>
+  `${ZHJW_PREFIX}/pk.classroomctrl.do?m=qyClassroomState&classroom=${encodedBuilding}&weeknumber=${week}`;
+
+/** 电子发票（dzpj —— lib INVOICE_*；yyfw 业务漫游 id 625B81A7…。
+ *  lib roam("default") 对 dzpj 特判：漫游页内 ("ticket").value = '…' 取票后
+ *  POST /roam/roamAuth.do {ticket} 兑付建立 dzpj 会话，再访问业务端点。） */
+export const INVOICE_ROAM_ID = "625B81A7A9D148B01DA59185CC4074E1";
+export const INVOICE_PREFIX = "https://dzpj.tsinghua.edu.cn";
+/** 发票列表（lib INVOICE_LIST_URL；POST 表单 page/limit/columnName/sort → {data,count}） */
+export const INVOICE_LIST = () => `${INVOICE_PREFIX}/invoiceSys/getList.do`;
+/** 发票 PDF（lib INVOICE_CONTENT_URL；响应 PDF 字节 → base64） */
+export const INVOICE_CONTENT = (uuid: string | number) =>
+  `${INVOICE_PREFIX}/invoice/showInvPdf.do?uuid=${uuid}`;
+/** 电子票据会话兑付（lib INVOICE_LOGIN_URL；POST 表单 {ticket}） */
+export const INVOICE_LOGIN = () => `${INVOICE_PREFIX}/roam/roamAuth.do`;
+
+/** 银行代发（yhdf —— lib BANK_PAYMENT_SEARCH_URL / FOUNDATION_BANK_PAYMENT_SEARCH_URL。
+ *  普通代发与基金会（经建会）是两个 yyfw 业务 id；查询页 option 提供年份多选，
+ *  POST year=…&year=… 检索，响应 HTML 按月分块解析。） */
+export const BANK_ROAM_ID = "2A5182CB3F36E80395FC2091001BDEA6";
+export const BANK_FOUNDATION_ROAM_ID = "C1ADD6B60D050B64E0C7B8F195CE89EC";
+export const YHDF_PREFIX = "http://yhdf.tsinghua.edu.cn";
+export const BANK_PAYMENT_SEARCH = () => `${YHDF_PREFIX}/yhdfcx/search.do`;
+export const FOUNDATION_BANK_PAYMENT_SEARCH = () => `${YHDF_PREFIX}/yhdfcx_jjh/search.do`;
+
+/** 研究生收入（zzjl.graduate —— lib GRADUATE_INCOME_URL；yyfw 业务漫游 id C0AE458C…；
+ *  POST 表单 ffkssj/ffjssj/nd/rows/page/sidx/sord → {object:{rows}}） */
+export const GRADUATE_INCOME_ROAM_ID = "C0AE458CEACD0912982A09DDF0C136DA";
+export const GRADUATE_INCOME = () =>
+  "http://zzjl.graduate.tsinghua.edu.cn/b/yjsjzxt/v_yjszzjl_yjscwdfmx_cx/pageList";
+
+/** 校历（数据版 learn + 图片版 app.cs —— lib getCalendar / getSchoolCalendarYear /
+ *  getCalendarImageUrl。learn 走 yyfw 业务漫游 3E401364…（HttpClient 对 learn 域恒直连）。 */
+export const LEARN_CALENDAR_ROAM_ID = "3E401364BDD7AEA7EBF1EDE3F15ED4B7";
+/** 网络学堂首页（lib LEARN_HOME_URL；页内 _csrf 供学期接口） */
+export const LEARN_HOME = () => "https://learn.tsinghua.edu.cn/f/wlxt/index/course/student/index";
+/** 当前及下学期列表（lib SEMESTER_LIST_URL；GET ?_csrf= → {message,result,resultList}） */
+export const SEMESTER_LIST = () =>
+  "https://learn.tsinghua.edu.cn/b/kc/zhjw_v_code_xnxq/getCurrentAndNextSemester?_csrf=";
+/** 最新校历年（lib CALENDAR_YEAR_URL；app.cs 公网直连 → {year}） */
+export const SCHOOL_CALENDAR_YEAR = () => "https://app.cs.tsinghua.edu.cn/Api/SchoolCalendarYear";
+/** 校历图片（lib CALENDAR_IMAGE_URL 拼法：/xiaoli/{lang}/{year}-{1|2}.jpg，公网直连） */
+export const CALENDAR_IMAGE = (lang: "zh" | "en", year: number, term: 1 | 2) =>
+  `https://app.cs.tsinghua.edu.cn/xiaoli/${lang}/${year}-${term}.jpg`;
+
+/** 宿舍卫生成绩（m.myhome 微信端 —— lib dorm.ts getDormScore。
+ *  roam("id", 0a993de7…/0)：与电费的 /1 同 hash 不同兑付路径，兑付目标为 m.myhome。 */
+export const HYGIENE_CAS_FORM = () =>
+  "https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/0a993de7e533cd43a594459abdcab27d/0";
+/** 卫生检查折线图页（lib DORM_SCORE_URL；页内 #weixin_health_linechartCtrl1_Chart1
+ *  的 src 即图表图片（webvpn 相对路径），抓字节转 base64） */
+export const HYGIENE_SCORE = () =>
+  "https://m.myhome.tsinghua.edu.cn/weixin/weixin_health_linechart.aspx?id=0";
+
+/* ------------------------------------------------------------------ */
+/* 校园网 thos/usereg（lib network.ts 逐条移植。上游服务已瘫痪：照抄移植，
+ * 解析失败由 client 层统一抛 ServiceUnavailableError。 */
+/* ------------------------------------------------------------------ */
+
+export const NETH_PREFIX = "https://usereg.tsinghua.edu.cn";
+
+/** 验证码（lib NETWORK_VERIFICATION_CODE_URL；先 GET ?refresh=1 再取 ?_=ts） */
+export const NETH_CAPTCHA = () => `${NETH_PREFIX}/site/captcha`;
+/** 登录页（lib NETWORK_LOGIN_URL；含 loginform-verifycode = 需验证码登录） */
+export const NETH_LOGIN = () => `${NETH_PREFIX}/login`;
+/** 账密校验（lib NETWORK_VALIDATE_USER_URL；需 X-CSRF-Token + X-Requested-With 头） */
+export const NETH_VALIDATE_USER = () => `${NETH_PREFIX}/site/validate-user`;
+/** 上网主页（lib NETWORK_HOME_URL；#w1-container 在线设备 / #w3-container 余额） */
+export const NETH_HOME = () => `${NETH_PREFIX}/home`;
+/** 下线设备（lib NETWORK_HOME_DELETE_URL；POST 表单 _csrf-8800） */
+export const NETH_HOME_DELETE = (id: number | string, mac: string) =>
+  `${NETH_PREFIX}/home/delete?id=${id}&user_mac=${mac}`;
+/** 导入/认证设备（lib NETWORK_IMPORT_DEVICE_URL；POST CertificationForm[ip] 等） */
+export const NETH_IMPORT_DEVICE = () => `${NETH_PREFIX}/certification`;
+/** 账号资料（lib NETWORK_USER_INFO_URL；#w0 表 td 索引映射） */
+export const NETH_USER_INFO = () => `${NETH_PREFIX}/users`;
+/** 可认证设备数（lib NETWORK_ALLOWED_DEVICES_URL；.glyphicon-exclamation-sign 文案） */
+export const NETH_ALLOWED_DEVICES = () => `${NETH_PREFIX}/user/online-num`;

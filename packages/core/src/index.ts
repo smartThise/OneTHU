@@ -52,16 +52,28 @@ export type {
 } from "./learn/types.js";
 
 // 信息门户
-export { InfoClient, isAuthError } from "./info/client.js";
+export { InfoClient, isAuthError, ServiceUnavailableError } from "./info/client.js";
 export * as infoUrls from "./info/urls.js";
 export type {
+  AssessmentForm,
+  AssessmentInputGroup,
+  AssessmentInputTag,
+  AssessmentPerson,
   BasicUserInfo,
+  BankPayment,
+  BankPaymentByMonth,
   CardInfo,
   CardTransaction,
+  Classroom,
+  ClassroomState,
+  ClassroomStateResult,
   DeadlineItem,
   ElePayRecord,
   EleRemainder,
   ExamEntry,
+  GraduateIncome,
+  Invoice,
+  InvoicePage,
   LibBookRecord,
   LibFuzzySearchResult,
   LibRoom,
@@ -74,12 +86,18 @@ export type {
   LibrarySeat,
   LibrarySeatAvailability,
   LibrarySection,
+  NetworkAccountInfo,
+  NetworkBalance,
+  NetworkDevice,
   NewsAttachment,
   NewsDetail,
   NewsItem,
   ReportRow,
+  SchoolCalendarData,
+  SchoolSemester,
   ScheduleEntry,
 } from "./info/types.js";
+export { ClassroomStatus } from "./info/types.js";
 
 // 洗衣机（thu-info-app washer.tsx 移植：捷利 + 海乐生活公开接口，无需校内会话）
 export { getWasherBuildingGroups, getWasherDevices } from "./info/washer.js";

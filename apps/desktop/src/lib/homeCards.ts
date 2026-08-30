@@ -34,7 +34,10 @@ export type HomeCardId =
   | "info-news" | "info-report" | "info-exams" | "info-profile"
   | "life-dorm" | "life-washer" | "life-card"
   | "reserve-lib" | "reserve-room"
-  | "learn-semester" | "learn-search";
+  | "learn-semester" | "learn-search"
+  | "life-hygiene" | "life-invoice" | "life-payroll" | "life-gradincome" | "life-network"
+  | "info-fitness" | "info-evaluation" | "info-calendar"
+  | "reserve-classroom";
 
 /** 渲染栏位：main=主栏（宽） rail=侧栏（窄） */
 export type HomeCol = "main" | "rail";
@@ -109,6 +112,16 @@ export const HOME_CARD_META: HomeCardDef[] = [
   { id: "reserve-room", title: "研讨间", kind: "entry", icon: IconCalendar, defaultCol: "main", defaultOrder: 22, defaultHidden: true, hint: "预约 · 研讨间申请", entry: { page: "reserve", params: { reserveTab: "room" } } },
   { id: "learn-semester", title: "学期切换", kind: "entry", icon: IconRefresh, defaultCol: "main", defaultOrder: 23, defaultHidden: true, hint: "网络学堂 · 切换数据学期", entry: { page: "learn-semester" } },
   { id: "learn-search", title: "网络学堂搜索", kind: "entry", icon: IconSearch, defaultCol: "main", defaultOrder: 24, defaultHidden: true, hint: "课程 / 作业 / 通知 / 文件", entry: { page: "learn-search" } },
+  /* —— 新移植功能入口（默认隐藏；成绩详情聚合进「全部成绩」卡，不重复注册） —— */
+  { id: "life-invoice", title: "电子发票", kind: "entry", icon: IconFile, defaultCol: "main", defaultOrder: 25, defaultHidden: true, hint: "生活页 · 财务 · 发票列表", entry: { page: "life", params: { lifeTab: "invoice" } } },
+  { id: "life-payroll", title: "银行代发", kind: "entry", icon: IconIn, defaultCol: "main", defaultOrder: 26, defaultHidden: true, hint: "生活页 · 财务 · 工资到账", entry: { page: "life", params: { lifeTab: "payroll" } } },
+  { id: "life-gradincome", title: "研究生收入", kind: "entry", icon: IconCard, defaultCol: "main", defaultOrder: 27, defaultHidden: true, hint: "生活页 · 财务 · 助研津贴", entry: { page: "life", params: { lifeTab: "gradincome" } } },
+  { id: "life-hygiene", title: "卫生成绩", kind: "entry", icon: IconFlag, defaultCol: "main", defaultOrder: 28, defaultHidden: true, hint: "生活页 · 宿舍卫生检查", entry: { page: "life", params: { lifeTab: "hygiene" } } },
+  { id: "info-fitness", title: "体测成绩", kind: "entry", icon: IconCheck, defaultCol: "main", defaultOrder: 29, defaultHidden: true, hint: "信息页 · 体质测试", entry: { page: "info", params: { infoTab: "fitness" } } },
+  { id: "info-evaluation", title: "教学评估", kind: "entry", icon: IconPen, defaultCol: "main", defaultOrder: 30, defaultHidden: true, hint: "信息页 · 问卷进度", entry: { page: "info", params: { infoTab: "evaluation" } } },
+  { id: "info-calendar", title: "校历", kind: "entry", icon: IconCalendar, defaultCol: "main", defaultOrder: 31, defaultHidden: true, hint: "信息页 · 学期安排图片", entry: { page: "info", params: { infoTab: "calendar" } } },
+  { id: "reserve-classroom", title: "空教室", kind: "entry", icon: IconSearch, defaultCol: "main", defaultOrder: 32, defaultHidden: true, hint: "预约页 · 自习空闲查询", entry: { page: "reserve", params: { reserveTab: "classroom" } } },
+  { id: "life-network", title: "校园网", kind: "entry", icon: IconExternal, defaultCol: "main", defaultOrder: 33, defaultHidden: true, hint: "生活页 · 账号与流量", entry: { page: "life", params: { lifeTab: "network" } } },
 ];
 
 /** bespoke 卡注入片：render 必给；aside 可覆盖元数据里的静态说明（动态计数等） */

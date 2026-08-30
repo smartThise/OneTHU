@@ -36,14 +36,27 @@ import { ID_PREFIX, parseCasFormHtml } from "../auth/cas.js";
 import { encryptPassword } from "../crypto/sm2.js";
 import { webvpnWrap } from "../crypto/webvpn.js";
 import * as urls from "./urls.js";
+import * as evaluation from "./evaluation.js";
+import * as classroom from "./classroom.js";
+import * as fitness from "./fitness.js";
+import * as finance from "./finance.js";
+import * as hygiene from "./hygiene.js";
+import * as neth from "./neth.js";
+import * as schoolCalendar from "./calendar.js";
 import type {
+  AssessmentForm,
   BasicUserInfo,
+  BankPaymentByMonth,
   CardInfo,
   CardTransaction,
+  Classroom,
+  ClassroomStateResult,
   DeadlineItem,
   ElePayRecord,
   EleRemainder,
   ExamEntry,
+  GraduateIncome,
+  InvoicePage,
   LibBookRecord,
   LibFuzzySearchResult,
   LibRoomBookRecord,
@@ -54,10 +67,14 @@ import type {
   LibrarySeat,
   LibrarySeatAvailability,
   LibrarySection,
+  NetworkAccountInfo,
+  NetworkBalance,
+  NetworkDevice,
   NewsDetail,
   NewsItem,
   NewsSource,
   ReportRow,
+  SchoolCalendarData,
   ScheduleEntry,
 } from "./types.js";
 
@@ -180,6 +197,18 @@ let lastCampusOkAt = 0;
 const SESSION_REFRESH_MS = 7 * 60 * 1000;
 
 /**
+ * 上游服务不可用/瘫痪，或响应结构无法解析（区别于会话失效的 AuthRequiredError）：
+ * 「无成绩/成绩未出/服务下线」类状态绝不能映射成需要重新登录。
+ * 校园网（usereg）上游已瘫痪，其解析失败统一抛本错误。
+ */
+export class ServiceUnavailableError extends Error {
+  constructor(message = "服务暂不可用") {
+    super(message);
+    this.name = "ServiceUnavailableError";
+  }
+}
+
+/**
  * 登录态/会话失效判定（公开辅助，UI 静默自愈用）：AuthRequiredError 本体，
  * 或错误文案带未登录特征。失效文案均出自 core 各探针/解析层（含 e.name 兜底，
  * instanceof 跨模块实例失效时按名字识别）。误判代价仅多一次自愈尝试，漏判会闪红——特征从宽。
@@ -187,6 +216,7 @@ const SESSION_REFRESH_MS = 7 * 60 * 1000;
 export function isAuthError(e: unknown): boolean {
   if (e instanceof AuthRequiredError) return true;
   const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+  // 注意：ServiceUnavailableError 绝不能算会话失效（铁律 b：服务瘫痪 ≠ 需要重新登录）
   return /AuthRequiredError|未登录|请先登录|请重新登录|重新登录|登录超时|登陆超时|登录已失效|登录态|会话已失效|会话失效|会话超时|会话过期|身份过期|认证失效|not[ -]?logged[ -]?in|unauthorized/i.test(
     msg,
   );
@@ -2258,5 +2288,564 @@ export class InfoClient {
     return this.#withLibRoom(userId, async () => {
       await this.#cabFetch(urls.LIBROOM_UPDATE_EMAIL(), { email });
     });
+  }
+
+  /* ===================================================================== */
+  /* thu-info-lib 剩余可运行功能的数据层移植（方法级清单见 info/PORTED.md）：   */
+  /* 校园财务三件（发票/银行代发/研究生收入）/ 宿舍卫生 / 体测 / 教学评估 /      */
+  /* 教室资源 / 校历（数据+图片）/ 校园网 thos-usereg。                        */
+  /* 解析逐字对照 lib；传输层适配 OneTHU HttpClient：业务 yyfw 漫游复用        */
+  /* #roamInfoService，校内域名由 HttpClient 动态 WebVPN 包装，learn/app.cs 直连。 */
+  /* 错误分类铁律：会话失效 → AuthRequiredError（登录/超时页特征）；             */
+  /* 无数据 → 空结果；服务瘫痪/解析失败 → ServiceUnavailableError。             */
+  /* ===================================================================== */
+
+  /** 文本响应的登录/超时页特征检测（业务页通用判据，命中即会话失效） */
+  #assertNotLoginGate(text: string, what: string): void {
+    if (/用户登陆超时|time out/i.test(text)) {
+      throw new AuthRequiredError(`${what}：服务端会话已超时`);
+    }
+    if (text.includes("<title>清华大学WebVPN</title>")) {
+      throw new AuthRequiredError(`${what}：落在 WebVPN 门户页（会话失效）`);
+    }
+    if (/<title>[^<]*(用户登录|系统登录|电子身份)[^<]*<\/title>/i.test(text)) {
+      throw new AuthRequiredError(`${what}：落在登录页（会话失效）`);
+    }
+  }
+
+  /** 业务服务会话兜底（lib roamingWrapper 同构）：首试 → 失败则漫游对应 yyfw
+   *  业务（roam 自身失败同样重试一次，lib 同款）→ 再试一次。 */
+  async #serviceRoamed<T>(yyfwid: string, op: () => Promise<T>): Promise<T> {
+    try {
+      return await op();
+    } catch (e) {
+      try {
+        await this.#roamInfoService(yyfwid);
+      } catch {
+        await this.#roamInfoService(yyfwid);
+      }
+      return await op();
+    }
+  }
+
+  /* ------------------------------ 教学评估 ------------------------------ */
+
+  /** 评估课程列表（basics.ts getAssessmentList；jxgl /jxpg/f/jxpg/wj/xs/pgkcList）。
+   *  返回 [课程名, 是否已评, 评估表单 URL]；非评估期/空列表 → []（UI 显示「暂无」） */
+  async getAssessmentList(): Promise<Array<[string, boolean, string]>> {
+    return this.#withRenew(() =>
+      this.#serviceRoamed(urls.ASSESSMENT_ROAM_ID, async () => {
+        const html = await this.#http.text(urls.ASSESSMENT_LIST());
+        this.#assertNotLoginGate(html, "教学评估");
+        if (html.includes(evaluation.ASSESSMENT_NOT_IN_PERIOD)) return [];
+        return evaluation.parseAssessmentList(html, urls.JXGL_PREFIX);
+      }),
+    );
+  }
+
+  /** 评估表单（basics.ts getAssessmentForm；GET 列表项给出的表单 URL） */
+  async getAssessmentForm(url: string): Promise<AssessmentForm> {
+    const target = /^https?:/i.test(url)
+      ? url
+      : `${urls.JXGL_PREFIX}${url.startsWith("/") ? "" : "/"}${url}`;
+    return this.#withRenew(() =>
+      this.#serviceRoamed(urls.ASSESSMENT_ROAM_ID, async () => {
+        const html = await this.#http.text(target);
+        this.#assertNotLoginGate(html, "教学评估表单");
+        return evaluation.parseAssessmentForm(html);
+      }),
+    );
+  }
+
+  /** 提交评估表单（basics.ts postAssessmentForm；POST /jxpg/b/jxpg/pgjg/xs/zancunjs）。
+   *  写操作仅在会话失效（AuthRequiredError）时漫游重试一次，避免重复提交；
+   *  result!=="success" 抛服务端 msg。 */
+  async postAssessmentForm(form: AssessmentForm): Promise<void> {
+    return this.#withRenew(async () => {
+      const submit = async (): Promise<void> => {
+        const text = await this.#http.postForm(
+          urls.ASSESSMENT_SUBMIT(),
+          evaluation.serializeAssessmentForm(form),
+        );
+        this.#assertNotLoginGate(text, "教学评估提交");
+        const err = evaluation.assessmentSubmitError(text);
+        if (err !== null) throw new Error(err);
+      };
+      try {
+        await submit();
+      } catch (e) {
+        if (!(e instanceof AuthRequiredError)) throw e;
+        await this.#roamInfoService(urls.ASSESSMENT_ROAM_ID);
+        await submit();
+      }
+    });
+  }
+
+  /* ------------------------------ 体测成绩 ------------------------------ */
+
+  /** 体测成绩（basics.ts getPhysicalExamResult；zhjw /tyjx.tyjx_tc_xscjb.do?m=jsonCj）。
+   *  返回 [项目, 结果] 行；「暂无可查成绩」（success==="false"）→ []（UI 显示「暂无」） */
+  async getPhysicalExamResult(): Promise<Array<[string, string]>> {
+    return this.#withRenew(() =>
+      this.#serviceRoamed(urls.PHYSICAL_EXAM_ROAM_ID, async () => {
+        const text = await this.#http.text(urls.PHYSICAL_EXAM());
+        this.#assertNotLoginGate(text, "体测成绩");
+        let json: Record<string, unknown>;
+        try {
+          json = JSON.parse(text) as Record<string, unknown>;
+        } catch {
+          throw new ServiceUnavailableError(
+            `体测成绩解析失败（resp=${text.slice(0, 80).replace(/\s+/g, " ")}）`,
+          );
+        }
+        return fitness.parsePhysicalExamResult(json) ?? [];
+      }),
+    );
+  }
+
+  /* ------------------------------ 教室资源 ------------------------------ */
+
+  /** 教学楼列表（basics.ts getClassroomList；zhjw portal3rd jasJy_Xs_Js_index）。
+   *  空列表 → ServiceUnavailableError（lib LibError 语义：查询页结构失效） */
+  async getClassroomList(): Promise<Classroom[]> {
+    return this.#withRenew(() =>
+      this.#serviceRoamed(urls.CLASSROOM_ROAM_ID, async () => {
+        const html = await this.#http.text(urls.CLASSROOM_LIST());
+        this.#assertNotLoginGate(html, "教室资源");
+        const list = classroom.parseClassroomList(html);
+        if (list.length === 0) {
+          throw new ServiceUnavailableError("教室资源列表为空（上游页面结构变化或服务不可用）");
+        }
+        return list;
+      }),
+    );
+  }
+
+  /** 教室占用状态（basics.ts getClassroomState；zhjw pk.classroomctrl qyClassroomState；
+   *  classroom 参数 GB2312 百分号编码，与 lib arbitraryEncode(s,"gb2312") 一致）。
+   *  无数据区（scrollContent 缺失）→ ServiceUnavailableError；结构异常同理。 */
+  async getClassroomState(building: string, week: number): Promise<ClassroomStateResult> {
+    return this.#withRenew(() =>
+      this.#serviceRoamed(urls.CLASSROOM_ROAM_ID, async () => {
+        const target = urls.CLASSROOM_STATE(classroom.arbitraryEncodeGb2312(building), week);
+        const html = await this.#http.text(target);
+        this.#assertNotLoginGate(html, "教室状态");
+        // lib：states 为空且页面无 scrollContent → systemMessage/WebVPNTitle/未知异常
+        if (!html.includes("scrollContent")) {
+          throw new ServiceUnavailableError("教室状态页无数据区（scrollContent 缺失，上游服务异常）");
+        }
+        try {
+          return classroom.parseClassroomState(html, week);
+        } catch (e) {
+          throw new ServiceUnavailableError(e instanceof Error ? e.message : String(e));
+        }
+      }),
+    );
+  }
+
+  /* ------------------------------ 电子发票 ------------------------------ */
+
+  /** 电子发票 dzpj 会话建立（lib roam("default", 625B81A7…) 的 dzpj 特判分支）：
+   *  漫游页内 ("ticket").value = '…' 取票 → POST /roam/roamAuth.do {ticket} 兑付。
+   *  页内无票（dzpj 会话已在）则直接放行。 */
+  async #roamInvoice(): Promise<void> {
+    const { page } = await this.#roamInfoService(urls.INVOICE_ROAM_ID);
+    const ticket = /\("ticket"\)\.value\s*=\s*'(.+?)';/.exec(page)?.[1];
+    if (ticket) {
+      await this.#http.postForm(urls.INVOICE_LOGIN(), new URLSearchParams({ ticket }));
+    }
+  }
+
+  /** 电子发票列表（basics.ts getInvoiceList；dzpj POST getList.do
+   *  {page, limit:20, columnName:"inv_date", sort:"desc"}）→ {data,count}。
+   *  响应非 JSON：登录/超时特征 → AuthRequiredError，否则 ServiceUnavailableError。 */
+  async getInvoiceList(page: number): Promise<InvoicePage> {
+    return this.#withRenew(async () => {
+      const fetchOnce = async (): Promise<InvoicePage> => {
+        const text = await this.#http.postForm(
+          urls.INVOICE_LIST(),
+          new URLSearchParams({
+            page: String(page),
+            limit: "20",
+            columnName: "inv_date",
+            sort: "desc",
+          }),
+        );
+        this.#assertNotLoginGate(text, "电子发票");
+        try {
+          return finance.parseInvoiceList(JSON.parse(text));
+        } catch (e) {
+          if (e instanceof AuthRequiredError) throw e;
+          throw new ServiceUnavailableError(
+            `电子发票列表解析失败（resp=${text.slice(0, 80).replace(/\s+/g, " ")}）`,
+          );
+        }
+      };
+      try {
+        return await fetchOnce();
+      } catch {
+        await this.#roamInvoice();
+        return await fetchOnce();
+      }
+    });
+  }
+
+  /** 电子发票 PDF（basics.ts getInvoicePDF；dzpj showInvPdf.do?uuid=…）→ base64
+   *  （lib uFetch base64 路径等价，无 data: 前缀）。HTML 响应按会话/服务归类报错。 */
+  async getInvoicePDF(uuid: string): Promise<string> {
+    return this.#withRenew(async () => {
+      const fetchOnce = async (): Promise<string> => {
+        const res = await this.#http.request(urls.INVOICE_CONTENT(uuid), { redirect: "follow" });
+        const ct = res.headers.get("content-type") ?? "";
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        const head = new TextDecoder().decode(bytes.slice(0, 512));
+        if (/text\/html/i.test(ct) || /^\s*<(!doctype|html)/i.test(head)) {
+          this.#assertNotLoginGate(head, "电子发票 PDF");
+          throw new ServiceUnavailableError(
+            `电子发票 PDF 响应异常（HTTP ${res.status} ct=${ct}）`,
+          );
+        }
+        if (!res.ok) {
+          throw new ServiceUnavailableError(`电子发票 PDF 拉取失败（HTTP ${res.status}）`);
+        }
+        return finance.base64FromBytes(bytes);
+      };
+      try {
+        return await fetchOnce();
+      } catch {
+        await this.#roamInvoice();
+        return await fetchOnce();
+      }
+    });
+  }
+
+  /* ------------------------------ 银行代发 ------------------------------ */
+
+  /** 银行代发记录（basics.ts getBankPayment/getBankPaymentParellize；yhdf search.do）。
+   *  foundation=基金会（经建会，独立 yyfw 业务 id C1ADD6B6…）；loadPartial=仅近 3 个月。
+   *  查询页无年份选项（非登录页）→ []（lib options.length===0 语义）；年份按
+   *  lib ceil(n/3) 三分并行检索后逐月解析。 */
+  async getBankPayment(foundation = false, loadPartial = false): Promise<BankPaymentByMonth[]> {
+    const roamId = foundation ? urls.BANK_FOUNDATION_ROAM_ID : urls.BANK_ROAM_ID;
+    return this.#withRenew(() =>
+      this.#serviceRoamed(roamId, async () => {
+        const searchUrl = foundation
+          ? urls.FOUNDATION_BANK_PAYMENT_SEARCH()
+          : urls.BANK_PAYMENT_SEARCH();
+        const page = await this.#http.text(searchUrl);
+        this.#assertNotLoginGate(page, "银行代发");
+        const options = finance.parseBankYearOptions(page);
+        if (options.length === 0) return [];
+        const batches = finance.splitBankYearBatches(options, loadPartial);
+        const responses = await Promise.all(
+          batches
+            .filter((years) => years.length > 0)
+            .map((years) => {
+              const form = new URLSearchParams();
+              for (const y of years) form.append("year", y);
+              return this.#http.postForm(searchUrl, form);
+            }),
+        );
+        return responses.flatMap((r) => finance.parseBankPayment(r));
+      }),
+    );
+  }
+
+  /* ----------------------------- 研究生收入 ----------------------------- */
+
+  /** 研究生收入（basics.ts getGraduateIncome；zzjl.graduate pageList POST，
+   *  begin/end 为 YYYYMMDD）→ 收入记录数组（无记录 → []）。 */
+  async getGraduateIncome(begin: string, end: string): Promise<GraduateIncome[]> {
+    return this.#withRenew(() =>
+      this.#serviceRoamed(urls.GRADUATE_INCOME_ROAM_ID, async () => {
+        const text = await this.#http.postForm(
+          urls.GRADUATE_INCOME(),
+          new URLSearchParams({
+            ffkssj: begin,
+            ffjssj: end,
+            _search: "false",
+            nd: String(Date.now()),
+            rows: "1000",
+            page: "1",
+            sidx: "id",
+            sord: "asc",
+          }),
+        );
+        this.#assertNotLoginGate(text, "研究生收入");
+        try {
+          return finance.parseGraduateIncome(text);
+        } catch (e) {
+          if (e instanceof AuthRequiredError) throw e;
+          throw new ServiceUnavailableError(e instanceof Error ? e.message : String(e));
+        }
+      }),
+    );
+  }
+
+  /* ------------------------------ 宿舍卫生 ------------------------------ */
+
+  /** 宿舍卫生成绩（dorm.ts getDormScore；id roam 0a993de7…/0 → m.myhome
+   *  weixin/weixin_health_linechart.aspx?id=0 → 图表图片字节 base64）。
+   *  无卫生检查数据（页内无图表元素）→ null（UI 显示「暂无」）；
+   *  m.myhome 登录页 → AuthRequiredError。 */
+  async getDormScore(): Promise<string | null> {
+    return this.#withRenew(async () => {
+      const fetchOnce = async (): Promise<string | null> => {
+        const page = await this.#http.text(urls.HYGIENE_SCORE(), this.#campusInit());
+        if (hygiene.hasHygieneLogin(page)) {
+          throw new AuthRequiredError("宿舍卫生：m.myhome 会话未建立（落在登录页）");
+        }
+        this.#assertNotLoginGate(page, "宿舍卫生");
+        const src = hygiene.parseHygieneChartSrc(page);
+        if (src === null) return null; // 暂无卫生检查数据
+        const imgUrl = /^https?:/i.test(src)
+          ? src
+          : /^\/(http|https)\//i.test(src)
+            ? `https://webvpn.tsinghua.edu.cn${src}` // lib WEB_VPN_ROOT_URL + src
+            : new URL(src, urls.HYGIENE_SCORE()).toString();
+        const res = await this.#http.request(imgUrl, this.#campusInit());
+        if (!res.ok) {
+          throw new ServiceUnavailableError(`宿舍卫生图表拉取失败（HTTP ${res.status}）`);
+        }
+        return finance.base64FromBytes(new Uint8Array(await res.arrayBuffer()));
+      };
+      try {
+        return await fetchOnce();
+      } catch {
+        // lib roamingWrapper 同构：失败 → roam id 兑付 m.myhome → 重试一次
+        await this.#roamIdService(urls.HYGIENE_CAS_FORM());
+        return await fetchOnce();
+      }
+    });
+  }
+
+  /* -------------------------------- 校历 -------------------------------- */
+
+  /** 校历数据（basics.ts getCalendar；learn yyfw 漫游 3E401364… → 首页 _csrf →
+   *  getCurrentAndNextSemester）。HttpClient 对 learn 域恒直连（网络学堂同会话桶）。
+   *  接口异常 → ServiceUnavailableError。 */
+  async getSchoolCalendar(): Promise<SchoolCalendarData> {
+    return this.#withRenew(() =>
+      this.#serviceRoamed(urls.LEARN_CALENDAR_ROAM_ID, async () => {
+        const home = await this.#http.text(urls.LEARN_HOME());
+        const csrf = /_csrf=([\w-]+)/.exec(home)?.[1];
+        if (!csrf) {
+          throw new AuthRequiredError("校历：网络学堂会话未建立（首页无 _csrf）");
+        }
+        const text = await this.#http.text(`${urls.SEMESTER_LIST()}${csrf}`);
+        try {
+          return schoolCalendar.parseSemesterList(text);
+        } catch (e) {
+          if (e instanceof AuthRequiredError) throw e;
+          throw new ServiceUnavailableError(e instanceof Error ? e.message : String(e));
+        }
+      }),
+    );
+  }
+
+  /** 最新校历年（basics.ts getSchoolCalendarYear；app.cs 公网直连 → {year}，
+   *  2024 即 2024-2025 学年可用）。失败 → ServiceUnavailableError。 */
+  async getCalendarYear(): Promise<number> {
+    const text = await this.#http.text(urls.SCHOOL_CALENDAR_YEAR(), { direct: true });
+    try {
+      return schoolCalendar.parseSchoolCalendarYear(text);
+    } catch (e) {
+      throw new ServiceUnavailableError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  /** 校历图片地址（basics.ts getCalendarImageUrl；app.cs 公网直连：
+   *  https://app.cs.tsinghua.edu.cn/xiaoli/{lang}/{year}-{1|2}.jpg。纯拼接不发请求） */
+  getCalendarImageUrl(year: number, semester: "spring" | "autumn", lang: "zh" | "en"): string {
+    return schoolCalendar.calendarImageUrl(year, semester, lang);
+  }
+
+  /* -------------------------- 校园网 thos/usereg -------------------------- */
+  /* 上游服务当前已瘫痪（info app 同坏）：照抄移植；解析失败统一抛
+   * ServiceUnavailableError；登录页特征（loginform-verifycode / WebVPN 门户页）
+   * 仍按会话失效抛 AuthRequiredError。 */
+
+  /** usereg 会话探针（lib ensureNetworkLoggedIn：GET /login 判定） */
+  async #ensureNeth(): Promise<void> {
+    const page = await this.#http.text(urls.NETH_LOGIN());
+    if (neth.nethLandsWebvpnPortal(page)) {
+      throw new AuthRequiredError("校园网：落在 WebVPN 门户页（会话失效）");
+    }
+    if (neth.nethNeedsVerifyCode(page)) {
+      throw new AuthRequiredError(
+        "校园网：usereg 需要验证码登录（getNetworkVerificationImageUrl + loginUsereg）",
+      );
+    }
+  }
+
+  /** 刷新并返回验证码地址（lib getNetworkVerificationImageUrl；先 GET ?refresh=1，
+   *  再返回 ?_=时间戳 的验证码 URL；调用方需携 usereg 会话 cookie 拉图） */
+  async getNetworkVerificationImageUrl(): Promise<string> {
+    try {
+      await this.#http.text(`${urls.NETH_CAPTCHA()}?refresh=1`);
+    } catch (e) {
+      if (e instanceof AuthRequiredError) throw e;
+      throw new ServiceUnavailableError(
+        `校园网验证码刷新失败（${e instanceof Error ? e.message : String(e)}）`,
+      );
+    }
+    return `${urls.NETH_CAPTCHA()}?_=${Date.now()}`;
+  }
+
+  /** 上网账号登录（lib loginUsereg；验证码 + RSA 加密密码两段 POST：
+   *  ① POST /site/validate-user（X-CSRF-Token + XHR 头）② POST /login 表单）。
+   *  密码取内存凭据（CampusSession.setIdCredentials）；RSA 为 neth.ts 自实现
+   *  PKCS#1 v1.5（等价 lib jsencrypt）。 */
+  async loginUsereg(code: string): Promise<void> {
+    const loginHtml = await this.#http.text(urls.NETH_LOGIN());
+    if (neth.nethLandsWebvpnPortal(loginHtml)) {
+      throw new AuthRequiredError("校园网登录：落在 WebVPN 门户页（会话失效）");
+    }
+    const csrfToken = neth.parseNethCsrfMeta(loginHtml);
+    if (!csrfToken) {
+      throw new ServiceUnavailableError("校园网登录页无 csrf-token（上游页面结构变化或服务瘫痪）");
+    }
+    const pub = neth.parseNethPublicKey(loginHtml);
+    if (!pub) {
+      throw new ServiceUnavailableError("校园网登录页无 RSA 公钥（上游页面结构变化或服务瘫痪）");
+    }
+    const creds = this.#idCredentials?.();
+    if (!creds?.password) {
+      throw new Error("校园网登录需要密码（内存中无凭据，请重新登录后再试）");
+    }
+    const password = neth.rsaEncryptPkcs1v15(pub, creds.password);
+    const user = await this.getUserInfo().catch(() => null);
+    const emailName = user?.email?.split("@")[0] ?? user?.studentId ?? creds.username;
+    // 段一：账密+验证码校验（lib fetch validate-user 原样字段集）
+    const validateText = await this.#http
+      .request(urls.NETH_VALIDATE_USER(), {
+        method: "POST",
+        headers: {
+          "X-CSRF-Token": csrfToken,
+          "X-Requested-With": "XMLHttpRequest",
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        },
+        body: new URLSearchParams({
+          "LoginForm[username]": emailName,
+          "LoginForm[password]": password,
+          "LoginForm[verifyCode]": code,
+        }),
+      })
+      .then((r) => r.text());
+    let result: { success?: unknown; message?: unknown };
+    try {
+      result = JSON.parse(validateText) as typeof result;
+    } catch {
+      throw new ServiceUnavailableError(
+        `校园网认证接口响应异常（resp=${validateText.slice(0, 80).replace(/\s+/g, " ")}）`,
+      );
+    }
+    if (result.success !== true) {
+      throw new Error(
+        typeof result.message === "string" && result.message ? result.message : "校园网登录失败",
+      );
+    }
+    // 段二：登录表单提交（lib 同款 _csrf-8800 + LoginForm 字段集）
+    const csrf8800 = neth.parseNethCsrf8800(loginHtml);
+    if (!csrf8800) {
+      throw new ServiceUnavailableError("校园网登录页无 _csrf-8800（上游页面结构变化或服务瘫痪）");
+    }
+    await this.#http.postForm(
+      urls.NETH_LOGIN(),
+      new URLSearchParams({
+        "_csrf-8800": csrf8800,
+        "LoginForm[username]": emailName,
+        "LoginForm[password]": password,
+        "LoginForm[smsCode]": "",
+        "LoginForm[verifyCode]": code,
+      }),
+    );
+  }
+
+  /** 在线设备列表（lib getOnlineDevices；GET /home → #w1-container 表 tr[data-key]）。
+   *  无设备 → []；页面 w1/w3 区块均缺失 → ServiceUnavailableError（上游瘫痪） */
+  async getOnlineDevices(): Promise<NetworkDevice[]> {
+    await this.#ensureNeth();
+    const home = await this.#http.text(urls.NETH_HOME());
+    if (!neth.nethHomeLooksAlive(home)) {
+      throw new ServiceUnavailableError(
+        `校园网主页解析失败（resp=${home.slice(0, 80).replace(/\s+/g, " ")}）`,
+      );
+    }
+    return neth.parseOnlineDevices(home);
+  }
+
+  /** 上网余额/流量（lib getNetworkBalance；GET /home → #w3-container 首行五列）。
+   *  区块缺失 → ServiceUnavailableError（上游瘫痪）。 */
+  async getNetworkBalance(): Promise<NetworkBalance> {
+    await this.#ensureNeth();
+    const home = await this.#http.text(urls.NETH_HOME());
+    try {
+      return neth.parseNetworkBalance(home);
+    } catch (e) {
+      throw new ServiceUnavailableError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  /** 上网账号资料（lib getNetworkAccountInfo；GET /home + /users + /user/online-num
+   *  三页拼合：#w0 表 td 0/1/2/3/5/6/7 + 状态链接 + 可认证设备数） */
+  async getNetworkAccountInfo(): Promise<NetworkAccountInfo> {
+    await this.#ensureNeth();
+    const home = await this.#http.text(urls.NETH_HOME());
+    const users = await this.#http.text(urls.NETH_USER_INFO());
+    const onlineNum = await this.#http.text(urls.NETH_ALLOWED_DEVICES());
+    return {
+      ...neth.parseNethAccountInfo(users),
+      status: neth.parseNethStatus(home),
+      allowedDevices: neth.parseNethAllowedDevices(onlineNum),
+    };
+  }
+
+  /** 设备下线（lib logoutNetwork；POST /home/delete?id=…&user_mac=… + _csrf-8800；
+   *  响应含 w5-success-0 即成功，否则抛 #w5-danger-0 文案） */
+  async logoutNetwork(device: NetworkDevice): Promise<void> {
+    await this.#ensureNeth();
+    const home = await this.#http.text(urls.NETH_HOME());
+    const csrf = neth.parseNethCsrf8800(home);
+    if (!csrf) {
+      throw new ServiceUnavailableError("校园网主页无 _csrf-8800（上游页面结构变化或服务瘫痪）");
+    }
+    const resp = await this.#http.postForm(
+      urls.NETH_HOME_DELETE(device.key, device.mac),
+      new URLSearchParams({ "_csrf-8800": csrf }),
+    );
+    if (!resp.includes("w5-success-0")) {
+      const r = neth.parseNethActionResult(resp, "w5");
+      throw new Error(r?.message || "校园网设备下线失败");
+    }
+  }
+
+  /** 导入/认证设备（lib loginNetwork；POST /certification
+   *  CertificationForm[ip]/[password]（明文，lib 原样）/[type]（out=校外,in=校内）。
+   *  成功返回服务端提示文案；w0-error-0 文案或 Unknown error 抛普通 Error。 */
+  async loginNetwork(ip: string, internet: boolean): Promise<string> {
+    await this.#ensureNeth();
+    const page = await this.#http.text(urls.NETH_IMPORT_DEVICE());
+    const csrf = neth.parseNethCsrf8800(page);
+    if (!csrf) {
+      throw new ServiceUnavailableError("校园网认证页无 _csrf-8800（上游页面结构变化或服务瘫痪）");
+    }
+    const creds = this.#idCredentials?.();
+    if (!creds?.password) {
+      throw new Error("校园网认证需要密码（内存中无凭据，请重新登录后再试）");
+    }
+    const resp = await this.#http.postForm(
+      urls.NETH_IMPORT_DEVICE(),
+      new URLSearchParams({
+        "_csrf-8800": csrf,
+        "CertificationForm[ip]": ip,
+        "CertificationForm[password]": creds.password,
+        "CertificationForm[type]": internet ? "out" : "in",
+      }),
+    );
+    const r = neth.parseNethActionResult(resp, "w0");
+    if (r === null) throw new Error("Unknown error.");
+    if (!r.ok) throw new Error(r.message || "校园网设备认证失败");
+    return r.message;
   }
 }
