@@ -2864,6 +2864,20 @@ export class InfoClient {
     return `${urls.NETH_CAPTCHA()}?_=${Date.now()}`;
   }
 
+  /** 拉取验证码图并转 base64 data URL（图必须携 usereg 会话 cookie 经 core 取，
+   *  webview 直挂 URL 无会话只会得到登录页）。返回 data:image/...;base64,... */
+  async getNetworkVerificationImage(): Promise<string> {
+    await this.getNetworkVerificationImageUrl();
+    const res = await this.#http.request(urls.NETH_CAPTCHA(), { redirect: "follow" });
+    const mime = res.headers.get("content-type") ?? "image/jpeg";
+    const buf = new Uint8Array(await res.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < buf.length; i += 0x8000) {
+      bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+    }
+    return `data:${mime.split(";")[0]};base64,${btoa(bin)}`;
+  }
+
   /** 上网账号登录（lib loginUsereg；验证码 + RSA 加密密码两段 POST：
    *  ① POST /site/validate-user（X-CSRF-Token + XHR 头）② POST /login 表单）。
    *  密码取内存凭据（CampusSession.setIdCredentials）；RSA 为 neth.ts 自实现
