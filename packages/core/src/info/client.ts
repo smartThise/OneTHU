@@ -2555,7 +2555,7 @@ export class InfoClient {
         }
         const hasOptions = (html: string): boolean => /<option\b[^>]*\bvalue=/.test(html);
         this.#http.debug?.(
-          `[BANK] roamPage len=${roamPage.length} hasOptions=${hasOptions(roamPage)} head=${roamPage.slice(0, 600).replace(/\s+/g, " ")}`,
+          `[BANK] roamPage len=${roamPage.length} hasOptions=${hasOptions(roamPage)} full=${roamPage.replace(/\s+/g, " ").slice(0, 1600)}`,
         );
         let queryPage = roamPage;
         if (!hasOptions(queryPage)) {
