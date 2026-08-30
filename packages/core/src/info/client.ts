@@ -8,6 +8,11 @@
  * - getNews             ← news.ts getNewsList（object.dataList 字段映射）
  * - searchNews          ← news.ts searchNewsList（POST getMobilePageList，ES 服务端检索）
  * - getNewsSourceList   ← news.ts getNewsSourceList（querySubscribeInformationUnitList）
+ * - getNewsSubscriptionList/getNewsListBySubscription/addNewsSubscription/
+ *   removeNewsSubscription ← news.ts 同名四方法（querySubscribeConditionNameList/XXFB
+ *   权威条件列表；querySubscribeInfomationPageList{currentPage,dyid} 单一分页动态；
+ *   addSubscribeCondition{dygz,mkid:"XXFB"}；deleteSubscribeCondition/{id}/XXFB——
+ *   POST 均为 x-www-form-urlencoded，bt/url 做 HTML 实体 decode）
  * - getCardInfo         ← card.ts cardGetInfo（AES-ECB 响应解密 + 字段映射）
  * - getCardTransactions ← card.ts cardGetTransactions
  * - getExams            ← 课表 JSONP 分类 fl="考试"（与 parseJSON 同源数据；lib 无独立接口）
@@ -62,6 +67,23 @@ function stripJsonp(text: string): string {
   return s >= 0 && e > s ? text.slice(s + 1, e) : text;
 }
 
+/** 服务端订阅条件（getNewsSubscriptionList：querySubscribeConditionNameList/XXFB →
+ *  object.{id,fbdwmcList,lmmcList,pxz,titile,bt}；source/channel 取列表首项，可能均空）。
+ *  本地结构化类型，不扩 core 导出面（index.ts 只转出 InfoClient 类）。 */
+export interface NewsSubscription {
+  id: string;
+  /** 发布单位名（fbdwmcList[0]） */
+  source?: string;
+  /** 栏目名（lmmcList[0]） */
+  channel?: string;
+  /** 订阅关键词（bt） */
+  keyword?: string;
+  /** 条件标题（服务端字段 titile） */
+  title: string;
+  /** 排序（pxz） */
+  order?: number;
+}
+
 function tagStrip(html: string): string {
   return html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<[^>]+>/g, "\n");
 }
@@ -108,6 +130,27 @@ function normTime(v: unknown): string | undefined {
 /** jxmh_out.do 日期参数为 YYYYMMDD（无横线）；容忍调用方传 "2025-02-24" 等 */
 function compactDate(d: string): string {
   return d.replace(/[^0-9]/g, "");
+}
+
+/**
+ * ic-web 时间字段 → Date（library.ts `new Date(info.startTime)` 同语义加固）：
+ * cab.lib resvInfo/resvRule 的时间在抓包里出现过两种形态——"2026-07-01 08:00:00"
+ * 字符串与 epoch 毫秒/秒数字（后端不同版本不一致）。lib 直接透传 new Date(原值)
+ * 对数字形态天然可用；此前 core 曾 String() 归一导致纯数字串 new Date 解析为
+ * Invalid Date，上层 convertUsageToSegments 兜底后整条占用条退化为全绿（占用
+ * 红段消失，即「占用条一会有一会没有」的直接根源之一）。此处统一：数字或纯
+ * 数字串按 epoch（秒<1e12 / 毫秒）解析，其余按字符串原样解析。
+ */
+function wireDate(v: unknown): Date {
+  if (typeof v === "number" && Number.isFinite(v)) {
+    return new Date(v < 1e12 ? v * 1000 : v);
+  }
+  const s = String(v ?? "").trim();
+  if (/^\d{10,13}$/.test(s)) {
+    const n = Number(s);
+    return new Date(n < 1e12 ? n * 1000 : n);
+  }
+  return new Date(s);
 }
 
 /** Base64 → 字节（aes-js v3 未带 b64 工具，自实现与 crypto-js Base64.parse 等价） */
@@ -625,21 +668,64 @@ export class InfoClient {
     });
   }
 
+  /**
+   * 首页「倒计时提醒」重要事项（thu-info-lib getCrTimetable 同源同链）：
+   * GET INFO_DEADLINE（/b/info/gxfw_fg/common/deadline/list）?_csrf=… →
+   * {object:[{djsbt: 标题, djskssj: 开始(epoch), djsjzsj: 截止(epoch), djsurl: 通知链接}]}。
+   * epoch 毫秒/秒兼容（<1e12 视为秒）；begin/end 格式化为 "YYYY-MM-DD HH:mm"。
+   * 旧版误按顶层数组 bt/gxsj 解析——保留为兜底分支（真实端点走 object 分支）。
+   */
   async getDeadlines(): Promise<DeadlineItem[]> {
     return this.#withRenew(async () => {
-    const text = await this.#http.text(urls.INFO_DEADLINE());
-    try {
-      const json = JSON.parse(text) as unknown;
-      if (Array.isArray(json)) {
-        return json.map((raw) => {
-          const d = raw as Record<string, unknown>;
-          return { title: String(d.bt ?? d.title ?? ""), date: String(d.gxsj ?? d.date ?? "") || undefined, raw: d };
-        });
+      const csrf = await this.#csrfToken();
+      const text = await this.#http.text(`${urls.INFO_DEADLINE()}?_csrf=${encodeURIComponent(csrf)}`);
+      const epochToDate = (v: unknown): string | undefined => {
+        const n = Number(v);
+        if (!Number.isFinite(n) || n <= 0) return undefined;
+        const ms = n < 1e12 ? n * 1000 : n;
+        const d = new Date(ms);
+        if (Number.isNaN(d.getTime())) return undefined;
+        const p = (x: number) => String(x).padStart(2, "0");
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      };
+      const fromDjs = (d: Record<string, unknown>): DeadlineItem => ({
+        title: String(d.djsbt ?? "").trim(),
+        begin: epochToDate(d.djskssj),
+        end: epochToDate(d.djsjzsj),
+        url: String(d.djsurl ?? "").trim() || undefined,
+        raw: d,
+      });
+      try {
+        const json = JSON.parse(text) as unknown;
+        // 真实端点：{object: [...]}（thu-info-lib uFetch→JSON.parse 同款）
+        if (json && typeof json === "object" && Array.isArray((json as { object?: unknown }).object)) {
+          return ((json as { object: Record<string, unknown>[] }).object ?? [])
+            .map(fromDjs)
+            .filter((d) => d.title);
+        }
+        // 兜底：顶层数组（兼容旧解析猜测的字段名）
+        if (Array.isArray(json)) {
+          return json
+            .map((raw) => {
+              const d = raw as Record<string, unknown>;
+              const item = fromDjs(d);
+              return item.title
+                ? item
+                : {
+                    title: String(d.bt ?? d.title ?? ""),
+                    begin: epochToDate(d.djskssj) ?? (String(d.gxsj ?? d.date ?? "") || undefined),
+                    end: epochToDate(d.djsjzsj),
+                    url: String(d.djsurl ?? "").trim() || undefined,
+                    date: String(d.gxsj ?? d.date ?? "") || undefined,
+                    raw: d,
+                  };
+            })
+            .filter((d) => d.title);
+        }
+      } catch {
+        /* HTML 时回退空（调用方整卡隐藏/空态） */
       }
-    } catch {
-      /* HTML 时回退 */
-    }
-    return [];
+      return [];
     });
   }
 
@@ -712,9 +798,22 @@ export class InfoClient {
         /(src|href)="(\/[^"]+)"/g,
         (_m: string, attr: string, path: string) => `${attr}="${urls.INFO_PREFIX}${path}"`,
       );
-      const files = (dto.fjs_template ?? []).map((f) => String(f.wjmc ?? "")).filter(Boolean);
+      // 附件（thu-info-lib news.ts handleNewApiNews 同源：fjs_template 单项 {wjid,wjmc}
+      // → FILE_DOWNLOAD_URL + wjid + ?_csrf=…，此处取其 info 直连版 /b/info/wj/download/{wjid}）。
+      // 解析宽容：无 fjs_template 或单项缺 wjmc/wjid 时逐条丢弃，恒返回空数组不报错。
+      const attachments = (dto.fjs_template ?? [])
+        .map((f) => {
+          const name = String(f.wjmc ?? "").trim();
+          const wjid = String(f.wjid ?? "").trim();
+          if (!name || !wjid) return null;
+          return {
+            name,
+            url: `${urls.INFO_PREFIX}/b/info/wj/download/${encodeURIComponent(wjid)}?_csrf=${encodeURIComponent(csrf)}`,
+          };
+        })
+        .filter((a): a is { name: string; url: string } => a !== null);
       const plain = raw.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-      return { title, html, plain, files };
+      return { title, html, plain, attachments };
     });
   }
 
@@ -762,8 +861,8 @@ export class InfoClient {
   /**
    * 新闻来源（发布单位）列表（thu-info-lib news.ts getNewsSourceList：
    * GET querySubscribeInformationUnitList?lmid=&_csrf=… → object.{id,text}[]）。
-   * UI 订阅管理据此列出全部可订阅单位；OneTHU 订阅本身存 localStorage，
-   * 按来源名（dwmc_show）本地过滤，不写服务端订阅条件。
+   * UI 订阅管理据此列出可订阅单位，其 id 供 addNewsSubscription 的 fbdwnm 使用；
+   * 订阅条件以服务端 getNewsSubscriptionList 为权威，localStorage 仅 UI 偏好缓存。
    */
   async getNewsSourceList(): Promise<NewsSource[]> {
     return this.#withRenew(async () => {
@@ -780,6 +879,119 @@ export class InfoClient {
       return (json.object ?? [])
         .map((el) => ({ sourceId: String(el.id ?? ""), sourceName: String(el.text ?? "") }))
         .filter((s) => s.sourceId || s.sourceName);
+    });
+  }
+
+  /**
+   * 服务端订阅条件（权威列表；thu-info-lib news.ts getNewsSubscriptionList 逐字移植）：
+   * GET querySubscribeConditionNameList/XXFB?_csrf= →
+   * object.{id, fbdwmcList, lmmcList, pxz, titile, bt}[]。fbdwmcList/lmmcList 取首项为
+   * 来源/栏目名，bt 为订阅关键词，titile 为条件标题（服务端字段名即此拼写），pxz 为排序。
+   */
+  async getNewsSubscriptionList(): Promise<NewsSubscription[]> {
+    return this.#withRenew(async () => {
+      const csrf = await this.#csrfToken();
+      const text = await this.#http.text(
+        `${urls.NEWS_SUBSCRIPTION_LIST()}?_csrf=${encodeURIComponent(csrf)}`,
+      );
+      let arr: Record<string, unknown>[];
+      try {
+        arr = (JSON.parse(text) as { object?: Record<string, unknown>[] }).object ?? [];
+      } catch {
+        throw new AuthRequiredError();
+      }
+      if (!Array.isArray(arr)) throw new AuthRequiredError();
+      return arr.map((i) => ({
+        id: String(i.id ?? ""),
+        source: Array.isArray(i.fbdwmcList) && i.fbdwmcList.length > 0 ? String(i.fbdwmcList[0]) : undefined,
+        channel: Array.isArray(i.lmmcList) && i.lmmcList.length > 0 ? String(i.lmmcList[0]) : undefined,
+        keyword: String(i.bt ?? "") || undefined,
+        title: String(i.titile ?? ""),
+        order: Number(i.pxz ?? 0) || undefined,
+      }));
+    });
+  }
+
+  /**
+   * 订阅动态单一分页列表（thu-info-lib news.ts getNewsListBySubscription 逐字移植；
+   * thu-info-app news.tsx "catSubscribed" tab 的取数端点）：
+   * POST querySubscribeInfomationPageList?_csrf=，body 为 x-www-form-urlencoded
+   * {currentPage, dyid}（qs.stringify 同款：subscriptionId 省略时整个 dyid 键不出现
+   * = 服务端按该账号全部订阅条件合并返回；传入时按单条条件过滤）。
+   * 响应 object.resultList 字段与列表接口一致，bt/url 需 HTML 实体 decode（he.decode 同义）。
+   */
+  async getNewsListBySubscription(page = 1, subscriptionId?: string): Promise<NewsItem[]> {
+    return this.#withRenew(async () => {
+      const csrf = await this.#csrfToken();
+      // URLSearchParams → fetch 自动 application/x-www-form-urlencoded（CONTENT_TYPE_FORM 同义）
+      const form = new URLSearchParams({ currentPage: String(page) });
+      if (subscriptionId) form.set("dyid", subscriptionId);
+      const text = await this.#http.postForm(
+        `${urls.NEWS_LIST_BY_SUBSCRIPTION()}?_csrf=${encodeURIComponent(csrf)}`,
+        form,
+      );
+      let json: { object?: { resultList?: Record<string, unknown>[] } };
+      try {
+        json = JSON.parse(text) as typeof json;
+      } catch {
+        throw new AuthRequiredError();
+      }
+      return (json.object?.resultList ?? []).map((el) => ({
+        name: decodeEntities(String(el.bt ?? "")),
+        xxid: String(el.xxid ?? ""),
+        url: newsUrl(decodeEntities(String(el.url ?? ""))),
+        date: String(el.time ?? "") || undefined,
+        source: String(el.dwmc_show ?? "") || undefined,
+        topped: false,
+        channel: String(el.lmid ?? "") || undefined,
+      }));
+    });
+  }
+
+  /**
+   * 添加服务端订阅条件（thu-info-lib news.ts addNewsSubscription 逐字移植）：
+   * POST addSubscribeCondition?_csrf=，form-encoded
+   * {dygz: JSON.stringify({lmid?, fbdwnm?, bt}), mkid: "XXFB"}（JSON.stringify 自动丢
+   * undefined 键，与 lib 一致），响应 {result:"success"} 才算成功。
+   */
+  async addNewsSubscription(opts: { channelId?: string; sourceId?: string; keyword?: string }): Promise<boolean> {
+    if (!opts.channelId && !opts.sourceId) return false;
+    return this.#withRenew(async () => {
+      const csrf = await this.#csrfToken();
+      const text = await this.#http.postForm(
+        `${urls.NEWS_ADD_SUBSCRIPTION()}?_csrf=${encodeURIComponent(csrf)}`,
+        new URLSearchParams({
+          dygz: JSON.stringify({
+            lmid: opts.channelId || undefined,
+            fbdwnm: opts.sourceId || undefined,
+            bt: opts.keyword ?? "",
+          }),
+          mkid: "XXFB",
+        }),
+      );
+      try {
+        return (JSON.parse(text) as { result?: string }).result === "success";
+      } catch {
+        throw new AuthRequiredError();
+      }
+    });
+  }
+
+  /**
+   * 删除服务端订阅条件（thu-info-lib news.ts removeNewsSubscription 逐字移植）：
+   * GET deleteSubscribeCondition/{id}/XXFB?_csrf= → {result:"success"}。
+   */
+  async removeNewsSubscription(subscriptionId: string): Promise<boolean> {
+    return this.#withRenew(async () => {
+      const csrf = await this.#csrfToken();
+      const text = await this.#http.text(
+        `${urls.NEWS_REMOVE_SUBSCRIPTION(subscriptionId)}?_csrf=${encodeURIComponent(csrf)}`,
+      );
+      try {
+        return (JSON.parse(text) as { result?: string }).result === "success";
+      } catch {
+        throw new AuthRequiredError();
+      }
     });
   }
 
@@ -1671,7 +1883,8 @@ export class InfoClient {
   }
 
   /** 我的预约记录（library.ts getBookingRecords：user/index/book 表，
-   *  td 索引 1/2/3/5 = id/pos/time/status，行内 menuDel('…') 提取 delId） */
+   *  td 索引 1/2/3/5 = id/pos/time/status，行内 menuDel('…') 提取 delId；
+   *  实体解码后匹配，兼容 &#39;/双引号 onclick 变体） */
   async getLibBookRecords(): Promise<LibBookRecord[]> {
     return this.#withRenew(async () => {
       await this.#ensureLibrary();
@@ -1691,7 +1904,10 @@ export class InfoClient {
         const rowHtml = row[1] ?? "";
         const cells = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((c) => cellText(c[1] ?? ""));
         if (cells.length < 6) continue;
-        const del = /menuDel\('([^']+)'/.exec(rowHtml)?.[1];
+        // lib 经 cheerio attribs 读 onclick（实体已解码）；此处对原文先解码再匹配，
+        // 兼容 onclick="menuDel(&#39;…&#39;)" 与双引号变体 —— 否则 delId 落空、
+        // 「我的预约」整列缺取消按钮。
+        const del = /menuDel\(\s*(['"])([^'"]+)\1/.exec(decodeEntities(rowHtml))?.[2];
         out.push({
           id: cells[1] ?? "",
           pos: cells[2] ?? "",
@@ -1883,14 +2099,22 @@ export class InfoClient {
           minUser: Number(item.minUser ?? 0),
           openStart: item.openStart == null ? null : String(item.openStart),
           openEnd: item.openEnd == null ? null : String(item.openEnd),
-          usage: ((item.resvInfo ?? []) as Array<Record<string, unknown>>).map((u) => ({
-            id: Number(u.resvId),
-            start: new Date(String(u.startTime ?? "")),
-            end: new Date(String(u.endTime ?? "")),
-            title: String(u.title ?? ""),
-            owner: String(u.trueName ?? ""),
-            ownerId: String(u.logonName ?? ""),
-          })),
+          usage: ((item.resvInfo ?? []) as Array<Record<string, unknown>>)
+            // wireDate：epoch 数字/数字串与日期串两态都解析（lib new Date(info.startTime) 同语义）；
+            // 单条解析失败仅丢弃该条占用，不整单退化（保住其余占用段的显示）。
+            .filter((u) => {
+              const start = wireDate(u.startTime);
+              const end = wireDate(u.endTime);
+              return !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime());
+            })
+            .map((u) => ({
+              id: Number(u.resvId),
+              start: wireDate(u.startTime),
+              end: wireDate(u.endTime),
+              title: String(u.title ?? ""),
+              owner: String(u.trueName ?? ""),
+              ownerId: String(u.logonName ?? ""),
+            })),
         } satisfies LibRoomRes;
       });
     });
@@ -1957,8 +2181,8 @@ export class InfoClient {
           owner: String(item.resvName ?? ""),
           ownerId: String(item.logonName ?? ""),
           date: String(item.resvDate ?? ""),
-          begin: new Date(String(item.resvBeginTime ?? "")),
-          end: new Date(String(item.resvEndTime ?? "")),
+          begin: wireDate(item.resvBeginTime),
+          end: wireDate(item.resvEndTime),
           devName: String(devInfo?.devName ?? ""),
           kindName: String(devInfo?.kindName ?? ""),
           members: ((item.resvMemberInfoList ?? []) as Array<Record<string, unknown>>).map((m) => ({

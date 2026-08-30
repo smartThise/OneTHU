@@ -215,6 +215,45 @@ function parseGroupJsonRow(raw: unknown, idx: number): LearnGroup | undefined {
   };
 }
 
+/** queryxnxq 响应宽容解析（thu-learn-lib 4.0 getSemesterIdList 等价 + 兜底）：
+ *  ① 金标准形态 = 裸 JSON 字符串数组（元素可能混 null，learn-lib: filter(s => s != null)）；
+ *  ② JSONP 壳（callback([...]);）—— 剥壳后仍按数组解析；
+ *  ③ HTML 学期下拉 —— 端点改吐页面时取 <option value="2024-2025-1">（去重、保序）。
+ *  三路全空返回 []（由调用方决定是否走旧端点兜底）。 */
+export function parseSemesterIdList(text: string): string[] {
+  const raw = text.trim();
+  if (!raw) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    const m = /^[^(]*\(([\s\S]*)\)\s*;?$/.exec(raw);
+    if (m?.[1]) {
+      try {
+        parsed = JSON.parse(m[1]);
+      } catch {
+        /* 非 JSON，落 option 兜底 */
+      }
+    }
+  }
+  if (Array.isArray(parsed)) {
+    // learn-lib 同款：filter 非 null 后取字符串（数字等异形元素 coerce 成串再滤空）
+    const ids = parsed
+      .filter((s) => s !== null && s !== undefined)
+      .map((s) => String(s).trim())
+      .filter((s) => /^\d{4}-\d{4}-\d$/.test(s));
+    if (ids.length > 0) return [...new Set(ids)];
+  }
+  // ③ 学期下拉 option 值：value 属性优先，纯文本节点兜底
+  const opts = new Set<string>();
+  for (const m of raw.matchAll(/<option\b([^>]*)>([^<]*)/gi)) {
+    const vm = /value=["']?([^"'>\s]*)["']?/i.exec(m[1] ?? "");
+    const cand = (vm?.[1] && vm[1] !== "" ? vm[1] : decodeHtml(m[2] ?? "")).trim();
+    if (/^\d{4}-\d{4}-\d$/.test(cand)) opts.add(cand);
+  }
+  return [...opts];
+}
+
 export class LearnClient {
   #http: HttpClient;
   #csrf: string | null = null;
@@ -346,24 +385,33 @@ export class LearnClient {
   }
 
   async getSemesterIdList(): Promise<string[]> {
-    // mobile learnApi.fetchSemesterData 同款：学期列表来自 getCurrentAndNextSemester
-    // 的 result.id + resultList[].id（learn 系统不存在独立学期列表端点，
-    // 此前臆造的 queryxnxq 请求从未成功）。新学期在前（sort reverse）。
+    // thu-learn-lib 4.0 getSemesterIdList 金标准：全部学期来自
+    // GET /b/wlxt/kc/v_wlkc_xs_xktjb_coassb/queryxnxq（learn 网页端学期下拉的数据源，
+    // 响应为裸 JSON 字符串数组、可能混 null）——覆盖从入学以来每一个学期。
+    // 旧实现只取 getCurrentAndNextSemester 的 result+resultList（当前+下学期，列表过窄）；
+    // commit ab57ef1 "queryxnxq 从未成功"的结论不实——金标准同端点长期工作，
+    // 当时失败应为未带 _csrf 或会话未建立。解析宽容见 parseSemesterIdList；
+    // queryxnxq 三路全空时退回旧端点，至少保住当前+下学期（不再出现空白列表）。
     return this.#withRelogin(async () => {
       this.#requireCsrf();
+      const text = await this.#http.text(this.#withCsrf(urls.LEARN_SEMESTER_LIST()));
+      if (!looksLikeLoginHtml(text)) {
+        const ids = parseSemesterIdList(text);
+        if (ids.length > 0) return ids.sort().reverse();
+      }
       const data = await this.#http.json<{
         message?: string;
         result?: { id?: string } | null;
         resultList?: Array<{ id?: string }>;
       }>(this.#withCsrf(urls.LEARN_CURRENT_SEMESTER()));
-      const ids: string[] = [];
-      if (data.result?.id) ids.push(data.result.id);
+      const fallback: string[] = [];
+      if (data.result?.id) fallback.push(data.result.id);
       if (Array.isArray(data.resultList)) {
         for (const sem of data.resultList) {
-          if (sem.id && !ids.includes(sem.id)) ids.push(sem.id);
+          if (sem.id && !fallback.includes(sem.id)) fallback.push(sem.id);
         }
       }
-      return ids.sort().reverse();
+      return fallback.sort().reverse();
     });
   }
 

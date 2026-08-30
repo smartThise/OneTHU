@@ -43,6 +43,28 @@ export const NEWS_SEARCH = () =>
 export const NEWS_SOURCE_LIST = () =>
   `${INFO_PREFIX}/b/info/gxfw_fg/common/querySubscribeInformationUnitList`;
 
+/** 服务端订阅条件列表（thu-info-lib NEWS_SUBSCRIPTION_LIST_URL 直连版；
+ *  GET ?_csrf= → object.{id,fbdwmcList,lmmcList,pxz,titile,bt}[]，
+ *  fbdwmcList[0] 即发布单位名，id 即按订阅取新闻的 dyid） */
+export const NEWS_SUBSCRIPTION_LIST = () =>
+  `${INFO_PREFIX}/b/info/gxfw_fg/common/querySubscribeConditionNameList/XXFB`;
+
+/** 新建服务端订阅条件（thu-info-lib NEWS_ADD_SUBSCRIPTION_URL 直连版；
+ *  POST 表单 dygz=<JSON {lmid?,fbdwnm?,bt}>&mkid=XXFB&_csrf= → {result:"success"}，
+ *  fbdwnm 传发布单位 id（querySubscribeInformationUnitList 的 id）） */
+export const NEWS_ADD_SUBSCRIPTION = () =>
+  `${INFO_PREFIX}/b/info/gxfw_fg/common/addSubscribeCondition`;
+
+/** 按订阅条件取新闻（thu-info-lib NEWS_LIST_BY_SUBSCRIPTION_URL 直连版；
+ *  POST 表单 currentPage&dyid&_csrf= → object.resultList，字段与新闻列表接口一致） */
+export const NEWS_LIST_BY_SUBSCRIPTION = () =>
+  `${INFO_PREFIX}/b/info/gxfw_fg/common/querySubscribeInfomationPageList`;
+
+/** 删除服务端订阅条件（thu-info-lib NEWS_REMOVE_SUBSCRIPTION_URL_FORMAT 直连版；
+ *  GET …/{id}/XXFB?_csrf= → {result:"success"}） */
+export const NEWS_REMOVE_SUBSCRIPTION = (id: string) =>
+  `${INFO_PREFIX}/b/info/gxfw_fg/common/deleteSubscribeCondition/${id}/XXFB`;
+
 /** 课表 JSONP（本科；先 JXRL_ROAM_BKS） */
 export const ZHJW_SCHEDULE_JSONP = (startDate: string, endDate: string) =>
   `${ZHJW_PREFIX}/jxmh_out.do?m=bks_jxrl_all&p_start_date=${startDate}&p_end_date=${endDate}&jsoncallback=m`;

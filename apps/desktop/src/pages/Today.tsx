@@ -4,16 +4,20 @@
  *   左栏：最近日程（校历节点：开学/学期结束，升序前 5，取不到数据整卡隐藏）
  *         → 未提交作业；
  *   右栏：快捷入口（校园卡余额）→ 今日预约（座位+研讨间，无预约整卡不显示）
- *         → 今日课程 → 最新新闻（信息门户前 5 条，失败整卡隐藏）→ 最近通知。
+ *         → 今日课程 → 倒计时提醒（学校重要事项，info 门户 deadline 接口）
+ *         → 订阅新闻（onethu.news.subs 来源优先，回退最新并注明；点击直达新闻详情）
+ *         → 最近通知。
  * 全部行容器 maxWidth:100% + min-width:0 + 文本 ellipsis（窄窗口不横向溢出）。
  * 用 useApp().navigate(page, params) 轻路由；数据未加载的入口保持不可点并降透明度。
  */
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { Card, Empty, ErrorNote, PageHead, SectionHead, SkeletonRows } from "../components/Layout.js";
 import { IconBell, IconCard, IconChevron, IconIn, IconPen, IconRefresh } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
-import { useCampusData, useCard, useTodayCalendar, useTodayNews, useTodayReservations } from "../state/data.js";
+import { useCampusData, useCard, useTodayCalendar, useTodayDeadlines, useTodayNewsFeed, useTodayReservations } from "../state/data.js";
+import { readSubs } from "./info/newsSearch.js";
+import { openExternal } from "./info/openExternal.js";
 import { parseLearnTime, type Homework, type ScheduleEntry } from "@onethu/core";
 
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
@@ -115,6 +119,121 @@ function RowClick({
   );
 }
 
+/* ---------- 倒计时提醒（thu-info-app 首页同位组件移植） ----------
+ * 学校学期重要事项倒计时（选课/退课/推研/考试报名等），数据源 = info 门户
+ * deadline 接口（core getDeadlines，djsbt/djskssj/djsjzsj/djsurl，与 thu-info-lib
+ * getCrTimetable 同链）。时间窗与 thu-info home activeEvents 同口径：
+ * now < 截止 且 now ≥ 开始-14 天；条目 = 名称 + 起止时间 + 未开始/进行中 + 剩余
+ * 天数；点击打开事项通知链接（thu-info Linking.openURL(djsurl) 同语义）。 */
+
+/** 起止毫秒值（"YYYY-MM-DD HH:mm" → epoch ms；解析失败 NaN 由调用方过滤） */
+function deadlineMs(s: string | undefined): number {
+  if (!s) return NaN;
+  const t = new Date(s.includes(" ") ? s.replace(" ", "T") : s).getTime();
+  return Number.isNaN(t) ? NaN : t;
+}
+
+/** 倒计时徽标：未开始=还有 N 天开始（当天=今天开始）；进行中=剩 N 天（当天=今天结束） */
+function countdownChip(beginMs: number, endMs: number, now: Date): { text: string; cls: string } {
+  if (now.getTime() < beginMs) {
+    const days = calDaysUntil(new Date(beginMs));
+    if (days <= 0) return { text: "今天开始", cls: "chip-red" };
+    if (days <= 7) return { text: `未开始 · ${days} 天后`, cls: "chip-amber" };
+    return { text: `未开始 · 还有 ${days} 天`, cls: "chip-gray" };
+  }
+  const days = Math.ceil((endMs - now.getTime()) / 86400000);
+  if (days <= 1) return { text: "今天结束", cls: "chip-red" };
+  return { text: `进行中 · 剩 ${days} 天`, cls: "chip-blue" };
+}
+
+/** 日程与提醒：校历节点（开学/学期结束）+ 学校重要事项（deadline 接口）合并成
+ *  一条时间线，按日期升序；用户指令：倒计时提醒与最近日程合并为一卡，文字不截断。 */
+function AgendaCard() {
+  const { navigate } = useApp();
+  const cal = useTodayCalendar();
+  const { list: deadlineList, state: dlState } = useTodayDeadlines();
+  const now = useMemo(() => new Date(), []);
+
+  type AgendaRow = {
+    key: string; date: Date; title: string; sub: string;
+    chipText: string; chipCls: string; barCls?: string;
+    onClick?: () => void;
+  };
+
+  const calRows: AgendaRow[] = useMemo(() => {
+    if (cal.state !== "ready") return [];
+    return (cal.nodes ?? []).slice(0, 6).map((n) => ({
+      key: n.key,
+      date: n.date,
+      title: n.name,
+      sub: `校历 · 星期${WEEKDAYS[n.date.getDay()]}`,
+      chipText: n.daysUntil === 0 ? "今天" : `还有 ${n.daysUntil} 天`,
+      chipCls: n.daysUntil <= 1 ? "chip-red" : n.daysUntil <= 7 ? "chip-amber" : "chip-gray",
+      barCls: n.key.endsWith("-end") ? "var(--amber)" : undefined,
+      onClick: () => navigate("schedule"),
+    }));
+  }, [cal.state, cal.nodes, navigate]);
+
+  const dlRows: AgendaRow[] = useMemo(() => {
+    if (dlState !== "ready") return [];
+    return (deadlineList ?? [])
+      .map((d) => ({ ...d, beginMs: deadlineMs(d.begin), endMs: deadlineMs(d.end) }))
+      .filter((d) => Number.isFinite(d.beginMs) && Number.isFinite(d.endMs))
+      .filter((d) => now.getTime() < d.endMs && now.getTime() >= d.beginMs - 14 * 86400000)
+      .sort((a, b) => a.beginMs - b.beginMs)
+      .map((d) => {
+        const chip = countdownChip(d.beginMs, d.endMs, now);
+        return {
+          key: `dl-${d.title}-${d.begin}`,
+          date: new Date(d.beginMs),
+          title: d.title,
+          sub: `重要事项 · ${(d.begin ?? "").slice(5, 16)} ~ ${(d.end ?? "").slice(5, 16)}`,
+          chipText: chip.text,
+          chipCls: chip.cls,
+          barCls: "var(--border-strong)",
+          onClick: d.url ? () => void openExternal(d.url!) : undefined,
+        } as AgendaRow;
+      });
+  }, [deadlineList, dlState, now]);
+
+  const rows = useMemo(() => {
+    const merged = [...calRows, ...dlRows].sort((a, b) => a.date.getTime() - b.date.getTime());
+    return merged.slice(0, 6);
+  }, [calRows, dlRows]);
+
+  // 两路都还没就绪 → 整卡不渲染；就绪但都为空 → 也隐藏（首页不留死卡）
+  if (rows.length === 0 && (cal.state !== "ready" || dlState !== "ready")) return null;
+  if (cal.state === "ready" && dlState === "ready" && rows.length === 0) return null;
+
+  return (
+    <>
+      <SectionHead title="日程与提醒" aside="校历 · 学校重要事项" />
+      <Card className="list">
+        {rows.length === 0 ? (
+          <Empty text="近期没有日程事项。" />
+        ) : (
+          rows.map((r, i) => (
+            <RowClick key={r.key} style={{ animationDelay: `${i * 35}ms` }} onClick={r.onClick}>
+              <div className="tl-time">{ymd(r.date).slice(5)}</div>
+              <div className="tl-bar" style={r.barCls ? { background: r.barCls } : undefined} />
+              <div className="tl-main">
+                <div className="tl-title" style={{ whiteSpace: "normal", overflow: "visible", textOverflow: "unset", display: "block" }}>{r.title}</div>
+                <div className="tl-sub" style={{ whiteSpace: "normal" }}>{r.sub}</div>
+              </div>
+              <span className={`chip ${r.chipCls}`}>
+                <span className="dot" />
+                {r.chipText}
+              </span>
+              {r.onClick ? <IconChevron className="row-caret" width={14} height={14} /> : null}
+            </RowClick>
+          ))
+        )}
+      </Card>
+    </>
+  )
+}
+
+
 export function TodayPage() {
   const { navigate } = useApp();
   const { data, state, error, reload } = useCampusData();
@@ -124,8 +243,17 @@ export function TodayPage() {
   const resv = useTodayReservations();
   // 最近日程（校历节点）：取不到数据时整卡隐藏
   const cal = useTodayCalendar();
-  // 最新新闻（信息门户前 5 条）：失败时整卡隐藏
-  const news = useTodayNews();
+  // 订阅新闻（onethu.news.subs 来源优先，回退最新）：失败时整卡隐藏。
+  // Today 页切走即卸载，回来自动重读 localStorage；storage 事件兜底跨标签同步。
+  const [subs, setSubs] = useState<string[]>(() => readSubs());
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "onethu.news.subs") setSubs(readSubs());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+  const news = useTodayNewsFeed(subs);
   const now = new Date();
 
   /** 未提交作业（首页作业区唯一口径：submitted===false，含已逾期，按截止升序） */
@@ -208,29 +336,8 @@ export function TodayPage() {
 
       <div className="today-grid" style={{ marginTop: 14 }}>
         <div>
-          {/* 最近日程：校历节点（开学/学期结束，升序前 5）—— 取不到数据整卡隐藏 */}
-          {cal.state === "ready" && (cal.nodes?.length ?? 0) > 0 ? (
-            <>
-              <SectionHead title="最近日程" aside="校历节点 · 点击打开课表" />
-              <Card className="list">
-                {cal.nodes!.slice(0, 5).map((n, i) => (
-                  <RowClick key={n.key} style={{ animationDelay: `${i * 35}ms` }} onClick={() => navigate("schedule")}>
-                    <div className="tl-time">{ymd(n.date).slice(5)}</div>
-                    <div className="tl-bar" style={n.key.endsWith("-end") ? { background: "var(--amber)" } : undefined} />
-                    <div className="tl-main">
-                      <div className="tl-title">{n.name}</div>
-                      <div className="tl-sub">星期{WEEKDAYS[n.date.getDay()]}</div>
-                    </div>
-                    <span className={`chip ${n.daysUntil <= 1 ? "chip-red" : n.daysUntil <= 7 ? "chip-amber" : "chip-gray"}`}>
-                      <span className="dot" />
-                      {n.daysUntil === 0 ? "今天" : `还有 ${n.daysUntil} 天`}
-                    </span>
-                    <IconChevron className="row-caret" width={14} height={14} />
-                  </RowClick>
-                ))}
-              </Card>
-            </>
-          ) : null}
+          {/* 日程与提醒：校历节点 + 学校重要事项合并一卡 */}
+          <AgendaCard />
 
           {/* 作业区：只显示未提交（已提交的不出现在首页） */}
           <SectionHead title="未提交作业" aside={`${unsubmitted.length} 条 · 点击查看详情`} />
@@ -270,6 +377,25 @@ export function TodayPage() {
               })}
             </Card>
           )}
+          <SectionHead title="最近通知" aside="点击查看详情" />
+          <Card className="list">
+            {(data?.notifications.length ?? 0) === 0 ? (
+              <Empty text="暂无通知。" />
+            ) : (
+              data!.notifications.slice(0, 3).map((n, i) => (
+                <RowClick key={i} onClick={() => navigate("learn-notice-detail", { courseId: n.courseId, itemId: n.id, from: "today" })}>
+                  <div className="tl-time">{n.publishTime.slice(5, 10)}</div>
+                  <div className="tl-bar" style={{ background: "var(--border-strong)" }} />
+                  <div className="tl-main">
+                    <div className="tl-title" style={{ whiteSpace: "normal" }}>{n.title}</div>
+                    <div className="tl-sub">{n.publisher}</div>
+                  </div>
+                  <IconChevron className="row-caret" width={14} height={14} />
+                </RowClick>
+              ))
+            )}
+          </Card>
+
         </div>
 
         <div className="today-rail">
@@ -337,13 +463,27 @@ export function TodayPage() {
             )}
           </Card>
 
-          {/* 最新新闻：信息门户前 5 条 —— 失败/无数据整卡隐藏 */}
-          {news.state === "ready" && (news.list?.length ?? 0) > 0 ? (
+          {/* 订阅新闻：onethu.news.subs 来源优先（服务端订阅取数），回退最新并注明；
+              点击行经 LearnNav.infoNewsId 直达该条新闻详情 —— 失败/无数据整卡隐藏 */}
+          {news.state === "ready" && (news.data?.list.length ?? 0) > 0 ? (
             <>
-              <SectionHead title="最新新闻" aside="信息门户 · 最新 5 条" />
+              <SectionHead
+                title="订阅新闻"
+                aside={
+                  news.data!.from === "subs"
+                    ? `已订阅 ${news.data!.subCount} 来源 · 最新 ${news.data!.list.length} 条`
+                    : news.data!.subCount > 0
+                      ? "订阅来源暂无新闻，显示最新"
+                      : "未订阅来源，显示最新"
+                }
+              />
               <Card className="list">
-                {news.list!.map((n, i) => (
-                  <RowClick key={n.xxid || i} style={{ animationDelay: `${i * 35}ms` }} onClick={() => navigate("info")}>
+                {news.data!.list.map((n, i) => (
+                  <RowClick
+                    key={n.xxid || i}
+                    style={{ animationDelay: `${i * 35}ms` }}
+                    onClick={() => navigate("info", { infoNewsId: n.xxid })}
+                  >
                     <div className="tl-time">{n.date ? n.date.slice(5, 10) : "—"}</div>
                     <div className="tl-bar" style={{ background: "var(--border-strong)" }} />
                     <div className="tl-main">
@@ -357,24 +497,6 @@ export function TodayPage() {
             </>
           ) : null}
 
-          <SectionHead title="最近通知" aside="点击查看详情" />
-          <Card className="list">
-            {(data?.notifications.length ?? 0) === 0 ? (
-              <Empty text="暂无通知。" />
-            ) : (
-              data!.notifications.slice(0, 3).map((n, i) => (
-                <RowClick key={i} onClick={() => navigate("learn-notice-detail", { courseId: n.courseId, itemId: n.id, from: "today" })}>
-                  <div className="tl-time">{n.publishTime.slice(5, 10)}</div>
-                  <div className="tl-bar" style={{ background: "var(--border-strong)" }} />
-                  <div className="tl-main">
-                    <div className="tl-title" style={{ whiteSpace: "normal" }}>{n.title}</div>
-                    <div className="tl-sub">{n.publisher}</div>
-                  </div>
-                  <IconChevron className="row-caret" width={14} height={14} />
-                </RowClick>
-              ))
-            )}
-          </Card>
         </div>
       </div>
     </>

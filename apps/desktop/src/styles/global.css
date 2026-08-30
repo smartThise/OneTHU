@@ -832,17 +832,18 @@
 .course-card-sub {
   font-size: var(--text-xs);
   line-height: 18px;
-  color: var(--text-3);
+  color: var(--text-2); /* 用户反馈 text-3 太浅 */
   font-variant-numeric: tabular-nums;
+  white-space: normal;
+  word-break: break-all;
 }
 
 .course-card-time {
   font-size: var(--text-xs);
   line-height: 18px;
   color: var(--text-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal; /* 用户反馈省略号吞信息，允许完整展示 */
+  word-break: break-all;
 }
 
 .course-card-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }

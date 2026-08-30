@@ -74,6 +74,7 @@ export type {
   LibrarySeat,
   LibrarySeatAvailability,
   LibrarySection,
+  NewsAttachment,
   NewsDetail,
   NewsItem,
   ReportRow,

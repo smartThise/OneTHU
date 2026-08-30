@@ -142,11 +142,13 @@ export function Highlight({ text, tokens }: { text: string; tokens: string[] }) 
   return <>{nodes}</>;
 }
 
-/* ---------- 订阅持久化：localStorage onethu.news.subs = 来源名（string[]） ---------- */
+/* ---------- 订阅 UI 偏好缓存：localStorage onethu.news.subs = 条件标签（string[]） ----------
+ * 订阅条件以信息门户服务端为权威（getNewsSubscriptionList）；本缓存只服务于
+ * 分段控件显隐/计数等 UI 偏好（服务端拉取失败或演示态时的兜底展示）。 */
 
 const SUBS_KEY = "onethu.news.subs";
 
-/** 读取订阅来源名列表（坏值/隐私模式静默回空；去重去空白） */
+/** 读取订阅偏好缓存（坏值/隐私模式静默回空；去重去空白） */
 export function readSubs(): string[] {
   try {
     const raw = localStorage.getItem(SUBS_KEY);
@@ -165,7 +167,7 @@ export function readSubs(): string[] {
   }
 }
 
-/** 写回订阅（容量/隐私模式写入失败容忍） */
+/** 写回订阅偏好缓存（容量/隐私模式写入失败容忍） */
 export function writeSubs(subs: string[]): void {
   try {
     localStorage.setItem(SUBS_KEY, JSON.stringify(subs));

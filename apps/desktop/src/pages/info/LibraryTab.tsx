@@ -15,20 +15,8 @@ import { infoUrls, isAuthError } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { fetchImageByUrl, info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
+import { autoFullReload } from "../../lib/reload.js";
 import { useApp } from "../../state/context.js";
-
-/* 整页重载式自愈（用户语义：等同手动右键刷新，从头载入）。
-   sessionStorage 节流：2 分钟内只自动重载一次，防止坏会话死循环；超限亮红交给用户。 */
-export function autoFullReload(scope: string): boolean {
-  try {
-    const key = `onethu.autoreload.${scope}`;
-    const last = Number(sessionStorage.getItem(key) ?? "0");
-    if (Date.now() - last < 120_000) return false;
-    sessionStorage.setItem(key, String(Date.now()));
-  } catch { /* sessionStorage 不可用就保守放行一次 */ }
-  setTimeout(() => location.reload(), 150);
-  return true;
-}
 
 
 function logErr(tag: string, err: unknown): void {
@@ -253,6 +241,9 @@ export function LibraryTab() {
   const [action, setAction] = useState<{ ok: boolean; text: string } | null>(null);
   const [busySeat, setBusySeat] = useState<number | null>(null);
   const [seatTick, setSeatTick] = useState(0);
+  /* 我的预约取消：先点「取消预约」进入行内确认，再点「确认取消」才调端点 */
+  const [pendingCancel, setPendingCancel] = useState<string | null>(null);
+  const [busyCancel, setBusyCancel] = useState<string | null>(null);
 
   /* 登录态丢失静默自愈：每条加载链路独立计数（成功清零），同一次失败最多自动恢复 1 次；
    * 恢复中保持 loading 骨架不闪红，自动恢复也失败才亮 ErrorNote（手动重试会清零重计）。 */
@@ -495,6 +486,7 @@ export function LibraryTab() {
       setAction({ ok: false, text: "需要登录会话（未获取到学号）" });
       return;
     }
+    setBusyCancel(r.delId);
     setAction(null);
     try {
       await info.cancelLibBooking(r.delId, userId);
@@ -503,6 +495,9 @@ export function LibraryTab() {
     } catch (err) {
       logErr("LIB-CANCEL", err);
       setAction({ ok: false, text: explainNetworkError(err) });
+    } finally {
+      setBusyCancel(null);
+      setPendingCancel(null);
     }
   };
 
@@ -757,9 +752,36 @@ export function LibraryTab() {
               </div>
               <div className="row-amount">
                 {r.delId ? (
-                  <button className="btn" style={{ height: 28 }} onClick={() => void cancel(r)}>
-                    取消
-                  </button>
+                  pendingCancel === (r.delId ?? r.id) ? (
+                    <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                      <span style={{ fontSize: 12, color: "var(--text-2)" }}>确认取消该预约？</span>
+                      <button
+                        className="btn btn-primary"
+                        style={{ height: 28 }}
+                        disabled={busyCancel !== null}
+                        onClick={() => void cancel(r)}
+                      >
+                        {busyCancel !== null ? "取消中…" : "确认取消"}
+                      </button>
+                      <button
+                        className="btn"
+                        style={{ height: 28 }}
+                        disabled={busyCancel !== null}
+                        onClick={() => setPendingCancel(null)}
+                      >
+                        算了
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      className="btn"
+                      style={{ height: 28 }}
+                      disabled={busyCancel !== null}
+                      onClick={() => setPendingCancel(r.delId ?? r.id)}
+                    >
+                      取消预约
+                    </button>
+                  )
                 ) : null}
               </div>
             </div>

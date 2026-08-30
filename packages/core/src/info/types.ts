@@ -104,6 +104,14 @@ export interface NewsItem {
   channel?: string;
 }
 
+/** 新闻附件（xxDto.fjs_template 单项：wjmc 文件名 + wjid 文件 id，thu-info-lib 同源） */
+export interface NewsAttachment {
+  /** 文件名（如「附件一：校园秩序及交通管理示意图.jpg」） */
+  name: string;
+  /** 下载端点绝对 URL（/b/info/wj/download/{wjid}?_csrf=…，即 thu-info-lib FILE_DOWNLOAD_URL 的 info 直连版） */
+  url: string;
+}
+
 /** 新闻详情（getNewsDetail：NEWS_DETAIL?xxid=…&_csrf=… → object.xxDto） */
 export interface NewsDetail {
   title: string;
@@ -111,8 +119,8 @@ export interface NewsDetail {
   html: string;
   /** 纯文本摘要（兜底展示） */
   plain: string;
-  /** 附件文件名列表 */
-  files: string[];
+  /** 附件（fjs_template 解析；无附件恒为空数组不报错） */
+  attachments: NewsAttachment[];
 }
 
 /** 新闻来源（getNewsSourceList：querySubscribeInformationUnitList?lmid= → object.{id,text}） */
@@ -121,8 +129,17 @@ export interface NewsSource {
   sourceName: string;
 }
 
+/**
+ * 首页「倒计时提醒」事项（INFO_DEADLINE：/b/info/gxfw_fg/common/deadline/list →
+ * {object:[{djsbt,djskssj,djsjzsj,djsurl}]}，thu-info-lib getCrTimetable 同源）：
+ * title=倒计时标题（选课/退课/推研等学期重要节点），begin/end=起止时间
+ * （"YYYY-MM-DD HH:mm"），url=事项通知链接；date/raw 保留旧解析兼容。
+ */
 export interface DeadlineItem {
   title: string;
+  begin?: string;
+  end?: string;
+  url?: string;
   date?: string;
   raw?: Record<string, unknown>;
 }

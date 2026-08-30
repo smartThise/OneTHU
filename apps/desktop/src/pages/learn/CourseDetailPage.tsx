@@ -1,4 +1,6 @@
-/** 课程详情（learnX CourseDetail）：头部课程信息 + 通知/作业/文件/分组/讨论区 tab 列表 */
+/** 课程详情（learnX CourseDetail）：头部课程信息 + 通知/作业/文件/分组/讨论区 tab 列表。
+ *  作业 tab 带状态筛选 chips（未提交/已提交/已批改/全部，AssignmentsPage 同款 segmented），
+ *  已批改条目直接显示成绩（HomeworkRow showGrade，thu-app learnHome「已批改 (分数)」语义）。 */
 import { useEffect, useMemo, useState } from "react";
 import type { LearnGroup } from "@onethu/core";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
@@ -17,6 +19,16 @@ const TABS: Array<{ key: Tab; label: string }> = [
   { key: "files", label: "文件" },
   { key: "groups", label: "分组" },
   { key: "forum", label: "讨论区" },
+];
+
+/** 作业状态筛选（AssignmentsPage 同款口径：未提交 / 已提交未批改 / 已批改 / 全部） */
+type HwFilter = "unfinished" | "submitted" | "graded" | "all";
+
+const HW_FILTERS: Array<{ key: HwFilter; label: string }> = [
+  { key: "unfinished", label: "未提交" },
+  { key: "submitted", label: "已提交" },
+  { key: "graded", label: "已批改" },
+  { key: "all", label: "全部" },
 ];
 
 /** 分组数据模块级缓存（单条目 + 5min TTL，useLearnData 同思路）：
@@ -48,6 +60,19 @@ export function CourseDetailPage() {
       .sort((a, b) => a.deadline.localeCompare(b.deadline)),
     [data, courseId],
   );
+
+  // 作业筛选（默认「全部」：进入页面行为与旧版一致），各组计数供 chip 展示
+  const [hwFilter, setHwFilter] = useState<HwFilter>("all");
+  const hwGroups = useMemo(
+    () => ({
+      unfinished: homework.filter((h) => !h.submitted),
+      submitted: homework.filter((h) => h.submitted && !h.graded),
+      graded: homework.filter((h) => h.graded),
+      all: homework,
+    }),
+    [homework],
+  );
+  const hwList = hwGroups[hwFilter];
   const files = useMemo(
     () => (data?.files ?? []).filter((f) => f.courseId === courseId)
       .sort((a, b) => b.uploadTime.localeCompare(a.uploadTime)),
@@ -159,11 +184,38 @@ export function CourseDetailPage() {
         homework.length === 0 ? (
           <Card><Empty text="本课程暂无作业。" /></Card>
         ) : (
-          <Card className="list">
-            {homework.map((h, i) => (
-              <HomeworkRow key={h.id} h={h} from="learn-course" style={{ animationDelay: `${i * 25}ms` }} />
-            ))}
-          </Card>
+          <>
+            {/* 状态筛选 chips：AssignmentsPage 同款 segmented（含各组计数） */}
+            <div className="segmented" role="tablist" aria-label="作业状态筛选">
+              {HW_FILTERS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  role="tab"
+                  aria-selected={hwFilter === key}
+                  className={hwFilter === key ? "is-active" : ""}
+                  onClick={() => setHwFilter(key)}
+                >
+                  {label}
+                  <span className="tab-count">{hwGroups[key].length}</span>
+                </button>
+              ))}
+            </div>
+            {hwList.length === 0 ? (
+              <Card><Empty text="该状态下暂无作业。" /></Card>
+            ) : (
+              <Card className="list">
+                {hwList.map((h, i) => (
+                  <HomeworkRow
+                    key={h.id}
+                    h={h}
+                    from="learn-course"
+                    showGrade
+                    style={{ animationDelay: `${i * 25}ms` }}
+                  />
+                ))}
+              </Card>
+            )}
+          </>
         )
       ) : tab === "files" ? (
         files.length === 0 ? (

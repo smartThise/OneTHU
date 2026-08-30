@@ -32,6 +32,9 @@ export interface LearnNav {
   from?: Page;
   /** 学期切换显式携带：learn 列表页据此校验数据学期一致（防缓存/竞态残留旧学期） */
   semesterId?: string;
+  /** 信息页新闻直达：携带 xxid 时 InfoPage 初始落在新闻 tab，并把该条新闻打开详情。
+   *  不带此参数时 InfoPage 行为与旧版完全一致（默认成绩 tab）。 */
+  infoNewsId?: string;
 }
 
 const TOP_PAGES = ["today", "learn", "schedule", "info", "life", "reserve", "zhjwxk", "settings"] as const;

@@ -1,6 +1,6 @@
 /** 校园数据钩子：真实模式取自 @onethu/core；演示模式返回 demo 数据（界面明确标注）。 */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { XkCourseDetail, ZhjwxkSession, BasicUserInfo, CalendarData, CalendarSemester, CardInfo, CardTransaction, CourseFile, CourseInfo, ExamEntry, Homework, NewsItem, Notification, QueueCandidate, ReportRow, ScheduleEntry, SelectedCourse, SemesterInfo, XkCourse, XkFlag, XkLevelTableRow, XkQueueInfo, XkSelectedRow, XkVolInfo } from "@onethu/core";
+import type { XkCourseDetail, ZhjwxkSession, BasicUserInfo, CalendarData, CalendarSemester, CardInfo, CardTransaction, CourseFile, CourseInfo, DeadlineItem, ExamEntry, Homework, NewsItem, Notification, QueueCandidate, ReportRow, ScheduleEntry, SelectedCourse, SemesterInfo, XkCourse, XkFlag, XkLevelTableRow, XkQueueInfo, XkSelectedRow, XkVolInfo } from "@onethu/core";
 import {
   changeXkVolunteer,
   dropXkCourse,
@@ -20,6 +20,7 @@ import {
 } from "@onethu/core";
 import { http, info, learn, logLine, session } from "../lib/clients.js";
 import { explainNetworkError } from "../lib/transport.js";
+import { autoFullReload } from "../lib/reload.js";
 import { buildRows, buildSlotIndex, canAdjustZy as canAdjustZyFn, levelRowsToCatalog, levelTypesOf, mergeLevelIntoCatalog, type SlotItem, type XkRow } from "../lib/xklogic.js";
 import type { XkPlanItem } from "@onethu/core";
 import {
@@ -410,7 +411,7 @@ function lsSet(key: string, value: unknown): void {
 
 /* staticData SWR 缓存（content.js:269-345 移植）：level/catalog/vol/plan 持久化，vol 四检点过期。
  * 学期键契约（防误读自证）：SdShape.semester 记录"这份缓存抓取时的学期"；
- * sdRead 只做形状校验，学期一致性由唯一读取方 loadCatalogWith 的 `sd.semester === sem` 判定，
+ * sdRead 只做形状校验，学期一致性由唯一读取方 runPipeline 的 `sd.semester === sem` 判定，
  * 缓存学期 ≠ 目标学期时整包弃用（绝不拿别的学期缓存顶包）；sdWrite 永远以本次抓取的 sem 落键。 */
 const SD_KEY = "onethu.xk.staticData";
 const SD_VER = 6; // v6：+ level（一级课表先行管线的持久缓存）
@@ -459,7 +460,7 @@ const XK_CACHE_TTL = 5 * 60_000;
 /** 内存级一级课表缓存（refresh 与目录管线共用一份，小而快，避免同页重复请求） */
 let levelCache: { sem: string; at: number; table: Record<string, XkLevelTableRow> } | null = null;
 const LEVEL_CACHE_TTL = 5 * 60_000;
-/** fresh 重抓的防抖窗口：mount 时 refresh 与 loadCatalogWith 相邻发起，只发一次请求 */
+/** fresh 重抓的防抖窗口：挂载 refresh 与 loadCatalog 相邻发起时只发一次请求 */
 const LEVEL_FRESH_WINDOW = 5_000;
 const levelInflight = new Map<string, Promise<Record<string, XkLevelTableRow> | null>>();
 /** 一级课表失败/为空的学期（内存标记）：仅这些学期允许全量目录优先（refresh fresh 重抓可自愈解除） */
@@ -513,7 +514,8 @@ export interface XkWorkbench {
   error: string | null;
   busy: string | null;
   toast: string | null;
-  refresh: () => Promise<void>;
+  /** fresh=true（默认，手动刷新/重试）强抓一级课表自愈；挂载走 false 允许同学期缓存秒渲 */
+  refresh: (fresh?: boolean) => Promise<void>;
   loadCatalog: () => Promise<void>;
   submit: (code: string, seq: string, zy: number, flag: XkFlag) => Promise<void>;
   drop: (code: string, seq: string, isQueue: boolean) => Promise<void>;
@@ -562,10 +564,26 @@ export function useXkWorkbench(): XkWorkbench {
   const { status } = useApp();
   const [semester, setSemester] = useState<string | null>(null);
   const [semesterOverride, setSemesterOverrideState] = useState<string | null>(null);
-  const semRef = useRef<string | null>(null);
-  const catSemRef = useRef<string | null>(null);
-  /** 学期覆盖的镜像 ref：refresh 不依赖 state（deps 只有 status），手动刷新不读陈旧闭包 */
-  const overrideRef = useRef<string | null>(null);
+  /* ── 管线代数（generation）+ 学期栏唯一真源 ──
+   * semBarRef：学期栏当前选中值镜像（唯一真源）。setSemesterOverride 同步写入——select 本帧
+   * 即显示新学期、绝不回跳旧值；refresh/loadCatalog/refreshQueue 一切入口都先读它，
+   * 绝不基于旧学期继续。
+   * genRef：切学期等打断入口 +1；所有在途 level/core/catalog/vol 请求 resolve 后先比对代数，
+   * 不一致一律丢弃（旧 semRef/catSemRef 学期比对守卫的统一升级）。
+   * pipelineSemRef：最近一次整序管线的学期，识别"新学期开始"再 +1；初始挂载为 null 不算
+   * 打断——mount 时 refresh 与 loadCatalog 并发启动，必须共享同一代才能双双生效。 */
+  const genRef = useRef(0);
+  const semBarRef = useRef<string | null>(null);
+  const pipelineSemRef = useRef<string | null>(null);
+  /** 同代同学期整序管线在途去重（mount 时 idle 触发与 loadCatalog 竞态只跑一遍全量抓取） */
+  const pipelineInflightRef = useRef<{ sem: string; gen: number; promise: Promise<void> } | null>(null);
+  /** 核心数据（已选/候补/队列/方案）单写者序号：写后核心刷新永远取代在途管线的核心提交 */
+  const coreSeqRef = useRef(0);
+  /** 两段状态机内部标志：levelRendered = 一级课表 partial 行已提交（catalogState 仍 "loading"，
+   *  左栏继续"加载中"）；fullReady = 全量目录已合并（catalogState="ready"，
+   *  volNeedsRefresh 后台重校验只允许在此之后启动，且此后绝不用 partial 行降级覆盖全量行）。 */
+  const levelRenderedRef = useRef(false);
+  const fullReadyRef = useRef(false);
   const [selected, setSelected] = useState<XkSelectedRow[]>([]);
   const [candidates, setCandidates] = useState<QueueCandidate[]>([]);
   const [phase, setPhase] = useState(false);
@@ -580,40 +598,27 @@ export function useXkWorkbench(): XkWorkbench {
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  const refresh = useCallback(async (semArg?: string) => {
-    if (status === "demo") {
-      setSemester(semesterFromDate());
-      setSelected(DEMO_ZHJWXK_COURSES.map((c) => ({
-        code: c.code, seq: "0", name: c.name, teacher: c.teacher, time: c.time,
-        credits: c.credits, typeLabel: c.typeLabel, zy: 1,
-        typeCode: c.typeLabel === "必修" ? "006" : c.typeLabel === "限选" ? "008" : c.typeLabel === "任选" ? "007" : "ty",
-      })));
-      setCandidates(DEMO_ZHJWXK_QUEUE);
-      setPhase(true);
-      setLevelTypes({});
-      setCoreState("ready");
-      return;
-    }
-    setCoreState("loading");
-    setError(null);
+  /** 学期栏唯一真源的同步写入（state + ref 同帧一致，select 不回跳） */
+  const setSemBar = useCallback((sem: string | null) => {
+    semBarRef.current = sem;
+    setSemester(sem);
+  }, []);
+
+  /* ── 核心数据提交（右栏数据 = 已选/候补/队列/方案，一级课表兜底）──
+   * 单写者（coreSeqRef）：写后核心刷新永远取代在途管线的核心提交，杜绝旧数据覆盖新数据。
+   * 失登自愈（与校园卡/图书馆同款）：isAuthError → autoFullReload("xk") 静默整页重载，
+   * 2 分钟节流窗口内的第二次失败才落可重试错误。 */
+  const commitCore = useCallback(async (sem: string, lt: Record<string, XkLevelTableRow> | null, myGen: number): Promise<XkPlanItem[]> => {
+    const coreSeq = ++coreSeqRef.current;
+    const opt = { semester: sem };
     try {
-      const sem = semArg ?? overrideRef.current ?? (await resolveZhjwxkSemester(xkSession()).catch(() => semesterFromDate()));
-      semRef.current = sem;
-      setSemester(sem);
-      const opt = { semester: sem };
-      // 一级课表永远第一个抓（小而快）：课型表 / 已选兜底 / 目录最小行共用这一份；
-      // 失败/为空 → 内存标记 levelFailed（refresh 每次重抓，自愈解除）
-      const lt = await fetchLevelTable(sem, true);
-      if (semRef.current !== sem) return; // 期间已切学期：丢弃过期结果，防止串课
-      if (lt) setLevelTypes(levelTypesOf(lt));
       const [sel, cand, qd, plan] = await Promise.all([
-        getXkSelectedFull(xkSession(), opt).catch(async () => [] as XkSelectedRow[]),
-        getQueueStatus(xkSession(), opt).catch(() => [] as QueueCandidate[]),
-        getXkQueueData(xkSession(), opt).catch(() => ({ map: {}, phase: false })),
-        getXkPlan(xkSession(), opt).catch(() => [] as XkPlanItem[]),
+        getXkSelectedFull(xkSession(), opt).catch((err: unknown) => { if (isAuthError(err)) throw err; return [] as XkSelectedRow[]; }),
+        getQueueStatus(xkSession(), opt).catch((err: unknown) => { if (isAuthError(err)) throw err; return [] as QueueCandidate[]; }),
+        getXkQueueData(xkSession(), opt).catch((err: unknown) => { if (isAuthError(err)) throw err; return { map: {}, phase: false }; }),
+        getXkPlan(xkSession(), opt).catch((err: unknown) => { if (isAuthError(err)) throw err; return [] as XkPlanItem[]; }),
       ]);
-      if (semRef.current !== sem) return; // 期间已切学期：丢弃过期结果，防止串课
-      setPlan(plan);
+      if (genRef.current !== myGen || coreSeqRef.current !== coreSeq) return plan; // 已打断/已被更新的核心刷新取代：丢弃
       // 一级课表兜底（v1.4.9）：已选查询拿不到行（选课阶段切换/页面变更）时，
       // 用刚抓的一级课表重建（含课名/教师/学分），不再二次请求
       let selFinal = sel;
@@ -627,14 +632,177 @@ export function useXkWorkbench(): XkWorkbench {
       setCandidates(cand);
       setQueueMap(qd.map);
       setPhase(qd.phase);
+      setPlan(plan);
       setQueueState("ready");
       setCoreState("ready");
+      return plan; // ★ 右栏就绪（渲染顺序固定：先右后左）
     } catch (err) {
+      if (genRef.current !== myGen || coreSeqRef.current !== coreSeq) return [];
+      if (isAuthError(err) && autoFullReload("xk")) return []; // 失登：静默整页重载（2 分钟节流）
       logPageError("ZHJWXK", err);
       setCoreState("error");
       setError(explainNetworkError(err));
+      throw err; // 右栏失败：整序管线到此为止，左栏保持 loading（顺序固定）
     }
-  }, [status]);
+  }, []);
+
+  /** 一级课表到位：课型表 + partial 行立即提交。fullReady 之后（全量行已在）
+   *  绝不用 partial 行降级覆盖（写后核心刷新路径），只更新课型表。 */
+  const commitLevel = useCallback((lt: Record<string, XkLevelTableRow>) => {
+    levelRenderedRef.current = true;
+    setLevelTypes(levelTypesOf(lt));
+    if (!fullReadyRef.current) setCatalog(levelRowsToCatalog(lt));
+  }, []);
+
+  /**
+   * 整序管线（两栏由同一 generation 驱动，渲染顺序固定：先右后左）：
+   *   Phase R（右）：一级课表（同学期缓存秒渲 → 网络）→ 核心数据提交 → 右栏就绪；
+   *   Phase L（左）：全量目录（内存缓存 → 持久缓存 → 网络）按 sk(code,seq) 合并完成后
+   *                 catalogState 才翻 "ready"，左栏在此之前只显示加载中；
+   *                 失败保留 level 行走可重试 ErrorNote，不白屏。
+   * 所有 await resolve 后先比对 generation，不一致一律丢弃；同代同学期在途去重。
+   */
+  const runPipeline = useCallback((sem: string, freshLevel: boolean): Promise<void> => {
+    // 新学期开始 = 打断：代数 +1（初始挂载 pipelineSemRef=null 不算，见上）
+    if (pipelineSemRef.current !== null && pipelineSemRef.current !== sem) genRef.current += 1;
+    pipelineSemRef.current = sem;
+    const myGen = genRef.current;
+    const inflight = pipelineInflightRef.current;
+    if (inflight && inflight.sem === sem && inflight.gen === myGen) return inflight.promise;
+    // 管线启动：左栏立即回 loading（level 尚未就绪态），复位两段标志
+    setCatalogState("loading");
+    setError(null);
+    setCoreState("loading");
+    levelRenderedRef.current = false;
+    fullReadyRef.current = false;
+    const entry: NonNullable<typeof pipelineInflightRef.current> = {
+      sem,
+      gen: myGen,
+      promise: (async () => {
+        // ── Phase R（先右）── 一级课表永远第一个抓（小而快）：课型表/已选兜底/目录最小行共用
+        const lt = await fetchLevelTable(sem, freshLevel);
+        if (genRef.current !== myGen) return; // 期间已打断：丢弃
+        if (lt) commitLevel(lt);
+        let plan: XkPlanItem[] = [];
+        try {
+          plan = await commitCore(sem, lt, myGen);
+        } catch { return; } // 右栏失败：错误态已在 commitCore 落定，左栏不 ready（顺序固定）
+        // ── Phase L（后左）──
+        try {
+          const ltTable = lt ?? {};
+          const sd0 = sdRead();
+          const sd = sd0 && sd0.semester === sem ? sd0 : null; // 缓存学期≠目标学期一律不采用
+          // 内存全量缓存（5min TTL，同学期）
+          if (xkCache && xkCache.semester === sem && xkCache.catalog.length > 0 && Date.now() - xkCache.at < XK_CACHE_TTL) {
+            setCatalog(xkCache.catalog);
+            setVolMap(xkCache.vol);
+            fullReadyRef.current = true;
+            setCatalogState("ready");
+            return;
+          }
+          // 持久缓存命中（同学期）：全量合并 → ready；vol 四检点过期才在 ready 后启动后台重校验
+          if (sd) {
+            const merged = mergeLevelIntoCatalog(sd.catalog, ltTable);
+            xkCache = { semester: sem, at: Date.now(), catalog: merged, vol: sd.vol };
+            setCatalog(merged);
+            setVolMap(sd.vol);
+            fullReadyRef.current = true;
+            setCatalogState("ready");
+            if (fullReadyRef.current && volNeedsRefresh(sd.volTs)) {
+              void (async () => {
+                try {
+                  const [cat2, vol2] = await Promise.all([
+                    getXkCatalog(xkSession(), { semester: sem }),
+                    getXkVolunteer(xkSession(), { semester: sem }).catch((err: unknown) => { if (isAuthError(err)) throw err; return {} as Record<string, XkVolInfo>; }),
+                  ]);
+                  if (genRef.current !== myGen) return; // 期间已打断：丢弃
+                  const merged2 = mergeLevelIntoCatalog(cat2, ltTable);
+                  xkCache = { semester: sem, at: Date.now(), catalog: merged2, vol: vol2 };
+                  setCatalog(merged2);
+                  setVolMap(vol2);
+                  let plan2: XkPlanItem[] = plan;
+                  try { plan2 = await getXkPlan(xkSession(), { semester: sem }); } catch { /* 保旧 */ }
+                  if (genRef.current !== myGen) return; // 期间已打断：丢弃
+                  setPlan(plan2);
+                  sdWrite({ ver: SD_VER, semester: sem, level: ltTable, catalog: cat2, vol: vol2, plan: plan2, volTs: Date.now() });
+                } catch { /* 静默（失登自愈走主管线） */ }
+              })();
+            }
+            return;
+          }
+          // 无缓存：抓全量目录+志愿（几千门课，严格在右栏就绪之后），合并替换 → ready
+          const [cat, vol] = await Promise.all([
+            getXkCatalog(xkSession(), { semester: sem }),
+            getXkVolunteer(xkSession(), { semester: sem }).catch((err: unknown) => { if (isAuthError(err)) throw err; return {} as Record<string, XkVolInfo>; }),
+          ]);
+          if (genRef.current !== myGen) return; // 期间已打断：丢弃
+          const merged = mergeLevelIntoCatalog(cat, ltTable);
+          if (cat.length > 0) xkCache = { semester: sem, at: Date.now(), catalog: merged, vol };
+          setCatalog(merged);
+          setVolMap(vol);
+          fullReadyRef.current = true;
+          setCatalogState("ready");
+          sdWrite({ ver: SD_VER, semester: sem, level: ltTable, catalog: cat, vol, plan, volTs: Date.now() });
+        } catch (err) {
+          if (genRef.current !== myGen) return; // 期间已打断：错误归属新管线
+          if (isAuthError(err) && autoFullReload("xk")) return; // 失登：静默整页重载
+          logPageError("XK-CATALOG", err);
+          // 全量抓取失败：一级课表行保留在 catalog 状态（不清空、不白屏）；
+          // catalogState → error 走 Courses.tsx 现成的可重试 ErrorNote（重试=全序重走）
+          setError(`全量目录/志愿加载失败${levelRenderedRef.current ? "（已保留一级课表行，重试后无缝合并）" : ""}：${explainNetworkError(err)}`);
+          setCatalogState("error");
+        }
+      })(),
+    };
+    pipelineInflightRef.current = entry;
+    return entry.promise.finally(() => {
+      if (pipelineInflightRef.current === entry) pipelineInflightRef.current = null;
+    });
+  }, [commitCore, commitLevel]);
+
+  /** 写操作后的轻量自愈：只重抓一级课表（fresh）+ 核心数据（右栏），
+   *  不动左栏目录与 catalogState（全量行已在，绝不被 partial 行降级）。 */
+  const refreshCore = useCallback(async () => {
+    if (status === "demo") return;
+    const myGen = genRef.current;
+    const sem = semBarRef.current; // 学期栏选中值唯一真源
+    if (!sem) return;
+    const lt = await fetchLevelTable(sem, true);
+    if (genRef.current !== myGen) return; // 期间已切学期：丢弃
+    if (lt) commitLevel(lt);
+    await commitCore(sem, lt, myGen).catch(() => undefined); // 错误已在 commitCore 落状态
+  }, [status, commitCore, commitLevel]);
+
+  /**
+   * 数据刷新入口（手动"刷新数据"/挂载）：学期栏当前选中值是唯一真源——入口先读 semBarRef，
+   * 绝不基于旧学期继续。fresh=true（默认）强抓一级课表自愈；挂载走 fresh=false 允许同学期缓存秒渲。
+   */
+  const refresh = useCallback((fresh = true): Promise<void> => {
+    if (status === "demo") {
+      setSemBar(semesterFromDate());
+      setSelected(DEMO_ZHJWXK_COURSES.map((c) => ({
+        code: c.code, seq: "0", name: c.name, teacher: c.teacher, time: c.time,
+        credits: c.credits, typeLabel: c.typeLabel, zy: 1,
+        typeCode: c.typeLabel === "必修" ? "006" : c.typeLabel === "限选" ? "008" : c.typeLabel === "任选" ? "007" : "ty",
+      })));
+      setCandidates(DEMO_ZHJWXK_QUEUE);
+      setPhase(true);
+      setLevelTypes({});
+      setCoreState("ready");
+      setCatalogState("ready");
+      return Promise.resolve();
+    }
+    const myGen = genRef.current;
+    return (async () => {
+      let sem = semBarRef.current;
+      if (!sem) {
+        sem = await resolveZhjwxkSemester(xkSession()).catch(() => semesterFromDate());
+        if (genRef.current !== myGen) return; // 期间已切学期：作废（semBar 已被新入口写入）
+        setSemBar(sem);
+      }
+      await runPipeline(sem, fresh);
+    })();
+  }, [status, runPipeline, setSemBar]);
 
   const runWrite = useCallback(
     async (key: string, fn: () => Promise<{ ok: boolean; msg: string }>) => {
@@ -648,11 +816,11 @@ export function useXkWorkbench(): XkWorkbench {
         setToast(explainNetworkError(err));
       } finally {
         setBusy(null);
-        levelCache = null; // 写操作可能改了一级课表（选上/退掉），refresh 内 fresh 重抓
-        void refresh();
+        levelCache = null; // 写操作可能改了一级课表（选上/退掉），refreshCore 内 fresh 重抓
+        void refreshCore(); // 写后轻量自愈：只刷右栏（一级课表+核心），左栏目录/状态不动
       }
     },
-    [refresh],
+    [refreshCore],
   );
 
   const submit = useCallback(
@@ -674,7 +842,7 @@ export function useXkWorkbench(): XkWorkbench {
   );
 
   useEffect(() => {
-    if (status === "ready" || status === "demo") void refresh();
+    if (status === "ready" || status === "demo") void refresh(false); // 挂载允许同学期一级课表缓存秒渲
   }, [status, refresh]);
 
   // ── 暂存 / 草稿 / 自定义占用 / 预览（nextthuxk §5/§7.4）──
@@ -832,9 +1000,9 @@ export function useXkWorkbench(): XkWorkbench {
     } finally {
       setProgress(null);
       setBusy(null);
-      void refresh();
+      void refreshCore(); // 写后轻量自愈：只刷右栏，左栏目录/状态不动
     }
-  }, [savedDrafts, selected, refresh]);
+  }, [savedDrafts, selected, refreshCore]);
 
   const addManualEvent = useCallback((name: string, day: number, slot: number) => {
     if (!name.trim()) { setToast("请输入活动名称"); return; }
@@ -863,21 +1031,24 @@ export function useXkWorkbench(): XkWorkbench {
 
   const refreshQueue = useCallback(async () => {
     if (status === "demo") return;
+    const myGen = genRef.current; // 期间切学期（generation 变更）则丢弃，防止串课
     setQueueState("loading");
     try {
-      const sem = semester ?? (await resolveZhjwxkSemester(xkSession()).catch(() => null));
+      const sem = semBarRef.current ?? (await resolveZhjwxkSemester(xkSession()).catch(() => null));
       if (!sem) return;
       const qd = await getXkQueueData(xkSession(), { semester: sem });
+      if (genRef.current !== myGen) return; // 期间已打断：丢弃过期结果
       setQueueMap(qd.map);
       setPhase(qd.phase);
       setQueueState("ready");
       setToast(`队列数据已刷新 · ${Object.keys(qd.map).length}门课余量 · ${candidates.length}门我的队列`);
     } catch (err) {
       logPageError("XK-QUEUE", err);
+      if (isAuthError(err) && autoFullReload("xk")) return; // 失登：静默整页重载
       setToast("课余量排队人数获取失败，可能需退出重新登录");
       setQueueState("ready");
     }
-  }, [status, semester, candidates.length]);
+  }, [status, candidates.length]);
 
   const semesterOptions = useMemo(() => {
     const cur = semester ?? semesterFromDate();
@@ -901,142 +1072,58 @@ export function useXkWorkbench(): XkWorkbench {
     return opts;
   }, [semester]);
 
-  /**
-   * 目录管线（levelTable-first，v1.4.9 重构）：
-   * Phase 1 一级课表永远第一优先（内存缓存 → 持久缓存(同学期) → 网络抓取），
-   *         就绪后立刻用最小行（代码+序号+课程名+类型/属性）渲染课程列表；
-   * Phase 2 持久缓存命中（仅同学期）：全量目录/志愿/方案 立即合并渲染，
-   *         vol/plan/catalog 的后台重校验必须等一级课表就绪后才允许启动（四检点过期才启动）；
-   * Phase 3 无缓存：后台抓全量目录+志愿（几千门课，严格在一级课表完成之后），
-   *         到达后按 sk(code,seq) 合并替换（不丢一级课表 attr/类型信息），落持久缓存。
-   * 一级课表失败/为空的学期（levelFailed 内存标记）才退回"全量目录优先"。
-   */
-  const loadCatalogWith = useCallback(async (sem: string) => {
-    if (status === "demo") {
-      setCatalogState("ready");
-      return;
-    }
-    setCatalogState("loading");
-    catSemRef.current = sem;
-    // Phase 1 ── 一级课表（第一优先）
-    const sd0 = sdRead();
-    const sd = sd0 && sd0.semester === sem ? sd0 : null; // 缓存学期≠目标学期一律不采用
-    let level: Record<string, XkLevelTableRow> | null = null;
-    const lhit = levelCache && levelCache.sem === sem ? levelCache : null;
-    if (lhit) level = lhit.table;
-    else if (sd?.level && Object.keys(sd.level).length > 0) level = sd.level;
-    else level = await fetchLevelTable(sem);
-    if (catSemRef.current !== sem) return; // 期间已切走：丢弃
-    const ltTable = level ?? {};
-    if (level) {
-      setLevelTypes(levelTypesOf(level));
-      setCatalog(levelRowsToCatalog(level)); // 最小行立即渲染（余量/时间等由全量目录补全）
-      setCatalogState("ready");
-    }
-    // 内存全量缓存（5min TTL，同学期）：一级课表就绪后直接合并渲染
-    if (xkCache && xkCache.semester === sem && xkCache.catalog.length > 0 && Date.now() - xkCache.at < XK_CACHE_TTL) {
-      setCatalog(xkCache.catalog);
-      setVolMap(xkCache.vol);
-      setCatalogState("ready");
-      return;
-    }
-    // Phase 2 ── 持久缓存命中（同学期）：立即渲染 + 受检点控制的后台重校验
-    if (sd) {
-      const merged = mergeLevelIntoCatalog(sd.catalog, ltTable);
-      xkCache = { semester: sem, at: Date.now(), catalog: merged, vol: sd.vol };
-      setCatalog(merged);
-      setVolMap(sd.vol);
-      setPlan(sd.plan ?? []);
-      setCatalogState("ready");
-      // 志愿四检点过期 → 后台静默重校验（一级课表已就绪，绝不阻塞已渲染的界面）
-      if (volNeedsRefresh(sd.volTs)) {
-        void (async () => {
-          try {
-            const [cat2, vol2] = await Promise.all([
-              getXkCatalog(xkSession(), { semester: sem }),
-              getXkVolunteer(xkSession(), { semester: sem }).catch(() => ({}) as Record<string, XkVolInfo>),
-            ]);
-            if (catSemRef.current !== sem) return;
-            const merged2 = mergeLevelIntoCatalog(cat2, ltTable);
-            xkCache = { semester: sem, at: Date.now(), catalog: merged2, vol: vol2 };
-            setCatalog(merged2);
-            setVolMap(vol2);
-            let plan2: XkPlanItem[] = sd.plan ?? [];
-            try { plan2 = await getXkPlan(xkSession(), { semester: sem }); } catch { /* 保旧 */ }
-            if (catSemRef.current !== sem) return;
-            setPlan(plan2);
-            sdWrite({ ver: SD_VER, semester: sem, level: ltTable, catalog: cat2, vol: vol2, plan: plan2, volTs: Date.now() });
-          } catch { /* 静默 */ }
-        })();
-      }
-      return;
-    }
-    // Phase 3 ── 无缓存：后台抓全量目录+志愿，到达后合并替换
-    try {
-      const [cat, vol] = await Promise.all([
-        getXkCatalog(xkSession(), { semester: sem }),
-        getXkVolunteer(xkSession(), { semester: sem }).catch(() => ({}) as Record<string, XkVolInfo>),
-      ]);
-      if (catSemRef.current !== sem) return; // 已切走：丢弃
-      const merged = mergeLevelIntoCatalog(cat, ltTable);
-      if (cat.length > 0) xkCache = { semester: sem, at: Date.now(), catalog: merged, vol };
-      setCatalog(merged);
-      setVolMap(vol);
-      setCatalogState("ready");
-      let plan: XkPlanItem[] = [];
-      try { plan = await getXkPlan(xkSession(), { semester: sem }); } catch { plan = []; }
-      if (catSemRef.current !== sem) return;
-      setPlan(plan);
-      sdWrite({ ver: SD_VER, semester: sem, level: ltTable, catalog: cat, vol, plan, volTs: Date.now() });
-    } catch (err) {
-      logPageError("XK-CATALOG", err);
-      if (level) {
-        // 一级课表最小行已渲染：保留列表不砸成错误页，仅提示全量目录失败
-        setCatalogState("ready");
-        setToast(`全量目录/志愿加载失败（当前显示一级课表行）：${explainNetworkError(err)}`);
-      } else {
-        setCatalogState("error");
-        setError(explainNetworkError(err));
-      }
-    }
-  }, [status, setToast]);
 
-  /** 目录加载（默认学期 = override ?? 系统学期 p_xnxq）：统一走 loadCatalogWith
-   *  （一级课表先行 → 缓存/全量目录合并），“缓存学期≠目标学期绝不顶包”在彼处判定 */
+  /** 目录加载（左栏 idle 触发 / ErrorNote 重试）：学期栏选中值唯一真源 → 整序管线
+   *  （fresh=false，同学期一级课表缓存允许秒渲）。“缓存学期≠目标学期绝不顶包”在管线内判定 */
   const loadCatalog = useCallback(async () => {
     if (status === "demo") {
       setCatalogState("ready");
       return;
     }
-    const sem = semesterOverride ?? semester ?? (await resolveZhjwxkSemester(xkSession()).catch(() => semesterFromDate()));
-    if (!sem) return;
-    await loadCatalogWith(sem);
-  }, [status, semester, semesterOverride, loadCatalogWith]);
+    const myGen = genRef.current;
+    let sem = semBarRef.current;
+    if (!sem) {
+      sem = await resolveZhjwxkSemester(xkSession()).catch(() => semesterFromDate());
+      if (genRef.current !== myGen) return; // 期间已切学期：作废（semBar 已被新入口写入）
+      setSemBar(sem);
+    }
+    await runPipeline(sem, false);
+  }, [status, runPipeline, setSemBar]);
 
   const setSemesterOverride = useCallback(async (sem: string | null) => {
     setSemesterOverrideState(sem);
-    overrideRef.current = sem;
-    semRef.current = sem;       // 立即失效在途旧学期结果
-    catSemRef.current = sem;
-    xkCache = null;             // 换学期目录缓存失效
-    // 切学期瞬间清空当前目录视图（目录/志愿/已选都是学期数据），
-    // 等新学期一级课表（loadCatalogWith Phase 1）先行渲染最小行
+    if (status === "demo") {
+      semBarRef.current = sem;
+      if (sem) setSemester(sem);
+      setCatalogState("ready");
+      return;
+    }
+    // ── 打断重启（用户指令：中间一旦被打断都要从头来）──
+    // generation+1：在途 level/core/catalog/vol 结果 resolve 后比对代数一律丢弃；
+    // pipelineSemRef 预登记目标学期，随后 runPipeline 不再重复 +1（两栏共享同一新代）。
+    genRef.current += 1;
+    pipelineSemRef.current = sem;
+    // 学期栏当前选中值 = 唯一真源：同步写入（本帧 select 即显示新学期，绝不回跳旧值）
+    semBarRef.current = sem;
+    if (sem) setSemester(sem);
+    // 左栏立刻清成空 loading 态（与上面同一批 commit 提交，旧学期数据不多渲染一帧）
     setCatalog([]);
     setVolMap({});
     setLevelTypes({});
+    setPlan([]);
+    setQueueMap({});
     setSelected([]);
     setCandidates([]);
+    levelRenderedRef.current = false;
+    fullReadyRef.current = false;
+    setCatalogState("loading");
     if (sem) {
-      await Promise.all([refresh(sem), loadCatalogWith(sem)]);
+      await runPipeline(sem, false);
     } else {
-      // 回到系统学期：refresh 后仍按同一条"一级课表先行"管线重载目录。
-      // 学期取系统 p_xnxq（不走 loadCatalog 的 state 闭包——可能停留在旧学期）
-      await refresh();
-      const cur = await resolveZhjwxkSemester(xkSession()).catch(() => semesterFromDate());
-      if (semRef.current !== cur) return; // 期间又切走了
-      await loadCatalogWith(cur);
+      // 回到系统学期：refresh 内解析 p_xnxq 并写回学期栏（带代数检查）
+      await refresh(false);
     }
-  }, [refresh, loadCatalogWith]);
+  }, [status, runPipeline, refresh]);
 
   const loadDetail = useCallback(async (code: string): Promise<XkCourseDetail | null> => {
     const row = courses.find((r) => r.c.code === code) ?? null;
@@ -1113,18 +1200,6 @@ export function useReport() {
 }
 
 /** 校园卡余额 + 最近消费（getCardInfo / getCardTransactions） */
-/** 整页重载式自愈（等同手动右键刷新）；2 分钟节流防死循环。 */
-function autoFullReload(scope: string): boolean {
-  try {
-    const key = `onethu.autoreload.${scope}`;
-    const last = Number(sessionStorage.getItem(key) ?? "0");
-    if (Date.now() - last < 120_000) return false;
-    sessionStorage.setItem(key, String(Date.now()));
-  } catch { /* 不可用则保守放行 */ }
-  setTimeout(() => location.reload(), 150);
-  return true;
-}
-
 export function useCard(days = 30) {
   const { status } = useApp();
   const [data, setData] = useState<CardBundle | null>(null);
@@ -1530,32 +1605,42 @@ export function useNews(page: number, length = 20) {
   return { data, state, error, reload: load };
 }
 
-/* ============ 首页「最新新闻」（信息门户新闻前 5 条，失败静默隐藏） ============ */
+/* ============ 首页「倒计时提醒」（学校重要事项：选课/退课/推研等，失败静默隐藏） ============ */
 
 /**
- * 首页新闻卡数据源：getNews 第 1 页取前 5 条（门户顺序 = 置顶 + 最新，标题/来源/时间
- * 全在 NewsItem）。与 NewsTab 的 useNews 分开：失败静默（首页不弹错误条），
- * demo 直接给演示数据。展示字段：name（标题）/ source（来源）/ date（时间）。
+ * 首页倒计时数据源（thu-info-app 首页「倒计时提醒」同源：core getDeadlines =
+ * info 门户 deadline 接口 /b/info/gxfw/common/deadline/list，djsbt/djskssj/djsjzsj/djsurl）。
+ * 返回原始全量列表——时间窗过滤（开始前 14 天 ~ 截止，thu-info home activeEvents
+ * 同口径）在 Today 卡片内做。失败静默（state="error"，整卡隐藏）；demo 给相对日期演示事项。
  */
-export function useTodayNews() {
+export function useTodayDeadlines() {
   const { status } = useApp();
-  const [list, setList] = useState<NewsItem[] | null>(null);
+  const [list, setList] = useState<DeadlineItem[] | null>(null);
   const [state, setState] = useState<DataState>("loading");
 
   const load = useCallback(async () => {
     setState("loading");
     if (status === "demo") {
-      setList(DEMO_NEWS.slice(0, 5));
+      const off = (days: number, hh: number): string => {
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        d.setHours(hh, 0, 0, 0);
+        const p = (x: number) => String(x).padStart(2, "0");
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      };
+      setList([
+        { title: "选课补退选阶段", begin: off(-1, 8), end: off(5, 17) },
+        { title: "推研报名与确认", begin: off(3, 9), end: off(10, 17) },
+        { title: "英语水平考试报名", begin: off(8, 9), end: off(15, 17) },
+      ]);
       setState("ready");
       return;
     }
     try {
-      // 用默认 20 条页大小取第 1 页（与 NewsTab 同口径，length=5 服务端行为未知），前端截 5 条
-      const items = await info.getNews(1, 20);
-      setList(items.slice(0, 5));
+      setList(await info.getDeadlines());
       setState("ready");
     } catch (err) {
-      logPageError("TODAY-NEWS", err);
+      logPageError("TODAY-DEADLINES", err);
       setList(null);
       setState("error"); // 静默：Today 页据此整卡隐藏
     }
@@ -1566,6 +1651,103 @@ export function useTodayNews() {
   }, [status, load]);
 
   return { list, state, reload: load };
+}
+
+/* ============ 首页「订阅新闻」（订阅来源优先，回退最新；失败静默隐藏） ============ */
+
+/** 新闻时间倒序比较（NewsTab 订阅动态聚合同语义；解析失败视为最旧） */
+function newsTimeOf(s: string | undefined): number {
+  if (!s) return 0;
+  const t = Date.parse(s.includes(" ") ? s.replace(" ", "T") : s);
+  return Number.isNaN(t) ? 0 : t;
+}
+
+export interface TodayNewsFeed {
+  list: NewsItem[];
+  /** from: "subs" = 已订阅来源逐源取数聚合；"latest" = 回退最新新闻 */
+  from: "subs" | "latest";
+  /** 本次加载时读到的订阅来源数（卡片 aside 展示用） */
+  subCount: number;
+}
+
+/**
+ * 首页新闻卡数据源（与 NewsTab「订阅动态」同一服务端链路）：
+ * - 有订阅（localStorage onethu.news.subs，由 Today 页读好传入）：在服务端订阅条件
+ *   （core getNewsSubscriptionList，权威）里按来源名映射条件 id，逐条件调
+ *   getNewsListBySubscription(1, dyid)（门户订阅取数，allSettled 容错，每来源前 5 条），
+ *   合并 xxid 去重、时间倒序取前 5；订阅链失败/来源无内容 → 回退最新。
+ * - 无订阅：getNews 第 1 页前 5 条（门户顺序 = 置顶 + 最新）。
+ * - 失败静默（state="error"，Today 页据此整卡隐藏）；demo 用 DEMO_NEWS 过滤/兜底。
+ */
+export function useTodayNewsFeed(subs: string[]) {
+  const { status } = useApp();
+  const [data, setData] = useState<TodayNewsFeed | null>(null);
+  const [state, setState] = useState<DataState>("loading");
+
+  /** 订阅集合的稳定键：内容不变不重拉（NewsTab feedKey 同款） */
+  const subsKey = subs.join("\u0001");
+
+  const load = useCallback(async () => {
+    setState("loading");
+    const subList = subsKey ? subsKey.split("\u0001") : [];
+    const latest = async (): Promise<TodayNewsFeed> => {
+      if (status === "demo") {
+        return { list: DEMO_NEWS.slice(0, 5), from: "latest", subCount: subList.length };
+      }
+      const items = await info.getNews(1, 20);
+      return { list: items.slice(0, 5), from: "latest", subCount: subList.length };
+    };
+    if (status === "demo") {
+      const subSet = new Set(subList);
+      const feed = subList.length > 0
+        ? DEMO_NEWS.filter((n) => n.source && subSet.has(n.source)).sort((a, b) => newsTimeOf(b.date) - newsTimeOf(a.date))
+        : [];
+      setData(
+        feed.length > 0
+          ? { list: feed.slice(0, 5), from: "subs", subCount: subList.length }
+          : await latest(),
+      );
+      setState("ready");
+      return;
+    }
+    try {
+      if (subList.length > 0) {
+        // 服务端订阅条件（权威）→ 来源名映射条件 id（本地无对应服务端条件的来源跳过）
+        const conds: Array<{ id: string; source?: string }> = await info
+          .getNewsSubscriptionList()
+          .catch(() => []);
+        const ids = subList
+          .map((s) => conds.find((c) => c.source === s)?.id ?? "")
+          .filter(Boolean);
+        const results = await Promise.allSettled(ids.map((id) => info.getNewsListBySubscription(1, id)));
+        const pooled: NewsItem[] = [];
+        for (const r of results) if (r.status === "fulfilled") pooled.push(...r.value.slice(0, 5));
+        const seen = new Set<string>();
+        const items = pooled
+          .sort((a, b) => newsTimeOf(b.date) - newsTimeOf(a.date))
+          .filter((n) => (n.xxid ? !seen.has(n.xxid) && seen.add(n.xxid) : true))
+          .slice(0, 5);
+        if (items.length > 0) {
+          setData({ list: items, from: "subs", subCount: subList.length });
+          setState("ready");
+          return;
+        }
+        // 订阅链失败/来源无内容 → 回退最新新闻（卡片注明）
+      }
+      setData(await latest());
+      setState("ready");
+    } catch (err) {
+      logPageError("TODAY-NEWS", err);
+      setData(null);
+      setState("error"); // 静默：Today 页据此整卡隐藏
+    }
+  }, [status, subsKey]);
+
+  useEffect(() => {
+    if (status === "ready" || status === "demo") void load();
+  }, [status, load]);
+
+  return { data, state, reload: load };
 }
 
 /** 个人信息（grjbxx HTML 解析） */

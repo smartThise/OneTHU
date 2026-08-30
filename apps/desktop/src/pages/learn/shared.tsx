@@ -173,10 +173,12 @@ interface RowProps {
   style?: CSSProperties;
 }
 
-export function HomeworkRow({ h, courseName, from, style }: RowProps & { h: Homework }) {
+export function HomeworkRow({ h, courseName, from, style, showGrade = false }: RowProps & { h: Homework; showGrade?: boolean }) {
   const { navigate } = useApp();
   const go = () => navigate("learn-assignment-detail", { courseId: h.courseId, itemId: h.id, from });
   const chip = homeworkChip(h);
+  // 已批改直接显示成绩（thu-app learnHome「已批改 (分数)」语义）：等级码经 gradeLabel 转文字
+  const score = showGrade && h.graded && h.grade !== undefined && h.grade !== "" ? gradeLabel(h.grade) : "";
   return (
     <div
       className="row row-click"
@@ -194,9 +196,9 @@ export function HomeworkRow({ h, courseName, from, style }: RowProps & { h: Home
         <div className="row-title">{h.title}</div>
         <div className="row-sub">{courseName ?? "课程"}</div>
       </div>
-      <span className={`chip ${chip.cls}`}>
+      <span className={`chip ${chip.cls}`} title={score ? `成绩：${score}` : undefined}>
         <span className="dot" />
-        {chip.text}
+        {score ? `${chip.text} · ${score}` : chip.text}
       </span>
       <IconChevron className="row-caret" width={14} height={14} />
     </div>
