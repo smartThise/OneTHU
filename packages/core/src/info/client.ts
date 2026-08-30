@@ -2905,6 +2905,9 @@ export class InfoClient {
     const password = neth.rsaEncryptPkcs1v15(pub, creds.password);
     const user = await this.getUserInfo().catch(() => null);
     const emailName = user?.email?.split("@")[0] ?? user?.studentId ?? creds.username;
+    this.#http.debug?.(
+      `[NETH] login user=${emailName} pubLen=${pub.length} pubHead=${pub.slice(0, 40)} pubTail=${pub.slice(-40)} encLen=${password.length} codeLen=${code.length}`,
+    );
     // 段一：账密+验证码校验（lib fetch validate-user 原样字段集）
     const validateText = await this.#http
       .request(urls.NETH_VALIDATE_USER(), {
@@ -2921,6 +2924,9 @@ export class InfoClient {
         }),
       })
       .then((r) => r.text());
+    this.#http.debug?.(
+      `[NETH] validate resp=${validateText.slice(0, 200).replace(/\s+/g, " ")}`,
+    );
     let result: { success?: unknown; message?: unknown };
     try {
       result = JSON.parse(validateText) as typeof result;
