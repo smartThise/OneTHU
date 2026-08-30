@@ -237,6 +237,38 @@ export class InfoClient {
   /** forceEnsure 并发去重：同 scope 只跑一次重建（漫游链并发跑会在会话上互踩） */
   #ensureInflight = new Map<string, Promise<void>>();
 
+  /** 会话建立单飞（并发去重）：多个加载同时走到 ensure 时共用一次漫游，
+   *  根治"id 登录表单被抓 N 次/全套 CAS 链路并发重跑"的变慢。 */
+  #ensureInflight2 = new Map<string, Promise<void>>();
+  /** access_token 模块级缓存：页面重挂载（实例重建）后仍有效 */
+  static libToken = "";
+  static libTokenTs = 0;
+  static libTokenInflight: Promise<string> | null = null;
+  /** 热点读去重（并发共享 + 短 TTL 结果缓存） */
+  #hotInflight = new Map<string, Promise<unknown>>();
+  #hotCache = new Map<string, { ts: number; value: unknown }>();
+  #hot<T>(key: string, ttlMs: number, run: () => Promise<T>): Promise<T> {
+    const c = this.#hotCache.get(key);
+    if (c && Date.now() - c.ts < ttlMs) return Promise.resolve(c.value as T);
+    const inflight = this.#hotInflight.get(key);
+    if (inflight) return inflight as Promise<T>;
+    const p = run()
+      .then((v) => {
+        this.#hotCache.set(key, { ts: Date.now(), value: v });
+        return v;
+      })
+      .finally(() => this.#hotInflight.delete(key));
+    this.#hotInflight.set(key, p);
+    return p;
+  }
+  #single(scope: string, run: () => Promise<void>): Promise<void> {
+    const existing = this.#ensureInflight2.get(scope);
+    if (existing) return existing;
+    const p = run().finally(() => this.#ensureInflight2.delete(scope));
+    this.#ensureInflight2.set(scope, p);
+    return p;
+  }
+
   /**
    * 会话强制重建（登录态丢失后的静默自愈入口）：清目标服务的漫游/缓存标记后重走
    * 对应 ensure（webvpn 兑付链），随后由调用方重载组件即可拿到数据。
@@ -1259,7 +1291,7 @@ export class InfoClient {
    * 票据均经 oauth lbredirect 兑付到 myhome（lib getWebVPNUrl 同款包装）→ 探针核实。
    */
   async #ensureDorm(force = false): Promise<void> {
-    if (force) this.#dormRoamed = false; // 强制重建（forceEnsure 自愈入口）：清标记重走
+    return this.#single("dorm", async () => {    if (force) this.#dormRoamed = false; // 强制重建（forceEnsure 自愈入口）：清标记重走
     if (this.#dormRoamed && (await this.#dormAlive())) return;
     const ticketed = await this.#roamIdService(urls.DORM_CAS_FORM());
     // 兑付后核实（传输层若已代跟跳到 myhome，会话同样已建立）
@@ -1275,6 +1307,7 @@ export class InfoClient {
     throw new AuthRequiredError(
       `宿舍服务会话未能建立（${why}；现场: ${String(this.lastDebug || this.#http.lastDebug).slice(0, 160)}）`,
     );
+      });
   }
 
   /**
@@ -1428,9 +1461,11 @@ export class InfoClient {
    * 兑付 → 探针核实。注意 ef84f6d6… 在 lib 中是 id CAS 表单 hash，不是 yyfw 业务 id。
    */
   async #ensureLibrary(force = false): Promise<void> {
+    return this.#single("library", async () => {
     if (force) {
       this.#libRoamed = false; // 强制重建（forceEnsure 自愈入口）：清标记重走
-      this.#libToken = ""; // token 一并失效，避免拿旧会话的 token 撞新会话
+      InfoClient.libToken = ""; // token 一并失效，避免拿旧会话的 token 撞新会话
+      InfoClient.libTokenTs = 0;
     }
     if (this.#libRoamed) return;
     await this.#roamIdService(urls.LIBRARY_CAS_FORM());
@@ -1440,6 +1475,7 @@ export class InfoClient {
       );
     }
     this.#libRoamed = true;
+    });
   }
 
   /** id-CAS 服务会话建立（lib roam("id", payload) 的两段移植）：
@@ -1818,12 +1854,10 @@ export class InfoClient {
    * getAccessToken 每次调用前都先 roam("id") 重建 id→座位系统会话 —— 首页无
    * token 时 core 同样重走 #roamIdService 再取一次。失败带抓取页 URL 前 120 字符。
    */
-  #libToken = "";
-  #libTokenTs = 0;
-
   async #libraryAccessToken(): Promise<string> {
-    // 10 分钟缓存：access_token 每次都整页抓 LIBRARY_HOME 是预约区加载慢的根因
-    if (this.#libToken && Date.now() - this.#libTokenTs < 600_000) return this.#libToken;
+    // 10 分钟模块级缓存 + 单飞：access_token 每次都整页抓 LIBRARY_HOME 是预约区加载慢的根因之一
+    if (InfoClient.libToken && Date.now() - InfoClient.libTokenTs < 600_000) return InfoClient.libToken;
+    if (InfoClient.libTokenInflight) return InfoClient.libTokenInflight;
     const home = urls.LIBRARY_HOME();
     const grab = async (): Promise<string> => {
       const page = await this.#http.text(home, this.#campusInit());
@@ -1836,6 +1870,7 @@ export class InfoClient {
       if (token) this.#lastTokenPage = home;
       return token;
     };
+    const run2 = async (): Promise<string> => {
     let token = await grab();
     if (!token) {
       // lib roam("id") 语义：会话未落地就重建（ef84f6d6…/0?/api/id_tsinghua_callback）。
@@ -1853,7 +1888,12 @@ export class InfoClient {
         `图书馆 access_token 获取失败（首页无 token，会话可能已失效；抓取页 URL: ${pageUrl}）。建议：退出 OneTHU 重新登录一次后重试`,
       );
     }
+    InfoClient.libToken = token;
+    InfoClient.libTokenTs = Date.now();
     return token;
+    };
+    InfoClient.libTokenInflight = run2().finally(() => { InfoClient.libTokenInflight = null; });
+    return InfoClient.libTokenInflight;
   }
 
   /** 预约座位（library.ts bookLibrarySeat：POST spaces/<id>/book，form 字段逐项一致） */
@@ -1894,7 +1934,8 @@ export class InfoClient {
    *  td 索引 1/2/3/5 = id/pos/time/status，行内 menuDel('…') 提取 delId；
    *  实体解码后匹配，兼容 &#39;/双引号 onclick 变体） */
   async getLibBookRecords(): Promise<LibBookRecord[]> {
-    return this.#withRenew(async () => {
+    return this.#hot("libBookRecords", 15_000, () =>
+    this.#withRenew(async () => {
       await this.#ensureLibrary();
       await this.#libraryAccessToken();
       const html = await this.#http.text(urls.LIBRARY_BOOK_RECORD(), this.#campusInit());
@@ -1927,7 +1968,7 @@ export class InfoClient {
         });
       }
       return out;
-    });
+    }));
   }
 
   /** 取消预约（library.ts cancelBooking：POST profile/books/<id>，_method=delete） */
@@ -2027,7 +2068,7 @@ export class InfoClient {
    * ④ ic-web/auth/userInfo 核实 pid === userId 并缓存 accNo。
    */
   async #ensureLibRoom(userId: string): Promise<void> {
-    if (await this.#libRoomAlive(userId)) return;
+    return this.#single("libroom", async () => {    if (await this.#libRoomAlive(userId)) return;
     this.#libRoomAccNo = null;
     const addr = await this.#cabFetch<string>(urls.LIBROOM_AUTH_ADDRESS());
     if (typeof addr !== "string" || addr === "") {
@@ -2052,6 +2093,7 @@ export class InfoClient {
     if (!(await this.#libRoomAlive(userId))) {
       throw new AuthRequiredError("研讨间会话未能建立（登录后 userInfo 校验未通过，请重试）");
     }
+      });
   }
 
   /** 研讨间请求包装：先 #ensureLibRoom；AuthRequiredError 时重建会话重试一次
