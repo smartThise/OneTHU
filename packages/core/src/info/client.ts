@@ -43,6 +43,8 @@ import * as finance from "./finance.js";
 import * as hygiene from "./hygiene.js";
 import * as neth from "./neth.js";
 import * as schoolCalendar from "./calendar.js";
+import { parseCRSchedule } from "./crSchedule.js";
+import { fetchZhjwxkPage, type ZhjwxkSession } from "../zhjwxk/client.js";
 import type {
   AssessmentForm,
   BasicUserInfo,
@@ -2566,6 +2568,9 @@ export class InfoClient {
         if (!html.includes("scrollContent")) {
           throw new ServiceUnavailableError("教室状态页无数据区（scrollContent 缺失，上游服务异常）");
         }
+        this.#http.debug?.(
+          `[CLS] state resp len=${html.length} body=${html.replace(/\s+/g, " ").slice(0, 6500)}`,
+        );
         try {
           return classroom.parseClassroomState(html, week);
         } catch (e) {

@@ -49,7 +49,7 @@ function parseSecondaryWeek(src: string, callback: (week: number) => void): bool
 }
 
 /**
- * 统一.week 次模式解析（lib parseWeekPattern 逐字）：支持范围表达式
+ * 统一周次模式解析（lib parseWeekPattern 逐字）：支持范围表达式
  * （"8-11周"、"第3,5-7周"）与关键词（全周/单周/双周/前八周/后八周）。
  * 归一化 = 去掉「第」「周」后匹配（上游第二次修复的判据）。
  */
