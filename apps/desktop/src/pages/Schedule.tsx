@@ -4,14 +4,16 @@ import { IconRefresh } from "../components/Icons.js";
 import { useCalendar, useCampusData, useWeekSchedule } from "../state/data.js";
 
 const DAY_NAMES = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
-/** 清华本科小节开始时刻（上游 schedule.tsx beginTime 语义：时间列刻度尺） */
-const SLOT_TIME: [number, string][] = [
-  [1, "08:00"], [2, "08:50"], [3, "09:55"], [4, "10:50"], [5, "11:45"],
-  [6, "13:30"], [7, "14:25"], [8, "15:20"], [9, "16:15"], [10, "17:10"],
-  [11, "18:05"], [12, "19:20"], [13, "20:15"], [14, "21:10"],
-];
-/** 每小节行高 px（绝对定位画布的纵向刻度） */
-const ROW_H = 46;
+/** 上游 schedule.tsx beginTime/endTime 逐字（第 N 节起止时刻） */
+const BEGIN_TIME = ["", "08:00", "08:50", "09:50", "10:40", "11:30", "13:30", "14:20", "15:20", "16:10", "17:05", "17:55", "19:20", "20:10", "21:00"];
+const END_TIME = ["", "08:45", "09:35", "10:35", "11:25", "12:15", "14:15", "15:05", "16:05", "16:55", "17:50", "18:40", "20:05", "20:55", "21:45"];
+const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+const BEGIN_MIN = BEGIN_TIME.map(toMin);
+const END_MIN = END_TIME.map(toMin);
+/** 自由时间轴：距 0:00 分钟数 → px（上游 gridHeight 同款） */
+const PX_PER_MIN = 0.72;
+const AXIS_BEGIN = BEGIN_MIN[1] ?? 480;
+const y = (min: number) => (min - AXIS_BEGIN) * PX_PER_MIN;
 
 /** 网格条目的最小形状（课表条目） */
 interface GridEntry {
@@ -40,6 +42,8 @@ interface Placed {
   day: number; // 0-6
   start: number;
   end: number; // 含
+  beginMin: number; // 距 0:00 分钟（上游 begin/end 语义）
+  endMin: number;
   lane: number;
   lanes: number;
   color: string;
@@ -78,6 +82,8 @@ function layout(entries: GridEntry[]): { placed: Placed[]; maxEnd: number } {
         day,
         start,
         end,
+        beginMin: BEGIN_MIN[start] ?? 480,
+        endMin: END_MIN[end] ?? 1200,
         lane,
         lanes: 1,
         color: colorOf(s.courseName),
@@ -132,7 +138,8 @@ export function SchedulePage() {
   }, [semester, weekNo]);
 
   const loading = semester ? weekData.state === "loading" && !weekData.data : campus.state === "loading" && !campus.data;
-  const canvasH = maxEnd * ROW_H;
+  const axisEnd = maxEnd >= 14 ? END_MIN[14] ?? 1305 : END_MIN[maxEnd] ?? 1200;
+  const canvasH = y(axisEnd) + 8;
 
   return (
     <>
@@ -222,27 +229,26 @@ export function SchedulePage() {
             <div style={{ display: "flex" }}>
               {/* 时间刻度列：小节号+开始时刻，绝对高度对齐画布 */}
               <div style={{ width: 52, flexShrink: 0, position: "relative", height: canvasH }}>
-                {SLOT_TIME.filter(([sec]) => sec <= maxEnd).map(([sec, t]) => (
-                  <div
-                    key={sec}
-                    style={{
-                      position: "absolute",
-                      top: (sec - 1) * ROW_H,
-                      height: ROW_H,
-                      fontSize: 11,
-                      lineHeight: 1.3,
-                      color: "var(--text-2, #666)",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "flex-start",
-                      paddingTop: 2,
-                      boxSizing: "border-box",
-                    }}
-                  >
-                    <b>{sec}</b>
-                    <span>{t}</span>
-                  </div>
-                ))}
+                {BEGIN_TIME.map((t, sec) =>
+                  sec === 0 || sec > maxEnd ? null : (
+                    <div
+                      key={sec}
+                      style={{
+                        position: "absolute",
+                        top: y(BEGIN_MIN[sec] ?? 480),
+                        fontSize: 11,
+                        lineHeight: 1.3,
+                        color: "var(--text-2, #666)",
+                        display: "flex",
+                        flexDirection: "column",
+                        transform: "translateY(-4px)",
+                      }}
+                    >
+                      <b>{sec}</b>
+                      <span>{t}</span>
+                    </div>
+                  ),
+                )}
               </div>
 
               {/* 画布：7 天列，课程块绝对定位（上游 ScheduleBlock 同款模型） */}
@@ -264,26 +270,28 @@ export function SchedulePage() {
                   />
                 ))}
                 {/* 小节横线 */}
-                {SLOT_TIME.filter(([sec]) => sec <= maxEnd).map(([sec]) => (
-                  <div
-                    key={`l-${sec}`}
-                    style={{
-                      position: "absolute",
-                      left: 0,
-                      right: 0,
-                      top: (sec - 1) * ROW_H,
-                      borderTop: "1px solid var(--border, #eee)",
-                      opacity: 0.6,
-                    }}
-                  />
-                ))}
+                {BEGIN_TIME.map((t, sec) =>
+                  sec === 0 || sec > maxEnd ? null : (
+                    <div
+                      key={`l-${sec}`}
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        right: 0,
+                        top: y(BEGIN_MIN[sec] ?? 480),
+                        borderTop: "1px solid var(--border, #eee)",
+                        opacity: 0.6,
+                      }}
+                    />
+                  ),
+                )}
                 {/* 课程块 */}
                 {placed.map((p, i) => {
                   const laneW = 100 / p.lanes; // 一天内每道次占比（%）
                   const leftPct = ((p.day * 100) + p.lane * laneW) / 7; // 画布百分比
                   const widthPct = laneW / 7; // 已是画布百分比，勿再乘 100
-                  const top = (p.start - 1) * ROW_H + 2;
-                  const height = (p.end - p.start + 1) * ROW_H - 4;
+                  const top = y(p.beginMin) + 2;
+                  const height = Math.max((p.endMin - p.beginMin) * PX_PER_MIN - 4, 22);
                   return (
                     <div
                       key={`b-${i}`}
