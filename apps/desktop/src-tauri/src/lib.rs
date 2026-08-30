@@ -374,11 +374,23 @@ async fn http_request(input: HttpInput) -> Result<HttpOutput, String> {
         }
     }
     let body_bytes = resp.bytes().await.map_err(|e| format!("读取响应失败: {e}"))?;
-    let (body, body_b64) = match std::str::from_utf8(&body_bytes) {
-        Ok(text) => (text.to_string(), None),
-        Err(_) => {
-            use base64::Engine as _;
-            (String::new(), Some(base64::engine::general_purpose::STANDARD.encode(&body_bytes)))
+    // 分流规则：文本类（text/*、html/json/xml）按 Content-Type charset 解码为字符串
+    // （reqwest text() 原语义，gb2312 教务页依赖此通道）；其余（图片/PDF/流）且非合法
+    // UTF-8 时走 base64 字节通道——字符串通道会把 0x89 等 lossy 成 U+FFFD 损坏二进制。
+    let ctype = headers.get("content-type").cloned().unwrap_or_default();
+    let looks_text = ctype.starts_with("text/")
+        || ctype.contains("html")
+        || ctype.contains("json")
+        || ctype.contains("xml");
+    let (body, body_b64) = if looks_text {
+        (String::from_utf8_lossy(&body_bytes).into_owned(), None)
+    } else {
+        match std::str::from_utf8(&body_bytes) {
+            Ok(text) => (text.to_string(), None),
+            Err(_) => {
+                use base64::Engine as _;
+                (String::new(), Some(base64::engine::general_purpose::STANDARD.encode(&body_bytes)))
+            }
         }
     };
 
