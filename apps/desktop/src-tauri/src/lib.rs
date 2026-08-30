@@ -383,7 +383,20 @@ async fn http_request(input: HttpInput) -> Result<HttpOutput, String> {
         || ctype.contains("json")
         || ctype.contains("xml");
     let (body, body_b64) = if looks_text {
-        (String::from_utf8_lossy(&body_bytes).into_owned(), None)
+        // reqwest text() 原语义：按 Content-Type charset 解码（gb2312 教务页依赖），
+        // 无 charset 或未知标签时回退 UTF-8 lossy
+        let charset = ctype
+            .split(';')
+            .rev()
+            .find_map(|part| {
+                let part = part.trim();
+                part.strip_prefix("charset=").map(|c| c.trim_matches('"').trim().to_string())
+            });
+        let decoded = match charset.as_deref().and_then(|c| encoding_rs::Encoding::for_label(c.as_bytes())) {
+            Some(enc) => enc.decode(&body_bytes).0.into_owned(),
+            None => String::from_utf8_lossy(&body_bytes).into_owned(),
+        };
+        (decoded, None)
     } else {
         match std::str::from_utf8(&body_bytes) {
             Ok(text) => (text.to_string(), None),

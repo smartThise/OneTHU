@@ -12,6 +12,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+encoding_rs = "0.8"
 tauri = { version = "2", features = [] }
 # 外链走系统浏览器：webview 内 window.open/<a target=_blank> 均无效
 tauri-plugin-opener = "2"
