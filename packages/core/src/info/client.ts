@@ -2558,9 +2558,11 @@ export class InfoClient {
           `[BANK] roamPage len=${roamPage.length} hasOptions=${hasOptions(roamPage)} full=${roamPage.replace(/\s+/g, " ").slice(0, 1600)}`,
         );
         let queryPage = roamPage;
+        // lib 语义：落地页（漫游链最终 200 响应，通常为 login.do 页）本身就带年份下拉；
+        // 仅当无 option 且跳转目标不是 roam.jsp 自环时才跟一跳（跟到 wengine 壳页反而丢内容）。
         if (!hasOptions(queryPage)) {
           const jump = finance.extractPageJump(queryPage);
-          if (jump) {
+          if (jump && !/roam\.jsp/i.test(jump)) {
             const base = this.#http.lastTarget || searchUrl;
             queryPage = await this.#http.text(new URL(jump, base).toString());
           }
