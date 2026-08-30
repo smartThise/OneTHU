@@ -2578,6 +2578,7 @@ export class InfoClient {
           `[BANK] POST search.do years=${years.length} [${years.join(",")}] loadPartial=${loadPartial}`,
         );
         const result = await this.#http.postForm(searchUrl, form);
+        this.#http.debug?.(`[BANK] POST resp len=${result.length} head=${result.slice(0, 300).replace(/\s+/g, " ")}`);
         return finance.parseBankPayment(result);
       }),
     );
