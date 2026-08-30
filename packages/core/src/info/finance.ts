@@ -79,16 +79,17 @@ export function extractPageJump(html: string): string | null {
  */
 export function parseBankPayment(html: string): BankPaymentByMonth[] {
   const out: BankPaymentByMonth[] = [];
+  // 标题 strong 之后取最近的完整 <table>——不能用「下一个 strong」作右边界：
+  // 真实页面的表头单元格（序号/代发部门…）本身就是 strong，区间会被截在 </table> 之前
   const strongs = [...html.matchAll(/<strong\b[^>]*>([\s\S]*?)<\/strong>/gi)];
-  for (let i = 0; i < strongs.length; i++) {
-    const strong = strongs[i]!;
+  for (const strong of strongs) {
     const res = /(\d+年\d+月)银行代发结果/.exec(cellText(strong[1] ?? ""));
     if (res === null) continue;
     const from = (strong.index ?? 0) + strong[0].length;
-    const to = i + 1 < strongs.length ? (strongs[i + 1]!.index ?? html.length) : html.length;
-    const table = /<table\b[^>]*>([\s\S]*?)<\/table>/i.exec(html.slice(from, to))?.[1];
+    const table = /<table\b[^>]*>[\s\S]*?<\/table>/i.exec(html.slice(from))?.[0];
     if (table === undefined) continue;
-    const rows = [...table.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].map((m) => m[1] ?? "");
+    const inner = table.replace(/^<table\b[^>]*>/i, "").replace(/<\/table>$/i, "");
+    const rows = [...inner.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].map((m) => m[1] ?? "");
     const body = rows.slice(1, rows.length - 1); // lib slice(1, -1)：去表头与合计行
     const payment = body
       .map((row) => {

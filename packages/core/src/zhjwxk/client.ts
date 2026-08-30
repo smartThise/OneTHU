@@ -195,6 +195,26 @@ function assertNotDenied(s: ZhjwxkSession, html: string): void {
   }
 }
 
+/**
+ * 低层页面抓取：确保 zhjwxk 会话后 GET 相对路径（lib crFetch 同位）。
+ * 供 info 侧 CR 一级课表兜底（thu-info-community 0317434e：夏季学期课表
+ * m=kbSearch）复用本模块的 xklogin SSO 链。lib crFetch 的三个判据照搬：
+ * needCaptcha / 「用户登陆超时或访问内容不存在」/ accessDenied（会话过期）。
+ * 超时错误页是教务通用错误页而非登录页——抛普通 Error，由调用方决定兜底语义。
+ */
+export async function fetchZhjwxkPage(s: ZhjwxkSession, path: string): Promise<string> {
+  const { entry } = await ensure(s);
+  const html = await proxyZhjwxkApi(s, entry, path);
+  if (html.includes("needCaptcha")) {
+    throw new Error("选课系统需要验证码（needCaptcha）");
+  }
+  if (html.includes("用户登陆超时或访问内容不存在。请重试")) {
+    throw new Error("选课系统会话超时（用户登陆超时或访问内容不存在）");
+  }
+  assertNotDenied(s, html);
+  return html;
+}
+
 /* ── 解析（demo 正则逐行照抄）────────────────────────────────── */
 
 const ROW_RE = () => /<tr[^>]*class="trr2"[^>]*>([\s\S]*?)<\/tr>/g;

@@ -274,6 +274,13 @@ export class InfoClient {
   static libToken = "";
   static libTokenTs = 0;
   static libTokenInflight: Promise<string> | null = null;
+  /** 研讨间（cab.lib）认证 TTL 缓存（#libraryAccessToken 同款模式）：10 分钟内
+   *  重复访问图书馆页直接复用已建会话，跳过 #libRoomAlive 探针与整条 cab 漫游链
+   *  （ic-web/auth/address → authcenter → lbredirect×2 的三次完整重跑即此根因）。
+   *  会话真失效时 #cabFetch 抛 AuthRequiredError 前会清缓存，#withLibRoom 重试重建。 */
+  static libRoomAuthUser = "";
+  static libRoomAuthTs = 0;
+  static libRoomInflight: Promise<void> | null = null;
   /** 热点读去重（并发共享 + 短 TTL 结果缓存） */
   #hotInflight = new Map<string, Promise<unknown>>();
   #hotCache = new Map<string, { ts: number; value: unknown }>();
@@ -332,6 +339,8 @@ export class InfoClient {
     } else {
       if (!userId) throw new Error("研讨间会话重建需要学号");
       this.#libRoomAccNo = null;
+      InfoClient.libRoomAuthUser = "";
+      InfoClient.libRoomAuthTs = 0;
       await this.#ensureLibRoom(userId);
     }
   }
@@ -607,7 +616,7 @@ export class InfoClient {
         throw new AuthRequiredError();
       }
       if (!Array.isArray(list)) return [];
-      return list.map((raw) => {
+      const entries = list.map((raw) => {
         const d = raw as Record<string, unknown>;
         const jc = String(d.JC ?? d.jc ?? "");
         const [startSection, endSection] = jc.split("-").map((n) => Number(n));
@@ -632,7 +641,53 @@ export class InfoClient {
           raw: d,
         };
       });
+      if (entries.length > 0) return entries;
+      // 夏季学期兜底（thu-info-community 0317434e #910）：学期号以 -3 结尾时
+      // bks_jxrl_all JSONP 恒为空，课程安排在 CR 选课系统一级课表（m=kbSearch）。
+      // OneTHU getSchedule 以日期区间为参、无学期 id —— 按区间末端月份推导：
+      // 6-8 月属 (y-1)-y-3 夏季学期；仅此窗口且 JSONP 为空才尝试 CR（查不到就是查不到）。
+      return this.#crScheduleFallback(startDate, endDate);
     });
+  }
+
+  /** zhjwxk 会话（CR 一级课表兜底用）：HttpClient 共享 jar + 内存凭据；
+   *  按用户名缓存实例（zhjwxk ensure 的 60s 热缓存按对象身份建 WeakMap 键） */
+  #crSession: ZhjwxkSession | null = null;
+  #crSessionUser = "";
+
+  /** CR 一级课表兜底（lib getCRSchedule + parseCRSchedule 移植）：学期
+   *  firstDay/weekCount 取校历中匹配的 -3 学期；CR 会话走 zhjwxk 模块同款
+   *  xklogin SSO 链（fetchZhjwxkPage）。任何失败静默返回 []（兜底语义，
+   *  绝不为空课表报错）。 */
+  async #crScheduleFallback(startDate: string, endDate: string): Promise<ScheduleEntry[]> {
+    try {
+      const y = Number.parseInt(endDate.slice(0, 4), 10);
+      const m = Number.parseInt(endDate.slice(5, 7), 10);
+      if (!Number.isFinite(y) || !(m >= 6 && m <= 8)) return [];
+      const semesterId = `${y - 1}-${y}-3`;
+      const cal = await this.getSchoolCalendar();
+      const sem = [cal, ...cal.nextSemesterList].find((s) => s.semesterId === semesterId);
+      if (!sem) return [];
+      const creds = this.#idCredentials?.();
+      if (!creds?.username || !creds?.password) return [];
+      if (!this.#crSession || this.#crSessionUser !== creds.username) {
+        this.#crSession = {
+          http: this.#http,
+          username: creds.username,
+          password: creds.password,
+          fingerprint: creds.fingerprint,
+        };
+        this.#crSessionUser = creds.username;
+      }
+      // lib getCRSchedule 同款 URL（encodeURI 语义下 pathContent 为裸中文，fetch 等价归一）
+      const html = await fetchZhjwxkPage(
+        this.#crSession,
+        `/xkBks.vxkBksXkbBs.do?m=kbSearch&p_xnxq=${semesterId}&pathContent=一级课表`,
+      );
+      return parseCRSchedule(html, sem.firstDay, sem.weekCount);
+    } catch {
+      return []; // 兜底语义：CR 不可用/未配置凭据时保持空课表，不报错
+    }
   }
 
   /**
@@ -2058,6 +2113,8 @@ export class InfoClient {
       json = JSON.parse(text) as typeof json;
     } catch {
       this.#libRoomAccNo = null;
+      InfoClient.libRoomAuthUser = "";
+      InfoClient.libRoomAuthTs = 0;
       throw new AuthRequiredError(
         `研讨间会话已失效（resp=${text.slice(0, 100).replace(/\s+/g, " ")}）`,
       );
@@ -2066,6 +2123,8 @@ export class InfoClient {
       const msg = json.message ?? `code=${String(json.code)}`;
       if (/登录|login|auth|身份|expire/i.test(msg)) {
         this.#libRoomAccNo = null;
+        InfoClient.libRoomAuthUser = "";
+        InfoClient.libRoomAuthTs = 0;
         throw new AuthRequiredError(`研讨间会话已失效：${msg}`);
       }
       throw new Error(msg);
@@ -2098,7 +2157,19 @@ export class InfoClient {
    * ④ ic-web/auth/userInfo 核实 pid === userId 并缓存 accNo。
    */
   async #ensureLibRoom(userId: string): Promise<void> {
-    return this.#single("libroom", async () => {    if (await this.#libRoomAlive(userId)) return;
+    // 10 分钟 TTL + 跨实例单飞（#libraryAccessToken 同款；单用户应用，缓存含 userId）。
+    // 命中时连 #libRoomAlive 探针都省掉——每次进图书馆页都重跑整条 cab 漫游链即慢的根因。
+    if (InfoClient.libRoomAuthUser === userId && Date.now() - InfoClient.libRoomAuthTs < 600_000) {
+      return;
+    }
+    if (InfoClient.libRoomInflight) return InfoClient.libRoomInflight;
+    const run = async (): Promise<void> => {
+    if (InfoClient.libRoomAuthUser === userId && Date.now() - InfoClient.libRoomAuthTs < 600_000) return;
+    if (await this.#libRoomAlive(userId)) {
+      InfoClient.libRoomAuthUser = userId;
+      InfoClient.libRoomAuthTs = Date.now();
+      return;
+    }
     this.#libRoomAccNo = null;
     const addr = await this.#cabFetch<string>(urls.LIBROOM_AUTH_ADDRESS());
     if (typeof addr !== "string" || addr === "") {
@@ -2109,7 +2180,11 @@ export class InfoClient {
     const payload = /\/login\/form\/(.+)$/.exec(loginUrl)?.[1];
     if (!payload) {
       // id SSO 会话有效时该链可能直通兑付（终点已是 cab 页而非 id 表单）——重探一次
-      if (await this.#libRoomAlive(userId)) return;
+      if (await this.#libRoomAlive(userId)) {
+        InfoClient.libRoomAuthUser = userId;
+        InfoClient.libRoomAuthTs = Date.now();
+        return;
+      }
       throw new AuthRequiredError(
         `研讨间登录失败：SSO 重定向链未落到 id 登录表单（终=${loginUrl.slice(0, 120)}；现场=${String(this.#http.lastDebug ?? "").slice(0, 160)}）`,
       );
@@ -2123,7 +2198,11 @@ export class InfoClient {
     if (!(await this.#libRoomAlive(userId))) {
       throw new AuthRequiredError("研讨间会话未能建立（登录后 userInfo 校验未通过，请重试）");
     }
-      });
+    InfoClient.libRoomAuthUser = userId;
+    InfoClient.libRoomAuthTs = Date.now();
+    };
+    InfoClient.libRoomInflight = run().finally(() => { InfoClient.libRoomInflight = null; });
+    return InfoClient.libRoomInflight;
   }
 
   /** 研讨间请求包装：先 #ensureLibRoom；AuthRequiredError 时重建会话重试一次
@@ -2627,7 +2706,7 @@ export class InfoClient {
         );
         const result = await this.#http.postForm(searchUrl, form);
         this.#http.debug?.(
-          `[BANK] POST resp len=${result.length} cookies=${this.#http.lastCookieNames} body=${result.replace(/\s+/g, " ").slice(0, 2400)}`,
+          `[BANK] POST resp len=${result.length} cookies=${this.#http.lastCookieNames} body=${result.replace(/\s+/g, " ").slice(0, 7000)}`,
         );
         return finance.parseBankPayment(result);
       }),
