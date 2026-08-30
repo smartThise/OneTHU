@@ -269,6 +269,26 @@ export function SchedulePage() {
                     </div>
                   ),
                 )}
+                {/* 半小时刻度小标签（时间轴自由刻度） */}
+                {Array.from({ length: Math.floor((axisEnd - AXIS_BEGIN) / 30) + 1 }, (_, i) => {
+                  const m = AXIS_BEGIN + i * 30;
+                  const label = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+                  return (
+                    <div
+                      key={`hh-${m}`}
+                      style={{
+                        position: "absolute",
+                        top: y(m),
+                        right: 2,
+                        fontSize: 9,
+                        color: "var(--text-3, #999)",
+                        transform: "translateY(-4px)",
+                      }}
+                    >
+                      {label}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* 画布：7 天列，课程块绝对定位（上游 ScheduleBlock 同款模型） */}
@@ -305,6 +325,37 @@ export function SchedulePage() {
                     />
                   ),
                 )}
+                {/* 半小时网格线（贯穿全天） */}
+                {Array.from({ length: Math.floor((axisEnd - AXIS_BEGIN) / 30) + 1 }, (_, i) => {
+                  const m = AXIS_BEGIN + i * 30;
+                  return (
+                    <div
+                      key={`g-${m}`}
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        right: 0,
+                        top: y(m),
+                        borderTop: "1px dotted var(--border, #ddd)",
+                        opacity: 0.8,
+                      }}
+                    />
+                  );
+                })}
+                {/* 课程起止时刻线（琥珀色：每门课的开始/结束时刻） */}
+                {Array.from(new Set(placed.flatMap((p) => [p.beginMin, p.endMin]))).sort((a, b) => a - b).map((m) => (
+                  <div
+                    key={`cb-${m}`}
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      right: 0,
+                      top: y(m),
+                      borderTop: "1px dashed rgba(216,138,26,0.75)",
+                      zIndex: 4,
+                    }}
+                  />
+                ))}
                 {/* 当前时刻红线（所视周含今天时） */}
                 {dayDates[todayIdx] ? (
                   (() => {
