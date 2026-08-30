@@ -75,9 +75,14 @@ export function ClassroomTab() {
 
   /** 今天在 7 天列中的下标（周一=0） */
   const todayCol = (new Date().getDay() + 6) % 7;
-  const rows = result?.classroomStates ?? [];
-  /** 当前显示的大节下标：空选=全部 6 节，否则按所选升序 */
-  const shownSlots = selSlots.size > 0 ? [...selSlots].sort((a, b) => a - b) : SLOT_LABELS.map((_, i) => i);
+  const allRows = result?.classroomStates ?? [];
+  /** 大节筛选语义（用户定案）：选中若干大节 → 只显示这些大节（今日）全部空闲的教室行 */
+  const rows =
+    selSlots.size > 0
+      ? allRows.filter((r) =>
+          [...selSlots].every((si) => (r.status?.[todayCol * 6 + si] ?? -1) === AVAILABLE),
+        )
+      : allRows;
   const freeToday = rows.filter((r) =>
     SLOT_LABELS.some((_, s) => (r.status?.[todayCol * 6 + s] ?? -1) === AVAILABLE),
   ).length;
@@ -119,7 +124,7 @@ export function ClassroomTab() {
             title={`${sel.name} · 本周`}
             aside={
             result?.currentWeekNumber
-              ? `第 ${result.currentWeekNumber} 教学周 · 今日空闲 ${freeToday} 间${selSlots.size > 0 ? ` · 已选 ${selSlots.size} 大节` : ""}（下表为今日）`
+              ? `第 ${result.currentWeekNumber} 教学周 · 今日空闲 ${freeToday} 间${selSlots.size > 0 ? ` · 所选 ${selSlots.size} 节全空闲 ${rows.length} 间` : ""}（下表为今日）`
               : undefined
           }
           />
@@ -129,11 +134,17 @@ export function ClassroomTab() {
           {rState === "loading" ? (
             <SkeletonRows rows={6} />
           ) : rState === "ready" && rows.length === 0 ? (
-            <TabEmpty text="该教学楼本周暂无教室状态数据（可能不在上课周期）。" />
+            <TabEmpty
+              text={
+                selSlots.size > 0
+                  ? "没有教室在所选大节全部空闲——试着少选几节或清空筛选。"
+                  : "该教学楼本周暂无教室状态数据（可能不在上课周期）。"
+              }
+            />
           ) : rState === "ready" ? (
             <>
               <div className="chips" style={{ marginBottom: 12 }}>
-                <span style={{ fontSize: 12, opacity: 0.7, alignSelf: "center", marginRight: 4 }}>大节筛选</span>
+                <span style={{ fontSize: 12, opacity: 0.7, alignSelf: "center", marginRight: 4 }}>大节筛选（只看所选节全空闲的教室）</span>
                 {SLOT_LABELS.map((s, si) => {
                   const on = selSlots.has(si);
                   return (
@@ -164,9 +175,9 @@ export function ClassroomTab() {
                   <thead>
                     <tr>
                       <th>教室</th>
-                      {shownSlots.map((si) => (
-                        <th key={si} className="num">
-                          {SLOT_LABELS[si]}
+                      {SLOT_LABELS.map((sl) => (
+                        <th key={sl} className="num">
+                          {sl}
                         </th>
                       ))}
                     </tr>
@@ -175,10 +186,10 @@ export function ClassroomTab() {
                     {rows.map((r, i) => (
                       <tr key={`${r.name}-${i}`} style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}>
                         <td className="cell-title" style={{ whiteSpace: "nowrap" }}>{r.name}</td>
-                        {shownSlots.map((si) => {
+                        {SLOT_LABELS.map((sl, si) => {
                           const free = (r.status?.[todayCol * 6 + si] ?? -1) === AVAILABLE;
                           return (
-                            <td key={si} className="num">
+                            <td key={sl} className="num">
                               <span className={free ? "chip chip-green" : "chip chip-gray"}>{free ? "空闲" : "占用"}</span>
                             </td>
                           );
