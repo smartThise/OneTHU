@@ -133,6 +133,19 @@ function base64ToBytes(s: string): Uint8Array {
 let lastCampusOkAt = 0;
 const SESSION_REFRESH_MS = 7 * 60 * 1000;
 
+/**
+ * 登录态/会话失效判定（公开辅助，UI 静默自愈用）：AuthRequiredError 本体，
+ * 或错误文案带未登录特征。失效文案均出自 core 各探针/解析层（含 e.name 兜底，
+ * instanceof 跨模块实例失效时按名字识别）。误判代价仅多一次自愈尝试，漏判会闪红——特征从宽。
+ */
+export function isAuthError(e: unknown): boolean {
+  if (e instanceof AuthRequiredError) return true;
+  const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+  return /AuthRequiredError|未登录|请先登录|请重新登录|重新登录|登录超时|登陆超时|登录已失效|登录态|会话已失效|会话失效|会话超时|会话过期|身份过期|认证失效|not[ -]?logged[ -]?in|unauthorized/i.test(
+    msg,
+  );
+}
+
 export class InfoClient {
   #http: HttpClient;
   #zhjwRoamed = false;
@@ -165,6 +178,46 @@ export class InfoClient {
   setRenewers(hooks: { info?: () => Promise<boolean>; card?: () => Promise<boolean> }): void {
     this.#renewInfo = hooks.info ?? null;
     this.#renewCard = hooks.card ?? null;
+  }
+
+  /** forceEnsure 并发去重：同 scope 只跑一次重建（漫游链并发跑会在会话上互踩） */
+  #ensureInflight = new Map<string, Promise<void>>();
+
+  /**
+   * 会话强制重建（登录态丢失后的静默自愈入口）：清目标服务的漫游/缓存标记后重走
+   * 对应 ensure（webvpn 兑付链），随后由调用方重载组件即可拿到数据。
+   * 实证背景：内部服务会话过期而漫游标记仍为 true 时 #ensureXxx 短路返回，
+   * renewInfo/renewCard 钩子只重建 info 门户/卡登录会话，够不着目标服务自身会话。
+   * card 无漫游标记（探针制）：重走 #ensureCardSession（探测 → CARD_HOME SSO 引导
+   * → renewCard）即强制语义；libroom 重置 accNo 缓存后重走 #ensureLibRoom。
+   */
+  async forceEnsure(scope: "library" | "dorm" | "card" | "libroom", userId?: string): Promise<void> {
+    const key = scope === "libroom" ? `${scope}:${userId ?? ""}` : scope;
+    const inflight = this.#ensureInflight.get(key);
+    if (inflight) return inflight;
+    const run = this.#forceEnsureRun(scope, userId).finally(() => {
+      this.#ensureInflight.delete(key);
+    });
+    this.#ensureInflight.set(key, run);
+    return run;
+  }
+
+  async #forceEnsureRun(
+    scope: "library" | "dorm" | "card" | "libroom",
+    userId?: string,
+  ): Promise<void> {
+    if (scope === "library") {
+      await this.#ensureLibrary(true);
+    } else if (scope === "dorm") {
+      await this.#ensureDorm(true);
+    } else if (scope === "card") {
+      this.#cardUser = "";
+      await this.#ensureCardSession();
+    } else {
+      if (!userId) throw new Error("研讨间会话重建需要学号");
+      this.#libRoomAccNo = null;
+      await this.#ensureLibRoom(userId);
+    }
   }
 
   /** 会话年龄检查：距上次确认存活超过 7 分钟先静默重漫游一次（8 分钟过期前拦截）。
@@ -923,7 +976,8 @@ export class InfoClient {
    * ② 无票（CAS 未下发 SSO 票据，如用户未先开 WebVPN 门户）→ lib 正门：账密直登 id。
    * 票据均经 oauth lbredirect 兑付到 myhome（lib getWebVPNUrl 同款包装）→ 探针核实。
    */
-  async #ensureDorm(): Promise<void> {
+  async #ensureDorm(force = false): Promise<void> {
+    if (force) this.#dormRoamed = false; // 强制重建（forceEnsure 自愈入口）：清标记重走
     if (this.#dormRoamed && (await this.#dormAlive())) return;
     const ticketed = await this.#roamIdService(urls.DORM_CAS_FORM());
     // 兑付后核实（传输层若已代跟跳到 myhome，会话同样已建立）
@@ -1091,7 +1145,8 @@ export class InfoClient {
    * ② 无票（用户未先开 WebVPN 门户等）→ lib 正门账密直登 id。票据经 oauth lbredirect
    * 兑付 → 探针核实。注意 ef84f6d6… 在 lib 中是 id CAS 表单 hash，不是 yyfw 业务 id。
    */
-  async #ensureLibrary(): Promise<void> {
+  async #ensureLibrary(force = false): Promise<void> {
+    if (force) this.#libRoamed = false; // 强制重建（forceEnsure 自愈入口）：清标记重走
     if (this.#libRoamed) return;
     await this.#roamIdService(urls.LIBRARY_CAS_FORM());
     if (!(await this.#libAlive())) {

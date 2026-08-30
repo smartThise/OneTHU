@@ -5,9 +5,9 @@
  * - 订水：thu-info-app network/water.ts 移植（清华水站 dingshui.bjqzhd.com 公开接口），
  *   订水编号查询联系人/地址后提交；dorm.ts 内无订水端点，端点以 RN 端 network/water.ts 为准。
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ElePayRecord, EleRemainder } from "@onethu/core";
-import { WATER_BRANDS, getWaterUserInformation, submitWaterOrder } from "@onethu/core";
+import { WATER_BRANDS, getWaterUserInformation, isAuthError, submitWaterOrder } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { info, logLine } from "../../lib/clients.js";
 import { explainNetworkError, universalFetch } from "../../lib/transport.js";
@@ -40,6 +40,8 @@ export function DormTab() {
   const [elec, setElec] = useState<ElecBundle | null>(null);
   const [elecState, setElecState] = useState<LoadState>("loading");
   const [elecError, setElecError] = useState<string | null>(null);
+  /* 登录态丢失静默自愈：成功清零，同一次失败最多自动恢复 1 次（手动重试清零重计） */
+  const elecRecover = useRef(0);
 
   const loadElec = useCallback(async () => {
     if (status !== "ready") return;
@@ -52,10 +54,19 @@ export function DormTab() {
         logErr("ELE-RECORD", err);
         return [] as ElePayRecord[];
       });
+      elecRecover.current = 0;
       setElec({ remainder, records });
       setElecState("ready");
     } catch (err) {
       logErr("ELEC", err);
+      // 登录态丢失：不闪红，静默强制重建家园网会话后自动重载一次；仍失败才亮 ErrorNote
+      if (isAuthError(err) && elecRecover.current < 1) {
+        elecRecover.current += 1;
+        await info.forceEnsure("dorm").catch((renewErr: unknown) => {
+          logErr("ELEC-RENEW", renewErr);
+        });
+        return loadElec();
+      }
       setElecState("error");
       setElecError(explainNetworkError(err));
     }
@@ -123,7 +134,13 @@ export function DormTab() {
     <>
       <SectionHead title="电费" aside="家园网 myhome.tsinghua.edu.cn · 宿舍绑定房间" />
       {elecState === "error" ? (
-        <ErrorNote text={elecError ?? ""} onRetry={() => void loadElec()} />
+        <ErrorNote
+          text={elecError ?? ""}
+          onRetry={() => {
+            elecRecover.current = 0;
+            void loadElec();
+          }}
+        />
       ) : null}
       {elecState === "loading" && !elec ? (
         <SkeletonRows rows={2} />

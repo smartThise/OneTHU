@@ -61,6 +61,56 @@ function asArray(v: unknown): unknown[] {
 
 const str = (v: unknown) => String(v ?? "");
 
+/* ---------- 时间解析（对照 thu-app mobile：dayjs 直吃 learn 字符串，
+ *  但 learn JSON 的时间字段形态不一，统一在此归一化，杜绝 NaN/Invalid Date） ----------
+ *  实测形态：常规 "2025-10-01 12:30(:ss)"、日期-only "2025-09-01"、ISO 串、
+ *  毫秒时间戳（数字或数字串）、.NET 前后缀 "/Date(1698150000000+0800)/"，
+ *  以及非字符串时的 *Str 兜底字段（learn-lib: fbsj→fbsjStr；learnApi: jzsj→jzsjStr）。 */
+
+/** learn 时间字段 → Date（本地时区语义，解析失败返回 null）。
+ *  core 归一化与 UI（fmtDateTime/timeLeft）共用同一套解析。 */
+export function parseLearnTime(raw: unknown): Date | null {
+  if (raw === null || raw === undefined) return null;
+  // 数字 / 10~14 位纯数字串 = 秒（10 位）或毫秒（13 位）时间戳
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return new Date(raw < 1e12 ? raw * 1000 : raw);
+  }
+  const s = String(raw).trim();
+  if (!s) return null;
+  if (/^\d{10,14}$/.test(s)) {
+    const n = Number(s);
+    return new Date(n < 1e12 ? n * 1000 : n);
+  }
+  // .NET JSON 日期前后缀：/Date(1698150000000+0800)/
+  const dotnet = /\/Date\((-?\d+)/.exec(s);
+  if (dotnet?.[1]) return new Date(Number(dotnet[1]));
+  // "YYYY-M-D H:m(:ss)" / "YYYY-M-D"：learn 服务器给的是本地时区语义，
+  // 不能交给 Date.parse（"2025-10-01" 会被当 UTC）→ 手工拆解
+  const m = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(s);
+  if (m?.[1] && m[2] && m[3]) {
+    const [, y, mo, d, h = "0", mi = "0", se = "0"] = m;
+    return new Date(+y, +mo - 1, +d, +h, +mi, +se);
+  }
+  // 其余（ISO 带 Z/偏移等）交给 Date.parse
+  const t = Date.parse(s);
+  return Number.isNaN(t) ? null : new Date(t);
+}
+
+/** learn 时间字段 → "YYYY-MM-DD HH:mm"（源为日期-only 时保留日期-only；未解析成功返回 ""，
+ *  UI 侧不再出现 Invalid Date） */
+function normalizeTime(raw: unknown, fallback?: unknown): string {
+  const src =
+    raw === null || raw === undefined || (typeof raw === "string" && raw.trim() === "") ? fallback : raw;
+  const d = src === undefined || src === null ? null : parseLearnTime(src);
+  if (!d) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const dateOnly =
+    typeof src === "string" && /^\d{4}-\d{1,2}-\d{1,2}$/.test(src.trim())
+      ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+      : null;
+  return dateOnly ?? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 /* ---------- 我的分组（v_wlkc_qzcyb）解析 ----------
  * 金标准样例：分组页 beforePageWdfzList 为 DataTables（bServerSide）壳子，行由
  * /b/wlxt/qz/v_wlkc_qzcyb/student/pageFzList AJAX 注入（qzmc=组名 / qzmp=逗号分隔
@@ -101,7 +151,7 @@ function parseGroupTables(html: string): LearnGroup[] {
         name: name || "未命名分组",
         members: toMembers(names, creator),
         creator: creator || undefined,
-        createTime: time || undefined,
+        createTime: normalizeTime(time) || undefined,
       });
     }
   }
@@ -161,7 +211,7 @@ function parseGroupJsonRow(raw: unknown, idx: number): LearnGroup | undefined {
     name: name || "未命名分组",
     members: toMembers(names, creator),
     creator: creator || undefined,
-    createTime: str(d.czsj).trim() || undefined,
+    createTime: normalizeTime(d.czsj) || undefined,
   };
 }
 
@@ -176,6 +226,12 @@ export class LearnClient {
   /** 会话建立流程（demo 字符串模型）外部完成时，直接注入 _csrf */
   applyCsrf(token: string): void {
     this.#csrf = token;
+  }
+
+  /** 当前 _csrf（未登录为 null）。下载/预览走 Rust 旁路不过 HttpClient，
+   *  由桌面端把 token 拼进 URL —— mobile fs.downloadFile 的 addCSRF 同款。 */
+  get csrfToken(): string | null {
+    return this.#csrf;
   }
 
   /** 用统一会话下发的 CAS ticket 漫游网络学堂，并提取 _csrf。 */
@@ -257,12 +313,15 @@ export class LearnClient {
       const fmt = (x: Date): string =>
         `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
       const parse = (o: CalSem): CalendarSemester => {
-        // kssj 对齐到所在教学周的周一（周二~五→本周一；周六日→下周一；demo 同款）
-        const start = new Date(String(o.kssj).replace(/-/g, "/"));
+        // kssj 对齐到所在教学周的周一（周二~五→本周一；周六日→下周一；demo 同款）；
+        // kssj/jssj 统一走 parseLearnTime（日期串/时间戳/Date() 前后缀都可吃）
+        const startDate = parseLearnTime(o.kssj);
+        if (!startDate) throw new AuthRequiredError();
+        const start = startDate;
         const wd = start.getDay();
         const delta = wd === 0 ? 1 : wd === 6 ? 2 : 1 - wd;
         const firstDay = fmt(new Date(start.getTime() + delta * 86400000));
-        const end = new Date(String(o.jssj ?? o.kssj).replace(/-/g, "/"));
+        const end = parseLearnTime(o.jssj ?? o.kssj) ?? start;
         const weekCount = Math.max(
           1,
           Math.floor((end.getTime() - start.getTime() + delta * 86400000) / (7 * 86400000)) + 1,
@@ -337,25 +396,30 @@ export class LearnClient {
         const d = raw as Record<string, unknown>;
         const baseId = str(d.zyid);
         const studentId = str(d.xszyid) || baseId;
+        // 状态三分类由列表端点决定（learn-lib LEARN_HOMEWORK_LIST_SOURCE 同源）：
+        // new=未交 submitted=false/graded=false；Yjwg=已交未批 true/false；Ypg=已批 true/true。
+        // 补交标记 sfbj = "是"/"否"（learn-lib YES==='是'，臆造的 "1"/"Y" 均匹配不上）。
         return {
           id: studentId,
           baseId,
           courseId: str(d.wlkcid) || courseId,
           title: decodeHtml(d.bt),
           content: decodeBase64Utf8(str(d.nr)),
-          publishTime: str(d.fbsj),
-          deadline: str(d.jzsj),
-          lateDeadline: d.bjjzsj ? str(d.bjjzsj) : undefined,
-          lateSubmission: str(d.sfbj) === "1" || str(d.sfbj) === "Y",
+          publishTime: normalizeTime(d.fbsj, d.fbsjStr),
+          deadline: normalizeTime(d.jzsj, d.jzsjStr),
+          lateDeadline: d.bjjzsj ? normalizeTime(d.bjjzsj, d.bjjzsjStr) : undefined,
+          lateSubmission: str(d.sfbj) === "是",
           completionType: d.zywcfs === undefined || d.zywcfs === null ? undefined : Number(d.zywcfs),
-          submissionType: d.zytjfs === undefined || d.zytjfs === null ? undefined : Number(d.zytjfs),
+          // 学生端列表接口没有「提交方式」字段（此前臆造的 submissionType 已删）；
+          // 是否可提交以作业详情页真实表单控件为准 → getHomeworkPageDetail().hasSubmitForm
           submitted: kind !== "new",
           graded: kind === "graded",
-          submitTime: d.scsj === undefined || d.scsj === null || str(d.scsj) === "" ? undefined : str(d.scsj),
+          // scsj/cj/pysj 未批/未交时为 null（learn-lib 同款 null→undefined）
+          submitTime: d.scsj === undefined || d.scsj === null || str(d.scsj) === "" ? undefined : normalizeTime(d.scsj, d.scsjStr),
           grade: d.cj === undefined || d.cj === null || str(d.cj) === "" ? undefined : (d.cj as string | number),
           graderName: str(d.jsm).trim() || undefined,
           gradeContent: decodeHtml(d.pynr).trim() || undefined,
-          gradeTime: d.pysj === undefined || d.pysj === null || str(d.pysj) === "" ? undefined : str(d.pysj),
+          gradeTime: d.pysj === undefined || d.pysj === null || str(d.pysj) === "" ? undefined : normalizeTime(d.pysj, d.pysjStr),
           url: urls.LEARN_HOMEWORK_PAGE(str(d.wlkcid) || courseId, studentId),
         };
       });
@@ -366,7 +430,9 @@ export class LearnClient {
   /** 提交作业（thu-learn-lib LEARN_HOMEWORK_SUBMIT_FORM_DATA 同款）：
    *  POST /b/wlxt/kczy/zy/student/tjzy，multipart FormData 字段序 xszyid/zynr/
    *  fileupload/isDeleted；无附件时 fileupload 也要占位（字面 "undefined"，
-   *  网页端空文件输入的原样 —— thu-learn-lib 与 thu-app learnApi 均如此）。 */
+   *  网页端空文件输入的原样 —— thu-learn-lib 与 thu-app learnApi 均如此）。
+   *  remove = isDeleted=1：撤回「已上传附件」（mobile removeAttachment 语义，
+   *  不是撤回整个提交）；正文 zynr 一并原样上送。 */
   async submitHomework(
     studentHomeworkId: string,
     opts: { content?: string; file?: File | null; remove?: boolean },
@@ -380,8 +446,13 @@ export class LearnClient {
       fd.append("isDeleted", opts.remove ? "1" : "0");
       const url = this.#withCsrf(urls.LEARN_PREFIX + "/b/wlxt/kczy/zy/student/tjzy");
       const res = await this.#http.postForm(url, fd);
+      // 返回 HTML = 会话失效被重定向到登录页（learnApi 同款判定），不能当成功吞掉
+      if (/<(!DOCTYPE|html)/i.test(res.slice(0, 200))) {
+        return { ok: false, msg: "会话已过期，请重新登录后再提交" };
+      }
       try {
         const data = JSON.parse(res) as { result?: string; msg?: string };
+        // result === "error" 明确失败（thu-lib 只认 "success"；learnApi 宽容：非 error 即成功）
         if (data.result === "error") return { ok: false, msg: data.msg ?? "提交失败" };
         return { ok: true };
       } catch {
@@ -404,34 +475,83 @@ export class LearnClient {
     });
   }
 
-  /** 从 HTML 块提取附件（thu-learn-lib parseHomeworkFile 的正则等价）：
-   *  锚点 href 带 fileId/downloadUrl 参数；downloadUrl 参数优先（URL 编码的服务器路径）。 */
+  /** 附件区里挑「真正的文件锚点」（thu-learn-lib parseHomeworkFile 语义收紧版）：
+   *  逐个检查区块内的 <a href>，只认「有可下载地址」的文件锚点——href 必须带
+   *  fileId / downloadUrl / wjid 之一（learn-lib 附件锚点的下载参数；downloadUrl 参数优先，
+   *  为 URL 编码的服务器路径）；无文件下载 href 的纯导航锚点（如「去答疑」）、
+   *  指向答疑/讨论/笔记路由的锚点（mobile filterJunkLinks 同源路由）一律不要。
+   *  解析出的每个附件因此必有可下载 URL；文件名取锚点文本（可空，UI 以「附件 {id}」兜底）。 */
   #parseAttachmentAnchor(block: string): LearnAttachment | undefined {
-    const anchor = /<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i.exec(block);
-    if (!anchor) return undefined;
-    const href = decodeHtml(anchor[1]!);
-    const name = decodeHtml(anchor[2]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
-    const q = href.indexOf("?");
-    const params = new URLSearchParams(q >= 0 ? href.slice(q + 1) : "");
-    const id = params.get("fileId") ?? params.get("wjid") ?? "";
-    const dl = params.get("downloadUrl");
-    const path = dl ?? href;
-    const downloadUrl = path.startsWith("http")
-      ? path
-      : urls.LEARN_PREFIX + (path.startsWith("/") ? path : "/" + path);
-    const size = decodeHtml(/<span[^>]*class="[^"]*color[^"]*"[^>]*>([^<]*)<\/span>/i.exec(block)?.[1] ?? "").trim();
-    if (!id && !name) return undefined;
-    return { id, name, downloadUrl, size: size || undefined };
+    for (const a of block.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)) {
+      const href = decodeHtml(a[1]!).trim();
+      if (!href || href === "#" || /^javascript:/i.test(href)) continue;
+      // 答疑/论坛/笔记等纯导航路由（mobile filterJunkLinks：/bbs|kcdy|biji|taolun|dayi|答疑）
+      if (/\/(?:bbs|kcdy|biji|taolun|dayi)\b|答疑/i.test(href)) continue;
+      const q = href.indexOf("?");
+      const params = new URLSearchParams(q >= 0 ? href.slice(q + 1) : "");
+      const id = params.get("fileId") ?? params.get("wjid") ?? "";
+      const dl = params.get("downloadUrl");
+      // 无文件下载参数 = 不是附件（页面导航/锚点），绝不冒充附件名
+      if (!id && !dl) continue;
+      const name = decodeHtml(a[2]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+      const path = dl ?? href;
+      const downloadUrl = path.startsWith("http")
+        ? path
+        : urls.LEARN_PREFIX + (path.startsWith("/") ? path : "/" + path);
+      const size = decodeHtml(/<span[^>]*class="[^"]*color[^"]*"[^>]*>([^<]*)<\/span>/i.exec(block)?.[1] ?? "").trim();
+      return { id, name, downloadUrl, size: size || undefined };
+    }
+    return undefined;
+  }
+
+  /** fujian div 自身内容的配平提取：从开标签起做 <div>/</div> 计数，取到其闭合标签，
+   *  即 learn-lib `result('div.list.fujian.clearfix')` 的严格范围（附件区域）。
+   *  旧实现把区块尾一刀切到下个 list 区块/30000 字符，fujian 块后面的导航链接
+   *  （如「去答疑」）会溢进搜索范围被当成附件——这里从根上堵死。
+   *  HTML 未正常闭合时退化为开标签后限长 8000 的窗口（有界兜底）。 */
+  #fujianBlockContent(html: string, openIdx: number): string {
+    const re = /<\/?div\b[^>]*>/gi;
+    re.lastIndex = openIdx;
+    let depth = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html))) {
+      if (/^<\/div/i.test(m[0])) {
+        depth--;
+        if (depth === 0) return html.slice(openIdx, m.index);
+      } else {
+        depth++;
+      }
+    }
+    return html.slice(openIdx, Math.min(html.length, openIdx + 8000));
   }
 
   /** 作业详情页（viewCj HTML）附件解析 —— thu-learn-lib parseHomeworkAtUrl 等价。
    *  附件只存在于 HTML 页（div.list.fujian.clearfix 四块：附件/答案/我的提交/批改），
-   *  列表 JSON 与 detail JSON 均不含——这正是此前"作业文件消失"的原因。 */
+   *  列表 JSON 与 detail JSON 均不含——这正是此前"作业文件消失"的原因。
+   *  附件解析严格限定在 fujian div 自身（#fujianBlockContent 配平范围），并要求
+   *  锚点带可下载参数（#parseAttachmentAnchor）——「去答疑」等导航链接不再混入。
+   *  submittedContent 取 boxbox[1] 的 right 块（learn-lib: boxbox>right[2]、
+   *  learnApi: boxboxParts[2].rightParts[3] 同源），供提交面板预填上次提交内容。
+   *
+   *  hasSubmitForm 判定细则（学生端列表接口没有提交方式字段，绝不臆测，
+   *  以详情页 HTML 的真实控件为准）：页面出现以下任一「提交表单结构特征」即
+   *  hasSubmitForm=true——
+   *    ① 提交端点 tjzy（/b/wlxt/kczy/zy/student/tjzy）被页面引用（<form action> 或提交 JS）；
+   *    ② 上传控件 <input name="fileupload">；
+   *    ③ 正文输入控件 <textarea name="zynr">。
+   *  「仅需在 OJ 提交，无需提交」这类作业的详情页无任何上述控件 → false，
+   *  UI 不渲染提交框。已提交作业的页面表单会变化（再次提交/撤回附件等），
+   *  本字段随 viewCj 重新解析而刷新，UI 始终按重取后的页面事实渲染。 */
   async getHomeworkPageDetail(courseId: string, studentHomeworkId: string): Promise<HomeworkPageDetail> {
     this.#requireCsrf();
     const html = await this.#http.text(urls.LEARN_HOMEWORK_PAGE(courseId, studentHomeworkId));
-    const out: HomeworkPageDetail = {};
-    // 以 class="list …" 区块起点切分页面，取 fujian 块（文档序 = 四类附件顺序）
+    const out: HomeworkPageDetail = {
+      hasSubmitForm:
+        /\btjzy\b/i.test(html) ||
+        /<input\b[^>]*name=["']fileupload["']/i.test(html) ||
+        /<textarea\b[^>]*name=["']zynr["']/i.test(html),
+    };
+    // 以 class="list …" 区块起点定位 fujian 块（文档序 = 四类附件顺序）
     const starts = [...html.matchAll(/<div[^>]*class=["']list[^"']*["'][^>]*>/gi)].map((m) => ({
       idx: m.index ?? 0,
       fujian: /fujian/i.test(m[0]),
@@ -440,11 +560,19 @@ export class LearnClient {
     let kindIdx = 0;
     for (let i = 0; i < starts.length && kindIdx < keys.length; i++) {
       if (!starts[i]!.fujian) continue;
-      const end = i + 1 < starts.length ? starts[i + 1]!.idx : Math.min(html.length, starts[i]!.idx + 30000);
-      const a = this.#parseAttachmentAnchor(html.slice(starts[i]!.idx, end));
+      const a = this.#parseAttachmentAnchor(this.#fujianBlockContent(html, starts[i]!.idx));
       const k = keys[kindIdx];
       if (a && k) out[k] = a;
       kindIdx++;
+    }
+    // 我的提交内容（上次 zynr）：boxbox 第 2 块 → 第 4 个 right 块到其闭合标签
+    const boxboxParts = html.split(/<div[^>]*class=["'][^"']*boxbox[^"']*["'][^>]*>/i);
+    if (boxboxParts.length > 2) {
+      const rightParts = boxboxParts[2]!.split(/<div[^>]*class=["'][^"']*right[^"']*["'][^>]*>/i);
+      if (rightParts.length > 3) {
+        const raw = (rightParts[3] ?? "").replace(/<\/div>[\s\S]*/i, "").trim();
+        if (raw) out.submittedContent = decodeHtml(raw);
+      }
     }
     return out;
   }
@@ -497,10 +625,11 @@ export class LearnClient {
               title: decodeHtml(d.bt ?? d.ggbt),
               content: decodeBase64Utf8(str(d.ggnr)),
               publisher: decodeHtml(d.fbrxm),
-              publishTime: str(d.fbsj),
-              expireTime: d.jzsj ? str(d.jzsj) : undefined,
-              important: str(d.sfqd) === "1",
-              hasRead: str(d.sfyd) === "1" || str(d.sfyd) === "Y",
+              publishTime: normalizeTime(d.fbsj, d.fbsjStr),
+              expireTime: d.jzsj ? normalizeTime(d.jzsj, d.jzsjStr) : undefined,
+              important: str(d.sfqd) === "1" || Number(d.sfqd) === 1,
+              // sfyd = "是"/"否"（learn-lib hasRead: n.sfyd === YES）
+              hasRead: str(d.sfyd) === "是",
               attachmentName: str(d.fjmc).trim() || undefined,
               url: urls.LEARN_NOTIFICATION_DETAIL(cid, nid),
             };
@@ -530,7 +659,7 @@ export class LearnClient {
           id: fid,
           courseId,
           title: decodeHtml(d.bt ?? d.kjbt),
-          uploadTime: str(d.scsj ?? d.fxsj ?? d.scj),
+          uploadTime: normalizeTime(d.scsj, d.fxsj ?? d.scj),
           downloadUrl: urls.LEARN_FILE_DOWNLOAD(fid),
           fileType: rawType || undefined,
           size: str(d.fileSize).trim() || undefined,

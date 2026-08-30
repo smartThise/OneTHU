@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { http, downloadLearnUrl } from "../lib/clients.js";
+import { http, downloadLearnUrl, withLearnCsrf } from "../lib/clients.js";
 import { explainNetworkError } from "../lib/transport.js";
 import { Empty } from "./Layout.js";
 
@@ -79,12 +79,13 @@ interface FetchedBinary {
 }
 
 async function fetchBinary(url: string): Promise<FetchedBinary> {
+  const target = withLearnCsrf(url); // learn 下载端点缺 _csrf 会回 HTML 错误页
   const jarCookies = http.jar
-    .getCookies(new URL(url))
+    .getCookies(new URL(target))
     .map((c) => `${c.name}=${c.value}`)
     .join("; ");
   const { invoke } = await import("@tauri-apps/api/core");
-  const out = await invoke<{ mime: string; data: string }>("fetch_binary", { url, cookies: jarCookies });
+  const out = await invoke<{ mime: string; data: string }>("fetch_binary", { url: target, cookies: jarCookies });
   const mime = (out.mime || "application/octet-stream").split(";")[0]?.trim() || "application/octet-stream";
   return { mime, dataUrl: `data:${mime};base64,${out.data}`, b64: out.data };
 }

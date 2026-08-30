@@ -10,6 +10,7 @@ import { IconRefresh } from "../../components/Icons.js";
 import { useXkWorkbench, type XkStageItem } from "../../state/data.js";
 import type { XkCourseDetail } from "@onethu/core";
 import { tbEnsureIndex, tbFetchReviews, tbMatch, tbStars, tbCourseUrl, tbWriteUrl, type TbEntry, type TbReviews } from "../../lib/xkreviews.js";
+import { openExternal } from "../info/openExternal.js";
 import { callAi, extractJsonArray, loadAiConfig, saveAiConfig, type AiConfig } from "../../lib/xkai.js";
 import {
   allowedFlags, calcProb, checkPlanCoverage, dayName, findPreviewConflicts, typeCodeToFlag,
@@ -143,12 +144,12 @@ function ReviewsModal({ code, seq, name, teacher, onClose }: { code: string | nu
   const courseUrl = entry ? tbCourseUrl(entry) : tbCourseUrl(entry!);
   headBits.push(
     <div key="a" style={{ display: "flex", gap: 10, marginTop: 8 }}>
-      <a className="btn" href={courseUrl} target="_blank" rel="noopener noreferrer">查看课程页 ↗</a>
-      <a className="btn" style={{ borderColor: "var(--accent)", color: "var(--accent)" }} href={tbWriteUrl(entry)} target="_blank" rel="noopener noreferrer">✎ 去写点评</a>
+      <a className="btn" href={courseUrl} onClick={(e) => { e.preventDefault(); void openExternal(courseUrl); }}>查看课程页 ↗</a>
+      <a className="btn" style={{ borderColor: "var(--accent)", color: "var(--accent)" }} href={tbWriteUrl(entry)} onClick={(e) => { e.preventDefault(); void openExternal(tbWriteUrl(entry)); }}>✎ 去写点评</a>
     </div>,
     <div key="l" style={{ marginTop: 8, fontSize: 11, color: "var(--text-3, #9aa1ac)" }}>
-      点评数据来自 <a href={courseUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>THU选课社区</a> 贡献者，以{" "}
-      <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.zh" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>CC BY-NC 4.0</a> 提供 · 仅限非商业用途
+      点评数据来自 <a href={courseUrl} onClick={(e) => { e.preventDefault(); void openExternal(courseUrl); }} style={{ color: "var(--accent)" }}>THU选课社区</a> 贡献者，以{" "}
+      <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.zh" onClick={(e) => { e.preventDefault(); void openExternal("https://creativecommons.org/licenses/by-nc/4.0/deed.zh"); }} style={{ color: "var(--accent)" }}>CC BY-NC 4.0</a> 提供 · 仅限非商业用途
     </div>,
   );
   return createPortal(

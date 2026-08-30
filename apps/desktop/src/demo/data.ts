@@ -27,11 +27,11 @@ export const DEMO_COURSES: CourseInfo[] = [
 ];
 
 export const DEMO_HOMEWORK: Homework[] = [
-  { id: "h1", baseId: "b1", courseId: "9002", title: "实验三：多线程内核调度", content: "<p>实现时间片轮转与优先级调度，提交实验报告与代码压缩包。</p><ul><li>报告模板见课程文件</li><li>截止前可重复提交</li></ul>", publishTime: dt(-6, "10:00"), deadline: dt(1, "23:59"), submitted: false, graded: false, completionType: 1, submissionType: 2, url: "#" },
-  { id: "h2", baseId: "b2", courseId: "9003", title: "第七章习题（第1-12题）", content: "教材 P182 起，拍照上传即可。", publishTime: dt(-3, "16:30"), deadline: dt(3, "08:00"), submitted: false, graded: false, completionType: 1, submissionType: 1, url: "#" },
-  { id: "h3", baseId: "b3", courseId: "9001", title: "单周期 CPU 数据通路图", content: "手绘或绘图工具均可，PDF 提交。", publishTime: dt(-8, "09:00"), deadline: dt(-1, "23:59"), submitted: true, graded: false, submitTime: dt(-2, "20:41"), completionType: 1, submissionType: 1, url: "#" },
-  { id: "h4", baseId: "b4", courseId: "9004", title: "Presentation: AI and Language", content: "3 分钟小组展示，周五课上。", publishTime: dt(-10, "14:00"), deadline: dt(2, "08:00"), submitted: false, graded: false, completionType: 2, submissionType: 2, url: "#" },
-  { id: "h5", baseId: "b5", courseId: "9003", title: "期中模拟卷", content: "计入平时分。", publishTime: dt(-14, "10:00"), deadline: dt(-4, "23:59"), submitted: true, graded: true, submitTime: dt(-4, "21:13"), grade: 92, graderName: "林之熹", gradeTime: dt(-3, "14:00"), gradeContent: "第 9 题第二问漏掉边界情形，其余完成度很好。", completionType: 1, submissionType: 1, url: "#" },
+  { id: "h1", baseId: "b1", courseId: "9002", title: "实验三：多线程内核调度", content: "<p>实现时间片轮转与优先级调度，提交实验报告与代码压缩包。</p><ul><li>报告模板见课程文件</li><li>截止前可重复提交</li></ul>", publishTime: dt(-6, "10:00"), deadline: dt(1, "23:59"), submitted: false, graded: false, completionType: 1, url: "#" },
+  { id: "h2", baseId: "b2", courseId: "9003", title: "第七章习题（第1-12题）", content: "教材 P182 起，拍照上传即可。", publishTime: dt(-3, "16:30"), deadline: dt(3, "08:00"), submitted: false, graded: false, completionType: 1, url: "#" },
+  { id: "h3", baseId: "b3", courseId: "9001", title: "单周期 CPU 数据通路图", content: "手绘或绘图工具均可，PDF 提交。", publishTime: dt(-8, "09:00"), deadline: dt(-1, "23:59"), submitted: true, graded: false, submitTime: dt(-2, "20:41"), completionType: 1, url: "#" },
+  { id: "h4", baseId: "b4", courseId: "9004", title: "Presentation: AI and Language", content: "3 分钟小组展示，周五课上。", publishTime: dt(-10, "14:00"), deadline: dt(2, "08:00"), submitted: false, graded: false, completionType: 2, url: "#" },
+  { id: "h5", baseId: "b5", courseId: "9003", title: "期中模拟卷", content: "计入平时分。", publishTime: dt(-14, "10:00"), deadline: dt(-4, "23:59"), submitted: true, graded: true, submitTime: dt(-4, "21:13"), grade: 92, graderName: "林之熹", gradeTime: dt(-3, "14:00"), gradeContent: "第 9 题第二问漏掉边界情形，其余完成度很好。", completionType: 1, url: "#" },
 ];
 
 export const DEMO_NOTIFICATIONS: Notification[] = [

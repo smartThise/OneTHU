@@ -6,8 +6,10 @@ import { learn, downloadLearnUrl } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { openFilePreview } from "../../components/FilePreview.js";
 import { useApp } from "../../state/context.js";
-import { useLearnData } from "../../state/data.js";
+import { invalidateLearnCache, useLearnData } from "../../state/data.js";
 import { BackButton, RichContent, fmtDateTime, gradeLabel, timeLeft } from "./shared.js";
+import { openExternal } from "../info/openExternal.js";
+import { parseLearnTime } from "@onethu/core";
 import type { HomeworkPageDetail, LearnAttachment } from "@onethu/core";
 
 type DescState = "idle" | "skip" | "loading" | "ok" | "error";
@@ -26,6 +28,7 @@ export function AssignmentDetailPage() {
   const [subBusy, setSubBusy] = useState(false);
   const [subMsg, setSubMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const subTouched = useRef(false); // 用户改过输入框后不再用上次提交内容预填
   const [dlHint, setDlHint] = useState<string | null>(null);
   const [dlBusy, setDlBusy] = useState("");
 
@@ -102,6 +105,16 @@ export function AssignmentDetailPage() {
     setDescError("");
   };
 
+  // 提交面板预填上次提交正文（mobile AssignmentSubmission：content 初值 = submittedContent 去标签）
+  useEffect(() => {
+    if (pageState !== "ok" || !page?.submittedContent) return;
+    if (subTouched.current || subContent.trim()) return;
+    const prefill = page.submittedContent.replace(/<[^>]*>/g, "").replace("-->", "").trim();
+    if (prefill) setSubContent(prefill);
+    // eslint 不在依赖里列 subContent：预填只应发生一次（用户未输入时）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageState, page]);
+
   if (!h) {
     return (
       <>
@@ -118,13 +131,16 @@ export function AssignmentDetailPage() {
   }
 
   const left = timeLeft(h.deadline);
+  // mobile AssignmentDetail：dayjs().isAfter(dayjs(deadline)) → 提交按钮 disabled
+  const pastDeadline = (() => {
+    const d = parseLearnTime(h.deadline);
+    return d ? d.getTime() <= Date.now() : false;
+  })();
   const chips: Array<{ text: string; cls: string }> = [];
   if (h.completionType !== undefined) {
     chips.push({ text: h.completionType === 2 ? "小组完成" : "个人完成", cls: "chip-gray" });
   }
-  if (h.submissionType !== undefined) {
-    chips.push({ text: h.submissionType === 1 ? "线上提交" : "线下提交", cls: "chip-gray" });
-  }
+  // 注意：没有「提交方式」字段（学生端列表接口不存在该字段），不做线上/线下断言。
 
   // 四类附件（thu-learn-lib parseHomeworkAtUrl 文档序）：作业/答案/我的提交/批改
   const attGroups: Array<{ label: string; a?: LearnAttachment }> = page
@@ -144,8 +160,20 @@ export function AssignmentDetailPage() {
     setSubMsg("");
     try {
       const r = await learn.submitHomework(h.id, { content: subContent.trim() || undefined, file: subFile, remove });
-      setSubMsg(r.ok ? (remove ? "已撤回提交" : "提交成功") : (r.msg || "提交失败"));
-      if (r.ok) { setSubContent(""); setSubFile(null); if (fileRef.current) fileRef.current.value = ""; }
+      if (r.ok) {
+        setSubMsg(remove ? "已撤回附件" : "提交成功");
+        setSubContent("");
+        setSubFile(null);
+        if (fileRef.current) fileRef.current.value = "";
+        // 状态与四类附件即时刷新：清 learn 缓存全量重拉（mobile 提交成功后
+        // dispatch(getAssignmentsForCourse) 同语义），并重置附件懒加载重取 viewCj
+        invalidateLearnCache();
+        setPage(null);
+        setPageState("idle");
+        void reload();
+      } else {
+        setSubMsg(r.msg || "提交失败");
+      }
     } catch (e) {
       setSubMsg(explainNetworkError(e));
     } finally {
@@ -161,9 +189,9 @@ export function AssignmentDetailPage() {
         actions={
           <>
             <BackButton to={navParams?.from ?? "learn-assignments"} courseId={navParams?.courseId} />
-            <a className="btn" href={h.url} target="_blank" rel="noreferrer">
+            <button className="btn" onClick={() => void openExternal(h.url)} title="在系统浏览器打开">
               网页端打开
-            </a>
+            </button>
           </>
         }
       />
@@ -275,28 +303,51 @@ export function AssignmentDetailPage() {
         )}
       </Card>
 
-      {h.submissionType === 1 ? (
+      {/* 提交卡只按详情页事实渲染：viewCj 页面解析出提交表单控件（hasSubmitForm）才出现。
+          OJ 等无需网堂提交的作业页面没有表单 → 不渲染。提交/撤回成功后
+          invalidateLearnCache + reload + 重取 viewCj（下方 doSubmit），页面控件变化
+          （如已提交后变为可再次提交/撤回附件）随重取结果即时反映。 */}
+      {page?.hasSubmitForm ? (
         <Card className="detail-sec">
-          <div className="detail-sec-head">{h.submitted ? "再次提交 / 撤回" : "提交作业"}</div>
+          <div className="detail-sec-head">{h.submitted ? "再次提交 / 修改附件" : "提交作业"}</div>
           <div style={{ padding: "8px 16px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
             <textarea
               className="input"
               style={{ minHeight: 88, resize: "vertical" }}
               placeholder="提交内容（可留空，附件可选）"
               value={subContent}
-              onChange={(e) => setSubContent(e.target.value)}
+              onChange={(e) => { subTouched.current = true; setSubContent(e.target.value); }}
               disabled={subBusy}
             />
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <input ref={fileRef} type="file" style={{ fontSize: 12 }} onChange={(e) => setSubFile(e.target.files?.[0] ?? null)} disabled={subBusy} />
               <span style={{ flex: 1 }} />
-              <button className="btn" disabled={subBusy} onClick={() => void doSubmit(false)}>
+              <button
+                className="btn"
+                disabled={subBusy || pastDeadline}
+                title={pastDeadline ? "已过截止时间（mobile 同款禁用提交）" : undefined}
+                onClick={() => void doSubmit(false)}
+              >
                 {subBusy ? "提交中…" : "提交"}
               </button>
               {h.submitted ? (
-                <button className="btn" disabled={subBusy} style={{ color: "var(--red)" }} onClick={() => void doSubmit(true)}>撤回提交</button>
+                <button
+                  className="btn"
+                  disabled={subBusy}
+                  style={{ color: "var(--red)" }}
+                  title="isDeleted=1：仅撤回已上传附件（mobile removeAttachment 语义）"
+                  onClick={() => void doSubmit(true)}
+                >
+                  撤回附件
+                </button>
               ) : null}
             </div>
+            {pastDeadline ? (
+              <div style={{ fontSize: 12, color: "var(--red)" }}>已过截止时间，提交入口已停用（撤回附件仍可用）。</div>
+            ) : null}
+            {h.submitted && h.submitTime ? (
+              <div style={{ fontSize: 12, color: "var(--text-dim, #888)" }}>上次提交于 {fmtDateTime(h.submitTime)}</div>
+            ) : null}
             {subMsg ? <div style={{ fontSize: 12, color: subMsg.includes("成功") || subMsg.includes("撤回") ? "var(--green)" : "var(--red)" }}>{subMsg}</div> : null}
           </div>
         </Card>

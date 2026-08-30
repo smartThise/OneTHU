@@ -19,7 +19,9 @@ export function SemesterSelectionPage() {
 
   const choose = (id: string | null) => {
     setSelectedSemester(id);
-    navigate("learn");
+    // 显式把所选学期带给 learn 列表页：数据按新学期重拉后，页面据此自校验
+    // （缓存被清 → 重挂载 loading → 新学期 bundle；学期不符时 LearnPage 还会兜底重校验）
+    navigate("learn", id ? { semesterId: id } : undefined);
   };
 
   return (

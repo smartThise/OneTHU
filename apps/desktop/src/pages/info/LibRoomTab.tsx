@@ -10,8 +10,8 @@
  *   InfoClient.fuzzySearchLibRoomMember 移植，UI 暂不开放）
  * - 首次预约报「填写邮箱地址」→ getUserInfo 邮箱确认 → ic-web/account/update 绑定后重试
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { LibRoomBookRecord, LibRoomRes } from "@onethu/core";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isAuthError, type LibRoomBookRecord, type LibRoomRes } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
@@ -206,6 +206,12 @@ export function LibRoomTab() {
   const [recState, setRecState] = useState<LoadState>("loading");
   const [recError, setRecError] = useState<string | null>(null);
 
+  /* 登录态丢失静默自愈：每条加载链路独立计数（成功清零），同一次失败最多自动恢复 1 次；
+   * 恢复中保持 loading 骨架不闪红，自动恢复也失败才亮 ErrorNote（手动重试清零重计）。 */
+  const kindRecover = useRef(0);
+  const resRecover = useRef(0);
+  const recRecover = useRef(0);
+
   const loadKinds = useCallback(async () => {
     if (status !== "ready" || !userId) return;
     setKindState("loading");
@@ -213,11 +219,20 @@ export function LibRoomTab() {
     try {
       const list = await info.getLibRoomInfoList(userId);
       if (list.length === 0) throw new Error("房型列表为空（ic-web 未返回数据，请稍后重试）");
+      kindRecover.current = 0;
       setKinds(list);
       setKindState("ready");
       setKindId((prev) => prev ?? list[0]!.kindId);
     } catch (err) {
       logErr("LIBROOM-KIND", err);
+      // 登录态丢失：不闪红，静默重建研讨间 cab 会话后自动重载一次；仍失败才亮 ErrorNote
+      if (isAuthError(err) && kindRecover.current < 1) {
+        kindRecover.current += 1;
+        await info.forceEnsure("libroom", userId).catch((renewErr: unknown) => {
+          logErr("LIBROOM-RENEW", renewErr);
+        });
+        return loadKinds();
+      }
       setKindState("error");
       setKindError(explainNetworkError(err));
     }
@@ -229,9 +244,18 @@ export function LibRoomTab() {
     setRecError(null);
     try {
       setRecords(await info.getLibRoomRecords(userId));
+      recRecover.current = 0;
       setRecState("ready");
     } catch (err) {
       logErr("LIBROOM-REC", err);
+      // 登录态丢失：静默重建会话后自动重载一次（保持骨架，不闪红）
+      if (isAuthError(err) && recRecover.current < 1) {
+        recRecover.current += 1;
+        await info.forceEnsure("libroom", userId).catch((renewErr: unknown) => {
+          logErr("LIBROOM-RENEW", renewErr);
+        });
+        return loadRecords();
+      }
       setRecState("error");
       setRecError(explainNetworkError(err));
     }
@@ -254,15 +278,24 @@ export function LibRoomTab() {
       .getLibRoomResourceList(userId, day.compact, kindId)
       .then((list) => {
         if (!alive) return;
+        resRecover.current = 0;
         setResources(list);
         setResState("ready");
       })
       .catch((err: unknown) => {
         logErr("LIBROOM-RES", err);
-        if (alive) {
-          setResState("error");
-          setResError(explainNetworkError(err));
+        if (!alive) return;
+        if (isAuthError(err) && resRecover.current < 1) {
+          // 登录态丢失：静默重建研讨间会话后自动重取一次（保持骨架，不闪红）
+          resRecover.current += 1;
+          info
+            .forceEnsure("libroom", userId)
+            .catch((renewErr: unknown) => logErr("LIBROOM-RENEW", renewErr))
+            .finally(() => setResTick((n) => n + 1));
+          return;
         }
+        setResState("error");
+        setResError(explainNetworkError(err));
       });
     return () => {
       alive = false;
@@ -382,7 +415,13 @@ export function LibRoomTab() {
     <>
       <SectionHead title="研讨间" aside="cab.lib.tsinghua.edu.cn · ic-web" />
       {kindState === "error" ? (
-        <ErrorNote text={kindError ?? ""} onRetry={() => void loadKinds()} />
+        <ErrorNote
+          text={kindError ?? ""}
+          onRetry={() => {
+            kindRecover.current = 0;
+            void loadKinds();
+          }}
+        />
       ) : null}
       {kindState === "loading" && !kinds ? <SkeletonRows rows={2} /> : null}
 
@@ -424,7 +463,13 @@ export function LibRoomTab() {
           <SectionHead title="可约房间" aside={`${day.label} · 时段条 红=已占用 绿=空闲`} />
           {resState === "loading" ? <SkeletonRows rows={4} /> : null}
           {resState === "error" ? (
-            <ErrorNote text={resError ?? ""} onRetry={() => setResTick((n) => n + 1)} />
+            <ErrorNote
+              text={resError ?? ""}
+              onRetry={() => {
+                resRecover.current = 0;
+                setResTick((n) => n + 1);
+              }}
+            />
           ) : null}
           {resState === "ready" && (resources ?? []).length === 0 ? (
             <Card>
@@ -564,7 +609,13 @@ export function LibRoomTab() {
       <SectionHead title="我的预约" aside="研讨间预约记录（未来 6 天）" />
       {recState === "loading" ? <SkeletonRows rows={2} /> : null}
       {recState === "error" ? (
-        <ErrorNote text={recError ?? ""} onRetry={() => void loadRecords()} />
+        <ErrorNote
+          text={recError ?? ""}
+          onRetry={() => {
+            recRecover.current = 0;
+            void loadRecords();
+          }}
+        />
       ) : null}
       {recState === "ready" && (records ?? []).length === 0 ? (
         <Card>

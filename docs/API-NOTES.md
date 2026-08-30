@@ -56,6 +56,17 @@
 
 - POST 类接口 body 为 DataTables `aoData`：`JSON.stringify([{name:"wlkcid", value:id}, ...])`。
 - 作业响应 `object.aaData[]`：`zyid/wz/bt(标题)/nr(内容,Base64)/fbsj(发布)/jzsj(截止)/bjjzsj(补交截止)`。
+- 时间字段形态不一（常规 `2025-10-01 12:30(:ss)`、日期-only、ISO、毫秒时间戳、
+  `.NET` 前后缀 `/Date(1698…+0800)/`、非字符串时的 `*Str` 兜底如 `jzsjStr/fbsjStr`）；
+  core 统一经 `parseLearnTime/normalizeTime` 归一为本地时区 `YYYY-MM-DD HH:mm`。
+- 标记字段取"是/否"文本：`sfbj`(补交)/`sfyd`(已读) 判定 `=== "是"`（learn-lib `YES`）；
+  `sfqd`(重要) 判定 `Number(...)===1`。
+- 作业提交 `POST /b/wlxt/kczy/zy/student/tjzy`（multipart）：`xszyid/zynr/fileupload/isDeleted`；
+  无附件时 `fileupload` 占位字面 `undefined`；`isDeleted=1` 仅撤回已上传附件。
+  响应 `{result:"error",msg}` 为失败；返回 HTML 登录页 = 会话失效。
+- 文件/附件下载：learn `/b/` 下载端点需带 `_csrf`（mobile addCSRF 同款）；
+  落盘名 = `Content-Disposition` 真名优先，其次 `title + "." + fileType`（已有同后缀不重复）；
+  200 + HTML(`location.href` 小页) = 会话失效，空响应体 = 失败。
 - 会话失效特征：接口返回登录页 HTML 或 302 到 id → 触发重登录重放（retryAfterLogin 模式）。
 
 ## 3. 信息门户 / 教务（info.tsinghua.edu.cn · zhjw.cic.tsinghua.edu.cn）

@@ -8,6 +8,7 @@ import { openFilePreview } from "../../components/FilePreview.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
 import { BackButton, RichContent, fmtDateTime } from "./shared.js";
+import { openExternal } from "../info/openExternal.js";
 import type { LearnAttachment } from "@onethu/core";
 
 export function NoticeDetailPage() {
@@ -69,7 +70,7 @@ export function NoticeDetailPage() {
   if (!n) {
     return (
       <>
-        <PageHead title="通知详情" actions={<BackButton to={navParams?.from ?? "learn-notices"} />} />
+        <PageHead title="通知详情" actions={<BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} />} />
         {state === "loading" ? (
           <SkeletonRows rows={4} />
         ) : state === "error" ? (
@@ -88,10 +89,10 @@ export function NoticeDetailPage() {
         meta={`${course?.name ?? "课程"} · ${n.publisher} 发布于 ${fmtDateTime(n.publishTime)}`}
         actions={
           <>
-            <BackButton to={navParams?.from ?? "learn-notices"} />
-            <a className="btn" href={n.url} target="_blank" rel="noreferrer">
+            <BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} />
+            <button className="btn" onClick={() => void openExternal(n.url)} title="在系统浏览器打开">
               网页端打开
-            </a>
+            </button>
           </>
         }
       />

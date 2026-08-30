@@ -456,31 +456,50 @@ export async function logout(): Promise<void> {
   }
 }
 
+/** learn 下载/二进制 URL 附加 _csrf —— mobile fs.downloadFile 的 addCSRF 同款：
+ *  learn /b/ 下载端点缺 _csrf 时可能返回 HTML 错误页而非文件流；
+ *  learn-lib 的 myFetchWithToken 对所有 learn 请求统一加 token。 */
+export function withLearnCsrf(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.hostname !== "learn.tsinghua.edu.cn" && !u.hostname.endsWith(".learn.tsinghua.edu.cn")) return url;
+    const token = learn.csrfToken;
+    if (!token || u.searchParams.has("_csrf")) return url;
+    u.searchParams.set("_csrf", token);
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 /** learn 文件下载：带会话 Cookie 直连取字节，落盘 ~/Downloads */
 export async function downloadLearnFile(fileId: string, filename: string): Promise<string> {
   const { LEARN_FILE_DOWNLOAD } = await import("@onethu/core");
   return downloadLearnUrl(LEARN_FILE_DOWNLOAD(fileId), filename);
 }
 
-/** 任意 learn 资源下载（作业/通知附件端点与课件不同，由 core 解析出完整 downloadUrl） */
+/** 任意 learn 资源下载（作业/通知附件端点与课件不同，由 core 解析出完整 downloadUrl）。
+ *  落盘名以前端传入的 filename 为准；Rust 侧会用响应 Content-Disposition 的真名兜底。 */
 export async function downloadLearnUrl(url: string, filename: string): Promise<string> {
+  const target = withLearnCsrf(url);
   const jarCookies = http.jar
-    .getCookies(new URL(url))
+    .getCookies(new URL(target))
     .map((c) => `${c.name}=${c.value}`)
     .join("; ");
   const { invoke } = await import("@tauri-apps/api/core");
-  return invoke("download_file", { url, cookies: jarCookies, filename });
+  return invoke("download_file", { url: target, cookies: jarCookies, filename });
 }
 
 /** 正文图片 → dataURL：webview 的 <img> 不携带应用会话 Cookie，
  *  直挂 learn 地址只会得到登录页；须由应用侧带 Cookie 抓取后内联。 */
 export async function fetchImageAsDataUrl(url: string): Promise<string> {
+  const target = withLearnCsrf(url);
   const jarCookies = http.jar
-    .getCookies(new URL(url))
+    .getCookies(new URL(target))
     .map((c) => `${c.name}=${c.value}`)
     .join("; ");
   const { invoke } = await import("@tauri-apps/api/core");
-  const out = await invoke<{ mime: string; data: string }>("fetch_binary", { url, cookies: jarCookies });
+  const out = await invoke<{ mime: string; data: string }>("fetch_binary", { url: target, cookies: jarCookies });
   return `data:${out.mime};base64,${out.data}`;
 }
 

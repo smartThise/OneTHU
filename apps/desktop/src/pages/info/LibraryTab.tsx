@@ -9,9 +9,9 @@
  * 座位区顶部 = 区域/楼层座位分布图（libraryMap/librarySeat 的
  * Public/home/images/web/area/<id>/{seat-free,floor}.jpg，带会话抓取内联）。
  */
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import type { LibBookRecord, Library, LibraryFloor, LibrarySeat, LibrarySection } from "@onethu/core";
-import { infoUrls } from "@onethu/core";
+import { infoUrls, isAuthError } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { fetchImageByUrl, info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
@@ -240,6 +240,15 @@ export function LibraryTab() {
   const [busySeat, setBusySeat] = useState<number | null>(null);
   const [seatTick, setSeatTick] = useState(0);
 
+  /* 登录态丢失静默自愈：每条加载链路独立计数（成功清零），同一次失败最多自动恢复 1 次；
+   * 恢复中保持 loading 骨架不闪红，自动恢复也失败才亮 ErrorNote（手动重试会清零重计）。 */
+  const libRecover = useRef(0);
+  const recRecover = useRef(0);
+  const floorRecover = useRef(0);
+  const sectionRecover = useRef(0);
+  const seatRecover = useRef(0);
+  const [libTick, setLibTick] = useState(0);
+
   /* 分布图抓取（区域空闲座位图 + 楼层平面图；url 空 = 未选中，隐藏） */
   const seatMap = useAreaImage(
     sectionId !== null ? infoUrls.LIBRARY_AREA_IMAGE(sectionId, "seat-free") : "",
@@ -256,12 +265,21 @@ export function LibraryTab() {
       const list = await info.getLibraryList();
       // 空馆列表 ≠ 正常空态：下拉块按 libs.length>0 渲染，静默吞掉会整块消失且无 ErrorNote
       if (list.length === 0) throw new Error("馆列表为空（seat.lib 返回空 list，会话可能未建立）");
+      libRecover.current = 0;
       setLibs(list);
       setLibState("ready");
       const firstValid = list.find((l) => l.valid) ?? list[0];
       if (firstValid) setLibId(firstValid.id);
     } catch (err) {
       logErr("LIB-LIST", err);
+      // 登录态丢失：不闪红，静默强制重建座位会话后自动重载一次；仍失败才亮 ErrorNote
+      if (isAuthError(err) && libRecover.current < 1) {
+        libRecover.current += 1;
+        await info.forceEnsure("library").catch((renewErr: unknown) => {
+          logErr("LIB-RENEW", renewErr);
+        });
+        return loadLibs();
+      }
       setLibState("error");
       setLibError(explainNetworkError(err));
     }
@@ -273,9 +291,18 @@ export function LibraryTab() {
     setRecError(null);
     try {
       setRecords(await info.getLibBookRecords());
+      recRecover.current = 0;
       setRecState("ready");
     } catch (err) {
       logErr("LIB-REC", err);
+      // 登录态丢失：静默重建会话后自动重载一次（保持骨架，不闪红）
+      if (isAuthError(err) && recRecover.current < 1) {
+        recRecover.current += 1;
+        await info.forceEnsure("library").catch((renewErr: unknown) => {
+          logErr("LIB-RENEW", renewErr);
+        });
+        return loadRecords();
+      }
       setRecState("error");
       setRecError(explainNetworkError(err));
     }
@@ -284,7 +311,7 @@ export function LibraryTab() {
   useEffect(() => {
     void loadLibs();
     void loadRecords();
-  }, [loadLibs, loadRecords]);
+  }, [loadLibs, loadRecords, libTick]);
 
   /* 楼层：随馆/日期变化 */
   useEffect(() => {
@@ -301,16 +328,26 @@ export function LibraryTab() {
       .getLibraryFloorList(lib, dateChoice)
       .then((list) => {
         if (!alive) return;
+        floorRecover.current = 0;
         setFloors(list);
         const firstValid = list.find((f) => f.valid);
         if (firstValid) setFloorId(firstValid.id);
       })
       .catch((err: unknown) => {
         logErr("LIB-FLOOR", err);
-        if (alive) {
-          setFloors([]);
-          setSeatError(explainNetworkError(err));
+        if (!alive) return;
+        if (isAuthError(err) && floorRecover.current < 1) {
+          // 登录态丢失：静默重建会话后整链重载（保持骨架，不闪红）
+          floorRecover.current += 1;
+          info
+            .forceEnsure("library")
+            .catch((renewErr: unknown) => logErr("LIB-RENEW", renewErr))
+            .finally(() => setLibTick((t) => t + 1));
+          return;
         }
+        setFloors([]);
+        setSeatState("error");
+        setSeatError(explainNetworkError(err));
       });
     return () => {
       alive = false;
@@ -328,13 +365,26 @@ export function LibraryTab() {
       .getLibrarySectionList({ id: floorId, zhNameTrace: "" }, dateChoice)
       .then((list) => {
         if (!alive) return;
+        sectionRecover.current = 0;
         setSections(list);
         const firstValid = list.find((s) => s.valid);
         if (firstValid) setSectionId(firstValid.id);
       })
       .catch((err: unknown) => {
         logErr("LIB-SECTION", err);
-        if (alive) setSections([]);
+        if (!alive) return;
+        if (isAuthError(err) && sectionRecover.current < 1) {
+          // 登录态丢失：静默重建会话后整链重载（保持骨架，不闪红）
+          sectionRecover.current += 1;
+          info
+            .forceEnsure("library")
+            .catch((renewErr: unknown) => logErr("LIB-RENEW", renewErr))
+            .finally(() => setLibTick((t) => t + 1));
+          return;
+        }
+        setSections([]);
+        setSeatState("error");
+        setSeatError(explainNetworkError(err));
       });
     return () => {
       alive = false;
@@ -354,15 +404,24 @@ export function LibraryTab() {
       .getLibrarySeatList({ id: sectionId, zhNameTrace: "" }, dateChoice)
       .then((list) => {
         if (!alive) return;
+        seatRecover.current = 0;
         setSeats(list);
         setSeatState("ready");
       })
       .catch((err: unknown) => {
         logErr("LIB-SEAT", err);
-        if (alive) {
-          setSeatState("error");
-          setSeatError(explainNetworkError(err));
+        if (!alive) return;
+        if (isAuthError(err) && seatRecover.current < 1) {
+          // 登录态丢失：静默重建座位会话后自动重取一次（保持骨架，不闪红）
+          seatRecover.current += 1;
+          info
+            .forceEnsure("library")
+            .catch((renewErr: unknown) => logErr("LIB-RENEW", renewErr))
+            .finally(() => setSeatTick((t) => t + 1));
+          return;
         }
+        setSeatState("error");
+        setSeatError(explainNetworkError(err));
       });
     return () => {
       alive = false;
@@ -439,7 +498,15 @@ export function LibraryTab() {
   return (
     <>
       <SectionHead title="图书馆座位" aside="seat.lib.tsinghua.edu.cn · ISeating" />
-      {libState === "error" ? <ErrorNote text={libError ?? ""} onRetry={() => void loadLibs()} /> : null}
+      {libState === "error" ? (
+        <ErrorNote
+          text={libError ?? ""}
+          onRetry={() => {
+            libRecover.current = 0;
+            void loadLibs();
+          }}
+        />
+      ) : null}
       {libState === "loading" && !libs ? <SkeletonRows rows={2} /> : null}
 
       {libs && libs.length > 0 ? (
@@ -535,7 +602,19 @@ export function LibraryTab() {
       ) : null}
 
       {seatState === "loading" ? <SkeletonRows rows={4} /> : null}
-      {seatState === "error" ? <ErrorNote text={seatError ?? ""} onRetry={() => setSeatTick((t) => t + 1)} /> : null}
+      {seatState === "error" ? (
+        <ErrorNote
+          text={seatError ?? ""}
+          onRetry={() => {
+            // 座位区错误可能出在楼层/区域链路：链路断了从馆列表整链重载，否则仅重取座位
+            seatRecover.current = 0;
+            floorRecover.current = 0;
+            sectionRecover.current = 0;
+            if (sectionId !== null) setSeatTick((t) => t + 1);
+            else setLibTick((t) => t + 1);
+          }}
+        />
+      ) : null}
       {seatState === "ready" && seatList.length === 0 ? (
         <Card>
           <Empty text="该区域暂无座位数据。" />
@@ -627,7 +706,15 @@ export function LibraryTab() {
         aside="座位预约记录"
       />
       {recState === "loading" ? <SkeletonRows rows={2} /> : null}
-      {recState === "error" ? <ErrorNote text={recError ?? ""} onRetry={() => void loadRecords()} /> : null}
+      {recState === "error" ? (
+        <ErrorNote
+          text={recError ?? ""}
+          onRetry={() => {
+            recRecover.current = 0;
+            void loadRecords();
+          }}
+        />
+      ) : null}
       {recState === "ready" && (records ?? []).length === 0 ? (
         <Card>
           <Empty text="暂无预约记录。" />

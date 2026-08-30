@@ -1,5 +1,5 @@
 /** 应用全局状态：登录（含 2FA）→ 会话 → 轻路由 */
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as clients from "../lib/clients.js";
 import { explainNetworkError } from "../lib/transport.js";
 import type { TwoFactorMethod } from "@onethu/core";
@@ -30,6 +30,8 @@ export interface LearnNav {
   itemId?: string;
   /** 详情页返回目标（默认对应列表页） */
   from?: Page;
+  /** 学期切换显式携带：learn 列表页据此校验数据学期一致（防缓存/竞态残留旧学期） */
+  semesterId?: string;
 }
 
 const TOP_PAGES = ["today", "learn", "schedule", "info", "life", "reserve", "zhjwxk", "settings"] as const;
@@ -86,9 +88,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [navParams, setNavParams] = useState<LearnNav | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [twoFactor, setTwoFactor] = useState<AppState["twoFactor"]>(null);
+  /** navigate 自身写入的 hash：它触发的 hashchange 必须忽略，否则跨一级页进子页
+   *  （如 今日 → 作业详情，hash #/today → #/learn）时异步回调会把刚设置的
+   *  page/navParams 冲回顶层列表页 + 空参——详情页"闪回列表/空白"的根源。 */
+  const selfNavHashRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const onHash = () => {
+    const onHash = (ev: HashChangeEvent) => {
+      // 用事件自带的 newURL 对账：只忽略"确实是 navigate 写入的那个 hash"的事件；
+      // 连续两次导航时，先到的旧事件 newURL 与最新目标不符，也不会误伤最新状态
+      const target = (() => {
+        try {
+          return new URL(ev.newURL).hash;
+        } catch {
+          return location.hash;
+        }
+      })();
+      if (selfNavHashRef.current !== null && target === selfNavHashRef.current) {
+        selfNavHashRef.current = null; // 自身导航触发的 hashchange：状态已由 navigate 设定
+        return;
+      }
       setPage(pageFromHash());
       setNavParams(null);
     };
@@ -129,8 +148,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const navigate = useCallback((p: Page, params?: LearnNav) => {
-    // hash 只承载一级页：子页刷新后落回所属入口，避免丢参数的死链
-    location.hash = `#/${topLevelPage(p)}`;
+    // hash 只承载一级页：子页刷新后落回所属入口，避免丢参数的死链；
+    // 记录本次写入，onHash 对自身触发的 hashchange 直接忽略（见 selfNavHashRef）。
+    // hash 本就相同时没有新事件，但此前可能仍有同目标旧事件挂起——保留对账标记等它到达。
+    const h = `#/${topLevelPage(p)}`;
+    if (location.hash === h) {
+      if (selfNavHashRef.current !== h) selfNavHashRef.current = null;
+    } else {
+      selfNavHashRef.current = h;
+      location.hash = h;
+    }
     setPage(p);
     setNavParams(params ?? null);
   }, []);

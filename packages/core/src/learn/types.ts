@@ -42,8 +42,6 @@ export interface Homework {
   lateSubmission?: boolean;
   /** 1=个人完成 2=小组完成（zywcfs） */
   completionType?: number;
-  /** 1=线上提交 2=线下提交（zytjfs） */
-  submissionType?: number;
   submitted: boolean;
   graded: boolean;
   /** 提交时间（scsj，未交为空） */
@@ -75,6 +73,8 @@ export interface LearnAttachment {
 export interface HomeworkPageDetail {
   /** 页面作业说明（c55 div，一般与 JSON msg 一致；优先用 JSON msg） */
   description?: string;
+  /** 上次提交的正文内容（boxbox 结构，learn-lib submittedContent 同源；提交面板预填用） */
+  submittedContent?: string;
   /** 教师附件 */
   attachment?: LearnAttachment;
   /** 答案附件 */
@@ -83,6 +83,11 @@ export interface HomeworkPageDetail {
   submittedAttachment?: LearnAttachment;
   /** 批改附件 */
   gradeAttachment?: LearnAttachment;
+  /** 本作业详情页是否存在提交表单（解析自 viewCj 页面真实控件，判定细则见
+   *  client.getHomeworkPageDetail 注释）。学生端列表接口没有提交方式字段，
+   *  UI 只按此页面事实渲染提交卡；提交/撤回后随 viewCj 重新解析即时刷新——
+   *  已提交作业的页面表单会变化（如变为可再次提交/撤回附件），以重取结果为准。 */
+  hasSubmitForm: boolean;
 }
 
 /** 通知详情页（beforeViewXs HTML）解析结果 */

@@ -4,7 +4,7 @@ import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components
 import { IconDownload } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
-import { BackButton, InfoRow, fmtDateTime } from "./shared.js";
+import { BackButton, InfoRow, fmtDateTime, learnFileName } from "./shared.js";
 import { downloadLearnFile } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { openFilePreview } from "../../components/FilePreview.js";
@@ -30,7 +30,8 @@ export function FileDetailPage() {
     setDownloading(true);
     setHint(null);
     try {
-      const path = await downloadLearnFile(f.id, f.title || `learn-file-${f.id}`);
+      // 落盘名 = title + "." + fileType（title 已带该后缀则不重复；mobile fs.downloadFile 同构）
+      const path = await downloadLearnFile(f.id, learnFileName(f.title || `learn-file-${f.id}`, f.fileType));
       setHint(`已下载到：${path}`);
     } catch (err) {
       setHint("下载失败：" + explainNetworkError(err));
@@ -42,7 +43,7 @@ export function FileDetailPage() {
   if (!f) {
     return (
       <>
-        <PageHead title="文件详情" actions={<BackButton to={navParams?.from ?? "learn-files"} />} />
+        <PageHead title="文件详情" actions={<BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} />} />
         {state === "loading" ? (
           <SkeletonRows rows={4} />
         ) : state === "error" ? (
@@ -61,10 +62,10 @@ export function FileDetailPage() {
         meta={`${course?.name ?? "课程"}${course?.teacherName ? ` · ${course.teacherName}` : ""} · 上传于 ${fmtDateTime(f.uploadTime)}`}
         actions={
           <>
-            <BackButton to={navParams?.from ?? "learn-files"} />
+            <BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} />
             <button
               className="btn"
-              onClick={() => openFilePreview({ name: f.title || `课件 ${f.id}`, url: LEARN_FILE_DOWNLOAD(f.id) })}
+              onClick={() => openFilePreview({ name: learnFileName(f.title || `课件 ${f.id}`, f.fileType), url: LEARN_FILE_DOWNLOAD(f.id) })}
             >
               预览
             </button>

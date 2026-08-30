@@ -53,6 +53,58 @@ fn log_debug(line: String) -> Result<(), String> {
     Ok(())
 }
 
+/* ---------------- 外链系统浏览器 ----------------
+ * WebView 内 window.open / <a target=_blank> 均无效，必须交给系统默认浏览器。
+ * 主通道是官方 opener 插件；open_external 是免 ACL 的自写兜底（插件异常时前端降级调用）。 */
+
+/// 用系统默认程序打开 URL（平台分派：open / start / xdg-open）
+#[cfg(target_os = "macos")]
+fn spawn_system_open(url: &str) -> Result<(), String> {
+    std::process::Command::new("open")
+        .arg(url)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("调用系统 open 失败: {e}"))
+}
+
+#[cfg(target_os = "windows")]
+fn spawn_system_open(url: &str) -> Result<(), String> {
+    // start 的第一个引号参数是窗口标题，必须占位空串，否则 URL 被吞
+    std::process::Command::new("cmd")
+        .args(["/C", "start", "", url])
+        .creation_flags(0x0800_0000) // CREATE_NO_WINDOW，不闪控制台黑框
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("调用系统 start 失败: {e}"))
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
+fn spawn_system_open(url: &str) -> Result<(), String> {
+    std::process::Command::new("xdg-open")
+        .arg(url)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("调用 xdg-open 失败: {e}"))
+}
+
+#[cfg(not(any(
+    target_os = "macos",
+    target_os = "windows",
+    all(unix, not(target_os = "macos"))
+)))]
+fn spawn_system_open(_url: &str) -> Result<(), String> {
+    Err("当前平台不支持外部打开".into())
+}
+
+/// 兜底外链打开：Rust 侧再校验一次 scheme，仅放行 http/https
+#[tauri::command]
+fn open_external(url: String) -> Result<(), String> {
+    if !(url.starts_with("http://") || url.starts_with("https://")) {
+        return Err(format!("拒绝打开非 http(s) 链接: {url}"));
+    }
+    spawn_system_open(&url)
+}
+
 /* ---------------- 本机状态文件（appData/state 下的 JSON 文件） ----------------
  * WKWebView 的 localStorage 会被系统驱逐/清空（会话状态时有时无的根源），
  * 会话快照与「记住密码」一律镜像到应用数据目录的普通文件，启动时优先
@@ -110,7 +162,58 @@ fn state_delete(app: tauri::AppHandle, name: String) -> Result<(), String> {
     }
 }
 
-/// 带会话 Cookie 下载文件到 ~/Downloads（learn 直连；登录失效返回的 HTML 会被识别拒绝）
+/// Content-Disposition 文件名解析：filename*=UTF-8''…（RFC 5987）优先，其次 filename=…
+/// （learn 下载端点会回真名；mobile 未用此头但取 URL 真名等价，落盘名以服务器为准）。
+fn parse_cd_filename(cd: &str) -> Option<String> {
+    for part in cd.split(';') {
+        let p = part.trim();
+        if let Some(rest) = p.strip_prefix("filename*=") {
+            let mut seg = rest.splitn(3, '\'');
+            let _charset = seg.next().unwrap_or("utf-8");
+            let _lang = seg.next().unwrap_or("");
+            if let Some(raw) = seg.next() {
+                if let Some(decoded) = percent_decode(raw) {
+                    if !decoded.is_empty() {
+                        return Some(decoded);
+                    }
+                }
+            }
+        }
+    }
+    for part in cd.split(';') {
+        let p = part.trim();
+        if let Some(rest) = p.strip_prefix("filename=") {
+            let v = rest.trim().trim_matches('"');
+            if !v.is_empty() {
+                return Some(percent_decode(v).unwrap_or_else(|| v.to_string()));
+            }
+        }
+    }
+    None
+}
+
+/// 百分号解码（%XX → 字节；非法序列原样保留）
+fn percent_decode(s: &str) -> Option<String> {
+    let b = s.as_bytes();
+    let mut out: Vec<u8> = Vec::with_capacity(b.len());
+    let mut i = 0usize;
+    while i < b.len() {
+        if b[i] == b'%' && i + 2 < b.len() {
+            let hex = std::str::from_utf8(&b[i + 1..i + 3]).ok()?;
+            if let Ok(byte) = u8::from_str_radix(hex, 16) {
+                out.push(byte);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(b[i]);
+        i += 1;
+    }
+    String::from_utf8(out).ok()
+}
+
+/// 带会话 Cookie 下载文件到 ~/Downloads（learn 直连；登录失效/空文件识别拒绝）。
+/// 落盘名：响应 Content-Disposition 真名优先，其次调用方传入名（title.fileType）。
 #[tauri::command]
 async fn download_file(url: String, cookies: String, filename: String) -> Result<String, String> {
     let client = reqwest::Client::builder()
@@ -127,14 +230,35 @@ async fn download_file(url: String, cookies: String, filename: String) -> Result
     if !resp.status().is_success() {
         return Err(format!("HTTP {}", resp.status()));
     }
+    let content_disposition = resp
+        .headers()
+        .get(reqwest::header::CONTENT_DISPOSITION)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
     let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
-    if bytes.starts_with(b"<!DOCTYPE") || bytes.starts_with(b"<html") {
+    if bytes.is_empty() {
+        return Err("下载失败：文件内容为空（mobile 同款 bytesWritten==0 校验）".into());
+    }
+    // 登录失效/会话重定向中转页：状态码 200 但内容是 HTML 跳转页
+    // （mobile fs.downloadFile：bytesWritten<100 且含 location.href → 失败）
+    let head = String::from_utf8_lossy(&bytes[..bytes.len().min(4096)]);
+    let head = head.trim_start_matches('\u{feff}').trim_start();
+    let looks_html = head.starts_with("<!DOCTYPE") || head.starts_with("<!doctype") || head.starts_with("<html");
+    let login_redirect = bytes.len() < 4096 && head.contains("location.href");
+    if looks_html || login_redirect {
         return Err("会话已失效，需要重新登录".into());
     }
+    // 落盘名：Content-Disposition 真名优先（服务器知道真实文件名），
+    // 其次调用方名；服务端真名通常自带扩展名，不重复追加
+    let name = content_disposition
+        .as_deref()
+        .and_then(parse_cd_filename)
+        .filter(|n| !n.trim().is_empty())
+        .unwrap_or(filename);
     let home = std::env::var("HOME").map_err(|_| "无法定位主目录")?;
     let dir = std::path::Path::new(&home).join("Downloads");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let safe_name: String = filename
+    let safe_name: String = name
         .chars()
         .map(|c| if c == '/' || c == ':' { '_' } else { c })
         .collect();
@@ -180,7 +304,14 @@ async fn fetch_binary(url: String, cookies: String) -> Result<BinaryOut, String>
         .trim()
         .to_string();
     let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
-    if bytes.starts_with(b"<!DOCTYPE") || bytes.starts_with(b"<html") {
+    if bytes.is_empty() {
+        return Err("预览失败：文件内容为空".into());
+    }
+    let head = String::from_utf8_lossy(&bytes[..bytes.len().min(4096)]);
+    let head = head.trim_start_matches('\u{feff}').trim_start();
+    let looks_html = head.starts_with("<!DOCTYPE") || head.starts_with("<!doctype") || head.starts_with("<html");
+    let login_redirect = bytes.len() < 4096 && head.contains("location.href");
+    if looks_html || login_redirect {
         return Err("会话已失效，需要重新登录".into());
     }
     use base64::Engine as _;
@@ -254,6 +385,7 @@ async fn http_request(input: HttpInput) -> Result<HttpOutput, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             #[cfg(debug_assertions)]
             {
@@ -265,7 +397,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            log_debug,http_request,download_file,fetch_binary,state_read,state_write,state_delete])
+            log_debug,http_request,download_file,fetch_binary,state_read,state_write,state_delete,
+            open_external])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

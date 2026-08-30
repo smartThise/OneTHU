@@ -35,7 +35,7 @@ export { CampusSession } from "./auth/session.js";
 export type { SessionState, LoginResult, CampusSessionOptions } from "./auth/session.js";
 
 // 网络学堂
-export { LearnClient } from "./learn/client.js";
+export { LearnClient, parseLearnTime } from "./learn/client.js";
 export * as learnUrls from "./learn/urls.js";
 export type {
   CourseInfo,
@@ -52,7 +52,7 @@ export type {
 } from "./learn/types.js";
 
 // 信息门户
-export { InfoClient } from "./info/client.js";
+export { InfoClient, isAuthError } from "./info/client.js";
 export * as infoUrls from "./info/urls.js";
 export type {
   BasicUserInfo,

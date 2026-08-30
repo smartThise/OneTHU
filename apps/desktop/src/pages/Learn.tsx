@@ -2,7 +2,7 @@
  * 网络学堂入口（learnX Courses）：课程卡片列表 + 全部作业/通知/文件/搜索/学期快捷入口。
  * 原四页签列表功能移入 pages/learn/ 专属页面（Assignments/Notices/Files）。
  */
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../components/Layout.js";
 import { IconBell, IconCalendar, IconChevron, IconFile, IconPen, IconRefresh, IconSearch } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
@@ -10,8 +10,20 @@ import { useLearnData } from "../state/data.js";
 import { semesterText } from "./learn/shared.js";
 
 export function LearnPage() {
-  const { navigate } = useApp();
+  const { navigate, navParams } = useApp();
   const { data, state, error, reload } = useLearnData();
+
+  // 学期切换显式参数（SemesterSelectionPage 传入）：数据学期与所选学期不一致时
+  // 自动重校验一次（缓存竞态/漫游残留旧学期 bundle 的兜底，避免"点进去一片空白/旧学期"）。
+  // 只兜底一次（semFixRef 记账），服务端持续返回错学期时不打转。
+  const wantedSemester = navParams?.semesterId;
+  const semFixRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!wantedSemester || !data || data.semester.id === wantedSemester) return;
+    if (semFixRef.current === wantedSemester) return;
+    semFixRef.current = wantedSemester;
+    void reload();
+  }, [wantedSemester, data, reload]);
 
   const stats = useMemo(() => {
     const hw = data?.homework ?? [];
@@ -106,13 +118,26 @@ export function LearnPage() {
 
       {state === "loading" && !data ? (
         <SkeletonRows rows={5} />
-      ) : (data?.courses.length ?? 0) === 0 ? (
+      ) : !data ? (
+        // 无数据且已不在 loading：error 态的 ErrorNote 已在上方给出，否则兜底骨架
+        state === "error" ? null : <SkeletonRows rows={5} />
+      ) : data.courses.length === 0 ? (
+        // 空学期：必须给可自助恢复的出口（此前只是死路的"暂无课程"，
+        // 会话半死吐过一次空列表时用户只能硬刷新）
         state === "error" ? null : (
-          <Card><Empty text="本学期暂无课程。" /></Card>
+          <Card>
+            <Empty text={state === "loading" ? "正在重新加载本学期课程…" : "本学期暂无课程，或数据未就绪。"} />
+            <div style={{ display: "flex", justifyContent: "center", paddingBottom: 14 }}>
+              <button className="btn btn-ghost" onClick={() => void reload()} disabled={state === "loading"}>
+                <IconRefresh width={14} height={14} />
+                重新加载
+              </button>
+            </div>
+          </Card>
         )
       ) : (
         <div className="course-grid">
-          {(data?.courses ?? []).map((c, i) => {
+          {data.courses.map((c, i) => {
             const s = courseStats.get(c.id);
             return (
               <Card

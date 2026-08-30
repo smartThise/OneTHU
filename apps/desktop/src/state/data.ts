@@ -13,6 +13,7 @@ import {
   getXkSelectedFull,
   getXkQueueData,
   getXkVolunteer,
+  isAuthError,
   resolveZhjwxkSemester,
   semesterFromDate,
   submitXkCourse,
@@ -111,7 +112,7 @@ export function useCampusData() {
       // 会话真死了（AuthRequiredError）：先免密重漫游一次，仍失败才送回登录页
       if (err instanceof Error && err.name === "AuthRequiredError") {
         logPageError("CAMPUS-AUTH", err);
-        const reRoamed = await session.relearnRoam().catch(() => false);
+        const reRoamed = await relearnRoamOnce();
         if (reRoamed) {
           await load();
           return;
@@ -160,6 +161,29 @@ export function setSelectedSemester(id: string | null): void {
  *  data 记忆最近一次成功结果——返回导航时立即可渲染，避免"课程0作业0通知0"空窗。 */
 let cache: { key: string; promise: Promise<LearnBundle>; ts: number; data?: LearnBundle } | null = null;
 const CACHE_TTL = 5 * 60 * 1000;
+
+/** 提交作业/撤回附件成功后调用：清 learn 缓存，让 reload() 真正重拉
+ *  （TTL 内 reload 会直接命中缓存，状态永远不会刷新——mobile 提交后
+ *  dispatch(getAssignmentsForCourse) 的对应物）。 */
+export function invalidateLearnCache(): void {
+  cache = null;
+}
+
+/** 会话失效后的免密重漫游去重：learn 漫游会话约 8 分钟过期是常态，
+ *  同一时刻多个数据钩子（useLearnData 各子页 / useCampusData）一起撞上
+ *  AuthRequiredError 时只漫游一次（此前并发各自漫游，幂等但浪费且拉长 loading 空窗）。 */
+let roamInflight: Promise<boolean> | null = null;
+function relearnRoamOnce(): Promise<boolean> {
+  if (!roamInflight) {
+    roamInflight = session
+      .relearnRoam()
+      .catch(() => false)
+      .finally(() => {
+        roamInflight = null;
+      });
+  }
+  return roamInflight;
+}
 
 async function loadLearnBundle(semesterId: string): Promise<LearnBundle> {
   const courses = await learn.getCourseList(semesterId);
@@ -213,7 +237,14 @@ export function useLearnData() {
         };
         cache = entry;
         entry.promise.then(
-          (d) => { entry.data = d; },
+          (d) => {
+            entry.data = d;
+            // 空学期包不配长缓存：会话半死时 loadCourseBySemesterId 可能吐一次
+            // 空 resultList（HTTP 200 + 可解析 JSON，不抛错），把"0 门课程"毒进
+            // 缓存 5 分钟——返回列表页一直空白，只能硬刷新。标记立即过期，
+            // 下次挂载 learn 必重校验（真实空学期也只是多一次轻量重拉）。
+            if (d.courses.length === 0) entry.ts = 0;
+          },
           () => { if (cache === entry) cache = null; }, // 失败不驻留缓存，重试才有可能
         );
       }
@@ -226,7 +257,7 @@ export function useLearnData() {
       if (err instanceof Error && err.name === "AuthRequiredError") {
         logPageError("LEARN-AUTH", err);
         cache = null;
-        const reRoamed = await session.relearnRoam().catch(() => false);
+        const reRoamed = await relearnRoamOnce();
         if (reRoamed) {
           await load(); // 递归一次：缓存已清，重走数据链；再失败走下一轮分支
           return;
@@ -1087,6 +1118,8 @@ export function useCard(days = 30) {
   const [data, setData] = useState<CardBundle | null>(null);
   const [state, setState] = useState<DataState>("loading");
   const [error, setError] = useState<string | null>(null);
+  /* 登录态丢失静默自愈：成功清零，同一次失败最多自动恢复 1 次（reload 清零重计） */
+  const recover = useRef(0);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -1109,15 +1142,18 @@ export function useCard(days = 30) {
           return [] as CardTransaction[];
         });
       setData({ info: cardInfo, transactions });
+      recover.current = 0;
       setState("ready");
     } catch (err) {
       logPageError("CARD", err);
-      // 校园卡子系统自身会话未建立（WebVPN 引导失败）：不是全局登录失效，
-      // 页内展示错误 + 重试（用户先在 WebVPN 打开一次校园卡即可恢复）
-      if (err instanceof Error && err.name === "AuthRequiredError" && /校园卡/.test(err.message)) {
-        setState("error");
-        setError(explainNetworkError(err));
-        return;
+      // 登录态丢失（AuthRequiredError/未登录特征）：静默重建卡会话（forceEnsure）
+      // 后自动重载一次，不闪红；仍失败才页内亮 ErrorNote（不踢回登录页）
+      if (isAuthError(err) && recover.current < 1) {
+        recover.current += 1;
+        await info.forceEnsure("card").catch((renewErr: unknown) => {
+          logPageError("CARD-RENEW", renewErr);
+        });
+        return load();
       }
       setState("error");
       setError(explainNetworkError(err));
@@ -1128,7 +1164,13 @@ export function useCard(days = 30) {
     if (status === "ready" || status === "demo") void load();
   }, [status, load]);
 
-  return { data, state, error, reload: load };
+  // reload 供重试按钮/切回本栏自动重试使用：清零自愈计数，用户动作可再获一次自动恢复
+  const reload = useCallback(() => {
+    recover.current = 0;
+    return load();
+  }, [load]);
+
+  return { data, state, error, reload };
 }
 
 /** 考试安排（zhjw 课表 JSONP 分类「考试」） */
