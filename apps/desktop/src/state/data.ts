@@ -1290,6 +1290,107 @@ export function useTodayReservations() {
   return { list, state, reload: load };
 }
 
+/* ============ 首页「最近日程」（校历节点：开学/学期结束，取自 learn 校历） ============ */
+
+/** 校历节点（首页「最近日程」行） */
+export interface TodayCalendarNode {
+  key: string;
+  /** 节点名（如 "2025-2026 秋季学期 开学"） */
+  name: string;
+  /** 节点日期（本地零点） */
+  date: Date;
+  /** 日历天数差（0=今天，与 Today 页 calDaysUntil 同口径） */
+  daysUntil: number;
+}
+
+/** "YYYY-MM-DD"（CalendarSemester.firstDay）→ 本地零点 Date；不匹配返回 null */
+function parseYmdDate(s: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s.trim());
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+}
+
+/** 校历展开为节点（升序）：当前学期 = 开学 + 学期结束（按 firstDay+weekCount 推算，
+ *  core 的 weekCount 即由 jssj 推得，误差 ≤ 数日）；未来学期只取开学节点。
+ *  OneTHU core 校历只有学期边界（无选课/退课 stage），能给的节点即 开学/结束。 */
+function calendarNodes(cal: CalendarData): TodayCalendarNode[] {
+  const nodes: TodayCalendarNode[] = [];
+  const push = (sem: CalendarSemester, withEnd: boolean) => {
+    const start = parseYmdDate(sem.firstDay);
+    if (!start) return;
+    const nm = sem.semesterName || sem.semesterId;
+    nodes.push({ key: `${sem.semesterId}-start`, name: `${nm} 开学`, date: start, daysUntil: 0 });
+    if (withEnd) {
+      const end = new Date(start.getTime() + Math.max(1, sem.weekCount || 1) * 7 * 86400000 - 86400000);
+      nodes.push({ key: `${sem.semesterId}-end`, name: `${nm} 结束`, date: end, daysUntil: 0 });
+    }
+  };
+  push(cal, true);
+  for (const sem of cal.nextSemesterList ?? []) push(sem, false);
+  const n = new Date();
+  const today = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
+  return nodes
+    .map((x) => ({
+      ...x,
+      daysUntil: Math.round((new Date(x.date.getFullYear(), x.date.getMonth(), x.date.getDate()).getTime() - today) / 86400000),
+    }))
+    .filter((x) => x.daysUntil >= 0)
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+
+/**
+ * 首页「最近日程」数据源：learn.getCalendarData 展开为未来校历节点（升序，
+ * UI 取前 N 条）。失败静默（state="error" 且 nodes=null）：首页该卡整卡隐藏，
+ * 不弹错误条。demo 模式合成一份相对今天的演示校历（真实接口 demo 不可用）。
+ */
+export function useTodayCalendar() {
+  const { status } = useApp();
+  const [nodes, setNodes] = useState<TodayCalendarNode[] | null>(null);
+  const [state, setState] = useState<DataState>("loading");
+
+  const load = useCallback(async () => {
+    setState("loading");
+    if (status === "demo") {
+      // 演示校历：设当前为某 16 周学期的第 10 周（开学 = 9 周前的周一），节点相对今天生成
+      const now = new Date();
+      const wd = now.getDay() === 0 ? 7 : now.getDay();
+      const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (wd - 1));
+      const firstDay = new Date(monday.getTime() - 9 * 7 * 86400000);
+      const y = now.getFullYear();
+      const sem = (start: Date, id: string, name: string): CalendarSemester => ({
+        firstDay: fmtDate(start),
+        semesterId: id,
+        semesterName: name,
+        weekCount: 16,
+      });
+      setNodes(
+        calendarNodes({
+          ...sem(firstDay, `${y}-${y + 1}-1`, `${y}-${y + 1} 秋季学期`),
+          nextSemesterList: [
+            sem(new Date(firstDay.getTime() + 20 * 7 * 86400000), `${y}-${y + 1}-2`, `${y}-${y + 1} 春季学期`),
+            sem(new Date(firstDay.getTime() + 36 * 7 * 86400000), `${y}-${y + 1}-3`, `${y}-${y + 1} 夏季学期`),
+          ],
+        }),
+      );
+      setState("ready");
+      return;
+    }
+    try {
+      setNodes(calendarNodes(await learn.getCalendarData()));
+      setState("ready");
+    } catch (err) {
+      logPageError("TODAY-CALENDAR", err);
+      setNodes(null);
+      setState("error"); // 静默：Today 页据此整卡隐藏
+    }
+  }, [status]);
+
+  useEffect(() => {
+    if (status === "ready" || status === "demo") void load();
+  }, [status, load]);
+
+  return { nodes, state, reload: load };
+}
+
 /** 考试安排（zhjw 课表 JSONP 分类「考试」） */
 /** 校历（当前 + 未来学期；learn 直连 getCurrentAndNextSemester） */
 export function useCalendar() {
@@ -1427,6 +1528,44 @@ export function useNews(page: number, length = 20) {
   }, [status, load]);
 
   return { data, state, error, reload: load };
+}
+
+/* ============ 首页「最新新闻」（信息门户新闻前 5 条，失败静默隐藏） ============ */
+
+/**
+ * 首页新闻卡数据源：getNews 第 1 页取前 5 条（门户顺序 = 置顶 + 最新，标题/来源/时间
+ * 全在 NewsItem）。与 NewsTab 的 useNews 分开：失败静默（首页不弹错误条），
+ * demo 直接给演示数据。展示字段：name（标题）/ source（来源）/ date（时间）。
+ */
+export function useTodayNews() {
+  const { status } = useApp();
+  const [list, setList] = useState<NewsItem[] | null>(null);
+  const [state, setState] = useState<DataState>("loading");
+
+  const load = useCallback(async () => {
+    setState("loading");
+    if (status === "demo") {
+      setList(DEMO_NEWS.slice(0, 5));
+      setState("ready");
+      return;
+    }
+    try {
+      // 用默认 20 条页大小取第 1 页（与 NewsTab 同口径，length=5 服务端行为未知），前端截 5 条
+      const items = await info.getNews(1, 20);
+      setList(items.slice(0, 5));
+      setState("ready");
+    } catch (err) {
+      logPageError("TODAY-NEWS", err);
+      setList(null);
+      setState("error"); // 静默：Today 页据此整卡隐藏
+    }
+  }, [status]);
+
+  useEffect(() => {
+    if (status === "ready" || status === "demo") void load();
+  }, [status, load]);
+
+  return { list, state, reload: load };
 }
 
 /** 个人信息（grjbxx HTML 解析） */

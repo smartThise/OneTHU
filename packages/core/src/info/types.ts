@@ -115,6 +115,12 @@ export interface NewsDetail {
   files: string[];
 }
 
+/** 新闻来源（getNewsSourceList：querySubscribeInformationUnitList?lmid= → object.{id,text}） */
+export interface NewsSource {
+  sourceId: string;
+  sourceName: string;
+}
+
 export interface DeadlineItem {
   title: string;
   date?: string;

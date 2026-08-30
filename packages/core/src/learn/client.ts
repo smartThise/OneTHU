@@ -291,10 +291,15 @@ export class LearnClient {
     return this.#withRelogin(async () => {
       this.#requireCsrf();
       const json = await this.#http.json<LearnJson>(this.#withCsrf(urls.LEARN_CURRENT_SEMESTER()));
-      const result = json.result as { xnxq?: string } | string | undefined;
-      const id = typeof result === "object" && result ? result.xnxq : result;
+      // mobile 同源字段：result.id（新）/result.xnxq（旧实现），起止 kssj/jssj
+      const result = json.result as { id?: string; xnxq?: string; kssj?: string; jssj?: string } | string | undefined;
+      const id = typeof result === "object" && result ? (result.id ?? result.xnxq) : result;
       if (!id) throw new AuthRequiredError();
-      return { id: String(id) };
+      return {
+        id: String(id),
+        startDate: typeof result === "object" && result ? (result.kssj ?? "") : "",
+        endDate: typeof result === "object" && result ? (result.jssj ?? "") : "",
+      };
     });
   }
 
@@ -341,10 +346,24 @@ export class LearnClient {
   }
 
   async getSemesterIdList(): Promise<string[]> {
+    // mobile learnApi.fetchSemesterData 同款：学期列表来自 getCurrentAndNextSemester
+    // 的 result.id + resultList[].id（learn 系统不存在独立学期列表端点，
+    // 此前臆造的 queryxnxq 请求从未成功）。新学期在前（sort reverse）。
     return this.#withRelogin(async () => {
       this.#requireCsrf();
-      const list = await this.#http.json<string[]>(this.#withCsrf(urls.LEARN_SEMESTER_LIST()));
-      return Array.isArray(list) ? list : [];
+      const data = await this.#http.json<{
+        message?: string;
+        result?: { id?: string } | null;
+        resultList?: Array<{ id?: string }>;
+      }>(this.#withCsrf(urls.LEARN_CURRENT_SEMESTER()));
+      const ids: string[] = [];
+      if (data.result?.id) ids.push(data.result.id);
+      if (Array.isArray(data.resultList)) {
+        for (const sem of data.resultList) {
+          if (sem.id && !ids.includes(sem.id)) ids.push(sem.id);
+        }
+      }
+      return ids.sort().reverse();
     });
   }
 

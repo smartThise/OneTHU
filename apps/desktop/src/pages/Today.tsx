@@ -1,9 +1,10 @@
 /**
  * 今日（首页）—— 版式参考 thu-info-app 首页信息结构（公告→预约→日程→功能，
  * 只取语义；UI 仍用 OneTHU 设计系统）：
- *   左栏：待办（今日日程 + 未交作业截止，各取前 5 按时间排序）→ 未提交作业；
+ *   左栏：最近日程（校历节点：开学/学期结束，升序前 5，取不到数据整卡隐藏）
+ *         → 未提交作业；
  *   右栏：快捷入口（校园卡余额）→ 今日预约（座位+研讨间，无预约整卡不显示）
- *         → 今日课程 → 最近通知。
+ *         → 今日课程 → 最新新闻（信息门户前 5 条，失败整卡隐藏）→ 最近通知。
  * 全部行容器 maxWidth:100% + min-width:0 + 文本 ellipsis（窄窗口不横向溢出）。
  * 用 useApp().navigate(page, params) 轻路由；数据未加载的入口保持不可点并降透明度。
  */
@@ -12,7 +13,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { Card, Empty, ErrorNote, PageHead, SectionHead, SkeletonRows } from "../components/Layout.js";
 import { IconBell, IconCard, IconChevron, IconIn, IconPen, IconRefresh } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
-import { useCampusData, useCard, useTodayReservations } from "../state/data.js";
+import { useCampusData, useCard, useTodayCalendar, useTodayNews, useTodayReservations } from "../state/data.js";
 import { parseLearnTime, type Homework, type ScheduleEntry } from "@onethu/core";
 
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
@@ -114,18 +115,6 @@ function RowClick({
   );
 }
 
-/** 待办条目（日程事件 / 作业截止的统一视图） */
-interface TodoItem {
-  key: string;
-  kind: "event" | "homework";
-  at: Date;
-  timeText: string;
-  title: string;
-  sub: string;
-  chip: { text: string; cls: string };
-  go: () => void;
-}
-
 export function TodayPage() {
   const { navigate } = useApp();
   const { data, state, error, reload } = useCampusData();
@@ -133,6 +122,10 @@ export function TodayPage() {
   const card = useCard(1);
   // 今日预约（座位 + 研讨间）：加载中/无预约都不渲染整卡
   const resv = useTodayReservations();
+  // 最近日程（校历节点）：取不到数据时整卡隐藏
+  const cal = useTodayCalendar();
+  // 最新新闻（信息门户前 5 条）：失败时整卡隐藏
+  const news = useTodayNews();
   const now = new Date();
 
   /** 未提交作业（首页作业区唯一口径：submitted===false，含已逾期，按截止升序） */
@@ -157,42 +150,6 @@ export function TodayPage() {
         return ta.localeCompare(tb);
       });
   }, [data]);
-
-  /** 待办卡：日程事件前 5 + 未提交未过期作业前 5，合并按时间排序 */
-  const todoItems = useMemo<TodoItem[]>(() => {
-    const events: TodoItem[] = todayEvents.slice(0, 5).map((s, i) => {
-      const t = s.startTime ?? SECTION_OF[s.startSection ?? 1] ?? "";
-      const [hh, mm] = t.split(":").map(Number);
-      const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh || 8, mm || 0);
-      const category = s.category && s.category !== "课程" ? s.category : "课程";
-      return {
-        key: `ev-${i}-${s.courseName}-${t}`,
-        kind: "event",
-        at,
-        timeText: t || "—",
-        title: s.courseName,
-        sub: [s.location, s.teacher].filter(Boolean).join(" · "),
-        chip: { text: category, cls: "chip-blue" },
-        go: () => navigate("schedule"),
-      };
-    });
-    const homework: TodoItem[] = unsubmitted
-      .map((h) => ({ h, d: parseLearnTime(h.deadline) }))
-      .filter((x): x is { h: Homework; d: Date } => !!x.d && x.d.getTime() >= now.getTime())
-      .sort((a, b) => a.d.getTime() - b.d.getTime())
-      .slice(0, 5)
-      .map(({ h, d }) => ({
-        key: `hw-${h.courseId}-${h.id}`,
-        kind: "homework" as const,
-        at: d,
-        timeText: hm(d),
-        title: h.title,
-        sub: data?.courses.find((c) => c.id === h.courseId)?.name ?? "课程",
-        chip: deadlineChip(h),
-        go: () => navigate("learn-assignment-detail", { courseId: h.courseId, itemId: h.id, from: "today" }),
-      }));
-    return [...events, ...homework].sort((a, b) => a.at.getTime() - b.at.getTime());
-  }, [todayEvents, unsubmitted, data]);
 
   /** 三日内截止（今明后三天内、且尚未过期） */
   const dueSoon = useMemo(
@@ -251,33 +208,29 @@ export function TodayPage() {
 
       <div className="today-grid" style={{ marginTop: 14 }}>
         <div>
-          {/* 待办：info app 首页「日程预览」语义 —— 今天/近期日程 + 作业截止 */}
-          <SectionHead title="待办" aside="今日日程 + 作业截止 · 点击查看" />
-          {state === "loading" && !data ? (
-            <SkeletonRows rows={4} />
-          ) : (
-            <Card className="list">
-              {todoItems.length === 0 ? (
-                <Empty text="今天没有日程或作业待办。" />
-              ) : (
-                todoItems.map((t, i) => (
-                  <RowClick key={t.key} style={{ animationDelay: `${i * 35}ms` }} onClick={t.go}>
-                    <div className="tl-time">{t.timeText}</div>
-                    <div className="tl-bar" style={t.kind === "homework" ? { background: "var(--amber)" } : undefined} />
+          {/* 最近日程：校历节点（开学/学期结束，升序前 5）—— 取不到数据整卡隐藏 */}
+          {cal.state === "ready" && (cal.nodes?.length ?? 0) > 0 ? (
+            <>
+              <SectionHead title="最近日程" aside="校历节点 · 点击打开课表" />
+              <Card className="list">
+                {cal.nodes!.slice(0, 5).map((n, i) => (
+                  <RowClick key={n.key} style={{ animationDelay: `${i * 35}ms` }} onClick={() => navigate("schedule")}>
+                    <div className="tl-time">{ymd(n.date).slice(5)}</div>
+                    <div className="tl-bar" style={n.key.endsWith("-end") ? { background: "var(--amber)" } : undefined} />
                     <div className="tl-main">
-                      <div className="tl-title">{t.title}</div>
-                      <div className="tl-sub">{t.sub}</div>
+                      <div className="tl-title">{n.name}</div>
+                      <div className="tl-sub">星期{WEEKDAYS[n.date.getDay()]}</div>
                     </div>
-                    <span className={`chip ${t.chip.cls}`}>
+                    <span className={`chip ${n.daysUntil <= 1 ? "chip-red" : n.daysUntil <= 7 ? "chip-amber" : "chip-gray"}`}>
                       <span className="dot" />
-                      {t.chip.text}
+                      {n.daysUntil === 0 ? "今天" : `还有 ${n.daysUntil} 天`}
                     </span>
                     <IconChevron className="row-caret" width={14} height={14} />
                   </RowClick>
-                ))
-              )}
-            </Card>
-          )}
+                ))}
+              </Card>
+            </>
+          ) : null}
 
           {/* 作业区：只显示未提交（已提交的不出现在首页） */}
           <SectionHead title="未提交作业" aside={`${unsubmitted.length} 条 · 点击查看详情`} />
@@ -383,6 +336,26 @@ export function TodayPage() {
               ))
             )}
           </Card>
+
+          {/* 最新新闻：信息门户前 5 条 —— 失败/无数据整卡隐藏 */}
+          {news.state === "ready" && (news.list?.length ?? 0) > 0 ? (
+            <>
+              <SectionHead title="最新新闻" aside="信息门户 · 最新 5 条" />
+              <Card className="list">
+                {news.list!.map((n, i) => (
+                  <RowClick key={n.xxid || i} style={{ animationDelay: `${i * 35}ms` }} onClick={() => navigate("info")}>
+                    <div className="tl-time">{n.date ? n.date.slice(5, 10) : "—"}</div>
+                    <div className="tl-bar" style={{ background: "var(--border-strong)" }} />
+                    <div className="tl-main">
+                      <div className="tl-title" style={{ whiteSpace: "normal" }}>{n.name}</div>
+                      <div className="tl-sub">{n.source || "校内通知"}</div>
+                    </div>
+                    <IconChevron className="row-caret" width={14} height={14} />
+                  </RowClick>
+                ))}
+              </Card>
+            </>
+          ) : null}
 
           <SectionHead title="最近通知" aside="点击查看详情" />
           <Card className="list">

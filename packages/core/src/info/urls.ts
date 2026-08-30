@@ -33,6 +33,16 @@ export const BKS_REPORT_ROAM_ID = "B7EF0ADF9406335AD7905B30CD7B49B1";
 /** 新闻详情 JSON（thu-info-lib NEWS_DETAIL_URL 的 info 直连版） */
 export const NEWS_DETAIL = () => `${INFO_PREFIX}/b/info/xxfb_fg/xnzx/template/detail`;
 
+/** 新闻服务端搜索（thu-info-lib SEARCH_NEWS_LIST_URL 的 info 直连版；
+ *  POST 表单 esParamClass=<ES 参数 JSON>，_csrf 走 query，响应 object.resultsList） */
+export const NEWS_SEARCH = () =>
+  `${INFO_PREFIX}/b/xnzx/search/info/xxfb_fg/teacher/getMobilePageList`;
+
+/** 新闻来源（发布单位）列表（thu-info-lib NEWS_SOURCE_LIST_URL 直连版；
+ *  GET ?lmid=&_csrf= → object.{id,text}[]，供订阅管理勾选） */
+export const NEWS_SOURCE_LIST = () =>
+  `${INFO_PREFIX}/b/info/gxfw_fg/common/querySubscribeInformationUnitList`;
+
 /** 课表 JSONP（本科；先 JXRL_ROAM_BKS） */
 export const ZHJW_SCHEDULE_JSONP = (startDate: string, endDate: string) =>
   `${ZHJW_PREFIX}/jxmh_out.do?m=bks_jxrl_all&p_start_date=${startDate}&p_end_date=${endDate}&jsoncallback=m`;

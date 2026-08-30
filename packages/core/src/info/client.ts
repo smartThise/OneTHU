@@ -6,6 +6,8 @@
  * 数据解析逐行对照 thu-info-lib（thu-app/packages/thu-info-lib/src/lib/）：
  * - getReport           ← basics.ts getReport（[cellspacing=1] 表，本科 td 索引 3/5/7/9/11）
  * - getNews             ← news.ts getNewsList（object.dataList 字段映射）
+ * - searchNews          ← news.ts searchNewsList（POST getMobilePageList，ES 服务端检索）
+ * - getNewsSourceList   ← news.ts getNewsSourceList（querySubscribeInformationUnitList）
  * - getCardInfo         ← card.ts cardGetInfo（AES-ECB 响应解密 + 字段映射）
  * - getCardTransactions ← card.ts cardGetTransactions
  * - getExams            ← 课表 JSONP 分类 fl="考试"（与 parseJSON 同源数据；lib 无独立接口）
@@ -49,6 +51,7 @@ import type {
   LibrarySection,
   NewsDetail,
   NewsItem,
+  NewsSource,
   ReportRow,
   ScheduleEntry,
 } from "./types.js";
@@ -144,6 +147,14 @@ export function isAuthError(e: unknown): boolean {
   return /AuthRequiredError|未登录|请先登录|请重新登录|重新登录|登录超时|登陆超时|登录已失效|登录态|会话已失效|会话失效|会话超时|会话过期|身份过期|认证失效|not[ -]?logged[ -]?in|unauthorized/i.test(
     msg,
   );
+}
+
+/** 新闻列表/搜索条目的详情链接归一：绝对地址原样，相对路径补 info 前缀 */
+function newsUrl(raw: string): string | undefined {
+  if (!raw) return undefined;
+  return /^https?:/i.test(raw)
+    ? raw
+    : `${urls.INFO_PREFIX}${raw.startsWith("/") ? "" : "/"}${raw}`;
 }
 
 export class InfoClient {
@@ -707,6 +718,71 @@ export class InfoClient {
     });
   }
 
+  /**
+   * 新闻服务端搜索（thu-info-lib news.ts searchNewsList：POST
+   * getMobilePageList?_csrf=…，表单 esParamClass=<ES 参数 JSON>）。
+   * params 同时打标题 bt / 标签 tag / 分类 xxfl 三字段，orderMap 按时间倒序，
+   * matchExact "是"/"否"；响应 object.resultsList 字段与列表接口一致
+   * （yxzd 恒 null；ES 命中标记可能把 <em> 等标签混进标题——解析时剥掉）。
+   */
+  async searchNews(keyword: string, page = 1, exactMatch = false): Promise<NewsItem[]> {
+    const key = keyword.trim();
+    if (!key) return [];
+    return this.#withRenew(async () => {
+      const csrf = await this.#csrfToken();
+      const esParam = {
+        params: { bt: key, tag: key, xxfl: key },
+        filterParams: {},
+        orderMap: { sort: "time" },
+        matchExact: exactMatch ? "是" : "否",
+        currentPage: page,
+      };
+      const text = await this.#http.postForm(
+        `${urls.NEWS_SEARCH()}?_csrf=${encodeURIComponent(csrf)}`,
+        new URLSearchParams({ esParamClass: JSON.stringify(esParam) }),
+      );
+      let json: { object?: { resultsList?: Record<string, unknown>[] } };
+      try {
+        json = JSON.parse(text) as typeof json;
+      } catch {
+        throw new AuthRequiredError();
+      }
+      return (json.object?.resultsList ?? []).map((el) => ({
+        name: decodeEntities(String(el.bt ?? "")).replace(/<[^>]+>/g, ""),
+        xxid: String(el.xxid ?? ""),
+        url: newsUrl(String(el.url ?? "")),
+        date: String(el.time ?? "") || undefined,
+        source: String(el.dwmc_show ?? "") || undefined,
+        topped: false,
+        channel: String(el.lmid ?? "") || undefined,
+      }));
+    });
+  }
+
+  /**
+   * 新闻来源（发布单位）列表（thu-info-lib news.ts getNewsSourceList：
+   * GET querySubscribeInformationUnitList?lmid=&_csrf=… → object.{id,text}[]）。
+   * UI 订阅管理据此列出全部可订阅单位；OneTHU 订阅本身存 localStorage，
+   * 按来源名（dwmc_show）本地过滤，不写服务端订阅条件。
+   */
+  async getNewsSourceList(): Promise<NewsSource[]> {
+    return this.#withRenew(async () => {
+      const csrf = await this.#csrfToken();
+      const text = await this.#http.text(
+        `${urls.NEWS_SOURCE_LIST()}?lmid=&_csrf=${encodeURIComponent(csrf)}`,
+      );
+      let json: { object?: { id?: unknown; text?: unknown }[] };
+      try {
+        json = JSON.parse(text) as typeof json;
+      } catch {
+        throw new AuthRequiredError();
+      }
+      return (json.object ?? [])
+        .map((el) => ({ sourceId: String(el.id ?? ""), sourceName: String(el.text ?? "") }))
+        .filter((s) => s.sourceId || s.sourceName);
+    });
+  }
+
   async #getNewsInner(page = 1, length = 20): Promise<NewsItem[]> {
     const csrf = await this.#csrfToken();
     const text = await this.#http.text(
@@ -719,16 +795,10 @@ export class InfoClient {
       throw new AuthRequiredError();
     }
     return (json.object?.dataList ?? []).map((el) => {
-      const raw = String(el.url ?? "");
-      const url = raw
-        ? /^https?:/i.test(raw)
-          ? raw
-          : `${urls.INFO_PREFIX}${raw.startsWith("/") ? "" : "/"}${raw}`
-        : undefined;
       return {
         name: decodeEntities(String(el.bt ?? "")),
         xxid: String(el.xxid ?? ""),
-        url,
+        url: newsUrl(String(el.url ?? "")),
         date: String(el.time ?? "") || undefined,
         source: String(el.dwmc_show ?? "") || undefined,
         topped: String(el.yxzd ?? "").includes("1-"),
