@@ -14,6 +14,11 @@ const END_MIN = END_TIME.map(toMin);
 const PX_PER_MIN = 0.72;
 const AXIS_BEGIN = BEGIN_MIN[1] ?? 480;
 const y = (min: number) => (min - AXIS_BEGIN) * PX_PER_MIN;
+/** "HH:MM" → 距 0:00 分钟（非法/缺省返回 null） */
+const hmToMin = (t?: string): number | null => {
+  const m = /^(\d{1,2}):(\d{2})/.exec(t ?? "");
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+};
 
 /** 网格条目的最小形状（课表条目） */
 interface GridEntry {
@@ -24,6 +29,9 @@ interface GridEntry {
   date?: string;
   startSection?: number;
   endSection?: number;
+  /** 真实时刻（lib parseJSON 语义：kssj/jssj 优先于节次定位） */
+  startTime?: string;
+  endTime?: string;
 }
 
 /** 课程块配色（按课程名稳定取色，同学期同色） */
@@ -51,39 +59,50 @@ interface Placed {
 
 /** 同日重叠分道（区间图着色）：按开始节排序，贪心放入第一个可用道次 */
 function layout(entries: GridEntry[]): { placed: Placed[]; maxEnd: number } {
+  // 定位分钟：kssj/jssj 真实时刻优先（lib parseJSON 语义），节次仅兜底
+  const beginMinOf = (s: GridEntry): number =>
+    hmToMin(s.startTime) ?? BEGIN_MIN[s.startSection ?? 1] ?? 480;
+  const endMinOf = (s: GridEntry): number =>
+    hmToMin(s.endTime) ?? END_MIN[s.endSection ?? s.startSection ?? 1] ?? 1200;
+  const secOf = (min: number): number => {
+    for (let i = 1; i < BEGIN_MIN.length; i++) {
+      if (min < (END_MIN[i] ?? 0)) return i;
+    }
+    return 14;
+  };
   const byDay: GridEntry[][] = Array.from({ length: 7 }, () => []);
   let maxEnd = 5;
   for (const s of entries) {
     const day = (s.dayOfWeek ?? 1) - 1;
-    const start = s.startSection ?? 1;
-    const end = Math.max(s.endSection ?? start, start);
-    if (day < 0 || day > 6 || start < 1 || start > 14) continue;
+    const b = beginMinOf(s);
+    const e = Math.max(endMinOf(s), b);
+    const start = secOf(b);
+    const end = Math.max(secOf(Math.max(e - 1, b)), start);
+    if (day < 0 || day > 6) continue;
     maxEnd = Math.max(maxEnd, end);
     byDay[day]?.push(s);
   }
   const placed: Placed[] = [];
   for (let day = 0; day < 7; day++) {
-    const list = [...(byDay[day] ?? [])].sort(
-      (a, b) => (a.startSection ?? 1) - (b.startSection ?? 1),
-    );
-    const laneEnds: number[] = []; // 每道次的当前占用截止节
+    const list = [...(byDay[day] ?? [])].sort((a, b) => beginMinOf(a) - beginMinOf(b));
+    const laneEnds: number[] = []; // 每道次的当前占用截止分钟
     for (const s of list) {
-      const start = s.startSection ?? 1;
-      const end = Math.max(s.endSection ?? start, start);
-      let lane = laneEnds.findIndex((e) => e < start);
+      const b = beginMinOf(s);
+      const e = Math.max(endMinOf(s), b);
+      let lane = laneEnds.findIndex((le) => le <= b);
       if (lane === -1) {
         lane = laneEnds.length;
-        laneEnds.push(end);
+        laneEnds.push(e);
       } else {
-        laneEnds[lane] = end;
+        laneEnds[lane] = e;
       }
       placed.push({
         entry: s,
         day,
-        start,
-        end,
-        beginMin: BEGIN_MIN[start] ?? 480,
-        endMin: END_MIN[end] ?? 1200,
+        start: secOf(b),
+        end: secOf(Math.max(e - 1, b)),
+        beginMin: b,
+        endMin: e,
         lane,
         lanes: 1,
         color: colorOf(s.courseName),
