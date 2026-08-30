@@ -30,6 +30,7 @@ interface HttpOutput {
   set_cookies: string[];
   url: string;
   body: string;
+  body_b64?: string | null;
 }
 
 async function invokeHttp(
@@ -214,7 +215,8 @@ async function tauriFetch(url: string, init: RequestInit = {}): Promise<Response
       }
     }
 
-    return new Response(res.body, {
+    const bodyInit: BodyInit = res.body_b64 ? b64ToBytes(res.body_b64) : res.body;
+    return new Response(bodyInit, {
       status: res.status,
       statusText: res.status_text,
       headers: respHeaders,
@@ -222,6 +224,15 @@ async function tauriFetch(url: string, init: RequestInit = {}): Promise<Response
   }
 
   throw new Error("重定向次数超限（10）");
+}
+
+/** base64 → 字节（二进制响应体通道；Response(string) 会把 0x89 等
+ *  非 UTF-8 字节替换成 U+FFFD，验证码图/PDF 必坏，必须走字节） */
+function b64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
+  const bin = atob(b64);
+  const u8 = new Uint8Array(new ArrayBuffer(bin.length));
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return u8;
 }
 
 /** 注入 HttpClient 的 FetchLike */

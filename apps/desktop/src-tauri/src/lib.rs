@@ -37,6 +37,9 @@ struct HttpOutput {
     /// 最终 URL（跟随内部无重定向，此处即请求 URL）
     url: String,
     body: String,
+    /// 二进制响应体（UTF-8 非法时走此通道，body 为空字符串）——验证码图/发票 PDF
+    /// 等二进制资源经字符串通道会被 lossy 解码损坏（0x89→U+FFFD 实证）
+    body_b64: Option<String>,
 }
 
 /// 单次 HTTP 请求：不跟随重定向（由前端带着最新 Cookie 逐跳处理），
@@ -370,7 +373,14 @@ async fn http_request(input: HttpInput) -> Result<HttpOutput, String> {
             headers.insert(name.as_str().to_lowercase(), v);
         }
     }
-    let body = resp.text().await.map_err(|e| format!("读取响应失败: {e}"))?;
+    let body_bytes = resp.bytes().await.map_err(|e| format!("读取响应失败: {e}"))?;
+    let (body, body_b64) = match std::str::from_utf8(&body_bytes) {
+        Ok(text) => (text.to_string(), None),
+        Err(_) => {
+            use base64::Engine as _;
+            (String::new(), Some(base64::engine::general_purpose::STANDARD.encode(&body_bytes)))
+        }
+    };
 
     Ok(HttpOutput {
         status: status.as_u16(),
@@ -379,6 +389,7 @@ async fn http_request(input: HttpInput) -> Result<HttpOutput, String> {
         set_cookies,
         url: input.url,
         body,
+        body_b64,
     })
 }
 
