@@ -103,15 +103,48 @@ export function nethHomeLooksAlive(homeHtml: string): boolean {
 export function parseNetworkBalance(homeHtml: string): NetworkBalance {
   const section = sectionAround(homeHtml, "w3-container");
   if (section === null) throw new Error("上网主页缺少 #w3-container 余额区块（上游页面结构变化）");
-  const firstRow = /<tr\b[^>]*>([\s\S]*?)<\/tr>/i.exec(section)?.[1] ?? "";
-  const cells = tdInners(firstRow);
+  // 真实结构（用户示例页实证）：tbody 数据行 td 带 data-col-seq ——
+  // 1=计费组名称 3=已用流量 4=已用时长 7=计费组余额 10=结算日期（表头行无 data-key）
+  const bodyRow = /<tbody[^>]*>[\s\S]*?<tr[^>]*>([\s\S]*?)<\/tr>/i.exec(section)?.[1] ?? "";
+  const seqCell = new Map<string, string>();
+  for (const td of bodyRow.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)) {
+    const seq = /\bdata-col-seq=["']?(\d+)/i.exec(td[0] ?? "")?.[1] ?? "";
+    seqCell.set(seq, cellText(td[1] ?? ""));
+  }
   return {
-    productName: cellText(cells[0] ?? ""),
-    usedBytes: cellText(cells[1] ?? ""),
-    usedSeconds: cellText(cells[2] ?? ""),
-    accountBalance: cellText(cells[3] ?? ""),
-    settlementDate: cellText(cells[4] ?? ""),
+    productName: seqCell.get("1") ?? "",
+    usedBytes: seqCell.get("3") ?? "",
+    usedSeconds: seqCell.get("4") ?? "",
+    accountBalance: seqCell.get("7") ?? "",
+    settlementDate: seqCell.get("10") ?? "",
   };
+}
+
+/** 终端连接数当前值（/user/online-num：exclamation-sign 段落"终端连接数为N"） */
+export function parseOnlineNum(pageHtml: string): number {
+  const idx = pageHtml.indexOf("glyphicon-exclamation-sign");
+  if (idx < 0) return 0;
+  const chunk = pageHtml.slice(idx, idx + 600);
+  const m = /终端连接数为(\d+)/.exec(cellText(chunk).replace(/\s+/g, ""));
+  return m === null ? 0 : Number(m[1]);
+}
+
+/** 终端连接数页 _csrf-8800（input hidden） */
+export function parseOnlineNumCsrf(pageHtml: string): string | undefined {
+  const tag = /<input\b[^>]*name=["']_csrf-8800["'][^>]*>/i.exec(
+    pageHtml.slice(Math.max(0, pageHtml.indexOf("online-num-form") - 400), pageHtml.indexOf("online-num-form") + 800),
+  )?.[0];
+  if (!tag) return undefined;
+  return /\bvalue=["']([^"']*)["']/i.exec(tag)?.[1];
+}
+
+/** 改密码页 _csrf-8800（chgpwd 表单内 hidden） */
+export function parseChgpwdCsrf(pageHtml: string): string | undefined {
+  const i = pageHtml.indexOf('id="chgpwd"');
+  if (i < 0) return undefined;
+  const tag = /<input\b[^>]*name=["']_csrf-8800["'][^>]*>/i.exec(pageHtml.slice(i, i + 800))?.[0];
+  if (!tag) return undefined;
+  return /\bvalue=["']([^"']*)["']/i.exec(tag)?.[1];
 }
 
 /** 账号状态（lib getNetworkAccountInfo：.glyphicon-info-sign 父节点内 <a> 文本） */

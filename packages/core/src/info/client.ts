@@ -2993,6 +2993,56 @@ export class InfoClient {
     }
   }
 
+  /** 终端连接数当前值（GET /user/online-num） */
+  async getNetworkDeviceCount(): Promise<number> {
+    await this.#ensureNeth();
+    const page = await this.#http.text(urls.NETH_ONLINE_NUM());
+    this.#assertNotLoginGate(page, "终端连接数");
+    return neth.parseOnlineNum(page);
+  }
+
+  /** 修改终端连接数（POST /user/online-num；表单=_csrf-8800+OnlineNumForm[max_online_num]，
+   *  user_name 为 disabled 不入提交体——示例页实证） */
+  async setNetworkDeviceCount(n: number): Promise<void> {
+    await this.#ensureNeth();
+    const page = await this.#http.text(urls.NETH_ONLINE_NUM());
+    const csrf = neth.parseOnlineNumCsrf(page);
+    if (!csrf) throw new ServiceUnavailableError("终端连接数页无 _csrf-8800（结构变化）");
+    const resp = await this.#http
+      .request(urls.NETH_ONLINE_NUM(), {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ "_csrf-8800": csrf, "OnlineNumForm[max_online_num]": String(n) }),
+      })
+      .then((r) => r.text());
+    if (neth.nethNeedsVerifyCode(resp) || /class=["']help-block-error["'][^>]*>\s*[^<\s]/.test(resp)) {
+      throw new Error("终端连接数修改被拒（可能超出允许范围或会话失效）");
+    }
+  }
+
+  /** 修改 Tsinghua-Secure 密码（POST /user/change-password；_csrf-8800+新密码×2）。
+   *  规则：8~19 位，字母+数字+特殊字符(!@#$%^*().~)至少两种，不得与用户名相同 */
+  async changeNetworkPassword(newPassword: string): Promise<void> {
+    await this.#ensureNeth();
+    const page = await this.#http.text(urls.NETH_CHGPWD());
+    const csrf = neth.parseChgpwdCsrf(page);
+    if (!csrf) throw new ServiceUnavailableError("改密码页无 _csrf-8800（结构变化）");
+    const resp = await this.#http
+      .request(urls.NETH_CHGPWD(), {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          "_csrf-8800": csrf,
+          "PasswordResetForm[newPassword]": newPassword,
+          "PasswordResetForm[newPassword2]": newPassword,
+        }),
+      })
+      .then((r) => r.text());
+    if (neth.nethNeedsVerifyCode(resp) || /class=["']help-block-error["'][^>]*>\s*[^<\s]/.test(resp)) {
+      throw new Error("密码修改被拒（检查格式：8~19位，字母+数字+特殊字符两种，勿与用户名相同）");
+    }
+  }
+
   /** 上网账号资料（lib getNetworkAccountInfo；GET /home + /users + /user/online-num
    *  三页拼合：#w0 表 td 0/1/2/3/5/6/7 + 状态链接 + 可认证设备数） */
   async getNetworkAccountInfo(): Promise<NetworkAccountInfo> {

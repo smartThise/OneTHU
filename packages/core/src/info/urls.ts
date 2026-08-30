@@ -301,6 +301,8 @@ export const NETH_PREFIX = "https://usereg.tsinghua.edu.cn";
 
 /** 验证码（lib NETWORK_VERIFICATION_CODE_URL；先 GET ?refresh=1 再取 ?_=ts） */
 export const NETH_CAPTCHA = () => `${NETH_PREFIX}/site/captcha`;
+export const NETH_ONLINE_NUM = () => `${NETH_PREFIX}/user/online-num`;
+export const NETH_CHGPWD = () => `${NETH_PREFIX}/user/change-password`;
 /** 登录页（lib NETWORK_LOGIN_URL；含 loginform-verifycode = 需验证码登录） */
 export const NETH_LOGIN = () => `${NETH_PREFIX}/login`;
 /** 账密校验（lib NETWORK_VALIDATE_USER_URL；需 X-CSRF-Token + X-Requested-With 头） */
