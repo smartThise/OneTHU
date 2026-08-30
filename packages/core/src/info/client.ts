@@ -2904,9 +2904,20 @@ export class InfoClient {
     }
     const password = neth.rsaEncryptPkcs1v15(pub, creds.password);
     const user = await this.getUserInfo().catch(() => null);
-    const emailName = user?.email?.split("@")[0] ?? user?.studentId ?? creds.username;
+    // usereg 用户名=邮箱前缀（学号登录 INFO 时邮箱在个人信息/Coremail 里，
+    // 前缀即 usereg 账号；学号本身 usereg 不收——用户实测 2025013332 被拒）
+    let emailName = user?.email?.split("@")[0] ?? "";
+    let nameSource = "userinfo.email";
+    if (!emailName) {
+      emailName = (await this.#huntEmail().catch(() => null))?.split("@")[0] ?? "";
+      nameSource = "coremail.hunt";
+    }
+    if (!emailName) {
+      emailName = user?.studentId ?? creds.username;
+      nameSource = "fallback.id";
+    }
     this.#http.debug?.(
-      `[NETH] login user=${emailName} pubLen=${pub.length} pubHead=${pub.slice(0, 40)} pubTail=${pub.slice(-40)} encLen=${password.length} codeLen=${code.length}`,
+      `[NETH] login user=${emailName} src=${nameSource} pubLen=${pub.length} pubHead=${pub.slice(0, 40)} pubTail=${pub.slice(-40)} encLen=${password.length} codeLen=${code.length}`,
     );
     // 段一：账密+验证码校验（lib fetch validate-user 原样字段集）
     const validateText = await this.#http
