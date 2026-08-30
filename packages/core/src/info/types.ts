@@ -528,3 +528,62 @@ export interface NetworkAccountInfo {
   location: string;
   allowedDevices: number;
 }
+
+/* ---------------- 体育场馆预约（sports.ts 移植：lib models/home/sports.ts 逐字段） ---------------- */
+
+/** 单个可预约资源（lib SportsResource 字段一一对应） */
+export interface SportsResource {
+  /** 场地资源 id */
+  resId: string;
+  /** 资源 hash（下单 allFieldTime 用） */
+  resHash: string;
+  /** 关联订单 id；未预约 → undefined */
+  bookId?: string;
+  /** 时段，如 "5:00-6:00" */
+  timeSession: string;
+  /** 场地名 */
+  fieldName: string;
+  overlaySize: number;
+  /** 是否可网上预约 */
+  canNetBook: boolean;
+  /** 费用（元） */
+  cost?: number;
+  /** 是否被锁（他人预约中） */
+  locked?: boolean;
+  /** 占用者用户类型；未占用 → undefined */
+  userType?: string;
+  /** 是否已支付；未占用 → undefined */
+  paymentStatus?: boolean;
+}
+
+/** 场馆资源页（lib SportsResourcesInfo）：init ≤ 0 = 当前不可约；count=0 时 init 为未支付订单数 */
+export interface SportsResourcesInfo {
+  /** 最多可约场地数 */
+  count: number;
+  init: number;
+  /** 手机号；未配置 → undefined */
+  phone: string | undefined;
+  data: SportsResource[];
+}
+
+/** 场馆元数据（sportsIdInfoList 项） */
+export interface SportsIdInfo {
+  name: string;
+  gymId: string;
+  itemId: string;
+}
+
+/** 预约记录（lib SportsReservationRecord 字段一一对应） */
+export interface SportsReservationRecord {
+  name: string;
+  field: string;
+  time: string;
+  price: string;
+  /** 网上支付 / 现场支付 / 已支付 */
+  method: string;
+  bookTimestamp: number | undefined;
+  /** 退订用；不可退 → undefined */
+  bookId: string | undefined;
+  /** 支付用；仅网上支付记录有 */
+  payId: string | undefined;
+}

@@ -78,7 +78,12 @@ import type {
   ReportRow,
   SchoolCalendarData,
   ScheduleEntry,
+  SportsResource,
+  SportsResourcesInfo,
+  SportsReservationRecord,
 } from "./types.js";
+import * as sports from "./sports.js";
+import type { ValidReceiptTitle } from "./sports.js";
 
 function stripJsonp(text: string): string {
   const s = text.indexOf("(");
@@ -2449,6 +2454,266 @@ export class InfoClient {
       }
       return await op(page);
     }
+  }
+
+  /* ---------------------- 体育场馆预约（sports.ts 移植） ---------------------- */
+
+  /** 表单 POST → JSON（lib uFetch(url, {...}).then(JSON.parse)；非 JSON → 登录门/结构分类） */
+  async #sportsJsonPost<T>(url: string, body: URLSearchParams): Promise<T> {
+    const text = await this.#http.postForm(url, body);
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      this.#assertNotLoginGate(text, "体育预约");
+      throw new ServiceUnavailableError(
+        `体育预约响应非 JSON（${text.slice(0, 80).replace(/\s+/g, " ")}）`,
+      );
+    }
+  }
+
+  /** 限额页（lib getSportsResourceLimit）：limitBookCount/limitBookInit */
+  async #sportsResourceLimit(
+    gymId: string,
+    itemId: string,
+    date: string,
+  ): Promise<{ count: number; init: number }> {
+    const html = await this.#http.text(
+      `${urls.SPORTS_BASE_URL()}&gymnasium_id=${gymId}&item_id=${itemId}&time_date=${date}`,
+    );
+    const limit = sports.parseSportsResourceLimit(html);
+    if (limit) return limit;
+    this.#assertNotLoginGate(html, "体育场馆资源限额");
+    throw new ServiceUnavailableError("体育场馆资源限额解析失败（上游结构可能已变）");
+  }
+
+  /** 手机号查询（lib getSportsPhoneNumber：明文 "do_not" = 未配置） */
+  async #sportsPhoneNumber(): Promise<string | undefined> {
+    const msg = await this.#http.text(urls.SPORTS_QUERY_PHONE_URL());
+    // 该端点正常返回明文；落到 HTML = 会话异常（登录门 → 失登分类，其余结构报错）
+    if (/^<[a-z!?]/i.test(msg)) {
+      this.#assertNotLoginGate(msg, "体育预约手机号");
+      throw new ServiceUnavailableError("体育预约手机号查询返回异常页面");
+    }
+    return msg === "do_not" ? undefined : msg;
+  }
+
+  /** 资源页（lib getSportsResourceData 四步解析）；空数组 = 无资源（查不到就是查不到） */
+  async #sportsResourceData(gymId: string, itemId: string, date: string): Promise<SportsResource[]> {
+    const html = await this.#http.text(
+      `${urls.SPORTS_DETAIL_URL()}&gymnasium_id=${gymId}&item_id=${itemId}&time_date=${date}`,
+    );
+    const data = sports.parseSportsResourceData(html);
+    if (data.length === 0) this.#assertNotLoginGate(html, "体育场馆资源");
+    return data;
+  }
+
+  /** 场馆资源/时段（lib getSportsResources 逐字段：限额 + 手机号 + 资源三路并发） */
+  async getSportsResources(
+    gymId: string,
+    itemId: string,
+    date: string,
+  ): Promise<SportsResourcesInfo> {
+    return this.#withRenew(() =>
+      this.#serviceRoamed(urls.SPORTS_ROAM_ID, async () => {
+        const [limit, phone, data] = await Promise.all([
+          this.#sportsResourceLimit(gymId, itemId, date),
+          this.#sportsPhoneNumber(),
+          this.#sportsResourceData(gymId, itemId, date),
+        ]);
+        return { count: limit.count, init: limit.init, phone, data };
+      }),
+    );
+  }
+
+  /** 预约验证码（lib getSportsCaptchaUrlMethod 返回 URL；OneTHU 改 core 拉 PNG 转
+   *  base64 data URL —— 图必须携 webvpn 会话经 core 取，webview 直挂 URL 只会得到
+   *  登录页。usereg getNetworkVerificationImage 同款）。 */
+  async getSportsCaptchaUrlMethod(): Promise<string> {
+    return this.#withRenew(() =>
+      this.#serviceRoamed(urls.SPORTS_ROAM_ID, async () => {
+        const url = `${urls.SPORTS_CAPTCHA_BASE_URL()}?${Math.floor(Math.random() * 100)}=`;
+        const res = await this.#http.request(url, { redirect: "follow" });
+        const mime = (res.headers.get("content-type") ?? "image/jpeg").split(";")[0] ?? "image/jpeg";
+        const buf = new Uint8Array(await res.arrayBuffer());
+        const head = new TextDecoder().decode(buf.slice(0, 512));
+        if (/text\/html/i.test(mime) || /^\s*<(!doctype|html)/i.test(head)) {
+          this.#assertNotLoginGate(head, "体育预约验证码");
+          throw new ServiceUnavailableError(`体育预约验证码拉取失败（HTTP ${res.status}）`);
+        }
+        let bin = "";
+        for (let i = 0; i < buf.length; i += 0x8000) {
+          bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+        }
+        return `data:${mime};base64,${btoa(bin)}`;
+      }),
+    );
+  }
+
+  /** 支付链（lib makeSportsReservation 后半 + paySportsReservation + generalGetPayCode）：
+   *  ① GBK 表单页取 form action + inputs（桌面传输层已转 UTF-8；请求中文按 UTF-8
+   *  上送，lib 为 GBK —— 收据抬头仅线上申领发票用）② POST action → id/token
+   *  ③ check ④ #payForm + channelId=0101 → webPay ⑤ biz_content → qrCode 支付码 */
+  async #sportsPayFlow(formUrl: string, fields: Record<string, string>): Promise<string> {
+    const formHtml = await this.#http.postForm(formUrl, new URLSearchParams(fields));
+    const action = sports.firstFormAction(formHtml);
+    const inputs = sports.formInputs(formHtml);
+    if (action === null) {
+      this.#assertNotLoginGate(formHtml, "体育预约支付");
+      throw new ServiceUnavailableError("体育预约支付表单解析失败（无 form action）");
+    }
+    const paymentApiHtml = await this.#http.postForm(action, new URLSearchParams(inputs));
+    const searchResult = /var id = '(.*)?';\s*?var token = '(.*)?';/.exec(paymentApiHtml);
+    const id = searchResult?.[1];
+    const token = searchResult?.[2];
+    if (searchResult === null || id === undefined || token === undefined) {
+      this.#assertNotLoginGate(paymentApiHtml, "体育预约支付");
+      throw new ServiceUnavailableError("体育预约支付页缺 id/token（上游结构可能已变）");
+    }
+    const checkResult = await this.#sportsJsonPost<{ code?: string; message?: string }>(
+      urls.SPORTS_PAYMENT_CHECK_URL(),
+      new URLSearchParams({ id, token }),
+    );
+    if (checkResult.code !== "0") {
+      throw new Error(`Payment check failed: ${checkResult.message ?? String(checkResult.code ?? "")}`);
+    }
+    const payForm = sports.formInputs(paymentApiHtml, "payForm");
+    payForm.channelId = "0101";
+    const webPayHtml = await this.#http.postForm(
+      urls.SPORTS_PAYMENT_ACTION_URL(),
+      new URLSearchParams(payForm),
+    );
+    const entry = sports.parsePayEntry(webPayHtml);
+    if (entry === null) {
+      this.#assertNotLoginGate(webPayHtml, "体育预约支付码");
+      throw new ServiceUnavailableError("体育预约支付码页解析失败（缺 form/biz_content）");
+    }
+    const qrHtml = await this.#http.postForm(
+      entry.action,
+      new URLSearchParams({ biz_content: entry.bizContent }),
+    );
+    const code = sports.parsePayQrCode(qrHtml);
+    if (code === null) {
+      this.#assertNotLoginGate(qrHtml, "体育预约支付码");
+      throw new ServiceUnavailableError("体育预约支付码缺失（无 qrCode input）");
+    }
+    return code;
+  }
+
+  /**
+   * 预约（lib makeSportsReservation 逐字段）。漫游重试只包**下单段**（失败=未成单，
+   * 可安全重跑；lib 不给此函数包 roamingWrapper 正是防支付段失败后重复下单）——
+   * 支付段失败直接抛出，绝不重跑下单。
+   */
+  async makeSportsReservation(
+    totalCost: number,
+    phone: string,
+    receiptTitle: ValidReceiptTitle | undefined,
+    gymId: string,
+    itemId: string,
+    date: string,
+    captcha: string,
+    resHashId: string,
+    skipPayment: boolean,
+  ): Promise<string | undefined> {
+    return this.#withRenew(async () => {
+      await this.#serviceRoamed(urls.SPORTS_ROAM_ID, async () => {
+        const orderResult = await this.#sportsJsonPost<{ msg?: string }>(
+          urls.SPORTS_MAKE_ORDER_URL(),
+          new URLSearchParams({
+            "bookData.totalCost": String(totalCost),
+            "bookData.book_person_zjh": "",
+            "bookData.book_person_name": "",
+            "bookData.book_person_phone": phone,
+            "bookData.book_mode": "from-phone",
+            gymnasium_idForCache: gymId,
+            item_idForCache: itemId,
+            time_dateForCache: date,
+            userTypeNumForCache: "1",
+            putongRes: "putongRes",
+            code: captcha,
+            selectedPayWay: "1",
+            allFieldTime: `${resHashId}#${date}`,
+          }),
+        );
+        if (orderResult.msg !== "预定成功") {
+          throw new Error(orderResult.msg ?? "预约失败（响应无 msg）");
+        }
+      });
+      if (totalCost === 0) return undefined;
+      if (skipPayment) return undefined;
+      return this.#sportsPayFlow(urls.SPORTS_MAKE_PAYMENT_URL(), {
+        is_jsd: receiptTitle === undefined ? "0" : "1",
+        xm: receiptTitle ?? "清华大学",
+        gymnasium_idForCache: gymId,
+        item_idForCache: itemId,
+        time_dateForCache: date,
+        userTypeNumForCache: "1",
+        allFieldTime: `${resHashId}#${date}`,
+      });
+    });
+  }
+
+  /** 我的预约记录（lib getSportsReservationRecords：未支付表逐行 + 已支付隐藏行拼接） */
+  async getSportsReservationRecords(): Promise<SportsReservationRecord[]> {
+    return this.#withRenew(() =>
+      this.#serviceRoamed(urls.SPORTS_ROAM_ID, async () => {
+        const unpaidHtml = await this.#http.text(urls.SPORTS_UNPAID_URL());
+        const unpaid = sports.parseSportsUnpaidRecords(unpaidHtml);
+        if (unpaid === null) {
+          this.#assertNotLoginGate(unpaidHtml, "体育预约记录");
+          throw new ServiceUnavailableError("体育预约记录页无表格（上游结构可能已变）");
+        }
+        const paidHtml = await this.#http.text(urls.SPORTS_PAID_URL());
+        return unpaid.concat(sports.parseSportsPaidRecords(paidHtml));
+      }),
+    );
+  }
+
+  /** 稍后支付（lib paySportsReservation；payId 来自记录的 payId 字段） */
+  async paySportsReservation(
+    payId: string,
+    receiptTitle: ValidReceiptTitle | undefined,
+  ): Promise<string> {
+    return this.#withRenew(() =>
+      this.#serviceRoamed(urls.SPORTS_ROAM_ID, () =>
+        this.#sportsPayFlow(urls.SPORTS_MAKE_PAYMENT_LATER_URL(), {
+          book_ids: payId,
+          xm: receiptTitle ?? "清华大学",
+        }),
+      ),
+    );
+  }
+
+  /** 退订（lib unsubscribeSportsReservation：POST bookId） */
+  async unsubscribeSportsReservation(bookId: string): Promise<void> {
+    return this.#withRenew(() =>
+      this.#serviceRoamed(urls.SPORTS_ROAM_ID, async () => {
+        await this.#http.postForm(
+          urls.SPORTS_UNSUBSCRIBE_URL(),
+          new URLSearchParams({ bookId }),
+        );
+      }),
+    );
+  }
+
+  /** 手机号更新（lib updateSportsPhoneNumber：正则校验 + URL 拼接 cell_phone + gzzh=学号）。
+   *  含「找回密码」= 登录页特征 → 失登分类（lib LibError 同判据）。 */
+  async updateSportsPhoneNumber(phone: string): Promise<void> {
+    if (!/^(1[3-9][0-9]|15[036789]|18[89])\d{8}$/.test(phone)) {
+      throw new Error("请正确填写手机号码!");
+    }
+    return this.#withRenew(() =>
+      this.#serviceRoamed(urls.SPORTS_ROAM_ID, async () => {
+        const gzzh = this.#idCredentials?.()?.username ?? "";
+        const html = await this.#http.postForm(
+          `${urls.SPORTS_UPDATE_PHONE_URL()}${phone}&gzzh=${gzzh}`,
+          new URLSearchParams(),
+        );
+        if (html.includes("找回密码")) {
+          throw new AuthRequiredError("体育预约手机号更新需重新登录（找回密码页特征）");
+        }
+      }),
+    );
   }
 
   /* ------------------------------ 教学评估 ------------------------------ */

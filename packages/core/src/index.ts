@@ -96,7 +96,13 @@ export type {
   SchoolCalendarData,
   SchoolSemester,
   ScheduleEntry,
+  SportsIdInfo,
+  SportsReservationRecord,
+  SportsResource,
+  SportsResourcesInfo,
 } from "./info/types.js";
+export type { ValidReceiptTitle } from "./info/sports.js";
+export { VALID_RECEIPT_TITLES, sportsIdInfoList } from "./info/sports.js";
 export { ClassroomStatus } from "./info/types.js";
 
 // 洗衣机（thu-info-app washer.tsx 移植：捷利 + 海乐生活公开接口，无需校内会话）

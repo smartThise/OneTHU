@@ -37,7 +37,7 @@ export type HomeCardId =
   | "learn-semester" | "learn-search"
   | "life-hygiene" | "life-invoice" | "life-payroll" | "life-gradincome" | "life-network"
   | "info-fitness" | "info-evaluation" | "info-calendar"
-  | "reserve-classroom";
+  | "reserve-classroom" | "reserve-sports";
 
 /** 渲染栏位：main=主栏（宽） rail=侧栏（窄） */
 export type HomeCol = "main" | "rail";
@@ -122,6 +122,7 @@ export const HOME_CARD_META: HomeCardDef[] = [
   { id: "info-calendar", title: "校历", kind: "entry", icon: IconCalendar, defaultCol: "main", defaultOrder: 31, defaultHidden: true, hint: "信息页 · 学期安排图片", entry: { page: "info", params: { infoTab: "calendar" } } },
   { id: "reserve-classroom", title: "空教室", kind: "entry", icon: IconSearch, defaultCol: "main", defaultOrder: 32, defaultHidden: true, hint: "预约页 · 自习空闲查询", entry: { page: "reserve", params: { reserveTab: "classroom" } } },
   { id: "life-network", title: "校园网", kind: "entry", icon: IconExternal, defaultCol: "main", defaultOrder: 33, defaultHidden: true, hint: "生活页 · 账号与流量", entry: { page: "life", params: { lifeTab: "network" } } },
+  { id: "reserve-sports", title: "体育预约", kind: "entry", icon: IconSchedule, defaultCol: "main", defaultOrder: 34, defaultHidden: true, hint: "预约页 · 体育场馆时段预约", entry: { page: "reserve", params: { reserveTab: "sports" } } },
 ];
 
 /** bespoke 卡注入片：render 必给；aside 可覆盖元数据里的静态说明（动态计数等） */

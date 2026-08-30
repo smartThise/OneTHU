@@ -92,6 +92,31 @@ scheduleTimeAdd；日期运算本地 Date（无 dayjs）。兜底任何失败静
 
 解析失败一律 `ServiceUnavailableError`；`loginform-verifycode`/WebVPN 门户页 → `AuthRequiredError`。
 
+### 体育场馆预约（sports.ts；lib sports.ts 全量 382 行）
+
+端点 = lib `SPORTS_*` webvpn 常量逐字（urls.ts；/http/ 段 = gymbook 服务器
+HOST_MAP["50"]，zjjs 支付两段 = fa-online）。全部走 `#serviceRoamed(SPORTS_ROAM_ID)`
+（lib roamingWrapperWithMocks("default", 5539ECF8…)）+ `#withRenew`。
+
+| 方法 | lib 来源 | 端点 | 返回 |
+| --- | --- | --- | --- |
+| `getSportsResources(gymId, itemId, date)` | `getSportsResources`（限额+手机号+资源三路并发） | 限额 `gymBookAction.do?ms=viewGymBook`（`limitBookCount/limitBookInit`）+ `hadContactOrNot`（明文 `do_not`=未配置）+ `cacheAction.do?ms=viewBook`（resourceArray/addCost/markResStatus/markStatusColor 四步） | `SportsResourcesInfo`（无资源 → `data:[]`） |
+| `getSportsCaptchaUrlMethod()` | `getSportsCaptchaUrlMethod`（lib 返回 URL） | `GET Kaptcha.jpg?N=`（随机数防缓存） | **core 拉图 → `data:image/...;base64` data URL**（webview 直挂 URL 无会话只会得到登录页；usereg `getNetworkVerificationImage` 同款） |
+| `makeSportsReservation(totalCost, phone, receiptTitle, gymId, itemId, date, captcha, resHashId, skipPayment)` | `makeSportsReservation` | 下单 `gymbook/gymBookAction.do?ms=saveGymBook`（表单逐字段）→ 非空费用且未 skipPayment：`payAction.do?ms=newPay`（GBK 表单）→ form.action → `var id/token` → `zjjs check.do`（code!=="0" → Error）→ `#payForm`+`channelId=0101` → `webPay.do` → `biz_content` → qrCode 支付码 | 支付码 `string \| undefined`（totalCost=0 或 skipPayment → `undefined`）。**漫游重试只包下单段**（失败=未成单可重跑；支付段失败绝不重跑下单，lib 不包漫游同防重复下单） |
+| `getSportsReservationRecords()` | `getSportsReservationRecords` | 未支付 `getOrdersForNopay`（tbody tr 12 列：1/3/5/7/9 文本 + 11 动作格 span[time]/payNow/unsubscribeOnline/unsubscribe）+ 已支付 `getOrdersForUnpay`（`tr[style='display:none']` 嵌套表首行 td 2-5，method=已支付） | `SportsReservationRecord[]`（无表格 → `ServiceUnavailableError`；空 → `[]`） |
+| `paySportsReservation(payId, receiptTitle)` | `paySportsReservation` | `payAction.do?ms=newPayForLater`（book_ids/xm）→ 同上支付链 | 支付码 `string` |
+| `unsubscribeSportsReservation(bookId)` | `unsubscribeSportsReservation` | `POST gymBookAction.do?ms=unsubscribe`（bookId） | `void` |
+| `updateSportsPhoneNumber(phone)` | `updateSportsPhoneNumber`（手机号正则逐字） | URL 拼 `cell_phone=&gzzh=学号`（学号取内存凭据 username） | `void`；含「找回密码」→ `AuthRequiredError`（lib LibError 同判据） |
+
+常量导出：`VALID_RECEIPT_TITLES`（["清华大学","清华大学工会","清华大学教育基金会"]）、
+`sportsIdInfoList`（8 场馆元数据）、`ValidReceiptTitle` 类型（index.ts 再导出）。
+
+已知偏差：① 支付表单页响应 GBK——桌面传输层（reqwest charset）已转 UTF-8；请求体
+中文（xm 收据抬头）按 UTF-8 上送（lib 为 GBK 编码，抬头仅线上申领发票用，UI 标注线下
+为主）；② cheerio 索引子树（children[11].children[5].children[1] 等）以「td 切分 +
+onclick 正则（unsubscribe 负向断言排除 unsubscribeOnline）+ tr/tbody 深度扫描取嵌套
+块」等价实现（微 DOM，见「已知偏差」）。
+
 ## 已知偏差（有意为之）
 
 - 研讨间（cab.lib）认证在 `#libraryAccessToken` 同款 10 分钟 TTL + 跨实例单飞缓存上：

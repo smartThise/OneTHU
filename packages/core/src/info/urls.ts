@@ -318,3 +318,49 @@ export const NETH_IMPORT_DEVICE = () => `${NETH_PREFIX}/certification`;
 export const NETH_USER_INFO = () => `${NETH_PREFIX}/users`;
 /** 可认证设备数（lib NETWORK_ALLOWED_DEVICES_URL；.glyphicon-exclamation-sign 文案） */
 export const NETH_ALLOWED_DEVICES = () => `${NETH_PREFIX}/user/online-num`;
+
+/* ---------------- 体育场馆预约（lib constants/strings.ts SPORTS_* 逐字照抄。
+ *  URL 已是 webvpn 包装形态：/http/ 段 = 体育部 gymbook 服务器（lib HOST_MAP["50"]，
+ *  原 IP:50 直连的包装版）；zjjs 支付两段 = 财务 fa-online（HOST_MAP["fa-online"]）。
+ *  HttpClient 原样请求，勿再包装。漫游 yyfw id = SPORTS_ROAM_ID（lib
+ *  roamingWrapperWithMocks("default", 5539ECF8…)） ---------------- */
+export const SPORTS_ROAM_ID = "5539ECF8CD815C7D3F5A8EE0A2D72441";
+/** 限额页（var limitBookCount / limitBookInit） */
+export const SPORTS_BASE_URL = () =>
+  "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421a5a70f8834396657761d88e29d51367b6a00/gymbook/gymBookAction.do?ms=viewGymBook&viewType=m";
+/** 资源页（resourceArray.push / addCost / markResStatus / markStatusColor） */
+export const SPORTS_DETAIL_URL = () =>
+  "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421a5a70f8834396657761d88e29d51367b6a00/gymsite/cacheAction.do?ms=viewBook&userType=1";
+/** 未支付订单（tbody tr 逐行） */
+export const SPORTS_UNPAID_URL = () =>
+  "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421a5a70f8834396657761d88e29d51367b6a00/pay/payAction.do?ms=getOrdersForNopay";
+/** 已支付订单（tr[style='display:none'] 嵌套表） */
+export const SPORTS_PAID_URL = () =>
+  "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421a5a70f8834396657761d88e29d51367b6a00/pay/payAction.do?ms=getOrdersForUnpay";
+/** 退订（POST bookId） */
+export const SPORTS_UNSUBSCRIBE_URL = () =>
+  "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421a5a70f8834396657761d88e29d51367b6a00/gymbook/gymBookAction.do?ms=unsubscribe";
+/** 手机号查询（明文 "do_not" = 未配置） */
+export const SPORTS_QUERY_PHONE_URL = () =>
+  "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421a5a70f8834396657761d88e29d51367b6a00/gymbook/gymBookAction.do?ms=hadContactOrNot";
+/** 手机号更新（URL 拼接 cell_phone=&gzzh=学号） */
+export const SPORTS_UPDATE_PHONE_URL = () =>
+  "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421a5a70f8834396657761d88e29d51367b6a00/gymbook/gymBookAction.do?ms=doUpdateContactInformation&cell_phone=";
+/** 预约验证码（Kaptcha.jpg；core 拉图转 data URL，勿裸 URL） */
+export const SPORTS_CAPTCHA_BASE_URL = () =>
+  "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421a5a70f8834396657761d88e29d51367b6a00/Kaptcha.jpg";
+/** 下单（POST 表单 → JSON {msg}；注意路径双段 gymbook/gymbook） */
+export const SPORTS_MAKE_ORDER_URL = () =>
+  "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421a5a70f8834396657761d88e29d51367b6a00/gymbook/gymbook/gymBookAction.do?vpn-12-o1-50.tsinghua.edu.cn=&ms=saveGymBook";
+/** 立即支付表单（GBK 响应，桌面传输层已转 UTF-8） */
+export const SPORTS_MAKE_PAYMENT_URL = () =>
+  "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421a5a70f8834396657761d88e29d51367b6a00/pay/payAction.do?ms=newPay";
+/** 稍后支付表单（paySportsReservation 用） */
+export const SPORTS_MAKE_PAYMENT_LATER_URL = () =>
+  "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421a5a70f8834396657761d88e29d51367b6a00/pay/payAction.do?ms=newPayForLater";
+/** 支付校验（POST id/token → JSON {code,message}） */
+export const SPORTS_PAYMENT_CHECK_URL = () =>
+  "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421f6f60c93293c615e7b469dbf915b243daf0f96e17deaf447b4/zjjsfw/zjjs/check.do";
+/** 支付动作（#payForm + channelId=0101 → 含 biz_content 表单页） */
+export const SPORTS_PAYMENT_ACTION_URL = () =>
+  "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421f6f60c93293c615e7b469dbf915b243daf0f96e17deaf447b4/zjjsfw/zjjs/webPay.do";
