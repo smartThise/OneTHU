@@ -2317,6 +2317,45 @@ export class InfoClient {
    *  对应 yyfw 业务（roam 自身失败同样重试一次，lib 同款）→ 带漫游落地页重试。
    *  op 首试收到 undefined；lib 用「s===undefined 即 throw」强制先漫游的方法
    *  （如银行代发，年份选项必须取自漫游落地页）沿用同款判据。 */
+  /** 银行代发专用：漫游落地走裸 request()（不经 text() 的引导页检测+重放——
+   *  wengine 把 __vpn_* 注入所有被代理页面，短查询页会被误判成 interstitial
+   *  重放到 worker 壳页，反而丢掉年份下拉）。 */
+  async #serviceRoamedRaw<T>(yyfwid: string, op: (roamPage?: string) => Promise<T>): Promise<T> {
+    try {
+      return await op();
+    } catch {
+      let page: string;
+      try {
+        page = await this.#roamInfoServiceRaw(yyfwid);
+      } catch {
+        page = await this.#roamInfoServiceRaw(yyfwid);
+      }
+      return await op(page);
+    }
+  }
+
+  async #roamInfoServiceRaw(yyfwid: string): Promise<string> {
+    await this.#wengineCookieDance();
+    const xsrf = await this.#csrfToken();
+    const roamText = await this.#http.text(
+      `${urls.ROAMING_URL()}?yyfwid=${yyfwid}&_csrf=${encodeURIComponent(xsrf)}&machine=p`,
+    );
+    const roamingurl = (JSON.parse(roamText) as { object?: { roamingurl?: string } }).object?.roamingurl;
+    if (!roamingurl) {
+      throw new AuthRequiredError(`漫游 ${yyfwid.slice(0, 8)}… 未返回 roamingurl（resp=${roamText.slice(0, 80)}）`);
+    }
+    const clean = roamingurl.replace(/&amp;/g, "&");
+    const target = /^https?:/i.test(clean)
+      ? clean
+      : `${urls.INFO_PREFIX}${clean.startsWith("/") ? "" : "/"}${clean}`;
+    const res = await this.#http.request(target, { redirect: "follow" });
+    const page = await res.text();
+    this.#http.debug?.(
+      `[BANK] rawLanding final=${String(this.#http.lastTarget || target).slice(0, 110)} len=${page.length} head=${page.replace(/\s+/g, " ").slice(0, 1200)}`,
+    );
+    return page;
+  }
+
   async #serviceRoamed<T>(yyfwid: string, op: (roamPage?: string) => Promise<T>): Promise<T> {
     try {
       return await op();
@@ -2549,7 +2588,7 @@ export class InfoClient {
       ? urls.FOUNDATION_BANK_PAYMENT_SEARCH()
       : urls.BANK_PAYMENT_SEARCH();
     return this.#withRenew(() =>
-      this.#serviceRoamed(roamId, async (roamPage) => {
+      this.#serviceRoamedRaw(roamId, async (roamPage) => {
         if (roamPage === undefined) {
           throw new Error("银行代发需要先漫游（lib s===undefined 同款强制漫游判据）");
         }
