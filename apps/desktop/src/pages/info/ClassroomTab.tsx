@@ -133,16 +133,9 @@ export function ClassroomTab() {
           ) : null}
           {rState === "loading" ? (
             <SkeletonRows rows={6} />
-          ) : rState === "ready" && rows.length === 0 ? (
-            <TabEmpty
-              text={
-                selSlots.size > 0
-                  ? "没有教室在所选大节全部空闲——试着少选几节或清空筛选。"
-                  : "该教学楼本周暂无教室状态数据（可能不在上课周期）。"
-              }
-            />
           ) : rState === "ready" ? (
             <>
+              {/* 筛选栏常驻 ready 态——空结果也保留，否则没法取消筛选 */}
               <div className="chips" style={{ marginBottom: 12 }}>
                 <span style={{ fontSize: 12, opacity: 0.7, alignSelf: "center", marginRight: 4 }}>大节筛选（只看所选节全空闲的教室）</span>
                 {SLOT_LABELS.map((s, si) => {
@@ -170,6 +163,15 @@ export function ClassroomTab() {
                   </button>
                 ) : null}
               </div>
+              {rows.length === 0 ? (
+                <TabEmpty
+                  text={
+                    selSlots.size > 0
+                      ? "没有教室在所选大节全部空闲——试着少选几节或清空筛选。"
+                      : "该教学楼本周暂无教室状态数据（可能不在上课周期）。"
+                  }
+                />
+              ) : (
               <Card style={{ padding: 0, overflow: "auto" }}>
                 <table className="data-table">
                   <thead>
@@ -199,6 +201,7 @@ export function ClassroomTab() {
                   </tbody>
                 </table>
               </Card>
+              )}
             </>
           ) : null}
         </>
