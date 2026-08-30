@@ -17,6 +17,20 @@ import { fetchImageByUrl, info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
 
+/* 整页重载式自愈（用户语义：等同手动右键刷新，从头载入）。
+   sessionStorage 节流：2 分钟内只自动重载一次，防止坏会话死循环；超限亮红交给用户。 */
+export function autoFullReload(scope: string): boolean {
+  try {
+    const key = `onethu.autoreload.${scope}`;
+    const last = Number(sessionStorage.getItem(key) ?? "0");
+    if (Date.now() - last < 120_000) return false;
+    sessionStorage.setItem(key, String(Date.now()));
+  } catch { /* sessionStorage 不可用就保守放行一次 */ }
+  setTimeout(() => location.reload(), 150);
+  return true;
+}
+
+
 function logErr(tag: string, err: unknown): void {
   void logLine(
     "PAGE-ERR " + tag + " " + (err instanceof Error ? err.message : String(err)),
@@ -273,6 +287,8 @@ export function LibraryTab() {
     } catch (err) {
       logErr("LIB-LIST", err);
       // 登录态丢失：不闪红，静默强制重建座位会话后自动重载一次；仍失败才亮 ErrorNote
+      if (isAuthError(err) && autoFullReload("lib")) return;
+      // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
       if (isAuthError(err) && libRecover.current < 1) {
         libRecover.current += 1;
         await info.forceEnsure("library").catch((renewErr: unknown) => {
@@ -296,6 +312,8 @@ export function LibraryTab() {
     } catch (err) {
       logErr("LIB-REC", err);
       // 登录态丢失：静默重建会话后自动重载一次（保持骨架，不闪红）
+      if (isAuthError(err) && autoFullReload("lib")) return;
+      // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
       if (isAuthError(err) && recRecover.current < 1) {
         recRecover.current += 1;
         await info.forceEnsure("library").catch((renewErr: unknown) => {
@@ -336,6 +354,8 @@ export function LibraryTab() {
       .catch((err: unknown) => {
         logErr("LIB-FLOOR", err);
         if (!alive) return;
+        if (isAuthError(err) && autoFullReload("lib")) return;
+        // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
         if (isAuthError(err) && floorRecover.current < 1) {
           // 登录态丢失：静默重建会话后整链重载（保持骨架，不闪红）
           floorRecover.current += 1;
@@ -373,6 +393,8 @@ export function LibraryTab() {
       .catch((err: unknown) => {
         logErr("LIB-SECTION", err);
         if (!alive) return;
+        if (isAuthError(err) && autoFullReload("lib")) return;
+        // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
         if (isAuthError(err) && sectionRecover.current < 1) {
           // 登录态丢失：静默重建会话后整链重载（保持骨架，不闪红）
           sectionRecover.current += 1;
@@ -411,6 +433,8 @@ export function LibraryTab() {
       .catch((err: unknown) => {
         logErr("LIB-SEAT", err);
         if (!alive) return;
+        if (isAuthError(err) && autoFullReload("lib")) return;
+        // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
         if (isAuthError(err) && seatRecover.current < 1) {
           // 登录态丢失：静默重建座位会话后自动重取一次（保持骨架，不闪红）
           seatRecover.current += 1;

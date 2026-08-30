@@ -1113,6 +1113,18 @@ export function useReport() {
 }
 
 /** 校园卡余额 + 最近消费（getCardInfo / getCardTransactions） */
+/** 整页重载式自愈（等同手动右键刷新）；2 分钟节流防死循环。 */
+function autoFullReload(scope: string): boolean {
+  try {
+    const key = `onethu.autoreload.${scope}`;
+    const last = Number(sessionStorage.getItem(key) ?? "0");
+    if (Date.now() - last < 120_000) return false;
+    sessionStorage.setItem(key, String(Date.now()));
+  } catch { /* 不可用则保守放行 */ }
+  setTimeout(() => location.reload(), 150);
+  return true;
+}
+
 export function useCard(days = 30) {
   const { status } = useApp();
   const [data, setData] = useState<CardBundle | null>(null);
@@ -1148,6 +1160,8 @@ export function useCard(days = 30) {
       logPageError("CARD", err);
       // 登录态丢失（AuthRequiredError/未登录特征）：静默重建卡会话（forceEnsure）
       // 后自动重载一次，不闪红；仍失败才页内亮 ErrorNote（不踢回登录页）
+      if (isAuthError(err) && autoFullReload("card")) return;
+      // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
       if (isAuthError(err) && recover.current < 1) {
         recover.current += 1;
         await info.forceEnsure("card").catch((renewErr: unknown) => {

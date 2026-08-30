@@ -13,6 +13,20 @@ import { info, logLine } from "../../lib/clients.js";
 import { explainNetworkError, universalFetch } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
 
+/* 整页重载式自愈（用户语义：等同手动右键刷新，从头载入）。
+   sessionStorage 节流：2 分钟内只自动重载一次，防止坏会话死循环；超限亮红交给用户。 */
+export function autoFullReload(scope: string): boolean {
+  try {
+    const key = `onethu.autoreload.${scope}`;
+    const last = Number(sessionStorage.getItem(key) ?? "0");
+    if (Date.now() - last < 120_000) return false;
+    sessionStorage.setItem(key, String(Date.now()));
+  } catch { /* sessionStorage 不可用就保守放行一次 */ }
+  setTimeout(() => location.reload(), 150);
+  return true;
+}
+
+
 function logErr(tag: string, err: unknown): void {
   void logLine(
     "PAGE-ERR " + tag + " " + (err instanceof Error ? err.message : String(err)),
@@ -60,6 +74,8 @@ export function DormTab() {
     } catch (err) {
       logErr("ELEC", err);
       // 登录态丢失：不闪红，静默强制重建家园网会话后自动重载一次；仍失败才亮 ErrorNote
+      if (isAuthError(err) && autoFullReload("dorm")) return;
+      // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
       if (isAuthError(err) && elecRecover.current < 1) {
         elecRecover.current += 1;
         await info.forceEnsure("dorm").catch((renewErr: unknown) => {
