@@ -173,5 +173,6 @@ export const tbCourseUrl = (e: TbEntry | null): string =>
   e ? `${TB_PAGE}course.html?sqid=${encodeURIComponent(e.sqid)}&tid=${encodeURIComponent(e.tid == null ? "" : String(e.tid))}&name=${encodeURIComponent(e.kcm)}&teacher=${encodeURIComponent(e.jsm)}&dept=${encodeURIComponent(e.kkdw)}` : `${TB_PAGE}search.html`;
 const _unusedTbCourseUrl = (e: TbEntry): string =>
   `${TB_PAGE}course.html?sqid=${encodeURIComponent(e.sqid)}&tid=${encodeURIComponent(e.tid == null ? "" : String(e.tid))}&name=${encodeURIComponent(e.kcm)}&teacher=${encodeURIComponent(e.jsm)}&dept=${encodeURIComponent(e.kkdw)}`;
+// thubook 金标准格式（2026-08 实测）：thucourse/new-review?courseId=..&courseName=纯课名(URL编码)
 export const tbWriteUrl = (e: TbEntry | null): string =>
-  e ? `${TB_PAGE}review.html?courseId=${encodeURIComponent(e.sqid)}&courseName=${encodeURIComponent(e.kcm + (e.jsm ? "(" + e.jsm + ")" : ""))}` : `${TB_PAGE}new-review.html`;
+  e ? `${TB_PAGE}new-review?courseId=${encodeURIComponent(e.sqid)}&courseName=${encodeURIComponent(e.kcm || "")}` : `${TB_PAGE}new-review`;
