@@ -2569,7 +2569,7 @@ export class InfoClient {
           throw new ServiceUnavailableError("教室状态页无数据区（scrollContent 缺失，上游服务异常）");
         }
         this.#http.debug?.(
-          `[CLS] state resp len=${html.length} body=${html.replace(/\s+/g, " ").slice(0, 6500)}`,
+          `[CLS] state resp len=${html.length} body=${html.replace(/\s+/g, " ").slice(0, 20000)}`,
         );
         try {
           return classroom.parseClassroomState(html, week);
