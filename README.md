@@ -1,6 +1,16 @@
-# OneTHU
+<div align="center">
+
+<img src="docs/logo-banner.png" alt="(One / THU) — One THUer should have OneTHU." width="640"/>
 
 **One THUer should have OneTHU.**
+
+`One App · One Identity · One Campus`
+
+</div>
+
+---
+
+> **⚠️ 稳定性提示（0.6.x）**：项目仍在快速迭代，部分校内服务（体育场馆预约、公共空间预约等）链路尚不稳定。**遇到页面报错或数据为空，请先点击右下角的硬刷新按钮**；若刷新后仍复现，再带着 `/tmp/onethu-debug.log` 反馈 Issue。
 
 OneTHU 是对 thuapp 系列（thu-app / thu-info-app fork / learnX fork / NextTHUxk）的完全重构：
 一个统一身份、统一数据层、统一界面的清华校园套件。
