@@ -66,7 +66,6 @@ export class CampusSession {
   username = "";
   /** 仅内存保存，logout 即清；learn-lib 模型的第二次登录 POST 需要 */
   #password = "";
-  #renewInFlight: Promise<boolean> | null = null;
   /** 受信凭据（SAVE_FINGER 响应），持久化后下次登录免 2FA */
   finger3 = "";
 
@@ -119,17 +118,6 @@ export class CampusSession {
       password: this.#password,
       fingerprint: this.fingerprint,
     }));
-    // HttpClient 失登自动重登录：任何 text() 命中登录页特征（电子身份/超时/sm2 表单）
-    // 时先免密重漫游一次；仍失败由 http 抛 AuthRequired → 桌面端看门狗整页重载。
-    // 并发去重：多个并行请求同时失登只漫游一次。
-    this.http.onAuthRequired(() => {
-      if (!this.#renewInFlight) {
-        this.#renewInFlight = this.renewInfo()
-          .catch(() => false)
-          .finally(() => { this.#renewInFlight = null; });
-      }
-      return this.#renewInFlight.then(() => undefined);
-    });
   }
 
   /** 电子身份窗口自动填入用凭据（仅内存有密码时可用；重启恢复场景返回 null——

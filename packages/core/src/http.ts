@@ -390,11 +390,6 @@ export class HttpClient {
       await this.#relogin();
       response = await this.request(url, init);
       body = await response.text();
-      if (this.#looksLoggedOut(body, response)) {
-        // 重登录一次后仍是登录页（电子身份/超时）→ 会话真死：
-        // 抛 AuthRequired 触发桌面端看门狗整页重载，绝不把登录页当业务数据继续解析
-        throw new AuthRequiredError("重登录后仍在登录页（电子身份服务系统），会话需要重建");
-      }
       const wireNote2 = this.lastTarget && this.lastTarget !== url
         ? "[wire " + this.lastTarget.slice(0, 100) + "] " : "";
       this.lastDebug = wireNote2 +
@@ -488,9 +483,6 @@ export class HttpClient {
   #looksLoggedOut(body: string, response: Response): boolean {
     if (this.#relogin === null) return false;
     if (/\/do\/off\/ui\/auth\/login\//.test(response.url || "")) return true;
-    // CAS 电子身份页（清华大学用户电子身份服务系统）：无 sm2publicKey/i_pass 特征，
-    // 曾漏检 → 登录页被当业务数据解析。特征与 client/demoLogin 同串。
-    if (/电子身份服务系统|清华大学用户电子身份|casLogin|j_acegi/i.test(body)) return true;
     return /id="sm2publicKey"/.test(body) || /name="i_pass"/.test(body);
   }
 }
