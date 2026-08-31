@@ -214,7 +214,7 @@ export function DormTab() {
       ) : null}
 
       <SectionHead title="订水" aside="清华水站 dingshui.bjqzhd.com · 公开接口" />
-      <Card>
+      <Card style={{ padding: 18 }}>
         <div className="field">
           <label htmlFor="water-id">订水编号（水站用户编号）</label>
           <div style={{ display: "flex", gap: 8 }}>

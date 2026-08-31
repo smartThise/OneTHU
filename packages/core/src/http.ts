@@ -483,6 +483,9 @@ export class HttpClient {
   #looksLoggedOut(body: string, response: Response): boolean {
     if (this.#relogin === null) return false;
     if (/\/do\/off\/ui\/auth\/login\//.test(response.url || "")) return true;
+    // CAS 电子身份页（清华大学用户电子身份服务系统）：无 sm2publicKey/i_pass 特征，
+    // 曾漏检 → 登录页被当业务数据解析。特征与 client/demoLogin 同串。
+    if (/电子身份服务系统|清华大学用户电子身份|casLogin|j_acegi/i.test(body)) return true;
     return /id="sm2publicKey"/.test(body) || /name="i_pass"/.test(body);
   }
 }
