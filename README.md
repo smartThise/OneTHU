@@ -22,6 +22,28 @@ OneTHU 是对 thuapp 系列（thu-app / thu-info-app fork / learnX fork / NextTH
 3. **一付面孔** —— 纸面墨线的编辑排版风格，信息密度真实，没有 AI 味
 4. **诚实** —— 不造数据：网络不可用时给出明确错误与重试，演示模式需显式进入
 
+## 功能总览（0.6.1）
+
+- **统一身份**：CAS 登录一次（SM2 加密 + ticket 漫游 + 设备指纹），全模块共享会话；双因素认证（邮箱 / TOTP）
+- **网络学堂**：课程 / 作业 / 通知 / 文件下载
+- **信息门户**：个人信息 / 课表 / 成绩（中英文成绩单）/ 学年汇总 / 倒计时 / 新闻 / 校历 / 空教室 / 教学评估 / 体测 / 卫生成绩
+- **生活服务**：饭卡流水 / 网费 / 宿舍电费（充值）/ 校园网 / 电子发票 / 银行代发 / 研究生收入
+- **图书馆**：馆藏检索 / 借阅 / 预约（cab 验证链）
+- **体育场馆预约**：场地查询 + 分时段预订（维护窗口 01:00-02:00 自动识别，暂不支持支付环节）
+- **学生宿舍公共空间预约**：空间 / 房间 / 日期 / 场次全链路（WebForms 回传链 + 协议自动同意）
+- **移动端**：Android APK（arm64 / universal），窄屏布局适配
+- **兜底**：错误先自动硬刷新（防循环上限），上游维护显示友好倒计时卡，绝不无脑红条
+
+## 快速开始
+
+```bash
+pnpm install
+pnpm dev          # 桌面端 Web 预览（登录页可进"演示模式"先行体验）
+pnpm tauri dev    # 桌面端原生壳
+```
+
+下载安装包见 [Releases](https://github.com/smartThise/OneTHU/releases)（macOS DMG / Windows EXE / Android APK）。
+
 ## 结构
 
 ```
@@ -29,31 +51,12 @@ OneTHU/
 ├── packages/
 │   ├── core/        @onethu/core   统一 API 客户端：CAS 登录、网络学堂、信息门户、
 │   │                               WebVPN AES-128-CFB 编解码、SM2 国密、凭证存储
-│   └── ui/          @onethu/ui     设计令牌（纸/墨/清华紫）与基础样式
+│   └── ui/          @onethu/ui     设计令牌与基础样式
 ├── apps/
-│   └── desktop/     @onethu/desktop  桌面端（Vite + React，Tauri 2 就绪）
+│   └── desktop/     @onethu/desktop  桌面端 + Android（Tauri 2，Vite + React）
 └── docs/
-    ├── ARCHITECTURE.md             架构与端上路线
-    └── API-NOTES.md                API / 解密 / 授权 —— 全部已验证结论
+    └── logo-banner.png             品牌横幅
 ```
-
-## 快速开始
-
-```bash
-pnpm install
-pnpm dev          # 桌面端 Web 预览（登录页可进"演示模式"先行体验）
-```
-
-## 路线
-
-- [x] 脚手架：core / ui / desktop
-- [x] CAS 登录（SM2 加密 + ticket 漫游 + 设备指纹）
-- [x] WebVPN URL 编解码（动态生成，不再硬编码 hex 前缀）
-- [x] 网络学堂：课程 / 作业 / 通知 / 文件
-- [x] 信息门户：个人信息 / 课表 / 成绩 / 倒计时 / 新闻
-- [ ] Tauri 2 壳与系统钥匙串凭证存储
-- [ ] 移动端（RN）复用 core
-- [ ] 选课（zhjwxk，SM2 密码 + 2FA）、饭卡 / 宿舍电费 / 图书馆
 
 ## 血脉与致谢
 
@@ -63,6 +66,4 @@ pnpm dev          # 桌面端 Web 预览（登录页可进"演示模式"先行�
 
 ## 版本
 
-当前版本 0.2.0。
-
-已知问题：网络学堂（learn）模块功能存在缺陷（作业提交等链路尚不稳定），其余模块可用。
+当前版本 **0.6.1**（详见 [Releases](https://github.com/smartThise/OneTHU/releases)）。
