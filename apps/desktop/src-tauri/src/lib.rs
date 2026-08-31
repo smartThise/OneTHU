@@ -73,6 +73,7 @@ fn spawn_system_open(url: &str) -> Result<(), String> {
 #[cfg(target_os = "windows")]
 fn spawn_system_open(url: &str) -> Result<(), String> {
     // start 的第一个引号参数是窗口标题，必须占位空串，否则 URL 被吞
+    use std::os::windows::process::CommandExt; // creation_flags 仅 Windows 提供
     std::process::Command::new("cmd")
         .args(["/C", "start", "", url])
         .creation_flags(0x0800_0000) // CREATE_NO_WINDOW，不闪控制台黑框
