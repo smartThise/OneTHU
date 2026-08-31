@@ -1,6 +1,6 @@
 {
   "name": "@onethu/core",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "description": "OneTHU 统一数据层：CAS / 网络学堂 / 信息门户 / WebVPN / SM2 / 凭证存储",
   "type": "module",
   "main": "src/index.ts",
@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types test/webvpn.smoke.mjs"
+    "test": "node --experimental-strip-types test/webvpn.smoke.mjs && node --experimental-strip-types test/venue.smoke.mjs && node --experimental-strip-types test/kongjian.smoke.mjs"
   },
   "dependencies": {
     "aes-js": "^3.1.2",

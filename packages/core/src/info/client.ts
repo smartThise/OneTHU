@@ -83,6 +83,7 @@ import type {
   SportsReservationRecord,
 } from "./types.js";
 import * as sports from "./sports.js";
+import * as kj from "./kongjian.js";
 import type { ValidReceiptTitle } from "./sports.js";
 
 function stripJsonp(text: string): string {
@@ -3339,6 +3340,160 @@ export class InfoClient {
       const r = neth.parseNethActionResult(resp, "w5");
       throw new Error(r?.message || "校园网设备下线失败");
     }
+  }
+
+  /* ==================== 学生宿舍公共空间（共享家园网 kongjian） ==================== */
+
+  /** 公共空间整页：自动过 agreement 协议；spaceId 给定则走 WebForms 回传链取房间/日期/场次 */
+  async kongjianPage(opts: { spaceId?: string; roomId?: string; date?: string } = {}): Promise<kj.KongjianPage> {
+    await this.#ensureDorm();
+    let page = await this.#http.text(kj.KJ_YUYUE());
+    // 首访 302 到 agreement.aspx（页面含同意按钮、无空间下拉）→ 提交其表单 → 回 xieyi=1
+    if (!kj.hasKongjianLogin(page)) {
+      throw new AuthRequiredError("公共空间：家园网会话未建立（请先登录后重试）");
+    }
+    if (page.includes("RadioButtonList1") && !page.includes("agreement.aspx")) {
+      // 已在预约页
+    } else if (/agreement\.aspx/i.test(page) || /kj_yuyue\.aspx\?xieyi=1/.test(page) === false) {
+      const agree = kj.parseWebForms(page);
+      const btn = /<input[^>]*type="submit"[^>]*name="([^"]+)"[^>]*value="([^"]*)"/.exec(page)
+        ?? /<input[^>]*name="([^"]+)"[^>]*type="submit"[^>]*value="([^"]*)"/.exec(page);
+      if (btn && !btn[1]!.includes("btnOK")) {
+        const body = new URLSearchParams();
+        for (const [k, v] of Object.entries(agree.fields)) body.set(k, v);
+        body.set(btn[1]!, btn[2]!);
+        const action = agree.action ?? kj.KJ_AGREEMENT();
+        const target = action.startsWith("http") ? action : `${kj.KJ_PREFIX}/${action.replace(/^\.\//, "")}`;
+        await this.#http.request(target, {
+          method: "POST",
+          body,
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          redirect: "follow",
+        });
+        page = await this.#http.text(`${kj.KJ_YUYUE()}?xieyi=1`);
+      }
+    }
+    let parsed = kj.parseKongjianPage(page);
+    if (!opts.spaceId) return parsed;
+    const action = parsed.formAction?.startsWith("http")
+      ? parsed.formAction
+      : `${kj.KJ_PREFIX}/${(parsed.formAction ?? "kj_yuyue.aspx").replace(/^\.\//, "")}${parsed.formAction?.includes("?") ? "" : "?xieyi=1"}`;
+    // ① 选空间
+    const post1 = kj.buildPostBack(parsed, "kj_yuyueCtrl1$RadioButtonList1", {
+      "kj_yuyueCtrl1$RadioButtonList1": opts.spaceId,
+    });
+    let page2 = await (
+      await this.#http.request(action, {
+        method: "POST",
+        body: post1,
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      })
+    ).text();
+    parsed = kj.parseKongjianPage(page2);
+    // ② 选房间（给定或默认第一个）
+    const roomId = opts.roomId ?? parsed.rooms[0]?.id;
+    if (roomId && parsed.rooms.some((r) => r.id === roomId)) {
+      const post2 = kj.buildPostBack(parsed, "kj_yuyueCtrl1$RadioButtonList2", {
+        "kj_yuyueCtrl1$RadioButtonList2": roomId,
+      });
+      let page3 = await (
+        await this.#http.request(action, {
+          method: "POST",
+          body: post2,
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        })
+      ).text();
+      parsed = kj.parseKongjianPage(page3);
+    }
+    // ③ 选日期（给定或默认第一天；回传目标带 $索引）
+    const date = opts.date ?? parsed.dates[0];
+    if (date) {
+      const idx = parsed.dates.indexOf(date);
+      const target = `kj_yuyueCtrl1$RadioButtonList3$${Math.max(idx, 0)}`;
+      const post3 = kj.buildPostBack(parsed, target, {
+        "kj_yuyueCtrl1$RadioButtonList3": date,
+      });
+      const page4 = await (
+        await this.#http.request(action, {
+          method: "POST",
+          body: post3,
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        })
+      ).text();
+      parsed = kj.parseKongjianPage(page4);
+    }
+    return parsed;
+  }
+
+  /** 公共空间：提交确认页（姓名/学号/电话/用途；bookUrl 为场次行里原样链接） */
+  async kongjianBook(
+    bookUrl: string,
+    info: { name: string; sid: string; tel: string; other: string },
+  ): Promise<string> {
+    await this.#ensureDorm();
+    const page = await this.#http.text(bookUrl);
+    const form = kj.parseWebForms(page);
+    const pre = kj.parseKongjianConfirmValues(page); // 服务端预填值
+    const fields: Record<string, string> = { ...form.fields };
+    const setIf = (suffix: string, v: string) => {
+      if (!v) return;
+      for (const k of Object.keys(fields)) if (k.endsWith(suffix)) fields[k] = v;
+    };
+    setIf("$txtname", info.name || pre.name);
+    setIf("$txtid", info.sid || pre.sid);
+    setIf("$txttel", info.tel || pre.tel);
+    setIf("$txtother", info.other);
+    const body = new URLSearchParams(fields);
+    for (const k of Object.keys(form.fields)) {
+      if (k.endsWith("$rbtnOK")) body.set(k, "rbtnOK");
+    }
+    // 确定预约按钮（btnOK）
+    const okBtn = /<input[^>]*type="submit"[^>]*name="([^"]*btnOK[^"]*)"[^>]*value="([^"]*)"/.exec(page)
+      ?? /<input[^>]*name="([^"]*btnOK[^"]*)"[^>]*type="submit"[^>]*value="([^"]*)"/.exec(page);
+    if (okBtn) body.set(okBtn[1]!, okBtn[2]!);
+    const action = form.action ?? bookUrl;
+    const target = action.startsWith("http") ? action : `${kj.KJ_PREFIX}/${action.replace(/^\.\//, "")}`;
+    const resp = await this.#http.request(target, {
+      method: "POST",
+      body,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      redirect: "follow",
+    });
+    const done = await resp.text();
+    if (/预约成功|已成功预约/.test(done)) return "预约成功";
+    const err = /alert\(['"]([^'"]{2,80})['"]\)/.exec(done)?.[1];
+    if (err) throw new Error(err);
+    if (/kj_yuyue_my\.aspx/.test(done) || resp.url.includes("kj_yuyue")) return "已提交（请到「我的预约」核对）";
+    throw new Error("公共空间预约提交失败（页面无成功标识）");
+  }
+
+  /** 公共空间：我的预约列表 */
+  async kongjianMy(): Promise<kj.KongjianRecord[]> {
+    await this.#ensureDorm();
+    const page = await this.#http.text(kj.KJ_MY());
+    if (!kj.hasKongjianLogin(page)) {
+      throw new AuthRequiredError("公共空间：家园网会话未建立");
+    }
+    return kj.parseKongjianMy(page);
+  }
+
+  /** 公共空间：取消预约（我的预约页 __doPostBack 目标） */
+  async kongjianCancel(cancelTarget: string): Promise<void> {
+    await this.#ensureDorm();
+    const page = await this.#http.text(kj.KJ_MY());
+    const wf = kj.parseWebForms(page);
+    const body = new URLSearchParams();
+    body.set("__EVENTTARGET", cancelTarget);
+    body.set("__EVENTARGUMENT", "");
+    for (const [k, v] of Object.entries(wf.fields)) {
+      if (k === "__EVENTTARGET" || k === "__EVENTARGUMENT") continue;
+      body.set(k, v);
+    }
+    await this.#http.request(kj.KJ_MY(), {
+      method: "POST",
+      body,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
   }
 
   /** 导入/认证设备（lib loginNetwork；POST /certification

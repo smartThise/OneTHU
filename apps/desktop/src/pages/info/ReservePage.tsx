@@ -2,7 +2,7 @@
  * 预约页 —— 页内分栏（segmented）：「图书馆座位」（LibraryTab 原样复用，
  * 自带分区标题与三态重试）/「研讨间」（LibRoomTab，cab.lib ic-web）/
  * 「空教室」（ClassroomTab，教学 Tina 空闲状态只读查询）/
- * 「体育」（SportsTab，体育场馆预约 + 验证码面板 + 我的预约）/
+ * 「体育」（VenueSportsTab，体育系统 sports.tsinghua.edu.cn 全套移植：场馆→场次→提交→记录退订，除支付）/
  * 「更多场馆」占位（游泳馆、健身房等陆续接入）。
  * 与 InfoPage 同款交互：每个 tab 首次激活时挂载并保持挂载（visited + hidden）。
  *
@@ -18,21 +18,24 @@ import { useApp } from "../../state/context.js";
 import { LibraryTab } from "./LibraryTab.js";
 import { LibRoomTab } from "./LibRoomTab.js";
 import { ClassroomTab } from "./ClassroomTab.js";
-import { SportsTab } from "./SportsTab.js";
+import { VenueSportsTab } from "./VenueSportsTab.js";
+import { KongjianTab } from "./KongjianTab.js";
 
-export type ReserveTab = "library" | "libroom" | "classroom" | "sports" | "more";
+export type ReserveTab = "library" | "libroom" | "classroom" | "sports" | "kongjian" | "more";
 
 const TABS: Array<{ id: ReserveTab; label: string }> = [
   { id: "library", label: "图书馆座位" },
   { id: "libroom", label: "研讨间" },
   { id: "classroom", label: "空教室" },
   { id: "sports", label: "体育" },
+  { id: "kongjian", label: "公共空间" },
   { id: "more", label: "更多场馆" },
 ];
 
 /** LearnNav.reserveTab 契约值 → 页内 tab id（"more" 仅页内可达，不作直达参数） */
 const PARAM_TO_TAB: Record<NonNullable<LearnNav["reserveTab"]>, ReserveTab> = {
   lib: "library",
+  kongjian: "kongjian",
   room: "libroom",
   classroom: "classroom",
   sports: "sports",
@@ -79,7 +82,8 @@ export function ReservePage() {
       <div hidden={tab !== "library"}>{visited.has("library") ? <LibraryTab /> : null}</div>
       <div hidden={tab !== "libroom"}>{visited.has("libroom") ? <LibRoomTab /> : null}</div>
       <div hidden={tab !== "classroom"}>{visited.has("classroom") ? <ClassroomTab /> : null}</div>
-      <div hidden={tab !== "sports"}>{visited.has("sports") ? <SportsTab /> : null}</div>
+      <div hidden={tab !== "sports"}>{visited.has("sports") ? <VenueSportsTab /> : null}</div>
+      <div hidden={tab !== "kongjian"}>{visited.has("kongjian") ? <KongjianTab /> : null}</div>
       <div hidden={tab !== "more"}>
         {visited.has("more") ? (
           <Card>

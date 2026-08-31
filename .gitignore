@@ -7,3 +7,5 @@ dist/
 .env.*
 src-tauri/target/
 src-tauri/gen/schemas/
+apps/desktop/src-tauri/target/
+packages/core/test/.venue-build/

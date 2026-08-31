@@ -234,6 +234,15 @@ export function LibraryTab() {
   const [seatState, setSeatState] = useState<LoadState>("loading");
   const [seatError, setSeatError] = useState<string | null>(null);
   const [pendingSeat, setPendingSeat] = useState<LibrarySeat | null>(null);
+  // 位置链：去空段、去与座位名重复的尾段（trace 形如 " - NF2A029"）
+  const locTrace = (() => {
+    if (!pendingSeat) return "";
+    const segs = String(pendingSeat.zhNameTrace || "")
+      .split("-")
+      .map((x) => x.trim())
+      .filter((x) => x && x !== pendingSeat.zhName);
+    return Array.from(new Set(segs)).join(" · ");
+  })();
   const [bookError, setBookError] = useState<string | null>(null);
   const [records, setRecords] = useState<LibBookRecord[] | null>(null);
   const [recState, setRecState] = useState<LoadState>("loading");
@@ -682,31 +691,30 @@ export function LibraryTab() {
 
       {/* 点选座位后的确认条 */}
       {pendingSeat ? (
-        <Card
-          style={{
-            marginTop: 12,
-            display: "flex",
-            gap: 10,
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <span style={{ fontSize: 13 }}>
-            预约座位 <b>{pendingSeat.zhName}</b>
-            （{pendingSeat.zhNameTrace}，{dateChoice === 0 ? "今天" : "明天"}）？须在预约开始后 30 分钟内完成签到
-          </span>
-          <span style={{ flex: 1 }} />
-          <button
-            className="btn btn-primary"
-            style={{ height: 28 }}
-            disabled={busySeat !== null}
-            onClick={() => void book(pendingSeat)}
-          >
-            {busySeat !== null ? "预约中…" : "确认预约"}
-          </button>
-          <button className="btn" style={{ height: 28 }} onClick={() => setPendingSeat(null)}>
-            取消
-          </button>
+        <Card style={{ marginTop: 12, padding: "12px 14px" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>预约座位 {pendingSeat.zhName}</span>
+            <span className="chip chip-blue" style={{ height: 20 }}>
+              {dateChoice === 0 ? "今天" : "明天"}
+            </span>
+          </div>
+          {locTrace ? (
+            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>位置：{locTrace}</div>
+          ) : null}
+          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>须在预约开始后 30 分钟内完成签到</div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 10 }}>
+            <button className="btn" style={{ height: 28 }} onClick={() => setPendingSeat(null)}>
+              取消
+            </button>
+            <button
+              className="btn btn-primary"
+              style={{ height: 28 }}
+              disabled={busySeat !== null}
+              onClick={() => void book(pendingSeat)}
+            >
+              {busySeat !== null ? "预约中…" : "确认预约"}
+            </button>
+          </div>
         </Card>
       ) : null}
 

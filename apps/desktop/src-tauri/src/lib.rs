@@ -482,6 +482,65 @@ fn open_eid_window(
     Ok("opened".into())
 }
 
+
+#[tauri::command]
+fn open_sports_window(app: tauri::AppHandle) -> Result<String, String> {
+    use tauri::webview::WebviewWindowBuilder;
+    use tauri::WebviewUrl;
+    let label = "venueauth";
+    if let Some(old) = app.get_webview_window(label) {
+        let _ = old.close();
+    }
+    // 初始化脚本：轮询 localStorage.headers 里的 JWT（体育系统 SPA 登录成功后写入），
+    // 拿到后写 document.title 标记（远程页面无 IPC 权限，title 是最稳的回传通道）。
+    let script = r#"(function() {
+  if (window.__ONETHU_VPOLL) return;
+  window.__ONETHU_VPOLL = true;
+  function poll() {
+    try {
+      var h = window.localStorage.getItem("headers");
+      if (h) {
+        var t = JSON.parse(h).token;
+        if (t && t.length > 40) {
+          document.title = "ONETHU_VTOKEN::" + t;
+        }
+      }
+    } catch (e) {}
+    setTimeout(poll, 500);
+  }
+  poll();
+})();"#;
+    let win = WebviewWindowBuilder::new(
+        &app,
+        label,
+        WebviewUrl::External("https://www.sports.tsinghua.edu.cn/venue/index.html".parse().unwrap()),
+    )
+    .title("清华体育系统 · 登录授权")
+    .inner_size(520.0, 720.0)
+    .initialization_script(script)
+    .build()
+    .map_err(|e| e.to_string())?;
+    let _ = win.set_focus();
+    // 轮询窗口标题，发现 token 标记 → emit "sports-token" → 关窗（最长 10 分钟）
+    std::thread::spawn(move || {
+        for _ in 0..600 {
+            std::thread::sleep(std::time::Duration::from_millis(1000));
+            let Some(w) = app.get_webview_window(label) else {
+                return; // 用户已关窗
+            };
+            let title = w.title().unwrap_or_default();
+            if let Some(token) = title.strip_prefix("ONETHU_VTOKEN::") {
+                let token = token.to_string();
+                let _ = w.close();
+                use tauri::Emitter;
+                let _ = app.emit("sports-token", token);
+                return;
+            }
+        }
+    });
+    Ok("opened".into())
+}
+
 tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
@@ -496,7 +555,7 @@ tauri::Builder::default()
         })
         .invoke_handler(tauri::generate_handler![
             log_debug,http_request,download_file,fetch_binary,state_read,state_write,state_delete,
-            open_external,open_eid_window])
+            open_external,open_eid_window,open_sports_window])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

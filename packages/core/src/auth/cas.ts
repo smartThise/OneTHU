@@ -125,11 +125,14 @@ export async function fetchCasForm(http: HttpClient, viaWebVPN: boolean): Promis
 
 export type CasSubmitResult = { kind: "done" } | { kind: "need2fa"; otpForm: OtpForm };
 
-/** 第二步：提交账密（WebVPN=demo 字段集 / 直连=双写）；成功后消费回调建立会话 */
+/** 第二步：提交账密（WebVPN=demo 字段集 / 直连=双写）；成功后消费回调建立会话。
+ *  opts.direct：强制直连（不经 WebVPN 包装）——第三方 service 的 CAS 登录必须用：
+ *  TGT 必须落在 id 直连桶，直连换票链才看得到。 */
 export async function submitCasLogin(
   http: HttpClient,
   cred: CasCredential,
   form: CasFormInfo,
+  opts: { direct?: boolean } = {},
 ): Promise<CasSubmitResult> {
   const enc = encryptPassword(cred.password, form.publicKey);
   // 字段集按链路区分（均经实测）：WebVPN 层读 sm2pass（demo 实证）；直连层读 i_pass
@@ -154,7 +157,7 @@ export async function submitCasLogin(
       : new URL(form.action, baseUrl).toString()
     : CAS_LOGIN_CHECK;
 
-  const checkHtml = await http.text(submitUrl, { method: "POST", body });
+  const checkHtml = await http.text(submitUrl, { method: "POST", body, direct: opts.direct });
   if (/二次认证|双因素|二次验证|双因子|otp|短信|企业微信/.test(checkHtml)) {
     const otpAction =
       /<form[^>]*action="([^"]*)"[^>]*id="otpForm"/.exec(checkHtml)?.[1] ??
@@ -179,6 +182,7 @@ export async function submitCasLogin(
     await http
       .request(callback.startsWith("http") ? callback : new URL(callback, baseUrl).toString(), {
         redirect: "follow",
+        direct: opts.direct,
       })
       .catch(() => undefined);
   }

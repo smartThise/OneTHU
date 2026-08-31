@@ -41,7 +41,7 @@ export interface LearnNav {
    *  reserveTab 的 "lib"/"room"/"classroom"/"sports" 分别对应 ReservePage 页内 library/libroom/classroom/sports 栏。 */
   infoTab?: "report" | "fitness" | "exams" | "evaluation" | "calendar" | "news" | "profile";
   lifeTab?: "dorm" | "washer" | "hygiene" | "card" | "invoice" | "payroll" | "gradincome" | "network";
-  reserveTab?: "lib" | "room" | "classroom" | "sports";
+  reserveTab?: "lib" | "room" | "classroom" | "sports" | "kongjian";
 }
 
 const TOP_PAGES = ["today", "learn", "schedule", "info", "life", "reserve", "zhjwxk", "settings"] as const;

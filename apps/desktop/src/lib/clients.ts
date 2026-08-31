@@ -431,6 +431,9 @@ export async function trySilentRelogin(): Promise<boolean> {
 }
 
 export async function logout(): Promise<void> {
+  // 体育系统 token 与会话解耦但跟随登出清空（防串账号）
+  const { venueLogout } = await import("./venue.js");
+  venueLogout();
   // demo（thu-app-desktop auth slice）语义：登出只清凭据，fingerprint 与 finger3
   // 属设备信任、跨登出保留——否则下次登录指纹重随机 → 信任失效 → 每次被迫 2FA
   // （17:40 存档丢失 → 指纹重随机的教训）。

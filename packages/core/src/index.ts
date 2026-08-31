@@ -19,6 +19,7 @@ export {
   extractCasReason,
   fetchCasForm,
   submitCasLogin,
+  parseCasFormHtml,
   list2FAMethods,
   send2FACode,
   verify2FACode,
@@ -102,6 +103,8 @@ export type {
   SportsResourcesInfo,
 } from "./info/types.js";
 export type { ValidReceiptTitle } from "./info/sports.js";
+/* 学生宿舍公共空间（共享家园网 kongjian，WebForms） */
+export type { KongjianSpace, KongjianSlot, KongjianPage, KongjianRecord } from "./info/kongjian.js";
 export { VALID_RECEIPT_TITLES, sportsIdInfoList } from "./info/sports.js";
 export { ClassroomStatus } from "./info/types.js";
 
@@ -159,3 +162,8 @@ export type {
 
 export { LEARN_FILE_DOWNLOAD, LEARN_PREFIX } from "./learn/urls.js";
 export { setWebvpnLog } from "./auth/demoLogin.js";
+
+/* 体育场馆系统（sports.tsinghua.edu.cn unifound-venue）—— 独立 token 鉴权 */
+export { VenueClient, VenueAuthRequiredError, VenueApiError, VENUE_BASE, fmtVenueDate, venueTokenExpiresAt } from "./venue/client.js";
+export { md5hex, buildVenueSign, venueSignQuery, VENUE_APP_ID, VENUE_SIGN_KEY } from "./venue/sign.js";
+export type { VenueBuilding, VenueDevKind, VenueSameLevel, VenueScene, VenueSession, VenueSite, VenueRecord, VenueUser } from "./venue/types.js";
