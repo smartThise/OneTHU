@@ -390,6 +390,11 @@ export class HttpClient {
       await this.#relogin();
       response = await this.request(url, init);
       body = await response.text();
+      if (this.#looksLoggedOut(body, response)) {
+        // 重登录一次后仍是登录页（电子身份/超时）→ 会话真死：
+        // 抛 AuthRequired 触发桌面端看门狗整页重载，绝不把登录页当业务数据继续解析
+        throw new AuthRequiredError("重登录后仍在登录页（电子身份服务系统），会话需要重建");
+      }
       const wireNote2 = this.lastTarget && this.lastTarget !== url
         ? "[wire " + this.lastTarget.slice(0, 100) + "] " : "";
       this.lastDebug = wireNote2 +
