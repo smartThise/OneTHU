@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, PageHead, SectionHead } from "../components/Layout.js";
-import { clearRemembered, loadRemembered } from "../lib/clients.js";
+import { invoke } from "@tauri-apps/api/core";
+import { clearRemembered, loadRemembered, session } from "../lib/clients.js";
 import { clearHomeLayout } from "../lib/homeCards.js";
 import { useApp } from "../state/context.js";
 
@@ -10,6 +11,7 @@ export function SettingsPage() {
   const [clearing, setClearing] = useState(false);
   // 首页布局恢复：点击后短暂显示「已恢复默认」，到点回位
   const [homeResetAt, setHomeResetAt] = useState(0);
+  const [eidMsg, setEidMsg] = useState<string | null>(null);
 
   useEffect(() => {
     void loadRemembered().then((r) => setHasSaved(!!r));
@@ -33,7 +35,7 @@ export function SettingsPage() {
 
   return (
     <>
-      <PageHead title="设置" meta="OneTHU 0.1.0" />
+      <PageHead title="设置" meta="OneTHU 0.3.0" />
 
       <SectionHead title="账户" />
       <Card>
@@ -44,6 +46,38 @@ export function SettingsPage() {
           </div>
           <button className="btn" onClick={() => void logout()}>
             退出登录
+          </button>
+        </div>
+      </Card>
+
+      <SectionHead title="账户设置" />
+      <Card>
+        <div className="setting-row" style={{ alignItems: "flex-start" }}>
+          <div>
+            <div className="setting-title">清华电子身份（信任因子 / 密码管理）</div>
+            <div className="setting-desc">
+              在原生窗口打开 id.tsinghua.edu.cn，自动填入账号密码（有图形验证码时需手动输入）。
+              <b>注意：删除信任因子或修改密码可能导致 OneTHU 退出登录</b>，需重新登录一次。
+            </div>
+            {eidMsg ? (
+              <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }}>{eidMsg}</div>
+            ) : null}
+          </div>
+          <button
+            className="btn"
+            onClick={() => {
+              const creds = session.getIdCredentials();
+              if (!creds) {
+                setEidMsg("当前会话没有内存密码（重启恢复的会话），请在窗口中手动输入账号密码。");
+                void invoke("open_eid_window", { username: "", password: "" });
+                return;
+              }
+              void invoke("open_eid_window", { username: creds.username, password: creds.password })
+                .then(() => setEidMsg("已打开电子身份窗口（账号密码已自动填入）"))
+                .catch((e: unknown) => setEidMsg(`打开失败：${e instanceof Error ? e.message : String(e)}`));
+            }}
+          >
+            打开电子身份
           </button>
         </div>
       </Card>

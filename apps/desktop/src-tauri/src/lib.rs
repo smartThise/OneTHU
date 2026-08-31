@@ -420,7 +420,69 @@ async fn http_request(input: HttpInput) -> Result<HttpOutput, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    #[tauri::command]
+fn open_eid_window(
+    app: tauri::AppHandle,
+    username: String,
+    password: String,
+) -> Result<String, String> {
+    use tauri::webview::WebviewWindowBuilder;
+    use tauri::WebviewUrl;
+    let label = "eid";
+    if app.get_webview_window(label).is_some() {
+        return Ok("exists".into());
+    }
+    // 初始化脚本：登录表单存在时自动填账号密码；无图形验证码时自动提交。
+    // sessionStorage 守卫防循环（登录后跳转的页面不再自动提交）。
+    let script = format!(
+        r#"(function() {{
+  try {{
+    if (window.__ONETHU_EID_DONE) return;
+    function fill() {{
+      var u = document.getElementById("username");
+      var p = document.getElementById("password");
+      if (!u || !p) return;
+      window.__ONETHU_EID_DONE = true;
+      function setv(el, v) {{
+        var d = Object.getOwnPropertyDescriptor(el.__proto__, "value");
+        d && d.set ? d.set.call(el, v) : (el.value = v);
+        el.dispatchEvent(new Event("input", {{ bubbles: true }}));
+        el.dispatchEvent(new Event("change", {{ bubbles: true }}));
+      }}
+      setv(u, {u:?});
+      setv(p, {p:?});
+      var cap = document.getElementById("i_code");
+      var capBox = cap && cap.offsetParent !== null;
+      if (!capBox) {{
+        setTimeout(function() {{
+          var b = document.querySelector("button[onclick*='submitForm']");
+          b && b.click();
+        }}, 400);
+      }}
+    }}
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fill);
+    else fill();
+    setTimeout(fill, 1200);
+  }} catch (e) {{}}
+}})();"#,
+        u = username,
+        p = password,
+    );
+    let win = WebviewWindowBuilder::new(
+        &app,
+        label,
+        WebviewUrl::External("https://id.tsinghua.edu.cn/f/login".parse().unwrap()),
+    )
+    .title("清华电子身份 · 账户设置")
+    .inner_size(430.0, 640.0)
+    .initialization_script(&script)
+    .build()
+    .map_err(|e| e.to_string())?;
+    let _ = win.set_focus();
+    Ok("opened".into())
+}
+
+tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             #[cfg(debug_assertions)]
@@ -434,7 +496,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             log_debug,http_request,download_file,fetch_binary,state_read,state_write,state_delete,
-            open_external])
+            open_external,open_eid_window])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

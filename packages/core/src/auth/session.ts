@@ -120,6 +120,13 @@ export class CampusSession {
     }));
   }
 
+  /** 电子身份窗口自动填入用凭据（仅内存有密码时可用；重启恢复场景返回 null——
+   *  调用方据此降级为手动输入）。仅本机窗口初始化脚本使用，绝不落盘。 */
+  getIdCredentials(): { username: string; password: string } | null {
+    if (!this.username || !this.#password) return null;
+    return { username: this.username, password: this.#password };
+  }
+
   /** 登录（demo 流程：全程 WebVPN）。返回 need-2fa 时继续 verify2FA。 */
   async login(username: string, password: string): Promise<LoginResult> {
     this.username = username;
