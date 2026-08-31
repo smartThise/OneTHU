@@ -28,6 +28,54 @@ import {
   type VenueUser,
 } from "@onethu/core";
 import { Card, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
+
+/** 北京时间当前分钟数（0-1439） */
+function beijingMinute(): number {
+  const d = new Date();
+  const bj = new Date(d.getTime() + (480 + d.getTimezoneOffset()) * 60000);
+  return bj.getHours() * 60 + bj.getMinutes();
+}
+
+/** 维护期友好卡：窗口内（00:55-02:05）不轰炸——单次定时到窗口结束重试一次；窗口外按 60s 自动重试 */
+function VenueNote({ text, onRetry }: { text: string; onRetry?: () => void }) {
+  const maintain = /维护中/.test(text);
+  const inWindow = maintain && (() => { const m = beijingMinute(); return m >= 55 || m <= 125; })();
+  const [left, setLeft] = useState(60);
+  useEffect(() => {
+    if (!maintain || inWindow) return;
+    setLeft(60);
+    const t = setInterval(() => {
+      setLeft((v) => {
+        if (v <= 1) {
+          clearInterval(t);
+          onRetry?.();
+          return 60;
+        }
+        return v - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [maintain, inWindow, onRetry]);
+  useEffect(() => {
+    if (!inWindow) return;
+    // 距窗口结束（02:05）的秒数，到点重试一次，不再循环
+    const m = beijingMinute();
+    const sec = m >= 55 ? (24 * 60 - m + 125) * 60 : (125 - m) * 60;
+    const t = setTimeout(() => onRetry?.(), Math.max(sec, 30) * 1000);
+    return () => clearTimeout(t);
+  }, [inWindow, onRetry]);
+  if (!maintain) return <ErrorNote text={text} onRetry={onRetry} />;
+  return (
+    <div className="card" style={{ textAlign: "center", padding: "18px 12px" }}>
+      <div style={{ fontWeight: 600, marginBottom: 6 }}>场馆系统维护中</div>
+      <div style={{ fontSize: 12, color: "var(--text-3)" }}>
+        {inWindow
+          ? "每日 01:00 - 02:00 例行维护，窗口结束后自动恢复"
+          : <>非维护时段出现维护提示（异常），{left}s 后自动重试</>}
+      </div>
+    </div>
+  );
+}
 import { VenueTwoFactorRequired, venueClient, venueHasToken, venueLogout, venueScenes, venueLogin, venueSilentLogin, venueSubmit2FA, venueSend2FACode } from "../../lib/venue.js";
 import type { TwoFactorMethod, VenueBuilding, VenueDevKind } from "@onethu/core";
 import { useApp } from "../../state/context.js";
@@ -578,7 +626,9 @@ export function VenueSportsTab() {
             {authBusy ? "登录中…" : "重新登录体育系统"}
           </button>
           {authMsg ? (
-            <div style={{ marginTop: 10, fontSize: 13, color: "#d33", lineHeight: 1.5 }}>{authMsg}</div>
+            /维护中/.test(authMsg)
+              ? <VenueNote text={authMsg} onRetry={() => void doAuth()} />
+              : <div style={{ marginTop: 10, fontSize: 13, color: "#d33", lineHeight: 1.5 }}>{authMsg}</div>
           ) : null}
         </Card>
       </>
@@ -595,7 +645,7 @@ export function VenueSportsTab() {
           </button>
         }
       />
-      {sceneState === "error" ? <ErrorNote text={sceneErr ?? ""} onRetry={() => void loadScenes()} /> : null}
+      {sceneState === "error" ? <VenueNote text={sceneErr ?? ""} onRetry={() => void loadScenes()} /> : null}
       {sceneState === "loading" && !scenes ? (
         <SkeletonRows rows={3} />
       ) : (
@@ -699,7 +749,7 @@ export function VenueSportsTab() {
         </div>
       ) : null}
       {sitesState === "error" ? (
-        <ErrorNote
+        <VenueNote
           text={sitesUnavail ? VENUE_UNAVAILABLE : (sitesErr ?? "")}
           onRetry={() => venue && void loadSites(venue.uuid, date, classEnum === "ROOM" ? room : building, devKind, classEnum, useType)}
         />
@@ -809,7 +859,7 @@ export function VenueSportsTab() {
 
       <SectionHead title="我的预约" aside="体育系统预约记录" />
       {recState === "error" ? (
-        <ErrorNote text={recUnavail ? VENUE_UNAVAILABLE : (recErr ?? "")} onRetry={() => void fetchRecords()} />
+        <VenueNote text={recUnavail ? VENUE_UNAVAILABLE : (recErr ?? "")} onRetry={() => void fetchRecords()} />
       ) : null}
       {recState === "loading" && !records ? (
         <SkeletonRows rows={4} />

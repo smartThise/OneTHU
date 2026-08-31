@@ -360,8 +360,11 @@ export class HttpClient {
   }
 
   /** GET 并解析为文本；wengine 引导页补救 + 登录页特征检测 + 自动重登录重放 */
+
   async text(url: string, init: (RequestInit & { direct?: boolean }) = {}): Promise<string> {
     let response = await this.request(url, init);
+    // myhome 等老站是 GBK；按 Content-Type charset 解码，别拿 UTF-8 硬解（否则中文
+    // 全成 U+FFFD，回传按钮值变乱码被服务器 400、门户正则/登录探测全部失灵）
     let body = await response.text();
     const wireNote = this.lastTarget && this.lastTarget !== url
       ? "[wire " + this.lastTarget.slice(0, 100) + "] " : "";

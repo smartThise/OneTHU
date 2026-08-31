@@ -65,6 +65,10 @@ export function KongjianTab() {
       setPage(p);
       setSpaceId(p.selectedSpace ?? "");
       setState("ready");
+      if (p.spaces.length === 0) {
+        // 空列表多半是门户页兜底未命中：走 logTabErr 的硬刷新守卫（20s 内最多 2 次）
+        logTabErr("KONGJIAN", new Error("公共空间列表为空（门户页兜底未命中）"));
+      }
     } catch (err) {
       fail(err);
     }

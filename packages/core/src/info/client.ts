@@ -1386,17 +1386,22 @@ export class InfoClient {
   async #ensureDorm(force = false): Promise<void> {
     return this.#single("dorm", async () => {    if (force) this.#dormRoamed = false; // 强制重建（forceEnsure 自愈入口）：清标记重走
     if (this.#dormRoamed && (await this.#dormAlive())) return;
-    const ticketed = await this.#roamIdService(urls.DORM_CAS_FORM());
-    // 兑付后核实（传输层若已代跟跳到 myhome，会话同样已建立）
-    if (await this.#dormAlive()) {
-      this.#dormRoamed = true;
-      return;
+    // 兑付偶发失败（302 循环/票据竞态）：重试三轮再判死，公共空间等链路稳定性依赖这里
+    const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+    let why = "";
+    for (let i = 0; i < 3; i++) {
+      if (i > 0) await sleep(i === 1 ? 800 : 2000);
+      const ticketed = await this.#roamIdService(urls.DORM_CAS_FORM());
+      if (await this.#dormAlive()) {
+        this.#dormRoamed = true;
+        return;
+      }
+      why = ticketed
+        ? "票据兑付后仍未登录"
+        : this.#idCredentials?.()
+          ? "id 账密登录未取得兑付票据"
+          : "CAS 未下发票据且无内存密码（重启恢复后请重新登录一次）";
     }
-    const why = ticketed
-      ? "票据兑付后仍未登录"
-      : this.#idCredentials?.()
-        ? "id 账密登录未取得兑付票据"
-        : "CAS 未下发票据且无内存密码（重启恢复后请重新登录一次）";
     throw new AuthRequiredError(
       `宿舍服务会话未能建立（${why}；现场: ${String(this.lastDebug || this.#http.lastDebug).slice(0, 160)}）`,
     );
@@ -3352,6 +3357,18 @@ export class InfoClient {
     if (!kj.hasKongjianLogin(page)) {
       throw new AuthRequiredError("公共空间：家园网会话未建立（请先登录后重试）");
     }
+    // 兜底 A：偶发落到「空间管理系统」门户页（无 RadioButtonList1）——从门户里找回
+    // kj_yuyue.aspx 直链跟进，找回失败再原地址 ?xieyi=1 重试一次
+    if (!page.includes("RadioButtonList1") && /空间管理系统|kj_index/.test(page)) {
+      const link = /href="([^"]*kj_yuyue\.aspx[^"]*)"/.exec(page)?.[1];
+      if (link) {
+        const abs = link.startsWith("http") ? link : `${kj.KJ_PREFIX}/${link.replace(/^\.\//, "")}`;
+        page = await this.#http.text(abs);
+      }
+      if (!page.includes("RadioButtonList1")) {
+        page = await this.#http.text(`${kj.KJ_YUYUE()}?xieyi=1`);
+      }
+    }
     if (page.includes("RadioButtonList1") && !page.includes("agreement.aspx")) {
       // 已在预约页
     } else if (/agreement\.aspx/i.test(page) || /kj_yuyue\.aspx\?xieyi=1/.test(page) === false) {
@@ -3361,7 +3378,9 @@ export class InfoClient {
       if (btn && !btn[1]!.includes("btnOK")) {
         const body = new URLSearchParams();
         for (const [k, v] of Object.entries(agree.fields)) body.set(k, v);
-        body.set(btn[1]!, btn[2]!);
+        // ASP.NET 只按 name 识别回传按钮；value 若含中文（"同意"）必须按 GBK 百分号编码，
+        // 而 JS 无法原生编码 GBK —— 置空值绕开整个编码问题（实测服务器只认 name）
+        body.set(btn[1]!, "");
         const action = agree.action ?? kj.KJ_AGREEMENT();
         const target = action.startsWith("http") ? action : `${kj.KJ_PREFIX}/${action.replace(/^\.\//, "")}`;
         await this.#http.request(target, {

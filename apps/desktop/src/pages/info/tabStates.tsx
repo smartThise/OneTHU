@@ -18,6 +18,33 @@ export function logTabErr(tag: string, err: unknown): void {
   void logLine(
     "PAGE-ERR " + tag + " " + (err instanceof Error ? err.message : String(err)),
   ).catch(() => undefined);
+  // 兜底铁律：宁可硬刷新也不让用户看见红条。20s 窗口内同一 tab 最多自动刷 2 次，
+  // 第三次（持续性故障）才落红条，避免刷新死循环。
+  hardReloadBailOut(tag);
+}
+
+/** 红条前自动硬刷新守卫：返回 true 表示已触发整页重载（调用方后续 setState 无意义） */
+export function hardReloadBailOut(scope: string): boolean {
+  try {
+    const key = `onethu.bailout.${scope}`;
+    const now = Date.now();
+    let n = 0;
+    let t = 0;
+    try {
+      const raw = JSON.parse(sessionStorage.getItem(key) ?? "{}") as { n?: number; t?: number };
+      if (typeof raw.n === "number" && typeof raw.t === "number" && now - raw.t < 20000) {
+        n = raw.n;
+        t = raw.t;
+      }
+    } catch {}
+    if (n < 2) {
+      sessionStorage.setItem(key, JSON.stringify({ n: n + 1, t: now }));
+      window.location.reload();
+      return true;
+    }
+    sessionStorage.setItem(key, JSON.stringify({ n: 0, t: now }));
+  } catch {}
+  return false;
 }
 
 /** 上游维护/下线（core ServiceUnavailableError）：按类名+名称双保险识别 */
