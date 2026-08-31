@@ -1,6 +1,6 @@
 # OneTHU
 
-**清华万物，汇合于一体。**
+**One THUer should have OneTHU.**
 
 OneTHU 是对 thuapp 系列（thu-app / thu-info-app fork / learnX fork / NextTHUxk）的完全重构：
 一个统一身份、统一数据层、统一界面的清华校园套件。

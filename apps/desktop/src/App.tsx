@@ -1,4 +1,4 @@
-import { Shell } from "./components/Layout.js";
+import { Shell, BrandLogo } from "./components/Layout.js";
 import { FilePreviewHost } from "./components/FilePreview.js";
 import { LearnPage } from "./pages/Learn.js";
 import { AssignmentDetailPage } from "./pages/learn/AssignmentDetailPage.js";
@@ -28,7 +28,8 @@ function Routed() {
     if (status === "booting") {
       return (
         <div className="login-wrap">
-          <div style={{ color: "var(--ink-3)", fontSize: "var(--text-sm)" }}>正在恢复会话…</div>
+          <BrandLogo size={40} />
+          <div style={{ color: "var(--ink-3)", fontSize: "var(--text-sm)", marginTop: 18 }}>正在恢复会话…</div>
         </div>
       );
     }

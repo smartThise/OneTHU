@@ -1,4 +1,4 @@
-/** @onethu/core —— 清华万物，汇合于一体 */
+/** @onethu/core —— One THUer should have OneTHU. */
 
 // 传输层
 export { HttpClient, MemoryCookieJar, AuthRequiredError, DEFAULT_USER_AGENT, onAuthRequired } from "./http.js";

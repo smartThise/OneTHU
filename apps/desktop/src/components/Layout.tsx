@@ -15,6 +15,35 @@ const NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode }> 
   { page: "settings", label: "设置", icon: IconSettings },
 ];
 
+/** (One / THU) 品牌标识：五列网格，括号代码体，One 衬线紧凑撑满与 THU 逐列对齐 */
+export function BrandLogo({ size = 14 }: { size?: number }) {
+  return (
+    <span className="brand-logo" style={{ fontSize: size }} aria-label="OneTHU">
+      <span className="p">(</span>
+      <span className="word"><i>O</i><i>n</i><i>e</i></span>
+      <span />
+      <span className="p"> </span>
+      <span className="u">T</span>
+      <span className="u">H</span>
+      <span className="u">U</span>
+      <span className="p">)</span>
+    </span>
+  );
+}
+
+/** Slogan：One 衬线 · THUer 现代黑体 · 其余等宽 · 句尾 OneTHU 用完整品牌标识 */
+export function Slogan({ size = 13 }: { size?: number }) {
+  return (
+    <span className="slogan" style={{ fontSize: size }}>
+      <span className="s-one">One</span>
+      <span className="s-thuer">THUer</span>
+      <span className="s-mono">should have</span>
+      <BrandLogo size={Math.round(size * 1.25)} />
+      <span className="s-mono">.</span>
+    </span>
+  );
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const { status, page: rawPage, navigate } = useApp();
   const page = topLevelPage(rawPage);
@@ -24,8 +53,7 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className="shell">
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-mark" aria-hidden>一</span>
-          <span className="brand-name">OneTHU</span>
+          <BrandLogo size={16} />
         </div>
         <div className="nav-label">校园</div>
         <nav className="nav" aria-label="主导航">

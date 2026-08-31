@@ -1545,3 +1545,61 @@
 }
 .hard-refresh-fab:hover { color: var(--accent); }
 .hard-refresh-fab:active { transform: scale(0.94); }
+
+/* (One / THU) 品牌标识：五列网格 —— ( | O n e 空 / 空 T H U ) */
+.brand-logo {
+  display: inline-grid;
+  grid-template-columns: auto auto auto auto auto;
+  line-height: 1;
+  text-align: center;
+  color: var(--text-1, #fff);
+}
+.brand-logo .p {
+  font-family: "SF Mono", Menlo, Consolas, "Courier New", monospace;
+  font-weight: 400;
+  transform: scaleY(1.06);
+}
+.brand-logo .word {
+  grid-column: 2 / 5;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: Georgia, "Playfair Display", "Times New Roman", serif;
+  font-weight: 500;
+  font-size: 1.14em;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+.brand-logo .word i { font-style: normal; display: block; }
+.brand-logo .u {
+  font-family: Inter, "SF Pro Display", "Helvetica Neue", system-ui, -apple-system, sans-serif;
+  font-weight: 800;
+}
+
+/* Slogan：One THUer should have (One/THU). —— 三字体混排 */
+.slogan {
+  display: inline-flex;
+  align-items: center;
+  gap: .48em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.slogan .s-one {
+  font-family: Georgia, "Playfair Display", "Times New Roman", serif;
+  font-weight: 500;
+  font-size: 1.2em;
+  color: var(--text-3, rgba(255,255,255,.55));
+}
+.slogan .s-thuer {
+  font-family: Inter, "SF Pro Display", "Helvetica Neue", system-ui, -apple-system, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-size: 1.06em;
+  color: var(--text-3, rgba(255,255,255,.55));
+}
+.slogan .s-mono {
+  font-family: "SF Mono", Menlo, Consolas, "Courier New", monospace;
+  color: var(--text-3, rgba(255,255,255,.55));
+  font-size: .95em;
+}
+.slogan .brand-logo { flex: none; color: var(--text-3, rgba(255,255,255,.55)); }

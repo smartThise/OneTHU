@@ -1,4 +1,4 @@
-import { HardRefreshButton } from "../components/Layout.js";
+import { BrandLogo, HardRefreshButton, Slogan } from "../components/Layout.js";
 import { useEffect, useState, type FormEvent } from "react";
 import type { TwoFactorMethod } from "@onethu/core";
 import { isTauri } from "../lib/transport.js";
@@ -31,12 +31,9 @@ export function LoginPage() {
     <div className="login-wrap">
       <HardRefreshButton />
       <div className="login-card card">
-        <div className="login-mark">
-          <span className="brand-mark" aria-hidden>一</span>
-          <div>
-            <div className="login-title">OneTHU</div>
-            <div className="login-sub">清华万物 · 汇合于一体</div>
-          </div>
+        <div className="login-mark" style={{ flexDirection: "column", alignItems: "flex-start", gap: 12 }}>
+          <BrandLogo size={30} />
+          <Slogan size={13} />
         </div>
 
         {!isTauri ? (
@@ -139,7 +136,7 @@ export function TwoFactorPage() {
       <HardRefreshButton />
         <div className="login-card card">
           <div className="login-mark">
-            <span className="brand-mark" aria-hidden>一</span>
+            <BrandLogo size={26} />
             <div>
               <div className="login-title">二次认证</div>
               <div className="login-sub">选择一种方式验证身份 · {twoFactor.username}</div>
@@ -194,7 +191,7 @@ export function TwoFactorPage() {
       <HardRefreshButton />
       <div className="login-card card">
         <div className="login-mark">
-          <span className="brand-mark" aria-hidden>一</span>
+          <BrandLogo size={26} />
           <div>
             <div className="login-title">{nameOf(selected)}</div>
             <div className="login-sub">
