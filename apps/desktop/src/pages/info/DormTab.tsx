@@ -221,6 +221,7 @@ export function DormTab() {
             <input
               id="water-id"
               className="input"
+              style={{ flex: 1, minWidth: 0 }}
               value={waterId}
               onChange={(e) => setWaterId(e.target.value)}
               placeholder="水站发票/标签上的用户编号"

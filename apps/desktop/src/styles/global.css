@@ -440,6 +440,12 @@
   transition: border-color 100ms ease, background 100ms ease, box-shadow 100ms ease;
 }
 
+.field > input,
+.field > select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .field input:focus {
   outline: none;
   background: var(--surface);
