@@ -1603,3 +1603,90 @@
   font-size: .95em;
 }
 .slogan .brand-logo { flex: none; color: var(--text-3, rgba(255,255,255,.55)); }
+
+
+/* ============================================================
+   移动端布局（Android WebView / 窄屏）：去除"网页感"
+   ============================================================ */
+@media (max-width: 860px) {
+  /* 应用质感：禁橡皮筋、去点击高亮、内容不出横向滚动 */
+  body {
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+  .content { overflow-x: hidden; }
+
+  /* 顶栏导航：横向滚动 + 收窄项目，不再挤爆换行/左右滑整页 */
+  .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    padding: 8px 10px;
+    padding-top: calc(8px + env(safe-area-inset-top, 0px));
+    gap: 6px;
+    background: var(--bg, #050505);
+  }
+  .brand { display: flex; align-items: center; }
+  .nav {
+    flex-direction: row;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-item {
+    flex: none;
+    scroll-snap-align: start;
+    height: 40px;
+    padding: 0 12px;
+    gap: 6px;
+    font-size: var(--text-xs);
+  }
+  .nav-item svg { width: 15px; height: 15px; }
+  .sidebar-foot { display: none; } /* 硬刷新悬浮钮已在，状态徽标挪不进顶栏就隐藏 */
+}
+
+@media (max-width: 700px) {
+  /* 内容铺满 + 给悬浮刷新钮留出底部空间 */
+  .content { padding: 14px 12px 96px; }
+
+  /* 字号整体上提一档（手机上 12px 起步太难读） */
+  body { font-size: 14px; }
+
+  /* 卡片贴边、内边距收紧 */
+  .card { padding: 12px; border-radius: 12px; }
+
+  /* 表格类数据：卡内横向滚动，而不是整页被撑宽 */
+  .card table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 分段标签（预约页 TABS 等）：可横滚、加高易点 */
+  .tabs, [class*="tabs"] { overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar, [class*="tabs"]::-webkit-scrollbar { display: none; }
+
+  /* 触控目标下限 */
+  button, .chip { min-height: 34px; }
+  .chip { height: auto; min-height: 34px; padding: 4px 12px; }
+
+  /* 页头紧凑 */
+  .page-head { margin-bottom: 14px; }
+  .page-head h1 { font-size: var(--text-lg, 20px); }
+
+  /* 硬刷新悬浮钮避开手势区 */
+  .hard-refresh-fab {
+    right: calc(14px + env(safe-area-inset-right, 0px));
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    width: 40px;
+    height: 40px;
+  }
+
+  /* 表单控件顺手加高 */
+  .input { height: 36px; font-size: 14px; }
+}
