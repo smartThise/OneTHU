@@ -1,3 +1,4 @@
+import { HardRefreshButton } from "../components/Layout.js";
 import { useEffect, useState, type FormEvent } from "react";
 import type { TwoFactorMethod } from "@onethu/core";
 import { isTauri } from "../lib/transport.js";
@@ -28,6 +29,7 @@ export function LoginPage() {
 
   return (
     <div className="login-wrap">
+      <HardRefreshButton />
       <div className="login-card card">
         <div className="login-mark">
           <span className="brand-mark" aria-hidden>一</span>
@@ -134,6 +136,7 @@ export function TwoFactorPage() {
   if (stage === "select") {
     return (
       <div className="login-wrap">
+      <HardRefreshButton />
         <div className="login-card card">
           <div className="login-mark">
             <span className="brand-mark" aria-hidden>一</span>
@@ -188,6 +191,7 @@ export function TwoFactorPage() {
 
   return (
     <div className="login-wrap">
+      <HardRefreshButton />
       <div className="login-card card">
         <div className="login-mark">
           <span className="brand-mark" aria-hidden>一</span>
