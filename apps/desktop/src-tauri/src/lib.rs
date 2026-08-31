@@ -420,7 +420,8 @@ async fn http_request(input: HttpInput) -> Result<HttpOutput, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    #[tauri::command]
+    #[cfg(desktop)]
+#[tauri::command]
 fn open_eid_window(
     app: tauri::AppHandle,
     username: String,
@@ -483,6 +484,7 @@ fn open_eid_window(
 }
 
 
+#[cfg(desktop)]
 #[tauri::command]
 fn open_sports_window(app: tauri::AppHandle) -> Result<String, String> {
     use tauri::webview::WebviewWindowBuilder;
@@ -539,6 +541,18 @@ fn open_sports_window(app: tauri::AppHandle) -> Result<String, String> {
         }
     });
     Ok("opened".into())
+}
+
+#[cfg(mobile)]
+#[tauri::command]
+fn open_eid_window(_: tauri::AppHandle, _: String, _: String) -> Result<String, String> {
+    Err("账户设置多窗口仅桌面端可用".into())
+}
+
+#[cfg(mobile)]
+#[tauri::command]
+fn open_sports_window(_: tauri::AppHandle) -> Result<String, String> {
+    Err("场馆登录多窗口仅桌面端可用".into())
 }
 
 tauri::Builder::default()

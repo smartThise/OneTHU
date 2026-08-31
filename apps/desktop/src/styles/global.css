@@ -1523,3 +1523,21 @@
   padding: 0 10px;
   font-size: var(--text-sm);
 }
+
+/* 硬刷新按钮（sidebar-foot 内，桌面左下/移动顶右，全页面可见） */
+.hard-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md, 8px);
+  background: var(--surface-2, transparent);
+  color: var(--ink-3, var(--text-2));
+  font-size: var(--text-xs, 12px);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.hard-refresh:hover { background: var(--surface); color: var(--text-1); }
+.hard-refresh:active { transform: translateY(1px); }
