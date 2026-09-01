@@ -2079,4 +2079,17 @@
   .course-card-btn { padding: 8px 10px; }
   .home-card-head { padding: 6px 10px 6px 10px; }
   .home-card-body { padding: 6px 8px 8px; }
+
+  /* —— 第三档：状态胶囊与列表行的实测硬伤 —— */
+  /* 胶囊 34px 高的真凶：全局 button min-height:36 压过 height:20（min-height 优先） */
+  .chip { min-height: 0 !important; height: 19px; padding: 0 7px; font-size: 10px; gap: 4px; }
+  /* 入口卡 412px 下还在两列（184px×2），文字挤成又宽又高——单列通栏 */
+  .stats { grid-template-columns: minmax(0, 1fr) !important; }
+  /* 列表行实测 143px：子项 min-width:auto 不收缩导致换行竖叠——钉死单行横排 */
+  .row { flex-wrap: nowrap !important; align-items: center; }
+  .row > * { min-width: 0; }
+  .row-when { flex: none; }
+  .row-main { flex: 1 1 0; }
+  .row-title { font-size: 12px; line-height: 17px; }
+  .row-sub { margin-top: 0; font-size: 10px; line-height: 14px; }
 }
