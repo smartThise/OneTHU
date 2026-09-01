@@ -1606,18 +1606,51 @@
 
 
 /* ============================================================
-   移动端布局（Android WebView / 窄屏）：去除"网页感"
+   移动端布局 v2 —— 系统化适配，铁律：页面永不横向溢出
+   ------------------------------------------------------------
+   思路（不再是补丁堆叠）：
+   1) 根级横裁：body/.content overflow-x clip —— 任何组件都撑不开页面；
+      组件内部需要滚动的地方（表格/时间轴）自建滚动容器。
+   2) 一切网格自适应：所有 grid 在窄屏改 auto-fill 自流式列宽，
+      多少列由容器宽度决定，7 列课表也自动折行。
+   3) 一切行容器可换行 + 弹性子项 min-width:0 —— flex 溢出的头号根源。
+   4) 文本任意断行：中英文混排/URL/长词不再撑宽。
+   5) 触控目标 ≥36px，字号 14px 起，safe-area 全程避让。
    ============================================================ */
 @media (max-width: 860px) {
-  /* 应用质感：禁橡皮筋、去点击高亮、内容不出横向滚动 */
   body {
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
-    overflow-x: hidden;
+    overflow-x: clip;
+    overflow-wrap: anywhere;
   }
-  .content { overflow-x: hidden; }
-
-  /* 顶栏导航：横向滚动 + 收窄项目，不再挤爆换行/左右滑整页 */
+  .content {
+    overflow-x: clip;
+    max-width: 100%;
+    padding-inline: 12px;
+  }
+  /* flex 行全部可换行、子项可收缩（flex 溢出头号根源） */
+  .content [class*="row"],
+  .content [class*="bar"],
+  .content [class*="actions"] {
+    flex-wrap: wrap;
+  }
+  .content [class*="row"] > *,
+  .content [class*="grid"] > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  /* 一切网格 → 自流式响应列（课表 7 列、场地网格、统计网格全部自适应） */
+  .content [class*="grid"],
+  .content [class*="cards"] {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 158px), 1fr)) !important;
+  }
+  /* 媒体与嵌入永不超宽 */
+  .content img, .content video, .content canvas, .content iframe, .content svg {
+    max-width: 100%;
+    height: auto;
+  }
+  /* 顶栏导航：横滚 + 吸附，品牌行留出 */
   .sidebar {
     position: sticky;
     top: 0;
@@ -1627,7 +1660,6 @@
     gap: 6px;
     background: var(--bg, #050505);
   }
-  .brand { display: flex; align-items: center; }
   .nav {
     flex-direction: row;
     gap: 4px;
@@ -1646,47 +1678,53 @@
     font-size: var(--text-xs);
   }
   .nav-item svg { width: 15px; height: 15px; }
-  .sidebar-foot { display: none; } /* 硬刷新悬浮钮已在，状态徽标挪不进顶栏就隐藏 */
+  .sidebar-foot { display: none; }
 }
 
 @media (max-width: 700px) {
-  /* 内容铺满 + 给悬浮刷新钮留出底部空间 */
-  .content { padding: 14px 12px 96px; }
-
-  /* 字号整体上提一档（手机上 12px 起步太难读） */
   body { font-size: 14px; }
 
-  /* 卡片贴边、内边距收紧 */
-  .card { padding: 12px; border-radius: 12px; }
+  /* 课表：44px 时间轴 + 5 列全部可收缩（1fr 默认 min-content 不为零，长课名会撑爆） */
+  .tt { grid-template-columns: 34px repeat(5, minmax(0, 1fr)) !important; gap: 3px; }
+  .tt-cell { font-size: 10px; padding: 2px; }
+  /* 登录/恢复屏满宽 */
+  .login-wrap, .login-card { width: auto; max-width: 100%; margin-inline: 12px; }
+  .content { padding: 12px 10px calc(84px + env(safe-area-inset-bottom, 0px)); }
 
-  /* 表格类数据：卡内横向滚动，而不是整页被撑宽 */
-  .card table {
+  /* 卡片满宽贴边 */
+  .card {
+    width: auto;
+    max-width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    margin-inline: 0;
+  }
+  /* 卡内表格：横向滚动收在卡内，绝不撑开页面 */
+  .card table, .content table {
     display: block;
     max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    border-collapse: collapse;
+    white-space: nowrap;
   }
-
-  /* 分段标签（预约页 TABS 等）：可横滚、加高易点 */
-  .tabs, [class*="tabs"] { overflow-x: auto; scrollbar-width: none; }
-  .tabs::-webkit-scrollbar, [class*="tabs"]::-webkit-scrollbar { display: none; }
-
-  /* 触控目标下限 */
-  button, .chip { min-height: 34px; }
-  .chip { height: auto; min-height: 34px; padding: 4px 12px; }
-
-  /* 页头紧凑 */
-  .page-head { margin-bottom: 14px; }
+  /* 段落标签/胶囊行可换行、可点面积加大 */
+  [class*="tabs"], [class*="chips"], [class*="filters"] {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    gap: 6px;
+  }
+  .chip { min-height: 34px; padding: 4px 12px; }
+  button { min-height: 36px; }
+  .input, select { height: 38px; font-size: 14px; max-width: 100%; }
+  /* 页头两行排布 */
+  .page-head { flex-wrap: wrap; row-gap: 8px; margin-bottom: 12px; }
   .page-head h1 { font-size: var(--text-lg, 20px); }
-
-  /* 硬刷新悬浮钮避开手势区 */
+  /* 硬刷新 FAB 避让手势区 */
   .hard-refresh-fab {
     right: calc(14px + env(safe-area-inset-right, 0px));
     bottom: calc(14px + env(safe-area-inset-bottom, 0px));
     width: 40px;
     height: 40px;
   }
-
-  /* 表单控件顺手加高 */
-  .input { height: 36px; font-size: 14px; }
 }
