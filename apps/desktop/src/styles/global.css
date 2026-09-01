@@ -2234,23 +2234,35 @@ button, .btn, .icon-btn, .chip {
 
 /* ===== 真机手机密度层（pointer:coarse 才生效；桌面窄窗保持紧凑科研款） =====
    手机上 11-13px 物理观感过小、点按目标过挤——整体抬一档 */
+/* 手机 = 原生阅读档：body 15px（桌面窄窗 12.5px），比桌面抬两档半 */
 html.is-phone {
-    --text-xs: 11px;
-    --text-sm: 13px;
-    --text-base: 14px;
-    --text-md: 15px;
-    --gap-2: 6px;
-    --gap-3: 9px;
-    --gap-4: 12px;
-    --gap-5: 14px;
+    --text-xxs: 11px;
+    --text-xs: 12px;
+    --text-sm: 14px;
+    --text-base: 15px;
+    --text-md: 16px;
+    --text-lg: 18px;
+    --text-xl: 20px;
+    --gap-2: 8px;
+    --gap-3: 10px;
+    --gap-4: 13px;
+    --gap-5: 16px;
+    --gap-6: 20px;
 }
-html.is-phone .row { padding: 9px 12px; gap: 10px; }
-html.is-phone .btn { height: 34px; }
-html.is-phone .input, html.is-phone .filter-select { height: 38px; font-size: 13px; }
-html.is-phone .chip { height: 22px; padding: 0 9px; font-size: 11px; }
-html.is-phone .seg-track button { height: 24px; font-size: 12px; }
-html.is-phone .content { padding: 12px 14px calc(88px + env(safe-area-inset-bottom, 0px)); }
-html.is-phone .home-entry-btn { padding: 12px 14px; }
-html.is-phone .home-card-head { padding: 10px 12px 10px 16px; }
-html.is-phone .stats-overview .stat-num { font-size: 18px; }
-html.is-phone .stats-overview .stat-label { font-size: 11px; }
+html.is-phone .row { padding: 11px 14px; gap: 10px; }
+html.is-phone .btn { height: 38px; font-size: var(--text-sm); }
+html.is-phone .input, html.is-phone .filter-select { height: 40px; font-size: 14px; }
+html.is-phone .chip { height: 24px; padding: 0 10px; font-size: 12px; }
+html.is-phone .seg-track button { height: 27px; font-size: 13px; }
+html.is-phone .segmented button { height: 30px; font-size: 13px; }
+html.is-phone .content { padding: 14px 16px calc(92px + env(safe-area-inset-bottom, 0px)); }
+html.is-phone .card { padding: 12px 14px; }
+html.is-phone .home-entry-btn { padding: 14px 16px; }
+html.is-phone .home-card-head { padding: 12px 14px 12px 16px; }
+html.is-phone .home-card-title { font-size: 15px; }
+html.is-phone .stats-overview .stat-num { font-size: 20px; }
+html.is-phone .stats-overview .stat-label { font-size: 12px; }
+html.is-phone .page-head-title { font-size: 20px; }
+html.is-phone .section-head { font-size: 15px; }
+html.is-phone .data-table { font-size: 13px; }
+html.is-phone .data-table th { font-size: 12px; }
