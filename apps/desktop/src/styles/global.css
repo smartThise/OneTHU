@@ -1884,7 +1884,7 @@
 .seg-indi {
   width: calc(100% - 16px);
   height: 3px;
-  margin: 2px auto 0;
+  margin: 0 auto;
   border-radius: 2px;
   background: var(--border, rgba(0, 0, 0, 0.16));
   position: relative;
