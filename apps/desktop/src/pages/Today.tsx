@@ -467,10 +467,10 @@ function HomeCard({
 
         {editing ? (
           <div className="home-card-tools">
-            <button type="button" className="icon-btn tool-up" title="上移" aria-label={`上移${def.title}`} onClick={() => onMove(def.id, "up")}>
+            <button type="button" className="icon-btn tool-up" disabled={index === 0} title="上移" aria-label={`上移${def.title}`} onClick={() => onMove(def.id, "up")}>
               <IconChevron width={13} height={13} />
             </button>
-            <button type="button" className="icon-btn tool-down" title="下移" aria-label={`下移${def.title}`} onClick={() => onMove(def.id, "down")}>
+            <button type="button" className="icon-btn tool-down" disabled={index === count - 1} title="下移" aria-label={`下移${def.title}`} onClick={() => onMove(def.id, "down")}>
               <IconChevron width={13} height={13} />
             </button>
             {!portrait ? (
@@ -654,7 +654,9 @@ export function TodayPage() {
         if (!moving || !neighbor) return prev;
         const rest = prev.filter((it) => it.id !== moving.id);
         const nIdx = rest.findIndex((it) => it.id === neighbor.id);
-        rest.splice(nIdx, 0, { ...moving, col: neighbor.col });
+        // up = 插到邻居（上方卡）之前；down = 插到邻居（下方卡）之后——
+        // 两个方向都插 nIdx 会把 down 变成落回原位的无操作
+        rest.splice(dir === "up" ? nIdx : nIdx + 1, 0, { ...moving, col: neighbor.col });
         return rest;
       });
       return;
