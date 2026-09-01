@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
+import { Card, Empty, ErrorNote, PageHead, SegmentedOverflow, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useXkWorkbench, type XkStageItem } from "../../state/data.js";
 import type { XkCourseDetail } from "@onethu/core";
@@ -73,8 +73,8 @@ function DetailModal({ wb, code, onClose }: { wb: ReturnType<typeof useXkWorkben
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
   });
   return createPortal(
-    <div style={maskStyle} onClick={onClose}>
-      <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
+    <div style={maskStyle} className="xk-mask" onClick={onClose}>
+      <div style={panelStyle} className="xk-panel" onClick={(e) => e.stopPropagation()}>
         <div style={panelHead}><b>课程简介</b><span style={{ flex: 1 }} /><button className="btn" onClick={onClose}>✕</button></div>
         <div style={panelBody}>
           {loading ? <Empty text="正在加载课程简介…" /> : !data ? <Empty text="暂无课程简介信息（该课缺教师号，无法拉取）" /> : entries.map(([k, v]) => (
@@ -153,8 +153,8 @@ function ReviewsModal({ code, seq, name, teacher, onClose }: { code: string | nu
     </div>,
   );
   return createPortal(
-    <div style={maskStyle} onClick={onClose}>
-      <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
+    <div style={maskStyle} className="xk-mask" onClick={onClose}>
+      <div style={panelStyle} className="xk-panel" onClick={(e) => e.stopPropagation()}>
         <div style={panelHead}><b>{name} · 社区点评</b><span style={{ flex: 1 }} /><button className="btn" onClick={onClose}>✕</button></div>
         <div style={panelBody}>
           {headBits}
@@ -203,9 +203,14 @@ export function ZhjwxkCoursesPage() {
   const [detailCode, setDetailCode] = useState<string | null>(null);
   const [reviewCode, setReviewCode] = useState<{ code: string; seq: string; name: string; teacher: string } | null>(null);
   const [jump, setJump] = useState("");
+  // 竖屏三页签：课程查找 / 选课管理 / AI 选课（桌面仍为双栏，此状态仅移动端消费）
+  const [mTab, setMTab] = useState<"find" | "manage" | "ai">("find");
   useEffect(() => {
     void tbEnsureIndex().catch(() => undefined);
     _jumpSetter = setJump;
+  useEffect(() => {
+    if (jump) setMTab("find"); // 点课表/暂存里的课 → 跳回「课程查找」页签
+  }, [jump]);
     _detailOpen = setDetailCode;
     _reviewOpen = setReviewCode;
     return () => { _jumpSetter = null; _detailOpen = null; _reviewOpen = null; };
@@ -244,12 +249,11 @@ export function ZhjwxkCoursesPage() {
       ) : null}
       {wb.progress ? <Card style={{ padding: "8px 14px", borderColor: "var(--amber)", marginBottom: 10 }}><span style={{ fontSize: "var(--text-sm)" }}>{wb.progress}</span></Card> : null}
 
+      {/* ── 桌面：双栏（左查找 / 右管理+AI）── */}
       <div className="xk-two-col" style={{ display: "flex", gap: 12, alignItems: "stretch", flexWrap: "nowrap", width: "100%", maxWidth: "100%", overflow: "hidden" }}>
-        {/* ── 左栏：搜索 + 筛选 + 列表（独立滚动；窄屏不换行，右栏钉死在右）── */}
         <div className="xk-left" style={{ maxHeight: "calc(100vh - 150px)" }}>
           <CourseListPanel wb={wb} jump={jump} />
         </div>
-        {/* ── 右栏：培养方案 / 学分统计 / 课表预览 / 暂存草稿 / 候补 / AI ── */}
         <div className="xk-right" style={{ maxHeight: "calc(100vh - 150px)", display: "flex", flexDirection: "column", gap: 10 }}>
           <PlanSection wb={wb} />
           <StatsSection wb={wb} />
@@ -258,6 +262,28 @@ export function ZhjwxkCoursesPage() {
           <QueueSection wb={wb} />
           <AiSections wb={wb} />
         </div>
+      </div>
+
+      {/* ── 竖屏：三页签（课程查找 / 选课管理 / AI 选课），跳转关系由 jump 联动 ── */}
+      <div className="xk-mobile-tabs">
+        <SegmentedOverflow ariaLabel="选课分栏">
+          {([["find", "课程查找"], ["manage", "选课管理"], ["ai", "AI 选课"]] as const).map(([k, label]) => (
+            <button key={k} role="tab" aria-selected={mTab === k} className={mTab === k ? "is-active" : ""} onClick={() => setMTab(k)}>
+              {label}
+            </button>
+          ))}
+        </SegmentedOverflow>
+        {mTab === "find" ? <CourseListPanel wb={wb} jump={jump} /> : null}
+        {mTab === "manage" ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <PlanSection wb={wb} />
+            <StatsSection wb={wb} />
+            <PreviewSection wb={wb} />
+            <StageSection wb={wb} />
+            <QueueSection wb={wb} />
+          </div>
+        ) : null}
+        {mTab === "ai" ? <AiSections wb={wb} /> : null}
       </div>
 
       <DetailModal wb={wb} code={detailCode} onClose={() => setDetailCode(null)} />

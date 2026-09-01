@@ -1626,8 +1626,7 @@
     font-size: 11.5px;
   }
   .section-head { flex-wrap: wrap; max-width: 100%; }
-  .xk-two-col { flex-direction: column; }
-  .xk-two-col > .xk-left, .xk-two-col > .xk-right { width: auto !important; max-width: 100%; }
+  /* 选课双栏在 ≤860 由 .xk-mobile-tabs 三页签接管（见文件尾） */
   body {
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
@@ -2121,3 +2120,18 @@
   flex: none;
 }
 .chip-offline:hover { background: rgba(239, 68, 68, 0.18); }
+
+/* ===== 选课（zhjwxk）竖屏三页签 + 弹窗适配 ===== */
+.xk-mobile-tabs { display: none; }
+@media (max-width: 860px) {
+  .xk-two-col { display: none !important; }
+  .xk-mobile-tabs { display: block; }
+  /* 课程简介 / 选课评价弹窗：竖屏收窄适配（!important 压过内联样式） */
+  .xk-mask { padding: 10px !important; }
+  .xk-panel {
+    max-width: 100% !important;
+    max-height: 88vh !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.18) !important;
+  }
+}
