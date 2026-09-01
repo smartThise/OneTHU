@@ -901,6 +901,42 @@ export class LearnClient {
     });
   }
 
+  /** 话题头（viewTlById HTML：标题 #tlbt、楼主块 louzhuu、分页 loadpage2 总数、tabbh/tabid/bqid） */
+  async getBbsThread(wlkcid: string, threadId: string): Promise<LearnBbsThreadDetail> {
+    return this.#withRelogin(async () => {
+      this.#requireCsrf();
+      const html = await this.#http.text(this.#withCsrf(urls.LEARN_BBS_THREAD_VIEW(wlkcid, threadId)));
+      const main = parseBbsMainBlock(html);
+      const span = (re: RegExp): string => re.exec(html)?.[1] ?? "";
+      return {
+        id: threadId,
+        title: decodeHtml(
+          span(/id="tlbt"[\s\S]{0,220}?<span[^>]*title="([^"]*)"/) ||
+            span(/id="tlbt"[\s\S]{0,300}?<span[^>]*>([^<]{2,200})<\/span>/),
+        ).trim(),
+        author: main.author,
+        time: main.time,
+        html: main.html,
+        replyCount: parseInt(span(/loadpage2\([^,]+,\s*(\d+)\s*,/), 10) || 0,
+        tabbh: span(/tabbh=(\d+)/),
+        tabid: span(/[?&]tabid=([0-9a-f]{16,40})/),
+        bqid: span(/[?&]bqid=([0-9a-f]{16,40})/),
+      };
+    });
+  }
+
+  /** 回复分页（pageViewTlById JSON；每页 8 条，hhbDtoList 为楼中楼） */
+  async getBbsThreadPosts(wlkcid: string, threadId: string, pageNum: number): Promise<LearnBbsPost[]> {
+    return this.#withRelogin(async () => {
+      this.#requireCsrf();
+      const json = await this.#http.json<{ result?: string; object?: { list?: unknown[] } }>(
+        this.#withCsrf(urls.LEARN_BBS_POSTS_PAGE(wlkcid, threadId, pageNum)),
+      );
+      const list = json?.object?.list;
+      return Array.isArray(list) ? list.map(parseBbsPostJson) : [];
+    });
+  }
+
   /** 发表回复（saveEdit 表单 POST；fhhid = 楼中楼父楼层，缺省 = 回楼主）。成功无回包语义，失败抛错 */
   async postBbsReply(wlkcid: string, threadId: string, nr: string, fhhid?: string): Promise<void> {
     return this.#withRelogin(async () => {
