@@ -22,6 +22,7 @@ export type Page =
   | "learn-semester" // 学期切换
   | "learn-assignment-detail" // 作业只读详情（courseId+itemId）
   | "learn-notice-detail" // 通知只读详情（courseId+itemId）
+  | "learn-forum-thread" // 讨论区话题阅读/回复（courseId+threadId）
   | "learn-file-detail"; // 文件详情（courseId+itemId）
 
 /** 子页导航参数：详情页按 id 在已缓存数据中查找实体 */

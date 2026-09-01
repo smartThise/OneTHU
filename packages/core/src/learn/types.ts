@@ -153,3 +153,52 @@ export interface CourseFile {
   /** 标记为重要（sfqd） */
   important?: boolean;
 }
+
+/* ───── 讨论区（网络学堂 bbs_tltb） ───── */
+
+/** 话题板块 tab（课程讨论 / 答疑区等；tabbh 恒 "2"） */
+export interface LearnBbsTab {
+  tabbh: string;
+  tabid: string;
+  label: string;
+}
+
+/** 话题列表行（列表页为服务端渲染，作者/回复数解析宽容，可能缺省） */
+export interface LearnBbsThreadSummary {
+  id: string;
+  title: string;
+  author: string;
+  time: string;
+  replies: number;
+  tabid?: string;
+}
+
+/** 附件（帖子层只有一个：wjid/wjmc） */
+export interface LearnBbsPostAttachment {
+  wjid: string;
+  wjmc: string;
+}
+
+/** 楼层（含楼中楼 children） */
+export interface LearnBbsPost {
+  hhid: string;
+  author: string;
+  time: string;
+  /** 服务端消毒过的富文本（nr_str） */
+  html: string;
+  attachments: LearnBbsPostAttachment[];
+  children: LearnBbsPost[];
+}
+
+/** 话题头（楼主块 + 分页上下文） */
+export interface LearnBbsThreadDetail {
+  id: string;
+  title: string;
+  author: string;
+  time: string;
+  html: string;
+  replyCount: number;
+  tabbh: string;
+  tabid: string;
+  bqid: string;
+}

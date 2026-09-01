@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"主窗口能力：核心权限 + opener 插件（外链系统浏览器；自定义命令不需要插件授权）","local":true,"windows":["main"],"permissions":["core:default","opener:default"]}}
+{"default":{"identifier":"default","description":"主窗口能力：核心权限 + opener 插件（外链系统浏览器；自定义命令不需要插件授权）","local":true,"windows":["main"],"permissions":["core:default","opener:default","opener:allow-open-url"]}}

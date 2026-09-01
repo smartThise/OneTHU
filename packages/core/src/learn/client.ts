@@ -12,6 +12,11 @@ import type {
   Homework,
   HomeworkPageDetail,
   LearnAttachment,
+  LearnBbsTab,
+  LearnBbsThreadSummary,
+  LearnBbsPost,
+  LearnBbsPostAttachment,
+  LearnBbsThreadDetail,
   LearnGroup,
   Notification,
   NotificationPageDetail,
@@ -252,6 +257,89 @@ export function parseSemesterIdList(text: string): string[] {
     if (/^\d{4}-\d{4}-\d$/.test(cand)) opts.add(cand);
   }
   return [...opts];
+}
+
+
+/* ───── 讨论区解析（服务端渲染 HTML + 分页 JSON） ───── */
+
+/** 板块 tab：beforePageTlList 锚点（wlkcid=..&tabbh=2&tabid=xx">label</a>） */
+function parseBbsTabs(html: string): LearnBbsTab[] {
+  const out = new Map<string, LearnBbsTab>();
+  const re =
+    /beforePageTlList\?wlkcid=[^"']*?tabbh=(\d+)&tabid=([0-9a-f]{16,40})[^>]*>([\s\S]{0,160}?)<\/a>/gi;
+  for (const m of html.matchAll(re)) {
+    const label = decodeHtml(m[3]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+    if (!label || label.length > 24) continue;
+    out.set(m[2]!, { tabbh: m[1]!, tabid: m[2]!, label });
+  }
+  return [...out.values()];
+}
+
+/** 话题行：viewTlById 锚点定位 + 行窗口抓标题/时间/回复数（列表页无采样，宽容提取） */
+function parseBbsThreadRows(html: string): LearnBbsThreadSummary[] {
+  const out: LearnBbsThreadSummary[] = [];
+  const seen = new Set<string>();
+  const re =
+    /viewTlById\?wlkcid=[^"']*?&id=([0-9a-f]{16,50})[^"]*"[^>]*>([\s\S]{0,220}?)<\/a>/gi;
+  for (const m of html.matchAll(re)) {
+    const id = m[1]!;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const window = html.slice(Math.max(0, m.index! - 500), m.index! + 900);
+    let title = decodeHtml(m[2]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+    const attrTitle = /title="([^"]{2,160})"/.exec(window)?.[1];
+    if (attrTitle && (!title || title.length < 4)) title = decodeHtml(attrTitle).trim();
+    if (!title) continue;
+    const time = /\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?/.exec(window)?.[0] ?? "";
+    const authorM = /class="[^"]*(?:fbr|author|name)[^"]*"[^>]*>([^<]{1,40})</.exec(window);
+    const cntM = /(?:回复|讨论)[^\d]{0,12}(\d{1,4})/.exec(window) ?? /(\d{1,4})\s*<\/[^>]+>\s*(?:<[^>]+>\s*){0,2}$/.exec(window);
+    out.push({
+      id,
+      title,
+      author: authorM ? decodeHtml(authorM[1]!).trim() : "",
+      time,
+      replies: cntM ? parseInt(cntM[1]!, 10) || 0 : 0,
+    });
+  }
+  return out;
+}
+
+/** 楼层块（楼主/回复共用 .list.lists 布局：.left 作者 + .right 正文） */
+function parseBbsMainBlock(html: string): { author: string; time: string; html: string } {
+  const lz = html.indexOf("louzhuu");
+  if (lz < 0) return { author: "", time: "", html: "" };
+  let end = html.indexOf("editFirstAnswerFormId", lz);
+  if (end < 0) end = Math.min(html.length, lz + 40000);
+  const block = html.slice(lz, end);
+  const author = decodeHtml(/class="name"[^>]*>([^<]{1,60})</.exec(block)?.[1] ?? "").trim();
+  const time = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.exec(block)?.[0] ?? "";
+  const rs = block.search(/class="\s*right"/);
+  let body = "";
+  if (rs >= 0) {
+    const seg = block.slice(block.indexOf(">", rs) + 1);
+    const stop = seg.search(/<form\b|<div class="list lists|<div class='list lists/);
+    body = seg.slice(0, stop > 0 ? stop : seg.length).replace(/(<\/div>\s*)+$/, "").trim();
+  }
+  return { author, time, html: body };
+}
+
+/** pageViewTlById JSON 行 → LearnBbsPost（字段：hhid/hfr/hfrxm/hfsj/nr_str/wjid/wjmc/hhbDtoList） */
+function parseBbsPostJson(raw: unknown): LearnBbsPost {
+  const o = (raw ?? {}) as Record<string, unknown>;
+  const atts: LearnBbsPostAttachment[] = [];
+  if (o.wjid) atts.push({ wjid: String(o.wjid), wjmc: String(o.wjmc ?? "附件") });
+  for (const w of Array.isArray(o.wjList) ? o.wjList : []) {
+    const wj = (w ?? {}) as Record<string, unknown>;
+    if (wj.wjid) atts.push({ wjid: String(wj.wjid), wjmc: String(wj.wjmc ?? "附件") });
+  }
+  return {
+    hhid: String(o.hhid ?? ""),
+    author: String(o.hfrxm ?? o.hfr ?? "").trim(),
+    time: String(o.hfsj ?? "").slice(0, 16),
+    html: String(o.nr_str ?? ""),
+    attachments: atts,
+    children: Array.isArray(o.hhbDtoList) ? o.hhbDtoList.map(parseBbsPostJson) : [],
+  };
 }
 
 export class LearnClient {
@@ -740,6 +828,80 @@ export class LearnClient {
   /** 课程「我的分组」（beforePageWdfzList HTML 宽容解析 → pageFzList JSON 兜底）。
    *  两路都提不出结构时返回 []，现场写入 lastGroupsDebug；
    *  分组页被重定向到登录页时抛 AuthRequiredError（与相邻 HTML 方法风格一致）。 */
+  /* ───── 讨论区（bbs_tltb） ───── */
+
+  /** 话题列表（beforePageTlList HTML，宽容解析） */
+  async getBbsThreads(
+    wlkcid: string,
+    tabId?: string,
+  ): Promise<{ tabs: LearnBbsTab[]; threads: LearnBbsThreadSummary[] }> {
+    return this.#withRelogin(async () => {
+      this.#requireCsrf();
+      const html = await this.#http.text(this.#withCsrf(urls.LEARN_BBS_THREAD_LIST(wlkcid, tabId)));
+      return { tabs: parseBbsTabs(html), threads: parseBbsThreadRows(html) };
+    });
+  }
+
+  /** 话题头（楼主块 + 分页上下文） */
+  async getBbsThread(wlkcid: string, threadId: string): Promise<LearnBbsThreadDetail> {
+    return this.#withRelogin(async () => {
+      this.#requireCsrf();
+      const html = await this.#http.text(this.#withCsrf(urls.LEARN_BBS_THREAD_VIEW(wlkcid, threadId)));
+      const main = parseBbsMainBlock(html);
+      const span = (re: RegExp): string => re.exec(html)?.[1] ?? "";
+      return {
+        id: threadId,
+        title: decodeHtml(
+          span(/id="tlbt"[\s\S]{0,220}?<span[^>]*title="([^"]*)"/) ||
+            span(/id="tlbt"[\s\S]{0,300}?<span[^>]*>([^<]{2,200})<\/span>/),
+        ).trim(),
+        author: main.author,
+        time: main.time,
+        html: main.html,
+        replyCount: parseInt(span(/loadpage2\([^,]+,\s*(\d+)\s*,/), 10) || 0,
+        tabbh: span(/tabbh=(\d+)/),
+        tabid: span(/[?&]tabid=([0-9a-f]{16,40})/),
+        bqid: span(/[?&]bqid=([0-9a-f]{16,40})/),
+      };
+    });
+  }
+
+  /** 回复分页（pageViewTlById JSON；每页 8 条，hhbDtoList 为楼中楼） */
+  async getBbsThreadPosts(wlkcid: string, threadId: string, pageNum: number): Promise<LearnBbsPost[]> {
+    return this.#withRelogin(async () => {
+      this.#requireCsrf();
+      const json = await this.#http.json<{ result?: string; object?: { list?: unknown[] } }>(
+        this.#withCsrf(urls.LEARN_BBS_POSTS_PAGE(wlkcid, threadId, pageNum)),
+      );
+      const list = json?.object?.list;
+      return Array.isArray(list) ? list.map(parseBbsPostJson) : [];
+    });
+  }
+
+  /** 发表回复（saveEdit 表单 POST；fhhid = 楼中楼父楼层，缺省 = 回楼主）。成功无回包语义，失败抛错 */
+  async postBbsReply(wlkcid: string, threadId: string, nr: string, fhhid?: string): Promise<void> {
+    return this.#withRelogin(async () => {
+      this.#requireCsrf();
+      const body = new URLSearchParams({ wlkcid, tltid: threadId, nr });
+      if (fhhid) {
+        body.set("fhhid", fhhid);
+        body.set("_fhhid", fhhid);
+      }
+      const res = await this.#http.postForm(this.#withCsrf(urls.LEARN_BBS_SAVE_REPLY(wlkcid)), body);
+      let ok = false;
+      try {
+        const j = JSON.parse(res) as { result?: unknown; msg?: unknown };
+        ok = /success/i.test(String(j.result ?? "")) || res.trim().length === 0;
+      } catch {
+        ok = /success/i.test(res) || res.trim().length === 0;
+      }
+      if (!ok) {
+        const msg = decodeHtml(res.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+        throw new Error(msg.slice(0, 140) || "回复失败（站点未返回成功标记）");
+      }
+    });
+  }
+
   async getCourseGroups(wlkcid: string): Promise<LearnGroup[]> {
     return this.#withRelogin(async () => {
       this.#requireCsrf();
