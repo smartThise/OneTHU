@@ -56,6 +56,7 @@ export function SegmentedOverflow({
     const sizer = sizerRef.current;
     const row = rowRef.current;
     if (!sizer || !row) return;
+    if (row.clientWidth < 60) return; // 布局未就绪/被隐藏时不动手，防自反馈死循环
     const kids = [...sizer.children] as HTMLElement[];
     if (kids.length === 0) return;
     const last = kids[kids.length - 1]!;

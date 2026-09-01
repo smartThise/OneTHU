@@ -1851,6 +1851,8 @@
 /* ===== SegmentedOverflow：溢出箭头 + 下拉列表菜单 ===== */
 .seg-ov {
   position: relative;
+  display: flex;
+  width: 100%;
   flex-wrap: nowrap;
   overflow: visible;
 }
