@@ -179,15 +179,7 @@ export function Shell({ children }: { children: ReactNode }) {
           )}
         </div>
       </aside>
-      {/* 移动端：左下角导航按钮 + 左滑抽屉（≤860px 由 CSS 显示） */}
-      <button
-        className="drawer-fab"
-        onClick={() => setNavOpen(true)}
-        aria-label="打开导航"
-      >
-        <BrandLogo size={11} />
-        <span>导航</span>
-      </button>
+      {/* 移动端：左滑抽屉（≤860px 由 CSS 显示；入口是页头标题胶囊） */}
       {navOpen ? (
         <>
           <div className="drawer-mask" onClick={() => setNavOpen(false)} />
@@ -226,7 +218,18 @@ export function Shell({ children }: { children: ReactNode }) {
           </aside>
         </>
       ) : null}
-      <main className="content">{children}</main>
+      <main className="content">
+        {/* 移动端：页头标题改造为导航胶囊（标题 + 同高小 logo + 圆角胶囊边框），桌面隐藏 */}
+        <button
+          className="page-title-capsule"
+          onClick={() => setNavOpen(true)}
+          aria-label={`打开导航（当前：${NAV.find((n) => n.page === page)?.label ?? "OneTHU"}）`}
+        >
+          <span>{NAV.find((n) => n.page === page)?.label ?? "OneTHU"}</span>
+          <BrandLogo size={10} />
+        </button>
+        {children}
+      </main>
       <HardRefreshButton />
     </div>
   );

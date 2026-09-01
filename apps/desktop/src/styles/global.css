@@ -1704,25 +1704,25 @@
   .sidebar { display: none; }
   .sidebar-foot { display: none; }
 
-  /* —— 左下角导航按钮（logo + “导航”） —— */
-  .drawer-fab {
-    position: fixed;
-    left: 10px;
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-    z-index: 9998;
+  /* —— 页头标题导航胶囊（标题 + 同高 logo） —— */
+  .page-title-capsule {
     display: flex;
     align-items: center;
-    gap: 7px;
-    padding: 7px 13px 7px 10px;
-    border: 1px solid var(--border, rgba(0,0,0,.12));
+    gap: 8px;
+    padding: 5px 13px 5px 14px;
+    border: 1px solid var(--border, rgba(0, 0, 0, 0.14));
     border-radius: 999px;
     background: var(--surface, #fff);
     color: var(--text-1, #111);
-    font-size: 12px;
+    font-size: 13.5px;
     font-weight: 600;
-    box-shadow: 0 4px 16px rgba(0,0,0,.14);
+    line-height: 1;
+    margin: 0 0 10px;
     cursor: pointer;
   }
+  .page-title-capsule .brand-logo { font-size: 9.5px; }
+  /* 页内自身标题让位给胶囊 */
+  .page-head h1 { display: none; }
   /* —— 遮罩 + 左滑抽屉 —— */
   .drawer-mask {
     position: fixed;
@@ -1840,10 +1840,10 @@
   }
 }
 
-/* 抽屉导航件：仅移动端媒体块内显示 */
-.drawer-fab, .drawer-mask, .drawer { display: none; }
+/* 抽屉导航件与标题胶囊：仅移动端媒体块内显示 */
+.page-title-capsule, .drawer-mask, .drawer { display: none; }
 @media (max-width: 860px) {
-  .drawer-fab { display: flex; }
+  .page-title-capsule { display: inline-flex; }
   .drawer-mask { display: block; }
   .drawer { display: flex; }
 }
