@@ -275,6 +275,23 @@ function parseBbsTabs(html: string): LearnBbsTab[] {
   return [...out.values()];
 }
 
+
+/** 空列表诊断：抽取页面里的 wlxt 接口 URL 与内联脚本（DataTables ajax 初始化就藏在这里） */
+function debugBbsShell(html: string): string {
+  const urls = [...new Set(html.match(/\/[bf]\/wlxt[\w/.-]*(?:\?[^"'\s<>)]*)?/g) ?? [])];
+  const inline = (html.match(/<script[\s\S]*?<\/script>/gi) ?? [])
+    .filter((x) => !/src=/.test(x))
+    .map((x) => x.replace(/<\/?script[^>]*>/gi, "").trim())
+    .filter((x) => x.length > 40 && /ajax|DataTable|url|tltb|table/i.test(x));
+  return [
+    "URLS(" + urls.length + "):",
+    ...urls.map((u) => "  " + u),
+    "",
+    "INLINE-SCRIPTS(前3段，每段1500字):",
+    ...inline.slice(0, 3).map((x, i) => `--- #${i} ---\n` + x.slice(0, 1500)),
+  ].join("\n").slice(0, 6000);
+}
+
 /** 话题行：viewTlById 锚点定位 + 行窗口抓标题/时间/回复数（列表页无采样，宽容提取）。
  *  href 里的 & 可能写成 &amp;（服务端渲染常见坑），统一归一后再匹配。 */
 function parseBbsThreadRows(htmlRaw: string): LearnBbsThreadSummary[] {
@@ -859,8 +876,8 @@ export class LearnClient {
       this.#requireCsrf();
       const html = await this.#http.text(this.#withCsrf(urls.LEARN_BBS_THREAD_LIST(wlkcid, tabId)));
       const threads = parseBbsThreadRows(html);
-      // 诊断现场：空列表时留原始 HTML 头部（列表页可能是 ajax 壳，供「复制诊断」排障）
-      this.lastBbsListDebug = threads.length === 0 ? html.slice(0, 4000) : "";
+      // 诊断现场：空列表时抽取 ajax 线索（列表页确认为 DataTables 壳——2026-09 用户实测）
+      this.lastBbsListDebug = threads.length === 0 ? debugBbsShell(html) : "";
       return { tabs: parseBbsTabs(html), threads };
     });
   }
