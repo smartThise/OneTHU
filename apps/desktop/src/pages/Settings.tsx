@@ -37,6 +37,15 @@ export function SettingsPage() {
     <>
       <PageHead title="设置" />
 
+      <SectionHead title="设备诊断" />
+      <Card>
+        <div style={{ display: "grid", gap: 4, fontSize: "var(--text-xs)", fontFamily: "var(--font-mono, monospace)", wordBreak: "break-all" }}>
+          <span>视口 {window.innerWidth}×{window.innerHeight} · DPR {window.devicePixelRatio}</span>
+          <span>触点 {navigator.maxTouchPoints} · coarse={window.matchMedia("(pointer: coarse)").matches ? "是" : "否"} · ≤860={window.matchMedia("(max-width: 860px)").matches ? "是" : "否"} · 竖屏={window.matchMedia("(orientation: portrait)").matches ? "是" : "否"}</span>
+          <span>密度层 is-phone={document.documentElement.classList.contains("is-phone") ? "生效" : "未生效"} · 缩放 textZoom={(() => { try { return String((window as unknown as { visualViewport?: VisualViewport }).visualViewport?.scale ?? 1); } catch { return "1"; } })()}</span>
+        </div>
+      </Card>
+
       <SectionHead title="账户" />
       <Card>
         <div className="setting-row">

@@ -2234,8 +2234,7 @@ button, .btn, .icon-btn, .chip {
 
 /* ===== 真机手机密度层（pointer:coarse 才生效；桌面窄窗保持紧凑科研款） =====
    手机上 11-13px 物理观感过小、点按目标过挤——整体抬一档 */
-@media (max-width: 860px) and (pointer: coarse) {
-  :root {
+html.is-phone {
     --text-xs: 11px;
     --text-sm: 13px;
     --text-base: 14px;
@@ -2244,15 +2243,14 @@ button, .btn, .icon-btn, .chip {
     --gap-3: 9px;
     --gap-4: 12px;
     --gap-5: 14px;
-  }
-  .row { padding: 9px 12px; gap: 10px; }
-  .btn { height: 34px; }
-  .input, .filter-select { height: 38px; font-size: 13px; }
-  .chip { height: 22px; padding: 0 9px; font-size: 11px; }
-  .seg-track button { height: 24px; font-size: 12px; }
-  .content { padding: 12px 14px calc(88px + env(safe-area-inset-bottom, 0px)); }
-  .home-entry-btn { padding: 12px 14px; }
-  .home-card-head { padding: 10px 12px 10px 16px; }
-  .stats-overview .stat-num { font-size: 18px; }
-  .stats-overview .stat-label { font-size: 11px; }
 }
+html.is-phone .row { padding: 9px 12px; gap: 10px; }
+html.is-phone .btn { height: 34px; }
+html.is-phone .input, html.is-phone .filter-select { height: 38px; font-size: 13px; }
+html.is-phone .chip { height: 22px; padding: 0 9px; font-size: 11px; }
+html.is-phone .seg-track button { height: 24px; font-size: 12px; }
+html.is-phone .content { padding: 12px 14px calc(88px + env(safe-area-inset-bottom, 0px)); }
+html.is-phone .home-entry-btn { padding: 12px 14px; }
+html.is-phone .home-card-head { padding: 10px 12px 10px 16px; }
+html.is-phone .stats-overview .stat-num { font-size: 18px; }
+html.is-phone .stats-overview .stat-label { font-size: 11px; }
