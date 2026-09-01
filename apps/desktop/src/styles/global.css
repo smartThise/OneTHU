@@ -1749,8 +1749,13 @@
     animation: drawer-in 0.26s cubic-bezier(0.22, 0.9, 0.3, 1) forwards;
   }
   @keyframes drawer-in { to { transform: none; } }
-  .drawer-closing { animation: drawer-out 0.24s ease forwards; }
-  @keyframes drawer-out { to { transform: translateX(-100%); } }
+  /* 收回态：必须显式 transform:none 钉住起点——基类的 translateX(-100%) 是入场前
+     藏身态，入场动画的 forwards 一失效它就立刻生效，抽屉会一帧闪没而不是滑回 */
+  .drawer-closing { transform: none; animation: drawer-out 0.24s ease forwards; }
+  @keyframes drawer-out {
+    from { transform: none; }
+    to { transform: translateX(-100%); }
+  }
   .drawer-mask-closing { animation: mask-out 0.24s ease forwards; }
   @keyframes mask-out { to { opacity: 0; } }
   .drawer-brand { padding: 2px 4px 10px; border-bottom: 1px solid var(--border-soft, #e5e5e3); }
