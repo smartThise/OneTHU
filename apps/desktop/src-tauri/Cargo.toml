@@ -1,6 +1,6 @@
 [package]
 name = "onethu"
-version = "0.7.2"
+version = "0.7.3"
 description = "OneTHU — 清华万物，汇合于一体"
 edition = "2021"
 
