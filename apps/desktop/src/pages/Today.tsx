@@ -405,18 +405,18 @@ function HomeCard({
             </span>
             {editing ? (
             <div className="home-card-tools">
-              <button type="button" className="icon-btn tool-up" disabled={index === 0} title="上移" aria-label={`上移${def.title}`} onClick={() => onMove(def.id, "up")}>
+              <button type="button" className="icon-btn tool-up" title="上移" aria-label={`上移${def.title}`} onClick={() => onMove(def.id, "up")}>
                 <IconChevron width={13} height={13} />
               </button>
-              <button type="button" className="icon-btn tool-down" disabled={index === count - 1} title="下移" aria-label={`下移${def.title}`} onClick={() => onMove(def.id, "down")}>
+              <button type="button" className="icon-btn tool-down" title="下移" aria-label={`下移${def.title}`} onClick={() => onMove(def.id, "down")}>
                 <IconChevron width={13} height={13} />
               </button>
               {!portrait ? (
                 <>
-                <button type="button" className="icon-btn tool-left" disabled={item.col === "main"} title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={`把${def.title}移到主栏`} onClick={() => onMove(def.id, "main")}>
+                <button type="button" className="icon-btn tool-left" title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={`把${def.title}移到主栏`} onClick={() => onMove(def.id, "main")}>
                   <IconChevron width={13} height={13} />
                 </button>
-                <button type="button" className="icon-btn tool-right" disabled={item.col === "rail"} title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${def.title}移到侧栏`} onClick={() => onMove(def.id, "rail")}>
+                <button type="button" className="icon-btn tool-right" title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${def.title}移到侧栏`} onClick={() => onMove(def.id, "rail")}>
                   <IconChevron width={13} height={13} />
                 </button>
                 </>
@@ -467,18 +467,18 @@ function HomeCard({
 
         {editing ? (
           <div className="home-card-tools">
-            <button type="button" className="icon-btn tool-up" disabled={index === 0} title="上移" aria-label={`上移${def.title}`} onClick={() => onMove(def.id, "up")}>
+            <button type="button" className="icon-btn tool-up" title="上移" aria-label={`上移${def.title}`} onClick={() => onMove(def.id, "up")}>
               <IconChevron width={13} height={13} />
             </button>
-            <button type="button" className="icon-btn tool-down" disabled={index === count - 1} title="下移" aria-label={`下移${def.title}`} onClick={() => onMove(def.id, "down")}>
+            <button type="button" className="icon-btn tool-down" title="下移" aria-label={`下移${def.title}`} onClick={() => onMove(def.id, "down")}>
               <IconChevron width={13} height={13} />
             </button>
             {!portrait ? (
               <>
-              <button type="button" className="icon-btn tool-left" disabled={item.col === "main"} title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={`把${def.title}移到主栏`} onClick={() => onMove(def.id, "main")}>
+              <button type="button" className="icon-btn tool-left" title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={`把${def.title}移到主栏`} onClick={() => onMove(def.id, "main")}>
                 <IconChevron width={13} height={13} />
               </button>
-              <button type="button" className="icon-btn tool-right" disabled={item.col === "rail"} title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${def.title}移到侧栏`} onClick={() => onMove(def.id, "rail")}>
+              <button type="button" className="icon-btn tool-right" title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${def.title}移到侧栏`} onClick={() => onMove(def.id, "rail")}>
                 <IconChevron width={13} height={13} />
               </button>
               </>

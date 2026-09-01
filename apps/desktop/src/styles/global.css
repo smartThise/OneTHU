@@ -2220,3 +2220,13 @@ button, .btn, .icon-btn, .chip {
   height: 30px;
   min-height: 0;
 }
+
+/* 编辑工具：永远可点（边界无操作），按压给即时反馈 */
+.home-card-tools { position: relative; z-index: 2; }
+.icon-btn:active {
+  transform: scale(0.9);
+  background: var(--surface-3, #ebeef2);
+}
+.btn:active { transform: translateY(1px); }
+/* 编辑态头部允许换行：窄卡标题长时工具行自己掉到第二行，永不溢出裁剪 */
+.home-card.is-editing .home-card-head { flex-wrap: wrap; row-gap: 4px; }
