@@ -2268,3 +2268,21 @@ html.is-phone .page-head-title { font-size: 20px; }
 html.is-phone .section-head { font-size: 15px; }
 html.is-phone .data-table { font-size: 13px; }
 html.is-phone .data-table th { font-size: 12px; }
+
+/* ===== 0.7.10 真机第二轮修复 ===== */
+/* 竖字总病根：≤860 的 overflow-wrap:anywhere 会把 min-content 塌缩到一个字宽，
+   flex 收缩时把日程行中间列捏成"一字一行"。break-word 断行行为相同但不影响
+   intrinsic sizing——收缩下限回到"最长词"而非"单字"。 */
+html.is-phone body { overflow-wrap: break-word; }
+/* 日程行：中间列拿满剩余空间，时间/胶囊/箭头不许收缩 */
+html.is-phone .tl-main { flex: 1 1 0; }
+html.is-phone .tl-time, html.is-phone .tl-bar { flex-shrink: 0; }
+html.is-phone .list .chip, html.is-phone .list .row-caret { flex-shrink: 0; }
+/* 学堂概览：三块紧凑竖排小卡（此前被压成一行一块的巨型空匾） */
+html.is-phone .stats:not(.stats-hero) { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+html.is-phone .stats:not(.stats-hero) .stat-card { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 12px 10px; }
+html.is-phone .stats:not(.stats-hero) .stat-text { display: grid; gap: 2px; }
+/* 课程卡标题：手机上宁可两行截断也不"程序设计…" */
+html.is-phone .course-card-head b { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+/* 副标题（教师 · 学号班号）：不在数字编号中间断词 */
+html.is-phone .course-card-sub { overflow-wrap: normal; }
