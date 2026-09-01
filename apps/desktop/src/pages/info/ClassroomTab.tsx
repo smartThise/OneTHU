@@ -15,6 +15,53 @@ type ClassroomBuilding = Awaited<ReturnType<typeof info.getClassroomList>>[numbe
 type ClassroomResult = Awaited<ReturnType<typeof info.getClassroomState>>;
 
 const SLOT_LABELS = ["第1节", "第2节", "第3节", "第4节", "第5节", "第6节"];
+
+/** 大节筛选：勾选框下拉（可多选大节，只看所选大节全空闲的教室） */
+function SlotFilterDropdown({ value, onChange }: { value: Set<number>; onChange: (s: Set<number> | ((prev: Set<number>) => Set<number>)) => void }) {
+  const [open, setOpen] = useState(false);
+  const label =
+    value.size === 0
+      ? "大节筛选：全部教室"
+      : `大节筛选：${[...value].sort((a, b) => a - b).map((i) => SLOT_LABELS[i]).join("、")}`;
+  return (
+    <div className="filter-dd">
+      <button type="button" className="input filter-dd-btn" onClick={() => setOpen((o) => !o)}>
+        <span>{label}</span>
+        <span style={{ opacity: 0.55 }}>▾</span>
+      </button>
+      {open ? (
+        <>
+          <div className="seg-menu-backdrop" onClick={() => setOpen(false)} />
+          <div className="filter-dd-panel">
+            {SLOT_LABELS.map((s, si) => (
+              <label key={s} className="filter-dd-opt">
+                <input
+                  type="checkbox"
+                  checked={value.has(si)}
+                  onChange={() =>
+                    onChange(() => {
+                      const next = new Set(value);
+                      if (next.has(si)) next.delete(si);
+                      else next.add(si);
+                      return next;
+                    })
+                  }
+                />
+                {s}
+              </label>
+            ))}
+            {value.size > 0 ? (
+              <button type="button" className="btn btn-ghost" style={{ marginTop: 4 }} onClick={() => onChange(new Set())}>
+                清空（显示全部）
+              </button>
+            ) : null}
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 /** core ClassroomStatus.AVAILABLE = 5（数值枚举，42 格=7 天 × 6 节，周一起） */
 const AVAILABLE = 5;
 
@@ -140,33 +187,7 @@ export function ClassroomTab() {
           ) : rState === "ready" ? (
             <>
               {/* 筛选栏常驻 ready 态——空结果也保留，否则没法取消筛选 */}
-              <div className="chips" style={{ marginBottom: 12 }}>
-                <span style={{ fontSize: 12, opacity: 0.7, alignSelf: "center", marginRight: 4 }}>大节筛选（只看所选节全空闲的教室）</span>
-                {SLOT_LABELS.map((s, si) => {
-                  const on = selSlots.has(si);
-                  return (
-                    <button
-                      key={s}
-                      className={"chip" + (on ? " chip-blue" : "")}
-                      onClick={() =>
-                        setSelSlots((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(si)) next.delete(si);
-                          else next.add(si);
-                          return next;
-                        })
-                      }
-                    >
-                      {s}
-                    </button>
-                  );
-                })}
-                {selSlots.size > 0 ? (
-                  <button className="chip" onClick={() => setSelSlots(new Set())}>
-                    清空（显示全部）
-                  </button>
-                ) : null}
-              </div>
+              <SlotFilterDropdown value={selSlots} onChange={setSelSlots} />
               {rows.length === 0 ? (
                 <TabEmpty
                   text={

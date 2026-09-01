@@ -532,6 +532,9 @@ export function VenueSportsTab() {
     return out;
   }, [sites]);
 
+  const countIn = (pred: (h: number) => boolean) =>
+    rows.filter(({ session }) => pred(Number(String(session.beginTime).slice(0, 2)))).length;
+
   /* —— 按场地分块（应用时段筛选；块内场次按开始时间升序） —— */
   const siteBlocks = useMemo(() => {
     const inRange = (t: string) => {
@@ -770,10 +773,10 @@ export function VenueSportsTab() {
               value={timeFilter}
               onChange={(e) => setTimeFilter(e.target.value as "all" | "am" | "pm" | "eve")}
             >
-              <option value="all">全部时段</option>
-              <option value="am">上午</option>
-              <option value="pm">下午</option>
-              <option value="eve">晚上</option>
+              <option value="all">全部时段（{rows.length} 场）</option>
+              <option value="am">上午（{countIn((h) => h < 12)} 场）</option>
+              <option value="pm">下午（{countIn((h) => h >= 12 && h < 17)} 场）</option>
+              <option value="eve">晚上（{countIn((h) => h >= 17)} 场）</option>
             </select>
           ) : null}
           {rows.length > 0 && siteBlocks.length === 0 ? (
