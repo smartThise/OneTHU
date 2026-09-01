@@ -41,6 +41,9 @@ export function WasherTab() {
   const [dState, setDState] = useState<DeviceState>("idle");
   const [dError, setDError] = useState<string | null>(null);
 
+  const [ddOpen, setDdOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
   const loadGroups = useCallback(async () => {
     if (status !== "ready") return;
     setGState("loading");
@@ -87,32 +90,73 @@ export function WasherTab() {
       {gState === "loading" && !groups ? (
         <SkeletonRows rows={3} />
       ) : (
-        <select
-          className="input filter-select"
-          value={sel ? `${sel.hlsh ? "h" : "j"}-${sel.id}` : ""}
-          onChange={(e) => {
-            const v = e.target.value;
-            if (!v) return;
-            const [kind, id] = [v[0], v.slice(2)]; /* value 形如 h-{id}，跳过前缀两字符 */
-            const b = (groups ?? [])
-              .flatMap((g) => g.buildings)
-              .find((x) => String(x.id) === id && (kind === "h" ? !!x.hlsh : !x.hlsh));
-            if (b) void loadDevices(b);
-          }}
-        >
-          <option value="">选择楼栋…</option>
-          {(groups ?? [])
+        (() => {
+          /* 楼栋搜索：按楼栋名/分组名模糊匹配（大小写不敏感），命中分组名时展开整组 */
+          const q = query.trim().toLowerCase();
+          const matched = (groups ?? [])
             .filter((g) => g.buildings.length > 0)
-            .map((g) => (
-              <optgroup key={g.name} label={g.name}>
-                {g.buildings.map((b) => (
-                  <option key={`${g.name}-${b.id}`} value={`${b.hlsh ? "h" : "j"}-${b.id}`}>
-                    {b.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-        </select>
+            .map((g) => ({
+              ...g,
+              buildings: q
+                ? g.buildings.filter(
+                    (b) =>
+                      b.name.toLowerCase().includes(q) || g.name.toLowerCase().includes(q),
+                  )
+                : g.buildings,
+            }))
+            .filter((g) => g.buildings.length > 0);
+          const pick = (b: WasherBuilding) => {
+            setDdOpen(false);
+            setQuery("");
+            void loadDevices(b);
+          };
+          return (
+            <div className="filter-dd">
+              <button
+                type="button"
+                className="input filter-dd-btn"
+                onClick={() => setDdOpen((o) => !o)}
+              >
+                <span>{sel ? sel.name : "选择楼栋…"}</span>
+                <span style={{ opacity: 0.55 }}>▾</span>
+              </button>
+              {ddOpen ? (
+                <>
+                  <div className="seg-menu-backdrop" onClick={() => setDdOpen(false)} />
+                  <div className="filter-dd-panel">
+                    <input
+                      className="input washer-dd-search"
+                      placeholder="搜索楼栋…"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                    />
+                    <div className="washer-dd-list">
+                      {matched.length === 0 ? (
+                        <div className="washer-dd-empty">无匹配楼栋</div>
+                      ) : (
+                        matched.map((g) => (
+                          <div key={g.name}>
+                            <div className="washer-dd-group">{g.name}</div>
+                            {g.buildings.map((b) => (
+                              <button
+                                type="button"
+                                key={`${g.name}-${b.id}`}
+                                className={`filter-dd-opt washer-dd-opt${sel && b.id === sel.id && !!b.hlsh === !!sel.hlsh ? " is-sel" : ""}`}
+                                onClick={() => pick(b)}
+                              >
+                                {b.name}
+                              </button>
+                            ))}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          );
+        })()
       )}
 
       {sel ? (
