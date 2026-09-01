@@ -30,7 +30,7 @@ export function LoginPage() {
   return (
     <div className="login-wrap">
       <HardRefreshButton />
-      <div className="login-card card">
+      <div className="login-card">
         <div className="login-mark" style={{ flexDirection: "column", alignItems: "flex-start", gap: 12 }}>
           <BrandLogo size={30} />
           <Slogan size={13} />
@@ -134,7 +134,7 @@ export function TwoFactorPage() {
     return (
       <div className="login-wrap">
       <HardRefreshButton />
-        <div className="login-card card">
+        <div className="login-card">
           <div className="login-mark">
             <BrandLogo size={26} />
             <div>
@@ -189,7 +189,7 @@ export function TwoFactorPage() {
   return (
     <div className="login-wrap">
       <HardRefreshButton />
-      <div className="login-card card">
+      <div className="login-card">
         <div className="login-mark">
           <BrandLogo size={26} />
           <div>
