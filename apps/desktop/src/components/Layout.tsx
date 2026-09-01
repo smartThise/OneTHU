@@ -268,15 +268,18 @@ export function Shell({ children }: { children: ReactNode }) {
         </>
       ) : null}
       <main className="content">
-        {/* 移动端：页头标题改造为导航胶囊（标题 + 同高小 logo + 圆角胶囊边框），桌面隐藏 */}
-        <button
-          className="page-title-capsule"
-          onClick={() => setNavOpen(true)}
-          aria-label={`打开导航（当前：${NAV.find((n) => n.page === page)?.label ?? "OneTHU"}）`}
-        >
-          <span>{NAV.find((n) => n.page === page)?.label ?? "OneTHU"}</span>
-          <BrandLogo size={12} />
-        </button>
+        {/* 移动端顶栏：汉堡菜单 + 品牌标识，桌面隐藏（桌面走侧栏） */}
+        <header className="mobile-topbar">
+          <button className="topbar-menu" onClick={() => setNavOpen(true)} aria-label="打开导航菜单">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <div className="topbar-brand">
+            <BrandLogo size={11} />
+            <span className="topbar-title">{NAV.find((n) => n.page === page)?.label ?? "OneTHU"}</span>
+          </div>
+        </header>
         {children}
       </main>
       <HardRefreshButton />
@@ -334,10 +337,17 @@ export function PageHead({
   meta?: ReactNode;
   actions?: ReactNode;
 }) {
+  const { page } = useApp();
+  // 窄屏顶栏已展示当前页名：与导航名相同的标题不再重复渲染（详情页等子标题不受影响）
+  const navLabel = NAV.find((n) => n.page === page)?.label;
+  const dupOnTopbar =
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 860px)").matches &&
+    title === navLabel;
   return (
     <header className="page-head">
       <div>
-        <h1>{title}</h1>
+        {dupOnTopbar ? null : <h1>{title}</h1>}
         {meta ? <div className="page-head-meta">{meta}</div> : null}
       </div>
       {actions ? <div className="page-head-actions">{actions}</div> : null}

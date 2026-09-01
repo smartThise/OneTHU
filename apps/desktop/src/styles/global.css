@@ -1706,30 +1706,40 @@
   .sidebar-foot { display: none; }
 
   /* —— 页头标题导航胶囊（标题 + 同高 logo） —— */
-  .page-title-capsule {
+  /* 移动端顶栏：汉堡 + 品牌，吸顶毛玻璃 */
+  .mobile-topbar {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 16px;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    margin: 0 -14px 10px;
+    padding: 10px 14px 8px;
+    background: color-mix(in srgb, var(--bg, #f6f6f4) 86%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+  .topbar-menu {
+    height: 38px;
+    width: 38px;
+    border-radius: 10px;
     border: 1px solid var(--border, rgba(0, 0, 0, 0.14));
-    border-radius: 10px; /* 十分收敛的圆角，不做全圆胶囊 */
     background: var(--surface, #fff);
     color: var(--text-1, #111);
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1;
-    margin: 0 0 10px;
+    display: grid;
+    place-items: center;
     cursor: pointer;
-    /* 常驻锚定：滚动时钉在视口顶部，不随内容上移 */
-    position: sticky;
-    top: 8px;
-    z-index: 30;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
-    width: fit-content;
+    flex: none;
   }
-  .page-title-capsule .brand-logo { font-size: 12px; flex: none; width: auto; white-space: nowrap; }
-  /* 页内自身标题让位给胶囊 */
-  .page-head h1 { display: none; }
+  .topbar-menu:active { transform: scale(0.94); }
+  .topbar-brand { display: flex; align-items: center; gap: 9px; line-height: 1; white-space: nowrap; }
+  .topbar-title {
+    font-size: 16px;
+    font-weight: 650;
+    letter-spacing: 0.2px;
+    color: var(--text-1, #111);
+  }
   /* —— 遮罩 + 左滑抽屉 —— */
   .drawer-mask {
     position: fixed;
@@ -1860,9 +1870,9 @@
 }
 
 /* 抽屉导航件与标题胶囊：仅移动端媒体块内显示 */
-.page-title-capsule, .drawer-mask, .drawer { display: none; }
+.mobile-topbar, .drawer-mask, .drawer { display: none; }
 @media (max-width: 860px) {
-  .page-title-capsule { display: inline-flex; }
+  .mobile-topbar { display: flex; }
   .drawer-mask { display: block; }
   .drawer { display: flex; }
 }
@@ -2159,8 +2169,11 @@
 
 /* 首页竖屏扁平网格：单列全宽（主栏+侧栏串成一条） */
 /* 首页网格对 auto-fill 兜底免疫：(0,3,0) 恒压 [class*="grid"] 的 (0,2,0)。
-   158px 两列阈值在内容 328-490px 时把首页切成 163px 窄条（0.7.x 真机惨案）。 */
-.content .today-grid, .content .today-grid-flat { grid-template-columns: minmax(0, 1fr) !important; }
+   158px 两列阈值在内容 328-490px 时把首页切成 163px 窄条（0.7.x 真机惨案）。
+   仅窄屏生效——桌面横屏的 双栏(主列+312px侧栏) 布局不受影响。 */
+@media (max-width: 860px) {
+  .content .today-grid, .content .today-grid-flat { grid-template-columns: minmax(0, 1fr) !important; }
+}
 
 /* 首页编辑工具条：固定底部居中，按钮永不随卡片重排漂移（替代随卡工具行） */
 .home-edit-bar {
@@ -2281,6 +2294,7 @@ html.is-phone .list .chip, html.is-phone .list .row-caret { flex-shrink: 0; }
 /* 学堂概览：三块紧凑竖排小卡（此前被压成一行一块的巨型空匾） */
 html.is-phone .stats:not(.stats-hero) { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
 html.is-phone .stats:not(.stats-hero) .stat-card { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 12px 10px; }
+html.is-phone .stats:not(.stats-hero) .stat-label { white-space: normal; overflow: visible; text-overflow: unset; line-height: 15px; }
 html.is-phone .stats:not(.stats-hero) .stat-text { display: grid; gap: 2px; }
 /* 课程卡标题：手机上宁可两行截断也不"程序设计…" */
 html.is-phone .course-card-head b { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
