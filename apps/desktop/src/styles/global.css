@@ -1889,21 +1889,28 @@
   font-size: 11.5px;
   white-space: nowrap;
 }
-/* 位置指示条：非滚动条，仅可滑时出现；滑块比胶囊更宽，防误读为 tab 下划线 */
+/* 真滚动条：可拖动滑块 + 点槽跳转 */
 .seg-indi {
   width: calc(100% - 16px);
-  height: 3px;
-  margin: 0 auto;
-  border-radius: 2px;
+  height: 5px;
+  margin: 1px auto 2px;
+  border-radius: 3px;
   background: var(--border, rgba(0, 0, 0, 0.16));
   position: relative;
   overflow: hidden;
   flex: none;
+  cursor: pointer;
+  touch-action: none; /* 让滑块拖动不被浏览器手势抢走 */
+  user-select: none;
 }
 .seg-indi i {
   position: absolute;
   top: 0;
   height: 100%;
-  border-radius: 2px;
+  border-radius: 3px;
   background: var(--text-3, rgba(0, 0, 0, 0.3));
+  cursor: grab;
+  transition: background 0.15s ease;
 }
+.seg-indi:hover i { background: var(--text-2, rgba(0, 0, 0, 0.45)); }
+.seg-indi i:active { cursor: grabbing; }

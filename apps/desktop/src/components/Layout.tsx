@@ -51,6 +51,7 @@ export function SegmentedOverflow({
   const indiRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLElement>(null);
   const drag = useRef<{ x: number; sl: number } | null>(null);
+  const dragThumb = useRef<{ x: number; sl: number } | null>(null);
   const moved = useRef(false);
 
   const update = useCallback(() => {
@@ -68,6 +69,19 @@ export function SegmentedOverflow({
     const thumbW = Math.max(32, Math.min(w, 72)); // 滑块短一点：按比例但封顶 72px
     thumb.style.width = `${thumbW}px`;
     thumb.style.left = `${frac * (trackW - thumbW)}px`;
+  }, []);
+
+  const seekTo = useCallback((clientX: number) => {
+    const el = rowRef.current;
+    const indi = indiRef.current;
+    const thumb = thumbRef.current;
+    if (!el || !indi || !thumb) return;
+    const overflow = el.scrollWidth - el.clientWidth;
+    if (overflow <= 0) return;
+    const rect = indi.getBoundingClientRect();
+    const thumbW = thumb.getBoundingClientRect().width;
+    const frac = Math.min(Math.max((clientX - rect.left - thumbW / 2) / Math.max(rect.width - thumbW, 1), 0), 1);
+    el.scrollLeft = frac * overflow;
   }, []);
 
   useLayoutEffect(() => {
@@ -120,7 +134,34 @@ export function SegmentedOverflow({
       >
         {children}
       </div>
-      <div className="seg-indi" ref={indiRef} aria-hidden>
+      {/* 真滚动条：滑块可抓取拖动，点槽任意处跳转（拇指中心对齐点击点） */}
+      <div
+        className="seg-indi"
+        ref={indiRef}
+        onPointerDown={(e) => {
+          const el = rowRef.current;
+          if (!el) return;
+          e.preventDefault(); // 防选中/焦点
+          e.currentTarget.setPointerCapture(e.pointerId);
+          seekTo(e.clientX);
+          dragThumb.current = { x: e.clientX, sl: el.scrollLeft };
+        }}
+        onPointerMove={(e) => {
+          const d = dragThumb.current;
+          if (!d) return;
+          const el = rowRef.current;
+          const indi = indiRef.current;
+          const thumb = thumbRef.current;
+          if (!el || !indi || !thumb) return;
+          const overflow = el.scrollWidth - el.clientWidth;
+          if (overflow <= 0) return;
+          const trackW = indi.clientWidth;
+          const thumbW = thumb.getBoundingClientRect().width;
+          el.scrollLeft = d.sl + (e.clientX - d.x) * (overflow / Math.max(trackW - thumbW, 1));
+        }}
+        onPointerUp={() => { dragThumb.current = null; }}
+        onPointerCancel={() => { dragThumb.current = null; }}
+      >
         <i ref={thumbRef} />
       </div>
     </div>
