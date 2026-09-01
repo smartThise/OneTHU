@@ -1617,11 +1617,16 @@
     scrollbar-width: thin;
     -webkit-overflow-scrolling: touch;
   }
+  .segmented { width: 100%; gap: 1px; padding: 2px; }
   .segmented button {
-    flex: none;
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
     height: 30px;
-    padding: 0 11px;
-    font-size: 12px;
+    padding: 0 2px;
+    font-size: 10.5px;
+    white-space: nowrap;
+    overflow: hidden;
   }
   .section-head { flex-wrap: wrap; max-width: 100%; }
   .xk-two-col { flex-direction: column; }
@@ -1698,10 +1703,17 @@
     gap: 6px;
     font-size: var(--text-xs);
   }
+  /* 顶栏两行：品牌一行 + 导航 8 等分一行（全部入口永远可见可点，零滚动） */
+  .sidebar { flex-direction: column; align-items: stretch; gap: 6px; }
+  .brand { justify-content: center; }
+  .brand .brand-logo { font-size: 12px; }
+  .nav { overflow-x: visible; }
   .nav-item {
-    width: 44px;
+    flex: 1 1 0;
+    min-width: 0;
     justify-content: center;
     padding: 0;
+    height: 38px;
   }
   /* 图标化：8 个入口在 390px 视口内全部放下，切换器不再需要滚动发现 */
   .nav-label { display: none; }
@@ -1709,21 +1721,22 @@
 }
 
 @media (max-width: 700px) {
-  body { font-size: 13.5px; }
+  body { font-size: 13px; }
 
+  .tt-head { font-size: 10px; }
   /* 课表：44px 时间轴 + 5 列全部可收缩（1fr 默认 min-content 不为零，长课名会撑爆） */
   .tt { grid-template-columns: 34px repeat(5, minmax(0, 1fr)) !important; gap: 3px; }
   .tt-cell { font-size: 10px; padding: 2px; }
   /* 登录/恢复屏满宽 */
   .login-wrap, .login-card { width: auto; max-width: 100%; margin-inline: 12px; }
-  .content { padding: 10px 9px calc(78px + env(safe-area-inset-bottom, 0px)); }
+  .content { padding: 8px 7px calc(72px + env(safe-area-inset-bottom, 0px)); }
 
   /* 卡片满宽贴边；卡自身接管横滚（表格渲染不被破坏，宽表在卡内滚） */
   .card {
     width: auto;
     max-width: 100%;
-    padding: 10px;
-    border-radius: 10px;
+    padding: 9px;
+    border-radius: 9px;
     margin-inline: 0;
     overflow-x: auto;
   }

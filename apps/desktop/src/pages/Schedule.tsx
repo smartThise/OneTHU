@@ -243,10 +243,10 @@ export function SchedulePage() {
         <Card><Empty text={semester ? `第 ${weekNo} 周没有排课记录（假期周）。` : "没有排课记录。"} /></Card>
       ) : (
         <Card style={{ padding: 14, overflowX: "auto" }}>
-          <div style={{ minWidth: 648 }}>
+          <div style={{ minWidth: 0 }}>
             {/* 表头：星期 + 日期（今天高亮） */}
             <div style={{ display: "flex", marginBottom: 8 }}>
-              <div style={{ width: 44, flexShrink: 0 }} />
+              <div style={{ width: 22, flexShrink: 0 }} />
               {DAY_NAMES.map((name, i) => (
                 <div
                   key={name}
@@ -261,15 +261,15 @@ export function SchedulePage() {
 
             <div style={{ display: "flex" }}>
               {/* 时间刻度列：每半小时 HH:MM */}
-              <div style={{ width: 44, flexShrink: 0, position: "sticky", left: 0, zIndex: 2, background: "var(--surface, #fff)", height: canvasH }}>
+              <div style={{ width: 22, flexShrink: 0, position: "relative", height: canvasH }}>
                 {halfHours.map((m) => (
                   <div
                     key={m}
                     style={{
                       position: "absolute",
                       top: y(m) - 7,
-                      right: 8,
-                      fontSize: 11,
+                      right: 2,
+                      fontSize: 8.5,
                       color: m % 60 === 0 ? "var(--text-2, #555)" : "var(--text-3, #aaa)",
                       fontVariantNumeric: "tabular-nums",
                     }}
@@ -362,8 +362,8 @@ export function SchedulePage() {
                         top,
                         height,
                         background: p.color,
-                        borderRadius: 8,
-                        padding: compact ? "4px 8px" : "7px 9px",
+                        borderRadius: 5,
+                        padding: compact ? "2px 4px" : "3px 5px",
                         color: "#fff",
                         overflow: "hidden",
                         boxSizing: "border-box",
@@ -371,13 +371,13 @@ export function SchedulePage() {
                         zIndex: 6,
                       }}
                     >
-                      <div style={{ fontSize: compact ? 11 : 12, fontWeight: 700, lineHeight: 1.3 }}>
+                      <div style={{ fontSize: compact ? 8.5 : 9.5, fontWeight: 700, lineHeight: 1.3 }}>
                         {p.entry.courseName}
                       </div>
                       {!compact && p.entry.location ? (
                         <div
                           style={{
-                            fontSize: 11,
+                            fontSize: 8.5,
                             opacity: 0.92,
                             lineHeight: 1.35,
                             marginTop: 2,
@@ -391,7 +391,7 @@ export function SchedulePage() {
                         </div>
                       ) : null}
                       {!compact && height > 88 && p.entry.teacher ? (
-                        <div style={{ fontSize: 11, opacity: 0.85, marginTop: 2 }}>{p.entry.teacher}</div>
+                        <div style={{ fontSize: 8.5, opacity: 0.85, marginTop: 1 }}>{p.entry.teacher}</div>
                       ) : null}
                     </div>
                   );
