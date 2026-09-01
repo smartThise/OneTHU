@@ -153,3 +153,56 @@ export interface CourseFile {
   /** 标记为重要（sfqd） */
   important?: boolean;
 }
+
+/* ───── 讨论区（网络学堂 bbs_tltb） ───── */
+
+/** 话题板块（bqListByWlkcid；bqid 形如 INITTL… 默认板或课程自建板） */
+export interface LearnBbsBoard {
+  bqid: string;
+  name: string;
+}
+
+/** 话题列表行（ybtl/jhtl/cytlPageList DataTables 1.9 服务端协议 aaData 行：
+ *  bt=标题，fbrx / fbsj=作者 / 时间，sfjh=精华，sfzd=置顶，hfcs=回复数） */
+export interface LearnBbsThreadSummary {
+  id: string;
+  title: string;
+  author: string;
+  time: string;
+  replies: number;
+  /** 精华（站点字段 sfjh == "是"） */
+  essence: boolean;
+  /** 置顶（站点字段 sfzd == "是"） */
+  pinned: boolean;
+  bqid?: string;
+}
+
+/** 附件（帖子层只有一个：wjid/wjmc） */
+export interface LearnBbsPostAttachment {
+  wjid: string;
+  wjmc: string;
+}
+
+/** 楼层（含楼中楼 children） */
+export interface LearnBbsPost {
+  hhid: string;
+  author: string;
+  time: string;
+  /** 服务端消毒过的富文本（nr_str） */
+  html: string;
+  attachments: LearnBbsPostAttachment[];
+  children: LearnBbsPost[];
+}
+
+/** 话题头（楼主块 + 分页上下文） */
+export interface LearnBbsThreadDetail {
+  id: string;
+  title: string;
+  author: string;
+  time: string;
+  html: string;
+  replyCount: number;
+  tabbh: string;
+  tabid: string;
+  bqid: string;
+}

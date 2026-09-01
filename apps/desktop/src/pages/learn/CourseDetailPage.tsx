@@ -10,6 +10,7 @@ import { useLearnData } from "../../state/data.js";
 import { learn } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { BackButton, FileRow, HomeworkRow, NoticeRow, semesterText } from "./shared.js";
+import { BbsPanel } from "./Forum.js";
 
 type Tab = "notices" | "assignments" | "files" | "groups" | "forum";
 
@@ -275,9 +276,7 @@ export function CourseDetailPage() {
           </Card>
         )
       ) : (
-        <Card>
-          <Empty text="讨论区对接中，API 整理后开放" />
-        </Card>
+        <BbsPanel courseId={courseId} />
       )}
     </>
   );

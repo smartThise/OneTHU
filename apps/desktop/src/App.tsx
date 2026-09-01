@@ -7,6 +7,7 @@ import { CourseDetailPage } from "./pages/learn/CourseDetailPage.js";
 import { FileDetailPage } from "./pages/learn/FileDetailPage.js";
 import { FilesPage } from "./pages/learn/FilesPage.js";
 import { NoticeDetailPage } from "./pages/learn/NoticeDetailPage.js";
+import { ForumThreadPage } from "./pages/learn/Forum.js";
 import { NoticesPage } from "./pages/learn/NoticesPage.js";
 import { SearchPage } from "./pages/learn/SearchPage.js";
 import { SemesterSelectionPage } from "./pages/learn/SemesterSelectionPage.js";
@@ -60,6 +61,7 @@ function Routed() {
         {page === "learn-semester" && <SemesterSelectionPage />}
         {page === "learn-assignment-detail" && <AssignmentDetailPage />}
         {page === "learn-notice-detail" && <NoticeDetailPage />}
+        {page === "learn-forum-thread" && <ForumThreadPage />}
         {page === "learn-file-detail" && <FileDetailPage />}
       </Shell>
     );

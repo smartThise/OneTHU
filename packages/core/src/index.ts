@@ -50,6 +50,11 @@ export type {
   Notification,
   NotificationPageDetail,
   SemesterInfo,
+  LearnBbsBoard,
+  LearnBbsThreadSummary,
+  LearnBbsPostAttachment,
+  LearnBbsPost,
+  LearnBbsThreadDetail,
 } from "./learn/types.js";
 
 // 信息门户
