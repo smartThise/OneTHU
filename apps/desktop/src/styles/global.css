@@ -2286,3 +2286,23 @@ html.is-phone .stats:not(.stats-hero) .stat-text { display: grid; gap: 2px; }
 html.is-phone .course-card-head b { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 /* 副标题（教师 · 学号班号）：不在数字编号中间断词 */
 html.is-phone .course-card-sub { overflow-wrap: normal; }
+
+/* ===== 0.7.11 日程行手机两行式 =====
+   flex 收缩在 CJK 文本下无解（min-content 恒为单字宽），直接改网格：
+   第一行 = 标题通栏；第二行 = 日期 · 状态胶囊 · 箭头。竖字从结构上不可能。 */
+@media (max-width: 860px) {
+  html.is-phone .list .row-click {
+    display: grid;
+    grid-template-columns: max-content 1fr max-content max-content;
+    grid-template-areas:
+      "main main main main"
+      "time sep chip caret";
+    row-gap: 7px;
+    align-items: center;
+  }
+  html.is-phone .list .row-click .tl-main { grid-area: main; }
+  html.is-phone .list .row-click .tl-time { grid-area: time; font-size: var(--text-sm); }
+  html.is-phone .list .row-click .tl-bar { grid-area: sep; height: 14px; justify-self: start; }
+  html.is-phone .list .row-click .chip { grid-area: chip; justify-self: end; }
+  html.is-phone .list .row-click .row-caret { grid-area: caret; }
+}

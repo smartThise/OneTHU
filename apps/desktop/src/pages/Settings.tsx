@@ -2,6 +2,7 @@ declare const __APP_VERSION__: string;
 import { useEffect, useState } from "react";
 import { Card, PageHead, SectionHead } from "../components/Layout.js";
 import { invoke } from "@tauri-apps/api/core";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { clearRemembered, loadRemembered, session } from "../lib/clients.js";
 import { clearHomeLayout } from "../lib/homeCards.js";
 import { useApp } from "../state/context.js";
@@ -38,13 +39,16 @@ export function SettingsPage() {
     <>
       <PageHead title="设置" />
 
-      <SectionHead title="设备诊断" />
+      <SectionHead title="关于" />
       <Card>
-        <div style={{ display: "grid", gap: 4, fontSize: "var(--text-xs)", fontFamily: "var(--font-mono, monospace)", wordBreak: "break-all" }}>
-          <span>版本 {__APP_VERSION__} · 视口 {window.innerWidth}×{window.innerHeight} · DPR {window.devicePixelRatio}</span>
-          <span>触点 {navigator.maxTouchPoints} · coarse={window.matchMedia("(pointer: coarse)").matches ? "是" : "否"} · ≤860={window.matchMedia("(max-width: 860px)").matches ? "是" : "否"} · 竖屏={window.matchMedia("(orientation: portrait)").matches ? "是" : "否"}</span>
-          <span>{(() => { const tg = document.querySelector(".today-grid"); const card = document.querySelector(".home-card"); const ct = document.querySelector(".content"); return `首页网格 ${tg ? Math.round(tg.getBoundingClientRect().width) + "px 列[" + getComputedStyle(tg).gridTemplateColumns + "]" : "—"} · 卡片 ${card ? Math.round(card.getBoundingClientRect().width) + "px" : "—"} · 内容 ${ct ? Math.round(ct.getBoundingClientRect().width) + "px" : "—"}`; })()}</span>
-          <span>密度层 is-phone={document.documentElement.classList.contains("is-phone") ? "生效" : "未生效"} · 缩放 textZoom={(() => { try { return String((window as unknown as { visualViewport?: VisualViewport }).visualViewport?.scale ?? 1); } catch { return "1"; } })()}</span>
+        <div className="setting-row">
+          <div>
+            <div className="setting-title">OneTHU {__APP_VERSION__}</div>
+            <div className="setting-desc">清华园随身工具箱 · 开源于 GitHub</div>
+          </div>
+          <button className="btn" onClick={() => void openUrl("https://github.com/smartThise/OneTHU")}>
+            GitHub 项目页
+          </button>
         </div>
       </Card>
 
@@ -79,13 +83,18 @@ export function SettingsPage() {
             onClick={() => {
               const creds = session.getIdCredentials();
               if (!creds) {
-                setEidMsg("当前会话没有内存密码（重启恢复的会话），请在窗口中手动输入账号密码。");
-                void invoke("open_eid_window", { username: "", password: "" });
+                void openUrl("https://id.tsinghua.edu.cn/do/outoflogin/login/mainUi/login")
+                  .then(() => setEidMsg("已在系统浏览器打开电子身份，请手动输入账号密码。"))
+                  .catch((e: unknown) => setEidMsg(`打开失败：${e instanceof Error ? e.message : String(e)}`));
                 return;
               }
+              const openInBrowser = () =>
+                openUrl("https://id.tsinghua.edu.cn/do/outoflogin/login/mainUi/login")
+                  .then(() => setEidMsg("已在系统浏览器打开电子身份（多窗口自动填入仅桌面端支持）"))
+                  .catch((e: unknown) => setEidMsg(`打开失败：${e instanceof Error ? e.message : String(e)}`));
               void invoke("open_eid_window", { username: creds.username, password: creds.password })
                 .then(() => setEidMsg("已打开电子身份窗口（账号密码已自动填入）"))
-                .catch((e: unknown) => setEidMsg(`打开失败：${e instanceof Error ? e.message : String(e)}`));
+                .catch(() => void openInBrowser());
             }}
           >
             打开电子身份

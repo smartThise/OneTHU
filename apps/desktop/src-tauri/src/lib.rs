@@ -546,8 +546,9 @@ fn open_sports_window(app: tauri::AppHandle) -> Result<String, String> {
 
 #[cfg(mobile)]
 #[tauri::command]
-fn open_eid_window(_: tauri::AppHandle, _: String, _: String) -> Result<String, String> {
-    Err("账户设置多窗口仅桌面端可用".into())
+fn open_eid_window(_app: tauri::AppHandle, _username: String, _password: String) -> Result<String, String> {
+    // 移动端无多窗口：前端捕获本错误后改用 opener 跳系统浏览器
+    Err("移动端请在系统浏览器打开电子身份".into())
 }
 
 #[cfg(mobile)]
