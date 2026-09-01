@@ -10,9 +10,14 @@
  * 子栏直达（首页入口化）：navigate("life", { lifeTab }) 指定初始 tab（缺省宿舍），
  * 与 InfoPage 的 infoNewsId 同款消费模式（挂载初值 + navParams 身份触发的
  * effect）；页内切换不回写参数。
+ *
+ * 栏目管理（tabLayout）：栏目可选择隐藏 + ↑↓ 调序，localStorage 持久化；
+ * 当前 tab 被隐藏时回落到第一个可见栏目。
  */
 import { useEffect, useState } from "react";
-import { SegmentedOverflow, PageHead } from "../../components/Layout.js";
+import { Empty, PageHead, SegmentedOverflow } from "../../components/Layout.js";
+import { TabManageModal } from "../../components/TabManageModal.js";
+import { loadTabLayout, saveTabLayout, type TabLayout } from "../../lib/tabLayout.js";
 import { useApp } from "../../state/context.js";
 import { CardTab } from "./CardTab.js";
 import { DormTab } from "./DormTab.js";
@@ -37,12 +42,26 @@ const TABS: Array<{ id: LifeTab; label: string }> = [
   { id: "gradincome", label: "研究生收入" },
   { id: "network", label: "校园网" },
 ];
+const TAB_IDS = TABS.map((t) => t.id);
+const DEFAULT_LAYOUT: TabLayout = { order: TAB_IDS, hidden: [] };
 
 export function LifePage() {
   const { navParams } = useApp();
   const [tab, setTab] = useState<LifeTab>(() => navParams?.lifeTab ?? "dorm");
   /** 已激活过的 tab 保持挂载：切回即显（数据在 hook 里，无需重复请求） */
   const [visited, setVisited] = useState<ReadonlySet<LifeTab>>(() => new Set([navParams?.lifeTab ?? "dorm"]));
+
+  /** 栏目布局（显隐 + 顺序） */
+  const [layout, setLayout] = useState<TabLayout>(() => loadTabLayout("life", TAB_IDS));
+  const [manageOpen, setManageOpen] = useState(false);
+  const applyLayout = (l: TabLayout) => {
+    setLayout(l);
+    saveTabLayout("life", l);
+  };
+  const labelOf = (id: LifeTab) => TABS.find((t) => t.id === id)?.label ?? id;
+  const visibleIds = layout.order.filter((id) => !layout.hidden.includes(id)) as LifeTab[];
+  /** 当前 tab 被隐藏 → 回落到第一个可见栏目（全部隐藏则保持 null 走空态） */
+  const effTab = visibleIds.includes(tab) ? tab : visibleIds[0];
 
   useEffect(() => {
     const direct = navParams?.lifeTab;
@@ -58,30 +77,53 @@ export function LifePage() {
 
   return (
     <>
-      <PageHead title="生活" />
+      <PageHead
+        title="生活"
+        actions={
+          <button className="btn" onClick={() => setManageOpen(true)} title="栏目显隐与排序">
+            管理栏目
+          </button>
+        }
+      />
       <SegmentedOverflow ariaLabel="生活功能" style={{ marginBottom: 14 }}>
-        {TABS.map(({ id, label }) => (
+        {visibleIds.map((id) => (
           <button
             key={id}
             role="tab"
-            aria-selected={tab === id}
-            className={tab === id ? "is-active" : ""}
+            aria-selected={effTab === id}
+            className={effTab === id ? "is-active" : ""}
             onClick={() => activate(id)}
           >
-            {label}
+            {labelOf(id)}
           </button>
         ))}
       </SegmentedOverflow>
 
-      {/* 模块头由栏目名与各 tab 内部分区标题承担（WasherTab 自带「洗衣机」头） */}
-      <div hidden={tab !== "dorm"}>{visited.has("dorm") ? <DormTab /> : null}</div>
-      <div hidden={tab !== "washer"}>{visited.has("washer") ? <WasherTab /> : null}</div>
-      <div hidden={tab !== "hygiene"}>{visited.has("hygiene") ? <HygieneTab /> : null}</div>
-      <div hidden={tab !== "card"}>{visited.has("card") ? <CardTab /> : null}</div>
-      <div hidden={tab !== "invoice"}>{visited.has("invoice") ? <InvoiceTab /> : null}</div>
-      <div hidden={tab !== "payroll"}>{visited.has("payroll") ? <PayrollTab /> : null}</div>
-      <div hidden={tab !== "gradincome"}>{visited.has("gradincome") ? <GradIncomeTab /> : null}</div>
-      <div hidden={tab !== "network"}>{visited.has("network") ? <NetworkTab /> : null}</div>
+      {effTab === null ? (
+        <Empty text="所有栏目已隐藏，点击右上「管理栏目」恢复。" />
+      ) : (
+        <>
+          {/* 模块头由栏目名与各 tab 内部分区标题承担（WasherTab 自带「洗衣机」头） */}
+          <div hidden={effTab !== "dorm"}>{visited.has("dorm") ? <DormTab /> : null}</div>
+          <div hidden={effTab !== "washer"}>{visited.has("washer") ? <WasherTab /> : null}</div>
+          <div hidden={effTab !== "hygiene"}>{visited.has("hygiene") ? <HygieneTab /> : null}</div>
+          <div hidden={effTab !== "card"}>{visited.has("card") ? <CardTab /> : null}</div>
+          <div hidden={effTab !== "invoice"}>{visited.has("invoice") ? <InvoiceTab /> : null}</div>
+          <div hidden={effTab !== "payroll"}>{visited.has("payroll") ? <PayrollTab /> : null}</div>
+          <div hidden={effTab !== "gradincome"}>{visited.has("gradincome") ? <GradIncomeTab /> : null}</div>
+          <div hidden={effTab !== "network"}>{visited.has("network") ? <NetworkTab /> : null}</div>
+        </>
+      )}
+
+      <TabManageModal
+        open={manageOpen}
+        onClose={() => setManageOpen(false)}
+        title="管理生活栏目"
+        tabs={TABS}
+        layout={layout}
+        onApply={applyLayout}
+        onReset={() => applyLayout(DEFAULT_LAYOUT)}
+      />
     </>
   );
 }
