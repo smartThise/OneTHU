@@ -208,13 +208,14 @@ export function ZhjwxkCoursesPage() {
   useEffect(() => {
     void tbEnsureIndex().catch(() => undefined);
     _jumpSetter = setJump;
-  useEffect(() => {
-    if (jump) setMTab("find"); // 点课表/暂存里的课 → 跳回「课程查找」页签
-  }, [jump]);
     _detailOpen = setDetailCode;
     _reviewOpen = setReviewCode;
     return () => { _jumpSetter = null; _detailOpen = null; _reviewOpen = null; };
   }, []);
+
+  useEffect(() => {
+    if (jump) setMTab("find"); // 点课表/暂存里的课 → 跳回「课程查找」页签
+  }, [jump]);
 
   const selCredits = wb.selected.reduce((a, s) => a + (s.credits || 0), 0);
   return (
