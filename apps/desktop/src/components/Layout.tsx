@@ -32,10 +32,11 @@ export function BrandLogo({ size = 14 }: { size?: number }) {
 }
 
 /**
- * SegmentedOverflow（滑动模式）：分段栏放不下时整条可滑，左右两端条件箭头。
- * - 胶囊 flex:1 0 auto：放得下时拉伸填满整行；放不下时保持自然宽进入滑动；
- * - 右箭头：右侧还有内容才显示；左箭头：左侧还有内容才显示；均无功能即隐藏；
- * - 点箭头整条平滑滑动一屏（scrollBy smooth），也可直接手指滑。
+ * SegmentedOverflow（滑动 + 位置指示条）：
+ * - 分段条放不下时整条横向滑动（触摸直接滑；鼠标按住拖动，拖动期间抑制误触点击）；
+ * - 可滑时条下方显示一个位置指示条（非滚动条）：按 scrollLeft 比例移动的圆角滑块，
+ *   宽度下限 104px——比单个胶囊更宽，避免被误读为「当前 tab 下划线」；
+ * - 整条放得下时指示条不出现；左右箭头方案已废弃。
  */
 export function SegmentedOverflow({
   ariaLabel,
@@ -47,14 +48,26 @@ export function SegmentedOverflow({
   children: ReactNode;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
-  const [canLeft, setCanLeft] = useState(false);
-  const [canRight, setCanRight] = useState(false);
+  const indiRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLElement>(null);
+  const drag = useRef<{ x: number; sl: number } | null>(null);
+  const moved = useRef(false);
 
   const update = useCallback(() => {
     const el = rowRef.current;
-    if (!el || el.clientWidth < 60) return; // 布局未就绪不动手
-    setCanLeft(el.scrollLeft > 2);
-    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+    const thumb = thumbRef.current;
+    const indi = indiRef.current;
+    if (!el || !indi || !thumb) return;
+    const overflow = el.scrollWidth - el.clientWidth;
+    const scrollable = overflow > 2 && el.clientWidth >= 60;
+    indi.style.display = scrollable ? "block" : "none";
+    if (!scrollable) return;
+    const frac = Math.min(Math.max(el.scrollLeft / overflow, 0), 1);
+    const trackW = indi.clientWidth;
+    const w = el.clientWidth / el.scrollWidth * trackW;
+    const thumbW = Math.max(Math.min(w, trackW), 104); // 比胶囊(约76-90px)更宽，防误读
+    thumb.style.width = `${thumbW}px`;
+    thumb.style.left = `${frac * (trackW - thumbW)}px`;
   }, []);
 
   useLayoutEffect(() => {
@@ -70,31 +83,43 @@ export function SegmentedOverflow({
     };
   }, [update]);
 
-  const nudge = (dir: 1 | -1) => {
-    const el = rowRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir * el.clientWidth * 0.72, behavior: "smooth" });
-  };
-
   return (
     <div className="seg-ov" style={style}>
-      {canLeft ? (
-        <button className="seg-arrow seg-arrow-left" aria-label="向左滑动" onClick={() => nudge(-1)}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-        </button>
-      ) : null}
-      <div className="segmented seg-track" role="tablist" aria-label={ariaLabel} ref={rowRef}>
+      <div
+        className="segmented seg-track"
+        role="tablist"
+        aria-label={ariaLabel}
+        ref={rowRef}
+        onPointerDown={(e) => {
+          if (e.pointerType !== "mouse") return;
+          const el = e.currentTarget;
+          drag.current = { x: e.clientX, sl: el.scrollLeft };
+          moved.current = false;
+          el.setPointerCapture(e.pointerId);
+        }}
+        onPointerMove={(e) => {
+          const d = drag.current;
+          if (!d) return;
+          const el = e.currentTarget;
+          const dx = e.clientX - d.x;
+          if (Math.abs(dx) > 4) moved.current = true;
+          el.scrollLeft = d.sl - dx;
+        }}
+        onPointerUp={() => { drag.current = null; }}
+        onPointerCancel={() => { drag.current = null; }}
+        onClickCapture={(e) => {
+          if (moved.current) {
+            e.stopPropagation();
+            e.preventDefault();
+            moved.current = false;
+          }
+        }}
+      >
         {children}
       </div>
-      {canRight ? (
-        <button className="seg-arrow seg-arrow-right" aria-label="向右滑动" onClick={() => nudge(1)}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      ) : null}
+      <div className="seg-indi" ref={indiRef} aria-hidden>
+        <i ref={thumbRef} />
+      </div>
     </div>
   );
 }

@@ -1848,12 +1848,13 @@
   .drawer { display: flex; }
 }
 
-/* ===== SegmentedOverflow 滑动模式 ===== */
+/* ===== SegmentedOverflow 滑动 + 位置指示条 ===== */
 .seg-ov {
   position: relative;
   display: flex;
   width: 100%;
   align-items: center;
+  flex-wrap: wrap;
 }
 .seg-track {
   display: flex;
@@ -1866,8 +1867,9 @@
   overflow-y: hidden;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
+  cursor: grab;
 }
+.seg-track:active { cursor: grabbing; }
 .seg-track::-webkit-scrollbar { display: none; }
 .seg-track button {
   flex: 1 0 auto;
@@ -1878,23 +1880,22 @@
   font-size: 11.5px;
   white-space: nowrap;
 }
-.seg-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 2;
-  width: 24px;
-  height: 24px;
-  padding: 0;
+/* 位置指示条：非滚动条，仅可滑时出现；滑块比胶囊更宽，防误读为 tab 下划线 */
+.seg-indi {
+  width: min(60%, 150px);
+  height: 3px;
+  margin: 5px auto 0;
+  border-radius: 2px;
+  background: var(--border-soft, rgba(0, 0, 0, 0.08));
+  position: relative;
+  overflow: hidden;
   flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--surface, #fff);
-  border: 1px solid var(--border-soft, #e5e5e3);
-  color: var(--text-2, #666);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.16);
 }
-.seg-arrow-left { left: -5px; }
-.seg-arrow-right { right: -5px; }
+.seg-indi i {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--text-3, rgba(0, 0, 0, 0.3));
+  min-width: 104px;
+}
