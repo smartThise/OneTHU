@@ -1609,8 +1609,21 @@
   /* 轨道拒绝长大：1fr 的自动最小尺寸是 min-content，宽表格会把整列撑到 600+；
      minmax(0,1fr) 让列严格等于视口，内部溢出交给 clip/卡内滚动 */
   .shell { grid-template-columns: minmax(0, 1fr) !important; }
-  .content { min-width: 0; }
-  .segmented, .section-head { flex-wrap: wrap; max-width: 100%; }
+  .content { min-width: 0; }  /* 子菜单分段条：紧凑单行，放不下在条内滑（不挤成两行） */
+  .segmented {
+    flex-wrap: nowrap;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .segmented button {
+    flex: none;
+    height: 30px;
+    padding: 0 11px;
+    font-size: 12px;
+  }
+  .section-head { flex-wrap: wrap; max-width: 100%; }
   .xk-two-col { flex-direction: column; }
   .xk-two-col > .xk-left, .xk-two-col > .xk-right { width: auto !important; max-width: 100%; }
   body {
@@ -1685,26 +1698,32 @@
     gap: 6px;
     font-size: var(--text-xs);
   }
-  .nav-item svg { width: 15px; height: 15px; }
+  .nav-item {
+    width: 44px;
+    justify-content: center;
+    padding: 0;
+  }
+  /* 图标化：8 个入口在 390px 视口内全部放下，切换器不再需要滚动发现 */
+  .nav-label { display: none; }
   .sidebar-foot { display: none; }
 }
 
 @media (max-width: 700px) {
-  body { font-size: 14px; }
+  body { font-size: 13.5px; }
 
   /* 课表：44px 时间轴 + 5 列全部可收缩（1fr 默认 min-content 不为零，长课名会撑爆） */
   .tt { grid-template-columns: 34px repeat(5, minmax(0, 1fr)) !important; gap: 3px; }
   .tt-cell { font-size: 10px; padding: 2px; }
   /* 登录/恢复屏满宽 */
   .login-wrap, .login-card { width: auto; max-width: 100%; margin-inline: 12px; }
-  .content { padding: 12px 10px calc(84px + env(safe-area-inset-bottom, 0px)); }
+  .content { padding: 10px 9px calc(78px + env(safe-area-inset-bottom, 0px)); }
 
   /* 卡片满宽贴边；卡自身接管横滚（表格渲染不被破坏，宽表在卡内滚） */
   .card {
     width: auto;
     max-width: 100%;
-    padding: 12px;
-    border-radius: 12px;
+    padding: 10px;
+    border-radius: 10px;
     margin-inline: 0;
     overflow-x: auto;
   }
@@ -1729,7 +1748,7 @@
   button { min-height: 36px; }
   .input, select { height: 38px; font-size: 14px; max-width: 100%; }
   /* 页头两行排布 */
-  .page-head { flex-wrap: wrap; row-gap: 8px; margin-bottom: 12px; }
+  .page-head { flex-wrap: wrap; row-gap: 6px; margin-bottom: 10px; }
   .page-head h1 { font-size: var(--text-lg, 20px); }
   /* 硬刷新 FAB 避让手势区 */
   .hard-refresh-fab {

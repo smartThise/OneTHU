@@ -243,10 +243,10 @@ export function SchedulePage() {
         <Card><Empty text={semester ? `第 ${weekNo} 周没有排课记录（假期周）。` : "没有排课记录。"} /></Card>
       ) : (
         <Card style={{ padding: 14, overflowX: "auto" }}>
-          <div style={{ minWidth: 720 }}>
+          <div style={{ minWidth: 648 }}>
             {/* 表头：星期 + 日期（今天高亮） */}
             <div style={{ display: "flex", marginBottom: 8 }}>
-              <div style={{ width: 56, flexShrink: 0 }} />
+              <div style={{ width: 44, flexShrink: 0 }} />
               {DAY_NAMES.map((name, i) => (
                 <div
                   key={name}
@@ -261,7 +261,7 @@ export function SchedulePage() {
 
             <div style={{ display: "flex" }}>
               {/* 时间刻度列：每半小时 HH:MM */}
-              <div style={{ width: 56, flexShrink: 0, position: "relative", height: canvasH }}>
+              <div style={{ width: 44, flexShrink: 0, position: "sticky", left: 0, zIndex: 2, background: "var(--surface, #fff)", height: canvasH }}>
                 {halfHours.map((m) => (
                   <div
                     key={m}
