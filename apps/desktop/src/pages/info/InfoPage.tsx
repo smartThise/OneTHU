@@ -72,7 +72,7 @@ export function InfoPage() {
 
   return (
     <>
-      <PageHead title="信息" meta="信息门户 · 教务" />
+      <PageHead title="信息" />
       <SegmentedOverflow ariaLabel="信息功能" style={{ marginBottom: 14 }}>
         {TABS.map(({ id, label }) => (
           <button

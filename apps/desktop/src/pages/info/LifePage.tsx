@@ -58,7 +58,7 @@ export function LifePage() {
 
   return (
     <>
-      <PageHead title="生活" meta="宿舍 · 财务 · 校园网 · 校园卡" />
+      <PageHead title="生活" />
       <SegmentedOverflow ariaLabel="生活功能" style={{ marginBottom: 14 }}>
         {TABS.map(({ id, label }) => (
           <button

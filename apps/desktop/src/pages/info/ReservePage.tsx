@@ -63,7 +63,7 @@ export function ReservePage() {
 
   return (
     <>
-      <PageHead title="预约" meta="图书馆座位 · 研讨间 · 空教室 · 体育场馆 · 更多陆续接入" />
+     <PageHead title="预约" />
       <SegmentedOverflow ariaLabel="预约功能" style={{ marginBottom: 14 }}>
         {TABS.map(({ id, label }) => (
           <button

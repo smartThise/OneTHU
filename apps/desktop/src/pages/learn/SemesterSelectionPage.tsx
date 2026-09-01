@@ -28,7 +28,7 @@ export function SemesterSelectionPage() {
     <>
       <PageHead
         title="切换学期"
-        meta="选择要查看的学期，课程 / 作业 / 通知 / 文件随之切换"
+        
         actions={
           <>
             <BackButton to="learn" label="课程列表" />

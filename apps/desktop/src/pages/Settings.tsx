@@ -35,7 +35,7 @@ export function SettingsPage() {
 
   return (
     <>
-      <PageHead title="设置" meta="OneTHU 0.3.0" />
+      <PageHead title="设置" />
 
       <SectionHead title="账户" />
       <Card>
