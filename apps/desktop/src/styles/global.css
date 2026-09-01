@@ -2205,3 +2205,18 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
 }
+
+/* 触屏连点可靠性：禁掉双击缩放判定（WebView 下快速连点会被当双击吞掉 click）
+   + 去点按高亮 + 按钮禁选中文本 */
+button, .btn, .icon-btn, .chip {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* 卡头工具按钮：加大热区，指头不再点空 */
+.home-card-tools .icon-btn {
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+}

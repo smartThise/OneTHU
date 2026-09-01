@@ -374,41 +374,67 @@ type MoveDir = "up" | "down" | "main" | "rail";
 /** 卡片外壳：标题行（bespoke=标题+说明可点折叠；entry=入口大卡可点进入）
  *  + 右侧 [编辑工具][折叠箭头]。bespoke 卡体返回 null 时整卡不渲染（原隐藏行为）。 */
 function HomeCard({
-  def, item, editing, selected, onSelect, onOpen, onToggle,
+  def, item, index, count, editing, portrait, onOpen, onToggle, onMove, onRemove,
 }: {
   def: HomeCardDef;
   item: PlacedCard;
+  index: number;
+  count: number;
   editing: boolean;
-  selected: boolean;
-  onSelect: () => void;
+  portrait: boolean;
   onOpen: () => void;
   onToggle: (id: HomeCardId) => void;
+  onMove: (id: HomeCardId, dir: MoveDir) => void;
+  onRemove: (id: HomeCardId) => void;
 }) {
   const body = def.kind === "bespoke" ? (def.render?.() ?? null) : null;
   if (def.kind === "bespoke" && body === null) return null;
   const collapsed = item.collapsed;
-  const cls = `home-card${collapsed ? " is-collapsed" : ""}${editing ? " is-editing" : ""}${selected ? " is-picked" : ""}`;
+  const cls = `home-card${collapsed ? " is-collapsed" : ""}${editing ? " is-editing" : ""}`;
   const Icon = def.icon;
 
-  /* shellFree（今日概览条）：无标题行/折叠钮，卡体即整卡；编辑时出现命名行便于点选 */
+  /* shellFree（今日概览条）：卡体即整卡；标题行常显（与编辑态一致），工具行仅编辑时出现 */
   if (def.shellFree && def.kind === "bespoke") {
     return (
-      <section className={cls} onClick={onSelect}>
-        {editing ? (
+      <section className={cls}>
+        {
           <div className="home-card-head">
             <span className="home-card-title" style={{ cursor: "default" }}>
               <h2>{def.title}</h2>
               {def.aside ? <span className="home-card-aside">{def.aside}</span> : null}
             </span>
+            {editing ? (
+            <div className="home-card-tools">
+              <button type="button" className="icon-btn tool-up" disabled={index === 0} title="上移" aria-label={`上移${def.title}`} onClick={() => onMove(def.id, "up")}>
+                <IconChevron width={13} height={13} />
+              </button>
+              <button type="button" className="icon-btn tool-down" disabled={index === count - 1} title="下移" aria-label={`下移${def.title}`} onClick={() => onMove(def.id, "down")}>
+                <IconChevron width={13} height={13} />
+              </button>
+              {!portrait ? (
+                <>
+                <button type="button" className="icon-btn tool-left" disabled={item.col === "main"} title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={`把${def.title}移到主栏`} onClick={() => onMove(def.id, "main")}>
+                  <IconChevron width={13} height={13} />
+                </button>
+                <button type="button" className="icon-btn tool-right" disabled={item.col === "rail"} title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${def.title}移到侧栏`} onClick={() => onMove(def.id, "rail")}>
+                  <IconChevron width={13} height={13} />
+                </button>
+                </>
+              ) : null}
+              <button type="button" className="icon-btn tool-x" title="隐藏此卡片（可经「添加卡片」找回）" aria-label={`隐藏${def.title}`} onClick={() => onRemove(def.id)}>
+                ✕
+              </button>
+            </div>
+            ) : null}
           </div>
-        ) : null}
+        }
         <div className="home-card-body">{body}</div>
       </section>
     );
   }
 
   return (
-    <section className={cls} onClick={onSelect}>
+    <section className={cls}>
       <div className="home-card-head">
         {def.kind === "entry" ? (
           <button
@@ -438,6 +464,36 @@ function HomeCard({
             {def.aside ? <span className="home-card-aside">{def.aside}</span> : null}
           </button>
         )}
+
+        {editing ? (
+          <div className="home-card-tools">
+            <button type="button" className="icon-btn tool-up" disabled={index === 0} title="上移" aria-label={`上移${def.title}`} onClick={() => onMove(def.id, "up")}>
+              <IconChevron width={13} height={13} />
+            </button>
+            <button type="button" className="icon-btn tool-down" disabled={index === count - 1} title="下移" aria-label={`下移${def.title}`} onClick={() => onMove(def.id, "down")}>
+              <IconChevron width={13} height={13} />
+            </button>
+            {!portrait ? (
+              <>
+              <button type="button" className="icon-btn tool-left" disabled={item.col === "main"} title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={`把${def.title}移到主栏`} onClick={() => onMove(def.id, "main")}>
+                <IconChevron width={13} height={13} />
+              </button>
+              <button type="button" className="icon-btn tool-right" disabled={item.col === "rail"} title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${def.title}移到侧栏`} onClick={() => onMove(def.id, "rail")}>
+                <IconChevron width={13} height={13} />
+              </button>
+              </>
+            ) : null}
+            <button
+              type="button"
+              className="icon-btn tool-x"
+              title={def.kind === "entry" ? "隐藏此入口（可经「添加卡片」找回）" : "隐藏此卡片（可经「添加卡片」找回）"}
+              aria-label={`隐藏${def.title}`}
+              onClick={() => onRemove(def.id)}
+            >
+              ✕
+            </button>
+          </div>
+        ) : null}
 
         <button
           type="button"
@@ -561,8 +617,6 @@ export function TodayPage() {
   const [foldDefaults, setFoldDefaults] = useState<Partial<Record<HomeCardId, boolean>>>(() => loadCollapsedDefaults());
   const [editing, setEditing] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  // 编辑模式点选的卡片（操作对象；底部固定工具条，按钮不随卡片重排漂移，连点不丢）
-  const [selCard, setSelCard] = useState<HomeCardId | null>(null);
   // 布局变动即时持久化到「当前朝向」的桶；朝向刚切换时先载入另一套，本次不保存（防串桶）
   useEffect(() => {
     if (orientation !== oriRef.current) {
@@ -815,15 +869,16 @@ export function TodayPage() {
         key={it.id}
         def={def}
         item={it}
+        index={index}
+        count={list.length}
         editing={editing}
-        selected={selCard === it.id}
-        onSelect={() => {
-          if (editing) setSelCard(selCard === it.id ? null : it.id);
-        }}
+        portrait={portrait}
         onOpen={() => {
           if (def.entry) navigate(def.entry.page, def.entry.params);
         }}
         onToggle={toggleCard}
+        onMove={moveCard}
+        onRemove={removeCard}
       />
     );
   };
@@ -848,7 +903,6 @@ export function TodayPage() {
                   className="btn btn-primary"
                   onClick={() => {
                     setEditing(false);
-                    setSelCard(null);
                     setAddOpen(false);
                   }}
                 >
@@ -856,7 +910,7 @@ export function TodayPage() {
                 </button>
               </>
             ) : (
-              <button className="btn" onClick={() => { setEditing(true); setSelCard(null); }}>
+              <button className="btn" onClick={() => setEditing(true)}>
                 编辑
               </button>
             )}
@@ -884,38 +938,6 @@ export function TodayPage() {
           <Empty text="首页暂无卡片——点右上角「编辑」→「添加卡片」挑几张放上来。" />
         </Card>
       ) : null}
-
-      {editing && selCard ? (() => {
-        const d = defById.get(selCard);
-        const it = layout.find((x) => x.id === selCard);
-        if (!d || !it || (it.col !== "main" && it.col !== "rail")) return null;
-        const seq = portrait ? flatItems : it.col === "rail" ? railItems : mainItems;
-        const k = seq.findIndex((x) => x.id === selCard);
-        return (
-          <div className="home-edit-bar" role="toolbar" aria-label={`整理${d.title}`} onClick={(e) => e.stopPropagation()}>
-            <span className="heb-name">{d.title}</span>
-            <button type="button" className="icon-btn heb-btn heb-up" disabled={k <= 0} title="上移" aria-label={`上移${d.title}`} onClick={() => moveCard(selCard, "up")}>
-              <IconChevron width={16} height={16} />
-            </button>
-            <button type="button" className="icon-btn heb-btn heb-down" disabled={k < 0 || k >= seq.length - 1} title="下移" aria-label={`下移${d.title}`} onClick={() => moveCard(selCard, "down")}>
-              <IconChevron width={16} height={16} />
-            </button>
-            {!portrait ? (
-              <>
-                <button type="button" className="icon-btn heb-btn heb-left" disabled={it.col === "main"} title={it.col === "main" ? "已在主栏" : "移到主栏"} aria-label={`把${d.title}移到主栏`} onClick={() => moveCard(selCard, "main")}>
-                  <IconChevron width={16} height={16} />
-                </button>
-                <button type="button" className="icon-btn heb-btn heb-right" disabled={it.col === "rail"} title={it.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${d.title}移到侧栏`} onClick={() => moveCard(selCard, "rail")}>
-                  <IconChevron width={16} height={16} />
-                </button>
-              </>
-            ) : null}
-            <button type="button" className="icon-btn heb-btn heb-x" title="隐藏此卡片（可经「添加卡片」找回）" aria-label={`隐藏${d.title}`} onClick={() => { removeCard(selCard); setSelCard(null); }}>
-              ✕
-            </button>
-          </div>
-        );
-      })() : null}
 
       {addOpen && editing ? (
         <AddCardsModal hidden={hiddenDefs} portrait={portrait} onAdd={addCard} onClose={() => setAddOpen(false)} />
