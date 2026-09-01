@@ -105,17 +105,21 @@ export function ClassroomTab() {
       ) : (buildings?.length ?? 0) === 0 ? (
         <TabEmpty text="暂无教室资源数据（可能不在上课周期，或服务暂未开放）。" />
       ) : (
-        <div className="chips" style={{ marginBottom: 16 }}>
+        <select
+          className="input filter-select"
+          value={sel?.searchName ?? ""}
+          onChange={(e) => {
+            const b = buildings!.find((x) => x.searchName === e.target.value);
+            if (b) void loadState(b);
+          }}
+        >
+          <option value="">选择教学楼…</option>
           {buildings!.map((b) => (
-            <button
-              key={b.searchName}
-              className={"chip" + (sel?.searchName === b.searchName ? " chip-blue" : "")}
-              onClick={() => void loadState(b)}
-            >
+            <option key={b.searchName} value={b.searchName}>
               {b.name}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
       )}
 
       {sel ? (

@@ -573,22 +573,22 @@ export function VenueSportsTab() {
           <div style={{ lineHeight: 1.7, fontSize: 13, marginBottom: 12 }}>
             统一身份要求二次认证。选择验证方式并输入验证码，完成后本设备将被信任，之后无需再输。
           </div>
-          <div className="chips" style={{ marginBottom: 12 }}>
+          <select
+            className="input filter-select"
+            value={twoFAType ?? ""}
+            onChange={(e) => {
+              setTwoFAType(e.target.value);
+              setTwoFASent(false);
+              setTwoFAErr(null);
+            }}
+          >
             {twoFA.methods.map((m) => (
-              <button
-                key={m.type}
-                className={"chip" + (twoFAType === m.type ? " chip-blue" : "")}
-                onClick={() => {
-                  setTwoFAType(m.type);
-                  setTwoFASent(false);
-                  setTwoFAErr(null);
-                }}
-              >
+              <option key={m.type} value={m.type}>
                 {m.name}
                 {m.detail ? `（${m.detail}）` : ""}
-              </button>
+              </option>
             ))}
-          </div>
+          </select>
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
             <input
               className="input"
@@ -649,17 +649,21 @@ export function VenueSportsTab() {
       {sceneState === "loading" && !scenes ? (
         <SkeletonRows rows={3} />
       ) : (
-        <div className="chips" style={{ marginBottom: 10 }}>
+        <select
+          className="input filter-select"
+          value={venue?.uuid ?? ""}
+          onChange={(e) => {
+            const v = (scenes ?? []).find((x) => x.uuid === e.target.value);
+            if (v) setVenue(v);
+          }}
+        >
+          <option value="">选择场馆…</option>
           {(scenes ?? []).map((v) => (
-            <button
-              key={v.uuid}
-              className={"chip" + (venue?.uuid === v.uuid ? " chip-blue" : "")}
-              onClick={() => setVenue(v)}
-            >
+            <option key={v.uuid} value={v.uuid}>
               {v.sceneName}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
       )}
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
         <input
@@ -690,63 +694,63 @@ export function VenueSportsTab() {
 
       <SectionHead title={`场次与场地 · ${venue?.sceneName ?? ""}`} aside={date} />
       {buildings.length > 1 ? (
-        <div className="chips" style={{ marginBottom: 10 }}>
+        <select
+          className="input filter-select"
+          value={building}
+          onChange={(e) => {
+            setBuilding(e.target.value);
+            setRoom("");
+            setClassEnum("BUILDING");
+          }}
+        >
           {buildings.map((b) => (
-            <button
-              key={b.uuid}
-              className={"chip" + (building === b.uuid ? " chip-blue" : "")}
-              onClick={() => {
-                setBuilding(b.uuid);
-                setRoom("");
-                setClassEnum("BUILDING");
-              }}
-            >
+            <option key={b.uuid} value={b.uuid}>
               {b.siteName ?? b.uuid}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
       ) : null}
       {devKinds.length > 1 ? (
-        <div className="chips" style={{ marginBottom: 10 }}>
+        <select
+          className="input filter-select"
+          value={devKind}
+          onChange={(e) => setDevKind(e.target.value)}
+        >
           {devKinds.map((k) => (
-            <button
-              key={k.uuid}
-              className={"chip" + (devKind === k.uuid ? " chip-blue" : "")}
-              onClick={() => setDevKind(k.uuid)}
-            >
+            <option key={k.uuid} value={k.uuid}>
               {k.devKindName ?? k.uuid}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
       ) : null}
       {useTypes.length > 1 ? (
-        <div className="chips" style={{ marginBottom: 10 }}>
+        <select
+          className="input filter-select"
+          value={useType}
+          onChange={(e) => setUseType(e.target.value)}
+        >
           {useTypes.map((u) => (
-            <button
-              key={u.value}
-              className={"chip" + (useType === u.value ? " chip-blue" : "")}
-              onClick={() => setUseType(u.value)}
-            >
+            <option key={u.value} value={u.value}>
               {u.label}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
       ) : null}
       {classEnum === "ROOM" && rooms.length > 1 ? (
-        <div className="chips" style={{ marginBottom: 10 }}>
+        <select
+          className="input filter-select"
+          value={room}
+          onChange={(e) => {
+            setRoom(e.target.value);
+            setClassEnum("ROOM");
+          }}
+        >
           {rooms.map((r) => (
-            <button
-              key={r.uuid}
-              className={"chip" + (room === r.uuid ? " chip-blue" : "")}
-              onClick={() => {
-                setRoom(r.uuid);
-                setClassEnum("ROOM");
-              }}
-            >
+            <option key={r.uuid} value={r.uuid}>
               {r.siteName ?? r.uuid}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
       ) : null}
       {sitesState === "error" ? (
         <VenueNote
@@ -761,18 +765,16 @@ export function VenueSportsTab() {
       ) : sitesState === "ready" ? (
         <>
           {rows.length > 0 ? (
-            <div className="chips" style={{ marginBottom: 12 }}>
-              {([
-                ["all", "全部时段"],
-                ["am", "上午"],
-                ["pm", "下午"],
-                ["eve", "晚上"],
-              ] as const).map(([k, label]) => (
-                <button key={k} className={"chip" + (timeFilter === k ? " chip-blue" : "")} onClick={() => setTimeFilter(k)}>
-                  {label}
-                </button>
-              ))}
-            </div>
+            <select
+              className="input filter-select"
+              value={timeFilter}
+              onChange={(e) => setTimeFilter(e.target.value as "all" | "am" | "pm" | "eve")}
+            >
+              <option value="all">全部时段</option>
+              <option value="am">上午</option>
+              <option value="pm">下午</option>
+              <option value="eve">晚上</option>
+            </select>
           ) : null}
           {rows.length > 0 && siteBlocks.length === 0 ? (
             <Card style={{ marginBottom: 16 }}>

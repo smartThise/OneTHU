@@ -205,29 +205,34 @@ export function KongjianTab() {
             {page.rooms.length > 0 ? (
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>房间</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 6px" }}>
+                <select
+                  className="input filter-select"
+                  value={roomId || page.selectedRoom || ""}
+                  onChange={(e) => pickRoom(e.target.value)}
+                >
+                  <option value="">全部房间…</option>
                   {page.rooms.map((r) => (
-                    <button
-                      key={r.id}
-                      className={"chip" + ((roomId || page.selectedRoom) === r.id ? " chip-blue" : "")}
-                      onClick={() => pickRoom(r.id)}
-                    >
+                    <option key={r.id} value={r.id}>
                       {r.name}
-                    </button>
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
             ) : null}
             {page.dates.length > 0 ? (
               <div>
                 <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>日期</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 6px" }}>
+                <select
+                  className="input filter-select"
+                  value={date}
+                  onChange={(e) => pickDate(e.target.value)}
+                >
                   {page.dates.map((d) => (
-                    <button key={d} className={"chip" + (date === d ? " chip-blue" : "")} onClick={() => pickDate(d)}>
+                    <option key={d} value={d}>
                       {d}
-                    </button>
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
             ) : null}
             {page.info ? (
