@@ -246,7 +246,7 @@ export function SchedulePage() {
           <div style={{ minWidth: 0 }}>
             {/* 表头：星期 + 日期（今天高亮） */}
             <div style={{ display: "flex", marginBottom: 10, alignItems: "flex-end" }}>
-              <div style={{ width: 22, flexShrink: 0 }} />
+              <div style={{ width: 34, flexShrink: 0 }} />
               {DAY_NAMES.map((name, i) => (
                 <div
                   key={name}
@@ -261,22 +261,26 @@ export function SchedulePage() {
 
             <div style={{ display: "flex" }}>
               {/* 时间刻度列：每半小时 HH:MM */}
-              <div style={{ width: 22, flexShrink: 0, position: "relative", height: canvasH }}>
-                {halfHours.map((m) => (
-                  <div
-                    key={m}
-                    style={{
-                      position: "absolute",
-                      top: Math.max(0, y(m) - 7), /* 首格 08:00 会以 -7px 上溢进日期表头 */
-                      right: 2,
-                      fontSize: 8.5,
-                      color: m % 60 === 0 ? "var(--text-2, #555)" : "var(--text-3, #aaa)",
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {hhmm(m)}
-                  </div>
-                ))}
+              {/* 时间槽：只标整点（半小时间距 21.6px 标两行必挤），横线在槽右侧的画布里 */}
+              <div style={{ width: 34, flexShrink: 0, position: "relative", height: canvasH }}>
+                {halfHours
+                  .filter((m) => m % 60 === 0)
+                  .map((m) => (
+                    <div
+                      key={m}
+                      style={{
+                        position: "absolute",
+                        top: Math.max(0, y(m) - 6),
+                        right: 6,
+                        fontSize: 9,
+                        color: "var(--text-3, #aaa)",
+                        fontVariantNumeric: "tabular-nums",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {hhmm(m)}
+                    </div>
+                  ))}
               </div>
 
               {/* 画布 */}

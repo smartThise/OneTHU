@@ -2050,4 +2050,8 @@
     padding: 2px 0;
   }
   .tt-head span { margin-left: 0 !important; font-size: 9px; opacity: 0.75; }
+  /* 卡内列表行：巨高元凶（原 11/16+gap14） */
+  .row { padding: 7px 12px; gap: 10px; }
+  /* 701-860 内容区此前仍在用 20/16 旧内边距，统一收紧 */
+  .content { padding: 12px 14px calc(72px + env(safe-area-inset-bottom, 0px)); }
 }
