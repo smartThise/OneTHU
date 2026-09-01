@@ -276,20 +276,20 @@ function parseBbsTabs(html: string): LearnBbsTab[] {
 }
 
 
-/** 空列表诊断：抽取页面里的 wlxt 接口 URL 与内联脚本（DataTables ajax 初始化就藏在这里） */
+/** 空列表诊断：直奔分页接口的调用脚本（ybtlPageList/jhtlPageList/cytlPageList/bqListByWlkcid 的
+ *  DataTable/ajax 初始化段——参数与返回结构全在里面） */
 function debugBbsShell(html: string): string {
-  const urls = [...new Set(html.match(/\/[bf]\/wlxt[\w/.-]*(?:\?[^"'\s<>)]*)?/g) ?? [])];
   const inline = (html.match(/<script[\s\S]*?<\/script>/gi) ?? [])
     .filter((x) => !/src=/.test(x))
     .map((x) => x.replace(/<\/?script[^>]*>/gi, "").trim())
-    .filter((x) => x.length > 40 && /ajax|DataTable|url|tltb|table/i.test(x));
+    .filter((x) => x.length > 30 && /ybtlPageList|jhtlPageList|cytlPageList|bqListByWlkcid|DataTable|aaData|sEcho/i.test(x));
+  const urls = [...new Set(html.match(/\/[bf]\/wlxt[\w/.-]*/g) ?? [])].filter((u) => /bbs|tltb|bqb/i.test(u));
   return [
-    "URLS(" + urls.length + "):",
+    "BBS-URLS:",
     ...urls.map((u) => "  " + u),
     "",
-    "INLINE-SCRIPTS(前3段，每段1500字):",
-    ...inline.slice(0, 3).map((x, i) => `--- #${i} ---\n` + x.slice(0, 1500)),
-  ].join("\n").slice(0, 6000);
+    ...inline.slice(0, 4).map((x, i) => `--- SEG#${i} ---\n` + x.slice(0, 4000)),
+  ].join("\n").slice(0, 9000);
 }
 
 /** 话题行：viewTlById 锚点定位 + 行窗口抓标题/时间/回复数（列表页无采样，宽容提取）。
