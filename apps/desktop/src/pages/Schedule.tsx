@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Card, Empty, ErrorNote, PageHead } from "../components/Layout.js";
-import { IconRefresh } from "../components/Icons.js";
+import { IconPlus, IconRefresh } from "../components/Icons.js";
 import { useCalendar, useCampusData, useWeekSchedule } from "../state/data.js";
+import { describeWeeks, loadCustomCourses, newCourseId, saveCustomCourses, LOCAL_SEMESTER, type CustomCourse } from "../lib/customCourses.js";
 
 const DAY_NAMES = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 /** 上游 schedule.tsx beginTime/endTime（节次兜底定位用） */
@@ -34,6 +36,8 @@ interface GridEntry {
   /** 真实时刻（lib parseJSON 语义：kssj/jssj 优先于节次定位） */
   startTime?: string;
   endTime?: string;
+  /** 手动补充课程（虚线描边 + 管理入口） */
+  custom?: CustomCourse;
 }
 
 /** 课程块配色（按课程名稳定取色，同学期同色） */
@@ -105,6 +109,24 @@ export function SchedulePage() {
   const [weekNo, setWeekNo] = useState(1);
   const semester = semesters[Math.min(semesterIdx, Math.max(semesters.length - 1, 0))] ?? null;
 
+  /** 手动补充课程（本地持久化，按学期分桶；校历缺失时进 _local 兜底桶） */
+  const customKey = semester?.semesterId ?? LOCAL_SEMESTER;
+  const [customList, setCustomList] = useState<CustomCourse[]>([]);
+  const [customOpen, setCustomOpen] = useState(false);
+  /** 点自定义课程块 → 打开弹窗并进入该条编辑态 */
+  const [editId, setEditId] = useState<string | null>(null);
+  const openEdit = (id: string) => {
+    setEditId(id);
+    setCustomOpen(true);
+  };
+  useEffect(() => {
+    setCustomList(loadCustomCourses(customKey));
+  }, [customKey]);
+  const persistCustom = (list: CustomCourse[]) => {
+    setCustomList(list);
+    saveCustomCourses(customKey, list);
+  };
+
   /** 本周号（按校历 firstDay 推算，夹在 1..weekCount） */
   const currentWeek = useMemo(() => {
     if (!semester) return 1;
@@ -136,6 +158,24 @@ export function SchedulePage() {
     });
   }, [semester, weekData.data, campus.data, weekNo]);
 
+  /** 手动补充课程并入本视图：有校历时按生效周过滤；无校历（campus 兜底）全量展示 */
+  const customEntries: GridEntry[] = useMemo(
+    () =>
+      customList
+        .filter((c) => (semester ? c.weeks.includes(weekNo) : true))
+        .map((c) => ({
+          courseName: c.courseName,
+          location: c.location,
+          teacher: c.teacher,
+          dayOfWeek: c.dayOfWeek,
+          startSection: c.startSection,
+          endSection: c.endSection,
+          custom: c,
+        })),
+    [customList, semester, weekNo],
+  );
+  const allEntries = useMemo(() => [...entries, ...customEntries], [entries, customEntries]);
+
   const todayIdx = useMemo(() => {
     const d = new Date().getDay();
     return d === 0 ? 6 : d - 1;
@@ -144,7 +184,7 @@ export function SchedulePage() {
   /** 是否正在看当前周（回本周按钮显隐 + 红线显隐） */
   const isCurrentWeek = semester ? weekNo === currentWeek : true;
 
-  const placed = useMemo(() => layout(entries), [entries]);
+  const placed = useMemo(() => layout(allEntries), [allEntries]);
 
   /** 所选周的 7 个日期 */
   const dayDates = useMemo(() => {
@@ -183,6 +223,10 @@ export function SchedulePage() {
                 回到今天
               </button>
             ) : null}
+            <button className="btn" onClick={() => setCustomOpen(true)} title="手动补充课程（本地保存，不上传教务系统）">
+              <IconPlus width={14} height={14} />
+              添加课程
+            </button>
             <button
               className="btn"
               onClick={() => {
@@ -239,7 +283,7 @@ export function SchedulePage() {
 
       {loading ? (
         <Empty text="正在从教务系统取数…" />
-      ) : entries.length === 0 ? (
+      ) : allEntries.length === 0 ? (
         <Card><Empty text={semester ? `第 ${weekNo} 周没有排课记录（假期周）。` : "没有排课记录。"} /></Card>
       ) : (
         <Card style={{ padding: 14, overflowX: "auto" }}>
@@ -358,7 +402,8 @@ export function SchedulePage() {
                       key={`b-${i}`}
                       title={`${p.entry.courseName}${p.entry.teacher ? " · " + p.entry.teacher : ""}${
                         p.entry.location ? " @" + p.entry.location : ""
-                      }（${hhmm(p.beginMin)}–${hhmm(p.endMin)}）`}
+                      }（${hhmm(p.beginMin)}–${hhmm(p.endMin)}）${p.entry.custom ? " · 手动添加" : ""}`}
+                      onClick={p.entry.custom ? () => setEditId(p.entry.custom!.id) : undefined}
                       style={{
                         position: "absolute",
                         left: `calc(${leftPct}% + 3px)`,
@@ -366,6 +411,7 @@ export function SchedulePage() {
                         top,
                         height,
                         background: p.color,
+                        border: p.entry.custom ? "1.5px dashed rgba(255,255,255,.8)" : undefined,
                         borderRadius: 5,
                         padding: compact ? "2px 4px" : "3px 5px",
                         color: "#fff",
@@ -405,6 +451,218 @@ export function SchedulePage() {
           </div>
         </Card>
       )}
+
+      <CustomCourseModal
+        open={customOpen}
+        onClose={() => {
+          setCustomOpen(false);
+          setEditId(null);
+        }}
+        list={customList}
+        onSave={persistCustom}
+        newId={newCourseId}
+        weekCount={semester?.weekCount ?? 18}
+        hasSemester={!!semester}
+        editId={editId}
+        setEditId={setEditId}
+      />
     </>
   );
+}
+
+/* ══════════ 手动补充课程弹窗（自带表面色，zhjwxk 弹窗同款骨架）══════════
+ *  参考 thu-info-app scheduleAdd：名称/地点/教师 + 星期 + 周次多选（全/单/双快捷）+ 起止节次。 */
+const ccMask: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
+const ccPanel: React.CSSProperties = { width: "100%", maxWidth: 560, maxHeight: "82vh", display: "flex", flexDirection: "column", background: "var(--bg-elev, #ffffff)", color: "var(--text, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)" };
+const ccLabel: React.CSSProperties = { display: "block", fontSize: 12, color: "var(--text-3, #9aa1ac)", margin: "10px 0 4px" };
+const ccChip = (on: boolean): React.CSSProperties => ({
+  minWidth: 30, padding: "3px 7px", borderRadius: 6, fontSize: 12, cursor: "pointer",
+  border: `1px solid ${on ? "transparent" : "var(--border, #e3e3e3)"}`,
+  background: on ? "var(--accent, #6d7ff0)" : "transparent",
+  color: on ? "#fff" : "inherit", textAlign: "center", userSelect: "none",
+});
+
+function CustomCourseModal({
+  open, onClose, list, onSave, newId, weekCount, hasSemester, editId, setEditId,
+}: {
+  open: boolean;
+  onClose: () => void;
+  list: CustomCourse[];
+  onSave: (list: CustomCourse[]) => void;
+  newId: () => string;
+  weekCount: number;
+  hasSemester: boolean;
+  editId: string | null;
+  setEditId: (id: string | null) => void;
+}) {
+  const editing = editId ? list.find((c) => c.id === editId) ?? null : null;
+  const [name, setName] = useState("");
+  const [teacher, setTeacher] = useState("");
+  const [location, setLocation] = useState("");
+  const [day, setDay] = useState(1);
+  const [weeks, setWeeks] = useState<number[]>([]);
+  const [pBegin, setPBegin] = useState(1);
+  const [pEnd, setPEnd] = useState(2);
+  const [err, setErr] = useState<string | null>(null);
+
+  /* 打开/切换编辑对象时（重）装表单 */
+  useEffect(() => {
+    if (!open) return;
+    if (editing) {
+      setName(editing.courseName);
+      setTeacher(editing.teacher ?? "");
+      setLocation(editing.location ?? "");
+      setDay(editing.dayOfWeek);
+      setWeeks(editing.weeks);
+      setPBegin(editing.startSection);
+      setPEnd(editing.endSection);
+    } else {
+      setName(""); setTeacher(""); setLocation(""); setDay(1); setWeeks([]); setPBegin(1); setPEnd(2);
+    }
+    setErr(null);
+  }, [open, editId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* Esc 关闭 */
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const toggleWeek = (w: number) =>
+    setWeeks((ws) => (ws.includes(w) ? ws.filter((x) => x !== w) : [...ws, w].sort((a, b) => a - b)));
+  const allWeeks = Array.from({ length: weekCount }, (_, i) => i + 1);
+  const setParity = (odd: boolean) =>
+    setWeeks(allWeeks.filter((w) => (odd ? w % 2 === 1 : w % 2 === 0)));
+
+  const submit = () => {
+    const trimmed = name.trim();
+    if (!trimmed) { setErr("课程名称不能为空。"); return; }
+    if (pEnd < pBegin) { setErr("结束节次不能早于开始节次。"); return; }
+    if (hasSemester && weeks.length === 0) { setErr("请至少选择一个教学周。"); return; }
+    const course: CustomCourse = {
+      id: editing?.id ?? newId(),
+      courseName: trimmed,
+      teacher: teacher.trim() || undefined,
+      location: location.trim() || undefined,
+      dayOfWeek: day,
+      weeks: hasSemester ? weeks : allWeeks,
+      startSection: pBegin,
+      endSection: pEnd,
+      semesterId: "",
+    };
+    onSave(editing ? list.map((c) => (c.id === editing.id ? course : c)) : [...list, course]);
+    onClose();
+  };
+
+  return createPortal(
+    <div style={ccMask} onClick={onClose}>
+      <div style={ccPanel} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border, #eee)" }}>
+          <b>{editing ? "编辑课程" : "添加课程"}</b>
+          <span style={{ flex: 1 }} />
+          <button className="btn" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ padding: "4px 16px 16px", overflowY: "auto", fontSize: 13, lineHeight: 1.6 }}>
+          {/* 已有列表 */}
+          {list.length > 0 ? (
+            <div style={{ margin: "10px 0 4px" }}>
+              <div style={ccLabel}>已添加（{list.length}）</div>
+              {list.map((c) => (
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", borderBottom: "1px solid var(--border, #f0f0f0)" }}>
+                  <button className="btn" style={{ padding: "2px 8px", fontSize: 12 }} onClick={() => setEditId(editId === c.id ? null : c.id)}>
+                    {editId === c.id ? "收起" : "编辑"}
+                  </button>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <b>{c.courseName}</b>
+                    <span style={{ color: "var(--text-3, #9aa1ac)", fontSize: 12 }}>
+                      {c.location ? ` @${c.location}` : ""} · {DAY_NAMES[c.dayOfWeek - 1]} 第{c.startSection}-{c.endSection}节 · {describeWeeks(c.weeks)}
+                    </span>
+                  </div>
+                  <button
+                    className="btn"
+                    style={{ color: "#e5484d", padding: "2px 8px", fontSize: 12 }}
+                    onClick={() => { if (confirm(`删除「${c.courseName}」？`)) onSave(list.filter((x) => x.id !== c.id)); }}
+                  >
+                    删除
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {/* 表单 */}
+          <label style={ccLabel}>课程名称 *</label>
+          <input className="input" style={{ width: "100%" }} value={name} onChange={(e) => setName(e.target.value)} placeholder="如：高等数学（旁听）/ 体锻 / 自习安排" />
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <label style={ccLabel}>教师（可选）</label>
+              <input className="input" style={{ width: "100%" }} value={teacher} onChange={(e) => setTeacher(e.target.value)} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={ccLabel}>地点（可选）</label>
+              <input className="input" style={{ width: "100%" }} value={location} onChange={(e) => setLocation(e.target.value)} />
+            </div>
+          </div>
+
+          <label style={ccLabel}>星期</label>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {DAY_NAMES.map((n, i) => (
+              <div key={n} style={{ ...ccChip(day === i + 1), flex: 1, minWidth: 52 }} onClick={() => setDay(i + 1)}>{n}</div>
+            ))}
+          </div>
+
+          <label style={ccLabel}>节次</label>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <select className="input" value={pBegin} onChange={(e) => setPBegin(Number(e.target.value))}>
+              {allSections().map((s) => <option key={s} value={s}>第 {s} 节 {BEGIN_TIME[s]}</option>)}
+            </select>
+            <span>至</span>
+            <select className="input" value={pEnd} onChange={(e) => setPEnd(Number(e.target.value))}>
+              {allSections().map((s) => <option key={s} value={s}>第 {s} 节 {END_TIME[s]}</option>)}
+            </select>
+          </div>
+
+          {hasSemester ? (
+            <>
+              <label style={ccLabel}>教学周（点击切换）</label>
+              <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                <button className="btn" style={{ fontSize: 12, padding: "2px 8px" }} onClick={() => setWeeks(allWeeks)}>全部</button>
+                <button className="btn" style={{ fontSize: 12, padding: "2px 8px" }} onClick={() => setParity(true)}>单周</button>
+                <button className="btn" style={{ fontSize: 12, padding: "2px 8px" }} onClick={() => setParity(false)}>双周</button>
+                <button className="btn" style={{ fontSize: 12, padding: "2px 8px" }} onClick={() => setWeeks([])}>清空</button>
+              </div>
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                {allWeeks.map((w) => (
+                  <div key={w} style={ccChip(weeks.includes(w))} onClick={() => toggleWeek(w)}>{w}</div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div style={{ ...ccLabel, marginBottom: 0 }}>校历不可用：课程将固定显示在每周课表（仅本地）。</div>
+          )}
+
+          {err ? <div style={{ color: "#e5484d", fontSize: 12, marginTop: 8 }}>{err}</div> : null}
+
+          <div style={{ display: "flex", gap: 8, marginTop: 14, justifyContent: "flex-end" }}>
+            {editing ? <button className="btn" onClick={() => setEditId(null)}>取消编辑</button> : null}
+            <button className="btn btn-primary" onClick={submit}>{editing ? "保存修改" : "添加"}</button>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)", marginTop: 8 }}>
+            自定义课程仅保存在本机（不写入教务系统），课表中以虚线描边标识。
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/** 1-14 节序列（BEGIN_TIME/END_TIME 首位为占位空串） */
+function allSections(): number[] {
+  return BEGIN_TIME.slice(1).map((_, i) => i + 1);
 }
