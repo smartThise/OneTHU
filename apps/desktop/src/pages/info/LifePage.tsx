@@ -59,7 +59,7 @@ export function LifePage() {
   return (
     <>
       <PageHead title="生活" meta="宿舍 · 财务 · 校园网 · 校园卡" />
-      <div className="segmented" role="tablist" aria-label="生活功能" style={{ marginBottom: 14 }}>
+      <div className="segmented" role="tablist" aria-label="生活功能" style={{ marginBottom: 14, flexWrap: "wrap" }}>
         {TABS.map(({ id, label }) => (
           <button
             key={id}

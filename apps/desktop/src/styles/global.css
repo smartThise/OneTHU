@@ -1610,24 +1610,7 @@
      minmax(0,1fr) 让列严格等于视口，内部溢出交给 clip/卡内滚动 */
   .shell { grid-template-columns: minmax(0, 1fr) !important; }
   .content { min-width: 0; }
-  /* 子菜单分段条：iOS 式横滑（绝不换行挤压，绝不消失） */
-  .segmented {
-    flex-wrap: nowrap;
-    display: flex;
-    max-width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x proximity;
-  }
-  .segmented::-webkit-scrollbar { display: none; }
-  .segmented button {
-    flex: none;
-    scroll-snap-align: start;
-    height: 34px;
-    padding: 0 14px;
-  }
-  .section-head { flex-wrap: wrap; max-width: 100%; }
+  .segmented, .section-head { flex-wrap: wrap; max-width: 100%; }
   .xk-two-col { flex-direction: column; }
   .xk-two-col > .xk-left, .xk-two-col > .xk-right { width: auto !important; max-width: 100%; }
   body {
@@ -1709,21 +1692,9 @@
 @media (max-width: 700px) {
   body { font-size: 14px; }
 
-  /* 课表（原生模式）：卡片内横滑整周，时间轴 sticky 吸左，日程列 118px 起可读 */
-  .tt {
-    width: max-content;
-    min-width: 100%;
-    grid-template-columns: 40px repeat(5, minmax(118px, 160px)) !important;
-    gap: 4px;
-  }
-  .tt > *:first-child, .tt [class*="time"] {
-    position: sticky;
-    left: 0;
-    z-index: 2;
-    background: var(--bg, #0a0a0a);
-  }
-  .tt-cell { font-size: 11px; padding: 3px; }
-  .card:has(.tt) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* 课表：44px 时间轴 + 5 列全部可收缩（1fr 默认 min-content 不为零，长课名会撑爆） */
+  .tt { grid-template-columns: 34px repeat(5, minmax(0, 1fr)) !important; gap: 3px; }
+  .tt-cell { font-size: 10px; padding: 2px; }
   /* 登录/恢复屏满宽 */
   .login-wrap, .login-card { width: auto; max-width: 100%; margin-inline: 12px; }
   .content { padding: 12px 10px calc(84px + env(safe-area-inset-bottom, 0px)); }

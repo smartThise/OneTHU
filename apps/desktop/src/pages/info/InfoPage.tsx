@@ -73,7 +73,7 @@ export function InfoPage() {
   return (
     <>
       <PageHead title="信息" meta="信息门户 · 教务" />
-      <div className="segmented" role="tablist" aria-label="信息功能" style={{ marginBottom: 14 }}>
+      <div className="segmented" role="tablist" aria-label="信息功能" style={{ marginBottom: 14, flexWrap: "wrap" }}>
         {TABS.map(({ id, label }) => (
           <button
             key={id}
