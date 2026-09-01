@@ -422,64 +422,82 @@ async fn http_request(input: HttpInput) -> Result<HttpOutput, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(desktop)]
+fn create_eid_window(app: &tauri::AppHandle, visible: bool) -> Result<tauri::WebviewWindow, String> {
+    use tauri::webview::WebviewWindowBuilder;
+    use tauri::WebviewUrl;
+    // 初始化脚本：每次页面加载时检查 sessionStorage 里的凭据，有则自动填充；
+    // 无图形验证码时自动提交。凭据由 open_eid_window 在显示前经 eval 注入，
+    // 预建窗口（启动时隐藏创建）不携带任何凭据。用后即删，防登录后跳转页重复提交。
+    let script = r#"(function() {
+  try {
+    var raw = sessionStorage.getItem('__onethu_eid_cred');
+    if (!raw) return;
+    var c = JSON.parse(raw);
+    function fill() {
+      var u = document.getElementById("username");
+      var p = document.getElementById("password");
+      if (!u || !p) return false;
+      sessionStorage.removeItem('__onethu_eid_cred');
+      function setv(el, v) {
+        var d = Object.getOwnPropertyDescriptor(el.__proto__, "value");
+        d && d.set ? d.set.call(el, v) : (el.value = v);
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      setv(u, c.u);
+      setv(p, c.p);
+      var cap = document.getElementById("i_code");
+      var capBox = cap && cap.offsetParent !== null;
+      if (!capBox) {
+        setTimeout(function() {
+          var b = document.querySelector("button[onclick*='submitForm']");
+          b && b.click();
+        }, 400);
+      }
+      return true;
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fill);
+    else fill();
+    setTimeout(fill, 1200);
+  } catch (e) {}
+})();"#;
+    WebviewWindowBuilder::new(
+        app,
+        "eid",
+        WebviewUrl::External("https://id.tsinghua.edu.cn/f/login".parse().unwrap()),
+    )
+    .title("清华电子身份 · 账户设置")
+    .inner_size(430.0, 640.0)
+    .visible(visible)
+    .initialization_script(script)
+    .build()
+    .map_err(|e| e.to_string())
+}
+
+#[cfg(desktop)]
 #[tauri::command]
 fn open_eid_window(
     app: tauri::AppHandle,
     username: String,
     password: String,
 ) -> Result<String, String> {
-    use tauri::webview::WebviewWindowBuilder;
-    use tauri::WebviewUrl;
-    let label = "eid";
-    if app.get_webview_window(label).is_some() {
-        return Ok("exists".into());
-    }
-    // 初始化脚本：登录表单存在时自动填账号密码；无图形验证码时自动提交。
-    // sessionStorage 守卫防循环（登录后跳转的页面不再自动提交）。
-    let script = format!(
-        r#"(function() {{
-  try {{
-    if (window.__ONETHU_EID_DONE) return;
-    function fill() {{
-      var u = document.getElementById("username");
-      var p = document.getElementById("password");
-      if (!u || !p) return;
-      window.__ONETHU_EID_DONE = true;
-      function setv(el, v) {{
-        var d = Object.getOwnPropertyDescriptor(el.__proto__, "value");
-        d && d.set ? d.set.call(el, v) : (el.value = v);
-        el.dispatchEvent(new Event("input", {{ bubbles: true }}));
-        el.dispatchEvent(new Event("change", {{ bubbles: true }}));
-      }}
-      setv(u, {u:?});
-      setv(p, {p:?});
-      var cap = document.getElementById("i_code");
-      var capBox = cap && cap.offsetParent !== null;
-      if (!capBox) {{
-        setTimeout(function() {{
-          var b = document.querySelector("button[onclick*='submitForm']");
-          b && b.click();
-        }}, 400);
-      }}
-    }}
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fill);
-    else fill();
-    setTimeout(fill, 1200);
-  }} catch (e) {{}}
-}})();"#,
-        u = username,
-        p = password,
+    // 窗口已在启动时隐藏预建（见 run() setup）：此处只注入凭据 + 显示，
+    // 避免 WebView2 窗口创建阻塞主线程导致主界面冻结白屏。
+    // 注入用 JS 字符串字面量经 JSON 序列化（serde_json 转义与 JS 兼容）。
+    let cred = serde_json::json!({ "u": username, "p": password }).to_string();
+    let inject = format!(
+        "(function(){{try{{sessionStorage.setItem('__onethu_eid_cred', {cred});}}catch(e){{}}}})();"
     );
-    let win = WebviewWindowBuilder::new(
-        &app,
-        label,
-        WebviewUrl::External("https://id.tsinghua.edu.cn/f/login".parse().unwrap()),
-    )
-    .title("清华电子身份 · 账户设置")
-    .inner_size(430.0, 640.0)
-    .initialization_script(&script)
-    .build()
-    .map_err(|e| e.to_string())?;
+    if let Some(win) = app.get_webview_window("eid") {
+        // 已预建（或上次未关闭）：重新导航到登录页拿新表单，加载后由初始化脚本自动填充
+        let _ = win.eval(&(inject + "location.href='https://id.tsinghua.edu.cn/f/login';"));
+        let _ = win.show();
+        let _ = win.set_focus();
+        return Ok("shown".into());
+    }
+    // 预建失败/已被用户关闭：退回现建（此路径仍可能短暂阻塞）
+    let win = create_eid_window(&app, true)?;
+    let _ = win.eval(&inject);
     let _ = win.set_focus();
     Ok("opened".into())
 }
@@ -566,6 +584,23 @@ tauri::Builder::default()
                 if let Some(win) = app.get_webview_window("main") {
                     let _ = win.set_position(LogicalPosition::new(80.0, 60.0));
                 }
+            }
+            // 电子身份窗口预建：WebView2 新建窗口开销大（约 1~2s），同步创建会
+            // 阻塞主线程冻结主界面。启动 2s 后在主线程隐藏预建，点「打开电子身份」
+            // 时只剩 show()——瞬时弹出。窗口创建仍走主线程（Windows 事件循环要求），
+            // 但发生在启动余温期，用户无感。
+            #[cfg(desktop)]
+            {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(2000));
+                    let h = handle.clone();
+                    let _ = handle.run_on_main_thread(move || {
+                        if std::env::var("ONETHU_NO_EID_PREWARM").is_err() {
+                            let _ = create_eid_window(&h, false);
+                        }
+                    });
+                });
             }
             Ok(())
         })
