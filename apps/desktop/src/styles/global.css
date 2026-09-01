@@ -2026,3 +2026,14 @@
 .slot-cell.occ { background: var(--red-soft, rgba(239, 68, 68, 0.1)); color: var(--red, #dc2626); cursor: not-allowed; }
 .slot-cell.picked { background: var(--accent, #16a34a); color: #fff; }
 .slot-cell.picked small { opacity: 0.92; }
+
+/* ===== 移动端卡片密度：今日入口卡 / 网络学堂课程卡 ===== */
+@media (max-width: 700px) {
+  .stat-card { padding: 10px 12px; gap: 10px; }
+  .stat-link { padding: 10px 12px; gap: 10px; }
+  .stat-icon { width: 30px; height: 30px; border-radius: 8px; }
+  .course-card-btn { padding: 10px 12px; gap: 4px; }
+  .course-card-head { gap: 6px; }
+  .course-card-chips { gap: 4px; margin-top: 4px; }
+  .course-card-chips .chip { height: 20px; font-size: 10.5px; }
+}

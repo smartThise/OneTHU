@@ -234,6 +234,11 @@ export function SchedulePage() {
           >
             ›
           </button>
+          {weekNo !== currentWeek ? (
+            <button className="btn btn-ghost" onClick={() => setWeekNo(currentWeek)}>
+              回到今天
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -245,7 +250,7 @@ export function SchedulePage() {
         <Card style={{ padding: 14, overflowX: "auto" }}>
           <div style={{ minWidth: 0 }}>
             {/* 表头：星期 + 日期（今天高亮） */}
-            <div style={{ display: "flex", marginBottom: 8 }}>
+            <div style={{ display: "flex", marginBottom: 10, alignItems: "flex-end" }}>
               <div style={{ width: 22, flexShrink: 0 }} />
               {DAY_NAMES.map((name, i) => (
                 <div
@@ -267,7 +272,7 @@ export function SchedulePage() {
                     key={m}
                     style={{
                       position: "absolute",
-                      top: y(m) - 7,
+                      top: Math.max(0, y(m) - 7), /* 首格 08:00 会以 -7px 上溢进日期表头 */
                       right: 2,
                       fontSize: 8.5,
                       color: m % 60 === 0 ? "var(--text-2, #555)" : "var(--text-3, #aaa)",

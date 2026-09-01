@@ -796,7 +796,7 @@ export function VenueSportsTab() {
                     <div style={{ fontSize: 12, opacity: 0.65 }}>{site.siteLocation.location}</div>
                   ) : null}
                   <div style={{ marginLeft: "auto", fontSize: 12, opacity: 0.8 }}>
-                    {anyFree ? "免费" : `¥${yuan(minPrice)} 起`}
+                    {anyFree ? "免费" : `${yuan(minPrice)} 起`}
                   </div>
                 </div>
                 <div className="slot-grid">
@@ -818,7 +818,7 @@ export function VenueSportsTab() {
                         <small>
                           {remain === null ? "" : remain > 0 ? `余${remain}` : "满"}
                           {remain === null ? "" : fee > 0 ? " · " : ""}
-                          {fee > 0 ? `¥${yuan(fee)}` : remain === null ? "" : "免费"}
+                          {fee > 0 ? yuan(fee) : remain === null ? "" : "免费"}
                         </small>
                       </button>
                     );
