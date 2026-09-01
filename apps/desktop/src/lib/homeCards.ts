@@ -146,17 +146,21 @@ export function buildHomeRegistry(bespoke: Partial<Record<HomeCardId, HomeBespok
 
 /* ══════════ 布局持久化 ══════════ */
 
-const LAYOUT_KEY = "onethu.home.layout";
+const LAYOUT_KEY = "onethu.home.layout"; // 旧版单布局（迁移源，只读）
 const DEFAULTS_KEY = "onethu.home.defaults";
+
+/** 布局朝向：竖屏 / 横屏各存一套（平板可旋转，两套互不干扰） */
+export type HomeOrientation = "portrait" | "landscape";
+
+const layoutKey = (o: HomeOrientation): string => `onethu.home.layout.${o}`;
 
 function isHomeSlot(v: unknown): v is HomeSlot {
   return v === "main" || v === "rail" || v === "off";
 }
 
-/** 读布局表：损坏 / 非法元素一律丢弃，返回 null = 从未布局过（首次访问） */
-export function loadLayout(): HomeLayoutItem[] | null {
+/** 解析布局 JSON：损坏 / 非法元素一律丢弃，返回 null = 无有效数据 */
+function parseLayout(raw: string | null): HomeLayoutItem[] | null {
   try {
-    const raw = globalThis.localStorage?.getItem(LAYOUT_KEY);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
@@ -173,22 +177,41 @@ export function loadLayout(): HomeLayoutItem[] | null {
   }
 }
 
-/** 写布局表（每次布局变动即时持久化） */
-export function saveLayout(items: HomeLayoutItem[]): void {
+/**
+ * 读指定朝向的布局表。该朝向从未存过时，从旧版单布局（onethu.home.layout）
+ * 迁移一份作为初始值并落盘——此后两套布局各自独立演化。
+ */
+export function loadLayout(o: HomeOrientation): HomeLayoutItem[] | null {
   try {
-    globalThis.localStorage?.setItem(LAYOUT_KEY, JSON.stringify(items));
+    const own = parseLayout(globalThis.localStorage?.getItem(layoutKey(o)));
+    if (own) return own;
+    const legacy = parseLayout(globalThis.localStorage?.getItem(LAYOUT_KEY));
+    if (legacy) {
+      saveLayout(legacy, o);
+      return legacy;
+    }
+    return null;
   } catch {
-    /* 隐私模式 / 存储被禁：静默降级为内存态 */
+    return null;
   }
 }
 
-/** 读折叠偏好表（卡片重新添加 / 恢复默认时回填用） */
+/** 写指定朝向的布局表（全部 try/catch 静默降级） */
+export function saveLayout(items: HomeLayoutItem[], o: HomeOrientation): void {
+  try {
+    globalThis.localStorage?.setItem(layoutKey(o), JSON.stringify(items));
+  } catch {
+    /* 忽略 */
+  }
+}
+
+/** 折叠偏好：跨布局共享（id→是否折叠） */
 export function loadCollapsedDefaults(): Partial<Record<HomeCardId, boolean>> {
   try {
     const raw = globalThis.localStorage?.getItem(DEFAULTS_KEY);
     if (!raw) return {};
     const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
+    if (typeof parsed !== "object" || parsed === null) return {};
     const out: Partial<Record<HomeCardId, boolean>> = {};
     for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
       if (typeof v === "boolean") out[k as HomeCardId] = v;
@@ -199,19 +222,20 @@ export function loadCollapsedDefaults(): Partial<Record<HomeCardId, boolean>> {
   }
 }
 
-/** 写折叠偏好表 */
-export function saveCollapsedDefaults(rec: Partial<Record<HomeCardId, boolean>>): void {
+export function saveCollapsedDefaults(d: Partial<Record<HomeCardId, boolean>>): void {
   try {
-    globalThis.localStorage?.setItem(DEFAULTS_KEY, JSON.stringify(rec));
+    globalThis.localStorage?.setItem(DEFAULTS_KEY, JSON.stringify(d));
   } catch {
     /* 忽略 */
   }
 }
 
-/** 恢复默认首页布局：清两个 key（Settings「恢复默认布局」用），下次进今日页重建 */
+/** 恢复默认首页布局：清全部布局钥匙 + 折叠偏好（Settings「恢复默认布局」用），下次进今日页重建 */
 export function clearHomeLayout(): void {
   try {
     globalThis.localStorage?.removeItem(LAYOUT_KEY);
+    globalThis.localStorage?.removeItem(layoutKey("portrait"));
+    globalThis.localStorage?.removeItem(layoutKey("landscape"));
     globalThis.localStorage?.removeItem(DEFAULTS_KEY);
   } catch {
     /* 忽略 */

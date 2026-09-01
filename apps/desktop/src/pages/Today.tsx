@@ -15,7 +15,7 @@
  * 用 useApp().navigate(page, params) 轻路由；信息/生活/预约入口按 LearnNav 子栏
  * 参数契约（infoTab/lifeTab/reserveTab）直达对应分栏。
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../components/Layout.js";
@@ -25,7 +25,7 @@ import type { LearnNav, Page } from "../state/app.js";
 import { useCampusData, useCard, useTodayCalendar, useTodayDeadlines, useTodayNewsFeed, useTodayReservations } from "../state/data.js";
 import {
   buildHomeRegistry, loadCollapsedDefaults, loadLayout, resolveLayout,
-  saveCollapsedDefaults, saveLayout,
+  saveCollapsedDefaults, saveLayout, type HomeOrientation,
   HOME_CARD_META,
   type HomeCardDef, type HomeCardId, type HomeCol, type HomeLayoutItem,
 } from "../lib/homeCards.js";
@@ -374,13 +374,14 @@ type MoveDir = "up" | "down" | "main" | "rail";
 /** 卡片外壳：标题行（bespoke=标题+说明可点折叠；entry=入口大卡可点进入）
  *  + 右侧 [编辑工具][折叠箭头]。bespoke 卡体返回 null 时整卡不渲染（原隐藏行为）。 */
 function HomeCard({
-  def, item, index, count, editing, onOpen, onToggle, onMove, onRemove,
+  def, item, index, count, editing, portrait, onOpen, onToggle, onMove, onRemove,
 }: {
   def: HomeCardDef;
   item: PlacedCard;
   index: number;
   count: number;
   editing: boolean;
+  portrait: boolean;
   onOpen: () => void;
   onToggle: (id: HomeCardId) => void;
   onMove: (id: HomeCardId, dir: MoveDir) => void;
@@ -409,12 +410,16 @@ function HomeCard({
               <button type="button" className="icon-btn tool-down" disabled={index === count - 1} title="下移" aria-label={`下移${def.title}`} onClick={() => onMove(def.id, "down")}>
                 <IconChevron width={13} height={13} />
               </button>
-              <button type="button" className="icon-btn tool-left" disabled={item.col === "main"} title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={`把${def.title}移到主栏`} onClick={() => onMove(def.id, "main")}>
-                <IconChevron width={13} height={13} />
-              </button>
-              <button type="button" className="icon-btn tool-right" disabled={item.col === "rail"} title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${def.title}移到侧栏`} onClick={() => onMove(def.id, "rail")}>
-                <IconChevron width={13} height={13} />
-              </button>
+              {!portrait ? (
+                <>
+                <button type="button" className="icon-btn tool-left" disabled={item.col === "main"} title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={`把${def.title}移到主栏`} onClick={() => onMove(def.id, "main")}>
+                  <IconChevron width={13} height={13} />
+                </button>
+                <button type="button" className="icon-btn tool-right" disabled={item.col === "rail"} title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${def.title}移到侧栏`} onClick={() => onMove(def.id, "rail")}>
+                  <IconChevron width={13} height={13} />
+                </button>
+                </>
+              ) : null}
               <button type="button" className="icon-btn tool-x" title="隐藏此卡片（可经「添加卡片」找回）" aria-label={`隐藏${def.title}`} onClick={() => onRemove(def.id)}>
                 ✕
               </button>
@@ -466,12 +471,16 @@ function HomeCard({
             <button type="button" className="icon-btn tool-down" disabled={index === count - 1} title="下移" aria-label={`下移${def.title}`} onClick={() => onMove(def.id, "down")}>
               <IconChevron width={13} height={13} />
             </button>
-            <button type="button" className="icon-btn tool-left" disabled={item.col === "main"} title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={`把${def.title}移到主栏`} onClick={() => onMove(def.id, "main")}>
-              <IconChevron width={13} height={13} />
-            </button>
-            <button type="button" className="icon-btn tool-right" disabled={item.col === "rail"} title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${def.title}移到侧栏`} onClick={() => onMove(def.id, "rail")}>
-              <IconChevron width={13} height={13} />
-            </button>
+            {!portrait ? (
+              <>
+              <button type="button" className="icon-btn tool-left" disabled={item.col === "main"} title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={`把${def.title}移到主栏`} onClick={() => onMove(def.id, "main")}>
+                <IconChevron width={13} height={13} />
+              </button>
+              <button type="button" className="icon-btn tool-right" disabled={item.col === "rail"} title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${def.title}移到侧栏`} onClick={() => onMove(def.id, "rail")}>
+                <IconChevron width={13} height={13} />
+              </button>
+              </>
+            ) : null}
             <button
               type="button"
               className="icon-btn tool-x"
@@ -503,9 +512,10 @@ function HomeCard({
 /** 添加卡片弹层：列出全部被隐藏的卡片（入口卡 + 固有内容卡），点击加入所选列末尾
  *  （createPortal 挂 body + 遮罩 flex 视口居中，NewsTab 订阅弹层同款）。 */
 function AddCardsModal({
-  hidden, onAdd, onClose,
+  hidden, portrait, onAdd, onClose,
 }: {
   hidden: HomeCardDef[];
+  portrait: boolean;
   onAdd: (id: HomeCardId, col: HomeCol) => void;
   onClose: () => void;
 }) {
@@ -540,8 +550,14 @@ function AddCardsModal({
                     <div className="home-entry-name">{def.title}</div>
                     {def.hint ? <div className="home-entry-hint">{def.hint}</div> : null}
                   </div>
-                  <button className="btn" onClick={() => onAdd(def.id, "main")}>主栏</button>
-                  <button className="btn" onClick={() => onAdd(def.id, "rail")}>侧栏</button>
+                  {portrait ? (
+                    <button className="btn" onClick={() => onAdd(def.id, "main")}>添加</button>
+                  ) : (
+                    <>
+                      <button className="btn" onClick={() => onAdd(def.id, "main")}>主栏</button>
+                      <button className="btn" onClick={() => onAdd(def.id, "rail")}>侧栏</button>
+                    </>
+                  )}
                 </div>
               );
             })
@@ -581,19 +597,37 @@ export function TodayPage() {
   const stableNow = useMemo(() => new Date(), []);
   const now = new Date();
 
+  /* ---- 朝向（宽>高=横屏）：竖屏/横屏各存一套布局 ---- */
+  const [portrait, setPortrait] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.matchMedia("(orientation: portrait)").matches : true,
+  );
+  const orientation: HomeOrientation = portrait ? "portrait" : "landscape";
+  const oriRef = useRef<HomeOrientation>(orientation);
+  useEffect(() => {
+    const mq = window.matchMedia("(orientation: portrait)");
+    const on = (): void => setPortrait(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+
   /* ---- 布局持久化状态：首帧即可由注册表元数据对账出完整布局 ---- */
-  const [layout, setLayout] = useState<HomeLayoutItem[]>(() => resolveLayout(HOME_CARD_META, loadLayout()));
+  const [layout, setLayout] = useState<HomeLayoutItem[]>(() => resolveLayout(HOME_CARD_META, loadLayout(oriRef.current)));
   const [foldDefaults, setFoldDefaults] = useState<Partial<Record<HomeCardId, boolean>>>(() => loadCollapsedDefaults());
   const [editing, setEditing] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  // 布局/折叠偏好每次变动即时持久化（含首帧：入口卡以 off 入库，完成「已知卡」登记）
+  // 布局变动即时持久化到「当前朝向」的桶；朝向刚切换时先载入另一套，本次不保存（防串桶）
   useEffect(() => {
-    saveLayout(layout);
-  }, [layout]);
+    if (orientation !== oriRef.current) {
+      oriRef.current = orientation;
+      setLayout(resolveLayout(HOME_CARD_META, loadLayout(orientation)));
+      return;
+    }
+    saveLayout(layout, orientation);
+  }, [layout, orientation]);
+  // 折叠偏好每次变动即时持久化（含首帧：入口卡以 off 入库，完成「已知卡」登记）
   useEffect(() => {
     saveCollapsedDefaults(foldDefaults);
   }, [foldDefaults]);
-
   /* ---- 布局编辑操作 ---- */
   const toggleCard = (id: HomeCardId) => {
     const cur = layout.find((it) => it.id === id);
@@ -605,6 +639,24 @@ export function TodayPage() {
   };
 
   const moveCard = (id: HomeCardId, dir: MoveDir) => {
+    if (portrait && (dir === "up" || dir === "down")) {
+      // 竖屏：无左右栏概念，按展示顺序（主栏→侧栏串成一条）上下移；
+      // 跨过主/侧栏边界时继承邻居的栏位（回到横屏后位置自洽）
+      setLayout((prev) => {
+        const flat = prev.filter((it) => it.col === "main" || it.col === "rail");
+        const k = flat.findIndex((it) => it.id === id);
+        const nk = dir === "up" ? k - 1 : k + 1;
+        if (k < 0 || nk < 0 || nk >= flat.length) return prev;
+        const moving = flat[k];
+        const neighbor = flat[nk];
+        if (!moving || !neighbor) return prev;
+        const rest = prev.filter((it) => it.id !== moving.id);
+        const nIdx = rest.findIndex((it) => it.id === neighbor.id);
+        rest.splice(nIdx, 0, { ...moving, col: neighbor.col });
+        return rest;
+      });
+      return;
+    }
     setLayout((prev) => {
       const moving = prev.find((it) => it.id === id);
       if (!moving || (moving.col !== "main" && moving.col !== "rail")) return prev;
@@ -635,8 +687,17 @@ export function TodayPage() {
     setLayout((prev) => prev.map((it) => (it.id === id ? { ...it, col: "off" as const } : it)));
   };
 
-  /** 把隐藏的入口卡加回所选列末尾；折叠状态按用户偏好（defaults）回填 */
+  /** 把隐藏的卡片加回所选列末尾；竖屏无栏位概念，落到展示序列最末（继承末卡栏位） */
   const addCard = (id: HomeCardId, col: HomeCol) => {
+    if (portrait) {
+      setLayout((prev) => {
+        const flat = prev.filter((it) => it.col === "main" || it.col === "rail");
+        const endCol = flat.length > 0 ? flat[flat.length - 1]!.col : "main";
+        const rest = prev.filter((it) => it.id !== id);
+        return [...rest, { id, col: endCol, collapsed: foldDefaults[id] ?? false }];
+      });
+      return;
+    }
     setLayout((prev) => {
       const rest = prev.filter((it) => it.id !== id);
       return [...rest, { id, col, collapsed: foldDefaults[id] ?? false }];
@@ -795,6 +856,9 @@ export function TodayPage() {
     [layout, defById],
   );
 
+  /** 竖屏展示序列：主栏在前、侧栏在后串成一条（与旧布局竖向堆叠顺序一致） */
+  const flatItems = useMemo(() => (portrait ? [...mainItems, ...railItems] : mainItems), [portrait, mainItems, railItems]);
+
   const renderCard = (it: PlacedCard, index: number, list: PlacedCard[]) => {
     const def = defById.get(it.id);
     if (!def) return null;
@@ -806,6 +870,7 @@ export function TodayPage() {
         index={index}
         count={list.length}
         editing={editing}
+        portrait={portrait}
         onOpen={() => {
           if (def.entry) navigate(def.entry.page, def.entry.params);
         }}
@@ -854,19 +919,26 @@ export function TodayPage() {
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
 
       {/* 顶部三块统计已并入「今日概览」卡（today-overview），随卡片系统移动/隐藏 */}
-      <div className="today-grid" style={{ marginTop: 14 }}>
-        <div className="today-col">{mainItems.map((it, i) => renderCard(it, i, mainItems))}</div>
-        <div className="today-rail">{railItems.map((it, i) => renderCard(it, i, railItems))}</div>
-      </div>
+      {portrait ? (
+        /* 竖屏：无左右栏，主栏+侧栏串成一条展示序列 */
+        <div className="today-grid today-grid-flat" style={{ marginTop: 14 }}>
+          <div className="today-col">{flatItems.map((it, i) => renderCard(it, i, flatItems))}</div>
+        </div>
+      ) : (
+        <div className="today-grid" style={{ marginTop: 14 }}>
+          <div className="today-col">{mainItems.map((it, i) => renderCard(it, i, mainItems))}</div>
+          <div className="today-rail">{railItems.map((it, i) => renderCard(it, i, railItems))}</div>
+        </div>
+      )}
 
-      {mainItems.length + railItems.length === 0 ? (
+      {flatItems.length === 0 ? (
         <Card>
           <Empty text="首页暂无卡片——点右上角「编辑」→「添加卡片」挑几张放上来。" />
         </Card>
       ) : null}
 
       {addOpen && editing ? (
-        <AddCardsModal hidden={hiddenDefs} onAdd={addCard} onClose={() => setAddOpen(false)} />
+        <AddCardsModal hidden={hiddenDefs} portrait={portrait} onAdd={addCard} onClose={() => setAddOpen(false)} />
       ) : null}
     </>
   );

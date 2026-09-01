@@ -2154,3 +2154,6 @@
   text-overflow: ellipsis;
 }
 .stats-overview .row-caret { display: none; }
+
+/* 首页竖屏扁平网格：单列全宽（主栏+侧栏串成一条） */
+.today-grid-flat { grid-template-columns: minmax(0, 1fr) !important; }
