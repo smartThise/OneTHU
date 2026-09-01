@@ -291,7 +291,7 @@ function parseBbsThreadRow(raw: unknown): LearnBbsThreadSummary {
   };
   const yes = (v: unknown): boolean => String(v ?? "").trim() === "是";
   return {
-    id: String(o.id ?? ""),
+    id: String(o.tltid ?? o.id ?? ""),
     title: decodeHtml(String(o.bt ?? "")).trim(),
     author: String(o.fbrxm ?? o.fbr ?? "").trim(),
     time: String(o.fbsj ?? "").slice(0, 16),
@@ -855,7 +855,9 @@ export class LearnClient {
     });
   }
 
-  /** 话题分页（ybtl/jhtl/cytlPageList，DataTables 1.9 服务端协议；默认板 INITTL…，页长 30 同站点） */
+  /** 话题分页（ybtl/jhtl/cytlPageList）。真实协议（2.har 实抓）：body 只有一个参数
+   *  aoData = URL-encoded JSON 数组（DataTables 1.9 内部状态）；响应 aaData 在 object.aaData，
+   *  行主键 tltid。默认板 INITTL…，页长 30 同站点。 */
   async getBbsThreads(
     wlkcid: string,
     opts: { bqid: string; kind: "yb" | "jh" | "cy"; start: number; length?: number },
@@ -863,71 +865,39 @@ export class LearnClient {
     return this.#withRelogin(async () => {
       this.#requireCsrf();
       const length = opts.length ?? 30;
-      const body = new URLSearchParams({
-        sEcho: "1",
-        iColumns: "6",
-        iDisplayStart: String(opts.start),
-        iDisplayLength: String(length),
-        iSortingCols: "0",
-        wlkcid,
-        bqid: opts.bqid,
-      });
+      const aoData = [
+        { name: "sEcho", value: 1 },
+        { name: "iColumns", value: 7 },
+        { name: "sColumns", value: ",,,,,," },
+        { name: "iDisplayStart", value: opts.start },
+        { name: "iDisplayLength", value: String(length) },
+        { name: "mDataProp_0", value: "function" },
+        { name: "bSortable_0", value: false },
+        { name: "mDataProp_1", value: "bt" },
+        { name: "bSortable_1", value: true },
+        { name: "mDataProp_2", value: "fbrxm" },
+        { name: "bSortable_2", value: true },
+        { name: "mDataProp_3", value: "fbsj" },
+        { name: "bSortable_3", value: true },
+        { name: "mDataProp_4", value: "hfcs" },
+        { name: "bSortable_4", value: true },
+        { name: "mDataProp_5", value: "zhhfsj" },
+        { name: "bSortable_5", value: true },
+        { name: "mDataProp_6", value: "function" },
+        { name: "bSortable_6", value: true },
+        { name: "iSortingCols", value: 0 },
+        { name: "wlkcid", value: wlkcid },
+        { name: "bqid", value: opts.bqid },
+      ];
+      const body = new URLSearchParams({ aoData: JSON.stringify(aoData) });
       const res = await this.#http.postForm(this.#withCsrf(urls.LEARN_BBS_THREAD_PAGE(opts.kind)), body);
-      const obj = parseMaybeJsonString<Record<string, unknown>>(res);
-      const pickArr = (o: unknown): unknown[] => {
-        if (Array.isArray(o)) return o;
-        const r = o as Record<string, unknown> | null;
-        if (!r) return [];
-        for (const k of ["aaData", "resultList", "rows", "list", "data"]) {
-          if (Array.isArray(r[k])) return r[k] as unknown[];
-        }
-        const inner = r?.object ?? r?.result;
-        return Array.isArray(inner) ? inner : [];
-      };
-      const threads = pickArr(obj).map(parseBbsThreadRow);
-      const total = parseInt(
-        String((obj as Record<string, unknown>)?.iTotalDisplayRecords ?? (obj as Record<string, unknown>)?.iTotalRecords ?? threads.length),
-        10,
-      );
-      // 空结果留原始响应（「复制诊断」直接看服务器说了什么）
-      this.lastBbsListDebug = threads.length === 0 ? `THREAD-PAGE RESP(${opts.kind},bqid=${opts.bqid},start=${opts.start}):\n` + res.slice(0, 1500) : "";
+      const obj = parseMaybeJsonString<{ object?: { aaData?: unknown[]; iTotalDisplayRecords?: unknown; iTotalRecords?: unknown } }>(res);
+      const inner = (obj?.object ?? {}) as Record<string, unknown>;
+      const rows = Array.isArray(inner.aaData) ? inner.aaData : [];
+      const threads = rows.map(parseBbsThreadRow);
+      const total = parseInt(String(inner.iTotalDisplayRecords ?? inner.iTotalRecords ?? threads.length), 10);
+      this.lastBbsListDebug = threads.length === 0 ? `THREAD-PAGE RESP(${opts.kind},bqid=${opts.bqid},start=${opts.start}):\n` + res.slice(0, 1200) : "";
       return { total: Number.isFinite(total) ? total : threads.length, threads };
-    });
-  }
-
-  /** 话题头（楼主块 + 分页上下文） */
-  async getBbsThread(wlkcid: string, threadId: string): Promise<LearnBbsThreadDetail> {
-    return this.#withRelogin(async () => {
-      this.#requireCsrf();
-      const html = await this.#http.text(this.#withCsrf(urls.LEARN_BBS_THREAD_VIEW(wlkcid, threadId)));
-      const main = parseBbsMainBlock(html);
-      const span = (re: RegExp): string => re.exec(html)?.[1] ?? "";
-      return {
-        id: threadId,
-        title: decodeHtml(
-          span(/id="tlbt"[\s\S]{0,220}?<span[^>]*title="([^"]*)"/) ||
-            span(/id="tlbt"[\s\S]{0,300}?<span[^>]*>([^<]{2,200})<\/span>/),
-        ).trim(),
-        author: main.author,
-        time: main.time,
-        html: main.html,
-        replyCount: parseInt(span(/loadpage2\([^,]+,\s*(\d+)\s*,/), 10) || 0,
-        tabbh: span(/tabbh=(\d+)/),
-        tabid: span(/[?&]tabid=([0-9a-f]{16,40})/),
-        bqid: span(/[?&]bqid=([0-9a-f]{16,40})/),
-      };
-    });
-  }
-
-  /** 回复分页（pageViewTlById JSON；每页 8 条，hhbDtoList 为楼中楼） */
-  async getBbsThreadPosts(wlkcid: string, threadId: string, pageNum: number): Promise<LearnBbsPost[]> {
-    return this.#withRelogin(async () => {
-      this.#requireCsrf();
-      const json = await this.#http.json<{ result?: string; object?: { list?: unknown[] } }>(
-        this.#withCsrf(urls.LEARN_BBS_POSTS_PAGE(wlkcid, threadId, pageNum)),
-      );
-      const list = json?.object?.list;
-      return Array.isArray(list) ? list.map(parseBbsPostJson) : [];
     });
   }
 
