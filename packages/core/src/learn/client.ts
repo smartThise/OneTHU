@@ -275,12 +275,15 @@ function parseBbsTabs(html: string): LearnBbsTab[] {
   return [...out.values()];
 }
 
-/** 话题行：viewTlById 锚点定位 + 行窗口抓标题/时间/回复数（列表页无采样，宽容提取） */
-function parseBbsThreadRows(html: string): LearnBbsThreadSummary[] {
+/** 话题行：viewTlById 锚点定位 + 行窗口抓标题/时间/回复数（列表页无采样，宽容提取）。
+ *  href 里的 & 可能写成 &amp;（服务端渲染常见坑），统一归一后再匹配。 */
+function parseBbsThreadRows(htmlRaw: string): LearnBbsThreadSummary[] {
+  const html = htmlRaw.replace(/&amp;/g, "&");
   const out: LearnBbsThreadSummary[] = [];
   const seen = new Set<string>();
+  // 主形态：完整锚点（href 里直接给出 id）
   const re =
-    /viewTlById\?wlkcid=[^"']*?&id=([0-9a-f]{16,50})[^"]*"[^>]*>([\s\S]{0,220}?)<\/a>/gi;
+    /viewTlById\?[^"']*?[?&]id=([0-9a-f]{16,50})[^"]*"[^>]*>([\s\S]{0,220}?)<\/a>/gi;
   for (const m of html.matchAll(re)) {
     const id = m[1]!;
     if (seen.has(id)) continue;
@@ -300,6 +303,20 @@ function parseBbsThreadRows(html: string): LearnBbsThreadSummary[] {
       time,
       replies: cntM ? parseInt(cntM[1]!, 10) || 0 : 0,
     });
+  }
+  if (out.length > 0) return out;
+  // 备用形态：JS 串里的 viewTlById?id=..&wlkcid=..（onclick/location.href 拼接）
+  const re2 = /viewTlById\?[^'"\s]*?[?&]id=([0-9a-f]{16,50})/gi;
+  for (const m of html.matchAll(re2)) {
+    const id = m[1]!;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const window = html.slice(Math.max(0, m.index! - 400), m.index! + 700);
+    const title = decodeHtml(
+      (/title="([^"]{2,160})"/.exec(window)?.[1] ?? "").replace(/<[^>]+>/g, " "),
+    ).replace(/\s+/g, " ").trim();
+    if (!title) continue;
+    out.push({ id, title, author: "", time: /\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?/.exec(window)?.[0] ?? "", replies: 0 });
   }
   return out;
 }
@@ -384,6 +401,9 @@ export class LearnClient {
 
   /** 诊断现场：最近一次 getCourseGroups 的解析情况（返回空数组时用于定位） */
   lastGroupsDebug = "";
+
+  /** 诊断现场：讨论列表解析为空时的页面 HTML 头部（空串 = 有数据） */
+  lastBbsListDebug = "";
 
   async #fetchCsrf(): Promise<string | null> {
     try {
@@ -838,7 +858,10 @@ export class LearnClient {
     return this.#withRelogin(async () => {
       this.#requireCsrf();
       const html = await this.#http.text(this.#withCsrf(urls.LEARN_BBS_THREAD_LIST(wlkcid, tabId)));
-      return { tabs: parseBbsTabs(html), threads: parseBbsThreadRows(html) };
+      const threads = parseBbsThreadRows(html);
+      // 诊断现场：空列表时留原始 HTML 头部（列表页可能是 ajax 壳，供「复制诊断」排障）
+      this.lastBbsListDebug = threads.length === 0 ? html.slice(0, 4000) : "";
+      return { tabs: parseBbsTabs(html), threads };
     });
   }
 

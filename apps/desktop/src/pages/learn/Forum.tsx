@@ -25,6 +25,7 @@ export function BbsPanel({ courseId }: { courseId: string }) {
   const [state, setState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [error, setError] = useState("");
   const [nonce, setNonce] = useState(0);
+  const [dbgMsg, setDbgMsg] = useState("");
 
   const load = useCallback(() => {
     if (!courseId) return;
@@ -98,6 +99,23 @@ export function BbsPanel({ courseId }: { courseId: string }) {
       ) : (threads?.length ?? 0) === 0 ? (
         <Card>
           <Empty text="本课程暂无讨论" />
+          {status !== "demo" && learn.lastBbsListDebug ? (
+            <div style={{ marginTop: 10 }}>
+              <button
+                className="btn"
+                onClick={() => {
+                  const t = learn.lastBbsListDebug;
+                  navigator.clipboard?.writeText(t).then(
+                    () => setDbgMsg("诊断信息已复制，发给开发者即可修复解析"),
+                    () => setDbgMsg(t.slice(0, 600)),
+                  );
+                }}
+              >
+                复制诊断信息
+              </button>
+              {dbgMsg ? <div className="row-sub" style={{ marginTop: 6, wordBreak: "break-all" }}>{dbgMsg}</div> : null}
+            </div>
+          ) : null}
         </Card>
       ) : (
         <Card>
