@@ -1655,6 +1655,12 @@
   .content [class*="grid"],
   .content [class*="cards"] {
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 158px), 1fr)) !important;
+  /* 首页卡片网格排除在外：158px 两列阈值恰好卡在 361px 真机视口（内容 333px）
+     之上，把首页卡片切成两列 163px 窄条（标题截断/日历一字一行/挤左惨案）。
+     特异性 (0,3,0) 压过上面的 (0,2,0)，与书写顺序无关。 */
+  .content .today-grid, .content .today-grid-flat {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
   }
   /* 媒体与嵌入永不超宽 */
   .content img, .content video, .content canvas, .content iframe, .content svg {
