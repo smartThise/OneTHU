@@ -65,7 +65,7 @@ export function SegmentedOverflow({
     const frac = Math.min(Math.max(el.scrollLeft / overflow, 0), 1);
     const trackW = indi.clientWidth;
     const w = el.clientWidth / el.scrollWidth * trackW;
-    const thumbW = Math.max(Math.min(w, trackW), 104); // 比胶囊(约76-90px)更宽，防误读
+    const thumbW = Math.max(32, Math.min(w, 72)); // 滑块短一点：按比例但封顶 72px
     thumb.style.width = `${thumbW}px`;
     thumb.style.left = `${frac * (trackW - thumbW)}px`;
   }, []);
