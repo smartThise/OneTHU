@@ -2135,3 +2135,21 @@
     box-shadow: 0 8px 26px rgba(0, 0, 0, 0.18) !important;
   }
 }
+
+/* 今日概览条：竖屏横屏一律三列紧凑单行，不再又高又宽 */
+.home-card .stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 6px;
+  margin-bottom: 0;
+}
+.home-card .stats .stat-card { padding: 6px 8px; }
+.home-card .stats .stat-link { gap: 8px; padding: 0; }
+.home-card .stats .stat-num { font-size: 16px; line-height: 1.15; }
+.home-card .stats .stat-label {
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-card .stats .row-caret { display: none; }

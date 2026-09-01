@@ -728,21 +728,21 @@ export function TodayPage() {
           <EntryCard
             num={dataReady ? unsubmitted.length : "–"}
             label="未交作业"
-            dimLabel={dataReady ? "未交作业 · 查看全部" : "未交作业"}
+            dimLabel="未交作业"
             disabled={!dataReady}
             onClick={() => navigate("learn-assignments")}
           />
           <EntryCard
             num={dataReady ? dueSoon : "–"}
             label="三日内截止"
-            dimLabel={dataReady ? "三日内截止 · 查看全部" : "三日内截止"}
+            dimLabel="三日内截止"
             disabled={!dataReady}
             onClick={() => navigate("learn-assignments")}
           />
           <EntryCard
             num={dataReady ? todayEvents.length : "–"}
             label="今日课程"
-            dimLabel={dataReady ? "今日课程 · 查看课表" : "今日课程"}
+            dimLabel="今日课程"
             disabled={!dataReady}
             onClick={() => navigate("schedule")}
           />
