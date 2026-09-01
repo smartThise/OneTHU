@@ -25,7 +25,7 @@ type DeviceState = "idle" | "loading" | "error" | "ready";
 function deviceVisual(w: WasherDevice): { dot: string; chip: string; text: string } {
   if (w.status === "idle") return { dot: "is-idle", chip: "chip chip-green", text: "空闲" };
   if (w.status === "working")
-    return { dot: "is-working", chip: "chip chip-gray", text: w.eta > 0 ? `剩余 ${w.eta} 分` : "运行中" };
+    return { dot: "is-working", chip: "chip chip-amber", text: w.eta > 0 ? `剩余 ${w.eta} 分` : "运行中" };
   return { dot: "is-error", chip: "chip chip-red", text: "故障" };
 }
 

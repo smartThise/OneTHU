@@ -2099,3 +2099,16 @@
   .row-title { font-size: 12px; line-height: 17px; }
   .row-sub { margin-top: 0; font-size: 10px; line-height: 14px; }
 }
+
+/* 应用仅亮色：声明 light color-scheme，禁掉安卓 WebView 强制深色反色 */
+:root { color-scheme: light; }
+
+/* 回到顶层 FAB：叠在硬刷新上方 */
+.top-fab { bottom: 74px; }
+@media (max-width: 860px) {
+  .top-fab { bottom: calc(62px + env(safe-area-inset-bottom, 0px)); }
+  /* 二级导航：移动端比桌面更矮 */
+  .seg-track { gap: 2px; padding: 2px; }
+  .seg-track button { height: 20px; font-size: 10px; padding: 0 8px; }
+  .seg-indi { height: 3px; }
+}

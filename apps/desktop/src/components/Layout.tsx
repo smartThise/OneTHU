@@ -1,5 +1,5 @@
 /** 侧栏 + 内容骨架 + 基础 UI 件（卡片 / 徽标 / 骨架屏 / 开关） */
-import { Children, useCallback, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Children, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useApp } from "../state/context.js";
 import { topLevelPage, type Page } from "../state/app.js";
 import { IconDemo, IconInfo, IconLearn, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar } from "./Icons.js";
@@ -288,8 +288,29 @@ export function Shell({ children }: { children: ReactNode }) {
  *  生产环境 tauri 资源走自定义协议不进 HTTP 缓存，reload 即全量重载；
  *  移动端没有右键/⌘R，这是页面卡死/白屏后的唯一恢复出口。 */
 export function HardRefreshButton() {
+  const [showTop, setShowTop] = useState(false);
+  useEffect(() => {
+    const on = () => setShowTop(window.scrollY > 240);
+    window.addEventListener("scroll", on, { passive: true });
+    on();
+    return () => window.removeEventListener("scroll", on);
+  }, []);
   return (
-    <button
+    <>
+      {showTop ? (
+        <button
+          className="hard-refresh-fab top-fab"
+          title="回到顶层"
+          aria-label="回到顶层"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M12 19V5" />
+            <path d="M5 12l7-7 7 7" />
+          </svg>
+        </button>
+      ) : null}
+      <button
       className="hard-refresh-fab"
       title="硬刷新（整页重载）"
       aria-label="硬刷新"
@@ -300,6 +321,7 @@ export function HardRefreshButton() {
         <path d="M21 3v6h-6" />
       </svg>
     </button>
+    </>
   );
 }
 
