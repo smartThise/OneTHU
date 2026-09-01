@@ -93,7 +93,7 @@ export function WasherTab() {
           onChange={(e) => {
             const v = e.target.value;
             if (!v) return;
-            const [kind, id] = [v[0], v.slice(1)];
+            const [kind, id] = [v[0], v.slice(2)]; /* value 形如 h-{id}，跳过前缀两字符 */
             const b = (groups ?? [])
               .flatMap((g) => g.buildings)
               .find((x) => String(x.id) === id && (kind === "h" ? !!x.hlsh : !x.hlsh));

@@ -286,33 +286,24 @@ export function NetworkTab() {
             <>
               <SectionHead title="在线设备" aside={`${devices.length} 台 · 可下线`} />
               <Card style={{ padding: 0, overflow: "hidden" }}>
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>IPv4</th>
-                      <th>MAC</th>
-                      <th className="num">登录时间</th>
-                      <th className="num">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {devices.map((d, i) => (
-                      <tr key={`${d.key}-${i}`}>
-                        <td className="cell-title" style={{ whiteSpace: "nowrap" }}>
+                <div className="list">
+                  {devices.map((d, i) => (
+                    <div className="row" key={`${d.key}-${i}`}>
+                      <div className="row-main">
+                        <div className="row-title" style={{ fontFamily: "monospace", fontWeight: 600 }}>
                           {d.ip4 || "–"}
-                          {d.ip6 ? <span style={{ opacity: 0.6, fontSize: 11 }}> · {d.ip6}</span> : null}
-                        </td>
-                        <td style={{ fontFamily: "monospace" }}>{d.mac || "–"}</td>
-                        <td className="num">{d.loggedAt || "–"}</td>
-                        <td className="num">
-                          <button className="chip" onClick={() => void doLogoutDevice(d)}>
-                            下线
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          {d.ip6 ? <span style={{ opacity: 0.6, fontSize: 10 }}> · {d.ip6}</span> : null}
+                        </div>
+                        <div className="row-sub">
+                          {[d.mac ? `MAC ${d.mac}` : "", d.loggedAt ? `登录 ${d.loggedAt}` : ""].filter(Boolean).join(" · ") || "–"}
+                        </div>
+                      </div>
+                      <button className="chip chip-offline" onClick={() => void doLogoutDevice(d)}>
+                        下线
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </Card>
             </>
           ) : null}

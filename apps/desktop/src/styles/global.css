@@ -2112,3 +2112,12 @@
   .seg-track button { height: 20px; font-size: 10px; padding: 0 8px; }
   .seg-indi { height: 3px; }
 }
+
+/* 下线按钮：浅红软底，不再是灰黑胶囊 */
+.chip-offline {
+  background: var(--red-soft, rgba(239, 68, 68, 0.1));
+  color: var(--red, #dc2626);
+  cursor: pointer;
+  flex: none;
+}
+.chip-offline:hover { background: rgba(239, 68, 68, 0.18); }
