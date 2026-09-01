@@ -755,19 +755,7 @@
 
 @media (max-width: 860px) {
   .shell { grid-template-columns: 1fr; }
-  .sidebar {
-    position: static;
-    height: auto;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-    border-right: 0;
-    border-bottom: 1px solid var(--border-soft);
-    padding: 10px 14px;
-  }
-  .brand { padding: 0; }
-  .nav { flex-direction: row; }
-  .nav-label { display: none; }
+  /* sidebar/nav 移动端样式统一由文件尾 v2 块接管（此处曾与之打架导致 563px 撑爆） */
   .sidebar-foot { margin: 0 0 0 auto; border-top: 0; padding: 0; }
   .content { padding: 20px 16px 48px; }
 }
@@ -1618,6 +1606,13 @@
    5) 触控目标 ≥36px，字号 14px 起，safe-area 全程避让。
    ============================================================ */
 @media (max-width: 860px) {
+  /* 轨道拒绝长大：1fr 的自动最小尺寸是 min-content，宽表格会把整列撑到 600+；
+     minmax(0,1fr) 让列严格等于视口，内部溢出交给 clip/卡内滚动 */
+  .shell { grid-template-columns: minmax(0, 1fr) !important; }
+  .content { min-width: 0; }
+  .segmented, .section-head { flex-wrap: wrap; max-width: 100%; }
+  .xk-two-col { flex-direction: column; }
+  .xk-two-col > .xk-left, .xk-two-col > .xk-right { width: auto !important; max-width: 100%; }
   body {
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
@@ -1655,13 +1650,26 @@
     position: sticky;
     top: 0;
     z-index: 50;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
     padding: 8px 10px;
     padding-top: calc(8px + env(safe-area-inset-top, 0px));
-    gap: 6px;
+    gap: 8px;
     background: var(--bg, #050505);
+    border-right: 0;
+    border-bottom: 1px solid var(--border-soft);
   }
+  /* 收缩链：sidebar 子项默认 min-width:auto，nav 内容多宽它就被撑多宽（563px 事故根源） */
+  .sidebar > * { min-width: 0; }
   .nav {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
     flex-direction: row;
+    flex-wrap: nowrap;
     gap: 4px;
     overflow-x: auto;
     scrollbar-width: none;
@@ -1691,22 +1699,25 @@
   .login-wrap, .login-card { width: auto; max-width: 100%; margin-inline: 12px; }
   .content { padding: 12px 10px calc(84px + env(safe-area-inset-bottom, 0px)); }
 
-  /* 卡片满宽贴边 */
+  /* 卡片满宽贴边；卡自身接管横滚（表格渲染不被破坏，宽表在卡内滚） */
   .card {
     width: auto;
     max-width: 100%;
     padding: 12px;
     border-radius: 12px;
     margin-inline: 0;
-  }
-  /* 卡内表格：横向滚动收在卡内，绝不撑开页面 */
-  .card table, .content table {
-    display: block;
-    max-width: 100%;
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  }
+  /* 卡内表格：压缩字号+允许换行，能塞下就塞下；确实宽的才在卡内滚动 */
+  .card table, .content table {
+    max-width: 100%;
+    font-size: 11.5px;
     border-collapse: collapse;
-    white-space: nowrap;
+  }
+  .card table th, .card table td,
+  .content table th, .content table td {
+    padding: 5px 7px;
+    overflow-wrap: break-word;
   }
   /* 段落标签/胶囊行可换行、可点面积加大 */
   [class*="tabs"], [class*="chips"], [class*="filters"] {

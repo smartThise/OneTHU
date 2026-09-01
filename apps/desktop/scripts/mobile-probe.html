@@ -1,0 +1,43 @@
+<!doctype html><meta charset="utf-8"><body>
+<iframe id="f" src="/" style="width:412px;height:900px;border:0"></iframe>
+<pre id="out">PENDING</pre>
+<script>
+const W = 412;
+function inScroller(el) {
+  const d = el.ownerDocument;
+  for (let a = el.parentElement; a && a !== d.body && a !== d.documentElement; a = a.parentElement) {
+    const ox = a.ownerDocument.defaultView.getComputedStyle(a).overflowX;
+    if (ox === "auto" || ox === "scroll" || ox === "hidden") return true;
+  }
+  return false;
+}
+function measure(d, w) {
+  const over = [];
+  d.querySelectorAll('*').forEach(el => {
+    const r = el.getBoundingClientRect();
+    if (r.right > W + 1 && r.width > 8 && !inScroller(el)) {
+      over.push(el.tagName + '.' + String(el.className).slice(0, 40) + ' r=' + Math.round(r.right) + ' w=' + Math.round(r.width));
+    }
+  });
+  return { vw: w.innerWidth, sw: d.scrollingElement.scrollWidth, n: over.length, s: over.slice(0, 6) };
+}
+const f = document.getElementById('f');
+f.onload = () => {
+  setTimeout(() => {
+    const d0 = f.contentDocument;
+    [...d0.querySelectorAll('button')].find(b => b.textContent.includes('演示'))?.click();
+    const results = []; let idx = 0;
+    function step() {
+      setTimeout(() => {
+        const d = f.contentDocument, w = f.contentWindow;
+        const t = (d.querySelector('.page-head h1') || {}).textContent || 'unknown';
+        results.push({ p: String(t).slice(0, 16), ...measure(d, w) });
+        const items = [...d.querySelectorAll('.nav-item')];
+        if (idx < items.length) { items[idx].click(); idx++; step(); }
+        else document.getElementById('out').textContent = 'REPORT' + JSON.stringify(results);
+      }, 2000);
+    }
+    step();
+  }, 1800);
+};
+</script>
