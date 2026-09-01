@@ -3,7 +3,7 @@
  *  已批改条目直接显示成绩（HomeworkRow showGrade，thu-app learnHome「已批改 (分数)」语义）。 */
 import { useEffect, useMemo, useState } from "react";
 import type { LearnGroup } from "@onethu/core";
-import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
+import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
@@ -150,7 +150,7 @@ export function CourseDetailPage() {
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
 
-      <div className="segmented" role="tablist">
+      <SegmentedOverflow>
         {TABS.map(({ key, label }) => {
           const n = counts[key];
           return (
@@ -166,7 +166,7 @@ export function CourseDetailPage() {
             </button>
           );
         })}
-      </div>
+      </SegmentedOverflow>
 
       {state === "loading" && !data ? (
         <SkeletonRows rows={5} />
@@ -186,7 +186,7 @@ export function CourseDetailPage() {
         ) : (
           <>
             {/* 状态筛选 chips：AssignmentsPage 同款 segmented（含各组计数） */}
-            <div className="segmented" role="tablist" aria-label="作业状态筛选">
+            <SegmentedOverflow ariaLabel="作业状态筛选">
               {HW_FILTERS.map(({ key, label }) => (
                 <button
                   key={key}
@@ -199,7 +199,7 @@ export function CourseDetailPage() {
                   <span className="tab-count">{hwGroups[key].length}</span>
                 </button>
               ))}
-            </div>
+            </SegmentedOverflow>
             {hwList.length === 0 ? (
               <Card><Empty text="该状态下暂无作业。" /></Card>
             ) : (

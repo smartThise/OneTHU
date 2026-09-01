@@ -12,7 +12,7 @@
  * effect）；页内切换不回写参数。
  */
 import { useEffect, useState } from "react";
-import { PageHead } from "../../components/Layout.js";
+import { SegmentedOverflow, PageHead } from "../../components/Layout.js";
 import { useApp } from "../../state/context.js";
 import { CardTab } from "./CardTab.js";
 import { DormTab } from "./DormTab.js";
@@ -59,7 +59,7 @@ export function LifePage() {
   return (
     <>
       <PageHead title="生活" meta="宿舍 · 财务 · 校园网 · 校园卡" />
-      <div className="segmented" role="tablist" aria-label="生活功能" style={{ marginBottom: 14, flexWrap: "wrap" }}>
+      <SegmentedOverflow ariaLabel="生活功能" style={{ marginBottom: 14 }}>
         {TABS.map(({ id, label }) => (
           <button
             key={id}
@@ -71,7 +71,7 @@ export function LifePage() {
             {label}
           </button>
         ))}
-      </div>
+      </SegmentedOverflow>
 
       {/* 模块头由栏目名与各 tab 内部分区标题承担（WasherTab 自带「洗衣机」头） */}
       <div hidden={tab !== "dorm"}>{visited.has("dorm") ? <DormTab /> : null}</div>

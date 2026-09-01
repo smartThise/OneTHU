@@ -33,7 +33,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { NewsDetail, NewsItem } from "@onethu/core";
-import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { SegmentedOverflow, Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { IconDownload, IconExternal, IconSearch } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useNews } from "../../state/data.js";
@@ -557,7 +557,7 @@ export function NewsTab({
 
       {/* segmented 二级分栏（InfoPage 同款；无订阅时隐藏，只显示全部新闻） */}
       {subs.length > 0 ? (
-        <div className="segmented" role="tablist" aria-label="新闻分栏" style={{ marginBottom: 10 }}>
+        <SegmentedOverflow ariaLabel="新闻分栏" style={{ marginBottom: 10 }}>
           <button
             role="tab"
             aria-selected={activeSeg === "all"}
@@ -574,7 +574,7 @@ export function NewsTab({
           >
             订阅动态（{subs.length}）
           </button>
-        </div>
+        </SegmentedOverflow>
       ) : null}
 
       {/* 分页/刷新（全部新闻栏专属） */}

@@ -1,6 +1,6 @@
 /** 全部课程通知（learnX Notices）：按发布时间倒序，可筛重要/未读 */
 import { useMemo, useState } from "react";
-import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
+import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { useApp } from "../../state/context.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useLearnData } from "../../state/data.js";
@@ -54,7 +54,7 @@ export function NoticesPage() {
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
 
-      <div className="segmented" role="tablist">
+      <SegmentedOverflow>
         {FILTERS.map(({ key, label }) => (
           <button
             key={key}
@@ -67,7 +67,7 @@ export function NoticesPage() {
             <span className="tab-count">{groups[key].length}</span>
           </button>
         ))}
-      </div>
+      </SegmentedOverflow>
 
       {state === "loading" && !data ? (
         <SkeletonRows rows={6} />

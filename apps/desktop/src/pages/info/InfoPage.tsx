@@ -15,7 +15,7 @@
  * 不回写参数，缺省时保持原默认成绩 tab。
  */
 import { useEffect, useState } from "react";
-import { PageHead } from "../../components/Layout.js";
+import { SegmentedOverflow, PageHead } from "../../components/Layout.js";
 import { useApp } from "../../state/context.js";
 import { ExamsTab } from "./ExamsTab.js";
 import { NewsTab } from "./NewsTab.js";
@@ -73,7 +73,7 @@ export function InfoPage() {
   return (
     <>
       <PageHead title="信息" meta="信息门户 · 教务" />
-      <div className="segmented" role="tablist" aria-label="信息功能" style={{ marginBottom: 14, flexWrap: "wrap" }}>
+      <SegmentedOverflow ariaLabel="信息功能" style={{ marginBottom: 14 }}>
         {TABS.map(({ id, label }) => (
           <button
             key={id}
@@ -85,7 +85,7 @@ export function InfoPage() {
             {label}
           </button>
         ))}
-      </div>
+      </SegmentedOverflow>
 
       <div hidden={tab !== "report"}>{visited.has("report") ? <ReportTab /> : null}</div>
       <div hidden={tab !== "fitness"}>{visited.has("fitness") ? <FitnessTab /> : null}</div>

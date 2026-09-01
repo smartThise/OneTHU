@@ -1,6 +1,6 @@
 /** 全部作业（learnX Assignments）：按状态分组（未交/已交/已批改），组内按截止时间排序 */
 import { useMemo, useState } from "react";
-import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
+import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useLearnData } from "../../state/data.js";
 import { BackButton, HomeworkRow, semesterText } from "./shared.js";
@@ -53,7 +53,7 @@ export function AssignmentsPage() {
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
 
-      <div className="segmented" role="tablist">
+      <SegmentedOverflow>
         {FILTERS.map(({ key, label }) => (
           <button
             key={key}
@@ -66,7 +66,7 @@ export function AssignmentsPage() {
             <span className="tab-count">{groups[key].length}</span>
           </button>
         ))}
-      </div>
+      </SegmentedOverflow>
 
       {state === "loading" && !data ? (
         <SkeletonRows rows={6} />

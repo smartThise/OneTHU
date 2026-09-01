@@ -12,7 +12,7 @@
  * navParams 身份触发的 effect）；页内切换不回写参数。
  */
 import { useEffect, useState } from "react";
-import { Card, Empty, PageHead } from "../../components/Layout.js";
+import { SegmentedOverflow, Card, Empty, PageHead } from "../../components/Layout.js";
 import type { LearnNav } from "../../state/app.js";
 import { useApp } from "../../state/context.js";
 import { LibraryTab } from "./LibraryTab.js";
@@ -64,7 +64,7 @@ export function ReservePage() {
   return (
     <>
       <PageHead title="预约" meta="图书馆座位 · 研讨间 · 空教室 · 体育场馆 · 更多陆续接入" />
-      <div className="segmented" role="tablist" aria-label="预约功能" style={{ marginBottom: 14, flexWrap: "wrap" }}>
+      <SegmentedOverflow ariaLabel="预约功能" style={{ marginBottom: 14 }}>
         {TABS.map(({ id, label }) => (
           <button
             key={id}
@@ -76,7 +76,7 @@ export function ReservePage() {
             {label}
           </button>
         ))}
-      </div>
+      </SegmentedOverflow>
 
       {/* LibraryTab 自带「图书馆座位」分区标题，不再叠加模块头 */}
       <div hidden={tab !== "library"}>{visited.has("library") ? <LibraryTab /> : null}</div>

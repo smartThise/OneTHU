@@ -1847,3 +1847,60 @@
   .drawer-mask { display: block; }
   .drawer { display: flex; }
 }
+
+/* ===== SegmentedOverflow：溢出箭头 + 下拉列表菜单 ===== */
+.seg-ov {
+  position: relative;
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+.segmented .seg-more {
+  flex: none;
+  width: 26px;
+  height: 27px;
+  padding: 0;
+  justify-content: center;
+  gap: 0;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-soft, #e5e5e3);
+  color: var(--text-2, #666);
+}
+.seg-sizer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 3px;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.seg-menu-backdrop { position: fixed; inset: 0; z-index: 40; }
+.seg-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 41;
+  min-width: 152px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-soft, #e5e5e3);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+  animation: drawer-fade 0.15s ease;
+}
+.seg-menu-item > button {
+  width: 100%;
+  justify-content: flex-start;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 7px;
+  font-size: 12.5px;
+}

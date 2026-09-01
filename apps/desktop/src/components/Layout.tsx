@@ -1,5 +1,5 @@
 /** 侧栏 + 内容骨架 + 基础 UI 件（卡片 / 徽标 / 骨架屏 / 开关） */
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { Children, useCallback, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useApp } from "../state/context.js";
 import { topLevelPage, type Page } from "../state/app.js";
 import { IconDemo, IconInfo, IconLearn, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar } from "./Icons.js";
@@ -28,6 +28,87 @@ export function BrandLogo({ size = 14 }: { size?: number }) {
       <span className="u">U</span>
       <span className="p">)</span>
     </span>
+  );
+}
+
+/**
+ * SegmentedOverflow：分段选择栏的溢出治理。
+ * 无论任何宽度都只显示一行；放不下的栏目收进右端「›」箭头的下拉列表小菜单
+ * （菜单项与行内按钮同源，选中态/onClick 完全一致）。
+ * 测量原理：隐藏 0×0 sizer 里渲染全部子项取自然宽度，行内只渲染放得下的前 N 个。
+ */
+export function SegmentedOverflow({
+  ariaLabel,
+  style,
+  children,
+}: {
+  ariaLabel?: string;
+  style?: CSSProperties;
+  children: ReactNode;
+}) {
+  const items = Children.toArray(children);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const sizerRef = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState<number>(items.length);
+  const [menu, setMenu] = useState(false);
+
+  const measure = useCallback(() => {
+    const sizer = sizerRef.current;
+    const row = rowRef.current;
+    if (!sizer || !row) return;
+    const kids = [...sizer.children] as HTMLElement[];
+    if (kids.length === 0) return;
+    const last = kids[kids.length - 1]!;
+    if (last.offsetLeft + last.offsetWidth <= row.clientWidth) {
+      setShown(items.length);
+      return;
+    }
+    const limit = row.clientWidth - 34; // 右端箭头预留
+    let n = 0;
+    for (const k of kids) {
+      if (k.offsetLeft + k.offsetWidth > limit) break;
+      n++;
+    }
+    setShown(Math.max(n, 1));
+  }, [items.length]);
+
+  useLayoutEffect(() => {
+    measure();
+    const ro = new ResizeObserver(() => measure());
+    if (rowRef.current) ro.observe(rowRef.current);
+    return () => ro.disconnect();
+  }, [measure]);
+
+  const overflowed = shown < items.length;
+  return (
+    <div className="segmented seg-ov" role="tablist" aria-label={ariaLabel} style={style} ref={rowRef}>
+      {items.slice(0, shown)}
+      {overflowed ? (
+        <button
+          className="seg-more"
+          aria-label="更多栏目"
+          aria-expanded={menu}
+          onClick={() => setMenu((m) => !m)}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      ) : null}
+      {menu && overflowed ? (
+        <>
+          <div className="seg-menu-backdrop" onClick={() => setMenu(false)} />
+          <div className="seg-menu" role="menu">
+            {items.slice(shown).map((c, i) => (
+              <div className="seg-menu-item" key={i}>{c}</div>
+            ))}
+          </div>
+        </>
+      ) : null}
+      <div className="seg-sizer" aria-hidden ref={sizerRef}>
+        {children}
+      </div>
+    </div>
   );
 }
 
