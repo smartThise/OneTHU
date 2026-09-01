@@ -91,19 +91,22 @@ export function SegmentedOverflow({
         aria-label={ariaLabel}
         ref={rowRef}
         onPointerDown={(e) => {
+          // 关键：down 时不捕获——立即 setPointerCapture 会把后续 click 重定向到容器，
+          // 胶囊按钮收不到点击。捕获推迟到移动超阈值（确认是拖动）那一刻。
           if (e.pointerType !== "mouse") return;
-          const el = e.currentTarget;
-          drag.current = { x: e.clientX, sl: el.scrollLeft };
+          drag.current = { x: e.clientX, sl: e.currentTarget.scrollLeft };
           moved.current = false;
-          el.setPointerCapture(e.pointerId);
         }}
         onPointerMove={(e) => {
           const d = drag.current;
           if (!d) return;
           const el = e.currentTarget;
           const dx = e.clientX - d.x;
-          if (Math.abs(dx) > 4) moved.current = true;
-          el.scrollLeft = d.sl - dx;
+          if (!moved.current && Math.abs(dx) > 5) {
+            moved.current = true;
+            el.setPointerCapture(e.pointerId); // 此时才接管，拖动期间滑出条外也不丢
+          }
+          if (moved.current) el.scrollLeft = d.sl - dx;
         }}
         onPointerUp={() => { drag.current = null; }}
         onPointerCancel={() => { drag.current = null; }}

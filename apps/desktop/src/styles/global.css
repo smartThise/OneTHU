@@ -1882,9 +1882,9 @@
 }
 /* 位置指示条：非滚动条，仅可滑时出现；滑块比胶囊更宽，防误读为 tab 下划线 */
 .seg-indi {
-  width: 100%;
+  width: min(45%, 130px);
   height: 3px;
-  margin: 5px 0 0;
+  margin: 2px auto 0;
   border-radius: 2px;
   background: var(--border, rgba(0, 0, 0, 0.16));
   position: relative;
