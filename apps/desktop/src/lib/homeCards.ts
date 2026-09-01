@@ -29,6 +29,7 @@ import {
 
 /** 首页卡片 id（注册表唯一键，localStorage 里也用它） */
 export type HomeCardId =
+  | "today-overview"
   | "agenda" | "homework" | "resv" | "classes" | "news" | "notices" | "cardEntry"
   | "xk" | "learn-assignments" | "learn-notices" | "learn-files"
   | "info-news" | "info-report" | "info-exams" | "info-profile"
@@ -66,6 +67,8 @@ export interface HomeCardDef {
   defaultHidden?: boolean;
   /** bespoke 卡体（Today.tsx 注入；返回 null = 整卡隐藏） */
   render?: () => ReactNode;
+  /** 卡体即整卡：无标题行/折叠钮（今日概览条），编辑模式才出现工具行 */
+  shellFree?: boolean;
 }
 
 /** 布局解析所需的最小元数据（HOME_CARD_META 满足） */
@@ -87,6 +90,7 @@ export interface HomeLayoutItem {
  */
 export const HOME_CARD_META: HomeCardDef[] = [
   /* —— bespoke：特殊展示卡（render 由 Today.tsx 注入） —— */
+  { id: "today-overview", title: "今日概览", kind: "bespoke", icon: IconIn, defaultCol: "main", defaultOrder: 0, shellFree: true, aside: "未交作业 · 截止 · 今日课程" },
   { id: "agenda", title: "日程与提醒", kind: "bespoke", icon: IconCalendar, defaultCol: "main", defaultOrder: 1, aside: "校历 · 学校重要事项" },
   { id: "homework", title: "未提交作业", kind: "bespoke", icon: IconPen, defaultCol: "main", defaultOrder: 2 },
   { id: "notices", title: "最近通知", kind: "bespoke", icon: IconBell, defaultCol: "main", defaultOrder: 3, aside: "点击查看详情" },
@@ -243,15 +247,23 @@ export function resolveLayout(meta: readonly HomeCardPlan[], saved: HomeLayoutIt
     }
     // 追加到所在列最后一个已入库卡片之后（该列尚无卡片则落到数组最前；
     // 渲染只看列内相对顺序，跨列的数组位置不影响展示）
-    let at = -1;
-    for (let k = out.length - 1; k >= 0; k -= 1) {
-      const cur = out[k];
-      if (cur && cur.col === col) {
-        at = k;
+    // 插入点按 defaultOrder 对齐：新默认卡（如今日概览 order 0）插到该列中
+    // 第一张 order 更大的卡之前——老用户存过的布局也能让新卡回到顶部位置
+    const orderOf = new Set(meta.filter((x) => x.defaultOrder <= d.defaultOrder).map((x) => x.id));
+    const colIdx: number[] = [];
+    out.forEach((it, k) => {
+      if (it.col === col) colIdx.push(k);
+    });
+    const last = colIdx[colIdx.length - 1];
+    let insertAt = last !== undefined ? last + 1 : 0;
+    for (const k of colIdx) {
+      const cur = out[k]!;
+      if (!orderOf.has(cur.id)) {
+        insertAt = k;
         break;
       }
     }
-    out.splice(at + 1, 0, item);
+    out.splice(insertAt, 0, item);
   }
   return out;
 }

@@ -391,6 +391,41 @@ function HomeCard({
   const collapsed = item.collapsed;
   const cls = `home-card${collapsed ? " is-collapsed" : ""}${editing ? " is-editing" : ""}`;
   const Icon = def.icon;
+
+  /* shellFree（今日概览条）：无标题行/折叠钮，卡体即整卡；编辑时才出现工具行 */
+  if (def.shellFree && def.kind === "bespoke") {
+    return (
+      <section className={cls}>
+        {editing ? (
+          <div className="home-card-head">
+            <span className="home-card-title" style={{ cursor: "default" }}>
+              <h2>{def.title}</h2>
+              {def.aside ? <span className="home-card-aside">{def.aside}</span> : null}
+            </span>
+            <div className="home-card-tools">
+              <button type="button" className="icon-btn tool-up" disabled={index === 0} title="上移" aria-label={`上移${def.title}`} onClick={() => onMove(def.id, "up")}>
+                <IconChevron width={13} height={13} />
+              </button>
+              <button type="button" className="icon-btn tool-down" disabled={index === count - 1} title="下移" aria-label={`下移${def.title}`} onClick={() => onMove(def.id, "down")}>
+                <IconChevron width={13} height={13} />
+              </button>
+              <button type="button" className="icon-btn tool-left" disabled={item.col === "main"} title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={`把${def.title}移到主栏`} onClick={() => onMove(def.id, "main")}>
+                <IconChevron width={13} height={13} />
+              </button>
+              <button type="button" className="icon-btn tool-right" disabled={item.col === "rail"} title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${def.title}移到侧栏`} onClick={() => onMove(def.id, "rail")}>
+                <IconChevron width={13} height={13} />
+              </button>
+              <button type="button" className="icon-btn tool-x" title="隐藏此卡片（可经「添加卡片」找回）" aria-label={`隐藏${def.title}`} onClick={() => onRemove(def.id)}>
+                ✕
+              </button>
+            </div>
+          </div>
+        ) : null}
+        <div className="home-card-body">{body}</div>
+      </section>
+    );
+  }
+
   return (
     <section className={cls}>
       <div className="home-card-head">
@@ -687,6 +722,36 @@ export function TodayPage() {
 
   /* ---- 注册表：静态元数据 + bespoke 渲染闭包（数据 hook 全在本组件，单次取数） ---- */
   const registry: HomeCardDef[] = buildHomeRegistry({
+    "today-overview": {
+      render: () => (
+        <div className="stats">
+          <EntryCard
+            icon={<span className="stat-icon"><IconPen width={17} height={17} /></span>}
+            num={dataReady ? unsubmitted.length : "–"}
+            label="未交作业"
+            dimLabel={dataReady ? "未交作业 · 查看全部" : "未交作业"}
+            disabled={!dataReady}
+            onClick={() => navigate("learn-assignments")}
+          />
+          <EntryCard
+            icon={<span className="stat-icon amber"><IconBell width={17} height={17} /></span>}
+            num={dataReady ? dueSoon : "–"}
+            label="三日内截止"
+            dimLabel={dataReady ? "三日内截止 · 查看全部" : "三日内截止"}
+            disabled={!dataReady}
+            onClick={() => navigate("learn-assignments")}
+          />
+          <EntryCard
+            icon={<span className="stat-icon green"><IconIn width={17} height={17} /></span>}
+            num={dataReady ? todayEvents.length : "–"}
+            label="今日课程"
+            dimLabel={dataReady ? "今日课程 · 查看课表" : "今日课程"}
+            disabled={!dataReady}
+            onClick={() => navigate("schedule")}
+          />
+        </div>
+      ),
+    },
     agenda: {
       // 两路都还没就绪 → 整卡不渲染；就绪但都为空 → 也隐藏（首页不留死卡）
       render: () => (agendaRows.length > 0 ? <AgendaRows rows={agendaRows} /> : null),
@@ -791,33 +856,7 @@ export function TodayPage() {
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
 
-      <div className="stats">
-        <EntryCard
-          icon={<span className="stat-icon"><IconPen width={17} height={17} /></span>}
-          num={dataReady ? unsubmitted.length : "–"}
-          label="未交作业"
-          dimLabel={dataReady ? "未交作业 · 查看全部" : "未交作业"}
-          disabled={!dataReady}
-          onClick={() => navigate("learn-assignments")}
-        />
-        <EntryCard
-          icon={<span className="stat-icon amber"><IconBell width={17} height={17} /></span>}
-          num={dataReady ? dueSoon : "–"}
-          label="三日内截止"
-          dimLabel={dataReady ? "三日内截止 · 查看全部" : "三日内截止"}
-          disabled={!dataReady}
-          onClick={() => navigate("learn-assignments")}
-        />
-        <EntryCard
-          icon={<span className="stat-icon green"><IconIn width={17} height={17} /></span>}
-          num={dataReady ? todayEvents.length : "–"}
-          label="今日课程"
-          dimLabel={dataReady ? "今日课程 · 查看课表" : "今日课程"}
-          disabled={!dataReady}
-          onClick={() => navigate("schedule")}
-        />
-      </div>
-
+      {/* 顶部三块统计已并入「今日概览」卡（today-overview），随卡片系统移动/隐藏 */}
       <div className="today-grid" style={{ marginTop: 14 }}>
         <div className="today-col">{mainItems.map((it, i) => renderCard(it, i, mainItems))}</div>
         <div className="today-rail">{railItems.map((it, i) => renderCard(it, i, railItems))}</div>
