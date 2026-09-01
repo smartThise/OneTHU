@@ -1,7 +1,10 @@
 /**
  * 校园卡页 —— getCardInfo + getCardTransactions（thu-info-lib card.ts 移植）。
- * 余额与卡状态置顶；最近 30 天消费流水；充值（cardRechargeFromBank /
- * cardRechargeQrcode，链路逐条移植自 thu-info-lib）。
+ * 余额与卡状态置顶；充值（cardRechargeFromBank / cardRechargeQrcode，链路逐条移植自 thu-info-lib）。
+ * 支出统计参考 THU-EAT（stats.py/api_summary 口径）：
+ * 今日（自然日）/ 本周（周一至今）/ 本年（1 月 1 日至今）/ 总支出（默认全部，
+ * 可选自定义日期区间）；全部排除充值/圈存/补助等收入流水。
+ * 卡片管理：统计卡可选择性隐藏（localStorage 持久化，homeCards 同款策略）。
  * 金额约定（thu-info-app expenditure.tsx 实证）：服务端金额恒为正，
  * 按「名称」分类——充值/圈存/补助=收入（+绿），其余=消费（−红）。
  *
@@ -30,6 +33,49 @@ const isIncome = (t: CardTransaction): boolean =>
 const signedAmount = (t: CardTransaction): number =>
   isIncome(t) ? Math.abs(t.amount) : -Math.abs(t.amount);
 
+/** 流水拉取窗口：「全部支出」口径按 4 年兜底（单请求 pageSize 10000，服务端截断则如实展示） */
+const HISTORY_DAYS = 365 * 4 + 1;
+/** 最近消费列表/近 30 天统计窗口 */
+const LIST_DAYS = 30;
+
+/* —— 卡片显隐持久化（默认全显，只记隐藏项）—— */
+const HIDDEN_KEY = "onethu.card-hidden.v1";
+type CardKey = "balance" | "today" | "last30" | "total" | "count";
+const CARD_LABELS: Array<{ key: CardKey; label: string }> = [
+  { key: "balance", label: "校园卡余额" },
+  { key: "today", label: "今日支出（可切换本周/本年）" },
+  { key: "last30", label: "近 30 天消费" },
+  { key: "total", label: "总支出（可选日期区间）" },
+  { key: "count", label: "近 30 天笔数" },
+];
+function loadHidden(): CardKey[] {
+  try {
+    const raw = globalThis.localStorage?.getItem(HIDDEN_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((k) => CARD_LABELS.some((c) => c.key === k)) : [];
+  } catch {
+    return [];
+  }
+}
+function saveHidden(list: CardKey[]): void {
+  try {
+    globalThis.localStorage?.setItem(HIDDEN_KEY, JSON.stringify(list));
+  } catch {
+    /* 存储不可用：会话内仍生效 */
+  }
+}
+
+/* —— 支出统计口径（THU-EAT api_summary 同语义，均排除收入）—— */
+const dayFloor = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+function withinDays(txs: CardTransaction[], days: number): CardTransaction[] {
+  const lo = dayFloor(new Date()) - (days - 1) * 86400000;
+  return txs.filter((t) => t.timestamp.getTime() >= lo);
+}
+const sumOf = (txs: CardTransaction[]) => txs.reduce((s, t) => s + Math.abs(t.amount), 0);
+
+type TodayMode = "today" | "week" | "year";
+const TODAY_LABEL: Record<TodayMode, string> = { today: "今日支出", week: "本周支出", year: "本年支出" };
+
 function fmtTime(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -37,6 +83,13 @@ function fmtTime(d: Date): string {
   const mm = String(d.getMinutes()).padStart(2, "0");
   return `${m}-${day} ${hh}:${mm}`;
 }
+/** Date → "YYYY-MM-DD"（date input 受控值） */
+const isoDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/* —— 弹窗骨架（zhjwxk 同款：mask/panel 自带表面色）—— */
+const ccMask: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
+const ccPanel: React.CSSProperties = { width: "100%", maxWidth: 420, maxHeight: "70vh", display: "flex", flexDirection: "column", background: "var(--bg-elev, #ffffff)", color: "var(--text, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)" };
 
 /* ---------------- 充值弹窗（form → confirm → qr / bankDone） ---------------- */
 
@@ -209,82 +262,172 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
 
 export function CardTab({ active = true }: { active?: boolean }) {
   const { status } = useApp();
-  const { data, state, error, reload } = useCard(30);
+  const { data, state, error, reload } = useCard(HISTORY_DAYS);
   const [rchOpen, setRchOpen] = useState(false);
   // 切回本栏时若上次报错（如会话过期）则自动重试一次，不再让用户手动点刷新
   useEffect(() => { if (active && state === "error") void reload(); }, [active]);
 
-  const spent = useMemo(
+  /** 全量支出流水（排除收入，时间倒序） */
+  const spentTxs = useMemo(
     () =>
       (data?.transactions ?? [])
         .filter((t) => !isIncome(t))
-        .reduce((sum, t) => sum + Math.abs(t.amount), 0),
+        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()),
     [data],
   );
+  const listTxs = useMemo(() => withinDays(spentTxs.concat((data?.transactions ?? []).filter(isIncome)), LIST_DAYS), [spentTxs, data]);
+  const last30 = useMemo(() => sumOf(listTxs.filter((t) => !isIncome(t))), [listTxs]);
+
+  /* 今日/本周/本年（点击切换，自然周期口径） */
+  const [todayMode, setTodayMode] = useState<TodayMode>("today");
+  const periodSum = useMemo(() => {
+    const now = new Date();
+    if (todayMode === "today") {
+      const lo = dayFloor(now);
+      return sumOf(spentTxs.filter((t) => t.timestamp.getTime() >= lo));
+    }
+    if (todayMode === "week") {
+      const monday = dayFloor(new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7)));
+      return sumOf(spentTxs.filter((t) => t.timestamp.getTime() >= monday));
+    }
+    const yearStart = dayFloor(new Date(now.getFullYear(), 0, 1));
+    return sumOf(spentTxs.filter((t) => t.timestamp.getTime() >= yearStart));
+  }, [spentTxs, todayMode]);
+
+  /* 总支出：默认全部；自定义区间（"YYYY-MM-DD"） */
+  const [rangeStart, setRangeStart] = useState("");
+  const [rangeEnd, setRangeEnd] = useState("");
+  const custom = rangeStart || rangeEnd;
+  const totalSum = useMemo(() => {
+    if (!custom) return sumOf(spentTxs);
+    const lo = rangeStart ? dayFloor(new Date(rangeStart.replace(/-/g, "/"))) : -Infinity;
+    const hi = rangeEnd ? dayFloor(new Date(rangeEnd.replace(/-/g, "/"))) + 86400000 : Infinity;
+    return sumOf(spentTxs.filter((t) => {
+      const x = t.timestamp.getTime();
+      return x >= lo && x < hi;
+    }));
+  }, [spentTxs, rangeStart, rangeEnd]);
+
+  /* 卡片显隐管理 */
+  const [hidden, setHidden] = useState<CardKey[]>(loadHidden);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [rangeOpen, setRangeOpen] = useState(false);
+  const show = (k: CardKey) => !hidden.includes(k);
+  const toggleHidden = (k: CardKey) => {
+    const next = hidden.includes(k) ? hidden.filter((x) => x !== k) : [...hidden, k];
+    setHidden(next);
+    saveHidden(next);
+  };
 
   return (
     <>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <button className="btn" onClick={() => setManageOpen(true)} title="选择要显示的统计卡片">
+          管理卡片
+        </button>
+      </div>
+
       <div className="stats stats-hero">
-        <Card className="card-hero">
-          <div className="card-hero-main">
+        {show("balance") ? (
+          <Card className="card-hero">
+            <div className="card-hero-main">
+              <span className="stat-icon">
+                <IconCard width={17} height={17} />
+              </span>
+              <div>
+                <div className="card-hero-amount">
+                  {state === "loading" && !data ? "–" : `¥${(data?.info.balance ?? 0).toFixed(2)}`}
+                </div>
+                <div className="stat-label">
+                  校园卡余额 · {data?.info.userName || "–"}
+                  {data?.info.cardStatus ? ` · ${data.info.cardStatus}` : ""}
+                </div>
+              </div>
+              {status !== "demo" ? (
+                <button className="btn btn-primary" style={{ marginLeft: "auto", height: 30 }} onClick={() => setRchOpen(true)}>
+                  充值
+                </button>
+              ) : null}
+            </div>
+            <div className="card-hero-meta">
+              <span>卡号 {data?.info.cardId || "–"}</span>
+              {data?.info.departmentName ? <span>{data.info.departmentName}</span> : null}
+              {data?.info.maxOneTimeTransactionAmount !== undefined ? (
+                <span>单笔上限 ¥{data.info.maxOneTimeTransactionAmount.toFixed(0)}</span>
+              ) : null}
+            </div>
+          </Card>
+        ) : null}
+        {show("today") ? (
+          <Card
+            className="stat-card"
+            style={{ cursor: "pointer" }}
+            onClick={() => setTodayMode((m) => (m === "today" ? "week" : m === "week" ? "year" : "today"))}
+            title="点击切换：今日 → 本周 → 本年"
+          >
             <span className="stat-icon">
               <IconCard width={17} height={17} />
             </span>
             <div>
-              <div className="card-hero-amount">
-                {state === "loading" && !data ? "–" : `¥${(data?.info.balance ?? 0).toFixed(2)}`}
-              </div>
+              <div className="stat-num">¥{periodSum.toFixed(2)}</div>
+              <div className="stat-label">{TODAY_LABEL[todayMode]} · 点击切换</div>
+            </div>
+          </Card>
+        ) : null}
+        {show("last30") ? (
+          <Card className="stat-card">
+            <span className="stat-icon red">
+              <IconCard width={17} height={17} />
+            </span>
+            <div>
+              <div className="stat-num">¥{last30.toFixed(2)}</div>
+              <div className="stat-label">近 30 天消费</div>
+            </div>
+          </Card>
+        ) : null}
+        {show("total") ? (
+          <Card
+            className="stat-card"
+            style={{ cursor: "pointer" }}
+            onClick={() => setRangeOpen(true)}
+            title="点击选择统计区间（默认全部）"
+          >
+            <span className="stat-icon amber">
+              <IconCard width={17} height={17} />
+            </span>
+            <div>
+              <div className="stat-num">¥{totalSum.toFixed(2)}</div>
               <div className="stat-label">
-                校园卡余额 · {data?.info.userName || "–"}
-                {data?.info.cardStatus ? ` · ${data.info.cardStatus}` : ""}
+                总支出{custom ? ` · ${rangeStart || "…"}~${rangeEnd || "…"}` : " · 全部"} · 点击选区间
               </div>
             </div>
-            {status !== "demo" ? (
-              <button className="btn btn-primary" style={{ marginLeft: "auto", height: 30 }} onClick={() => setRchOpen(true)}>
-                充值
-              </button>
-            ) : null}
-          </div>
-          <div className="card-hero-meta">
-            <span>卡号 {data?.info.cardId || "–"}</span>
-            {data?.info.departmentName ? <span>{data.info.departmentName}</span> : null}
-            {data?.info.maxOneTimeTransactionAmount !== undefined ? (
-              <span>单笔上限 ¥{data.info.maxOneTimeTransactionAmount.toFixed(0)}</span>
-            ) : null}
-          </div>
-        </Card>
-        <Card className="stat-card">
-          <span className="stat-icon red">
-            <IconCard width={17} height={17} />
-          </span>
-          <div>
-            <div className="stat-num">¥{spent.toFixed(2)}</div>
-            <div className="stat-label">近 30 天消费</div>
-          </div>
-        </Card>
-        <Card className="stat-card">
-          <span className="stat-icon amber">
-            <IconCard width={17} height={17} />
-          </span>
-          <div>
-            <div className="stat-num">{data?.transactions.length ?? 0}</div>
-            <div className="stat-label">流水笔数</div>
-          </div>
-        </Card>
+          </Card>
+        ) : null}
+        {show("count") ? (
+          <Card className="stat-card">
+            <span className="stat-icon">
+              <IconCard width={17} height={17} />
+            </span>
+            <div>
+              <div className="stat-num">{listTxs.filter((t) => !isIncome(t)).length}</div>
+              <div className="stat-label">近 30 天笔数</div>
+            </div>
+          </Card>
+        ) : null}
       </div>
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
 
-      <SectionHead title="最近消费" aside="最近 30 天（数据源：card.tsinghua.edu.cn）" />
+      <SectionHead title="最近消费" aside={`最近 ${LIST_DAYS} 天（数据源：card.tsinghua.edu.cn）`} />
       {state === "loading" && !data ? (
         <SkeletonRows rows={6} />
-      ) : (data?.transactions.length ?? 0) === 0 ? (
+      ) : listTxs.length === 0 ? (
         <Card>
-          <Empty text="近 30 天没有消费记录。" />
+          <Empty text={`近 ${LIST_DAYS} 天没有消费记录。`} />
         </Card>
       ) : (
         <Card className="list">
-          {data!.transactions.map((t, i) => (
+          {listTxs.map((t, i) => (
             <div className="row" key={t.id || i} style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}>
               <div className="row-when">
                 <b>{fmtTime(t.timestamp).slice(0, 5)}</b>
@@ -308,6 +451,96 @@ export function CardTab({ active = true }: { active?: boolean }) {
       )}
 
       <RechargeDialog open={rchOpen} onClose={() => setRchOpen(false)} onPaid={() => void reload()} />
+
+      {/* 卡片管理弹窗 */}
+      {manageOpen
+        ? createPortal(
+            <div style={ccMask} onClick={() => setManageOpen(false)}>
+              <div style={ccPanel} onClick={(e) => e.stopPropagation()}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border, #eee)" }}>
+                  <b>管理统计卡片</b>
+                  <span style={{ flex: 1 }} />
+                  <button className="btn" onClick={() => setManageOpen(false)}>✕</button>
+                </div>
+                <div style={{ padding: "12px 16px", fontSize: 13, lineHeight: 1.8 }}>
+                  {CARD_LABELS.map((c) => (
+                    <label key={c.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", cursor: "pointer" }}>
+                      <input type="checkbox" checked={show(c.key)} onChange={() => toggleHidden(c.key)} />
+                      {c.label}
+                    </label>
+                  ))}
+                  <div style={{ display: "flex", gap: 8, marginTop: 12, justifyContent: "flex-end" }}>
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        setHidden([]);
+                        saveHidden([]);
+                      }}
+                    >
+                      恢复默认
+                    </button>
+                    <button className="btn btn-primary" onClick={() => setManageOpen(false)}>完成</button>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+
+      {/* 总支出区间选择弹窗 */}
+      {rangeOpen
+        ? createPortal(
+            <div style={ccMask} onClick={() => setRangeOpen(false)}>
+              <div style={ccPanel} onClick={(e) => e.stopPropagation()}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border, #eee)" }}>
+                  <b>总支出统计区间</b>
+                  <span style={{ flex: 1 }} />
+                  <button className="btn" onClick={() => setRangeOpen(false)}>✕</button>
+                </div>
+                <div style={{ padding: "12px 16px", fontSize: 13, lineHeight: 1.8, display: "grid", gap: 10 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button className="btn" onClick={() => { setRangeStart(""); setRangeEnd(""); }}>全部（默认）</button>
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        const y = new Date().getFullYear();
+                        setRangeStart(`${y}-01-01`);
+                        setRangeEnd(isoDate(new Date()));
+                      }}
+                    >
+                      本年
+                    </button>
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        const s = new Date();
+                        s.setDate(s.getDate() - 364);
+                        setRangeStart(isoDate(s));
+                        setRangeEnd(isoDate(new Date()));
+                      }}
+                    >
+                      近一年
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <span style={{ color: "var(--text-3, #9aa1ac)", fontSize: 12 }}>自定</span>
+                    <input className="input" type="date" value={rangeStart} onChange={(e) => setRangeStart(e.target.value)} />
+                    <span>至</span>
+                    <input className="input" type="date" value={rangeEnd} onChange={(e) => setRangeEnd(e.target.value)} />
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--text-3, #9aa1ac)" }}>
+                    支出统计均排除充值/圈存/补助；「全部」为可拉取的全部流水（近 4 年）。
+                  </div>
+                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                    <button className="btn btn-primary" onClick={() => setRangeOpen(false)}>应用</button>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }
