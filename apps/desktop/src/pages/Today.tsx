@@ -5,9 +5,9 @@
  *   折叠）与 onethu.home.defaults（各卡折叠偏好，重加/恢复默认时回填）；
  * - 统一 CardShell：标题行（标题+说明 + 右侧折叠箭头；编辑模式追加 ↑↓←→/✕），
  *   折叠 = 卡体收起只留标题行（chevron 旋转），展开/收起即时持久化；
- * - 编辑模式：PageHead「编辑」→ shell 显示列内上下移 / 跨栏左右移 / 入口卡隐藏
- *   （bespoke 卡只能折叠不能移除）；「添加卡片」弹层（createPortal+遮罩居中，
- *   NewsTab 订阅弹层同款）把被隐藏的入口卡加回所选列末尾；「完成」退出；
+ * - 编辑模式：PageHead「编辑」→ shell 显示列内上下移 / 跨栏左右移 / 隐藏（✕；
+ *   入口卡与固有 bespoke 卡一视同仁）；「添加卡片」弹层（createPortal+遮罩居中，
+ *   NewsTab 订阅弹层同款）把被隐藏的卡片加回所选列末尾；「完成」退出；
  * - 数据 hook 仍集中在 TodayPage（照旧单次取数），bespoke 卡体是纯展示闭包，
  *   原有 JSX 原样搬进注册表 render。
  * 版式参考 thu-info-app 首页信息结构（只取语义；UI 仍用 OneTHU 设计系统）。
@@ -437,11 +437,15 @@ function HomeCard({
             <button type="button" className="icon-btn tool-right" disabled={item.col === "rail"} title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${def.title}移到侧栏`} onClick={() => onMove(def.id, "rail")}>
               <IconChevron width={13} height={13} />
             </button>
-            {def.kind === "entry" ? (
-              <button type="button" className="icon-btn tool-x" title="隐藏此入口（可经「添加卡片」找回）" aria-label={`隐藏入口${def.title}`} onClick={() => onRemove(def.id)}>
-                ✕
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="icon-btn tool-x"
+              title={def.kind === "entry" ? "隐藏此入口（可经「添加卡片」找回）" : "隐藏此卡片（可经「添加卡片」找回）"}
+              aria-label={`隐藏${def.title}`}
+              onClick={() => onRemove(def.id)}
+            >
+              ✕
+            </button>
           </div>
         ) : null}
 
@@ -461,7 +465,7 @@ function HomeCard({
   );
 }
 
-/** 添加卡片弹层：列出全部被隐藏的入口卡，点击加入所选列末尾
+/** 添加卡片弹层：列出全部被隐藏的卡片（入口卡 + 固有内容卡），点击加入所选列末尾
  *  （createPortal 挂 body + 遮罩 flex 视口居中，NewsTab 订阅弹层同款）。 */
 function AddCardsModal({
   hidden, onAdd, onClose,
@@ -487,7 +491,7 @@ function AddCardsModal({
         </div>
         <div className="home-modal-body">
           <div className="home-modal-hint">
-            点选「主栏 / 侧栏」把入口卡加到该栏末尾；被隐藏的入口卡随时可在这里找回。
+            点选「主栏 / 侧栏」把卡片加到该栏末尾；被隐藏的入口卡与固有内容卡（日程/作业/通知等）都可在这里找回。
           </div>
           {hidden.length === 0 ? (
             <Empty text="没有可添加的卡片——所有入口卡都已显示在首页上。" />
@@ -591,7 +595,7 @@ export function TodayPage() {
     });
   };
 
-  /** 隐藏/移出入口卡（bespoke 卡不可移除，UI 层已保证） */
+  /** 隐藏卡片（col→off；入口卡与固有 bespoke 卡一视同仁，均可经「添加卡片」找回） */
   const removeCard = (id: HomeCardId) => {
     setLayout((prev) => prev.map((it) => (it.id === id ? { ...it, col: "off" as const } : it)));
   };
