@@ -222,6 +222,7 @@ fn percent_decode(s: &str) -> Option<String> {
 async fn download_file(url: String, cookies: String, filename: String) -> Result<String, String> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(10))
+        .no_proxy()
         .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
         .build()
         .map_err(|e| e.to_string())?;
@@ -285,6 +286,7 @@ struct BinaryOut {
 async fn fetch_binary(url: String, cookies: String) -> Result<BinaryOut, String> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(10))
+        .no_proxy()
         .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
         .build()
         .map_err(|e| e.to_string())?;
@@ -335,6 +337,11 @@ async fn http_request(input: HttpInput) -> Result<HttpOutput, String> {
 
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
+        // 全部目标域均为 *.tsinghua.edu.cn：强制直连，绕过系统代理/梯子。
+        // reqwest 0.12 默认读 Windows 系统代理——Clash 等开启系统代理后登录链
+        // 被路由到代理节点：id.tsinghua 风控慢响应（转圈）、验证码与会话出口
+        // IP 不一致（对码判错）、响应被代理拦截（重发后反而直接进入）。
+        .no_proxy()
         .timeout(Duration::from_millis(input.timeout_ms.unwrap_or(20000)))
         .build()
         .map_err(|e| e.to_string())?;
