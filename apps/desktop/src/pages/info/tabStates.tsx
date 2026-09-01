@@ -20,6 +20,9 @@ export function logTabErr(tag: string, err: unknown): void {
   ).catch(() => undefined);
   // 兜底铁律：宁可硬刷新也不让用户看见红条。20s 窗口内同一 tab 最多自动刷 2 次，
   // 第三次（持续性故障）才落红条，避免刷新死循环。
+  // 例外（本文件头部的铁律）：登录态失效与上游维护是「正常状态/已知态」——
+  // 只落静态提示 + 手动重试，绝不硬刷新（校园网与统一身份独立，未登录是常态）。
+  if (isAuthExpired(err) || isServiceUnavailable(err)) return;
   hardReloadBailOut(tag);
 }
 

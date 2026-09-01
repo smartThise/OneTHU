@@ -87,25 +87,32 @@ export function WasherTab() {
       {gState === "loading" && !groups ? (
         <SkeletonRows rows={3} />
       ) : (
-        (groups ?? [])
-          .filter((g) => g.buildings.length > 0)
-          .map((g) => (
-            <div key={g.name}>
-              <SectionHead title={g.name} />
-              <div className="chips" style={{ marginBottom: 14 }}>
+        <select
+          className="input filter-select"
+          value={sel ? `${sel.hlsh ? "h" : "j"}-${sel.id}` : ""}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (!v) return;
+            const [kind, id] = [v[0], v.slice(1)];
+            const b = (groups ?? [])
+              .flatMap((g) => g.buildings)
+              .find((x) => String(x.id) === id && (kind === "h" ? !!x.hlsh : !x.hlsh));
+            if (b) void loadDevices(b);
+          }}
+        >
+          <option value="">选择楼栋…</option>
+          {(groups ?? [])
+            .filter((g) => g.buildings.length > 0)
+            .map((g) => (
+              <optgroup key={g.name} label={g.name}>
                 {g.buildings.map((b) => (
-                  <button
-                    key={`${g.name}-${b.id}`}
-                    className={"chip" + (sel?.id === b.id && sel?.hlsh === b.hlsh ? " chip-blue" : "")}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => void loadDevices(b)}
-                  >
+                  <option key={`${g.name}-${b.id}`} value={`${b.hlsh ? "h" : "j"}-${b.id}`}>
                     {b.name}
-                  </button>
+                  </option>
                 ))}
-              </div>
-            </div>
-          ))
+              </optgroup>
+            ))}
+        </select>
       )}
 
       {sel ? (

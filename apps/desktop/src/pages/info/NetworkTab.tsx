@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Card, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
-import { TabEmpty, logTabErr } from "./tabStates.js";
+import { TabEmpty, logTabErr, isAuthExpired } from "./tabStates.js";
 import type { NetworkDevice } from "@onethu/core";
 
 type LoadState = "loading" | "error" | "ready" | "captcha";
@@ -31,6 +31,7 @@ export function NetworkTab() {
   const [code, setCode] = useState("");
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginErr, setLoginErr] = useState<string | null>(null);
+  const [needLogin, setNeedLogin] = useState(false);
 
   /* —— 管理操作 —— */
   const [newCount, setNewCount] = useState("");
@@ -94,6 +95,8 @@ export function NetworkTab() {
       if (accErr) logTabErr("NETWORK-ACC", accErr);
       if (balErr) logTabErr("NETWORK-BAL", balErr);
       if (cntErr) logTabErr("NETWORK-CNT", cntErr);
+      // 校园网与统一身份相互独立：未登录是常态，不是故障
+      setNeedLogin([accErr, balErr, cntErr].some((e) => isAuthExpired(e)));
       setRows(out);
       const needCaptcha =
         out.length === 0 &&
@@ -199,7 +202,11 @@ export function NetworkTab() {
     <>
       <SectionHead title="校园网" aside="usereg 自服务 · 验证码登录" />
       {state === "error" ? (
-        <ErrorNote text="该功能暂时不可用（获取失败，可稍后重试）" onRetry={() => void load()} />
+        needLogin ? (
+          <ErrorNote text="校园网尚未登录（校园网与统一身份认证相互独立，未登录是常态）。可稍后在本页验证码自助登录，或重试查询。" onRetry={() => void load()} />
+        ) : (
+          <ErrorNote text="该功能暂时不可用（获取失败，可稍后重试）" onRetry={() => void load()} />
+        )
       ) : null}
 
       {state === "captcha" ? (
