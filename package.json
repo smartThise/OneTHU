@@ -1,7 +1,7 @@
 {
   "name": "onethu",
   "private": true,
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "OneTHU — 清华万物，汇合于一体",
   "engines": {
     "node": ">=20"

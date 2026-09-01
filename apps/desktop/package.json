@@ -1,6 +1,6 @@
 {
   "name": "@onethu/desktop",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "private": true,
   "description": "OneTHU 桌面端 —— Tauri 2 就绪的 React 界面",
   "type": "module",
