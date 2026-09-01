@@ -1703,21 +1703,71 @@
     gap: 6px;
     font-size: var(--text-xs);
   }
-  /* 顶栏两行：品牌一行 + 导航 8 等分一行（全部入口永远可见可点，零滚动） */
-  .sidebar { flex-direction: column; align-items: stretch; gap: 6px; }
-  .brand { justify-content: center; }
-  .brand .brand-logo { font-size: 12px; }
-  .nav { overflow-x: visible; }
-  .nav-item {
-    flex: 1 1 0;
-    min-width: 0;
-    justify-content: center;
-    padding: 0;
-    height: 38px;
-  }
-  /* 图标化：8 个入口在 390px 视口内全部放下，切换器不再需要滚动发现 */
-  .nav-label { display: none; }
+  /* 顶栏整体退场：导航收进左下角按钮 + 抽屉 */
+  .sidebar { display: none; }
   .sidebar-foot { display: none; }
+
+  /* —— 左下角导航按钮（logo + “导航”） —— */
+  .drawer-fab {
+    position: fixed;
+    left: 10px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 13px 7px 10px;
+    border: 1px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 999px;
+    background: var(--surface, #fff);
+    color: var(--text-1, #111);
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: 0 4px 16px rgba(0,0,0,.14);
+    cursor: pointer;
+  }
+  /* —— 遮罩 + 左滑抽屉 —— */
+  .drawer-mask {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.55);
+    animation: drawer-fade 0.22s ease;
+  }
+  @keyframes drawer-fade { from { opacity: 0; } }
+  .drawer {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 10001;
+    width: min(76vw, 290px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 12px calc(14px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg-soft, #f5f5f4);
+    border-right: 1px solid var(--border-soft, #e5e5e3);
+    transform: translateX(-100%);
+    animation: drawer-in 0.26s cubic-bezier(0.22, 0.9, 0.3, 1) forwards;
+  }
+  @keyframes drawer-in { to { transform: none; } }
+  .drawer-brand { padding: 2px 4px 10px; border-bottom: 1px solid var(--border-soft, #e5e5e3); }
+  .drawer .nav { display: flex; flex-direction: column; gap: 1px; }
+  .drawer .nav-item {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    height: 40px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .drawer .nav-label { display: inline; }
+  .drawer-foot { margin-top: auto; }
 }
 
 @media (max-width: 700px) {
@@ -1791,4 +1841,12 @@
     width: 40px;
     height: 40px;
   }
+}
+
+/* 抽屉导航件：仅移动端媒体块内显示 */
+.drawer-fab, .drawer-mask, .drawer { display: none; }
+@media (max-width: 860px) {
+  .drawer-fab { display: flex; }
+  .drawer-mask { display: block; }
+  .drawer { display: flex; }
 }

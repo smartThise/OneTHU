@@ -1,5 +1,5 @@
 /** 侧栏 + 内容骨架 + 基础 UI 件（卡片 / 徽标 / 骨架屏 / 开关） */
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { useApp } from "../state/context.js";
 import { topLevelPage, type Page } from "../state/app.js";
 import { IconDemo, IconInfo, IconLearn, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar } from "./Icons.js";
@@ -48,6 +48,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { status, page: rawPage, navigate } = useApp();
   const page = topLevelPage(rawPage);
   const demo = status === "demo";
+  const [navOpen, setNavOpen] = useState(false);
 
   return (
     <div className="shell">
@@ -82,6 +83,53 @@ export function Shell({ children }: { children: ReactNode }) {
           )}
         </div>
       </aside>
+      {/* 移动端：左下角导航按钮 + 左滑抽屉（≤860px 由 CSS 显示） */}
+      <button
+        className="drawer-fab"
+        onClick={() => setNavOpen(true)}
+        aria-label="打开导航"
+      >
+        <BrandLogo size={11} />
+        <span>导航</span>
+      </button>
+      {navOpen ? (
+        <>
+          <div className="drawer-mask" onClick={() => setNavOpen(false)} />
+          <aside className="drawer" aria-label="导航抽屉">
+            <div className="drawer-brand">
+              <BrandLogo size={15} />
+            </div>
+            <nav className="nav" aria-label="抽屉导航">
+              {NAV.map(({ page: p, label, icon: Icon }) => (
+                <button
+                  key={p}
+                  className={"nav-item" + (page === p ? " is-active" : "")}
+                  onClick={() => {
+                    setNavOpen(false);
+                    navigate(p);
+                  }}
+                >
+                  <Icon />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </nav>
+            <div className="drawer-foot">
+              {demo ? (
+                <span className="foot-badge foot-badge-demo">
+                  <IconDemo width={12} height={12} />
+                  演示模式
+                </span>
+              ) : (
+                <span className="foot-badge">
+                  <span className="dot" style={{ background: "var(--green)" }} />
+                  就绪
+                </span>
+              )}
+            </div>
+          </aside>
+        </>
+      ) : null}
       <main className="content">{children}</main>
       <HardRefreshButton />
     </div>
