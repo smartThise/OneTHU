@@ -799,7 +799,7 @@ export function VenueSportsTab() {
                     {anyFree ? "免费" : `¥${yuan(minPrice)} 起`}
                   </div>
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "7px 7px" }}>
+                <div className="slot-grid">
                   {sessions.map((session, i) => {
                     const pickedNow = picked?.site.uuid === site.uuid && picked?.session.uuid === session.uuid;
                     const bookable = sessionBookable(session);
@@ -809,22 +809,17 @@ export function VenueSportsTab() {
                     return (
                       <button
                         key={`${site.uuid}-${session.uuid}-${i}`}
-                        className={"chip" + (pickedNow ? " chip-blue" : bookable ? " chip-green" : " chip-gray")}
-                        style={{
-                          opacity: disabled ? 0.55 : 1,
-                          cursor: disabled ? "not-allowed" : "pointer",
-                          whiteSpace: "nowrap",
-                          padding: "0 9px",
-                          height: 26,
-                          fontSize: 11.5,
-                        }}
+                        className={"slot-cell" + (pickedNow ? " picked" : bookable ? "" : " taken")}
                         title={disabled ? session.reserveStatus?.reserveStatusReason || "不可约" : undefined}
                         disabled={disabled}
                         onClick={() => bookable && setPicked({ site, session })}
                       >
-                        <span style={{ fontWeight: 600, letterSpacing: 0.2 }}>{session.beginTime}-{session.endTime}</span>
-                        <span style={{ opacity: 0.72 }}>{remain === null ? "" : remain > 0 ? ` 余${remain}` : " 满"}</span>
-                        <span style={{ opacity: 0.72 }}>{fee > 0 ? ` ¥${yuan(fee)}` : " 免费"}</span>
+                        <b>{session.beginTime}-{session.endTime}</b>
+                        <small>
+                          {remain === null ? "" : remain > 0 ? `余${remain}` : "满"}
+                          {remain === null ? "" : fee > 0 ? " · " : ""}
+                          {fee > 0 ? `¥${yuan(fee)}` : remain === null ? "" : "免费"}
+                        </small>
                       </button>
                     );
                   })}

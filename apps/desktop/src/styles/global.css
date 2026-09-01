@@ -1957,7 +1957,7 @@
   background: var(--surface, #fff);
   border: 1px solid var(--border-soft, #e5e5e3);
   border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.09);
 }
 .filter-dd-opt {
   display: flex;
@@ -1995,3 +1995,34 @@
   clip-path: polygon(14% 44%, 0 65%, 40% 100%, 100% 16%, 84% 3%, 39% 68%);
 }
 .filter-dd .btn { width: 100%; margin-top: 4px; height: 30px; min-height: 0; font-size: 12px; }
+
+/* ===== 时间格子网格：场次/时段直观选择（体育场次·公共空间场次·研读间逐格） ===== */
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 6px;
+}
+.slot-grid-tight { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 4px; }
+.slot-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 46px;
+  padding: 5px 4px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  text-align: center;
+  background: var(--green-soft, rgba(34, 197, 94, 0.12));
+  color: var(--green, #16a34a);
+  cursor: pointer;
+  min-width: 0;
+}
+.slot-cell b { font-size: 12px; font-weight: 600; letter-spacing: 0.2px; line-height: 1.2; }
+.slot-cell small { font-size: 10.5px; line-height: 1.25; opacity: 0.78; }
+.slot-cell:disabled { cursor: not-allowed; }
+.slot-cell.taken { background: var(--surface-3, rgba(0, 0, 0, 0.05)); color: var(--text-3, #999); }
+.slot-cell.occ { background: var(--red-soft, rgba(239, 68, 68, 0.1)); color: var(--red, #dc2626); cursor: not-allowed; }
+.slot-cell.picked { background: var(--accent, #16a34a); color: #fff; }
+.slot-cell.picked small { opacity: 0.92; }

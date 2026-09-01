@@ -275,44 +275,43 @@ function SlotGrid({
   onPickFree?: (slot: RoomSlot) => void;
 }) {
   if (slots.length === 0) return null;
-  const chipStyle: CSSProperties = {
-    height: 20,
-    padding: "0 7px",
-    fontSize: 11,
-    lineHeight: "18px",
-  };
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+    <div className="slot-grid slot-grid-tight" style={{ marginTop: 6 }}>
       {slots.map((sl) => {
         const cls =
-          sl.state === "occupied" ? "chip chip-red" : sl.state === "free" ? "chip chip-green" : "chip chip-gray";
+          sl.state === "occupied"
+            ? "slot-cell occ"
+            : sl.state === "free"
+              ? "slot-cell"
+              : "slot-cell taken";
         const label = SLOT_STATE_LABEL[sl.state];
         const selected = selectedBeg !== undefined && onPickFree !== undefined && sl.state === "free" && sl.start === selectedBeg;
         const interactive = onPickFree !== undefined && sl.state === "free";
         const tip = `${sl.start}~${sl.end} · ${label}${
           sl.state === "occupied" ? usageAt(res, toMin(sl.start), toMin(sl.end)) : ""
         }${interactive ? " · 点击选此开始时刻" : ""}`;
+        const body = (
+          <>
+            <b>{sl.start}~{sl.end}</b>
+            <small>{label}</small>
+          </>
+        );
         if (interactive) {
           return (
             <button
               key={`${sl.start}-${sl.end}`}
               type="button"
-              className={cls}
+              className={cls + (selected ? " picked" : "")}
               title={tip}
-              style={{
-                ...chipStyle,
-                cursor: "pointer",
-                ...(selected ? { outline: "2px solid var(--accent)", outlineOffset: 1, fontWeight: 700 } : null),
-              }}
               onClick={() => onPickFree!(sl)}
             >
-              {sl.start}~{sl.end} {label}
+              {body}
             </button>
           );
         }
         return (
-          <span key={`${sl.start}-${sl.end}`} className={cls} title={tip} style={chipStyle}>
-            {sl.start}~{sl.end} {label}
+          <span key={`${sl.start}-${sl.end}`} className={cls} title={tip}>
+            {body}
           </span>
         );
       })}

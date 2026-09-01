@@ -250,20 +250,20 @@ export function KongjianTab() {
             .map(([label, list]) => (
               <Card key={label} style={{ marginBottom: 12, padding: "12px 14px" }}>
                 <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{label}</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "7px 7px" }}>
+                <div className="slot-grid">
                   {list.map((slot, i) => {
                     const bookable = slotBookable(slot);
+                    const pickedNow = picked?.date === slot.date && picked?.time === slot.time;
                     return (
                       <button
                         key={`${slot.date}-${slot.time}-${i}`}
-                        className={"chip" + (bookable ? " chip-green" : " chip-gray")}
-                        style={{ height: 26, fontSize: 11.5, whiteSpace: "nowrap", cursor: bookable ? "pointer" : "not-allowed", opacity: bookable ? 1 : 0.55 }}
+                        className={"slot-cell" + (pickedNow ? " picked" : bookable ? "" : " taken")}
                         title={slot.state}
                         disabled={!bookable}
                         onClick={() => bookable && setPicked(slot)}
                       >
-                        <span style={{ fontWeight: 600 }}>{slot.time}</span>
-                        <span style={{ opacity: 0.72 }}>{bookable ? " 可约" : ` ${slot.state || "不可约"}`}</span>
+                        <b>{slot.time}</b>
+                        <small>{bookable ? "可约" : slot.state || "不可约"}</small>
                       </button>
                     );
                   })}
