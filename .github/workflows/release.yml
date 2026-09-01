@@ -2,7 +2,7 @@ name: release
 # 打 tag（v*）自动构建三端安装包并挂到 GitHub Release：
 #   macos-latest → .dmg（aarch64）
 #   windows-latest → .exe（NSIS x64）
-#   ubuntu-latest → .apk（arm64 精简版，release 签名走 secrets）
+#   APK 不在 CI 构建：gen/android 不入库（本地签名管线），android job 已移除
 on:
   push:
     tags: ["v*"]
@@ -47,40 +47,3 @@ jobs:
           path: |
             apps/desktop/src-tauri/target/**/*.dmg
             apps/desktop/src-tauri/target/**/*.exe
-
-  android:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-      - uses: android-actions/setup-android@v3
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: apps/desktop/src-tauri
-      - name: Install pnpm deps
-        run: pnpm install --frozen-lockfile
-      - name: Build arm64 release APK
-        run: pnpm --filter @onethu/desktop exec tauri android build --apk --target aarch64
-        env:
-          TAURI_ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/../onethu-release.keystore
-          TAURI_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.APK_STORE_PASSWORD }}
-          TAURI_ANDROID_KEY_ALIAS: onethu
-          TAURI_ANDROID_KEY_PASSWORD: ${{ secrets.APK_KEY_PASSWORD }}
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: onethu-apk
-          path: apps/desktop/src-tauri/gen/android/app/build/outputs/apk/**/*.apk

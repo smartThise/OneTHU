@@ -1,6 +1,6 @@
 {
   "name": "@onethu/core",
-  "version": "0.7.0",
+  "version": "0.7.2",
   "description": "OneTHU 统一数据层：CAS / 网络学堂 / 信息门户 / WebVPN / SM2 / 凭证存储",
   "type": "module",
   "main": "src/index.ts",
