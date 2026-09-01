@@ -3351,8 +3351,17 @@ export class InfoClient {
 
   /** 公共空间整页：自动过 agreement 协议；spaceId 给定则走 WebForms 回传链取房间/日期/场次 */
   async kongjianPage(opts: { spaceId?: string; roomId?: string; date?: string } = {}): Promise<kj.KongjianPage> {
+    // 与电费/卫生同款 withRenew：冷启动 CAS 票据未就绪时抛 AuthRequiredError →
+    // 全量重登录后重试一次。此前裸调用，冷启首开公共空间近乎必红（先开电费
+    // 会顺带焐热会话才显得"玄学"）。
+    return this.#withRenew(async () => {
     await this.#ensureDorm();
     let page = await this.#http.text(kj.KJ_YUYUE());
+    if (!kj.hasKongjianLogin(page)) {
+      // 加固：GET 落在登录页 = 会话在 ensureDorm 后又失效/未同步 → 强制重建一轮再试一次
+      await this.#ensureDorm(true);
+      page = await this.#http.text(kj.KJ_YUYUE());
+    }
     // 首访 302 到 agreement.aspx（页面含同意按钮、无空间下拉）→ 提交其表单 → 回 xieyi=1
     if (!kj.hasKongjianLogin(page)) {
       throw new AuthRequiredError("公共空间：家园网会话未建立（请先登录后重试）");
@@ -3442,6 +3451,7 @@ export class InfoClient {
       parsed = kj.parseKongjianPage(page4);
     }
     return parsed;
+    });
   }
 
   /** 公共空间：提交确认页（姓名/学号/电话/用途；bookUrl 为场次行里原样链接） */
@@ -3449,6 +3459,7 @@ export class InfoClient {
     bookUrl: string,
     info: { name: string; sid: string; tel: string; other: string },
   ): Promise<string> {
+    return this.#withRenew(async () => {
     await this.#ensureDorm();
     const page = await this.#http.text(bookUrl);
     const form = kj.parseWebForms(page);
@@ -3484,20 +3495,28 @@ export class InfoClient {
     if (err) throw new Error(err);
     if (/kj_yuyue_my\.aspx/.test(done) || resp.url.includes("kj_yuyue")) return "已提交（请到「我的预约」核对）";
     throw new Error("公共空间预约提交失败（页面无成功标识）");
+    });
   }
 
   /** 公共空间：我的预约列表 */
   async kongjianMy(): Promise<kj.KongjianRecord[]> {
+    return this.#withRenew(async () => {
     await this.#ensureDorm();
-    const page = await this.#http.text(kj.KJ_MY());
+    let page = await this.#http.text(kj.KJ_MY());
+    if (!kj.hasKongjianLogin(page)) {
+      await this.#ensureDorm(true);
+      page = await this.#http.text(kj.KJ_MY());
+    }
     if (!kj.hasKongjianLogin(page)) {
       throw new AuthRequiredError("公共空间：家园网会话未建立");
     }
     return kj.parseKongjianMy(page);
+    });
   }
 
   /** 公共空间：取消预约（我的预约页 __doPostBack 目标） */
   async kongjianCancel(cancelTarget: string): Promise<void> {
+    return this.#withRenew(async () => {
     await this.#ensureDorm();
     const page = await this.#http.text(kj.KJ_MY());
     const wf = kj.parseWebForms(page);
@@ -3512,6 +3531,7 @@ export class InfoClient {
       method: "POST",
       body,
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
     });
   }
 
