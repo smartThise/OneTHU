@@ -355,7 +355,7 @@ function CardBalanceBody({ balance, navigate }: { balance: number | null; naviga
         icon={<span className="stat-icon amber"><IconCard width={17} height={17} /></span>}
         num={balance != null ? `¥${balance.toFixed(2)}` : "–"}
         label={balance != null ? "校园卡余额" : "校园卡"}
-        dimLabel={balance != null ? "校园卡余额 · 生活页" : "校园卡（加载中）"}
+        dimLabel={balance != null ? "校园卡余额" : "校园卡（加载中）"}
         disabled={balance == null}
         onClick={() => navigate("life", { lifeTab: "card" })}
       />
@@ -724,7 +724,7 @@ export function TodayPage() {
   const registry: HomeCardDef[] = buildHomeRegistry({
     "today-overview": {
       render: () => (
-        <div className="stats">
+        <div className="stats stats-overview">
           <EntryCard
             num={dataReady ? unsubmitted.length : "–"}
             label="未交作业"
