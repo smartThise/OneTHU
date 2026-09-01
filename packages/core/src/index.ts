@@ -50,7 +50,7 @@ export type {
   Notification,
   NotificationPageDetail,
   SemesterInfo,
-  LearnBbsTab,
+  LearnBbsBoard,
   LearnBbsThreadSummary,
   LearnBbsPostAttachment,
   LearnBbsPost,

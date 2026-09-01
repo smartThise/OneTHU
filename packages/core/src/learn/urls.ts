@@ -47,9 +47,13 @@ export const LEARN_HOMEWORK_DETAIL = () => `${LEARN_PREFIX}/b/wlxt/kczy/zy/stude
 
 /* ───── 讨论区（bbs_tltb）—— 2026-09 HAR 逆向（讨论区示例/learn.tsinghua.edu.cn.har） ───── */
 
-/** 话题列表页（服务端渲染 HTML）。tabid = 板块（课程讨论/答疑区等），tabbh 恒 2 */
-export const LEARN_BBS_THREAD_LIST = (courseId: string, tabId?: string) =>
-  `${LEARN_PREFIX}/f/wlxt/bbs/bbs_tltb/student/beforePageTlList?wlkcid=${courseId}${tabId ? `&tabbh=2&tabid=${tabId}` : ""}`;
+/** 板块列表（POST wlkcid；响应 JSON 字符串，站点自己 eval） */
+export const LEARN_BBS_BOARD_LIST = (courseId: string) =>
+  `${LEARN_PREFIX}/b/wlxt/bbs/bbs_bqb/student/bqListByWlkcid`;
+
+/** 话题分页（DataTables 1.9 服务端协议；yb=全部 jh=精华 cy=参与） */
+export const LEARN_BBS_THREAD_PAGE = (kind: "yb" | "jh" | "cy") =>
+  `${LEARN_PREFIX}/b/wlxt/bbs/bbs_tltb/student/${kind}tlPageList`;
 
 /** 话题阅读页（HTML：楼主块 + 首屏回复；分页走 LEARN_BBS_POSTS_PAGE） */
 export const LEARN_BBS_THREAD_VIEW = (courseId: string, threadId: string) =>

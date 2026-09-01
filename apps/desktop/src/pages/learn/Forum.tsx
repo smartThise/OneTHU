@@ -3,7 +3,7 @@
  *  + saveEdit 回帖表单）。列表页站点为服务端渲染，解析宽容（标题必有，作者/回复数尽力）。
  *  发新话题的表单 schema 未采样（仅知入口 beforeEditTl），站外浏览器完成，回 App 刷新可见。 */
 import { useCallback, useEffect, useState } from "react";
-import type { LearnBbsPost, LearnBbsTab, LearnBbsThreadDetail, LearnBbsThreadSummary } from "@onethu/core";
+import type { LearnBbsBoard, LearnBbsPost, LearnBbsThreadDetail, LearnBbsThreadSummary } from "@onethu/core";
 import { learnUrls } from "@onethu/core";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { IconDownload, IconRefresh } from "../../components/Icons.js";
@@ -17,75 +17,114 @@ const PAGE_SIZE = 8; // 站点 loadpage2 myPageSize
 
 /* ══════════ 列表（课程详情 → 讨论区 tab） ══════════ */
 
+type BbsKind = "yb" | "jh" | "cy";
+
+const KINDS: Array<{ key: BbsKind; label: string }> = [
+  { key: "yb", label: "全部" },
+  { key: "jh", label: "精华" },
+  { key: "cy", label: "参与" },
+];
+
 export function BbsPanel({ courseId }: { courseId: string }) {
   const { status, navigate } = useApp();
-  const [tabId, setTabId] = useState<string | undefined>(undefined);
-  const [tabs, setTabs] = useState<LearnBbsTab[]>([]);
+  const [boards, setBoards] = useState<LearnBbsBoard[]>([]);
+  const [bqid, setBqid] = useState<string>("INITTL152189643"); // 站点默认板
+  const [kind, setKind] = useState<BbsKind>("yb");
   const [threads, setThreads] = useState<LearnBbsThreadSummary[] | null>(null);
+  const [total, setTotal] = useState(0);
   const [state, setState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [error, setError] = useState("");
   const [nonce, setNonce] = useState(0);
   const [dbgMsg, setDbgMsg] = useState("");
 
-  const load = useCallback(() => {
-    if (!courseId) return;
-    setState("loading");
-    setError("");
-    if (status === "demo") {
-      setTabs([{ tabbh: "2", tabid: "demo", label: "课程讨论" }]);
-      setThreads(DEMO_THREADS(courseId));
-      setState("ready");
-      return;
-    }
-    learn
-      .getBbsThreads(courseId, tabId)
-      .then((r) => {
-        setTabs(r.tabs);
-        setThreads(r.threads);
-        setState("ready");
-      })
-      .catch((e: unknown) => {
-        setError(explainNetworkError(e));
-        setState("error");
-      });
-  }, [courseId, tabId, status, nonce]);
+  const PAGE = 30; // 站点 aLengthMenu 同款
+
+  const load = useCallback(
+    (append: boolean, start: number) => {
+      if (!courseId || status === "demo") {
+        if (status === "demo") {
+          setBoards([{ bqid: "demo", name: "课程讨论" }]);
+          setThreads(DEMO_THREADS(courseId));
+          setTotal(3);
+          setState("ready");
+        }
+        return;
+      }
+      setState("loading");
+      setError("");
+      const boardsP =
+        start === 0
+          ? learn.getBbsBoards(courseId).catch(() => [] as LearnBbsBoard[]) // 板块失败不挡列表
+          : Promise.resolve(null);
+      void Promise.all([boardsP, learn.getBbsThreads(courseId, { bqid, kind, start, length: PAGE })])
+        .then(([b, r]) => {
+          if (b && b.length > 0) {
+            setBoards(b);
+            // 默认板 INITTL… 不在站点返回的板块里 → 自动落到第一块（线程挂真实板块下）
+            if (!b.some((x) => x.bqid === bqid)) setBqid(b[0]!.bqid);
+          }
+          setThreads((old) => (append && old ? [...old, ...r.threads] : r.threads));
+          setTotal(r.total);
+          setState("ready");
+        })
+        .catch((e: unknown) => {
+          setError(explainNetworkError(e));
+          setState("error");
+        });
+    },
+    [courseId, bqid, kind, status],
+  );
 
   useEffect(() => {
-    load();
-  }, [load]);
+    load(false, 0);
+  }, [load, nonce]);
+
+  const reset = (fn: () => void) => {
+    fn();
+    setThreads(null);
+    setTotal(0);
+    setNonce((n) => n + 1);
+  };
 
   return (
     <>
       <PageHead title="讨论区" meta="课程讨论与答疑（实名制）" />
-      {tabs.length > 1 ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
-          {tabs.map((t) => (
+      {boards.length > 1 ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+          {boards.map((b) => (
             <button
-              key={t.tabid}
-              className={"chip" + (tabId === t.tabid ? " chip-blue" : "")}
-              onClick={() => setTabId(t.tabid)}
+              key={b.bqid}
+              className={"chip" + (bqid === b.bqid ? " chip-blue" : "")}
+              onClick={() => reset(() => setBqid(b.bqid))}
             >
-              {t.label}
+              {b.name}
             </button>
           ))}
         </div>
       ) : null}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        {KINDS.map((k) => (
+          <button
+            key={k.key}
+            className={"chip" + (kind === k.key ? " chip-blue" : "")}
+            onClick={() => reset(() => setKind(k.key))}
+          >
+            {k.label}
+          </button>
+        ))}
+        <span style={{ flex: "1 1 auto" }} />
+        <button className="btn" onClick={() => reset(() => undefined)} aria-label="刷新讨论列表">
+          <IconRefresh />
+        </button>
+        {status !== "demo" ? (
+          <button className="btn" onClick={() => void openExternal(learnUrls.LEARN_BBS_NEW_THREAD_PAGE(courseId))}>
+            发新话题
+          </button>
+        ) : null}
+      </div>
       <Card>
-        <div className="setting-row" style={{ alignItems: "center" }}>
-          <div className="row-sub">讨论、答疑均记录实名日志，请文明发言</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn" onClick={() => setNonce((n) => n + 1)} aria-label="刷新讨论列表">
-              <IconRefresh />
-            </button>
-            {status !== "demo" ? (
-              <button
-                className="btn"
-                onClick={() => void openExternal(learnUrls.LEARN_BBS_NEW_THREAD_PAGE(courseId))}
-              >
-                发新话题
-              </button>
-            ) : null}
-          </div>
+        <div className="row-sub">
+          讨论、答疑均记录实名日志，请文明发言{total > 0 ? ` · 共 ${total} 条` : ""}
         </div>
       </Card>
       {state === "loading" && threads === null ? (
@@ -94,11 +133,11 @@ export function BbsPanel({ courseId }: { courseId: string }) {
         </Card>
       ) : state === "error" && threads === null ? (
         <Card>
-          <ErrorNote text={error} onRetry={() => setNonce((n) => n + 1)} />
+          <ErrorNote text={error} onRetry={() => reset(() => undefined)} />
         </Card>
       ) : (threads?.length ?? 0) === 0 ? (
         <Card>
-          <Empty text="本课程暂无讨论" />
+          <Empty text="本板块暂无讨论" />
           {status !== "demo" && learn.lastBbsListDebug ? (
             <div style={{ marginTop: 10 }}>
               <button
@@ -113,7 +152,11 @@ export function BbsPanel({ courseId }: { courseId: string }) {
               >
                 复制诊断信息
               </button>
-              {dbgMsg ? <div className="row-sub" style={{ marginTop: 6, wordBreak: "break-all" }}>{dbgMsg}</div> : null}
+              {dbgMsg ? (
+                <div className="row-sub" style={{ marginTop: 6, wordBreak: "break-all" }}>
+                  {dbgMsg}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </Card>
@@ -130,6 +173,8 @@ export function BbsPanel({ courseId }: { courseId: string }) {
             >
               <div style={{ minWidth: 0, flex: "1 1 auto" }}>
                 <div className="tl-title" style={{ whiteSpace: "normal" }}>
+                  {t.pinned ? <Badge text="置顶" tone="red" /> : null}
+                  {t.essence ? <Badge text="精华" tone="gold" /> : null}
                   {t.title}
                 </div>
                 <div className="tl-sub" style={{ whiteSpace: "normal" }}>
@@ -142,9 +187,39 @@ export function BbsPanel({ courseId }: { courseId: string }) {
               </svg>
             </div>
           ))}
+          {threads && threads.length < total ? (
+            <button
+              className="btn"
+              style={{ width: "100%", marginTop: 10 }}
+              disabled={state === "loading"}
+              onClick={() => load(true, threads!.length)}
+            >
+              {state === "loading" ? "加载中…" : `加载更多（已显示 ${threads!.length}/${total}）`}
+            </button>
+          ) : null}
         </Card>
       )}
     </>
+  );
+}
+
+function Badge({ text, tone }: { text: string; tone: "red" | "gold" }) {
+  const color = tone === "red" ? "#d24545" : "#a8842c";
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        margin: "0 6px -1px 0",
+        padding: "1px 6px",
+        borderRadius: 6,
+        fontSize: 11,
+        lineHeight: "16px",
+        color,
+        border: `1px solid ${color}`,
+      }}
+    >
+      {text}
+    </span>
   );
 }
 
@@ -368,10 +443,10 @@ function PostBlock({
 
 function DEMO_THREADS(courseId: string): LearnBbsThreadSummary[] {
   return [
-    { id: "demo-tl-1", title: "Agent选题：艰难的实验设计辅助agent", author: "黄梓安", time: "2026-08-31 16:44", replies: 4 },
-    { id: "demo-tl-2", title: "关于作业 3 中 DAG 最短路的一个疑问", author: "顾晓", time: "2026-09-01 20:15", replies: 1 },
-    { id: "demo-tl-3", title: "课程项目分组求助（缺 1 人）", author: "王同学", time: "2026-09-01 15:43", replies: 0 },
-  ].map((t) => ({ ...t, id: `${courseId}#${t.id}`, tabid: "demo" }));
+    { id: "demo-tl-1", title: "Agent选题：艰难的实验设计辅助agent", author: "黄梓安", time: "2026-08-31 16:44", replies: 4, essence: true, pinned: false },
+    { id: "demo-tl-2", title: "关于作业 3 中 DAG 最短路的一个疑问", author: "顾晓", time: "2026-09-01 20:15", replies: 1, essence: false, pinned: false },
+    { id: "demo-tl-3", title: "课程项目分组求助（缺 1 人）", author: "王同学", time: "2026-09-01 15:43", replies: 0, essence: false, pinned: true },
+  ].map((t) => ({ ...t, id: `${courseId}#${t.id}` }));
 }
 
 function DEMO_HEAD(threadId: string): LearnBbsThreadDetail {
