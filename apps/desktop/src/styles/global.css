@@ -1721,7 +1721,24 @@
 }
 
 @media (max-width: 700px) {
-  body { font-size: 13px; }
+  /* ===== 全局设计令牌移动端重写：一处改，全应用缩 =====
+     桌面 14px 紧凑密度在手机上依旧巨大——整套字号/间距/圆角按 85% 重定 */
+  :root {
+    --text-xxs: 10px;
+    --text-xs: 10.5px;
+    --text-sm: 11.5px;
+    --text-base: 12.5px;
+    --text-md: 13.5px;
+    --text-lg: 16px;
+    --text-xl: 18px;
+    --gap-1: 3px;
+    --gap-2: 6px;
+    --gap-3: 9px;
+    --gap-4: 12px;
+    --gap-5: 16px;
+    --gap-6: 20px;
+  }
+  body { font-size: var(--text-base); }
 
   .tt-head { font-size: 10px; }
   /* 课表：44px 时间轴 + 5 列全部可收缩（1fr 默认 min-content 不为零，长课名会撑爆） */
@@ -1735,11 +1752,15 @@
   .card {
     width: auto;
     max-width: 100%;
-    padding: 9px;
-    border-radius: 9px;
+    padding: 8px 9px;
+    border-radius: 8px;
     margin-inline: 0;
+    margin-bottom: 8px;
     overflow-x: auto;
   }
+  .card .section-head { margin-bottom: 6px; }
+  /* 列表行/条目类：行高压到 30px 级 */
+  .content .row-link, .content [class*="item"] { padding-block: 4px; }
   /* 卡内表格：压缩字号+允许换行，能塞下就塞下；确实宽的才在卡内滚动 */
   .card table, .content table {
     max-width: 100%;
