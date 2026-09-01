@@ -1277,6 +1277,7 @@
   align-items: baseline;
   gap: 8px;
   min-width: 0;
+  overflow: hidden; /* 裁住内容，标题文字永不覆盖右侧工具按钮的命中区 */
   border: 0;
   background: transparent;
   padding: 0;
@@ -1291,7 +1292,8 @@
   font-size: var(--text-md);
   line-height: 24px;
   font-weight: 600;
-  flex-shrink: 0;
+  flex-shrink: 1; /* 允许收缩：此前 flex-shrink:0 令长标题溢出按钮容器、文字压住工具按钮吃掉点击 */
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2224,7 +2226,6 @@ button, .btn, .icon-btn, .chip {
 /* 编辑工具：永远可点（边界无操作），按压给即时反馈 */
 .home-card-tools { position: relative; z-index: 2; }
 .icon-btn:active {
-  transform: scale(0.9);
   background: var(--surface-3, #ebeef2);
 }
 .btn:active { transform: translateY(1px); }
