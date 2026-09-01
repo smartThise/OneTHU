@@ -180,7 +180,7 @@ export function SchedulePage() {
           <>
             {semester && !isCurrentWeek ? (
               <button className="btn" onClick={() => setWeekNo(currentWeek)}>
-                回本周
+                回到今天
               </button>
             ) : null}
             <button
@@ -234,11 +234,6 @@ export function SchedulePage() {
           >
             ›
           </button>
-          {weekNo !== currentWeek ? (
-            <button className="btn btn-ghost" onClick={() => setWeekNo(currentWeek)}>
-              回到今天
-            </button>
-          ) : null}
         </div>
       ) : null}
 

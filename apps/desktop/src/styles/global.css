@@ -2027,13 +2027,27 @@
 .slot-cell.picked { background: var(--accent, #16a34a); color: #fff; }
 .slot-cell.picked small { opacity: 0.92; }
 
-/* ===== 移动端卡片密度：今日入口卡 / 网络学堂课程卡 ===== */
-@media (max-width: 700px) {
-  .stat-card { padding: 10px 12px; gap: 10px; }
-  .stat-link { padding: 10px 12px; gap: 10px; }
-  .stat-icon { width: 30px; height: 30px; border-radius: 8px; }
-  .course-card-btn { padding: 10px 12px; gap: 4px; }
+/* ===== 移动端卡片密度：今日入口卡 / 今日home卡 / 网络学堂课程卡（≤860 竖屏带） ===== */
+@media (max-width: 860px) {
+  .stat-card { padding: 9px 12px; gap: 10px; }
+  .stat-link { padding: 9px 12px; gap: 10px; }
+  .stat-icon { width: 28px; height: 28px; border-radius: 8px; }
+  .course-card-btn { padding: 9px 12px; gap: 4px; }
   .course-card-head { gap: 6px; }
   .course-card-chips { gap: 4px; margin-top: 4px; }
   .course-card-chips .chip { height: 20px; font-size: 10.5px; }
+  /* 今日 home 卡：头部行与卡体收紧 */
+  .home-card-head { padding: 7px 10px 7px 12px; gap: 6px; }
+  .home-card-title h2 { font-size: var(--text-base); line-height: 20px; }
+  .home-card-body { padding: 8px 10px 10px; }
+  /* 课表表头：星期与日期上下排列，不再横向挤 */
+  .tt-head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    line-height: 1.15;
+    padding: 2px 0;
+  }
+  .tt-head span { margin-left: 0 !important; font-size: 9px; opacity: 0.75; }
 }
