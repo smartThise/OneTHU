@@ -23,7 +23,17 @@ export function logTabErr(tag: string, err: unknown): void {
   // 例外（本文件头部的铁律）：登录态失效与上游维护是「正常状态/已知态」——
   // 只落静态提示 + 手动重试，绝不硬刷新（校园网与统一身份独立，未登录是常态）。
   if (isAuthExpired(err) || isServiceUnavailable(err)) return;
+  // 瞬时网络错误（超时/连不上）在手机蜂窝网下高发——整页 reload 会重启全部 tab 的取数，
+  // 恶性循环（刷得越频繁越慢）。落红条+手动重试即可，绝不动用核弹级刷新。
+  if (isTransientNetworkError(err)) return;
   hardReloadBailOut(tag);
+}
+
+/** 瞬时网络错误：传输层抛出的纯网络故障（超时/连不上/DNS），页面状态无恙，重试即愈 */
+export function isTransientNetworkError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  // 词汇表与 clients.ts isNetworkError 同源（reqwest/invoke 原话），另补浏览器 fetch 措辞
+  return /网络错误|timeout|timed? ?out|error sending request|connect|Failed to fetch|Network request failed/i.test(err.message);
 }
 
 /** 红条前自动硬刷新守卫：返回 true 表示已触发整页重载（调用方后续 setState 无意义） */
