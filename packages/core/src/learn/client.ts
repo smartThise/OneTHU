@@ -12,7 +12,7 @@ import type {
   Homework,
   HomeworkPageDetail,
   LearnAttachment,
-  LearnBbsTab,
+  LearnBbsBoard,
   LearnBbsThreadSummary,
   LearnBbsPost,
   LearnBbsPostAttachment,
@@ -262,80 +262,36 @@ export function parseSemesterIdList(text: string): string[] {
 
 /* ───── 讨论区解析（服务端渲染 HTML + 分页 JSON） ───── */
 
-/** 板块 tab：beforePageTlList 锚点（wlkcid=..&tabbh=2&tabid=xx">label</a>） */
-function parseBbsTabs(html: string): LearnBbsTab[] {
-  const out = new Map<string, LearnBbsTab>();
-  const re =
-    /beforePageTlList\?wlkcid=[^"']*?tabbh=(\d+)&tabid=([0-9a-f]{16,40})[^>]*>([\s\S]{0,160}?)<\/a>/gi;
-  for (const m of html.matchAll(re)) {
-    const label = decodeHtml(m[3]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
-    if (!label || label.length > 24) continue;
-    out.set(m[2]!, { tabbh: m[1]!, tabid: m[2]!, label });
+/** 站点响应可能是「JSON 字符串再包一层」（bqListByWlkcid 前端要 eval 才能用）——宽容解到对象 */
+function parseMaybeJsonString<T>(raw: string): T {
+  let cur: unknown = raw;
+  for (let i = 0; i < 3; i++) {
+    if (typeof cur !== "string") break;
+    const t = cur.trim();
+    if (!t.startsWith("[") && !t.startsWith("{")) break;
+    cur = JSON.parse(t);
   }
-  return [...out.values()];
+  return cur as T;
 }
 
-
-/** 空列表诊断：直奔分页接口的调用脚本（ybtlPageList/jhtlPageList/cytlPageList/bqListByWlkcid 的
- *  DataTable/ajax 初始化段——参数与返回结构全在里面） */
-function debugBbsShell(html: string): string {
-  const inline = (html.match(/<script[\s\S]*?<\/script>/gi) ?? [])
-    .filter((x) => !/src=/.test(x))
-    .map((x) => x.replace(/<\/?script[^>]*>/gi, "").trim())
-    .filter((x) => x.length > 30 && /ybtlPageList|jhtlPageList|cytlPageList|bqListByWlkcid|DataTable|aaData|sEcho/i.test(x));
-  const urls = [...new Set(html.match(/\/[bf]\/wlxt[\w/.-]*/g) ?? [])].filter((u) => /bbs|tltb|bqb/i.test(u));
-  return [
-    "BBS-URLS:",
-    ...urls.map((u) => "  " + u),
-    "",
-    ...inline.slice(0, 4).map((x, i) => `--- SEG#${i} ---\n` + x.slice(0, 4000)),
-  ].join("\n").slice(0, 9000);
-}
-
-/** 话题行：viewTlById 锚点定位 + 行窗口抓标题/时间/回复数（列表页无采样，宽容提取）。
- *  href 里的 & 可能写成 &amp;（服务端渲染常见坑），统一归一后再匹配。 */
-function parseBbsThreadRows(htmlRaw: string): LearnBbsThreadSummary[] {
-  const html = htmlRaw.replace(/&amp;/g, "&");
-  const out: LearnBbsThreadSummary[] = [];
-  const seen = new Set<string>();
-  // 主形态：完整锚点（href 里直接给出 id）
-  const re =
-    /viewTlById\?[^"']*?[?&]id=([0-9a-f]{16,50})[^"]*"[^>]*>([\s\S]{0,220}?)<\/a>/gi;
-  for (const m of html.matchAll(re)) {
-    const id = m[1]!;
-    if (seen.has(id)) continue;
-    seen.add(id);
-    const window = html.slice(Math.max(0, m.index! - 500), m.index! + 900);
-    let title = decodeHtml(m[2]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
-    const attrTitle = /title="([^"]{2,160})"/.exec(window)?.[1];
-    if (attrTitle && (!title || title.length < 4)) title = decodeHtml(attrTitle).trim();
-    if (!title) continue;
-    const time = /\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?/.exec(window)?.[0] ?? "";
-    const authorM = /class="[^"]*(?:fbr|author|name)[^"]*"[^>]*>([^<]{1,40})</.exec(window);
-    const cntM = /(?:回复|讨论)[^\d]{0,12}(\d{1,4})/.exec(window) ?? /(\d{1,4})\s*<\/[^>]+>\s*(?:<[^>]+>\s*){0,2}$/.exec(window);
-    out.push({
-      id,
-      title,
-      author: authorM ? decodeHtml(authorM[1]!).trim() : "",
-      time,
-      replies: cntM ? parseInt(cntM[1]!, 10) || 0 : 0,
-    });
-  }
-  if (out.length > 0) return out;
-  // 备用形态：JS 串里的 viewTlById?id=..&wlkcid=..（onclick/location.href 拼接）
-  const re2 = /viewTlById\?[^'"\s]*?[?&]id=([0-9a-f]{16,50})/gi;
-  for (const m of html.matchAll(re2)) {
-    const id = m[1]!;
-    if (seen.has(id)) continue;
-    seen.add(id);
-    const window = html.slice(Math.max(0, m.index! - 400), m.index! + 700);
-    const title = decodeHtml(
-      (/title="([^"]{2,160})"/.exec(window)?.[1] ?? "").replace(/<[^>]+>/g, " "),
-    ).replace(/\s+/g, " ").trim();
-    if (!title) continue;
-    out.push({ id, title, author: "", time: /\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?/.exec(window)?.[0] ?? "", replies: 0 });
-  }
-  return out;
+/** DataTables 1.9 服务端行 → 话题摘要 */
+function parseBbsThreadRow(raw: unknown): LearnBbsThreadSummary {
+  const o = (raw ?? {}) as Record<string, unknown>;
+  const num = (v: unknown): number => {
+    const n = parseInt(String(v ?? "0"), 10);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const yes = (v: unknown): boolean => String(v ?? "").trim() === "是";
+  return {
+    id: String(o.id ?? ""),
+    title: decodeHtml(String(o.bt ?? "")).trim(),
+    author: String(o.fbrxm ?? o.fbr ?? "").trim(),
+    time: String(o.fbsj ?? "").slice(0, 16),
+    replies: num(o.hfcs ?? o.hfcsnum ?? o.hfcsl),
+    essence: yes(o.sfjh),
+    pinned: yes(o.sfzd),
+    bqid: o.bqid ? String(o.bqid) : undefined,
+  };
 }
 
 /** 楼层块（楼主/回复共用 .list.lists 布局：.left 作者 + .right 正文） */
@@ -867,18 +823,46 @@ export class LearnClient {
    *  分组页被重定向到登录页时抛 AuthRequiredError（与相邻 HTML 方法风格一致）。 */
   /* ───── 讨论区（bbs_tltb） ───── */
 
-  /** 话题列表（beforePageTlList HTML，宽容解析） */
-  async getBbsThreads(
-    wlkcid: string,
-    tabId?: string,
-  ): Promise<{ tabs: LearnBbsTab[]; threads: LearnBbsThreadSummary[] }> {
+  /** 板块列表（bqListByWlkcid，POST wlkcid；响应是 JSON 字符串，前端站点自己都要 eval 一层） */
+  async getBbsBoards(wlkcid: string): Promise<LearnBbsBoard[]> {
     return this.#withRelogin(async () => {
       this.#requireCsrf();
-      const html = await this.#http.text(this.#withCsrf(urls.LEARN_BBS_THREAD_LIST(wlkcid, tabId)));
-      const threads = parseBbsThreadRows(html);
-      // 诊断现场：空列表时抽取 ajax 线索（列表页确认为 DataTables 壳——2026-09 用户实测）
-      this.lastBbsListDebug = threads.length === 0 ? debugBbsShell(html) : "";
-      return { tabs: parseBbsTabs(html), threads };
+      const res = await this.#http.postForm(this.#withCsrf(urls.LEARN_BBS_BOARD_LIST(wlkcid)), new URLSearchParams({ wlkcid }));
+      const arr = parseMaybeJsonString<unknown[]>(res);
+      const list = Array.isArray(arr) ? arr : [];
+      return list.map((raw) => {
+        const o = (raw ?? {}) as Record<string, unknown>;
+        return {
+          bqid: String(o.bqid ?? o.id ?? ""),
+          name: decodeHtml(String(o.bqmc ?? o.bqtitle ?? o.title ?? o.mc ?? "板块").trim()) || "板块",
+        };
+      }).filter((b) => b.bqid);
+    });
+  }
+
+  /** 话题分页（ybtl/jhtl/cytlPageList，DataTables 1.9 服务端协议；默认板 INITTL…，页长 30 同站点） */
+  async getBbsThreads(
+    wlkcid: string,
+    opts: { bqid: string; kind: "yb" | "jh" | "cy"; start: number; length?: number },
+  ): Promise<{ total: number; threads: LearnBbsThreadSummary[] }> {
+    return this.#withRelogin(async () => {
+      this.#requireCsrf();
+      const length = opts.length ?? 30;
+      const body = new URLSearchParams({
+        sEcho: "1",
+        iColumns: "6",
+        iDisplayStart: String(opts.start),
+        iDisplayLength: String(length),
+        iSortingCols: "0",
+        wlkcid,
+        bqid: opts.bqid,
+      });
+      const res = await this.#http.postForm(this.#withCsrf(urls.LEARN_BBS_THREAD_PAGE(opts.kind)), body);
+      const obj = parseMaybeJsonString<{ aaData?: unknown[]; iTotalRecords?: unknown; iTotalDisplayRecords?: unknown }>(res);
+      const rows = obj?.aaData ?? [];
+      const threads = (Array.isArray(rows) ? rows : []).map(parseBbsThreadRow);
+      const total = parseInt(String(obj?.iTotalDisplayRecords ?? obj?.iTotalRecords ?? threads.length), 10);
+      return { total: Number.isFinite(total) ? total : threads.length, threads };
     });
   }
 

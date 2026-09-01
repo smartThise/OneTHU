@@ -156,21 +156,25 @@ export interface CourseFile {
 
 /* ───── 讨论区（网络学堂 bbs_tltb） ───── */
 
-/** 话题板块 tab（课程讨论 / 答疑区等；tabbh 恒 "2"） */
-export interface LearnBbsTab {
-  tabbh: string;
-  tabid: string;
-  label: string;
+/** 话题板块（bqListByWlkcid；bqid 形如 INITTL… 默认板或课程自建板） */
+export interface LearnBbsBoard {
+  bqid: string;
+  name: string;
 }
 
-/** 话题列表行（列表页为服务端渲染，作者/回复数解析宽容，可能缺省） */
+/** 话题列表行（ybtl/jhtl/cytlPageList DataTables 1.9 服务端协议 aaData 行：
+ *  bt=标题，fbrx / fbsj=作者 / 时间，sfjh=精华，sfzd=置顶，hfcs=回复数） */
 export interface LearnBbsThreadSummary {
   id: string;
   title: string;
   author: string;
   time: string;
   replies: number;
-  tabid?: string;
+  /** 精华（站点字段 sfjh == "是"） */
+  essence: boolean;
+  /** 置顶（站点字段 sfzd == "是"） */
+  pinned: boolean;
+  bqid?: string;
 }
 
 /** 附件（帖子层只有一个：wjid/wjmc） */
