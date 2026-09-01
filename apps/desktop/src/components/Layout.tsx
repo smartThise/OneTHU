@@ -145,6 +145,14 @@ export function Shell({ children }: { children: ReactNode }) {
   const page = topLevelPage(rawPage);
   const demo = status === "demo";
   const [navOpen, setNavOpen] = useState(false);
+  const [navClosing, setNavClosing] = useState(false);
+  const closeNav = useCallback(() => {
+    setNavClosing(true);
+    window.setTimeout(() => {
+      setNavOpen(false);
+      setNavClosing(false);
+    }, 240);
+  }, []);
 
   return (
     <div className="shell">
@@ -182,8 +190,8 @@ export function Shell({ children }: { children: ReactNode }) {
       {/* 移动端：左滑抽屉（≤860px 由 CSS 显示；入口是页头标题胶囊） */}
       {navOpen ? (
         <>
-          <div className="drawer-mask" onClick={() => setNavOpen(false)} />
-          <aside className="drawer" aria-label="导航抽屉">
+          <div className={"drawer-mask" + (navClosing ? " drawer-mask-closing" : "")} onClick={() => { if (!navClosing) closeNav(); }} />
+          <aside className={"drawer" + (navClosing ? " drawer-closing" : "")} aria-label="导航抽屉">
             <div className="drawer-brand">
               <BrandLogo size={15} />
             </div>
@@ -193,7 +201,7 @@ export function Shell({ children }: { children: ReactNode }) {
                   key={p}
                   className={"nav-item" + (page === p ? " is-active" : "")}
                   onClick={() => {
-                    setNavOpen(false);
+                    closeNav();
                     navigate(p);
                   }}
                 >
@@ -226,7 +234,7 @@ export function Shell({ children }: { children: ReactNode }) {
           aria-label={`打开导航（当前：${NAV.find((n) => n.page === page)?.label ?? "OneTHU"}）`}
         >
           <span>{NAV.find((n) => n.page === page)?.label ?? "OneTHU"}</span>
-          <BrandLogo size={10} />
+          <BrandLogo size={12} />
         </button>
         {children}
       </main>

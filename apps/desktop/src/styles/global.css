@@ -1708,19 +1708,19 @@
   .page-title-capsule {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 5px 13px 5px 14px;
+    gap: 10px;
+    padding: 8px 16px;
     border: 1px solid var(--border, rgba(0, 0, 0, 0.14));
-    border-radius: 999px;
+    border-radius: 10px; /* 十分收敛的圆角，不做全圆胶囊 */
     background: var(--surface, #fff);
     color: var(--text-1, #111);
-    font-size: 13.5px;
+    font-size: 15px;
     font-weight: 600;
     line-height: 1;
     margin: 0 0 10px;
     cursor: pointer;
   }
-  .page-title-capsule .brand-logo { font-size: 9.5px; }
+  .page-title-capsule .brand-logo { font-size: 12px; }
   /* 页内自身标题让位给胶囊 */
   .page-head h1 { display: none; }
   /* —— 遮罩 + 左滑抽屉 —— */
@@ -1749,6 +1749,10 @@
     animation: drawer-in 0.26s cubic-bezier(0.22, 0.9, 0.3, 1) forwards;
   }
   @keyframes drawer-in { to { transform: none; } }
+  .drawer-closing { animation: drawer-out 0.24s ease forwards; }
+  @keyframes drawer-out { to { transform: translateX(-100%); } }
+  .drawer-mask-closing { animation: mask-out 0.24s ease forwards; }
+  @keyframes mask-out { to { opacity: 0; } }
   .drawer-brand { padding: 2px 4px 10px; border-bottom: 1px solid var(--border-soft, #e5e5e3); }
   .drawer .nav { display: flex; flex-direction: column; gap: 1px; }
   .drawer .nav-item {
