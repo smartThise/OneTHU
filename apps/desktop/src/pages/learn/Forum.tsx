@@ -58,7 +58,11 @@ export function BbsPanel({ courseId }: { courseId: string }) {
           : Promise.resolve(null);
       void Promise.all([boardsP, learn.getBbsThreads(courseId, { bqid, kind, start, length: PAGE })])
         .then(([b, r]) => {
-          if (b && b.length > 0) setBoards(b);
+          if (b && b.length > 0) {
+            setBoards(b);
+            // 默认板 INITTL… 不在站点返回的板块里 → 自动落到第一块（线程挂真实板块下）
+            if (!b.some((x) => x.bqid === bqid)) setBqid(b[0]!.bqid);
+          }
           setThreads((old) => (append && old ? [...old, ...r.threads] : r.threads));
           setTotal(r.total);
           setState("ready");

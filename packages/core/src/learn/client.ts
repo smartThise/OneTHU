@@ -262,12 +262,20 @@ export function parseSemesterIdList(text: string): string[] {
 
 /* ───── 讨论区解析（服务端渲染 HTML + 分页 JSON） ───── */
 
-/** 站点响应可能是「JSON 字符串再包一层」（bqListByWlkcid 前端要 eval 才能用）——宽容解到对象 */
+/** 站点响应可能是「JSON 字符串再包一层」（bqListByWlkcid 前端要 eval 才能用）——宽容解到对象。
+ *  覆盖三种形态：裸 JSON 文本、JSON 字面量外再包引号（"\[...\"}" ）、连包多层。 */
 function parseMaybeJsonString<T>(raw: string): T {
   let cur: unknown = raw;
-  for (let i = 0; i < 3; i++) {
-    if (typeof cur !== "string") break;
-    const t = cur.trim();
+  for (let i = 0; i < 4 && typeof cur === "string"; i++) {
+    let t = cur.trim();
+    if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) {
+      try {
+        cur = JSON.parse(t);
+        continue;
+      } catch {
+        /* 引号剥不掉就当裸文本走下面 */
+      }
+    }
     if (!t.startsWith("[") && !t.startsWith("{")) break;
     cur = JSON.parse(t);
   }
@@ -828,9 +836,16 @@ export class LearnClient {
     return this.#withRelogin(async () => {
       this.#requireCsrf();
       const res = await this.#http.postForm(this.#withCsrf(urls.LEARN_BBS_BOARD_LIST(wlkcid)), new URLSearchParams({ wlkcid }));
-      const arr = parseMaybeJsonString<unknown[]>(res);
-      const list = Array.isArray(arr) ? arr : [];
-      return list.map((raw) => {
+      const arr = parseMaybeJsonString<unknown>(res);
+      const rawList = Array.isArray(arr)
+        ? arr
+        : Array.isArray((arr as Record<string, unknown>)?.object)
+          ? ((arr as Record<string, unknown>).object as unknown[])
+          : Array.isArray((arr as Record<string, unknown>)?.resultList)
+            ? ((arr as Record<string, unknown>).resultList as unknown[])
+            : [];
+      if (rawList.length === 0) this.lastBbsListDebug = `BOARD RESP:\n` + res.slice(0, 1000);
+      return rawList.map((raw: unknown) => {
         const o = (raw ?? {}) as Record<string, unknown>;
         return {
           bqid: String(o.bqid ?? o.id ?? ""),
@@ -858,10 +873,24 @@ export class LearnClient {
         bqid: opts.bqid,
       });
       const res = await this.#http.postForm(this.#withCsrf(urls.LEARN_BBS_THREAD_PAGE(opts.kind)), body);
-      const obj = parseMaybeJsonString<{ aaData?: unknown[]; iTotalRecords?: unknown; iTotalDisplayRecords?: unknown }>(res);
-      const rows = obj?.aaData ?? [];
-      const threads = (Array.isArray(rows) ? rows : []).map(parseBbsThreadRow);
-      const total = parseInt(String(obj?.iTotalDisplayRecords ?? obj?.iTotalRecords ?? threads.length), 10);
+      const obj = parseMaybeJsonString<Record<string, unknown>>(res);
+      const pickArr = (o: unknown): unknown[] => {
+        if (Array.isArray(o)) return o;
+        const r = o as Record<string, unknown> | null;
+        if (!r) return [];
+        for (const k of ["aaData", "resultList", "rows", "list", "data"]) {
+          if (Array.isArray(r[k])) return r[k] as unknown[];
+        }
+        const inner = r?.object ?? r?.result;
+        return Array.isArray(inner) ? inner : [];
+      };
+      const threads = pickArr(obj).map(parseBbsThreadRow);
+      const total = parseInt(
+        String((obj as Record<string, unknown>)?.iTotalDisplayRecords ?? (obj as Record<string, unknown>)?.iTotalRecords ?? threads.length),
+        10,
+      );
+      // 空结果留原始响应（「复制诊断」直接看服务器说了什么）
+      this.lastBbsListDebug = threads.length === 0 ? `THREAD-PAGE RESP(${opts.kind},bqid=${opts.bqid},start=${opts.start}):\n` + res.slice(0, 1500) : "";
       return { total: Number.isFinite(total) ? total : threads.length, threads };
     });
   }
