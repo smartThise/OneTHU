@@ -22,7 +22,7 @@ OneTHU 是对 thuapp 系列（thu-app / thu-info-app fork / learnX fork / NextTH
 3. **一付面孔** —— 纸面墨线的编辑排版风格，信息密度真实，没有 AI 味
 4. **诚实** —— 不造数据：网络不可用时给出明确错误与重试，演示模式需显式进入
 
-## 功能总览（0.7.8）
+## 功能总览（0.7.9）
 
 - **统一身份**：CAS 登录一次（SM2 加密 + ticket 漫游 + 设备指纹），全模块共享会话；双因素认证（邮箱 / TOTP）
 - **网络学堂**：课程 / 作业 / 通知 / 文件下载
@@ -66,4 +66,4 @@ OneTHU/
 
 ## 版本
 
-当前版本 **0.7.8**（详见 [Releases](https://github.com/smartThise/OneTHU/releases)）。
+当前版本 **0.7.9**（详见 [Releases](https://github.com/smartThise/OneTHU/releases)）。

@@ -1,3 +1,4 @@
+declare const __APP_VERSION__: string;
 import { useEffect, useState } from "react";
 import { Card, PageHead, SectionHead } from "../components/Layout.js";
 import { invoke } from "@tauri-apps/api/core";
@@ -40,8 +41,9 @@ export function SettingsPage() {
       <SectionHead title="设备诊断" />
       <Card>
         <div style={{ display: "grid", gap: 4, fontSize: "var(--text-xs)", fontFamily: "var(--font-mono, monospace)", wordBreak: "break-all" }}>
-          <span>视口 {window.innerWidth}×{window.innerHeight} · DPR {window.devicePixelRatio}</span>
+          <span>版本 {__APP_VERSION__} · 视口 {window.innerWidth}×{window.innerHeight} · DPR {window.devicePixelRatio}</span>
           <span>触点 {navigator.maxTouchPoints} · coarse={window.matchMedia("(pointer: coarse)").matches ? "是" : "否"} · ≤860={window.matchMedia("(max-width: 860px)").matches ? "是" : "否"} · 竖屏={window.matchMedia("(orientation: portrait)").matches ? "是" : "否"}</span>
+          <span>{(() => { const tg = document.querySelector(".today-grid"); const card = document.querySelector(".home-card"); const ct = document.querySelector(".content"); return `首页网格 ${tg ? Math.round(tg.getBoundingClientRect().width) + "px 列[" + getComputedStyle(tg).gridTemplateColumns + "]" : "—"} · 卡片 ${card ? Math.round(card.getBoundingClientRect().width) + "px" : "—"} · 内容 ${ct ? Math.round(ct.getBoundingClientRect().width) + "px" : "—"}`; })()}</span>
           <span>密度层 is-phone={document.documentElement.classList.contains("is-phone") ? "生效" : "未生效"} · 缩放 textZoom={(() => { try { return String((window as unknown as { visualViewport?: VisualViewport }).visualViewport?.scale ?? 1); } catch { return "1"; } })()}</span>
         </div>
       </Card>

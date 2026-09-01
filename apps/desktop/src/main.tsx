@@ -21,3 +21,4 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </StrictMode>,
 );
+declare const __APP_VERSION__: string;
