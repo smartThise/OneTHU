@@ -32,10 +32,10 @@ export function BrandLogo({ size = 14 }: { size?: number }) {
 }
 
 /**
- * SegmentedOverflow：分段选择栏的溢出治理。
- * 无论任何宽度都只显示一行；放不下的栏目收进右端「›」箭头的下拉列表小菜单
- * （菜单项与行内按钮同源，选中态/onClick 完全一致）。
- * 测量原理：隐藏 0×0 sizer 里渲染全部子项取自然宽度，行内只渲染放得下的前 N 个。
+ * SegmentedOverflow（滑动模式）：分段栏放不下时整条可滑，左右两端条件箭头。
+ * - 胶囊 flex:1 0 auto：放得下时拉伸填满整行；放不下时保持自然宽进入滑动；
+ * - 右箭头：右侧还有内容才显示；左箭头：左侧还有内容才显示；均无功能即隐藏；
+ * - 点箭头整条平滑滑动一屏（scrollBy smooth），也可直接手指滑。
  */
 export function SegmentedOverflow({
   ariaLabel,
@@ -46,69 +46,55 @@ export function SegmentedOverflow({
   style?: CSSProperties;
   children: ReactNode;
 }) {
-  const items = Children.toArray(children);
   const rowRef = useRef<HTMLDivElement>(null);
-  const sizerRef = useRef<HTMLDivElement>(null);
-  const [shown, setShown] = useState<number>(items.length);
-  const [menu, setMenu] = useState(false);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
 
-  const measure = useCallback(() => {
-    const sizer = sizerRef.current;
-    const row = rowRef.current;
-    if (!sizer || !row) return;
-    if (row.clientWidth < 60) return; // 布局未就绪/被隐藏时不动手，防自反馈死循环
-    const kids = [...sizer.children] as HTMLElement[];
-    if (kids.length === 0) return;
-    const last = kids[kids.length - 1]!;
-    if (last.offsetLeft + last.offsetWidth <= row.clientWidth) {
-      setShown(items.length);
-      return;
-    }
-    const limit = row.clientWidth - 34; // 右端箭头预留
-    let n = 0;
-    for (const k of kids) {
-      if (k.offsetLeft + k.offsetWidth > limit) break;
-      n++;
-    }
-    setShown(Math.max(n, 1));
-  }, [items.length]);
+  const update = useCallback(() => {
+    const el = rowRef.current;
+    if (!el || el.clientWidth < 60) return; // 布局未就绪不动手
+    setCanLeft(el.scrollLeft > 2);
+    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
 
   useLayoutEffect(() => {
-    measure();
-    const ro = new ResizeObserver(() => measure());
-    if (rowRef.current) ro.observe(rowRef.current);
-    return () => ro.disconnect();
-  }, [measure]);
+    update();
+    const el = rowRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    el.addEventListener("scroll", update, { passive: true });
+    return () => {
+      ro.disconnect();
+      el.removeEventListener("scroll", update);
+    };
+  }, [update]);
 
-  const overflowed = shown < items.length;
+  const nudge = (dir: 1 | -1) => {
+    const el = rowRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * el.clientWidth * 0.72, behavior: "smooth" });
+  };
+
   return (
-    <div className="segmented seg-ov" role="tablist" aria-label={ariaLabel} style={style} ref={rowRef}>
-      {items.slice(0, shown)}
-      {overflowed ? (
-        <button
-          className="seg-more"
-          aria-label="更多栏目"
-          aria-expanded={menu}
-          onClick={() => setMenu((m) => !m)}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+    <div className="seg-ov" style={style}>
+      {canLeft ? (
+        <button className="seg-arrow seg-arrow-left" aria-label="向左滑动" onClick={() => nudge(-1)}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
+        </button>
+      ) : null}
+      <div className="segmented seg-track" role="tablist" aria-label={ariaLabel} ref={rowRef}>
+        {children}
+      </div>
+      {canRight ? (
+        <button className="seg-arrow seg-arrow-right" aria-label="向右滑动" onClick={() => nudge(1)}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 5l7 7-7 7" />
           </svg>
         </button>
       ) : null}
-      {menu && overflowed ? (
-        <>
-          <div className="seg-menu-backdrop" onClick={() => setMenu(false)} />
-          <div className="seg-menu" role="menu">
-            {items.slice(shown).map((c, i) => (
-              <div className="seg-menu-item" key={i}>{c}</div>
-            ))}
-          </div>
-        </>
-      ) : null}
-      <div className="seg-sizer" aria-hidden ref={sizerRef}>
-        {children}
-      </div>
     </div>
   );
 }
