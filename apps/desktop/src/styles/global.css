@@ -2054,4 +2054,29 @@
   .row { padding: 7px 12px; gap: 10px; }
   /* 701-860 内容区此前仍在用 20/16 旧内边距，统一收紧 */
   .content { padding: 12px 14px calc(72px + env(safe-area-inset-bottom, 0px)); }
+
+  /* —— 第二档激进压缩：控件基准全线下调 —— */
+  :root {
+    --text-xs: 10px;
+    --text-sm: 11px;
+    --text-base: 12px;
+    --text-md: 13px;
+    --gap-2: 5px;
+    --gap-3: 8px;
+    --gap-4: 10px;
+    --gap-5: 12px;
+  }
+  .row { padding: 6px 10px; gap: 8px; }
+  .chip { height: 20px; padding: 0 8px; font-size: 10.5px; }
+  .btn { height: 30px; padding: 0 12px; font-size: 12px; }
+  .input, .filter-select { height: 32px; font-size: 12px; }
+  .filter-select, .filter-dd { margin-bottom: 12px; }
+  .section-head { margin-bottom: 6px; }
+  .page-head { margin-bottom: 10px; }
+  .card { margin-bottom: 6px; }
+  .stat-card, .stat-link { padding: 8px 10px; gap: 8px; }
+  .stat-icon { width: 26px; height: 26px; }
+  .course-card-btn { padding: 8px 10px; }
+  .home-card-head { padding: 6px 10px 6px 10px; }
+  .home-card-body { padding: 6px 8px 8px; }
 }
