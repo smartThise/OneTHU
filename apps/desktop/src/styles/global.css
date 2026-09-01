@@ -2157,3 +2157,51 @@
 
 /* 首页竖屏扁平网格：单列全宽（主栏+侧栏串成一条） */
 .today-grid-flat { grid-template-columns: minmax(0, 1fr) !important; }
+
+/* 首页编辑工具条：固定底部居中，按钮永不随卡片重排漂移（替代随卡工具行） */
+.home-edit-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  background: var(--bg-elev, #fff);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+  max-width: calc(100vw - 24px);
+}
+.heb-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  max-width: 30vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+}
+.heb-btn {
+  width: 38px !important;
+  height: 38px !important;
+  min-height: 0 !important;
+  border-radius: 999px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.heb-btn:disabled { opacity: 0.4; }
+.heb-x { color: var(--red, #dc2626); font-weight: 700; }
+.heb-up svg { transform: rotate(-90deg); }
+.heb-down svg { transform: rotate(90deg); }
+.heb-left svg { transform: rotate(180deg); }
+
+/* 点选高亮：编辑模式下被选卡片描环 */
+.home-card.is-picked {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+}
