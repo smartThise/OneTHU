@@ -83,7 +83,7 @@ const SECTION_OF: Record<number, string> = {
 function EntryCard({
   icon, num, label, onClick, disabled = false, dimLabel,
 }: {
-  icon: ReactNode;
+  icon?: ReactNode;
   num: ReactNode;
   label: string;
   onClick?: () => void;
@@ -726,7 +726,6 @@ export function TodayPage() {
       render: () => (
         <div className="stats">
           <EntryCard
-            icon={<span className="stat-icon"><IconPen width={17} height={17} /></span>}
             num={dataReady ? unsubmitted.length : "–"}
             label="未交作业"
             dimLabel={dataReady ? "未交作业 · 查看全部" : "未交作业"}
@@ -734,7 +733,6 @@ export function TodayPage() {
             onClick={() => navigate("learn-assignments")}
           />
           <EntryCard
-            icon={<span className="stat-icon amber"><IconBell width={17} height={17} /></span>}
             num={dataReady ? dueSoon : "–"}
             label="三日内截止"
             dimLabel={dataReady ? "三日内截止 · 查看全部" : "三日内截止"}
@@ -742,7 +740,6 @@ export function TodayPage() {
             onClick={() => navigate("learn-assignments")}
           />
           <EntryCard
-            icon={<span className="stat-icon green"><IconIn width={17} height={17} /></span>}
             num={dataReady ? todayEvents.length : "–"}
             label="今日课程"
             dimLabel={dataReady ? "今日课程 · 查看课表" : "今日课程"}
