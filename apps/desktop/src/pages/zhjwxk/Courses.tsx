@@ -3,7 +3,7 @@
  * 左栏 = 搜索/筛选chips/筛选selects/课程列表；右栏 = 学分统计·课表预览·暂存草稿·候补·AI。
  * UI 用 OneTHU 设计系统（Card/list/row/chip/btn/input）。
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { Card, Empty, ErrorNote, PageHead, SegmentedOverflow, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
@@ -264,6 +264,45 @@ export function ZhjwxkCoursesPage() {
   }, [jump]);
 
   const selCredits = wb.selected.reduce((a, s) => a + (s.credits || 0), 0);
+
+  // 横屏双栏分割条：拖动改宽度；拖过阈值（<30% / >70%）塌缩为只显示左栏/右栏；状态持久化
+  const [split, setSplit] = useState<{ pct: number; collapsed: "none" | "left" | "right" }>(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem("onethu.xk.split") ?? "null") as { pct?: number; collapsed?: string } | null;
+      if (v && typeof v.pct === "number" && (v.collapsed === "none" || v.collapsed === "left" || v.collapsed === "right")) {
+        return { pct: Math.min(78, Math.max(22, v.pct)), collapsed: v.collapsed };
+      }
+    } catch { /* ignore */ }
+    return { pct: 50, collapsed: "none" };
+  });
+  const splitRef = useRef(split);
+  splitRef.current = split;
+  const colRef = useRef<HTMLDivElement | null>(null);
+  const setSplitP = (v: { pct: number; collapsed: "none" | "left" | "right" }): void => {
+    setSplit(v);
+    try { localStorage.setItem("onethu.xk.split", JSON.stringify(v)); } catch { /* ignore */ }
+  };
+  const onSepDown = (e: RPointerEvent<HTMLDivElement>): void => {
+    e.preventDefault();
+    e.currentTarget.dataset.dragging = "1";
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setSplitP({ pct: splitRef.current.pct, collapsed: "none" });
+  };
+  const onSepMove = (e: RPointerEvent<HTMLDivElement>): void => {
+    if (e.currentTarget.dataset.dragging !== "1") return;
+    const rect = colRef.current?.getBoundingClientRect();
+    if (!rect || rect.width < 200) return;
+    const pct = Math.min(78, Math.max(22, ((e.clientX - rect.left) / rect.width) * 100));
+    setSplitP({ pct, collapsed: "none" });
+  };
+  const onSepUp = (e: RPointerEvent<HTMLDivElement>): void => {
+    if (e.currentTarget.dataset.dragging !== "1") return;
+    e.currentTarget.dataset.dragging = "0";
+    const { pct } = splitRef.current;
+    if (pct < 30) setSplitP({ pct: 30, collapsed: "left" }); // 只显示左栏
+    else if (pct > 70) setSplitP({ pct: 70, collapsed: "right" }); // 只显示右栏
+  };
+
   return (
     <>
       <PageHead
@@ -297,18 +336,45 @@ export function ZhjwxkCoursesPage() {
       {wb.progress ? <Card style={{ padding: "8px 14px", borderColor: "var(--amber)", marginBottom: 10 }}><span style={{ fontSize: "var(--text-sm)" }}>{wb.progress}</span></Card> : null}
 
       {/* ── 桌面：双栏（左查找 / 右管理+AI）── */}
-      <div className="xk-two-col" style={{ display: "flex", gap: 12, alignItems: "stretch", flexWrap: "nowrap", width: "100%", maxWidth: "100%", overflow: "hidden" }}>
-        <div className="xk-left" style={{ maxHeight: "calc(100vh - 150px)" }}>
-          <CourseListPanel wb={wb} jump={jump} />
-        </div>
-        <div className="xk-right" style={{ maxHeight: "calc(100vh - 150px)", display: "flex", flexDirection: "column", gap: 10 }}>
-          <PlanSection wb={wb} />
-          <StatsSection wb={wb} />
-          <PreviewSection wb={wb} />
-          <StageSection wb={wb} />
-          <QueueSection wb={wb} />
-          <AiSections wb={wb} />
-        </div>
+      <div className="xk-two-col" ref={colRef} style={{ display: "flex", gap: 6, alignItems: "stretch", flexWrap: "nowrap", width: "100%", maxWidth: "100%", overflow: "hidden", userSelect: "none" }}>
+        {split.collapsed !== "left" ? (
+          <div className="xk-left" style={{ maxHeight: "calc(100vh - 150px)", flex: "0 0 auto", width: split.collapsed === "right" ? "100%" : `calc(${split.pct}% - 3px)` }}>
+            <CourseListPanel wb={wb} jump={jump} />
+          </div>
+        ) : null}
+        {split.collapsed === "none" ? (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            title="拖动调整两栏宽度；拖到两端折叠为单栏"
+            onPointerDown={onSepDown}
+            onPointerMove={onSepMove}
+            onPointerUp={onSepUp}
+            onPointerCancel={onSepUp}
+            style={{ flex: "0 0 6px", cursor: "col-resize", borderRadius: 3, background: "var(--border, #ececec)", position: "relative", touchAction: "none" }}
+          >
+            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 3, height: 40, borderRadius: 2, background: "var(--text-3, #b8b8b8)" }} />
+          </div>
+        ) : (
+          <button
+            className="btn"
+            title="恢复双栏"
+            onClick={() => setSplitP({ pct: 50, collapsed: "none" })}
+            style={{ flex: "0 0 18px", writingMode: "vertical-rl", padding: "8px 1px", fontSize: 11, alignSelf: "center", borderRadius: 6, letterSpacing: 2 }}
+          >
+            ‹›
+          </button>
+        )}
+        {split.collapsed !== "right" ? (
+          <div className="xk-right" style={{ maxHeight: "calc(100vh - 150px)", display: "flex", flexDirection: "column", gap: 10, flex: "1 1 0%", minWidth: 0, maxWidth: "none" }}>
+            <PlanSection wb={wb} />
+            <StatsSection wb={wb} />
+            <PreviewSection wb={wb} />
+            <StageSection wb={wb} />
+            <QueueSection wb={wb} />
+            <AiSections wb={wb} />
+          </div>
+        ) : null}
       </div>
 
       {/* ── 竖屏：三页签（课程查找 / 选课管理 / AI 选课），跳转关系由 jump 联动 ── */}
@@ -762,8 +828,9 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
   const [mOpen, setMOpen] = useState(false);
   const [mName, setMName] = useState("");
   const [mDay, setMDay] = useState("1");
-  const [mBegin, setMBegin] = useState("19:20");
-  const [mEnd, setMEnd] = useState("20:55");
+  // 默认值必须是真实选项值（19:20/20:55 非半小时刻度曾致 select 视觉回落 08:00/08:30 而 state 不变——实测事故）
+  const [mBegin, setMBegin] = useState("08:00");
+  const [mEnd, setMEnd] = useState("08:30");
   const mode = wb.previewMode;
 
   // 课程池：selected 模式用合并行（含 note——北大/北外真实钟点在 note 里），stage/draft 用暂存/草稿
@@ -834,7 +901,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
         raw.push(mk(day, range[0], range[1], `${slot}`));
         n += 1;
       }
-      if (n === 0 && c.manual && c.begin && c.end && c.day) {
+      if (n === 0 && c.manual && c.begin && c.end && c.day && pvToMin(c.begin) < pvToMin(c.end)) {
         raw.push(mk(c.day, pvToMin(c.begin), pvToMin(c.end), "clock"));
         n += 1;
       }
