@@ -38,6 +38,7 @@ import {
   demoCardBundle,
 } from "../demo/data.js";
 import { useApp } from "./context.js";
+import { cacheGet, cacheSet, cacheFetch } from "./cache.js";
 
 /** info/zhjwxk 页内错误落盘（/tmp/onethu-debug.log），解析不匹配时可一轮定位 */
 function logPageError(tag: string, err: unknown): void {
@@ -85,15 +86,20 @@ async function loadReal(): Promise<CampusData> {
 
 export type DataState = "loading" | "error" | "ready";
 
+const CAMPUS_KEY = "campus";
+const CAMPUS_TTL = 3 * 60 * 1000;
+
 export function useCampusData() {
   const { status, backToLogin } = useApp();
-  const [data, setData] = useState<CampusData | null>(null);
-  const [state, setState] = useState<DataState>("loading");
+  const [data, setData] = useState<CampusData | null>(() => cacheGet<CampusData>(CAMPUS_KEY)?.data ?? null);
+  const [state, setState] = useState<DataState>(() => (cacheGet<CampusData>(CAMPUS_KEY) ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setState("loading");
-    setError(null);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) {
+      setState("loading");
+      setError(null);
+    }
     if (status === "demo") {
       setData({
         courses: DEMO_COURSES,
@@ -107,7 +113,8 @@ export function useCampusData() {
       return;
     }
     try {
-      setData(await loadReal());
+      const fresh = await cacheFetch(CAMPUS_KEY, loadReal);
+      setData(fresh);
       setState("ready");
     } catch (err) {
       // 会话真死了（AuthRequiredError）：先免密重漫游一次，仍失败才送回登录页
@@ -115,20 +122,25 @@ export function useCampusData() {
         logPageError("CAMPUS-AUTH", err);
         const reRoamed = await relearnRoamOnce();
         if (reRoamed) {
-          await load();
+          await load(silent);
           return;
         }
         backToLogin();
         return;
       }
       logPageError("CAMPUS", err);
+      // 已有旧数据（缓存/上次成功）时不闪红：SWR 语义，保留旧值下轮挂载再重验证
+      if (silent && data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
     }
-  }, [status, backToLogin]);
+  }, [status, backToLogin, data]);
 
   useEffect(() => {
-    if (status === "ready" || status === "demo") void load();
+    if (status !== "ready" && status !== "demo") return;
+    const cached = cacheGet<CampusData>(CAMPUS_KEY);
+    if (!cached) void load(false);
+    else if (Date.now() - cached.at > CAMPUS_TTL) void load(true);
   }, [status, load]);
 
   return { data, state, error, reload: load };
@@ -282,16 +294,22 @@ export function useLearnData() {
 /* ============ 学期列表（learnX SemesterSelection） ============ */
 
 /** 学期列表 + 当前学期（用于"最新"标记），三态 */
+const SEM_KEY = "semesters";
+const SEM_TTL = 30 * 60 * 1000;
+
 export function useSemesters() {
   const { status, backToLogin } = useApp();
-  const [list, setList] = useState<string[] | null>(null);
-  const [current, setCurrent] = useState<string | null>(null);
-  const [state, setState] = useState<DataState>("loading");
+  const cachedSem = cacheGet<{ list: string[]; current: string | null }>(SEM_KEY)?.data;
+  const [list, setList] = useState<string[] | null>(() => cachedSem?.list ?? null);
+  const [current, setCurrent] = useState<string | null>(() => cachedSem?.current ?? null);
+  const [state, setState] = useState<DataState>(() => (cachedSem ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setState("loading");
-    setError(null);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) {
+      setState("loading");
+      setError(null);
+    }
     if (status === "demo") {
       setList(DEMO_SEMESTER_LIST);
       setCurrent(DEMO_SEMESTER.id);
@@ -303,6 +321,7 @@ export function useSemesters() {
         learn.getSemesterIdList(),
         learn.getCurrentSemester().catch(() => null),
       ]);
+      cacheSet(SEM_KEY, { list: ids, current: cur?.id ?? null });
       setList(ids);
       setCurrent(cur?.id ?? null);
       setState("ready");
@@ -317,7 +336,10 @@ export function useSemesters() {
   }, [status, backToLogin]);
 
   useEffect(() => {
-    if (status === "ready" || status === "demo") void load();
+    if (status !== "ready" && status !== "demo") return;
+    const cached = cacheGet<{ list: string[]; current: string | null }>(SEM_KEY);
+    if (!cached) void load(false);
+    else if (Date.now() - cached.at > SEM_TTL) void load(true);
   }, [status, load]);
 
   return { list, current, state, error, reload: load };
@@ -1168,66 +1190,82 @@ export interface CardBundle {
 }
 
 /** 成绩单（getReport，thu-info-lib basics.ts 同源解析） */
+const REPORT_KEY = "report";
+const REPORT_TTL = 10 * 60 * 1000;
+
 export function useReport() {
   const { status } = useApp();
-  const [data, setData] = useState<ReportRow[] | null>(null);
-  const [state, setState] = useState<DataState>("loading");
+  const [data, setData] = useState<ReportRow[] | null>(() => cacheGet<ReportRow[]>(REPORT_KEY)?.data ?? null);
+  const [state, setState] = useState<DataState>(() => (cacheGet<ReportRow[]>(REPORT_KEY) ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setState("loading");
-    setError(null);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) {
+      setState("loading");
+      setError(null);
+    }
     if (status === "demo") {
       setData(DEMO_REPORT);
       setState("ready");
       return;
     }
     try {
-      setData(await info.getReport());
+      setData(await cacheFetch(REPORT_KEY, () => info.getReport()));
       setState("ready");
     } catch (err) {
       logPageError("REPORT", err);
+      if (silent && data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
     }
-  }, [status]);
+  }, [status, data]);
 
   useEffect(() => {
-    if (status === "ready" || status === "demo") void load();
+    if (status !== "ready" && status !== "demo") return;
+    const cached = cacheGet<ReportRow[]>(REPORT_KEY);
+    if (!cached) void load(false);
+    else if (Date.now() - cached.at > REPORT_TTL) void load(true);
   }, [status, load]);
 
   return { data, state, error, reload: load };
 }
 
-/** 校园卡余额 + 最近消费（getCardInfo / getCardTransactions） */
+/** 校园卡余额 + 最近消费（getCardInfo / getCardTransactions 并行 + SWR 缓存） */
+const CARD_TTL = 60 * 1000;
+
 export function useCard(days = 30) {
   const { status } = useApp();
-  const [data, setData] = useState<CardBundle | null>(null);
-  const [state, setState] = useState<DataState>("loading");
+  const cardKey = `card:${days}`;
+  const [data, setData] = useState<CardBundle | null>(() => cacheGet<CardBundle>(cardKey)?.data ?? null);
+  const [state, setState] = useState<DataState>(() => (cacheGet<CardBundle>(cardKey) ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
   /* 登录态丢失静默自愈：成功清零，同一次失败最多自动恢复 1 次（reload 清零重计） */
   const recover = useRef(0);
 
-  const load = useCallback(async () => {
-    setState("loading");
-    setError(null);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) {
+      setState("loading");
+      setError(null);
+    }
     if (status === "demo") {
       setData(demoCardBundle());
       setState("ready");
       return;
     }
     try {
-      const cardInfo = await info.getCardInfo();
       const end = new Date();
       const start = new Date();
       start.setDate(start.getDate() - days);
-      const transactions = await info
-        .getCardTransactions(fmtDate(start), fmtDate(end))
-        .catch((err: unknown) => {
+      // 余额与流水并行（此前串行等两跳，页首余额被流水拖慢）
+      const [cardInfo, transactions] = await Promise.all([
+        info.getCardInfo(),
+        info.getCardTransactions(fmtDate(start), fmtDate(end)).catch((err: unknown) => {
           // 余额正常但流水失败时必须有日志可查（此前静默吞掉导致无法诊断）
           logPageError("CARD-TX", err);
           return [] as CardTransaction[];
-        });
+        }),
+      ]);
+      cacheSet(cardKey, { info: cardInfo, transactions });
       setData({ info: cardInfo, transactions });
       recover.current = 0;
       setState("ready");
@@ -1244,14 +1282,18 @@ export function useCard(days = 30) {
         });
         return load();
       }
+      if (silent && data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
     }
-  }, [status, days]);
+  }, [status, days, data, cardKey]);
 
   useEffect(() => {
-    if (status === "ready" || status === "demo") void load();
-  }, [status, load]);
+    if (status !== "ready" && status !== "demo") return;
+    const cached = cacheGet<CardBundle>(cardKey);
+    if (!cached) void load(false);
+    else if (Date.now() - cached.at > CARD_TTL) void load(true);
+  }, [status, load, cardKey]);
 
   // reload 供重试按钮/切回本栏自动重试使用：清零自愈计数，用户动作可再获一次自动恢复
   const reload = useCallback(() => {
@@ -1292,13 +1334,16 @@ function parseYmdHm(raw: string): Date | null {
  * 两路 allSettled 互相独立：任一失败落日志并按「无预约」处理，不阻塞另一路；
  * 今天没有预约即空列表（卡片整卡不渲染，不占位）。
  */
+const TODAYRESV_KEY = "todayresv";
+const TODAYRESV_TTL = 2 * 60 * 1000;
+
 export function useTodayReservations() {
   const { status } = useApp();
-  const [list, setList] = useState<TodayReservation[] | null>(null);
-  const [state, setState] = useState<DataState>("loading");
+  const [list, setList] = useState<TodayReservation[] | null>(() => cacheGet<TodayReservation[]>(TODAYRESV_KEY)?.data ?? null);
+  const [state, setState] = useState<DataState>(() => (cacheGet<TodayReservation[]>(TODAYRESV_KEY) ? "ready" : "loading"));
 
-  const load = useCallback(async () => {
-    setState("loading");
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setState("loading");
     if (status === "demo") {
       const base = new Date();
       const at = (h: number, m: number) =>
@@ -1354,12 +1399,17 @@ export function useTodayReservations() {
     } else {
       logPageError("TODAY-RESV-ROOM", roomRes.reason);
     }
-    setList([...seats, ...rooms].sort((a, b) => a.start.getTime() - b.start.getTime()));
+    const merged = [...seats, ...rooms].sort((a, b) => a.start.getTime() - b.start.getTime());
+    cacheSet(TODAYRESV_KEY, merged);
+    setList(merged);
     setState("ready");
   }, [status]);
 
   useEffect(() => {
-    if (status === "ready" || status === "demo") void load();
+    if (status !== "ready" && status !== "demo") return;
+    const cached = cacheGet<TodayReservation[]>(TODAYRESV_KEY);
+    if (!cached) void load(false);
+    else if (Date.now() - cached.at > TODAYRESV_TTL) void load(true);
   }, [status, load]);
 
   return { list, state, reload: load };
@@ -1417,13 +1467,16 @@ function calendarNodes(cal: CalendarData): TodayCalendarNode[] {
  * UI 取前 N 条）。失败静默（state="error" 且 nodes=null）：首页该卡整卡隐藏，
  * 不弹错误条。demo 模式合成一份相对今天的演示校历（真实接口 demo 不可用）。
  */
+const TODAYCAL_KEY = "todaycal";
+const TODAYCAL_TTL = 30 * 60 * 1000;
+
 export function useTodayCalendar() {
   const { status } = useApp();
-  const [nodes, setNodes] = useState<TodayCalendarNode[] | null>(null);
-  const [state, setState] = useState<DataState>("loading");
+  const [nodes, setNodes] = useState<TodayCalendarNode[] | null>(() => cacheGet<TodayCalendarNode[]>(TODAYCAL_KEY)?.data ?? null);
+  const [state, setState] = useState<DataState>(() => (cacheGet<TodayCalendarNode[]>(TODAYCAL_KEY) ? "ready" : "loading"));
 
-  const load = useCallback(async () => {
-    setState("loading");
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setState("loading");
     if (status === "demo") {
       // 演示校历：设当前为某 16 周学期的第 10 周（开学 = 9 周前的周一），节点相对今天生成
       const now = new Date();
@@ -1450,17 +1503,22 @@ export function useTodayCalendar() {
       return;
     }
     try {
-      setNodes(calendarNodes(await learn.getCalendarData()));
+      const nodes2 = calendarNodes(await cacheFetch(TODAYCAL_KEY, () => learn.getCalendarData()));
+      setNodes(nodes2);
       setState("ready");
     } catch (err) {
       logPageError("TODAY-CALENDAR", err);
+      if (silent && nodes !== null) return;
       setNodes(null);
       setState("error"); // 静默：Today 页据此整卡隐藏
     }
-  }, [status]);
+  }, [status, nodes]);
 
   useEffect(() => {
-    if (status === "ready" || status === "demo") void load();
+    if (status !== "ready" && status !== "demo") return;
+    const cached = cacheGet<TodayCalendarNode[]>(TODAYCAL_KEY);
+    if (!cached) void load(false);
+    else if (Date.now() - cached.at > TODAYCAL_TTL) void load(true);
   }, [status, load]);
 
   return { nodes, state, reload: load };
@@ -1468,42 +1526,58 @@ export function useTodayCalendar() {
 
 /** 考试安排（zhjw 课表 JSONP 分类「考试」） */
 /** 校历（当前 + 未来学期；learn 直连 getCurrentAndNextSemester） */
+const CAL_KEY = "calendar";
+const CAL_TTL = 30 * 60 * 1000;
+
 export function useCalendar() {
   const { status } = useApp();
-  const [data, setData] = useState<CalendarData | null>(null);
-  const [state, setState] = useState<DataState>("loading");
+  const [data, setData] = useState<CalendarData | null>(() => cacheGet<CalendarData>(CAL_KEY)?.data ?? null);
+  const [state, setState] = useState<DataState>(() => (cacheGet<CalendarData>(CAL_KEY) ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setState("loading");
-    setError(null);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) {
+      setState("loading");
+      setError(null);
+    }
     if (status === "demo") {
       setState("error");
       setError("演示模式暂无校历数据。");
       return;
     }
     try {
-      setData(await learn.getCalendarData());
+      setData(await cacheFetch(CAL_KEY, () => learn.getCalendarData()));
       setState("ready");
     } catch (err) {
       logPageError("CALENDAR", err);
+      if (silent && data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
     }
-  }, [status]);
+  }, [status, data]);
 
   useEffect(() => {
-    if (status === "ready") void load();
+    if (status !== "ready") return;
+    const cached = cacheGet<CalendarData>(CAL_KEY);
+    if (!cached) void load(false);
+    else if (Date.now() - cached.at > CAL_TTL) void load(true);
   }, [status, load]);
 
   return { data, state, error, reload: load };
 }
 
 /** 某教学周课表（week 从 1 起，按所选学期 firstDay 平移 7 天窗口；info.getSchedule zhjw JSONP） */
+const WEEKSCHED_TTL = 10 * 60 * 1000;
+
 export function useWeekSchedule(semester: CalendarSemester | null, week: number) {
   const { status } = useApp();
-  const [data, setData] = useState<ScheduleEntry[] | null>(null);
-  const [state, setState] = useState<DataState | "idle">("idle");
+  const wsKey = semester ? `weeksched:${semester.semesterId}:${week}` : null;
+  const [data, setData] = useState<ScheduleEntry[] | null>(
+    () => (wsKey ? cacheGet<ScheduleEntry[]>(wsKey)?.data ?? null : null),
+  );
+  const [state, setState] = useState<DataState | "idle">(() =>
+    wsKey && cacheGet<ScheduleEntry[]>(wsKey) ? "ready" : "idle",
+  );
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
 
@@ -1513,9 +1587,17 @@ export function useWeekSchedule(semester: CalendarSemester | null, week: number)
       setState("ready");
       return;
     }
-    if (status !== "ready" || !semester) return;
+    if (status !== "ready" || !semester || !wsKey) return;
     let cancelled = false;
-    setState("loading");
+    const cached = cacheGet<ScheduleEntry[]>(wsKey);
+    if (cached) {
+      // 旧值先亮（切周回来 0ms 上屏）；新鲜则跳过网络
+      setData(cached.data);
+      setState("ready");
+      if (Date.now() - cached.at < WEEKSCHED_TTL) return;
+    } else {
+      setState("loading");
+    }
     setError(null);
     const base = new Date(semester.firstDay.replace(/-/g, "/"));
     const start = new Date(base.getTime() + (week - 1) * 7 * 86400000);
@@ -1524,6 +1606,7 @@ export function useWeekSchedule(semester: CalendarSemester | null, week: number)
       .getSchedule(fmtDate(start), fmtDate(end))
       .then((entries) => {
         if (!cancelled) {
+          cacheSet(wsKey, entries);
           setData(entries);
           setState("ready");
         }
@@ -1531,6 +1614,8 @@ export function useWeekSchedule(semester: CalendarSemester | null, week: number)
       .catch((err: unknown) => {
         logPageError("SCHEDULE", err);
         if (!cancelled) {
+          // 已有旧值（缓存）时不闪红：SWR 语义，保留旧课表
+          if (cacheGet<ScheduleEntry[]>(wsKey)) return;
           setError(explainNetworkError(err));
           setState("error");
         }
@@ -1538,69 +1623,87 @@ export function useWeekSchedule(semester: CalendarSemester | null, week: number)
     return () => {
       cancelled = true;
     };
-  }, [status, semester, week, nonce]);
+  }, [status, semester, week, nonce, wsKey]);
 
   return { data, state, error, reload: () => setNonce((n) => n + 1) };
 }
 
+const EXAMS_KEY = "exams";
+const EXAMS_TTL = 10 * 60 * 1000;
+
 export function useExams() {  const { status } = useApp();
-  const [data, setData] = useState<ExamEntry[] | null>(null);
-  const [state, setState] = useState<DataState>("loading");
+  const [data, setData] = useState<ExamEntry[] | null>(() => cacheGet<ExamEntry[]>(EXAMS_KEY)?.data ?? null);
+  const [state, setState] = useState<DataState>(() => (cacheGet<ExamEntry[]>(EXAMS_KEY) ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setState("loading");
-    setError(null);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) {
+      setState("loading");
+      setError(null);
+    }
     if (status === "demo") {
       setData(DEMO_EXAMS);
       setState("ready");
       return;
     }
     try {
-      setData(await info.getExams());
+      setData(await cacheFetch(EXAMS_KEY, () => info.getExams()));
       setState("ready");
     } catch (err) {
       logPageError("EXAMS", err);
+      if (silent && data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
     }
-  }, [status]);
+  }, [status, data]);
 
   useEffect(() => {
-    if (status === "ready" || status === "demo") void load();
+    if (status !== "ready" && status !== "demo") return;
+    const cached = cacheGet<ExamEntry[]>(EXAMS_KEY);
+    if (!cached) void load(false);
+    else if (Date.now() - cached.at > EXAMS_TTL) void load(true);
   }, [status, load]);
 
   return { data, state, error, reload: load };
 }
 
 /** 校内新闻（getNewsList；page 变化自动重取） */
+const NEWS_TTL = 5 * 60 * 1000;
+
 export function useNews(page: number, length = 20) {
   const { status } = useApp();
-  const [data, setData] = useState<NewsItem[] | null>(null);
-  const [state, setState] = useState<DataState>("loading");
+  const newsKey = `news:${page}:${length}`;
+  const [data, setData] = useState<NewsItem[] | null>(() => cacheGet<NewsItem[]>(newsKey)?.data ?? null);
+  const [state, setState] = useState<DataState>(() => (cacheGet<NewsItem[]>(newsKey) ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setState("loading");
-    setError(null);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) {
+      setState("loading");
+      setError(null);
+    }
     if (status === "demo") {
       setData(page === 1 ? DEMO_NEWS : []);
       setState("ready");
       return;
     }
     try {
-      setData(await info.getNews(page, length));
+      setData(await cacheFetch(newsKey, () => info.getNews(page, length)));
       setState("ready");
     } catch (err) {
       logPageError("NEWS p" + page, err);
+      if (silent && data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
     }
-  }, [status, page, length]);
+  }, [status, page, length, data, newsKey]);
 
   useEffect(() => {
-    if (status === "ready" || status === "demo") void load();
-  }, [status, load]);
+    if (status !== "ready" && status !== "demo") return;
+    const cached = cacheGet<NewsItem[]>(newsKey);
+    if (!cached) void load(false);
+    else if (Date.now() - cached.at > NEWS_TTL) void load(true);
+  }, [status, load, newsKey]);
 
   return { data, state, error, reload: load };
 }
@@ -1613,13 +1716,16 @@ export function useNews(page: number, length = 20) {
  * 返回原始全量列表——时间窗过滤（开始前 14 天 ~ 截止，thu-info home activeEvents
  * 同口径）在 Today 卡片内做。失败静默（state="error"，整卡隐藏）；demo 给相对日期演示事项。
  */
+const DEADLINES_KEY = "deadlines";
+const DEADLINES_TTL = 10 * 60 * 1000;
+
 export function useTodayDeadlines() {
   const { status } = useApp();
-  const [list, setList] = useState<DeadlineItem[] | null>(null);
-  const [state, setState] = useState<DataState>("loading");
+  const [list, setList] = useState<DeadlineItem[] | null>(() => cacheGet<DeadlineItem[]>(DEADLINES_KEY)?.data ?? null);
+  const [state, setState] = useState<DataState>(() => (cacheGet<DeadlineItem[]>(DEADLINES_KEY) ? "ready" : "loading"));
 
-  const load = useCallback(async () => {
-    setState("loading");
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setState("loading");
     if (status === "demo") {
       const off = (days: number, hh: number): string => {
         const d = new Date();
@@ -1637,17 +1743,22 @@ export function useTodayDeadlines() {
       return;
     }
     try {
-      setList(await info.getDeadlines());
+      const items = await cacheFetch(DEADLINES_KEY, () => info.getDeadlines());
+      setList(items);
       setState("ready");
     } catch (err) {
       logPageError("TODAY-DEADLINES", err);
+      if (silent && list !== null) return;
       setList(null);
       setState("error"); // 静默：Today 页据此整卡隐藏
     }
-  }, [status]);
+  }, [status, list]);
 
   useEffect(() => {
-    if (status === "ready" || status === "demo") void load();
+    if (status !== "ready" && status !== "demo") return;
+    const cached = cacheGet<DeadlineItem[]>(DEADLINES_KEY);
+    if (!cached) void load(false);
+    else if (Date.now() - cached.at > DEADLINES_TTL) void load(true);
   }, [status, load]);
 
   return { list, state, reload: load };
@@ -1679,6 +1790,8 @@ export interface TodayNewsFeed {
  * - 无订阅：getNews 第 1 页前 5 条（门户顺序 = 置顶 + 最新）。
  * - 失败静默（state="error"，Today 页据此整卡隐藏）；demo 用 DEMO_NEWS 过滤/兜底。
  */
+const TODAYNEWS_TTL = 5 * 60 * 1000;
+
 export function useTodayNewsFeed(subs: string[]) {
   const { status } = useApp();
   const [data, setData] = useState<TodayNewsFeed | null>(null);
@@ -1686,9 +1799,10 @@ export function useTodayNewsFeed(subs: string[]) {
 
   /** 订阅集合的稳定键：内容不变不重拉（NewsTab feedKey 同款） */
   const subsKey = subs.join("\u0001");
+  const feedKey = `todaynews:${subsKey}`;
 
-  const load = useCallback(async () => {
-    setState("loading");
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setState("loading");
     const subList = subsKey ? subsKey.split("\u0001") : [];
     const latest = async (): Promise<TodayNewsFeed> => {
       if (status === "demo") {
@@ -1728,38 +1842,58 @@ export function useTodayNewsFeed(subs: string[]) {
           .filter((n) => (n.xxid ? !seen.has(n.xxid) && seen.add(n.xxid) : true))
           .slice(0, 5);
         if (items.length > 0) {
-          setData({ list: items, from: "subs", subCount: subList.length });
+          const feed = { list: items, from: "subs" as const, subCount: subList.length };
+          cacheSet(feedKey, feed);
+          setData(feed);
           setState("ready");
           return;
         }
         // 订阅链失败/来源无内容 → 回退最新新闻（卡片注明）
       }
-      setData(await latest());
+      const feed = await latest();
+      cacheSet(feedKey, feed);
+      setData(feed);
       setState("ready");
     } catch (err) {
       logPageError("TODAY-NEWS", err);
+      if (silent && data !== null) return;
       setData(null);
       setState("error"); // 静默：Today 页据此整卡隐藏
     }
-  }, [status, subsKey]);
+  }, [status, subsKey, feedKey, data]);
 
   useEffect(() => {
-    if (status === "ready" || status === "demo") void load();
-  }, [status, load]);
+    if (status !== "ready" && status !== "demo") return;
+    const cached = cacheGet<TodayNewsFeed>(feedKey);
+    if (!cached) void load(false);
+    else if (Date.now() - cached.at > TODAYNEWS_TTL) {
+      setData(cached.data);
+      setState("ready");
+      void load(true);
+    } else {
+      setData(cached.data);
+      setState("ready");
+    }
+  }, [status, load, feedKey]);
 
   return { data, state, reload: load };
 }
 
 /** 个人信息（grjbxx HTML 解析） */
+const PROFILE_KEY = "profile";
+const PROFILE_TTL = 30 * 60 * 1000;
+
 export function useProfile() {
   const { status } = useApp();
-  const [data, setData] = useState<BasicUserInfo | null>(null);
-  const [state, setState] = useState<DataState>("loading");
+  const [data, setData] = useState<BasicUserInfo | null>(() => cacheGet<BasicUserInfo>(PROFILE_KEY)?.data ?? null);
+  const [state, setState] = useState<DataState>(() => (cacheGet<BasicUserInfo>(PROFILE_KEY) ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setState("loading");
-    setError(null);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) {
+      setState("loading");
+      setError(null);
+    }
     if (status === "demo") {
       setData(DEMO_USER);
       setState("ready");
@@ -1769,27 +1903,32 @@ export function useProfile() {
       const base = await info.getUserInfo();
       // grjbxx JSON 无专业/院系/性别——从教务学籍表（成绩单页首）补齐
       const missing = !base.gender || !base.department || !base.major;
+      let merged = base;
       if (missing) {
         const xjxx = await info.getZhjwXjxx().catch(() => null);
-        setData({
+        merged = {
           ...base,
           gender: base.gender ?? xjxx?.gender,
           department: base.department ?? xjxx?.department,
           major: base.major ?? xjxx?.major,
-        });
-      } else {
-        setData(base);
+        };
       }
+      cacheSet(PROFILE_KEY, merged);
+      setData(merged);
       setState("ready");
     } catch (err) {
       logPageError("PROFILE", err);
+      if (silent && data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
     }
-  }, [status]);
+  }, [status, data]);
 
   useEffect(() => {
-    if (status === "ready" || status === "demo") void load();
+    if (status !== "ready" && status !== "demo") return;
+    const cached = cacheGet<BasicUserInfo>(PROFILE_KEY);
+    if (!cached) void load(false);
+    else if (Date.now() - cached.at > PROFILE_TTL) void load(true);
   }, [status, load]);
 
   return { data, state, error, reload: load };
