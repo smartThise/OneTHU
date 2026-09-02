@@ -13,9 +13,14 @@
  * 子栏直达（首页入口化）：navigate("info", { infoTab }) 指定 segmented 初始 tab，
  * 与 infoNewsId 同款消费模式（挂载初值 + navParams 身份触发的 effect）；页内切换
  * 不回写参数，缺省时保持原默认成绩 tab。
+ *
+ * 栏目管理（tabLayout）：栏目可选择隐藏 + ↑↓ 调序，localStorage 持久化；
+ * 当前 tab 被隐藏时回落到第一个可见栏目。
  */
 import { useEffect, useState } from "react";
-import { SegmentedOverflow, PageHead } from "../../components/Layout.js";
+import { Empty, PageHead, SegmentedOverflow } from "../../components/Layout.js";
+import { TabManageModal } from "../../components/TabManageModal.js";
+import { loadTabLayout, saveTabLayout, type TabLayout } from "../../lib/tabLayout.js";
 import { useApp } from "../../state/context.js";
 import { ExamsTab } from "./ExamsTab.js";
 import { NewsTab } from "./NewsTab.js";
@@ -36,6 +41,8 @@ const TABS: Array<{ id: InfoTab; label: string }> = [
   { id: "news", label: "新闻" },
   { id: "profile", label: "个人信息" },
 ];
+const TAB_IDS = TABS.map((t) => t.id);
+const DEFAULT_LAYOUT: TabLayout = { order: TAB_IDS, hidden: [] };
 
 export function InfoPage() {
   const { navParams } = useApp();
@@ -48,6 +55,18 @@ export function InfoPage() {
   const [visited, setVisited] = useState<ReadonlySet<InfoTab>>(
     () => new Set(navParams?.infoNewsId ? ["report", "news"] : [navParams?.infoTab ?? "report"]),
   );
+
+  /** 栏目布局（显隐 + 顺序） */
+  const [layout, setLayout] = useState<TabLayout>(() => loadTabLayout("info", TAB_IDS));
+  const [manageOpen, setManageOpen] = useState(false);
+  const applyLayout = (l: TabLayout) => {
+    setLayout(l);
+    saveTabLayout("info", l);
+  };
+  const labelOf = (id: InfoTab) => TABS.find((t) => t.id === id)?.label ?? id;
+  const visibleIds = layout.order.filter((id) => !layout.hidden.includes(id)) as InfoTab[];
+  /** 当前 tab 被隐藏 → 回落到第一个可见栏目（全部隐藏则保持 null 走空态） */
+  const effTab = visibleIds.includes(tab) ? tab : visibleIds[0];
 
   useEffect(() => {
     const params = navParams;
@@ -72,28 +91,51 @@ export function InfoPage() {
 
   return (
     <>
-      <PageHead title="信息" />
+      <PageHead
+        title="信息"
+        actions={
+          <button className="btn" onClick={() => setManageOpen(true)} title="栏目显隐与排序">
+            管理栏目
+          </button>
+        }
+      />
       <SegmentedOverflow ariaLabel="信息功能" style={{ marginBottom: 14 }}>
-        {TABS.map(({ id, label }) => (
+        {visibleIds.map((id) => (
           <button
             key={id}
             role="tab"
-            aria-selected={tab === id}
-            className={tab === id ? "is-active" : ""}
+            aria-selected={effTab === id}
+            className={effTab === id ? "is-active" : ""}
             onClick={() => activate(id)}
           >
-            {label}
+            {labelOf(id)}
           </button>
         ))}
       </SegmentedOverflow>
 
-      <div hidden={tab !== "report"}>{visited.has("report") ? <ReportTab /> : null}</div>
-      <div hidden={tab !== "fitness"}>{visited.has("fitness") ? <FitnessTab /> : null}</div>
-      <div hidden={tab !== "exams"}>{visited.has("exams") ? <ExamsTab /> : null}</div>
-      <div hidden={tab !== "evaluation"}>{visited.has("evaluation") ? <EvaluationTab /> : null}</div>
-      <div hidden={tab !== "calendar"}>{visited.has("calendar") ? <CalendarTab /> : null}</div>
-      <div hidden={tab !== "news"}>{visited.has("news") ? <NewsTab newsId={newsId} onConsumeNewsId={() => setNewsId(null)} /> : null}</div>
-      <div hidden={tab !== "profile"}>{visited.has("profile") ? <ProfileTab /> : null}</div>
+      {effTab === null ? (
+        <Empty text="所有栏目已隐藏，点击右上「管理栏目」恢复。" />
+      ) : (
+        <>
+          <div hidden={effTab !== "report"}>{visited.has("report") ? <ReportTab /> : null}</div>
+          <div hidden={effTab !== "fitness"}>{visited.has("fitness") ? <FitnessTab /> : null}</div>
+          <div hidden={effTab !== "exams"}>{visited.has("exams") ? <ExamsTab /> : null}</div>
+          <div hidden={effTab !== "evaluation"}>{visited.has("evaluation") ? <EvaluationTab /> : null}</div>
+          <div hidden={effTab !== "calendar"}>{visited.has("calendar") ? <CalendarTab /> : null}</div>
+          <div hidden={effTab !== "news"}>{visited.has("news") ? <NewsTab newsId={newsId} onConsumeNewsId={() => setNewsId(null)} /> : null}</div>
+          <div hidden={effTab !== "profile"}>{visited.has("profile") ? <ProfileTab /> : null}</div>
+        </>
+      )}
+
+      <TabManageModal
+        open={manageOpen}
+        onClose={() => setManageOpen(false)}
+        title="管理信息栏目"
+        tabs={TABS}
+        layout={layout}
+        onApply={applyLayout}
+        onReset={() => applyLayout(DEFAULT_LAYOUT)}
+      />
     </>
   );
 }
