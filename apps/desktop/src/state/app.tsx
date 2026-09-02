@@ -41,6 +41,8 @@ export interface LearnNav {
   /** 信息页新闻直达：携带 xxid 时 InfoPage 初始落在新闻 tab，并把该条新闻打开详情。
    *  不带此参数时 InfoPage 行为与旧版完全一致（默认成绩 tab）。 */
   infoNewsId?: string;
+  /** 信息页新闻搜索直达：携带关键词时 InfoPage 落在新闻 tab 并以此词立即触发搜索（选课·外校课卡片「查通知」用） */
+  infoNewsQuery?: string;
   /** 聚合页初始子栏（首页入口化直达）：各聚合页 segmented 的初始 tab。
    *  仅作挂载初始落点 / 已挂载时的直达落点，页内切换不回写；不带对应参数时
    *  各页保持原默认（info=成绩 / life=宿舍 / reserve=图书馆座位）。

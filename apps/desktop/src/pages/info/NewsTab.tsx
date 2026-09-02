@@ -166,11 +166,16 @@ function NewsRow({
 export function NewsTab({
   newsId,
   onConsumeNewsId,
+  initialQuery,
+  onConsumeQuery,
 }: {
   /** 首页新闻直达 xxid（InfoPage 从 LearnNav.infoNewsId 下传；打开后消费置空） */
   newsId?: string | null;
   /** 直达消费回调：详情打开后通知 InfoPage 清掉待处理 newsId */
   onConsumeNewsId?: () => void;
+  /** 新闻搜索直达词（选课·外校课「查通知」）：预填并立即搜索，消费后由父级置空 */
+  initialQuery?: string | null;
+  onConsumeQuery?: () => void;
 } = {}) {
   const { status } = useApp();
   const demo = status === "demo";
@@ -204,6 +209,17 @@ export function NewsTab({
   /* --- 搜索：输入即时回显，检索防抖 300ms（两个分栏共用同一搜索词） --- */
   const [input, setInput] = useState("");
   const [query, setQuery] = useState("");
+
+  /* 「查通知」直达（选课·外校课卡片）：预填关键词并立即搜索（绕过 300ms 防抖），消费后由父级置空 */
+  useEffect(() => {
+    if (initialQuery == null) return;
+    setInput(initialQuery);
+    setQuery(initialQuery);
+    setPage(1);
+    setSeg("all");
+    onConsumeQuery?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery]);
   const [serverState, setServerState] = useState<"idle" | "loading" | "ok" | "fallback">("idle");
   const [serverResults, setServerResults] = useState<NewsItem[] | null>(null);
 
