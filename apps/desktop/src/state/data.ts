@@ -409,7 +409,7 @@ export function useZhjwxkCourses() {
 /* 暂存 / 草稿 / 自定义占用（nextthuxk §7.4/§5，localStorage 持久化） */
 export interface XkStageItem { code: string; seq: string; name: string; teacher: string; time: string; credits: number; flag: XkFlag; zy: number; baseFlag: XkFlag }
 export interface XkDraft { name: string; courses: XkStageItem[] }
-export interface XkManualEvent { id: string; name: string; code: string; seq: string; time: string; manual: true; credits: number }
+export interface XkManualEvent { id: string; name: string; code: string; seq: string; time: string; manual: true; credits: number; /** 时钟段占用（时间轴预览用） */ begin?: string; end?: string; day?: number }
 const LS = {
   stage: "onethu.xk.stageCart",
   drafts: "onethu.xk.savedDrafts",
@@ -555,6 +555,7 @@ export interface XkWorkbench {
   submitDraft: (idx: number) => Promise<void>;
   manualEvents: XkManualEvent[];
   addManualEvent: (name: string, day: number, slot: number) => void;
+  addManualEventRange: (name: string, day: number, begin: string, end: string) => void;
   removeManualEvent: (id: string) => void;
   previewMode: "selected" | "stage" | "draft";
   previewDraftIdx: number;
@@ -1261,6 +1262,18 @@ export function useXkWorkbench(): XkWorkbench {
     });
     setToast(`已添加「${name.trim()}」`);
   }, []);
+  /** 时钟段占用（时间轴预览）：任意 HH:MM–HH:MM，不占大节槽位 */
+  const addManualEventRange = useCallback((name: string, day: number, begin: string, end: string) => {
+    if (!name.trim()) { setToast("请输入活动名称"); return; }
+    const ev: XkManualEvent = { id: `m${Date.now()}`, name: name.trim(), code: `manual-${Date.now()}`, seq: "0", time: "", manual: true, credits: 0, begin, end, day };
+    setManualEvents((prev) => {
+      const next = [...prev, ev];
+      lsSet(LS.manual, next);
+      return next;
+    });
+    setToast(`已添加「${name.trim()}」`);
+  }, []);
+
   const removeManualEvent = useCallback((id: string) => {
     setManualEvents((prev) => {
       const ev = prev.find((e) => e.id === id);
@@ -1378,7 +1391,7 @@ export function useXkWorkbench(): XkWorkbench {
   return {
     semester, selected, candidates, phase, queueMap, catalog, volMap, levelTypes,
     coreState, queueState, error, busy, toast,
-    refresh, submit, drop, changeZy, setToast,
+    refresh, submit, drop, changeZy, setToast, addManualEventRange,
     courses, canAdjustZy, stageCart, addToStage, removeFromStage, updateStageItem, importStageItem,
     savedDrafts, saveDraft, deleteDraft, removeFromDraft, saveCurrentAsDraft, exportDraft, importDraft, submitDraft,
     manualEvents, addManualEvent, removeManualEvent,
