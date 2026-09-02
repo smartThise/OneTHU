@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import { Card, Empty, ErrorNote, PageHead, SegmentedOverflow, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useXkWorkbench, type XkSearchMeta, type XkStageItem } from "../../state/data.js";
-import { XK_DEPARTMENTS, XK_FEATURES } from "@onethu/core";
+import { XK_DEPARTMENTS } from "@onethu/core";
 import type { XkCourseDetail } from "@onethu/core";
 import { tbEnsureIndex, tbFetchReviews, tbMatch, tbStars, tbCourseUrl, tbWriteUrl, type TbEntry, type TbReviews } from "../../lib/xkreviews.js";
 import { openExternal } from "../info/openExternal.js";
@@ -227,6 +227,7 @@ export function ZhjwxkCoursesPage() {
           wb.semester ?? "选课系统",
           wb.phase ? "课余量模式" : "预选模式",
           `已选 ${wb.selected.length} 门 · ${selCredits} 学分`,
+          wb.catalogState === "ready" ? `目录 ${wb.catalog.length} 门${wb.catalog.length > 0 && wb.catalog.length < 5800 ? "（低于 5800，可能不完整）" : ""}` : "",
         ].filter(Boolean).join(" · ")}
         actions={
           <>
@@ -295,143 +296,82 @@ export function ZhjwxkCoursesPage() {
 
 /* ══════════ 左栏：搜索 + 筛选 + 列表 ══════════ */
 /**
- * 套壳模式（2026-09 定稿）：1:1 复刻教务 kkxxSearch 页——同一套筛选字段（服务端过滤）
- * + 分页表格。我们仅叠加两项本地能力：冲突检测（对当前页行）与社区评价（行徽标 +
- * 页内筛选/排序，数据来自 thu-info-community 索引）。无任何全量批量抓取。
+ * 套壳模式（2026-09）：服务端实时搜索直连教务 kkxxSearch（搜索/翻页各 1 往返），
+ * 替代「挂载即批量抓 320 页目录 + 220 页志愿」。批量管线保留为全量模式（显式加载）。
  */
-function ServerCoursePanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; jump: string }) {
+function LiveSearchBody({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; jump: string }) {
   const [kch, setKch] = useState("");
-  const [kcm, setKcm] = useState("");
-  const [teacher, setTeacher] = useState("");
+  const [kw, setKw] = useState("");
   const [dep, setDep] = useState("");
-  const [kcflm, setKcflm] = useState("");
   const [grade, setGrade] = useState("");
   const [day, setDay] = useState("");
   const [sec, setSec] = useState("");
-  const [rxklxm, setRxklxm] = useState("");
-  const [kctsm, setKctsm] = useState("");
   const [avail, setAvail] = useState(false);
-  const [gradAvail, setGradAvail] = useState(false);
   const [picks, setPicks] = useState<Record<string, { flag: XkFlag; zy: number }>>({});
-  const [conflictF, setConflictF] = useState("");
-  const [reviewsF, setReviewsF] = useState("");
-  const [sortBy, setSortBy] = useState("");
-  const [goPage, setGoPage] = useState("");
-  const [jumpKw, setJumpKw] = useState("");
   const firedRef = useRef(false);
   const semRef = useRef(wb.semester);
 
-  const fire = (page: number) => {
-    void wb.runSearch({ kch, kcm, teacher, department: dep, weekday: day, section: sec, grade, kcflm, rxklxm, kctsm, onlyAvailable: avail, gradAvail }, page);
-  };
-  const reset = () => {
-    setKch(""); setKcm(""); setTeacher(""); setDep(""); setKcflm(""); setGrade("");
-    setDay(""); setSec(""); setRxklxm(""); setKctsm(""); setAvail(false); setGradAvail(false);
-    void wb.runSearch({ kch: "", kcm: "", teacher: "", department: "", weekday: "", section: "", grade: "", kcflm: "", rxklxm: "", kctsm: "", onlyAvailable: false, gradAvail: false }, 1);
+  const fire = (page: number, over?: Partial<XkSearchMeta>) => {
+    void wb.runSearch({
+      kch, kcm: kw, teacher: "", department: dep, weekday: day, section: sec, grade, onlyAvailable: avail, ...over,
+    }, page);
   };
 
-  // 挂载即搜（页 1 零筛选，1 往返）；换学期自动重搜
+  // 挂载即搜（页 1，零筛选）；换学期自动重搜
   useEffect(() => {
     if (!firedRef.current || semRef.current !== wb.semester) {
       firedRef.current = true;
       semRef.current = wb.semester;
-      void wb.runSearch({ kch: "", kcm: "", teacher: "", department: "", weekday: "", section: "", grade: "", kcflm: "", rxklxm: "", kctsm: "", onlyAvailable: false, gradAvail: false }, 1);
+      void wb.runSearch({ kch: "", kcm: "", teacher: "", department: "", weekday: "", section: "", grade: "", onlyAvailable: false }, 1);
     }
   }, [wb.semester, wb.runSearch, wb.searchState]);
 
   // 课表/暂存跳转：带词搜索
   useEffect(() => {
-    if (!jump || jump === jumpKw) return;
-    setJumpKw(jump);
-    setKcm(jump);
-    void wb.runSearch({ kch: "", kcm: jump, teacher: "", department: "", weekday: "", section: "", grade: "", kcflm: "", rxklxm: "", kctsm: "", onlyAvailable: false, gradAvail: false }, 1);
+    if (!jump) return;
+    setKw(jump);
+    void wb.runSearch({ kch: "", kcm: jump, teacher: "", department: "", weekday: "", section: "", grade: "", onlyAvailable: false }, 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jump]);
 
-  // 本地叠加层（仅当前页 20 行，页内实时）：冲突检测 + 社区评价
-  const view = useMemo(() => {
-    let rows = wb.searchRows;
-    if (conflictF) {
-      rows = rows.filter((r) => {
-        const n = findPreviewConflicts({ code: r.c.code, seq: r.c.seq, time: r.time, name: r.name }, wb.previewIndex).length;
-        return conflictF === "noconflict" ? n === 0 : conflictF === "conflict" ? n > 0 : true;
-      });
-    }
-    const needSort = sortBy !== "" || ["r45", "r40", "low"].includes(reviewsF);
-    if (reviewsF === "has" && !needSort) rows = rows.filter((r) => { const e = tbMatch(r.name, r.teacher); return !!e && e.count > 0; });
-    if (needSort || ["r45", "r40", "low"].includes(reviewsF)) {
-      const scored: Array<{ r: XkRow; e: TbEntry | null }> = rows.map((r) => ({ r, e: tbMatch(r.name, r.teacher) }));
-      const keep = scored.filter((x) =>
-        reviewsF === "r45" ? (x.e?.avg ?? -1) >= 4.5
-          : reviewsF === "r40" ? (x.e?.avg ?? -1) >= 4.0
-            : reviewsF === "low" ? (x.e?.avg ?? 6) <= 3
-              : true,
-      );
-      if (sortBy === "rate_desc") keep.sort((a, b) => ((b.e?.avg ?? -1) - (a.e?.avg ?? -1)) || ((b.e?.count ?? 0) - (a.e?.count ?? 0)));
-      else if (sortBy === "cnt_desc") keep.sort((a, b) => (b.e?.count ?? -1) - (a.e?.count ?? -1));
-      rows = keep.map((x) => x.r);
-    }
-    return rows;
-  }, [wb.searchRows, wb.previewIndex, conflictF, reviewsF, sortBy]);
-
-  const selStyle: React.CSSProperties = { height: 26, fontSize: 12, flex: "1 1 120px", minWidth: 104 };
+  const selStyle: React.CSSProperties = { height: 26, fontSize: 12, flex: 1, minWidth: 96 };
   const busy = wb.searchState === "loading";
-  const go = () => { const n = parseInt(goPage, 10); if (Number.isFinite(n) && n >= 1) fire(n); setGoPage(""); };
   return (
     <>
       <Card style={{ padding: 10, marginBottom: 10 }}>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input className="input" style={selStyle} placeholder="课程号" value={kch} onChange={(e) => setKch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fire(1)} />
-          <input className="input" style={{ ...selStyle, flex: "2 1 150px" }} placeholder="课程名称" value={kcm} onChange={(e) => setKcm(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fire(1)} />
-          <input className="input" style={selStyle} placeholder="主讲教师" value={teacher} onChange={(e) => setTeacher(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fire(1)} />
-        </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-          <select className="input" style={selStyle} value={dep} onChange={(e) => setDep(e.target.value)}><option value="">开课单位：所有系</option>{XK_DEPARTMENTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-          <select className="input" style={selStyle} value={kcflm} onChange={(e) => setKcflm(e.target.value)}><option value="">课程分类：不限</option><option value="001">本科生</option><option value="002">研究生</option><option value="003">专科</option></select>
-          <select className="input" style={selStyle} value={grade} onChange={(e) => setGrade(e.target.value)}><option value="">所属年级：不限</option>{["2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019"].map((g) => <option key={g} value={g}>{g}</option>)}</select>
-        </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-          <select className="input" style={selStyle} value={day} onChange={(e) => setDay(e.target.value)}><option value="">上课星期：不限</option>{[1, 2, 3, 4, 5, 6, 7].map((d) => <option key={d} value={d}>星期{["一", "二", "三", "四", "五", "六", "日"][d - 1]}</option>)}</select>
-          <select className="input" style={selStyle} value={sec} onChange={(e) => setSec(e.target.value)}><option value="">上课节次：不限</option>{[1, 2, 3, 4, 5, 6].map((d) => <option key={d} value={d}>第{d}节</option>)}</select>
-          <select className="input" style={selStyle} value={rxklxm} onChange={(e) => setRxklxm(e.target.value)}><option value="">任选课类目：不限</option>{([["TS1", "人文课组"], ["TS2", "社科课组"], ["TS3", "艺术课组"], ["TS4", "科学课组"]] as Array<[string, string]>).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-          <select className="input" style={selStyle} value={kctsm} onChange={(e) => setKctsm(e.target.value)}><option value="">课程特色：不限</option>{XK_FEATURES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-        </div>
-        <div style={{ display: "flex", gap: 10, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}><input type="checkbox" checked={avail} onChange={(e) => setAvail(e.target.checked)} />本科余量&gt;0</label>
-          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}><input type="checkbox" checked={gradAvail} onChange={(e) => setGradAvail(e.target.checked)} />研究生余量&gt;0</label>
-          <span style={{ flex: 1 }} />
-          <button className="btn" onClick={reset} disabled={busy}>重置</button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <input className="input" style={{ width: 130, height: 28, fontSize: 12 }} placeholder="课程号" value={kch} onChange={(e) => setKch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fire(1)} />
+          <input className="input" style={{ flex: 1, minWidth: 140, height: 28, fontSize: 12 }} placeholder="课程名关键词（实时查教务）" value={kw} onChange={(e) => setKw(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fire(1)} />
           <button className="btn is-active" onClick={() => fire(1)} disabled={busy}>搜索</button>
         </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 8, paddingTop: 8, borderTop: "1px dashed rgba(127,127,127,.25)", flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ fontSize: 11, color: "var(--text-3)" }}>本地叠加:</span>
-          <select className="input" style={{ height: 24, fontSize: 11, width: 110 }} value={conflictF} onChange={(e) => setConflictF(e.target.value)}><option value="">冲突: 不限</option><option value="noconflict">仅无冲突</option><option value="conflict">仅冲突</option></select>
-          <select className="input" style={{ height: 24, fontSize: 11, width: 120 }} value={reviewsF} onChange={(e) => setReviewsF(e.target.value)}><option value="">社区评价: 不限</option><option value="has">有点评</option><option value="r45">★≥4.5</option><option value="r40">★≥4.0</option><option value="low">★≤3.0</option></select>
-          <select className="input" style={{ height: 24, fontSize: 11, width: 120 }} value={sortBy} onChange={(e) => setSortBy(e.target.value)}><option value="">排序: 目录序</option><option value="rate_desc">评分 高→低</option><option value="cnt_desc">点评 多→少</option></select>
-          <span style={{ fontSize: 10, color: "var(--text-3)" }}>作用于当前页</span>
+        <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+          <select className="input" style={selStyle} value={dep} onChange={(e) => setDep(e.target.value)}><option value="">开课院系: 不限</option>{XK_DEPARTMENTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+          <select className="input" style={selStyle} value={grade} onChange={(e) => setGrade(e.target.value)}><option value="">年级: 不限</option>{["2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019"].map((g) => <option key={g} value={g}>{g}级</option>)}</select>
+          <select className="input" style={selStyle} value={day} onChange={(e) => setDay(e.target.value)}><option value="">上课星期: 不限</option>{[1, 2, 3, 4, 5, 6, 7].map((d) => <option key={d} value={d}>{dayName(d)}</option>)}</select>
+          <select className="input" style={selStyle} value={sec} onChange={(e) => setSec(e.target.value)}><option value="">大节: 不限</option>{SLOT_NAMES.map((n, i) => <option key={i} value={i + 1}>第{i + 1}大节</option>)}</select>
+          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+            <input type="checkbox" checked={avail} onChange={(e) => setAvail(e.target.checked)} />只看有余量
+          </label>
         </div>
       </Card>
 
       {wb.searchState === "idle" || busy ? (
-        <Card><SkeletonRows rows={4} /><Empty text="正在实时查询教务系统（1 个往返）…" /></Card>
+        <Card><SkeletonRows rows={4} /><Empty text="正在实时查询教务系统（1 个往返，即搜即得）…" /></Card>
       ) : wb.searchState === "error" ? (
         <ErrorNote text={wb.searchError ?? ""} onRetry={() => fire(wb.searchPage)} />
       ) : wb.searchRows.length === 0 ? (
         <Card>
-          <Empty text={kcm.trim() || teacher.trim() ? "无匹配课程。若中文关键词无结果，可能是教务系统编码限制——试试课程号/院系/课组筛选。" : "本页无课程。"} />
+          <Empty text={kw.trim() ? "无匹配课程。若中文关键词无结果，可能是教务系统编码限制——试试课程号或院系筛选。" : "本页无课程。"} />
         </Card>
       ) : (
         <>
           <Card className="list">
-            {view.map((r, i) => <PickCard key={r.key} wb={wb} r={r} i={i} picks={picks} setPicks={setPicks} highlight={false} />)}
+            {wb.searchRows.map((r, i) => <PickCard key={r.key} wb={wb} r={r} i={i} picks={picks} setPicks={setPicks} highlight={false} />)}
           </Card>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center", padding: "10px 0", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center", padding: "10px 0" }}>
             <button className="btn" disabled={busy || wb.searchPage <= 1} onClick={() => fire(wb.searchPage - 1)}>上一页</button>
-            <span style={{ fontSize: 12, color: "var(--text-3)" }}>第 {wb.searchPage} 页 · {wb.searchRows.length} 门/页</span>
+            <span style={{ fontSize: 12, color: "var(--text-3)" }}>第 {wb.searchPage} 页 · {wb.searchRows.length} 门</span>
             <button className="btn" disabled={busy || !wb.searchHasMore} onClick={() => fire(wb.searchPage + 1)}>下一页</button>
-            <span style={{ fontSize: 12, color: "var(--text-3)" }}>跳至</span>
-            <input className="input" style={{ width: 52, height: 24, fontSize: 12 }} value={goPage} onChange={(e) => setGoPage(e.target.value.replace(/[^0-9]/g, ""))} onKeyDown={(e) => e.key === "Enter" && go()} />
-            <button className="btn" disabled={busy || !goPage} onClick={go}>GO</button>
           </div>
         </>
       )}
@@ -440,9 +380,219 @@ function ServerCoursePanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>
 }
 
 function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; jump: string }) {
-  return <ServerCoursePanel wb={wb} jump={jump} />;
+  const [query, setQuery] = useState("");
+  const [chip, setChip] = useState("all");
+  const [credits, setCredits] = useState("");
+  const [day, setDay] = useState("");
+  const [period, setPeriod] = useState("");
+  const [conflictF, setConflictF] = useState("");
+  const [tongshi, setTongshi] = useState("");
+  const [feature, setFeature] = useState("");
+  const [grade, setGrade] = useState("");
+  const [bksrem, setBksrem] = useState("");
+  const [yjsrem, setYjsrem] = useState("");
+  const [xknote, setXknote] = useState("");
+  const [reviewsF, setReviewsF] = useState("");
+  const [sortBy, setSortBy] = useState("");
+  const [picks, setPicks] = useState<Record<string, { flag: XkFlag; zy: number }>>({});
+  const [limit, setLimit] = useState(120);
+  const [highlight, setHighlight] = useState("");
+  /* 数据源模式：live=服务端实时搜索（默认）；full=全量目录批量（显式加载，高级筛选/AI 用） */
+  const [mode, setMode] = useState<"live" | "full">("live");
+
+  useEffect(() => {
+    if (wb.catalogState === "idle") void wb.loadCatalog();
+  }, [wb.catalogState, wb.loadCatalog]);
+  useEffect(() => {
+    if (!jump) return;
+    setQuery(jump);
+    setChip("all");
+    setHighlight(jump);
+    const t = setTimeout(() => setHighlight(""), 1800);
+    return () => clearTimeout(t);
+  }, [jump]);
+
+  const rows = useMemo<XkRow[]>(() => {
+    if (wb.catalogState !== "ready") return [];
+    const q = query.trim().toLowerCase();
+    const dayRe = day && period ? new RegExp(`${day}-${period}\\(`) : day ? new RegExp(`${day}-\\d`) : period ? new RegExp(`\\d+-${period}\\(`) : null;
+    const base = wb.courses
+      .filter((r) => {
+        if (q && !(r.name.toLowerCase().includes(q) || r.c.code.includes(q) || r.teacher.toLowerCase().includes(q))) return false;
+        if (chip === "available" && !r.available) return false;
+        if (chip === "selected" && !(r.selected || r.isCandidate)) return false;
+        if (chip === "required" && zyTypeOf(r) !== "bx") return false;
+        if (chip === "elective" && zyTypeOf(r) !== "xx") return false;
+        if (chip === "sports" && zyTypeOf(r) !== "ty") return false;
+        if (chip === "queue" && !r.isCandidate) return false;
+        if (credits && (credits === "5+" ? !(r.credits >= 5) : r.credits !== parseInt(credits))) return false;
+        if (dayRe && !dayRe.test(r.time)) return false;
+        if (conflictF) {
+          const n = findPreviewConflicts({ code: r.c.code, seq: r.c.seq, time: r.time, name: r.name }, wb.previewIndex).length;
+          if (conflictF === "noconflict" && n > 0) return false;
+          if (conflictF === "conflict" && n === 0) return false;
+        }
+        if (tongshi && !r.tongshiGroup.includes(TS_GROUPS.find(([k]) => k === tongshi)![1])) return false;
+        if (feature && !r.feature.includes(feature)) return false;
+        if (grade && !r.grade.includes(grade)) return false;
+        if (bksrem && !((r.c.remaining ?? 0) > 0)) return false;
+        if (yjsrem && !((r.c.gradRemaining ?? 0) > 0)) return false;
+        if (xknote && !r.c.note.toLowerCase().includes(xknote.toLowerCase())) return false;
+        if (reviewsF) {
+          const e = tbMatch(r.name, r.teacher);
+          if (reviewsF === "has" && (!e || e.count <= 0)) return false;
+          if (reviewsF === "cnt5" && (!e || e.count < 5)) return false;
+          if (reviewsF === "r45" && (!e || e.avg < 4.5)) return false;
+          if (reviewsF === "r40" && (!e || e.avg < 4)) return false;
+          if (reviewsF === "low" && (!e || e.avg > 3)) return false;
+        }
+        return true;
+      })
+      .slice(0, limit);
+    if (!sortBy) return base;
+    const scored: Array<{ r: XkRow; e: TbEntry | null }> = base.map((r) => ({ r, e: tbMatch(r.name, r.teacher) }));
+    if (sortBy === "cnt_desc") scored.sort((a, b) => (b.e?.count ?? -1) - (a.e?.count ?? -1));
+    else if (sortBy === "rate_desc") scored.sort((a, b) => ((b.e?.avg ?? -1) - (a.e?.avg ?? -1)) || ((b.e?.count ?? 0) - (a.e?.count ?? 0)));
+    else scored.sort((a, b) => ((a.e?.avg ?? 6) - (b.e?.avg ?? 6)) || ((b.e?.count ?? 0) - (a.e?.count ?? 0)));
+    return scored.map((x) => x.r);
+  }, [wb.courses, wb.catalogState, wb.previewIndex, query, chip, credits, day, period, conflictF, tongshi, feature, grade, bksrem, yjsrem, xknote, reviewsF, sortBy, limit]);
+
+  const selSel = "input";
+  const selStyle: React.CSSProperties = { height: 26, fontSize: 12, flex: 1, minWidth: 96 };
+  return (
+    <>
+      <Card style={{ padding: "8px 10px", marginBottom: 10 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 12, color: "var(--text-3)" }}>数据源:</span>
+          <button className={"btn" + (mode === "live" ? " is-active" : "")} onClick={() => setMode("live")}>实时搜索（教务直连）</button>
+          <button className={"btn" + (mode === "full" ? " is-active" : "")} onClick={() => { setMode("full"); if (!wb.catalogFull && wb.catalogState === "idle") void wb.loadFullCatalog(); }}>全量目录（高级筛选/AI）</button>
+          {!wb.catalogFull && mode === "full" ? <span style={{ fontSize: 11, color: "var(--text-3)" }}>未加载全量：抓取约一两分钟</span> : null}
+        </div>
+      </Card>
+      {mode === "live" ? <LiveSearchBody wb={wb} jump={jump} /> : (
+      <>
+      <Card style={{ padding: 10, marginBottom: 10 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input className="input" style={{ flex: 1 }} placeholder="搜索课程名称、教师、课程号…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          {query ? <button className="btn" onClick={() => setQuery("")}>×</button> : null}
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+          {([["all", "全部"], ["available", "可选"], ["selected", "已选"], ["required", "必修"], ["elective", "限选"], ["sports", "体育"], ["queue", "我的队列"], ["plan", "培养方案"]] as const).map(([k, label]) => (
+            <button key={k} className={"btn" + (chip === k ? " is-active" : "")} onClick={() => setChip(k)}>{label}</button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+          <select className={selSel} style={selStyle} value={conflictF} onChange={(e) => setConflictF(e.target.value)}><option value="">不限制冲突</option><option value="noconflict">仅无冲突</option><option value="conflict">仅冲突</option></select>
+          <select className={selSel} style={selStyle} value={credits} onChange={(e) => setCredits(e.target.value)}><option value="">全部学分</option>{["1", "2", "3", "4", "5+"].map((v) => <option key={v} value={v}>{v === "5+" ? "5+学分" : `${v}学分`}</option>)}</select>
+          <select className={selSel} style={selStyle} value={day} onChange={(e) => setDay(e.target.value)}><option value="">不限周次</option>{[1, 2, 3, 4, 5, 6, 7].map((d) => <option key={d} value={d}>{dayName(d)}</option>)}</select>
+          <select className={selSel} style={selStyle} value={period} onChange={(e) => setPeriod(e.target.value)}><option value="">不限大节</option>{SLOT_NAMES.map((n, i) => <option key={i} value={i + 1}>第{i + 1}大节</option>)}</select>
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+          <select className={selSel} style={selStyle} value={reviewsF} onChange={(e) => setReviewsF(e.target.value)}><option value="">社区评价: 不限</option><option value="has">有点评</option><option value="cnt5">点评≥5条</option><option value="r45">★≥4.5 好评</option><option value="r40">★≥4.0</option><option value="low">★≤3.0 避雷线</option></select>
+          <select className={selSel} style={selStyle} value={sortBy} onChange={(e) => setSortBy(e.target.value)}><option value="">排序: 默认目录序</option><option value="rate_desc">社区评分 高→低</option><option value="rate_asc">社区评分 低→高</option><option value="cnt_desc">点评数 多→少</option></select>
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+          <select className={selSel} style={selStyle} value={tongshi} onChange={(e) => setTongshi(e.target.value)}><option value="">通识课组: 不限</option>{TS_GROUPS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+          <select className={selSel} style={selStyle} value={feature} onChange={(e) => setFeature(e.target.value)}><option value="">课程特色: 不限</option>{FEATURES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+          <select className={selSel} style={selStyle} value={grade} onChange={(e) => setGrade(e.target.value)}><option value="">年级: 不限</option>{["2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019"].map((g) => <option key={g} value={g}>{g}级</option>)}</select>
+          <select className={selSel} style={selStyle} value={bksrem} onChange={(e) => setBksrem(e.target.value)}><option value="">本科余量: 不限</option><option value="1">本科余量&gt;0</option></select>
+          <select className={selSel} style={selStyle} value={yjsrem} onChange={(e) => setYjsrem(e.target.value)}><option value="">研院余量: 不限</option><option value="1">研院余量&gt;0</option></select>
+        </div>
+        <div style={{ marginTop: 6 }}>
+          <input className="input" style={{ width: "100%", height: 28, fontSize: 12 }} placeholder="选课文字说明搜索" value={xknote} onChange={(e) => setXknote(e.target.value)} />
+        </div>
+      </Card>
+
+      {chip === "plan" ? <PlanView wb={wb} query={query} /> : wb.catalogState === "idle" || wb.catalogState === "loading" ? (
+        <Card><SkeletonRows rows={6} /><Empty text="正在抓取课程目录与志愿统计（30ms 限速分页，首次约一两分钟）…" /></Card>
+      ) : wb.catalogState === "error" ? (
+        <ErrorNote text={wb.error ?? ""} onRetry={() => void wb.loadCatalog()} />
+      ) : rows.length === 0 ? (
+        <Card><Empty text="暂无匹配课程。" /></Card>
+      ) : (
+        <>
+          <Card className="list">
+            {rows.map((r, i) => <PickCard key={r.key} wb={wb} r={r} i={i} picks={picks} setPicks={setPicks} highlight={r.c.code === highlight} />)}
+          </Card>
+          <div style={{ textAlign: "center", padding: "10px 0" }}>
+            <button className="btn" onClick={() => setLimit((v) => v + 120)}>显示更多</button>
+          </div>
+        </>
+      )}
+      </>
+      )}
+    </>
+  );
 }
 
+/* ══════════ 培养方案视图（render.js renderPlanView 逐行移植）══════════ */
+function PlanView({ wb, query }: { wb: ReturnType<typeof useXkWorkbench>; query: string }) {
+  const coverage = useMemo(() => checkPlanCoverage(wb.plan, wb.courses, wb.stageCart, wb.savedDrafts.map((d) => d.courses)),
+    [wb.plan, wb.courses, wb.stageCart, wb.savedDrafts]);
+  useEffect(() => {
+    planGroupClick = () => { setPresetGroupChip?.("plan"); };
+    return () => { planGroupClick = null; };
+  }, []);
+  if (wb.plan.length === 0 && wb.catalogState !== "ready") {
+    return <Card><SkeletonRows rows={4} /><Empty text="培养方案与课程目录加载中（首次约一两分钟，之后秒开）…" /></Card>;
+  }
+  if (!coverage.length) {
+    return (
+      <Card>
+        <Empty text="暂无培养方案数据（可能该学期未配置培养方案，或会话已过期）" />
+        <div style={{ textAlign: "center", paddingBottom: 10 }}>
+          <button className="btn" onClick={() => void wb.refresh()}>重试</button>
+        </div>
+      </Card>
+    );
+  }
+  const q = query.trim().toLowerCase();
+  const filtered = q ? coverage.filter((p) => p.name.toLowerCase().includes(q) || p.code.includes(q) || (p.attr || "").includes(q)) : coverage;
+  const groups = new Map<string, PlanCoverageItem[]>();
+  for (const p of filtered) {
+    const g = p.group || p.attr || "其他";
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g)!.push(p);
+  }
+  const totalCr = coverage.reduce((s, c) => s + c.credits, 0);
+  const coveredCr = coverage.filter((c) => c.covered).reduce((s, c) => s + c.credits, 0);
+  const coveredN = coverage.filter((c) => c.covered).length;
+  return (
+    <>
+      <Card style={{ marginBottom: 12, padding: "12px 16px", fontSize: 13 }}>
+        <b>培养方案进度</b>: {coveredN}/{coverage.length}门 · {coveredCr}/{totalCr}学分
+        <div style={{ marginTop: 6, height: 6, background: "rgba(0,0,0,.06)", borderRadius: 3, overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${totalCr ? Math.round((coveredCr / totalCr) * 100) : 0}%`, background: "var(--accent)", borderRadius: 3 }} />
+        </div>
+      </Card>
+      {[...groups.entries()].map(([g, courses]) => {
+        const gTotal = courses.reduce((s, c) => s + c.credits, 0);
+        const gCovered = courses.filter((c) => c.covered).reduce((s, c) => s + c.credits, 0);
+        return (
+          <div key={g} style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, padding: "5px 12px", background: "rgba(127,127,127,.06)", borderRadius: 8, display: "flex", justifyContent: "space-between" }}>
+              <span>{g}</span>
+              <span style={{ fontSize: 11, fontWeight: 400, color: gCovered >= gTotal ? "var(--green)" : "var(--text-3)" }}>{gCovered}/{gTotal}学分</span>
+            </div>
+            {courses.map((p) => {
+              const bg = p.covered ? "rgba(7,193,96,.06)" : "rgba(238,77,77,.04)";
+              return (
+                <div key={p.code} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 10, background: bg, marginBottom: 3, fontSize: 12 }}>
+                  <span style={{ fontSize: 12 }}>{p.covered ? "✓" : "✗"}</span>
+                  <span style={{ flex: 1, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name} <span style={{ color: "var(--text-3)", fontSize: 10 }}>{p.code}</span></span>
+                  <span style={{ fontSize: 10, color: "var(--text-3)", whiteSpace: "nowrap" }}>{p.credits}学分</span>
+                  {p.covered
+                    ? <span style={{ color: "var(--green)", fontSize: 11, whiteSpace: "nowrap" }}>{p.coveredBy || "已满足"}</span>
+                    : <span style={{ color: "var(--red)", fontSize: 11 }}>未满足</span>}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </>
+  );
+}
 let setPresetGroupChip: ((v: string) => void) | null = null;
 
 /* ══════════ 课程卡（四态）══════════ */
