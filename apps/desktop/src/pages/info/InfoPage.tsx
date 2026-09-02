@@ -50,10 +50,12 @@ export function InfoPage() {
    *  用 navParams 对象身份作 effect 依赖：navigate 每次都新建参数对象，
    *  同一条新闻重复点击也能再次触发打开。 */
   const [newsId, setNewsId] = useState<string | null>(() => navParams?.infoNewsId ?? null);
-  const [tab, setTab] = useState<InfoTab>(() => (navParams?.infoNewsId ? "news" : (navParams?.infoTab ?? "report")));
+  /** 新闻搜索直达词（选课·外校课卡片「查通知」）：下传 NewsTab 消费后置回 null */
+  const [newsQuery, setNewsQuery] = useState<string | null>(() => navParams?.infoNewsQuery ?? null);
+  const [tab, setTab] = useState<InfoTab>(() => (navParams?.infoNewsId || navParams?.infoNewsQuery ? "news" : (navParams?.infoTab ?? "report")));
   /** 已激活过的 tab 保持挂载：切回即显（数据在 hook 里，无需重复请求） */
   const [visited, setVisited] = useState<ReadonlySet<InfoTab>>(
-    () => new Set(navParams?.infoNewsId ? ["report", "news"] : [navParams?.infoTab ?? "report"]),
+    () => new Set(navParams?.infoNewsId || navParams?.infoNewsQuery ? ["report", "news"] : [navParams?.infoTab ?? "report"]),
   );
 
   /** 栏目布局（显隐 + 顺序） */
@@ -76,6 +78,12 @@ export function InfoPage() {
     if (direct) {
       setTab((t) => (t === direct ? t : direct));
       setVisited((prev) => (prev.has(direct) ? prev : new Set(prev).add(direct)));
+    }
+    const q = params.infoNewsQuery;
+    if (q) {
+      setTab((t) => (t === "news" ? t : "news"));
+      setVisited((prev) => (prev.has("news") ? prev : new Set(prev).add("news")));
+      setNewsQuery(q);
     }
     const id = params.infoNewsId;
     if (!id) return; // 无新闻直达参数：不动详情态
@@ -122,7 +130,7 @@ export function InfoPage() {
           <div hidden={effTab !== "exams"}>{visited.has("exams") ? <ExamsTab /> : null}</div>
           <div hidden={effTab !== "evaluation"}>{visited.has("evaluation") ? <EvaluationTab /> : null}</div>
           <div hidden={effTab !== "calendar"}>{visited.has("calendar") ? <CalendarTab /> : null}</div>
-          <div hidden={effTab !== "news"}>{visited.has("news") ? <NewsTab newsId={newsId} onConsumeNewsId={() => setNewsId(null)} /> : null}</div>
+          <div hidden={effTab !== "news"}>{visited.has("news") ? <NewsTab newsId={newsId} onConsumeNewsId={() => setNewsId(null)} initialQuery={newsQuery} onConsumeQuery={() => setNewsQuery(null)} /> : null}</div>
           <div hidden={effTab !== "profile"}>{visited.has("profile") ? <ProfileTab /> : null}</div>
         </>
       )}
