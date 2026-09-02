@@ -29,6 +29,8 @@ export type Page =
 export interface LearnNav {
   courseId?: string;
   itemId?: string;
+  /** 讨论区：话题所属板块 id（viewTlById 原生链接必带 tabbh+bqid，缺失会被甩登录壳页） */
+  bqid?: string;
   /** 详情页返回目标（默认对应列表页） */
   from?: Page;
   /** 学期切换显式携带：learn 列表页据此校验数据学期一致（防缓存/竞态残留旧学期） */

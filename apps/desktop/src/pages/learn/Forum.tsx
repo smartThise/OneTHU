@@ -166,8 +166,8 @@ export function BbsPanel({ courseId }: { courseId: string }) {
               className="row row-click"
               role="button"
               tabIndex={0}
-              onClick={() => navigate("learn-forum-thread", { courseId, itemId: t.id })}
-              onKeyDown={(e) => e.key === "Enter" && navigate("learn-forum-thread", { courseId, itemId: t.id })}
+              onClick={() => navigate("learn-forum-thread", { courseId, itemId: t.id, bqid: t.bqid })}
+              onKeyDown={(e) => e.key === "Enter" && navigate("learn-forum-thread", { courseId, itemId: t.id, bqid: t.bqid })}
             >
               <div style={{ minWidth: 0, flex: "1 1 auto" }}>
                 <div className="tl-title" style={{ whiteSpace: "normal" }}>
@@ -227,6 +227,7 @@ export function ForumThreadPage() {
   const { navParams, status } = useApp();
   const courseId = navParams?.courseId ?? "";
   const threadId = navParams?.itemId ?? "";
+  const bqid = navParams?.bqid;
 
   const [head, setHead] = useState<LearnBbsThreadDetail | null>(null);
   const [posts, setPosts] = useState<LearnBbsPost[]>([]);
@@ -255,7 +256,7 @@ export function ForumThreadPage() {
       return;
     }
     learn
-      .getBbsThread(courseId, threadId)
+      .getBbsThread(courseId, threadId, bqid)
       .then((h) => {
         setHead(h);
         setPosts(h.posts); // 首屏回复在 viewTlById HTML 里服务端渲染
@@ -267,7 +268,7 @@ export function ForumThreadPage() {
         setError(explainNetworkError(e));
         setState("error");
       });
-  }, [courseId, threadId, status]);
+  }, [courseId, threadId, bqid, status]);
 
   useEffect(() => {
     load();

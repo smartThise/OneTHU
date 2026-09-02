@@ -973,16 +973,26 @@ export class LearnClient {
     });
   }
 
-  /** 话题头（viewTlById HTML：标题 #tlbt、楼主块 louzhuu、分页 loadpage2 总数、tabbh/tabid/bqid） */
-  async getBbsThread(wlkcid: string, threadId: string): Promise<LearnBbsThreadDetail> {
+  /** 话题头（viewTlById HTML：标题 #tlbt、楼主块 louzhuu、分页 loadpage2 总数、tabbh/tabid/bqid）。
+   *  请求照浏览器链接点击原样：无 _csrf、Referer=列表页、Accept text/html（2026-09-02 实测定案）。 */
+  async getBbsThread(wlkcid: string, threadId: string, bqid?: string): Promise<LearnBbsThreadDetail> {
     return this.#withRelogin(async () => {
       this.#requireCsrf();
-      let html = await this.#http.text(this.#withCsrf(urls.LEARN_BBS_THREAD_VIEW(wlkcid, threadId)));
+      const view = (u: string) =>
+        this.#http
+          .request(u, {
+            headers: {
+              "Referer": urls.LEARN_BBS_LIST_REFERER(wlkcid),
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            },
+          })
+          .then((r) => r.text());
+      let html = await view(urls.LEARN_BBS_THREAD_VIEW(wlkcid, threadId, bqid));
       if (looksLikeLearnLoginShell(html)) {
         // 会话壳页：先热一次课程列表页（顺带刷新 _csrf）再重试——浏览器里 Cookie 链路是热的，
         // 直 GET 话题页会撞登录壳（2026-09-02 诊断实录）
         await this.#http.text(this.#withCsrf(urls.LEARN_COURSE_LIST_PAGE())).catch(() => undefined);
-        html = await this.#http.text(this.#withCsrf(urls.LEARN_BBS_THREAD_VIEW(wlkcid, threadId)));
+        html = await view(urls.LEARN_BBS_THREAD_VIEW(wlkcid, threadId, bqid));
       }
       const main = parseBbsMainBlock(html);
       // 诊断：楼主块空 = 页面结构/会话异常，留标题区+楼主区+长度指纹
