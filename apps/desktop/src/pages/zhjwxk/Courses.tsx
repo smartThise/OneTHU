@@ -3,12 +3,11 @@
  * 左栏 = 搜索/筛选chips/筛选selects/课程列表；右栏 = 学分统计·课表预览·暂存草稿·候补·AI。
  * UI 用 OneTHU 设计系统（Card/list/row/chip/btn/input）。
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Card, Empty, ErrorNote, PageHead, SegmentedOverflow, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
-import { useXkWorkbench, type XkSearchMeta, type XkStageItem } from "../../state/data.js";
-import { XK_DEPARTMENTS } from "@onethu/core";
+import { useXkWorkbench, type XkStageItem } from "../../state/data.js";
 import type { XkCourseDetail } from "@onethu/core";
 import { tbEnsureIndex, tbFetchReviews, tbMatch, tbStars, tbCourseUrl, tbWriteUrl, type TbEntry, type TbReviews } from "../../lib/xkreviews.js";
 import { openExternal } from "../info/openExternal.js";
@@ -295,90 +294,6 @@ export function ZhjwxkCoursesPage() {
 }
 
 /* ══════════ 左栏：搜索 + 筛选 + 列表 ══════════ */
-/**
- * 套壳模式（2026-09）：服务端实时搜索直连教务 kkxxSearch（搜索/翻页各 1 往返），
- * 替代「挂载即批量抓 320 页目录 + 220 页志愿」。批量管线保留为全量模式（显式加载）。
- */
-function LiveSearchBody({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; jump: string }) {
-  const [kch, setKch] = useState("");
-  const [kw, setKw] = useState("");
-  const [dep, setDep] = useState("");
-  const [grade, setGrade] = useState("");
-  const [day, setDay] = useState("");
-  const [sec, setSec] = useState("");
-  const [avail, setAvail] = useState(false);
-  const [picks, setPicks] = useState<Record<string, { flag: XkFlag; zy: number }>>({});
-  const firedRef = useRef(false);
-  const semRef = useRef(wb.semester);
-
-  const fire = (page: number, over?: Partial<XkSearchMeta>) => {
-    void wb.runSearch({
-      kch, kcm: kw, teacher: "", department: dep, weekday: day, section: sec, grade, onlyAvailable: avail, ...over,
-    }, page);
-  };
-
-  // 挂载即搜（页 1，零筛选）；换学期自动重搜
-  useEffect(() => {
-    if (!firedRef.current || semRef.current !== wb.semester) {
-      firedRef.current = true;
-      semRef.current = wb.semester;
-      void wb.runSearch({ kch: "", kcm: "", teacher: "", department: "", weekday: "", section: "", grade: "", onlyAvailable: false }, 1);
-    }
-  }, [wb.semester, wb.runSearch, wb.searchState]);
-
-  // 课表/暂存跳转：带词搜索
-  useEffect(() => {
-    if (!jump) return;
-    setKw(jump);
-    void wb.runSearch({ kch: "", kcm: jump, teacher: "", department: "", weekday: "", section: "", grade: "", onlyAvailable: false }, 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jump]);
-
-  const selStyle: React.CSSProperties = { height: 26, fontSize: 12, flex: 1, minWidth: 96 };
-  const busy = wb.searchState === "loading";
-  return (
-    <>
-      <Card style={{ padding: 10, marginBottom: 10 }}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <input className="input" style={{ width: 130, height: 28, fontSize: 12 }} placeholder="课程号" value={kch} onChange={(e) => setKch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fire(1)} />
-          <input className="input" style={{ flex: 1, minWidth: 140, height: 28, fontSize: 12 }} placeholder="课程名关键词（实时查教务）" value={kw} onChange={(e) => setKw(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fire(1)} />
-          <button className="btn is-active" onClick={() => fire(1)} disabled={busy}>搜索</button>
-        </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-          <select className="input" style={selStyle} value={dep} onChange={(e) => setDep(e.target.value)}><option value="">开课院系: 不限</option>{XK_DEPARTMENTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-          <select className="input" style={selStyle} value={grade} onChange={(e) => setGrade(e.target.value)}><option value="">年级: 不限</option>{["2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019"].map((g) => <option key={g} value={g}>{g}级</option>)}</select>
-          <select className="input" style={selStyle} value={day} onChange={(e) => setDay(e.target.value)}><option value="">上课星期: 不限</option>{[1, 2, 3, 4, 5, 6, 7].map((d) => <option key={d} value={d}>{dayName(d)}</option>)}</select>
-          <select className="input" style={selStyle} value={sec} onChange={(e) => setSec(e.target.value)}><option value="">大节: 不限</option>{SLOT_NAMES.map((n, i) => <option key={i} value={i + 1}>第{i + 1}大节</option>)}</select>
-          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
-            <input type="checkbox" checked={avail} onChange={(e) => setAvail(e.target.checked)} />只看有余量
-          </label>
-        </div>
-      </Card>
-
-      {wb.searchState === "idle" || busy ? (
-        <Card><SkeletonRows rows={4} /><Empty text="正在实时查询教务系统（1 个往返，即搜即得）…" /></Card>
-      ) : wb.searchState === "error" ? (
-        <ErrorNote text={wb.searchError ?? ""} onRetry={() => fire(wb.searchPage)} />
-      ) : wb.searchRows.length === 0 ? (
-        <Card>
-          <Empty text={kw.trim() ? "无匹配课程。若中文关键词无结果，可能是教务系统编码限制——试试课程号或院系筛选。" : "本页无课程。"} />
-        </Card>
-      ) : (
-        <>
-          <Card className="list">
-            {wb.searchRows.map((r, i) => <PickCard key={r.key} wb={wb} r={r} i={i} picks={picks} setPicks={setPicks} highlight={false} />)}
-          </Card>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center", padding: "10px 0" }}>
-            <button className="btn" disabled={busy || wb.searchPage <= 1} onClick={() => fire(wb.searchPage - 1)}>上一页</button>
-            <span style={{ fontSize: 12, color: "var(--text-3)" }}>第 {wb.searchPage} 页 · {wb.searchRows.length} 门</span>
-            <button className="btn" disabled={busy || !wb.searchHasMore} onClick={() => fire(wb.searchPage + 1)}>下一页</button>
-          </div>
-        </>
-      )}
-    </>
-  );
-}
-
 function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; jump: string }) {
   const [query, setQuery] = useState("");
   const [chip, setChip] = useState("all");
@@ -397,8 +312,6 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   const [picks, setPicks] = useState<Record<string, { flag: XkFlag; zy: number }>>({});
   const [limit, setLimit] = useState(120);
   const [highlight, setHighlight] = useState("");
-  /* 数据源模式：live=服务端实时搜索（默认）；full=全量目录批量（显式加载，高级筛选/AI 用） */
-  const [mode, setMode] = useState<"live" | "full">("live");
 
   useEffect(() => {
     if (wb.catalogState === "idle") void wb.loadCatalog();
@@ -461,16 +374,6 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   const selStyle: React.CSSProperties = { height: 26, fontSize: 12, flex: 1, minWidth: 96 };
   return (
     <>
-      <Card style={{ padding: "8px 10px", marginBottom: 10 }}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ fontSize: 12, color: "var(--text-3)" }}>数据源:</span>
-          <button className={"btn" + (mode === "live" ? " is-active" : "")} onClick={() => setMode("live")}>实时搜索（教务直连）</button>
-          <button className={"btn" + (mode === "full" ? " is-active" : "")} onClick={() => { setMode("full"); if (!wb.catalogFull && wb.catalogState === "idle") void wb.loadFullCatalog(); }}>全量目录（高级筛选/AI）</button>
-          {!wb.catalogFull && mode === "full" ? <span style={{ fontSize: 11, color: "var(--text-3)" }}>未加载全量：抓取约一两分钟</span> : null}
-        </div>
-      </Card>
-      {mode === "live" ? <LiveSearchBody wb={wb} jump={jump} /> : (
-      <>
       <Card style={{ padding: 10, marginBottom: 10 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input className="input" style={{ flex: 1 }} placeholder="搜索课程名称、教师、课程号…" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -518,8 +421,6 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
             <button className="btn" onClick={() => setLimit((v) => v + 120)}>显示更多</button>
           </div>
         </>
-      )}
-      </>
       )}
     </>
   );
