@@ -134,7 +134,6 @@ export {
   resolveZhjwxkSemester,
   searchXkCourses,
   XK_DEPARTMENTS,
-  XK_FEATURES,
   semesterFromDate,
   parseSelectedCourses,
   parseQueueCandidates,
