@@ -795,10 +795,10 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           </div>
         ) : null}
         {(() => { const o = originOf(r.c.code); if (!o) return null;
-          const hasTime = clockRangesOf(r.c.note, r.time).length > 0;
+          if (clockRangesOf(r.c.note, r.time).length > 0) return null; // 时间已解析上时间轴，不废话
           return (
-          <div className="row-sub" style={{ color: hasTime ? "var(--green)" : "var(--amber)", whiteSpace: "normal", display: "flex", gap: 6, alignItems: "flex-start" }}>
-            <span style={{ flex: 1 }}>{hasTime ? `${o}课程时间已按课程说明自动解析（含单双周标记），见预览课表` : `${o}课程时间无法自动获取`}</span>
+          <div className="row-sub" style={{ color: "var(--amber)", whiteSpace: "normal", display: "flex", gap: 6, alignItems: "flex-start" }}>
+            <span style={{ flex: 1 }}>{o}课程时间无法自动获取</span>
             <button className="btn" style={{ flexShrink: 0, height: "auto", padding: "2px 8px", fontSize: 11 }}
               onClick={() => navigate("info", { infoNewsQuery: o === "北大研" ? "北京大学 研究生" : "北京大学 北京外国语大学" })}>
               点击查看{o === "北大研" ? "北京大学面向我校研究生开放课程" : "北大、北外课程"}的选课通知
@@ -915,8 +915,11 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
         credits: r.credits, zy: r.zy, typeCode: r.sel?.typeCode, isCandidate: false,
       }));
     }
-    if (mode === "stage") return wb.stageCart.map((x) => ({ name: x.name, teacher: x.teacher, code: x.code, seq: x.seq || "0", time: x.time, note: "", credits: x.credits, zy: x.zy, flag: x.flag }));
-    return (wb.savedDrafts[wb.previewDraftIdx]?.courses ?? []).map((x) => ({ name: x.name, teacher: x.teacher, code: x.code, seq: x.seq || "0", time: x.time, note: "", credits: x.credits, zy: x.zy, flag: x.flag }));
+    // 外校课真实时间在 note 里：暂存/草稿必须带回（旧数据无 note → 回查目录兜底）
+    const noteOf = (x: { code: string; seq: string; note?: string }): string =>
+      x.note ?? wb.courses.find((y) => y.c.code === x.code && String(y.c.seq || "0") === String(x.seq || "0"))?.c.note ?? "";
+    if (mode === "stage") return wb.stageCart.map((x) => ({ name: x.name, teacher: x.teacher, code: x.code, seq: x.seq || "0", time: x.time, note: noteOf(x), credits: x.credits, zy: x.zy, flag: x.flag }));
+    return (wb.savedDrafts[wb.previewDraftIdx]?.courses ?? []).map((x) => ({ name: x.name, teacher: x.teacher, code: x.code, seq: x.seq || "0", time: x.time, note: noteOf(x), credits: x.credits, zy: x.zy, flag: x.flag }));
   }, [mode, wb]);
 
   // 概率/余量信息（绿=有余量/已选，橙=排队，红=已满；色块直接画在时间轴课块上）
