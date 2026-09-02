@@ -3,8 +3,11 @@ import { useEffect, useState } from "react";
 import { Card, PageHead, SectionHead } from "../components/Layout.js";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { clearRemembered, loadRemembered, session } from "../lib/clients.js";
+import { uploadCoursesToCourseX } from "@onethu/core";
+import { clearRemembered, learn, loadRemembered, logLine, session } from "../lib/clients.js";
 import { clearHomeLayout } from "../lib/homeCards.js";
+import { getCourseXSession, loadCourseXConfig, saveCourseXConfig } from "../lib/coursex.js";
+import { universalFetch } from "../lib/transport.js";
 import { useApp } from "../state/context.js";
 
 export function SettingsPage() {
@@ -14,6 +17,13 @@ export function SettingsPage() {
   // 首页布局恢复：点击后短暂显示「已恢复默认」，到点回位
   const [homeResetAt, setHomeResetAt] = useState(0);
   const [eidMsg, setEidMsg] = useState<string | null>(null);
+
+  /* —— 课程共享计划（courseX）—— */
+  const [cxConfig, setCxConfig] = useState(() => loadCourseXConfig());
+  const [cxInput, setCxInput] = useState("");
+  const [cxMsg, setCxMsg] = useState<string | null>(null);
+  const [cxTesting, setCxTesting] = useState(false);
+  const [cxSharing, setCxSharing] = useState(false);
 
   useEffect(() => {
     void loadRemembered().then((r) => setHasSaved(!!r));
@@ -32,6 +42,65 @@ export function SettingsPage() {
       setHasSaved(false);
     } finally {
       setClearing(false);
+    }
+  };
+
+  /** 保存并测试连接：换 accessToken 成功即视为凭证有效 */
+  const onCxSave = async () => {
+    const token = cxInput.trim();
+    if (!token) return;
+    setCxTesting(true);
+    setCxMsg(null);
+    try {
+      const s = getCourseXSession(token);
+      await s!.getAccessToken(true);
+      const cfg = { refreshToken: token, autoShare: cxConfig?.autoShare ?? false };
+      saveCourseXConfig(cfg);
+      setCxConfig(cfg);
+      setCxInput("");
+      setCxMsg("连接成功，课程信息页即可查询全校开课的上课地点。");
+    } catch (err) {
+      void logLine("PAGE-ERR COURSEX-SAVE " + (err instanceof Error ? err.message : String(err))).catch(() => undefined);
+      setCxMsg(`连接失败：${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setCxTesting(false);
+    }
+  };
+
+  /** 立即共享本学期课程：网络学堂课程列表 + 时间地点 → courseX 共享库 */
+  const onCxShare = async () => {
+    const s = getCourseXSession();
+    if (!s) return;
+    setCxSharing(true);
+    setCxMsg(null);
+    try {
+      const semester = await learn.getCurrentSemester();
+      const courses = await learn.getCourseListForSharing(semester.id);
+      const n = await uploadCoursesToCourseX(
+        universalFetch,
+        s,
+        courses.map((c) => ({
+          id: c.id,
+          name: c.name,
+          englishName: c.englishName || undefined,
+          // 教师号（jsh）缺失时 core 自动省略 teacher 嵌套对象
+          teacherId: c.teacherNumber || undefined,
+          teacherName: c.teacherName,
+          timeLocation: c.timeAndLocation,
+          semesterId: semester.id,
+          number: c.courseNumber,
+          index: c.courseIndex,
+        })),
+      );
+      const cfg = { ...(cxConfig ?? { refreshToken: s.refreshToken, autoShare: false }), lastSharedAt: Date.now(), lastSharedCount: n };
+      saveCourseXConfig(cfg);
+      setCxConfig(cfg);
+      setCxMsg(`已共享本学期 ${courses.length} 门课程（影响 ${n} 行）——感谢回馈共享库！`);
+    } catch (err) {
+      void logLine("PAGE-ERR COURSEX-SHARE " + (err instanceof Error ? err.message : String(err))).catch(() => undefined);
+      setCxMsg(`共享失败：${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setCxSharing(false);
     }
   };
 
@@ -118,6 +187,76 @@ export function SettingsPage() {
             {homeResetAt ? "已恢复默认" : "恢复默认布局"}
           </button>
         </div>
+      </Card>
+
+      <SectionHead title="课程共享计划" />
+      <Card>
+        <div className="setting-row" style={{ alignItems: "flex-start" }}>
+          <div style={{ flex: 1 }}>
+            <div className="setting-title">共享回馈（可选）· 连接 courseX</div>
+            <div className="setting-desc">
+              「信息 → 课程信息」的查询走公开网页，无需任何配置；只有把自己的课程
+              时间地点上传回馈共享库时才需要连接。在浏览器注册并登录 tsinghua.app，
+              开发者工具（F12）→ Application → Cookies 复制 __Host-refresh_token 的值粘贴到此处。
+              {cxConfig
+                ? cxConfig.lastSharedAt
+                  ? ` 已连接 · 上次共享 ${new Date(cxConfig.lastSharedAt).toLocaleString()}（${cxConfig.lastSharedCount ?? 0} 行）。`
+                  : " 已连接。"
+                : " 当前未连接（不影响查询，仅不能上传回馈）。"}
+            </div>
+            {cxMsg ? (
+              <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }}>{cxMsg}</div>
+            ) : null}
+            {cxConfig ? null : (
+              <div style={{ display: "flex", gap: 8, marginTop: 10, maxWidth: 420 }}>
+                <input
+                  className="input"
+                  type="password"
+                  style={{ flex: 1 }}
+                  value={cxInput}
+                  onChange={(e) => setCxInput(e.target.value)}
+                  placeholder="粘贴 __Host-refresh_token"
+                  aria-label="courseX refresh token"
+                />
+                <button className="btn" disabled={cxTesting || !cxInput.trim()} onClick={() => void onCxSave()}>
+                  {cxTesting ? "测试中…" : "保存并测试"}
+                </button>
+              </div>
+            )}
+          </div>
+          {cxConfig ? (
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn" disabled={cxSharing} onClick={() => void onCxShare()}>
+                {cxSharing ? "共享中…" : "立即共享本学期课程"}
+              </button>
+              <button
+                className="btn"
+                disabled={cxTesting}
+                onClick={() => {
+                  saveCourseXConfig(null);
+                  setCxConfig(null);
+                  setCxMsg("已断开连接（本地凭证已清除）。");
+                }}
+              >
+                断开
+              </button>
+            </div>
+          ) : null}
+        </div>
+        {cxConfig ? (
+          <div className="setting-row">
+            <div>
+              <div className="setting-title">共享说明</div>
+              <div className="setting-desc">
+                「立即共享」会上传本学期课程的时间地点（课号、课序、课名、教师、上课时间地点），
+                不包含任何个人信息——与 learnX 官方口径一致。共享后全校用户都能查到这些课在哪里上。
+              </div>
+            </div>
+            <button className="btn btn-ghost" onClick={() => void openUrl("https://tsinghua.app/courses")}>
+              访问 courseX
+            </button>
+          </div>
+        ) : null}
       </Card>
 
       <SectionHead title="安全" />

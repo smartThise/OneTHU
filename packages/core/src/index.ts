@@ -168,6 +168,26 @@ export type {
 export { LEARN_FILE_DOWNLOAD, LEARN_PREFIX } from "./learn/urls.js";
 export { setWebvpnLog } from "./auth/demoLogin.js";
 
+/* courseX 课程信息共享计划（tsinghua.app / 星期四，公开 GraphQL，众包时间地点） */
+export {
+  CourseXSession,
+  CourseXAuthError,
+  fetchCourseXAccessToken,
+  searchCourseX,
+  getCourseXDetail,
+  searchCourseXPublic,
+  getCourseXDetailPublic,
+  getCourseXSemesters,
+  uploadCoursesToCourseX,
+  courseXSemesterText,
+} from "./coursex/client.js";
+export type {
+  CourseXSummary,
+  CourseXDetail,
+  CourseXUploadCourse,
+  CourseXSemester,
+} from "./coursex/client.js";
+
 /* 体育场馆系统（sports.tsinghua.edu.cn unifound-venue）—— 独立 token 鉴权 */
 export { VenueClient, VenueAuthRequiredError, VenueApiError, VENUE_BASE, fmtVenueDate, venueTokenExpiresAt } from "./venue/client.js";
 export { md5hex, buildVenueSign, venueSignQuery, VENUE_APP_ID, VENUE_SIGN_KEY } from "./venue/sign.js";

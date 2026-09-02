@@ -29,8 +29,9 @@ import { ReportTab } from "./ReportTab.js";
 import { FitnessTab } from "./FitnessTab.js";
 import { EvaluationTab } from "./EvaluationTab.js";
 import { CalendarTab } from "./CalendarTab.js";
+import { CourseInfoTab } from "./CourseInfoTab.js";
 
-export type InfoTab = "report" | "fitness" | "exams" | "evaluation" | "calendar" | "news" | "profile";
+export type InfoTab = "report" | "fitness" | "exams" | "evaluation" | "calendar" | "news" | "profile" | "courseinfo";
 
 const TABS: Array<{ id: InfoTab; label: string }> = [
   { id: "report", label: "成绩" },
@@ -40,6 +41,7 @@ const TABS: Array<{ id: InfoTab; label: string }> = [
   { id: "calendar", label: "校历" },
   { id: "news", label: "新闻" },
   { id: "profile", label: "个人信息" },
+  { id: "courseinfo", label: "课程信息" },
 ];
 const TAB_IDS = TABS.map((t) => t.id);
 const DEFAULT_LAYOUT: TabLayout = { order: TAB_IDS, hidden: [] };
@@ -124,6 +126,7 @@ export function InfoPage() {
           <div hidden={effTab !== "calendar"}>{visited.has("calendar") ? <CalendarTab /> : null}</div>
           <div hidden={effTab !== "news"}>{visited.has("news") ? <NewsTab newsId={newsId} onConsumeNewsId={() => setNewsId(null)} /> : null}</div>
           <div hidden={effTab !== "profile"}>{visited.has("profile") ? <ProfileTab /> : null}</div>
+          <div hidden={effTab !== "courseinfo"}>{visited.has("courseinfo") ? <CourseInfoTab /> : null}</div>
         </>
       )}
 

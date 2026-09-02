@@ -23,6 +23,8 @@ export interface CourseInfo {
   courseNumber: string;
   courseIndex: number;
   teacherName: string;
+  /** 教师号（jsh；列表接口不回传时为空，courseX 共享上传用） */
+  teacherNumber?: string;
   timeAndLocation: string[];
   url: string;
 }

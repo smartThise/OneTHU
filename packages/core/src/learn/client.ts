@@ -593,11 +593,40 @@ export class LearnClient {
           courseNumber: str(c.kch),
           courseIndex: Number(c.kxh ?? 0),
           teacherName: decodeHtml(c.jsm),
+          teacherNumber: str(c.jsh) || undefined,
           timeAndLocation: [],
           url: urls.LEARN_COURSE_PAGE(id),
         };
       });
     });
+  }
+
+  /** 课程时间地点（v_wlkc_xk_sjddb/detail，thu-learn-lib 同款：响应即 string[]；
+   *  单课失败容忍返回 []，调用方按无地点处理） */
+  async getCourseTimeAndLocation(courseId: string): Promise<string[]> {
+    return this.#withRelogin(async () => {
+      this.#requireCsrf();
+      const json = await this.#http.json<unknown>(
+        this.#withCsrf(urls.LEARN_COURSE_TIME_LOCATION(courseId)),
+      );
+      if (!Array.isArray(json)) return [];
+      return json.filter((s): s is string => typeof s === "string");
+    });
+  }
+
+  /** 课程共享计划专用：课程列表 + 并发补齐每门课的时间地点。
+   *  并发 4、单项失败容忍（该课 timeAndLocation 为 []），不改动 getCourseList 行为。 */
+  async getCourseListForSharing(semesterId: string): Promise<CourseInfo[]> {
+    const courses = await this.getCourseList(semesterId);
+    const out: CourseInfo[] = [];
+    for (let i = 0; i < courses.length; i += 4) {
+      const batch = courses.slice(i, i + 4);
+      const times = await Promise.all(
+        batch.map((c) => this.getCourseTimeAndLocation(c.id).catch(() => [] as string[])),
+      );
+      batch.forEach((c, j) => out.push({ ...c, timeAndLocation: times[j] ?? [] }));
+    }
+    return out;
   }
 
   /** 全部课程的作业（未交 + 已交未批 + 已批） */
