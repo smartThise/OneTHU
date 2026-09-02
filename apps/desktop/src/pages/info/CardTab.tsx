@@ -68,7 +68,7 @@ export function CardTab({ active = true }: { active?: boolean }) {
             <IconCard width={17} height={17} />
           </span>
           <div>
-            <div className="stat-num">{spent < 0 ? `¥${(-spent).toFixed(2)}` : "¥0.00"}</div>
+            <div className="stat-num">¥{spent.toFixed(2)}</div>
             <div className="stat-label">近 30 天消费</div>
           </div>
         </Card>
