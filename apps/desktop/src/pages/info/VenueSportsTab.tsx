@@ -8,9 +8,9 @@
  * ① 授权：无 token → 授权卡（webview 打开体育系统完成 CAS 登录，token 自动回传）
  * ② 场馆 chips（scene/list 33 项，会话级缓存）+ 日期
  * ③ 场地×场次表（current/page：时段/余量/价格/预约状态内嵌 sessionVo）
- * ④ 选中场次 → 预约卡 → 跳官方网页预约（预约须知第 12 条：脚本/插件等
- *    非正常途径预定，一经核实封禁预订权限 6 个月并函告院系——应用内
- *    刻意不实现 addReserve，查询/退订不受该条约束）
+ * ④ 选中场次 → 预约卡 → 跳官方网页预约（hash 深链直达所选场馆；预约须知
+ *    第 12 条：脚本/插件等非正常途径预定，一经核实封禁预订权限 6 个月并
+ *    函告院系——应用内刻意不实现 addReserve，查询/退订不受该条约束）
  * ⑤ 我的预约记录（reserveRecord）+ 退订（cancelReserve，confirm 确认）
  *
  * 错误铁律（与其它 tab 同源）：
@@ -91,8 +91,12 @@ import { useApp } from "../../state/context.js";
 import { TabEmpty, logTabErr, tabErrorText } from "./tabStates.js";
 import { openExternal } from "./openExternal.js";
 
-/** 体育系统官方预约页（应用内不提交预约，一律引导到此） */
-const VENUE_WEB = "https://www.sports.tsinghua.edu.cn/venue/index.html";
+/** 体育系统官方预约页深链（应用内不提交预约，一律引导到此）：
+ *  官方 SPA（hash 路由）venueHub 页按场次类别 sysNo 分流，兜底与场地类
+ *  统一落 reserveList?uuid=；该页读 uuid 后 newSceneType 自动定位到对应
+ *  场馆场次列表（实测抓包 chunk-0e504f6d，仅认 uuid，无日期参数）。 */
+const venueWebUrl = (sceneUuid: string) =>
+  `https://www.sports.tsinghua.edu.cn/venue/index.html#/reserveList?uuid=${encodeURIComponent(sceneUuid)}`;
 
 
 type LoadState = "idle" | "loading" | "error" | "ready";
@@ -466,10 +470,11 @@ export function VenueSportsTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, venue?.uuid, date, building, room, devKind, classEnum, useType]);
 
-  /* —— 跳官方网页预约（应用内不提交：预约须知第 12 条封禁条款） —— */
+  /* —— 跳官方网页预约（直达所选场馆；应用内不提交：预约须知第 12 条封禁条款） —— */
   const goOfficialBooking = useCallback(() => {
-    void openExternal(VENUE_WEB);
-  }, []);
+    if (!venue) return;
+    void openExternal(venueWebUrl(venue.uuid));
+  }, [venue]);
 
   /* —— 退订 —— */
   const unsubscribe = useCallback(
