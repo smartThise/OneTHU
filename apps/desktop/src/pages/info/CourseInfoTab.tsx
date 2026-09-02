@@ -123,11 +123,6 @@ export function CourseInfoTab() {
             placeholder="搜索课程名 / 教师姓名（如：微积分 / 冯铃）"
             aria-label="搜索课程"
           />
-          {input ? (
-            <button className="btn btn-ghost" onClick={() => setInput("")}>
-              清除
-            </button>
-          ) : null}
         </div>
         <button className="btn" disabled={state === "loading"} onClick={() => void runSearch(input)}>
           搜索
