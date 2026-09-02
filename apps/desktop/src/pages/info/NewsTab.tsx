@@ -554,7 +554,7 @@ export function NewsTab({
 
       {/* 搜索栏 + 订阅管理入口（全局：两个分栏共用同一搜索词） */}
       <div style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "center" }}>
-        <div className="search-box" style={{ flex: 1 }}>
+        <div className="search-box" style={{ flex: 1, marginBottom: 0 }}>
           <IconSearch width={15} height={15} />
           <input
             value={input}
@@ -562,11 +562,8 @@ export function NewsTab({
             placeholder="搜索标题 / 正文 / 来源（服务端优先，本地兜底）"
             aria-label="搜索新闻"
           />
-          {input ? (
-            <button className="btn btn-ghost" onClick={() => setInput("")}>清除</button>
-          ) : null}
         </div>
-        <button className="btn" onClick={() => setSubsOpen(true)}>
+        <button className="btn" style={{ alignSelf: "stretch" }} onClick={() => setSubsOpen(true)}>
           订阅管理{subs.length > 0 ? `（${subs.length}）` : ""}
         </button>
       </div>
