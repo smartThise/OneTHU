@@ -170,6 +170,10 @@ export type {
 export { LEARN_FILE_DOWNLOAD, LEARN_PREFIX } from "./learn/urls.js";
 export { setWebvpnLog } from "./auth/demoLogin.js";
 
+/* courseX（tsinghua.app 课表共享库）——免凭证公开查询，上传不接入（无公开登录渠道） */
+export { courseXSemesterText, getCourseXDetailPublic, getCourseXSemesters, searchCourseXPublic } from "./coursex/client.js";
+export type { CourseXDetail, CourseXSemester, CourseXSummary } from "./coursex/client.js";
+
 /* 体育场馆系统（sports.tsinghua.edu.cn unifound-venue）—— 独立 token 鉴权 */
 export { VenueClient, VenueAuthRequiredError, VenueApiError, VENUE_BASE, fmtVenueDate, venueTokenExpiresAt } from "./venue/client.js";
 export { md5hex, buildVenueSign, venueSignQuery, VENUE_APP_ID, VENUE_SIGN_KEY } from "./venue/sign.js";
