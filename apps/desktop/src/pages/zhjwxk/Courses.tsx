@@ -1082,7 +1082,6 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
                       style={{ position: "absolute", left: `calc(${leftPct}% + 3px)`, width: `calc(${widthPct}% - 6px)`, top, height, background: b.color, borderRadius: 5, padding: compact ? "2px 4px" : "3px 5px", color: "#fff", overflow: "hidden", boxSizing: "border-box", boxShadow: "0 1px 3px rgba(0,0,0,0.18)", zIndex: 6, cursor: b.manual ? undefined : "pointer" }}
                       onClick={() => { if (!b.manual && b.code) jumpTo(b.code); }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                        {b.origin ? <span style={{ fontSize: 8, padding: "0 3px", borderRadius: 3, background: "rgba(255,255,255,.28)", whiteSpace: "nowrap" }}>{b.origin}</span> : null}
                         <div style={{ fontSize: compact ? 8.5 : 9.5, fontWeight: 700, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.label}</div>
                       </div>
                       {!compact ? <div style={{ fontSize: 8, opacity: 0.9, lineHeight: 1.3 }}>{pvHm(b.begin)}–{pvHm(b.end)}{b.tag ? ` ${b.tag}` : ""}</div> : null}
