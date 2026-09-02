@@ -477,7 +477,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
           </Card>
           {wb.searchIncomplete ? (
             <div style={{ textAlign: "center", padding: "8px 0", fontSize: 12, color: "var(--amber)" }}>
-              数据不完整：已加载前 {Math.ceil(listRows.length / 20)} 页（{listRows.length} 门），教务共 {wb.searchTotalPages} 页
+              数据不完整：已加载 {listRows.length} 门{wb.searchTotalPages > 0 ? `，教务共 ${wb.searchTotalPages} 页` : "，还有更多"}
               <button className="btn" style={{ marginLeft: 8 }} disabled={busy} onClick={() => void wb.loadAllSearch()}>
                 {busy ? "加载中…" : "加载当前关键词全部"}
               </button>

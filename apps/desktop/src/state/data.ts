@@ -940,12 +940,14 @@ export function useXkWorkbench(): XkWorkbench {
           if (r2.rows.length > 0) head = r2;
         }
         const tp = head.totalPages ?? 0;
-        const probeTo = tp > 0 ? Math.min(tp, 5) : 3;
-        // 并发探测 + 30ms 错峰（批量模式验证过的节律）+ 失败单页重试一次
+        // 用户定稿（2026-09 二稿）：<500 门（≤25 页）→ 除首页外全部并发一口气拉完；
+        // ≥500 门 → 先探 5 页（100 门）+ 提示条显式加载全部。tp 解析失败保守探 25 页。
+        const probeTo = tp > 0 ? (tp <= 25 ? tp : 5) : 25;
+        // 并发 + 20ms 微错峰（裸并发会被教务打挂——40/74 教训）+ 失败单页重试一次
         const rest = probeTo >= 2
           ? await Promise.all(Array.from({ length: probeTo - 1 }, (_, i) =>
             (async (): Promise<typeof head | null> => {
-              await sleep(i * 30);
+              await sleep(i * 20);
               try {
                 return await fetchXkPage(base, i + 2);
               } catch {
@@ -971,12 +973,13 @@ export function useXkWorkbench(): XkWorkbench {
           absorb(r);
           okPages += 1;
         }
+        const lastFull = rest.length > 0 && rest[rest.length - 1] !== null && rest[rest.length - 1]!.rows.length >= 20;
         setSearchRaw(merged);
         setSearchPage(okPages);
         setSearchLoadedTo(okPages);
         setSearchTotalPages(tp);
         setSearchHasMore(false);
-        setSearchIncomplete(tp > okPages); // 按实际拿到的连续页数判定，绝不按算术装完整
+        setSearchIncomplete(tp > okPages || (tp === 0 && okPages === probeTo && lastFull)); // 按实际连续页数判定
         setSearchError(head.pageKind === "unknown" ? `教务返回异常页（首段: ${head.htmlHead}）` : null);
         setSearchState("ready");
       } catch (err) {
