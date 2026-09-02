@@ -941,25 +941,42 @@ export function useXkWorkbench(): XkWorkbench {
         }
         const tp = head.totalPages ?? 0;
         const probeTo = tp > 0 ? Math.min(tp, 5) : 3;
+        // 并发探测 + 30ms 错峰（批量模式验证过的节律）+ 失败单页重试一次
         const rest = probeTo >= 2
-          ? await Promise.all(Array.from({ length: probeTo - 1 }, (_, i) => fetchXkPage(base, i + 2).catch(() => null)))
+          ? await Promise.all(Array.from({ length: probeTo - 1 }, (_, i) =>
+            (async (): Promise<typeof head | null> => {
+              await sleep(i * 30);
+              try {
+                return await fetchXkPage(base, i + 2);
+              } catch {
+                await sleep(150);
+                try { return await fetchXkPage(base, i + 2); } catch { return null; }
+              }
+            })()))
           : [];
         if (seq !== searchSeqRef.current) return;
+        // 连续合并：遇失败页即停（洞页绝不用后续页顶包），失败页数交给「加载全部」补
         const seen = new Set<string>();
         const merged: XkCourse[] = [];
-        for (const r of [head, ...rest]) {
-          if (!r) continue;
+        const absorb = (r: typeof head): void => {
           for (const c of r.rows) {
             const k = `${c.code}_${c.seq || "0"}`;
             if (!seen.has(k)) { seen.add(k); merged.push(c); }
           }
+        };
+        absorb(head);
+        let okPages = 1;
+        for (const r of rest) {
+          if (!r || r.rows.length === 0) break;
+          absorb(r);
+          okPages += 1;
         }
         setSearchRaw(merged);
-        setSearchPage(probeTo);
-        setSearchLoadedTo(probeTo);
+        setSearchPage(okPages);
+        setSearchLoadedTo(okPages);
         setSearchTotalPages(tp);
         setSearchHasMore(false);
-        setSearchIncomplete(tp > probeTo); // 真实总页数 > 已探测页数才叫不完整
+        setSearchIncomplete(tp > okPages); // 按实际拿到的连续页数判定，绝不按算术装完整
         setSearchError(head.pageKind === "unknown" ? `教务返回异常页（首段: ${head.htmlHead}）` : null);
         setSearchState("ready");
       } catch (err) {
@@ -983,22 +1000,24 @@ export function useXkWorkbench(): XkWorkbench {
     const PAGE_POOL = 5;
     const to = searchTotalPages || searchLoadedTo; // 无真值则无处可爬
     let empty = false;
+    let hadFailure = false;
+    const grab = async (i: number): Promise<XkCourse[] | null> => {
+      await sleep((i % PAGE_POOL) * 30);
+      try {
+        return (await fetchXkPage(base, i)).rows;
+      } catch {
+        await sleep(150);
+        try { return (await fetchXkPage(base, i)).rows; } catch { return null; }
+      }
+    };
     try {
       for (let p = searchLoadedTo + 1; p <= to && !empty; p += PAGE_POOL) {
-        const wave: Array<Promise<XkCourse[] | null>> = [];
-        for (let i = p; i < p + PAGE_POOL && i <= to; i++) {
-          wave.push(
-            (async () => {
-              await sleep((i - p) * 30);
-              const r = await fetchXkPage(base, i);
-              return r.rows;
-            })().catch(() => null),
-          );
-        }
-        const results = await Promise.all(wave);
+        const hi = Math.min(p + PAGE_POOL - 1, to);
+        const results = await Promise.all(Array.from({ length: hi - p + 1 }, (_, i) => grab(p + i)));
         if (seq !== searchSeqRef.current) return;
         for (const rows of results) {
-          if (!rows || rows.length === 0) { empty = true; continue; }
+          if (rows === null) { hadFailure = true; continue; } // 失败页：不终止，保持可重试
+          if (rows.length === 0) { empty = true; continue; }
           for (const c of rows) {
             const k = `${c.code}_${c.seq || "0"}`;
             if (!seen.has(k)) { seen.add(k); added.push(c); }
@@ -1007,8 +1026,8 @@ export function useXkWorkbench(): XkWorkbench {
       }
       if (seq !== searchSeqRef.current) return;
       setSearchRaw((prev) => [...prev, ...added]);
-      setSearchLoadedTo(to);
-      setSearchIncomplete(false);
+      if (empty) setSearchLoadedTo(to);
+      setSearchIncomplete(hadFailure && !empty); // 仍有失败页：横幅留着，用户可再点补
       setSearchState("ready");
       setToast(`已加载全部 ${searchRaw.length + added.length} 门`);
     } catch (err) {
