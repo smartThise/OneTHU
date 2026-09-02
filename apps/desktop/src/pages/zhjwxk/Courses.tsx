@@ -450,8 +450,11 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   const firstSearchRef = useRef(false);
   useEffect(() => {
     const kw = query.trim();
+    // 课号识别：无中文 + 含数字 + 长度≥5 → 课号检索。覆盖本校 10421315（含 -0 序号后缀，
+    // 截掉后缀发课号）、北大 PK00334770、北外 BW3w0007；中文课名/教师名不受影响。
+    const codeLike = kw.length >= 5 && !/[\u4e00-\u9fff]/.test(kw) && /\d/.test(kw) && /^[A-Za-z0-9][-A-Za-z0-9]*$/.test(kw);
     const meta: XkSearchMeta = {
-      kcm: /^\d{4,}$/.test(kw) ? "" : kw,
+      kcm: codeLike ? "" : kw,
       teacher: "",
       department: "",
       weekday: day || "",
@@ -461,7 +464,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
       kctsm: FEATURES.some(([label]) => label === feature) ? feature : "",
       onlyAvailable: bksrem === "1",
       gradAvail: yjsrem === "1",
-      kch: /^\d{4,}$/.test(kw) ? kw : "",
+      kch: codeLike ? kw.split(/[-–]/)[0]!.trim() : "",
     };
     const t = setTimeout(() => {
       firstSearchRef.current = true;
