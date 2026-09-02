@@ -112,7 +112,7 @@ export function CourseInfoTab() {
             options={semesters.map((s) => ({ value: s.id, label: s.label }))}
           />
         ) : null}
-        <div className="search-box" style={{ flex: 1, minWidth: 160 }}>
+        <div className="search-box" style={{ flex: 1, minWidth: 160, marginBottom: 0 }}>
           <IconSearch width={15} height={15} />
           <input
             value={input}
@@ -124,7 +124,12 @@ export function CourseInfoTab() {
             aria-label="搜索课程"
           />
         </div>
-        <button className="btn" disabled={state === "loading"} onClick={() => void runSearch(input)}>
+        <button
+          className="btn"
+          style={{ alignSelf: "stretch" }}
+          disabled={state === "loading"}
+          onClick={() => void runSearch(input)}
+        >
           搜索
         </button>
       </div>
