@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { Card, Empty, ErrorNote, PageHead, SegmentedOverflow, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useXkWorkbench, type XkSearchMeta, type XkStageItem } from "../../state/data.js";
+import { useApp } from "../../state/context.js";
 import type { XkCourseDetail } from "@onethu/core";
 import { tbEnsureIndex, tbFetchReviews, tbMatch, tbStars, tbCourseUrl, tbWriteUrl, type TbEntry, type TbReviews } from "../../lib/xkreviews.js";
 import { openExternal } from "../info/openExternal.js";
@@ -714,6 +715,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
   setPicks: (f: (m: Record<string, { flag: XkFlag; zy: number }>) => Record<string, { flag: XkFlag; zy: number }>) => void;
   highlight: boolean;
 }) {
+  const { navigate } = useApp();
   const key = r.key;
   const inStage = wb.stageCart.some((s) => s.code === r.c.code && s.seq === r.c.seq);
   const pick = picks[key] ?? { flag: allowedFlags(r.flag)[0]!, zy: 3 };
@@ -751,6 +753,13 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             <span style={{ marginLeft: 8, color: prob.color }}>{prob.prob}</span>
           </div>
         ) : null}
+        {(() => { const o = originOf(r.c.code); return o ? (
+          <div className="row-sub" style={{ color: "var(--amber)", whiteSpace: "normal", display: "flex", gap: 6, alignItems: "flex-start" }}>
+            <span style={{ flex: 1 }}>{o}课程时间无法自动获取——请在新闻中查阅「北京大学、北京外国语大学部分课程面向我校本科生开放选课」通知，附件含具体上课时间。</span>
+            <button className="btn" style={{ flexShrink: 0, padding: "1px 8px", fontSize: 11 }} title="跳转新闻搜索该通知"
+              onClick={() => navigate("info", { infoNewsQuery: "北京大学 北京外国语大学" })}>查通知</button>
+          </div>
+        ) : null; })()}
         {confs.length ? <div className="row-sub" style={{ color: "var(--red)", whiteSpace: "normal" }}>冲突: {confs.slice(0, 3).map((c) => `周${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.b}`).join(" · ")}</div> : null}
         {state === "selected" ? (
           <div className="row-sub" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
