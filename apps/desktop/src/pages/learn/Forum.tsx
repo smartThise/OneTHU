@@ -13,8 +13,6 @@ import { useApp } from "../../state/context.js";
 import { BackButton, RichContent, fmtDateTime } from "./shared.js";
 import { openExternal } from "../info/openExternal.js";
 
-const PAGE_SIZE = 8; // 站点 loadpage2 myPageSize
-
 /* ══════════ 列表（课程详情 → 讨论区 tab） ══════════ */
 
 type BbsKind = "yb" | "jh" | "cy";
@@ -256,12 +254,13 @@ export function ForumThreadPage() {
       setState("ready");
       return;
     }
-    Promise.all([learn.getBbsThread(courseId, threadId), learn.getBbsThreadPosts(courseId, threadId, 0)])
-      .then(([h, p]) => {
+    learn
+      .getBbsThread(courseId, threadId)
+      .then((h) => {
         setHead(h);
-        setPosts(p);
-        setPage(0);
-        setHasMore(p.length >= PAGE_SIZE);
+        setPosts(h.posts); // 首屏回复在 viewTlById HTML 里服务端渲染
+        setPage(0); // 0 = 已消费 HTML 首屏；ajax 分页从 1 起
+        setHasMore(h.posts.length < h.replyCount);
         setState("ready");
       })
       .catch((e: unknown) => {
@@ -276,13 +275,13 @@ export function ForumThreadPage() {
 
   const loadMore = () => {
     if (status === "demo") return;
-    const next = page + 1;
+    const next = page + 1; // ajax 分页页码从 1 起（0 是服务端渲染首屏，接口无效页）
     learn
       .getBbsThreadPosts(courseId, threadId, next)
       .then((p) => {
         setPosts((old) => [...old, ...p]);
         setPage(next);
-        setHasMore(p.length >= PAGE_SIZE);
+        setHasMore(p.length > 0 && posts.length + p.length < (head?.replyCount ?? 0));
       })
       .catch((e: unknown) => setError(explainNetworkError(e)));
   };
@@ -483,6 +482,7 @@ function DEMO_HEAD(threadId: string): LearnBbsThreadDetail {
     author: "黄梓安",
     time: "2026-08-31 16:44",
     html: "<p><b>问题背景</b></p><p>选题灵感来源于一个刚入门的科研菜菜：从模糊的 idea 到可复现的实验结果之间有很大 gap，需要反复试错、与 agent 频繁交互调整来填平。（演示数据）</p>",
+    posts: [],
     replyCount: 4,
     tabbh: "2",
     tabid: "demo",

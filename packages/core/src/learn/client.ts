@@ -321,6 +321,52 @@ function parseBbsMainBlock(html: string): { author: string; time: string; html: 
   return { author, time, html: body };
 }
 
+/** viewTlById HTML 里服务端渲染的首屏回复（firstHfItems 下 item_<hhid> 块，≤8 条）。
+ *  2026-09 离线演练于真实样本：4 回复 × (作者/楼层/时间/正文/楼中楼) 全对。
+ *  结构：<div id="item_NNN" class="list lists clearfix"> .left name + .right（p_nr 正文、
+ *  lc 楼层+时间、huifu id=NNN、hfItems_NNN 楼中楼 item_MMM）。 */
+function parseBbsReplyBlocks(html: string): LearnBbsPost[] {
+  const start = html.indexOf('id="firstHfItems"');
+  if (start < 0) return [];
+  const region = html.slice(start);
+  const marks = [...region.matchAll(/<div id="item_(\d+)" class="list lists clearfix">/g)];
+  const out: LearnBbsPost[] = [];
+  for (let i = 0; i < marks.length; i++) {
+    const hhid = marks[i]![1]!;
+    const blk = region.slice(marks[i]!.index!, i + 1 < marks.length ? marks[i + 1]!.index! : region.length);
+    const author = decodeHtml(/class="name"[^>]*>([^<]{1,60})</.exec(blk)?.[1] ?? "").trim();
+    const lc = /<span name="lc">(\d+)<\/span>楼：([\d-]+ [\d:]+)/.exec(blk);
+    const time = lc?.[2] ?? "";
+    const nr = /<p name="p_nr">([\s\S]*?)<\/p>/.exec(blk)?.[1] ?? "";
+    const atts: LearnBbsPostAttachment[] = [];
+    for (const a of blk.matchAll(/downloadFileByTlForStu\?wlkcid=[^"&]+&wjid=(\d+)[^"]*"[^>]*>([^<]{1,120})</g)) {
+      atts.push({ wjid: a[1]!, wjmc: decodeHtml(a[2]!).trim() });
+    }
+    const children: LearnBbsPost[] = [];
+    const subRe =
+      /<span style="color: #139ff7">([^<]+)：?<\/span>\s*<span name="p_nr">([\s\S]*?)<\/span>/g;
+    for (const sub of blk.matchAll(subRe)) {
+      children.push({
+        hhid: "",
+        author: decodeHtml(sub[1]!).replace(/：$/, "").trim(),
+        time: "",
+        html: decodeHtml(sub[2]!).trim(),
+        attachments: [],
+        children: [],
+      });
+    }
+    out.push({
+      hhid: marks[i]![1]!,
+      author,
+      time,
+      html: decodeHtml(nr).trim(),
+      attachments: atts,
+      children,
+    });
+  }
+  return out;
+}
+
 /** pageViewTlById JSON 行 → LearnBbsPost（字段：hhid/hfr/hfrxm/hfsj/nr_str/wjid/wjmc/hhbDtoList） */
 function parseBbsPostJson(raw: unknown): LearnBbsPost {
   const o = (raw ?? {}) as Record<string, unknown>;
@@ -935,6 +981,7 @@ export class LearnClient {
             html.slice(0, 900);
       const span = (re: RegExp): string => re.exec(html)?.[1] ?? "";
       return {
+        posts: parseBbsReplyBlocks(html),
         id: threadId,
         title: decodeHtml(
           span(/id="tlbt"[\s\S]{0,220}?<span[^>]*title="([^"]*)"/) ||
@@ -951,7 +998,9 @@ export class LearnClient {
     });
   }
 
-  /** 回复分页（pageViewTlById JSON；每页 8 条，hhbDtoList 为楼中楼） */
+  /** 回复分页（pageViewTlById JSON；每页 8 条，hhbDtoList 为楼中楼）。
+   *  ⚠️ pageNum 从 1 起：0 是无效页（服务器回 total:0，2026-09-02 诊断实测）——
+   *  首屏回复已由 getBbsThread 的 posts（HTML 渲染）提供，这里只负责第 9 条起。 */
   async getBbsThreadPosts(wlkcid: string, threadId: string, pageNum: number): Promise<LearnBbsPost[]> {
     return this.#withRelogin(async () => {
       this.#requireCsrf();
