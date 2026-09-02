@@ -12,6 +12,7 @@ import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../compone
 import { info, logLine } from "../../lib/clients.js";
 import { explainNetworkError, universalFetch } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
+import { cacheGet, cacheSet } from "../../state/cache.js";
 
 /* 整页重载式自愈（用户语义：等同手动右键刷新，从头载入）。
    sessionStorage 节流：2 分钟内只自动重载一次，防止坏会话死循环；超限亮红交给用户。 */
@@ -47,29 +48,38 @@ const STATUS_CHIP: Record<string, string> = {
   处理中: "chip chip-amber",
 };
 
+const ELEC_KEY = "dorm:elec";
+const ELEC_TTL = 5 * 60 * 1000;
+
 export function DormTab() {
   const { status } = useApp();
 
-  /* ---------------- 电费（家园网会话） ---------------- */
-  const [elec, setElec] = useState<ElecBundle | null>(null);
-  const [elecState, setElecState] = useState<LoadState>("loading");
+  /* ---------------- 电费（家园网会话 + SWR 缓存） ---------------- */
+  const [elec, setElec] = useState<ElecBundle | null>(() => cacheGet<ElecBundle>(ELEC_KEY)?.data ?? null);
+  const [elecState, setElecState] = useState<LoadState>(() => (cacheGet<ElecBundle>(ELEC_KEY) ? "ready" : "loading"));
   const [elecError, setElecError] = useState<string | null>(null);
   /* 登录态丢失静默自愈：成功清零，同一次失败最多自动恢复 1 次（手动重试清零重计） */
   const elecRecover = useRef(0);
 
-  const loadElec = useCallback(async () => {
+  const loadElec = useCallback(async (silent = false) => {
     if (status !== "ready") return;
-    setElecState("loading");
-    setElecError(null);
+    if (!silent) {
+      setElecState("loading");
+      setElecError(null);
+    }
     try {
-      const remainder = await info.getEleRemainder();
-      // 缴费记录失败不影响余额展示（dorm.ts 两个端点相互独立）
-      const records = await info.getElePayRecord().catch((err: unknown) => {
-        logErr("ELE-RECORD", err);
-        return [] as ElePayRecord[];
-      });
+      // 余额与缴费记录并行（此前串行等两跳，且每跳前还有探针往返）
+      const [remainder, records] = await Promise.all([
+        info.getEleRemainder(),
+        info.getElePayRecord().catch((err: unknown) => {
+          logErr("ELE-RECORD", err);
+          return [] as ElePayRecord[];
+        }),
+      ]);
+      const bundle: ElecBundle = { remainder, records };
+      cacheSet(ELEC_KEY, bundle);
       elecRecover.current = 0;
-      setElec({ remainder, records });
+      setElec(bundle);
       setElecState("ready");
     } catch (err) {
       logErr("ELEC", err);
@@ -83,14 +93,19 @@ export function DormTab() {
         });
         return loadElec();
       }
+      // 已有旧数据（缓存/上次成功）时不闪红：SWR 语义，保留旧值下轮挂载再重验证
+      if (silent && elec !== null) return;
       setElecState("error");
       setElecError(explainNetworkError(err));
     }
-  }, [status]);
+  }, [status, elec]);
 
   useEffect(() => {
-    void loadElec();
-  }, [loadElec]);
+    if (status !== "ready") return;
+    const cached = cacheGet<ElecBundle>(ELEC_KEY);
+    if (!cached) void loadElec(false);
+    else if (Date.now() - cached.at > ELEC_TTL) void loadElec(true);
+  }, [status, loadElec]);
 
   /* ---------------- 订水（公开接口） ---------------- */
   const [waterId, setWaterId] = useState("");

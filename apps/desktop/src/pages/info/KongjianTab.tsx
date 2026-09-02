@@ -10,8 +10,10 @@
 import { useCallback, useEffect, useState } from "react";
 import type { KongjianPage, KongjianRecord, KongjianSlot } from "@onethu/core";
 import { Card, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { SearchSelect } from "../../components/SearchSelect.jsx";
 import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
+import { cacheGet, cacheSet } from "../../state/cache.js";
 import { TabEmpty, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
 
 type LoadState = "loading" | "error" | "ready";
@@ -31,10 +33,14 @@ function slotBookable(slot: KongjianSlot): boolean {
   return Boolean(slot.bookUrl);
 }
 
+const KJ_SPACES_KEY = "kj:spaces";
+const KJ_SPACES_TTL = 5 * 60 * 1000;
+const KJ_SLOTS_TTL = 3 * 60 * 1000;
+
 export function KongjianTab() {
   const { status } = useApp();
-  const [page, setPage] = useState<KongjianPage | null>(null);
-  const [state, setState] = useState<LoadState>("loading");
+  const [page, setPage] = useState<KongjianPage | null>(() => cacheGet<KongjianPage>(KJ_SPACES_KEY)?.data ?? null);
+  const [state, setState] = useState<LoadState>(() => (cacheGet<KongjianPage>(KJ_SPACES_KEY) ? "ready" : "loading"));
   const [unavailable, setUnavailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [spaceId, setSpaceId] = useState<string>("");
@@ -55,13 +61,16 @@ export function KongjianTab() {
     setState("error");
   }, []);
 
-  const loadSpaces = useCallback(async () => {
+  const loadSpaces = useCallback(async (silent = false) => {
     if (status !== "ready") return;
-    setState("loading");
-    setUnavailable(false);
-    setError(null);
+    if (!silent) {
+      setState("loading");
+      setUnavailable(false);
+      setError(null);
+    }
     try {
       const p = await info.kongjianPage();
+      cacheSet(KJ_SPACES_KEY, p);
       setPage(p);
       setSpaceId(p.selectedSpace ?? "");
       setState("ready");
@@ -70,21 +79,33 @@ export function KongjianTab() {
         logTabErr("KONGJIAN", new Error("公共空间列表为空（门户页兜底未命中）"));
       }
     } catch (err) {
-      fail(err);
+      if (!(silent && page !== null)) fail(err);
     }
-  }, [status, fail]);
+  }, [status, fail, page]);
 
   const loadSlots = useCallback(
     async (sp: string, rm: string, d: string) => {
-      setState("loading");
-      setUnavailable(false);
-      setError(null);
-      setPicked(null);
+      // 场次页按 space/room/date 键缓存：重选回来看过的组合 0ms 上屏，过期先亮旧值再静默刷新
+      const slotsKey = `kj:slots:${sp}:${rm}:${d}`;
+      const cached = cacheGet<KongjianPage>(slotsKey);
+      if (cached) {
+        setPage(cached.data);
+        setState("ready");
+        setPicked(null);
+        if (Date.now() - cached.at < KJ_SLOTS_TTL) return;
+      } else {
+        setState("loading");
+        setUnavailable(false);
+        setError(null);
+        setPicked(null);
+      }
       try {
         const p = await info.kongjianPage({ spaceId: sp, roomId: rm, date: d });
+        cacheSet(slotsKey, p);
         setPage(p);
         setState("ready");
       } catch (err) {
+        if (cached) return; // 已亮旧值：不闪红，保留旧场次
         fail(err);
       }
     },
@@ -105,7 +126,10 @@ export function KongjianTab() {
   }, []);
 
   useEffect(() => {
-    void loadSpaces();
+    if (status !== "ready") return;
+    const cached = cacheGet<KongjianPage>(KJ_SPACES_KEY);
+    if (!cached) void loadSpaces(false);
+    else if (Date.now() - cached.at > KJ_SPACES_TTL) void loadSpaces(true);
     void loadRecords();
   }, [loadSpaces, loadRecords]);
 
@@ -188,35 +212,22 @@ export function KongjianTab() {
           <Card style={{ marginBottom: 12, padding: "12px 14px" }}>
             <div className="field" style={{ marginBottom: 10 }}>
               <label style={{ fontSize: 12, opacity: 0.7 }}>公共空间</label>
-              <select
-                className="input"
+              <SearchSelect
                 value={spaceId}
-                onChange={(e) => pickSpace(e.target.value)}
-                style={{ height: 34, fontSize: 13 }}
-              >
-                <option value="">选择空间（{page.spaces.length} 个）…</option>
-                {spaces.map((sp) => (
-                  <option key={sp.id} value={sp.id}>
-                    {sp.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => pickSpace(v)}
+                placeholder={`选择空间（${page.spaces.length} 个）…`}
+                options={spaces.map((sp) => ({ value: sp.id, label: sp.name }))}
+              />
             </div>
             {page.rooms.length > 0 ? (
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>房间</div>
-                <select
-                  className="input filter-select"
+                <SearchSelect
                   value={roomId || page.selectedRoom || ""}
-                  onChange={(e) => pickRoom(e.target.value)}
-                >
-                  <option value="">全部房间…</option>
-                  {page.rooms.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => pickRoom(v)}
+                  placeholder="全部房间…"
+                  options={[{ value: "", label: "全部房间" }, ...page.rooms.map((r) => ({ value: r.id, label: r.name }))]}
+                />
               </div>
             ) : null}
             {page.dates.length > 0 ? (

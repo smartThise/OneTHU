@@ -118,7 +118,7 @@ export function AssignmentDetailPage() {
   if (!h) {
     return (
       <>
-        <PageHead title="作业详情" actions={<BackButton to={navParams?.from ?? "learn-assignments"} courseId={navParams?.courseId} />} />
+        <PageHead title="作业详情" actions={<BackButton to={navParams?.from ?? "learn-assignments"} courseId={navParams?.courseId} courseTab="assignments" />} />
         {state === "loading" ? (
           <SkeletonRows rows={4} />
         ) : state === "error" ? (
@@ -188,7 +188,7 @@ export function AssignmentDetailPage() {
         meta={`${course?.name ?? "课程"} · ${fmtDateTime(h.deadline)} 截止`}
         actions={
           <>
-            <BackButton to={navParams?.from ?? "learn-assignments"} courseId={navParams?.courseId} />
+            <BackButton to={navParams?.from ?? "learn-assignments"} courseId={navParams?.courseId} courseTab="assignments" />
             <button className="btn" onClick={() => void openExternal(h.url)} title="在系统浏览器打开">
               网页端打开
             </button>

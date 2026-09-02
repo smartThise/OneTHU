@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import type { LibBookRecord, Library, LibraryFloor, LibrarySeat, LibrarySection } from "@onethu/core";
 import { infoUrls, isAuthError } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { SearchSelect } from "../../components/SearchSelect.jsx";
 import { fetchImageByUrl, info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { autoFullReload } from "../../lib/reload.js";
@@ -541,57 +542,44 @@ export function LibraryTab() {
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
           <div className="field" style={{ margin: 0, minWidth: 150 }}>
             <label htmlFor="lib-lib">馆</label>
-            <select
-              id="lib-lib"
-              className="input"
-              value={libId ?? ""}
-              onChange={(e) => setLibId(Number(e.target.value) || null)}
-            >
-              {(libs ?? []).map((l) => (
-                <option key={l.id} value={l.id} disabled={!l.valid}>
-                  {l.zhName}
-                  {!l.valid ? "（暂不可约）" : ""}
-                </option>
-              ))}
-            </select>
+            <SearchSelect
+              value={libId != null ? String(libId) : ""}
+              onChange={(v) => setLibId(Number(v) || null)}
+              placeholder="选择馆…"
+              options={(libs ?? []).map((l) => ({
+                value: String(l.id),
+                label: l.zhName + (!l.valid ? "（暂不可约）" : ""),
+                disabled: !l.valid,
+              }))}
+            />
           </div>
           <div className="field" style={{ margin: 0, minWidth: 170 }}>
             <label htmlFor="lib-floor">楼层</label>
-            <select
-              id="lib-floor"
-              className="input"
-              value={floorId ?? ""}
-              onChange={(e) => setFloorId(Number(e.target.value) || null)}
+            <SearchSelect
+              value={floorId != null ? String(floorId) : ""}
+              onChange={(v) => setFloorId(Number(v) || null)}
+              placeholder={!floors ? "加载中…" : floors.length === 0 ? "无可用楼层" : "选择楼层…"}
               disabled={!floors || floors.length === 0}
-            >
-              {!floors ? <option value="">加载中…</option> : null}
-              {floors?.length === 0 ? <option value="">无可用楼层</option> : null}
-              {(floors ?? []).map((f) => (
-                <option key={f.id} value={f.id} disabled={!f.valid}>
-                  {f.zhName}
-                  {f.valid && f.total > 0 ? `（${f.available}/${f.total}）` : ""}
-                </option>
-              ))}
-            </select>
+              options={(floors ?? []).map((f) => ({
+                value: String(f.id),
+                label: f.zhName + (f.valid && f.total > 0 ? `（${f.available}/${f.total}）` : ""),
+                disabled: !f.valid,
+              }))}
+            />
           </div>
           <div className="field" style={{ margin: 0, minWidth: 170 }}>
             <label htmlFor="lib-section">区域</label>
-            <select
-              id="lib-section"
-              className="input"
-              value={sectionId ?? ""}
-              onChange={(e) => setSectionId(Number(e.target.value) || null)}
+            <SearchSelect
+              value={sectionId != null ? String(sectionId) : ""}
+              onChange={(v) => setSectionId(Number(v) || null)}
+              placeholder={!sections ? "加载中…" : sections.length === 0 ? "无可用区域" : "选择区域…"}
               disabled={!sections || sections.length === 0}
-            >
-              {!sections ? <option value="">加载中…</option> : null}
-              {sections?.length === 0 ? <option value="">无可用区域</option> : null}
-              {(sections ?? []).map((s) => (
-                <option key={s.id} value={s.id} disabled={!s.valid}>
-                  {s.zhName}
-                  {s.valid && s.total > 0 ? `（${s.available}/${s.total}）` : ""}
-                </option>
-              ))}
-            </select>
+              options={(sections ?? []).map((sec) => ({
+                value: String(sec.id),
+                label: sec.zhName + (sec.valid && sec.total > 0 ? `（${sec.available}/${sec.total}）` : ""),
+                disabled: !sec.valid,
+              }))}
+            />
           </div>
           <div className="field" style={{ margin: 0 }}>
             <label htmlFor="lib-date">日期</label>

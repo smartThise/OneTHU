@@ -55,9 +55,15 @@ export const LEARN_BBS_BOARD_LIST = (courseId: string) =>
 export const LEARN_BBS_THREAD_PAGE = (kind: "yb" | "jh" | "cy") =>
   `${LEARN_PREFIX}/b/wlxt/bbs/bbs_tltb/student/${kind}tlPageList`;
 
-/** 话题阅读页（HTML：楼主块 + 首屏回复；分页走 LEARN_BBS_POSTS_PAGE） */
-export const LEARN_BBS_THREAD_VIEW = (courseId: string, threadId: string) =>
-  `${LEARN_PREFIX}/f/wlxt/bbs/bbs_tltb/student/viewTlById?wlkcid=${courseId}&id=${threadId}`;
+/** 话题阅读页（HTML：楼主块 + 首屏回复；分页走 LEARN_BBS_POSTS_PAGE）。
+ *  tabbh+bqid 是站点原生链接的必带参数（缺省被甩登录壳页，2026-09-02 实测）；
+ *  注意 /f/ 页面是纯链接跳转，不带 _csrf。 */
+export const LEARN_BBS_THREAD_VIEW = (courseId: string, threadId: string, bqid?: string, tabbh = "2") =>
+  `${LEARN_PREFIX}/f/wlxt/bbs/bbs_tltb/student/viewTlById?wlkcid=${courseId}&id=${threadId}&tabbh=${tabbh}${bqid ? `&bqid=${bqid}` : ""}`;
+
+/** 讨论区列表页地址（作 Referer 用） */
+export const LEARN_BBS_LIST_REFERER = (courseId: string) =>
+  `${LEARN_PREFIX}/f/wlxt/bbs/bbs_tltb/student/beforePageTlList?wlkcid=${courseId}`;
 
 /** 回复分页 JSON。注意路径里 bbs_tltb 出现两次——站点原样。hhid 留空 = 主楼层流 */
 export const LEARN_BBS_POSTS_PAGE = (courseId: string, threadId: string, pageNum: number) =>
@@ -74,3 +80,7 @@ export const LEARN_BBS_NEW_THREAD_PAGE = (courseId: string) =>
 /** 话题附件下载（学生） */
 export const LEARN_BBS_ATTACHMENT = (courseId: string, wjid: string) =>
   `${LEARN_PREFIX}/b/wlxt/bbs/bbs_tltb/student/downloadFileByTlForStu?wlkcid=${courseId}&wjid=${wjid}`;
+
+/** 发表新话题（POST multipart：wlkcid/bqid/tabbh/bt/wtnr/fileupload）——schema 待 beforeEditTl 采样校准 */
+export const LEARN_BBS_SAVE_THREAD = (courseId: string) =>
+  `${LEARN_PREFIX}/b/wlxt/bbs/bbs_tltb/student/saveTl?wlkcid=${courseId}`;

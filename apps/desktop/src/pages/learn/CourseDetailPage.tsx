@@ -40,7 +40,11 @@ const GROUPS_CACHE_TTL = 5 * 60 * 1000;
 export function CourseDetailPage() {
   const { navParams, status } = useApp();
   const { data, state, error, reload } = useLearnData();
-  const [tab, setTab] = useState<Tab>("notices");
+  // 「各回各家」：从作业/帖子/通知等三级页返回时落到对应 tab，而不是恒第一个
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = navParams?.courseTab;
+    return t === "assignments" || t === "files" || t === "groups" || t === "forum" ? t : "notices";
+  });
 
   // 分组懒加载：首次切到「分组」tab 才请求（useState + useEffect）
   const [groups, setGroups] = useState<LearnGroup[] | null>(null);

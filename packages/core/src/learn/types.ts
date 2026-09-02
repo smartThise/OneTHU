@@ -194,13 +194,15 @@ export interface LearnBbsPost {
   children: LearnBbsPost[];
 }
 
-/** 话题头（楼主块 + 分页上下文） */
+/** 话题头（楼主块 + 分页上下文 + 服务端渲染的首屏回复） */
 export interface LearnBbsThreadDetail {
   id: string;
   title: string;
   author: string;
   time: string;
   html: string;
+  /** 首屏回复（viewTlById HTML 服务端渲染，≤8 条；翻页走 getBbsThreadPosts 且 pageNum 从 1 起） */
+  posts: LearnBbsPost[];
   replyCount: number;
   tabbh: string;
   tabid: string;

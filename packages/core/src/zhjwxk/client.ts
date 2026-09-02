@@ -23,6 +23,7 @@
  * 字节路径的解码语义见 crypto/decryptResponse.ts（demo 的 decryptResponse 移植）。
  */
 import { AuthRequiredError, type HttpClient } from "../http.js";
+import { gbkPercentEncode } from "./gbk-table.js";
 import { parseCasFormHtml } from "../auth/cas.js";
 import { decodeUrl, webvpnWrap } from "../crypto/webvpn.js";
 import { ID_PREFIX } from "../auth/cas.js";
@@ -88,7 +89,12 @@ interface ZhjwxkEntry {
   at: number;
 }
 
-const ENTRY_TTL_MS = 60_000;
+/** entry 信任窗（2026-09 选课性能专项）：entry 对象不参与实际请求（数据直打 ZHJWXK+path），
+ *  真会话在 HttpClient cookie jar——此 TTL 只是「jar 会话可信」的备忘时长。
+ *  60s 时代：离开页面 1 分钟回来即白付整条 xklogin SSO 链（4-5 慢往返），是选课模块
+ *  「每次回来都慢」的主凶。10min 窗 + proxyZhjwxkApi 死页自愈重试：jar 真死时在当次
+ *  请求内静默重登+重试，用户无感。UI 全部显式传学期，entry.semester 过期无碍。 */
+const ENTRY_TTL_MS = 10 * 60_000;
 const entryCache = new WeakMap<ZhjwxkSession, ZhjwxkEntry>();
 const entryInflight = new WeakMap<ZhjwxkSession, Promise<ZhjwxkEntry>>();
 
@@ -181,10 +187,24 @@ async function ensure(
 
 /* ── 通用代理（demo proxyZhjwxkApi）────────────────────────────── */
 
+/** 会话死页判据（可静默重试的子集；needCaptcha 需人工处理，不在此列） */
+function isXkDeadHtml(html: string): boolean {
+  return html.includes("accessDenied") || html.includes("用户登陆超时或访问内容不存在。请重试");
+}
+
 async function proxyZhjwxkApi(s: ZhjwxkSession, entry: ZhjwxkEntry, zhjwxkPath: string): Promise<string> {
   const html = await s.http.text(ZHJWXK + zhjwxkPath);
+  if (!isXkDeadHtml(html)) {
+    entry.at = Date.now();
+    return html;
+  }
+  // 乐观自愈（dormPage 同构）：jar 会话真死 → 静默重走登录链并重试一次，用户无感；
+  // 重试仍死则原样返回，由 assertNotDenied 抛 AuthRequiredError 走既有 autoFullReload 链
+  entryCache.delete(s);
+  await ensure(s);
+  const retried = await s.http.text(ZHJWXK + zhjwxkPath);
   entry.at = Date.now();
-  return html;
+  return retried;
 }
 
 /** demo：html.includes('accessDenied') → session 过期 / 需要重新登录 */
@@ -392,7 +412,9 @@ export function parseXkCatalogPage(html: string): XkCourse[] {
     const td = (i: number): string => (tds[i] ?? "").replace(/\s+/g, " ").trim();
     const code = td(1);
     const name = td(3);
-    if (!/^\d+$/.test(code) || !name) continue;
+    // 外校课程课号带前缀：PK=北大、BW=北外（北外形如 BW3w0007，含小写 w——
+    // HAR 实证，19 列与本校对齐）。规则：纯字母数字且至少含一个数字。
+    if (!/^[A-Za-z0-9]+$/.test(code) || !/\d/.test(code) || !name) continue;
     const href = /href="([^"]*showJsDetail[^"]*)"/.exec(m[1] ?? "")?.[1] ?? "";
     out.push({
       department: td(0),
@@ -592,6 +614,77 @@ export async function getXkCatalog(
     maxPages: 320,
   });
   return [...map.values()];
+}
+
+/**
+ * 服务端课程搜索（kkxxSearch 分页）：与批量抓取同一端点、同一 trr2 行结构
+ * （parseXkCatalogPage 原样复用），只是把筛选交给服务端、按页取数（每页 20 行）。
+ * 筛选参数来自存档表单（选课开课信息查询.html）：p_kch 课号 / p_kcm 课名 /
+ * p_zjjsxm 教师 / p_kkdwnm 院系 / p_skxq 星期 / p_skjc 节次 / p_ssnj 年级 /
+ * p_rxklxm 任选课组 / p_kctsm 特色 / p_bkskyl_ig=0 本科余量>0 / p_yjskyl_ig=0 研究生余量>0。
+ * 诊断：resp.htmlHead 带回响应首段（无 trr2 行时 UI 可据此判别空结果 vs 异常页）。
+ */
+export interface XkSearchResult {
+  rows: XkCourse[];
+  page: number;
+  hasMore: boolean;
+  /** 服务端分页器标注的真实总页数（页面含「共 N 页」；解析失败为 undefined） */
+  totalPages?: number;
+  /** empty=结果页但 0 行；unknown=非结果页（会话/异常，附首段诊断） */
+  pageKind: "empty" | "unknown";
+  /** 响应首段（仅 pageKind=unknown 时带出，用于现场诊断） */
+  htmlHead?: string;
+}
+export async function searchXkCourses(
+  s: ZhjwxkSession,
+  opts: {
+    semester?: string;
+    page?: number;
+    kch?: string;
+    kcm?: string;
+    teacher?: string;
+    department?: string;
+    weekday?: string;
+    section?: string;
+    grade?: string;
+    kcflm?: string;
+    rxklxm?: string;
+    kctsm?: string;
+    onlyAvailable?: boolean;
+    gradAvail?: boolean;
+  } = {},
+): Promise<XkSearchResult> {
+  const { entry, semester } = await ensure(s, opts.semester);
+  const page = Math.max(1, opts.page ?? 1);
+  // 手工拼查询串（URLSearchParams 会把 %XX 再编码成 %25XX）：中文一律 GBK 百分号编码——
+  // 教务页面 GBK，UTF-8 直发服务端解出乱码、LIKE 匹配不到 → 正常页面 0 行（实测实锤）。
+  const parts: string[] = ["m=kkxxSearch", `p_xnxq=${encodeURIComponent(semester)}`];
+  if (page > 1) parts.push(`page=${page}`);
+  if (opts.kch?.trim()) parts.push(`p_kch=${encodeURIComponent(opts.kch.trim())}`);
+  const kw = opts.kcm?.trim();
+  if (kw) parts.push(`p_kcm=${gbkPercentEncode(kw)}`);
+  const teacher = opts.teacher?.trim();
+  if (teacher) parts.push(`p_zjjsxm=${gbkPercentEncode(teacher)}`);
+  if (opts.department) parts.push(`p_kkdwnm=${encodeURIComponent(opts.department)}`);
+  if (opts.weekday) parts.push(`p_skxq=${encodeURIComponent(opts.weekday)}`);
+  if (opts.section) parts.push(`p_skjc=${encodeURIComponent(opts.section)}`);
+  if (opts.grade) parts.push(`p_ssnj=${encodeURIComponent(opts.grade)}`);
+  if (opts.kcflm) parts.push(`p_kcflm=${encodeURIComponent(opts.kcflm)}`);
+  if (opts.rxklxm) parts.push(`p_rxklxm=${encodeURIComponent(opts.rxklxm)}`);
+  if (opts.kctsm) parts.push(`p_kctsm=${encodeURIComponent(opts.kctsm)}`);
+  if (opts.onlyAvailable) parts.push("p_bkskyl_ig=0");
+  if (opts.gradAvail) parts.push("p_yjskyl_ig=0");
+  const html = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksJxjhBs.do?${parts.join("&")}&_t=${Date.now()}`);
+  assertNotDenied(s, html);
+  const rows = parseXkCatalogPage(html);
+  const tp = /共\s*(\d+)\s*页/.exec(html);
+  const totalPages = tp ? parseInt(tp[1]!, 10) : undefined;
+  if (rows.length > 0) return { rows, page, hasMore: true, totalPages, pageKind: "empty" };
+  // 0 行分类：结果页（含结果表头）= 真无匹配；否则异常页，带首段诊断
+  const isResultPage = html.includes("选课文字说明") || html.includes("trr2");
+  return isResultPage
+    ? { rows, page, hasMore: false, totalPages, pageKind: "empty" }
+    : { rows, page, hasMore: false, pageKind: "unknown", htmlHead: html.slice(0, 600).replace(/\s+/g, " ") };
 }
 
 /** 志愿统计（tbzySearchBR ≤200 页 + tbzySearchTy ≤20 页，失败容忍） */
@@ -1013,7 +1106,8 @@ export interface XkLevelTableRow {
  */
 export async function getXkLevelTable(s: ZhjwxkSession, opts: { semester: string }): Promise<Record<string, XkLevelTableRow>> {
   await ensure(s, opts.semester);
-  const html = await s.http.text(`${ZHJWXK}/xkBks.vxkBksXkbBs.do?p_xnxq=${encodeURIComponent(opts.semester)}&pathContent=${encodeURIComponent("一级课表")}`);
+  // pathContent 为中文参数：GBK 编码（UTF-8 直发服务端解乱码，取不到一级课表页）
+  const html = await s.http.text(`${ZHJWXK}/xkBks.vxkBksXkbBs.do?p_xnxq=${encodeURIComponent(opts.semester)}&pathContent=${gbkPercentEncode("一级课表")}`);
   const map: Record<string, XkLevelTableRow> = {};
   const rowRe = /<tr[^>]*class="trr2"[^>]*>([\s\S]*?)<\/tr>/g;
   let m: RegExpExecArray | null;

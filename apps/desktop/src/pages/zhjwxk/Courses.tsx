@@ -3,11 +3,11 @@
  * 左栏 = 搜索/筛选chips/筛选selects/课程列表；右栏 = 学分统计·课表预览·暂存草稿·候补·AI。
  * UI 用 OneTHU 设计系统（Card/list/row/chip/btn/input）。
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { Card, Empty, ErrorNote, PageHead, SegmentedOverflow, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
-import { useXkWorkbench, type XkStageItem } from "../../state/data.js";
+import { useXkWorkbench, type XkSearchMeta, type XkStageItem } from "../../state/data.js";
 import type { XkCourseDetail } from "@onethu/core";
 import { tbEnsureIndex, tbFetchReviews, tbMatch, tbStars, tbCourseUrl, tbWriteUrl, type TbEntry, type TbReviews } from "../../lib/xkreviews.js";
 import { openExternal } from "../info/openExternal.js";
@@ -25,6 +25,52 @@ const FEATURES: Array<[string, string]> = [
   ["认证外文课", "认证外文课"], ["通识荣誉课", "通识荣誉课"], ["通识选修课", "通识选修课"], ["语言类", "语言类课程"],
   ["通识英语", "通识英语"], ["公共英语", "公共英语"],
 ];
+/* ── 时间轴常量（对齐正式课表 Schedule.tsx；清华节次表）── */
+const PV_BEGIN = ["", "08:00", "08:50", "09:50", "10:40", "11:30", "13:30", "14:20", "15:20", "16:10", "17:05", "17:55", "19:20", "20:10", "21:00"];
+const PV_END = ["", "08:45", "09:35", "10:35", "11:25", "12:15", "14:15", "15:05", "16:05", "16:55", "17:50", "18:40", "20:05", "20:55", "21:45"];
+const pvToMin = (t: string): number => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+/** 大节 N → [起始分钟, 结束分钟]（1:小节1-2, 2:3-5, 3:6-7, 4:8-9, 5:10-11, 6:12-14） */
+const SLOT_RANGE: Array<[number, number]> = [
+  [pvToMin(PV_BEGIN[1]!), pvToMin(PV_END[2]!)],
+  [pvToMin(PV_BEGIN[3]!), pvToMin(PV_END[5]!)],
+  [pvToMin(PV_BEGIN[6]!), pvToMin(PV_END[7]!)],
+  [pvToMin(PV_BEGIN[8]!), pvToMin(PV_END[9]!)],
+  [pvToMin(PV_BEGIN[10]!), pvToMin(PV_END[11]!)],
+  [pvToMin(PV_BEGIN[12]!), pvToMin(PV_END[14]!)],
+];
+const PV_PX_PER_MIN = 0.72;
+const PV_AXIS_BEGIN = 8 * 60;
+const PV_AXIS_END = pvToMin(PV_END[14]!);
+const pvY = (min: number): number => (min - PV_AXIS_BEGIN) * PV_PX_PER_MIN;
+const pvHm = (m: number): string => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const PV_HALF_HOURS: number[] = Array.from({ length: Math.floor((PV_AXIS_END - PV_AXIS_BEGIN) / 30) + 1 }, (_, i) => PV_AXIS_BEGIN + i * 30);
+/** 外校钟点解析：「周X HH:MM—HH:MM」（北大/北外格式，— – - 通吃、顿号分隔多段；单双周标记 v1 忽略） */
+function clockRangesOf(note: string, time: string): Array<{ day: number; begin: number; end: number }> {
+  const out: Array<{ day: number; begin: number; end: number }> = [];
+  const dayIdx: Record<string, number> = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 日: 7, 天: 7 };
+  const re = /周([一二三四五六日天])\s*(\d{1,2}):(\d{2})\s*[—–-]\s*(\d{1,2}):(\d{2})/g;
+  let m: RegExpExecArray | null;
+  const src = `${note || ""} ${time || ""}`;
+  while ((m = re.exec(src)) !== null) {
+    const day = dayIdx[m[1]!] ?? 0;
+    const begin = Number(m[2]) * 60 + Number(m[3]);
+    const end = Number(m[4]) * 60 + Number(m[5]);
+    if (day >= 1 && end > begin) out.push({ day, begin, end });
+  }
+  return out;
+}
+/** 课块配色（无概率色时按课名稳定取色，同正式课表） */
+const PV_PALETTE = ["#6d7ff0", "#3d8bfd", "#1fa487", "#e07a4f", "#b463d6", "#2f9edb", "#c9971f", "#4caf6e", "#d45c8a", "#7a63e8"];
+const pvColorOf = (name: string): string => {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return PV_PALETTE[h % PV_PALETTE.length] ?? "#6d7ff0";
+};
+
+/** 外校课程标注：课号前缀 PK=北大、BW=北外（北外形如 BW3w0007 第三外语课） */
+const originOf = (code: string): "北大" | "北外" | "" => (code.startsWith("PK") ? "北大" : code.startsWith("BW") ? "北外" : "");
+const ORIGIN_COLORS: Record<"北大" | "北外", string> = { 北大: "#c0392b", 北外: "#1f4e79" };
+
 const fmtVol = (v: string): string => {
   const m = /\((\d+)\)([\d,]*)/.exec(v);
   return m ? `优先${m[1]}/${m[2]!.split(",").join("/")}` : v;
@@ -218,6 +264,45 @@ export function ZhjwxkCoursesPage() {
   }, [jump]);
 
   const selCredits = wb.selected.reduce((a, s) => a + (s.credits || 0), 0);
+
+  // 横屏双栏分割条：拖动改宽度；拖过阈值（<30% / >70%）塌缩为只显示左栏/右栏；状态持久化
+  const [split, setSplit] = useState<{ pct: number; collapsed: "none" | "left" | "right" }>(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem("onethu.xk.split") ?? "null") as { pct?: number; collapsed?: string } | null;
+      if (v && typeof v.pct === "number" && (v.collapsed === "none" || v.collapsed === "left" || v.collapsed === "right")) {
+        return { pct: Math.min(78, Math.max(22, v.pct)), collapsed: v.collapsed };
+      }
+    } catch { /* ignore */ }
+    return { pct: 50, collapsed: "none" };
+  });
+  const splitRef = useRef(split);
+  splitRef.current = split;
+  const colRef = useRef<HTMLDivElement | null>(null);
+  const setSplitP = (v: { pct: number; collapsed: "none" | "left" | "right" }): void => {
+    setSplit(v);
+    try { localStorage.setItem("onethu.xk.split", JSON.stringify(v)); } catch { /* ignore */ }
+  };
+  const onSepDown = (e: RPointerEvent<HTMLDivElement>): void => {
+    e.preventDefault();
+    e.currentTarget.dataset.dragging = "1";
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setSplitP({ pct: splitRef.current.pct, collapsed: "none" });
+  };
+  const onSepMove = (e: RPointerEvent<HTMLDivElement>): void => {
+    if (e.currentTarget.dataset.dragging !== "1") return;
+    const rect = colRef.current?.getBoundingClientRect();
+    if (!rect || rect.width < 200) return;
+    const pct = Math.min(78, Math.max(22, ((e.clientX - rect.left) / rect.width) * 100));
+    setSplitP({ pct, collapsed: "none" });
+  };
+  const onSepUp = (e: RPointerEvent<HTMLDivElement>): void => {
+    if (e.currentTarget.dataset.dragging !== "1") return;
+    e.currentTarget.dataset.dragging = "0";
+    const { pct } = splitRef.current;
+    if (pct < 30) setSplitP({ pct: 30, collapsed: "left" }); // 只显示左栏
+    else if (pct > 70) setSplitP({ pct: 70, collapsed: "right" }); // 只显示右栏
+  };
+
   return (
     <>
       <PageHead
@@ -226,7 +311,7 @@ export function ZhjwxkCoursesPage() {
           wb.semester ?? "选课系统",
           wb.phase ? "课余量模式" : "预选模式",
           `已选 ${wb.selected.length} 门 · ${selCredits} 学分`,
-          wb.catalogState === "ready" ? `目录 ${wb.catalog.length} 门${wb.catalog.length > 0 && wb.catalog.length < 5800 ? "（低于 5800，可能不完整）" : ""}` : "",
+          `已浏览 ${wb.searchRows.length} 门（实时）`,
         ].filter(Boolean).join(" · ")}
         actions={
           <>
@@ -251,11 +336,55 @@ export function ZhjwxkCoursesPage() {
       {wb.progress ? <Card style={{ padding: "8px 14px", borderColor: "var(--amber)", marginBottom: 10 }}><span style={{ fontSize: "var(--text-sm)" }}>{wb.progress}</span></Card> : null}
 
       {/* ── 桌面：双栏（左查找 / 右管理+AI）── */}
-      <div className="xk-two-col" style={{ display: "flex", gap: 12, alignItems: "stretch", flexWrap: "nowrap", width: "100%", maxWidth: "100%", overflow: "hidden" }}>
-        <div className="xk-left" style={{ maxHeight: "calc(100vh - 150px)" }}>
+      <div className="xk-two-col" ref={colRef} style={{ display: "flex", gap: 6, alignItems: "stretch", flexWrap: "nowrap", width: "100%", maxWidth: "100%", overflow: "hidden", userSelect: "none" }}>
+        {/* 塌缩用 display:none 藏身（绝不卸载）：筛选/搜索/滚动状态全保留 */}
+        <div
+          className="xk-left"
+          style={{
+            maxHeight: "calc(100vh - 150px)",
+            display: split.collapsed === "left" ? "none" : undefined,
+            flex: split.collapsed === "right" ? "1 1 0%" : "0 0 auto",
+            width: split.collapsed === "right" ? "auto" : `calc(${split.pct}% - 3px)`,
+            minWidth: 0,
+          }}
+        >
           <CourseListPanel wb={wb} jump={jump} />
         </div>
-        <div className="xk-right" style={{ maxHeight: "calc(100vh - 150px)", display: "flex", flexDirection: "column", gap: 10 }}>
+        {split.collapsed === "none" ? (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            title="拖动调整两栏宽度；拖到两端折叠为单栏"
+            onPointerDown={onSepDown}
+            onPointerMove={onSepMove}
+            onPointerUp={onSepUp}
+            onPointerCancel={onSepUp}
+            style={{ flex: "0 0 6px", cursor: "col-resize", borderRadius: 3, background: "var(--border, #ececec)", position: "relative", touchAction: "none" }}
+          >
+            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 3, height: 40, borderRadius: 2, background: "var(--text-3, #b8b8b8)" }} />
+          </div>
+        ) : (
+          <button
+            className="btn"
+            title="恢复双栏"
+            onClick={() => setSplitP({ pct: 50, collapsed: "none" })}
+            style={{ flex: "0 0 22px", padding: "12px 1px", fontSize: 12, fontWeight: 700, lineHeight: 1, alignSelf: "center", borderRadius: 6, letterSpacing: -1, whiteSpace: "nowrap", overflow: "visible" }}
+          >
+            ‹›
+          </button>
+        )}
+        <div
+          className="xk-right"
+          style={{
+            maxHeight: "calc(100vh - 150px)",
+            display: split.collapsed === "right" ? "none" : "flex",
+            flexDirection: "column",
+            gap: 10,
+            flex: split.collapsed === "left" ? "1 1 0%" : "1 1 0%",
+            minWidth: 0,
+            maxWidth: "none",
+          }}
+        >
           <PlanSection wb={wb} />
           <StatsSection wb={wb} />
           <PreviewSection wb={wb} />
@@ -310,12 +439,37 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   const [reviewsF, setReviewsF] = useState("");
   const [sortBy, setSortBy] = useState("");
   const [picks, setPicks] = useState<Record<string, { flag: XkFlag; zy: number }>>({});
-  const [limit, setLimit] = useState(120);
   const [highlight, setHighlight] = useState("");
 
+  /* 服务端筛选映射：课程号(纯数字)/课程名→文本框，通识课组→p_rxklxm，课程特色→p_kctsm，
+   * 年级→p_ssnj，星期→p_skxq，大节→p_skjc，本/研余量→p_bkskyl_ig/p_yjskyl_ig。
+   * 其余（冲突/学分/评价/文字说明/chips）为本地叠加，作用于已取回的页。 */
+  const serverKey = useMemo(() => JSON.stringify([
+    query.trim(), tongshi, feature, grade, day, period, bksrem === "1", yjsrem === "1",
+  ]), [query, tongshi, feature, grade, day, period, bksrem, yjsrem]);
+  const firstSearchRef = useRef(false);
   useEffect(() => {
-    if (wb.catalogState === "idle") void wb.loadCatalog();
-  }, [wb.catalogState, wb.loadCatalog]);
+    const kw = query.trim();
+    const meta: XkSearchMeta = {
+      kcm: /^\d{4,}$/.test(kw) ? "" : kw,
+      teacher: "",
+      department: "",
+      weekday: day || "",
+      section: period || "",
+      grade,
+      rxklxm: tongshi || "",
+      kctsm: FEATURES.some(([label]) => label === feature) ? feature : "",
+      onlyAvailable: bksrem === "1",
+      gradAvail: yjsrem === "1",
+      kch: /^\d{4,}$/.test(kw) ? kw : "",
+    };
+    const t = setTimeout(() => {
+      firstSearchRef.current = true;
+      void wb.newSearch(meta);
+    }, firstSearchRef.current ? 500 : 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverKey]);
   useEffect(() => {
     if (!jump) return;
     setQuery(jump);
@@ -326,10 +480,10 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   }, [jump]);
 
   const rows = useMemo<XkRow[]>(() => {
-    if (wb.catalogState !== "ready") return [];
+    if (wb.searchState === "idle" || wb.searchState === "loading") return [];
     const q = query.trim().toLowerCase();
     const dayRe = day && period ? new RegExp(`${day}-${period}\\(`) : day ? new RegExp(`${day}-\\d`) : period ? new RegExp(`\\d+-${period}\\(`) : null;
-    const base = wb.courses
+    const base = wb.searchRows
       .filter((r) => {
         if (q && !(r.name.toLowerCase().includes(q) || r.c.code.includes(q) || r.teacher.toLowerCase().includes(q))) return false;
         if (chip === "available" && !r.available) return false;
@@ -360,15 +514,45 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
           if (reviewsF === "low" && (!e || e.avg > 3)) return false;
         }
         return true;
-      })
-      .slice(0, limit);
+      });
     if (!sortBy) return base;
     const scored: Array<{ r: XkRow; e: TbEntry | null }> = base.map((r) => ({ r, e: tbMatch(r.name, r.teacher) }));
     if (sortBy === "cnt_desc") scored.sort((a, b) => (b.e?.count ?? -1) - (a.e?.count ?? -1));
     else if (sortBy === "rate_desc") scored.sort((a, b) => ((b.e?.avg ?? -1) - (a.e?.avg ?? -1)) || ((b.e?.count ?? 0) - (a.e?.count ?? 0)));
     else scored.sort((a, b) => ((a.e?.avg ?? 6) - (b.e?.avg ?? 6)) || ((b.e?.count ?? 0) - (a.e?.count ?? 0)));
     return scored.map((x) => x.r);
-  }, [wb.courses, wb.catalogState, wb.previewIndex, query, chip, credits, day, period, conflictF, tongshi, feature, grade, bksrem, yjsrem, xknote, reviewsF, sortBy, limit]);
+  }, [wb.searchRows, wb.searchState, wb.previewIndex, query, chip, credits, day, period, conflictF, tongshi, feature, grade, bksrem, yjsrem, xknote, reviewsF, sortBy]);
+
+  /* ── 分页（教务同款）：
+   *  · 浏览模式：curPage = 服务端页码，翻页 = wb.gotoPage(n)（点哪页爬哪页），总页数 = 服务端「共 N 页」；
+   *  · 搜索模式：本地翻页（已加载池在手，翻页零请求）；总页数/总数用服务端真值；
+   *    未加载的尾部页显示提示，点「加载全部」补齐。── */
+  const searchMode = Boolean(query.trim() || tongshi || feature || grade || day || period || bksrem === "1" || yjsrem === "1");
+  const [uiPage, setUiPage] = useState(1);
+  const [goPage, setGoPage] = useState("");
+  useEffect(() => { setUiPage(1); setGoPage(""); }, [wb.searchRunId]); // 新搜索回第 1 页
+  // 已选/候补兜底行只属于对应 chip 的列表——主列表（全部/可选/筛选）按纯搜索结果分页，
+  // 否则 buildRows 追加的已选行会污染总数与页数（70≠60 的教训）
+  const listRows = useMemo(() => {
+    if (chip === "selected" || chip === "queue") return rows;
+    const pk = new Set(wb.searchRaw.map((c) => `${c.code}_${c.seq || "0"}`));
+    return rows.filter((r) => pk.has(r.key));
+  }, [rows, chip, wb.searchRaw]);
+  const totalPages = wb.searchTotalPages || Math.max(1, Math.ceil(listRows.length / 20));
+  const curPage = searchMode ? Math.min(uiPage, totalPages) : wb.searchPage;
+  const pagedRows = useMemo(
+    () => (searchMode ? listRows.slice((curPage - 1) * 20, curPage * 20) : listRows),
+    [listRows, searchMode, curPage],
+  );
+  const busy = wb.searchState === "loading" || wb.searchState === "loadingMore";
+  const pageLoaded = !searchMode || !wb.searchIncomplete || curPage * 20 <= listRows.length;
+  const goJump = () => {
+    const n = parseInt(goPage, 10);
+    if (!Number.isFinite(n) || n < 1) return;
+    if (searchMode) setUiPage(Math.min(n, totalPages));
+    else void wb.gotoPage(n);
+    setGoPage("");
+  };
 
   const selSel = "input";
   const selStyle: React.CSSProperties = { height: 26, fontSize: 12, flex: 1, minWidth: 96 };
@@ -406,19 +590,43 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
         </div>
       </Card>
 
-      {chip === "plan" ? <PlanView wb={wb} query={query} /> : wb.catalogState === "idle" || wb.catalogState === "loading" ? (
-        <Card><SkeletonRows rows={6} /><Empty text="正在抓取课程目录与志愿统计（30ms 限速分页，首次约一两分钟）…" /></Card>
-      ) : wb.catalogState === "error" ? (
-        <ErrorNote text={wb.error ?? ""} onRetry={() => void wb.loadCatalog()} />
+      {chip === "plan" ? <PlanView wb={wb} query={query} /> : wb.searchState === "idle" || wb.searchState === "loading" ? (
+        <Card><SkeletonRows rows={6} /><Empty text="正在实时查询教务系统（搜索/翻页各 1 个往返，即搜即得）…" /></Card>
+      ) : wb.searchState === "error" ? (
+        <ErrorNote text={wb.searchError ?? ""} onRetry={() => void wb.retrySearch()} />
       ) : rows.length === 0 ? (
-        <Card><Empty text="暂无匹配课程。" /></Card>
+        <Card><Empty text={wb.searchError || "暂无匹配课程。"} /></Card>
       ) : (
         <>
+          {wb.searchIncomplete ? (
+            <div style={{ textAlign: "center", padding: "8px 0", fontSize: 12, color: "var(--amber)" }}>
+              数据不完整：已加载 {listRows.length} 门{wb.searchTotalPages > 0 ? `，教务共 ${wb.searchTotalPages} 页` : "，还有更多"}
+              <button className="btn" style={{ marginLeft: 8 }} disabled={busy} onClick={() => void wb.loadAllSearch()}>
+                {busy ? "加载中…" : "加载当前关键词全部"}
+              </button>
+            </div>
+          ) : null}
           <Card className="list">
-            {rows.map((r, i) => <PickCard key={r.key} wb={wb} r={r} i={i} picks={picks} setPicks={setPicks} highlight={r.c.code === highlight} />)}
+            {pagedRows.map((r, i) => <PickCard key={r.key} wb={wb} r={r} i={i} picks={picks} setPicks={setPicks} highlight={r.c.code === highlight} />)}
+            {pagedRows.length === 0 && !pageLoaded ? (
+              <Empty text="此页未加载——点上方「加载全部」后可查看。" />
+            ) : null}
           </Card>
-          <div style={{ textAlign: "center", padding: "10px 0" }}>
-            <button className="btn" onClick={() => setLimit((v) => v + 120)}>显示更多</button>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center", padding: "10px 0", flexWrap: "wrap" }}>
+            <button className="btn" disabled={busy || (searchMode ? curPage <= 1 : wb.searchPage <= 1)}
+              onClick={() => (searchMode ? setUiPage(curPage - 1) : void wb.gotoPage(wb.searchPage - 1))}>上一页</button>
+            <span style={{ fontSize: 12, color: "var(--text-3)" }}>
+              第 {curPage} 页 / 共 {totalPages} 页{searchMode && !wb.searchIncomplete ? `（${listRows.length} 门）` : ""}
+            </span>
+            <button className="btn" disabled={busy || (searchMode ? curPage >= totalPages : !wb.searchHasMore && !(wb.searchTotalPages > wb.searchPage))}
+              onClick={() => {
+                if (searchMode) setUiPage(curPage + 1);
+                else void wb.gotoPage(wb.searchPage + 1);
+              }}>下一页</button>
+            <span style={{ fontSize: 12, color: "var(--text-3)" }}>跳至</span>
+            <input className="input" style={{ width: 52, height: 24, fontSize: 12 }} value={goPage}
+              onChange={(e) => setGoPage(e.target.value.replace(/[^0-9]/g, ""))} onKeyDown={(e) => e.key === "Enter" && goJump()} />
+            <button className="btn" disabled={busy || !goPage} onClick={goJump}>GO</button>
           </div>
         </>
       )}
@@ -434,8 +642,8 @@ function PlanView({ wb, query }: { wb: ReturnType<typeof useXkWorkbench>; query:
     planGroupClick = () => { setPresetGroupChip?.("plan"); };
     return () => { planGroupClick = null; };
   }, []);
-  if (wb.plan.length === 0 && wb.catalogState !== "ready") {
-    return <Card><SkeletonRows rows={4} /><Empty text="培养方案与课程目录加载中（首次约一两分钟，之后秒开）…" /></Card>;
+  if (wb.plan.length === 0 && wb.searchState !== "ready") {
+    return <Card><SkeletonRows rows={4} /><Empty text="培养方案加载中（实时模式：随核心数据一并秒取）…" /></Card>;
   }
   if (!coverage.length) {
     return (
@@ -522,22 +730,25 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
       </div>
       <div className="row-main">
         <div className="row-title" style={{ whiteSpace: "normal" }}>
+          {(() => { const o = originOf(r.c.code); return o
+            ? <span style={{ fontSize: 10, padding: "1px 5px", marginRight: 6, borderRadius: 4, color: "#fff", background: ORIGIN_COLORS[o], verticalAlign: "1px", whiteSpace: "nowrap" }}>{o}</span>
+            : null; })()}
           {r.name}
           {r.teacherId ? <button className="btn" style={{ padding: "0 6px", marginLeft: 6, fontSize: 11 }} onClick={() => openDetail(r.c.code)}>简介</button> : null}
           {tbBadge(r) ? (
             <button className="btn" style={{ padding: "0 6px", marginLeft: 6, fontSize: 11, color: "var(--amber)" }} onClick={() => openReviews({ code: r.c.code, seq: r.c.seq, name: r.name, teacher: r.teacher })}>{tbBadge(r)}</button>
           ) : null}
         </div>
-        <div className="row-sub">{[r.c.code, r.c.seq && r.c.seq !== "0" ? `第${r.c.seq}班` : "", r.teacher, `${r.credits} 学分`, r.time, r.c.department].filter(Boolean).join(" · ")}</div>
+        <div className="row-sub" style={{ whiteSpace: "normal" }}>{[r.c.code, r.c.seq && r.c.seq !== "0" ? `第${r.c.seq}班` : "", r.teacher, `${r.credits} 学分`, r.time, r.c.department].filter(Boolean).join(" · ")}</div>
         {wb.phase && r.q ? (
-          <div className="row-sub">{[cap ? `容量 ${cap}` : "", r.q.qQueue ? `排队 ${r.q.qQueue}` : "", r.cand ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : ""].filter(Boolean).join(" · ")}</div>
+          <div className="row-sub" style={{ whiteSpace: "normal" }}>{[cap ? `容量 ${cap}` : "", r.q.qQueue ? `排队 ${r.q.qQueue}` : "", r.cand ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : ""].filter(Boolean).join(" · ")}</div>
         ) : r.vol ? (
-          <div className="row-sub">
+          <div className="row-sub" style={{ whiteSpace: "normal" }}>
             {[r.vol.volRequired && fmtVol(r.vol.volRequired), r.vol.volElective && fmtVol(r.vol.volElective), r.vol.volOptional && fmtVol(r.vol.volOptional)].filter(Boolean).join(" · ")}
             <span style={{ marginLeft: 8, color: prob.color }}>{prob.prob}</span>
           </div>
         ) : null}
-        {confs.length ? <div className="row-sub" style={{ color: "var(--red)" }}>冲突: {confs.slice(0, 3).map((c) => `周${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.b}`).join(" · ")}</div> : null}
+        {confs.length ? <div className="row-sub" style={{ color: "var(--red)", whiteSpace: "normal" }}>冲突: {confs.slice(0, 3).map((c) => `周${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.b}`).join(" · ")}</div> : null}
         {state === "selected" ? (
           <div className="row-sub" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
             {r.zy ? <span style={{ fontSize: 12, color: "var(--text-3)" }}>{FLAG_LABELS[r.flag]} · 第{r.zy}志愿</span> : null}
@@ -634,77 +845,112 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
   const [mOpen, setMOpen] = useState(false);
   const [mName, setMName] = useState("");
   const [mDay, setMDay] = useState("1");
-  const [mSlot, setMSlot] = useState("1");
+  // 默认值必须是真实选项值（19:20/20:55 非半小时刻度曾致 select 视觉回落 08:00/08:30 而 state 不变——实测事故）
+  const [mBegin, setMBegin] = useState("08:00");
+  const [mEnd, setMEnd] = useState("08:30");
   const mode = wb.previewMode;
 
-  // getPreviewCourses：selected 模式用 allCourses 里 selected 的合并行（目录时间），而非原始已选行
-  const courses = useMemo<Array<{ name: string; teacher?: string; code: string; seq: string; time: string; credits: number; zy: number; manual?: boolean; id?: string; flag?: XkFlag; typeCode?: string; isCandidate?: boolean }>>(() => {
+  // 课程池：selected 模式用合并行（含 note——北大/北外真实钟点在 note 里），stage/draft 用暂存/草稿
+  const courses = useMemo<Array<{ name: string; teacher?: string; code: string; seq: string; time: string; note: string; credits: number; zy: number; manual?: boolean; id?: string; flag?: XkFlag; typeCode?: string; isCandidate?: boolean }>>(() => {
     if (mode === "selected") {
       return wb.courses.filter((r) => r.selected).map((r) => ({
-        name: r.name, teacher: r.teacher, code: r.c.code, seq: r.c.seq || "0", time: r.time,
+        name: r.name, teacher: r.teacher, code: r.c.code, seq: r.c.seq || "0", time: r.time, note: r.c.note ?? "",
         credits: r.credits, zy: r.zy, typeCode: r.sel?.typeCode, isCandidate: false,
       }));
     }
-    if (mode === "stage") return wb.stageCart.map((s) => ({ name: s.name, teacher: s.teacher, code: s.code, seq: s.seq || "0", time: s.time, credits: s.credits, zy: s.zy, flag: s.flag }));
-    return (wb.savedDrafts[wb.previewDraftIdx]?.courses ?? []).map((s) => ({ name: s.name, teacher: s.teacher, code: s.code, seq: s.seq || "0", time: s.time, credits: s.credits, zy: s.zy, flag: s.flag }));
+    if (mode === "stage") return wb.stageCart.map((x) => ({ name: x.name, teacher: x.teacher, code: x.code, seq: x.seq || "0", time: x.time, note: "", credits: x.credits, zy: x.zy, flag: x.flag }));
+    return (wb.savedDrafts[wb.previewDraftIdx]?.courses ?? []).map((x) => ({ name: x.name, teacher: x.teacher, code: x.code, seq: x.seq || "0", time: x.time, note: "", credits: x.credits, zy: x.zy, flag: x.flag }));
   }, [mode, wb]);
 
-  const grid = useMemo(() => {
-    const manualEvents = wb.manualEvents;
-    const tt: Record<string, Record<string, {
-      label?: string; conflict?: boolean; items?: Array<{ label: string; code: string; seq: string; color: string; probLabel: string; probBgColor: string; manual?: boolean; id?: string }>;
-      color?: string; probLabel?: string; probBgColor?: string;
-    }>> = {};
-    const undet: Array<{ lbl: string; code: string; seq: string; credits: number; zy: number; manual: boolean; id?: string }> = [];
-    courses.concat(manualEvents.map((e) => ({ name: e.name, code: e.code, seq: e.seq, time: e.time, credits: e.credits, zy: 0, manual: true, id: e.id }))).forEach((c) => {
-      const lbl = c.teacher ? `${c.name}(${c.teacher})` : c.name;
-      let cellColor = "", probLabel = "", probBgColor = "";
-      if (c.manual) {
-        cellColor = "#8b5cf6"; probLabel = "自定义"; probBgColor = "rgba(139,92,246,.14)";
-      } else if (wb.phase) {
-        const qKey = `${c.code}_${c.seq || "0"}`;
-        const r = wb.courses.find((x) => x.c.code === c.code && String(x.c.seq || "0") === String(c.seq || "0"));
-        const qd = wb.queueMap[qKey] ?? r?.q;
-        const cand = wb.candidates.find((cc) => cc.code === c.code && String(cc.seq) === String(c.seq || "0"));
-        if (cand) {
-          cellColor = "#ff9f1a"; probLabel = `排队第${cand.myPos}/${cand.queueTotal}人`; probBgColor = "rgba(255,159,26,.14)";
-        } else if (mode === "selected") {
-          probLabel = "已选"; cellColor = "#07c160"; probBgColor = "rgba(7,193,96,.14)";
-        } else if (qd) {
-          if (qd.qRemaining > 0) { cellColor = "#07c160"; probLabel = `余${qd.qRemaining}`; probBgColor = "rgba(7,193,96,.14)"; }
-          else if (qd.qQueue > 0) { cellColor = "#ff9f1a"; probLabel = `排队${qd.qQueue}人`; probBgColor = "rgba(255,159,26,.14)"; }
-          else { cellColor = "#ee4d4d"; probLabel = "已满"; probBgColor = "rgba(238,77,77,.14)"; }
-        }
-      } else if (mode === "selected" && c.zy) {
-        const sf = (c.typeCode ? typeCodeToFlag(c.typeCode) : (c.flag ?? "bx")) as XkFlag;
-        const vol = r2vol(wb, c.code, c.seq);
-        const p = calcProb(vol?.capacity || 0, vol, sf, c.zy);
-        if (p.prob >= 0) { cellColor = p.color; probLabel = p.percentLabel || p.label; probBgColor = p.bg; }
-      } else if ((mode === "stage" || mode === "draft") && c.flag && c.zy) {
-        const vol = r2vol(wb, c.code, c.seq);
-        const p = calcProb(vol?.capacity || 0, vol, c.flag, c.zy);
-        if (p.prob >= 0) { cellColor = p.color; probLabel = p.percentLabel || p.label; probBgColor = p.bg; }
+  // 概率/余量信息（绿=有余量/已选，橙=排队，红=已满；色块直接画在时间轴课块上）
+  const probOf = (c: { code: string; seq: string; zy: number; manual?: boolean; flag?: XkFlag; typeCode?: string }): { color: string; label: string } => {
+    if (c.manual) return { color: "#8b5cf6", label: "占用" };
+    if (wb.phase) {
+      const qKey = `${c.code}_${c.seq || "0"}`;
+      const r = wb.courses.find((x) => x.c.code === c.code && String(x.c.seq || "0") === String(c.seq || "0"));
+      const qd = wb.queueMap[qKey] ?? r?.q;
+      const cand = wb.candidates.find((cc) => cc.code === c.code && String(cc.seq) === String(c.seq || "0"));
+      if (cand) return { color: "#ff9f1a", label: `排队第${cand.myPos}/${cand.queueTotal}人` };
+      if (mode === "selected") return { color: "#07c160", label: "已选" };
+      if (qd) {
+        if (qd.qRemaining > 0) return { color: "#07c160", label: `余${qd.qRemaining}` };
+        if (qd.qQueue > 0) return { color: "#ff9f1a", label: `排队${qd.qQueue}人` };
+        return { color: "#ee4d4d", label: "已满" };
       }
-      const slots = parseTimeSlots(c.time);
-      if (!slots.length) undet.push({ lbl, code: c.code, seq: c.seq || "0", credits: c.credits || 0, zy: c.zy || 0, manual: !!c.manual, id: c.id });
-      for (const { day, slot } of slots) {
-        if (!tt[day]) tt[day] = {};
-        const entry = { label: lbl, code: c.code, seq: c.seq || "0", color: cellColor, probLabel, probBgColor, manual: c.manual, id: c.id };
-        const existingCell = tt[day]![slot];
-        if (existingCell) {
-          const existing = existingCell.conflict && existingCell.items ? existingCell.items : existingCell.items ?? [];
-          if (existing.some((e) => e.code === entry.code && e.seq === entry.seq)) return;
-          const labels = existing.concat([entry]);
-          tt[day]![slot] = { label: labels.map((e) => e.label).join(" / "), conflict: true, items: labels };
-        } else {
-          tt[day]![slot] = { items: [entry] };
-        }
-      }
-    });
-    return { tt, undet, manualEvents };
-  }, [courses, mode, wb]);
+      return { color: "", label: "" };
+    }
+    if (mode === "selected" && c.zy) {
+      const sf = (c.typeCode ? typeCodeToFlag(c.typeCode) : (c.flag ?? "bx")) as XkFlag;
+      const vol = r2vol(wb, c.code, c.seq);
+      const p = calcProb(vol?.capacity || 0, vol, sf, c.zy);
+      return { color: p.prob >= 0 ? p.color : "", label: p.prob >= 0 ? (p.percentLabel || p.label) : "" };
+    }
+    if ((mode === "stage" || mode === "draft") && c.flag && c.zy) {
+      const vol = r2vol(wb, c.code, c.seq);
+      const p = calcProb(vol?.capacity || 0, vol, c.flag, c.zy);
+      return { color: p.prob >= 0 ? p.color : "", label: p.prob >= 0 ? (p.percentLabel || p.label) : "" };
+    }
+    return { color: "", label: "" };
+  };
 
-  // handlePreviewRemove（state.js:461 逐行移植）
+  // 时间轴课块：清华课按大节→钟点；北大/北外等外校课 time 列无槽位，从 note 解析「周X HH:MM—HH:MM」
+  const { placed, undet } = useMemo(() => {
+    type PvBlock = { key: string; day: number; begin: number; end: number; label: string; color: string; probLabel?: string; manual?: boolean; id?: string; code?: string; seq?: string; origin?: string };
+    const raw: PvBlock[] = [];
+    const undet: Array<{ lbl: string; code: string; seq: string; credits: number; zy: number; manual: boolean; id?: string }> = [];
+    type PvCourse = { name: string; teacher?: string; code: string; seq: string; time: string; note: string; credits: number; zy: number; manual?: boolean; id?: string; flag?: XkFlag; typeCode?: string; begin?: string; end?: string; day?: number };
+    const all: PvCourse[] = [
+      ...courses,
+      ...wb.manualEvents.map((e): PvCourse => ({ name: e.name, teacher: undefined, code: e.code, seq: e.seq, time: e.time, note: "", credits: e.credits, zy: 0, manual: true, id: e.id, begin: e.begin, end: e.end, day: e.day })),
+    ];
+    for (const c of all) {
+      const lbl = c.teacher ? `${c.name}(${c.teacher})` : c.name;
+      const prob = probOf(c);
+      const color = c.manual ? "#8b5cf6" : prob.color || pvColorOf(c.name);
+      const mk = (day: number, begin: number, end: number, tag: string): PvBlock => ({
+        key: `${c.code}_${c.seq || "0"}_${tag}`, day, begin, end, label: lbl, color,
+        probLabel: prob.label || undefined, manual: c.manual, id: c.id, code: c.code, seq: c.seq, origin: originOf(c.code),
+      });
+      let n = 0;
+      for (const { day, slot } of parseTimeSlots(c.time)) {
+        const range = SLOT_RANGE[slot - 1];
+        if (!range) continue;
+        raw.push(mk(day, range[0], range[1], `${slot}`));
+        n += 1;
+      }
+      if (n === 0 && c.manual && c.begin && c.end && c.day && pvToMin(c.begin) < pvToMin(c.end)) {
+        raw.push(mk(c.day, pvToMin(c.begin), pvToMin(c.end), "clock"));
+        n += 1;
+      }
+      if (n === 0) {
+        for (const cr of clockRangesOf(c.note, c.time)) {
+          raw.push(mk(cr.day, cr.begin, cr.end, `c${cr.begin}`));
+          n += 1;
+        }
+      }
+      if (n === 0 && !c.manual) undet.push({ lbl, code: c.code, seq: c.seq || "0", credits: c.credits || 0, zy: c.zy || 0, manual: false });
+    }
+    // 同日重叠分道（区间图着色，同正式课表）
+    const lanesOf = new Map<string, { lane: number; lanes: number }>();
+    for (let day = 1; day <= 7; day++) {
+      const list = raw.filter((b) => b.day === day).sort((a, b) => a.begin - b.begin);
+      const laneEnds: number[] = [];
+      for (const b of list) {
+        let lane = laneEnds.findIndex((le) => le <= b.begin);
+        if (lane === -1) { lane = laneEnds.length; laneEnds.push(b.end); }
+        else laneEnds[lane] = b.end;
+        lanesOf.set(b.key, { lane, lanes: 1 });
+      }
+      for (const b of list) {
+        const e = lanesOf.get(b.key);
+        if (e) lanesOf.set(b.key, { lane: e.lane, lanes: laneEnds.length });
+      }
+    }
+    const placed = raw.map((b) => ({ ...b, ...(lanesOf.get(b.key) ?? { lane: 0, lanes: 1 }) }));
+    return { placed, undet };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courses, mode, wb.phase, wb.queueMap, wb.candidates, wb.manualEvents]);
+
   const removeItem = async (code: string, seq: string): Promise<void> => {
     if (mode === "selected") {
       const c = wb.courses.find((x) => x.c.code === code && String(x.c.seq || "0") === String(seq));
@@ -712,23 +958,22 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
       if (!globalThis.confirm?.(`确认退选「${name}」？`)) return;
       await wb.drop(code, seq, false);
     } else if (mode === "stage") {
-      const s = wb.stageCart.find((x) => x.code === code && String(x.seq) === String(seq));
-      if (!globalThis.confirm?.(`从暂存区移除「${s?.name || code}」？`)) return;
+      const x = wb.stageCart.find((y) => y.code === code && String(y.seq) === String(seq));
+      if (!globalThis.confirm?.(`从暂存区移除「${x?.name || code}」？`)) return;
       wb.removeFromStage(code, seq);
     } else {
       const d = wb.savedDrafts[wb.previewDraftIdx];
       if (!d) return;
-      const s = d.courses.find((x) => x.code === code && String(x.seq) === String(seq));
-      if (!globalThis.confirm?.(`从草稿移除「${s?.name || code}」？`)) return;
+      const x = d.courses.find((y) => y.code === code && String(y.seq) === String(seq));
+      if (!globalThis.confirm?.(`从草稿移除「${x?.name || code}」？`)) return;
       wb.removeFromDraft(wb.previewDraftIdx, code, seq);
     }
   };
-  const cellItems = (val: NonNullable<ReturnType<typeof getCell>>): Array<{ label: string; code: string; seq: string; color: string; probLabel: string; probBgColor: string; manual?: boolean; id?: string }> =>
-    val.items ?? [];
-  function getCell(d: number, s: number) { return grid.tt[d]?.[s]; }
 
   const cr = courses.reduce((a, c) => a + (c.credits || 0), 0);
   const label = mode === "selected" ? "当前已选" : mode === "stage" ? "暂存车预览" : `草稿「${wb.savedDrafts[wb.previewDraftIdx]?.name ?? ""}」预览`;
+  const canvasH = pvY(PV_AXIS_END) + 12;
+  const todayIdx = (() => { const d = new Date().getDay(); return d === 0 ? 6 : d - 1; })();
   return (
     <Sec title="课表预览" extra={<span style={{ fontSize: 11, color: "var(--text-3)" }}>{label}</span>}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
@@ -738,69 +983,77 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
           <button key={i} className={"btn" + (mode === "draft" && wb.previewDraftIdx === i ? " is-active" : "")} onClick={() => wb.setPreview("draft", i)}>{d.name}</button>
         ))}
       </div>
-      {!courses.length && !grid.manualEvents.length ? (
+      {!courses.length && !wb.manualEvents.length ? (
         <div style={{ fontSize: 12, color: "var(--text-3)" }}>暂无课程</div>
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 3, fontSize: 11, tableLayout: "fixed" }}>
-            <thead>
-              <tr>
-                <th style={{ padding: 4, fontSize: 10, fontWeight: 600, color: "var(--text-3)", textAlign: "center" }}></th>
-                {["周一", "周二", "周三", "周四", "周五", "周六", "周日"].map((d) => (
-                  <th key={d} style={{ padding: 4, fontSize: 10, fontWeight: 600, color: "var(--text-3)", textAlign: "center" }}>{d}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {["1-2节", "3-4节", "5-6节", "7-8节", "9-10节", "11-12节"].map((sl, si) => (
-                <tr key={sl}>
-                  <th style={{ padding: 4, fontSize: 10, fontWeight: 600, color: "var(--text-3)", textAlign: "center" }}>{sl}</th>
-                  {Array.from({ length: 7 }, (_, di) => {
-                    const val = getCell(di + 1, si + 1);
-                    if (!val) return <td key={di} style={{ padding: "6px 3px", borderRadius: 8, verticalAlign: "top", background: "var(--bg-elev, #fff)", boxShadow: "inset 0 0 0 1px rgba(127,127,127,.08)" }} />;
-                    const isC = !!val.conflict;
-                    const items = cellItems(val);
-                    const head = items[0];
-                    return (
-                      <td key={di} style={{ padding: "6px 4px", borderRadius: 8, verticalAlign: "top", background: isC ? "color-mix(in srgb, var(--red) 8%, var(--bg-elev, #fff))" : head && head.color && !head.manual ? `color-mix(in srgb, ${head.color} 10%, var(--bg-elev, #fff))` : "var(--bg-elev, #fff)", boxShadow: `inset 0 0 0 1px ${isC ? "rgba(238,77,77,.3)" : "rgba(127,127,127,.08)"}` }}>
-                        <div>
-                          {items.map((it, k) => (
-                            <div key={k} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, marginBottom: 3, borderRadius: 6, padding: "2px 1px", background: it.manual ? undefined : `color-mix(in srgb, ${it.color} 10%, transparent)`, color: it.color, cursor: it.manual ? undefined : "pointer" }}
-                              title={it.manual ? undefined : "在左侧课程列表中查看"}
-                              onClick={() => { if (!it.manual) jumpTo(it.code); }}>
-                              <span style={{ fontSize: 10, lineHeight: 1.3, wordBreak: "break-all", color: it.manual ? "#7c3aed" : "var(--text)" }}>{it.label}</span>
-                              {it.probLabel ? <span style={{ padding: "1px 6px", borderRadius: 999, fontSize: 9, fontWeight: 700, background: it.probBgColor, color: it.color }}>{it.probLabel}</span> : null}
-                              <button className="btn" style={{ padding: "0 4px", fontSize: 9, opacity: 0.6 }} title={`移除 ${it.label}`} onClick={(e) => { e.stopPropagation(); if (it.manual && it.id) wb.removeManualEvent(it.id); else void removeItem(it.code, it.seq); }}>✕</button>
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
+          <div style={{ minWidth: 560 }}>
+            <div style={{ display: "flex", marginBottom: 8, alignItems: "flex-end" }}>
+              <div style={{ width: 34, flexShrink: 0 }} />
+              {["周一", "周二", "周三", "周四", "周五", "周六", "周日"].map((name, i) => (
+                <div key={name} className={"tt-head" + (i === todayIdx ? " is-today" : "")} style={{ flex: 1, textAlign: "center" }}>{name}</div>
               ))}
-            </tbody>
-          </table>
+            </div>
+            <div style={{ display: "flex" }}>
+              <div style={{ width: 34, flexShrink: 0, position: "relative", height: canvasH }}>
+                {PV_HALF_HOURS.filter((m) => m % 60 === 0).map((m) => (
+                  <div key={m} style={{ position: "absolute", top: Math.max(0, pvY(m) - 6), right: 6, fontSize: 9, color: "var(--text-3)", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                    {pvHm(m)}
+                  </div>
+                ))}
+              </div>
+              <div style={{ flex: 1, position: "relative", height: canvasH }}>
+                {Array.from({ length: 7 }, (_, day) => (
+                  <div key={`col-${day}`} style={{ position: "absolute", left: `${(day * 100) / 7}%`, width: `${100 / 7}%`, top: 0, height: canvasH, borderLeft: day === 0 ? "none" : "1px solid var(--border, #ececec)", background: day === todayIdx ? "rgba(109,127,240,0.055)" : undefined }} />
+                ))}
+                {PV_HALF_HOURS.map((m) => (
+                  <div key={`gl-${m}`} style={{ position: "absolute", left: 0, right: 0, top: pvY(m), borderTop: m % 60 === 0 ? "1px solid var(--border, #e8e8e8)" : "1px solid var(--border, #f2f2f2)" }} />
+                ))}
+                {placed.map((b) => {
+                  const laneW = 100 / b.lanes;
+                  const leftPct = (((b.day - 1) * 100) + b.lane * laneW) / 7;
+                  const widthPct = laneW / 7;
+                  const top = pvY(b.begin) + 2;
+                  const height = Math.max((b.end - b.begin) * PV_PX_PER_MIN - 5, 22);
+                  const compact = height < 40;
+                  return (
+                    <div key={b.key} title={`${b.label}（${pvHm(b.begin)}–${pvHm(b.end)}）${b.probLabel ? " · " + b.probLabel : ""}`}
+                      style={{ position: "absolute", left: `calc(${leftPct}% + 3px)`, width: `calc(${widthPct}% - 6px)`, top, height, background: b.color, borderRadius: 5, padding: compact ? "2px 4px" : "3px 5px", color: "#fff", overflow: "hidden", boxSizing: "border-box", boxShadow: "0 1px 3px rgba(0,0,0,0.18)", zIndex: 6, cursor: b.manual ? undefined : "pointer" }}
+                      onClick={() => { if (!b.manual && b.code) jumpTo(b.code); }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                        {b.origin ? <span style={{ fontSize: 8, padding: "0 3px", borderRadius: 3, background: "rgba(255,255,255,.28)", whiteSpace: "nowrap" }}>{b.origin}</span> : null}
+                        <div style={{ fontSize: compact ? 8.5 : 9.5, fontWeight: 700, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.label}</div>
+                      </div>
+                      {!compact ? <div style={{ fontSize: 8, opacity: 0.9, lineHeight: 1.3 }}>{pvHm(b.begin)}–{pvHm(b.end)}</div> : null}
+                      {b.probLabel && height > 44 ? <span style={{ display: "inline-block", marginTop: 1, padding: "0 4px", borderRadius: 999, fontSize: 8, fontWeight: 700, background: "rgba(255,255,255,.25)" }}>{b.probLabel}</span> : null}
+                      <button className="btn" style={{ position: "absolute", top: 1, right: 1, padding: "0 3px", fontSize: 8, lineHeight: 1.4, opacity: 0.65, border: "none", background: "transparent", color: "#fff" }}
+                        title="移除" onClick={(e) => { e.stopPropagation(); if (b.manual && b.id) wb.removeManualEvent(b.id); else if (b.code && b.seq) void removeItem(b.code, b.seq); }}>✕</button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       )}
-      {grid.undet.length ? (
+      {undet.length ? (
         <div style={{ marginTop: 8 }}>
-          <div style={{ fontSize: 11, color: "var(--text-3)" }}>时间未定 / 无固定时段（{grid.undet.length} 门，不含在上方网格中）</div>
+          <div style={{ fontSize: 11, color: "var(--text-3)" }}>时间未定 / 无法解析（{undet.length} 门，不在上方时间轴中）</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
-            {grid.undet.map((u, i) => (
-              <span key={i} className="chip" style={{ fontSize: 11, cursor: "pointer" }} title="点击移除" onClick={() => { if (!u.manual) void removeItem(u.code, u.seq); }}>
+            {undet.map((u, i) => (
+              <span key={i} className="chip" style={{ fontSize: 11, cursor: "pointer" }} title="点击移除" onClick={() => void removeItem(u.code, u.seq)}>
                 {u.lbl} · {u.credits}学分{u.zy ? ` · 第${u.zy}志愿` : ""} <i>✕</i>
               </span>
             ))}
           </div>
         </div>
       ) : null}
-      {grid.manualEvents.length ? (
+      {wb.manualEvents.length ? (
         <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
           <span style={{ fontSize: 11, color: "var(--text-3)" }}>自定义占用</span>
-          {grid.manualEvents.map((e) => {
+          {wb.manualEvents.map((e) => {
             const slots = parseTimeSlots(e.time || "");
-            const when = slots.map((s) => `${s.day} ${s.slot}`).join("、");
+            const when = e.begin && e.end ? `${["周一","周二","周三","周四","周五","周六","周日"][(e.day ?? 1) - 1]} ${e.begin}–${e.end}` : slots.map((x) => `${x.day}第${x.slot}大节`).join("、");
             return (
               <button key={e.id} className="chip" style={{ borderRadius: 999, padding: "3px 10px", background: "rgba(139,92,246,.12)", color: "#7c3aed", fontSize: 11, cursor: "pointer", border: "none" }} title="删除此占用" onClick={() => wb.removeManualEvent(e.id)}>
                 {e.name}{when ? ` · ${when}` : ""} ✕
@@ -809,7 +1062,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
           })}
         </div>
       ) : null}
-      <div style={{ marginTop: 6, fontSize: 11, color: "var(--green)" }}>{courses.length}门课 · {cr}学分{grid.manualEvents.length ? ` · 自定义占用${grid.manualEvents.length}项` : ""}</div>
+      <div style={{ marginTop: 6, fontSize: 11, color: "var(--green)" }}>{courses.length}门课 · {cr}学分{wb.manualEvents.length ? ` · 自定义占用${wb.manualEvents.length}项` : ""}</div>
       <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 8, flexWrap: "wrap", fontSize: 12 }}>
         <button className="btn" onClick={() => setMOpen((v) => !v)}>＋ 添加占用</button>
       </div>
@@ -823,12 +1076,19 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
             星期
             <select className="input" style={{ height: 30 }} value={mDay} onChange={(e) => setMDay(e.target.value)}>{[1,2,3,4,5,6,7].map((d) => <option key={d} value={d}>{["周一","周二","周三","周四","周五","周六","周日"][d-1]}</option>)}</select>
           </label>
-          <label style={{ display: "grid", gap: 4, fontSize: 12, fontWeight: 600, color: "var(--text-3)" }}>
-            时间段
-            <select className="input" style={{ height: 30 }} value={mSlot} onChange={(e) => setMSlot(e.target.value)}>{["1-2节","3-4节","5-6节","7-8节","9-10节","11-12节"].map((n, i) => <option key={i} value={i + 1}>{n}</option>)}</select>
-          </label>
-          <div style={{ fontSize: 11, color: "var(--text-3)" }}>自定义占用会保存在本地，并参与课程冲突检测。</div>
-          <button className="btn" style={{ borderColor: "var(--accent)", color: "var(--accent)" }} onClick={() => { wb.addManualEvent(mName, Number(mDay), Number(mSlot)); setMName(""); setMOpen(false); }}>添加到课表</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <label style={{ display: "grid", gap: 4, fontSize: 12, fontWeight: 600, color: "var(--text-3)", flex: 1 }}>
+              开始
+              <select className="input" style={{ height: 30 }} value={mBegin} onChange={(e) => setMBegin(e.target.value)}>{PV_HALF_HOURS.slice(0, -1).map((m) => <option key={m} value={pvHm(m)}>{pvHm(m)}</option>)}</select>
+            </label>
+            <label style={{ display: "grid", gap: 4, fontSize: 12, fontWeight: 600, color: "var(--text-3)", flex: 1 }}>
+              结束
+              <select className="input" style={{ height: 30 }} value={mEnd} onChange={(e) => setMEnd(e.target.value)}>{PV_HALF_HOURS.slice(1).map((m) => <option key={m} value={pvHm(m)}>{pvHm(m)}</option>)}</select>
+            </label>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-3)" }}>占用保存在本地，画在时间轴上（支持任意钟点段），便于与课程重叠对照。</div>
+          <button className="btn" style={{ borderColor: "var(--accent)", color: "var(--accent)" }} disabled={!(mBegin < mEnd)}
+            onClick={() => { wb.addManualEventRange(mName, Number(mDay), mBegin, mEnd); setMName(""); setMOpen(false); }}>添加到课表</button>
         </div>
       ) : null}
     </Sec>

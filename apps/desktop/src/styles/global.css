@@ -593,6 +593,32 @@
   box-shadow: var(--shadow-1);
 }
 
+/* 板块标签页（讨论区）：无底槽下划线式，替代灰胶囊 */
+.tabstrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.tabstrip button {
+  border: 0;
+  background: transparent;
+  padding: 7px 12px;
+  font-size: var(--text-sm);
+  line-height: 20px;
+  color: var(--text-2);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+.tabstrip button:hover { color: var(--text-1); }
+.tabstrip button.is-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
 /* ---------- 课表 ---------- */
 
 .tt {
@@ -1169,6 +1195,47 @@
 .chips button.chip:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+
+/* 楼栋搜索下拉（filter-dd 变体）：搜索框 + 分组滚动列表 */
+.search-dd-search,
+.washer-dd-search {
+  height: 30px;
+  min-height: 0;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.search-dd-list,
+.washer-dd-list {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.search-dd-group,
+.washer-dd-group {
+  padding: 7px 10px 4px;
+  font-size: 11px;
+  color: var(--text-3, rgba(0, 0, 0, 0.45));
+  line-height: 1;
+}
+.search-dd-opt,
+.washer-dd-opt {
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.washer-dd-opt.is-sel { color: var(--accent); font-weight: 600; }
+.search-dd-empty,
+.washer-dd-empty {
+  padding: 12px 10px;
+  font-size: 12px;
+  color: var(--text-3, rgba(0, 0, 0, 0.45));
+  text-align: center;
 }
 
 /* 设备网格：自适应列宽，拥挤与稀疏都可控 */
@@ -2320,3 +2387,21 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   html.is-phone .list .row-click .chip { grid-area: chip; justify-self: end; }
   html.is-phone .list .row-click .row-caret { grid-area: caret; }
 }
+
+/* 讨论区富文本编辑器（Quill snow）融入应用视觉 */
+.rich-editor .ql-toolbar.ql-snow {
+  border: 1px solid var(--border);
+  border-radius: 10px 10px 0 0;
+  background: var(--bg-card, #fff);
+}
+.rich-editor .ql-container.ql-snow {
+  border: 1px solid var(--border);
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
+  min-height: 88px;
+  font-size: 14px;
+}
+.rich-editor .ql-editor { min-height: 88px; }
+.rich-editor .ql-snow .ql-stroke { stroke: var(--text-2, #666); }
+.rich-editor .ql-snow .ql-fill { fill: var(--text-2, #666); }
+.rich-editor .ql-snow.ql-toolbar button:hover .ql-stroke { stroke: var(--accent, #1392f1); }

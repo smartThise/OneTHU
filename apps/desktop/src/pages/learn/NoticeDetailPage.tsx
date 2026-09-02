@@ -70,7 +70,7 @@ export function NoticeDetailPage() {
   if (!n) {
     return (
       <>
-        <PageHead title="通知详情" actions={<BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} />} />
+        <PageHead title="通知详情" actions={<BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} courseTab="notices" />} />
         {state === "loading" ? (
           <SkeletonRows rows={4} />
         ) : state === "error" ? (
@@ -89,7 +89,7 @@ export function NoticeDetailPage() {
         meta={`${course?.name ?? "课程"} · ${n.publisher} 发布于 ${fmtDateTime(n.publishTime)}`}
         actions={
           <>
-            <BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} />
+            <BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} courseTab="notices" />
             <button className="btn" onClick={() => void openExternal(n.url)} title="在系统浏览器打开">
               网页端打开
             </button>
