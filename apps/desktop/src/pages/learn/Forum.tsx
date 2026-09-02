@@ -90,11 +90,11 @@ export function BbsPanel({ courseId }: { courseId: string }) {
     <>
       <PageHead title="讨论区" meta="课程讨论与答疑（实名制）" />
       {boards.length > 1 ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+        <div className="segmented" style={{ display: "flex", flexWrap: "wrap", maxWidth: "100%" }}>
           {boards.map((b) => (
             <button
               key={b.bqid}
-              className={"chip" + (bqid === b.bqid ? " chip-blue" : "")}
+              className={bqid === b.bqid ? "is-active" : ""}
               onClick={() => reset(() => setBqid(b.bqid))}
             >
               {b.name}
@@ -103,15 +103,17 @@ export function BbsPanel({ courseId }: { courseId: string }) {
         </div>
       ) : null}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        {KINDS.map((k) => (
-          <button
-            key={k.key}
-            className={"chip" + (kind === k.key ? " chip-blue" : "")}
-            onClick={() => reset(() => setKind(k.key))}
-          >
-            {k.label}
-          </button>
-        ))}
+        <div className="segmented" style={{ marginBottom: 0 }}>
+          {KINDS.map((k) => (
+            <button
+              key={k.key}
+              className={kind === k.key ? "is-active" : ""}
+              onClick={() => reset(() => setKind(k.key))}
+            >
+              {k.label}
+            </button>
+          ))}
+        </div>
         <span className="row-sub" style={{ fontVariantNumeric: "tabular-nums" }}>
           {total > 0 ? `${total} 条` : ""}
         </span>
