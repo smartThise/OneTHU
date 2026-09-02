@@ -645,7 +645,9 @@ export function useXkWorkbench(): XkWorkbench {
    * 单写者（coreSeqRef）：写后核心刷新永远取代在途管线的核心提交，杜绝旧数据覆盖新数据。
    * 失登自愈（与校园卡/图书馆同款）：isAuthError → autoFullReload("xk") 静默整页重载，
    * 2 分钟节流窗口内的第二次失败才落可重试错误。 */
-  const commitCore = useCallback(async (sem: string, lt: Record<string, XkLevelTableRow> | null, myGen: number): Promise<XkPlanItem[]> => {
+  /** 一级课表入参改传在途 Promise（2026-09 性能专项）：它只是「已选为空」时的兜底，
+   *  99% 场景用不上——懒求值后核心 4 路请求与一级课表抓取并行，右栏刷新省一个串行往返 */
+  const commitCore = useCallback(async (sem: string, ltP: Promise<Record<string, XkLevelTableRow> | null> | null, myGen: number): Promise<XkPlanItem[]> => {
     const coreSeq = ++coreSeqRef.current;
     const opt = { semester: sem };
     try {
@@ -657,13 +659,17 @@ export function useXkWorkbench(): XkWorkbench {
       ]);
       if (genRef.current !== myGen || coreSeqRef.current !== coreSeq) return plan; // 已打断/已被更新的核心刷新取代：丢弃
       // 一级课表兜底（v1.4.9）：已选查询拿不到行（选课阶段切换/页面变更）时，
-      // 用刚抓的一级课表重建（含课名/教师/学分），不再二次请求
+      // 用刚抓的一级课表重建（含课名/教师/学分），不再二次请求——此时才等它
       let selFinal = sel;
-      if (!selFinal.length && lt) {
-        selFinal = Object.entries(lt).map(([k, v]) => {
-          const i = k.indexOf("_");
-          return { code: k.slice(0, i), seq: k.slice(i + 1) || "0", name: v.name ?? "", teacher: v.teacher ?? "", time: "", credits: v.credits ?? 0, typeLabel: v.typeLabel, typeCode: v.typeCode, zy: 0 };
-        });
+      if (!selFinal.length && ltP) {
+        const lt = await ltP;
+        if (genRef.current !== myGen || coreSeqRef.current !== coreSeq) return plan;
+        if (lt) {
+          selFinal = Object.entries(lt).map(([k, v]) => {
+            const i = k.indexOf("_");
+            return { code: k.slice(0, i), seq: k.slice(i + 1) || "0", name: v.name ?? "", teacher: v.teacher ?? "", time: "", credits: v.credits ?? 0, typeLabel: v.typeLabel, typeCode: v.typeCode, zy: 0 };
+          });
+        }
       }
       setSelected(selFinal);
       setCandidates(cand);
@@ -745,17 +751,19 @@ export function useXkWorkbench(): XkWorkbench {
       sem,
       gen: myGen,
       promise: (async () => {
-        // ── Phase R（先右）── 一级课表永远第一个抓（小而快）：课型表/已选兜底/目录最小行共用
-        const lt = await fetchLevelTable(sem, freshLevel);
-        if (genRef.current !== myGen) return; // 期间已打断：丢弃
-        if (lt) commitLevel(lt);
+        // ── Phase R（先右）── 一级课表与核心数据并行（此前串行等 level RT 才开始核心 4 路）
+        const ltP = fetchLevelTable(sem, freshLevel);
+        // level 到货即提交（partial 行秒上屏/课型表更新），不再阻塞核心提交
+        void ltP.then((ltEarly) => {
+          if (ltEarly && genRef.current === myGen) commitLevel(ltEarly);
+        });
         let plan: XkPlanItem[] = [];
         try {
-          plan = await commitCore(sem, lt, myGen);
+          plan = await commitCore(sem, ltP, myGen);
         } catch { return; } // 右栏失败：错误态已在 commitCore 落定，左栏不 ready（顺序固定）
         // ── Phase L（后左）──
         try {
-          const ltTable = lt ?? {};
+          const ltTable = (await ltP) ?? {};
           const sd0 = sdRead();
           const sd = sd0 && sd0.semester === sem ? sd0 : null; // 缓存学期≠目标学期一律不采用
           // 内存全量缓存（5min TTL，同学期）
@@ -833,10 +841,11 @@ export function useXkWorkbench(): XkWorkbench {
     const myGen = genRef.current;
     const sem = semBarRef.current; // 学期栏选中值唯一真源
     if (!sem) return;
-    const lt = await fetchLevelTable(sem, true);
-    if (genRef.current !== myGen) return; // 期间已切学期：丢弃
-    if (lt) commitLevel(lt);
-    await commitCore(sem, lt, myGen).catch(() => undefined); // 错误已在 commitCore 落状态
+    const ltP = fetchLevelTable(sem, true);
+    void ltP.then((lt) => {
+      if (lt && genRef.current === myGen) commitLevel(lt); // level 到货即提交，不阻塞核心刷新
+    });
+    await commitCore(sem, ltP, myGen).catch(() => undefined); // 错误已在 commitCore 落状态
   }, [status, commitCore, commitLevel]);
 
   /**
