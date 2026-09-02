@@ -37,7 +37,8 @@ import {
   demoCardBundle,
 } from "../demo/data.js";
 import { useApp } from "./context.js";
-import { cacheGet, cacheSet, cacheFetch } from "./cache.js";
+import { cacheGet, cacheSet, cacheFetch ,
+  purgeXkCaches } from "./cache.js";
 
 /** info/zhjwxk 页内错误落盘（/tmp/onethu-debug.log），解析不匹配时可一轮定位 */
 function logPageError(tag: string, err: unknown): void {
@@ -456,6 +457,8 @@ interface XkCoreSeed {
 
 /* ── 一级课表先行管线（levelTable-first）：共享缓存 / 在途去重 / levelFailed 标记 ── */
 /** 内存级一级课表缓存（refresh 与目录管线共用一份，小而快，避免同页重复请求） */
+purgeXkCaches(); // 一次性：清空历轮缓存课表（种子/学期），下次拉取全走实时
+
 let levelCache: { sem: string; at: number; table: Record<string, XkLevelTableRow> } | null = null;
 const LEVEL_CACHE_TTL = 5 * 60_000;
 /** fresh 重抓的防抖窗口：挂载 refresh 与 loadCatalog 相邻发起时只发一次请求 */
@@ -888,7 +891,7 @@ export function useXkWorkbench(): XkWorkbench {
         });
         setSearchPage(r.page);
         setSearchHasMore(r.hasMore);
-        setSearchError(r.rows.length === 0 && r.htmlHead ? `教务返回异常页（首段: ${r.htmlHead}）` : null);
+        setSearchError(r.pageKind === "unknown" ? `教务返回异常页（首段: ${r.htmlHead}）` : null);
         setSearchState("ready");
       } catch (err) {
         if (seq !== searchSeqRef.current) return;

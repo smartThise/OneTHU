@@ -23,6 +23,7 @@
  * 字节路径的解码语义见 crypto/decryptResponse.ts（demo 的 decryptResponse 移植）。
  */
 import { AuthRequiredError, type HttpClient } from "../http.js";
+import { gbkPercentEncode } from "./gbk-table.js";
 import { parseCasFormHtml } from "../auth/cas.js";
 import { decodeUrl, webvpnWrap } from "../crypto/webvpn.js";
 import { ID_PREFIX } from "../auth/cas.js";
@@ -625,7 +626,9 @@ export interface XkSearchResult {
   rows: XkCourse[];
   page: number;
   hasMore: boolean;
-  /** 响应首段（仅当解析为 0 行时带出，用于现场诊断） */
+  /** empty=结果页但 0 行；unknown=非结果页（会话/异常，附首段诊断） */
+  pageKind: "empty" | "unknown";
+  /** 响应首段（仅 pageKind=unknown 时带出，用于现场诊断） */
   htmlHead?: string;
 }
 export async function searchXkCourses(
@@ -648,32 +651,34 @@ export async function searchXkCourses(
   } = {},
 ): Promise<XkSearchResult> {
   const { entry, semester } = await ensure(s, opts.semester);
-  const q = new URLSearchParams();
-  q.set("m", "kkxxSearch");
-  q.set("p_xnxq", semester);
   const page = Math.max(1, opts.page ?? 1);
-  if (page > 1) q.set("page", String(page));
-  if (opts.kch?.trim()) q.set("p_kch", opts.kch.trim());
-  if (opts.kcm?.trim()) q.set("p_kcm", opts.kcm.trim());
-  if (opts.teacher?.trim()) q.set("p_zjjsxm", opts.teacher.trim());
-  if (opts.department) q.set("p_kkdwnm", opts.department);
-  if (opts.weekday) q.set("p_skxq", opts.weekday);
-  if (opts.section) q.set("p_skjc", opts.section);
-  if (opts.grade) q.set("p_ssnj", opts.grade);
-  if (opts.kcflm) q.set("p_kcflm", opts.kcflm);
-  if (opts.rxklxm) q.set("p_rxklxm", opts.rxklxm);
-  if (opts.kctsm) q.set("p_kctsm", opts.kctsm);
-  if (opts.onlyAvailable) q.set("p_bkskyl_ig", "0");
-  if (opts.gradAvail) q.set("p_yjskyl_ig", "0");
-  const html = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksJxjhBs.do?${q.toString()}&_t=${Date.now()}`);
+  // 手工拼查询串（URLSearchParams 会把 %XX 再编码成 %25XX）：中文一律 GBK 百分号编码——
+  // 教务页面 GBK，UTF-8 直发服务端解出乱码、LIKE 匹配不到 → 正常页面 0 行（实测实锤）。
+  const parts: string[] = ["m=kkxxSearch", `p_xnxq=${encodeURIComponent(semester)}`];
+  if (page > 1) parts.push(`page=${page}`);
+  if (opts.kch?.trim()) parts.push(`p_kch=${encodeURIComponent(opts.kch.trim())}`);
+  const kw = opts.kcm?.trim();
+  if (kw) parts.push(`p_kcm=${gbkPercentEncode(kw)}`);
+  const teacher = opts.teacher?.trim();
+  if (teacher) parts.push(`p_zjjsxm=${gbkPercentEncode(teacher)}`);
+  if (opts.department) parts.push(`p_kkdwnm=${encodeURIComponent(opts.department)}`);
+  if (opts.weekday) parts.push(`p_skxq=${encodeURIComponent(opts.weekday)}`);
+  if (opts.section) parts.push(`p_skjc=${encodeURIComponent(opts.section)}`);
+  if (opts.grade) parts.push(`p_ssnj=${encodeURIComponent(opts.grade)}`);
+  if (opts.kcflm) parts.push(`p_kcflm=${encodeURIComponent(opts.kcflm)}`);
+  if (opts.rxklxm) parts.push(`p_rxklxm=${encodeURIComponent(opts.rxklxm)}`);
+  if (opts.kctsm) parts.push(`p_kctsm=${encodeURIComponent(opts.kctsm)}`);
+  if (opts.onlyAvailable) parts.push("p_bkskyl_ig=0");
+  if (opts.gradAvail) parts.push("p_yjskyl_ig=0");
+  const html = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksJxjhBs.do?${parts.join("&")}&_t=${Date.now()}`);
   assertNotDenied(s, html);
   const rows = parseXkCatalogPage(html);
-  return {
-    rows,
-    page,
-    hasMore: rows.length >= 20,
-    ...(rows.length === 0 ? { htmlHead: html.slice(0, 160).replace(/\s+/g, " ") } : {}),
-  };
+  if (rows.length > 0) return { rows, page, hasMore: true, pageKind: "empty" };
+  // 0 行分类：结果页（含结果表头）= 真无匹配；否则异常页，带首段诊断
+  const isResultPage = html.includes("选课文字说明") || html.includes("trr2");
+  return isResultPage
+    ? { rows, page, hasMore: false, pageKind: "empty" }
+    : { rows, page, hasMore: false, pageKind: "unknown", htmlHead: html.slice(0, 600).replace(/\s+/g, " ") };
 }
 
 /** 志愿统计（tbzySearchBR ≤200 页 + tbzySearchTy ≤20 页，失败容忍） */
