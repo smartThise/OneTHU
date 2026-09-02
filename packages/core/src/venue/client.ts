@@ -10,6 +10,10 @@
  * - errorCode 1130002（登录过期）→ 清 token + VenueAuthRequiredError（绝不自动刷新循环）
  * - 业务错误 → VenueApiError（message 透传服务端原文，code 保留）
  * - 空数据不是错误：data 为 null/[] 原样返回
+ *
+ * 刻意不实现 addReserve（应用内提交预约）：体育系统明文规定「通过脚本软件
+ * 或插件等非正常途径预定场地，一经核实封禁预订权限 6 个月并函告院系」
+ * （预约须知第 12 条）。OneTHU 场馆模块只做查询/退订，预约一律引导官方网页。
  */
 import type { FetchLike } from "../http.js";
 import { venueSignQuery } from "./sign.js";
@@ -62,17 +66,6 @@ export interface VenueCurrentPageParams {
   classTypeEnum?: "BUILDING" | "ROOM"; // 楼/房形态（SPA：有房间默认 ROOM）
   sceneUseType?: string; // 清华校内人员固定 "SPORT_PERSON"
   siteType?: string; // 场景 relatedType（默认 DEV）
-}
-
-export interface VenueAddReserveArgs {
-  sceneUuid: string;
-  siteUuid: string;
-  siteType: string;
-  sceneUseType?: string;
-  session: VenueSession; // 选中场次（sessionVo 元素）
-  reserveDate: string; // 场次日期 YYYY-MM-DD
-  resvMember: string[]; // 用户 id 列表（含本人）
-  needForm?: boolean; // formRuleVo 存在时由 UI 拦截，这里兜底
 }
 
 export class VenueClient {
@@ -266,27 +259,5 @@ export class VenueClient {
   /** 退订/取消预约 */
   async cancelReserve(resvUuid: string): Promise<void> {
     await this.#request("POST", "/api/reserve/cancelReserve", { json: { resvUuid } });
-  }
-
-  /** 提交预约（支付流不接：不带 payType/purchaseUuid；付费场次由 UI 提示网页端支付） */
-  async addReserve(args: VenueAddReserveArgs): Promise<unknown> {
-    if (args.needForm) {
-      throw new VenueApiError("该场次需填写申请表单，请在网页端提交", 401000316);
-    }
-    const s = args.session;
-    const start = `${args.reserveDate} ${s.beginTime}:00`;
-    const end = `${fmtVenueDate(s.endDate)} ${s.endTime}:00`;
-    return this.#request("POST", "/api/reserve/addReserve", {
-      json: {
-        sceneUuid: args.sceneUuid,
-        sceneUseType: s.sceneUseType ?? args.sceneUseType ?? "SPORT_PERSON",
-        siteUuid: args.siteUuid,
-        siteType: args.siteType,
-        reserveTime: [{ sessionDetailUuid: s.uuid, reserveTime: { startTime: start, endTime: end } }],
-        siteSessionReserve: [],
-        resvMember: args.resvMember,
-        resvKind: "CURRENT_RESERVE",
-      },
-    });
   }
 }

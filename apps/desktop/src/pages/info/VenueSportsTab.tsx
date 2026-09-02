@@ -4,11 +4,13 @@
  * 数据源 = unifound-venue 直连接口（packages/core/src/venue，签名/端点/字段
  * 对齐 2026-08-31 抓包），替代原 info-app webvpn 版（SportsTab，从未可用）。
  *
- * 流程（对齐原 SPA 预约页）：
+ * 流程（对齐原 SPA 预约页 · 只查不订）：
  * ① 授权：无 token → 授权卡（webview 打开体育系统完成 CAS 登录，token 自动回传）
  * ② 场馆 chips（scene/list 33 项，会话级缓存）+ 日期
  * ③ 场地×场次表（current/page：时段/余量/价格/预约状态内嵌 sessionVo）
- * ④ 选中场次 → 预约卡 → 提交（addReserve；支付流不接：付费场次引导网页端）
+ * ④ 选中场次 → 预约卡 → 跳官方网页预约（预约须知第 12 条：脚本/插件等
+ *    非正常途径预定，一经核实封禁预订权限 6 个月并函告院系——应用内
+ *    刻意不实现 addReserve，查询/退订不受该条约束）
  * ⑤ 我的预约记录（reserveRecord）+ 退订（cancelReserve，confirm 确认）
  *
  * 错误铁律（与其它 tab 同源）：
@@ -81,6 +83,10 @@ import { VenueTwoFactorRequired, venueClient, venueHasToken, venueLogout, venueS
 import type { TwoFactorMethod, VenueBuilding, VenueDevKind } from "@onethu/core";
 import { useApp } from "../../state/context.js";
 import { TabEmpty, logTabErr, tabErrorText } from "./tabStates.js";
+import { openExternal } from "./openExternal.js";
+
+/** 体育系统官方预约页（应用内不提交预约，一律引导到此） */
+const VENUE_WEB = "https://www.sports.tsinghua.edu.cn/venue/index.html";
 
 
 type LoadState = "idle" | "loading" | "error" | "ready";
@@ -133,7 +139,6 @@ export function VenueSportsTab() {
   /* —— 选中场次 —— */
   const [picked, setPicked] = useState<{ site: VenueSite; session: VenueSession } | null>(null);
   const [user, setUser] = useState<VenueUser | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [noticeMsg, setNoticeMsg] = useState<string | null>(null);
 
   /* —— 楼栋（current/page 的 classTypeUuid 必须是楼栋 uuid，SPA 同款默认第一个） —— */
@@ -446,53 +451,10 @@ export function VenueSportsTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, venue?.uuid, date, building, room, devKind, classEnum, useType]);
 
-  /* —— 提交预约（免费场次；付费场次 UI 拦截引导网页端） —— */
-  const submit = useCallback(async () => {
-    if (!picked || !venue) return;
-    const uid = user?.id;
-    if (!uid) {
-      setNoticeMsg("未能获取体育系统用户信息，请重新授权后重试。");
-      return;
-    }
-    const price = picked.session.userFeeDetails?.chargingUnitPrice ?? 0;
-    if (price > 0) {
-      setNoticeMsg("该场次为付费场次，OneTHU 暂不支持在线支付，请到体育系统网页端完成预约与支付。");
-      return;
-    }
-    if (picked.site.formRuleVo?.formUuid) {
-      setNoticeMsg("该场次需填写申请表单，请到体育系统网页端提交。");
-      return;
-    }
-    setSubmitting(true);
-    setNoticeMsg(null);
-    try {
-      await venueClient.addReserve({
-        sceneUuid: venue.uuid,
-        siteUuid: picked.site.uuid,
-        siteType: picked.site.siteType || "DEV",
-        session: picked.session,
-        reserveDate: fmtVenueDate(picked.session.beginDate) || date,
-        resvMember: [uid],
-      });
-      setNoticeMsg(
-        `预约成功：${venue.sceneName} · ${fmtVenueDate(picked.session.beginDate) || date} · ${picked.session.beginTime}-${picked.session.endTime} · ${picked.site.siteName}`,
-      );
-      setPicked(null);
-      await Promise.all([loadSites(venue.uuid, date), fetchRecords()]);
-    } catch (err) {
-      logTabErr("VENUE-SUBMIT", err);
-      if (isVenueAuth(err)) {
-        venueLogout();
-        setAuthed(false);
-      } else {
-        setNoticeMsg(
-          err instanceof VenueApiError ? `预约失败：${err.message}` : `预约失败：${tabErrorText(err)}`,
-        );
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }, [picked, venue, user, date, loadSites, fetchRecords]);
+  /* —— 跳官方网页预约（应用内不提交：预约须知第 12 条封禁条款） —— */
+  const goOfficialBooking = useCallback(() => {
+    void openExternal(VENUE_WEB);
+  }, []);
 
   /* —— 退订 —— */
   const unsubscribe = useCallback(
@@ -805,7 +767,7 @@ export function VenueSportsTab() {
         </>
       ) : null}
 
-      {/* 预约卡（选中场次后出现） */}
+      {/* 预约卡（选中场次后出现）——应用内不提交，跳官方网页 */}
       {picked && venue ? (
         <>
           <SectionHead title="预约" aside={`${venue.sceneName} · ${picked.site.siteName}`} />
@@ -817,10 +779,12 @@ export function VenueSportsTab() {
               {picked.site.siteLocation?.location ? `（${picked.site.siteLocation.location}）` : ""}
               <br />
               费用：{yuan(picked.session.userFeeDetails?.chargingUnitPrice)}
-              {picked.session.userFeeDetails?.chargingUnitPrice ? "（付费场次请到网页端支付）" : ""}
             </div>
-            <button className="btn btn-primary" onClick={() => void submit()} disabled={submitting || (picked.session.userFeeDetails?.chargingUnitPrice ?? 0) > 0}>
-              {submitting ? "提交中…" : (picked.session.userFeeDetails?.chargingUnitPrice ?? 0) > 0 ? "付费场次 · 请到网页端" : "确认预约"}
+            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 10, lineHeight: 1.6 }}>
+              按体育系统预约须知第 12 条（脚本/插件预约封禁 6 个月并函告院系），OneTHU 不做应用内提交，请在官方网页完成预约。
+            </div>
+            <button className="btn btn-primary" onClick={goOfficialBooking}>
+              去体育系统网页预约
             </button>
           </Card>
         </>
