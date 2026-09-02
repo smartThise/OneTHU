@@ -626,6 +626,8 @@ export interface XkSearchResult {
   rows: XkCourse[];
   page: number;
   hasMore: boolean;
+  /** 服务端分页器标注的真实总页数（页面含「共 N 页」；解析失败为 undefined） */
+  totalPages?: number;
   /** empty=结果页但 0 行；unknown=非结果页（会话/异常，附首段诊断） */
   pageKind: "empty" | "unknown";
   /** 响应首段（仅 pageKind=unknown 时带出，用于现场诊断） */
@@ -673,11 +675,13 @@ export async function searchXkCourses(
   const html = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksJxjhBs.do?${parts.join("&")}&_t=${Date.now()}`);
   assertNotDenied(s, html);
   const rows = parseXkCatalogPage(html);
-  if (rows.length > 0) return { rows, page, hasMore: true, pageKind: "empty" };
+  const tp = /共\s*(\d+)\s*页/.exec(html);
+  const totalPages = tp ? parseInt(tp[1]!, 10) : undefined;
+  if (rows.length > 0) return { rows, page, hasMore: true, totalPages, pageKind: "empty" };
   // 0 行分类：结果页（含结果表头）= 真无匹配；否则异常页，带首段诊断
   const isResultPage = html.includes("选课文字说明") || html.includes("trr2");
   return isResultPage
-    ? { rows, page, hasMore: false, pageKind: "empty" }
+    ? { rows, page, hasMore: false, totalPages, pageKind: "empty" }
     : { rows, page, hasMore: false, pageKind: "unknown", htmlHead: html.slice(0, 600).replace(/\s+/g, " ") };
 }
 

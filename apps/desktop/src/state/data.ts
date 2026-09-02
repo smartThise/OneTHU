@@ -513,12 +513,15 @@ export interface XkWorkbench {
   levelTypes: Record<string, string>;
   coreState: DataState;
   queueState: DataState | "idle";
-  /** 左栏实时搜索（浏览=服务端页取 / 搜索=3 页探测+可加载全部） */
+  /** 左栏实时搜索（浏览=服务端页取 / 搜索=真页数探测+可加载全部） */
   searchState: DataState | "idle" | "loadingMore";
+  /** 服务端搜索原始行池（不含已选/候补兜底行，供 UI 分页与去重判断） */
+  searchRaw: XkCourse[];
   searchRows: XkRow[];
   searchPage: number;
   searchHasMore: boolean;
   searchIncomplete: boolean;
+  searchTotalPages: number;
   searchRunId: number;
   searchError: string | null;
   newSearch: (meta: XkSearchMeta) => Promise<void>;
@@ -851,6 +854,8 @@ export function useXkWorkbench(): XkWorkbench {
   const [searchPage, setSearchPage] = useState(1);
   const [searchHasMore, setSearchHasMore] = useState(false);
   const [searchIncomplete, setSearchIncomplete] = useState(false);
+  const [searchTotalPages, setSearchTotalPages] = useState(0); // 服务端「共 N 页」真值（0=未知）
+  const [searchLoadedTo, setSearchLoadedTo] = useState(0); // 搜索模式已连续加载到第几页
   const [searchRunId, setSearchRunId] = useState(0);
   const [searchError, setSearchError] = useState<string | null>(null);
   const searchSeqRef = useRef(0);
@@ -920,38 +925,40 @@ export function useXkWorkbench(): XkWorkbench {
           setSearchState("ready");
           return;
         }
-        // 搜索模式：并行爬前 3 页（探测总量 ≤50 还是更多）
+        // 搜索模式：第 1 页先行（响应自带服务端「共 N 页」真值）→ 并行探测到 min(N,5) 页
+        //（用户定稿：探测并行量扩到 100 门；总数与页数直接读服务端标注，不再猜）
         const kw = (meta.kcm || "").trim();
         const base = { ...meta, kch: /^\d{4,}$/.test(kw) ? kw : "", kcm: /^\d{4,}$/.test(kw) ? "" : kw };
-        const [p1, p2, p3] = await Promise.all([
-          fetchXkPage(base, 1),
-          fetchXkPage(base, 2).catch(() => null),
-          fetchXkPage(base, 3).catch(() => null),
-        ]);
+        const p1 = await fetchXkPage(base, 1);
         if (seq !== searchSeqRef.current) return;
         // 课程名 0 行且关键词非数字 → 教师名兜底重试一次（搜索框一框三用）
-        let rows1 = p1.rows;
         let head = p1;
-        if (rows1.length === 0 && kw && !/^\d{4,}$/.test(kw)) {
+        if (p1.rows.length === 0 && kw && !/^\d{4,}$/.test(kw)) {
           const r2 = await fetchXkPage({ ...base, kcm: "", teacher: kw }, 1);
           if (seq !== searchSeqRef.current) return;
-          if (r2.rows.length > 0) { rows1 = r2.rows; head = r2; }
+          if (r2.rows.length > 0) head = r2;
         }
+        const tp = head.totalPages ?? 0;
+        const probeTo = tp > 0 ? Math.min(tp, 5) : 3;
+        const rest = probeTo >= 2
+          ? await Promise.all(Array.from({ length: probeTo - 1 }, (_, i) => fetchXkPage(base, i + 2).catch(() => null)))
+          : [];
+        if (seq !== searchSeqRef.current) return;
         const seen = new Set<string>();
         const merged: XkCourse[] = [];
-        let lastFull = true;
-        for (const r of [head, p2, p3]) {
-          if (!r) { lastFull = false; continue; }
+        for (const r of [head, ...rest]) {
+          if (!r) continue;
           for (const c of r.rows) {
             const k = `${c.code}_${c.seq || "0"}`;
             if (!seen.has(k)) { seen.add(k); merged.push(c); }
           }
-          if (r.rows.length < 20) lastFull = false;
         }
         setSearchRaw(merged);
-        setSearchPage(3);
+        setSearchPage(probeTo);
+        setSearchLoadedTo(probeTo);
+        setSearchTotalPages(tp);
         setSearchHasMore(false);
-        setSearchIncomplete(lastFull); // 3 页都满 → 后面大概率还有，提示可加载全部
+        setSearchIncomplete(tp > probeTo); // 真实总页数 > 已探测页数才叫不完整
         setSearchError(head.pageKind === "unknown" ? `教务返回异常页（首段: ${head.htmlHead}）` : null);
         setSearchState("ready");
       } catch (err) {
@@ -973,11 +980,12 @@ export function useXkWorkbench(): XkWorkbench {
     const seen = new Set(searchRaw.map((c) => `${c.code}_${c.seq || "0"}`));
     const added: XkCourse[] = [];
     const PAGE_POOL = 5;
+    const to = searchTotalPages || searchLoadedTo; // 无真值则无处可爬
     let empty = false;
     try {
-      for (let p = 4; p <= 400 && !empty; p += PAGE_POOL) {
+      for (let p = searchLoadedTo + 1; p <= to && !empty; p += PAGE_POOL) {
         const wave: Array<Promise<XkCourse[] | null>> = [];
-        for (let i = p; i < p + PAGE_POOL; i++) {
+        for (let i = p; i < p + PAGE_POOL && i <= to; i++) {
           wave.push(
             (async () => {
               await sleep((i - p) * 30);
@@ -993,12 +1001,12 @@ export function useXkWorkbench(): XkWorkbench {
           for (const c of rows) {
             const k = `${c.code}_${c.seq || "0"}`;
             if (!seen.has(k)) { seen.add(k); added.push(c); }
-            if (rows.length < 20) empty = true;
           }
         }
       }
       if (seq !== searchSeqRef.current) return;
       setSearchRaw((prev) => [...prev, ...added]);
+      setSearchLoadedTo(to);
       setSearchIncomplete(false);
       setSearchState("ready");
       setToast(`已加载全部 ${searchRaw.length + added.length} 门`);
@@ -1013,7 +1021,7 @@ export function useXkWorkbench(): XkWorkbench {
         failSearch(err, seq);
       }
     }
-  }, [status, searchState, searchRaw, fetchXkPage, failSearch, setToast]);
+  }, [status, searchState, searchRaw, searchTotalPages, searchLoadedTo, fetchXkPage, failSearch, setToast]);
 
   /** 浏览模式翻页：用户点哪页爬哪页（1 个请求），绝不预取 */
   const gotoPage = useCallback(
@@ -1028,6 +1036,7 @@ export function useXkWorkbench(): XkWorkbench {
         setSearchRaw(r.rows);
         setSearchPage(page);
         setSearchHasMore(r.hasMore);
+        if (r.totalPages) setSearchTotalPages(r.totalPages);
         setSearchError(r.pageKind === "unknown" ? `教务返回异常页（首段: ${r.htmlHead}）` : null);
         setSearchState("ready");
       } catch (err) {
@@ -1352,7 +1361,7 @@ export function useXkWorkbench(): XkWorkbench {
     manualEvents, addManualEvent, removeManualEvent,
     previewMode, previewDraftIdx, setPreview, progress, setProgress, refreshQueue, previewItems, previewIndex,
     semesterOverride, setSemesterOverride, semesterOptions, loadDetail, plan,
-    searchState, searchRows, searchPage, searchHasMore, searchIncomplete, searchRunId, searchError,
+    searchState, searchRaw, searchRows, searchPage, searchHasMore, searchIncomplete, searchTotalPages, searchRunId, searchError,
     newSearch, gotoPage, loadAllSearch, retrySearch,
   };
 }
