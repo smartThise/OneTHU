@@ -487,7 +487,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
             <button className="btn" disabled={busy || (searchMode ? curPage <= 1 : wb.searchPage <= 1)}
               onClick={() => (searchMode ? setUiPage(curPage - 1) : void wb.gotoPage(wb.searchPage - 1))}>上一页</button>
             <span style={{ fontSize: 12, color: "var(--text-3)" }}>
-              第 {curPage} 页 / 共 {totalPages} 页{!searchMode || !wb.searchIncomplete ? `（${listRows.length} 门）` : ""}
+              第 {curPage} 页 / 共 {totalPages} 页{searchMode && !wb.searchIncomplete ? `（${listRows.length} 门）` : ""}
             </span>
             <button className="btn" disabled={busy || (searchMode ? curPage >= totalPages : !wb.searchHasMore && !(wb.searchTotalPages > wb.searchPage))}
               onClick={() => {
