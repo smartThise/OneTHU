@@ -921,6 +921,7 @@ export function useXkWorkbench(): XkWorkbench {
           setSearchPage(1);
           setSearchHasMore(r.hasMore);
           setSearchIncomplete(false);
+          if (r.totalPages) setSearchTotalPages(r.totalPages); // 模式切换必须刷新总页数，否则残留上个搜索的值
           setSearchError(r.pageKind === "unknown" ? `教务返回异常页（首段: ${r.htmlHead}）` : null);
           setSearchState("ready");
           return;
