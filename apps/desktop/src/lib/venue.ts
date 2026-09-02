@@ -313,6 +313,27 @@ export async function venueLogin(): Promise<boolean> {
   return openVenueAuth();
 }
 
+/**
+ * 内嵌官方预约窗口（桌面多窗口）：打开体育系统官方页深链（#/reserveList?uuid=
+ * 直达所选场馆），并注入同一份 JWT 到 localStorage.headers.token——官方页开机
+ * 即登录态，无需再登录。页面为官方原页、预约请求全部出自官方 SPA 自身，预约
+ * 动作由用户在页面上手动完成；OneTHU 不调用任何预约接口（预约须知第 12 条）。
+ * 返回 false（非桌面 / 无 token / 命令失败）时调用方回落系统浏览器。
+ */
+export async function openVenueBookingWindow(sceneUuid: string): Promise<boolean> {
+  const token = readStoredToken();
+  if (!token || !isTauri) return false;
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const url = `https://www.sports.tsinghua.edu.cn/venue/index.html#/reserveList?uuid=${encodeURIComponent(sceneUuid)}`;
+    await invoke("open_venue_booking_window", { url, token });
+    return true;
+  } catch (err) {
+    void logLine("[VENUE-BOOK] 内嵌预约窗口不可用 " + String(err));
+    return false;
+  }
+}
+
 /** 授权是否进行中（防重复开窗） */
 let authInFlight = false;
 
