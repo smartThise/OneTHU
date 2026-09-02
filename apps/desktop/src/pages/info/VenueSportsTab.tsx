@@ -85,7 +85,7 @@ function VenueNote({ text, onRetry }: { text: string; onRetry?: () => void }) {
     </div>
   );
 }
-import { VenueTwoFactorRequired, venueClient, venueHasToken, venueLogout, venueScenes, venueLogin, venueSilentLogin, venueSubmit2FA, venueSend2FACode } from "../../lib/venue.js";
+import { VenueTwoFactorRequired, openVenueBookingWindow, venueClient, venueHasToken, venueLogout, venueScenes, venueLogin, venueSilentLogin, venueSubmit2FA, venueSend2FACode } from "../../lib/venue.js";
 import type { TwoFactorMethod, VenueBuilding, VenueDevKind } from "@onethu/core";
 import { useApp } from "../../state/context.js";
 import { TabEmpty, logTabErr, tabErrorText } from "./tabStates.js";
@@ -470,10 +470,13 @@ export function VenueSportsTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, venue?.uuid, date, building, room, devKind, classEnum, useType]);
 
-  /* —— 跳官方网页预约（直达所选场馆；应用内不提交：预约须知第 12 条封禁条款） —— */
+  /* —— 跳官方预约（桌面：内嵌官方原页窗口，注入同一 JWT 开机即登录态，预约
+     由用户在官方页面上手动完成；不可用时回落系统浏览器。第 12 条红线不变） —— */
   const goOfficialBooking = useCallback(() => {
     if (!venue) return;
-    void openExternal(venueWebUrl(venue.uuid));
+    void openVenueBookingWindow(venue.uuid).then((ok) => {
+      if (!ok) void openExternal(venueWebUrl(venue.uuid));
+    });
   }, [venue]);
 
   /* —— 退订 —— */

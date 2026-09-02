@@ -562,6 +562,56 @@ fn open_eid_window(_app: tauri::AppHandle, _username: String, _password: String)
     Err("移动端请在系统浏览器打开电子身份".into())
 }
 
+#[cfg(desktop)]
+#[tauri::command]
+fn open_venue_booking_window(
+    app: tauri::AppHandle,
+    url: String,
+    token: String,
+) -> Result<String, String> {
+    use tauri::webview::WebviewWindowBuilder;
+    use tauri::WebviewUrl;
+    // 防御：本命令只允许体育系统 venue 页深链，不作任意开窗原语
+    if !url.starts_with("https://www.sports.tsinghua.edu.cn/venue/") {
+        return Err("仅支持体育系统页面".into());
+    }
+    let label = "venuebooking";
+    if let Some(old) = app.get_webview_window(label) {
+        let _ = old.close();
+    }
+    // 初始化脚本：把 OneTHU 静默换票拿到的同一份 JWT 注入 localStorage.headers
+    // （官方 SPA 的登录态载体），页面开机即已登录。页面为官方原页、请求全部
+    // 出自官方 SPA 自身，预约由用户在页面上手动完成——OneTHU 不调用任何预约
+    // 接口（预约须知第 12 条）。
+    let script = format!(
+        r#"(function() {{
+  try {{
+    window.localStorage.setItem("headers", JSON.stringify({{ token: {t:?} }}));
+  }} catch (e) {{}}
+}})();"#,
+        t = token,
+    );
+    let parsed = url.parse().map_err(|e| format!("bad url: {e}"))?;
+    let win = WebviewWindowBuilder::new(&app, label, WebviewUrl::External(parsed))
+        .title("体育系统 · 官方预约（OneTHU 内嵌）")
+        .inner_size(560.0, 760.0)
+        .initialization_script(&script)
+        .build()
+        .map_err(|e| e.to_string())?;
+    let _ = win.set_focus();
+    Ok("opened".into())
+}
+
+#[cfg(mobile)]
+#[tauri::command]
+fn open_venue_booking_window(
+    _app: tauri::AppHandle,
+    _url: String,
+    _token: String,
+) -> Result<String, String> {
+    Err("内嵌预约窗口仅桌面端可用".into())
+}
+
 #[cfg(mobile)]
 #[tauri::command]
 fn open_sports_window(_: tauri::AppHandle) -> Result<String, String> {
@@ -582,7 +632,7 @@ tauri::Builder::default()
         })
         .invoke_handler(tauri::generate_handler![
             log_debug,http_request,download_file,fetch_binary,state_read,state_write,state_delete,
-            open_external,open_eid_window,open_sports_window])
+            open_external,open_eid_window,open_sports_window,open_venue_booking_window])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
