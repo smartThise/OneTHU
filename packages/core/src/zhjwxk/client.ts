@@ -630,6 +630,8 @@ export interface XkSearchResult {
   hasMore: boolean;
   /** 服务端分页器标注的真实总页数（页面含「共 N 页」；解析失败为 undefined） */
   totalPages?: number;
+  /** 结果页底部「共 N 条记录」精确总数（解析失败缺省） */
+  totalRows?: number;
   /** empty=结果页但 0 行；unknown=非结果页（会话/异常，附首段诊断） */
   pageKind: "empty" | "unknown";
   /** 响应首段（仅 pageKind=unknown 时带出，用于现场诊断） */
@@ -679,12 +681,15 @@ export async function searchXkCourses(
   const rows = parseXkCatalogPage(html);
   const tp = /共\s*(\d+)\s*页/.exec(html);
   const totalPages = tp ? parseInt(tp[1]!, 10) : undefined;
-  if (rows.length > 0) return { rows, page, hasMore: true, totalPages, pageKind: "empty" };
+  // 底部精确总数：「共 294 页（共 5,864 条记录）」——核对爬取完整性的锁死基准
+  const tr = /共\s*[\d,]+\s*页（共\s*([\d,]+)\s*条记录/.exec(html);
+  const totalRows = tr ? parseInt(tr[1]!.replace(/,/g, ""), 10) : undefined;
+  if (rows.length > 0) return { rows, page, hasMore: true, totalPages, totalRows, pageKind: "empty" };
   // 0 行分类：结果页（含结果表头）= 真无匹配；否则异常页，带首段诊断
   const isResultPage = html.includes("选课文字说明") || html.includes("trr2");
   return isResultPage
     ? { rows, page, hasMore: false, totalPages, pageKind: "empty" }
-    : { rows, page, hasMore: false, pageKind: "unknown", htmlHead: html.slice(0, 600).replace(/\s+/g, " ") };
+    : { rows, page, hasMore: false, totalPages, totalRows, pageKind: "unknown", htmlHead: html.slice(0, 600).replace(/\s+/g, " ") };
 }
 
 /** 志愿统计（tbzySearchBR ≤200 页 + tbzySearchTy ≤20 页，失败容忍） */

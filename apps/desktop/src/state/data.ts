@@ -521,6 +521,8 @@ export interface XkWorkbench {
   searchPage: number;
   searchHasMore: boolean;
   searchIncomplete: boolean;
+  /** 教务底部「共 N 条记录」锁死总数（0=未知） */
+  searchTotalRows: number;
   searchTotalPages: number;
   searchRunId: number;
   searchError: string | null;
@@ -855,7 +857,8 @@ export function useXkWorkbench(): XkWorkbench {
   const [searchPage, setSearchPage] = useState(1);
   const [searchHasMore, setSearchHasMore] = useState(false);
   const [searchIncomplete, setSearchIncomplete] = useState(false);
-  const [searchTotalPages, setSearchTotalPages] = useState(0); // 服务端「共 N 页」真值（0=未知）
+  const [searchTotalPages, setSearchTotalPages] = useState(0);
+  const [searchTotalRows, setSearchTotalRows] = useState(0); // 教务底部「共 N 条记录」锁死值 // 服务端「共 N 页」真值（0=未知）
   const [searchLoadedTo, setSearchLoadedTo] = useState(0); // 搜索模式已连续加载到第几页
   const [searchRunId, setSearchRunId] = useState(0);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -922,6 +925,7 @@ export function useXkWorkbench(): XkWorkbench {
           setSearchPage(1);
           setSearchHasMore(r.hasMore);
           setSearchIncomplete(false);
+          setSearchTotalRows(r.totalRows ?? 0);
           if (r.totalPages) setSearchTotalPages(r.totalPages); // 模式切换必须刷新总页数，否则残留上个搜索的值
           setSearchError(r.pageKind === "unknown" ? `教务返回异常页（首段: ${r.htmlHead}）` : null);
           setSearchState("ready");
@@ -944,24 +948,24 @@ export function useXkWorkbench(): XkWorkbench {
           if (r2.rows.length > 0) head = r2;
         }
         const tp = head.totalPages ?? 0;
+        const locked = head.totalRows ?? 0; // 底部「共 N 条记录」——爬取完整性的锁死基准（用户定稿：先记死再核对）
         // 用户定稿（2026-09 二稿）：<500 门（≤25 页）→ 除首页外全部并发一口气拉完；
         // ≥500 门 → 先探 5 页（100 门）+ 提示条显式加载全部。tp 解析失败保守探 25 页。
         const probeTo = tp > 0 ? (tp <= 25 ? tp : 5) : 25;
         // 并发 + 20ms 微错峰（裸并发会被教务打挂——40/74 教训）+ 失败单页重试一次
-        const rest = probeTo >= 2
-          ? await Promise.all(Array.from({ length: probeTo - 1 }, (_, i) =>
-            (async (): Promise<typeof head | null> => {
-              await sleep(i * 20);
-              try {
-                return await fetchXkPage(base, i + 2);
-              } catch {
-                await sleep(150);
-                try { return await fetchXkPage(base, i + 2); } catch { return null; }
-              }
-            })()))
-          : [];
+        const crawlRest = (): Promise<Array<typeof head | null>> => Promise.all(Array.from({ length: probeTo - 1 }, (_, i) =>
+          (async (): Promise<typeof head | null> => {
+            await sleep(i * 20);
+            try {
+              return await fetchXkPage(base, i + 2);
+            } catch {
+              await sleep(150);
+              try { return await fetchXkPage(base, i + 2); } catch { return null; }
+            }
+          })()));
+        let rest = probeTo >= 2 ? await crawlRest() : [];
         if (seq !== searchSeqRef.current) return;
-        // 连续合并：遇失败页即停（洞页绝不用后续页顶包），失败页数交给「加载全部」补
+        // 连续合并：遇失败页即停（洞页绝不用后续页顶包）
         const seen = new Set<string>();
         const merged: XkCourse[] = [];
         const absorb = (r: typeof head): void => {
@@ -970,22 +974,39 @@ export function useXkWorkbench(): XkWorkbench {
             if (!seen.has(k)) { seen.add(k); merged.push(c); }
           }
         };
-        absorb(head);
         let okPages = 1;
-        for (const r of rest) {
-          if (!r || r.rows.length === 0) break;
-          absorb(r);
-          okPages += 1;
+        const doMerge = (): void => {
+          seen.clear();
+          merged.length = 0;
+          absorb(head);
+          okPages = 1;
+          for (const r of rest) {
+            if (!r || r.rows.length === 0) break;
+            absorb(r);
+            okPages += 1;
+          }
+        };
+        doMerge();
+        // 核对：实得 < 锁死总数 → 整轮重爬，最多重试 2 次（用户定稿）
+        let retries = 0;
+        while (locked > 0 && merged.length < locked && retries < 2) {
+          retries += 1;
+          rest = await crawlRest();
+          if (seq !== searchSeqRef.current) return;
+          doMerge();
         }
+        const deficit = locked > 0 ? locked - merged.length : 0;
         const lastFull = rest.length > 0 && rest[rest.length - 1] !== null && rest[rest.length - 1]!.rows.length >= 20;
         setSearchRaw(merged);
         setSearchPage(okPages);
         setSearchLoadedTo(okPages);
         setSearchTotalPages(tp);
+        setSearchTotalRows(locked);
         setSearchHasMore(false);
-        setSearchIncomplete(tp > okPages || (tp === 0 && okPages === probeTo && lastFull)); // 按实际连续页数判定
+        setSearchIncomplete(deficit > 0 || tp > okPages || (tp === 0 && okPages === probeTo && lastFull)); // 总数核对优先，页数兜底
         setSearchError(head.pageKind === "unknown" ? `教务返回异常页（首段: ${head.htmlHead}）` : null);
         setSearchState("ready");
+        if (deficit > 0) setToast(`爬取不完整：教务共 ${locked} 门，实得 ${merged.length} 门，缺 ${deficit} 门。建议刷新或待会再来看看`);
       } catch (err) {
         failSearch(err, seq);
       }
@@ -1000,12 +1021,13 @@ export function useXkWorkbench(): XkWorkbench {
     if (!meta) return;
     const seq = ++searchSeqRef.current;
     setSearchState("loadingMore");
-    const kw = (meta.kcm || "").trim();
-    const base = { ...meta, kch: /^\d{4,}$/.test(kw) ? kw : "", kcm: /^\d{4,}$/.test(kw) ? "" : kw };
+    // 路由只做一次：直接透传 meta（旧的重推导会把课号搜索的 kch 清空 → load-all 变全目录爬取）
+    const base = { ...meta };
     const seen = new Set(searchRaw.map((c) => `${c.code}_${c.seq || "0"}`));
     const added: XkCourse[] = [];
     const PAGE_POOL = 5;
     const to = searchTotalPages || searchLoadedTo; // 无真值则无处可爬
+    const expected = searchTotalRows; // 锁死基准（0=未知，退回旧行为）
     let empty = false;
     let hadFailure = false;
     const grab = async (i: number): Promise<XkCourse[] | null> => {
@@ -1017,8 +1039,9 @@ export function useXkWorkbench(): XkWorkbench {
         try { return (await fetchXkPage(base, i)).rows; } catch { return null; }
       }
     };
-    try {
-      for (let p = searchLoadedTo + 1; p <= to && !empty; p += PAGE_POOL) {
+    // 一整轮补爬 [from..to]，合入 seen/added（去重安全，可重复调用）
+    const crawlRange = async (from: number): Promise<void> => {
+      for (let p = from; p <= to && !empty; p += PAGE_POOL) {
         const hi = Math.min(p + PAGE_POOL - 1, to);
         const results = await Promise.all(Array.from({ length: hi - p + 1 }, (_, i) => grab(p + i)));
         if (seq !== searchSeqRef.current) return;
@@ -1031,12 +1054,29 @@ export function useXkWorkbench(): XkWorkbench {
           }
         }
       }
+    };
+    try {
+      await crawlRange(searchLoadedTo + 1);
       if (seq !== searchSeqRef.current) return;
+      // 核对总数：不足 → 整段重爬，最多重试 2 次（用户定稿）
+      let retries = 0;
+      while (expected > 0 && seen.size < expected && retries < 2) {
+        retries += 1;
+        empty = false;
+        hadFailure = false;
+        await crawlRange(2);
+        if (seq !== searchSeqRef.current) return;
+      }
+      const deficit = expected > 0 ? expected - seen.size : 0;
       setSearchRaw((prev) => [...prev, ...added]);
       if (empty) setSearchLoadedTo(to);
-      setSearchIncomplete(hadFailure && !empty); // 仍有失败页：横幅留着，用户可再点补
+      setSearchIncomplete(deficit > 0 || (hadFailure && !empty)); // 仍缺：横幅留着可再点
       setSearchState("ready");
-      setToast(`已加载全部 ${searchRaw.length + added.length} 门`);
+      if (deficit > 0) {
+        setToast(`爬取不完整：教务共 ${expected} 门，实得 ${seen.size} 门，缺 ${deficit} 门。建议刷新或待会再来看看`);
+      } else {
+        setToast(`已加载全部 ${seen.size} 门`);
+      }
     } catch (err) {
       if (seq !== searchSeqRef.current) return;
       // 部分成功也算数：落已加载的行，可再点继续
@@ -1048,7 +1088,7 @@ export function useXkWorkbench(): XkWorkbench {
         failSearch(err, seq);
       }
     }
-  }, [status, searchState, searchRaw, searchTotalPages, searchLoadedTo, fetchXkPage, failSearch, setToast]);
+  }, [status, searchState, searchRaw, searchTotalPages, searchTotalRows, searchLoadedTo, fetchXkPage, failSearch, setToast]);
 
   /** 浏览模式翻页：用户点哪页爬哪页（1 个请求），绝不预取 */
   const gotoPage = useCallback(
@@ -1398,7 +1438,7 @@ export function useXkWorkbench(): XkWorkbench {
     courses, canAdjustZy, stageCart, addToStage, removeFromStage, updateStageItem, importStageItem,
     savedDrafts, saveDraft, deleteDraft, removeFromDraft, saveCurrentAsDraft, exportDraft, importDraft, submitDraft,
     manualEvents, addManualEvent, removeManualEvent,
-    previewMode, previewDraftIdx, setPreview, progress, setProgress, refreshQueue, previewItems, previewIndex,
+    previewMode, previewDraftIdx, setPreview, progress, setProgress, refreshQueue, previewItems, previewIndex, searchTotalRows,
     semesterOverride, setSemesterOverride, semesterOptions, loadDetail, plan,
     searchState, searchRaw, searchRows, searchPage, searchHasMore, searchIncomplete, searchTotalPages, searchRunId, searchError,
     newSearch, gotoPage, loadAllSearch, retrySearch,
