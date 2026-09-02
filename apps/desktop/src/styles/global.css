@@ -1197,6 +1197,42 @@
   outline-offset: 1px;
 }
 
+/* 楼栋搜索下拉（filter-dd 变体）：搜索框 + 分组滚动列表 */
+.washer-dd-search {
+  height: 30px;
+  min-height: 0;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.washer-dd-list {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.washer-dd-group {
+  padding: 7px 10px 4px;
+  font-size: 11px;
+  color: var(--text-3, rgba(0, 0, 0, 0.45));
+  line-height: 1;
+}
+.washer-dd-opt {
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.washer-dd-opt.is-sel { color: var(--accent); font-weight: 600; }
+.washer-dd-empty {
+  padding: 12px 10px;
+  font-size: 12px;
+  color: var(--text-3, rgba(0, 0, 0, 0.45));
+  text-align: center;
+}
+
 /* 设备网格：自适应列宽，拥挤与稀疏都可控 */
 .washer-grid {
   display: grid;
