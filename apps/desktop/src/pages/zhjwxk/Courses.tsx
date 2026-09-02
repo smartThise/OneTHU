@@ -45,21 +45,52 @@ const PV_AXIS_END = pvToMin(PV_END[14]!);
 const pvY = (min: number): number => (min - PV_AXIS_BEGIN) * PV_PX_PER_MIN;
 const pvHm = (m: number): string => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 const PV_HALF_HOURS: number[] = Array.from({ length: Math.floor((PV_AXIS_END - PV_AXIS_BEGIN) / 30) + 1 }, (_, i) => PV_AXIS_BEGIN + i * 30);
-/** 外校钟点解析：「周X HH:MM—HH:MM」（北大/北外格式，— – - 通吃、顿号分隔多段；单双周标记 v1 忽略） */
-function clockRangesOf(note: string, time: string): Array<{ day: number; begin: number; end: number }> {
-  const out: Array<{ day: number; begin: number; end: number }> = [];
+/** 外校钟点解析 v2（北大/北外官方 xlsx 时间描述全格式实证）：
+ *  支持周X/星期X、复合日「周二、四」「星期二/星期日」、多段「、;；」分隔、
+ *  破折号—–-通吃、全角括号、课级/段级「单周」「双周」、周段「(1-16周)」。
+ *  返回钟点块 + 展示标签（单双周/周段）。 */
+interface ClockRange { day: number; begin: number; end: number; tag: string }
+function clockRangesOf(note: string, time: string): ClockRange[] {
+  const raw = `${note || ""} ${time || ""}`;
+  if (!raw.trim()) return [];
+  // 归一化：星期→周、全角括号→半角、破折号→-、分号→;
+  const s = raw.replace(/星期/g, "周").replace(/（/g, "(").replace(/）/g, ")").replace(/[—–]/g, "-").replace(/；/g, ";").replace(/[{}]/g, "(").replace(/」/g, ")");
+  const dayChar = "一二三四五六日天";
   const dayIdx: Record<string, number> = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 日: 7, 天: 7 };
-  const re = /周([一二三四五六日天])\s*(\d{1,2}):(\d{2})\s*[—–-]\s*(\d{1,2}):(\d{2})/g;
-  let m: RegExpExecArray | null;
-  const src = `${note || ""} ${time || ""}`;
-  while ((m = re.exec(src)) !== null) {
-    const day = dayIdx[m[1]!] ?? 0;
-    const begin = Number(m[2]) * 60 + Number(m[3]);
-    const end = Number(m[4]) * 60 + Number(m[5]);
-    if (day >= 1 && end > begin) out.push({ day, begin, end });
+  const parityOf = (t: string): string => (/单周/.test(t) ? "单周" : /双周/.test(t) ? "双周" : "");
+  // 段级标记：带时间的段内的单双周只管本段；「;单周」独立尾段/全局标记管全部
+  const out: ClockRange[] = [];
+  let globalParity = "";
+  for (const seg of s.split(";")) {
+    const re = /((?:周?[一二三四五六日天][、\/,]?)+)\s*(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/g;
+    let m: RegExpExecArray | null;
+    let segHit = false;
+    while ((m = re.exec(seg)) !== null) {
+      const days = [...m[1]!].filter((ch) => dayChar.includes(ch)).map((ch) => dayIdx[ch]!);
+      const begin = Number(m[2]) * 60 + Number(m[3]);
+      const end = Number(m[4]) * 60 + Number(m[5]);
+      // 周段：时间后紧邻的 (N-M周)
+      const after = seg.slice(m.index + m[0].length, m.index + m[0].length + 12);
+      const wk = /\((\d+-\d+周?)\)/.exec(after)?.[1] ?? "";
+      const parity = parityOf(seg.slice(m.index));
+      if (!parity && !segHit) { /* 段内无标记，稍后回落课级 */ }
+      for (const day of days) {
+        if (day >= 1 && end > begin) {
+          const bits = [parity, wk].filter(Boolean);
+          out.push({ day, begin, end, tag: bits.join("·") });
+          segHit = true;
+        }
+      }
+    }
+    if (!segHit) {
+      const p = parityOf(seg);
+      if (p) globalParity = p; // 「;单周」独立尾段 → 管全部段
+    }
   }
+  if (globalParity) for (const r of out) if (!r.tag.includes("周") || /\d+-\d+/.test(r.tag)) r.tag = [globalParity, ...r.tag.split("·").filter((t) => !/^(单周|双周)$/.test(t))].filter(Boolean).join("·");
   return out;
 }
+
 /** 课块配色（无概率色时按课名稳定取色，同正式课表） */
 const PV_PALETTE = ["#6d7ff0", "#3d8bfd", "#1fa487", "#e07a4f", "#b463d6", "#2f9edb", "#c9971f", "#4caf6e", "#d45c8a", "#7a63e8"];
 const pvColorOf = (name: string): string => {
@@ -442,6 +473,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   const [sortBy, setSortBy] = useState("");
   const [picks, setPicks] = useState<Record<string, { flag: XkFlag; zy: number }>>({});
   const [highlight, setHighlight] = useState("");
+  const { navigate } = useApp();
 
   /* 服务端筛选映射：课程号(纯数字)/课程名→文本框，通识课组→p_rxklxm，课程特色→p_kctsm，
    * 年级→p_ssnj，星期→p_skxq，大节→p_skjc，本/研余量→p_bkskyl_ig/p_yjskyl_ig。
@@ -563,6 +595,13 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   const selStyle: React.CSSProperties = { height: 26, fontSize: 12, flex: 1, minWidth: 96 };
   return (
     <>
+      <Card style={{ padding: "8px 10px", marginBottom: 10, position: "sticky", top: 0, zIndex: 8, background: "var(--paper, #faf8f2)", borderColor: "var(--amber)" }}>
+        <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--text-2)" }}>
+          📌 北大、北外课程时间为通知附件形式（含单双周），<b>无法在筛选栏按时间筛选</b>。开放选课通知：
+          <button className="btn" style={{ marginLeft: 6, padding: "1px 8px", fontSize: 11 }} onClick={() => navigate("info", { infoNewsQuery: "北京大学 北京外国语大学" })}>北大·北外本科</button>
+          <button className="btn" style={{ marginLeft: 6, padding: "1px 8px", fontSize: 11 }} onClick={() => navigate("info", { infoNewsQuery: "北京大学 研究生" })}>北大研究生</button>
+        </div>
+      </Card>
       <Card style={{ padding: 10, marginBottom: 10 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input className="input" style={{ flex: 1 }} placeholder="搜索课程名称、教师、课程号…" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -757,9 +796,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
         ) : null}
         {(() => { const o = originOf(r.c.code); return o ? (
           <div className="row-sub" style={{ color: "var(--amber)", whiteSpace: "normal", display: "flex", gap: 6, alignItems: "flex-start" }}>
-            <span style={{ flex: 1 }}>{o}课程时间无法自动获取——请在新闻中查阅「北京大学、北京外国语大学部分课程面向我校本科生开放选课」通知，附件含具体上课时间。</span>
-            <button className="btn" style={{ flexShrink: 0, padding: "1px 8px", fontSize: 11 }} title="跳转新闻搜索该通知"
-              onClick={() => navigate("info", { infoNewsQuery: "北京大学 北京外国语大学" })}>查通知</button>
+            <span style={{ flex: 1 }}>{o}课程时间无法自动获取——<button className="btn" style={{ padding: "0 6px", fontSize: 11, display: "inline" }} onClick={() => navigate("info", { infoNewsQuery: o === "北大研" ? "北京大学 研究生" : "北京大学 北京外国语大学" })}>点击查看{o === "北大研" ? "关于北京大学面向我校研究生开放课程的选课通知" : "关于北大、北外课程的选课通知"}</button></span>
           </div>
         ) : null; })()}
         {confs.length ? <div className="row-sub" style={{ color: "var(--red)", whiteSpace: "normal" }}>冲突: {confs.slice(0, 3).map((c) => `周${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.b}`).join(" · ")}</div> : null}
@@ -909,7 +946,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
 
   // 时间轴课块：清华课按大节→钟点；北大/北外等外校课 time 列无槽位，从 note 解析「周X HH:MM—HH:MM」
   const { placed, undet } = useMemo(() => {
-    type PvBlock = { key: string; day: number; begin: number; end: number; label: string; color: string; probLabel?: string; manual?: boolean; id?: string; code?: string; seq?: string; origin?: string };
+    type PvBlock = { key: string; day: number; begin: number; end: number; label: string; color: string; probLabel?: string; manual?: boolean; id?: string; code?: string; seq?: string; origin?: string; tag?: string };
     const raw: PvBlock[] = [];
     const undet: Array<{ lbl: string; code: string; seq: string; credits: number; zy: number; manual: boolean; id?: string }> = [];
     type PvCourse = { name: string; teacher?: string; code: string; seq: string; time: string; note: string; credits: number; zy: number; manual?: boolean; id?: string; flag?: XkFlag; typeCode?: string; begin?: string; end?: string; day?: number };
@@ -938,7 +975,8 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
       }
       if (n === 0) {
         for (const cr of clockRangesOf(c.note, c.time)) {
-          raw.push(mk(cr.day, cr.begin, cr.end, `c${cr.begin}`));
+          const b = { ...mk(cr.day, cr.begin, cr.end, `c${cr.begin}`), tag: cr.tag };
+          raw.push(b);
           n += 1;
         }
       }
@@ -1038,7 +1076,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
                         {b.origin ? <span style={{ fontSize: 8, padding: "0 3px", borderRadius: 3, background: "rgba(255,255,255,.28)", whiteSpace: "nowrap" }}>{b.origin}</span> : null}
                         <div style={{ fontSize: compact ? 8.5 : 9.5, fontWeight: 700, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.label}</div>
                       </div>
-                      {!compact ? <div style={{ fontSize: 8, opacity: 0.9, lineHeight: 1.3 }}>{pvHm(b.begin)}–{pvHm(b.end)}</div> : null}
+                      {!compact ? <div style={{ fontSize: 8, opacity: 0.9, lineHeight: 1.3 }}>{pvHm(b.begin)}–{pvHm(b.end)}{b.tag ? ` ${b.tag}` : ""}</div> : null}
                       {b.probLabel && height > 44 ? <span style={{ display: "inline-block", marginTop: 1, padding: "0 4px", borderRadius: 999, fontSize: 8, fontWeight: 700, background: "rgba(255,255,255,.25)" }}>{b.probLabel}</span> : null}
                       <button className="btn" style={{ position: "absolute", top: 1, right: 1, padding: "0 3px", fontSize: 8, lineHeight: 1.4, opacity: 0.65, border: "none", background: "transparent", color: "#fff" }}
                         title="移除" onClick={(e) => { e.stopPropagation(); if (b.manual && b.id) wb.removeManualEvent(b.id); else if (b.code && b.seq) void removeItem(b.code, b.seq); }}>✕</button>
