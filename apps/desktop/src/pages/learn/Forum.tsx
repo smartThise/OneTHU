@@ -622,11 +622,11 @@ function NewThreadDialog({
           onChange={(e) => setTitle(e.target.value)}
         />
         {boards.length > 1 ? (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+          <div className="tabstrip" style={{ marginBottom: 10 }}>
             {boards.map((b) => (
               <button
                 key={b.bqid}
-                className={"chip" + (bqid === b.bqid ? " chip-blue" : "")}
+                className={bqid === b.bqid ? "is-active" : ""}
                 onClick={() => setBqid(b.bqid)}
               >
                 {b.name}
