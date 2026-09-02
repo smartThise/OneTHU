@@ -929,8 +929,11 @@ export function useXkWorkbench(): XkWorkbench {
         }
         // 搜索模式：第 1 页先行（响应自带服务端「共 N 页」真值）→ 并行探测到 min(N,5) 页
         //（用户定稿：探测并行量扩到 100 门；总数与页数直接读服务端标注，不再猜）
+        // 路由已在 UI 层完成（课号→meta.kch、课名→meta.kcm）。此处绝不重新推导——
+        // 旧代码在这里按「纯数字才算课号」重推，把 UI 已放入的 kch 清空，
+        // kch/kcm 双空 = 无过滤 = 教务返回全目录第 1 页（搜课号出一堆无关课的实锤根因）。
+        const base = { ...meta };
         const kw = (meta.kcm || "").trim();
-        const base = { ...meta, kch: /^\d{4,}$/.test(kw) ? kw : "", kcm: /^\d{4,}$/.test(kw) ? "" : kw };
         const p1 = await fetchXkPage(base, 1);
         if (seq !== searchSeqRef.current) return;
         // 课程名 0 行且关键词非数字 → 教师名兜底重试一次（搜索框一框三用）
