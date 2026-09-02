@@ -415,6 +415,23 @@ export class LearnClient {
     return u.toString();
   }
 
+  /** 讨论区 /b/bbs ajax 端点：站点 jQuery 发的请求带 X-Requested-With + Referer，
+   *  服务器过滤器对无此头的请求可能回 HTML 壳（2.har 请求头实录） */
+  async #bbsPost(url: string, body: URLSearchParams): Promise<string> {
+    return this.#http.request(this.#withCsrf(url), {
+      method: "POST",
+      body,
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Referer":
+          urls.LEARN_PREFIX +
+          "/f/wlxt/bbs/bbs_tltb/student/beforePageTlList?wlkcid=" +
+          (new URL(url).searchParams.get("wlkcid") ?? body.get("wlkcid") ?? ""),
+      },
+    }).then((r) => r.text());
+  }
+
   async getCurrentSemester(): Promise<SemesterInfo> {
     return this.#withRelogin(async () => {
       this.#requireCsrf();
@@ -835,7 +852,7 @@ export class LearnClient {
   async getBbsBoards(wlkcid: string): Promise<LearnBbsBoard[]> {
     return this.#withRelogin(async () => {
       this.#requireCsrf();
-      const res = await this.#http.postForm(this.#withCsrf(urls.LEARN_BBS_BOARD_LIST(wlkcid)), new URLSearchParams({ wlkcid }));
+      const res = await this.#bbsPost(urls.LEARN_BBS_BOARD_LIST(wlkcid), new URLSearchParams({ wlkcid }));
       const arr = parseMaybeJsonString<unknown>(res);
       const rawList = Array.isArray(arr)
         ? arr
@@ -890,7 +907,7 @@ export class LearnClient {
         { name: "bqid", value: opts.bqid },
       ];
       const body = new URLSearchParams({ aoData: JSON.stringify(aoData) });
-      const res = await this.#http.postForm(this.#withCsrf(urls.LEARN_BBS_THREAD_PAGE(opts.kind)), body);
+      const res = await this.#bbsPost(urls.LEARN_BBS_THREAD_PAGE(opts.kind), body);
       const obj = parseMaybeJsonString<{ object?: { aaData?: unknown[]; iTotalDisplayRecords?: unknown; iTotalRecords?: unknown } }>(res);
       const inner = (obj?.object ?? {}) as Record<string, unknown>;
       const rows = Array.isArray(inner.aaData) ? inner.aaData : [];
@@ -946,7 +963,7 @@ export class LearnClient {
         body.set("fhhid", fhhid);
         body.set("_fhhid", fhhid);
       }
-      const res = await this.#http.postForm(this.#withCsrf(urls.LEARN_BBS_SAVE_REPLY(wlkcid)), body);
+      const res = await this.#bbsPost(urls.LEARN_BBS_SAVE_REPLY(wlkcid), body);
       let ok = false;
       try {
         const j = JSON.parse(res) as { result?: unknown; msg?: unknown };
