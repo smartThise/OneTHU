@@ -39,6 +39,12 @@ function beijingMinute(): number {
   return bj.getHours() * 60 + bj.getMinutes();
 }
 
+/** 场馆例行维护窗口（00:55-02:05，北京时间）——窗口内零网络零登录，直接渲染维护卡 */
+function inMaintainWindow(): boolean {
+  const m = beijingMinute();
+  return m >= 55 || m <= 125;
+}
+
 /** 维护期友好卡：窗口内（00:55-02:05）不轰炸——单次定时到窗口结束重试一次；窗口外按 60s 自动重试 */
 function VenueNote({ text, onRetry }: { text: string; onRetry?: () => void }) {
   const maintain = /维护中/.test(text);
@@ -141,6 +147,15 @@ export function VenueSportsTab() {
   const [user, setUser] = useState<VenueUser | null>(null);
   const [noticeMsg, setNoticeMsg] = useState<string | null>(null);
 
+  /* —— 维护窗口（00:55-02:05）：置真时跳过一切网络/登录，直出维护卡 —— */
+  const [maintainTick, setMaintainTick] = useState(0);
+  const maintain = inMaintainWindow();
+  useEffect(() => {
+    if (!maintain) return;
+    const t = setInterval(() => setMaintainTick((v) => v + 1), 30_000);
+    return () => clearInterval(t);
+  }, [maintain]);
+
   /* —— 楼栋（current/page 的 classTypeUuid 必须是楼栋 uuid，SPA 同款默认第一个） —— */
   const [buildings, setBuildings] = useState<VenueBuilding[]>([]);
   const [building, setBuilding] = useState("");
@@ -242,7 +257,7 @@ export function VenueSportsTab() {
   /* —— 挂载即静默全套（换票链 → 统一凭证 CAS 重登 → 换票；全程无窗口） —— */
   const [silentTried, setSilentTried] = useState(false);
   useEffect(() => {
-    if (status !== "ready" || authed || silentTried) return;
+    if (status !== "ready" || authed || silentTried || maintain) return;
     setSilentTried(true);
     setAuthBusy(true);
     void venueSilentLogin()
@@ -258,7 +273,7 @@ export function VenueSportsTab() {
       })
       .finally(() => setAuthBusy(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, authed]);
+  }, [status, authed, maintain]);
 
   /* —— 场馆目录 —— */
   const loadScenes = useCallback(async () => {
@@ -348,7 +363,7 @@ export function VenueSportsTab() {
 
   /* —— 登录用户（resvMember id） —— */
   useEffect(() => {
-    if (!authed || !venueHasToken()) return;
+    if (maintain || !authed || !venueHasToken()) return;
     let alive = true;
     venueClient
       .getLoginUser()
@@ -370,7 +385,7 @@ export function VenueSportsTab() {
 
   /* —— 首次挂载：拉场馆目录 —— */
   useEffect(() => {
-    if (status !== "ready") return;
+    if (status !== "ready" || maintain) return;
     if (!authed) {
       setAuthed(venueHasToken());
       return;
@@ -378,11 +393,11 @@ export function VenueSportsTab() {
     if (sceneState === "idle") void loadScenes();
     if (recState === "idle") void fetchRecords();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, authed]);
+  }, [status, authed, maintain]);
 
   /* —— 场馆切换：并行拉楼栋+设备类型（缓存；一次落地，避免逐个 setState 连环拉场地） —— */
   useEffect(() => {
-    if (!authed || !venue) return;
+    if (maintain || !authed || !venue) return;
     let dead = false;
     const USE_ENUM = [
       { key: 1, value: "NORMAL", label: "普通" },
@@ -445,7 +460,7 @@ export function VenueSportsTab() {
 
   /* —— 场馆/日期/楼栋变化：拉场地 —— */
   useEffect(() => {
-    if (!authed || !venue || !date) return;
+    if (maintain || !authed || !venue || !date) return;
     if (metaReady !== venue.uuid) return; // 元信息未就绪，等合并落地
     void loadSites(venue.uuid, date, classEnum === "ROOM" ? room : building, devKind, classEnum, useType);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -527,6 +542,21 @@ export function VenueSportsTab() {
 
   if (status === "demo") {
     return <TabEmpty text="演示模式不提供体育场馆预约，登录后可用。" />;
+  }
+
+  /* —— 维护窗口：不碰任何网络/登录，直出维护卡（窗口结束自动回到正常流程） —— */
+  if (maintain) {
+    return (
+      <>
+        <SectionHead title="体育场馆预约" aside="维护窗口" />
+        <Card style={{ marginBottom: 16, padding: "12px 14px" }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>场馆系统维护中</div>
+          <div style={{ fontSize: 13, opacity: 0.75, lineHeight: 1.7 }}>
+            每日 01:00 - 02:00 例行维护。当前处于维护窗口，场馆查询与预约均不可用；窗口结束后本页自动恢复，无需手动重试。
+          </div>
+        </Card>
+      </>
+    );
   }
 
   /* —— 二次认证面板（CAS 要求时） —— */
