@@ -243,6 +243,7 @@ export function ForumThreadPage() {
   const [sending, setSending] = useState(false);
   const [sendMsg, setSendMsg] = useState("");
   const [dlHint, setDlHint] = useState("");
+  const [dbgMsg, setDbgMsg] = useState("");
 
   const load = useCallback(() => {
     if (!courseId || !threadId) return;
@@ -327,6 +328,11 @@ export function ForumThreadPage() {
           <PageHead title={head.title} meta={[head.author, fmtDateTime(head.time)].filter(Boolean).join(" · ")} />
           <Card>
             <RichContent html={head.html} />
+            {!head.html && !head.author ? (
+              <div className="row-sub" style={{ marginTop: 8 }}>
+                正文解析为空（结构异常）——点下方「复制诊断」把服务器原话发给开发者
+              </div>
+            ) : null}
           </Card>
           <div className="nav-label" style={{ margin: "14px 0 8px" }}>
             回复 · {head.replyCount}
@@ -338,6 +344,27 @@ export function ForumThreadPage() {
           ) : posts.length === 0 ? (
             <Card>
               <Empty text="还没有回复，抢个沙发" />
+              {status !== "demo" && (learn.lastBbsThreadDebug || learn.lastBbsListDebug) ? (
+                <div style={{ marginTop: 10 }}>
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      const t = learn.lastBbsThreadDebug || learn.lastBbsListDebug;
+                      navigator.clipboard?.writeText(t).then(
+                        () => setDbgMsg("诊断信息已复制"),
+                        () => setDbgMsg(t.slice(0, 600)),
+                      );
+                    }}
+                  >
+                    复制诊断信息
+                  </button>
+                  {dbgMsg ? (
+                    <div className="row-sub" style={{ marginTop: 6, wordBreak: "break-all" }}>
+                      {dbgMsg}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </Card>
           ) : (
             posts.map((p) => (

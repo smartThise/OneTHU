@@ -386,6 +386,9 @@ export class LearnClient {
   /** 诊断现场：讨论列表解析为空时的页面 HTML 头部（空串 = 有数据） */
   lastBbsListDebug = "";
 
+  /** 诊断现场：话题阅读/回复为空时的原始证据（空串 = 正常） */
+  lastBbsThreadDebug = "";
+
   async #fetchCsrf(): Promise<string | null> {
     try {
       const html = await this.#http.text(this.#withCsrf(urls.LEARN_COURSE_LIST_PAGE()));
@@ -924,6 +927,12 @@ export class LearnClient {
       this.#requireCsrf();
       const html = await this.#http.text(this.#withCsrf(urls.LEARN_BBS_THREAD_VIEW(wlkcid, threadId)));
       const main = parseBbsMainBlock(html);
+      // 诊断：楼主块空 = 页面结构/会话异常，留标题区+楼主区+长度指纹
+      this.lastBbsThreadDebug =
+        main.html || main.author
+          ? ""
+          : `THREAD-VIEW len=${html.length} louzhuu=${html.includes("louzhuu")} tlbt=${html.includes("tlbt")}\n` +
+            html.slice(0, 900);
       const span = (re: RegExp): string => re.exec(html)?.[1] ?? "";
       return {
         id: threadId,
@@ -950,7 +959,12 @@ export class LearnClient {
         this.#withCsrf(urls.LEARN_BBS_POSTS_PAGE(wlkcid, threadId, pageNum)),
       );
       const list = json?.object?.list;
-      return Array.isArray(list) ? list.map(parseBbsPostJson) : [];
+      const posts = Array.isArray(list) ? list.map(parseBbsPostJson) : [];
+      this.lastBbsThreadDebug =
+        posts.length === 0
+          ? `POSTS-PAGE RESP(page=${pageNum}):\n` + JSON.stringify(json).slice(0, 1200)
+          : "";
+      return posts;
     });
   }
 
