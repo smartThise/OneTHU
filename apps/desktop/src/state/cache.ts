@@ -81,6 +81,27 @@ export function cacheFetch<T>(key: string, fetcher: () => Promise<T>): Promise<T
   return p;
 }
 
+/** 一次性清空选课缓存课表（2026-09-02 用户指令：历轮缓存脏数据不可信，全部重取）。
+ *  只清派生缓存（core 种子/学期解析），绝不动草稿/暂存等用户数据。 */
+export function purgeXkCaches(): void {
+  try {
+    const ls = globalThis.localStorage;
+    if (!ls || ls.getItem("onethu.xk.purged.v2")) return;
+    for (const key of [...mem.keys()]) {
+      if (key.startsWith("xk:core:") || key === "xk:semester") mem.delete(key);
+    }
+    const stale: string[] = [];
+    for (let i = 0; i < ls.length; i++) {
+      const k = ls.key(i);
+      if (k && (k.includes("xk:core:") || k.includes("xk:semester"))) stale.push(k);
+    }
+    for (const k of stale) ls.removeItem(k);
+    ls.setItem("onethu.xk.purged.v2", "1");
+  } catch {
+    /* 忽略配额/隐私模式 */
+  }
+}
+
 /** 持久化名单：这些 key 的缓存落 localStorage（冷启动即时渲染） */
 const PERSISTED = new Set(["card", "profile", "calendar", "semesters", "exams", "report", "dorm", "xk"]);
 

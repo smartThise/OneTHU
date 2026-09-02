@@ -23,6 +23,7 @@
  * 字节路径的解码语义见 crypto/decryptResponse.ts（demo 的 decryptResponse 移植）。
  */
 import { AuthRequiredError, type HttpClient } from "../http.js";
+import { gbkPercentEncode } from "./gbk-table.js";
 import { parseCasFormHtml } from "../auth/cas.js";
 import { decodeUrl, webvpnWrap } from "../crypto/webvpn.js";
 import { ID_PREFIX } from "../auth/cas.js";
@@ -613,6 +614,73 @@ export async function getXkCatalog(
   return [...map.values()];
 }
 
+/**
+ * 服务端课程搜索（kkxxSearch 分页）：与批量抓取同一端点、同一 trr2 行结构
+ * （parseXkCatalogPage 原样复用），只是把筛选交给服务端、按页取数（每页 20 行）。
+ * 筛选参数来自存档表单（选课开课信息查询.html）：p_kch 课号 / p_kcm 课名 /
+ * p_zjjsxm 教师 / p_kkdwnm 院系 / p_skxq 星期 / p_skjc 节次 / p_ssnj 年级 /
+ * p_rxklxm 任选课组 / p_kctsm 特色 / p_bkskyl_ig=0 本科余量>0 / p_yjskyl_ig=0 研究生余量>0。
+ * 诊断：resp.htmlHead 带回响应首段（无 trr2 行时 UI 可据此判别空结果 vs 异常页）。
+ */
+export interface XkSearchResult {
+  rows: XkCourse[];
+  page: number;
+  hasMore: boolean;
+  /** empty=结果页但 0 行；unknown=非结果页（会话/异常，附首段诊断） */
+  pageKind: "empty" | "unknown";
+  /** 响应首段（仅 pageKind=unknown 时带出，用于现场诊断） */
+  htmlHead?: string;
+}
+export async function searchXkCourses(
+  s: ZhjwxkSession,
+  opts: {
+    semester?: string;
+    page?: number;
+    kch?: string;
+    kcm?: string;
+    teacher?: string;
+    department?: string;
+    weekday?: string;
+    section?: string;
+    grade?: string;
+    kcflm?: string;
+    rxklxm?: string;
+    kctsm?: string;
+    onlyAvailable?: boolean;
+    gradAvail?: boolean;
+  } = {},
+): Promise<XkSearchResult> {
+  const { entry, semester } = await ensure(s, opts.semester);
+  const page = Math.max(1, opts.page ?? 1);
+  // 手工拼查询串（URLSearchParams 会把 %XX 再编码成 %25XX）：中文一律 GBK 百分号编码——
+  // 教务页面 GBK，UTF-8 直发服务端解出乱码、LIKE 匹配不到 → 正常页面 0 行（实测实锤）。
+  const parts: string[] = ["m=kkxxSearch", `p_xnxq=${encodeURIComponent(semester)}`];
+  if (page > 1) parts.push(`page=${page}`);
+  if (opts.kch?.trim()) parts.push(`p_kch=${encodeURIComponent(opts.kch.trim())}`);
+  const kw = opts.kcm?.trim();
+  if (kw) parts.push(`p_kcm=${gbkPercentEncode(kw)}`);
+  const teacher = opts.teacher?.trim();
+  if (teacher) parts.push(`p_zjjsxm=${gbkPercentEncode(teacher)}`);
+  if (opts.department) parts.push(`p_kkdwnm=${encodeURIComponent(opts.department)}`);
+  if (opts.weekday) parts.push(`p_skxq=${encodeURIComponent(opts.weekday)}`);
+  if (opts.section) parts.push(`p_skjc=${encodeURIComponent(opts.section)}`);
+  if (opts.grade) parts.push(`p_ssnj=${encodeURIComponent(opts.grade)}`);
+  if (opts.kcflm) parts.push(`p_kcflm=${encodeURIComponent(opts.kcflm)}`);
+  if (opts.rxklxm) parts.push(`p_rxklxm=${encodeURIComponent(opts.rxklxm)}`);
+  if (opts.kctsm) parts.push(`p_kctsm=${encodeURIComponent(opts.kctsm)}`);
+  if (opts.onlyAvailable) parts.push("p_bkskyl_ig=0");
+  if (opts.gradAvail) parts.push("p_yjskyl_ig=0");
+  const html = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksJxjhBs.do?${parts.join("&")}&_t=${Date.now()}`);
+  assertNotDenied(s, html);
+  const rows = parseXkCatalogPage(html);
+  if (rows.length > 0) return { rows, page, hasMore: true, pageKind: "empty" };
+  // 0 行分类：结果页（含结果表头）= 真无匹配；否则异常页，带首段诊断
+  const isResultPage = html.includes("选课文字说明") || html.includes("trr2");
+  return isResultPage
+    ? { rows, page, hasMore: false, pageKind: "empty" }
+    : { rows, page, hasMore: false, pageKind: "unknown", htmlHead: html.slice(0, 600).replace(/\s+/g, " ") };
+}
+
 /** 志愿统计（tbzySearchBR ≤200 页 + tbzySearchTy ≤20 页，失败容忍） */
 export async function getXkVolunteer(
   s: ZhjwxkSession,
@@ -1032,7 +1100,8 @@ export interface XkLevelTableRow {
  */
 export async function getXkLevelTable(s: ZhjwxkSession, opts: { semester: string }): Promise<Record<string, XkLevelTableRow>> {
   await ensure(s, opts.semester);
-  const html = await s.http.text(`${ZHJWXK}/xkBks.vxkBksXkbBs.do?p_xnxq=${encodeURIComponent(opts.semester)}&pathContent=${encodeURIComponent("一级课表")}`);
+  // pathContent 为中文参数：GBK 编码（UTF-8 直发服务端解乱码，取不到一级课表页）
+  const html = await s.http.text(`${ZHJWXK}/xkBks.vxkBksXkbBs.do?p_xnxq=${encodeURIComponent(opts.semester)}&pathContent=${gbkPercentEncode("一级课表")}`);
   const map: Record<string, XkLevelTableRow> = {};
   const rowRe = /<tr[^>]*class="trr2"[^>]*>([\s\S]*?)<\/tr>/g;
   let m: RegExpExecArray | null;
