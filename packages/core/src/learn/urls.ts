@@ -80,3 +80,7 @@ export const LEARN_BBS_NEW_THREAD_PAGE = (courseId: string) =>
 /** 话题附件下载（学生） */
 export const LEARN_BBS_ATTACHMENT = (courseId: string, wjid: string) =>
   `${LEARN_PREFIX}/b/wlxt/bbs/bbs_tltb/student/downloadFileByTlForStu?wlkcid=${courseId}&wjid=${wjid}`;
+
+/** 发表新话题（POST multipart：wlkcid/bqid/tabbh/bt/wtnr/fileupload）——schema 待 beforeEditTl 采样校准 */
+export const LEARN_BBS_SAVE_THREAD = (courseId: string) =>
+  `${LEARN_PREFIX}/b/wlxt/bbs/bbs_tltb/student/saveTl?wlkcid=${courseId}`;

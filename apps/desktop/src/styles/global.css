@@ -2320,3 +2320,21 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   html.is-phone .list .row-click .chip { grid-area: chip; justify-self: end; }
   html.is-phone .list .row-click .row-caret { grid-area: caret; }
 }
+
+/* 讨论区富文本编辑器（Quill snow）融入应用视觉 */
+.rich-editor .ql-toolbar.ql-snow {
+  border: 1px solid var(--border);
+  border-radius: 10px 10px 0 0;
+  background: var(--bg-card, #fff);
+}
+.rich-editor .ql-container.ql-snow {
+  border: 1px solid var(--border);
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
+  min-height: 88px;
+  font-size: 14px;
+}
+.rich-editor .ql-editor { min-height: 88px; }
+.rich-editor .ql-snow .ql-stroke { stroke: var(--text-2, #666); }
+.rich-editor .ql-snow .ql-fill { fill: var(--text-2, #666); }
+.rich-editor .ql-snow.ql-toolbar button:hover .ql-stroke { stroke: var(--accent, #1392f1); }

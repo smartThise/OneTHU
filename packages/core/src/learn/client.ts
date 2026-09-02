@@ -474,7 +474,7 @@ export class LearnClient {
 
   /** 讨论区 /b/bbs ajax 端点：站点 jQuery 发的请求带 X-Requested-With + Referer，
    *  服务器过滤器对无此头的请求可能回 HTML 壳（2.har 请求头实录） */
-  async #bbsPost(url: string, body: URLSearchParams): Promise<string> {
+  async #bbsPost(url: string, body: URLSearchParams | FormData): Promise<string> {
     return this.#http.request(this.#withCsrf(url), {
       method: "POST",
       body,
@@ -1045,16 +1045,29 @@ export class LearnClient {
     });
   }
 
-  /** 发表回复（saveEdit 表单 POST；fhhid = 楼中楼父楼层，缺省 = 回楼主）。成功无回包语义，失败抛错 */
-  async postBbsReply(wlkcid: string, threadId: string, nr: string, fhhid?: string): Promise<void> {
+  /** 发表回复（saveEdit）。站点表单：wlkcid/tltid/nr [+fhhid/_fhhid] + fileupload（1G 限）。
+   *  站点经 ajaxfileupload 走 multipart（无附件时 file 字段占位）——作业提交 tjzy 同范式。
+   *  nr = 富文本 HTML（CKEditor 同源）。 */
+  async postBbsReply(
+    wlkcid: string,
+    threadId: string,
+    nr: string,
+    fhhid?: string,
+    file?: File | null,
+  ): Promise<void> {
     return this.#withRelogin(async () => {
       this.#requireCsrf();
-      const body = new URLSearchParams({ wlkcid, tltid: threadId, nr });
+      const fd = new FormData();
+      fd.append("wlkcid", wlkcid);
+      fd.append("tltid", threadId);
       if (fhhid) {
-        body.set("fhhid", fhhid);
-        body.set("_fhhid", fhhid);
+        fd.append("fhhid", fhhid);
+        fd.append("_fhhid", fhhid);
       }
-      const res = await this.#bbsPost(urls.LEARN_BBS_SAVE_REPLY(wlkcid), body);
+      fd.append("nr", nr);
+      if (file) fd.append("fileupload", file, file.name);
+      else fd.append("fileupload", "undefined");
+      const res = await this.#bbsPost(urls.LEARN_BBS_SAVE_REPLY(wlkcid), fd);
       let ok = false;
       try {
         const j = JSON.parse(res) as { result?: unknown; msg?: unknown };
@@ -1065,6 +1078,38 @@ export class LearnClient {
       if (!ok) {
         const msg = decodeHtml(res.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
         throw new Error(msg.slice(0, 140) || "回复失败（站点未返回成功标记）");
+      }
+    });
+  }
+
+  /** 发表新话题（saveTl）。schema 按 beforeEditTl 站点表单惯例：
+   *  wlkcid/bqid/tabbh + bt(标题) + wtnr(正文 HTML) + fileupload。首版未经真机采样，
+   *  失败时错误信息直出服务器回包，现场校准。 */
+  async postBbsThread(
+    wlkcid: string,
+    opts: { bqid: string; title: string; html: string; file?: File | null },
+  ): Promise<void> {
+    return this.#withRelogin(async () => {
+      this.#requireCsrf();
+      const fd = new FormData();
+      fd.append("wlkcid", wlkcid);
+      fd.append("bqid", opts.bqid);
+      fd.append("tabbh", "2");
+      fd.append("bt", opts.title);
+      fd.append("wtnr", opts.html);
+      if (opts.file) fd.append("fileupload", opts.file, opts.file.name);
+      else fd.append("fileupload", "undefined");
+      const res = await this.#bbsPost(urls.LEARN_BBS_SAVE_THREAD(wlkcid), fd);
+      let ok = false;
+      try {
+        const j = JSON.parse(res) as { result?: unknown; msg?: unknown };
+        ok = /success/i.test(String(j.result ?? "")) || res.trim().length === 0;
+      } catch {
+        ok = /success/i.test(res) || res.trim().length === 0;
+      }
+      if (!ok) {
+        const msg = decodeHtml(res.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+        throw new Error(msg.slice(0, 140) || "发表失败（站点未返回成功标记）");
       }
     });
   }

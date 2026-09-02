@@ -1,7 +1,7 @@
 /** 讨论区（learnX bbs_tltb）：课程详情「讨论区」tab 列表 + 话题阅读/回复页。
  *  2026-09 逆向自 讨论区示例/learn.tsinghua.edu.cn.har（viewTlById 页 + pageViewTlById 分页 JSON
  *  + saveEdit 回帖表单）。列表页站点为服务端渲染，解析宽容（标题必有，作者/回复数尽力）。
- *  发新话题的表单 schema 未采样（仅知入口 beforeEditTl），站外浏览器完成，回 App 刷新可见。 */
+ *  发新话题 App 内完成（saveTl multipart，schema 按 beforeEditTl 惯例首版 + 现场校准）。 */
 import { useCallback, useEffect, useState } from "react";
 import type { LearnBbsBoard, LearnBbsPost, LearnBbsThreadDetail, LearnBbsThreadSummary } from "@onethu/core";
 import { learnUrls } from "@onethu/core";
@@ -12,6 +12,7 @@ import { explainNetworkError } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
 import { BackButton, RichContent, fmtDateTime } from "./shared.js";
 import { openExternal } from "../info/openExternal.js";
+import { RichEditor } from "../../components/RichEditor.jsx";
 
 /* ══════════ 列表（课程详情 → 讨论区 tab） ══════════ */
 
@@ -34,6 +35,7 @@ export function BbsPanel({ courseId }: { courseId: string }) {
   const [error, setError] = useState("");
   const [nonce, setNonce] = useState(0);
   const [dbgMsg, setDbgMsg] = useState("");
+  const [showNew, setShowNew] = useState(false);
 
   const PAGE = 30; // 站点 aLengthMenu 同款
 
@@ -115,7 +117,7 @@ export function BbsPanel({ courseId }: { courseId: string }) {
           <IconRefresh />
         </button>
         {status !== "demo" ? (
-          <button className="btn" onClick={() => void openExternal(learnUrls.LEARN_BBS_NEW_THREAD_PAGE(courseId))}>
+          <button className="btn" onClick={() => setShowNew(true)}>
             发新话题
           </button>
         ) : null}
@@ -197,6 +199,18 @@ export function BbsPanel({ courseId }: { courseId: string }) {
           ) : null}
         </Card>
       )}
+      {showNew ? (
+        <NewThreadDialog
+          courseId={courseId}
+          boards={boards}
+          defaultBqid={bqid}
+          onClose={() => setShowNew(false)}
+          onPosted={() => {
+            setShowNew(false);
+            reset(() => undefined);
+          }}
+        />
+      ) : null}
     </>
   );
 }
@@ -239,6 +253,7 @@ export function ForumThreadPage() {
 
   const [replyTo, setReplyTo] = useState<{ hhid: string; author: string } | null>(null);
   const [draft, setDraft] = useState("");
+  const [replyFile, setReplyFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [sendMsg, setSendMsg] = useState("");
   const [dlHint, setDlHint] = useState("");
@@ -289,13 +304,15 @@ export function ForumThreadPage() {
 
   const send = () => {
     const nr = draft.trim();
-    if (!nr || sending) return;
+    if ((!nr || nr === "<p><br></p>") && !replyFile) return;
+    if (sending) return;
     setSending(true);
     setSendMsg("");
     learn
-      .postBbsReply(courseId, threadId, nr, replyTo?.hhid)
+      .postBbsReply(courseId, threadId, nr, replyTo?.hhid, replyFile)
       .then(() => {
         setDraft("");
+        setReplyFile(null);
         setReplyTo(null);
         setSendMsg("已发表");
         setNonce((n) => n + 1); // 重拉话题与首屏回复
@@ -393,15 +410,26 @@ export function ForumThreadPage() {
                 </button>
               </div>
             ) : null}
-            <textarea
-              className="input"
-              style={{ width: "100%", minHeight: 84, resize: "vertical" }}
-              placeholder="文明发言（实名制，站点留有日志）…"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-            />
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
-              <button className="btn" disabled={sending || !draft.trim()} onClick={send}>
+            <RichEditor value={draft} onChange={setDraft} placeholder="文明发言（实名制，站点留有日志）…" />
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+              <label className="btn" style={{ cursor: "pointer" }}>
+                {replyFile ? `📎 ${replyFile.name.slice(0, 18)}` : "📎 附件"}
+                <input
+                  type="file"
+                  style={{ display: "none" }}
+                  onChange={(e) => setReplyFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+              {replyFile ? (
+                <button className="btn" onClick={() => setReplyFile(null)}>
+                  移除附件
+                </button>
+              ) : null}
+              <button
+                className="btn"
+                disabled={sending || (!draft.trim() && !replyFile)}
+                onClick={send}
+              >
                 {sending ? "发表中…" : "发表回复"}
               </button>
               {sendMsg ? <span className="row-sub">{sendMsg}</span> : null}
@@ -519,4 +547,114 @@ function DEMO_POSTS(): LearnBbsPost[] {
       children: [],
     },
   ];
+}
+
+
+/* ══════════ 发新话题（App 内完成；saveTl multipart） ══════════ */
+
+function NewThreadDialog({
+  courseId,
+  boards,
+  defaultBqid,
+  onClose,
+  onPosted,
+}: {
+  courseId: string;
+  boards: LearnBbsBoard[];
+  defaultBqid: string;
+  onClose: () => void;
+  onPosted: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [html, setHtml] = useState("");
+  const [bqid, setBqid] = useState(defaultBqid);
+  const [file, setFile] = useState<File | null>(null);
+  const [sending, setSending] = useState(false);
+  const [msg, setMsg] = useState("");
+  const submit = () => {
+    if (!title.trim() || !html.trim() || html === "<p><br></p>" || sending) return;
+    setSending(true);
+    setMsg("");
+    learn
+      .postBbsThread(courseId, { bqid, title: title.trim(), html, file })
+      .then(onPosted)
+      .catch((e: unknown) => setMsg(explainNetworkError(e)))
+      .finally(() => setSending(false));
+  };
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,23,42,.45)",
+        zIndex: 60,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+      }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        style={{
+          background: "var(--bg-card, #fff)",
+          borderRadius: 14,
+          padding: 16,
+          width: "min(640px, 94vw)",
+          maxHeight: "88vh",
+          overflowY: "auto",
+          boxShadow: "0 18px 50px rgba(0,0,0,.22)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
+          <strong style={{ fontSize: 16 }}>发新话题</strong>
+          <span style={{ flex: "1 1 auto" }} />
+          <button className="btn" onClick={onClose}>
+            关闭
+          </button>
+        </div>
+        <input
+          className="input"
+          style={{ width: "100%", marginBottom: 10 }}
+          placeholder="标题（必填）"
+          value={title}
+          maxLength={100}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        {boards.length > 1 ? (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+            {boards.map((b) => (
+              <button
+                key={b.bqid}
+                className={"chip" + (bqid === b.bqid ? " chip-blue" : "")}
+                onClick={() => setBqid(b.bqid)}
+              >
+                {b.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <RichEditor value={html} onChange={setHtml} placeholder="正文，支持格式与图片…" maxHeight={300} />
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+          <label className="btn" style={{ cursor: "pointer" }}>
+            {file ? `📎 ${file.name.slice(0, 18)}` : "📎 附件"}
+            <input type="file" style={{ display: "none" }} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          </label>
+          {file ? (
+            <button className="btn" onClick={() => setFile(null)}>
+              移除附件
+            </button>
+          ) : null}
+          <button
+            className="btn"
+            disabled={sending || !title.trim() || !html.trim() || html === "<p><br></p>"}
+            onClick={submit}
+          >
+            {sending ? "发表中…" : "发表"}
+          </button>
+          {msg ? <span className="row-sub" style={{ wordBreak: "break-all" }}>{msg}</span> : null}
+        </div>
+      </div>
+    </div>
+  );
 }
