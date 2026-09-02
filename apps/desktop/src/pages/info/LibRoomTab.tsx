@@ -20,6 +20,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { isAuthError, type LibRoomBookRecord, type LibRoomRes } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { SearchSelect } from "../../components/SearchSelect.jsx";
 import { info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
@@ -618,18 +619,12 @@ export function LibRoomTab() {
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
             <div className="field" style={{ margin: 0, minWidth: 220 }}>
               <label htmlFor="libroom-kind">房型</label>
-              <select
-                id="libroom-kind"
-                className="input"
-                value={kindId ?? ""}
-                onChange={(e) => setKindId(Number(e.target.value) || null)}
-              >
-                {kinds.map((k) => (
-                  <option key={k.kindId} value={k.kindId}>
-                    {k.kindName}
-                  </option>
-                ))}
-              </select>
+              <SearchSelect
+                value={kindId != null ? String(kindId) : ""}
+                onChange={(v) => setKindId(Number(v) || null)}
+                placeholder="选择房型…"
+                options={kinds.map((k) => ({ value: String(k.kindId), label: k.kindName }))}
+              />
             </div>
             <div className="field" style={{ margin: 0 }}>
               <label htmlFor="libroom-date">日期</label>
@@ -729,37 +724,23 @@ export function LibRoomTab() {
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end", marginTop: 8 }}>
             <div className="field" style={{ margin: 0 }}>
               <label htmlFor="libroom-beg">开始</label>
-              <select
-                id="libroom-beg"
-                className="input"
+              <SearchSelect
                 value={beg}
-                onChange={(e) => setBeg(e.target.value)}
+                onChange={(v) => setBeg(v)}
+                placeholder={begins.length === 0 ? "无可约时段" : "开始"}
                 disabled={begins.length === 0}
-              >
-                {begins.length === 0 ? <option value="">无可约时段</option> : null}
-                {begins.map((b) => (
-                  <option key={b.start} value={b.start}>
-                    {b.start}
-                  </option>
-                ))}
-              </select>
+                options={begins.map((b) => ({ value: b.start, label: b.start }))}
+              />
             </div>
             <div className="field" style={{ margin: 0 }}>
               <label htmlFor="libroom-end">结束</label>
-              <select
-                id="libroom-end"
-                className="input"
+              <SearchSelect
                 value={end}
-                onChange={(e) => setEnd(e.target.value)}
+                onChange={(v) => setEnd(v)}
+                placeholder={ends.length === 0 ? "–" : "结束"}
                 disabled={ends.length === 0}
-              >
-                {ends.length === 0 ? <option value="">–</option> : null}
-                {ends.map((p) => (
-                  <option key={p.start} value={p.start}>
-                    {p.start}
-                  </option>
-                ))}
-              </select>
+                options={ends.map((p2) => ({ value: p2.start, label: p2.start }))}
+              />
             </div>
             <span style={{ flex: 1 }} />
             <button
