@@ -385,8 +385,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
           if (reviewsF === "low" && (!e || e.avg > 3)) return false;
         }
         return true;
-      })
-      ;
+      });
     if (!sortBy) return base;
     const scored: Array<{ r: XkRow; e: TbEntry | null }> = base.map((r) => ({ r, e: tbMatch(r.name, r.teacher) }));
     if (sortBy === "cnt_desc") scored.sort((a, b) => (b.e?.count ?? -1) - (a.e?.count ?? -1));
@@ -394,6 +393,28 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
     else scored.sort((a, b) => ((a.e?.avg ?? 6) - (b.e?.avg ?? 6)) || ((b.e?.count ?? 0) - (a.e?.count ?? 0)));
     return scored.map((x) => x.r);
   }, [wb.searchRows, wb.searchState, wb.previewIndex, query, chip, credits, day, period, conflictF, tongshi, feature, grade, bksrem, yjsrem, xknote, reviewsF, sortBy]);
+
+  /* ── 分页（教务同款）：
+   *  · 浏览模式：curPage = 服务端页码，翻页 = wb.gotoPage(n)（点哪页爬哪页）；
+   *  · 搜索模式：本地翻页（rows 已整池在手，翻页零请求）；>3 页时上方提示可加载全部。── */
+  const searchMode = Boolean(query.trim() || tongshi || feature || grade || day || period || bksrem === "1" || yjsrem === "1");
+  const [uiPage, setUiPage] = useState(1);
+  const [goPage, setGoPage] = useState("");
+  useEffect(() => { setUiPage(1); setGoPage(""); }, [wb.searchRunId]); // 新搜索回第 1 页
+  const totalPages = Math.max(1, Math.ceil(rows.length / 20));
+  const curPage = searchMode ? Math.min(uiPage, totalPages) : wb.searchPage;
+  const pagedRows = useMemo(
+    () => (searchMode ? rows.slice((curPage - 1) * 20, curPage * 20) : rows),
+    [rows, searchMode, curPage],
+  );
+  const busy = wb.searchState === "loading" || wb.searchState === "loadingMore";
+  const goJump = () => {
+    const n = parseInt(goPage, 10);
+    if (!Number.isFinite(n) || n < 1) return;
+    if (searchMode) setUiPage(Math.min(n, totalPages));
+    else void wb.gotoPage(n);
+    setGoPage("");
+  };
 
   const selSel = "input";
   const selStyle: React.CSSProperties = { height: 26, fontSize: 12, flex: 1, minWidth: 96 };
@@ -440,12 +461,28 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
       ) : (
         <>
           <Card className="list">
-            {rows.map((r, i) => <PickCard key={r.key} wb={wb} r={r} i={i} picks={picks} setPicks={setPicks} highlight={r.c.code === highlight} />)}
+            {pagedRows.map((r, i) => <PickCard key={r.key} wb={wb} r={r} i={i} picks={picks} setPicks={setPicks} highlight={r.c.code === highlight} />)}
           </Card>
-          <div style={{ textAlign: "center", padding: "10px 0" }}>
-            <button className="btn" disabled={wb.searchState === "loadingMore"} onClick={() => void wb.loadMoreSearch()}>
-              {wb.searchState === "loadingMore" ? "加载中…" : wb.searchHasMore ? `显示更多（已取 ${wb.searchPage} 页）` : "已到末页"}
-            </button>
+          {wb.searchIncomplete ? (
+            <div style={{ textAlign: "center", padding: "8px 0", fontSize: 12, color: "var(--amber)" }}>
+              数据不完整：仅加载前 {Math.ceil(wb.searchRows.length / 20)} 页（{wb.searchRows.length} 门）
+              <button className="btn" style={{ marginLeft: 8 }} disabled={busy} onClick={() => void wb.loadAllSearch()}>
+                {busy ? "加载中…" : "加载当前关键词全部"}
+              </button>
+            </div>
+          ) : null}
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center", padding: "10px 0", flexWrap: "wrap" }}>
+            <button className="btn" disabled={busy || (searchMode ? curPage <= 1 : wb.searchPage <= 1)}
+              onClick={() => (searchMode ? setUiPage(curPage - 1) : void wb.gotoPage(wb.searchPage - 1))}>上一页</button>
+            <span style={{ fontSize: 12, color: "var(--text-3)" }}>
+              第 {curPage} 页{searchMode ? ` / 共 ${totalPages} 页（${rows.length} 门）` : ""}
+            </span>
+            <button className="btn" disabled={busy || (searchMode ? curPage >= totalPages : !wb.searchHasMore)}
+              onClick={() => (searchMode ? setUiPage(curPage + 1) : void wb.gotoPage(wb.searchPage + 1))}>下一页</button>
+            <span style={{ fontSize: 12, color: "var(--text-3)" }}>跳至</span>
+            <input className="input" style={{ width: 52, height: 24, fontSize: 12 }} value={goPage}
+              onChange={(e) => setGoPage(e.target.value.replace(/[^0-9]/g, ""))} onKeyDown={(e) => e.key === "Enter" && goJump()} />
+            <button className="btn" disabled={busy || !goPage} onClick={goJump}>GO</button>
           </div>
         </>
       )}
@@ -555,16 +592,16 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             <button className="btn" style={{ padding: "0 6px", marginLeft: 6, fontSize: 11, color: "var(--amber)" }} onClick={() => openReviews({ code: r.c.code, seq: r.c.seq, name: r.name, teacher: r.teacher })}>{tbBadge(r)}</button>
           ) : null}
         </div>
-        <div className="row-sub">{[r.c.code, r.c.seq && r.c.seq !== "0" ? `第${r.c.seq}班` : "", r.teacher, `${r.credits} 学分`, r.time, r.c.department].filter(Boolean).join(" · ")}</div>
+        <div className="row-sub" style={{ whiteSpace: "normal" }}>{[r.c.code, r.c.seq && r.c.seq !== "0" ? `第${r.c.seq}班` : "", r.teacher, `${r.credits} 学分`, r.time, r.c.department].filter(Boolean).join(" · ")}</div>
         {wb.phase && r.q ? (
-          <div className="row-sub">{[cap ? `容量 ${cap}` : "", r.q.qQueue ? `排队 ${r.q.qQueue}` : "", r.cand ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : ""].filter(Boolean).join(" · ")}</div>
+          <div className="row-sub" style={{ whiteSpace: "normal" }}>{[cap ? `容量 ${cap}` : "", r.q.qQueue ? `排队 ${r.q.qQueue}` : "", r.cand ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : ""].filter(Boolean).join(" · ")}</div>
         ) : r.vol ? (
-          <div className="row-sub">
+          <div className="row-sub" style={{ whiteSpace: "normal" }}>
             {[r.vol.volRequired && fmtVol(r.vol.volRequired), r.vol.volElective && fmtVol(r.vol.volElective), r.vol.volOptional && fmtVol(r.vol.volOptional)].filter(Boolean).join(" · ")}
             <span style={{ marginLeft: 8, color: prob.color }}>{prob.prob}</span>
           </div>
         ) : null}
-        {confs.length ? <div className="row-sub" style={{ color: "var(--red)" }}>冲突: {confs.slice(0, 3).map((c) => `周${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.b}`).join(" · ")}</div> : null}
+        {confs.length ? <div className="row-sub" style={{ color: "var(--red)", whiteSpace: "normal" }}>冲突: {confs.slice(0, 3).map((c) => `周${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.b}`).join(" · ")}</div> : null}
         {state === "selected" ? (
           <div className="row-sub" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
             {r.zy ? <span style={{ fontSize: 12, color: "var(--text-3)" }}>{FLAG_LABELS[r.flag]} · 第{r.zy}志愿</span> : null}
