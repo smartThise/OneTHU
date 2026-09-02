@@ -25,8 +25,9 @@ const FEATURES: Array<[string, string]> = [
   ["认证外文课", "认证外文课"], ["通识荣誉课", "通识荣誉课"], ["通识选修课", "通识选修课"], ["语言类", "语言类课程"],
   ["通识英语", "通识英语"], ["公共英语", "公共英语"],
 ];
-/** 外校课程标注：课号前缀 PK=北大、BW=北外（HAR 实证，列位与本校完全一致） */
+/** 外校课程标注：课号前缀 PK=北大、BW=北外（北外形如 BW3w0007 第三外语课） */
 const originOf = (code: string): "北大" | "北外" | "" => (code.startsWith("PK") ? "北大" : code.startsWith("BW") ? "北外" : "");
+const ORIGIN_COLORS: Record<"北大" | "北外", string> = { 北大: "#c0392b", 北外: "#1f4e79" };
 
 const fmtVol = (v: string): string => {
   const m = /\((\d+)\)([\d,]*)/.exec(v);
@@ -605,7 +606,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
       <div className="row-main">
         <div className="row-title" style={{ whiteSpace: "normal" }}>
           {(() => { const o = originOf(r.c.code); return o
-            ? <span style={{ fontSize: 10, padding: "1px 5px", marginRight: 6, borderRadius: 4, color: "#fff", background: o === "北大" ? "#7b5bd6" : "#b03a2e", verticalAlign: "1px", whiteSpace: "nowrap" }}>{o}</span>
+            ? <span style={{ fontSize: 10, padding: "1px 5px", marginRight: 6, borderRadius: 4, color: "#fff", background: ORIGIN_COLORS[o], verticalAlign: "1px", whiteSpace: "nowrap" }}>{o}</span>
             : null; })()}
           {r.name}
           {r.teacherId ? <button className="btn" style={{ padding: "0 6px", marginLeft: 6, fontSize: 11 }} onClick={() => openDetail(r.c.code)}>简介</button> : null}
