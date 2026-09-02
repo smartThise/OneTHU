@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { Card, Empty, ErrorNote, PageHead, SegmentedOverflow, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useXkWorkbench, type XkSearchMeta, type XkStageItem } from "../../state/data.js";
+import { useApp } from "../../state/context.js";
 import type { XkCourseDetail } from "@onethu/core";
 import { tbEnsureIndex, tbFetchReviews, tbMatch, tbStars, tbCourseUrl, tbWriteUrl, type TbEntry, type TbReviews } from "../../lib/xkreviews.js";
 import { openExternal } from "../info/openExternal.js";
@@ -450,8 +451,11 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   const firstSearchRef = useRef(false);
   useEffect(() => {
     const kw = query.trim();
+    // 课号识别：无中文 + 含数字 + 长度≥5 → 课号检索。覆盖本校 10421315（含 -0 序号后缀，
+    // 截掉后缀发课号）、北大 PK00334770、北外 BW3w0007；中文课名/教师名不受影响。
+    const codeLike = kw.length >= 5 && !/[\u4e00-\u9fff]/.test(kw) && /\d/.test(kw) && /^[A-Za-z0-9][-A-Za-z0-9]*$/.test(kw);
     const meta: XkSearchMeta = {
-      kcm: /^\d{4,}$/.test(kw) ? "" : kw,
+      kcm: codeLike ? "" : kw,
       teacher: "",
       department: "",
       weekday: day || "",
@@ -461,7 +465,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
       kctsm: FEATURES.some(([label]) => label === feature) ? feature : "",
       onlyAvailable: bksrem === "1",
       gradAvail: yjsrem === "1",
-      kch: /^\d{4,}$/.test(kw) ? kw : "",
+      kch: codeLike ? kw.split(/[-–]/)[0]!.trim() : "",
     };
     const t = setTimeout(() => {
       firstSearchRef.current = true;
@@ -600,7 +604,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
         <>
           {wb.searchIncomplete ? (
             <div style={{ textAlign: "center", padding: "8px 0", fontSize: 12, color: "var(--amber)" }}>
-              数据不完整：已加载 {listRows.length} 门{wb.searchTotalPages > 0 ? `，教务共 ${wb.searchTotalPages} 页` : "，还有更多"}
+              数据不完整：已加载 {listRows.length} 门{wb.searchTotalPages > 0 ? `，教务共 ${wb.searchTotalPages} 页${wb.searchTotalRows > 0 ? `（共 ${wb.searchTotalRows} 门）` : ""}` : "，还有更多"}
               <button className="btn" style={{ marginLeft: 8 }} disabled={busy} onClick={() => void wb.loadAllSearch()}>
                 {busy ? "加载中…" : "加载当前关键词全部"}
               </button>
@@ -711,6 +715,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
   setPicks: (f: (m: Record<string, { flag: XkFlag; zy: number }>) => Record<string, { flag: XkFlag; zy: number }>) => void;
   highlight: boolean;
 }) {
+  const { navigate } = useApp();
   const key = r.key;
   const inStage = wb.stageCart.some((s) => s.code === r.c.code && s.seq === r.c.seq);
   const pick = picks[key] ?? { flag: allowedFlags(r.flag)[0]!, zy: 3 };
@@ -740,6 +745,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           ) : null}
         </div>
         <div className="row-sub" style={{ whiteSpace: "normal" }}>{[r.c.code, r.c.seq && r.c.seq !== "0" ? `第${r.c.seq}班` : "", r.teacher, `${r.credits} 学分`, r.time, r.c.department].filter(Boolean).join(" · ")}</div>
+        {r.c.note ? <div className="row-sub" style={{ whiteSpace: "normal", color: "var(--text-2)" }}>课程说明：{r.c.note}</div> : null}
         {wb.phase && r.q ? (
           <div className="row-sub" style={{ whiteSpace: "normal" }}>{[cap ? `容量 ${cap}` : "", r.q.qQueue ? `排队 ${r.q.qQueue}` : "", r.cand ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : ""].filter(Boolean).join(" · ")}</div>
         ) : r.vol ? (
@@ -748,6 +754,13 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             <span style={{ marginLeft: 8, color: prob.color }}>{prob.prob}</span>
           </div>
         ) : null}
+        {(() => { const o = originOf(r.c.code); return o ? (
+          <div className="row-sub" style={{ color: "var(--amber)", whiteSpace: "normal", display: "flex", gap: 6, alignItems: "flex-start" }}>
+            <span style={{ flex: 1 }}>{o}课程时间无法自动获取——请在新闻中查阅「北京大学、北京外国语大学部分课程面向我校本科生开放选课」通知，附件含具体上课时间。</span>
+            <button className="btn" style={{ flexShrink: 0, padding: "1px 8px", fontSize: 11 }} title="跳转新闻搜索该通知"
+              onClick={() => navigate("info", { infoNewsQuery: "北京大学 北京外国语大学" })}>查通知</button>
+          </div>
+        ) : null; })()}
         {confs.length ? <div className="row-sub" style={{ color: "var(--red)", whiteSpace: "normal" }}>冲突: {confs.slice(0, 3).map((c) => `周${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.b}`).join(" · ")}</div> : null}
         {state === "selected" ? (
           <div className="row-sub" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>

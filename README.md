@@ -36,11 +36,30 @@ OneTHU 是对 thuapp 系列（thu-app / thu-info-app fork / learnX fork / NextTH
 
 ## 快速开始
 
+环境要求：Node ≥ 20、pnpm、Rust toolchain（桌面/移动壳需 Rust 编译）；Android 构建另需 Android SDK + NDK。
+
 ```bash
-pnpm install
-pnpm dev          # 桌面端 Web 预览（登录页可进"演示模式"先行体验）
-pnpm tauri dev    # 桌面端原生壳
+pnpm install      # workspace 全量装依赖
 ```
+
+### 日常开发
+
+```bash
+pnpm dev                                  # 纯浏览器预览（Vite dev server，登录页可进"演示模式"先行体验）
+pnpm --filter @onethu/desktop tauri:dev   # 原生桌面壳开发模式（Tauri 2，改前端即时热更）
+```
+
+### 生产构建
+
+```bash
+pnpm build                                # 构建全部包；web 资产产出到 apps/desktop/dist
+pnpm --filter @onethu/desktop tauri:build # 桌面安装包（macOS DMG / Windows EXE / Linux 包；会自动先跑 pnpm build）
+pnpm --filter @onethu/desktop exec tauri android build --apk   # Android APK（arm64 / universal，需 SDK+NDK）
+```
+
+- 桌面产物：`apps/desktop/src-tauri/target/release/bundle/`
+- Android 产物：`apps/desktop/src-tauri/gen/android/.../build/outputs/apk/`
+- CI（`.github/workflows/release.yml`）的打包命令与上面一致，打 tag 推送即出全平台安装包
 
 下载安装包见 [Releases](https://github.com/smartThise/OneTHU/releases)（macOS DMG / Windows EXE / Android APK）。
 
