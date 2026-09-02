@@ -64,12 +64,14 @@ export function clearVenueToken(): void {
 export async function ensureVenueToken(): Promise<boolean> {
   if (venueHasToken()) return true;
   const pickUni = (src: string): string | null => /[?&]uniToken=([^&\s"'<>]+)/.exec(src)?.[1] ?? null;
-  // ① 传输层同源链：webvpn 模式自动包装（带活着的统一会话，CAS 直接出票）；
-  //    直连模式等价于直连链（带 jar 里 id 桶 TGT）。信息/learn 漫游同机制。
+  // ① 传输层同源链：直连取 CAS 登录链（jar 里 id 桶 TGT 活着时直接出票）。
+  //    必须 direct：sports/id 均为公网域名，无需 WebVPN 包装；且包装层失登
+  //    检测会抛 core AuthRequiredError → 全局看门狗整页 reload——场馆静默
+  //    登录失败绝不该炸整个应用（pnpm 预览硬刷新事故的根源）。
   try {
     const { http } = await import("./clients.js");
     const casAddr = await venueClient.casAddress("https://www.sports.tsinghua.edu.cn/venue/index.html");
-    const res = await http.request(casAddr, { redirect: "follow" });
+    const res = await http.request(casAddr, { redirect: "follow", direct: true });
     const finalUrl = res.headers.get("x-onethu-final-url") ?? "";
     const body = await res.text();
     const uni = pickUni(finalUrl) ?? pickUni(body);
