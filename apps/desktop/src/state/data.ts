@@ -20,7 +20,7 @@ import {
 import { http, info, learn, logLine, session } from "../lib/clients.js";
 import { explainNetworkError } from "../lib/transport.js";
 import { autoFullReload } from "../lib/reload.js";
-import { buildRows, buildSlotIndex, canAdjustZy as canAdjustZyFn, levelTypesOf, type SlotItem, type XkRow } from "../lib/xklogic.js";
+import { buildRows, buildSlotIndex, canAdjustZy as canAdjustZyFn, levelTypesOf, parseTimeSlots, type SlotItem, type XkRow } from "../lib/xklogic.js";
 import type { XkPlanItem } from "@onethu/core";
 import {
   DEMO_COURSES,
@@ -457,6 +457,8 @@ interface XkCoreSeed {
 
 /* ── 一级课表先行管线（levelTable-first）：共享缓存 / 在途去重 / levelFailed 标记 ── */
 /** 内存级一级课表缓存（refresh 与目录管线共用一份，小而快，避免同页重复请求） */
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
 purgeXkCaches(); // 一次性：清空历轮缓存课表（种子/学期），下次拉取全走实时
 
 let levelCache: { sem: string; at: number; table: Record<string, XkLevelTableRow> } | null = null;
@@ -511,14 +513,17 @@ export interface XkWorkbench {
   levelTypes: Record<string, string>;
   coreState: DataState;
   queueState: DataState | "idle";
-  /** 左栏实时搜索：状态/累计行/页码/末页标志/错误（替代全量目录批量的数据源，UI 不变） */
+  /** 左栏实时搜索（浏览=服务端页取 / 搜索=3 页探测+可加载全部） */
   searchState: DataState | "idle" | "loadingMore";
   searchRows: XkRow[];
   searchPage: number;
   searchHasMore: boolean;
+  searchIncomplete: boolean;
+  searchRunId: number;
   searchError: string | null;
   newSearch: (meta: XkSearchMeta) => Promise<void>;
-  loadMoreSearch: () => Promise<void>;
+  gotoPage: (page: number) => Promise<void>;
+  loadAllSearch: () => Promise<void>;
   retrySearch: () => Promise<void>;
   error: string | null;
   busy: string | null;
@@ -664,6 +669,7 @@ export function useXkWorkbench(): XkWorkbench {
       setPlan(plan);
       setQueueState("ready");
       setCoreState("ready");
+      void backfillSelTimes(selFinal); // 已选时间列解析失败者：p_kch 逐门实时回填（后台，不阻塞）
       // 核心数据落持久缓存（下轮挂载/重启 t=0 秒渲右栏）+ 学期串持续保鲜
       cacheSet(`${XK_CORE_KEY}:${sem}`, { selected: selFinal, candidates: cand, queueMap: qd.map, phase: qd.phase, plan });
       cacheSet(XK_SEM_KEY, sem);
@@ -715,6 +721,7 @@ export function useXkWorkbench(): XkWorkbench {
       setCoreState("loading");
     }
     coreSeededRef.current = Boolean(coreSeed);
+    if (coreSeed) void backfillSelTimes(coreSeed.data.selected); // 种子秒渲的时间缺口同样回填
     const entry: NonNullable<typeof pipelineInflightRef.current> = {
       sem,
       gen: myGen,
@@ -835,11 +842,16 @@ export function useXkWorkbench(): XkWorkbench {
   // 只回填空缺：不覆盖一级课表合并（mergeLevelIntoCatalog）已写入的类型属性，
   // 保证"全量目录到达后不丢一级课表 attr/类型信息"，且与提交用 typeCode 口径一致
   /* ── 左栏数据源：服务端实时搜索（kkxxSearch 分页，与批量同端点同解析器）。
-   *  UI 原样保留；仅数据从「本地 320 页目录」换成「服务端按页取数 + 页内过滤」。── */
+   *  两种模式（对齐教务网页行为，用户点哪页爬哪页）：
+   *  · 浏览模式（无任何关键词/筛选）：不预取、不追加——点上一页/下一页/跳页才发那 1 个请求；
+   *  · 搜索模式（有关键词或筛选）：并行爬前 3 页；≤50 门即全部加载完（照常翻页）；
+   *    >50 门列前 3 页并提示「数据不完整」，用户点「加载全部」才爬余下页，完成后 toast 通知。── */
   const [searchRaw, setSearchRaw] = useState<XkCourse[]>([]);
   const [searchState, setSearchState] = useState<DataState | "idle" | "loadingMore">("idle");
   const [searchPage, setSearchPage] = useState(1);
   const [searchHasMore, setSearchHasMore] = useState(false);
+  const [searchIncomplete, setSearchIncomplete] = useState(false);
+  const [searchRunId, setSearchRunId] = useState(0);
   const [searchError, setSearchError] = useState<string | null>(null);
   const searchSeqRef = useRef(0);
   const searchMetaRef = useRef<XkSearchMeta | null>(null);
@@ -848,96 +860,231 @@ export function useXkWorkbench(): XkWorkbench {
     [searchRaw, volMap, queueMap, selected, candidates, levelTypes],
   );
 
-  const runSearchPage = useCallback(
-    async (meta: XkSearchMeta, page: number, mode: "reset" | "append"): Promise<void> => {
+  const fetchXkPage = useCallback(
+    async (meta: XkSearchMeta, page: number) =>
+      searchXkCourses(xkSession(), {
+        semester: semBarRef.current ?? undefined,
+        page,
+        kch: meta.kch || undefined,
+        kcm: meta.kcm || undefined,
+        teacher: meta.teacher || undefined,
+        department: meta.department || undefined,
+        weekday: meta.weekday || undefined,
+        section: meta.section || undefined,
+        grade: meta.grade || undefined,
+        rxklxm: meta.rxklxm || undefined,
+        kctsm: meta.kctsm || undefined,
+        onlyAvailable: meta.onlyAvailable || undefined,
+        gradAvail: meta.gradAvail || undefined,
+      }),
+    [status],
+  );
+
+  const isBrowsingMeta = (meta: XkSearchMeta): boolean =>
+    !meta.kch && !meta.kcm && !meta.teacher && !meta.department && !meta.weekday &&
+    !meta.section && !meta.grade && !meta.rxklxm && !meta.kctsm && !meta.onlyAvailable && !meta.gradAvail;
+
+  const failSearch = useCallback((err: unknown, seq: number): void => {
+    if (seq !== searchSeqRef.current) return;
+    logPageError("XK-SEARCH", err);
+    if (isAuthError(err) && autoFullReload("xk")) return;
+    setSearchError(explainNetworkError(err));
+    setSearchState("error");
+  }, []);
+
+  const newSearch = useCallback(
+    async (meta: XkSearchMeta) => {
       const seq = ++searchSeqRef.current;
+      searchMetaRef.current = meta;
+      setSearchError(null);
+      setSearchRunId((v) => v + 1);
+      if (status === "demo") {
+        setSearchRaw([]);
+        setSearchPage(1);
+        setSearchHasMore(false);
+        setSearchIncomplete(false);
+        setSearchState("ready");
+        return;
+      }
+      setSearchState("loading");
       try {
-        const kw = (meta.kcm || "").trim();
-        let r = await searchXkCourses(xkSession(), {
-          semester: semBarRef.current ?? undefined,
-          page,
-          kch: /^\d{4,}$/.test(kw) ? kw : undefined,
-          kcm: /^\d{4,}$/.test(kw) ? undefined : kw || undefined,
-          teacher: meta.teacher || undefined,
-          department: meta.department || undefined,
-          weekday: meta.weekday || undefined,
-          section: meta.section || undefined,
-          grade: meta.grade || undefined,
-          rxklxm: meta.rxklxm || undefined,
-          kctsm: meta.kctsm || undefined,
-          onlyAvailable: meta.onlyAvailable || undefined,
-          gradAvail: meta.gradAvail || undefined,
-        });
-        // 课程名 0 行且关键词非数字 → 教师名兜底重试一次（搜索框一框三用）
-        if (mode === "reset" && page === 1 && r.rows.length === 0 && kw && !/^\d{4,}$/.test(kw)) {
-          const r2 = await searchXkCourses(xkSession(), { semester: semBarRef.current ?? undefined, page: 1, teacher: kw });
-          if (r2.rows.length > 0) r = r2;
+        if (isBrowsingMeta(meta)) {
+          // 浏览模式：像教务网页一样只取用户要的那一页（挂载 = 第 1 页）
+          const r = await fetchXkPage(meta, 1);
+          if (seq !== searchSeqRef.current) return;
+          setSearchRaw(r.rows);
+          setSearchPage(1);
+          setSearchHasMore(r.hasMore);
+          setSearchIncomplete(false);
+          setSearchError(r.pageKind === "unknown" ? `教务返回异常页（首段: ${r.htmlHead}）` : null);
+          setSearchState("ready");
+          return;
         }
-        if (seq !== searchSeqRef.current) return; // 已被更新的搜索取代：丢弃
-        setSearchRaw((prev) => {
-          if (mode === "reset") return r.rows;
-          const seen = new Set(prev.map((c) => `${c.code}_${c.seq || "0"}`));
-          return [...prev, ...r.rows.filter((c) => !seen.has(`${c.code}_${c.seq || "0"}`))];
-        });
-        setSearchPage(r.page);
+        // 搜索模式：并行爬前 3 页（探测总量 ≤50 还是更多）
+        const kw = (meta.kcm || "").trim();
+        const base = { ...meta, kch: /^\d{4,}$/.test(kw) ? kw : "", kcm: /^\d{4,}$/.test(kw) ? "" : kw };
+        const [p1, p2, p3] = await Promise.all([
+          fetchXkPage(base, 1),
+          fetchXkPage(base, 2).catch(() => null),
+          fetchXkPage(base, 3).catch(() => null),
+        ]);
+        if (seq !== searchSeqRef.current) return;
+        // 课程名 0 行且关键词非数字 → 教师名兜底重试一次（搜索框一框三用）
+        let rows1 = p1.rows;
+        let head = p1;
+        if (rows1.length === 0 && kw && !/^\d{4,}$/.test(kw)) {
+          const r2 = await fetchXkPage({ ...base, kcm: "", teacher: kw }, 1);
+          if (seq !== searchSeqRef.current) return;
+          if (r2.rows.length > 0) { rows1 = r2.rows; head = r2; }
+        }
+        const seen = new Set<string>();
+        const merged: XkCourse[] = [];
+        let lastFull = true;
+        for (const r of [head, p2, p3]) {
+          if (!r) { lastFull = false; continue; }
+          for (const c of r.rows) {
+            const k = `${c.code}_${c.seq || "0"}`;
+            if (!seen.has(k)) { seen.add(k); merged.push(c); }
+          }
+          if (r.rows.length < 20) lastFull = false;
+        }
+        setSearchRaw(merged);
+        setSearchPage(3);
+        setSearchHasMore(false);
+        setSearchIncomplete(lastFull); // 3 页都满 → 后面大概率还有，提示可加载全部
+        setSearchError(head.pageKind === "unknown" ? `教务返回异常页（首段: ${head.htmlHead}）` : null);
+        setSearchState("ready");
+      } catch (err) {
+        failSearch(err, seq);
+      }
+    },
+    [status, fetchXkPage, failSearch],
+  );
+
+  /** 搜索模式「加载当前关键词全部」：从第 4 页起爬到空页（5 并发池 + 30ms 限速），完成 toast */
+  const loadAllSearch = useCallback(async () => {
+    if (status === "demo" || searchState === "loading" || searchState === "loadingMore") return;
+    const meta = searchMetaRef.current;
+    if (!meta) return;
+    const seq = ++searchSeqRef.current;
+    setSearchState("loadingMore");
+    const kw = (meta.kcm || "").trim();
+    const base = { ...meta, kch: /^\d{4,}$/.test(kw) ? kw : "", kcm: /^\d{4,}$/.test(kw) ? "" : kw };
+    const seen = new Set(searchRaw.map((c) => `${c.code}_${c.seq || "0"}`));
+    const added: XkCourse[] = [];
+    const PAGE_POOL = 5;
+    let empty = false;
+    try {
+      for (let p = 4; p <= 400 && !empty; p += PAGE_POOL) {
+        const wave: Array<Promise<XkCourse[] | null>> = [];
+        for (let i = p; i < p + PAGE_POOL; i++) {
+          wave.push(
+            (async () => {
+              await sleep((i - p) * 30);
+              const r = await fetchXkPage(base, i);
+              return r.rows;
+            })().catch(() => null),
+          );
+        }
+        const results = await Promise.all(wave);
+        if (seq !== searchSeqRef.current) return;
+        for (const rows of results) {
+          if (!rows || rows.length === 0) { empty = true; continue; }
+          for (const c of rows) {
+            const k = `${c.code}_${c.seq || "0"}`;
+            if (!seen.has(k)) { seen.add(k); added.push(c); }
+            if (rows.length < 20) empty = true;
+          }
+        }
+      }
+      if (seq !== searchSeqRef.current) return;
+      setSearchRaw((prev) => [...prev, ...added]);
+      setSearchIncomplete(false);
+      setSearchState("ready");
+      setToast(`已加载全部 ${searchRaw.length + added.length} 门`);
+    } catch (err) {
+      if (seq !== searchSeqRef.current) return;
+      // 部分成功也算数：落已加载的行，可再点继续
+      if (added.length) {
+        setSearchRaw((prev) => [...prev, ...added]);
+        setSearchState("ready");
+        setToast(`已加载 ${added.length} 门（中途中断，可再点继续）`);
+      } else {
+        failSearch(err, seq);
+      }
+    }
+  }, [status, searchState, searchRaw, fetchXkPage, failSearch, setToast]);
+
+  /** 浏览模式翻页：用户点哪页爬哪页（1 个请求），绝不预取 */
+  const gotoPage = useCallback(
+    async (page: number) => {
+      const meta = searchMetaRef.current;
+      if (status === "demo" || !meta || page < 1) return;
+      const seq = ++searchSeqRef.current;
+      setSearchState("loading");
+      try {
+        const r = await fetchXkPage(meta, page);
+        if (seq !== searchSeqRef.current) return;
+        setSearchRaw(r.rows);
+        setSearchPage(page);
         setSearchHasMore(r.hasMore);
         setSearchError(r.pageKind === "unknown" ? `教务返回异常页（首段: ${r.htmlHead}）` : null);
         setSearchState("ready");
       } catch (err) {
-        if (seq !== searchSeqRef.current) return;
-        logPageError("XK-SEARCH", err);
-        if (isAuthError(err) && autoFullReload("xk")) return;
-        setSearchError(explainNetworkError(err));
-        setSearchState("error");
+        failSearch(err, seq);
       }
     },
-    [status],
+    [status, fetchXkPage, failSearch],
   );
-
-  const newSearch = useCallback(
-    async (meta: XkSearchMeta) => {
-      if (status === "demo") {
-        searchMetaRef.current = meta;
-        setSearchRaw([]);
-        setSearchPage(1);
-        setSearchHasMore(false);
-        setSearchError(null);
-        setSearchState("ready");
-        return;
-      }
-      searchMetaRef.current = meta;
-      setSearchState("loading");
-      setSearchError(null);
-      await runSearchPage(meta, 1, "reset");
-    },
-    [status, runSearchPage],
-  );
-
-  const loadMoreSearch = useCallback(async () => {
-    if (status === "demo") return;
-    if (!searchMetaRef.current || searchState === "loading" || searchState === "loadingMore") return;
-    setSearchState("loadingMore");
-    await runSearchPage(searchMetaRef.current, searchPage + 1, "append");
-  }, [status, searchState, searchPage, runSearchPage]);
 
   const retrySearch = useCallback(async () => {
     if (searchMetaRef.current) await newSearch(searchMetaRef.current);
   }, [newSearch]);
+
+  /* ── 已选课程时间实时回填（修复「全部未知时间」）：
+   *  旧全量目录曾顺带提供已选课的时间列；实时化后改为按需精确回填——
+   *  对时间列解析失败的已选课，逐门 p_kch 查 kkxxSearch（各 1 个小请求，并行），
+   *  结果并入 join 池，课表预览/卡片时间列即恢复真实时间。── */
+  const [selDetail, setSelDetail] = useState<Record<string, XkCourse>>({});
+  const selDetailKeysRef = useRef<Set<string>>(new Set());
+  const backfillSelTimes = useCallback(
+    async (sel: XkSelectedRow[]) => {
+      if (status === "demo") return;
+      // 只回填「时间列缺失/解析失败」且尚未回填过的课；5 个一批 + 60ms 间隔，不砸教务
+      const need = sel.filter((r) =>
+        (r.time && parseTimeSlots(r.time).length === 0 || !r.time) &&
+        !selDetailKeysRef.current.has(`${r.code}_${r.seq || "0"}`),
+      );
+      for (let i = 0; i < need.length; i += 5) {
+        await Promise.all(need.slice(i, i + 5).map(async (r) => {
+          const key = `${r.code}_${r.seq || "0"}`;
+          selDetailKeysRef.current.add(key); // 先占位防重复
+          try {
+            const res = await searchXkCourses(xkSession(), { semester: semBarRef.current ?? undefined, kch: r.code });
+            const hit = res.rows.find((c) => c.code === r.code && (c.seq || "0") === (r.seq || "0") && parseTimeSlots(c.time).length > 0);
+            if (hit) setSelDetail((prev) => (prev[key] ? prev : { ...prev, [key]: hit }));
+          } catch { /* 回填失败容忍：保持现状 */ }
+        }));
+        if (i + 5 < need.length) await sleep(60);
+      }
+    },
+    [status],
+  );
 
   const enrichedCatalog = useMemo(
     () => (attrMap.size ? catalog.map((c) => (attrMap.has(c.code) && !c.attr ? { ...c, attr: attrMap.get(c.code)! } : c)) : catalog),
     [catalog, attrMap],
   );
   const courses = useMemo(() => {
-    // join 池 = 本地目录（批量已淘汰：仅一级课表 partial 行）∪ 服务端搜索已浏览页
+    // join 池 = 本地目录（批量已淘汰，恒空）∪ 服务端搜索已浏览页 ∪ 已选时间回填行
     const seen = new Set<string>();
     const all: XkCourse[] = [];
-    for (const c of [...enrichedCatalog, ...searchRaw]) {
+    for (const c of [...enrichedCatalog, ...searchRaw, ...Object.values(selDetail)]) {
       const k = `${c.code}_${c.seq || "0"}`;
       if (!seen.has(k)) { seen.add(k); all.push(c); }
     }
     return buildRows(all, volMap, queueMap, selected, candidates, levelTypes);
-  }, [enrichedCatalog, searchRaw, volMap, queueMap, selected, candidates, levelTypes]);
+  }, [enrichedCatalog, searchRaw, selDetail, volMap, queueMap, selected, candidates, levelTypes]);
   const canAdjustZy = useCallback(
     (code: string, seq: string, targetZy: number) => canAdjustZyFn(courses, code, seq, targetZy),
     [courses],
@@ -1205,8 +1352,8 @@ export function useXkWorkbench(): XkWorkbench {
     manualEvents, addManualEvent, removeManualEvent,
     previewMode, previewDraftIdx, setPreview, progress, setProgress, refreshQueue, previewItems, previewIndex,
     semesterOverride, setSemesterOverride, semesterOptions, loadDetail, plan,
-    searchState, searchRows, searchPage, searchHasMore, searchError,
-    newSearch, loadMoreSearch, retrySearch,
+    searchState, searchRows, searchPage, searchHasMore, searchIncomplete, searchRunId, searchError,
+    newSearch, gotoPage, loadAllSearch, retrySearch,
   };
 }
 
