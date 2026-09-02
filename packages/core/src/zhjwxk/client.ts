@@ -1100,7 +1100,8 @@ export interface XkLevelTableRow {
  */
 export async function getXkLevelTable(s: ZhjwxkSession, opts: { semester: string }): Promise<Record<string, XkLevelTableRow>> {
   await ensure(s, opts.semester);
-  const html = await s.http.text(`${ZHJWXK}/xkBks.vxkBksXkbBs.do?p_xnxq=${encodeURIComponent(opts.semester)}&pathContent=${encodeURIComponent("一级课表")}`);
+  // pathContent 为中文参数：GBK 编码（UTF-8 直发服务端解乱码，取不到一级课表页）
+  const html = await s.http.text(`${ZHJWXK}/xkBks.vxkBksXkbBs.do?p_xnxq=${encodeURIComponent(opts.semester)}&pathContent=${gbkPercentEncode("一级课表")}`);
   const map: Record<string, XkLevelTableRow> = {};
   const rowRe = /<tr[^>]*class="trr2"[^>]*>([\s\S]*?)<\/tr>/g;
   let m: RegExpExecArray | null;
