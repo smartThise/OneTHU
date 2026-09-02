@@ -150,60 +150,8 @@ await t("client：chooseBuildings URL 单问号（query 经 opts 拼接）+ curr
   assert.equal(bodies[0].reserveDate, "2026-09-01");
 });
 
-await t("client：addReserve body 对齐 f6d 抓包（无支付字段）", async () => {
-  let captured = null;
-  const client = new VenueClient({
-    fetch: async (url, init) => {
-      captured = { url: String(url), body: JSON.parse(init.body) };
-      return jsonRes({ code: 0, message: "请求成功", success: true, data: { resvUuid: "r1" } });
-    },
-  });
-  client.setToken("t".repeat(40));
-  await client.addReserve({
-    sceneUuid: "sc1",
-    siteUuid: "si1",
-    siteType: "DEV",
-    session: {
-      uuid: "sv1",
-      beginDate: 20260901,
-      endDate: 20260901,
-      beginTime: "13:30",
-      endTime: "15:00",
-      allowUserNum: 1000,
-      resvUserNum: 0,
-      sceneUseType: "SPORT_PERSON",
-    },
-    reserveDate: "2026-09-01",
-    resvMember: ["me1"],
-  });
-  assert.ok(captured.url.includes("/api/reserve/addReserve?"));
-  assert.equal(captured.body.sceneUuid, "sc1");
-  assert.equal(captured.body.resvKind, "CURRENT_RESERVE");
-  assert.deepEqual(captured.body.resvMember, ["me1"]);
-  assert.deepEqual(captured.body.siteSessionReserve, []);
-  assert.equal(captured.body.reserveTime[0].sessionDetailUuid, "sv1");
-  assert.equal(captured.body.reserveTime[0].reserveTime.startTime, "2026-09-01 13:30:00");
-  assert.equal(captured.body.reserveTime[0].reserveTime.endTime, "2026-09-01 15:00:00");
-  assert.ok(!("payType" in captured.body) && !("purchaseUuid" in captured.body));
-});
-
-await t("client：需表单场次兜底拦截", async () => {
-  const client = new VenueClient({ fetch: async () => jsonRes({ code: 0, success: true, data: null }) });
-  client.setToken("t".repeat(40));
-  await assert.rejects(
-    () =>
-      client.addReserve({
-        sceneUuid: "s",
-        siteUuid: "s",
-        siteType: "DEV",
-        session: { uuid: "x", beginDate: 20260901, endDate: 20260901, beginTime: "08:00", endTime: "09:00", allowUserNum: 1, resvUserNum: 0 },
-        reserveDate: "2026-09-01",
-        resvMember: ["m"],
-        needForm: true,
-      }),
-    (err) => err instanceof VenueApiError && /申请表单/.test(err.message),
-  );
-});
+/* addReserve 测试已随功能移除：预约须知第 12 条（脚本/插件预约封禁 6 个月 +
+   函告院系），客户端刻意不实现应用内提交预约，预约一律引导官方网页。 */
 
 
 /* —— ssoLogin：统一凭证换票链（mock 三段） —— */
