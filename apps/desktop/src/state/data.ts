@@ -478,6 +478,19 @@ function xkSession(): ZhjwxkSession {
 let xkCache: { semester: string; at: number; catalog: XkCourse[]; vol: Record<string, XkVolInfo> } | null = null;
 const XK_CACHE_TTL = 5 * 60_000;
 
+/** 学期串缓存（12h）：学期串只在换学期时变；命中省一次 ensure/解析往返 */
+const XK_SEM_KEY = "xk:semester";
+const XK_SEM_TTL = 12 * 60 * 60 * 1000;
+/** 核心数据（已选/候补/队列/方案）持久缓存：按学期键，管线启动 t=0 秒渲右栏（SWR） */
+const XK_CORE_KEY = "xk:core";
+interface XkCoreSeed {
+  selected: XkSelectedRow[];
+  candidates: QueueCandidate[];
+  queueMap: Record<string, XkQueueInfo>;
+  phase: boolean;
+  plan: XkPlanItem[];
+}
+
 /* ── 一级课表先行管线（levelTable-first）：共享缓存 / 在途去重 / levelFailed 标记 ── */
 /** 内存级一级课表缓存（refresh 与目录管线共用一份，小而快，避免同页重复请求） */
 let levelCache: { sem: string; at: number; table: Record<string, XkLevelTableRow> } | null = null;
@@ -601,6 +614,8 @@ export function useXkWorkbench(): XkWorkbench {
   const pipelineInflightRef = useRef<{ sem: string; gen: number; promise: Promise<void> } | null>(null);
   /** 核心数据（已选/候补/队列/方案）单写者序号：写后核心刷新永远取代在途管线的核心提交 */
   const coreSeqRef = useRef(0);
+  /** 本轮管线启动时右栏是否已有缓存秒渲旧值（true 时 commitCore 失败保旧不闪红） */
+  const coreSeededRef = useRef(false);
   /** 两段状态机内部标志：levelRendered = 一级课表 partial 行已提交（catalogState 仍 "loading"，
    *  左栏继续"加载中"）；fullReady = 全量目录已合并（catalogState="ready"，
    *  volNeedsRefresh 后台重校验只允许在此之后启动，且此后绝不用 partial 行降级覆盖全量行）。 */
@@ -657,10 +672,14 @@ export function useXkWorkbench(): XkWorkbench {
       setPlan(plan);
       setQueueState("ready");
       setCoreState("ready");
+      // 核心数据落持久缓存（下轮挂载/重启 t=0 秒渲右栏）+ 学期串持续保鲜
+      cacheSet(`${XK_CORE_KEY}:${sem}`, { selected: selFinal, candidates: cand, queueMap: qd.map, phase: qd.phase, plan });
+      cacheSet(XK_SEM_KEY, sem);
       return plan; // ★ 右栏就绪（渲染顺序固定：先右后左）
     } catch (err) {
       if (genRef.current !== myGen || coreSeqRef.current !== coreSeq) return [];
       if (isAuthError(err) && autoFullReload("xk")) return []; // 失登：静默整页重载（2 分钟节流）
+      if (coreSeededRef.current) return []; // 秒渲旧值在屏：保旧不闪红（SWR），重试/下轮再验证
       logPageError("ZHJWXK", err);
       setCoreState("error");
       setError(explainNetworkError(err));
@@ -691,12 +710,37 @@ export function useXkWorkbench(): XkWorkbench {
     const myGen = genRef.current;
     const inflight = pipelineInflightRef.current;
     if (inflight && inflight.sem === sem && inflight.gen === myGen) return inflight.promise;
-    // 管线启动：左栏立即回 loading（level 尚未就绪态），复位两段标志
-    setCatalogState("loading");
+    // 管线启动：复位两段标志；随后两条 t=0 秒渲通路（SD 目录 / 核心缓存）先行上屏
     setError(null);
-    setCoreState("loading");
     levelRenderedRef.current = false;
     fullReadyRef.current = false;
+    // t=0 左栏：SD 持久目录直接上屏（level/全量目录/志愿在管线上静默重验证；
+    // fullReady 置位后 commitLevel 只更新课型表，绝不用 partial 行降级覆盖全量行）
+    const sdSeed = sdRead();
+    const sdHit = sdSeed && sdSeed.semester === sem ? sdSeed : null;
+    if (sdHit) {
+      setCatalog(sdHit.catalog);
+      setVolMap(sdHit.vol);
+      setLevelTypes(levelTypesOf(sdHit.level ?? {}));
+      fullReadyRef.current = true;
+      setCatalogState("ready");
+    } else {
+      setCatalogState("loading");
+    }
+    // t=0 右栏：上次核心数据秒渲，commitCore 到达后静默覆盖（SWR）
+    const coreSeed = cacheGet<XkCoreSeed>(`${XK_CORE_KEY}:${sem}`);
+    if (coreSeed) {
+      setSelected(coreSeed.data.selected);
+      setCandidates(coreSeed.data.candidates);
+      setQueueMap(coreSeed.data.queueMap);
+      setPhase(coreSeed.data.phase);
+      setPlan(coreSeed.data.plan);
+      setQueueState("ready");
+      setCoreState("ready");
+    } else {
+      setCoreState("loading");
+    }
+    coreSeededRef.current = Boolean(coreSeed);
     const entry: NonNullable<typeof pipelineInflightRef.current> = {
       sem,
       gen: myGen,
@@ -818,7 +862,10 @@ export function useXkWorkbench(): XkWorkbench {
     return (async () => {
       let sem = semBarRef.current;
       if (!sem) {
-        sem = await resolveZhjwxkSemester(xkSession()).catch(() => semesterFromDate());
+        // 学期串缓存（12h）命中：零网络起步；未命中才走 ensure 解析
+        const semHit = cacheGet<string>(XK_SEM_KEY);
+        const semFresh = semHit && Date.now() - semHit.at < XK_SEM_TTL ? semHit.data : null;
+        sem = semFresh ?? (await resolveZhjwxkSemester(xkSession()).catch(() => semesterFromDate()));
         if (genRef.current !== myGen) return; // 期间已切学期：作废（semBar 已被新入口写入）
         setSemBar(sem);
       }

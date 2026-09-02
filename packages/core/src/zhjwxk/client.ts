@@ -88,7 +88,12 @@ interface ZhjwxkEntry {
   at: number;
 }
 
-const ENTRY_TTL_MS = 60_000;
+/** entry 信任窗（2026-09 选课性能专项）：entry 对象不参与实际请求（数据直打 ZHJWXK+path），
+ *  真会话在 HttpClient cookie jar——此 TTL 只是「jar 会话可信」的备忘时长。
+ *  60s 时代：离开页面 1 分钟回来即白付整条 xklogin SSO 链（4-5 慢往返），是选课模块
+ *  「每次回来都慢」的主凶。10min 窗 + proxyZhjwxkApi 死页自愈重试：jar 真死时在当次
+ *  请求内静默重登+重试，用户无感。UI 全部显式传学期，entry.semester 过期无碍。 */
+const ENTRY_TTL_MS = 10 * 60_000;
 const entryCache = new WeakMap<ZhjwxkSession, ZhjwxkEntry>();
 const entryInflight = new WeakMap<ZhjwxkSession, Promise<ZhjwxkEntry>>();
 
@@ -181,10 +186,24 @@ async function ensure(
 
 /* ── 通用代理（demo proxyZhjwxkApi）────────────────────────────── */
 
+/** 会话死页判据（可静默重试的子集；needCaptcha 需人工处理，不在此列） */
+function isXkDeadHtml(html: string): boolean {
+  return html.includes("accessDenied") || html.includes("用户登陆超时或访问内容不存在。请重试");
+}
+
 async function proxyZhjwxkApi(s: ZhjwxkSession, entry: ZhjwxkEntry, zhjwxkPath: string): Promise<string> {
   const html = await s.http.text(ZHJWXK + zhjwxkPath);
+  if (!isXkDeadHtml(html)) {
+    entry.at = Date.now();
+    return html;
+  }
+  // 乐观自愈（dormPage 同构）：jar 会话真死 → 静默重走登录链并重试一次，用户无感；
+  // 重试仍死则原样返回，由 assertNotDenied 抛 AuthRequiredError 走既有 autoFullReload 链
+  entryCache.delete(s);
+  await ensure(s);
+  const retried = await s.http.text(ZHJWXK + zhjwxkPath);
   entry.at = Date.now();
-  return html;
+  return retried;
 }
 
 /** demo：html.includes('accessDenied') → session 过期 / 需要重新登录 */
