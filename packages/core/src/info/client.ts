@@ -3469,7 +3469,8 @@ export class InfoClient {
     return this.#withRenew(async () => {
     let page = await this.#dormPage(
       () => this.#http.text(kj.KJ_YUYUE()),
-      (p) => kj.hasKongjianLogin(p),
+      // ⚠ hasKongjianLogin 语义是「会话存活」而非「落在登录页」——此处必须取反（a25c5ab 极性反转事故）
+      (p) => !kj.hasKongjianLogin(p),
       "公共空间预约页",
     );
     // 兜底 A：偶发落到「空间管理系统」门户页（无 RadioButtonList1）——从门户里找回
@@ -3568,7 +3569,7 @@ export class InfoClient {
     return this.#withRenew(async () => {
     const page = await this.#dormPage(
       () => this.#http.text(bookUrl),
-      (p) => kj.hasKongjianLogin(p),
+      (p) => !kj.hasKongjianLogin(p),
       "公共空间预约确认页",
     );
     const form = kj.parseWebForms(page);
@@ -3612,7 +3613,7 @@ export class InfoClient {
     return this.#withRenew(async () => {
     const page = await this.#dormPage(
       () => this.#http.text(kj.KJ_MY()),
-      (p) => kj.hasKongjianLogin(p),
+      (p) => !kj.hasKongjianLogin(p),
       "公共空间我的预约",
     );
     return kj.parseKongjianMy(page);
@@ -3624,7 +3625,7 @@ export class InfoClient {
     return this.#withRenew(async () => {
     const page = await this.#dormPage(
       () => this.#http.text(kj.KJ_MY()),
-      (p) => kj.hasKongjianLogin(p),
+      (p) => !kj.hasKongjianLogin(p),
       "公共空间取消预约",
     );
     const wf = kj.parseWebForms(page);
