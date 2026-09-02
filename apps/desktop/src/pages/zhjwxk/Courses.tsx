@@ -603,7 +603,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
         <>
           {wb.searchIncomplete ? (
             <div style={{ textAlign: "center", padding: "8px 0", fontSize: 12, color: "var(--amber)" }}>
-              数据不完整：已加载 {listRows.length} 门{wb.searchTotalPages > 0 ? `，教务共 ${wb.searchTotalPages} 页` : "，还有更多"}
+              数据不完整：已加载 {listRows.length} 门{wb.searchTotalPages > 0 ? `，教务共 ${wb.searchTotalPages} 页${wb.searchTotalRows > 0 ? `（共 ${wb.searchTotalRows} 门）` : ""}` : "，还有更多"}
               <button className="btn" style={{ marginLeft: 8 }} disabled={busy} onClick={() => void wb.loadAllSearch()}>
                 {busy ? "加载中…" : "加载当前关键词全部"}
               </button>
