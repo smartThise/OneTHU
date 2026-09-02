@@ -794,11 +794,17 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             <span style={{ marginLeft: 8, color: prob.color }}>{prob.prob}</span>
           </div>
         ) : null}
-        {(() => { const o = originOf(r.c.code); return o ? (
-          <div className="row-sub" style={{ color: "var(--amber)", whiteSpace: "normal", display: "flex", gap: 6, alignItems: "flex-start" }}>
-            <span style={{ flex: 1 }}>{o}课程时间无法自动获取——<button className="btn" style={{ padding: "0 6px", fontSize: 11, display: "inline" }} onClick={() => navigate("info", { infoNewsQuery: o === "北大研" ? "北京大学 研究生" : "北京大学 北京外国语大学" })}>点击查看{o === "北大研" ? "关于北京大学面向我校研究生开放课程的选课通知" : "关于北大、北外课程的选课通知"}</button></span>
+        {(() => { const o = originOf(r.c.code); if (!o) return null;
+          const hasTime = clockRangesOf(r.c.note, r.time).length > 0;
+          return (
+          <div className="row-sub" style={{ color: hasTime ? "var(--green)" : "var(--amber)", whiteSpace: "normal", display: "flex", gap: 6, alignItems: "flex-start" }}>
+            <span style={{ flex: 1 }}>{hasTime ? `${o}课程时间已按课程说明自动解析（含单双周标记），见预览课表` : `${o}课程时间无法自动获取`}</span>
+            <button className="btn" style={{ flexShrink: 0, height: "auto", padding: "2px 8px", fontSize: 11 }}
+              onClick={() => navigate("info", { infoNewsQuery: o === "北大研" ? "北京大学 研究生" : "北京大学 北京外国语大学" })}>
+              点击查看{o === "北大研" ? "北京大学面向我校研究生开放课程" : "北大、北外课程"}的选课通知
+            </button>
           </div>
-        ) : null; })()}
+          ); })()}
         {confs.length ? <div className="row-sub" style={{ color: "var(--red)", whiteSpace: "normal" }}>冲突: {confs.slice(0, 3).map((c) => `周${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.b}`).join(" · ")}</div> : null}
         {state === "selected" ? (
           <div className="row-sub" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
