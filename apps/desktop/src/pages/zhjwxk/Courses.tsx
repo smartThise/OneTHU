@@ -395,19 +395,28 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   }, [wb.searchRows, wb.searchState, wb.previewIndex, query, chip, credits, day, period, conflictF, tongshi, feature, grade, bksrem, yjsrem, xknote, reviewsF, sortBy]);
 
   /* ── 分页（教务同款）：
-   *  · 浏览模式：curPage = 服务端页码，翻页 = wb.gotoPage(n)（点哪页爬哪页）；
-   *  · 搜索模式：本地翻页（rows 已整池在手，翻页零请求）；>3 页时上方提示可加载全部。── */
+   *  · 浏览模式：curPage = 服务端页码，翻页 = wb.gotoPage(n)（点哪页爬哪页），总页数 = 服务端「共 N 页」；
+   *  · 搜索模式：本地翻页（已加载池在手，翻页零请求）；总页数/总数用服务端真值；
+   *    未加载的尾部页显示提示，点「加载全部」补齐。── */
   const searchMode = Boolean(query.trim() || tongshi || feature || grade || day || period || bksrem === "1" || yjsrem === "1");
   const [uiPage, setUiPage] = useState(1);
   const [goPage, setGoPage] = useState("");
   useEffect(() => { setUiPage(1); setGoPage(""); }, [wb.searchRunId]); // 新搜索回第 1 页
-  const totalPages = Math.max(1, Math.ceil(rows.length / 20));
+  // 已选/候补兜底行只属于对应 chip 的列表——主列表（全部/可选/筛选）按纯搜索结果分页，
+  // 否则 buildRows 追加的已选行会污染总数与页数（70≠60 的教训）
+  const listRows = useMemo(() => {
+    if (chip === "selected" || chip === "queue") return rows;
+    const pk = new Set(wb.searchRaw.map((c) => `${c.code}_${c.seq || "0"}`));
+    return rows.filter((r) => pk.has(r.key));
+  }, [rows, chip, wb.searchRaw]);
+  const totalPages = wb.searchTotalPages || Math.max(1, Math.ceil(listRows.length / 20));
   const curPage = searchMode ? Math.min(uiPage, totalPages) : wb.searchPage;
   const pagedRows = useMemo(
-    () => (searchMode ? rows.slice((curPage - 1) * 20, curPage * 20) : rows),
-    [rows, searchMode, curPage],
+    () => (searchMode ? listRows.slice((curPage - 1) * 20, curPage * 20) : listRows),
+    [listRows, searchMode, curPage],
   );
   const busy = wb.searchState === "loading" || wb.searchState === "loadingMore";
+  const pageLoaded = !searchMode || !wb.searchIncomplete || curPage * 20 <= listRows.length;
   const goJump = () => {
     const n = parseInt(goPage, 10);
     if (!Number.isFinite(n) || n < 1) return;
@@ -462,10 +471,13 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
         <>
           <Card className="list">
             {pagedRows.map((r, i) => <PickCard key={r.key} wb={wb} r={r} i={i} picks={picks} setPicks={setPicks} highlight={r.c.code === highlight} />)}
+            {pagedRows.length === 0 && !pageLoaded ? (
+              <Empty text="此页未加载——点下方「加载全部」后可查看。" />
+            ) : null}
           </Card>
           {wb.searchIncomplete ? (
             <div style={{ textAlign: "center", padding: "8px 0", fontSize: 12, color: "var(--amber)" }}>
-              数据不完整：仅加载前 {Math.ceil(wb.searchRows.length / 20)} 页（{wb.searchRows.length} 门）
+              数据不完整：已加载前 {Math.ceil(listRows.length / 20)} 页（{listRows.length} 门），教务共 {wb.searchTotalPages} 页
               <button className="btn" style={{ marginLeft: 8 }} disabled={busy} onClick={() => void wb.loadAllSearch()}>
                 {busy ? "加载中…" : "加载当前关键词全部"}
               </button>
@@ -475,10 +487,13 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
             <button className="btn" disabled={busy || (searchMode ? curPage <= 1 : wb.searchPage <= 1)}
               onClick={() => (searchMode ? setUiPage(curPage - 1) : void wb.gotoPage(wb.searchPage - 1))}>上一页</button>
             <span style={{ fontSize: 12, color: "var(--text-3)" }}>
-              第 {curPage} 页{searchMode ? ` / 共 ${totalPages} 页（${rows.length} 门）` : ""}
+              第 {curPage} 页 / 共 {totalPages} 页{!searchMode || !wb.searchIncomplete ? `（${listRows.length} 门）` : ""}
             </span>
-            <button className="btn" disabled={busy || (searchMode ? curPage >= totalPages : !wb.searchHasMore)}
-              onClick={() => (searchMode ? setUiPage(curPage + 1) : void wb.gotoPage(wb.searchPage + 1))}>下一页</button>
+            <button className="btn" disabled={busy || (searchMode ? curPage >= totalPages : !wb.searchHasMore && !(wb.searchTotalPages > wb.searchPage))}
+              onClick={() => {
+                if (searchMode) setUiPage(curPage + 1);
+                else void wb.gotoPage(wb.searchPage + 1);
+              }}>下一页</button>
             <span style={{ fontSize: 12, color: "var(--text-3)" }}>跳至</span>
             <input className="input" style={{ width: 52, height: 24, fontSize: 12 }} value={goPage}
               onChange={(e) => setGoPage(e.target.value.replace(/[^0-9]/g, ""))} onKeyDown={(e) => e.key === "Enter" && goJump()} />
