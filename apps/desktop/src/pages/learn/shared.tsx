@@ -153,11 +153,25 @@ export function RichContent({ html, fallback = "暂无内容。" }: { html?: str
 
 /* ---------- 导航 ---------- */
 
-export function BackButton({ to, label, courseId }: { to: Page; label?: string; courseId?: string }) {
+export function BackButton({
+  to,
+  label,
+  courseId,
+  courseTab,
+}: {
+  to: Page;
+  label?: string;
+  courseId?: string;
+  /** 三级页 → 课程详情「各回各家」：目标 tab（仅 to=learn-course 时附带） */
+  courseTab?: string;
+}) {
   const { navigate } = useApp();
   // 返回课程详情必须带回 courseId，否则详情页空参渲染成白页（此前要退两次的根因）；
   // 返回一级页（learn 等）则一律不带参数，避免列表页残留上一页的导航态
-  const params = courseId && topLevelPage(to) !== to ? { courseId } : undefined;
+  const params =
+    courseId && topLevelPage(to) !== to
+      ? { courseId, ...(to === "learn-course" && courseTab ? { courseTab } : {}) }
+      : undefined;
   return (
     <button className="btn btn-ghost" onClick={() => navigate(to, params)}>
       ← {label ?? "返回"}

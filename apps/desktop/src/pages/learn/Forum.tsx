@@ -306,7 +306,7 @@ export function ForumThreadPage() {
 
   return (
     <>
-      <BackButton to="learn-course" courseId={courseId} label="返回课程" />
+      <BackButton to="learn-course" courseId={courseId} courseTab="forum" label="返回课程" />
       {state === "loading" && !head ? (
         <Card>
           <SkeletonRows rows={5} />

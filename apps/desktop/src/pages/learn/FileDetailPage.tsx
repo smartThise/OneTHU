@@ -43,7 +43,7 @@ export function FileDetailPage() {
   if (!f) {
     return (
       <>
-        <PageHead title="文件详情" actions={<BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} />} />
+        <PageHead title="文件详情" actions={<BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} courseTab="files" />} />
         {state === "loading" ? (
           <SkeletonRows rows={4} />
         ) : state === "error" ? (
@@ -62,7 +62,7 @@ export function FileDetailPage() {
         meta={`${course?.name ?? "课程"}${course?.teacherName ? ` · ${course.teacherName}` : ""} · 上传于 ${fmtDateTime(f.uploadTime)}`}
         actions={
           <>
-            <BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} />
+            <BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} courseTab="files" />
             <button
               className="btn"
               onClick={() => openFilePreview({ name: learnFileName(f.title || `课件 ${f.id}`, f.fileType), url: LEARN_FILE_DOWNLOAD(f.id) })}
