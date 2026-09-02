@@ -321,7 +321,9 @@ function parseBbsMainBlock(html: string): { author: string; time: string; html: 
   let body = "";
   if (rs >= 0) {
     const seg = block.slice(block.indexOf(">", rs) + 1);
-    const stop = seg.search(/<form\b|<div class="list lists|<div class='list lists/);
+    const stop = seg.search(
+      /<form\b|<div class="list lists|<div class='list lists|<p class="times|question-answer|answerFirstLink|firstHfItems|switchEditor|切换至/,
+    );
     body = seg.slice(0, stop > 0 ? stop : seg.length).replace(/(<\/div>\s*)+$/, "").trim();
   }
   return { author, time, html: body };
@@ -1012,7 +1014,11 @@ export class LearnClient {
         author: main.author,
         time: main.time,
         html: main.html,
-        replyCount: parseInt(span(/loadpage2\([^,]+,\s*(\d+)\s*,/), 10) || 0,
+        replyCount: (() => {
+          const n = parseInt(span(/loadpage2\([^,]+,\s*(\d+)\s*,/), 10);
+          // 回复 ≤8 时页面无分页器，loadpage2 不存在 → 用首屏渲染数兜底
+          return Number.isFinite(n) && n > 0 ? n : main ? parseBbsReplyBlocks(html).length : 0;
+        })(),
         tabbh: span(/tabbh=(\d+)/),
         tabid: span(/[?&]tabid=([0-9a-f]{16,40})/),
         bqid: span(/[?&]bqid=([0-9a-f]{16,40})/),
