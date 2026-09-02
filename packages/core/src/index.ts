@@ -132,6 +132,8 @@ export {
   getSelectedCourses,
   getQueueStatus,
   resolveZhjwxkSemester,
+  searchXkCourses,
+  XK_DEPARTMENTS,
   semesterFromDate,
   parseSelectedCourses,
   parseQueueCandidates,
