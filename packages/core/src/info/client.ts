@@ -1338,6 +1338,74 @@ export class InfoClient {
     });
   }
 
+  /**
+   * 扫码充值下单（card.ts cardRechargeFromWechatAlipay 会话版，参数逐条同 lib）——
+   * 只创建订单并返回官方收款链接，支付动作完全发生在支付宝/微信侧，本应用不经手资金。
+   * 支付宝返回 qr.alipay.com/…（桌面渲染二维码供手机扫；移动端可拼
+   * alipayqr://platformapi/startapp?saId=10000007&qrcode=<enc> 直跳支付宝 App）；
+   * 微信返回微信收银台链接（thu-info-app 2025-09 从 UI 移除微信入口但链路仍在，
+   * 桌面扫码方案不受影响）。
+   * 安全约定：下单不自动重试；响应（学号/收款链接）不写入任何调试日志。
+   */
+  async cardRechargeQrcode(amountYuan: number, channel: "alipay" | "wechat"): Promise<string> {
+    return this.#withCardSession(async () => {
+      const user = await this.#ensureCardSession();
+      const payload =
+        channel === "alipay"
+          ? {
+              idserial: user,
+              transamt: amountYuan,
+              paytype: 3,
+              txcode: "2493",
+              productdesc: "综合服务支付宝扫码充值",
+              method: "trade.pay.qrcode",
+              tradetype: "alipay.qrcode",
+            }
+          : {
+              idserial: user,
+              transamt: amountYuan,
+              txamt: amountYuan,
+              openid: "",
+              orgid: 2,
+              paytype: 2,
+              txcode: "1824",
+              productdesc: "综合服务微信扫码充值",
+              method: "trade.pay.qrcode",
+              tradetype: "weixin.qrcode",
+            };
+      const res = await this.#cardFetch<{ success?: boolean; message?: string; response?: string }>(
+        urls.CARD_RECHARGE_QRCODE(),
+        payload,
+      );
+      if (res.success !== true) throw new Error(res.message ?? "充值下单失败");
+      let webUrl = "";
+      try {
+        webUrl = String(
+          (JSON.parse(res.response ?? "{}") as { bizContent?: { webUrl?: string } }).bizContent?.webUrl ?? "",
+        );
+      } catch {
+        /* 保持空串走下方统一报错 */
+      }
+      if (!webUrl) throw new Error("服务端未返回收款链接");
+      return webUrl;
+    });
+  }
+
+  /** 银行卡圈存（card.ts cardRechargeFromBank 会话版；txamt 单位为分）。
+   *  returncode=ERROR 时 lib 提示：请用其他支付方式，或 6:00~20:40 再试。 */
+  async cardRechargeFromBank(amountYuan: number): Promise<void> {
+    await this.#withCardSession(async () => {
+      const user = await this.#ensureCardSession();
+      const res = await this.#cardFetch<{ returncode?: string }>(urls.CARD_RECHARGE_BANK(), {
+        idserial: user,
+        txamt: Math.round(amountYuan * 100),
+      });
+      if (res.returncode === "ERROR") {
+        throw new Error("圈存失败：请确认已在卡系统绑定银行卡，并于 6:00~20:40 重试，或改用扫码充值");
+      }
+    });
+  }
+
   /* --------------------- 宿舍 / 家园网（dorm.ts 移植） --------------------- */
 
   #dormRoamed = false;

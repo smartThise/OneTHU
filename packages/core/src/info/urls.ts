@@ -95,6 +95,13 @@ export const CARD_INFO_BY_USER = () => "https://card.tsinghua.edu.cn/business/ge
 /** 消费/流水记录（card.ts CARD_TRANSACTION_URL） */
 export const CARD_TRANSACTIONS = () => "https://card.tsinghua.edu.cn/business/querySelfTradeList";
 
+/** 扫码充值下单（card.ts CARD_RECHARGE_FROM_ALIPAY_URL；支付宝/微信同一端点，tradetype 区分）。
+ *  返回官方收款链接（qr.alipay.com/… 或微信收银台链接），支付在支付宝/微信侧完成。 */
+export const CARD_RECHARGE_QRCODE = () => "https://card.tsinghua.edu.cn/wx/rechard/qrcode";
+
+/** 银行卡圈存（card.ts CARD_RECHARGE_FROM_BANK_URL；需卡系统已绑定银行卡，限 6:00~20:40） */
+export const CARD_RECHARGE_BANK = () => "https://card.tsinghua.edu.cn/business/moblieRecharge";
+
 /* ------------------------------------------------------------------ */
 /* 宿舍 / 家园网（thu-info-lib dorm.ts。lib 内为 webvpn 硬编码 hex —— 解码回
  * 真实域（AES key/iv=wrdvpnisthebest! 实证）后由 HttpClient 动态包装，端点与
