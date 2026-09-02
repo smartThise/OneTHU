@@ -53,3 +53,24 @@ export async function openExternal(rawUrl: string): Promise<void> {
     /* 剪贴板不可用时静默（调用方 UI 通常仍展示链接上下文） */
   }
 }
+
+/**
+ * 支付宝深链调起（移动端专用，thu-info-lib cardRechargeFromWechatAlipay 同款拼法）：
+ * 把校园卡下单返回的 qr.alipay.com 收款 URL 包进支付宝官方扫码深链
+ * （alipayqr://platformapi/startapp?saId=10000007&qrcode=<enc>），opener 发
+ * ACTION_VIEW Intent 直跳支付宝 App 并自带该订单，用户在支付宝内确认支付。
+ * 安全约定：深链前缀硬编码、仅接受 qr.alipay.com 的 https 收款 URL（服务端返回），
+ * 不提供任意 scheme 注入面。返回 false（未装支付宝/桌面端）由调用方回落二维码扫码。
+ */
+export async function openAlipayDeepLink(webUrl: string): Promise<boolean> {
+  if (!/^https:\/\/qr\.alipay\.com\//.test(webUrl)) return false;
+  const deep =
+    "alipayqr://platformapi/startapp?saId=10000007&qrcode=" + encodeURIComponent(webUrl);
+  try {
+    const opener = await import("@tauri-apps/plugin-opener");
+    await opener.openUrl(deep);
+    return true;
+  } catch {
+    return false;
+  }
+}
