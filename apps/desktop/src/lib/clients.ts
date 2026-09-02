@@ -202,7 +202,15 @@ export async function login(
   pendingSecret = { username, password, remember };
   if (!remember) await clearRemembered().catch(() => undefined);
 
-  const savedMode = globalThis.localStorage?.getItem(TRANSPORT_KEY) ?? "direct";
+  let savedMode = globalThis.localStorage?.getItem(TRANSPORT_KEY) ?? "direct";
+  // 回切探测（#4）：持久化的 webvpn 模式没有回切机制，回校园网后仍全量绕道
+  // webvpn → 会话互踢死循环。登录前探测内网专属 host（usereg 公网不可达），
+  // 可达 = 在校园网 → 本次直接走 direct 并清掉持久化降级标记。
+  if (savedMode === "webvpn" && (await directReachable())) {
+    globalThis.localStorage?.removeItem(TRANSPORT_KEY);
+    savedMode = "direct";
+    await logLine("TRANSPORT webvpn→direct 回切：直连可达（在校园网），不再绕道 WebVPN");
+  }
   try {
     const result = await attempt(username, password, savedMode === "webvpn");
     if (result.state === "ready") {
@@ -219,9 +227,40 @@ export async function login(
       if (result.state === "ready") await persist();
       return result;
     }
+    // 对称反向降级（#4）：webvpn 链路网络错误 → 试一次 direct，成功则回切
+    if (savedMode === "webvpn" && isNetworkError(err)) {
+      http.jar.clear();
+      try {
+        const result = await attempt(username, password, false);
+        globalThis.localStorage?.removeItem(TRANSPORT_KEY);
+        await logLine("TRANSPORT webvpn→direct 反向降级：webvpn 网络错误，直连重试成功");
+        if (result.state === "ready") await persist();
+        return result;
+      } catch {
+        /* direct 也不通：落回原错误 */
+      }
+    }
     if (err instanceof Error) await dumpDebug(err);
     await logLine("LOGIN-ERR\n" + session.debugLog.join("\n"));
     throw err;
+  }
+}
+
+/**
+ * 直连可达性探测（#4 回切判据）：取内网专属 host（usereg 仅校园网内可直连，
+ * 公网/WebVPN 场景必然超时），no-cors 只关心连接成败，不读响应。
+ * 系统代理（TUN/全局）下探测包也会进代理：代理转发不了内网 → 判不可达 →
+ * 维持 webvpn，宁可保守不误切。
+ */
+async function directReachable(): Promise<boolean> {
+  try {
+    await fetch("https://usereg.tsinghua.edu.cn/", {
+      mode: "no-cors",
+      signal: AbortSignal.timeout(2500),
+    });
+    return true;
+  } catch {
+    return false;
   }
 }
 
