@@ -127,6 +127,12 @@ function looksLikeLoginHtml(html: string): boolean {
   return /j_spring_security_check|id="sm2publicKey"|name="i_pass"|\/do\/off\/ui\/auth\/login\//i.test(html);
 }
 
+/** 网络学堂本地登录壳（2026-09-02 诊断实录：<title>网络学堂</title> + re_log 重新登录按钮，
+ *  与 info 门户登录页特征不同源——viewTlById 会话过期时服务器回这个） */
+function looksLikeLearnLoginShell(html: string): boolean {
+  return html.includes(">网络学堂<") && /re_log|重新登录/.test(html);
+}
+
 /** 成员串 → 姓名数组：qzmp 逗号分隔（页面渲染时 replace(/,/g," ")），表格里为空格分隔 */
 function splitMemberNames(s: string): string[] {
   return decodeHtml(s)
@@ -971,13 +977,19 @@ export class LearnClient {
   async getBbsThread(wlkcid: string, threadId: string): Promise<LearnBbsThreadDetail> {
     return this.#withRelogin(async () => {
       this.#requireCsrf();
-      const html = await this.#http.text(this.#withCsrf(urls.LEARN_BBS_THREAD_VIEW(wlkcid, threadId)));
+      let html = await this.#http.text(this.#withCsrf(urls.LEARN_BBS_THREAD_VIEW(wlkcid, threadId)));
+      if (looksLikeLearnLoginShell(html)) {
+        // 会话壳页：先热一次课程列表页（顺带刷新 _csrf）再重试——浏览器里 Cookie 链路是热的，
+        // 直 GET 话题页会撞登录壳（2026-09-02 诊断实录）
+        await this.#http.text(this.#withCsrf(urls.LEARN_COURSE_LIST_PAGE())).catch(() => undefined);
+        html = await this.#http.text(this.#withCsrf(urls.LEARN_BBS_THREAD_VIEW(wlkcid, threadId)));
+      }
       const main = parseBbsMainBlock(html);
       // 诊断：楼主块空 = 页面结构/会话异常，留标题区+楼主区+长度指纹
       this.lastBbsThreadDebug =
         main.html || main.author
           ? ""
-          : `THREAD-VIEW len=${html.length} louzhuu=${html.includes("louzhuu")} tlbt=${html.includes("tlbt")}\n` +
+          : `THREAD-VIEW len=${html.length} loginShell=${looksLikeLearnLoginShell(html)} louzhuu=${html.includes("louzhuu")} tlbt=${html.includes("tlbt")}\n` +
             html.slice(0, 900);
       const span = (re: RegExp): string => re.exec(html)?.[1] ?? "";
       return {
