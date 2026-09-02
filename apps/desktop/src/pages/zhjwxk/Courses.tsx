@@ -337,11 +337,19 @@ export function ZhjwxkCoursesPage() {
 
       {/* ── 桌面：双栏（左查找 / 右管理+AI）── */}
       <div className="xk-two-col" ref={colRef} style={{ display: "flex", gap: 6, alignItems: "stretch", flexWrap: "nowrap", width: "100%", maxWidth: "100%", overflow: "hidden", userSelect: "none" }}>
-        {split.collapsed !== "left" ? (
-          <div className="xk-left" style={{ maxHeight: "calc(100vh - 150px)", flex: "0 0 auto", width: split.collapsed === "right" ? "100%" : `calc(${split.pct}% - 3px)` }}>
-            <CourseListPanel wb={wb} jump={jump} />
-          </div>
-        ) : null}
+        {/* 塌缩用 display:none 藏身（绝不卸载）：筛选/搜索/滚动状态全保留 */}
+        <div
+          className="xk-left"
+          style={{
+            maxHeight: "calc(100vh - 150px)",
+            display: split.collapsed === "left" ? "none" : undefined,
+            flex: split.collapsed === "right" ? "1 1 0%" : "0 0 auto",
+            width: split.collapsed === "right" ? "auto" : `calc(${split.pct}% - 3px)`,
+            minWidth: 0,
+          }}
+        >
+          <CourseListPanel wb={wb} jump={jump} />
+        </div>
         {split.collapsed === "none" ? (
           <div
             role="separator"
@@ -360,21 +368,30 @@ export function ZhjwxkCoursesPage() {
             className="btn"
             title="恢复双栏"
             onClick={() => setSplitP({ pct: 50, collapsed: "none" })}
-            style={{ flex: "0 0 18px", writingMode: "vertical-rl", padding: "8px 1px", fontSize: 11, alignSelf: "center", borderRadius: 6, letterSpacing: 2 }}
+            style={{ flex: "0 0 22px", padding: "12px 1px", fontSize: 12, fontWeight: 700, lineHeight: 1, alignSelf: "center", borderRadius: 6, letterSpacing: -1, whiteSpace: "nowrap", overflow: "visible" }}
           >
             ‹›
           </button>
         )}
-        {split.collapsed !== "right" ? (
-          <div className="xk-right" style={{ maxHeight: "calc(100vh - 150px)", display: "flex", flexDirection: "column", gap: 10, flex: "1 1 0%", minWidth: 0, maxWidth: "none" }}>
-            <PlanSection wb={wb} />
-            <StatsSection wb={wb} />
-            <PreviewSection wb={wb} />
-            <StageSection wb={wb} />
-            <QueueSection wb={wb} />
-            <AiSections wb={wb} />
-          </div>
-        ) : null}
+        <div
+          className="xk-right"
+          style={{
+            maxHeight: "calc(100vh - 150px)",
+            display: split.collapsed === "right" ? "none" : "flex",
+            flexDirection: "column",
+            gap: 10,
+            flex: split.collapsed === "left" ? "1 1 0%" : "1 1 0%",
+            minWidth: 0,
+            maxWidth: "none",
+          }}
+        >
+          <PlanSection wb={wb} />
+          <StatsSection wb={wb} />
+          <PreviewSection wb={wb} />
+          <StageSection wb={wb} />
+          <QueueSection wb={wb} />
+          <AiSections wb={wb} />
+        </div>
       </div>
 
       {/* ── 竖屏：三页签（课程查找 / 选课管理 / AI 选课），跳转关系由 jump 联动 ── */}
