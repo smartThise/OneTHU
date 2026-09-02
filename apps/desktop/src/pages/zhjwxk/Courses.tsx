@@ -69,7 +69,7 @@ const pvColorOf = (name: string): string => {
 };
 
 /** 外校课程标注：课号前缀 PK=北大本科、GPK=北大研究生（2026 秋 38 门）、BW=北外（形如 BW3w0007） */
-type Origin = "北大" | "北大研" | "北外";
+type Origin = "北大" | "北大研" | "北外" | "";
 const originOf = (code: string): Origin => (code.startsWith("GPK") ? "北大研" : code.startsWith("PK") ? "北大" : code.startsWith("BW") ? "北外" : "");
 const ORIGIN_COLORS: Record<Origin, string> = { 北大: "#c0392b", 北大研: "#c0392b", 北外: "#1f4e79" };
 
