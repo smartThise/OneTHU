@@ -593,6 +593,32 @@
   box-shadow: var(--shadow-1);
 }
 
+/* 板块标签页（讨论区）：无底槽下划线式，替代灰胶囊 */
+.tabstrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.tabstrip button {
+  border: 0;
+  background: transparent;
+  padding: 7px 12px;
+  font-size: var(--text-sm);
+  line-height: 20px;
+  color: var(--text-2);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+.tabstrip button:hover { color: var(--text-1); }
+.tabstrip button.is-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
 /* ---------- 课表 ---------- */
 
 .tt {

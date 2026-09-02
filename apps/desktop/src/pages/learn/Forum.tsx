@@ -90,7 +90,7 @@ export function BbsPanel({ courseId }: { courseId: string }) {
     <>
       <PageHead title="讨论区" meta="课程讨论与答疑（实名制）" />
       {boards.length > 1 ? (
-        <div className="segmented" style={{ display: "flex", flexWrap: "wrap", maxWidth: "100%" }}>
+        <div className="tabstrip">
           {boards.map((b) => (
             <button
               key={b.bqid}
