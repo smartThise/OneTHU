@@ -613,6 +613,69 @@ export async function getXkCatalog(
   return [...map.values()];
 }
 
+/**
+ * 服务端课程搜索（kkxxSearch 分页）：与批量抓取同一端点、同一 trr2 行结构
+ * （parseXkCatalogPage 原样复用），只是把筛选交给服务端、按页取数（每页 20 行）。
+ * 筛选参数来自存档表单（选课开课信息查询.html）：p_kch 课号 / p_kcm 课名 /
+ * p_zjjsxm 教师 / p_kkdwnm 院系 / p_skxq 星期 / p_skjc 节次 / p_ssnj 年级 /
+ * p_rxklxm 任选课组 / p_kctsm 特色 / p_bkskyl_ig=0 本科余量>0 / p_yjskyl_ig=0 研究生余量>0。
+ * 诊断：resp.htmlHead 带回响应首段（无 trr2 行时 UI 可据此判别空结果 vs 异常页）。
+ */
+export interface XkSearchResult {
+  rows: XkCourse[];
+  page: number;
+  hasMore: boolean;
+  /** 响应首段（仅当解析为 0 行时带出，用于现场诊断） */
+  htmlHead?: string;
+}
+export async function searchXkCourses(
+  s: ZhjwxkSession,
+  opts: {
+    semester?: string;
+    page?: number;
+    kch?: string;
+    kcm?: string;
+    teacher?: string;
+    department?: string;
+    weekday?: string;
+    section?: string;
+    grade?: string;
+    kcflm?: string;
+    rxklxm?: string;
+    kctsm?: string;
+    onlyAvailable?: boolean;
+    gradAvail?: boolean;
+  } = {},
+): Promise<XkSearchResult> {
+  const { entry, semester } = await ensure(s, opts.semester);
+  const q = new URLSearchParams();
+  q.set("m", "kkxxSearch");
+  q.set("p_xnxq", semester);
+  const page = Math.max(1, opts.page ?? 1);
+  if (page > 1) q.set("page", String(page));
+  if (opts.kch?.trim()) q.set("p_kch", opts.kch.trim());
+  if (opts.kcm?.trim()) q.set("p_kcm", opts.kcm.trim());
+  if (opts.teacher?.trim()) q.set("p_zjjsxm", opts.teacher.trim());
+  if (opts.department) q.set("p_kkdwnm", opts.department);
+  if (opts.weekday) q.set("p_skxq", opts.weekday);
+  if (opts.section) q.set("p_skjc", opts.section);
+  if (opts.grade) q.set("p_ssnj", opts.grade);
+  if (opts.kcflm) q.set("p_kcflm", opts.kcflm);
+  if (opts.rxklxm) q.set("p_rxklxm", opts.rxklxm);
+  if (opts.kctsm) q.set("p_kctsm", opts.kctsm);
+  if (opts.onlyAvailable) q.set("p_bkskyl_ig", "0");
+  if (opts.gradAvail) q.set("p_yjskyl_ig", "0");
+  const html = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksJxjhBs.do?${q.toString()}&_t=${Date.now()}`);
+  assertNotDenied(s, html);
+  const rows = parseXkCatalogPage(html);
+  return {
+    rows,
+    page,
+    hasMore: rows.length >= 20,
+    ...(rows.length === 0 ? { htmlHead: html.slice(0, 160).replace(/\s+/g, " ") } : {}),
+  };
+}
+
 /** 志愿统计（tbzySearchBR ≤200 页 + tbzySearchTy ≤20 页，失败容忍） */
 export async function getXkVolunteer(
   s: ZhjwxkSession,

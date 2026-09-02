@@ -3,11 +3,11 @@
  * 左栏 = 搜索/筛选chips/筛选selects/课程列表；右栏 = 学分统计·课表预览·暂存草稿·候补·AI。
  * UI 用 OneTHU 设计系统（Card/list/row/chip/btn/input）。
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Card, Empty, ErrorNote, PageHead, SegmentedOverflow, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
-import { useXkWorkbench, type XkStageItem } from "../../state/data.js";
+import { useXkWorkbench, type XkSearchMeta, type XkStageItem } from "../../state/data.js";
 import type { XkCourseDetail } from "@onethu/core";
 import { tbEnsureIndex, tbFetchReviews, tbMatch, tbStars, tbCourseUrl, tbWriteUrl, type TbEntry, type TbReviews } from "../../lib/xkreviews.js";
 import { openExternal } from "../info/openExternal.js";
@@ -226,7 +226,7 @@ export function ZhjwxkCoursesPage() {
           wb.semester ?? "选课系统",
           wb.phase ? "课余量模式" : "预选模式",
           `已选 ${wb.selected.length} 门 · ${selCredits} 学分`,
-          wb.catalogState === "ready" ? `目录 ${wb.catalog.length} 门${wb.catalog.length > 0 && wb.catalog.length < 5800 ? "（低于 5800，可能不完整）" : ""}` : "",
+          `已浏览 ${wb.searchRows.length} 门（实时）`,
         ].filter(Boolean).join(" · ")}
         actions={
           <>
@@ -310,12 +310,37 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   const [reviewsF, setReviewsF] = useState("");
   const [sortBy, setSortBy] = useState("");
   const [picks, setPicks] = useState<Record<string, { flag: XkFlag; zy: number }>>({});
-  const [limit, setLimit] = useState(120);
   const [highlight, setHighlight] = useState("");
 
+  /* 服务端筛选映射：课程号(纯数字)/课程名→文本框，通识课组→p_rxklxm，课程特色→p_kctsm，
+   * 年级→p_ssnj，星期→p_skxq，大节→p_skjc，本/研余量→p_bkskyl_ig/p_yjskyl_ig。
+   * 其余（冲突/学分/评价/文字说明/chips）为本地叠加，作用于已取回的页。 */
+  const serverKey = useMemo(() => JSON.stringify([
+    query.trim(), tongshi, feature, grade, day, period, bksrem === "1", yjsrem === "1",
+  ]), [query, tongshi, feature, grade, day, period, bksrem, yjsrem]);
+  const firstSearchRef = useRef(false);
   useEffect(() => {
-    if (wb.catalogState === "idle") void wb.loadCatalog();
-  }, [wb.catalogState, wb.loadCatalog]);
+    const kw = query.trim();
+    const meta: XkSearchMeta = {
+      kcm: /^\d{4,}$/.test(kw) ? "" : kw,
+      teacher: "",
+      department: "",
+      weekday: day || "",
+      section: period || "",
+      grade,
+      rxklxm: tongshi || "",
+      kctsm: FEATURES.some(([label]) => label === feature) ? feature : "",
+      onlyAvailable: bksrem === "1",
+      gradAvail: yjsrem === "1",
+      kch: /^\d{4,}$/.test(kw) ? kw : "",
+    };
+    const t = setTimeout(() => {
+      firstSearchRef.current = true;
+      void wb.newSearch(meta);
+    }, firstSearchRef.current ? 500 : 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverKey]);
   useEffect(() => {
     if (!jump) return;
     setQuery(jump);
@@ -326,10 +351,10 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   }, [jump]);
 
   const rows = useMemo<XkRow[]>(() => {
-    if (wb.catalogState !== "ready") return [];
+    if (wb.searchState === "idle" || wb.searchState === "loading") return [];
     const q = query.trim().toLowerCase();
     const dayRe = day && period ? new RegExp(`${day}-${period}\\(`) : day ? new RegExp(`${day}-\\d`) : period ? new RegExp(`\\d+-${period}\\(`) : null;
-    const base = wb.courses
+    const base = wb.searchRows
       .filter((r) => {
         if (q && !(r.name.toLowerCase().includes(q) || r.c.code.includes(q) || r.teacher.toLowerCase().includes(q))) return false;
         if (chip === "available" && !r.available) return false;
@@ -361,14 +386,14 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
         }
         return true;
       })
-      .slice(0, limit);
+      ;
     if (!sortBy) return base;
     const scored: Array<{ r: XkRow; e: TbEntry | null }> = base.map((r) => ({ r, e: tbMatch(r.name, r.teacher) }));
     if (sortBy === "cnt_desc") scored.sort((a, b) => (b.e?.count ?? -1) - (a.e?.count ?? -1));
     else if (sortBy === "rate_desc") scored.sort((a, b) => ((b.e?.avg ?? -1) - (a.e?.avg ?? -1)) || ((b.e?.count ?? 0) - (a.e?.count ?? 0)));
     else scored.sort((a, b) => ((a.e?.avg ?? 6) - (b.e?.avg ?? 6)) || ((b.e?.count ?? 0) - (a.e?.count ?? 0)));
     return scored.map((x) => x.r);
-  }, [wb.courses, wb.catalogState, wb.previewIndex, query, chip, credits, day, period, conflictF, tongshi, feature, grade, bksrem, yjsrem, xknote, reviewsF, sortBy, limit]);
+  }, [wb.searchRows, wb.searchState, wb.previewIndex, query, chip, credits, day, period, conflictF, tongshi, feature, grade, bksrem, yjsrem, xknote, reviewsF, sortBy]);
 
   const selSel = "input";
   const selStyle: React.CSSProperties = { height: 26, fontSize: 12, flex: 1, minWidth: 96 };
@@ -406,19 +431,21 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
         </div>
       </Card>
 
-      {chip === "plan" ? <PlanView wb={wb} query={query} /> : wb.catalogState === "idle" || wb.catalogState === "loading" ? (
-        <Card><SkeletonRows rows={6} /><Empty text="正在抓取课程目录与志愿统计（30ms 限速分页，首次约一两分钟）…" /></Card>
-      ) : wb.catalogState === "error" ? (
-        <ErrorNote text={wb.error ?? ""} onRetry={() => void wb.loadCatalog()} />
+      {chip === "plan" ? <PlanView wb={wb} query={query} /> : wb.searchState === "idle" || wb.searchState === "loading" ? (
+        <Card><SkeletonRows rows={6} /><Empty text="正在实时查询教务系统（搜索/翻页各 1 个往返，即搜即得）…" /></Card>
+      ) : wb.searchState === "error" ? (
+        <ErrorNote text={wb.searchError ?? ""} onRetry={() => void wb.retrySearch()} />
       ) : rows.length === 0 ? (
-        <Card><Empty text="暂无匹配课程。" /></Card>
+        <Card><Empty text={wb.searchError || "暂无匹配课程。"} /></Card>
       ) : (
         <>
           <Card className="list">
             {rows.map((r, i) => <PickCard key={r.key} wb={wb} r={r} i={i} picks={picks} setPicks={setPicks} highlight={r.c.code === highlight} />)}
           </Card>
           <div style={{ textAlign: "center", padding: "10px 0" }}>
-            <button className="btn" onClick={() => setLimit((v) => v + 120)}>显示更多</button>
+            <button className="btn" disabled={wb.searchState === "loadingMore"} onClick={() => void wb.loadMoreSearch()}>
+              {wb.searchState === "loadingMore" ? "加载中…" : wb.searchHasMore ? `显示更多（已取 ${wb.searchPage} 页）` : "已到末页"}
+            </button>
           </div>
         </>
       )}
@@ -434,8 +461,8 @@ function PlanView({ wb, query }: { wb: ReturnType<typeof useXkWorkbench>; query:
     planGroupClick = () => { setPresetGroupChip?.("plan"); };
     return () => { planGroupClick = null; };
   }, []);
-  if (wb.plan.length === 0 && wb.catalogState !== "ready") {
-    return <Card><SkeletonRows rows={4} /><Empty text="培养方案与课程目录加载中（首次约一两分钟，之后秒开）…" /></Card>;
+  if (wb.plan.length === 0 && wb.searchState !== "ready") {
+    return <Card><SkeletonRows rows={4} /><Empty text="培养方案加载中（实时模式：随核心数据一并秒取）…" /></Card>;
   }
   if (!coverage.length) {
     return (
