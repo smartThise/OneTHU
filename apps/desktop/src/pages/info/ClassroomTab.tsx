@@ -5,6 +5,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { Card, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { SearchSelect } from "../../components/SearchSelect.jsx";
 import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
 import { TabEmpty, TabError, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
@@ -152,21 +153,15 @@ export function ClassroomTab() {
       ) : (buildings?.length ?? 0) === 0 ? (
         <TabEmpty text="暂无教室资源数据（可能不在上课周期，或服务暂未开放）。" />
       ) : (
-        <select
-          className="input filter-select"
+        <SearchSelect
           value={sel?.searchName ?? ""}
-          onChange={(e) => {
-            const b = buildings!.find((x) => x.searchName === e.target.value);
+          onChange={(v) => {
+            const b = buildings!.find((x) => x.searchName === v);
             if (b) void loadState(b);
           }}
-        >
-          <option value="">选择教学楼…</option>
-          {buildings!.map((b) => (
-            <option key={b.searchName} value={b.searchName}>
-              {b.name}
-            </option>
-          ))}
-        </select>
+          placeholder="选择教学楼…"
+          options={buildings!.map((b) => ({ value: b.searchName, label: b.name }))}
+        />
       )}
 
       {sel ? (

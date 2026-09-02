@@ -1198,12 +1198,14 @@
 }
 
 /* 楼栋搜索下拉（filter-dd 变体）：搜索框 + 分组滚动列表 */
+.search-dd-search,
 .washer-dd-search {
   height: 30px;
   min-height: 0;
   font-size: 12px;
   margin-bottom: 6px;
 }
+.search-dd-list,
 .washer-dd-list {
   max-height: 280px;
   overflow-y: auto;
@@ -1211,12 +1213,14 @@
   flex-direction: column;
   gap: 1px;
 }
+.search-dd-group,
 .washer-dd-group {
   padding: 7px 10px 4px;
   font-size: 11px;
   color: var(--text-3, rgba(0, 0, 0, 0.45));
   line-height: 1;
 }
+.search-dd-opt,
 .washer-dd-opt {
   width: 100%;
   border: none;
@@ -1226,6 +1230,7 @@
   text-align: left;
 }
 .washer-dd-opt.is-sel { color: var(--accent); font-weight: 600; }
+.search-dd-empty,
 .washer-dd-empty {
   padding: 12px 10px;
   font-size: 12px;

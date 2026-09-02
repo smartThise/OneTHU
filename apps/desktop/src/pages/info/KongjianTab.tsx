@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { KongjianPage, KongjianRecord, KongjianSlot } from "@onethu/core";
 import { Card, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { SearchSelect } from "../../components/SearchSelect.jsx";
 import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
 import { TabEmpty, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
@@ -188,35 +189,22 @@ export function KongjianTab() {
           <Card style={{ marginBottom: 12, padding: "12px 14px" }}>
             <div className="field" style={{ marginBottom: 10 }}>
               <label style={{ fontSize: 12, opacity: 0.7 }}>公共空间</label>
-              <select
-                className="input"
+              <SearchSelect
                 value={spaceId}
-                onChange={(e) => pickSpace(e.target.value)}
-                style={{ height: 34, fontSize: 13 }}
-              >
-                <option value="">选择空间（{page.spaces.length} 个）…</option>
-                {spaces.map((sp) => (
-                  <option key={sp.id} value={sp.id}>
-                    {sp.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => pickSpace(v)}
+                placeholder={`选择空间（${page.spaces.length} 个）…`}
+                options={spaces.map((sp) => ({ value: sp.id, label: sp.name }))}
+              />
             </div>
             {page.rooms.length > 0 ? (
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>房间</div>
-                <select
-                  className="input filter-select"
+                <SearchSelect
                   value={roomId || page.selectedRoom || ""}
-                  onChange={(e) => pickRoom(e.target.value)}
-                >
-                  <option value="">全部房间…</option>
-                  {page.rooms.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => pickRoom(v)}
+                  placeholder="全部房间…"
+                  options={[{ value: "", label: "全部房间" }, ...page.rooms.map((r) => ({ value: r.id, label: r.name }))]}
+                />
               </div>
             ) : null}
             {page.dates.length > 0 ? (

@@ -28,6 +28,7 @@ import {
   type VenueUser,
 } from "@onethu/core";
 import { Card, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { SearchSelect } from "../../components/SearchSelect.jsx";
 
 /** 北京时间当前分钟数（0-1439） */
 function beijingMinute(): number {
@@ -652,21 +653,15 @@ export function VenueSportsTab() {
       {sceneState === "loading" && !scenes ? (
         <SkeletonRows rows={3} />
       ) : (
-        <select
-          className="input filter-select"
+        <SearchSelect
           value={venue?.uuid ?? ""}
-          onChange={(e) => {
-            const v = (scenes ?? []).find((x) => x.uuid === e.target.value);
-            if (v) setVenue(v);
+          onChange={(v) => {
+            const x = (scenes ?? []).find((y) => y.uuid === v);
+            if (x) setVenue(x);
           }}
-        >
-          <option value="">选择场馆…</option>
-          {(scenes ?? []).map((v) => (
-            <option key={v.uuid} value={v.uuid}>
-              {v.sceneName}
-            </option>
-          ))}
-        </select>
+          placeholder="选择场馆…"
+          options={(scenes ?? []).map((x) => ({ value: x.uuid, label: x.sceneName }))}
+        />
       )}
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
         <input
@@ -697,63 +692,43 @@ export function VenueSportsTab() {
 
       <SectionHead title={`场次与场地 · ${venue?.sceneName ?? ""}`} aside={date} />
       {buildings.length > 1 ? (
-        <select
-          className="input filter-select"
+        <SearchSelect
           value={building}
-          onChange={(e) => {
-            setBuilding(e.target.value);
+          onChange={(v) => {
+            setBuilding(v);
             setRoom("");
             setClassEnum("BUILDING");
           }}
-        >
-          {buildings.map((b) => (
-            <option key={b.uuid} value={b.uuid}>
-              {b.siteName ?? b.uuid}
-            </option>
-          ))}
-        </select>
+          placeholder="选择场地…"
+          options={buildings.map((b) => ({ value: b.uuid, label: b.siteName ?? b.uuid }))}
+        />
       ) : null}
       {devKinds.length > 1 ? (
-        <select
-          className="input filter-select"
+        <SearchSelect
           value={devKind}
-          onChange={(e) => setDevKind(e.target.value)}
-        >
-          {devKinds.map((k) => (
-            <option key={k.uuid} value={k.uuid}>
-              {k.devKindName ?? k.uuid}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setDevKind(v)}
+          placeholder="选择设备类型…"
+          options={devKinds.map((k) => ({ value: k.uuid, label: k.devKindName ?? k.uuid }))}
+        />
       ) : null}
       {useTypes.length > 1 ? (
-        <select
-          className="input filter-select"
+        <SearchSelect
           value={useType}
-          onChange={(e) => setUseType(e.target.value)}
-        >
-          {useTypes.map((u) => (
-            <option key={u.value} value={u.value}>
-              {u.label}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setUseType(v)}
+          placeholder="选择用途…"
+          options={useTypes.map((u) => ({ value: u.value, label: u.label }))}
+        />
       ) : null}
       {classEnum === "ROOM" && rooms.length > 1 ? (
-        <select
-          className="input filter-select"
+        <SearchSelect
           value={room}
-          onChange={(e) => {
-            setRoom(e.target.value);
+          onChange={(v) => {
+            setRoom(v);
             setClassEnum("ROOM");
           }}
-        >
-          {rooms.map((r) => (
-            <option key={r.uuid} value={r.uuid}>
-              {r.siteName ?? r.uuid}
-            </option>
-          ))}
-        </select>
+          placeholder="选择房间…"
+          options={rooms.map((r) => ({ value: r.uuid, label: r.siteName ?? r.uuid }))}
+        />
       ) : null}
       {sitesState === "error" ? (
         <VenueNote
