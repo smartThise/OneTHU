@@ -238,6 +238,9 @@ function newsUrl(raw: string): string | undefined {
     : `${urls.INFO_PREFIX}${raw.startsWith("/") ? "" : "/"}${raw}`;
 }
 
+/** 家园网乐观会话新鲜窗：窗口内的业务响应成功即视为会话存活，ensure 零网络 */
+const DORM_OK_TTL = 5 * 60 * 1000;
+
 export class InfoClient {
   #http: HttpClient;
   #zhjwRoamed = false;
@@ -1409,6 +1412,8 @@ export class InfoClient {
   /* --------------------- 宿舍 / 家园网（dorm.ts 移植） --------------------- */
 
   #dormRoamed = false;
+  /** 最近一次业务响应验证通过的时刻（家园网乐观会话新鲜度依据） */
+  #dormLastOkAt = 0;
 
   /**
    * 家园网/座位系统请求模式：恒走 WebVPN 包装（与 thu-info-lib 完全一致——lib 的
@@ -1426,6 +1431,37 @@ export class InfoClient {
   async #dormAlive(): Promise<boolean> {
     const html = await this.#http.text(urls.ELE_REMAINDER(), this.#campusInit()).catch(() => "");
     return html.length > 0 && !/net_Default_LoginCtrl1_txtUserName/i.test(html);
+  }
+
+  /** 家园网页面级乐观会话（thu-info-lib roamingWrapper 同构，2026-09 性能专项）：
+   *  - 会话新鲜（5min 内有成功业务响应）→ 直接发业务请求，0 探针往返
+   *  - 否则仍先试业务请求：落在登录页才 ensureDorm（漫游+验证）+ 重试一次
+   *  - 成功响应刷新 #dormLastOkAt，后续调用享受新鲜快路径
+   *  对比旧探针版（#dormAlive 先行）：每次 ensure 前省一整个整页往返——
+   *  myhome 80 端口 + WebVPN 包装三重慢，探针往返正是电费/公共空间慢的主因。 */
+  async #dormPage(
+    fetcher: () => Promise<string>,
+    isLogin: (page: string) => boolean,
+    what: string,
+  ): Promise<string> {
+    const attempt = async (): Promise<string> => {
+      const page = await fetcher().catch(() => "");
+      return page && !isLogin(page) ? page : "";
+    };
+    if (!(this.#dormRoamed && Date.now() - this.#dormLastOkAt < DORM_OK_TTL)) {
+      const page = await attempt();
+      if (page) {
+        this.#dormLastOkAt = Date.now();
+        return page;
+      }
+      await this.#ensureDorm();
+    }
+    const page = await attempt();
+    if (!page) {
+      throw new AuthRequiredError(`${what}：家园网会话未能建立`);
+    }
+    this.#dormLastOkAt = Date.now();
+    return page;
   }
 
   /** 任意校内 URL → oauth lbredirect（dorm.ts roam policy "id" 里 getWebVPNUrl 的同款包装；
@@ -1452,16 +1488,22 @@ export class InfoClient {
    * 票据均经 oauth lbredirect 兑付到 myhome（lib getWebVPNUrl 同款包装）→ 探针核实。
    */
   async #ensureDorm(force = false): Promise<void> {
-    return this.#single("dorm", async () => {    if (force) this.#dormRoamed = false; // 强制重建（forceEnsure 自愈入口）：清标记重走
-    if (this.#dormRoamed && (await this.#dormAlive())) return;
-    // 兑付偶发失败（302 循环/票据竞态）：重试三轮再判死，公共空间等链路稳定性依赖这里
+    return this.#single("dorm", async () => {    if (force) { this.#dormRoamed = false; this.#dormLastOkAt = 0; } // 强制重建（forceEnsure 自愈入口）
+    // 新鲜快路径：5min 内有成功业务响应 → 会话必然活着，连探针往返都省（0 网络）
+    if (this.#dormRoamed && Date.now() - this.#dormLastOkAt < DORM_OK_TTL) return;
+    if (this.#dormRoamed && (await this.#dormAlive())) {
+      this.#dormLastOkAt = Date.now();
+      return;
+    }
+    // 兑付偶发失败（302 循环/票据竞态）：重试两轮再判死（乐观路径已兜掉大半，轮间 800ms 退避）
     const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
     let why = "";
-    for (let i = 0; i < 3; i++) {
-      if (i > 0) await sleep(i === 1 ? 800 : 2000);
+    for (let i = 0; i < 2; i++) {
+      if (i > 0) await sleep(800);
       const ticketed = await this.#roamIdService(urls.DORM_CAS_FORM());
       if (await this.#dormAlive()) {
         this.#dormRoamed = true;
+        this.#dormLastOkAt = Date.now();
         return;
       }
       why = ticketed
@@ -1482,12 +1524,11 @@ export class InfoClient {
    */
   async getEleRemainder(): Promise<EleRemainder> {
     return this.#withRenew(async () => {
-      await this.#ensureDorm();
-      const html = await this.#http.text(urls.ELE_REMAINDER(), this.#campusInit());
-      if (/net_Default_LoginCtrl1_txtUserName/i.test(html)) {
-        this.#dormRoamed = false;
-        throw new AuthRequiredError("宿舍服务会话已失效");
-      }
+      const html = await this.#dormPage(
+        () => this.#http.text(urls.ELE_REMAINDER(), this.#campusInit()),
+        (p) => /net_Default_LoginCtrl1_txtUserName/i.test(p),
+        "电费余额",
+      );
       const remainderText =
         /Netweb_Home_electricity_DetailCtrl1_lblele[^>]*>([^<]*)</.exec(html)?.[1]?.trim() ?? "";
       if (remainderText === "") {
@@ -1510,12 +1551,11 @@ export class InfoClient {
    */
   async getElePayRecord(): Promise<ElePayRecord[]> {
     return this.#withRenew(async () => {
-      await this.#ensureDorm();
-      const html = await this.#http.text(urls.ELE_PAY_RECORD(), this.#campusInit());
-      if (/net_Default_LoginCtrl1_txtUserName/i.test(html)) {
-        this.#dormRoamed = false;
-        throw new AuthRequiredError("宿舍服务会话已失效");
-      }
+      const html = await this.#dormPage(
+        () => this.#http.text(urls.ELE_PAY_RECORD(), this.#campusInit()),
+        (p) => /net_Default_LoginCtrl1_txtUserName/i.test(p),
+        "电费缴费记录",
+      );
       const table = /<table[^>]*class="[^"]*myTable[^"]*"[^>]*>([\s\S]*?)<\/table>/i.exec(html)?.[1]
         ?? /myTable/i.test(html)
           ? html
@@ -3427,17 +3467,11 @@ export class InfoClient {
     // 全量重登录后重试一次。此前裸调用，冷启首开公共空间近乎必红（先开电费
     // 会顺带焐热会话才显得"玄学"）。
     return this.#withRenew(async () => {
-    await this.#ensureDorm();
-    let page = await this.#http.text(kj.KJ_YUYUE());
-    if (!kj.hasKongjianLogin(page)) {
-      // 加固：GET 落在登录页 = 会话在 ensureDorm 后又失效/未同步 → 强制重建一轮再试一次
-      await this.#ensureDorm(true);
-      page = await this.#http.text(kj.KJ_YUYUE());
-    }
-    // 首访 302 到 agreement.aspx（页面含同意按钮、无空间下拉）→ 提交其表单 → 回 xieyi=1
-    if (!kj.hasKongjianLogin(page)) {
-      throw new AuthRequiredError("公共空间：家园网会话未建立（请先登录后重试）");
-    }
+    let page = await this.#dormPage(
+      () => this.#http.text(kj.KJ_YUYUE()),
+      (p) => kj.hasKongjianLogin(p),
+      "公共空间预约页",
+    );
     // 兜底 A：偶发落到「空间管理系统」门户页（无 RadioButtonList1）——从门户里找回
     // kj_yuyue.aspx 直链跟进，找回失败再原地址 ?xieyi=1 重试一次
     if (!page.includes("RadioButtonList1") && /空间管理系统|kj_index/.test(page)) {
@@ -3532,8 +3566,11 @@ export class InfoClient {
     info: { name: string; sid: string; tel: string; other: string },
   ): Promise<string> {
     return this.#withRenew(async () => {
-    await this.#ensureDorm();
-    const page = await this.#http.text(bookUrl);
+    const page = await this.#dormPage(
+      () => this.#http.text(bookUrl),
+      (p) => kj.hasKongjianLogin(p),
+      "公共空间预约确认页",
+    );
     const form = kj.parseWebForms(page);
     const pre = kj.parseKongjianConfirmValues(page); // 服务端预填值
     const fields: Record<string, string> = { ...form.fields };
@@ -3573,15 +3610,11 @@ export class InfoClient {
   /** 公共空间：我的预约列表 */
   async kongjianMy(): Promise<kj.KongjianRecord[]> {
     return this.#withRenew(async () => {
-    await this.#ensureDorm();
-    let page = await this.#http.text(kj.KJ_MY());
-    if (!kj.hasKongjianLogin(page)) {
-      await this.#ensureDorm(true);
-      page = await this.#http.text(kj.KJ_MY());
-    }
-    if (!kj.hasKongjianLogin(page)) {
-      throw new AuthRequiredError("公共空间：家园网会话未建立");
-    }
+    const page = await this.#dormPage(
+      () => this.#http.text(kj.KJ_MY()),
+      (p) => kj.hasKongjianLogin(p),
+      "公共空间我的预约",
+    );
     return kj.parseKongjianMy(page);
     });
   }
@@ -3589,8 +3622,11 @@ export class InfoClient {
   /** 公共空间：取消预约（我的预约页 __doPostBack 目标） */
   async kongjianCancel(cancelTarget: string): Promise<void> {
     return this.#withRenew(async () => {
-    await this.#ensureDorm();
-    const page = await this.#http.text(kj.KJ_MY());
+    const page = await this.#dormPage(
+      () => this.#http.text(kj.KJ_MY()),
+      (p) => kj.hasKongjianLogin(p),
+      "公共空间取消预约",
+    );
     const wf = kj.parseWebForms(page);
     const body = new URLSearchParams();
     body.set("__EVENTTARGET", cancelTarget);

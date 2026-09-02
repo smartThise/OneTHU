@@ -82,7 +82,7 @@ export function cacheFetch<T>(key: string, fetcher: () => Promise<T>): Promise<T
 }
 
 /** 持久化名单：这些 key 的缓存落 localStorage（冷启动即时渲染） */
-const PERSISTED = new Set(["card", "profile", "calendar", "semesters", "exams", "report"]);
+const PERSISTED = new Set(["card", "profile", "calendar", "semesters", "exams", "report", "dorm"]);
 
 function isPersistedKey(key: string): boolean {
   const head = key.split(/[\u0001:]/)[0];
