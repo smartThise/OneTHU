@@ -112,6 +112,9 @@ export function BbsPanel({ courseId }: { courseId: string }) {
             {k.label}
           </button>
         ))}
+        <span className="row-sub" style={{ fontVariantNumeric: "tabular-nums" }}>
+          {total > 0 ? `${total} 条` : ""}
+        </span>
         <span style={{ flex: "1 1 auto" }} />
         <button className="btn" onClick={() => reset(() => undefined)} aria-label="刷新讨论列表">
           <IconRefresh />
@@ -122,11 +125,6 @@ export function BbsPanel({ courseId }: { courseId: string }) {
           </button>
         ) : null}
       </div>
-      <Card>
-        <div className="row-sub">
-          讨论、答疑均记录实名日志，请文明发言{total > 0 ? ` · 共 ${total} 条` : ""}
-        </div>
-      </Card>
       {state === "loading" && threads === null ? (
         <Card>
           <SkeletonRows rows={4} />
