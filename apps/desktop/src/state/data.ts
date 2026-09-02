@@ -407,7 +407,7 @@ export function useZhjwxkCourses() {
 /* ============ 选课工作台（nextthuxk v1.4.9 管线移植） ============ */
 
 /* 暂存 / 草稿 / 自定义占用（nextthuxk §7.4/§5，localStorage 持久化） */
-export interface XkStageItem { code: string; seq: string; name: string; teacher: string; time: string; credits: number; flag: XkFlag; zy: number; baseFlag: XkFlag }
+export interface XkStageItem { code: string; seq: string; name: string; teacher: string; time: string; credits: number; flag: XkFlag; zy: number; baseFlag: XkFlag; /** 选课文字说明（外校真实时间载体，预览时间轴解析用） */ note?: string }
 export interface XkDraft { name: string; courses: XkStageItem[] }
 export interface XkManualEvent { id: string; name: string; code: string; seq: string; time: string; manual: true; credits: number; /** 时钟段占用（时间轴预览用） */ begin?: string; end?: string; day?: number }
 const LS = {
@@ -1174,7 +1174,7 @@ export function useXkWorkbench(): XkWorkbench {
         return prev;
       }
       setToast(`已暂存「${row.name}」`);
-      const next = [...prev, { code: row.c.code, seq: row.c.seq, name: row.name, teacher: row.teacher, time: row.time, credits: row.credits, flag, zy, baseFlag: row.flag }];
+      const next = [...prev, { code: row.c.code, seq: row.c.seq, name: row.name, teacher: row.teacher, time: row.time, note: row.c.note ?? "", credits: row.credits, flag, zy, baseFlag: row.flag }];
       lsSet(LS.stage, next);
       return next;
     });
