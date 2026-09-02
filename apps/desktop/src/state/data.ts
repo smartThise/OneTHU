@@ -20,7 +20,7 @@ import {
 import { http, info, learn, logLine, session } from "../lib/clients.js";
 import { explainNetworkError } from "../lib/transport.js";
 import { autoFullReload } from "../lib/reload.js";
-import { buildRows, buildSlotIndex, canAdjustZy as canAdjustZyFn, levelRowsToCatalog, levelTypesOf, type SlotItem, type XkRow } from "../lib/xklogic.js";
+import { buildRows, buildSlotIndex, canAdjustZy as canAdjustZyFn, levelTypesOf, type SlotItem, type XkRow } from "../lib/xklogic.js";
 import type { XkPlanItem } from "@onethu/core";
 import {
   DEMO_COURSES,
@@ -607,8 +607,6 @@ export function useXkWorkbench(): XkWorkbench {
   /** 两段状态机内部标志：levelRendered = 一级课表 partial 行已提交（catalogState 仍 "loading"，
    *  左栏继续"加载中"）；fullReady = 全量目录已合并（catalogState="ready"，
    *  volNeedsRefresh 后台重校验只允许在此之后启动，且此后绝不用 partial 行降级覆盖全量行）。 */
-  const levelRenderedRef = useRef(false);
-  const fullReadyRef = useRef(false);
   const [selected, setSelected] = useState<XkSelectedRow[]>([]);
   const [candidates, setCandidates] = useState<QueueCandidate[]>([]);
   const [phase, setPhase] = useState(false);
@@ -648,8 +646,9 @@ export function useXkWorkbench(): XkWorkbench {
       // 一级课表兜底（v1.4.9）：已选查询拿不到行（选课阶段切换/页面变更）时，
       // 用刚抓的一级课表重建（含课名/教师/学分），不再二次请求——此时才等它
       let selFinal = sel;
-      if (!selFinal.length && ltP) {
-        const lt = await ltP;
+      if (!selFinal.length) {
+        // 罕见兜底（选课阶段切换/页面变更导致已选查询拿不到行）：此时才按需拉一级课表
+        const lt = ltP ? await ltP : await fetchLevelTable(sem, false);
         if (genRef.current !== myGen || coreSeqRef.current !== coreSeq) return plan;
         if (lt) {
           selFinal = Object.entries(lt).map(([k, v]) => {
@@ -682,10 +681,9 @@ export function useXkWorkbench(): XkWorkbench {
 
   /** 一级课表到位：课型表 + partial 行立即提交。fullReady 之后（全量行已在）
    *  绝不用 partial 行降级覆盖（写后核心刷新路径），只更新课型表。 */
-  const commitLevel = useCallback((lt: Record<string, XkLevelTableRow>) => {
-    levelRenderedRef.current = true;
+  /** 一级课表只用于课型标签（必修/限选/任选/体育）；partial 目录行已随批量淘汰一起废弃 */
+  const applyLevelTypes = useCallback((lt: Record<string, XkLevelTableRow>) => {
     setLevelTypes(levelTypesOf(lt));
-    if (!fullReadyRef.current) setCatalog(levelRowsToCatalog(lt));
   }, []);
 
   /**
@@ -721,15 +719,12 @@ export function useXkWorkbench(): XkWorkbench {
       sem,
       gen: myGen,
       promise: (async () => {
-        // ── Phase R（先右）── 一级课表与核心数据并行（此前串行等 level RT 才开始核心 4 路）
-        const ltP = fetchLevelTable(sem, freshLevel);
-        // level 到货即提交（partial 行秒上屏/课型表更新），不再阻塞核心提交
-        void ltP.then((ltEarly) => {
-          if (ltEarly && genRef.current === myGen) commitLevel(ltEarly);
-        });
+        // ── 已选优先（2026-09）：全校一级课表巨型单页不再进挂载路径——
+        //  它只值课型标签 + 「已选为空」兜底，后者已改为 commitCore 内按需拉取。
+        //  关键路径 = 入口会话链 + 核心 4 路并行，已选/候补/队列/方案最快上屏。
         let plan: XkPlanItem[] = [];
         try {
-          plan = await commitCore(sem, ltP, myGen);
+          plan = await commitCore(sem, null, myGen);
         } catch { return; } // 右栏失败：错误态已在 commitCore 落定
         void plan;
       })(),
@@ -738,20 +733,15 @@ export function useXkWorkbench(): XkWorkbench {
     return entry.promise.finally(() => {
       if (pipelineInflightRef.current === entry) pipelineInflightRef.current = null;
     });
-  }, [commitCore, commitLevel]);
+  }, [commitCore]);
 
-  /** 写操作后的轻量自愈：只重抓一级课表（fresh）+ 核心数据（右栏）；左栏由实时搜索自管。 */
+  /** 写操作后的轻量自愈：只重抓核心数据（右栏 4 路并行）；一级课表不进刷新路径。 */
   const refreshCore = useCallback(async () => {
     if (status === "demo") return;
-    const myGen = genRef.current;
     const sem = semBarRef.current; // 学期栏选中值唯一真源
     if (!sem) return;
-    const ltP = fetchLevelTable(sem, true);
-    void ltP.then((lt) => {
-      if (lt && genRef.current === myGen) commitLevel(lt); // level 到货即提交，不阻塞核心刷新
-    });
-    await commitCore(sem, ltP, myGen).catch(() => undefined); // 错误已在 commitCore 落状态
-  }, [status, commitCore, commitLevel]);
+    await commitCore(sem, null, genRef.current).catch(() => undefined); // 错误已在 commitCore 落状态
+  }, [status, commitCore]);
 
   /**
    * 数据刷新入口（手动"刷新数据"/挂载）：学期栏当前选中值是唯一真源——入口先读 semBarRef，
@@ -1175,8 +1165,6 @@ export function useXkWorkbench(): XkWorkbench {
     setQueueMap({});
     setSelected([]);
     setCandidates([]);
-    levelRenderedRef.current = false;
-    fullReadyRef.current = false;
     if (sem) {
       await runPipeline(sem, false);
     } else {
