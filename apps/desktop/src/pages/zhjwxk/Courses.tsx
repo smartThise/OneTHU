@@ -25,6 +25,9 @@ const FEATURES: Array<[string, string]> = [
   ["认证外文课", "认证外文课"], ["通识荣誉课", "通识荣誉课"], ["通识选修课", "通识选修课"], ["语言类", "语言类课程"],
   ["通识英语", "通识英语"], ["公共英语", "公共英语"],
 ];
+/** 外校课程标注：课号前缀 PK=北大、BW=北外（HAR 实证，列位与本校完全一致） */
+const originOf = (code: string): "北大" | "北外" | "" => (code.startsWith("PK") ? "北大" : code.startsWith("BW") ? "北外" : "");
+
 const fmtVol = (v: string): string => {
   const m = /\((\d+)\)([\d,]*)/.exec(v);
   return m ? `优先${m[1]}/${m[2]!.split(",").join("/")}` : v;
@@ -469,12 +472,6 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
         <Card><Empty text={wb.searchError || "暂无匹配课程。"} /></Card>
       ) : (
         <>
-          <Card className="list">
-            {pagedRows.map((r, i) => <PickCard key={r.key} wb={wb} r={r} i={i} picks={picks} setPicks={setPicks} highlight={r.c.code === highlight} />)}
-            {pagedRows.length === 0 && !pageLoaded ? (
-              <Empty text="此页未加载——点下方「加载全部」后可查看。" />
-            ) : null}
-          </Card>
           {wb.searchIncomplete ? (
             <div style={{ textAlign: "center", padding: "8px 0", fontSize: 12, color: "var(--amber)" }}>
               数据不完整：已加载 {listRows.length} 门{wb.searchTotalPages > 0 ? `，教务共 ${wb.searchTotalPages} 页` : "，还有更多"}
@@ -483,6 +480,12 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
               </button>
             </div>
           ) : null}
+          <Card className="list">
+            {pagedRows.map((r, i) => <PickCard key={r.key} wb={wb} r={r} i={i} picks={picks} setPicks={setPicks} highlight={r.c.code === highlight} />)}
+            {pagedRows.length === 0 && !pageLoaded ? (
+              <Empty text="此页未加载——点上方「加载全部」后可查看。" />
+            ) : null}
+          </Card>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center", padding: "10px 0", flexWrap: "wrap" }}>
             <button className="btn" disabled={busy || (searchMode ? curPage <= 1 : wb.searchPage <= 1)}
               onClick={() => (searchMode ? setUiPage(curPage - 1) : void wb.gotoPage(wb.searchPage - 1))}>上一页</button>
@@ -601,6 +604,9 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
       </div>
       <div className="row-main">
         <div className="row-title" style={{ whiteSpace: "normal" }}>
+          {(() => { const o = originOf(r.c.code); return o
+            ? <span style={{ fontSize: 10, padding: "1px 5px", marginRight: 6, borderRadius: 4, color: "#fff", background: o === "北大" ? "#7b5bd6" : "#b03a2e", verticalAlign: "1px", whiteSpace: "nowrap" }}>{o}</span>
+            : null; })()}
           {r.name}
           {r.teacherId ? <button className="btn" style={{ padding: "0 6px", marginLeft: 6, fontSize: 11 }} onClick={() => openDetail(r.c.code)}>简介</button> : null}
           {tbBadge(r) ? (
