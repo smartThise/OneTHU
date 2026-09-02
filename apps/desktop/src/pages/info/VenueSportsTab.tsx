@@ -771,8 +771,8 @@ export function VenueSportsTab() {
       {picked && venue ? (
         <>
           <SectionHead title="预约" aside={`${venue.sceneName} · ${picked.site.siteName}`} />
-          <Card style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 13, lineHeight: 1.8, marginBottom: 12 }}>
+          <Card style={{ marginBottom: 16, padding: "12px 14px" }}>
+            <div style={{ fontSize: 13, lineHeight: 1.8 }}>
               时间：{fmtVenueDate(picked.session.beginDate) || date} {picked.session.beginTime}-{picked.session.endTime}
               <br />
               场地：{picked.site.siteName}
@@ -780,8 +780,19 @@ export function VenueSportsTab() {
               <br />
               费用：{yuan(picked.session.userFeeDetails?.chargingUnitPrice)}
             </div>
-            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 10, lineHeight: 1.6 }}>
-              按体育系统预约须知第 12 条（脚本/插件预约封禁 6 个月并函告院系），OneTHU 不做应用内提交，请在官方网页完成预约。
+            <div
+              style={{
+                fontSize: 12,
+                color: "var(--red)",
+                lineHeight: 1.7,
+                margin: "10px 0 12px",
+                padding: "8px 10px",
+                background: "rgba(220, 38, 38, 0.06)",
+                border: "1px solid rgba(220, 38, 38, 0.25)",
+                borderRadius: 8,
+              }}
+            >
+              根据清华大学体育部场馆中心 2025 年 12 月 3 日发布的公告 七、12、如有用户通过脚本软件或插件等非正常途径预定场地，一经发现并核实，对该用户封禁预订权限 6 个月，并函告相关院系或单位。OneTHU 仅提供场馆情况查询，请点击按钮前往官网预约；如果不当使用源码进行预约，违反本项目开源准则，后果自负。
             </div>
             <button className="btn btn-primary" onClick={goOfficialBooking}>
               去体育系统网页预约
