@@ -1233,10 +1233,28 @@ export function useReport() {
 /** 校园卡余额 + 最近消费（getCardInfo / getCardTransactions 并行 + SWR 缓存） */
 const CARD_TTL = 60 * 1000;
 
+/** localStorage 回灌的 bundle 里 Date 已被 JSON 化成 ISO 字符串——读出处就地复活。
+ *  （2026-09-02 白屏事故根因：字符串直进 fmtTime 调 .getMonth() 崩掉整棵 React 树。
+ *  new Date(Date 实例) 克隆安全，故对内存/持久化两条路径统一无害。） */
+function reviveCardBundle(b: CardBundle): CardBundle {
+  return {
+    info: {
+      ...b.info,
+      lastTransactionTimestamp: b.info.lastTransactionTimestamp
+        ? new Date(b.info.lastTransactionTimestamp)
+        : undefined,
+    },
+    transactions: (b.transactions ?? []).map((t) => ({ ...t, timestamp: new Date(t.timestamp) })),
+  };
+}
+
 export function useCard(days = 30) {
   const { status } = useApp();
   const cardKey = `card:${days}`;
-  const [data, setData] = useState<CardBundle | null>(() => cacheGet<CardBundle>(cardKey)?.data ?? null);
+  const [data, setData] = useState<CardBundle | null>(() => {
+    const entry = cacheGet<CardBundle>(cardKey);
+    return entry ? reviveCardBundle(entry.data) : null;
+  });
   const [state, setState] = useState<DataState>(() => (cacheGet<CardBundle>(cardKey) ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
   /* 登录态丢失静默自愈：成功清零，同一次失败最多自动恢复 1 次（reload 清零重计） */
