@@ -412,7 +412,8 @@ export function parseXkCatalogPage(html: string): XkCourse[] {
     const td = (i: number): string => (tds[i] ?? "").replace(/\s+/g, " ").trim();
     const code = td(1);
     const name = td(3);
-    if (!/^\d+$/.test(code) || !name) continue;
+    // 外校课程课号带前缀：PK=北大、BW=北外（HAR 实证 PK00334770，19 列与本校对齐）
+    if (!/^[A-Z]{0,2}\d+$/.test(code) || !name) continue;
     const href = /href="([^"]*showJsDetail[^"]*)"/.exec(m[1] ?? "")?.[1] ?? "";
     out.push({
       department: td(0),
