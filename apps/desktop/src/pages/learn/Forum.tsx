@@ -18,17 +18,12 @@ import { RichEditor } from "../../components/RichEditor.jsx";
 
 type BbsKind = "yb" | "jh" | "cy";
 
-const KINDS: Array<{ key: BbsKind; label: string }> = [
-  { key: "yb", label: "全部" },
-  { key: "jh", label: "精华" },
-  { key: "cy", label: "参与" },
-];
-
 export function BbsPanel({ courseId }: { courseId: string }) {
   const { status, navigate } = useApp();
   const [boards, setBoards] = useState<LearnBbsBoard[]>([]);
-  const [bqid, setBqid] = useState<string>("INITTL152189643"); // 站点默认板
-  const [kind, setKind] = useState<BbsKind>("yb");
+  // 顶栏单排并列标签：真实板块 bqid + __jh__(精华) + __cy__(我参与的)，无「全部」
+  // 服务端语义（2.har 实录）：yb/jh 挂真实板块；cy 忽略 bqid 返全课程参与（INITTL 占位也返 25KB）
+  const [tab, setTab] = useState<string>("INITTL152189643");
   const [threads, setThreads] = useState<LearnBbsThreadSummary[] | null>(null);
   const [total, setTotal] = useState(0);
   const [state, setState] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -51,16 +46,26 @@ export function BbsPanel({ courseId }: { courseId: string }) {
       }
       setState("loading");
       setError("");
+      const isJh = tab === "__jh__";
+      const isCy = tab === "__cy__";
+      const kind: BbsKind = isJh ? "jh" : isCy ? "cy" : "yb";
+      // 精华挂板块：取第一块（服务端对占位板返空）；参与全课程维度：占位板即可
+      const reqBqid = isCy
+        ? "INITTL152189643"
+        : isJh
+          ? (boards.find((b) => b.bqid !== "__jh__" && b.bqid !== "__cy__")?.bqid ??
+            "INITTL152189643")
+          : tab;
       const boardsP =
         start === 0
           ? learn.getBbsBoards(courseId).catch(() => [] as LearnBbsBoard[]) // 板块失败不挡列表
           : Promise.resolve(null);
-      void Promise.all([boardsP, learn.getBbsThreads(courseId, { bqid, kind, start, length: PAGE })])
+      void Promise.all([boardsP, learn.getBbsThreads(courseId, { bqid: reqBqid, kind, start, length: PAGE })])
         .then(([b, r]) => {
           if (b && b.length > 0) {
             setBoards(b);
-            // 默认板 INITTL… 不在站点返回的板块里 → 自动落到第一块（线程挂真实板块下）
-            if (!b.some((x) => x.bqid === bqid)) setBqid(b[0]!.bqid);
+            // 初始占位板 INITTL… 不在站点返回的板块里 → 自动落到第一块
+            if (!isJh && !isCy && !b.some((x) => x.bqid === tab)) setTab(b[0]!.bqid);
           }
           setThreads((old) => (append && old ? [...old, ...r.threads] : r.threads));
           setTotal(r.total);
@@ -71,7 +76,7 @@ export function BbsPanel({ courseId }: { courseId: string }) {
           setState("error");
         });
     },
-    [courseId, bqid, kind, status],
+    [courseId, tab, boards, status],
   );
 
   useEffect(() => {
@@ -88,31 +93,24 @@ export function BbsPanel({ courseId }: { courseId: string }) {
   return (
     <>
       <PageHead title="讨论区" meta="课程讨论与答疑（实名制）" />
-      {boards.length > 1 ? (
-        <div className="tabstrip">
-          {boards.map((b) => (
-            <button
-              key={b.bqid}
-              className={bqid === b.bqid ? "is-active" : ""}
-              onClick={() => reset(() => setBqid(b.bqid))}
-            >
-              {b.name}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <div className="tabstrip">
+        {boards.map((b) => (
+          <button
+            key={b.bqid}
+            className={tab === b.bqid ? "is-active" : ""}
+            onClick={() => reset(() => setTab(b.bqid))}
+          >
+            {b.name}
+          </button>
+        ))}
+        <button className={tab === "__jh__" ? "is-active" : ""} onClick={() => reset(() => setTab("__jh__"))}>
+          精华
+        </button>
+        <button className={tab === "__cy__" ? "is-active" : ""} onClick={() => reset(() => setTab("__cy__"))}>
+          我参与的
+        </button>
+      </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <div className="segmented" style={{ marginBottom: 0 }}>
-          {KINDS.map((k) => (
-            <button
-              key={k.key}
-              className={kind === k.key ? "is-active" : ""}
-              onClick={() => reset(() => setKind(k.key))}
-            >
-              {k.label}
-            </button>
-          ))}
-        </div>
         <span className="row-sub" style={{ fontVariantNumeric: "tabular-nums" }}>
           {total > 0 ? `${total} 条` : ""}
         </span>
@@ -180,8 +178,8 @@ export function BbsPanel({ courseId }: { courseId: string }) {
       {showNew ? (
         <NewThreadDialog
           courseId={courseId}
-          boards={boards}
-          defaultBqid={bqid}
+          boards={boards.filter((b) => b.bqid !== "__jh__" && b.bqid !== "__cy__")}
+          defaultBqid={tab === "__jh__" || tab === "__cy__" ? (boards[0]?.bqid ?? "INITTL152189643") : tab}
           onClose={() => setShowNew(false)}
           onPosted={() => {
             setShowNew(false);
