@@ -5,7 +5,6 @@ import {
   changeXkVolunteer,
   dropXkCourse,
   getQueueStatus,
-  searchXkCourses,
   getSelectedCourses,
   getXkCatalog,
   getXkCourseDetail,
@@ -589,26 +588,6 @@ export interface XkWorkbench {
   semesterOptions: Array<{ value: string; label: string }>;
   plan: XkPlanItem[];
   loadDetail: (code: string) => Promise<XkCourseDetail | null>;
-  /* ── 套壳模式：服务端实时搜索（替代挂载即抓全量目录）── */
-  searchRaw: XkCourse[];
-  searchRows: XkRow[];
-  searchState: DataState | "idle";
-  searchPage: number;
-  searchHasMore: boolean;
-  searchError: string | null;
-  runSearch: (meta: XkSearchMeta, page: number) => Promise<void>;
-  catalogFull: boolean;
-  loadFullCatalog: () => Promise<void>;
-}
-export interface XkSearchMeta {
-  kch: string;
-  kcm: string;
-  teacher: string;
-  department: string;
-  weekday: string;
-  section: string;
-  grade: string;
-  onlyAvailable: boolean;
 }
 
 /**
@@ -737,11 +716,23 @@ export function useXkWorkbench(): XkWorkbench {
     const myGen = genRef.current;
     const inflight = pipelineInflightRef.current;
     if (inflight && inflight.sem === sem && inflight.gen === myGen) return inflight.promise;
-    // 管线启动（2026-09 套壳模式）：只管右栏核心 + 一级课表；全量目录改为显式
-    // loadFullCatalog（高级筛选/AI 用），挂载即抓 320+220 页的批量彻底退出热路径
+    // 管线启动：复位两段标志；随后两条 t=0 秒渲通路（SD 目录 / 核心缓存）先行上屏
     setError(null);
     levelRenderedRef.current = false;
     fullReadyRef.current = false;
+    // t=0 左栏：SD 持久目录直接上屏（level/全量目录/志愿在管线上静默重验证；
+    // fullReady 置位后 commitLevel 只更新课型表，绝不用 partial 行降级覆盖全量行）
+    const sdSeed = sdRead();
+    const sdHit = sdSeed && sdSeed.semester === sem ? sdSeed : null;
+    if (sdHit) {
+      setCatalog(sdHit.catalog);
+      setVolMap(sdHit.vol);
+      setLevelTypes(levelTypesOf(sdHit.level ?? {}));
+      fullReadyRef.current = true;
+      setCatalogState("ready");
+    } else {
+      setCatalogState("loading");
+    }
     // t=0 右栏：上次核心数据秒渲，commitCore 到达后静默覆盖（SWR）
     const coreSeed = cacheGet<XkCoreSeed>(`${XK_CORE_KEY}:${sem}`);
     if (coreSeed) {
@@ -769,8 +760,72 @@ export function useXkWorkbench(): XkWorkbench {
         let plan: XkPlanItem[] = [];
         try {
           plan = await commitCore(sem, ltP, myGen);
-        } catch { return; } // 右栏失败：错误态已在 commitCore 落定
-        void plan;
+        } catch { return; } // 右栏失败：错误态已在 commitCore 落定，左栏不 ready（顺序固定）
+        // ── Phase L（后左）──
+        try {
+          const ltTable = (await ltP) ?? {};
+          const sd0 = sdRead();
+          const sd = sd0 && sd0.semester === sem ? sd0 : null; // 缓存学期≠目标学期一律不采用
+          // 内存全量缓存（5min TTL，同学期）
+          if (xkCache && xkCache.semester === sem && xkCache.catalog.length > 0 && Date.now() - xkCache.at < XK_CACHE_TTL) {
+            setCatalog(xkCache.catalog);
+            setVolMap(xkCache.vol);
+            fullReadyRef.current = true;
+            setCatalogState("ready");
+            return;
+          }
+          // 持久缓存命中（同学期）：全量合并 → ready；vol 四检点过期才在 ready 后启动后台重校验
+          if (sd) {
+            const merged = mergeLevelIntoCatalog(sd.catalog, ltTable);
+            xkCache = { semester: sem, at: Date.now(), catalog: merged, vol: sd.vol };
+            setCatalog(merged);
+            setVolMap(sd.vol);
+            fullReadyRef.current = true;
+            setCatalogState("ready");
+            if (fullReadyRef.current && volNeedsRefresh(sd.volTs)) {
+              void (async () => {
+                try {
+                  const [cat2, vol2] = await Promise.all([
+                    getXkCatalog(xkSession(), { semester: sem }),
+                    getXkVolunteer(xkSession(), { semester: sem }).catch((err: unknown) => { if (isAuthError(err)) throw err; return {} as Record<string, XkVolInfo>; }),
+                  ]);
+                  if (genRef.current !== myGen) return; // 期间已打断：丢弃
+                  const merged2 = mergeLevelIntoCatalog(cat2, ltTable);
+                  xkCache = { semester: sem, at: Date.now(), catalog: merged2, vol: vol2 };
+                  setCatalog(merged2);
+                  setVolMap(vol2);
+                  let plan2: XkPlanItem[] = plan;
+                  try { plan2 = await getXkPlan(xkSession(), { semester: sem }); } catch { /* 保旧 */ }
+                  if (genRef.current !== myGen) return; // 期间已打断：丢弃
+                  setPlan(plan2);
+                  sdWrite({ ver: SD_VER, semester: sem, level: ltTable, catalog: cat2, vol: vol2, plan: plan2, volTs: Date.now() });
+                } catch { /* 静默（失登自愈走主管线） */ }
+              })();
+            }
+            return;
+          }
+          // 无缓存：抓全量目录+志愿（几千门课，严格在右栏就绪之后），合并替换 → ready
+          const [cat, vol] = await Promise.all([
+            getXkCatalog(xkSession(), { semester: sem }),
+            getXkVolunteer(xkSession(), { semester: sem }).catch((err: unknown) => { if (isAuthError(err)) throw err; return {} as Record<string, XkVolInfo>; }),
+          ]);
+          if (genRef.current !== myGen) return; // 期间已打断：丢弃
+          const merged = mergeLevelIntoCatalog(cat, ltTable);
+          if (cat.length > 0) xkCache = { semester: sem, at: Date.now(), catalog: merged, vol };
+          setCatalog(merged);
+          setVolMap(vol);
+          fullReadyRef.current = true;
+          setCatalogState("ready");
+          sdWrite({ ver: SD_VER, semester: sem, level: ltTable, catalog: cat, vol, plan, volTs: Date.now() });
+        } catch (err) {
+          if (genRef.current !== myGen) return; // 期间已打断：错误归属新管线
+          if (isAuthError(err) && autoFullReload("xk")) return; // 失登：静默整页重载
+          logPageError("XK-CATALOG", err);
+          // 全量抓取失败：一级课表行保留在 catalog 状态（不清空、不白屏）；
+          // catalogState → error 走 Courses.tsx 现成的可重试 ErrorNote（重试=全序重走）
+          setError(`全量目录/志愿加载失败${levelRenderedRef.current ? "（已保留一级课表行，重试后无缝合并）" : ""}：${explainNetworkError(err)}`);
+          setCatalogState("error");
+        }
       })(),
     };
     pipelineInflightRef.current = entry;
@@ -1171,89 +1226,6 @@ export function useXkWorkbench(): XkWorkbench {
     return idx;
   }, [previewItems]);
 
-  /* ── 套壳模式（2026-09）：服务端实时搜索。挂载不再批量抓 320 页目录 + 220 页志愿，
-   *  搜索/翻页各 1 往返即时出结果；全量目录改为显式加载（高级筛选/AI 分析用）。── */
-  const [searchRaw, setSearchRaw] = useState<XkCourse[]>([]);
-  const [searchState, setSearchState] = useState<DataState | "idle">("idle");
-  const [searchPage, setSearchPage] = useState(1);
-  const [searchHasMore, setSearchHasMore] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const searchSeqRef = useRef(0);
-  const searchRows = useMemo(
-    () => buildRows(searchRaw, volMap, queueMap, selected, candidates, levelTypes),
-    [searchRaw, volMap, queueMap, selected, candidates, levelTypes],
-  );
-
-  const runSearch = useCallback(
-    async (meta: XkSearchMeta, page: number) => {
-      if (status === "demo") {
-        setSearchRaw([]);
-        setSearchState("ready");
-        setSearchPage(1);
-        setSearchHasMore(false);
-        return;
-      }
-      const seq = ++searchSeqRef.current;
-      setSearchState("loading");
-      setSearchError(null);
-      try {
-        const r = await searchXkCourses(xkSession(), {
-          semester: semBarRef.current ?? undefined,
-          page,
-          kch: meta.kch,
-          kcm: meta.kcm,
-          teacher: meta.teacher,
-          department: meta.department,
-          weekday: meta.weekday,
-          section: meta.section,
-          grade: meta.grade,
-          onlyAvailable: meta.onlyAvailable,
-        });
-        if (seq !== searchSeqRef.current) return; // 已被更新的搜索取代：丢弃
-        setSearchRaw(r.rows);
-        setSearchPage(r.page);
-        setSearchHasMore(r.hasMore);
-        setSearchState("ready");
-      } catch (err) {
-        if (seq !== searchSeqRef.current) return;
-        logPageError("XK-SEARCH", err);
-        setSearchError(explainNetworkError(err));
-        setSearchState("error");
-      }
-    },
-    [status],
-  );
-
-  /** 全量目录显式加载（高级筛选/社区评价排序/AI 分析用；批量 320+220 页，约一两分钟） */
-  const loadFullCatalog = useCallback(async () => {
-    if (status === "demo") return;
-    const myGen = genRef.current;
-    const sem = semBarRef.current;
-    if (!sem) return;
-    setCatalogState("loading");
-    try {
-      const lt = levelCache && levelCache.sem === sem ? levelCache.table : null;
-      const [cat, vol] = await Promise.all([
-        getXkCatalog(xkSession(), { semester: sem }),
-        getXkVolunteer(xkSession(), { semester: sem }).catch((err: unknown) => { if (isAuthError(err)) throw err; return {} as Record<string, XkVolInfo>; }),
-      ]);
-      if (genRef.current !== myGen) return;
-      const merged = mergeLevelIntoCatalog(cat, lt ?? {});
-      xkCache = { semester: sem, at: Date.now(), catalog: merged, vol };
-      setCatalog(merged);
-      setVolMap(vol);
-      fullReadyRef.current = true;
-      setCatalogState("ready");
-      sdWrite({ ver: SD_VER, semester: sem, level: lt ?? {}, catalog: cat, vol, plan, volTs: Date.now() });
-    } catch (err) {
-      if (genRef.current !== myGen) return;
-      if (isAuthError(err) && autoFullReload("xk")) return;
-      logPageError("XK-CATALOG", err);
-      setError(`全量目录加载失败：${explainNetworkError(err)}`);
-      setCatalogState("error");
-    }
-  }, [status, plan]);
-
   return {
     semester, selected, candidates, phase, queueMap, catalog, volMap, levelTypes,
     coreState, catalogState, queueState, error, busy, toast,
@@ -1263,8 +1235,6 @@ export function useXkWorkbench(): XkWorkbench {
     manualEvents, addManualEvent, removeManualEvent,
     previewMode, previewDraftIdx, setPreview, progress, setProgress, refreshQueue, previewItems, previewIndex,
     semesterOverride, setSemesterOverride, semesterOptions, loadDetail, plan,
-    searchRaw, searchRows, searchState, searchPage, searchHasMore, searchError,
-    runSearch, catalogFull: catalogState === "ready", loadFullCatalog,
   };
 }
 

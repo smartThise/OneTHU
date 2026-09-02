@@ -613,66 +613,6 @@ export async function getXkCatalog(
   return [...map.values()];
 }
 
-/** 开课单位（院系）代码表：提取自选课系统 kkxxSearch 页 p_kkdwnm 下拉（存档 HTML，GBK 解码） */
-export const XK_DEPARTMENTS: Array<[string, string]> = [
-  ["000", "建筑学院"], ["001", "城规系"], ["002", "建筑系"], ["003", "土木系"], ["004", "水利系"],
-  ["005", "环境学院"], ["012", "机械系"], ["013", "精仪系"], ["014", "热能系"], ["015", "汽车系"],
-  ["016", "工业工程系"], ["017", "电机系"], ["018", "电子系"], ["019", "计算机系"], ["020", "自动化系"],
-  ["021", "微电子所"], ["022", "软件学院"], ["023", "新闻学院"], ["024", "化学系"], ["025", "化工系"],
-  ["026", "材料学院"], ["027", "数学系"], ["028", "物理系"], ["029", "生命学院"], ["030", "经管学院"],
-  ["031", "人文学院"], ["032", "外语系"], ["033", "社科学院"], ["034", "马克思主义学院"], ["035", "美术学院"],
-  ["036", "法学院"], ["037", "药学院"], ["038", "医学院"], ["039", "协和"], ["040", "生物医学工程系"],
-  ["041", "传媒（清华-北卡）"], ["042", "核研院"], ["043", "教育研究院"], ["044", "体育部"], ["045", "哲学"],
-  ["046", "交叉信息研究院"], ["047", "航天航空学院"], ["048", "工物系"], ["049", "工程物理"], ["050", "深研院"],
-  ["051", "历史系"], ["052", "心理学"], ["053", "中文系"], ["054", "求真书院"], ["055", "致理书院"],
-  ["056", "未央书院"], ["057", "新雅书院"], ["058", "行健书院"], ["059", "日新书院"], ["060", "秀钟书院"],
-  ["061", "为先书院"], ["062", "笃实书院"], ["063", "至善书院"], ["085", "其他"],
-];
-
-/**
- * 服务端课程搜索（套壳模式，2026-09 性能专项）：kkxxSearch 端点原生就是服务端搜索表单
- * （存档 HTML 选课开课信息查询.html frm：p_kch 课号 / p_kcm 课名 / p_zjjsxm 教师 /
- * p_kkdwnm 院系 / p_skxq 星期 / p_skjc 节次 / p_ssnj 年级 / p_bkskyl_ig=0 本科余量>0），
- * page 分页每页 20 行，trr2 行结构与批量抓取完全一致——parseXkCatalogPage 原样复用。
- * GET 查询串与表单 POST 同名等价；中文参数以 UTF-8 发送（页面为 GBK，若服务端不收则
- * 0 行返回，UI 据此提示改用课号/院系筛选）。
- * 替代挂载即抓 320 页目录 + 220 页志愿的批量管线：搜索/翻页 1 往返即时出结果。
- */
-export async function searchXkCourses(
-  s: ZhjwxkSession,
-  opts: {
-    semester?: string;
-    page?: number;
-    kch?: string;
-    kcm?: string;
-    teacher?: string;
-    department?: string;
-    weekday?: string;
-    section?: string;
-    grade?: string;
-    onlyAvailable?: boolean;
-  } = {},
-): Promise<{ rows: XkCourse[]; page: number; hasMore: boolean }> {
-  const { entry, semester } = await ensure(s, opts.semester);
-  const q = new URLSearchParams();
-  q.set("m", "kkxxSearch");
-  q.set("p_xnxq", semester);
-  const page = Math.max(1, opts.page ?? 1);
-  if (page > 1) q.set("page", String(page));
-  if (opts.kch?.trim()) q.set("p_kch", opts.kch.trim());
-  if (opts.kcm?.trim()) q.set("p_kcm", opts.kcm.trim());
-  if (opts.teacher?.trim()) q.set("p_zjjsxm", opts.teacher.trim());
-  if (opts.department) q.set("p_kkdwnm", opts.department);
-  if (opts.weekday) q.set("p_skxq", opts.weekday);
-  if (opts.section) q.set("p_skjc", opts.section);
-  if (opts.grade) q.set("p_ssnj", opts.grade);
-  if (opts.onlyAvailable) q.set("p_bkskyl_ig", "0");
-  const html = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksJxjhBs.do?${q.toString()}&_t=${Date.now()}`);
-  assertNotDenied(s, html);
-  const rows = parseXkCatalogPage(html);
-  return { rows, page, hasMore: rows.length >= 20 };
-}
-
 /** 志愿统计（tbzySearchBR ≤200 页 + tbzySearchTy ≤20 页，失败容忍） */
 export async function getXkVolunteer(
   s: ZhjwxkSession,
