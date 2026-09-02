@@ -2273,11 +2273,15 @@ export class InfoClient {
     const formUrl = `${ID_PREFIX}/do/off/ui/auth/login/form/${payload}`;
     if (!(await this.#roamIdService(formUrl))) {
       throw new AuthRequiredError(
-        `研讨间会话未能建立（id 发票/账密两路均未兑付；现场=${String(this.lastDebug || this.#http.lastDebug).slice(0, 160)}）`,
+        `研讨间会话未能建立（id 发票/账密两路均未兑付；现场=${String(this.lastDebug || this.#http.lastDebug).slice(0, 160)}）。若为首次使用，请先到研讨间管理系统绑定邮箱后重试`,
       );
     }
     if (!(await this.#libRoomAlive(userId))) {
-      throw new AuthRequiredError("研讨间会话未能建立（登录后 userInfo 校验未通过，请重试）");
+      // 实证（2026-09 用户反馈）：新生未在研讨间原站绑定邮箱时，兑付虽成功但
+      // userInfo 校验恒败——提示去 cab.lib 原网站绑定，而不是让用户干等重试
+      throw new AuthRequiredError(
+        "研讨间会话未能建立（登录后 userInfo 校验未通过）。若为首次使用，请先到研讨间管理系统绑定邮箱后重试",
+      );
     }
     InfoClient.libRoomAuthUser = userId;
     InfoClient.libRoomAuthTs = Date.now();

@@ -23,7 +23,29 @@ import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../compone
 import { SearchSelect } from "../../components/SearchSelect.jsx";
 import { info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
+import { openExternal } from "./openExternal.js";
 import { useApp } from "../../state/context.js";
+
+/** 研讨间「未绑定邮箱」检测卡（2026-09 用户反馈：新生首次使用必须在 cab.lib
+ *  原网站绑定邮箱，否则会话建立/userInfo 校验恒败，只报错会让用户干等）。
+ *  命中会话失败类文案时显示引导 + 一键打开原站；其余错误原样只走 ErrorNote。 */
+function EmailBindHint({ text }: { text: string }) {
+  if (!/研讨间会话未能建立|研讨间登录失败|userInfo 校验/.test(text)) return null;
+  return (
+    <Card style={{ marginBottom: 12, borderLeft: "3px solid var(--accent)" }}>
+      <div style={{ fontSize: 13, lineHeight: 1.7 }}>
+        <b>首次使用研讨间？需要先绑定邮箱</b>
+        <div style={{ opacity: 0.75, marginTop: 4 }}>
+          研讨间系统要求先在原网站（cab.lib.tsinghua.edu.cn）登录并绑定邮箱后才能预约，新生未绑定时会一直报「会话未能建立」。
+          请在原网站绑定邮箱后，回到这里点「重试」。
+        </div>
+        <button className="btn" style={{ marginTop: 8 }} onClick={() => void openExternal("https://cab.lib.tsinghua.edu.cn/")}>
+          打开研讨间网站
+        </button>
+      </div>
+    </Card>
+  );
+}
 
 /* 整页重载式自愈（用户语义：等同手动右键刷新，从头载入）。
    sessionStorage 节流：2 分钟内只自动重载一次，防止坏会话死循环；超限亮红交给用户。 */
@@ -612,6 +634,7 @@ export function LibRoomTab() {
           }}
         />
       ) : null}
+      {kindState === "error" ? <EmailBindHint text={kindError ?? ""} /> : null}
       {kindState === "loading" && !kinds ? <SkeletonRows rows={2} /> : null}
 
       {kinds && kinds.length > 0 ? (
@@ -657,6 +680,7 @@ export function LibRoomTab() {
               }}
             />
           ) : null}
+          {resState === "error" ? <EmailBindHint text={resError ?? ""} /> : null}
           {resources !== null && resources.length === 0 ? (
             <Card>
               <Empty text="该房型当日暂无可约房间。" />
@@ -806,6 +830,7 @@ export function LibRoomTab() {
           }}
         />
       ) : null}
+      {recState === "error" ? <EmailBindHint text={recError ?? ""} /> : null}
       {recState === "ready" && (records ?? []).length === 0 ? (
         <Card>
           <Empty text="暂无研讨间预约记录。" />
