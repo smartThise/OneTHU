@@ -222,6 +222,10 @@ fn percent_decode(s: &str) -> Option<String> {
 async fn download_file(url: String, cookies: String, filename: String) -> Result<String, String> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(10))
+        // 全部目标域均为 *.tsinghua.edu.cn，直连即可：强制绕过系统代理（reqwest 0.12
+        // 默认读 Windows/ macOS 系统代理，全局模式梯子会把清华流量送出境触发风控）。
+        // 仅救系统代理场景；TUN 网络层接管无解（参考 PR #2，user-A100）。
+        .no_proxy()
         .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
         .build()
         .map_err(|e| e.to_string())?;
@@ -285,6 +289,7 @@ struct BinaryOut {
 async fn fetch_binary(url: String, cookies: String) -> Result<BinaryOut, String> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(10))
+        .no_proxy() // 同 download_file：清华域直连，绕系统代理（参考 PR #2）
         .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
         .build()
         .map_err(|e| e.to_string())?;
@@ -335,6 +340,12 @@ async fn http_request(input: HttpInput) -> Result<HttpOutput, String> {
 
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
+        // 主网络通道：全部目标域均为 *.tsinghua.edu.cn（webvpn/id/learn/info/card…），
+        // 直连即可。reqwest 0.12 默认读 Windows/macOS 系统代理——全局模式梯子会把
+        // 清华流量送出境：id 风控慢响应（转圈）、验证码与会话出口 IP 不一致（对码
+        // 判错）、响应被代理拦截（点重发反而直接进入，#1 实录）。
+        // ⚠️ 只救系统代理场景：TUN 模式在网络层接管，应用层无解（参考 PR #2）。
+        .no_proxy()
         .timeout(Duration::from_millis(input.timeout_ms.unwrap_or(20000)))
         .build()
         .map_err(|e| e.to_string())?;
