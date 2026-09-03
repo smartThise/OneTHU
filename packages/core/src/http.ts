@@ -188,6 +188,16 @@ export class MemoryCookieJar implements CookieJar {
  *  桌面端启动时安装一次 → 触发整页重载（2 分钟节流），给所有已稳定功能兜底。 */
 type AuthListener = () => void;
 const authListeners = new Set<AuthListener>();
+/** 静默抑制期：后台自愈链（如场馆静默登录）自行处理失登时，避免误触全局重载 */
+let authBroadcastSuspended = false;
+export function suspendAuthBroadcast<T>(fn: () => Promise<T>): Promise<T> {
+  authBroadcastSuspended = true;
+  return Promise.resolve()
+    .then(fn)
+    .finally(() => {
+      authBroadcastSuspended = false;
+    });
+}
 export function onAuthRequired(cb: AuthListener): () => void {
   authListeners.add(cb);
   return () => authListeners.delete(cb);
@@ -197,6 +207,7 @@ export class AuthRequiredError extends Error {
   constructor(message = "会话已失效，需要重新登录") {
     super(message);
     this.name = "AuthRequiredError";
+    if (authBroadcastSuspended) return; // 后台链自处理，不广播全局重载
     for (const cb of authListeners) {
       try {
         cb();
