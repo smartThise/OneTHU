@@ -1015,21 +1015,36 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
       }
       if (n === 0 && !c.manual) undet.push({ lbl, code: c.code, seq: c.seq || "0", credits: c.credits || 0, zy: c.zy || 0, manual: false });
     }
-    // 同日重叠分道（区间图着色，同正式课表）
+    // 同日重叠分道（区间图着色，同正式课表）。
+    // 旧实现 lanes = 全日 laneEnds 总数：当天任意时刻开过第 2 道，全天所有块都被劈半
+    // （2026-09-03 实录：大学物理B(2) 自己那格毫无冲突也只占左半）。改为按「重叠簇」
+    // 切分——簇 = 首尾相接/重叠的块序列，簇内独立分道，lanes = 本簇深度；孤立块满宽。
     const lanesOf = new Map<string, { lane: number; lanes: number }>();
     for (let day = 1; day <= 7; day++) {
-      const list = raw.filter((b) => b.day === day).sort((a, b) => a.begin - b.begin);
-      const laneEnds: number[] = [];
+      const list = raw.filter((b) => b.day === day).sort((a, b) => a.begin - b.begin || a.end - b.end);
+      let cluster: typeof list = [];
+      let clusterEnd = -1;
+      const flush = (): void => {
+        const ends: number[] = [];
+        for (const b of cluster) {
+          let lane = ends.findIndex((le) => le <= b.begin);
+          if (lane === -1) { lane = ends.length; ends.push(b.end); }
+          else ends[lane] = b.end;
+          lanesOf.set(b.key, { lane, lanes: ends.length });
+        }
+        for (const b of cluster) {
+          const e = lanesOf.get(b.key);
+          if (e) lanesOf.set(b.key, { lane: e.lane, lanes: ends.length });
+        }
+        cluster = [];
+        clusterEnd = -1;
+      };
       for (const b of list) {
-        let lane = laneEnds.findIndex((le) => le <= b.begin);
-        if (lane === -1) { lane = laneEnds.length; laneEnds.push(b.end); }
-        else laneEnds[lane] = b.end;
-        lanesOf.set(b.key, { lane, lanes: 1 });
+        if (cluster.length && b.begin >= clusterEnd) flush();
+        cluster.push(b);
+        clusterEnd = Math.max(clusterEnd, b.end);
       }
-      for (const b of list) {
-        const e = lanesOf.get(b.key);
-        if (e) lanesOf.set(b.key, { lane: e.lane, lanes: laneEnds.length });
-      }
+      flush();
     }
     const placed = raw.map((b) => ({ ...b, ...(lanesOf.get(b.key) ?? { lane: 0, lanes: 1 }) }));
     return { placed, undet };
