@@ -85,7 +85,7 @@ function VenueNote({ text, onRetry }: { text: string; onRetry?: () => void }) {
     </div>
   );
 }
-import { VenueTwoFactorRequired, openVenueBookingWindow, venueClient, venueHasToken, venueLogout, venueScenes, venueLogin, venueSilentLogin, venueSubmit2FA, venueSend2FACode } from "../../lib/venue.js";
+import { VenueTwoFactorRequired, venueBookingEmbedUrl, venueClient, venueHasToken, venueLogout, venueScenes, venueLogin, venueSilentLogin, venueSubmit2FA, venueSend2FACode } from "../../lib/venue.js";
 import type { TwoFactorMethod, VenueBuilding, VenueDevKind } from "@onethu/core";
 import { useApp } from "../../state/context.js";
 import { TabEmpty, logTabErr, tabErrorText } from "./tabStates.js";
@@ -470,13 +470,15 @@ export function VenueSportsTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, venue?.uuid, date, building, room, devKind, classEnum, useType]);
 
-  /* —— 跳官方预约（桌面：内嵌官方原页窗口，注入同一 JWT 开机即登录态，预约
-     由用户在官方页面上手动完成；不可用时回落系统浏览器。第 12 条红线不变） —— */
+  /* —— 内嵌官方预约页（主窗口 tab 内 iframe，不弹独立窗口）：URL 携带
+     ?token=<JWT>（官方 SPA 开机即认的 SSO 载体）+ 深链直达所选场馆。
+     预约由用户在官方页面上手动完成；无 token 时回落系统浏览器。第 12 条红线不变 —— */
+  const [bookingEmbed, setBookingEmbed] = useState<string | null>(null);
   const goOfficialBooking = useCallback(() => {
     if (!venue) return;
-    void openVenueBookingWindow(venue.uuid).then((ok) => {
-      if (!ok) void openExternal(venueWebUrl(venue.uuid));
-    });
+    const embed = venueBookingEmbedUrl(venue.uuid);
+    if (embed) setBookingEmbed(embed);
+    else void openExternal(venueWebUrl(venue.uuid));
   }, [venue]);
 
   /* —— 退订 —— */
@@ -836,6 +838,43 @@ export function VenueSportsTab() {
               去体育系统网页预约
             </button>
           </Card>
+
+          {bookingEmbed ? (
+            <Card style={{ marginBottom: 16, padding: "12px 14px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 8,
+                }}
+              >
+                <div style={{ fontWeight: 600 }}>官方预约 · 官方原页（已共享登录）</div>
+                <button
+                  className="btn"
+                  style={{ height: 26, padding: "0 10px", fontSize: 12 }}
+                  onClick={() => setBookingEmbed(null)}
+                >
+                  收起
+                </button>
+              </div>
+              <iframe
+                src={bookingEmbed}
+                title="体育系统官方预约"
+                style={{
+                  width: "100%",
+                  height: "72vh",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  background: "#fff",
+                  display: "block",
+                }}
+              />
+              <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8, lineHeight: 1.6 }}>
+                以上为体育部官方网页（OneTHU 内嵌展示，已带入同一登录态）；预约提交一律在官方页面内由你本人操作。
+              </div>
+            </Card>
+          ) : null}
         </>
       ) : null}
 
