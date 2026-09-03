@@ -590,6 +590,20 @@ fn venue_log(msg: &str) {
     }
 }
 
+/// 场馆内嵌页 SSO token（前端开 iframe 前推给 Rust；反代对每个 HTML 文档
+/// 注入——自定义协议源的 localStorage 不可靠（实测写入不保活），改为每个
+/// 文档开机前都重写登录态，页面无论怎么自跳转都有登录态）。
+pub type VenueSsoState = std::sync::Mutex<Option<String>>;
+
+#[tauri::command]
+fn venue_sso_set(
+    state: tauri::State<'_, VenueSsoState>,
+    token: String,
+) -> Result<(), String> {
+    *state.lock().map_err(|e| e.to_string())? = Some(token);
+    Ok(())
+}
+
 fn chrono_now() -> String {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -598,7 +612,10 @@ fn chrono_now() -> String {
         .to_string()
 }
 
-async fn venue_proxy_fetch(request: tauri::http::Request<Vec<u8>>) -> tauri::http::Response<Vec<u8>> {
+async fn venue_proxy_fetch(
+    sso: Option<String>,
+    request: tauri::http::Request<Vec<u8>>,
+) -> tauri::http::Response<Vec<u8>> {
     use tauri::http::header::CONTENT_TYPE;
     let upstream_err = |msg: String| {
         tauri::http::Response::builder()
@@ -614,13 +631,14 @@ async fn venue_proxy_fetch(request: tauri::http::Request<Vec<u8>>) -> tauri::htt
         .unwrap_or_else(|| "/".into());
     venue_log(&format!("REQ {} {}", request.method(), pq));
     // 页面请求 query 里的 ?token=<JWT>：官方 SPA 开机从 localStorage["token"]
-    // 读登录态（getParams→storage.getItem；?token= 本身并不被启动逻辑解析），
-    // 代理源是新空存储 → 未登录被踹进登录组件（其请求 404 的根源）。
-    // 在回 HTML 时按 SET_TOKEN 的存储格式注入，开机即登录。
-    let sso_token: Option<String> = request.uri().query().and_then(|q| {
-        q.split('&').find_map(|kv| {
-            let (k, v) = kv.split_once('=')?;
-            (k == "token" && v.len() > 20).then(|| v.to_string())
+    // 读登录态（getParams→storage.getItem；?token= 本身并不被启动逻辑解析）。
+    // 注入源优先取 Rust 状态（venue_sso_set，前端开 iframe 前推送），兼容 query。
+    let sso_token: Option<String> = sso.or_else(|| {
+        request.uri().query().and_then(|q| {
+            q.split('&').find_map(|kv| {
+                let (k, v) = kv.split_once('=')?;
+                (k == "token" && v.len() > 20).then(|| v.to_string())
+            })
         })
     });
     let url = format!("{VENUE_ORIGIN}{pq}");
@@ -641,7 +659,10 @@ async fn venue_proxy_fetch(request: tauri::http::Request<Vec<u8>>) -> tauri::htt
         .header("referer", format!("{VENUE_ORIGIN}/venue/index.html"));
     for (k, v) in request.headers() {
         let lower = k.as_str().to_lowercase();
-        if matches!(lower.as_str(), "content-type" | "accept" | "accept-language" | "cookie") {
+        if matches!(
+            lower.as_str(),
+            "content-type" | "accept" | "accept-language" | "cookie" | "user-agent"
+        ) {
             if let Ok(vs) = v.to_str() {
                 req = req.header(k.clone(), vs);
             }
@@ -673,9 +694,25 @@ async fn venue_proxy_fetch(request: tauri::http::Request<Vec<u8>>) -> tauri::htt
             // headers 存「字符串化的 JSON 对象」再整体 JSON 字符串化）
             let mut injected = false;
             if ct.starts_with("text/html") {
+                // 剥离页面内 CSP meta（若官方模板自带，会拦掉我们的内联预置脚本）
+                if let Some(rel) = body.windows(9).position(|w| w.eq_ignore_ascii_case(b"http-equiv")) {
+                    let start = body[..rel].iter().rposition(|&b| b == b'<').unwrap_or(0);
+                    let end = body[rel..]
+                        .iter()
+                        .position(|&b| b == b'>')
+                        .map(|p| rel + p + 1)
+                        .unwrap_or(body.len());
+                    let tag = String::from_utf8_lossy(&body[start..end]).to_lowercase();
+                    if tag.contains("content-security-policy") {
+                        body.copy_within(end.., start);
+                        body.truncate(body.len() - (end - start));
+                        venue_log("STRIP csp meta");
+                    }
+                }
                 if let Some(jwt) = &sso_token {
+                    // 预置登录态 + 探针：写完自读，回执走 /venue/index.html?__probe=…
                     let script = format!(
-                        r#"<script>try{{var t="{jwt}";localStorage.setItem("token",JSON.stringify(t));localStorage.setItem("headers",JSON.stringify(JSON.stringify({{token:t}})));}}catch(e){{}}</script>"#
+                        r#"<script>(function(){{var t="{jwt}";var ok=0,err="";try{{localStorage.setItem("token",JSON.stringify(t));localStorage.setItem("headers",JSON.stringify(JSON.stringify({{token:t}})));ok=localStorage.getItem("token")===JSON.stringify(t)?1:0;}}catch(e){{err=String(e);}}try{{new Image().src="/venue/index.html?__probe=1&ok="+ok+"&err="+encodeURIComponent(err)+"&ts="+Date.now();}}catch(e){{}}}})();</script>"#
                     );
                     let bytes = script.as_bytes();
                     let head_pos = body
@@ -719,9 +756,16 @@ fn open_sports_window(_: tauri::AppHandle) -> Result<String, String> {
 
 tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .register_asynchronous_uri_scheme_protocol("venueview", |_ctx, request, responder| {
+        .manage(std::sync::Mutex::new(None::<String>) as VenueSsoState)
+        .register_asynchronous_uri_scheme_protocol("venueview", |ctx, request, responder| {
+            let app = ctx.app_handle().clone();
             tauri::async_runtime::spawn(async move {
-                responder.respond(venue_proxy_fetch(request).await);
+                let sso = app
+                    .state::<VenueSsoState>()
+                    .lock()
+                    .ok()
+                    .and_then(|g| g.clone());
+                responder.respond(venue_proxy_fetch(sso, request).await);
             });
         })
         .setup(|app| {
@@ -736,7 +780,7 @@ tauri::Builder::default()
         })
         .invoke_handler(tauri::generate_handler![
             log_debug,http_request,download_file,fetch_binary,state_read,state_write,state_delete,
-            open_external,open_eid_window,open_sports_window])
+            open_external,open_eid_window,open_sports_window,venue_sso_set])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
