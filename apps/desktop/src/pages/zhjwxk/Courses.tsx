@@ -763,7 +763,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
 }) {
   const { navigate } = useApp();
   const key = r.key;
-  const inStage = wb.stageCart.some((s) => s.code === r.c.code && s.seq === r.c.seq);
+  const inStage = wb.stageCart.some((s) => s.code === r.c.code && String(s.seq || "0") === String(r.c.seq || "0"));
   const pick = picks[key] ?? { flag: allowedFlags(r.flag)[0]!, zy: 3 };
   const cap = r.vol?.capacity || r.c.capacity || 0;
   const applied = r.vol?.applied ?? 0;
@@ -822,7 +822,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           </div>
         ) : state === "candidate" ? (
           <div className="row-sub" style={{ display: "flex", gap: 6, marginTop: 4, alignItems: "center" }}>
-            <span style={{ color: "var(--amber)", fontSize: 12 }}>{r.cand ? (r.cand.myPos ? `排队第${r.cand.myPos}名 / 共${r.cand.queueTotal}人` : "候选（队列功能未开放，课表候选兜底）") : "候补"}</span>
+            <span style={{ color: "var(--amber)", fontSize: 12 }}>{r.cand ? (r.cand.myPos ? `排队第${r.cand.myPos}名 / 共${r.cand.queueTotal}人` : "候选中") : "候选中"}</span>
             <button className="btn" disabled={wb.busy !== null} onClick={() => void wb.drop(r.c.code, r.c.seq, true)}>删除</button>
           </div>
         ) : (
@@ -1039,13 +1039,13 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
       if (!globalThis.confirm?.(`确认退选「${name}」？`)) return;
       await wb.drop(code, seq, false);
     } else if (mode === "stage") {
-      const x = wb.stageCart.find((y) => y.code === code && String(y.seq) === String(seq));
+      const x = wb.stageCart.find((y) => y.code === code && String(y.seq || "0") === String(seq || "0"));
       if (!globalThis.confirm?.(`从暂存区移除「${x?.name || code}」？`)) return;
       wb.removeFromStage(code, seq);
     } else {
       const d = wb.savedDrafts[wb.previewDraftIdx];
       if (!d) return;
-      const x = d.courses.find((y) => y.code === code && String(y.seq) === String(seq));
+      const x = d.courses.find((y) => y.code === code && String(y.seq || "0") === String(seq || "0"));
       if (!globalThis.confirm?.(`从草稿移除「${x?.name || code}」？`)) return;
       wb.removeFromDraft(wb.previewDraftIdx, code, seq);
     }

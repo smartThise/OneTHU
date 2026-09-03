@@ -1169,7 +1169,7 @@ export function useXkWorkbench(): XkWorkbench {
   const stageSet = useMemo(() => new Set(stageCart.map((s) => `${s.code}_${s.seq}`)), [stageCart]);
   const addToStage = useCallback((row: XkRow, flag: XkFlag, zy: number) => {
     setStageCart((prev) => {
-      if (prev.some((s) => s.code === row.c.code && s.seq === row.c.seq)) {
+      if (prev.some((s) => s.code === row.c.code && String(s.seq || "0") === String(row.c.seq || "0"))) {
         setToast("该课程已在暂存区");
         return prev;
       }
@@ -1181,21 +1181,21 @@ export function useXkWorkbench(): XkWorkbench {
   }, []);
   const removeFromStage = useCallback((code: string, seq: string) => {
     setStageCart((prev) => {
-      const next = prev.filter((s) => !(s.code === code && s.seq === seq));
+      const next = prev.filter((s) => !(s.code === code && String(s.seq || "0") === String(seq || "0")));
       lsSet(LS.stage, next);
       return next;
     });
   }, []);
   const updateStageItem = useCallback((code: string, seq: string, patch: { flag?: XkFlag; zy?: number }) => {
     setStageCart((prev) => {
-      const next = prev.map((s) => (s.code === code && s.seq === seq ? { ...s, ...patch } : s));
+      const next = prev.map((s) => (s.code === code && String(s.seq || "0") === String(seq || "0") ? { ...s, ...patch } : s));
       lsSet(LS.stage, next);
       return next;
     });
   }, []);
   const importStageItem = useCallback((item: XkStageItem) => {
     setStageCart((prev) => {
-      if (prev.some((s) => s.code === item.code && s.seq === item.seq)) return prev;
+      if (prev.some((s) => s.code === item.code && String(s.seq || "0") === String(item.seq || "0"))) return prev;
       const next = [...prev, item];
       lsSet(LS.stage, next);
       return next;
@@ -1220,7 +1220,7 @@ export function useXkWorkbench(): XkWorkbench {
   const removeFromDraft = useCallback((idx: number, code: string, seq: string) => {
     const d = savedDrafts[idx];
     if (!d) return;
-    persistDrafts(savedDrafts.map((x, i) => (i === idx ? { ...x, courses: x.courses.filter((c) => !(c.code === code && c.seq === seq)) } : x)));
+    persistDrafts(savedDrafts.map((x, i) => (i === idx ? { ...x, courses: x.courses.filter((c) => !(c.code === code && String(c.seq || "0") === String(seq || "0"))) } : x)));
   }, [savedDrafts, persistDrafts]);
   const saveCurrentAsDraft = useCallback((name: string) => {
     if (!selected.length) { setToast("没有已选课程"); return; }
@@ -1253,7 +1253,7 @@ export function useXkWorkbench(): XkWorkbench {
       if (!Array.isArray(incoming)) throw new Error("缺少 courses");
       setStageCart((prev) => {
         const merged = [...prev];
-        for (const c of incoming) if (!merged.some((s) => s.code === c.code && s.seq === c.seq)) merged.push(c);
+        for (const c of incoming) if (!merged.some((s) => s.code === c.code && String(s.seq || "0") === String(c.seq || "0"))) merged.push(c);
         lsSet(LS.stage, merged);
         setToast(`已导入 ${incoming.length} 门课程到暂存区`);
         return merged;
