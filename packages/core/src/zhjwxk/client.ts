@@ -187,9 +187,15 @@ async function ensure(
 
 /* ── 通用代理（demo proxyZhjwxkApi）────────────────────────────── */
 
-/** 会话死页判据（可静默重试的子集；needCaptcha 需人工处理，不在此列） */
+/** 会话死页判据（可静默重试的子集；needCaptcha 需人工处理，不在此列）。
+ *  2026-09-03 实录补充：entry TTL 内 jar 会话中途死亡会弹回 id 电子身份
+ *  中转页（特征 电子身份服务系统/do/off/ui/auth/login）——原判据漏掉它，
+ *  SSO 中转页被当数据解析 → 「教务返回异常页」卡。补上即走既有静默重登。 */
 function isXkDeadHtml(html: string): boolean {
-  return html.includes("accessDenied") || html.includes("用户登陆超时或访问内容不存在。请重试");
+  return html.includes("accessDenied")
+    || html.includes("用户登陆超时或访问内容不存在。请重试")
+    || html.includes("电子身份服务系统")
+    || html.includes("do/off/ui/auth/login");
 }
 
 async function proxyZhjwxkApi(s: ZhjwxkSession, entry: ZhjwxkEntry, zhjwxkPath: string): Promise<string> {
