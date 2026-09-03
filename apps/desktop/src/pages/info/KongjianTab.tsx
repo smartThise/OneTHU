@@ -7,6 +7,7 @@
  * ⑥ 我的预约 + 取消（WebForms 回传）。
  * 首次进入自动过 agreement 协议（core 内处理）。
  */
+import { confirmOk } from "../../lib/confirm.js";
 import { useCallback, useEffect, useState } from "react";
 import type { KongjianPage, KongjianRecord, KongjianSlot } from "@onethu/core";
 import { Card, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
@@ -173,7 +174,7 @@ export function KongjianTab() {
   const cancel = useCallback(
     async (rec: KongjianRecord) => {
       if (!rec.cancelTarget) return;
-      if (!window.confirm(`取消预约：${rec.space} ${rec.time}？`)) return;
+      if (!(await confirmOk(`取消预约：${rec.space} ${rec.time}？`))) return;
       try {
         await info.kongjianCancel(rec.cancelTarget);
         void loadRecords();

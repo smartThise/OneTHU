@@ -12,6 +12,7 @@
  * 错误铁律：ServiceUnavailable → 「体育预约服务暂不可用（info app 同样无法使用）」
  * 静态提示 + 重试；空记录 → 「暂无预约记录」；绝不自动整页刷新、绝不失登自愈。
  */
+import { confirmOk } from "../../lib/confirm.js";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { sportsIdInfoList, type SportsIdInfo } from "@onethu/core";
 import { Card, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";

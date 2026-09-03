@@ -1,4 +1,5 @@
 /** 校园数据钩子：真实模式取自 @onethu/core；演示模式返回 demo 数据（界面明确标注）。 */
+import { confirmOk } from "../lib/confirm.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { XkCourseDetail, ZhjwxkSession, BasicUserInfo, CalendarData, CalendarSemester, CardInfo, CardTransaction, CourseFile, CourseInfo, DeadlineItem, ExamEntry, Homework, NewsItem, Notification, QueueCandidate, ReportRow, ScheduleEntry, SelectedCourse, SemesterInfo, XkCourse, XkFlag, XkLevelTableRow, XkQueueInfo, XkSelectedRow, XkVolInfo } from "@onethu/core";
 import {
@@ -1270,7 +1271,7 @@ export function useXkWorkbench(): XkWorkbench {
   const submitDraft = useCallback(async (idx: number) => {
     const d = savedDrafts[idx];
     if (!d) return;
-    if (!globalThis.confirm?.(`确定提交「${d.name}」？\n将先退选所有已选课程，再选入该草稿中的 ${d.courses.length} 门课程。`)) {
+    if (!(await confirmOk(`确定提交「${d.name}」？\n将先退选所有已选课程，再选入该草稿中的 ${d.courses.length} 门课程。`))) {
       setToast("已取消");
       return;
     }
