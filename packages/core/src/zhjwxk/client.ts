@@ -1184,6 +1184,14 @@ export async function getXkPlan(s: ZhjwxkSession, opts: { semester: string }): P
     if (name) out.push({ semester: `${sem} ${season}`.trim(), code: code!, name: name!.replace(/\s+/g, ""), attr: attr ?? "", credits: parseFloat(credit ?? "") || 0, group: group ?? "" });
   }
   zhjwxkDebug?.(`[XK-PLAN] len=${page.length} kcTable=${page.includes("kcTable") ? 1 : 0} 行=${out.length} 页首=${page.slice(0, 200).replace(/\s+/g, " ")}`);
+  if (!out.length) {
+    // 0 行现场：kcTable 出现处前 120 后 600 字——判断是脚本变量还是被 webvpn
+    // 改写的 table 标签；U+FFFD 数量判定解码错位（text() 恒 UTF-8 解码，jhBks
+    // 子系统若非 UTF-8 源会吞标签吞数字 → 恰好 0 行）；tr/td 计数判定页面
+    // 是否真有数据行（无行 = 学期未配置，插件检测到的是它自己传的旧学期）
+    const idx = page.indexOf("kcTable");
+    zhjwxkDebug?.(`[XK-PLAN] 零行现场 idx=${idx} U+FFFD=${(page.match(/\uFFFD/g) ?? []).length} tr=${(page.match(/<tr/gi) ?? []).length} td=${(page.match(/<td/gi) ?? []).length} 现场=${idx >= 0 ? page.slice(Math.max(0, idx - 120), idx + 600).replace(/\s+/g, " ") : "(无 kcTable)"}`);
+  }
   return out;
 }
 
