@@ -1151,7 +1151,9 @@ export interface XkPlanItem {
   group: string;
 }
 
-const stripTags = (s: string): string => s.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+// 必须解码 HTML 实体（&nbsp; 等）：培养方案课号单元格以 &nbsp; 结尾，
+// 不解码则 /^\d{8}$/ 永不匹配 → 0 行（插件 cheerio .text() 自带实体解码所以能用）
+const stripTags = (s: string): string => s.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'").replace(/\s+/g, " ").trim();
 
 /** parsePlan 移植：table#kcTable 行 → {semester, code, name, attr, credits, group} */
 export async function getXkPlan(s: ZhjwxkSession, opts: { semester: string }): Promise<XkPlanItem[]> {
