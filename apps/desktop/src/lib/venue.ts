@@ -326,8 +326,12 @@ export async function venueLogin(): Promise<boolean> {
 export async function venueBookingEmbedUrl(sceneUuid: string): Promise<string | null> {
   const token = readStoredToken();
   if (!token || !isTauri) return null;
+  // 后端按会话 Cookie 查登录态（只有 JWT →「登录过期」1130002 实录），
+  // 把换票链在 sports 域攒下的 Cookie 一起交给反代，随每个转发请求附上
+  const { http } = await import("./clients.js");
+  const cookies = http.cookieHeaderFor("https://www.sports.tsinghua.edu.cn/venue/index.html") ?? "";
   const { invoke } = await import("@tauri-apps/api/core");
-  await invoke("venue_sso_set", { token });
+  await invoke("venue_sso_set", { token, cookies });
   // 自定义协议 URL 形态：macOS/iOS 为 venueview://localhost/<path>，
   // Windows/Android 为 http://venueview.localhost/<path>（Tauri 约定）。
   const apple = /Mac|iPhone|iPad/.test(navigator.userAgent);
