@@ -266,7 +266,10 @@ export function parseSelectedCourses(html: string): SelectedCourse[] {
 /** demo /api/queue 的 <tr class="trr2"> 行解析（server.js L315-327） */
 export function parseQueueCandidates(html: string): QueueCandidate[] {
   const candidates: QueueCandidate[] = [];
-  const rowRe = ROW_RE();
+  // 行 class 放宽 trr2→trr[12]：新学期版式若换行类（已选表 2026-2027-1 已改版的前车之鉴），
+  // 只认 trr2 会静默得空列表（「我的队列被吃了」实测事故）；trr1 在两份样本中均为表头，
+  // 无 <td> 数据格，天然被 tds.length 门槛过滤
+  const rowRe = /<tr[^>]*class="trr[12]"[^>]*>([\s\S]*?)<\/tr>/g;
   let m: RegExpExecArray | null;
   while ((m = rowRe.exec(html)) !== null) {
     const tds = [...m[1]!.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((t) =>
@@ -311,7 +314,14 @@ export async function getQueueStatus(
   const { entry, semester } = await ensure(s, opts.semester);
   const html = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksXkbBs.do?m=dlSearch&p_xnxq=${semester}`);
   assertNotDenied(s, html);
-  return parseQueueCandidates(html);
+  const rows = parseQueueCandidates(html);
+  if (rows.length === 0) {
+    // 官网有队列但应用为空时的定位线索：页面到底长什么样（行类分布/页首形态）
+    zhjwxkDebug?.(
+      `[XK-QUEUE] 零行诊断 sem=${semester} len=${html.length} trr1=${(html.match(/trr1/g) ?? []).length} trr2=${(html.match(/trr2/g) ?? []).length} tr总数=${(html.match(/<tr[^>]*>/g) ?? []).length} 页首=${html.slice(0, 300).replace(/\s+/g, " ")}`,
+    );
+  }
+  return rows;
 }
 
 /** 解析当前学期（demo 的 p_xnxq 逻辑：GET xklogin.do 后从页面提取） */
