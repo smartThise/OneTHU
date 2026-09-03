@@ -129,8 +129,9 @@ let _detailOpen: ((code: string) => void) | null = null;
 let _reviewOpen: ((v: { code: string; seq: string; name: string; teacher: string }) => void) | null = null;
 const jumpTo = (code: string, chip = "all"): void => { _jump = code; _jumpChip = chip; _jumpSetter?.(code); };
 /** 培养方案/暂存条目 → 按课号发起真实搜索（切回全部 chip）；回调由主页面注册 */
+/** 条目点击统一入口：jumpTo 注入搜索栏（复用已验证 jump 通路 setQuery(jump)）+ 按课号真实搜索 */
 let _searchCode: ((code: string) => void) | null = null;
-const searchCode = (code: string): void => { _searchCode?.(code); };
+const searchCode = (code: string): void => { jumpTo(code, "all"); _searchCode?.(code); };
 const openDetail = (code: string): void => { _detailOpen?.(code); };
 const openReviews = (v: { code: string; seq: string; name: string; teacher: string }): void => { _reviewOpen?.(v); };
 
@@ -515,16 +516,14 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
     setQuery(jump);
     setChip(_jumpChip as typeof chip);
     setHighlight(jump);
-    // 跳转是瞬时的：高亮结束同时清掉注入的搜索词——否则残留词持续过滤，
-    // 切「我的队列」等 chip 时列表被筛空/只剩一条（故障实录）
-    const t = setTimeout(() => { setHighlight(""); setQuery(""); }, 1800);
+    // 高亮瞬时清除；搜索词保留（2026-09-03 用户定稿：课号注入搜索栏并保持——
+    // 旧的 1.8s setQuery("") 就是「过一会刷回第一页」的实锤根因。残留词用搜索框 × 清）
+    const t = setTimeout(() => setHighlight(""), 1800);
     return () => clearTimeout(t);
   }, [jump]);
   // 培养方案/暂存条目点击 → 按课号真实搜索（新搜索替换当前关键词，语义同手输）
   useEffect(() => {
     _searchCode = (code: string) => {
-      setQuery(code);
-      setChip("all");
       void wb.newSearch({ kcm: "", kch: code, teacher: "", department: "", weekday: "", section: "", grade: "", rxklxm: "", kctsm: "", onlyAvailable: false, gradAvail: false });
     };
     // 右栏「我的培养方案」卡片 → 切 plan chip（此前 setPresetGroupChip 从未赋值，点击全静默无效）
@@ -653,7 +652,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
         </div>
       </Card>
 
-      {chip === "plan" ? <PlanView wb={wb} query={query} onSearchCode={(code) => { setQuery(code); setChip("all"); void wb.newSearch({ kcm: "", kch: code, teacher: "", department: "", weekday: "", section: "", grade: "", rxklxm: "", kctsm: "", onlyAvailable: false, gradAvail: false }); wb.setToast(`正在搜索 ${code}…`); }} /> : wb.searchState === "idle" || wb.searchState === "loading" ? (
+      {chip === "plan" ? <PlanView wb={wb} query={query} onSearchCode={(code) => searchCode(code)} /> : wb.searchState === "idle" || wb.searchState === "loading" ? (
         <Card><SkeletonRows rows={6} /><Empty text="正在实时查询教务系统（搜索/翻页各 1 个往返，即搜即得）…" /></Card>
       ) : wb.searchState === "error" ? (
         <ErrorNote text={wb.searchError ?? ""} onRetry={() => void wb.retrySearch()} />
