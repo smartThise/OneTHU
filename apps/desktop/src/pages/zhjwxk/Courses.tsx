@@ -793,10 +793,18 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
         <div className="row-sub" style={{ whiteSpace: "normal" }}>{[r.c.code, r.c.seq && r.c.seq !== "0" ? `第${r.c.seq}班` : "", r.teacher, `${r.credits} 学分`, r.time, r.c.department].filter(Boolean).join(" · ")}</div>
         {r.c.note ? <div className="row-sub" style={{ whiteSpace: "normal", color: "var(--text-2)" }}>课程说明：{r.c.note}</div> : null}
         {wb.phase && r.q ? (
-          <div className="row-sub" style={{ whiteSpace: "normal" }}>{[cap ? `容量 ${cap}` : "", r.q.qQueue ? `排队 ${r.q.qQueue}` : "", r.cand ? (r.cand.myPos ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : "候选（队列未开放）") : ""].filter(Boolean).join(" · ")}</div>
+          <div className="row-sub" style={{ whiteSpace: "normal" }}>{[cap ? `容量 ${cap}` : "", r.q.qQueue ? `排队 ${r.q.qQueue}` : "", r.cand ? (r.cand.myPos ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : "候选中") : ""].filter(Boolean).join(" · ")}</div>
         ) : r.vol ? (
           <div className="row-sub" style={{ whiteSpace: "normal" }}>
             {[r.vol.volRequired && fmtVol(r.vol.volRequired), r.vol.volElective && fmtVol(r.vol.volElective), r.vol.volOptional && fmtVol(r.vol.volOptional)].filter(Boolean).join(" · ")}
+            <span style={{ marginLeft: 8, color: prob.color }}>{prob.prob}</span>
+          </div>
+        ) : (r.c.capacity || r.c.remaining) ? (
+          // 队列阶段未开放/志愿接口被拦（xkqkSearch 弹「功能未开放」→ volMap 恒空）
+          // 时用目录行自带容量/余量兜底——插件 probInline 同源（kkxxSearch td6/td7）。
+          // 不兜底则所有卡片的容量行整体消失（2026-09-03 实录）
+          <div className="row-sub" style={{ whiteSpace: "normal" }}>
+            {[r.c.capacity ? `容量 ${r.c.capacity}` : "", typeof r.c.remaining === "number" ? `余量 ${r.c.remaining}` : ""].filter(Boolean).join(" · ")}
             <span style={{ marginLeft: 8, color: prob.color }}>{prob.prob}</span>
           </div>
         ) : null}
@@ -1225,6 +1233,8 @@ function StageSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
         <button className="btn" onClick={() => { if (draftName.trim()) { wb.saveDraft(draftName.trim()); setDraftName(""); } }}>保存草稿</button>
         <button className="btn" onClick={() => { const n = globalThis.prompt?.("草稿名称", "我的课表"); if (n) wb.saveCurrentAsDraft(n); }}>存当前选课</button>
         <button className="btn" onClick={() => wb.setPreview("stage")}>预览暂存</button>
+        <button className="btn" style={{ color: "var(--red)" }} disabled={!wb.stageCart.length}
+          onClick={() => { if (globalThis.confirm?.(`清空暂存区全部 ${wb.stageCart.length} 门课？`)) for (const s of [...wb.stageCart]) wb.removeFromStage(s.code, s.seq); }}>清空</button>
         <button className="btn" onClick={() => setImportOpen((v) => !v)}>导入</button>
       </div>
       {importOpen ? (
