@@ -42,13 +42,13 @@ function beijingMinute(): number {
 /** 场馆例行维护窗口（00:55-02:05，北京时间）——窗口内零网络零登录，直接渲染维护卡 */
 function inMaintainWindow(): boolean {
   const m = beijingMinute();
-  return m >= 55 || m <= 125;
+  return m >= 55 && m <= 125; // 00:55-02:05，不跨午夜，用与不用或
 }
 
 /** 维护期友好卡：窗口内（00:55-02:05）不轰炸——单次定时到窗口结束重试一次；窗口外按 60s 自动重试 */
 function VenueNote({ text, onRetry }: { text: string; onRetry?: () => void }) {
   const maintain = /维护中/.test(text);
-  const inWindow = maintain && (() => { const m = beijingMinute(); return m >= 55 || m <= 125; })();
+  const inWindow = maintain && (() => { const m = beijingMinute(); return m >= 55 && m <= 125; })();
   const [left, setLeft] = useState(60);
   useEffect(() => {
     if (!maintain || inWindow) return;
