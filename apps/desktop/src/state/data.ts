@@ -684,7 +684,9 @@ export function useXkWorkbench(): XkWorkbench {
       return plan; // ★ 右栏就绪（渲染顺序固定：先右后左）
     } catch (err) {
       if (genRef.current !== myGen || coreSeqRef.current !== coreSeq) return [];
-      if (isAuthError(err) && autoFullReload("xk")) return []; // 失登：静默整页重载（2 分钟节流）
+      // 失登不再整页重载（重载=app 重启回首页目录，搜索/培养方案状态全丢——2026-09-03 实录
+      // 「课表跳转过一会又刷成首页」）。会话每次调用自动重建（60s 热缓存），SWR 保旧/错误条兜底。
+      if (isAuthError(err)) { logPageError("XK-CORE-AUTH", err); return []; }
       if (coreSeededRef.current) return []; // 秒渲旧值在屏：保旧不闪红（SWR），重试/下轮再验证
       logPageError("ZHJWXK", err);
       setCoreState("error");
@@ -898,7 +900,7 @@ export function useXkWorkbench(): XkWorkbench {
   const failSearch = useCallback((err: unknown, seq: number): void => {
     if (seq !== searchSeqRef.current) return;
     logPageError("XK-SEARCH", err);
-    if (isAuthError(err) && autoFullReload("xk")) return;
+    // 失登不整页重载：错误条 + 重试（proxyZhjwxkApi 内部已带 relogin 自愈），保住搜索现场
     setSearchError(explainNetworkError(err));
     setSearchState("error");
   }, []);
@@ -1359,7 +1361,7 @@ export function useXkWorkbench(): XkWorkbench {
       setToast(`队列数据已刷新 · ${Object.keys(qd.map).length}门课余量 · ${candidates.length}门我的队列`);
     } catch (err) {
       logPageError("XK-QUEUE", err);
-      if (isAuthError(err) && autoFullReload("xk")) return; // 失登：静默整页重载
+      // 失登不整页重载：toast + 下轮自愈（会话按调用重建）
       setToast("课余量排队人数获取失败，可能需退出重新登录");
       setQueueState("ready");
     }
