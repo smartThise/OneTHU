@@ -47,10 +47,17 @@ struct HttpOutput {
 #[tauri::command]
 fn log_debug(line: String) -> Result<(), String> {
     use std::io::Write;
+    const LOG: &str = "/tmp/onethu-debug.log";
+    // 体积闸门：超 16MB 轮转为 .old（防 HTML dump 类循环刷盘——曾灌到 1GB）
+    if let Ok(meta) = std::fs::metadata(LOG) {
+        if meta.len() > 16 * 1024 * 1024 {
+            let _ = std::fs::rename(LOG, "/tmp/onethu-debug.log.old");
+        }
+    }
     let mut f = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
-        .open("/tmp/onethu-debug.log")
+        .open(LOG)
         .map_err(|e| e.to_string())?;
     let _ = writeln!(f, "{}", line);
     Ok(())
@@ -599,6 +606,11 @@ fn open_venue_booking_window(
         .build()
         .map_err(|e| e.to_string())?;
     let _ = win.set_focus();
+    let _ = log_debug(format!(
+        "[VENUE-BOOK] 内嵌窗口已开 url={} tokenLen={}",
+        &url,
+        token.len()
+    ));
     Ok("opened".into())
 }
 
