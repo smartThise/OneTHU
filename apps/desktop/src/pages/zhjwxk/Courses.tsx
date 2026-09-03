@@ -819,7 +819,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           </div>
         ) : state === "candidate" ? (
           <div className="row-sub" style={{ display: "flex", gap: 6, marginTop: 4, alignItems: "center" }}>
-            <span style={{ color: "var(--amber)", fontSize: 12 }}>{r.cand!.myPos ? `排队第${r.cand!.myPos}名 / 共${r.cand!.queueTotal}人` : "候选（队列功能未开放，课表候选兜底）"}</span>
+            <span style={{ color: "var(--amber)", fontSize: 12 }}>{r.cand ? (r.cand.myPos ? `排队第${r.cand.myPos}名 / 共${r.cand.queueTotal}人` : "候选（队列功能未开放，课表候选兜底）") : "候补"}</span>
             <button className="btn" disabled={wb.busy !== null} onClick={() => void wb.drop(r.c.code, r.c.seq, true)}>删除</button>
           </div>
         ) : (
