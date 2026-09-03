@@ -314,18 +314,24 @@ export async function venueLogin(): Promise<boolean> {
 }
 
 /**
- * 内嵌官方预约页 URL（主窗口 tab 内 iframe 用，不弹任何独立窗口）：
+ * 内嵌官方预约页 URL（主窗口 tab 内 iframe 用，不弹任何独立窗口）。
  * 官方 SPA 开机只认 URL 查询参数 ?token=<JWT>（store 初始 state 即
- * getParams("token")；localStorage.headers 仅是它登录后自写的镜像，
- * 直接注入无效——独立弹窗未登录的实证根因）。#/reserveList?uuid=
- * 直达所选场馆（hash 路由）。页面为官方原页、预约请求全部出自官方
- * SPA 自身，预约动作由用户手动完成；OneTHU 不调用任何预约接口
- * （预约须知第 12 条）。无 token → null（调用方回落系统浏览器）。
+ * getParams("token")；localStorage.headers 仅是它登录后自写的镜像，注入
+ * 无效——独立弹窗未登录的实证根因）。#/reserveList?uuid= 直达所选场馆。
+ * 又因官方站响应 x-frame-options: SAMEORIGIN（直嵌 https 必白屏，实测），
+ * 走本地反代协议 venueview://（Rust 剥 XFO 后原样回官方内容）。
+ * 预约动作仍由用户在官方页面上手动完成；OneTHU 不调用任何预约接口
+ * （预约须知第 12 条）。非 Tauri / 无 token → null（调用方回落系统浏览器）。
  */
 export function venueBookingEmbedUrl(sceneUuid: string): string | null {
   const token = readStoredToken();
-  if (!token) return null;
-  return `https://www.sports.tsinghua.edu.cn/venue/index.html?token=${encodeURIComponent(token)}#/reserveList?uuid=${encodeURIComponent(sceneUuid)}`;
+  if (!token || !isTauri) return null;
+  // 自定义协议 URL 形态：macOS/iOS 为 venueview://localhost/<path>，
+  // Windows/Android 为 http://venueview.localhost/<path>（Tauri 约定）。
+  const apple = /Mac|iPhone|iPad/.test(navigator.userAgent);
+  const base = apple ? "venueview://localhost/" : "http://venueview.localhost/";
+  const inner = `venue/index.html?token=${encodeURIComponent(token)}#/reserveList?uuid=${encodeURIComponent(sceneUuid)}`;
+  return base + inner;
 }
 
 /** 授权是否进行中（防重复开窗） */
