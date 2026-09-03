@@ -1138,8 +1138,10 @@ const stripTags = (s: string): string => s.replace(/<[^>]*>/g, " ").replace(/\s+
 
 /** parsePlan 移植：table#kcTable 行 → {semester, code, name, attr, credits, group} */
 export async function getXkPlan(s: ZhjwxkSession, opts: { semester: string }): Promise<XkPlanItem[]> {
-  await ensure(s, opts.semester);
-  const page = await s.http.text(`${ZHJWXK}/jhBks.vjhBksPyfakcbBs.do?m=showBksZxZdxjxjhXmxqkclist&p_xnxq=${encodeURIComponent(opts.semester)}`);
+  const { entry } = await ensure(s, opts.semester);
+  // 会话中途死亡的自愈与其余数据路对齐（原直连无死页重试：培养方案空+「暂无
+  // 培养方案数据」卡实录）——代理层作废 entry 静默重走登录链并重试一次
+  const page = await proxyZhjwxkApi(s, entry, `/jhBks.vjhBksPyfakcbBs.do?m=showBksZxZdxjxjhXmxqkclist&p_xnxq=${encodeURIComponent(opts.semester)}`);
   // 照抄 querySelectorAll('table#kcTable tr')：只在 kcTable 内找行
   const seg = /<table[^>]*id="kcTable"[^>]*>([\s\S]*?)<\/table>/i.exec(page)?.[1] ?? page;
   const html = seg;
