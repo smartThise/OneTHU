@@ -527,7 +527,9 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
       setChip("all");
       void wb.newSearch({ kcm: "", kch: code, teacher: "", department: "", weekday: "", section: "", grade: "", rxklxm: "", kctsm: "", onlyAvailable: false, gradAvail: false });
     };
-    return () => { _searchCode = null; };
+    // 右栏「我的培养方案」卡片 → 切 plan chip（此前 setPresetGroupChip 从未赋值，点击全静默无效）
+    setPresetGroupChip = (v: string) => { setChip(v); };
+    return () => { _searchCode = null; setPresetGroupChip = null; };
   }, [wb]);
 
   const rows = useMemo<XkRow[]>(() => {
@@ -697,8 +699,8 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
 
 /* ══════════ 培养方案视图（render.js renderPlanView 逐行移植）══════════ */
 function PlanView({ wb, query }: { wb: ReturnType<typeof useXkWorkbench>; query: string }) {
-  const coverage = useMemo(() => checkPlanCoverage(wb.plan, wb.courses, wb.stageCart, wb.savedDrafts.map((d) => d.courses)),
-    [wb.plan, wb.courses, wb.stageCart, wb.savedDrafts]);
+  const coverage = useMemo(() => checkPlanCoverage(wb.plan, wb.courses, wb.stageCart, wb.savedDrafts.map((d) => d.courses), (wb.semester ?? "").endsWith("2")),
+    [wb.plan, wb.courses, wb.stageCart, wb.savedDrafts, wb.semester]);
   useEffect(() => {
     planGroupClick = () => { setPresetGroupChip?.("plan"); };
     return () => { planGroupClick = null; };
@@ -752,7 +754,6 @@ function PlanView({ wb, query }: { wb: ReturnType<typeof useXkWorkbench>; query:
                   <span style={{ fontSize: 12 }}>{p.covered ? "✓" : "✗"}</span>
                   <span style={{ flex: 1, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {p.name} <span style={{ color: "var(--text-3)", fontSize: 10 }}>{p.code}</span>
-                    {p.sportsTier ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "var(--amber)" }}>体育({p.sportsTier})</span> : null}
                   </span>
                   <span style={{ fontSize: 10, color: "var(--text-3)", whiteSpace: "nowrap" }}>{p.credits}学分</span>
                   {p.covered
@@ -876,8 +877,8 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
 
 /* ══════════ 右栏⓪：培养方案（render.js renderPlan 同款卡片网格）══════════ */
 function PlanSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
-  const coverage = useMemo(() => checkPlanCoverage(wb.plan, wb.courses, wb.stageCart, wb.savedDrafts.map((d) => d.courses)),
-    [wb.plan, wb.courses, wb.stageCart, wb.savedDrafts]);
+  const coverage = useMemo(() => checkPlanCoverage(wb.plan, wb.courses, wb.stageCart, wb.savedDrafts.map((d) => d.courses), (wb.semester ?? "").endsWith("2")),
+    [wb.plan, wb.courses, wb.stageCart, wb.savedDrafts, wb.semester]);
   if (!wb.plan.length) return null;
   const groups = new Map<string, PlanCoverageItem[]>();
   for (const c of coverage) {

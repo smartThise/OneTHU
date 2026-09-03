@@ -317,9 +317,16 @@ export interface PlanCoverageItem extends XkPlanItem {
   sportsTier: number | null;
 }
 
-/** 体育课组定位（用户适配需求）：计划条目「二/三/四年级男生|女生…」→ 体育(N)。
- *  N = (年级-1)*2 + (学期含春 ? 2 : 1)：二年级秋=3、二年级春=4……四年级春=8。 */
-function sportsTierOf(name: string, semester: string): number | null {
+/** 方案条目 → 体育(N)：条目名直书「体育(3)」；或「二年级男生xxx」+条目学期（秋单春双） */
+function planItemTier(name: string, semester: string): number | null {
+  const m = /体育\s*[（(](\d)[）)]/.exec(name);
+  if (m) return Number(m[1]!);
+  return sportsTierByGrade(name, semester);
+}
+
+/** 课程名 → 体育(N)：课名「二/三/四年级男生|女生xxx」+当前学期季节（秋单春双），至体育(8)。
+ *  方向实证：方案条目是「体育(3)」直书，选课目录里才叫「二年级男生xxx」（2026-09-03 实录）。 */
+function sportsTierByGrade(name: string, semester: string): number | null {
   if (!/体育|男生|女生/.test(name)) return null;
   const g = /([一二三四])年级/.exec(name);
   if (!g) return null;
@@ -333,6 +340,7 @@ export function checkPlanCoverage(
   allCourses: XkRow[],
   stageCart: StageLike[],
   drafts: StageLike[][],
+  spring = false,
 ): PlanCoverageItem[] {
   const codes = new Set<string>();
   const detail = new Map<string, { code: string; teacher?: string; name: string }>();
@@ -366,11 +374,12 @@ export function checkPlanCoverage(
   const allCodes = [...codes];
   const hasSports = allCodes.some(isSports) || stageCart.some((c) => isSports(c.code));
   // 体育精确定位：同年级的体育课即视为覆盖（专项项目可不同，年级/学期对上即可）
+  const season = spring ? "春" : "秋";
   const sportsCourses = allCodes
     .filter((c) => isSports(c))
-    .map((c) => ({ code: c, name: detail.get(c)?.name ?? "" }));
-  const sportsSameGrade = (gradeMark: string): string =>
-    sportsCourses.filter((c) => c.name.includes(gradeMark)).map((c) => c.name)[0] ?? "";
+    .map((c) => ({ code: c, name: detail.get(c)?.name ?? "", tier: sportsTierByGrade(detail.get(c)?.name ?? "", season) }));
+  const sportsByTier = (tier: number): string =>
+    sportsCourses.filter((c) => c.tier === tier).map((c) => c.name)[0] ?? "";
   const hasSecondLang = allCodes.some(isSecondLang);
   const hasAdvEnglish = allCodes.some(isAdvEnglish);
   const hasBasicEnglish = allCodes.some(isBasicEnglish);
@@ -378,17 +387,14 @@ export function checkPlanCoverage(
   return plan.map((p) => {
     let covered = codes.has(p.code);
     let coveredBy = covered && detail.get(p.code) ? detail.get(p.code)!.teacher || detail.get(p.code)!.name : "";
-    const tier = sportsTierOf(p.name, p.semester);
+    const tier = planItemTier(p.name, p.semester);
     if (!covered && (p.attr === "体育" || p.name.includes("体育") || p.group.includes("体育"))) {
-      if (hasSports) { covered = true; coveredBy = "(已有体育课)"; }
-      // 精确定位：二年级男生/女生xxx项目=体育(3)……同年级体育课即覆盖
-      if (!covered && tier) {
-        const g = /([一二三四])年级/.exec(p.name)?.[1];
-        if (g) {
-          const hit = sportsSameGrade(g);
-          if (hit) { covered = true; coveredBy = `(体育${hit})`; }
-        }
-      }
+      // 精确定位：体育(3) ↔ 「二年级男生xxx」（当前学期秋单春双）——学期对上才算覆盖
+      if (tier) {
+        const hit = sportsByTier(tier);
+        if (hit) { covered = true; coveredBy = `(${hit})`; }
+        else if (hasSports) { covered = true; coveredBy = "(已有体育课)"; }
+      } else if (hasSports) { covered = true; coveredBy = "(已有体育课)"; }
     }
     if (!covered && /英语\(3\)/.test(p.name)) {
       if (hasAdvEnglish) { covered = true; coveredBy = "(英语进阶读写)"; }
