@@ -955,21 +955,24 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
 
   // 时间轴课块：清华课按大节→钟点；北大/北外等外校课 time 列无槽位，从 note 解析「周X HH:MM—HH:MM」
   const { placed, undet } = useMemo(() => {
-    type PvBlock = { key: string; day: number; begin: number; end: number; label: string; color: string; probLabel?: string; manual?: boolean; id?: string; code?: string; seq?: string; origin?: string; tag?: string };
+    type PvBlock = { key: string; day: number; begin: number; end: number; label: string; color: string; probLabel?: string; manual?: boolean; id?: string; code?: string; seq?: string; origin?: string; tag?: string; cand?: boolean };
     const raw: PvBlock[] = [];
     const undet: Array<{ lbl: string; code: string; seq: string; credits: number; zy: number; manual: boolean; id?: string }> = [];
-    type PvCourse = { name: string; teacher?: string; code: string; seq: string; time: string; note: string; credits: number; zy: number; manual?: boolean; id?: string; flag?: XkFlag; typeCode?: string; begin?: string; end?: string; day?: number };
+    type PvCourse = { name: string; teacher?: string; code: string; seq: string; time: string; note: string; credits: number; zy: number; manual?: boolean; id?: string; flag?: XkFlag; typeCode?: string; begin?: string; end?: string; day?: number; cand?: boolean };
     const all: PvCourse[] = [
       ...courses,
+      // 候补课也上预览课表（用户语义：冲突也照样显示）——琥珀色 + 候选前缀，
+      // 与正式课重叠时 lane 分道共处，不互删
+      ...wb.candidates.map((x): PvCourse => ({ name: x.name, teacher: x.teacher || undefined, code: x.code, seq: x.seq || "0", time: x.time, note: "", credits: 0, zy: 0, cand: true })),
       ...wb.manualEvents.map((e): PvCourse => ({ name: e.name, teacher: undefined, code: e.code, seq: e.seq, time: e.time, note: "", credits: e.credits, zy: 0, manual: true, id: e.id, begin: e.begin, end: e.end, day: e.day })),
     ];
     for (const c of all) {
-      const lbl = c.teacher ? `${c.name}(${c.teacher})` : c.name;
+      const lbl = (c.cand ? "候选：" : "") + (c.teacher ? `${c.name}(${c.teacher})` : c.name);
       const prob = probOf(c);
-      const color = c.manual ? "#8b5cf6" : prob.color || pvColorOf(c.name);
+      const color = c.cand ? "#ff9f1a" : c.manual ? "#8b5cf6" : prob.color || pvColorOf(c.name);
       const mk = (day: number, begin: number, end: number, tag: string): PvBlock => ({
         key: `${c.code}_${c.seq || "0"}_${tag}`, day, begin, end, label: lbl, color,
-        probLabel: prob.label || undefined, manual: c.manual, id: c.id, code: c.code, seq: c.seq, origin: originOf(c.code),
+        probLabel: prob.label || undefined, manual: c.manual, id: c.id, code: c.code, seq: c.seq, origin: originOf(c.code), cand: c.cand,
       });
       let n = 0;
       for (const { day, slot } of parseTimeSlots(c.time)) {
@@ -1087,7 +1090,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
                       {!compact ? <div style={{ fontSize: 8, opacity: 0.9, lineHeight: 1.3 }}>{pvHm(b.begin)}–{pvHm(b.end)}{b.tag ? ` ${b.tag}` : ""}</div> : null}
                       {b.probLabel && height > 44 ? <span style={{ display: "inline-block", marginTop: 1, padding: "0 4px", borderRadius: 999, fontSize: 8, fontWeight: 700, background: "rgba(255,255,255,.25)" }}>{b.probLabel}</span> : null}
                       <button className="btn" style={{ position: "absolute", top: 1, right: 1, padding: "0 3px", fontSize: 8, lineHeight: 1.4, opacity: 0.65, border: "none", background: "transparent", color: "#fff" }}
-                        title="移除" onClick={(e) => { e.stopPropagation(); if (b.manual && b.id) wb.removeManualEvent(b.id); else if (b.code && b.seq) void removeItem(b.code, b.seq); }}>✕</button>
+                        title={b.cand ? "退出候补" : "移除"} onClick={(e) => { e.stopPropagation(); if (b.manual && b.id) wb.removeManualEvent(b.id); else if (b.cand && b.code && b.seq) void wb.drop(b.code, b.seq, true); else if (b.code && b.seq) void removeItem(b.code, b.seq); }}>✕</button>
                     </div>
                   );
                 })}
@@ -1251,7 +1254,7 @@ function QueueSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
       {wb.candidates.map((c, i) => (
         <div key={`${c.code}-${i}`} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: "4px 0", borderBottom: "1px solid var(--border)" }}>
           <span className="chip chip-amber" style={{ fontSize: 10 }}>{c.myPos ? `第${c.myPos}位/${c.queueTotal}` : "候选"}</span>
-          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
+          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={`${c.name}（${c.code}${c.seq && c.seq !== "0" ? `·${c.seq}` : ""}）`} onClick={() => jumpTo(c.code)}>{c.name}<span style={{ color: "var(--text-3)" }}> {c.code}{c.seq && c.seq !== "0" ? `·${c.seq}` : ""}</span></span>
           <button className="btn" style={{ padding: "0 5px", fontSize: 10 }} disabled={wb.busy !== null} onClick={() => void wb.drop(c.code, c.seq, true)}>删除</button>
         </div>
       ))}
