@@ -513,7 +513,9 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
     setQuery(jump);
     setChip(_jumpChip as typeof chip);
     setHighlight(jump);
-    const t = setTimeout(() => setHighlight(""), 1800);
+    // 跳转是瞬时的：高亮结束同时清掉注入的搜索词——否则残留词持续过滤，
+    // 切「我的队列」等 chip 时列表被筛空/只剩一条（故障实录）
+    const t = setTimeout(() => { setHighlight(""); setQuery(""); }, 1800);
     return () => clearTimeout(t);
   }, [jump]);
 
