@@ -320,6 +320,14 @@ export async function getQueueStatus(
     zhjwxkDebug?.(
       `[XK-QUEUE] 零行诊断 sem=${semester} len=${html.length} trr1=${(html.match(/trr1/g) ?? []).length} trr2=${(html.match(/trr2/g) ?? []).length} tr总数=${(html.match(/<tr[^>]*>/g) ?? []).length} 页首=${html.slice(0, 300).replace(/\s+/g, " ")}`,
     );
+    // 「提示信息」类拦截页很小（实测 1492B），正文全文打印——拦截原因直接写在正文里
+    const text = html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    zhjwxkDebug?.(`[XK-QUEUE] 拦截页全文(${text.length})=${text.slice(0, 700)}`);
   }
   return rows;
 }
