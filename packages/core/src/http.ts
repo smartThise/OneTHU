@@ -334,6 +334,11 @@ export class HttpClient {
     }
   }
 
+  /** 导出对某 URL 当前应带的 Cookie 头（供内嵌反代等外部管道复用会话） */
+  cookieHeaderFor(targetUrl: string): string | null {
+    return this.#cookieHeaderFor(targetUrl);
+  }
+
   /** 真·wengine 引导页（interstitial）：vars 齐全 + 页面极短 + 无任何业务/登录文案。
    *  注意 wengine 会把 __vpn_* JS 注入所有被代理页面，长页面带 vars ≠ 引导页。 */
   wengineInterstitial(page: string): boolean {
