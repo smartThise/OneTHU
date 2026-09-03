@@ -313,6 +313,18 @@ import type { XkPlanItem } from "@onethu/core";
 export interface PlanCoverageItem extends XkPlanItem {
   covered: boolean;
   coveredBy: string;
+  /** 体育课组定位：二年级男生/女生xxx项目=体育(3)，秋单春双，至体育(8)；非体育为 null */
+  sportsTier: number | null;
+}
+
+/** 体育课组定位（用户适配需求）：计划条目「二/三/四年级男生|女生…」→ 体育(N)。
+ *  N = (年级-1)*2 + (学期含春 ? 2 : 1)：二年级秋=3、二年级春=4……四年级春=8。 */
+function sportsTierOf(name: string, semester: string): number | null {
+  if (!/体育|男生|女生/.test(name)) return null;
+  const g = /([一二三四])年级/.exec(name);
+  if (!g) return null;
+  const grade = ["一", "二", "三", "四"].indexOf(g[1]!) + 1;
+  return (grade - 1) * 2 + (semester.includes("春") ? 2 : 1);
 }
 interface StageLike { code: string; name: string }
 
@@ -353,6 +365,12 @@ export function checkPlanCoverage(
   };
   const allCodes = [...codes];
   const hasSports = allCodes.some(isSports) || stageCart.some((c) => isSports(c.code));
+  // 体育精确定位：同年级的体育课即视为覆盖（专项项目可不同，年级/学期对上即可）
+  const sportsCourses = allCodes
+    .filter((c) => isSports(c))
+    .map((c) => ({ code: c, name: detail.get(c)?.name ?? "" }));
+  const sportsSameGrade = (gradeMark: string): string =>
+    sportsCourses.filter((c) => c.name.includes(gradeMark)).map((c) => c.name)[0] ?? "";
   const hasSecondLang = allCodes.some(isSecondLang);
   const hasAdvEnglish = allCodes.some(isAdvEnglish);
   const hasBasicEnglish = allCodes.some(isBasicEnglish);
@@ -360,8 +378,17 @@ export function checkPlanCoverage(
   return plan.map((p) => {
     let covered = codes.has(p.code);
     let coveredBy = covered && detail.get(p.code) ? detail.get(p.code)!.teacher || detail.get(p.code)!.name : "";
+    const tier = sportsTierOf(p.name, p.semester);
     if (!covered && (p.attr === "体育" || p.name.includes("体育") || p.group.includes("体育"))) {
       if (hasSports) { covered = true; coveredBy = "(已有体育课)"; }
+      // 精确定位：二年级男生/女生xxx项目=体育(3)……同年级体育课即覆盖
+      if (!covered && tier) {
+        const g = /([一二三四])年级/.exec(p.name)?.[1];
+        if (g) {
+          const hit = sportsSameGrade(g);
+          if (hit) { covered = true; coveredBy = `(体育${hit})`; }
+        }
+      }
     }
     if (!covered && /英语\(3\)/.test(p.name)) {
       if (hasAdvEnglish) { covered = true; coveredBy = "(英语进阶读写)"; }
@@ -370,6 +397,6 @@ export function checkPlanCoverage(
     if (!covered && /英语\([12]\)/.test(p.name)) {
       if (hasBasicEnglish) { covered = true; coveredBy = "(英语阅读写作/听说交流)"; }
     }
-    return { ...p, covered, coveredBy };
+    return { ...p, covered, coveredBy, sportsTier: tier };
   });
 }

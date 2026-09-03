@@ -128,6 +128,9 @@ let _jumpSetter: ((v: string) => void) | null = null;
 let _detailOpen: ((code: string) => void) | null = null;
 let _reviewOpen: ((v: { code: string; seq: string; name: string; teacher: string }) => void) | null = null;
 const jumpTo = (code: string, chip = "all"): void => { _jump = code; _jumpChip = chip; _jumpSetter?.(code); };
+/** 培养方案/暂存条目 → 按课号发起真实搜索（切回全部 chip）；回调由主页面注册 */
+let _searchCode: ((code: string) => void) | null = null;
+const searchCode = (code: string): void => { _searchCode?.(code); };
 const openDetail = (code: string): void => { _detailOpen?.(code); };
 const openReviews = (v: { code: string; seq: string; name: string; teacher: string }): void => { _reviewOpen?.(v); };
 
@@ -421,7 +424,6 @@ export function ZhjwxkCoursesPage() {
           }}
         >
           <PlanSection wb={wb} />
-          <StatsSection wb={wb} />
           <PreviewSection wb={wb} />
           <StageSection wb={wb} />
           <QueueSection wb={wb} />
@@ -442,7 +444,6 @@ export function ZhjwxkCoursesPage() {
         {mTab === "manage" ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <PlanSection wb={wb} />
-            <StatsSection wb={wb} />
             <PreviewSection wb={wb} />
             <StageSection wb={wb} />
             <QueueSection wb={wb} />
@@ -519,6 +520,15 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
     const t = setTimeout(() => { setHighlight(""); setQuery(""); }, 1800);
     return () => clearTimeout(t);
   }, [jump]);
+  // 培养方案/暂存条目点击 → 按课号真实搜索（新搜索替换当前关键词，语义同手输）
+  useEffect(() => {
+    _searchCode = (code: string) => {
+      setQuery(code);
+      setChip("all");
+      void wb.newSearch({ kcm: "", kch: code, teacher: "", department: "", weekday: "", section: "", grade: "", rxklxm: "", kctsm: "", onlyAvailable: false, gradAvail: false });
+    };
+    return () => { _searchCode = null; };
+  }, [wb]);
 
   const rows = useMemo<XkRow[]>(() => {
     // 我的队列/已选不依赖已加载的搜索页：改用工作台全量池（目录+已选/候补补行）
@@ -737,9 +747,13 @@ function PlanView({ wb, query }: { wb: ReturnType<typeof useXkWorkbench>; query:
             {courses.map((p) => {
               const bg = p.covered ? "rgba(7,193,96,.06)" : "rgba(238,77,77,.04)";
               return (
-                <div key={p.code} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 10, background: bg, marginBottom: 3, fontSize: 12 }}>
+                <div key={p.code} title={`点击搜索 ${p.code}`} onClick={() => searchCode(p.code)}
+                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 10, background: bg, marginBottom: 3, fontSize: 12, cursor: "pointer" }}>
                   <span style={{ fontSize: 12 }}>{p.covered ? "✓" : "✗"}</span>
-                  <span style={{ flex: 1, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name} <span style={{ color: "var(--text-3)", fontSize: 10 }}>{p.code}</span></span>
+                  <span style={{ flex: 1, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {p.name} <span style={{ color: "var(--text-3)", fontSize: 10 }}>{p.code}</span>
+                    {p.sportsTier ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "var(--amber)" }}>体育({p.sportsTier})</span> : null}
+                  </span>
                   <span style={{ fontSize: 10, color: "var(--text-3)", whiteSpace: "nowrap" }}>{p.credits}学分</span>
                   {p.covered
                     ? <span style={{ color: "var(--green)", fontSize: 11, whiteSpace: "nowrap" }}>{p.coveredBy || "已满足"}</span>
@@ -892,26 +906,6 @@ function PlanSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
   );
 }
 let planGroupClick: ((g: string) => void) | null = null;
-
-/* ══════════ 右栏①：学分统计 ══════════ */
-function StatsSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
-  const byFlag: Record<string, { n: number; cr: number }> = {};
-  for (const s of wb.selected) {
-    const f = s.typeCode === "006" ? "bx" : s.typeCode === "008" ? "xx" : s.typeCode === "007" ? "rx" : "ty";
-    byFlag[f] = { n: (byFlag[f]?.n ?? 0) + 1, cr: (byFlag[f]?.cr ?? 0) + (s.credits || 0) };
-  }
-  const total = wb.selected.reduce((a, s) => a + (s.credits || 0), 0);
-  return (
-    <Sec title="我的已选统计">
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <span className="chip chip-green"><span className="dot" />{wb.selected.length} 门 · {total} 学分</span>
-        {(["bx", "xx", "rx", "ty"] as const).map((f) => byFlag[f] ? (
-          <span className="chip" key={f}><span className="dot" />{FLAG_LABELS[f]} {byFlag[f]!.n}门/{byFlag[f]!.cr}学分</span>
-        ) : null)}
-      </div>
-    </Sec>
-  );
-}
 
 /* ══════════ 右栏②：课表预览（render.js renderPreviewTT 逐行移植）══════════ */
 function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
@@ -1215,7 +1209,7 @@ function StageSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
             const p = itemProb(wb, s.code, s.seq, s.flag, s.zy);
             return (
               <div key={s.code + s.seq} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: "4px 6px", borderRadius: 8, background: "var(--bg-elev, #f7f7f8)" }}>
-                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={s.name} onClick={() => jumpTo(s.code)}>{s.name}<span style={{ color: "var(--text-3)" }}> {s.teacher}</span></span>
+                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={`点击搜索：${s.name}（${s.code}）`} onClick={() => searchCode(s.code)}>{s.name}<span style={{ color: "var(--text-3)" }}> {s.teacher}</span></span>
                 <span style={{ fontSize: 10, color: wb.phase ? "var(--text-3)" : p.color, whiteSpace: "nowrap" }}>{wb.phase ? (wb.courses.find((r) => r.c.code === s.code)?.q?.qRemaining ?? "—") : p.prob}</span>
                 <select className="input" style={{ height: 22, fontSize: 10, maxWidth: 60 }} value={s.flag} onChange={(e) => wb.updateStageItem(s.code, s.seq, { flag: e.target.value as XkFlag })}>
                   {allowedFlags(s.flag).map((f) => <option key={f} value={f}>{FLAG_LABELS[f]}</option>)}
