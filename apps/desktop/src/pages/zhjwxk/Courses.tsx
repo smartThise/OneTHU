@@ -130,8 +130,6 @@ let _reviewOpen: ((v: { code: string; seq: string; name: string; teacher: string
 const jumpTo = (code: string, chip = "all"): void => { _jump = code; _jumpChip = chip; _jumpSetter?.(code); };
 /** 培养方案/暂存条目 → 按课号发起真实搜索（切回全部 chip）；回调由主页面注册 */
 /** 条目点击统一入口：jumpTo 注入搜索栏（复用已验证 jump 通路 setQuery(jump)）+ 按课号真实搜索 */
-let _searchCode: ((code: string) => void) | null = null;
-const searchCode = (code: string): void => { jumpTo(code, "all"); _searchCode?.(code); };
 const openDetail = (code: string): void => { _detailOpen?.(code); };
 const openReviews = (v: { code: string; seq: string; name: string; teacher: string }): void => { _reviewOpen?.(v); };
 
@@ -292,7 +290,12 @@ export function ZhjwxkCoursesPage() {
   const [mTab, setMTab] = useState<"find" | "manage" | "ai">("find");
   useEffect(() => {
     void tbEnsureIndex().catch(() => undefined);
-    _jumpSetter = setJump;
+    // 跳转唯一权威通路：注入搜索栏（setJump → jump effect）+ 按课号真实搜索
+    //（此前三通道并存 = 注入时灵时不灵；newSearch 稳定 useCallback，闭包捕获安全）
+    _jumpSetter = (code: string) => {
+      setJump(code);
+      void wb.newSearch({ kcm: "", kch: code, teacher: "", department: "", weekday: "", section: "", grade: "", rxklxm: "", kctsm: "", onlyAvailable: false, gradAvail: false });
+    };
     _detailOpen = setDetailCode;
     _reviewOpen = setReviewCode;
     return () => { _jumpSetter = null; _detailOpen = null; _reviewOpen = null; };
@@ -523,12 +526,9 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   }, [jump]);
   // 培养方案/暂存条目点击 → 按课号真实搜索（新搜索替换当前关键词，语义同手输）
   useEffect(() => {
-    _searchCode = (code: string) => {
-      void wb.newSearch({ kcm: "", kch: code, teacher: "", department: "", weekday: "", section: "", grade: "", rxklxm: "", kctsm: "", onlyAvailable: false, gradAvail: false });
-    };
     // 右栏「我的培养方案」卡片 → 切 plan chip（此前 setPresetGroupChip 从未赋值，点击全静默无效）
     setPresetGroupChip = (v: string) => { setChip(v); };
-    return () => { _searchCode = null; setPresetGroupChip = null; };
+    return () => { setPresetGroupChip = null; };
   }, [wb]);
 
   const rows = useMemo<XkRow[]>(() => {
@@ -652,7 +652,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
         </div>
       </Card>
 
-      {chip === "plan" ? <PlanView wb={wb} query={query} onSearchCode={(code) => searchCode(code)} /> : wb.searchState === "idle" || wb.searchState === "loading" ? (
+      {chip === "plan" ? <PlanView wb={wb} query={query} onSearchCode={(code) => jumpTo(code, "all")} /> : wb.searchState === "idle" || wb.searchState === "loading" ? (
         <Card><SkeletonRows rows={6} /><Empty text="正在实时查询教务系统（搜索/翻页各 1 个往返，即搜即得）…" /></Card>
       ) : wb.searchState === "error" ? (
         <ErrorNote text={wb.searchError ?? ""} onRetry={() => void wb.retrySearch()} />
@@ -1119,7 +1119,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
                   return (
                     <div key={b.key} title={`${b.label}（${pvHm(b.begin)}–${pvHm(b.end)}）${b.probLabel ? " · " + b.probLabel : ""}`}
                       style={{ position: "absolute", left: `calc(${leftPct}% + 3px)`, width: `calc(${widthPct}% - 6px)`, top, height, background: b.color, borderRadius: 5, padding: compact ? "2px 4px" : "3px 5px", color: "#fff", overflow: "hidden", boxSizing: "border-box", boxShadow: "0 1px 3px rgba(0,0,0,0.18)", zIndex: 6, cursor: b.manual ? undefined : "pointer" }}
-                      onClick={() => { if (!b.manual && b.code) searchCode(b.code); }}>
+                      onClick={() => { if (!b.manual && b.code) jumpTo(b.code, "all"); }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                         <div style={{ fontSize: compact ? 8.5 : 9.5, fontWeight: 700, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.label}</div>
                       </div>
@@ -1224,7 +1224,7 @@ function StageSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
             const p = itemProb(wb, s.code, s.seq, s.flag, s.zy);
             return (
               <div key={s.code + s.seq} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: "4px 6px", borderRadius: 8, background: "var(--bg-elev, #f7f7f8)" }}>
-                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={`点击搜索：${s.name}（${s.code}）`} onClick={() => searchCode(s.code)}>{s.name}<span style={{ color: "var(--text-3)" }}> {s.teacher}</span></span>
+                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={`点击搜索：${s.name}（${s.code}）`} onClick={() => jumpTo(s.code, "all")}>{s.name}<span style={{ color: "var(--text-3)" }}> {s.teacher}</span></span>
                 <span style={{ fontSize: 10, color: wb.phase ? "var(--text-3)" : p.color, whiteSpace: "nowrap" }}>{wb.phase ? (wb.courses.find((r) => r.c.code === s.code)?.q?.qRemaining ?? "—") : p.prob}</span>
                 <select className="input" style={{ height: 22, fontSize: 10, maxWidth: 60 }} value={s.flag} onChange={(e) => wb.updateStageItem(s.code, s.seq, { flag: e.target.value as XkFlag })}>
                   {allowedFlags(s.flag).map((f) => <option key={f} value={f}>{FLAG_LABELS[f]}</option>)}
@@ -1292,7 +1292,7 @@ function QueueSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
       {wb.candidates.map((c, i) => (
         <div key={`${c.code}-${i}`} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: "4px 0", borderBottom: "1px solid var(--border)" }}>
           <span className="chip chip-amber" style={{ fontSize: 10 }}>{c.myPos ? `第${c.myPos}位/${c.queueTotal}` : "候选"}</span>
-          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={`${c.name}（${c.code}${c.seq && c.seq !== "0" ? `·${c.seq}` : ""}）`} onClick={() => searchCode(c.code)}>{c.name}<span style={{ color: "var(--text-3)" }}> {c.code}{c.seq && c.seq !== "0" ? `·${c.seq}` : ""}</span></span>
+          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={`${c.name}（${c.code}${c.seq && c.seq !== "0" ? `·${c.seq}` : ""}）`} onClick={() => jumpTo(c.code, "all")}>{c.name}<span style={{ color: "var(--text-3)" }}> {c.code}{c.seq && c.seq !== "0" ? `·${c.seq}` : ""}</span></span>
           <button className="btn" style={{ padding: "0 5px", fontSize: 10 }} disabled={wb.busy !== null} onClick={() => void wb.drop(c.code, c.seq, true)}>删除</button>
         </div>
       ))}
