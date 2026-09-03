@@ -581,6 +581,23 @@ fn open_eid_window(_app: tauri::AppHandle, _username: String, _password: String)
  * 阻止内嵌的头。仅限该一个主机，不作任意代理原语。第 12 条红线不变。 */
 const VENUE_ORIGIN: &str = "https://www.sports.tsinghua.edu.cn";
 
+/// venueview 反代留痕（与 log_debug 同文件，便于一次点击全链路取证）
+fn venue_log(msg: &str) {
+    use std::io::Write;
+    const LOG: &str = "/tmp/onethu-debug.log";
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(LOG) {
+        let _ = writeln!(f, "{} | [VENUEVIEW] {}", chrono_now(), msg);
+    }
+}
+
+fn chrono_now() -> String {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0)
+        .to_string()
+}
+
 async fn venue_proxy_fetch(request: tauri::http::Request<Vec<u8>>) -> tauri::http::Response<Vec<u8>> {
     use tauri::http::header::CONTENT_TYPE;
     let upstream_err = |msg: String| {
@@ -595,6 +612,7 @@ async fn venue_proxy_fetch(request: tauri::http::Request<Vec<u8>>) -> tauri::htt
         .path_and_query()
         .map(|x| x.as_str().to_string())
         .unwrap_or_else(|| "/".into());
+    venue_log(&format!("REQ {} {}", request.method(), pq));
     // 页面请求 query 里的 ?token=<JWT>：官方 SPA 开机从 localStorage["token"]
     // 读登录态（getParams→storage.getItem；?token= 本身并不被启动逻辑解析），
     // 代理源是新空存储 → 未登录被踹进登录组件（其请求 404 的根源）。
@@ -635,7 +653,10 @@ async fn venue_proxy_fetch(request: tauri::http::Request<Vec<u8>>) -> tauri::htt
     }
     let resp = match req.send().await {
         Ok(r) => r,
-        Err(e) => return upstream_err(format!("upstream: {e}")),
+        Err(e) => {
+            venue_log(&format!("ERR upstream {e} {pq}"));
+            return upstream_err(format!("upstream: {e}"));
+        }
     };
     let status = resp.status();
     let ct = resp
@@ -650,6 +671,7 @@ async fn venue_proxy_fetch(request: tauri::http::Request<Vec<u8>>) -> tauri::htt
             // HTML 文档 + 带 SSO token：在 <head> 后注入 localStorage 预置脚本
             // （严格镜像官方 SET_TOKEN 的存储格式：token 存 JSON 字符串、
             // headers 存「字符串化的 JSON 对象」再整体 JSON 字符串化）
+            let mut injected = false;
             if ct.starts_with("text/html") {
                 if let Some(jwt) = &sso_token {
                     let script = format!(
@@ -666,8 +688,18 @@ async fn venue_proxy_fetch(request: tauri::http::Request<Vec<u8>>) -> tauri::htt
                     out.extend_from_slice(bytes);
                     out.extend_from_slice(&body[head_pos..]);
                     body = out;
+                    injected = true;
                 }
             }
+            venue_log(&format!(
+                "RSP {} {} ct={} len={} inject={} tok={}",
+                status,
+                pq,
+                ct,
+                body.len(),
+                injected,
+                sso_token.is_some()
+            ));
             tauri::http::Response::builder()
                 .status(status)
                 .header(CONTENT_TYPE, ct)
