@@ -569,59 +569,114 @@ fn open_eid_window(_app: tauri::AppHandle, _username: String, _password: String)
     Err("移动端请在系统浏览器打开电子身份".into())
 }
 
-#[cfg(desktop)]
-#[tauri::command]
-fn open_venue_booking_window(
-    app: tauri::AppHandle,
-    url: String,
-    token: String,
-) -> Result<String, String> {
-    use tauri::webview::WebviewWindowBuilder;
-    use tauri::WebviewUrl;
-    // 防御：本命令只允许体育系统 venue 页深链，不作任意开窗原语
-    if !url.starts_with("https://www.sports.tsinghua.edu.cn/venue/") {
-        return Err("仅支持体育系统页面".into());
-    }
-    let label = "venuebooking";
-    if let Some(old) = app.get_webview_window(label) {
-        let _ = old.close();
-    }
-    // 初始化脚本：把 OneTHU 静默换票拿到的同一份 JWT 注入 localStorage.headers
-    // （官方 SPA 的登录态载体），页面开机即已登录。页面为官方原页、请求全部
-    // 出自官方 SPA 自身，预约由用户在页面上手动完成——OneTHU 不调用任何预约
-    // 接口（预约须知第 12 条）。
-    let script = format!(
-        r#"(function() {{
-  try {{
-    window.localStorage.setItem("headers", JSON.stringify({{ token: {t:?} }}));
-  }} catch (e) {{}}
-}})();"#,
-        t = token,
-    );
-    let parsed = url.parse().map_err(|e| format!("bad url: {e}"))?;
-    let win = WebviewWindowBuilder::new(&app, label, WebviewUrl::External(parsed))
-        .title("体育系统 · 官方预约（OneTHU 内嵌）")
-        .inner_size(560.0, 760.0)
-        .initialization_script(&script)
-        .build()
-        .map_err(|e| e.to_string())?;
-    let _ = win.set_focus();
-    let _ = log_debug(format!(
-        "[VENUE-BOOK] 内嵌窗口已开 url={} tokenLen={}",
-        &url,
-        token.len()
-    ));
-    Ok("opened".into())
-}
+/* 体育官方预约已改为主窗口 tab 内 iframe（URL ?token= 携带 JWT，官方 SPA
+ * 开机即认的 SSO 载体），不再需要独立弹窗命令——独立窗注入 localStorage.headers
+ * 对官方 SPA 无效（它开机只读 URL 参数），已删除。 */
 
-#[cfg(mobile)]
-#[tauri::command]
-fn open_venue_booking_window(
-    _app: tauri::AppHandle,
-    _url: String,
-    _token: String,
-) -> Result<String, String> {
-    Err("内嵌预约窗口仅桌面端可用".into())
+/* ---------------- 体育官方页本地反代（venueview://） ----------------
+ * 官方站响应带 x-frame-options: SAMEORIGIN，iframe 直嵌 https 会被拦成白屏
+ * （实测）。本协议做透明管道：venueview://localhost/<path><query> →
+ * https://www.sports.tsinghua.edu.cn<path><query>，原样转交官方页自己发出的
+ * 全部请求（预约点击仍是用户在官方页面上手动完成），响应剥掉 XFO/CSP 等
+ * 阻止内嵌的头。仅限该一个主机，不作任意代理原语。第 12 条红线不变。 */
+const VENUE_ORIGIN: &str = "https://www.sports.tsinghua.edu.cn";
+
+async fn venue_proxy_fetch(request: tauri::http::Request<Vec<u8>>) -> tauri::http::Response<Vec<u8>> {
+    use tauri::http::header::CONTENT_TYPE;
+    let upstream_err = |msg: String| {
+        tauri::http::Response::builder()
+            .status(502)
+            .header(CONTENT_TYPE, "text/plain; charset=utf-8")
+            .body(msg.into_bytes())
+            .unwrap_or_else(|_| tauri::http::Response::new(b"venue proxy error".to_vec()))
+    };
+    let pq = request
+        .uri()
+        .path_and_query()
+        .map(|x| x.as_str().to_string())
+        .unwrap_or_else(|| "/".into());
+    // 页面请求 query 里的 ?token=<JWT>：官方 SPA 开机从 localStorage["token"]
+    // 读登录态（getParams→storage.getItem；?token= 本身并不被启动逻辑解析），
+    // 代理源是新空存储 → 未登录被踹进登录组件（其请求 404 的根源）。
+    // 在回 HTML 时按 SET_TOKEN 的存储格式注入，开机即登录。
+    let sso_token: Option<String> = request.uri().query().and_then(|q| {
+        q.split('&').find_map(|kv| {
+            let (k, v) = kv.split_once('=')?;
+            (k == "token" && v.len() > 20).then(|| v.to_string())
+        })
+    });
+    let url = format!("{VENUE_ORIGIN}{pq}");
+    let method = request.method().clone();
+    let client = match reqwest::Client::builder()
+        // 主网络通道同 http_request：清华域直连，禁系统代理（#1 风控实录）
+        .no_proxy()
+        .redirect(reqwest::redirect::Policy::limited(5))
+        .timeout(Duration::from_secs(30))
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => return upstream_err(format!("proxy client: {e}")),
+    };
+    let mut req = client
+        .request(method, &url)
+        .header("origin", VENUE_ORIGIN)
+        .header("referer", format!("{VENUE_ORIGIN}/venue/index.html"));
+    for (k, v) in request.headers() {
+        let lower = k.as_str().to_lowercase();
+        if matches!(lower.as_str(), "content-type" | "accept" | "accept-language" | "cookie") {
+            if let Ok(vs) = v.to_str() {
+                req = req.header(k.clone(), vs);
+            }
+        }
+    }
+    let body = request.into_body();
+    if !body.is_empty() {
+        req = req.body(body);
+    }
+    let resp = match req.send().await {
+        Ok(r) => r,
+        Err(e) => return upstream_err(format!("upstream: {e}")),
+    };
+    let status = resp.status();
+    let ct = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "application/octet-stream".into());
+    match resp.bytes().await {
+        Ok(b) => {
+            let mut body = b.to_vec();
+            // HTML 文档 + 带 SSO token：在 <head> 后注入 localStorage 预置脚本
+            // （严格镜像官方 SET_TOKEN 的存储格式：token 存 JSON 字符串、
+            // headers 存「字符串化的 JSON 对象」再整体 JSON 字符串化）
+            if ct.starts_with("text/html") {
+                if let Some(jwt) = &sso_token {
+                    let script = format!(
+                        r#"<script>try{{var t="{jwt}";localStorage.setItem("token",JSON.stringify(t));localStorage.setItem("headers",JSON.stringify(JSON.stringify({{token:t}})));}}catch(e){{}}</script>"#
+                    );
+                    let bytes = script.as_bytes();
+                    let head_pos = body
+                        .windows(6)
+                        .position(|w| w.eq_ignore_ascii_case(b"<head>"))
+                        .map(|p| p + 6)
+                        .unwrap_or(0);
+                    let mut out = Vec::with_capacity(body.len() + bytes.len());
+                    out.extend_from_slice(&body[..head_pos]);
+                    out.extend_from_slice(bytes);
+                    out.extend_from_slice(&body[head_pos..]);
+                    body = out;
+                }
+            }
+            tauri::http::Response::builder()
+                .status(status)
+                .header(CONTENT_TYPE, ct)
+                .header("access-control-allow-origin", "*")
+                .body(body)
+                .unwrap_or_else(|_| tauri::http::Response::new(b"venue proxy error".to_vec()))
+        }
+        Err(e) => upstream_err(format!("upstream body: {e}")),
+    }
 }
 
 #[cfg(mobile)]
@@ -632,6 +687,11 @@ fn open_sports_window(_: tauri::AppHandle) -> Result<String, String> {
 
 tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .register_asynchronous_uri_scheme_protocol("venueview", |_ctx, request, responder| {
+            tauri::async_runtime::spawn(async move {
+                responder.respond(venue_proxy_fetch(request).await);
+            });
+        })
         .setup(|app| {
             #[cfg(debug_assertions)]
             {
@@ -644,7 +704,7 @@ tauri::Builder::default()
         })
         .invoke_handler(tauri::generate_handler![
             log_debug,http_request,download_file,fetch_binary,state_read,state_write,state_delete,
-            open_external,open_eid_window,open_sports_window,open_venue_booking_window])
+            open_external,open_eid_window,open_sports_window])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
