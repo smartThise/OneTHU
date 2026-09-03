@@ -293,6 +293,47 @@ export function parseQueueCandidates(html: string): QueueCandidate[] {
   return candidates;
 }
 
+/** 课表页候选课（m=kbSearch 一级选课课表）：队列功能未开放时的兜底数据源。
+ *  样本（北大示例/候选课/本科生选课系统.html）两种形态：渲染锚
+ *  p_id=..;课号 …候选：名</b></font></a>(教师；类型；时间) 与脚本串
+ *  strHTML += "<b>候选：名</b>"（详情在 strHTML1 "；X" 行）。
+ *  配对窗口 250 字内不得再出现锚点/p_id（防跨格错配：复变课号配探秘名实证）。 */
+export function parseTimetableCandidates(html: string): QueueCandidate[] {
+  const out: QueueCandidate[] = [];
+  const seen = new Set<string>();
+  const re = /p_id=\d+;(\d{6,})/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    const code = m[1] ?? "";
+    if (!code || seen.has(code)) continue;
+    const seg = html.slice(m.index + m[0].length, m.index + m[0].length + 250);
+    const ci = seg.indexOf("候选：");
+    if (ci === -1) continue;
+    const between = seg.slice(0, ci);
+    if (between.includes("<a") || between.includes("p_id")) continue;
+    const name = /候选：([^<&"'\n]{1,60})/.exec(seg.slice(ci))?.[1]?.trim() ?? "";
+    if (!name) continue;
+    seen.add(code);
+    const tail = seg.slice(ci, ci + 400);
+    const pd = /<\/a>\s*\(([^)]{0,80})\)/.exec(tail);
+    const parts = pd
+      ? pd[1]!.split(/[；;]/)
+      : [...tail.matchAll(/strHTML1 \+= "；([^"]*)"/g)].map((x) => x[1] ?? "");
+    out.push({
+      typeLabel: parts[1] ?? "",
+      zyStr: "",
+      code,
+      name,
+      seq: "0",
+      queueTotal: 0,
+      myPos: 0,
+      time: parts[2] ?? "",
+      teacher: parts[0] ?? "",
+    });
+  }
+  return out;
+}
+
 /* ── 公开 API ─────────────────────────────────────────────────── */
 
 /** 已选课程（demo GET /api/courses：m=yxSearchTab&p_xnxq=<学期>） */
@@ -315,6 +356,16 @@ export async function getQueueStatus(
   const html = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksXkbBs.do?m=dlSearch&p_xnxq=${semester}`);
   assertNotDenied(s, html);
   const rows = parseQueueCandidates(html);
+  if (rows.length === 0 && html.includes("提示信息")) {
+    // 「队列功能未开放」等拦截（2026-09 实录）：一级选课课表（m=kbSearch）里的
+    // 候选课兜底——用户语义：官网课表能看到排队课就从课表爬；课表也没有就
+    // 安静空着不报错
+    const kb = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksXkbBs.do?m=kbSearch&p_xnxq=${semester}`);
+    assertNotDenied(s, kb);
+    const cand = parseTimetableCandidates(kb);
+    zhjwxkDebug?.(`[XK-QUEUE] 功能未开放兜底 kbSearch 候选=${cand.length}`);
+    if (cand.length) return cand;
+  }
   if (rows.length === 0) {
     // 官网有队列但应用为空时的定位线索：页面到底长什么样（行类分布/页首形态）
     zhjwxkDebug?.(
