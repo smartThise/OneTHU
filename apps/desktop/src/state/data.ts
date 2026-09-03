@@ -559,6 +559,7 @@ export interface XkWorkbench {
   addManualEvent: (name: string, day: number, slot: number) => void;
   addManualEventRange: (name: string, day: number, begin: string, end: string) => void;
   removeManualEvent: (id: string) => void;
+  clearManualEvents: () => void;
   previewMode: "selected" | "stage" | "draft";
   previewDraftIdx: number;
   setPreview: (mode: "selected" | "stage" | "draft", idx?: number) => void;
@@ -1320,6 +1321,9 @@ export function useXkWorkbench(): XkWorkbench {
     setToast(`已添加「${name.trim()}」`);
   }, []);
 
+  const clearManualEvents = useCallback(() => {
+    setManualEvents(() => { lsSet(LS.manual, []); return []; });
+  }, []);
   const removeManualEvent = useCallback((id: string) => {
     setManualEvents((prev) => {
       const ev = prev.find((e) => e.id === id);
@@ -1462,7 +1466,7 @@ export function useXkWorkbench(): XkWorkbench {
     refresh, submit, drop, changeZy, setToast, addManualEventRange,
     courses, canAdjustZy, stageCart, addToStage, removeFromStage, updateStageItem, importStageItem,
     savedDrafts, saveDraft, deleteDraft, removeFromDraft, saveCurrentAsDraft, exportDraft, importDraft, submitDraft,
-    manualEvents, addManualEvent, removeManualEvent,
+    manualEvents, addManualEvent, removeManualEvent, clearManualEvents,
     previewMode, previewDraftIdx, setPreview, progress, setProgress, refreshQueue, previewItems, previewIndex, searchTotalRows,
     semesterOverride, setSemesterOverride, semesterOptions, loadDetail, plan,
     searchState, searchRaw, searchRows, searchPage, searchHasMore, searchIncomplete, searchTotalPages, searchRunId, searchError,

@@ -1234,8 +1234,8 @@ function StageSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
         <button className="btn" onClick={() => { if (draftName.trim()) { wb.saveDraft(draftName.trim()); setDraftName(""); } }}>保存草稿</button>
         <button className="btn" onClick={() => { const n = globalThis.prompt?.("草稿名称", "我的课表"); if (n) wb.saveCurrentAsDraft(n); }}>存当前选课</button>
         <button className="btn" onClick={() => wb.setPreview("stage")}>预览暂存</button>
-        <button className="btn" style={{ color: "var(--red)" }} disabled={!wb.stageCart.length}
-          onClick={() => { if (globalThis.confirm?.(`清空暂存区全部 ${wb.stageCart.length} 门课？`)) for (const s of [...wb.stageCart]) wb.removeFromStage(s.code, s.seq); }}>清空</button>
+        <button className="btn" style={{ color: "var(--red)" }} disabled={!wb.stageCart.length && !wb.manualEvents.length}
+          onClick={() => { if (globalThis.confirm?.(`清空暂存车 ${wb.stageCart.length} 门 + 自定义占用 ${wb.manualEvents.length} 项？（预览暂存里的块全部来源就这两处，清完即空）`)) { for (const s of [...wb.stageCart]) wb.removeFromStage(s.code, s.seq); wb.clearManualEvents(); } }}>清空</button>
         <button className="btn" onClick={() => setImportOpen((v) => !v)}>导入</button>
       </div>
       {importOpen ? (
