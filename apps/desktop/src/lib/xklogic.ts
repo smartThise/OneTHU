@@ -375,9 +375,10 @@ export function checkPlanCoverage(
   const hasSports = allCodes.some(isSports) || stageCart.some((c) => isSports(c.code));
   // 体育精确定位：同年级的体育课即视为覆盖（专项项目可不同，年级/学期对上即可）
   const season = spring ? "春" : "秋";
+  // 不经 isSports 门：已选行常缺院系/属性元数据（catalog 缺页），课名带「年级+男生|女生|体育」即判档
   const sportsCourses = allCodes
-    .filter((c) => isSports(c))
-    .map((c) => ({ code: c, name: detail.get(c)?.name ?? "", tier: sportsTierByGrade(detail.get(c)?.name ?? "", season) }));
+    .map((c) => ({ code: c, name: detail.get(c)?.name ?? "", tier: sportsTierByGrade(detail.get(c)?.name ?? "", season) }))
+    .filter((c) => c.tier !== null);
   const sportsByTier = (tier: number): string =>
     sportsCourses.filter((c) => c.tier === tier).map((c) => c.name)[0] ?? "";
   const hasSecondLang = allCodes.some(isSecondLang);
