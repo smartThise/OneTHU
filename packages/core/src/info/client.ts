@@ -2325,11 +2325,22 @@ export class InfoClient {
         `研讨间会话未能建立（id 发票/账密两路均未兑付；现场=${String(this.lastDebug || this.#http.lastDebug).slice(0, 160)}）。若为首次使用，请先到研讨间管理系统绑定邮箱后重试`,
       );
     }
-    const alive = await this.#libRoomAlive(userId);
+    let alive = await this.#libRoomAlive(userId);
+    if (!alive.ok && /无 pid|无 accNo/.test(alive.why)) {
+      // 无感激活（用户语义：研讨间应与图书馆一样零操作）：新生原站账号未
+      // 初始化时，应用内自动绑官方邮箱（学号@mails.tsinghua.edu.cn，与原站
+      // 手动流程同接口 ic-web/account/update），随后复检——成功则全程无引导
+      try {
+        await this.#cabFetch(urls.LIBROOM_UPDATE_EMAIL(), {
+          email: `${userId}@mails.tsinghua.edu.cn`,
+        });
+        alive = await this.#libRoomAlive(userId);
+      } catch {
+        /* 绑定失败则落回原引导文案 */
+      }
+    }
     if (!alive.ok) {
-      // 实证（2026-09 用户反馈）：新生未在研讨间原站绑定邮箱时，兑付虽成功但
-      // userInfo 校验恒败——提示去 cab.lib 原网站绑定；绑定后仍失败的，把具体
-      // 原因（无 pid / pid 不匹配 / 缺 accNo / 会话响应）亮进报错，截图即可定位
+      // 兜底引导：自动激活未覆盖的失败（pid 不匹配等）仍指去原站
       throw new AuthRequiredError(
         `研讨间会话未能建立（登录后 userInfo 校验未通过：${alive.why}）。若为首次使用，请先到研讨间管理系统绑定邮箱后重试；已绑定仍见此条，请连原因一起反馈`,
       );
