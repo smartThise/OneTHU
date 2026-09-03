@@ -914,18 +914,32 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
   const mode = wb.previewMode;
 
   // 课程池：selected 模式用合并行（含 note——北大/北外真实钟点在 note 里），stage/draft 用暂存/草稿
-  const courses = useMemo<Array<{ name: string; teacher?: string; code: string; seq: string; time: string; note: string; credits: number; zy: number; manual?: boolean; id?: string; flag?: XkFlag; typeCode?: string; isCandidate?: boolean }>>(() => {
+  const courses = useMemo<Array<{ name: string; teacher?: string; code: string; seq: string; time: string; note: string; credits: number; zy: number; manual?: boolean; id?: string; flag?: XkFlag; typeCode?: string; isCandidate?: boolean; cand?: boolean }>>(() => {
     if (mode === "selected") {
-      return wb.courses.filter((r) => r.selected).map((r) => ({
-        name: r.name, teacher: r.teacher, code: r.c.code, seq: r.c.seq || "0", time: r.time, note: r.c.note ?? "",
-        credits: r.credits, zy: r.zy, typeCode: r.sel?.typeCode, isCandidate: false,
-      }));
+      // 已选视图含候补课（参照插件 renderCourses 已选筛选：selected ∪ 候选键）——
+      // 琥珀块与正式课重叠时 lane 分道共处。时间正源 = 候选自带（格子坐标已抽），
+      // 目录仅兜底。注意：候选只属于已选视图——暂存/草稿是纯暂存车（插件语义）
+      return [
+        ...wb.courses.filter((r) => r.selected).map((r) => ({
+          name: r.name, teacher: r.teacher, code: r.c.code, seq: r.c.seq || "0", time: r.time, note: r.c.note ?? "",
+          credits: r.credits, zy: r.zy, typeCode: r.sel?.typeCode, isCandidate: false,
+        })),
+        ...wb.candidates.map((x) => {
+          const cat = wb.courses.find((r) => r.c.code === x.code);
+          const time = parseTimeSlots(x.time).length ? x.time : cat?.time && parseTimeSlots(cat.time).length ? cat.time : x.time;
+          return { name: x.name, teacher: x.teacher || cat?.teacher || undefined, code: x.code, seq: x.seq || "0", time, note: "", credits: 0, zy: 0, isCandidate: true, cand: true };
+        }),
+      ];
     }
     // 外校课真实时间在 note 里：暂存/草稿必须带回（旧数据无 note → 回查目录兜底）
     const noteOf = (x: { code: string; seq: string; note?: string }): string =>
       x.note ?? wb.courses.find((y) => y.c.code === x.code && String(y.c.seq || "0") === String(x.seq || "0"))?.c.note ?? "";
-    if (mode === "stage") return wb.stageCart.map((x) => ({ name: x.name, teacher: x.teacher, code: x.code, seq: x.seq || "0", time: x.time, note: noteOf(x), credits: x.credits, zy: x.zy, flag: x.flag }));
-    return (wb.savedDrafts[wb.previewDraftIdx]?.courses ?? []).map((x) => ({ name: x.name, teacher: x.teacher, code: x.code, seq: x.seq || "0", time: x.time, note: noteOf(x), credits: x.credits, zy: x.zy, flag: x.flag }));
+    // 暂存/草稿时间缺口回查目录（插件 stageCart 行吃 allCourses 全量元数据同款语义）：
+    // 暂存时行 time 为空（目录未及）会整块掉「时间未定」区——预览更不完整实录
+    const timeOf = (x: { code: string; seq: string; time?: string }): string =>
+      x.time && parseTimeSlots(x.time).length ? x.time : wb.courses.find((y) => y.c.code === x.code && String(y.c.seq || "0") === String(x.seq || "0"))?.time || x.time || "";
+    if (mode === "stage") return wb.stageCart.map((x) => ({ name: x.name, teacher: x.teacher, code: x.code, seq: x.seq || "0", time: timeOf(x), note: noteOf(x), credits: x.credits, zy: x.zy, flag: x.flag }));
+    return (wb.savedDrafts[wb.previewDraftIdx]?.courses ?? []).map((x) => ({ name: x.name, teacher: x.teacher, code: x.code, seq: x.seq || "0", time: timeOf(x), note: noteOf(x), credits: x.credits, zy: x.zy, flag: x.flag }));
   }, [mode, wb]);
 
   // 概率/余量信息（绿=有余量/已选，橙=排队，红=已满；色块直接画在时间轴课块上）
@@ -967,16 +981,6 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
     type PvCourse = { name: string; teacher?: string; code: string; seq: string; time: string; note: string; credits: number; zy: number; manual?: boolean; id?: string; flag?: XkFlag; typeCode?: string; begin?: string; end?: string; day?: number; cand?: boolean };
     const all: PvCourse[] = [
       ...courses,
-      // 候补课也上预览课表（用户语义：冲突也照样显示）——琥珀色 + 候选前缀，
-      // 与正式课重叠时 lane 分道共处，不互删。
-      // 时间正源 = 候选自带（parseTimetableCandidates 已抽格子坐标「天-节」，立即可
-      // 用）；目录时间仅作兜底——目录懒加载，用它会造成「点一下才显示时间」的
-      // 雷霆依赖（2026-09 实测事故）
-      ...wb.candidates.map((x): PvCourse => {
-        const cat = wb.courses.find((r) => r.c.code === x.code);
-        const time = parseTimeSlots(x.time).length ? x.time : cat?.time && parseTimeSlots(cat.time).length ? cat.time : x.time;
-        return { name: x.name, teacher: x.teacher || cat?.teacher || undefined, code: x.code, seq: x.seq || "0", time, note: "", credits: 0, zy: 0, cand: true };
-      }),
       ...wb.manualEvents.map((e): PvCourse => ({ name: e.name, teacher: undefined, code: e.code, seq: e.seq, time: e.time, note: "", credits: e.credits, zy: 0, manual: true, id: e.id, begin: e.begin, end: e.end, day: e.day })),
     ];
     for (const c of all) {

@@ -177,6 +177,10 @@ async function ensure(
   zhjwxkDebug?.(
     `[XK-ENTRY] len=${html.length} 有p_xnxq=${semester ? 1 : 0} 页首=${html.slice(0, 400).replace(/\s+/g, " ")}`,
   );
+  // 落地页必须带 p_xnxq（真选课页特征）。「假成功」实证（15:03）：/check 登录成功
+  // 但兑付落在电子身份页——缓存这种毒 entry 会让合流窗口内所有请求吃死页。
+  // 不缓存、不记重登时刻，直接抛失登走整页重登自愈。
+  if (!semester) throw new AuthRequiredError("选课系统登录未落地，请重新登录后重试");
   const entry: ZhjwxkEntry = { semester, at: Date.now() };
   lastXkReloginAt = Date.now();
   entryCache.set(s, entry);
@@ -1179,6 +1183,7 @@ export async function getXkPlan(s: ZhjwxkSession, opts: { semester: string }): P
     const group = cells.find((c) => c.length > 2 && !["必修", "限选", "任选"].includes(c) && !/^\d/.test(c) && !c.includes("学年") && c !== name);
     if (name) out.push({ semester: `${sem} ${season}`.trim(), code: code!, name: name!.replace(/\s+/g, ""), attr: attr ?? "", credits: parseFloat(credit ?? "") || 0, group: group ?? "" });
   }
+  zhjwxkDebug?.(`[XK-PLAN] len=${page.length} kcTable=${page.includes("kcTable") ? 1 : 0} 行=${out.length} 页首=${page.slice(0, 200).replace(/\s+/g, " ")}`);
   return out;
 }
 
