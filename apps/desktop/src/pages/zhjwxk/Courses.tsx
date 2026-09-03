@@ -1105,7 +1105,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
                   return (
                     <div key={b.key} title={`${b.label}（${pvHm(b.begin)}–${pvHm(b.end)}）${b.probLabel ? " · " + b.probLabel : ""}`}
                       style={{ position: "absolute", left: `calc(${leftPct}% + 3px)`, width: `calc(${widthPct}% - 6px)`, top, height, background: b.color, borderRadius: 5, padding: compact ? "2px 4px" : "3px 5px", color: "#fff", overflow: "hidden", boxSizing: "border-box", boxShadow: "0 1px 3px rgba(0,0,0,0.18)", zIndex: 6, cursor: b.manual ? undefined : "pointer" }}
-                      onClick={() => { if (!b.manual && b.code) jumpTo(b.code, b.cand ? "queue" : "all"); }}>
+                      onClick={() => { if (!b.manual && b.code) searchCode(b.code); }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                         <div style={{ fontSize: compact ? 8.5 : 9.5, fontWeight: 700, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.label}</div>
                       </div>
@@ -1278,7 +1278,7 @@ function QueueSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
       {wb.candidates.map((c, i) => (
         <div key={`${c.code}-${i}`} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: "4px 0", borderBottom: "1px solid var(--border)" }}>
           <span className="chip chip-amber" style={{ fontSize: 10 }}>{c.myPos ? `第${c.myPos}位/${c.queueTotal}` : "候选"}</span>
-          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={`${c.name}（${c.code}${c.seq && c.seq !== "0" ? `·${c.seq}` : ""}）`} onClick={() => jumpTo(c.code, "queue")}>{c.name}<span style={{ color: "var(--text-3)" }}> {c.code}{c.seq && c.seq !== "0" ? `·${c.seq}` : ""}</span></span>
+          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={`${c.name}（${c.code}${c.seq && c.seq !== "0" ? `·${c.seq}` : ""}）`} onClick={() => searchCode(c.code)}>{c.name}<span style={{ color: "var(--text-3)" }}> {c.code}{c.seq && c.seq !== "0" ? `·${c.seq}` : ""}</span></span>
           <button className="btn" style={{ padding: "0 5px", fontSize: 10 }} disabled={wb.busy !== null} onClick={() => void wb.drop(c.code, c.seq, true)}>删除</button>
         </div>
       ))}
