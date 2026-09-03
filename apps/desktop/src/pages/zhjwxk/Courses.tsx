@@ -653,7 +653,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
         </div>
       </Card>
 
-      {chip === "plan" ? <PlanView wb={wb} query={query} /> : wb.searchState === "idle" || wb.searchState === "loading" ? (
+      {chip === "plan" ? <PlanView wb={wb} query={query} onSearchCode={(code) => { setQuery(code); setChip("all"); void wb.newSearch({ kcm: "", kch: code, teacher: "", department: "", weekday: "", section: "", grade: "", rxklxm: "", kctsm: "", onlyAvailable: false, gradAvail: false }); wb.setToast(`正在搜索 ${code}…`); }} /> : wb.searchState === "idle" || wb.searchState === "loading" ? (
         <Card><SkeletonRows rows={6} /><Empty text="正在实时查询教务系统（搜索/翻页各 1 个往返，即搜即得）…" /></Card>
       ) : wb.searchState === "error" ? (
         <ErrorNote text={wb.searchError ?? ""} onRetry={() => void wb.retrySearch()} />
@@ -698,7 +698,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
 }
 
 /* ══════════ 培养方案视图（render.js renderPlanView 逐行移植）══════════ */
-function PlanView({ wb, query }: { wb: ReturnType<typeof useXkWorkbench>; query: string }) {
+function PlanView({ wb, query, onSearchCode }: { wb: ReturnType<typeof useXkWorkbench>; query: string; onSearchCode: (code: string) => void }) {
   const coverage = useMemo(() => checkPlanCoverage(wb.plan, wb.courses, wb.stageCart, wb.savedDrafts.map((d) => d.courses), (wb.semester ?? "").endsWith("2")),
     [wb.plan, wb.courses, wb.stageCart, wb.savedDrafts, wb.semester]);
   useEffect(() => {
@@ -749,7 +749,7 @@ function PlanView({ wb, query }: { wb: ReturnType<typeof useXkWorkbench>; query:
             {courses.map((p) => {
               const bg = p.covered ? "rgba(7,193,96,.06)" : "rgba(238,77,77,.04)";
               return (
-                <div key={p.code} title={`点击搜索 ${p.code}`} onClick={() => searchCode(p.code)}
+                <div key={p.code} title={`点击搜索 ${p.code}`} onClick={() => onSearchCode(p.code)}
                   style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 10, background: bg, marginBottom: 3, fontSize: 12, cursor: "pointer" }}>
                   <span style={{ fontSize: 12 }}>{p.covered ? "✓" : "✗"}</span>
                   <span style={{ flex: 1, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
