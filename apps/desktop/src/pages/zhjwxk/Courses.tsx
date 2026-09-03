@@ -11,6 +11,7 @@ import { useXkWorkbench, type XkSearchMeta, type XkStageItem } from "../../state
 import { useApp } from "../../state/context.js";
 import type { XkCourseDetail } from "@onethu/core";
 import { tbEnsureIndex, tbFetchReviews, tbMatch, tbStars, tbCourseUrl, tbWriteUrl, type TbEntry, type TbReviews } from "../../lib/xkreviews.js";
+import { confirmOk } from "../../lib/confirm.js";
 import { openExternal } from "../info/openExternal.js";
 import { callAi, extractJsonArray, loadAiConfig, saveAiConfig, type AiConfig } from "../../lib/xkai.js";
 import {
@@ -1045,17 +1046,17 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
     if (mode === "selected") {
       const c = wb.courses.find((x) => x.c.code === code && String(x.c.seq || "0") === String(seq));
       const name = c?.name || code;
-      if (!globalThis.confirm?.(`确认退选「${name}」？`)) return;
+      if (!(await confirmOk(`确认退选「${name}」？`))) return;
       await wb.drop(code, seq, false);
     } else if (mode === "stage") {
       const x = wb.stageCart.find((y) => y.code === code && String(y.seq || "0") === String(seq || "0"));
-      if (!globalThis.confirm?.(`从暂存区移除「${x?.name || code}」？`)) return;
+      if (!(await confirmOk(`从暂存区移除「${x?.name || code}」？`))) return;
       wb.removeFromStage(code, seq);
     } else {
       const d = wb.savedDrafts[wb.previewDraftIdx];
       if (!d) return;
       const x = d.courses.find((y) => y.code === code && String(y.seq || "0") === String(seq || "0"));
-      if (!globalThis.confirm?.(`从草稿移除「${x?.name || code}」？`)) return;
+      if (!(await confirmOk(`从草稿移除「${x?.name || code}」？`))) return;
       wb.removeFromDraft(wb.previewDraftIdx, code, seq);
     }
   };
@@ -1235,7 +1236,7 @@ function StageSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
         <button className="btn" onClick={() => { const n = globalThis.prompt?.("草稿名称", "我的课表"); if (n) wb.saveCurrentAsDraft(n); }}>存当前选课</button>
         <button className="btn" onClick={() => wb.setPreview("stage")}>预览暂存</button>
         <button className="btn" style={{ color: "var(--red)" }} disabled={!wb.stageCart.length && !wb.manualEvents.length}
-          onClick={() => { if (globalThis.confirm?.(`清空暂存车 ${wb.stageCart.length} 门 + 自定义占用 ${wb.manualEvents.length} 项？（预览暂存里的块全部来源就这两处，清完即空）`)) { for (const s of [...wb.stageCart]) wb.removeFromStage(s.code, s.seq); wb.clearManualEvents(); } }}>清空</button>
+          onClick={() => { void (async () => { if (await confirmOk(`清空暂存车 ${wb.stageCart.length} 门 + 自定义占用 ${wb.manualEvents.length} 项？`)) { for (const s of [...wb.stageCart]) wb.removeFromStage(s.code, s.seq); wb.clearManualEvents(); } })()}}>清空</button>
         <button className="btn" onClick={() => setImportOpen((v) => !v)}>导入</button>
       </div>
       {importOpen ? (

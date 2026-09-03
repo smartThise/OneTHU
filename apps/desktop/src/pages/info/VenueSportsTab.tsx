@@ -18,6 +18,7 @@
  * - 网络/HTTP 错误 → 服务暂不可用 + 重试；业务错误 → 服务端原文
  * - 空数据 ≠ 错误：「暂无可预约场次」
  */
+import { confirmOk } from "../../lib/confirm.js";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   fmtVenueDate,
