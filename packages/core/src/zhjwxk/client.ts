@@ -96,6 +96,8 @@ interface ZhjwxkEntry {
  *  请求内静默重登+重试，用户无感。UI 全部显式传学期，entry.semester 过期无碍。 */
 const ENTRY_TTL_MS = 10 * 60_000;
 const entryCache = new WeakMap<ZhjwxkSession, ZhjwxkEntry>();
+/** 最近一次成功重登时刻（合流护栏：8 秒窗口内的并发弹回共用新会话，不起重复链） */
+let lastXkReloginAt = 0;
 const entryInflight = new WeakMap<ZhjwxkSession, Promise<ZhjwxkEntry>>();
 
 async function ensure(
@@ -124,12 +126,15 @@ async function ensure(
     const form = parseCasFormHtml(html, true);
     const enc = encryptPassword(s.password, form.publicKey);
     // bounce 表单页是 id 直连落地 → 直连字段集（id 校验读 i_pass，cas.ts 直连同款）
+    // 不带 singleLogin（参照选课插件登录字段：i_user/i_pass/fingerPrint/
+    // fingerGenPrint/i_captcha，无此项且常年稳定）——带上会踢掉上一条会话，
+    // 并发数据路各自重登时自踢风暴：后登录踢死先登录的，plan/队列在风暴里
+    // 永远抢不到活会话（2026-09-03 实录）
     const body = new URLSearchParams({
       ...form.hiddenFields,
       i_user: s.username,
       i_pass: enc,
       sm2pass: enc,
-      singleLogin: "on",
       fingerPrint: s.fingerprint,
       fingerGenPrint: "",
       fingerGenPrint3: "",
@@ -173,6 +178,7 @@ async function ensure(
     `[XK-ENTRY] len=${html.length} 有p_xnxq=${semester ? 1 : 0} 页首=${html.slice(0, 400).replace(/\s+/g, " ")}`,
   );
   const entry: ZhjwxkEntry = { semester, at: Date.now() };
+  lastXkReloginAt = Date.now();
   entryCache.set(s, entry);
   return entry;
   })();
@@ -205,8 +211,11 @@ async function proxyZhjwxkApi(s: ZhjwxkSession, entry: ZhjwxkEntry, zhjwxkPath: 
     return html;
   }
   // 乐观自愈（dormPage 同构）：jar 会话真死 → 静默重走登录链并重试一次，用户无感；
-  // 重试仍死则原样返回，由 assertNotDenied 抛 AuthRequiredError 走既有 autoFullReload 链
-  entryCache.delete(s);
+  // 重试仍死则原样返回，由 assertNotDenied 抛 AuthRequiredError 走既有 autoFullReload 链。
+  // 合流护栏：8 秒内已有别的请求重登过（entry 缓存即新鲜），不再删缓存起新链——
+  // 并发数据路同时弹回时各自重登纯属浪费且易互相踩（singleLogin 已除，链本身无害，
+  // 但一帧内 3-4 条链仍拖慢自愈）
+  if (Date.now() - lastXkReloginAt > 8_000) entryCache.delete(s);
   await ensure(s);
   const retried = await s.http.text(ZHJWXK + zhjwxkPath);
   entry.at = Date.now();
