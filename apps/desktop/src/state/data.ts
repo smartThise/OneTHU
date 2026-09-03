@@ -953,7 +953,11 @@ export function useXkWorkbench(): XkWorkbench {
         const locked = head.totalRows ?? 0; // 底部「共 N 条记录」——爬取完整性的锁死基准（用户定稿：先记死再核对）
         // 用户定稿（2026-09 二稿）：<500 门（≤25 页）→ 除首页外全部并发一口气拉完；
         // ≥500 门 → 先探 5 页（100 门）+ 提示条显式加载全部。tp 解析失败保守探 25 页。
-        const probeTo = tp > 0 ? (tp <= 25 ? tp : 5) : 25;
+        // 课号精确搜（kcm 空 + kch 非空）= 单页语义：结果至多几行在第 1 页。
+        // 绝不探测/重爬——课号搜索的深页教务返回无过滤首页课程（2026-09-03 实录：
+        // 搜完一会「变回首页课程」），且 25 连发把代理 token 打满、后续搜索全卡死
+        const exactCode = !kw && !!(meta.kch || "").trim();
+        const probeTo = exactCode ? 1 : tp > 0 ? (tp <= 25 ? tp : 5) : 25;
         // 并发 + 20ms 微错峰（裸并发会被教务打挂——40/74 教训）+ 失败单页重试一次
         const crawlRest = (): Promise<Array<typeof head | null>> => Promise.all(Array.from({ length: probeTo - 1 }, (_, i) =>
           (async (): Promise<typeof head | null> => {
@@ -991,7 +995,7 @@ export function useXkWorkbench(): XkWorkbench {
         doMerge();
         // 核对：实得 < 锁死总数 → 整轮重爬，最多重试 2 次（用户定稿）
         let retries = 0;
-        while (locked > 0 && merged.length < locked && retries < 2) {
+        while (!exactCode && locked > 0 && merged.length < locked && retries < 2) {
           retries += 1;
           rest = await crawlRest();
           if (seq !== searchSeqRef.current) return;
