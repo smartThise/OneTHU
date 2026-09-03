@@ -476,9 +476,10 @@ export function VenueSportsTab() {
   const [bookingEmbed, setBookingEmbed] = useState<string | null>(null);
   const goOfficialBooking = useCallback(() => {
     if (!venue) return;
-    const embed = venueBookingEmbedUrl(venue.uuid);
-    if (embed) setBookingEmbed(embed);
-    else void openExternal(venueWebUrl(venue.uuid));
+    void venueBookingEmbedUrl(venue.uuid).then((embed) => {
+      if (embed) setBookingEmbed(embed);
+      else void openExternal(venueWebUrl(venue.uuid));
+    });
   }, [venue]);
 
   /* —— 退订 —— */
