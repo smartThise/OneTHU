@@ -962,8 +962,14 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
     const all: PvCourse[] = [
       ...courses,
       // 候补课也上预览课表（用户语义：冲突也照样显示）——琥珀色 + 候选前缀，
-      // 与正式课重叠时 lane 分道共处，不互删
-      ...wb.candidates.map((x): PvCourse => ({ name: x.name, teacher: x.teacher || undefined, code: x.code, seq: x.seq || "0", time: x.time, note: "", credits: 0, zy: 0, cand: true })),
+      // 与正式课重叠时 lane 分道共处，不互删。
+      // 时间优先回查课程目录（队列接口给的多为「全周」类描述串，解析不出格子
+      // 会掉进「时间未定」区——2026-09 实测事故）；目录没有再退候选自带时间
+      ...wb.candidates.map((x): PvCourse => {
+        const cat = wb.courses.find((r) => r.c.code === x.code);
+        const time = cat?.time && parseTimeSlots(cat.time).length ? cat.time : parseTimeSlots(x.time).length ? x.time : (cat?.time || x.time);
+        return { name: x.name, teacher: x.teacher || cat?.teacher || undefined, code: x.code, seq: x.seq || "0", time, note: "", credits: 0, zy: 0, cand: true };
+      }),
       ...wb.manualEvents.map((e): PvCourse => ({ name: e.name, teacher: undefined, code: e.code, seq: e.seq, time: e.time, note: "", credits: e.credits, zy: 0, manual: true, id: e.id, begin: e.begin, end: e.end, day: e.day })),
     ];
     for (const c of all) {
