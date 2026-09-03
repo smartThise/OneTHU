@@ -201,7 +201,11 @@ function isXkDeadHtml(html: string): boolean {
   return html.includes("accessDenied")
     || html.includes("用户登陆超时或访问内容不存在。请重试")
     || html.includes("电子身份服务系统")
-    || html.includes("do/off/ui/auth/login");
+    || html.includes("do/off/ui/auth/login")
+    // WebVPN app-host 引导壳（webvpn 会话死亡，请求没到教务）——2026-09-03
+    // 实录：标题综合教务系统 + __vpn_hostname_data/__vpn_app_hostname_data
+    || html.includes("__vpn_app_hostname_data")
+    || html.includes("__vpn_hostname_data");
 }
 
 async function proxyZhjwxkApi(s: ZhjwxkSession, entry: ZhjwxkEntry, zhjwxkPath: string): Promise<string> {
