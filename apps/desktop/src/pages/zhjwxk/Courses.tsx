@@ -517,10 +517,13 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   }, [jump]);
 
   const rows = useMemo<XkRow[]>(() => {
-    if (wb.searchState === "idle" || wb.searchState === "loading") return [];
+    // 我的队列/已选不依赖已加载的搜索页：改用工作台全量池（目录+已选/候补补行）
+    // ——候选课不在已翻页里时这两个 chip 永远空（「我的队列被吃了十年」实证）
+    const fullPool = chip === "queue" || chip === "selected";
+    if (!fullPool && (wb.searchState === "idle" || wb.searchState === "loading")) return [];
     const q = query.trim().toLowerCase();
     const dayRe = day && period ? new RegExp(`${day}-${period}\\(`) : day ? new RegExp(`${day}-\\d`) : period ? new RegExp(`\\d+-${period}\\(`) : null;
-    const base = wb.searchRows
+    const base = (fullPool ? wb.courses : wb.searchRows)
       .filter((r) => {
         if (q && !(r.name.toLowerCase().includes(q) || r.c.code.includes(q) || r.teacher.toLowerCase().includes(q))) return false;
         if (chip === "available" && !r.available) return false;
@@ -558,7 +561,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
     else if (sortBy === "rate_desc") scored.sort((a, b) => ((b.e?.avg ?? -1) - (a.e?.avg ?? -1)) || ((b.e?.count ?? 0) - (a.e?.count ?? 0)));
     else scored.sort((a, b) => ((a.e?.avg ?? 6) - (b.e?.avg ?? 6)) || ((b.e?.count ?? 0) - (a.e?.count ?? 0)));
     return scored.map((x) => x.r);
-  }, [wb.searchRows, wb.searchState, wb.previewIndex, query, chip, credits, day, period, conflictF, tongshi, feature, grade, bksrem, yjsrem, xknote, reviewsF, sortBy]);
+  }, [wb.searchRows, wb.searchState, wb.courses, wb.previewIndex, query, chip, credits, day, period, conflictF, tongshi, feature, grade, bksrem, yjsrem, xknote, reviewsF, sortBy]);
 
   /* ── 分页（教务同款）：
    *  · 浏览模式：curPage = 服务端页码，翻页 = wb.gotoPage(n)（点哪页爬哪页），总页数 = 服务端「共 N 页」；
