@@ -10,8 +10,11 @@ window.addEventListener("resize", markPhone);
 import { createRoot } from "react-dom/client";
 import "@onethu/ui/tokens.css";
 import { installAuthWatchdog } from "./lib/reload.js";
+import { applyAppIcon, loadAppIconId } from "./lib/appIcon.js";
 
 installAuthWatchdog();
+// 恢复自定义应用图标（窗口/任务栏；失败静默，见 appIcon.ts）
+void applyAppIcon(loadAppIconId(), false);
 import "@onethu/ui/base.css";
 import "./styles/global.css";
 import { App } from "./App.js";
