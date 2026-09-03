@@ -819,7 +819,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             </button>
           </div>
           ); })()}
-        {confs.length ? <div className="row-sub" style={{ color: "var(--red)", whiteSpace: "normal" }}>冲突: {confs.slice(0, 3).map((c) => `周${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.b}`).join(" · ")}</div> : null}
+        {confs.length ? <div className="row-sub" style={{ color: "var(--red)", whiteSpace: "normal" }}>冲突: {confs.slice(0, 3).map((c) => `${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.b}`).join(" · ")}</div> : null}
         {state === "selected" ? (
           <div className="row-sub" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
             {r.zy ? <span style={{ fontSize: 12, color: "var(--text-3)" }}>{FLAG_LABELS[r.flag]} · 第{r.zy}志愿</span> : null}
@@ -831,6 +831,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
         ) : state === "candidate" ? (
           <div className="row-sub" style={{ display: "flex", gap: 6, marginTop: 4, alignItems: "center" }}>
             <span style={{ color: "var(--amber)", fontSize: 12 }}>{r.cand ? (r.cand.myPos ? `排队第${r.cand.myPos}名 / 共${r.cand.queueTotal}人` : "候选中") : "候选中"}</span>
+            {r.teacherId ? <button className="btn" style={{ padding: "0 6px", fontSize: 11 }} onClick={() => openDetail(r.c.code)}>简介</button> : null}
             <button className="btn" disabled={wb.busy !== null} onClick={() => void wb.drop(r.c.code, r.c.seq, true)}>删除</button>
           </div>
         ) : (
@@ -1060,7 +1061,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
   };
 
   const cr = courses.reduce((a, c) => a + (c.credits || 0), 0);
-  const label = mode === "selected" ? "当前已选" : mode === "stage" ? "暂存车预览" : `草稿「${wb.savedDrafts[wb.previewDraftIdx]?.name ?? ""}」预览`;
+  const label = mode === "selected" ? "当前已选" : mode === "stage" ? `暂存车预览（暂存车${wb.stageCart.length}门${wb.stageCart.length ? "：" + wb.stageCart.map((x) => x.code).join("、") : ""}）` : `草稿「${wb.savedDrafts[wb.previewDraftIdx]?.name ?? ""}」预览`;
   const canvasH = pvY(PV_AXIS_END) + 12;
   const todayIdx = (() => { const d = new Date().getDay(); return d === 0 ? 6 : d - 1; })();
   return (
@@ -1227,7 +1228,7 @@ function StageSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
           })}
         </div>
       )}
-      {conflicts.length ? <div style={{ color: "var(--red)", fontSize: 11, marginTop: 6 }}>冲突: {conflicts.slice(0, 5).map((c) => `周${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.a}/${c.b}`).join(" · ")}</div> : null}
+      {conflicts.length ? <div style={{ color: "var(--red)", fontSize: 11, marginTop: 6 }}>冲突: {conflicts.slice(0, 5).map((c) => `${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.a}/${c.b}`).join(" · ")}</div> : null}
       <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
         <input className="input" style={{ flex: 1, height: 26, fontSize: 12, minWidth: 110 }} placeholder="草稿名称（如：方案A）" value={draftName} onChange={(e) => setDraftName(e.target.value)} />
         <button className="btn" onClick={() => { if (draftName.trim()) { wb.saveDraft(draftName.trim()); setDraftName(""); } }}>保存草稿</button>

@@ -242,7 +242,7 @@ export function buildRows(
     rows.push({
       key, c: { department: c0?.department ?? "", code: s.code, seq: s.seq || "0", name: s.name || c0?.name || "", credits: c0?.credits ?? 0, teacher: s.teacher || c0?.teacher || "", teacherId: c0?.teacherId ?? "", capacity: c0?.capacity ?? 0, remaining: c0?.remaining ?? 0, gradCapacity: c0?.gradCapacity ?? 0, gradRemaining: c0?.gradRemaining ?? 0, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", note: c0?.note ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", tongshiGroup: c0?.tongshiGroup ?? "", attr: c0?.attr ?? "" },
       selected: false, isCandidate: true, available: false, cand: s,
-      flag: typeCodeToFlag(s.typeCode), zy: s.zy, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", name: s.name || c0?.name || "", teacher: s.teacher || c0?.teacher || "", credits: c0?.credits ?? 0,
+      flag: (s.typeLabel ?? "").includes("任选") ? "rx" : (s.typeLabel ?? "").includes("限选") ? "xx" : (s.typeLabel ?? "").includes("体育") ? "ty" : "bx", zy: 0, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", name: s.name || c0?.name || "", teacher: s.teacher || c0?.teacher || "", credits: c0?.credits ?? 0,
       tongshiGroup: c0?.tongshiGroup ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", teacherId: c0?.teacherId ?? "", note: c0?.note ?? "",
     });
   }

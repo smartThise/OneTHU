@@ -1122,6 +1122,9 @@ export function useXkWorkbench(): XkWorkbench {
    *  对时间列解析失败的已选课，逐门 p_kch 查 kkxxSearch（各 1 个小请求，并行），
    *  结果并入 join 池，课表预览/卡片时间列即恢复真实时间。── */
   const [selDetail, setSelDetail] = useState<Record<string, XkCourse>>({});
+  // 候补课目录元数据（按课号逐门单查，非全目录爬）：补行无目录可借时学分/容量/余量全 0（卡片浆糊实录）
+  const [candCatalog, setCandCatalog] = useState<XkCourse[]>([]);
+  const candBackfillRef = useRef<Set<string>>(new Set());
   const selDetailKeysRef = useRef<Set<string>>(new Set());
   const backfillSelTimes = useCallback(
     async (sel: XkSelectedRow[]) => {
@@ -1155,12 +1158,12 @@ export function useXkWorkbench(): XkWorkbench {
     // join 池 = 本地目录（批量已淘汰，恒空）∪ 服务端搜索已浏览页 ∪ 已选时间回填行
     const seen = new Set<string>();
     const all: XkCourse[] = [];
-    for (const c of [...enrichedCatalog, ...searchRaw, ...Object.values(selDetail)]) {
+    for (const c of [...enrichedCatalog, ...searchRaw, ...Object.values(selDetail), ...candCatalog]) {
       const k = `${c.code}_${c.seq || "0"}`;
       if (!seen.has(k)) { seen.add(k); all.push(c); }
     }
     return buildRows(all, volMap, queueMap, selected, candidates, levelTypes);
-  }, [enrichedCatalog, searchRaw, selDetail, volMap, queueMap, selected, candidates, levelTypes]);
+  }, [enrichedCatalog, searchRaw, selDetail, candCatalog, volMap, queueMap, selected, candidates, levelTypes]);
   const canAdjustZy = useCallback(
     (code: string, seq: string, targetZy: number) => canAdjustZyFn(courses, code, seq, targetZy),
     [courses],
@@ -1413,6 +1416,28 @@ export function useXkWorkbench(): XkWorkbench {
     if (!row?.teacherId) return null;
     return getXkCourseDetail(xkSession(), { teacherId: row.teacherId, code: row.c.code }).catch(() => null);
   }, [courses]);
+
+  // 候补课目录元数据回填：每门候补按课号单查一页（1 请求/门，非全目录爬——用户明确否决全量爬），
+  // 目录行并入 join 池后 buildRows 自动借出学分/容量/余量/文字说明（插件 allCourses 同效）
+  useEffect(() => {
+    if (status === "demo" || !candidates.length) return;
+    // 注意：候补补行本身会让「课号已知」成立——那正是缺元数据的行！
+    // 判据必须是「该课号已有真目录数据」（学分>0），否则回填永不触发
+    // （2026-09-03 实录：回填上线一小时一个请求都没发，卡片恒 0 学分）
+    const withMeta = new Set(courses.filter((r) => r.c.credits > 0 || r.c.capacity > 0).map((r) => r.c.code));
+    const todo = candidates.filter((c) => !withMeta.has(c.code) && !candBackfillRef.current.has(c.code));
+    if (!todo.length) return;
+    for (const c of todo) candBackfillRef.current.add(c.code);
+    void (async () => {
+      for (const c of todo) {
+        try {
+          const res = await fetchXkPage({ kcm: "", kch: c.code, teacher: "", department: "", weekday: "", section: "", grade: "", rxklxm: "", kctsm: "", onlyAvailable: false, gradAvail: false }, 1);
+          const hit = res.rows.find((r) => r.code === c.code);
+          if (hit) setCandCatalog((prev) => (prev.some((x) => x.code === hit.code && String(x.seq || "0") === String(hit.seq || "0")) ? prev : [...prev, hit]));
+        } catch { /* 单课补查失败静默：卡片仅缺元数据，不阻塞主数据 */ }
+      }
+    })();
+  }, [status, candidates, courses]);
 
   /** 当前预览集合的槽位索引（课表网格 + 冲突筛选用） */
   const previewItems = useMemo<Array<SlotItem & { time: string }>>(() => {
