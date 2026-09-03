@@ -266,7 +266,10 @@ export function parseSelectedCourses(html: string): SelectedCourse[] {
 /** demo /api/queue 的 <tr class="trr2"> 行解析（server.js L315-327） */
 export function parseQueueCandidates(html: string): QueueCandidate[] {
   const candidates: QueueCandidate[] = [];
-  const rowRe = ROW_RE();
+  // 行 class 放宽 trr2→trr[12]：新学期版式若换行类（已选表 2026-2027-1 已改版的前车之鉴），
+  // 只认 trr2 会静默得空列表（「我的队列被吃了」实测事故）；trr1 在两份样本中均为表头，
+  // 无 <td> 数据格，天然被 tds.length 门槛过滤
+  const rowRe = /<tr[^>]*class="trr[12]"[^>]*>([\s\S]*?)<\/tr>/g;
   let m: RegExpExecArray | null;
   while ((m = rowRe.exec(html)) !== null) {
     const tds = [...m[1]!.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((t) =>
@@ -290,6 +293,47 @@ export function parseQueueCandidates(html: string): QueueCandidate[] {
   return candidates;
 }
 
+/** 课表页候选课（m=kbSearch 一级选课课表）：队列功能未开放时的兜底数据源。
+ *  样本（北大示例/候选课/本科生选课系统.html）两种形态：渲染锚
+ *  p_id=..;课号 …候选：名</b></font></a>(教师；类型；时间) 与脚本串
+ *  strHTML += "<b>候选：名</b>"（详情在 strHTML1 "；X" 行）。
+ *  配对窗口 250 字内不得再出现锚点/p_id（防跨格错配：复变课号配探秘名实证）。 */
+export function parseTimetableCandidates(html: string): QueueCandidate[] {
+  const out: QueueCandidate[] = [];
+  const seen = new Set<string>();
+  const re = /p_id=\d+;(\d{6,})/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    const code = m[1] ?? "";
+    if (!code || seen.has(code)) continue;
+    const seg = html.slice(m.index + m[0].length, m.index + m[0].length + 250);
+    const ci = seg.indexOf("候选：");
+    if (ci === -1) continue;
+    const between = seg.slice(0, ci);
+    if (between.includes("<a") || between.includes("p_id")) continue;
+    const name = /候选：([^<&"'\n]{1,60})/.exec(seg.slice(ci))?.[1]?.trim() ?? "";
+    if (!name) continue;
+    seen.add(code);
+    const tail = seg.slice(ci, ci + 400);
+    const pd = /<\/a>\s*\(([^)]{0,80})\)/.exec(tail);
+    const parts = pd
+      ? pd[1]!.split(/[；;]/)
+      : [...tail.matchAll(/strHTML1 \+= "；([^"]*)"/g)].map((x) => x[1] ?? "");
+    out.push({
+      typeLabel: parts[1] ?? "",
+      zyStr: "",
+      code,
+      name,
+      seq: "0",
+      queueTotal: 0,
+      myPos: 0,
+      time: parts[2] ?? "",
+      teacher: parts[0] ?? "",
+    });
+  }
+  return out;
+}
+
 /* ── 公开 API ─────────────────────────────────────────────────── */
 
 /** 已选课程（demo GET /api/courses：m=yxSearchTab&p_xnxq=<学期>） */
@@ -311,7 +355,32 @@ export async function getQueueStatus(
   const { entry, semester } = await ensure(s, opts.semester);
   const html = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksXkbBs.do?m=dlSearch&p_xnxq=${semester}`);
   assertNotDenied(s, html);
-  return parseQueueCandidates(html);
+  const rows = parseQueueCandidates(html);
+  if (rows.length === 0 && html.includes("提示信息")) {
+    // 「队列功能未开放」等拦截（2026-09 实录）：一级选课课表（m=kbSearch）里的
+    // 候选课兜底——用户语义：官网课表能看到排队课就从课表爬；课表也没有就
+    // 安静空着不报错
+    const kb = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksXkbBs.do?m=kbSearch&p_xnxq=${semester}`);
+    assertNotDenied(s, kb);
+    const cand = parseTimetableCandidates(kb);
+    zhjwxkDebug?.(`[XK-QUEUE] 功能未开放兜底 kbSearch 候选=${cand.length}`);
+    if (cand.length) return cand;
+  }
+  if (rows.length === 0) {
+    // 官网有队列但应用为空时的定位线索：页面到底长什么样（行类分布/页首形态）
+    zhjwxkDebug?.(
+      `[XK-QUEUE] 零行诊断 sem=${semester} len=${html.length} trr1=${(html.match(/trr1/g) ?? []).length} trr2=${(html.match(/trr2/g) ?? []).length} tr总数=${(html.match(/<tr[^>]*>/g) ?? []).length} 页首=${html.slice(0, 300).replace(/\s+/g, " ")}`,
+    );
+    // 「提示信息」类拦截页很小（实测 1492B），正文全文打印——拦截原因直接写在正文里
+    const text = html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    zhjwxkDebug?.(`[XK-QUEUE] 拦截页全文(${text.length})=${text.slice(0, 700)}`);
+  }
+  return rows;
 }
 
 /** 解析当前学期（demo 的 p_xnxq 逻辑：GET xklogin.do 后从页面提取） */
@@ -981,10 +1050,14 @@ export function parseXkSelectedFull(html: string): XkSelectedRow[] {
     const info = zyMap[`${code}_${seq}`] ?? { zy: 0, typeCode: "", typeLabel: "" };
     const zyFromCell = /第([一二三])志愿/.exec(cell(2));
     const isSports = !cell(1) && zyFromCell;
+    // 2026-2027-1 起已选表列序变更（样本 xkBks.vxkBksXkbBs 实证）：课号独立成列
+    // → cell(3)=课号、cell(4)=课名（教师/时间/学分未动）。自适应取第一个非纯
+    // 数字的候选格，新旧列序通吃——否则预览课表整屏课号（实测事故）。
+    const nameCell = [cell(4), cell(3)].find((x) => x !== "" && !/^\d+$/.test(x)) ?? "";
     out.push({
       code,
       seq,
-      name: cell(3) || cell(1),
+      name: nameCell || cell(1),
       teacher: cell(7) || cell(2),
       time: cell(6) || cell(3),
       credits: parseFloat(cell(8) || cell(4)) || 0,

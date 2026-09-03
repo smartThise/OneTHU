@@ -233,6 +233,19 @@ export function buildRows(
       tongshiGroup: c0?.tongshiGroup ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", teacherId: c0?.teacherId ?? "", note: c0?.note ?? "",
     });
   }
+  // 候补课不在目录：同样补行（2026-09 实证缺陷：只补已选不补候补 → 不在已加载
+  // 目录里的候补课，「我的队列」筛选/预览/行合并全线无行可挂）
+  for (const s of candidates) {
+    const key = sk(s.code, s.seq);
+    if (inCat.has(key)) continue;
+    const c0 = catByCode.get(s.code);
+    rows.push({
+      key, c: { department: c0?.department ?? "", code: s.code, seq: s.seq || "0", name: s.name || c0?.name || "", credits: c0?.credits ?? 0, teacher: s.teacher || c0?.teacher || "", teacherId: c0?.teacherId ?? "", capacity: c0?.capacity ?? 0, remaining: c0?.remaining ?? 0, gradCapacity: c0?.gradCapacity ?? 0, gradRemaining: c0?.gradRemaining ?? 0, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", note: c0?.note ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", tongshiGroup: c0?.tongshiGroup ?? "", attr: c0?.attr ?? "" },
+      selected: false, isCandidate: true, available: false,
+      flag: typeCodeToFlag(s.typeCode), zy: s.zy, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", name: s.name || c0?.name || "", teacher: s.teacher || c0?.teacher || "", credits: c0?.credits ?? 0,
+      tongshiGroup: c0?.tongshiGroup ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", teacherId: c0?.teacherId ?? "", note: c0?.note ?? "",
+    });
+  }
   return rows;
 }
 

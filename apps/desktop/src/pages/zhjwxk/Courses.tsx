@@ -517,10 +517,13 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   }, [jump]);
 
   const rows = useMemo<XkRow[]>(() => {
-    if (wb.searchState === "idle" || wb.searchState === "loading") return [];
+    // 我的队列/已选不依赖已加载的搜索页：改用工作台全量池（目录+已选/候补补行）
+    // ——候选课不在已翻页里时这两个 chip 永远空（「我的队列被吃了十年」实证）
+    const fullPool = chip === "queue" || chip === "selected";
+    if (!fullPool && (wb.searchState === "idle" || wb.searchState === "loading")) return [];
     const q = query.trim().toLowerCase();
     const dayRe = day && period ? new RegExp(`${day}-${period}\\(`) : day ? new RegExp(`${day}-\\d`) : period ? new RegExp(`\\d+-${period}\\(`) : null;
-    const base = wb.searchRows
+    const base = (fullPool ? wb.courses : wb.searchRows)
       .filter((r) => {
         if (q && !(r.name.toLowerCase().includes(q) || r.c.code.includes(q) || r.teacher.toLowerCase().includes(q))) return false;
         if (chip === "available" && !r.available) return false;
@@ -558,7 +561,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
     else if (sortBy === "rate_desc") scored.sort((a, b) => ((b.e?.avg ?? -1) - (a.e?.avg ?? -1)) || ((b.e?.count ?? 0) - (a.e?.count ?? 0)));
     else scored.sort((a, b) => ((a.e?.avg ?? 6) - (b.e?.avg ?? 6)) || ((b.e?.count ?? 0) - (a.e?.count ?? 0)));
     return scored.map((x) => x.r);
-  }, [wb.searchRows, wb.searchState, wb.previewIndex, query, chip, credits, day, period, conflictF, tongshi, feature, grade, bksrem, yjsrem, xknote, reviewsF, sortBy]);
+  }, [wb.searchRows, wb.searchState, wb.courses, wb.previewIndex, query, chip, credits, day, period, conflictF, tongshi, feature, grade, bksrem, yjsrem, xknote, reviewsF, sortBy]);
 
   /* ── 分页（教务同款）：
    *  · 浏览模式：curPage = 服务端页码，翻页 = wb.gotoPage(n)（点哪页爬哪页），总页数 = 服务端「共 N 页」；
@@ -787,7 +790,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
         <div className="row-sub" style={{ whiteSpace: "normal" }}>{[r.c.code, r.c.seq && r.c.seq !== "0" ? `第${r.c.seq}班` : "", r.teacher, `${r.credits} 学分`, r.time, r.c.department].filter(Boolean).join(" · ")}</div>
         {r.c.note ? <div className="row-sub" style={{ whiteSpace: "normal", color: "var(--text-2)" }}>课程说明：{r.c.note}</div> : null}
         {wb.phase && r.q ? (
-          <div className="row-sub" style={{ whiteSpace: "normal" }}>{[cap ? `容量 ${cap}` : "", r.q.qQueue ? `排队 ${r.q.qQueue}` : "", r.cand ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : ""].filter(Boolean).join(" · ")}</div>
+          <div className="row-sub" style={{ whiteSpace: "normal" }}>{[cap ? `容量 ${cap}` : "", r.q.qQueue ? `排队 ${r.q.qQueue}` : "", r.cand ? (r.cand.myPos ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : "候选（队列未开放）") : ""].filter(Boolean).join(" · ")}</div>
         ) : r.vol ? (
           <div className="row-sub" style={{ whiteSpace: "normal" }}>
             {[r.vol.volRequired && fmtVol(r.vol.volRequired), r.vol.volElective && fmtVol(r.vol.volElective), r.vol.volOptional && fmtVol(r.vol.volOptional)].filter(Boolean).join(" · ")}
@@ -816,7 +819,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           </div>
         ) : state === "candidate" ? (
           <div className="row-sub" style={{ display: "flex", gap: 6, marginTop: 4, alignItems: "center" }}>
-            <span style={{ color: "var(--amber)", fontSize: 12 }}>排队第{r.cand!.myPos}名 / 共{r.cand!.queueTotal}人</span>
+            <span style={{ color: "var(--amber)", fontSize: 12 }}>{r.cand!.myPos ? `排队第${r.cand!.myPos}名 / 共${r.cand!.queueTotal}人` : "候选（队列功能未开放，课表候选兜底）"}</span>
             <button className="btn" disabled={wb.busy !== null} onClick={() => void wb.drop(r.c.code, r.c.seq, true)}>删除</button>
           </div>
         ) : (
@@ -838,7 +841,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
       </div>
       <span className={"chip " + (r.selected ? "chip-green" : r.isCandidate ? "chip-amber" : "")}>
         <span className="dot" />
-        {r.selected ? `已选${r.zy ? ` · ${r.zy}志愿` : ""}` : r.isCandidate ? `候补 ${r.cand?.myPos ?? ""}` : state === "full" ? "已满" : r.available ? "可选" : "已满"}
+        {r.selected ? `已选${r.zy ? ` · ${r.zy}志愿` : ""}` : r.isCandidate ? (r.cand?.myPos ? `候补 第${r.cand.myPos}名` : "候选") : state === "full" ? "已满" : r.available ? "可选" : "已满"}
       </span>
     </div>
   );
@@ -930,7 +933,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
       const r = wb.courses.find((x) => x.c.code === c.code && String(x.c.seq || "0") === String(c.seq || "0"));
       const qd = wb.queueMap[qKey] ?? r?.q;
       const cand = wb.candidates.find((cc) => cc.code === c.code && String(cc.seq) === String(c.seq || "0"));
-      if (cand) return { color: "#ff9f1a", label: `排队第${cand.myPos}/${cand.queueTotal}人` };
+      if (cand) return { color: "#ff9f1a", label: cand.myPos ? `排队第${cand.myPos}/${cand.queueTotal}人` : "候选" };
       if (mode === "selected") return { color: "#07c160", label: "已选" };
       if (qd) {
         if (qd.qRemaining > 0) return { color: "#07c160", label: `余${qd.qRemaining}` };
@@ -955,21 +958,30 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
 
   // 时间轴课块：清华课按大节→钟点；北大/北外等外校课 time 列无槽位，从 note 解析「周X HH:MM—HH:MM」
   const { placed, undet } = useMemo(() => {
-    type PvBlock = { key: string; day: number; begin: number; end: number; label: string; color: string; probLabel?: string; manual?: boolean; id?: string; code?: string; seq?: string; origin?: string; tag?: string };
+    type PvBlock = { key: string; day: number; begin: number; end: number; label: string; color: string; probLabel?: string; manual?: boolean; id?: string; code?: string; seq?: string; origin?: string; tag?: string; cand?: boolean };
     const raw: PvBlock[] = [];
     const undet: Array<{ lbl: string; code: string; seq: string; credits: number; zy: number; manual: boolean; id?: string }> = [];
-    type PvCourse = { name: string; teacher?: string; code: string; seq: string; time: string; note: string; credits: number; zy: number; manual?: boolean; id?: string; flag?: XkFlag; typeCode?: string; begin?: string; end?: string; day?: number };
+    type PvCourse = { name: string; teacher?: string; code: string; seq: string; time: string; note: string; credits: number; zy: number; manual?: boolean; id?: string; flag?: XkFlag; typeCode?: string; begin?: string; end?: string; day?: number; cand?: boolean };
     const all: PvCourse[] = [
       ...courses,
+      // 候补课也上预览课表（用户语义：冲突也照样显示）——琥珀色 + 候选前缀，
+      // 与正式课重叠时 lane 分道共处，不互删。
+      // 时间优先回查课程目录（队列接口给的多为「全周」类描述串，解析不出格子
+      // 会掉进「时间未定」区——2026-09 实测事故）；目录没有再退候选自带时间
+      ...wb.candidates.map((x): PvCourse => {
+        const cat = wb.courses.find((r) => r.c.code === x.code);
+        const time = cat?.time && parseTimeSlots(cat.time).length ? cat.time : parseTimeSlots(x.time).length ? x.time : (cat?.time || x.time);
+        return { name: x.name, teacher: x.teacher || cat?.teacher || undefined, code: x.code, seq: x.seq || "0", time, note: "", credits: 0, zy: 0, cand: true };
+      }),
       ...wb.manualEvents.map((e): PvCourse => ({ name: e.name, teacher: undefined, code: e.code, seq: e.seq, time: e.time, note: "", credits: e.credits, zy: 0, manual: true, id: e.id, begin: e.begin, end: e.end, day: e.day })),
     ];
     for (const c of all) {
-      const lbl = c.teacher ? `${c.name}(${c.teacher})` : c.name;
+      const lbl = (c.cand ? "候选：" : "") + (c.teacher ? `${c.name}(${c.teacher})` : c.name);
       const prob = probOf(c);
-      const color = c.manual ? "#8b5cf6" : prob.color || pvColorOf(c.name);
+      const color = c.cand ? "#ff9f1a" : c.manual ? "#8b5cf6" : prob.color || pvColorOf(c.name);
       const mk = (day: number, begin: number, end: number, tag: string): PvBlock => ({
         key: `${c.code}_${c.seq || "0"}_${tag}`, day, begin, end, label: lbl, color,
-        probLabel: prob.label || undefined, manual: c.manual, id: c.id, code: c.code, seq: c.seq, origin: originOf(c.code),
+        probLabel: prob.label || undefined, manual: c.manual, id: c.id, code: c.code, seq: c.seq, origin: originOf(c.code), cand: c.cand,
       });
       let n = 0;
       for (const { day, slot } of parseTimeSlots(c.time)) {
@@ -1087,7 +1099,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
                       {!compact ? <div style={{ fontSize: 8, opacity: 0.9, lineHeight: 1.3 }}>{pvHm(b.begin)}–{pvHm(b.end)}{b.tag ? ` ${b.tag}` : ""}</div> : null}
                       {b.probLabel && height > 44 ? <span style={{ display: "inline-block", marginTop: 1, padding: "0 4px", borderRadius: 999, fontSize: 8, fontWeight: 700, background: "rgba(255,255,255,.25)" }}>{b.probLabel}</span> : null}
                       <button className="btn" style={{ position: "absolute", top: 1, right: 1, padding: "0 3px", fontSize: 8, lineHeight: 1.4, opacity: 0.65, border: "none", background: "transparent", color: "#fff" }}
-                        title="移除" onClick={(e) => { e.stopPropagation(); if (b.manual && b.id) wb.removeManualEvent(b.id); else if (b.code && b.seq) void removeItem(b.code, b.seq); }}>✕</button>
+                        title={b.cand ? "退出候补" : "移除"} onClick={(e) => { e.stopPropagation(); if (b.manual && b.id) wb.removeManualEvent(b.id); else if (b.cand && b.code && b.seq) void wb.drop(b.code, b.seq, true); else if (b.code && b.seq) void removeItem(b.code, b.seq); }}>✕</button>
                     </div>
                   );
                 })}
@@ -1250,8 +1262,8 @@ function QueueSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
     <Sec title={`我的候补（${wb.candidates.length}）`}>
       {wb.candidates.map((c, i) => (
         <div key={`${c.code}-${i}`} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: "4px 0", borderBottom: "1px solid var(--border)" }}>
-          <span className="chip chip-amber" style={{ fontSize: 10 }}>第{c.myPos || "—"}位/{c.queueTotal}</span>
-          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
+          <span className="chip chip-amber" style={{ fontSize: 10 }}>{c.myPos ? `第${c.myPos}位/${c.queueTotal}` : "候选"}</span>
+          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={`${c.name}（${c.code}${c.seq && c.seq !== "0" ? `·${c.seq}` : ""}）`} onClick={() => jumpTo(c.code)}>{c.name}<span style={{ color: "var(--text-3)" }}> {c.code}{c.seq && c.seq !== "0" ? `·${c.seq}` : ""}</span></span>
           <button className="btn" style={{ padding: "0 5px", fontSize: 10 }} disabled={wb.busy !== null} onClick={() => void wb.drop(c.code, c.seq, true)}>删除</button>
         </div>
       ))}

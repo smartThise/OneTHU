@@ -64,14 +64,14 @@ export function clearVenueToken(): void {
 export async function ensureVenueToken(): Promise<boolean> {
   if (venueHasToken()) return true;
   const pickUni = (src: string): string | null => /[?&]uniToken=([^&\s"'<>]+)/.exec(src)?.[1] ?? null;
-  // ① 传输层同源链：直连取 CAS 登录链（jar 里 id 桶 TGT 活着时直接出票）。
-  //    必须 direct：sports/id 均为公网域名，无需 WebVPN 包装；且包装层失登
-  //    检测会抛 core AuthRequiredError → 全局看门狗整页 reload——场馆静默
-  //    登录失败绝不该炸整个应用（pnpm 预览硬刷新事故的根源）。
+  // ① 传输层同源链（恢复 0.5.0 原设计，勿改 direct）：WebVPN 模式下统一会话
+  //    活在隧道里，包装请求才能带着它出票——直连会把会话共享砍掉，落到凭证
+  //    重登 → CAS 第二次 2FA（实测回归）。静默登录的失登已由
+  //    suspendAuthBroadcast 抑制，不会触发全局重载（预览炸屏的正解）。
   try {
     const { http } = await import("./clients.js");
     const casAddr = await venueClient.casAddress("https://www.sports.tsinghua.edu.cn/venue/index.html");
-    const res = await http.request(casAddr, { redirect: "follow", direct: true });
+    const res = await http.request(casAddr, { redirect: "follow" });
     const finalUrl = res.headers.get("x-onethu-final-url") ?? "";
     const body = await res.text();
     const uni = pickUni(finalUrl) ?? pickUni(body);
@@ -237,7 +237,11 @@ async function casFormRelogin(): Promise<void> {
 let silentInFlight: Promise<boolean> | null = null;
 export function venueSilentLogin(): Promise<boolean> {
   if (silentInFlight) return silentInFlight;
+  // 静默链自处理失登：包装层抛 AuthRequiredError 时抑制全局重载广播
+  // （失败只落授权卡/2FA 面板，绝不炸整个应用）
   silentInFlight = (async () => {
+    const { suspendAuthBroadcast } = await import("@onethu/core");
+    return suspendAuthBroadcast(async () => {
     if (venueHasToken()) return true;
     if (await ensureVenueToken()) return true;
     try {
@@ -248,6 +252,7 @@ export function venueSilentLogin(): Promise<boolean> {
       return false;
     }
     return ensureVenueToken();
+    });
   })().finally(() => {
     silentInFlight = null;
   });
@@ -324,15 +329,11 @@ export async function venueLogin(): Promise<boolean> {
  * 非 Tauri / 无 token → null（调用方回落系统浏览器）。
  */
 export async function venueBookingEmbedUrl(sceneUuid: string): Promise<string | null> {
-  const token = readStoredToken();
-  if (!token || !isTauri) return null;
-  const { invoke } = await import("@tauri-apps/api/core");
-  await invoke("venue_sso_set", { token });
-  // 自定义协议 URL 形态：macOS/iOS 为 venueview://localhost/<path>，
-  // Windows/Android 为 http://venueview.localhost/<path>（Tauri 约定）。
-  const apple = /Mac|iPhone|iPad/.test(navigator.userAgent);
-  const base = apple ? "venueview://localhost/" : "http://venueview.localhost/";
-  return `${base}venue/index.html#/reserveList?uuid=${encodeURIComponent(sceneUuid)}`;
+  void sceneUuid;
+  // 内嵌链路熔断：登录循环反复撞 CAS 单点冲突，把账号会话顶坏（用户实测）。
+  // 原因链已查明（后端要 换票链会话 Cookie，不只 JWT），Cookie 补丁已写好，
+  // 但未经真机验证前不再放出——按钮一律回落系统浏览器深链。
+  return null;
 }
 
 /** 授权是否进行中（防重复开窗） */
