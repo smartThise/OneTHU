@@ -981,10 +981,14 @@ export function parseXkSelectedFull(html: string): XkSelectedRow[] {
     const info = zyMap[`${code}_${seq}`] ?? { zy: 0, typeCode: "", typeLabel: "" };
     const zyFromCell = /第([一二三])志愿/.exec(cell(2));
     const isSports = !cell(1) && zyFromCell;
+    // 2026-2027-1 起已选表列序变更（样本 xkBks.vxkBksXkbBs 实证）：课号独立成列
+    // → cell(3)=课号、cell(4)=课名（教师/时间/学分未动）。自适应取第一个非纯
+    // 数字的候选格，新旧列序通吃——否则预览课表整屏课号（实测事故）。
+    const nameCell = [cell(4), cell(3)].find((x) => x !== "" && !/^\d+$/.test(x)) ?? "";
     out.push({
       code,
       seq,
-      name: cell(3) || cell(1),
+      name: nameCell || cell(1),
       teacher: cell(7) || cell(2),
       time: cell(6) || cell(3),
       credits: parseFloat(cell(8) || cell(4)) || 0,
