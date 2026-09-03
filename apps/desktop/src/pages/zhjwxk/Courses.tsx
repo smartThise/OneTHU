@@ -787,7 +787,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
         <div className="row-sub" style={{ whiteSpace: "normal" }}>{[r.c.code, r.c.seq && r.c.seq !== "0" ? `第${r.c.seq}班` : "", r.teacher, `${r.credits} 学分`, r.time, r.c.department].filter(Boolean).join(" · ")}</div>
         {r.c.note ? <div className="row-sub" style={{ whiteSpace: "normal", color: "var(--text-2)" }}>课程说明：{r.c.note}</div> : null}
         {wb.phase && r.q ? (
-          <div className="row-sub" style={{ whiteSpace: "normal" }}>{[cap ? `容量 ${cap}` : "", r.q.qQueue ? `排队 ${r.q.qQueue}` : "", r.cand ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : ""].filter(Boolean).join(" · ")}</div>
+          <div className="row-sub" style={{ whiteSpace: "normal" }}>{[cap ? `容量 ${cap}` : "", r.q.qQueue ? `排队 ${r.q.qQueue}` : "", r.cand ? (r.cand.myPos ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : "候选（队列未开放）") : ""].filter(Boolean).join(" · ")}</div>
         ) : r.vol ? (
           <div className="row-sub" style={{ whiteSpace: "normal" }}>
             {[r.vol.volRequired && fmtVol(r.vol.volRequired), r.vol.volElective && fmtVol(r.vol.volElective), r.vol.volOptional && fmtVol(r.vol.volOptional)].filter(Boolean).join(" · ")}
@@ -816,7 +816,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           </div>
         ) : state === "candidate" ? (
           <div className="row-sub" style={{ display: "flex", gap: 6, marginTop: 4, alignItems: "center" }}>
-            <span style={{ color: "var(--amber)", fontSize: 12 }}>排队第{r.cand!.myPos}名 / 共{r.cand!.queueTotal}人</span>
+            <span style={{ color: "var(--amber)", fontSize: 12 }}>{r.cand!.myPos ? `排队第${r.cand!.myPos}名 / 共${r.cand!.queueTotal}人` : "候选（队列功能未开放，课表候选兜底）"}</span>
             <button className="btn" disabled={wb.busy !== null} onClick={() => void wb.drop(r.c.code, r.c.seq, true)}>删除</button>
           </div>
         ) : (
@@ -838,7 +838,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
       </div>
       <span className={"chip " + (r.selected ? "chip-green" : r.isCandidate ? "chip-amber" : "")}>
         <span className="dot" />
-        {r.selected ? `已选${r.zy ? ` · ${r.zy}志愿` : ""}` : r.isCandidate ? `候补 ${r.cand?.myPos ?? ""}` : state === "full" ? "已满" : r.available ? "可选" : "已满"}
+        {r.selected ? `已选${r.zy ? ` · ${r.zy}志愿` : ""}` : r.isCandidate ? (r.cand?.myPos ? `候补 第${r.cand.myPos}名` : "候选") : state === "full" ? "已满" : r.available ? "可选" : "已满"}
       </span>
     </div>
   );
@@ -930,7 +930,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
       const r = wb.courses.find((x) => x.c.code === c.code && String(x.c.seq || "0") === String(c.seq || "0"));
       const qd = wb.queueMap[qKey] ?? r?.q;
       const cand = wb.candidates.find((cc) => cc.code === c.code && String(cc.seq) === String(c.seq || "0"));
-      if (cand) return { color: "#ff9f1a", label: `排队第${cand.myPos}/${cand.queueTotal}人` };
+      if (cand) return { color: "#ff9f1a", label: cand.myPos ? `排队第${cand.myPos}/${cand.queueTotal}人` : "候选" };
       if (mode === "selected") return { color: "#07c160", label: "已选" };
       if (qd) {
         if (qd.qRemaining > 0) return { color: "#07c160", label: `余${qd.qRemaining}` };
@@ -1250,7 +1250,7 @@ function QueueSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
     <Sec title={`我的候补（${wb.candidates.length}）`}>
       {wb.candidates.map((c, i) => (
         <div key={`${c.code}-${i}`} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: "4px 0", borderBottom: "1px solid var(--border)" }}>
-          <span className="chip chip-amber" style={{ fontSize: 10 }}>第{c.myPos || "—"}位/{c.queueTotal}</span>
+          <span className="chip chip-amber" style={{ fontSize: 10 }}>{c.myPos ? `第${c.myPos}位/${c.queueTotal}` : "候选"}</span>
           <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
           <button className="btn" style={{ padding: "0 5px", fontSize: 10 }} disabled={wb.busy !== null} onClick={() => void wb.drop(c.code, c.seq, true)}>删除</button>
         </div>
