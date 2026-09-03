@@ -324,19 +324,11 @@ export async function venueLogin(): Promise<boolean> {
  * 非 Tauri / 无 token → null（调用方回落系统浏览器）。
  */
 export async function venueBookingEmbedUrl(sceneUuid: string): Promise<string | null> {
-  const token = readStoredToken();
-  if (!token || !isTauri) return null;
-  // 后端按会话 Cookie 查登录态（只有 JWT →「登录过期」1130002 实录），
-  // 把换票链在 sports 域攒下的 Cookie 一起交给反代，随每个转发请求附上
-  const { http } = await import("./clients.js");
-  const cookies = http.cookieHeaderFor("https://www.sports.tsinghua.edu.cn/venue/index.html") ?? "";
-  const { invoke } = await import("@tauri-apps/api/core");
-  await invoke("venue_sso_set", { token, cookies });
-  // 自定义协议 URL 形态：macOS/iOS 为 venueview://localhost/<path>，
-  // Windows/Android 为 http://venueview.localhost/<path>（Tauri 约定）。
-  const apple = /Mac|iPhone|iPad/.test(navigator.userAgent);
-  const base = apple ? "venueview://localhost/" : "http://venueview.localhost/";
-  return `${base}venue/index.html#/reserveList?uuid=${encodeURIComponent(sceneUuid)}`;
+  void sceneUuid;
+  // 内嵌链路熔断：登录循环反复撞 CAS 单点冲突，把账号会话顶坏（用户实测）。
+  // 原因链已查明（后端要 换票链会话 Cookie，不只 JWT），Cookie 补丁已写好，
+  // 但未经真机验证前不再放出——按钮一律回落系统浏览器深链。
+  return null;
 }
 
 /** 授权是否进行中（防重复开窗） */
