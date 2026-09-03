@@ -2253,17 +2253,26 @@ export class InfoClient {
     return json.data as T;
   }
 
-  /** 探测 ic-web 会话并校验用户（library.ts assureLoginValid 的 pid 比对同语义） */
-  async #libRoomAlive(userId: string): Promise<boolean> {
+  /** 探测 ic-web 会话并校验用户（library.ts assureLoginValid 的 pid 比对同语义）。
+   *  失败带原因回传——新生「绑完邮箱仍失败」需要区分：没 pid / pid 不匹配 /
+   *  缺 accNo / 会话本身没建立，四者修法完全不同，不能折叠成一句话。 */
+  async #libRoomAlive(userId: string): Promise<{ ok: boolean; why: string }> {
     try {
       const info = await this.#cabFetch<{ pid?: string; accNo?: number }>(urls.LIBROOM_USER_INFO());
-      if (String(info.pid ?? "") !== userId || userId === "") return false;
+      const pid = String(info.pid ?? "");
+      if (pid === "") return { ok: false, why: "userInfo 无 pid（原站账号可能未完成激活/绑定）" };
+      if (pid !== userId) {
+        return {
+          ok: false,
+          why: `pid 不匹配（cab 侧=${pid.slice(0, 3)}***，本机学号=${userId.slice(0, 3)}***）`,
+        };
+      }
       const accNo = Number(info.accNo);
-      if (!Number.isFinite(accNo)) return false;
+      if (!Number.isFinite(accNo)) return { ok: false, why: "userInfo 无 accNo（原站账号资料不全）" };
       this.#libRoomAccNo = accNo;
-      return true;
-    } catch {
-      return false;
+      return { ok: true, why: "" };
+    } catch (e) {
+      return { ok: false, why: String(e).slice(0, 140) };
     }
   }
 
@@ -2286,7 +2295,7 @@ export class InfoClient {
     if (InfoClient.libRoomInflight) return InfoClient.libRoomInflight;
     const run = async (): Promise<void> => {
     if (InfoClient.libRoomAuthUser === userId && Date.now() - InfoClient.libRoomAuthTs < 600_000) return;
-    if (await this.#libRoomAlive(userId)) {
+    if ((await this.#libRoomAlive(userId)).ok) {
       InfoClient.libRoomAuthUser = userId;
       InfoClient.libRoomAuthTs = Date.now();
       return;
@@ -2301,7 +2310,7 @@ export class InfoClient {
     const payload = /\/login\/form\/(.+)$/.exec(loginUrl)?.[1];
     if (!payload) {
       // id SSO 会话有效时该链可能直通兑付（终点已是 cab 页而非 id 表单）——重探一次
-      if (await this.#libRoomAlive(userId)) {
+      if ((await this.#libRoomAlive(userId)).ok) {
         InfoClient.libRoomAuthUser = userId;
         InfoClient.libRoomAuthTs = Date.now();
         return;
@@ -2316,11 +2325,13 @@ export class InfoClient {
         `研讨间会话未能建立（id 发票/账密两路均未兑付；现场=${String(this.lastDebug || this.#http.lastDebug).slice(0, 160)}）。若为首次使用，请先到研讨间管理系统绑定邮箱后重试`,
       );
     }
-    if (!(await this.#libRoomAlive(userId))) {
+    const alive = await this.#libRoomAlive(userId);
+    if (!alive.ok) {
       // 实证（2026-09 用户反馈）：新生未在研讨间原站绑定邮箱时，兑付虽成功但
-      // userInfo 校验恒败——提示去 cab.lib 原网站绑定，而不是让用户干等重试
+      // userInfo 校验恒败——提示去 cab.lib 原网站绑定；绑定后仍失败的，把具体
+      // 原因（无 pid / pid 不匹配 / 缺 accNo / 会话响应）亮进报错，截图即可定位
       throw new AuthRequiredError(
-        "研讨间会话未能建立（登录后 userInfo 校验未通过）。若为首次使用，请先到研讨间管理系统绑定邮箱后重试",
+        `研讨间会话未能建立（登录后 userInfo 校验未通过：${alive.why}）。若为首次使用，请先到研讨间管理系统绑定邮箱后重试；已绑定仍见此条，请连原因一起反馈`,
       );
     }
     InfoClient.libRoomAuthUser = userId;
