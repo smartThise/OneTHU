@@ -629,7 +629,18 @@ async fn venue_proxy_fetch(
         .path_and_query()
         .map(|x| x.as_str().to_string())
         .unwrap_or_else(|| "/".into());
-    venue_log(&format!("REQ {} {}", request.method(), pq));
+    let auth_len = request
+        .headers()
+        .get("authorization")
+        .or_else(|| request.headers().get("token"))
+        .map(|v| v.len())
+        .unwrap_or(0);
+    venue_log(&format!(
+        "REQ {} {} auth={}",
+        request.method(),
+        pq.split('&').next().unwrap_or(""),
+        auth_len
+    ));
     // 页面请求 query 里的 ?token=<JWT>：官方 SPA 开机从 localStorage["token"]
     // 读登录态（getParams→storage.getItem；?token= 本身并不被启动逻辑解析）。
     // 注入源优先取 Rust 状态（venue_sso_set，前端开 iframe 前推送），兼容 query。
@@ -733,12 +744,19 @@ async fn venue_proxy_fetch(
             venue_log(&format!(
                 "RSP {} {} ct={} len={} inject={} tok={}",
                 status,
-                pq,
+                pq.split('&').next().unwrap_or(""),
                 ct,
                 body.len(),
                 injected,
                 sso_token.is_some()
             ));
+            // 小 JSON 体直接记内容（未登录/错误判词一眼可见）
+            if ct.starts_with("application/json") && body.len() <= 400 {
+                venue_log(&format!(
+                    "BODY {}",
+                    String::from_utf8_lossy(&body).replace('\n', " ")
+                ));
+            }
             tauri::http::Response::builder()
                 .status(status)
                 .header(CONTENT_TYPE, ct)
