@@ -294,32 +294,31 @@ export function parseQueueCandidates(html: string): QueueCandidate[] {
 }
 
 /** 课表页候选课（m=kbSearch 一级选课课表）：队列功能未开放时的兜底数据源。
- *  样本（北大示例/候选课/本科生选课系统.html）两种形态：渲染锚
- *  p_id=..;课号 …候选：名</b></font></a>(教师；类型；时间) 与脚本串
- *  strHTML += "<b>候选：名</b>"（详情在 strHTML1 "；X" 行）。
- *  配对窗口 250 字内不得再出现锚点/p_id（防跨格错配：复变课号配探秘名实证）。 */
+ *  逐块扫脚本：p_id=..;课号 …候选：名 …getElementById('a{天}_{节}')——格子 id
+ *  即真实时间正源（不依赖目录加载顺序；样本实证「全周」描述串解析不出格子）。
+ *  教师在块内 strHTML1 "；X" 行（教师/类型/周次）。同课多格（跨节次）按课号
+ *  合并时间为逗号串，parseTimeSlots 全局匹配多段。 */
 export function parseTimetableCandidates(html: string): QueueCandidate[] {
-  const out: QueueCandidate[] = [];
-  const seen = new Set<string>();
-  const re = /p_id=\d+;(\d{6,})/g;
+  const byCode = new Map<string, QueueCandidate>();
+  const re =
+    /p_id=\d+;(\d{6,})[\s\S]{0,600}?候选：([^<&"'\n]{1,60})[\s\S]{0,600}?getElementById\('a([1-6])_([1-7])'\)/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(html)) !== null) {
     const code = m[1] ?? "";
-    if (!code || seen.has(code)) continue;
-    const seg = html.slice(m.index + m[0].length, m.index + m[0].length + 250);
-    const ci = seg.indexOf("候选：");
-    if (ci === -1) continue;
-    const between = seg.slice(0, ci);
-    if (between.includes("<a") || between.includes("p_id")) continue;
-    const name = /候选：([^<&"'\n]{1,60})/.exec(seg.slice(ci))?.[1]?.trim() ?? "";
-    if (!name) continue;
-    seen.add(code);
-    const tail = seg.slice(ci, ci + 400);
-    const pd = /<\/a>\s*\(([^)]{0,80})\)/.exec(tail);
-    const parts = pd
-      ? pd[1]!.split(/[；;]/)
-      : [...tail.matchAll(/strHTML1 \+= "；([^"]*)"/g)].map((x) => x[1] ?? "");
-    out.push({
+    const name = m[2]?.trim() ?? "";
+    // 格子 id 是 a{节}_{天}（a6_4=周四第6节，与 dlSearch「4-6」同位不同序——实测对齐）
+    const slot = m[3] ?? "";
+    const day = m[4] ?? "";
+    if (!code || !name || !day || !slot) continue;
+    const block = html.slice(m.index, m.index + m[0].length);
+    const parts = [...block.matchAll(/strHTML1 \+= "；([^"]*)"/g)].map((x) => x[1] ?? "");
+    const slotStr = `${day}-${slot}(${parts[2] || "全周"})`;
+    const prev = byCode.get(code);
+    if (prev) {
+      if (!prev.time.includes(slotStr)) prev.time = `${prev.time},${slotStr}`;
+      continue;
+    }
+    byCode.set(code, {
       typeLabel: parts[1] ?? "",
       zyStr: "",
       code,
@@ -327,11 +326,11 @@ export function parseTimetableCandidates(html: string): QueueCandidate[] {
       seq: "0",
       queueTotal: 0,
       myPos: 0,
-      time: parts[2] ?? "",
+      time: slotStr,
       teacher: parts[0] ?? "",
     });
   }
-  return out;
+  return [...byCode.values()];
 }
 
 /* ── 公开 API ─────────────────────────────────────────────────── */

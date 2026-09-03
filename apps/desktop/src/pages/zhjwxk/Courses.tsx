@@ -122,10 +122,11 @@ const itemProb = (wb: ReturnType<typeof useXkWorkbench>, code: string, seq: stri
 };
 /* 跳转/弹窗 opener（module-level 轻通道） */
 let _jump = "";
+let _jumpChip = "all";
 let _jumpSetter: ((v: string) => void) | null = null;
 let _detailOpen: ((code: string) => void) | null = null;
 let _reviewOpen: ((v: { code: string; seq: string; name: string; teacher: string }) => void) | null = null;
-const jumpTo = (code: string): void => { _jump = code; _jumpSetter?.(code); };
+const jumpTo = (code: string, chip = "all"): void => { _jump = code; _jumpChip = chip; _jumpSetter?.(code); };
 const openDetail = (code: string): void => { _detailOpen?.(code); };
 const openReviews = (v: { code: string; seq: string; name: string; teacher: string }): void => { _reviewOpen?.(v); };
 
@@ -510,7 +511,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
   useEffect(() => {
     if (!jump) return;
     setQuery(jump);
-    setChip("all");
+    setChip(_jumpChip as typeof chip);
     setHighlight(jump);
     const t = setTimeout(() => setHighlight(""), 1800);
     return () => clearTimeout(t);
@@ -966,11 +967,12 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
       ...courses,
       // 候补课也上预览课表（用户语义：冲突也照样显示）——琥珀色 + 候选前缀，
       // 与正式课重叠时 lane 分道共处，不互删。
-      // 时间优先回查课程目录（队列接口给的多为「全周」类描述串，解析不出格子
-      // 会掉进「时间未定」区——2026-09 实测事故）；目录没有再退候选自带时间
+      // 时间正源 = 候选自带（parseTimetableCandidates 已抽格子坐标「天-节」，立即可
+      // 用）；目录时间仅作兜底——目录懒加载，用它会造成「点一下才显示时间」的
+      // 雷霆依赖（2026-09 实测事故）
       ...wb.candidates.map((x): PvCourse => {
         const cat = wb.courses.find((r) => r.c.code === x.code);
-        const time = cat?.time && parseTimeSlots(cat.time).length ? cat.time : parseTimeSlots(x.time).length ? x.time : (cat?.time || x.time);
+        const time = parseTimeSlots(x.time).length ? x.time : cat?.time && parseTimeSlots(cat.time).length ? cat.time : x.time;
         return { name: x.name, teacher: x.teacher || cat?.teacher || undefined, code: x.code, seq: x.seq || "0", time, note: "", credits: 0, zy: 0, cand: true };
       }),
       ...wb.manualEvents.map((e): PvCourse => ({ name: e.name, teacher: undefined, code: e.code, seq: e.seq, time: e.time, note: "", credits: e.credits, zy: 0, manual: true, id: e.id, begin: e.begin, end: e.end, day: e.day })),
@@ -1092,7 +1094,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
                   return (
                     <div key={b.key} title={`${b.label}（${pvHm(b.begin)}–${pvHm(b.end)}）${b.probLabel ? " · " + b.probLabel : ""}`}
                       style={{ position: "absolute", left: `calc(${leftPct}% + 3px)`, width: `calc(${widthPct}% - 6px)`, top, height, background: b.color, borderRadius: 5, padding: compact ? "2px 4px" : "3px 5px", color: "#fff", overflow: "hidden", boxSizing: "border-box", boxShadow: "0 1px 3px rgba(0,0,0,0.18)", zIndex: 6, cursor: b.manual ? undefined : "pointer" }}
-                      onClick={() => { if (!b.manual && b.code) jumpTo(b.code); }}>
+                      onClick={() => { if (!b.manual && b.code) jumpTo(b.code, b.cand ? "queue" : "all"); }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                         <div style={{ fontSize: compact ? 8.5 : 9.5, fontWeight: 700, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.label}</div>
                       </div>
@@ -1263,7 +1265,7 @@ function QueueSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
       {wb.candidates.map((c, i) => (
         <div key={`${c.code}-${i}`} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: "4px 0", borderBottom: "1px solid var(--border)" }}>
           <span className="chip chip-amber" style={{ fontSize: 10 }}>{c.myPos ? `第${c.myPos}位/${c.queueTotal}` : "候选"}</span>
-          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={`${c.name}（${c.code}${c.seq && c.seq !== "0" ? `·${c.seq}` : ""}）`} onClick={() => jumpTo(c.code)}>{c.name}<span style={{ color: "var(--text-3)" }}> {c.code}{c.seq && c.seq !== "0" ? `·${c.seq}` : ""}</span></span>
+          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={`${c.name}（${c.code}${c.seq && c.seq !== "0" ? `·${c.seq}` : ""}）`} onClick={() => jumpTo(c.code, "queue")}>{c.name}<span style={{ color: "var(--text-3)" }}> {c.code}{c.seq && c.seq !== "0" ? `·${c.seq}` : ""}</span></span>
           <button className="btn" style={{ padding: "0 5px", fontSize: 10 }} disabled={wb.busy !== null} onClick={() => void wb.drop(c.code, c.seq, true)}>删除</button>
         </div>
       ))}
