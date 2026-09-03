@@ -1160,14 +1160,16 @@ export async function getXkPlan(s: ZhjwxkSession, opts: { semester: string }): P
   // 培养方案数据」卡实录）——代理层作废 entry 静默重走登录链并重试一次
   const page = await proxyZhjwxkApi(s, entry, `/jhBks.vjhBksPyfakcbBs.do?m=showBksZxZdxjxjhXmxqkclist&p_xnxq=${encodeURIComponent(opts.semester)}`);
   // 照抄 querySelectorAll('table#kcTable tr')：只在 kcTable 内找行
-  const seg = /<table[^>]*id="kcTable"[^>]*>([\s\S]*?)<\/table>/i.exec(page)?.[1] ?? page;
+  // 教务老 HTML 不写 </tr>（15:24 现场实证：12 tr/60 td 在页面上、正则
+  // [\s\S]*?<\/tr> 全军覆没；插件用 cheerio 真 HTML 解析器无此问题）——
+  // 按 <tr 开标签切分行段，不依赖闭合；td 闭合正常（现场 </td> 可见）
+  const seg = /<table[^>]*id\s*=\s*"kcTable"[^>]*>([\s\S]*?)<\/table>/i.exec(page)?.[1] ?? page;
   const html = seg;
   const out: XkPlanItem[] = [];
   let sem = "", season = "";
-  const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/g;
-  let m: RegExpExecArray | null;
-  while ((m = rowRe.exec(html)) !== null) {
-    const cells = [...m[1]!.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((t) => stripTags(t[1]!));
+  const rowSlices = html.split(/<tr[^>]*>/i).slice(1);
+  for (const slice of rowSlices) {
+    const cells = [...slice.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((t) => stripTags(t[1]!));
     if (!cells.length) continue;
     for (const t of cells) {
       const sm = /(\d{4}-\d{4}学年)/.exec(t);
