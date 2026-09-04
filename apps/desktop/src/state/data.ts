@@ -1838,7 +1838,15 @@ export function useTodayCalendar() {
     else if (Date.now() - cached.at > TODAYCAL_TTL) void load(true);
   }, [status, load]);
 
-  return { nodes, state, reload: load };
+  // 形状消毒：nodes 必须是数组（2026-09-05 实录：cal.nodes 为非数组时
+  // Today 卡片 .slice 崩白屏——HMR 保留回退前组件旧 state 的嫌疑最大）。
+  // 异形样本落盘诊断通道，抓住真源头。
+  if (nodes !== null && !Array.isArray(nodes)) {
+    void logLine(
+      `TODAYCAL-SHAPE nodes=${typeof nodes} keys=${Object.keys(nodes as object).join("+")} sample=${JSON.stringify(nodes).slice(0, 200)}`,
+    ).catch(() => undefined);
+  }
+  return { nodes: Array.isArray(nodes) ? nodes : null, state, reload: load };
 }
 
 /** 考试安排（zhjw 课表 JSONP 分类「考试」） */
