@@ -48,41 +48,35 @@ const STATUS_CHIP: Record<string, string> = {
   处理中: "chip chip-amber",
 };
 
-const ELEC_KEY = "dorm:elec";
+const ELEC_KEY = "dorm:elec.v2";
 const ELEC_TTL = 5 * 60 * 1000;
 
 export function DormTab() {
   const { status } = useApp();
 
-  /* ---------------- 电费（家园网会话 + SWR 缓存） ---------------- */
-  const [elec, setElec] = useState<ElecBundle | null>(() => cacheGet<ElecBundle>(ELEC_KEY)?.data ?? null);
-  const [elecState, setElecState] = useState<LoadState>(() => (cacheGet<ElecBundle>(ELEC_KEY) ? "ready" : "loading"));
-  const [elecError, setElecError] = useState<string | null>(null);
+  /* ---------------- 充值记录（家园网会话 + SWR 缓存） ----------------
+   * 2026-09-05：余额接口（ELE_REMAINDER）在家园网侧长期不可用——页面顶部
+   * 固定说明条告知用户，本页只保留充值记录；不再请求余额。 */
+  const [records, setRecords] = useState<ElePayRecord[] | null>(() => cacheGet<ElePayRecord[]>(ELEC_KEY)?.data ?? null);
+  const [recState, setRecState] = useState<LoadState>(() => (cacheGet<ElePayRecord[]>(ELEC_KEY) ? "ready" : "loading"));
+  const [recError, setRecError] = useState<string | null>(null);
   /* 登录态丢失静默自愈：成功清零，同一次失败最多自动恢复 1 次（手动重试清零重计） */
   const elecRecover = useRef(0);
 
-  const loadElec = useCallback(async (silent = false) => {
+  const loadRecords = useCallback(async (silent = false) => {
     if (status !== "ready") return;
     if (!silent) {
-      setElecState("loading");
-      setElecError(null);
+      setRecState("loading");
+      setRecError(null);
     }
     try {
-      // 余额与缴费记录并行（此前串行等两跳，且每跳前还有探针往返）
-      const [remainder, records] = await Promise.all([
-        info.getEleRemainder(),
-        info.getElePayRecord().catch((err: unknown) => {
-          logErr("ELE-RECORD", err);
-          return [] as ElePayRecord[];
-        }),
-      ]);
-      const bundle: ElecBundle = { remainder, records };
-      cacheSet(ELEC_KEY, bundle);
+      const recs = await info.getElePayRecord();
+      cacheSet(ELEC_KEY, recs);
       elecRecover.current = 0;
-      setElec(bundle);
-      setElecState("ready");
+      setRecords(recs);
+      setRecState("ready");
     } catch (err) {
-      logErr("ELEC", err);
+      logErr("ELE-RECORD", err);
       // 登录态丢失：不闪红，静默强制重建家园网会话后自动重载一次；仍失败才亮 ErrorNote
       if (isAuthError(err) && autoFullReload("dorm")) return;
       // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
@@ -91,21 +85,21 @@ export function DormTab() {
         await info.forceEnsure("dorm").catch((renewErr: unknown) => {
           logErr("ELEC-RENEW", renewErr);
         });
-        return loadElec();
+        return loadRecords();
       }
       // 已有旧数据（缓存/上次成功）时不闪红：SWR 语义，保留旧值下轮挂载再重验证
-      if (silent && elec !== null) return;
-      setElecState("error");
-      setElecError(explainNetworkError(err));
+      if (silent && records !== null) return;
+      setRecState("error");
+      setRecError(explainNetworkError(err));
     }
-  }, [status, elec]);
+  }, [status, records]);
 
   useEffect(() => {
     if (status !== "ready") return;
-    const cached = cacheGet<ElecBundle>(ELEC_KEY);
-    if (!cached) void loadElec(false);
-    else if (Date.now() - cached.at > ELEC_TTL) void loadElec(true);
-  }, [status, loadElec]);
+    const cached = cacheGet<ElePayRecord[]>(ELEC_KEY);
+    if (!cached) void loadRecords(false);
+    else if (Date.now() - cached.at > ELEC_TTL) void loadRecords(true);
+  }, [status, loadRecords]);
 
   /* ---------------- 订水（公开接口） ---------------- */
   const [waterId, setWaterId] = useState("");
@@ -164,69 +158,47 @@ export function DormTab() {
   return (
     <>
       <SectionHead title="电费" aside="家园网 myhome.tsinghua.edu.cn · 宿舍绑定房间" />
-      {elecState === "error" ? (
+      {/* 余额接口不可用说明条（固定展示） */}
+      <Card style={{ padding: "12px 16px" }}>
+        <span style={{ fontSize: 13, color: "var(--text-dim)" }}>
+          家园网系统暂时无法获取余额接口
+        </span>
+      </Card>
+      <SectionHead title="充值记录" aside="Netweb 缴费流水" />
+      {recState === "error" ? (
         <ErrorNote
-          text={elecError ?? ""}
+          text={recError ?? ""}
           onRetry={() => {
             elecRecover.current = 0;
-            void loadElec();
+            void loadRecords();
           }}
         />
       ) : null}
-      {elecState === "loading" && !elec ? (
+      {recState === "loading" && records === null ? (
         <SkeletonRows rows={2} />
-      ) : elec ? (
-        <>
-          <div className="stats stats-hero">
-            <Card className="card-hero">
-              <div className="card-hero-main">
-                <div>
-                  <div className="card-hero-amount">
-                    {Number.isFinite(elec.remainder.remainder) ? elec.remainder.remainder : "–"}
-                    <span style={{ fontSize: 14, fontWeight: 400, marginLeft: 6 }}>度</span>
-                  </div>
-                  <div className="stat-label">宿舍剩余电量</div>
+      ) : records && records.length > 0 ? (
+        <Card className="list">
+          {records.map((r, i) => (
+            <div className="row" key={`${r.id}-${i}`}>
+              <span className={STATUS_CHIP[r.status] ?? "chip chip-gray"}>{r.status || "缴费"}</span>
+              <div className="row-main">
+                <div className="row-title">{r.name || "电费充值"}</div>
+                <div className="row-sub">
+                  {r.time || "–"}
+                  {r.channel ? ` · ${r.channel}` : ""}
                 </div>
               </div>
-              <div className="card-hero-meta">
-                <span>抄表时间：{elec.remainder.updateTime || "–"}</span>
+              <div className="row-amount">
+                <b>{r.value || "–"}</b>
               </div>
-              <button
-                className="btn btn-ghost"
-                style={{ position: "absolute", right: 14, top: 14 }}
-                onClick={() => void loadElec()}
-                disabled={elecState === "loading"}
-              >
-                刷新
-              </button>
-            </Card>
-          </div>
-          <SectionHead title="缴费记录" aside="Netweb 缴费流水" />
-          {elec.records.length === 0 ? (
-            <Card>
-              <Empty text="暂无缴费记录。" />
-            </Card>
-          ) : (
-            <Card className="list">
-              {elec.records.map((r, i) => (
-                <div className="row" key={`${r.id}-${i}`}>
-                  <span className={STATUS_CHIP[r.status] ?? "chip chip-gray"}>{r.status || "缴费"}</span>
-                  <div className="row-main">
-                    <div className="row-title">{r.name || "电费充值"}</div>
-                    <div className="row-sub">
-                      {r.time || "–"}
-                      {r.channel ? ` · ${r.channel}` : ""}
-                    </div>
-                  </div>
-                  <div className="row-amount">
-                    <b>{r.value || "–"}</b>
-                  </div>
-                </div>
-              ))}
-            </Card>
-          )}
-        </>
-      ) : null}
+            </div>
+          ))}
+        </Card>
+      ) : (
+        <Card>
+          <Empty text="暂无充值记录。" />
+        </Card>
+      )}
 
       <SectionHead title="订水" aside="清华水站 dingshui.bjqzhd.com · 公开接口" />
       <Card style={{ padding: 18 }}>
