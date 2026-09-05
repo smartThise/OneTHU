@@ -2569,6 +2569,10 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .fav-tile-star { position: absolute; top: 4px; right: 4px; }
 /* courseX 工具栏：SearchSelect(38)/搜索框(40)/按钮(32) 三件套统一 40px 对齐 */
 .coursex-bar .filter-dd-btn { height: 40px; }
+/* ss-row = 下拉+收藏星同行：filter-dd 自带 16px 底边距会把行撑高，
+   星标对着一截空气垂直居中（图书馆/研讨间/体育/公共空间星标不齐的根因） */
+.ss-row .filter-dd { margin-bottom: 0; }
+.coursex-bar .filter-dd { margin-bottom: 0; }
 /* 收藏夹方卡实时状态（洗衣机/教室）与教室长卡今日总览 */
 .fav-tile-live { display: inline-flex; align-items: center; gap: 5px; font-size: var(--text-xs); color: var(--text-2); }
 .live-line { display: inline-flex; align-items: center; gap: 5px; font-size: var(--text-xs); color: var(--text-2); }

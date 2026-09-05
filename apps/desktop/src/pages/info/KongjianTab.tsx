@@ -80,6 +80,7 @@ export function KongjianTab({ kongjianSpace, kongjianRoom }: { kongjianSpace?: s
         kjRooms: p.rooms.map((rm) => ({ spaceId: p.selectedSpace ?? "", spaceName: p.spaces.find((sp) => sp.id === (p.selectedSpace ?? ""))?.name ?? "", id: rm.id, name: rm.name })),
       });
       setSpaceId(p.selectedSpace ?? "");
+      setRoomId(p.selectedRoom ?? "");
       setState("ready");
       if (p.spaces.length === 0) {
         // 空列表多半是门户页兜底未命中：走 logTabErr 的硬刷新守卫（20s 内最多 2 次）
@@ -212,6 +213,8 @@ export function KongjianTab({ kongjianSpace, kongjianRoom }: { kongjianSpace?: s
   );
 
   const spaces = page?.spaces ?? [];
+  /** 生效房间：优先本会话选择，回退服务端页面缺省选中（否则首屏星标不出现） */
+  const effRoomId = roomId || page?.selectedRoom || "";
   // 场次按上下午分块展示（对齐体育页风格：块内时间胶囊）
   const slots = page?.slots ?? [];
   const buckets: Array<[string, KongjianSlot[]]> = [
@@ -239,7 +242,7 @@ export function KongjianTab({ kongjianSpace, kongjianRoom }: { kongjianSpace?: s
           <Card style={{ marginBottom: 12, padding: "12px 14px" }}>
             <div className="field" style={{ marginBottom: 10 }}>
               <label style={{ fontSize: 12, opacity: 0.7 }}>公共空间</label>
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <div className="ss-row" style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <div style={{ flex: "1 1 auto", minWidth: 0 }}>
                   <SearchSelect
                     value={spaceId}
@@ -259,7 +262,7 @@ export function KongjianTab({ kongjianSpace, kongjianRoom }: { kongjianSpace?: s
             {page.rooms.length > 0 ? (
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>房间</div>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <div className="ss-row" style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <div style={{ flex: "1 1 auto", minWidth: 0 }}>
                     <SearchSelect
                       value={roomId || page.selectedRoom || ""}
@@ -268,10 +271,10 @@ export function KongjianTab({ kongjianSpace, kongjianRoom }: { kongjianSpace?: s
                       options={[{ value: "", label: "全部房间" }, ...page.rooms.map((r) => ({ value: r.id, label: r.name }))]}
                     />
                   </div>
-                  {roomId ? (
+                  {effRoomId ? (
                     <CollectStar
-                      atom={{ kind: "kj-room", key: enc(spaceId, spaces.find((sp) => sp.id === spaceId)?.name ?? "", roomId, page.rooms.find((r) => r.id === roomId)?.name ?? "") }}
-                      title={page.rooms.find((r) => r.id === roomId)?.name ?? "房间"}
+                      atom={{ kind: "kj-room", key: enc(spaceId, spaces.find((sp) => sp.id === spaceId)?.name ?? "", effRoomId, page.rooms.find((r) => r.id === effRoomId)?.name ?? "") }}
+                      title={page.rooms.find((r) => r.id === effRoomId)?.name ?? "房间"}
                     />
                   ) : null}
                 </div>
