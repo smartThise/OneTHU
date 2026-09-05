@@ -15,7 +15,7 @@ import { confirmOk } from "../../lib/confirm.js";
 import { openExternal } from "../info/openExternal.js";
 import { callAi, extractJsonArray, loadAiConfig, saveAiConfig, type AiConfig } from "../../lib/xkai.js";
 import {
-  allowedFlags, calcProb, checkPlanCoverage, dayName, findPreviewConflicts, fullProbGrid, typeCodeToFlag,
+  allowedFlags, calcProb, checkPlanCoverage, dayName, findPreviewConflicts, fullProbGrid, occupancyOf, typeCodeToFlag, volColor,
   FLAG_LABELS, parseTimeSlots, SLOT_NAMES, type PlanCoverageItem, type SlotItem, type XkFlag, type XkRow, zyTypeOf, isSportsCourse } from "../../lib/xklogic.js";
 
 const TS_GROUPS: Array<[string, string]> = [["TS1", "人文课组"], ["TS2", "社科课组"], ["TS3", "艺术课组"], ["TS4", "科学课组"]];
@@ -854,6 +854,22 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             {showInlineProb ? <span style={{ marginLeft: 8, color: prob.color }}>{prob.prob}</span> : null}
           </div>
         ) : null}
+        {/* 竞争条（NextTHUxk 2.0 compHtml 回移）：占用对按阶段取数（occupancyOf），
+            已满(余0)绝不显示 0/N 宽松假象；比例 ≤0.8 绿 / ≤1.2 黄 / 其余红 */}
+        {(() => {
+          const occ = occupancyOf({ capacity: r.c.capacity, remaining: r.c.remaining, vol: r.vol }, wb.phase);
+          if (!occ.cap) return null;
+          const vc = volColor(occ.applied, occ.cap);
+          const label = vc.level === "easy" ? "竞争宽松" : vc.level === "medium" ? "竞争适中" : vc.level === "hard" ? "竞争激烈" : "";
+          return (
+            <div style={{ marginTop: 3, display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ flex: 1, height: 4, borderRadius: 2, background: "var(--border)", overflow: "hidden" }}>
+                <div style={{ width: `${vc.pct}%`, height: "100%", background: vc.color }} />
+              </div>
+              <span style={{ fontSize: 10, color: vc.color, whiteSpace: "nowrap" }}>{occ.applied}/{occ.cap}{label ? ` · ${label}` : ""}</span>
+            </div>
+          );
+        })()}
         {/* 三行概率网格（NextTHUxk 2.0 fullProbGrid 回移）：必修/限选/任选 ×
             1/2/3 志愿全显，无数据格灰显——显示侧全开（用户十六报拍板） */}
         <div style={{ marginTop: 3, lineHeight: 1.4, fontSize: 9 }}>
@@ -911,7 +927,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           </div>
         )}
       </div>
-      <span className={"chip " + (r.selected ? "chip-green" : r.isCandidate ? "chip-amber" : "")}>
+      <span className={"chip " + (r.selected ? "chip-green" : r.isCandidate ? "chip-amber" : "")} style={state === "full" ? { color: "#ee4d4d", background: "rgba(238,77,77,.1)" } : undefined}>
         <span className="dot" />
         {r.selected ? `已选${r.zy ? ` · ${r.zy}志愿` : ""}` : r.isCandidate ? (r.cand?.myPos ? `候补 第${r.cand.myPos}名` : "候选") : state === "full" ? "已满" : r.available ? "可选" : "已满"}
       </span>
