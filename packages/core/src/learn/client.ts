@@ -815,14 +815,20 @@ export class LearnClient {
     };
     fill(tijiao, false);
     fill(viewcj, true);
-    // 我的提交内容（上次 zynr）：viewCj boxbox 第 2 块 → 第 4 个 right 块到其闭合标签；
-    // 没有则回落 tijiao 页 zynr textarea（草稿/上次内容，learnApi taMatch 同源）
-    const boxboxParts = viewcj.split(/<div[^>]*class=["'][^"']*boxbox[^"']*["'][^>]*>/i);
-    if (boxboxParts.length > 2) {
-      const rightParts = boxboxParts[2]!.split(/<div[^>]*class=["'][^"']*right[^"']*["'][^>]*>/i);
-      if (rightParts.length > 3) {
-        const raw = (rightParts[3] ?? "").replace(/<\/div>[\s\S]*/i, "").trim();
-        if (raw) out.submittedContent = decodeHtml(raw);
+    // 我的提交内容（上次 zynr）：2026-09-06 真实页面（程序设计训练存档）实证——正文在
+    // boxbox 第 2 块「本人提交的作业」的「上交作业内容」标签后：
+    // <div class=" fl left" ...>上交作业内容</div><div class=" right"><span ...>HTML</span></div>，
+    // 随后即 <!--作业附件-->。老 boxbox[2]+rightParts[3] 捞的是第 1 块（作业要求），恒空。
+    const cidx = viewcj.indexOf("上交作业内容");
+    if (cidx >= 0) {
+      const open = /<div[^>]*class="[^"]*\bright\b[^"]*"[^>]*>/i.exec(viewcj.slice(cidx));
+      if (open) {
+        const start = cidx + open.index + open[0].length;
+        const rest = viewcj.slice(start);
+        const stop = /<!--作业附件-->|<div[^>]*class="[^"]*fujian/i.exec(rest);
+        let inner = stop ? rest.slice(0, stop.index) : rest;
+        inner = inner.replace(/(?:\s*<\/div>)+\s*$/, "").trim();
+        if (inner) out.submittedContent = decodeHtml(inner);
       }
     }
     if (!out.submittedContent) {
