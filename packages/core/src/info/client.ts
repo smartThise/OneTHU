@@ -2208,6 +2208,9 @@ export class InfoClient {
 
   /** 研讨间当前账号号（library.ts accountBaseInfo.accNo；提交预约 resvMember 用） */
   #libRoomAccNo: number | null = null;
+  /** 规范学号（cab userInfo.pid）：登录名≠学号（用户名登录）时由服务端权威回填，
+   *  后续 ensure 的 TTL 键与邮箱自动绑定都以它为准 */
+  #libRoomPid: string | null = null;
 
   /** 当前账号号（library.ts helper.getLibraryRoomAccNo 同名语义；UI 组 resvMember 用） */
   getLibRoomAccNo(): number | null {
@@ -2262,10 +2265,10 @@ export class InfoClient {
       const pid = String(info.pid ?? "");
       if (pid === "") return { ok: false, why: "userInfo 无 pid（原站账号可能未完成激活/绑定）" };
       if (pid !== userId) {
-        return {
-          ok: false,
-          why: `pid 不匹配（cab 侧=${pid.slice(0, 3)}***，本机学号=${userId.slice(0, 3)}***）`,
-        };
+        // cab 会话本就是当前账号的 SSO 会话；pid 是服务端权威学号。登录名（用户名）
+        // ≠ 学号只说明「登录名形态不同」，不是错账号——采纳 pid 为规范学号继续，
+        // 不再判死（用户名登录时研讨间恒接不进的根因）。
+        this.#libRoomPid = pid;
       }
       const accNo = Number(info.accNo);
       if (!Number.isFinite(accNo)) return { ok: false, why: "userInfo 无 accNo（原站账号资料不全）" };
@@ -2287,16 +2290,18 @@ export class InfoClient {
    * ④ ic-web/auth/userInfo 核实 pid === userId 并缓存 accNo。
    */
   async #ensureLibRoom(userId: string): Promise<void> {
+    // 规范学号：用户名登录时 #libRoomPid 已由上轮探针回填（登录名≠学号），TTL 键以它为准
+    const canonical = (): string => this.#libRoomPid ?? userId;
     // 10 分钟 TTL + 跨实例单飞（#libraryAccessToken 同款；单用户应用，缓存含 userId）。
     // 命中时连 #libRoomAlive 探针都省掉——每次进图书馆页都重跑整条 cab 漫游链即慢的根因。
-    if (InfoClient.libRoomAuthUser === userId && Date.now() - InfoClient.libRoomAuthTs < 600_000) {
+    if (InfoClient.libRoomAuthUser === canonical() && Date.now() - InfoClient.libRoomAuthTs < 600_000) {
       return;
     }
     if (InfoClient.libRoomInflight) return InfoClient.libRoomInflight;
     const run = async (): Promise<void> => {
-    if (InfoClient.libRoomAuthUser === userId && Date.now() - InfoClient.libRoomAuthTs < 600_000) return;
+    if (InfoClient.libRoomAuthUser === canonical() && Date.now() - InfoClient.libRoomAuthTs < 600_000) return;
     if ((await this.#libRoomAlive(userId)).ok) {
-      InfoClient.libRoomAuthUser = userId;
+      InfoClient.libRoomAuthUser = canonical();
       InfoClient.libRoomAuthTs = Date.now();
       return;
     }
@@ -2329,23 +2334,27 @@ export class InfoClient {
     if (!alive.ok && /无 pid|无 accNo/.test(alive.why)) {
       // 无感激活（用户语义：研讨间应与图书馆一样零操作）：新生原站账号未
       // 初始化时，应用内自动绑官方邮箱（学号@mails.tsinghua.edu.cn，与原站
-      // 手动流程同接口 ic-web/account/update），随后复检——成功则全程无引导
-      try {
-        await this.#cabFetch(urls.LIBROOM_UPDATE_EMAIL(), {
-          email: `${userId}@mails.tsinghua.edu.cn`,
-        });
-        alive = await this.#libRoomAlive(userId);
-      } catch {
-        /* 绑定失败则落回原引导文案 */
+      // 手动流程同接口 ic-web/account/update），随后复检——成功则全程无引导。
+      // 仅规范学号为纯数字（即真实学号）时才自动绑；用户名登录拼不出学号邮箱。
+      const mailId = this.#libRoomPid ?? userId;
+      if (/^\d+$/.test(mailId)) {
+        try {
+          await this.#cabFetch(urls.LIBROOM_UPDATE_EMAIL(), {
+            email: `${mailId}@mails.tsinghua.edu.cn`,
+          });
+          alive = await this.#libRoomAlive(userId);
+        } catch {
+          /* 绑定失败则落回原引导文案 */
+        }
       }
     }
     if (!alive.ok) {
-      // 兜底引导：自动激活未覆盖的失败（pid 不匹配等）仍指去原站
+      // 兜底引导：自动激活未覆盖的失败仍指去原站
       throw new AuthRequiredError(
         `研讨间会话未能建立（登录后 userInfo 校验未通过：${alive.why}）。若为首次使用，请先到研讨间管理系统绑定邮箱后重试；已绑定仍见此条，请连原因一起反馈`,
       );
     }
-    InfoClient.libRoomAuthUser = userId;
+    InfoClient.libRoomAuthUser = canonical();
     InfoClient.libRoomAuthTs = Date.now();
     };
     InfoClient.libRoomInflight = run().finally(() => { InfoClient.libRoomInflight = null; });
