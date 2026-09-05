@@ -831,6 +831,8 @@ export class LearnClient {
         const stop = /<!--作业附件-->|<div[^>]*class="[^"]*fujian/i.exec(rest);
         let inner = stop ? rest.slice(0, stop.index) : rest;
         inner = inner.replace(/(?:\s*<\/div>)+\s*$/, "").trim();
+        // style/script 经 innerHTML 注入既不显示也不执行，但会让「有内容」误判——直接剥掉
+        inner = inner.replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<script[\s\S]*?<\/script>/gi, "").trim();
         if (inner) out.submittedContent = decodeHtml(inner);
       }
     }
@@ -840,7 +842,7 @@ export class LearnClient {
       if (draft) out.submittedContent = decodeHtml(draft);
     }
     this.lastPageDetailDebug =
-      `viewCj=${viewcj.length} tijiao=${tijiao.length} 上交作业内容@${cidx} form=${out.hasSubmitForm} 提取=${out.submittedContent?.length ?? -1}`;
+      `viewCj=${viewcj.length} tijiao=${tijiao.length} 上交作业内容@${cidx} form=${out.hasSubmitForm} 提取=${out.submittedContent?.length ?? -1} 原文=${JSON.stringify((out.submittedContent ?? "").slice(0, 180))}`;
     return out;
   }
 
