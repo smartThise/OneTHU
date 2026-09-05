@@ -163,7 +163,7 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
         <>
           {subIds.length > 0 ? (
             /* 功能页同款导航栏：默认在最左 + 各子收藏夹；右侧管理栏目 */
-            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
+            <div className="fav-nav" style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
               <SegmentedOverflow ariaLabel="收藏夹栏目" style={{ flex: "1 1 auto", minWidth: 0 }}>
                 {visibleIds.map((id) => (
                   <button
