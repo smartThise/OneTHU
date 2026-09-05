@@ -138,7 +138,7 @@
   line-height: 20px;
 }
 
-.page-head-actions { display: flex; gap: var(--gap-2); flex-shrink: 0; }
+.page-head-actions { display: flex; align-items: center; gap: var(--gap-2); flex-shrink: 0; }
 
 /* ---------- 卡片 ---------- */
 
@@ -815,7 +815,7 @@
   gap: var(--gap-3);
 }
 
-.course-card { position: relative; transition: border-color 100ms ease, box-shadow 100ms ease; }
+.course-card { transition: border-color 100ms ease, box-shadow 100ms ease; }
 .course-card:hover { border-color: var(--accent-border); box-shadow: var(--shadow-1); }
 
 .course-card-btn {
@@ -2524,7 +2524,7 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   width: 100%;
   border: 0;
   background: transparent;
-  padding: 10px 10px 9px;
+  padding: 10px 30px 9px 10px; /* 右上留星标/编辑工具位，文字不钻角下 */
   cursor: pointer;
   text-align: left;
   min-width: 0;
@@ -2567,9 +2567,6 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .fav-widget .home-card-body { padding: 10px 12px 12px; }
 
 /* —— 实体页星标 / 深链高亮 —— */
-.washer-card { position: relative; }
-.washer-star, .course-star { position: absolute; top: 6px; right: 6px; z-index: 2; }
-.course-star { top: 8px; right: 8px; }
 .news-row-wrap { display: flex; align-items: center; gap: 2px; min-width: 0; }
 .news-row-wrap .row { flex: 1 1 auto; min-width: 0; }
 .fav-dl-flash { animation: favflash 1.4s ease 2; border-radius: var(--r-md, 8px); }

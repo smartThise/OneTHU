@@ -154,7 +154,10 @@ export function LearnPage() {
                 >
                   <div className="course-card-head">
                     <b>{c.name}</b>
-                    <IconChevron width={15} height={15} className="row-caret" />
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flex: "0 0 auto" }}>
+                      <CollectStar atom={{ kind: "course", key: enc(c.id, c.name, c.teacherName) }} title={c.name} />
+                      <IconChevron width={15} height={15} className="row-caret" />
+                    </span>
                   </div>
                   <div className="course-card-sub">
                     {c.teacherName} · {c.courseNumber}
@@ -172,9 +175,6 @@ export function LearnPage() {
                     ) : null}
                   </div>
                 </button>
-                <span className="course-star">
-                  <CollectStar atom={{ kind: "course", key: enc(c.id, c.name, c.teacherName) }} title={c.name} />
-                </span>
               </Card>
             );
           })}

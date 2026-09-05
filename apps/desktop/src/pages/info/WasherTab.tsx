@@ -247,18 +247,16 @@ export function WasherTab({
                       .join(" · ");
                     return (
                       <Card className={`washer-card ${v.dot}`} key={`${w.name}-${i}`}>
-                        <span className="washer-star">
-                          <CollectStar
-                            atom={{ kind: "washer-m", key: enc(sel.id, sel.name, sel.hlsh ? "1" : "0", title) }}
-                            title={sel.name + " · " + title}
-                          />
-                        </span>
                         <span className="washer-dot" aria-hidden />
                         <div className="washer-main" data-dev={title}>
                           <div className="washer-name">{title}</div>
                           {sub ? <div className="washer-sub">{sub}</div> : null}
                         </div>
                         <span className={v.chip}>{v.text}</span>
+                        <CollectStar
+                          atom={{ kind: "washer-m", key: enc(sel.id, sel.name, sel.hlsh ? "1" : "0", title) }}
+                          title={sel.name + " · " + title}
+                        />
                       </Card>
                     );
                   })}

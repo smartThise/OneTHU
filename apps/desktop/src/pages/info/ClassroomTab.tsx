@@ -203,11 +203,11 @@ export function ClassroomTab({
             title={`${sel.name} · 本周`}
             aside={
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <CollectStar atom={{ kind: "classroom-b", key: enc(sel.searchName, sel.name) }} title={sel.name} />
-              {result?.currentWeekNumber
+              <span>{result?.currentWeekNumber
                 ? `第 ${result.currentWeekNumber} 教学周 · 今日空闲 ${freeToday} 间${selSlots.size > 0 ? ` · 所选 ${selSlots.size} 节全空闲 ${rows.length} 间` : ""}（下表为今日）`
                 : undefined
-            }
+            }</span>
+              <CollectStar atom={{ kind: "classroom-b", key: enc(sel.searchName, sel.name) }} title={sel.name} />
             </span>
           }
           />
