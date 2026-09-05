@@ -25,6 +25,7 @@
 import { AuthRequiredError, type HttpClient } from "../http.js";
 import { gbkPercentEncode } from "./gbk-table.js";
 import { searchXkCoursesByTab } from "./xk-tab.js";
+import { deptCodeOf, normSeq, parsePagerInfo, parseVolRows, parseVolSportsRows, type XkVolRow } from "./xk-vol.js";
 import { parseCasFormHtml } from "../auth/cas.js";
 import { decodeUrl, webvpnWrap } from "../crypto/webvpn.js";
 import { ID_PREFIX } from "../auth/cas.js";
@@ -449,6 +450,10 @@ export interface XkVolInfo {
   volElective: string;
   volOptional: string;
   volSports: string;
+  /** 志愿行身份（xk-vol 三段匹配/错页校验用；纯统计视图可不填） */
+  code?: string;
+  seq?: string;
+  department?: string;
 }
 
 /** 课余量/排队（xkqkSearch+kylSearch gridData ∪ selectBksDlCount） */
@@ -531,39 +536,6 @@ export function parseXkCatalogPage(html: string): XkCourse[] {
   return out;
 }
 
-
-/** 志愿统计（普通 tbzySearchBR）：9 元内嵌数组 */
-export function parseXkVolPage(html: string): Record<string, XkVolInfo> {
-  const map: Record<string, XkVolInfo> = {};
-  const re = /\[\s*"(\d+)"\s*,\s*"([^"]*?)"\s*,\s*"[^"]*?"\s*,\s*"[^"]*?"\s*,\s*"(\d*)"\s*,\s*"(\d*)"\s*,\s*"(.*?)"\s*,\s*"(.*?)"\s*,\s*"(.*?)"\s*\]/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) !== null) {
-    map[`${m[1]}_${m[2]}`] = {
-      capacity: parseInt(m[3] ?? "") || 0,
-      applied: parseInt(m[4] ?? "") || 0,
-      volRequired: m[5] ?? "",
-      volElective: m[6] ?? "",
-      volOptional: m[7] ?? "",
-      volSports: "",
-    };
-  }
-  return map;
-}
-
-/** 志愿统计（体育 tbzySearchTy）：6 元内嵌数组 */
-export function parseXkVolSportsPage(html: string): Record<string, Partial<XkVolInfo>> {
-  const map: Record<string, Partial<XkVolInfo>> = {};
-  const re = /\[\s*"(\d+)"\s*,\s*"([^"]*?)"\s*,\s*"[^"]*?"\s*,\s*"(\d*)"\s*,\s*"(\d*)"\s*,\s*"(.*?)"\s*\]/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) !== null) {
-    map[`${m[1]}_${m[2]}`] = {
-      capacity: parseInt(m[3] ?? "") || 0,
-      applied: parseInt(m[4] ?? "") || 0,
-      volSports: m[5] ?? "",
-    };
-  }
-  return map;
-}
 
 /** 课余量 gridData 行（xkqkSearch / kylSearch 共用） */
 export function parseXkQueueGrid(html: string): Record<string, XkQueueInfo> {
@@ -799,37 +771,126 @@ export async function searchXkCourses(
   return { rows, page, hasMore: false, totalPages, pageKind: "empty" };
 }
 
-/** 志愿统计（tbzySearchBR ≤200 页 + tbzySearchTy ≤20 页，失败容忍） */
-export async function getXkVolunteer(
+/** 院系定向志愿同步（NextTHUxk 2.0 fetchVolunteer 回移）：池内课程按院系去重 →
+ *  逐院系 GET（首页无 page 无 token，翻页 &page=N，p_lrdwnm=院系码）→ 院系内
+ *  分页通常 1-3 页。错页校验（用户十九报：070 被标 done 但页里没有该院系课程
+ *  ——错页/过滤器丢失污染 done 后按需补拉全部空转）：拉回的页里至少一行真属于
+ *  该院系，否则不标 done、数据不进 map。失败容忍不记 done，下次可重试。
+ *  Ty：体育志愿无院系轴，池含体育课时全量拉 ≤20 页。
+ *  doneMap = 本会话已拉院系（code → 时间戳；"ty" 为体育），调用方持有。 */
+export async function fetchXkVolunteerByDept(
   s: ZhjwxkSession,
-  opts: { semester?: string } = {},
-): Promise<Record<string, XkVolInfo>> {
+  opts: {
+    semester?: string;
+    depts: string[];
+    hasSports: boolean;
+    doneMap: Record<string, number>;
+    force?: boolean;
+    onRows?: (rows: Record<string, XkVolRow>) => void;
+  },
+): Promise<Record<string, XkVolRow>> {
   const { entry, semester } = await ensure(s, opts.semester);
-  const br = await pagedFetch(s, entry, {
-    buildPath: (p) =>
-      p < 0
-        ? `/xkBks.xkBksZytjb.do?m=tbzySearchBR&p_xnxq=${semester}`
-        : `/xkBks.xkBksZytjb.do?m=tbzySearchBR&p_xnxq=${semester}&page=${p}`,
-    parse: parseXkVolPage,
-    maxPages: 200,
-  });
-  const merged: Record<string, XkVolInfo> = Object.fromEntries(br);
-  try {
-    const ty = await pagedFetch(s, entry, {
-      buildPath: (p) =>
-        p < 0
-          ? `/xkBks.xkBksZytjb.do?m=tbzySearchTy&p_xnxq=${semester}`
-          : `/xkBks.xkBksZytjb.do?m=tbzySearchTy&p_xnxq=${semester}&page=${p}`,
-      parse: parseXkVolSportsPage,
-      maxPages: 20,
-    });
-    for (const [k, v] of ty) {
-      merged[k] = { capacity: 0, applied: 0, volRequired: "", volElective: "", volOptional: "", ...merged[k], ...v } as XkVolInfo;
+  const map: Record<string, XkVolRow> = {};
+  const pullPages = async (first: string, pageCount: number, consume: (h: string) => void): Promise<void> => {
+    const rest = Array.from({ length: pageCount - 1 }, (_, i) => i + 2);
+    for (let i = 0; i < rest.length; i += 3) {
+      const batch = rest.slice(i, i + 3);
+      const htmls = await Promise.all(batch.map((p) => proxyZhjwxkApi(s, entry, `${first}&page=${p}&_t=${Date.now()}`)));
+      htmls.forEach(consume);
+      if (i + 3 < rest.length) await sleep(50); // v1.5.0 同款 throttle
     }
-  } catch {
-    /* 体育统计失败容忍（v1.4.9 同款） */
+  };
+  for (const code of opts.depts) {
+    try {
+      if (!opts.force && opts.doneMap[code]) continue; // 已拉院系跳过
+      const first = `/xkBks.xkBksZytjb.do?m=tbzySearchBR&p_xnxq=${semester}&p_lrdwnm=${code}`;
+      const fh = await proxyZhjwxkApi(s, entry, first);
+      assertNotDenied(s, fh);
+      const pg = parsePagerInfo(fh);
+      const pageCount = Math.min(pg.pages > 0 ? pg.pages : 1, 25);
+      let rows: Record<string, XkVolRow> = {};
+      const consume = (h: string): void => {
+        rows = { ...rows, ...parseVolRows(h) };
+      };
+      consume(fh);
+      await pullPages(first, pageCount, consume);
+      // 错页校验：页里至少一行真属于该院系（外校课 department 无码自然不算）
+      if (!Object.values(rows).some((r) => deptCodeOf(r.department) === code)) continue;
+      if (opts.onRows) opts.onRows(rows); // 流式上报（UI 增量合并，不等全部院系）
+      Object.assign(map, rows);
+      opts.doneMap[code] = Date.now();
+    } catch {
+      // 单院系失败容忍，下次可重试
+    }
   }
-  return merged;
+  // Ty：体育志愿无院系轴，全量 ≤20 页（force 重拉）
+  if (opts.hasSports && (opts.force || !opts.doneMap.ty)) {
+    try {
+      const first = `/xkBks.xkBksZytjb.do?m=tbzySearchTy&p_xnxq=${semester}`;
+      const fh = await proxyZhjwxkApi(s, entry, first);
+      assertNotDenied(s, fh);
+      const pg = parsePagerInfo(fh);
+      const pageCount = Math.min(pg.pages > 0 ? pg.pages : 1, 20);
+      const rows: Record<string, XkVolRow> = {};
+      const consume = (h: string): void => {
+        for (const [k, v] of Object.entries(parseVolSportsRows(h))) {
+          const prev: XkVolRow | undefined = rows[k];
+          rows[k] = {
+            code: v.code,
+            seq: v.seq,
+            department: prev?.department ?? "",
+            capacity: v.capacity,
+            applied: v.applied,
+            volRequired: prev?.volRequired ?? "",
+            volElective: prev?.volElective ?? "",
+            volOptional: prev?.volOptional ?? "",
+            volSports: v.volSports || prev?.volSports || "",
+          };
+        }
+      };
+      consume(fh);
+      await pullPages(first, pageCount, consume);
+      if (opts.onRows) opts.onRows(rows);
+      Object.assign(map, rows);
+      opts.doneMap.ty = Date.now();
+    } catch {
+      /* 体育统计失败容忍（v1.4.9 同款） */
+    }
+  }
+  return map;
+}
+
+/** 定向课号志愿查询（用户二十报：070 分院视图不含心智探秘——开课系显示
+ *  社科学院但分院页就是没有它这行；不分院的完整列表里有）。BR 表单自带
+ *  p_kch 课号查询框：POST token+p_kch 精确拉该课全部课序的志愿行。
+ *  存档 doQuery 实锤：新查询 page="-1"（重置分页语义），p_sort.asc* 真值是
+ *  "true" 不是 "asc"——此前非法表单被服务器整体拒绝（0 行）。
+ *  只保留请求课号的行，服务器若忽略 p_kch 返回大列表也不污染。 */
+export async function fetchXkVolCourse(
+  s: ZhjwxkSession,
+  opts: { semester?: string; code: string },
+): Promise<Record<string, XkVolRow>> {
+  const { entry, semester } = await ensure(s, opts.semester);
+  const fh = await proxyZhjwxkApi(s, entry, `/xkBks.xkBksZytjb.do?m=tbzySearchBR&p_xnxq=${semester}`);
+  assertNotDenied(s, fh);
+  const token = TOKEN_RE().exec(fh)?.[1] ?? "";
+  const html = await postZhjwxkApi(s, entry, "/xkBks.xkBksZytjb.do", {
+    m: "tbzySearchBR",
+    page: "-1",
+    token,
+    p_xnxq: semester,
+    "p_sort.p1": "",
+    "p_sort.p2": "",
+    "p_sort.asc1": "true",
+    "p_sort.asc2": "true",
+    p_kch: opts.code,
+    p_kcm: "",
+    p_lrdwnm: "",
+  });
+  const all = parseVolRows(html);
+  const out: Record<string, XkVolRow> = {};
+  for (const [k, v] of Object.entries(all)) if (v.code === opts.code) out[k] = v;
+  return out;
 }
 
 /** 课余量+排队（xkqkSearch 判 phase → kylSearch POST 翻页 → selectBksDlCount 批 100/熔断 3） */
