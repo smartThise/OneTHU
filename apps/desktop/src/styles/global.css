@@ -815,7 +815,7 @@
   gap: var(--gap-3);
 }
 
-.course-card { transition: border-color 100ms ease, box-shadow 100ms ease; }
+.course-card { position: relative; transition: border-color 100ms ease, box-shadow 100ms ease; }
 .course-card:hover { border-color: var(--accent-border); box-shadow: var(--shadow-1); }
 
 .course-card-btn {
