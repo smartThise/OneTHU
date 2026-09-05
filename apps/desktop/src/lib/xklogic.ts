@@ -72,7 +72,9 @@ function probResult(rem: number, applicants: number): ProbResult {
   else if (applicants === 0) { prob = 1; color = P_GREEN; }
   else { prob = Math.min(1, rem / applicants); color = prob >= 0.8 ? P_GREEN : prob >= 0.5 ? P_AMBER : P_RED; }
   const r = Math.max(0, Math.round(rem)), a = Math.max(0, Math.round(applicants));
-  return { prob, label: `${Math.round(prob * 100)}%`, percentLabel: `${Math.round(prob * 100)}%`, ratioLabel: `${r}/${a}`, color, bg: probBg(color) };
+  // 比例标签 = 人数/名额（「2/5」=2人抢5位；用户实锤：与占用条已选/容量同向。
+  // 旧版 剩余/人数「5/2」在卡片上读起来像搞反了——2.0 定稿回移）
+  return { prob, label: `${Math.round(prob * 100)}%`, percentLabel: `${Math.round(prob * 100)}%`, ratioLabel: `${a}/${r}`, color, bg: probBg(color) };
 }
 
 /** calcProb：体育独立级联；必/限/任全局级联（bx→xx→rx 依次扣满三志愿，rx 的 priority 为第 0 志愿） */
@@ -108,6 +110,19 @@ export function calcProb(
   else { deductTo(ele, zy, false); return probResult(rem, ele?.counts[zy - 1] ?? 0); }
   deductTo(opt, zy, true);
   return probResult(rem, opt?.counts[zy - 1] ?? 0);
+}
+
+/** 三行概率网格（NextTHUxk 2.0 fullProbGrid 回移，显示侧全开——用户十六报拍板）：
+ *  必修/限选/任选 × 1/2/3 志愿全显（志愿统计是全校公开数据，非池内课也能看
+ *  别人的竞争）；体育课走体育志愿单行。无数据格灰显，网格永远渲染。 */
+export function fullProbGrid(
+  cap: number, vol: VolStrings | undefined, isSports: boolean,
+): Array<{ flag: XkFlag; cells: ProbResult[] }> {
+  const flags: XkFlag[] = isSports ? ["ty"] : ["bx", "xx", "rx"];
+  return flags.map((flag) => ({
+    flag,
+    cells: [1, 2, 3].map((z) => calcProb(cap, vol, flag, z)),
+  }));
 }
 
 /* ── §5 合并行实体 ──────────────────────────────────────────── */

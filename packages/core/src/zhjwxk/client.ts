@@ -25,7 +25,7 @@
 import { AuthRequiredError, type HttpClient } from "../http.js";
 import { gbkPercentEncode } from "./gbk-table.js";
 import { searchXkCoursesByTab } from "./xk-tab.js";
-import { deptCodeOf, normSeq, parsePagerInfo, parseVolRows, parseVolSportsRows, type XkVolRow } from "./xk-vol.js";
+import { deptCodeOf, normSeq, parsePagerInfo, parseVolRows, parseVolSportsRows, parseVolStr, type XkVolRow } from "./xk-vol.js";
 import { parseCasFormHtml } from "../auth/cas.js";
 import { decodeUrl, webvpnWrap } from "../crypto/webvpn.js";
 import { ID_PREFIX } from "../auth/cas.js";
@@ -481,13 +481,6 @@ export const ZY_LIMITS: Record<XkFlag | "all", Array<[number, number]>> = {
 };
 
 export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
-
-/** "(2)12,8,0" → { prefix: 2, counts: [12,8,0] }（probability.js:28-38 同语义） */
-export function parseVolStr(v: string): { prefix: number; counts: number[] } | null {
-  const m = /\((\d+)\)(\d+(?:,\d+)*)/.exec(v.trim());
-  if (!m) return null;
-  return { prefix: parseInt(m[1]!), counts: m[2]!.split(",").map((x) => parseInt(x) || 0) };
-}
 
 const TOKEN_RE = () => /name="token"\s+value="([^"]+)"/;
 

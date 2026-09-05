@@ -15,7 +15,7 @@ import { confirmOk } from "../../lib/confirm.js";
 import { openExternal } from "../info/openExternal.js";
 import { callAi, extractJsonArray, loadAiConfig, saveAiConfig, type AiConfig } from "../../lib/xkai.js";
 import {
-  allowedFlags, calcProb, checkPlanCoverage, dayName, findPreviewConflicts, typeCodeToFlag,
+  allowedFlags, calcProb, checkPlanCoverage, dayName, findPreviewConflicts, fullProbGrid, typeCodeToFlag,
   FLAG_LABELS, parseTimeSlots, SLOT_NAMES, type PlanCoverageItem, type SlotItem, type XkFlag, type XkRow, zyTypeOf, isSportsCourse } from "../../lib/xklogic.js";
 
 const TS_GROUPS: Array<[string, string]> = [["TS1", "人文课组"], ["TS2", "社科课组"], ["TS3", "艺术课组"], ["TS4", "科学课组"]];
@@ -854,6 +854,20 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             {showInlineProb ? <span style={{ marginLeft: 8, color: prob.color }}>{prob.prob}</span> : null}
           </div>
         ) : null}
+        {/* 三行概率网格（NextTHUxk 2.0 fullProbGrid 回移）：必修/限选/任选 ×
+            1/2/3 志愿全显，无数据格灰显——显示侧全开（用户十六报拍板） */}
+        <div style={{ marginTop: 3, lineHeight: 1.4, fontSize: 9 }}>
+          {fullProbGrid(cap, r.vol, isSportsCourse(r)).map((row) => (
+            <div key={row.flag}>
+              <span style={{ color: "var(--text-3)" }}>{FLAG_LABELS[row.flag]}</span>{" "}
+              {row.cells.map((p, zi) => (
+                <span key={zi} style={{ color: p.prob >= 0 ? p.color : "var(--text-3)", fontWeight: p.prob >= 0 ? 600 : 400, marginRight: 8 }}>
+                  {zi + 1}志愿:{p.label}{p.prob >= 0 && p.ratioLabel ? ` · ${p.ratioLabel}` : ""}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
         {(() => { const o = originOf(r.c.code); if (!o) return null;
           if (clockRangesOf(r.c.note, r.time).length > 0) return null; // 时间已解析上时间轴，不废话
           return (
