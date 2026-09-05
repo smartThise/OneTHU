@@ -24,6 +24,7 @@
  */
 import { AuthRequiredError, type HttpClient } from "../http.js";
 import { gbkPercentEncode } from "./gbk-table.js";
+import { searchXkCoursesByTab } from "./xk-tab.js";
 import { parseCasFormHtml } from "../auth/cas.js";
 import { decodeUrl, webvpnWrap } from "../crypto/webvpn.js";
 import { ID_PREFIX } from "../auth/cas.js";
@@ -530,6 +531,7 @@ export function parseXkCatalogPage(html: string): XkCourse[] {
   return out;
 }
 
+
 /** 志愿统计（普通 tbzySearchBR）：9 元内嵌数组 */
 export function parseXkVolPage(html: string): Record<string, XkVolInfo> {
   const map: Record<string, XkVolInfo> = {};
@@ -778,9 +780,23 @@ export async function searchXkCourses(
   if (rows.length > 0) return { rows, page, hasMore: true, totalPages, totalRows, pageKind: "empty" };
   // 0 行分类：结果页（含结果表头）= 真无匹配；否则异常页，带首段诊断
   const isResultPage = html.includes("选课文字说明") || html.includes("trr2");
-  return isResultPage
-    ? { rows, page, hasMore: false, totalPages, pageKind: "empty" }
-    : { rows, page, hasMore: false, totalPages, totalRows, pageKind: "unknown", htmlHead: html.slice(0, 600).replace(/\s+/g, " ") };
+  if (!isResultPage) return { rows, page, hasMore: false, totalPages, totalRows, pageKind: "unknown", htmlHead: html.slice(0, 600).replace(/\s+/g, " ") };
+  // 外校课号兜底（NextTHUxk 2.0）：kkxxSearch 索引不命中 PK/GPK/BW 前缀课号
+  // 且非纯数字 → 一级课表页签检索表单原样重搜（教务 web UI 同款路径）
+  if (opts.kch?.trim() && !/^\d+$/.test(opts.kch.trim())) {
+    const tabRows = await searchXkCoursesByTab(
+      {
+        get: (url) => proxyZhjwxkApi(s, entry, url),
+        post: (url, fields) => postZhjwxkApi(s, entry, url, fields),
+        semester: async () => semester,
+        assertAlive: (html) => assertNotDenied(s, html),
+        tokenRe: TOKEN_RE,
+      },
+      { semester, kch: opts.kch.trim() },
+    );
+    if (tabRows.length) return { rows: tabRows, page: 1, hasMore: false, totalPages: 1, totalRows: tabRows.length, pageKind: "empty" };
+  }
+  return { rows, page, hasMore: false, totalPages, pageKind: "empty" };
 }
 
 /** 志愿统计（tbzySearchBR ≤200 页 + tbzySearchTy ≤20 页，失败容忍） */
@@ -905,6 +921,18 @@ function hasSelected(html: string, code: string, seq: string): boolean {
   return false;
 }
 
+/** 业务拒绝字典（NextTHUxk 2.0 实证回移）：时间冲突/学分上限/先修不符等教务拒绝
+ *  页此前落进轮询兜底，用户只看到「未生效」而不知道原因。成功串必须先行短路。 */
+const XK_REJECT_RE = /时间冲突|上课时间冲突|先修|不符合|不允许|无法选课|选课失败|提交失败|余量不足|课余量不足|人数已满|已选满|请先|验证码|超出|达不到|不满足|存在冲突|已选过|重复选课|操作被拒绝|被拒绝|失败|上限|已选课程学分/;
+
+function rejectOf(html: string): XkWriteResult | null {
+  if (!XK_REJECT_RE.test(html)) return null;
+  const alertMsg = /alert\(["']([^"']{2,160})["']\)/.exec(html)?.[1];
+  const plain = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  const snippet = /[^ ]{0,20}(?:冲突|先修|不符合|不允许|无法|失败|不足|已满|超出|请先|验证码|拒绝)[^ ]{0,30}/.exec(plain)?.[0];
+  return { ok: false, msg: ((alertMsg || snippet || "选课被教务拒绝").trim()).slice(0, 120), where: "none" };
+}
+
 /** 选课：GET 搜索页取一次性 token → POST save*Kc → 满员二次 POST saveBksKcDl（响应新 token）→ 轮询确认 */
 export async function submitXkCourse(
   s: ZhjwxkSession,
@@ -940,7 +968,7 @@ export async function submitXkCourse(
     if (html.includes("accessDenied")) return { ok: false, msg: "操作被拒绝（会话失效）", where: "none" };
     if (html.includes("加入队列成功")) return { ok: true, msg: "已加入候补队列", where: "queue" };
     if (html.includes("选课成功")) return { ok: true, msg: "选课成功", where: "selected" };
-    return null;
+    return rejectOf(html); // NextTHUxk 2.0：拒绝页明确失败并带出可读原因（不落轮询）
   };
 
   let resp = await postZhjwxkApi(s, entry, "/xkBks.vxkBksXkbBs.do", fields);
@@ -994,6 +1022,8 @@ export async function dropXkCourse(
       };
   const resp = await postZhjwxkApi(s, entry, "/xkBks.vxkBksXkbBs.do", form);
   if (resp.includes("accessDenied")) return { ok: false, msg: "操作被拒绝（会话失效）", where: "none" };
+  const dropRej = rejectOf(resp); // NextTHUxk 2.0：退课被拒（如非本人课程/不允许退选）明确带出
+  if (dropRej) return dropRej;
   for (let i = 0; i < 3; i++) {
     await sleep(500);
     const check = await proxyZhjwxkApi(
@@ -1028,6 +1058,8 @@ export async function changeXkVolunteer(
     jhzy_zy: String(opts.zy),
   });
   if (resp.includes("accessDenied")) return { ok: false, msg: "操作被拒绝（会话失效）", where: "none" };
+  const zyRej = rejectOf(resp); // NextTHUxk 2.0：志愿调整被拒明确带出（名额上限/时间冲突等）
+  if (zyRej) return zyRej;
   await sleep(1000);
   return { ok: true, msg: `志愿已调整为第 ${opts.zy} 志愿`, where: "selected" };
 }
