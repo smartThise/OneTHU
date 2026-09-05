@@ -533,6 +533,9 @@ export const nextVolCheckpoint = (now = new Date()): Date => {
   return d;
 };
 
+/** 志愿补拉池行（渲染行投影：只拉「正在看的行」涉及的院系——用户定稿：任何数据不整库预爬） */
+export interface XkVolPoolRow { code: string; seq: string; department?: string }
+
 export interface XkWorkbench {
   semester: string | null;
   selected: XkSelectedRow[];
@@ -548,7 +551,7 @@ export interface XkWorkbench {
   volState: DataState | "idle";
   /** 上次志愿同步时间戳（0=未同步） */
   volLastSync: number;
-  refreshVol: (force?: boolean) => Promise<void>;
+  refreshVol: (pool: XkVolPoolRow[], force?: boolean) => Promise<void>;
   /** 左栏实时搜索（浏览=服务端页取 / 搜索=真页数探测+可加载全部） */
   searchState: DataState | "idle" | "loadingMore";
   /** 服务端搜索原始行池（不含已选/候补兜底行，供 UI 分页与去重判断） */
@@ -671,8 +674,9 @@ export function useXkWorkbench(): XkWorkbench {
   const volRetriedRef = useRef<Record<string, number>>({}); // 缺行重拉 "d:院系" / 定向课号 "k:课号"，每会话一次
   const volDataRef = useRef<Record<string, XkVolRow>>({}); // volMap 镜像（回调内判定缺行用）
   const volInflightRef = useRef(false);
+  const volPoolRef = useRef<XkVolPoolRow[]>([]); // 最近一次补拉池（检查点 force 重拉用）
   const volPendingRef = useRef(false); // inflight 期间的触发不丢，收尾补跑
-  const refreshVolRef = useRef<(force?: boolean) => Promise<void>>(undefined);
+  const refreshVolRef = useRef<(pool: XkVolPoolRow[], force?: boolean) => Promise<void>>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -861,7 +865,10 @@ export function useXkWorkbench(): XkWorkbench {
   const submit = useCallback(
     (code: string, seq: string, zy: number, flag: XkFlag) =>
       runWrite(`submit-${code}-${seq}`, () =>
-        submitXkCourse(xkSession(), { code, seq, zy, flag }),
+        submitXkCourse(xkSession(), { code, seq, zy, flag }).then((res) => {
+          if (res.ok) void refreshVolRef.current?.(volPoolRef.current, true); // 提交后志愿统计必变，重拉
+          return res;
+        }),
       ),
     [runWrite],
   );
@@ -909,25 +916,26 @@ export function useXkWorkbench(): XkWorkbench {
    *  每会话一次） ③ 分院页没有 → 逐课 p_kch 定向查询（每课每会话一次）。
    *  阶段门控：队列阶段概率走排队/余量模型，跳过志愿同步（2.0 定稿）。 */
   const refreshVol = useCallback(
-    async (force = false): Promise<void> => {
+    async (poolRows: XkVolPoolRow[], force = false): Promise<void> => {
       if (status === "demo" || phase) return;
       if (volInflightRef.current) {
-        volPendingRef.current = true; // 目录/搜索又变了：收尾后补跑一轮（doneMap 去重，代价≈0）
+        volPendingRef.current = true; // 渲染行又变了：收尾后补跑一轮（doneMap 去重，代价≈0）
         return;
       }
       volInflightRef.current = true;
       setVolState("loading");
       try {
-        const pool = [...catalog, ...searchRaw].filter((r) => r.code);
+        const pool = poolRows.filter((r) => r.code);
+        if (pool.length) volPoolRef.current = pool; // 空池不覆盖（检查点重拉要真池）
         const sess = xkSession();
         const sem = semester ?? undefined;
-        // ① 院系定向
+        // ① 院系定向（只拉渲染行涉及的院系）
         const depts = new Set<string>();
         for (const r of pool) {
-          const dc = deptCodeOf(r.department);
+          const dc = deptCodeOf(r.department ?? "");
           if (dc && (force || !volDeptsRef.current[dc])) depts.add(dc);
         }
-        const hasSports = pool.some((r) => isSportsCourse(r));
+        const hasSports = pool.some((r) => isSportsCourse({ department: r.department }));
         const merge = (rows: Record<string, XkVolRow>): void => {
           volDataRef.current = { ...volDataRef.current, ...rows };
           setVolMap((prev) => ({ ...prev, ...rows })); // 流式：每院系到手即上屏
@@ -942,12 +950,13 @@ export function useXkWorkbench(): XkWorkbench {
         });
         volDataRef.current = { ...volDataRef.current, ...got };
         setVolMap((prev) => ({ ...prev, ...got }));
-        // ② 缺行院系 force 重拉（错页/过滤器丢失自愈）
+        // ② 缺行院系 force 重拉（错页/过滤器丢失自愈；done 已标但行仍缺也要排——
+        // 自愈就住在这里，newDepts 为空时它才更要跑，用户十九报 3a 场景）
         const missing = pool.filter((r) => !matchVolRow(volDataRef.current, r.code, r.seq));
         if (missing.length) {
           const mdepts = new Set<string>();
           for (const r of missing) {
-            const dc = deptCodeOf(r.department);
+            const dc = deptCodeOf(r.department ?? "");
             if (dc && !volRetriedRef.current[`d:${dc}`]) {
               volRetriedRef.current[`d:${dc}`] = 1;
               mdepts.add(dc);
@@ -990,33 +999,25 @@ export function useXkWorkbench(): XkWorkbench {
         volInflightRef.current = false;
         if (volPendingRef.current) {
           volPendingRef.current = false;
-          void refreshVolRef.current?.(false);
+          void refreshVolRef.current?.(volPoolRef.current); // 补跑用最近池
         }
       }
     },
-    [status, phase, catalog, searchRaw, semester],
+    [status, phase, semester],
   )
 
   /** 检查点调度链：挂载/学期切换即补一次（过期才算），随后对齐下一个 8/12/16/20 点 */
   const scheduleVolSync = useCallback((): void => {
     if (volTimerRef.current) clearTimeout(volTimerRef.current);
     const tick = (): void => {
-      void refreshVolRef.current?.(true); // 检查点：force 重拉保数据新鲜
+      void refreshVolRef.current?.(volPoolRef.current, true); // 检查点：force 重拉保数据新鲜
       volTimerRef.current = setTimeout(tick, Math.max(60_000, nextVolCheckpoint().getTime() - Date.now()));
     };
-    if (volNeedsRefresh(lastVolSyncRef.current)) void refreshVolRef.current?.(false);
+    if (volNeedsRefresh(lastVolSyncRef.current)) void refreshVolRef.current?.(volPoolRef.current, false);
     volTimerRef.current = setTimeout(tick, Math.max(60_000, nextVolCheckpoint().getTime() - Date.now()));
   }, []);
 
   refreshVolRef.current = refreshVol;
-
-  // 渲染行按需补拉（NextTHUxk 2.0 回移）：目录/搜索池到位晚于首次同步——
-  // 变化后防抖触发增量补拉，已拉院系 doneMap 去重，代价≈0；不触发则
-  // 新到行的志愿永远无数据（2026-09 实录：卡片半数无数据的根因）。
-  useEffect(() => {
-    const t = setTimeout(() => void refreshVolRef.current?.(false), 1500);
-    return () => clearTimeout(t);
-  }, [catalog, searchRaw]);
   const [searchState, setSearchState] = useState<DataState | "idle" | "loadingMore">("idle");
   const [searchPage, setSearchPage] = useState(1);
   const [searchHasMore, setSearchHasMore] = useState(false);
