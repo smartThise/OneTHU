@@ -98,6 +98,9 @@ import { openExternal } from "./openExternal.js";
  *  官方 SPA（hash 路由）venueHub 页按场次类别 sysNo 分流，兜底与场地类
  *  统一落 reserveList?uuid=；该页读 uuid 后 newSceneType 自动定位到对应
  *  场馆场次列表（实测抓包 chunk-0e504f6d，仅认 uuid，无日期参数）。 */
+/** 体育系统官方首页（外部浏览器登录入口：真预约深链在官方浏览器未登录时会被弹回登录页） */
+const VENUE_HOME_URL = "https://www.sports.tsinghua.edu.cn/venue/index.html#/home";
+
 const venueWebUrl = (sceneUuid: string) =>
   `https://www.sports.tsinghua.edu.cn/venue/index.html#/reserveList?uuid=${encodeURIComponent(sceneUuid)}`;
 
@@ -490,6 +493,23 @@ export function VenueSportsTab({
      ?token=<JWT>（官方 SPA 开机即认的 SSO 载体）+ 深链直达所选场馆。
      预约由用户在官方页面上手动完成；无 token 时回落系统浏览器。第 12 条红线不变 —— */
   const [bookingEmbed, setBookingEmbed] = useState<string | null>(null);
+  /* 预约两步走：第一步先去官方首页登录（外部浏览器），点完确认后才放出真预约按钮。
+     确认状态落 localStorage——官方登录态在浏览器 cookie 里持久，确认过一次以后直达。 */
+  const [venueLoginDone, setVenueLoginDone] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("onethu.venue.loginConfirmed") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const confirmVenueLogin = (): void => {
+    setVenueLoginDone(true);
+    try {
+      localStorage.setItem("onethu.venue.loginConfirmed", "1");
+    } catch {
+      /* 隐私模式：仅本次会话内生效 */
+    }
+  };
   const goOfficialBooking = useCallback(() => {
     if (!venue) return;
     void venueBookingEmbedUrl(venue.uuid).then((embed) => {
@@ -858,9 +878,37 @@ export function VenueSportsTab({
             >
               根据清华大学体育部场馆中心 2025 年 12 月 3 日发布的公告 七、12、如有用户通过脚本软件或插件等非正常途径预定场地，一经发现并核实，对该用户封禁预订权限 6 个月，并函告相关院系或单位。OneTHU 仅提供场馆情况查询，请点击按钮前往官网预约；如果不当使用源码进行预约，违反本项目开源准则，后果自负。
             </div>
-            <button className="btn btn-primary" onClick={goOfficialBooking}>
-              去体育系统网页预约
-            </button>
+            {!venueLoginDone ? (
+              <>
+                <div style={{ fontSize: 13, marginBottom: 8 }}>
+                  第一步：先在系统浏览器打开体育系统并登录（登录一次即可，之后不用重复）。
+                  未登录直接进预约页会被强制弹回登录。
+                </div>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    void openExternal(VENUE_HOME_URL);
+                    confirmVenueLogin();
+                  }}
+                >
+                  ① 打开体育系统登录
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="btn btn-primary" onClick={goOfficialBooking}>
+                  去体育系统网页预约
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  style={{ marginLeft: 8 }}
+                  title="登录态失效时点这里重新在系统浏览器登录"
+                  onClick={() => void openExternal(VENUE_HOME_URL)}
+                >
+                  重新登录
+                </button>
+              </>
+            )}
           </Card>
 
           {bookingEmbed ? (
