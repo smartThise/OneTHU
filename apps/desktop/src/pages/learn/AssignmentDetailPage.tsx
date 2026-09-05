@@ -4,8 +4,7 @@ import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components
 import { CollectStar } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
 import { IconDownload } from "../../components/Icons.js";
-import { learn, downloadLearnUrl, http } from "../../lib/clients.js";
-import { LEARN_PREFIX } from "@onethu/core";
+import { learn, downloadLearnUrl } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { openFilePreview } from "../../components/FilePreview.js";
 import { RichEditor } from "../../components/RichEditor.js";
@@ -37,7 +36,6 @@ export function AssignmentDetailPage() {
      撤回附件是附件区里的独立按钮、独立请求（isDeleted=1），与提交互不掺和 */
   const [customName, setCustomName] = useState("");
   const [subOk, setSubOk] = useState(true);
-  const [dbgHint, setDbgHint] = useState("");
   const [dlHint, setDlHint] = useState<string | null>(null);
   const [dlBusy, setDlBusy] = useState("");
 
@@ -213,20 +211,6 @@ export function AssignmentDetailPage() {
     }
   };
 
-  /** 诊断：把网堂 viewCj/tijiao 原始 HTML 落盘——「我的提交正文」为空而服务器
-   *  上确有正文时，用这两份原页校准 boxbox/textarea 解析（用户跑腿，一锤定音） */
-  const exportLearnDebug = async (): Promise<void> => {
-    setDbgHint("");
-    try {
-      const base = LEARN_PREFIX + "/f/wlxt/kczy/zy/student/";
-      const p1 = await downloadLearnUrl(`${base}viewCj?wlkcid=${courseId}&xszyid=${h.id}`, "onethu-debug-viewCj.html");
-      const p2 = await downloadLearnUrl(`${base}tijiao?wlkcid=${courseId}&xszyid=${h.id}`, "onethu-debug-tijiao.html");
-      setDbgHint("已导出两份原页：" + p1 + " ｜ " + p2);
-    } catch (err) {
-      setDbgHint("导出失败：" + explainNetworkError(err));
-    }
-  };
-
   /** 撤回附件（独立动作）：isDeleted=1 空手请求；必交附件作业会被服务器以
    *  「请上传附件」拒绝（2026-09-06 实证），失败时明示替代路径。 */
   const doRemove = async (): Promise<void> => {
@@ -340,29 +324,9 @@ export function AssignmentDetailPage() {
                 </div>
               );
             }
-            /* 空态不再是静默：说明空的可能（服务器本就无正文 / 解析未取到），并给取证出口 */
-            if (h.submitted && pageState === "ok") {
-              return (
-                <div style={{ marginBottom: 6, fontSize: 12, color: "var(--text-dim, #888)" }}>
-                  网堂侧未取到本次提交的正文——若你提交时写了正文，点右侧按钮导出网堂原页来校准解析。
-                  <button
-                    className="btn btn-ghost"
-                    style={{ marginLeft: 8, height: 22, padding: "0 8px", fontSize: 11 }}
-                    onClick={() => void exportLearnDebug()}
-                  >
-                    导出网堂原页（诊断）
-                  </button>
-                  {dbgHint ? <div style={{ marginTop: 4, wordBreak: "break-all" }}>{dbgHint}</div> : null}
-                </div>
-              );
-            }
+            /* 空态静默：未提交（或服务器本就无正文）时不渲染预览块 */
             return null;
           })()}
-          {(pageState === "ok" || pageState === "error") ? (
-            <div style={{ fontSize: 11, color: "var(--text-dim, #888)", fontFamily: "ui-monospace, monospace", wordBreak: "break-all", marginTop: 4 }}>
-              DEBUG {learn.lastPageDetailDebug || "(空)"} ｜ http尾: {(http.lastDebug ?? "").slice(-140).replace(/\s+/g, " ")}
-            </div>
-          ) : null}
           {attFound.map(({ label, a }) => {
             const key = a!.id || a!.downloadUrl;
             return (
