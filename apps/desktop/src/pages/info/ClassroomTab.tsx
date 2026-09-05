@@ -8,6 +8,8 @@ import { Card, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { SearchSelect } from "../../components/SearchSelect.jsx";
 import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
+import { CollectStar } from "../../components/Collect.js";
+import { enc, noteAtomCache } from "../../state/atoms.js";
 import { TabEmpty, TabError, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
 
 type LoadState = "loading" | "error" | "ready";
@@ -66,7 +68,15 @@ function SlotFilterDropdown({ value, onChange }: { value: Set<number>; onChange:
 /** core ClassroomStatus.AVAILABLE = 5（数值枚举，42 格=7 天 × 6 节，周一起） */
 const AVAILABLE = 5;
 
-export function ClassroomTab() {
+export function ClassroomTab({
+  deepBuilding, deepBuildingName, deepRoom,
+}: {
+  /** 深链（实体原子）：自动选中的教学楼 searchName */
+  deepBuilding?: string;
+  deepBuildingName?: string;
+  /** 要高亮滚动的教室名 */
+  deepRoom?: string;
+} = {}) {
   const { status } = useApp();
 
   /* —— 一级：教学楼列表 —— */
@@ -85,14 +95,26 @@ export function ClassroomTab() {
   /* 大节筛选：空集=显示全部 6 节；选中集合=只显示所选大节列 */
   const [selSlots, setSelSlots] = useState<Set<number>>(new Set());
 
+  /* 深链只落一次的把关（对象 ref 即可，无需触发渲染） */
+  const deepApplied = { current: false };
   const loadBuildings = useCallback(async () => {
     if (status !== "ready") return;
     setBState("loading");
     setBUnavailable(false);
     setBError(null);
     try {
-      setBuildings(await info.getClassroomList());
+      const list = await info.getClassroomList();
+      setBuildings(list);
       setBState("ready");
+      noteAtomCache({ classroomBuildings: list.map((b) => ({ searchName: b.searchName, name: b.name })) });
+      // 深链：目录就绪后自动选中目标教学楼
+      if (deepBuilding && !deepApplied.current) {
+        const b = list.find((x) => x.searchName === deepBuilding);
+        if (b) {
+          deepApplied.current = true;
+          void loadState(b);
+        }
+      }
     } catch (err) {
       logTabErr("CLASSROOM-LIST", err);
       setBUnavailable(isServiceUnavailable(err));
@@ -135,6 +157,17 @@ export function ClassroomTab() {
     SLOT_LABELS.some((_, s) => (r.status?.[todayCol * 6 + s] ?? -1) === AVAILABLE),
   ).length;
 
+  /* 深链：教室状态就绪后高亮并滚动到目标教室行 */
+  useEffect(() => {
+    if (rState !== "ready" || !deepRoom) return;
+    const el = Array.from(document.querySelectorAll<HTMLElement>("[data-room]")).find(
+      (n) => n.getAttribute("data-room") === deepRoom,
+    );
+    if (!el) return;
+    el.classList.add("fav-dl-flash");
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [rState, rows, deepRoom]);
+
   if (status === "demo") {
     return <TabEmpty text="演示模式不提供空教室数据，登录后可查询本周空闲教室。" />;
   }
@@ -169,9 +202,13 @@ export function ClassroomTab() {
           <SectionHead
             title={`${sel.name} · 本周`}
             aside={
-            result?.currentWeekNumber
-              ? `第 ${result.currentWeekNumber} 教学周 · 今日空闲 ${freeToday} 间${selSlots.size > 0 ? ` · 所选 ${selSlots.size} 节全空闲 ${rows.length} 间` : ""}（下表为今日）`
-              : undefined
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <CollectStar atom={{ kind: "classroom-b", key: enc(sel.searchName, sel.name) }} title={sel.name} />
+              {result?.currentWeekNumber
+                ? `第 ${result.currentWeekNumber} 教学周 · 今日空闲 ${freeToday} 间${selSlots.size > 0 ? ` · 所选 ${selSlots.size} 节全空闲 ${rows.length} 间` : ""}（下表为今日）`
+                : undefined
+            }
+            </span>
           }
           />
           {rState === "error" ? (
@@ -206,8 +243,13 @@ export function ClassroomTab() {
                   </thead>
                   <tbody>
                     {rows.map((r, i) => (
-                      <tr key={`${r.name}-${i}`} style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}>
-                        <td className="cell-title" style={{ whiteSpace: "nowrap" }}>{r.name}</td>
+                      <tr key={`${r.name}-${i}`} style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }} data-room={r.name}>
+                        <td className="cell-title" style={{ whiteSpace: "nowrap" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
+                            {r.name}
+                            <CollectStar atom={{ kind: "classroom-r", key: enc(sel.searchName, sel.name, r.name) }} title={r.name} />
+                          </span>
+                        </td>
                         {SLOT_LABELS.map((sl, si) => {
                           const free = (r.status?.[todayCol * 6 + si] ?? -1) === AVAILABLE;
                           return (

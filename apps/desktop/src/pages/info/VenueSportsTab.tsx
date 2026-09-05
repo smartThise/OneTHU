@@ -32,6 +32,8 @@ import {
 } from "@onethu/core";
 import { Card, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { SearchSelect } from "../../components/SearchSelect.jsx";
+import { CollectStar } from "../../components/Collect.js";
+import { enc, noteAtomCache } from "../../state/atoms.js";
 
 /** 北京时间当前分钟数（0-1439） */
 function beijingMinute(): number {
@@ -126,7 +128,12 @@ function sessionBookable(s: VenueSession): boolean {
 
 const VENUE_UNAVAILABLE = "体育场馆服务暂不可用，请稍后重试";
 
-export function VenueSportsTab() {
+export function VenueSportsTab({
+  deepScene,
+}: {
+  /** 深链（实体原子）：自动选中的场馆 scene uuid */
+  deepScene?: string;
+} = {}) {
   const { status } = useApp();
 
   /* —— 授权 —— */
@@ -280,6 +287,13 @@ export function VenueSportsTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, authed, maintain]);
 
+  /* 深链：场馆目录就绪后自动选中目标场馆 */
+  useEffect(() => {
+    if (!deepScene || sceneState !== "ready" || !scenes) return;
+    const x = scenes.find((sc) => sc.uuid === deepScene);
+    if (x) setVenue((cur) => (cur?.uuid === x.uuid ? cur : x));
+  }, [deepScene, sceneState, scenes]);
+
   /* —— 场馆目录 —— */
   const loadScenes = useCallback(async () => {
     setSceneState("loading");
@@ -289,6 +303,7 @@ export function VenueSportsTab() {
       setScenes(list);
       setVenue((cur) => cur ?? list[0] ?? null);
       setSceneState("ready");
+      noteAtomCache({ sportsScenes: list.map((x) => ({ uuid: x.uuid, name: x.sceneName })) });
     } catch (err) {
       logTabErr("VENUE-SCENES", err);
       if (isVenueAuth(err)) {
@@ -657,15 +672,22 @@ export function VenueSportsTab() {
       {sceneState === "loading" && !scenes ? (
         <SkeletonRows rows={3} />
       ) : (
-        <SearchSelect
-          value={venue?.uuid ?? ""}
-          onChange={(v) => {
-            const x = (scenes ?? []).find((y) => y.uuid === v);
-            if (x) setVenue(x);
-          }}
-          placeholder="选择场馆…"
-          options={(scenes ?? []).map((x) => ({ value: x.uuid, label: x.sceneName }))}
-        />
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+            <SearchSelect
+              value={venue?.uuid ?? ""}
+              onChange={(v) => {
+                const x = (scenes ?? []).find((y) => y.uuid === v);
+                if (x) setVenue(x);
+              }}
+              placeholder="选择场馆…"
+              options={(scenes ?? []).map((x) => ({ value: x.uuid, label: x.sceneName }))}
+            />
+          </div>
+          {venue ? (
+            <CollectStar atom={{ kind: "sports-v", key: enc(venue.uuid, venue.sceneName) }} title={venue.sceneName} />
+          ) : null}
+        </div>
       )}
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
         <input

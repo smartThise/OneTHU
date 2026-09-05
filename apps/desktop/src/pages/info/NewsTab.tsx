@@ -34,6 +34,8 @@ import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { NewsDetail, NewsItem } from "@onethu/core";
 import { SegmentedOverflow, Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { CollectStar } from "../../components/Collect.js";
+import { enc, noteAtomCache } from "../../state/atoms.js";
 import { IconDownload, IconExternal, IconSearch } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useNews } from "../../state/data.js";
@@ -139,6 +141,7 @@ function NewsRow({
   onOpen: (item: NewsItem) => void;
 }) {
   return (
+    <div className="news-row-wrap">
     <button
       className="row row-link"
       style={{ animationDelay: `${delay}ms`, textAlign: "left", width: "100%" }}
@@ -160,6 +163,10 @@ function NewsRow({
       </div>
       {n.url ? <IconExternal width={14} height={14} /> : null}
     </button>
+    {n.xxid ? (
+      <CollectStar atom={{ kind: "news", key: enc(n.xxid, n.name, n.source) }} title={n.name} />
+    ) : null}
+    </div>
   );
 }
 
@@ -259,6 +266,12 @@ export function NewsTab({
   const fetchedList = useMemo(() => {
     for (const n of data ?? []) if (n.xxid) fetchedRef.current.set(n.xxid, n);
     return [...fetchedRef.current.values()];
+  }, [data]);
+
+  /* 原子搜索缓存：已拉到的新闻入库（搜索框不主动请求新闻服务） */
+  useEffect(() => {
+    const items = (data ?? []).filter((n) => n.xxid).map((n) => ({ xxid: n.xxid, name: n.name, source: n.source }));
+    if (items.length > 0) noteAtomCache({ newsItems: items });
   }, [data]);
 
   /* 服务端搜索优先（演示态跳过）；失败 → fallback，由本地打分兜底 */

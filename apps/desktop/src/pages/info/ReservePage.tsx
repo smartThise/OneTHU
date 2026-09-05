@@ -79,10 +79,10 @@ export function ReservePage() {
       </SegmentedOverflow>
 
       {/* LibraryTab 自带「图书馆座位」分区标题，不再叠加模块头 */}
-      <div hidden={tab !== "library"}>{visited.has("library") ? <LibraryTab /> : null}</div>
-      <div hidden={tab !== "libroom"}>{visited.has("libroom") ? <LibRoomTab /> : null}</div>
-      <div hidden={tab !== "classroom"}>{visited.has("classroom") ? <ClassroomTab /> : null}</div>
-      <div hidden={tab !== "sports"}>{visited.has("sports") ? <VenueSportsTab /> : null}</div>
+      <div hidden={tab !== "library"}>{visited.has("library") ? <LibraryTab deepLib={navParams?.libraryId} /> : null}</div>
+      <div hidden={tab !== "libroom"}>{visited.has("libroom") ? <LibRoomTab deepKind={navParams?.libroomKind} /> : null}</div>
+      <div hidden={tab !== "classroom"}>{visited.has("classroom") ? <ClassroomTab deepBuilding={navParams?.classroomBuilding} deepBuildingName={navParams?.classroomBuildingName} deepRoom={navParams?.classroomRoom} /> : null}</div>
+      <div hidden={tab !== "sports"}>{visited.has("sports") ? <VenueSportsTab deepScene={navParams?.sportsScene} /> : null}</div>
       <div hidden={tab !== "kongjian"}>{visited.has("kongjian") ? <KongjianTab /> : null}</div>
       <div hidden={tab !== "more"}>
         {visited.has("more") ? (

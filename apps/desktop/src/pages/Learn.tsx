@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../components/Layout.js";
 import { IconBell, IconCalendar, IconChevron, IconFile, IconPen, IconRefresh, IconSearch } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
+import { CollectStar } from "../components/Collect.js";
+import { enc } from "../state/atoms.js";
 import { useLearnData } from "../state/data.js";
 import { semesterText } from "./learn/shared.js";
 
@@ -170,6 +172,9 @@ export function LearnPage() {
                     ) : null}
                   </div>
                 </button>
+                <span className="course-star">
+                  <CollectStar atom={{ kind: "course", key: enc(c.id, c.name, c.teacherName) }} title={c.name} />
+                </span>
               </Card>
             );
           })}
