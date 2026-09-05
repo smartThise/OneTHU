@@ -1,5 +1,6 @@
 /** 学期切换（learnX SemesterSelection）：列表 + 最新/当前标记，选择后回到课程列表 */
 import { useMemo } from "react";
+import { PageAtomStar } from "../..//components/Collect.js";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { IconCheck, IconRefresh } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
@@ -31,6 +32,7 @@ export function SemesterSelectionPage() {
         
         actions={
           <>
+            <PageAtomStar atomKey="learn-semester" title="学期切换" />
             <BackButton to="learn" label="课程列表" />
             <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
               <IconRefresh width={14} height={14} />

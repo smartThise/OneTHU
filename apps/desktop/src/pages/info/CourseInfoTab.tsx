@@ -103,7 +103,7 @@ export function CourseInfoTab() {
         aside="课程共享计划 · 众包数据，覆盖不全时请多包涵"
       />
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "nowrap" }}>
+      <div className="coursex-bar" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "nowrap" }}>
         {semesters && semesters.length > 0 ? (
           <SearchSelect
             value={semester}

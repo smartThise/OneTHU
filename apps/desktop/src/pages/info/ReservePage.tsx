@@ -12,6 +12,7 @@
  * navParams 身份触发的 effect）；页内切换不回写参数。
  */
 import { useEffect, useState } from "react";
+import { PageAtomStar } from "../..//components/Collect.js";
 import { SegmentedOverflow, Card, Empty, PageHead } from "../../components/Layout.js";
 import type { LearnNav } from "../../state/app.js";
 import { useApp } from "../../state/context.js";
@@ -63,7 +64,10 @@ export function ReservePage() {
 
   return (
     <>
-     <PageHead title="预约" />
+     <PageHead
+       title="预约"
+       actions={<PageAtomStar atomKey={({ library: "reserve-lib", libroom: "reserve-room", classroom: "reserve-classroom", sports: "reserve-sports", kongjian: "reserve-kongjian" } as Record<string, string>)[tab] ?? ""} title="预约页 · 当前栏目" />}
+     />
       <SegmentedOverflow ariaLabel="预约功能" style={{ marginBottom: 14 }}>
         {TABS.map(({ id, label }) => (
           <button

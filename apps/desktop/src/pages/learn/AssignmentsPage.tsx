@@ -1,5 +1,6 @@
 /** 全部作业（learnX Assignments）：按状态分组（未交/已交/已批改），组内按截止时间排序 */
 import { useMemo, useState } from "react";
+import { PageAtomStar } from "../..//components/Collect.js";
 import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useLearnData } from "../../state/data.js";
@@ -42,6 +43,7 @@ export function AssignmentsPage() {
         meta={data ? `${semesterText(data.semester.id)} · 未交 ${groups.unfinished.length} · 已交 ${groups.submitted.length} · 已批 ${groups.graded.length}` : "按截止时间排序"}
         actions={
           <>
+            <PageAtomStar atomKey="learn-assignments" title="全部作业" />
             <BackButton to="learn" label="课程列表" />
             <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
               <IconRefresh width={14} height={14} />

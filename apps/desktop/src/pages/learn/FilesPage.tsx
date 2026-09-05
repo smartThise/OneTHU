@@ -1,5 +1,6 @@
 /** 全部课程文件（learnX Files）：按上传时间倒序，可按课程筛选 */
 import { useMemo, useState } from "react";
+import { PageAtomStar } from "../..//components/Collect.js";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useLearnData } from "../../state/data.js";
@@ -26,6 +27,7 @@ export function FilesPage() {
         meta={data ? `${semesterText(data.semester.id)} · 共 ${data.files.length} 个文件` : "按上传时间倒序"}
         actions={
           <>
+            <PageAtomStar atomKey="learn-files" title="全部课程文件" />
             <BackButton to="learn" label="课程列表" />
             <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
               <IconRefresh width={14} height={14} />
