@@ -125,6 +125,38 @@ export function fullProbGrid(
   }));
 }
 
+/** 占用对（NextTHUxk 2.0 occupancyOf 逐字）：已报/容量——已满(余0)绝不显示
+ *  0/N 竞争宽松（用户实锤「已满却显示 0/80 竞争宽松」）。
+ *  预选：志愿报名人数/容量才是竞争信号（课余量在预选没人正式选上 → 恒
+ *  0/N「宽松」假象，用户实锤「必 51 却显示 0/100 竞争宽松」）；
+ *  补选/排队阶段：课余量=实时已选，与「已满/余0」标签一致（大学物理 80/80 修法）。 */
+export function occupancyOf(
+  r: { capacity: number; remaining?: number | null; vol?: { capacity: number; applied: number } | null },
+  isQueuePhase: boolean,
+): { applied: number; cap: number } {
+  const cap = Number(r.capacity) || 0;
+  const rem = r.remaining;
+  if (!isQueuePhase) {
+    if (r.vol && Number(r.vol.capacity) > 0) {
+      return { applied: Number(r.vol.applied) || 0, cap: Number(r.vol.capacity) };
+    }
+  }
+  if (cap > 0 && rem !== undefined && rem !== null && Number(rem) >= 0) {
+    return { applied: Math.max(0, cap - Number(rem)), cap };
+  }
+  return { applied: (r.vol && Number(r.vol.applied)) || 0, cap: (r.vol && Number(r.vol.capacity)) || cap || 0 };
+}
+
+/** 竞争色阶（volColor 逐字）：≤0.8 宽松绿 / ≤1.2 适中黄 / 其余激烈红 */
+export function volColor(applied: number, cap: number): { level: "easy" | "medium" | "hard" | "unknown"; color: string; pct: number } {
+  if (!cap || cap === 0) return { level: "unknown", color: "#9aa1ac", pct: 0 };
+  const ratio = applied / cap;
+  if (ratio <= 0.8) return { level: "easy", color: "#07c160", pct: Math.min(ratio * 100, 100) };
+  if (ratio < 1) return { level: "medium", color: "#ff9f1a", pct: Math.min(ratio * 100, 100) };
+  // 已满/超载一律红（用户令：已满拿红色标出来——扩展原 1.2 阈值对「恰好满」是黄的，改）
+  return { level: "hard", color: "#ee4d4d", pct: Math.min(ratio * 100, 100) };
+}
+
 /* ── §5 合并行实体 ──────────────────────────────────────────── */
 export interface XkRow {
   key: string;
