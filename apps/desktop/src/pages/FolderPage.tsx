@@ -459,7 +459,7 @@ function TileItem({ folderId, index, editing }: { folderId: string; index: numbe
       {editing ? (
         <div className="fav-tile-tools">
           {view.widget ? (
-            <button type="button" className="icon-btn" title="改为长卡" aria-label="改为长卡" onClick={() => favs.setVariant(folderId, index, undefined)}>
+            <button type="button" className="icon-btn" title="改为长卡" aria-label="改为长卡" onClick={() => favs.setVariant(folderId, index, false)}>
               长
             </button>
           ) : null}
