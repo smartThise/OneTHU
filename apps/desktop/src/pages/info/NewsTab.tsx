@@ -175,6 +175,7 @@ export function NewsTab({
   onConsumeNewsId,
   initialQuery,
   onConsumeQuery,
+  deepSubSource,
 }: {
   /** 首页新闻直达 xxid（InfoPage 从 LearnNav.infoNewsId 下传；打开后消费置空） */
   newsId?: string | null;
@@ -183,6 +184,8 @@ export function NewsTab({
   /** 新闻搜索直达词（选课·外校课「查通知」）：预填并立即搜索，消费后由父级置空 */
   initialQuery?: string | null;
   onConsumeQuery?: () => void;
+  /** 订阅源原子深链：条件就绪后切「订阅动态」并选中同名条件（news-src 原子用） */
+  deepSubSource?: string;
 } = {}) {
   const { status } = useApp();
   const demo = status === "demo";
@@ -349,10 +352,29 @@ export function NewsTab({
           keyword: r.keyword,
           title: r.title,
         }));
-        setSubsServer(conds);
-        const labels = conds.map(conditionLabel);
+        /* 服务端条件重复自愈：同 source|channel|keyword|title 只留第一条，多余的静默删除。
+         * 重复添加的病灶：切换单位按来源名精确匹配判重，名字形态不一致就再添一条——
+         * 10 个源 ×5 = 50 条就是这么攒出来的；此处幂等清理并回写镜像缓存 */
+        const seen = new Set<string>();
+        const uniq: SubCondition[] = [];
+        const dupIds: string[] = [];
+        for (const c of conds) {
+          const k = [c.source, c.channel, c.keyword, c.title].map((x) => (x || "").trim()).join("|");
+          if (seen.has(k)) {
+            if (c.id) dupIds.push(c.id);
+          } else {
+            seen.add(k);
+            uniq.push(c);
+          }
+        }
+        setSubsServer(uniq);
+        noteAtomCache({
+          newsSources: [...new Set(uniq.map((c) => (c.source || c.title || "").trim()).filter(Boolean))].map((name) => ({ name })),
+        });
+        const labels = uniq.map(conditionLabel);
         setSubs(labels);
         writeSubs(labels);
+        for (const id of dupIds) void info.removeNewsSubscription(id).catch(() => {});
       })
       .catch(() => {
         /* 条件列表失败：保留本地缓存展示；弹层内会给出显式错误 */
@@ -380,6 +402,18 @@ export function NewsTab({
       setSubPage(1);
     }
   }, [subSel, subChips]);
+
+  /* 订阅源原子深链：条件就绪后切「订阅动态」并选中同名条件（仅一次） */
+  const deepSubApplied = useRef(false);
+  useEffect(() => {
+    if (deepSubApplied.current || !deepSubSource || demo) return;
+    const chip = (subsServer ?? []).find((c) => (c.source || c.title || "").trim() === deepSubSource.trim());
+    if (!chip || !chip.id) return;
+    deepSubApplied.current = true;
+    setSeg("subs");
+    setSubSel(chip.id);
+    setSubPage(1);
+  }, [deepSubSource, demo, subsServer]);
 
   /* 订阅动态单一分页列表：进入「订阅动态」栏（或翻页/刷新/切 chip/订阅变化）时取数。
    * POST querySubscribeInfomationPageList{currentPage,dyid?}：「全部」不传 dyid =
@@ -466,7 +500,7 @@ export function NewsTab({
 
   /** 单位是否已订阅：非演示看服务端条件（source 名命中），演示看本地缓存 */
   const unitSubscribed = (name: string): boolean =>
-    demo ? subs.includes(name) : (subsServer ?? []).some((c) => c.source === name);
+    demo ? subs.includes(name) : (subsServer ?? []).some((c) => (c.source || "").trim() === name.trim());
 
   /* 删除一条服务端订阅条件；成功后刷新条件列表（权威镜像缓存）与订阅动态 */
   const removeCondition = async (c: SubCondition): Promise<void> => {
@@ -492,7 +526,7 @@ export function NewsTab({
       return;
     }
     setOpErr(null);
-    const existing = (subsServer ?? []).filter((c) => c.source === unit.sourceName);
+    const existing = (subsServer ?? []).filter((c) => (c.source || "").trim() === unit.sourceName.trim());
     setOpBusy(unit.sourceId || unit.sourceName);
     try {
       if (existing.length > 0) {
@@ -960,16 +994,18 @@ export function NewsTab({
                         const on = unitSubscribed(s.sourceName);
                         const busy = opBusy === (s.sourceId || s.sourceName);
                         return (
-                          <button
-                            key={s.sourceId}
-                            className={`chip ${on ? "chip-blue" : "chip-gray"}`}
-                            disabled={opBusy !== null}
-                            onClick={() => void toggleUnit(s)}
-                            title={on ? "删除该订阅条件" : "添加订阅条件（服务端）"}
-                          >
-                            {busy ? "…" : on ? "✓ " : ""}
-                            {s.sourceName}
-                          </button>
+                          <span key={s.sourceId} style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
+                            <button
+                              className={`chip ${on ? "chip-blue" : "chip-gray"}`}
+                              disabled={opBusy !== null}
+                              onClick={() => void toggleUnit(s)}
+                              title={on ? "删除该订阅条件" : "添加订阅条件（服务端）"}
+                            >
+                              {busy ? "…" : on ? "✓ " : ""}
+                              {s.sourceName}
+                            </button>
+                            <CollectStar atom={{ kind: "news-src", key: enc(s.sourceName) }} title={s.sourceName} />
+                          </span>
                         );
                       })}
                     </div>

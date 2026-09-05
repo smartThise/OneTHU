@@ -19,6 +19,8 @@ import {
 import { Card, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { IconSearch } from "../../components/Icons.js";
 import { SearchSelect } from "../../components/SearchSelect.jsx";
+import { CollectStar } from "../../components/Collect.js";
+import { enc, noteAtomCache } from "../../state/atoms.js";
 import { useApp } from "../../state/context.js";
 import { universalFetch } from "../../lib/transport.js";
 import { TabEmpty, TabError, logTabErr, tabErrorText } from "./tabStates.js";
@@ -65,7 +67,9 @@ export function CourseInfoTab() {
       setDetail(null);
       try {
         const sem = semOverride ?? semester;
-        setCourses(await searchCourseXPublic(universalFetch, q.trim(), sem || undefined));
+        const rows = await searchCourseXPublic(universalFetch, q.trim(), sem || undefined);
+        setCourses(rows);
+        noteAtomCache({ courseXCourses: rows.map((c) => ({ sem: c.semesterId, id: c.id, name: c.name, teacher: c.teacherName })) });
         setState("ready");
       } catch (err) {
         logTabErr("COURSEX-SEARCH", err);
@@ -95,11 +99,11 @@ export function CourseInfoTab() {
   return (
     <>
       <SectionHead
-        title="课程信息"
-        aside="课程共享计划 · courseX · 众包数据，覆盖不全时请多包涵"
+        title="courseX"
+        aside="课程共享计划 · 众包数据，覆盖不全时请多包涵"
       />
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "nowrap" }}>
         {semesters && semesters.length > 0 ? (
           <SearchSelect
             value={semester}
@@ -112,7 +116,7 @@ export function CourseInfoTab() {
             options={semesters.map((s) => ({ value: s.id, label: s.label }))}
           />
         ) : null}
-        <div className="search-box" style={{ flex: 1, minWidth: 160, marginBottom: 0 }}>
+        <div className="search-box" style={{ flex: "1 1 auto", minWidth: 0, marginBottom: 0 }}>
           <IconSearch width={15} height={15} />
           <input
             value={input}
@@ -188,6 +192,14 @@ export function CourseInfoTab() {
                                   {detail.data.semesterId ? (
                                     <span className="chip chip-gray">{detail.data.semesterId}</span>
                                   ) : null}
+                                  <span style={{ flex: "1 1 auto" }} />
+                                  <CollectStar
+                                    atom={{
+                                      kind: "courseX-c",
+                                      key: enc(detail.data.semesterId, detail.data.id, detail.data.name, detail.data.teacherName, detail.data.timeLocation.join("；")),
+                                    }}
+                                    title={detail.data.name}
+                                  />
                                 </div>
                                 {detail.data.timeLocation.length > 0 ? (
                                   detail.data.timeLocation.map((t, ti) => (

@@ -104,7 +104,7 @@ export function LifePage() {
       ) : (
         <>
           {/* 模块头由栏目名与各 tab 内部分区标题承担（WasherTab 自带「洗衣机」头） */}
-          <div hidden={effTab !== "dorm"}>{visited.has("dorm") ? <DormTab /> : null}</div>
+          <div hidden={effTab !== "dorm"}>{visited.has("dorm") ? <DormTab deepSection={navParams?.dormSection} /> : null}</div>
           <div hidden={effTab !== "washer"}>{visited.has("washer") ? <WasherTab deepBuildingId={navParams?.washerBuildingId} deepBuildingName={navParams?.washerBuildingName} deepHlsh={navParams?.washerBuildingHlsh} deepMachine={navParams?.washerMachine} /> : null}</div>
           <div hidden={effTab !== "hygiene"}>{visited.has("hygiene") ? <HygieneTab /> : null}</div>
           <div hidden={effTab !== "card"}>{visited.has("card") ? <CardTab /> : null}</div>

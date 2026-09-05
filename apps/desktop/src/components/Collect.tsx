@@ -6,7 +6,7 @@
  *   本机已见过的实体原子（课程/作业/文件/通知/新闻/楼栋/场馆…），
  *   搜索只查静态注册表 + 本机缓存，绝不主动请求校内服务。
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Empty } from "./Layout.js";
 import { IconFolderPlus, IconSearch, IconStar } from "./Icons.js";
@@ -46,6 +46,40 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
   const [name, setName] = useState("");
   const view = resolveAtom(atom);
   const roots = favs.data.order;
+  /* 全树行：根收藏夹 + 各层子收藏夹（收藏时可直达任意层；深度由建夹侧 FAVS_MAX_DEPTH 限制） */
+  const parentOf = new Map<string, string | null>();
+  for (const id of favs.data.order) {
+    const f = favs.data.folders[id];
+    if (!f) continue;
+    if (!parentOf.has(id)) parentOf.set(id, null);
+    for (const it of f.items) if (it.t === "f") parentOf.set(it.id, id);
+  }
+  const childrenOf = (pid: string | null): string[] =>
+    favs.data.order.filter((id) => (parentOf.get(id) ?? null) === pid);
+  const treeRows: ReactNode[] = [];
+  const walk = (pid: string | null, depth: number): void => {
+    for (const id of childrenOf(pid)) {
+      const f = favs.data.folders[id];
+      if (!f) continue;
+      const checked = f.items.some((it) => it.t === "a" && it.atom.kind === atom.kind && it.atom.key === atom.key);
+      treeRows.push(
+        <label key={id} className="collect-row" style={depth > 0 ? { paddingLeft: 14 + depth * 18 } : undefined}>
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={() => favs.toggleAtomIn(id, atom)}
+          />
+          <span className="collect-row-icon"><IconFolderPlus width={15} height={15} style={{ opacity: 0.5 }} /></span>
+          <span className="collect-row-text">
+            <span className="collect-row-title">{f.title}</span>
+            <span className="collect-row-sub">{f.items.length} 项</span>
+          </span>
+        </label>,
+      );
+      walk(id, depth + 1);
+    }
+  };
+  walk(null, 0);
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent): void => {
@@ -78,26 +112,7 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
           {roots.length === 0 && !creating ? (
             <Empty text="还没有收藏夹——在左侧栏「新建收藏夹」，或点下方直接建一个。" />
           ) : (
-            roots.map((id) => {
-              const f = favs.data.folders[id]!;
-              const checked = favs.data.folders[id]!.items.some(
-                (it) => it.t === "a" && it.atom.kind === atom.kind && it.atom.key === atom.key,
-              );
-              return (
-                <label key={id} className="collect-row">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => favs.toggleAtomIn(id, atom)}
-                  />
-                  <span className="collect-row-icon"><IconFolderPlus width={15} height={15} style={{ opacity: 0.5 }} /></span>
-                  <span className="collect-row-text">
-                    <span className="collect-row-title">{f.title}</span>
-                    <span className="collect-row-sub">{f.items.length} 项</span>
-                  </span>
-                </label>
-              );
-            })
+            treeRows
           )}
           {creating ? (
             <div className="collect-new">
