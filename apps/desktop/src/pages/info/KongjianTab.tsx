@@ -8,11 +8,13 @@
  * 首次进入自动过 agreement 协议（core 内处理）。
  */
 import { confirmOk } from "../../lib/confirm.js";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { KongjianPage, KongjianRecord, KongjianSlot } from "@onethu/core";
 import { Card, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { SearchSelect } from "../../components/SearchSelect.jsx";
 import { info } from "../../lib/clients.js";
+import { CollectStar } from "../../components/Collect.js";
+import { enc, noteAtomCache } from "../../state/atoms.js";
 import { useApp } from "../../state/context.js";
 import { cacheGet, cacheSet } from "../../state/cache.js";
 import { TabEmpty, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
@@ -38,7 +40,7 @@ const KJ_SPACES_KEY = "kj:spaces";
 const KJ_SPACES_TTL = 5 * 60 * 1000;
 const KJ_SLOTS_TTL = 3 * 60 * 1000;
 
-export function KongjianTab() {
+export function KongjianTab({ kongjianSpace, kongjianRoom }: { kongjianSpace?: string; kongjianRoom?: string } = {}) {
   const { status } = useApp();
   const [page, setPage] = useState<KongjianPage | null>(() => cacheGet<KongjianPage>(KJ_SPACES_KEY)?.data ?? null);
   const [state, setState] = useState<LoadState>(() => (cacheGet<KongjianPage>(KJ_SPACES_KEY) ? "ready" : "loading"));
@@ -73,6 +75,10 @@ export function KongjianTab() {
       const p = await info.kongjianPage();
       cacheSet(KJ_SPACES_KEY, p);
       setPage(p);
+      noteAtomCache({
+        kjSpaces: p.spaces.map((sp) => ({ id: sp.id, name: sp.name })),
+        kjRooms: p.rooms.map((rm) => ({ spaceId: p.selectedSpace ?? "", spaceName: p.spaces.find((sp) => sp.id === (p.selectedSpace ?? ""))?.name ?? "", id: rm.id, name: rm.name })),
+      });
       setSpaceId(p.selectedSpace ?? "");
       setState("ready");
       if (p.spaces.length === 0) {
@@ -105,6 +111,10 @@ export function KongjianTab() {
         cacheSet(slotsKey, p);
         setPage(p);
         setState("ready");
+        noteAtomCache({
+          kjSpaces: p.spaces.map((x) => ({ id: x.id, name: x.name })),
+          kjRooms: p.rooms.map((rm2) => ({ spaceId: sp, spaceName: p.spaces.find((x) => x.id === sp)?.name ?? "", id: rm2.id, name: rm2.name })),
+        });
       } catch (err) {
         if (cached) return; // 已亮旧值：不闪红，保留旧场次
         fail(err);
@@ -148,6 +158,22 @@ export function KongjianTab() {
     setDate(d);
     void loadSlots(spaceId, roomId, d);
   };
+
+  /* 深链：空间/房间原子打开 → 页面就绪后依次 pickSpace → pickRoom（各一次） */
+  const spApplied = useRef(false);
+  const rmApplied = useRef(false);
+  useEffect(() => {
+    if (spApplied.current || state !== "ready" || !page || !kongjianSpace) return;
+    if (!page.spaces.some((sp) => sp.id === kongjianSpace)) return;
+    spApplied.current = true;
+    pickSpace(kongjianSpace);
+  }, [state, page, kongjianSpace]);
+  useEffect(() => {
+    if (!spApplied.current || rmApplied.current || state !== "ready" || !page || !kongjianRoom) return;
+    if (!page.rooms.some((rm) => rm.id === kongjianRoom)) return;
+    rmApplied.current = true;
+    pickRoom(kongjianRoom);
+  }, [state, page, kongjianRoom]);
 
   const submit = useCallback(async () => {
     if (!picked?.bookUrl) return;
@@ -213,22 +239,42 @@ export function KongjianTab() {
           <Card style={{ marginBottom: 12, padding: "12px 14px" }}>
             <div className="field" style={{ marginBottom: 10 }}>
               <label style={{ fontSize: 12, opacity: 0.7 }}>公共空间</label>
-              <SearchSelect
-                value={spaceId}
-                onChange={(v) => pickSpace(v)}
-                placeholder={`选择空间（${page.spaces.length} 个）…`}
-                options={spaces.map((sp) => ({ value: sp.id, label: sp.name }))}
-              />
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+                  <SearchSelect
+                    value={spaceId}
+                    onChange={(v) => pickSpace(v)}
+                    placeholder={`选择空间（${page.spaces.length} 个）…`}
+                    options={spaces.map((sp) => ({ value: sp.id, label: sp.name }))}
+                  />
+                </div>
+                {spaceId ? (
+                  <CollectStar
+                    atom={{ kind: "kj-space", key: enc(spaceId, spaces.find((sp) => sp.id === spaceId)?.name ?? "") }}
+                    title={spaces.find((sp) => sp.id === spaceId)?.name ?? "公共空间"}
+                  />
+                ) : null}
+              </div>
             </div>
             {page.rooms.length > 0 ? (
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>房间</div>
-                <SearchSelect
-                  value={roomId || page.selectedRoom || ""}
-                  onChange={(v) => pickRoom(v)}
-                  placeholder="全部房间…"
-                  options={[{ value: "", label: "全部房间" }, ...page.rooms.map((r) => ({ value: r.id, label: r.name }))]}
-                />
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+                    <SearchSelect
+                      value={roomId || page.selectedRoom || ""}
+                      onChange={(v) => pickRoom(v)}
+                      placeholder="全部房间…"
+                      options={[{ value: "", label: "全部房间" }, ...page.rooms.map((r) => ({ value: r.id, label: r.name }))]}
+                    />
+                  </div>
+                  {roomId ? (
+                    <CollectStar
+                      atom={{ kind: "kj-room", key: enc(spaceId, spaces.find((sp) => sp.id === spaceId)?.name ?? "", roomId, page.rooms.find((r) => r.id === roomId)?.name ?? "") }}
+                      title={page.rooms.find((r) => r.id === roomId)?.name ?? "房间"}
+                    />
+                  ) : null}
+                </div>
               </div>
             ) : null}
             {page.dates.length > 0 ? (

@@ -77,6 +77,13 @@ export interface AtomDynCache {
   libroomKinds?: Array<{ kindId: number; kindName: string }>;
   /** 图书馆（LibraryTab 就绪后写入） */
   libraries?: Array<{ id: number; name: string }>;
+  /** 新闻订阅源（NewsTab 条目就绪后写入；按源收藏整源新闻） */
+  newsSources?: Array<{ name: string }>;
+  /** 公共空间楼宇/空间与具体房间（KongjianTab 就绪后写入） */
+  kjSpaces?: Array<{ id: string; name: string }>;
+  kjRooms?: Array<{ spaceId: string; spaceName: string; id: string; name: string }>;
+  /** courseX 课程（CourseInfoTab 搜索就绪后写入；时间地点在收藏时经详情补齐） */
+  courseXCourses?: Array<{ sem: string; id: string; name: string; teacher?: string }>;
 }
 
 const dyn: AtomDynCache = {};
@@ -117,8 +124,10 @@ export const PAGE_ATOMS: StaticAtom[] = [
   { kind: "page", key: "info-calendar", title: "校历", sub: "信息页 · 学期安排图片", icon: IconCalendar, group: "页面", page: "info", params: { infoTab: "calendar" } },
   { kind: "page", key: "info-news", title: "订阅新闻", sub: "信息门户 · 订阅动态", icon: IconExternal, group: "页面", page: "info", params: { infoTab: "news" } },
   { kind: "page", key: "info-profile", title: "个人信息", sub: "信息门户 · 学籍信息", icon: IconInfo, group: "页面", page: "info", params: { infoTab: "profile" } },
-  { kind: "page", key: "info-courseinfo", title: "课程信息", sub: "信息页 · 课程简介与大纲", icon: IconInfo, group: "页面", page: "info", params: { infoTab: "courseinfo" } },
-  { kind: "page", key: "life-dorm", title: "宿舍 / 电费 / 订水", sub: "生活页 · 宿舍服务", icon: IconToday, group: "页面", page: "life", params: { lifeTab: "dorm" } },
+  { kind: "page", key: "info-courseinfo", title: "courseX", sub: "课程共享计划 · 课程简介与时间地点", icon: IconInfo, group: "页面", page: "info", params: { infoTab: "courseinfo" } },
+  { kind: "page", key: "life-dorm", title: "宿舍", sub: "生活页 · 宿舍服务", icon: IconToday, group: "页面", page: "life", params: { lifeTab: "dorm" } },
+  { kind: "page", key: "life-electricity", title: "电费", sub: "生活页 · 宿舍电费余额与充值", icon: IconCard, group: "页面", page: "life", params: { lifeTab: "dorm", dormSection: "ele" } },
+  { kind: "page", key: "life-water", title: "订水", sub: "生活页 · 水站订水", icon: IconToday, group: "页面", page: "life", params: { lifeTab: "dorm", dormSection: "water" } },
   { kind: "page", key: "life-washer", title: "洗衣机", sub: "生活页 · 设备状态", icon: IconRefresh, group: "页面", page: "life", params: { lifeTab: "washer" } },
   { kind: "page", key: "life-hygiene", title: "卫生成绩", sub: "生活页 · 宿舍卫生检查", icon: IconFlag, group: "页面", page: "life", params: { lifeTab: "hygiene" } },
   { kind: "page", key: "life-card", title: "校园卡", sub: "生活页 · 余额与流水", icon: IconCard, group: "页面", page: "life", params: { lifeTab: "card" } },
@@ -281,6 +290,55 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
       open: (nav) => nav("reserve", { reserveTab: "lib", libraryId: Number(id) || undefined }),
     });
   }
+  if (kind === "library-f") {
+    const [libId, libName, fId, fName] = dec(key);
+    if (!libId || !fId) return null;
+    return view({
+      atom: ref, title: fName || "楼层", sub: (libName || "") + " · 座位楼层", icon: IconSchedule, group: "图书馆",
+      open: (nav) => nav("reserve", { reserveTab: "lib", libraryId: Number(libId) || undefined, libraryFloorId: Number(fId) || undefined }),
+    });
+  }
+  if (kind === "library-a") {
+    const [libId, libName, fId, fName, aId, aName] = dec(key);
+    if (!libId || !fId || !aId) return null;
+    return view({
+      atom: ref, title: aName || "区域", sub: (libName || "") + (fName ? " · " + fName : "") + " · 座位区域", icon: IconSchedule, group: "图书馆",
+      open: (nav) => nav("reserve", { reserveTab: "lib", libraryId: Number(libId) || undefined, libraryFloorId: Number(fId) || undefined, librarySectionId: Number(aId) || undefined }),
+    });
+  }
+  if (kind === "kj-space") {
+    const [id, name] = dec(key);
+    if (!id) return null;
+    return view({
+      atom: ref, title: name || id, sub: "公共空间 · 活动预约", icon: IconCalendar, group: "公共空间",
+      open: (nav) => nav("reserve", { reserveTab: "kongjian", kongjianSpace: id }),
+    });
+  }
+  if (kind === "kj-room") {
+    const [spId, spName, rId, rName] = dec(key);
+    if (!spId || !rId) return null;
+    return view({
+      atom: ref, title: rName || rId, sub: (spName || "") + " · 公共空间房间", icon: IconCalendar, group: "公共空间",
+      open: (nav) => nav("reserve", { reserveTab: "kongjian", kongjianSpace: spId, kongjianRoom: rId }),
+    });
+  }
+  if (kind === "news-src") {
+    const [name] = dec(key);
+    if (!name) return null;
+    return view({
+      atom: ref, title: name, sub: "订阅源 · 新闻动态", icon: IconExternal, group: "新闻",
+      open: (nav) => nav("info", { infoTab: "news", newsSubSource: name }),
+    });
+  }
+  if (kind === "courseX-c") {
+    const [sem, cid, name, teacher, tl] = dec(key);
+    if (!cid || !name) return null;
+    const tls = tl ? tl.split("；") : [];
+    return view({
+      atom: ref, title: name, sub: (teacher ? teacher + " · " : "") + (tls.length > 0 ? tls.join("；") : "时间地点见课程详情"), icon: IconInfo, group: "courseX",
+      open: (nav) => nav("info", { infoTab: "courseinfo" }),
+    });
+  }
   return null;
 }
 
@@ -329,6 +387,10 @@ export function searchAtoms(query: string, limit = 24): AtomHit[] {
   for (const n of dyn.newsItems ?? []) if (match(n.name, n.source)) push(hit({ atom: { kind: "news", key: enc(n.xxid, n.name, n.source) }, title: n.name, sub: n.source || "校内通知", icon: IconExternal, group: "新闻" }));
   for (const k of dyn.libroomKinds ?? []) if (match(k.kindName)) push(hit({ atom: { kind: "libroom-k", key: enc(k.kindId, k.kindName) }, title: k.kindName, sub: "研讨间", icon: IconCalendar, group: "研讨间" }));
   for (const l of dyn.libraries ?? []) if (match(l.name)) push(hit({ atom: { kind: "library", key: enc(l.id, l.name) }, title: l.name, sub: "图书馆", icon: IconSchedule, group: "图书馆" }));
+  for (const s of dyn.newsSources ?? []) if (match(s.name)) push(hit({ atom: { kind: "news-src", key: enc(s.name) }, title: s.name, sub: "订阅源 · 新闻", icon: IconExternal, group: "新闻" }));
+  for (const s of dyn.kjSpaces ?? []) if (match(s.name)) push(hit({ atom: { kind: "kj-space", key: enc(s.id, s.name) }, title: s.name, sub: "公共空间", icon: IconCalendar, group: "公共空间" }));
+  for (const r of dyn.kjRooms ?? []) if (match(r.name, r.spaceName)) push(hit({ atom: { kind: "kj-room", key: enc(r.spaceId, r.spaceName, r.id, r.name) }, title: r.name, sub: (r.spaceName || "") + " · 公共空间", icon: IconCalendar, group: "公共空间" }));
+  for (const c of dyn.courseXCourses ?? []) if (match(c.name, c.teacher)) push(hit({ atom: { kind: "courseX-c", key: enc(c.sem, c.id, c.name, c.teacher, "") }, title: c.name, sub: "courseX" + (c.teacher ? " · " + c.teacher : ""), icon: IconInfo, group: "courseX" }));
 
   return out.slice(0, limit);
 }

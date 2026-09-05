@@ -51,7 +51,7 @@ const STATUS_CHIP: Record<string, string> = {
 const ELEC_KEY = "dorm:elec.v2";
 const ELEC_TTL = 5 * 60 * 1000;
 
-export function DormTab() {
+export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {}) {
   const { status } = useApp();
 
   /* ---------------- 充值记录（家园网会话 + SWR 缓存） ----------------
@@ -151,13 +151,24 @@ export function DormTab() {
     }
   };
 
+  /* 电费/订水原子深链：滚动定位对应区块并高亮一次 */
+  useEffect(() => {
+    if (!deepSection) return;
+    const el = document.querySelector<HTMLElement>('[data-sec="' + deepSection + '"]');
+    if (!el) return;
+    el.classList.add("fav-dl-flash");
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [deepSection]);
+
   if (status === "demo") {
     return <Empty text="演示模式不提供宿舍数据，登录后可查询电费与订水。" />;
   }
 
   return (
     <>
-      <SectionHead title="电费" aside="家园网 myhome.tsinghua.edu.cn · 宿舍绑定房间" />
+      <div data-sec="ele">
+        <SectionHead title="电费" aside="家园网 myhome.tsinghua.edu.cn · 宿舍绑定房间" />
+      </div>
       {/* 余额接口不可用说明条（固定展示） */}
       <Card style={{ padding: "12px 16px" }}>
         <span style={{ fontSize: 13, color: "var(--text-dim)" }}>
@@ -200,7 +211,9 @@ export function DormTab() {
         </Card>
       )}
 
-      <SectionHead title="订水" aside="清华水站 dingshui.bjqzhd.com · 公开接口" />
+      <div data-sec="water">
+        <SectionHead title="订水" aside="清华水站 dingshui.bjqzhd.com · 公开接口" />
+      </div>
       <Card style={{ padding: 18 }}>
         <div className="field">
           <label htmlFor="water-id">订水编号（水站用户编号）</label>

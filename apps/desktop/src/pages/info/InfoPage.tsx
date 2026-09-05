@@ -132,7 +132,7 @@ export function InfoPage() {
           <div hidden={effTab !== "exams"}>{visited.has("exams") ? <ExamsTab /> : null}</div>
           <div hidden={effTab !== "evaluation"}>{visited.has("evaluation") ? <EvaluationTab /> : null}</div>
           <div hidden={effTab !== "calendar"}>{visited.has("calendar") ? <CalendarTab /> : null}</div>
-          <div hidden={effTab !== "news"}>{visited.has("news") ? <NewsTab newsId={newsId} onConsumeNewsId={() => setNewsId(null)} initialQuery={newsQuery} onConsumeQuery={() => setNewsQuery(null)} /> : null}</div>
+          <div hidden={effTab !== "news"}>{visited.has("news") ? <NewsTab newsId={newsId} onConsumeNewsId={() => setNewsId(null)} initialQuery={newsQuery} onConsumeQuery={() => setNewsQuery(null)} deepSubSource={navParams?.newsSubSource} /> : null}</div>
           <div hidden={effTab !== "profile"}>{visited.has("profile") ? <ProfileTab /> : null}</div>
           <div hidden={effTab !== "courseinfo"}>{visited.has("courseinfo") ? <CourseInfoTab /> : null}</div>
         </>

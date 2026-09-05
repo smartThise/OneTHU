@@ -73,6 +73,16 @@ export interface LearnNav {
   libroomKind?: number;
   /** 图书馆：自动选中的馆 libId */
   libraryId?: number;
+  /** 图书馆：自动选中的楼层/区域 id（楼层就绪后选楼层，区域随楼层链路就绪后选区域） */
+  libraryFloorId?: number;
+  librarySectionId?: number;
+  /** 宿舍页：深链定位区块（ele=电费 / water=订水，滚动+高亮） */
+  dormSection?: "ele" | "water";
+  /** 新闻：订阅动态栏预选的订阅源名（匹配条件 label 后切 seg+chip） */
+  newsSubSource?: string;
+  /** 公共空间：自动选中的空间/房间 id（页面就绪后依次 pickSpace → pickRoom） */
+  kongjianSpace?: string;
+  kongjianRoom?: string;
   /** 用户收藏夹页：folder id（page=folder 时必带） */
   folderId?: string;
 }

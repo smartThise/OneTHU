@@ -47,7 +47,7 @@ export interface FavsData {
 export const FAVS_KEY = "onethu.favs.v1";
 
 /** 收藏夹最大层数（根=第 1 层，最深第 4 层） */
-export const FAVS_MAX_DEPTH = 4;
+export const FAVS_MAX_DEPTH = 3;
 
 export function emptyFavs(): FavsData {
   return { v: 1, order: [], folders: {}, foldedRoots: [], foldedDefaults: [] };

@@ -218,9 +218,14 @@ function SeatCell({
 
 export function LibraryTab({
   deepLib,
+  deepFloor,
+  deepSection,
 }: {
   /** 深链（实体原子）：自动选中的馆 libId */
   deepLib?: number;
+  /** 深链：自动选中的楼层/区域 id（区域随楼层链路就绪后选中） */
+  deepFloor?: number;
+  deepSection?: number;
 } = {}) {
   const { status } = useApp();
 
@@ -285,6 +290,18 @@ export function LibraryTab({
     if (!libs.some((l) => l.id === deepLib)) return;
     setLibId((cur) => (cur === deepLib ? cur : deepLib));
   }, [deepLib, libState, libs]);
+
+  /* 深链：楼层/区域就绪后自动选中（区域依赖楼层链路，随 sections 就绪） */
+  useEffect(() => {
+    if (deepFloor == null || !floors) return;
+    if (!floors.some((f) => f.id === deepFloor)) return;
+    setFloorId((cur) => (cur === deepFloor ? cur : deepFloor));
+  }, [deepFloor, floors]);
+  useEffect(() => {
+    if (deepSection == null || !sections) return;
+    if (!sections.some((sec) => sec.id === deepSection)) return;
+    setSectionId((cur) => (cur === deepSection ? cur : deepSection));
+  }, [deepSection, sections]);
 
   const loadLibs = useCallback(async () => {
     if (status !== "ready") return;
@@ -580,31 +597,61 @@ export function LibraryTab({
           </div>
           <div className="field" style={{ margin: 0, minWidth: 170 }}>
             <label htmlFor="lib-floor">楼层</label>
-            <SearchSelect
-              value={floorId != null ? String(floorId) : ""}
-              onChange={(v) => setFloorId(Number(v) || null)}
-              placeholder={!floors ? "加载中…" : floors.length === 0 ? "无可用楼层" : "选择楼层…"}
-              disabled={!floors || floors.length === 0}
-              options={(floors ?? []).map((f) => ({
-                value: String(f.id),
-                label: f.zhName + (f.valid && f.total > 0 ? `（${f.available}/${f.total}）` : ""),
-                disabled: !f.valid,
-              }))}
-            />
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+                <SearchSelect
+                  value={floorId != null ? String(floorId) : ""}
+                  onChange={(v) => setFloorId(Number(v) || null)}
+                  placeholder={!floors ? "加载中…" : floors.length === 0 ? "无可用楼层" : "选择楼层…"}
+                  disabled={!floors || floors.length === 0}
+                  options={(floors ?? []).map((f) => ({
+                    value: String(f.id),
+                    label: f.zhName + (f.valid && f.total > 0 ? `（${f.available}/${f.total}）` : ""),
+                    disabled: !f.valid,
+                  }))}
+                />
+              </div>
+              {floorId != null && libId != null ? (
+                <CollectStar
+                  atom={{ kind: "library-f", key: enc(libId, libs?.find((l) => l.id === libId)?.zhName ?? "", floorId, floors?.find((f) => f.id === floorId)?.zhName ?? "") }}
+                  title={floors?.find((f) => f.id === floorId)?.zhName ?? "楼层"}
+                />
+              ) : null}
+            </div>
           </div>
           <div className="field" style={{ margin: 0, minWidth: 170 }}>
             <label htmlFor="lib-section">区域</label>
-            <SearchSelect
-              value={sectionId != null ? String(sectionId) : ""}
-              onChange={(v) => setSectionId(Number(v) || null)}
-              placeholder={!sections ? "加载中…" : sections.length === 0 ? "无可用区域" : "选择区域…"}
-              disabled={!sections || sections.length === 0}
-              options={(sections ?? []).map((sec) => ({
-                value: String(sec.id),
-                label: sec.zhName + (sec.valid && sec.total > 0 ? `（${sec.available}/${sec.total}）` : ""),
-                disabled: !sec.valid,
-              }))}
-            />
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+                <SearchSelect
+                  value={sectionId != null ? String(sectionId) : ""}
+                  onChange={(v) => setSectionId(Number(v) || null)}
+                  placeholder={!sections ? "加载中…" : sections.length === 0 ? "无可用区域" : "选择区域…"}
+                  disabled={!sections || sections.length === 0}
+                  options={(sections ?? []).map((sec) => ({
+                    value: String(sec.id),
+                    label: sec.zhName + (sec.valid && sec.total > 0 ? `（${sec.available}/${sec.total}）` : ""),
+                    disabled: !sec.valid,
+                  }))}
+                />
+              </div>
+              {sectionId != null && libId != null ? (
+                <CollectStar
+                  atom={{
+                    kind: "library-a",
+                    key: enc(
+                      libId,
+                      libs?.find((l) => l.id === libId)?.zhName ?? "",
+                      floorId ?? "",
+                      floors?.find((f) => f.id === floorId)?.zhName ?? "",
+                      sectionId,
+                      sections?.find((sec) => sec.id === sectionId)?.zhName ?? "",
+                    ),
+                  }}
+                  title={sections?.find((sec) => sec.id === sectionId)?.zhName ?? "区域"}
+                />
+              ) : null}
+            </div>
           </div>
           <div className="field" style={{ margin: 0 }}>
             <label htmlFor="lib-date">日期</label>
