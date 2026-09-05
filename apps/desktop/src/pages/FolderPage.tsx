@@ -11,10 +11,11 @@
  * - 编辑模式：添加原子（搜索弹层）/ 新建子收藏夹 / 重命名 / 删除（页头=根，
  *   栏内=子夹），与聚合页「栏目删减走管理栏目、实体删除走页内」同思路。
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Card, Empty, PageHead, SegmentedOverflow } from "../components/Layout.js";
 import { TabManageModal } from "../components/TabManageModal.js";
-import { IconChevron, IconRefresh } from "../components/Icons.js";
+import { FolderIcon, FOLDER_ICONS, IconChevron, IconPen } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
 import { useFavs } from "../state/favs.js";
 import type { AtomRef } from "../state/favorites.js";
@@ -46,6 +47,8 @@ export function FolderPage() {
       </>
     );
   }
+
+  const orderIdx = favs.data.order.indexOf(rootId);
 
   const removeRoot = async () => {
     const ok = await confirmOk("删除收藏夹「" + folder.title + "」？\n其子收藏夹与收录的原子入口将一并删除（原功能不受影响）。");
@@ -89,12 +92,14 @@ export function FolderPage() {
           editing ? (
             <>
               <button className="btn" onClick={() => { setRenameVal(folder.title); setRenaming(true); }}>重命名</button>
+              <button className="btn" disabled={orderIdx <= 0} title="左侧栏顺序上移" onClick={() => favs.moveRoot(rootId, -1)}>上移</button>
+              <button className="btn" disabled={orderIdx >= favs.data.order.length - 1} title="左侧栏顺序下移" onClick={() => favs.moveRoot(rootId, 1)}>下移</button>
               <button className="btn btn-danger" onClick={() => void removeRoot()}>删除收藏夹</button>
               <button className="btn btn-primary" onClick={() => setEditing(false)}>完成</button>
             </>
           ) : (
             <button className="btn" onClick={() => setEditing(true)}>
-              <IconRefresh width={14} height={14} />
+              <IconPen width={14} height={14} />
               编辑
             </button>
           )
@@ -123,6 +128,7 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
   const [newSubName, setNewSubName] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [renameVal, setRenameVal] = useState("");
+  const [iconOpen, setIconOpen] = useState(false);
 
   if (!f) return null;
 
@@ -186,6 +192,7 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
           {editing ? (
             <div className="fav-toolbar">
               <button className="btn" onClick={() => setPickerOpen(true)}>添加原子</button>
+              <button className="btn" title="从图标库选择收藏夹图标" onClick={() => setIconOpen(true)}>图标</button>
               <button
                 className="btn"
                 disabled={!canNestUnder(favs.data, folderId)}
@@ -280,6 +287,16 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
       ) : null}
       {pickerOpen ? (
         <AtomPickerModal onPick={(atom: AtomRef) => favs.addAtom(folderId, atom)} onClose={() => setPickerOpen(false)} />
+      ) : null}
+      {iconOpen ? (
+        <IconPickerModal
+          current={f.icon}
+          onPick={(name) => {
+            favs.setIcon(folderId, name);
+            setIconOpen(false);
+          }}
+          onClose={() => setIconOpen(false)}
+        />
       ) : null}
     </>
   );
@@ -477,5 +494,43 @@ function TileItem({ folderId, index, editing }: { folderId: string; index: numbe
         <span className="fav-tile-star"><CollectStar atom={it.atom} title={view.title} /></span>
       )}
     </Card>
+  );
+}
+
+
+/** 收藏夹图标选择弹层（图标库 = Icons.FOLDER_ICONS；「默认」恢复 IconFolder） */
+function IconPickerModal({ current, onPick, onClose }: { current?: string; onPick: (name?: string) => void; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (ev: KeyboardEvent): void => {
+      if (ev.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return createPortal(
+    <div className="home-modal-mask" onClick={onClose}>
+      <div className="home-modal" role="dialog" aria-modal="true" aria-label="选择收藏夹图标" onClick={(e) => e.stopPropagation()}>
+        <div className="home-modal-head">
+          <h3>收藏夹图标</h3>
+          <button className="btn btn-ghost" onClick={onClose}>关闭</button>
+        </div>
+        <div className="home-modal-body">
+          <div className="home-modal-hint">图标应用于左侧栏与收藏夹页头；根收藏夹与子收藏夹都可各选各的。</div>
+          <div className="icon-grid">
+            <button type="button" className={"icon-cell" + (!current ? " is-active" : "")} title="默认" onClick={() => onPick(undefined)}>
+              <FolderIcon name={undefined} width={18} height={18} />
+            </button>
+            {Object.entries(FOLDER_ICONS)
+              .filter(([k]) => k !== "folder")
+              .map(([k, C]) => (
+                <button key={k} type="button" className={"icon-cell" + (current === k ? " is-active" : "")} title={k} onClick={() => onPick(k)}>
+                  <C width={18} height={18} />
+                </button>
+              ))}
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }

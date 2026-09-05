@@ -6,6 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import {
   loadFavs, saveFavs, createFolder, deleteFolder, renameFolder, toggleAtom, swapItems,
   removeItemAt, setAtomVariant, toggleSidebarFold, foldersOfAtom, hasAtom, atomKeyOf,
+  setFolderIcon, moveRoot,
   type AtomRef, type FavItem, type FavsData,
 } from "./favorites.js";
 
@@ -27,6 +28,10 @@ export interface FavsApi {
   removeAt: (folderId: string, index: number) => void;
   setVariant: (folderId: string, index: number, sq: boolean | undefined) => void;
   foldSidebar: (id: string, isDefault: boolean) => void;
+  /** 收藏夹图标（icon=undefined 恢复默认；根/子夹通用） */
+  setIcon: (id: string, icon: string | undefined) => void;
+  /** 左侧栏根收藏夹排序（相邻交换） */
+  moveRoot: (id: string, dir: -1 | 1) => void;
   /** 整体替换存储（设置导入/恢复默认） */
   replaceAll: (d: FavsData) => void;
   itemsOf: (id: string) => FavItem[];
@@ -118,9 +123,17 @@ export function FavsProvider({ children }: { children: ReactNode }) {
 
   const itemsOf = useCallback((id: string) => data.folders[id]?.items ?? [], [data]);
 
+  const setIcon = useCallback((id: string, icon: string | undefined) => {
+    setData((prev) => setFolderIcon(prev, id, icon));
+  }, []);
+
+  const moveRootFn = useCallback((id: string, dir: -1 | 1) => {
+    setData((prev) => moveRoot(prev, id, dir));
+  }, []);
+
   const value = useMemo<FavsApi>(
-    () => ({ data, create, remove, rename, toggleAtomIn, addAtom, foldersContaining, hasAtomIn, swap, removeAt, setVariant, foldSidebar, replaceAll, itemsOf }),
-    [data, create, remove, rename, toggleAtomIn, addAtom, foldersContaining, hasAtomIn, swap, removeAt, setVariant, foldSidebar, replaceAll, itemsOf],
+    () => ({ data, create, remove, rename, toggleAtomIn, addAtom, foldersContaining, hasAtomIn, swap, removeAt, setVariant, foldSidebar, replaceAll, itemsOf, setIcon, moveRoot: moveRootFn }),
+    [data, create, remove, rename, toggleAtomIn, addAtom, foldersContaining, hasAtomIn, swap, removeAt, setVariant, foldSidebar, replaceAll, itemsOf, setIcon, moveRootFn],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -1,5 +1,5 @@
 /** 内联线性图标 —— 1.6px 描边，墨色，克制 */
-import type { SVGProps } from "react";
+import type { ReactElement, SVGProps } from "react";
 
 function base(props: SVGProps<SVGSVGElement>) {
   return {
@@ -181,3 +181,33 @@ export const IconStar = (p: SVGProps<SVGSVGElement>) => (
     <path d="m12 3.6 2.5 5.2 5.7.7-4.2 3.9 1.1 5.6-5.1-2.8-5.1 2.8 1.1-5.6-4.2-3.9 5.7-.7z" />
   </svg>
 );
+
+
+/* ══════════ 收藏夹图标库（FavFolder.icon 键名持久化；未知键回退默认文件夹） ══════════ */
+
+export const FOLDER_ICONS: Record<string, (p: SVGProps<SVGSVGElement>) => ReactElement> = {
+  folder: IconFolder,
+  star: IconStar,
+  today: IconToday,
+  learn: IconLearn,
+  schedule: IconSchedule,
+  pen: IconPen,
+  check: IconCheck,
+  flag: IconFlag,
+  calendar: IconCalendar,
+  bell: IconBell,
+  file: IconFile,
+  search: IconSearch,
+  info: IconInfo,
+  card: IconCard,
+  refresh: IconRefresh,
+  external: IconExternal,
+  xk: IconXk,
+  download: IconDownload,
+  inbox: IconIn,
+};
+
+export function FolderIcon({ name, ...rest }: { name?: string } & SVGProps<SVGSVGElement>) {
+  const C = (name && FOLDER_ICONS[name]) || IconFolder;
+  return <C {...rest} />;
+}
