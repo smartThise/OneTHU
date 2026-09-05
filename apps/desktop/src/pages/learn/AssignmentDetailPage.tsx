@@ -7,6 +7,7 @@ import { IconDownload } from "../../components/Icons.js";
 import { learn, downloadLearnUrl } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { openFilePreview } from "../../components/FilePreview.js";
+import { RichEditor } from "../../components/RichEditor.js";
 import { useApp } from "../../state/context.js";
 import { invalidateLearnCache, useLearnData } from "../../state/data.js";
 import { BackButton, RichContent, fmtDateTime, gradeLabel, timeLeft } from "./shared.js";
@@ -31,6 +32,10 @@ export function AssignmentDetailPage() {
   const [subMsg, setSubMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const subTouched = useRef(false); // 用户改过输入框后不再用上次提交内容预填
+  /* learnX AssignmentSubmission 附件修改/替换语义：撤回是可撤销的 pending 态
+     （删除线示意，提交时才真正 isDeleted=1）；重选文件=提交时替换服务器附件 */
+  const [removePending, setRemovePending] = useState(false);
+  const [customName, setCustomName] = useState("");
   const [dlHint, setDlHint] = useState<string | null>(null);
   const [dlBusy, setDlBusy] = useState("");
 
@@ -111,7 +116,7 @@ export function AssignmentDetailPage() {
   useEffect(() => {
     if (pageState !== "ok" || !page?.submittedContent) return;
     if (subTouched.current || subContent.trim()) return;
-    const prefill = page.submittedContent.replace(/<[^>]*>/g, "").replace("-->", "").trim();
+    const prefill = page.submittedContent.replace("-->", "").trim();
     if (prefill) setSubContent(prefill);
     // eslint 不在依赖里列 subContent：预填只应发生一次（用户未输入时）
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -155,17 +160,32 @@ export function AssignmentDetailPage() {
     : [];
   const attFound = attGroups.filter((g) => g.a);
 
+  /** Quill 空内容判定：产物是 "<p><br></p>" 之类，纯 trim 不够（learnX removeTags 同源） */
+  const richEmpty = (html: string): boolean =>
+    html
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;|&#160;/g, " ")
+      .trim() === "";
   const doSubmit = async (remove: boolean): Promise<void> => {
     if (subBusy) return;
-    if (!remove && !subContent.trim() && !subFile) { setSubMsg("请填写提交内容或选择附件"); return; }
+    if (!remove && !subFile && richEmpty(subContent)) { setSubMsg("请填写提交内容或选择附件"); return; }
     setSubBusy(true);
     setSubMsg("");
     try {
-      const r = await learn.submitHomework(h.id, { content: subContent.trim() || undefined, file: subFile, remove });
+      // 自定义文件名：只换主名、保留扩展名（learnX replaceName 同款，用户输入的点全剥掉）
+      let file = subFile;
+      if (file && customName.trim()) {
+        const dot = file.name.lastIndexOf(".");
+        const ext = dot >= 0 ? file.name.slice(dot) : "";
+        file = new File([file], customName.trim() + ext, { type: file.type });
+      }
+      const r = await learn.submitHomework(h.id, { content: remove ? undefined : subContent, file, remove });
       if (r.ok) {
         setSubMsg(remove ? "已撤回附件" : "提交成功");
         setSubContent("");
         setSubFile(null);
+        setCustomName("");
+        setRemovePending(false);
         if (fileRef.current) fileRef.current.value = "";
         // 状态与四类附件即时刷新：清 learn 缓存全量重拉（mobile 提交成功后
         // dispatch(getAssignmentsForCourse) 同语义），并重置附件懒加载重取 viewCj
@@ -317,34 +337,79 @@ export function AssignmentDetailPage() {
         <Card className="detail-sec">
           <div className="detail-sec-head">{h.submitted ? "再次提交 / 修改附件" : "提交作业"}</div>
           <div style={{ padding: "8px 16px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-            <textarea
-              className="input"
-              style={{ minHeight: 88, resize: "vertical" }}
-              placeholder="提交内容（可留空，附件可选）"
+            {/* 正文：讨论区同款 Quill 富文本编辑器（zynr 产物即 HTML，与站点提交语义一致） */}
+            <RichEditor
               value={subContent}
-              onChange={(e) => { subTouched.current = true; setSubContent(e.target.value); }}
-              disabled={subBusy}
+              onChange={(html) => { subTouched.current = true; setSubContent(html); }}
+              placeholder="提交内容（可留空，附件可选）…支持格式与图片"
+              maxHeight={220}
             />
+            {/* learnX 附件语义：已上传附件名 + 撤回 pending（删除线可撤销）+ 新文件替换 */}
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", fontSize: 13 }}>
+              {page?.submittedAttachment ? (
+                <span
+                  style={{
+                    color: removePending ? "var(--text-dim, #888)" : "var(--text-1)",
+                    textDecoration: removePending ? "line-through" : undefined,
+                    opacity: removePending ? 0.6 : 1,
+                  }}
+                >
+                  已上传：{page.submittedAttachment.name}
+                </span>
+              ) : null}
+              {subFile ? (
+                <span style={{ display: "inline-flex", gap: 6, alignItems: "center", color: "var(--accent)" }}>
+                  新附件：{subFile.name}
+                  <button
+                    className="btn btn-ghost"
+                    style={{ height: 22, padding: "0 8px", fontSize: 11 }}
+                    disabled={subBusy}
+                    onClick={() => { setSubFile(null); setCustomName(""); if (fileRef.current) fileRef.current.value = ""; }}
+                  >
+                    清除
+                  </button>
+                </span>
+              ) : null}
+              {page?.submittedAttachment && subFile && !removePending ? (
+                <span style={{ color: "var(--text-dim, #888)", fontSize: 12 }}>提交后将替换已上传附件</span>
+              ) : null}
+            </div>
+            {subFile ? (
+              <input
+                className="input"
+                style={{ height: 30, fontSize: 12 }}
+                placeholder={`自定义附件名（保留扩展名 ${subFile.name.includes(".") ? subFile.name.slice(subFile.name.lastIndexOf(".")) : ""}，可留空）`}
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value.replaceAll(".", ""))}
+                disabled={subBusy || removePending}
+              />
+            ) : null}
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <input ref={fileRef} type="file" style={{ fontSize: 12 }} onChange={(e) => setSubFile(e.target.files?.[0] ?? null)} disabled={subBusy} />
+              <input
+                ref={fileRef}
+                type="file"
+                style={{ fontSize: 12 }}
+                onChange={(e) => setSubFile(e.target.files?.[0] ?? null)}
+                disabled={subBusy || removePending}
+              />
               <span style={{ flex: 1 }} />
               <button
                 className="btn"
-                disabled={subBusy || pastDeadline}
+                disabled={subBusy || pastDeadline || (!removePending && !subFile && richEmpty(subContent))}
                 title={pastDeadline ? "已过截止时间（mobile 同款禁用提交）" : undefined}
-                onClick={() => void doSubmit(false)}
+                onClick={() => void doSubmit(removePending)}
               >
-                {subBusy ? "提交中…" : "提交"}
+                {subBusy ? "提交中…" : removePending ? "确认撤回附件" : "提交"}
               </button>
-              {h.submitted ? (
+              {page?.submittedAttachment ? (
                 <button
-                  className="btn"
+                  className="btn btn-ghost"
                   disabled={subBusy}
-                  style={{ color: "var(--red)" }}
-                  title="isDeleted=1：仅撤回已上传附件（mobile removeAttachment 语义）"
-                  onClick={() => void doSubmit(true)}
+                  style={{ color: removePending ? "var(--green)" : "var(--red)" }}
+                  title="撤回是 pending 态（learnX 同款）：确认前可撤销；提交时才发 isDeleted=1"
+                  onClick={() => setRemovePending(!removePending)}
                 >
-                  撤回附件
+                  {removePending ? "撤销撤回" : "撤回已上传附件"}
                 </button>
               ) : null}
             </div>
