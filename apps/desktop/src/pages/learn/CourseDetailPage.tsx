@@ -4,6 +4,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { LearnGroup } from "@onethu/core";
 import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
+import { CollectStar } from "../../components/Collect.js";
+import { enc } from "../../state/atoms.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
@@ -137,6 +139,10 @@ export function CourseDetailPage() {
         actions={
           <>
             <BackButton to="learn" label="课程列表" />
+            <CollectStar
+              atom={{ kind: "course", key: enc(course?.id ?? navParams?.courseId ?? "", course?.name ?? "", course?.teacherName ?? "") }}
+              title={course?.name}
+            />
             <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
               <IconRefresh width={14} height={14} />
               刷新

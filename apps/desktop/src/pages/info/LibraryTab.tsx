@@ -14,6 +14,8 @@ import type { LibBookRecord, Library, LibraryFloor, LibrarySeat, LibrarySection 
 import { infoUrls, isAuthError } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { SearchSelect } from "../../components/SearchSelect.jsx";
+import { CollectStar } from "../../components/Collect.js";
+import { enc, noteAtomCache } from "../../state/atoms.js";
 import { fetchImageByUrl, info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { autoFullReload } from "../../lib/reload.js";
@@ -214,7 +216,12 @@ function SeatCell({
   );
 }
 
-export function LibraryTab() {
+export function LibraryTab({
+  deepLib,
+}: {
+  /** 深链（实体原子）：自动选中的馆 libId */
+  deepLib?: number;
+} = {}) {
   const { status } = useApp();
 
   /* 馆列表 */
@@ -272,6 +279,13 @@ export function LibraryTab() {
     floorId !== null ? infoUrls.LIBRARY_AREA_IMAGE(floorId, "floor") : "",
   );
 
+  /* 深链：馆目录就绪后自动选中目标馆 */
+  useEffect(() => {
+    if (deepLib == null || libState !== "ready" || !libs) return;
+    if (!libs.some((l) => l.id === deepLib)) return;
+    setLibId((cur) => (cur === deepLib ? cur : deepLib));
+  }, [deepLib, libState, libs]);
+
   const loadLibs = useCallback(async () => {
     if (status !== "ready") return;
     setLibState("loading");
@@ -283,6 +297,7 @@ export function LibraryTab() {
       libRecover.current = 0;
       setLibs(list);
       setLibState("ready");
+      noteAtomCache({ libraries: list.map((l) => ({ id: l.id, name: l.zhName })) });
       const firstValid = list.find((l) => l.valid) ?? list[0];
       if (firstValid) setLibId(firstValid.id);
     } catch (err) {
@@ -542,16 +557,26 @@ export function LibraryTab() {
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
           <div className="field" style={{ margin: 0, minWidth: 150 }}>
             <label htmlFor="lib-lib">馆</label>
-            <SearchSelect
-              value={libId != null ? String(libId) : ""}
-              onChange={(v) => setLibId(Number(v) || null)}
-              placeholder="选择馆…"
-              options={(libs ?? []).map((l) => ({
-                value: String(l.id),
-                label: l.zhName + (!l.valid ? "（暂不可约）" : ""),
-                disabled: !l.valid,
-              }))}
-            />
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+                <SearchSelect
+                  value={libId != null ? String(libId) : ""}
+                  onChange={(v) => setLibId(Number(v) || null)}
+                  placeholder="选择馆…"
+                  options={(libs ?? []).map((l) => ({
+                    value: String(l.id),
+                    label: l.zhName + (!l.valid ? "（暂不可约）" : ""),
+                    disabled: !l.valid,
+                  }))}
+                />
+              </div>
+              {libId != null ? (
+                <CollectStar
+                  atom={{ kind: "library", key: enc(libId, libs?.find((l) => l.id === libId)?.zhName ?? "") }}
+                  title={libs?.find((l) => l.id === libId)?.zhName ?? "图书馆"}
+                />
+              ) : null}
+            </div>
           </div>
           <div className="field" style={{ margin: 0, minWidth: 170 }}>
             <label htmlFor="lib-floor">楼层</label>

@@ -1,6 +1,8 @@
 /** 作业只读详情（learnX AssignmentDetail）：提交/批改情况 + 说明富文本 + 四类附件；提交/撤回已移植（tjzy）*/
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
+import { CollectStar } from "../../components/Collect.js";
+import { enc } from "../../state/atoms.js";
 import { IconDownload } from "../../components/Icons.js";
 import { learn, downloadLearnUrl } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
@@ -189,6 +191,10 @@ export function AssignmentDetailPage() {
         actions={
           <>
             <BackButton to={navParams?.from ?? "learn-assignments"} courseId={navParams?.courseId} courseTab="assignments" />
+            <CollectStar
+              atom={{ kind: "assignment", key: enc(h.courseId, h.id, h.title, course?.name ?? "") }}
+              title={h.title}
+            />
             <button className="btn" onClick={() => void openExternal(h.url)} title="在系统浏览器打开">
               网页端打开
             </button>

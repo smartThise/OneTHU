@@ -1,6 +1,8 @@
 /** 文件详情（learnX FileDetail）：类型/大小/说明 + 下载占位按钮 */
 import { useMemo, useState } from "react";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
+import { CollectStar } from "../../components/Collect.js";
+import { enc } from "../../state/atoms.js";
 import { IconDownload } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
@@ -43,7 +45,7 @@ export function FileDetailPage() {
   if (!f) {
     return (
       <>
-        <PageHead title="文件详情" actions={<BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} courseTab="files" />} />
+        <PageHead title="文件详情" actions={<><BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} courseTab="files" /></>} />
         {state === "loading" ? (
           <SkeletonRows rows={4} />
         ) : state === "error" ? (
@@ -63,6 +65,10 @@ export function FileDetailPage() {
         actions={
           <>
             <BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} courseTab="files" />
+            <CollectStar
+              atom={{ kind: "file", key: enc(f.courseId, f.id, f.title, course?.name ?? "") }}
+              title={f.title}
+            />
             <button
               className="btn"
               onClick={() => openFilePreview({ name: learnFileName(f.title || `课件 ${f.id}`, f.fileType), url: LEARN_FILE_DOWNLOAD(f.id) })}

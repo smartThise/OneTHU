@@ -4,13 +4,15 @@
  * （yshz-user.haier-ioc.com）公开接口，无需校内会话。
  * 设备状态：空闲（绿）/ 运行中·剩余分钟（灰）/ 故障（红）。
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { WasherBuilding, WasherBuildingGroup, WasherDevice } from "@onethu/core";
 import { getWasherBuildingGroups, getWasherDevices } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { logLine } from "../../lib/clients.js";
 import { explainNetworkError, universalFetch } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
+import { CollectStar } from "../../components/Collect.js";
+import { enc, noteAtomCache } from "../../state/atoms.js";
 
 function logErr(tag: string, err: unknown): void {
   void logLine(
@@ -29,7 +31,17 @@ function deviceVisual(w: WasherDevice): { dot: string; chip: string; text: strin
   return { dot: "is-error", chip: "chip chip-red", text: "故障" };
 }
 
-export function WasherTab() {
+export function WasherTab({
+  deepBuildingId, deepBuildingName, deepHlsh, deepMachine,
+}: {
+  /** 深链（实体原子）：自动选中的楼栋 id */
+  deepBuildingId?: string;
+  /** 楼栋展示名兜底 */
+  deepBuildingName?: string;
+  deepHlsh?: boolean;
+  /** 要高亮滚动的设备名 */
+  deepMachine?: string;
+} = {}) {
   const { status } = useApp();
 
   const [groups, setGroups] = useState<WasherBuildingGroup[] | null>(null);
@@ -49,8 +61,15 @@ export function WasherTab() {
     setGState("loading");
     setGError(null);
     try {
-      setGroups(await getWasherBuildingGroups(universalFetch));
+      const list = await getWasherBuildingGroups(universalFetch);
+      setGroups(list);
       setGState("ready");
+      // 原子搜索缓存：楼栋目录只在本 tab 加载后入库（搜索框不主动请求）
+      noteAtomCache({
+        washerGroups: list.flatMap((g) =>
+          g.buildings.map((b) => ({ gname: g.name, id: b.id, name: b.name, hlsh: !!b.hlsh })),
+        ),
+      });
     } catch (err) {
       logErr("WASHER-G", err);
       setGState("error");
@@ -61,6 +80,22 @@ export function WasherTab() {
   useEffect(() => {
     void loadGroups();
   }, [loadGroups]);
+
+
+  /* 深链：设备列表就绪后高亮并滚动到目标设备 */
+  useEffect(() => {
+    if (dState !== "ready" || !deepMachine) return;
+    const el = Array.from(document.querySelectorAll<HTMLElement>("[data-dev]")).find(
+      (n) => n.getAttribute("data-dev") === deepMachine,
+    );
+    if (!el) return;
+    el.classList.add("fav-dl-flash");
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [dState, floors, deepMachine]);
+
+  /** 选中楼栋所属分组名（星标原子 sub 用） */
+  const groupOfBuilding = (b: WasherBuilding): string | undefined =>
+    (groups ?? []).find((g) => g.buildings.some((x) => x.id === b.id && !!x.hlsh === !!b.hlsh))?.name;
 
   const loadDevices = useCallback(async (b: WasherBuilding) => {
     setSel(b);
@@ -75,6 +110,20 @@ export function WasherTab() {
       setDError(explainNetworkError(err));
     }
   }, []);
+  /* 深链：楼栋目录就绪后自动选中目标楼栋（只落一次） */
+  const deepApplied = useRef(false);
+  useEffect(() => {
+    if (deepApplied.current || gState !== "ready" || !groups || !deepBuildingId) return;
+    deepApplied.current = true;
+    for (const g of groups) {
+      const b = g.buildings.find((x) => x.id === deepBuildingId);
+      if (b) {
+        void loadDevices(b);
+        return;
+      }
+    }
+  }, [groups, gState, deepBuildingId, loadDevices]);
+
 
   if (status === "demo") {
     return <Empty text="演示模式不提供洗衣机数据，登录后可查看宿舍楼设备状态。" />;
@@ -161,7 +210,18 @@ export function WasherTab() {
 
       {sel ? (
         <>
-          <SectionHead title={sel.name} aside={sel.hlsh ? "海乐生活点位" : "捷利楼栋"} />
+          <SectionHead
+            title={sel.name}
+            aside={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <span>{sel.hlsh ? "海乐生活点位" : "捷利楼栋"}</span>
+                <CollectStar
+                  atom={{ kind: "washer-b", key: enc(sel.id, sel.name, sel.hlsh ? "1" : "0", groupOfBuilding(sel) ?? "") }}
+                  title={sel.name}
+                />
+              </span>
+            }
+          />
           {dState === "loading" ? <SkeletonRows rows={4} /> : null}
           {dState === "error" ? <ErrorNote text={dError ?? ""} onRetry={() => void loadDevices(sel)} /> : null}
           {dState === "ready" && (floors ?? []).length === 0 ? (
@@ -187,8 +247,14 @@ export function WasherTab() {
                       .join(" · ");
                     return (
                       <Card className={`washer-card ${v.dot}`} key={`${w.name}-${i}`}>
+                        <span className="washer-star">
+                          <CollectStar
+                            atom={{ kind: "washer-m", key: enc(sel.id, sel.name, sel.hlsh ? "1" : "0", title) }}
+                            title={sel.name + " · " + title}
+                          />
+                        </span>
                         <span className="washer-dot" aria-hidden />
-                        <div className="washer-main">
+                        <div className="washer-main" data-dev={title}>
                           <div className="washer-name">{title}</div>
                           {sub ? <div className="washer-sub">{sub}</div> : null}
                         </div>

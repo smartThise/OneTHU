@@ -1,6 +1,8 @@
 /** 通知只读详情（learnX NoticeDetail）：标题/发布者/正文富文本 + 附件下载 */
 import { useEffect, useMemo, useState } from "react";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
+import { CollectStar } from "../../components/Collect.js";
+import { enc } from "../../state/atoms.js";
 import { IconDownload } from "../../components/Icons.js";
 import { learn, downloadLearnUrl } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
@@ -90,6 +92,10 @@ export function NoticeDetailPage() {
         actions={
           <>
             <BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} courseTab="notices" />
+            <CollectStar
+              atom={{ kind: "notice", key: enc(n.courseId, n.id, n.title, course?.name ?? "") }}
+              title={n.title}
+            />
             <button className="btn" onClick={() => void openExternal(n.url)} title="在系统浏览器打开">
               网页端打开
             </button>

@@ -21,6 +21,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { isAuthError, type LibRoomBookRecord, type LibRoomRes } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { SearchSelect } from "../../components/SearchSelect.jsx";
+import { CollectStar } from "../../components/Collect.js";
+import { enc, noteAtomCache } from "../../state/atoms.js";
 import { info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { openExternal } from "./openExternal.js";
@@ -347,7 +349,12 @@ interface BookTarget {
   day: DayChoice;
 }
 
-export function LibRoomTab() {
+export function LibRoomTab({
+  deepKind,
+}: {
+  /** 深链（实体原子）：自动选中的房型 kindId */
+  deepKind?: number;
+} = {}) {
   const { status } = useApp();
   const userId = session.username;
 
@@ -399,6 +406,7 @@ export function LibRoomTab() {
       setKinds(list);
       setKindState("ready");
       setKindId((prev) => prev ?? list[0]!.kindId);
+      noteAtomCache({ libroomKinds: list.map((k) => ({ kindId: k.kindId, kindName: k.kindName })) });
     } catch (err) {
       logErr("LIBROOM-KIND", err);
       // 登录态丢失：不闪红，静默重建研讨间 cab 会话后自动重载一次；仍失败才亮 ErrorNote
@@ -415,6 +423,13 @@ export function LibRoomTab() {
       setKindError(explainNetworkError(err));
     }
   }, [status, userId]);
+
+  /* 深链：房型目录就绪后自动选中目标房型 */
+  useEffect(() => {
+    if (deepKind == null || kindState !== "ready" || !kinds) return;
+    if (!kinds.some((k) => k.kindId === deepKind)) return;
+    setKindId((cur) => (cur === deepKind ? cur : deepKind));
+  }, [deepKind, kindState, kinds]);
 
   const loadRecords = useCallback(async () => {
     if (status !== "ready" || !userId) return;
@@ -642,12 +657,22 @@ export function LibRoomTab() {
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
             <div className="field" style={{ margin: 0, minWidth: 220 }}>
               <label htmlFor="libroom-kind">房型</label>
-              <SearchSelect
-                value={kindId != null ? String(kindId) : ""}
-                onChange={(v) => setKindId(Number(v) || null)}
-                placeholder="选择房型…"
-                options={kinds.map((k) => ({ value: String(k.kindId), label: k.kindName }))}
-              />
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+                  <SearchSelect
+                    value={kindId != null ? String(kindId) : ""}
+                    onChange={(v) => setKindId(Number(v) || null)}
+                    placeholder="选择房型…"
+                    options={kinds.map((k) => ({ value: String(k.kindId), label: k.kindName }))}
+                  />
+                </div>
+                {kindId != null ? (
+                  <CollectStar
+                    atom={{ kind: "libroom-k", key: enc(kindId, kinds?.find((k) => k.kindId === kindId)?.kindName ?? "") }}
+                    title={kinds?.find((k) => k.kindId === kindId)?.kindName ?? "研讨间房型"}
+                  />
+                ) : null}
+              </div>
             </div>
             <div className="field" style={{ margin: 0 }}>
               <label htmlFor="libroom-date">日期</label>
