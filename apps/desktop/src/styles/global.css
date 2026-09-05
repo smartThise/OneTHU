@@ -138,7 +138,7 @@
   line-height: 20px;
 }
 
-.page-head-actions { display: flex; align-items: center; gap: var(--gap-2); flex-shrink: 0; }
+.page-head-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--gap-2); flex-shrink: 0; }
 
 /* ---------- 卡片 ---------- */
 
@@ -388,6 +388,10 @@
   gap: 6px;
   height: 32px;
   padding: 0 14px;
+  /* 全局防挤字：flex 行里不许被压缩折行（固定高 32px 内折行=字符叠字）；
+     个别要伸缩的按钮用内联 flex 覆盖（CardTab 等） */
+  white-space: nowrap;
+  flex: 0 0 auto;
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
   background: var(--surface);
@@ -2514,6 +2518,7 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .fav-toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 6px 10px;
   border: 1px dashed var(--accent-border, var(--border));
