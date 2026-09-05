@@ -174,16 +174,20 @@ export function AssignmentDetailPage() {
     setSubMsg("");
     try {
       if (remove) {
-        // learnX 同款：撤回是独立请求（isDeleted=1，不带正文/附件，否则字段互相打架）
+        // 撤回是独立请求（isDeleted=1，不带正文/附件）。实证 2026-09-06：要求必交附件的
+        // 作业服务器会打回 {"msg":"请上传附件"}（不允许只删不传）——失败时直接说明替代路径。
         const r = await learn.submitHomework(h.id, { remove: true });
-        if (!r.ok) throw new Error(r.msg || "撤回失败");
-      } else {
-        // 替换 = 两步走（learnX remove→resubmit 同构）：服务器上已有附件时先撤旧再传新
-        if (page?.submittedAttachment && subFile) {
-          const rm = await learn.submitHomework(h.id, { remove: true });
-          if (!rm.ok) throw new Error("替换失败：撤回旧附件未成功（" + (rm.msg ?? "") + "）");
+        if (!r.ok) {
+          const why = r.msg ?? "";
+          throw new Error(
+            /请上传附件/.test(why)
+              ? "该作业要求必须带附件，网堂不允许只删不传——请直接选择新附件提交替换"
+              : why || "撤回失败",
+          );
         }
-        // 自定义文件名：只换主名、保留扩展名（learnX replaceName 同款，用户输入的点全剥掉）
+      } else {
+        // 替换 = 单请求重传覆盖（网页「再次提交」原语义 isDeleted=0 + 新 fileupload）。
+        // 实证：必交附件作业先撤旧会被 "请上传附件" 打回，两步走走不通，直接覆盖。
         let file = subFile;
         if (file && customName.trim()) {
           const dot = file.name.lastIndexOf(".");
@@ -292,12 +296,16 @@ export function AssignmentDetailPage() {
               <button className="btn btn-ghost" onClick={retryPage}>重试</button>
             </div>
           ) : null}
-          {page?.submittedContent ? (
-            <div style={{ marginBottom: 6 }}>
-              <div className="detail-meta" style={{ fontWeight: 600, marginBottom: 4 }}>我的提交正文</div>
-              <RichContent html={page.submittedContent.replace("-->", "")} fallback="（正文为空）" />
-            </div>
-          ) : null}
+          {(() => {
+            const c = (page?.submittedContent ?? "").replace("-->", "");
+            const hasBody = c.replace(/<[^>]*>/g, "").replace(/&nbsp;|&#160;/g, " ").trim().length > 0;
+            return hasBody ? (
+              <div style={{ marginBottom: 6 }}>
+                <div className="detail-meta" style={{ fontWeight: 600, marginBottom: 4 }}>我的提交正文</div>
+                <RichContent html={c} />
+              </div>
+            ) : null;
+          })()}
           {attFound.map(({ label, a }) => {
             const key = a!.id || a!.downloadUrl;
             return (
