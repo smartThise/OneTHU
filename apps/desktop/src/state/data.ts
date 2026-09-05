@@ -3,6 +3,7 @@ import { confirmOk } from "../lib/confirm.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { XkCourseDetail, ZhjwxkSession, BasicUserInfo, CalendarData, CalendarSemester, CardInfo, CardTransaction, CourseFile, CourseInfo, DeadlineItem, ExamEntry, Homework, NewsItem, Notification, QueueCandidate, ReportRow, ScheduleEntry, SelectedCourse, SemesterInfo, XkCourse, XkFlag, XkLevelTableRow, XkQueueInfo, XkSelectedRow, XkVolInfo } from "@onethu/core";
 import {
+  getXkVolunteer,
   changeXkVolunteer,
   dropXkCourse,
   getQueueStatus,
@@ -503,6 +504,31 @@ async function fetchLevelTable(sem: string, fresh = false): Promise<Record<strin
   return run;
 }
 
+/** 志愿检查点（NextTHUxk 2.0 回移，v1.5.0 volNeedsRefresh 本源）：8/12/16/20 点与教务对齐。 */
+export const VOL_CHECKPOINTS = [8, 12, 16, 20];
+
+/** 上次同步是否已过期：今天最近的检查点之后没同步过 → 需要刷新 */
+export const volNeedsRefresh = (lastSyncMs: number, now = new Date()): boolean => {
+  if (!lastSyncMs) return true;
+  const passed = VOL_CHECKPOINTS.filter((h) => h <= now.getHours());
+  if (!passed.length) return false;
+  const latest = new Date(now);
+  latest.setHours(passed[passed.length - 1]!, 0, 0, 0);
+  return lastSyncMs < latest.getTime();
+};
+
+/** 下一个检查点时间（UI 提示用） */
+export const nextVolCheckpoint = (now = new Date()): Date => {
+  const d = new Date(now);
+  const next = VOL_CHECKPOINTS.find((h) => h > now.getHours());
+  if (next) d.setHours(next, 0, 0, 0);
+  else {
+    d.setDate(d.getDate() + 1);
+    d.setHours(VOL_CHECKPOINTS[0]!, 0, 0, 0);
+  }
+  return d;
+};
+
 export interface XkWorkbench {
   semester: string | null;
   selected: XkSelectedRow[];
@@ -514,6 +540,11 @@ export interface XkWorkbench {
   levelTypes: Record<string, string>;
   coreState: DataState;
   queueState: DataState | "idle";
+  /** 志愿数据同步态（检查点 8/12/16/20 驱动 + 挂载即补） */
+  volState: DataState | "idle";
+  /** 上次志愿同步时间戳（0=未同步） */
+  volLastSync: number;
+  refreshVol: () => Promise<void>;
   /** 左栏实时搜索（浏览=服务端页取 / 搜索=真页数探测+可加载全部） */
   searchState: DataState | "idle" | "loadingMore";
   /** 服务端搜索原始行池（不含已选/候补兜底行，供 UI 分页与去重判断） */
@@ -629,6 +660,9 @@ export function useXkWorkbench(): XkWorkbench {
   const [levelTypes, setLevelTypes] = useState<Record<string, string>>({});
   const [coreState, setCoreState] = useState<DataState>("loading");
   const [queueState, setQueueState] = useState<DataState | "idle">("idle");
+  const [volState, setVolState] = useState<DataState | "idle">("idle");
+  const lastVolSyncRef = useRef(0);
+  const volTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -709,6 +743,32 @@ export function useXkWorkbench(): XkWorkbench {
    *                 失败保留 level 行走可重试 ErrorNote，不白屏。
    * 所有 await resolve 后先比对 generation，不一致一律丢弃；同代同学期在途去重。
    */
+  /** 志愿数据同步（NextTHUxk 2.0 回移）：tbzySearchBR/Ty 全量 → volMap。
+   *  fail-soft：志愿数据失败不影响选课主链路（重试/下个检查点再来）。 */
+  const refreshVol = useCallback(async (): Promise<void> => {
+    if (status === "demo") return;
+    setVolState("loading");
+    try {
+      const vm = await getXkVolunteer(xkSession());
+      setVolMap(vm);
+      lastVolSyncRef.current = Date.now();
+      setVolState("ready");
+    } catch {
+      setVolState("error");
+    }
+  }, [status]);
+
+  /** 检查点调度链：挂载/学期切换即补一次（过期才算），随后对齐下一个 8/12/16/20 点 */
+  const scheduleVolSync = useCallback((): void => {
+    if (volTimerRef.current) clearTimeout(volTimerRef.current);
+    const tick = (): void => {
+      void refreshVol();
+      volTimerRef.current = setTimeout(tick, Math.max(60_000, nextVolCheckpoint().getTime() - Date.now()));
+    };
+    if (volNeedsRefresh(lastVolSyncRef.current)) void refreshVol();
+    volTimerRef.current = setTimeout(tick, Math.max(60_000, nextVolCheckpoint().getTime() - Date.now()));
+  }, [refreshVol]);
+
   const runPipeline = useCallback((sem: string, freshLevel: boolean): Promise<void> => {
     // 新学期开始 = 打断：代数 +1（初始挂载 pipelineSemRef=null 不算，见上）
     if (pipelineSemRef.current !== null && pipelineSemRef.current !== sem) genRef.current += 1;
@@ -731,6 +791,7 @@ export function useXkWorkbench(): XkWorkbench {
       setCoreState("loading");
     }
     coreSeededRef.current = Boolean(coreSeed);
+    scheduleVolSync(); // NextTHUxk 2.0：志愿数据检查点同步（挂载即补 + 8/12/16/20 对齐）
     if (coreSeed) void backfillSelTimes(coreSeed.data.selected); // 种子秒渲的时间缺口同样回填
     const entry: NonNullable<typeof pipelineInflightRef.current> = {
       sem,
@@ -1409,6 +1470,7 @@ export function useXkWorkbench(): XkWorkbench {
     // 左栏立刻清成空 loading 态（与上面同一批 commit 提交，旧学期数据不多渲染一帧）
     setCatalog([]);
     setVolMap({});
+    lastVolSyncRef.current = 0;
     setLevelTypes({});
     setPlan([]);
     setQueueMap({});
@@ -1469,7 +1531,7 @@ export function useXkWorkbench(): XkWorkbench {
 
   return {
     semester, selected, candidates, phase, queueMap, catalog, volMap, levelTypes,
-    coreState, queueState, error, busy, toast,
+    coreState, queueState, volState, volLastSync: lastVolSyncRef.current, refreshVol, error, busy, toast,
     refresh, submit, drop, changeZy, setToast, addManualEventRange,
     courses, canAdjustZy, stageCart, addToStage, removeFromStage, updateStageItem, importStageItem,
     savedDrafts, saveDraft, deleteDraft, removeFromDraft, saveCurrentAsDraft, exportDraft, importDraft, submitDraft,
