@@ -777,10 +777,12 @@ export class LearnClient {
     // 双页解析（thu-app learnApi 同款）：提交表单（zynr/fileupload）在 tijiao 页，
     // viewCj 是成绩详情页——未交作业的 viewCj 上没有表单，只抓 viewCj 会把提交卡
     // 判死（「看不到哪里能提交」的根因）。两页并行取，任一失败按空串参与解析。
+    // as const 元组：noUncheckedIndexedAccess 下非元组数组解构元素是 string|undefined
     const [tijiao, viewcj] = await Promise.all(
-      [urls.LEARN_HOMEWORK_SUBMIT_PAGE(courseId, studentHomeworkId), urls.LEARN_HOMEWORK_PAGE(courseId, studentHomeworkId)].map(
-        (u) => this.#http.text(u).then((t) => t ?? "").catch(() => ""),
-      ),
+      [
+        this.#http.text(urls.LEARN_HOMEWORK_SUBMIT_PAGE(courseId, studentHomeworkId)).then((t) => t ?? "").catch(() => ""),
+        this.#http.text(urls.LEARN_HOMEWORK_PAGE(courseId, studentHomeworkId)).then((t) => t ?? "").catch(() => ""),
+      ] as const,
     );
     const hasForm = (h: string): boolean =>
       /\btjzy\b/i.test(h) ||
