@@ -31,14 +31,23 @@ export const dayName = (d: number): string => DAY_NAMES[d] ?? "";
 /* ── §4.4 课型与志愿名额 ────────────────────────────────────── */
 export const typeCodeToFlag = (tc: string): XkFlag =>
   tc === "006" ? "bx" : tc === "008" ? "xx" : tc === "007" ? "rx" : tc === "ty" ? "ty" : "bx";
-/** isSportsCourse（data.js 同语义） */
-export const isSportsCourse = (c: { attr?: string; typeLabel?: string; typeCode?: string; department?: string; name?: string }): boolean =>
-  (c.attr ?? "") === "体育" || c.typeLabel === "体育" || c.typeCode === "ty" ||
-  (c.department ?? "").includes("体育") || (c.department ?? "").includes("体武") || (c.name ?? "").includes("体育");
-/** courseFlag：attr 必修/限选/任选/体育 → flag，attr 空（不在培养方案）默认 rx */
-export const courseFlagOf = (c: { attr?: string }): XkFlag =>
-  (c.attr ?? "").trim() === "限选" ? "xx" : (c.attr ?? "").trim() === "任选" ? "rx"
-    : (c.attr ?? "").trim() === "体育" ? "ty" : (c.attr ?? "").trim() === "必修" ? "bx" : "rx";
+/** 非全校统一体育课排除（NextTHUxk 2.0 NOT_SPORTS_NAME 回移）：分类页 attr=体育
+ *  误标先排除——航空体育/书院专项体育/体育概论等不是志愿意义的体育课（用户实证：
+ *  不排除则体育 chip/志愿名额/概率 ty 行全线错）。排除必须先行，attr 短路在前全吃。 */
+export const NOT_SPORTS_NAME = /航空体育|书院专项体育|体育(概论|管理|课程与教学论|科技前沿)/;
+/** isSportsCourse（data.js 同语义 + 2.0 排除先行） */
+export const isSportsCourse = (c: { attr?: string; typeLabel?: string; typeCode?: string; department?: string; name?: string }): boolean => {
+  if (NOT_SPORTS_NAME.test(c.name ?? "")) return false;
+  return (c.attr ?? "") === "体育" || c.typeLabel === "体育" || c.typeCode === "ty" ||
+    (c.department ?? "").includes("体育") || (c.department ?? "").includes("体武") || (c.name ?? "").includes("体育");
+};
+/** courseFlag：attr 必修/限选/任选/体育 → flag，attr 空（不在培养方案）默认 rx；
+ *  attr=体育但命中排除表 → 落回任选（2.0 守卫回移）。 */
+export const courseFlagOf = (c: { attr?: string; name?: string }): XkFlag => {
+  const a = (c.attr ?? "").trim();
+  if (a === "体育") return NOT_SPORTS_NAME.test(c.name ?? "") ? "rx" : "ty";
+  return a === "限选" ? "xx" : a === "任选" ? "rx" : a === "必修" ? "bx" : "rx";
+};
 export const baseFlagOf = (c: { attr?: string; typeLabel?: string; typeCode?: string; department?: string; name?: string }): XkFlag =>
   isSportsCourse(c) ? "ty" : courseFlagOf(c);
 export const zyTypeOf = baseFlagOf;
