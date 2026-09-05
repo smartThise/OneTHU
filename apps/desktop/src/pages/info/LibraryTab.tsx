@@ -574,7 +574,7 @@ export function LibraryTab({
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
           <div className="field" style={{ margin: 0, minWidth: 150 }}>
             <label htmlFor="lib-lib">馆</label>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <div className="ss-row" style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <div style={{ flex: "1 1 auto", minWidth: 0 }}>
                 <SearchSelect
                   value={libId != null ? String(libId) : ""}
@@ -597,7 +597,7 @@ export function LibraryTab({
           </div>
           <div className="field" style={{ margin: 0, minWidth: 170 }}>
             <label htmlFor="lib-floor">楼层</label>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <div className="ss-row" style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <div style={{ flex: "1 1 auto", minWidth: 0 }}>
                 <SearchSelect
                   value={floorId != null ? String(floorId) : ""}
@@ -621,7 +621,7 @@ export function LibraryTab({
           </div>
           <div className="field" style={{ margin: 0, minWidth: 170 }}>
             <label htmlFor="lib-section">区域</label>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <div className="ss-row" style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <div style={{ flex: "1 1 auto", minWidth: 0 }}>
                 <SearchSelect
                   value={sectionId != null ? String(sectionId) : ""}

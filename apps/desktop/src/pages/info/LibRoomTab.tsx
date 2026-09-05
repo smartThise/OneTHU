@@ -657,7 +657,7 @@ export function LibRoomTab({
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
             <div className="field" style={{ margin: 0, minWidth: 220 }}>
               <label htmlFor="libroom-kind">房型</label>
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <div className="ss-row" style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <div style={{ flex: "1 1 auto", minWidth: 0 }}>
                   <SearchSelect
                     value={kindId != null ? String(kindId) : ""}

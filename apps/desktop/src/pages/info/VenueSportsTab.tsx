@@ -672,7 +672,7 @@ export function VenueSportsTab({
       {sceneState === "loading" && !scenes ? (
         <SkeletonRows rows={3} />
       ) : (
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div className="ss-row" style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <div style={{ flex: "1 1 auto", minWidth: 0 }}>
             <SearchSelect
               value={venue?.uuid ?? ""}
