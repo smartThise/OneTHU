@@ -1325,9 +1325,19 @@ export function useXkWorkbench(): XkWorkbench {
   );
   const courses = useMemo(() => {
     // join 池 = 本地目录（批量已淘汰，恒空）∪ 服务端搜索已浏览页 ∪ 已选时间回填行
+    // ∪ 已选/候补自持行。此前已选课的行只能靠「恰好被搜过」进池——点别的搜索
+    // 把行挤掉，预览块的行/概率就跟着闪没（用户实录：点上去突然显示概率，点
+    // 别的东西一下又不显示）。已选行数据 = 已选 API 行自带字段（最小行，
+    // partial 标记让余量按未知宽容）；时间列解析失败者仍由 selDetail 回填行覆盖。
+    const selRows: XkCourse[] = selected.map((s) => ({
+      department: "", code: s.code, seq: s.seq || "0", name: s.name, credits: s.credits ?? 0,
+      teacher: s.teacher ?? "", teacherId: "", capacity: 0, remaining: 0,
+      gradCapacity: 0, gradRemaining: 0, time: s.time ?? "", note: "", feature: "",
+      grade: "", tongshiGroup: "", attr: "", partial: true,
+    }));
     const seen = new Set<string>();
     const all: XkCourse[] = [];
-    for (const c of [...enrichedCatalog, ...searchRaw, ...Object.values(selDetail), ...candCatalog]) {
+    for (const c of [...enrichedCatalog, ...searchRaw, ...Object.values(selDetail), ...selRows, ...candCatalog]) {
       const k = `${c.code}_${c.seq || "0"}`;
       if (!seen.has(k)) { seen.add(k); all.push(c); }
     }

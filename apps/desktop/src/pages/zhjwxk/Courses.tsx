@@ -587,13 +587,25 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
 
   // 志愿数据渲染行按需补拉（NextTHUxk 2.0 搜索行合并尾部同款触发点）：
   // 可见行到位/翻页/筛选 → 60ms 防抖 → 院系定向增量（只拉「正在看的行」
-  // 涉及的院系，已拉 doneMap 去重；不触发则搜索回来的新行永远无数据——用户十一报）
+  // 涉及的院系，已拉 doneMap 去重；不触发则搜索回来的新行永远无数据——用户十一报）。
+  // 已选/候补行恒在池：预览课块的概率不该依赖「恰好被搜过」（用户实录：
+  // 点别的搜索后早就选好的课概率闪没）
   useEffect(() => {
-    if (wb.phase || !rows.length) return;
-    const pool = rows.map((r) => ({ code: r.c.code, seq: r.c.seq || "0", department: r.c.department }));
+    if (wb.phase) return;
+    const seen = new Set<string>();
+    const pool: Array<{ code: string; seq: string; department?: string }> = [];
+    const push = (code: string, seq: string, department?: string): void => {
+      const k = `${code}_${seq || "0"}`;
+      if (!code || seen.has(k)) return;
+      seen.add(k);
+      pool.push({ code, seq: seq || "0", department });
+    };
+    for (const r of rows) push(r.c.code, r.c.seq || "0", r.c.department);
+    for (const r of wb.courses) if (r.selected || r.isCandidate) push(r.c.code, r.c.seq || "0", r.c.department);
+    if (!pool.length) return;
     const t = setTimeout(() => void wb.refreshVol(pool), 60);
     return () => clearTimeout(t);
-  }, [rows, wb.phase]);
+  }, [rows, wb.courses, wb.phase]);
 
   /* ── 分页（教务同款）：
    *  · 浏览模式：curPage = 服务端页码，翻页 = wb.gotoPage(n)（点哪页爬哪页），总页数 = 服务端「共 N 页」；
