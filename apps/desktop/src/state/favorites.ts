@@ -19,7 +19,7 @@ export interface AtomRef {
 }
 
 /** 收藏夹子项：atom=原子；f=子收藏夹引用 */
-export type FavItem = { t: "a"; atom: AtomRef; /** 方卡变体（缺省用原子默认） */ sq?: boolean } | { t: "f"; id: string };
+export type FavItem = { t: "a"; atom: AtomRef; /** 三态：true=强制方卡 / false=强制长卡 / undefined=用原子默认 */ sq?: boolean } | { t: "f"; id: string };
 
 /** 收藏夹节点（根与子共用；根在 order 里，全部存在 folders 平铺表）。
  *  子收藏夹展示 = 功能页同款 segmented 导航栏（显隐/顺序走 tabLayout 按夹分键），
@@ -70,7 +70,7 @@ function parseFolder(raw: unknown): FavFolder | null {
     if (typeof it !== "object" || it === null) continue;
     const o = it as Record<string, unknown>;
     if (o.t === "a" && isAtomRef(o.atom)) {
-      items.push({ t: "a", atom: { kind: o.atom.kind, key: o.atom.key }, sq: o.sq === true ? true : undefined });
+      items.push({ t: "a", atom: { kind: o.atom.kind, key: o.atom.key }, sq: typeof o.sq === "boolean" ? o.sq : undefined });
     } else if (o.t === "f" && typeof o.id === "string") {
       items.push({ t: "f", id: o.id });
     }
@@ -247,7 +247,8 @@ export function removeItemAt(d: FavsData, folderId: string, index: number): Favs
   return { ...d, folders: { ...d.folders, [folderId]: { ...f, items } } };
 }
 
-/** 设置原子的长/方变体（sq=方卡；undefined=用原子默认） */
+/** 设置原子的长/方变体（三态：true=方 / false=长 / undefined=原子默认——
+ *  缺省方卡的原子（教室等）转长卡必须显式 false，undefined 会弹回缺省） */
 export function setAtomVariant(d: FavsData, folderId: string, index: number, sq: boolean | undefined): FavsData {
   const f = d.folders[folderId];
   if (!f || index < 0 || index >= f.items.length) return d;
