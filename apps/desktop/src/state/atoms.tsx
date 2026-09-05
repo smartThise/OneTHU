@@ -25,6 +25,7 @@ import {
 import type { LearnNav, Page } from "./app.js";
 import { cacheGet } from "./cache.js";
 import type { AtomRef } from "./favorites.js";
+import { WasherTileStatus, ClassroomTileStatus, ClassroomRoomToday } from "../components/LiveTiles.js";
 
 /** 图标最小接口（与 homeCards 的 HomeCardIcon 同口径） */
 export type AtomIcon = (p: { width?: number; height?: number; className?: string }) => ReactNode;
@@ -43,6 +44,8 @@ export interface AtomView {
   open: (nav: Nav) => void;
   /** 自持组件卡体（widget 原子专用；挂收藏夹瀑布流时整卡直播） */
   widget?: () => ReactNode;
+  /** 方卡实时状态件（洗衣机/教室等实体原子：收藏后卡片上直播状态） */
+  tileLive?: () => ReactNode;
   /** 收藏夹缺省方卡（细粒度实体缺省方卡，页面/组件缺省长卡） */
   defaultSq?: boolean;
   /** 搜索分类标签（AtomPicker 右侧灰字） */
@@ -232,6 +235,7 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
     if (!bId || !dev) return null;
     return view({
       atom: ref, title: dev, sub: (bName || "") + (hlsh === "1" ? " · 海乐" : "") + " · 洗衣机", icon: IconRefresh, group: "洗衣机", defaultSq: true,
+      tileLive: () => <WasherTileStatus atomKey={key} />,
       open: (nav) => nav("life", { lifeTab: "washer", washerBuildingId: bId, washerBuildingName: bName, washerBuildingHlsh: hlsh === "1", washerMachine: dev }),
     });
   }
@@ -248,6 +252,8 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
     if (!searchName || !room) return null;
     return view({
       atom: ref, title: room, sub: (bName || "") + " · 教室", icon: IconSearch, group: "空教室", defaultSq: true,
+      tileLive: () => <ClassroomTileStatus atomKey={key} />,
+      widget: () => <ClassroomRoomToday atomKey={key} />,
       open: (nav) => nav("reserve", { reserveTab: "classroom", classroomBuilding: searchName, classroomBuildingName: bName, classroomRoom: room }),
     });
   }

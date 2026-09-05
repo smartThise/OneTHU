@@ -307,7 +307,11 @@ function ItemsBlock({ folderId, editing }: { folderId: string; editing: boolean 
   let cur: Block | null = null;
   items.forEach((it, i) => {
     if (it.t !== "a") return;
-    const isSqTile = (it.sq ?? resolveAtom(it.atom)?.defaultSq ?? false) && !resolveAtom(it.atom)?.widget;
+    /* 方/长判定：显式 sq 优先；缺省按 defaultSq/tileLive。今日 widget 件无方卡形态
+       恒为长卡；教室这类「方=当前节、长=今日总览」双形态原子两种都允许 */
+    const v0 = resolveAtom(it.atom);
+    const canTile = !v0?.widget || !!v0?.tileLive;
+    const isSqTile = canTile && (it.sq === true || (it.sq == null && !!(v0?.defaultSq || v0?.tileLive)));
     if (isSqTile) {
       if (cur && cur.t === "tiles") cur.items.push(i);
       else {
@@ -412,9 +416,11 @@ function OneItem({
               <button type="button" className="icon-btn" title="下移" aria-label="下移" onClick={() => moveAtom(index, 1)}>
                 <IconChevron width={13} height={13} style={{ transform: "rotate(90deg)" }} />
               </button>
-              <button type="button" className="icon-btn" title="改为方卡" aria-label="改为方卡" onClick={() => favs.setVariant(folderId, index, true)}>
-                方
-              </button>
+              {!view.widget || view.tileLive ? (
+                <button type="button" className="icon-btn" title="改为方卡" aria-label="改为方卡" onClick={() => favs.setVariant(folderId, index, true)}>
+                  方
+                </button>
+              ) : null}
               <button type="button" className="icon-btn" title="从此收藏夹移除" aria-label="移除" onClick={() => favs.removeAt(folderId, index)}>
                 ✕
               </button>
@@ -447,13 +453,16 @@ function TileItem({ folderId, index, editing }: { folderId: string; index: numbe
       >
         <span className="fav-tile-icon"><Icon width={17} height={17} /></span>
         <span className="fav-tile-name">{view.title}</span>
+        {view.tileLive ? <span className="fav-tile-live">{view.tileLive()}</span> : null}
         {view.sub ? <span className="fav-tile-sub">{view.sub}</span> : null}
       </button>
       {editing ? (
         <div className="fav-tile-tools">
-          <button type="button" className="icon-btn" title="改为长卡" aria-label="改为长卡" onClick={() => favs.setVariant(folderId, index, undefined)}>
-            长
-          </button>
+          {view.widget ? (
+            <button type="button" className="icon-btn" title="改为长卡" aria-label="改为长卡" onClick={() => favs.setVariant(folderId, index, undefined)}>
+              长
+            </button>
+          ) : null}
           <button type="button" className="icon-btn" title="从此收藏夹移除" aria-label="移除" onClick={() => favs.removeAt(folderId, index)}>
             ✕
           </button>
