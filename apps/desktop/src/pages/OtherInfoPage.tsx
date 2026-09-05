@@ -3,38 +3,19 @@
  * - 静态目录（lib/infoApps.ts，已剔除与 OneTHU 已有功能重复的条目）；
  * - 分类分区 + 本地搜索（名称/分类即打即筛）；
  * - 入口卡片即原子（kind=infoapp，可收藏进收藏夹；AtomPicker 可搜）；
- * - 点击先试应用内 iframe 内嵌（门户漫游链），内嵌不成再走系统浏览器
- *   （卡头常驻「浏览器打开」兜底；iframe 被门户 X-Frame-Options 拒时整页留白即可见）。
+ * - 点击一律系统浏览器打开门户漫游链：实测门户下发 X-Frame-Options，
+ *   应用内 iframe 内嵌整页空白（2026-09-04 实证），iframe 方案已废弃。
  */
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, Empty, PageHead } from "../components/Layout.js";
 import { IconExternal, IconSearch } from "../components/Icons.js";
 import { CollectStar } from "../components/Collect.js";
-import { useApp } from "../state/context.js";
 import { INFO_APPS, INFO_APP_CATS, infoAppUrl } from "../lib/infoApps.js";
 import { openExternal } from "./info/openExternal.js";
 
-interface EmbedTarget {
-  name: string;
-  url: string;
-}
-
 export function OtherInfoPage() {
-  const { navParams } = useApp();
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<string>("all");
-  const [embed, setEmbed] = useState<EmbedTarget | null>(null);
-  /** 深链消费：infoapp 原子打开时自动内嵌对应应用（仅一次） */
-  const deepApplied = useMemo(() => ({ done: false }), []);
-
-  useEffect(() => {
-    const id = navParams?.infoAppId;
-    if (deepApplied.done || !id) return;
-    const app = INFO_APPS.find((a) => a.id === id);
-    if (!app) return;
-    deepApplied.done = true;
-    setEmbed({ name: app.name, url: infoAppUrl(app.id) });
-  }, [navParams, deepApplied]);
 
   const q = query.trim().toLowerCase();
   const groups = useMemo(() => {
@@ -50,12 +31,7 @@ export function OtherInfoPage() {
     <>
       <PageHead
         title="其他 Info 应用"
-        meta={"信息门户原始应用导航 · " + INFO_APPS.length + " 项（已剔除与既有功能重复）"}
-        actions={
-          embed ? (
-            <button className="btn" onClick={() => setEmbed(null)}>收起内嵌</button>
-          ) : undefined
-        }
+        meta={"信息门户原始应用导航 · " + INFO_APPS.length + " 项（已剔除与既有功能重复）· 点击卡片在系统浏览器打开"}
       />
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
@@ -84,32 +60,6 @@ export function OtherInfoPage() {
         })}
       </div>
 
-      {embed ? (
-        <Card style={{ marginBottom: 16, padding: "12px 14px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div style={{ fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {embed.name} · 内嵌尝试
-            </div>
-            <div style={{ display: "inline-flex", gap: 6, flex: "0 0 auto" }}>
-              <button className="btn" style={{ height: 26, padding: "0 10px", fontSize: 12 }} onClick={() => void openExternal(embed.url)}>
-                浏览器打开
-              </button>
-              <button className="btn" style={{ height: 26, padding: "0 10px", fontSize: 12 }} onClick={() => setEmbed(null)}>
-                收起
-              </button>
-            </div>
-          </div>
-          <iframe
-            title={embed.name}
-            src={embed.url}
-            style={{ width: "100%", height: "70vh", border: "1px solid var(--border)", borderRadius: 8, background: "#fff" }}
-          />
-          <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 6 }}>
-            若此区域空白/报拒绝连接，说明门户不允许内嵌——点右上「浏览器打开」即走系统浏览器（同一 SSO，登录一次即可）。
-          </div>
-        </Card>
-      ) : null}
-
       {total === 0 ? (
         <Card>
           <Empty text="没有匹配的应用——换个关键词，或切回「全部」分类。" />
@@ -124,16 +74,21 @@ export function OtherInfoPage() {
               </span>
             </div>
             <div className="app-grid">
-              {g.apps.map((a) => {
-                const active = embed?.url === infoAppUrl(a.id);
-                return (
-                  <div key={a.id} className={"app-card" + (active ? " is-active" : "")} role="button" tabIndex={0} onClick={() => setEmbed({ name: a.name, url: infoAppUrl(a.id) })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setEmbed({ name: a.name, url: infoAppUrl(a.id) }); }}>
-                    <span className="app-card-icon"><IconExternal width={16} height={16} /></span>
-                    <span className="app-card-name" title={a.name}>{a.name}</span>
-                    <CollectStar atom={{ kind: "infoapp", key: [a.cat, a.name, a.id].map((x) => x.replace(/~/g, "-")).join("~") }} title={a.name} />
-                  </div>
-                );
-              })}
+              {g.apps.map((a) => (
+                <div
+                  key={a.id}
+                  className="app-card"
+                  role="button"
+                  tabIndex={0}
+                  title="在系统浏览器打开"
+                  onClick={() => void openExternal(infoAppUrl(a.id))}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") void openExternal(infoAppUrl(a.id)); }}
+                >
+                  <span className="app-card-icon"><IconExternal width={16} height={16} /></span>
+                  <span className="app-card-name" title={a.name}>{a.name}</span>
+                  <CollectStar atom={{ kind: "infoapp", key: [a.cat, a.name, a.id].map((x) => x.replace(/~/g, "-")).join("~") }} title={a.name} />
+                </div>
+              ))}
             </div>
           </div>
         ))

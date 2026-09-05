@@ -84,8 +84,6 @@ export interface LearnNav {
   /** 公共空间：自动选中的空间/房间 id（页面就绪后依次 pickSpace → pickRoom） */
   kongjianSpace?: string;
   kongjianRoom?: string;
-  /** 其他 Info 应用：infoapp 原子深链（打开页面并自动内嵌该应用） */
-  infoAppId?: string;
   /** 用户收藏夹页：folder id（page=folder 时必带） */
   folderId?: string;
 }
