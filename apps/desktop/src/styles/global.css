@@ -2446,6 +2446,23 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   cursor: pointer;
 }
 .collect-row:hover { background: var(--hover); }
+/* 收藏弹层折叠树：展开/收起钮（无子夹用等宽占位，勾选框纵向对齐） */
+.collect-fold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.collect-fold:hover { background: var(--hover); color: var(--text-1); }
+.collect-fold-spacer { width: 18px; flex: 0 0 auto; }
 .collect-row input[type="checkbox"] { accent-color: var(--amber); width: 15px; height: 15px; }
 .collect-row-icon { display: inline-flex; color: var(--text-3); }
 .collect-row-text { display: flex; flex-direction: column; min-width: 0; }

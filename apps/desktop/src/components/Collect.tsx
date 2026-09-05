@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Empty } from "./Layout.js";
-import { IconFolderPlus, IconSearch, IconStar } from "./Icons.js";
+import { IconChevron, IconFolderPlus, IconSearch, IconStar } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
 import { pageAtomRef, resolveAtom, searchAtoms, type AtomHit } from "../state/atoms.js";
 import type { AtomRef } from "../state/favorites.js";
@@ -53,7 +53,7 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
   const [name, setName] = useState("");
   const view = resolveAtom(atom);
   const roots = favs.data.order;
-  /* 全树行：根收藏夹 + 各层子收藏夹（收藏时可直达任意层；深度由建夹侧 FAVS_MAX_DEPTH 限制） */
+  /* 全树行：根收藏夹常显，子层折叠展开（收藏时可直达任意层；深度由建夹侧 FAVS_MAX_DEPTH 限制） */
   const parentOf = new Map<string, string | null>();
   /* 子收藏夹 id 只在 folders 平铺表（挂在父夹 items 里），不在 order——遍历必须走 folders */
   for (const id of Object.keys(favs.data.folders)) {
@@ -61,6 +61,26 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
     if (!parentOf.has(id)) parentOf.set(id, null);
     for (const it of f.items) if (it.t === "f") parentOf.set(it.id, id);
   }
+  /* 初始展开：已收藏该原子的路径（一眼看到它现在在哪个子夹里），其余默认折叠 */
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => {
+    const seed = new Set<string>();
+    for (const [id, f] of Object.entries(favs.data.folders)) {
+      if (!f.items.some((it) => it.t === "a" && it.atom.kind === atom.kind && it.atom.key === atom.key)) continue;
+      let cur = parentOf.get(id) ?? null;
+      while (cur) {
+        seed.add(cur);
+        cur = parentOf.get(cur) ?? null;
+      }
+    }
+    return seed;
+  });
+  const toggleExpand = (id: string): void =>
+    setExpanded((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
   const childrenOf = (pid: string | null): string[] =>
     pid === null
       ? favs.data.order.filter((id) => (parentOf.get(id) ?? null) === null)
@@ -72,9 +92,29 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
     for (const id of childrenOf(pid)) {
       const f = favs.data.folders[id];
       if (!f) continue;
+      const kids = childrenOf(id);
       const checked = f.items.some((it) => it.t === "a" && it.atom.kind === atom.kind && it.atom.key === atom.key);
+      const open = expanded.has(id);
       treeRows.push(
         <label key={id} className="collect-row" style={depth > 0 ? { paddingLeft: 14 + depth * 18 } : undefined}>
+          {kids.length > 0 ? (
+            <button
+              type="button"
+              className="collect-fold"
+              aria-label={open ? "收起子收藏夹" : "展开子收藏夹"}
+              aria-expanded={open}
+              onClick={(e) => {
+                /* 在 label 内点折叠钮：拦掉 label 默认行为，避免顺带勾选/取消勾选 */
+                e.preventDefault();
+                e.stopPropagation();
+                toggleExpand(id);
+              }}
+            >
+              <IconChevron width={12} height={12} style={{ transform: open ? undefined : "rotate(-90deg)" }} />
+            </button>
+          ) : (
+            <span className="collect-fold-spacer" aria-hidden />
+          )}
           <input
             type="checkbox"
             checked={checked}
@@ -87,7 +127,7 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
           </span>
         </label>,
       );
-      walk(id, depth + 1);
+      if (open) walk(id, depth + 1);
     }
   };
   walk(null, 0);
