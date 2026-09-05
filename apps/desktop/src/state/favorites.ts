@@ -27,6 +27,8 @@ export type FavItem = { t: "a"; atom: AtomRef; /** 三态：true=强制方卡 / 
 export interface FavFolder {
   id: string;
   title: string;
+  /** 自定义图标（Icons.FOLDER_ICONS 键名；缺省 = 默认文件夹图标） */
+  icon?: string;
   items: FavItem[];
   createdAt: number;
 }
@@ -78,6 +80,7 @@ function parseFolder(raw: unknown): FavFolder | null {
   return {
     id: r.id,
     title: r.title.slice(0, 40),
+    icon: typeof r.icon === "string" && r.icon ? r.icon : undefined,
     items,
     createdAt: typeof r.createdAt === "number" ? r.createdAt : Date.now(),
   };
@@ -257,6 +260,25 @@ export function setAtomVariant(d: FavsData, folderId: string, index: number, sq:
   const items = [...f.items];
   items[index] = { ...it, sq };
   return { ...d, folders: { ...d.folders, [folderId]: { ...f, items } } };
+}
+
+/** 设置收藏夹图标（icon=undefined 恢复默认；根/子夹通用） */
+export function setFolderIcon(d: FavsData, id: string, icon: string | undefined): FavsData {
+  const f = d.folders[id];
+  if (!f) return d;
+  return { ...d, folders: { ...d.folders, [id]: { ...f, icon } } };
+}
+
+/** 左侧栏根收藏夹排序：相邻交换（仅根层 order，子夹栏序走 tabLayout） */
+export function moveRoot(d: FavsData, id: string, dir: -1 | 1): FavsData {
+  const i = d.order.indexOf(id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= d.order.length) return d;
+  const order = [...d.order];
+  const t = order[i]!;
+  order[i] = order[j]!;
+  order[j] = t;
+  return { ...d, order };
 }
 
 /** 侧栏折叠切换：isDefault=true 折叠默认入口（Page id），否则折叠用户根收藏夹 */

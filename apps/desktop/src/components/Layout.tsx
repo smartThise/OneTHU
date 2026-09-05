@@ -2,7 +2,7 @@
 import { Children, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useApp } from "../state/context.js";
 import { topLevelPage, type Page } from "../state/app.js";
-import { IconChevron, IconDemo, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar } from "./Icons.js";
+import { IconChevron, IconDemo, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar, FolderIcon } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
 
 /**
@@ -256,7 +256,7 @@ export function Shell({ children }: { children: ReactNode }) {
           navRow("u-" + id, {
             active: isFolderActive(id),
             label: favs.data.folders[id]?.title ?? "收藏夹",
-            icon: <IconFolder />,
+            icon: <FolderIcon name={favs.data.folders[id]?.icon} />,
             onClick: () => {
               onAfter?.();
               navigate("folder", { folderId: id });
@@ -309,7 +309,7 @@ export function Shell({ children }: { children: ReactNode }) {
                   navRow("fu-" + id, {
                     active: isFolderActive(id),
                     label: favs.data.folders[id]?.title ?? "收藏夹",
-                    icon: <IconFolder />,
+                    icon: <FolderIcon name={favs.data.folders[id]?.icon} />,
                     onClick: () => {
                       onAfter?.();
                       navigate("folder", { folderId: id });
