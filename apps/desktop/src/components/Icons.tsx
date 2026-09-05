@@ -50,6 +50,12 @@ export const IconRefresh = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+export const IconPlus = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
 export const IconLogout = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}>
     <path d="M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14M10 8l-4 4 4 4M6 12h10" />
