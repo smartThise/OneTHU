@@ -777,6 +777,9 @@ export class LearnClient {
    *  「仅需在 OJ 提交，无需提交」这类作业的详情页无任何上述控件 → false，
    *  UI 不渲染提交框。已提交作业的页面表单会变化（再次提交/撤回附件等），
    *  本字段随 viewCj 重新解析而刷新，UI 始终按重取后的页面事实渲染。 */
+  /** 最近一次作业详情双页解析的现场（诊断用：长度/锚点/提取结果尺寸） */
+  lastPageDetailDebug = "";
+
   async getHomeworkPageDetail(courseId: string, studentHomeworkId: string): Promise<HomeworkPageDetail> {
     this.#requireCsrf();
     // 双页解析（thu-app learnApi 同款）：提交表单（zynr/fileupload）在 tijiao 页，
@@ -836,6 +839,8 @@ export class LearnClient {
       const draft = ta?.[1]?.trim();
       if (draft) out.submittedContent = decodeHtml(draft);
     }
+    this.lastPageDetailDebug =
+      `viewCj=${viewcj.length} tijiao=${tijiao.length} 上交作业内容@${cidx} form=${out.hasSubmitForm} 提取=${out.submittedContent?.length ?? -1}`;
     return out;
   }
 
