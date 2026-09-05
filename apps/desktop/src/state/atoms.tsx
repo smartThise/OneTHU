@@ -26,7 +26,8 @@ import type { LearnNav, Page } from "./app.js";
 import { cacheGet } from "./cache.js";
 import type { AtomRef } from "./favorites.js";
 import { WasherTileStatus, ClassroomTileStatus, ClassroomRoomToday } from "../components/LiveTiles.js";
-import { INFO_APPS } from "../lib/infoApps.js";
+import { INFO_APPS, infoAppUrl } from "../lib/infoApps.js";
+import { openExternal } from "../pages/info/openExternal.js";
 
 /** 图标最小接口（与 homeCards 的 HomeCardIcon 同口径） */
 export type AtomIcon = (p: { width?: number; height?: number; className?: string }) => ReactNode;
@@ -341,7 +342,8 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
     if (!id || !name) return null;
     return view({
       atom: ref, title: name, sub: (cat || "Info 应用") + " · Info 应用", icon: IconExternal, group: "Info 应用",
-      open: (nav) => nav("otherinfo", { infoAppId: id }),
+      /* 门户拒绝内嵌（X-Frame-Options 实证）：点击直接系统浏览器打开漫游链 */
+      open: () => void openExternal(infoAppUrl(id)),
     });
   }
   if (kind === "courseX-c") {
