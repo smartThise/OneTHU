@@ -159,3 +159,25 @@ export const IconExternal = (p: SVGProps<SVGSVGElement>) => (
     <path d="M18 14.5v4A1.5 1.5 0 0 1 16.5 20h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6h4" />
   </svg>
 );
+
+/** 收藏夹（用户收藏夹/子收藏夹通用标识） */
+export const IconFolder = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M3.5 6.5A1.5 1.5 0 0 1 5 5h4l2 2.5h8A1.5 1.5 0 0 1 20.5 9v9A1.5 1.5 0 0 1 19 19.5H5A1.5 1.5 0 0 1 3.5 18z" />
+  </svg>
+);
+
+/** 新建收藏夹（文件夹 + 加号） */
+export const IconFolderPlus = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M3.5 6.5A1.5 1.5 0 0 1 5 5h4l2 2.5h8A1.5 1.5 0 0 1 20.5 9v9A1.5 1.5 0 0 1 19 19.5H5A1.5 1.5 0 0 1 3.5 18z" />
+    <path d="M12 10.5v5M9.5 13h5" />
+  </svg>
+);
+
+/** 收藏星标（CollectStar 用；fill 由调用方以 CSS 控制） */
+export const IconStar = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="m12 3.6 2.5 5.2 5.7.7-4.2 3.9 1.1 5.6-5.1-2.8-5.1 2.8 1.1-5.6-4.2-3.9 5.7-.7z" />
+  </svg>
+);
