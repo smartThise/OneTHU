@@ -540,7 +540,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
     const dayRe = day && period ? new RegExp(`${day}-${period}\\(`) : day ? new RegExp(`${day}-\\d`) : period ? new RegExp(`\\d+-${period}\\(`) : null;
     const base = (fullPool ? wb.courses : wb.searchRows)
       .filter((r) => {
-        if (q && !(r.name.toLowerCase().includes(q) || r.c.code.includes(q) || r.teacher.toLowerCase().includes(q))) return false;
+        if (q && !(r.name.toLowerCase().includes(q) || r.c.code.toLowerCase().includes(q) || r.teacher.toLowerCase().includes(q))) return false;
         if (chip === "available" && !r.available) return false;
         if (chip === "selected" && !(r.selected || r.isCandidate)) return false;
         if (chip === "required" && zyTypeOf(r) !== "bx") return false;
@@ -718,7 +718,7 @@ function PlanView({ wb, query, onSearchCode }: { wb: ReturnType<typeof useXkWork
     );
   }
   const q = query.trim().toLowerCase();
-  const filtered = q ? coverage.filter((p) => p.name.toLowerCase().includes(q) || p.code.includes(q) || (p.attr || "").includes(q)) : coverage;
+  const filtered = q ? coverage.filter((p) => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q) || (p.attr || "").includes(q)) : coverage;
   const groups = new Map<string, PlanCoverageItem[]>();
   for (const p of filtered) {
     const g = p.group || p.attr || "其他";
@@ -1310,18 +1310,75 @@ function AiSections({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
   const [aiSt, setAiSt] = useState("");
   const [aiRes, setAiRes] = useState<Array<{ code: string; seq?: string; flag?: string; zy?: number }>>([]);
 
-  const courseBrief = (r: XkRow): string =>
-    `${r.c.code}|${r.c.seq}|${r.name}|${r.teacher}|${r.credits}学分|${FLAG_LABELS[r.flag]}|${r.time}|余${r.c.remaining}${r.vol ? `|报${r.vol.applied}` : ""}${tbBadge(r) ? `|评${tbBadge(r)}` : ""}`;
+  // ── NextTHUxk 2.0 aiCourseJson 移植：结构化全字段候选行（vol 志愿统计/余量/
+  //    外校说明列/评价/暂存标记），替代旧管道字符串——模型可直接读字段 ──
+  const courseJson = (r: XkRow): Record<string, unknown> => ({
+    code: r.c.code,
+    seq: r.c.seq || "0",
+    name: r.name,
+    credits: r.credits,
+    teacher: r.teacher,
+    time: r.time,
+    attr: FLAG_LABELS[r.flag],
+    remaining: r.c.remaining ?? 0,
+    capacity: r.c.capacity ?? 0,
+    available: r.available,
+    selected: r.selected,
+    isCandidate: r.isCandidate,
+    staged: wb.stageCart.some((st) => st.code === r.c.code && String(st.seq || "0") === String(r.c.seq || "0")),
+    zy: r.zy || undefined,
+    tongshiGroup: r.tongshiGroup || undefined,
+    feature: r.feature || undefined,
+    grade: r.grade || undefined,
+    note: r.c.note || "",
+    vol: r.vol
+      ? {
+          capacity: r.vol.capacity,
+          applied: r.vol.applied,
+          required: r.vol.volRequired,
+          elective: r.vol.volElective,
+          optional: r.vol.volOptional,
+          sports: r.vol.volSports,
+        }
+      : undefined,
+    review: tbBadge(r) || undefined,
+  });
+
+  // ── aiOccupied 移植：占用表（大节 + 外校钟点 clockRangesOf + 自定义占用）──
+  const occupiedLines = (): string[] => {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    const push = (key: string, name: string): void => {
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(`${key}(${name})`);
+      }
+    };
+    const wd = "一二三四五六日";
+    const hhmm = (m: number): string => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    const rows: Array<{ name: string; time: string; note?: string }> = [
+      ...wb.courses.filter((r) => r.selected),
+      ...wb.stageCart,
+      ...wb.manualEvents.map((e) => ({ name: e.name, time: e.time, note: "" })),
+    ];
+    for (const r of rows) {
+      for (const sl of parseTimeSlots(r.time)) push(`${sl.day} ${sl.slot}`, r.name);
+      for (const cr of clockRangesOf(r.note ?? "", r.time)) push(`周${wd[cr.day - 1] ?? cr.day} ${hhmm(cr.begin)}-${hhmm(cr.end)}`, r.name);
+    }
+    return out;
+  };
 
   const runSearch = async (): Promise<void> => {
     setSearchSt("AI 正在分析…");
     setSearchRes([]);
     try {
-      const pool = wb.courses.filter((r) => !r.selected && (r.available || !wb.phase)).slice(0, 400);
+      // 候选集同源（NextTHUxk 2.0）：搜索态用 searchRows（所见即所推），否则全池
+      const searching = wb.searchState !== "idle" && wb.searchState !== "loading" && wb.searchRows.length > 0;
+      const pool = (searching ? wb.searchRows : wb.courses).filter((r) => !r.selected && (r.available || !wb.phase)).slice(0, 400);
       const conflicts = new Set(wb.previewIndex.keys());
       const free = pool.filter((r) => parseTimeSlots(r.time).every((s) => !conflicts.has(`${s.day}-${s.slot}`)));
       const sys = "你是清华选课助手。根据用户偏好，从候选课程里推荐。只输出 JSON 数组 [{\"code\":\"课号\",\"seq\":\"班号\",\"reason\":\"一句话理由\"}]，最多 10 条，不要输出其他文字。";
-      const user = `我的偏好：${cfg.pref || "无"}\n本次需求：${searchPrompt || "推荐合适的课"}\n当前已选：${wb.selected.map((s) => s.name).join("、") || "无"}\n候选（课号|班号|课名|教师|学分|类型|时间|余量|评价）：\n${free.slice(0, 300).map(courseBrief).join("\n")}`;
+      const user = `我的偏好：${cfg.pref || "无"}\n本次需求：${searchPrompt || "推荐合适的课"}\n当前已选：${wb.selected.map((s) => s.name).join("、") || "无"}\n已占用时段（外校课为钟点，勿推荐时间重叠）：${occupiedLines().join("、") || "无"}\n候选（JSON；note=选课文字说明/外校真实时间；vol=志愿统计容量已报与各志愿人数；review=社区评价）：\n${JSON.stringify(free.slice(0, 300).map(courseJson))}`;
       const raw = await callAi(cfg, sys, user);
       setSearchRes(extractJsonArray<{ code: string; seq?: string; reason?: string }>(raw));
       setSearchSt("");
@@ -1336,7 +1393,7 @@ function AiSections({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
       const must = wb.courses.filter((r) => r.selected || zyTypeOf(r) === "bx" || zyTypeOf(r) === "ty");
       const pool = wb.courses.filter((r) => !r.selected).slice(0, 400);
       const sys = "你是清华智能排课助手。给定必须保留的课程和候选池，生成一学期完整课表（总量 20-30 学分，时间不冲突，符合用户偏好）。只输出 JSON 数组 [{\"code\":\"课号\",\"seq\":\"班号\",\"flag\":\"bx|xx|rx|ty\",\"zy\":1}]，不要输出其他文字。";
-      const user = `用户偏好：${cfg.pref || "无"}\n必须包含（已选/必修/体育）：\n${must.slice(0, 80).map(courseBrief).join("\n")}\n候选池：\n${pool.slice(0, 300).map(courseBrief).join("\n")}`;
+      const user = `用户偏好：${cfg.pref || "无"}\n必须包含（已选/必修/体育）：\n${JSON.stringify(must.slice(0, 80).map(courseJson))}\n当前课表已占用时段（外校课为钟点）：${occupiedLines().join("、") || "无"}\n候选池（JSON；note=选课文字说明/外校真实时间；vol=志愿统计）：\n${JSON.stringify(pool.slice(0, 300).map(courseJson))}`;
       const raw = await callAi(cfg, sys, user);
       setAiRes(extractJsonArray<{ code: string; seq?: string; flag?: string; zy?: number }>(raw));
       setAiSt("");
