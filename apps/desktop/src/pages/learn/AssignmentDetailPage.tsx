@@ -118,7 +118,7 @@ export function AssignmentDetailPage() {
   useEffect(() => {
     if (pageState !== "ok" || !page?.submittedContent) return;
     if (subTouched.current || subContent.trim()) return;
-    const prefill = page.submittedContent.replace("-->", "").trim();
+    const prefill = page.submittedContent.trim();
     if (prefill) setSubContent(prefill);
     // eslint 不在依赖里列 subContent：预填只应发生一次（用户未输入时）
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -330,7 +330,7 @@ export function AssignmentDetailPage() {
             </div>
           ) : null}
           {(() => {
-            const c = (page?.submittedContent ?? "").replace("-->", "");
+            const c = page?.submittedContent ?? "";
             const hasBody = c.replace(/<[^>]*>/g, "").replace(/&nbsp;|&#160;/g, " ").trim().length > 0;
             if (hasBody) {
               return (
