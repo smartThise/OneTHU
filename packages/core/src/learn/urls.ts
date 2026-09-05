@@ -42,6 +42,11 @@ export const LEARN_HOMEWORK_LIST = {
 export const LEARN_HOMEWORK_PAGE = (courseId: string, homeworkId: string) =>
   `${LEARN_PREFIX}/f/wlxt/kczy/zy/student/viewCj?wlkcid=${courseId}&xszyid=${homeworkId}`;
 
+/** 作业提交页（tijiao）：提交表单（zynr textarea + fileupload input）在这里，
+ *  viewCj 是成绩详情页——未交作业的 viewCj 上没有表单（thu-app learnApi 同款双页解析） */
+export const LEARN_HOMEWORK_SUBMIT_PAGE = (courseId: string, homeworkId: string) =>
+  `${LEARN_PREFIX}/f/wlxt/kczy/zy/student/tijiao?wlkcid=${courseId}&xszyid=${homeworkId}`;
+
 /** 作业详情（form POST id=zyid，响应 msg 为说明 HTML）—— thu-learn-lib LEARN_HOMEWORK_DETAIL */
 export const LEARN_HOMEWORK_DETAIL = () => `${LEARN_PREFIX}/b/wlxt/kczy/zy/student/detail`;
 
