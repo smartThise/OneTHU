@@ -3,7 +3,7 @@
  * 全部为纯函数，供 useMemo 使用；语义与插件逐条对齐。
  */
 import type { QueueCandidate, XkCourse, XkLevelTableRow, XkQueueInfo, XkSelectedRow, XkVolInfo } from "@onethu/core";
-import { parseVolStr, ZY_LIMITS } from "@onethu/core";
+import { buildVolIndex, matchVolIndexed, parseVolStr, ZY_LIMITS } from "@onethu/core";
 
 export type XkFlag = "bx" | "xx" | "rx" | "ty";
 
@@ -79,7 +79,8 @@ function probResult(rem: number, applicants: number): ProbResult {
 export function calcProb(
   cap: number, vol: VolStrings | undefined, flag: XkFlag, zy: number,
 ): ProbResult {
-  if (!cap || !vol) return { prob: -1, label: "无数据", percentLabel: "", ratioLabel: "", color: P_GRAY, bg: probBg(P_GRAY) };
+  if (!vol) return { prob: -1, label: "无数据", percentLabel: "", ratioLabel: "", color: P_GRAY, bg: probBg(P_GRAY) };
+  // vol 行存在但容量 0：墓碑行已在解析层过滤，走到这里=超载真信号，照算不放无数据
   if (flag === "ty") {
     const arr = parseVolStr(vol.volSports || "");
     if (!arr || arr.counts.length < 3) return { prob: -1, label: "无数据", percentLabel: "", ratioLabel: "", color: P_GRAY, bg: probBg(P_GRAY) };
@@ -206,12 +207,15 @@ export function buildRows(
   // seq 归一：目录 seq 可为空串、已选/一级课表为 "0" —— 统一 code_seq0 键（时间未定假象的根源）
   const sk = (code: string, seq: string): string => `${code}_${seq || "0"}`;
   const selByKey = new Map<string, XkSelectedRow>(selected.map((s) => [sk(s.code, s.seq), s]));
+  const volIdx = buildVolIndex(volMap);
   const candByCode = new Map(candidates.map((s) => [s.code, s] as const));
   const rows: XkRow[] = catalog.map((c) => {
     const key = sk(c.code, c.seq);
     const sel = selByKey.get(key);
     const cand = candByCode.get(c.code);
-    const vol = volMap[key] ?? volMap[`${c.code}_${c.seq}`];
+    // 三段匹配（NextTHUxk 2.0 applyVolunteer 回移）：原始键 → 归一键 → 逐行归一
+    // 比对 → 单段回退；多段不盲配（「5/2」张冠李戴事故：拿别的班的容量冒充本班）
+    const vol = matchVolIndexed(volIdx, volMap, c.code, c.seq);
     const q = queueMap[key] ?? queueMap[`${c.code}_${c.seq}`];
     const typeCode = sel?.typeCode || levelTypes[key] || (cand ? "ty" : "");
     return {

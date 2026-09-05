@@ -142,7 +142,8 @@ export {
   getXkPlan,
   getXkLevelTable,
   getXkSelectedFull,
-  getXkVolunteer,
+  fetchXkVolunteerByDept,
+  fetchXkVolCourse,
   getXkQueueData,
   getXkLevelTypes,
   submitXkCourse,
@@ -152,6 +153,17 @@ export {
   setZhjwxkDebug,
   ZY_LIMITS,
 } from "./zhjwxk/client.js";
+export {
+  buildVolIndex,
+  matchVolIndexed,
+  matchVolRow,
+  deptCodeOf,
+  normSeq,
+  parseVolRows,
+  parseVolSportsRows,
+  parsePagerInfo,
+  type XkVolRow,
+} from "./zhjwxk/xk-vol.js";
 export type {
   ZhjwxkSession,
   SelectedCourse,

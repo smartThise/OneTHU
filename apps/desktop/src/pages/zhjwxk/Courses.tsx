@@ -117,7 +117,7 @@ const tbBadge = (r: XkRow): string => {
 const itemProb = (wb: ReturnType<typeof useXkWorkbench>, code: string, seq: string, flag: XkFlag, zy: number): { prob: string; color: string; bg: string } => {
   const row = wb.courses.find((r) => r.c.code === code && r.c.seq === seq);
   const vol = row?.vol;
-  const cap = vol?.capacity || row?.c.capacity || 0;
+  const cap = vol ? vol.capacity : row?.c.capacity || 0; // 缺志愿行=无数据，不拿 kkxx 容量造 0/N 宽松（2.0 定稿）
   const p = calcProb(cap, vol, flag, zy);
   return { prob: p.label === "无数据" ? "无数据" : `${p.percentLabel} · ${p.ratioLabel}`, color: p.color, bg: p.bg };
 };

@@ -3,7 +3,10 @@ import { confirmOk } from "../lib/confirm.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { XkCourseDetail, ZhjwxkSession, BasicUserInfo, CalendarData, CalendarSemester, CardInfo, CardTransaction, CourseFile, CourseInfo, DeadlineItem, ExamEntry, Homework, NewsItem, Notification, QueueCandidate, ReportRow, ScheduleEntry, SelectedCourse, SemesterInfo, XkCourse, XkFlag, XkLevelTableRow, XkQueueInfo, XkSelectedRow, XkVolInfo } from "@onethu/core";
 import {
-  getXkVolunteer,
+  fetchXkVolunteerByDept,
+  fetchXkVolCourse,
+  deptCodeOf,
+  matchVolRow,
   changeXkVolunteer,
   dropXkCourse,
   getQueueStatus,
@@ -18,11 +21,12 @@ import {
   searchXkCourses,
   semesterFromDate,
   submitXkCourse,
+  type XkVolRow,
 } from "@onethu/core";
 import { http, info, learn, logLine, session } from "../lib/clients.js";
 import { explainNetworkError } from "../lib/transport.js";
 import { autoFullReload } from "../lib/reload.js";
-import { buildRows, buildSlotIndex, canAdjustZy as canAdjustZyFn, levelTypesOf, parseTimeSlots, type SlotItem, type XkRow } from "../lib/xklogic.js";
+import { buildRows, buildSlotIndex, canAdjustZy as canAdjustZyFn, levelTypesOf, parseTimeSlots, type SlotItem, type XkRow, isSportsCourse } from "../lib/xklogic.js";
 import type { XkPlanItem } from "@onethu/core";
 import {
   DEMO_COURSES,
@@ -544,7 +548,7 @@ export interface XkWorkbench {
   volState: DataState | "idle";
   /** 上次志愿同步时间戳（0=未同步） */
   volLastSync: number;
-  refreshVol: () => Promise<void>;
+  refreshVol: (force?: boolean) => Promise<void>;
   /** 左栏实时搜索（浏览=服务端页取 / 搜索=真页数探测+可加载全部） */
   searchState: DataState | "idle" | "loadingMore";
   /** 服务端搜索原始行池（不含已选/候补兜底行，供 UI 分页与去重判断） */
@@ -663,6 +667,11 @@ export function useXkWorkbench(): XkWorkbench {
   const [volState, setVolState] = useState<DataState | "idle">("idle");
   const lastVolSyncRef = useRef(0);
   const volTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const volDeptsRef = useRef<Record<string, number>>({}); // 本会话已拉院系（"ty"=体育）
+  const volRetriedRef = useRef<Record<string, number>>({}); // 缺行重拉 "d:院系" / 定向课号 "k:课号"，每会话一次
+  const volDataRef = useRef<Record<string, XkVolRow>>({}); // volMap 镜像（回调内判定缺行用）
+  const volInflightRef = useRef(false);
+  const refreshVolRef = useRef<(force?: boolean) => Promise<void>>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -743,31 +752,6 @@ export function useXkWorkbench(): XkWorkbench {
    *                 失败保留 level 行走可重试 ErrorNote，不白屏。
    * 所有 await resolve 后先比对 generation，不一致一律丢弃；同代同学期在途去重。
    */
-  /** 志愿数据同步（NextTHUxk 2.0 回移）：tbzySearchBR/Ty 全量 → volMap。
-   *  fail-soft：志愿数据失败不影响选课主链路（重试/下个检查点再来）。 */
-  const refreshVol = useCallback(async (): Promise<void> => {
-    if (status === "demo") return;
-    setVolState("loading");
-    try {
-      const vm = await getXkVolunteer(xkSession());
-      setVolMap(vm);
-      lastVolSyncRef.current = Date.now();
-      setVolState("ready");
-    } catch {
-      setVolState("error");
-    }
-  }, [status]);
-
-  /** 检查点调度链：挂载/学期切换即补一次（过期才算），随后对齐下一个 8/12/16/20 点 */
-  const scheduleVolSync = useCallback((): void => {
-    if (volTimerRef.current) clearTimeout(volTimerRef.current);
-    const tick = (): void => {
-      void refreshVol();
-      volTimerRef.current = setTimeout(tick, Math.max(60_000, nextVolCheckpoint().getTime() - Date.now()));
-    };
-    if (volNeedsRefresh(lastVolSyncRef.current)) void refreshVol();
-    volTimerRef.current = setTimeout(tick, Math.max(60_000, nextVolCheckpoint().getTime() - Date.now()));
-  }, [refreshVol]);
 
   const runPipeline = useCallback((sem: string, freshLevel: boolean): Promise<void> => {
     // 新学期开始 = 打断：代数 +1（初始挂载 pipelineSemRef=null 不算，见上）
@@ -918,6 +902,99 @@ export function useXkWorkbench(): XkWorkbench {
    *  · 搜索模式（有关键词或筛选）：并行爬前 3 页；≤50 门即全部加载完（照常翻页）；
    *    >50 门列前 3 页并提示「数据不完整」，用户点「加载全部」才爬余下页，完成后 toast 通知。── */
   const [searchRaw, setSearchRaw] = useState<XkCourse[]>([]);
+
+  /** 志愿数据同步（NextTHUxk 2.0 三层兜底回移；fail-soft 不影响选课主链路）：
+   *  ① 院系定向增量（force=检查点全量重拉） ② 缺行院系 force 重拉（错页自愈，
+   *  每会话一次） ③ 分院页没有 → 逐课 p_kch 定向查询（每课每会话一次）。
+   *  阶段门控：队列阶段概率走排队/余量模型，跳过志愿同步（2.0 定稿）。 */
+  const refreshVol = useCallback(
+    async (force = false): Promise<void> => {
+      if (status === "demo" || phase || volInflightRef.current) return;
+      volInflightRef.current = true;
+      setVolState("loading");
+      try {
+        const pool = [...catalog, ...searchRaw].filter((r) => r.code);
+        const sess = xkSession();
+        const sem = semester ?? undefined;
+        // ① 院系定向
+        const depts = new Set<string>();
+        for (const r of pool) {
+          const dc = deptCodeOf(r.department);
+          if (dc && (force || !volDeptsRef.current[dc])) depts.add(dc);
+        }
+        const hasSports = pool.some((r) => isSportsCourse(r));
+        let got = await fetchXkVolunteerByDept(sess, {
+          semester: sem,
+          depts: [...depts],
+          hasSports,
+          doneMap: volDeptsRef.current,
+          force,
+        });
+        volDataRef.current = { ...volDataRef.current, ...got };
+        setVolMap((prev) => ({ ...prev, ...got }));
+        // ② 缺行院系 force 重拉（错页/过滤器丢失自愈）
+        const missing = pool.filter((r) => !matchVolRow(volDataRef.current, r.code, r.seq));
+        if (missing.length) {
+          const mdepts = new Set<string>();
+          for (const r of missing) {
+            const dc = deptCodeOf(r.department);
+            if (dc && !volRetriedRef.current[`d:${dc}`]) {
+              volRetriedRef.current[`d:${dc}`] = 1;
+              mdepts.add(dc);
+            }
+          }
+          if (mdepts.size) {
+            const extra = await fetchXkVolunteerByDept(sess, {
+              semester: sem,
+              depts: [...mdepts],
+              hasSports: false,
+              doneMap: volDeptsRef.current,
+              force: true,
+            });
+            got = { ...got, ...extra };
+            volDataRef.current = { ...volDataRef.current, ...extra };
+            setVolMap((prev) => ({ ...prev, ...extra }));
+          }
+          // ③ 分院视图缺行（用户二十报：070 缺心智探秘）→ 逐课 p_kch 定向查询
+          for (const r of missing) {
+            if (matchVolRow(volDataRef.current, r.code, r.seq)) continue;
+            if (volRetriedRef.current[`k:${r.code}`]) continue;
+            volRetriedRef.current[`k:${r.code}`] = 1;
+            try {
+              const m2 = await fetchXkVolCourse(sess, { semester: sem, code: r.code });
+              if (Object.keys(m2).length) {
+                got = { ...got, ...m2 };
+                volDataRef.current = { ...volDataRef.current, ...m2 };
+                setVolMap((prev) => ({ ...prev, ...m2 }));
+              }
+            } catch {
+              /* 定向查询失败容忍 */
+            }
+          }
+        }
+        lastVolSyncRef.current = Date.now();
+        setVolState("ready");
+      } catch {
+        setVolState("error");
+      } finally {
+        volInflightRef.current = false;
+      }
+    },
+    [status, phase, catalog, searchRaw, semester],
+  )
+
+  /** 检查点调度链：挂载/学期切换即补一次（过期才算），随后对齐下一个 8/12/16/20 点 */
+  const scheduleVolSync = useCallback((): void => {
+    if (volTimerRef.current) clearTimeout(volTimerRef.current);
+    const tick = (): void => {
+      void refreshVolRef.current?.(true); // 检查点：force 重拉保数据新鲜
+      volTimerRef.current = setTimeout(tick, Math.max(60_000, nextVolCheckpoint().getTime() - Date.now()));
+    };
+    if (volNeedsRefresh(lastVolSyncRef.current)) void refreshVolRef.current?.(false);
+    volTimerRef.current = setTimeout(tick, Math.max(60_000, nextVolCheckpoint().getTime() - Date.now()));
+  }, []);
+
+  refreshVolRef.current = refreshVol;
   const [searchState, setSearchState] = useState<DataState | "idle" | "loadingMore">("idle");
   const [searchPage, setSearchPage] = useState(1);
   const [searchHasMore, setSearchHasMore] = useState(false);
@@ -1470,6 +1547,9 @@ export function useXkWorkbench(): XkWorkbench {
     // 左栏立刻清成空 loading 态（与上面同一批 commit 提交，旧学期数据不多渲染一帧）
     setCatalog([]);
     setVolMap({});
+    volDeptsRef.current = {};
+    volRetriedRef.current = {};
+    volDataRef.current = {};
     lastVolSyncRef.current = 0;
     setLevelTypes({});
     setPlan([]);
