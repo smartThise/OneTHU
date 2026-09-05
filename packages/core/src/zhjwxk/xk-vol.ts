@@ -232,3 +232,27 @@ export function matchVolIndexed<T extends { code?: string; seq?: string }>(
     (rows && rows.length === 1 ? rows[0] : undefined) // 多段不盲配
   );
 }
+
+/** 志愿串解析（NextTHUxk 2.0 probability.js parseVolArr 逐字）：
+ *  "(2)12,8,0" → { prefix: 2, counts: [12,8,0] }。
+ *  志愿串 = 当前阶段开放志愿级的密集列表（从高到低 → 右对齐补 0）：
+ *    3 个 = 一/二/三志愿（旧全阶段）；1 个 = 仅第三志愿（新生预选「(1)2」/「2」）。
+ *  缺的高志愿位补 0（该阶段没人能填）。绝不再因数量 <3 整串判 null
+ *  （旧版就是这里把新生预选的志愿数据全吃了）。 */
+export function parseVolStr(v: string): { prefix: number; counts: number[] } | null {
+  const str = (v || "").trim();
+  if (!str) return null;
+  const priMatch = /^\((\d+)\)/.exec(str);
+  const prefix = priMatch ? parseInt(priMatch[1] ?? "") || 0 : 0;
+  const cleaned = str.replace(/^\(\d+\)/, "").trim();
+  const nums = cleaned ? cleaned.match(/\d+/g) : null;
+  if (!nums || !nums.length) {
+    // 纯优先志愿「(N)」：无分级数据，仅优先人数
+    return prefix > 0 ? { prefix, counts: [0, 0, 0] } : null;
+  }
+  const vals = nums.map((n) => parseInt(n, 10) || 0);
+  const counts = [0, 0, 0];
+  const base = 3 - Math.min(3, vals.length);
+  for (let i = 0; i < Math.min(3, vals.length); i++) counts[base + i] = vals[i] ?? 0;
+  return { prefix, counts };
+}

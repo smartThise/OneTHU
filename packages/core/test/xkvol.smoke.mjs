@@ -3,7 +3,7 @@
  * 行结构取自存档 志愿查询_files/xkBks.xkBksZytjb.html（BR 9 列 / Ty 6 列）。
  * 运行：node --experimental-strip-types test/xkvol.smoke.mjs
  */
-import { parseVolRows, parseVolSportsRows, parsePagerInfo, deptCodeOf, normSeq, matchVolRow, buildVolIndex, matchVolIndexed, XK_DEPT_CODES } from "../src/zhjwxk/xk-vol.ts";
+import { parseVolRows, parseVolSportsRows, parsePagerInfo, deptCodeOf, normSeq, matchVolRow, buildVolIndex, matchVolIndexed, parseVolStr, XK_DEPT_CODES } from "../src/zhjwxk/xk-vol.ts";
 
 let n = 0, ok = 0;
 const t = (name, cond) => { n++; if (cond) { ok++; console.log(`ok ${name}`); } else console.log(`FAIL ${name}`); };
@@ -49,6 +49,10 @@ t("③单段回退", matchVolRow(single, "A", "9") !== undefined);
 const idx = buildVolIndex(multi);
 t("索引版同语义", matchVolIndexed(idx, multi, "10720011", "02").applied === 10 && matchVolIndexed(idx, multi, "10720011", "3") === undefined);
 t("院系码全量 85 项（存档下拉逐条对照）", Object.keys(XK_DEPT_CODES).length === 85);
+t("parseVolStr 正常三段", (() => { const p = parseVolStr("(2)12,8,0"); return p.prefix === 2 && p.counts[0] === 12 && p.counts[2] === 0; })());
+t("parseVolStr 新生预选右对齐（1 个数=仅第三志愿）", (() => { const p = parseVolStr("2"); return p.counts[0] === 0 && p.counts[1] === 0 && p.counts[2] === 2; })());
+t("parseVolStr 纯优先 (N)", (() => { const p = parseVolStr("(3)"); return p.prefix === 3 && p.counts[0] === 0 && p.counts[2] === 0; })());
+t("parseVolStr 全零仍解析（上屏滤除在 fmtVol）", (() => { const p = parseVolStr("0,0,0"); return p && p.counts[0] === 0; })());
 
 console.log(`${n} 项: ${ok} 通过`);
 if (ok !== n) process.exit(1);

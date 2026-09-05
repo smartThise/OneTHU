@@ -149,7 +149,6 @@ export {
   submitXkCourse,
   dropXkCourse,
   changeXkVolunteer,
-  parseVolStr,
   setZhjwxkDebug,
   ZY_LIMITS,
 } from "./zhjwxk/client.js";
@@ -157,6 +156,7 @@ export {
   buildVolIndex,
   matchVolIndexed,
   matchVolRow,
+  parseVolStr,
   deptCodeOf,
   normSeq,
   parseVolRows,
