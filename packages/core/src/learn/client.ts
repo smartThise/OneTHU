@@ -774,35 +774,54 @@ export class LearnClient {
    *  本字段随 viewCj 重新解析而刷新，UI 始终按重取后的页面事实渲染。 */
   async getHomeworkPageDetail(courseId: string, studentHomeworkId: string): Promise<HomeworkPageDetail> {
     this.#requireCsrf();
-    const html = await this.#http.text(urls.LEARN_HOMEWORK_PAGE(courseId, studentHomeworkId));
-    const out: HomeworkPageDetail = {
-      hasSubmitForm:
-        /\btjzy\b/i.test(html) ||
-        /<input\b[^>]*name=["']fileupload["']/i.test(html) ||
-        /<textarea\b[^>]*name=["']zynr["']/i.test(html),
-    };
-    // 以 class="list …" 区块起点定位 fujian 块（文档序 = 四类附件顺序）
-    const starts = [...html.matchAll(/<div[^>]*class=["']list[^"']*["'][^>]*>/gi)].map((m) => ({
-      idx: m.index ?? 0,
-      fujian: /fujian/i.test(m[0]),
-    }));
+    // 双页解析（thu-app learnApi 同款）：提交表单（zynr/fileupload）在 tijiao 页，
+    // viewCj 是成绩详情页——未交作业的 viewCj 上没有表单，只抓 viewCj 会把提交卡
+    // 判死（「看不到哪里能提交」的根因）。两页并行取，任一失败按空串参与解析。
+    const [tijiao, viewcj] = await Promise.all(
+      [urls.LEARN_HOMEWORK_SUBMIT_PAGE(courseId, studentHomeworkId), urls.LEARN_HOMEWORK_PAGE(courseId, studentHomeworkId)].map(
+        (u) => this.#http.text(u).then((t) => t ?? "").catch(() => ""),
+      ),
+    );
+    const hasForm = (h: string): boolean =>
+      /\btjzy\b/i.test(h) ||
+      /<input\b[^>]*name=["']fileupload["']/i.test(h) ||
+      /<textarea\b[^>]*name=["']zynr["']/i.test(h);
+    const out: HomeworkPageDetail = { hasSubmitForm: hasForm(tijiao) || hasForm(viewcj) };
+    // 附件四槽（文档序 = 四类附件顺序）：tijiao 先占位，viewCj 只补空槽
+    // （learnApi assignFujianSlots 同款：viewCj 传 onlyEmpty，已占槽跳过但槽位照常前进）
     const keys = ["attachment", "answerAttachment", "submittedAttachment", "gradeAttachment"] as const;
-    let kindIdx = 0;
-    for (let i = 0; i < starts.length && kindIdx < keys.length; i++) {
-      if (!starts[i]!.fujian) continue;
-      const a = this.#parseAttachmentAnchor(this.#fujianBlockContent(html, starts[i]!.idx));
-      const k = keys[kindIdx];
-      if (a && k) out[k] = a;
-      kindIdx++;
-    }
-    // 我的提交内容（上次 zynr）：boxbox 第 2 块 → 第 4 个 right 块到其闭合标签
-    const boxboxParts = html.split(/<div[^>]*class=["'][^"']*boxbox[^"']*["'][^>]*>/i);
+    const fill = (html: string, onlyEmpty: boolean): void => {
+      if (!html) return;
+      const starts = [...html.matchAll(/<div[^>]*class=["']list[^"']*["'][^>]*>/gi)].map((m) => ({
+        idx: m.index ?? 0,
+        fujian: /fujian/i.test(m[0]),
+      }));
+      let kindIdx = 0;
+      for (let i = 0; i < starts.length && kindIdx < keys.length; i++) {
+        if (!starts[i]!.fujian) continue;
+        const k = keys[kindIdx];
+        kindIdx++;
+        if (!k || (onlyEmpty && out[k])) continue;
+        const a = this.#parseAttachmentAnchor(this.#fujianBlockContent(html, starts[i]!.idx));
+        if (a && k) out[k] = a;
+      }
+    };
+    fill(tijiao, false);
+    fill(viewcj, true);
+    // 我的提交内容（上次 zynr）：viewCj boxbox 第 2 块 → 第 4 个 right 块到其闭合标签；
+    // 没有则回落 tijiao 页 zynr textarea（草稿/上次内容，learnApi taMatch 同源）
+    const boxboxParts = viewcj.split(/<div[^>]*class=["'][^"']*boxbox[^"']*["'][^>]*>/i);
     if (boxboxParts.length > 2) {
       const rightParts = boxboxParts[2]!.split(/<div[^>]*class=["'][^"']*right[^"']*["'][^>]*>/i);
       if (rightParts.length > 3) {
         const raw = (rightParts[3] ?? "").replace(/<\/div>[\s\S]*/i, "").trim();
         if (raw) out.submittedContent = decodeHtml(raw);
       }
+    }
+    if (!out.submittedContent) {
+      const ta = /<textarea[^>]*name=["']zynr["'][^>]*>([\s\S]*?)<\/textarea>/i.exec(tijiao);
+      const draft = ta?.[1]?.trim();
+      if (draft) out.submittedContent = decodeHtml(draft);
     }
     return out;
   }
