@@ -4,7 +4,7 @@ import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components
 import { CollectStar } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
 import { IconDownload } from "../../components/Icons.js";
-import { learn, downloadLearnUrl } from "../../lib/clients.js";
+import { learn, downloadLearnUrl, http } from "../../lib/clients.js";
 import { LEARN_PREFIX } from "@onethu/core";
 import { explainNetworkError } from "../../lib/transport.js";
 import { openFilePreview } from "../../components/FilePreview.js";
@@ -358,6 +358,11 @@ export function AssignmentDetailPage() {
             }
             return null;
           })()}
+          {(pageState === "ok" || pageState === "error") ? (
+            <div style={{ fontSize: 11, color: "var(--text-dim, #888)", fontFamily: "ui-monospace, monospace", wordBreak: "break-all", marginTop: 4 }}>
+              DEBUG {learn.lastPageDetailDebug || "(空)"} ｜ http尾: {(http.lastDebug ?? "").slice(-140).replace(/\s+/g, " ")}
+            </div>
+          ) : null}
           {attFound.map(({ label, a }) => {
             const key = a!.id || a!.downloadUrl;
             return (
