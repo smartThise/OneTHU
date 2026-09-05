@@ -89,7 +89,7 @@ export function FolderPage() {
           editing ? (
             <>
               <button className="btn" onClick={() => { setRenameVal(folder.title); setRenaming(true); }}>重命名</button>
-              <button className="btn btn-ghost" onClick={() => void removeRoot()}>删除收藏夹</button>
+              <button className="btn btn-danger" onClick={() => void removeRoot()}>删除收藏夹</button>
               <button className="btn btn-primary" onClick={() => setEditing(false)}>完成</button>
             </>
           ) : (
@@ -201,7 +201,7 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
                 <button className="btn" onClick={() => { setRenameVal(f.title); setRenaming(true); }}>重命名</button>
               ) : null}
               {!isRoot ? (
-                <button className="btn btn-ghost" onClick={() => void removeSelf()}>删除子收藏夹</button>
+                <button className="btn btn-danger" onClick={() => void removeSelf()}>删除子收藏夹</button>
               ) : null}
               {renaming ? (
                 <input

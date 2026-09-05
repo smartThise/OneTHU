@@ -414,6 +414,12 @@
   color: var(--text-2);
 }
 .btn-ghost:hover { background: var(--hover); color: var(--text-1); }
+/* 危险动作按钮（删除收藏夹等）：红字红描边，hover 红底 */
+.btn-danger {
+  border-color: color-mix(in srgb, var(--red) 40%, transparent);
+  color: var(--red);
+}
+.btn-danger:hover { background: var(--red-soft); border-color: var(--red); color: var(--red); }
 
 .btn[disabled] { opacity: 0.4; cursor: default; pointer-events: none; }
 
