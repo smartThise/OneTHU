@@ -36,6 +36,7 @@ export function AssignmentDetailPage() {
      （删除线示意，提交时才真正 isDeleted=1）；重选文件=提交时替换服务器附件 */
   const [removePending, setRemovePending] = useState(false);
   const [customName, setCustomName] = useState("");
+  const [subOk, setSubOk] = useState(true);
   const [dlHint, setDlHint] = useState<string | null>(null);
   const [dlBusy, setDlBusy] = useState("");
 
@@ -168,36 +169,48 @@ export function AssignmentDetailPage() {
       .trim() === "";
   const doSubmit = async (remove: boolean): Promise<void> => {
     if (subBusy) return;
-    if (!remove && !subFile && richEmpty(subContent)) { setSubMsg("请填写提交内容或选择附件"); return; }
+    if (!remove && !subFile && richEmpty(subContent)) { setSubOk(false); setSubMsg("请填写提交内容或选择附件"); return; }
     setSubBusy(true);
     setSubMsg("");
     try {
-      // 自定义文件名：只换主名、保留扩展名（learnX replaceName 同款，用户输入的点全剥掉）
-      let file = subFile;
-      if (file && customName.trim()) {
-        const dot = file.name.lastIndexOf(".");
-        const ext = dot >= 0 ? file.name.slice(dot) : "";
-        file = new File([file], customName.trim() + ext, { type: file.type });
-      }
-      const r = await learn.submitHomework(h.id, { content: remove ? undefined : subContent, file, remove });
-      if (r.ok) {
-        setSubMsg(remove ? "已撤回附件" : "提交成功");
-        setSubContent("");
-        setSubFile(null);
-        setCustomName("");
-        setRemovePending(false);
-        if (fileRef.current) fileRef.current.value = "";
-        // 状态与四类附件即时刷新：清 learn 缓存全量重拉（mobile 提交成功后
-        // dispatch(getAssignmentsForCourse) 同语义），并重置附件懒加载重取 viewCj
-        invalidateLearnCache();
-        setPage(null);
-        setPageState("idle");
-        void reload();
+      if (remove) {
+        // learnX 同款：撤回是独立请求（isDeleted=1，不带正文/附件，否则字段互相打架）
+        const r = await learn.submitHomework(h.id, { remove: true });
+        if (!r.ok) throw new Error(r.msg || "撤回失败");
       } else {
-        setSubMsg(r.msg || "提交失败");
+        // 替换 = 两步走（learnX remove→resubmit 同构）：服务器上已有附件时先撤旧再传新
+        if (page?.submittedAttachment && subFile) {
+          const rm = await learn.submitHomework(h.id, { remove: true });
+          if (!rm.ok) throw new Error("替换失败：撤回旧附件未成功（" + (rm.msg ?? "") + "）");
+        }
+        // 自定义文件名：只换主名、保留扩展名（learnX replaceName 同款，用户输入的点全剥掉）
+        let file = subFile;
+        if (file && customName.trim()) {
+          const dot = file.name.lastIndexOf(".");
+          const ext = dot >= 0 ? file.name.slice(dot) : "";
+          file = new File([file], customName.trim() + ext, { type: file.type });
+        }
+        const r = await learn.submitHomework(h.id, { content: subContent, file, remove: false });
+        if (!r.ok) throw new Error(r.msg || "提交失败");
       }
+      setSubOk(true);
+      setSubMsg(remove ? "已撤回附件" : "提交成功");
+      setSubContent("");
+      setSubFile(null);
+      setCustomName("");
+      setRemovePending(false);
+      if (fileRef.current) fileRef.current.value = "";
+      // 状态与四类附件即时刷新：清 learn 缓存全量重拉（mobile 提交成功后
+      // dispatch(getAssignmentsForCourse) 同语义），并重置附件懒加载重取 viewCj
+      invalidateLearnCache();
+      setPage(null);
+      setPageState("idle");
+      void reload();
     } catch (e) {
-      setSubMsg(explainNetworkError(e));
+      setSubOk(false);
+      const msg = e instanceof Error ? e.message : explainNetworkError(e);
+      const dbg = (learn.lastDebug ?? "").trim();
+      setSubMsg(msg + (dbg ? "｜现场：" + dbg.slice(-160) : ""));
     } finally {
       setSubBusy(false);
     }
@@ -277,6 +290,12 @@ export function AssignmentDetailPage() {
               <span>附件</span>
               <span className="t-red">{pageError}</span>
               <button className="btn btn-ghost" onClick={retryPage}>重试</button>
+            </div>
+          ) : null}
+          {page?.submittedContent ? (
+            <div style={{ marginBottom: 6 }}>
+              <div className="detail-meta" style={{ fontWeight: 600, marginBottom: 4 }}>我的提交正文</div>
+              <RichContent html={page.submittedContent.replace("-->", "")} fallback="（正文为空）" />
             </div>
           ) : null}
           {attFound.map(({ label, a }) => {
@@ -419,7 +438,7 @@ export function AssignmentDetailPage() {
             {h.submitted && h.submitTime ? (
               <div style={{ fontSize: 12, color: "var(--text-dim, #888)" }}>上次提交于 {fmtDateTime(h.submitTime)}</div>
             ) : null}
-            {subMsg ? <div style={{ fontSize: 12, color: subMsg.includes("成功") || subMsg.includes("撤回") ? "var(--green)" : "var(--red)" }}>{subMsg}</div> : null}
+            {subMsg ? <div style={{ fontSize: 12, color: subOk ? "var(--green)" : "var(--red)", wordBreak: "break-all" }}>{subMsg}</div> : null}
           </div>
         </Card>
       ) : null}

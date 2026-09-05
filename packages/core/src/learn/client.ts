@@ -678,14 +678,19 @@ export class LearnClient {
       const res = await this.#http.postForm(url, fd);
       // 返回 HTML = 会话失效被重定向到登录页（learnApi 同款判定），不能当成功吞掉
       if (/<(!DOCTYPE|html)/i.test(res.slice(0, 200))) {
+        this.lastDebug = "TJZY-HTML " + res.slice(0, 400).replace(/\s+/g, " ");
         return { ok: false, msg: "会话已过期，请重新登录后再提交" };
       }
       try {
         const data = JSON.parse(res) as { result?: string; msg?: string };
         // result === "error" 明确失败（thu-lib 只认 "success"；learnApi 宽容：非 error 即成功）
-        if (data.result === "error") return { ok: false, msg: data.msg ?? "提交失败" };
+        if (data.result === "error") {
+          this.lastDebug = "TJZY-ERR " + res.slice(0, 400);
+          return { ok: false, msg: data.msg ?? "提交失败" };
+        }
         return { ok: true };
       } catch {
+        this.lastDebug = "TJZY-NONJSON " + res.slice(0, 400).replace(/\s+/g, " ");
         return { ok: false, msg: "返回非 JSON（可能未登录或接口变更）" };
       }
     });
