@@ -16,8 +16,7 @@ import { openExternal } from "../info/openExternal.js";
 import { callAi, extractJsonArray, loadAiConfig, saveAiConfig, type AiConfig } from "../../lib/xkai.js";
 import {
   allowedFlags, calcProb, checkPlanCoverage, dayName, findPreviewConflicts, typeCodeToFlag,
-  FLAG_LABELS, parseTimeSlots, SLOT_NAMES, type PlanCoverageItem, type SlotItem, type XkFlag, type XkRow, zyTypeOf,
-} from "../../lib/xklogic.js";
+  FLAG_LABELS, parseTimeSlots, SLOT_NAMES, type PlanCoverageItem, type SlotItem, type XkFlag, type XkRow, zyTypeOf, isSportsCourse } from "../../lib/xklogic.js";
 
 const TS_GROUPS: Array<[string, string]> = [["TS1", "人文课组"], ["TS2", "社科课组"], ["TS3", "艺术课组"], ["TS4", "科学课组"]];
 const FEATURES: Array<[string, string]> = [
@@ -106,8 +105,16 @@ const originOf = (code: string): Origin => (code.startsWith("GPK") ? "北大研"
 const ORIGIN_COLORS: Record<Origin, string> = { 北大: "#c0392b", 北大研: "#c0392b", 北外: "#1f4e79", "": "transparent" };
 
 const fmtVol = (v: string): string => {
-  const m = /\((\d+)\)([\d,]*)/.exec(v);
-  return m ? `优先${m[1]}/${m[2]!.split(",").join("/")}` : v;
+  // NextTHUxk 2.0 probability.js 逐字：全零且无优先 → 空（不上屏）；优先 (N) 前缀
+  if (!v) return "";
+  const priMatch = /^\((\d+)\)/.exec(v);
+  const pri = priMatch ? parseInt(priMatch[1] ?? "") : 0;
+  const cleaned = v.replace(/^\(\d+\)/, "");
+  const parts = cleaned.split(",").map((n) => parseInt(n) || 0);
+  if (parts.every((n) => n === 0) && !pri) return "";
+  let out = parts.join("/");
+  if (pri) out = `优先${pri}/${out}`;
+  return out;
 };
 const heat = (applied: number, cap: number): string => (!cap ? "inherit" : applied / cap <= 0.8 ? "var(--green)" : applied / cap <= 1.2 ? "var(--amber)" : "var(--red)");
 const tbBadge = (r: XkRow): string => {
@@ -578,6 +585,16 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
     return scored.map((x) => x.r);
   }, [wb.searchRows, wb.searchState, wb.courses, wb.previewIndex, query, chip, credits, day, period, conflictF, tongshi, feature, grade, bksrem, yjsrem, xknote, reviewsF, sortBy]);
 
+  // 志愿数据渲染行按需补拉（NextTHUxk 2.0 搜索行合并尾部同款触发点）：
+  // 可见行到位/翻页/筛选 → 60ms 防抖 → 院系定向增量（只拉「正在看的行」
+  // 涉及的院系，已拉 doneMap 去重；不触发则搜索回来的新行永远无数据——用户十一报）
+  useEffect(() => {
+    if (wb.phase || !rows.length) return;
+    const pool = rows.map((r) => ({ code: r.c.code, seq: r.c.seq || "0", department: r.c.department }));
+    const t = setTimeout(() => void wb.refreshVol(pool), 60);
+    return () => clearTimeout(t);
+  }, [rows, wb.phase]);
+
   /* ── 分页（教务同款）：
    *  · 浏览模式：curPage = 服务端页码，翻页 = wb.gotoPage(n)（点哪页爬哪页），总页数 = 服务端「共 N 页」；
    *  · 搜索模式：本地翻页（已加载池在手，翻页零请求）；总页数/总数用服务端真值；
@@ -812,7 +829,20 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           <div className="row-sub" style={{ whiteSpace: "normal" }}>{[cap ? `容量 ${cap}` : "", r.q.qQueue ? `排队 ${r.q.qQueue}` : "", r.cand ? (r.cand.myPos ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : "候选中") : ""].filter(Boolean).join(" · ")}</div>
         ) : r.vol ? (
           <div className="row-sub" style={{ whiteSpace: "normal" }}>
-            {[r.vol.volRequired && fmtVol(r.vol.volRequired), r.vol.volElective && fmtVol(r.vol.volElective), r.vol.volOptional && fmtVol(r.vol.volOptional)].filter(Boolean).join(" · ")}
+            {(() => {
+              // 志愿统计行（NextTHUxk 2.0 render.js 同款）：体/必/限/任 前缀，
+              // '0,0,0' 全零段滤除（fmtVol 全零也返回空，双保险）
+              const parts: string[] = [];
+              if (isSportsCourse(r) && r.vol.volSports && r.vol.volSports !== "0,0,0") {
+                const v = fmtVol(r.vol.volSports);
+                if (v) parts.push(`体 ${v}`);
+              } else {
+                if (r.vol.volRequired && r.vol.volRequired !== "0,0,0") { const v = fmtVol(r.vol.volRequired); if (v) parts.push(`必 ${v}`); }
+                if (r.vol.volElective && r.vol.volElective !== "0,0,0") { const v = fmtVol(r.vol.volElective); if (v) parts.push(`限 ${v}`); }
+                if (r.vol.volOptional && r.vol.volOptional !== "0,0,0") { const v = fmtVol(r.vol.volOptional); if (v) parts.push(`任 ${v}`); }
+              }
+              return parts.join("　");
+            })()}
             {showInlineProb ? <span style={{ marginLeft: 8, color: prob.color }}>{prob.prob}</span> : null}
           </div>
         ) : (r.c.capacity || r.c.remaining) ? (
@@ -1203,6 +1233,14 @@ function r2vol(wb: ReturnType<typeof useXkWorkbench>, code: string, seq: string)
 
 /* ══════════ 右栏③：暂存课表 + 草稿 ══════════ */
 function StageSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
+  // 暂存条目也可能不在当前渲染行里（从培养方案/详情暂存）——单独补拉，
+  // department 缺省走逐课 p_kch 兜底（2.0：暂存条概率一会有一会没的根因）
+  useEffect(() => {
+    if (!wb.stageCart.length || wb.phase) return;
+    const pool = wb.stageCart.map((st) => ({ code: st.code, seq: st.seq || "0", department: "" }));
+    const t = setTimeout(() => void wb.refreshVol(pool), 60);
+    return () => clearTimeout(t);
+  }, [wb.stageCart, wb.phase]);
   const [draftName, setDraftName] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
@@ -1224,7 +1262,7 @@ function StageSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
         : wb.volState === "error" ? (
           <div style={{ fontSize: 10, color: "var(--text-3)" }}>
             志愿数据同步失败
-            <button className="btn" style={{ padding: "0 5px", fontSize: 10 }} onClick={() => void wb.refreshVol()}>重试</button>
+            <button className="btn" style={{ padding: "0 5px", fontSize: 10 }} onClick={() => void wb.refreshVol(wb.stageCart.map((st) => ({ code: st.code, seq: st.seq || "0", department: "" })), true)}>重试</button>
           </div>
         ) : wb.volLastSync ? (
           <div style={{ fontSize: 10, color: "var(--text-3)" }}>
