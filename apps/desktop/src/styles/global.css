@@ -2562,6 +2562,10 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 }
 .fav-tile-star { position: absolute; top: 4px; right: 4px; }
 
+/* 收藏夹导航行：胶囊自带 margin-bottom:14（功能页独立成行的留白），
+   在并排「管理栏目」按钮的 flex 行里会把胶囊顶高——作用域内清零 */
+.fav-nav .segmented { margin-bottom: 0; }
+
 /* 收藏夹页里的长卡间距（复用 home-card 视觉） */
 .content .home-card { margin-bottom: 10px; }
 .fav-widget .home-card-body { padding: 10px 12px 12px; }
