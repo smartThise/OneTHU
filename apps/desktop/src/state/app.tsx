@@ -9,6 +9,7 @@ export type Page =
   | "today"
   | "learn"
   | "schedule"
+  | "otherinfo" // 其他 Info 应用（门户原始应用导航的功能化重排，静态目录 + 内嵌尝试）
   | "info" // 信息门户聚合页（成绩 / 考试 / 新闻 / 个人信息）
   | "life" // 生活聚合页（宿舍电费/订水 · 洗衣机 · 校园卡）
   | "reserve" // 预约（图书馆座位；游泳/健身房等场馆陆续接入）
@@ -83,6 +84,8 @@ export interface LearnNav {
   /** 公共空间：自动选中的空间/房间 id（页面就绪后依次 pickSpace → pickRoom） */
   kongjianSpace?: string;
   kongjianRoom?: string;
+  /** 其他 Info 应用：infoapp 原子深链（打开页面并自动内嵌该应用） */
+  infoAppId?: string;
   /** 用户收藏夹页：folder id（page=folder 时必带） */
   folderId?: string;
 }
