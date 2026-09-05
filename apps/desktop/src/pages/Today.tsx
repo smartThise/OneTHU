@@ -5,24 +5,25 @@
  *   折叠）与 onethu.home.defaults（各卡折叠偏好，重加/恢复默认时回填）；
  * - 统一 CardShell：标题行（标题+说明 + 右侧折叠箭头；编辑模式追加 ↑↓←→/✕），
  *   折叠 = 卡体收起只留标题行（chevron 旋转），展开/收起即时持久化；
- * - 编辑模式：PageHead「编辑」→ shell 显示列内上下移 / 跨栏左右移 / 隐藏（✕；
- *   入口卡与固有 bespoke 卡一视同仁）；「添加卡片」弹层（createPortal+遮罩居中，
- *   NewsTab 订阅弹层同款）把被隐藏的卡片加回所选列末尾；「完成」退出；
- * - 数据 hook 仍集中在 TodayPage（照旧单次取数），bespoke 卡体是纯展示闭包，
- *   原有 JSX 原样搬进注册表 render。
+ * - 编辑模式：PageHead「编辑」→ shell 显示列内上下移 / 跨栏左右移 / 隐藏（✕）；
+ *   「添加卡片」弹层把被隐藏的卡片加回所选列末尾；「完成」退出；
+ * - 数据 hook 仍集中在 TodayPage（照旧单次取数），bespoke 卡体是纯展示闭包。
+ *   纯展示体已外移 components/HomeWidgets.tsx（万物原子化：同款组件的自持版
+ *   可挂任意用户收藏夹；本页行为与外移前完全一致）。
  * 版式参考 thu-info-app 首页信息结构（只取语义；UI 仍用 OneTHU 设计系统）。
- * 两栏 minmax(0,1fr)+312px 沿用；行容器 maxWidth:100% + min-width:0（窄窗口不横向溢出）。
- * 用 useApp().navigate(page, params) 轻路由；信息/生活/预约入口按 LearnNav 子栏
- * 参数契约（infoTab/lifeTab/reserveTab）直达对应分栏。
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../components/Layout.js";
-import { IconBell, IconCard, IconChevron, IconIn, IconPen, IconRefresh } from "../components/Icons.js";
+import { Card, Empty, ErrorNote, PageHead } from "../components/Layout.js";
+import { IconChevron, IconRefresh } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
 import type { LearnNav, Page } from "../state/app.js";
 import { useCampusData, useCard, useTodayCalendar, useTodayDeadlines, useTodayNewsFeed, useTodayReservations } from "../state/data.js";
+import {
+  AgendaRows, CardBalanceBody, ClassRows, EntryCard, HomeworkRows, NewsRows, NoticeRows, ResvRows,
+  SECTION_OF, WEEKDAYS, calDaysUntil, deadlineMs, countdownChip, ymd,
+  type AgendaRow,
+} from "../components/HomeWidgets.js";
 import {
   buildHomeRegistry, loadCollapsedDefaults, loadLayout, resolveLayout,
   saveCollapsedDefaults, saveLayout, type HomeOrientation,
@@ -31,337 +32,10 @@ import {
 } from "../lib/homeCards.js";
 import { readSubs } from "./info/newsSearch.js";
 import { openExternal } from "./info/openExternal.js";
-import { parseLearnTime, type Homework, type ScheduleEntry } from "@onethu/core";
+import { parseLearnTime, type ScheduleEntry } from "@onethu/core";
 
 /** 轻路由签名（与 AppState.navigate 一致） */
 type Nav = (page: Page, params?: LearnNav) => void;
-
-const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-
-/** 本地日期 "YYYY-MM-DD"（与 core getSchedule 的 nq 同口径） */
-function ymd(d: Date): string {
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${m}-${day}`;
-}
-
-/** "HH:mm" */
-function hm(d: Date): string {
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
-/** 日历天数差（d 的日期 - 今天；0=今天 1=明天），与时刻无关 */
-function calDaysUntil(d: Date): number {
-  const n = new Date();
-  const today = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
-  const that = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  return Math.round((that - today) / 86400000);
-}
-
-/** 截止徽标：按日历天算（当天 23:59 截止显示「今天截止」而非「1 天后」） */
-function deadlineChip(h: Homework): { text: string; cls: string } {
-  const d = parseLearnTime(h.deadline);
-  if (!d) return { text: "未知截止", cls: "chip-gray" };
-  if (h.graded) return { text: "已批改", cls: "chip-blue" };
-  if (h.submitted) return { text: "已提交", cls: "chip-green" };
-  const days = calDaysUntil(d);
-  if (d.getTime() < Date.now()) return { text: days === 0 ? "今天已截止" : `逾期 ${-days} 天`, cls: "chip-red" };
-  if (days === 0) return { text: "今天截止", cls: "chip-red" };
-  if (days === 1) return { text: "明天截止", cls: "chip-amber" };
-  if (days <= 3) return { text: `${days} 天后截止`, cls: "chip-amber" };
-  return { text: `${days} 天后截止`, cls: "chip-gray" };
-}
-
-/** 清华本科小节开始时间（与 Schedule 页一致） */
-const SECTION_OF: Record<number, string> = {
-  1: "08:00", 2: "08:55", 3: "09:55", 4: "10:50", 5: "11:45",
-  6: "13:30", 7: "14:25", 8: "15:20", 9: "16:15", 10: "17:10",
-  11: "18:05", 12: "19:20", 13: "20:15", 14: "21:10",
-};
-
-/** 整卡可点入口（LearnPage stat-link 同款结构）；disabled 时降透明度且不可点 */
-function EntryCard({
-  icon, num, label, onClick, disabled = false, dimLabel,
-}: {
-  icon?: ReactNode;
-  num: ReactNode;
-  label: string;
-  onClick?: () => void;
-  disabled?: boolean;
-  dimLabel?: string;
-}) {
-  return (
-    <Card className="stat-card stat-click">
-      <button
-        className="stat-link"
-        onClick={onClick}
-        disabled={disabled}
-        style={disabled ? { opacity: 0.55, cursor: "default" } : undefined}
-        aria-label={dimLabel ?? label}
-        title={disabled ? "数据加载后可用" : undefined}
-      >
-        {icon}
-        <span className="stat-text">
-          <span className="stat-num">{num}</span>
-          <span className="stat-label">{dimLabel ?? label}</span>
-        </span>
-        {!disabled ? <IconChevron width={14} height={14} className="row-caret" /> : null}
-      </button>
-    </Card>
-  );
-}
-
-/** 行点击通用包装：数据就绪才可点（keydown Enter 同触发，row-click 同款语义） */
-function RowClick({
-  onClick, disabled = false, children, style,
-}: {
-  onClick?: () => void;
-  disabled?: boolean;
-  children: ReactNode;
-  style?: CSSProperties;
-}) {
-  const handle = disabled ? undefined : onClick;
-  return (
-    <div
-      className="row row-click"
-      style={disabled ? { ...style, opacity: 0.55 } : style}
-      role={handle ? "button" : undefined}
-      tabIndex={handle ? 0 : undefined}
-      onClick={handle}
-      onKeyDown={handle ? (e) => e.key === "Enter" && handle() : undefined}
-    >
-      {children}
-    </div>
-  );
-}
-
-/* ══════════ bespoke 卡体（原 TodayPage JSX 原样搬入；SectionHead 由 CardShell 承担） ══════════ */
-
-type CampusDataT = NonNullable<ReturnType<typeof useCampusData>["data"]>;
-type ResvListT = NonNullable<ReturnType<typeof useTodayReservations>["list"]>;
-type TodayFeedT = NonNullable<ReturnType<typeof useTodayNewsFeed>["data"]>;
-
-/* ---------- 倒计时提醒（thu-info-app 首页同位组件移植） ----------
- * 学校学期重要事项倒计时（选课/退课/推研/考试报名等），数据源 = info 门户
- * deadline 接口（core getDeadlines，djsbt/djskssj/djsjzsj/djsurl，与 thu-info-lib
- * getCrTimetable 同链）。时间窗与 thu-info home activeEvents 同口径：
- * now < 截止 且 now ≥ 开始-14 天；条目 = 名称 + 起止时间 + 未开始/进行中 + 剩余
- * 天数；点击打开事项通知链接（thu-info Linking.openURL(djsurl) 同语义）。 */
-
-/** 起止毫秒值（"YYYY-MM-DD HH:mm" → epoch ms；解析失败 NaN 由调用方过滤） */
-function deadlineMs(s: string | undefined): number {
-  if (!s) return NaN;
-  const t = new Date(s.includes(" ") ? s.replace(" ", "T") : s).getTime();
-  return Number.isNaN(t) ? NaN : t;
-}
-
-/** 倒计时徽标：未开始=还有 N 天开始（当天=今天开始）；进行中=剩 N 天（当天=今天结束） */
-function countdownChip(beginMs: number, endMs: number, now: Date): { text: string; cls: string } {
-  if (now.getTime() < beginMs) {
-    const days = calDaysUntil(new Date(beginMs));
-    if (days <= 0) return { text: "今天开始", cls: "chip-red" };
-    if (days <= 7) return { text: `未开始 · ${days} 天后`, cls: "chip-amber" };
-    return { text: `未开始 · 还有 ${days} 天`, cls: "chip-gray" };
-  }
-  const days = Math.ceil((endMs - now.getTime()) / 86400000);
-  if (days <= 1) return { text: "今天结束", cls: "chip-red" };
-  return { text: `进行中 · 剩 ${days} 天`, cls: "chip-blue" };
-}
-
-/** 日程行：校历节点（开学/学期结束）+ 学校重要事项（deadline 接口）合并成
- *  一条时间线，按日期升序；用户指令：倒计时提醒与最近日程合并为一卡，文字不截断。 */
-interface AgendaRow {
-  key: string; date: Date; title: string; sub: string;
-  chipText: string; chipCls: string; barCls?: string;
-  onClick?: () => void;
-}
-
-/** 日程与提醒卡体（数据为空/未就绪由 TodayPage 决定整卡隐藏） */
-function AgendaRows({ rows }: { rows: AgendaRow[] }) {
-  return (
-    <Card className="list">
-      {rows.map((r, i) => (
-        <RowClick key={r.key} style={{ animationDelay: `${i * 35}ms` }} onClick={r.onClick}>
-          <div className="tl-time">{ymd(r.date).slice(5)}</div>
-          <div className="tl-bar" style={r.barCls ? { background: r.barCls } : undefined} />
-          <div className="tl-main">
-            <div className="tl-title" style={{ whiteSpace: "normal", overflow: "visible", textOverflow: "unset", display: "block" }}>{r.title}</div>
-            <div className="tl-sub" style={{ whiteSpace: "normal" }}>{r.sub}</div>
-          </div>
-          <span className={`chip ${r.chipCls}`}>
-            <span className="dot" />
-            {r.chipText}
-          </span>
-          {r.onClick ? <IconChevron className="row-caret" width={14} height={14} /> : null}
-        </RowClick>
-      ))}
-    </Card>
-  );
-}
-
-/** 未提交作业卡体（首页作业区唯一口径：submitted===false，含已逾期，按截止升序） */
-function HomeworkRows({
-  loading, rows, courseName, navigate,
-}: {
-  loading: boolean;
-  rows: Homework[];
-  courseName: (courseId: string) => string;
-  navigate: Nav;
-}) {
-  if (loading) return <SkeletonRows rows={4} />;
-  if (rows.length === 0) {
-    return (
-      <Card>
-        <Empty text="没有未提交的作业，享受今天吧。" />
-      </Card>
-    );
-  }
-  return (
-    <Card className="list">
-      {rows.slice(0, 8).map((h, i) => {
-        const chip = deadlineChip(h);
-        return (
-          <RowClick
-            key={`${h.courseId}-${h.id}`}
-            style={{ animationDelay: `${i * 35}ms` }}
-            onClick={() => navigate("learn-assignment-detail", { courseId: h.courseId, itemId: h.id, from: "today" })}
-          >
-            <div className="row-when">
-              <b>{h.deadline.slice(5, 10)}</b>
-              <span>{h.deadline.slice(11, 16)} 截止</span>
-            </div>
-            <div className="row-main">
-              <div className="row-title">{h.title}</div>
-              <div className="row-sub">{courseName(h.courseId)}</div>
-            </div>
-            <span className={`chip ${chip.cls}`}>
-              <span className="dot" />
-              {chip.text}
-            </span>
-            <IconChevron className="row-caret" width={14} height={14} />
-          </RowClick>
-        );
-      })}
-    </Card>
-  );
-}
-
-/** 最近通知卡体 */
-function NoticeRows({ items, navigate }: { items: CampusDataT["notifications"]; navigate: Nav }) {
-  return (
-    <Card className="list">
-      {items.length === 0 ? (
-        <Empty text="暂无通知。" />
-      ) : (
-        items.slice(0, 3).map((n, i) => (
-          <RowClick key={i} onClick={() => navigate("learn-notice-detail", { courseId: n.courseId, itemId: n.id, from: "today" })}>
-            <div className="tl-time">{n.publishTime.slice(5, 10)}</div>
-            <div className="tl-bar" style={{ background: "var(--border-strong)" }} />
-            <div className="tl-main">
-              <div className="tl-title" style={{ whiteSpace: "normal" }}>{n.title}</div>
-              <div className="tl-sub">{n.publisher}</div>
-            </div>
-            <IconChevron className="row-caret" width={14} height={14} />
-          </RowClick>
-        ))
-      )}
-    </Card>
-  );
-}
-
-/** 今日预约卡体（座位 + 研讨间，按今天聚合；加载中/无预约整卡不渲染） */
-function ResvRows({ list, navigate }: { list: ResvListT; navigate: Nav }) {
-  return (
-    <Card className="list">
-      {list.map((r, i) => (
-        <RowClick key={r.key} style={{ animationDelay: `${i * 35}ms` }} onClick={() => navigate("reserve")}>
-          <div className="tl-time">{hm(r.start)}</div>
-          <div className="tl-bar" style={r.kind === "room" ? { background: "var(--green)" } : undefined} />
-          <div className="tl-main">
-            <div className="tl-title">{r.kind === "room" ? r.place || r.venue : r.venue}</div>
-            <div className="tl-sub">
-              {(
-                r.kind === "seat"
-                  ? [r.place ? `座位 ${r.place}` : "", `${hm(r.start)} 签到`, r.note ?? ""]
-                  : [r.start && r.end ? `${hm(r.start)}~${hm(r.end)}` : hm(r.start), r.venue, r.note ?? ""]
-              )
-                .filter(Boolean)
-                .join(" · ")}
-            </div>
-          </div>
-          <span className="chip chip-gray">{r.kind === "seat" ? "座位" : "研讨间"}</span>
-          <IconChevron className="row-caret" width={14} height={14} />
-        </RowClick>
-      ))}
-    </Card>
-  );
-}
-
-/** 今日课程卡体 */
-function ClassRows({ events, navigate }: { events: ScheduleEntry[]; navigate: Nav }) {
-  return (
-    <Card className="list">
-      {events.length === 0 ? (
-        <Empty text="今天没有课。" />
-      ) : (
-        events.map((s, i) => (
-          <RowClick key={`${s.date ?? "d"}-${i}-${s.courseName}`} style={{ animationDelay: `${i * 35}ms` }} onClick={() => navigate("schedule")}>
-            <div className="tl-time">{s.startTime ?? SECTION_OF[s.startSection ?? 1] ?? "—"}</div>
-            <div className="tl-bar" />
-            <div className="tl-main">
-              <div className="tl-title">{s.courseName}</div>
-              <div className="tl-sub">
-                {s.location}
-                {s.teacher ? ` · ${s.teacher}` : ""}
-              </div>
-            </div>
-            <IconChevron className="row-caret" width={14} height={14} />
-          </RowClick>
-        ))
-      )}
-    </Card>
-  );
-}
-
-/** 订阅新闻卡体（onethu.news.subs 来源优先，回退最新并注明；点击行经
- *  LearnNav.infoNewsId 直达该条新闻详情；失败/无数据整卡隐藏） */
-function NewsRows({ feed, navigate }: { feed: TodayFeedT; navigate: Nav }) {
-  return (
-    <Card className="list">
-      {feed.list.map((n, i) => (
-        <RowClick
-          key={n.xxid || i}
-          style={{ animationDelay: `${i * 35}ms` }}
-          onClick={() => navigate("info", { infoNewsId: n.xxid })}
-        >
-          <div className="tl-time">{n.date ? n.date.slice(5, 10) : "—"}</div>
-          <div className="tl-bar" style={{ background: "var(--border-strong)" }} />
-          <div className="tl-main">
-            <div className="tl-title" style={{ whiteSpace: "normal" }}>{n.name}</div>
-            <div className="tl-sub">{n.source || "校内通知"}</div>
-          </div>
-          <IconChevron className="row-caret" width={14} height={14} />
-        </RowClick>
-      ))}
-    </Card>
-  );
-}
-
-/** 校园卡余额卡体（快捷入口；未加载完成前置灰不可点） */
-function CardBalanceBody({ balance, navigate }: { balance: number | null; navigate: Nav }) {
-  return (
-    <div className="stats" style={{ margin: 0 }}>
-      <EntryCard
-        icon={<span className="stat-icon amber"><IconCard width={17} height={17} /></span>}
-        num={balance != null ? `¥${balance.toFixed(2)}` : "–"}
-        label={balance != null ? "校园卡余额" : "校园卡"}
-        dimLabel={balance != null ? "校园卡余额" : "校园卡（加载中）"}
-        disabled={balance == null}
-        onClick={() => navigate("life", { lifeTab: "card" })}
-      />
-    </div>
-  );
-}
 
 /* ══════════ CardShell（统一卡片外壳：标题行 + 折叠 + 编辑工具） ══════════ */
 
@@ -390,7 +64,7 @@ function HomeCard({
   const body = def.kind === "bespoke" ? (def.render?.() ?? null) : null;
   if (def.kind === "bespoke" && body === null) return null;
   const collapsed = item.collapsed;
-  const cls = `home-card${collapsed ? " is-collapsed" : ""}${editing ? " is-editing" : ""}`;
+  const cls = "home-card" + (collapsed ? " is-collapsed" : "") + (editing ? " is-editing" : "");
   const Icon = def.icon;
 
   /* shellFree（今日概览条）：卡体即整卡；标题行常显（与编辑态一致），工具行仅编辑时出现 */
@@ -405,23 +79,23 @@ function HomeCard({
             </span>
             {editing ? (
             <div className="home-card-tools">
-              <button type="button" className="icon-btn tool-up" disabled={index === 0} title="上移" aria-label={`上移${def.title}`} onClick={() => onMove(def.id, "up")}>
+              <button type="button" className="icon-btn tool-up" disabled={index === 0} title="上移" aria-label={"上移" + def.title} onClick={() => onMove(def.id, "up")}>
                 <IconChevron width={13} height={13} />
               </button>
-              <button type="button" className="icon-btn tool-down" disabled={index === count - 1} title="下移" aria-label={`下移${def.title}`} onClick={() => onMove(def.id, "down")}>
+              <button type="button" className="icon-btn tool-down" disabled={index === count - 1} title="下移" aria-label={"下移" + def.title} onClick={() => onMove(def.id, "down")}>
                 <IconChevron width={13} height={13} />
               </button>
               {!portrait ? (
                 <>
-                <button type="button" className="icon-btn tool-left" title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={`把${def.title}移到主栏`} onClick={() => onMove(def.id, "main")}>
+                <button type="button" className="icon-btn tool-left" title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={"把" + def.title + "移到主栏"} onClick={() => onMove(def.id, "main")}>
                   <IconChevron width={13} height={13} />
                 </button>
-                <button type="button" className="icon-btn tool-right" title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${def.title}移到侧栏`} onClick={() => onMove(def.id, "rail")}>
+                <button type="button" className="icon-btn tool-right" title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={"把" + def.title + "移到侧栏"} onClick={() => onMove(def.id, "rail")}>
                   <IconChevron width={13} height={13} />
                 </button>
                 </>
               ) : null}
-              <button type="button" className="icon-btn tool-x" title="隐藏此卡片（可经「添加卡片」找回）" aria-label={`隐藏${def.title}`} onClick={() => onRemove(def.id)}>
+              <button type="button" className="icon-btn tool-x" title="隐藏此卡片（可经「添加卡片」找回）" aria-label={"隐藏" + def.title} onClick={() => onRemove(def.id)}>
                 ✕
               </button>
             </div>
@@ -443,7 +117,7 @@ function HomeCard({
             disabled={editing}
             onClick={onOpen}
             aria-label={def.title}
-            title={editing ? undefined : `打开「${def.title}」`}
+            title={editing ? undefined : "打开「" + def.title + "」"}
           >
             <span className="home-entry-icon"><Icon width={20} height={20} /></span>
             <span className="home-entry-text">
@@ -467,18 +141,18 @@ function HomeCard({
 
         {editing ? (
           <div className="home-card-tools">
-            <button type="button" className="icon-btn tool-up" disabled={index === 0} title="上移" aria-label={`上移${def.title}`} onClick={() => onMove(def.id, "up")}>
+            <button type="button" className="icon-btn tool-up" disabled={index === 0} title="上移" aria-label={"上移" + def.title} onClick={() => onMove(def.id, "up")}>
               <IconChevron width={13} height={13} />
             </button>
-            <button type="button" className="icon-btn tool-down" disabled={index === count - 1} title="下移" aria-label={`下移${def.title}`} onClick={() => onMove(def.id, "down")}>
+            <button type="button" className="icon-btn tool-down" disabled={index === count - 1} title="下移" aria-label={"下移" + def.title} onClick={() => onMove(def.id, "down")}>
               <IconChevron width={13} height={13} />
             </button>
             {!portrait ? (
               <>
-              <button type="button" className="icon-btn tool-left" title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={`把${def.title}移到主栏`} onClick={() => onMove(def.id, "main")}>
+              <button type="button" className="icon-btn tool-left" title={item.col === "main" ? "已在主栏" : "移到主栏"} aria-label={"把" + def.title + "移到主栏"} onClick={() => onMove(def.id, "main")}>
                 <IconChevron width={13} height={13} />
               </button>
-              <button type="button" className="icon-btn tool-right" title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={`把${def.title}移到侧栏`} onClick={() => onMove(def.id, "rail")}>
+              <button type="button" className="icon-btn tool-right" title={item.col === "rail" ? "已在侧栏" : "移到侧栏"} aria-label={"把" + def.title + "移到侧栏"} onClick={() => onMove(def.id, "rail")}>
                 <IconChevron width={13} height={13} />
               </button>
               </>
@@ -487,7 +161,7 @@ function HomeCard({
               type="button"
               className="icon-btn tool-x"
               title={def.kind === "entry" ? "隐藏此入口（可经「添加卡片」找回）" : "隐藏此卡片（可经「添加卡片」找回）"}
-              aria-label={`隐藏${def.title}`}
+              aria-label={"隐藏" + def.title}
               onClick={() => onRemove(def.id)}
             >
               ✕
@@ -498,7 +172,7 @@ function HomeCard({
         <button
           type="button"
           className="icon-btn home-card-fold"
-          aria-label={collapsed ? `展开${def.title}` : `折叠${def.title}`}
+          aria-label={collapsed ? "展开" + def.title : "折叠" + def.title}
           aria-expanded={!collapsed}
           title={collapsed ? "展开" : "折叠"}
           onClick={() => onToggle(def.id)}
@@ -511,8 +185,7 @@ function HomeCard({
   );
 }
 
-/** 添加卡片弹层：列出全部被隐藏的卡片（入口卡 + 固有内容卡），点击加入所选列末尾
- *  （createPortal 挂 body + 遮罩 flex 视口居中，NewsTab 订阅弹层同款）。 */
+/** 添加卡片弹层：列出全部被隐藏的卡片（入口卡 + 固有内容卡），点击加入所选列末尾。 */
 function AddCardsModal({
   hidden, portrait, onAdd, onClose,
 }: {
@@ -708,7 +381,7 @@ export function TodayPage() {
     });
   };
 
-  /* ---- 数据派生（与原 Today 页同口径） ---- */
+  /* ---- 数据派生（与外移前同口径） ---- */
 
   /** 未提交作业（首页作业区唯一口径：submitted===false，含已逾期，按截止升序） */
   const unsubmitted = useMemo(
@@ -752,8 +425,8 @@ export function TodayPage() {
             key: n.key,
             date: n.date,
             title: n.name,
-            sub: `校历 · 星期${WEEKDAYS[n.date.getDay()]}`,
-            chipText: n.daysUntil === 0 ? "今天" : `还有 ${n.daysUntil} 天`,
+            sub: "校历 · 星期" + WEEKDAYS[n.date.getDay()],
+            chipText: n.daysUntil === 0 ? "今天" : "还有 " + n.daysUntil + " 天",
             chipCls: n.daysUntil <= 1 ? "chip-red" : n.daysUntil <= 7 ? "chip-amber" : "chip-gray",
             barCls: n.key.endsWith("-end") ? "var(--amber)" : undefined,
             onClick: () => navigate("schedule"),
@@ -769,10 +442,10 @@ export function TodayPage() {
             .map((d) => {
               const chip = countdownChip(d.beginMs, d.endMs, stableNow);
               return {
-                key: `dl-${d.title}-${d.begin}`,
+                key: "dl-" + d.title + "-" + d.begin,
                 date: new Date(d.beginMs),
                 title: d.title,
-                sub: `重要事项 · ${(d.begin ?? "").slice(5, 16)} ~ ${(d.end ?? "").slice(5, 16)}`,
+                sub: "重要事项 · " + (d.begin ?? "").slice(5, 16) + " ~ " + (d.end ?? "").slice(5, 16),
                 chipText: chip.text,
                 chipCls: chip.cls,
                 barCls: "var(--border-strong)",
@@ -820,7 +493,7 @@ export function TodayPage() {
     },
     homework: {
       render: () => <HomeworkRows loading={!dataReady} rows={unsubmitted} courseName={courseName} navigate={navigate} />,
-      aside: dataReady ? `${unsubmitted.length} 条 · 点击查看详情` : "加载中…",
+      aside: dataReady ? unsubmitted.length + " 条 · 点击查看详情" : "加载中…",
     },
     notices: {
       render: () => <NoticeRows items={data?.notifications ?? []} navigate={navigate} />,
@@ -839,7 +512,7 @@ export function TodayPage() {
       aside:
         news.state === "ready" && news.data
           ? news.data.from === "subs"
-            ? `已订阅 ${news.data.subCount} 来源 · 最新 ${news.data.list.length} 条`
+            ? "已订阅 " + news.data.subCount + " 来源 · 最新 " + news.data.list.length + " 条"
             : news.data.subCount > 0
               ? "订阅来源暂无新闻，显示最新"
               : "未订阅来源，显示最新"
@@ -889,7 +562,7 @@ export function TodayPage() {
     <>
       <PageHead
         title="今日"
-        meta={`${now.getMonth() + 1}月${now.getDate()}日 星期${WEEKDAYS[now.getDay()]}${data?.user ? ` · ${data.user.name}` : ""}`}
+        meta={now.getMonth() + 1 + "月" + now.getDate() + "日 星期" + WEEKDAYS[now.getDay()] + (data?.user ? " · " + data.user.name : "")}
         actions={
           <>
             <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
