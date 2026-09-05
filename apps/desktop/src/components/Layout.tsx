@@ -2,7 +2,7 @@
 import { Children, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useApp } from "../state/context.js";
 import { topLevelPage, type Page } from "../state/app.js";
-import { IconChevron, IconDemo, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar, FolderIcon } from "./Icons.js";
+import { IconChevron, IconDemo, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
 
 /**
@@ -18,6 +18,7 @@ const NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode }> 
   { page: "life", label: "生活", icon: IconCard },
   { page: "reserve", label: "预约", icon: IconCalendar },
   { page: "zhjwxk", label: "选课", icon: IconXk },
+  { page: "otherinfo", label: "其他 Info 应用", icon: IconExternal },
 ];
 
 /** (One / THU) 品牌标识：五列网格，括号代码体，One 衬线紧凑撑满与 THU 逐列对齐 */

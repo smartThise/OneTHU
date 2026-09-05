@@ -2467,6 +2467,35 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 }
 .collect-fold:hover { background: var(--hover); color: var(--text-1); }
 .collect-fold-spacer { width: 18px; flex: 0 0 auto; }
+/* 收藏夹图标选择网格 */
+.icon-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.icon-cell {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; padding: 0;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--surface-2); color: var(--text-2); cursor: pointer;
+}
+.icon-cell:hover { border-color: var(--accent); color: var(--text-1); }
+.icon-cell.is-active { border-color: var(--accent); color: var(--accent); background: var(--hover); }
+/* 其他 Info 应用：入口卡片网格 */
+.app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.app-card {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--surface); cursor: pointer;
+  min-width: 0;
+}
+.app-card:hover { border-color: var(--accent); background: var(--hover); }
+.app-card.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.app-card-icon { display: inline-flex; align-items: center; color: var(--text-3); flex: 0 0 auto; }
+.app-card:hover .app-card-icon { color: var(--accent); }
+.app-card-name {
+  flex: 1 1 auto; min-width: 0;
+  font-size: 13px; color: var(--text-1);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  line-height: 1.35;
+}
 .collect-row input[type="checkbox"] { accent-color: var(--amber); width: 15px; height: 15px; }
 .collect-row-icon { display: inline-flex; color: var(--text-3); }
 .collect-row-text { display: flex; flex-direction: column; min-width: 0; }

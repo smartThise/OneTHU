@@ -26,6 +26,7 @@ import type { LearnNav, Page } from "./app.js";
 import { cacheGet } from "./cache.js";
 import type { AtomRef } from "./favorites.js";
 import { WasherTileStatus, ClassroomTileStatus, ClassroomRoomToday } from "../components/LiveTiles.js";
+import { INFO_APPS } from "../lib/infoApps.js";
 
 /** 图标最小接口（与 homeCards 的 HomeCardIcon 同口径） */
 export type AtomIcon = (p: { width?: number; height?: number; className?: string }) => ReactNode;
@@ -335,6 +336,14 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
       open: (nav) => nav("info", { infoTab: "news", newsSubSource: name }),
     });
   }
+  if (kind === "infoapp") {
+    const [cat, name, id] = dec(key);
+    if (!id || !name) return null;
+    return view({
+      atom: ref, title: name, sub: (cat || "Info 应用") + " · Info 应用", icon: IconExternal, group: "Info 应用",
+      open: (nav) => nav("otherinfo", { infoAppId: id }),
+    });
+  }
   if (kind === "courseX-c") {
     const [sem, cid, name, teacher, tl] = dec(key);
     if (!cid || !name) return null;
@@ -396,6 +405,7 @@ export function searchAtoms(query: string, limit = 24): AtomHit[] {
   for (const s of dyn.kjSpaces ?? []) if (match(s.name)) push(hit({ atom: { kind: "kj-space", key: enc(s.id, s.name) }, title: s.name, sub: "公共空间", icon: IconCalendar, group: "公共空间" }));
   for (const r of dyn.kjRooms ?? []) if (match(r.name, r.spaceName)) push(hit({ atom: { kind: "kj-room", key: enc(r.spaceId, r.spaceName, r.id, r.name) }, title: r.name, sub: (r.spaceName || "") + " · 公共空间", icon: IconCalendar, group: "公共空间" }));
   for (const c of dyn.courseXCourses ?? []) if (match(c.name, c.teacher)) push(hit({ atom: { kind: "courseX-c", key: enc(c.sem, c.id, c.name, c.teacher, "") }, title: c.name, sub: "courseX" + (c.teacher ? " · " + c.teacher : ""), icon: IconInfo, group: "courseX" }));
+  for (const a of INFO_APPS) if (match(a.name, a.cat)) push(hit({ atom: { kind: "infoapp", key: enc(a.cat, a.name, a.id) }, title: a.name, sub: a.cat + " · Info 应用", icon: IconExternal, group: "Info 应用" }));
 
   return out.slice(0, limit);
 }

@@ -15,6 +15,7 @@ import { LoginPage, TwoFactorPage } from "./pages/Login.js";
 import { SchedulePage } from "./pages/Schedule.js";
 import { SettingsPage } from "./pages/Settings.js";
 import { TodayPage } from "./pages/Today.js";
+import { OtherInfoPage } from "./pages/OtherInfoPage.js";
 import { InfoPage } from "./pages/info/InfoPage.js";
 import { LifePage } from "./pages/info/LifePage.js";
 import { ReservePage } from "./pages/info/ReservePage.js";
@@ -50,6 +51,7 @@ function Routed() {
         {page === "today" && <TodayPage />}
         {page === "learn" && <LearnPage />}
         {page === "schedule" && <SchedulePage />}
+        {page === "otherinfo" && <OtherInfoPage />}
         {page === "info" && <InfoPage />}
         {page === "life" && <LifePage />}
         {page === "reserve" && <ReservePage />}
