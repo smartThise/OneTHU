@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { PageAtomStar } from "..//components/Collect.js";
 import { Card, Empty, ErrorNote, PageHead } from "../components/Layout.js";
 import { IconRefresh } from "../components/Icons.js";
 import { useCalendar, useCampusData, useWeekSchedule } from "../state/data.js";
@@ -178,6 +179,7 @@ export function SchedulePage() {
         }
         actions={
           <>
+            <PageAtomStar atomKey="schedule" title="课表" />
             {semester && !isCurrentWeek ? (
               <button className="btn" onClick={() => setWeekNo(currentWeek)}>
                 回到今天

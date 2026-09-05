@@ -1,5 +1,6 @@
 /** 全部课程通知（learnX Notices）：按发布时间倒序，可筛重要/未读 */
 import { useMemo, useState } from "react";
+import { PageAtomStar } from "../..//components/Collect.js";
 import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { useApp } from "../../state/context.js";
 import { IconRefresh } from "../../components/Icons.js";
@@ -42,6 +43,7 @@ export function NoticesPage() {
         meta={data ? `${semesterText(data.semester.id)} · 共 ${groups.all.length} 条` : "按发布时间倒序"}
         actions={
           <>
+            <PageAtomStar atomKey="learn-notices" title="全部通知" />
             <BackButton to="learn" label="课程列表" />
             <button className="btn" onClick={() => navigate("learn-search", { from: "learn-notices" })}>搜索</button>
             <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>

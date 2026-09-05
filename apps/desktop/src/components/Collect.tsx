@@ -11,7 +11,7 @@ import { createPortal } from "react-dom";
 import { Empty } from "./Layout.js";
 import { IconFolderPlus, IconSearch, IconStar } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
-import { resolveAtom, searchAtoms, type AtomHit } from "../state/atoms.js";
+import { pageAtomRef, resolveAtom, searchAtoms, type AtomHit } from "../state/atoms.js";
 import type { AtomRef } from "../state/favorites.js";
 
 /** 星标按钮：已收录点亮；点击开弹层 */
@@ -40,6 +40,13 @@ export function CollectStar({ atom, title }: { atom: AtomRef; title?: string }) 
 }
 
 /** 「收藏到…」弹层：多选收藏夹 + 当场新建 */
+/** 页头页面原子星标：聚合页随当前 tab 换目标（key 未注册时不渲染） */
+export function PageAtomStar({ atomKey, title }: { atomKey: string; title: string }) {
+  const ref = pageAtomRef(atomKey);
+  if (!ref) return null;
+  return <CollectStar atom={ref} title={title} />;
+}
+
 export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => void }) {
   const favs = useFavs();
   const [creating, setCreating] = useState(false);
@@ -48,14 +55,18 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
   const roots = favs.data.order;
   /* 全树行：根收藏夹 + 各层子收藏夹（收藏时可直达任意层；深度由建夹侧 FAVS_MAX_DEPTH 限制） */
   const parentOf = new Map<string, string | null>();
-  for (const id of favs.data.order) {
-    const f = favs.data.folders[id];
-    if (!f) continue;
+  /* 子收藏夹 id 只在 folders 平铺表（挂在父夹 items 里），不在 order——遍历必须走 folders */
+  for (const id of Object.keys(favs.data.folders)) {
+    const f = favs.data.folders[id]!;
     if (!parentOf.has(id)) parentOf.set(id, null);
     for (const it of f.items) if (it.t === "f") parentOf.set(it.id, id);
   }
   const childrenOf = (pid: string | null): string[] =>
-    favs.data.order.filter((id) => (parentOf.get(id) ?? null) === pid);
+    pid === null
+      ? favs.data.order.filter((id) => (parentOf.get(id) ?? null) === null)
+      : Object.keys(favs.data.folders)
+          .filter((id) => parentOf.get(id) === pid)
+          .sort((a, b) => (favs.data.folders[a]!.createdAt || 0) - (favs.data.folders[b]!.createdAt || 0));
   const treeRows: ReactNode[] = [];
   const walk = (pid: string | null, depth: number): void => {
     for (const id of childrenOf(pid)) {

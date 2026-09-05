@@ -15,6 +15,7 @@
  * 当前 tab 被隐藏时回落到第一个可见栏目。
  */
 import { useEffect, useState } from "react";
+import { PageAtomStar } from "../..//components/Collect.js";
 import { Empty, PageHead, SegmentedOverflow } from "../../components/Layout.js";
 import { TabManageModal } from "../../components/TabManageModal.js";
 import { loadTabLayout, saveTabLayout, type TabLayout } from "../../lib/tabLayout.js";
@@ -80,9 +81,12 @@ export function LifePage() {
       <PageHead
         title="生活"
         actions={
-          <button className="btn" onClick={() => setManageOpen(true)} title="栏目显隐与排序">
-            管理栏目
-          </button>
+          <>
+            <PageAtomStar atomKey={"life-" + (effTab ?? "")} title="生活页 · 当前栏目" />
+            <button className="btn" onClick={() => setManageOpen(true)} title="栏目显隐与排序">
+              管理栏目
+            </button>
+          </>
         }
       />
       <SegmentedOverflow ariaLabel="生活功能" style={{ marginBottom: 14 }}>

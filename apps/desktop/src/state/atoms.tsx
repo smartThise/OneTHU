@@ -142,6 +142,11 @@ export const PAGE_ATOMS: StaticAtom[] = [
   { kind: "page", key: "reserve-kongjian", title: "公共空间", sub: "预约页 · 宿舍公共空间预约", icon: IconCalendar, group: "页面", page: "reserve", params: { reserveTab: "kongjian" } },
 ];
 
+/** 页头星标用：key 命中 PAGE_ATOMS 才返回引用（防手写 key 漂移出野原子） */
+export function pageAtomRef(key: string): AtomRef | null {
+  return PAGE_ATOMS.some((a) => a.key === key) ? { kind: "page", key } : null;
+}
+
 /* ══════════ 静态注册表：组件原子（今日组件自持版） ══════════ */
 
 interface WidgetAtom {

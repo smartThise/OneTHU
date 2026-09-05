@@ -4,6 +4,7 @@
  * UI 用 OneTHU 设计系统（Card/list/row/chip/btn/input）。
  */
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
+import { PageAtomStar } from "../..//components/Collect.js";
 import { createPortal } from "react-dom";
 import { Card, Empty, ErrorNote, PageHead, SegmentedOverflow, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
@@ -364,6 +365,7 @@ export function ZhjwxkCoursesPage() {
         ].filter(Boolean).join(" · ")}
         actions={
           <>
+            <PageAtomStar atomKey="zhjwxk" title="选课" />
             <select className="input" style={{ height: 28, fontSize: 12 }} value={wb.semester ?? ""} onChange={(e) => void wb.setSemesterOverride(e.target.value)}>
               {(wb.semesterOptions ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>

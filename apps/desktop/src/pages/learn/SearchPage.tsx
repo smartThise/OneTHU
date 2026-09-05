@@ -5,6 +5,7 @@
  * 得分 0 过滤；按得分降序、同分时间倒序；行内展示相对最高分的分数条与命中词高亮。
  */
 import { useMemo, useState } from "react";
+import { PageAtomStar } from "../..//components/Collect.js";
 import type { ReactNode } from "react";
 import { Card, Empty, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { IconChevron, IconSearch } from "../../components/Icons.js";
@@ -364,6 +365,7 @@ export function SearchPage() {
           <div className="page-head-meta">课程 / 作业 / 通知 / 文件的相关性搜索（标题 · 正文 · 附件 · 课程名）</div>
         </div>
         <div className="page-head-actions">
+          <PageAtomStar atomKey="learn-search" title="网络学堂搜索" />
           <button className="btn btn-ghost" onClick={() => navigate("learn")}>← 返回</button>
         </div>
       </div>

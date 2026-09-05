@@ -3,6 +3,7 @@
  * 原四页签列表功能移入 pages/learn/ 专属页面（Assignments/Notices/Files）。
  */
 import { useEffect, useMemo, useRef } from "react";
+import { PageAtomStar } from "..//components/Collect.js";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../components/Layout.js";
 import { IconBell, IconCalendar, IconChevron, IconFile, IconPen, IconRefresh, IconSearch } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
@@ -64,6 +65,7 @@ export function LearnPage() {
         meta={data ? `${semesterText(data.semester.id)} · ${data.courses.length} 门课程` : "加载中…"}
         actions={
           <>
+            <PageAtomStar atomKey="learn" title="网络学堂" />
             <button className="btn btn-ghost" onClick={() => navigate("learn-search")}>
               <IconSearch width={14} height={14} />
               搜索
