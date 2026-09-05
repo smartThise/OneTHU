@@ -831,8 +831,12 @@ export class LearnClient {
         const stop = /<!--作业附件-->|<div[^>]*class="[^"]*fujian/i.exec(rest);
         let inner = stop ? rest.slice(0, stop.index) : rest;
         inner = inner.replace(/(?:\s*<\/div>)+\s*$/, "").trim();
-        // style/script 经 innerHTML 注入既不显示也不执行，但会让「有内容」误判——直接剥掉
-        inner = inner.replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<script[\s\S]*?<\/script>/gi, "").trim();
+        // style/script 经 innerHTML 注入既不显示也不执行，但会让「有内容」误判——直接剥掉；
+        // 站点会在正文外面包脚手架注释（实证：<!-- <span style="line-height: 24px;"> -->），
+        // 剥「完整」注释——千万别只删 "-->"（删了闭合符整段正文变成未闭合注释被浏览器全吞，
+        // 2026-09-06「我的提交正文不可见」真凶，此前 preview/prefill 里的 .replace("-->","") 即此雷）
+        inner = inner.replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<script[\s\S]*?<\/script>/gi, "");
+        inner = inner.replace(/<!--[\s\S]*?-->/g, "").trim();
         if (inner) out.submittedContent = decodeHtml(inner);
       }
     }
