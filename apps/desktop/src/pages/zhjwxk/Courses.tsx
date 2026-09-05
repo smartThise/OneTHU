@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEven
 import { createPortal } from "react-dom";
 import { Card, Empty, ErrorNote, PageHead, SegmentedOverflow, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
-import { useXkWorkbench, type XkSearchMeta, type XkStageItem } from "../../state/data.js";
+import { nextVolCheckpoint, useXkWorkbench, type XkSearchMeta, type XkStageItem } from "../../state/data.js";
 import { useApp } from "../../state/context.js";
 import type { XkCourseDetail } from "@onethu/core";
 import { tbEnsureIndex, tbFetchReviews, tbMatch, tbStars, tbCourseUrl, tbWriteUrl, type TbEntry, type TbReviews } from "../../lib/xkreviews.js";
@@ -1218,6 +1218,18 @@ function StageSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
   };
   return (
     <Sec title={`暂存课表（${wb.stageCart.length}）`}>
+      {/* 志愿数据检查点同步状态（NextTHUxk 2.0 回移：8/12/16/20 点对齐 + 手动补拉） */}
+      {wb.volState === "loading" ? <div style={{ fontSize: 10, color: "var(--text-3)" }}>志愿数据同步中…</div>
+        : wb.volState === "error" ? (
+          <div style={{ fontSize: 10, color: "var(--text-3)" }}>
+            志愿数据同步失败
+            <button className="btn" style={{ padding: "0 5px", fontSize: 10 }} onClick={() => void wb.refreshVol()}>重试</button>
+          </div>
+        ) : wb.volLastSync ? (
+          <div style={{ fontSize: 10, color: "var(--text-3)" }}>
+            志愿数据 {new Date(wb.volLastSync).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })} 同步 · 下次 {nextVolCheckpoint().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
+          </div>
+        ) : null}
       {wb.stageCart.length === 0 ? <div style={{ fontSize: 12, color: "var(--text-3)" }}>暂无暂存课程</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {wb.stageCart.map((s) => {
