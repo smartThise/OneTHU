@@ -366,6 +366,12 @@ function OneItem({
       <button type="button" className="icon-btn" title="下移" aria-label="下移" onClick={() => moveAtom(index, 1)}>
         <IconChevron width={13} height={13} style={{ transform: "rotate(90deg)" }} />
       </button>
+      {/* 长卡上的「方」：今日 widget 件没有方卡形态，双形态原子（教室）才有 */}
+      {!view.widget || view.tileLive ? (
+        <button type="button" className="icon-btn" title="改为方卡" aria-label="改为方卡" onClick={() => favs.setVariant(folderId, index, true)}>
+          方
+        </button>
+      ) : null}
       <button type="button" className="icon-btn" title="从此收藏夹移除" aria-label="移除" onClick={() => favs.removeAt(folderId, index)}>
         ✕
       </button>
