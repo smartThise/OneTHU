@@ -2567,6 +2567,22 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 .fav-tile-star { position: absolute; top: 4px; right: 4px; }
+/* 收藏夹方卡实时状态（洗衣机/教室）与教室长卡今日总览 */
+.fav-tile-live { display: inline-flex; align-items: center; gap: 5px; font-size: var(--text-xs); color: var(--text-2); }
+.live-line { display: inline-flex; align-items: center; gap: 5px; font-size: var(--text-xs); color: var(--text-2); }
+.live-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--text-3); flex: 0 0 auto; }
+.live-dot.live-ok { background: var(--green); }
+.live-dot.live-busy { background: var(--amber, #ff9f1a); }
+.live-dot.live-bad { background: var(--red); }
+.live-dot.live-muted { background: var(--text-3); }
+.live-today { display: flex; flex-direction: column; gap: 6px; }
+.live-today-head { font-size: var(--text-sm); color: var(--text-1); font-weight: 600; }
+.live-note { font-size: var(--text-xs); color: var(--text-3); }
+.live-chip-row { display: flex; gap: 4px; flex-wrap: wrap; }
+.live-chip { min-width: 24px; text-align: center; padding: 2px 7px; border-radius: 999px; font-size: var(--text-xs); font-weight: 600; }
+.live-chip.is-free { background: var(--green-soft); color: var(--green); }
+.live-chip.is-busy { background: var(--red-soft); color: var(--red); }
+.live-chip.is-now { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
 
 /* 收藏夹导航行：胶囊自带 margin-bottom:14（功能页独立成行的留白），
    在并排「管理栏目」按钮的 flex 行里会把胶囊顶高——作用域内清零 */
