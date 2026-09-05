@@ -2,8 +2,14 @@
 import { Children, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useApp } from "../state/context.js";
 import { topLevelPage, type Page } from "../state/app.js";
-import { IconDemo, IconInfo, IconLearn, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar } from "./Icons.js";
+import { IconChevron, IconDemo, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar } from "./Icons.js";
+import { useFavs } from "../state/favs.js";
 
+/**
+ * 默认一级入口（万物原子化定案）：钉死不可删隐，仅可在侧栏折叠进
+ * 「已折叠收藏夹（N）」组；一切功能原子锚定在这些原位页面，用户收藏夹
+ * 只是原子的跳转入口层。今日 = 首页恒在最上；设置 = 钉底。
+ */
 const NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode }> = [
   { page: "today", label: "今日", icon: IconToday },
   { page: "learn", label: "网络学堂", icon: IconLearn },
@@ -12,7 +18,6 @@ const NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode }> 
   { page: "life", label: "生活", icon: IconCard },
   { page: "reserve", label: "预约", icon: IconCalendar },
   { page: "zhjwxk", label: "选课", icon: IconXk },
-  { page: "settings", label: "设置", icon: IconSettings },
 ];
 
 /** (One / THU) 品牌标识：五列网格，括号代码体，One 衬线紧凑撑满与 THU 逐列对齐 */
@@ -182,11 +187,14 @@ export function Slogan({ size = 13 }: { size?: number }) {
 }
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { status, page: rawPage, navigate } = useApp();
+  const { status, page: rawPage, navigate, navParams } = useApp();
+  const favs = useFavs();
   const page = topLevelPage(rawPage);
   const demo = status === "demo";
   const [navOpen, setNavOpen] = useState(false);
   const [navClosing, setNavClosing] = useState(false);
+  /** 「已折叠收藏夹（N）」组展开态（会话态，不持久化） */
+  const [foldedOpen, setFoldedOpen] = useState(false);
   const closeNav = useCallback(() => {
     setNavClosing(true);
     window.setTimeout(() => {
@@ -194,6 +202,146 @@ export function Shell({ children }: { children: ReactNode }) {
       setNavClosing(false);
     }, 240);
   }, []);
+
+  const isFolderActive = (id: string) => page === "folder" && navParams?.folderId === id;
+
+  /** 侧栏一条导航项：主按钮 + 行尾折叠钮（hover 浮现；已折叠项的行尾钮是展开钮） */
+  const navRow = (key: string, opts: { active: boolean; label: string; icon: ReactNode; onClick: () => void; folded?: boolean; onFold?: () => void }) => (
+    <div className="nav-row" key={key}>
+      <button className={"nav-item" + (opts.active ? " is-active" : "")} onClick={opts.onClick}>
+        {opts.icon}
+        <span>{opts.label}</span>
+      </button>
+      {opts.onFold ? (
+        <button
+          className={"nav-fold" + (opts.folded ? " is-folded" : "")}
+          title={opts.folded ? "从折叠组展开" : "折叠进「已折叠收藏夹」"}
+          aria-label={(opts.folded ? "展开" : "折叠") + opts.label}
+          onClick={(e) => {
+            e.stopPropagation();
+            opts.onFold!();
+          }}
+        >
+          {opts.folded ? "»" : "«"}
+        </button>
+      ) : null}
+    </div>
+  );
+
+  /** 侧栏/抽屉共用导航内容 */
+  const navContent = (onAfter?: () => void) => {
+    const unfoldedDefaults = NAV.filter(({ page: p }) => !favs.data.foldedDefaults.includes(p));
+    const foldedDefaults = NAV.filter(({ page: p }) => favs.data.foldedDefaults.includes(p));
+    const unfoldedUser = favs.data.order.filter((id) => !favs.data.foldedRoots.includes(id));
+    const foldedUser = favs.data.order.filter((id) => favs.data.foldedRoots.includes(id));
+    const foldedCount = foldedDefaults.length + foldedUser.length;
+    return (
+      <>
+        {/* 默认一级入口：今日恒在最上（不可折叠），其余可折叠 */}
+        {unfoldedDefaults.map(({ page: p, label, icon: Icon }) =>
+          navRow("d-" + p, {
+            active: page === p,
+            label,
+            icon: <Icon />,
+            onClick: () => {
+              onAfter?.();
+              navigate(p);
+            },
+            folded: false,
+            onFold: p === "today" ? undefined : () => favs.foldSidebar(p, true),
+          }),
+        )}
+        {/* 用户收藏夹（根层）：跳转入口层 */}
+        {unfoldedUser.map((id) =>
+          navRow("u-" + id, {
+            active: isFolderActive(id),
+            label: favs.data.folders[id]?.title ?? "收藏夹",
+            icon: <IconFolder />,
+            onClick: () => {
+              onAfter?.();
+              navigate("folder", { folderId: id });
+            },
+            folded: false,
+            onFold: () => favs.foldSidebar(id, false),
+          }),
+        )}
+        <button
+          className="nav-item nav-new"
+          onClick={() => {
+            const id = favs.create("新建收藏夹", null);
+            if (id) {
+              onAfter?.();
+              navigate("folder", { folderId: id });
+            }
+          }}
+        >
+          <IconFolderPlus />
+          <span>新建收藏夹</span>
+        </button>
+        {/* 折叠组：默认入口与用户收藏夹都收这里，点一下展开 */}
+        {foldedCount > 0 ? (
+          <>
+            <button
+              className={"nav-item nav-folded-toggle" + (foldedOpen ? " is-open" : "")}
+              aria-expanded={foldedOpen}
+              onClick={() => setFoldedOpen((o) => !o)}
+            >
+              <IconFolder />
+              <span>已折叠收藏夹（{foldedCount}）</span>
+              <IconChevron width={13} height={13} className="row-caret" />
+            </button>
+            {foldedOpen ? (
+              <>
+                {foldedDefaults.map(({ page: p, label, icon: Icon }) =>
+                  navRow("fd-" + p, {
+                    active: page === p,
+                    label,
+                    icon: <Icon />,
+                    onClick: () => {
+                      onAfter?.();
+                      navigate(p);
+                    },
+                    folded: true,
+                    onFold: () => favs.foldSidebar(p, true),
+                  }),
+                )}
+                {foldedUser.map((id) =>
+                  navRow("fu-" + id, {
+                    active: isFolderActive(id),
+                    label: favs.data.folders[id]?.title ?? "收藏夹",
+                    icon: <IconFolder />,
+                    onClick: () => {
+                      onAfter?.();
+                      navigate("folder", { folderId: id });
+                    },
+                    folded: true,
+                    onFold: () => favs.foldSidebar(id, false),
+                  }),
+                )}
+              </>
+            ) : null}
+          </>
+        ) : null}
+        {/* 设置钉底 */}
+        <div className="nav-sep" aria-hidden />
+        {navRow("settings", {
+          active: page === "settings",
+          label: "设置",
+          icon: <IconSettings />,
+          onClick: () => {
+            onAfter?.();
+            navigate("settings");
+          },
+        })}
+      </>
+    );
+  };
+
+  /** 移动端顶栏标题：收藏夹页显示收藏夹名 */
+  const topbarTitle =
+    page === "folder" && navParams?.folderId
+      ? favs.data.folders[navParams.folderId]?.title ?? "收藏夹"
+      : NAV.find((n) => n.page === page)?.label ?? "OneTHU";
 
   return (
     <div className="shell">
@@ -203,16 +351,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
         <div className="nav-label">校园</div>
         <nav className="nav" aria-label="主导航">
-          {NAV.map(({ page: p, label, icon: Icon }) => (
-            <button
-              key={p}
-              className={"nav-item" + (page === p ? " is-active" : "")}
-              onClick={() => navigate(p)}
-            >
-              <Icon />
-              <span>{label}</span>
-            </button>
-          ))}
+          {navContent()}
         </nav>
         <div className="sidebar-foot">
           {demo ? (
@@ -237,19 +376,7 @@ export function Shell({ children }: { children: ReactNode }) {
               <BrandLogo size={15} />
             </div>
             <nav className="nav" aria-label="抽屉导航">
-              {NAV.map(({ page: p, label, icon: Icon }) => (
-                <button
-                  key={p}
-                  className={"nav-item" + (page === p ? " is-active" : "")}
-                  onClick={() => {
-                    closeNav();
-                    navigate(p);
-                  }}
-                >
-                  <Icon />
-                  <span>{label}</span>
-                </button>
-              ))}
+              {navContent(() => closeNav())}
             </nav>
             <div className="drawer-foot">
               {demo ? (
@@ -277,7 +404,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </button>
           <div className="topbar-brand">
             <BrandLogo size={11} />
-            <span className="topbar-title">{NAV.find((n) => n.page === page)?.label ?? "OneTHU"}</span>
+            <span className="topbar-title">{topbarTitle}</span>
           </div>
         </header>
         {children}
@@ -333,7 +460,8 @@ export function PageHead({
   meta,
   actions,
 }: {
-  title: string;
+  /** 页标题；收藏夹重命名等场景可传受控输入（ReactNode） */
+  title: ReactNode;
   meta?: ReactNode;
   actions?: ReactNode;
 }) {
@@ -343,6 +471,7 @@ export function PageHead({
   const dupOnTopbar =
     typeof window !== "undefined" &&
     window.matchMedia("(max-width: 860px)").matches &&
+    typeof title === "string" &&
     title === navLabel;
   return (
     <header className="page-head">

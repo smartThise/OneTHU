@@ -19,7 +19,9 @@ import { InfoPage } from "./pages/info/InfoPage.js";
 import { LifePage } from "./pages/info/LifePage.js";
 import { ReservePage } from "./pages/info/ReservePage.js";
 import { ZhjwxkCoursesPage } from "./pages/zhjwxk/Courses.js";
+import { FolderPage } from "./pages/FolderPage.js";
 import { AppProvider } from "./state/app.js";
+import { FavsProvider } from "./state/favs.js";
 import { useApp } from "./state/context.js";
 
 function Routed() {
@@ -52,6 +54,7 @@ function Routed() {
         {page === "life" && <LifePage />}
         {page === "reserve" && <ReservePage />}
         {page === "zhjwxk" && <ZhjwxkCoursesPage />}
+        {page === "folder" && <FolderPage />}
         {page === "settings" && <SettingsPage />}
         {page === "learn-course" && <CourseDetailPage />}
         {page === "learn-assignments" && <AssignmentsPage />}
@@ -78,7 +81,9 @@ function Routed() {
 export function App() {
   return (
     <AppProvider>
-      <Routed />
+      <FavsProvider>
+        <Routed />
+      </FavsProvider>
     </AppProvider>
   );
 }

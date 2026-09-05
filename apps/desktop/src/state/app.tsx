@@ -12,7 +12,8 @@ export type Page =
   | "info" // 信息门户聚合页（成绩 / 考试 / 新闻 / 个人信息）
   | "life" // 生活聚合页（宿舍电费/订水 · 洗衣机 · 校园卡）
   | "reserve" // 预约（图书馆座位；游泳/健身房等场馆陆续接入）
-  | "zhjwxk" // 选课系统（已选课程 / 候补队列）
+  | "zhjwxk" // 选课系统（已选课程 / 候补队列；不可拆分原子）
+  | "folder" // 用户收藏夹页（navParams.folderId 指向具体收藏夹）
   | "settings"
   | "learn-course" // 课程详情（courseId）
   | "learn-assignments" // 全部作业
@@ -47,12 +48,36 @@ export interface LearnNav {
    *  仅作挂载初始落点 / 已挂载时的直达落点，页内切换不回写；不带对应参数时
    *  各页保持原默认（info=成绩 / life=宿舍 / reserve=图书馆座位）。
    *  reserveTab 的 "lib"/"room"/"classroom"/"sports" 分别对应 ReservePage 页内 library/libroom/classroom/sports 栏。 */
-  infoTab?: "report" | "fitness" | "exams" | "evaluation" | "calendar" | "news" | "profile";
+  infoTab?: "report" | "fitness" | "exams" | "evaluation" | "calendar" | "news" | "profile" | "courseinfo";
   lifeTab?: "dorm" | "washer" | "hygiene" | "card" | "invoice" | "payroll" | "gradincome" | "network";
   reserveTab?: "lib" | "room" | "classroom" | "sports" | "kongjian";
+  /* ═══ 实体原子深链（万物原子化）：跳进 tab 后自动选中/高亮特定实体 ═══
+     仅作挂载/数据就绪后的自动落点，页内手动切换不回写；不带参数行为与旧版一致。 */
+  /** 洗衣机：自动选中的楼栋 id（washer tab 楼栋下拉） */
+  washerBuildingId?: string;
+  /** 楼栋展示名兜底（原子 key 里自带，列表未就绪时也能显示） */
+  washerBuildingName?: string;
+  /** 楼栋是否海乐生活点位（key 自带） */
+  washerBuildingHlsh?: boolean;
+  /** 洗衣机：楼内要高亮滚动的设备名 */
+  washerMachine?: string;
+  /** 空教室：自动选中的教学楼（searchName） */
+  classroomBuilding?: string;
+  /** 教学楼展示名兜底 */
+  classroomBuildingName?: string;
+  /** 空教室：要高亮滚动的教室名 */
+  classroomRoom?: string;
+  /** 体育：自动选中的场馆 scene uuid（VenueScene.uuid） */
+  sportsScene?: string;
+  /** 研讨间：自动选中的类型 kindId */
+  libroomKind?: number;
+  /** 图书馆：自动选中的馆 libId */
+  libraryId?: number;
+  /** 用户收藏夹页：folder id（page=folder 时必带） */
+  folderId?: string;
 }
 
-const TOP_PAGES = ["today", "learn", "schedule", "info", "life", "reserve", "zhjwxk", "settings"] as const;
+const TOP_PAGES = ["today", "learn", "schedule", "info", "life", "reserve", "zhjwxk", "folder", "settings"] as const;
 
 /** 子页归属的一级页（侧栏高亮 / hash 用） */
 export function topLevelPage(p: Page): Page {
@@ -99,6 +124,13 @@ function pageFromHash(): Page {
   return (TOP_PAGES as readonly string[]).includes(h) ? (h as Page) : "today";
 }
 
+/** hash → 收藏夹页参数（#/folder/<id>；无 id 或 id 形态不对返回 null） */
+function folderParamsFromHash(): LearnNav | null {
+  const h = location.hash.replace(/^#\/?/, "");
+  const m = /^folder\/(f_[A-Za-z0-9_]+)$/.exec(h);
+  return m ? { folderId: m[1] } : null;
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<SessionStatus>("booting");
   const [user, setUser] = useState<SessionUser | null>(null);
@@ -126,8 +158,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         selfNavHashRef.current = null; // 自身导航触发的 hashchange：状态已由 navigate 设定
         return;
       }
-      setPage(pageFromHash());
-      setNavParams(null);
+      const fp = folderParamsFromHash();
+      setPage(fp ? "folder" : pageFromHash());
+      setNavParams(fp);
     };
     addEventListener("hashchange", onHash);
     return () => removeEventListener("hashchange", onHash);
@@ -169,7 +202,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // hash 只承载一级页：子页刷新后落回所属入口，避免丢参数的死链；
     // 记录本次写入，onHash 对自身触发的 hashchange 直接忽略（见 selfNavHashRef）。
     // hash 本就相同时没有新事件，但此前可能仍有同目标旧事件挂起——保留对账标记等它到达。
-    const h = `#/${topLevelPage(p)}`;
+    const h = p === "folder" && params?.folderId ? `#/folder/${params.folderId}` : `#/${topLevelPage(p)}`;
     if (location.hash === h) {
       if (selfNavHashRef.current !== h) selfNavHashRef.current = null;
     } else {

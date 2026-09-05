@@ -5,10 +5,17 @@ import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { clearRemembered, loadRemembered, session } from "../lib/clients.js";
 import { clearHomeLayout } from "../lib/homeCards.js";
+import { useFavs } from "../state/favs.js";
+import { parseFavs, resetFavs } from "../state/favorites.js";
+import { confirmOk } from "../lib/confirm.js";
 import { useApp } from "../state/context.js";
 
 export function SettingsPage() {
   const { user, logout } = useApp();
+  const favs = useFavs();
+  const [favMsg, setFavMsg] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
   const [hasSaved, setHasSaved] = useState(false);
   const [clearing, setClearing] = useState(false);
   // 首页布局恢复：点击后短暂显示「已恢复默认」，到点回位
@@ -118,6 +125,85 @@ export function SettingsPage() {
             {homeResetAt ? "已恢复默认" : "恢复默认布局"}
           </button>
         </div>
+      </Card>
+
+      <SectionHead title="收藏夹" />
+      <Card>
+        <div className="setting-row" style={{ alignItems: "flex-start" }}>
+          <div>
+            <div className="setting-title">恢复默认收藏夹</div>
+            <div className="setting-desc">
+              删除全部用户收藏夹与折叠记录（默认一级入口不受影响，永远在左侧栏）。
+              各功能原子仍锚定在原位页面，收藏夹只是跳转入口层。
+            </div>
+            {favMsg ? <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }}>{favMsg}</div> : null}
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <button
+              className="btn"
+              onClick={() => {
+                const json = JSON.stringify(favs.data);
+                const clip = navigator.clipboard;
+                if (!clip?.writeText) {
+                  setFavMsg("剪贴板不可用——请用「导入」框核对，或截图反馈。");
+                  return;
+                }
+                void clip
+                  .writeText(json)
+                  .then(() => setFavMsg("收藏夹 JSON 已复制到剪贴板（" + favs.data.order.length + " 个根收藏夹）"))
+                  .catch(() => setFavMsg("复制失败：剪贴板被拒绝，可改用导入框反向核对。"));
+              }}
+            >
+              导出（复制 JSON）
+            </button>
+            <button className="btn" onClick={() => { setImportOpen((o) => !o); setImportText(""); setFavMsg(null); }}>
+              导入
+            </button>
+            <button
+              className="btn"
+              onClick={() =>
+                void confirmOk("删除全部用户收藏夹并复位折叠记录？默认一级入口不受影响。").then((ok) => {
+                  if (!ok) return;
+                  favs.replaceAll(resetFavs());
+                  setFavMsg("已恢复默认。");
+                })
+              }
+            >
+              恢复默认
+            </button>
+          </div>
+        </div>
+        {importOpen ? (
+          <div style={{ marginTop: 12 }}>
+            <textarea
+              className="input"
+              style={{ width: "100%", minHeight: 120, fontFamily: "var(--mono, monospace)", fontSize: 12 }}
+              placeholder={"粘贴收藏夹 JSON（设置页导出的格式）…"}
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+            />
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <button
+                className="btn btn-primary"
+                disabled={!importText.trim()}
+                onClick={() => {
+                  const parsed = parseFavs(importText);
+                  if (!parsed) {
+                    setFavMsg("导入失败：JSON 结构不合法（需要 onethu.favs.v1 导出格式）。");
+                    return;
+                  }
+                  favs.replaceAll(parsed);
+                  setImportOpen(false);
+                  setImportText("");
+                  setFavMsg("已导入 " + parsed.order.length + " 个根收藏夹。");
+                }}
+              >
+                导入并覆盖
+              </button>
+              <button className="btn btn-ghost" onClick={() => setImportOpen(false)}>取消</button>
+            </div>
+          </div>
+        ) : null}
       </Card>
 
       <SectionHead title="安全" />
