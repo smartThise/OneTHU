@@ -785,6 +785,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
   const prob = itemProb(wb, r.c.code, r.c.seq, pick.flag, pick.zy);
   const confs = findPreviewConflicts({ code: r.c.code, seq: r.c.seq, time: r.time, name: r.name }, wb.previewIndex);
   const state = r.selected ? "selected" : r.isCandidate ? "candidate" : wb.phase && r.q && r.q.qRemaining === 0 && r.q.qQueue === 0 ? "full" : "available";
+  const showInlineProb = state === "selected" || state === "candidate"; // 可用行操作行已有概率 chip，不双显
 
   return (
     <div className="row" style={{ animationDelay: `${Math.min(i, 20) * 20}ms`, ...(highlight ? { outline: "2px solid var(--accent)" } : {}) }}>
@@ -812,7 +813,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
         ) : r.vol ? (
           <div className="row-sub" style={{ whiteSpace: "normal" }}>
             {[r.vol.volRequired && fmtVol(r.vol.volRequired), r.vol.volElective && fmtVol(r.vol.volElective), r.vol.volOptional && fmtVol(r.vol.volOptional)].filter(Boolean).join(" · ")}
-            <span style={{ marginLeft: 8, color: prob.color }}>{prob.prob}</span>
+            {showInlineProb ? <span style={{ marginLeft: 8, color: prob.color }}>{prob.prob}</span> : null}
           </div>
         ) : (r.c.capacity || r.c.remaining) ? (
           // 队列阶段未开放/志愿接口被拦（xkqkSearch 弹「功能未开放」→ volMap 恒空）
@@ -820,7 +821,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           // 不兜底则所有卡片的容量行整体消失（2026-09-03 实录）
           <div className="row-sub" style={{ whiteSpace: "normal" }}>
             {[r.c.capacity ? `容量 ${r.c.capacity}` : "", typeof r.c.remaining === "number" ? `余量 ${r.c.remaining}` : ""].filter(Boolean).join(" · ")}
-            <span style={{ marginLeft: 8, color: prob.color }}>{prob.prob}</span>
+            {showInlineProb ? <span style={{ marginLeft: 8, color: prob.color }}>{prob.prob}</span> : null}
           </div>
         ) : null}
         {(() => { const o = originOf(r.c.code); if (!o) return null;
