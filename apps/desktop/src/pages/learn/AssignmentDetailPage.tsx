@@ -318,7 +318,8 @@ export function AssignmentDetailPage() {
             const hasBody = c.replace(/<[^>]*>/g, "").replace(/&nbsp;|&#160;/g, " ").trim().length > 0;
             if (hasBody) {
               return (
-                <div style={{ marginBottom: 6 }}>
+                /* detail-sec 卡片左右 padding 为 0，行距由 .kv 自带——预览块须自带同样的 16px 边距 */
+                <div style={{ padding: "4px 16px 0", marginBottom: 6 }}>
                   <div className="detail-meta" style={{ fontWeight: 600, marginBottom: 4 }}>我的提交正文</div>
                   <RichContent html={c} />
                 </div>
