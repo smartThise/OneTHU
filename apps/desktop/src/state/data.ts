@@ -671,6 +671,7 @@ export function useXkWorkbench(): XkWorkbench {
   const volRetriedRef = useRef<Record<string, number>>({}); // 缺行重拉 "d:院系" / 定向课号 "k:课号"，每会话一次
   const volDataRef = useRef<Record<string, XkVolRow>>({}); // volMap 镜像（回调内判定缺行用）
   const volInflightRef = useRef(false);
+  const volPendingRef = useRef(false); // inflight 期间的触发不丢，收尾补跑
   const refreshVolRef = useRef<(force?: boolean) => Promise<void>>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -909,7 +910,11 @@ export function useXkWorkbench(): XkWorkbench {
    *  阶段门控：队列阶段概率走排队/余量模型，跳过志愿同步（2.0 定稿）。 */
   const refreshVol = useCallback(
     async (force = false): Promise<void> => {
-      if (status === "demo" || phase || volInflightRef.current) return;
+      if (status === "demo" || phase) return;
+      if (volInflightRef.current) {
+        volPendingRef.current = true; // 目录/搜索又变了：收尾后补跑一轮（doneMap 去重，代价≈0）
+        return;
+      }
       volInflightRef.current = true;
       setVolState("loading");
       try {
@@ -923,12 +928,17 @@ export function useXkWorkbench(): XkWorkbench {
           if (dc && (force || !volDeptsRef.current[dc])) depts.add(dc);
         }
         const hasSports = pool.some((r) => isSportsCourse(r));
+        const merge = (rows: Record<string, XkVolRow>): void => {
+          volDataRef.current = { ...volDataRef.current, ...rows };
+          setVolMap((prev) => ({ ...prev, ...rows })); // 流式：每院系到手即上屏
+        };
         let got = await fetchXkVolunteerByDept(sess, {
           semester: sem,
           depts: [...depts],
           hasSports,
           doneMap: volDeptsRef.current,
           force,
+          onRows: merge,
         });
         volDataRef.current = { ...volDataRef.current, ...got };
         setVolMap((prev) => ({ ...prev, ...got }));
@@ -978,6 +988,10 @@ export function useXkWorkbench(): XkWorkbench {
         setVolState("error");
       } finally {
         volInflightRef.current = false;
+        if (volPendingRef.current) {
+          volPendingRef.current = false;
+          void refreshVolRef.current?.(false);
+        }
       }
     },
     [status, phase, catalog, searchRaw, semester],
@@ -995,6 +1009,14 @@ export function useXkWorkbench(): XkWorkbench {
   }, []);
 
   refreshVolRef.current = refreshVol;
+
+  // 渲染行按需补拉（NextTHUxk 2.0 回移）：目录/搜索池到位晚于首次同步——
+  // 变化后防抖触发增量补拉，已拉院系 doneMap 去重，代价≈0；不触发则
+  // 新到行的志愿永远无数据（2026-09 实录：卡片半数无数据的根因）。
+  useEffect(() => {
+    const t = setTimeout(() => void refreshVolRef.current?.(false), 1500);
+    return () => clearTimeout(t);
+  }, [catalog, searchRaw]);
   const [searchState, setSearchState] = useState<DataState | "idle" | "loadingMore">("idle");
   const [searchPage, setSearchPage] = useState(1);
   const [searchHasMore, setSearchHasMore] = useState(false);
