@@ -4,8 +4,8 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  loadFavs, saveFavs, createFolder, deleteFolder, renameFolder, toggleAtom, moveItem,
-  removeItemAt, setAtomVariant, toggleFoldSub, toggleSidebarFold, foldersOfAtom, hasAtom, atomKeyOf,
+  loadFavs, saveFavs, createFolder, deleteFolder, renameFolder, toggleAtom, swapItems,
+  removeItemAt, setAtomVariant, toggleSidebarFold, foldersOfAtom, hasAtom, atomKeyOf,
   type AtomRef, type FavItem, type FavsData,
 } from "./favorites.js";
 
@@ -22,10 +22,10 @@ export interface FavsApi {
   /** 收录某原子的全部收藏夹 id */
   foldersContaining: (atom: AtomRef) => string[];
   hasAtomIn: (folderId: string, atom: AtomRef) => boolean;
-  move: (folderId: string, index: number, dir: -1 | 1) => void;
+  /** 交换收藏夹内两项（瀑布流排序；子收藏夹项栏序走 tabLayout 不走这里） */
+  swap: (folderId: string, i: number, j: number) => void;
   removeAt: (folderId: string, index: number) => void;
   setVariant: (folderId: string, index: number, sq: boolean | undefined) => void;
-  foldSub: (folderId: string, subId: string) => void;
   foldSidebar: (id: string, isDefault: boolean) => void;
   /** 整体替换存储（设置导入/恢复默认） */
   replaceAll: (d: FavsData) => void;
@@ -96,8 +96,8 @@ export function FavsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const move = useCallback((folderId: string, index: number, dir: -1 | 1) => {
-    setData((prev) => moveItem(prev, folderId, index, dir));
+  const swap = useCallback((folderId: string, i: number, j: number) => {
+    setData((prev) => swapItems(prev, folderId, i, j));
   }, []);
 
   const removeAt = useCallback((folderId: string, index: number) => {
@@ -106,10 +106,6 @@ export function FavsProvider({ children }: { children: ReactNode }) {
 
   const setVariant = useCallback((folderId: string, index: number, sq: boolean | undefined) => {
     setData((prev) => setAtomVariant(prev, folderId, index, sq));
-  }, []);
-
-  const foldSub = useCallback((folderId: string, subId: string) => {
-    setData((prev) => toggleFoldSub(prev, folderId, subId));
   }, []);
 
   const foldSidebar = useCallback((id: string, isDefault: boolean) => {
@@ -123,8 +119,8 @@ export function FavsProvider({ children }: { children: ReactNode }) {
   const itemsOf = useCallback((id: string) => data.folders[id]?.items ?? [], [data]);
 
   const value = useMemo<FavsApi>(
-    () => ({ data, create, remove, rename, toggleAtomIn, addAtom, foldersContaining, hasAtomIn, move, removeAt, setVariant, foldSub, foldSidebar, replaceAll, itemsOf }),
-    [data, create, remove, rename, toggleAtomIn, addAtom, foldersContaining, hasAtomIn, move, removeAt, setVariant, foldSub, foldSidebar, replaceAll, itemsOf],
+    () => ({ data, create, remove, rename, toggleAtomIn, addAtom, foldersContaining, hasAtomIn, swap, removeAt, setVariant, foldSidebar, replaceAll, itemsOf }),
+    [data, create, remove, rename, toggleAtomIn, addAtom, foldersContaining, hasAtomIn, swap, removeAt, setVariant, foldSidebar, replaceAll, itemsOf],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

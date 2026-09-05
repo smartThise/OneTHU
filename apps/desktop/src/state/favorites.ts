@@ -21,13 +21,13 @@ export interface AtomRef {
 /** 收藏夹子项：atom=原子；f=子收藏夹引用 */
 export type FavItem = { t: "a"; atom: AtomRef; /** 方卡变体（缺省用原子默认） */ sq?: boolean } | { t: "f"; id: string };
 
-/** 收藏夹节点（根与子共用；根在 order 里，全部存在 folders 平铺表） */
+/** 收藏夹节点（根与子共用；根在 order 里，全部存在 folders 平铺表）。
+ *  子收藏夹展示 = 功能页同款 segmented 导航栏（显隐/顺序走 tabLayout 按夹分键），
+ *  不再存页内折叠态。 */
 export interface FavFolder {
   id: string;
   title: string;
   items: FavItem[];
-  /** 页内折叠的子收藏夹 id */
-  foldedIds: string[];
   createdAt: number;
 }
 
@@ -79,7 +79,6 @@ function parseFolder(raw: unknown): FavFolder | null {
     id: r.id,
     title: r.title.slice(0, 40),
     items,
-    foldedIds: Array.isArray(r.foldedIds) ? r.foldedIds.filter((x): x is string => typeof x === "string") : [],
     createdAt: typeof r.createdAt === "number" ? r.createdAt : Date.now(),
   };
 }
@@ -164,7 +163,7 @@ export function atomKeyOf(a: AtomRef): string {
 export function createFolder(d: FavsData, title: string, parentId: string | null): FavsData {
   if (!canNestUnder(d, parentId)) return d;
   const id = newFavId();
-  const node: FavFolder = { id, title: title.trim().slice(0, 40) || "新建收藏夹", items: [], foldedIds: [], createdAt: Date.now() };
+  const node: FavFolder = { id, title: title.trim().slice(0, 40) || "新建收藏夹", items: [], createdAt: Date.now() };
   const folders = { ...d.folders, [id]: node };
   if (parentId === null) return { ...d, folders, order: [...d.order, id] };
   const parent = folders[parentId];
@@ -227,16 +226,15 @@ export function foldersOfAtom(d: FavsData, atom: AtomRef): string[] {
   return out;
 }
 
-/** 收藏夹内某项与相邻项交换位置（dir=-1 上移 / 1 下移；越界原样返回） */
-export function moveItem(d: FavsData, folderId: string, index: number, dir: -1 | 1): FavsData {
+/** 收藏夹内两项交换位置（i/j 越界或相等原样返回；子收藏夹项不参与瀑布流排序，
+ *  其栏序由 tabLayout 管理——排序调用方先解析出相邻原子下标再交换） */
+export function swapItems(d: FavsData, folderId: string, i: number, j: number): FavsData {
   const f = d.folders[folderId];
-  if (!f) return d;
-  const j = index + dir;
-  if (index < 0 || j < 0 || j >= f.items.length) return d;
+  if (!f || i < 0 || j < 0 || i >= f.items.length || j >= f.items.length || i === j) return d;
   const items = [...f.items];
-  const a = items[index]!;
+  const a = items[i]!;
   const b = items[j]!;
-  items[index] = b;
+  items[i] = b;
   items[j] = a;
   return { ...d, folders: { ...d.folders, [folderId]: { ...f, items } } };
 }
@@ -258,14 +256,6 @@ export function setAtomVariant(d: FavsData, folderId: string, index: number, sq:
   const items = [...f.items];
   items[index] = { ...it, sq };
   return { ...d, folders: { ...d.folders, [folderId]: { ...f, items } } };
-}
-
-/** 折叠/展开某收藏夹内的子收藏夹 */
-export function toggleFoldSub(d: FavsData, folderId: string, subId: string): FavsData {
-  const f = d.folders[folderId];
-  if (!f) return d;
-  const foldedIds = f.foldedIds.includes(subId) ? f.foldedIds.filter((x) => x !== subId) : [...f.foldedIds, subId];
-  return { ...d, folders: { ...d.folders, [folderId]: { ...f, foldedIds } } };
 }
 
 /** 侧栏折叠切换：isDefault=true 折叠默认入口（Page id），否则折叠用户根收藏夹 */

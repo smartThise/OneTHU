@@ -2487,7 +2487,7 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .nav-item.nav-folded-toggle.is-open .row-caret { transform: rotate(90deg); }
 .nav-sep { height: 1px; background: var(--border-soft); margin: 6px 8px; }
 
-/* —— 用户收藏夹页：工具行 / 新建子收藏夹 / 子收藏夹分节 / 方卡瓦片 —— */
+/* —— 用户收藏夹页：工具行 / 新建子收藏夹 / 方卡瓦片（子收藏夹=segmented 导航栏，复用聚合页样式）—— */
 .fav-toolbar {
   display: flex;
   align-items: center;
@@ -2501,41 +2501,6 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .fav-toolbar-hint { font-size: var(--text-sm); color: var(--text-3); }
 .fav-newsub { display: flex; gap: 8px; align-items: center; margin: 4px 0 12px; }
 .fav-newsub .input { max-width: 260px; }
-
-.fav-sub {
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  background: var(--surface);
-  margin-bottom: 10px;
-  overflow: hidden;
-  animation: page-in 240ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
-}
-.fav-sub-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px 7px 12px;
-  border-bottom: 1px solid var(--border-soft);
-  min-width: 0;
-}
-.fav-sub-toggle {
-  flex: 1 1 auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 0;
-  background: transparent;
-  color: var(--text-1);
-  font-size: var(--text-md);
-  cursor: pointer;
-  min-width: 0;
-  padding: 2px 0;
-}
-.fav-sub-toggle > svg:first-child { color: var(--text-3); }
-.fav-sub-count { font-size: var(--text-xs); color: var(--text-3); font-weight: 400; }
-.fav-sub-toggle .row-caret { color: var(--text-3); transform: rotate(90deg); transition: transform 140ms ease; }
-.fav-sub-toggle .row-caret.is-open { transform: rotate(0deg); }
-.fav-sub-body { padding: 10px 10px 4px; }
 
 .fav-tiles {
   display: grid;
