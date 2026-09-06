@@ -16,6 +16,7 @@ import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../compone
 import { SearchSelect } from "../../components/SearchSelect.jsx";
 import { CollectStar } from "../../components/Collect.js";
 import { enc, noteAtomCache } from "../../state/atoms.js";
+import { cacheGet, cacheSet } from "../../state/cache.js";
 import { fetchImageByUrl, info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { autoFullReload } from "../../lib/reload.js";
@@ -216,6 +217,13 @@ function SeatCell({
   );
 }
 
+/** 日期选择 → 真实日期串（与 core #libAreasByDateUrl 同式）：SWR 缓存键成分，防跨天陈旧 */
+function dayKey(choice: 0 | 1): string {
+  const d = new Date();
+  d.setDate(d.getDate() + choice);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function LibraryTab({
   deepLib,
   deepFloor,
@@ -307,16 +315,25 @@ export function LibraryTab({
     if (status !== "ready") return;
     setLibState("loading");
     setLibError(null);
+    // SWR：上次馆树立即上屏（localStorage 持久化，冷启动秒开），后台重验证
+    const thit = cacheGet<Library[]>("library:tree");
+    if (thit && thit.data.length > 0 && Date.now() - thit.at < 86_400_000) {
+      setLibs(thit.data);
+      setLibState("ready");
+      setLibId((cur) => cur ?? (thit.data.find((l) => l.valid) ?? thit.data[0])?.id ?? null);
+    }
     try {
       const list = await info.getLibraryList();
       // 空馆列表 ≠ 正常空态：下拉块按 libs.length>0 渲染，静默吞掉会整块消失且无 ErrorNote
       if (list.length === 0) throw new Error("馆列表为空（seat.lib 返回空 list，会话可能未建立）");
       libRecover.current = 0;
+      cacheSet("library:tree", list);
       setLibs(list);
       setLibState("ready");
       noteAtomCache({ libraries: list.map((l) => ({ id: l.id, name: l.zhName })) });
       const firstValid = list.find((l) => l.valid) ?? list[0];
-      if (firstValid) setLibId(firstValid.id);
+      // 守卫：stale 已选的馆不覆盖（重验证不改用户选择）
+      if (firstValid) setLibId((cur) => cur ?? firstValid.id);
     } catch (err) {
       logErr("LIB-LIST", err);
       // 登录态丢失：不闪红，静默强制重建座位会话后自动重载一次；仍失败才亮 ErrorNote
@@ -370,13 +387,6 @@ export function LibraryTab({
     const lib = (libs ?? []).find((l) => l.id === libId);
     if (!lib) return;
     let alive = true;
-    setFloors(null);
-    setFloorId(null);
-    setSections(null);
-    setSectionId(null);
-    setSeats(null);
-    // 渐进回填：楼层骨架先亮（区域下拉立即可选），逐层余量到达即刷新——
-    // 校外 webvpn 每层 2~3s 串行（PHP 会话锁），不再攒满 5 层才出界面
     let picked = false;
     const pickFirst = (list: LibraryFloor[]) => {
       if (picked) return;
@@ -386,6 +396,22 @@ export function LibraryTab({
         setFloorId(firstValid.id);
       }
     };
+    // SWR：上次楼层立即上屏（键嵌真实日期，防跨天陈旧冒充），后台重验证
+    const fkey = `library:floors:${libId}:${dayKey(dateChoice)}`;
+    const fhit = cacheGet<LibraryFloor[]>(fkey);
+    if (fhit && fhit.data.length > 0 && Date.now() - fhit.at < 6 * 3_600_000) {
+      setFloors(fhit.data);
+      pickFirst(fhit.data);
+      picked = true;
+    } else {
+      setFloors(null);
+      setFloorId(null);
+      setSections(null);
+      setSectionId(null);
+      setSeats(null);
+    }
+    // 渐进回填：楼层骨架先亮（区域下拉立即可选），逐层余量到达即刷新——
+    // 校外 webvpn 每层 2~3s 串行（PHP 会话锁），不再攒满 5 层才出界面
     info
       .getLibraryFloorList(lib, dateChoice, (list) => {
         if (!alive || list.length === 0) return;
@@ -395,6 +421,7 @@ export function LibraryTab({
       .then((list) => {
         if (!alive) return;
         floorRecover.current = 0;
+        cacheSet(fkey, list);
         setFloors(list);
         pickFirst(list);
       })
@@ -425,17 +452,28 @@ export function LibraryTab({
   useEffect(() => {
     if (floorId === null || status !== "ready") return;
     let alive = true;
-    setSections(null);
-    setSectionId(null);
-    setSeats(null);
+    // SWR：上次区域立即上屏（键嵌真实日期），后台重验证
+    const skey = `library:sections:${floorId}:${dayKey(dateChoice)}`;
+    const shit = cacheGet<LibrarySection[]>(skey);
+    if (shit && shit.data.length > 0 && Date.now() - shit.at < 6 * 3_600_000) {
+      setSections(shit.data);
+      setSectionId((cur) => cur ?? shit.data.find((s) => s.valid)?.id ?? null);
+    } else {
+      setSections(null);
+      setSectionId(null);
+      setSeats(null);
+    }
     info
       .getLibrarySectionList({ id: floorId, zhNameTrace: "" }, dateChoice)
       .then((list) => {
         if (!alive) return;
         sectionRecover.current = 0;
+        cacheSet(skey, list);
         setSections(list);
-        const firstValid = list.find((s) => s.valid);
-        if (firstValid) setSectionId(firstValid.id);
+        // 守卫：stale 已选的区域仍存在则不覆盖（重验证不改用户选择）
+        setSectionId((cur) =>
+          cur && list.some((s) => s.id === cur) ? cur : list.find((s) => s.valid)?.id ?? null,
+        );
       })
       .catch((err: unknown) => {
         logErr("LIB-SECTION", err);
