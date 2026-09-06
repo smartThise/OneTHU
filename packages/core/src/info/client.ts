@@ -1463,7 +1463,12 @@ export class InfoClient {
   ): Promise<string> {
     const attempt = async (): Promise<string> => {
       const page = await fetcher().catch(() => "");
-      return page && !isLogin(page) ? page : "";
+      // ASP.NET ErrorPage（模块会话缺失时 myhome 302 到 ErrorPage.html?aspxerrorpath=
+      // …）：不是登录页，旧探测器放行 → 乐观快路径误判会话健康 → 电费记录页解析
+      // 炸（2026-09-06 校外实录：整轮会话 0 次宿舍漫游，ErrorPage 直通 .myTable
+      // 解析）。错误页等同失登 → ensureDorm 建 /1 电费模块会话后重试。
+      const bad = !page || isLogin(page) || /aspxerrorpath=|\/ErrorPage\.html/i.test(page);
+      return bad ? "" : page;
     };
     if (!(this.#dormRoamed && Date.now() - this.#dormLastOkAt < DORM_OK_TTL)) {
       const page = await attempt();

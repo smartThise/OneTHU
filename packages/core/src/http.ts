@@ -234,6 +234,10 @@ export class HttpClient {
   #ua: string;
   #webVPN = false;
   #relogin: (() => Promise<void>) | null = null;
+  /** 重登单飞：并发多个请求同时发现失登时只跑一次——两个重登并发会各自重立
+   *  webvpn 会话互烧 wengine_vpn_ticket（2026-09-06 校外 14 连败实录：3 条并发
+   *  链各自内部重舞 oauth，票据互相顶掉成环）。 */
+  #reloginInflight: Promise<void> | null = null;
 
   /** 诊断现场：最后一次 text() 响应（URL + 状态 + 正文前 800 字）。
    *  info/learn 解析失败时由 UI 落盘到 /tmp/onethu-debug.log 定位。 */
@@ -406,7 +410,10 @@ export class HttpClient {
       }
     }
     if (this.#looksLoggedOut(body, response) && this.#relogin) {
-      await this.#relogin();
+      this.#reloginInflight ??= this.#relogin().finally(() => {
+        this.#reloginInflight = null;
+      });
+      await this.#reloginInflight;
       response = await this.request(url, init);
       body = await response.text();
       const wireNote2 = this.lastTarget && this.lastTarget !== url

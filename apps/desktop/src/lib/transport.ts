@@ -41,9 +41,20 @@ async function invokeHttp(
   bodyB64?: string,
 ): Promise<HttpOutput> {
   const { invoke } = await import("@tauri-apps/api/core");
-  return invoke<HttpOutput>("http_request", {
+  const p = invoke<HttpOutput>("http_request", {
     input: { url, method, headers, body: body ?? null, body_b64: bodyB64 ?? null },
   });
+  // 45s 超时兜底：Rust reqwest 无默认超时，webvpn 链路偶发悬挂会无限 await
+  // （「校外卡死」实录）。到点即弃约解阻塞，后台 Rust 任务自生自灭（有界泄漏）。
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const guard = new Promise<never>((_, rej) => {
+    timer = setTimeout(() => rej(new Error(`请求超时（45s）：${url.slice(0, 120)}`)), 45_000);
+  });
+  try {
+    return await Promise.race([p, guard]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 function collectHeaders(init: RequestInit): Record<string, string> {
