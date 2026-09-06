@@ -203,7 +203,9 @@ export function Shell({ children }: { children: ReactNode }) {
   /** 侧栏排序编辑模式（页面行 ↑↓；收藏夹仍走收藏夹页上移/下移） */
   const [navEdit, setNavEdit] = useState(false);
 
-  /* 序列归一化 + 收藏夹相对序重投影（favs.order 变化即收藏夹页 上移/下移/新建/删除） */
+  /* 收藏夹相对序重投影（favs.order 变化即收藏夹页 上移/下移/新建/删除）。
+   *  归一化不放 effect：SSR/首帧没有 effect，渲染期就地归一化（navSeqView）
+   *  才能保证第一帧侧栏就是全量导航（冒烟实录：effect 版首帧侧栏全空）。 */
   useEffect(() => {
     setNavSeq((prev) => restabilizeFolders(normalizeNavOrder(prev, NAV.map((n) => n.page), favs.data.order), favs.data.order));
   }, [favs.data.order]);
@@ -255,12 +257,13 @@ export function Shell({ children }: { children: ReactNode }) {
 
   /** 侧栏/抽屉共用导航内容 */
   const navContent = (onAfter?: () => void) => {
+    const navSeqView = normalizeNavOrder(navSeq, NAV.map((n) => n.page), favs.data.order);
     const isFoldedKey = (k: string) =>
       k.startsWith("p:")
         ? favs.data.foldedDefaults.includes(k.slice(2) as Page)
         : favs.data.foldedRoots.includes(k.slice(2));
-    const visKeys = navSeq.filter((k) => !isFoldedKey(k));
-    const foldedKeys = navSeq.filter(isFoldedKey);
+    const visKeys = navSeqView.filter((k) => !isFoldedKey(k));
+    const foldedKeys = navSeqView.filter(isFoldedKey);
     const foldedCount = foldedKeys.length;
     const moveNavEntry = (key: string, dir: -1 | 1) => {
       setNavSeq((prev) => {
