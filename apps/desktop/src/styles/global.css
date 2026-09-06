@@ -2394,6 +2394,8 @@ html.is-phone .tl-time, html.is-phone .tl-bar { flex-shrink: 0; }
 html.is-phone .list .chip, html.is-phone .list .row-caret { flex-shrink: 0; }
 /* 学堂概览：三块紧凑竖排小卡（此前被压成一行一块的巨型空匾） */
 html.is-phone .stats:not(.stats-hero) { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  /* 单卡塞三列网格（今日·校园卡余额卡）：独卡只占 1/3 宽、右 2/3 空白——通栏 */
+  html.is-phone .stats:not(.stats-hero):has(> :only-child) { grid-template-columns: minmax(0, 1fr) !important; }
 html.is-phone .stats:not(.stats-hero) .stat-card { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 12px 10px; }
 html.is-phone .stats:not(.stats-hero) .stat-label { white-space: normal; overflow: visible; text-overflow: unset; line-height: 15px; }
 html.is-phone .stats:not(.stats-hero) .stat-text { display: grid; gap: 2px; }
