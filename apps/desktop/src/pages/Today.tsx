@@ -17,8 +17,6 @@ import { createPortal } from "react-dom";
 import { Card, Empty, ErrorNote, PageHead } from "../components/Layout.js";
 import { IconChevron, IconRefresh } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
-import { useFavs } from "../state/favs.js";
-import { navPagePos } from "../state/favorites.js";
 import type { LearnNav, Page } from "../state/app.js";
 import { useCampusData, useCard, useTodayCalendar, useTodayDeadlines, useTodayNewsFeed, useTodayReservations } from "../state/data.js";
 import {
@@ -250,9 +248,6 @@ function AddCardsModal({
 
 export function TodayPage() {
   const { navigate } = useApp();
-  /* 侧栏调序/隐藏（收藏夹页同款交互；今日在统一序列里与一级收藏夹平权） */
-  const favs = useFavs();
-  const sidePos = navPagePos(favs.data, "today");
   const { data, state, error, reload } = useCampusData();
   // 校园卡余额（快捷入口展示用）：未加载完成前入口置灰不可点
   const card = useCard(1);
@@ -573,15 +568,6 @@ export function TodayPage() {
             <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
               <IconRefresh width={14} height={14} />
               刷新
-            </button>
-            <button className="btn" disabled={sidePos.idx <= 0} title="左侧栏顺序上移" onClick={() => favs.moveNavPage("today", -1)}>
-              上移
-            </button>
-            <button className="btn" disabled={sidePos.idx >= sidePos.count - 1} title="左侧栏顺序下移" onClick={() => favs.moveNavPage("today", 1)}>
-              下移
-            </button>
-            <button className="btn" title="折叠进「已折叠」组（侧栏隐藏，组内可恢复）" onClick={() => favs.foldSidebar("today", true)}>
-              隐藏
             </button>
             {editing ? (
               <>
