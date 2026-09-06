@@ -18,7 +18,6 @@ const NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode }> 
   { page: "life", label: "生活", icon: IconCard },
   { page: "reserve", label: "预约", icon: IconCalendar },
   { page: "zhjwxk", label: "选课", icon: IconXk },
-  { page: "plugins", label: "插件", icon: IconPlug },
   { page: "otherinfo", label: "其他 Info 应用", icon: IconExternal },
 ];
 
@@ -324,8 +323,17 @@ export function Shell({ children }: { children: ReactNode }) {
             ) : null}
           </>
         ) : null}
-        {/* 设置钉底 */}
+        {/* 钉底固定项：插件 + 设置——不进收藏夹体系，不可折叠不可改序 */}
         <div className="nav-sep" aria-hidden />
+        {navRow("plugins", {
+          active: page === "plugins",
+          label: "插件",
+          icon: <IconPlug />,
+          onClick: () => {
+            onAfter?.();
+            navigate("plugins");
+          },
+        })}
         {navRow("settings", {
           active: page === "settings",
           label: "设置",
@@ -343,7 +351,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const topbarTitle =
     page === "folder" && navParams?.folderId
       ? favs.data.folders[navParams.folderId]?.title ?? "收藏夹"
-      : NAV.find((n) => n.page === page)?.label ?? "OneTHU";
+      : NAV.find((n) => n.page === page)?.label ?? (page === "plugins" ? "插件" : "OneTHU");
 
   return (
     <div className="shell">
@@ -469,7 +477,7 @@ export function PageHead({
 }) {
   const { page } = useApp();
   // 窄屏顶栏已展示当前页名：与导航名相同的标题不再重复渲染（详情页等子标题不受影响）
-  const navLabel = NAV.find((n) => n.page === page)?.label;
+  const navLabel = NAV.find((n) => n.page === page)?.label ?? (page === "plugins" ? "插件" : undefined);
   const dupOnTopbar =
     typeof window !== "undefined" &&
     window.matchMedia("(max-width: 860px)").matches &&

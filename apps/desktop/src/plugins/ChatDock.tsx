@@ -19,6 +19,31 @@ const OPEN_KEY = "onethu.chatdock.open";
 interface ViewMsg {
   role: "user" | "assistant";
   text: string;
+  /** 链元数据（R7）：本条回答的思考链与工具调用链，折叠可展开回看 */
+  meta?: { think?: string; trace?: string[] };
+}
+
+/** 可折叠链块：思考过程 / 工具调用（流式期展开，落定折叠，随时展开回看） */
+function ChainBlock({ label, lines, defaultOpen = false }: { label: string; lines: string[]; defaultOpen?: boolean }): ReactNode {
+  const [open, setOpen] = useState(defaultOpen);
+  if (lines.length === 0) return null;
+  const total = lines.reduce((n, l) => n + l.length, 0);
+  return (
+    <div className="dock-think">
+      <button className="dock-think-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        <span className="dock-think-label">{label}</span>
+        <span className="dock-think-meta">{open ? "点击收起" : `${lines.length} 条 · ${total} 字`}</span>
+        <i className={"plg-caret" + (open ? " is-open" : "")} />
+      </button>
+      {open ? (
+        <div className="dock-think-body">
+          {lines.map((l, i) => (
+            <div key={i}>{l}</div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 interface UsageInfo {
   sessionCostUsd?: number;
@@ -76,6 +101,19 @@ export function ChatDock(): ReactNode {
   const runSeq = useRef(0);
   const busyRef = useRef(false);
   const deadman = useRef<number | null>(null);
+  /* 链镜像：finalize 时随回答落库为 meta；delta 节流缓冲（markdown 逐帧重解析会卡 UI） */
+  const thinkRef = useRef("");
+  const traceRef = useRef<string[]>([]);
+  const deltaBuf = useRef("");
+  const deltaTimer = useRef<number | null>(null);
+
+  const flushDelta = (): void => {
+    deltaTimer.current = null;
+    const t = deltaBuf.current;
+    if (!t) return;
+    deltaBuf.current = "";
+    setStream((v) => (v ?? "") + t);
+  };
 
   const toggle = (): void => {
     setOpen((o) => {
@@ -93,6 +131,13 @@ export function ChatDock(): ReactNode {
     setThink("");
     setThinkOpen(true);
     setTrace([]);
+    thinkRef.current = "";
+    traceRef.current = [];
+    if (deltaTimer.current) {
+      clearTimeout(deltaTimer.current);
+      deltaTimer.current = null;
+    }
+    deltaBuf.current = "";
     setConfirmCard(null);
     setUsage({});
     seenEv.current = 0;
@@ -146,10 +191,15 @@ export function ChatDock(): ReactNode {
       const kind = (e as any).kind;
       if (kind === "delta" && e.text) {
         setThinkOpen(false); // 回答开始 → 思考过程自动折叠
-        setStream((t) => (t ?? "") + e.text);
+        deltaBuf.current += e.text;
+        if (!deltaTimer.current) deltaTimer.current = window.setTimeout(flushDelta, 120);
       } else if (kind === "think" && e.text) {
+        thinkRef.current += e.text;
         setThink((t) => t + e.text);
-      } else if (kind === "tool" && e.text) setTrace((t) => [...t.slice(-40), e.text!]);
+      } else if (kind === "tool" && e.text) {
+        traceRef.current = [...traceRef.current.slice(-60), e.text!];
+        setTrace((t) => [...t.slice(-40), e.text!]);
+      }
       else if (kind === "notice" && e.text) setStatus(e.text);
       else if (kind === "usage" && (e as any).payload) setUsage((u) => ({ ...u, ...(e as any).payload }));
     }
@@ -159,9 +209,9 @@ export function ChatDock(): ReactNode {
 
   const finalize = (r: any): void => {
     const answer = typeof r?.answer === "string" ? r.answer : r?.error != null ? `⚠ ${r.error}` : "(空响应)";
-    setMsgs((v) => [...v, { role: "assistant", text: answer }]);
+    setMsgs((v) => [...v, { role: "assistant", text: answer, meta: { think: thinkRef.current, trace: traceRef.current } }]);
     setStream(null);
-    setThinkOpen(false); // 回答落定 → 思考过程折叠（保留可展开回看）
+    setThinkOpen(false); // 回答落定 → 链折叠（随 meta 挂在本条回答上，可展开回看）
     setTrace([]);
     setStatus(null);
     setConfirmCard(r?.confirm?.summary ?? null);
@@ -203,6 +253,8 @@ export function ChatDock(): ReactNode {
     setThink("");
     setThinkOpen(true);
     setTrace([]);
+    thinkRef.current = "";
+    traceRef.current = [];
     setConfirmCard(null);
     setStatus("思考中…");
     try {
@@ -375,20 +427,18 @@ export function ChatDock(): ReactNode {
             ) : null}
             {msgs.map((m, i) =>
               m.role === "assistant" ? (
-                <div key={i} className="dock-msg dock-msg-assistant dock-md">
-                  <Markdown remarkPlugins={[remarkGfm]}>{m.text}</Markdown>
+                <div key={i} className="dock-msg-assistant">
+                  {m.meta?.think ? <ChainBlock label="思考过程" lines={[m.meta.think]} /> : null}
+                  {m.meta?.trace?.length ? <ChainBlock label="工具调用" lines={m.meta.trace} /> : null}
+                  <div className="dock-msg dock-md">
+                    <Markdown remarkPlugins={[remarkGfm]}>{m.text}</Markdown>
+                  </div>
                 </div>
               ) : (
                 <div key={i} className="dock-msg dock-msg-user">{m.text}</div>
               ),
             )}
-            {trace.length > 0 ? (
-              <div className="dock-trace">
-                {trace.map((t, i) => (
-                  <div key={i} className="dock-trace-line">{t}</div>
-                ))}
-              </div>
-            ) : null}
+            {trace.length > 0 ? <ChainBlock label="工具调用" lines={trace} defaultOpen /> : null}
             {think ? (
               <div className="dock-think">
                 <button className="dock-think-head" onClick={() => setThinkOpen((o) => !o)} aria-expanded={thinkOpen}>

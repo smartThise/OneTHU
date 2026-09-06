@@ -3137,3 +3137,8 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .dock-md a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
 .dock-md hr { border: 0; border-top: 1px solid var(--border-soft); margin: 8px 0; }
 .dock-md img { max-width: 100%; border-radius: var(--r-sm); }
+
+
+/* 运行日志：结构化 log 行（LLM 请求/应答/错误、工具耗时）——等宽弱化色区别于进度 */
+.plg-ev.is-log .plg-ev-text { color: var(--text-3); font-family: var(--font-mono); font-size: 10.5px; line-height: 1.55; }
+.plg-ev.is-log .plg-ev-tag { color: var(--text-3); }

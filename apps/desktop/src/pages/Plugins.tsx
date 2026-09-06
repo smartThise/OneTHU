@@ -377,16 +377,20 @@ function LogBody({ id }: { id: string }): ReactNode {
           {lines.length === 0 ? (
             <span className="plg-term-empty">— 尚无输出 · 发一次对话或执行一条命令试试 —</span>
           ) : (
-            lines.map((e, i) => (
-              <div key={i} className={"plg-ev plg-ev-" + e.method}>
-                <span className="plg-ev-t">{new Date(e.at).toLocaleTimeString("zh-CN", { hour12: false })}</span>
-                <span className="plg-ev-tag">{e.method === "progress" ? "▶" : e.method === "log" ? "·" : e.method === "exit" ? "■" : "…"}</span>
-                <span className="plg-ev-text">
-                  {e.text || e.method}
-                  {e.step != null ? `（${e.step}${e.total != null ? "/" + e.total : ""}）` : ""}
-                </span>
-              </div>
-            ))
+            lines.map((e, i) => {
+              const isLog = e.kind === "log";
+              const tag = isLog ? "·" : e.kind === "tool" ? "🔧" : e.method === "progress" ? "▶" : e.method === "exit" ? "■" : "…";
+              return (
+                <div key={i} className={"plg-ev plg-ev-" + e.method + (isLog ? " is-log" : "")}>
+                  <span className="plg-ev-t">{new Date(e.at).toLocaleTimeString("zh-CN", { hour12: false })}</span>
+                  <span className="plg-ev-tag">{tag}</span>
+                  <span className="plg-ev-text">
+                    {e.text || e.method}
+                    {e.step != null ? `（${e.step}${e.total != null ? "/" + e.total : ""}）` : ""}
+                  </span>
+                </div>
+              );
+            })
           )}
         </div>
       </div>

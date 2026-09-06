@@ -91,7 +91,7 @@ export interface LearnNav {
   folderId?: string;
 }
 
-const TOP_PAGES = ["today", "learn", "schedule", "info", "life", "reserve", "zhjwxk", "folder", "settings"] as const;
+const TOP_PAGES = ["today", "learn", "schedule", "info", "life", "reserve", "zhjwxk", "plugins", "folder", "settings"] as const;
 
 /** 子页归属的一级页（侧栏高亮 / hash 用） */
 export function topLevelPage(p: Page): Page {
