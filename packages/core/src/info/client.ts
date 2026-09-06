@@ -257,11 +257,11 @@ export class InfoClient {
   lastDebug = "";
   /** id-CAS 服务登录凭据提供者（CampusSession 注入）：dorm/library 按
    *  lib roam("id") 账密直登 id 用；无凭据（resume 路径）时回退 SSO 发票路径。 */
-  #idCredentials: (() => { username: string; password: string; fingerprint: string } | null) | null =
+  #idCredentials: (() => { username: string; password: string; fingerprint: string; finger3?: string } | null) | null =
     null;
 
   setIdCredentials(
-    provider: () => { username: string; password: string; fingerprint: string } | null,
+    provider: () => { username: string; password: string; fingerprint: string; finger3?: string } | null,
   ): void {
     this.#idCredentials = provider;
   }
@@ -1749,19 +1749,57 @@ export class InfoClient {
   }
 
   /** 单次账密登录尝试；2FA 抛 AuthRequiredError，其余失败返回诊断现场。 */
+  /** id SSO 确认页兑付（checkSingle）：POST 指纹确认 → 302 ticket → 正常兑付。
+   *  fingerGenPrint 喝持久化的 finger3（SAVE_FINGER 受信凭据；页面 JS 从
+   *  localStorage 取同款值）。会话 cookie 驱动授权，指纹只做 remember-me 跟踪。 */
+  async #idCheckSingle(formUrlEff: string, viaWrap: boolean): Promise<boolean> {
+    const creds = this.#idCredentials?.();
+    const action = new URL("/do/off/ui/auth/login/checkSingle", ID_PREFIX).toString();
+    const body = new URLSearchParams({
+      i_rememberme: "on",
+      fingerPrint: creds?.fingerprint ?? "",
+      fingerGenPrint: creds?.finger3 ?? "",
+    });
+    const res = await this.#http.request(viaWrap ? webvpnWrap(action) : action, {
+      method: "POST",
+      body,
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      ...(viaWrap ? {} : { direct: true as const }),
+      redirect: "manual",
+    });
+    const location = res.headers.get("location") ?? "";
+    if (res.status >= 300 && res.status < 400 && location) {
+      return this.#consumeIdTicketUrl(location, action);
+    }
+    const html = await res.text().catch(() => "");
+    const anchor = /<a[^>]+href="([^"]*ticket=[^"]*)"/i.exec(html)?.[1];
+    if (anchor) return this.#consumeIdTicketUrl(anchor, action);
+    this.lastDebug = `checkSingle status=${res.status} loc=${location.slice(0, 80)} resp=${html.slice(0, 140).replace(/\s+/g, " ")}`;
+    return false;
+  }
+
   async #idLoginAttempt(
     formUrl: string,
     creds: { username: string; password: string; fingerprint: string },
     variant: "zhjwxk" | "lib",
   ): Promise<{ ok: boolean; fatal: boolean; diag: string }> {
     let effUrl = formUrl;
+    let viaWrap = false;
     let formHtml: string;
     try {
       formHtml = await this.#http.text(formUrl, { direct: true });
     } catch {
       // 同上：id 直连不可达 → 包装形态重试
       effUrl = webvpnWrap(formUrl);
+      viaWrap = true;
       formHtml = await this.#http.text(effUrl);
+    }
+    // id SSO 确认页（<title>Title</title> + action=/do/off/ui/auth/login/checkSingle +
+    // 无 sm2publicKey，2026-09-06 校外实操实录）：id 会话活着时不再要密码，只 POST
+    // 指纹确认继续。快路径不认（非 302）、SM2 路径解析不到公钥——两路全瞎的第三形态。
+    if (/checkSingle/.test(formHtml)) {
+      const ok = await this.#idCheckSingle(effUrl, viaWrap);
+      return { ok, fatal: false, diag: `id-login checkSingle ok=${ok}` };
     }
     // 已认证会话下该 URL 可能直接返回成功页 —— 锚点兜底
     const preAnchor = /<a[^>]+href="([^"]*ticket=[^"]*)"/i.exec(formHtml)?.[1];
@@ -1799,7 +1837,6 @@ export class InfoClient {
     // 直连模式：与登录表单同域直连（id 会话不经 WebVPN 包装）；
     // 但表单本身已是包装形态（id 直连不可达兜底）时，check 必须同走包装——
     // 会话 cookie 在 wengine 桶里，跨形态直连 POST 反而是无会话裸请求
-    const viaWrap = effUrl !== formUrl;
     const res = await this.#http.request(
       viaWrap ? webvpnWrap(checkUrl) : checkUrl,
       {
@@ -1949,21 +1986,16 @@ export class InfoClient {
           total: 0,
         };
       });
-      // 逐层余量求和：并行化（2026-09-06 校外 webvpn 实测每层 areas/date 2~3s，
-      // 5 层串行 15s 是「校园网外很难进入」的痛点主体；并行后总耗时=最慢一层）。
+      // 逐层余量求和：保持串行——座位后端是 PHP，同 PHPSESSID 的并发请求被
+      // 会话文件锁服务端串行化（2026-09-06 用户实测并行反而更慢），并行零收益。
       // 可用座位数不缓存——预约决策要新鲜数。
-      const validFloors = floors.filter((f) => f.valid);
-      const perFloor = await Promise.all(
-        validFloors.map((f) =>
-          this.getLibrarySectionList(f, dateChoice).catch(() => [] as LibrarySection[]),
-        ),
-      );
-      for (const [i, sections] of perFloor.entries()) {
-        const f = validFloors[i]!;
+      for (const floor of floors) {
+        if (!floor.valid) continue;
+        const sections = await this.getLibrarySectionList(floor, dateChoice).catch(() => []);
         for (const s of sections) {
           if (s.valid) {
-            f.available += s.available;
-            f.total += s.total;
+            floor.available += s.available;
+            floor.total += s.total;
           }
         }
       }
