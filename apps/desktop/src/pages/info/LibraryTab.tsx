@@ -375,14 +375,28 @@ export function LibraryTab({
     setSections(null);
     setSectionId(null);
     setSeats(null);
+    // 渐进回填：楼层骨架先亮（区域下拉立即可选），逐层余量到达即刷新——
+    // 校外 webvpn 每层 2~3s 串行（PHP 会话锁），不再攒满 5 层才出界面
+    let picked = false;
+    const pickFirst = (list: LibraryFloor[]) => {
+      if (picked) return;
+      const firstValid = list.find((f) => f.valid);
+      if (firstValid) {
+        picked = true;
+        setFloorId(firstValid.id);
+      }
+    };
     info
-      .getLibraryFloorList(lib, dateChoice)
+      .getLibraryFloorList(lib, dateChoice, (list) => {
+        if (!alive || list.length === 0) return;
+        setFloors([...list]);
+        pickFirst(list);
+      })
       .then((list) => {
         if (!alive) return;
         floorRecover.current = 0;
         setFloors(list);
-        const firstValid = list.find((f) => f.valid);
-        if (firstValid) setFloorId(firstValid.id);
+        pickFirst(list);
       })
       .catch((err: unknown) => {
         logErr("LIB-FLOOR", err);
