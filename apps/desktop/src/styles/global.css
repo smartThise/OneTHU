@@ -2881,7 +2881,7 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   border-bottom: 1px solid var(--border-soft);
   background: var(--surface-2);
 }
-.dock-title { font-size: var(--text-sm); font-weight: 600; color: var(--text-1); }
+.dock-title { display: inline-flex; align-items: center; gap: 7px;  font-size: var(--text-sm); font-weight: 600; color: var(--text-1); }
 .dock-ops { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
 .dock-btn {
   height: 26px;
@@ -3104,3 +3104,36 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .plg-saved { color: var(--green); font-size: var(--text-xs); display: inline-flex; gap: 6px; align-items: center; }
 .plg-term.is-tall { max-height: none; height: 56dvh; }
 .plg-sheet .plg-term { height: auto; flex: 1; min-height: 0; }
+
+
+/* ---------- Harness 品牌 (OH) + 思维链 + 对话 Markdown ---------- */
+.harness-mark { display: inline-flex; align-items: baseline; line-height: 1; color: currentColor; gap: 0.05em; white-space: nowrap; }
+.harness-mark .p { font-family: "SF Mono", Menlo, Consolas, "Courier New", monospace; font-weight: 400; transform: scaleY(1.06); }
+.harness-mark .o { font-family: Georgia, "Playfair Display", "Times New Roman", serif; font-weight: 500; font-size: 1.14em; }
+.harness-mark .h { font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Source Han Sans SC", "Microsoft YaHei", sans-serif; font-weight: 700; font-size: 1.06em; }
+
+/* 思维链：流式期间展开，回答开始自动折叠，可展开回看 */
+.dock-think { margin: 2px 0 6px; border: 1px solid var(--border-soft); border-radius: var(--r-md); background: var(--surface-2); overflow: hidden; max-width: 100%; }
+.dock-think-head { display: flex; align-items: center; gap: 7px; width: 100%; border: 0; background: transparent; padding: 6px 10px; font-size: var(--text-xs); color: var(--text-3); cursor: pointer; text-align: left; }
+.dock-think-label { font-weight: 600; color: var(--text-2); }
+.dock-think-meta { font-family: var(--font-mono); font-size: 10px; }
+.dock-think-body { padding: 2px 10px 8px; font-size: var(--text-xs); color: var(--text-3); line-height: 1.7; white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow: auto; border-top: 1px dashed var(--border-soft); }
+
+/* 对话 Markdown（Harness 紧凑风） */
+.dock-md { font-size: var(--text-sm); line-height: 1.62; min-width: 0; overflow-wrap: break-word; }
+.dock-md > :first-child { margin-top: 0; }
+.dock-md > :last-child { margin-bottom: 0; }
+.dock-md p { margin: 4px 0; }
+.dock-md h1, .dock-md h2, .dock-md h3, .dock-md h4 { font-size: var(--text-sm); font-weight: 600; margin: 8px 0 4px; }
+.dock-md ul, .dock-md ol { margin: 4px 0; padding-left: 18px; display: grid; gap: 2px; }
+.dock-md li::marker { color: var(--text-3); }
+.dock-md code { font-family: var(--font-mono); font-size: 0.92em; background: var(--surface-3); padding: 1px 5px; border-radius: 4px; }
+.dock-md pre { background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--r-md); padding: 8px 10px; overflow-x: auto; margin: 6px 0; }
+.dock-md pre code { background: transparent; padding: 0; font-size: var(--text-xs); line-height: 1.5; }
+.dock-md blockquote { margin: 6px 0; padding: 2px 10px; border-left: 3px solid var(--border-strong); color: var(--text-2); }
+.dock-md table { border-collapse: collapse; margin: 6px 0; font-size: var(--text-xs); display: block; overflow-x: auto; max-width: 100%; }
+.dock-md th, .dock-md td { border: 1px solid var(--border); padding: 3px 8px; text-align: left; white-space: nowrap; }
+.dock-md th { background: var(--surface-2); font-weight: 600; }
+.dock-md a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.dock-md hr { border: 0; border-top: 1px solid var(--border-soft); margin: 8px 0; }
+.dock-md img { max-width: 100%; border-radius: var(--r-sm); }

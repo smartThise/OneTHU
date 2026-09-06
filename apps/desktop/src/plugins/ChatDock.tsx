@@ -3,10 +3,14 @@
  *  对话/会话/导出/用量全部走该插件的 JSON-RPC run 命令（结构化契约见
  *  OneTHU-Harness README 与接口指南 §九），本组件不含任何业务逻辑。
  */
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent, type ReactNode } from "react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { callRust, notifyRust } from "./rust.js";
 import { commandsSnapshot, subscribeCommands } from "./loader.js";
 import { EMPTY_EVENTS, pluginEvents, subscribePluginEvents } from "./events.js";
+import { HarnessMark } from "../components/HarnessMark.js";
+import { openExternal } from "../pages/info/openExternal.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -62,6 +66,9 @@ export function ChatDock(): ReactNode {
   const [history, setHistory] = useState<SessionRow[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [unread, setUnread] = useState(0);
+  /* 思维链（R4 think 事件聚合）：流式期间展开，首个回答 delta 到达自动折叠，可手动展开回看 */
+  const [think, setThink] = useState("");
+  const [thinkOpen, setThinkOpen] = useState(true);
   const hydratedFor = useRef<string | null>(null);
   const seenEv = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -83,6 +90,8 @@ export function ChatDock(): ReactNode {
     hydratedFor.current = null;
     setMsgs([]);
     setStream(null);
+    setThink("");
+    setThinkOpen(true);
     setTrace([]);
     setConfirmCard(null);
     setUsage({});
@@ -135,8 +144,12 @@ export function ChatDock(): ReactNode {
         return;
       }
       const kind = (e as any).kind;
-      if (kind === "delta" && e.text) setStream((t) => (t ?? "") + e.text);
-      else if (kind === "tool" && e.text) setTrace((t) => [...t.slice(-40), e.text!]);
+      if (kind === "delta" && e.text) {
+        setThinkOpen(false); // 回答开始 → 思考过程自动折叠
+        setStream((t) => (t ?? "") + e.text);
+      } else if (kind === "think" && e.text) {
+        setThink((t) => t + e.text);
+      } else if (kind === "tool" && e.text) setTrace((t) => [...t.slice(-40), e.text!]);
       else if (kind === "notice" && e.text) setStatus(e.text);
       else if (kind === "usage" && (e as any).payload) setUsage((u) => ({ ...u, ...(e as any).payload }));
     }
@@ -148,6 +161,7 @@ export function ChatDock(): ReactNode {
     const answer = typeof r?.answer === "string" ? r.answer : r?.error != null ? `⚠ ${r.error}` : "(空响应)";
     setMsgs((v) => [...v, { role: "assistant", text: answer }]);
     setStream(null);
+    setThinkOpen(false); // 回答落定 → 思考过程折叠（保留可展开回看）
     setTrace([]);
     setStatus(null);
     setConfirmCard(r?.confirm?.summary ?? null);
@@ -186,6 +200,8 @@ export function ChatDock(): ReactNode {
     setBusy(true);
     setMsgs((v) => [...v, { role: "user", text }]);
     setStream("");
+    setThink("");
+    setThinkOpen(true);
     setTrace([]);
     setConfirmCard(null);
     setStatus("思考中…");
@@ -310,6 +326,16 @@ export function ChatDock(): ReactNode {
     }
   };
 
+  /** 消息区链接一律外跳系统浏览器（webview 内导航会带走整个应用） */
+  const onMsgsClick = (e: MouseEvent): void => {
+    const a = (e.target as HTMLElement).closest("a");
+    if (!a) return;
+    const href = a.getAttribute("href");
+    if (!href) return;
+    e.preventDefault();
+    void openExternal(href);
+  };
+
   if (!pid) return null;
   const budgetPct = usage.budgetUsd ? Math.min(100, ((usage.totalCostUsd ?? 0) / usage.budgetUsd) * 100) : 0;
 
@@ -318,7 +344,7 @@ export function ChatDock(): ReactNode {
       {open ? (
         <div className="dock-panel" role="dialog" aria-label="OneTHU Harness 对话">
           <div className="dock-head">
-            <span className="dock-title">⚡ Harness</span>
+            <span className="dock-title"><HarnessMark size={13} /> Harness</span>
             <div className="dock-ops">
               <button className="btn dock-btn" title="新建会话" onClick={() => void newSession()}>新会话</button>
               <button className="btn dock-btn" title="历史会话" onClick={() => void openHistory()}>历史</button>
@@ -341,15 +367,21 @@ export function ChatDock(): ReactNode {
           {notice ? (
             <div className="dock-notice" onClick={() => setNotice(null)}>{notice}</div>
           ) : null}
-          <div className="dock-msgs" ref={scrollRef}>
+          <div className="dock-msgs" ref={scrollRef} onClick={onMsgsClick}>
             {msgs.length === 0 && stream == null ? (
               <div className="dock-empty">
                 和校园助手说点什么——<br />「明天图书馆哪有空座？」「这周考试安排」「卡里还有多少钱」
               </div>
             ) : null}
-            {msgs.map((m, i) => (
-              <div key={i} className={"dock-msg dock-msg-" + m.role}>{m.text}</div>
-            ))}
+            {msgs.map((m, i) =>
+              m.role === "assistant" ? (
+                <div key={i} className="dock-msg dock-msg-assistant dock-md">
+                  <Markdown remarkPlugins={[remarkGfm]}>{m.text}</Markdown>
+                </div>
+              ) : (
+                <div key={i} className="dock-msg dock-msg-user">{m.text}</div>
+              ),
+            )}
             {trace.length > 0 ? (
               <div className="dock-trace">
                 {trace.map((t, i) => (
@@ -357,9 +389,25 @@ export function ChatDock(): ReactNode {
                 ))}
               </div>
             ) : null}
+            {think ? (
+              <div className="dock-think">
+                <button className="dock-think-head" onClick={() => setThinkOpen((o) => !o)} aria-expanded={thinkOpen}>
+                  <span className="dock-think-label">思考过程</span>
+                  <span className="dock-think-meta">{thinkOpen ? "点击收起" : `${think.length} 字 · 已折叠`}</span>
+                  <i className={"plg-caret" + (thinkOpen ? " is-open" : "")} />
+                </button>
+                {thinkOpen ? <div className="dock-think-body">{think}</div> : null}
+              </div>
+            ) : null}
             {stream != null ? (
               <div className="dock-msg dock-msg-assistant dock-streaming">
-                {stream || <span className="dock-thinking">{status ?? "思考中…"}</span>}
+                {stream ? (
+                  <div className="dock-md">
+                    <Markdown remarkPlugins={[remarkGfm]}>{stream}</Markdown>
+                  </div>
+                ) : (
+                  <span className="dock-thinking">{status ?? "思考中…"}</span>
+                )}
                 {stream ? <span className="dock-caret" /> : null}
               </div>
             ) : null}
@@ -427,7 +475,7 @@ export function ChatDock(): ReactNode {
         </div>
       ) : (
         <button className="dock-fab" aria-label="打开 Harness 对话" onClick={toggle}>
-          ⚡
+          <HarnessMark size={15} />
           {unread > 0 ? <span className="dock-badge">{unread > 9 ? "9+" : unread}</span> : null}
         </button>
       )}

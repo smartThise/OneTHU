@@ -6,6 +6,7 @@
  */
 import { useSyncExternalStore, useEffect, useRef, useState, type ReactNode } from "react";
 import { PageHead } from "../components/Layout.js";
+import { HarnessMark } from "../components/HarnessMark.js";
 import {
   commandsSnapshot, disablePlugin, enablePlugin, installedPlugins,
   isLive, runCommand, subscribe, subscribeCommands, uninstallPlugin,
@@ -142,7 +143,7 @@ function PluginCard({
     >
       <div className="plg-card-top">
         <div className={"plg-pin" + (rec.embedded ? " is-core" : "")} aria-hidden>
-          {monogram(m.name, m.id)}
+          {m.id === "onethu.harness" ? <HarnessMark size={13} /> : monogram(m.name, m.id)}
         </div>
         <div className="plg-card-id">
           <div className="plg-title">
