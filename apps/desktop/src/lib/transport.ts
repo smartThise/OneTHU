@@ -172,6 +172,9 @@ async function tauriFetch(url: string, init: RequestInit = {}): Promise<Response
    *  （19:47 实证：zhjw 漫游把 zhjw 会话记进 info 桶，info 被连带炸掉）。 */
   const hopRecords: Array<{ u: string; l: string }> = [];
 
+  // 粘性 webvpn 状态：链内只要出现过 webvpn 跳，后续重定向到非公网域一律续包装
+  // （非粘性版在链中途路过公网域（id/oauth）时丢失状态 → card/userindex 直连漏兑）
+  let chainEverVpn = url.startsWith("https://webvpn.tsinghua.edu.cn/");
   for (let hop = 0; hop <= maxHops; hop++) {
     // 本跳真实域的会话 cookie：包装 URL 解码出原始域（如 wrapped id 跳需要 id 桶
     // 的 JSESSIONID，否则 CAS 看不到 SSO 会话、链条断在登录页——demo 扁平 jar 天然带上）
@@ -225,8 +228,8 @@ async function tauriFetch(url: string, init: RequestInit = {}): Promise<Response
       const location = res.headers["location"] ?? respHeaders.get("location") ?? undefined;
       if (location) {
         let nextUrl = new URL(location, currentUrl).toString();
-        const chainInVpn = currentUrl.startsWith("https://webvpn.tsinghua.edu.cn/");
-        if (chainInVpn && hopUrlWrapper && !nextUrl.startsWith("https://webvpn.tsinghua.edu.cn/")) {
+        if (nextUrl.startsWith("https://webvpn.tsinghua.edu.cn/")) chainEverVpn = true;
+        if (chainEverVpn && hopUrlWrapper && !nextUrl.startsWith("https://webvpn.tsinghua.edu.cn/")) {
           nextUrl = hopUrlWrapper(nextUrl);
         }
         currentUrl = nextUrl;

@@ -615,7 +615,10 @@ export async function demoRoamCard(
     );
     if (anchor && !anchor.startsWith("auto:")) {
       const t = anchor.startsWith("http") ? anchor : new URL(anchor, "https://id.tsinghua.edu.cn/").toString();
-      const done = await webvpnRequest(fetchLike, "GET", t, { cookies: s.webvpnCookies });
+      // 锚点必须包装兑付（2026-09-06 真机对照实证：直连兑付 → 会话建在直连通道，
+      // 包装探测恒看不见「会话未能建立」；包装兑付 → wengine 侧会话 + 包装探测 ✓）。
+      // 票据在 URL 一次性，兑在哪个通道会话就落在哪个通道。
+      const done = await webvpnRequest(fetchLike, "GET", webvpnWrap(t), { cookies: s.webvpnCookies });
       s.webvpnCookies = done.cookies;
       const bounced = /电子身份服务系统|do\/off\/ui\/auth\/login/.test(done.url);
       trace.push("CARD终=" + done.url.slice(0, 100) + (bounced ? "（弹CAS）" : "（card 会话已建立）"));
