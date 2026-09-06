@@ -65,6 +65,10 @@ export function ChatDock(): ReactNode {
   const hydratedFor = useRef<string | null>(null);
   const seenEv = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  /* 运行代次：打断/强停/换插件后作废迟到回包；busyRef 是 busy 的即时镜像（异步闭包防陈旧） */
+  const runSeq = useRef(0);
+  const busyRef = useRef(false);
+  const deadman = useRef<number | null>(null);
 
   const toggle = (): void => {
     setOpen((o) => {
@@ -74,7 +78,7 @@ export function ChatDock(): ReactNode {
     });
   };
 
-  // 插件变更：清视图，重挂水合标记
+  // 插件变更：清视图，重挂水合标记；作废旧插件迟到回包与死人开关
   useEffect(() => {
     hydratedFor.current = null;
     setMsgs([]);
@@ -84,6 +88,13 @@ export function ChatDock(): ReactNode {
     setUsage({});
     seenEv.current = 0;
     setHistory(null);
+    runSeq.current++;
+    if (deadman.current) {
+      clearTimeout(deadman.current);
+      deadman.current = null;
+    }
+    busyRef.current = false;
+    setBusy(false);
   }, [pid]);
 
   // 水合：打开面板且尚未载入当前会话 → 导出会话 JSON 还原视图（R5）
@@ -119,6 +130,10 @@ export function ChatDock(): ReactNode {
     seenEv.current = events.length;
     if (fresh.length === 0) return;
     for (const e of fresh) {
+      if (e.method === "exit") {
+        hardStop("插件已停止");
+        return;
+      }
       const kind = (e as any).kind;
       if (kind === "delta" && e.text) setStream((t) => (t ?? "") + e.text);
       else if (kind === "tool" && e.text) setTrace((t) => [...t.slice(-40), e.text!]);
@@ -146,9 +161,28 @@ export function ChatDock(): ReactNode {
     });
   };
 
+  /** 强制收尾：清 busy + 作废迟到回包（打断超时/插件死亡/换插件时的 UI 兜底） */
+  const hardStop = (note: string): void => {
+    if (deadman.current) {
+      clearTimeout(deadman.current);
+      deadman.current = null;
+    }
+    if (!busyRef.current) return;
+    runSeq.current++;
+    busyRef.current = false;
+    setBusy(false);
+    setMsgs((v) => [...v, { role: "assistant", text: `■ ${note}` }]);
+    setStream(null);
+    setTrace([]);
+    setStatus(null);
+    setConfirmCard(null);
+  };
+
   const send = async (raw: string): Promise<void> => {
     const text = raw.trim();
-    if (!pid || busy || !text) return;
+    if (!pid || busyRef.current || !text) return;
+    const seq = ++runSeq.current;
+    busyRef.current = true;
     setBusy(true);
     setMsgs((v) => [...v, { role: "user", text }]);
     setStream("");
@@ -157,11 +191,20 @@ export function ChatDock(): ReactNode {
     setStatus("思考中…");
     try {
       const res: any = await callRust(pid, "run", { command: "chat", input: text });
+      if (seq !== runSeq.current) return; // 已被打断/强停：迟到回包作废
       finalize(res);
     } catch (e) {
+      if (seq !== runSeq.current) return;
       finalize({ answer: "", error: e instanceof Error ? e.message : String(e) });
     } finally {
-      setBusy(false);
+      if (seq === runSeq.current) {
+        busyRef.current = false;
+        setBusy(false);
+      }
+      if (deadman.current) {
+        clearTimeout(deadman.current);
+        deadman.current = null;
+      }
     }
   };
 
@@ -176,7 +219,11 @@ export function ChatDock(): ReactNode {
   };
 
   const newSession = async (): Promise<void> => {
-    if (busy) return;
+    if (busyRef.current) {
+      // 打断中也能开新会话：强制解锁，迟到回包作废
+      hardStop("已打断，开新会话");
+      await new Promise((r) => setTimeout(r, 60));
+    }
     await runCmd("new_session");
     hydratedFor.current = pid;
     setMsgs([]);
@@ -191,7 +238,10 @@ export function ChatDock(): ReactNode {
   };
 
   const switchSession = async (id: string): Promise<void> => {
-    if (busy) return;
+    if (busyRef.current) {
+      hardStop("已打断，切换会话");
+      await new Promise((r) => setTimeout(r, 60));
+    }
     await runCmd("switch_session", id);
     hydratedFor.current = pid;
     setMsgs([]);
@@ -248,7 +298,16 @@ export function ChatDock(): ReactNode {
   };
 
   const stop = (): void => {
-    if (pid) void notifyRust(pid, "interrupt").catch(() => undefined);
+    if (!pid) return;
+    void notifyRust(pid, "interrupt").catch(() => undefined);
+    setStatus("正在打断…");
+    // 死人开关：插件 12s 内没自行收尾就强制解锁——打断永不卡死 UI
+    if (!deadman.current && busyRef.current) {
+      deadman.current = window.setTimeout(() => {
+        deadman.current = null;
+        hardStop("已打断（插件未及时响应，已强制解锁）");
+      }, 12_000);
+    }
   };
 
   if (!pid) return null;

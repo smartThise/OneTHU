@@ -271,15 +271,32 @@ pub fn harness_rpc_reply(
 }
 
 /// 停止：摘表 + 置打断（在跑的一轮尽快收）+ 发 Dispose（agent 线程回完当前消息即退）
+/// 并补发 exit 事件——与 sidecar 泵（plugins.rs stdout 关闭）事件契约一致，
+/// 对话面板据此强制解锁（打断死人开关之外的确定性收尾）。
 #[tauri::command]
-pub fn harness_stop(state: tauri::State<'_, HarnessHost>, plugin_id: String) -> Result<(), String> {
-    harness_stop_inner(&state, &plugin_id);
+pub fn harness_stop(
+    app: AppHandle,
+    state: tauri::State<'_, HarnessHost>,
+    plugin_id: String,
+) -> Result<(), String> {
+    if harness_stop_inner(&state, &plugin_id) {
+        let _ = app.emit(
+            "plugin-event",
+            json!({ "pluginId": plugin_id, "method": "exit", "params": { "mode": "embedded" } }),
+        );
+    }
     Ok(())
 }
 
-fn harness_stop_inner(state: &tauri::State<'_, HarnessHost>, plugin_id: &str) {
-    if let Some(live) = state.live.lock().ok().and_then(|mut m| m.remove(plugin_id)) {
-        live.interrupt.store(true, Ordering::SeqCst);
-        let _ = live.tx.send(AgentMsg::Dispose);
-    }
+fn harness_stop_inner(state: &tauri::State<'_, HarnessHost>, plugin_id: &str) -> bool {
+    state
+        .live
+        .lock()
+        .ok()
+        .and_then(|mut m| m.remove(plugin_id))
+        .map(|live| {
+            live.interrupt.store(true, Ordering::SeqCst);
+            let _ = live.tx.send(AgentMsg::Dispose);
+        })
+        .is_some()
 }
