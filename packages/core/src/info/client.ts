@@ -1584,11 +1584,29 @@ export class InfoClient {
    */
   async getElePayRecord(): Promise<ElePayRecord[]> {
     return this.#withRenew(async () => {
-      const html = await this.#dormPage(
-        () => this.#http.text(urls.ELE_PAY_RECORD(), this.#campusInit()),
-        (p) => /net_Default_LoginCtrl1_txtUserName/i.test(p),
-        "电费缴费记录",
-      );
+      let html: string;
+      try {
+        html = await this.#dormPage(
+          () => this.#http.text(urls.ELE_PAY_RECORD(), this.#campusInit()),
+          (p) => /net_Default_LoginCtrl1_txtUserName/i.test(p),
+          "电费缴费记录",
+        );
+      } catch (e) {
+        // 从未充值账号（新生/新宿舍）：记录页无数据，myhome 恒回 ASP.NET ErrorPage
+        // （学弟实录：无一次充值 → 两轮漫游后仍错误页）。会话侧证：余额页可达 =
+        // 会话活着 → 记录页错误页 = 暂无记录，返回空表而非报错。
+        if (
+          e instanceof AuthRequiredError &&
+          /aspxerrorpath=|\/ErrorPage\.html/i.test(this.#http.lastFinalUrl ?? "")
+        ) {
+          await this.getEleRemainder().catch(() => {
+            throw e;
+          });
+          this.lastDebug = "ELE-RECORD 空记录账号（会话活·记录页无表）→ []";
+          return [];
+        }
+        throw e;
+      }
       const table = /<table[^>]*class="[^"]*myTable[^"]*"[^>]*>([\s\S]*?)<\/table>/i.exec(html)?.[1]
         ?? /myTable/i.test(html)
           ? html
