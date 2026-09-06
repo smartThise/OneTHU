@@ -2683,3 +2683,28 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   0%, 100% { background: transparent; box-shadow: none; }
   35% { background: color-mix(in srgb, var(--amber) 26%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--amber) 45%, transparent); }
 }
+
+/* ---------- 插件系统 ---------- */
+.plugin-hint { color: var(--ink-3); font-size: var(--text-sm); margin-bottom: 10px; line-height: 1.6; }
+.plugin-empty { color: var(--ink-3); padding: 12px 0; }
+.plugin-row { border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px 12px; margin-bottom: 10px; }
+.plugin-row-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.plugin-row-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.plugin-ver { color: var(--ink-3); font-size: var(--text-xs); }
+.plugin-row-ops { display: flex; gap: 6px; flex-wrap: wrap; }
+.plugin-detail { margin-top: 10px; display: grid; gap: 10px; }
+.plugin-desc { color: var(--ink-2); font-size: var(--text-sm); }
+.plugin-perms { display: flex; gap: 6px; flex-wrap: wrap; }
+.plugin-settings { display: grid; gap: 8px; }
+.plugin-setting { display: grid; gap: 4px; font-size: var(--text-sm); }
+.plugin-setting > span { color: var(--ink-2); }
+.plugin-cmds { display: grid; gap: 8px; border-top: 1px dashed var(--border); padding-top: 10px; }
+.plugin-cmd { display: grid; gap: 6px; }
+.plugin-install { margin-top: 12px; display: grid; gap: 8px; }
+.plugin-install-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.plugin-msg { color: var(--ink-2); font-size: var(--text-sm); word-break: break-all; }
+.plugin-runmsg { white-space: pre-wrap; max-height: 200px; overflow: auto; }
+.plugin-toast-host { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 9999; display: grid; gap: 6px; justify-items: center; pointer-events: none; }
+.plugin-toast { background: var(--ink-1, #1f2329); color: #fff; padding: 8px 14px; border-radius: 999px; font-size: var(--text-sm); box-shadow: 0 4px 14px rgba(0,0,0,.18); opacity: 1; transition: opacity .3s; max-width: 78vw; }
+.plugin-toast.out { opacity: 0; }
+html.is-phone .plugin-row-ops .btn { height: 30px; padding: 0 10px; font-size: 12px; }
