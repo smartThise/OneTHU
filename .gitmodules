@@ -1,0 +1,3 @@
+[submodule "plugins/OneTHU-Harness"]
+	path = plugins/OneTHU-Harness
+	url = https://github.com/smartThise/OneTHU-Harness.git

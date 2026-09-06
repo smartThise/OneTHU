@@ -104,6 +104,7 @@ async function activate(id: string, mod?: any, blobUrl?: string): Promise<void> 
         if (c?.id && c?.title) {
           liveCommands.set(`${id}:${c.id}`, {
             id: c.id, title: String(c.title), inputLabel: c.inputLabel, inputPlaceholder: c.inputPlaceholder,
+            dock: Boolean(c.dock),
             pluginId: id,
             run: async (input: string) => callRust(id, "run", { command: c.id, input }),
           });

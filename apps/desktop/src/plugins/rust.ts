@@ -11,7 +11,8 @@ import type { OnethuApi } from "./types.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type RpcHandler = (ns: string, method: string, args: unknown[]) => Promise<unknown>;
-let rpcHandler: RpcHandler | null = null;
+/** 按 pluginId 绑定门面：多 rust 插件并存时各回各家 */
+const rpcHandlers = new Map<string, RpcHandler>();
 let rpcListenerReady = false;
 
 async function invoke<T = unknown>(cmd: string, args: Record<string, unknown>): Promise<T> {
@@ -41,11 +42,12 @@ async function ensureRpcListener(): Promise<void> {
   const { listen } = await import("@tauri-apps/api/event");
   await listen<{ pluginId: string; id: number; method: string; params: any }>("plugin-rpc", async (ev) => {
     const { pluginId, id, method, params } = ev.payload;
-    if (!rpcHandler) return;
+    const handler = rpcHandlers.get(pluginId);
+    if (!handler) return;
     let ok = true;
     let result: unknown = null;
     try {
-      result = await rpcHandler(
+      result = await handler(
         String(params?.ns ?? ""),
         String(params?.method ?? ""),
         Array.isArray(params?.args) ? params.args : [],
@@ -62,14 +64,19 @@ async function ensureRpcListener(): Promise<void> {
 /** 门面执行器：rust 插件的 onethu.call 按命名空间分发（同一套权限门禁） */
 export function bindRustApi(id: string, perms: Set<string>): OnethuApi {
   const api = buildApi(id, perms);
-  rpcHandler = async (ns, method, args) => {
+  rpcHandlers.set(id, async (ns, method, args) => {
     const target = (api as any)[ns];
     if (!target || typeof target[method] !== "function") {
       throw new Error(`未知接口：onethu.${ns}.${method}`);
     }
     return target[method](...args);
-  };
+  });
   return api;
+}
+
+/** 停用/卸载时解绑门面 */
+export function unbindRustApi(id: string): void {
+  rpcHandlers.delete(id);
 }
 
 export async function callRust(id: string, method: string, params: unknown, timeoutMs = 600_000): Promise<unknown> {
@@ -88,5 +95,6 @@ export async function killRust(id: string): Promise<void> {
 export async function disposeRust(id: string): Promise<void> {
   await invoke("plugin_call", { pluginId: id, method: "dispose", params: {}, timeoutMs: 3_000 }).catch(() => undefined);
   await killRust(id);
+  unbindRustApi(id);
   await logLine(`[PLUGIN] rust ${id} 已停止`);
 }

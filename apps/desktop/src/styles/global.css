@@ -2715,3 +2715,272 @@ html.is-phone .plugin-row-ops .btn { height: 30px; padding: 0 10px; font-size: 1
 .plugin-progress-body { max-height: 220px; overflow: auto; padding: 4px 10px 10px; display: grid; gap: 2px; font-family: var(--mono, ui-monospace, monospace); font-size: 12px; color: var(--ink-2); }
 .plugin-ev-exit { color: var(--red); }
 .plugin-ev-progress { color: var(--text-1, var(--ink-1)); }
+/* ============================================================
+   插件对话面板（ChatDock）：左下角常驻，风格对齐 hard-refresh-fab
+   ============================================================ */
+
+.dock-fab {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 9990;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 19px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+}
+.dock-fab:hover { color: var(--accent); border-color: var(--accent-border); }
+.dock-fab:active { transform: scale(0.94); }
+
+.dock-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  font-weight: 600;
+}
+
+.dock-panel {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 9990;
+  width: 384px;
+  max-width: calc(100vw - 36px);
+  height: 540px;
+  max-height: min(76vh, 640px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3);
+  overflow: hidden;
+}
+
+.dock-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 10px 8px 12px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--surface-2);
+}
+.dock-title { font-size: var(--text-sm); font-weight: 600; color: var(--text-1); }
+.dock-ops { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.dock-btn {
+  height: 26px;
+  padding: 0 8px;
+  font-size: var(--text-xs);
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+}
+
+.dock-notice {
+  padding: 5px 12px;
+  font-size: var(--text-xs);
+  color: var(--amber);
+  background: var(--amber-soft);
+  cursor: pointer;
+}
+
+.dock-msgs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dock-empty {
+  margin: auto;
+  text-align: center;
+  color: var(--text-3);
+  font-size: var(--text-sm);
+  line-height: 1.8;
+}
+
+.dock-msg {
+  max-width: 88%;
+  padding: 7px 10px;
+  border-radius: var(--r-md);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+.dock-msg-user {
+  align-self: flex-end;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  color: var(--text-1);
+}
+.dock-msg-assistant {
+  align-self: flex-start;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  color: var(--text-1);
+}
+
+.dock-streaming { min-height: 20px; }
+.dock-thinking { color: var(--text-3); }
+.dock-thinking::after {
+  content: "…";
+  display: inline-block;
+  animation: dock-pulse 1.2s ease-in-out infinite;
+}
+@keyframes dock-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+.dock-caret {
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: var(--accent);
+  animation: dock-pulse 1s steps(2) infinite;
+}
+
+.dock-trace {
+  align-self: stretch;
+  border-left: 2px solid var(--border);
+  padding: 2px 0 2px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dock-trace-line {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dock-confirm {
+  align-self: stretch;
+  border: 1px solid var(--amber);
+  background: var(--amber-soft);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+}
+.dock-confirm-text { font-size: var(--text-sm); line-height: 1.5; color: var(--text-1); white-space: pre-wrap; }
+.dock-confirm-ops { display: flex; gap: 6px; margin-top: 8px; }
+
+.dock-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--surface);
+}
+.dock-input {
+  flex: 1;
+  resize: none;
+  max-height: 88px;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 7px 9px;
+  font-size: var(--text-sm);
+  font-family: inherit;
+  line-height: 1.4;
+  background: var(--surface);
+  color: var(--text-1);
+}
+.dock-input:focus { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+.dock-send { height: 34px; min-width: 40px; padding: 0 12px; font-size: 15px; }
+
+.dock-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px 7px;
+  border-top: 1px solid var(--border-soft);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+.dock-foot span:first-child { flex: 1; }
+.dock-budget {
+  width: 64px;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.dock-budget-bar { height: 100%; background: var(--accent); transition: width 300ms ease; }
+
+.dock-history {
+  position: absolute;
+  inset: 37px 0 64px 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 8px 10px;
+  gap: 4px;
+}
+.dock-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 6px;
+  font-size: var(--text-sm);
+}
+.dock-hist-row { display: flex; align-items: center; gap: 4px; }
+.dock-hist-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  cursor: pointer;
+  text-align: left;
+}
+.dock-hist-main:hover { border-color: var(--accent-border); background: var(--accent-soft); }
+.dock-hist-title {
+  font-size: var(--text-sm);
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dock-hist-meta { flex-shrink: 0; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); }
+.dock-hist-del { flex-shrink: 0; color: var(--text-3); }
+.dock-hist-del:hover { color: var(--red); }
+
+/* 移动端：面板贴近全宽，避开右下角硬刷新钮 */
+@media (max-width: 860px) {
+  .dock-panel { left: 10px; right: 10px; bottom: 10px; width: auto; max-width: none; height: 72vh; }
+  .dock-fab { left: 12px; bottom: 12px; }
+  .dock-history { inset: 37px 0 60px 0; }
+}

@@ -25,6 +25,7 @@ import { AppProvider } from "./state/app.js";
 import { FavsProvider } from "./state/favs.js";
 import { useApp } from "./state/context.js";
 import { setNavBridge, setStatusBridge } from "./plugins/bridges.js";
+import { ChatDock } from "./plugins/ChatDock.js";
 
 /** 插件桥回填：每帧把 navigate/status 同步给插件门面（bridges 无任何反向依赖） */
 function PluginBridge() {
@@ -85,6 +86,7 @@ function Routed() {
     <>
       {body}
       <PluginBridge />
+      <ChatDock />
       <FilePreviewHost />
     </>
   );
