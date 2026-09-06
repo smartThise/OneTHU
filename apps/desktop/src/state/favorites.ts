@@ -34,6 +34,8 @@ export interface FavFolder {
 }
 
 /** 存储文档 */
+import { NAV_PAGES, normalizeNavOrder, restabilizeFolders } from "../lib/navOrder.js";
+
 export interface FavsData {
   v: 1;
   /** 根收藏夹顺序（侧栏「我的收藏夹」区） */
@@ -42,8 +44,10 @@ export interface FavsData {
   folders: Record<string, FavFolder>;
   /** 侧栏折叠的用户根收藏夹 id */
   foldedRoots: string[];
-  /** 侧栏折叠的默认一级入口（state/app.tsx Page id；今日/设置不可折叠） */
+  /** 侧栏折叠的默认一级入口（state/app.tsx Page id） */
   foldedDefaults: string[];
+  /** 侧栏统一序列（页+根收藏夹交错，lib/navOrder.ts；缺省=默认序，视图层归一化） */
+  navOrder?: string[];
 }
 
 export const FAVS_KEY = "onethu.favs.v1";
@@ -293,6 +297,37 @@ export function moveRoot(d: FavsData, id: string, dir: -1 | 1): FavsData {
   order[i] = order[j]!;
   order[j] = t;
   return { ...d, order };
+}
+
+/** 侧栏统一序列视图：归一化 + 收藏夹相对序重投影（渲染期纯函数，SSR 安全） */
+export function navSeqOf(d: FavsData): string[] {
+  return restabilizeFolders(normalizeNavOrder(d.navOrder ?? [], NAV_PAGES, d.order), d.order);
+}
+
+/** 页面在侧栏的可见序列位置（今日页 上移/下移 的边界置灰用） */
+export function navPagePos(d: FavsData, page: string): { idx: number; count: number } {
+  const vis = navSeqOf(d).filter((k) =>
+    k.startsWith("p:") ? !d.foldedDefaults.includes(k.slice(2)) : !d.foldedRoots.includes(k.slice(2)),
+  );
+  return { idx: vis.indexOf("p:" + page), count: vis.length };
+}
+
+/** 页面侧栏调序（今日页页头 上移/下移）：与相邻可见行（页或收藏夹）交换 */
+export function moveNavPage(d: FavsData, page: string, dir: -1 | 1): FavsData {
+  const seq = navSeqOf(d);
+  const key = "p:" + page;
+  const vis = seq.filter((k) =>
+    k.startsWith("p:") ? !d.foldedDefaults.includes(k.slice(2)) : !d.foldedRoots.includes(k.slice(2)),
+  );
+  const i = vis.indexOf(key);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= vis.length) return d;
+  const a = vis[i]!;
+  const b = vis[j]!;
+  const arr = [...seq];
+  arr[arr.indexOf(a)] = b;
+  arr[arr.indexOf(b)] = a;
+  return { ...d, navOrder: arr };
 }
 
 /** 侧栏折叠切换：isDefault=true 折叠默认入口（Page id），否则折叠用户根收藏夹 */
