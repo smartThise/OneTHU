@@ -1,6 +1,8 @@
 //! OneTHU 桌面壳 —— 网络层走 Rust（reqwest），前端零 CORS 限制。
 
 use serde::{Deserialize, Serialize};
+
+mod plugins;
 use std::collections::HashMap;
 use std::time::Duration;
 use tauri::Manager;
@@ -794,6 +796,7 @@ fn open_sports_window(_: tauri::AppHandle) -> Result<String, String> {
 tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(std::sync::Mutex::new(None::<String>) as VenueSsoState)
+        .manage(plugins::PluginHost::default())
         .register_asynchronous_uri_scheme_protocol("venueview", |ctx, request, responder| {
             let app = ctx.app_handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -817,7 +820,8 @@ tauri::Builder::default()
         })
         .invoke_handler(tauri::generate_handler![
             log_debug,http_request,download_file,fetch_binary,state_read,state_write,state_delete,
-            open_external,open_eid_window,open_sports_window,venue_sso_set])
+            open_external,open_eid_window,open_sports_window,venue_sso_set,
+            plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

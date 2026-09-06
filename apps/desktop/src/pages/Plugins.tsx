@@ -9,7 +9,9 @@ import {
   commandsSnapshot, disablePlugin, enablePlugin, installedPlugins,
   isLive, runCommand, subscribe, subscribeCommands, uninstallPlugin,
 } from "../plugins/loader.js";
-import { updatePlugin } from "../plugins/registry.js";
+import { addRustPlugin, updatePlugin } from "../plugins/registry.js";
+import { clearPluginEvents, pluginEvents, subscribePluginEvents } from "../plugins/events.js";
+import { notifyRust } from "../plugins/rust.js";
 import { PLUGIN_PERMISSIONS } from "../plugins/types.js";
 
 export function PluginsSection(): ReactNode {
@@ -17,6 +19,27 @@ export function PluginsSection(): ReactNode {
   const [code, setCode] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const installRust = async (mf: File): Promise<void> => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const manifest = JSON.parse(await mf.text());
+      if (!manifest?.id || !manifest?.name) throw new Error("manifest.json 缺 id/name");
+      if (manifest.kind !== "rust" || !manifest.bin) throw new Error("manifest.kind 须为 rust 且声明 bin");
+      const binPath = mf.webkitRelativePath || (mf as unknown as { path?: string }).path;
+      if (!binPath) throw new Error("浏览器安全限制取不到本地路径——桌面端请用文件选择器的绝对路径（Tauri 环境）");
+      const abs = binPath.replace(/[^/]+$/, manifest.bin);
+      addRustPlugin(manifest, abs);
+      const { enablePlugin } = await import("../plugins/loader.js");
+      await enablePlugin(manifest.id);
+      setMsg(`已安装 Rust 插件：${manifest.name}@${manifest.version}`);
+    } catch (e) {
+      setMsg(`安装失败：${String(e instanceof Error ? e.message : e).slice(0, 200)}`);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const install = async (text: string): Promise<void> => {
     if (!text.trim()) return;
@@ -59,6 +82,18 @@ export function PluginsSection(): ReactNode {
             <button className="btn btn-primary" disabled={busy || !code.trim()} onClick={() => void install(code)}>
               {busy ? "安装中…" : "安装插件"}
             </button>
+            <span className="plugin-or">或</span>
+            <input
+              type="file"
+              accept=".json,application/json"
+              title="Rust 插件：选其 manifest.json（二进制需同名同目录）"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void installRust(f);
+                e.target.value = "";
+              }}
+            />
+            <span className="plugin-hint-inline">Rust 骨干插件（选 manifest.json）</span>
             <input
               type="file"
               accept=".js,.mjs,text/javascript"
@@ -147,6 +182,7 @@ function PluginRow({ id }: { id: string }): ReactNode {
               ))}
             </div>
           ) : null}
+          {rec.manifest.kind === "rust" ? <ProgressPane id={id} /> : null}
           {cmds.length > 0 ? (
             <div className="plugin-cmds">
               {cmds.map((c) => (
@@ -171,3 +207,31 @@ function PluginRow({ id }: { id: string }): ReactNode {
 
 /* 本文件局部复用 Layout 的 SectionHead（避免循环依赖走具名导入） */
 import { SectionHead } from "../components/Layout.js";
+
+/* Rust 插件实时进度面板（R4）：progress/log/exit 流 + 打断 */
+function ProgressPane({ id }: { id: string }): ReactNode {
+  const events = useSyncExternalStore(subscribePluginEvents, () => pluginEvents(id));
+  const [open] = useState(true);
+  if (!open) return null;
+  const lines = events.slice(-120);
+  return (
+    <div className="plugin-progress">
+      <div className="plugin-progress-head">
+        <span>运行轨迹</span>
+        <div className="plugin-row-ops">
+          <button className="btn" onClick={() => void notifyRust(id, "interrupt").catch(() => undefined)}>打断</button>
+          <button className="btn" onClick={() => clearPluginEvents(id)}>清空</button>
+        </div>
+      </div>
+      <div className="plugin-progress-body">
+        {lines.length === 0 ? <span className="plugin-empty">（尚无输出）</span> : lines.map((e, i) => (
+          <div key={i} className={"plugin-ev plugin-ev-" + e.method}>
+            {e.method === "progress" ? "▶ " : e.method === "log" ? "· " : e.method === "exit" ? "■ " : "… "}
+            {e.text || e.method}
+            {e.step != null ? `（${e.step}${e.total != null ? "/" + e.total : ""}）` : ""}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
