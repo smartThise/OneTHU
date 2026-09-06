@@ -283,6 +283,23 @@ export class InfoClient {
   #ensureInflight2 = new Map<string, Promise<void>>();
   /** access_token 模块级缓存：页面重挂载（实例重建）后仍有效 */
   static libToken = "";
+  /** 图书馆取数 TTL 缓存（2026-09-06 校外 webvpn 每请求 2~3s 实测痛点）：
+   *  馆树 1h / 楼层 90s / 区域 60s——余量数允许这一档陈旧，座位图与预约动作
+   *  各自另有新鲜请求；forceEnsure("library") 全清。键含日期选择。 */
+  static libTreeCache: { at: number; list: Library[] } | null = null;
+  static libTreeInflight: Promise<Library[]> | null = null;
+  static libFloorCache = new Map<string, { at: number; list: LibraryFloor[] }>();
+  static libFloorInflight = new Map<string, Promise<LibraryFloor[]>>();
+  static libSecCache = new Map<string, { at: number; list: LibrarySection[] }>();
+  static libSecInflight = new Map<string, Promise<LibrarySection[]>>();
+  static libCacheClear(): void {
+    InfoClient.libTreeCache = null;
+    InfoClient.libTreeInflight = null;
+    InfoClient.libFloorCache.clear();
+    InfoClient.libFloorInflight.clear();
+    InfoClient.libSecCache.clear();
+    InfoClient.libSecInflight.clear();
+  }
   static libTokenTs = 0;
   static libTokenInflight: Promise<string> | null = null;
   /** 研讨间（cab.lib）认证 TTL 缓存（#libraryAccessToken 同款模式）：10 分钟内
@@ -1672,6 +1689,7 @@ export class InfoClient {
       this.#libRoamed = false; // 强制重建（forceEnsure 自愈入口）：清标记重走
       InfoClient.libToken = ""; // token 一并失效，避免拿旧会话的 token 撞新会话
       InfoClient.libTokenTs = 0;
+      InfoClient.libCacheClear();
     }
     if (this.#libRoamed) return;
     await this.#roamIdService(urls.LIBRARY_CAS_FORM());
@@ -1903,7 +1921,11 @@ export class InfoClient {
 
   /** 馆列表（library.ts getLibraryList：areas/1/tree → data.list 数组） */
   async getLibraryList(): Promise<Library[]> {
-    return this.#withRenew(async () => {
+    if (InfoClient.libTreeCache && Date.now() - InfoClient.libTreeCache.at < 3_600_000) {
+      return InfoClient.libTreeCache.list;
+    }
+    if (InfoClient.libTreeInflight) return InfoClient.libTreeInflight;
+    const run = this.#withRenew(async () => {
       await this.#ensureLibrary();
       const list = await this.#libListJson(urls.LIBRARY_LIST());
       if (!Array.isArray(list)) throw new Error("图书馆列表解析失败（data.list 非数组）");
@@ -1921,6 +1943,15 @@ export class InfoClient {
         };
       });
     });
+    InfoClient.libTreeInflight = run
+      .then((list) => {
+        InfoClient.libTreeCache = { at: Date.now(), list };
+        return list;
+      })
+      .finally(() => {
+        InfoClient.libTreeInflight = null;
+      });
+    return InfoClient.libTreeInflight;
   }
 
   /** 区域列表（library.ts getLibrarySectionList：areas/<id>/date/<d> → data.list.childArea） */
@@ -1928,7 +1959,12 @@ export class InfoClient {
     floor: { id: number; zhNameTrace: string },
     dateChoice: 0 | 1,
   ): Promise<LibrarySection[]> {
-    return this.#withRenew(async () => {
+    const key = `${floor.id}|${dateChoice}`;
+    const hit = InfoClient.libSecCache.get(key);
+    if (hit && Date.now() - hit.at < 60_000) return hit.list;
+    const running = InfoClient.libSecInflight.get(key);
+    if (running) return running;
+    const run = this.#withRenew(async () => {
       await this.#ensureLibrary();
       const list = await this.#libListJson(this.#libAreasByDateUrl(floor.id, dateChoice));
       // list:null / [] = 该日期无开放区域（合法空态）；data.list 区域端点为对象（childArea）
@@ -1954,6 +1990,16 @@ export class InfoClient {
         })
         .sort((a, b) => a.id - b.id);
     });
+    const p = run
+      .then((list) => {
+        InfoClient.libSecCache.set(key, { at: Date.now(), list });
+        return list;
+      })
+      .finally(() => {
+        InfoClient.libSecInflight.delete(key);
+      });
+    InfoClient.libSecInflight.set(key, p);
+    return p;
   }
 
   #libAreasByDateUrl(id: number, dateChoice: 0 | 1): string {
@@ -1964,8 +2010,25 @@ export class InfoClient {
   }
 
   /** 楼层列表（library.ts getLibraryFloorList：areas/<libId> 楼层 + 逐层区域求和 available/total） */
-  async getLibraryFloorList(library: Library, dateChoice: 0 | 1): Promise<LibraryFloor[]> {
-    return this.#withRenew(async () => {
+  async getLibraryFloorList(
+    library: Library,
+    dateChoice: 0 | 1,
+    /** 渐进回调：楼层骨架就绪时与每层余量回填后各调一次（同一数组引用，调用方自行拷贝）。
+     *  缓存命中路径也调一次（完整数据），UI 无需感知两种来源。 */
+    onFloor?: (floors: LibraryFloor[]) => void,
+  ): Promise<LibraryFloor[]> {
+    const key = `${library.id}|${dateChoice}`;
+    const hit = InfoClient.libFloorCache.get(key);
+    if (hit && Date.now() - hit.at < 90_000) {
+      onFloor?.(hit.list);
+      return hit.list;
+    }
+    const running = InfoClient.libFloorInflight.get(key);
+    if (running) {
+      onFloor?.([]); // 空数组=骨架信号，调用方维持现有等待态
+      return running;
+    }
+    const run = this.#withRenew(async () => {
       await this.#ensureLibrary();
       const list = await this.#libListJson(urls.LIBRARY_AREAS(library.id));
       // list:null / [] = 无楼层（合法空态）；areas 端点 data.list 为对象（childArea）
@@ -1999,8 +2062,30 @@ export class InfoClient {
           }
         }
       }
-      return floors.sort((a, b) => a.id - b.id);
+      floors.sort((a, b) => a.id - b.id);
+      onFloor?.(floors); // 楼层骨架（余量未回填）先亮，区域下拉立即可用
+      // 逐层余量求和：保持串行——座位后端是 PHP，同 PHPSESSID 的并发请求被
+      // 会话文件锁服务端串行化（2026-09-06 用户实测并行反而更慢），并行零收益。
+      // 可用座位数不缓存——预约决策要新鲜数。
+      for (const floor of floors) {
+        if (!floor.valid) continue;
+        const sections = await this.getLibrarySectionList(floor, dateChoice).catch(() => []);
+        for (const s of sections) {
+          if (s.valid) {
+            floor.available += s.available;
+            floor.total += s.total;
+          }
+        }
+        onFloor?.(floors); // 每层回填即推
+      }
+      InfoClient.libFloorCache.set(key, { at: Date.now(), list: floors });
+      return floors;
     });
+    const p = run.finally(() => {
+      InfoClient.libFloorInflight.delete(key);
+    });
+    InfoClient.libFloorInflight.set(key, p);
+    return p;
   }
 
   /** 区域开放时段（library.ts getLibraryDay：areadays/<id> 找 today/tomorrow 行） */
