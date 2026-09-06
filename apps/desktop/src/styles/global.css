@@ -1957,6 +1957,10 @@
   /* 页头两行排布 */
   .page-head { flex-wrap: wrap; row-gap: 6px; margin-bottom: 10px; }
   .page-head h1 { font-size: var(--text-lg, 20px); }
+  /* 编辑栏按钮排（收藏夹 5 键）宽过屏：actions 是 shrink:0 的 flex 项，宽度=
+     内容宽不受父约束，内部 flex-wrap 永不触发（内容宽不会超过自身）→「完成」
+     溢出右缘。钉 max-width 让按钮排到宽即换行 */
+  .page-head-actions { max-width: 100%; }
   /* 硬刷新 FAB 避让手势区 */
   .hard-refresh-fab {
     right: calc(14px + env(safe-area-inset-right, 0px));
