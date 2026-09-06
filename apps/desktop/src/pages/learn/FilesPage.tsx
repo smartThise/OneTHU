@@ -62,7 +62,7 @@ export function FilesPage() {
       ) : (
         <Card className="list">
           {files.map((f, i) => (
-            <FileRow key={`${f.courseId}-${f.id}`} f={f} courseName={byCourse.get(f.courseId)} from="learn-files" style={{ animationDelay: `${i * 25}ms` }} />
+            <FileRow key={`${f.courseId}-${f.id}`} f={f} courseName={byCourse.get(f.courseId)} sem={data?.semester.id} from="learn-files" style={{ animationDelay: `${i * 25}ms` }} />
           ))}
         </Card>
       )}

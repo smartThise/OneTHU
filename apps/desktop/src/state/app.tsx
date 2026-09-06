@@ -33,6 +33,8 @@ export interface LearnNav {
   itemId?: string;
   /** 讨论区：话题所属板块 id（viewTlById 原生链接必带 tabbh+bqid，缺失会被甩登录壳页） */
   bqid?: string;
+  /** 讨论区板块直达（板块原子深链）：课程详情落 forum tab 且 BbsPanel 初始选中该板块 */
+  bbsBoard?: string;
   /** 课程详情「各回各家」：三级页返回时携带的目标 tab（notices/assignments/files/groups/forum），
    *  课程页挂载时据此初始化 tab，而不是恒落第一个 */
   courseTab?: string;

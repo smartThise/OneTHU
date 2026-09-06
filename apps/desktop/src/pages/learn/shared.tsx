@@ -13,6 +13,8 @@ import { openFilePreview } from "../../components/FilePreview.js";
 import { openExternal } from "../info/openExternal.js";
 import { Card } from "../../components/Layout.js";
 import { IconChevron } from "../../components/Icons.js";
+import { CollectStar } from "../../components/Collect.js";
+import { enc } from "../../state/atoms.js";
 
 /* ---------- 学期文案（learnX getSemesterTextFromId） ---------- */
 
@@ -187,7 +189,7 @@ interface RowProps {
   style?: CSSProperties;
 }
 
-export function HomeworkRow({ h, courseName, from, style, showGrade = false }: RowProps & { h: Homework; showGrade?: boolean }) {
+export function HomeworkRow({ h, courseName, from, style, showGrade = false, sem }: RowProps & { h: Homework; showGrade?: boolean; sem?: string }) {
   const { navigate } = useApp();
   const go = () => navigate("learn-assignment-detail", { courseId: h.courseId, itemId: h.id, from });
   const chip = homeworkChip(h);
@@ -214,12 +216,14 @@ export function HomeworkRow({ h, courseName, from, style, showGrade = false }: R
         <span className="dot" />
         {score ? `${chip.text} · ${score}` : chip.text}
       </span>
+      {/* 列表级星标：与详情页 key 同构（courseId~id~title~课程名~学期），点进行前就能收 */}
+      <CollectStar atom={{ kind: "assignment", key: enc(h.courseId, h.id, h.title, courseName ?? "", sem ?? "") }} title={h.title} />
       <IconChevron className="row-caret" width={14} height={14} />
     </div>
   );
 }
 
-export function NoticeRow({ n, courseName, from, style }: RowProps & { n: Notification }) {
+export function NoticeRow({ n, courseName, from, style, sem }: RowProps & { n: Notification; sem?: string }) {
   const { navigate } = useApp();
   const go = () => navigate("learn-notice-detail", { courseId: n.courseId, itemId: n.id, from });
   return (
@@ -244,12 +248,13 @@ export function NoticeRow({ n, courseName, from, style }: RowProps & { n: Notifi
           {courseName ?? "课程"} · {n.publisher}
         </div>
       </div>
+      <CollectStar atom={{ kind: "notice", key: enc(n.courseId, n.id, n.title, courseName ?? "", sem ?? "") }} title={n.title} />
       <IconChevron className="row-caret" width={14} height={14} />
     </div>
   );
 }
 
-export function FileRow({ f, courseName, from, style }: RowProps & { f: CourseFile }) {
+export function FileRow({ f, courseName, from, style, sem }: RowProps & { f: CourseFile; sem?: string }) {
   const { navigate } = useApp();
   const go = () => navigate("learn-file-detail", { courseId: f.courseId, itemId: f.id, from });
   const preview = () =>
@@ -283,6 +288,7 @@ export function FileRow({ f, courseName, from, style }: RowProps & { f: CourseFi
       >
         预览
       </button>
+      <CollectStar atom={{ kind: "file", key: enc(f.courseId, f.id, f.title, courseName ?? "", sem ?? "") }} title={f.title} />
       <IconChevron className="row-caret" width={14} height={14} />
     </div>
   );
