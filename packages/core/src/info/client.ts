@@ -1483,9 +1483,15 @@ export class InfoClient {
       }
       await this.#ensureDorm();
     }
-    const page = await attempt();
+    let page = await attempt();
     if (!page) {
-      throw new AuthRequiredError(`${what}：家园网会话未能建立`);
+      // 漫游刚兑付的会话存在生效竞态窗（真机 10:52:10→10:52:49 实录：首调用
+      // 重试失败、39 秒后同链路成功）——再补一整轮「重漫游+重取」兜住首点闪错
+      await this.#ensureDorm(true);
+      page = await attempt();
+      if (!page) {
+        throw new AuthRequiredError(`${what}：家园网会话未能建立`);
+      }
     }
     this.#dormLastOkAt = Date.now();
     return page;
