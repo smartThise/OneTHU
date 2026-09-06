@@ -65,6 +65,19 @@ function parseSetCookieLine(line: string, requestHost: string): CookieRecord | n
   return rec;
 }
 
+/** 直连公共域（learn/id/oauth/webvpn/info/card）：供传输层跳转包装判定复用。
+ *  历史实证：info/card 的 wengine 代理路径不通，须直连——不能一刀切全包装。 */
+export const PUBLIC_DIRECT_HOSTS = new Set([
+  "learn.tsinghua.edu.cn",
+  "webvpn.tsinghua.edu.cn",
+  "id.tsinghua.edu.cn",
+  "oauth.tsinghua.edu.cn",
+  "info.tsinghua.edu.cn",
+  // card 退出直连（2026-09-06 真机实录）：oauth lbredirect 兑票落点恒为 webvpn
+  // 包装 URL，会话建在包装通道；直连探测永远看不见 → 恒报「会话未能建立」。
+  // 单通道（恒包装）与会话兑付同轨。
+]);
+
 export class MemoryCookieJar implements CookieJar {
   #map = new Map<string, CookieRecord>();
 
@@ -246,6 +259,8 @@ export class HttpClient {
   /** 最后一次请求的实际 wire 目标（包装后）。tauriFetch 不回传 response.url，
    *  lastDebug 必须显式区分"逻辑 URL"与"实际 wire URL"，否则排查会被误导。 */
   lastTarget = "";
+  /** 最近一次请求的最终落点 URL（重定向链终点；业务层判「被踢到错误页/登录页」用） */
+  lastFinalUrl = "";
 
   /** 最后一次请求实际携带的 cookie 名单（诊断会话丢失用） */
   lastCookieNames = "";
@@ -288,15 +303,7 @@ export class HttpClient {
     // - id/oauth/webvpn：登录链公共域，直连。
     // - 其余（info/zhjw.cic/zhjwxk.cic 等校内网关域名）：校外不可达，必须经 webvpn 包装。
     //   包装不再依赖 #webVPN 开关（开关只影响直连模式下公共域的判定）。
-    const PUBLIC_HOSTS = new Set([
-      "learn.tsinghua.edu.cn",
-      "webvpn.tsinghua.edu.cn",
-      "id.tsinghua.edu.cn",
-      "oauth.tsinghua.edu.cn",
-      // info/card 与 learn 同款直连（wengine 代理路径实证不通；直连 + 客户端会话可用）
-      "info.tsinghua.edu.cn",
-      "card.tsinghua.edu.cn",
-    ]);
+    const PUBLIC_HOSTS = PUBLIC_DIRECT_HOSTS;
     let host = "";
     try {
       host = new URL(url).hostname;
@@ -321,7 +328,13 @@ export class HttpClient {
 
     const response = await this.#fetch(target, { ...rest, headers });
     try {
-      const physical = new URL(response.url || target);
+      // transport 手工构造的 Response 没有 url 属性（重定向链终点经
+      // x-onethu-final-url 头回传——真机实录：ErrorPage 兑付被 302 后
+      // lastFinalUrl 仍指旧目标，电费判坏失效）
+      const physical = new URL(
+        response.headers.get("x-onethu-final-url") || response.url || target,
+      );
+      this.lastFinalUrl = physical.toString();
       this.jar.setFromResponse(physical, response);
     } catch {
       /* 忽略畸形 URL */

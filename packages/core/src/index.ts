@@ -1,7 +1,7 @@
 /** @onethu/core —— One THUer should have OneTHU. */
 
 // 传输层
-export { HttpClient, MemoryCookieJar, AuthRequiredError, DEFAULT_USER_AGENT, onAuthRequired, suspendAuthBroadcast } from "./http.js";
+export { HttpClient, MemoryCookieJar, AuthRequiredError, DEFAULT_USER_AGENT, PUBLIC_DIRECT_HOSTS, onAuthRequired, suspendAuthBroadcast } from "./http.js";
 export type { CookieJar, CookieRecord, FetchLike, HttpClientOptions } from "./http.js";
 
 // 加密

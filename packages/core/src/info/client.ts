@@ -1464,10 +1464,15 @@ export class InfoClient {
     const attempt = async (): Promise<string> => {
       const page = await fetcher().catch(() => "");
       // ASP.NET ErrorPage（模块会话缺失时 myhome 302 到 ErrorPage.html?aspxerrorpath=
-      // …）：不是登录页，旧探测器放行 → 乐观快路径误判会话健康 → 电费记录页解析
-      // 炸（2026-09-06 校外实录：整轮会话 0 次宿舍漫游，ErrorPage 直通 .myTable
-      // 解析）。错误页等同失登 → ensureDorm 建 /1 电费模块会话后重试。
-      const bad = !page || isLogin(page) || /aspxerrorpath=|\/ErrorPage\.html/i.test(page);
+      // …）：不是登录页，body 里无标记——aspxerrorpath 只出现在最终跳转 URL（真机
+      // 10:34:20 实录：body=「404友谊的花园」，正则测 body 恒不中 → 漫游永不触发）。
+      // 用 #http.lastFinalUrl 判「被踢到错误页」，等同失登 → ensureDorm 建 /1 电费
+      // 模块会话后重试。
+      const finalUrl = this.#http.lastFinalUrl ?? "";
+      const bad = !page
+        || isLogin(page)
+        || /aspxerrorpath=|\/ErrorPage\.html/i.test(finalUrl)
+        || /aspxerrorpath=|\/ErrorPage\.html/i.test(page);
       return bad ? "" : page;
     };
     if (!(this.#dormRoamed && Date.now() - this.#dormLastOkAt < DORM_OK_TTL)) {

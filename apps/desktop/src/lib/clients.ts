@@ -11,11 +11,12 @@ import {
   makeFingerprint,
   webvpnDecodeUrl,
   webvpnWrap,
+  PUBLIC_DIRECT_HOSTS,
   type CredentialStore,
   type SessionData,
   type TwoFactorMethod,
 } from "@onethu/core";
-import { universalFetch, isTauri, setHopCookieProvider, setHopLogger } from "./transport.js";
+import { universalFetch, isTauri, setHopCookieProvider, setHopLogger, setHopUrlWrapper } from "./transport.js";
 import { setWebvpnLog, setZhjwxkDebug } from "@onethu/core";
 
 export type { TwoFactorMethod };
@@ -152,6 +153,16 @@ setWebvpnLog((line) => void logLine(line));
 setHopCookieProvider((hopUrl) => {
   try {
     const origin = webvpnDecodeUrl(hopUrl) ?? hopUrl;
+// 链内 webvpn 续轨（transport.ts）：非公网域的重定向目标续包装，防通道分裂
+setHopUrlWrapper((u: string): string => {
+  try {
+    const h = new URL(u).hostname;
+    if (h === "webvpn.tsinghua.edu.cn" || PUBLIC_DIRECT_HOSTS.has(h)) return u;
+    return webvpnWrap(u);
+  } catch {
+    return u;
+  }
+});
     const cookies = http.jar.getCookies(new URL(origin));
     if (!cookies.length) return null;
     return cookies.map((c) => `${c.name}=${c.value}`).join("; ");

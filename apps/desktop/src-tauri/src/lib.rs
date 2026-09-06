@@ -54,11 +54,28 @@ fn log_debug(line: String) -> Result<(), String> {
             let _ = std::fs::rename(LOG, "/tmp/onethu-debug.log.old");
         }
     }
-    let mut f = std::fs::OpenOptions::new()
+    let mut f = match std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(LOG)
-        .map_err(|e| e.to_string())?;
+    {
+        Ok(f) => f,
+        // Android 无 /tmp（2026-09-06 真机实录：调试通道整体静默失效）→ 落 logcat，
+        // adb 直读。__android_log_write 是 NDK 公共符号（liblog），零依赖直链。
+        Err(_) => {
+            #[cfg(target_os = "android")]
+            unsafe {
+                extern "C" {
+                    fn __android_log_write(prio: i32, tag: *const u8, text: *const u8) -> i32;
+                }
+                let full = format!("{}\0", line);
+                __android_log_write(4, b"onethu\0".as_ptr(), full.as_ptr() as *const u8);
+            }
+            #[cfg(not(target_os = "android"))]
+            let _ = &line;
+            return Ok(());
+        }
+    };
     let _ = writeln!(f, "{}", line);
     Ok(())
 }
