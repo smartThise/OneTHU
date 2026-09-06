@@ -287,3 +287,147 @@ export default async function activate(ctx) {
 - OneTHU 本体仓库：`/Volumes/PortableSSD/Projects/thuapp/OneTHU`（main 分支）；类型
   定义真源：`apps/desktop/src/plugins/types.ts`（API 面）与 `packages/core/src/info/types.ts`（领域类型）。
 
+
+---
+
+## 八、Rust 骨干插件（课程 R1 合规形态）★ Harness 必读
+
+> 课程硬性要求 R1：**核心业务逻辑（数据处理、算法流程、API 调用编排）必须用 Rust 写，
+> 主控流程必须在 Rust 里。** 因此 OneTHU Harness 不能写成 JS 模块插件，而要用本节形态：
+> 一个 Rust 编译出的**独立进程（sidecar）**，agent 主控循环（LLM 调用、工具编排、
+> token 统计、上下文管理）全部在 Rust 里；OneTHU 宿主负责拉起进程、喂原子数据、渲染进度。
+
+### 8.1 形态与安装
+
+```
+my-harness/
+├── manifest.json     # 清单（kind: "rust"）
+└── onethu-harness    # cargo build --release 出的二进制（名字与 manifest.bin 一致）
+```
+
+manifest.json（注意 kind 与 bin）：
+
+```json
+{
+  "id": "onethu.harness",
+  "kind": "rust",
+  "bin": "onethu-harness",
+  "name": "OneTHU Harness",
+  "version": "0.1.0",
+  "description": "大模型驱动的校园助手（Rust 骨干）",
+  "permissions": ["user:read", "info:read", "card:read", "dorm:read",
+                  "library:read", "library:book", "nav", "ui", "storage", "net:external"],
+  "settings": [
+    { "key": "apiKey", "label": "API Key", "type": "password", "placeholder": "sk-…" },
+    { "key": "baseUrl", "label": "API Endpoint", "type": "text", "default": "https://api.deepseek.com/v1" },
+    { "key": "model", "label": "模型", "type": "text", "default": "deepseek-chat" },
+    { "key": "priceIn", "label": "输入价格 $/1M tokens", "type": "text", "default": "0.27" },
+    { "key": "priceOut", "label": "输出价格 $/1M tokens", "type": "text", "default": "1.10" },
+    { "key": "budget", "label": "Token 预算", "type": "text", "default": "200000" }
+  ]
+}
+```
+
+安装：桌面端 OneTHU → 设置 → 插件 → 「Rust 骨干插件（选 manifest.json）」选 manifest.json
+（二进制须在**同目录同名**）。仅桌面端可用（Android 无任意路径执行）；装的是本地路径，
+删除只是解除登记，不删文件。
+
+### 8.2 JSON-RPC 协议（stdio，每行一个 JSON）
+
+**宿主 → 插件（stdin）**
+
+| 消息 | 说明 |
+|---|---|
+| `{"jsonrpc":"2.0","id":1,"method":"activate","params":{"settings":{…},"permissions":[…]}}` | 进程拉起后立即握手。**必须应答**，约定 result 里带命令清单：`{"commands":[{"id":"run","title":"执行任务","inputLabel":"指令","inputPlaceholder":"…"}]}`（管理页据此渲染按钮） |
+| `{"jsonrpc":"2.0","id":2,"method":"run","params":{"command":"run","input":"用户指令"}}` | 用户点了命令按钮。超长任务边跑边发 progress；**必须应答**最终结果（string 展示） |
+| `{"jsonrpc":"2.0","method":"interrupt","params":{}}` | 用户点了「打断」（通知，无 id 不应答）——立即停止当前 run 并以 error 或部分结果应答 |
+| `{"jsonrpc":"2.0","id":3,"method":"dispose","params":{}}` | 停用/卸载前优雅退出，应答后自行 exit(0) |
+
+**插件 → 宿主（stdout）**
+
+| 消息 | 说明 |
+|---|---|
+| `{"jsonrpc":"2.0","id":100,"method":"onethu.call","params":{"ns":"library","method":"floors","args":[392,0]}}` | 调用 §三 的任一 API：`ns`+`method`+`args`（方法签名去掉 `onethu.` 前缀）。宿主转 webview 门面执行（**同样的权限门禁**），把返回值写回 `"result"`；无权限/出错时收到 `"error":{"message":"…"}` |
+| `{"jsonrpc":"2.0","method":"progress","params":{"text":"正在查询北馆 3 楼…","step":2,"total":6}}` | 实时进度（R4），管理页轨迹面板即时渲染 |
+| `{"jsonrpc":"2.0","method":"log","params":{"line":"…"}}` | 轨迹面板日志行 |
+
+stderr（`eprintln!`）与非 JSON 的 stdout 行也会作为 log 显示——开发期随便打。
+
+### 8.3 最小 Rust 骨架（已实测：与宿主模拟器 5/5 握手通过；仓库 `docs/examples/harness-skel/` 可直接 cargo build）
+
+> **已踩平的坑**：`for line in stdin().lock().lines()` 全程持锁，循环体内再
+> `stdin().lock()` 读 onethu 应答 = std 锁不可重入 → **死锁**（实测）。必须像下面这样
+> 全程只 lock 一次、`onethu()` 复用同一个 `&mut StdinLock`。
+
+```rust
+use serde_json::{json, Value};
+use std::io::{BufRead, StdinLock, Write};
+
+fn send(v: &Value) {
+    let mut s = serde_json::to_string(v).unwrap();
+    s.push('\n');
+    let _ = std::io::stdout().write_all(s.as_bytes());
+    let _ = std::io::stdout().flush();
+}
+
+/// 调一次宿主 API：复用外层唯一的 stdin 锁（嵌套 lock 必死锁）
+fn onethu(in_: &mut StdinLock, id: &mut u64, ns: &str, method: &str, args: Value) -> Result<Value, String> {
+    *id += 1;
+    let rid = *id;
+    send(&json!({"jsonrpc":"2.0","id":rid,"method":"onethu.call","params":{"ns":ns,"method":method,"args":args}}));
+    let mut line = String::new();
+    in_.read_line(&mut line).map_err(|e| e.to_string())?;
+    let v: Value = serde_json::from_str(&line).map_err(|e| e.to_string())?;
+    if let Some(err) = v.get("error") { return Err(err.to_string()); }
+    Ok(v.get("result").cloned().unwrap_or(Value::Null))
+}
+
+fn main() {
+    let mut next_id: u64 = 1000;
+    let stdin = std::io::stdin();
+    let mut handle = stdin.lock(); // 全程唯一锁
+    let mut line = String::new();
+    loop {
+        line.clear();
+        if handle.read_line(&mut line).unwrap_or(0) == 0 { break; }
+        let Ok(msg) = serde_json::from_str::<Value>(line.trim()) else { continue };
+        let mid = msg.get("id").cloned();
+        match msg.get("method").and_then(|m| m.as_str()) {
+            Some("activate") => send(&json!({"jsonrpc":"2.0","id":mid,"result":{"commands":[
+                {"id":"run","title":"执行任务","inputLabel":"指令","inputPlaceholder":"例：明天图书馆哪有空座"}]}})),
+            Some("run") => {
+                send(&json!({"jsonrpc":"2.0","method":"progress","params":{"text":"开始…","step":1,"total":2}}));
+                let status = onethu(&mut handle, &mut next_id, "session", "status", json!([]));
+                send(&json!({"jsonrpc":"2.0","id":mid,"result":format!("会话状态：{status:?}")}));
+            }
+            Some("dispose") => { if let Some(id) = mid { send(&json!({"jsonrpc":"2.0","id":id,"result":null})); } std::process::exit(0); }
+            Some("interrupt") => { /* 打断当前任务（R4）：置标志位，agent 循环每步检查 */ }
+            _ => {}
+        }
+    }
+}
+```
+
+真实 Harness 在此骨架上生长：reqwest 调 LLM（OpenAI 兼容 `/chat/completions`）、
+工具循环每步经 `onethu.call` 取数/订座、每步发 progress、累计 usage → 价格换算（R6）。
+注意 run 的应答须在 10 分钟内返回（宿主默认超时；进程不会被杀，只是该次调用报超时，
+长任务自行分段或先快速应答再后台跑）。
+
+### 8.4 R1–R6 → OneTHU 宿主能力对照
+
+| 要求 | 落点 |
+|---|---|
+| R1 核心 Rust | 整个 sidecar 二进制；JS 侧只有宿主胶水（不属于插件） |
+| R2 界面 | OneTHU 管理页即是 UI（触发命令、展示结果）；无需自写 UI |
+| R3 模型配置 | manifest.settings（Endpoint/Key/模型/价格/预算），管理页表单可改 |
+| R4 进度+打断 | `progress` 通知（step/total）→ 轨迹面板；「打断」按钮 → `interrupt` 通知 |
+| R5 上下文历史 | 用 `onethu.call storage.set/get` 把会话 JSON 存进插件私有存储；轨迹面板显示工作流；管理页展开即「非黑盒」 |
+| R6 token 统计 | LLM 响应的 usage.prompt/completion_tokens 在 Rust 侧累计 × settings 价格；经 run 应答或 progress 展示；预算到量自动停 |
+
+### 8.5 约束与坑
+
+- **权限与 JS 插件同轨**：`onethu.call` 未声明的权限照样被门禁拒绝（错误消息含权限名）。
+- 单线程顺序调用足够（agent 循环天然顺序）；并发调用需自己管理请求 id 配对。
+- run 应答超时默认 10 分钟（自调用发出计到应答到达；progress 不重置计时）。超时只是该次调用报错，进程仍在跑、可继续 onethu.call/progress、可打断。
+- 退出码非 0 / stdout 关闭 → 宿主发 `exit` 事件并在 UI 标记，进程表自动清理。
+- 二进制路径含空格没问题；**不要**依赖工作目录（宿主不保证 cwd）。

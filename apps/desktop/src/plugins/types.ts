@@ -49,6 +49,11 @@ export interface PluginSettingField {
 export interface PluginManifest {
   /** 唯一 id（建议反域名，如 onethu.harness） */
   id: string;
+  /** 骨干形态：js（webview 模块，默认）| rust（sidecar 进程，课程 R1：
+   *  agent 主控循环/LLM 编排/token 统计全在 Rust 二进制内，宿主 JSON-RPC 喂数据） */
+  kind?: "js" | "rust";
+  /** rust 专用：二进制文件名（安装时随 manifest.json 同目录选取） */
+  bin?: string;
   name: string;
   version: string;
   author?: string;
@@ -178,7 +183,10 @@ export interface OnethuApi {
 /** 安装记录（localStorage 持久化） */
 export interface PluginRecord {
   manifest: PluginManifest;
+  /** js 插件的模块文本；rust 插件为空串 */
   code: string;
+  /** rust 插件：二进制绝对路径（manifest 在其同目录 manifest.json） */
+  binPath?: string;
   enabled: boolean;
   settings: Record<string, string>;
   installedAt: number;

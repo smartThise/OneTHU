@@ -2708,3 +2708,10 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .plugin-toast { background: var(--ink-1, #1f2329); color: #fff; padding: 8px 14px; border-radius: 999px; font-size: var(--text-sm); box-shadow: 0 4px 14px rgba(0,0,0,.18); opacity: 1; transition: opacity .3s; max-width: 78vw; }
 .plugin-toast.out { opacity: 0; }
 html.is-phone .plugin-row-ops .btn { height: 30px; padding: 0 10px; font-size: 12px; }
+.plugin-or { color: var(--ink-3); font-size: var(--text-sm); }
+.plugin-hint-inline { color: var(--ink-3); font-size: var(--text-xs); }
+.plugin-progress { border: 1px solid var(--border); border-radius: var(--r-md); display: grid; gap: 6px; }
+.plugin-progress-head { display: flex; align-items: center; justify-content: space-between; font-size: var(--text-sm); color: var(--ink-2); padding: 6px 10px 0; }
+.plugin-progress-body { max-height: 220px; overflow: auto; padding: 4px 10px 10px; display: grid; gap: 2px; font-family: var(--mono, ui-monospace, monospace); font-size: 12px; color: var(--ink-2); }
+.plugin-ev-exit { color: var(--red); }
+.plugin-ev-progress { color: var(--text-1, var(--ink-1)); }

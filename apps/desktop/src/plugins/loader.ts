@@ -1,5 +1,6 @@
 /** 插件加载器：blob 动态 import + 权限门面注入 + 生命周期（安装/启用/停用/删除） */
 import { buildApi } from "./facade.js";
+import { bindRustApi, callRust, disposeRust, spawnRustPlugin } from "./rust.js";
 import { addPlugin, getPlugin, removePlugin, snapshot, subscribe, updatePlugin } from "./registry.js";
 import { logLine } from "../lib/clients.js";
 import type { OnethuApi, PluginCommand, PluginContext, PluginManifest, PluginRecord } from "./types.js";
@@ -8,6 +9,7 @@ import type { OnethuApi, PluginCommand, PluginContext, PluginManifest, PluginRec
 
 interface LivePlugin {
   id: string;
+  kind: "js" | "rust";
   mod: any;
   blobUrl: string;
   dispose?: () => void;
@@ -90,6 +92,27 @@ async function activate(id: string, mod?: any, blobUrl?: string): Promise<void> 
     m = await import(/* @vite-ignore */ url);
   }
   const perms = new Set<string>(rec.manifest.permissions);
+  if (rec.manifest.kind === "rust") {
+    if (!rec.binPath) throw new Error("rust 插件缺少二进制路径");
+    bindRustApi(id, perms);
+    const hand = (await spawnRustPlugin(id, rec.binPath)) as unknown;
+    live.set(id, { id, kind: "rust", mod: null, blobUrl: "" });
+    // 约定：activate 应答 { commands: [{id,title,inputLabel?,inputPlaceholder?}] }
+    const cmds = (hand as any)?.commands;
+    if (Array.isArray(cmds)) {
+      for (const c of cmds) {
+        if (c?.id && c?.title) {
+          liveCommands.set(`${id}:${c.id}`, {
+            id: c.id, title: String(c.title), inputLabel: c.inputLabel, inputPlaceholder: c.inputPlaceholder,
+            pluginId: id,
+            run: async (input: string) => callRust(id, "run", { command: c.id, input }),
+          });
+        }
+      }
+      for (const l of cmdListeners) l();
+    }
+    return;
+  }
   const api: OnethuApi = buildApi(id, perms);
   const ctx: PluginContext = {
     onethu: api,
@@ -101,12 +124,19 @@ async function activate(id: string, mod?: any, blobUrl?: string): Promise<void> 
     log: (line: string) => void logLine(`[PLUGIN:${id}] ${line}`),
   };
   const maybeDispose = await m.default(ctx);
-  live.set(id, { id, mod: m, blobUrl: url ?? "", dispose: typeof maybeDispose?.dispose === "function" ? maybeDispose.dispose : undefined });
+  live.set(id, { id, kind: "js", mod: m, blobUrl: url ?? "", dispose: typeof maybeDispose?.dispose === "function" ? maybeDispose.dispose : undefined });
 }
 
 async function deactivate(id: string): Promise<void> {
   const p = live.get(id);
   if (!p) return;
+  if (p.kind === "rust") {
+    await disposeRust(id).catch(() => undefined);
+    for (const k of [...liveCommands.keys()]) if (k.startsWith(`${id}:`)) liveCommands.delete(k);
+    for (const l of cmdListeners) l();
+    live.delete(id);
+    return;
+  }
   try {
     p.dispose?.();
     p.mod?.dispose?.();
@@ -138,6 +168,11 @@ export async function uninstallPlugin(id: string): Promise<void> {
   removePlugin(id);
 }
 export async function runCommand(pluginId: string, cmdId: string, input: string): Promise<unknown> {
+  const rec = getPlugin(pluginId);
+  if (rec?.manifest.kind === "rust") {
+    const out = await callRust(pluginId, "run", { command: cmdId, input });
+    return out;
+  }
   const c = liveCommands.get(`${pluginId}:${cmdId}`);
   if (!c) throw new Error(`命令未注册或插件未启用：${pluginId}:${cmdId}`);
   return c.run(input);
