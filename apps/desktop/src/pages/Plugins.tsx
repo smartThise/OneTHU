@@ -369,7 +369,10 @@ function LogBody({ id }: { id: string }): ReactNode {
     if (el) el.scrollTop = el.scrollHeight;
   }, [events.length]);
 
-  const lines = events.slice(-400);
+  // delta/think 是逐 token 流（已进 dock 思考/回答链展示），进日志只会刷屏——只留进度/工具/日志/系统行
+  const lines = events
+    .filter((e) => !(e.method === "progress" && (e.kind === "delta" || e.kind === "think")))
+    .slice(-400);
   return (
     <>
       <div className="plg-sheet-body">
