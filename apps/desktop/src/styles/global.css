@@ -611,7 +611,8 @@
   border-bottom: 1px solid var(--border);
   margin-bottom: 12px;
 }
-.tabstrip > button {
+.tabstrip > button,
+.tabstrip > span > button:not(.collect-star) {
   border: 0;
   background: transparent;
   padding: 7px 12px;
@@ -640,9 +641,9 @@
 .tabstrip > span .collect-star.is-on { background: transparent; color: var(--amber); opacity: 1; }
 .tabstrip > span .collect-star:active { transform: scale(0.9); }
 .tabstrip > button:hover,
-.tabstrip > span > button:hover { color: var(--text-1); }
+.tabstrip > span > button:not(.collect-star):hover { color: var(--text-1); }
 .tabstrip > button.is-active,
-.tabstrip > span > button.is-active {
+.tabstrip > span > button:not(.collect-star).is-active {
   color: var(--accent);
   border-bottom-color: var(--accent);
   font-weight: 600;
