@@ -611,7 +611,7 @@
   border-bottom: 1px solid var(--border);
   margin-bottom: 12px;
 }
-.tabstrip button {
+.tabstrip > button {
   border: 0;
   background: transparent;
   padding: 7px 12px;
@@ -622,8 +622,11 @@
   margin-bottom: -1px;
   cursor: pointer;
 }
-.tabstrip button:hover { color: var(--text-1); }
-.tabstrip button.is-active {
+.tabstrip > span { display: inline-flex; align-items: center; gap: 2px; margin-bottom: -1px; }
+.tabstrip > button:hover,
+.tabstrip > span > button:hover { color: var(--text-1); }
+.tabstrip > button.is-active,
+.tabstrip > span > button.is-active {
   color: var(--accent);
   border-bottom-color: var(--accent);
   font-weight: 600;

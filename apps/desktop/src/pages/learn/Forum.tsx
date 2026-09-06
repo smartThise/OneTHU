@@ -2,7 +2,7 @@
  *  2026-09 逆向自 讨论区示例/learn.tsinghua.edu.cn.har（viewTlById 页 + pageViewTlById 分页 JSON
  *  + saveEdit 回帖表单）。列表页站点为服务端渲染，解析宽容（标题必有，作者/回复数尽力）。
  *  发新话题 App 内完成（saveTl multipart，schema 按 beforeEditTl 惯例首版 + 现场校准）。 */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { LearnBbsBoard, LearnBbsPost, LearnBbsThreadDetail, LearnBbsThreadSummary } from "@onethu/core";
 import { learnUrls } from "@onethu/core";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
@@ -36,6 +36,10 @@ export function BbsPanel({
 }) {
   const { status, navigate } = useApp();
   const [boards, setBoards] = useState<LearnBbsBoard[]>([]);
+  // boards 镜像 ref：load 回调读最新板块而不依赖 boards state——
+  // 否则每次 setBoards(新数组) → load 身份变 → effect 重跑 load(false,0)，
+  // 「加载更多」刚追加的页立刻被第一页覆盖（>30 条永远加载不出来的实测真凶）
+  const boardsRef = useRef<LearnBbsBoard[]>([]);
   // 顶栏单排并列标签：真实板块 bqid + __jh__(精华) + __cy__(我参与的)，无「全部」
   // 服务端语义（2.har 实录）：yb/jh 挂真实板块；cy 忽略 bqid 返全课程参与（INITTL 占位也返 25KB）
   const [tab, setTab] = useState<string>(initialBoard ?? "INITTL152189643");
@@ -68,7 +72,7 @@ export function BbsPanel({
       const reqBqid = isCy
         ? "INITTL152189643"
         : isJh
-          ? (boards.find((b) => b.bqid !== "__jh__" && b.bqid !== "__cy__")?.bqid ??
+          ? (boardsRef.current.find((b) => b.bqid !== "__jh__" && b.bqid !== "__cy__")?.bqid ??
             "INITTL152189643")
           : tab;
       const boardsP =
@@ -78,6 +82,7 @@ export function BbsPanel({
       void Promise.all([boardsP, learn.getBbsThreads(courseId, { bqid: reqBqid, kind, start, length: PAGE })])
         .then(([b, r]) => {
           if (b && b.length > 0) {
+            boardsRef.current = b;
             setBoards(b);
             // 初始占位板 INITTL… 不在站点返回的板块里 → 自动落到第一块
             // （板块原子深链的 initialBoard 在站点板块列表里时不会被覆盖）
@@ -98,7 +103,7 @@ export function BbsPanel({
           setState("error");
         });
     },
-    [courseId, tab, boards, status],
+    [courseId, tab, status, initialBoard, courseName, sem],
   );
 
   useEffect(() => {

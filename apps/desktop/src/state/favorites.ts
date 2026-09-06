@@ -159,8 +159,22 @@ export function canNestUnder(d: FavsData, parentId: string | null): boolean {
 }
 
 /** 同一收藏夹内原子去重键 */
+/** 学堂实体原子的身份段数：key 尾部的展示元数据（标题/课程名/学期）不参与相等判定。
+ *  同一实体在不同入口收集时尾参可能残缺（详情页数据未就绪 vs 列表行全量），
+ *  身份只按定位段（id）算——否则同一物两份、星标灰亮漂移（2026-09-06 实测）。 */
+const ATOM_IDENTITY_SEGS: Record<string, number> = {
+  course: 1,
+  assignment: 2,
+  notice: 2,
+  file: 2,
+  forum: 2,
+  "bbs-board": 2,
+};
+
 export function atomKeyOf(a: AtomRef): string {
-  return a.kind + "|" + a.key;
+  const n = ATOM_IDENTITY_SEGS[a.kind];
+  if (!n) return a.kind + "|" + a.key;
+  return a.kind + "|" + a.key.split("~").slice(0, n).join("~");
 }
 
 export function createFolder(d: FavsData, title: string, parentId: string | null): FavsData {
