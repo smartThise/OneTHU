@@ -1926,13 +1926,21 @@ export class InfoClient {
           total: 0,
         };
       });
-      for (const floor of floors) {
-        if (!floor.valid) continue;
-        const sections = await this.getLibrarySectionList(floor, dateChoice).catch(() => []);
+      // 逐层余量求和：并行化（2026-09-06 校外 webvpn 实测每层 areas/date 2~3s，
+      // 5 层串行 15s 是「校园网外很难进入」的痛点主体；并行后总耗时=最慢一层）。
+      // 可用座位数不缓存——预约决策要新鲜数。
+      const validFloors = floors.filter((f) => f.valid);
+      const perFloor = await Promise.all(
+        validFloors.map((f) =>
+          this.getLibrarySectionList(f, dateChoice).catch(() => [] as LibrarySection[]),
+        ),
+      );
+      for (const [i, sections] of perFloor.entries()) {
+        const f = validFloors[i]!;
         for (const s of sections) {
           if (s.valid) {
-            floor.available += s.available;
-            floor.total += s.total;
+            f.available += s.available;
+            f.total += s.total;
           }
         }
       }
