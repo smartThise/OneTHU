@@ -6,9 +6,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import {
   loadFavs, saveFavs, createFolder, deleteFolder, renameFolder, toggleAtom, swapItems,
   removeItemAt, setAtomVariant, toggleSidebarFold, foldersOfAtom, hasAtom, atomKeyOf,
-  setFolderIcon, moveRoot,
+  setFolderIcon, moveRoot, moveNavPage as moveNavPageOp,
   type AtomRef, type FavItem, type FavsData,
 } from "./favorites.js";
+import type { Page } from "./app.js";
 
 export interface FavsApi {
   data: FavsData;
@@ -32,6 +33,8 @@ export interface FavsApi {
   setIcon: (id: string, icon: string | undefined) => void;
   /** 左侧栏根收藏夹排序（相邻交换） */
   moveRoot: (id: string, dir: -1 | 1) => void;
+  /** 页面在侧栏统一序列里的调序（今日页页头 上移/下移；可与收藏夹行交错） */
+  moveNavPage: (page: Page, dir: -1 | 1) => void;
   /** 整体替换存储（设置导入/恢复默认） */
   replaceAll: (d: FavsData) => void;
   itemsOf: (id: string) => FavItem[];
@@ -131,9 +134,13 @@ export function FavsProvider({ children }: { children: ReactNode }) {
     setData((prev) => moveRoot(prev, id, dir));
   }, []);
 
+  const moveNavPageFn = useCallback((page: Page, dir: -1 | 1) => {
+    setData((prev) => moveNavPageOp(prev, page, dir));
+  }, []);
+
   const value = useMemo<FavsApi>(
-    () => ({ data, create, remove, rename, toggleAtomIn, addAtom, foldersContaining, hasAtomIn, swap, removeAt, setVariant, foldSidebar, replaceAll, itemsOf, setIcon, moveRoot: moveRootFn }),
-    [data, create, remove, rename, toggleAtomIn, addAtom, foldersContaining, hasAtomIn, swap, removeAt, setVariant, foldSidebar, replaceAll, itemsOf, setIcon, moveRootFn],
+    () => ({ data, create, remove, rename, toggleAtomIn, addAtom, foldersContaining, hasAtomIn, swap, removeAt, setVariant, foldSidebar, replaceAll, itemsOf, setIcon, moveRoot: moveRootFn, moveNavPage: moveNavPageFn }),
+    [data, create, remove, rename, toggleAtomIn, addAtom, foldersContaining, hasAtomIn, swap, removeAt, setVariant, foldSidebar, replaceAll, itemsOf, setIcon, moveRootFn, moveNavPageFn],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
