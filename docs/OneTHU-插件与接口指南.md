@@ -431,3 +431,63 @@ fn main() {
 - run 应答超时默认 10 分钟（自调用发出计到应答到达；progress 不重置计时）。超时只是该次调用报错，进程仍在跑、可继续 onethu.call/progress、可打断。
 - 退出码非 0 / stdout 关闭 → 宿主发 `exit` 事件并在 UI 标记，进程表自动清理。
 - 二进制路径含空格没问题；**不要**依赖工作目录（宿主不保证 cwd）。
+
+---
+
+## 九、对话面板契约（dock 协议）★ 对话型插件必读
+
+> OneTHU 宿主内置一个**通用对话面板**（ChatDock，左下角常驻气泡）：任何 rust 插件只要在
+> activate 应答的 `commands` 里声明 `dock: true` 的命令，宿主即自动为其渲染面板。
+> 面板只是宿主胶水，**全部 agent 逻辑仍在插件 Rust 进程内**（R1 不受影响）。
+
+### 9.1 activate 应答约定
+
+```json
+{ "commands": [
+  { "id": "chat", "title": "对话", "inputLabel": "对 Harness 说",
+    "inputPlaceholder": "…", "dock": true },
+  { "id": "new_session", "title": "新建会话" },
+  { "id": "export_session", "title": "导出会话 JSON", "inputLabel": "会话 id（留空=当前）" }
+] }
+```
+
+- `dock: true` 的命令即对话入口：面板发消息 = `run { command: "<该命令 id>", input: "<用户输入>" }`。
+- 其余命令照旧渲染在插件管理页（输入框、执行、结果显示）。
+
+### 9.2 chat 命令的结果（结构化 JSON，管理页会显示其序列化文本）
+
+```json
+{
+  "type": "chat", "ok": true,
+  "answer": "模型最终回答（或模板确认语/打断语）",
+  "sessionId": "s…", "interrupted": false,
+  "confirm": { "summary": "将执行的操作摘要" },
+  "usage":         { "prompt": 0, "completion": 0, "calls": 0, "costUsd": 0 },
+  "sessionUsage":  { "prompt": 0, "completion": 0, "costUsd": 0 },
+  "totalUsage":    { "prompt": 0, "completion": 0, "calls": 0, "costUsd": 0,
+                     "budgetUsd": 2, "budgetLeftUsd": 1.9 }
+}
+```
+
+- `confirm` 非空时面板渲染「确认执行 / 取消」按钮（用户确认 = 发送文本「确认」）。
+- `ok: false` 时 `error` 字段为失败原因（面板按错误气泡渲染）。
+
+### 9.3 进度通知扩展（progress.params.kind）
+
+| kind | params | 面板行为 |
+|---|---|---|
+| `delta` | `text`（回答增量） | 追加到流式气泡 |
+| `think` | `text`（思考增量，建议 ≥160 字节再发） | 「思考中」指示 |
+| `tool` | `text`（工具轨迹行） | 轨迹区追加 |
+| `notice` | `text`（状态行，如「思考中…（第 2 步）」） | 状态显示 |
+| `usage` | `payload`（9.2 的用量结构） | 底栏实时刷新 |
+
+不带 `kind` 的 progress/log/exit 仍走插件管理页轨迹面板，两不误。
+
+### 9.4 面板会话管理命令（约定命名）
+
+`new_session` / `list_sessions` / `switch_session`(input=id) / `delete_session`(input=id) /
+`export_session`(input=id，空=当前) / `import_session`(input=会话 JSON) /
+`usage_report` / `selftest`。各自返回结构化 JSON（见 OneTHU-Harness README）。
+
+参考实现：`plugins/OneTHU-Harness`（子模块，https://github.com/smartThise/OneTHU-Harness）。

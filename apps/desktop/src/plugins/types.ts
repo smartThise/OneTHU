@@ -69,6 +69,8 @@ export interface PluginCommand {
   /** 输入框占位文案；不填则无输入框 */
   inputLabel?: string;
   inputPlaceholder?: string;
+  /** rust 插件可选：标记为对话面板命令（宿主左下角 dock 据此渲染） */
+  dock?: boolean;
 }
 
 /** 传给插件 activate(ctx) 的完整上下文 */

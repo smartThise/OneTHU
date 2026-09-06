@@ -2,7 +2,7 @@
  * 插件事件泵：Rust 进程的 progress/log/exit 通知 → 内存环形缓冲 + 订阅。
  * R4：实时进度渲染的数据源（UI 用 useSyncExternalStore 订阅）。
  */
-type PluginEvent = { at: number; method: string; text: string; step?: number; total?: number };
+type PluginEvent = { at: number; method: string; text: string; step?: number; total?: number; kind?: string; payload?: unknown };
 
 const MAX = 300;
 const buf = new Map<string, PluginEvent[]>();
@@ -35,12 +35,12 @@ export async function ensurePluginEventListener(): Promise<void> {
   if (started) return;
   started = true;
   const { listen } = await import("@tauri-apps/api/event");
-  await listen<{ pluginId: string; method: string; params: { line?: string; text?: string; step?: number; total?: number } }>(
+  await listen<{ pluginId: string; method: string; params: { line?: string; text?: string; step?: number; total?: number; kind?: string; payload?: unknown } }>(
     "plugin-event",
     (ev) => {
       const { pluginId, method, params } = ev.payload;
       const text = params?.text ?? params?.line ?? "";
-      push(pluginId, { at: Date.now(), method, text, step: params?.step, total: params?.total });
+      push(pluginId, { at: Date.now(), method, text, step: params?.step, total: params?.total, kind: params?.kind, payload: params?.payload });
     },
   );
 }
