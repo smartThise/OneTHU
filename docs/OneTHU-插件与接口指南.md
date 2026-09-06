@@ -491,3 +491,47 @@ fn main() {
 `usage_report` / `selftest`。各自返回结构化 JSON（见 OneTHU-Harness README）。
 
 参考实现：`plugins/OneTHU-Harness`（子模块，https://github.com/smartThise/OneTHU-Harness）。
+
+## 十、移动端内嵌形态（Android 内置 Harness）★ APK 端必读
+
+Android 的 WebView 沙箱没有任意路径二进制执行权限，§八 的 sidecar 形态在 APK 端不可用。
+解法：**同一份 Rust 核心直接编进 App 进程**（无独立进程、协议不走 stdio 走 Tauri 事件桥）。
+
+### 10.1 工作区重构（core+bin）
+
+`plugins/OneTHU-Harness` 是 Cargo 工作区：
+
+```
+core/   onethu-harness-core（库）：agent/llm/tools/session/usage/config，
+        只面向 host.rs 的两个 trait——Host（onethu.call 数据面+打断标志）、Emit（progress/log 通知）
+bin/    onethu-harness（薄壳）：StdioHost/StdioEmit + stdin/stdout 泵 + dispatch（桌面端形态）
+```
+
+宿主无关性是内嵌的前提：核心 crate 里没有任何 stdio/进程概念。
+
+### 10.2 内嵌桥（src-tauri/harness_embed.rs）
+
+| Tauri 命令 | 语义 |
+| --- | --- |
+| `harness_start` | 起 agent 线程 + 门面桥线程，返回 activate 应答（commands 清单） |
+| `harness_call` | activate/run/dispose 同通道（同步命令，长跑 chat 独占线程） |
+| `harness_notify` | interrupt → AtomicBool 快路径（与 stdio 读线程同款语义） |
+| `harness_rpc_reply` | webview 门面执行完 onethu.call 后回写 |
+
+- `Host::call` → 桥线程 emit **`plugin-rpc`** 事件 → webview 门面（bindRustApi，权限门禁与
+  sidecar/js 插件完全同一套）→ `harness_rpc_reply` 回写；
+- `Emit::notify` → emit **`plugin-event`**，事件契约与 plugins.rs 的 sidecar 泵逐字段一致，
+  对话面板/轨迹面板零改动复用；
+- 设置与会话存储仍经 storage.* 落 webview localStorage，每次 run 实时读（与 sidecar 一致）。
+
+### 10.3 内置种子与形态路由
+
+- loader.ts 在 Android UA（`/android/i.test(navigator.userAgent)`）下开机种入
+  `onethu.harness` 内置记录（`embedded: true`，镜像子模块 manifest.json，含设置默认值），
+  管理页可停用/配置但**不可删除**（徽标「内置」），删除后下次开机自动回来；
+- rust.ts 按 `embeddedIds` 分轨：activate/事件回执/调用/通知分别走 `harness_*` 或
+  `plugin_*` 命令；桌面端行为零变化（文件选择器安装 manifest.json+二进制 sidecar）；
+- src-tauri/Cargo.toml 以 path 依赖引用 `../../../plugins/OneTHU-Harness/core`，
+  CI checkout 需 `submodules: recursive`（已配）。
+
+参考实现：OneTHU-Harness `f5d7055`（core+bin 工作区，29 项端到端断言全绿）。

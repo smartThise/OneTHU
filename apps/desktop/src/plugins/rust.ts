@@ -1,8 +1,9 @@
 /**
- * Rust 骨干插件运行时（桌面端）：
- * 二进制 spawn + JSON-RPC（activate/run/dispose/interrupt）+ plugin-rpc 事件分发到
- * 同一套 TS 门面（权限集中门禁与 js 插件完全一致）。
- * 移动端不可用（无任意路径二进制）——UI 层禁装。
+ * Rust 骨干插件运行时（桌面 sidecar + 移动内嵌双形态）：
+ * - 桌面端：二进制 spawn + JSON-RPC over stdio（activate/run/dispose/interrupt）；
+ * - 移动端：onethu-harness-core 直接编进 App 进程（harness_* 命令桥）——
+ *   Android 无任意路径二进制执行权限，核心逻辑同一套 Rust 代码。
+ * 两种形态的 onethu.call 都转发到同一套 TS 门面（权限集中门禁完全一致）。
  */
 import { buildApi } from "./facade.js";
 import { getPlugin } from "./registry.js";
@@ -13,6 +14,8 @@ import type { OnethuApi } from "./types.js";
 type RpcHandler = (ns: string, method: string, args: unknown[]) => Promise<unknown>;
 /** 按 pluginId 绑定门面：多 rust 插件并存时各回各家 */
 const rpcHandlers = new Map<string, RpcHandler>();
+/** 内嵌形态的插件 id：onethu.call 回执走 harness_rpc_reply 而非 plugin_rpc_reply */
+const embeddedIds = new Set<string>();
 let rpcListenerReady = false;
 
 async function invoke<T = unknown>(cmd: string, args: Record<string, unknown>): Promise<T> {
@@ -20,10 +23,32 @@ async function invoke<T = unknown>(cmd: string, args: Record<string, unknown>): 
   return invoke<T>(cmd, args);
 }
 
+/** 内嵌形态判定（loader 种入的 Android 内置插件） */
+export function isEmbeddedRust(id: string): boolean {
+  return embeddedIds.has(id);
+}
+
+/** 内嵌：起 App 内 agent 线程 + 门面桥，返回 activate 应答（commands 清单） */
+export async function startHarnessEmbedded(id: string): Promise<unknown> {
+  const rec = getPlugin(id);
+  if (!rec) throw new Error(`插件不存在：${id}`);
+  embeddedIds.add(id);
+  try {
+    await ensureRpcListener();
+    const { ensurePluginEventListener } = await import("./events.js");
+    await ensurePluginEventListener();
+    return await invoke<unknown>("harness_start", { pluginId: id });
+  } catch (e) {
+    embeddedIds.delete(id); // 启动失败回收标记，避免 callRust 永远路由到不存在的内嵌实例
+    throw e;
+  }
+}
+
 /** 拉起一个 rust 插件进程并完成 activate 握手（返回 activate 应答：约定含 commands 清单） */
 export async function spawnRustPlugin(id: string, binPath: string, args: string[] = []): Promise<unknown> {
   const rec = getPlugin(id);
   if (!rec) throw new Error(`插件不存在：${id}`);
+  embeddedIds.delete(id);
   await ensureRpcListener();
   const { ensurePluginEventListener } = await import("./events.js");
   await ensurePluginEventListener();
@@ -56,7 +81,9 @@ async function ensureRpcListener(): Promise<void> {
       ok = false;
       result = e instanceof Error ? e.message : String(e);
     }
-    await invoke("plugin_rpc_reply", { pluginId, id, ok, result: ok ? result : String(result) }).catch(() => undefined);
+    // 回执分轨：内嵌 → harness_rpc_reply（App 内桥）；sidecar → plugin_rpc_reply（stdin 泵）
+    const replyCmd = embeddedIds.has(pluginId) ? "harness_rpc_reply" : "plugin_rpc_reply";
+    await invoke(replyCmd, { pluginId, id, ok, result: ok ? result : String(result) }).catch(() => undefined);
   });
   rpcListenerReady = true;
 }
@@ -80,20 +107,31 @@ export function unbindRustApi(id: string): void {
 }
 
 export async function callRust(id: string, method: string, params: unknown, timeoutMs = 600_000): Promise<unknown> {
+  if (embeddedIds.has(id)) {
+    return invoke("harness_call", { pluginId: id, method, params, timeoutMs });
+  }
   return invoke("plugin_call", { pluginId: id, method, params, timeoutMs });
 }
 
 export async function notifyRust(id: string, method: string, params: unknown = {}): Promise<void> {
+  if (embeddedIds.has(id)) {
+    await invoke("harness_notify", { pluginId: id, method, params });
+    return;
+  }
   await invoke("plugin_notify", { pluginId: id, method, params });
 }
 
 export async function killRust(id: string): Promise<void> {
+  if (embeddedIds.has(id)) {
+    await invoke("harness_stop", { pluginId: id }).catch(() => undefined);
+    return;
+  }
   await invoke("plugin_kill", { pluginId: id }).catch(() => undefined);
 }
 
-/** dispose（优雅）→ kill（兜底） */
+/** dispose（优雅）→ stop/kill（兜底） */
 export async function disposeRust(id: string): Promise<void> {
-  await invoke("plugin_call", { pluginId: id, method: "dispose", params: {}, timeoutMs: 3_000 }).catch(() => undefined);
+  await callRust(id, "dispose", {}, 3_000).catch(() => undefined);
   await killRust(id);
   unbindRustApi(id);
   await logLine(`[PLUGIN] rust ${id} 已停止`);

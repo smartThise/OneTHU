@@ -1,7 +1,7 @@
 /** 插件加载器：blob 动态 import + 权限门面注入 + 生命周期（安装/启用/停用/删除） */
 import { buildApi } from "./facade.js";
-import { bindRustApi, callRust, disposeRust, spawnRustPlugin } from "./rust.js";
-import { addPlugin, getPlugin, removePlugin, snapshot, subscribe, updatePlugin } from "./registry.js";
+import { bindRustApi, callRust, disposeRust, spawnRustPlugin, startHarnessEmbedded } from "./rust.js";
+import { addPlugin, addRustPlugin, getPlugin, removePlugin, snapshot, subscribe, updatePlugin } from "./registry.js";
 import { logLine } from "../lib/clients.js";
 import type { OnethuApi, PluginCommand, PluginContext, PluginManifest, PluginRecord } from "./types.js";
 
@@ -99,9 +99,15 @@ async function activate(id: string, mod?: any, blobUrl?: string): Promise<void> 
   }
   const perms = new Set<string>(rec.manifest.permissions);
   if (rec.manifest.kind === "rust") {
-    if (!rec.binPath) throw new Error("rust 插件缺少二进制路径");
     bindRustApi(id, perms);
-    const hand = (await spawnRustPlugin(id, rec.binPath)) as unknown;
+    // 双形态：embedded=App 内嵌核心（Android 内置）；否则 sidecar 二进制（桌面）
+    let hand: unknown;
+    if (rec.embedded) {
+      hand = await startHarnessEmbedded(id);
+    } else {
+      if (!rec.binPath) throw new Error("rust 插件缺少二进制路径");
+      hand = await spawnRustPlugin(id, rec.binPath);
+    }
     live.set(id, { id, kind: "rust", mod: null, blobUrl: "" });
     // 约定：activate 应答 { commands: [{id,title,inputLabel?,inputPlaceholder?}] }
     const cmds = (hand as any)?.commands;
@@ -203,3 +209,42 @@ export async function activateInstalledPlugins(): Promise<void> {
 
 /* registry 订阅转发（UI 单一来源） */
 export { subscribe, snapshot as installedPlugins };
+
+
+/* ═══ Android 内置：Harness 核心编进 App（src-tauri harness_embed），开机种入 ═══ */
+const EMBEDDED_HARNESS_MANIFEST: PluginManifest = {
+  id: "onethu.harness",
+  kind: "rust",
+  name: "OneTHU Harness",
+  version: "0.1.0",
+  author: "smartThise",
+  description: "大模型驱动的清华校园助手（Rust 骨干·内嵌核心）：对话式查课表/成绩/新闻/空教室/校园卡/电费/校园网，图书馆座位与研讨间查询预约（两段式确认），左下角常驻对话面板，实时进度与打断，多会话历史与上下文导出，token 用量与预算控制。",
+  permissions: [
+    "user:read", "info:read", "card:read", "dorm:read",
+    "library:read", "library:book", "network:read",
+    "nav", "ui", "storage", "net:external",
+  ],
+  settings: [
+    { key: "apiKey", label: "API Key", type: "password", placeholder: "sk-…" },
+    { key: "baseUrl", label: "API Endpoint（OpenAI 兼容，/v1 结尾）", type: "text", default: "https://api.deepseek.com/v1" },
+    { key: "model", label: "模型", type: "text", default: "deepseek-chat" },
+    { key: "thinking", label: "思考模式（DeepSeek 自动切 reasoner）", type: "text", default: "off" },
+    { key: "maxContext", label: "上下文预算（tokens，超出裁剪）", type: "text", default: "24000" },
+    { key: "stream", label: "流式输出（off 回退非流式）", type: "text", default: "on" },
+    { key: "priceIn", label: "输入价格 $/1M tokens", type: "text", default: "0.27" },
+    { key: "priceOut", label: "输出价格 $/1M tokens", type: "text", default: "1.10" },
+    { key: "budget", label: "Token 预算（USD，到量停）", type: "text", default: "2" },
+    { key: "maxSteps", label: "单次任务最大步数", type: "text", default: "16" },
+  ],
+};
+
+/** Android 判定：APK 的 WebView UA 必含 Android（桌面 macOS/Windows 不含） */
+function isAndroid(): boolean {
+  return typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
+}
+
+// 模块加载即种（先于 activateInstalledPlugins 的恢复激活）；管理页删除后下次开机自动回来。
+// 桌面端不种：桌面走 sidecar 二进制（文件选择器手动安装）。
+if (isAndroid() && !getPlugin("onethu.harness")) {
+  addRustPlugin(EMBEDDED_HARNESS_MANIFEST, "", true);
+}

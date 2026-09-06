@@ -139,6 +139,7 @@ function PluginRow({ id }: { id: string }): ReactNode {
           <b>{m.name}</b>
           <span className="plugin-ver">v{m.version}{m.author ? ` · ${m.author}` : ""}</span>
           {active ? <span className="chip chip-green">运行中</span> : rec.enabled ? <span className="chip chip-amber">加载失败</span> : <span className="chip chip-gray">已停用</span>}
+          {rec.embedded ? <span className="chip" title="Rust 核心已编进 App（无需二进制）">内置</span> : null}
         </div>
         <div className="plugin-row-ops">
           <button className="btn" onClick={() => setOpen(!open)}>{open ? "收起" : "展开"}</button>
@@ -148,7 +149,9 @@ function PluginRow({ id }: { id: string }): ReactNode {
           >
             {rec.enabled ? "停用" : "启用"}
           </button>
-          <button className="btn btn-danger" onClick={() => void uninstallPlugin(id)}>删除</button>
+          {rec.embedded ? null : (
+            <button className="btn btn-danger" onClick={() => void uninstallPlugin(id)}>删除</button>
+          )}
         </div>
       </div>
       {open ? (

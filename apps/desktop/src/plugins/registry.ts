@@ -33,11 +33,12 @@ export function getPlugin(id: string): PluginRecord | undefined {
   return records.find((r) => r.manifest.id === id);
 }
 /** 安装 rust 插件：manifest 来自二进制同目录 manifest.json，路径原样登记 */
-export function addRustPlugin(manifest: PluginRecord["manifest"], binPath: string): PluginRecord {
+export function addRustPlugin(manifest: PluginRecord["manifest"], binPath: string, embedded = false): PluginRecord {
   const rec: PluginRecord = {
     manifest,
     code: "",
     binPath,
+    ...(embedded ? { embedded: true } : {}),
     enabled: true,
     settings: Object.fromEntries((manifest.settings ?? []).filter((f) => f.default != null).map((f) => [f.key, String(f.default)])),
     installedAt: Date.now(),

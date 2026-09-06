@@ -189,6 +189,8 @@ export interface PluginRecord {
   code: string;
   /** rust 插件：二进制绝对路径（manifest 在其同目录 manifest.json） */
   binPath?: string;
+  /** 内嵌插件：Rust 核心直接编进 App 进程（Android 内置），无 sidecar 二进制 */
+  embedded?: boolean;
   enabled: boolean;
   settings: Record<string, string>;
   installedAt: number;
