@@ -10,6 +10,10 @@ import { IconDownload, IconRefresh } from "../../components/Icons.js";
 import { learn, downloadLearnUrl } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
+import { noteAtomCache } from "../../state/atoms.js";
+import { useLearnData } from "../../state/data.js";
+import { CollectStar } from "../../components/Collect.js";
+import { enc } from "../../state/atoms.js";
 import { BackButton, RichContent, fmtDateTime } from "./shared.js";
 import { openExternal } from "../info/openExternal.js";
 import { RichEditor } from "../../components/RichEditor.jsx";
@@ -18,12 +22,23 @@ import { RichEditor } from "../../components/RichEditor.jsx";
 
 type BbsKind = "yb" | "jh" | "cy";
 
-export function BbsPanel({ courseId }: { courseId: string }) {
+export function BbsPanel({
+  courseId,
+  initialBoard,
+  courseName,
+  sem,
+}: {
+  courseId: string;
+  /** 板块原子深链：初始落点（未给时走占位板 → 自动落第一块的旧语义） */
+  initialBoard?: string;
+  courseName?: string;
+  sem?: string;
+}) {
   const { status, navigate } = useApp();
   const [boards, setBoards] = useState<LearnBbsBoard[]>([]);
   // 顶栏单排并列标签：真实板块 bqid + __jh__(精华) + __cy__(我参与的)，无「全部」
   // 服务端语义（2.har 实录）：yb/jh 挂真实板块；cy 忽略 bqid 返全课程参与（INITTL 占位也返 25KB）
-  const [tab, setTab] = useState<string>("INITTL152189643");
+  const [tab, setTab] = useState<string>(initialBoard ?? "INITTL152189643");
   const [threads, setThreads] = useState<LearnBbsThreadSummary[] | null>(null);
   const [total, setTotal] = useState(0);
   const [state, setState] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -65,8 +80,15 @@ export function BbsPanel({ courseId }: { courseId: string }) {
           if (b && b.length > 0) {
             setBoards(b);
             // 初始占位板 INITTL… 不在站点返回的板块里 → 自动落到第一块
-            if (!isJh && !isCy && !b.some((x) => x.bqid === tab)) setTab(b[0]!.bqid);
+            // （板块原子深链的 initialBoard 在站点板块列表里时不会被覆盖）
+            if (!isJh && !isCy && !b.some((x) => x.bqid === tab) && !initialBoard) setTab(b[0]!.bqid);
+            noteAtomCache({
+              bbsBoards: b.map((x) => ({ courseId, bqid: x.bqid, name: x.name, courseName, sem })),
+            });
           }
+          noteAtomCache({
+            bbsThreads: r.threads.map((x) => ({ courseId, bqid: x.bqid ?? "", id: x.id, title: x.title, courseName, sem })),
+          });
           setThreads((old) => (append && old ? [...old, ...r.threads] : r.threads));
           setTotal(r.total);
           setState("ready");
@@ -95,13 +117,18 @@ export function BbsPanel({ courseId }: { courseId: string }) {
       <PageHead title="讨论区" meta="课程讨论与答疑（实名制）" />
       <div className="tabstrip">
         {boards.map((b) => (
-          <button
-            key={b.bqid}
-            className={tab === b.bqid ? "is-active" : ""}
-            onClick={() => reset(() => setTab(b.bqid))}
-          >
-            {b.name}
-          </button>
+          <span key={b.bqid} style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
+            <button
+              className={tab === b.bqid ? "is-active" : ""}
+              onClick={() => reset(() => setTab(b.bqid))}
+            >
+              {b.name}
+            </button>
+            <CollectStar
+              atom={{ kind: "bbs-board", key: enc(courseId, b.bqid, b.name, courseName ?? "", sem ?? "") }}
+              title={b.name}
+            />
+          </span>
         ))}
         <button className={tab === "__jh__" ? "is-active" : ""} onClick={() => reset(() => setTab("__jh__"))}>
           精华
@@ -158,6 +185,10 @@ export function BbsPanel({ courseId }: { courseId: string }) {
                   {t.replies > 0 ? ` · ${t.replies} 回复` : ""}
                 </div>
               </div>
+              <CollectStar
+                atom={{ kind: "forum", key: enc(courseId, t.id, t.bqid, t.title, courseName ?? "", sem ?? "") }}
+                title={t.title}
+              />
               <svg className="row-caret" width="14" height="14" viewBox="0 0 16 16" aria-hidden>
                 <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
               </svg>
@@ -215,6 +246,7 @@ function Badge({ text, tone }: { text: string; tone: "red" | "gold" }) {
 
 export function ForumThreadPage() {
   const { navParams, status } = useApp();
+  const { data: learnData } = useLearnData();
   const courseId = navParams?.courseId ?? "";
   const threadId = navParams?.itemId ?? "";
   const bqid = navParams?.bqid;
@@ -317,7 +349,19 @@ export function ForumThreadPage() {
         </Card>
       ) : head ? (
         <>
-          <PageHead title={head.title} meta={[head.author, fmtDateTime(head.time)].filter(Boolean).join(" · ")} />
+          <PageHead
+            title={head.title}
+            meta={[head.author, fmtDateTime(head.time)].filter(Boolean).join(" · ")}
+            actions={
+              <CollectStar
+                atom={{
+                  kind: "forum",
+                  key: enc(courseId, threadId, bqid ?? "", head.title, learnData?.courses.find((c) => c.id === courseId)?.name ?? "", learnData?.semester.id ?? ""),
+                }}
+                title={head.title}
+              />
+            }
+          />
           <Card>
             <RichContent html={head.html} />
           </Card>

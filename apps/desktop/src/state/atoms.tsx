@@ -25,6 +25,7 @@ import {
 import type { LearnNav, Page } from "./app.js";
 import { cacheGet } from "./cache.js";
 import type { AtomRef } from "./favorites.js";
+import { setSelectedSemester } from "./data.js";
 import { WasherTileStatus, ClassroomTileStatus, ClassroomRoomToday } from "../components/LiveTiles.js";
 import { INFO_APPS, infoAppUrl } from "../lib/infoApps.js";
 import { openExternal } from "../pages/info/openExternal.js";
@@ -86,6 +87,10 @@ export interface AtomDynCache {
   kjRooms?: Array<{ spaceId: string; spaceName: string; id: string; name: string }>;
   /** courseX 课程（CourseInfoTab 搜索就绪后写入；时间地点在收藏时经详情补齐） */
   courseXCourses?: Array<{ sem: string; id: string; name: string; teacher?: string }>;
+  /** 讨论区板块（BbsPanel 板块列表就绪后写入） */
+  bbsBoards?: Array<{ courseId: string; bqid: string; name: string; courseName?: string; sem?: string }>;
+  /** 讨论区话题（BbsPanel 列表页就绪后写入；bqid 为所属板块） */
+  bbsThreads?: Array<{ courseId: string; bqid: string; id: string; title: string; courseName?: string; sem?: string }>;
 }
 
 const dyn: AtomDynCache = {};
@@ -93,6 +98,14 @@ const dyn: AtomDynCache = {};
 /** 实体页取数成功后调用（浅合并）；绝不主动发起网络请求 */
 export function noteAtomCache(patch: AtomDynCache): void {
   Object.assign(dyn, patch);
+}
+
+/** 学堂实体原子打开前的学期校准：带学期尾参的原子先 setSelectedSemester
+ *  （内部清 learn 缓存，useLearnData 会按该学期重拉全量包），再跳原位。
+ *  无学期尾参的旧原子保持现状（跟随用户当前所选学期）。 */
+function openLearn(nav: Nav, page: Page, params: LearnNav, sem?: string): void {
+  if (sem) setSelectedSemester(sem);
+  nav(page, params);
 }
 
 /* ══════════ 静态注册表：页面原子 ══════════ */
@@ -202,15 +215,15 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
     });
   }
   if (kind === "course") {
-    const [id, name, teacher] = dec(key);
+    const [id, name, teacher, sem] = dec(key);
     if (!id || !name) return null;
     return view({
       atom: ref, title: name, sub: teacher ? "课程 · " + teacher : "课程", icon: IconLearn, group: "网络学堂",
-      open: (nav) => nav("learn-course", { courseId: id }),
+      open: (nav) => openLearn(nav, "learn-course", { courseId: id }, sem),
     });
   }
   if (kind === "assignment" || kind === "notice" || kind === "file") {
-    const [courseId, itemId, title, courseName] = dec(key);
+    const [courseId, itemId, title, courseName, sem] = dec(key);
     if (!courseId || !itemId) return null;
     const conf = {
       assignment: { t: "作业", icon: IconPen, page: "learn-assignment-detail" as Page },
@@ -219,15 +232,23 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
     }[kind];
     return view({
       atom: ref, title: title || conf.t, sub: (courseName ? courseName + " · " : "") + conf.t, icon: conf.icon, group: "网络学堂",
-      open: (nav) => nav(conf.page, { courseId, itemId }),
+      open: (nav) => openLearn(nav, conf.page, { courseId, itemId }, sem),
+    });
+  }
+  if (kind === "bbs-board") {
+    const [courseId, bqid, name, courseName, sem] = dec(key);
+    if (!courseId || !bqid) return null;
+    return view({
+      atom: ref, title: name || "讨论区板块", sub: (courseName ? courseName + " · " : "") + "讨论区板块", icon: IconLearn, group: "网络学堂",
+      open: (nav) => openLearn(nav, "learn-course", { courseId, courseTab: "forum", bbsBoard: bqid }, sem),
     });
   }
   if (kind === "forum") {
-    const [courseId, threadId, bqid, title, courseName] = dec(key);
+    const [courseId, threadId, bqid, title, courseName, sem] = dec(key);
     if (!courseId || !threadId) return null;
     return view({
       atom: ref, title: title || "讨论区话题", sub: (courseName ? courseName + " · " : "") + "讨论区", icon: IconLearn, group: "网络学堂",
-      open: (nav) => nav("learn-forum-thread", { courseId, itemId: threadId, bqid: bqid || undefined }),
+      open: (nav) => openLearn(nav, "learn-forum-thread", { courseId, itemId: threadId, bqid: bqid || undefined }, sem),
     });
   }
   if (kind === "news") {
@@ -407,6 +428,8 @@ export function searchAtoms(query: string, limit = 24): AtomHit[] {
   for (const s of dyn.kjSpaces ?? []) if (match(s.name)) push(hit({ atom: { kind: "kj-space", key: enc(s.id, s.name) }, title: s.name, sub: "公共空间", icon: IconCalendar, group: "公共空间" }));
   for (const r of dyn.kjRooms ?? []) if (match(r.name, r.spaceName)) push(hit({ atom: { kind: "kj-room", key: enc(r.spaceId, r.spaceName, r.id, r.name) }, title: r.name, sub: (r.spaceName || "") + " · 公共空间", icon: IconCalendar, group: "公共空间" }));
   for (const c of dyn.courseXCourses ?? []) if (match(c.name, c.teacher)) push(hit({ atom: { kind: "courseX-c", key: enc(c.sem, c.id, c.name, c.teacher, "") }, title: c.name, sub: "courseX" + (c.teacher ? " · " + c.teacher : ""), icon: IconInfo, group: "courseX" }));
+  for (const b of dyn.bbsBoards ?? []) if (match(b.name, b.courseName)) push(hit({ atom: { kind: "bbs-board", key: enc(b.courseId, b.bqid, b.name, b.courseName ?? "", b.sem ?? "") }, title: b.name, sub: (b.courseName ? b.courseName + " · " : "") + "讨论区板块", icon: IconLearn, group: "网络学堂" }));
+  for (const t of dyn.bbsThreads ?? []) if (match(t.title, t.courseName)) push(hit({ atom: { kind: "forum", key: enc(t.courseId, t.id, t.bqid, t.title, t.courseName ?? "", t.sem ?? "") }, title: t.title, sub: (t.courseName ? t.courseName + " · " : "") + "讨论区话题", icon: IconLearn, group: "网络学堂" }));
   for (const a of INFO_APPS) if (match(a.name, a.cat)) push(hit({ atom: { kind: "infoapp", key: enc(a.cat, a.name, a.id) }, title: a.name, sub: a.cat + " · Info 应用", icon: IconExternal, group: "Info 应用" }));
 
   return out.slice(0, limit);

@@ -246,7 +246,7 @@ export function AssignmentDetailPage() {
           <>
             <BackButton to={navParams?.from ?? "learn-assignments"} courseId={navParams?.courseId} courseTab="assignments" />
             <CollectStar
-              atom={{ kind: "assignment", key: enc(h.courseId, h.id, h.title, course?.name ?? "") }}
+              atom={{ kind: "assignment", key: enc(h.courseId, h.id, h.title, course?.name ?? "", data?.semester.id ?? "") }}
               title={h.title}
             />
             <button className="btn" onClick={() => void openExternal(h.url)} title="在系统浏览器打开">

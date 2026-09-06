@@ -93,7 +93,7 @@ export function NoticeDetailPage() {
           <>
             <BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} courseTab="notices" />
             <CollectStar
-              atom={{ kind: "notice", key: enc(n.courseId, n.id, n.title, course?.name ?? "") }}
+              atom={{ kind: "notice", key: enc(n.courseId, n.id, n.title, course?.name ?? "", data?.semester.id ?? "") }}
               title={n.title}
             />
             <button className="btn" onClick={() => void openExternal(n.url)} title="在系统浏览器打开">

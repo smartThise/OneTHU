@@ -140,7 +140,7 @@ export function CourseDetailPage() {
           <>
             <BackButton to="learn" label="课程列表" />
             <CollectStar
-              atom={{ kind: "course", key: enc(course?.id ?? navParams?.courseId ?? "", course?.name ?? "", course?.teacherName ?? "") }}
+              atom={{ kind: "course", key: enc(course?.id ?? navParams?.courseId ?? "", course?.name ?? "", course?.teacherName ?? "", data?.semester.id ?? "") }}
               title={course?.name}
             />
             <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
@@ -187,7 +187,7 @@ export function CourseDetailPage() {
         ) : (
           <Card className="list">
             {notices.map((n, i) => (
-              <NoticeRow key={n.id} n={n} from="learn-course" style={{ animationDelay: `${i * 25}ms` }} />
+              <NoticeRow key={n.id} n={n} sem={data?.semester.id} from="learn-course" style={{ animationDelay: `${i * 25}ms` }} />
             ))}
           </Card>
         )
@@ -219,6 +219,8 @@ export function CourseDetailPage() {
                   <HomeworkRow
                     key={h.id}
                     h={h}
+                    courseName={course?.name}
+                    sem={data?.semester.id}
                     from="learn-course"
                     showGrade
                     style={{ animationDelay: `${i * 25}ms` }}
@@ -234,7 +236,7 @@ export function CourseDetailPage() {
         ) : (
           <Card className="list">
             {files.map((f, i) => (
-              <FileRow key={f.id} f={f} from="learn-course" style={{ animationDelay: `${i * 25}ms` }} />
+              <FileRow key={f.id} f={f} sem={data?.semester.id} from="learn-course" style={{ animationDelay: `${i * 25}ms` }} />
             ))}
           </Card>
         )
@@ -286,7 +288,12 @@ export function CourseDetailPage() {
           </Card>
         )
       ) : (
-        <BbsPanel courseId={courseId} />
+        <BbsPanel
+          courseId={courseId}
+          initialBoard={navParams?.bbsBoard}
+          courseName={course?.name}
+          sem={data?.semester.id}
+        />
       )}
     </>
   );

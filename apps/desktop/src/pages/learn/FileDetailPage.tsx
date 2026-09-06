@@ -66,7 +66,7 @@ export function FileDetailPage() {
           <>
             <BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} courseTab="files" />
             <CollectStar
-              atom={{ kind: "file", key: enc(f.courseId, f.id, f.title, course?.name ?? "") }}
+              atom={{ kind: "file", key: enc(f.courseId, f.id, f.title, course?.name ?? "", data?.semester.id ?? "") }}
               title={f.title}
             />
             <button

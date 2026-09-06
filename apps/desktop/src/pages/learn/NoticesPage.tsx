@@ -78,7 +78,7 @@ export function NoticesPage() {
       ) : (
         <Card className="list">
           {list.map((n, i) => (
-            <NoticeRow key={`${n.courseId}-${n.id}`} n={n} courseName={byCourse.get(n.courseId)} from="learn-notices" style={{ animationDelay: `${i * 25}ms` }} />
+            <NoticeRow key={`${n.courseId}-${n.id}`} n={n} courseName={byCourse.get(n.courseId)} sem={data?.semester.id} from="learn-notices" style={{ animationDelay: `${i * 25}ms` }} />
           ))}
         </Card>
       )}
