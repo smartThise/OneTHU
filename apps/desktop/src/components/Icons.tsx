@@ -207,6 +207,13 @@ export const FOLDER_ICONS: Record<string, (p: SVGProps<SVGSVGElement>) => ReactE
   inbox: IconIn,
 };
 
+export const IconPlug = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M9 7.2V3.4M15 7.2V3.4M6.8 7.2h10.4v3.9a5.2 5.2 0 0 1-5.2 5.2 5.2 5.2 0 0 1-5.2-5.2V7.2ZM12 16.3v4.3" />
+  </svg>
+);
+
+
 export function FolderIcon({ name, ...rest }: { name?: string } & SVGProps<SVGSVGElement>) {
   const C = (name && FOLDER_ICONS[name]) || IconFolder;
   return <C {...rest} />;

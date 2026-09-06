@@ -1,8 +1,8 @@
 /**
- * 插件管理页（/plugins 独立路由，设置页留有入口）：
- * 「机架」视觉——每枚插件是一块模块卡：状态 LED、mono 版本徽标、权限胶囊、
- * 可展开的 设置/命令/运行轨迹 舱段。逻辑与旧内嵌区段完全一致（loader/registry/
- * events/rust 同一套），只重排了皮囊。
+ * 插件页（侧栏一级入口「插件」）：
+ * 三区信息架构——电表概览条 / 模块卡（开关·设置·日志·删除 + 命令）/ 安装面板。
+ * 设置与运行日志走底部 Sheet：设置显式「保存」+ 已保存回执（不再静默落盘）；
+ * 日志全高终端（时间戳 + 方法符着色 + 自动贴底 + 打断/清空）。
  */
 import { useSyncExternalStore, useEffect, useRef, useState, type ReactNode } from "react";
 import { PageHead } from "../components/Layout.js";
@@ -34,6 +34,7 @@ export function PluginsPage(): ReactNode {
   const plugins = useSyncExternalStore(subscribe, installedPlugins);
   const cmds = useSyncExternalStore(subscribeCommands, commandsSnapshot);
   const [instOpen, setInstOpen] = useState(false);
+  const [sheet, setSheet] = useState<{ id: string; mode: "settings" | "log" } | null>(null);
   const liveCount = plugins.filter((p) => p.enabled && isLive(p.manifest.id)).length;
   const coreCount = plugins.filter((p) => p.embedded).length;
 
@@ -54,7 +55,7 @@ export function PluginsPage(): ReactNode {
         }
       />
 
-      {/* 机架电表：安装 / 运行 / 命令 / 内置 */}
+      {/* 电表概览条 */}
       <div className="plg-stats">
         <div className="plg-stat">
           <span className="plg-stat-n">{String(plugins.length).padStart(2, "0")}</span>
@@ -91,11 +92,315 @@ export function PluginsPage(): ReactNode {
       ) : (
         <div className="plg-rack">
           {plugins.map((p, i) => (
-            <PluginCard key={p.manifest.id} id={p.manifest.id} index={i} />
+            <PluginCard key={p.manifest.id} id={p.manifest.id} index={i} onOpenSheet={setSheet} />
           ))}
         </div>
       )}
+
+      {sheet ? <PluginSheet id={sheet.id} mode={sheet.mode} onClose={() => setSheet(null)} /> : null}
     </div>
+  );
+}
+
+/* ═══════════════ 模块卡 ═══════════════ */
+
+function PluginCard({
+  id,
+  index,
+  onOpenSheet,
+}: {
+  id: string;
+  index: number;
+  onOpenSheet: (s: { id: string; mode: "settings" | "log" }) => void;
+}): ReactNode {
+  const plugins = useSyncExternalStore(subscribe, installedPlugins);
+  const rec = plugins.find((p) => p.manifest.id === id);
+  const cmds = useSyncExternalStore(subscribeCommands, commandsSnapshot).filter((c) => c.pluginId === id);
+  const [open, setOpen] = useState(false);
+  const [runMsg, setRunMsg] = useState<string | null>(null);
+  const [input, setInput] = useState("");
+  if (!rec) return null;
+  const m = rec.manifest;
+  const active = rec.enabled && isLive(id);
+  const failed = rec.enabled && !isLive(id);
+  const stateText = active ? "运行中" : failed ? "加载失败" : "已停用";
+
+  const doRun = async (cmdId: string): Promise<void> => {
+    setRunMsg("执行中…");
+    try {
+      const r = await runCommand(id, cmdId, input);
+      setRunMsg(r == null ? "完成" : String(typeof r === "string" ? r : JSON.stringify(r)).slice(0, 400));
+    } catch (e) {
+      setRunMsg(`失败：${String(e instanceof Error ? e.message : e).slice(0, 300)}`);
+    }
+  };
+
+  return (
+    <article
+      className={"plg-card" + (active ? " is-on" : failed ? " is-err" : "")}
+      style={{ animationDelay: `${Math.min(index, 8) * 55}ms` }}
+    >
+      <div className="plg-card-top">
+        <div className={"plg-pin" + (rec.embedded ? " is-core" : "")} aria-hidden>
+          {monogram(m.name, m.id)}
+        </div>
+        <div className="plg-card-id">
+          <div className="plg-title">
+            <b className="plg-name">{m.name}</b>
+            <span className="plg-ver">v{m.version}</span>
+            <span className="plg-kind">{m.kind === "rust" ? "RUST" : "JS"}</span>
+            {rec.embedded ? <span className="plg-core" title="Rust 核心已编进 App，无需二进制">内置</span> : null}
+          </div>
+          <div className={"plg-state" + (active ? " is-run" : failed ? " is-err" : "")}>
+            <i className={"plg-led" + (active ? " is-run" : failed ? " is-err" : "")} />
+            {stateText}
+            <span className="plg-state-sub">{m.id}</span>
+          </div>
+        </div>
+        <div className="plg-ops">
+          <Switch on={rec.enabled} label={rec.enabled ? "停用" : "启用"} onToggle={() => void (rec.enabled ? disablePlugin(id) : enablePlugin(id)).catch((e: unknown) => setRunMsg(String(e)))} />
+          <button className="btn btn-ghost" onClick={() => onOpenSheet({ id, mode: "settings" })}>
+            设置
+          </button>
+          {m.kind === "rust" ? (
+            <button className="btn btn-ghost" onClick={() => onOpenSheet({ id, mode: "log" })}>
+              日志
+            </button>
+          ) : null}
+          {rec.embedded ? null : (
+            <button className="btn btn-ghost plg-danger" onClick={() => void uninstallPlugin(id)}>
+              删除
+            </button>
+          )}
+        </div>
+      </div>
+
+      {m.description ? <p className="plg-desc">{m.description}</p> : null}
+
+      <div className="plg-perms">
+        {m.permissions.map((p) => {
+          const meta = PLUGIN_PERMISSIONS.find((x) => x.id === p);
+          return (
+            <span key={p} className="plg-perm" title={meta?.desc ?? p}>
+              {meta?.label ?? p}
+            </span>
+          );
+        })}
+      </div>
+
+      {cmds.length > 0 ? (
+        <>
+          <button className="plg-cmds-toggle" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+            {open ? "收起命令" : `命令（${cmds.length}）`}
+            <i className={"plg-caret" + (open ? " is-open" : "")} />
+          </button>
+          <div className={"plg-detail" + (open ? " is-open" : "")}>
+            <div className="plg-detail-in">
+              <div className="plg-cmds">
+                {cmds.map((c) => (
+                  <div key={c.id} className="plg-cmd">
+                    <div className="plg-cmd-t">{c.title}</div>
+                    {c.inputLabel ? (
+                      <textarea
+                        className="input"
+                        rows={2}
+                        placeholder={c.inputPlaceholder ?? ""}
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                      />
+                    ) : null}
+                    <button className="btn btn-primary" onClick={() => void doRun(c.id)}>
+                      执行
+                    </button>
+                    {runMsg ? <div className="plg-runmsg">{runMsg}</div> : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
+
+      {runMsg && cmds.length === 0 ? <div className="plg-runmsg">{runMsg}</div> : null}
+    </article>
+  );
+}
+
+/** 启停小开关 */
+function Switch({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }): ReactNode {
+  return (
+    <button type="button" role="switch" aria-checked={on} aria-label={label} title={label} className={"plg-switch" + (on ? " is-on" : "")} onClick={onToggle}>
+      <i />
+    </button>
+  );
+}
+
+/* ═══════════════ 底部 Sheet：设置（显式保存）/ 日志（全高终端） ═══════════════ */
+
+function PluginSheet({
+  id,
+  mode,
+  onClose,
+}: {
+  id: string;
+  mode: "settings" | "log";
+  onClose: () => void;
+}): ReactNode {
+  const plugins = useSyncExternalStore(subscribe, installedPlugins);
+  const rec = plugins.find((p) => p.manifest.id === id);
+  if (!rec) return null;
+  return (
+    <div className="plg-mask" onClick={onClose}>
+      <section
+        className="plg-sheet"
+        role="dialog"
+        aria-label={mode === "settings" ? `${rec.manifest.name} 设置` : `${rec.manifest.name} 运行日志`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="plg-sheet-head">
+          <b>{mode === "settings" ? "设置" : "运行日志"} · {rec.manifest.name}</b>
+          <button className="btn btn-ghost" onClick={onClose}>
+            关闭
+          </button>
+        </div>
+        {mode === "settings" ? (
+          <SettingsBody id={id} rec={rec} />
+        ) : (
+          <LogBody id={id} />
+        )}
+      </section>
+    </div>
+  );
+}
+
+/** 设置：本地草稿 + 显式保存 + 已保存回执（设置在插件下一轮运行时实时读取） */
+function SettingsBody({ id, rec }: { id: string; rec: any }): ReactNode {
+  const fields = rec.manifest.settings ?? [];
+  const [draft, setDraft] = useState<Record<string, string>>({ ...rec.settings });
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  const save = (): void => {
+    setSaving(true);
+    try {
+      updatePlugin(id, { settings: { ...draft } });
+      setSavedAt(new Date().toLocaleTimeString("zh-CN", { hour12: false }));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (fields.length === 0) {
+    return (
+      <>
+        <div className="plg-sheet-body">
+          <div className="plg-empty" style={{ padding: "26px 12px" }}>
+            <div className="plg-empty-d">该插件没有可配置项</div>
+          </div>
+        </div>
+        <div className="plg-sheet-foot">
+          <span className="plg-hint">—</span>
+          <button className="btn btn-ghost" onClick={() => (document.querySelector(".plg-mask") as HTMLElement | null)?.click()}>
+            关闭
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="plg-sheet-body">
+        <div className="plg-settings is-sheet">
+          {fields.map((f: any) => (
+            <label key={f.key} className="plg-setting">
+              <span>{f.label}</span>
+              {f.type === "textarea" ? (
+                <textarea
+                  className="input"
+                  rows={3}
+                  placeholder={f.placeholder ?? ""}
+                  value={draft[f.key] ?? ""}
+                  onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
+                />
+              ) : (
+                <input
+                  className="input"
+                  type={f.type === "password" ? "password" : "text"}
+                  placeholder={f.placeholder ?? ""}
+                  value={draft[f.key] ?? ""}
+                  onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
+                />
+              )}
+            </label>
+          ))}
+        </div>
+        <div className="plg-hint">设置在插件下一轮运行时生效（每轮实时读取）。</div>
+      </div>
+      <div className="plg-sheet-foot">
+        {savedAt ? (
+          <span className="plg-saved">
+            <i className="plg-led is-run" /> 已保存 {savedAt}
+          </span>
+        ) : (
+          <span className="plg-hint">修改后点「保存」才会生效</span>
+        )}
+        <span className="plg-sheet-foot-ops">
+          <button className="btn btn-ghost" onClick={() => setDraft({ ...rec.settings })}>
+            撤销修改
+          </button>
+          <button className="btn btn-primary" disabled={saving} onClick={save}>
+            保存
+          </button>
+        </span>
+      </div>
+    </>
+  );
+}
+
+/** 运行日志：全高终端 + 打断/清空 + 自动贴底 */
+function LogBody({ id }: { id: string }): ReactNode {
+  const events = useSyncExternalStore(subscribePluginEvents, () => pluginEvents(id));
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [events.length]);
+
+  const lines = events.slice(-400);
+  return (
+    <>
+      <div className="plg-sheet-body">
+        <div className="plg-term is-tall" ref={bodyRef}>
+          {lines.length === 0 ? (
+            <span className="plg-term-empty">— 尚无输出 · 发一次对话或执行一条命令试试 —</span>
+          ) : (
+            lines.map((e, i) => (
+              <div key={i} className={"plg-ev plg-ev-" + e.method}>
+                <span className="plg-ev-t">{new Date(e.at).toLocaleTimeString("zh-CN", { hour12: false })}</span>
+                <span className="plg-ev-tag">{e.method === "progress" ? "▶" : e.method === "log" ? "·" : e.method === "exit" ? "■" : "…"}</span>
+                <span className="plg-ev-text">
+                  {e.text || e.method}
+                  {e.step != null ? `（${e.step}${e.total != null ? "/" + e.total : ""}）` : ""}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+      <div className="plg-sheet-foot">
+        <span className="plg-hint">{events.length} 条事件 · 最多保留 300 条</span>
+        <span className="plg-sheet-foot-ops">
+          <button className="btn btn-ghost" onClick={() => void notifyRust(id, "interrupt").catch(() => undefined)}>
+            打断运行
+          </button>
+          <button className="btn btn-ghost" onClick={() => clearPluginEvents(id)}>
+            清空
+          </button>
+        </span>
+      </div>
+    </>
   );
 }
 
@@ -233,211 +538,5 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
         </button>
       </div>
     </section>
-  );
-}
-
-/* ═══════════════ 模块卡 ═══════════════ */
-
-function PluginCard({ id, index }: { id: string; index: number }): ReactNode {
-  const plugins = useSyncExternalStore(subscribe, installedPlugins);
-  const rec = plugins.find((p) => p.manifest.id === id);
-  const cmds = useSyncExternalStore(subscribeCommands, commandsSnapshot).filter((c) => c.pluginId === id);
-  const [open, setOpen] = useState(false);
-  const [runMsg, setRunMsg] = useState<string | null>(null);
-  const [input, setInput] = useState("");
-  if (!rec) return null;
-  const m = rec.manifest;
-  const active = rec.enabled && isLive(id);
-  const failed = rec.enabled && !isLive(id);
-  const stateText = active ? "运行中" : failed ? "加载失败" : "已停用";
-
-  const doRun = async (cmdId: string): Promise<void> => {
-    setRunMsg("执行中…");
-    try {
-      const r = await runCommand(id, cmdId, input);
-      setRunMsg(r == null ? "完成" : String(typeof r === "string" ? r : JSON.stringify(r)).slice(0, 300));
-    } catch (e) {
-      setRunMsg(`失败：${String(e instanceof Error ? e.message : e).slice(0, 200)}`);
-    }
-  };
-
-  return (
-    <article
-      className={"plg-card" + (active ? " is-on" : failed ? " is-err" : "")}
-      style={{ animationDelay: `${Math.min(index, 8) * 55}ms` }}
-    >
-      <div className={"plg-pin" + (rec.embedded ? " is-core" : "")} aria-hidden>
-        {monogram(m.name, m.id)}
-      </div>
-
-      <div className="plg-main">
-        <div className="plg-head">
-          <div className="plg-title">
-            <b className="plg-name">{m.name}</b>
-            <span className="plg-ver">v{m.version}</span>
-            <span className="plg-kind">{m.kind === "rust" ? "RUST" : "JS"}</span>
-            {rec.embedded ? <span className="plg-core" title="Rust 核心已编进 App，无需二进制">内置</span> : null}
-          </div>
-          <div className="plg-ops">
-            <span className={"plg-state" + (active ? " is-run" : failed ? " is-err" : "")}>
-              <i className={"plg-led" + (active ? " is-run" : failed ? " is-err" : "")} />
-              {stateText}
-            </span>
-            <Switch on={rec.enabled} disabled={false} label={rec.enabled ? "停用" : "启用"} onToggle={() => void (rec.enabled ? disablePlugin(id) : enablePlugin(id)).catch((e: unknown) => setRunMsg(String(e)))} />
-            <button className={"btn btn-ghost plg-x" + (open ? " is-open" : "")} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-              详情
-            </button>
-            {rec.embedded ? null : (
-              <button className="btn btn-ghost plg-danger" onClick={() => void uninstallPlugin(id)}>
-                删除
-              </button>
-            )}
-          </div>
-        </div>
-
-        {m.description ? <p className="plg-desc">{m.description}</p> : null}
-
-        <div className="plg-perms">
-          {m.permissions.map((p) => {
-            const meta = PLUGIN_PERMISSIONS.find((x) => x.id === p);
-            return (
-              <span key={p} className="plg-perm" title={meta?.desc ?? p}>
-                {meta?.label ?? p}
-              </span>
-            );
-          })}
-        </div>
-
-        <div className={"plg-detail" + (open ? " is-open" : "")}>
-          <div className="plg-detail-in">
-            {(m.settings?.length ?? 0) > 0 ? (
-              <div className="plg-sec">
-                <div className="plg-sec-t">设置</div>
-                <div className="plg-settings">
-                  {m.settings!.map((f) => (
-                    <label key={f.key} className="plg-setting">
-                      <span>{f.label}</span>
-                      {f.type === "textarea" ? (
-                        <textarea
-                          className="input"
-                          rows={2}
-                          placeholder={f.placeholder ?? ""}
-                          value={rec.settings[f.key] ?? ""}
-                          onChange={(e) => updatePlugin(id, { settings: { ...rec.settings, [f.key]: e.target.value } })}
-                        />
-                      ) : (
-                        <input
-                          className="input"
-                          type={f.type === "password" ? "password" : "text"}
-                          placeholder={f.placeholder ?? ""}
-                          value={rec.settings[f.key] ?? ""}
-                          onChange={(e) => updatePlugin(id, { settings: { ...rec.settings, [f.key]: e.target.value } })}
-                        />
-                      )}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {cmds.length > 0 ? (
-              <div className="plg-sec">
-                <div className="plg-sec-t">命令</div>
-                <div className="plg-cmds">
-                  {cmds.map((c) => (
-                    <div key={c.id} className="plg-cmd">
-                      <div className="plg-cmd-t">{c.title}</div>
-                      {c.inputLabel ? (
-                        <textarea
-                          className="input"
-                          rows={2}
-                          placeholder={c.inputPlaceholder ?? ""}
-                          value={input}
-                          onChange={(e) => setInput(e.target.value)}
-                        />
-                      ) : null}
-                      <button className="btn btn-primary" onClick={() => void doRun(c.id)}>
-                        执行
-                      </button>
-                      {runMsg ? <div className="plg-runmsg">{runMsg}</div> : null}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {m.kind === "rust" ? <ProgressPane id={id} /> : null}
-          </div>
-        </div>
-
-        {runMsg && !open ? <div className="plg-runmsg">{runMsg}</div> : null}
-      </div>
-    </article>
-  );
-}
-
-/** 小开关：启停插件（避免又一行文字按钮） */
-function Switch({ on, onToggle, label, disabled }: { on: boolean; onToggle: () => void; label: string; disabled?: boolean }): ReactNode {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      title={label}
-      disabled={disabled}
-      className={"plg-switch" + (on ? " is-on" : "")}
-      onClick={onToggle}
-    >
-      <i />
-    </button>
-  );
-}
-
-/* ═══════════════ 运行轨迹（Rust 插件实时流） ═══════════════ */
-
-function ProgressPane({ id }: { id: string }): ReactNode {
-  const events = useSyncExternalStore(subscribePluginEvents, () => pluginEvents(id));
-  const bodyRef = useRef<HTMLDivElement | null>(null);
-
-  // 新事件到达贴底滚动（终端习惯）
-  useEffect(() => {
-    const el = bodyRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [events.length]);
-
-  const lines = events.slice(-140);
-  return (
-    <div className="plg-sec">
-      <div className="plg-sec-t plg-sec-t-row">
-        运行轨迹
-        <span className="plg-sec-ops">
-          <button className="btn btn-ghost" onClick={() => void notifyRust(id, "interrupt").catch(() => undefined)}>
-            打断
-          </button>
-          <button className="btn btn-ghost" onClick={() => clearPluginEvents(id)}>
-            清空
-          </button>
-        </span>
-      </div>
-      <div className="plg-term" ref={bodyRef}>
-        {lines.length === 0 ? (
-          <span className="plg-term-empty">— 尚无输出 —</span>
-        ) : (
-          lines.map((e, i) => (
-            <div key={i} className={"plg-ev plg-ev-" + e.method}>
-              <span className="plg-ev-t">
-                {new Date(e.at).toLocaleTimeString("zh-CN", { hour12: false })}
-              </span>
-              <span className="plg-ev-tag">{e.method === "progress" ? "▶" : e.method === "log" ? "·" : e.method === "exit" ? "■" : "…"}</span>
-              <span className="plg-ev-text">
-                {e.text || e.method}
-                {e.step != null ? `（${e.step}${e.total != null ? "/" + e.total : ""}）` : ""}
-              </span>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
   );
 }

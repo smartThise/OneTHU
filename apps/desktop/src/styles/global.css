@@ -2751,7 +2751,8 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .plg-sec-t-row { display: flex; align-items: center; justify-content: space-between; }
 .plg-sec-ops { display: flex; gap: 6px; }
 
-.plg-settings { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px 12px; }
+.plg-settings { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 8px 12px; }
+.plg-settings.is-sheet { grid-template-columns: 1fr; gap: 10px; }
 .plg-setting { display: grid; gap: 4px; font-size: var(--text-sm); }
 .plg-setting > span { color: var(--text-2); }
 
@@ -2799,9 +2800,13 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   .plg-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .plg-stat { padding: 8px 12px; }
   .plg-stat-n { font-size: var(--text-md); }
-  .plg-card { flex-direction: column; }
-  .plg-pin { width: 32px; height: 32px; font-size: 11px; }
-  html.is-phone .plg-ops .btn { height: 30px; padding: 0 10px; font-size: 12px; }
+  .plg-card-top { flex-wrap: wrap; }
+  .plg-card-top .plg-ops { width: 100%; justify-content: flex-start; padding-top: 2px; }
+  .plg-pin { width: 34px; height: 34px; font-size: 11px; }
+  .plg-state-sub { display: none; }
+  html.is-phone .plg-ops .btn { height: 32px; padding: 0 12px; font-size: 12px; }
+  .plg-mask { align-items: stretch; }
+  .plg-sheet { width: 100%; max-width: 100%; max-height: 92dvh; border-radius: 14px 14px 0 0; margin: 0; }
 }
 
 /* 旧通用提示 toast（第三方 JS 插件可能引用） */
@@ -3077,3 +3082,25 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   .dock-fab { left: 12px; bottom: 12px; }
   .dock-history { inset: 37px 0 60px 0; }
 }
+
+
+/* ---------- 插件页 v2：卡片新结构 + 设置/日志 Sheet ---------- */
+.plg-card { display: grid; gap: 8px; padding: var(--gap-3) var(--gap-4); }
+.plg-card-top { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.plg-card-id { flex: 1; min-width: 0; display: grid; gap: 3px; justify-items: start; }
+.plg-state-sub { color: var(--text-dim); font-family: var(--font-mono); font-size: 10px; margin-left: 6px; }
+.plg-cmds-toggle { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--accent); font-size: var(--text-sm); cursor: pointer; padding: 2px 0; width: fit-content; min-height: 24px; }
+.plg-caret { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid currentColor; transition: transform 0.18s ease; display: inline-block; }
+.plg-caret.is-open { transform: rotate(180deg); }
+
+.plg-mask { position: fixed; inset: 0; background: rgba(15, 17, 21, 0.44); z-index: 9995; display: flex; align-items: flex-end; justify-content: center; animation: plg-fade 0.18s ease both; }
+@keyframes plg-fade { from { opacity: 0; } }
+.plg-sheet { width: min(560px, calc(100% - 24px)); max-height: min(86dvh, 720px); margin-bottom: 3vh; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-3); display: flex; flex-direction: column; overflow: hidden; animation: plg-up 0.22s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+@keyframes plg-up { from { transform: translateY(16px); opacity: 0; } }
+.plg-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border-soft); font-size: var(--text-base); flex: none; }
+.plg-sheet-body { padding: 14px 16px; overflow: auto; display: grid; gap: 10px; align-content: start; flex: 1; min-height: 0; }
+.plg-sheet-foot { display: flex; align-items: center; gap: 8px; justify-content: space-between; flex-wrap: wrap; padding: 10px 16px; border-top: 1px solid var(--border-soft); background: var(--surface-2); flex: none; }
+.plg-sheet-foot-ops { display: inline-flex; gap: 8px; align-items: center; }
+.plg-saved { color: var(--green); font-size: var(--text-xs); display: inline-flex; gap: 6px; align-items: center; }
+.plg-term.is-tall { max-height: none; height: 56dvh; }
+.plg-sheet .plg-term { height: auto; flex: 1; min-height: 0; }
