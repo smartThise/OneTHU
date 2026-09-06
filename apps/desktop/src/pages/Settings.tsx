@@ -1,7 +1,6 @@
 declare const __APP_VERSION__: string;
 import { useEffect, useState } from "react";
 import { Card, PageHead, SectionHead } from "../components/Layout.js";
-import { PluginsSection } from "./Plugins.js";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { clearRemembered, loadRemembered, session } from "../lib/clients.js";
@@ -12,7 +11,7 @@ import { confirmOk } from "../lib/confirm.js";
 import { useApp } from "../state/context.js";
 
 export function SettingsPage() {
-  const { user, logout } = useApp();
+  const { user, logout, navigate } = useApp();
   const favs = useFavs();
   const [favMsg, setFavMsg] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -207,7 +206,18 @@ export function SettingsPage() {
         ) : null}
       </Card>
 
-      <PluginsSection />
+      <SectionHead title="插件" />
+      <Card>
+        <div className="setting-row">
+          <div>
+            <div className="setting-title">插件管理</div>
+            <div className="setting-desc">Rust 骨干与 JS 模块的安装、启停、权限与运行轨迹</div>
+          </div>
+          <button className="btn" onClick={() => navigate("plugins")}>
+            进入插件页
+          </button>
+        </div>
+      </Card>
       <SectionHead title="安全" />
       <Card>
         <div className="setting-row">

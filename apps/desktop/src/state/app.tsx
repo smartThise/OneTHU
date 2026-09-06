@@ -16,6 +16,7 @@ export type Page =
   | "zhjwxk" // 选课系统（已选课程 / 候补队列；不可拆分原子）
   | "folder" // 用户收藏夹页（navParams.folderId 指向具体收藏夹）
   | "settings"
+  | "plugins" // 插件管理页（机架视觉；设置页留入口，不动侧栏导航）
   | "learn-course" // 课程详情（courseId）
   | "learn-assignments" // 全部作业
   | "learn-notices" // 全部通知

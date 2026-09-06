@@ -221,6 +221,7 @@ Anthropic 兼容端点同理换 header（`x-api-key` + `anthropic-version`）。
 | `zhjwxk` | 选课系统 | — |
 | `otherinfo` | 其他 Info 应用 | — |
 | `settings` | 设置 | — |
+| `plugins` | 插件管理页 | — |
 | `learn-course` 等子页 | 网络学堂详情 | `courseId`、`itemId`（详见 state/app.tsx 的 LearnNav） |
 
 例：订完座位跳过去看——`ctx.onethu.nav.go("reserve", { reserveTab: "lib" })`。

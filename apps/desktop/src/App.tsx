@@ -14,6 +14,7 @@ import { SemesterSelectionPage } from "./pages/learn/SemesterSelectionPage.js";
 import { LoginPage, TwoFactorPage } from "./pages/Login.js";
 import { SchedulePage } from "./pages/Schedule.js";
 import { SettingsPage } from "./pages/Settings.js";
+import { PluginsPage } from "./pages/Plugins.js";
 import { TodayPage } from "./pages/Today.js";
 import { OtherInfoPage } from "./pages/OtherInfoPage.js";
 import { InfoPage } from "./pages/info/InfoPage.js";
@@ -68,6 +69,7 @@ function Routed() {
         {page === "zhjwxk" && <ZhjwxkCoursesPage />}
         {page === "folder" && <FolderPage />}
         {page === "settings" && <SettingsPage />}
+        {page === "plugins" && <PluginsPage />}
         {page === "learn-course" && <CourseDetailPage />}
         {page === "learn-assignments" && <AssignmentsPage />}
         {page === "learn-notices" && <NoticesPage />}

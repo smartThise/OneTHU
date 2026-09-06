@@ -2684,37 +2684,130 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   35% { background: color-mix(in srgb, var(--amber) 26%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--amber) 45%, transparent); }
 }
 
-/* ---------- 插件系统 ---------- */
-.plugin-hint { color: var(--ink-3); font-size: var(--text-sm); margin-bottom: 10px; line-height: 1.6; }
-.plugin-empty { color: var(--ink-3); padding: 12px 0; }
-.plugin-row { border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px 12px; margin-bottom: 10px; }
-.plugin-row-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.plugin-row-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
-.plugin-ver { color: var(--ink-3); font-size: var(--text-xs); }
-.plugin-row-ops { display: flex; gap: 6px; flex-wrap: wrap; }
-.plugin-detail { margin-top: 10px; display: grid; gap: 10px; }
-.plugin-desc { color: var(--ink-2); font-size: var(--text-sm); }
-.plugin-perms { display: flex; gap: 6px; flex-wrap: wrap; }
-.plugin-settings { display: grid; gap: 8px; }
-.plugin-setting { display: grid; gap: 4px; font-size: var(--text-sm); }
-.plugin-setting > span { color: var(--ink-2); }
-.plugin-cmds { display: grid; gap: 8px; border-top: 1px dashed var(--border); padding-top: 10px; }
-.plugin-cmd { display: grid; gap: 6px; }
-.plugin-install { margin-top: 12px; display: grid; gap: 8px; }
-.plugin-install-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.plugin-msg { color: var(--ink-2); font-size: var(--text-sm); word-break: break-all; }
-.plugin-runmsg { white-space: pre-wrap; max-height: 200px; overflow: auto; }
+/* ---------- 插件管理页（plg-*）：机架视觉——状态 LED + mono 徽标 + 可展开舱段 ---------- */
+
+.plg-code { font-family: var(--font-mono); font-size: 0.92em; background: var(--surface-3); padding: 1px 5px; border-radius: 4px; }
+
+/* 电表条：安装 / 运行 / 命令 / 内置 */
+.plg-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap-2); margin-bottom: var(--gap-4); }
+.plg-stat { display: flex; align-items: baseline; gap: 8px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); }
+.plg-stat-n { font-family: var(--font-mono); font-size: var(--text-lg); font-weight: 600; letter-spacing: -0.02em; display: inline-flex; align-items: center; gap: 7px; }
+.plg-stat-l { font-size: var(--text-xs); color: var(--text-3); }
+
+/* 状态 LED */
+.plg-led { width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim); display: inline-block; flex: none; }
+.plg-led.is-run { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); animation: plg-pulse 2.2s ease-in-out infinite; }
+.plg-led.is-err { background: var(--amber); box-shadow: 0 0 0 3px var(--amber-soft); }
+@keyframes plg-pulse { 0%, 100% { box-shadow: 0 0 0 3px var(--green-soft); } 50% { box-shadow: 0 0 0 5px var(--green-soft); } }
+
+/* 机架 + 模块卡 */
+.plg-rack { display: grid; gap: var(--gap-3); }
+.plg-card { display: flex; gap: var(--gap-3); padding: var(--gap-3) var(--gap-4); background: var(--surface); border: 1px solid var(--border); border-left-width: 3px; border-radius: var(--r-lg); box-shadow: var(--shadow-1); animation: plg-in 0.34s cubic-bezier(0.2, 0.7, 0.3, 1) both; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.plg-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-2); }
+.plg-card.is-on { border-left-color: var(--green); }
+.plg-card.is-err { border-left-color: var(--amber); }
+@keyframes plg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* 模块针脚（双字母 monogram；内置核心用业务蓝） */
+.plg-pin { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--surface-2); font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: 0.02em; color: var(--text-2); }
+.plg-pin.is-core { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent); }
+
+.plg-main { flex: 1; min-width: 0; display: grid; gap: 8px; align-content: start; }
+
+.plg-head { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-2); flex-wrap: wrap; }
+.plg-title { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+.plg-name { font-size: var(--text-base); font-weight: 600; }
+.plg-ver { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-3); }
+.plg-kind { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); color: var(--text-3); }
+.plg-core { font-size: 10.5px; padding: 2px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-border); }
+
+.plg-ops { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.plg-state { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--text-3); }
+.plg-state.is-run { color: var(--text-1); }
+.plg-state.is-err { color: var(--amber); }
+
+/* 启停小开关 */
+.plg-switch { width: 34px; height: 20px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface-3); position: relative; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; padding: 0; flex: none; }
+.plg-switch i { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); transition: transform 0.15s ease; }
+.plg-switch.is-on { background: var(--green); border-color: var(--green); }
+.plg-switch.is-on i { transform: translateX(14px); }
+.plg-switch:disabled { opacity: 0.5; cursor: default; }
+
+.plg-danger:hover { background: var(--red-soft); color: var(--red); border-color: transparent; }
+
+.plg-desc { margin: 0; color: var(--text-2); font-size: var(--text-sm); line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* 权限胶囊 */
+.plg-perms { display: flex; flex-wrap: wrap; gap: 5px; }
+.plg-perm { font-size: 10.5px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-soft); color: var(--text-2); }
+
+/* 展开舱段（grid-rows 过渡） */
+.plg-detail { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.24s ease; }
+.plg-detail.is-open { grid-template-rows: 1fr; }
+.plg-detail-in { overflow: hidden; min-height: 0; display: grid; gap: var(--gap-3); padding-top: 10px; border-top: 1px dashed var(--border); }
+
+.plg-sec { display: grid; gap: 8px; }
+.plg-sec-t { font-size: var(--text-xs); font-weight: 600; color: var(--text-3); letter-spacing: 0.04em; }
+.plg-sec-t-row { display: flex; align-items: center; justify-content: space-between; }
+.plg-sec-ops { display: flex; gap: 6px; }
+
+.plg-settings { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px 12px; }
+.plg-setting { display: grid; gap: 4px; font-size: var(--text-sm); }
+.plg-setting > span { color: var(--text-2); }
+
+.plg-cmds { display: grid; gap: 12px; }
+.plg-cmd { display: grid; gap: 6px; justify-items: start; }
+.plg-cmd-t { font-size: var(--text-sm); font-weight: 500; }
+.plg-runmsg { white-space: pre-wrap; max-height: 200px; overflow: auto; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--r-md); padding: 6px 9px; }
+
+/* 运行轨迹终端 */
+.plg-term { max-height: 240px; overflow: auto; background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--r-md); padding: 8px 10px; display: grid; gap: 2px; font-family: var(--font-mono); font-size: 11px; }
+.plg-term-empty { color: var(--text-3); text-align: center; padding: 14px 0; letter-spacing: 0.06em; }
+.plg-ev { display: flex; gap: 7px; line-height: 1.65; }
+.plg-ev-t { color: var(--text-dim); flex: none; }
+.plg-ev-tag { flex: none; width: 10px; }
+.plg-ev-text { color: var(--text-2); word-break: break-all; min-width: 0; }
+.plg-ev-progress .plg-ev-tag { color: var(--accent); }
+.plg-ev-progress .plg-ev-text { color: var(--text-1); }
+.plg-ev-exit .plg-ev-tag, .plg-ev-exit .plg-ev-text { color: var(--red); }
+.plg-ev-log .plg-ev-tag { color: var(--text-3); }
+
+/* 安装面板：三路 tab + 虚线拖入区 */
+.plg-install { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--gap-3) var(--gap-4); margin-bottom: var(--gap-4); display: grid; gap: var(--gap-3); box-shadow: var(--shadow-1); animation: plg-in 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.plg-install-tabs { display: inline-flex; gap: 2px; padding: 2px; background: var(--surface-3); border-radius: var(--r-md); width: fit-content; max-width: 100%; flex-wrap: wrap; }
+.plg-tab { border: 0; background: transparent; padding: 5px 12px; border-radius: 6px; font-size: var(--text-sm); color: var(--text-2); cursor: pointer; transition: background 0.12s ease, color 0.12s ease; min-height: 28px; }
+.plg-tab.is-on { background: var(--surface); color: var(--text-1); font-weight: 500; box-shadow: var(--shadow-1); }
+.plg-install-body { display: grid; gap: 10px; }
+.plg-paste { font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.6; }
+.plg-install-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-2); flex-wrap: wrap; }
+.plg-hint { color: var(--text-3); font-size: var(--text-xs); }
+.plg-msg { color: var(--text-1); font-size: var(--text-sm); word-break: break-all; }
+.plg-filebox { display: grid; gap: 4px; justify-items: center; padding: 22px 14px; border: 1.5px dashed var(--border-strong); border-radius: var(--r-md); cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; position: relative; }
+.plg-filebox:hover { border-color: var(--accent); background: var(--accent-soft); }
+.plg-filebox input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.plg-filebox-t { font-size: var(--text-sm); font-weight: 500; color: var(--text-1); pointer-events: none; }
+.plg-filebox-d { font-size: var(--text-xs); color: var(--text-3); pointer-events: none; }
+
+/* 空态 */
+.plg-empty { display: grid; justify-items: center; gap: 8px; padding: 52px 16px; border: 1.5px dashed var(--border-strong); border-radius: var(--r-lg); text-align: center; }
+.plg-empty-mark { font-family: var(--font-mono); font-size: 22px; color: var(--text-dim); letter-spacing: 0.1em; }
+.plg-empty-t { font-size: var(--text-md); font-weight: 600; }
+.plg-empty-d { color: var(--text-3); font-size: var(--text-sm); margin-bottom: 6px; }
+
+@media (prefers-reduced-motion: reduce) { .plg-card, .plg-install { animation: none; } .plg-led.is-run { animation: none; } }
+@media (max-width: 860px) {
+  .plg-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .plg-stat { padding: 8px 12px; }
+  .plg-stat-n { font-size: var(--text-md); }
+  .plg-card { flex-direction: column; }
+  .plg-pin { width: 32px; height: 32px; font-size: 11px; }
+  html.is-phone .plg-ops .btn { height: 30px; padding: 0 10px; font-size: 12px; }
+}
+
+/* 旧通用提示 toast（第三方 JS 插件可能引用） */
 .plugin-toast-host { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 9999; display: grid; gap: 6px; justify-items: center; pointer-events: none; }
-.plugin-toast { background: var(--ink-1, #1f2329); color: #fff; padding: 8px 14px; border-radius: 999px; font-size: var(--text-sm); box-shadow: 0 4px 14px rgba(0,0,0,.18); opacity: 1; transition: opacity .3s; max-width: 78vw; }
+.plugin-toast { background: #1f2329; color: #fff; padding: 8px 14px; border-radius: 999px; font-size: var(--text-sm); box-shadow: 0 4px 14px rgba(0,0,0,.18); opacity: 1; transition: opacity .3s; max-width: 78vw; }
 .plugin-toast.out { opacity: 0; }
-html.is-phone .plugin-row-ops .btn { height: 30px; padding: 0 10px; font-size: 12px; }
-.plugin-or { color: var(--ink-3); font-size: var(--text-sm); }
-.plugin-hint-inline { color: var(--ink-3); font-size: var(--text-xs); }
-.plugin-progress { border: 1px solid var(--border); border-radius: var(--r-md); display: grid; gap: 6px; }
-.plugin-progress-head { display: flex; align-items: center; justify-content: space-between; font-size: var(--text-sm); color: var(--ink-2); padding: 6px 10px 0; }
-.plugin-progress-body { max-height: 220px; overflow: auto; padding: 4px 10px 10px; display: grid; gap: 2px; font-family: var(--mono, ui-monospace, monospace); font-size: 12px; color: var(--ink-2); }
-.plugin-ev-exit { color: var(--red); }
-.plugin-ev-progress { color: var(--text-1, var(--ink-1)); }
 /* ============================================================
    插件对话面板（ChatDock）：左下角常驻，风格对齐 hard-refresh-fab
    ============================================================ */
