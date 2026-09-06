@@ -2,9 +2,9 @@
 import { Children, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useApp } from "../state/context.js";
 import { topLevelPage, type Page } from "../state/app.js";
-import { IconChevron, IconDemo, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal } from "./Icons.js";
+import { IconChevron, IconDemo, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconPen, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
-import { navSeqOf } from "../state/favorites.js";
+import { loadNavOrder, normalizeNavOrder, restabilizeFolders, saveNavOrder } from "../lib/navOrder.js";
 
 /**
  * 默认一级入口（万物原子化定案）：钉死不可删隐，仅可在侧栏折叠进
@@ -198,6 +198,20 @@ export function Shell({ children }: { children: ReactNode }) {
   const [navClosing, setNavClosing] = useState(false);
   /** 「已折叠（N）」组展开态（会话态，不持久化） */
   const [foldedOpen, setFoldedOpen] = useState(false);
+  /** 侧栏统一序列（页+根收藏夹交错，localStorage 持久化） */
+  const [navSeq, setNavSeq] = useState<string[]>(() => loadNavOrder());
+  /** 侧栏排序编辑模式（页面行 ↑↓；收藏夹仍走收藏夹页上移/下移） */
+  const [navEdit, setNavEdit] = useState(false);
+
+  /* 收藏夹相对序重投影（favs.order 变化即收藏夹页 上移/下移/新建/删除）。
+   *  归一化不放 effect：SSR/首帧没有 effect，渲染期就地归一化（navSeqView）
+   *  才能保证第一帧侧栏就是全量导航（冒烟实录：effect 版首帧侧栏全空）。 */
+  useEffect(() => {
+    setNavSeq((prev) => restabilizeFolders(normalizeNavOrder(prev, NAV.map((n) => n.page), favs.data.order), favs.data.order));
+  }, [favs.data.order]);
+  useEffect(() => {
+    saveNavOrder(navSeq);
+  }, [navSeq]);
   const closeNav = useCallback(() => {
     setNavClosing(true);
     window.setTimeout(() => {
@@ -208,13 +222,23 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const isFolderActive = (id: string) => page === "folder" && navParams?.folderId === id;
 
-  /** 侧栏一条导航项：主按钮 + 行尾折叠钮（hover 浮现；已折叠项的行尾钮是展开钮） */
-  const navRow = (key: string, opts: { active: boolean; label: string; icon: ReactNode; onClick: () => void; folded?: boolean; onFold?: () => void }) => (
-    <div className="nav-row" key={key}>
+  /** 侧栏一条导航项：主按钮 + 行尾折叠钮（hover 浮现；已折叠项的行尾钮是展开钮）。
+   *  编辑模式页面行另带 ↑↓（.nav-move），可与收藏夹行交错换位。 */
+  const navRow = (key: string, opts: {
+    active: boolean; label: string; icon: ReactNode; onClick: () => void; folded?: boolean; onFold?: () => void;
+    editing?: boolean; onMove?: (dir: -1 | 1) => void; moveUpDisabled?: boolean; moveDownDisabled?: boolean;
+  }) => (
+    <div className={"nav-row" + (opts.editing ? " is-editing" : "")} key={key}>
       <button className={"nav-item" + (opts.active ? " is-active" : "")} onClick={opts.onClick}>
         {opts.icon}
         <span>{opts.label}</span>
       </button>
+      {opts.editing && opts.onMove ? (
+        <span className="nav-move">
+          <button className="nav-fold" disabled={opts.moveUpDisabled} title="上移" aria-label="上移" onClick={(e) => { e.stopPropagation(); opts.onMove!(-1); }}>↑</button>
+          <button className="nav-fold" disabled={opts.moveDownDisabled} title="下移" aria-label="下移" onClick={(e) => { e.stopPropagation(); opts.onMove!(1); }}>↓</button>
+        </span>
+      ) : null}
       {opts.onFold ? (
         <button
           className={"nav-fold" + (opts.folded ? " is-folded" : "")}
@@ -233,21 +257,36 @@ export function Shell({ children }: { children: ReactNode }) {
 
   /** 侧栏/抽屉共用导航内容 */
   const navContent = (onAfter?: () => void) => {
-    const seq = navSeqOf(favs.data);
+    const navSeqView = normalizeNavOrder(navSeq, NAV.map((n) => n.page), favs.data.order);
     const isFoldedKey = (k: string) =>
       k.startsWith("p:")
         ? favs.data.foldedDefaults.includes(k.slice(2) as Page)
         : favs.data.foldedRoots.includes(k.slice(2));
-    const visKeys = seq.filter((k) => !isFoldedKey(k));
-    const foldedKeys = seq.filter(isFoldedKey);
+    const visKeys = navSeqView.filter((k) => !isFoldedKey(k));
+    const foldedKeys = navSeqView.filter(isFoldedKey);
     const foldedCount = foldedKeys.length;
-    /** 序列条目 → 行（页面行可折叠；收藏夹行同款。调序入口在各页页头，
-     *  见 moveNavPage；收藏夹相对序真源在收藏夹页上移/下移） */
+    const moveNavEntry = (key: string, dir: -1 | 1) => {
+      setNavSeq((prev) => {
+        const vis = prev.filter((k) => !isFoldedKey(k));
+        const i = vis.indexOf(key);
+        const j = i + dir;
+        if (i < 0 || j < 0 || j >= vis.length) return prev;
+        const a = vis[i]!;
+        const b = vis[j]!;
+        const arr = [...prev];
+        arr[arr.indexOf(a)] = b;
+        arr[arr.indexOf(b)] = a;
+        return arr;
+      });
+    };
+    /** 序列条目 → 行：页面行编辑模式带 ↑↓（可与收藏夹行交错换位）；收藏夹行不带走位
+     *  （收藏夹相对序真源在收藏夹页上移/下移，见 lib/navOrder.ts 头注） */
     const entryRow = (key: string, folded: boolean) => {
       if (key.startsWith("p:")) {
         const def = NAV.find((n) => n.page === (key.slice(2) as Page));
         if (!def) return null;
         const Icon = def.icon;
+        const idx = visKeys.indexOf(key);
         return navRow("d-" + def.page, {
           active: page === def.page,
           label: def.label,
@@ -258,6 +297,10 @@ export function Shell({ children }: { children: ReactNode }) {
           },
           folded,
           onFold: () => favs.foldSidebar(def.page, true),
+          editing: navEdit && !folded,
+          onMove: (dir) => moveNavEntry(key, dir),
+          moveUpDisabled: idx <= 0,
+          moveDownDisabled: idx >= visKeys.length - 1,
         });
       }
       const id = key.slice(2);
@@ -290,7 +333,13 @@ export function Shell({ children }: { children: ReactNode }) {
           <IconFolderPlus />
           <span>新建收藏夹</span>
         </button>
-
+        <button
+          className={"nav-item nav-edit-toggle" + (navEdit ? " is-editing" : "")}
+          onClick={() => setNavEdit((v) => !v)}
+        >
+          <IconPen />
+          <span>{navEdit ? "完成排序" : "调整顺序"}</span>
+        </button>
         {/* 折叠组：默认入口与用户收藏夹都收这里，点一下展开 */}
         {foldedCount > 0 ? (
           <>
