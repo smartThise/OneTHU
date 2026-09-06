@@ -69,11 +69,34 @@ export async function ensureVenueToken(): Promise<boolean> {
   //    重登 → CAS 第二次 2FA（实测回归）。静默登录的失登已由
   //    suspendAuthBroadcast 抑制，不会触发全局重载（预览炸屏的正解）。
   try {
-    const { http } = await import("./clients.js");
+    const { http, session, currentFingerprint } = await import("./clients.js");
     const casAddr = await venueClient.casAddress("https://www.sports.tsinghua.edu.cn/venue/index.html");
-    const res = await http.request(casAddr, { redirect: "follow" });
-    const finalUrl = res.headers.get("x-onethu-final-url") ?? "";
-    const body = await res.text();
+    let res = await http.request(casAddr, { redirect: "follow" });
+    let finalUrl = res.headers.get("x-onethu-final-url") ?? "";
+    let body = await res.text();
+    // checkSingle 冲突确认页（10:52:36 真机实录）：wengine 侧 id 会话与直连会话
+    // 并存时 id 出确认页，不确认就探不到票 → 误落账密路径 → 强制 2FA。字段照
+    // core #idCheckSingle（i_rememberme+fingerPrint+finger3），裸隐藏字段会被
+    // id 当全新登录升级二次认证。
+    if (/login\/checkSingle|id="logined"/.test(body)) {
+      const fields: Record<string, string> = {
+        i_rememberme: "on",
+        fingerPrint: await currentFingerprint(),
+        fingerGenPrint: session.finger3 ?? "",
+      };
+      const reH = /<input[^>]*type="hidden"[^>]*name="([^"]*)"[^>]*value="([^"]*)"/g;
+      let mh: RegExpExecArray | null;
+      while ((mh = reH.exec(body)) !== null) fields[mh[1]!] = mh[2]!;
+      await logLine("[VENUE-SSO] 会话链遇 checkSingle → 确认续用");
+      res = await http.request("https://id.tsinghua.edu.cn/do/off/ui/auth/login/checkSingle", {
+        method: "POST",
+        body: new URLSearchParams(fields),
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        redirect: "follow",
+      });
+      finalUrl = res.headers.get("x-onethu-final-url") ?? "";
+      body = await res.text();
+    }
     const uni = pickUni(finalUrl) ?? pickUni(body);
     if (uni) {
       setVenueToken(await venueClient.exchangeUniToken(decodeURIComponent(uni)));
@@ -136,7 +159,13 @@ async function casFormRelogin(): Promise<void> {
         /<form[^>]*action="([^"]*)"[^>]*id="logined"/.exec(formHtml)?.[1] ??
         /<form[^>]*id="logined"[^>]*action="([^"]*)"/.exec(formHtml)?.[1] ??
         "/do/off/ui/auth/login/checkSingle";
-      const fields: Record<string, string> = {};
+      const fields: Record<string, string> = {
+        // 裸隐藏字段 = 全新登录 → id 强制二次认证（10:52:37 真机实录卡死点）；
+        // 带 i_rememberme+指纹续用既有会话（core #idCheckSingle 同款字段）
+        i_rememberme: "on",
+        fingerPrint: await currentFingerprint(),
+        fingerGenPrint: session.finger3 ?? "",
+      };
       const reH = /<input[^>]*type="hidden"[^>]*name="([^"]*)"[^>]*value="([^"]*)"/g;
       let mh: RegExpExecArray | null;
       while ((mh = reH.exec(formHtml)) !== null) fields[mh[1]!] = mh[2]!;
