@@ -623,6 +623,22 @@
   cursor: pointer;
 }
 .tabstrip > span { display: inline-flex; align-items: center; gap: 2px; margin-bottom: -1px; }
+/* tabstrip 里的收藏星走「裸图标」形态：无底无框无圆角块（方块阴影按钮和下划线 tab 气质相冲），
+   只以颜色/透明度表达可点与点亮 */
+.tabstrip > span .collect-star {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-3);
+  opacity: 0.6;
+}
+.tabstrip > span .collect-star:hover { background: transparent; color: var(--amber); opacity: 1; transform: none; }
+.tabstrip > span .collect-star.is-on { background: transparent; color: var(--amber); opacity: 1; }
+.tabstrip > span .collect-star:active { transform: scale(0.9); }
 .tabstrip > button:hover,
 .tabstrip > span > button:hover { color: var(--text-1); }
 .tabstrip > button.is-active,
