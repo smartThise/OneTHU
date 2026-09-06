@@ -65,6 +65,21 @@ export function cacheInvalidate(key: string): void {
   }
 }
 
+/** SWR：stale 即时上屏（localStorage 持久化，冷启动也秒开）+ 后台重验证。
+ *  apply(stale, true) 先行渲染旧值；fetcher 完成后 apply(fresh, false)。
+ *  陈旧度由调用方自判（hit.at），本层只管「先旧后新」。 */
+export async function swrFetch<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+  apply: (data: T, stale: boolean) => void,
+): Promise<T> {
+  const hit = cacheGet<T>(key);
+  if (hit) apply(hit.data, true);
+  const fresh = await cacheFetch(key, fetcher);
+  apply(fresh, false);
+  return fresh;
+}
+
 /** 单飞：同 key 并发请求共享同一个 Promise；成功写缓存，失败不驻留 */
 export function cacheFetch<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   const running = inflight.get(key) as Promise<T> | undefined;
@@ -103,7 +118,7 @@ export function purgeXkCaches(): void {
 }
 
 /** 持久化名单：这些 key 的缓存落 localStorage（冷启动即时渲染） */
-const PERSISTED = new Set(["card", "profile", "calendar", "semesters", "exams", "report", "dorm", "xk"]);
+const PERSISTED = new Set(["card", "profile", "calendar", "semesters", "exams", "report", "dorm", "xk", "library"]);
 
 function isPersistedKey(key: string): boolean {
   const head = key.split(/[\u0001:]/)[0];
