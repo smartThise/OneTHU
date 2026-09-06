@@ -2555,6 +2555,18 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .nav-row:hover .nav-fold { opacity: 0.75; }
 .nav-fold:hover { opacity: 1 !important; background: var(--hover); color: var(--text-1); }
 .nav-fold.is-folded { opacity: 0.55; }
+/* 侧栏「调整顺序」编辑模式：页面行 ↑↓ 工具（可与收藏夹行交错换位） */
+.nav-move {
+  position: absolute;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  gap: 2px;
+}
+.nav-row.is-editing .nav-item { padding-right: 74px; }
+.nav-item.nav-edit-toggle { color: var(--text-3); }
+.nav-item.nav-edit-toggle.is-editing { color: var(--accent, var(--text-1)); }
 .nav-item.nav-new { color: var(--text-3); }
 .nav-item.nav-new:hover { color: var(--text-1); }
 .nav-item.nav-folded-toggle { color: var(--text-3); font-size: var(--text-sm); }
