@@ -1695,7 +1695,15 @@ export class InfoClient {
   /** ① SSO 发票快路径：已认证 id 会话 GET 服务表单 → 302 Location / 成功页锚点取票。
    *  注意只有含 ticket= 的 Location 才是票据兑付地址（其余 Location 消费了也白搭）。 */
   async #roamIdTicket(formUrl: string): Promise<boolean> {
-    const res = await this.#http.request(formUrl, { redirect: "manual", direct: true });
+    let res: Awaited<ReturnType<HttpClient["request"]>>;
+    try {
+      res = await this.#http.request(formUrl, { redirect: "manual", direct: true });
+    } catch {
+      // id 直连不可达（部分 ISP 校外把清华域名解析到校内 IP，直连必死——
+      // 2026-09-06 学弟实证：校外仅研讨间进不去，因 cab 是唯一硬依赖 id 表单的链）。
+      // 回退 webvpn 包装形态：wengine 公网必达，id 会话在包装流内部自洽。
+      res = await this.#http.request(webvpnWrap(formUrl), { redirect: "manual" });
+    }
     let ticketUrl = res.headers.get("location") ?? undefined;
     if (ticketUrl && !/ticket=/.test(ticketUrl)) ticketUrl = undefined;
     if (!ticketUrl) {
@@ -1746,7 +1754,15 @@ export class InfoClient {
     creds: { username: string; password: string; fingerprint: string },
     variant: "zhjwxk" | "lib",
   ): Promise<{ ok: boolean; fatal: boolean; diag: string }> {
-    const formHtml = await this.#http.text(formUrl, { direct: true });
+    let effUrl = formUrl;
+    let formHtml: string;
+    try {
+      formHtml = await this.#http.text(formUrl, { direct: true });
+    } catch {
+      // 同上：id 直连不可达 → 包装形态重试
+      effUrl = webvpnWrap(formUrl);
+      formHtml = await this.#http.text(effUrl);
+    }
     // 已认证会话下该 URL 可能直接返回成功页 —— 锚点兜底
     const preAnchor = /<a[^>]+href="([^"]*ticket=[^"]*)"/i.exec(formHtml)?.[1];
     if (preAnchor) return this.#consumeIdTicketUrl(preAnchor, formUrl).then((ok) => ({ ok, fatal: false, diag: "form-anchor" }));
@@ -1780,13 +1796,20 @@ export class InfoClient {
         ? form.action
         : new URL(form.action, ID_PREFIX).toString()
       : ID_PREFIX + "/do/off/ui/auth/login/check";
-    const res = await this.#http.request(checkUrl, {
-      method: "POST",
-      body,
-      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-      direct: true, // 与登录表单同域直连（id 会话绝不能经 WebVPN 包装）
-      redirect: "manual",
-    });
+    // 直连模式：与登录表单同域直连（id 会话不经 WebVPN 包装）；
+    // 但表单本身已是包装形态（id 直连不可达兜底）时，check 必须同走包装——
+    // 会话 cookie 在 wengine 桶里，跨形态直连 POST 反而是无会话裸请求
+    const viaWrap = effUrl !== formUrl;
+    const res = await this.#http.request(
+      viaWrap ? webvpnWrap(checkUrl) : checkUrl,
+      {
+        method: "POST",
+        body,
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        ...(viaWrap ? {} : { direct: true as const }),
+        redirect: "manual",
+      },
+    );
     const checkHtml = await res.text().catch(() => "");
     const status = res.status;
     const location = res.headers.get("location") ?? "";
