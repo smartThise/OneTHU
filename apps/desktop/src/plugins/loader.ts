@@ -22,12 +22,18 @@ interface LiveCommand extends PluginCommand {
 }
 const liveCommands = new Map<string, LiveCommand>();
 const cmdListeners = new Set<() => void>();
+/** 缓存快照：变更时重建（getSnapshot 稳定性） */
+let cmdCache: LiveCommand[] = [];
+function notifyCmds(): void {
+  cmdCache = [...liveCommands.values()];
+  for (const l of cmdListeners) l();
+}
 export function subscribeCommands(fn: () => void): () => void {
   cmdListeners.add(fn);
   return () => cmdListeners.delete(fn);
 }
 export function commandsSnapshot(): LiveCommand[] {
-  return [...liveCommands.values()];
+  return cmdCache;
 }
 
 const live = new Map<string, LivePlugin>();
@@ -110,7 +116,7 @@ async function activate(id: string, mod?: any, blobUrl?: string): Promise<void> 
           });
         }
       }
-      for (const l of cmdListeners) l();
+      notifyCmds();
     }
     return;
   }
@@ -120,7 +126,7 @@ async function activate(id: string, mod?: any, blobUrl?: string): Promise<void> 
     registerCommand: (cmd, run) => {
       if (!cmd?.id || typeof run !== "function") return;
       liveCommands.set(`${id}:${cmd.id}`, { ...cmd, pluginId: id, run });
-      for (const l of cmdListeners) l();
+      notifyCmds();
     },
     log: (line: string) => void logLine(`[PLUGIN:${id}] ${line}`),
   };
@@ -134,7 +140,7 @@ async function deactivate(id: string): Promise<void> {
   if (p.kind === "rust") {
     await disposeRust(id).catch(() => undefined);
     for (const k of [...liveCommands.keys()]) if (k.startsWith(`${id}:`)) liveCommands.delete(k);
-    for (const l of cmdListeners) l();
+    notifyCmds();
     live.delete(id);
     return;
   }

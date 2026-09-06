@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { callRust, notifyRust } from "./rust.js";
 import { commandsSnapshot, subscribeCommands } from "./loader.js";
-import { pluginEvents, subscribePluginEvents } from "./events.js";
+import { EMPTY_EVENTS, pluginEvents, subscribePluginEvents } from "./events.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -112,7 +112,7 @@ export function ChatDock(): ReactNode {
   }, [pid, open]);
 
   // 事件泵：流式增量 / 工具轨迹 / 用量（R4）
-  const events = useSyncExternalStore(subscribePluginEvents, pid ? () => pluginEvents(pid) : () => []);
+  const events = useSyncExternalStore(subscribePluginEvents, pid ? () => pluginEvents(pid) : () => EMPTY_EVENTS);
   useEffect(() => {
     if (!pid) return;
     const fresh = events.slice(seenEv.current);

@@ -5,6 +5,8 @@
 type PluginEvent = { at: number; method: string; text: string; step?: number; total?: number; kind?: string; payload?: unknown };
 
 const MAX = 300;
+/** 稳定空快照：useSyncExternalStore 的 getSnapshot 必须可缓存 */
+export const EMPTY_EVENTS: PluginEvent[] = [];
 const buf = new Map<string, PluginEvent[]>();
 const listeners = new Set<() => void>();
 let started = false;
@@ -22,7 +24,7 @@ export function subscribePluginEvents(fn: () => void): () => void {
   return () => listeners.delete(fn);
 }
 export function pluginEvents(id: string): PluginEvent[] {
-  return buf.get(id) ?? [];
+  return buf.get(id) ?? EMPTY_EVENTS;
 }
 
 export function clearPluginEvents(id: string): void {
