@@ -1,6 +1,7 @@
 declare const __APP_VERSION__: string;
 import { useEffect, useState } from "react";
 import { Card, PageHead, SectionHead } from "../components/Layout.js";
+import { PluginsSection } from "./Plugins.js";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { clearRemembered, loadRemembered, session } from "../lib/clients.js";
@@ -206,6 +207,7 @@ export function SettingsPage() {
         ) : null}
       </Card>
 
+      <PluginsSection />
       <SectionHead title="安全" />
       <Card>
         <div className="setting-row">

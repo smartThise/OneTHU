@@ -24,6 +24,15 @@ import { FolderPage } from "./pages/FolderPage.js";
 import { AppProvider } from "./state/app.js";
 import { FavsProvider } from "./state/favs.js";
 import { useApp } from "./state/context.js";
+import { setNavBridge, setStatusBridge } from "./plugins/bridges.js";
+
+/** 插件桥回填：每帧把 navigate/status 同步给插件门面（bridges 无任何反向依赖） */
+function PluginBridge() {
+  const { status, navigate } = useApp();
+  setNavBridge((page, params) => navigate(page as never, params as never));
+  setStatusBridge(() => status);
+  return null;
+}
 
 function Routed() {
   const { status, page } = useApp();
@@ -75,6 +84,7 @@ function Routed() {
   return (
     <>
       {body}
+      <PluginBridge />
       <FilePreviewHost />
     </>
   );
