@@ -17,6 +17,15 @@ export function setHopCookieProvider(fn: (hopUrl: string) => string | null): voi
   hopCookieProvider = fn;
 }
 
+/** 跳转包装器（clients.ts 注入）：链内已在 webvpn 时，重定向落到的非公网域
+ *  必须续包装——否则 id/oauth（公网）302 指向内网域（cab.lib 等）时原样直连跟随，
+ *  校外超时死链、校内通道分裂（会话一半在 webvpn 一半在直连，互相看不见）。
+ *  纯直连链（校园 card）不受影响：只有链中出现过 webvpn 跳才启用。 */
+let hopUrlWrapper: ((url: string) => string) | null = null;
+export function setHopUrlWrapper(fn: (url: string) => string): void {
+  hopUrlWrapper = fn;
+}
+
 /** 每跳日志（clients.ts 注入 logLine）：记录重定向链每一跳的 URL+状态码 */
 let hopLogger: ((hopUrl: string, status: number) => void) | null = null;
 export function setHopLogger(fn: (hopUrl: string, status: number) => void): void {
@@ -215,7 +224,12 @@ async function tauriFetch(url: string, init: RequestInit = {}): Promise<Response
     if (redirect !== "manual" && res.status >= 300 && res.status < 400) {
       const location = res.headers["location"] ?? respHeaders.get("location") ?? undefined;
       if (location) {
-        currentUrl = new URL(location, currentUrl).toString();
+        let nextUrl = new URL(location, currentUrl).toString();
+        const chainInVpn = currentUrl.startsWith("https://webvpn.tsinghua.edu.cn/");
+        if (chainInVpn && hopUrlWrapper && !nextUrl.startsWith("https://webvpn.tsinghua.edu.cn/")) {
+          nextUrl = hopUrlWrapper(nextUrl);
+        }
+        currentUrl = nextUrl;
         // 浏览器语义：303 一律转 GET；301/302 的 POST 转 GET（307/308 保持原样）
         if (res.status === 303 || ((res.status === 301 || res.status === 302) && method === "POST")) {
           method = "GET";

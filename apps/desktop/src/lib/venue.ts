@@ -115,6 +115,7 @@ async function casFormRelogin(): Promise<void> {
   const ID = "https://id.tsinghua.edu.cn";
   const pickUni = (src: string): string | null => /[?&]uniToken=([^&\s"'<>]+)/.exec(src)?.[1] ?? null;
   const casAddr = await venueClient.casAddress("https://www.sports.tsinghua.edu.cn/venue/index.html");
+  await logLine(`[VENUE-SSO] 开始：casAddr=${casAddr.slice(0, 140)}`);
   // 跟链取表单（HTTP 30x 由 transport 跟；meta/JS 跳转页手动跟，最多 3 跳）
   let hopUrl = casAddr;
   let formHtml = "";
@@ -182,6 +183,7 @@ async function casFormRelogin(): Promise<void> {
     }
     break;
   }
+  await logLine(`[VENUE-SSO] 表单到手 final=${finalUrl.slice(0, 160)} sm2=${/sm2publicKey/.test(formHtml)}`);
   if (!/sm2publicKey/.test(formHtml)) {
     await logLine(`[VENUE-SSO] 链尾非表单 final=${finalUrl.slice(0, 200)} body=${formHtml.slice(0, 160).replace(/\s+/g, " ")}`);
     throw new VenueAuthRequiredError("CAS 链尾不是登录表单");
@@ -206,8 +208,10 @@ async function casFormRelogin(): Promise<void> {
       ? form.action
       : new URL(form.action, ID).toString()
     : core.CAS_LOGIN_CHECK;
+  await logLine(`[VENUE-SSO] POST 账密 submit=${submitUrl.slice(0, 140)}`);
   const check = await http.request(submitUrl, { method: "POST", body, redirect: "follow", direct: true });
   const checkHtml = await check.text();
+  await logLine(`[VENUE-SSO] POST 回包 final=${(check.headers.get("x-onethu-final-url") ?? "").slice(0, 160)} ok=${checkHtml.includes("登录成功")}`);
   if (/二次认证|双因素|二次验证|双因子|otp|短信|企业微信/.test(checkHtml)) {
     throw new VenueTwoFactorRequired(await list2FAMethods(http));
   }
