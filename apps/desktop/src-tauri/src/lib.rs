@@ -47,6 +47,12 @@ struct HttpOutput {
 
 /// 单次 HTTP 请求：不跟随重定向（由前端带着最新 Cookie 逐跳处理），
 /// 显式透传请求头（含 Cookie —— 浏览器 fetch 的禁改头，这里无此限制）。
+/// 读任意本地文本文件（Rust 插件 manifest.json）：路径经系统文件对话框获得
+#[tauri::command]
+fn read_file_text(path: String) -> Result<String, String> {
+    std::fs::read_to_string(&path).map_err(|e| format!("读取失败：{e}"))
+}
+
 #[tauri::command]
 fn log_debug(line: String) -> Result<(), String> {
     use std::io::Write;
@@ -796,6 +802,7 @@ fn open_sports_window(_: tauri::AppHandle) -> Result<String, String> {
 
 tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(std::sync::Mutex::new(None::<String>) as VenueSsoState)
         .manage(plugins::PluginHost::default())
         .manage(harness_embed::HarnessHost::default())
@@ -821,7 +828,7 @@ tauri::Builder::default()
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            log_debug,http_request,download_file,fetch_binary,state_read,state_write,state_delete,
+            log_debug,read_file_text,http_request,download_file,fetch_binary,state_read,state_write,state_delete,
             open_external,open_eid_window,open_sports_window,venue_sso_set,
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,
             harness_embed::harness_start,harness_embed::harness_call,harness_embed::harness_notify,harness_embed::harness_rpc_reply,harness_embed::harness_stop])

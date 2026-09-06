@@ -2782,7 +2782,7 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .plg-install-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-2); flex-wrap: wrap; }
 .plg-hint { color: var(--text-3); font-size: var(--text-xs); }
 .plg-msg { color: var(--text-1); font-size: var(--text-sm); word-break: break-all; }
-.plg-filebox { display: grid; gap: 4px; justify-items: center; padding: 22px 14px; border: 1.5px dashed var(--border-strong); border-radius: var(--r-md); cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; position: relative; }
+.plg-filebox { display: grid; gap: 4px; justify-items: center; padding: 22px 14px; border: 1.5px dashed var(--border-strong); border-radius: var(--r-md); cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; position: relative; width: 100%; font: inherit; background: var(--surface); }
 .plg-filebox:hover { border-color: var(--accent); background: var(--accent-soft); }
 .plg-filebox input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .plg-filebox-t { font-size: var(--text-sm); font-weight: 500; color: var(--text-1); pointer-events: none; }

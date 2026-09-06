@@ -123,16 +123,28 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
     }
   };
 
-  const installRust = async (mf: File): Promise<void> => {
+  const installRust = async (): Promise<void> => {
     setBusy(true);
     setMsg(null);
     try {
-      const manifest = JSON.parse(await mf.text());
+      // Tauri v2 的 webview File 对象没有 .path（v1 特权已移除）——必须走系统文件对话框
+      if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
+        throw new Error("浏览器预览装不了 Rust 插件——请用 pnpm --filter @onethu/desktop tauri:dev 桌面壳");
+      }
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const { invoke } = await import("@tauri-apps/api/core");
+      const sel = await open({
+        multiple: false,
+        directory: false,
+        title: "选择 Rust 插件的 manifest.json（二进制须同目录）",
+        filters: [{ name: "manifest.json", extensions: ["json"] }],
+      });
+      if (!sel) return; // 用户取消
+      const mpath = typeof sel === "string" ? sel : String(sel);
+      const manifest = JSON.parse(await invoke<string>("read_file_text", { path: mpath }));
       if (!manifest?.id || !manifest?.name) throw new Error("manifest.json 缺 id/name");
       if (manifest.kind !== "rust" || !manifest.bin) throw new Error("manifest.kind 须为 rust 且声明 bin");
-      const binPath = mf.webkitRelativePath || (mf as unknown as { path?: string }).path;
-      if (!binPath) throw new Error("取不到本地路径——桌面端请用文件选择器（Tauri 环境）");
-      const abs = binPath.replace(/[^/]+$/, manifest.bin);
+      const abs = mpath.replace(/[^/]+$/, manifest.bin);
       addRustPlugin(manifest, abs);
       const { enablePlugin } = await import("../plugins/loader.js");
       await enablePlugin(manifest.id);
@@ -207,19 +219,10 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
 
       {tab === "rust" ? (
         <div className="plg-install-body">
-          <label className="plg-filebox">
-            <input
-              type="file"
-              accept=".json,application/json"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void installRust(f);
-                e.target.value = "";
-              }}
-            />
-            <span className="plg-filebox-t">选择插件的 manifest.json</span>
+          <button type="button" className="plg-filebox" disabled={busy} onClick={() => void installRust()}>
+            <span className="plg-filebox-t">{busy ? "打开系统对话框…" : "选择 manifest.json（系统文件对话框）"}</span>
             <span className="plg-filebox-d">二进制须与 manifest.json 同目录（桌面端 sidecar 形态；Android 内置核心无需安装）</span>
-          </label>
+          </button>
         </div>
       ) : null}
 

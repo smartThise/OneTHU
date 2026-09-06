@@ -16,6 +16,8 @@ encoding_rs = "0.8"
 tauri = { version = "2", features = [] }
 # 外链走系统浏览器：webview 内 window.open/<a target=_blank> 均无效
 tauri-plugin-opener = "2"
+# Rust 插件安装：系统文件对话框选 manifest.json（Tauri v2 的 webview File 无 .path）
+tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # 插件宿主：sidecar 进程 stdio 泵（tauri 2 同系 tokio 1.x，无版本冲突）
