@@ -20,6 +20,7 @@
  *   <p>学期</p><p>课号-课序</p><h1>课名</h1><p>英文名</p><h2>教师</h2>
  *   <ul><li>时间地点</li>…</ul>
  */
+import { decodeHtmlEntities } from "../info/htmltext.js";
 import type { FetchLike } from "../http.js";
 
 const SITE = "https://tsinghua.app";
@@ -54,17 +55,12 @@ export function courseXSemesterText(id: string): string {
   return `${m[1]} 学年${term}`;
 }
 
-function decodeEntities(s: string): string {
-  return s
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<[^>]*>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;|&#39;/g, "'")
-    .replace(/&nbsp;/g, " ")
-    .trim();
+/** 课程卡文本字段：剥注释/标签（沿用旧语义）+ 全量命名/数值实体
+ *  （—— 渲染成 &mdash;&mdash; 的 2026-09-06 修复；残留实体再收一轮防双重转义） */
+function decodeText(s: string): string {
+  const stripped = s.replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]*>/g, "");
+  const once = decodeHtmlEntities(stripped);
+  return (/&(#[xX]?[0-9a-fA-F]+|[a-zA-Z]+);/.test(once) ? decodeHtmlEntities(once) : once).trim();
 }
 
 /** 请求头：必须用真实浏览器 UA——自定义 UA（如 Mozilla/5.0 (OneTHU)）实测被
@@ -92,7 +88,7 @@ export async function getCourseXSemesters(fetchLike: FetchLike): Promise<CourseX
   let m: RegExpExecArray | null;
   while ((m = optRe.exec(select)) !== null) {
     const id = m[1] ?? "";
-    const label = decodeEntities(m[3] ?? "");
+    const label = decodeText(m[3] ?? "");
     if (id && label) out.push({ id, label, current: /selected/.test(m[2] ?? "") });
   }
   return out;
@@ -120,14 +116,14 @@ export async function searchCourseXPublic(
     const id = m[3] ?? "";
     const nameCell = m[2] ?? "";
     const nameMatch = /^([\s\S]*?)(?:<br\/?>|$)/.exec(nameCell);
-    const name = decodeEntities(nameMatch?.[1] ?? nameCell);
+    const name = decodeText(nameMatch?.[1] ?? nameCell);
     if (!id || !name) continue;
     const english = /<span[^>]*>([\s\S]*?)<\/span>/.exec(nameCell)?.[1];
     out.push({
       id,
       name,
-      englishName: english ? decodeEntities(english) || undefined : undefined,
-      teacherName: decodeEntities(m[1] ?? ""),
+      englishName: english ? decodeText(english) || undefined : undefined,
+      teacherName: decodeText(m[1] ?? ""),
       semesterId: id.split("-").slice(0, 3).join("-"),
     });
   }
@@ -149,9 +145,9 @@ export async function getCourseXDetailPublic(
     ?? /<main[\s\S]*?card[\s\S]*?<\/main>/.exec(html)?.[0]
     ?? "";
   if (!card) return null;
-  const pick = (re: RegExp): string => decodeEntities(re.exec(card)?.[1] ?? "");
-  const ps = [...card.matchAll(/<p>([\s\S]*?)<\/p>/g)].map((x) => decodeEntities(x[1] ?? ""));
-  const lis = [...card.matchAll(/<li>([\s\S]*?)<\/li>/g)].map((x) => decodeEntities(x[1] ?? ""));
+  const pick = (re: RegExp): string => decodeText(re.exec(card)?.[1] ?? "");
+  const ps = [...card.matchAll(/<p>([\s\S]*?)<\/p>/g)].map((x) => decodeText(x[1] ?? ""));
+  const lis = [...card.matchAll(/<li>([\s\S]*?)<\/li>/g)].map((x) => decodeText(x[1] ?? ""));
   const name = pick(/<h1>([\s\S]*?)<\/h1>/);
   if (!name) return null;
   const teacherName = pick(/<h2>([\s\S]*?)<\/h2>/);

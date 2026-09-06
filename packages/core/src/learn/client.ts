@@ -31,6 +31,18 @@ interface LearnJson {
   [k: string]: unknown;
 }
 
+import { decodeHtmlEntities } from "../info/htmltext.js";
+
+/** 文本字段实体解码：全量命名/数值实体（mdash/ndash/引号/希腊字母…），
+ *  并对残留实体再收一轮（站点偶发双重转义 &amp;mdash; → &mdash; → —）。
+ *  仅供标题/姓名/文件名等纯文本路径；HTML 路径一律仍走 decodeHtml（保持既有转义还原语义）。 */
+function decodeText(s: unknown): string {
+  const raw = String(s ?? "");
+  if (!raw) return "";
+  const once = decodeHtmlEntities(raw);
+  return /&(#[xX]?[0-9a-fA-F]+|[a-zA-Z]+);/.test(once) ? decodeHtmlEntities(once) : once;
+}
+
 function decodeHtml(s: unknown): string {
   const raw = String(s ?? "");
   if (!raw) return "";
@@ -135,7 +147,7 @@ function looksLikeLearnLoginShell(html: string): boolean {
 
 /** 成员串 → 姓名数组：qzmp 逗号分隔（页面渲染时 replace(/,/g," ")），表格里为空格分隔 */
 function splitMemberNames(s: string): string[] {
-  return decodeHtml(s)
+  return decodeText(s)
     .split(/[,，、;；\s]+/)
     .map((x) => x.trim())
     .filter(Boolean);
@@ -151,7 +163,7 @@ function parseGroupTables(html: string): LearnGroup[] {
   for (const tb of html.matchAll(/<tbody[^>]*>([\s\S]*?)<\/tbody>/gi)) {
     for (const tr of tb[1]!.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
       const cells = [...tr[1]!.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map((t) =>
-        decodeHtml(t[1]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim(),
+        decodeText(t[1]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim(),
       );
       const [name = "", membersRaw = "", creator = "", time = ""] = cells;
       if (!name && !membersRaw) continue;
@@ -188,7 +200,7 @@ function parseGroupRawLines(html: string): LearnGroup[] {
     start = /class=["'][^"']*\bdetail\b[^"']*["']/i.exec(html)?.index ?? 0;
   }
   const region = html.slice(start, stop > 0 ? stop : Math.min(html.length, start + 30000));
-  const lines = decodeHtml(
+  const lines = decodeText(
     region
       .replace(/<script[\s\S]*?<\/script>/gi, " ")
       .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -214,9 +226,9 @@ function parseGroupJsonRow(raw: unknown, idx: number): LearnGroup | undefined {
   const rawMembers = d.qzmp ?? d.members;
   const memberStr = Array.isArray(rawMembers) ? rawMembers.map(str).join(",") : str(rawMembers);
   const names = splitMemberNames(memberStr);
-  const name = decodeHtml(d.qzmc ?? d.fzmc ?? d.name).trim();
+  const name = decodeText(d.qzmc ?? d.fzmc ?? d.name).trim();
   if (!name && names.length === 0) return undefined;
-  const creator = decodeHtml(d.czr ?? d.czz).trim();
+  const creator = decodeText(d.czr ?? d.czz).trim();
   return {
     id: str(d.qzid ?? d.fzid ?? d.id) || name || `group-${idx}`,
     name: name || "未命名分组",
@@ -259,7 +271,7 @@ export function parseSemesterIdList(text: string): string[] {
   const opts = new Set<string>();
   for (const m of raw.matchAll(/<option\b([^>]*)>([^<]*)/gi)) {
     const vm = /value=["']?([^"'>\s]*)["']?/i.exec(m[1] ?? "");
-    const cand = (vm?.[1] && vm[1] !== "" ? vm[1] : decodeHtml(m[2] ?? "")).trim();
+    const cand = (vm?.[1] && vm[1] !== "" ? vm[1] : decodeText(m[2] ?? "")).trim();
     if (/^\d{4}-\d{4}-\d$/.test(cand)) opts.add(cand);
   }
   return [...opts];
@@ -298,7 +310,7 @@ function parseBbsThreadRow(raw: unknown): LearnBbsThreadSummary {
   const yes = (v: unknown): boolean => String(v ?? "").trim() === "是";
   return {
     id: String(o.tltid ?? o.id ?? ""),
-    title: decodeHtml(String(o.bt ?? "")).trim(),
+    title: decodeText(String(o.bt ?? "")).trim(),
     author: String(o.fbrxm ?? o.fbr ?? "").trim(),
     time: String(o.fbsj ?? "").slice(0, 16),
     replies: num(o.hfcs ?? o.hfcsnum ?? o.hfcsl),
@@ -315,7 +327,7 @@ function parseBbsMainBlock(html: string): { author: string; time: string; html: 
   let end = html.indexOf("editFirstAnswerFormId", lz);
   if (end < 0) end = Math.min(html.length, lz + 40000);
   const block = html.slice(lz, end);
-  const author = decodeHtml(/class="name"[^>]*>([^<]{1,60})</.exec(block)?.[1] ?? "").trim();
+  const author = decodeText(/class="name"[^>]*>([^<]{1,60})</.exec(block)?.[1] ?? "").trim();
   const time = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.exec(block)?.[0] ?? "";
   const rs = block.search(/class="\s*right"/);
   let body = "";
@@ -342,13 +354,13 @@ function parseBbsReplyBlocks(html: string): LearnBbsPost[] {
   for (let i = 0; i < marks.length; i++) {
     const hhid = marks[i]![1]!;
     const blk = region.slice(marks[i]!.index!, i + 1 < marks.length ? marks[i + 1]!.index! : region.length);
-    const author = decodeHtml(/class="name"[^>]*>([^<]{1,60})</.exec(blk)?.[1] ?? "").trim();
+    const author = decodeText(/class="name"[^>]*>([^<]{1,60})</.exec(blk)?.[1] ?? "").trim();
     const lc = /<span name="lc">(\d+)<\/span>楼：([\d-]+ [\d:]+)/.exec(blk);
     const time = lc?.[2] ?? "";
     const nr = /<p name="p_nr">([\s\S]*?)<\/p>/.exec(blk)?.[1] ?? "";
     const atts: LearnBbsPostAttachment[] = [];
     for (const a of blk.matchAll(/downloadFileByTlForStu\?wlkcid=[^"&]+&wjid=(\d+)[^"]*"[^>]*>([^<]{1,120})</g)) {
-      atts.push({ wjid: a[1]!, wjmc: decodeHtml(a[2]!).trim() });
+      atts.push({ wjid: a[1]!, wjmc: decodeText(a[2]!).trim() });
     }
     const children: LearnBbsPost[] = [];
     const subRe =
@@ -356,7 +368,7 @@ function parseBbsReplyBlocks(html: string): LearnBbsPost[] {
     for (const sub of blk.matchAll(subRe)) {
       children.push({
         hhid: "",
-        author: decodeHtml(sub[1]!).replace(/：$/, "").trim(),
+        author: decodeText(sub[1]!).replace(/：$/, "").trim(),
         time: "",
         html: decodeHtml(sub[2]!).trim(),
         attachments: [],
@@ -588,11 +600,11 @@ export class LearnClient {
         const id = str(c.wlkcid);
         return {
           id,
-          name: decodeHtml(c.kcm) || decodeHtml(c.zywkcm),
-          englishName: decodeHtml(c.ywkcm),
+          name: decodeText(c.kcm) || decodeText(c.zywkcm),
+          englishName: decodeText(c.ywkcm),
           courseNumber: str(c.kch),
           courseIndex: Number(c.kxh ?? 0),
-          teacherName: decodeHtml(c.jsm),
+          teacherName: decodeText(c.jsm),
           timeAndLocation: [],
           url: urls.LEARN_COURSE_PAGE(id),
         };
@@ -633,7 +645,7 @@ export class LearnClient {
           id: studentId,
           baseId,
           courseId: str(d.wlkcid) || courseId,
-          title: decodeHtml(d.bt),
+          title: decodeText(d.bt),
           content: decodeBase64Utf8(str(d.nr)),
           publishTime: normalizeTime(d.fbsj, d.fbsjStr),
           deadline: normalizeTime(d.jzsj, d.jzsjStr),
@@ -648,7 +660,7 @@ export class LearnClient {
           submitTime: d.scsj === undefined || d.scsj === null || str(d.scsj) === "" ? undefined : normalizeTime(d.scsj, d.scsjStr),
           grade: d.cj === undefined || d.cj === null || str(d.cj) === "" ? undefined : (d.cj as string | number),
           graderName: str(d.jsm).trim() || undefined,
-          gradeContent: decodeHtml(d.pynr).trim() || undefined,
+          gradeContent: decodeText(d.pynr).trim() || undefined,
           gradeTime: d.pysj === undefined || d.pysj === null || str(d.pysj) === "" ? undefined : normalizeTime(d.pysj, d.pysjStr),
           url: urls.LEARN_HOMEWORK_PAGE(str(d.wlkcid) || courseId, studentId),
         };
@@ -706,7 +718,7 @@ export class LearnClient {
         headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
       });
       const msg = typeof json.message === "string" ? json.message : str(json.msg);
-      return { description: decodeHtml(msg) };
+      return { description: decodeText(msg) };
     });
   }
 
@@ -718,7 +730,7 @@ export class LearnClient {
    *  解析出的每个附件因此必有可下载 URL；文件名取锚点文本（可空，UI 以「附件 {id}」兜底）。 */
   #parseAttachmentAnchor(block: string): LearnAttachment | undefined {
     for (const a of block.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)) {
-      const href = decodeHtml(a[1]!).trim();
+      const href = decodeText(a[1]!).trim();
       if (!href || href === "#" || /^javascript:/i.test(href)) continue;
       // 答疑/论坛/笔记等纯导航路由（mobile filterJunkLinks：/bbs|kcdy|biji|taolun|dayi|答疑）
       if (/\/(?:bbs|kcdy|biji|taolun|dayi)\b|答疑/i.test(href)) continue;
@@ -728,12 +740,12 @@ export class LearnClient {
       const dl = params.get("downloadUrl");
       // 无文件下载参数 = 不是附件（页面导航/锚点），绝不冒充附件名
       if (!id && !dl) continue;
-      const name = decodeHtml(a[2]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+      const name = decodeText(a[2]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
       const path = dl ?? href;
       const downloadUrl = path.startsWith("http")
         ? path
         : urls.LEARN_PREFIX + (path.startsWith("/") ? path : "/" + path);
-      const size = decodeHtml(/<span[^>]*class="[^"]*color[^"]*"[^>]*>([^<]*)<\/span>/i.exec(block)?.[1] ?? "").trim();
+      const size = decodeText(/<span[^>]*class="[^"]*color[^"]*"[^>]*>([^<]*)<\/span>/i.exec(block)?.[1] ?? "").trim();
       return { id, name, downloadUrl, size: size || undefined };
     }
     return undefined;
@@ -860,7 +872,7 @@ export class LearnClient {
       anchors.find((m) => /ml-10/i.test(m[0]) || /[?&]wjid=/.test(m[1]!)) ??
       anchors.find((m) => /wjid/i.test(m[0]));
     if (!pick) return {};
-    const href = decodeHtml(pick[1]!);
+    const href = decodeText(pick[1]!);
     const q = href.indexOf("?");
     const params = new URLSearchParams(q >= 0 ? href.slice(q + 1) : "");
     const id = params.get("wjid") ?? params.get("fileId") ?? "";
@@ -869,8 +881,8 @@ export class LearnClient {
     const downloadUrl = path.startsWith("http")
       ? path
       : urls.LEARN_PREFIX + (path.startsWith("/") ? path : "/" + path);
-    const name = decodeHtml(pick[2]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
-    const size = decodeHtml(
+    const name = decodeText(pick[2]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+    const size = decodeText(
       /id="attachment"[^>]*>[\s\S]*?<span[^>]*class="[^"]*color[^"]*"[^>]*>([^<]*)<\/span>/i.exec(html)?.[1] ?? "",
     ).trim();
     if (!id && !name) return {};
@@ -895,9 +907,9 @@ export class LearnClient {
             return {
               id: nid,
               courseId: cid,
-              title: decodeHtml(d.bt ?? d.ggbt),
+              title: decodeText(d.bt ?? d.ggbt),
               content: decodeBase64Utf8(str(d.ggnr)),
-              publisher: decodeHtml(d.fbrxm),
+              publisher: decodeText(d.fbrxm),
               publishTime: normalizeTime(d.fbsj, d.fbsjStr),
               expireTime: d.jzsj ? normalizeTime(d.jzsj, d.jzsjStr) : undefined,
               important: str(d.sfqd) === "1" || Number(d.sfqd) === 1,
@@ -931,12 +943,12 @@ export class LearnClient {
         return {
           id: fid,
           courseId,
-          title: decodeHtml(d.bt ?? d.kjbt),
+          title: decodeText(d.bt ?? d.kjbt),
           uploadTime: normalizeTime(d.scsj, d.fxsj ?? d.scj),
           downloadUrl: urls.LEARN_FILE_DOWNLOAD(fid),
           fileType: rawType || undefined,
           size: str(d.fileSize).trim() || undefined,
-          description: decodeHtml(d.ms).trim() || undefined,
+          description: decodeText(d.ms).trim() || undefined,
           important: str(d.sfqd) === "1",
         };
       });
@@ -966,7 +978,7 @@ export class LearnClient {
         const o = (raw ?? {}) as Record<string, unknown>;
         return {
           bqid: String(o.bqid ?? o.id ?? ""),
-          name: decodeHtml(String(o.bqmc ?? o.bqtitle ?? o.title ?? o.mc ?? "板块").trim()) || "板块",
+          name: decodeText(String(o.bqmc ?? o.bqtitle ?? o.title ?? o.mc ?? "板块").trim()) || "板块",
         };
       }).filter((b) => b.bqid);
     });
@@ -1050,7 +1062,7 @@ export class LearnClient {
       return {
         posts: parseBbsReplyBlocks(html),
         id: threadId,
-        title: decodeHtml(
+        title: decodeText(
           span(/id="tlbt"[\s\S]{0,220}?<span[^>]*title="([^"]*)"/) ||
             span(/id="tlbt"[\s\S]{0,300}?<span[^>]*>([^<]{2,200})<\/span>/),
         ).trim(),
@@ -1119,7 +1131,7 @@ export class LearnClient {
         ok = /success/i.test(res) || res.trim().length === 0;
       }
       if (!ok) {
-        const msg = decodeHtml(res.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+        const msg = decodeText(res.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
         throw new Error(msg.slice(0, 140) || "回复失败（站点未返回成功标记）");
       }
     });
@@ -1151,7 +1163,7 @@ export class LearnClient {
         ok = /success/i.test(res) || res.trim().length === 0;
       }
       if (!ok) {
-        const msg = decodeHtml(res.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+        const msg = decodeText(res.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
         throw new Error(msg.slice(0, 140) || "发表失败（站点未返回成功标记）");
       }
     });
