@@ -503,14 +503,18 @@ export function SectionHead({
 export function Card({
   className = "",
   style,
+  onClick,
+  title,
   children,
 }: {
   className?: string;
   style?: CSSProperties;
+  onClick?: React.MouseEventHandler<HTMLDivElement>;
+  title?: string;
   children: ReactNode;
 }) {
   return (
-    <div className={`card ${className}`} style={style}>
+    <div className={`card ${className}`} style={style} onClick={onClick} title={title}>
       {children}
     </div>
   );

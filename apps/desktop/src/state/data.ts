@@ -1796,6 +1796,59 @@ export function useCard(days = 30) {
   return { data, state, error, reload };
 }
 
+/* ============ 校园卡流水区间缓存（按需拉取，PR #13 返工口径） ============
+ * 首屏仍只拉 30 天（useCard 原路径，含 localStorage 冷启动缓存）；
+ * 本年/总支出等大窗口只在用户点击对应统计时拉取，结果按窗口缓存（TTL 10 分钟），
+ * 命中「覆盖且未过期」的窗口直接本地切片，绝不重复请求——轻量请求、不重锤校内服务。
+ * 内存级缓存（不走 PERSISTED 名单）：大窗口流水不占 localStorage 配额。 */
+
+/** 区间缓存 TTL：校园卡流水分钟级变化无统计意义，10 分钟内切换区间零请求 */
+const CARD_TX_RANGE_TTL = 10 * 60 * 1000;
+
+interface CardTxWindow {
+  start: number;
+  end: number;
+  txs: CardTransaction[];
+  at: number;
+}
+
+const cardTxWindows: CardTxWindow[] = [];
+const cardTxRangeInflight = new Map<string, Promise<CardTransaction[]>>();
+
+/**
+ * 按需拉取 [start,end] 消费/收入流水（含端点日）。
+ * demo 模式从 demo bundle 按时间切片，不发请求。
+ * 命中条件：存在窗口 w 满足 w.start<=start && w.end>=end 且未过期 → 本地切片返回。
+ */
+export async function getCardTxWindow(start: Date, end: Date, demo: boolean): Promise<CardTransaction[]> {
+  const lo = start.getTime();
+  const hi = end.getTime();
+  if (demo) {
+    const all = demoCardBundle().transactions;
+    return all.filter((t) => t.timestamp.getTime() >= lo && t.timestamp.getTime() <= hi + 86400000);
+  }
+  const now = Date.now();
+  const covered = cardTxWindows.find((w) => w.start <= lo && w.end >= hi && now - w.at < CARD_TX_RANGE_TTL);
+  if (covered) return covered.txs.filter((t) => t.timestamp.getTime() >= lo);
+
+  const key = `${fmtDate(start)}~${fmtDate(end)}`;
+  const running = cardTxRangeInflight.get(key);
+  if (running) return running;
+  const p = info
+    .getCardTransactions(fmtDate(start), fmtDate(end))
+    .then((txs) => {
+      cardTxWindows.push({ start: lo, end: hi, txs, at: Date.now() });
+      // 上限防膨胀：最多留 8 个窗口，淘汰最旧
+      if (cardTxWindows.length > 8) cardTxWindows.shift();
+      return txs;
+    })
+    .finally(() => {
+      cardTxRangeInflight.delete(key);
+    });
+  cardTxRangeInflight.set(key, p);
+  return p;
+}
+
 /* ============ 今日预约（首页聚合卡：图书馆座位 + 研讨间，按「今天」过滤） ============ */
 
 export interface TodayReservation {
