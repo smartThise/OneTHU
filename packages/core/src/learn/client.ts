@@ -357,7 +357,17 @@ function parseBbsReplyBlocks(html: string): LearnBbsPost[] {
     const author = decodeText(/class="name"[^>]*>([^<]{1,60})</.exec(blk)?.[1] ?? "").trim();
     const lc = /<span name="lc">(\d+)<\/span>楼：([\d-]+ [\d:]+)/.exec(blk);
     const time = lc?.[2] ?? "";
-    const nr = /<p name="p_nr">([\s\S]*?)<\/p>/.exec(blk)?.[1] ?? "";
+    // p_nr 常嵌多段 <p>（富文本/图片帖），非贪婪到首个 </p> 会截断正文与图——
+    // 取到本块楼层行 <p class="times" 为止，再剥掉末尾至多 2 个收口标签（p_nr 自身 + item_cont）
+    const ps = blk.indexOf('<p name="p_nr">');
+    const pe = blk.search(/<p class="times/);
+    let nr = "";
+    if (ps >= 0) {
+      nr = blk.slice(ps + '<p name="p_nr">'.length, pe > ps ? pe : undefined);
+      for (let i = 0; i < 2 && /<\/(p|div)>\s*$/.test(nr); i++) {
+        nr = nr.replace(/<\/(p|div)>\s*$/i, "");
+      }
+    }
     const atts: LearnBbsPostAttachment[] = [];
     for (const a of blk.matchAll(/downloadFileByTlForStu\?wlkcid=[^"&]+&wjid=(\d+)[^"]*"[^>]*>([^<]{1,120})</g)) {
       atts.push({ wjid: a[1]!, wjmc: decodeText(a[2]!).trim() });
@@ -400,7 +410,9 @@ function parseBbsPostJson(raw: unknown): LearnBbsPost {
     hhid: String(o.hhid ?? ""),
     author: String(o.hfrxm ?? o.hfr ?? "").trim(),
     time: String(o.hfsj ?? "").slice(0, 16),
-    html: String(o.nr_str ?? ""),
+    // 站点 nr_str 是实体转义 HTML（站点 JS escapeStringHTML 解码后上屏）——同款解码，
+    // 否则第 2 页起的 JSON 回复直出转义标签，图片/格式全废
+    html: decodeHtml(String(o.nr_str ?? "")).trim(),
     attachments: atts,
     children: Array.isArray(o.hhbDtoList) ? o.hhbDtoList.map(parseBbsPostJson) : [],
   };

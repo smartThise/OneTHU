@@ -326,9 +326,12 @@ async fn fetch_binary(url: String, cookies: String) -> Result<BinaryOut, String>
         .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
         .build()
         .map_err(|e| e.to_string())?;
-    let resp = client
-        .get(&url)
-        .header("Cookie", cookies)
+    // learn 端点部分校验同域 Referer——统一带上首页引用页（防御性，实测无害）
+    let mut req = client.get(&url).header("Cookie", cookies);
+    if url.contains("learn.tsinghua.edu.cn") {
+        req = req.header("Referer", "https://learn.tsinghua.edu.cn/f/wlxt/index.jsp");
+    }
+    let resp = req
         .send()
         .await
         .map_err(|e| e.to_string())?;

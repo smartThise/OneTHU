@@ -8,7 +8,8 @@ import type { CourseFile, Homework, Notification } from "@onethu/core";
 import { LEARN_PREFIX, LEARN_FILE_DOWNLOAD, parseLearnTime } from "@onethu/core";
 import { useApp } from "../../state/context.js";
 import { topLevelPage, type Page } from "../../state/app.js";
-import { fetchImageAsDataUrl } from "../../lib/clients.js";
+import { fetchImageAsDataUrl, fetchImageByUrl } from "../../lib/clients.js";
+import { invoke } from "@tauri-apps/api/core";
 import { openFilePreview } from "../../components/FilePreview.js";
 import { openExternal } from "../info/openExternal.js";
 import { Card } from "../../components/Layout.js";
@@ -88,9 +89,17 @@ export function gradeLabel(grade: string | number | undefined): string {
 
 /* ---------- 富文本（通知正文/作业说明，服务端 HTML） ---------- */
 
+/** 1×1 透明占位：图片改写前的瞬时 src，杜绝 webview 直挂 learn 地址的碎图闪烁 */
+const IMG_PLACEHOLDER =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
+/** 正文图片 dataURL 会话缓存：详情页反复进出不重复抓 2MB 级大图 */
+const imgDataCache = new Map<string, string>();
+
 /**
  * 正文里的 <img> 指向 learn 资源（需会话 Cookie），webview 直挂只会得到登录页。
  * 渲染后经应用侧 fetch_binary 抓字节转 dataURL 回填（isTauri 才可用，预览环境跳过）。
+ * 抓取双路回退：learn 直连（带 _csrf）→ fetchImageByUrl（WebVPN 包装 + 双桶 Cookie）。
  */
 export function RichContent({ html, fallback = "暂无内容。" }: { html?: string; fallback?: string }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -99,24 +108,46 @@ export function RichContent({ html, fallback = "暂无内容。" }: { html?: str
     const root = ref.current;
     if (!root) return;
     let cancelled = false;
-    for (const img of Array.from(root.querySelectorAll("img"))) {
-      const raw = img.getAttribute("src") ?? "";
-      img.dataset.onethu = "1";
-      if (!raw || /^(data|blob):/i.test(raw)) continue;
+    const done = new WeakSet<HTMLImageElement>();
+
+    const grab = async (img: HTMLImageElement, raw: string): Promise<void> => {
       const abs = /^https?:\/\//i.test(raw) ? raw : new URL(raw, LEARN_PREFIX + "/").toString();
-      fetchImageAsDataUrl(abs)
-        .then((dataUrl) => {
-          if (!cancelled) img.src = dataUrl;
-        })
-        .catch(() => {
-          if (!cancelled) {
-            img.setAttribute("alt", (img.getAttribute("alt") ? img.getAttribute("alt") + " " : "") + "（图片加载失败）");
-            img.style.opacity = "0.45";
-          }
-        });
-    }
+      img.src = IMG_PLACEHOLDER; // 插入瞬间掐断 webview 原生加载（无应用 Cookie，只会得到登录页碎图）
+      try {
+        const hit = imgDataCache.get(abs);
+        const dataUrl = hit ?? (await fetchImageAsDataUrl(abs).catch(() => fetchImageByUrl(abs)));
+        if (cancelled) return;
+        if (!dataUrl) throw new Error("empty");
+        if (imgDataCache.size > 60) imgDataCache.clear();
+        imgDataCache.set(abs, dataUrl);
+        img.src = dataUrl;
+      } catch {
+        if (!cancelled) {
+          img.setAttribute("alt", (img.getAttribute("alt") ? img.getAttribute("alt") + " " : "") + "（图片加载失败）");
+          img.style.opacity = "0.45";
+          void invoke("log_debug", { line: `RichContent 图片抓取失败: ${abs.slice(0, 180)}` }).catch(() => undefined);
+        }
+      }
+    };
+
+    const run = (): void => {
+      for (const img of Array.from(root.querySelectorAll("img"))) {
+        if (done.has(img)) continue;
+        const raw = img.getAttribute("src") ?? "";
+        img.dataset.onethu = "1";
+        if (!raw || /^(data|blob):/i.test(raw)) continue;
+        done.add(img);
+        void grab(img, raw);
+      }
+    };
+
+    run();
+    // React 重设 innerHTML 或异步注入新图时补抓（WeakSet 防重入）
+    const mo = new MutationObserver(() => run());
+    mo.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["src"] });
     return () => {
       cancelled = true;
+      mo.disconnect();
     };
   }, [html]);
 
