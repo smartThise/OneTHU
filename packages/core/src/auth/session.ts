@@ -117,6 +117,9 @@ export class CampusSession {
       username: this.username,
       password: this.#password,
       fingerprint: this.fingerprint,
+      // checkSingle 确认页的 fingerGenPrint（SAVE_FINGER 受信凭据；重启恢复等无密码
+      // 场景 finger3 可能仍在——确认页路径照常可用）
+      finger3: this.finger3 || undefined,
     }));
   }
 
