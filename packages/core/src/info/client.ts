@@ -1625,9 +1625,12 @@ export class InfoClient {
     return this.#withRenew(async () => {
       let html: string;
       try {
+        // R10 实录（09-07）：记录页落在门户/电子身份跳转页时，旧判据（登录表单
+        // 标记）不中 → 无表页面被当正常内容直通解析炸。收紧：「有 .myTable 才算
+        // 内容」，无表页走重漫游链（id CAS 静默兑付即电子身份登录，自动完成）。
         html = await this.#dormPage(
           () => this.#http.text(urls.ELE_PAY_RECORD(), this.#campusInit()),
-          (p) => /net_Default_LoginCtrl1_txtUserName/i.test(p),
+          (p) => /net_Default_LoginCtrl1_txtUserName/i.test(p) || !/myTable/i.test(p),
           "电费缴费记录",
         );
       } catch (e) {
@@ -1642,6 +1645,15 @@ export class InfoClient {
             throw e;
           });
           this.lastDebug = "ELE-RECORD 空记录账号（会话活·记录页无表）→ []";
+          return [];
+        }
+        // 非 ErrorPage 的「会话未能建立」（严格无表判据触发）：余额页可达侧证会话
+        // 活着 → 同样按空记录处理（空记录账号的第二种页面形态）
+        if (e instanceof AuthRequiredError) {
+          await this.getEleRemainder().catch(() => {
+            throw e;
+          });
+          this.lastDebug = "ELE-RECORD 严格无表判定但余额页可达（会话活）→ []";
           return [];
         }
         throw e;
