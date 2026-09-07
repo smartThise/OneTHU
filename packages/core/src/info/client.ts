@@ -279,6 +279,7 @@ export class InfoClient {
    *  旧 token 配新会话 = 订座恒报「没有登录或登录已超时」的元凶） */
   resetStaticSessionCaches(): void {
     InfoClient.libToken = "";
+    InfoClient.libUserid = "";
     InfoClient.libTokenTs = 0;
     InfoClient.libTokenInflight = null;
     InfoClient.libCacheClear();
@@ -294,6 +295,8 @@ export class InfoClient {
   #ensureInflight2 = new Map<string, Promise<void>>();
   /** access_token 模块级缓存：页面重挂载（实例重建）后仍有效 */
   static libToken = "";
+  /** 座位系统权威 userid（首页 ska 字面量渲染，与 token 配对校验） */
+  static libUserid = "";
   /** R10 诊断钩子：抓到的图书馆首页全文外送（app 侧写文件/日志），定位页面结构用 */
   static onDebugDump: ((label: string, content: string) => void) | null = null;
   /** 图书馆取数 TTL 缓存（2026-09-06 校外 webvpn 每请求 2~3s 实测痛点）：
@@ -2296,10 +2299,16 @@ export class InfoClient {
           const right = page.indexOf('"', left);
           return left > 0 && right > left ? page.slice(left, right).trim() : "";
         })();
+      // 同页提取权威 userid（订座 POST 的 userid 必须与 token 配对，错配=「没有登录」）
+      const skaUser =
+        /'userid'\s*:\s*"([^"\s]{4,32})"/.exec(page)?.[1] ??
+        /ska\.userid\s*=\s*["']([^"\s]{4,32})["']/.exec(page)?.[1] ??
+        "";
+      if (skaUser) InfoClient.libUserid = skaUser;
       // 仅在成功提取到非空 token 时记录抓取页（命中≠提取成功，避免误导）
       if (token) {
         this.#lastTokenPage = home;
-        this.lastDebug = `lib-token len=${token.length} head=${token.slice(0, 4)}…`;
+        this.lastDebug = `lib-token len=${token.length} head=${token.slice(0, 4)}… uid=${InfoClient.libUserid || "?"}`;
       } else {
         this.lastDebug = `lib-token 未提取（页面 ${page.length}B，含 ska=${page.includes("ska.")}）`;
       }
@@ -2344,13 +2353,15 @@ export class InfoClient {
       const { segmentId } = await this.#libDay(sectionId, dateChoice);
       const post = async (): Promise<{ text: string; token: string }> => {
         const token = await this.#libraryAccessToken();
+        // userid 用座位系统自报的权威值（token 与它配对校验；应用登录名未必等同）
+        const uid = InfoClient.libUserid || userId;
         const text = await this.#http.text(urls.LIBRARY_BOOK_SEAT(seat.id), {
           ...this.#campusInit(),
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
             access_token: token,
-            userid: userId,
+            userid: uid,
             segment: String(segmentId),
             type: String(seat.type ?? ""),
             operateChannel: "2",
@@ -2380,7 +2391,7 @@ export class InfoClient {
         }
       }
       if (!data.status) {
-        throw new Error(`${data.msg ?? data.message ?? "预约座位失败"}（token len=${token.length}；${this.lastDebug}）`);
+        throw new Error(`${data.msg ?? data.message ?? "预约座位失败"}（token len=${token.length}；uid=${InfoClient.libUserid || userId}；${this.lastDebug}）`);
       }
       return data;
     });
