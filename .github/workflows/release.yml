@@ -7,9 +7,16 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      only_windows:
+        description: "只跑 Windows job（日常验证 Windows 构建链用）"
+        type: boolean
+        default: false
 
 jobs:
   desktop:
+    # 手动触发可裁剪平台；打 tag 的正式链路恒为双平台
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.only_windows || matrix.os == 'windows-latest' }}
     strategy:
       fail-fast: false
       matrix:
@@ -33,7 +40,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: swatinem/rust-cache@v2
         with:
-          workspaces: apps/desktop/src-tauri
+          # sidecar 是独立 cargo 工程（target 在自己目录下），不列出则每轮
+          # 冷编整个依赖树——Windows runner 实测白烧 5–8 分钟
+          workspaces: |
+            apps/desktop/src-tauri
+            plugins/OneTHU-Harness
       - uses: android-actions/setup-android@v3
         if: runner.os == 'Linux'
       - name: Install pnpm deps

@@ -117,18 +117,16 @@ async function ensureRpcListener(): Promise<void> {
   };
   await listen("plugin-rpc", (ev) => void handleRpc(ev.payload));
   // 内嵌长轮询泵：一次取走整批待处理调用，并发执行，消灭每调用事件往返
-  for (const pid of embeddedIds) {
-    void (async () => {
-      for (;;) {
-        try {
-          const batch = await invoke<{ any: any }[] | any[]>("harness_bridge_take", { pluginId: pid } as any);
-          for (const p of batch as any[]) void handleRpc(p);
-        } catch {
-          await new Promise((r) => setTimeout(r, 500));
-        }
+  void (async () => {
+    for (;;) {
+      try {
+        const batch = await invoke<any[]>("harness_bridge_take", { pluginId: "__any__" });
+        for (const p of batch) void handleRpc(p);
+      } catch {
+        await new Promise((r) => setTimeout(r, 500));
       }
-    })();
-  }
+    }
+  })();
   rpcListenerReady = true;
 }
 

@@ -442,7 +442,6 @@ export function ChatDock(): ReactNode {
 
   if (!pid) return null;
   const budgetPct = usage.budgetUsd ? Math.min(100, ((usage.totalCostUsd ?? 0) / usage.budgetUsd) * 100) : 0;
-
   return (
     <>
       {open ? (

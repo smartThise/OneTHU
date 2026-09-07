@@ -91,26 +91,52 @@ struct HarnessLive {
     call_tx: mpsc::Sender<CallReq>,
 }
 
-/// 全部在跑的内嵌 harness 实例
-static BRIDGE_Q: std::sync::Mutex<Vec<(String, u64, Value)>> = std::sync::Mutex::new(Vec::new());
-static BRIDGE_CV: std::sync::Condvar = std::sync::Condvar::new();
+/// 全部在跑的内嵌 harness 实例。
+/// 桥队列：tokio 无界 mpsc——桥线程 push 即唤醒挂起的 take（亚毫秒），
+/// JS 泵 take 是 async 挂起（不占任何线程）；此前的 std Condvar 版 take 是
+/// 同步命令、在主线程上空等 25s——安卓实录「全操作 ≥10s、卡成一坨」真凶
+/// （Tauri v2 同步命令在主线程执行，主线程被泵独占 = 其余命令全部排队）。
+static BRIDGE_TX: std::sync::OnceLock<tokio::sync::mpsc::UnboundedSender<Value>> =
+    std::sync::OnceLock::new();
+static BRIDGE_RX: std::sync::OnceLock<tokio::sync::Mutex<Option<tokio::sync::mpsc::UnboundedReceiver<Value>>>> =
+    std::sync::OnceLock::new();
 
-/// JS 侧长轮询：挂起直到该插件有待处理调用（最多 25s），一次取走整批
+/// 惰性建道（桥线程 push / JS 泵 take 首次触达时）
+fn bridge_init() -> &'static tokio::sync::mpsc::UnboundedSender<Value> {
+    BRIDGE_TX.get_or_init(|| {
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        let _ = BRIDGE_RX.set(tokio::sync::Mutex::new(Some(rx)));
+        tx
+    })
+}
+
+/// 桥线程入队（push 即唤醒挂起的 take，亚毫秒级）
+fn bridge_push(payload: Value) {
+    let _ = bridge_init().send(payload);
+}
+
+/// JS 侧长轮询：异步挂起直到队列有待处理调用（最多 25s），一次取走整批。
+/// async 命令跑在 tokio 池——主线程零占用，绝不阻塞其他命令/事件派发。
 #[tauri::command]
-pub fn harness_bridge_take(plugin_id: String) -> Vec<Value> {
-    let mut q = BRIDGE_Q.lock().unwrap();
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(25);
-    while !q.iter().any(|(p, _, _)| p == &plugin_id) {
-        let left = deadline.saturating_duration_since(std::time::Instant::now());
-        if left.is_zero() { break; }
-        let (g, _) = BRIDGE_CV.wait_timeout(q, left).unwrap();
-        q = g;
+pub async fn harness_bridge_take(_plugin_id: String) -> Vec<Value> {
+    bridge_init(); // 惰性建道（桌面端泵也会走到这）
+    let mut guard = BRIDGE_RX.get().expect("桥队列已建").lock().await;
+    let Some(rx) = guard.as_mut() else {
+        // 尚无内嵌实例（桌面端也会起泵）：歇 500ms 防 JS 空转
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        return Vec::new();
+    };
+    let first = tokio::time::timeout(Duration::from_secs(25), rx.recv()).await;
+    match first {
+        Ok(Some(payload)) => {
+            let mut out = vec![payload];
+            while let Ok(p) = rx.try_recv() {
+                out.push(p);
+            }
+            out
+        }
+        _ => Vec::new(),
     }
-    let mut out = Vec::new();
-    q.retain(|(p, _, payload)| {
-        if p == &plugin_id { out.push(payload.clone()); false } else { true }
-    });
-    out
 }
 
 #[derive(Default)]
@@ -120,7 +146,7 @@ pub struct HarnessHost {
 
 /// 启动内嵌 agent：起 agent 线程 + 门面桥线程，返回 activate 应答（commands 清单）。
 #[tauri::command]
-pub fn harness_start(
+pub async fn harness_start(
     app: AppHandle,
     state: tauri::State<'_, HarnessHost>,
     plugin_id: String,
@@ -137,7 +163,6 @@ pub fn harness_start(
     // 门面桥线程：onethu.call → "plugin-rpc" 事件 → webview 执行 → harness_rpc_reply 回写
     let (call_tx, call_rx) = mpsc::channel::<CallReq>();
     {
-        let app = app.clone();
         let pid = plugin_id.clone();
         let b = bridge.clone();
         std::thread::spawn(move || {
@@ -147,17 +172,14 @@ pub fn harness_start(
                 if let Ok(mut m) = b.pending.lock() {
                     m.insert(id, rtx);
                 }
-                // 长轮询批量泵：入全局队列 + 唤醒 take，替代每次调用一次事件往返
-                if let Ok(mut q) = BRIDGE_Q.lock() {
-                    q.push((pid.clone(), id, json!({
-                        "pluginId": pid, "id": id, "method": "onethu.call",
-                        "params": { "ns": req.ns, "method": req.method, "args": req.args }
-                    })));
-                }
-                BRIDGE_CV.notify_all();
+                // 长轮询批量泵：入全局队列即唤醒挂起的 take，替代每次调用一次事件往返
+                bridge_push(json!({
+                    "pluginId": pid, "id": id, "method": "onethu.call",
+                    "params": { "ns": req.ns, "method": req.method, "args": req.args }
+                }));
                 let res = rrx
                     .recv_timeout(BRIDGE_TIMEOUT)
-                    .unwrap_or_else(|_| Err("webview 门面应答超时（600s）".into()));
+                    .unwrap_or_else(|_| Err("webview 门面应答超时（15s）".into()));
                 if let Ok(mut m) = b.pending.lock() {
                     m.remove(&id);
                 }
@@ -218,10 +240,12 @@ pub fn harness_start(
     Ok(activate_commands())
 }
 
-/// 调用内嵌 agent（activate/run/dispose 同一通道；同步命令——长跑 chat 独占
-/// 专属线程，不占异步运行时）。超时与 sidecar 的 plugin_call 同款默认 600s。
+/// 调用内嵌 agent（activate/run/dispose 同一通道）。async + spawn_blocking：
+/// 长跑 chat 的等待（最长 600s）与非 chat 的就地 dispatch 全部落在线程池，
+/// 主线程零占用——同步版会把整个 App 按死（安卓实录主线程阻塞=全 UI 冻结）。
+/// 超时与 sidecar 的 plugin_call 同款默认 600s。
 #[tauri::command]
-pub fn harness_call(
+pub async fn harness_call(
     app: AppHandle,
     state: tauri::State<'_, HarnessHost>,
     plugin_id: String,
@@ -236,32 +260,37 @@ pub fn harness_call(
         .get(&plugin_id)
         .cloned()
         .ok_or(format!("内嵌插件未运行：{plugin_id}"))?;
-    // 控制命令快速路：chat 之外的 run 直接在调用线程分发——不被在跑的长任务卡住，
-    // 否则新会话/历史/导入导出在 chat 进行中形同死键（与 sidecar 旁路线程同语义）。
-    // 绝不 reset_interrupt：会清掉在跑 chat 的打断标志。
-    if method == "run" {
-        let command = params.get("command").and_then(|v| v.as_str()).unwrap_or("");
-        if command != "chat" && !command.is_empty() {
-            let command = command.to_string();
-            let input = params.get("input").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let mut ctx = AgentCtx { call_tx: live.call_tx.clone(), interrupt: live.interrupt.clone() };
-            let emit = AgentEmit { app, plugin_id: plugin_id.clone() };
-            return Ok(dispatch(&mut ctx, &emit, &command, &input));
+    tauri::async_runtime::spawn_blocking(move || {
+        // 控制命令快速路：chat 之外的 run 直接分发——不被在跑的长任务卡住，
+        // 否则新会话/历史/导入导出在 chat 进行中形同死键（与 sidecar 旁路线程同语义）。
+        // 绝不 reset_interrupt：会清掉在跑 chat 的打断标志。
+        if method == "run" {
+            let command = params.get("command").and_then(|v| v.as_str()).unwrap_or("");
+            if command != "chat" && !command.is_empty() {
+                let command = command.to_string();
+                let input = params.get("input").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let mut ctx =
+                    AgentCtx { call_tx: live.call_tx.clone(), interrupt: live.interrupt.clone() };
+                let emit = AgentEmit { app, plugin_id: plugin_id.clone() };
+                return Ok(dispatch(&mut ctx, &emit, &command, &input));
+            }
         }
-    }
-    let (tx, rx) = mpsc::channel::<Result<Value, String>>();
-    live.tx
-        .send(AgentMsg::Run { method: method.clone(), params, reply: tx })
-        .map_err(|_| "内嵌 agent 已退出".to_string())?;
-    match rx.recv_timeout(Duration::from_millis(timeout_ms.unwrap_or(600_000))) {
-        Ok(res) => res,
-        Err(_) => Err(format!("内嵌 harness 调用超时（{method}）")),
-    }
+        let (tx, rx) = mpsc::channel::<Result<Value, String>>();
+        live.tx
+            .send(AgentMsg::Run { method, params, reply: tx })
+            .map_err(|_| "内嵌 agent 已退出".to_string())?;
+        match rx.recv_timeout(Duration::from_millis(timeout_ms.unwrap_or(600_000))) {
+            Ok(res) => res,
+            Err(_) => Err("内嵌 harness 调用超时（run）".to_string()),
+        }
+    })
+    .await
+    .map_err(|e| format!("harness_call 线程故障：{e}"))?
 }
 
 /// 宿主通知：interrupt 置快路径标志（llm 流逐块检查，毫秒级生效）
 #[tauri::command]
-pub fn harness_notify(
+pub async fn harness_notify(
     state: tauri::State<'_, HarnessHost>,
     plugin_id: String,
     method: String,
@@ -283,7 +312,7 @@ pub fn harness_notify(
 
 /// webview 门面执行完 onethu.call 后回写结果（桥线程据此唤醒 agent）
 #[tauri::command]
-pub fn harness_rpc_reply(
+pub async fn harness_rpc_reply(
     state: tauri::State<'_, HarnessHost>,
     plugin_id: String,
     id: u64,
@@ -315,7 +344,7 @@ pub fn harness_rpc_reply(
 /// 并补发 exit 事件——与 sidecar 泵（plugins.rs stdout 关闭）事件契约一致，
 /// 对话面板据此强制解锁（打断死人开关之外的确定性收尾）。
 #[tauri::command]
-pub fn harness_stop(
+pub async fn harness_stop(
     app: AppHandle,
     state: tauri::State<'_, HarnessHost>,
     plugin_id: String,

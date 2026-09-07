@@ -105,6 +105,10 @@ export function TwoFactorPage() {
   const [trust, setTrust] = useState(true);
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
+  // 防重复提交：submit2FA（app.tsx）全程不动 status，busy 恒 false——
+  // 网络往返期间按钮可点，误触第二下=验证码已被消费→直接报错（用户实录）。
+  // 本地闸门：提交瞬间置位，落定前按钮冻结 + onSubmit 防重入。
+  const [submitting, setSubmitting] = useState(false);
   const busy = status === "connecting";
 
   if (!twoFactor) return <LoginPage />;
@@ -126,8 +130,9 @@ export function TwoFactorPage() {
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!selected || !code.trim()) return;
-    void submit2FA(selected, code, trust);
+    if (!selected || !code.trim() || submitting || busy) return;
+    setSubmitting(true);
+    void submit2FA(selected, code, trust).finally(() => setSubmitting(false));
   };
 
   if (stage === "select") {
@@ -233,9 +238,9 @@ export function TwoFactorPage() {
               type="submit"
               className="btn btn-primary"
               style={{ flex: 1 }}
-              disabled={busy || (!isTotp && !sent) || !code.trim()}
+              disabled={busy || submitting || (!isTotp && !sent) || !code.trim()}
             >
-              {busy ? "校验中…" : "验证并登录"}
+              {busy || submitting ? "校验中…" : "验证并登录"}
             </button>
           </div>
         </form>
