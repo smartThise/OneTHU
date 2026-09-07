@@ -274,15 +274,46 @@ export function parseSelectedCourses(html: string): SelectedCourse[] {
       t[1]!.replace(/<[^>]*>/g, "").trim(),
     );
     if (tds.length >= 4) {
+      // 2026-2027-1 已选表改版实证：写死列号整体错位（code=「必修」、name=课号）。
+      // 改为行内内容特征分类——每行独立定位，列序再变也不怕：
+      //   类型=必修/限选…；课号=字母数字含数字；学分=≤10 的纯数；
+      //   时间=星期/节次；教师=短中文名；课名=其余最长中文格。
       const td = (i: number): string => tds[i] ?? "";
-      courses.push({
-        typeLabel: td(0),
-        code: td(1) || td(2),
-        name: td(3),
-        teacher: td(7) || td(2),
-        time: td(6) || td(3),
-        credits: parseFloat(td(8) || td(4)) || 0,
-      });
+      const isZh = (t: string): boolean => /^[\u4e00-\u9fa5·，,、\s]+$/.test(t);
+      let typeLabel = "", code = "", name = "", teacher = "", time = "", credits = 0;
+      const zhCells: string[] = [];
+      for (const t of tds) {
+        const cell = t.trim();
+        if (!cell) continue;
+        if (!typeLabel && /必修|限选|任选|辅修|体育|通识/.test(cell) && cell.length <= 6) {
+          typeLabel = cell;
+        } else if (!code && /^[A-Za-z0-9]{5,15}$/.test(cell) && /\d/.test(cell)) {
+          code = cell;
+        } else if (/\d+(\.\d+)?$/.test(cell) && parseFloat(cell) <= 10 && cell.length <= 4 && !/周|节|-/.test(cell)) {
+          credits = credits || parseFloat(cell) || 0;
+        } else if (!time && /星期[一二三四五六日]|第\d+.*节|\(全周\)|（全周）/.test(cell)) {
+          time = cell;
+        } else if (isZh(cell) && !/必修|限选|任选/.test(cell)) {
+          zhCells.push(cell);
+        }
+      }
+      if (code && zhCells.length) {
+        // 教师格：纯 2-4 字中文（可多名的逗号分隔）；课名：剩余最长格
+        const tIdx = zhCells.findIndex((t) => /^([\u4e00-\u9fa5·]{2,4}[,，、]?)+$/.test(t) && t.replace(/[,，、]/g, "").length <= 12);
+        teacher = tIdx >= 0 ? zhCells[tIdx] ?? "" : "";
+        name = zhCells.filter((_, i) => i !== tIdx).sort((a, b) => b.length - a.length)[0] ?? "";
+      } else {
+        // 特征不足（版式再变）→ 老列号兜底
+        typeLabel = td(0);
+        code = td(1) || td(2);
+        name = td(3);
+        teacher = td(7) || td(2);
+        time = td(6) || td(3);
+        credits = parseFloat(td(8) || td(4)) || 0;
+      }
+      if (code && name) {
+        courses.push({ typeLabel, code, name, teacher, time, credits });
+      }
     }
   }
   return courses;
@@ -432,6 +463,8 @@ export interface XkCourse {
   gradCapacity: number;
   gradRemaining: number;
   time: string;
+  /** 上课教室：从时间地点列尾段拆出（如「星期二第4节(全周)二教403」→ 二教403）；无则缺省 */
+  room?: string;
   note: string;
   feature: string;
   grade: string;
@@ -500,6 +533,10 @@ export function parseXkCatalogPage(html: string): XkCourse[] {
     const tds = tdsOf(m[1] ?? "");
     if (tds.length < 11) continue;
     const td = (i: number): string => (tds[i] ?? "").replace(/\s+/g, " ").trim();
+    // 时间地点列自适应（已选表 2026-2027-1 改版同款风险）：优先按内容特征
+    // 「星期X…第N节」找列，找不到回落 td(10)。教室=该格最后一个「)」之后的尾段。
+    let timeIdx = tds.findIndex((t) => /星期[一二三四五六日]/.test(t) && /第\d+/.test(t));
+    if (timeIdx < 0) timeIdx = 10;
     const code = td(1);
     const name = td(3);
     // 外校课程课号带前缀：PK=北大、BW=北外（北外形如 BW3w0007，含小写 w——
@@ -518,7 +555,13 @@ export function parseXkCatalogPage(html: string): XkCourse[] {
       remaining: parseInt(td(7)) || 0,
       gradCapacity: parseInt(td(8)) || 0,
       gradRemaining: parseInt(td(9)) || 0,
-      time: td(10),
+      time: td(timeIdx),
+      room: (() => {
+        const cell = td(timeIdx);
+        const i = cell.lastIndexOf(")");
+        const tail = i >= 0 ? cell.slice(i + 1).trim() : "";
+        return tail;
+      })(),
       note: td(11),
       feature: td(12),
       grade: td(13),
