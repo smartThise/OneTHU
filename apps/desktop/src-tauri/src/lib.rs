@@ -249,20 +249,31 @@ fn percent_decode(s: &str) -> Option<String> {
     String::from_utf8(out).ok()
 }
 
-/// 文本落盘到 ~/Downloads（dock 导出会话等用）：Tauri WKWebView 不支持
-/// a[download] blob 点击下载（无下载管理器，静默无效），必须宿主代写。
+/// 文本落盘（dock 导出会话等用）：系统「存储」对话框让用户自选位置。
+/// Tauri WKWebView 不支持 a[download] blob 点击下载（无下载管理器，静默无效）。
+/// 同步命令跑在 worker 线程——blocking_save_file 禁止主线程调用，此处安全。
+/// 用户取消返回 None。
 #[tauri::command]
-fn save_text_file(filename: String, contents: String) -> Result<String, String> {
-    let home = std::env::var("HOME").map_err(|_| "无法定位主目录".to_string())?;
-    let dir = std::path::Path::new(&home).join("Downloads");
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    // 防路径穿越：只取文件名部分
-    let safe = std::path::Path::new(&filename)
-        .file_name()
-        .ok_or_else(|| "非法文件名".to_string())?;
-    let path = dir.join(safe);
-    std::fs::write(&path, contents).map_err(|e| e.to_string())?;
-    Ok(path.to_string_lossy().to_string())
+fn save_text_file(
+    app: tauri::AppHandle,
+    filename: String,
+    contents: String,
+) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_file_name(&filename)
+        .blocking_save_file();
+    let Some(path) = picked else {
+        return Ok(None); // 用户取消
+    };
+    let real = path.into_path().map_err(|e| e.to_string())?;
+    if let Some(parent) = real.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(&real, contents).map_err(|e| e.to_string())?;
+    Ok(Some(real.to_string_lossy().to_string()))
 }
 
 /// 带会话 Cookie 下载文件到 ~/Downloads（learn 直连；登录失效/空文件识别拒绝）。

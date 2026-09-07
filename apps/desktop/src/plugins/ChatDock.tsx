@@ -387,11 +387,11 @@ export function ChatDock(): ReactNode {
     // R10：WKWebView 无下载管理器，a[download] 点击静默无效——宿主代写 ~/Downloads
     try {
       const { invoke } = await import("@tauri-apps/api/core");
-      const path = await invoke<string>("save_text_file", {
+      const path = await invoke<string | null>("save_text_file", {
         filename: `onethu-harness-${(r.sessionId ?? "session").slice(0, 18)}.json`,
         contents: r.json,
       });
-      setNotice(`已导出：${path}`);
+      setNotice(path ? `已导出：${path}` : "已取消导出");
     } catch (e) {
       setNotice(`导出失败：${e instanceof Error ? e.message : String(e)}`);
     }
