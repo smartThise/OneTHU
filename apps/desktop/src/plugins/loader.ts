@@ -244,7 +244,35 @@ function isAndroid(): boolean {
 }
 
 // 模块加载即种（先于 activateInstalledPlugins 的恢复激活）；管理页删除后下次开机自动回来。
-// 桌面端不种：桌面走 sidecar 二进制（文件选择器手动安装）。
+// 桌面端同样内置：sidecar 二进制随 App 资源打包，开机复制进插件目录
+// appData/plugins/onethu.harness/ 并注册（builtin，用户不可删——它就是 App 的一部分）。
+// R10 架构：桌面所有插件（导入 + 内置）统一住在 appData/plugins/<id>/。
 if (isAndroid() && !getPlugin("onethu.harness")) {
   addRustPlugin(EMBEDDED_HARNESS_MANIFEST, "", true);
+}
+
+/** 桌面内置 OH：sidecar 从打包资源落进插件目录，注册/迁移注册表指向。
+ *  在 activateInstalledPlugins 之前调用一次；无打包资源（开发未构建）则静默跳过。 */
+export async function seedBuiltinHarness(): Promise<void> {
+  if (isAndroid()) return; // Android 走内嵌核心，无 sidecar
+  if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) return;
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const binPath = await invoke<string | null>("builtin_sidecar_install");
+    if (!binPath) {
+      await logLine("[PLUGIN] 内置 OH sidecar 资源缺失（先跑 build:harness），跳过种入");
+      return;
+    }
+    const rec = getPlugin("onethu.harness");
+    if (!rec) {
+      addRustPlugin(EMBEDDED_HARNESS_MANIFEST, binPath);
+      await logLine(`[PLUGIN] 内置 OH 已注册：${binPath}`);
+    } else if (rec.binPath !== binPath) {
+      // 旧记录迁移：手动安装指向 ~/onethu-harness-dist 等散落路径 → 统一插件目录
+      updatePlugin("onethu.harness", { binPath, builtin: true });
+      await logLine(`[PLUGIN] 内置 OH 迁移到插件目录：${binPath}`);
+    }
+  } catch (e) {
+    await logLine(`[PLUGIN] 内置 OH 种入失败：${String(e).slice(0, 140)}`);
+  }
 }

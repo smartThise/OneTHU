@@ -20,7 +20,7 @@ markPhone();
 window.addEventListener("resize", markPhone);
 
 import { createRoot } from "react-dom/client";
-import { activateInstalledPlugins } from "./plugins/loader.js";
+import { activateInstalledPlugins, seedBuiltinHarness } from "./plugins/loader.js";
 import "@onethu/ui/tokens.css";
 import { installAuthWatchdog } from "./lib/reload.js";
 
@@ -37,6 +37,9 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>,
 );
 // 恢复已装插件（异步，失败只落日志）
-void activateInstalledPlugins().catch(() => undefined);
+void (async () => {
+  await seedBuiltinHarness();
+  await activateInstalledPlugins();
+})().catch(() => undefined);
 
 declare const __APP_VERSION__: string;

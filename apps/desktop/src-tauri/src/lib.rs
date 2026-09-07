@@ -249,6 +249,92 @@ fn percent_decode(s: &str) -> Option<String> {
     String::from_utf8(out).ok()
 }
 
+/* ═══ 插件目录（R10 架构）：运行时唯一插件根 = appData/plugins/<id>/ ═══
+ *  一切导入的插件（js/rust）与内置插件（OH sidecar）统一落在自己的子目录；
+ *  注册表里的 binPath 恒指向该目录，不再散落用户下载/临时目录。 */
+
+/// 插件根目录（不存在则创建）
+pub fn plugins_root(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
+    let base = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    let dir = base.join("plugins");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir)
+}
+
+/// 取插件子目录（不存在则创建）；id 防路径穿越（只允许字母数字.-_）
+fn plugin_dir(app: &tauri::AppHandle, id: &str) -> Result<std::path::PathBuf, String> {
+    if id.is_empty() || !id.chars().all(|c| c.is_alphanumeric() || matches!(c, '.' | '-' | '_')) {
+        return Err(format!("非法插件 id：{id}"));
+    }
+    Ok(plugins_root(app)?.join(id))
+}
+
+/// 导入 rust 插件：把 manifest.json 与二进制复制进 plugins/<id>/，返回新 binPath。
+/// manifest_dir=用户选择的 manifest 所在目录；bin=manifest.bin 声明的文件名。
+#[tauri::command]
+fn plugin_dir_install_rust(
+    app: tauri::AppHandle,
+    id: String,
+    manifest_dir: String,
+    bin: String,
+) -> Result<String, String> {
+    use std::path::Path;
+    let dir = plugin_dir(&app, &id)?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let src = Path::new(&manifest_dir);
+    for name in ["manifest.json", bin.as_str()] {
+        let from = src.join(name);
+        let data = std::fs::read(&from)
+            .map_err(|e| format!("读取 {name} 失败：{e}"))?;
+        std::fs::write(dir.join(name), data).map_err(|e| format!("写入 {name} 失败：{e}"))?;
+    }
+    let bin_path = dir.join(&bin);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&bin_path, std::fs::Permissions::from_mode(0o755));
+    }
+    Ok(bin_path.to_string_lossy().to_string())
+}
+
+/// 内置 OH sidecar 安装：把打包资源里的二进制复制进 plugins/onethu.harness/，
+/// 返回新 binPath；资源缺失（未打包 sidecar）返回 None。跨平台：win 取 .exe。
+#[tauri::command]
+fn builtin_sidecar_install(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    use std::path::Path;
+    let exe_name = if cfg!(windows) { "onethu-harness.exe" } else { "onethu-harness" };
+    let res = app
+        .path()
+        .resource_dir()
+        .map_err(|e| e.to_string())?
+        .join("plugins")
+        .join("onethu.harness")
+        .join(exe_name);
+    if !res.exists() {
+        return Ok(None);
+    }
+    let dir = plugin_dir(&app, "onethu.harness")?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let dst = dir.join(exe_name);
+    // 内容一致则跳过复制（重复开机免写）
+    let need = match std::fs::read(&res) {
+        Ok(src) => std::fs::read(&dst).map(|d| d != src).unwrap_or(true),
+        Err(_) => false,
+    };
+    if need {
+        std::fs::copy(&res, &dst).map_err(|e| format!("内置 sidecar 复制失败：{e}"))?;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&dst, std::fs::Permissions::from_mode(0o755));
+    }
+    Ok(Some(dst.to_string_lossy().to_string()))
+}
+
 /// 文本落盘（dock 导出会话等用）：系统「存储」对话框让用户自选位置。
 /// Tauri WKWebView 不支持 a[download] blob 点击下载（无下载管理器，静默无效）。
 /// ⚠️ 必须用回调式 save_file + oneshot 等待：Tauri v2 同步命令跑在主线程，
@@ -862,7 +948,7 @@ tauri::Builder::default()
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            log_debug,read_file_text,http_request,download_file,fetch_binary,save_text_file,state_read,state_write,state_delete,
+            log_debug,read_file_text,http_request,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,state_read,state_write,state_delete,
             open_external,open_eid_window,open_sports_window,venue_sso_set,
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,
             harness_embed::harness_start,harness_embed::harness_call,harness_embed::harness_notify,harness_embed::harness_rpc_reply,harness_embed::harness_stop])

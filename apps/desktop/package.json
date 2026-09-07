@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "tauri": "find src-tauri -name ._-\\* -delete; find src-tauri -name ._* ! -name . -delete; tauri",
     "tauri:dev": "find src-tauri -name ._-\\* -delete; find src-tauri -name ._* ! -name . -delete; tauri dev",
-    "tauri:build": "find src-tauri -name ._-\\* -delete; find src-tauri -name ._* ! -name . -delete; tauri build"
+    "tauri:build": "find src-tauri -name ._-\\* -delete; find src-tauri -name ._* ! -name . -delete; tauri build",
+    "build:harness": "node scripts/build-harness.mjs"
   },
   "dependencies": {
     "@onethu/core": "workspace:*",

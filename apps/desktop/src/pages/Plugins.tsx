@@ -168,7 +168,7 @@ function PluginCard({
               日志
             </button>
           ) : null}
-          {rec.embedded ? null : (
+          {rec.embedded || rec.builtin ? null : (
             <button className="btn btn-ghost plg-danger" onClick={() => void uninstallPlugin(id)}>
               删除
             </button>
@@ -458,7 +458,15 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
       if (!manifest?.id || !manifest?.name) throw new Error("manifest.json 缺 id/name");
       if (manifest.kind !== "rust" || !manifest.bin) throw new Error("manifest.kind 须为 rust 且声明 bin");
       const abs = mpath.replace(/[^/]+$/, manifest.bin);
-      addRustPlugin(manifest, abs);
+      // R10 架构：一切导入统一落插件目录 appData/plugins/<id>/，注册表不再指向
+      // 用户下载/临时目录（原路径随时可能被清理）
+      const mdir = mpath.replace(/[^/\\]+$/, "");
+      const newBin = await invoke<string>("plugin_dir_install_rust", {
+        id: String(manifest.id),
+        manifestDir: mdir,
+        bin: String(manifest.bin),
+      });
+      addRustPlugin(manifest, newBin);
       const { enablePlugin } = await import("../plugins/loader.js");
       await enablePlugin(manifest.id);
       setMsg(`已安装 Rust 插件：${manifest.name} v${manifest.version}`);
