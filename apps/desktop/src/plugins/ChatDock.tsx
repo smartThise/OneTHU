@@ -208,6 +208,12 @@ export function ChatDock(): ReactNode {
   }, [events, pid]);
 
   const finalize = (r: any): void => {
+    // 冲掉在途 delta 缓冲：否则落定后迟到的定时器会把残余增量拼回 stream，冒出幽灵流式气泡
+    if (deltaTimer.current) {
+      clearTimeout(deltaTimer.current);
+      deltaTimer.current = null;
+    }
+    deltaBuf.current = "";
     const answer = typeof r?.answer === "string" ? r.answer : r?.error != null ? `⚠ ${r.error}` : "(空响应)";
     setMsgs((v) => [...v, { role: "assistant", text: answer, meta: { think: thinkRef.current, trace: traceRef.current } }]);
     setStream(null);
