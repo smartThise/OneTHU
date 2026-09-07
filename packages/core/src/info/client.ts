@@ -275,6 +275,11 @@ export class InfoClient {
     this.#renewCard = hooks.card ?? null;
   }
 
+  /** 预约/取消成功后调用：作废预约记录热缓存，让紧随的刷新拿到真实新表 */
+  libRecordsCacheClear(): void {
+    this.#hotCache.delete("libBookRecords");
+  }
+
   /** 登录/登出后调用：清全部静态会话缓存（libToken 跨重登录存活 10 分钟——
    *  旧 token 配新会话 = 订座恒报「没有登录或登录已超时」的元凶） */
   resetStaticSessionCaches(): void {
@@ -2393,6 +2398,7 @@ export class InfoClient {
       if (!data.status) {
         throw new Error(`${data.msg ?? data.message ?? "预约座位失败"}（token len=${token.length}；uid=${InfoClient.libUserid || userId}；${this.lastDebug}）`);
       }
+      this.libRecordsCacheClear();
       return data;
     });
   }
@@ -2464,6 +2470,7 @@ export class InfoClient {
         throw new Error(`取消预约响应异常（resp=${text.slice(0, 100).replace(/\s+/g, " ")}）`);
       }
       if (!data.status) throw new Error(data.msg ?? data.message ?? "取消预约失败");
+      this.libRecordsCacheClear();
     });
   }
 
