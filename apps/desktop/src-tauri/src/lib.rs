@@ -437,7 +437,9 @@ fn plugin_dir_remove(app: tauri::AppHandle, id: String) -> Result<(), String> {
 fn builtin_sidecar_install(app: tauri::AppHandle) -> Result<Option<String>, String> {
     use std::path::Path;
     let exe_name = if cfg!(windows) { "onethu-harness.exe" } else { "onethu-harness" };
-    let res = app
+    // 打包态：resourceDir()/plugins/…；开发态（tauri dev）：resource_dir 解析到
+    // target 目录，资源未被复制——回退源码侧 resources/（编译期路径常量）
+    let mut res = app
         .path()
         .resource_dir()
         .map_err(|e| e.to_string())?
@@ -445,7 +447,16 @@ fn builtin_sidecar_install(app: tauri::AppHandle) -> Result<Option<String>, Stri
         .join("onethu.harness")
         .join(exe_name);
     if !res.exists() {
-        return Ok(None);
+        let dev = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("resources")
+            .join("plugins")
+            .join("onethu.harness")
+            .join(exe_name);
+        if dev.exists() {
+            res = dev;
+        } else {
+            return Ok(None);
+        }
     }
     let dir = plugin_dir(&app, "onethu.harness")?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
