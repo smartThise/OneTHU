@@ -159,9 +159,10 @@ pub async fn plugin_spawn(
                         "plugin-rpc",
                         json!({"pluginId": pid, "id": id, "method": method, "params": params}),
                     );
+                    let rid_disp = id.as_i64().map(|v| v.to_string()).unwrap_or_else(|| "?".into());
                     let _ = app.emit(
                         "plugin-event",
-                        json!({"pluginId": pid, "method": "log", "params": {"line": format!("[BRIDGE] ->门面 #{id} {method}")}}),
+                        json!({"pluginId": pid, "method": "log", "params": {"line": format!("[BRIDGE] ->门面 #{rid_disp} {method}")}}),
                     );
                 } else {
                     // 通知（progress/log/history 等）→ 直转 UI
