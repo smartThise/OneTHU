@@ -2279,22 +2279,28 @@ export class InfoClient {
     const home = urls.LIBRARY_HOME();
     const grab = async (): Promise<string> => {
       const page = await this.#http.text(home, this.#campusInit());
-      const leftmost = page.indexOf("access_token");
-      let token = "";
-      if (leftmost >= 0) {
-        const left = page.indexOf('"', leftmost) + 1;
-        const right = page.indexOf('"', left);
-        token = left > 0 && right > left ? page.slice(left, right).trim() : "";
+      // R10 真根因：newweb 版首页 token 在 window.ska.access_token（JS 变量），而
+      // 页面里更早出现的「首个 access_token + 引号串」是 logout 函数体的 JS 代码
+      // 碎片——旧取法把代码碎片当 token，后端恒报「没有登录或登录已超时」。
+      // 现在优先 ska 赋值形态，再退化到通用赋值/URL 参数形态，引号取法殿底。
+      const token =
+        /ska\.access_token\s*=\s*["']([A-Za-z0-9._-]{16,})["']/.exec(page)?.[1] ??
+        /["']?access_token["']?\s*[:=]\s*["']([A-Za-z0-9._-]{16,})["']/.exec(page)?.[1] ??
+        /access_token=([A-Za-z0-9._-]{16,})/.exec(page)?.[1] ??
+        (() => {
+          const leftmost = page.indexOf("access_token");
+          if (leftmost < 0) return "";
+          const left = page.indexOf('"', leftmost) + 1;
+          const right = page.indexOf('"', left);
+          return left > 0 && right > left ? page.slice(left, right).trim() : "";
+        })();
+      // 仅在成功提取到非空 token 时记录抓取页（命中≠提取成功，避免误导）
+      if (token) {
+        this.#lastTokenPage = home;
+        this.lastDebug = `lib-token len=${token.length} head=${token.slice(0, 4)}…`;
+      } else {
+        this.lastDebug = `lib-token 未提取（页面 ${page.length}B，含 ska=${page.includes("ska.")}）`;
       }
-      // R10 兜底形态：token 内联在 JS 变量/URL 参数里（首页改版后引号取法可能落空）
-      if (!token) {
-        token =
-          /access_token["']?\s*[:=]\s*["']([A-Za-z0-9._-]{16,})["']/.exec(page)?.[1] ??
-          /access_token=([A-Za-z0-9._-]{16,})/.exec(page)?.[1] ??
-          "";
-      }
-      // 仅在成功提取到非空 token 时记录抓取页（leftmost 命中≠提取成功，避免误导）
-      if (token) this.#lastTokenPage = home;
       return token;
     };
     const run2 = async (): Promise<string> => {
