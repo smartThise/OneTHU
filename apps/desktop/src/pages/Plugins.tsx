@@ -6,7 +6,7 @@
  */
 import { useSyncExternalStore, useEffect, useRef, useState, type ReactNode } from "react";
 import { PageHead } from "../components/Layout.js";
-import { HarnessMark } from "../components/HarnessMark.js";
+import { PluginLogo } from "../components/PluginLogo.js";
 import {
   commandsSnapshot, disablePlugin, enablePlugin, installedPlugins,
   isLive, runCommand, subscribe, subscribeCommands, uninstallPlugin,
@@ -143,7 +143,7 @@ function PluginCard({
     >
       <div className="plg-card-top">
         <div className={"plg-pin" + (m.id === "onethu.harness" ? " is-oh" : rec.embedded ? " is-core" : "")} aria-hidden>
-          {m.id === "onethu.harness" ? "OH" : monogram(m.name, m.id)}
+          <PluginLogo id={m.id} fallback={monogram(m.name, m.id)} />
         </div>
         <div className="plg-card-id">
           <div className="plg-title">

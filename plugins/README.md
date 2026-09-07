@@ -14,6 +14,12 @@
 - 导入的 rust 插件：manifest.json + 二进制复制进 `plugins/<id>/`，注册表 binPath 指向该处（不再引用用户下载目录）
 - 内置 OH：sidecar 随 App 资源打包（`resources/plugins/onethu.harness/`），开机复制到同一插件目录并注册为 `builtin`（管理页不可卸载）
 
+## 插件 Logo 约定
+
+- 统一落位：`apps/desktop/src/assets/plugins/<pluginId>.svg`（白底方图，viewBox 建议 64×64）
+- 放入即生效（`PluginLogo` 组件按 id 自动解析），无资产的插件回退双字母针脚
+- OH 的 logo：`onethu.harness.svg`（白底黑字 `(OH)`——代码风括号 + 衬线 O + 黑体 H，与 OneTHU 主品牌同族混排）
+
 ## 构建 / 发布
 
 ```bash

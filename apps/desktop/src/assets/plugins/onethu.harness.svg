@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="OneTHU Harness">
+  <!-- 白底黑字 (OH)：代码风括号 + 衬线 O + 黑体 H —— 与 OneTHU (One/THU) 同族混排 -->
+  <rect width="64" height="64" rx="14" fill="#ffffff"/>
+  <rect x="0.5" y="0.5" width="63" height="63" rx="13.5" fill="none" stroke="#000000" stroke-opacity="0.14"/>
+  <text x="32" y="42" text-anchor="middle" fill="#000000">
+    <tspan font-family="Menlo, Consolas, 'Courier New', monospace" font-size="26" font-weight="400">(</tspan><tspan font-family="Georgia, 'Times New Roman', serif" font-size="27" font-weight="600">O</tspan><tspan font-family="-apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="25" font-weight="800" dx="1">H</tspan><tspan font-family="Menlo, Consolas, 'Courier New', monospace" font-size="26" font-weight="400" dx="1">)</tspan>
+  </text>
+</svg>
