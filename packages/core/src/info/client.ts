@@ -1645,10 +1645,11 @@ export class InfoClient {
           : "";
       if (!table) {
         // R10：wengine 路由失败页（PARSE_FAILED/该链接无法访问）≠ 记录页——
-        // 旧版通道缺陷产物，报错要指向根因（版本/网络），别让人对着 .myTable 发懵
+        // 实证第二用户：同版构建下其 webvpn 账号路由 myhome 被服务端拒（浏览器
+        // 手动访问同页），我们侧 wrap/密码学 roundtrip 无损 → 属账号放行/出口问题
         if (/该链接无法访问|PARSE_FAILED|wengine-vpn\/failed/i.test(html)) {
           throw new Error(
-            "webvpn 无法路由 myhome（链接解码失败或校网出口异常）——请确认已更新到最新版本；仍复发请截图日志反馈",
+            "webvpn 服务端无法路由 myhome（校园家园网）：你的 webvpn 账号可能未放行该应用或出口异常——请用浏览器登录 webvpn.tsinghua.edu.cn 在门户里点开「家园/电费」验证，门户也不通请联系信息化技术中心；校园网内可绕开此问题",
           );
         }
         throw new Error(
