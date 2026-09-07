@@ -119,8 +119,18 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
           // R10：「没有登录或登录已超时」= token/会话陈旧；此错意味着首次必然未订上，重试安全
           const msg = e instanceof Error ? e.message : String(e);
           if (!/登录|超时|会话/.test(msg)) throw e;
-          await info.forceEnsure("library").catch(() => undefined);
-          return await info.bookLibrarySeat(seat, sectionId, dateChoice, appSession.username);
+          let ensured = "forceEnsure ok";
+          try {
+            await info.forceEnsure("library");
+          } catch (ie) {
+            ensured = `forceEnsure 失败: ${ie instanceof Error ? ie.message : String(ie)}`;
+          }
+          try {
+            return await info.bookLibrarySeat(seat, sectionId, dateChoice, appSession.username);
+          } catch (e2) {
+            const m2 = e2 instanceof Error ? e2.message : String(e2);
+            throw new Error(`${m2}（重试前会话重建: ${ensured}；userid=${appSession.username}）`);
+          }
         }
       },
       cancel: async (recordId: string) => {
