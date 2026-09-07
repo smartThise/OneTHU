@@ -8,7 +8,9 @@ import { readdirSync, unlinkSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 if (process.platform !== "darwin") process.exit(0);
-const target = join(process.cwd(), "target");
+// tauri beforeCommand 的 cwd = apps/desktop（前端目录）；手动也可能在 src-tauri 跑——两处都试
+const candidates = [join(process.cwd(), "src-tauri", "target"), join(process.cwd(), "target")];
+const target = candidates.find((c) => { try { return statSync(c).isDirectory(); } catch { return false; } });
 const sweep = (dir) => {
   let entries;
   try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
@@ -22,5 +24,5 @@ const sweep = (dir) => {
     }
   }
 };
-try { if (statSync(target).isDirectory()) sweep(target); } catch { /* 无 target 目录 */ }
+if (target) sweep(target);
 process.exit(0);

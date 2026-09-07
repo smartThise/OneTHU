@@ -4,9 +4,9 @@
   "version": "0.8.0",
   "identifier": "app.onethu.desktop",
   "build": {
-    "beforeDevCommand": "node ../scripts/prebuild.mjs && pnpm dev",
+    "beforeDevCommand": "node ./scripts/prebuild.mjs && pnpm dev",
     "devUrl": "http://127.0.0.1:5180",
-    "beforeBuildCommand": "node ../scripts/prebuild.mjs && pnpm build",
+    "beforeBuildCommand": "node ./scripts/prebuild.mjs && pnpm build",
     "frontendDist": "../dist"
   },
   "app": {
