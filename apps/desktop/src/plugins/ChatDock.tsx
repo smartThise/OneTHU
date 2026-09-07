@@ -4,7 +4,7 @@
  *  OneTHU-Harness README 与接口指南 §九），本组件不含任何业务逻辑。
  */
 import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent, type ReactNode } from "react";
-import Markdown, { defaultUrlTransform } from "react-markdown";
+import Markdown from "react-markdown";
 import { navGo } from "./bridges.js";
 import remarkGfm from "remark-gfm";
 import { callRust, notifyRust } from "./rust.js";
@@ -424,11 +424,6 @@ export function ChatDock(): ReactNode {
     }
   };
 
-  /** react-markdown 默认 urlTransform 会把陌生协议清成空串（onethu-news:// 实录：
-   *  href 被洗成 "" → 点击触发当前页重载 = 「恢复会话回主页」）——放行该协议 */
-  const allowOnethuNews = (url: string): string =>
-    url.startsWith("onethu-news://") ? url : defaultUrlTransform(url);
-
   /** 消息区链接一律外跳系统浏览器（webview 内导航会带走整个应用） */
   const onMsgsClick = (e: MouseEvent): void => {
     const a = (e.target as HTMLElement).closest("a");
@@ -436,7 +431,6 @@ export function ChatDock(): ReactNode {
     const href = a.getAttribute("href");
     if (!href) return;
     e.preventDefault();
-    if (href === "" || href === "#") return; // 空链不动作（防当前页重载）
     // onethu-news://<xxid> = 站内新闻直达（小OH 新闻链接专用），不开浏览器
     const m = /^onethu-news:\/\/(.+)$/.exec(href);
     if (m?.[1]) {
@@ -489,7 +483,7 @@ export function ChatDock(): ReactNode {
                   {m.meta?.think ? <ChainBlock label="思考过程" lines={[m.meta.think]} /> : null}
                   {m.meta?.trace?.length ? <ChainBlock label="工具调用" lines={m.meta.trace} /> : null}
                   <div className="dock-msg dock-md">
-                    <Markdown remarkPlugins={[remarkGfm]} urlTransform={allowOnethuNews}>{m.text}</Markdown>
+                    <Markdown remarkPlugins={[remarkGfm]}>{m.text}</Markdown>
                   </div>
                 </div>
               ) : (
@@ -511,7 +505,7 @@ export function ChatDock(): ReactNode {
               <div className="dock-msg dock-msg-assistant dock-streaming">
                 {stream ? (
                   <div className="dock-md">
-                    <Markdown remarkPlugins={[remarkGfm]} urlTransform={allowOnethuNews}>{stream}</Markdown>
+                    <Markdown remarkPlugins={[remarkGfm]}>{stream}</Markdown>
                   </div>
                 ) : (
                   <span className="dock-thinking">{status ?? "思考中…"}</span>
