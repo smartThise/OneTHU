@@ -155,10 +155,10 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
       fuzzyMember: (kw: string) => info.fuzzySearchLibRoomMember(appSession.username, kw),
     }, perms, "library:read") as OnethuApi["libroom"],
     network: wrap({
-      balance: () => info.getNetworkBalance(),
-      devices: () => info.getOnlineDevices(),
-      deviceCount: () => info.getNetworkDeviceCount(),
-      accountInfo: () => info.getNetworkAccountInfo(),
+      balance: () => nethGuard(() => info.getNetworkBalance()),
+      devices: () => nethGuard(() => info.getOnlineDevices()),
+      deviceCount: () => nethGuard(() => info.getNetworkDeviceCount()),
+      accountInfo: () => nethGuard(() => info.getNetworkAccountInfo()),
     }, perms, "network:read") as OnethuApi["network"],
     nav: {
       go: (page: string, params?: Record<string, unknown>) => {
@@ -205,6 +205,29 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
     }
   }
   return api;
+}
+
+/** R10：校园网查询撞「需要验证码」时自动把用户带到验证码面板
+ *  （navGo life/network，NetworkTab 开屏即拉图），dock 链路不再把裸错误甩给
+ *  模型；10s 去重防四路并发查询齐弹。改抛给模型的是可执行指引。 */
+let nethCaptchaNavTs = 0;
+async function nethGuard<T>(op: () => Promise<T>): Promise<T> {
+  try {
+    return await op();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!/需要验证码登录/.test(msg)) throw e;
+    const now = Date.now();
+    if (now - nethCaptchaNavTs > 10_000) {
+      nethCaptchaNavTs = now;
+      if (navGo("life", { lifeTab: "network" })) {
+        showToast("校园网需要验证码登录，请输入图中验证码");
+      }
+    }
+    throw new Error(
+      "校园网需要验证码登录：已自动打开校园网页面并展示验证码，请让用户在验证码面板输入图中字符完成登录，登录成功后重试本查询",
+    );
+  }
 }
 
 /* ═══ toast（DOM 直挂，最小侵入；不动 React 树） ═══ */
