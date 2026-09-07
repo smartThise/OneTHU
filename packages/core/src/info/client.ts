@@ -294,6 +294,8 @@ export class InfoClient {
   #ensureInflight2 = new Map<string, Promise<void>>();
   /** access_token 模块级缓存：页面重挂载（实例重建）后仍有效 */
   static libToken = "";
+  /** R10 诊断钩子：抓到的图书馆首页全文外送（app 侧写文件/日志），定位页面结构用 */
+  static onDebugDump: ((label: string, content: string) => void) | null = null;
   /** 图书馆取数 TTL 缓存（2026-09-06 校外 webvpn 每请求 2~3s 实测痛点）：
    *  馆树 1h / 楼层 90s / 区域 60s——余量数允许这一档陈旧，座位图与预约动作
    *  各自另有新鲜请求；forceEnsure("library") 全清。键含日期选择。 */
@@ -2301,6 +2303,7 @@ export class InfoClient {
       } else {
         this.lastDebug = `lib-token 未提取（页面 ${page.length}B，含 ska=${page.includes("ska.")}）`;
       }
+      InfoClient.onDebugDump?.("lib-home", page);
       return token;
     };
     const run2 = async (): Promise<string> => {
@@ -2376,7 +2379,9 @@ export class InfoClient {
           throw new Error(`预约座位响应异常（resp=${text.slice(0, 100).replace(/\s+/g, " ")}）`);
         }
       }
-      if (!data.status) throw new Error(data.msg ?? data.message ?? "预约座位失败");
+      if (!data.status) {
+        throw new Error(`${data.msg ?? data.message ?? "预约座位失败"}（token len=${token.length}；${this.lastDebug}）`);
+      }
       return data;
     });
   }

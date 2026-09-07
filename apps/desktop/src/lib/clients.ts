@@ -145,6 +145,7 @@ http.webVPNEncoder = webvpnWrap;
 http.debug = (line) => void logLine(line);
 // 重定向链逐跳日志：定位教务漫游链在哪一跳断掉（CAS 票据流/登录页）
 setHopLogger((hopUrl, status) => void logLine(`[HOP] ${status} ${hopUrl.slice(0, 220)}`));
+
 setZhjwxkDebug((line) => void logLine(line));
 setWebvpnLog((line) => void logLine(line));
 
@@ -189,6 +190,18 @@ export async function logLine(text: string): Promise<void> {
   } catch {
     /* noop */
   }
+}
+
+// R10：图书馆首页全量转储（log_debug 单行有截断，分块绕过）
+{
+  const { InfoClient } = await import("@onethu/core");
+  InfoClient.onDebugDump = (label, content) => {
+    const CHUNK = 6000;
+    const n = Math.ceil(content.length / CHUNK);
+    for (let i = 0; i < n; i++) {
+      void logLine(`DUMP ${label} ${i + 1}/${n}: ${content.slice(i * CHUNK, (i + 1) * CHUNK)}`);
+    }
+  };
 }
 
 async function dumpDebug(err: unknown): Promise<void> {
