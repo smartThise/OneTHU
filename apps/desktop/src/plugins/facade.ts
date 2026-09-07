@@ -82,6 +82,20 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
       physicalExam: () => info.getPhysicalExamResult(),
       assessmentList: () => info.getAssessmentList(),
     }, perms, "info:read") as OnethuApi["info"],
+    coursex: wrap({
+      semesters: async () => {
+        const { getCourseXSemesters } = await import("@onethu/core");
+        return getCourseXSemesters(universalFetch);
+      },
+      search: async (q: string, semester?: string) => {
+        const { searchCourseXPublic } = await import("@onethu/core");
+        return searchCourseXPublic(universalFetch, q, semester);
+      },
+      detail: async (id: string) => {
+        const { getCourseXDetailPublic } = await import("@onethu/core");
+        return getCourseXDetailPublic(universalFetch, id);
+      },
+    }, perms, "info:read") as OnethuApi["coursex"],
     card: wrap({
       info: () => info.getCardInfo(),
       transactions: (s: string, e: string) => info.getCardTransactions(s, e),

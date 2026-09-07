@@ -120,6 +120,11 @@ export interface OnethuApi {
     physicalExam(): Promise<Array<[string, string]>>;
     assessmentList(): Promise<Array<[string, boolean, string]>>;
   };
+  coursex: {
+    semesters(): Promise<import("@onethu/core").CourseXSemester[]>;
+    search(q: string, semester?: string): Promise<import("@onethu/core").CourseXSummary[]>;
+    detail(id: string): Promise<import("@onethu/core").CourseXDetail | null>;
+  };
   card: {
     info(): Promise<import("@onethu/core").CardInfo>;
     /** 消费流水（YYYY-MM-DD 起/止） */
