@@ -2274,7 +2274,7 @@ export class InfoClient {
    */
   async #libraryAccessToken(): Promise<string> {
     // 10 分钟模块级缓存 + 单飞：access_token 每次都整页抓 LIBRARY_HOME 是预约区加载慢的根因之一
-    if (InfoClient.libToken && Date.now() - InfoClient.libTokenTs < 600_000) return InfoClient.libToken;
+    if (InfoClient.libToken && Date.now() - InfoClient.libTokenTs < 120_000) return InfoClient.libToken;
     if (InfoClient.libTokenInflight) return InfoClient.libTokenInflight;
     const home = urls.LIBRARY_HOME();
     const grab = async (): Promise<string> => {
@@ -2333,24 +2333,42 @@ export class InfoClient {
     return this.#withRenew(async () => {
       await this.#ensureLibrary();
       const { segmentId } = await this.#libDay(sectionId, dateChoice);
-      const token = await this.#libraryAccessToken();
-      const text = await this.#http.text(urls.LIBRARY_BOOK_SEAT(seat.id), {
-        ...this.#campusInit(),
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          access_token: token,
-          userid: userId,
-          segment: String(segmentId),
-          type: String(seat.type ?? ""),
-          operateChannel: "2",
-        }).toString(),
-      });
+      const post = async (): Promise<{ text: string; token: string }> => {
+        const token = await this.#libraryAccessToken();
+        const text = await this.#http.text(urls.LIBRARY_BOOK_SEAT(seat.id), {
+          ...this.#campusInit(),
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            access_token: token,
+            userid: userId,
+            segment: String(segmentId),
+            type: String(seat.type ?? ""),
+            operateChannel: "2",
+          }).toString(),
+        });
+        return { text, token };
+      };
+      let { text, token } = await post();
       let data: { status?: number; msg?: string; message?: string };
       try {
         data = JSON.parse(text) as typeof data;
       } catch {
         throw new Error(`预约座位响应异常（resp=${text.slice(0, 100).replace(/\s+/g, " ")}）`);
+      }
+      // R10：libToken 是 10 分钟静态缓存且跨会话重建存活——旧 token 配活会话，
+      // 后端报「没有登录或登录已超时」（日志实证：records 渲染用户名而 book 被拒，
+      // 全窗口无 f_second 抓取 = token 来自缓存）。作废缓存强制重取后重试一次；
+      // 该错意味着首次必然未订上，重试无副作用。
+      if (!data.status && /登录|超时/.test(data.msg ?? data.message ?? "")) {
+        InfoClient.libToken = "";
+        InfoClient.libTokenTs = 0;
+        ({ text, token } = await post());
+        try {
+          data = JSON.parse(text) as typeof data;
+        } catch {
+          throw new Error(`预约座位响应异常（resp=${text.slice(0, 100).replace(/\s+/g, " ")}）`);
+        }
       }
       if (!data.status) throw new Error(data.msg ?? data.message ?? "预约座位失败");
       return data;
