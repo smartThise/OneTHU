@@ -129,6 +129,11 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
       },
     } as OnethuApi["venue"],
     xk: {
+      search: async (opts: { kcm?: string; kch?: string; teacher?: string; semester?: string; page?: number }) => {
+        gate(perms, "xk:read", "xk.search");
+        const { searchXkCourses } = await import("@onethu/core");
+        return searchXkCourses(await xkSession(), opts);
+      },
       catalog: async (sem?: string) => {
         gate(perms, "xk:read", "xk.catalog");
         const { getXkCatalog } = await import("@onethu/core");

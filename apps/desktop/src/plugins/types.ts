@@ -149,6 +149,7 @@ export interface OnethuApi {
     jump(sceneUuid: string): string;
   };
   xk: {
+    search(opts: { kcm?: string; kch?: string; teacher?: string; semester?: string; page?: number }): Promise<import("@onethu/core").XkSearchResult>;
     catalog(sem?: string): Promise<import("@onethu/core").XkCourse[]>;
     selected(sem?: string): Promise<import("@onethu/core").SelectedCourse[]>;
     detail(teacherId: string, code: string): Promise<import("@onethu/core").XkCourseDetail | null>;
