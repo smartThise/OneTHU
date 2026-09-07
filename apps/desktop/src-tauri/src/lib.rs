@@ -410,12 +410,27 @@ fn plugin_dir_import_zip(
 /// 插件 logo 读取（logo 随插件包走：plugins/<id>/logo.svg|png）→ dataURL
 #[tauri::command]
 fn plugin_logo_data(app: tauri::AppHandle, id: String) -> Result<Option<String>, String> {
-    let dir = plugin_dir(&app, &id)?;
-    for (name, mime) in [("logo.svg", "image/svg+xml"), ("logo.png", "image/png")] {
-        let p = dir.join(name);
-        if let Ok(bytes) = std::fs::read(&p) {
-            use base64::Engine as _;
-            return Ok(Some(format!("data:{mime};base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes))));
+    use base64::Engine as _;
+    // 候选：插件目录（正式落位）→ 打包资源 → 源码侧 resources/（dev）
+    let mut dirs: Vec<std::path::PathBuf> = vec![plugin_dir(&app, &id)?];
+    if let Ok(rd) = app.path().resource_dir() {
+        dirs.push(rd.join("plugins").join(&id));
+    }
+    dirs.push(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("resources")
+            .join("plugins")
+            .join(&id),
+    );
+    for dir in &dirs {
+        for (name, mime) in [("logo.svg", "image/svg+xml"), ("logo.png", "image/png")] {
+            let p = dir.join(name);
+            if let Ok(bytes) = std::fs::read(&p) {
+                return Ok(Some(format!(
+                    "data:{mime};base64,{}",
+                    base64::engine::general_purpose::STANDARD.encode(bytes)
+                )));
+            }
         }
     }
     Ok(None)
@@ -437,27 +452,23 @@ fn plugin_dir_remove(app: tauri::AppHandle, id: String) -> Result<(), String> {
 fn builtin_sidecar_install(app: tauri::AppHandle) -> Result<Option<String>, String> {
     use std::path::Path;
     let exe_name = if cfg!(windows) { "onethu-harness.exe" } else { "onethu-harness" };
-    // 打包态：resourceDir()/plugins/…；开发态（tauri dev）：resource_dir 解析到
-    // target 目录，资源未被复制——回退源码侧 resources/（编译期路径常量）
-    let mut res = app
-        .path()
-        .resource_dir()
-        .map_err(|e| e.to_string())?
-        .join("plugins")
-        .join("onethu.harness")
-        .join(exe_name);
-    if !res.exists() {
-        let dev = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+    // R10 实录：dev 下 resource_dir() 直接 Err("unknown path")——不能 ? 打断，
+    // 候选列表逐个探测：打包资源 → 源码侧 resources/（编译期路径常量，dev 必中）
+    let mut candidates: Vec<std::path::PathBuf> = Vec::new();
+    if let Ok(rd) = app.path().resource_dir() {
+        candidates.push(rd.join("plugins").join("onethu.harness").join(exe_name));
+    }
+    candidates.push(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("resources")
             .join("plugins")
             .join("onethu.harness")
-            .join(exe_name);
-        if dev.exists() {
-            res = dev;
-        } else {
-            return Ok(None);
-        }
-    }
+            .join(exe_name),
+    );
+    let res = match candidates.iter().find(|p| p.exists()) {
+        Some(p) => p.clone(),
+        None => return Ok(None),
+    };
     let dir = plugin_dir(&app, "onethu.harness")?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let dst = dir.join(exe_name);
