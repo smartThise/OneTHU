@@ -227,6 +227,7 @@ const EMBEDDED_HARNESS_MANIFEST: PluginManifest = {
   permissions: [
     "user:read", "info:read", "card:read", "dorm:read",
     "library:read", "library:book", "network:read",
+    "learn:read", "venue:read", "venue:book", "xk:read", "kongjian:book",
     "nav", "ui", "storage", "net:external",
   ],
   settings: [
@@ -272,10 +273,22 @@ export async function seedBuiltinHarness(): Promise<void> {
     if (!rec) {
       addRustPlugin(EMBEDDED_HARNESS_MANIFEST, binPath);
       await logLine(`[PLUGIN] 内置 OH 已注册：${binPath}`);
-    } else if (rec.binPath !== binPath) {
-      // 旧记录迁移：手动安装指向 ~/onethu-harness-dist 等散落路径 → 统一插件目录
-      updatePlugin("onethu.harness", { binPath, builtin: true });
-      await logLine(`[PLUGIN] 内置 OH 迁移到插件目录：${binPath}`);
+    } else {
+      // 权限快照自愈：装机清单缺新权限（如 learn:read/xk:read）时以内置清单为准并入，
+      // 免「重装才能用新功能」（R10 实录：扩展权限后 dock 报未获授权）
+      const perms = new Set(rec.manifest.permissions ?? []);
+      let changed = false;
+      for (const p of EMBEDDED_HARNESS_MANIFEST.permissions ?? []) {
+        if (!perms.has(p)) { perms.add(p); changed = true; }
+      }
+      if (changed || rec.binPath !== binPath) {
+        removePlugin("onethu.harness");
+        addRustPlugin(
+          { ...EMBEDDED_HARNESS_MANIFEST, permissions: [...perms] },
+          binPath,
+        );
+        await logLine(`[PLUGIN] 内置 OH 已刷新（权限/路径迁移）：${binPath}`);
+      }
     }
   } catch (e) {
     await logLine(`[PLUGIN] 内置 OH 种入失败：${String(e).slice(0, 140)}`);
