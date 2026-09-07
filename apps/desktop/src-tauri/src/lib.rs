@@ -251,20 +251,24 @@ fn percent_decode(s: &str) -> Option<String> {
 
 /// 文本落盘（dock 导出会话等用）：系统「存储」对话框让用户自选位置。
 /// Tauri WKWebView 不支持 a[download] blob 点击下载（无下载管理器，静默无效）。
-/// 同步命令跑在 worker 线程——blocking_save_file 禁止主线程调用，此处安全。
-/// 用户取消返回 None。
+/// ⚠️ 必须用回调式 save_file + oneshot 等待：Tauri v2 同步命令跑在主线程，
+/// blocking_save_file 会自堵死锁（实测：对话框一弹全 App 冻结）。
+/// async 命令跑在异步运行时线程，回调把结果经 oneshot 送回。用户取消返回 None。
 #[tauri::command]
-fn save_text_file(
+async fn save_text_file(
     app: tauri::AppHandle,
     filename: String,
     contents: String,
 ) -> Result<Option<String>, String> {
     use tauri_plugin_dialog::DialogExt;
-    let picked = app
-        .dialog()
+    let (tx, rx) = tokio::sync::oneshot::channel::<Option<tauri_plugin_dialog::FilePath>>();
+    app.dialog()
         .file()
         .set_file_name(&filename)
-        .blocking_save_file();
+        .save_file(move |path| {
+            let _ = tx.send(path);
+        });
+    let picked = rx.await.map_err(|e| e.to_string())?;
     let Some(path) = picked else {
         return Ok(None); // 用户取消
     };
