@@ -18,6 +18,11 @@ export type PluginPermission =
   | "library:read" // 图书馆楼层/区域/座位/记录查询 + 研讨间查询
   | "library:book" // 图书馆座位预约/取消 + 研讨间预约/取消（写操作）
   | "network:read" // 校园网账户/设备/余额（只读）
+  | "learn:read" // 网络学堂课程/作业/通知/文件/讨论区（只读）
+  | "venue:read" // 体育场馆场景/场地/我的预约（只读）
+  | "venue:book" // 体育场馆预约/取消（写操作）
+  | "xk:read" // 选课目录/已选/志愿/社区评价（只读）
+  | "kongjian:book" // 宿舍公共空间预约/取消（写操作）
   | "nav" // 应用内页面跳转
   | "ui" // toast 提示
   | "storage" // 插件私有键值存储
@@ -26,6 +31,11 @@ export type PluginPermission =
 export const PLUGIN_PERMISSIONS: ReadonlyArray<{ id: PluginPermission; label: string; desc: string }> = [
   { id: "user:read", label: "读取基本信息", desc: "姓名/学号/院系与登录会话状态" },
   { id: "info:read", label: "读取信息门户", desc: "成绩、考试、新闻、校历、空教室、缴费记录等只读查询" },
+  { id: "learn:read", label: "读取网络学堂", desc: "课程/作业/通知/文件/讨论区只读查询" },
+  { id: "venue:read", label: "读取体育场馆", desc: "场馆场景/可约场地/我的预约只读查询" },
+  { id: "venue:book", label: "预约与取消场馆", desc: "体育场馆预约与取消（写操作，需确认）" },
+  { id: "xk:read", label: "读取选课数据", desc: "选课目录/已选/志愿/社区评价只读查询" },
+  { id: "kongjian:book", label: "预约公共空间", desc: "宿舍公共空间预约与取消（写操作，需确认）" },
   { id: "card:read", label: "读取校园卡", desc: "余额与消费流水（只读，不含充值）" },
   { id: "dorm:read", label: "读取宿舍信息", desc: "电费余额/缴费记录/卫生分（只读）" },
   { id: "library:read", label: "查询图书馆", desc: "楼层/区域/座位分布/预约记录 + 研讨间资源查询" },
@@ -119,6 +129,39 @@ export interface OnethuApi {
     dormScore(): Promise<string | null>;
     physicalExam(): Promise<Array<[string, string]>>;
     assessmentList(): Promise<Array<[string, boolean, string]>>;
+  };
+  learn: {
+    semesters(): Promise<string[]>;
+    courses(semesterId?: string): Promise<{ semester: string; courses: import("@onethu/core").CourseInfo[] }>;
+    homework(semesterId?: string): Promise<Array<import("@onethu/core").Homework & { courseName: string }>>;
+    notifications(semesterId?: string): Promise<Array<import("@onethu/core").Notification & { courseName: string }>>;
+    files(courseId: string): Promise<import("@onethu/core").CourseFile[]>;
+    bbsBoards(wlkcid: string): Promise<import("@onethu/core").LearnBbsBoard[]>;
+    bbsThreads(wlkcid: string, opts?: { bqid?: string; kind?: "yb" | "jh" | "cy"; start?: number; length?: number }): Promise<{ total: number; threads: import("@onethu/core").LearnBbsThreadSummary[] }>;
+    bbsThread(wlkcid: string, threadId: string, bqId?: string): Promise<import("@onethu/core").LearnBbsThreadDetail>;
+    bbsPosts(wlkcid: string, threadId: string, pageNum: number): Promise<import("@onethu/core").LearnBbsPost[]>;
+  };
+  venue: {
+    scenes(): Promise<import("@onethu/core").VenueScene[]>;
+    currentPage(params: { sceneUuid: string; reserveDate: string; classTypeUuid?: string; siteType?: string }): Promise<import("@onethu/core").VenueSite[] | null>;
+    myRecords(page?: number): Promise<import("@onethu/core").VenueRecord[]>;
+    cancel(resvUuid: string): Promise<void>;
+    jump(sceneUuid: string): string;
+  };
+  xk: {
+    catalog(sem?: string): Promise<import("@onethu/core").XkCourse[]>;
+    selected(sem?: string): Promise<import("@onethu/core").SelectedCourse[]>;
+    detail(teacherId: string, code: string): Promise<import("@onethu/core").XkCourseDetail | null>;
+    reviews(course: string, teacher?: string): Promise<{
+      course: string; teacher: string; count: number; avg: number;
+      reviews: { count?: number; results: Array<Record<string, unknown>> };
+    } | null>;
+  };
+  kongjian: {
+    page(opts?: { spaceId?: string; roomId?: string; date?: string }): Promise<import("@onethu/core").KongjianPage>;
+    my(): Promise<import("@onethu/core").KongjianRecord[]>;
+    book(bookUrl: string, info_: { name: string; sid: string; tel: string; other: string }): Promise<string>;
+    cancel(target: string): Promise<void>;
   };
   coursex: {
     semesters(): Promise<import("@onethu/core").CourseXSemester[]>;

@@ -1,8 +1,10 @@
 /** 插件门面：把应用原子操作按权限包装成 onethu.* 公共接口 */
-import { info } from "../lib/clients.js";
+import { info, learn, http, loadRemembered, currentFingerprint } from "../lib/clients.js";
 import { InfoClient } from "@onethu/core";
 import { universalFetch } from "../lib/transport.js";
 import { navGo, sessionStatus } from "./bridges.js";
+import { venueClient } from "../lib/venue.js";
+import { openExternal } from "../pages/info/openExternal.js";
 import { getPlugin, pluginStorageKey, updatePlugin } from "./registry.js";
 import { PluginPermissionError, type OnethuApi, type PluginPermission } from "./types.js";
 
@@ -82,6 +84,75 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
       physicalExam: () => info.getPhysicalExamResult(),
       assessmentList: () => info.getAssessmentList(),
     }, perms, "info:read") as OnethuApi["info"],
+    learn: wrap({
+      semesters: () => learn.getSemesterIdList(),
+      courses: async (semesterId?: string) => {
+        const sem = semesterId || (await learn.getCurrentSemester()).id;
+        return { semester: sem, courses: await learn.getCourseList(sem) };
+      },
+      homework: async (semesterId?: string) => {
+        const sem = semesterId || (await learn.getCurrentSemester()).id;
+        const courses = await learn.getCourseList(sem);
+        const hw = await learn.getAllHomework(courses.map((c) => c.id));
+        const nameOf = new Map(courses.map((c) => [c.id, c.name]));
+        return hw.map((h) => ({ ...h, courseName: nameOf.get(h.courseId) ?? "" }));
+      },
+      notifications: async (semesterId?: string) => {
+        const sem = semesterId || (await learn.getCurrentSemester()).id;
+        const courses = await learn.getCourseList(sem);
+        const list = await learn.getAllNotifications(courses.map((c) => c.id));
+        const nameOf = new Map(courses.map((c) => [c.id, c.name]));
+        return list.map((n) => ({ ...n, courseName: nameOf.get(n.courseId) ?? "" }));
+      },
+      files: (courseId: string) => learn.getFileList(courseId),
+      bbsBoards: (wlkcid: string) => learn.getBbsBoards(wlkcid),
+      bbsThreads: (wlkcid: string, opts?: { bqid?: string; kind?: "yb" | "jh" | "cy"; start?: number; length?: number }) =>
+        learn.getBbsThreads(wlkcid, {
+          bqid: opts?.bqid ?? "",
+          kind: opts?.kind ?? "yb",
+          start: opts?.start ?? 0,
+          length: opts?.length ?? 30,
+        }),
+      bbsThread: (wlkcid: string, threadId: string, bqId?: string) => learn.getBbsThread(wlkcid, threadId, bqId),
+      bbsPosts: (wlkcid: string, threadId: string, pageNum = 1) => learn.getBbsThreadPosts(wlkcid, threadId, pageNum),
+    }, perms, "learn:read") as OnethuApi["learn"],
+    venue: {
+      scenes: () => { gate(perms, "venue:read", "venue.scenes"); return venue.sceneList(); },
+      currentPage: (params: Record<string, unknown>) => { gate(perms, "venue:read", "venue.currentPage"); return venue.currentPage(params as never); },
+      myRecords: (page = 1) => { gate(perms, "venue:read", "venue.myRecords"); return venue.myRecords(page, 10); },
+      cancel: (resvUuid: string) => { gate(perms, "venue:book", "venue.cancel"); return venue.cancelReserve(resvUuid); },
+      jump: (sceneUuid: string) => {
+        gate(perms, "venue:read", "venue.jump");
+        const url = `https://www.sports.tsinghua.edu.cn/venue/index.html#/reserveList?uuid=${encodeURIComponent(sceneUuid)}`;
+        void openExternal(url);
+        return url;
+      },
+    } as OnethuApi["venue"],
+    xk: {
+      catalog: async (sem?: string) => {
+        gate(perms, "xk:read", "xk.catalog");
+        const { getXkCatalog } = await import("@onethu/core");
+        return getXkCatalog(await xkSession(), sem ? { semester: sem } : {});
+      },
+      selected: async (sem?: string) => {
+        gate(perms, "xk:read", "xk.selected");
+        const { getSelectedCourses } = await import("@onethu/core");
+        return getSelectedCourses(await xkSession(), sem ? { semester: sem } : {});
+      },
+      detail: async (teacherId: string, code: string) => {
+        gate(perms, "xk:read", "xk.detail");
+        const { getXkCourseDetail } = await import("@onethu/core");
+        return getXkCourseDetail(await xkSession(), { teacherId, code });
+      },
+      reviews: async (course: string, teacher?: string) => {
+        gate(perms, "xk:read", "xk.reviews");
+        const xkr = await import("../lib/xkreviews.js");
+        await xkr.tbEnsureIndex();
+        const entry = xkr.tbMatch(course, teacher ?? "");
+        if (!entry) return null;
+        return { course: entry.kcm, teacher: entry.jsm, count: entry.count, avg: entry.avg, reviews: await xkr.tbFetchReviews(entry.sqid) };
+      },
+    } as OnethuApi["xk"],
     coursex: wrap({
       semesters: async () => {
         const { getCourseXSemesters } = await import("@onethu/core");
@@ -104,6 +175,18 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
       eleRemainder: () => info.getEleRemainder(),
       elePayRecord: () => info.getElePayRecord(),
     }, perms, "dorm:read") as OnethuApi["dorm"],
+    kongjian: {
+      page: (opts: { spaceId?: string; roomId?: string; date?: string } = {}) => {
+        gate(perms, "dorm:read", "kongjian.page");
+        return info.kongjianPage(opts);
+      },
+      my: () => { gate(perms, "dorm:read", "kongjian.my"); return info.kongjianMy(); },
+      book: (bookUrl: string, info_: { name: string; sid: string; tel: string; other: string }) => {
+        gate(perms, "kongjian:book", "kongjian.book");
+        return info.kongjianBook(bookUrl, info_);
+      },
+      cancel: (target: string) => { gate(perms, "kongjian:book", "kongjian.cancel"); return info.kongjianCancel(target); },
+    } as OnethuApi["kongjian"],
     library: wrap({
       list: () => info.getLibraryList(),
       floors: async (libraryId: number, dateChoice: 0 | 1 = 0) => {
@@ -221,6 +304,15 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
   }
   return api;
 }
+
+/* ═══ 小OH 扩展（learn/venue/xk/kongjian）辅助 ═══ */
+/** zhjwxk 会话：本机记住的凭据 + 设备指纹按需构建（零存储，函数内短命） */
+async function xkSession(): Promise<import("@onethu/core").ZhjwxkSession> {
+  const cred = await loadRemembered();
+  if (!cred) throw new Error("本机无记住的密码：请开启「记住密码」并重新登录一次后使用选课功能");
+  return { http, username: cred.username, password: cred.password, fingerprint: await currentFingerprint() };
+}
+const venue = venueClient;
 
 /** R10：校园网查询撞「需要验证码」时自动把用户带到验证码面板
  *  （navGo life/network，NetworkTab 开屏即拉图），dock 链路不再把裸错误甩给
