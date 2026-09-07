@@ -20,7 +20,7 @@ use tauri::{AppHandle, Emitter};
 
 /// 门面回执等待上限：webview 门面 http_request 自带 45s 超时，storage/session
 /// 毫秒级；600s 是「webview 整个没了」级别的兜底。
-const BRIDGE_TIMEOUT: Duration = Duration::from_secs(600);
+const BRIDGE_TIMEOUT: Duration = Duration::from_secs(15);
 
 type PendingMap = Arc<Mutex<HashMap<u64, mpsc::Sender<Result<Value, String>>>>>;
 

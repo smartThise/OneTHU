@@ -88,7 +88,7 @@ function Routed() {
     <>
       {body}
       <PluginBridge />
-      <ChatDock />
+      {(status === "ready" || status === "demo") && <ChatDock />}
       <FilePreviewHost />
     </>
   );
