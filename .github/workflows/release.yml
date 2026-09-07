@@ -15,16 +15,12 @@ on:
 
 jobs:
   desktop:
-    # 手动触发可裁剪平台；打 tag 的正式链路恒为双平台
-    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.only_windows || matrix.os == 'windows-latest' }}
+    # 手动触发可只跑 Windows（矩阵动态生成）；打 tag 正式链路恒为双平台
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            args: --target aarch64-apple-darwin
-          - os: windows-latest
-            args: ""
+      matrix: ${{ (github.event_name == 'workflow_dispatch' && inputs.only_windows)
+        && fromJSON('{"include":[{"os":"windows-latest","args":""}]}')
+        || fromJSON('{"include":[{"os":"macos-latest","args":"--target aarch64-apple-darwin"},{"os":"windows-latest","args":""}]}') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
