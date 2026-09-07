@@ -105,6 +105,8 @@ export interface OnethuApi {
     news(page?: number): Promise<import("@onethu/core").NewsItem[]>;
     newsDetail(xxid: string): Promise<import("@onethu/core").NewsDetail>;
     searchNews(keyword: string, page?: number): Promise<import("@onethu/core").NewsItem[]>;
+    /** 订阅动态（用户在信息页配置的订阅源聚合流） */
+    newsSub(page?: number, subscriptionId?: string): Promise<import("@onethu/core").NewsItem[]>;
     /** 校历节点 */
     schoolCalendar(): Promise<import("@onethu/core").SchoolCalendarData>;
     /** 空教室：楼栋列表 / 指定周次各教室占用 */

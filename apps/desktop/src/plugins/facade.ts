@@ -70,6 +70,7 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
       deadlines: () => info.getDeadlines(),
       news: (page = 1) => info.getNews(page),
       newsDetail: (xxid: string) => info.getNewsDetail(xxid),
+      newsSub: (page = 1, subscriptionId?: string) => info.getNewsListBySubscription(page, subscriptionId),
       searchNews: (kw: string, page = 1) => info.searchNews(kw, page),
       schoolCalendar: () => info.getSchoolCalendar(),
       classroomList: () => info.getClassroomList(),
