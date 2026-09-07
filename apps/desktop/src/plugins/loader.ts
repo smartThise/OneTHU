@@ -227,7 +227,7 @@ const EMBEDDED_HARNESS_MANIFEST: PluginManifest = {
   permissions: [
     "user:read", "info:read", "card:read", "dorm:read",
     "library:read", "library:book", "network:read",
-    "learn:read", "venue:read", "venue:book", "xk:read", "kongjian:book",
+    "learn:read", "learn:write", "venue:read", "venue:book", "xk:read", "kongjian:book",
     "nav", "ui", "storage", "net:external",
   ],
   settings: [
