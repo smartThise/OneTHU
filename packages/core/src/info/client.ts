@@ -2269,10 +2269,19 @@ export class InfoClient {
     const grab = async (): Promise<string> => {
       const page = await this.#http.text(home, this.#campusInit());
       const leftmost = page.indexOf("access_token");
-      if (leftmost < 0) return "";
-      const left = page.indexOf('"', leftmost) + 1;
-      const right = page.indexOf('"', left);
-      const token = left > 0 && right > left ? page.slice(left, right).trim() : "";
+      let token = "";
+      if (leftmost >= 0) {
+        const left = page.indexOf('"', leftmost) + 1;
+        const right = page.indexOf('"', left);
+        token = left > 0 && right > left ? page.slice(left, right).trim() : "";
+      }
+      // R10 兜底形态：token 内联在 JS 变量/URL 参数里（首页改版后引号取法可能落空）
+      if (!token) {
+        token =
+          /access_token["']?\s*[:=]\s*["']([A-Za-z0-9._-]{16,})["']/.exec(page)?.[1] ??
+          /access_token=([A-Za-z0-9._-]{16,})/.exec(page)?.[1] ??
+          "";
+      }
       // 仅在成功提取到非空 token 时记录抓取页（leftmost 命中≠提取成功，避免误导）
       if (token) this.#lastTokenPage = home;
       return token;
