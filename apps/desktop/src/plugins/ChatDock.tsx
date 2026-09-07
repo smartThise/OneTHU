@@ -195,6 +195,11 @@ export function ChatDock(): ReactNode {
         return;
       }
       const kind = (e as any).kind;
+      // R10：已落定的对话不得再吃迟到事件——Tauri 事件通道与 invoke 回执无顺序保证，
+      // 迟到 delta 会复活流式气泡（幽灵光标一直闪）
+      if (finalizedFor.current === runSeq.current && runSeq.current > 0 && (kind === "delta" || kind === "think" || kind === "tool")) {
+        continue;
+      }
       if (kind === "delta" && e.text) {
         setThinkOpen(false); // 回答开始 → 思考过程自动折叠
         deltaBuf.current += e.text;

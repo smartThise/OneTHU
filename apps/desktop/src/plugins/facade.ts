@@ -90,9 +90,15 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
     }, perms, "dorm:read") as OnethuApi["dorm"],
     library: wrap({
       list: () => info.getLibraryList(),
-      floors: (libraryId: number, dateChoice: 0 | 1 = 0) => {
+      floors: async (libraryId: number, dateChoice: 0 | 1 = 0) => {
         const lib = { id: libraryId, zhName: "", idPath: "", zhNameTrace: "", guanmingyuan: "", comments: "" } as any;
-        return info.getLibraryFloorList(lib, dateChoice);
+        try {
+          return await info.getLibraryFloorList(lib, dateChoice);
+        } catch (e) {
+          // R10：座位系统回「停用区域」空壳（childArea:null）= 会话陈旧——强制重建漫游链再试一次
+          await info.forceEnsure("library").catch(() => undefined);
+          return await info.getLibraryFloorList(lib, dateChoice);
+        }
       },
       sections: (floor: { id: number; zhNameTrace: string }, dateChoice: 0 | 1 = 0) =>
         info.getLibrarySectionList(floor, dateChoice),
