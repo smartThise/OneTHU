@@ -81,8 +81,6 @@ async function ensureRpcListener(): Promise<void> {
       await invoke("harness_rpc_reply", { pluginId, id, ok: false, result: "门面未绑定（页面重载后未恢复）" }).catch(
         () => invoke("plugin_rpc_reply", { pluginId, id, ok: false, result: "门面未绑定（页面重载后未恢复）" }).catch(
           (e) => console.error("[plugin-rpc] 双路回执均失败", pluginId, id, e)));
-        (e) => console.error("[plugin-rpc] 未绑定且回执失败", pluginId, id, e),
-      );
       return;
     }
     let ok = true;
