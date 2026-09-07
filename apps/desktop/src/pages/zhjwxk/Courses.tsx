@@ -14,7 +14,6 @@ import type { XkCourseDetail } from "@onethu/core";
 import { tbEnsureIndex, tbFetchReviews, tbMatch, tbStars, tbCourseUrl, tbWriteUrl, type TbEntry, type TbReviews } from "../../lib/xkreviews.js";
 import { confirmOk } from "../../lib/confirm.js";
 import { openExternal } from "../info/openExternal.js";
-import { callAi, extractJsonArray, loadAiConfig, saveAiConfig, type AiConfig } from "../../lib/xkai.js";
 import {
   allowedFlags, calcProb, checkPlanCoverage, dayName, findPreviewConflicts, fullProbGrid, occupancyOf, typeCodeToFlag, volColor,
   FLAG_LABELS, parseTimeSlots, SLOT_NAMES, type PlanCoverageItem, type SlotItem, type XkFlag, type XkRow, zyTypeOf, isSportsCourse } from "../../lib/xklogic.js";
@@ -295,8 +294,8 @@ export function ZhjwxkCoursesPage() {
   const [detailTid, setDetailTid] = useState("");
   const [reviewCode, setReviewCode] = useState<{ code: string; seq: string; name: string; teacher: string } | null>(null);
   const [jump, setJump] = useState("");
-  // 竖屏三页签：课程查找 / 选课管理 / AI 选课（桌面仍为双栏，此状态仅移动端消费）
-  const [mTab, setMTab] = useState<"find" | "manage" | "ai">("find");
+  // 竖屏双页签：课程查找 / 选课管理（AI 能力已并入小OH 助手；桌面仍为双栏，此状态仅移动端消费）
+  const [mTab, setMTab] = useState<"find" | "manage">("find");
   useEffect(() => {
     void tbEnsureIndex().catch(() => undefined);
     // 跳转唯一权威通路：注入搜索栏（setJump → jump effect）+ 按课号真实搜索
@@ -441,14 +440,13 @@ export function ZhjwxkCoursesPage() {
           <PreviewSection wb={wb} />
           <StageSection wb={wb} />
           <QueueSection wb={wb} />
-          <AiSections wb={wb} />
         </div>
       </div>
 
-      {/* ── 竖屏：三页签（课程查找 / 选课管理 / AI 选课），跳转关系由 jump 联动 ── */}
+      {/* ── 竖屏：双页签（课程查找 / 选课管理），跳转关系由 jump 联动 ── */}
       <div className="xk-mobile-tabs">
         <SegmentedOverflow ariaLabel="选课分栏">
-          {([["find", "课程查找"], ["manage", "选课管理"], ["ai", "AI 选课"]] as const).map(([k, label]) => (
+          {([["find", "课程查找"], ["manage", "选课管理"]] as const).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={mTab === k} className={mTab === k ? "is-active" : ""} onClick={() => setMTab(k)}>
               {label}
             </button>
@@ -463,7 +461,6 @@ export function ZhjwxkCoursesPage() {
             <QueueSection wb={wb} />
           </div>
         ) : null}
-        {mTab === "ai" ? <AiSections wb={wb} /> : null}
       </div>
 
       <DetailModal wb={wb} code={detailCode} tid={detailTid} onClose={() => setDetailCode(null)} />
@@ -1316,19 +1313,30 @@ function StageSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
         ) : null}
       {wb.stageCart.length === 0 ? <div style={{ fontSize: 12, color: "var(--text-3)" }}>暂无暂存课程</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {wb.stageCart.map((s) => {
+          {wb.stageCart.map((s, i) => {
             const p = itemProb(wb, s.code, s.seq, s.flag, s.zy);
+            // 余量按 (课号,班次) 精确匹配——同课号多班次只按课号会串行（简介串台同款病）
+            const vol = wb.courses.find((r) => r.c.code === s.code && String(r.c.seq || "0") === String(s.seq || "0"))?.q?.qRemaining;
             return (
-              <div key={s.code + s.seq} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: "4px 6px", borderRadius: 8, background: "var(--bg-elev, #f7f7f8)" }}>
-                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={`点击搜索：${s.name}（${s.code}）`} onClick={() => jumpTo(s.code, "all")}>{s.name}<span style={{ color: "var(--text-3)" }}> {s.teacher}</span></span>
-                <span style={{ fontSize: 10, color: wb.phase ? "var(--text-3)" : p.color, whiteSpace: "nowrap" }}>{wb.phase ? (wb.courses.find((r) => r.c.code === s.code)?.q?.qRemaining ?? "—") : p.prob}</span>
-                <select className="input" style={{ height: 22, fontSize: 10, maxWidth: 60 }} value={s.flag} onChange={(e) => wb.updateStageItem(s.code, s.seq, { flag: e.target.value as XkFlag })}>
-                  {allowedFlags(s.flag).map((f) => <option key={f} value={f}>{FLAG_LABELS[f]}</option>)}
-                </select>
-                <select className="input" style={{ height: 22, fontSize: 10, maxWidth: 52 }} value={s.zy} onChange={(e) => wb.updateStageItem(s.code, s.seq, { zy: Number(e.target.value) })}>
-                  {[3, 2, 1].map((z) => <option key={z} value={z}>{z}</option>)}
-                </select>
-                <button className="btn" style={{ padding: "0 5px", fontSize: 10 }} onClick={() => wb.removeFromStage(s.code, s.seq)}>✕</button>
+              <div key={`${s.code}_${s.seq || "0"}_${i}`} style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2, fontSize: 12, padding: "6px 8px", borderRadius: 10, background: "var(--bg-elev, #f7f7f8)", border: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                  <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600, cursor: "pointer" }} title={`点击搜索：${s.name}（${s.code}）`} onClick={() => jumpTo(s.code, "all")}>
+                    {s.name}{s.teacher ? <span style={{ color: "var(--text-3)", fontWeight: 400 }}> {s.teacher}</span> : null}
+                  </span>
+                  {s.credits ? <span style={{ fontSize: 10, color: "var(--text-3)", whiteSpace: "nowrap" }}>{s.credits}学分</span> : null}
+                  <button className="btn" style={{ padding: "0 6px", fontSize: 10 }} title="从暂存区移除" onClick={() => wb.removeFromStage(s.code, s.seq)}>✕</button>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <select className="input" style={{ height: 22, fontSize: 10, maxWidth: 60 }} value={s.flag} onChange={(e) => wb.updateStageItem(s.code, s.seq, { flag: e.target.value as XkFlag })}>
+                    {allowedFlags(s.flag).map((f) => <option key={f} value={f}>{FLAG_LABELS[f]}</option>)}
+                  </select>
+                  <select className="input" style={{ height: 22, fontSize: 10, maxWidth: 52 }} value={s.zy} onChange={(e) => wb.updateStageItem(s.code, s.seq, { zy: Number(e.target.value) })}>
+                    {[3, 2, 1].map((z) => <option key={z} value={z}>{z}志愿</option>)}
+                  </select>
+                  <span style={{ fontSize: 10, color: wb.phase ? "var(--text-3)" : p.color, whiteSpace: "nowrap", marginLeft: "auto" }}>
+                    {wb.phase ? (vol ?? "—") : p.prob}
+                  </span>
+                </div>
               </div>
             );
           })}
@@ -1393,167 +1401,6 @@ function QueueSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
         </div>
       ))}
     </Sec>
-  );
-}
-
-/* ══════════ 右栏⑤：AI 三件套（配置/搜索推荐/智能排课）══════════ */
-function AiSections({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
-  const [cfg, setCfg] = useState<AiConfig>(() => loadAiConfig());
-  const [saved, setSaved] = useState(false);
-  const [searchPrompt, setSearchPrompt] = useState("");
-  const [searchSt, setSearchSt] = useState("");
-  const [searchRes, setSearchRes] = useState<Array<{ code: string; seq?: string; reason?: string }>>([]);
-  const [aiSt, setAiSt] = useState("");
-  const [aiRes, setAiRes] = useState<Array<{ code: string; seq?: string; flag?: string; zy?: number }>>([]);
-
-  // ── NextTHUxk 2.0 aiCourseJson 移植：结构化全字段候选行（vol 志愿统计/余量/
-  //    外校说明列/评价/暂存标记），替代旧管道字符串——模型可直接读字段 ──
-  const courseJson = (r: XkRow): Record<string, unknown> => ({
-    code: r.c.code,
-    seq: r.c.seq || "0",
-    name: r.name,
-    credits: r.credits,
-    teacher: r.teacher,
-    time: r.time,
-    attr: FLAG_LABELS[r.flag],
-    remaining: r.c.remaining ?? 0,
-    capacity: r.c.capacity ?? 0,
-    available: r.available,
-    selected: r.selected,
-    isCandidate: r.isCandidate,
-    staged: wb.stageCart.some((st) => st.code === r.c.code && String(st.seq || "0") === String(r.c.seq || "0")),
-    zy: r.zy || undefined,
-    tongshiGroup: r.tongshiGroup || undefined,
-    feature: r.feature || undefined,
-    grade: r.grade || undefined,
-    note: r.c.note || "",
-    vol: r.vol
-      ? {
-          capacity: r.vol.capacity,
-          applied: r.vol.applied,
-          required: r.vol.volRequired,
-          elective: r.vol.volElective,
-          optional: r.vol.volOptional,
-          sports: r.vol.volSports,
-        }
-      : undefined,
-    review: tbBadge(r) || undefined,
-  });
-
-  // ── aiOccupied 移植：占用表（大节 + 外校钟点 clockRangesOf + 自定义占用）──
-  const occupiedLines = (): string[] => {
-    const out: string[] = [];
-    const seen = new Set<string>();
-    const push = (key: string, name: string): void => {
-      if (!seen.has(key)) {
-        seen.add(key);
-        out.push(`${key}(${name})`);
-      }
-    };
-    const wd = "一二三四五六日";
-    const hhmm = (m: number): string => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-    const rows: Array<{ name: string; time: string; note?: string }> = [
-      ...wb.courses.filter((r) => r.selected),
-      ...wb.stageCart,
-      ...wb.manualEvents.map((e) => ({ name: e.name, time: e.time, note: "" })),
-    ];
-    for (const r of rows) {
-      for (const sl of parseTimeSlots(r.time)) push(`${sl.day} ${sl.slot}`, r.name);
-      for (const cr of clockRangesOf(r.note ?? "", r.time)) push(`周${wd[cr.day - 1] ?? cr.day} ${hhmm(cr.begin)}-${hhmm(cr.end)}`, r.name);
-    }
-    return out;
-  };
-
-  const runSearch = async (): Promise<void> => {
-    setSearchSt("AI 正在分析…");
-    setSearchRes([]);
-    try {
-      // 候选集同源（NextTHUxk 2.0）：搜索态用 searchRows（所见即所推），否则全池
-      const searching = wb.searchState !== "idle" && wb.searchState !== "loading" && wb.searchRows.length > 0;
-      const pool = (searching ? wb.searchRows : wb.courses).filter((r) => !r.selected && (r.available || !wb.phase)).slice(0, 400);
-      const conflicts = new Set(wb.previewIndex.keys());
-      const free = pool.filter((r) => parseTimeSlots(r.time).every((s) => !conflicts.has(`${s.day}-${s.slot}`)));
-      const sys = "你是清华选课助手。根据用户偏好，从候选课程里推荐。只输出 JSON 数组 [{\"code\":\"课号\",\"seq\":\"班号\",\"reason\":\"一句话理由\"}]，最多 10 条，不要输出其他文字。";
-      const user = `我的偏好：${cfg.pref || "无"}\n本次需求：${searchPrompt || "推荐合适的课"}\n当前已选：${wb.selected.map((s) => s.name).join("、") || "无"}\n已占用时段（外校课为钟点，勿推荐时间重叠）：${occupiedLines().join("、") || "无"}\n候选（JSON；note=选课文字说明/外校真实时间；vol=志愿统计容量已报与各志愿人数；review=社区评价）：\n${JSON.stringify(free.slice(0, 300).map(courseJson))}`;
-      const raw = await callAi(cfg, sys, user);
-      setSearchRes(extractJsonArray<{ code: string; seq?: string; reason?: string }>(raw));
-      setSearchSt("");
-    } catch (e) {
-      setSearchSt(e instanceof Error ? e.message : String(e));
-    }
-  };
-  const runSchedule = async (): Promise<void> => {
-    setAiSt("AI 正在排课…");
-    setAiRes([]);
-    try {
-      const must = wb.courses.filter((r) => r.selected || zyTypeOf(r) === "bx" || zyTypeOf(r) === "ty");
-      const pool = wb.courses.filter((r) => !r.selected).slice(0, 400);
-      const sys = "你是清华智能排课助手。给定必须保留的课程和候选池，生成一学期完整课表（总量 20-30 学分，时间不冲突，符合用户偏好）。只输出 JSON 数组 [{\"code\":\"课号\",\"seq\":\"班号\",\"flag\":\"bx|xx|rx|ty\",\"zy\":1}]，不要输出其他文字。";
-      const user = `用户偏好：${cfg.pref || "无"}\n必须包含（已选/必修/体育）：\n${JSON.stringify(must.slice(0, 80).map(courseJson))}\n当前课表已占用时段（外校课为钟点）：${occupiedLines().join("、") || "无"}\n候选池（JSON；note=选课文字说明/外校真实时间；vol=志愿统计）：\n${JSON.stringify(pool.slice(0, 300).map(courseJson))}`;
-      const raw = await callAi(cfg, sys, user);
-      setAiRes(extractJsonArray<{ code: string; seq?: string; flag?: string; zy?: number }>(raw));
-      setAiSt("");
-    } catch (e) {
-      setAiSt(e instanceof Error ? e.message : String(e));
-    }
-  };
-  const stageFromAi = (code: string, seq?: string, flag?: string, zy?: number): void => {
-    const row = wb.courses.find((r) => r.c.code === code && (!seq || r.c.seq === seq));
-    if (!row) { wb.setToast(`没找到 ${code}（可能不在当前目录）`); return; }
-    wb.addToStage(row, (flag as XkFlag) ?? row.flag, zy ?? 3);
-  };
-
-  const inp: React.CSSProperties = { height: 26, fontSize: 12, width: "100%" };
-  return (
-    <>
-      <Sec title="AI 配置">
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <input className="input" style={inp} placeholder="API Base URL（如 https://api.deepseek.com/v1）" value={cfg.base} onChange={(e) => setCfg({ ...cfg, base: e.target.value })} />
-          <input className="input" style={inp} placeholder="模型名称（如 deepseek-chat、gpt-4o-mini）" value={cfg.model} onChange={(e) => setCfg({ ...cfg, model: e.target.value })} />
-          <input className="input" style={inp} type="password" placeholder="API Token" value={cfg.token} onChange={(e) => setCfg({ ...cfg, token: e.target.value })} />
-          <textarea className="input" style={{ ...inp, height: 48 }} placeholder="我的选课偏好（如：周五下午空出来、优先给分好的老师、学分凑满30）" value={cfg.pref} onChange={(e) => setCfg({ ...cfg, pref: e.target.value })} />
-          <button className="btn" onClick={() => { saveAiConfig(cfg); setSaved(true); setTimeout(() => setSaved(false), 1500); }}>{saved ? "已保存 ✓" : "保存配置"}</button>
-        </div>
-      </Sec>
-      <Sec title="AI 课程搜索">
-        <div style={{ fontSize: 11, color: "var(--text-3)", marginBottom: 6 }}>基于当前筛选结果 + 当前预览课表，AI 在不冲突的课程中推荐</div>
-        <textarea className="input" style={{ ...inp, height: 52 }} placeholder="描述你想要的课（如：想选一门好拿A的通识课、周四下午有空的任选…）" value={searchPrompt} onChange={(e) => setSearchPrompt(e.target.value)} />
-        <button className="btn" style={{ marginTop: 6, borderColor: "var(--accent)", color: "var(--accent)" }} onClick={() => void runSearch()}>AI 搜索推荐</button>
-        {searchSt ? <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 4 }}>{searchSt}</div> : null}
-        {searchRes.length ? (
-          <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
-            {searchRes.map((x, i) => {
-              const row = wb.courses.find((r) => r.c.code === x.code && (!x.seq || r.c.seq === x.seq));
-              return (
-                <div key={i} style={{ fontSize: 11, padding: "4px 6px", borderRadius: 6, background: "var(--bg-elev, #f7f7f8)", display: "flex", gap: 6, alignItems: "center" }}>
-                  <span style={{ flex: 1, minWidth: 0 }}>{row ? row.name : x.code}<span style={{ color: "var(--text-3)" }}> · {x.reason}</span></span>
-                  <button className="btn" style={{ padding: "0 5px", fontSize: 10 }} onClick={() => stageFromAi(x.code, x.seq)}>暂存</button>
-                </div>
-              );
-            })}
-          </div>
-        ) : null}
-      </Sec>
-      <Sec title="AI 智能排课">
-        <div style={{ fontSize: 11, color: "var(--text-3)", marginBottom: 6 }}>AI 根据必修/体育课 + 偏好自动生成完整课表方案</div>
-        <button className="btn" style={{ borderColor: "var(--accent)", color: "var(--accent)" }} onClick={() => void runSchedule()}>AI 智能排课</button>
-        {aiSt ? <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 4 }}>{aiSt}</div> : null}
-        {aiRes.length ? (
-          <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
-            <div style={{ fontSize: 11, color: "var(--text-3)" }}>生成 {aiRes.length} 门 · <button className="btn" style={{ padding: "0 5px", fontSize: 10 }} onClick={() => { for (const x of aiRes) stageFromAi(x.code, x.seq, x.flag, x.zy); }}>全部暂存</button></div>
-            {aiRes.map((x, i) => {
-              const row = wb.courses.find((r) => r.c.code === x.code && (!x.seq || r.c.seq === x.seq));
-              return (
-                <div key={i} style={{ fontSize: 11, padding: "4px 6px", borderRadius: 6, background: "var(--bg-elev, #f7f7f8)", display: "flex", gap: 6, alignItems: "center" }}>
-                  <span style={{ flex: 1, minWidth: 0 }}>{row ? `${row.name}(${row.teacher}) ${row.time}` : `${x.code}${x.flag ? ` ${x.flag}` : ""}`}</span>
-                  <button className="btn" style={{ padding: "0 5px", fontSize: 10 }} onClick={() => stageFromAi(x.code, x.seq, x.flag, x.zy)}>暂存</button>
-                </div>
-              );
-            })}
-          </div>
-        ) : null}
-      </Sec>
-    </>
   );
 }
 
