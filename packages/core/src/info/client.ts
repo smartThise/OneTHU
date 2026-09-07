@@ -2443,6 +2443,8 @@ export class InfoClient {
     return this.#withRenew(async () => {
       await this.#ensureLibrary();
       const token = await this.#libraryAccessToken();
+      // R10：userid 与 token 配对校验——同订座，用座位系统自报权威值
+      const uid = InfoClient.libUserid || userId;
       const text = await this.#http.text(`${urls.LIBRARY_CANCEL_BOOKING()}${encodeURIComponent(recordId)}`, {
         ...this.#campusInit(),
         method: "POST",
@@ -2450,7 +2452,7 @@ export class InfoClient {
         body: new URLSearchParams({
           _method: "delete",
           id: recordId,
-          userid: userId,
+          userid: uid,
           access_token: token,
           operateChannel: "2",
         }).toString(),
