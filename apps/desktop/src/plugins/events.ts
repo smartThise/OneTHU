@@ -12,10 +12,11 @@ const listeners = new Set<() => void>();
 let started = false;
 
 function push(id: string, ev: PluginEvent): void {
+  // R9 关键修复：必须换新数组引用——useSyncExternalStore 按引用比较快照，
+  // 原地 push 会让 React 认为什么都没发生（dock 流式/思考链从第一天起就没触发过）
   const arr = buf.get(id) ?? [];
-  arr.push(ev);
-  if (arr.length > MAX) arr.splice(0, arr.length - MAX);
-  buf.set(id, arr);
+  const next = arr.length >= MAX ? [...arr.slice(arr.length - MAX + 1), ev] : [...arr, ev];
+  buf.set(id, next);
   for (const l of listeners) l();
 }
 
