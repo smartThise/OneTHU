@@ -300,6 +300,13 @@ export class InfoClient {
     InfoClient.libTokenInflight = null;
     InfoClient.libCacheClear();
     this.#libRoamed = false;
+    // 研讨间同款（图书馆静态跨会话教训的镜像）：登出/换号后 cab 会话不得残留，
+    // 否则下个账号会被 TTL 快路径接进上一人的 cab 会话
+    InfoClient.libRoomAuthUser = "";
+    InfoClient.libRoomAuthTs = 0;
+    InfoClient.libRoomInflight = null;
+    this.#libRoomAccNo = null;
+    this.#libRoomPid = null;
     this.lastDebug = "";
   }
 
@@ -2847,10 +2854,29 @@ export class InfoClient {
     });
   }
 
-  /** 取消预约（library.ts cancelLibraryRoomBooking；POST {uuid}） */
+  /** 取消预约（library.ts cancelLibraryRoomBooking；POST {uuid}）。
+   *  图书馆教训移植：取消报错≠没取消——响应丢失/服务端已落账时状态未知，
+   *  复核我的预约：uuid 已不在 = 其实已取消 → 按成功返回，不吓用户。 */
   async cancelLibRoomBooking(userId: string, uuid: string): Promise<void> {
     return this.#withLibRoom(userId, async () => {
-      await this.#cabFetch(urls.LIBROOM_CANCEL(), { uuid });
+      try {
+        await this.#cabFetch(urls.LIBROOM_CANCEL(), { uuid });
+      } catch (e) {
+        if (e instanceof AuthRequiredError) throw e;
+        // 给服务端一点落账时间再复核（同图书馆 5745e4e 语义）
+        await new Promise((r) => setTimeout(r, 800));
+        const fmt = (d: Date): string =>
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const now = new Date();
+        const recs = await this.#cabFetch<Array<Record<string, unknown>>>(
+          `${urls.LIBROOM_RECORD()}&beginDate=${fmt(now)}&endDate=${fmt(new Date(now.getTime() + 6 * 86_400_000))}`,
+        ).catch(() => null);
+        if (recs !== null && !recs.some((r) => String(r.uuid ?? "") === uuid)) {
+          this.lastDebug = "LIBROOM-CANCEL 复核：记录已消失 → 按已成功处理";
+          return;
+        }
+        throw e;
+      }
     });
   }
 
