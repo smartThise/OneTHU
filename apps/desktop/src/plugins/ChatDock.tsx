@@ -384,12 +384,17 @@ export function ChatDock(): ReactNode {
       setNotice(r?.error ?? "导出失败");
       return;
     }
-    const blob = new Blob([r.json], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `onethu-harness-${(r.sessionId ?? "session").slice(0, 18)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    // R10：WKWebView 无下载管理器，a[download] 点击静默无效——宿主代写 ~/Downloads
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const path = await invoke<string>("save_text_file", {
+        filename: `onethu-harness-${(r.sessionId ?? "session").slice(0, 18)}.json`,
+        contents: r.json,
+      });
+      setNotice(`已导出：${path}`);
+    } catch (e) {
+      setNotice(`导出失败：${e instanceof Error ? e.message : String(e)}`);
+    }
   };
 
   const importSession = async (f: File): Promise<void> => {

@@ -249,6 +249,22 @@ fn percent_decode(s: &str) -> Option<String> {
     String::from_utf8(out).ok()
 }
 
+/// 文本落盘到 ~/Downloads（dock 导出会话等用）：Tauri WKWebView 不支持
+/// a[download] blob 点击下载（无下载管理器，静默无效），必须宿主代写。
+#[tauri::command]
+fn save_text_file(filename: String, contents: String) -> Result<String, String> {
+    let home = std::env::var("HOME").map_err(|_| "无法定位主目录".to_string())?;
+    let dir = std::path::Path::new(&home).join("Downloads");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    // 防路径穿越：只取文件名部分
+    let safe = std::path::Path::new(&filename)
+        .file_name()
+        .ok_or_else(|| "非法文件名".to_string())?;
+    let path = dir.join(safe);
+    std::fs::write(&path, contents).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().to_string())
+}
+
 /// 带会话 Cookie 下载文件到 ~/Downloads（learn 直连；登录失效/空文件识别拒绝）。
 /// 落盘名：响应 Content-Disposition 真名优先，其次调用方传入名（title.fileType）。
 #[tauri::command]
@@ -831,7 +847,7 @@ tauri::Builder::default()
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            log_debug,read_file_text,http_request,download_file,fetch_binary,state_read,state_write,state_delete,
+            log_debug,read_file_text,http_request,download_file,fetch_binary,save_text_file,state_read,state_write,state_delete,
             open_external,open_eid_window,open_sports_window,venue_sso_set,
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,
             harness_embed::harness_start,harness_embed::harness_call,harness_embed::harness_notify,harness_embed::harness_rpc_reply,harness_embed::harness_stop])
