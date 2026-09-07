@@ -193,16 +193,20 @@ export async function logLine(text: string): Promise<void> {
 }
 
 // R10：图书馆首页全量转储（log_debug 单行有截断，分块绕过）
-{
-  const { InfoClient } = await import("@onethu/core");
-  InfoClient.onDebugDump = (label, content) => {
-    const CHUNK = 6000;
-    const n = Math.ceil(content.length / CHUNK);
-    for (let i = 0; i < n; i++) {
-      void logLine(`DUMP ${label} ${i + 1}/${n}: ${content.slice(i * CHUNK, (i + 1) * CHUNK)}`);
-    }
-  };
-}
+void (async () => {
+  try {
+    const { InfoClient } = await import("@onethu/core");
+    InfoClient.onDebugDump = (label, content) => {
+      const CHUNK = 6000;
+      const n = Math.ceil(content.length / CHUNK);
+      for (let i = 0; i < n; i++) {
+        void logLine(`DUMP ${label} ${i + 1}/${n}: ${content.slice(i * CHUNK, (i + 1) * CHUNK)}`);
+      }
+    };
+  } catch {
+    /* 钩子失败不影响主流程 */
+  }
+})();
 
 async function dumpDebug(err: unknown): Promise<void> {
   if (err instanceof Error && isTauri) {
