@@ -76,8 +76,11 @@ async function ensureRpcListener(): Promise<void> {
       // R9：绝不能静默丢弃——sidecar 会等回执直到超时（此前 💾 写盘… 卡死即此类丢包）
       // 内嵌（Android）必须走 harness_rpc_reply——写死 sidecar 命令 = 回执永远
       // 不到桥线程，内嵌挂等 BRIDGE_TIMEOUT（600s）→ 登录/恢复会话全链冻结（实录）
-      const fallbackCmd = embeddedIds.has(pluginId) ? "harness_rpc_reply" : "plugin_rpc_reply";
-      await invoke(fallbackCmd, { pluginId, id, ok: false, result: "门面未绑定（页面重载后未恢复）" }).catch(
+      // 双命令兜底：embeddedIds 登记时序与首个 boot 调用存在竞态（0.8.0 安卓全操作
+      // 延迟 ~10s 实录）——先试内嵌回执，失败自动走 sidecar 回执，杜绝回执丢失
+      await invoke("harness_rpc_reply", { pluginId, id, ok: false, result: "门面未绑定（页面重载后未恢复）" }).catch(
+        () => invoke("plugin_rpc_reply", { pluginId, id, ok: false, result: "门面未绑定（页面重载后未恢复）" }).catch(
+          (e) => console.error("[plugin-rpc] 双路回执均失败", pluginId, id, e)));
         (e) => console.error("[plugin-rpc] 未绑定且回执失败", pluginId, id, e),
       );
       return;
