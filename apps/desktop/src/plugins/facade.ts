@@ -1,5 +1,6 @@
 /** 插件门面：把应用原子操作按权限包装成 onethu.* 公共接口 */
 import { info } from "../lib/clients.js";
+import { InfoClient } from "@onethu/core";
 import { universalFetch } from "../lib/transport.js";
 import { navGo, sessionStatus } from "./bridges.js";
 import { getPlugin, pluginStorageKey, updatePlugin } from "./registry.js";
@@ -129,7 +130,7 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
             return await info.bookLibrarySeat(seat, sectionId, dateChoice, appSession.username);
           } catch (e2) {
             const m2 = e2 instanceof Error ? e2.message : String(e2);
-            throw new Error(`${m2}（重试前会话重建: ${ensured}；userid=${appSession.username}）`);
+            throw new Error(`${m2}（重试前会话重建: ${ensured}；座位系统 uid=${InfoClient.libUserid || "?"}）`);
           }
         }
       },
