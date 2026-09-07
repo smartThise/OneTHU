@@ -441,7 +441,7 @@ export function ChatDock(): ReactNode {
       {open ? (
         <div className="dock-panel" role="dialog" aria-label="OneTHU Harness 对话">
           <div className="dock-head">
-            <span className="dock-title"><HarnessMark size={13} /> Harness</span>
+            <span className="dock-title"><HarnessMark size={13} /> 小OH</span>
             <div className="dock-ops">
               <button className="btn dock-btn" title="新建会话" onClick={() => void newSession()}>新会话</button>
               <button className="btn dock-btn" title="历史会话" onClick={() => void openHistory()}>历史</button>
