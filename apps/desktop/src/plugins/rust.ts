@@ -68,7 +68,13 @@ async function ensureRpcListener(): Promise<void> {
   await listen<{ pluginId: string; id: number; method: string; params: any }>("plugin-rpc", async (ev) => {
     const { pluginId, id, method, params } = ev.payload;
     const handler = rpcHandlers.get(pluginId);
-    if (!handler) return;
+    if (!handler) {
+      // R9：绝不能静默丢弃——sidecar 会等回执直到超时（此前 💾 写盘… 卡死即此类丢包）
+      await invoke("plugin_rpc_reply", { pluginId, id, ok: false, result: "门面未绑定（页面重载后未恢复）" }).catch(
+        (e) => console.error("[plugin-rpc] 未绑定且回执失败", pluginId, id, e),
+      );
+      return;
+    }
     let ok = true;
     let result: unknown = null;
     try {
@@ -83,7 +89,10 @@ async function ensureRpcListener(): Promise<void> {
     }
     // 回执分轨：内嵌 → harness_rpc_reply（App 内桥）；sidecar → plugin_rpc_reply（stdin 泵）
     const replyCmd = embeddedIds.has(pluginId) ? "harness_rpc_reply" : "plugin_rpc_reply";
-    await invoke(replyCmd, { pluginId, id, ok, result: ok ? result : String(result) }).catch(() => undefined);
+    await invoke(replyCmd, { pluginId, id, ok, result: ok ? result : String(result) }).catch((e) =>
+      // R9：回执失败必须留痕——静吞 = sidecar 挂等
+      console.error("[plugin-rpc] 回执写回失败", replyCmd, pluginId, id, e),
+    );
   });
   rpcListenerReady = true;
 }
