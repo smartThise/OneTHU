@@ -162,16 +162,16 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
     coursex: wrap({
       semesters: async () => {
         const { getCourseXSemesters } = await import("@onethu/core");
-        return getCourseXSemesters(universalFetch);
+        return withExternalTimeout(getCourseXSemesters(universalFetch));
       },
       search: async (q: string, semester?: string) => {
         const { searchCourseXPublic } = await import("@onethu/core");
-        return searchCourseXPublic(universalFetch, q, semester);
+        return withExternalTimeout(searchCourseXPublic(universalFetch, q, semester));
       },
       detail: async (id: string) => {
         const { getCourseXDetailPublic } = await import("@onethu/core");
         try {
-          const d = await getCourseXDetailPublic(universalFetch, id);
+          const d = await withExternalTimeout(getCourseXDetailPublic(universalFetch, id));
           if (!d) return { id, error: "详情页无可解析卡片（页面结构变更?）" };
           return d;
         } catch (e) {
@@ -318,11 +318,33 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
 }
 
 /* ═══ 小OH 扩展（learn/venue/xk/kongjian）辅助 ═══ */
-/** zhjwxk 会话：本机记住的凭据 + 设备指纹按需构建（零存储，函数内短命） */
+/**
+ * zhjwxk 会话：本机记住的凭据 + 设备指纹。必须模块级缓存同一个对象——
+ * core 的入口缓存按会话对象（WeakMap）存，每次新建对象=每次重跑整条
+ * xklogin 链（最多 25 跳）：又慢又容易「登录未落地」（2026-09-07 19:29 实录）。
+ */
+let _xkSession: import("@onethu/core").ZhjwxkSession | null = null;
 async function xkSession(): Promise<import("@onethu/core").ZhjwxkSession> {
   const cred = await loadRemembered();
   if (!cred) throw new Error("本机无记住的密码：请开启「记住密码」并重新登录一次后使用选课功能");
-  return { http, username: cred.username, password: cred.password, fingerprint: await currentFingerprint() };
+  if (_xkSession && _xkSession.username === cred.username && _xkSession.password === cred.password) {
+    return _xkSession;
+  }
+  _xkSession = { http, username: cred.username, password: cred.password, fingerprint: await currentFingerprint() };
+  return _xkSession;
+}
+
+/** 外网公网站点（CourseX tsinghua.app）无 SLA：统一 8s 超时，防无限挂起拖死桥 */
+async function withExternalTimeout<T>(p: Promise<T>, ms = 8000, label = "CourseX"): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, rej) => {
+    timer = setTimeout(() => rej(new Error(`${label} 响应超时（${ms / 1000} 秒），站点可能限流，稍后再试`)), ms);
+  });
+  try {
+    return await Promise.race([p, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 const venue = venueClient;
 
