@@ -105,7 +105,23 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
         const nameOf = new Map(courses.map((c) => [c.id, c.name]));
         return list.map((n) => ({ ...n, courseName: nameOf.get(n.courseId) ?? "" }));
       },
-      files: (courseId: string) => learn.getFileList(courseId),
+      files: async (courseId: string, semesterId?: string) => {
+        if (semesterId) {
+          const courses = await learn.getCourseList(semesterId);
+          if (!courses.some((c) => c.id === courseId)) {
+            throw new Error(`课程 ${courseId} 不在学期 ${semesterId} 的课程列表中（跨学期请确认 semesterId）`);
+          }
+        }
+        return learn.getFileList(courseId);
+      },
+      reply: (wlkcid: string, threadId: string, content: string) => {
+        gate(perms, "learn:write", "learn.reply");
+        return learn.postBbsReply(wlkcid, threadId, content);
+      },
+      post: (wlkcid: string, bqid: string, title: string, html: string) => {
+        gate(perms, "learn:write", "learn.post");
+        return learn.postBbsThread(wlkcid, { bqid, title, html });
+      },
       bbsBoards: (wlkcid: string) => learn.getBbsBoards(wlkcid),
       bbsThreads: (wlkcid: string, opts?: { bqid?: string; kind?: "yb" | "jh" | "cy"; start?: number; length?: number }) =>
         learn.getBbsThreads(wlkcid, {

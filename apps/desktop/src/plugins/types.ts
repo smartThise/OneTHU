@@ -19,6 +19,7 @@ export type PluginPermission =
   | "library:book" // 图书馆座位预约/取消 + 研讨间预约/取消（写操作）
   | "network:read" // 校园网账户/设备/余额（只读）
   | "learn:read" // 网络学堂课程/作业/通知/文件/讨论区（只读）
+  | "learn:write" // 网络学堂讨论区发帖/回帖（写操作，需确认）
   | "venue:read" // 体育场馆场景/场地/我的预约（只读）
   | "venue:book" // 体育场馆预约/取消（写操作）
   | "xk:read" // 选课目录/已选/志愿/社区评价（只读）
@@ -32,6 +33,7 @@ export const PLUGIN_PERMISSIONS: ReadonlyArray<{ id: PluginPermission; label: st
   { id: "user:read", label: "读取基本信息", desc: "姓名/学号/院系与登录会话状态" },
   { id: "info:read", label: "读取信息门户", desc: "成绩、考试、新闻、校历、空教室、缴费记录等只读查询" },
   { id: "learn:read", label: "读取网络学堂", desc: "课程/作业/通知/文件/讨论区只读查询" },
+  { id: "learn:write", label: "网络学堂发帖", desc: "讨论区发帖/回帖（写操作，需确认）" },
   { id: "venue:read", label: "读取体育场馆", desc: "场馆场景/可约场地/我的预约只读查询" },
   { id: "venue:book", label: "预约与取消场馆", desc: "体育场馆预约与取消（写操作，需确认）" },
   { id: "xk:read", label: "读取选课数据", desc: "选课目录/已选/志愿/社区评价只读查询" },
@@ -135,7 +137,9 @@ export interface OnethuApi {
     courses(semesterId?: string): Promise<{ semester: string; courses: import("@onethu/core").CourseInfo[] }>;
     homework(semesterId?: string): Promise<Array<import("@onethu/core").Homework & { courseName: string }>>;
     notifications(semesterId?: string): Promise<Array<import("@onethu/core").Notification & { courseName: string }>>;
-    files(courseId: string): Promise<import("@onethu/core").CourseFile[]>;
+    files(courseId: string, semesterId?: string): Promise<import("@onethu/core").CourseFile[]>;
+    reply(wlkcid: string, threadId: string, content: string): Promise<void>;
+    post(wlkcid: string, bqid: string, title: string, html: string): Promise<void>;
     bbsBoards(wlkcid: string): Promise<import("@onethu/core").LearnBbsBoard[]>;
     bbsThreads(wlkcid: string, opts?: { bqid?: string; kind?: "yb" | "jh" | "cy"; start?: number; length?: number }): Promise<{ total: number; threads: import("@onethu/core").LearnBbsThreadSummary[] }>;
     bbsThread(wlkcid: string, threadId: string, bqId?: string): Promise<import("@onethu/core").LearnBbsThreadDetail>;
