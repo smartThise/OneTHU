@@ -87,6 +87,8 @@ struct HarnessLive {
     tx: mpsc::Sender<AgentMsg>,
     interrupt: Arc<AtomicBool>,
     bridge: Arc<BridgeState>,
+    /// 控制命令快速路用：调用线程以独立 AgentCtx 直发桥（不经 agent 串行队列）
+    call_tx: mpsc::Sender<CallReq>,
 }
 
 /// 全部在跑的内嵌 harness 实例
@@ -183,7 +185,10 @@ pub fn harness_start(
         .live
         .lock()
         .map_err(|_| "状态锁中毒".to_string())?
-        .insert(plugin_id.clone(), Arc::new(HarnessLive { tx: msg_tx, interrupt, bridge }));
+        .insert(
+            plugin_id.clone(),
+            Arc::new(HarnessLive { tx: msg_tx, interrupt, bridge, call_tx: call_tx.clone() }),
+        );
     let _ = app.emit(
         "plugin-event",
         json!({ "pluginId": plugin_id, "method": "spawned", "params": { "mode": "embedded" } }),
@@ -195,6 +200,7 @@ pub fn harness_start(
 /// 专属线程，不占异步运行时）。超时与 sidecar 的 plugin_call 同款默认 600s。
 #[tauri::command]
 pub fn harness_call(
+    app: AppHandle,
     state: tauri::State<'_, HarnessHost>,
     plugin_id: String,
     method: String,
@@ -208,6 +214,19 @@ pub fn harness_call(
         .get(&plugin_id)
         .cloned()
         .ok_or(format!("内嵌插件未运行：{plugin_id}"))?;
+    // 控制命令快速路：chat 之外的 run 直接在调用线程分发——不被在跑的长任务卡住，
+    // 否则新会话/历史/导入导出在 chat 进行中形同死键（与 sidecar 旁路线程同语义）。
+    // 绝不 reset_interrupt：会清掉在跑 chat 的打断标志。
+    if method == "run" {
+        let command = params.get("command").and_then(|v| v.as_str()).unwrap_or("");
+        if command != "chat" && !command.is_empty() {
+            let command = command.to_string();
+            let input = params.get("input").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let mut ctx = AgentCtx { call_tx: live.call_tx.clone(), interrupt: live.interrupt.clone() };
+            let emit = AgentEmit { app, plugin_id: plugin_id.clone() };
+            return Ok(dispatch(&mut ctx, &emit, &command, &input));
+        }
+    }
     let (tx, rx) = mpsc::channel::<Result<Value, String>>();
     live.tx
         .send(AgentMsg::Run { method: method.clone(), params, reply: tx })

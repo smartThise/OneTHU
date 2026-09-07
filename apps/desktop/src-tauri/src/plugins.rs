@@ -131,7 +131,30 @@ pub async fn plugin_spawn(
                 let method = method.unwrap();
                 let params = msg.get("params").cloned().unwrap_or(Value::Null);
                 if id.is_some() {
-                    // 插件 → host 请求（onethu.call 等）：转 webview 门面执行后回写
+                    // R9：storage.* 宿主文件直答——大 payload（整个会话库）会被 webview IPC
+                    // 上限静默吞掉（emit/invoke 双侧都吞错），表现为桥调用永远等超时。
+                    // 存储是最高频+最大载荷的桥调用，理应由宿主本地文件承接。
+                    let ns = params.get("ns").and_then(|v| v.as_str()).unwrap_or("");
+                    if method == "onethu.call" && ns == "storage" {
+                        let m = params.get("method").and_then(|v| v.as_str()).unwrap_or("");
+                        let args = params.get("args").cloned().unwrap_or(Value::Array(vec![]));
+                        let result = storage_call(&app, &pid, m, args);
+                        if let Some(proc) = host
+                            .state::<PluginHost>()
+                            .procs
+                            .lock()
+                            .ok()
+                            .and_then(|mm| mm.get(&pid).cloned())
+                        {
+                            let _ = write_line(
+                                &proc,
+                                &json!({"jsonrpc": "2.0", "id": id, "result": result}),
+                            )
+                            .await;
+                        }
+                        continue;
+                    }
+                    // 其余 onethu.call：转 webview 门面执行后回写
                     let _ = app.emit(
                         "plugin-rpc",
                         json!({"pluginId": pid, "id": id, "method": method, "params": params}),
@@ -152,6 +175,48 @@ pub async fn plugin_spawn(
         json!({"pluginId": plugin_id, "method": "spawned", "params": {"bin": bin_path}}),
     );
     Ok(())
+}
+
+/// 宿主侧插件存储：app_data/plugin-storage/<pluginId>.json 单文件 KV。
+/// 只服务 stdio 插件的 storage.* 桥调用（读循环内直答，毫秒级、无 IPC 上限）。
+fn storage_call(app: &tauri::AppHandle, pid: &str, method: &str, args: Value) -> Value {
+    use std::collections::BTreeMap;
+    let Ok(dir) = app.path().app_data_dir().map(|d| d.join("plugin-storage")) else {
+        return Value::Null;
+    };
+    let _ = std::fs::create_dir_all(&dir);
+    let file = dir.join(format!("{}.json", pid));
+    let mut map: BTreeMap<String, Value> = std::fs::read_to_string(&file)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default();
+    match method {
+        "get" => {
+            let key = args.get(0).and_then(|v| v.as_str()).unwrap_or("");
+            map.get(key).cloned().unwrap_or(Value::Null)
+        }
+        "set" => {
+            let key = args.get(0).and_then(|v| v.as_str()).unwrap_or("").to_string();
+            map.insert(key, args.get(1).cloned().unwrap_or(Value::Null));
+            if let Ok(body) = serde_json::to_string(&map) {
+                let tmp = file.with_extension("json.tmp");
+                if std::fs::write(&tmp, &body).is_ok() {
+                    let _ = std::fs::rename(&tmp, &file); // 原子替换，防写半截
+                }
+            }
+            Value::Null
+        }
+        "remove" => {
+            let key = args.get(0).and_then(|v| v.as_str()).unwrap_or("");
+            map.remove(key);
+            if let Ok(body) = serde_json::to_string(&map) {
+                let _ = std::fs::write(&file, body);
+            }
+            Value::Null
+        }
+        "keys" => json!(map.keys().cloned().collect::<Vec<String>>()),
+        _ => Value::Null,
+    }
 }
 
 async fn write_line(proc: &Arc<ProcIo>, line: &Value) -> Result<(), String> {
