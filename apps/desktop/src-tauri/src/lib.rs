@@ -272,8 +272,8 @@ fn plugin_dir(app: &tauri::AppHandle, id: &str) -> Result<std::path::PathBuf, St
     Ok(plugins_root(app)?.join(id))
 }
 
-/// 导入 rust 插件：把 manifest.json 与二进制复制进 plugins/<id>/，返回新 binPath。
-/// manifest_dir=用户选择的 manifest 所在目录；bin=manifest.bin 声明的文件名。
+/// 导入 rust 插件（文件夹形态）：把所选目录全部文件复制进 plugins/<id>/，
+/// 返回新 binPath。manifest.json + 二进制 + logo.svg 整包随行。
 #[tauri::command]
 fn plugin_dir_install_rust(
     app: tauri::AppHandle,
@@ -285,11 +285,15 @@ fn plugin_dir_install_rust(
     let dir = plugin_dir(&app, &id)?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let src = Path::new(&manifest_dir);
-    for name in ["manifest.json", bin.as_str()] {
-        let from = src.join(name);
-        let data = std::fs::read(&from)
-            .map_err(|e| format!("读取 {name} 失败：{e}"))?;
-        std::fs::write(dir.join(name), data).map_err(|e| format!("写入 {name} 失败：{e}"))?;
+    let rd = std::fs::read_dir(src).map_err(|e| format!("读取目录失败：{e}"))?;
+    for entry in rd {
+        let entry = entry.map_err(|e| e.to_string())?;
+        if !entry.file_type().map(|t| t.is_file()).unwrap_or(false) {
+            continue;
+        }
+        let name = entry.file_name();
+        let data = std::fs::read(entry.path()).map_err(|e| format!("读取 {:?} 失败：{e}", name))?;
+        std::fs::write(dir.join(&name), data).map_err(|e| format!("写入 {:?} 失败：{e}", name))?;
     }
     let bin_path = dir.join(&bin);
     #[cfg(unix)]
@@ -298,6 +302,133 @@ fn plugin_dir_install_rust(
         let _ = std::fs::set_permissions(&bin_path, std::fs::Permissions::from_mode(0o755));
     }
     Ok(bin_path.to_string_lossy().to_string())
+}
+
+/// zip 防路径穿越（zip-slip）：展开路径必须留在目标目录内
+fn zip_safe_path(dir: &std::path::Path, name: &str) -> Result<std::path::PathBuf, String> {
+    let rel = std::path::Path::new(name);
+    if name.starts_with('/') || name.contains('\\') && name.contains("..")
+        || rel.components().any(|c| matches!(c, std::path::Component::ParentDir | std::path::Component::RootDir | std::path::Component::Prefix(_)))
+    {
+        return Err(format!("zip 内非法路径：{name}"));
+    }
+    Ok(dir.join(rel))
+}
+
+/// 导入插件压缩包（rust/js 通用）：安全解包进 plugins/<id>/ 并返回登记所需信息。
+/// rust → binPath；js → 返回入口 js 源码（注册表仍存 code，目录留存文件与 logo）。
+#[tauri::command]
+fn plugin_dir_import_zip(
+    app: tauri::AppHandle,
+    zip_path: String,
+) -> Result<serde_json::Value, String> {
+    use std::io::Read;
+    let file = std::fs::File::open(&zip_path).map_err(|e| format!("打开压缩包失败：{e}"))?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("读取压缩包失败：{e}"))?;
+    // 先读 manifest.json 定 id（支持根目录或单一一级子目录）
+    let mut manifest_text: Option<String> = None;
+    let mut prefix = String::new();
+    {
+        for i in 0..archive.len() {
+            let mut e = archive.by_index(i).map_err(|e| e.to_string())?;
+            let name = e.name().to_string();
+            if e.is_dir() { continue; }
+            let parts: Vec<&str> = name.split('/').filter(|p| !p.is_empty()).collect();
+            if parts.last() == Some(&"manifest.json") && parts.len() <= 2 {
+                let mut text = String::new();
+                e.read_to_string(&mut text).map_err(|er| er.to_string())?;
+                manifest_text = Some(text);
+                prefix = if parts.len() == 2 { format!("{}/", parts[0]) } else { String::new() };
+                break;
+            }
+        }
+    }
+    let manifest_text = manifest_text.ok_or("压缩包根目录未找到 manifest.json")?;
+    let manifest: serde_json::Value =
+        serde_json::from_str(&manifest_text).map_err(|e| format!("manifest.json 解析失败：{e}"))?;
+    let id = manifest
+        .get("id")
+        .and_then(|v| v.as_str())
+        .ok_or("manifest.json 缺 id")?
+        .to_string();
+    let kind = manifest.get("kind").and_then(|v| v.as_str()).unwrap_or("js").to_string();
+    let dir = plugin_dir(&app, &id)?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    // 整包解压（prefix 剥离一级目录）
+    for i in 0..archive.len() {
+        let mut e = archive.by_index(i).map_err(|er| er.to_string())?;
+        let name = e.name().to_string();
+        if e.is_dir() { continue; }
+        let rel = name.strip_prefix(&prefix).unwrap_or(&name).to_string();
+        if rel.is_empty() { continue; }
+        let out = zip_safe_path(&dir, &rel)?;
+        if let Some(pp) = out.parent() {
+            std::fs::create_dir_all(pp).map_err(|er| er.to_string())?;
+        }
+        let mut w = std::fs::File::create(&out).map_err(|er| er.to_string())?;
+        std::io::copy(&mut e, &mut w).map_err(|er| format!("解压 {rel} 失败：{er}"))?;
+    }
+    if kind == "rust" {
+        let bin = manifest
+            .get("bin")
+            .and_then(|v| v.as_str())
+            .ok_or("rust 插件 manifest 缺 bin")?
+            .to_string();
+        let bin_path = dir.join(&bin);
+        if !bin_path.exists() {
+            return Err(format!("压缩包内缺二进制：{bin}"));
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = std::fs::set_permissions(&bin_path, std::fs::Permissions::from_mode(0o755));
+        }
+        return Ok(serde_json::json!({
+            "kind": "rust", "manifest": manifest, "binPath": bin_path.to_string_lossy(),
+        }));
+    }
+    // js：入口 = manifest.entry 或根目录唯一 .js
+    let entry = manifest
+        .get("entry")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .or_else(|| {
+            std::fs::read_dir(&dir)
+                .ok()?
+                .filter_map(|r| r.ok())
+                .map(|r| r.file_name().to_string_lossy().to_string())
+                .filter(|n| n.ends_with(".js"))
+                .collect::<Vec<_>>()
+                .into_iter()
+                .next()
+        })
+        .ok_or("js 插件包缺入口（manifest.entry 或根目录 .js）")?;
+    let code = std::fs::read_to_string(dir.join(&entry)).map_err(|e| format!("读取 {entry} 失败：{e}"))?;
+    Ok(serde_json::json!({ "kind": "js", "manifest": manifest, "code": code }))
+}
+
+/// 插件 logo 读取（logo 随插件包走：plugins/<id>/logo.svg|png）→ dataURL
+#[tauri::command]
+fn plugin_logo_data(app: tauri::AppHandle, id: String) -> Result<Option<String>, String> {
+    let dir = plugin_dir(&app, &id)?;
+    for (name, mime) in [("logo.svg", "image/svg+xml"), ("logo.png", "image/png")] {
+        let p = dir.join(name);
+        if let Ok(bytes) = std::fs::read(&p) {
+            use base64::Engine as _;
+            return Ok(Some(format!("data:{mime};base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes))));
+        }
+    }
+    Ok(None)
+}
+
+/// 卸载时清插件目录
+#[tauri::command]
+fn plugin_dir_remove(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    let dir = plugin_dir(&app, &id)?;
+    if dir.exists() {
+        std::fs::remove_dir_all(&dir).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 /// 内置 OH sidecar 安装：把打包资源里的二进制复制进 plugins/onethu.harness/，
@@ -326,6 +457,12 @@ fn builtin_sidecar_install(app: tauri::AppHandle) -> Result<Option<String>, Stri
     };
     if need {
         std::fs::copy(&res, &dst).map_err(|e| format!("内置 sidecar 复制失败：{e}"))?;
+    }
+    // logo 随包（logo.svg 与二进制同目录打包在资源里）
+    if let Some(logo) = res.parent().map(|pp| pp.join("logo.svg")) {
+        if logo.exists() {
+            let _ = std::fs::copy(&logo, dir.join("logo.svg"));
+        }
     }
     #[cfg(unix)]
     {
@@ -948,7 +1085,7 @@ tauri::Builder::default()
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            log_debug,read_file_text,http_request,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,state_read,state_write,state_delete,
+            log_debug,read_file_text,http_request,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,plugin_dir_remove,state_read,state_write,state_delete,
             open_external,open_eid_window,open_sports_window,venue_sso_set,
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,
             harness_embed::harness_start,harness_embed::harness_call,harness_embed::harness_notify,harness_embed::harness_rpc_reply,harness_embed::harness_stop])

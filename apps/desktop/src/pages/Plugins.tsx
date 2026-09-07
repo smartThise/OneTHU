@@ -446,10 +446,36 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
       }
       const { open } = await import("@tauri-apps/plugin-dialog");
       const { invoke } = await import("@tauri-apps/api/core");
+      // R10：整包导入（zip 优先，兼容文件夹）——manifest + 二进制 + logo 整包随行
+      const mode = await new Promise<"zip" | "dir" | null>((res) => {
+        const z = window.confirm("确定=选择 .zip 插件包；取消=选择插件文件夹");
+        res(z ? "zip" : "dir");
+      });
+      if (!mode) return;
+      if (mode === "zip") {
+        const sel = await open({
+          multiple: false,
+          directory: false,
+          title: "选择插件压缩包（manifest.json + 二进制 + logo.svg）",
+          filters: [{ name: "插件包", extensions: ["zip"] }],
+        });
+        if (!sel) return;
+        const out = await invoke<{ kind: string; manifest: any; binPath?: string; code?: string }>(
+          "plugin_dir_import_zip",
+          { zipPath: typeof sel === "string" ? sel : String(sel) },
+        );
+        if (out.kind !== "rust" || !out.binPath) throw new Error("压缩包不是 rust 插件（缺 kind=rust/bin）");
+        addRustPlugin(out.manifest, out.binPath);
+        const { enablePlugin } = await import("../plugins/loader.js");
+        await enablePlugin(out.manifest.id);
+        setMsg(`已安装 Rust 插件：${out.manifest.name} v${out.manifest.version}`);
+        return;
+      }
+      // 文件夹形态：选 manifest.json，整目录复制
       const sel = await open({
         multiple: false,
         directory: false,
-        title: "选择 Rust 插件的 manifest.json（二进制须同目录）",
+        title: "选择插件文件夹内的 manifest.json",
         filters: [{ name: "manifest.json", extensions: ["json"] }],
       });
       if (!sel) return; // 用户取消
@@ -457,9 +483,6 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
       const manifest = JSON.parse(await invoke<string>("read_file_text", { path: mpath }));
       if (!manifest?.id || !manifest?.name) throw new Error("manifest.json 缺 id/name");
       if (manifest.kind !== "rust" || !manifest.bin) throw new Error("manifest.kind 须为 rust 且声明 bin");
-      const abs = mpath.replace(/[^/]+$/, manifest.bin);
-      // R10 架构：一切导入统一落插件目录 appData/plugins/<id>/，注册表不再指向
-      // 用户下载/临时目录（原路径随时可能被清理）
       const mdir = mpath.replace(/[^/\\]+$/, "");
       const newBin = await invoke<string>("plugin_dir_install_rust", {
         id: String(manifest.id),

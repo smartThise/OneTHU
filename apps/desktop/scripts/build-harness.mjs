@@ -25,5 +25,7 @@ if (!existsSync(built)) {
 }
 mkdirSync(resDir, { recursive: true });
 copyFileSync(built, join(resDir, exeName));
+const logo = join(harnessDir, "logo.svg");
+if (existsSync(logo)) copyFileSync(logo, join(resDir, "logo.svg"));
 const mb = (statSync(join(resDir, exeName)).size / 1048576).toFixed(1);
 console.log(`[2/2] 已就位 resources/plugins/onethu.harness/${exeName}（${mb} MB）`);

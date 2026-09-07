@@ -179,6 +179,11 @@ export async function disablePlugin(id: string): Promise<void> {
 export async function uninstallPlugin(id: string): Promise<void> {
   await deactivate(id).catch(() => undefined);
   removePlugin(id);
+  // 插件目录一并清理（内置插件在 UI 层不可删，不会走到这里）
+  if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("plugin_dir_remove", { id }).catch(() => undefined);
+  }
 }
 export async function runCommand(pluginId: string, cmdId: string, input: string): Promise<unknown> {
   const rec = getPlugin(pluginId);
