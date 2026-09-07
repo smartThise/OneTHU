@@ -1644,6 +1644,13 @@ export class InfoClient {
           ? html
           : "";
       if (!table) {
+        // R10：wengine 路由失败页（PARSE_FAILED/该链接无法访问）≠ 记录页——
+        // 旧版通道缺陷产物，报错要指向根因（版本/网络），别让人对着 .myTable 发懵
+        if (/该链接无法访问|PARSE_FAILED|wengine-vpn\/failed/i.test(html)) {
+          throw new Error(
+            "webvpn 无法路由 myhome（链接解码失败或校网出口异常）——请确认已更新到最新版本；仍复发请截图日志反馈",
+          );
+        }
         throw new Error(
           `电费缴费记录页无 .myTable（body首段: ${html.slice(0, 200).replace(/\s+/g, " ")} | 现场: ${String(this.#http.lastDebug ?? "").slice(0, 160)}）`,
         );
