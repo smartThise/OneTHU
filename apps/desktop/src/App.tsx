@@ -88,7 +88,8 @@ function Routed() {
     <>
       {body}
       <PluginBridge />
-      {(status === "ready" || status === "demo") && <ChatDock />}
+      {/* 安卓暂不挂 dock：内嵌桥调用链在移动端仍有性能问题（0.8.0 实测），修好后再放开 */}
+      {(status === "ready" || status === "demo") && !/android/i.test(navigator.userAgent) && <ChatDock />}
       <FilePreviewHost />
     </>
   );
