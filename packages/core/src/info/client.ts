@@ -2068,8 +2068,27 @@ export class InfoClient {
       // list:null / [] = 无楼层（合法空态）；areas 端点 data.list 为对象（childArea）
       if (list == null || (Array.isArray(list) && list.length === 0)) return [];
       const root = Array.isArray(list) ? list[0] : list;
-      const children = (root as Record<string, unknown> | undefined)?.childArea;
-      if (!Array.isArray(children)) throw new Error("图书馆楼层解析失败（childArea 缺失）");
+      let children: unknown = (root as Record<string, unknown> | undefined)?.childArea;
+      // R10 兼容多形态：data.list 可能是「单对象带 childArea」（原形态）、
+      // 「数组且每项带 childArea」、「就是楼层对象数组」、或「对象内嵌 list 数组」
+      if (!Array.isArray(children) && Array.isArray(list)) {
+        const merged: unknown[] = [];
+        for (const item of list) {
+          const it = item as Record<string, unknown> | null;
+          const ca = it?.childArea;
+          if (Array.isArray(ca)) merged.push(...ca);
+          else if (it && it.id != null && it.name != null) merged.push(item);
+        }
+        if (merged.length) children = merged;
+      }
+      if (!Array.isArray(children)) {
+        const inner = (root as Record<string, unknown> | undefined)?.list;
+        if (Array.isArray(inner)) children = inner;
+      }
+      if (!Array.isArray(children)) {
+        const snap = JSON.stringify(list)?.slice(0, 300) ?? "null";
+        throw new Error(`图书馆楼层解析失败（未识别的返回形态）：${snap}`);
+      }
       const floors: LibraryFloor[] = children.map((node) => {
         const n = node as Record<string, unknown>;
         const name = String(n.name ?? "");
@@ -3396,7 +3415,11 @@ export class InfoClient {
     return this.#withRenew(() =>
       this.#serviceRoamed(urls.LEARN_CALENDAR_ROAM_ID, async () => {
         const home = await this.#http.text(urls.LEARN_HOME());
-        const csrf = /_csrf=([\w-]+)/.exec(home)?.[1];
+        // R10：_csrf 可能出现在 URL 参数 / 表单 hidden 域 / JS 变量——三种形态都试
+        const csrf =
+          /_csrf=([\w-]+)/.exec(home)?.[1] ??
+          /name="_csrf"[^>]*value="([\w-]+)"/.exec(home)?.[1] ??
+          /"_csrf"\s*:\s*"([\w-]+)"/.exec(home)?.[1];
         if (!csrf) {
           throw new AuthRequiredError("校历：网络学堂会话未建立（首页无 _csrf）");
         }
