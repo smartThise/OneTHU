@@ -2463,23 +2463,44 @@ export class InfoClient {
       const token = await this.#libraryAccessToken();
       // R10：userid 与 token 配对校验——同订座，用座位系统自报权威值
       const uid = InfoClient.libUserid || userId;
-      const text = await this.#http.text(`${urls.LIBRARY_CANCEL_BOOKING()}${encodeURIComponent(recordId)}`, {
-        ...this.#campusInit(),
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          _method: "delete",
-          id: recordId,
-          userid: uid,
-          access_token: token,
-          operateChannel: "2",
-        }).toString(),
-      });
-      let data: { status?: number; msg?: string; message?: string };
+      const postCancel = () =>
+        Promise.race([
+          this.#http.text(`${urls.LIBRARY_CANCEL_BOOKING()}${encodeURIComponent(recordId)}`, {
+            ...this.#campusInit(),
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              _method: "delete",
+              id: recordId,
+              userid: uid,
+              access_token: token,
+              operateChannel: "2",
+            }).toString(),
+          }),
+          // webvpn 偶发正文挂死（200 头到、body 永不到）——20s 后按未知态处理
+          new Promise<never>((_, rej) =>
+            setTimeout(() => rej(new Error("__cancel_body_timeout__")), 20_000),
+          ),
+        ]);
+      const parseCancel = (text: string): { status?: number; msg?: string; message?: string } => {
+        try {
+          return JSON.parse(text) as { status?: number; msg?: string; message?: string };
+        } catch {
+          throw new Error(`取消预约响应异常（resp=${text.slice(0, 100).replace(/\s+/g, " ")}）`);
+        }
+      };
+      let data;
       try {
-        data = JSON.parse(text) as typeof data;
-      } catch {
-        throw new Error(`取消预约响应异常（resp=${text.slice(0, 100).replace(/\s+/g, " ")}）`);
+        data = parseCancel(await postCancel());
+      } catch (e) {
+        if (!(e instanceof Error && e.message === "__cancel_body_timeout__")) throw e;
+        // 正文挂死 ≠ 取消失败：服务端大概率已处理。复核记录再下结论——
+        // 盲目报失败会诱导重试，白白烧掉每馆每日 1 次的取消额度
+        this.libRecordsCacheClear();
+        const recs = await this.getLibBookRecords().catch(() => []);
+        const gone = !recs.some((r) => r.delId === recordId || r.id === recordId);
+        if (gone) return;
+        throw new Error("取消请求超时：服务端状态未知，预约记录里仍有此单，请稍后重试");
       }
       // token 被上次成功操作轮换过（缓存值陈旧）→ 服务端回「请刷新页面后重新操作」；
       // 此错意味着首次必然未取消成功，作废重取后重试一次
