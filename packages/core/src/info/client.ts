@@ -275,6 +275,17 @@ export class InfoClient {
     this.#renewCard = hooks.card ?? null;
   }
 
+  /** ISeating 每次成功操作都会轮换 token（响应 data.hash）——吸收为新缓存值，
+   *  否则下一次操作拿旧 token 必被拒「请刷新页面后重新操作」 */
+  #absorbRotatedToken(data: unknown): void {
+    const h = (data as { hash?: { hash?: string; userid?: string } } | null)?.hash;
+    if (h?.hash && h?.userid) {
+      InfoClient.libToken = String(h.hash);
+      InfoClient.libUserid = String(h.userid);
+      InfoClient.libTokenTs = Date.now();
+    }
+  }
+
   /** 预约/取消成功后调用：作废预约记录热缓存，让紧随的刷新拿到真实新表 */
   libRecordsCacheClear(): void {
     this.#hotCache.delete("libBookRecords");
@@ -2385,7 +2396,7 @@ export class InfoClient {
       // 后端报「没有登录或登录已超时」（日志实证：records 渲染用户名而 book 被拒，
       // 全窗口无 f_second 抓取 = token 来自缓存）。作废缓存强制重取后重试一次；
       // 该错意味着首次必然未订上，重试无副作用。
-      if (!data.status && /登录|超时/.test(data.msg ?? data.message ?? "")) {
+      if (!data.status && /登录|超时|会话|刷新页面|重新操作/.test(data.msg ?? data.message ?? "")) {
         InfoClient.libToken = "";
         InfoClient.libTokenTs = 0;
         ({ text, token } = await post());
@@ -2398,6 +2409,7 @@ export class InfoClient {
       if (!data.status) {
         throw new Error(`${data.msg ?? data.message ?? "预约座位失败"}（token len=${token.length}；uid=${InfoClient.libUserid || userId}；${this.lastDebug}）`);
       }
+      this.#absorbRotatedToken(data);
       this.libRecordsCacheClear();
       return data;
     });
@@ -2469,7 +2481,32 @@ export class InfoClient {
       } catch {
         throw new Error(`取消预约响应异常（resp=${text.slice(0, 100).replace(/\s+/g, " ")}）`);
       }
+      // token 被上次成功操作轮换过（缓存值陈旧）→ 服务端回「请刷新页面后重新操作」；
+      // 此错意味着首次必然未取消成功，作废重取后重试一次
+      if (!data.status && /登录|超时|会话|刷新页面|重新操作/.test(data.msg ?? data.message ?? "")) {
+        InfoClient.libToken = "";
+        InfoClient.libTokenTs = 0;
+        const token2 = await this.#libraryAccessToken();
+        const text2 = await this.#http.text(`${urls.LIBRARY_CANCEL_BOOKING()}${encodeURIComponent(recordId)}`, {
+          ...this.#campusInit(),
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            _method: "delete",
+            id: recordId,
+            userid: uid,
+            access_token: token2,
+            operateChannel: "2",
+          }).toString(),
+        });
+        try {
+          data = JSON.parse(text2) as typeof data;
+        } catch {
+          throw new Error(`取消预约响应异常（resp=${text2.slice(0, 100).replace(/\s+/g, " ")}）`);
+        }
+      }
       if (!data.status) throw new Error(data.msg ?? data.message ?? "取消预约失败");
+      this.#absorbRotatedToken(data);
       this.libRecordsCacheClear();
     });
   }
