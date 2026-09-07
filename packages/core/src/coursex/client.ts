@@ -31,6 +31,8 @@ export interface CourseXSummary {
   englishName?: string;
   teacherName: string;
   semesterId: string;
+  /** 上课时间地点（搜索结果行内即有——人类看到的就是它；如「星期二第4节(全周)二教403」） */
+  timeLocation?: string;
 }
 
 export interface CourseXDetail {
@@ -108,23 +110,29 @@ export async function searchCourseXPublic(
   if (!res.ok) throw new Error(`课程共享计划搜索失败（HTTP ${res.status}）`);
   const html = await res.text();
   const out: CourseXSummary[] = [];
-  // 行形态：<tr><td>教师</td><td>课名<br/><span…>英文名</span></td><td>…href="/courses/{id}"
-  const rowRe =
-    /<tr><td>([\s\S]*?)<\/td><td>([\s\S]*?)<\/td><td[\s\S]*?href="\/courses\/([^"]+)"/g;
+  // 行形态（2026-09 实测整行抓取）：教师 | 课名<br>英文 | …时间地点格… | href="/courses/{id}"
+  // 时间地点就在搜索结果行内（人类流程：搜课名/教师即得），此前只抓前两列把它丢了
+  const rowRe = /<tr>(<td[\s\S]*?<\/td>[\s\S]*?)<\/tr>/g;
   let m: RegExpExecArray | null;
   while ((m = rowRe.exec(html)) !== null) {
-    const id = m[3] ?? "";
-    const nameCell = m[2] ?? "";
-    const nameMatch = /^([\s\S]*?)(?:<br\/?>|$)/.exec(nameCell);
-    const name = decodeText(nameMatch?.[1] ?? nameCell);
+    const tds = [...m[1]!.matchAll(/<td([^>]*)>([\s\S]*?)<\/td>/g)].map(
+      (t) => t[2]!.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
+    );
+    const id = /href="\/courses\/([^"]+)"/.exec(m[1] ?? "")?.[1] ?? "";
+    const nameCellRaw = /<td[^>]*>([\s\S]*?)<br\/?>([\s\S]*?)<\/td>/.exec(m[1] ?? "");
+    const name = decodeText((nameCellRaw?.[1] ?? "").replace(/<[^>]*>/g, "").trim());
     if (!id || !name) continue;
-    const english = /<span[^>]*>([\s\S]*?)<\/span>/.exec(nameCell)?.[1];
+    const english = /<span[^>]*>([\s\S]*?)<\/span>/.exec(m[1] ?? "")?.[1];
+    // 时间地点格：含「星期X…第N节」（人类在结果页看到的那格）
+    const timeLocation = tds.find((t) => /星期[一二三四五六日]/.test(t) && /第\d+/.test(t)) ?? undefined;
+    const teacherName = decodeText(tds[0] ?? "");
     out.push({
       id,
       name,
       englishName: english ? decodeText(english) || undefined : undefined,
-      teacherName: decodeText(m[1] ?? ""),
+      teacherName,
       semesterId: id.split("-").slice(0, 3).join("-"),
+      timeLocation,
     });
   }
   return out;
