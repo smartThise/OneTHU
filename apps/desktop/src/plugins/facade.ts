@@ -5,6 +5,7 @@ import { universalFetch } from "../lib/transport.js";
 import { navGo, sessionStatus } from "./bridges.js";
 import { venueClient } from "../lib/venue.js";
 import { openExternal } from "../pages/info/openExternal.js";
+import { explainNetworkError } from "../lib/transport.js";
 import { getPlugin, pluginStorageKey, updatePlugin } from "./registry.js";
 import { PluginPermissionError, type OnethuApi, type PluginPermission } from "./types.js";
 
@@ -169,7 +170,13 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
       },
       detail: async (id: string) => {
         const { getCourseXDetailPublic } = await import("@onethu/core");
-        return getCourseXDetailPublic(universalFetch, id);
+        try {
+          const d = await getCourseXDetailPublic(universalFetch, id);
+          if (!d) return { id, error: "详情页无可解析卡片（页面结构变更?）" };
+          return d;
+        } catch (e) {
+          return { id, error: explainNetworkError(e) };
+        }
       },
     }, perms, "info:read") as OnethuApi["coursex"],
     card: wrap({

@@ -167,7 +167,7 @@ export interface OnethuApi {
   coursex: {
     semesters(): Promise<import("@onethu/core").CourseXSemester[]>;
     search(q: string, semester?: string): Promise<import("@onethu/core").CourseXSummary[]>;
-    detail(id: string): Promise<import("@onethu/core").CourseXDetail | null>;
+    detail(id: string): Promise<import("@onethu/core").CourseXDetail | { id: string; error: string } | null>;
   };
   card: {
     info(): Promise<import("@onethu/core").CardInfo>;
