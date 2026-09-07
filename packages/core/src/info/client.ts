@@ -2734,11 +2734,15 @@ export class InfoClient {
     });
   }
 
-  /** 可约资源（library.ts getLibraryRoomBookingResourceList；date=yyyyMMdd） */
+  /** 可约资源（library.ts getLibraryRoomBookingResourceList；date=yyyyMMdd）。
+   *  实录（09-07 wire 层）：ic-web/reserve 只认紧凑 resvDates=20260907——
+   *  传 2026-09-07 会回「系统繁忙，请稍后重试」/HTML 错误页（dock 小OH 首例）。
+   *  在此归一化：两种形态进、紧凑出，调用方无需各自关心。 */
   async getLibRoomResourceList(userId: string, date: string, kindId: number): Promise<LibRoomRes[]> {
     return this.#withLibRoom(userId, async () => {
+      const compact = date.replace(/-/g, "");
       const data = await this.#cabFetch<Array<Record<string, unknown>>>(
-        `${urls.LIBROOM_RESOURCE_LIST()}&resvDates=${date}&kindIds=${kindId}`,
+        `${urls.LIBROOM_RESOURCE_LIST()}&resvDates=${compact}&kindIds=${kindId}`,
       );
       return (data ?? []).map((item) => {
         const rule = (item.resvRule ?? {}) as Record<string, unknown>;
