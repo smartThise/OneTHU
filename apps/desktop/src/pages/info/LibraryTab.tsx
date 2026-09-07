@@ -139,7 +139,8 @@ const POWER_BADGE: CSSProperties = {
 
 const SEAT_CELL: CSSProperties = {
   position: "relative",
-  width: 58,
+  // R10：座位名完整展示——固定 58px 会截断长座位号（省略号），改最小宽自适应
+  minWidth: 58,
   height: 44,
   borderRadius: 8,
   padding: 0,
@@ -168,9 +169,7 @@ function SeatCell({
     <span
       style={{
         display: "block",
-        padding: "0 4px",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
+        padding: "0 6px",
         whiteSpace: "nowrap",
       }}
     >
