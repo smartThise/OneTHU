@@ -275,6 +275,17 @@ export class InfoClient {
     this.#renewCard = hooks.card ?? null;
   }
 
+  /** 登录/登出后调用：清全部静态会话缓存（libToken 跨重登录存活 10 分钟——
+   *  旧 token 配新会话 = 订座恒报「没有登录或登录已超时」的元凶） */
+  resetStaticSessionCaches(): void {
+    InfoClient.libToken = "";
+    InfoClient.libTokenTs = 0;
+    InfoClient.libTokenInflight = null;
+    InfoClient.libCacheClear();
+    this.#libRoamed = false;
+    this.lastDebug = "";
+  }
+
   /** forceEnsure 并发去重：同 scope 只跑一次重建（漫游链并发跑会在会话上互踩） */
   #ensureInflight = new Map<string, Promise<void>>();
 

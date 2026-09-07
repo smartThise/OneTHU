@@ -340,6 +340,9 @@ export async function verify2FA(_type: string, code: string, trust: boolean): Pr
 }
 
 async function persist(): Promise<void> {
+  // R10：新会话落盘前清 InfoClient 静态缓存——libToken 是 10 分钟静态缓存且跨
+  // 重登录存活，旧 token 配新会话会让订座恒报「没有登录或登录已超时」
+  info.resetStaticSessionCaches();
   const snapshot: SessionData = {
     username: session.username,
     fingerprint: session.fingerprint,
@@ -484,6 +487,8 @@ export async function logout(): Promise<void> {
   // 体育系统 token 与会话解耦但跟随登出清空（防串账号）
   const { venueLogout } = await import("./venue.js");
   venueLogout();
+  // R10：图书馆静态 token 同步清空（防串账号/防旧 token 撞新会话）
+  info.resetStaticSessionCaches();
   // demo（thu-app-desktop auth slice）语义：登出只清凭据，fingerprint 与 finger3
   // 属设备信任、跨登出保留——否则下次登录指纹重随机 → 信任失效 → 每次被迫 2FA
   // （17:40 存档丢失 → 指纹重随机的教训）。

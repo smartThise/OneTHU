@@ -73,11 +73,8 @@ export const PUBLIC_DIRECT_HOSTS = new Set([
   "id.tsinghua.edu.cn",
   "oauth.tsinghua.edu.cn",
   "info.tsinghua.edu.cn",
-  // 座位系统（2026-09-07 订座回归实录）：vpn 链内 hop wrapper 把 callback 重定向
-  // 也包进 webvpn → 会话建在包装通道、而 book POST 走直连常量 URL → 双通道会话
-  // 分裂，后端报「没有登录或登录已超时」。8/30 无 wrapper 时订座成功佐证。
-  // ISeating 公网可达，恒直连单通道。
-  "seat.lib.tsinghua.edu.cn",
+  // ⚠ seat.lib.tsinghua.edu.cn 故意不在名单：webvpn 模式下座位系统全链（callback/
+  //   home/book）必须同走包装通道；2026-09-07 实测加白名单反而通道分裂连累记录页。
   // card 退出直连（2026-09-06 真机实录）：oauth lbredirect 兑票落点恒为 webvpn
   // 包装 URL，会话建在包装通道；直连探测永远看不见 → 恒报「会话未能建立」。
   // 单通道（恒包装）与会话兑付同轨。
