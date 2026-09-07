@@ -1952,7 +1952,8 @@
     gap: 6px;
   }
   .chip { min-height: 34px; padding: 4px 12px; }
-  button { min-height: 36px; }
+  /* 开关是 36x22 胶囊按钮，min-height 会把它顶成正圆（竖屏"缩成球"实录） */
+  button:not(.switch):not(.plg-switch) { min-height: 36px; }
   .input, select { height: 38px; font-size: 14px; max-width: 100%; }
   /* 页头两行排布 */
   .page-head { flex-wrap: wrap; row-gap: 6px; margin-bottom: 10px; }
