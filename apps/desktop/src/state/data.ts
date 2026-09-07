@@ -611,7 +611,7 @@ export interface XkWorkbench {
   setSemesterOverride: (sem: string | null) => Promise<void>;
   semesterOptions: Array<{ value: string; label: string }>;
   plan: XkPlanItem[];
-  loadDetail: (code: string) => Promise<XkCourseDetail | null>;
+  loadDetail: (code: string, teacherId?: string) => Promise<XkCourseDetail | null>;
 }
 
 export interface XkSearchMeta {
@@ -1597,10 +1597,15 @@ export function useXkWorkbench(): XkWorkbench {
     }
   }, [status, runPipeline, refresh]);
 
-  const loadDetail = useCallback(async (code: string): Promise<XkCourseDetail | null> => {
-    const row = courses.find((r) => r.c.code === code) ?? null;
-    if (!row?.teacherId) return null;
-    return getXkCourseDetail(xkSession(), { teacherId: row.teacherId, code: row.c.code }).catch(() => null);
+  const loadDetail = useCallback(async (code: string, teacherId?: string): Promise<XkCourseDetail | null> => {
+    // 同课号多班次（不同教师各自 teacherId）必须按 (code, teacherId) 定位——
+    // 只按课号 find 恒命中第一行 → 点谁都同一个简介（2026-09-07 用户实录）
+    const row = (teacherId
+      ? courses.find((r) => r.c.code === code && r.teacherId === teacherId)
+      : undefined) ?? courses.find((r) => r.c.code === code) ?? null;
+    const tid = row?.teacherId || teacherId || "";
+    if (!tid) return null;
+    return getXkCourseDetail(xkSession(), { teacherId: tid, code: row?.c.code ?? code }).catch(() => null);
   }, [courses]);
 
   // 候补课目录元数据回填：每门候补按课号单查一页（1 请求/门，非全目录爬——用户明确否决全量爬），

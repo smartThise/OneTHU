@@ -133,12 +133,12 @@ const itemProb = (wb: ReturnType<typeof useXkWorkbench>, code: string, seq: stri
 let _jump = "";
 let _jumpChip = "all";
 let _jumpSetter: ((v: string) => void) | null = null;
-let _detailOpen: ((code: string) => void) | null = null;
+let _detailOpen: ((code: string, teacherId: string) => void) | null = null;
 let _reviewOpen: ((v: { code: string; seq: string; name: string; teacher: string }) => void) | null = null;
 const jumpTo = (code: string, chip = "all"): void => { _jump = code; _jumpChip = chip; _jumpSetter?.(code); };
 /** 培养方案/暂存条目 → 按课号发起真实搜索（切回全部 chip）；回调由主页面注册 */
 /** 条目点击统一入口：jumpTo 注入搜索栏（复用已验证 jump 通路 setQuery(jump)）+ 按课号真实搜索 */
-const openDetail = (code: string): void => { _detailOpen?.(code); };
+const openDetail = (code: string, teacherId: string): void => { _detailOpen?.(code, teacherId); };
 const openReviews = (v: { code: string; seq: string; name: string; teacher: string }): void => { _reviewOpen?.(v); };
 
 /* ══════════ 弹窗（自带表面色，不依赖 Card 上下文变量）══════════ */
@@ -147,15 +147,15 @@ const panelStyle: React.CSSProperties = { width: "100%", maxWidth: 620, maxHeigh
 const panelHead: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border, #eee)" };
 const panelBody: React.CSSProperties = { padding: "12px 16px", overflowY: "auto", fontSize: 13, lineHeight: 1.65 };
 
-function DetailModal({ wb, code, onClose }: { wb: ReturnType<typeof useXkWorkbench>; code: string | null; onClose: () => void }) {
+function DetailModal({ wb, code, tid, onClose }: { wb: ReturnType<typeof useXkWorkbench>; code: string | null; tid: string; onClose: () => void }) {
   const [data, setData] = useState<XkCourseDetail | null>(null);
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     if (!code) return;
     setLoading(true);
     setData(null);
-    void wb.loadDetail(code).then((d) => { setData(d); setLoading(false); });
-  }, [code]);
+    void wb.loadDetail(code, tid).then((d) => { setData(d); setLoading(false); });
+  }, [code, tid]);
   if (!code) return null;
   const order = ["课程编号", "课程名称", "总学时数", "总学分", "课程内容简介", "Course Description", "考核安排", "联系人", "教材及参考书", "上课教师", "选课指导语", "先修要求", "教师教学特色", "Office Hour", "成绩评定标准", "参考书"];
   const entries = data ? Object.entries(data.fields) : [];
@@ -292,6 +292,7 @@ function Sec({ title, extra, children }: { title: string; extra?: React.ReactNod
 export function ZhjwxkCoursesPage() {
   const wb = useXkWorkbench();
   const [detailCode, setDetailCode] = useState<string | null>(null);
+  const [detailTid, setDetailTid] = useState("");
   const [reviewCode, setReviewCode] = useState<{ code: string; seq: string; name: string; teacher: string } | null>(null);
   const [jump, setJump] = useState("");
   // 竖屏三页签：课程查找 / 选课管理 / AI 选课（桌面仍为双栏，此状态仅移动端消费）
@@ -304,7 +305,7 @@ export function ZhjwxkCoursesPage() {
       setJump(code);
       void wb.newSearch({ kcm: "", kch: code, teacher: "", department: "", weekday: "", section: "", grade: "", rxklxm: "", kctsm: "", onlyAvailable: false, gradAvail: false });
     };
-    _detailOpen = setDetailCode;
+    _detailOpen = (code, tid) => { setDetailCode(code); setDetailTid(tid); };
     _reviewOpen = setReviewCode;
     return () => { _jumpSetter = null; _detailOpen = null; _reviewOpen = null; };
   }, []);
@@ -465,7 +466,7 @@ export function ZhjwxkCoursesPage() {
         {mTab === "ai" ? <AiSections wb={wb} /> : null}
       </div>
 
-      <DetailModal wb={wb} code={detailCode} onClose={() => setDetailCode(null)} />
+      <DetailModal wb={wb} code={detailCode} tid={detailTid} onClose={() => setDetailCode(null)} />
       <ReviewsModal code={reviewCode?.code ?? null} seq={reviewCode?.seq ?? ""} name={reviewCode?.name ?? ""} teacher={reviewCode?.teacher ?? ""} onClose={() => setReviewCode(null)} />
     </>
   );
@@ -832,7 +833,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             ? <span style={{ fontSize: 10, padding: "1px 5px", marginRight: 6, borderRadius: 4, color: "#fff", background: ORIGIN_COLORS[o], verticalAlign: "1px", whiteSpace: "nowrap" }}>{o}</span>
             : null; })()}
           {r.name}
-          {r.teacherId ? <button className="btn" style={{ padding: "0 6px", marginLeft: 6, fontSize: 11 }} onClick={() => openDetail(r.c.code)}>简介</button> : null}
+          {r.teacherId ? <button className="btn" style={{ padding: "0 6px", marginLeft: 6, fontSize: 11 }} onClick={() => openDetail(r.c.code, r.teacherId)}>简介</button> : null}
           {tbBadge(r) ? (
             <button className="btn" style={{ padding: "0 6px", marginLeft: 6, fontSize: 11, color: "var(--amber)" }} onClick={() => openReviews({ code: r.c.code, seq: r.c.seq, name: r.name, teacher: r.teacher })}>{tbBadge(r)}</button>
           ) : null}
@@ -921,7 +922,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
         ) : state === "candidate" ? (
           <div className="row-sub" style={{ display: "flex", gap: 6, marginTop: 4, alignItems: "center" }}>
             <span style={{ color: "var(--amber)", fontSize: 12 }}>{r.cand ? (r.cand.myPos ? `排队第${r.cand.myPos}名 / 共${r.cand.queueTotal}人` : "候选中") : "候选中"}</span>
-            {r.teacherId ? <button className="btn" style={{ padding: "0 6px", fontSize: 11 }} onClick={() => openDetail(r.c.code)}>简介</button> : null}
+            {r.teacherId ? <button className="btn" style={{ padding: "0 6px", fontSize: 11 }} onClick={() => openDetail(r.c.code, r.teacherId)}>简介</button> : null}
             <button className="btn" disabled={wb.busy !== null} onClick={() => void wb.drop(r.c.code, r.c.seq, true)}>删除</button>
           </div>
         ) : (
