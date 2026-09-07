@@ -106,12 +106,17 @@ export function ChatDock(): ReactNode {
   const traceRef = useRef<string[]>([]);
   const deltaBuf = useRef("");
   const deltaTimer = useRef<number | null>(null);
+  /* 自愈看门狗：流式文本镜像 + 最后事件时刻 + 本代次是否已落定（防回复链路丢失后永久 busy） */
+  const streamRef = useRef("");
+  const lastEvAt = useRef(Date.now());
+  const finalizedFor = useRef(0);
 
   const flushDelta = (): void => {
     deltaTimer.current = null;
     const t = deltaBuf.current;
     if (!t) return;
     deltaBuf.current = "";
+    streamRef.current += t;
     setStream((v) => (v ?? "") + t);
   };
 
@@ -183,6 +188,7 @@ export function ChatDock(): ReactNode {
     const fresh = events.slice(seenEv.current);
     seenEv.current = events.length;
     if (fresh.length === 0) return;
+    lastEvAt.current = Date.now();
     for (const e of fresh) {
       if (e.method === "exit") {
         hardStop("插件已停止");
@@ -208,6 +214,8 @@ export function ChatDock(): ReactNode {
   }, [events, pid]);
 
   const finalize = (r: any): void => {
+    if (finalizedFor.current === runSeq.current && runSeq.current > 0) return; // 已落定（看门狗兜底后真回复迟到）
+    finalizedFor.current = runSeq.current;
     // 冲掉在途 delta 缓冲：否则落定后迟到的定时器会把残余增量拼回 stream，冒出幽灵流式气泡
     if (deltaTimer.current) {
       clearTimeout(deltaTimer.current);
@@ -252,6 +260,9 @@ export function ChatDock(): ReactNode {
     const text = raw.trim();
     if (!pid || busyRef.current || !text) return;
     const seq = ++runSeq.current;
+    finalizedFor.current = 0;
+    streamRef.current = "";
+    lastEvAt.current = Date.now();
     busyRef.current = true;
     setBusy(true);
     setMsgs((v) => [...v, { role: "user", text }]);
@@ -263,11 +274,29 @@ export function ChatDock(): ReactNode {
     traceRef.current = [];
     setConfirmCard(null);
     setStatus("思考中…");
+    // 自愈看门狗（R9）：流式文本已非空且 8s 无任何新事件 → 视为已完成，
+    // 用已流出的内容落定并解锁——无论 run 应答卡在链路哪一环，UI 都不再永久 busy
+    const watchdog = window.setInterval(() => {
+      if (seq !== runSeq.current || !busyRef.current) {
+        window.clearInterval(watchdog);
+        return;
+      }
+      const idle = Date.now() - lastEvAt.current;
+      if (streamRef.current && idle > 8_000) {
+        window.clearInterval(watchdog);
+        console.warn("[dock] 应答链路超时，看门狗按已流出内容落定");
+        if (seq === runSeq.current) finalize({ answer: streamRef.current });
+        busyRef.current = false;
+        setBusy(false);
+      }
+    }, 1000);
     try {
       const res: any = await callRust(pid, "run", { command: "chat", input: text });
+      window.clearInterval(watchdog);
       if (seq !== runSeq.current) return; // 已被打断/强停：迟到回包作废
       finalize(res);
     } catch (e) {
+      window.clearInterval(watchdog);
       if (seq !== runSeq.current) return;
       finalize({ answer: "", error: e instanceof Error ? e.message : String(e) });
     } finally {
