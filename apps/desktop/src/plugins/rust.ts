@@ -93,7 +93,11 @@ async function ensureRpcListener(): Promise<void> {
     }
     // 回执分轨：内嵌 → harness_rpc_reply（App 内桥）；sidecar → plugin_rpc_reply（stdin 泵）
     const replyCmd = embeddedIds.has(pluginId) ? "harness_rpc_reply" : "plugin_rpc_reply";
-    await invoke(replyCmd, { pluginId, id, ok, result: ok ? result : String(result) })
+    // R10：void 返回（如取消预约成功）= undefined，Tauri 序列化会丢掉 result 键，
+    // Rust 侧「missing required key result」拒收 → 内核永远等不到回执。
+    // 统一 coerce：undefined/null → null，保证键恒在。
+    const replyResult = ok ? (result ?? null) : String(result);
+    await invoke(replyCmd, { pluginId, id, ok, result: replyResult })
       .then(() => {
         void import("../lib/clients.js").then((m) =>
           m.logLine(`[BRIDGE] #${id} 回执已交宿主 ok=${ok} ${Date.now() - t0}ms`),
