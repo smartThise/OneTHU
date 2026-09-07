@@ -67,6 +67,10 @@ async function ensureRpcListener(): Promise<void> {
   const { listen } = await import("@tauri-apps/api/event");
   await listen<{ pluginId: string; id: number; method: string; params: any }>("plugin-rpc", async (ev) => {
     const { pluginId, id, method, params } = ev.payload;
+    const t0 = Date.now();
+    void import("../lib/clients.js").then((m) =>
+      m.logLine(`[BRIDGE] #${id} ${params?.method ?? "?"} 门面收到`),
+    );
     const handler = rpcHandlers.get(pluginId);
     if (!handler) {
       // R9：绝不能静默丢弃——sidecar 会等回执直到超时（此前 💾 写盘… 卡死即此类丢包）
@@ -89,10 +93,19 @@ async function ensureRpcListener(): Promise<void> {
     }
     // 回执分轨：内嵌 → harness_rpc_reply（App 内桥）；sidecar → plugin_rpc_reply（stdin 泵）
     const replyCmd = embeddedIds.has(pluginId) ? "harness_rpc_reply" : "plugin_rpc_reply";
-    await invoke(replyCmd, { pluginId, id, ok, result: ok ? result : String(result) }).catch((e) =>
-      // R9：回执失败必须留痕——静吞 = sidecar 挂等
-      console.error("[plugin-rpc] 回执写回失败", replyCmd, pluginId, id, e),
-    );
+    await invoke(replyCmd, { pluginId, id, ok, result: ok ? result : String(result) })
+      .then(() => {
+        void import("../lib/clients.js").then((m) =>
+          m.logLine(`[BRIDGE] #${id} 回执已交宿主 ok=${ok} ${Date.now() - t0}ms`),
+        );
+      })
+      .catch((e) => {
+        // R9/R10：回执失败必须留痕——静吞 = sidecar 挂等；console 只进 devtools 看不见
+        void import("../lib/clients.js").then((m) =>
+          m.logLine(`[BRIDGE] #${id} 回执写回失败!! ${String(e).slice(0, 120)}`),
+        );
+        console.error("[plugin-rpc] 回执写回失败", replyCmd, pluginId, id, e);
+      });
   });
   rpcListenerReady = true;
 }

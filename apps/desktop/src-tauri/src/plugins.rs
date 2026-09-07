@@ -159,6 +159,10 @@ pub async fn plugin_spawn(
                         "plugin-rpc",
                         json!({"pluginId": pid, "id": id, "method": method, "params": params}),
                     );
+                    let _ = app.emit(
+                        "plugin-event",
+                        json!({"pluginId": pid, "method": "log", "params": {"line": format!("[BRIDGE] ->门面 #{id} {method}")}}),
+                    );
                 } else {
                     // 通知（progress/log/history 等）→ 直转 UI
                     let _ = app.emit("plugin-event", json!({"pluginId": pid, "method": method, "params": params}));
@@ -287,11 +291,16 @@ pub async fn plugin_notify(
 #[tauri::command]
 pub async fn plugin_rpc_reply(
     state: tauri::State<'_, PluginHost>,
+    app: tauri::AppHandle,
     plugin_id: String,
     id: Value,
     ok: bool,
     result: Value,
 ) -> Result<(), String> {
+    let _ = app.emit(
+        "plugin-event",
+        json!({"pluginId": plugin_id, "method": "log", "params": {"line": format!("[BRIDGE] <-门面 #{id} ok={ok}")}}),
+    );
     let proc = state
         .procs
         .lock()
