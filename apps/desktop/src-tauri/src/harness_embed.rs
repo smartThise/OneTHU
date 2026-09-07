@@ -92,6 +92,27 @@ struct HarnessLive {
 }
 
 /// 全部在跑的内嵌 harness 实例
+static BRIDGE_Q: std::sync::Mutex<Vec<(String, u64, Value)>> = std::sync::Mutex::new(Vec::new());
+static BRIDGE_CV: std::sync::Condvar = std::sync::Condvar::new();
+
+/// JS 侧长轮询：挂起直到该插件有待处理调用（最多 25s），一次取走整批
+#[tauri::command]
+pub fn harness_bridge_take(plugin_id: String) -> Vec<Value> {
+    let mut q = BRIDGE_Q.lock().unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(25);
+    while !q.iter().any(|(p, _, _)| p == &plugin_id) {
+        let left = deadline.saturating_duration_since(std::time::Instant::now());
+        if left.is_zero() { break; }
+        let (g, _) = BRIDGE_CV.wait_timeout(q, left).unwrap();
+        q = g;
+    }
+    let mut out = Vec::new();
+    q.retain(|(p, _, payload)| {
+        if p == &plugin_id { out.push(payload.clone()); false } else { true }
+    });
+    out
+}
+
 #[derive(Default)]
 pub struct HarnessHost {
     live: Mutex<HashMap<String, Arc<HarnessLive>>>,
@@ -126,13 +147,14 @@ pub fn harness_start(
                 if let Ok(mut m) = b.pending.lock() {
                     m.insert(id, rtx);
                 }
-                let _ = app.emit(
-                    "plugin-rpc",
-                    json!({
+                // 长轮询批量泵：入全局队列 + 唤醒 take，替代每次调用一次事件往返
+                if let Ok(mut q) = BRIDGE_Q.lock() {
+                    q.push((pid.clone(), id, json!({
                         "pluginId": pid, "id": id, "method": "onethu.call",
                         "params": { "ns": req.ns, "method": req.method, "args": req.args }
-                    }),
-                );
+                    })));
+                }
+                BRIDGE_CV.notify_all();
                 let res = rrx
                     .recv_timeout(BRIDGE_TIMEOUT)
                     .unwrap_or_else(|_| Err("webview 门面应答超时（600s）".into()));

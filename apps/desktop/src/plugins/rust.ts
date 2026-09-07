@@ -65,8 +65,8 @@ export async function spawnRustPlugin(id: string, binPath: string, args: string[
 async function ensureRpcListener(): Promise<void> {
   if (rpcListenerReady) return;
   const { listen } = await import("@tauri-apps/api/event");
-  await listen<{ pluginId: string; id: number; method: string; params: any }>("plugin-rpc", async (ev) => {
-    const { pluginId, id, method, params } = ev.payload;
+  const handleRpc = async (payload: { pluginId: string; id: number; method: string; params: any }) => {
+    const { pluginId, id, method, params } = payload;
     const t0 = Date.now();
     void import("../lib/clients.js").then((m) =>
       m.logLine(`[BRIDGE] #${id} ${params?.method ?? "?"} 门面收到`),
@@ -114,7 +114,21 @@ async function ensureRpcListener(): Promise<void> {
         );
         console.error("[plugin-rpc] 回执写回失败", replyCmd, pluginId, id, e);
       });
-  });
+  };
+  await listen("plugin-rpc", (ev) => void handleRpc(ev.payload));
+  // 内嵌长轮询泵：一次取走整批待处理调用，并发执行，消灭每调用事件往返
+  for (const pid of embeddedIds) {
+    void (async () => {
+      for (;;) {
+        try {
+          const batch = await invoke<{ any: any }[] | any[]>("harness_bridge_take", { pluginId: pid } as any);
+          for (const p of batch as any[]) void handleRpc(p);
+        } catch {
+          await new Promise((r) => setTimeout(r, 500));
+        }
+      }
+    })();
+  }
   rpcListenerReady = true;
 }
 
