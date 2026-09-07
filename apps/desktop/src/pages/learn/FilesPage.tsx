@@ -5,8 +5,10 @@ import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components
 import { IconRefresh } from "../../components/Icons.js";
 import { useLearnData } from "../../state/data.js";
 import { BackButton, FileRow, semesterText } from "./shared.js";
+import { useLearnNavSemester } from "./shared.js";
 
 export function FilesPage() {
+  useLearnNavSemester();
   const { data, state, error, reload } = useLearnData();
   const [courseId, setCourseId] = useState("");
 

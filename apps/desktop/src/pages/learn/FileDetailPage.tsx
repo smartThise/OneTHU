@@ -7,12 +7,14 @@ import { IconDownload } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
 import { BackButton, InfoRow, fmtDateTime, learnFileName } from "./shared.js";
+import { useLearnNavSemester } from "./shared.js";
 import { downloadLearnFile } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { openFilePreview } from "../../components/FilePreview.js";
 import { LEARN_FILE_DOWNLOAD } from "@onethu/core";
 
 export function FileDetailPage() {
+  useLearnNavSemester();
   const { navParams } = useApp();
   const { data, state, error, reload } = useLearnData();
   const [hint, setHint] = useState<string | null>(null);

@@ -10,10 +10,12 @@ import { openFilePreview } from "../../components/FilePreview.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
 import { BackButton, RichContent, fmtDateTime } from "./shared.js";
+import { useLearnNavSemester } from "./shared.js";
 import { openExternal } from "../info/openExternal.js";
 import type { LearnAttachment } from "@onethu/core";
 
 export function NoticeDetailPage() {
+  useLearnNavSemester();
   const { navParams, status } = useApp();
   const { data, state, error, reload } = useLearnData();
   const [att, setAtt] = useState<LearnAttachment | null>(null);

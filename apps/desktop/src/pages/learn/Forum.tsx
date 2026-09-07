@@ -15,6 +15,7 @@ import { useLearnData } from "../../state/data.js";
 import { CollectStar } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
 import { BackButton, RichContent, fmtDateTime } from "./shared.js";
+import { useLearnNavSemester } from "./shared.js";
 import { openExternal } from "../info/openExternal.js";
 import { RichEditor } from "../../components/RichEditor.jsx";
 
@@ -250,6 +251,7 @@ function Badge({ text, tone }: { text: string; tone: "red" | "gold" }) {
 /* ══════════ 话题阅读 + 回复 ══════════ */
 
 export function ForumThreadPage() {
+  useLearnNavSemester();
   const { navParams, status } = useApp();
   const { data: learnData } = useLearnData();
   const courseId = navParams?.courseId ?? "";

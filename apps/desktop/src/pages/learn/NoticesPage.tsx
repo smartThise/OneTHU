@@ -6,6 +6,7 @@ import { useApp } from "../../state/context.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useLearnData } from "../../state/data.js";
 import { BackButton, NoticeRow, semesterText } from "./shared.js";
+import { useLearnNavSemester } from "./shared.js";
 
 type Filter = "all" | "important" | "unread";
 
@@ -16,6 +17,7 @@ const FILTERS: Array<{ key: Filter; label: string }> = [
 ];
 
 export function NoticesPage() {
+  useLearnNavSemester();
   const { data, state, error, reload } = useLearnData();
   const [filter, setFilter] = useState<Filter>("all");
 

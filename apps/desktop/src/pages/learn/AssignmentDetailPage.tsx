@@ -11,6 +11,7 @@ import { RichEditor } from "../../components/RichEditor.js";
 import { useApp } from "../../state/context.js";
 import { invalidateLearnCache, useLearnData } from "../../state/data.js";
 import { BackButton, RichContent, fmtDateTime, gradeLabel, timeLeft } from "./shared.js";
+import { useLearnNavSemester } from "./shared.js";
 import { openExternal } from "../info/openExternal.js";
 import { parseLearnTime } from "@onethu/core";
 import type { HomeworkPageDetail, LearnAttachment } from "@onethu/core";
@@ -18,6 +19,7 @@ import type { HomeworkPageDetail, LearnAttachment } from "@onethu/core";
 type DescState = "idle" | "skip" | "loading" | "ok" | "error";
 
 export function AssignmentDetailPage() {
+  useLearnNavSemester();
   const { navParams, status } = useApp();
   const { data, state, error, reload } = useLearnData();
   const [desc, setDesc] = useState("");

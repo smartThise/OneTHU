@@ -7,6 +7,7 @@ import type { CSSProperties, ReactNode } from "react";
 import type { CourseFile, Homework, Notification } from "@onethu/core";
 import { LEARN_PREFIX, LEARN_FILE_DOWNLOAD, parseLearnTime } from "@onethu/core";
 import { useApp } from "../../state/context.js";
+import { getSelectedSemester, setSelectedSemester } from "../../state/data.js";
 import { topLevelPage, type Page } from "../../state/app.js";
 import { fetchImageAsDataUrl, fetchImageByUrl } from "../../lib/clients.js";
 import { invoke } from "@tauri-apps/api/core";
@@ -16,6 +17,16 @@ import { Card } from "../../components/Layout.js";
 import { IconChevron } from "../../components/Icons.js";
 import { CollectStar } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
+
+/* ---------- 深链学期挂钩 ----------
+ * 深链（小OH navigate / 收藏原子）可能带 semesterId：courseId 是学期作用域的，
+ * 不先切学期就在"当前学期"课程包里 find → 空白课程（2026-09-07 微积分A2 实录）。
+ * 渲染期写模块级学期（无 React 状态副作用），useLearnData 的 load 随后读到新学期。 */
+export function useLearnNavSemester(): void {
+  const { navParams } = useApp();
+  const wanted = typeof navParams?.semesterId === "string" ? navParams.semesterId : "";
+  if (wanted && getSelectedSemester() !== wanted) setSelectedSemester(wanted);
+}
 
 /* ---------- 学期文案（learnX getSemesterTextFromId） ---------- */
 

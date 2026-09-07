@@ -12,6 +12,7 @@ import { useLearnData } from "../../state/data.js";
 import { learn } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { BackButton, FileRow, HomeworkRow, NoticeRow, semesterText } from "./shared.js";
+import { useLearnNavSemester } from "./shared.js";
 import { BbsPanel } from "./Forum.js";
 
 type Tab = "notices" | "assignments" | "files" | "groups" | "forum";
@@ -40,6 +41,7 @@ let groupsCache: { courseId: string; at: number; data: LearnGroup[] } | null = n
 const GROUPS_CACHE_TTL = 5 * 60 * 1000;
 
 export function CourseDetailPage() {
+  useLearnNavSemester();
   const { navParams, status } = useApp();
   const { data, state, error, reload } = useLearnData();
   // 「各回各家」：从作业/帖子/通知等三级页返回时落到对应 tab，而不是恒第一个

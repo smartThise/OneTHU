@@ -5,6 +5,7 @@ import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SkeletonRows } fro
 import { IconRefresh } from "../../components/Icons.js";
 import { useLearnData } from "../../state/data.js";
 import { BackButton, HomeworkRow, semesterText } from "./shared.js";
+import { useLearnNavSemester } from "./shared.js";
 
 type Filter = "unfinished" | "submitted" | "graded" | "all";
 
@@ -16,6 +17,7 @@ const FILTERS: Array<{ key: Filter; label: string }> = [
 ];
 
 export function AssignmentsPage() {
+  useLearnNavSemester();
   const { data, state, error, reload } = useLearnData();
   const [filter, setFilter] = useState<Filter>("unfinished");
 
