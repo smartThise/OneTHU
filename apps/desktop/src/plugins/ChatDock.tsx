@@ -5,6 +5,7 @@
  */
 import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent, type ReactNode } from "react";
 import Markdown from "react-markdown";
+import { navGo } from "./bridges.js";
 import remarkGfm from "remark-gfm";
 import { callRust, notifyRust } from "./rust.js";
 import { commandsSnapshot, subscribeCommands } from "./loader.js";
@@ -430,6 +431,12 @@ export function ChatDock(): ReactNode {
     const href = a.getAttribute("href");
     if (!href) return;
     e.preventDefault();
+    // onethu-news://<xxid> = 站内新闻直达（小OH 新闻链接专用），不开浏览器
+    const m = /^onethu-news:\/\/(.+)$/.exec(href);
+    if (m?.[1]) {
+      navGo("info", { infoNewsId: decodeURIComponent(m[1]) });
+      return;
+    }
     void openExternal(href);
   };
 
