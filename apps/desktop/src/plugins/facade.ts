@@ -104,10 +104,35 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
         info.getLibrarySectionList(floor, dateChoice),
       seats: (section: { id: number; zhNameTrace: string }, dateChoice: 0 | 1 = 0) =>
         info.getLibrarySeatList(section, dateChoice),
-      records: () => info.getLibBookRecords(),
-      book: (seat: { id: number; type?: string }, sectionId: number, dateChoice: 0 | 1 = 0) =>
-        info.bookLibrarySeat(seat, sectionId, dateChoice, appSession.username),
-      cancel: (recordId: string) => info.cancelLibBooking(recordId, appSession.username),
+      records: async () => {
+        try {
+          return await info.getLibBookRecords();
+        } catch (e) {
+          await info.forceEnsure("library").catch(() => undefined);
+          return await info.getLibBookRecords();
+        }
+      },
+      book: async (seat: { id: number; type?: string }, sectionId: number, dateChoice: 0 | 1 = 0) => {
+        try {
+          return await info.bookLibrarySeat(seat, sectionId, dateChoice, appSession.username);
+        } catch (e) {
+          // R10：「没有登录或登录已超时」= token/会话陈旧；此错意味着首次必然未订上，重试安全
+          const msg = e instanceof Error ? e.message : String(e);
+          if (!/登录|超时|会话/.test(msg)) throw e;
+          await info.forceEnsure("library").catch(() => undefined);
+          return await info.bookLibrarySeat(seat, sectionId, dateChoice, appSession.username);
+        }
+      },
+      cancel: async (recordId: string) => {
+        try {
+          return await info.cancelLibBooking(recordId, appSession.username);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          if (!/登录|超时|会话/.test(msg)) throw e;
+          await info.forceEnsure("library").catch(() => undefined);
+          return await info.cancelLibBooking(recordId, appSession.username);
+        }
+      },
     }, perms, "library:read") as OnethuApi["library"],
     libroom: wrap({
       list: () => info.getLibRoomInfoList(appSession.username),
