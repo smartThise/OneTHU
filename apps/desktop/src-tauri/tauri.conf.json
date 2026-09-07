@@ -4,9 +4,9 @@
   "version": "0.7.11",
   "identifier": "app.onethu.desktop",
   "build": {
-    "beforeDevCommand": "find target -name '._*.toml' -type f -exec truncate -s 0 {} + ; pnpm dev",
+    "beforeDevCommand": "node ../scripts/prebuild.mjs && pnpm dev",
     "devUrl": "http://127.0.0.1:5180",
-    "beforeBuildCommand": "find target -name '._*.toml' -type f -exec truncate -s 0 {} + ; pnpm build",
+    "beforeBuildCommand": "node ../scripts/prebuild.mjs && pnpm build",
     "frontendDist": "../dist"
   },
   "app": {

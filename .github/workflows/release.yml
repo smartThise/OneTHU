@@ -38,6 +38,10 @@ jobs:
         if: runner.os == 'Linux'
       - name: Install pnpm deps
         run: pnpm install --frozen-lockfile
+      # sidecar 必须在目标平台现场构建（仓库不带任何架构的二进制；
+      # 旧版 Windows 安装包曾打进 mac 的 Mach-O → 插件宿主拉起必死）
+      - name: Build harness sidecar (host-native)
+        run: pnpm --filter @onethu/desktop build:harness
       - name: Build desktop bundles
         run: pnpm --filter @onethu/desktop exec tauri build ${{ matrix.args }}
         env:

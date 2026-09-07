@@ -572,7 +572,10 @@ async fn download_file(url: String, cookies: String, filename: String) -> Result
         .and_then(parse_cd_filename)
         .filter(|n| !n.trim().is_empty())
         .unwrap_or(filename);
-    let home = std::env::var("HOME").map_err(|_| "无法定位主目录")?;
+    // Windows 没有 HOME（只有 USERPROFILE）——旧版在 Windows 下载文件恒报"无法定位主目录"
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .map_err(|_| "无法定位主目录")?;
     let dir = std::path::Path::new(&home).join("Downloads");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let safe_name: String = name
