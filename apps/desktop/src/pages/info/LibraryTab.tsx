@@ -833,7 +833,7 @@ export function LibraryTab({
       {bookError ? <ErrorNote text={bookError} /> : null}
 
       {action ? (
-        <Card style={{ marginTop: 12 }}>
+        <Card style={{ marginTop: 12, padding: "12px 14px" }}>
           <span className={action.ok ? "" : "t-red"} style={{ fontSize: 13 }}>
             {action.text}
           </span>
