@@ -2712,6 +2712,8 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 /* 模块针脚（双字母 monogram；内置核心用业务蓝） */
 .plg-pin { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--surface-2); font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: 0.02em; color: var(--text-2); }
 .plg-pin.is-core { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent); }
+/* OH 内置标识：白底黑字（与其他插件针脚同位同样式，替代易溢出的图形 logo） */
+.plg-pin.is-oh { background: #fff; border-color: var(--border-strong); color: #000; }
 
 .plg-main { flex: 1; min-width: 0; display: grid; gap: 8px; align-content: start; }
 

@@ -142,8 +142,8 @@ function PluginCard({
       style={{ animationDelay: `${Math.min(index, 8) * 55}ms` }}
     >
       <div className="plg-card-top">
-        <div className={"plg-pin" + (rec.embedded ? " is-core" : "")} aria-hidden>
-          {m.id === "onethu.harness" ? <HarnessMark size={13} /> : monogram(m.name, m.id)}
+        <div className={"plg-pin" + (m.id === "onethu.harness" ? " is-oh" : rec.embedded ? " is-core" : "")} aria-hidden>
+          {m.id === "onethu.harness" ? "OH" : monogram(m.name, m.id)}
         </div>
         <div className="plg-card-id">
           <div className="plg-title">
