@@ -21,7 +21,6 @@ const parseYmd = (s: string): Date => new Date(Number(s.slice(0, 4)), Number(s.s
 const dayStart = (d: Date): number => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 const wall = (ms: number) => caldav.epochToWall(TZ, ms);
 const hmOf = (ms: number): string => `${pad(wall(ms).h)}:${pad(wall(ms).mi)}`;
-const MONTHS = ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"];
 const WEEK_SHORT = ["一", "二", "三", "四", "五", "六", "日"];
 
 /* ---------- 展示条目 ---------- */
@@ -165,15 +164,8 @@ export function ScheduleAgenda({
 
   return (
     <>
-      {/* 月历 */}
+      {/* 月历（导航统一在页面工具栏，这里只有格子本体） */}
       <Card style={{ padding: 12, marginBottom: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 8, gap: 8 }}>
-          <button className="btn" onClick={() => onMonthAnchor(new Date(monthAnchor.getFullYear(), monthAnchor.getMonth() - 1, 1))}>‹</button>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>{monthAnchor.getFullYear()} 年 {MONTHS[monthAnchor.getMonth()]}</span>
-          <button className="btn" onClick={() => onMonthAnchor(new Date(monthAnchor.getFullYear(), monthAnchor.getMonth() + 1, 1))}>›</button>
-          <span style={{ flex: 1 }} />
-          <button className="btn" onClick={() => { const n = new Date(); onMonthAnchor(new Date(n.getFullYear(), n.getMonth(), 1)); onSelect(ymd(n)); }}>今天</button>
-        </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, textAlign: "center" }}>
           {WEEK_SHORT.map((w) => (
             <div key={w} style={{ fontSize: 11, color: "var(--text-3, #999)", padding: "2px 0" }}>{w}</div>
