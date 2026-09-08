@@ -14,6 +14,7 @@ import { ScheduleAgenda } from "./ScheduleAgenda.js";
 import type { AgendaItem } from "./ScheduleAgenda.js";
 import { caldav } from "@onethu/core";
 import type { ScheduleEntry } from "@onethu/core";
+import { syncSystemCalendar, systemCalSupported } from "../state/systemCal.js";
 import {
   useCloudCal, syncCloudCal, getCloudCalConfig,
   putCloudEvent, deleteCloudEvent, putLocalEvent, deleteLocalEvent, exportSemesterToCloud, buildSemesterEvents,
@@ -391,12 +392,21 @@ export function SchedulePage() {
     }
   };
 
-  /** 一键存入系统日历：学期课表 + 云/本日程 → .ics 快照 → 系统导入 */
+  /** 一键存入系统日历：原生直写（Android/macOS），否则 .ics 快照导入 */
   const onSystemCal = async (): Promise<void> => {
     if (busy) return;
     setBusy(true);
     setMsg(null);
     try {
+      if (await systemCalSupported()) {
+        try {
+          const r = await syncSystemCalendar({ silent: true });
+          setMsg(r.skipped ? "系统日历已是最新（内容无变化）。" : `已写入系统日历「OneTHU 日程」：${r.added} 条（清理旧 ${r.removed} 条）。`);
+        } catch (err) {
+          setMsg(`存入系统日历失败：${err instanceof Error ? err.message : String(err)}`);
+        }
+        return;
+      }
       const events: caldav.IcsEvent[] = [...cal.cloudEvents, ...cal.localEvents];
       if (exportSemester) {
         const r = await buildSemesterEvents(exportSemester, (st, en) => info.getSchedule(st, en));

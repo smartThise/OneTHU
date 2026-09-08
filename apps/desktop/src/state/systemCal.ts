@@ -1,0 +1,330 @@
+/**
+ * 系统日历原生同步状态层（learnX 模型）。
+ *
+ * 平台：Android（CalendarProvider 插件）/ macOS（EventKit 插件）；其他平台
+ * systemCalSupported() = false（前端退 .ics 导出）。
+ *
+ * 模型：
+ * - 专属日历「OneTHU 日程」（本地账户，不碰用户日历、不与云同步冲突）；
+ * - 幂等：窗口内清旧重写（窗口 = 过去 90 天 ~ 未来 18 个月 ∪ 学期范围）；
+ * - 一次开启后自动跟随：云/本日程或课表任何变更 → 防抖 5s → 指纹未变则跳过；
+ * - 课表/考试带提前 15 分钟提醒，手动日程不带。
+ *
+ * 存储：syscal.cfg { enabled, lastSyncAt, lastCount, lastError, fingerprint }。
+ */
+import { useEffect, useState } from "react";
+import { caldav } from "@onethu/core";
+import type { CalendarSemester } from "@onethu/core";
+import { fileRead, fileWrite, info } from "../lib/clients.js";
+import { getCloudEvents, getLocalEvents, buildSemesterEvents, onCloudCalChange } from "./cloudCal.js";
+import { getCachedCalendar } from "./data.js";
+
+const CFG_FILE = "syscal.cfg";
+/** 与 Rust/Kotlin 侧 CALENDAR_TITLE 保持一致 */
+export const CALENDAR_TITLE = "OneTHU 日程";
+
+const DAY = 86_400_000;
+/** 同步窗口：过去 90 天（滚动） */
+const PAST_WINDOW = 90 * DAY;
+/** 同步窗口：未来 18 个月（滚动，RRULE 展开上限） */
+const FUTURE_WINDOW = 550 * DAY;
+/** 事件数上限（课表 ~600 + 手动日程；超出直接中止，防止事故性大批量写入） */
+const MAX_EVENTS = 4000;
+/** 课表/考试提醒（learnX 同款 -15 分钟） */
+const ALARM_MINUTES = 15;
+
+/* ---------- 载荷类型（与插件 camelCase 对齐） ---------- */
+
+interface SysCalEventArg {
+  title: string;
+  startMs: number;
+  endMs: number;
+  allDay: boolean;
+  location?: string;
+  notes?: string;
+  alarmMinutes?: number;
+}
+
+interface SyncPayloadArg {
+  calendarTitle: string;
+  windowStartMs: number;
+  windowEndMs: number;
+  events: SysCalEventArg[];
+}
+
+interface SysCalCfg {
+  enabled: boolean;
+  lastSyncAt: number;
+  lastCount: number;
+  lastError: string | null;
+  fingerprint: string | null;
+}
+
+/* ---------- 模块状态 ---------- */
+
+let loaded = false;
+let cfg: SysCalCfg = { enabled: false, lastSyncAt: 0, lastCount: 0, lastError: null, fingerprint: null };
+let supportedCache: boolean | null = null;
+let syncing = false;
+const listeners = new Set<() => void>();
+const emit = (): void => listeners.forEach((fn) => fn());
+
+async function persistCfg(): Promise<void> {
+  await fileWrite(CFG_FILE, JSON.stringify(cfg));
+}
+
+async function ensureLoaded(): Promise<void> {
+  if (loaded) return;
+  loaded = true;
+  try {
+    const raw = await fileRead(CFG_FILE);
+    if (raw) {
+      const j = JSON.parse(raw) as Partial<SysCalCfg>;
+      if (typeof j.enabled === "boolean") {
+        cfg = {
+          enabled: j.enabled,
+          lastSyncAt: typeof j.lastSyncAt === "number" ? j.lastSyncAt : 0,
+          lastCount: typeof j.lastCount === "number" ? j.lastCount : 0,
+          lastError: typeof j.lastError === "string" ? j.lastError : null,
+          fingerprint: typeof j.fingerprint === "string" ? j.fingerprint : null,
+        };
+      }
+    }
+  } catch {
+    /* 坏文件视作未开启 */
+  }
+  emit();
+}
+
+/* ---------- 插件桥 ---------- */
+
+async function invokePlugin<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return await invoke<T>(`plugin:onethu-calendar|${cmd}`, args);
+}
+
+/** 当前平台是否支持原生系统日历读写（非 Tauri 环境也返回 false） */
+export async function systemCalSupported(): Promise<boolean> {
+  if (supportedCache === null) {
+    try {
+      supportedCache = await invokePlugin<boolean>("supported");
+    } catch {
+      supportedCache = false;
+    }
+  }
+  return supportedCache;
+}
+
+/* ---------- 载荷构建 ---------- */
+
+function parseYmd(s: string): Date {
+  return new Date(s.replace(/-/g, "/"));
+}
+
+/** 今天落在哪个学期（假期则回落当前学期）；校历未加载返回 null */
+function currentSemester(): CalendarSemester | null {
+  const cal = getCachedCalendar();
+  if (!cal) return null;
+  const list: CalendarSemester[] = [{ ...cal }, ...cal.nextSemesterList];
+  const now = Date.now();
+  for (const s of list) {
+    const start = parseYmd(s.firstDay).getTime();
+    if (now >= start && now < start + s.weekCount * 7 * DAY) return s;
+  }
+  return cal;
+}
+
+async function buildPayload(): Promise<SyncPayloadArg> {
+  const now = Date.now();
+  const all = [...getCloudEvents(), ...getLocalEvents()];
+
+  // 窗口：滚动窗口 ∪ 学期范围 ∪ 单场事件极值（RRULE 展开上限 = 滚动上限）
+  let windowStart = now - PAST_WINDOW;
+  let windowEnd = now + FUTURE_WINDOW;
+  const sem = currentSemester();
+  if (sem) {
+    windowStart = Math.min(windowStart, parseYmd(sem.firstDay).getTime());
+    windowEnd = Math.max(windowEnd, parseYmd(sem.firstDay).getTime() + (sem.weekCount * 7 - 1) * DAY);
+  }
+  for (const e of all) {
+    windowStart = Math.min(windowStart, e.start - DAY);
+    windowEnd = Math.max(windowEnd, e.start + DAY);
+  }
+
+  // 云/本日程展开为单场（覆盖实例自动接管；提醒不带）
+  const events: SysCalEventArg[] = [];
+  for (const occ of caldav.expandEventSet(all, windowStart, windowEnd)) {
+    events.push({
+      title: occ.summary,
+      startMs: occ.start,
+      endMs: occ.end,
+      allDay: !!occ.allDay,
+      location: occ.location,
+      notes: occ.description,
+    });
+  }
+
+  // 课表/考试（-15 分钟提醒）；获取失败整体中止——防止半量镜像清掉已有内容
+  if (sem) {
+    const { events: courseEvents } = await buildSemesterEvents(sem, (st, en) => info.getSchedule(st, en));
+    for (const ev of courseEvents) {
+      events.push({
+        title: ev.summary,
+        startMs: ev.start,
+        endMs: ev.end,
+        allDay: !!ev.allDay,
+        location: ev.location,
+        notes: ev.description,
+        alarmMinutes: ALARM_MINUTES,
+      });
+    }
+  }
+
+  events.sort((a, b) => a.startMs - b.startMs);
+  if (events.length > MAX_EVENTS) throw new Error(`事件数 ${events.length} 超出上限 ${MAX_EVENTS}，已中止系统日历同步`);
+  return { calendarTitle: CALENDAR_TITLE, windowStartMs: windowStart, windowEndMs: windowEnd, events };
+}
+
+/** 载荷指纹（内容无变化则跳过原生写入） */
+function fingerprintOf(p: SyncPayloadArg): string {
+  let h = 5381;
+  const feed = `${p.windowStartMs}|${p.windowEndMs}|` + p.events.map((e) => `${e.title}@${e.startMs}-${e.endMs}`).join(",");
+  for (let i = 0; i < feed.length; i++) h = ((h << 5) + h + feed.charCodeAt(i)) >>> 0;
+  return `${p.events.length}-${h.toString(36)}`;
+}
+
+/* ---------- 同步动作 ---------- */
+
+export interface SystemCalSyncOutcome {
+  added: number;
+  removed: number;
+  /** 指纹未变跳过了原生写入 */
+  skipped: boolean;
+}
+
+/** 幂等同步（清窗口旧 + 全量重写） */
+export async function syncSystemCalendar(opts?: { silent?: boolean }): Promise<SystemCalSyncOutcome> {
+  if (syncing) throw new Error("系统日历正在同步中");
+  syncing = true;
+  try {
+    const payload = await buildPayload();
+    const fingerprint = fingerprintOf(payload);
+    if (cfg.fingerprint === fingerprint) {
+      return { added: 0, removed: 0, skipped: true };
+    }
+    const r = await invokePlugin<{ added: number; removed: number }>("sync", { payload });
+    cfg = { ...cfg, lastSyncAt: Date.now(), lastCount: payload.events.length, lastError: null, fingerprint };
+    await persistCfg();
+    emit();
+    return { added: r.added, removed: r.removed, skipped: false };
+  } catch (err) {
+    cfg = { ...cfg, lastError: err instanceof Error ? err.message : String(err) };
+    await persistCfg();
+    emit();
+    throw err;
+  } finally {
+    syncing = false;
+  }
+}
+
+/** 开启：请求权限 → 首次全量同步 → 记 enabled（此后自动跟随） */
+export async function enableSystemCalendar(): Promise<void> {
+  if (!(await systemCalSupported())) throw new Error("当前平台不支持系统日历原生同步（可从日程页导出 .ics 文件）");
+  const granted = await invokePlugin<boolean>("request_permission");
+  if (!granted) throw new Error("未获得系统日历权限（可到系统设置里重新允许 OneTHU 访问日历）");
+  await syncSystemCalendar();
+  cfg = { ...cfg, enabled: true };
+  await persistCfg();
+  emit();
+}
+
+/** 停止自动跟随（保留已写入的系统日历与事件） */
+export async function disableSystemCalendar(): Promise<void> {
+  cfg = { ...cfg, enabled: false };
+  await persistCfg();
+  emit();
+}
+
+/** 清除：删除系统里的「OneTHU 日程」日历并重置状态 */
+export async function removeSystemCalendar(): Promise<void> {
+  await invokePlugin<unknown>("remove_calendar");
+  cfg = { ...cfg, enabled: false, lastSyncAt: 0, lastCount: 0, lastError: null, fingerprint: null };
+  await persistCfg();
+  emit();
+}
+
+/* ---------- 自动跟随 ---------- */
+
+let autoTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function autoPush(): Promise<void> {
+  if (!cfg.enabled || syncing) return;
+  if (!(await systemCalSupported())) return;
+  try {
+    await syncSystemCalendar({ silent: true });
+  } catch {
+    /* 已记入 lastError，Settings 可见 */
+  }
+}
+
+function scheduleAutoPush(): void {
+  if (autoTimer !== null) clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => {
+    autoTimer = null;
+    void autoPush();
+  }, 5000);
+}
+
+let initialized = false;
+
+/** 应用启动时调用一次：订阅日程/课表变更 → 防抖自动重推 */
+export function initSystemCalAutoSync(): void {
+  if (initialized) return;
+  initialized = true;
+  void (async () => {
+    await ensureLoaded();
+    onCloudCalChange(scheduleAutoPush);
+    // 启动兜底：登录/云同步触发 emit 之外，20s 后补推一次（指纹未变会秒跳过）
+    setTimeout(() => void autoPush(), 20_000);
+  })();
+}
+
+/* ---------- React 绑定 ---------- */
+
+export interface SystemCalState {
+  ready: boolean;
+  enabled: boolean;
+  syncing: boolean;
+  lastSyncAt: number;
+  lastCount: number;
+  lastError: string | null;
+}
+
+export function useSystemCal(): SystemCalState {
+  const [snapshot, setSnapshot] = useState<SystemCalState>(() => ({
+    ready: false,
+    enabled: cfg.enabled,
+    syncing,
+    lastSyncAt: cfg.lastSyncAt,
+    lastCount: cfg.lastCount,
+    lastError: cfg.lastError,
+  }));
+  useEffect(() => {
+    void ensureLoaded();
+    const update = (): void =>
+      setSnapshot({
+        ready: true,
+        enabled: cfg.enabled,
+        syncing,
+        lastSyncAt: cfg.lastSyncAt,
+        lastCount: cfg.lastCount,
+        lastError: cfg.lastError,
+      });
+    listeners.add(update);
+    update();
+    return () => {
+      listeners.delete(update);
+    };
+  }, []);
+  return snapshot;
+}

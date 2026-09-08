@@ -10,6 +10,14 @@ import { parseFavs, resetFavs } from "../state/favorites.js";
 import { confirmOk } from "../lib/confirm.js";
 import { useApp } from "../state/context.js";
 import { useCloudCal, configureCloudCal, disconnectCloudCal, syncCloudCal } from "../state/cloudCal.js";
+import {
+  useSystemCal,
+  systemCalSupported,
+  enableSystemCalendar,
+  disableSystemCalendar,
+  removeSystemCalendar,
+  syncSystemCalendar,
+} from "../state/systemCal.js";
 
 export function SettingsPage() {
   const { user, logout, navigate } = useApp();
@@ -28,6 +36,15 @@ export function SettingsPage() {
   const [calPass, setCalPass] = useState("");
   const [calBusy, setCalBusy] = useState(false);
   const [calMsg, setCalMsg] = useState<string | null>(null);
+  // 系统日历原生同步（Android/macOS）
+  const syscal = useSystemCal();
+  const [sysSupported, setSysSupported] = useState<boolean | null>(null);
+  const [sysBusy, setSysBusy] = useState(false);
+  const [sysMsg, setSysMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    void systemCalSupported().then(setSysSupported);
+  }, []);
 
   useEffect(() => {
     void loadRemembered().then((r) => setHasSaved(!!r));
@@ -207,6 +224,104 @@ export function SettingsPage() {
                 </button>
               </div>
               {calMsg ? <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }}>{calMsg}</div> : null}
+            </div>
+          </div>
+        )}
+      </Card>
+      <Card>
+        {sysSupported === false ? (
+          <div className="setting-row">
+            <div>
+              <div className="setting-title">系统日历同步</div>
+              <div className="setting-desc">
+                当前平台暂不支持直写系统日历；可在「日程」页用「存入系统日历」导出 .ics 文件，再由系统日历导入。
+              </div>
+            </div>
+          </div>
+        ) : syscal.enabled ? (
+          <div className="setting-row" style={{ alignItems: "flex-start" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="setting-title">系统日历同步 · 已开启</div>
+              <div className="setting-desc">
+                日历「OneTHU 日程」· 上次同步 {syscal.lastSyncAt ? new Date(syscal.lastSyncAt).toLocaleString() : "—"} · {syscal.lastCount} 条。课表与日程变化后会自动更新（含提前 15 分钟的课程提醒）。
+                {syscal.lastError ? (
+                  <div style={{ marginTop: 6, color: "var(--danger, #c04848)" }}>最近一次同步失败：{syscal.lastError}</div>
+                ) : null}
+                {sysMsg ? <div style={{ marginTop: 6, color: "var(--text-2)" }}>{sysMsg}</div> : null}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <button
+                className="btn"
+                disabled={sysBusy || syscal.syncing}
+                onClick={() => {
+                  setSysBusy(true);
+                  setSysMsg(null);
+                  void syncSystemCalendar()
+                    .then((r) =>
+                      setSysMsg(r.skipped ? "内容无变化，系统日历已是最新。" : `已同步：写入 ${r.added} 条（清理旧 ${r.removed} 条）。`),
+                    )
+                    .catch((e: unknown) => setSysMsg(`同步失败：${e instanceof Error ? e.message : String(e)}`))
+                    .finally(() => setSysBusy(false));
+                }}
+              >
+                {sysBusy || syscal.syncing ? "同步中…" : "立即同步"}
+              </button>
+              <button
+                className="btn"
+                disabled={sysBusy}
+                onClick={() => {
+                  void disableSystemCalendar()
+                    .then(() => setSysMsg("已停止自动同步；已写入的日历与事件保留。"))
+                    .catch((e: unknown) => setSysMsg(String(e instanceof Error ? e.message : e)));
+                }}
+              >
+                停止自动同步
+              </button>
+              <button
+                className="btn"
+                disabled={sysBusy}
+                onClick={() => {
+                  void confirmOk(
+                    "确定删除系统日历里的「OneTHU 日程」日历？\n\n其中由 OneTHU 写入的全部事件将被移除；应用内的日程与云同步不受影响。",
+                  ).then((yes) => {
+                    if (!yes) return;
+                    setSysBusy(true);
+                    void removeSystemCalendar()
+                      .then(() => setSysMsg("已删除系统日历「OneTHU 日程」。"))
+                      .catch((e: unknown) => setSysMsg(`删除失败：${e instanceof Error ? e.message : String(e)}`))
+                      .finally(() => setSysBusy(false));
+                  });
+                }}
+              >
+                清除系统日历
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="setting-row" style={{ alignItems: "flex-start" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="setting-title">系统日历同步</div>
+              <div className="setting-desc">
+                把课表与日程写入系统日历里的专属日历「OneTHU 日程」（不影响你已有的日历）。开启后自动保持最新：添加、修改、删除日程或刷新课表都会同步更新，课程与考试带提前 15 分钟提醒。
+                {sysMsg ? <div style={{ marginTop: 6, color: "var(--text-2)" }}>{sysMsg}</div> : null}
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                <button
+                  className="btn btn-primary"
+                  disabled={sysBusy || sysSupported === null}
+                  onClick={() => {
+                    setSysBusy(true);
+                    setSysMsg(null);
+                    void enableSystemCalendar()
+                      .then(() => setSysMsg("已开启：系统日历「OneTHU 日程」写入完成，此后自动保持最新。"))
+                      .catch((e: unknown) => setSysMsg(`开启失败：${e instanceof Error ? e.message : String(e)}`))
+                      .finally(() => setSysBusy(false));
+                  }}
+                >
+                  {sysBusy ? "开启中…" : "开启并同步"}
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -1,0 +1,29 @@
+[package]
+name = "tauri-plugin-onethu-calendar"
+version = "0.1.0"
+edition = "2021"
+description = "OneTHU 系统日历原生同步：Android CalendarProvider / macOS EventKit（learnX 模型：专属日历 + 幂等清旧重写）"
+links = "tauri-plugin-onethu-calendar"
+
+[lib]
+name = "tauri_plugin_onethu_calendar"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+log = "0.4"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+block2 = "0.6"
+objc2 = { version = "0.6", features = ["alloc", "std"] }
+objc2-foundation = { version = "0.3", default-features = false, features = [
+  "std", "NSString", "NSDate", "NSError", "NSArray", "NSPredicate", "NSObject",
+] }
+objc2-event-kit = { version = "0.3", default-features = false, features = [
+  "std", "EKAlarm", "EKCalendar", "EKCalendarItem", "EKEvent", "EKEventStore", "EKObject", "EKSource", "EKTypes", "block2",
+] }

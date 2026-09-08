@@ -89,6 +89,17 @@ async function ensureLoaded(): Promise<void> {
   emit();
 }
 
+/**
+ * 订阅云/本日程任何变更（含首次加载、同步、增删改）——系统日历自动跟随用。
+ * 返回退订函数。
+ */
+export function onCloudCalChange(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
+  };
+}
+
 export function getCloudCalConfig(): CloudCalConfig | null {
   return cfg;
 }

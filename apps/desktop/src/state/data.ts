@@ -2029,6 +2029,11 @@ export function useTodayCalendar() {
   return { nodes: Array.isArray(nodes) ? nodes : null, state, reload: load };
 }
 
+/** 非组件场景读校历缓存（系统日历等后台任务用；未加载返回 null） */
+export function getCachedCalendar(): CalendarData | null {
+  return cacheGet<CalendarData>(CAL_KEY)?.data ?? null;
+}
+
 /** 考试安排（zhjw 课表 JSONP 分类「考试」） */
 /** 校历（当前 + 未来学期；learn 直连 getCurrentAndNextSemester） */
 const CAL_KEY = "calendar";

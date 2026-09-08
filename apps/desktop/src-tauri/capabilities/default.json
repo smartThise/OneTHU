@@ -9,6 +9,7 @@
     "core:default",
     "opener:default",
     "opener:allow-open-url",
-    "dialog:default"
+    "dialog:default",
+    "onethu-calendar:default"
   ]
 }

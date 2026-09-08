@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 系统日历原生同步（EventKit）：授权弹窗说明 -->
+	<key>NSCalendarsUsageDescription</key>
+	<string>用于将你的课表与日程同步到系统日历（在"OneTHU 日程"日历中，可随时停止）。</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>用于将你的课表与日程同步到系统日历（在"OneTHU 日程"日历中，可随时停止）。</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>用于将你的课表与日程写入系统日历（在"OneTHU 日程"日历中，可随时停止）。</string>
+</dict>
+</plist>

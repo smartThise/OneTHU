@@ -25,6 +25,9 @@ import "@onethu/ui/tokens.css";
 import { installAuthWatchdog } from "./lib/reload.js";
 
 installAuthWatchdog();
+// 系统日历自动跟随：订阅云/本日程与课表变更（未开启时零开销）
+import { initSystemCalAutoSync } from "./state/systemCal.js";
+initSystemCalAutoSync();
 import "@onethu/ui/base.css";
 import "./styles/global.css";
 import { App } from "./App.js";

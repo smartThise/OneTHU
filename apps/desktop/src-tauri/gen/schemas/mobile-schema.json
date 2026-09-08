@@ -2427,6 +2427,60 @@
           "markdownDescription": "Denies the save command without any pre-configured scope."
         },
         {
+          "description": "允许使用系统日历原生同步：\n查询支持平台、请求日历权限、写入/清理 OneTHU 专属日历事件、移除该日历。\n\n#### This default permission set includes:\n\n- `allow-supported`\n- `allow-request-permission`\n- `allow-sync`\n- `allow-remove-calendar`",
+          "type": "string",
+          "const": "onethu-calendar:default",
+          "markdownDescription": "允许使用系统日历原生同步：\n查询支持平台、请求日历权限、写入/清理 OneTHU 专属日历事件、移除该日历。\n\n#### This default permission set includes:\n\n- `allow-supported`\n- `allow-request-permission`\n- `allow-sync`\n- `allow-remove-calendar`"
+        },
+        {
+          "description": "Enables the remove_calendar command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-calendar:allow-remove-calendar",
+          "markdownDescription": "Enables the remove_calendar command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the request_permission command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-calendar:allow-request-permission",
+          "markdownDescription": "Enables the request_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-calendar:allow-supported",
+          "markdownDescription": "Enables the supported command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the sync command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-calendar:allow-sync",
+          "markdownDescription": "Enables the sync command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the remove_calendar command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-calendar:deny-remove-calendar",
+          "markdownDescription": "Denies the remove_calendar command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the request_permission command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-calendar:deny-request-permission",
+          "markdownDescription": "Denies the request_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-calendar:deny-supported",
+          "markdownDescription": "Denies the supported command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the sync command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-calendar:deny-sync",
+          "markdownDescription": "Denies the sync command without any pre-configured scope."
+        },
+        {
           "description": "This permission set allows opening `mailto:`, `tel:`, `https://` and `http://` urls using their default application\nas well as reveal file in directories using default file explorer\n#### This default permission set includes:\n\n- `allow-open-url`\n- `allow-reveal-item-in-dir`\n- `allow-default-urls`",
           "type": "string",
           "const": "opener:default",

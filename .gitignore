@@ -14,3 +14,6 @@ packages/core/test/.caldav-build/
 # sidecar 二进制按平台现场构建（仓库里绝不能带任何架构的二进制——Windows 打包曾把 mac 的 Mach-O 打进安装包）
 apps/desktop/src-tauri/resources/plugins/onethu.harness/onethu-harness
 apps/desktop/src-tauri/resources/plugins/onethu.harness/onethu-harness.exe
+
+# tauri-plugin 构建脚本在插件 android 目录内生成的运行时拷贝（每次构建可再生）
+apps/desktop/src-tauri/plugins/*/android/.tauri/
