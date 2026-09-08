@@ -4,6 +4,8 @@ import { Card, Empty, ErrorNote, PageHead } from "../components/Layout.js";
 import { IconRefresh } from "../components/Icons.js";
 import { useCalendar, useCampusData, useWeekSchedule } from "../state/data.js";
 import { ScheduleAgenda } from "./ScheduleAgenda.js";
+import { caldav } from "@onethu/core";
+import { useCloudCal, syncCloudCal, getCloudCalConfig } from "../state/cloudCal.js";
 
 const DAY_NAMES = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 /** 上游 schedule.tsx beginTime/endTime（节次兜底定位用） */
@@ -24,7 +26,7 @@ const hmToMin = (t?: string): number | null => {
 };
 const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
-/** 网格条目的最小形状（课表条目） */
+/** 网格条目的最小形状（课表条目 + 云/本日程事件） */
 interface GridEntry {
   courseName: string;
   location?: string;
@@ -36,7 +38,12 @@ interface GridEntry {
   /** 真实时刻（lib parseJSON 语义：kssj/jssj 优先于节次定位） */
   startTime?: string;
   endTime?: string;
+  /** 来源（课程缺省=palette；考试/云/本固定色） */
+  src?: "exam" | "cloud" | "local";
 }
+
+/** 来源固定色（与日程列表口径一致） */
+const SRC_COLOR: Record<"exam" | "cloud" | "local", string> = { exam: "#e5484d", cloud: "#1fa487", local: "#8a8f98" };
 
 /** 课程块配色（按课程名稳定取色，同学期同色） */
 const PALETTE = [
@@ -80,8 +87,9 @@ function layout(entries: GridEntry[]): Placed[] {
     const list = [...(byDay[day] ?? [])].sort((a, b) => beginMinOf(a) - beginMinOf(b));
     const laneEnds: number[] = [];
     for (const s of list) {
-      const b = beginMinOf(s);
-      const e = Math.max(endMinOf(s), b);
+      // 云/本事件可落在时间轴（8:00–21:45）之外：夹取进轴，保证可见不画飞
+      const b = Math.max(AXIS_BEGIN, Math.min(beginMinOf(s), AXIS_END - 30));
+      const e = Math.max(b + 20, Math.min(endMinOf(s), AXIS_END));
       let lane = laneEnds.findIndex((le) => le <= b);
       if (lane === -1) {
         lane = laneEnds.length;
@@ -89,7 +97,7 @@ function layout(entries: GridEntry[]): Placed[] {
       } else {
         laneEnds[lane] = e;
       }
-      placed.push({ entry: s, day, beginMin: b, endMin: e, lane, lanes: 1, color: colorOf(s.courseName) });
+      placed.push({ entry: s, day, beginMin: b, endMin: e, lane, lanes: 1, color: s.src ? SRC_COLOR[s.src] : colorOf(s.courseName) });
     }
     for (const p of placed) if (p.day === day) p.lanes = laneEnds.length;
   }
@@ -99,13 +107,19 @@ function layout(entries: GridEntry[]): Placed[] {
 export function SchedulePage() {
   const campus = useCampusData();
   const calendar = useCalendar();
+  const cal = useCloudCal();
+
+  // 每次打开日程页自动云同步一次（页面级挂载；失败静默——列表页有手动入口与状态）
+  useEffect(() => {
+    if (getCloudCalConfig()) void syncCloudCal().catch(() => undefined);
+  }, []);
   const semesters = useMemo(
     () => (calendar.data ? [{ ...calendar.data }, ...calendar.data.nextSemesterList] : []),
     [calendar.data],
   );
   const [semesterIdx, setSemesterIdx] = useState(0);
   const [weekNo, setWeekNo] = useState(1);
-  /** 视图模式：课表网格 / 日程（月历+当日时间线，云同步入口） */
+  /** 视图模式：时间轴（周网格，课表+云事件）/ 列表（按天分组事件流） */
   const [mode, setMode] = useState<"timetable" | "agenda">("timetable");
   const semester = semesters[Math.min(semesterIdx, Math.max(semesters.length - 1, 0))] ?? null;
 
@@ -123,22 +137,64 @@ export function SchedulePage() {
   }, [currentWeek]);
 
   const weekData = useWeekSchedule(semester, weekNo);
-  /** 校历就绪 → 周视图数据（按周日期窗兜底过滤）；否则回落 campus 数据 */
-  const entries: GridEntry[] = useMemo(() => {
-    const raw = semester ? weekData.data ?? [] : campus.data?.schedule ?? [];
-    if (!semester) return raw;
-    const base = new Date(semester.firstDay.replace(/-/g, "/"));
-    const ws = new Date(base.getTime() + (weekNo - 1) * 7 * 86400000);
-    const we = new Date(ws.getTime() + 6 * 86400000);
+  const padN = (n: number): string => String(n).padStart(2, "0");
+  const ymdOf = (d: Date): string => `${d.getFullYear()}-${padN(d.getMonth() + 1)}-${padN(d.getDate())}`;
+  const hmOfMs = (ms: number): string => {
+    const w = caldav.epochToWall("Asia/Shanghai", ms);
+    return `${padN(w.h)}:${padN(w.mi)}`;
+  };
+  /** 展示周的一周日期窗（校历周 or 本周） */
+  const weekWindow = useMemo(() => {
+    if (semester) {
+      const base = new Date(semester.firstDay.replace(/-/g, "/"));
+      const monday = new Date(base.getTime() + (weekNo - 1) * 7 * 86400000);
+      return [monday, new Date(monday.getTime() + 6 * 86400000)] as const;
+    }
+    const n = new Date();
+    const monday = new Date(n.getFullYear(), n.getMonth(), n.getDate() - ((n.getDay() + 6) % 7));
+    return [monday, new Date(monday.getTime() + 6 * 86400000)] as const;
+  }, [semester?.firstDay, weekNo]);
+  /**
+   * 时间轴数据 = 课表（周窗过滤，考试标红）+ 云/本日程事件（展开进对应日列，
+   * 按绝对时刻定位分道）。全天事件不入网格，走上方芯片行。
+   */
+  const { entries, allDayChips } = useMemo<{ entries: GridEntry[]; allDayChips: Array<{ label: string; src: "cloud" | "local" }> }>(() => {
+    const raw = (semester ? weekData.data ?? [] : campus.data?.schedule ?? []) as Array<GridEntry & { category?: string }>;
     const dayFloor = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-    const lo = dayFloor(ws);
-    const hi = dayFloor(we);
-    return raw.filter((e) => {
-      if (!e.date) return true; // 无日期条目（个别自定义）不过滤
-      const t = dayFloor(new Date(e.date.replace(/-/g, "/")));
-      return t >= lo && t <= hi;
-    });
-  }, [semester, weekData.data, campus.data, weekNo]);
+    const [monday, sunday] = weekWindow;
+    const lo = dayFloor(monday);
+    const hi = dayFloor(sunday) + 86_399_999;
+    const inWeek: GridEntry[] = raw
+      .map((e) => ({ ...e, src: e.category?.includes("考试") ? ("exam" as const) : e.src }))
+      .filter((e) => {
+        if (!e.date) return true; // 无日期条目（个别自定义）不过滤
+        const t = dayFloor(new Date(e.date.replace(/-/g, "/")));
+        return t >= lo && t <= hi;
+      });
+    const chips: Array<{ label: string; src: "cloud" | "local" }> = [];
+    const WD_INDEX = (ms: number): number => {
+      const w = caldav.epochToWall("Asia/Shanghai", ms);
+      return (new Date(Date.UTC(w.y, w.mo - 1, w.d)).getUTCDay() + 6) % 7;
+    };
+    for (const [evts, src] of [[cal.cloudEvents, "cloud"], [cal.localEvents, "local"]] as const) {
+      for (const o of caldav.expandEventSet(evts, lo, hi)) {
+        if (o.allDay) {
+          chips.push({ label: o.summary, src });
+          continue;
+        }
+        inWeek.push({
+          courseName: o.summary,
+          location: o.location,
+          date: ymdOf(new Date(o.start)),
+          dayOfWeek: WD_INDEX(o.start) + 1,
+          startTime: hmOfMs(o.start),
+          endTime: hmOfMs(o.end),
+          src,
+        });
+      }
+    }
+    return { entries: inWeek, allDayChips: chips };
+  }, [semester, weekData.data, campus.data, weekWindow, cal.cloudEvents, cal.localEvents]);
 
   const todayIdx = useMemo(() => {
     const d = new Date().getDay();
@@ -174,7 +230,7 @@ export function SchedulePage() {
   return (
     <>
       <PageHead
-        title={mode === "timetable" ? "课表" : "日程"}
+        title="日程"
         meta={
           semester
             ? `${semester.semesterName || semester.semesterId} · 第 ${weekNo} 周 / 共 ${semester.weekCount} 周`
@@ -182,7 +238,7 @@ export function SchedulePage() {
         }
         actions={
           <>
-            <PageAtomStar atomKey="schedule" title="课表" />
+            <PageAtomStar atomKey="schedule" title="日程" />
             {semester && !isCurrentWeek ? (
               <button className="btn" onClick={() => setWeekNo(currentWeek)}>
                 回到今天
@@ -205,7 +261,7 @@ export function SchedulePage() {
       />
 
       <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-        {([["timetable", "课表"], ["agenda", "日程"]] as const).map(([m, label]) => (
+        {([["timetable", "时间轴"], ["agenda", "列表"]] as const).map(([m, label]) => (
           <button
             key={m}
             className={mode === m ? "btn btn-primary" : "btn"}
@@ -262,10 +318,19 @@ export function SchedulePage() {
         </div>
       ) : null}
 
+      {allDayChips.length > 0 ? (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+          {allDayChips.slice(0, 8).map((c, i) => (
+            <span key={i} style={{ fontSize: 11.5, padding: "2px 8px", borderRadius: 6, background: c.src === "cloud" ? "rgba(31,164,135,0.12)" : "rgba(138,143,152,0.14)", color: SRC_COLOR[c.src] }}>
+              全天 · {c.label}
+            </span>
+          ))}
+        </div>
+      ) : null}
       {loading ? (
         <Empty text="正在从教务系统取数…" />
       ) : entries.length === 0 ? (
-        <Card><Empty text={semester ? `第 ${weekNo} 周没有排课记录（假期周）。` : "没有排课记录。"} /></Card>
+        <Card><Empty text={semester ? `第 ${weekNo} 周没有排课记录（假期周）。` : "没有排课与日程记录。"} /></Card>
       ) : (
         <Card style={{ padding: 14, overflowX: "auto" }}>
           <div style={{ minWidth: 0 }}>

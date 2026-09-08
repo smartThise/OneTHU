@@ -297,7 +297,7 @@ OneTHU 内新建的日程会同步到云端日历——系统日历/其他设备
 |---|---|---|
 | `today` | 今日首页 | — |
 | `learn` | 网络学堂 | — |
-| `schedule` | 课表 | — |
+| `schedule` | 日程（时间轴/列表） | — |
 | `info` | 信息聚合页 | `infoTab: "report"\|"exams"\|"news"\|"calendar"\|"profile"\|"courseinfo"\|"fitness"\|"evaluation"`、`infoNewsId`（新闻直达） |
 | `life` | 生活聚合页 | `lifeTab: "dorm"\|"card"\|"washer"\|"hygiene"\|"invoice"\|"payroll"\|"gradincome"\|"network"` |
 | `reserve` | 预约聚合页 | `reserveTab: "lib"\|"room"\|"classroom"\|"sports"\|"kongjian"` |

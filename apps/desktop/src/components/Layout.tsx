@@ -13,7 +13,7 @@ import { useFavs } from "../state/favs.js";
 const NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode }> = [
   { page: "today", label: "今日", icon: IconToday },
   { page: "learn", label: "网络学堂", icon: IconLearn },
-  { page: "schedule", label: "课表", icon: IconSchedule },
+  { page: "schedule", label: "日程", icon: IconSchedule },
   { page: "info", label: "信息", icon: IconInfo },
   { page: "life", label: "生活", icon: IconCard },
   { page: "reserve", label: "预约", icon: IconCalendar },

@@ -114,6 +114,7 @@ export function ScheduleAgenda({
     };
   }, [monthAnchor, status]);
 
+  const todayStr = ymd(new Date());
   /** 展示用课程：月窗口数据优先（整月覆盖），未就绪退 campus（±3 周窗口） */
   const effectiveCourses = monthSchedule ?? courses;
 
@@ -136,35 +137,57 @@ export function ScheduleAgenda({
     return marks;
   }, [monthAnchor, effectiveCourses, cal.cloudEvents, cal.localEvents]);
 
-  /* ---------- 当日时间线 ---------- */
-  const dayItems = useMemo<AgendaItem[]>(() => {
-    const d = parseYmd(selected);
-    const from = dayStart(d);
-    const to = from + DAY_MS - 1;
-    const items: AgendaItem[] = [];
-    for (const e of effectiveCourses) {
-      if (!e.date || e.date !== selected) continue;
-      const s = e.startTime ? new Date(`${e.date.replace(/-/g, "/")} ${e.startTime}`).getTime() : from;
-      const en = e.endTime ? new Date(`${e.date.replace(/-/g, "/")} ${e.endTime}`).getTime() : from + 3_600_000;
-      items.push({
-        kind: e.category?.includes("考试") ? "exam" : "course",
-        startMs: Number.isNaN(s) ? from : s,
-        endMs: Number.isNaN(en) ? from + 3_600_000 : en,
-        title: e.courseName,
-        location: e.location,
-        note: e.teacher ? `教师：${e.teacher}` : e.weekText,
-      });
-    }
-    for (const [evts, kind] of [[cal.cloudEvents, "cloud"], [cal.localEvents, "local"]] as const) {
-      for (const o of caldav.expandEventSet(evts, from, to)) {
+  /* ---------- 列表模式：整月按天分组的事件流 ---------- */
+  const monthFlow = useMemo<Array<{ day: string; num: number; weekday: number; isToday: boolean; items: AgendaItem[] }>>(() => {
+    const first = new Date(monthAnchor.getFullYear(), monthAnchor.getMonth(), 1);
+    const from = dayStart(first);
+    const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+    /** 单日条目：课程/考试（读源）+ 云/本（展开） */
+    const itemsOfDay = (day: string): AgendaItem[] => {
+      const d = parseYmd(day);
+      const dFrom = dayStart(d);
+      const dTo = dFrom + DAY_MS - 1;
+      const items: AgendaItem[] = [];
+      for (const e of effectiveCourses) {
+        if (!e.date || e.date !== day) continue;
+        const s = e.startTime ? new Date(`${e.date.replace(/-/g, "/")} ${e.startTime}`).getTime() : dFrom;
+        const en = e.endTime ? new Date(`${e.date.replace(/-/g, "/")} ${e.endTime}`).getTime() : dFrom + 3_600_000;
         items.push({
-          kind, startMs: o.start, endMs: o.end, title: o.summary,
-          location: o.location, note: o.description, uid: o.uid, allDay: o.allDay,
+          kind: e.category?.includes("考试") ? "exam" : "course",
+          startMs: Number.isNaN(s) ? dFrom : s,
+          endMs: Number.isNaN(en) ? dFrom + 3_600_000 : en,
+          title: e.courseName,
+          location: e.location,
+          note: e.teacher ? `教师：${e.teacher}` : e.weekText,
         });
       }
+      for (const [evts, kind] of [[cal.cloudEvents, "cloud"], [cal.localEvents, "local"]] as const) {
+        for (const o of caldav.expandEventSet(evts, dFrom, dTo)) {
+          items.push({
+            kind, startMs: o.start, endMs: o.end, title: o.summary,
+            location: o.location, note: o.description, uid: o.uid, allDay: o.allDay,
+          });
+        }
+      }
+      return items.sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs);
+    };
+    const sections: Array<{ day: string; num: number; weekday: number; isToday: boolean; items: AgendaItem[] }> = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const day = ymd(new Date(first.getFullYear(), first.getMonth(), d));
+      const items = itemsOfDay(day);
+      const isToday = day === todayStr;
+      if (items.length === 0 && !isToday) continue; // 无事之日不占位（今天除外：留"无日程"锚点）
+      sections.push({ day, num: d, weekday: (parseYmd(day).getDay() + 6) % 7, isToday, items });
     }
-    return items.sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs);
-  }, [selected, effectiveCourses, cal.cloudEvents, cal.localEvents]);
+    return sections;
+  }, [monthAnchor, effectiveCourses, cal.cloudEvents, cal.localEvents, todayStr]);
+
+  /** 月历点击 → 选中并滚动到该日分组 */
+  const scrollToDay = (day: string): void => {
+    requestAnimationFrame(() => {
+      document.querySelector(`[data-day="${day}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   /* ---------- 月历渲染数据 ---------- */
   const gridDays = useMemo(() => {
@@ -179,7 +202,6 @@ export function ScheduleAgenda({
     return cells;
   }, [monthAnchor]);
 
-  const todayStr = ymd(new Date());
   const canCloud = cal.configured;
 
   /* ---------- 动作 ---------- */
@@ -311,7 +333,7 @@ export function ScheduleAgenda({
           <span style={{ fontWeight: 600, fontSize: 14 }}>{monthAnchor.getFullYear()} 年 {MONTHS[monthAnchor.getMonth()]}</span>
           <button className="btn" onClick={() => setMonthAnchor(new Date(monthAnchor.getFullYear(), monthAnchor.getMonth() + 1, 1))}>›</button>
           <span style={{ flex: 1 }} />
-          <button className="btn" onClick={() => { const n = new Date(); setMonthAnchor(new Date(n.getFullYear(), n.getMonth(), 1)); setSelected(ymd(n)); }}>今天</button>
+          <button className="btn" onClick={() => { const n = new Date(); setMonthAnchor(new Date(n.getFullYear(), n.getMonth(), 1)); setSelected(ymd(n)); scrollToDay(ymd(n)); }}>今天</button>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, textAlign: "center" }}>
           {WEEK_SHORT.map((w) => (
@@ -321,7 +343,7 @@ export function ScheduleAgenda({
             c ? (
               <button
                 key={c.day}
-                onClick={() => setSelected(c.day)}
+                onClick={() => { setSelected(c.day); scrollToDay(c.day); }}
                 style={{
                   position: "relative", border: "none", background: c.day === selected ? "var(--accent, #6d7ff0)" : c.day === todayStr ? "rgba(109,127,240,0.10)" : "transparent",
                   color: c.day === selected ? "#fff" : "inherit", borderRadius: 7, padding: "5px 0 7px", cursor: "pointer",
@@ -343,16 +365,27 @@ export function ScheduleAgenda({
         </div>
       </Card>
 
-      {/* 当日时间线 */}
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
-        <span style={{ fontWeight: 700, fontSize: 15 }}>{selected.replace(/-/g, "/")}</span>
-        <span style={{ fontSize: 12, color: "var(--text-3, #999)" }}>周{WEEK_SHORT[(parseYmd(selected).getDay() + 6) % 7]} · {dayItems.length} 项</span>
-      </div>
-      {dayItems.length === 0 ? (
-        <Card><Empty text="这一天没有日程。点击右上「添加日程」新建。" /></Card>
+      {/* 按天分组的日程流 */}
+      {monthFlow.length === 0 ? (
+        <Card><Empty text="本月没有日程。点击右上「添加日程」新建。" /></Card>
       ) : (
-        <Card style={{ padding: 4 }}>
-          {dayItems.map((it, i) => (
+        monthFlow.map((sec) => (
+        <div key={sec.day} data-day={sec.day} style={{ marginBottom: 10, scrollMarginTop: 12 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6, padding: "0 2px" }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: sec.isToday ? "var(--accent, #6d7ff0)" : undefined }}>
+              {parseYmd(sec.day).getMonth() + 1}月{sec.num}日
+            </span>
+            <span style={{ fontSize: 12, color: "var(--text-3, #999)" }}>
+              {sec.isToday ? "今天 · " : ""}周{WEEK_SHORT[sec.weekday]} · {sec.items.length} 项
+            </span>
+          </div>
+          {sec.items.length === 0 ? (
+            <Card style={{ padding: "10px 12px" }}>
+              <span style={{ fontSize: 12.5, color: "var(--text-3, #999)" }}>无日程</span>
+            </Card>
+          ) : (
+          <Card style={{ padding: 4 }}>
+            {sec.items.map((it, i) => (
             <button
               key={`${it.kind}-${it.uid ?? it.title}-${i}`}
               onClick={() => openEdit(it)}
@@ -375,8 +408,11 @@ export function ScheduleAgenda({
                 {it.note ? <div style={{ fontSize: 11.5, color: "var(--text-3, #999)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.note}</div> : null}
               </div>
             </button>
-          ))}
-        </Card>
+            ))}
+          </Card>
+          )}
+        </div>
+        ))
       )}
 
       {/* 编辑器 */}
