@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageAtomStar } from "../components/Collect.js";
 import { Card, Empty, ErrorNote, PageHead } from "../components/Layout.js";
-import { IconRefresh } from "../components/Icons.js";
+import { IconRefresh, IconSchedule } from "../components/Icons.js";
 import { useCalendar, useCampusData } from "../state/data.js";
 import { ScheduleAgenda } from "./ScheduleAgenda.js";
 import type { AgendaItem } from "./ScheduleAgenda.js";
@@ -408,20 +408,13 @@ export function SchedulePage() {
       });
       if (!path) return; // 用户取消
       await openPath(path);
-      setMsg(`已导出 ${events.length} 条日程，系统日历导入窗口应已打开（选择要写入的日历）。`);
+      setMsg(`已导出 ${events.length} 条日程，系统日历导入窗口应已打开（选择要写入的日历）。长期自动同步：设置 → 云同步 → 系统日历指引。`);
     } catch (err) {
       setMsg(`导出失败：${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setBusy(false);
     }
   };
-  /** 系统日历长期自动同步指引（CalDAV 账户一次添加，双向实时） */
-  const showAutoSyncGuide = async (): Promise<void> => {
-    await confirmOk(
-      "让系统日历自动同步（推荐，一次设置）\n\n在系统的日历 App 里添加清华邮箱账户：\n· macOS：日历 → 设置 → 账户 → 添加 CalDAV 账户 → 高级\n· iPhone/iPad：设置 → 日历 → 账户 → 添加账户 → 其他 → CalDAV 账户\n· 服务器地址：https://mails.tsinghua.edu.cn/coremail/dav/users/你的邮箱/\n· 用户名：完整邮箱；密码：客户端专用密码（与云同步设置里的一致）\n\n添加后系统日历与本应用读写的同一个云端日历自动保持一致，无需再导出。",
-    );
-  };
-
   const openEditByUid = (uid: string, kind: "cloud" | "local"): void => {
     const src = kind === "cloud" ? cal.cloudEvents.find((e) => e.uid === uid) : cal.localEvents.find((e) => e.uid === uid);
     if (!src) return;
@@ -533,7 +526,7 @@ export function SchedulePage() {
         }
       />
 
-      {/* 视图切换 + 同步：两视图共用 */}
+      {/* 视图与动作（两视图共用）：切换 | 状态 | 同步 / 系统日历 / 上云 / 新建 */}
       <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
         {([["timetable", "时间轴"], ["agenda", "列表"]] as const).map(([m, lbl]) => (
           <button
@@ -546,25 +539,21 @@ export function SchedulePage() {
           </button>
         ))}
         <span style={{ flex: 1 }} />
+        <span style={{ fontSize: 12, color: "var(--text-3, #999)" }}>
+          {canCloud ? `${cal.email} · ${lastSyncText}` : "云同步未配置"}
+        </span>
         <button className="btn" onClick={() => void onSync()} disabled={!canCloud || cal.syncing}>
           <IconRefresh width={14} height={14} />
-          {cal.syncing ? "同步中…" : "同步云日历"}
+          {cal.syncing ? "同步中…" : "同步"}
         </button>
-      </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8, fontSize: 12, color: "var(--text-2)", flexWrap: "wrap", alignItems: "center" }}>
-        <span>{canCloud ? `${cal.email} · ${lastSyncText}` : "云同步未配置（设置页开启）"}</span>
-        <span style={{ flex: 1 }} />
+        <button className="btn" onClick={() => void onSystemCal()} disabled={busy}>
+          存入系统日历
+        </button>
         {canCloud && exportSemester ? (
           <button className="btn" onClick={() => void onExport()} disabled={!!exporting}>
             {exporting ? `${exporting.phase} ${exporting.done}/${exporting.total}` : "课表上云"}
           </button>
         ) : null}
-        <button className="btn" onClick={() => void onSystemCal()} disabled={busy}>
-          存入系统日历
-        </button>
-        <button className="btn" style={{ padding: "2px 8px" }} title="如何让系统日历自动同步" onClick={() => void showAutoSyncGuide()}>
-          ？
-        </button>
         <button className="btn btn-primary" onClick={() => setDraft(emptyDraft(defaultDraftDate, canCloud))}>
           ＋ 添加日程
         </button>
@@ -573,10 +562,11 @@ export function SchedulePage() {
         <div style={{ fontSize: 12.5, color: "var(--text-2)", marginBottom: 8, whiteSpace: "pre-wrap" }}>{msg}</div>
       ) : null}
 
-      {/* 共用工具栏：窗口导航 + 日历快跳 + 学期周跳转（两视图同一套） */}
+      {/* 导航（两视图共用）：日历快跳 + 窗口步进 + 今天 ‖ 学期周跳转 */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: calOpen ? 8 : 10 }}>
         <button className="btn" onClick={() => setCalOpen((v) => !v)} title="打开日历，快速跳到任意年月">
-          📅 {label}
+          <IconSchedule width={14} height={14} />
+          {label}
         </button>
         <button className="btn" onClick={() => setAnchor(stepAnchor(-1))} title={mode === "timetable" ? "上一周" : "上个月"}>
           ‹
@@ -589,7 +579,7 @@ export function SchedulePage() {
         </button>
         {semesters.length > 0 ? (
           <>
-            <span style={{ flex: 1 }} />
+            <span style={{ width: 1, alignSelf: "stretch", background: "var(--border, #e8e8e8)" }} />
             <select
               className="input"
               value={Math.min(jumpSemIdx, semesters.length - 1)}
@@ -606,7 +596,7 @@ export function SchedulePage() {
                 </option>
               ))}
             </select>
-            <select className="input" value={jumpWeek} onChange={(e) => setJumpWeek(Number(e.target.value))} style={{ width: 80 }}>
+            <select className="input" value={jumpWeek} onChange={(e) => setJumpWeek(Number(e.target.value))} style={{ width: 84 }}>
               {Array.from({ length: jumpSem?.weekCount ?? 20 }, (_, i) => i + 1).map((w) => (
                 <option key={w} value={w}>
                   第 {w} 周

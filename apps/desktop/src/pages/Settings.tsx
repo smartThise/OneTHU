@@ -124,11 +124,21 @@ export function SettingsPage() {
             <div>
               <div className="setting-title">日程云同步 · 已连接</div>
               <div className="setting-desc">
-                {cloud.email} · 通过清华邮箱日历（CalDAV）多设备同步日程；在「课表 → 日程」页查看与编辑。
+                {cloud.email} · 通过清华邮箱日历（CalDAV）多设备同步日程；在「日程」页查看与编辑。
                 {calMsg ? <div style={{ marginTop: 6, color: "var(--text-2)" }}>{calMsg}</div> : null}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <button
+                className="btn"
+                onClick={() =>
+                  void confirmOk(
+                    "系统日历自动同步指引（推荐，一次设置）\n\n在系统的日历 App 里添加清华邮箱账户：\n· macOS：日历 → 设置 → 账户 → 添加 CalDAV 账户 → 高级\n· iPhone/iPad：设置 → 日历 → 账户 → 添加账户 → 其他 → CalDAV 账户\n· 服务器地址：https://mails.tsinghua.edu.cn/coremail/dav/users/你的邮箱/\n· 用户名：完整邮箱；密码：客户端专用密码（与本页一致）\n\n添加后系统日历与应用读写同一个云端日历，自动保持一致，无需再手动导出。",
+                  )
+                }
+              >
+                系统日历指引
+              </button>
               <button
                 className="btn"
                 disabled={calBusy || cloud.syncing}
