@@ -3,7 +3,7 @@
  * 四路数据源合并：INFO 课表/考试（只读）· CalDAV 云端（双向）· 本地手动（可上云）。
  * 与课表网格共用页面（Schedule.tsx 顶部模式切换）。
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { caldav } from "@onethu/core";
 import { Card, Empty, ErrorNote } from "../components/Layout.js";
 import { IconRefresh } from "../components/Icons.js";
@@ -12,6 +12,7 @@ import {
 } from "../state/cloudCal.js";
 import { info } from "../lib/clients.js";
 import { confirmOk } from "../lib/confirm.js";
+import { useApp } from "../state/context.js";
 import type { ScheduleEntry } from "@onethu/core";
 
 const TZ = "Asia/Shanghai";
@@ -79,12 +80,42 @@ export function ScheduleAgenda({
   semester: { firstDay: string; weekCount: number } | null;
 }) {
   const cal = useCloudCal();
+  const { status } = useApp();
   const [monthAnchor, setMonthAnchor] = useState<Date>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  /** 月历窗口课程（campus 数据只有今天±3 周，翻月自取整月窗口） */
+  const [monthSchedule, setMonthSchedule] = useState<ScheduleEntry[] | null>(null);
   const [selected, setSelected] = useState<string>(ymd(new Date()));
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [exporting, setExporting] = useState<{ phase: string; done: number; total: number } | null>(null);
+
+  // 翻月拉取该月课程/考试（失败静默：云日程仍显示，课程点标退化为 campus 窗口）
+  useEffect(() => {
+    if (status === "demo") {
+      setMonthSchedule(null);
+      return;
+    }
+    let alive = true;
+    const first = new Date(monthAnchor.getFullYear(), monthAnchor.getMonth(), 1);
+    const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
+    const f2 = (d: Date): string => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    setMonthSchedule(null);
+    info
+      .getSchedule(f2(first), f2(last))
+      .then((rows) => {
+        if (alive) setMonthSchedule(rows);
+      })
+      .catch(() => {
+        if (alive) setMonthSchedule([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [monthAnchor, status]);
+
+  /** 展示用课程：月窗口数据优先（整月覆盖），未就绪退 campus（±3 周窗口） */
+  const effectiveCourses = monthSchedule ?? courses;
 
   /* ---------- 月历格：每天的来源点标 ---------- */
   const monthMarks = useMemo(() => {
@@ -99,11 +130,11 @@ export function ScheduleAgenda({
       m[k] = true;
       marks.set(day, m);
     };
-    for (const e of courses) if (e.date && from <= parseYmd(e.date).getTime() && parseYmd(e.date).getTime() <= to) mark(e.date, e.category?.includes("考试") ? "exam" : "course");
+    for (const e of effectiveCourses) if (e.date && from <= parseYmd(e.date).getTime() && parseYmd(e.date).getTime() <= to) mark(e.date, e.category?.includes("考试") ? "exam" : "course");
     for (const o of cloudOcc) mark(ymd(new Date(o.start)), "cloud");
     for (const o of localOcc) mark(ymd(new Date(o.start)), "local");
     return marks;
-  }, [monthAnchor, courses, cal.cloudEvents, cal.localEvents]);
+  }, [monthAnchor, effectiveCourses, cal.cloudEvents, cal.localEvents]);
 
   /* ---------- 当日时间线 ---------- */
   const dayItems = useMemo<AgendaItem[]>(() => {
@@ -111,7 +142,7 @@ export function ScheduleAgenda({
     const from = dayStart(d);
     const to = from + DAY_MS - 1;
     const items: AgendaItem[] = [];
-    for (const e of courses) {
+    for (const e of effectiveCourses) {
       if (!e.date || e.date !== selected) continue;
       const s = e.startTime ? new Date(`${e.date.replace(/-/g, "/")} ${e.startTime}`).getTime() : from;
       const en = e.endTime ? new Date(`${e.date.replace(/-/g, "/")} ${e.endTime}`).getTime() : from + 3_600_000;
@@ -133,7 +164,7 @@ export function ScheduleAgenda({
       }
     }
     return items.sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs);
-  }, [selected, courses, cal.cloudEvents, cal.localEvents]);
+  }, [selected, effectiveCourses, cal.cloudEvents, cal.localEvents]);
 
   /* ---------- 月历渲染数据 ---------- */
   const gridDays = useMemo(() => {
