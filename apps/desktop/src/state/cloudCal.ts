@@ -291,13 +291,11 @@ const AT = (date: string, minutes: number): number => {
  * 语义零风险）。UID 稳定派生 → 重复执行=先清理旧 course/exam 再全量重写，
  * 幂等可重入。写入后系统日历/其他设备全学期可见。
  */
-export async function exportSemesterToCloud(
+/** 构建整学期逐场事件（课表上云 / 系统日历导出共用）：date|time|课名 稳定 uid */
+export async function buildSemesterEvents(
   semester: { firstDay: string; weekCount: number },
   fetchSchedule: (start: string, end: string) => Promise<ScheduleEntry[]>,
-  onProgress?: (done: number, total: number, phase: "清理旧数据" | "写入日程") => void,
-): Promise<{ written: number; removed: number; skipped: number }> {
-  const client = makeClient();
-  if (!client) throw new Error("未配置云同步");
+): Promise<{ events: caldav.IcsEvent[]; skipped: number }> {
   const fmt = (d: Date): string => {
     const p = (n: number): string => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
@@ -331,6 +329,17 @@ export async function exportSemesterToCloud(
       onethuSource: exam ? "exam" : "course",
     });
   }
+  return { events, skipped };
+}
+
+export async function exportSemesterToCloud(
+  semester: { firstDay: string; weekCount: number },
+  fetchSchedule: (start: string, end: string) => Promise<ScheduleEntry[]>,
+  onProgress?: (done: number, total: number, phase: "清理旧数据" | "写入日程") => void,
+): Promise<{ written: number; removed: number; skipped: number }> {
+  const client = makeClient();
+  if (!client) throw new Error("未配置云同步");
+  const { events, skipped } = await buildSemesterEvents(semester, fetchSchedule);
 
   // 清理旧 course/exam（幂等重入）
   const stale = cloudEvents.filter((e) => e.onethuSource === "course" || e.onethuSource === "exam");
@@ -349,18 +358,19 @@ export async function exportSemesterToCloud(
   // 全量写入
   onProgress?.(0, events.length, "写入日程");
   let written = 0;
+  let failed = 0;
   for (const ev of events) {
     try {
       await client.putIcs(ev.uid, caldav.serializeCalendar([ev]));
       cloudEvents = [...cloudEvents.filter((c) => c.uid !== ev.uid), ev];
       written++;
     } catch {
-      skipped++;
+      failed++;
     }
     onProgress?.(written, events.length, "写入日程");
   }
   lastSyncAt = Date.now();
   await persistCache();
   emit();
-  return { written, removed, skipped };
+  return { written, removed, skipped: skipped + failed };
 }
