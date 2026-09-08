@@ -46,7 +46,7 @@ export const store = localStorageStore();
 const SESSION_FILE = "session";
 const SECRET_FILE = "credentials";
 
-async function fileRead(name: string): Promise<string | null> {
+export async function fileRead(name: string): Promise<string | null> {
   if (!isTauri) return null;
   try {
     const { invoke } = await import("@tauri-apps/api/core");
@@ -56,7 +56,7 @@ async function fileRead(name: string): Promise<string | null> {
   }
 }
 
-async function fileWrite(name: string, content: string): Promise<void> {
+export async function fileWrite(name: string, content: string): Promise<void> {
   if (!isTauri) return;
   try {
     const { invoke } = await import("@tauri-apps/api/core");
@@ -66,7 +66,7 @@ async function fileWrite(name: string, content: string): Promise<void> {
   }
 }
 
-async function fileDelete(name: string): Promise<void> {
+export async function fileDelete(name: string): Promise<void> {
   if (!isTauri) return;
   try {
     const { invoke } = await import("@tauri-apps/api/core");
@@ -92,13 +92,13 @@ function bytesToBinaryString(bytes: Uint8Array): string {
 }
 
 /** 密码与用户名绑定的逐字节 XOR + base64（本机混淆、非明文；非加密承诺） */
-function obfuscateSecret(password: string, username: string): string {
+export function obfuscateSecret(password: string, username: string): string {
   const bytes = new TextEncoder().encode(password);
   const key = new TextEncoder().encode(`OneTHU|${username}|remember`);
   return SECRET_MAGIC + btoa(bytesToBinaryString(xorBytes(bytes, key)));
 }
 
-function deobfuscateSecret(stored: string, username: string): string {
+export function deobfuscateSecret(stored: string, username: string): string {
   if (!stored.startsWith(SECRET_MAGIC)) return "";
   try {
     const bin = atob(stored.slice(SECRET_MAGIC.length));

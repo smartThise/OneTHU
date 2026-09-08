@@ -3,6 +3,7 @@ import { PageAtomStar } from "..//components/Collect.js";
 import { Card, Empty, ErrorNote, PageHead } from "../components/Layout.js";
 import { IconRefresh } from "../components/Icons.js";
 import { useCalendar, useCampusData, useWeekSchedule } from "../state/data.js";
+import { ScheduleAgenda } from "./ScheduleAgenda.js";
 
 const DAY_NAMES = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 /** 上游 schedule.tsx beginTime/endTime（节次兜底定位用） */
@@ -104,6 +105,8 @@ export function SchedulePage() {
   );
   const [semesterIdx, setSemesterIdx] = useState(0);
   const [weekNo, setWeekNo] = useState(1);
+  /** 视图模式：课表网格 / 日程（月历+当日时间线，云同步入口） */
+  const [mode, setMode] = useState<"timetable" | "agenda">("timetable");
   const semester = semesters[Math.min(semesterIdx, Math.max(semesters.length - 1, 0))] ?? null;
 
   /** 本周号（按校历 firstDay 推算，夹在 1..weekCount） */
@@ -171,7 +174,7 @@ export function SchedulePage() {
   return (
     <>
       <PageHead
-        title="课表"
+        title={mode === "timetable" ? "课表" : "日程"}
         meta={
           semester
             ? `${semester.semesterName || semester.semesterId} · 第 ${weekNo} 周 / 共 ${semester.weekCount} 周`
@@ -201,6 +204,26 @@ export function SchedulePage() {
         }
       />
 
+      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+        {([["timetable", "课表"], ["agenda", "日程"]] as const).map(([m, label]) => (
+          <button
+            key={m}
+            className={mode === m ? "btn btn-primary" : "btn"}
+            style={mode === m ? undefined : { opacity: 0.75 }}
+            onClick={() => setMode(m)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode === "agenda" ? (
+        <ScheduleAgenda
+          courses={campus.data?.schedule ?? []}
+          semester={calendar.data ? { firstDay: calendar.data.firstDay, weekCount: calendar.data.weekCount } : null}
+        />
+      ) : (
+      <>
       {calendar.state === "error" ? (
         <ErrorNote text={`校历加载失败（周导航/学期切换不可用）：${calendar.error ?? ""}`} onRetry={() => void calendar.reload()} />
       ) : null}
@@ -406,6 +429,8 @@ export function SchedulePage() {
             </div>
           </div>
         </Card>
+      )}
+      </>
       )}
     </>
   );

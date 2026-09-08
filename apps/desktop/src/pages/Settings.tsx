@@ -9,6 +9,7 @@ import { useFavs } from "../state/favs.js";
 import { parseFavs, resetFavs } from "../state/favorites.js";
 import { confirmOk } from "../lib/confirm.js";
 import { useApp } from "../state/context.js";
+import { useCloudCal, configureCloudCal, disconnectCloudCal, syncCloudCal } from "../state/cloudCal.js";
 
 export function SettingsPage() {
   const { user, logout, navigate } = useApp();
@@ -21,6 +22,12 @@ export function SettingsPage() {
   // 首页布局恢复：点击后短暂显示「已恢复默认」，到点回位
   const [homeResetAt, setHomeResetAt] = useState(0);
   const [eidMsg, setEidMsg] = useState<string | null>(null);
+  // 云同步（清华邮箱 CalDAV 日历）
+  const cloud = useCloudCal();
+  const [calEmail, setCalEmail] = useState("");
+  const [calPass, setCalPass] = useState("");
+  const [calBusy, setCalBusy] = useState(false);
+  const [calMsg, setCalMsg] = useState<string | null>(null);
 
   useEffect(() => {
     void loadRemembered().then((r) => setHasSaved(!!r));
@@ -109,6 +116,91 @@ export function SettingsPage() {
         </div>
       </Card>
 
+
+      <SectionHead title="云同步" />
+      <Card>
+        {cloud.configured ? (
+          <div className="setting-row">
+            <div>
+              <div className="setting-title">日程云同步 · 已连接</div>
+              <div className="setting-desc">
+                {cloud.email} · 通过清华邮箱日历（CalDAV）多设备同步日程；在「课表 → 日程」页查看与编辑。
+                {calMsg ? <div style={{ marginTop: 6, color: "var(--text-2)" }}>{calMsg}</div> : null}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <button
+                className="btn"
+                disabled={calBusy || cloud.syncing}
+                onClick={() => {
+                  setCalBusy(true);
+                  setCalMsg(null);
+                  void syncCloudCal()
+                    .then((r) => setCalMsg(`已同步：云端共 ${r.total} 个日程（新增 ${r.added}、更新 ${r.updated}、移除 ${r.removed}）。`))
+                    .catch((e: unknown) => setCalMsg(`同步失败：${e instanceof Error ? e.message : String(e)}`))
+                    .finally(() => setCalBusy(false));
+                }}
+              >
+                {calBusy || cloud.syncing ? "同步中…" : "立即同步"}
+              </button>
+              <button
+                className="btn"
+                onClick={() =>
+                  void disconnectCloudCal().then(() => {
+                    setCalEmail("");
+                    setCalPass("");
+                    setCalMsg(null);
+                  })
+                }
+              >
+                断开
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="setting-row" style={{ alignItems: "flex-start" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="setting-title">日程云同步（清华邮箱日历）</div>
+              <div className="setting-desc">
+                用清华邮箱的日历服务在多台设备间同步日程——OneTHU 里添加的日程会出现在系统日历 / 其他设备（添加同一账号）。
+                授权码获取：网页版邮箱（mails.tsinghua.edu.cn）→ 设置 → 客户端专用密码。
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                <input
+                  className="input"
+                  style={{ minWidth: 200, flex: 1 }}
+                  placeholder="完整邮箱地址（如 someone@mails.tsinghua.edu.cn）"
+                  value={calEmail}
+                  onChange={(e) => setCalEmail(e.target.value.trim())}
+                />
+                <input
+                  className="input"
+                  type="password"
+                  style={{ minWidth: 140, flex: 1 }}
+                  placeholder="客户端专用密码"
+                  value={calPass}
+                  onChange={(e) => setCalPass(e.target.value)}
+                />
+                <button
+                  className="btn btn-primary"
+                  disabled={!/.+@.+/.test(calEmail) || !calPass || calBusy}
+                  onClick={() => {
+                    setCalBusy(true);
+                    setCalMsg(null);
+                    void configureCloudCal(calEmail, calPass)
+                      .then((cals) => setCalMsg(`连接成功，发现日历：${cals.join("、")}。`))
+                      .catch((e: unknown) => setCalMsg(`连接失败：${e instanceof Error ? e.message : String(e)}`))
+                      .finally(() => setCalBusy(false));
+                  }}
+                >
+                  {calBusy ? "连接中…" : "保存并测试"}
+                </button>
+              </div>
+              {calMsg ? <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }}>{calMsg}</div> : null}
+            </div>
+          </div>
+        )}
+      </Card>
       <SectionHead title="首页" />
       <Card>
         <div className="setting-row">
