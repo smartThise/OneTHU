@@ -1,6 +1,6 @@
 /** 插件门面：把应用原子操作按权限包装成 onethu.* 公共接口 */
 import { info, learn, http, loadRemembered, currentFingerprint } from "../lib/clients.js";
-import { InfoClient } from "@onethu/core";
+import { InfoClient, caldav } from "@onethu/core";
 import { universalFetch } from "../lib/transport.js";
 import { navGo, sessionStatus } from "./bridges.js";
 import { venueClient } from "../lib/venue.js";
@@ -10,6 +10,10 @@ import { getPlugin, pluginStorageKey, updatePlugin } from "./registry.js";
 import { PluginPermissionError, type OnethuApi, type PluginPermission } from "./types.js";
 
 import { session as appSession, logLine } from "../lib/clients.js";
+import {
+  getCloudCalConfig, getCloudEvents, getLocalEvents, msSinceSync, syncCloudCal,
+  putCloudEvent, deleteCloudEvent, putLocalEvent, deleteLocalEvent,
+} from "../state/cloudCal.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -52,7 +56,86 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
     },
   };
 
+  /** 日程（云同步日历 + 本地手动）：OH 与插件的统一日程入口 */
+  const calNs = {
+    agenda(startYmd?: string, endYmd?: string): Promise<Array<Record<string, unknown>>> {
+      gate(perms, "cal:read", "cal.agenda");
+      return (async () => {
+        // 缓存陈旧（>10 分钟或从未同步）且已配置：先静默刷一遍再答
+        if (getCloudCalConfig() && msSinceSync() > 10 * 60_000) {
+          await syncCloudCal().catch(() => undefined);
+        }
+        const parse = (ymdStr: string, endOfDay = false): number => {
+          const d = new Date(Number(ymdStr.slice(0, 4)), Number(ymdStr.slice(5, 7)) - 1, Number(ymdStr.slice(8, 10)));
+          return endOfDay ? d.getTime() + 86_399_999 : d.getTime();
+        };
+        const today = new Date();
+        const padN = (n: number): string => String(n).padStart(2, "0");
+        const fmtD = (d: Date): string => `${d.getFullYear()}-${padN(d.getMonth() + 1)}-${padN(d.getDate())}`;
+        const from = parse(startYmd && /^\d{4}-\d{2}-\d{2}$/.test(startYmd) ? startYmd : fmtD(today));
+        const endBase = endYmd && /^\d{4}-\d{2}-\d{2}$/.test(endYmd) ? endYmd : fmtD(new Date(today.getTime() + 14 * 86_400_000));
+        const to = parse(endBase, true);
+        const rows: Array<Record<string, unknown>> = [];
+        for (const [evts, source] of [[getCloudEvents(), "cloud"], [getLocalEvents(), "local"]] as const) {
+          for (const o of caldav.expandEventSet(evts, from, to)) {
+            const wall = (ms: number) => caldav.epochToWall("Asia/Shanghai", ms);
+            const hm = (ms: number): string => {
+              const w = wall(ms);
+              return `${String(w.h).padStart(2, "0")}:${String(w.mi).padStart(2, "0")}`;
+            };
+            const w = wall(o.start);
+            rows.push({
+              uid: o.uid, title: o.summary,
+              date: `${w.y}-${String(w.mo).padStart(2, "0")}-${String(w.d).padStart(2, "0")}`,
+              start: o.allDay ? "全天" : hm(o.start),
+              end: o.allDay ? "全天" : hm(o.end),
+              allDay: !!o.allDay, location: o.location, note: o.description, source,
+            });
+          }
+        }
+        return rows.sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.start).localeCompare(String(b.start)));
+      })();
+    },
+    add(title: string, dateYmd: string, startHm: string, endHm: string, opts?: {
+      location?: string; note?: string; allDay?: boolean; local?: boolean;
+    }): Promise<{ uid: string; where: "cloud" | "local" }> {
+      gate(perms, "cal:write", "cal.add");
+      return (async () => {
+        if (!title?.trim()) throw new Error("标题不能为空");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateYmd ?? "")) throw new Error("dateYmd 需要 YYYY-MM-DD");
+        const d = new Date(Number(dateYmd.slice(0, 4)), Number(dateYmd.slice(5, 7)) - 1, Number(dateYmd.slice(8, 10)));
+        const [sh, sm] = (startHm ?? "08:00").split(":").map(Number);
+        const [eh, em] = (endHm ?? "09:35").split(":").map(Number);
+        const allDay = !!opts?.allDay;
+        const start = allDay ? d.getTime() : new Date(d.getFullYear(), d.getMonth(), d.getDate(), sh || 0, sm || 0).getTime();
+        let end = allDay ? d.getTime() + 86_400_000 : new Date(d.getFullYear(), d.getMonth(), d.getDate(), eh || 23, em || 59).getTime();
+        if (!allDay && end <= start) end = start + 45 * 60_000;
+        const uid = `onethu-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}@onethu`;
+        const ev: caldav.IcsEvent = {
+          uid, summary: title.trim(), start, end, allDay,
+          location: opts?.location?.trim() || undefined,
+          description: opts?.note?.trim() || undefined,
+          onethuSource: "manual",
+        };
+        const toLocal = opts?.local === true || !getCloudCalConfig();
+        if (toLocal) await putLocalEvent(ev);
+        else await putCloudEvent(ev);
+        return { uid, where: toLocal ? "local" : "cloud" };
+      })();
+    },
+    remove(uid: string): Promise<{ removed: true }> {
+      gate(perms, "cal:write", "cal.remove");
+      return (async () => {
+        if (getCloudEvents().some((e) => e.uid === uid)) await deleteCloudEvent(uid);
+        else if (getLocalEvents().some((e) => e.uid === uid)) await deleteLocalEvent(uid);
+        else throw new Error(`日程不存在：${uid}`);
+        return { removed: true as const };
+      })();
+    },
+  };
+
   const api: OnethuApi = {
+    cal: calNs as unknown as OnethuApi["cal"],
     session: {
       status: () => {
         gate(perms, "user:read", "session.status");

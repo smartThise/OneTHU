@@ -115,6 +115,8 @@ manifest `permissions` 声明，安装时用户逐项确认；调用未授权方
 | `venue:book` | 场馆预约退订（仅退订，见下） | `venue.cancel` |
 | `xk:read` | 选课数据只读 | `xk.*` |
 | `kongjian:book` | 宿舍公共空间预约/取消（写） | `kongjian.book`、`kongjian.cancel` |
+| `cal:read` | 日程（云日历+本地）只读 | `cal.agenda` |
+| `cal:write` | 日程新建/删除（写） | `cal.add`、`cal.remove` |
 | `card:read` | 校园卡只读 | `card.*` |
 | `dorm:read` | 宿舍只读 + 公共空间查询 | `dorm.*`、`kongjian.page/my` |
 | `library:read` | 图书馆/研讨间查询 | `library`/`libroom` 读方法 |
@@ -222,7 +224,19 @@ JS 插件经 `ctx.onethu.<ns>.<method>(...)` 调用；Rust 插件经
 | `kongjian.book(bookUrl, info_)` | 页面返回的 bookUrl、`{ name, sid, tel, other }` | `string`（结果页） |
 | `kongjian.cancel(target)` | 记录目标 | `void`（**写**） |
 
-### 4.8 card / dorm / network
+### 4.8 cal（日程：云同步日历 + 本地手动）
+
+云同步基于清华邮箱日历（CalDAV）。用户在「设置 → 云同步」配置邮箱与客户端专用密码后，
+OneTHU 内新建的日程会同步到云端日历——系统日历/其他设备（添加同一邮箱账号）即可见；
+未配置时 `cal.add` 自动落本地（`where: "local"`）。`agenda` 合并云端与本地并展开重复规则。
+
+| 方法 | 权限 | 参数 | 返回 |
+|---|---|---|---|
+| `cal.agenda(startYmd?, endYmd?)` | `cal:read` | `YYYY-MM-DD`，缺省今天起 14 天 | `{ uid, title, date, start, end, allDay, location?, note?, source: "cloud"\|"local" }[]` |
+| `cal.add(title, dateYmd, startHm, endHm, opts?)` | `cal:write` | `HH:MM`；`opts: { location?, note?, allDay?, local? }` | `{ uid, where: "cloud"\|"local" }` |
+| `cal.remove(uid)` | `cal:write` | `agenda` 返回的 uid（自动路由云端/本地） | `{ removed: true }` |
+
+### 4.9 card / dorm / network
 
 | 方法 | 返回 |
 |---|---|
@@ -235,7 +249,7 @@ JS 插件经 `ctx.onethu.<ns>.<method>(...)` 调用；Rust 插件经
 | `network.deviceCount()` | `number` |
 | `network.accountInfo()` | `NetworkAccountInfo { realName, userGroup, allowedDevices, … }` |
 
-### 4.9 library（读 library:read；book/cancel 需 library:book）
+### 4.10 library（读 library:read；book/cancel 需 library:book）
 
 调用链是**对象传递**：`list() → floors() → sections() → seats() → book()`，后一步入参
 是前一步返回数组的元素（或其 id）。`dateChoice`：`0`=今天、`1`=明天。
@@ -250,7 +264,7 @@ JS 插件经 `ctx.onethu.<ns>.<method>(...)` 调用；Rust 插件经
 | `library.records()` | — | `LibBookRecord[]`：id/pos/time/status/delId? |
 | `library.cancel(recordId)` | records().id | `void`（**写**） |
 
-### 4.10 libroom（研讨间；读 library:read，book/cancel 需 library:book）
+### 4.11 libroom（研讨间；读 library:read，book/cancel 需 library:book）
 
 | 方法 | 参数 | 返回 |
 |---|---|---|
@@ -265,7 +279,7 @@ JS 插件经 `ctx.onethu.<ns>.<method>(...)` 调用；Rust 插件经
 （OneTHU 已自动绑 `学号@mails.tsinghua.edu.cn`，极少数未初始化账号报「会话未能建立」，
 让用户进应用「预约」页手动进一次即可）；③时长上限 `maxMinute`。
 
-### 4.11 nav / ui / storage / settings / net
+### 4.12 nav / ui / storage / settings / net
 
 | 方法 | 说明 |
 |---|---|
@@ -612,5 +626,6 @@ core Host::call ─▶ 桥线程 ─▶ 全局 tokio mpsc 队列 ──唤醒─
 
 | 版本 | 要点 |
 |---|---|
-| v1（0.8.0） | 全量重写：权限表 11→17 项（learn/venue/xk/kongjian 新增）；API 参考 12→18 命名空间（learn/venue/xk/kongjian/coursex 新增）；Android 内嵌章节更新为异步桥（长轮询批量泵 + 全命令 async）；对话面板协议独立成章 |
+| v1.1（0.9.x） | 新增 `cal` 命名空间与 `cal:read`/`cal:write` 权限（日程云同步：清华邮箱 CalDAV）；OH 新增 query_agenda / add_schedule / remove_schedule 工具 |
+| v1（0.8.0） | 全量重写：权限表 11→17 项（v1.1 增至 19）（learn/venue/xk/kongjian 新增）；API 参考 12→18 命名空间（v1.1 增至 19）（learn/venue/xk/kongjian/coursex 新增）；Android 内嵌章节更新为异步桥（长轮询批量泵 + 全命令 async）；对话面板协议独立成章 |
 | v0（0.7.x） | 初版指南：JS 插件 + 11 项权限 + sidecar 协议 + 初代内嵌桥 |

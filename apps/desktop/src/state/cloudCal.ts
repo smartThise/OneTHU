@@ -93,6 +93,16 @@ export function getCloudCalConfig(): CloudCalConfig | null {
   return cfg;
 }
 
+/** 门面（OH）读取用：当前云端事件镜像 */
+export function getCloudEvents(): caldav.IcsEvent[] {
+  return cloudEvents;
+}
+
+/** 门面（OH）读取用：距上次同步毫秒数（Infinity=从未） */
+export function msSinceSync(): number {
+  return lastSyncAt ? Date.now() - lastSyncAt : Number.POSITIVE_INFINITY;
+}
+
 function makeClient(): CalDavClient | null {
   if (!cfg) return null;
   return new CalDavClient(universalFetch, { email: cfg.email, authCode: cfg.authCode });
