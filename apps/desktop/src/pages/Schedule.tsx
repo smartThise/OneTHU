@@ -5,8 +5,9 @@
  * 共用层：同步云日历 / 课表上云 / 存入系统日历 / 添加日程 / 事件编辑器。
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { PageAtomStar } from "../components/Collect.js";
-import { Card, Empty, ErrorNote, PageHead } from "../components/Layout.js";
+import { Card, ErrorNote, PageHead } from "../components/Layout.js";
 import { IconRefresh, IconSchedule } from "../components/Icons.js";
 import { useCalendar, useCampusData } from "../state/data.js";
 import { ScheduleAgenda } from "./ScheduleAgenda.js";
@@ -158,6 +159,10 @@ interface Draft {
   toCloud: boolean;
   originalCloud: boolean; // 编辑中的是云端事件
 }
+/** 居中弹窗（黑色遮罩）：编辑日程 / 课程详情共用骨架，风格同 TabManageModal */
+const MODAL_MASK = { position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } as const;
+const MODAL_PANEL = { width: "100%", maxWidth: 440, maxHeight: "84vh", overflowY: "auto", background: "var(--bg-elev, #ffffff)", color: "var(--text, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)" } as const;
+
 const emptyDraft = (date: string, canCloud: boolean): Draft => ({
   title: "", date, start: "08:00", end: "09:35", allDay: false, location: "", note: "",
   toCloud: canCloud, originalCloud: false,
@@ -415,9 +420,23 @@ export function SchedulePage() {
       setBusy(false);
     }
   };
+  // 弹窗 Esc 关闭（保存中不误关）
+  useEffect(() => {
+    if (!draft && !detail) return;
+    const h = (e: KeyboardEvent): void => {
+      if (e.key === "Escape" && !busy) {
+        setDraft(null);
+        setDetail(null);
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [draft, detail, busy]);
+
   const openEditByUid = (uid: string, kind: "cloud" | "local"): void => {
     const src = kind === "cloud" ? cal.cloudEvents.find((e) => e.uid === uid) : cal.localEvents.find((e) => e.uid === uid);
     if (!src) return;
+    setDetail(null); // 详情/编辑互斥
     const w = caldav.epochToWall("Asia/Shanghai", src.start);
     const we = caldav.epochToWall("Asia/Shanghai", src.end);
     setDraft({
@@ -434,7 +453,10 @@ export function SchedulePage() {
   /** 时间轴块点击：云/本 → 编辑器；课程/考试 → 只读详情 */
   const onBlockClick = (e: GridEntry): void => {
     if ((e.src === "cloud" || e.src === "local") && e.uid) openEditByUid(e.uid, e.src);
-    else setDetail(e);
+    else {
+      setDraft(null); // 详情/编辑互斥
+      setDetail(e);
+    }
   };
 
   const onSaveDraft = async (): Promise<void> => {
@@ -692,13 +714,8 @@ export function SchedulePage() {
               ))}
             </div>
           ) : null}
-          {winLoading && entries.length === 0 ? (
-            <Empty text="正在从教务系统取数…" />
-          ) : entries.length === 0 ? (
-            <Card><Empty text="这一周没有排课与日程记录。" /></Card>
-          ) : (
-            <div ref={scrollRef} style={{ maxHeight: 640, overflowY: "auto" }}>
-              <Card style={{ padding: 14, overflowX: "auto" }}>
+          <div ref={scrollRef} style={{ maxHeight: 640, overflowY: "auto" }}>
+            <Card style={{ padding: 14, overflowX: "auto" }}>
                 <div style={{ minWidth: 0 }}>
                   {/* 表头：星期 + 日期（今天高亮） */}
                   <div style={{ display: "flex", marginBottom: 10, alignItems: "flex-end" }}>
@@ -740,6 +757,14 @@ export function SchedulePage() {
 
                     {/* 画布 */}
                     <div style={{ flex: 1, position: "relative", height: canvasH }}>
+                      {/* 空周提示（网格照常渲染，提示浮于其上不挡交互） */}
+                      {entries.length === 0 ? (
+                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", zIndex: 4 }}>
+                          <span style={{ fontSize: 13, color: "var(--text-3, #999)", background: "var(--bg-elev, #fff)", padding: "6px 14px", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
+                            {winLoading ? "正在从教务系统取数…" : "本周暂无排课与日程"}
+                          </span>
+                        </div>
+                      ) : null}
                       {/* 列背景（今天微底色） */}
                       {DAY_NAMES.map((_, day) => (
                         <div
@@ -864,49 +889,67 @@ export function SchedulePage() {
                     </div>
                   </div>
                 </div>
-              </Card>
-            </div>
-          )}
+            </Card>
+          </div>
         </>
       )}
 
-      {/* 只读详情（课程/考试：来自教务，不可在此修改） */}
-      {detail ? (
-        <Card style={{ padding: 14, marginTop: 10 }}>
-          <div style={{ fontWeight: 700, marginBottom: 10 }}>
-            {detail.src === "exam" ? "考试详情" : "课程详情"}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "64px 1fr", rowGap: 6, fontSize: 13, color: "var(--text-1, #222)" }}>
-            <span style={{ color: "var(--text-3, #999)" }}>名称</span>
-            <span style={{ fontWeight: 600 }}>{detail.courseName}</span>
-            <span style={{ color: "var(--text-3, #999)" }}>时间</span>
-            <span>
-              {detail.date} {detail.startTime && detail.endTime ? `${detail.startTime}–${detail.endTime}` : detail.startSection ? `第 ${detail.startSection}–${detail.endSection ?? detail.startSection} 节` : ""}
-            </span>
-            {detail.location ? (
-              <>
-                <span style={{ color: "var(--text-3, #999)" }}>地点</span>
-                <span>{detail.location}</span>
-              </>
-            ) : null}
-            {detail.teacher ? (
-              <>
-                <span style={{ color: "var(--text-3, #999)" }}>教师</span>
-                <span>{detail.teacher}</span>
-              </>
-            ) : null}
-          </div>
-          <div style={{ fontSize: 12, color: "var(--text-3, #999)", margin: "10px 0 4px" }}>
-            课程与考试来自教务系统数据，不能在此修改。
-          </div>
-          <button className="btn" onClick={() => setDetail(null)}>关闭</button>
-        </Card>
-      ) : null}
+      {/* 只读详情弹窗（课程/考试：来自教务，只能看不能改） */}
+      {detail
+        ? createPortal(
+            <div style={MODAL_MASK} onClick={() => setDetail(null)}>
+              <div style={MODAL_PANEL} onClick={(e) => e.stopPropagation()}>
+                <div style={{ padding: 16 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
+                    {detail.src === "exam" ? "考试详情" : "课程详情"}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "64px 1fr", rowGap: 8, fontSize: 13, color: "var(--text, #1f2329)" }}>
+                    <span style={{ color: "var(--text-3, #999)" }}>名称</span>
+                    <span style={{ fontWeight: 600 }}>{detail.courseName}</span>
+                    <span style={{ color: "var(--text-3, #999)" }}>时间</span>
+                    <span>
+                      {detail.date}{" "}
+                      {detail.startTime && detail.endTime
+                        ? `${detail.startTime}–${detail.endTime}`
+                        : detail.startSection
+                          ? `第 ${detail.startSection}–${detail.endSection ?? detail.startSection} 节`
+                          : ""}
+                    </span>
+                    {detail.location ? (
+                      <>
+                        <span style={{ color: "var(--text-3, #999)" }}>地点</span>
+                        <span>{detail.location}</span>
+                      </>
+                    ) : null}
+                    {detail.teacher ? (
+                      <>
+                        <span style={{ color: "var(--text-3, #999)" }}>教师</span>
+                        <span>{detail.teacher}</span>
+                      </>
+                    ) : null}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--text-3, #999)", margin: "12px 0 4px" }}>
+                    课程与考试来自教务系统数据，不能在此修改；自建日程点击即可编辑。
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+                    <button className="btn" onClick={() => setDetail(null)}>
+                      关闭
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
-      {/* 事件编辑器（页面级：两视图共用） */}
+      {/* 事件编辑器弹窗（页面级：两视图共用） */}
       {draft ? (
-        <Card style={{ padding: 14, marginTop: 10 }}>
-          <div style={{ fontWeight: 700, marginBottom: 10 }}>{draft.uid ? "编辑日程" : "新建日程"}</div>
+        createPortal(
+        <div style={MODAL_MASK} onClick={() => { if (!busy) setDraft(null); }}>
+          <div style={MODAL_PANEL} onClick={(e) => e.stopPropagation()}>
+          <div style={{ padding: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>{draft.uid ? "编辑日程" : "新建日程"}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <label style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--text-2)" }}>
               标题
@@ -957,8 +1000,11 @@ export function SchedulePage() {
               </button>
             ) : null}
           </div>
-        </Card>
-      ) : null}
+          </div>
+          </div>
+        </div>,
+        document.body,
+      )) : null}
     </>
   );
 }
