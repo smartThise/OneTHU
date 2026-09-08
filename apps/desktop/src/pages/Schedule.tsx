@@ -311,6 +311,26 @@ export function SchedulePage() {
 
   /* ---------- 筛选器：自绘（无原生日期控件） ---------- */
   const clampAnchor = (d: Date): Date => (d < MIN_ANCHOR ? MIN_ANCHOR : d > MAX_ANCHOR ? MAX_ANCHOR : d);
+  /** 日历快跳面板（两视图共用） */
+  const [calOpen, setCalOpen] = useState(false);
+  const [calView, setCalView] = useState<Date>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  useEffect(() => {
+    if (calOpen) setCalView(new Date(anchor.getFullYear(), anchor.getMonth(), 1));
+  }, [calOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  const calShift = (deltaMonths: number): void => {
+    setCalView((v) => {
+      const n = new Date(v.getFullYear(), v.getMonth() + deltaMonths, 1);
+      return n < new Date(1970, 0, 1) ? new Date(1970, 0, 1) : n > new Date(2099, 11, 1) ? new Date(2099, 11, 1) : n;
+    });
+  };
+  const pickDay = (d: Date): void => {
+    setAnchor(clampAnchor(d));
+    setSelected(ymdOf(d));
+    setCalOpen(false);
+  };
+  /** 窗口步进：时间轴 ±周，列表 ±月 */
+  const stepAnchor = (dir: 1 | -1): Date =>
+    clampAnchor(mode === "timetable" ? new Date(anchor.getTime() + dir * 7 * 86_400_000) : new Date(anchor.getFullYear(), anchor.getMonth() + dir, 15));
   const [jumpSemIdx, setJumpSemIdx] = useState(0);
   const [jumpWeek, setJumpWeek] = useState(1);
   const jumpSem = semesters[Math.min(jumpSemIdx, Math.max(semesters.length - 1, 0))] ?? null;
@@ -553,36 +573,23 @@ export function SchedulePage() {
         <div style={{ fontSize: 12.5, color: "var(--text-2)", marginBottom: 8, whiteSpace: "pre-wrap" }}>{msg}</div>
       ) : null}
 
-      {/* 日期筛选器：自绘（周/月导航 + 学期周跳转 + 月份格子），不受学期边界限制 */}
-      <Card style={{ padding: 10, marginBottom: 10 }}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <span className="page-indicator">{mode === "timetable" ? "按周" : "按月"}</span>
-          <button
-            className="btn"
-            onClick={() =>
-              setAnchor(clampAnchor(mode === "timetable" ? new Date(anchor.getTime() - 7 * 86_400_000) : new Date(anchor.getFullYear(), anchor.getMonth() - 1, 15)))
-            }
-          >
-            ‹
-          </button>
-          <span style={{ fontWeight: 600, fontSize: 13.5, minWidth: mode === "timetable" ? 168 : 96, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
-            {label}
-          </span>
-          <button
-            className="btn"
-            onClick={() =>
-              setAnchor(clampAnchor(mode === "timetable" ? new Date(anchor.getTime() + 7 * 86_400_000) : new Date(anchor.getFullYear(), anchor.getMonth() + 1, 15)))
-            }
-          >
-            ›
-          </button>
-          <span style={{ flex: 1 }} />
-          <button className="btn" onClick={() => { setAnchor(new Date()); setSelected(todayStr); }}>
-            今天
-          </button>
-        </div>
+      {/* 共用工具栏：窗口导航 + 日历快跳 + 学期周跳转（两视图同一套） */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: calOpen ? 8 : 10 }}>
+        <button className="btn" onClick={() => setCalOpen((v) => !v)} title="打开日历，快速跳到任意年月">
+          📅 {label}
+        </button>
+        <button className="btn" onClick={() => setAnchor(stepAnchor(-1))} title={mode === "timetable" ? "上一周" : "上个月"}>
+          ‹
+        </button>
+        <button className="btn" onClick={() => setAnchor(stepAnchor(1))} title={mode === "timetable" ? "下一周" : "下个月"}>
+          ›
+        </button>
+        <button className="btn" onClick={() => { setAnchor(new Date()); setSelected(todayStr); }}>
+          今天
+        </button>
         {semesters.length > 0 ? (
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
+          <>
+            <span style={{ flex: 1 }} />
             <select
               className="input"
               value={Math.min(jumpSemIdx, semesters.length - 1)}
@@ -591,15 +598,15 @@ export function SchedulePage() {
                 setJumpSemIdx(i);
                 setJumpWeek((w) => Math.min(w, semesters[i]?.weekCount ?? w));
               }}
-              style={{ maxWidth: 220 }}
+              style={{ maxWidth: 200 }}
             >
-              {semesters.map((s, i) => (
-                <option key={s.semesterId || i} value={i}>
-                  {s.semesterName || s.semesterId || `学期 ${i + 1}`}
+              {semesters.map((sm, i) => (
+                <option key={sm.semesterId || i} value={i}>
+                  {sm.semesterName || sm.semesterId || `学期 ${i + 1}`}
                 </option>
               ))}
             </select>
-            <select className="input" value={jumpWeek} onChange={(e) => setJumpWeek(Number(e.target.value))} style={{ width: 84 }}>
+            <select className="input" value={jumpWeek} onChange={(e) => setJumpWeek(Number(e.target.value))} style={{ width: 80 }}>
               {Array.from({ length: jumpSem?.weekCount ?? 20 }, (_, i) => i + 1).map((w) => (
                 <option key={w} value={w}>
                   第 {w} 周
@@ -609,43 +616,60 @@ export function SchedulePage() {
             <button className="btn" onClick={goSemWeek}>
               前往
             </button>
-            {detected ? (
-              <span className="page-indicator" style={{ fontSize: 11.5 }}>
-                当前在 {detected.sem.semesterName || detected.sem.semesterId} 第 {detected.weekNo} 周
-              </span>
-            ) : (
-              <span className="page-indicator" style={{ fontSize: 11.5 }}>
-                当前日期在学期外（假期）
-              </span>
-            )}
-          </div>
+          </>
         ) : null}
-        {mode === "agenda" ? (
-          <div style={{ marginTop: 8 }}>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <button className="btn" disabled={anchor.getFullYear() <= 1970} onClick={() => setAnchor(clampAnchor(new Date(anchor.getFullYear() - 1, anchor.getMonth(), 15)))}>
-                ‹
-              </button>
-              <span style={{ fontWeight: 600, fontSize: 13.5, fontVariantNumeric: "tabular-nums" }}>{anchor.getFullYear()} 年</span>
-              <button className="btn" disabled={anchor.getFullYear() >= 2100} onClick={() => setAnchor(clampAnchor(new Date(anchor.getFullYear() + 1, anchor.getMonth(), 15)))}>
-                ›
-              </button>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 4, marginTop: 6 }}>
-              {Array.from({ length: 12 }, (_, i) => i).map((m) => (
-                <button
-                  key={m}
-                  className={anchor.getMonth() === m ? "btn btn-primary" : "btn"}
-                  style={anchor.getMonth() === m ? undefined : { opacity: 0.7, padding: "3px 0" }}
-                  onClick={() => setAnchor(clampAnchor(new Date(anchor.getFullYear(), m, 15)))}
-                >
-                  {m + 1}月
-                </button>
-              ))}
-            </div>
+      </div>
+
+      {/* 日历快跳面板（任意年月，两视图共用；选日即跳对应周/月） */}
+      {calOpen ? (
+        <Card style={{ padding: 12, marginBottom: 10 }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
+            <button className="btn" title="上一年" onClick={() => calShift(-12)}>«</button>
+            <button className="btn" title="上一月" onClick={() => calShift(-1)}>‹</button>
+            <span style={{ fontWeight: 600, fontSize: 13.5, minWidth: 120, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+              {calView.getFullYear()} 年 {calView.getMonth() + 1} 月
+            </span>
+            <button className="btn" title="下一月" onClick={() => calShift(1)}>›</button>
+            <button className="btn" title="下一年" onClick={() => calShift(12)}>»</button>
+            <span style={{ flex: 1 }} />
+            <button className="btn" onClick={() => setCalView(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}>本月</button>
           </div>
-        ) : null}
-      </Card>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, textAlign: "center" }}>
+            {DAY_NAMES.map((n) => (
+              <div key={n} style={{ fontSize: 11, color: "var(--text-3, #999)", padding: "2px 0" }}>{n[1] ?? n}</div>
+            ))}
+            {(() => {
+              const first = new Date(calView.getFullYear(), calView.getMonth(), 1);
+              const lead = (first.getDay() + 6) % 7;
+              const days = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+              const cells: Array<Date | null> = [];
+              for (let i = 0; i < lead; i++) cells.push(null);
+              for (let d = 1; d <= days; d++) cells.push(new Date(first.getFullYear(), first.getMonth(), d));
+              return cells.map((d, i) =>
+                d ? (
+                  <button
+                    key={d.toISOString()}
+                    onClick={() => pickDay(d)}
+                    style={{
+                      border: "none", borderRadius: 7, padding: "5px 0", cursor: "pointer", fontSize: 12.5,
+                      background: ymdOf(d) === todayStr ? "rgba(109,127,240,0.14)" : "transparent",
+                      fontWeight: ymdOf(d) === todayStr ? 700 : 400,
+                      color: ymdOf(d) === todayStr ? "var(--accent, #6d7ff0)" : "inherit",
+                    }}
+                  >
+                    {d.getDate()}
+                  </button>
+                ) : (
+                  <div key={`pad-${i}`} />
+                ),
+              );
+            })()}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-3, #999)", marginTop: 8, textAlign: "center" }}>
+            {mode === "timetable" ? "选择日期将跳到该日期所在的教学周" : "选择日期将跳到该日期所在月份"}
+          </div>
+        </Card>
+      ) : null}
 
       {winError && mode === "timetable" ? (
         <ErrorNote text={`本周课程取数失败（日程仍显示）：${winError}`} onRetry={() => setReloadTick((t) => t + 1)} />
