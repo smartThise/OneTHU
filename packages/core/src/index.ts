@@ -190,3 +190,9 @@ export type { CourseXDetail, CourseXSemester, CourseXSummary } from "./coursex/c
 export { VenueClient, VenueAuthRequiredError, VenueApiError, VENUE_BASE, fmtVenueDate, venueTokenExpiresAt } from "./venue/client.js";
 export { md5hex, buildVenueSign, venueSignQuery, VENUE_APP_ID, VENUE_SIGN_KEY } from "./venue/sign.js";
 export type { VenueBuilding, VenueDevKind, VenueSameLevel, VenueScene, VenueSession, VenueSite, VenueRecord, VenueUser } from "./venue/types.js";
+
+// 日程云同步（CalDAV / iCalendar）
+export * as caldav from "./caldav/index.js";
+export { CalDavClient, CalDavError } from "./caldav/client.js";
+export type { CalDavAccount, CalendarInfo, EventMeta } from "./caldav/client.js";
+export type { IcsEvent, IcsRrule, IcsOccurrence } from "./caldav/ics.js";
