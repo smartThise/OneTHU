@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PageAtomStar } from "..//components/Collect.js";
 import { Card, Empty, ErrorNote, PageHead } from "../components/Layout.js";
 import { IconRefresh } from "../components/Icons.js";
 import { useCalendar, useCampusData, useWeekSchedule } from "../state/data.js";
 import { ScheduleAgenda } from "./ScheduleAgenda.js";
 import { caldav } from "@onethu/core";
-import { useCloudCal, syncCloudCal, getCloudCalConfig } from "../state/cloudCal.js";
+import {
+  useCloudCal, syncCloudCal, getCloudCalConfig,
+  putCloudEvent, deleteCloudEvent, putLocalEvent, deleteLocalEvent, exportSemesterToCloud,
+} from "../state/cloudCal.js";
+import { info } from "../lib/clients.js";
+import { confirmOk } from "../lib/confirm.js";
+import type { AgendaItem } from "./ScheduleAgenda.js";
 
 const DAY_NAMES = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 /** 上游 schedule.tsx beginTime/endTime（节次兜底定位用） */
@@ -104,6 +110,26 @@ function layout(entries: GridEntry[]): Placed[] {
   return placed;
 }
 
+/* ---------- 事件编辑器草稿（页面级：两视图共用的底部编辑卡） ---------- */
+interface Draft {
+  uid?: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  start: string; // HH:MM
+  end: string; // HH:MM
+  allDay: boolean;
+  location: string;
+  note: string;
+  toCloud: boolean;
+  originalCloud: boolean; // 编辑中的是云端事件
+}
+const emptyDraft = (date: string, canCloud: boolean): Draft => ({
+  title: "", date, start: "08:00", end: "09:35", allDay: false, location: "", note: "",
+  toCloud: canCloud, originalCloud: false,
+});
+const padN = (n: number): string => String(n).padStart(2, "0");
+const ymdOf = (d: Date): string => `${d.getFullYear()}-${padN(d.getMonth() + 1)}-${padN(d.getDate())}`;
+
 export function SchedulePage() {
   const campus = useCampusData();
   const calendar = useCalendar();
@@ -119,8 +145,15 @@ export function SchedulePage() {
   );
   const [semesterIdx, setSemesterIdx] = useState(0);
   const [weekNo, setWeekNo] = useState(1);
-  /** 视图模式：时间轴（周网格，课表+云事件）/ 列表（按天分组事件流） */
+  /** 视图模式：时间轴（周网格，课表+云事件）/ 列表（月历+所选日清单） */
   const [mode, setMode] = useState<"timetable" | "agenda">("timetable");
+  // 页面级共享状态：列表视图的月锚点/所选日 + 编辑器 + 反馈
+  const [monthAnchor, setMonthAnchor] = useState<Date>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [selected, setSelected] = useState<string>(ymdOf(new Date()));
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<{ phase: string; done: number; total: number } | null>(null);
   const semester = semesters[Math.min(semesterIdx, Math.max(semesters.length - 1, 0))] ?? null;
 
   /** 本周号（按校历 firstDay 推算，夹在 1..weekCount） */
@@ -137,8 +170,6 @@ export function SchedulePage() {
   }, [currentWeek]);
 
   const weekData = useWeekSchedule(semester, weekNo);
-  const padN = (n: number): string => String(n).padStart(2, "0");
-  const ymdOf = (d: Date): string => `${d.getFullYear()}-${padN(d.getMonth() + 1)}-${padN(d.getDate())}`;
   const hmOfMs = (ms: number): string => {
     const w = caldav.epochToWall("Asia/Shanghai", ms);
     return `${padN(w.h)}:${padN(w.mi)}`;
@@ -227,6 +258,117 @@ export function SchedulePage() {
     return out;
   }, []);
 
+  /* ---------- 两视图共用：同步 / 课表上云 / 事件编辑 ---------- */
+  const canCloud = cal.configured;
+  const semesterInfo = calendar.data ? { firstDay: calendar.data.firstDay, weekCount: calendar.data.weekCount } : null;
+
+  // 学期切换（列表模式）：月历跳到该学期首月
+  const lastSemId = useRef<string | null>(null);
+  useEffect(() => {
+    const id = semester?.semesterId ?? null;
+    if (lastSemId.current !== null && lastSemId.current !== id && mode === "agenda" && semester) {
+      const base = new Date(semester.firstDay.replace(/-/g, "/"));
+      setMonthAnchor(new Date(base.getFullYear(), base.getMonth(), 1));
+    }
+    lastSemId.current = id;
+  }, [semester?.semesterId, mode, semester]);
+
+  const lastSyncText = cal.lastSyncAt ? `上次同步 ${new Date(cal.lastSyncAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}` : "未同步过";
+
+  const onSync = async (): Promise<void> => {
+    setMsg(null);
+    try {
+      const r = await syncCloudCal();
+      setMsg(`已同步：云端共 ${r.total} 个日程（新增 ${r.added}、更新 ${r.updated}、移除 ${r.removed}）。`);
+    } catch (err) {
+      setMsg(`同步失败：${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  const onExport = async (): Promise<void> => {
+    if (!semesterInfo || exporting) return;
+    const yes = await confirmOk(
+      `把本学期课表与考试写入云日历？\n\n· 写入 ${semesterInfo.weekCount} 周的全部课程（按日期逐场展开）\n· 之前由 OneTHU 写入的课表会被清理后重写（幂等）\n· 写入后系统日历 / 其他设备（添加同一邮箱账号）即可见\n· 手动添加的日程不受影响`,
+    );
+    if (!yes) return;
+    setExporting({ phase: "准备", done: 0, total: 0 });
+    setMsg(null);
+    try {
+      const r = await exportSemesterToCloud(
+        semesterInfo,
+        (st, en) => info.getSchedule(st, en),
+        (done, total, phase) => setExporting({ phase, done, total }),
+      );
+      setMsg(`课表上云完成：写入 ${r.written} 场（清理旧 ${r.removed} 场${r.skipped ? `，跳过 ${r.skipped} 场` : ""}）。`);
+    } catch (err) {
+      setMsg(`课表上云失败：${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const openEditFromItem = (it: AgendaItem): void => {
+    if (!it.uid) return;
+    const src = it.kind === "cloud" ? cal.cloudEvents.find((e) => e.uid === it.uid) : cal.localEvents.find((e) => e.uid === it.uid);
+    if (!src) return;
+    const w = caldav.epochToWall("Asia/Shanghai", src.start);
+    const we = caldav.epochToWall("Asia/Shanghai", src.end);
+    setDraft({
+      uid: src.uid, title: src.summary, date: ymdOf(new Date(src.start)),
+      start: `${padN(w.h)}:${padN(w.mi)}`, end: `${padN(we.h)}:${padN(we.mi)}`,
+      allDay: !!src.allDay, location: src.location ?? "", note: src.description ?? "",
+      toCloud: it.kind === "cloud", originalCloud: it.kind === "cloud",
+    });
+  };
+
+  const onSaveDraft = async (): Promise<void> => {
+    if (!draft || !draft.title.trim() || busy) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const d = new Date(Number(draft.date.slice(0, 4)), Number(draft.date.slice(5, 7)) - 1, Number(draft.date.slice(8, 10)));
+      const [sh, sm] = draft.start.split(":").map(Number);
+      const [eh, em] = draft.end.split(":").map(Number);
+      const allDay = draft.allDay;
+      const start = allDay ? new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() : new Date(d.getFullYear(), d.getMonth(), d.getDate(), sh ?? 0, sm ?? 0).getTime();
+      let end = allDay ? start + 86_400_000 : new Date(d.getFullYear(), d.getMonth(), d.getDate(), eh ?? 23, em ?? 59).getTime();
+      if (!allDay && end <= start) end = start + 45 * 60_000;
+      const uid = draft.uid ?? `onethu-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}@onethu`;
+      const ev: caldav.IcsEvent = {
+        uid, summary: draft.title.trim(), start, end, allDay,
+        location: draft.location.trim() || undefined,
+        description: draft.note.trim() || undefined,
+        onethuSource: "manual",
+      };
+      // 跨集合移动（云↔本地）：先删原侧再写新侧
+      if (draft.uid && draft.originalCloud && !draft.toCloud) await deleteCloudEvent(draft.uid);
+      if (draft.uid && !draft.originalCloud && draft.toCloud) await deleteLocalEvent(draft.uid);
+      if (draft.toCloud) await putCloudEvent(ev);
+      else await putLocalEvent(ev);
+      setDraft(null);
+      setMsg("已保存。");
+    } catch (err) {
+      setMsg(`保存失败：${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onDeleteDraft = async (): Promise<void> => {
+    if (!draft?.uid || busy) return;
+    setBusy(true);
+    try {
+      if (draft.originalCloud) await deleteCloudEvent(draft.uid);
+      else await deleteLocalEvent(draft.uid);
+      setDraft(null);
+      setMsg("已删除。");
+    } catch (err) {
+      setMsg(`删除失败：${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <>
       <PageHead
@@ -260,7 +402,8 @@ export function SchedulePage() {
         }
       />
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+      {/* 视图切换 + 同步：两视图共用 */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
         {([["timetable", "时间轴"], ["agenda", "列表"]] as const).map(([m, label]) => (
           <button
             key={m}
@@ -271,12 +414,38 @@ export function SchedulePage() {
             {label}
           </button>
         ))}
+        <span style={{ flex: 1 }} />
+        <button className="btn" onClick={() => void onSync()} disabled={!canCloud || cal.syncing}>
+          <IconRefresh width={14} height={14} />
+          {cal.syncing ? "同步中…" : "同步云日历"}
+        </button>
       </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8, fontSize: 12, color: "var(--text-2)", flexWrap: "wrap", alignItems: "center" }}>
+        <span>{canCloud ? `${cal.email} · ${lastSyncText}` : "云同步未配置（设置页开启）"}</span>
+        <span style={{ flex: 1 }} />
+        {canCloud && semesterInfo ? (
+          <button className="btn" onClick={() => void onExport()} disabled={!!exporting}>
+            {exporting ? `${exporting.phase} ${exporting.done}/${exporting.total}` : "课表上云"}
+          </button>
+        ) : null}
+        <button className="btn btn-primary" onClick={() => setDraft(emptyDraft(selected, canCloud))}>
+          ＋ 添加日程
+        </button>
+      </div>
+      {msg ? (
+        <div style={{ fontSize: 12.5, color: "var(--text-2)", marginBottom: 8, whiteSpace: "pre-wrap" }}>{msg}</div>
+      ) : null}
+
+      {/* 学期切换：两视图共用（周导航仅时间轴） */}
 
       {mode === "agenda" ? (
         <ScheduleAgenda
           courses={campus.data?.schedule ?? []}
-          semester={calendar.data ? { firstDay: calendar.data.firstDay, weekCount: calendar.data.weekCount } : null}
+          monthAnchor={monthAnchor}
+          onMonthAnchor={setMonthAnchor}
+          selected={selected}
+          onSelect={setSelected}
+          onEdit={openEditFromItem}
         />
       ) : (
       <>
@@ -497,6 +666,63 @@ export function SchedulePage() {
       )}
       </>
       )}
+
+      {/* 事件编辑器（页面级：两视图共用） */}
+      {draft ? (
+        <Card style={{ padding: 14, marginTop: 10 }}>
+          <div style={{ fontWeight: 700, marginBottom: 10 }}>{draft.uid ? "编辑日程" : "新建日程"}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <label style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--text-2)" }}>
+              标题
+              <input className="input" style={{ marginTop: 4, width: "100%" }} value={draft.title} placeholder="要做什么…" onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+            </label>
+            <label style={{ fontSize: 12, color: "var(--text-2)" }}>
+              日期
+              <input className="input" type="date" style={{ marginTop: 4, width: "100%" }} value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} />
+            </label>
+            <label style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "flex-end", gap: 6, paddingBottom: 6 }}>
+              <input type="checkbox" checked={draft.allDay} onChange={(e) => setDraft({ ...draft, allDay: e.target.checked })} />
+              全天
+            </label>
+            {!draft.allDay ? (
+              <>
+                <label style={{ fontSize: 12, color: "var(--text-2)" }}>
+                  开始
+                  <input className="input" type="time" style={{ marginTop: 4, width: "100%" }} value={draft.start} onChange={(e) => setDraft({ ...draft, start: e.target.value })} />
+                </label>
+                <label style={{ fontSize: 12, color: "var(--text-2)" }}>
+                  结束
+                  <input className="input" type="time" style={{ marginTop: 4, width: "100%" }} value={draft.end} onChange={(e) => setDraft({ ...draft, end: e.target.value })} />
+                </label>
+              </>
+            ) : null}
+            <label style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--text-2)" }}>
+              地点
+              <input className="input" style={{ marginTop: 4, width: "100%" }} value={draft.location} placeholder="可选" onChange={(e) => setDraft({ ...draft, location: e.target.value })} />
+            </label>
+            <label style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--text-2)" }}>
+              备注
+              <input className="input" style={{ marginTop: 4, width: "100%" }} value={draft.note} placeholder="可选" onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
+            </label>
+          </div>
+          <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12, color: "var(--text-2)", margin: "10px 0 2px" }}>
+            <input type="checkbox" checked={draft.toCloud} disabled={!canCloud} onChange={(e) => setDraft({ ...draft, toCloud: e.target.checked })} />
+            同步到云日历{canCloud ? "（其他设备 / 系统日历可见）" : "（未配置——设置页开启云同步）"}
+          </label>
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <button className="btn btn-primary" disabled={!draft.title.trim() || busy} onClick={() => void onSaveDraft()}>
+              {busy ? "保存中…" : "保存"}
+            </button>
+            <button className="btn" onClick={() => setDraft(null)}>取消</button>
+            <span style={{ flex: 1 }} />
+            {draft.uid ? (
+              <button className="btn" style={{ color: "#e5484d" }} disabled={busy} onClick={() => void onDeleteDraft()}>
+                删除
+              </button>
+            ) : null}
+          </div>
+        </Card>
+      ) : null}
     </>
   );
 }
