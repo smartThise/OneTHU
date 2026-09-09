@@ -4104,3 +4104,16 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   color: var(--text-1);
   background: var(--surface-3);
 }
+
+/* ── 版本更新角标（设置-关于）── */
+.update-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 18px;
+  color: #fff;
+  background: var(--primary);
+  vertical-align: 1px;
+}

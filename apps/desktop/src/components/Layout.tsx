@@ -4,6 +4,8 @@ import { useApp } from "../state/context.js";
 import { topLevelPage, type Page } from "../state/app.js";
 import { IconChevron, IconDemo, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconPlug, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal, IconTrace, IconMail, IconCloud,} from "./Icons.js";
 import { useFavs } from "../state/favs.js";
+import { showToast } from "../state/toast.js";
+import { checkUpdateSilently } from "../lib/update.js";
 
 /**
  * 默认一级入口（万物原子化定案）：钉死不可删隐，仅可在侧栏折叠进
@@ -205,6 +207,12 @@ export function Shell({ children }: { children: ReactNode }) {
       setNavOpen(false);
       setNavClosing(false);
     }, 240);
+  }, []);
+
+  /* 启动：GitHub Releases 静默检查新版本（一次；失败静默，不打扰） */
+  useEffect(() => {
+    void checkUpdateSilently(showToast);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isFolderActive = (id: string) => page === "folder" && navParams?.folderId === id;

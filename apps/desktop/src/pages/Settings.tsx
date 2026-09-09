@@ -18,6 +18,10 @@ import {
   removeSystemCalendar,
   syncSystemCalendar,
 } from "../state/systemCal.js";
+import {
+  APP_CODENAME, fetchLatestRelease, isNewer, currentVersion,
+  isDismissed, dismissTag, type ReleaseInfo,
+} from "../lib/update.js";
 
 export function SettingsPage() {
   const { user, logout, navigate } = useApp();
@@ -74,13 +78,14 @@ export function SettingsPage() {
       <Card>
         <div className="setting-row">
           <div>
-            <div className="setting-title">OneTHU {__APP_VERSION__}</div>
+            <div className="setting-title">OneTHU {__APP_VERSION__} “{APP_CODENAME}”</div>
             <div className="setting-desc">清华园随身工具箱 · 开源于 GitHub</div>
           </div>
           <button className="btn" onClick={() => void openUrl("https://github.com/smartThise/OneTHU")}>
             GitHub 项目页
           </button>
         </div>
+        <UpdateRow />
       </Card>
 
       <SectionHead title="账户" />
@@ -454,5 +459,63 @@ export function SettingsPage() {
         </div>
       </Card>
     </>
+  );
+}
+
+/* ── 版本更新检查（GitHub Releases）── */
+function UpdateRow() {
+  const [checking, setChecking] = useState(false);
+  const [rel, setRel] = useState<ReleaseInfo | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  const run = async (): Promise<void> => {
+    setChecking(true);
+    setFailed(false);
+    const r = await fetchLatestRelease();
+    setChecking(false);
+    if (!r) {
+      setFailed(true);
+      return;
+    }
+    setRel(r);
+    setDismissed(isDismissed(r.tag));
+  };
+
+  const hasNew = rel != null && isNewer(rel.tag, currentVersion());
+  return (
+    <div className="setting-row">
+      <div>
+        <div className="setting-title">
+          更新检查
+          {hasNew ? <span className="update-badge">有新版本</span> : null}
+        </div>
+        <div className="setting-desc">
+          {checking
+            ? "正在检查…"
+            : rel == null
+              ? failed
+                ? "检查失败（网络不可达或 GitHub 限流），可稍后重试"
+                : "当前版本自动与 GitHub Releases 比对"
+              : hasNew
+                ? `当前 v${currentVersion()} · 最新 ${rel.name}${dismissed ? "（已忽略此版本的启动提醒）" : ""}`
+                : `已是最新版本（v${currentVersion()}）`}
+        </div>
+      </div>
+      {hasNew ? (
+        <>
+          <button className="btn btn-primary" onClick={() => void openUrl(rel.url)}>
+            查看新版本
+          </button>
+          <button className="btn" onClick={() => { dismissTag(rel.tag); setDismissed(true); }}>
+            忽略此版本
+          </button>
+        </>
+      ) : (
+        <button className="btn" disabled={checking} onClick={() => void run()}>
+          {checking ? "检查中…" : "检查更新"}
+        </button>
+      )}
+    </div>
   );
 }
