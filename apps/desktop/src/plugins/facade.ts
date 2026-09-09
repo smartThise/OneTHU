@@ -14,6 +14,7 @@ import {
   getCloudCalConfig, getCloudEvents, getLocalEvents, msSinceSync, syncCloudCal,
   putCloudEvent, deleteCloudEvent, putLocalEvent, deleteLocalEvent,
 } from "../state/cloudCal.js";
+import { refreshMail, readMail, mailSearch, sendMail, mailFolderTotal } from "../state/mail.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -186,8 +187,25 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
     },
   };
 
+  const mailRead = wrap({
+    list: async (folder: string, limit: number) => {
+      const heads = await refreshMail(folder);
+      const cap = Math.min(Math.max(limit, 1), 50);
+      return { total: mailFolderTotal(folder), mails: heads.slice(0, cap) };
+    },
+    read: async (folder: string, uid: number) => readMail(folder, uid),
+    search: async (folder: string, query: string) => mailSearch(folder, query),
+  }, perms, "mail:read");
+  const mailWrite = wrap({
+    send: async (to: string, cc: string, subject: string, body: string) => {
+      await sendMail(to, cc, subject, body);
+      return { sent: true as const };
+    },
+  }, perms, "mail:write");
+
   const api: OnethuApi = {
     cal: calNs as unknown as OnethuApi["cal"],
+    mail: { ...mailRead, ...mailWrite } as OnethuApi["mail"],
     session: {
       status: () => {
         gate(perms, "user:read", "session.status");

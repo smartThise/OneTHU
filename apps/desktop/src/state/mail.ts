@@ -156,6 +156,11 @@ export async function readMail(folder: string, uid: number): Promise<MailBody> {
   return body;
 }
 
+/** 文件夹总封数（OH 门面 mail.list 返回给 harness 用；无游标时回退列表长度） */
+export function mailFolderTotal(folder: string): number {
+  return totalsByFolder[folder] ?? (headsByFolder[folder] ?? []).length;
+}
+
 /** 单封邮件头（原子解析用；缓存冷时 null） */
 export function getMailHead(folder: string, uid: number): MailHead | null {
   return headsByFolder[folder]?.find((h) => h.uid === uid) ?? null;
