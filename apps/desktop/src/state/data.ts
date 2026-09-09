@@ -221,6 +221,29 @@ async function loadLearnBundle(semesterId: string): Promise<LearnBundle> {
  * 网络学堂页面数据源：当前学期（或已选历史学期）的全量课程/作业/通知/文件。
  * loading / error / retry 三态；子页共享缓存，5 分钟内不重复请求。
  */
+/* ---------- 模块级快照（灵动岛 / 日历同步等非 React 场景；只读缓存，不触发网络） ---------- */
+
+const learnListeners = new Set<() => void>();
+export function subscribeLearnData(fn: () => void): () => void {
+  learnListeners.add(fn);
+  return () => {
+    learnListeners.delete(fn);
+  };
+}
+function notifyLearnData(): void {
+  learnListeners.forEach((fn) => fn());
+}
+
+/** 网络学堂当前缓存包（无缓存返回 null；不发起请求） */
+export function getLearnSnapshot(): LearnBundle | null {
+  return cache?.data ?? null;
+}
+
+/** 校园数据快照（课表/作业等；只读缓存，不发起请求） */
+export function getCampusSnapshot(): CampusData | null {
+  return cacheGet<CampusData>(CAMPUS_KEY)?.data ?? null;
+}
+
 export function useLearnData() {
   const { status, backToLogin } = useApp();
   const [data, setData] = useState<LearnBundle | null>(() => cache?.data ?? null);
@@ -239,6 +262,7 @@ export function useLearnData() {
         files: DEMO_FILES,
       });
       setState("ready");
+      notifyLearnData();
       return;
     }
     try {
@@ -270,6 +294,7 @@ export function useLearnData() {
       const entry = cache; // 局部引用：等待期间 cache 被置空也不受影响
       setData(await entry.promise);
       setState("ready");
+      notifyLearnData();
     } catch (err) {
       // 会话失效（AuthRequiredError）：先用持久化 id 主会话重漫游一次（learn 漫游会话
       // 约 8 分钟过期是常态，免密可重建）；仍失败才送回登录页

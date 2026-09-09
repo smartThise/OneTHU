@@ -17,6 +17,9 @@ import { caldav } from "@onethu/core";
 import type { CalendarSemester } from "@onethu/core";
 import { fileRead, fileWrite, info } from "../lib/clients.js";
 import { getCloudEvents, getLocalEvents, buildSemesterEvents, onCloudCalChange } from "./cloudCal.js";
+import { parseLearnTime } from "@onethu/core";
+import { getLearnSnapshot, subscribeLearnData } from "./data.js";
+import { getHwReminders, subscribeHwRemind } from "./hwRemind.js";
 import { getCachedCalendar } from "./data.js";
 
 const CFG_FILE = "syscal.cfg";
@@ -187,6 +190,27 @@ async function buildPayload(): Promise<SyncPayloadArg> {
     }
   }
 
+  // 网络学堂作业 DDL（learnX 模式）：未交的作业生成截止事件，用户设的提醒作为
+  // 系统闹钟；已交的自动消失（幂等全量重写，完成状态即时跟随）。
+  const hwSnap = getLearnSnapshot();
+  if (hwSnap) {
+    const courseName = new Map(hwSnap.courses.map((c) => [c.id, c.name]));
+    const rem = getHwReminders();
+    for (const h of hwSnap.homework) {
+      if (h.submitted) continue; // 已交：不占日历（写完即清）
+      const dl = parseLearnTime(h.deadline)?.getTime();
+      if (!dl || dl < windowStart || dl > windowEnd) continue;
+      events.push({
+        title: `作业截止 · ${courseName.get(h.courseId) ?? ""} ${h.title}`.trim(),
+        startMs: dl,
+        endMs: dl + 15 * 60_000,
+        allDay: false,
+        notes: `网络学堂作业，${h.deadline} 截止。提交完成后自动从日历移除。`,
+        alarmMinutes: rem[h.id], // 未设提醒则无闹钟，事件仍在
+      });
+    }
+  }
+
   events.sort((a, b) => a.startMs - b.startMs);
   if (events.length > MAX_EVENTS) throw new Error(`事件数 ${events.length} 超出上限 ${MAX_EVENTS}，已中止系统日历同步`);
   return { calendarTitle: CALENDAR_TITLE, windowStartMs: windowStart, windowEndMs: windowEnd, events };
@@ -195,7 +219,7 @@ async function buildPayload(): Promise<SyncPayloadArg> {
 /** 载荷指纹（内容无变化则跳过原生写入） */
 function fingerprintOf(p: SyncPayloadArg): string {
   let h = 5381;
-  const feed = `${p.windowStartMs}|${p.windowEndMs}|` + p.events.map((e) => `${e.title}@${e.startMs}-${e.endMs}`).join(",");
+  const feed = `${p.windowStartMs}|${p.windowEndMs}|` + p.events.map((e) => `${e.title}@${e.startMs}-${e.endMs}!${e.alarmMinutes ?? 0}`).join(",");
   for (let i = 0; i < feed.length; i++) h = ((h << 5) + h + feed.charCodeAt(i)) >>> 0;
   return `${p.events.length}-${h.toString(36)}`;
 }
@@ -300,6 +324,9 @@ export function initSystemCalAutoSync(): void {
   void (async () => {
     await ensureLoaded();
     onCloudCalChange(scheduleAutoPush);
+    // 作业数据（提交状态/新 DDL）与提醒档位变化 → 同样防抖重推
+    subscribeLearnData(scheduleAutoPush);
+    subscribeHwRemind(scheduleAutoPush);
     // 启动兜底：登录/云同步触发 emit 之外，20s 后补推一次（指纹未变会秒跳过）
     setTimeout(() => void autoPush(), 20_000);
   })();

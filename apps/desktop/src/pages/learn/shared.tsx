@@ -2,7 +2,7 @@
  * 网络学堂子页共享件 —— learnX 移植（行组件 / 学期文案 / 状态徽标 / 富文本渲染）。
  * 数据统一来自 useLearnData（state/data.ts），行点击经 app 轻路由进只读详情页。
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { CourseFile, Homework, Notification } from "@onethu/core";
 import { LEARN_PREFIX, LEARN_FILE_DOWNLOAD, parseLearnTime } from "@onethu/core";
@@ -14,9 +14,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { openFilePreview } from "../../components/FilePreview.js";
 import { openExternal } from "../info/openExternal.js";
 import { Card } from "../../components/Layout.js";
-import { IconChevron } from "../../components/Icons.js";
+import { IconBell, IconChevron } from "../../components/Icons.js";
 import { CollectStar } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
+import { fmtRemindOffset, REMIND_MAX, REMIND_MIN, REMIND_PRESETS, setHwReminder, useHwReminder } from "../../state/hwRemind.js";
 
 /* ---------- 深链学期挂钩 ----------
  * 深链（小OH navigate / 收藏原子）可能带 semesterId：courseId 是学期作用域的，
@@ -231,7 +232,64 @@ interface RowProps {
   style?: CSSProperties;
 }
 
-export function HomeworkRow({ h, courseName, from, style, showGrade = false, sem }: RowProps & { h: Homework; showGrade?: boolean; sem?: string }) {
+/** 作业 DDL 提醒铃铛：常用档 + 自定义分钟（10 分钟 ~ 30 天，用户拍板"任意时间段"） */
+function HwRemindButton({ h }: { h: Homework }) {
+  const cur = useHwReminder(h.id);
+  const [open, setOpen] = useState(false);
+  const [custom, setCustom] = useState("");
+  const apply = (m: number | null): void => {
+    setHwReminder(h.id, m);
+    if (m != null) setOpen(false);
+  };
+  const applyCustom = (): void => {
+    const n = Math.round(Number(custom));
+    if (Number.isFinite(n) && n >= REMIND_MIN && n <= REMIND_MAX) apply(n);
+  };
+  return (
+    <div className="hwremind" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+      <button
+        className={"btn btn-ghost hwremind-bell" + (cur ? " is-on" : "")}
+        title={cur ? `截止前 ${fmtRemindOffset(cur)} 提醒（已同步系统日历）` : "设置 DDL 提醒（同步系统日历）"}
+        aria-label="设置作业提醒"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <IconBell width={14} height={14} />
+        {cur ? <span className="hwremind-tag">{fmtRemindOffset(cur)}</span> : null}
+      </button>
+      {open ? (
+        <div className="hwremind-pop" role="menu" aria-label="提醒时间">
+          <div className="hwremind-pop-title">作业截止前提醒（写入系统日历闹钟）</div>
+          <div className="hwremind-grid">
+            {REMIND_PRESETS.map((m) => (
+              <button key={m} className={"chip-btn" + (cur === m ? " is-on" : "")} onClick={() => apply(m)}>
+                {fmtRemindOffset(m)}
+              </button>
+            ))}
+          </div>
+          <div className="hwremind-custom">
+            <input
+              inputMode="numeric"
+              placeholder={`自定义（${REMIND_MIN}–${REMIND_MAX} 分钟）`}
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && applyCustom()}
+            />
+            <button className="btn" disabled={!(Math.round(Number(custom)) >= REMIND_MIN && Math.round(Number(custom)) <= REMIND_MAX)} onClick={applyCustom}>
+              设定
+            </button>
+            {cur != null ? (
+              <button className="btn btn-ghost" title="清除提醒" onClick={() => apply(null)}>
+                清除
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function HomeworkRow({ h, courseName, from, style, showGrade = false, sem, remind }: RowProps & { h: Homework; showGrade?: boolean; sem?: string; remind?: boolean }) {
   const { navigate } = useApp();
   const go = () => navigate("learn-assignment-detail", { courseId: h.courseId, itemId: h.id, from });
   const chip = homeworkChip(h);
@@ -258,6 +316,8 @@ export function HomeworkRow({ h, courseName, from, style, showGrade = false, sem
         <span className="dot" />
         {score ? `${chip.text} · ${score}` : chip.text}
       </span>
+      {/* DDL 提醒（作业列表页启用；行点击导航要 stopPropagation） */}
+      {remind ? <HwRemindButton h={h} /> : null}
       {/* 列表级星标：与详情页 key 同构（courseId~id~title~课程名~学期），点进行前就能收 */}
       <CollectStar atom={{ kind: "assignment", key: enc(h.courseId, h.id, h.title, courseName ?? "", sem ?? "") }} title={h.title} />
       <IconChevron className="row-caret" width={14} height={14} />

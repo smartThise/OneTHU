@@ -79,7 +79,7 @@ export function AssignmentsPage() {
       ) : (
         <Card className="list">
           {list.map((h, i) => (
-            <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={byCourse.get(h.courseId)} sem={data?.semester.id} from="learn-assignments" style={{ animationDelay: `${i * 25}ms` }} />
+            <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={byCourse.get(h.courseId)} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${i * 25}ms` }} />
           ))}
         </Card>
       )}

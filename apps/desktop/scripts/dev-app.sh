@@ -48,6 +48,10 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 	<string>用于在寻迹页标注你的位置并计算前往各日程地点的预估时间（拒绝后使用校园中心估算）。</string>
 	<key>NSLocationUsageDescription</key>
 	<string>用于在寻迹页标注你的位置并计算前往各日程地点的预估时间。</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>长按底部胶囊时用麦克风做语音识别，识别文字将填入对话输入框。</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>长按底部胶囊时使用系统语音识别，把你说的话转成文字。</string>
 </dict>
 </plist>
 PLIST

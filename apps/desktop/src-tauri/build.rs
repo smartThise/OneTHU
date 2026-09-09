@@ -14,6 +14,10 @@ fn main() {
             .file("native/location.m")
             .flag("-fobjc-arc")
             .compile("onethu_location");
+        cc::Build::new()
+            .file("native/speech.m")
+            .flag("-fobjc-arc")
+            .compile("onethu_speech");
     }
 
     tauri_build::build()

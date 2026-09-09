@@ -111,6 +111,77 @@ async fn macos_location() -> Result<Vec<f64>, String> {
     }
 }
 
+// ── 灵动岛语音输入：macOS 原生语音识别（SFSpeechRecognizer）──────────────
+// 长按胶囊 → speech_start（授权窗由系统弹，需 bundle + Info.plist 描述串，
+// 与定位同机理）→ JS 每 ~200ms speech_poll 拿部分转写 → 松手 speech_stop。
+// iOS 未建工程；Android/Windows 由各自平台分支处理（见命令体）。
+#[cfg(target_os = "macos")]
+mod onethu_speech_ffi {
+    // 框架必须走 #[link] 属性：build.rs 的 rustc-link-framework 指令对最终 dylib
+    // 链接不生效（CoreLocation 同坑，2024-09 已验证）。
+    #[link(name = "AVFoundation", kind = "framework")]
+    #[link(name = "Speech", kind = "framework")]
+    extern "C" {}
+
+    #[link(name = "onethu_speech")]
+    extern "C" {
+        pub fn onethu_speech_supported() -> i32;
+        pub fn onethu_speech_start() -> i32; // 1 成功 0 无权限 -1 引擎/模型失败
+        pub fn onethu_speech_poll() -> *const std::ffi::c_char;
+        pub fn onethu_speech_stop();
+    }
+}
+
+#[tauri::command]
+fn speech_supported() -> bool {
+    #[cfg(target_os = "macos")]
+    unsafe { onethu_speech_ffi::onethu_speech_supported() == 1 }
+    #[cfg(not(target_os = "macos"))]
+    { false }
+}
+
+/// 开始一次识别（阻塞至授权窗点选，需在异步命令里跑）。
+#[tauri::command]
+async fn speech_start() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        tauri::async_runtime::spawn_blocking(|| {
+            match unsafe { onethu_speech_ffi::onethu_speech_start() } {
+                1 => Ok(()),
+                0 => Err("无语音权限（系统设置 → 隐私与安全性 → 麦克风/语音识别）".into()),
+                _ => Err("语音引擎启动失败（中文语音模型未下载或无网络）".into()),
+            }
+        })
+        .await
+        .map_err(|e| format!("语音任务失败：{e}"))?
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("此平台暂不支持原生语音识别".into())
+    }
+}
+
+/// 读取当前转写（部分结果实时更新）。
+#[tauri::command]
+fn speech_poll() -> String {
+    #[cfg(target_os = "macos")]
+    unsafe {
+        let p = onethu_speech_ffi::onethu_speech_poll();
+        if p.is_null() { String::new() } else { std::ffi::CStr::from_ptr(p).to_string_lossy().into_owned() }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        String::new()
+    }
+}
+
+/// 停止识别（此后 poll 仍能拿到一次最终文本，直到下次 start）。
+#[tauri::command]
+fn speech_stop() {
+    #[cfg(target_os = "macos")]
+    unsafe { onethu_speech_ffi::onethu_speech_stop() }
+}
+
 #[tauri::command]
 fn trace_key() -> String {
     TRACE_KEY_OBF
@@ -1178,7 +1249,7 @@ tauri::Builder::default()
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            log_debug,read_file_text,trace_key,macos_location,http_request,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,plugin_dir_remove,state_read,state_write,state_delete,
+            log_debug,read_file_text,trace_key,macos_location,speech_supported,speech_start,speech_poll,speech_stop,http_request,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,plugin_dir_remove,state_read,state_write,state_delete,
             open_external,open_eid_window,open_sports_window,venue_sso_set,
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,
             harness_embed::harness_start,harness_embed::harness_bridge_take,harness_embed::harness_call,harness_embed::harness_notify,harness_embed::harness_rpc_reply,harness_embed::harness_stop])

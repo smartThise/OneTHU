@@ -3,13 +3,17 @@
  *  对话/会话/导出/用量全部走该插件的 JSON-RPC run 命令（结构化契约见
  *  OneTHU-Harness README 与接口指南 §九），本组件不含任何业务逻辑。
  *
- *  v2 交互（用户拍板）：
- *  - FAB 默认左下角（同 v1 位置），可拖拽，松手自动吸附最近水平边缘（右侧让出硬刷新钮的角落）；
- *  - 点击后面板从 FAB 原位动画化开（transform-origin 对准 FAB 角），桌面/横排/竖屏手机同形态；
+ *  v3 交互（用户拍板，灵动岛）：
+ *  - 底部中央胶囊（左 OH 标识 + 右智能文本），不再拖拽；
+ *  - 智能文本：30 分钟内日程 → 「地点·还有X分钟」；提醒窗口内作业 → 「作业名·还有X分钟」；
+ *    默认「聊点什么吧！」；文本切换键盘下坠动画，胶囊宽度随内容伸缩；
+ *  - 点击向上展开 50% 高 × 86% 宽面板（不全屏），关闭缩回；
+ *  - 长按 → 胶囊拉长 + 波纹 → 原生语音识别（macOS SFSpeechRecognizer 桥），
+ *    实时转写显示在雾白下半屏遮罩；松手 → 滑动特效 → 新对话并填入文本；
  *  - 会话切换不清空累计用量（总量跨会话持久，仅本会话计数归零）。
  */
 import {
-  memo, useCallback, useEffect, useRef, useState, useSyncExternalStore,
+  memo, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore,
   type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
@@ -20,14 +24,17 @@ import { callRust, notifyRust } from "./rust.js";
 import { commandsSnapshot, subscribeCommands } from "./loader.js";
 import { EMPTY_EVENTS, pluginEvents, subscribePluginEvents } from "./events.js";
 import { HarnessMark } from "../components/HarnessMark.js";
+import { useIslandText } from "../state/island.js";
+import { speechAvailable, speechPoll, speechStart, speechStop } from "../lib/speech.js";
 import { openExternal } from "../pages/info/openExternal.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const OPEN_KEY = "onethu.chatdock.open";
-const POS_KEY = "onethu.chatdock.pos";
-const FAB = 46; // FAB 边长（与 CSS .dock-fab 保持一致）
-const EDGE = 14; // 吸附/防越界边距
+/** 灵动岛：长按判定时长（毫秒）——超过即进入语音，未超过视为点击 */
+const VOICE_HOLD_MS = 450;
+/** 松手后等待识别器吐最终结果的宽限 */
+const VOICE_FINAL_GRACE_MS = 320;
 
 interface ViewMsg {
   role: "user" | "assistant";
@@ -85,43 +92,6 @@ function fmtUsd(v?: number): string {
   if (v == null) return "-";
   if (v === 0) return "$0";
   return v < 0.01 ? `$${v.toFixed(5)}` : `$${v.toFixed(4)}`;
-}
-
-/* ───────── FAB 位置：持久化 + 越界钳制 + 边缘吸附 ───────── */
-
-interface FabPos { x: number; y: number }
-interface Vp { vw: number; vh: number }
-const vpNow = (): Vp => ({ vw: window.innerWidth, vh: window.innerHeight });
-
-function clampPos(p: FabPos, vp: Vp): FabPos {
-  return {
-    x: Math.max(EDGE, Math.min(p.x, vp.vw - FAB - EDGE)),
-    y: Math.max(EDGE, Math.min(p.y, vp.vh - FAB - EDGE)),
-  };
-}
-
-/** 吸附最近水平边缘；右下角让出硬刷新钮（页面卡死时的唯一恢复出口，不可遮挡） */
-function snapPos(p: FabPos, vp: Vp): FabPos {
-  const base = clampPos(p, vp);
-  let y = base.y;
-  if (p.x + FAB / 2 < vp.vw / 2) {
-    return { x: EDGE, y };
-  }
-  const refreshZoneTop = vp.vh - 18 - 44 - 4; // 硬刷新钮（右下 18px 边距 44px）上缘
-  if (y > refreshZoneTop - FAB - 6) y = Math.max(EDGE, refreshZoneTop - FAB - 6);
-  return { x: vp.vw - FAB - EDGE, y };
-}
-
-function readPos(): FabPos {
-  const vp = vpNow();
-  try {
-    const raw = localStorage.getItem(POS_KEY);
-    if (raw) {
-      const p = JSON.parse(raw) as FabPos;
-      if (Number.isFinite(p?.x) && Number.isFinite(p?.y)) return clampPos(p, vp);
-    }
-  } catch { /* 坏存档：落回默认位 */ }
-  return { x: 18, y: Math.round(vp.vh - FAB - 18) }; // 默认：左下角（同 v1）
 }
 
 /* ───────── 消息区（memo：拖拽期间 FAB 每帧改位不重排 markdown） ───────── */
@@ -229,9 +199,15 @@ export function ChatDock(): ReactNode {
 
   const [open, setOpen] = useState(readOpen);
   const [closing, setClosing] = useState(false); // 关闭动画期：面板仍挂载
-  const [pos, setPos] = useState<FabPos>(readPos);
-  const [dragging, setDragging] = useState(false);
-  const [snapping, setSnapping] = useState(false); // 吸附过渡开关
+  /* 灵动岛：语音会话状态机 off→arming（等授权窗）→listening（轮询转写）→sending（等最终结果） */
+  const [voice, setVoice] = useState<"off" | "arming" | "listening" | "sending">("off");
+  const [voiceText, setVoiceText] = useState("");
+  const [voiceFail, setVoiceFail] = useState<string | null>(null); // 失败原因：留在遮罩上 2.6s 再散
+  const [slidIn, setSlidIn] = useState(false); // 语音开面板用滑动进场（区别于点击 morph）
+  const islandText = useIslandText();
+  const islandTextRef = useRef<HTMLSpanElement>(null);
+  const [islandW, setIslandW] = useState(0); // 胶囊宽度随内容（测量布局宽，动画交给 CSS transition）
+  const pressTimer = useRef<number | null>(null); // 长按计时（null=未按/已触发语音）
   const [msgs, setMsgs] = useState<ViewMsg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -262,8 +238,6 @@ export function ChatDock(): ReactNode {
   const streamRef = useRef("");
   const lastEvAt = useRef(Date.now());
   const finalizedFor = useRef(0);
-  /* 拖拽会话（pointer 捕获）：moved=false 时 pointerup 视为点击 */
-  const drag = useRef({ id: -1, sx: 0, sy: 0, ox: 0, oy: 0, moved: false });
   const closeTimer = useRef<number | null>(null);
   /* 导入会话：真按钮 + 隐藏 input（label 方案在触屏密度层下渲染高度与 button 不一致） */
   const fileRef = useRef<HTMLInputElement>(null);
@@ -303,15 +277,6 @@ export function ChatDock(): ReactNode {
       totalCompletion: u.totalCompletion, totalCalls: u.totalCalls,
     }));
   };
-
-  // 视口变化：位置重新钳制（拖到屏外/转屏后回屏内）
-  useEffect(() => {
-    const onResize = (): void => {
-      setPos((p) => clampPos(p, vpNow()));
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
 
   // 插件变更：清视图，重挂水合标记；作废旧插件迟到回包与死人开关
   useEffect(() => {
@@ -658,49 +623,97 @@ export function ChatDock(): ReactNode {
     void openExternal(href);
   };
 
-  /* ───────── FAB 拖拽（pointer 捕获）：<6px 视为点击 ───────── */
-  const onFabPointerDown = (e: ReactPointerEvent<HTMLButtonElement>): void => {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    drag.current = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: pos.x, oy: pos.y, moved: false };
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* 捕获失败仍可拖 */ }
+  /* ───────── 灵动岛：点击展开 / 长按语音 ───────── */
+
+  // 胶囊宽度 = 布局测量（字符下坠动画只是视觉位移，不影响布局宽；过渡交给 CSS）
+  useLayoutEffect(() => {
+    if (islandTextRef.current) setIslandW(islandTextRef.current.getBoundingClientRect().width);
+  }, [islandText]);
+
+  // 语音轮询：listening 期间每 180ms 拉一次部分转写
+  useEffect(() => {
+    if (voice !== "listening") return;
+    const t = window.setInterval(() => {
+      void speechPoll().then(setVoiceText);
+    }, 180);
+    return () => window.clearInterval(t);
+  }, [voice]);
+
+  /** 语音失败：遮罩上亮 2.6s（notice 在面板内，关着面板时看不见） */
+  const showVoiceFail = (msg: string): void => {
+    setVoice("off");
+    setVoiceText("");
+    setVoiceFail(msg);
+    window.setTimeout(() => setVoiceFail(null), 2600);
   };
-  const onFabPointerMove = (e: ReactPointerEvent<HTMLButtonElement>): void => {
-    const d = drag.current;
-    if (d.id !== e.pointerId) return;
-    const dx = e.clientX - d.sx;
-    const dy = e.clientY - d.sy;
-    if (!d.moved && Math.hypot(dx, dy) < 6) return; // 位移阈值内不判拖拽
-    d.moved = true;
-    if (!dragging) {
-      setDragging(true);
-      setSnapping(false);
-    }
-    setPos(clampPos({ x: d.ox + dx, y: d.oy + dy }, vpNow()));
-  };
-  const onFabPointerUp = (e: ReactPointerEvent<HTMLButtonElement>): void => {
-    const d = drag.current;
-    if (d.id !== e.pointerId) return;
-    d.id = -1;
-    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* 已释放 */ }
-    if (!d.moved) {
-      toggle(); // 点击：原地化开 / 收起
+
+  const enterVoice = async (): Promise<void> => {
+    if (!(await speechAvailable())) {
+      showVoiceFail("此设备暂不支持原生语音识别（macOS 需 pnpm tauri:app 方式运行并授权）");
       return;
     }
-    setDragging(false);
-    setSnapping(true); // 吸附动画（CSS 过渡）
-    const snapped = snapPos(pos, vpNow());
-    setPos(snapped);
-    try { localStorage.setItem(POS_KEY, JSON.stringify(snapped)); } catch { /* 存不进就算了 */ }
+    setVoice("arming");
+    setVoiceText("");
+    try {
+      await speechStart(); // 首次会同步等待系统授权窗（麦克风+语音识别）
+      setVoice("listening");
+    } catch (e) {
+      showVoiceFail(`语音启动失败：${e instanceof Error ? e.message : String(e)}`);
+    }
   };
-  const onFabPointerCancel = (e: ReactPointerEvent<HTMLButtonElement>): void => {
-    const d = drag.current;
-    if (d.id !== e.pointerId) return;
-    d.id = -1;
-    setDragging(false);
-    setSnapping(true);
-    setPos((p) => snapPos(p, vpNow()));
+
+  /** 松手：收最终文本 → 滑动特效开面板 → 新对话 + 填入（不自动发送，先看一眼再回车） */
+  const finishVoice = async (): Promise<void> => {
+    if (voice !== "arming" && voice !== "listening") return;
+    setVoice("sending");
+    speechStop();
+    await new Promise((r) => setTimeout(r, VOICE_FINAL_GRACE_MS)); // 识别器收尾出最终结果
+    const final = (await speechPoll()).trim();
+    setVoice("off");
+    setVoiceText("");
+    if (!final) return; // 什么都没听到：安静收场
+    setSlidIn(true);
+    localStorage.setItem(OPEN_KEY, "1");
+    setClosing(false);
+    setOpen(true);
+    setUnread(0);
+    await newSession();
+    setInput(final); // 填入输入框；用户确认后回车发送
+    window.setTimeout(() => setSlidIn(false), 700);
   };
-  const onFabKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>): void => {
+
+  const onIslandPointerDown = (e: ReactPointerEvent<HTMLButtonElement>): void => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    setVoiceFail(null);
+    pressTimer.current = window.setTimeout(() => {
+      pressTimer.current = null;
+      void enterVoice();
+    }, VOICE_HOLD_MS);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* 捕获失败仍可长按 */
+    }
+  };
+  const onIslandPointerUp = (): void => {
+    if (pressTimer.current != null) {
+      // 未到长按阈值 = 点击：开/收面板
+      window.clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+      toggle();
+      return;
+    }
+    void finishVoice();
+  };
+  const onIslandPointerCancel = (): void => {
+    if (pressTimer.current != null) {
+      window.clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+      return;
+    }
+    void finishVoice();
+  };
+  const onIslandKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>): void => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       toggle();
@@ -710,40 +723,53 @@ export function ChatDock(): ReactNode {
   if (!pid) return null;
   const budgetPct = usage.budgetUsd ? Math.min(100, ((usage.totalCostUsd ?? 0) / usage.budgetUsd) * 100) : 0;
 
-  /* 面板锚在 FAB 上方（原地化开的锚点），随 FAB 靠左/靠右对齐 */
-  const panelStyle: CSSProperties = (() => {
-    const { vw, vh } = vpNow();
-    const pw = Math.min(384, vw - 24);
-    const ph = Math.min(560, Math.round(vh * 0.78));
-    const side = pos.x + FAB / 2 < vw / 2 ? "left" : "right";
-    let top = pos.y - ph - 14; // 面板底缘悬在 FAB 上方
-    top = Math.max(12, Math.min(top, vh - ph - 12));
-    const left = side === "left"
-      ? Math.max(12, Math.min(pos.x - 6, vw - pw - 12))
-      : Math.max(12, Math.min(pos.x + FAB - pw + 6, vw - pw - 12));
-    return { left, top, transformOrigin: side === "left" ? "22px 100%" : "calc(100% - 22px) 100%" };
-  })();
-
   return (
     <>
+      {/* 语音遮罩（雾白半透明下半屏）：长按期间实时转写 */}
+      {voice !== "off" || voiceFail ? (
+        <div className={"dock-voice-mask" + (voice === "sending" || voiceFail ? " is-out" : "")} aria-live="polite">
+          {voiceFail ? (
+            <>
+              <div className="dock-voice-live">{voiceFail}</div>
+              <div className="dock-voice-hint">稍后自动关闭</div>
+            </>
+          ) : (
+            <>
+              <div className="dock-voice-live">{voice === "arming" ? "正在启动语音…" : voiceText || "请说话…"}</div>
+              <div className="dock-voice-hint">{voice === "arming" ? "首次需在系统授权窗点允许" : "松手发送 · 说话内容将填入新对话"}</div>
+            </>
+          )}
+        </div>
+      ) : null}
+
+      {/* 灵动岛胶囊：底部中央 */}
       <button
-        className={"dock-fab" + (snapping ? " is-snapping" : "") + (dragging ? " is-drag" : "") + (open ? " is-open" : "")}
-        style={{ left: pos.x, top: pos.y }}
-        aria-label="打开 Harness 对话（可拖拽）"
-        onPointerDown={onFabPointerDown}
-        onPointerMove={onFabPointerMove}
-        onPointerUp={onFabPointerUp}
-        onPointerCancel={onFabPointerCancel}
-        onKeyDown={onFabKeyDown}
+        className={"dock-island" + (voice !== "off" ? " is-voice" : "") + (open ? " is-open" : "")}
+        style={islandW ? ({ "--island-w": `${Math.round(islandW) + 58}px` } as CSSProperties) : undefined}
+        aria-label="OneTHU 对话（点击展开，长按语音输入）"
+        onPointerDown={onIslandPointerDown}
+        onPointerUp={onIslandPointerUp}
+        onPointerCancel={onIslandPointerCancel}
+        onKeyDown={onIslandKeyDown}
       >
-        <HarnessMark size={16} />
+        <span className="dock-island-logo"><HarnessMark size={15} /></span>
+        <span className="dock-island-text" ref={islandTextRef} key={islandText}>
+          {[...islandText].map((ch, i) => (
+            <i key={i} style={{ animationDelay: `${i * 26}ms` }}>{ch === " " ? "\u00A0" : ch}</i>
+          ))}
+        </span>
         {unread > 0 && !open ? <span className="dock-badge">{unread > 9 ? "9+" : unread}</span> : null}
+        {voice !== "off" ? (
+          <>
+            <span className="dock-island-ripple" />
+            <span className="dock-island-ripple r2" />
+          </>
+        ) : null}
       </button>
 
       {open || closing ? (
         <div
-          className={"dock-panel" + (closing ? " is-closing" : "")}
-          style={panelStyle}
+          className={"dock-panel" + (closing ? " is-closing" : "") + (slidIn ? " is-slide" : "")}
           role="dialog"
           aria-label="OneTHU Harness 对话"
         >
