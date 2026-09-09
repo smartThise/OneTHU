@@ -13,6 +13,7 @@ import { SearchPage } from "./pages/learn/SearchPage.js";
 import { SemesterSelectionPage } from "./pages/learn/SemesterSelectionPage.js";
 import { LoginPage, TwoFactorPage } from "./pages/Login.js";
 import { SchedulePage } from "./pages/Schedule.js";
+import { TracePage } from "./pages/Trace.js";
 import { SettingsPage } from "./pages/Settings.js";
 import { PluginsPage } from "./pages/Plugins.js";
 import { TodayPage } from "./pages/Today.js";
@@ -62,6 +63,7 @@ function Routed() {
         {page === "today" && <TodayPage />}
         {page === "learn" && <LearnPage />}
         {page === "schedule" && <SchedulePage />}
+        {page === "trace" && <TracePage />}
         {page === "otherinfo" && <OtherInfoPage />}
         {page === "info" && <InfoPage />}
         {page === "life" && <LifePage />}

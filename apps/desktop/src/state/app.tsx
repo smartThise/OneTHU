@@ -9,6 +9,7 @@ export type Page =
   | "today"
   | "learn"
   | "schedule"
+  | "trace" // 寻迹：今日日程地图（POI 标注 + ETA + 前往导航）
   | "otherinfo" // 其他 Info 应用（门户原始应用导航的功能化重排，静态目录 + 内嵌尝试）
   | "info" // 信息门户聚合页（成绩 / 考试 / 新闻 / 个人信息）
   | "life" // 生活聚合页（宿舍电费/订水 · 洗衣机 · 校园卡）

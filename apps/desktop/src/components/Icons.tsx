@@ -110,6 +110,14 @@ export const IconSearch = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+export const IconTrace = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0 1 13 0c0 4.8-6.5 10-6.5 10Z" />
+    <circle cx="12" cy="10.6" r="2.3" />
+    <path d="M19 16.5c1.6.6 2.5 1.4 2.5 2.3 0 1.7-4.3 3-9.5 3" strokeDasharray="0" />
+  </svg>
+);
+
 export const IconCalendar = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}>
     <rect x="3.5" y="5" width="17" height="16" rx="1.5" />

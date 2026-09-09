@@ -9,5 +9,8 @@
 	<string>用于将你的课表与日程同步到系统日历（在"OneTHU 日程"日历中，可随时停止）。</string>
 	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
 	<string>用于将你的课表与日程写入系统日历（在"OneTHU 日程"日历中，可随时停止）。</string>
+	<!-- 寻迹：今日日程地图定位原点（可选，拒绝后回退校园中心） -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>用于在寻迹页标注你的位置并计算前往各日程地点的预估时间（拒绝后使用校园中心估算）。</string>
 </dict>
 </plist>

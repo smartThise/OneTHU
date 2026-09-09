@@ -3231,3 +3231,207 @@ html.is-phone .dock-head .dock-btn:not(.dock-ico) { height: 28px; padding: 0 10p
 /* 运行日志：结构化 log 行（LLM 请求/应答/错误、工具耗时）——等宽弱化色区别于进度 */
 .plg-ev.is-log .plg-ev-text { color: var(--text-3); font-family: var(--font-mono); font-size: 10.5px; line-height: 1.55; }
 .plg-ev.is-log .plg-ev-tag { color: var(--text-3); }
+
+/* ============================================================
+   寻迹（Trace）：Leaflet + 高德瓦片 · 紧迫度标注 · 详情卡
+   ============================================================ */
+
+.trace-map-wrap {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  height: calc(100dvh - 210px);
+  min-height: 380px;
+  background: var(--surface-2);
+}
+html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px; }
+.trace-map { position: absolute; inset: 0; background: #eef1f4; }
+.trace-map .leaflet-control-zoom { border: 1px solid var(--border) !important; border-radius: var(--r-sm) !important; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.trace-map .leaflet-control-zoom a { background: var(--surface) !important; color: var(--text-2) !important; border: 0 !important; }
+.trace-map .leaflet-control-zoom a:hover { background: var(--surface-2) !important; color: var(--accent) !important; }
+
+/* ── 事件标注：大头针 + 时间·ETA 标签；颜色 = 紧迫度 ── */
+.trace-pin-wrap { background: none; border: 0; }
+.trace-pin {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform .18s cubic-bezier(.22, 1.35, .36, 1);
+}
+.trace-pin:hover { transform: translateY(-3px) scale(1.08); }
+.trace-pin.is-sel { transform: translateY(-6px) scale(1.22); animation: trace-bounce .5s cubic-bezier(.22, 1.35, .36, 1); }
+@keyframes trace-bounce {
+  0% { transform: translateY(-26px) scale(1.35); }
+  55% { transform: translateY(-3px) scale(1.18); }
+  100% { transform: translateY(-6px) scale(1.22); }
+}
+.trace-pin-label {
+  order: -1;
+  margin-bottom: 4px;
+  padding: 3px 8px;
+  border-radius: var(--r-pill);
+  background: var(--pin);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.35;
+  box-shadow: 0 2px 8px rgba(0,0,0,.22);
+  font-variant-numeric: tabular-nums;
+}
+.trace-pin-head {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--pin);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.28);
+}
+.trace-pin-tip {
+  width: 0;
+  height: 0;
+  margin-top: -3px;
+  border: 6px solid transparent;
+  border-top-color: var(--pin);
+  border-bottom: 0;
+}
+
+/* ── 我的位置：蓝点脉冲 ── */
+.trace-me-wrap { background: none; border: 0; }
+.trace-me { position: relative; width: 16px; height: 16px; }
+.trace-me::before {
+  content: "";
+  position: absolute; inset: -10px;
+  border-radius: 50%;
+  background: rgba(48, 122, 255, 0.22);
+  animation: trace-me-pulse 2.4s ease-out infinite;
+}
+.trace-me i {
+  position: absolute; inset: 3px;
+  border-radius: 50%;
+  background: #307aff;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 5px rgba(0,0,0,.35);
+}
+@keyframes trace-me-pulse {
+  0% { transform: scale(.4); opacity: 1; }
+  80%, 100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* ── 详情卡：锚定标注上方 ── */
+.trace-card {
+  position: absolute;
+  z-index: 600; /* leaflet panes 400 之上 */
+  transform: translate(-50%, -100%);
+  width: 262px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  animation: dock-msg-in 0.16s ease both;
+}
+.trace-card::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.trace-card-title { display: flex; align-items: center; gap: 6px; font-size: var(--text-sm); font-weight: 700; color: var(--text-1); }
+.trace-card-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.trace-card-x { margin-left: auto; border: 0; background: none; color: var(--text-3); cursor: pointer; font-size: 12px; padding: 2px 4px; }
+.trace-card-x:hover { color: var(--text-1); }
+.trace-card-sub { font-size: var(--text-xs); color: var(--text-3); margin: 3px 0 7px; }
+.trace-card-evs { display: flex; flex-direction: column; gap: 4px; max-height: 148px; overflow-y: auto; }
+.trace-card-ev { display: flex; align-items: baseline; gap: 7px; padding-left: 8px; border-left: 3px solid var(--ev); }
+.trace-card-ev-time { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.trace-card-ev-title { font-size: var(--text-sm); color: var(--text-1); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trace-card-ev-kind { font-size: 10px; color: var(--text-3); flex: none; }
+.trace-card-go { width: 100%; margin-top: 9px; height: 30px; font-size: var(--text-sm); }
+
+/* ── 图例 ── */
+.trace-legend {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 500;
+  display: flex;
+  gap: 9px;
+  padding: 5px 10px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border-soft);
+  font-size: 10.5px;
+  color: var(--text-2);
+}
+.trace-legend-item { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.trace-legend-item i { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ── 提示条 / 空态 ── */
+.trace-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 7px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--amber);
+  background: var(--amber-soft);
+  color: var(--text-1);
+  font-size: var(--text-xs);
+}
+.trace-note-err { border-color: var(--red); background: var(--red-soft); }
+.trace-retry { height: 24px; padding: 0 10px; font-size: var(--text-xs); margin-left: auto; flex: none; }
+.trace-empty {
+  position: absolute;
+  inset: 0;
+  z-index: 450;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  font-size: var(--text-sm);
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+  pointer-events: none;
+}
+
+/* ── 右上角交通方式/地图 App 选择 ── */
+.trace-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  font-size: var(--text-xs);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.trace-opt:hover { border-color: var(--accent-border); color: var(--text-1); }
+.trace-opt select {
+  height: 24px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.trace-opt select:focus { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .trace-pin, .trace-pin.is-sel, .trace-me::before, .trace-card { animation: none !important; transition: none !important; }
+}

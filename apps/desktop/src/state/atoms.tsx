@@ -16,7 +16,7 @@
 import type { ReactNode } from "react";
 import {
   IconBell, IconCalendar, IconCard, IconCheck, IconExternal, IconFile, IconFlag,
-  IconInfo, IconLearn, IconPen, IconRefresh, IconSchedule, IconSearch, IconToday, IconXk,
+  IconInfo, IconLearn, IconPen, IconRefresh, IconSchedule, IconSearch, IconToday, IconTrace, IconXk,
 } from "../components/Icons.js";
 import {
   AgendaWidget, CardBalanceWidget, HomeworkWidget, RecentNoticesWidget, SubsNewsWidget,
@@ -125,6 +125,7 @@ interface StaticAtom {
 /** 全部二级页面入口（=旧 homeCards entry 全集 + 课程信息栏 + 学堂一级） */
 export const PAGE_ATOMS: StaticAtom[] = [
   { kind: "page", key: "schedule", title: "日程", sub: "时间轴与日程列表 · 云同步", icon: IconSchedule, group: "页面", page: "schedule" },
+  { kind: "page", key: "trace", title: "寻迹", sub: "今日日程地图 · 紧迫度标注 · 一键前往", icon: IconTrace, group: "页面", page: "trace" },
   { kind: "page", key: "zhjwxk", title: "选课", sub: "选课系统 · 已选课程与候补队列（不可拆分原子）", icon: IconXk, group: "页面", page: "zhjwxk" },
   { kind: "page", key: "learn", title: "网络学堂", sub: "本学期课程总览", icon: IconLearn, group: "页面", page: "learn" },
   { kind: "page", key: "learn-assignments", title: "全部作业", sub: "网络学堂 · 作业列表", icon: IconPen, group: "页面", page: "learn-assignments" },
