@@ -423,7 +423,7 @@ export function SchedulePage() {
       });
       if (!path) return; // 用户取消
       await openPath(path);
-      setMsg(`已导出 ${events.length} 条日程，系统日历导入窗口应已打开（选择要写入的日历）。长期自动同步：设置 → 云同步 → 系统日历指引。`);
+      setMsg(`已导出 ${events.length} 条日程，系统日历导入窗口应已打开（选择要写入的日历）。iPhone 上想自动同步：设置 → 云同步 → 在 iPhone 上查看。`);
     } catch (err) {
       setMsg(`导出失败：${err instanceof Error ? err.message : String(err)}`);
     } finally {

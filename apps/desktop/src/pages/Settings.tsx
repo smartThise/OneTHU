@@ -150,11 +150,11 @@ export function SettingsPage() {
                 className="btn"
                 onClick={() =>
                   void confirmOk(
-                    "系统日历自动同步指引（推荐，一次设置）\n\n在系统的日历 App 里添加清华邮箱账户：\n· macOS：日历 → 设置 → 账户 → 添加 CalDAV 账户 → 高级\n· iPhone/iPad：设置 → 日历 → 账户 → 添加账户 → 其他 → CalDAV 账户\n· 服务器地址：https://mails.tsinghua.edu.cn/coremail/dav/users/你的邮箱/\n· 用户名：完整邮箱；密码：客户端专用密码（与本页一致）\n\n添加后系统日历与应用读写同一个云端日历，自动保持一致，无需再手动导出。",
+                    "在 iPhone / iPad 上查看日程（可选）\n\n手机上没有 OneTHU 也没关系：日程已在你清华邮箱的云端日历里，在 iPhone/iPad 上添加同一邮箱即可看到：\n· 设置 → 日历 → 账户 → 添加账户 → 其他 → CalDAV 账户\n· 服务器地址：https://mails.tsinghua.edu.cn/coremail/dav/users/你的邮箱/\n· 用户名：完整邮箱；密码：客户端专用密码（与本页一致）\n\n本机不需要此设置——用下方「系统日历同步」一键开启即可，应用直接写系统日历。",
                   )
                 }
               >
-                系统日历指引
+                iPhone 上查看
               </button>
               <button
                 className="btn"
@@ -303,7 +303,7 @@ export function SettingsPage() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="setting-title">系统日历同步</div>
               <div className="setting-desc">
-                把课表与日程写入系统日历里的专属日历「OneTHU 日程」（不影响你已有的日历）。开启后自动保持最新：添加、修改、删除日程或刷新课表都会同步更新，课程与考试带提前 15 分钟提醒。
+                把课表与日程写入系统日历里的专属日历「OneTHU 日程」（不影响你已有的日历）。开启后自动保持最新：添加、修改、删除日程或刷新课表都会同步更新，课程与考试带提前 15 分钟提醒。无需配置任何账户，一键开启。
                 {sysMsg ? <div style={{ marginTop: 6, color: "var(--text-2)" }}>{sysMsg}</div> : null}
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
