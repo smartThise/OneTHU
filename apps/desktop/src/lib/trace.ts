@@ -242,18 +242,26 @@ export const MAP_APPS: Array<{ id: MapApp; label: string }> = [
   { id: "apple", label: "苹果" },
 ];
 
-export function navUrl(app: MapApp, dest: { lng: number; lat: number; name: string }): string {
+export function navUrl(
+  app: MapApp,
+  dest: { lng: number; lat: number; name: string },
+  mode: TravelMode,
+): string {
   const n = encodeURIComponent(dest.name);
   const c = `${dest.lng},${dest.lat}`;
   switch (app) {
     case "amap":
-      return `https://uri.amap.com/navigation?to=${c},${n}&policy=1&src=onethu&coordinate=gaode`;
+      // mode: car/walk/bus/ride（网页版导航 URI）
+      return `https://uri.amap.com/navigation?to=${c},${n}&mode=${mode === "walk" ? "walk" : mode === "bike" ? "ride" : "car"}&policy=1&src=onethu&coordinate=gaode`;
     case "qq":
-      return `https://apis.map.qq.com/uri/v1/routeplan?type=drive&to=${n}&tocoord=${c}&policy=1&referer=onethu`;
+      // type: drive/walk/bus/bike
+      return `https://apis.map.qq.com/uri/v1/routeplan?type=${mode === "walk" ? "walk" : mode === "bike" ? "bike" : "drive"}&to=${n}&tocoord=${c}&policy=1&referer=onethu`;
     case "baidu":
-      return `https://api.map.baidu.com/direction?destination=${encodeURIComponent(`${n}|${c}`)}&coord_type=gcj02&output=html&src=onethu`;
+      // mode: driving/walking/transit/riding
+      return `https://api.map.baidu.com/direction?destination=${encodeURIComponent(`${n}|${c}`)}&coord_type=gcj02&mode=${mode === "walk" ? "walking" : mode === "bike" ? "riding" : "driving"}&output=html&src=onethu`;
     case "apple":
-      return `https://maps.apple.com/?daddr=${dest.lat},${dest.lng}&dname=${n}&dirflg=r`;
+      // dirflg: d 驾车 / w 步行（苹果无骑行，降级驾车）
+      return `https://maps.apple.com/?daddr=${dest.lat},${dest.lng}&dname=${n}&dirflg=${mode === "walk" ? "w" : "d"}`;
   }
 }
 
@@ -266,21 +274,29 @@ const IS_ANDROID = typeof navigator !== "undefined" && /Android/.test(navigator.
  * - 桌面 / 其他：网页版 URI（原行为）
  * 坐标 GCJ-02 直传（高德原生；腾讯 tocoord、百度 destination 均按「纬度,经度」约定）。
  */
-export function navOpenUrl(app: MapApp, dest: { lng: number; lat: number; name: string }): string {
-  const web = navUrl(app, dest);
+export function navOpenUrl(
+  app: MapApp,
+  dest: { lng: number; lat: number; name: string },
+  mode: TravelMode,
+): string {
+  const web = navUrl(app, dest, mode);
   if (!IS_ANDROID) return web;
   const n = encodeURIComponent(dest.name);
   const lat = dest.lat.toFixed(6);
   const lng = dest.lng.toFixed(6);
   const fb = encodeURIComponent(web);
+  // 各家 App 深链的交通方式参数值（与 TRAVEL_MODES 对齐；无骑行能力的降级驾车）
   switch (app) {
     case "amap":
-      // dev=0：坐标已是高德加密坐标（GCJ-02）
-      return `intent://navi?sourceApplication=onethu&lat=${lat}&lon=${lng}&dev=0&style=2#Intent;scheme=androidamap;package=com.autonavi.minimap;S.browser_fallback_url=${fb};end`;
+      // route 接口 t：0 驾车 / 1 公交 / 2 步行 / 3 骑行（navi 是驾车专属，弃用）
+      // dev=0：坐标已是高德加密坐标（GCJ-02）；省略起点 = 我的位置
+      return `intent://route?sourceApplication=onethu&dlat=${lat}&dlon=${lng}&dname=${n}&dev=0&t=${mode === "walk" ? 2 : mode === "bike" ? 3 : 0}#Intent;scheme=androidamap;package=com.autonavi.minimap;S.browser_fallback_url=${fb};end`;
     case "qq":
-      return `intent://map/routeplan?type=drive&to=${n}&tocoord=${lat},${lng}&policy=1&referer=onethu#Intent;scheme=qqmap;package=com.tencent.map;S.browser_fallback_url=${fb};end`;
+      // type: drive/walk/bus/bike
+      return `intent://map/routeplan?type=${mode === "walk" ? "walk" : mode === "bike" ? "bike" : "drive"}&to=${n}&tocoord=${lat},${lng}&policy=1&referer=onethu#Intent;scheme=qqmap;package=com.tencent.map;S.browser_fallback_url=${fb};end`;
     case "baidu":
-      return `intent://map/direction?destination=${n}%7C${lat},${lng}&coord_type=gcj02&mode=driving&src=onethu#Intent;scheme=bdapp;package=com.baidu.BaiduMap;S.browser_fallback_url=${fb};end`;
+      // mode: driving/walking/transit/riding
+      return `intent://map/direction?destination=${n}%7C${lat},${lng}&coord_type=gcj02&mode=${mode === "walk" ? "walking" : mode === "bike" ? "riding" : "driving"}&src=onethu#Intent;scheme=bdapp;package=com.baidu.BaiduMap;S.browser_fallback_url=${fb};end`;
     case "apple":
       return web; // Android 无苹果地图，保持网页
   }

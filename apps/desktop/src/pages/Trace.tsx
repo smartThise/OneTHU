@@ -399,7 +399,8 @@ export function TracePage(): React.ReactNode {
   const [anchorClamped, setAnchorClamped] = useState<{ x: number; y: number } | null>(null);
 
   const onGo = (m: MarkerData): void => {
-    void openExternal(navOpenUrl(mapApp, { lng: m.poi.lng, lat: m.poi.lat, name: m.poi.name }));
+    // 导航深链跟随「常用交通方式」偏好（与标注 ETA 同源）
+    void openExternal(navOpenUrl(mapApp, { lng: m.poi.lng, lat: m.poi.lat, name: m.poi.name }, mode));
   };
 
   const setModePersist = (m: TravelMode): void => {
