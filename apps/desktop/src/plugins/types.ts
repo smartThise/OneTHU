@@ -25,7 +25,7 @@ export type PluginPermission =
   | "xk:read" // 选课目录/已选/志愿/社区评价（只读）
   | "kongjian:book" // 宿舍公共空间预约/取消（写操作）
   | "cal:read" // 日程（云同步日历+本地日程）只读查询
-  | "cal:write" // 日程新建/删除（云或本地）
+  | "cal:write" // 日程新建/编辑/删除（云或本地）
   | "nav" // 应用内页面跳转
   | "ui" // toast 提示
   | "storage" // 插件私有键值存储
@@ -41,7 +41,7 @@ export const PLUGIN_PERMISSIONS: ReadonlyArray<{ id: PluginPermission; label: st
   { id: "xk:read", label: "读取选课数据", desc: "选课目录/已选/志愿/社区评价只读查询" },
   { id: "kongjian:book", label: "预约公共空间", desc: "宿舍公共空间预约与取消（写操作，需确认）" },
   { id: "cal:read", label: "读取日程", desc: "云同步日历与本地日程的只读查询" },
-  { id: "cal:write", label: "管理日程", desc: "新建/删除日程（云或本地，写操作）" },
+  { id: "cal:write", label: "管理日程", desc: "新建/编辑/删除日程（云或本地，写操作）" },
   { id: "card:read", label: "读取校园卡", desc: "余额与消费流水（只读，不含充值）" },
   { id: "dorm:read", label: "读取宿舍信息", desc: "电费余额/缴费记录/卫生分（只读）" },
   { id: "library:read", label: "查询图书馆", desc: "楼层/区域/座位分布/预约记录 + 研讨间资源查询" },
@@ -175,6 +175,11 @@ export interface OnethuApi {
     /** 新建日程（云同步已配置且 local≠true 时写云端，否则本地） */
     add(title: string, dateYmd: string, startHm: string, endHm: string, opts?: {
       location?: string; note?: string; allDay?: boolean; local?: boolean;
+    }): Promise<{ uid: string; where: "cloud" | "local" }>;
+    /** 修改已有日程：只传要改的字段（未传的保留原值）；location/note 传空串=清除 */
+    edit(uid: string, ch: {
+      title?: string; date?: string; start?: string; end?: string;
+      location?: string; note?: string; allDay?: boolean; toCloud?: boolean;
     }): Promise<{ uid: string; where: "cloud" | "local" }>;
     /** 删除日程（按 uid，自动路由云端/本地） */
     remove(uid: string): Promise<{ removed: true }>;

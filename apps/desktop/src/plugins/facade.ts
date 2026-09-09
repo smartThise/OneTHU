@@ -132,6 +132,58 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
         return { removed: true as const };
       })();
     },
+    edit(uid: string, ch: {
+      title?: string; date?: string; start?: string; end?: string;
+      location?: string; note?: string; allDay?: boolean; toCloud?: boolean;
+    }): Promise<{ uid: string; where: "cloud" | "local" }> {
+      gate(perms, "cal:write", "cal.edit");
+      return (async () => {
+        const cloudEv = getCloudEvents().find((e) => e.uid === uid);
+        const src = cloudEv ?? getLocalEvents().find((e) => e.uid === uid);
+        if (!src) throw new Error(`日程不存在：${uid}（先用 cal.agenda 拿最近日程的 uid）`);
+        const originalCloud = !!cloudEv;
+        const allDay = ch.allDay ?? src.allDay;
+        // 日期：ch.date（YYYY-MM-DD）否则沿用原事件日期
+        const p2 = (x: number): string => String(x).padStart(2, "0");
+        const ymd = ch.date && /^\d{4}-\d{2}-\d{2}$/.test(ch.date)
+          ? ch.date
+          : (() => { const w = caldav.epochToWall("Asia/Shanghai", src.start); return `${w.y}-${p2(w.mo)}-${p2(w.d)}`; })();
+        const d = new Date(Number(ymd.slice(0, 4)), Number(ymd.slice(5, 7)) - 1, Number(ymd.slice(8, 10)));
+        let start: number;
+        let end: number;
+        if (allDay) {
+          start = d.getTime();
+          end = start + 86_400_000;
+        } else {
+          // 时间：ch.start/ch.end（HH:MM）否则沿用原时刻（原为全天则 08:00/09:35）
+          const hm = (v: string | undefined, fb: [number, number]): [number, number] => {
+            const m = /^(\d{1,2}):(\d{1,2})$/.exec((v ?? "").trim());
+            return m ? [Number(m[1]), Number(m[2])] : fb;
+          };
+          const ow = caldav.epochToWall("Asia/Shanghai", src.start);
+          const ew = caldav.epochToWall("Asia/Shanghai", src.end);
+          const [sh, sm] = hm(ch.start, src.allDay ? [8, 0] : [ow.h, ow.mi]);
+          const [eh, em] = hm(ch.end, src.allDay ? [9, 35] : [ew.h, ew.mi]);
+          start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), sh, sm).getTime();
+          end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), eh, em).getTime();
+          if (end <= start) end = start + 45 * 60_000;
+        }
+        const ev: caldav.IcsEvent = {
+          ...src,
+          summary: (ch.title ?? src.summary).trim() || src.summary,
+          start, end, allDay,
+          location: ch.location !== undefined ? (ch.location.trim() || undefined) : src.location,
+          description: ch.note !== undefined ? (ch.note.trim() || undefined) : src.description,
+        };
+        // 云↔本地迁移（同 UI 编辑器语义）：先删原侧再写新侧；toCloud 缺省=保持原侧
+        const toCloud = ch.toCloud ?? originalCloud;
+        if (originalCloud && !toCloud) await deleteCloudEvent(uid);
+        if (!originalCloud && toCloud) await deleteLocalEvent(uid);
+        if (toCloud) await putCloudEvent(ev);
+        else await putLocalEvent(ev);
+        return { uid, where: toCloud ? "cloud" : "local" };
+      })();
+    },
   };
 
   const api: OnethuApi = {

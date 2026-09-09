@@ -221,9 +221,9 @@ const EMBEDDED_HARNESS_MANIFEST: PluginManifest = {
   id: "onethu.harness",
   kind: "rust",
   name: "OneTHU Harness",
-  version: "0.1.0",
+  version: "0.1.1",
   author: "smartThise",
-  description: "大模型驱动的清华校园助手（Rust 骨干·内嵌核心）：对话式查课表/日程/成绩/新闻/空教室/校园卡/电费/校园网，日程云同步（查/建/删），图书馆座位与研讨间查询预约（两段式确认），左下角常驻对话面板，实时进度与打断，多会话历史与上下文导出，token 用量与预算控制。",
+  description: "大模型驱动的清华校园助手（Rust 骨干·内嵌核心）：对话式查课表/日程/成绩/新闻/空教室/校园卡/电费/校园网，日程云同步（查/建/改/删），图书馆座位与研讨间查询预约（两段式确认），左下角常驻对话面板，实时进度与打断，多会话历史与上下文导出，token 用量与预算控制。",
   permissions: [
     "user:read", "info:read", "card:read", "dorm:read",
     "library:read", "library:book", "network:read",
