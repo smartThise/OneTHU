@@ -158,11 +158,12 @@ pub async fn seafile_dir(token: String, repo_id: String, path: String) -> Result
             mtime: e.get("mtime").and_then(|x| x.as_i64()).unwrap_or(0),
         })
         .collect();
+    // 目录在前；同类内按 mtime 倒序（最新最上——对齐网页端「最近修改」预期：
+    // 刚上传的文件必须出现在可视区顶部，86 条的库字典序会把它埋到 69 行）
     out.sort_by(|a, b| {
-        // 目录在前、名字字典序（与网页端一致）
         let ka = a.kind != "dir";
         let kb = b.kind != "dir";
-        ka.cmp(&kb).then_with(|| a.name.cmp(&b.name))
+        ka.cmp(&kb).then_with(|| b.mtime.cmp(&a.mtime))
     });
     out.dedup_by(|a, b| a.name == b.name);
     Ok(out)

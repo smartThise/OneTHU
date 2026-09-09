@@ -12,7 +12,7 @@ import { showToast } from "./toast.js";
 
 const CFG_FILE = "seafile.cfg";
 /** 旧版（fileWrite 自动补 .json）写成了 seafile.cfg.json.json——读取迁移用 */
-const CFG_FILE_LEGACY = "seafile.cfg.json.json";
+const CFG_FILE_LEGACY = "seafile.cfg.json"; // Rust state_read/write 自动补 .json → 旧文件实为 seafile.cfg.json.json
 /** 混淆密钥绑定词（token 属于云盘本身，不需要用户名绑定） */
 const KEY_ID = "seafile";
 
