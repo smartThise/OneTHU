@@ -108,7 +108,19 @@ pub async fn seafile_repos(token: String) -> Result<Vec<SeafileRepo>, String> {
         .json()
         .await
         .map_err(|e| e.to_string())?;
+    // seahub /api2/repos/ 是 mine+shared+group+public 四路平铺合并、服务端不去重
+    //（源码 ReposView：repo_list 逐路 append）——同一库经群组+分享双通道进来会重复。
+    // 保留首个出现（mine 通道在前 → rw 权优先）；virtual 子库（子目录分享出的虚拟库，
+    // 表现为「重复的文件夹」）整条滤除。
+    let mut seen = std::collections::HashSet::new();
     Ok(v.into_iter()
+        .filter(|r| {
+            if r.get("virtual").and_then(|x| x.as_bool()).unwrap_or(false) {
+                return false;
+            }
+            let id = r.get("id").and_then(|x| x.as_str()).unwrap_or("");
+            !id.is_empty() && seen.insert(id.to_string())
+        })
         .map(|r| SeafileRepo {
             id: r.get("id").and_then(|x| x.as_str()).unwrap_or("").into(),
             name: r.get("name").and_then(|x| x.as_str()).unwrap_or("").into(),
@@ -152,6 +164,7 @@ pub async fn seafile_dir(token: String, repo_id: String, path: String) -> Result
         let kb = b.kind != "dir";
         ka.cmp(&kb).then_with(|| a.name.cmp(&b.name))
     });
+    out.dedup_by(|a, b| a.name == b.name);
     Ok(out)
 }
 
