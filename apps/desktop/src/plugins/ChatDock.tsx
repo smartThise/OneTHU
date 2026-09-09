@@ -4,9 +4,8 @@
  *  OneTHU-Harness README 与接口指南 §九），本组件不含任何业务逻辑。
  *
  *  v2 交互（用户拍板）：
- *  - FAB 默认居中底部，可拖拽，松手自动吸附最近水平边缘（右侧让出硬刷新钮的角落）；
- *  - 桌面/横排：点击后面板从 FAB 原位动画化开（transform-origin 对准 FAB 角）；
- *  - 竖屏手机：整面板改为从底层划出的 87.5% 高度抽屉 + 半透明遮罩；
+ *  - FAB 默认左下角（同 v1 位置），可拖拽，松手自动吸附最近水平边缘（右侧让出硬刷新钮的角落）；
+ *  - 点击后面板从 FAB 原位动画化开（transform-origin 对准 FAB 角），桌面/横排/竖屏手机同形态；
  *  - 会话切换不清空累计用量（总量跨会话持久，仅本会话计数归零）。
  */
 import {
@@ -122,14 +121,7 @@ function readPos(): FabPos {
       if (Number.isFinite(p?.x) && Number.isFinite(p?.y)) return clampPos(p, vp);
     }
   } catch { /* 坏存档：落回默认位 */ }
-  return { x: Math.round(vp.vw / 2 - FAB / 2), y: Math.round(vp.vh - FAB - 28) }; // 默认：居中底部
-}
-
-/** 竖屏手机判定（html.is-phone 由 main.tsx 按触屏+窄窗打标）：竖屏 → 底部抽屉形态 */
-function phoneSheetNow(): boolean {
-  return typeof document !== "undefined"
-    && document.documentElement.classList.contains("is-phone")
-    && window.matchMedia("(orientation: portrait)").matches;
+  return { x: 18, y: Math.round(vp.vh - FAB - 18) }; // 默认：左下角（同 v1）
 }
 
 /* ───────── 消息区（memo：拖拽期间 FAB 每帧改位不重排 markdown） ───────── */
@@ -225,7 +217,6 @@ export function ChatDock(): ReactNode {
   const [pos, setPos] = useState<FabPos>(readPos);
   const [dragging, setDragging] = useState(false);
   const [snapping, setSnapping] = useState(false); // 吸附过渡开关
-  const [phoneSheet, setPhoneSheet] = useState(phoneSheetNow);
   const [msgs, setMsgs] = useState<ViewMsg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -278,7 +269,7 @@ export function ChatDock(): ReactNode {
         closeTimer.current = null;
         setClosing(false);
         setOpen(false);
-      }, 270); // ≥抽屉退场动画 260ms
+      }, 200); // ≥退场动画 190ms
     } else {
       localStorage.setItem(OPEN_KEY, "1");
       setClosing(false);
@@ -296,10 +287,9 @@ export function ChatDock(): ReactNode {
     }));
   };
 
-  // 视口变化：窄屏/方向切换面板形态 + 位置重新钳制
+  // 视口变化：位置重新钳制（拖到屏外/转屏后回屏内）
   useEffect(() => {
     const onResize = (): void => {
-      setPhoneSheet(phoneSheetNow());
       setPos((p) => clampPos(p, vpNow()));
     };
     window.addEventListener("resize", onResize);
@@ -703,8 +693,8 @@ export function ChatDock(): ReactNode {
   if (!pid) return null;
   const budgetPct = usage.budgetUsd ? Math.min(100, ((usage.totalCostUsd ?? 0) / usage.budgetUsd) * 100) : 0;
 
-  /* 桌面/横排：面板锚在 FAB 上方（原地化开的锚点）；竖屏手机：底部抽屉（CSS is-sheet） */
-  const panelStyle: CSSProperties | undefined = phoneSheet ? undefined : (() => {
+  /* 面板锚在 FAB 上方（原地化开的锚点），随 FAB 靠左/靠右对齐 */
+  const panelStyle: CSSProperties = (() => {
     const { vw, vh } = vpNow();
     const pw = Math.min(384, vw - 24);
     const ph = Math.min(560, Math.round(vh * 0.78));
@@ -719,9 +709,6 @@ export function ChatDock(): ReactNode {
 
   return (
     <>
-      {/* 竖屏手机抽屉遮罩（点按关闭） */}
-      {phoneSheet && (open || closing) ? <div className={"dock-scrim" + (closing ? " is-closing" : "")} onClick={toggle} /> : null}
-
       <button
         className={"dock-fab" + (snapping ? " is-snapping" : "") + (dragging ? " is-drag" : "") + (open ? " is-open" : "")}
         style={{ left: pos.x, top: pos.y }}
@@ -732,27 +719,31 @@ export function ChatDock(): ReactNode {
         onPointerCancel={onFabPointerCancel}
         onKeyDown={onFabKeyDown}
       >
-        <span className="dock-fab-grip" aria-hidden><i /><i /><i /></span>
         <HarnessMark size={16} />
         {unread > 0 && !open ? <span className="dock-badge">{unread > 9 ? "9+" : unread}</span> : null}
       </button>
 
       {open || closing ? (
         <div
-          className={"dock-panel" + (phoneSheet ? " is-sheet" : "") + (closing ? " is-closing" : "")}
+          className={"dock-panel" + (closing ? " is-closing" : "")}
           style={panelStyle}
           role="dialog"
           aria-label="OneTHU Harness 对话"
         >
-          <div className="dock-grab" aria-hidden />
           <div className="dock-head">
             <span className="dock-title"><HarnessMark size={13} /> 小OH</span>
             <div className="dock-ops">
-              <button className="btn dock-btn" title="新建会话" onClick={() => void newSession()}>新会话</button>
-              <button className="btn dock-btn" title="历史会话" onClick={() => void openHistory()}>历史</button>
-              <button className="btn dock-btn" title="导出当前会话 JSON（R5）" onClick={() => void exportSession()}>导出</button>
-              <label className="btn dock-btn" title="导入会话 JSON（R5）" style={{ position: "relative", overflow: "hidden" }}>
-                导入
+              <button className="btn dock-btn dock-ico" title="新会话" aria-label="新会话" onClick={() => void newSession()}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+              </button>
+              <button className="btn dock-btn dock-ico" title="历史会话" aria-label="历史会话" onClick={() => void openHistory()}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
+              </button>
+              <button className="btn dock-btn dock-ico" title="导出当前会话 JSON" aria-label="导出会话" onClick={() => void exportSession()}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3v12" /><path d="m8 11 4 4 4-4" /><path d="M4 19h16" /></svg>
+              </button>
+              <label className="btn dock-btn dock-ico" title="导入会话 JSON" aria-label="导入会话" style={{ position: "relative", overflow: "hidden" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 15V3" /><path d="m8 7 4-4 4 4" /><path d="M4 19h16" /></svg>
                 <input
                   type="file" accept=".json,application/json"
                   style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
@@ -763,7 +754,9 @@ export function ChatDock(): ReactNode {
                   }}
                 />
               </label>
-              <button className="btn dock-btn" aria-label="收起" onClick={toggle}>—</button>
+              <button className="btn dock-btn dock-ico" title="收起" aria-label="收起" onClick={toggle}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="m6 6 12 12M18 6 6 18" /></svg>
+              </button>
             </div>
           </div>
           {notice ? (

@@ -2853,31 +2853,6 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .dock-fab.is-open { color: var(--accent); border-color: var(--accent-border); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14), 0 0 0 4px var(--accent-soft); }
 @keyframes dock-fab-in { from { transform: scale(0); opacity: 0; } }
 
-/* 拖拽把手（悬停/拖拽中浮现的顶部三点） */
-.dock-fab-grip {
-  position: absolute;
-  top: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  pointer-events: none;
-}
-.dock-fab-grip i { width: 12px; height: 2px; border-radius: 1px; background: var(--text-3); }
-.dock-fab:hover .dock-fab-grip, .dock-fab.is-drag .dock-fab-grip { opacity: 0.85; }
-
-/* 无障碍：系统减弱动态效果时，全部 dock 动画/过渡退场 */
-@media (prefers-reduced-motion: reduce) {
-  .dock-fab, .dock-fab.is-snapping, .dock-panel, .dock-panel.is-sheet, .dock-scrim,
-  .dock-msg, .dock-think, .dock-confirm, .dock-history, .dock-chip {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-
 .dock-badge {
   position: absolute;
   top: -3px;
@@ -2914,40 +2889,14 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 @keyframes dock-panel-in { from { opacity: 0; transform: scale(0.42) translateY(14px); } }
 @keyframes dock-panel-out { to { opacity: 0; transform: scale(0.5) translateY(10px); } }
 
-/* 竖屏手机：底部抽屉（87.5% 高，从底层划出）+ 遮罩 */
-.dock-scrim { position: fixed; inset: 0; background: rgba(15, 17, 21, 0.4); z-index: 9991; animation: plg-fade 0.2s ease both; }
-.dock-scrim.is-closing { animation: dock-scrim-out 0.26s ease both; }
-@keyframes dock-scrim-out { to { opacity: 0; } }
-.dock-panel.is-sheet {
-  left: 0 !important;
-  right: 0;
-  top: auto;
-  bottom: 0;
-  width: 100%;
-  max-width: none;
-  height: 87.5dvh;
-  max-height: 87.5dvh;
-  border-left: 0;
-  border-right: 0;
-  border-bottom: 0;
-  border-radius: 18px 18px 0 0;
-  animation: dock-sheet-in 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+/* 无障碍：系统减弱动态效果时，全部 dock 动画/过渡退场 */
+@media (prefers-reduced-motion: reduce) {
+  .dock-fab, .dock-fab.is-snapping, .dock-panel,
+  .dock-msg, .dock-think, .dock-confirm, .dock-history, .dock-chip {
+    animation: none !important;
+    transition: none !important;
+  }
 }
-.dock-panel.is-sheet.is-closing { animation: dock-sheet-out 0.26s cubic-bezier(0.4, 0, 1, 1) both; }
-@keyframes dock-sheet-in { from { transform: translateY(102%); } }
-@keyframes dock-sheet-out { to { transform: translateY(102%); } }
-.dock-grab { display: none; }
-.dock-panel.is-sheet .dock-grab {
-  display: block;
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--border-strong);
-  margin: 8px auto 2px;
-  flex: none;
-}
-.dock-panel.is-sheet .dock-input-row { padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
-.dock-panel.is-sheet .dock-foot { padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
 
 .dock-head {
   display: flex;
@@ -2959,7 +2908,7 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   background: var(--surface-2);
 }
 .dock-title { display: inline-flex; align-items: center; gap: 7px;  font-size: var(--text-sm); font-weight: 600; color: var(--text-1); }
-.dock-ops { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.dock-ops { display: flex; gap: 3px; flex-wrap: nowrap; justify-content: flex-end; flex-shrink: 0; }
 .dock-btn {
   height: 26px;
   padding: 0 8px;
@@ -2967,6 +2916,18 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   border-radius: var(--r-sm);
   white-space: nowrap;
 }
+/* 头部图标钮：统一宽高，窄屏不换行不变形（悬停 tooltip 提示语义） */
+.dock-btn.dock-ico {
+  width: 30px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  color: var(--text-2);
+}
+.dock-btn.dock-ico:hover { color: var(--accent); }
 
 .dock-notice {
   padding: 5px 12px;
@@ -3142,7 +3103,6 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   gap: 4px;
   animation: dock-msg-in 0.16s ease both;
 }
-.dock-panel.is-sheet .dock-history { inset: 56px 0 66px 0; }
 .dock-history-head {
   display: flex;
   align-items: center;
@@ -3177,11 +3137,6 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .dock-hist-del { flex-shrink: 0; color: var(--text-3); }
 .dock-hist-del:hover { color: var(--red); }
 
-/* 手机窄屏兜底：面板尺寸交由 is-sheet 控制（JS 判定竖屏抽屉）；
-   横排触屏仍走桌面化开形态，宽度自适应已有 max-width */
-@media (max-width: 860px) {
-  .dock-fab-grip { opacity: 0.7; } /* 触屏无 hover：常显把手提示可拖 */
-}
 
 
 /* ---------- 插件页 v2：卡片新结构 + 设置/日志 Sheet ---------- */
