@@ -2,7 +2,7 @@
  * 日程页 —— 时间轴（周网格，课表+云/本日程，24h）与列表（月历+所选日清单）。
  * 日期模型：单一 anchor 任意日期，不受学期边界限制（1970 起）；
  * 时间轴取 anchor 所在周、列表取 anchor 所在月；筛选器自绘（无原生日期控件）。
- * 共用层：同步云日历 / 课表上云 / 存入系统日历 / 添加日程 / 事件编辑器。
+ * 共用层：同步云日历 / 课表上云 / 同步到系统日历（不支持平台退 .ics）/ 添加日程 / 事件编辑器。
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -191,6 +191,11 @@ export function SchedulePage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [exporting, setExporting] = useState<{ phase: string; done: number; total: number } | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
+  /** 本机是否支持原生写系统日历（决定工具栏按钮文案；null=探测中） */
+  const [sysNative, setSysNative] = useState<boolean | null>(null);
+  useEffect(() => {
+    void systemCalSupported().then(setSysNative);
+  }, []);
 
   const semesters: SemInfo[] = useMemo(
     () => (calendar.data ? [{ ...calendar.data }, ...calendar.data.nextSemesterList] : []),
@@ -392,7 +397,7 @@ export function SchedulePage() {
     }
   };
 
-  /** 一键存入系统日历：原生直写（Android/macOS），否则 .ics 快照导入 */
+  /** 手动推一次系统日历：原生直写（Android/macOS；自动跟随在设置页开启），否则 .ics 快照导入 */
   const onSystemCal = async (): Promise<void> => {
     if (busy) return;
     setBusy(true);
@@ -579,7 +584,7 @@ export function SchedulePage() {
           {cal.syncing ? "同步中…" : "同步"}
         </button>
         <button className="btn" onClick={() => void onSystemCal()} disabled={busy}>
-          存入系统日历
+          {sysNative === false ? "导出 .ics" : "同步到系统日历"}
         </button>
         {canCloud && exportSemester ? (
           <button className="btn" onClick={() => void onExport()} disabled={!!exporting}>
