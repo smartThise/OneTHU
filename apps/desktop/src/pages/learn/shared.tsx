@@ -17,7 +17,7 @@ import { Card } from "../../components/Layout.js";
 import { IconBell, IconChevron } from "../../components/Icons.js";
 import { CollectStar } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
-import { fmtRemindOffset, REMIND_MAX, REMIND_MIN, REMIND_PRESETS, setHwReminder, useHwReminder } from "../../state/hwRemind.js";
+import { fmtRemindOffset, REMIND_MAX, REMIND_MIN, REMIND_PRESETS, setHwReminder, useHwDefault, useHwReminder } from "../../state/hwRemind.js";
 
 /* ---------- 深链学期挂钩 ----------
  * 深链（小OH navigate / 收藏原子）可能带 semesterId：courseId 是学期作用域的，
@@ -232,24 +232,70 @@ interface RowProps {
   style?: CSSProperties;
 }
 
-/** 作业 DDL 提醒铃铛：常用档 + 自定义分钟（10 分钟 ~ 30 天，用户拍板"任意时间段"） */
-function HwRemindButton({ h }: { h: Homework }) {
-  const cur = useHwReminder(h.id);
-  const [open, setOpen] = useState(false);
+/** 提醒弹层（通用）：档位 + 自定义分钟。value=null 表示未设（单作业=跟随全局）。 */
+export function HwRemindPop({
+  value,
+  onApply,
+  title,
+  allowClear,
+  foot,
+}: {
+  value: number | null;
+  onApply: (m: number | null) => void;
+  title: string;
+  allowClear?: boolean;
+  foot?: string;
+}) {
   const [custom, setCustom] = useState("");
   const apply = (m: number | null): void => {
-    setHwReminder(h.id, m);
-    if (m != null) setOpen(false);
+    onApply(m); // 关闭弹层由外层 onApply 自己决定
   };
   const applyCustom = (): void => {
     const n = Math.round(Number(custom));
     if (Number.isFinite(n) && n >= REMIND_MIN && n <= REMIND_MAX) apply(n);
   };
   return (
+    <div className="hwremind-pop" role="menu" aria-label="提醒时间">
+      <div className="hwremind-pop-title">{title}</div>
+      <div className="hwremind-grid">
+        {REMIND_PRESETS.map((m) => (
+          <button key={m} className={"chip-btn" + (value === m ? " is-on" : "")} onClick={() => apply(m)}>
+            {fmtRemindOffset(m)}
+          </button>
+        ))}
+      </div>
+      <div className="hwremind-custom">
+        <input
+          inputMode="numeric"
+          placeholder={`自定义（${REMIND_MIN}–${REMIND_MAX} 分钟）`}
+          value={custom}
+          onChange={(e) => setCustom(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && applyCustom()}
+        />
+        <button className="btn" disabled={!(Math.round(Number(custom)) >= REMIND_MIN && Math.round(Number(custom)) <= REMIND_MAX)} onClick={applyCustom}>
+          设定
+        </button>
+        {allowClear && value != null ? (
+          <button className="btn btn-ghost" title="清除（恢复跟随全局默认）" onClick={() => apply(null)}>
+            清除
+          </button>
+        ) : null}
+      </div>
+      {foot ? <div className="hwremind-pop-foot">{foot}</div> : null}
+    </div>
+  );
+}
+
+/** 单作业铃铛：覆盖值（null = 跟随全局默认） */
+function HwRemindButton({ h }: { h: Homework }) {
+  const cur = useHwReminder(h.id);
+  const def = useHwDefault();
+  const [open, setOpen] = useState(false);
+  return (
     <div className="hwremind" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
       <button
         className={"btn btn-ghost hwremind-bell" + (cur ? " is-on" : "")}
-        title={cur ? `截止前 ${fmtRemindOffset(cur)} 提醒（已同步系统日历）` : "设置 DDL 提醒（同步系统日历）"}
+        title={cur ? `截止前 ${fmtRemindOffset(cur)} 提醒（覆盖全局默认 ${fmtRemindOffset(def)}）` : `自定义提醒（当前跟随全局默认 ${fmtRemindOffset(def)}）`}
         aria-label="设置作业提醒"
         onClick={() => setOpen((o) => !o)}
       >
@@ -257,33 +303,15 @@ function HwRemindButton({ h }: { h: Homework }) {
         {cur ? <span className="hwremind-tag">{fmtRemindOffset(cur)}</span> : null}
       </button>
       {open ? (
-        <div className="hwremind-pop" role="menu" aria-label="提醒时间">
-          <div className="hwremind-pop-title">作业截止前提醒（写入系统日历闹钟）</div>
-          <div className="hwremind-grid">
-            {REMIND_PRESETS.map((m) => (
-              <button key={m} className={"chip-btn" + (cur === m ? " is-on" : "")} onClick={() => apply(m)}>
-                {fmtRemindOffset(m)}
-              </button>
-            ))}
-          </div>
-          <div className="hwremind-custom">
-            <input
-              inputMode="numeric"
-              placeholder={`自定义（${REMIND_MIN}–${REMIND_MAX} 分钟）`}
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && applyCustom()}
-            />
-            <button className="btn" disabled={!(Math.round(Number(custom)) >= REMIND_MIN && Math.round(Number(custom)) <= REMIND_MAX)} onClick={applyCustom}>
-              设定
-            </button>
-            {cur != null ? (
-              <button className="btn btn-ghost" title="清除提醒" onClick={() => apply(null)}>
-                清除
-              </button>
-            ) : null}
-          </div>
-        </div>
+        <HwRemindPop
+          value={cur}
+          title={`作业截止前提醒（覆盖全局默认 ${fmtRemindOffset(def)}）`}
+          allowClear
+          onApply={(m) => {
+            setHwReminder(h.id, m);
+            if (m != null) setOpen(false);
+          }}
+        />
       ) : null}
     </div>
   );

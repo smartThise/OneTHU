@@ -19,7 +19,7 @@ import { fileRead, fileWrite, info } from "../lib/clients.js";
 import { getCloudEvents, getLocalEvents, buildSemesterEvents, onCloudCalChange } from "./cloudCal.js";
 import { parseLearnTime } from "@onethu/core";
 import { getLearnSnapshot, subscribeLearnData } from "./data.js";
-import { getHwReminders, subscribeHwRemind } from "./hwRemind.js";
+import { getHwRemindState, subscribeHwRemind, type HwRemindState } from "./hwRemind.js";
 import { getCachedCalendar } from "./data.js";
 
 const CFG_FILE = "syscal.cfg";
@@ -191,17 +191,18 @@ async function buildPayload(): Promise<SyncPayloadArg> {
   }
 
   // 网络学堂作业 DDL（learnX 模式）
-  events.push(...buildHwEvents(getLearnSnapshot(), getHwReminders(), windowStart, windowEnd));
+  events.push(...buildHwEvents(getLearnSnapshot(), getHwRemindState(), windowStart, windowEnd));
 
   events.sort((a, b) => a.startMs - b.startMs);
   if (events.length > MAX_EVENTS) throw new Error(`事件数 ${events.length} 超出上限 ${MAX_EVENTS}，已中止系统日历同步`);
   return { calendarTitle: CALENDAR_TITLE, windowStartMs: windowStart, windowEndMs: windowEnd, events };
 }
 
-/** 作业 DDL → 系统日历事件（纯函数可测）：未交才生成，用户提醒做闹钟；已交自动消失 */
+/** 作业 DDL → 系统日历事件（纯函数可测）：未交才生成；闹钟 = 单作业覆盖 ?? 全局默认
+ *  （用户拍板：先设所有作业共用的节点，想单独改再改；改完全局/覆盖都会触发重推）。 */
 export function buildHwEvents(
   snap: { courses?: Array<{ id: string; name: string }>; homework?: Array<{ id: string; courseId: string; title: string; deadline: string; submitted: boolean }> } | null,
-  reminders: Record<string, number>,
+  hwRemind: HwRemindState,
   windowStart: number,
   windowEnd: number,
 ): SysCalEventArg[] {
@@ -218,7 +219,7 @@ export function buildHwEvents(
       endMs: dl + 15 * 60_000,
       allDay: false,
       notes: `网络学堂作业，${h.deadline} 截止。提交完成后自动从日历移除。`,
-      alarmMinutes: reminders[h.id], // 未设提醒则无闹钟，事件仍在
+      alarmMinutes: hwRemind.items[h.id] ?? hwRemind.default, // 覆盖优先，全局默认兜底
     });
   }
   return out;

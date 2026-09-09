@@ -244,6 +244,75 @@ export function getCampusSnapshot(): CampusData | null {
   return cacheGet<CampusData>(CAMPUS_KEY)?.data ?? null;
 }
 
+/* ---------- learnX 式后台更新：应用存活期间静默保鲜 ----------
+ * 作业截止时间 / 提交状态在服务端会变（老师改 DDL、同学代交、自己网页交）；
+ * learnX 的做法是后台定期重拉让提醒和日历自动跟上。这里同语义：
+ * 30 分钟一轮静默重拉 → 写模块缓存 → notifyLearnData 广播 →
+ * 日历同步（systemCal）/ 灵动岛文案 / 挂载中的 learn 页全部自动跟进。
+ * 失败完全静默（会话过期先免密重漫游一次），用户打开页面照常走 loading 流程。 */
+
+let refreshInflight: Promise<LearnBundle | null> | null = null;
+
+async function fetchLearnBundleFresh(): Promise<LearnBundle> {
+  const semester = selectedSemester ? { id: selectedSemester } : await learn.getCurrentSemester();
+  return loadLearnBundle(semester.id);
+}
+
+function adoptLearnBundle(key: string, d: LearnBundle): void {
+  cache = {
+    key,
+    // 空学期包不配长缓存（与 useLearnData 同规则：会话半死的空列表不毒缓存）
+    ts: d.courses.length === 0 ? 0 : Date.now(),
+    promise: Promise.resolve(d),
+    data: d,
+  };
+  notifyLearnData();
+}
+
+/** 后台静默刷新当前学期 learn 数据（失败返回 null，绝不打扰用户） */
+export function refreshLearnDataSilently(): Promise<LearnBundle | null> {
+  if (refreshInflight) return refreshInflight;
+  refreshInflight = (async () => {
+    const key = selectedSemester ?? "current";
+    try {
+      adoptLearnBundle(key, await fetchLearnBundleFresh());
+      return cache?.data ?? null;
+    } catch (err) {
+      if (err instanceof Error && err.name === "AuthRequiredError") {
+        try {
+          if (await relearnRoamOnce()) {
+            adoptLearnBundle(key, await fetchLearnBundleFresh());
+            return cache?.data ?? null;
+          }
+        } catch {
+          /* 静默 */
+        }
+      }
+      return null;
+    } finally {
+      refreshInflight = null;
+    }
+  })();
+  return refreshInflight;
+}
+
+let autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
+
+/** 登录后调用：每 30 分钟静默重拉一轮（幂等，重复调用无副作用） */
+export function startLearnAutoRefresh(): void {
+  if (autoRefreshTimer !== null) return;
+  autoRefreshTimer = setInterval(() => {
+    void refreshLearnDataSilently();
+  }, 30 * 60 * 1000);
+}
+
+export function stopLearnAutoRefresh(): void {
+  if (autoRefreshTimer !== null) {
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
+  }
+}
+
 export function useLearnData() {
   const { status, backToLogin } = useApp();
   const [data, setData] = useState<LearnBundle | null>(() => cache?.data ?? null);
@@ -318,6 +387,16 @@ export function useLearnData() {
   useEffect(() => {
     if (status === "ready" || status === "demo") void load();
   }, [status, load]);
+
+  // 后台静默刷新（learnX 式）换缓存时，挂载中的页面实时跟进
+  useEffect(
+    () =>
+      subscribeLearnData(() => {
+        const d = getLearnSnapshot();
+        if (d) setData((prev) => (prev === d ? prev : d));
+      }),
+    [],
+  );
 
   return { data, state, error, reload: load };
 }

@@ -2523,6 +2523,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-geolocation",
  "tauri-plugin-onethu-calendar",
+ "tauri-plugin-onethu-speech",
  "tauri-plugin-opener",
  "tokio",
  "url",
@@ -3973,6 +3974,17 @@ dependencies = [
  "objc2",
  "objc2-event-kit",
  "objc2-foundation",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+]
+
+[[package]]
+name = "tauri-plugin-onethu-speech"
+version = "0.1.0"
+dependencies = [
+ "log",
  "serde",
  "serde_json",
  "tauri",

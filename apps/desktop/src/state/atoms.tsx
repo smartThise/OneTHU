@@ -16,7 +16,7 @@
 import type { ReactNode } from "react";
 import {
   IconBell, IconCalendar, IconCard, IconCheck, IconExternal, IconFile, IconFlag,
-  IconInfo, IconLearn, IconPen, IconRefresh, IconSchedule, IconSearch, IconToday, IconTrace, IconXk,
+  IconFolder, IconInfo, IconLearn, IconPen, IconRefresh, IconSchedule, IconSearch, IconToday, IconTrace, IconXk,
 } from "../components/Icons.js";
 import {
   AgendaWidget, CardBalanceWidget, HomeworkWidget, RecentNoticesWidget, SubsNewsWidget,
@@ -24,7 +24,7 @@ import {
 } from "../components/HomeWidgets.js";
 import type { LearnNav, Page } from "./app.js";
 import { cacheGet } from "./cache.js";
-import type { AtomRef } from "./favorites.js";
+import { FAVS_MAX_DEPTH, loadFavs, type AtomRef } from "./favorites.js";
 import { setSelectedSemester } from "./data.js";
 import { WasherTileStatus, ClassroomTileStatus, ClassroomRoomToday } from "../components/LiveTiles.js";
 import { INFO_APPS, infoAppUrl } from "../lib/infoApps.js";
@@ -133,6 +133,7 @@ export const PAGE_ATOMS: StaticAtom[] = [
   { kind: "page", key: "learn-files", title: "全部课程文件", sub: "网络学堂 · 课件与资料", icon: IconFile, group: "页面", page: "learn-files" },
   { kind: "page", key: "learn-search", title: "网络学堂搜索", sub: "课程 / 作业 / 通知 / 文件", icon: IconSearch, group: "页面", page: "learn-search" },
   { kind: "page", key: "learn-semester", title: "学期切换", sub: "网络学堂 · 切换数据学期", icon: IconRefresh, group: "页面", page: "learn-semester" },
+  { kind: "page", key: "learn-hwremind", title: "作业 DDL 提醒", sub: "全局默认提醒时间 · 同步系统日历", icon: IconBell, group: "页面", page: "learn", params: { learnOpenHwRemind: true } },
   { kind: "page", key: "info-report", title: "全部成绩", sub: "信息门户 · 历年成绩", icon: IconCheck, group: "页面", page: "info", params: { infoTab: "report" } },
   { kind: "page", key: "info-fitness", title: "体测成绩", sub: "信息页 · 体质测试", icon: IconCheck, group: "页面", page: "info", params: { infoTab: "fitness" } },
   { kind: "page", key: "info-exams", title: "考试安排", sub: "信息门户 · 考试日程", icon: IconFlag, group: "页面", page: "info", params: { infoTab: "exams" } },
@@ -368,6 +369,36 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
       open: () => void openExternal(infoAppUrl(id)),
     });
   }
+  if (kind === "folder") {
+    // 收藏夹跳转原子（用户拍板：收藏夹本身也要原子化——搜索/深链直达根夹与子夹；
+    // 改名/删除在收藏夹页编辑模式，此处只是入口层跳转）
+    const [id] = dec(key);
+    if (!id) return null;
+    const favs = loadFavs();
+    const f = favs.folders[id];
+    if (!f) return null;
+    const parentOf = (fid: string): string | null => {
+      for (const node of Object.values(favs.folders)) {
+        if (node.items.some((it) => it.t === "f" && it.id === fid)) return node.id;
+      }
+      return null;
+    };
+    const path: string[] = [];
+    let p = parentOf(id);
+    let guard = 0;
+    while (p && guard++ < FAVS_MAX_DEPTH) {
+      const pn = favs.folders[p];
+      if (!pn) break;
+      path.unshift(pn.title);
+      p = parentOf(p);
+    }
+    return view({
+      atom: ref, title: f.title,
+      sub: (path.length > 0 ? path.join(" / ") + " · " : "") + "收藏夹（改内/改名/删除 → 收藏夹页编辑模式）",
+      icon: IconFolder, group: "我的收藏夹",
+      open: (nav) => nav("folder", { folderId: id }),
+    });
+  }
   if (kind === "courseX-c") {
     const [sem, cid, name, teacher, tl] = dec(key);
     if (!cid || !name) return null;
@@ -432,6 +463,8 @@ export function searchAtoms(query: string, limit = 24): AtomHit[] {
   for (const b of dyn.bbsBoards ?? []) if (match(b.name, b.courseName)) push(hit({ atom: { kind: "bbs-board", key: enc(b.courseId, b.bqid, b.name, b.courseName ?? "", b.sem ?? "") }, title: b.name, sub: (b.courseName ? b.courseName + " · " : "") + "讨论区板块", icon: IconLearn, group: "网络学堂" }));
   for (const t of dyn.bbsThreads ?? []) if (match(t.title, t.courseName)) push(hit({ atom: { kind: "forum", key: enc(t.courseId, t.id, t.bqid, t.title, t.courseName ?? "", t.sem ?? "") }, title: t.title, sub: (t.courseName ? t.courseName + " · " : "") + "讨论区话题", icon: IconLearn, group: "网络学堂" }));
   for (const a of INFO_APPS) if (match(a.name, a.cat)) push(hit({ atom: { kind: "infoapp", key: enc(a.cat, a.name, a.id) }, title: a.name, sub: a.cat + " · Info 应用", icon: IconExternal, group: "Info 应用" }));
+  // 收藏夹跳转原子（全部夹：根 + 子，标题命中即出）
+  for (const f of Object.values(loadFavs().folders)) if (match(f.title)) push(hit({ atom: { kind: "folder", key: f.id }, title: f.title, sub: "收藏夹 · 点击直达", icon: IconFolder, group: "我的收藏夹" }));
 
   return out.slice(0, limit);
 }

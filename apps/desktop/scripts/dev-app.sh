@@ -52,6 +52,12 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 	<string>长按底部胶囊时用麦克风做语音识别，识别文字将填入对话输入框。</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>长按底部胶囊时使用系统语音识别，把你说的话转成文字。</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>用于将你的课表、作业截止同步到系统日历（在“OneTHU 日程”日历中，可随时停止）。</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>用于将你的课表、作业截止同步到系统日历（在“OneTHU 日程”日历中，可随时停止）。</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>用于将你的课表、作业截止写入系统日历（在“OneTHU 日程”日历中，可随时停止）。</string>
 </dict>
 </plist>
 PLIST

@@ -2,7 +2,7 @@
  * 网络学堂入口（learnX Courses）：课程卡片列表 + 全部作业/通知/文件/搜索/学期快捷入口。
  * 原四页签列表功能移入 pages/learn/ 专属页面（Assignments/Notices/Files）。
  */
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PageAtomStar } from "..//components/Collect.js";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../components/Layout.js";
 import { IconBell, IconCalendar, IconChevron, IconFile, IconPen, IconRefresh, IconSearch } from "../components/Icons.js";
@@ -10,7 +10,44 @@ import { useApp } from "../state/context.js";
 import { CollectStar } from "../components/Collect.js";
 import { enc } from "../state/atoms.js";
 import { useLearnData } from "../state/data.js";
-import { semesterText } from "./learn/shared.js";
+import { fmtRemindOffset, setHwDefault, useHwDefault } from "../state/hwRemind.js";
+import { HwRemindPop, semesterText } from "./learn/shared.js";
+
+/** 全局作业 DDL 提醒卡（用户拍板：先设所有作业共用的节点，想改单个再在作业行改）。
+ *  openSignal：原子深链（learn-hwremind）到达时自动弹开设置层。 */
+function HwRemindDefaultCard({ openSignal }: { openSignal?: boolean }) {
+  const def = useHwDefault();
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (openSignal) setOpen(true);
+  }, [openSignal]);
+  return (
+    <Card className="stat-card stat-click stat-hwremind">
+      <button className="stat-link" onClick={() => setOpen((o) => !o)} aria-label="作业 DDL 提醒设置">
+        <span className="stat-icon">
+          <IconBell width={17} height={17} />
+        </span>
+        <span className="stat-text">
+          <span className="stat-num">{fmtRemindOffset(def)}</span>
+          <span className="stat-label">DDL 提醒</span>
+        </span>
+      </button>
+      {open ? (
+        <HwRemindPop
+          value={def}
+          title="所有作业共用：截止前提醒（写入系统日历闹钟，改完即同步）"
+          foot="单个作业想单独改 → 作业行/课程详情页的铃铛（覆盖此默认）"
+          onApply={(m) => {
+            if (m != null) {
+              setHwDefault(m);
+              setOpen(false);
+            }
+          }}
+        />
+      ) : null}
+    </Card>
+  );
+}
 
 export function LearnPage() {
   const { navigate, navParams } = useApp();
@@ -118,6 +155,7 @@ export function LearnPage() {
             </span>
           </button>
         </Card>
+        <HwRemindDefaultCard openSignal={navParams?.learnOpenHwRemind} />
       </div>
 
       {state === "loading" && !data ? (

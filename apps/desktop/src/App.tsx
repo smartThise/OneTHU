@@ -1,4 +1,5 @@
 import { Shell, BrandLogo } from "./components/Layout.js";
+import { useEffect } from "react";
 import { FilePreviewHost } from "./components/FilePreview.js";
 import { LearnPage } from "./pages/Learn.js";
 import { AssignmentDetailPage } from "./pages/learn/AssignmentDetailPage.js";
@@ -28,6 +29,7 @@ import { FavsProvider } from "./state/favs.js";
 import { useApp } from "./state/context.js";
 import { setNavBridge, setStatusBridge } from "./plugins/bridges.js";
 import { ChatDock } from "./plugins/ChatDock.js";
+import { refreshLearnDataSilently, startLearnAutoRefresh, stopLearnAutoRefresh } from "./state/data.js";
 
 /** 插件桥回填：每帧把 navigate/status 同步给插件门面（bridges 无任何反向依赖） */
 function PluginBridge() {
@@ -39,6 +41,19 @@ function PluginBridge() {
 
 function Routed() {
   const { status, page } = useApp();
+
+  // learnX 式后台更新：登录后每 30 分钟静默重拉 learn 数据（作业 DDL/提交状态
+  // 变化 → 日历同步、灵动岛文案、挂载中的页面自动跟进）；启动 90 秒后先来一轮，
+  // 不用等满 30 分钟。demo 模式数据是静态的，不刷。
+  useEffect(() => {
+    if (status !== "ready") return;
+    const kick = setTimeout(() => void refreshLearnDataSilently(), 90_000);
+    startLearnAutoRefresh();
+    return () => {
+      clearTimeout(kick);
+      stopLearnAutoRefresh();
+    };
+  }, [status]);
 
   const body = (() => {
     if (status === "booting") {

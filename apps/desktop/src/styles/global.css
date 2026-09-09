@@ -126,16 +126,16 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-4);
-  margin-bottom: 20px;
+  margin-bottom: 12px; /* 实测反馈：顶栏区太高，整体收紧 */
 }
 
-.page-head h1 { font-size: var(--text-lg); line-height: 28px; }
+.page-head h1 { font-size: var(--text-lg); line-height: 24px; }
 
 .page-head-meta {
-  margin-top: 2px;
+  margin-top: 1px;
   color: var(--text-2);
   font-size: var(--text-sm);
-  line-height: 20px;
+  line-height: 16px;
 }
 
 .page-head-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--gap-2); flex-shrink: 0; }
@@ -261,7 +261,7 @@
    （快捷入口一加就溢出的病根）→ 一律 minmax(0,1fr) 锁死轨道可收缩 */
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* 自适应：网络学堂 4 张卡一行，其他页 3 张照常 */
   gap: var(--gap-3);
   margin-bottom: var(--gap-2);
 }
@@ -269,8 +269,8 @@
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 11px;
+  padding: 8px 14px; /* 实测反馈：统计卡太高 */
   min-width: 0; /* grid/flex 子项允许收缩，内部文本走 ellipsis */
   max-width: 100%;
 }
@@ -278,8 +278,8 @@
 .stat-icon {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--r-md);
   background: var(--surface-3);
   color: var(--text-2);
@@ -292,7 +292,7 @@
 
 .stat-num {
   font-size: var(--text-md);
-  line-height: 24px;
+  line-height: 20px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   max-width: 100%;
@@ -2968,7 +2968,9 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   transform-origin: 50% 100%;
   z-index: 9992;
   width: 86vw; /* 用户拍板：80–90% 取 86 */
-  height: 50vh; /* 用户拍板：约半屏，不全屏 */
+  height: 62vh; /* 实测 50vh 太矮：hero 开场文被切——加高（仍不全屏） */
+  min-height: 420px; /* 横屏/矮窗地板：保证 hero 三行 + 建议芯片完整可见 */
+  max-height: calc(100vh - 36px);
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -3567,6 +3569,20 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
 }
 @keyframes hwremind-in { from { opacity: 0; transform: translateY(6px); } }
 .hwremind-pop-title { font-size: var(--text-xs); color: var(--text-3); margin-bottom: 8px; }
+.hwremind-pop-foot { margin-top: 8px; font-size: var(--text-xs); color: var(--text-3); line-height: 16px; }
+
+/* 网络学堂首页的全局默认卡：竖屏/矮窗时锚定弹层会掉出视口——
+   改固定居中底部弹（任何窗口尺寸都在屏内，看完点空白处由外层关闭逻辑处理） */
+.stat-hwremind { position: relative; }
+.stat-hwremind .hwremind-pop {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  top: auto;
+  right: auto;
+  transform: translateX(-50%);
+  width: min(320px, calc(100vw - 28px));
+}
 .hwremind-grid { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip-btn {
   height: 27px;

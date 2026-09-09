@@ -13,7 +13,7 @@
 import { useEffect, useState } from "react";
 import { parseLearnTime } from "@onethu/core";
 import { getCampusSnapshot, getLearnSnapshot } from "./data.js";
-import { getHwReminders } from "./hwRemind.js";
+import { effectiveRemind, getHwRemindState, type HwRemindState } from "./hwRemind.js";
 
 export const ISLAND_DEFAULT_TEXT = "聊点什么吧！";
 
@@ -28,11 +28,11 @@ function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** 纯计算（可测）：campus/learn 快照 + 提醒表 → 胶囊文本 */
+/** 纯计算（可测）：campus/learn 快照 + 两级提醒状态 → 胶囊文本 */
 export function computeIslandText(
   campus: { schedule?: Array<{ date?: string; startTime?: string | null; location?: string | null }> } | null,
   learn: { homework?: Array<{ id?: string; title?: string; deadline?: string; submitted?: boolean }> } | null,
-  reminders: Record<string, number>,
+  hwRemind: HwRemindState,
   now: number,
 ): string {
   const today = ymd(new Date(now));
@@ -55,7 +55,7 @@ export function computeIslandText(
     if (!d) continue;
     const dl = d.getTime();
     if (dl <= now) continue;
-    const windowMs = (reminders[h.id ?? ""] ?? 120) * 60_000;
+    const windowMs = effectiveRemind(hwRemind, h.id ?? "") * 60_000;
     if (dl - now > windowMs) continue;
     const t = h.title ?? "作业";
     const title = t.length > 12 ? `${t.slice(0, 12)}…` : t;
@@ -71,5 +71,5 @@ export function useIslandText(): string {
     return () => window.clearInterval(t);
   }, []);
 
-  return computeIslandText(getCampusSnapshot(), getLearnSnapshot(), getHwReminders(), now);
+  return computeIslandText(getCampusSnapshot(), getLearnSnapshot(), getHwRemindState(), now);
 }

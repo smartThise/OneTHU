@@ -225,6 +225,7 @@ export function CourseDetailPage() {
                     sem={data?.semester.id}
                     from="learn-course"
                     showGrade
+                    remind
                     style={{ animationDelay: `${i * 25}ms` }}
                   />
                 ))}

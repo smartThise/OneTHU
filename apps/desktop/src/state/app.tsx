@@ -44,6 +44,8 @@ export interface LearnNav {
   from?: Page;
   /** 学期切换显式携带：learn 列表页据此校验数据学期一致（防缓存/竞态残留旧学期） */
   semesterId?: string;
+  /** 网络学堂首页直达 DDL 提醒设置：携带 true 时「DDL 提醒」卡自动弹开设置层（原子深链） */
+  learnOpenHwRemind?: boolean;
   /** 信息页新闻直达：携带 xxid 时 InfoPage 初始落在新闻 tab，并把该条新闻打开详情。
    *  不带此参数时 InfoPage 行为与旧版完全一致（默认成绩 tab）。 */
   infoNewsId?: string;
@@ -92,7 +94,7 @@ export interface LearnNav {
   folderId?: string;
 }
 
-const TOP_PAGES = ["today", "learn", "schedule", "info", "life", "reserve", "zhjwxk", "plugins", "folder", "settings"] as const;
+const TOP_PAGES = ["today", "learn", "schedule", "trace", "info", "life", "reserve", "zhjwxk", "plugins", "folder", "settings"] as const; // trace 漏过一次：不加的话侧栏/标题/hash 全落到 learn 兜底
 
 /** 子页归属的一级页（侧栏高亮 / hash 用） */
 export function topLevelPage(p: Page): Page {
