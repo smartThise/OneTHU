@@ -243,7 +243,13 @@ async function tauriFetch(url: string, init: RequestInit = {}): Promise<Response
       }
     }
 
-    const bodyInit: BodyInit = res.body_b64 ? b64ToBytes(res.body_b64) : res.body;
+    // 204/205/304 是 fetch 规范的「无体状态」：Response 构造器带 body（哪怕是空串）直接
+    // TypeError「Response cannot have a body with the given status」。CalDAV PUT 覆盖/
+    // DELETE 成功都回 204（创建才是 201），此前云端修改与删除全灭于此——必须归零为 null。
+    const bodyInit: BodyInit | null =
+      res.status === 204 || res.status === 205 || res.status === 304
+        ? null
+        : res.body_b64 ? b64ToBytes(res.body_b64) : res.body;
     return new Response(bodyInit, {
       status: res.status,
       statusText: res.status_text,
