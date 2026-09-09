@@ -13,7 +13,7 @@ import { openExternal } from "./info/openExternal.js";
 import {
   ensureSeafileLoaded, setSeafileToken, clearSeafileToken, getSeafileToken,
   refreshSeafileAccount, refreshRepos, useSeafile, useSeafileDir,
-  seafileDownload, seafileShare, seafileUpload, seafileSearch,
+  seafileDownload, seafileShare, seafileUpload, seafileSearch, refreshDir,
   type SeafileEntry, type SeafileRepo,
 } from "../state/seafile.js";
 import { IconRefresh, IconUpload, IconSearch, IconChevron, IconExternal } from "../components/Icons.js";
@@ -181,6 +181,7 @@ export default function CloudPage(): ReactNode {
               if (r && r.length) {
                 showToast(r.length > 1 ? `已上传 ${r.length} 个文件` : (r[0] ?? "已上传"));
                 refreshRepos().catch(() => undefined);
+                refreshDir(repo.id, path).catch(() => undefined); // 立刻刷当前目录（缓存失效）
               }
             }}
           >

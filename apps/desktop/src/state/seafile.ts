@@ -71,6 +71,8 @@ export function getSeafileToken(): string {
 let account: SeafileAccount | null = null;
 let repos: SeafileRepo[] = [];
 let dirs = new Map<string, SeafileEntry[]>(); // key: repoId + "|" + path
+/** 目录缓存版本号：任何目录写入（含上传后强刷）bump → 所有 useSeafileDir 重取 */
+let dirVersion = 0;
 let busy = false;
 let lastError: string | null = null;
 
@@ -103,8 +105,14 @@ export async function openDir(repoId: string, path: string, force = false): Prom
   if (!cfg) return [];
   const entries = await invoke<SeafileEntry[]>("seafile_dir", { token: cfg.token, repoId, path });
   dirs.set(key, entries);
+  dirVersion++;
   emit();
   return entries;
+}
+
+/** 上传/外部变更后强制刷新目录（bump 版本 → 订阅该目录的界面立即重取新列表） */
+export async function refreshDir(repoId: string, path: string): Promise<void> {
+  await openDir(repoId, path, true);
 }
 
 export async function seafileDownload(repoId: string, path: string): Promise<string> {
@@ -152,21 +160,25 @@ export function useSeafile() {
 
 /** 单目录订阅（进目录拉取） */
 export function useSeafileDir(repoId: string | null, path: string | null) {
-  const [, tick] = useState(0);
+  const [ver, setVer] = useState(dirVersion);
   const [state, setState] = useState<{ loading: boolean; entries: SeafileEntry[]; error: string | null }>({
     loading: false,
     entries: [],
     error: null,
   });
   useEffect(() => {
-    if (!repoId || !path) return;
-    const fn = () => tick((n) => n + 1);
+    const fn = () => setVer(dirVersion);
     listeners.add(fn);
+    return () => { listeners.delete(fn); };
+  }, []);
+  useEffect(() => {
+    if (!repoId || !path) return;
+    let alive = true; // 卸载/切换后到达的响应丢弃
     setState((s) => ({ ...s, loading: true, error: null }));
     openDir(repoId!, path!)
-      .then((entries) => setState({ loading: false, entries, error: null }))
-      .catch((e) => setState({ loading: false, entries: [], error: String(e) }));
-    return () => { listeners.delete(fn); };
-  }, [repoId, path]);
+      .then((entries) => { if (alive) setState({ loading: false, entries, error: null }); })
+      .catch((e) => { if (alive) setState({ loading: false, entries: [], error: String(e) }); });
+    return () => { alive = false; };
+  }, [repoId, path, ver]);
   return state;
 }

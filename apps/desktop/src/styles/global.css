@@ -4056,3 +4056,51 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }
 }
+
+/* ── 云盘搜索框美化（v2：套壳容器 + 内嵌无边框输入，对齐 .input 设计语言）── */
+.cloud-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  max-width: 420px;
+  margin-bottom: 10px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-2);
+  color: var(--text-3);
+  transition: border-color 0.15s, background 0.15s;
+}
+.cloud-search:focus-within {
+  border-color: var(--primary);
+}
+.cloud-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: var(--text-sm);
+  color: var(--text-1);
+}
+.cloud-search input::placeholder {
+  color: var(--text-3);
+}
+.cloud-search input:disabled {
+  opacity: 0.6;
+}
+.cloud-search.searching {
+  border-color: var(--primary);
+}
+.cloud-search .btn.mini {
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  padding: 3px 6px;
+}
+.cloud-search .btn.mini:hover {
+  color: var(--text-1);
+  background: var(--surface-3);
+}
