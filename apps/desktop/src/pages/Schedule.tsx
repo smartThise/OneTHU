@@ -405,8 +405,8 @@ export function SchedulePage() {
     try {
       if (await systemCalSupported()) {
         try {
-          const r = await syncSystemCalendar({ silent: true });
-          setMsg(r.skipped ? "系统日历已是最新（内容无变化）。" : `已写入系统日历「OneTHU 日程」：${r.added} 条（清理旧 ${r.removed} 条）。`);
+          const r = await syncSystemCalendar();
+          setMsg(`已写入系统日历「OneTHU 日程」：${r.added} 条（清理旧 ${r.removed} 条）；此后日程变化会自动同步。`);
         } catch (err) {
           setMsg(`存入系统日历失败：${err instanceof Error ? err.message : String(err)}`);
         }

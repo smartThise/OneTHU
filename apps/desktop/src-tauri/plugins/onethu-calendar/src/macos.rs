@@ -135,11 +135,13 @@ pub fn sync(payload: SyncPayload) -> Result<SyncResult, String> {
     let end = nsdate(payload.window_end_ms);
     let predicate =
         unsafe { store.predicateForEventsWithStartDate_endDate_calendars(&start, &end, None) };
+    // 清旧：按日历标题过滤（EventKit 跨查询返回的对象实例不保证同一，
+    // 指针比较会漏判 → 重复事件；标题匹配还能把同名日历里的脏数据一并清掉）
     let existing = unsafe { store.eventsMatchingPredicate(&predicate) };
     let mut removed: u32 = 0;
     for ev in existing.iter() {
         let ours = unsafe { ev.calendar() }
-            .map(|c| Retained::as_ptr(&c) == Retained::as_ptr(&cal))
+            .map(|c| unsafe { c.title() }.to_string() == payload.calendar_title)
             .unwrap_or(false);
         if ours {
             unsafe {

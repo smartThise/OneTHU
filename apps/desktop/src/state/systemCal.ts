@@ -54,23 +54,28 @@ interface SyncPayloadArg {
 
 interface SysCalCfg {
   enabled: boolean;
+  /** 用户明确点过「停止自动同步」（手动同步成功后不再自动重新开启） */
+  stopped: boolean;
   lastSyncAt: number;
   lastCount: number;
   lastError: string | null;
   fingerprint: string | null;
 }
 
+/** 状态文件版本：2 = 幂等修复（清旧改标题匹配）+ 自动跟随随同步开启。老版本指纹作废，强制全量重写一次自愈重复事件 */
+const CFG_VERSION = 2;
+
 /* ---------- 模块状态 ---------- */
 
 let loaded = false;
-let cfg: SysCalCfg = { enabled: false, lastSyncAt: 0, lastCount: 0, lastError: null, fingerprint: null };
+let cfg: SysCalCfg = { enabled: false, stopped: false, lastSyncAt: 0, lastCount: 0, lastError: null, fingerprint: null };
 let supportedCache: boolean | null = null;
 let syncing = false;
 const listeners = new Set<() => void>();
 const emit = (): void => listeners.forEach((fn) => fn());
 
 async function persistCfg(): Promise<void> {
-  await fileWrite(CFG_FILE, JSON.stringify(cfg));
+  await fileWrite(CFG_FILE, JSON.stringify({ version: CFG_VERSION, ...cfg }));
 }
 
 async function ensureLoaded(): Promise<void> {
@@ -79,14 +84,16 @@ async function ensureLoaded(): Promise<void> {
   try {
     const raw = await fileRead(CFG_FILE);
     if (raw) {
-      const j = JSON.parse(raw) as Partial<SysCalCfg>;
+      const j = JSON.parse(raw) as Partial<SysCalCfg> & { version?: number };
       if (typeof j.enabled === "boolean") {
+        const legacy = j.version !== CFG_VERSION; // 老数据：指纹作废 → 下次同步全量重写（清掉重复事件）
         cfg = {
           enabled: j.enabled,
-          lastSyncAt: typeof j.lastSyncAt === "number" ? j.lastSyncAt : 0,
-          lastCount: typeof j.lastCount === "number" ? j.lastCount : 0,
-          lastError: typeof j.lastError === "string" ? j.lastError : null,
-          fingerprint: typeof j.fingerprint === "string" ? j.fingerprint : null,
+          stopped: j.stopped === true,
+          lastSyncAt: legacy ? 0 : typeof j.lastSyncAt === "number" ? j.lastSyncAt : 0,
+          lastCount: legacy ? 0 : typeof j.lastCount === "number" ? j.lastCount : 0,
+          lastError: legacy ? null : typeof j.lastError === "string" ? j.lastError : null,
+          fingerprint: legacy ? null : typeof j.fingerprint === "string" ? j.fingerprint : null,
         };
       }
     }
@@ -209,11 +216,20 @@ export async function syncSystemCalendar(opts?: { silent?: boolean }): Promise<S
   try {
     const payload = await buildPayload();
     const fingerprint = fingerprintOf(payload);
-    if (cfg.fingerprint === fingerprint) {
+    // 静默自动推送内容未变则跳过；手动同步永远真跑（用于用户主动重建/修复系统日历）
+    if (opts?.silent && cfg.fingerprint === fingerprint) {
       return { added: 0, removed: 0, skipped: true };
     }
     const r = await invokePlugin<{ added: number; removed: number }>("sync", { payload });
-    cfg = { ...cfg, lastSyncAt: Date.now(), lastCount: payload.events.length, lastError: null, fingerprint };
+    // 任何一次成功同步都自动开启跟随（除非用户明确停止过）——对齐 learnX：写过一次就一直最新
+    cfg = {
+      ...cfg,
+      enabled: cfg.stopped ? cfg.enabled : true,
+      lastSyncAt: Date.now(),
+      lastCount: payload.events.length,
+      lastError: null,
+      fingerprint,
+    };
     await persistCfg();
     emit();
     return { added: r.added, removed: r.removed, skipped: false };
@@ -233,14 +249,14 @@ export async function enableSystemCalendar(): Promise<void> {
   const granted = await invokePlugin<boolean>("request_permission");
   if (!granted) throw new Error("未获得系统日历权限（可到系统设置里重新允许 OneTHU 访问日历）");
   await syncSystemCalendar();
-  cfg = { ...cfg, enabled: true };
+  cfg = { ...cfg, enabled: true, stopped: false };
   await persistCfg();
   emit();
 }
 
-/** 停止自动跟随（保留已写入的系统日历与事件） */
+/** 停止自动跟随（保留已写入的系统日历与事件；此后手动同步不再自动重新开启） */
 export async function disableSystemCalendar(): Promise<void> {
-  cfg = { ...cfg, enabled: false };
+  cfg = { ...cfg, enabled: false, stopped: true };
   await persistCfg();
   emit();
 }
@@ -248,7 +264,7 @@ export async function disableSystemCalendar(): Promise<void> {
 /** 清除：删除系统里的「OneTHU 日程」日历并重置状态 */
 export async function removeSystemCalendar(): Promise<void> {
   await invokePlugin<unknown>("remove_calendar");
-  cfg = { ...cfg, enabled: false, lastSyncAt: 0, lastCount: 0, lastError: null, fingerprint: null };
+  cfg = { ...cfg, enabled: false, stopped: false, lastSyncAt: 0, lastCount: 0, lastError: null, fingerprint: null };
   await persistCfg();
   emit();
 }
