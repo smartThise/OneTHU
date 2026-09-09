@@ -218,7 +218,11 @@ export async function routeEta(
   const key = amapKey();
   if (!key) return null;
   try {
-    const url = `${REST}/direction/${api}?origin=${o}&destination=${d}&key=${key}`;
+    // 骑行必须走 v5：v3/direction/bicycling 对个人 key 返回
+    // SERVICE_NOT_AVAILABLE(10002)（实测 2026-09），v5 同 key 可用；
+    // 步行/驾车 v3 稳定不动。响应形状一致（route.paths[].duration）。
+    const ver = mode === "bike" ? "v5" : "v3";
+    const url = `https://restapi.amap.com/${ver}/direction/${api}?origin=${o}&destination=${d}&key=${key}`;
     const res = await universalFetch(url, { method: "GET" });
     const json = (await res.json()) as {
       status?: string;
@@ -288,9 +292,10 @@ export function navOpenUrl(
   // 各家 App 深链的交通方式参数值（与 TRAVEL_MODES 对齐；无骑行能力的降级驾车）
   switch (app) {
     case "amap":
-      // route 接口 t：0 驾车 / 1 公交 / 2 步行 / 3 骑行（navi 是驾车专属，弃用）
+      // 现行官方 scheme amapuri://route/plan/（旧 androidamap://route 已废弃，
+      // 实测 t 参数不被识别 → 恒为驾车）。t：0 驾车 / 1 公交 / 2 步行 / 3 骑行
       // dev=0：坐标已是高德加密坐标（GCJ-02）；省略起点 = 我的位置
-      return `intent://route?sourceApplication=onethu&dlat=${lat}&dlon=${lng}&dname=${n}&dev=0&t=${mode === "walk" ? 2 : mode === "bike" ? 3 : 0}#Intent;scheme=androidamap;package=com.autonavi.minimap;S.browser_fallback_url=${fb};end`;
+      return `intent://route/plan/?sourceApplication=onethu&dlat=${lat}&dlon=${lng}&dname=${n}&dev=0&t=${mode === "walk" ? 2 : mode === "bike" ? 3 : 0}#Intent;scheme=amapuri;package=com.autonavi.minimap;S.browser_fallback_url=${fb};end`;
     case "qq":
       // type: drive/walk/bus/bike
       return `intent://map/routeplan?type=${mode === "walk" ? "walk" : mode === "bike" ? "bike" : "drive"}&to=${n}&tocoord=${lat},${lng}&policy=1&referer=onethu#Intent;scheme=qqmap;package=com.tencent.map;S.browser_fallback_url=${fb};end`;
