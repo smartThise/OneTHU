@@ -10,7 +10,9 @@ import { useEffect, useState } from "react";
 import { fileRead, fileWrite, fileDelete, obfuscateSecret, deobfuscateSecret } from "../lib/clients.js";
 import { showToast } from "./toast.js";
 
-const CFG_FILE = "seafile.cfg.json";
+const CFG_FILE = "seafile.cfg";
+/** 旧版（fileWrite 自动补 .json）写成了 seafile.cfg.json.json——读取迁移用 */
+const CFG_FILE_LEGACY = "seafile.cfg.json.json";
 /** 混淆密钥绑定词（token 属于云盘本身，不需要用户名绑定） */
 const KEY_ID = "seafile";
 
@@ -36,7 +38,12 @@ export async function ensureSeafileLoaded(): Promise<void> {
   if (loaded) return;
   loaded = true;
   try {
-    const raw = await fileRead(CFG_FILE);
+    let raw = await fileRead(CFG_FILE);
+    if (!raw) {
+      // 旧文件名迁移（seafile.cfg.json.json → seafile.cfg.json）
+      raw = await fileRead(CFG_FILE_LEGACY);
+      if (raw) await fileWrite(CFG_FILE, raw).then(() => fileDelete(CFG_FILE_LEGACY)).catch(() => undefined);
+    }
     if (raw) {
       const j = JSON.parse(raw) as { secret?: string };
       if (j.secret) cfg = { token: deobfuscateSecret(j.secret, KEY_ID) ?? "" };
@@ -70,7 +77,10 @@ export function getSeafileToken(): string {
 /* ── 数据面（内存缓存） ── */
 let account: SeafileAccount | null = null;
 let repos: SeafileRepo[] = [];
-let dirs = new Map<string, SeafileEntry[]>(); // key: repoId + "|" + path
+/** 目录缓存（带 TTL）：key=repoId|path。15s 内命中走缓存，过期自动重取——
+ * 上传后的强刷是即时路径；TTL 是兜底（错过强刷/外部变更，重进目录自愈） */
+const DIR_TTL_MS = 15_000;
+let dirs = new Map<string, { at: number; entries: SeafileEntry[] }>();
 /** 目录缓存版本号：任何目录写入（含上传后强刷）bump → 所有 useSeafileDir 重取 */
 let dirVersion = 0;
 let busy = false;
@@ -101,10 +111,11 @@ export async function refreshRepos(): Promise<void> {
 /** 目录列表（缓存优先，force 强刷） */
 export async function openDir(repoId: string, path: string, force = false): Promise<SeafileEntry[]> {
   const key = `${repoId}|${path}`;
-  if (!force && dirs.has(key)) return dirs.get(key)!;
+  const hit = dirs.get(key);
+  if (!force && hit && Date.now() - hit.at < DIR_TTL_MS) return hit.entries;
   if (!cfg) return [];
   const entries = await invoke<SeafileEntry[]>("seafile_dir", { token: cfg.token, repoId, path });
-  dirs.set(key, entries);
+  dirs.set(key, { at: Date.now(), entries });
   dirVersion++;
   emit();
   return entries;
