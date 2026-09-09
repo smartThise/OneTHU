@@ -247,6 +247,13 @@ export async function syncSystemCalendar(opts?: { silent?: boolean }): Promise<S
   if (syncing) throw new Error("系统日历正在同步中");
   syncing = true;
   try {
+    // 运行时权限先行（单一收口）：课程表页「同步到系统日历」直进本函数，
+    // 不经 enableSystemCalendar 的请求步骤——Android 上没授权直接 sync 会被
+    // 原生侧拒绝（真机实锤）。request_permission 幂等：已授权立即返回 true。
+    if (await systemCalSupported()) {
+      const granted = await invokePlugin<boolean>("request_permission");
+      if (!granted) throw new Error("未获得系统日历权限（可到系统设置里重新允许 OneTHU 访问日历）");
+    }
     const payload = await buildPayload();
     const fingerprint = fingerprintOf(payload);
     // 静默自动推送内容未变则跳过；手动同步永远真跑（用于用户主动重建/修复系统日历）

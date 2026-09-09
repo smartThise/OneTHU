@@ -1,5 +1,0 @@
-# exFAT 卷上 macOS 会给构建产物附加 ._ AppleDouble 副档，tauri build.rs 扫描权限
-# toml 时误读 ._default.toml（invalid UTF-8）导致确定性 panic。
-# target 挪到内置盘 APFS（可再生产物，放 Caches 无副作用）。
-[build]
-target-dir = "/Users/st/Library/Caches/onethu-cargo-target"

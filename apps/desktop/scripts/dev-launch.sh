@@ -25,11 +25,15 @@ if ! curl -sf -o /dev/null http://127.0.0.1:5180 --max-time 1; then
 fi
 echo "· vite :5180 ✓"
 
-# ② Rust debug 构建（沿用 ._* 清理惯例；target 目录交给 cargo 配置/环境）
+# ② Rust debug 构建（沿用 ._* 清理惯例）
+# target 目录必须放内置盘 APFS：exFAT 产物会带 ._ AppleDouble 副档，
+# tauri build.rs 扫权限 toml 时误读非 UTF-8 必 panic。CI（APFS runner）
+# 无此问题走默认 target/——因此该路径不入库（曾入库导致 runner 上
+# /Users/st 不存在 → 权限拒绝），本地脚本显式注入。
 (
   cd src-tauri
   find . -name '._*' -delete 2>/dev/null || true
-  cargo build
+  CARGO_TARGET_DIR="$HOME/Library/Caches/onethu-cargo-target" cargo build
 )
 
 # ③ 装壳 + 启动（定位/语音授权窗都会正常弹）
