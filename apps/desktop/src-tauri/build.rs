@@ -8,6 +8,11 @@ fn main() {
 
     // 寻迹：macOS 原生定位桥（tauri-plugin-geolocation 桌面端是返回 (0,0) 的 stub）
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
+        // rerun-if 一旦出现（上面 .env 那两行），cargo 只盯声明过的文件——
+        // 原生桥源码必须逐一登记，否则改 .m 不触发重编（stale 二进制静默
+        // 上线；speech.m 实测踩中：符号数不变、cargo 秒过）。
+        println!("cargo:rerun-if-changed=native/location.m");
+        println!("cargo:rerun-if-changed=native/speech.m");
         println!("cargo:rustc-link-framework=CoreLocation");
         println!("cargo:rustc-link-framework=Foundation");
         cc::Build::new()
