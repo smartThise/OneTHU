@@ -23,6 +23,21 @@ fn main() {
             .file("native/speech.m")
             .flag("-fobjc-arc")
             .compile("onethu_speech");
+
+        // 新 clang 对 @available 生成 ___isPlatformVersionAtLeast 调用（定义在
+        // libclang_rt.osx.a）；rustc 链接走 -nodefaultlibs 不自动带 clang_rt——
+        // CI macos-latest 新镜像实测 undefined symbol 链接失败。显式链入
+        // （本地 Xcode 由 SDK 兜住未暴露；显式链重复定义无害：按需拉取成员）。
+        if let Ok(out) = std::process::Command::new("clang")
+            .arg("-print-resource-dir")
+            .output()
+        {
+            if out.status.success() {
+                let dir = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                println!("cargo:rustc-link-search=native={dir}/lib/darwin");
+                println!("cargo:rustc-link-lib=clang_rt.osx");
+            }
+        }
     }
 
     tauri_build::build()
