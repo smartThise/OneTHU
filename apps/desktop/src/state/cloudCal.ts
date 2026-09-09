@@ -12,8 +12,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { CalDavClient, caldav, parseLearnTime } from "@onethu/core";
 import { universalFetch } from "../lib/transport.js";
-import { fileRead, fileWrite, fileDelete, obfuscateSecret, deobfuscateSecret } from "../lib/clients.js";
-import { getLearnSnapshot, subscribeLearnData } from "./data.js";
+import { fileRead, fileWrite, fileDelete, obfuscateSecret, deobfuscateSecret, info } from "../lib/clients.js";
+import { getLearnSnapshot, subscribeLearnData, getCalendarSnapshot, subscribeCampusData, subscribeCalendarData } from "./data.js";
 import { getHwRemindState, subscribeHwRemind, type HwRemindState } from "./hwRemind.js";
 
 const CFG_FILE = "caldav.cfg";
@@ -89,6 +89,11 @@ async function ensureLoaded(): Promise<void> {
     /* 忽略 */
   }
   emit();
+}
+
+/** 配置就绪（邮件 tab 复用同一凭据：email + authCode） */
+export async function ensureCloudCalLoaded(): Promise<void> {
+  await ensureLoaded();
 }
 
 /**
@@ -469,3 +474,69 @@ function scheduleHwCloudSync(): void {
 }
 subscribeLearnData(scheduleHwCloudSync);
 subscribeHwRemind(scheduleHwCloudSync);
+
+/* ══════════ 课表自动上云（用户 2026-09-09 拍板：配置了云就自动上，不再手动按钮） ══════════
+ * 语义：campus/校历任何变化 → 防抖重建本学期事件 → 与云端 onethu course/exam
+ * 现状对账（uid→start 全等）→ 一致零请求跳过；不一致幂等清重写。
+ * 手动兜底：原子「同步课表到云日历」直调同一函数。 */
+
+let semesterCloudTimer: ReturnType<typeof setTimeout> | null = null;
+let semesterCloudBusy = false;
+let semesterAutoInfo: { at: number; written: number; removed: number; skipped: boolean; reason?: string } | null = null;
+
+/** 导出目标学期：今天落在哪学期用哪个（无匹配退当前学期）——与日程页按钮口径一致 */
+function pickExportSemester(cal: NonNullable<ReturnType<typeof getCalendarSnapshot>>): { firstDay: string; weekCount: number; semesterId?: string; semesterName?: string } | null {
+  const list = [{ ...cal }, ...(cal.nextSemesterList ?? [])];
+  const now = Date.now();
+  for (const s of list) {
+    const start = new Date(`${s.firstDay}T00:00:00`).getTime();
+    if (!Number.isFinite(start) || !s.weekCount) continue;
+    if (now >= start && now < start + s.weekCount * 7 * 86_400_000) return s;
+  }
+  return cal.firstDay && cal.weekCount ? cal : null;
+}
+
+/** 课表 → 云（自动；对账一致跳过）。返回给原子/状态条显示的结果。 */
+export async function syncSemesterToCloudAuto(): Promise<{ written: number; removed: number; skipped: boolean; reason?: string }> {
+  await ensureLoaded();
+  if (semesterCloudBusy) return { written: 0, removed: 0, skipped: true, reason: "进行中" };
+  if (!makeClient()) return { written: 0, removed: 0, skipped: true, reason: "未配置云同步" };
+  const cal = getCalendarSnapshot();
+  if (!cal) return { written: 0, removed: 0, skipped: true, reason: "校历未加载" };
+  const sem = pickExportSemester(cal);
+  if (!sem) return { written: 0, removed: 0, skipped: true, reason: "无学期信息" };
+  semesterCloudBusy = true;
+  try {
+    const { events } = await buildSemesterEvents(sem, (st, en) => info.getSchedule(st, en));
+    // 对账：期望 uid→start 与云端现状全等 → 一个请求都不发
+    const want = new Map(events.map((e) => [e.uid, e.start] as const));
+    const have = cloudEvents.filter((e) => e.onethuSource === "course" || e.onethuSource === "exam");
+    if (have.length === want.size && have.every((e) => want.get(e.uid) === e.start)) {
+      semesterAutoInfo = { at: Date.now(), written: 0, removed: 0, skipped: true, reason: "云端已是最新" };
+      return semesterAutoInfo;
+    }
+    const r = await exportSemesterToCloud(sem, (st, en) => info.getSchedule(st, en));
+    semesterAutoInfo = { at: Date.now(), written: r.written, removed: r.removed, skipped: false };
+    emit();
+    return semesterAutoInfo;
+  } finally {
+    semesterCloudBusy = false;
+  }
+}
+
+/** 自动上云状态（日程页状态条显示用；onCloudCalChange 变化时重读） */
+export function getSemesterAutoInfo(): { at: number; written: number; removed: number; skipped: boolean; reason?: string } | null {
+  return semesterAutoInfo;
+}
+
+function scheduleSemesterCloudSync(): void {
+  if (semesterCloudTimer) clearTimeout(semesterCloudTimer);
+  semesterCloudTimer = setTimeout(() => {
+    semesterCloudTimer = null;
+    void syncSemesterToCloudAuto().catch(() => {
+      /* 静默：下次数据变化再试 */
+    });
+  }, 6000);
+}
+subscribeCampusData(scheduleSemesterCloudSync);
+subscribeCalendarData(scheduleSemesterCloudSync);

@@ -16,7 +16,7 @@
 import type { ReactNode } from "react";
 import {
   IconBell, IconCalendar, IconCard, IconCheck, IconExternal, IconFile, IconFlag,
-  IconFolder, IconInfo, IconLearn, IconPen, IconRefresh, IconSchedule, IconSearch, IconToday, IconTrace, IconXk,
+  IconFolder, IconInfo, IconLearn, IconMail, IconPen, IconRefresh, IconSchedule, IconSearch, IconToday, IconTrace, IconXk,
 } from "../components/Icons.js";
 import {
   AgendaWidget, CardBalanceWidget, HomeworkWidget, RecentNoticesWidget, SubsNewsWidget,
@@ -29,6 +29,9 @@ import { setSelectedSemester } from "./data.js";
 import { WasherTileStatus, ClassroomTileStatus, ClassroomRoomToday } from "../components/LiveTiles.js";
 import { INFO_APPS, infoAppUrl } from "../lib/infoApps.js";
 import { openExternal } from "../pages/info/openExternal.js";
+import { getMailHead } from "./mail.js";
+import { syncCloudCal, syncHwToCloud, syncSemesterToCloudAuto } from "./cloudCal.js";
+import { showToast } from "./toast.js";
 
 /** 图标最小接口（与 homeCards 的 HomeCardIcon 同口径） */
 export type AtomIcon = (p: { width?: number; height?: number; className?: string }) => ReactNode;
@@ -108,6 +111,46 @@ function openLearn(nav: Nav, page: Page, params: LearnNav, sem?: string): void {
   nav(page, params);
 }
 
+/* ══════════ 静态注册表：操作原子（用户拍板「OH 的操作原子化」） ══════════
+ * 点击即执行（非跳转）：动作跑完 toast 反馈结果。与页面原子一样可搜、可收藏——
+ * 收藏夹里的操作卡点一下就是一次执行。 */
+interface ActionAtom {
+  kind: "action";
+  key: string;
+  title: string;
+  sub?: string;
+  icon: AtomIcon;
+  group: string;
+  run: () => Promise<string>;
+}
+
+export const ACTION_ATOMS: ActionAtom[] = [
+  {
+    kind: "action", key: "cal-sync-semester", title: "同步课表到云日历", sub: "重建本学期课表+考试写入云日历（平时全自动，这是手动兜底）",
+    icon: IconSchedule, group: "操作",
+    run: async () => {
+      const r = await syncSemesterToCloudAuto();
+      return r.skipped ? `课表未同步：${r.reason ?? "无变化"}` : `课表上云完成：写入 ${r.written} 场（清理旧 ${r.removed} 场）`;
+    },
+  },
+  {
+    kind: "action", key: "cal-sync-hw", title: "同步作业 DDL 到云日历", sub: "未交作业写入云日历（含提醒闹钟；平时全自动）",
+    icon: IconBell, group: "操作",
+    run: async () => {
+      const r = await syncHwToCloud();
+      return r.skipped ? `作业未同步：${r.written === 0 ? "云端已是最新" : "未配置云同步"}` : `作业已同步：写入 ${r.written} 条（清理旧 ${r.removed} 条）`;
+    },
+  },
+  {
+    kind: "action", key: "cal-sync-scan", title: "同步云日历", sub: "全量扫描云端日程变化（etag 对账）",
+    icon: IconRefresh, group: "操作",
+    run: async () => {
+      const r = await syncCloudCal();
+      return `云端共 ${r.total} 个日程（新增 ${r.added}、更新 ${r.updated}、移除 ${r.removed}）`;
+    },
+  },
+];
+
 /* ══════════ 静态注册表：页面原子 ══════════ */
 
 interface StaticAtom {
@@ -126,6 +169,8 @@ interface StaticAtom {
 export const PAGE_ATOMS: StaticAtom[] = [
   { kind: "page", key: "schedule", title: "日程", sub: "时间轴与日程列表 · 云同步", icon: IconSchedule, group: "页面", page: "schedule" },
   { kind: "page", key: "trace", title: "寻迹", sub: "今日日程地图 · 紧迫度标注 · 一键前往", icon: IconTrace, group: "页面", page: "trace" },
+  { kind: "page", key: "mail", title: "邮箱", sub: "收件箱 · 已发送 · 读信 · 全箱搜索", icon: IconMail, group: "页面", page: "mail" },
+  { kind: "page", key: "mail-compose", title: "写信", sub: "邮箱 · 新邮件", icon: IconPen, group: "页面", page: "mail", params: { mailCompose: true } },
   { kind: "page", key: "zhjwxk", title: "选课", sub: "选课系统 · 已选课程与候补队列（不可拆分原子）", icon: IconXk, group: "页面", page: "zhjwxk" },
   { kind: "page", key: "learn", title: "网络学堂", sub: "本学期课程总览", icon: IconLearn, group: "页面", page: "learn" },
   { kind: "page", key: "learn-assignments", title: "全部作业", sub: "网络学堂 · 作业列表", icon: IconPen, group: "页面", page: "learn-assignments" },
@@ -369,6 +414,32 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
       open: () => void openExternal(infoAppUrl(id)),
     });
   }
+  if (kind === "action") {
+    const a = ACTION_ATOMS.find((x) => x.key === key);
+    if (!a) return null;
+    return view({
+      atom: ref, title: a.title, sub: a.sub, icon: a.icon, group: a.group,
+      open: () => {
+        showToast(`${a.title}…`);
+        void a.run().then(showToast).catch((e: unknown) => showToast(`失败：${e instanceof Error ? e.message : String(e)}`));
+      },
+    });
+  }
+  if (kind === "mail") {
+    // 邮件实体原子（key = folder#uid；标题/发件人/时间取列表头缓存——收藏时已见过）
+    const hi = key.lastIndexOf("#");
+    if (hi <= 0) return null;
+    const folder = key.slice(0, hi);
+    const uid = Number(key.slice(hi + 1));
+    if (!Number.isFinite(uid) || uid <= 0) return null;
+    const h = getMailHead(folder, uid);
+    if (!h) return null; // 缓存冷（清库/换机）：星标还在但不可解析——收藏夹渲染层会自然显示失效
+    return view({
+      atom: ref, title: h.subject, sub: `${h.from || "(无发件人)"} · ${new Date(h.dateMs).toLocaleString("zh-CN", { hour12: false })}`,
+      icon: IconMail, group: "邮件",
+      open: (nav) => nav("mail", { mailFolder: folder, mailUid: uid }),
+    });
+  }
   if (kind === "folder") {
     // 收藏夹跳转原子（用户拍板：收藏夹本身也要原子化——搜索/深链直达根夹与子夹；
     // 改名/删除在收藏夹页编辑模式，此处只是入口层跳转）
@@ -440,6 +511,7 @@ export function searchAtoms(query: string, limit = 24): AtomHit[] {
   const match = (...fields: Array<string | undefined>) => fields.some((f) => (f ?? "").toLowerCase().includes(q));
 
   for (const s of PAGE_ATOMS) if (match(s.title, s.sub)) push(hit({ atom: { kind: s.kind, key: s.key }, title: s.title, sub: s.sub, icon: s.icon, group: s.group }));
+  for (const a of ACTION_ATOMS) if (match(a.title, a.sub)) push(hit({ atom: { kind: a.kind, key: a.key }, title: a.title, sub: a.sub, icon: a.icon, group: a.group }));
   for (const w of WIDGET_ATOMS) if (match(w.title, w.sub)) push(hit({ atom: { kind: w.kind, key: w.key }, title: w.title, sub: w.sub, icon: w.icon, group: w.group }));
 
   // —— 动态：本机缓存里已见过的实体（campus 缓存 + noteAtomCache）——

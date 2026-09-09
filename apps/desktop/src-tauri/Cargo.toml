@@ -27,6 +27,11 @@ serde_json = "1"
 tokio = { version = "1", features = ["process", "io-util", "sync", "time"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "brotli", "charset", "http2"] }
 zip = { version = "2", default-features = false, features = ["deflate"] }
+# 邮箱 tab（IMAP 收 / SMTP 发，复用日历的邮箱+授权码；全 rustls 纯 Rust，Android 可交叉编译）
+imap = "2.4"
+rustls-connector = { version = "0.18", default-features = false, features = ["webpki-roots-certs"] }
+mail-parser = "0.9"
+lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "rustls", "ring", "webpki-roots"] }
 url = "2"
 # 已在依赖树中（reqwest 传递依赖 0.22.1），直连引用无新增下载
 base64 = "0.22"

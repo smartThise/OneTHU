@@ -14,6 +14,9 @@ import { SearchPage } from "./pages/learn/SearchPage.js";
 import { SemesterSelectionPage } from "./pages/learn/SemesterSelectionPage.js";
 import { LoginPage, TwoFactorPage } from "./pages/Login.js";
 import { SchedulePage } from "./pages/Schedule.js";
+import { MailPage } from "./pages/MailPage.js";
+import { useToastHost, hideToast } from "./state/toast.js";
+import type { ReactNode } from "react";
 import { TracePage } from "./pages/Trace.js";
 import { SettingsPage } from "./pages/Settings.js";
 import { PluginsPage } from "./pages/Plugins.js";
@@ -78,6 +81,7 @@ function Routed() {
         {page === "today" && <TodayPage />}
         {page === "learn" && <LearnPage />}
         {page === "schedule" && <SchedulePage />}
+        {page === "mail" && <MailPage />}
         {page === "trace" && <TracePage />}
         {page === "otherinfo" && <OtherInfoPage />}
         {page === "info" && <InfoPage />}
@@ -107,7 +111,17 @@ function Routed() {
       <PluginBridge />
       {(status === "ready" || status === "demo") && <ChatDock />}
       <FilePreviewHost />
+      <ToastHost />
     </>
+  );
+}
+
+/** 全局轻提示（原子操作反馈）：单条覆盖式，点按关闭 */
+function ToastHost(): ReactNode {
+  const msg = useToastHost();
+  if (!msg) return null;
+  return (
+    <div className="toast-host" onClick={hideToast} role="status">{msg}</div>
   );
 }
 

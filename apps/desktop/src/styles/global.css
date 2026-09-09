@@ -3603,3 +3603,227 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
 }
 .hwremind-custom { display: flex; gap: 6px; margin-top: 10px; align-items: center; }
 .hwremind-custom input { flex: 1; min-width: 0; height: 30px; }
+
+/* ══════════════════ 邮箱（Mail）：两栏收发 · 头像色 · 沙箱正文 ══════════════════ */
+.mail-guide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--text-3);
+}
+.mail-guide h2 { font-size: var(--text-lg); color: var(--text-1); }
+.mail-guide p { font-size: var(--text-sm); line-height: 1.7; max-width: 340px; margin: 0; }
+.mail-guide svg { color: var(--text-3); }
+
+/* 工具栏：segmented + 搜索同一行（窄栏自动折行）；未读徽标 = 实心强调色 */
+.mail-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.mail-toolbar .segmented { margin-bottom: 0; flex: none; }
+.mail-toolbar .tab-count { background: var(--accent); color: #fff; }
+.mail-toolbar-search { display: inline-flex; align-items: center; gap: 6px; flex: 1 1 180px; min-width: 0; max-width: 320px; }
+.mail-toolbar-search .input { flex: 1; min-width: 0; }
+.mail-error { font-size: var(--text-xs); color: var(--red); flex: 1 1 100%; }
+/* 列表底部分页条：已显示 X / 共 Y 封 + 加载更早 */
+.mail-more { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 10px; border-top: 1px solid var(--border-soft); flex: none; }
+.mail-more-meta { font-size: var(--text-xs); color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+.mail-layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 10px;
+  height: calc(100dvh - 208px);
+  min-height: 420px;
+}
+
+/* —— 列表（左栏 / 窄屏全屏） —— */
+.mail-list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  min-height: 0;
+}
+.mail-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--border-soft);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+  transition: background 120ms ease;
+}
+.mail-row:last-child { border-bottom: 0; }
+.mail-row:hover { background: var(--hover); }
+.mail-row.active { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+.mail-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 650;
+  flex: none;
+  user-select: none;
+}
+.mail-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mail-row-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.mail-row-from {
+  font-size: var(--text-sm);
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.mail-row-date { font-size: var(--text-xs); color: var(--text-3); flex: none; font-variant-numeric: tabular-nums; }
+.mail-row-subject {
+  font-size: var(--text-base);
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mail-row.unread .mail-row-from { color: var(--text-1); font-weight: 650; }
+.mail-row.unread .mail-row-subject { color: var(--text-1); font-weight: 550; }
+.mail-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+.mail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 16px;
+  color: var(--text-3);
+  font-size: var(--text-sm);
+}
+
+/* —— 阅读（右栏 / 窄屏推入） —— */
+.mail-detail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+.mail-detail-empty { align-items: center; justify-content: center; gap: 10px; color: var(--text-3); font-size: var(--text-sm); }
+.mail-detail-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--border-soft); background: var(--surface-2); flex: none; }
+.mail-back { gap: 4px; }
+.mail-detail-date { font-size: var(--text-xs); color: var(--text-3); padding-right: 6px; font-variant-numeric: tabular-nums; }
+.mail-detail-subject { font-size: var(--text-md); font-weight: 700; color: var(--text-1); line-height: 1.5; padding: 14px 16px 0; margin: 0; overflow-wrap: anywhere; }
+.mail-detail-meta { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border-soft); }
+.mail-detail-meta-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.mail-detail-from { font-size: var(--text-sm); color: var(--text-1); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mail-detail-to { font-size: var(--text-xs); color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mail-detail-html { flex: 1; min-height: 0; width: 100%; border: 0; background: transparent; }
+.mail-detail-text {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: 0;
+  padding: 14px 16px;
+  font-family: inherit;
+  font-size: var(--text-base);
+  line-height: 1.7;
+  color: var(--text-1);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* —— 写信（底部弹层，plg-sheet 同骨架） —— */
+.mail-compose-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 9995;
+  background: rgba(15, 17, 21, 0.44);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: plg-fade 0.18s ease both;
+}
+.mail-compose {
+  width: min(560px, calc(100vw - 28px));
+  max-height: min(86dvh, 720px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3);
+  overflow: hidden;
+  animation: plg-up 0.22s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.mail-compose-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-soft);
+  flex: none;
+}
+.mail-compose-head h2 { font-size: var(--text-md); margin: 0; }
+.mail-compose-fields { padding: 12px 14px; overflow-y: auto; display: grid; gap: 10px; }
+.mail-compose-fields label { display: grid; gap: 5px; font-size: var(--text-xs); color: var(--text-2); font-weight: 600; }
+.mail-compose-fields input, .mail-compose-fields textarea {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: var(--text-base);
+  background: var(--surface);
+  color: var(--text-1);
+  width: 100%;
+}
+.mail-compose-fields input:focus, .mail-compose-fields textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--ring);
+}
+.mail-compose-fields textarea { resize: vertical; min-height: 160px; line-height: 1.6; }
+.mail-compose-err { padding: 0 14px 8px; font-size: var(--text-xs); color: var(--red); }
+.mail-compose-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border-soft); background: var(--surface-2); flex: none; }
+
+.toast-host {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  z-index: 9996;
+  padding: 9px 16px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-3);
+  font-size: var(--text-sm);
+  color: var(--text-1);
+  cursor: pointer;
+  animation: plg-up 0.2s ease both;
+  max-width: min(480px, calc(100vw - 28px));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* —— 窄屏（灵动岛面板 / 手机竖屏）：单栏，阅读推入 —— */
+@media (max-width: 860px) {
+  .mail-layout { grid-template-columns: minmax(0, 1fr); height: calc(100dvh - 190px); min-height: 380px; }
+  .mail-detail { display: none; }
+  .mail-layout.detail-open .mail-list { display: none; }
+  .mail-layout.detail-open .mail-detail { display: flex; }
+  .mail-avatar { width: 30px; height: 30px; font-size: 12px; }
+  .mail-row { padding: 9px 10px; gap: 8px; }
+}

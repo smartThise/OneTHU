@@ -122,6 +122,7 @@ export function useCampusData() {
       const fresh = await cacheFetch(CAMPUS_KEY, loadReal);
       setData(fresh);
       setState("ready");
+      notifyCampusData();
     } catch (err) {
       // 会话真死了（AuthRequiredError）：先免密重漫游一次，仍失败才送回登录页
       if (err instanceof Error && err.name === "AuthRequiredError") {
@@ -237,6 +238,33 @@ function notifyLearnData(): void {
 /** 网络学堂当前缓存包（无缓存返回 null；不发起请求） */
 export function getLearnSnapshot(): LearnBundle | null {
   return cache?.data ?? null;
+}
+
+/* —— 校园数据 / 校历的同类广播（课表自动上云跟随用） —— */
+const campusListeners = new Set<() => void>();
+export function subscribeCampusData(fn: () => void): () => void {
+  campusListeners.add(fn);
+  return () => {
+    campusListeners.delete(fn);
+  };
+}
+function notifyCampusData(): void {
+  campusListeners.forEach((fn) => fn());
+}
+const calendarListeners = new Set<() => void>();
+export function subscribeCalendarData(fn: () => void): () => void {
+  calendarListeners.add(fn);
+  return () => {
+    calendarListeners.delete(fn);
+  };
+}
+function notifyCalendarData(): void {
+  calendarListeners.forEach((fn) => fn());
+}
+
+/** 校历当前缓存（无缓存返回 null；不发起请求）——课表自动上云取学期用 */
+export function getCalendarSnapshot(): CalendarData | null {
+  return cacheGet<CalendarData>(CAL_KEY)?.data ?? null;
 }
 
 /** 校园数据快照（课表/作业等；只读缓存，不发起请求） */
@@ -2162,6 +2190,7 @@ export function useCalendar() {
     try {
       setData(await cacheFetch(CAL_KEY, () => learn.getCalendarData()));
       setState("ready");
+      notifyCalendarData();
     } catch (err) {
       logPageError("CALENDAR", err);
       if (silent && data !== null) return;

@@ -15,6 +15,7 @@ export type Page =
   | "life" // 生活聚合页（宿舍电费/订水 · 洗衣机 · 校园卡）
   | "reserve" // 预约（图书馆座位；游泳/健身房等场馆陆续接入）
   | "zhjwxk" // 选课系统（已选课程 / 候补队列；不可拆分原子）
+  | "mail" // 邮箱（IMAP 收 / SMTP 发，复用云日历凭据）
   | "folder" // 用户收藏夹页（navParams.folderId 指向具体收藏夹）
   | "settings"
   | "plugins" // 插件管理页（机架视觉；设置页留入口，不动侧栏导航）
@@ -46,6 +47,11 @@ export interface LearnNav {
   semesterId?: string;
   /** 网络学堂首页直达 DDL 提醒设置：携带 true 时「DDL 提醒」卡自动弹开设置层（原子深链） */
   learnOpenHwRemind?: boolean;
+  /** 邮箱页直达写信：携带 true 时挂载即弹写信层（原子深链） */
+  mailCompose?: boolean;
+  /** 邮件实体原子深链：落在该文件夹并直接打开这封（收藏夹/原子点击用） */
+  mailFolder?: string;
+  mailUid?: number;
   /** 信息页新闻直达：携带 xxid 时 InfoPage 初始落在新闻 tab，并把该条新闻打开详情。
    *  不带此参数时 InfoPage 行为与旧版完全一致（默认成绩 tab）。 */
   infoNewsId?: string;
@@ -94,7 +100,7 @@ export interface LearnNav {
   folderId?: string;
 }
 
-const TOP_PAGES = ["today", "learn", "schedule", "trace", "info", "life", "reserve", "zhjwxk", "plugins", "folder", "settings"] as const; // trace 漏过一次：不加的话侧栏/标题/hash 全落到 learn 兜底
+const TOP_PAGES = ["today", "learn", "schedule", "trace", "mail", "info", "life", "reserve", "zhjwxk", "plugins", "folder", "settings"] as const; // trace 漏过一次：不加的话侧栏/标题/hash 全落到 learn 兜底
 
 /** 子页归属的一级页（侧栏高亮 / hash 用） */
 export function topLevelPage(p: Page): Page {
