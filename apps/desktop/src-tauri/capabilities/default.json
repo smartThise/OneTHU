@@ -11,6 +11,7 @@
     "opener:allow-open-url",
     "dialog:default",
     "onethu-calendar:default",
-    "geolocation:allow-get-current-position"
+    "geolocation:allow-get-current-position",
+    "onethu-speech:default"
   ]
 }
