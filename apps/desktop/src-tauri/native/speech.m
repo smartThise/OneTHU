@@ -17,6 +17,7 @@ static NSMutableString *g_text = nil;
 static SFSpeechRecognizer *g_rec = nil;
 static AVAudioEngine *g_engine = nil;
 static SFSpeechAudioBufferRecognitionRequest *g_req = nil;
+static NSString *g_lastErr = nil; // 识别任务报错（诊断：识别器拒绝/无模型/网络）
 
 void onethu_speech_stop(void);
 
@@ -62,27 +63,58 @@ int onethu_speech_start(void) {
             if (g_req != nil) [g_req appendAudioPCMBuffer:b];
         }];
         [engine prepare];
-        NSError *err = nil;
-        if (![engine startAndReturnError:&err]) {
-            g_rec = nil; g_text = nil; g_req = nil;
-            return -1;
-        }
-        g_engine = engine;
+        // 关键顺序（实测验证）：识别任务必须在引擎启动前创建——SFSpeechAudioBuffer
+        // BufferRecognitionRequest 的音频必须晚于任务到达，且需实时节奏投喂，
+        // 瞬时灌入会被静默丢弃（task 后建/一次性灌包 → 零结果零报错）。
+        // 麦克风 tap 是天然逐帧实时的，满足节奏要求。
         [rec recognitionTaskWithRequest:g_req resultHandler:^(SFSpeechRecognitionResult *r, NSError *e) {
             // 部分结果持续覆盖（最终结果 >= 最后一次部分结果）
             if (r != nil && g_text != nil) {
                 @synchronized(g_text) { [g_text setString:r.bestTranscription.formattedString]; }
             }
+            if (e != nil) g_lastErr = e.localizedDescription;
             if (e != nil || r.isFinal) {
                 [engine stop];
                 [[engine inputNode] removeTapOnBus:0];
                 g_running = NO; // 自然收尾（用户还在按住时 poll 读到最终文本）
             }
         }];
+        NSError *err = nil;
+        if (![engine startAndReturnError:&err]) {
+            g_rec = nil; g_text = nil; g_req = nil;
+            return -1;
+        }
+        g_engine = engine;
         g_running = YES;
         return 1;
     }
     return 0;
+}
+
+/** [诊断] 最近一次识别任务错误（空串=无）；探针与排障用 */
+const char *onethu_speech_last_error(void) {
+    return g_lastErr == nil ? "" : g_lastErr.UTF8String;
+}
+
+/** [诊断钩子] 把音频文件直接喂给识别请求（绕过麦克风，测试转写数据链）。仅探针使用。 */
+int onethu_speech_feed_file(const char *path) {
+    if (!g_req) return -1;
+    NSURL *url = [NSURL fileURLWithPath:[NSString stringWithUTF8String:path]];
+    NSError *ferr = nil;
+    AVAudioFile *f = [[AVAudioFile alloc] initForReading:url error:&ferr];
+    if (!f) return -1;
+    AVAudioFormat *fmt = f.processingFormat;
+    AVAudioPCMBuffer *buf = [[AVAudioPCMBuffer alloc] initWithPCMFormat:fmt frameCapacity:8192];
+    while (YES) {
+        [buf setFrameLength:0];
+        NSError *rerr = nil;
+        if (![f readIntoBuffer:buf error:&rerr] || buf.frameLength == 0) break;
+        [g_req appendAudioPCMBuffer:buf];
+        // 实时节奏：按本缓冲时长 sleep（识别器不收瞬时灌包）
+        usleep((useconds_t)(buf.frameLength / fmt.sampleRate * 1e6));
+    }
+    [g_req endAudio];
+    return 1;
 }
 
 /** 读取当前转写（调用方立即拷贝；UTF-8，无则空串） */
