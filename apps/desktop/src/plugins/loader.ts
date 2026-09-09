@@ -228,7 +228,7 @@ const EMBEDDED_HARNESS_MANIFEST: PluginManifest = {
     "user:read", "info:read", "card:read", "dorm:read",
     "library:read", "library:book", "network:read",
     "learn:read", "learn:write", "venue:read", "venue:book", "xk:read", "kongjian:book",
-    "cal:read", "cal:write", "mail:read", "mail:write",
+    "cal:read", "cal:write", "mail:read", "mail:write", "cloud:read", "cloud:write",
     "nav", "ui", "storage", "net:external",
   ],
   settings: [

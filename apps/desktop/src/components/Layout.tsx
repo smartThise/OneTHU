@@ -2,7 +2,7 @@
 import { Children, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useApp } from "../state/context.js";
 import { topLevelPage, type Page } from "../state/app.js";
-import { IconChevron, IconDemo, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconPlug, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal, IconTrace, IconMail,} from "./Icons.js";
+import { IconChevron, IconDemo, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconPlug, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal, IconTrace, IconMail, IconCloud,} from "./Icons.js";
 import { useFavs } from "../state/favs.js";
 
 /**
@@ -16,6 +16,7 @@ const NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode }> 
   { page: "schedule", label: "日程", icon: IconSchedule },
   { page: "trace", label: "寻迹", icon: IconTrace },
   { page: "mail", label: "邮箱", icon: IconMail },
+  { page: "cloud", label: "云盘", icon: IconCloud },
   { page: "info", label: "信息", icon: IconInfo },
   { page: "life", label: "生活", icon: IconCard },
   { page: "reserve", label: "预约", icon: IconCalendar },

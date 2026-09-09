@@ -16,6 +16,7 @@ export type Page =
   | "reserve" // 预约（图书馆座位；游泳/健身房等场馆陆续接入）
   | "zhjwxk" // 选课系统（已选课程 / 候补队列；不可拆分原子）
   | "mail" // 邮箱（IMAP 收 / SMTP 发，复用云日历凭据）
+  | "cloud" // 清华云盘（Seafile Web API）
   | "folder" // 用户收藏夹页（navParams.folderId 指向具体收藏夹）
   | "settings"
   | "plugins" // 插件管理页（机架视觉；设置页留入口，不动侧栏导航）
@@ -45,6 +46,8 @@ export interface LearnNav {
   from?: Page;
   /** 学期切换显式携带：learn 列表页据此校验数据学期一致（防缓存/竞态残留旧学期） */
   semesterId?: string;
+  /** 云盘直达资料库：进入云盘页时自动打开该库（原子深链） */
+  cloudRepo?: string;
   /** 网络学堂首页直达 DDL 提醒设置：携带 true 时「DDL 提醒」卡自动弹开设置层（原子深链） */
   learnOpenHwRemind?: boolean;
   /** 邮箱页直达写信：携带 true 时挂载即弹写信层（原子深链） */
@@ -100,7 +103,7 @@ export interface LearnNav {
   folderId?: string;
 }
 
-const TOP_PAGES = ["today", "learn", "schedule", "trace", "mail", "info", "life", "reserve", "zhjwxk", "plugins", "folder", "settings"] as const; // trace 漏过一次：不加的话侧栏/标题/hash 全落到 learn 兜底
+const TOP_PAGES = ["today", "learn", "schedule", "trace", "mail", "cloud", "info", "life", "reserve", "zhjwxk", "plugins", "folder", "settings"] as const; // trace 漏过一次：不加的话侧栏/标题/hash 全落到 learn 兜底
 
 /** 子页归属的一级页（侧栏高亮 / hash 用） */
 export function topLevelPage(p: Page): Page {

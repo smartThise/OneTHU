@@ -9,12 +9,14 @@ import { explainNetworkError } from "../lib/transport.js";
 import { getPlugin, pluginStorageKey, updatePlugin } from "./registry.js";
 import { PluginPermissionError, type OnethuApi, type PluginPermission } from "./types.js";
 
+import { invoke } from "@tauri-apps/api/core";
 import { session as appSession, logLine } from "../lib/clients.js";
 import {
   getCloudCalConfig, getCloudEvents, getLocalEvents, msSinceSync, syncCloudCal,
   putCloudEvent, deleteCloudEvent, putLocalEvent, deleteLocalEvent,
 } from "../state/cloudCal.js";
 import { refreshMail, readMail, mailSearch, sendMail, mailFolderTotal } from "../state/mail.js";
+import { ensureSeafileLoaded, getSeafileToken } from "../state/seafile.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -196,6 +198,23 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
     read: async (folder: string, uid: number) => readMail(folder, uid),
     search: async (folder: string, query: string) => mailSearch(folder, query),
   }, perms, "mail:read");
+  const cloudToken = async (): Promise<string> => {
+    await ensureSeafileLoaded();
+    const t = getSeafileToken();
+    if (!t) throw new Error("云盘未配置：请先在应用的「云盘」页连接（Seafile API Token）");
+    return t;
+  };
+  const cloudRead = wrap({
+    repos: async () => invoke("seafile_repos", { token: await cloudToken() }) as Promise<Array<{ id: string; name: string; mtime: number; size: number }>>,
+    list: async (repoId: string, path: string) => invoke("seafile_dir", { token: await cloudToken(), repoId, path }) as Promise<Array<{ name: string; kind: "dir" | "file"; size: number; mtime: number }>>,
+    search: async (repoId: string, query: string) => invoke("seafile_search", { token: await cloudToken(), repoId, query }) as Promise<Array<{ name: string; kind: "dir" | "file"; size: number; mtime: number }>>,
+    download: async (repoId: string, path: string) => invoke("seafile_download", { token: await cloudToken(), repoId, path }) as Promise<string>,
+  }, perms, "cloud:read");
+  const cloudWrite = wrap({
+    upload: async (repoId: string, parentDir: string, localPath: string, replace: boolean) => invoke("seafile_upload", { token: await cloudToken(), repoId, parentDir, localPath, replace }) as Promise<{ size: number }>,
+    share: async (repoId: string, path: string, expireDays: number) => invoke("seafile_share", { token: await cloudToken(), repoId, path, expireDays, password: "" }) as Promise<{ link: string; token: string }>,
+  }, perms, "cloud:write");
+
   const mailWrite = wrap({
     send: async (to: string, cc: string, subject: string, body: string) => {
       await sendMail(to, cc, subject, body);
@@ -206,6 +225,7 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
   const api: OnethuApi = {
     cal: calNs as unknown as OnethuApi["cal"],
     mail: { ...mailRead, ...mailWrite } as OnethuApi["mail"],
+    cloud: { ...cloudRead, ...cloudWrite } as OnethuApi["cloud"],
     session: {
       status: () => {
         gate(perms, "user:read", "session.status");

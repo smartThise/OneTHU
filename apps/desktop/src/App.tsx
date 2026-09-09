@@ -15,6 +15,7 @@ import { SemesterSelectionPage } from "./pages/learn/SemesterSelectionPage.js";
 import { LoginPage, TwoFactorPage } from "./pages/Login.js";
 import { SchedulePage } from "./pages/Schedule.js";
 import { MailPage } from "./pages/MailPage.js";
+import CloudPage from "./pages/CloudPage.js";
 import { useToastHost, hideToast } from "./state/toast.js";
 import type { ReactNode } from "react";
 import { TracePage } from "./pages/Trace.js";
@@ -82,6 +83,7 @@ function Routed() {
         {page === "learn" && <LearnPage />}
         {page === "schedule" && <SchedulePage />}
         {page === "mail" && <MailPage />}
+        {page === "cloud" && <CloudPage />}
         {page === "trace" && <TracePage />}
         {page === "otherinfo" && <OtherInfoPage />}
         {page === "info" && <InfoPage />}

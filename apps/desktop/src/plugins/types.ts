@@ -28,6 +28,8 @@ export type PluginPermission =
   | "cal:write" // 日程新建/编辑/删除（云或本地）
   | "mail:read" // 清华邮箱收件/读信/搜索（复用云同步授权码）
   | "mail:write" // 清华邮箱发信（写操作，需确认）
+  | "cloud:read" // 清华云盘资料库/目录/搜索/下载（Seafile）
+  | "cloud:write" // 清华云盘上传/分享（写操作，需确认）
   | "nav" // 应用内页面跳转
   | "ui" // toast 提示
   | "storage" // 插件私有键值存储
@@ -46,6 +48,8 @@ export const PLUGIN_PERMISSIONS: ReadonlyArray<{ id: PluginPermission; label: st
   { id: "cal:write", label: "管理日程", desc: "新建/编辑/删除日程（云或本地，写操作）" },
   { id: "mail:read", label: "读取邮箱", desc: "清华邮箱收件箱/已发送查询、读信与全箱搜索" },
   { id: "mail:write", label: "发邮件", desc: "从清华邮箱发信（写操作，需确认）" },
+  { id: "cloud:read", label: "读取云盘", desc: "清华云盘资料库、目录浏览、库内搜索与下载" },
+  { id: "cloud:write", label: "上传/分享云盘", desc: "上传文件到云盘、生成分享链接（写操作，需确认）" },
   { id: "card:read", label: "读取校园卡", desc: "余额与消费流水（只读，不含充值）" },
   { id: "dorm:read", label: "读取宿舍信息", desc: "电费余额/缴费记录/卫生分（只读）" },
   { id: "library:read", label: "查询图书馆", desc: "楼层/区域/座位分布/预约记录 + 研讨间资源查询" },
@@ -202,6 +206,20 @@ export interface OnethuApi {
     search(folder: string, query: string): Promise<Array<{ uid: number; subject: string; from: string; dateMs: number; seen: boolean }>>;
     /** 发信（to/cc 多址由应用侧拆分） */
     send(to: string, cc: string, subject: string, body: string): Promise<{ sent: true }>;
+  };
+  cloud: {
+    /** 资料库列表 */
+    repos(): Promise<Array<{ id: string; name: string; mtime: number; size: number }>>;
+    /** 目录内容 */
+    list(repoId: string, path: string): Promise<Array<{ name: string; kind: "dir" | "file"; size: number; mtime: number }>>;
+    /** 库内搜索（文件名） */
+    search(repoId: string, query: string): Promise<Array<{ name: string; kind: "dir" | "file"; size: number; mtime: number }>>;
+    /** 下载到 ~/Downloads，返回本地路径 */
+    download(repoId: string, path: string): Promise<string>;
+    /** 上传（localPath 支持 ~） */
+    upload(repoId: string, parentDir: string, localPath: string, replace: boolean): Promise<{ size: number }>;
+    /** 分享链接（expireDays=0 永久） */
+    share(repoId: string, path: string, expireDays: number): Promise<{ link: string; token: string }>;
   };
   kongjian: {
     page(opts?: { spaceId?: string; roomId?: string; date?: string }): Promise<import("@onethu/core").KongjianPage>;

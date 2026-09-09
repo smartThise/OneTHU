@@ -25,7 +25,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # 插件宿主：sidecar 进程 stdio 泵（tauri 2 同系 tokio 1.x，无版本冲突）
 tokio = { version = "1", features = ["process", "io-util", "sync", "time"] }
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "brotli", "charset", "http2"] }
+chrono = { version = "0.4", default-features = false }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "brotli", "charset", "http2", "multipart", "json"] }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 # 邮箱 tab（IMAP 收 / SMTP 发，复用日历的邮箱+授权码；全 rustls 纯 Rust，Android 可交叉编译）
 imap = "2.4"
@@ -43,3 +44,6 @@ tauri-plugin-geolocation = "2.3.3"
 strip = true
 lto = true
 codegen-units = 1
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }

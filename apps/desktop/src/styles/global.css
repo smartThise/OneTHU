@@ -3827,3 +3827,177 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   .mail-avatar { width: 30px; height: 30px; font-size: 12px; }
   .mail-row { padding: 9px 10px; gap: 8px; }
 }
+
+/* ═══════════ 云盘（Seafile）═══════════ */
+
+.cloud-onboard {
+  max-width: 520px;
+  padding: 16px;
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  background: var(--bg-soft);
+}
+.cloud-onboard ol {
+  margin: 10px 0 14px;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+  color: var(--text-2);
+}
+
+.cloud-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0 0 10px;
+}
+.cloud-crumb {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.cloud-crumb b {
+  cursor: pointer;
+  color: var(--text-1);
+}
+.cloud-crumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.cloud-crumb-item:hover {
+  color: var(--text-1);
+  text-decoration: underline;
+}
+
+.cloud-quota {
+  padding: 0 0 10px;
+}
+.cloud-quota-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-soft);
+  overflow: hidden;
+}
+.cloud-quota-bar > div {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+.cloud-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+  padding: 4px 0 16px;
+}
+.cloud-repo {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: var(--bg-soft);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.cloud-repo:hover {
+  border-color: var(--primary);
+}
+.cloud-repo-icon {
+  font-size: 20px;
+  color: var(--primary);
+}
+.cloud-repo-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.cloud-repo-body b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cloud-repo-body span {
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+
+.cloud-list {
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.cloud-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-soft);
+  cursor: pointer;
+}
+.cloud-row:last-child {
+  border-bottom: 0;
+}
+.cloud-row:hover {
+  background: var(--bg-soft);
+}
+.cloud-kind {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+}
+.cloud-kind.dir {
+  background: var(--primary);
+}
+.cloud-kind.file {
+  border: 1.5px solid var(--text-3);
+  border-radius: 50%;
+}
+.cloud-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cloud-meta {
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.cloud-actions {
+  display: flex;
+  gap: 6px;
+}
+.cloud-actions .btn.mini {
+  padding: 3px 8px;
+  font-size: var(--text-xs);
+}
+
+.cloud-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 10px;
+  color: var(--text-3);
+}
+.cloud-search input {
+  flex: 1;
+  max-width: 320px;
+}
+
+.cloud-error {
+  color: var(--danger, #e5484d);
+  padding: 8px 12px;
+  font-size: var(--text-xs);
+}

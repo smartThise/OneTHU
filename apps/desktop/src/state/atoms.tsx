@@ -17,6 +17,7 @@ import type { ReactNode } from "react";
 import {
   IconBell, IconCalendar, IconCard, IconCheck, IconExternal, IconFile, IconFlag,
   IconFolder, IconInfo, IconLearn, IconMail, IconPen, IconRefresh, IconSchedule, IconSearch, IconToday, IconTrace, IconXk,
+  IconCloud,
 } from "../components/Icons.js";
 import {
   AgendaWidget, CardBalanceWidget, HomeworkWidget, RecentNoticesWidget, SubsNewsWidget,
@@ -171,6 +172,7 @@ export const PAGE_ATOMS: StaticAtom[] = [
   { kind: "page", key: "trace", title: "寻迹", sub: "今日日程地图 · 紧迫度标注 · 一键前往", icon: IconTrace, group: "页面", page: "trace" },
   { kind: "page", key: "mail", title: "邮箱", sub: "收件箱 · 已发送 · 读信 · 全箱搜索", icon: IconMail, group: "页面", page: "mail" },
   { kind: "page", key: "mail-compose", title: "写信", sub: "邮箱 · 新邮件", icon: IconPen, group: "页面", page: "mail", params: { mailCompose: true } },
+  { kind: "page", key: "cloud", title: "云盘", sub: "清华云盘 · 资料库 · 上传下载 · 分享", icon: IconCloud, group: "页面", page: "cloud" },
   { kind: "page", key: "zhjwxk", title: "选课", sub: "选课系统 · 已选课程与候补队列（不可拆分原子）", icon: IconXk, group: "页面", page: "zhjwxk" },
   { kind: "page", key: "learn", title: "网络学堂", sub: "本学期课程总览", icon: IconLearn, group: "页面", page: "learn" },
   { kind: "page", key: "learn-assignments", title: "全部作业", sub: "网络学堂 · 作业列表", icon: IconPen, group: "页面", page: "learn-assignments" },

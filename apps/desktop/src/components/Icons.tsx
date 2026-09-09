@@ -77,6 +77,20 @@ export const IconPen = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+export const IconUpload = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M12 16V5" />
+    <path d="m7 10 5-5 5 5" />
+    <path d="M5 19h14" />
+  </svg>
+);
+
+export const IconCloud = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M17.5 19a4.5 4.5 0 0 0 .4-8.98A7 7 0 0 0 4.3 12.1 4 4 0 0 0 6 19.9h11.5Z" />
+  </svg>
+);
+
 export const IconMail = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}>
     <rect x="3" y="5" width="18" height="14" rx="2" />
