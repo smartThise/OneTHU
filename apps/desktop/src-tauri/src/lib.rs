@@ -53,17 +53,13 @@ fn read_file_text(path: String) -> Result<String, String> {
     std::fs::read_to_string(&path).map_err(|e| format!("读取失败：{e}"))
 }
 
-// ── 寻迹：高德 Web 服务 Key（混淆存储；tools/trace-key.mjs 生成）──
-// 每字符 XOR 0x5A 后取 hex 分段，明文 key 不进 git 仓库、不进 JS bundle、
-// 不以连续字符串落在二进制里。防扫库/strings 正则（32 位 hex key 特征极强），
-// 非防逆向——个人 key、用户量小、可随时在高德控制台重置，此为拍板方案。
-// 注入新 key：node tools/trace-key.mjs <key>，替换下方数组后重新构建。
-const TRACE_KEY_OBF: [&str; 32] = [
-    "6a", "6a", "6a", "6a", "6a", "6a", "6a", "6a",
-    "6a", "6a", "6a", "6a", "6a", "6a", "6a", "6a",
-    "6a", "6a", "6a", "6a", "6a", "6a", "6a", "6a",
-    "6a", "6a", "6a", "6a", "3e", "3f", "3b", "3e",
-];
+// ── 寻迹：高德 Web 服务 Key（编译期经 build.rs 注入；XOR 0x5A 混淆）──
+// 常量来自 OUT_DIR/trace_key.rs，由 build.rs 从环境变量 TRACE_AMAP_KEY 或
+// src-tauri/.env 生成（.env 已 gitignore，见 .env.example）——源码/仓库/JS
+// bundle 零明文，二进制无 32 位连续 hex 特征。防扫库不防逆向/抓包：
+// 个人 key、免费档、泄露损失 = 烧一天配额后重置发版。
+// 配置：cp src-tauri/.env.example src-tauri/.env，填 TRACE_AMAP_KEY 后重启构建。
+include!(concat!(env!("OUT_DIR"), "/trace_key.rs"));
 
 #[tauri::command]
 fn trace_key() -> String {

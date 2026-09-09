@@ -413,7 +413,7 @@ export function TracePage(): React.ReactNode {
 
       {keyReady === false ? (
         <div className="trace-note trace-note-err">
-          高德 Web 服务 Key 未配置：POI 定位与路程估算不可用（地图与今日日程仍可查看）。发布前执行 node tools/trace-key.mjs &lt;key&gt;，把输出数组替换进 src-tauri/src/lib.rs 并重新构建。
+          高德 Web 服务 Key 未配置：POI 定位与路程估算不可用（地图与今日日程仍可查看）。将 apps/desktop/src-tauri/.env.example 复制为同目录 .env，填入 TRACE_AMAP_KEY=&lt;你的key&gt; 后重启应用。
         </div>
       ) : null}
       {err ? <div className="trace-note trace-note-err">{err}</div> : null}
