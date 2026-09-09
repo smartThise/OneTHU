@@ -2512,6 +2512,7 @@ name = "onethu"
 version = "0.7.11"
 dependencies = [
  "base64 0.22.1",
+ "cc",
  "encoding_rs",
  "onethu-harness-core",
  "reqwest 0.12.28",

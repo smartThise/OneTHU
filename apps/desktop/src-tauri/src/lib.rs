@@ -61,6 +61,56 @@ fn read_file_text(path: String) -> Result<String, String> {
 // 配置：cp src-tauri/.env.example src-tauri/.env，填 TRACE_AMAP_KEY 后重启构建。
 include!(concat!(env!("OUT_DIR"), "/trace_key.rs"));
 
+// ── 寻迹：macOS 原生定位 ──────────────────────────────────────────────────
+// tauri-plugin-geolocation 桌面端无实现（desktop.rs 返回 Position::default()=(0,0)），
+// WKWebView 的 JS 定位亦不可用；此桥经 native/location.m 走 CoreLocation。
+// 移动端仍用官方插件（mobile.rs 有真实现），JS 侧级联调用。
+#[cfg(target_os = "macos")]
+mod onethu_location_ffi {
+    #[link(name = "onethu_location")]
+    extern "C" {
+        // 返回码：1 成功 | 0 超时/失败 | -1 系统定位服务关闭 | -2 权限被拒
+        pub fn onethu_location(
+            lat: *mut f64,
+            lng: *mut f64,
+            acc: *mut f64,
+            timeout_sec: f64,
+        ) -> i32;
+    }
+    // CoreLocation 常量（kCLErrorDomain 等）是直接符号引用，类符号走 objc runtime
+    // 不链框架也能过，但常量不行——必须显式链框架。注意：build.rs 的
+    // rustc-link-framework 在 dylib 链接场景未生效，须用属性方式
+    // （与本二进制里 EventKit/AppKit 等 crate 同一模式）。
+    #[link(name = "CoreLocation", kind = "framework")]
+    extern "C" {}
+}
+
+/// 一次性定位：[lat, lng, accuracy]（WGS-84）。内部在阻塞线程泵 runloop 等系统授权窗。
+#[tauri::command]
+async fn macos_location() -> Result<Vec<f64>, String> {
+    #[cfg(target_os = "macos")]
+    {
+        tauri::async_runtime::spawn_blocking(|| {
+            let (mut lat, mut lng, mut acc) = (0f64, 0f64, 0f64);
+            let rc = unsafe {
+                onethu_location_ffi::onethu_location(&mut lat, &mut lng, &mut acc, 15.0)
+            };
+            match rc {
+                1 => Ok(vec![lat, lng, acc]),
+                -2 => Err("定位权限被拒（系统设置 → 隐私与安全性 → 定位服务）".into()),
+                -1 => Err("系统定位服务未开启".into()),
+                _ => Err("定位超时（首次需在系统授权窗点允许，重试即可）".into()),
+            }
+        })
+        .await
+        .map_err(|e| format!("定位任务失败：{e}"))?
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("此平台无原生定位命令".into())
+    }
+}
+
 #[tauri::command]
 fn trace_key() -> String {
     TRACE_KEY_OBF
@@ -1128,7 +1178,7 @@ tauri::Builder::default()
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            log_debug,read_file_text,trace_key,http_request,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,plugin_dir_remove,state_read,state_write,state_delete,
+            log_debug,read_file_text,trace_key,macos_location,http_request,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,plugin_dir_remove,state_read,state_write,state_delete,
             open_external,open_eid_window,open_sports_window,venue_sso_set,
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,
             harness_embed::harness_start,harness_embed::harness_bridge_take,harness_embed::harness_call,harness_embed::harness_notify,harness_embed::harness_rpc_reply,harness_embed::harness_stop])

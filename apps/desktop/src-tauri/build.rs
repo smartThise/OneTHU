@@ -5,6 +5,17 @@ fn main() {
     println!("cargo:rerun-if-env-changed=TRACE_AMAP_KEY");
     println!("cargo:rerun-if-changed=.env");
     emit_trace_key_rs(&trace_key_from_env());
+
+    // 寻迹：macOS 原生定位桥（tauri-plugin-geolocation 桌面端是返回 (0,0) 的 stub）
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
+        println!("cargo:rustc-link-framework=CoreLocation");
+        println!("cargo:rustc-link-framework=Foundation");
+        cc::Build::new()
+            .file("native/location.m")
+            .flag("-fobjc-arc")
+            .compile("onethu_location");
+    }
+
     tauri_build::build()
 }
 
