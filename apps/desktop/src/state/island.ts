@@ -13,7 +13,7 @@
 import { useEffect, useState } from "react";
 import { parseLearnTime } from "@onethu/core";
 import { getCampusSnapshot, getLearnSnapshot } from "./data.js";
-import { getHwReminder } from "./hwRemind.js";
+import { getHwReminders } from "./hwRemind.js";
 
 export const ISLAND_DEFAULT_TEXT = "聊点什么吧！";
 
@@ -28,15 +28,13 @@ function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function useIslandText(): string {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = window.setInterval(() => setNow(Date.now()), 15_000);
-    return () => window.clearInterval(t);
-  }, []);
-
-  const campus = getCampusSnapshot();
-  const learn = getLearnSnapshot();
+/** 纯计算（可测）：campus/learn 快照 + 提醒表 → 胶囊文本 */
+export function computeIslandText(
+  campus: { schedule?: Array<{ date?: string; startTime?: string | null; location?: string | null }> } | null,
+  learn: { homework?: Array<{ id?: string; title?: string; deadline?: string; submitted?: boolean }> } | null,
+  reminders: Record<string, number>,
+  now: number,
+): string {
   const today = ymd(new Date(now));
 
   /* ① 30 分钟内的日程（未开始；已开始/无地点的不算——地点是文本核心） */
@@ -57,10 +55,21 @@ export function useIslandText(): string {
     if (!d) continue;
     const dl = d.getTime();
     if (dl <= now) continue;
-    const windowMs = (getHwReminder(h.id) ?? 120) * 60_000;
+    const windowMs = (reminders[h.id ?? ""] ?? 120) * 60_000;
     if (dl - now > windowMs) continue;
-    const title = h.title.length > 12 ? `${h.title.slice(0, 12)}…` : h.title;
+    const t = h.title ?? "作业";
+    const title = t.length > 12 ? `${t.slice(0, 12)}…` : t;
     if (!best || dl < best.at) best = { text: `${title}·${fmtLeft(dl - now)}`, at: dl };
   }
   return best?.text ?? ISLAND_DEFAULT_TEXT;
+}
+
+export function useIslandText(): string {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 15_000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  return computeIslandText(getCampusSnapshot(), getLearnSnapshot(), getHwReminders(), now);
 }

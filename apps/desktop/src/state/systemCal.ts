@@ -190,34 +190,42 @@ async function buildPayload(): Promise<SyncPayloadArg> {
     }
   }
 
-  // 网络学堂作业 DDL（learnX 模式）：未交的作业生成截止事件，用户设的提醒作为
-  // 系统闹钟；已交的自动消失（幂等全量重写，完成状态即时跟随）。
-  const hwSnap = getLearnSnapshot();
-  if (hwSnap) {
-    const courseName = new Map(hwSnap.courses.map((c) => [c.id, c.name]));
-    const rem = getHwReminders();
-    for (const h of hwSnap.homework) {
-      if (h.submitted) continue; // 已交：不占日历（写完即清）
-      const dl = parseLearnTime(h.deadline)?.getTime();
-      if (!dl || dl < windowStart || dl > windowEnd) continue;
-      events.push({
-        title: `作业截止 · ${courseName.get(h.courseId) ?? ""} ${h.title}`.trim(),
-        startMs: dl,
-        endMs: dl + 15 * 60_000,
-        allDay: false,
-        notes: `网络学堂作业，${h.deadline} 截止。提交完成后自动从日历移除。`,
-        alarmMinutes: rem[h.id], // 未设提醒则无闹钟，事件仍在
-      });
-    }
-  }
+  // 网络学堂作业 DDL（learnX 模式）
+  events.push(...buildHwEvents(getLearnSnapshot(), getHwReminders(), windowStart, windowEnd));
 
   events.sort((a, b) => a.startMs - b.startMs);
   if (events.length > MAX_EVENTS) throw new Error(`事件数 ${events.length} 超出上限 ${MAX_EVENTS}，已中止系统日历同步`);
   return { calendarTitle: CALENDAR_TITLE, windowStartMs: windowStart, windowEndMs: windowEnd, events };
 }
 
+/** 作业 DDL → 系统日历事件（纯函数可测）：未交才生成，用户提醒做闹钟；已交自动消失 */
+export function buildHwEvents(
+  snap: { courses?: Array<{ id: string; name: string }>; homework?: Array<{ id: string; courseId: string; title: string; deadline: string; submitted: boolean }> } | null,
+  reminders: Record<string, number>,
+  windowStart: number,
+  windowEnd: number,
+): SysCalEventArg[] {
+  if (!snap) return [];
+  const courseName = new Map((snap.courses ?? []).map((c) => [c.id, c.name]));
+  const out: SysCalEventArg[] = [];
+  for (const h of snap.homework ?? []) {
+    if (h.submitted) continue; // 已交：不占日历（写完即清）
+    const dl = parseLearnTime(h.deadline)?.getTime();
+    if (!dl || dl < windowStart || dl > windowEnd) continue;
+    out.push({
+      title: `作业截止 · ${courseName.get(h.courseId) ?? ""} ${h.title}`.trim(),
+      startMs: dl,
+      endMs: dl + 15 * 60_000,
+      allDay: false,
+      notes: `网络学堂作业，${h.deadline} 截止。提交完成后自动从日历移除。`,
+      alarmMinutes: reminders[h.id], // 未设提醒则无闹钟，事件仍在
+    });
+  }
+  return out;
+}
+
 /** 载荷指纹（内容无变化则跳过原生写入） */
-function fingerprintOf(p: SyncPayloadArg): string {
+export function fingerprintOf(p: SyncPayloadArg): string {
   let h = 5381;
   const feed = `${p.windowStartMs}|${p.windowEndMs}|` + p.events.map((e) => `${e.title}@${e.startMs}-${e.endMs}!${e.alarmMinutes ?? 0}`).join(",");
   for (let i = 0; i < feed.length; i++) h = ((h << 5) + h + feed.charCodeAt(i)) >>> 0;
