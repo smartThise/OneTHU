@@ -13,16 +13,37 @@
  */
 import { universalFetch } from "./transport.js";
 
-/* ── Key 通道：运行时注入优先，内置混淆位兜底 ── */
-function amapKey(): string {
+/* ── Key 通道：运行时注入 → Rust trace_key 命令（XOR 0x5A 混淆存储）──
+ * 明文 key 三不落：git 仓库（混淆 hex 分段）、JS bundle（不编译进前端资产）、
+ * Rust 二进制（无 32 位连续 hex 特征）。release 构建不开 webview devtools，
+ * JS 侧无法旁听 invoke 回传。防扫库而非防逆向——个人 key 随时可重置。 */
+const RUST_PLACEHOLDER = "0000000000000000000000000000dead"; // 未配置标记值
+let keyCache: string | null = null;
+
+function amapKey(): string | null {
   const raw = (globalThis as Record<string, unknown>).__ONETHU_TRACE_KEY__ as string | undefined;
-  if (raw) return raw;
-  const parts = ["706c", "6163", "6568", "6f6c", "6465", "7230", "3030", "3030", "3030", "3030", "3030", "3030"];
-  return parts.map((h) => String.fromCharCode(parseInt(h, 16))).join("");
+  return raw ?? keyCache;
 }
-/** key 是否已配置（未配置时页面给出指引，不打接口） */
+
+/** 取 key（幂等）：Tauri trace_key 命令 → 内存缓存。返回是否已配置。 */
+export async function ensureTraceKey(): Promise<boolean> {
+  if (amapKey()) return true;
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const k = (await invoke("trace_key")) as string;
+    if (k && k !== RUST_PLACEHOLDER) {
+      keyCache = k;
+      return true;
+    }
+  } catch {
+    /* 非 Tauri 环境（node 测试/纯 web）→ 未配置 */
+  }
+  return false;
+}
+
+/** key 是否就绪（同步；ensureTraceKey 成功后为 true） */
 export function traceKeyReady(): boolean {
-  return !amapKey().startsWith("placeholder");
+  return !!amapKey();
 }
 
 /** 测试/构建注入用 */
@@ -139,8 +160,10 @@ export async function searchPoi(query: string): Promise<Poi | null> {
   if (cached) return cached.hit ? cached.poi : null; // 负缓存：查不到也记住，防反复打接口
 
   let pois: Poi[] = [];
+  const key = amapKey();
+  if (!key) return null;
   try {
-    const url = `${REST}/place/text?keywords=${encodeURIComponent(q)}&city=${encodeURIComponent("北京市")}&citylimit=true&offset=10&page=1&key=${amapKey()}`;
+    const url = `${REST}/place/text?keywords=${encodeURIComponent(q)}&city=${encodeURIComponent("北京市")}&citylimit=true&offset=10&page=1&key=${key}`;
     const res = await universalFetch(url, { method: "GET" });
     const json = (await res.json()) as { status?: string; pois?: Array<{ location?: string; name?: string; address?: string; pname?: string; adname?: string }> };
     if (json.status === "1" && Array.isArray(json.pois)) {
@@ -192,8 +215,10 @@ export async function routeEta(
   const o = `${origin.lng},${origin.lat}`;
   const d = `${dest.lng},${dest.lat}`;
   const api = mode === "walk" ? "walking" : mode === "bike" ? "bicycling" : "driving";
+  const key = amapKey();
+  if (!key) return null;
   try {
-    const url = `${REST}/direction/${api}?origin=${o}&destination=${d}&key=${amapKey()}`;
+    const url = `${REST}/direction/${api}?origin=${o}&destination=${d}&key=${key}`;
     const res = await universalFetch(url, { method: "GET" });
     const json = (await res.json()) as {
       status?: string;

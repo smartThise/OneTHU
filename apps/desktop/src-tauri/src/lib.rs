@@ -53,6 +53,26 @@ fn read_file_text(path: String) -> Result<String, String> {
     std::fs::read_to_string(&path).map_err(|e| format!("读取失败：{e}"))
 }
 
+// ── 寻迹：高德 Web 服务 Key（混淆存储；tools/trace-key.mjs 生成）──
+// 每字符 XOR 0x5A 后取 hex 分段，明文 key 不进 git 仓库、不进 JS bundle、
+// 不以连续字符串落在二进制里。防扫库/strings 正则（32 位 hex key 特征极强），
+// 非防逆向——个人 key、用户量小、可随时在高德控制台重置，此为拍板方案。
+// 注入新 key：node tools/trace-key.mjs <key>，替换下方数组后重新构建。
+const TRACE_KEY_OBF: [&str; 32] = [
+    "6a", "6a", "6a", "6a", "6a", "6a", "6a", "6a",
+    "6a", "6a", "6a", "6a", "6a", "6a", "6a", "6a",
+    "6a", "6a", "6a", "6a", "6a", "6a", "6a", "6a",
+    "6a", "6a", "6a", "6a", "3e", "3f", "3b", "3e",
+];
+
+#[tauri::command]
+fn trace_key() -> String {
+    TRACE_KEY_OBF
+        .iter()
+        .map(|h| (u8::from_str_radix(h, 16).unwrap_or(0) ^ 0x5a) as char)
+        .collect()
+}
+
 #[tauri::command]
 fn log_debug(line: String) -> Result<(), String> {
     use std::io::Write;
@@ -1111,7 +1131,7 @@ tauri::Builder::default()
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            log_debug,read_file_text,http_request,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,plugin_dir_remove,state_read,state_write,state_delete,
+            log_debug,read_file_text,trace_key,http_request,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,plugin_dir_remove,state_read,state_write,state_delete,
             open_external,open_eid_window,open_sports_window,venue_sso_set,
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,
             harness_embed::harness_start,harness_embed::harness_bridge_take,harness_embed::harness_call,harness_embed::harness_notify,harness_embed::harness_rpc_reply,harness_embed::harness_stop])

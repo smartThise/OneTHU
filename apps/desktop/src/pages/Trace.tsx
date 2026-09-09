@@ -17,7 +17,7 @@ import { PageHead } from "../components/Layout.js";
 import { PageAtomStar } from "../components/Collect.js";
 import { openExternal } from "./info/openExternal.js";
 import {
-  fmtEta, locationQuery, navUrl, routeEta, searchPoi, wgs84ToGcj02, traceKeyReady,
+  ensureTraceKey, fmtEta, locationQuery, navUrl, routeEta, searchPoi, wgs84ToGcj02,
   MAP_APPS, TRAVEL_MODES, type MapApp, type Poi, type TravelMode,
 } from "../lib/trace.js";
 
@@ -84,6 +84,7 @@ export function TracePage(): React.ReactNode {
   const campus = useCampusData();
   const cal = useCloudCal();
 
+  const [keyReady, setKeyReady] = useState<boolean | null>(null); // null=拉取中
   const [mode, setMode] = useState<TravelMode>(() => (localStorage.getItem(LS_MODE) as TravelMode) ?? "walk");
   const [mapApp, setMapApp] = useState<MapApp>(() => (localStorage.getItem(LS_APP) as MapApp) ?? "amap");
   const [origin, setOrigin] = useState<{ lng: number; lat: number; source: "gps" | "saved" | "default" } | null>(null);
@@ -102,6 +103,11 @@ export function TracePage(): React.ReactNode {
   const originLayerRef = useRef<L.LayerGroup | null>(null);
   const markersRef = useRef<MarkerData[] | null>(null);
   markersRef.current = markers;
+
+  /* key 拉取（幂等）：Rust 混淆存储 → invoke 回传 → 内存缓存 */
+  useEffect(() => {
+    void ensureTraceKey().then(setKeyReady);
+  }, []);
 
   /* 每分钟刷新紧迫度（不打接口，纯本地重算） */
   useEffect(() => {
@@ -187,7 +193,10 @@ export function TracePage(): React.ReactNode {
   /* ── 地点解析 + ETA（origin/mode/事件变化时重算） ── */
   useEffect(() => {
     if (!origin) return;
-    if (!traceKeyReady()) { setMarkers([]); setUnresolved([]); return; }
+    if (keyReady !== true) {
+      if (keyReady === false) { setMarkers([]); setUnresolved([]); }
+      return;
+    }
     let alive = true;
     setErr(null);
     (async () => {
@@ -249,7 +258,7 @@ export function TracePage(): React.ReactNode {
       if (alive) setErr("地点解析失败，请稍后重试。");
     });
     return () => { alive = false; };
-  }, [todayEvents, origin, mode]);
+  }, [todayEvents, origin, mode, keyReady]);
 
   /* ── Leaflet 初始化（一次） ── */
   useEffect(() => {
@@ -402,9 +411,9 @@ export function TracePage(): React.ReactNode {
         }
       />
 
-      {!traceKeyReady() ? (
+      {keyReady === false ? (
         <div className="trace-note trace-note-err">
-          高德 Web 服务 Key 未配置：POI 定位与路程估算不可用（地图与今日日程仍可查看）。请发布前在 src/lib/trace.ts 注入 Key。
+          高德 Web 服务 Key 未配置：POI 定位与路程估算不可用（地图与今日日程仍可查看）。发布前执行 node tools/trace-key.mjs &lt;key&gt;，把输出数组替换进 src-tauri/src/lib.rs 并重新构建。
         </div>
       ) : null}
       {err ? <div className="trace-note trace-note-err">{err}</div> : null}
