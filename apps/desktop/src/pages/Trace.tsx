@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { invoke } from "@tauri-apps/api/core";
-import { getCurrentPosition } from "@tauri-apps/plugin-geolocation";
+import { getCurrentPosition, requestPermissions } from "@tauri-apps/plugin-geolocation";
 import "leaflet/dist/leaflet.css";
 import { caldav, type ScheduleEntry } from "@onethu/core";
 import { useApp } from "../state/context.js";
@@ -19,7 +19,7 @@ import { PageHead } from "../components/Layout.js";
 import { PageAtomStar } from "../components/Collect.js";
 import { openExternal } from "./info/openExternal.js";
 import {
-  ensureTraceKey, fmtEta, locationQuery, navUrl, routeEta, searchPoi, wgs84ToGcj02,
+  ensureTraceKey, fmtEta, locationQuery, navOpenUrl, routeEta, searchPoi, wgs84ToGcj02,
   MAP_APPS, TRAVEL_MODES, type MapApp, type Poi, type TravelMode,
 } from "../lib/trace.js";
 
@@ -138,6 +138,16 @@ export function TracePage(): React.ReactNode {
     // ② 移动端官方插件
     if (!got) {
       try {
+        // Android/iOS：getCurrentPosition 本身不请求运行时权限——必须先
+        // requestPermissions 触发系统弹窗，否则永远静默失败（真机实锤）
+        const isMobile =
+          typeof navigator !== "undefined" && /Android|iPhone|iPad/i.test(navigator.userAgent);
+        if (isMobile) {
+          await Promise.race([
+            requestPermissions(['location']),
+            new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 12_000)),
+          ]).catch(() => undefined);
+        }
         const p = await Promise.race([
           getCurrentPosition({ enableHighAccuracy: true, timeout: 9000, maximumAge: 5 * 60_000 }),
           new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 10_000)),
@@ -389,7 +399,7 @@ export function TracePage(): React.ReactNode {
   const [anchorClamped, setAnchorClamped] = useState<{ x: number; y: number } | null>(null);
 
   const onGo = (m: MarkerData): void => {
-    void openExternal(navUrl(mapApp, { lng: m.poi.lng, lat: m.poi.lat, name: m.poi.name }));
+    void openExternal(navOpenUrl(mapApp, { lng: m.poi.lng, lat: m.poi.lat, name: m.poi.name }));
   };
 
   const setModePersist = (m: TravelMode): void => {

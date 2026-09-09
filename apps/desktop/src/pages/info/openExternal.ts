@@ -10,7 +10,27 @@
 import { isTauri } from "../../lib/transport.js";
 
 export async function openExternal(rawUrl: string): Promise<void> {
-  // 1) 白名单校验：非法字符串 / 非 http(s) 一律拒绝
+  // 1) 白名单校验：非法字符串 / 非 http(s) 一律拒绝；
+  //    Android 例外：intent:// App 深链（地图导航跳 App）——严格校验
+  //    #Intent; + package= 存在才放行（防任意协议注入），且跳过 opener
+  //    插件通道直走 Rust open_external（opener 只认 http(s)）
+  const isAndroid = typeof navigator !== "undefined" && /Android/.test(navigator.userAgent);
+  if (
+    isAndroid &&
+    rawUrl.startsWith("intent://") &&
+    rawUrl.includes("#Intent;") &&
+    rawUrl.includes("package=") &&
+    rawUrl.endsWith(";end")
+  ) {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("open_external", { url: rawUrl });
+      return;
+    } catch {
+      /* 深链失败 → 按无 URL 处理（下方兜底复制也不做：目标就是 App 而非网页） */
+      return;
+    }
+  }
   let url = "";
   try {
     const parsed = new URL(rawUrl);

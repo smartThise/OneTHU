@@ -257,6 +257,35 @@ export function navUrl(app: MapApp, dest: { lng: number; lat: number; name: stri
   }
 }
 
+/** Android 判定（语音桥同款 UA 判别） */
+const IS_ANDROID = typeof navigator !== "undefined" && /Android/.test(navigator.userAgent);
+
+/**
+ * 导航链接（平台感知）：
+ * - Android：intent:// App 深链（高德/腾讯/百度直跳 App；未装经 browser_fallback_url 落网页版）
+ * - 桌面 / 其他：网页版 URI（原行为）
+ * 坐标 GCJ-02 直传（高德原生；腾讯 tocoord、百度 destination 均按「纬度,经度」约定）。
+ */
+export function navOpenUrl(app: MapApp, dest: { lng: number; lat: number; name: string }): string {
+  const web = navUrl(app, dest);
+  if (!IS_ANDROID) return web;
+  const n = encodeURIComponent(dest.name);
+  const lat = dest.lat.toFixed(6);
+  const lng = dest.lng.toFixed(6);
+  const fb = encodeURIComponent(web);
+  switch (app) {
+    case "amap":
+      // dev=0：坐标已是高德加密坐标（GCJ-02）
+      return `intent://navi?sourceApplication=onethu&lat=${lat}&lon=${lng}&dev=0&style=2#Intent;scheme=androidamap;package=com.autonavi.minimap;S.browser_fallback_url=${fb};end`;
+    case "qq":
+      return `intent://map/routeplan?type=drive&to=${n}&tocoord=${lat},${lng}&policy=1&referer=onethu#Intent;scheme=qqmap;package=com.tencent.map;S.browser_fallback_url=${fb};end`;
+    case "baidu":
+      return `intent://map/direction?destination=${n}%7C${lat},${lng}&coord_type=gcj02&mode=driving&src=onethu#Intent;scheme=bdapp;package=com.baidu.BaiduMap;S.browser_fallback_url=${fb};end`;
+    case "apple":
+      return web; // Android 无苹果地图，保持网页
+  }
+}
+
 /** ETA 秒 → 紧凑显示（分钟为主） */
 export function fmtEta(sec: number | null): string {
   if (sec == null) return "?";

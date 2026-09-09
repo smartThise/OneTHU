@@ -171,7 +171,12 @@ pub async fn seafile_dir(token: String, repo_id: String, path: String) -> Result
 
 /// 下载到 ~/Downloads（Content-Disposition 真名优先；同 lib.rs download_file 约定）
 #[tauri::command]
-pub async fn seafile_download(token: String, repo_id: String, path: String) -> Result<String, String> {
+pub async fn seafile_download(
+    app: tauri::AppHandle,
+    token: String,
+    repo_id: String,
+    path: String,
+) -> Result<String, String> {
     let p = if path.starts_with('/') { path.clone() } else { format!("/{path}") };
     let resp = check(
         client()?
@@ -197,15 +202,47 @@ pub async fn seafile_download(token: String, repo_id: String, path: String) -> R
         .filter(|n| !n.trim().is_empty())
         .or_else(|| path.rsplit('/').next().map(|s| s.to_string()))
         .unwrap_or_else(|| "seafile-file".into());
-    let home = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .map_err(|_| "无法定位主目录")?;
-    let dir = std::path::Path::new(&home).join("Downloads");
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let safe_name: String = name.chars().map(|c| if c == '/' || c == ':' { '_' } else { c }).collect();
-    let path = dir.join(&safe_name);
-    std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
-    Ok(path.to_string_lossy().into_owned())
+    // Android：先落应用缓存，再经系统桥转存「系统下载」（MediaStore，用户可见）
+    #[cfg(target_os = "android")]
+    {
+        use tauri::Manager;
+        let dir = app
+            .path()
+            .app_cache_dir()
+            .map_err(|e| format!("无法定位缓存目录: {e}"))?
+            .join("onethu-dl");
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let tmp = dir.join(&safe_name);
+        std::fs::write(&tmp, &bytes).map_err(|e| e.to_string())?;
+        let handle = app
+            .state::<tauri_plugin_onethu_mobile::OnethuMobile<tauri::Wry>>()
+            .0
+            .clone();
+        let r: serde_json::Value = handle
+            .run_mobile_plugin(
+                "saveDownload",
+                serde_json::json!({ "path": tmp.to_string_lossy(), "name": safe_name }),
+            )
+            .map_err(|e| e.to_string())?;
+        if r.get("name").is_some() {
+            return Ok(format!("下载/{safe_name}"));
+        }
+        // 桥失败：缓存文件兜底（至少文件是完整的）
+        return Ok(tmp.to_string_lossy().into_owned());
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = &app;
+        let home = std::env::var("HOME")
+            .or_else(|_| std::env::var("USERPROFILE"))
+            .map_err(|_| "无法定位主目录")?;
+        let dir = std::path::Path::new(&home).join("Downloads");
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let path = dir.join(&safe_name);
+        std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
+        Ok(path.to_string_lossy().into_owned())
+    }
 }
 
 /// 上传本地文件到云盘（local_path 支持 ~ 前缀展开；replace=true 覆盖同名）

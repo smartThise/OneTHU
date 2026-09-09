@@ -12,6 +12,9 @@
     "dialog:default",
     "onethu-calendar:default",
     "geolocation:allow-get-current-position",
-    "onethu-speech:default"
+    "onethu-speech:default",
+    "geolocation:allow-check-permissions",
+    "geolocation:allow-request-permissions",
+    "onethu-mobile:default"
   ]
 }

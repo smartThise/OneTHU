@@ -2553,6 +2553,24 @@
           "markdownDescription": "Denies the sync command without any pre-configured scope."
         },
         {
+          "description": "OneTHU Android 系统桥：\n查询系统桥可用性（下载转存 / intent 深链由主 crate 内部调用，不经 IPC）。\n\n#### This default permission set includes:\n\n- `allow-mobile-supported`",
+          "type": "string",
+          "const": "onethu-mobile:default",
+          "markdownDescription": "OneTHU Android 系统桥：\n查询系统桥可用性（下载转存 / intent 深链由主 crate 内部调用，不经 IPC）。\n\n#### This default permission set includes:\n\n- `allow-mobile-supported`"
+        },
+        {
+          "description": "Enables the mobile_supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-mobile:allow-mobile-supported",
+          "markdownDescription": "Enables the mobile_supported command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the mobile_supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-mobile:deny-mobile-supported",
+          "markdownDescription": "Denies the mobile_supported command without any pre-configured scope."
+        },
+        {
           "description": "允许使用灵动岛语音输入：\n查询支持平台、开始/轮询/停止原生语音识别（需麦克风权限）。\n\n#### This default permission set includes:\n\n- `allow-speech-supported`\n- `allow-speech-start`\n- `allow-speech-poll`\n- `allow-speech-stop`",
           "type": "string",
           "const": "onethu-speech:default",

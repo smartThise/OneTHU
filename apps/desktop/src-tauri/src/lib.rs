@@ -274,7 +274,24 @@ fn spawn_system_open(_url: &str) -> Result<(), String> {
 
 /// 兜底外链打开：Rust 侧再校验一次 scheme，仅放行 http/https
 #[tauri::command]
-fn open_external(url: String) -> Result<(), String> {
+fn open_external(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    // Android intent:// 深链（地图导航跳 App）：标准 intent 格式 + package 校验后放行
+    #[cfg(target_os = "android")]
+    {
+        if url.starts_with("intent://") && url.contains("#Intent;") && url.contains("package=") {
+            use tauri::Manager;
+            let handle = app
+                .state::<tauri_plugin_onethu_mobile::OnethuMobile<tauri::Wry>>()
+                .0
+                .clone();
+            let _: serde_json::Value = handle
+                .run_mobile_plugin("openIntent", serde_json::json!({ "url": url }))
+                .map_err(|e| e.to_string())?;
+            return Ok(());
+        }
+    }
+    #[cfg(not(target_os = "android"))]
+    let _ = &app;
     if !(url.starts_with("http://") || url.starts_with("https://")) {
         return Err(format!("拒绝打开非 http(s) 链接: {url}"));
     }
@@ -667,7 +684,12 @@ async fn save_text_file(
 /// 带会话 Cookie 下载文件到 ~/Downloads（learn 直连；登录失效/空文件识别拒绝）。
 /// 落盘名：响应 Content-Disposition 真名优先，其次调用方传入名（title.fileType）。
 #[tauri::command]
-async fn download_file(url: String, cookies: String, filename: String) -> Result<String, String> {
+async fn download_file(
+    app: tauri::AppHandle,
+    url: String,
+    cookies: String,
+    filename: String,
+) -> Result<String, String> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(10))
         // 全部目标域均为 *.tsinghua.edu.cn，直连即可：强制绕过系统代理（reqwest 0.12
@@ -712,18 +734,50 @@ async fn download_file(url: String, cookies: String, filename: String) -> Result
         .filter(|n| !n.trim().is_empty())
         .unwrap_or(filename);
     // Windows 没有 HOME（只有 USERPROFILE）——旧版在 Windows 下载文件恒报"无法定位主目录"
-    let home = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .map_err(|_| "无法定位主目录")?;
-    let dir = std::path::Path::new(&home).join("Downloads");
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let safe_name: String = name
         .chars()
         .map(|c| if c == '/' || c == ':' { '_' } else { c })
         .collect();
-    let path = dir.join(&safe_name);
-    std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
-    Ok(path.to_string_lossy().into_owned())
+    // Android：先落应用缓存，再经系统桥转存「系统下载」（MediaStore，用户可见）
+    #[cfg(target_os = "android")]
+    {
+        use tauri::Manager;
+        let dir = app
+            .path()
+            .app_cache_dir()
+            .map_err(|e| format!("无法定位缓存目录: {e}"))?
+            .join("onethu-dl");
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let tmp = dir.join(&safe_name);
+        std::fs::write(&tmp, &bytes).map_err(|e| e.to_string())?;
+        let handle = app
+            .state::<tauri_plugin_onethu_mobile::OnethuMobile<tauri::Wry>>()
+            .0
+            .clone();
+        let r: serde_json::Value = handle
+            .run_mobile_plugin(
+                "saveDownload",
+                serde_json::json!({ "path": tmp.to_string_lossy(), "name": safe_name }),
+            )
+            .map_err(|e| e.to_string())?;
+        if r.get("name").is_some() {
+            return Ok(format!("下载/{safe_name}"));
+        }
+        // 桥失败：缓存文件兜底（至少文件是完整的）
+        return Ok(tmp.to_string_lossy().into_owned());
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = &app;
+        let home = std::env::var("HOME")
+            .or_else(|_| std::env::var("USERPROFILE"))
+            .map_err(|_| "无法定位主目录")?;
+        let dir = std::path::Path::new(&home).join("Downloads");
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let path = dir.join(&safe_name);
+        std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
+        Ok(path.to_string_lossy().into_owned())
+    }
 }
 
 #[derive(Serialize)]
@@ -1224,6 +1278,7 @@ fn open_sports_window(_: tauri::AppHandle) -> Result<String, String> {
 tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_geolocation::init())
+        .plugin(tauri_plugin_onethu_mobile::init())
         .plugin(tauri_plugin_onethu_calendar::init())
         .plugin(tauri_plugin_onethu_speech::init())
         .plugin(tauri_plugin_dialog::init())
