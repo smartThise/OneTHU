@@ -2427,6 +2427,78 @@
           "markdownDescription": "Denies the save command without any pre-configured scope."
         },
         {
+          "description": "Enables the check_permissions command without any pre-configured scope.",
+          "type": "string",
+          "const": "geolocation:allow-check-permissions",
+          "markdownDescription": "Enables the check_permissions command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the clear_permissions command without any pre-configured scope.",
+          "type": "string",
+          "const": "geolocation:allow-clear-permissions",
+          "markdownDescription": "Enables the clear_permissions command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the clear_watch command without any pre-configured scope.",
+          "type": "string",
+          "const": "geolocation:allow-clear-watch",
+          "markdownDescription": "Enables the clear_watch command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_current_position command without any pre-configured scope.",
+          "type": "string",
+          "const": "geolocation:allow-get-current-position",
+          "markdownDescription": "Enables the get_current_position command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the request_permissions command without any pre-configured scope.",
+          "type": "string",
+          "const": "geolocation:allow-request-permissions",
+          "markdownDescription": "Enables the request_permissions command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the watch_position command without any pre-configured scope.",
+          "type": "string",
+          "const": "geolocation:allow-watch-position",
+          "markdownDescription": "Enables the watch_position command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the check_permissions command without any pre-configured scope.",
+          "type": "string",
+          "const": "geolocation:deny-check-permissions",
+          "markdownDescription": "Denies the check_permissions command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the clear_permissions command without any pre-configured scope.",
+          "type": "string",
+          "const": "geolocation:deny-clear-permissions",
+          "markdownDescription": "Denies the clear_permissions command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the clear_watch command without any pre-configured scope.",
+          "type": "string",
+          "const": "geolocation:deny-clear-watch",
+          "markdownDescription": "Denies the clear_watch command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_current_position command without any pre-configured scope.",
+          "type": "string",
+          "const": "geolocation:deny-get-current-position",
+          "markdownDescription": "Denies the get_current_position command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the request_permissions command without any pre-configured scope.",
+          "type": "string",
+          "const": "geolocation:deny-request-permissions",
+          "markdownDescription": "Denies the request_permissions command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the watch_position command without any pre-configured scope.",
+          "type": "string",
+          "const": "geolocation:deny-watch-position",
+          "markdownDescription": "Denies the watch_position command without any pre-configured scope."
+        },
+        {
           "description": "允许使用系统日历原生同步：\n查询支持平台、请求日历权限、写入/清理 OneTHU 专属日历事件、移除该日历。\n\n#### This default permission set includes:\n\n- `allow-supported`\n- `allow-request-permission`\n- `allow-sync`\n- `allow-remove-calendar`",
           "type": "string",
           "const": "onethu-calendar:default",
@@ -2479,6 +2551,60 @@
           "type": "string",
           "const": "onethu-calendar:deny-sync",
           "markdownDescription": "Denies the sync command without any pre-configured scope."
+        },
+        {
+          "description": "允许使用灵动岛语音输入：\n查询支持平台、开始/轮询/停止原生语音识别（需麦克风权限）。\n\n#### This default permission set includes:\n\n- `allow-speech-supported`\n- `allow-speech-start`\n- `allow-speech-poll`\n- `allow-speech-stop`",
+          "type": "string",
+          "const": "onethu-speech:default",
+          "markdownDescription": "允许使用灵动岛语音输入：\n查询支持平台、开始/轮询/停止原生语音识别（需麦克风权限）。\n\n#### This default permission set includes:\n\n- `allow-speech-supported`\n- `allow-speech-start`\n- `allow-speech-poll`\n- `allow-speech-stop`"
+        },
+        {
+          "description": "Enables the speech_poll command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-speech:allow-speech-poll",
+          "markdownDescription": "Enables the speech_poll command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the speech_start command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-speech:allow-speech-start",
+          "markdownDescription": "Enables the speech_start command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the speech_stop command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-speech:allow-speech-stop",
+          "markdownDescription": "Enables the speech_stop command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the speech_supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-speech:allow-speech-supported",
+          "markdownDescription": "Enables the speech_supported command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the speech_poll command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-speech:deny-speech-poll",
+          "markdownDescription": "Denies the speech_poll command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the speech_start command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-speech:deny-speech-start",
+          "markdownDescription": "Denies the speech_start command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the speech_stop command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-speech:deny-speech-stop",
+          "markdownDescription": "Denies the speech_stop command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the speech_supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-speech:deny-speech-supported",
+          "markdownDescription": "Denies the speech_supported command without any pre-configured scope."
         },
         {
           "description": "This permission set allows opening `mailto:`, `tel:`, `https://` and `http://` urls using their default application\nas well as reveal file in directories using default file explorer\n#### This default permission set includes:\n\n- `allow-open-url`\n- `allow-reveal-item-in-dir`\n- `allow-default-urls`",

@@ -10,9 +10,11 @@
  * etag 缓存比对，仅 GET 变更资源 —— 学生量级毫秒级。
  */
 import { useCallback, useEffect, useState } from "react";
-import { CalDavClient, caldav } from "@onethu/core";
+import { CalDavClient, caldav, parseLearnTime } from "@onethu/core";
 import { universalFetch } from "../lib/transport.js";
 import { fileRead, fileWrite, fileDelete, obfuscateSecret, deobfuscateSecret } from "../lib/clients.js";
+import { getLearnSnapshot, subscribeLearnData } from "./data.js";
+import { getHwRemindState, subscribeHwRemind, type HwRemindState } from "./hwRemind.js";
 
 const CFG_FILE = "caldav.cfg";
 const CACHE_FILE = "caldav.cache";
@@ -385,3 +387,85 @@ export async function exportSemesterToCloud(
   emit();
   return { written, removed, skipped: skipped + failed };
 }
+
+/* ══════════ 作业 DDL 上云（用户 2026-09-09 拍板：DDL 不能只进本地系统日历） ══════════
+ * 与课表 exportSemesterToCloud 同思路，但全自动：learn 数据 / 两级提醒任何变化
+ * → 防抖重推（指纹相同跳过）。未交才写，交完即删；闹钟 = 单作业覆盖 ?? 全局默认
+ * （IcsEvent.alarmMinutes → VALARM）。未配置云同步时全程静默。 */
+
+/** 作业 DDL → 云日历事件（纯函数可测） */
+export function buildHwCloudEvents(
+  snap: { courses?: Array<{ id: string; name: string }>; homework?: Array<{ id: string; courseId: string; title: string; deadline: string; submitted: boolean }> } | null,
+  hwRemind: HwRemindState,
+): caldav.IcsEvent[] {
+  if (!snap) return [];
+  const courseName = new Map((snap.courses ?? []).map((c) => [c.id, c.name]));
+  const out: caldav.IcsEvent[] = [];
+  for (const h of snap.homework ?? []) {
+    if (h.submitted) continue; // 已交：云端即删（幂等重写自然移除）
+    const dl = parseLearnTime(h.deadline)?.getTime();
+    if (!dl) continue;
+    out.push({
+      uid: `onethu-hw-${sig32(`${h.courseId}|${h.id}`)}@onethu`,
+      summary: `作业截止 · ${courseName.get(h.courseId) ?? ""} ${h.title}`.trim(),
+      start: dl,
+      end: dl + 15 * 60_000,
+      description: `网络学堂作业，${h.deadline} 截止。提交完成后自动从云日历移除。`,
+      categories: ["ONETHU-HW"],
+      onethuSource: "homework",
+      alarmMinutes: hwRemind.items[h.id] ?? hwRemind.default, // 覆盖优先，全局默认兜底
+    });
+  }
+  return out;
+}
+
+let hwCloudTimer: ReturnType<typeof setTimeout> | null = null;
+let hwCloudSig = "";
+
+/** 同步作业 DDL 到云日历（幂等：清旧 homework 源 → 全量重写；指纹相同跳过） */
+export async function syncHwToCloud(): Promise<{ written: number; removed: number; skipped: boolean }> {
+  await ensureLoaded();
+  const client = makeClient();
+  if (!client) return { written: 0, removed: 0, skipped: true }; // 未配置：静默
+  const events = buildHwCloudEvents(getLearnSnapshot(), getHwRemindState());
+  const sig = sig32(JSON.stringify(events.map((e) => [e.uid, e.start, e.alarmMinutes ?? 0])));
+  if (sig === hwCloudSig) return { written: 0, removed: 0, skipped: true };
+  const stale = cloudEvents.filter((e) => e.onethuSource === "homework");
+  let removed = 0;
+  for (const s of stale) {
+    try {
+      await deleteCloudEvent(s.uid);
+      removed++;
+    } catch {
+      /* 单条失败继续 */
+    }
+  }
+  let written = 0;
+  for (const ev of events) {
+    try {
+      await client.putIcs(ev.uid, caldav.serializeCalendar([ev]));
+      cloudEvents = [...cloudEvents.filter((c) => c.uid !== ev.uid), ev];
+      written++;
+    } catch {
+      /* 单条失败继续：下次数据变化重推 */
+    }
+  }
+  hwCloudSig = sig;
+  lastSyncAt = Date.now();
+  await persistCache();
+  emit();
+  return { written, removed, skipped: false };
+}
+
+/* 自动跟随：learn 数据（含 30 分钟后台刷新）/ 提醒设置变化 → 防抖重推云端作业 */
+function scheduleHwCloudSync(): void {
+  if (hwCloudTimer) clearTimeout(hwCloudTimer);
+  hwCloudTimer = setTimeout(() => {
+    hwCloudTimer = null;
+    void syncHwToCloud().catch(() => {
+      /* 静默：设置页手动同步可见错误 */
+    });
+  }, 4000);
+}
+subscribeLearnData(scheduleHwCloudSync);
+subscribeHwRemind(scheduleHwCloudSync);

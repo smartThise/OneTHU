@@ -44,6 +44,8 @@ export interface IcsEvent {
   /** 排除场（epoch ms 集合） */
   exdates?: number[];
   categories?: string[];
+  /** 提前提醒分钟数（序列化为 VALARM/TRIGGER -PTnM；云/本地事件通用） */
+  alarmMinutes?: number;
   /** OneTHU 私有来源标记（X-ONETHU-SRC：course/manual/…） */
   onethuSource?: string;
   lastModified?: number;
@@ -226,12 +228,22 @@ const WD = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"]; // getUTCDay 索引
 export function parseIcs(text: string): IcsEvent[] {
   const events: IcsEvent[] = [];
   let cur: Partial<IcsEvent> | null = null;
+  let inAlarm = false;
   for (const line of unfold(text)) {
     const prop = parseProp(line);
     if (!prop) continue;
     const { name, params, value } = prop;
     if (name === "BEGIN" && value.trim().toUpperCase() === "VEVENT") {
       cur = { uid: "", summary: "", start: 0, end: 0 };
+      inAlarm = false;
+      continue;
+    }
+    if (name === "BEGIN" && value.trim().toUpperCase() === "VALARM") {
+      inAlarm = true;
+      continue;
+    }
+    if (name === "END" && value.trim().toUpperCase() === "VALARM") {
+      inAlarm = false;
       continue;
     }
     if (name === "END" && value.trim().toUpperCase() === "VEVENT") {
@@ -240,9 +252,18 @@ export function parseIcs(text: string): IcsEvent[] {
         events.push(cur as IcsEvent);
       }
       cur = null;
+      inAlarm = false;
       continue;
     }
     if (!cur) continue;
+    if (inAlarm) {
+      // TRIGGER:-PT120M → 事件开始前 120 分钟提醒（只认 DISPLAY 提前量）
+      if (name === "TRIGGER") {
+        const m = /^-PT(\d+)M$/.exec(value.trim());
+        if (m?.[1]) cur.alarmMinutes = Number(m[1]);
+      }
+      continue;
+    }
     switch (name) {
       case "UID": cur.uid = value.trim(); break;
       case "SUMMARY": cur.summary = unescapeText(value); break;
@@ -303,6 +324,13 @@ export function serializeEvent(ev: IcsEvent, nowMs = Date.now()): string[] {
   if (ev.categories?.length) lines.push(...prop("CATEGORIES", "", ev.categories.map(escapeText).join(",")));
   if (ev.onethuSource) lines.push(...prop("X-ONETHU-SRC", "", ev.onethuSource));
   if (ev.lastModified) lines.push(...prop("LAST-MODIFIED", "", fmtDateTimeUtc(ev.lastModified)));
+  if (ev.alarmMinutes && ev.alarmMinutes > 0) {
+    lines.push(...prop("BEGIN", "", "VALARM"));
+    lines.push(...prop("ACTION", "", "DISPLAY"));
+    lines.push(...prop("DESCRIPTION", "", escapeText(ev.summary || "提醒")));
+    lines.push(...prop("TRIGGER", "", `-PT${Math.round(ev.alarmMinutes)}M`));
+    lines.push(...prop("END", "", "VALARM"));
+  }
   lines.push(...prop("END", "", "VEVENT"));
   return lines;
 }

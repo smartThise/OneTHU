@@ -98,6 +98,9 @@ class OnethuSpeechPlugin(private val activity: android.app.Activity) : Plugin(ac
     invoke.resolve()
   }
 
+  // （tauri Plugin 基类无 destroy 生命周期钩：识别器清理在 speechStop 内完成，
+  //  Activity 重建最多泄漏一个实例，与 onethu-calendar 同取舍）
+
   // ---------- 识别会话 ----------
 
   private fun startListening() {
@@ -159,13 +162,4 @@ class OnethuSpeechPlugin(private val activity: android.app.Activity) : Plugin(ac
     }
   }
 
-  override fun destroy() {
-    holding = false
-    try {
-      sr?.destroy()
-    } catch (_: Exception) {
-    }
-    sr = null
-    super.destroy()
-  }
 }

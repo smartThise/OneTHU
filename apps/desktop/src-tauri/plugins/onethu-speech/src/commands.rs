@@ -2,6 +2,8 @@
 //! macOS 路径走 app 主 crate 的 speech.m 桥，不经这里。
 
 use tauri::{AppHandle, Runtime};
+#[cfg(target_os = "android")]
+use tauri::Manager;
 
 /// 当前平台是否支持原生语音识别
 #[tauri::command]
@@ -27,7 +29,7 @@ pub async fn speech_start<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
     #[cfg(target_os = "android")]
     {
         let handle = app.state::<crate::OnethuSpeech<R>>().0.clone();
-        handle
+        let _: serde_json::Value = handle
             .run_mobile_plugin("speechStart", serde_json::json!({}))
             .map_err(|e| e.to_string())?;
         Ok(())
@@ -63,7 +65,7 @@ pub async fn speech_stop<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
     #[cfg(target_os = "android")]
     {
         let handle = app.state::<crate::OnethuSpeech<R>>().0.clone();
-        handle
+        let _: serde_json::Value = handle
             .run_mobile_plugin("speechStop", serde_json::json!({}))
             .map_err(|e| e.to_string())?;
         Ok(())
