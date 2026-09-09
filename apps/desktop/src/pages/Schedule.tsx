@@ -101,7 +101,12 @@ function endMinOf(s: GridEntry): number {
   return hmToMin(s.endTime) ?? END_MIN[s.endSection ?? s.startSection ?? 1] ?? AXIS_BEGIN + 45;
 }
 
-/** 同日重叠分道（区间图着色）：按开始分钟排序，贪心放入第一个可用道次 */
+/**
+ * 同日重叠分道（重叠簇 + 区间图着色）：
+ * 1) 按开始分钟排序后切成「重叠簇」——新块开始 ≥ 簇内最大结束（首尾相接不算重叠）则另起新簇；
+ * 2) 簇内贪心放入第一个可用道次（区间图着色）；
+ * 3) 道数只在簇内共享：无冲突的块独占一簇 → 独占整行宽度。
+ */
 function layout(entries: GridEntry[]): Placed[] {
   const byDay: GridEntry[][] = Array.from({ length: 7 }, () => []);
   for (const s of entries) {
@@ -111,23 +116,37 @@ function layout(entries: GridEntry[]): Placed[] {
   }
   const placed: Placed[] = [];
   for (let day = 0; day < 7; day++) {
-    const list = [...(byDay[day] ?? [])].sort((a, b) => beginMinOf(a) - beginMinOf(b));
-    const laneEnds: number[] = [];
+    const list = [...(byDay[day] ?? [])].sort(
+      (a, b) => beginMinOf(a) - beginMinOf(b) || endMinOf(b) - endMinOf(a), // 同开始：长的在前，窄块不遮宽块
+    );
+    let laneEnds: number[] = []; // 当前簇各道的结束分钟
+    let clusterMaxEnd = AXIS_BEGIN; // 当前簇内最大结束（判簇边界）
+    let clusterPlaced: Placed[] = []; // 当前簇内已放置的块（簇关闭时统一回填道数）
+    const closeCluster = (): void => {
+      const lanes = Math.max(1, laneEnds.length);
+      for (const p of clusterPlaced) p.lanes = lanes;
+      clusterPlaced = [];
+      laneEnds = []; // 道次表随簇清零，上一簇的道数不污染下一簇的宽度
+    };
     for (const s of list) {
       const b = Math.max(0, Math.min(beginMinOf(s), AXIS_END - 20));
       const e = Math.max(b + 20, Math.min(endMinOf(s), AXIS_END));
+      // 新簇判定：与簇内任何已放块都无重叠（开始 ≥ 簇内最大结束；首尾相接=不重叠）
+      if (clusterPlaced.length > 0 && b >= clusterMaxEnd) closeCluster();
       let lane = laneEnds.findIndex((t) => t <= b);
       if (lane < 0) {
         lane = laneEnds.length;
         laneEnds.push(0);
       }
       laneEnds[lane] = Math.max(laneEnds[lane] ?? 0, e);
-      const lanes = lane + 1; // 简化：块渲染时用当前最大道数
-      placed.push({ entry: s, day, beginMin: b, endMin: e, lane, lanes, color: s.src ? SRC_COLOR[s.src] : colorOf(s.courseName) });
+      clusterMaxEnd = clusterPlaced.length === 0 ? e : Math.max(clusterMaxEnd, e);
+      const p: Placed = { entry: s, day, beginMin: b, endMin: e, lane, lanes: 1, color: s.src ? SRC_COLOR[s.src] : colorOf(s.courseName) };
+      placed.push(p);
+      clusterPlaced.push(p);
     }
-    // 道数回填（同日所有块共享最终 lanes，宽度一致）
-    const finalLanes = Math.max(1, ...placed.filter((p) => p.day === day).map((p) => p.lane + 1));
-    for (const p of placed) if (p.day === day) p.lanes = finalLanes;
+    closeCluster();
+    laneEnds = [];
+    clusterMaxEnd = AXIS_BEGIN;
   }
   return placed;
 }
