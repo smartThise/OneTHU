@@ -142,6 +142,13 @@ interface MsgListProps {
   onMsgsClick: (e: MouseEvent) => void;
 }
 
+/** 开场三行（左对齐、逐字下落）：展开成 [行][字+延迟] 一次性算好 */
+const HERO_LINES = ["你好！", "我是小OH，", "有什么能帮你的吗？"];
+const HERO_CHARS: Array<Array<{ ch: string; delay: number }>> = (() => {
+  let n = 0;
+  return HERO_LINES.map((line) => [...line].map((ch) => ({ ch, delay: 0.06 + n++ * 0.07 })));
+})();
+
 const SUGGESTIONS = ["明天图书馆哪有空座？", "这周考试安排", "卡里还有多少钱", "明天下午有什么日程"];
 
 const DockMsgList = memo(function DockMsgList(p: MsgListProps): ReactNode {
@@ -149,11 +156,15 @@ const DockMsgList = memo(function DockMsgList(p: MsgListProps): ReactNode {
     <div className="dock-msgs" ref={p.scrollRef} onClick={p.onMsgsClick}>
       {p.msgs.length === 0 && p.stream == null ? (
         <div className="dock-empty">
-          {/* 新会话开场：键盘下落状三行大字（每次新建对话重挂载即重演） */}
+          {/* 新会话开场：左对齐、逐字下落的三行大字（每次新建对话重挂载即重演） */}
           <div className="dock-hero" aria-label="你好！我是小OH，有什么能帮你的吗？">
-            <span className="dock-hero-line" style={{ animationDelay: "0.05s" }}>你好！</span>
-            <span className="dock-hero-line" style={{ animationDelay: "0.22s" }}>我是小OH，</span>
-            <span className="dock-hero-line" style={{ animationDelay: "0.39s" }}>有什么能帮你的吗？</span>
+            {HERO_CHARS.map((line, i) => (
+              <div className="dock-hero-line" key={i}>
+                {line.map((c, j) => (
+                  <span className="dock-hero-ch" style={{ animationDelay: `${c.delay}s` }} key={j}>{c.ch}</span>
+                ))}
+              </div>
+            ))}
           </div>
           <div className="dock-empty-chips">
             {SUGGESTIONS.map((s) => (
@@ -254,6 +265,8 @@ export function ChatDock(): ReactNode {
   /* 拖拽会话（pointer 捕获）：moved=false 时 pointerup 视为点击 */
   const drag = useRef({ id: -1, sx: 0, sy: 0, ox: 0, oy: 0, moved: false });
   const closeTimer = useRef<number | null>(null);
+  /* 导入会话：真按钮 + 隐藏 input（label 方案在触屏密度层下渲染高度与 button 不一致） */
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const flushDelta = (): void => {
     deltaTimer.current = null;
@@ -746,18 +759,19 @@ export function ChatDock(): ReactNode {
               <button className="btn dock-btn dock-ico" title="导出当前会话 JSON" aria-label="导出会话" onClick={() => void exportSession()}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3v12" /><path d="m8 11 4 4 4-4" /><path d="M4 19h16" /></svg>
               </button>
-              <label className="btn dock-btn dock-ico" title="导入会话 JSON" aria-label="导入会话" style={{ position: "relative", overflow: "hidden" }}>
+              <button className="btn dock-btn dock-ico" title="导入会话 JSON" aria-label="导入会话" onClick={() => fileRef.current?.click()}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 15V3" /><path d="m8 7 4-4 4 4" /><path d="M4 19h16" /></svg>
-                <input
-                  type="file" accept=".json,application/json"
-                  style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void importSession(f);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
+              </button>
+              <input
+                ref={fileRef}
+                type="file" accept=".json,application/json"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void importSession(f);
+                  e.target.value = "";
+                }}
+              />
               <button className="btn dock-btn dock-ico" title="收起" aria-label="收起" onClick={toggle}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="m6 6 12 12M18 6 6 18" /></svg>
               </button>

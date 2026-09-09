@@ -2893,12 +2893,11 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 @media (prefers-reduced-motion: reduce) {
   .dock-fab, .dock-fab.is-snapping, .dock-panel,
   .dock-msg, .dock-think, .dock-confirm, .dock-history, .dock-chip,
-  .dock-hero-line, .dock-empty-chips {
+  .dock-hero-ch, .dock-empty-chips {
     animation: none !important;
     transition: none !important;
   }
-  .dock-hero-line { opacity: 1; }
-  .dock-empty-chips { opacity: 1; }
+  .dock-hero-ch, .dock-empty-chips { opacity: 1; }
 }
 
 .dock-head {
@@ -2957,40 +2956,42 @@ html.is-phone .dock-head .dock-btn:not(.dock-ico) { height: 28px; padding: 0 10p
   margin: auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  gap: 20px;
-  text-align: center;
+  gap: 22px;
+  padding: 6px 10px;
+  text-align: left;
   color: var(--text-3);
   font-size: var(--text-sm);
   line-height: 1.8;
   min-height: 100%;
 }
 
-/* 新会话开场：键盘下落状三行大字（错落下落 + 落定回弹 + 迷雾聚焦） */
-.dock-hero { display: flex; flex-direction: column; align-items: center; gap: 9px; }
-.dock-hero-line {
-  font-size: 20px;
+/* 新会话开场：左对齐三行大字，一个字一个字从上方坠落（错落 + 回弹 + 迷雾聚焦） */
+.dock-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.dock-hero-line { display: flex; }
+.dock-hero-ch {
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: var(--text-1);
   opacity: 0; /* 动画未开始前不可见（delay 期间藏住） */
-  animation: dock-hero-drop 0.55s cubic-bezier(0.22, 1.35, 0.36, 1) both;
+  animation: dock-hero-drop 0.5s cubic-bezier(0.22, 1.35, 0.36, 1) both;
 }
 @keyframes dock-hero-drop {
-  from { opacity: 0; transform: translateY(-30px) scale(0.92); filter: blur(5px); }
+  from { opacity: 0; transform: translateY(-34px) scale(0.9); filter: blur(6px); }
   55% { opacity: 1; filter: blur(0); }
   to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
 
-/* 建议指令：等三行大字落定后再浮现 */
+/* 建议指令：大字落定后浮现（同样左对齐） */
 .dock-empty-chips {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
   max-width: 300px;
-  animation: dock-chips-in 0.4s ease 0.75s both;
+  animation: dock-chips-in 0.4s ease 1.85s both;
 }
 @keyframes dock-chips-in { from { opacity: 0; transform: translateY(6px); } }
 .dock-chip {
