@@ -2892,10 +2892,13 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 /* 无障碍：系统减弱动态效果时，全部 dock 动画/过渡退场 */
 @media (prefers-reduced-motion: reduce) {
   .dock-fab, .dock-fab.is-snapping, .dock-panel,
-  .dock-msg, .dock-think, .dock-confirm, .dock-history, .dock-chip {
+  .dock-msg, .dock-think, .dock-confirm, .dock-history, .dock-chip,
+  .dock-hero-line, .dock-empty-chips {
     animation: none !important;
     transition: none !important;
   }
+  .dock-hero-line { opacity: 1; }
+  .dock-empty-chips { opacity: 1; }
 }
 
 .dock-head {
@@ -2928,6 +2931,10 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   color: var(--text-2);
 }
 .dock-btn.dock-ico:hover { color: var(--accent); }
+/* 触屏密度层 html.is-phone .btn { height:38px } 特异度更高会顶穿头部行高——
+   头部图标钮在此定高压制（触屏顺带加大点击面 32×28） */
+html.is-phone .dock-head .dock-btn.dock-ico { height: 28px; width: 32px; }
+html.is-phone .dock-head .dock-btn:not(.dock-ico) { height: 28px; padding: 0 10px; }
 
 .dock-notice {
   padding: 5px 12px;
@@ -2951,15 +2958,41 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  gap: 20px;
   text-align: center;
   color: var(--text-3);
   font-size: var(--text-sm);
   line-height: 1.8;
+  min-height: 100%;
 }
-.dock-empty-mark { color: var(--text-3); opacity: 0.55; }
-.dock-empty-hello { color: var(--text-2); font-weight: 600; }
-.dock-empty-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 300px; margin-top: 2px; }
+
+/* 新会话开场：键盘下落状三行大字（错落下落 + 落定回弹 + 迷雾聚焦） */
+.dock-hero { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+.dock-hero-line {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-1);
+  opacity: 0; /* 动画未开始前不可见（delay 期间藏住） */
+  animation: dock-hero-drop 0.55s cubic-bezier(0.22, 1.35, 0.36, 1) both;
+}
+@keyframes dock-hero-drop {
+  from { opacity: 0; transform: translateY(-30px) scale(0.92); filter: blur(5px); }
+  55% { opacity: 1; filter: blur(0); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+/* 建议指令：等三行大字落定后再浮现 */
+.dock-empty-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-width: 300px;
+  animation: dock-chips-in 0.4s ease 0.75s both;
+}
+@keyframes dock-chips-in { from { opacity: 0; transform: translateY(6px); } }
 .dock-chip {
   border: 1px solid var(--border-soft);
   background: var(--surface-2);

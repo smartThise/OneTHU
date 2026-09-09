@@ -149,8 +149,12 @@ const DockMsgList = memo(function DockMsgList(p: MsgListProps): ReactNode {
     <div className="dock-msgs" ref={p.scrollRef} onClick={p.onMsgsClick}>
       {p.msgs.length === 0 && p.stream == null ? (
         <div className="dock-empty">
-          <span className="dock-empty-mark"><HarnessMark size={34} /></span>
-          <span className="dock-empty-hello">和校园助手说点什么</span>
+          {/* 新会话开场：键盘下落状三行大字（每次新建对话重挂载即重演） */}
+          <div className="dock-hero" aria-label="你好！我是小OH，有什么能帮你的吗？">
+            <span className="dock-hero-line" style={{ animationDelay: "0.05s" }}>你好！</span>
+            <span className="dock-hero-line" style={{ animationDelay: "0.22s" }}>我是小OH，</span>
+            <span className="dock-hero-line" style={{ animationDelay: "0.39s" }}>有什么能帮你的吗？</span>
+          </div>
           <div className="dock-empty-chips">
             {SUGGESTIONS.map((s) => (
               <button key={s} className="dock-chip" onClick={() => p.onPick(s)}>{s}</button>
@@ -731,7 +735,7 @@ export function ChatDock(): ReactNode {
           aria-label="OneTHU Harness 对话"
         >
           <div className="dock-head">
-            <span className="dock-title"><HarnessMark size={13} /> 小OH</span>
+            <span className="dock-title" title="小OH"><HarnessMark size={15} /></span>
             <div className="dock-ops">
               <button className="btn dock-btn dock-ico" title="新会话" aria-label="新会话" onClick={() => void newSession()}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
