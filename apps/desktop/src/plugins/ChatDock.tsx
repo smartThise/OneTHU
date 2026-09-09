@@ -1,9 +1,19 @@
-/** 左下角常驻对话面板（宿主胶水，R2/R4/R5 的 dock 面）：
+/** 常驻对话面板（宿主胶水，R2/R4/R5 的 dock 面）：
  *  发现 activate 返回 dock:true 命令的已启用 rust 插件 → 显示常驻气泡；
  *  对话/会话/导出/用量全部走该插件的 JSON-RPC run 命令（结构化契约见
  *  OneTHU-Harness README 与接口指南 §九），本组件不含任何业务逻辑。
+ *
+ *  v2 交互（用户拍板）：
+ *  - FAB 默认居中底部，可拖拽，松手自动吸附最近水平边缘（右侧让出硬刷新钮的角落）；
+ *  - 桌面/横排：点击后面板从 FAB 原位动画化开（transform-origin 对准 FAB 角）；
+ *  - 竖屏手机：整面板改为从底层划出的 87.5% 高度抽屉 + 半透明遮罩；
+ *  - 会话切换不清空累计用量（总量跨会话持久，仅本会话计数归零）。
  */
-import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent, type ReactNode } from "react";
+import {
+  memo, useCallback, useEffect, useRef, useState, useSyncExternalStore,
+  type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import Markdown from "react-markdown";
 import { navGo } from "./bridges.js";
 import remarkGfm from "remark-gfm";
@@ -16,6 +26,9 @@ import { openExternal } from "../pages/info/openExternal.js";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const OPEN_KEY = "onethu.chatdock.open";
+const POS_KEY = "onethu.chatdock.pos";
+const FAB = 46; // FAB 边长（与 CSS .dock-fab 保持一致）
+const EDGE = 14; // 吸附/防越界边距
 
 interface ViewMsg {
   role: "user" | "assistant";
@@ -75,12 +88,144 @@ function fmtUsd(v?: number): string {
   return v < 0.01 ? `$${v.toFixed(5)}` : `$${v.toFixed(4)}`;
 }
 
+/* ───────── FAB 位置：持久化 + 越界钳制 + 边缘吸附 ───────── */
+
+interface FabPos { x: number; y: number }
+interface Vp { vw: number; vh: number }
+const vpNow = (): Vp => ({ vw: window.innerWidth, vh: window.innerHeight });
+
+function clampPos(p: FabPos, vp: Vp): FabPos {
+  return {
+    x: Math.max(EDGE, Math.min(p.x, vp.vw - FAB - EDGE)),
+    y: Math.max(EDGE, Math.min(p.y, vp.vh - FAB - EDGE)),
+  };
+}
+
+/** 吸附最近水平边缘；右下角让出硬刷新钮（页面卡死时的唯一恢复出口，不可遮挡） */
+function snapPos(p: FabPos, vp: Vp): FabPos {
+  const base = clampPos(p, vp);
+  let y = base.y;
+  if (p.x + FAB / 2 < vp.vw / 2) {
+    return { x: EDGE, y };
+  }
+  const refreshZoneTop = vp.vh - 18 - 44 - 4; // 硬刷新钮（右下 18px 边距 44px）上缘
+  if (y > refreshZoneTop - FAB - 6) y = Math.max(EDGE, refreshZoneTop - FAB - 6);
+  return { x: vp.vw - FAB - EDGE, y };
+}
+
+function readPos(): FabPos {
+  const vp = vpNow();
+  try {
+    const raw = localStorage.getItem(POS_KEY);
+    if (raw) {
+      const p = JSON.parse(raw) as FabPos;
+      if (Number.isFinite(p?.x) && Number.isFinite(p?.y)) return clampPos(p, vp);
+    }
+  } catch { /* 坏存档：落回默认位 */ }
+  return { x: Math.round(vp.vw / 2 - FAB / 2), y: Math.round(vp.vh - FAB - 28) }; // 默认：居中底部
+}
+
+/** 竖屏手机判定（html.is-phone 由 main.tsx 按触屏+窄窗打标）：竖屏 → 底部抽屉形态 */
+function phoneSheetNow(): boolean {
+  return typeof document !== "undefined"
+    && document.documentElement.classList.contains("is-phone")
+    && window.matchMedia("(orientation: portrait)").matches;
+}
+
+/* ───────── 消息区（memo：拖拽期间 FAB 每帧改位不重排 markdown） ───────── */
+
+interface MsgListProps {
+  msgs: ViewMsg[];
+  stream: string | null;
+  status: string | null;
+  think: string;
+  thinkOpen: boolean;
+  trace: string[];
+  confirmCard: string | null;
+  busy: boolean;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+  onSend: (t: string) => void;
+  onPick: (t: string) => void;
+  onToggleThink: () => void;
+  onMsgsClick: (e: MouseEvent) => void;
+}
+
+const SUGGESTIONS = ["明天图书馆哪有空座？", "这周考试安排", "卡里还有多少钱", "明天下午有什么日程"];
+
+const DockMsgList = memo(function DockMsgList(p: MsgListProps): ReactNode {
+  return (
+    <div className="dock-msgs" ref={p.scrollRef} onClick={p.onMsgsClick}>
+      {p.msgs.length === 0 && p.stream == null ? (
+        <div className="dock-empty">
+          <span className="dock-empty-mark"><HarnessMark size={34} /></span>
+          <span className="dock-empty-hello">和校园助手说点什么</span>
+          <div className="dock-empty-chips">
+            {SUGGESTIONS.map((s) => (
+              <button key={s} className="dock-chip" onClick={() => p.onPick(s)}>{s}</button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {p.msgs.map((m, i) =>
+        m.role === "assistant" ? (
+          <div key={i} className="dock-msg-assistant">
+            {m.meta?.think ? <ChainBlock label="思考过程" lines={[m.meta.think]} /> : null}
+            {m.meta?.trace?.length ? <ChainBlock label="工具调用" lines={m.meta.trace} /> : null}
+            <div className="dock-msg dock-md">
+              <Markdown remarkPlugins={[remarkGfm]}>{m.text}</Markdown>
+            </div>
+          </div>
+        ) : (
+          <div key={i} className="dock-msg dock-msg-user">{m.text}</div>
+        ),
+      )}
+      {p.trace.length > 0 ? <ChainBlock label="工具调用" lines={p.trace} defaultOpen /> : null}
+      {p.think ? (
+        <div className="dock-think">
+          <button className="dock-think-head" onClick={p.onToggleThink} aria-expanded={p.thinkOpen}>
+            <span className="dock-think-label">思考过程</span>
+            <span className="dock-think-meta">{p.thinkOpen ? "点击收起" : `${p.think.length} 字 · 已折叠`}</span>
+            <i className={"plg-caret" + (p.thinkOpen ? " is-open" : "")} />
+          </button>
+          {p.thinkOpen ? <div className="dock-think-body">{p.think}</div> : null}
+        </div>
+      ) : null}
+      {p.stream != null ? (
+        <div className="dock-msg dock-msg-assistant dock-streaming">
+          {p.stream ? (
+            <div className="dock-md">
+              <Markdown remarkPlugins={[remarkGfm]}>{p.stream}</Markdown>
+            </div>
+          ) : (
+            <span className="dock-thinking">{p.status ?? "思考中…"}</span>
+          )}
+          {p.stream ? <span className="dock-caret" /> : null}
+        </div>
+      ) : null}
+      {p.confirmCard ? (
+        <div className="dock-confirm">
+          <div className="dock-confirm-text">{p.confirmCard}</div>
+          <div className="dock-confirm-ops">
+            <button className="btn btn-primary dock-btn" disabled={p.busy} onClick={() => p.onSend("确认")}>确认执行</button>
+            <button className="btn dock-btn" disabled={p.busy} onClick={() => p.onSend("取消")}>取消</button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+});
+
 export function ChatDock(): ReactNode {
   const cmds = useSyncExternalStore(subscribeCommands, commandsSnapshot);
   const dockCmd = cmds.find((c) => c.dock && c.id === "chat");
   const pid = dockCmd?.pluginId ?? null;
 
   const [open, setOpen] = useState(readOpen);
+  const [closing, setClosing] = useState(false); // 关闭动画期：面板仍挂载
+  const [pos, setPos] = useState<FabPos>(readPos);
+  const [dragging, setDragging] = useState(false);
+  const [snapping, setSnapping] = useState(false); // 吸附过渡开关
+  const [phoneSheet, setPhoneSheet] = useState(phoneSheetNow);
   const [msgs, setMsgs] = useState<ViewMsg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -111,6 +256,9 @@ export function ChatDock(): ReactNode {
   const streamRef = useRef("");
   const lastEvAt = useRef(Date.now());
   const finalizedFor = useRef(0);
+  /* 拖拽会话（pointer 捕获）：moved=false 时 pointerup 视为点击 */
+  const drag = useRef({ id: -1, sx: 0, sy: 0, ox: 0, oy: 0, moved: false });
+  const closeTimer = useRef<number | null>(null);
 
   const flushDelta = (): void => {
     deltaTimer.current = null;
@@ -121,13 +269,42 @@ export function ChatDock(): ReactNode {
     setStream((v) => (v ?? "") + t);
   };
 
-  const toggle = (): void => {
-    setOpen((o) => {
-      localStorage.setItem(OPEN_KEY, o ? "0" : "1");
-      if (!o) setUnread(0);
-      return !o;
-    });
+  const toggle = useCallback((): void => {
+    if (open) {
+      localStorage.setItem(OPEN_KEY, "0");
+      setClosing(true); // 先演退场动画，再卸载
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+      closeTimer.current = window.setTimeout(() => {
+        closeTimer.current = null;
+        setClosing(false);
+        setOpen(false);
+      }, 270); // ≥抽屉退场动画 260ms
+    } else {
+      localStorage.setItem(OPEN_KEY, "1");
+      setClosing(false);
+      setOpen(true);
+      setUnread(0);
+    }
+  }, [open]);
+
+  /** 只清本会话计数，累计用量（跨会话持久）保留并刷新 */
+  const keepTotals = (): void => {
+    setUsage((u) => ({
+      budgetUsd: u.budgetUsd, budgetLeftUsd: u.budgetLeftUsd,
+      totalCostUsd: u.totalCostUsd, totalPrompt: u.totalPrompt,
+      totalCompletion: u.totalCompletion, totalCalls: u.totalCalls,
+    }));
   };
+
+  // 视口变化：窄屏/方向切换面板形态 + 位置重新钳制
+  useEffect(() => {
+    const onResize = (): void => {
+      setPhoneSheet(phoneSheetNow());
+      setPos((p) => clampPos(p, vpNow()));
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   // 插件变更：清视图，重挂水合标记；作废旧插件迟到回包与死人开关
   useEffect(() => {
@@ -155,9 +332,15 @@ export function ChatDock(): ReactNode {
     }
     busyRef.current = false;
     setBusy(false);
+    return () => {
+      if (closeTimer.current) {
+        clearTimeout(closeTimer.current);
+        closeTimer.current = null;
+      }
+    };
   }, [pid]);
 
-  // 水合：打开面板且尚未载入当前会话 → 导出会话 JSON 还原视图（R5）
+  // 水合：打开面板且尚未载入当前会话 → 导出会话 JSON 还原视图（R5）+ 拉累计用量
   useEffect(() => {
     if (!pid || !open || hydratedFor.current === pid) return;
     hydratedFor.current = pid;
@@ -179,6 +362,16 @@ export function ChatDock(): ReactNode {
       } catch {
         setMsgs([]);
       }
+      try {
+        const t: any = await callRust(pid, "run", { command: "usage_report" });
+        if (t?.ok && t.totals) {
+          setUsage((u) => ({
+            ...u,
+            totalPrompt: t.totals.prompt, totalCompletion: t.totals.completion,
+            totalCalls: t.totals.calls, totalCostUsd: t.totals.costUsd,
+          }));
+        }
+      } catch { /* 保留现值 */ }
     })();
   }, [pid, open]);
 
@@ -262,7 +455,7 @@ export function ChatDock(): ReactNode {
     setConfirmCard(null);
   };
 
-  const send = async (raw: string): Promise<void> => {
+  const send = useCallback(async (raw: string): Promise<void> => {
     const text = raw.trim();
     if (!pid || busyRef.current || !text) return;
     const seq = ++runSeq.current;
@@ -315,7 +508,7 @@ export function ChatDock(): ReactNode {
         deadman.current = null;
       }
     }
-  };
+  }, [pid, open]);
 
   const runCmd = async (command: string, input = ""): Promise<any> => {
     if (!pid) return null;
@@ -325,6 +518,21 @@ export function ChatDock(): ReactNode {
       setNotice(e instanceof Error ? e.message : String(e));
       return null;
     }
+  };
+
+  /** 累计用量刷新（usage_report：跨会话总量，切换/新建后立即可见） */
+  const refreshTotals = async (): Promise<void> => {
+    if (!pid) return;
+    try {
+      const r: any = await callRust(pid, "run", { command: "usage_report" });
+      if (r?.ok && r.totals) {
+        setUsage((u) => ({
+          ...u,
+          totalPrompt: r.totals.prompt, totalCompletion: r.totals.completion,
+          totalCalls: r.totals.calls, totalCostUsd: r.totals.costUsd,
+        }));
+      }
+    } catch { /* 保留现值 */ }
   };
 
   const newSession = async (): Promise<void> => {
@@ -337,7 +545,8 @@ export function ChatDock(): ReactNode {
     hydratedFor.current = pid;
     setMsgs([]);
     setConfirmCard(null);
-    setUsage({});
+    keepTotals();
+    void refreshTotals();
     setNotice("已新建会话");
   };
 
@@ -355,8 +564,9 @@ export function ChatDock(): ReactNode {
     hydratedFor.current = pid;
     setMsgs([]);
     setConfirmCard(null);
-    setUsage({});
+    keepTotals();
     setHistory(null);
+    void refreshTotals();
     // 立即水合新会话
     try {
       const res: any = await callRust(pid!, "run", { command: "export_session", input: id });
@@ -368,6 +578,7 @@ export function ChatDock(): ReactNode {
           else if (m.role === "assistant" && m.content) view.push({ role: "assistant", text: m.content });
         }
         setMsgs(view);
+        if (s.usage) setUsage((u) => ({ ...u, sessionPrompt: s.usage.prompt, sessionCompletion: s.usage.completion, sessionCostUsd: s.cost_usd }));
       }
     } catch {
       /* 保持空视图 */
@@ -440,12 +651,100 @@ export function ChatDock(): ReactNode {
     void openExternal(href);
   };
 
+  /* ───────── FAB 拖拽（pointer 捕获）：<6px 视为点击 ───────── */
+  const onFabPointerDown = (e: ReactPointerEvent<HTMLButtonElement>): void => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    drag.current = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: pos.x, oy: pos.y, moved: false };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* 捕获失败仍可拖 */ }
+  };
+  const onFabPointerMove = (e: ReactPointerEvent<HTMLButtonElement>): void => {
+    const d = drag.current;
+    if (d.id !== e.pointerId) return;
+    const dx = e.clientX - d.sx;
+    const dy = e.clientY - d.sy;
+    if (!d.moved && Math.hypot(dx, dy) < 6) return; // 位移阈值内不判拖拽
+    d.moved = true;
+    if (!dragging) {
+      setDragging(true);
+      setSnapping(false);
+    }
+    setPos(clampPos({ x: d.ox + dx, y: d.oy + dy }, vpNow()));
+  };
+  const onFabPointerUp = (e: ReactPointerEvent<HTMLButtonElement>): void => {
+    const d = drag.current;
+    if (d.id !== e.pointerId) return;
+    d.id = -1;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* 已释放 */ }
+    if (!d.moved) {
+      toggle(); // 点击：原地化开 / 收起
+      return;
+    }
+    setDragging(false);
+    setSnapping(true); // 吸附动画（CSS 过渡）
+    const snapped = snapPos(pos, vpNow());
+    setPos(snapped);
+    try { localStorage.setItem(POS_KEY, JSON.stringify(snapped)); } catch { /* 存不进就算了 */ }
+  };
+  const onFabPointerCancel = (e: ReactPointerEvent<HTMLButtonElement>): void => {
+    const d = drag.current;
+    if (d.id !== e.pointerId) return;
+    d.id = -1;
+    setDragging(false);
+    setSnapping(true);
+    setPos((p) => snapPos(p, vpNow()));
+  };
+  const onFabKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>): void => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggle();
+    }
+  };
+
   if (!pid) return null;
   const budgetPct = usage.budgetUsd ? Math.min(100, ((usage.totalCostUsd ?? 0) / usage.budgetUsd) * 100) : 0;
+
+  /* 桌面/横排：面板锚在 FAB 上方（原地化开的锚点）；竖屏手机：底部抽屉（CSS is-sheet） */
+  const panelStyle: CSSProperties | undefined = phoneSheet ? undefined : (() => {
+    const { vw, vh } = vpNow();
+    const pw = Math.min(384, vw - 24);
+    const ph = Math.min(560, Math.round(vh * 0.78));
+    const side = pos.x + FAB / 2 < vw / 2 ? "left" : "right";
+    let top = pos.y - ph - 14; // 面板底缘悬在 FAB 上方
+    top = Math.max(12, Math.min(top, vh - ph - 12));
+    const left = side === "left"
+      ? Math.max(12, Math.min(pos.x - 6, vw - pw - 12))
+      : Math.max(12, Math.min(pos.x + FAB - pw + 6, vw - pw - 12));
+    return { left, top, transformOrigin: side === "left" ? "22px 100%" : "calc(100% - 22px) 100%" };
+  })();
+
   return (
     <>
-      {open ? (
-        <div className="dock-panel" role="dialog" aria-label="OneTHU Harness 对话">
+      {/* 竖屏手机抽屉遮罩（点按关闭） */}
+      {phoneSheet && (open || closing) ? <div className={"dock-scrim" + (closing ? " is-closing" : "")} onClick={toggle} /> : null}
+
+      <button
+        className={"dock-fab" + (snapping ? " is-snapping" : "") + (dragging ? " is-drag" : "") + (open ? " is-open" : "")}
+        style={{ left: pos.x, top: pos.y }}
+        aria-label="打开 Harness 对话（可拖拽）"
+        onPointerDown={onFabPointerDown}
+        onPointerMove={onFabPointerMove}
+        onPointerUp={onFabPointerUp}
+        onPointerCancel={onFabPointerCancel}
+        onKeyDown={onFabKeyDown}
+      >
+        <span className="dock-fab-grip" aria-hidden><i /><i /><i /></span>
+        <HarnessMark size={16} />
+        {unread > 0 && !open ? <span className="dock-badge">{unread > 9 ? "9+" : unread}</span> : null}
+      </button>
+
+      {open || closing ? (
+        <div
+          className={"dock-panel" + (phoneSheet ? " is-sheet" : "") + (closing ? " is-closing" : "")}
+          style={panelStyle}
+          role="dialog"
+          aria-label="OneTHU Harness 对话"
+        >
+          <div className="dock-grab" aria-hidden />
           <div className="dock-head">
             <span className="dock-title"><HarnessMark size={13} /> 小OH</span>
             <div className="dock-ops">
@@ -470,58 +769,21 @@ export function ChatDock(): ReactNode {
           {notice ? (
             <div className="dock-notice" onClick={() => setNotice(null)}>{notice}</div>
           ) : null}
-          <div className="dock-msgs" ref={scrollRef} onClick={onMsgsClick}>
-            {msgs.length === 0 && stream == null ? (
-              <div className="dock-empty">
-                和校园助手说点什么——<br />「明天图书馆哪有空座？」「这周考试安排」「卡里还有多少钱」
-              </div>
-            ) : null}
-            {msgs.map((m, i) =>
-              m.role === "assistant" ? (
-                <div key={i} className="dock-msg-assistant">
-                  {m.meta?.think ? <ChainBlock label="思考过程" lines={[m.meta.think]} /> : null}
-                  {m.meta?.trace?.length ? <ChainBlock label="工具调用" lines={m.meta.trace} /> : null}
-                  <div className="dock-msg dock-md">
-                    <Markdown remarkPlugins={[remarkGfm]}>{m.text}</Markdown>
-                  </div>
-                </div>
-              ) : (
-                <div key={i} className="dock-msg dock-msg-user">{m.text}</div>
-              ),
-            )}
-            {trace.length > 0 ? <ChainBlock label="工具调用" lines={trace} defaultOpen /> : null}
-            {think ? (
-              <div className="dock-think">
-                <button className="dock-think-head" onClick={() => setThinkOpen((o) => !o)} aria-expanded={thinkOpen}>
-                  <span className="dock-think-label">思考过程</span>
-                  <span className="dock-think-meta">{thinkOpen ? "点击收起" : `${think.length} 字 · 已折叠`}</span>
-                  <i className={"plg-caret" + (thinkOpen ? " is-open" : "")} />
-                </button>
-                {thinkOpen ? <div className="dock-think-body">{think}</div> : null}
-              </div>
-            ) : null}
-            {stream != null ? (
-              <div className="dock-msg dock-msg-assistant dock-streaming">
-                {stream ? (
-                  <div className="dock-md">
-                    <Markdown remarkPlugins={[remarkGfm]}>{stream}</Markdown>
-                  </div>
-                ) : (
-                  <span className="dock-thinking">{status ?? "思考中…"}</span>
-                )}
-                {stream ? <span className="dock-caret" /> : null}
-              </div>
-            ) : null}
-            {confirmCard ? (
-              <div className="dock-confirm">
-                <div className="dock-confirm-text">{confirmCard}</div>
-                <div className="dock-confirm-ops">
-                  <button className="btn btn-primary dock-btn" disabled={busy} onClick={() => void send("确认")}>确认执行</button>
-                  <button className="btn dock-btn" disabled={busy} onClick={() => void send("取消")}>取消</button>
-                </div>
-              </div>
-            ) : null}
-          </div>
+          <DockMsgList
+            msgs={msgs}
+            stream={stream}
+            status={status}
+            think={think}
+            thinkOpen={thinkOpen}
+            trace={trace}
+            confirmCard={confirmCard}
+            busy={busy}
+            scrollRef={scrollRef}
+            onSend={(t) => void send(t)}
+            onPick={(t) => setInput(t)}
+            onToggleThink={() => setThinkOpen((o) => !o)}
+            onMsgsClick={onMsgsClick}
+          />
           <div className="dock-input-row">
             <textarea
               className="dock-input"
@@ -551,7 +813,7 @@ export function ChatDock(): ReactNode {
               >↑</button>
             )}
           </div>
-          <div className="dock-foot" title="R6：token 用量与价格统计（由插件精确上报）">
+          <div className="dock-foot" title="R6：token 用量与价格统计（由插件精确上报；累计跨会话保留）">
             <span>本会话 {usage.sessionPrompt ?? 0}+{usage.sessionCompletion ?? 0} tok · {fmtUsd(usage.sessionCostUsd)}</span>
             <span>累计 {fmtUsd(usage.totalCostUsd)} / 预算 {fmtUsd(usage.budgetUsd)}</span>
             <div className="dock-budget"><div className="dock-budget-bar" style={{ width: `${budgetPct}%` }} /></div>
@@ -574,12 +836,7 @@ export function ChatDock(): ReactNode {
             </div>
           ) : null}
         </div>
-      ) : (
-        <button className="dock-fab" aria-label="打开 Harness 对话" onClick={toggle}>
-          <HarnessMark size={15} />
-          {unread > 0 ? <span className="dock-badge">{unread > 9 ? "9+" : unread}</span> : null}
-        </button>
-      )}
+      ) : null}
     </>
   );
 }
