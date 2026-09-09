@@ -53,31 +53,6 @@ export function setTraceKey(k: string): void {
 
 const REST = "https://restapi.amap.com/v3";
 
-/* ── 单设备每日 API 预算 ──
- * 限的是**本 app 自己**的调用量（防 bug 失控/重试风暴/缓存失效雪崩），
- * 不是防拿走 key 的人——他不走这个 app，客户端计数器对他无效
- * （对攻击者生效的限流需要服务端识别点，那是另一档架构）。
- * 真实用量远低于此：POI 永久缓存后稳态 ~15 次/天。
- */
-const DAILY_API_BUDGET = 100;
-const LS_API_BUDGET = "onethu.trace.api";
-
-const pad2 = (n: number): string => String(n).padStart(2, "0");
-
-function trySpendBudget(): boolean {
-  try {
-    const d = new Date();
-    const ymd = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-    const cur = JSON.parse(localStorage.getItem(LS_API_BUDGET) ?? "null") as { day: string; n: number } | null;
-    const n = cur && cur.day === ymd ? cur.n : 0;
-    if (n >= DAILY_API_BUDGET) return false;
-    localStorage.setItem(LS_API_BUDGET, JSON.stringify({ day: ymd, n: n + 1 }));
-    return true;
-  } catch {
-    return true; // localStorage 不可用：不限（比误杀好）
-  }
-}
-
 /* ── WGS-84 → GCJ-02（火星坐标，国测局算法；中国境外恒等） ── */
 const PI = Math.PI;
 const A = 6378245.0;
@@ -187,7 +162,6 @@ export async function searchPoi(query: string): Promise<Poi | null> {
   let pois: Poi[] = [];
   const key = amapKey();
   if (!key) return null;
-  if (!trySpendBudget()) return null; // 预算耗尽：不 fetch、不落负缓存
   try {
     const url = `${REST}/place/text?keywords=${encodeURIComponent(q)}&city=${encodeURIComponent("北京市")}&citylimit=true&offset=10&page=1&key=${key}`;
     const res = await universalFetch(url, { method: "GET" });
@@ -243,7 +217,6 @@ export async function routeEta(
   const api = mode === "walk" ? "walking" : mode === "bike" ? "bicycling" : "driving";
   const key = amapKey();
   if (!key) return null;
-  if (!trySpendBudget()) return null;
   try {
     const url = `${REST}/direction/${api}?origin=${o}&destination=${d}&key=${key}`;
     const res = await universalFetch(url, { method: "GET" });
