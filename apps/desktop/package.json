@@ -19,6 +19,7 @@
     "@onethu/ui": "workspace:*",
     "@tauri-apps/api": "^2.5.0",
     "@tauri-apps/plugin-dialog": "^2.7.3",
+    "@tauri-apps/plugin-geolocation": "^2.3.3",
     "@tauri-apps/plugin-opener": "^2.5.4",
     "leaflet": "^1.9.4",
     "mammoth": "^1.12.2",

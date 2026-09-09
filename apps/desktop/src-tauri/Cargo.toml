@@ -30,6 +30,7 @@ url = "2"
 base64 = "0.22"
 # OneTHU Harness 内嵌（移动端）：Rust 骨干核心直接编进 App（桌面端仍走 sidecar 进程）
 onethu-harness-core = { path = "../../../plugins/OneTHU-Harness/core" }
+tauri-plugin-geolocation = "2.3.3"
 
 [profile.release]
 strip = true

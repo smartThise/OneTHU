@@ -10,6 +10,7 @@
     "opener:default",
     "opener:allow-open-url",
     "dialog:default",
-    "onethu-calendar:default"
+    "onethu-calendar:default",
+    "geolocation:allow-get-current-position"
   ]
 }

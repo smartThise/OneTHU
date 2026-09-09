@@ -1100,6 +1100,7 @@ fn open_sports_window(_: tauri::AppHandle) -> Result<String, String> {
 
 tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_geolocation::init())
         .plugin(tauri_plugin_onethu_calendar::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(std::sync::Mutex::new(None::<String>) as VenueSsoState)

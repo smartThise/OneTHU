@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
+import { getCurrentPosition } from "@tauri-apps/plugin-geolocation";
 import "leaflet/dist/leaflet.css";
 import { caldav, type ScheduleEntry } from "@onethu/core";
 import { useApp } from "../state/context.js";
@@ -115,25 +116,22 @@ export function TracePage(): React.ReactNode {
     return () => window.clearInterval(t);
   }, []);
 
-  /* ── 定位：先试 GPS（WGS-84→GCJ-02），失败回退默认校园中心 ── */
+  /* ── 定位：原生插件（CoreLocation，绕开 WKWebView JS 定位不可用），WGS-84→GCJ-02；
+     失败回退：12h 内上次定位 → 清华园中心 ── */
   const locate = useCallback(async () => {
     let got: { lng: number; lat: number; source: "gps" } | null = null;
-    if (typeof navigator !== "undefined" && navigator.geolocation) {
-      got = await new Promise((resolve) => {
-        const timer = window.setTimeout(() => resolve(null), 10_000);
-        navigator.geolocation.getCurrentPosition(
-          (p) => {
-            window.clearTimeout(timer);
-            const [lng, lat] = wgs84ToGcj02(p.coords.longitude, p.coords.latitude);
-            resolve({ lng, lat, source: "gps" });
-          },
-          () => {
-            window.clearTimeout(timer);
-            resolve(null);
-          },
-          { enableHighAccuracy: true, timeout: 9000, maximumAge: 5 * 60_000 },
-        );
-      });
+    try {
+      // 原生侧自带系统授权弹窗（Info.plist 的用途描述串）；10s 兜底超时
+      const p = await Promise.race([
+        getCurrentPosition({ enableHighAccuracy: true, timeout: 9000, maximumAge: 5 * 60_000 }),
+        new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 10_000)),
+      ]) as GeolocationPosition | null;
+      if (p) {
+        const [lng, lat] = wgs84ToGcj02(p.coords.longitude, p.coords.latitude);
+        got = { lng, lat, source: "gps" };
+      }
+    } catch {
+      got = null; // 拒绝授权 / 设备无定位能力
     }
     if (got) {
       try { localStorage.setItem(LS_POS, JSON.stringify({ ...got, at: Date.now() })); } catch { /* 忽略 */ }
