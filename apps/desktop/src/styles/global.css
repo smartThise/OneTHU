@@ -4001,3 +4001,58 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   padding: 8px 12px;
   font-size: var(--text-xs);
 }
+
+/* 云盘搜索：即时反馈（服务器端扫描秒级耗时，必须有 loading 态） */
+.cloud-search.searching input {
+  border-color: var(--primary);
+}
+.cloud-search-icon {
+  display: inline-flex;
+  align-items: center;
+  width: 16px;
+  height: 16px;
+}
+.cloud-spinner {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid var(--border-soft);
+  border-top-color: var(--primary);
+  animation: cloud-spin 0.7s linear infinite;
+}
+@keyframes cloud-spin {
+  to { transform: rotate(360deg); }
+}
+.cloud-search-status {
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.cloud-search-result-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 0 8px;
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+.cloud-search-result-head b {
+  color: var(--text-1);
+  font-size: var(--text-sm);
+}
+.cloud-row.skeleton-row {
+  cursor: default;
+  pointer-events: none;
+}
+.skeleton {
+  display: inline-block;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--border-soft) 25%, var(--bg-soft) 50%, var(--border-soft) 75%);
+  background-size: 200% 100%;
+  animation: cloud-skeleton 1.1s ease infinite;
+}
+@keyframes cloud-skeleton {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}

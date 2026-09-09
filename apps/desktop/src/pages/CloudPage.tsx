@@ -6,7 +6,7 @@
  * 上传走系统选择器 → Rust 直传（字节不过 JS）；下载落 ~/Downloads；
  * 分享生成 /f/ 链接（复制 + 系统浏览器打开）。
  */
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useApp } from "../state/context.js";
 import { openExternal } from "./info/openExternal.js";
@@ -51,6 +51,9 @@ export default function CloudPage(): ReactNode {
   const [sharing, setSharing] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [searchHits, setSearchHits] = useState<SeafileEntry[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searchMeta, setSearchMeta] = useState<{ q: string; ms: number } | null>(null);
+  const searchSeqRef = useRef(0);
   const dir = useSeafileDir(repo?.id ?? null, repo ? path : null);
 
   // 挂载：恢复配置 + 拉账号与资料库
@@ -63,6 +66,31 @@ export default function CloudPage(): ReactNode {
       }
     })();
   }, [configured]);
+
+  /** 库内搜索：服务器端整库扫描秒级耗时——立即反馈「搜索中」+ 完成显示耗时，过期响应丢弃 */
+  const runSearch = async (): Promise<void> => {
+    const q = searchText.trim();
+    const repoId = repo?.id;
+    if (!q || !repoId || searching) return;
+    const seq = ++searchSeqRef.current;
+    const t0 = performance.now();
+    setSearching(true);
+    setSearchMeta({ q, ms: 0 });
+    try {
+      const hits = await seafileSearch(repoId, q);
+      if (seq !== searchSeqRef.current) return; // 已发起新搜索/退出：过期结果丢弃
+      setSearchHits(hits);
+      setSearchMeta({ q, ms: Math.round(performance.now() - t0) });
+    } catch (e) {
+      if (seq === searchSeqRef.current) {
+        showToast(`搜索失败：${String(e).slice(0, 80)}`);
+        setSearchHits(null);
+        setSearchMeta(null);
+      }
+    } finally {
+      if (seq === searchSeqRef.current) setSearching(false);
+    }
+  };
 
   // 深链：cloudRepo 指定库
   useEffect(() => {
@@ -160,35 +188,43 @@ export default function CloudPage(): ReactNode {
           </button>
         </div>
 
-        <div className="cloud-search">
-          <IconSearch style={{ width: 14, height: 14 }} />
+        <div className={`cloud-search${searching ? " searching" : ""}`}>
+          <span className="cloud-search-icon">
+            {searching ? <span className="cloud-spinner" aria-label="搜索中" /> : <IconSearch style={{ width: 14, height: 14 }} />}
+          </span>
           <input
-            placeholder={`在「${repo.name}」内搜文件名…`}
+            placeholder={`在「${repo.name}」内搜文件名（回车搜索）`}
             value={searchText}
+            disabled={searching}
             onChange={(e) => setSearchText(e.target.value)}
-            onKeyDown={async (e) => {
-              if (e.key === "Enter" && searchText.trim()) {
-                try {
-                  const hits = await seafileSearch(repo.id, searchText.trim());
-                  setSearchHits(hits);
-                  showToast(`搜到 ${hits.length} 个结果`);
-                } catch (err) {
-                  showToast(`搜索失败：${String(err).slice(0, 80)}`);
-                }
-              }
-            }}
+            onKeyDown={(e) => { if (e.key === "Enter") void runSearch(); }}
           />
-          {searchHits && (
-            <button className="btn" onClick={() => { setSearchHits(null); setSearchText(""); }}>× 退出</button>
+          {!searching && (searchHits || searchMeta) && (
+            <button className="btn mini" onClick={() => { searchSeqRef.current++; setSearchHits(null); setSearchMeta(null); setSearchText(""); }}>退出搜索</button>
           )}
+          {searching && <span className="cloud-search-status">搜索中…</span>}
         </div>
 
         {dir.loading && <p className="dim" style={{ padding: "16px 12px" }}>读取中…</p>}
         {dir.error && <p className="cloud-error">{dir.error}</p>}
 
-        {searchHits !== null ? (
-          <div className="cloud-list">
-            {searchHits.length === 0 && <p className="dim" style={{ padding: 16 }}>没有匹配的文件</p>}
+        {searching ? (
+          <div className="cloud-list" aria-busy="true">
+            <div className="cloud-row skeleton-row"><span className="cloud-kind file" /><span className="cloud-name"><span className="skeleton" style={{ width: "38%" }} /></span></div>
+            <div className="cloud-row skeleton-row"><span className="cloud-kind file" /><span className="cloud-name"><span className="skeleton" style={{ width: "52%" }} /></span></div>
+            <div className="cloud-row skeleton-row"><span className="cloud-kind file" /><span className="cloud-name"><span className="skeleton" style={{ width: "31%" }} /></span></div>
+            <div className="cloud-row skeleton-row"><span className="cloud-kind file" /><span className="cloud-name"><span className="skeleton" style={{ width: "44%" }} /></span></div>
+          </div>
+        ) : searchHits !== null ? (
+          <div>
+            {searchMeta && (
+              <div className="cloud-search-result-head">
+                <b>“{searchMeta.q}”</b>
+                <span>{searchHits.length} 个结果 · {(searchMeta.ms / 1000).toFixed(1)}s</span>
+              </div>
+            )}
+            <div className="cloud-list">
+              {searchHits.length === 0 && searchMeta && <p className="dim" style={{ padding: 16 }}>没有匹配「{searchMeta.q}」的文件</p>}
             {searchHits.map((f, i) => (
               <div className="cloud-row" key={i}>
                 <span className={`cloud-kind ${f.kind}`} />
@@ -196,6 +232,7 @@ export default function CloudPage(): ReactNode {
                 <span className="cloud-meta">{fmtSize(f.size)}{f.mtime ? ` · ${fmtMtime(f.mtime)}` : ""}</span>
               </div>
             ))}
+            </div>
           </div>
         ) : (
           <div className="cloud-list" role="listbox" aria-label="云盘文件">
