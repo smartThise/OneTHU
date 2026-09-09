@@ -283,12 +283,19 @@ export async function seedBuiltinHarness(): Promise<void> {
         if (!perms.has(p)) { perms.add(p); changed = true; }
       }
       if (changed || rec.binPath !== binPath) {
+        // ⚠️ 重注册必须保住用户填的 settings（API Key/模型/预算…）——
+        // removePlugin 会连 settings 一起清，历史实锤：每次扩展权限清单
+        // （mail:read→cloud:read 两轮）用户都得重新粘贴 deepseek key
+        const prevSettings = { ...rec.settings };
         removePlugin("onethu.harness");
         addRustPlugin(
           { ...EMBEDDED_HARNESS_MANIFEST, permissions: [...perms] },
           binPath,
         );
-        await logLine(`[PLUGIN] 内置 OH 已刷新（权限/路径迁移）：${binPath}`);
+        if (Object.keys(prevSettings).length > 0) {
+          updatePlugin("onethu.harness", { settings: prevSettings });
+        }
+        await logLine(`[PLUGIN] 内置 OH 已刷新（权限/路径迁移，settings 保留）：${binPath}`);
       }
     }
   } catch (e) {
