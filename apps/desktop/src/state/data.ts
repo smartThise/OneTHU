@@ -1580,28 +1580,47 @@ export function useXkWorkbench(): XkWorkbench {
   const submitDraft = useCallback(async (idx: number) => {
     const d = savedDrafts[idx];
     if (!d) return;
-    if (!(await confirmOk(`确定提交「${d.name}」？\n将先退选所有已选课程，再选入该草稿中的 ${d.courses.length} 门课程。`))) {
+    // ── 差分提交（补退选安全）：先算三桶，绝不「全退再全选」──
+    // 同步课表语义：code+seq 完全相同才算同一门（同课号不同课序号是两门课）。
+    const key = (code: string, seq: string) => `${code}/${seq}`;
+    const wantKeys = new Set(d.courses.map((c) => key(c.code, c.seq)));
+    const haveKeys = new Set(selected.map((c) => key(c.code, c.seq)));
+    const toAdd = d.courses.filter((c) => !haveKeys.has(key(c.code, c.seq))); // 草稿里有、还没选
+    const toDrop = selected.filter((c) => !wantKeys.has(key(c.code, c.seq))); // 已选、草稿不要
+    const kept = d.courses.length - toAdd.length;
+    if (toAdd.length === 0 && toDrop.length === 0) {
+      setToast(`「${d.name}」与当前已选完全一致，无需提交`);
+      return;
+    }
+    const lines = [
+      `保留 ${kept} 门（两边的交集，不动）`,
+      toAdd.length ? `新选 ${toAdd.length} 门：${toAdd.map((c) => c.name).join("、")}` : null,
+      toDrop.length ? `退掉 ${toDrop.length} 门：${toDrop.map((c) => c.name).join("、")}` : null,
+    ].filter(Boolean).join("\n");
+    if (!(await confirmOk(`确定提交「${d.name}」？（差分提交，不会全退重选）\n${lines}`))) {
       setToast("已取消");
       return;
     }
     if (status === "demo") { setToast("演示模式：不执行提交"); return; }
     setBusy("promote");
+    // 顺序铁律：先选后退。补退选窗口课程名额秒动——若先退后选，新选失败
+    // 时已退的课再也抢不回来；先选后退最坏情况是新课没选上但旧课还在，
+    // 用户回到原状可重试（永远不比提交前更差）。
     try {
-      const olds = [...selected];
-      for (let i = 0; i < olds.length; i++) {
-        setProgress(`退选 ${i + 1}/${olds.length}：${olds[i]!.name}`);
-        await dropXkCourse(xkSession(), { code: olds[i]!.code, seq: olds[i]!.seq, isQueue: false });
-        if (i + 1 < olds.length) await new Promise((r) => setTimeout(r, 1000));
-      }
-      for (let i = 0; i < d.courses.length; i++) {
-        const c = d.courses[i]!;
-        setProgress(`选入 ${i + 1}/${d.courses.length}：${c.name}`);
+      for (let i = 0; i < toAdd.length; i++) {
+        const c = toAdd[i]!;
+        setProgress(`新选 ${i + 1}/${toAdd.length}：${c.name}`);
         await submitXkCourse(xkSession(), { code: c.code, seq: c.seq, zy: c.zy || 3, flag: c.flag });
-        if (i + 1 < d.courses.length) await new Promise((r) => setTimeout(r, 2000)); // 防验证码限速
+        if (i + 1 < toAdd.length) await new Promise((r) => setTimeout(r, 2000)); // 防验证码限速
       }
-      setToast(`课表「${d.name}」已全部提交！`);
+      for (let i = 0; i < toDrop.length; i++) {
+        setProgress(`退掉 ${i + 1}/${toDrop.length}：${toDrop[i]!.name}`);
+        await dropXkCourse(xkSession(), { code: toDrop[i]!.code, seq: toDrop[i]!.seq, isQueue: false });
+        if (i + 1 < toDrop.length) await new Promise((r) => setTimeout(r, 1000));
+      }
+      setToast(`「${d.name}」差分提交完成：新选 ${toAdd.length}、退掉 ${toDrop.length}、保留 ${kept}`);
     } catch (err) {
-      setToast(`提交出错: ${err instanceof Error ? err.message : String(err)}`);
+      setToast(`提交出错（已执行部分不回滚）：${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setProgress(null);
       setBusy(null);
