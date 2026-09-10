@@ -17,3 +17,7 @@ apps/desktop/src-tauri/resources/plugins/onethu.harness/onethu-harness.exe
 
 # tauri-plugin 构建脚本在插件 android 目录内生成的运行时拷贝（每次构建可再生）
 apps/desktop/src-tauri/plugins/*/android/.tauri/
+gradle/**
+
+# Android gradle 缓存不入库（误提交 e52f355 教训）
+.gradle/
