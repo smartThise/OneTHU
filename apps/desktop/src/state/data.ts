@@ -1,5 +1,5 @@
 /** 校园数据钩子：真实模式取自 @onethu/core；演示模式返回 demo 数据（界面明确标注）。 */
-import { confirmOk } from "../lib/confirm.js";
+import { confirmOk, confirmDanger } from "../lib/confirm.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { XkCourseDetail, ZhjwxkSession, BasicUserInfo, CalendarData, CalendarSemester, CardInfo, CardTransaction, CourseFile, CourseInfo, DeadlineItem, ExamEntry, Homework, NewsItem, Notification, QueueCandidate, ReportRow, ScheduleEntry, SelectedCourse, SemesterInfo, XkCourse, XkFlag, XkLevelTableRow, XkQueueInfo, XkSelectedRow, XkVolInfo } from "@onethu/core";
 import {
@@ -1614,6 +1614,11 @@ export function useXkWorkbench(): XkWorkbench {
         if (i + 1 < toAdd.length) await new Promise((r) => setTimeout(r, 2000)); // 防验证码限速
       }
       for (let i = 0; i < toDrop.length; i++) {
+        // 每退一门都过玻璃警告弹窗（用户令：让人意识到这是真实退课）
+        if (!(await confirmDanger(`「${toDrop[i]!.name}」（${toDrop[i]!.code}_${toDrop[i]!.seq || "0"}）\n退选是真实退课操作，立即生效；补退选阶段退掉的名额可能立刻被抢走。`))) {
+          setProgress(`已取消：${toDrop[i]!.name} 不退选，提交中止（已执行部分不受影响）`);
+          break;
+        }
         setProgress(`退掉 ${i + 1}/${toDrop.length}：${toDrop[i]!.name}`);
         await dropXkCourse(xkSession(), { code: toDrop[i]!.code, seq: toDrop[i]!.seq, isQueue: false });
         if (i + 1 < toDrop.length) await new Promise((r) => setTimeout(r, 1000));
