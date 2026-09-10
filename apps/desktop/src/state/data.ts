@@ -750,6 +750,8 @@ export interface XkWorkbench {
   ratings: Record<string, XkRatingRow[]>;
   /** 按课号批量补拉教评（去重缓存 + 顺序节流，UI 只管把可见课号丢进来） */
   fetchRatings: (codes: string[]) => void;
+  /** 单课号直取（简介弹窗用）：缓存命中即时回；null=失败（网络/会话），[]=该课无教评 */
+  getRatings: (code: string) => Promise<XkRatingRow[] | null>;
 }
 
 export interface XkSearchMeta {
@@ -822,11 +824,28 @@ export function useXkWorkbench(): XkWorkbench {
     }
   }, [semForRatings]);
   const fetchRatings = useCallback((codes: string[]): void => {
+    if (!semForRatings) return; // 学期末就绪不抓（缓存键按学期；就绪后本回调身份变化自动重触发）
     const need = codes.filter((c) => c && !(c in ratingsRef.current) && !ratingTriedRef.current.has(c) && !ratingQueueRef.current.includes(c));
     if (!need.length) return;
     ratingQueueRef.current.push(...need);
     void drainRatingQueue();
-  }, [drainRatingQueue]);
+  }, [drainRatingQueue, semForRatings]);
+  // 单课号直取（弹窗）：不走节流队列（单发无压力），缓存共享；失败返回 null 供 UI 提示
+  const getRatings = useCallback(async (code: string): Promise<XkRatingRow[] | null> => {
+    if (!semForRatings) return null;
+    if (code in ratingsRef.current) return ratingsRef.current[code] ?? [];
+    if (ratingTriedRef.current.has(code)) return null;
+    try {
+      const rows = await fetchXkRatings(xkSession(), { semester: semForRatings, code });
+      ratingsRef.current[code] = rows;
+      setRatings({ ...ratingsRef.current });
+      persistRatings();
+      return rows;
+    } catch {
+      ratingTriedRef.current.add(code);
+      return null;
+    }
+  }, [semForRatings]);
   /* ── 管线代数（generation）+ 学期栏唯一真源 ──
    * semBarRef：学期栏当前选中值镜像（唯一真源）。setSemesterOverride 同步写入——select 本帧
    * 即显示新学期、绝不回跳旧值；refresh/loadCatalog/refreshQueue 一切入口都先读它，
@@ -1869,7 +1888,7 @@ export function useXkWorkbench(): XkWorkbench {
     manualEvents, addManualEvent, removeManualEvent, clearManualEvents,
     previewMode, previewDraftIdx, setPreview, progress, setProgress, refreshQueue, previewItems, previewIndex, searchTotalRows,
     semesterOverride, setSemesterOverride, semesterOptions, loadDetail, plan,
-    ratings, fetchRatings,
+    ratings, fetchRatings, getRatings,
     searchState, searchRaw, searchRows, searchPage, searchHasMore, searchIncomplete, searchTotalPages, searchRunId, searchError,
     newSearch, gotoPage, loadAllSearch, retrySearch,
   };

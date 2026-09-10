@@ -146,10 +146,11 @@ const itemProb = (wb: ReturnType<typeof useXkWorkbench>, code: string, seq: stri
 /* 跳转/弹窗 opener（module-level 轻通道） */
 let _jump = "";
 let _jumpChip = "all";
-let _jumpSetter: ((v: string) => void) | null = null;
+let _jumpSeq = "";   // #23：课表块/暂存/候补点击带课序——高亮与定位到具体班次，不再全课序泛高亮
+let _jumpSetter: ((v: string, seq?: string) => void) | null = null;
 let _detailOpen: ((code: string, teacherId: string) => void) | null = null;
 let _reviewOpen: ((v: { code: string; seq: string; name: string; teacher: string }) => void) | null = null;
-const jumpTo = (code: string, chip = "all"): void => { _jump = code; _jumpChip = chip; _jumpSetter?.(code); };
+const jumpTo = (code: string, chip = "all", seq = ""): void => { _jump = code; _jumpChip = chip; _jumpSeq = String(seq || ""); _jumpSetter?.(code, _jumpSeq); };
 /** 培养方案/暂存条目 → 按课号发起真实搜索（切回全部 chip）；回调由主页面注册 */
 /** 条目点击统一入口：jumpTo 注入搜索栏（复用已验证 jump 通路 setQuery(jump)）+ 按课号真实搜索 */
 const openDetail = (code: string, teacherId: string): void => { _detailOpen?.(code, teacherId); };
@@ -164,12 +165,16 @@ const panelBody: React.CSSProperties = { padding: "12px 16px", overflowY: "auto"
 function DetailModal({ wb, code, tid, onClose }: { wb: ReturnType<typeof useXkWorkbench>; code: string | null; tid: string; onClose: () => void }) {
   const [data, setData] = useState<XkCourseDetail | null>(null);
   const [loading, setLoading] = useState(false);
+  const [rrows, setRrows] = useState<XkRatingRow[] | null | undefined>(undefined); // undefined=加载中 null=失败
   useEffect(() => {
     if (!code) return;
     setLoading(true);
     setData(null);
     void wb.loadDetail(code, tid).then((d) => { setData(d); setLoading(false); });
-    if (!wb.ratings[code]) wb.fetchRatings([code]); // #31 官方教评一并拉
+    let alive = true;
+    setRrows(undefined);
+    void wb.getRatings(code).then((v) => { if (alive) setRrows(v); }); // #31 官方教评一并拉
+    return () => { alive = false; };
   }, [code, tid]);
   if (!code) return null;
   const order = ["课程编号", "课程名称", "总学时数", "总学分", "课程内容简介", "Course Description", "考核安排", "联系人", "教材及参考书", "上课教师", "选课指导语", "先修要求", "教师教学特色", "Office Hour", "成绩评定标准", "参考书"];
@@ -183,10 +188,14 @@ function DetailModal({ wb, code, tid, onClose }: { wb: ReturnType<typeof useXkWo
       <div style={panelStyle} className="xk-panel" onClick={(e) => e.stopPropagation()}>
         <div style={panelHead}><b>课程简介</b><span style={{ flex: 1 }} /><button className="btn" onClick={onClose}>✕</button></div>
         <div style={panelBody}>
-          {(wb.ratings[code] ?? []).length > 0 ? (
+          {rrows === undefined ? (
+            <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--text-3, #9aa1ac)" }}>正在获取官方教评…</div>
+          ) : rrows === null ? (
+            <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--red)" }}>官方教评获取失败（教务会话或网络），稍后重试</div>
+          ) : rrows.length > 0 ? (
             <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "10px 0 14px" }}>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>官方教评 · 选课学生推荐度（1-7 分）</div>
-              {(wb.ratings[code] ?? []).map((row) => (
+              {rrows.map((row) => (
                 <div key={row.teacher + row.total} style={{ marginBottom: 8 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 12 }}>
                     <span style={{ fontWeight: 600 }}>{row.teacher || "（未署名教师）"}</span>
@@ -202,7 +211,9 @@ function DetailModal({ wb, code, tid, onClose }: { wb: ReturnType<typeof useXkWo
               ))}
               <div style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)", marginTop: 4 }}>数据来自教务 xgpg 学生评教；绿=6/7 分，黄=4/5 分，红=1-3 分</div>
             </div>
-          ) : null}
+          ) : (
+            <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--text-3, #9aa1ac)" }}>该课暂无官方教评数据</div>
+          )}
           {loading ? <Empty text="正在加载课程简介…" /> : !data ? <Empty text="暂无课程简介信息（该课缺教师号，无法拉取）" /> : entries.map(([k, v]) => (
             <div key={k} style={{ display: "flex", gap: 10, padding: "6px 0", borderBottom: "1px solid var(--border, #f0f0f0)" }}>
               <div style={{ width: 108, flexShrink: 0, color: "var(--text-3, #9aa1ac)", fontSize: 12 }}>{k}</div>
@@ -330,14 +341,16 @@ export function ZhjwxkCoursesPage() {
   const [detailTid, setDetailTid] = useState("");
   const [reviewCode, setReviewCode] = useState<{ code: string; seq: string; name: string; teacher: string } | null>(null);
   const [jump, setJump] = useState("");
+  const [jumpSeq, setJumpSeq] = useState("");
   // 竖屏双页签：课程查找 / 选课管理（AI 能力已并入小OH 助手；桌面仍为双栏，此状态仅移动端消费）
   const [mTab, setMTab] = useState<"find" | "manage">("find");
   useEffect(() => {
     void tbEnsureIndex().catch(() => undefined);
     // 跳转唯一权威通路：注入搜索栏（setJump → jump effect）+ 按课号真实搜索
     //（此前三通道并存 = 注入时灵时不灵；newSearch 稳定 useCallback，闭包捕获安全）
-    _jumpSetter = (code: string) => {
+    _jumpSetter = (code: string, seq?: string) => {
       setJump(code);
+      setJumpSeq(String(seq || ""));
       void wb.newSearch({ kcm: "", kch: code, teacher: "", department: "", weekday: "", section: "", grade: "", rxklxm: "", kctsm: "", onlyAvailable: false, gradAvail: false });
     };
     _detailOpen = (code, tid) => { setDetailCode(code); setDetailTid(tid); };
@@ -435,7 +448,7 @@ export function ZhjwxkCoursesPage() {
             minWidth: 0,
           }}
         >
-          <CourseListPanel wb={wb} jump={jump} />
+          <CourseListPanel wb={wb} jump={jump} jumpSeq={jumpSeq} />
         </div>
         {split.collapsed === "none" ? (
           <div
@@ -488,7 +501,7 @@ export function ZhjwxkCoursesPage() {
             </button>
           ))}
         </SegmentedOverflow>
-        {mTab === "find" ? <CourseListPanel wb={wb} jump={jump} /> : null}
+        {mTab === "find" ? <CourseListPanel wb={wb} jump={jump} jumpSeq={jumpSeq} /> : null}
         {mTab === "manage" ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <PlanSection wb={wb} />
@@ -506,7 +519,7 @@ export function ZhjwxkCoursesPage() {
 }
 
 /* ══════════ 左栏：搜索 + 筛选 + 列表 ══════════ */
-function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; jump: string }) {
+function CourseListPanel({ wb, jump, jumpSeq }: { wb: ReturnType<typeof useXkWorkbench>; jump: string; jumpSeq: string }) {
   const [query, setQuery] = useState("");
   const [chip, setChip] = useState("all");
   const [credits, setCredits] = useState("");
@@ -557,16 +570,19 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serverKey]);
+  const [jumpTarget, setJumpTarget] = useState<{ code: string; seq: string; at: number } | null>(null);
+  const jumpLocateRef = useRef(0);
   useEffect(() => {
     if (!jump) return;
     setQuery(jump);
     setChip(_jumpChip as typeof chip);
     setHighlight(jump);
+    setJumpTarget(jumpSeq ? { code: jump, seq: jumpSeq, at: Date.now() } : null);
     // 高亮瞬时清除；搜索词保留（2026-09-03 用户定稿：课号注入搜索栏并保持——
     // 旧的 1.8s setQuery("") 就是「过一会刷回第一页」的实锤根因。残留词用搜索框 × 清）
     const t = setTimeout(() => setHighlight(""), 1800);
     return () => clearTimeout(t);
-  }, [jump]);
+  }, [jump, jumpSeq]);
   // 培养方案/暂存条目点击 → 按课号真实搜索（新搜索替换当前关键词，语义同手输）
   useEffect(() => {
     // 右栏「我的培养方案」卡片 → 切 plan chip（此前 setPresetGroupChip 从未赋值，点击全静默无效）
@@ -675,12 +691,34 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
     const t = setTimeout(() => wb.fetchRatings(codes), 600);
     return () => clearTimeout(t);
   }, [listRows, wb.fetchRatings]);
+
   const totalPages = wb.searchTotalPages || Math.max(1, Math.ceil(listRows.length / 20));
   const curPage = searchMode ? Math.min(uiPage, totalPages) : wb.searchPage;
   const pagedRows = useMemo(
     () => (searchMode ? listRows.slice((curPage - 1) * 20, curPage * 20) : listRows),
     [listRows, searchMode, curPage],
   );
+  // #23 收口：搜索落地后定位到具体课序行——翻到所在页 + 滚动到行；
+  // 行不在已加载池且数据不完整 → 自动「加载全部」一轮（保险丝防循环），
+  // 而不是停在课号结果顶端等用户自己翻（原 #23 全量三症状的根）。
+  useEffect(() => {
+    if (!jumpTarget || wb.searchState !== "ready") return;
+    const idx = listRows.findIndex((r) => r.c.code === jumpTarget.code && String(r.c.seq || "0") === String(jumpTarget.seq || "0"));
+    if (idx < 0) {
+      if (wb.searchIncomplete && jumpLocateRef.current !== jumpTarget.at) {
+        jumpLocateRef.current = jumpTarget.at;
+        void wb.loadAllSearch();
+      }
+      return;
+    }
+    const page = Math.floor(idx / 20) + 1;
+    if (searchMode && curPage !== page) setUiPage(page);
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-xk-row="${jumpTarget.code}_${jumpTarget.seq || "0"}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [jumpTarget, wb.searchState, listRows, wb.searchIncomplete, wb.loadAllSearch, searchMode, curPage]);
+
   const busy = wb.searchState === "loading" || wb.searchState === "loadingMore";
   const pageLoaded = !searchMode || !wb.searchIncomplete || curPage * 20 <= listRows.length;
   const goJump = () => {
@@ -751,7 +789,7 @@ function CourseListPanel({ wb, jump }: { wb: ReturnType<typeof useXkWorkbench>; 
             </div>
           ) : null}
           <Card className="list">
-            {pagedRows.map((r, i) => <PickCard key={r.key} wb={wb} r={r} i={i} picks={picks} setPicks={setPicks} highlight={r.c.code === highlight} />)}
+            {pagedRows.map((r, i) => <PickCard key={r.key} wb={wb} r={r} i={i} picks={picks} setPicks={setPicks} highlight={r.c.code === highlight && (jumpSeq === "" || String(r.c.seq || "0") === String(jumpSeq || "0"))} />)}
             {pagedRows.length === 0 && !pageLoaded ? (
               <Empty text="此页未加载——点上方「加载全部」后可查看。" />
             ) : null}
@@ -870,7 +908,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
   const showInlineProb = state === "selected" || state === "candidate"; // 可用行操作行已有概率 chip，不双显
 
   return (
-    <div className="row" style={{ animationDelay: `${Math.min(i, 20) * 20}ms`, ...(highlight ? { outline: "2px solid var(--accent)" } : {}) }}>
+    <div className="row" data-xk-row={r.key} style={{ animationDelay: `${Math.min(i, 20) * 20}ms`, ...(highlight ? { outline: "2px solid var(--accent)" } : {}) }}>
       <div className="row-when">
         <b style={{ color: wb.phase && r.q ? (r.q.qRemaining > 0 ? "var(--green)" : r.q.qQueue > 0 ? "var(--amber)" : "var(--red)") : heat(applied, cap) }}>
           {wb.phase ? (r.q?.qRemaining ?? r.c.remaining) : r.c.remaining}
@@ -1256,7 +1294,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
                   return (
                     <div key={b.key} title={`${b.label}（${pvHm(b.begin)}–${pvHm(b.end)}）${b.probLabel ? " · " + b.probLabel : ""}`}
                       style={{ position: "absolute", left: `calc(${leftPct}% + 3px)`, width: `calc(${widthPct}% - 6px)`, top, height, background: b.color, borderRadius: 5, padding: compact ? "2px 4px" : "3px 5px", color: "#fff", overflow: "hidden", boxSizing: "border-box", boxShadow: "0 1px 3px rgba(0,0,0,0.18)", zIndex: 6, cursor: b.manual ? undefined : "pointer" }}
-                      onClick={() => { if (!b.manual && b.code) jumpTo(b.code, "all"); }}>
+                      onClick={() => { if (!b.manual && b.code) jumpTo(b.code, "all", b.seq || ""); }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                         <div style={{ fontSize: compact ? 8.5 : 9.5, fontWeight: 700, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.label}</div>
                       </div>
@@ -1384,7 +1422,7 @@ function StageSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
             return (
               <div key={`${s.code}_${s.seq || "0"}_${i}`} style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2, fontSize: 12, padding: "6px 8px", borderRadius: 10, background: "var(--bg-elev, #f7f7f8)", border: "1px solid var(--border)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                  <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600, cursor: "pointer" }} title={`点击搜索：${s.name}（${s.code}）`} onClick={() => jumpTo(s.code, "all")}>
+                  <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600, cursor: "pointer" }} title={`点击搜索：${s.name}（${s.code}）`} onClick={() => jumpTo(s.code, "all", s.seq)}>
                     {s.name}{s.teacher ? <span style={{ color: "var(--text-3)", fontWeight: 400 }}> {s.teacher}</span> : null}
                   </span>
                   {s.credits ? <span style={{ fontSize: 10, color: "var(--text-3)", whiteSpace: "nowrap" }}>{s.credits}学分</span> : null}
@@ -1460,7 +1498,7 @@ function QueueSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
       {wb.candidates.map((c, i) => (
         <div key={`${c.code}-${i}`} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: "4px 0", borderBottom: "1px solid var(--border)" }}>
           <span className="chip chip-amber" style={{ fontSize: 10 }}>{c.myPos ? `第${c.myPos}位/${c.queueTotal}` : "候选"}</span>
-          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={`${c.name}（${c.code}${c.seq && c.seq !== "0" ? `·${c.seq}` : ""}）`} onClick={() => jumpTo(c.code, "all")}>{c.name}<span style={{ color: "var(--text-3)" }}> {c.code}{c.seq && c.seq !== "0" ? `·${c.seq}` : ""}</span></span>
+          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }} title={`${c.name}（${c.code}${c.seq && c.seq !== "0" ? `·${c.seq}` : ""}）`} onClick={() => jumpTo(c.code, "all", c.seq)}>{c.name}<span style={{ color: "var(--text-3)" }}> {c.code}{c.seq && c.seq !== "0" ? `·${c.seq}` : ""}</span></span>
           <button className="btn" style={{ padding: "0 5px", fontSize: 10 }} disabled={wb.busy !== null} onClick={() => void wb.drop(c.code, c.seq, true)}>删除</button>
         </div>
       ))}
