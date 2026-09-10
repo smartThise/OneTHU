@@ -21,6 +21,8 @@ import {
   searchXkCourses,
   semesterFromDate,
   submitXkCourse,
+  fetchXkRatings,
+  type XkRatingRow,
   type XkVolRow,
 } from "@onethu/core";
 import { http, info, learn, logLine, session } from "../lib/clients.js";
@@ -744,6 +746,10 @@ export interface XkWorkbench {
   semesterOptions: Array<{ value: string; label: string }>;
   plan: XkPlanItem[];
   loadDetail: (code: string, teacherId?: string) => Promise<XkCourseDetail | null>;
+  /** 官方教评（#31 xgpg AJAX，教师粒度 1-7 分分布）；key=课号 */
+  ratings: Record<string, XkRatingRow[]>;
+  /** 按课号批量补拉教评（去重缓存 + 顺序节流，UI 只管把可见课号丢进来） */
+  fetchRatings: (codes: string[]) => void;
 }
 
 export interface XkSearchMeta {
@@ -770,6 +776,57 @@ export function useXkWorkbench(): XkWorkbench {
   const { status } = useApp();
   const [semester, setSemester] = useState<string | null>(null);
   const [semesterOverride, setSemesterOverrideState] = useState<string | null>(null);
+  // 官方教评（#31）：课号 → 教师行。localStorage 按学期持久（教评学期内不变），
+  // 会话内 tried 集防止空数据课号被反复打；500ms 间隔节流防限流（油猴脚本同款节奏）。
+  const [ratings, setRatings] = useState<Record<string, XkRatingRow[]>>({});
+  const ratingsRef = useRef<Record<string, XkRatingRow[]>>({});
+  const ratingTriedRef = useRef<Set<string>>(new Set());
+  const ratingBusyRef = useRef(false);
+  const ratingQueueRef = useRef<string[]>([]);
+  const semForRatings = semester ?? semesterOverride;
+  useEffect(() => {
+    if (!semForRatings) return;
+    ratingsRef.current = {};
+    ratingTriedRef.current = new Set();
+    try {
+      const saved = localStorage.getItem(`onethu-xk-ratings-${semForRatings}`);
+      if (saved) {
+        ratingsRef.current = JSON.parse(saved) as Record<string, XkRatingRow[]>;
+        setRatings({ ...ratingsRef.current });
+      }
+    } catch { /* 缓存坏 → 空表重拉 */ }
+  }, [semForRatings]);
+  const persistRatings = (): void => {
+    if (!semForRatings) return;
+    try { localStorage.setItem(`onethu-xk-ratings-${semForRatings}`, JSON.stringify(ratingsRef.current)); } catch { /* 满 → 弃 */ }
+  };
+  const drainRatingQueue = useCallback(async (): Promise<void> => {
+    if (ratingBusyRef.current) return;
+    ratingBusyRef.current = true;
+    try {
+      for (;;) {
+        const code = ratingQueueRef.current.shift();
+        if (!code) break;
+        try {
+          const rows = await fetchXkRatings(xkSession(), { semester: semForRatings ?? undefined, code });
+          ratingsRef.current[code] = rows;
+        } catch {
+          ratingTriedRef.current.add(code); // 会话/网络失败：本会话不再打这课号
+        }
+        setRatings({ ...ratingsRef.current });
+        await new Promise((r) => setTimeout(r, 500)); // 节流防限流
+      }
+      persistRatings();
+    } finally {
+      ratingBusyRef.current = false;
+    }
+  }, [semForRatings]);
+  const fetchRatings = useCallback((codes: string[]): void => {
+    const need = codes.filter((c) => c && !(c in ratingsRef.current) && !ratingTriedRef.current.has(c) && !ratingQueueRef.current.includes(c));
+    if (!need.length) return;
+    ratingQueueRef.current.push(...need);
+    void drainRatingQueue();
+  }, [drainRatingQueue]);
   /* ── 管线代数（generation）+ 学期栏唯一真源 ──
    * semBarRef：学期栏当前选中值镜像（唯一真源）。setSemesterOverride 同步写入——select 本帧
    * 即显示新学期、绝不回跳旧值；refresh/loadCatalog/refreshQueue 一切入口都先读它，
@@ -1812,6 +1869,7 @@ export function useXkWorkbench(): XkWorkbench {
     manualEvents, addManualEvent, removeManualEvent, clearManualEvents,
     previewMode, previewDraftIdx, setPreview, progress, setProgress, refreshQueue, previewItems, previewIndex, searchTotalRows,
     semesterOverride, setSemesterOverride, semesterOptions, loadDetail, plan,
+    ratings, fetchRatings,
     searchState, searchRaw, searchRows, searchPage, searchHasMore, searchIncomplete, searchTotalPages, searchRunId, searchError,
     newSearch, gotoPage, loadAllSearch, retrySearch,
   };

@@ -149,9 +149,11 @@ export {
   submitXkCourse,
   dropXkCourse,
   changeXkVolunteer,
+  fetchXkRatings,
   setZhjwxkDebug,
   ZY_LIMITS,
 } from "./zhjwxk/client.js";
+export type { XkRatingRow } from "./zhjwxk/client.js";
 export {
   buildVolIndex,
   matchVolIndexed,

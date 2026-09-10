@@ -1377,3 +1377,68 @@ export async function getXkLevelTable(s: ZhjwxkSession, opts: { semester: string
   }
   return map;
 }
+
+/* ── 官方教评（选课学生推荐度）────────────────────────────────
+ * #31（huangkaka666 的油猴脚本 thu-course-helper 逆向实录）：教务 AJAX
+ * 接口 xgpg_xspjyxkt.do 按课号查 1-7 分分布（fs1..fs7，fs7=最高），教师
+ * 粒度（jsm），含 kcm/kkdwmc。POST 表单 cm=xgpg_qbkcmycdzbShow。
+ * 原生接入：走既有会话层（无需油猴），reqwest 自动 GBK→UTF-8 后
+ * JSON.parse。 */
+export interface XkRatingRow {
+  code: string;
+  name: string;
+  teacher: string;
+  department: string;
+  distribution: number[]; // fs1..fs7（fs7 最高分档）
+  total: number;
+  average: number; // 1-7 加权平均
+  highRatio: number; // (fs6+fs7)/total
+}
+
+export async function fetchXkRatings(
+  s: ZhjwxkSession,
+  opts: { semester?: string; code: string },
+): Promise<XkRatingRow[]> {
+  const { entry, semester } = await ensure(s, opts.semester);
+  const form: Record<string, string> = {
+    cm: "xgpg_qbkcmycdzbShow",
+    p_xnxq: semester,
+    p_xslb: "bks",
+    query_kkdwnm: "",
+    query_jsm: "",
+    query_kch: opts.code,
+    query_kcm: "",
+    page: "1",
+    rows: "50",
+  };
+  const raw = await postZhjwxkApi(
+    s,
+    entry,
+    `/xkBks.xgpg_xspjyxkt.do?cm=xgpg_qbkcmycdzbData&p_xnxq=${semester}&p_xslb=bks`,
+    form,
+  );
+  assertNotDenied(s, raw);
+  let data: { rows?: Array<Record<string, unknown>> };
+  try {
+    data = JSON.parse(raw) as { rows?: Array<Record<string, unknown>> };
+  } catch {
+    return []; // 非 JSON（异常页/无权限）：无数据即可，不惊扰调用方
+  }
+  const out: XkRatingRow[] = [];
+  for (const row of data.rows ?? []) {
+    const distribution = [1, 2, 3, 4, 5, 6, 7].map((i) => parseInt(String(row[`fs${i}`] ?? ""), 10) || 0);
+    const total = distribution.reduce((a, b) => a + b, 0);
+    const average = total > 0 ? distribution.reduce((sum, v, i) => sum + v * (i + 1), 0) / total : 0;
+    out.push({
+      code: String(row.kch ?? ""),
+      name: String(row.kcm ?? ""),
+      teacher: String(row.jsm ?? ""),
+      department: String(row.kkdwmc ?? ""),
+      distribution,
+      total,
+      average: Math.round(average * 100) / 100,
+      highRatio: total > 0 ? Math.round(((distribution[5]! + distribution[6]!) / total) * 1000) / 1000 : 0,
+    });
+  }
+  return out;
+}
