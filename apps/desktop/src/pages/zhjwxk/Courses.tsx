@@ -10,7 +10,7 @@ import { Card, Empty, ErrorNote, PageHead, SegmentedOverflow, SkeletonRows } fro
 import { IconRefresh } from "../../components/Icons.js";
 import { nextVolCheckpoint, useXkWorkbench, type XkSearchMeta, type XkStageItem } from "../../state/data.js";
 import { useApp } from "../../state/context.js";
-import type { XkCourseDetail, XkRatingRow } from "@onethu/core";
+import type { XkCourseDetail } from "@onethu/core";   // 【教评#31冻结】XkRatingRow 已注释
 import { tbEnsureIndex, tbFetchReviews, tbMatch, tbStars, tbCourseUrl, tbWriteUrl, type TbEntry, type TbReviews } from "../../lib/xkreviews.js";
 import { confirmOk, confirmDanger } from "../../lib/confirm.js";
 import { openExternal } from "../info/openExternal.js";
@@ -121,21 +121,22 @@ const tbBadge = (r: XkRow): string => {
   const e = tbMatch(r.name, r.teacher);
   return e && e.count > 0 ? `${tbStars(e.avg)} ${e.avg ? e.avg.toFixed(1) : ""}(${e.count})` : "";
 };
-/* 官方教评（#31）：课号 → 教师行择优（教师命中 → 最大样本），1-7 分制 */
-const xkPick = (rows: XkRatingRow[] | undefined, teacher: string): XkRatingRow | null => {
-  if (!rows || !rows.length) return null;
-  const t = String(teacher || "").trim();
-  if (t) {
-    const hit = rows.find((x) => x.teacher === t) || rows.find((x) => x.teacher.includes(t) || t.includes(x.teacher));
-    if (hit) return hit;
-  }
-  return rows.reduce((best, x) => (x.total > best.total ? x : best), rows[0]!);
-};
-const xkAvgColor = (avg: number): string => (avg >= 6 ? "var(--green)" : avg >= 5 ? "var(--amber)" : "var(--red)");
-const xkBadge = (ratings: Record<string, XkRatingRow[]>, r: XkRow): string => {
-  const m = xkPick(ratings[r.c.code], r.teacher);
-  return m && m.total > 0 ? `教评 ${m.average.toFixed(1)}(${m.total})` : "";
-};
+// 【特性冻结 2026-09-10】官方教评（#31）暂停：xgpg 端点对登录会话全 500。（辅助函数注释保留）
+// /* 官方教评（#31）：课号 → 教师行择优（教师命中 → 最大样本），1-7 分制 */
+// const xkPick = (rows: XkRatingRow[] | undefined, teacher: string): XkRatingRow | null => {
+//   if (!rows || !rows.length) return null;
+//   const t = String(teacher || "").trim();
+//   if (t) {
+//     const hit = rows.find((x) => x.teacher === t) || rows.find((x) => x.teacher.includes(t) || t.includes(x.teacher));
+//     if (hit) return hit;
+//   }
+//   return rows.reduce((best, x) => (x.total > best.total ? x : best), rows[0]!);
+// };
+// const xkAvgColor = (avg: number): string => (avg >= 6 ? "var(--green)" : avg >= 5 ? "var(--amber)" : "var(--red)");
+// const xkBadge = (ratings: Record<string, XkRatingRow[]>, r: XkRow): string => {
+//   const m = xkPick(ratings[r.c.code], r.teacher);
+//   return m && m.total > 0 ? `教评 ${m.average.toFixed(1)}(${m.total})` : "";
+// };
 const itemProb = (wb: ReturnType<typeof useXkWorkbench>, code: string, seq: string, flag: XkFlag, zy: number): { prob: string; color: string; bg: string } => {
   const row = wb.courses.find((r) => r.c.code === code && r.c.seq === seq);
   const vol = row?.vol;
@@ -165,16 +166,17 @@ const panelBody: React.CSSProperties = { padding: "12px 16px", overflowY: "auto"
 function DetailModal({ wb, code, tid, onClose }: { wb: ReturnType<typeof useXkWorkbench>; code: string | null; tid: string; onClose: () => void }) {
   const [data, setData] = useState<XkCourseDetail | null>(null);
   const [loading, setLoading] = useState(false);
-  const [rrows, setRrows] = useState<XkRatingRow[] | null | undefined>(undefined); // undefined=加载中 null=失败
+  // const [rrows, setRrows] = useState<XkRatingRow[] | null | undefined>(undefined);   // 【教评#31冻结】
   useEffect(() => {
     if (!code) return;
     setLoading(true);
     setData(null);
     void wb.loadDetail(code, tid).then((d) => { setData(d); setLoading(false); });
-    let alive = true;
-    setRrows(undefined);
-    void wb.getRatings(code).then((v) => { if (alive) setRrows(v); }); // #31 官方教评一并拉
-    return () => { alive = false; };
+    // 【教评#31冻结】教评一并拉
+    // let alive = true;
+    // setRrows(undefined);
+    // void wb.getRatings(code).then((v) => { if (alive) setRrows(v); });
+    // return () => { alive = false; };
   }, [code, tid]);
   if (!code) return null;
   const order = ["课程编号", "课程名称", "总学时数", "总学分", "课程内容简介", "Course Description", "考核安排", "联系人", "教材及参考书", "上课教师", "选课指导语", "先修要求", "教师教学特色", "Office Hour", "成绩评定标准", "参考书"];
@@ -188,32 +190,35 @@ function DetailModal({ wb, code, tid, onClose }: { wb: ReturnType<typeof useXkWo
       <div style={panelStyle} className="xk-panel" onClick={(e) => e.stopPropagation()}>
         <div style={panelHead}><b>课程简介</b><span style={{ flex: 1 }} /><button className="btn" onClick={onClose}>✕</button></div>
         <div style={panelBody}>
-          {rrows === undefined ? (
-            <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--text-3, #9aa1ac)" }}>正在获取官方教评…</div>
-          ) : rrows === null ? (
-            <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--red)" }}>官方教评获取失败（教务会话或网络），稍后重试</div>
-          ) : rrows.length > 0 ? (
-            <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "10px 0 14px" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>官方教评 · 选课学生推荐度（1-7 分）</div>
-              {rrows.map((row) => (
-                <div key={row.teacher + row.total} style={{ marginBottom: 8 }}>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 12 }}>
-                    <span style={{ fontWeight: 600 }}>{row.teacher || "（未署名教师）"}</span>
-                    <span style={{ color: xkAvgColor(row.average), fontWeight: 700 }}>{row.average.toFixed(2)} / 7</span>
-                    <span style={{ color: "var(--text-3, #9aa1ac)" }}>{row.total} 人评分 · 高分率 {(row.highRatio * 100).toFixed(0)}%</span>
-                  </div>
-                  <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", marginTop: 4, background: "var(--border, #f0f0f0)" }}>
-                    {row.distribution.map((v, i) => v > 0 ? (
-                      <div key={i} title={`${i + 1} 分：${v} 人`} style={{ width: `${(v / Math.max(1, row.total)) * 100}%`, background: i >= 5 ? "var(--green)" : i >= 3 ? "var(--amber)" : "var(--red)", opacity: i >= 5 ? 0.85 : i >= 3 ? 0.75 : 0.65 }} />
-                    ) : null)}
-                  </div>
-                </div>
-              ))}
-              <div style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)", marginTop: 4 }}>数据来自教务 xgpg 学生评教；绿=6/7 分，黄=4/5 分，红=1-3 分</div>
-            </div>
-          ) : (
-            <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--text-3, #9aa1ac)" }}>该课暂无官方教评数据</div>
-          )}
+          {/* 【教评#31冻结】教评三态块（整块注释保留，教务修好解开）
+           {rrows === undefined ? (
+             <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--text-3, #9aa1ac)" }}>正在获取官方教评…</div>
+           ) : rrows === null ? (
+             <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--red)" }}>官方教评获取失败（教务会话或网络），稍后重试</div>
+           ) : rrows.length > 0 ? (
+             <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "10px 0 14px" }}>
+               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>官方教评 · 选课学生推荐度（1-7 分）</div>
+               {rrows.map((row) => (
+                 <div key={row.teacher + row.total} style={{ marginBottom: 8 }}>
+                   <div style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 12 }}>
+                     <span style={{ fontWeight: 600 }}>{row.teacher || "（未署名教师）"}</span>
+                     <span style={{ color: xkAvgColor(row.average), fontWeight: 700 }}>{row.average.toFixed(2)} / 7</span>
+                     <span style={{ color: "var(--text-3, #9aa1ac)" }}>{row.total} 人评分 · 高分率 {(row.highRatio * 100).toFixed(0)}%</span>
+                   </div>
+                   <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", marginTop: 4, background: "var(--border, #f0f0f0)" }}>
+                     {row.distribution.map((v, i) => v > 0 ? (
+                       <div key={i} title={`${i + 1} 分：${v} 人`} style={{ width: `${(v / Math.max(1, row.total)) * 100}%`, background: i >= 5 ? "var(--green)" : i >= 3 ? "var(--amber)" : "var(--red)", opacity: i >= 5 ? 0.85 : i >= 3 ? 0.75 : 0.65 }} />
+                     ) : null)}
+                   </div>
+                 </div>
+               ))}
+               <div style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)", marginTop: 4 }}>数据来自教务 xgpg 学生评教；绿=6/7 分，黄=4/5 分，红=1-3 分</div>
+             </div>
+           ) : (
+             <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--text-3, #9aa1ac)" }}>该课暂无官方教评数据</div>
+           )}
+
+          */}
           {loading ? <Empty text="正在加载课程简介…" /> : !data ? <Empty text="暂无课程简介信息（该课缺教师号，无法拉取）" /> : entries.map(([k, v]) => (
             <div key={k} style={{ display: "flex", gap: 10, padding: "6px 0", borderBottom: "1px solid var(--border, #f0f0f0)" }}>
               <div style={{ width: 108, flexShrink: 0, color: "var(--text-3, #9aa1ac)", fontSize: 12 }}>{k}</div>
@@ -633,18 +638,18 @@ function CourseListPanel({ wb, jump, jumpSeq }: { wb: ReturnType<typeof useXkWor
     const scored: Array<{ r: XkRow; e: TbEntry | null }> = base.map((r) => ({ r, e: tbMatch(r.name, r.teacher) }));
     if (sortBy === "cnt_desc") scored.sort((a, b) => (b.e?.count ?? -1) - (a.e?.count ?? -1));
     else if (sortBy === "rate_desc") scored.sort((a, b) => ((b.e?.avg ?? -1) - (a.e?.avg ?? -1)) || ((b.e?.count ?? 0) - (a.e?.count ?? 0)));
-    else if (sortBy === "xk_desc" || sortBy === "xk_asc") {
-      // 官方教评排序（#31）：教师匹配行均分；无教评的课沉底（高→低）/
-      // 浮顶无意义——低→高同样无教评沉底，避免误导「0 分」
-      const xv = (r: XkRow): number => {
-        const m = xkPick(wb.ratings[r.c.code], r.teacher);
-        return m && m.total > 0 ? m.average : -1;
-      };
-      scored.sort((a, b) => (sortBy === "xk_desc" ? xv(b.r) - xv(a.r) : xv(a.r) - xv(b.r)));
-    }
+//     else if (sortBy === "xk_desc" || sortBy === "xk_asc") {
+//       // 官方教评排序（#31）：教师匹配行均分；无教评的课沉底（高→低）/
+//       // 浮顶无意义——低→高同样无教评沉底，避免误导「0 分」
+//       const xv = (r: XkRow): number => {
+//         const m = xkPick(wb.ratings[r.c.code], r.teacher);
+//         return m && m.total > 0 ? m.average : -1;
+//       };
+//       scored.sort((a, b) => (sortBy === "xk_desc" ? xv(b.r) - xv(a.r) : xv(a.r) - xv(b.r)));
+//     }
     else scored.sort((a, b) => ((a.e?.avg ?? 6) - (b.e?.avg ?? 6)) || ((b.e?.count ?? 0) - (a.e?.count ?? 0)));
     return scored.map((x) => x.r);
-  }, [wb.searchRows, wb.searchState, wb.courses, wb.previewIndex, wb.ratings, query, chip, credits, day, period, conflictF, tongshi, feature, grade, bksrem, yjsrem, xknote, reviewsF, sortBy]);
+  }, [wb.searchRows, wb.searchState, wb.courses, wb.previewIndex, query, chip, credits, day, period, conflictF, tongshi, feature, grade, bksrem, yjsrem, xknote, reviewsF, sortBy]);
 
   // 志愿数据渲染行按需补拉（NextTHUxk 2.0 搜索行合并尾部同款触发点）：
   // 可见行到位/翻页/筛选 → 60ms 防抖 → 院系定向增量（只拉「正在看的行」
@@ -683,14 +688,14 @@ function CourseListPanel({ wb, jump, jumpSeq }: { wb: ReturnType<typeof useXkWor
     const pk = new Set(wb.searchRaw.map((c) => `${c.code}_${c.seq || "0"}`));
     return rows.filter((r) => pk.has(r.key));
   }, [rows, chip, wb.searchRaw]);
-  // 官方教评按需拉（#31）：当前页可见行课号 → 500ms 间隔顺序抓（data 层节流），
-  // 教评学期内不变 → localStorage 按学期缓存，越用越快
-  useEffect(() => {
-    if (!listRows.length) return;
-    const codes = [...new Set(listRows.map((r) => r.c.code))];
-    const t = setTimeout(() => wb.fetchRatings(codes), 600);
-    return () => clearTimeout(t);
-  }, [listRows, wb.fetchRatings]);
+//   // 官方教评按需拉（#31）：当前页可见行课号 → 500ms 间隔顺序抓（data 层节流），
+//   // 教评学期内不变 → localStorage 按学期缓存，越用越快
+//   useEffect(() => {
+//     if (!listRows.length) return;
+//     const codes = [...new Set(listRows.map((r) => r.c.code))];
+//     const t = setTimeout(() => wb.fetchRatings(codes), 600);
+//     return () => clearTimeout(t);
+//   }, [listRows, wb.fetchRatings]);
 
   const totalPages = wb.searchTotalPages || Math.max(1, Math.ceil(listRows.length / 20));
   const curPage = searchMode ? Math.min(uiPage, totalPages) : wb.searchPage;
@@ -758,7 +763,7 @@ function CourseListPanel({ wb, jump, jumpSeq }: { wb: ReturnType<typeof useXkWor
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
           <select className={selSel} style={selStyle} value={reviewsF} onChange={(e) => setReviewsF(e.target.value)}><option value="">社区评价: 不限</option><option value="has">有点评</option><option value="cnt5">点评≥5条</option><option value="r45">★≥4.5 好评</option><option value="r40">★≥4.0</option><option value="low">★≤3.0 避雷线</option></select>
-          <select className={selSel} style={selStyle} value={sortBy} onChange={(e) => setSortBy(e.target.value)}><option value="">排序: 默认目录序</option><option value="rate_desc">社区评分 高→低</option><option value="rate_asc">社区评分 低→高</option><option value="cnt_desc">点评数 多→少</option><option value="xk_desc">官方教评 高→低</option><option value="xk_asc">官方教评 低→高</option></select>
+          <select className={selSel} style={selStyle} value={sortBy} onChange={(e) => setSortBy(e.target.value)}><option value="">排序: 默认目录序</option><option value="rate_desc">社区评分 高→低</option><option value="rate_asc">社区评分 低→高</option><option value="cnt_desc">点评数 多→少</option>{/* 【教评#31冻结】教评排序选项 <option value="xk_desc">官方教评 高→低</option><option value="xk_asc">官方教评 低→高</option> */}</select>
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
           <select className={selSel} style={selStyle} value={tongshi} onChange={(e) => setTongshi(e.target.value)}><option value="">通识课组: 不限</option>{TS_GROUPS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
@@ -925,17 +930,20 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           {tbBadge(r) ? (
             <button className="btn" style={{ padding: "0 6px", marginLeft: 6, fontSize: 11, color: "var(--amber)" }} onClick={() => openReviews({ code: r.c.code, seq: r.c.seq, name: r.name, teacher: r.teacher })}>{tbBadge(r)}</button>
           ) : null}
-          {(() => {
-            const m = xkPick(wb.ratings[r.c.code], r.teacher);
-            if (!m || m.total <= 0) return null;
-            const dist = m.distribution.map((v, i) => `${i + 1}分:${v}`).join(" ");
-            return (
-              <span
-                style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: xkAvgColor(m.average), cursor: "default", whiteSpace: "nowrap" }}
-                title={`官方教评 · ${m.teacher}：均分 ${m.average.toFixed(2)} / 7 · ${m.total} 人评分 · 高分率 ${(m.highRatio * 100).toFixed(0)}%\n${dist}\n（选课学生推荐度，教务 xgpg 数据）`}
-              >教评 {m.average.toFixed(1)}({m.total})</span>
-            );
-          })()}
+          {/* 【教评#31冻结】行内教评徽章（整块注释保留，教务修好解开）
+           {(() => {
+             const m = xkPick(wb.ratings[r.c.code], r.teacher);
+             if (!m || m.total <= 0) return null;
+             const dist = m.distribution.map((v, i) => `${i + 1}分:${v}`).join(" ");
+             return (
+               <span
+                 style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: xkAvgColor(m.average), cursor: "default", whiteSpace: "nowrap" }}
+                 title={`官方教评 · ${m.teacher}：均分 ${m.average.toFixed(2)} / 7 · ${m.total} 人评分 · 高分率 ${(m.highRatio * 100).toFixed(0)}%\n${dist}\n（选课学生推荐度，教务 xgpg 数据）`}
+               >教评 {m.average.toFixed(1)}({m.total})</span>
+             );
+           })()}
+
+          */}
         </div>
         <div className="row-sub" style={{ whiteSpace: "normal" }}>{[r.c.code, r.c.seq && r.c.seq !== "0" ? `第${r.c.seq}班` : "", r.teacher, `${r.credits} 学分`, r.time, r.c.department].filter(Boolean).join(" · ")}</div>
         {r.c.note ? <div className="row-sub" style={{ whiteSpace: "normal", color: "var(--text-2)" }}>课程说明：{r.c.note}</div> : null}

@@ -149,11 +149,11 @@ export {
   submitXkCourse,
   dropXkCourse,
   changeXkVolunteer,
-  fetchXkRatings,
+  // fetchXkRatings,   // 【教评#31冻结】
   setZhjwxkDebug,
   ZY_LIMITS,
 } from "./zhjwxk/client.js";
-export type { XkRatingRow } from "./zhjwxk/client.js";
+// export type { XkRatingRow } from "./zhjwxk/client.js";   // 【教评#31冻结】
 export {
   buildVolIndex,
   matchVolIndexed,

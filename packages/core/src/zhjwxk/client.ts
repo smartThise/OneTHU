@@ -1378,166 +1378,167 @@ export async function getXkLevelTable(s: ZhjwxkSession, opts: { semester: string
   return map;
 }
 
-/* ── 官方教评（选课学生推荐度）────────────────────────────────
- * #31（huangkaka666 的油猴脚本 thu-course-helper 逆向实录）：教务 AJAX
- * 接口 xgpg_xspjyxkt.do 按课号查 1-7 分分布（fs1..fs7，fs7=最高），教师
- * 粒度（jsm），含 kcm/kkdwmc。POST 表单 cm=xgpg_qbkcmycdzbShow。
- * 原生接入：走既有会话层（无需油猴），reqwest 自动 GBK→UTF-8 后
- * JSON.parse。 */
-export interface XkRatingRow {
-  code: string;
-  name: string;
-  teacher: string;
-  department: string;
-  distribution: number[]; // fs1..fs7（fs7 最高分档）
-  total: number;
-  average: number; // 1-7 加权平均
-  highRatio: number; // (fs6+fs7)/total
-}
+// 【特性冻结 2026-09-10】官方教评（#31）暂停：xgpg 端点对登录会话全 500（无登录态 curl 正常）。（以下整段注释保留：接口/解析/GET→POST→AJAX 梯子/预热均已就绪，教务修好解开即恢复）
+// /* ── 官方教评（选课学生推荐度）────────────────────────────────
+//  * #31（huangkaka666 的油猴脚本 thu-course-helper 逆向实录）：教务 AJAX
+//  * 接口 xgpg_xspjyxkt.do 按课号查 1-7 分分布（fs1..fs7，fs7=最高），教师
+//  * 粒度（jsm），含 kcm/kkdwmc。POST 表单 cm=xgpg_qbkcmycdzbShow。
+//  * 原生接入：走既有会话层（无需油猴），reqwest 自动 GBK→UTF-8 后
+//  * JSON.parse。 */
+// export interface XkRatingRow {
+//   code: string;
+//   name: string;
+//   teacher: string;
+//   department: string;
+//   distribution: number[]; // fs1..fs7（fs7 最高分档）
+//   total: number;
+//   average: number; // 1-7 加权平均
+//   highRatio: number; // (fs6+fs7)/total
+// }
 
-const ratingPrimedSessions = new WeakSet<ZhjwxkSession>();
+// const ratingPrimedSessions = new WeakSet<ZhjwxkSession>();
 
-/** 单元格文本清理：只去标签 + 实体解码，**不折叠空白**——教师名里的全角空格
- * （李　蕉）折叠成半角会让 ratingOf 的精确匹配失灵（目录里是全角）。 */
-const stripCell = (v: string): string =>
-  v.replace(/<[^>]*>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .trim();
+// /** 单元格文本清理：只去标签 + 实体解码，**不折叠空白**——教师名里的全角空格
+//  * （李　蕉）折叠成半角会让 ratingOf 的精确匹配失灵（目录里是全角）。 */
+// const stripCell = (v: string): string =>
+//   v.replace(/<[^>]*>/g, "")
+//     .replace(/&nbsp;/g, " ")
+//     .replace(/&amp;/g, "&")
+//     .replace(/&lt;/g, "<")
+//     .replace(/&gt;/g, ">")
+//     .replace(/&quot;/g, '"')
+//     .replace(/&#39;/g, "'")
+//     .trim();
 
-const ratingRowOf = (
-  code: string, name: string, teacher: string, department: string, distribution: number[],
-): XkRatingRow => {
-  const total = distribution.reduce((a, b) => a + b, 0);
-  const average = total > 0 ? distribution.reduce((sum, v, i) => sum + v * (i + 1), 0) / total : 0;
-  return {
-    code, name, teacher, department, distribution, total,
-    average: Math.round(average * 100) / 100,
-    highRatio: total > 0 ? Math.round(((distribution[5]! + distribution[6]!) / total) * 1000) / 1000 : 0,
-  };
-};
+// const ratingRowOf = (
+//   code: string, name: string, teacher: string, department: string, distribution: number[],
+// ): XkRatingRow => {
+//   const total = distribution.reduce((a, b) => a + b, 0);
+//   const average = total > 0 ? distribution.reduce((sum, v, i) => sum + v * (i + 1), 0) / total : 0;
+//   return {
+//     code, name, teacher, department, distribution, total,
+//     average: Math.round(average * 100) / 100,
+//     highRatio: total > 0 ? Math.round(((distribution[5]! + distribution[6]!) / total) * 1000) / 1000 : 0,
+//   };
+// };
 
-/** 评教查询页（cm=xgpg_qbkcmycdzbShow）结果表解析——油猴 scrapeRatings 双策略移植
- * （正则实现：Node 测试环境无 DOMParser）。null=页面无结果表（服务端未渲染，走
- * AJAX 兜底）；[]=查到了但无行（真无教评）。普通表列序：0序号 1院系 2教师名 3课号
- * 4课名 5-11=分数1-7。 */
-export function parseRatingShowHtml(html: string): XkRatingRow[] | null {
-  if (!html) return null;
-  // 策略① EasyUI：tr.datagrid-row + td[field=jsm/kch/kcm/kkdwmc/fs1..fs7]
-  const easy: XkRatingRow[] = [];
-  const easyRe = /<tr[^>]*datagrid-row[^>]*>([\s\S]*?)<\/tr>/gi;
-  for (let m = easyRe.exec(html); m !== null; m = easyRe.exec(html)) {
-    const td = (f: string): string => {
-      const t = m![1]!.match(new RegExp(`<td[^>]*field="${f}"[^>]*>([\\s\\S]*?)</td>`, "i"));
-      return t ? stripCell(t[1]!) : "";
-    };
-    const code = td("kch");
-    const teacher = td("jsm");
-    if (!code || !teacher) continue;
-    easy.push(ratingRowOf(code, td("kcm"), teacher, td("kkdwmc"),
-      [1, 2, 3, 4, 5, 6, 7].map((i) => parseInt(td(`fs${i}`), 10) || 0)));
-  }
-  if (easy.length) return easy;
-  // 策略② 普通表：表头含「教师名」「分数1」
-  const tableRe = /<table[^>]*>([\s\S]*?)<\/table>/gi;
-  for (let m = tableRe.exec(html); m !== null; m = tableRe.exec(html)) {
-    const t = m[1]!;
-    if (!t.includes("教师名") || !t.includes("分数1")) continue;
-    const out: XkRatingRow[] = [];
-    const trRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-    for (let tr = trRe.exec(t); tr !== null; tr = trRe.exec(t)) {
-      const cells = [...tr[1]!.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((c) => stripCell(c[1]!));
-      if (cells.length < 12) continue;
-      const teacher = cells[2]!;
-      const code = cells[3]!;
-      if (!teacher || !code) continue;
-      out.push(ratingRowOf(code, cells[4] ?? "", teacher, cells[1] ?? "",
-        [5, 6, 7, 8, 9, 10, 11].map((i) => parseInt(cells[i] ?? "", 10) || 0)));
-    }
-    return out;
-  }
-  return null;
-}
+// /** 评教查询页（cm=xgpg_qbkcmycdzbShow）结果表解析——油猴 scrapeRatings 双策略移植
+//  * （正则实现：Node 测试环境无 DOMParser）。null=页面无结果表（服务端未渲染，走
+//  * AJAX 兜底）；[]=查到了但无行（真无教评）。普通表列序：0序号 1院系 2教师名 3课号
+//  * 4课名 5-11=分数1-7。 */
+// export function parseRatingShowHtml(html: string): XkRatingRow[] | null {
+//   if (!html) return null;
+//   // 策略① EasyUI：tr.datagrid-row + td[field=jsm/kch/kcm/kkdwmc/fs1..fs7]
+//   const easy: XkRatingRow[] = [];
+//   const easyRe = /<tr[^>]*datagrid-row[^>]*>([\s\S]*?)<\/tr>/gi;
+//   for (let m = easyRe.exec(html); m !== null; m = easyRe.exec(html)) {
+//     const td = (f: string): string => {
+//       const t = m![1]!.match(new RegExp(`<td[^>]*field="${f}"[^>]*>([\\s\\S]*?)</td>`, "i"));
+//       return t ? stripCell(t[1]!) : "";
+//     };
+//     const code = td("kch");
+//     const teacher = td("jsm");
+//     if (!code || !teacher) continue;
+//     easy.push(ratingRowOf(code, td("kcm"), teacher, td("kkdwmc"),
+//       [1, 2, 3, 4, 5, 6, 7].map((i) => parseInt(td(`fs${i}`), 10) || 0)));
+//   }
+//   if (easy.length) return easy;
+//   // 策略② 普通表：表头含「教师名」「分数1」
+//   const tableRe = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+//   for (let m = tableRe.exec(html); m !== null; m = tableRe.exec(html)) {
+//     const t = m[1]!;
+//     if (!t.includes("教师名") || !t.includes("分数1")) continue;
+//     const out: XkRatingRow[] = [];
+//     const trRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+//     for (let tr = trRe.exec(t); tr !== null; tr = trRe.exec(t)) {
+//       const cells = [...tr[1]!.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((c) => stripCell(c[1]!));
+//       if (cells.length < 12) continue;
+//       const teacher = cells[2]!;
+//       const code = cells[3]!;
+//       if (!teacher || !code) continue;
+//       out.push(ratingRowOf(code, cells[4] ?? "", teacher, cells[1] ?? "",
+//         [5, 6, 7, 8, 9, 10, 11].map((i) => parseInt(cells[i] ?? "", 10) || 0)));
+//     }
+//     return out;
+//   }
+//   return null;
+// }
 
-export async function fetchXkRatings(
-  s: ZhjwxkSession,
-  opts: { semester?: string; code: string },
-): Promise<XkRatingRow[]> {
-  const { entry, semester } = await ensure(s, opts.semester);
-  // 主路径（油猴脚本主用法）：cm=Show 查询页表单提交——服务端渲染结果表，直接解析
-  // HTML。作者实测采集走的就是这条路；AJAX（cm=Data）依赖页面建立的会话态，冷调
-  // 实录 500（用户控制台 20 连发实锤）。
-  const showForm: Record<string, string> = {
-    p_xnxq: semester,
-    p_xslb: "bks",
-    query_kkdwnm: "",
-    query_jsm: "",
-    query_kch: opts.code,
-    query_kcm: "",
-    page: "1",
-    rows: "20", // 油猴脚本实证值
-  };
-  // ① GET 查询页（油猴 README 实证页面链接形态，全参数进 URL——表单 method
-  //    未知，GET/POST 谁出结果表谁赢）
-  try {
-    const html = await proxyZhjwxkApi(s, entry, `/xkBks.xgpg_xspjyxkt.do?cm=xgpg_qbkcmycdzbShow&p_xnxq=${semester}&p_xslb=bks&query_kkdwnm=&query_jsm=&query_kch=${encodeURIComponent(opts.code)}&query_kcm=&page=1&rows=20`);
-    assertNotDenied(s, html);
-    const parsed = parseRatingShowHtml(html);
-    if (parsed !== null) return parsed;
-  } catch (e) {
-    if (e instanceof Error && e.message.includes("统一认证")) throw e;   // 会话死：透传
-    /* GET 失败 → POST */
-  }
-  // ② POST 查询页（表单提交重建）
-  let showHtml = "";
-  try {
-    showHtml = await postZhjwxkApi(s, entry, `/xkBks.xgpg_xspjyxkt.do?cm=xgpg_qbkcmycdzbShow&p_xnxq=${semester}&p_xslb=bks`, showForm);
-  } catch { /* 查询页网络失败：落 AJAX 兜底 */ }
-  if (showHtml) assertNotDenied(s, showHtml);
-  const parsed = parseRatingShowHtml(showHtml);
-  if (parsed !== null) return parsed;
-  // 兜底路径（油猴批采用法）：先预热评教页再打 Data AJAX（冷会话直 POST 实录 500）
-  if (!ratingPrimedSessions.has(s)) {
-    ratingPrimedSessions.add(s);
-    try {
-      await proxyZhjwxkApi(s, entry, `/xkBks.xgpg_xspjyxkt.do?cm=xgpg_qbkcmycdzbShow&p_xnxq=${semester}&p_xslb=bks`);
-    } catch { /* 预热失败：继续尝试 */ }
-  }
-  const form: Record<string, string> = {
-    cm: "xgpg_qbkcmycdzbShow",
-    p_xnxq: semester,
-    p_xslb: "bks",
-    query_kkdwnm: "",
-    query_jsm: "",
-    query_kch: opts.code,
-    query_kcm: "",
-    page: "1",
-    rows: "20", // 油猴脚本实证值
-  };
-  const raw = await postZhjwxkApi(
-    s,
-    entry,
-    `/xkBks.xgpg_xspjyxkt.do?cm=xgpg_qbkcmycdzbData&p_xnxq=${semester}&p_xslb=bks`,
-    form,
-  );
-  assertNotDenied(s, raw);
-  let data: { rows?: Array<Record<string, unknown>> };
-  try {
-    data = JSON.parse(raw) as { rows?: Array<Record<string, unknown>> };
-  } catch {
-    // 非 JSON（异常页/会话死页）：抛错让调用方记失败——静默当 0 行会毒化缓存，
-    // 一次会话抖动 = 该课整学期徽章永久消失（#31 插件侧同病已修）
-    throw new Error("教评接口返回非JSON（会话或接口异常）");
-  }
-  return [...(data.rows ?? [])].map((row) => ratingRowOf(
-    String(row.kch ?? ""),
-    String(row.kcm ?? ""),
-    String(row.jsm ?? ""),
-    String(row.kkdwmc ?? ""),
-    [1, 2, 3, 4, 5, 6, 7].map((i) => parseInt(String(row[`fs${i}`] ?? ""), 10) || 0),
-  ));
-}
+// export async function fetchXkRatings(
+//   s: ZhjwxkSession,
+//   opts: { semester?: string; code: string },
+// ): Promise<XkRatingRow[]> {
+//   const { entry, semester } = await ensure(s, opts.semester);
+//   // 主路径（油猴脚本主用法）：cm=Show 查询页表单提交——服务端渲染结果表，直接解析
+//   // HTML。作者实测采集走的就是这条路；AJAX（cm=Data）依赖页面建立的会话态，冷调
+//   // 实录 500（用户控制台 20 连发实锤）。
+//   const showForm: Record<string, string> = {
+//     p_xnxq: semester,
+//     p_xslb: "bks",
+//     query_kkdwnm: "",
+//     query_jsm: "",
+//     query_kch: opts.code,
+//     query_kcm: "",
+//     page: "1",
+//     rows: "20", // 油猴脚本实证值
+//   };
+//   // ① GET 查询页（油猴 README 实证页面链接形态，全参数进 URL——表单 method
+//   //    未知，GET/POST 谁出结果表谁赢）
+//   try {
+//     const html = await proxyZhjwxkApi(s, entry, `/xkBks.xgpg_xspjyxkt.do?cm=xgpg_qbkcmycdzbShow&p_xnxq=${semester}&p_xslb=bks&query_kkdwnm=&query_jsm=&query_kch=${encodeURIComponent(opts.code)}&query_kcm=&page=1&rows=20`);
+//     assertNotDenied(s, html);
+//     const parsed = parseRatingShowHtml(html);
+//     if (parsed !== null) return parsed;
+//   } catch (e) {
+//     if (e instanceof Error && e.message.includes("统一认证")) throw e;   // 会话死：透传
+//     /* GET 失败 → POST */
+//   }
+//   // ② POST 查询页（表单提交重建）
+//   let showHtml = "";
+//   try {
+//     showHtml = await postZhjwxkApi(s, entry, `/xkBks.xgpg_xspjyxkt.do?cm=xgpg_qbkcmycdzbShow&p_xnxq=${semester}&p_xslb=bks`, showForm);
+//   } catch { /* 查询页网络失败：落 AJAX 兜底 */ }
+//   if (showHtml) assertNotDenied(s, showHtml);
+//   const parsed = parseRatingShowHtml(showHtml);
+//   if (parsed !== null) return parsed;
+//   // 兜底路径（油猴批采用法）：先预热评教页再打 Data AJAX（冷会话直 POST 实录 500）
+//   if (!ratingPrimedSessions.has(s)) {
+//     ratingPrimedSessions.add(s);
+//     try {
+//       await proxyZhjwxkApi(s, entry, `/xkBks.xgpg_xspjyxkt.do?cm=xgpg_qbkcmycdzbShow&p_xnxq=${semester}&p_xslb=bks`);
+//     } catch { /* 预热失败：继续尝试 */ }
+//   }
+//   const form: Record<string, string> = {
+//     cm: "xgpg_qbkcmycdzbShow",
+//     p_xnxq: semester,
+//     p_xslb: "bks",
+//     query_kkdwnm: "",
+//     query_jsm: "",
+//     query_kch: opts.code,
+//     query_kcm: "",
+//     page: "1",
+//     rows: "20", // 油猴脚本实证值
+//   };
+//   const raw = await postZhjwxkApi(
+//     s,
+//     entry,
+//     `/xkBks.xgpg_xspjyxkt.do?cm=xgpg_qbkcmycdzbData&p_xnxq=${semester}&p_xslb=bks`,
+//     form,
+//   );
+//   assertNotDenied(s, raw);
+//   let data: { rows?: Array<Record<string, unknown>> };
+//   try {
+//     data = JSON.parse(raw) as { rows?: Array<Record<string, unknown>> };
+//   } catch {
+//     // 非 JSON（异常页/会话死页）：抛错让调用方记失败——静默当 0 行会毒化缓存，
+//     // 一次会话抖动 = 该课整学期徽章永久消失（#31 插件侧同病已修）
+//     throw new Error("教评接口返回非JSON（会话或接口异常）");
+//   }
+//   return [...(data.rows ?? [])].map((row) => ratingRowOf(
+//     String(row.kch ?? ""),
+//     String(row.kcm ?? ""),
+//     String(row.jsm ?? ""),
+//     String(row.kkdwmc ?? ""),
+//     [1, 2, 3, 4, 5, 6, 7].map((i) => parseInt(String(row[`fs${i}`] ?? ""), 10) || 0),
+//   ));
+// }
