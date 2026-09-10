@@ -1481,6 +1481,18 @@ export async function fetchXkRatings(
     page: "1",
     rows: "20", // 油猴脚本实证值
   };
+  // ① GET 查询页（油猴 README 实证页面链接形态，全参数进 URL——表单 method
+  //    未知，GET/POST 谁出结果表谁赢）
+  try {
+    const html = await proxyZhjwxkApi(s, entry, `/xkBks.xgpg_xspjyxkt.do?cm=xgpg_qbkcmycdzbShow&p_xnxq=${semester}&p_xslb=bks&query_kkdwnm=&query_jsm=&query_kch=${encodeURIComponent(opts.code)}&query_kcm=&page=1&rows=20`);
+    assertNotDenied(s, html);
+    const parsed = parseRatingShowHtml(html);
+    if (parsed !== null) return parsed;
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("统一认证")) throw e;   // 会话死：透传
+    /* GET 失败 → POST */
+  }
+  // ② POST 查询页（表单提交重建）
   let showHtml = "";
   try {
     showHtml = await postZhjwxkApi(s, entry, `/xkBks.xgpg_xspjyxkt.do?cm=xgpg_qbkcmycdzbShow&p_xnxq=${semester}&p_xslb=bks`, showForm);
