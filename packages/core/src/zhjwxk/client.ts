@@ -1395,11 +1395,22 @@ export interface XkRatingRow {
   highRatio: number; // (fs6+fs7)/total
 }
 
+const ratingPrimedSessions = new WeakSet<ZhjwxkSession>();
+
 export async function fetchXkRatings(
   s: ZhjwxkSession,
   opts: { semester?: string; code: string },
 ): Promise<XkRatingRow[]> {
   const { entry, semester } = await ensure(s, opts.semester);
+  // 会话预热（NextTHUxk 实录 500 根因之一）：AJAX 数据接口 cm=xgpg_qbkcmycdzbData
+  // 依赖评教页面（cm=xgpg_qbkcmycdzbShow）GET 一次初始化的服务端状态——冷会话直
+  // POST 全 500。每会话一次；预热失败不阻断（仍试数据接口）。
+  if (!ratingPrimedSessions.has(s)) {
+    ratingPrimedSessions.add(s);
+    try {
+      await proxyZhjwxkApi(s, entry, `/xkBks.xgpg_xspjyxkt.do?cm=xgpg_qbkcmycdzbShow&p_xnxq=${semester}&p_xslb=bks`);
+    } catch { /* 预热失败：继续尝试 */ }
+  }
   const form: Record<string, string> = {
     cm: "xgpg_qbkcmycdzbShow",
     p_xnxq: semester,
@@ -1409,7 +1420,7 @@ export async function fetchXkRatings(
     query_kch: opts.code,
     query_kcm: "",
     page: "1",
-    rows: "50",
+    rows: "20", // 油猴脚本实证值
   };
   const raw = await postZhjwxkApi(
     s,

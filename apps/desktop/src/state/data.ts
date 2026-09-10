@@ -781,6 +781,16 @@ export function useXkWorkbench(): XkWorkbench {
   // 官方教评（#31）：课号 → 教师行。localStorage 按学期持久（教评学期内不变），
   // 会话内 tried 集防止空数据课号被反复打；500ms 间隔节流防限流（油猴脚本同款节奏）。
   const [ratings, setRatings] = useState<Record<string, XkRatingRow[]>>({});
+  // 教评只覆盖本校课程：外校课号（PK/GPK/BW 前缀或 0000 开头数字段——北大本科
+  // 课在本系统里就是 0000xxxxx 编码）打过去必 500，直接跳过
+  const ratingCovered = (code: string): boolean => {
+    const c = String(code || "");
+    if (!c) return false;
+    if (/^(GPK|PK|BW)/i.test(c)) return false;
+    return !c.startsWith("0000");
+  };
+  const ratingDeadRef = useRef(false);   // 500 熔断（连败≥2）：本会话不再打，下会话自愈
+  const ratingFailStreakRef = useRef(0);
   const ratingsRef = useRef<Record<string, XkRatingRow[]>>({});
   const ratingTriedRef = useRef<Set<string>>(new Set());
   const ratingBusyRef = useRef(false);
@@ -819,8 +829,15 @@ export function useXkWorkbench(): XkWorkbench {
         try {
           const rows = await fetchXkRatings(xkSession(), { semester: semForRatings ?? undefined, code });
           ratingsRef.current[code] = rows;
+          ratingFailStreakRef.current = 0;
         } catch {
           ratingTriedRef.current.add(code); // 会话/网络失败：本会话不再打这课号
+          if (++ratingFailStreakRef.current >= 2) {
+            // 连败熔断：500 族错误连着来 = 服务端查询态异常，继续打只会刷爆
+            // 日志并加重服务端负担。清队，本会话静默；下会话自愈重试。
+            ratingDeadRef.current = true;
+            ratingQueueRef.current.length = 0;
+          }
         }
         setRatings({ ...ratingsRef.current });
         await new Promise((r) => setTimeout(r, 500)); // 节流防限流
@@ -832,7 +849,8 @@ export function useXkWorkbench(): XkWorkbench {
   }, [semForRatings]);
   const fetchRatings = useCallback((codes: string[]): void => {
     if (!semForRatings) return; // 学期末就绪不抓（缓存键按学期；就绪后本回调身份变化自动重触发）
-    const need = codes.filter((c) => c && !(c in ratingsRef.current) && !ratingTriedRef.current.has(c) && !ratingQueueRef.current.includes(c));
+    if (ratingDeadRef.current) return; // 熔断后静默
+    const need = codes.filter((c) => c && ratingCovered(c) && !(c in ratingsRef.current) && !ratingTriedRef.current.has(c) && !ratingQueueRef.current.includes(c));
     if (!need.length) return;
     ratingQueueRef.current.push(...need);
     void drainRatingQueue();
@@ -840,6 +858,8 @@ export function useXkWorkbench(): XkWorkbench {
   // 单课号直取（弹窗）：不走节流队列（单发无压力），缓存共享；失败返回 null 供 UI 提示
   const getRatings = useCallback(async (code: string): Promise<XkRatingRow[] | null> => {
     if (!semForRatings) return null;
+    if (!ratingCovered(code)) return [];
+    if (ratingDeadRef.current) return null;
     if (code in ratingsRef.current) return ratingsRef.current[code] ?? [];
     if (ratingTriedRef.current.has(code)) return null;
     try {
