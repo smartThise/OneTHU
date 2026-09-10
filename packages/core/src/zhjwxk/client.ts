@@ -1422,7 +1422,9 @@ export async function fetchXkRatings(
   try {
     data = JSON.parse(raw) as { rows?: Array<Record<string, unknown>> };
   } catch {
-    return []; // 非 JSON（异常页/无权限）：无数据即可，不惊扰调用方
+    // 非 JSON（异常页/会话死页）：抛错让调用方记失败——静默当 0 行会毒化缓存，
+    // 一次会话抖动 = 该课整学期徽章永久消失（#31 插件侧同病已修）
+    throw new Error("教评接口返回非JSON（会话或接口异常）");
   }
   const out: XkRatingRow[] = [];
   for (const row of data.rows ?? []) {

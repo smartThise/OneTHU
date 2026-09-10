@@ -793,14 +793,21 @@ export function useXkWorkbench(): XkWorkbench {
     try {
       const saved = localStorage.getItem(`onethu-xk-ratings-${semForRatings}`);
       if (saved) {
-        ratingsRef.current = JSON.parse(saved) as Record<string, XkRatingRow[]>;
-        setRatings({ ...ratingsRef.current });
+        const parsed = JSON.parse(saved) as Record<string, XkRatingRow[]>;
+        const keep: Record<string, XkRatingRow[]> = {};
+        for (const [k, v] of Object.entries(parsed)) if (v && v.length) keep[k] = v;   // 空条目（历史毒化）当 miss 重拉
+        ratingsRef.current = keep;
+        setRatings({ ...keep });
       }
     } catch { /* 缓存坏 → 空表重拉 */ }
   }, [semForRatings]);
   const persistRatings = (): void => {
     if (!semForRatings) return;
-    try { localStorage.setItem(`onethu-xk-ratings-${semForRatings}`, JSON.stringify(ratingsRef.current)); } catch { /* 满 → 弃 */ }
+    try {
+      const keep: Record<string, XkRatingRow[]> = {};
+      for (const [k, v] of Object.entries(ratingsRef.current)) if (v && v.length) keep[k] = v;   // 空结果不落盘：真无教评的课每会话重试 1 次，一次抖动不毒化整学期
+      localStorage.setItem(`onethu-xk-ratings-${semForRatings}`, JSON.stringify(keep));
+    } catch { /* 满 → 弃 */ }
   };
   const drainRatingQueue = useCallback(async (): Promise<void> => {
     if (ratingBusyRef.current) return;
