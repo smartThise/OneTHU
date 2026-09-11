@@ -22,5 +22,5 @@ gradle/**
 # Android gradle 缓存不入库（误提交 e52f355 教训）
 .gradle/
 
-# 本机 exFAT 规避配置（com.apple.provenance → ._* → tauri build.rs panic）
-.cargo/config.toml
+# 本机 exFAT 规避配置（com.apple.provenance → ._* → tauri build.rs panic）——机器本地路径勿入库
+**/.cargo/config.toml
