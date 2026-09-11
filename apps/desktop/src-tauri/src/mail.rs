@@ -61,7 +61,9 @@ fn imap_connect(email: &str, auth: &str) -> Result<ImapSession, String> {
     let stream = std::net::TcpStream::connect((IMAP_HOST, 993)).map_err(|e| format!("无法连接邮箱服务器：{}", e))?;
     stream.set_read_timeout(Some(std::time::Duration::from_secs(30))).ok();
     stream.set_write_timeout(Some(std::time::Duration::from_secs(30))).ok();
-    let tls = rustls_connector::RustlsConnectorConfig::new_with_webpki_roots_certs().connector_with_no_client_auth();
+    let tls = rustls_connector::RustlsConnectorConfig::new_with_webpki_root_certs()   // 0.23：roots_certs→root_certs，connect 配置不再可失败
+        .connector_with_no_client_auth()
+        .map_err(|e| format!("TLS 初始化失败：{}", e))?;
     let stream = tls.connect(IMAP_HOST, stream).map_err(|e| format!("TLS 握手失败：{}", e))?;
     let client = imap::Client::new(stream);
     client.login(email, auth).map_err(|(e, _)| format!("登录失败（检查邮箱与授权码）：{}", tidy_imap_err(&e)))
