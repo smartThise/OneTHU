@@ -708,7 +708,10 @@ function CourseListPanel({ wb, jump, jumpSeq }: { wb: ReturnType<typeof useXkWor
   // 而不是停在课号结果顶端等用户自己翻（原 #23 全量三症状的根）。
   useEffect(() => {
     if (!jumpTarget || wb.searchState !== "ready") return;
-    const idx = listRows.findIndex((r) => r.c.code === jumpTarget.code && String(r.c.seq || "0") === String(jumpTarget.seq || "0"));
+    // #23 归一比对：课表块 seq（已选页 "1"）vs 搜索行 seq（"01"）两套前导零——
+    // 裸 String 比对永远 miss，「加载全部」兜底也救不回（数据本来就全）
+    const nseq = (s: string) => String(parseInt(s, 10) || 0);
+    const idx = listRows.findIndex((r) => r.c.code === jumpTarget.code && nseq(r.c.seq || "0") === nseq(jumpTarget.seq || "0"));
     if (idx < 0) {
       if (wb.searchIncomplete && jumpLocateRef.current !== jumpTarget.at) {
         jumpLocateRef.current = jumpTarget.at;
@@ -719,7 +722,9 @@ function CourseListPanel({ wb, jump, jumpSeq }: { wb: ReturnType<typeof useXkWor
     const page = Math.floor(idx / 20) + 1;
     if (searchMode && curPage !== page) setUiPage(page);
     requestAnimationFrame(() => {
-      const el = document.querySelector(`[data-xk-row="${jumpTarget.code}_${jumpTarget.seq || "0"}"]`);
+      // 用命中行自己的 key 查 DOM（拿 jumpTarget.seq 拼键会因前导零对不上行键）
+      const rowKey = listRows[idx]!.key;
+      const el = document.querySelector(`[data-xk-row="${CSS.escape(rowKey)}"]`);
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }, [jumpTarget, wb.searchState, listRows, wb.searchIncomplete, wb.loadAllSearch, searchMode, curPage]);
