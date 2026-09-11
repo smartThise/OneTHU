@@ -323,8 +323,8 @@ export function parseSelectedCourses(html: string): SelectedCourse[] {
 export function parseQueueCandidates(html: string): QueueCandidate[] {
   const candidates: QueueCandidate[] = [];
   // 行 class 放宽 trr2→trr[12]：新学期版式若换行类（已选表 2026-2027-1 已改版的前车之鉴），
-  // 只认 trr2 会静默得空列表（「我的队列被吃了」实测事故）；trr1 在两份样本中均为表头，
-  // 无 <td> 数据格，天然被 tds.length 门槛过滤
+  // 只认 trr2 会静默得空列表（「我的队列被吃了」实测事故）。trr1 是表头——NextTHUxk
+  // 用户实锤真实教务表头行带 <td>（「课程名·老师」标题栏被当候选课），靠码型守卫拦：
   const rowRe = /<tr[^>]*class="trr[12]"[^>]*>([\s\S]*?)<\/tr>/g;
   let m: RegExpExecArray | null;
   while ((m = rowRe.exec(html)) !== null) {
@@ -333,10 +333,13 @@ export function parseQueueCandidates(html: string): QueueCandidate[] {
     );
     if (tds.length >= 7) {
       const td = (i: number): string => tds[i] ?? "";
+      // 表头行拦截：表头「课号」格是中文且非码型（含数字的纯字母数字才是真课号）
+      const code = td(2);
+      if (!/^[A-Za-z0-9]+$/.test(code) || !/\d/.test(code)) continue;
       candidates.push({
         typeLabel: td(0),
         zyStr: td(1),
-        code: td(2),
+        code,
         name: td(3),
         seq: td(4),
         queueTotal: parseInt(td(5)) || 0,
@@ -527,6 +530,45 @@ function tdsOf(rowHtml: string): string[] {
  *  5 教师+p_jsh / 6 容量 / 7 余量 / 8-9 研 / 10 时间 / 11 说明 / 12 特色 / 13 年级 / 18 通识组） */
 export function parseXkCatalogPage(html: string): XkCourse[] {
   const out: XkCourse[] = [];
+  // ── 表头列位自适应（NextTHUxk 同款修复：用户实锤特色筛不出/神秘 0 学分/
+  //    体育漏判——目录表列序漂移后 cell(4)/cell(12)/cell(0) 全指错格）。
+  //    表头行 tr.trr1 扫列名→索引；首条数据行课号格码型校验不过整表回退固定列位。
+  const headRow = /<tr[^>]*class="trr1"[^>]*>([\s\S]*?)<\/tr>/.exec(html)?.[1] ?? "";
+  const headCells = [...headRow.matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/g)].map((t) =>
+    (t[1] ?? "").replace(/<[^>]*>/g, "").replace(/\s+/g, "").trim(),
+  );
+  const hIdx = (keys: string[]): number => {
+    for (const k of keys) {
+      const i = headCells.findIndex((c) => c.includes(k));
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
+  const H = {
+    department: hIdx(["院系"]),
+    code: hIdx(["课号"]),
+    seq: hIdx(["课序号"]),
+    name: hIdx(["课程名称", "课程名"]),
+    credits: hIdx(["学分"]),
+    teacher: hIdx(["教师"]),
+    capacity: hIdx(["本科生容量", "本科容量"]),
+    remaining: hIdx(["本科生余量", "本科余量"]),
+    gradCapacity: hIdx(["研究生容量"]),
+    gradRemaining: hIdx(["研究生余量"]),
+    note: hIdx(["说明", "备注"]),
+    feature: hIdx(["课程特色", "特色"]),
+    grade: hIdx(["年级"]),
+    tongshi: hIdx(["通识"]),
+  };
+  const F = { department: 0, code: 1, seq: 2, name: 3, credits: 4, teacher: 5, capacity: 6, remaining: 7, gradCapacity: 8, gradRemaining: 9, note: 11, feature: 12, grade: 13, tongshi: 18 };
+  let useHead = H.code >= 0 && H.name >= 0;
+  if (useHead) {
+    const r0 = ROW_RE().exec(html);
+    const t0 = r0 ? tdsOf(r0[1] ?? "") : [];
+    const c0 = (t0[H.code] ?? "").replace(/\s+/g, "").trim();
+    if (!/^[A-Za-z0-9]+$/.test(c0) || !/\d/.test(c0)) useHead = false;   // 表头列名猜错 → 全回退
+  }
+  const ix = (k: keyof typeof H): number => (useHead && H[k] >= 0 ? H[k] : F[k]);
   const rowRe = ROW_RE();
   let m: RegExpExecArray | null;
   while ((m = rowRe.exec(html)) !== null) {
@@ -537,24 +579,24 @@ export function parseXkCatalogPage(html: string): XkCourse[] {
     // 「星期X…第N节」找列，找不到回落 td(10)。教室=该格最后一个「)」之后的尾段。
     let timeIdx = tds.findIndex((t) => /星期[一二三四五六日]/.test(t) && /第\d+/.test(t));
     if (timeIdx < 0) timeIdx = 10;
-    const code = td(1);
-    const name = td(3);
+    const code = td(ix("code"));
+    const name = td(ix("name"));
     // 外校课程课号带前缀：PK=北大、BW=北外（北外形如 BW3w0007，含小写 w——
     // HAR 实证，19 列与本校对齐）。规则：纯字母数字且至少含一个数字。
     if (!/^[A-Za-z0-9]+$/.test(code) || !/\d/.test(code) || !name) continue;
     const href = /href="([^"]*showJsDetail[^"]*)"/.exec(m[1] ?? "")?.[1] ?? "";
     out.push({
-      department: td(0),
+      department: td(ix("department")),
       code,
-      seq: td(2) || "0",
+      seq: td(ix("seq")) || "0",
       name,
-      credits: parseFloat(td(4)) || 0,
-      teacher: td(5),
+      credits: parseFloat(td(ix("credits"))) || 0,
+      teacher: td(ix("teacher")),
       teacherId: /p_jsh=([^&"]+)/.exec(href)?.[1] ?? "",
-      capacity: parseInt(td(6)) || 0,
-      remaining: parseInt(td(7)) || 0,
-      gradCapacity: parseInt(td(8)) || 0,
-      gradRemaining: parseInt(td(9)) || 0,
+      capacity: parseInt(td(ix("capacity"))) || 0,
+      remaining: parseInt(td(ix("remaining"))) || 0,
+      gradCapacity: parseInt(td(ix("gradCapacity"))) || 0,
+      gradRemaining: parseInt(td(ix("gradRemaining"))) || 0,
       time: td(timeIdx),
       room: (() => {
         const cell = td(timeIdx);
@@ -562,10 +604,10 @@ export function parseXkCatalogPage(html: string): XkCourse[] {
         const tail = i >= 0 ? cell.slice(i + 1).trim() : "";
         return tail;
       })(),
-      note: td(11),
-      feature: td(12),
-      grade: td(13),
-      tongshiGroup: tds.length > 18 ? td(18) : "",
+      note: td(ix("note")),
+      feature: td(ix("feature")),
+      grade: td(ix("grade")),
+      tongshiGroup: tds.length > ix("tongshi") ? td(ix("tongshi")) : "",
       attr: "",
     });
   }
