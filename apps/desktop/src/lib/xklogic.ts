@@ -257,21 +257,26 @@ export function buildRows(
   // 匹配/借用一律先用它——同课号多班按课号盲配会把别的班的时间/位次张冠
   // 李戴（课余量模式同课号不同时间的课在预览课表挤一格的根因）
   const skn = (code: string, seq: string): string => `${code}_${String(parseInt(seq, 10) || 0)}`;
-  const selByKey = new Map<string, XkSelectedRow>(selected.map((s) => [sk(s.code, s.seq), s]));
+  const selByKey = new Map<string, XkSelectedRow>(selected.map((s) => [skn(s.code, s.seq), s]));
   const volIdx = buildVolIndex(volMap);
+  // 跨页源（queue 网格 kxh / 一级课表 seq / 已选 seq）课序号前导零互不一致 →
+  // 消费侧统一建归一索引再查（与插件 tt-fix2 同族修复：#43 已选标记丢失）
+  const queueIdx = new Map(Object.entries(queueMap).map(([k, v]) => [k.replace(/_(\d+)$/, (_, d) => `_${parseInt(d, 10) || 0}`), v] as const));
+  const levelIdx = new Map(Object.entries(levelTypes).map(([k, v]) => [k.replace(/_(\d+)$/, (_, d) => `_${parseInt(d, 10) || 0}`), v] as const));
   // 候补三段：精确同班（归一）→ 同课同师 → 课号（两套编号最后的宽容）
   const candBySeq = new Map(candidates.map((s) => [skn(s.code, s.seq), s] as const));
   const candByCodeTeacher = new Map(candidates.filter((s) => s.teacher).map((s) => [`${s.code}|${s.teacher}`, s] as const));
   const candByCode = new Map(candidates.map((s) => [s.code, s] as const));
   const rows: XkRow[] = catalog.map((c) => {
     const key = sk(c.code, c.seq);
-    const sel = selByKey.get(key);
-    const cand = candBySeq.get(skn(c.code, c.seq)) ?? candByCodeTeacher.get(`${c.code}|${c.teacher}`) ?? candByCode.get(c.code);
+    const nkey = skn(c.code, c.seq);
+    const sel = selByKey.get(nkey);
+    const cand = candBySeq.get(nkey) ?? candByCodeTeacher.get(`${c.code}|${c.teacher}`) ?? candByCode.get(c.code);
     // 三段匹配（NextTHUxk 2.0 applyVolunteer 回移）：原始键 → 归一键 → 逐行归一
     // 比对 → 单段回退；多段不盲配（「5/2」张冠李戴事故：拿别的班的容量冒充本班）
     const vol = matchVolIndexed(volIdx, volMap, c.code, c.seq);
-    const q = queueMap[key] ?? queueMap[`${c.code}_${c.seq}`];
-    const typeCode = sel?.typeCode || levelTypes[key] || (cand ? "ty" : "");
+    const q = queueIdx.get(nkey) ?? queueMap[key] ?? queueMap[`${c.code}_${c.seq}`];
+    const typeCode = sel?.typeCode || levelIdx.get(nkey) || (cand ? "ty" : "");
     return {
       key, c, vol, q, sel, cand,
       selected: !!sel, isCandidate: !!cand,
@@ -288,6 +293,7 @@ export function buildRows(
   });
   // 已选/候补课不在目录（罕见）：补行
   const inCat = new Set(rows.map((r) => r.key));
+  const inCatN = new Set(rows.map((r) => skn(r.c.code, r.c.seq)));   // 归一并存：补行判定用归一键（同班不同前导零不再重复补行）
   // 借用三段（同课号不同班挤一格根因）：精确同班（归一）→ 同课同师 → 课号任意班
   const catBySeq = new Map(catalog.map((c) => [skn(c.code, c.seq), c] as const));
   const catByCodeTeacher = new Map(catalog.filter((c) => c.teacher).map((c) => [`${c.code}|${c.teacher}`, c] as const));
@@ -296,7 +302,7 @@ export function buildRows(
     catBySeq.get(skn(code, seq)) ?? (teacher ? catByCodeTeacher.get(`${code}|${teacher}`) : undefined) ?? catByCode.get(code);
   for (const s of selected) {
     const key = sk(s.code, s.seq);
-    if (inCat.has(key)) continue;
+    if (inCat.has(key) || inCatN.has(skn(s.code, s.seq))) continue;
     const c0 = borrowCat(s.code, s.seq, s.teacher); // 同课号不同班：借目录元数据（时间等）——先精确同班
     rows.push({
       key, c: { department: c0?.department ?? "", code: s.code, seq: s.seq || "0", name: s.name || c0?.name || "", credits: s.credits || c0?.credits || 0, teacher: s.teacher || c0?.teacher || "", teacherId: c0?.teacherId ?? "", capacity: c0?.capacity ?? 0, remaining: c0?.remaining ?? 0, gradCapacity: c0?.gradCapacity ?? 0, gradRemaining: c0?.gradRemaining ?? 0, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", note: c0?.note ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", tongshiGroup: c0?.tongshiGroup ?? "", attr: c0?.attr ?? "" },
@@ -309,7 +315,7 @@ export function buildRows(
   // 目录里的候补课，「我的队列」筛选/预览/行合并全线无行可挂）
   for (const s of candidates) {
     const key = sk(s.code, s.seq);
-    if (inCat.has(key)) continue;
+    if (inCat.has(key) || inCatN.has(skn(s.code, s.seq))) continue;
     const c0 = borrowCat(s.code, s.seq, s.teacher);
     rows.push({
       key, c: { department: c0?.department ?? "", code: s.code, seq: s.seq || "0", name: s.name || c0?.name || "", credits: c0?.credits ?? 0, teacher: s.teacher || c0?.teacher || "", teacherId: c0?.teacherId ?? "", capacity: c0?.capacity ?? 0, remaining: c0?.remaining ?? 0, gradCapacity: c0?.gradCapacity ?? 0, gradRemaining: c0?.gradRemaining ?? 0, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", note: c0?.note ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", tongshiGroup: c0?.tongshiGroup ?? "", attr: c0?.attr ?? "" },
