@@ -253,13 +253,20 @@ export function buildRows(
 ): XkRow[] {
   // seq 归一：目录 seq 可为空串、已选/一级课表为 "0" —— 统一 code_seq0 键（时间未定假象的根源）
   const sk = (code: string, seq: string): string => `${code}_${seq || "0"}`;
+  // 前导零归一键（志愿页 "1" vs 一级课表/搜索行 "01" 两套编号实锤）：班次
+  // 匹配/借用一律先用它——同课号多班按课号盲配会把别的班的时间/位次张冠
+  // 李戴（课余量模式同课号不同时间的课在预览课表挤一格的根因）
+  const skn = (code: string, seq: string): string => `${code}_${String(parseInt(seq, 10) || 0)}`;
   const selByKey = new Map<string, XkSelectedRow>(selected.map((s) => [sk(s.code, s.seq), s]));
   const volIdx = buildVolIndex(volMap);
+  // 候补三段：精确同班（归一）→ 同课同师 → 课号（两套编号最后的宽容）
+  const candBySeq = new Map(candidates.map((s) => [skn(s.code, s.seq), s] as const));
+  const candByCodeTeacher = new Map(candidates.filter((s) => s.teacher).map((s) => [`${s.code}|${s.teacher}`, s] as const));
   const candByCode = new Map(candidates.map((s) => [s.code, s] as const));
   const rows: XkRow[] = catalog.map((c) => {
     const key = sk(c.code, c.seq);
     const sel = selByKey.get(key);
-    const cand = candByCode.get(c.code);
+    const cand = candBySeq.get(skn(c.code, c.seq)) ?? candByCodeTeacher.get(`${c.code}|${c.teacher}`) ?? candByCode.get(c.code);
     // 三段匹配（NextTHUxk 2.0 applyVolunteer 回移）：原始键 → 归一键 → 逐行归一
     // 比对 → 单段回退；多段不盲配（「5/2」张冠李戴事故：拿别的班的容量冒充本班）
     const vol = matchVolIndexed(volIdx, volMap, c.code, c.seq);
@@ -281,11 +288,16 @@ export function buildRows(
   });
   // 已选/候补课不在目录（罕见）：补行
   const inCat = new Set(rows.map((r) => r.key));
+  // 借用三段（同课号不同班挤一格根因）：精确同班（归一）→ 同课同师 → 课号任意班
+  const catBySeq = new Map(catalog.map((c) => [skn(c.code, c.seq), c] as const));
+  const catByCodeTeacher = new Map(catalog.filter((c) => c.teacher).map((c) => [`${c.code}|${c.teacher}`, c] as const));
   const catByCode = new Map(catalog.map((c) => [c.code, c] as const));
+  const borrowCat = (code: string, seq: string, teacher?: string): XkCourse | undefined =>
+    catBySeq.get(skn(code, seq)) ?? (teacher ? catByCodeTeacher.get(`${code}|${teacher}`) : undefined) ?? catByCode.get(code);
   for (const s of selected) {
     const key = sk(s.code, s.seq);
     if (inCat.has(key)) continue;
-    const c0 = catByCode.get(s.code); // 同课号不同班：借用目录元数据（时间等）
+    const c0 = borrowCat(s.code, s.seq, s.teacher); // 同课号不同班：借目录元数据（时间等）——先精确同班
     rows.push({
       key, c: { department: c0?.department ?? "", code: s.code, seq: s.seq || "0", name: s.name || c0?.name || "", credits: s.credits || c0?.credits || 0, teacher: s.teacher || c0?.teacher || "", teacherId: c0?.teacherId ?? "", capacity: c0?.capacity ?? 0, remaining: c0?.remaining ?? 0, gradCapacity: c0?.gradCapacity ?? 0, gradRemaining: c0?.gradRemaining ?? 0, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", note: c0?.note ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", tongshiGroup: c0?.tongshiGroup ?? "", attr: c0?.attr ?? "" },
       selected: true, isCandidate: false, available: false,
@@ -298,7 +310,7 @@ export function buildRows(
   for (const s of candidates) {
     const key = sk(s.code, s.seq);
     if (inCat.has(key)) continue;
-    const c0 = catByCode.get(s.code);
+    const c0 = borrowCat(s.code, s.seq, s.teacher);
     rows.push({
       key, c: { department: c0?.department ?? "", code: s.code, seq: s.seq || "0", name: s.name || c0?.name || "", credits: c0?.credits ?? 0, teacher: s.teacher || c0?.teacher || "", teacherId: c0?.teacherId ?? "", capacity: c0?.capacity ?? 0, remaining: c0?.remaining ?? 0, gradCapacity: c0?.gradCapacity ?? 0, gradRemaining: c0?.gradRemaining ?? 0, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", note: c0?.note ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", tongshiGroup: c0?.tongshiGroup ?? "", attr: c0?.attr ?? "" },
       selected: false, isCandidate: true, available: false, cand: s,
