@@ -1247,10 +1247,20 @@ export class InfoClient {
       // 2026-09-14 实锤：全年窗口（0901→0731）让教务 JSONP 返回 HTML 错误页
       // （renderer=webkit 门户型页面，非登录页）；同接口周窗口的 getSchedule
       // 一直正常。拆两段学期窗口查询再合并，避开服务端超大范围限制。
-      const windows: Array<[string, string]> = [
-        [start, `${startYear + 1}0201`],
-        [`${startYear + 1}0120`, end],
-      ];
+      // 2026-09-13 凌晨再实锤：两段 5 个月大学区仍触发服务端 jsp 超时页（校历同
+      // 主机同晚 7 天窗秒回 200——与维护/会话无关，纯查询范围问题）。改 ≤45 天
+      // 分片顺扫，重叠 1 天，窗口小到与课表同级；行级三元组去重兜底。
+      const windows: Array<[string, string]> = [];
+      {
+        const d0 = new Date(Number(start.slice(0, 4)), Number(start.slice(4, 6)) - 1, Number(start.slice(6, 8)));
+        const d1 = new Date(Number(end.slice(0, 4)), Number(end.slice(4, 6)) - 1, Number(end.slice(6, 8)));
+        const fmt = (d: Date): string => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+        for (let cur = d0; cur <= d1; ) {
+          const wEnd = new Date(Math.min(cur.getTime() + 44 * 86400000, d1.getTime()));
+          windows.push([fmt(cur), fmt(wEnd)]);
+          cur = new Date(wEnd.getTime() + 86400000);
+        }
+      }
       const merged: Record<string, unknown>[] = [];
       const seen = new Set<string>();
       for (const [wStart, wEnd] of windows) {
@@ -1264,8 +1274,13 @@ export class InfoClient {
           list = JSON.parse(stripJsonp(text));
         } catch {
           // 同 getSchedule：非 JSON 先分类，绝不把接口异常谎报成会话失效
-          if (this.#http.wengineInterstitial(text) || /__vpn_hostname_data|wengine-vpn\/js|jsp\.timeout|登录超时|do\/off\/ui\/auth\/login/i.test(text)) {
+          if (this.#http.wengineInterstitial(text) || /__vpn_hostname_data|wengine-vpn\/js|登录超时|do\/off\/ui\/auth\/login/i.test(text)) {
             throw new AuthRequiredError("考试 JSONP 落在登录/超时页");
+          }
+          if (/jsp\.timeout/i.test(text)) {
+            // jsp.timeout=服务端处理超时（大查询窗口触发），非会话失效——
+            // 误归类会触发 renew/relogin 搅局甚至踢会话
+            throw new Error("考试查询窗口触发服务端处理超时（jsp.timeout），已缩窗重试仍达");
           }
           throw new Error(`考试接口返回非 JSON（终URL ${String(this.#http.lastFinalUrl ?? "").slice(0, 80)} 前80字：${text.replace(/\s+/g, " ").slice(0, 80)}）`);
         }
