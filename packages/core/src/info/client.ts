@@ -694,8 +694,10 @@ export class InfoClient {
   async getSchedule(startDate: string, endDate: string): Promise<ScheduleEntry[]> {
     return this.#withRenew(async () => {
       await this.#ensureZhjw();
-      const text = await this.#http.text(
-        this.#withTimeout(this.#http.text(urls.ZHJW_SCHEDULE_JSONP(compactDate(startDate), compactDate(endDate))), 20_000, "课表"),
+      const text = await this.#withTimeout(
+        this.#http.text(urls.ZHJW_SCHEDULE_JSONP(compactDate(startDate), compactDate(endDate))),
+        20_000,
+        "课表",
       );
       let list: unknown;
       try {
