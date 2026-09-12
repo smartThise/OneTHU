@@ -441,6 +441,22 @@ export class InfoClient {
   /** 会话失效时自动续期并重试一次（登录会话内密码在内存，重启后自然回退到登录页）。
    *  重试仅对 AuthRequiredError（明确的未登录特征，请求未达业务层）触发；
    *  请求入口先做会话年龄检查，成功后刷新存活时间戳。 */
+  /** 请求级超时（2026-09-13 凌晨实锤：教务夜间维护半死态连接悬挂不 settle，
+   *  hook 永远 loading 转圈）——Promise.race 到点抛错，落 SWR/重试路径。 */
+  async #withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+    let t: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        p,
+        new Promise<T>((_, rej) => {
+          t = setTimeout(() => rej(new Error(`${label}请求超时（${Math.round(ms / 1000)}s 无响应，服务可能维护中）`)), ms);
+        }),
+      ]);
+    } finally {
+      if (t) clearTimeout(t);
+    }
+  }
+
   async #withRenew<T>(op: () => Promise<T>): Promise<T> {
     await this.#preRenew("info");
     try {
@@ -679,7 +695,7 @@ export class InfoClient {
     return this.#withRenew(async () => {
       await this.#ensureZhjw();
       const text = await this.#http.text(
-        urls.ZHJW_SCHEDULE_JSONP(compactDate(startDate), compactDate(endDate)),
+        this.#withTimeout(this.#http.text(urls.ZHJW_SCHEDULE_JSONP(compactDate(startDate), compactDate(endDate))), 20_000, "课表"),
       );
       let list: unknown;
       try {
@@ -1236,8 +1252,10 @@ export class InfoClient {
       const merged: Record<string, unknown>[] = [];
       const seen = new Set<string>();
       for (const [wStart, wEnd] of windows) {
-        const text = await this.#http.text(
-          urls.ZHJW_SCHEDULE_JSONP(compactDate(wStart), compactDate(wEnd)),
+        const text = await this.#withTimeout(
+          this.#http.text(urls.ZHJW_SCHEDULE_JSONP(compactDate(wStart), compactDate(wEnd))),
+          20_000,
+          "考试",
         );
         let list: unknown;
         try {
