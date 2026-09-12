@@ -262,7 +262,11 @@ export async function fetchZhjwxkPage(s: ZhjwxkSession, path: string): Promise<s
 
 /* ── 解析（demo 正则逐行照抄）────────────────────────────────── */
 
-const ROW_RE = () => /<tr[^>]*class="trr2"[^>]*>([\s\S]*?)<\/tr>/g;
+// 行捕获前瞻到下一 trr1/trr2 行头或表尾（2026-09-14 嵌套表格实锤：多教师格
+// 内嵌 <table> 的内层 </tr> 会把非贪婪截断，教师格之后的列全丢——30240593
+// 第1班教师读成内层计数码"3"、容量/余量串格）。内层 <tr> 无 trr 类名不触发
+// 前瞻，嵌套行完整包含；tdsOf 深度计数取顶层格。
+const ROW_RE = () => /<tr[^>]*class="trr2"[^>]*>([\s\S]*?)(?=<tr[^>]*class="trr[12][^>]*>|<\/table>)/g;
 
 /** demo /api/courses 的 <tr class="trr2"> 行解析（server.js L290-302） */
 export function parseSelectedCourses(html: string): SelectedCourse[] {

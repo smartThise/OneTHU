@@ -993,7 +993,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           </div>
         ) : null}
         {wb.phase ? (
-          <div className="row-sub" style={{ whiteSpace: "normal" }}>{[cap ? `容量 ${cap}` : "", q?.qQueue ? `排队 ${q.qQueue}` : "", r.cand ? (r.cand.myPos ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : "候选中") : ""].filter(Boolean).join(" · ")}</div>
+          r.cand ? <div className="row-sub" style={{ whiteSpace: "normal" }}>{r.cand.myPos ? `我的排队 第${r.cand.myPos}名 / 共${r.cand.queueTotal}人` : "候选中（队列未出位次）"}</div> : null
         ) : r.vol ? (
           <div className="row-sub" style={{ whiteSpace: "normal" }}>
             {(() => {
@@ -1107,11 +1107,9 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             {!wb.phase ? <select className="input" style={{ height: 26, fontSize: 12, maxWidth: 76 }} value={String(pick.zy)} disabled={wb.busy !== null} onChange={(e) => setPicks((m) => ({ ...m, [key]: { ...pick, zy: Number(e.target.value) } }))}>
               {[3, 2, 1].map((z) => <option key={z} value={z}>{z}志愿</option>)}
             </select> : null}
-            {wb.phase ? (
-              q ? <span style={{ fontSize: 12, fontWeight: 700, minWidth: 96, color: q.qRemaining > 0 ? "var(--green)" : q.qQueue > 0 ? "var(--amber)" : "var(--red)" }}>{q.qRemaining > 0 ? `有余量 ${q.qRemaining}` : q.qQueue > 0 ? `排队 ${q.qQueue} 人` : "已满"}</span> : <span style={{ minWidth: 96 }} />
-            ) : (
+            {!wb.phase ? (
               <span style={{ fontSize: 12, color: prob.color, minWidth: 96 }}>{prob.prob}</span>
-            )}
+            ) : null}
             <button className="btn" disabled={wb.busy !== null} onClick={() => void wb.submit(r.c.code, r.c.seq, pick.zy, pick.flag)}>
               {wb.busy === `submit-${r.c.code}-${r.c.seq}` ? "提交中…" : state === "full" ? "排队选课" : "选课"}
             </button>
