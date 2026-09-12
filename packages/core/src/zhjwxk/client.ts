@@ -556,14 +556,21 @@ function tdsOf(rowHtml: string): string[] {
 /** 目录行解析（v1.4.9 parseCatalog：列位 0 院系 / 1 课号 / 2 课序 / 3 课名 / 4 学分 /
  *  5 教师+p_jsh / 6 容量 / 7 余量 / 8-9 研 / 10 时间 / 11 说明 / 12 特色 / 13 年级 / 18 通识组） */
 export function parseXkCatalogPage(html: string): XkCourse[] {
-  const out: XkCourse[] = [];
-  // ── 表头列位自适应（NextTHUxk 同款修复：用户实锤特色筛不出/神秘 0 学分/
-  //    体育漏判——目录表列序漂移后 cell(4)/cell(12)/cell(0) 全指错格）。
-  //    表头行 tr.trr1 扫列名→索引；首条数据行课号格码型校验不过整表回退固定列位。
-  const headRow = /<tr[^>]*class="trr1"[^>]*>([\s\S]*?)<\/tr>/.exec(html)?.[1] ?? "";
-  const headCells = [...headRow.matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/g)].map((t) =>
-    (t[1] ?? "").replace(/<[^>]*>/g, "").replace(/\s+/g, "").trim(),
-  );
+  // DOM 主路（2026-09-14 定案）：正则行分割在教务表格（嵌套结构/行类名复用）
+  // 上反复翻车——教师列系统性错位读成计数、行重复（React key 冲突实录）。
+  // webview 有 DOMParser，直接对齐插件 parseCatalog 的 DOM 语义；node 测试
+  // 环境无 DOM 时回退正则路径（平表两路等价，嵌套差异只有真机页面才有）。
+  if (typeof DOMParser !== "undefined") return parseXkCatalogDom(html);
+  return parseXkCatalogRegex(html);
+}
+
+/** 目录表列键（固定键集合：noUncheckedIndexedAccess 下 Record<string,number>
+ *  的读访问带 undefined，收窄成字面量联合让索引返回确定的 number） */
+type CatalogKeys = "department" | "code" | "seq" | "name" | "credits" | "teacher" | "capacity" | "remaining" | "gradCapacity" | "gradRemaining" | "note" | "feature" | "grade" | "tongshi";
+type CatalogHead = Record<CatalogKeys, number>;
+
+/** 表头列位自适应映射（DOM/正则两路共享）：列名→索引；code/name 双中才用表头 */
+function catalogHeadMap(headCells: string[]): { H: CatalogHead; useHead: boolean } {
   const hIdx = (keys: string[]): number => {
     for (const k of keys) {
       const i = headCells.findIndex((c) => c.includes(k));
@@ -571,7 +578,7 @@ export function parseXkCatalogPage(html: string): XkCourse[] {
     }
     return -1;
   };
-  const H = {
+  const H: CatalogHead = {
     department: hIdx(["院系"]),
     code: hIdx(["课号"]),
     seq: hIdx(["课序号"]),
@@ -587,58 +594,99 @@ export function parseXkCatalogPage(html: string): XkCourse[] {
     grade: hIdx(["年级"]),
     tongshi: hIdx(["通识"]),
   };
-  const F = { department: 0, code: 1, seq: 2, name: 3, credits: 4, teacher: 5, capacity: 6, remaining: 7, gradCapacity: 8, gradRemaining: 9, note: 11, feature: 12, grade: 13, tongshi: 18 };
-  let useHead = H.code >= 0 && H.name >= 0;
+  return { H, useHead: H.code >= 0 && H.name >= 0 };
+}
+
+const CATALOG_F: CatalogHead = { department: 0, code: 1, seq: 2, name: 3, credits: 4, teacher: 5, capacity: 6, remaining: 7, gradCapacity: 8, gradRemaining: 9, note: 11, feature: 12, grade: 13, tongshi: 18 };
+
+/** 行文本 → XkCourse（两路共享的字段构建：列位映射、时间列内容扫描、码型校验） */
+function catalogRowOf(cells: string[], href: string, H: CatalogHead, useHead: boolean): XkCourse | null {
+  const ix = (k: CatalogKeys): number => (useHead && H[k] >= 0 ? H[k] : CATALOG_F[k]);
+  if (cells.length < 11) return null;
+  const td = (i: number): string => (cells[i] ?? "").replace(/\s+/g, " ").trim();
+  // 时间地点列自适应：优先按内容特征「星期X…第N节」找列，找不到回落 10 列。
+  let timeIdx = cells.findIndex((t) => /星期[一二三四五六日]/.test(t) && /第\d+/.test(t));
+  if (timeIdx < 0) timeIdx = 10;
+  const code = td(ix("code"));
+  const name = td(ix("name"));
+  // 外校课程课号带前缀：PK=北大、BW=北外（含小写 w）。纯字母数字且至少含一个数字。
+  if (!/^[A-Za-z0-9]+$/.test(code) || !/\d/.test(code) || !name) return null;
+  const timeCell = td(timeIdx);
+  return {
+    department: td(ix("department")),
+    code,
+    seq: td(ix("seq")) || "0",
+    name,
+    credits: parseFloat(td(ix("credits"))) || 0,
+    teacher: td(ix("teacher")),
+    teacherId: /p_jsh=([^&"]+)/.exec(href)?.[1] ?? "",
+    capacity: parseInt(td(ix("capacity"))) || 0,
+    remaining: parseInt(td(ix("remaining"))) || 0,
+    gradCapacity: parseInt(td(ix("gradCapacity"))) || 0,
+    gradRemaining: parseInt(td(ix("gradRemaining"))) || 0,
+    time: timeCell,
+    room: (() => {
+      const i = timeCell.lastIndexOf(")");
+      return i >= 0 ? timeCell.slice(i + 1).trim() : "";
+    })(),
+    note: td(ix("note")),
+    feature: td(ix("feature")),
+    grade: td(ix("grade")),
+    tongshiGroup: cells.length > ix("tongshi") ? td(ix("tongshi")) : "",
+    attr: "",
+  };
+}
+
+function parseXkCatalogDom(html: string): XkCourse[] {
+  const out: XkCourse[] = [];
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const headCells = [...(doc.querySelector("tr.trr1")?.querySelectorAll("td,th") ?? [])].map((x) =>
+    (x.textContent || "").replace(/\s+/g, "").trim(),
+  );
+  const { H, useHead: headOk } = catalogHeadMap(headCells);
+  const rows = [...doc.querySelectorAll("tr.trr2")];
+  let useHead = headOk;
+  if (useHead) {
+    // 首条数据行课号格码型校验不过 → 整表回退固定列位（表头列名猜错）
+    const r0Cells = rows[0] ? [...rows[0].querySelectorAll(":scope > td")] : [];
+    const c0 = (r0Cells[H.code]?.textContent ?? "").replace(/\s+/g, "").trim();
+    if (!/^[A-Za-z0-9]+$/.test(c0) || !/\d/.test(c0)) useHead = false;
+  }
+  for (const row of rows) {
+    // 直接子格（:scope > td）：嵌套表的内层格不算本行列——结构性免疫错位
+    const cells = [...row.querySelectorAll(":scope > td")].map((td) =>
+      (td.textContent || "").replace(/\s+/g, " ").trim(),
+    );
+    const href = row.querySelector('a[href*="showJsDetail"]')?.getAttribute("href") ?? "";
+    const c = catalogRowOf(cells, href, H, useHead);
+    if (!c) continue;
+    out.push(c);
+    if (/^\d{1,3}$/.test(c.teacher)) xkParseDebug.onOddTeacher?.(c.code, c.seq, c.teacher, (row.innerHTML || "").replace(/\s+/g, " ").slice(0, 600));
+  }
+  return out;
+}
+
+function parseXkCatalogRegex(html: string): XkCourse[] {
+  const out: XkCourse[] = [];
+  const headRow = /<tr[^>]*class="trr1"[^>]*>([\s\S]*?)<\/tr>/.exec(html)?.[1] ?? "";
+  const headCells = [...headRow.matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/g)].map((t) =>
+    (t[1] ?? "").replace(/<[^>]*>/g, "").replace(/\s+/g, "").trim(),
+  );
+  const { H, useHead: headOk } = catalogHeadMap(headCells);
+  let useHead = headOk;
   if (useHead) {
     const r0 = ROW_RE().exec(html);
     const t0 = r0 ? tdsOf(r0[1] ?? "") : [];
     const c0 = (t0[H.code] ?? "").replace(/\s+/g, "").trim();
-    if (!/^[A-Za-z0-9]+$/.test(c0) || !/\d/.test(c0)) useHead = false;   // 表头列名猜错 → 全回退
+    if (!/^[A-Za-z0-9]+$/.test(c0) || !/\d/.test(c0)) useHead = false;
   }
-  const ix = (k: keyof typeof H): number => (useHead && H[k] >= 0 ? H[k] : F[k]);
   const rowRe = ROW_RE();
   let m: RegExpExecArray | null;
   while ((m = rowRe.exec(html)) !== null) {
-    const tds = tdsOf(m[1] ?? "");
-    if (tds.length < 11) continue;
-    const td = (i: number): string => (tds[i] ?? "").replace(/\s+/g, " ").trim();
-    // 时间地点列自适应（已选表 2026-2027-1 改版同款风险）：优先按内容特征
-    // 「星期X…第N节」找列，找不到回落 td(10)。教室=该格最后一个「)」之后的尾段。
-    let timeIdx = tds.findIndex((t) => /星期[一二三四五六日]/.test(t) && /第\d+/.test(t));
-    if (timeIdx < 0) timeIdx = 10;
-    const code = td(ix("code"));
-    const name = td(ix("name"));
-    // 外校课程课号带前缀：PK=北大、BW=北外（北外形如 BW3w0007，含小写 w——
-    // HAR 实证，19 列与本校对齐）。规则：纯字母数字且至少含一个数字。
-    if (!/^[A-Za-z0-9]+$/.test(code) || !/\d/.test(code) || !name) continue;
-    const href = /href="([^"]*showJsDetail[^"]*)"/.exec(m[1] ?? "")?.[1] ?? "";
-    out.push({
-      department: td(ix("department")),
-      code,
-      seq: td(ix("seq")) || "0",
-      name,
-      credits: parseFloat(td(ix("credits"))) || 0,
-      teacher: td(ix("teacher")),
-      teacherId: /p_jsh=([^&"]+)/.exec(href)?.[1] ?? "",
-      capacity: parseInt(td(ix("capacity"))) || 0,
-      remaining: parseInt(td(ix("remaining"))) || 0,
-      gradCapacity: parseInt(td(ix("gradCapacity"))) || 0,
-      gradRemaining: parseInt(td(ix("gradRemaining"))) || 0,
-      time: td(timeIdx),
-      room: (() => {
-        const cell = td(timeIdx);
-        const i = cell.lastIndexOf(")");
-        const tail = i >= 0 ? cell.slice(i + 1).trim() : "";
-        return tail;
-      })(),
-      note: td(ix("note")),
-      feature: td(ix("feature")),
-      grade: td(ix("grade")),
-      tongshiGroup: tds.length > ix("tongshi") ? td(ix("tongshi")) : "",
-      attr: "",
-    });
-    const rowRef = out[out.length - 1]!;
-    if (/^\d{1,3}$/.test(rowRef.teacher)) xkParseDebug.onOddTeacher?.(rowRef.code, rowRef.seq, rowRef.teacher, (m[1] ?? "").replace(/\s+/g, " ").slice(0, 600));
+    const c = catalogRowOf(tdsOf(m[1] ?? "").map((t) => t.replace(/\s+/g, " ").trim()), /href="([^"]*showJsDetail[^"]*)"/.exec(m[1] ?? "")?.[1] ?? "", H, useHead);
+    if (!c) continue;
+    out.push(c);
+    if (/^\d{1,3}$/.test(c.teacher)) xkParseDebug.onOddTeacher?.(c.code, c.seq, c.teacher, (m[1] ?? "").replace(/\s+/g, " ").slice(0, 600));
   }
   return out;
 }
