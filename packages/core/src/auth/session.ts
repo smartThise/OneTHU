@@ -353,21 +353,10 @@ export class CampusSession {
       return true;
     } catch (e) {
       this.#dbg("RE-ROAM fail " + String(e) + "\n" + this.#demo.debug);
-      // WebVPN 层死亡（wengine 会话过期）时重漫游必失败—— roam 用的发票/落地跳
-      // 都要活的 webvpn 会话。此时升级到 softRelogin 全链重建再试一次（THU Info
-      // 语义：凭据在内存，任何一层死都透明重建）。失败维持原语义返回 false。
-      if (await this.softRelogin()) {
-        try {
-          const csrf2 = await demoReenterLearn(this.fetchLike, this.#demo, this.#demo.idJsid || jsid);
-          this.learn.applyCsrf(csrf2);
-          this.#learnEraCookies = this.#demo.webvpnCookies;
-          this.#dbg("RE-ROAM ok (after soft-relogin)\n" + this.#demo.debug);
-          this.#seedJar();
-          return true;
-        } catch (e2) {
-          this.#dbg("RE-ROAM fail(2) " + String(e2));
-        }
-      }
+      // 2026-09-14 拆泵：不再升级 softRelogin——WebVPN 单会话，完整登录会踢掉
+      // 还活着的会话，renew 路径内嵌完整登录 = 连环互踢泵（日志实录三个
+      // start(full login) 交错 + logoutByOther）。失败原样返回，由前端
+      // softRecover（20s 节流）或 keepalive 统一低频重建。
       return false;
     }
   }
@@ -387,13 +376,9 @@ export class CampusSession {
    *  不受任何限制。 */
   #softReloginCooldownUntil = 0;
   #softReloginFailStreak = 0;
-  #softReloginLastOkAt = 0;
   softRelogin(): Promise<boolean> {
     if (this.state === "need-2fa") return Promise.resolve(false);   // 2FA 墙：静默，等人工
     if (Date.now() < this.#softReloginCooldownUntil) return Promise.resolve(false);
-    // 成功冷却：成功登录=旧会话刚被踢（服务端单会话），5 分钟内的 auth 失败
-    // 多为踢踏余波/在途竞态——再登只会把刚建好的会话又踢掉（2026-09-14 实录）
-    if (Date.now() - this.#softReloginLastOkAt < 5 * 60_000) return Promise.resolve(false);
     this.#softReloginInflight ??= (async () => {
       try {
         if (!this.username || !this.#password) {
@@ -405,7 +390,6 @@ export class CampusSession {
         const ok = result.state === "ready";
         if (ok) {
           this.#softReloginFailStreak = 0;
-          this.#softReloginLastOkAt = Date.now();
         } else {
           this.#softReloginFailStreak += 1;
           this.#softReloginCooldownUntil = Date.now() + Math.min(60_000 * 2 ** (this.#softReloginFailStreak - 1), 30 * 60_000);
@@ -519,8 +503,7 @@ export class CampusSession {
     try {
       await this.#roamId();
     } catch {
-      if (!(await this.softRelogin())) return false;
-      await this.#roamId();
+      return false;   // 2026-09-14 拆泵：失败原样返回，完整登录归前端节流口
     }
     this.#seedJar();
     return true;
@@ -533,8 +516,7 @@ export class CampusSession {
     try {
       await this.#roamCard();
     } catch {
-      if (!(await this.softRelogin())) return false;
-      await this.#roamCard();
+      return false;   // 同 renewInfo：拆泵
     }
     this.#seedJar();
     return true;
