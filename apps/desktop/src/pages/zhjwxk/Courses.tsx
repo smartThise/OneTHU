@@ -914,14 +914,18 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
   const applied = r.vol?.applied ?? 0;
   const prob = itemProb(wb, r.c.code, r.c.seq, pick.flag, pick.zy);
   const confs = findPreviewConflicts({ code: r.c.code, seq: r.c.seq, time: r.time, name: r.name }, wb.previewIndex);
-  const state = r.selected ? "selected" : r.isCandidate ? "candidate" : wb.phase && r.q && r.q.qRemaining === 0 && r.q.qQueue === 0 ? "full" : "available";
+  // 队列阶段缺 queueMap 条目 → 行数据合成（NextTHUxk render.js 同款）：按需
+  // 查询模型下搜索行天然不在 map（查询集=已选+候补+暂存），不合成会整个
+  // 掉进志愿统计分支——课余量模式卡片显示志愿数据的怪象（2026-09-14 实锤）
+  const q = r.q ?? (wb.phase ? { qRemaining: r.c.remaining, qCapacity: r.c.capacity, qQueue: 0 } : undefined);
+  const state = r.selected ? "selected" : r.isCandidate ? "candidate" : wb.phase && q && q.qRemaining === 0 && q.qQueue === 0 ? "full" : "available";
   const showInlineProb = state === "selected" || state === "candidate"; // 可用行操作行已有概率 chip，不双显
 
   return (
     <div className="row" data-xk-row={r.key} style={{ animationDelay: `${Math.min(i, 20) * 20}ms`, ...(highlight ? { outline: "2px solid var(--accent)" } : {}) }}>
       <div className="row-when">
-        <b style={{ color: wb.phase && r.q ? (r.q.qRemaining > 0 ? "var(--green)" : r.q.qQueue > 0 ? "var(--amber)" : "var(--red)") : heat(applied, cap) }}>
-          {wb.phase ? (r.q?.qRemaining ?? r.c.remaining) : r.c.remaining}
+        <b style={{ color: wb.phase && q ? (q.qRemaining > 0 ? "var(--green)" : q.qQueue > 0 ? "var(--amber)" : "var(--red)") : heat(applied, cap) }}>
+          {wb.phase ? (q?.qRemaining ?? r.c.remaining) : r.c.remaining}
         </b>
         <span>{wb.phase ? "余量" : "余量"}</span>
       </div>
@@ -952,8 +956,8 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
         </div>
         <div className="row-sub" style={{ whiteSpace: "normal" }}>{[r.c.code, r.c.seq && r.c.seq !== "0" ? `第${r.c.seq}班` : "", r.teacher, `${r.credits} 学分`, r.time, r.c.department].filter(Boolean).join(" · ")}</div>
         {r.c.note ? <div className="row-sub" style={{ whiteSpace: "normal", color: "var(--text-2)" }}>课程说明：{r.c.note}</div> : null}
-        {wb.phase && r.q ? (
-          <div className="row-sub" style={{ whiteSpace: "normal" }}>{[cap ? `容量 ${cap}` : "", r.q.qQueue ? `排队 ${r.q.qQueue}` : "", r.cand ? (r.cand.myPos ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : "候选中") : ""].filter(Boolean).join(" · ")}</div>
+        {wb.phase ? (
+          <div className="row-sub" style={{ whiteSpace: "normal" }}>{[cap ? `容量 ${cap}` : "", q?.qQueue ? `排队 ${q.qQueue}` : "", r.cand ? (r.cand.myPos ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : "候选中") : ""].filter(Boolean).join(" · ")}</div>
         ) : r.vol ? (
           <div className="row-sub" style={{ whiteSpace: "normal" }}>
             {(() => {

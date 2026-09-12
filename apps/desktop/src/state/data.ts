@@ -2498,9 +2498,11 @@ export function useExams() {  const { status } = useApp();
       logPageError("EXAMS", err);
       // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才落错误条
       if (isAuthError(err) && (await softRecover("exams"))) {
-        setData(await cacheFetch(EXAMS_KEY, () => info.getExams()));
-        setState("ready");
-        return;
+        try {
+          setData(await cacheFetch(EXAMS_KEY, () => info.getExams()));
+          setState("ready");
+          return;
+        } catch { /* 二次失败落错误条，绝不逃出 catch 卡死 loading */ }
       }
       if (silent && data !== null) return;
       setState("error");

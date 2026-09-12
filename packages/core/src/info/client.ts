@@ -685,7 +685,12 @@ export class InfoClient {
       try {
         list = JSON.parse(stripJsonp(text));
       } catch {
-        throw new AuthRequiredError();
+        // 2026-09-14：响应非 JSON 先分类——登录/超时页才是会话问题；其余
+        // （空串/错误页/通知页）谎报「会话已失效」会引诱无谓重登循环
+        if (this.#http.wengineInterstitial(text) || /jsp\.timeout|登录超时|do\/off\/ui\/auth\/login/i.test(text)) {
+          throw new AuthRequiredError("课表 JSONP 落在登录/超时页");
+        }
+        throw new Error(`课表接口返回非 JSON（前80字：${text.replace(/\s+/g, " ").slice(0, 80)}）`);
       }
       if (!Array.isArray(list)) return [];
       const entries = list.map((raw) => {
@@ -1226,7 +1231,11 @@ export class InfoClient {
       try {
         list = JSON.parse(stripJsonp(text));
       } catch {
-        throw new AuthRequiredError();
+        // 同 getSchedule：非 JSON 先分类，绝不把接口异常谎报成会话失效
+        if (this.#http.wengineInterstitial(text) || /jsp\.timeout|登录超时|do\/off\/ui\/auth\/login/i.test(text)) {
+          throw new AuthRequiredError("考试 JSONP 落在登录/超时页");
+        }
+        throw new Error(`考试接口返回非 JSON（前80字：${text.replace(/\s+/g, " ").slice(0, 80)}）`);
       }
       if (!Array.isArray(list)) return [];
       const out: ExamEntry[] = [];
