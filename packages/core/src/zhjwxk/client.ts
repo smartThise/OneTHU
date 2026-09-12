@@ -125,6 +125,28 @@ async function ensure(
   //（JS 锚点跟跳），HTTP 客户端到不了 —— 参照 thu-info-lib roam("id")：解析该表单
   //（公钥+隐藏字段），SM2 加密账密 POST /check，成功后跟锚点回 xk 落地会话。
   if (html.includes("电子身份服务系统") || html.includes("do/off/ui/auth/login")) {
+    // id 半会话的 checkSingle 中间页（info 客户端 #idCheckSingle 同款第三形态，
+    // 2026-09-13 凌晨实锤：xklogin 弹回间歇拿到 id="logined" 自检页，无 SM2 公钥
+    // → 解析炸「无法从登录页获取 SM2 公钥」→ 选课整模块红条。浏览器靠 JS 自动
+    // POST 它；手动兑付：POST checkSingle → 跟 302/锚点票据 → 重走 xklogin 落地。
+    if (/checkSingle/.test(html)) {
+      const res = await s.http.request(`${ID_PREFIX}/do/off/ui/auth/login/checkSingle`, {
+        method: "POST",
+        body: new URLSearchParams({ i_rememberme: "on", fingerPrint: s.fingerprint, fingerGenPrint: "", fingerGenPrint3: "" }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        direct: true,
+        redirect: "manual",
+      });
+      const loc = res.headers.get("location") ?? "";
+      const pageHtml = await res.text().catch(() => "");
+      const target = res.status >= 300 && res.status < 400 && loc ? loc : (/href="([^"]*ticket=[^"]*)"/i.exec(pageHtml)?.[1] ?? "");
+      zhjwxkDebug?.(`[XK-CHECKSINGLE] st=${res.status} loc=${loc.slice(0, 80)} target=${target.slice(0, 90)}`);
+      if (target) {
+        const tgt = target.startsWith("http") ? target : new URL(target, ID_PREFIX).toString();
+        await s.http.text(tgt).catch(() => {});   // 兑付票据（失败不阻断：回落表单链）
+        html = await s.http.text(ZHJWXK + "/xklogin.do");
+      }
+    }
     const form = parseCasFormHtml(html, true);
     const enc = encryptPassword(s.password, form.publicKey);
     // bounce 表单页是 id 直连落地 → 直连字段集（id 校验读 i_pass，cas.ts 直连同款）

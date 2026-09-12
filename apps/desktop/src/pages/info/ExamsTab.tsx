@@ -58,7 +58,7 @@ export function ExamsTab() {
         title="考试安排"
         aside={state === "ready" && data ? `${data.length} 场 · ${upcoming} 场待考 · 本学年` : "本学年"}
       />
-      {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
+      {state === "error" && !data ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
       {state === "loading" && !data ? (
         <SkeletonRows rows={4} />
       ) : state === "error" && !data ? null : (data?.length ?? 0) === 0 ? (
