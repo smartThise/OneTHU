@@ -898,6 +898,12 @@ export async function searchXkCourses(
   if (opts.gradAvail) parts.push("p_yjskyl_ig=0");
   const html = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksJxjhBs.do?${parts.join("&")}&_t=${Date.now()}`);
   assertNotDenied(s, html);
+  // 结构取证（教师空格悬案）：首个 trr2 行前后 2600 字 dump——DOM 直系子格取
+  // 出的教师格为空而插件能出名字，需原始结构定分晓
+  if (zhjwxkDebug) {
+    const i = html.indexOf('class="trr2"');
+    if (i >= 0) zhjwxkDebug?.(`[SEARCH-ROW] ${html.slice(Math.max(0, i - 200), i + 2600).replace(/\s+/g, " ")}`);
+  }
   const rows = parseXkCatalogPage(html);
   const tp = /共\s*(\d+)\s*页/.exec(html);
   const totalPages = tp ? parseInt(tp[1]!, 10) : undefined;
