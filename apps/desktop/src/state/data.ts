@@ -1317,7 +1317,7 @@ export function useXkWorkbench(): XkWorkbench {
     () => {
       const rows = buildRows(searchRaw, volMap, queueMap, selected, candidates, levelTypes);
       // 教师空值诊断（悬案收口）：搜索格有名字但行上没有 → 覆盖层嫌疑人
-      const odd = rows.filter((r) => !r.teacher && r.selected).slice(0, 3);
+      const odd = rows.filter((r) => r.selected && (!r.teacher || /^\d{1,3}$/.test(r.teacher))).slice(0, 3);
       for (const r of odd) logPageError("ROW-DIAG", new Error(`code=${r.c.code}_${r.c.seq} cTeacher="${r.c.teacher}" selTeacher="${r.sel?.teacher ?? ""}" selTime="${r.sel?.time ?? ""}"`));
       return rows;
     },
