@@ -131,7 +131,26 @@ export class CampusSession {
   }
 
   /** 登录（demo 流程：全程 WebVPN）。返回 need-2fa 时继续 verify2FA。 */
+  #loginInflight: Promise<LoginResult> | null = null;
+  /** 登录单飞（2026-09-14 定案）：THU WebVPN 单会话——同时跑两条登录链
+   *  必然互踢（日志实录 logoutByOther=true：boot 静默重登与 scope 自愈
+   *  各跑一条，A 刚建好 B 就把 A 踢死 →「用户未登录」错误风暴）。
+   *  全应用（手动登录/boot 静默重登/softRelogin）共享同一飞行。 */
   async login(username: string, password: string): Promise<LoginResult> {
+    if (this.#loginInflight) {
+      // 用户名一致 → 复用在途链（结果同源）；不一致（换账号）→ 等它落地再跑
+      if (this.username === username) return this.#loginInflight;
+      await this.#loginInflight.catch(() => undefined);
+    }
+    this.#loginInflight = this.#loginRaw(username, password);
+    try {
+      return await this.#loginInflight;
+    } finally {
+      this.#loginInflight = null;
+    }
+  }
+
+  async #loginRaw(username: string, password: string): Promise<LoginResult> {
     this.username = username;
     this.#password = password;
     this.#demo = newDemoSession();
@@ -362,7 +381,19 @@ export class CampusSession {
    *  重（4-8s）但只在会话真死时后台发生，用户无感。返回 false = 无凭据/
    *  需 2FA/链失败——调用方走登录页，绝不整页刷新。 */
   #softReloginInflight: Promise<boolean> | null = null;
+  /** 断路器（2026-09-14 事故定案）：自动重登无退避 = 高频全链登录锤 THU 风控，
+   *  会话反而被锤进验证码/2FA 墙——「越修越坏」。失败指数退避 1min→2→4→…
+   *  cap 30min；need-2fa（interactive 登录待人工）期间全静默。手动 login()
+   *  不受任何限制。 */
+  #softReloginCooldownUntil = 0;
+  #softReloginFailStreak = 0;
+  #softReloginLastOkAt = 0;
   softRelogin(): Promise<boolean> {
+    if (this.state === "need-2fa") return Promise.resolve(false);   // 2FA 墙：静默，等人工
+    if (Date.now() < this.#softReloginCooldownUntil) return Promise.resolve(false);
+    // 成功冷却：成功登录=旧会话刚被踢（服务端单会话），5 分钟内的 auth 失败
+    // 多为踢踏余波/在途竞态——再登只会把刚建好的会话又踢掉（2026-09-14 实录）
+    if (Date.now() - this.#softReloginLastOkAt < 5 * 60_000) return Promise.resolve(false);
     this.#softReloginInflight ??= (async () => {
       try {
         if (!this.username || !this.#password) {
@@ -372,10 +403,19 @@ export class CampusSession {
         this.#dbg("SOFT-RELOGIN start (full login)");
         const result = await this.login(this.username, this.#password);
         const ok = result.state === "ready";
-        this.#dbg("SOFT-RELOGIN " + (ok ? "ok" : "fail: " + result.state));
+        if (ok) {
+          this.#softReloginFailStreak = 0;
+          this.#softReloginLastOkAt = Date.now();
+        } else {
+          this.#softReloginFailStreak += 1;
+          this.#softReloginCooldownUntil = Date.now() + Math.min(60_000 * 2 ** (this.#softReloginFailStreak - 1), 30 * 60_000);
+        }
+        this.#dbg("SOFT-RELOGIN " + (ok ? "ok" : `fail: ${result.state}（退避至 ${new Date(this.#softReloginCooldownUntil).toLocaleTimeString()}）`));
         return ok;
       } catch (e) {
-        this.#dbg("SOFT-RELOGIN fail " + String(e) + "\n" + this.#demo.debug);
+        this.#softReloginFailStreak += 1;
+        this.#softReloginCooldownUntil = Date.now() + Math.min(60_000 * 2 ** (this.#softReloginFailStreak - 1), 30 * 60_000);
+        this.#dbg("SOFT-RELOGIN fail " + String(e) + `（退避至 ${new Date(this.#softReloginCooldownUntil).toLocaleTimeString()}）` + "\n" + this.#demo.debug);
         return false;
       } finally {
         this.#softReloginInflight = null;
