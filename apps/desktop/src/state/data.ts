@@ -21,10 +21,16 @@ import {
   searchXkCourses,
   semesterFromDate,
   submitXkCourse,
+  xkParseDebug,
   // fetchXkRatings,   // 【教评#31冻结】
   // type XkRatingRow,
   type XkVolRow,
 } from "@onethu/core";
+
+// 解析取证（教师格"3"悬案）：目录行教师格纯数字 → 原始行 HTML 进日志，一次定位
+xkParseDebug.onOddTeacher = (code, seq, teacher, rawRow) => {
+  logPageError(`TEACHER-ODD ${code}_${seq}`, new Error(`teacher="${teacher}" rawRow=${rawRow}`));
+};
 import { http, info, learn, logLine, session } from "../lib/clients.js";
 import { explainNetworkError } from "../lib/transport.js";
 import { softRecover } from "../lib/reload.js";

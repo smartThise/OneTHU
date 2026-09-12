@@ -524,6 +524,10 @@ export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeou
 
 const TOKEN_RE = () => /name="token"\s+value="([^"]+)"/;
 
+/** 解析取证（2026-09-14 教师格"3"悬案）：目录行教师格解析为纯数字时回调
+ *  原始行 HTML——前端写日志，一次定位教务多教师格的真实结构。 */
+export const xkParseDebug: { onOddTeacher?: (code: string, seq: string, teacher: string, rawRow: string) => void } = {};
+
 function tdsOf(rowHtml: string): string[] {
   // 顶层 td 提取（嵌套表格免疫）：多教师格内嵌 <table> 时，朴素全局正则把
   // 内层 td 也当独立格 → 列序后移全错位（2026-09-14 实锤：30240593 第1班
@@ -633,6 +637,8 @@ export function parseXkCatalogPage(html: string): XkCourse[] {
       tongshiGroup: tds.length > ix("tongshi") ? td(ix("tongshi")) : "",
       attr: "",
     });
+    const rowRef = out[out.length - 1]!;
+    if (/^\d{1,3}$/.test(rowRef.teacher)) xkParseDebug.onOddTeacher?.(rowRef.code, rowRef.seq, rowRef.teacher, (m[1] ?? "").replace(/\s+/g, " ").slice(0, 600));
   }
   return out;
 }

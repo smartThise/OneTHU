@@ -959,7 +959,8 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             底色 chip；教师=加粗主色正文；时间=accent chip；学分=中性小字；院系=弱化尾注 */}
         <div style={{ marginTop: 3, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", whiteSpace: "normal" }}>
           <span style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: 11, padding: "1px 6px", borderRadius: 4, background: "rgba(127,127,127,.12)", color: "var(--text-2)" }}>{r.c.code}{r.c.seq && r.c.seq !== "0" ? `·${r.c.seq}班` : ""}</span>
-          {r.teacher ? <b style={{ fontSize: 13, color: "var(--text-1)" }}>{r.teacher}</b> : null}
+          {/* 纯数字教师=教务多教师格解析未明（取证中，见 xkParseDebug）——隐藏不误导 */}
+          {r.teacher && !/^\d{1,3}$/.test(r.teacher) ? <b style={{ fontSize: 13, color: "var(--text-1)" }}>{r.teacher}</b> : null}
           {r.time ? <span style={{ fontSize: 11, padding: "1px 6px", borderRadius: 4, color: "var(--accent)", background: "rgba(59,130,246,.08)", whiteSpace: "nowrap" }}>{r.time}</span> : null}
           {r.credits ? <span style={{ fontSize: 11, color: "var(--text-2)" }}>{r.credits} 学分</span> : null}
           {r.c.department ? <span style={{ fontSize: 11, color: "var(--text-3)" }}>{r.c.department}</span> : null}
