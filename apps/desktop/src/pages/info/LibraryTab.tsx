@@ -19,7 +19,7 @@ import { enc, noteAtomCache } from "../../state/atoms.js";
 import { cacheGet, cacheSet } from "../../state/cache.js";
 import { fetchImageByUrl, info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
-import { autoFullReload } from "../../lib/reload.js";
+import { softRecover } from "../../lib/reload.js";
 import { useApp } from "../../state/context.js";
 
 
@@ -336,8 +336,9 @@ export function LibraryTab({
     } catch (err) {
       logErr("LIB-LIST", err);
       // 登录态丢失：不闪红，静默强制重建座位会话后自动重载一次；仍失败才亮 ErrorNote
-      if (isAuthError(err) && autoFullReload("lib")) return;
-      // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
+      // 登录态丢失：softRelogin 透明全链重建（含 WebVPN 层）→ 原地重拉（THU Info 语义，绝不整页刷新）
+      if (isAuthError(err) && (await softRecover("lib"))) return loadLibs();
+      // softRecover 失败/节流 → 落回数据级恢复兜底
       if (isAuthError(err) && libRecover.current < 1) {
         libRecover.current += 1;
         await info.forceEnsure("library").catch((renewErr: unknown) => {
@@ -361,8 +362,9 @@ export function LibraryTab({
     } catch (err) {
       logErr("LIB-REC", err);
       // 登录态丢失：静默重建会话后自动重载一次（保持骨架，不闪红）
-      if (isAuthError(err) && autoFullReload("lib")) return;
-      // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
+      // 登录态丢失：softRelogin 透明全链重建 → 原地重拉
+      if (isAuthError(err) && (await softRecover("lib"))) return loadRecords();
+      // softRecover 失败/节流 → 落回数据级恢复兜底
       if (isAuthError(err) && recRecover.current < 1) {
         recRecover.current += 1;
         await info.forceEnsure("library").catch((renewErr: unknown) => {
@@ -424,11 +426,12 @@ export function LibraryTab({
         setFloors(list);
         pickFirst(list);
       })
-      .catch((err: unknown) => {
+      .catch(async (err: unknown) => {
         logErr("LIB-FLOOR", err);
         if (!alive) return;
-        if (isAuthError(err) && autoFullReload("lib")) return;
-        // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
+        // 登录态丢失：softRelogin 透明全链重建 → tick 链自动重拉
+        if (isAuthError(err) && (await softRecover("lib"))) { floorRecover.current = 0; setLibTick((t) => t + 1); return; }
+        // softRecover 失败/节流 → 落回数据级恢复兜底
         if (isAuthError(err) && floorRecover.current < 1) {
           // 登录态丢失：静默重建会话后整链重载（保持骨架，不闪红）
           floorRecover.current += 1;
@@ -474,11 +477,12 @@ export function LibraryTab({
           cur && list.some((s) => s.id === cur) ? cur : list.find((s) => s.valid)?.id ?? null,
         );
       })
-      .catch((err: unknown) => {
+      .catch(async (err: unknown) => {
         logErr("LIB-SECTION", err);
         if (!alive) return;
-        if (isAuthError(err) && autoFullReload("lib")) return;
-        // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
+        // 登录态丢失：softRelogin 透明全链重建 → tick 链自动重拉
+        if (isAuthError(err) && (await softRecover("lib"))) { sectionRecover.current = 0; setLibTick((t) => t + 1); return; }
+        // softRecover 失败/节流 → 落回数据级恢复兜底
         if (isAuthError(err) && sectionRecover.current < 1) {
           // 登录态丢失：静默重建会话后整链重载（保持骨架，不闪红）
           sectionRecover.current += 1;
@@ -514,11 +518,12 @@ export function LibraryTab({
         setSeats(list);
         setSeatState("ready");
       })
-      .catch((err: unknown) => {
+      .catch(async (err: unknown) => {
         logErr("LIB-SEAT", err);
         if (!alive) return;
-        if (isAuthError(err) && autoFullReload("lib")) return;
-        // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
+        // 登录态丢失：softRelogin 透明全链重建 → tick 链自动重拉
+        if (isAuthError(err) && (await softRecover("lib"))) { seatRecover.current = 0; setSeatTick((t) => t + 1); return; }
+        // softRecover 失败/节流 → 落回数据级恢复兜底
         if (isAuthError(err) && seatRecover.current < 1) {
           // 登录态丢失：静默重建座位会话后自动重取一次（保持骨架，不闪红）
           seatRecover.current += 1;

@@ -334,8 +334,83 @@ export class CampusSession {
       return true;
     } catch (e) {
       this.#dbg("RE-ROAM fail " + String(e) + "\n" + this.#demo.debug);
+      // WebVPN 层死亡（wengine 会话过期）时重漫游必失败—— roam 用的发票/落地跳
+      // 都要活的 webvpn 会话。此时升级到 softRelogin 全链重建再试一次（THU Info
+      // 语义：凭据在内存，任何一层死都透明重建）。失败维持原语义返回 false。
+      if (await this.softRelogin()) {
+        try {
+          const csrf2 = await demoReenterLearn(this.fetchLike, this.#demo, this.#demo.idJsid || jsid);
+          this.learn.applyCsrf(csrf2);
+          this.#learnEraCookies = this.#demo.webvpnCookies;
+          this.#dbg("RE-ROAM ok (after soft-relogin)\n" + this.#demo.debug);
+          this.#seedJar();
+          return true;
+        } catch (e2) {
+          this.#dbg("RE-ROAM fail(2) " + String(e2));
+        }
+      }
       return false;
     }
+  }
+
+  /** THU Info 语义的透明重登（「永不掉线」的根）：内存凭据在 → WebVPN 全链重建
+   *  （demoLogin：webvpn 登录 → CAS）→ roam-id（SSO 正门）→ 重灌 jar。
+   *  不动 learn csrf / info / card——各自 relearnRoam/renewInfo/renewCard 按需续期，
+   *  中途死亡通常只断 webvpn+id 两层。单飞：并发弹回只跑一条链（2026-09-06
+   *  互烧实录：并发链各自重舞 oauth 互相顶票据）。返回 false = 无凭据/需 2FA/
+   *  链失败——调用方走登录页，绝不整页刷新。 */
+  #softReloginInflight: Promise<boolean> | null = null;
+  softRelogin(): Promise<boolean> {
+    this.#softReloginInflight ??= (async () => {
+      try {
+        if (!this.username || !this.#password) {
+          this.#dbg("SOFT-RELOGIN skip: 无内存凭据");
+          return false;
+        }
+        this.#dbg("SOFT-RELOGIN start");
+        this.#demo = newDemoSession();
+        this.#infoEraCookies = "";
+        this.#cardEraCookies = "";
+        this.#learnEraCookies = "";
+        this.http.jar.clear();
+        const result = await demoLogin(this.fetchLike, this.username, this.#password, this.#demo, this.fingerprint, this.finger3);
+        if (result !== "logged_in") {
+          this.#dbg("SOFT-RELOGIN fail: " + (typeof result === "string" ? result : JSON.stringify(result).slice(0, 200)));
+          return false;
+        }
+        await this.#roamId();
+        this.#seedJar();
+        this.state = "ready";
+        this.#dbg("SOFT-RELOGIN ok");
+        return true;
+      } catch (e) {
+        this.#dbg("SOFT-RELOGIN fail " + String(e) + "\n" + this.#demo.debug);
+        return false;
+      } finally {
+        this.#softReloginInflight = null;
+      }
+    })();
+    return this.#softReloginInflight;
+  }
+
+  /** 会话保活探针：轻量 wrapped GET（info 落地页）判 webvpn/id 会话活性，
+   *  死 → softRelogin 透明重建。THU Info「永不掉线」的另一半：过期前续、
+   *  死亡即刻静默重建，而不是等用户下一次点击撞上死会话。
+   *  返回 "ok"（活）/ "healed"（死但已重建）/ "dead"（重建失败）。 */
+  async keepalive(): Promise<"ok" | "healed" | "dead"> {
+    if (this.state !== "ready") return "dead";
+    try {
+      const body = await this.http.text("https://info.tsinghua.edu.cn/index.jsp");
+      const dead = this.http.wengineInterstitial(body)
+        || /\/login(\/|\?|$)/.test(this.http.lastFinalUrl || "");
+      if (!dead) return "ok";
+      this.#dbg("KEEPALIVE dead: interstitial=" + this.http.wengineInterstitial(body) +
+        " final=" + this.http.lastFinalUrl.slice(0, 120));
+    } catch (e) {
+      this.#dbg("KEEPALIVE probe-error " + String(e));
+      return "dead";   // 网络层失败不盲目重登（可能只是断网）
+    }
+    return (await this.softRelogin()) ? "healed" : "dead";
   }
 
   /** 重置内存会话（logout 用；finger3 属设备信任，保留在 store） */
@@ -404,18 +479,31 @@ export class CampusSession {
     this.#cardEraCookies = this.#demo.webvpnCookies;
   }
 
-  /** InfoClient 会话过期回调：重跑两段式 roam-id 并重灌 jar。返回是否续期成功。 */
+  /** InfoClient 会话过期回调：重跑两段式 roam-id 并重灌 jar。返回是否续期成功。
+   *  roam 失败（WebVPN 层死亡时 id 发票/落地跳必死）→ softRelogin 全链重建后
+   *  重试一次——应用级续期从此对 webvpn 会话死亡免疫（THU Info 语义）。 */
   async renewInfo(): Promise<boolean> {
     if (!this.#password) return false;
-    await this.#roamId();
+    try {
+      await this.#roamId();
+    } catch {
+      if (!(await this.softRelogin())) return false;
+      await this.#roamId();
+    }
     this.#seedJar();
     return true;
   }
 
-  /** InfoClient 校园卡会话回调：card service 登录 + 直连兑付 + 重灌 jar。 */
+  /** InfoClient 校园卡会话回调：card service 登录 + 直连兑付 + 重灌 jar。
+   *  WebVPN 层死亡 → softRelogin 重建后重试（同 renewInfo）。 */
   async renewCard(): Promise<boolean> {
     if (!this.#password) return false;
-    await this.#roamCard();
+    try {
+      await this.#roamCard();
+    } catch {
+      if (!(await this.softRelogin())) return false;
+      await this.#roamCard();
+    }
     this.#seedJar();
     return true;
   }

@@ -182,6 +182,13 @@ export const session = new CampusSession({
   fetchLike: universalFetch,
 });
 
+// HttpClient 实例级透明重放（稳定性专项 2026-09-11）：响应带 id 登录页特征
+// （#looksLoggedOut）→ softRelogin（WebVPN 全链重建，单飞在 CampusSession）→
+// 原请求自动重放一次。此前实例回调从未被注册——登录页 HTML 一路裸抛到 UI 层。
+http.onAuthRequired(async () => {
+  await session.softRelogin();
+});
+
 /** 诊断落盘（UI 各处复用；写 /tmp/onethu-debug.log） */
 export async function logLine(text: string): Promise<void> {
   try {

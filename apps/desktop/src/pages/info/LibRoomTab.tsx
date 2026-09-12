@@ -27,6 +27,7 @@ import { info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { openExternal } from "./openExternal.js";
 import { useApp } from "../../state/context.js";
+import { softRecover } from "../../lib/reload.js";
 
 /** 研讨间「未绑定邮箱」检测卡（2026-09 用户反馈：新生首次使用必须在 cab.lib
  *  原网站绑定邮箱，否则会话建立/userInfo 校验恒败，只报错会让用户干等）。
@@ -47,19 +48,6 @@ function EmailBindHint({ text }: { text: string }) {
       </div>
     </Card>
   );
-}
-
-/* 整页重载式自愈（用户语义：等同手动右键刷新，从头载入）。
-   sessionStorage 节流：2 分钟内只自动重载一次，防止坏会话死循环；超限亮红交给用户。 */
-export function autoFullReload(scope: string): boolean {
-  try {
-    const key = `onethu.autoreload.${scope}`;
-    const last = Number(sessionStorage.getItem(key) ?? "0");
-    if (Date.now() - last < 120_000) return false;
-    sessionStorage.setItem(key, String(Date.now()));
-  } catch { /* sessionStorage 不可用就保守放行一次 */ }
-  setTimeout(() => location.reload(), 150);
-  return true;
 }
 
 
@@ -410,8 +398,9 @@ export function LibRoomTab({
     } catch (err) {
       logErr("LIBROOM-KIND", err);
       // 登录态丢失：不闪红，静默重建研讨间 cab 会话后自动重载一次；仍失败才亮 ErrorNote
-      if (isAuthError(err) && autoFullReload("libroom")) return;
-      // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
+      // 登录态丢失：softRelogin 透明全链重建 → 原地重拉
+      if (isAuthError(err) && (await softRecover("libroom"))) return loadKinds();
+      // softRecover 失败/节流 → 落回数据级恢复兜底
       if (isAuthError(err) && kindRecover.current < 1) {
         kindRecover.current += 1;
         await info.forceEnsure("libroom", userId).catch((renewErr: unknown) => {
@@ -442,8 +431,9 @@ export function LibRoomTab({
     } catch (err) {
       logErr("LIBROOM-REC", err);
       // 登录态丢失：静默重建会话后自动重载一次（保持骨架，不闪红）
-      if (isAuthError(err) && autoFullReload("libroom")) return;
-      // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
+      // 登录态丢失：softRelogin 透明全链重建 → 原地重拉
+      if (isAuthError(err) && (await softRecover("libroom"))) return loadRecords();
+      // softRecover 失败/节流 → 落回数据级恢复兜底
       if (isAuthError(err) && recRecover.current < 1) {
         recRecover.current += 1;
         await info.forceEnsure("libroom", userId).catch((renewErr: unknown) => {
@@ -497,11 +487,12 @@ export function LibRoomTab({
           return fresh ? { ...t, res: fresh } : null;
         });
       })
-      .catch((err: unknown) => {
+      .catch(async (err: unknown) => {
         if (!alive || gen !== resGen.current) return;
         logErr("LIBROOM-RES", err);
-        if (isAuthError(err) && autoFullReload("libroom")) return;
-        // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
+        // 登录态丢失：softRelogin 透明全链重建 → tick 链自动重拉
+        if (isAuthError(err) && (await softRecover("libroom"))) { resRecover.current = 0; setResTick((n) => n + 1); return; }
+        // softRecover 失败/节流 → 落回数据级恢复兜底
         if (isAuthError(err) && resRecover.current < 1) {
           // 登录态丢失：静默重建研讨间会话后自动重取一次（保持骨架，不闪红）
           resRecover.current += 1;

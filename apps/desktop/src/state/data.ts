@@ -27,7 +27,7 @@ import {
 } from "@onethu/core";
 import { http, info, learn, logLine, session } from "../lib/clients.js";
 import { explainNetworkError } from "../lib/transport.js";
-import { autoFullReload } from "../lib/reload.js";
+import { softRecover } from "../lib/reload.js";
 import { buildRows, buildSlotIndex, canAdjustZy as canAdjustZyFn, levelTypesOf, parseTimeSlots, type SlotItem, type XkRow, isSportsCourse } from "../lib/xklogic.js";
 import type { XkPlanItem } from "@onethu/core";
 import {
@@ -131,6 +131,11 @@ export function useCampusData() {
         logPageError("CAMPUS-AUTH", err);
         const reRoamed = await relearnRoamOnce();
         if (reRoamed) {
+          await load(silent);
+          return;
+        }
+        // relearnRoam 也救不了（无 id 主会话等）→ WebVPN 全链 softRelogin 最后一搏
+        if (await softRecover("campus")) {
           await load(silent);
           return;
         }
@@ -925,13 +930,17 @@ export function useXkWorkbench(): XkWorkbench {
 
   /* ── 核心数据提交（右栏数据 = 已选/候补/队列/方案，一级课表兜底）──
    * 单写者（coreSeqRef）：写后核心刷新永远取代在途管线的核心提交，杜绝旧数据覆盖新数据。
-   * 失登自愈（与校园卡/图书馆同款）：isAuthError → autoFullReload("xk") 静默整页重载，
-   * 2 分钟节流窗口内的第二次失败才落可重试错误。 */
+   * 失登自愈（稳定性专项 2026-09-11 后）：不整页重载——HttpClient 实例级
+   * 透明重放 + softRelogin 单飞重建（60s 热缓存），SWR 保旧/错误条兜底。 */
   /** 一级课表入参改传在途 Promise（2026-09 性能专项）：它只是「已选为空」时的兜底，
    *  99% 场景用不上——懒求值后核心 4 路请求与一级课表抓取并行，右栏刷新省一个串行往返 */
   const commitCore = useCallback(async (sem: string, ltP: Promise<Record<string, XkLevelTableRow> | null> | null, myGen: number): Promise<XkPlanItem[]> => {
     const coreSeq = ++coreSeqRef.current;
     const opt = { semester: sem };
+    // 失登自愈（稳定性专项 2026-09-11）：auth 错 → softRecover 全链重建 → 整组
+    // 原地重试一次（有界：每轮调用至多一轮）。此前直接 return []——当轮右栏
+    // 数据缺失要等下一条管线；会话已能透明重建，原地补齐才是「任何时刻稳定」。
+    for (let authRound = 0; authRound < 2; authRound++) {
     try {
       const [sel, cand, qd, plan] = await Promise.all([
         getXkSelectedFull(xkSession(), opt).catch((err: unknown) => { if (isAuthError(err)) throw err; return [] as XkSelectedRow[]; }),
@@ -968,6 +977,11 @@ export function useXkWorkbench(): XkWorkbench {
       return plan; // ★ 右栏就绪（渲染顺序固定：先右后左）
     } catch (err) {
       if (genRef.current !== myGen || coreSeqRef.current !== coreSeq) return [];
+      if (isAuthError(err) && authRound === 0) {
+        logPageError("XK-CORE-AUTH", err);
+        if (await softRecover("xk-core")) continue;   // 重建成功 → 重试整组
+        return [];
+      }
       // 失登不再整页重载（重载=app 重启回首页目录，搜索/培养方案状态全丢——2026-09-03 实录
       // 「课表跳转过一会又刷成首页」）。会话每次调用自动重建（60s 热缓存），SWR 保旧/错误条兜底。
       if (isAuthError(err)) { logPageError("XK-CORE-AUTH", err); return []; }
@@ -977,6 +991,8 @@ export function useXkWorkbench(): XkWorkbench {
       setError(explainNetworkError(err));
       throw err; // 右栏失败：整序管线到此为止，左栏保持 loading（顺序固定）
     }
+    }
+    return []; // 不可达（try 必 return 或 catch 必 return/throw）——TS 穷尽性兜底
   }, []);
 
   /** 一级课表到位：课型表 + partial 行立即提交。fullReady 之后（全量行已在）
@@ -2029,10 +2045,10 @@ export function useCard(days = 30) {
       setState("ready");
     } catch (err) {
       logPageError("CARD", err);
-      // 登录态丢失（AuthRequiredError/未登录特征）：静默重建卡会话（forceEnsure）
-      // 后自动重载一次，不闪红；仍失败才页内亮 ErrorNote（不踢回登录页）
-      if (isAuthError(err) && autoFullReload("card")) return;
-      // 整页重载被 2 分钟节流 → 落回数据级恢复兜底
+      // 登录态丢失：softRelogin 透明全链重建（含 WebVPN 层）→ 原地重拉
+      // （THU Info 语义，绝不整页刷新）；仍失败才页内亮 ErrorNote（不踢回登录页）
+      if (isAuthError(err) && (await softRecover("card"))) return load();
+      // softRecover 失败/节流 → 落回数据级恢复兜底（forceEnsure 应用级重建）
       if (isAuthError(err) && recover.current < 1) {
         recover.current += 1;
         await info.forceEnsure("card").catch((renewErr: unknown) => {

@@ -221,7 +221,7 @@ async function proxyZhjwxkApi(s: ZhjwxkSession, entry: ZhjwxkEntry, zhjwxkPath: 
     return html;
   }
   // 乐观自愈（dormPage 同构）：jar 会话真死 → 静默重走登录链并重试一次，用户无感；
-  // 重试仍死则原样返回，由 assertNotDenied 抛 AuthRequiredError 走既有 autoFullReload 链。
+  // 重试仍死则原样返回，由 assertNotDenied 抛 AuthRequiredError 走 softRecover/看门狗链。
   // 合流护栏：8 秒内已有别的请求重登过（entry 缓存即新鲜），不再删缓存起新链——
   // 并发数据路同时弹回时各自重登纯属浪费且易互相踩（singleLogin 已除，链本身无害，
   // 但一帧内 3-4 条链仍拖慢自愈）

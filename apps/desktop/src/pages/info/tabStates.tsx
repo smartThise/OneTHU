@@ -6,27 +6,24 @@
  * - 空数据 = 友好文案 Empty，绝不显示为错误条；
  * - ServiceUnavailableError = 静态提示「该服务暂不可用（上游服务维护中）」+ 手动重试，
  *   绝不自动整页刷新；
- * - 登录态失效也只落静态提示 + 重试，绝不触发失登自愈（autoFullReload / backToLogin）——
- *   本批 tab 一律不调用 reload.ts / autoFullReload。
+ * - 登录态失效只落静态提示 + 重试，绝不整页刷新——但会触发 keepalive 探针，
+ *   会话真死则 softRelogin 透明重建（用户点「重试」时踩的已是活会话）。
  */
 import { ErrorNote, Empty, Card } from "../../components/Layout.js";
 import { explainNetworkError } from "../../lib/transport.js";
-import { logLine } from "../../lib/clients.js";
+import { logLine, session } from "../../lib/clients.js";
 
 /** 页内错误落盘（与 DormTab logErr 同款，只写 /tmp/onethu-debug.log） */
 export function logTabErr(tag: string, err: unknown): void {
   void logLine(
     "PAGE-ERR " + tag + " " + (err instanceof Error ? err.message : String(err)),
   ).catch(() => undefined);
-  // 兜底铁律：宁可硬刷新也不让用户看见红条。20s 窗口内同一 tab 最多自动刷 2 次，
-  // 第三次（持续性故障）才落红条，避免刷新死循环。
-  // 例外（本文件头部的铁律）：登录态失效与上游维护是「正常状态/已知态」——
-  // 只落静态提示 + 手动重试，绝不硬刷新（校园网与统一身份独立，未登录是常态）。
-  if (isAuthExpired(err) || isServiceUnavailable(err)) return;
-  // 瞬时网络错误（超时/连不上）在手机蜂窝网下高发——整页 reload 会重启全部 tab 的取数，
-  // 恶性循环（刷得越频繁越慢）。落红条+手动重试即可，绝不动用核弹级刷新。
+  // 稳定性专项（2026-09-11）：硬刷新核弹退役——auth 失效/未知错误改为 keepalive
+  // 探针判定（轻量 GET），会话真死才 softRelogin 透明重建；用户点「重试」时
+  // 踩的已是活会话。上游维护是已知态（校网独立）；瞬时网络错误重建无益。
+  if (isServiceUnavailable(err)) return;
   if (isTransientNetworkError(err)) return;
-  hardReloadBailOut(tag);
+  void session.keepalive().catch(() => undefined);
 }
 
 /** 瞬时网络错误：传输层抛出的纯网络故障（超时/连不上/DNS），页面状态无恙，重试即愈 */
@@ -34,30 +31,6 @@ export function isTransientNetworkError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   // 词汇表与 clients.ts isNetworkError 同源（reqwest/invoke 原话），另补浏览器 fetch 措辞
   return /网络错误|timeout|timed? ?out|error sending request|connect|Failed to fetch|Network request failed/i.test(err.message);
-}
-
-/** 红条前自动硬刷新守卫：返回 true 表示已触发整页重载（调用方后续 setState 无意义） */
-export function hardReloadBailOut(scope: string): boolean {
-  try {
-    const key = `onethu.bailout.${scope}`;
-    const now = Date.now();
-    let n = 0;
-    let t = 0;
-    try {
-      const raw = JSON.parse(sessionStorage.getItem(key) ?? "{}") as { n?: number; t?: number };
-      if (typeof raw.n === "number" && typeof raw.t === "number" && now - raw.t < 20000) {
-        n = raw.n;
-        t = raw.t;
-      }
-    } catch {}
-    if (n < 2) {
-      sessionStorage.setItem(key, JSON.stringify({ n: n + 1, t: now }));
-      window.location.reload();
-      return true;
-    }
-    sessionStorage.setItem(key, JSON.stringify({ n: 0, t: now }));
-  } catch {}
-  return false;
 }
 
 /** 上游维护/下线（core ServiceUnavailableError）：按类名+名称双保险识别 */

@@ -22,9 +22,10 @@ window.addEventListener("resize", markPhone);
 import { createRoot } from "react-dom/client";
 import { activateInstalledPlugins, seedBuiltinHarness } from "./plugins/loader.js";
 import "@onethu/ui/tokens.css";
-import { installAuthWatchdog } from "./lib/reload.js";
+import { installAuthWatchdog, installKeepalive } from "./lib/reload.js";
 
 installAuthWatchdog();
+installKeepalive();   // 10 分钟会话保活探针：死会话在用户点击前就透明重建
 // 系统日历自动跟随：订阅云/本日程与课表变更（未开启时零开销）
 import { initSystemCalAutoSync } from "./state/systemCal.js";
 initSystemCalAutoSync();
