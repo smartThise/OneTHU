@@ -2532,6 +2532,19 @@ export function useExams() {  const { status } = useApp();
           return;
         } catch { /* 二次失败落错误条，绝不逃出 catch 卡死 loading */ }
       }
+      // boot 竞态兜底（2026-09-13 凌晨实锤：boot 重登全链成功后 12s，考试首跳
+      // 仍落登录超时页——请求与 info roam 并发赛跑，softRecover 又在 20s 节流窗
+      // 内被跳过）：认证类失败延迟 1.5s 静默重试一次，会话稳定窗口错开
+      if (isAuthError(err)) {
+        await new Promise((r) => setTimeout(r, 1500));
+        try {
+          const retry = await info.getExams();
+          setData(retry);
+          cacheSet(EXAMS_KEY, retry);
+          setState("ready");
+          return;
+        } catch { /* 仍败走下方错误路径 */ }
+      }
       // SWR 语义（极限稳定目标）：已有旧值时刷新失败不闪红，旧数据继续展示——
       // 红条只在「一无所获」时才允许露脸（useWeekSchedule 同款）
       if (data !== null) return;

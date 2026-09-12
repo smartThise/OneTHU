@@ -784,12 +784,18 @@ function CourseListPanel({ wb, jump, jumpSeq }: { wb: ReturnType<typeof useXkWor
 
       {chip === "plan" ? <PlanView wb={wb} query={query} onSearchCode={(code) => jumpTo(code, "all")} /> : wb.searchState === "idle" || wb.searchState === "loading" ? (
         <Card><SkeletonRows rows={6} /><Empty text="正在实时查询教务系统（搜索/翻页各 1 个往返，即搜即得）…" /></Card>
-      ) : wb.searchState === "error" ? (
+      ) : wb.searchState === "error" && rows.length === 0 ? (
         <ErrorNote text={wb.searchError ?? ""} onRetry={() => void wb.retrySearch()} />
       ) : rows.length === 0 ? (
         <Card><Empty text={wb.searchError || "暂无匹配课程。"} /></Card>
       ) : (
         <>
+          {/* SWR 语义：刷新失败但旧结果在——保留列表只挂黄条（红条只在无结果时露脸） */}
+          {wb.searchState === "error" ? (
+            <div style={{ textAlign: "center", padding: "8px 0", fontSize: 12, color: "var(--amber)" }}>
+              刷新失败，展示上次搜索结果：{wb.searchError} · <a style={{ textDecoration: "underline", cursor: "pointer" }} onClick={() => void wb.retrySearch()}>重试</a>
+            </div>
+          ) : null}
           {wb.searchIncomplete ? (
             <div style={{ textAlign: "center", padding: "8px 0", fontSize: 12, color: "var(--amber)" }}>
               数据不完整：已加载 {listRows.length} 门{wb.searchTotalPages > 0 ? `，教务共 ${wb.searchTotalPages} 页${wb.searchTotalRows > 0 ? `（共 ${wb.searchTotalRows} 门）` : ""}` : "，还有更多"}
