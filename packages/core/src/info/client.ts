@@ -450,6 +450,11 @@ export class InfoClient {
     } catch (e) {
       if (!(e instanceof AuthRequiredError) || !this.#renewInfo) throw e;
       if (!(await this.#renewInfo().catch(() => false))) throw e;
+      // zhjw 漫游旗标必须失效（2026-09-14 首页日程/考试「会话已失效」实录）：
+      // #zhjwRoamed 是一次性标记，教务会话中途死亡后重试的 #ensureZhjw 直接
+      // 跳过重漫游，JSONP 恒吐登录页 → 永远撞同一死会话。置 false 让重试真正
+      // 重漫游（roam 幂等；仅当后续有 zhjw 操作时才多一次请求）。
+      this.#zhjwRoamed = false;
       const out = await op();
       lastCampusOkAt = Date.now();
       return out;
