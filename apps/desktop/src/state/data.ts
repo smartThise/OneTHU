@@ -150,7 +150,9 @@ export function useCampusData() {
       }
       logPageError("CAMPUS", err);
       // 已有旧数据（缓存/上次成功）时不闪红：SWR 语义，保留旧值下轮挂载再重验证
-      if (silent && data !== null) return;
+      // SWR 语义（极限稳定目标）：已有旧值时刷新失败不闪红，旧数据继续展示——
+      // 红条只在「一无所获」时才允许露脸（useWeekSchedule 同款）
+      if (data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
     }
@@ -2028,7 +2030,9 @@ export function useReport() {
       setState("ready");
     } catch (err) {
       logPageError("REPORT", err);
-      if (silent && data !== null) return;
+      // SWR 语义（极限稳定目标）：已有旧值时刷新失败不闪红，旧数据继续展示——
+      // 红条只在「一无所获」时才允许露脸（useWeekSchedule 同款）
+      if (data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
     }
@@ -2114,7 +2118,9 @@ export function useCard(days = 30) {
         });
         return load();
       }
-      if (silent && data !== null) return;
+      // SWR 语义（极限稳定目标）：已有旧值时刷新失败不闪红，旧数据继续展示——
+      // 红条只在「一无所获」时才允许露脸（useWeekSchedule 同款）
+      if (data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
     }
@@ -2403,7 +2409,9 @@ export function useCalendar() {
         notifyCalendarData();
         return;
       }
-      if (silent && data !== null) return;
+      // SWR 语义（极限稳定目标）：已有旧值时刷新失败不闪红，旧数据继续展示——
+      // 红条只在「一无所获」时才允许露脸（useWeekSchedule 同款）
+      if (data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
     }
@@ -2524,7 +2532,9 @@ export function useExams() {  const { status } = useApp();
           return;
         } catch { /* 二次失败落错误条，绝不逃出 catch 卡死 loading */ }
       }
-      if (silent && data !== null) return;
+      // SWR 语义（极限稳定目标）：已有旧值时刷新失败不闪红，旧数据继续展示——
+      // 红条只在「一无所获」时才允许露脸（useWeekSchedule 同款）
+      if (data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
     }
@@ -2565,7 +2575,9 @@ export function useNews(page: number, length = 20) {
       setState("ready");
     } catch (err) {
       logPageError("NEWS p" + page, err);
-      if (silent && data !== null) return;
+      // SWR 语义（极限稳定目标）：已有旧值时刷新失败不闪红，旧数据继续展示——
+      // 红条只在「一无所获」时才允许露脸（useWeekSchedule 同款）
+      if (data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
     }
@@ -2791,7 +2803,9 @@ export function useProfile() {
       setState("ready");
     } catch (err) {
       logPageError("PROFILE", err);
-      if (silent && data !== null) return;
+      // SWR 语义（极限稳定目标）：已有旧值时刷新失败不闪红，旧数据继续展示——
+      // 红条只在「一无所获」时才允许露脸（useWeekSchedule 同款）
+      if (data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
     }
