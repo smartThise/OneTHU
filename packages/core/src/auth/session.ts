@@ -390,6 +390,7 @@ export class CampusSession {
         const ok = result.state === "ready";
         if (ok) {
           this.#softReloginFailStreak = 0;
+          this.#softReloginCooldownUntil = 0;   // 成功必须连退避一起清：旧 cooldown 残留会静默吞掉后续合法恢复
         } else {
           this.#softReloginFailStreak += 1;
           this.#softReloginCooldownUntil = Date.now() + Math.min(60_000 * 2 ** (this.#softReloginFailStreak - 1), 30 * 60_000);

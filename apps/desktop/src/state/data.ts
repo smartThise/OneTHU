@@ -2508,6 +2508,9 @@ export function useExams() {  const { status } = useApp();
   const [data, setData] = useState<ExamEntry[] | null>(() => cacheGet<ExamEntry[]>(EXAMS_KEY)?.data ?? null);
   const [state, setState] = useState<DataState>(() => (cacheGet<ExamEntry[]>(EXAMS_KEY) ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
+  const examAuthRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stateRef = useRef<DataState>("loading");
+  stateRef.current = state;
 
   const load = useCallback(async (silent = false) => {
     if (!silent) {
@@ -2544,6 +2547,15 @@ export function useExams() {  const { status } = useApp();
           setState("ready");
           return;
         } catch { /* 仍败走下方错误路径 */ }
+      }
+      // 自愈闭环（用户实锤「红条停在那不动」）：认证错误终态后 25s 自动再试一
+      // 轮——错开 softRecover 节流窗，会话此时多已被 keepalive/softRelogin 修
+      // 好，红条自己消失；非认证错误不自动重试（避免对故障服务施压）
+      if (isAuthError(err) && !examAuthRetryRef.current) {
+        examAuthRetryRef.current = setTimeout(() => {
+          examAuthRetryRef.current = null;
+          if (stateRef.current === "error") void load(true);
+        }, 25_000);
       }
       // SWR 语义（极限稳定目标）：已有旧值时刷新失败不闪红，旧数据继续展示——
       // 红条只在「一无所获」时才允许露脸（useWeekSchedule 同款）
