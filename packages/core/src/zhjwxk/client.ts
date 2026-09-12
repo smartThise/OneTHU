@@ -600,7 +600,7 @@ function catalogHeadMap(headCells: string[]): { H: CatalogHead; useHead: boolean
 const CATALOG_F: CatalogHead = { department: 0, code: 1, seq: 2, name: 3, credits: 4, teacher: 5, capacity: 6, remaining: 7, gradCapacity: 8, gradRemaining: 9, note: 11, feature: 12, grade: 13, tongshi: 18 };
 
 /** 行文本 → XkCourse（两路共享的字段构建：列位映射、时间列内容扫描、码型校验） */
-function catalogRowOf(cells: string[], href: string, H: CatalogHead, useHead: boolean): XkCourse | null {
+function catalogRowOf(cells: string[], href: string, H: CatalogHead, useHead: boolean, anchorTeacher = ""): XkCourse | null {
   const ix = (k: CatalogKeys): number => (useHead && H[k] >= 0 ? H[k] : CATALOG_F[k]);
   if (cells.length < 11) return null;
   const td = (i: number): string => (cells[i] ?? "").replace(/\s+/g, " ").trim();
@@ -618,7 +618,9 @@ function catalogRowOf(cells: string[], href: string, H: CatalogHead, useHead: bo
     seq: td(ix("seq")) || "0",
     name,
     credits: parseFloat(td(ix("credits"))) || 0,
-    teacher: td(ix("teacher")),
+    // 教师=行内 showJsDetail 锚点文本优先于列值：行结构漂移时列号会读到学分格
+    // （实锤 10420252 读"2"而姚国武在锚点里）——锚点是语义标记，列号不是
+    teacher: (/^\d{1,3}$/.test(td(ix("teacher"))) ? "" : td(ix("teacher"))) || anchorTeacher || td(ix("teacher")),
     teacherId: /p_jsh=([^&"]+)/.exec(href)?.[1] ?? "",
     capacity: parseInt(td(ix("capacity"))) || 0,
     remaining: parseInt(td(ix("remaining"))) || 0,
@@ -657,8 +659,9 @@ function parseXkCatalogDom(html: string): XkCourse[] {
     const cells = [...row.querySelectorAll(":scope > td")].map((td) =>
       (td.textContent || "").replace(/\s+/g, " ").trim(),
     );
-    const href = row.querySelector('a[href*="showJsDetail"]')?.getAttribute("href") ?? "";
-    const c = catalogRowOf(cells, href, H, useHead);
+    const tAnchor = row.querySelector('a[href*="showJsDetail"]');
+    const href = tAnchor?.getAttribute("href") ?? "";
+    const c = catalogRowOf(cells, href, H, useHead, (tAnchor?.textContent ?? "").replace(/\s+/g, " ").trim());
     if (!c) continue;
     out.push(c);
     if (/^\d{1,3}$/.test(c.teacher)) xkParseDebug.onOddTeacher?.(c.code, c.seq, c.teacher, (row.innerHTML || "").replace(/\s+/g, " ").slice(0, 600));
@@ -901,8 +904,15 @@ export async function searchXkCourses(
   // 结构取证（教师空格悬案）：首个 trr2 行前后 2600 字 dump——DOM 直系子格取
   // 出的教师格为空而插件能出名字，需原始结构定分晓
   if (zhjwxkDebug) {
-    const i = html.indexOf('class="trr2"');
-    if (i >= 0) zhjwxkDebug?.(`[SEARCH-ROW] ${html.slice(Math.max(0, i - 200), i + 2600).replace(/\s+/g, " ")}`);
+    const rowsHtml: string[] = [];
+    const rowRe = /class="trr2"/g;
+    let rm: RegExpExecArray | null;
+    while ((rm = rowRe.exec(html)) !== null && rowsHtml.length < 3) {
+      rowsHtml.push(html.slice(rm.index, rm.index + 700).replace(/\s+/g, " "));
+    }
+    const hRow = /<tr[^>]*class="trr1"[^>]*>([\s\S]*?)<\/tr>/.exec(html)?.[1] ?? "";
+    const heads = [...hRow.matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/g)].map((t) => (t[1] ?? "").replace(/<[^>]*>/g, "").trim()).join("|");
+    zhjwxkDebug?.(`[SEARCH-ROW] heads=${heads} rows=${JSON.stringify(rowsHtml)}`);
   }
   const rows = parseXkCatalogPage(html);
   const tp = /共\s*(\d+)\s*页/.exec(html);

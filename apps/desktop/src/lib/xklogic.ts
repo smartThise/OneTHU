@@ -265,6 +265,9 @@ export function buildRows(
   const levelIdx = new Map(Object.entries(levelTypes).map(([k, v]) => [k.replace(/_(\d+)$/, (_, d) => `_${parseInt(d, 10) || 0}`), v] as const));
   // 候补三段：精确同班（归一）→ 同课同师 → 课号（两套编号最后的宽容）
   const candBySeq = new Map(candidates.map((s) => [skn(s.code, s.seq), s] as const));
+  // 垃圾教师值守卫（已选表解析实锤 teacher="3"、time="龙治铭" 错位）：纯数字/空
+  // 不允许参与覆盖或借位——宁缺毋滥，卡片渲染层另有纯数字隐藏守卫
+  const goodT = (t?: string): string => (t && !/^\d{1,3}$/.test(t) ? t : "");
   const candByCodeTeacher = new Map(candidates.filter((s) => s.teacher).map((s) => [`${s.code}|${s.teacher}`, s] as const));
   const candByCode = new Map(candidates.map((s) => [s.code, s] as const));
   const rows: XkRow[] = catalog.map((c) => {
@@ -286,7 +289,7 @@ export function buildRows(
       zy: sel?.zy ?? 0,
       // 已选表时间列常为空/格式异常（"程序设计训练 时间未定"实锤）——解析不出槽位时回退目录时间
       time: sel?.time && parseTimeSlots(sel.time).length ? sel.time : c.time || sel?.time || "",
-      name: sel?.name || c.name, teacher: sel?.teacher || c.teacher,
+      name: sel?.name || c.name, teacher: goodT(sel?.teacher) || c.teacher,
       credits: sel?.credits || c.credits, tongshiGroup: c.tongshiGroup, feature: c.feature, grade: c.grade,
       teacherId: c.teacherId, note: c.note,
     } satisfies XkRow;
@@ -305,9 +308,9 @@ export function buildRows(
     if (inCat.has(key) || inCatN.has(skn(s.code, s.seq))) continue;
     const c0 = borrowCat(s.code, s.seq, s.teacher); // 同课号不同班：借目录元数据（时间等）——先精确同班
     rows.push({
-      key, c: { department: c0?.department ?? "", code: s.code, seq: s.seq || "0", name: s.name || c0?.name || "", credits: s.credits || c0?.credits || 0, teacher: s.teacher || c0?.teacher || "", teacherId: c0?.teacherId ?? "", capacity: c0?.capacity ?? 0, remaining: c0?.remaining ?? 0, gradCapacity: c0?.gradCapacity ?? 0, gradRemaining: c0?.gradRemaining ?? 0, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", note: c0?.note ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", tongshiGroup: c0?.tongshiGroup ?? "", attr: c0?.attr ?? "" },
+      key, c: { department: c0?.department ?? "", code: s.code, seq: s.seq || "0", name: s.name || c0?.name || "", credits: s.credits || c0?.credits || 0, teacher: goodT(s.teacher) || goodT(c0?.teacher) || "", teacherId: c0?.teacherId ?? "", capacity: c0?.capacity ?? 0, remaining: c0?.remaining ?? 0, gradCapacity: c0?.gradCapacity ?? 0, gradRemaining: c0?.gradRemaining ?? 0, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", note: c0?.note ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", tongshiGroup: c0?.tongshiGroup ?? "", attr: c0?.attr ?? "" },
       selected: true, isCandidate: false, available: false,
-      flag: typeCodeToFlag(s.typeCode), zy: s.zy, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", name: s.name || c0?.name || "", teacher: s.teacher || c0?.teacher || "", credits: s.credits || c0?.credits || 0,
+      flag: typeCodeToFlag(s.typeCode), zy: s.zy, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", name: s.name || c0?.name || "", teacher: goodT(s.teacher) || goodT(c0?.teacher) || "", credits: s.credits || c0?.credits || 0,
       tongshiGroup: c0?.tongshiGroup ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", teacherId: c0?.teacherId ?? "", note: c0?.note ?? "",
     });
   }
@@ -318,9 +321,9 @@ export function buildRows(
     if (inCat.has(key) || inCatN.has(skn(s.code, s.seq))) continue;
     const c0 = borrowCat(s.code, s.seq, s.teacher);
     rows.push({
-      key, c: { department: c0?.department ?? "", code: s.code, seq: s.seq || "0", name: s.name || c0?.name || "", credits: c0?.credits ?? 0, teacher: s.teacher || c0?.teacher || "", teacherId: c0?.teacherId ?? "", capacity: c0?.capacity ?? 0, remaining: c0?.remaining ?? 0, gradCapacity: c0?.gradCapacity ?? 0, gradRemaining: c0?.gradRemaining ?? 0, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", note: c0?.note ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", tongshiGroup: c0?.tongshiGroup ?? "", attr: c0?.attr ?? "" },
+      key, c: { department: c0?.department ?? "", code: s.code, seq: s.seq || "0", name: s.name || c0?.name || "", credits: c0?.credits ?? 0, teacher: goodT(s.teacher) || goodT(c0?.teacher) || "", teacherId: c0?.teacherId ?? "", capacity: c0?.capacity ?? 0, remaining: c0?.remaining ?? 0, gradCapacity: c0?.gradCapacity ?? 0, gradRemaining: c0?.gradRemaining ?? 0, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", note: c0?.note ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", tongshiGroup: c0?.tongshiGroup ?? "", attr: c0?.attr ?? "" },
       selected: false, isCandidate: true, available: false, cand: s,
-      flag: (s.typeLabel ?? "").includes("任选") ? "rx" : (s.typeLabel ?? "").includes("限选") ? "xx" : (s.typeLabel ?? "").includes("体育") ? "ty" : "bx", zy: 0, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", name: s.name || c0?.name || "", teacher: s.teacher || c0?.teacher || "", credits: c0?.credits ?? 0,
+      flag: (s.typeLabel ?? "").includes("任选") ? "rx" : (s.typeLabel ?? "").includes("限选") ? "xx" : (s.typeLabel ?? "").includes("体育") ? "ty" : "bx", zy: 0, time: s.time && parseTimeSlots(s.time).length ? s.time : c0?.time || s.time || "", name: s.name || c0?.name || "", teacher: goodT(s.teacher) || goodT(c0?.teacher) || "", credits: c0?.credits ?? 0,
       tongshiGroup: c0?.tongshiGroup ?? "", feature: c0?.feature ?? "", grade: c0?.grade ?? "", teacherId: c0?.teacherId ?? "", note: c0?.note ?? "",
     });
   }
