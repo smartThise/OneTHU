@@ -1319,7 +1319,7 @@ export function useXkWorkbench(): XkWorkbench {
     () => {
       const rows = buildRows(searchRaw, volMap, queueMap, selected, candidates, levelTypes);
       // 教师空值诊断（悬案收口）：搜索格有名字但行上没有 → 覆盖层嫌疑人
-      const odd = rows.filter((r) => r.selected && (!r.teacher || /^\d{1,3}$/.test(r.teacher))).slice(0, 3);
+      const odd = searchRaw.length > 0 ? rows.filter((r) => r.selected && (!r.teacher || /^\d{1,3}$/.test(r.teacher))).slice(0, 3) : [];
       for (const r of odd) logPageError("ROW-DIAG", new Error(`code=${r.c.code}_${r.c.seq} cTeacher="${r.c.teacher}" selTeacher="${r.sel?.teacher ?? ""}" selTime="${r.sel?.time ?? ""}"`));
       return rows;
     },
@@ -2557,7 +2557,12 @@ export function useExams() {  const { status } = useApp();
     if (status !== "ready" && status !== "demo") return;
     const cached = cacheGet<ExamEntry[]>(EXAMS_KEY);
     if (!cached) void load(false);
-    else if (Date.now() - cached.at > EXAMS_TTL) void load(true);
+    else if (Date.now() - cached.at > EXAMS_TTL) {
+      // boot 竞态错峰（2026-09-13 凌晨实锤：TTL 静默刷新与 boot info roam 并发
+      // 赛跑，考试首跳落登录超时页连败两次）：旧值先亮，2.5s 后再静默刷新
+      const t = setTimeout(() => void load(true), 2500);
+      return () => clearTimeout(t);
+    }
   }, [status, load]);
 
   return { data, state, error, reload: load };
