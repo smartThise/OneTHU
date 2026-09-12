@@ -935,6 +935,11 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             ? <span style={{ fontSize: 10, padding: "1px 5px", marginRight: 6, borderRadius: 4, color: "#fff", background: ORIGIN_COLORS[o], verticalAlign: "1px", whiteSpace: "nowrap" }}>{o}</span>
             : null; })()}
           {r.name}
+          {/* 课程特色紫标（NextTHUxk 同款）：kkxxSearch 搜索行自带特色列（表头
+              自适应解析），此前只进筛选器不上卡片——用户实锤「无法显示查看」 */}
+          {(() => { const feat = (r.c.feature || "").replace(/[;；,，]/g, " ").trim(); return feat ? (
+            <span style={{ fontSize: 10, padding: "1px 5px", marginLeft: 6, borderRadius: 4, color: "#7c5cff", background: "rgba(124,92,255,.1)", border: "1px solid rgba(124,92,255,.25)", verticalAlign: "1px", whiteSpace: "nowrap" }}>{feat}</span>
+          ) : null; })()}
           {r.teacherId ? <button className="btn" style={{ padding: "0 6px", marginLeft: 6, fontSize: 11 }} onClick={() => openDetail(r.c.code, r.teacherId)}>简介</button> : null}
           {tbBadge(r) ? (
             <button className="btn" style={{ padding: "0 6px", marginLeft: 6, fontSize: 11, color: "var(--amber)" }} onClick={() => openReviews({ code: r.c.code, seq: r.c.seq, name: r.name, teacher: r.teacher })}>{tbBadge(r)}</button>
