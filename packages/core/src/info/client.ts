@@ -2390,10 +2390,8 @@ export class InfoClient {
    * token 时 core 同样重走 #roamIdService 再取一次。失败带抓取页 URL 前 120 字符。
    */
   async #libraryAccessToken(): Promise<string> {
-    // 30 分钟模块级缓存 + 单飞（2026-09-13 拉长：每 2 分钟全量重抓图书馆首页
-    // 大页面穿 webvpn 是预约区秒级等待的根因；token 过期兜底=预约/查询路径的
-    // 「登录超时」作废强刷重试，bookSeat R10 实证无副作用）
-    if (InfoClient.libToken && Date.now() - InfoClient.libTokenTs < 1_800_000) return InfoClient.libToken;
+    // 10 分钟模块级缓存 + 单飞：access_token 每次都整页抓 LIBRARY_HOME 是预约区加载慢的根因之一
+    if (InfoClient.libToken && Date.now() - InfoClient.libTokenTs < 120_000) return InfoClient.libToken;
     if (InfoClient.libTokenInflight) return InfoClient.libTokenInflight;
     const home = urls.LIBRARY_HOME();
     const grab = async (): Promise<string> => {
@@ -2720,9 +2718,7 @@ export class InfoClient {
     const canonical = (): string => this.#libRoomPid ?? userId;
     // 10 分钟 TTL + 跨实例单飞（#libraryAccessToken 同款；单用户应用，缓存含 userId）。
     // 命中时连 #libRoomAlive 探针都省掉——每次进图书馆页都重跑整条 cab 漫游链即慢的根因。
-    // 50 分钟 TTL（2026-09-13 拉长：探针→漫游链串行 5-6 个 webvpn 往返=秒级；
-    // 真失效由 #withLibRoom 的 AuthRequired 兜底重走链，宁可用旧会话撞一次）
-    if (InfoClient.libRoomAuthUser === canonical() && Date.now() - InfoClient.libRoomAuthTs < 3_000_000) {
+    if (InfoClient.libRoomAuthUser === canonical() && Date.now() - InfoClient.libRoomAuthTs < 600_000) {
       return;
     }
     if (InfoClient.libRoomInflight) return InfoClient.libRoomInflight;
