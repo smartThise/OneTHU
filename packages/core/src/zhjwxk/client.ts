@@ -1057,13 +1057,16 @@ export async function fetchXkVolCourse(
 /** 课余量+排队（xkqkSearch 判 phase → kylSearch POST 翻页 → selectBksDlCount 批 100/熔断 3） */
 export async function getXkQueueData(
   s: ZhjwxkSession,
-  opts: { semester?: string; codes?: string[] } = {},
+  opts: { semester?: string; codes?: string[]; onPartial?: (map: Record<string, XkQueueInfo>, phase: boolean) => void } = {},
 ): Promise<{ map: Record<string, XkQueueInfo>; phase: boolean }> {
   const { entry, semester } = await ensure(s, opts.semester);
   const first = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksXkbBs.do?m=xkqkSearch&p_xnxq=${semester}`);
   assertNotDenied(s, first);
   if (!first.includes("gridData")) return { map: {}, phase: false };
   const map: Record<string, XkQueueInfo> = parseXkQueueGrid(first);
+  // 渐进上屏（插件同感：xkqkSearch 一发全量帽/余量，先渲染，排队数逐门后补——
+  // 旧版等全部逐门爬完才 setQueueMap，切队列模式白等数秒）
+  opts.onPartial?.({ ...map }, Object.keys(map).length > 0);
   const token = TOKEN_RE().exec(first)?.[1] ?? "";
   if (token) {
     // 按需逐门精确查（NextTHUxk 同款，2026-09-14 定案）：p_kch 单课号、
@@ -1115,6 +1118,7 @@ export async function getXkQueueData(
       }
     });
     await Promise.all(workers);
+    opts.onPartial?.({ ...map }, Object.keys(map).length > 0);
   }
   const parts = Object.keys(map).map((k) => `${semester}_${k.replace("_", "_")}`);
   let fails = 0;

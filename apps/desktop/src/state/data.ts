@@ -1833,7 +1833,15 @@ export function useXkWorkbench(): XkWorkbench {
       const sem = semBarRef.current ?? (await resolveZhjwxkSemester(xkSession()).catch(() => null));
       if (!sem) return;
       const codes = [...new Set([...selected.map((r) => r.code), ...candidates.map((r) => r.code), ...stageCart.map((x) => x.code)])];
-      const qd = await getXkQueueData(xkSession(), { semester: sem, codes });
+      // 渐进上屏：xkqkSearch 首发网格（全量帽/余量+phase）立即 setQueueMap——
+      // 条形图先出来，逐门排队数爬完再补第二拍
+      const partial = (m: Record<string, import("@onethu/core").XkQueueInfo>, ph: boolean): void => {
+        if (genRef.current !== myGen) return;
+        setQueueMap(m);
+        setPhase(ph);
+        setQueueState("ready");
+      };
+      const qd = await getXkQueueData(xkSession(), { semester: sem, codes, onPartial: partial });
       if (genRef.current !== myGen) return; // 期间已打断：丢弃过期结果
       setQueueMap(qd.map);
       setPhase(qd.phase);
