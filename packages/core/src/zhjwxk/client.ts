@@ -521,9 +521,28 @@ export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeou
 const TOKEN_RE = () => /name="token"\s+value="([^"]+)"/;
 
 function tdsOf(rowHtml: string): string[] {
-  return [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((t) =>
-    t[1]!.replace(/<[^>]*>/g, "").trim(),
-  );
+  // 顶层 td 提取（嵌套表格免疫）：多教师格内嵌 <table> 时，朴素全局正则把
+  // 内层 td 也当独立格 → 列序后移全错位（2026-09-14 实锤：30240593 第1班
+  // 教师读成"3"、容量/余量串格，时间列靠内容扫描才幸免；插件 DOM 解析天然
+  // 免疫）。深度计数只取 depth==1 的外层格，内层标签在取文本时统一剥除。
+  const cells: string[] = [];
+  const re = /<td[^>]*>|<\/td>/gi;
+  let depth = 0;
+  let start = -1;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(rowHtml)) !== null) {
+    if (m[0].startsWith("<td")) {
+      if (depth === 0) start = m.index + m[0].length;
+      depth += 1;
+    } else {
+      depth -= 1;
+      if (depth === 0 && start >= 0) {
+        cells.push(rowHtml.slice(start, m.index).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim());
+        start = -1;
+      }
+    }
+  }
+  return cells;
 }
 
 /** 目录行解析（v1.4.9 parseCatalog：列位 0 院系 / 1 课号 / 2 课序 / 3 课名 / 4 学分 /
