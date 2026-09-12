@@ -986,8 +986,10 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           </div>
         ) : null}
         {/* 竞争条（NextTHUxk 2.0 compHtml 回移）：占用对按阶段取数（occupancyOf），
-            已满(余0)绝不显示 0/N 宽松假象；比例 ≤0.8 绿 / ≤1.2 黄 / 其余红 */}
-        {(() => {
+            已满(余0)绝不显示 0/N 宽松假象；比例 ≤0.8 绿 / ≤1.2 黄 / 其余红。
+            仅预选模式——队列阶段概率走排队/余量模型（插件同款阶段门控），
+            志愿竞争条混在课余量模式是「志愿数据怪象」的残余（2026-09-14 实锤） */}
+        {!wb.phase ? (() => {
           const occ = occupancyOf({ capacity: r.c.capacity, remaining: r.c.remaining, vol: r.vol }, wb.phase);
           if (!occ.cap) return null;
           const vc = volColor(occ.applied, occ.cap);
@@ -1000,10 +1002,11 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
               <span style={{ fontSize: 10, color: vc.color, whiteSpace: "nowrap" }}>{occ.applied}/{occ.cap}{label ? ` · ${label}` : ""}</span>
             </div>
           );
-        })()}
+        })() : null}
         {/* 三行概率网格（NextTHUxk 2.0 fullProbGrid 回移）：必修/限选/任选 ×
-            1/2/3 志愿全显，无数据格灰显——显示侧全开（用户十六报拍板） */}
-        <div style={{ marginTop: 3, lineHeight: 1.4, fontSize: 9 }}>
+            1/2/3 志愿全显，无数据格灰显——显示侧全开（用户十六报拍板）。
+            仅预选模式（队列阶段志愿数据无意义——排队模型阶段门控） */}
+        {!wb.phase ? <div style={{ marginTop: 3, lineHeight: 1.4, fontSize: 9 }}>
           {fullProbGrid(cap, r.vol, isSportsCourse(r)).map((row) => (
             <div key={row.flag}>
               <span style={{ color: "var(--text-3)" }}>{FLAG_LABELS[row.flag]}</span>{" "}
@@ -1014,7 +1017,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
               ))}
             </div>
           ))}
-        </div>
+        </div> : null}
         {(() => { const o = originOf(r.c.code); if (!o) return null;
           if (clockRangesOf(r.c.note, r.time).length > 0) return null; // 时间已解析上时间轴，不废话
           return (

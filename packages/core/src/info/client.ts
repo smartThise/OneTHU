@@ -1224,22 +1224,40 @@ export class InfoClient {
       const start = `${startYear}0901`;
       const end = `${startYear + 1}0731`;
       await this.#ensureZhjw();
-      const text = await this.#http.text(
-        urls.ZHJW_SCHEDULE_JSONP(compactDate(start), compactDate(end)),
-      );
-      let list: unknown;
-      try {
-        list = JSON.parse(stripJsonp(text));
-      } catch {
-        // 同 getSchedule：非 JSON 先分类，绝不把接口异常谎报成会话失效
-        if (this.#http.wengineInterstitial(text) || /jsp\.timeout|登录超时|do\/off\/ui\/auth\/login/i.test(text)) {
-          throw new AuthRequiredError("考试 JSONP 落在登录/超时页");
+      // 2026-09-14 实锤：全年窗口（0901→0731）让教务 JSONP 返回 HTML 错误页
+      // （renderer=webkit 门户型页面，非登录页）；同接口周窗口的 getSchedule
+      // 一直正常。拆两段学期窗口查询再合并，避开服务端超大范围限制。
+      const windows: Array<[string, string]> = [
+        [start, `${startYear + 1}0201`],
+        [`${startYear + 1}0120`, end],
+      ];
+      const merged: Record<string, unknown>[] = [];
+      const seen = new Set<string>();
+      for (const [wStart, wEnd] of windows) {
+        const text = await this.#http.text(
+          urls.ZHJW_SCHEDULE_JSONP(compactDate(wStart), compactDate(wEnd)),
+        );
+        let list: unknown;
+        try {
+          list = JSON.parse(stripJsonp(text));
+        } catch {
+          // 同 getSchedule：非 JSON 先分类，绝不把接口异常谎报成会话失效
+          if (this.#http.wengineInterstitial(text) || /jsp\.timeout|登录超时|do\/off\/ui\/auth\/login/i.test(text)) {
+            throw new AuthRequiredError("考试 JSONP 落在登录/超时页");
+          }
+          throw new Error(`考试接口返回非 JSON（终URL ${String(this.#http.lastFinalUrl ?? "").slice(0, 80)} 前80字：${text.replace(/\s+/g, " ").slice(0, 80)}）`);
         }
-        throw new Error(`考试接口返回非 JSON（前80字：${text.replace(/\s+/g, " ").slice(0, 80)}）`);
+        if (!Array.isArray(list)) continue;
+        // 窗口重叠（0120-0201）去重：课号+日期+开始时间三元组
+        for (const item of list as Record<string, unknown>[]) {
+          const k = `${item.kch ?? item.KCH ?? ""}|${item.nq ?? item.NQ ?? ""}|${item.kssj ?? item.KSSJ ?? ""}`;
+          if (seen.has(k)) continue;
+          seen.add(k);
+          merged.push(item);
+        }
       }
-      if (!Array.isArray(list)) return [];
       const out: ExamEntry[] = [];
-      for (const item of list as Record<string, unknown>[]) {
+      for (const item of merged) {
         if (String(item.fl ?? item.FL ?? "") !== "考试") continue;
         const date = String(item.nq ?? item.NQ ?? "");
         if (!date) continue;
