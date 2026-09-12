@@ -955,7 +955,15 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
 
           */}
         </div>
-        <div className="row-sub" style={{ whiteSpace: "normal" }}>{[r.c.code, r.c.seq && r.c.seq !== "0" ? `第${r.c.seq}班` : "", r.teacher, `${r.credits} 学分`, r.time, r.c.department].filter(Boolean).join(" · ")}</div>
+        {/* 元数据分属性表述（用户实锤「一堆灰字挤在一起看不清」）：课号班次=等宽
+            底色 chip；教师=加粗主色正文；时间=accent chip；学分=中性小字；院系=弱化尾注 */}
+        <div style={{ marginTop: 3, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", whiteSpace: "normal" }}>
+          <span style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: 11, padding: "1px 6px", borderRadius: 4, background: "rgba(127,127,127,.12)", color: "var(--text-2)" }}>{r.c.code}{r.c.seq && r.c.seq !== "0" ? `·${r.c.seq}班` : ""}</span>
+          {r.teacher ? <b style={{ fontSize: 13, color: "var(--text-1)" }}>{r.teacher}</b> : null}
+          {r.time ? <span style={{ fontSize: 11, padding: "1px 6px", borderRadius: 4, color: "var(--accent)", background: "rgba(59,130,246,.08)", whiteSpace: "nowrap" }}>{r.time}</span> : null}
+          {r.credits ? <span style={{ fontSize: 11, color: "var(--text-2)" }}>{r.credits} 学分</span> : null}
+          {r.c.department ? <span style={{ fontSize: 11, color: "var(--text-3)" }}>{r.c.department}</span> : null}
+        </div>
         {/* 课程特色标签行（NextTHUxk nx-tag 同款）：独立成行、一段一标签、
             flexWrap 换行——挂标题行内会被 nowrap+overflow 裁出 CSS 省略号
             （用户实锤：复制是全文、看到的是「文化素质…」） */}
