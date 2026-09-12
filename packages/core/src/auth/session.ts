@@ -384,6 +384,10 @@ export class CampusSession {
         this.#dbg("SOFT-RELOGIN ok");
         return true;
       } catch (e) {
+        // 失败也要把 demoLogin 已拿到的 webvpn cookie 灌回 jar（jar 此前被清）：
+        // webvpn 层是活的，后续 wrapped 请求至少能走到应用层死页判定/自愈，
+        // 而不是裸奔无 cookie 连传输层都过不去
+        try { this.#seedJar(); } catch { /* 尽力而为 */ }
         this.#dbg("SOFT-RELOGIN fail " + String(e) + "\n" + this.#demo.debug);
         return false;
       } finally {
@@ -393,22 +397,36 @@ export class CampusSession {
     return this.#softReloginInflight;
   }
 
-  /** 会话保活探针：轻量 wrapped GET（info 落地页）判 webvpn/id 会话活性，
-   *  死 → softRelogin 透明重建。THU Info「永不掉线」的另一半：过期前续、
-   *  死亡即刻静默重建，而不是等用户下一次点击撞上死会话。
+  /** 会话保活探针：轻量 wrapped GET 判会话活性，死 → softRelogin 透明重建。
+   *  THU Info「永不掉线」的另一半：过期前续、死亡即刻静默重建，而不是等
+   *  用户下一次点击撞上死会话（那次点击的 1-4s SSO 链就是「长加载」）。
+   *  两段：① info 落地页——webvpn/id 层活性；② GET zhjwxk/xklogin.do——选课
+   *  场景专属，它本身是会话入口：活着直落（顺带把服务端 xk 会话续期），
+   *  id 死时实例级重放在探测内就完成透明重建。
    *  返回 "ok"（活）/ "healed"（死但已重建）/ "dead"（重建失败）。 */
   async keepalive(): Promise<"ok" | "healed" | "dead"> {
     if (this.state !== "ready") return "dead";
+    let infoDead = false;
     try {
       const body = await this.http.text("https://info.tsinghua.edu.cn/index.jsp");
-      const dead = this.http.wengineInterstitial(body)
+      infoDead = this.http.wengineInterstitial(body)
         || /\/login(\/|\?|$)/.test(this.http.lastFinalUrl || "");
-      if (!dead) return "ok";
-      this.#dbg("KEEPALIVE dead: interstitial=" + this.http.wengineInterstitial(body) +
-        " final=" + this.http.lastFinalUrl.slice(0, 120));
+      if (infoDead) this.#dbg("KEEPALIVE dead(info): final=" + this.http.lastFinalUrl.slice(0, 120));
     } catch (e) {
       this.#dbg("KEEPALIVE probe-error " + String(e));
       return "dead";   // 网络层失败不盲目重登（可能只是断网）
+    }
+    if (infoDead) return (await this.softRelogin()) ? "healed" : "dead";
+    try {
+      const body = await this.http.text("http://zhjwxk.cic.tsinghua.edu.cn/xklogin.do");
+      const dead = this.http.wengineInterstitial(body)
+        || body.includes("accessDenied")
+        || /\/login(\/|\?|$)/.test(this.http.lastFinalUrl || "");
+      if (!dead) return "ok";
+      this.#dbg("KEEPALIVE dead(xk): final=" + this.http.lastFinalUrl.slice(0, 120));
+    } catch (e) {
+      this.#dbg("KEEPALIVE xk-probe-error " + String(e));
+      return "ok";   // info 活、xk 探测网络层失败 → 不重登（下轮再探）
     }
     return (await this.softRelogin()) ? "healed" : "dead";
   }
