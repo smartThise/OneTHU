@@ -8,6 +8,13 @@ const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), 
 export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [react()],
+  optimizeDeps: {
+    // @onethu/core 是 workspace 源码包（零运行时依赖）：预打包会被 .vite/deps
+    // 钉死在旧快照——外置 exFAT 卷上 deps 再优化不触发（2026-09-14 实锤：
+    // served bundle 里 grep 不到 parseXkCatalogDom，教师列修复全没生效）。
+    // exclude 让 core 永远走 /@fs 源码路径，改动即达 HMR。
+    exclude: ["@onethu/core"],
+  },
   resolve: {
     // react 双实例防火墙：pnpm workspace 下根 .pnpm 与 apps/desktop .pnpm 各有一份物理 react，
     // vite 预打包按路径各打一份 → react-quill 内部 hooks dispatcher 为 null（useState 读 null）
