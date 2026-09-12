@@ -23,9 +23,10 @@ export function softRecover(scope: string): Promise<boolean> {
   if (now - lastAttempt < 20_000) return Promise.resolve(false);
   recoverInflight = (async () => {
     try {
-      const { session, logLine } = await import("./clients.js");
+      const { session, persist, logLine } = await import("./clients.js");
       const t0 = Date.now();
       const ok = await session.softRelogin();
+      if (ok) await persist().catch(() => undefined);   // 重建后的快照落盘，重启直接续
       await logLine(`SOFT-RECOVER[${scope}] ${ok ? "ok" : "fail"} (${Date.now() - t0}ms)`).catch(() => undefined);
       lastAttempt = Date.now();
       return ok;

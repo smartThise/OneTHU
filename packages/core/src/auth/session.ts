@@ -353,12 +353,14 @@ export class CampusSession {
     }
   }
 
-  /** THU Info 语义的透明重登（「永不掉线」的根）：内存凭据在 → WebVPN 全链重建
-   *  （demoLogin：webvpn 登录 → CAS）→ roam-id（SSO 正门）→ 重灌 jar。
-   *  不动 learn csrf / info / card——各自 relearnRoam/renewInfo/renewCard 按需续期，
-   *  中途死亡通常只断 webvpn+id 两层。单飞：并发弹回只跑一条链（2026-09-06
-   *  互烧实录：并发链各自重舞 oauth 互相顶票据）。返回 false = 无凭据/需 2FA/
-   *  链失败——调用方走登录页，绝不整页刷新。 */
+  /** THU Info 语义的透明重登（「永不掉线」的根）：内存凭据在 → 完整 login()
+   *  全链重建。2026-09-14 教训定案：自创"轻量版"（只 demoLogin+roamId）不走
+   *  金标准链——era 快照不全（learn/zhjw 各桶会话完整性没保证），且高频
+   *  局部 SSO 落地徒增票据扰动，真机反而比修复前更坏。现在对齐冷启动路径：
+   *  login() 每次启动都在跑、全部 era 快照/jar 灌装/learn csrf/info resume
+   *  由它一步到位。单飞：并发弹回只跑一条链（2026-09-06 互烧实录）。
+   *  重（4-8s）但只在会话真死时后台发生，用户无感。返回 false = 无凭据/
+   *  需 2FA/链失败——调用方走登录页，绝不整页刷新。 */
   #softReloginInflight: Promise<boolean> | null = null;
   softRelogin(): Promise<boolean> {
     this.#softReloginInflight ??= (async () => {
@@ -367,27 +369,12 @@ export class CampusSession {
           this.#dbg("SOFT-RELOGIN skip: 无内存凭据");
           return false;
         }
-        this.#dbg("SOFT-RELOGIN start");
-        this.#demo = newDemoSession();
-        this.#infoEraCookies = "";
-        this.#cardEraCookies = "";
-        this.#learnEraCookies = "";
-        this.http.jar.clear();
-        const result = await demoLogin(this.fetchLike, this.username, this.#password, this.#demo, this.fingerprint, this.finger3);
-        if (result !== "logged_in") {
-          this.#dbg("SOFT-RELOGIN fail: " + (typeof result === "string" ? result : JSON.stringify(result).slice(0, 200)));
-          return false;
-        }
-        await this.#roamId();
-        this.#seedJar();
-        this.state = "ready";
-        this.#dbg("SOFT-RELOGIN ok");
-        return true;
+        this.#dbg("SOFT-RELOGIN start (full login)");
+        const result = await this.login(this.username, this.#password);
+        const ok = result.state === "ready";
+        this.#dbg("SOFT-RELOGIN " + (ok ? "ok" : "fail: " + result.state));
+        return ok;
       } catch (e) {
-        // 失败也要把 demoLogin 已拿到的 webvpn cookie 灌回 jar（jar 此前被清）：
-        // webvpn 层是活的，后续 wrapped 请求至少能走到应用层死页判定/自愈，
-        // 而不是裸奔无 cookie 连传输层都过不去
-        try { this.#seedJar(); } catch { /* 尽力而为 */ }
         this.#dbg("SOFT-RELOGIN fail " + String(e) + "\n" + this.#demo.debug);
         return false;
       } finally {
@@ -397,36 +384,23 @@ export class CampusSession {
     return this.#softReloginInflight;
   }
 
-  /** 会话保活探针：轻量 wrapped GET 判会话活性，死 → softRelogin 透明重建。
-   *  THU Info「永不掉线」的另一半：过期前续、死亡即刻静默重建，而不是等
-   *  用户下一次点击撞上死会话（那次点击的 1-4s SSO 链就是「长加载」）。
-   *  两段：① info 落地页——webvpn/id 层活性；② GET zhjwxk/xklogin.do——选课
-   *  场景专属，它本身是会话入口：活着直落（顺带把服务端 xk 会话续期），
-   *  id 死时实例级重放在探测内就完成透明重建。
+  /** 会话保活探针：轻量 wrapped GET（info 落地页）判 webvpn/id 会话活性，
+   *  死 → softRelogin 完整重建。THU Info「永不掉线」的另一半：过期前续、
+   *  死亡即刻静默重建，而不是等用户下一次点击撞上死会话。
+   *  2026-09-14 定案：只探 info 一处——xklogin.do 每 10min SSO 落地徒增
+   *  票据扰动（且选课死会话已有 proxyZhjwxkApi 死页自愈兜底，无需保活）。
    *  返回 "ok"（活）/ "healed"（死但已重建）/ "dead"（重建失败）。 */
   async keepalive(): Promise<"ok" | "healed" | "dead"> {
     if (this.state !== "ready") return "dead";
-    let infoDead = false;
     try {
       const body = await this.http.text("https://info.tsinghua.edu.cn/index.jsp");
-      infoDead = this.http.wengineInterstitial(body)
+      const dead = this.http.wengineInterstitial(body)
         || /\/login(\/|\?|$)/.test(this.http.lastFinalUrl || "");
-      if (infoDead) this.#dbg("KEEPALIVE dead(info): final=" + this.http.lastFinalUrl.slice(0, 120));
+      if (!dead) return "ok";
+      this.#dbg("KEEPALIVE dead: final=" + this.http.lastFinalUrl.slice(0, 120));
     } catch (e) {
       this.#dbg("KEEPALIVE probe-error " + String(e));
       return "dead";   // 网络层失败不盲目重登（可能只是断网）
-    }
-    if (infoDead) return (await this.softRelogin()) ? "healed" : "dead";
-    try {
-      const body = await this.http.text("http://zhjwxk.cic.tsinghua.edu.cn/xklogin.do");
-      const dead = this.http.wengineInterstitial(body)
-        || body.includes("accessDenied")
-        || /\/login(\/|\?|$)/.test(this.http.lastFinalUrl || "");
-      if (!dead) return "ok";
-      this.#dbg("KEEPALIVE dead(xk): final=" + this.http.lastFinalUrl.slice(0, 120));
-    } catch (e) {
-      this.#dbg("KEEPALIVE xk-probe-error " + String(e));
-      return "ok";   // info 活、xk 探测网络层失败 → 不重登（下轮再探）
     }
     return (await this.softRelogin()) ? "healed" : "dead";
   }
