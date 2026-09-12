@@ -1314,7 +1314,13 @@ export function useXkWorkbench(): XkWorkbench {
   const searchSeqRef = useRef(0);
   const searchMetaRef = useRef<XkSearchMeta | null>(null);
   const searchRows = useMemo(
-    () => buildRows(searchRaw, volMap, queueMap, selected, candidates, levelTypes),
+    () => {
+      const rows = buildRows(searchRaw, volMap, queueMap, selected, candidates, levelTypes);
+      // 教师空值诊断（悬案收口）：搜索格有名字但行上没有 → 覆盖层嫌疑人
+      const odd = rows.filter((r) => !r.teacher && r.selected).slice(0, 3);
+      for (const r of odd) logPageError("ROW-DIAG", new Error(`code=${r.c.code}_${r.c.seq} cTeacher="${r.c.teacher}" selTeacher="${r.sel?.teacher ?? ""}" selTime="${r.sel?.time ?? ""}"`));
+      return rows;
+    },
     [searchRaw, volMap, queueMap, selected, candidates, levelTypes],
   );
 
