@@ -989,7 +989,25 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             已满(余0)绝不显示 0/N 宽松假象；比例 ≤0.8 绿 / ≤1.2 黄 / 其余红。
             仅预选模式——队列阶段概率走排队/余量模型（插件同款阶段门控），
             志愿竞争条混在课余量模式是「志愿数据怪象」的残余（2026-09-14 实锤） */}
-        {!wb.phase ? (() => {
+        {(() => {
+          if (wb.phase) {
+            // 队列阶段：余量/排队进度条（用户实锤要求醒目化）：余>0 绿、有排队
+            // 黄、满且无队 红；条长=满员度，右侧粗体 余X/帽Y·排队N人
+            if (!q || !q.qCapacity) return null;
+            const used = Math.max(0, q.qCapacity - q.qRemaining);
+            const pct = Math.min(100, Math.round((used / q.qCapacity) * 100));
+            const color = q.qRemaining > 0 ? "var(--green)" : q.qQueue > 0 ? "var(--amber)" : "var(--red)";
+            return (
+              <div style={{ marginTop: 3, display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ flex: 1, height: 5, borderRadius: 3, background: "var(--border)", overflow: "hidden" }}>
+                  <div style={{ width: `${pct}%`, height: "100%", background: color }} />
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 700, color, whiteSpace: "nowrap" }}>
+                  余{q.qRemaining}/{q.qCapacity}{q.qQueue > 0 ? ` · 排队${q.qQueue}人` : ""}
+                </span>
+              </div>
+            );
+          }
           const occ = occupancyOf({ capacity: r.c.capacity, remaining: r.c.remaining, vol: r.vol }, wb.phase);
           if (!occ.cap) return null;
           const vc = volColor(occ.applied, occ.cap);
@@ -1002,7 +1020,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
               <span style={{ fontSize: 10, color: vc.color, whiteSpace: "nowrap" }}>{occ.applied}/{occ.cap}{label ? ` · ${label}` : ""}</span>
             </div>
           );
-        })() : null}
+        })()}
         {/* 三行概率网格（NextTHUxk 2.0 fullProbGrid 回移）：必修/限选/任选 ×
             1/2/3 志愿全显，无数据格灰显——显示侧全开（用户十六报拍板）。
             仅预选模式（队列阶段志愿数据无意义——排队模型阶段门控） */}
@@ -1050,10 +1068,14 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             <select className="input" style={{ height: 26, fontSize: 12, maxWidth: 76 }} value={pick.flag} disabled={wb.busy !== null} onChange={(e) => setPicks((m) => ({ ...m, [key]: { ...pick, flag: e.target.value as XkFlag } }))}>
               {allowedFlags(pick.flag).map((f) => <option key={f} value={f}>{FLAG_LABELS[f]}</option>)}
             </select>
-            <select className="input" style={{ height: 26, fontSize: 12, maxWidth: 76 }} value={String(pick.zy)} disabled={wb.busy !== null} onChange={(e) => setPicks((m) => ({ ...m, [key]: { ...pick, zy: Number(e.target.value) } }))}>
+            {!wb.phase ? <select className="input" style={{ height: 26, fontSize: 12, maxWidth: 76 }} value={String(pick.zy)} disabled={wb.busy !== null} onChange={(e) => setPicks((m) => ({ ...m, [key]: { ...pick, zy: Number(e.target.value) } }))}>
               {[3, 2, 1].map((z) => <option key={z} value={z}>{z}志愿</option>)}
-            </select>
-            <span style={{ fontSize: 12, color: prob.color, minWidth: 96 }}>{prob.prob}</span>
+            </select> : null}
+            {wb.phase ? (
+              q ? <span style={{ fontSize: 12, fontWeight: 700, minWidth: 96, color: q.qRemaining > 0 ? "var(--green)" : q.qQueue > 0 ? "var(--amber)" : "var(--red)" }}>{q.qRemaining > 0 ? `有余量 ${q.qRemaining}` : q.qQueue > 0 ? `排队 ${q.qQueue} 人` : "已满"}</span> : <span style={{ minWidth: 96 }} />
+            ) : (
+              <span style={{ fontSize: 12, color: prob.color, minWidth: 96 }}>{prob.prob}</span>
+            )}
             <button className="btn" disabled={wb.busy !== null} onClick={() => void wb.submit(r.c.code, r.c.seq, pick.zy, pick.flag)}>
               {wb.busy === `submit-${r.c.code}-${r.c.seq}` ? "提交中…" : state === "full" ? "排队选课" : "选课"}
             </button>

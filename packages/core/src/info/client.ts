@@ -685,9 +685,11 @@ export class InfoClient {
       try {
         list = JSON.parse(stripJsonp(text));
       } catch {
-        // 2026-09-14：响应非 JSON 先分类——登录/超时页才是会话问题；其余
-        // （空串/错误页/通知页）谎报「会话已失效」会引诱无谓重登循环
-        if (this.#http.wengineInterstitial(text) || /jsp\.timeout|登录超时|do\/off\/ui\/auth\/login/i.test(text)) {
+        // 2026-09-14：响应非 JSON 先分类——登录/超时页、webvpn cookie 引导页
+        // （__vpn_hostname_data/wengine-vpn/js，日志实锤 exams 窗口撞上）都是可
+        // 重试的会话态（AuthRequiredError → withRenew 重漫游+重试一次）；其余
+        // 谎报「会话已失效」会引诱无谓重登循环
+        if (this.#http.wengineInterstitial(text) || /__vpn_hostname_data|wengine-vpn\/js|jsp\.timeout|登录超时|do\/off\/ui\/auth\/login/i.test(text)) {
           throw new AuthRequiredError("课表 JSONP 落在登录/超时页");
         }
         throw new Error(`课表接口返回非 JSON（前80字：${text.replace(/\s+/g, " ").slice(0, 80)}）`);
@@ -1242,7 +1244,7 @@ export class InfoClient {
           list = JSON.parse(stripJsonp(text));
         } catch {
           // 同 getSchedule：非 JSON 先分类，绝不把接口异常谎报成会话失效
-          if (this.#http.wengineInterstitial(text) || /jsp\.timeout|登录超时|do\/off\/ui\/auth\/login/i.test(text)) {
+          if (this.#http.wengineInterstitial(text) || /__vpn_hostname_data|wengine-vpn\/js|jsp\.timeout|登录超时|do\/off\/ui\/auth\/login/i.test(text)) {
             throw new AuthRequiredError("考试 JSONP 落在登录/超时页");
           }
           throw new Error(`考试接口返回非 JSON（终URL ${String(this.#http.lastFinalUrl ?? "").slice(0, 80)} 前80字：${text.replace(/\s+/g, " ").slice(0, 80)}）`);
