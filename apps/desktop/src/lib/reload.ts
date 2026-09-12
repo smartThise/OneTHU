@@ -12,15 +12,15 @@
  */
 
 /** scope 级原地恢复：softRelogin（WebVPN 全链透明重建，CampusSession 内单飞，
- *  并发弹回只跑一条链）。20s 节流窗口内直接复用上次结果——既挡重登风暴，
- *  也挡「重登成功但请求仍失败」的调用方重试环。 */
+ *  并发弹回只跑一条链）。20s 节流窗口内返回 false——窗口内复用 true 会造出
+ *  「恢复→重试→仍 auth 错→再恢复(true)→再重试」的紧循环；返回 false 让调用方
+ *  落回错误条/下一层兜底（看门狗与实例重放仍在后台续命，手动重试必中活会话）。 */
 let lastAttempt = 0;
-let lastResult = false;
 let recoverInflight: Promise<boolean> | null = null;
 export function softRecover(scope: string): Promise<boolean> {
   const now = Date.now();
   if (recoverInflight) return recoverInflight;
-  if (now - lastAttempt < 20_000) return Promise.resolve(lastResult);
+  if (now - lastAttempt < 20_000) return Promise.resolve(false);
   recoverInflight = (async () => {
     try {
       const { session, logLine } = await import("./clients.js");
@@ -28,11 +28,9 @@ export function softRecover(scope: string): Promise<boolean> {
       const ok = await session.softRelogin();
       await logLine(`SOFT-RECOVER[${scope}] ${ok ? "ok" : "fail"} (${Date.now() - t0}ms)`).catch(() => undefined);
       lastAttempt = Date.now();
-      lastResult = ok;
       return ok;
     } catch {
       lastAttempt = Date.now();
-      lastResult = false;
       return false;
     } finally {
       recoverInflight = null;

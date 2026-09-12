@@ -535,8 +535,19 @@ export function useZhjwxkCourses() {
       setData({ semester, courses, queue });
       setState("ready");
     } catch (err) {
-      // 会话过期（demo 的 accessDenied 判定）：重试无意义，送回登录页重走登录链
       logPageError("ZHJWXK", err);
+      // 会话过期（稳定性专项）：softRecover 全链重建 → 原地重取一次；仍败才亮错
+      if (isAuthError(err) && (await softRecover("xk-boot"))) {
+        try {
+          const semester = await resolveZhjwxkSemester(xkSession()).catch(() => null);
+          const opt = semester ? { semester } : undefined;
+          const courses = await getSelectedCourses(xkSession(), opt);
+          const queue = await getQueueStatus(xkSession(), opt).catch(() => [] as QueueCandidate[]);
+          setData({ semester, courses, queue });
+          setState("ready");
+          return;
+        } catch { /* 落错误条 */ }
+      }
       setState("error");
       setError(explainNetworkError(err));
     }
@@ -638,6 +649,8 @@ async function fetchLevelTable(sem: string, fresh = false): Promise<Record<strin
     } catch (err) {
       levelFailedSems.add(sem);
       logPageError("XK-LEVEL", err);
+      // 失登（稳定性专项）：后台触发透明重建，下一轮管线即用活会话（本层只兜类型标签）
+      if (isAuthError(err)) void softRecover("xk-level").catch(() => undefined);
       return null;
     } finally {
       levelInflight.delete(sem);
@@ -1808,8 +1821,18 @@ export function useXkWorkbench(): XkWorkbench {
       setToast(`队列数据已刷新 · ${Object.keys(qd.map).length}门课余量 · ${candidates.length}门我的队列`);
     } catch (err) {
       logPageError("XK-QUEUE", err);
-      // 失登不整页重载：toast + 下轮自愈（会话按调用重建）
-      setToast("课余量排队人数获取失败，可能需退出重新登录");
+      // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才 toast
+      if (isAuthError(err) && (await softRecover("xk-queue"))) {
+        const qd = await getXkQueueData(xkSession(), { semester: semBarRef.current ?? semesterFromDate() }).catch(() => null);
+        if (qd && genRef.current === myGen) {
+          setQueueMap(qd.map);
+          setPhase(qd.phase);
+          setQueueState("ready");
+          setToast(`队列数据已刷新 · ${Object.keys(qd.map).length}门课余量 · ${candidates.length}门我的队列`);
+          return;
+        }
+      }
+      setToast("课余量排队人数获取失败，可稍后重试（会话已自动重建）");
       setQueueState("ready");
     }
   }, [status, candidates.length]);
@@ -2338,6 +2361,13 @@ export function useCalendar() {
       notifyCalendarData();
     } catch (err) {
       logPageError("CALENDAR", err);
+      // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才落错误条
+      if (isAuthError(err) && (await softRecover("calendar"))) {
+        setData(await cacheFetch(CAL_KEY, () => learn.getCalendarData()));
+        setState("ready");
+        notifyCalendarData();
+        return;
+      }
       if (silent && data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
@@ -2399,8 +2429,20 @@ export function useWeekSchedule(semester: CalendarSemester | null, week: number)
           setState("ready");
         }
       })
-      .catch((err: unknown) => {
+      .catch(async (err: unknown) => {
         logPageError("SCHEDULE", err);
+        // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才落错误条
+        if (!cancelled && isAuthError(err) && (await softRecover("weeksched"))) {
+          const entries = await info
+            .getSchedule(fmtDate(start), fmtDate(end))
+            .catch(() => null);
+          if (entries && !cancelled) {
+            cacheSet(wsKey, entries);
+            setData(entries);
+            setState("ready");
+            return;
+          }
+        }
         if (!cancelled) {
           // 已有旧值（缓存）时不闪红：SWR 语义，保留旧课表
           if (cacheGet<ScheduleEntry[]>(wsKey)) return;
@@ -2439,6 +2481,12 @@ export function useExams() {  const { status } = useApp();
       setState("ready");
     } catch (err) {
       logPageError("EXAMS", err);
+      // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才落错误条
+      if (isAuthError(err) && (await softRecover("exams"))) {
+        setData(await cacheFetch(EXAMS_KEY, () => info.getExams()));
+        setState("ready");
+        return;
+      }
       if (silent && data !== null) return;
       setState("error");
       setError(explainNetworkError(err));

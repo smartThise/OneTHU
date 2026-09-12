@@ -10,6 +10,8 @@ import { PageAtomStar } from "../components/Collect.js";
 import { Card, ErrorNote, PageHead } from "../components/Layout.js";
 import { IconRefresh, IconSchedule } from "../components/Icons.js";
 import { useCalendar, useCampusData } from "../state/data.js";
+import { isAuthError } from "@onethu/core";
+import { softRecover } from "../lib/reload.js";
 import { ScheduleAgenda } from "./ScheduleAgenda.js";
 import type { AgendaItem } from "./ScheduleAgenda.js";
 import { caldav } from "@onethu/core";
@@ -243,12 +245,22 @@ export function SchedulePage() {
     let alive = true;
     setWinLoading(true);
     setWinError(null);
-    info
-      .getSchedule(ymdOf(viewWindow[0]), ymdOf(viewWindow[1]))
-      .then((rows) => {
-        if (alive) setWindowRows(rows);
-      })
-      .catch((err) => {
+    const grab = (): Promise<void> =>
+      info
+        .getSchedule(ymdOf(viewWindow[0]), ymdOf(viewWindow[1]))
+        .then((rows) => {
+          if (alive) setWindowRows(rows);
+        });
+    grab()
+      .catch(async (err) => {
+        if (!alive) return;
+        // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才亮条
+        if (isAuthError(err) && (await softRecover("schedule-win"))) {
+          await grab().catch((e2) => {
+            if (alive) setWinError(e2 instanceof Error ? e2.message : String(e2));
+          });
+          return;
+        }
         if (alive) {
           setWindowRows([]);
           setWinError(err instanceof Error ? err.message : String(err));
