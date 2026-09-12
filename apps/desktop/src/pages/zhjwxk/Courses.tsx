@@ -935,26 +935,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             ? <span style={{ fontSize: 10, padding: "1px 5px", marginRight: 6, borderRadius: 4, color: "#fff", background: ORIGIN_COLORS[o], verticalAlign: "1px", whiteSpace: "nowrap" }}>{o}</span>
             : null; })()}
           {r.name}
-          {/* 课程特色紫标（NextTHUxk 同款）：kkxxSearch 搜索行自带特色列（表头
-              自适应解析），此前只进筛选器不上卡片——用户实锤「无法显示查看」 */}
-          {(() => {
-            // 特色列源数据服务端截断（"新生研讨…"——尾字不在表格数据里，用户实锤
-            // 「要渲染完整」）：按段剥省略点 → 用筛选器规范全值表前缀补全
-            // （"新生研讨"→"新生研讨课"）；多义前缀取最短规范值；仅剩占位符不上屏
-            const canon = (seg: string): string => {
-              if (seg.length < 3) return seg;
-              const hit = FEATURES.map(([v]) => v).filter((v) => v.startsWith(seg) && v !== seg).sort((a, b) => a.length - b.length)[0];
-              return hit ?? seg;
-            };
-            const feat = (r.c.feature || "")
-              .split(/[;；,，]/)
-              .map((t) => t.replace(/[\s.。…·—-]/g, "").trim())
-              .filter(Boolean)
-              .map(canon)
-              .join(" · ");
-            return feat ? (
-            <span style={{ fontSize: 10, padding: "1px 5px", marginLeft: 6, borderRadius: 4, color: "#7c5cff", background: "rgba(124,92,255,.1)", border: "1px solid rgba(124,92,255,.25)", verticalAlign: "1px", whiteSpace: "nowrap" }}>{feat}</span>
-          ) : null; })()}
+
           {r.teacherId ? <button className="btn" style={{ padding: "0 6px", marginLeft: 6, fontSize: 11 }} onClick={() => openDetail(r.c.code, r.teacherId)}>简介</button> : null}
           {tbBadge(r) ? (
             <button className="btn" style={{ padding: "0 6px", marginLeft: 6, fontSize: 11, color: "var(--amber)" }} onClick={() => openReviews({ code: r.c.code, seq: r.c.seq, name: r.name, teacher: r.teacher })}>{tbBadge(r)}</button>
@@ -975,7 +956,34 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           */}
         </div>
         <div className="row-sub" style={{ whiteSpace: "normal" }}>{[r.c.code, r.c.seq && r.c.seq !== "0" ? `第${r.c.seq}班` : "", r.teacher, `${r.credits} 学分`, r.time, r.c.department].filter(Boolean).join(" · ")}</div>
-        {r.c.note ? <div className="row-sub" style={{ whiteSpace: "normal", color: "var(--text-2)" }}>课程说明：{r.c.note}</div> : null}
+        {/* 课程特色标签行（NextTHUxk nx-tag 同款）：独立成行、一段一标签、
+            flexWrap 换行——挂标题行内会被 nowrap+overflow 裁出 CSS 省略号
+            （用户实锤：复制是全文、看到的是「文化素质…」） */}
+        {(() => {
+          // 源数据服务端截断（"新生研讨…"）：剥省略点 → 筛选器规范全值表前缀补全
+          const canon = (seg: string): string => {{
+            if (seg.length < 3) return seg;
+            const hit = FEATURES.map(([v]) => v).filter((v) => v.startsWith(seg) && v !== seg).sort((a, b) => a.length - b.length)[0];
+            return hit ?? seg;
+          }};
+          const segs = (r.c.feature || "")
+            .split(/[;；,，]/)
+            .map((t) => t.replace(/[\s.。…·—-]/g, "").trim())
+            .filter(Boolean)
+            .map(canon);
+          return segs.length ? (
+            <div style={{ marginTop: 3, display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {segs.map((t) => (
+                <span key={t} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, color: "#7c5cff", background: "rgba(124,92,255,.1)", border: "1px solid rgba(124,92,255,.25)", whiteSpace: "nowrap" }}>{t}</span>
+              ))}
+            </div>
+          ) : null;
+        })()}
+        {r.c.note ? (
+          <div style={{ marginTop: 4, padding: "5px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "rgba(124,92,255,.05)", fontSize: 12, lineHeight: 1.6, color: "var(--text-1)", whiteSpace: "normal" }}>
+            <b style={{ color: "var(--accent)" }}>课程说明</b>　{r.c.note}
+          </div>
+        ) : null}
         {wb.phase ? (
           <div className="row-sub" style={{ whiteSpace: "normal" }}>{[cap ? `容量 ${cap}` : "", q?.qQueue ? `排队 ${q.qQueue}` : "", r.cand ? (r.cand.myPos ? `排队第 ${r.cand.myPos}/${r.cand.queueTotal}` : "候选中") : ""].filter(Boolean).join(" · ")}</div>
         ) : r.vol ? (
