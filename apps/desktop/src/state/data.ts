@@ -902,6 +902,9 @@ export function useXkWorkbench(): XkWorkbench {
    * 打断——mount 时 refresh 与 loadCatalog 并发启动，必须共享同一代才能双双生效。 */
   const genRef = useRef(0);
   const semBarRef = useRef<string | null>(null);
+  /** 暂存车镜像（commitCore 声明早于 stageCart useState，闭包走 ref；
+   *  课余量按需查询集要并入暂存课——插件实锤暂存不在查询集则余量徽章恒空） */
+  const stageCartRef = useRef<XkStageItem[]>([]);
   const pipelineSemRef = useRef<string | null>(null);
   /** 同代同学期整序管线在途去重（mount 时 idle 触发与 loadCatalog 竞态只跑一遍全量抓取） */
   const pipelineInflightRef = useRef<{ sem: string; gen: number; promise: Promise<void> } | null>(null);
@@ -955,10 +958,19 @@ export function useXkWorkbench(): XkWorkbench {
     // 数据缺失要等下一条管线；会话已能透明重建，原地补齐才是「任何时刻稳定」。
     for (let authRound = 0; authRound < 2; authRound++) {
     try {
+      // 课余量改按需逐门查（2026-09-14 对齐插件）：查询集 = 已选+候补+暂存，
+      // kyl 只发 p_kch 单课请求（并发 5）。已选/候补两路 promise 共享，队列
+      // 路等它们出结果再查——多一个往返，换掉旧版 100+ 页全目录爬。
+      const selP = getXkSelectedFull(xkSession(), opt).catch((err: unknown) => { if (isAuthError(err)) throw err; return [] as XkSelectedRow[]; });
+      const candP = getQueueStatus(xkSession(), opt).catch((err: unknown) => { if (isAuthError(err)) throw err; return [] as QueueCandidate[]; });
+      const queueCodes = async (): Promise<string[]> => {
+        const [s2, c2] = await Promise.all([selP, candP]);
+        return [...new Set([...s2.map((r) => r.code), ...c2.map((r) => r.code), ...stageCartRef.current.map((x) => x.code)])];
+      };
       const [sel, cand, qd, plan] = await Promise.all([
-        getXkSelectedFull(xkSession(), opt).catch((err: unknown) => { if (isAuthError(err)) throw err; return [] as XkSelectedRow[]; }),
-        getQueueStatus(xkSession(), opt).catch((err: unknown) => { if (isAuthError(err)) throw err; return [] as QueueCandidate[]; }),
-        getXkQueueData(xkSession(), opt).catch((err: unknown) => { if (isAuthError(err)) throw err; return { map: {}, phase: false }; }),
+        selP,
+        candP,
+        queueCodes().then((codes) => getXkQueueData(xkSession(), { ...opt, codes })).catch((err: unknown) => { if (isAuthError(err)) throw err; return { map: {}, phase: false }; }),
         getXkPlan(xkSession(), opt).catch((err: unknown) => { if (isAuthError(err)) throw err; return [] as XkPlanItem[]; }),
       ]);
       if (genRef.current !== myGen || coreSeqRef.current !== coreSeq) return plan; // 已打断/已被更新的核心刷新取代：丢弃
@@ -1154,6 +1166,7 @@ export function useXkWorkbench(): XkWorkbench {
 
   // ── 暂存 / 草稿 / 自定义占用 / 预览（nextthuxk §5/§7.4）──
   const [stageCart, setStageCart] = useState<XkStageItem[]>(() => lsGet(LS.stage, []));
+  stageCartRef.current = stageCart; // 渲染期镜像（ref 写入幂等，无副作用）
   const [savedDrafts, setSavedDrafts] = useState<XkDraft[]>(() => lsGet(LS.drafts, []));
   const [manualEvents, setManualEvents] = useState<XkManualEvent[]>(() => lsGet(LS.manual, []));
   const [plan, setPlan] = useState<XkPlanItem[]>([]);
@@ -1813,7 +1826,8 @@ export function useXkWorkbench(): XkWorkbench {
     try {
       const sem = semBarRef.current ?? (await resolveZhjwxkSemester(xkSession()).catch(() => null));
       if (!sem) return;
-      const qd = await getXkQueueData(xkSession(), { semester: sem });
+      const codes = [...new Set([...selected.map((r) => r.code), ...candidates.map((r) => r.code), ...stageCart.map((x) => x.code)])];
+      const qd = await getXkQueueData(xkSession(), { semester: sem, codes });
       if (genRef.current !== myGen) return; // 期间已打断：丢弃过期结果
       setQueueMap(qd.map);
       setPhase(qd.phase);
@@ -1823,7 +1837,8 @@ export function useXkWorkbench(): XkWorkbench {
       logPageError("XK-QUEUE", err);
       // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才 toast
       if (isAuthError(err) && (await softRecover("xk-queue"))) {
-        const qd = await getXkQueueData(xkSession(), { semester: semBarRef.current ?? semesterFromDate() }).catch(() => null);
+        const codes = [...new Set([...selected.map((r) => r.code), ...candidates.map((r) => r.code), ...stageCart.map((x) => x.code)])];
+        const qd = await getXkQueueData(xkSession(), { semester: semBarRef.current ?? semesterFromDate(), codes }).catch(() => null);
         if (qd && genRef.current === myGen) {
           setQueueMap(qd.map);
           setPhase(qd.phase);
@@ -1835,7 +1850,7 @@ export function useXkWorkbench(): XkWorkbench {
       setToast("课余量排队人数获取失败，可稍后重试（会话已自动重建）");
       setQueueState("ready");
     }
-  }, [status, candidates.length]);
+  }, [status, candidates, selected, stageCart]);
 
   const semesterOptions = useMemo(() => {
     const cur = semester ?? semesterFromDate();

@@ -974,7 +974,7 @@ export async function fetchXkVolCourse(
 /** 课余量+排队（xkqkSearch 判 phase → kylSearch POST 翻页 → selectBksDlCount 批 100/熔断 3） */
 export async function getXkQueueData(
   s: ZhjwxkSession,
-  opts: { semester?: string } = {},
+  opts: { semester?: string; codes?: string[] } = {},
 ): Promise<{ map: Record<string, XkQueueInfo>; phase: boolean }> {
   const { entry, semester } = await ensure(s, opts.semester);
   const first = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksXkbBs.do?m=xkqkSearch&p_xnxq=${semester}`);
@@ -983,23 +983,55 @@ export async function getXkQueueData(
   const map: Record<string, XkQueueInfo> = parseXkQueueGrid(first);
   const token = TOKEN_RE().exec(first)?.[1] ?? "";
   if (token) {
-    for (let p = 0; p <= 200; p++) {
-      const html = await postZhjwxkApi(s, entry, "/xkBks.vxkBksJxjhBs.do", {
+    // 按需逐门精确查（NextTHUxk 同款，2026-09-14 定案）：p_kch 单课号、
+    // 并发 5 微错峰、单课「共N页」翻页 cap 10、0 新行即停。
+    // 绝不全目录翻页爬——旧版无 p_kch 全量 100+ 页（先串行后并发都是错的）：
+    // 已选课余量 xkqkSearch 网格一发就有，候补/暂存走调用方传入的 codes。
+    const codes = [...new Set((opts.codes ?? []).map((c) => String(c).trim()).filter(Boolean))];
+    const kylPage = (code: string, page: number): Promise<string> =>
+      postZhjwxkApi(s, entry, "/xkBks.vxkBksJxjhBs.do", {
         m: "kylSearch",
-        page: String(p),
+        page: String(page),
         token,
         "p_sort.p1": "",
         "p_sort.p2": "",
-        "p_sort.asc1": "",
-        "p_sort.asc2": "",
+        "p_sort.asc1": "true",
+        "p_sort.asc2": "true",
         p_xnxq: semester,
         pathContent: "",
+        p_kch: code,
+        p_kxh: "",
+        p_kcm: "",
+        p_skxq: "",
+        p_skjc: "",
+        bt: "",
       });
-      if (!html.includes("gridData")) break;
-      const batch = parseXkQueueGrid(html);
-      if (!Object.keys(batch).length) break;
-      for (const [k, v] of Object.entries(batch)) if (!map[k]) map[k] = v;
-    }
+    let idx = 0;
+    const workers = Array.from({ length: Math.min(5, codes.length) }, async () => {
+      for (;;) {
+        const my = idx++;
+        if (my >= codes.length) return;
+        const code = codes[my]!;
+        await new Promise((r) => setTimeout(r, 30 * (my % 5)));   // 微错峰（插件 40/74 教训）
+        try {
+          const p0 = await kylPage(code, 0);
+          if (!p0.includes("gridData")) continue;
+          for (const [k, v] of Object.entries(parseXkQueueGrid(p0))) if (!map[k]) map[k] = v;
+          const tp = /共\s*(\d+)\s*页/.exec(p0);
+          const totalPages = Math.min(tp ? parseInt(tp[1]!, 10) : 1, 10);
+          for (let p = 1; p < totalPages; p++) {
+            const html = await kylPage(code, p);
+            if (!html.includes("gridData")) break;
+            let added = 0;
+            for (const [k, v] of Object.entries(parseXkQueueGrid(html))) {
+              if (!map[k]) { map[k] = v; added++; }
+            }
+            if (added === 0) break;
+          }
+        } catch { /* 单课失败：跳过，下轮刷新补 */ }
+      }
+    });
+    await Promise.all(workers);
   }
   const parts = Object.keys(map).map((k) => `${semester}_${k.replace("_", "_")}`);
   let fails = 0;

@@ -61,7 +61,7 @@ export function ExamsTab() {
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
       {state === "loading" && !data ? (
         <SkeletonRows rows={4} />
-      ) : (data?.length ?? 0) === 0 ? (
+      ) : state === "error" && !data ? null : (data?.length ?? 0) === 0 ? (
         <Card>
           <Empty text="本学年暂无考试安排。" />
         </Card>
