@@ -81,8 +81,7 @@ function fmtDate(d: Date): string {
 /** 冷启动会话风暴窗退避重试（选课专项同款 2/4/8/15/25/40s）——蜂窝首屏残缺的通用解：
  *  通知/日程失败曾被 .catch(()=>[]) 吞成空数组还被缓存 3 分钟 = 「加载残缺」。
  *  会话真死（AuthRequiredError）不重试，交给上层漫游自愈。 */
-async function stormRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
-  const backoffs = [2000, 4000, 8000, 15000, 25000, 40000];
+async function stormRetry<T>(fn: () => Promise<T>, label: string, backoffs: number[] = [2000, 4000, 8000, 15000, 25000, 40000]): Promise<T> {
   let lastErr: unknown;
   for (let i = 0; i <= backoffs.length; i++) {
     try {
@@ -102,21 +101,27 @@ async function loadReal(): Promise<CampusData> {
   const semester = await learn.getCurrentSemester();
   const courses = await stormRetry(() => learn.getCourseList(semester.id), "COURSE");
   const ids = courses.map((c) => c.id);
-  const [homework, notifications, files, schedule, user] = await Promise.all([
-    stormRetry(() => learn.getAllHomework(ids), "HW"),
-    stormRetry(() => learn.getAllNotifications(ids), "NEWS"),
+  // allSettled + 旧缓存垫底（2026-09-13 深夜定案）：个别模块风暴期失败时，
+  // 用上一次成功缓存的那份数据垫上（绝不是空数组）——首页永远完整，后台静默收敛
+  const start = new Date();
+  start.setDate(start.getDate() - 7);
+  const end = new Date();
+  end.setDate(end.getDate() + 14);
+  const [hwR, newsR, filesR, schedR, userR] = await Promise.allSettled([
+    stormRetry(() => learn.getAllHomework(ids), "HW", [3000, 8000, 20000]),
+    stormRetry(() => learn.getAllNotifications(ids), "NEWS", [3000, 8000, 20000]),
     Promise.all(ids.slice(0, 8).map((id) => learn.getFileList(id).catch(() => [])))
       .then((rs) => rs.flat())
       .catch(() => [] as CourseFile[]),
-    (async () => {
-      const start = new Date();
-      start.setDate(start.getDate() - 7);
-      const end = new Date();
-      end.setDate(end.getDate() + 14);
-      return stormRetry(() => info.getSchedule(fmtDate(start), fmtDate(end)), "SCHED").catch(() => [] as ScheduleEntry[]);
-    })(),
+    stormRetry(() => info.getSchedule(fmtDate(start), fmtDate(end)), "SCHED"),
     info.getUserInfo().catch(() => null),
   ]);
+  const prev = cacheGet<CampusData>(CAMPUS_KEY)?.data;
+  const homework = hwR.status === "fulfilled" ? hwR.value : prev?.homework ?? [];
+  const notifications = newsR.status === "fulfilled" ? newsR.value : prev?.notifications ?? [];
+  const files = filesR.status === "fulfilled" ? filesR.value : prev?.files ?? [];
+  const schedule = schedR.status === "fulfilled" ? schedR.value : prev?.schedule ?? [];
+  const user = userR.status === "fulfilled" ? userR.value : prev?.user ?? null;
   return { courses, homework, notifications, files, schedule, user };
 }
 
