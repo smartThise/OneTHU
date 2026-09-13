@@ -78,50 +78,25 @@ function fmtDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** 冷启动会话风暴窗退避重试（选课专项同款 2/4/8/15/25/40s）——蜂窝首屏残缺的通用解：
- *  通知/日程失败曾被 .catch(()=>[]) 吞成空数组还被缓存 3 分钟 = 「加载残缺」。
- *  会话真死（AuthRequiredError）不重试，交给上层漫游自愈。 */
-async function stormRetry<T>(fn: () => Promise<T>, label: string, backoffs: number[] = [2000, 4000, 8000, 15000, 25000, 40000]): Promise<T> {
-  let lastErr: unknown;
-  for (let i = 0; i <= backoffs.length; i++) {
-    try {
-      return await fn();
-    } catch (e) {
-      lastErr = e;
-      if (e instanceof Error && e.name === "AuthRequiredError") throw e;
-      if (i >= backoffs.length) throw e;
-      logPageError(`STORM-${label}`, e);
-      await new Promise((r) => setTimeout(r, backoffs[i] ?? 8000));
-    }
-  }
-  throw lastErr;
-}
-
 async function loadReal(): Promise<CampusData> {
   const semester = await learn.getCurrentSemester();
-  const courses = await stormRetry(() => learn.getCourseList(semester.id), "COURSE");
+  const courses = await learn.getCourseList(semester.id);
   const ids = courses.map((c) => c.id);
-  // allSettled + 旧缓存垫底（2026-09-13 深夜定案）：个别模块风暴期失败时，
-  // 用上一次成功缓存的那份数据垫上（绝不是空数组）——首页永远完整，后台静默收敛
-  const start = new Date();
-  start.setDate(start.getDate() - 7);
-  const end = new Date();
-  end.setDate(end.getDate() + 14);
-  const [hwR, newsR, filesR, schedR, userR] = await Promise.allSettled([
-    stormRetry(() => learn.getAllHomework(ids), "HW", [3000, 8000, 20000]),
-    stormRetry(() => learn.getAllNotifications(ids), "NEWS", [3000, 8000, 20000]),
+  const [homework, notifications, files, schedule, user] = await Promise.all([
+    learn.getAllHomework(ids),
+    learn.getAllNotifications(ids),
     Promise.all(ids.slice(0, 8).map((id) => learn.getFileList(id).catch(() => [])))
       .then((rs) => rs.flat())
       .catch(() => [] as CourseFile[]),
-    stormRetry(() => info.getSchedule(fmtDate(start), fmtDate(end)), "SCHED"),
+    (async () => {
+      const start = new Date();
+      start.setDate(start.getDate() - 7);
+      const end = new Date();
+      end.setDate(end.getDate() + 14);
+      return info.getSchedule(fmtDate(start), fmtDate(end)).catch(() => [] as ScheduleEntry[]);
+    })(),
     info.getUserInfo().catch(() => null),
   ]);
-  const prev = cacheGet<CampusData>(CAMPUS_KEY)?.data;
-  const homework = hwR.status === "fulfilled" ? hwR.value : prev?.homework ?? [];
-  const notifications = newsR.status === "fulfilled" ? newsR.value : prev?.notifications ?? [];
-  const files = filesR.status === "fulfilled" ? filesR.value : prev?.files ?? [];
-  const schedule = schedR.status === "fulfilled" ? schedR.value : prev?.schedule ?? [];
-  const user = userR.status === "fulfilled" ? userR.value : prev?.user ?? null;
   return { courses, homework, notifications, files, schedule, user };
 }
 
@@ -630,8 +605,7 @@ function xkSession(): ZhjwxkSession {
     const c = session.xkCredentials;
     // 隔离通道（2026-09-13）：选课专用 HttpClient+自管 jar，webvpn 多域 cookie
     // 需求锁死在本模块内，不污染全局会话桶（seedJar 拆条事故定案）
-    // 2026-09-13 深夜：选课通道切换 nextthuxk 平铺引擎（NextTHUxk-server 生产验证语义）——
-    // 直连一切+平铺 cookie+手动跟跳，替代 universalFetch（webvpn 包装链）
+    // 2026-09-13 深夜：选课通道切换 nextthuxk 平铺引擎（NextTHUxk-server 生产验证语义）
     xkSessionSingleton = { http, username: c.username, password: c.password, fingerprint: c.fingerprint, isoFetch: makeNtFetchFactory(tauriFetch)(http.jar), finger3: session.finger3 };
   }
   return xkSessionSingleton;
@@ -995,8 +969,7 @@ export function useXkWorkbench(): XkWorkbench {
     // 失登自愈（稳定性专项 2026-09-11）：auth 错 → softRecover 全链重建 → 整组
     // 原地重试一次（有界：每轮调用至多一轮）。此前直接 return []——当轮右栏
     // 数据缺失要等下一条管线；会话已能透明重建，原地补齐才是「任何时刻稳定」。
-    const coreBackoffs = [2000, 4000, 8000, 15000, 25000, 40000];
-    for (let authRound = 0; authRound <= coreBackoffs.length; authRound++) {
+    for (let authRound = 0; authRound < 2; authRound++) {
     try {
       // 课余量改按需逐门查（2026-09-14 对齐插件）：查询集 = 已选+候补+暂存，
       // kyl 只发 p_kch 单课请求（并发 5）。已选/候补两路 promise 共享，队列
@@ -1050,14 +1023,6 @@ export function useXkWorkbench(): XkWorkbench {
       // 失登不再整页重载（重载=app 重启回首页目录，搜索/培养方案状态全丢——2026-09-03 实录
       // 「课表跳转过一会又刷成首页」）。会话每次调用自动重建（60s 热缓存），SWR 保旧/错误条兜底。
       if (isAuthError(err)) { logPageError("XK-CORE-AUTH", err); return []; }
-      // 瞬态错误静默重试（2026-09-13 深夜：首波并发 ensure 竞态=首载报错、
-      // 手点刷新才好——把「刷新那一下」搬进循环，不闪红）
-      const transient = /Failed to fetch|网络|timeout|timed? ?out|重定向超限|跟跳超限|未落地|身份确认失败|SM2|公钥|登录未成功/.test(String(err));
-      if (transient && authRound < coreBackoffs.length) {
-        logPageError("XK-CORE-RETRY", err);
-        await new Promise((r) => setTimeout(r, coreBackoffs[authRound] ?? 8000));
-        continue;
-      }
       if (coreSeededRef.current) return []; // 秒渲旧值在屏：保旧不闪红（SWR），重试/下轮再验证
       logPageError("ZHJWXK", err);
       setCoreState("error");
@@ -1354,10 +1319,6 @@ export function useXkWorkbench(): XkWorkbench {
   const [searchRunId, setSearchRunId] = useState(0);
   const [searchError, setSearchError] = useState<string | null>(null);
   const searchSeqRef = useRef(0);
-  // 搜索瞬态自愈（2026-09-13 深夜）：首波并发竞态=首搜报错、手点刷新才好——自动重试取代手动
-  const searchRetryRef = useRef(0);
-  const lastSearchMetaRef = useRef<XkSearchMeta | null>(null);
-  const newSearchRef = useRef<((m: XkSearchMeta) => void) | null>(null);
   const searchMetaRef = useRef<XkSearchMeta | null>(null);
   const searchRows = useMemo(
     () => {
@@ -1396,19 +1357,6 @@ export function useXkWorkbench(): XkWorkbench {
 
   const failSearch = useCallback((err: unknown, seq: number): void => {
     if (seq !== searchSeqRef.current) return;
-    // 瞬态错误自动重试（网络/超限/未落地/SM2/公钥/登录未成功）：把「手点刷新」自动化
-    const transient = /Failed to fetch|网络|timeout|timed? ?out|重定向超限|跟跳超限|未落地|身份确认失败|SM2|公钥|登录未成功/.test(String(err));
-    // 退避表盖过冷启动会话风暴窗（23:10 实测 ~45-60s：全 app 模块同时 SSO，
-    // id 认证中心排队期间 xk 建链必败；风暴退去后同一代码一次即通）
-    const backoffs = [2000, 4000, 8000, 15000, 25000, 40000];
-    if (transient && searchRetryRef.current < backoffs.length && lastSearchMetaRef.current) {
-      searchRetryRef.current += 1;
-      logPageError("XK-SEARCH-RETRY", err);
-      const m: XkSearchMeta = lastSearchMetaRef.current;
-      setTimeout(() => newSearchRef.current?.(m), backoffs[searchRetryRef.current - 1] ?? 8000);
-      return;
-    }
-    logPageError("XK-SEARCH-DECIDE", `retry=${searchRetryRef.current} meta=${lastSearchMetaRef.current ? 1 : 0} stale=${seq !== searchSeqRef.current ? 1 : 0}`);
     logPageError("XK-SEARCH", err);
     // 失登不整页重载：错误条 + 重试（proxyZhjwxkApi 内部已带 relogin 自愈），保住搜索现场
     setSearchError(explainNetworkError(err));
@@ -1419,7 +1367,6 @@ export function useXkWorkbench(): XkWorkbench {
     async (meta: XkSearchMeta) => {
       const seq = ++searchSeqRef.current;
       searchMetaRef.current = meta;
-      lastSearchMetaRef.current = meta;
       setSearchError(null);
       setSearchRunId((v) => v + 1);
       if (status === "demo") {
@@ -1524,7 +1471,6 @@ export function useXkWorkbench(): XkWorkbench {
         setSearchHasMore(false);
         setSearchIncomplete(deficit > 0 || tp > okPages || (tp === 0 && okPages === probeTo && lastFull)); // 总数核对优先，页数兜底
         setSearchError(head.pageKind === "unknown" ? `教务返回异常页（首段: ${head.htmlHead}）` : null);
-        searchRetryRef.current = 0;
         setSearchState("ready");
         if (deficit > 0) setToast(`爬取不完整：教务共 ${locked} 门，实得 ${merged.length} 门，缺 ${deficit} 门。建议刷新或待会再来看看`);
       } catch (err) {
@@ -1533,7 +1479,6 @@ export function useXkWorkbench(): XkWorkbench {
     },
     [status, fetchXkPage, failSearch],
   );
-  newSearchRef.current = (m: XkSearchMeta) => { void newSearch(m); };
 
   /** 搜索模式「加载当前关键词全部」：从第 4 页起爬到空页（5 并发池 + 30ms 限速），完成 toast */
   const loadAllSearch = useCallback(async () => {
@@ -1616,7 +1561,6 @@ export function useXkWorkbench(): XkWorkbench {
     async (page: number) => {
       const meta = searchMetaRef.current;
       if (status === "demo" || !meta || page < 1) return;
-      lastSearchMetaRef.current = meta; // 翻页路也要能自动重试（首载走的就是这条路）
       const seq = ++searchSeqRef.current;
       setSearchState("loading");
       try {
