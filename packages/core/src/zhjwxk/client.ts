@@ -203,7 +203,9 @@ async function ensure(
       // 跟随传输模式：webvpn=包装桶，直连=直连桶（PUBLIC_HOSTS 含 id 自动直连）。
       const res = await http.request(`${ID_PREFIX}/do/off/ui/auth/login/checkSingle`, {
         method: "POST",
-        body: new URLSearchParams({ i_rememberme: "on", fingerPrint: s.fingerprint, fingerGenPrint: "", fingerGenPrint3: s.finger3 ?? "" }),
+        // 23:41 现场勘误：checkSingle 自动提交页的 JS 填的是 fingerGenPrint（id="fingerGenPrint"）
+        // ← localStorage finger3——此前填进 fingerGenPrint3 而正主发空串 → id 校验不过无限重发该页
+        body: new URLSearchParams({ i_rememberme: "on", fingerPrint: s.fingerprint, fingerGenPrint: s.finger3 ?? "", fingerGenPrint3: s.finger3 ?? "" }),
         headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
         redirect: "manual",
       });
