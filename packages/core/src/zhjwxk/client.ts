@@ -259,7 +259,28 @@ async function ensure(
         }
       }
       zhjwxkDebug?.(`[XK-ANCHOR] 兑付=${target.slice(0, 130)}`);
-      const landed = await http.text(target).catch(() => "");
+      let landed = await http.text(target).catch(() => "");
+      // OAuth 授权环节（2026-09-13 深夜实锤：兑付锚点落 oauth.tsinghua.edu.cn/thu-oauth*
+      // 授权页而非 zhjwxk 票据）：浏览器里该页自动提交/点同意 → 带 code 回 zhjwxk。
+      // 模拟：解析首个 <form>，收集全部 input，原样 POST 到 action（跨 2 跳上限）。
+      for (let oaHop = 0; oaHop < 2; oaHop++) {
+        const oaForm = /<form[^>]*action="([^"]*)"[^>]*>([\s\S]*?)<\/form>/i.exec(landed);
+        const oaUrl = landed.slice(0, 400).includes("oauth.tsinghua.edu.cn") || target.includes("oauth.tsinghua.edu.cn");
+        if (!oaUrl || !oaForm) break;
+        const action = new URL(oaForm[1] || target, target).href;
+        const body = new URLSearchParams();
+        for (const inp of (oaForm[2] ?? "").matchAll(/<input[^>]*>/gi)) {
+          const tag = inp[0] ?? "";
+          const name = /name="([^"]*)"/i.exec(tag)?.[1];
+          const value = /value="([^"]*)"/i.exec(tag)?.[1] ?? "";
+          if (name) body.append(name, value);
+        }
+        zhjwxkDebug?.(`[XK-OAUTH] 自动提交 action=${action.slice(0, 110)} 字段=${[...body.keys()].join(",")}`);
+        const oaRes = await http.request(action, { method: "POST", body: body.toString(), headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+        landed = await oaRes.text().catch(() => "");
+        zhjwxkDebug?.(`[XK-OAUTH] 落地 len=${landed.length} 页首=${landed.slice(0, 300).replace(/\s+/g, " ")}`);
+        target = action;
+      }
       zhjwxkDebug?.(`[XK-ANCHOR] 落地 len=${landed.length} 页首=${landed.slice(0, 200).replace(/\s+/g, " ")}`);
       // 关键：兑付后不得重打 xklogin.do——那是登录入口，重打会重开 auth 流程弹回
       // id 表单（10:22 实证：兑付已落地真页面，重打又弹回去）。会话已在 jar，直接用。
