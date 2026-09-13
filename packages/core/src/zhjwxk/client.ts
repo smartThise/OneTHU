@@ -151,6 +151,7 @@ const ENTRY_TTL_MS = 10 * 60_000;
 const entryCache = new WeakMap<ZhjwxkSession, ZhjwxkEntry>();
 /** 最近一次成功重登时刻（合流护栏：8 秒窗口内的并发弹回共用新会话，不起重复链） */
 let lastXkReloginAt = 0;
+let globalEnsureInflight: Promise<ZhjwxkEntry> | null = null;
 const entryInflight = new WeakMap<ZhjwxkSession, Promise<ZhjwxkEntry>>();
 
 async function ensure(
@@ -162,7 +163,10 @@ async function ensure(
     return { entry: hit, semester: semesterOverride ?? hit.semester ?? semesterFromDate() };
   }
 
-  const inflight = entryInflight.get(s);
+  // 2026-09-13 深夜：单飞升级为【全局】——按会话对象的 WeakMap 挡不住
+  // 「多会话对象并发建链」：id CAS/zhjwxk SSO 是 app 级单会话，两股 checkSingle
+  // 流交错 = 页面串台（真机实锤：核心成功、搜索连环「无法获取 SM2 公钥」）。
+  const inflight = globalEnsureInflight;
   if (inflight) {
     const entry = await inflight;
     return { entry, semester: semesterOverride ?? entry.semester ?? semesterFromDate() };
@@ -288,12 +292,12 @@ async function ensure(
     }
     throw e;
   });
-  entryInflight.set(s, run);
+  globalEnsureInflight = run;
   try {
     const entry = await run;
     return { entry, semester: semesterOverride ?? entry.semester ?? semesterFromDate() };
   } finally {
-    entryInflight.delete(s);
+    globalEnsureInflight = null;
   }
 }
 
