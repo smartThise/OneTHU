@@ -214,8 +214,16 @@ async function ensure(
       const target = res.status >= 300 && res.status < 400 && loc ? loc : (/href="([^"]*ticket=[^"]*)"/i.exec(pageHtml)?.[1] ?? "");
       zhjwxkDebug?.(`[XK-CHECKSINGLE] st=${res.status} loc=${loc.slice(0, 80)} target=${target.slice(0, 90)}`);
       if (!target) break;   // 无票据可兑付：走表单链
-      const tgt = target.startsWith("http") ? target : new URL(target, ID_PREFIX).toString();
-      await http.text(tgt).catch(() => {});   // 兑付票据（失败不阻断：回落表单链）
+      let tgt = target.startsWith("http") ? target : new URL(target, ID_PREFIX).toString();
+      // 协议改写（与锚点处同款）：zhjwxk 是 http 应用，443 会「访问内容不存在」白烧票据
+      if (tgt.startsWith("https://zhjwxk.cic.tsinghua.edu.cn")) {
+        tgt = ZHJWXK + tgt.slice("https://zhjwxk.cic.tsinghua.edu.cn".length);
+      }
+      // 兑付票据并【直接采用落地页】——若已是真选课页则绝不再打 xklogin.do
+      //（本函数锚点处实证：兑付后重打 xklogin = 重开 auth 流程弹回，自拆刚建的会话）
+      const landedHtml = await http.text(tgt).catch(() => "");
+      zhjwxkDebug?.(`[XK-CHECKSINGLE] 兑付 len=${landedHtml.length} 有p_xnxq=${/p_xnxq=/.test(landedHtml) ? 1 : 0} 页首=${landedHtml.slice(0, 240).replace(/\s+/g, " ")}`);
+      if (/p_xnxq=/.test(landedHtml)) { html = landedHtml; break; }
       html = await http.text(ZHJWXK + "/xklogin.do");
     }
     const form = parseCasFormHtml(html, true);
