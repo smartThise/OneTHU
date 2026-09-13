@@ -226,6 +226,10 @@ async function ensure(
       if (/p_xnxq=/.test(landedHtml)) { html = landedHtml; break; }
       html = await http.text(ZHJWXK + "/xklogin.do");
     }
+    // checkSingle+票据已把会话建成的场景（兑付落地页带 p_xnxq）：绝不再走 SM2 登录段——
+    // 真选课页不是登录表单，解析必炸「无法获取 SM2 公钥」（23:28 真机实锤：兑付成功
+    // len=3965 有p_xnxq=1 后仍被解析摔死）
+    if (!/p_xnxq=/.test(html)) {
     const form = parseCasFormHtml(html, true);
     const enc = encryptPassword(s.password, form.publicKey);
     // bounce 表单页是 id 直连落地 → 直连字段集（id 校验读 i_pass，cas.ts 直连同款）
@@ -296,6 +300,7 @@ async function ensure(
       // id 表单（10:22 实证：兑付已落地真页面，重打又弹回去）。会话已在 jar，直接用。
       html = landed || html;
     }
+    } /* end !p_xnxq（SM2 登录段仅在未拿到真页时执行） */
   }
 
   semester = /p_xnxq=([\d-]+)/.exec(html)?.[1] ?? null;
