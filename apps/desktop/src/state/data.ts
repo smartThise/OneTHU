@@ -970,7 +970,8 @@ export function useXkWorkbench(): XkWorkbench {
     // 失登自愈（稳定性专项 2026-09-11）：auth 错 → softRecover 全链重建 → 整组
     // 原地重试一次（有界：每轮调用至多一轮）。此前直接 return []——当轮右栏
     // 数据缺失要等下一条管线；会话已能透明重建，原地补齐才是「任何时刻稳定」。
-    for (let authRound = 0; authRound < 4; authRound++) {
+    const coreBackoffs = [2000, 4000, 8000, 15000, 25000, 40000];
+    for (let authRound = 0; authRound <= coreBackoffs.length; authRound++) {
     try {
       // 课余量改按需逐门查（2026-09-14 对齐插件）：查询集 = 已选+候补+暂存，
       // kyl 只发 p_kch 单课请求（并发 5）。已选/候补两路 promise 共享，队列
@@ -1027,9 +1028,9 @@ export function useXkWorkbench(): XkWorkbench {
       // 瞬态错误静默重试（2026-09-13 深夜：首波并发 ensure 竞态=首载报错、
       // 手点刷新才好——把「刷新那一下」搬进循环，不闪红）
       const transient = /Failed to fetch|网络|timeout|timed? ?out|重定向超限|跟跳超限|未落地|身份确认失败|SM2|公钥|登录未成功/.test(String(err));
-      if (transient && authRound < 3) {
+      if (transient && authRound < coreBackoffs.length) {
         logPageError("XK-CORE-RETRY", err);
-        await new Promise((r) => setTimeout(r, 400 * (authRound + 1)));
+        await new Promise((r) => setTimeout(r, coreBackoffs[authRound] ?? 8000));
         continue;
       }
       if (coreSeededRef.current) return []; // 秒渲旧值在屏：保旧不闪红（SWR），重试/下轮再验证
@@ -1372,11 +1373,14 @@ export function useXkWorkbench(): XkWorkbench {
     if (seq !== searchSeqRef.current) return;
     // 瞬态错误自动重试（网络/超限/未落地/SM2/公钥/登录未成功）：把「手点刷新」自动化
     const transient = /Failed to fetch|网络|timeout|timed? ?out|重定向超限|跟跳超限|未落地|身份确认失败|SM2|公钥|登录未成功/.test(String(err));
-    if (transient && searchRetryRef.current < 4 && lastSearchMetaRef.current) {
+    // 退避表盖过冷启动会话风暴窗（23:10 实测 ~45-60s：全 app 模块同时 SSO，
+    // id 认证中心排队期间 xk 建链必败；风暴退去后同一代码一次即通）
+    const backoffs = [2000, 4000, 8000, 15000, 25000, 40000];
+    if (transient && searchRetryRef.current < backoffs.length && lastSearchMetaRef.current) {
       searchRetryRef.current += 1;
       logPageError("XK-SEARCH-RETRY", err);
       const m: XkSearchMeta = lastSearchMetaRef.current;
-      setTimeout(() => newSearchRef.current?.(m), 600 * searchRetryRef.current);
+      setTimeout(() => newSearchRef.current?.(m), backoffs[searchRetryRef.current - 1] ?? 8000);
       return;
     }
     logPageError("XK-SEARCH-DECIDE", `retry=${searchRetryRef.current} meta=${lastSearchMetaRef.current ? 1 : 0} stale=${seq !== searchSeqRef.current ? 1 : 0}`);
