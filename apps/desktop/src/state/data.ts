@@ -1379,6 +1379,7 @@ export function useXkWorkbench(): XkWorkbench {
       setTimeout(() => newSearchRef.current?.(m), 600 * searchRetryRef.current);
       return;
     }
+    logPageError("XK-SEARCH-DECIDE", `retry=${searchRetryRef.current} meta=${lastSearchMetaRef.current ? 1 : 0} stale=${seq !== searchSeqRef.current ? 1 : 0}`);
     logPageError("XK-SEARCH", err);
     // 失登不整页重载：错误条 + 重试（proxyZhjwxkApi 内部已带 relogin 自愈），保住搜索现场
     setSearchError(explainNetworkError(err));
@@ -1586,6 +1587,7 @@ export function useXkWorkbench(): XkWorkbench {
     async (page: number) => {
       const meta = searchMetaRef.current;
       if (status === "demo" || !meta || page < 1) return;
+      lastSearchMetaRef.current = meta; // 翻页路也要能自动重试（首载走的就是这条路）
       const seq = ++searchSeqRef.current;
       setSearchState("loading");
       try {
