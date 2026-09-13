@@ -93,7 +93,11 @@ async function loadReal(): Promise<CampusData> {
       start.setDate(start.getDate() - 7);
       const end = new Date();
       end.setDate(end.getDate() + 14);
-      return info.getSchedule(fmtDate(start), fmtDate(end)).catch(() => [] as ScheduleEntry[]);
+      // 失败时用上次缓存的真实日程垫底（2026-09-14 凌晨）：空数组会毒化缓存 3 分钟，
+      // 首页「日程与提醒」残缺、要绕别的页面回来才看得见
+      return info.getSchedule(fmtDate(start), fmtDate(end)).catch(
+        () => cacheGet<CampusData>(CAMPUS_KEY)?.data.schedule ?? [] as ScheduleEntry[],
+      );
     })(),
     info.getUserInfo().catch(() => null),
   ]);
@@ -164,7 +168,8 @@ export function useCampusData() {
     if (status !== "ready" && status !== "demo") return;
     const cached = cacheGet<CampusData>(CAMPUS_KEY);
     if (!cached) void load(false);
-    else if (Date.now() - cached.at > CAMPUS_TTL) void load(true);
+    // 日程残缺（空）的缓存不当作新鲜：静默补拉一次
+    else if (Date.now() - cached.at > CAMPUS_TTL || !cached.data.schedule?.length) void load(true);
   }, [status, load]);
 
   return { data, state, error, reload: load };
