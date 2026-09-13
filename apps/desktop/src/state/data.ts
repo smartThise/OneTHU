@@ -78,13 +78,33 @@ function fmtDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/** 冷启动会话风暴窗退避重试（选课专项同款 2/4/8/15/25/40s）——蜂窝首屏残缺的通用解：
+ *  通知/日程失败曾被 .catch(()=>[]) 吞成空数组还被缓存 3 分钟 = 「加载残缺」。
+ *  会话真死（AuthRequiredError）不重试，交给上层漫游自愈。 */
+async function stormRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
+  const backoffs = [2000, 4000, 8000, 15000, 25000, 40000];
+  let lastErr: unknown;
+  for (let i = 0; i <= backoffs.length; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      if (e instanceof Error && e.name === "AuthRequiredError") throw e;
+      if (i >= backoffs.length) throw e;
+      logPageError(`STORM-${label}`, e);
+      await new Promise((r) => setTimeout(r, backoffs[i] ?? 8000));
+    }
+  }
+  throw lastErr;
+}
+
 async function loadReal(): Promise<CampusData> {
   const semester = await learn.getCurrentSemester();
-  const courses = await learn.getCourseList(semester.id);
+  const courses = await stormRetry(() => learn.getCourseList(semester.id), "COURSE");
   const ids = courses.map((c) => c.id);
   const [homework, notifications, files, schedule, user] = await Promise.all([
-    learn.getAllHomework(ids),
-    learn.getAllNotifications(ids),
+    stormRetry(() => learn.getAllHomework(ids), "HW"),
+    stormRetry(() => learn.getAllNotifications(ids), "NEWS"),
     Promise.all(ids.slice(0, 8).map((id) => learn.getFileList(id).catch(() => [])))
       .then((rs) => rs.flat())
       .catch(() => [] as CourseFile[]),
@@ -93,7 +113,7 @@ async function loadReal(): Promise<CampusData> {
       start.setDate(start.getDate() - 7);
       const end = new Date();
       end.setDate(end.getDate() + 14);
-      return info.getSchedule(fmtDate(start), fmtDate(end)).catch(() => [] as ScheduleEntry[]);
+      return stormRetry(() => info.getSchedule(fmtDate(start), fmtDate(end)), "SCHED").catch(() => [] as ScheduleEntry[]);
     })(),
     info.getUserInfo().catch(() => null),
   ]);
