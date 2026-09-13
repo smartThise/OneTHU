@@ -970,7 +970,7 @@ export function useXkWorkbench(): XkWorkbench {
     // 失登自愈（稳定性专项 2026-09-11）：auth 错 → softRecover 全链重建 → 整组
     // 原地重试一次（有界：每轮调用至多一轮）。此前直接 return []——当轮右栏
     // 数据缺失要等下一条管线；会话已能透明重建，原地补齐才是「任何时刻稳定」。
-    for (let authRound = 0; authRound < 3; authRound++) {
+    for (let authRound = 0; authRound < 4; authRound++) {
     try {
       // 课余量改按需逐门查（2026-09-14 对齐插件）：查询集 = 已选+候补+暂存，
       // kyl 只发 p_kch 单课请求（并发 5）。已选/候补两路 promise 共享，队列
@@ -1027,7 +1027,7 @@ export function useXkWorkbench(): XkWorkbench {
       // 瞬态错误静默重试（2026-09-13 深夜：首波并发 ensure 竞态=首载报错、
       // 手点刷新才好——把「刷新那一下」搬进循环，不闪红）
       const transient = /Failed to fetch|网络|timeout|timed? ?out|重定向超限|跟跳超限|未落地|身份确认失败|SM2|公钥|登录未成功/.test(String(err));
-      if (transient && authRound < 2) {
+      if (transient && authRound < 3) {
         logPageError("XK-CORE-RETRY", err);
         await new Promise((r) => setTimeout(r, 400 * (authRound + 1)));
         continue;
@@ -1372,11 +1372,11 @@ export function useXkWorkbench(): XkWorkbench {
     if (seq !== searchSeqRef.current) return;
     // 瞬态错误自动重试（网络/超限/未落地/SM2/公钥/登录未成功）：把「手点刷新」自动化
     const transient = /Failed to fetch|网络|timeout|timed? ?out|重定向超限|跟跳超限|未落地|身份确认失败|SM2|公钥|登录未成功/.test(String(err));
-    if (transient && searchRetryRef.current < 2 && lastSearchMetaRef.current) {
+    if (transient && searchRetryRef.current < 4 && lastSearchMetaRef.current) {
       searchRetryRef.current += 1;
       logPageError("XK-SEARCH-RETRY", err);
       const m: XkSearchMeta = lastSearchMetaRef.current;
-      setTimeout(() => newSearchRef.current?.(m), 450 * searchRetryRef.current);
+      setTimeout(() => newSearchRef.current?.(m), 600 * searchRetryRef.current);
       return;
     }
     logPageError("XK-SEARCH", err);
