@@ -318,7 +318,13 @@ export class HttpClient {
       // 手机（webvpn 桶）与桌面（直连桶）原本在不同命名空间互不干扰；直连化
       // 后手机闯进直连 id 命名空间=加入单会话互踢（选课 checkSingle 页=踢人
       // 确认页实锤）。「非校园网适配」的精髓就是这层隔离，恢复原状。
-      goDirect = this.#webVPN ? host === "learn.tsinghua.edu.cn" : PUBLIC_HOSTS.has(host);
+      // 2026-09-14 重构（用户令：照抄 info 的直连哲学）：
+      // 旧逻辑在 webvpn 粘性模式下「除 learn 外全部包装」——而该模式一旦被一次
+      // 数据网登录失败永久写入 localStorage，之后连公网可达的 info/card/id 也全绕
+      // 隧道，wengine 票据过期即「会话未能建立」遍地。
+      // 新逻辑：**恒按域名策略**（公网可达域直连、内网专属域包装），粘性开关
+      // 不再影响单请求包装决策。直连组与 info app 同款。
+      goDirect = PUBLIC_HOSTS.has(host);
     }
     const target = this.webVPNEncoder && !goDirect && host && !PUBLIC_HOSTS.has(host)
       ? this.webVPNEncoder(url)

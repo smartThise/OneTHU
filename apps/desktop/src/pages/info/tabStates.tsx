@@ -9,7 +9,7 @@
  * - 登录态失效只落静态提示 + 重试，绝不整页刷新——但会触发 keepalive 探针，
  *   会话真死则 softRelogin 透明重建（用户点「重试」时踩的已是活会话）。
  */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ErrorNote, Empty, Card } from "../../components/Layout.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { logLine, session } from "../../lib/clients.js";
@@ -83,6 +83,11 @@ export function UnavailableNote({ onRetry }: { onRetry?: () => void }) {
  * 注意 unavailable 是在 catch 时由 err 对象判定的布尔值——错误文案是字符串，
  * 不能再拿它做 instanceof 判定。
  */
+/** 错误态（2026-09-14 UX 契约重构：把「报错」改成「静默重连」）。
+ *  用户反馈「几乎每个环节都报错、要反复刷新，不能端给用户」——网络抖动是常态，
+ *  但成熟 app 不该把每次抖动摊在用户脸上：此处先显示软提示「正在重新连接…」
+ *  并自动重试 3 轮（4s 间隔），全失败才亮错误原文（真异常仍可见，便于诊断）。
+ *  上游维护态（unavailable）另走静态提示，不自动重试。 */
 export function TabError({
   unavailable,
   text,
@@ -92,8 +97,32 @@ export function TabError({
   text: string | null;
   onRetry: () => void;
 }) {
+  const [tries, setTries] = useState(0);
+  useEffect(() => {
+    if (unavailable || tries >= 3) return;
+    const t = setTimeout(() => {
+      setTries((v) => v + 1);
+      onRetry();
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [tries, unavailable, onRetry]);
   if (unavailable) return <UnavailableNote onRetry={onRetry} />;
-  return <ErrorNote text={text ?? ""} onRetry={onRetry} />;
+  if (tries < 3) {
+    return (
+      <Card>
+        <Empty text="正在重新连接…数据会自动更新，无需手动刷新" />
+      </Card>
+    );
+  }
+  return (
+    <ErrorNote
+      text={text ?? ""}
+      onRetry={() => {
+        setTries(0);
+        onRetry();
+      }}
+    />
+  );
 }
 
 /** 友好空态（非错误条） */
