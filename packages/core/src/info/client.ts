@@ -1783,6 +1783,11 @@ export class InfoClient {
   /* --------------------- 图书馆座位（library.ts 移植） --------------------- */
 
   #libRoamed = false;
+  /** 座位会话建立熔断（2026-09-14 真机刷屏实录）：失败后短时间内不再重走 id CAS 漫游——
+   *  座位页并发 6 个接口，每个失败都重新漫游 = 日志刷屏 + 反复锤 id 风控。
+   *  指数退避 5s→15s→60s→5min，成功清零。 */
+  #libFailCount = 0;
+  #libBlockUntil = 0;
 
   /** api.php 系列统一解析（library.ts fetchJson = JSON.parse(s).data.list）；
    *  返回 HTML（登录页/门户页）→ 会话失效。返回原始解析结果，取 list 交给调用方。 */
@@ -1854,13 +1859,24 @@ export class InfoClient {
       InfoClient.libCacheClear();
     }
     if (this.#libRoamed) return;
+    // 熔断：退避窗口内直接快速失败（不重走漫游），避免刷屏与连环锤 id CAS
+    if (Date.now() < this.#libBlockUntil) {
+      throw new AuthRequiredError(
+        `图书馆座位系统会话未能建立（熔断中，${Math.ceil((this.#libBlockUntil - Date.now()) / 1000)}s 后重试）`,
+      );
+    }
     await this.#roamIdService(urls.LIBRARY_CAS_FORM());
     if (!(await this.#libAlive())) {
+      this.#libFailCount += 1;
+      const backoff = [5_000, 15_000, 60_000, 300_000][Math.min(this.#libFailCount - 1, 3)] ?? 300_000;
+      this.#libBlockUntil = Date.now() + backoff;
       throw new AuthRequiredError(
         `图书馆座位系统会话未能建立（现场: ${String(this.lastDebug || this.#http.lastDebug).slice(0, 160)}）`,
       );
     }
     this.#libRoamed = true;
+    this.#libFailCount = 0;
+    this.#libBlockUntil = 0;
     });
   }
 
