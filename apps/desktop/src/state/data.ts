@@ -122,31 +122,43 @@ let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 function installHeartbeat(): void {
   if (heartbeatTimer !== null) return;
   let busy = false;
-  heartbeatTimer = setInterval(() => {
-    if (busy) return;
-    busy = true;
-    void (async () => {
-      try {
-        const { universalFetch } = await import("../lib/transport.js");
-        const res = await Promise.race([
-          universalFetch("https://webvpn.tsinghua.edu.cn/", {
-            redirect: "manual",
-            headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
-          }).catch(() => null),
-          new Promise<null>((r) => setTimeout(() => r(null), 5000)),
-        ]);
-        const { logLine } = await import("../lib/clients.js");
-        if (res && res.status === 200) {
-          void logLine("HB ok");
-          return;
-        }
-        void logLine(`HB dead(${res ? res.status : "timeout"})→自愈`);
-        const { softRecover } = await import("../lib/reload.js");
-        if (await softRecover("heartbeat")) window.dispatchEvent(new Event("onethu:session-refresh"));
-      } finally {
+  // 探活+自愈本体：KeepAliveService 原生闹钟经 evaluateJavascript 调 __onethuWake，
+  // 前台定时器/回前台预检也复用同一实现（单一真相，三入口）
+  const probeAndHeal = async (tag: string): Promise<void> => {
+    const { universalFetch } = await import("../lib/transport.js");
+    const res = await Promise.race([
+      universalFetch("https://webvpn.tsinghua.edu.cn/", {
+        redirect: "manual",
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+      }).catch(() => null),
+      new Promise<null>((r) => setTimeout(() => r(null), 5000)),
+    ]);
+    const { logLine } = await import("../lib/clients.js");
+    if (res && res.status === 200) {
+      void logLine(`${tag} ok`);
+      return;
+    }
+    void logLine(`${tag} dead(${res ? res.status : "timeout"})→自愈`);
+    const { softRecover } = await import("../lib/reload.js");
+    if (await softRecover(tag)) window.dispatchEvent(new Event("onethu:session-refresh"));
+  };
+  // Kotlin 哑闹钟入口：后台被 evaluateJavascript 显式执行（不受定时器节流）
+  (window as unknown as { __onethuWake?: () => string }).__onethuWake = () => {
+    if (!busy) {
+      busy = true;
+      void probeAndHeal("WAKE").finally(() => {
         busy = false;
-      }
-    })();
+      });
+    }
+    return "ok";
+  };
+  heartbeatTimer = setInterval(() => {
+    if (!busy) {
+      busy = true;
+      void probeAndHeal("HB").finally(() => {
+        busy = false;
+      });
+    }
   }, 120_000);
 }
 
