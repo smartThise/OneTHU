@@ -114,6 +114,41 @@ function installResumePreflight(): void {
   });
 }
 let resumePreflightInstalled = false;
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+
+/** 会话心跳（2026-09-14，配合 KeepAliveService 前台服务）：进程活着→本定时器活着
+ * →服务端会话持续保鲜，回前台零重建。2min 间隔；后台被 Chromium 节流至约
+ * 1/5min 仍远短于 webvpn 票据寿命。死→自愈（有界：softRecover 自带节流）。 */
+function installHeartbeat(): void {
+  if (heartbeatTimer !== null) return;
+  let busy = false;
+  heartbeatTimer = setInterval(() => {
+    if (busy) return;
+    busy = true;
+    void (async () => {
+      try {
+        const { universalFetch } = await import("../lib/transport.js");
+        const res = await Promise.race([
+          universalFetch("https://webvpn.tsinghua.edu.cn/", {
+            redirect: "manual",
+            headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+          }).catch(() => null),
+          new Promise<null>((r) => setTimeout(() => r(null), 5000)),
+        ]);
+        const { logLine } = await import("../lib/clients.js");
+        if (res && res.status === 200) {
+          void logLine("HB ok");
+          return;
+        }
+        void logLine(`HB dead(${res ? res.status : "timeout"})→自愈`);
+        const { softRecover } = await import("../lib/reload.js");
+        if (await softRecover("heartbeat")) window.dispatchEvent(new Event("onethu:session-refresh"));
+      } finally {
+        busy = false;
+      }
+    })();
+  }, 120_000);
+}
 
 async function loadReal(): Promise<CampusData> {
   const semester = await learn.getCurrentSemester();
@@ -209,6 +244,7 @@ export function useCampusData() {
     if (!resumePreflightInstalled) {
       resumePreflightInstalled = true;
       installResumePreflight();
+      installHeartbeat();
     }
     const cached = cacheGet<CampusData>(CAMPUS_KEY);
     if (!cached) void load(false);
