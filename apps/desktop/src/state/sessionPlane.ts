@@ -25,7 +25,6 @@ const ROAM_TIMEOUT = 12_000;
 const RELOGIN_TIMEOUT = 25_000;
 
 let queue: Promise<unknown> = Promise.resolve();
-let inflight: Promise<boolean> | null = null;
 let lastVerifyOk = 0;
 
 /** 串行队列：每个任务带超时上限，异常/超时都不阻断后续（队列永续前进） */
@@ -56,37 +55,66 @@ async function verify(): Promise<boolean> {
   }
 }
 
-/** 会话就绪保证（唯一入口）：true = 会话可用 */
-export function ensureSession(tag: PlaneTag): Promise<boolean> {
-  if (Date.now() - lastVerifyOk < VERIFY_TTL) return Promise.resolve(true);
-  if (inflight) return inflight; // 单飞：同刻多模块复用同一条链
-  inflight = (async () => {
+export type PlaneResult = "fresh" | "repaired" | "ok" | "fail";
+
+let inflightResult: Promise<PlaneResult> | null = null;
+
+/** 会话就绪保证（唯一入口）。
+ *  返回值语义（2026-09-14 重载循环事故定案）：
+ *   - fresh  = TTL 命中，本次没做任何事（**调用方不得据此触发刷新**）
+ *   - repaired = 会话本已失效，本级阶梯把它救回来了（**该广播刷新**）
+ *   - ok     = 实探通过（会话一直活着）
+ *   - fail   = 阶梯失败 */
+export function ensureSession(tag: PlaneTag): Promise<PlaneResult> {
+  if (Date.now() - lastVerifyOk < VERIFY_TTL) return Promise.resolve("fresh");
+  if (inflightResult) return inflightResult; // 单飞：同刻多模块复用同一条链
+  inflightResult = (async (): Promise<PlaneResult> => {
     try {
       // 阶梯第 1 级：轻探（多数情况会话活着，一次探活结束）
-      if (await enqueue(verify, VERIFY_TIMEOUT, false)) return true;
+      if (await enqueue(verify, VERIFY_TIMEOUT, false)) return "ok";
       // 阶梯第 2 级：免密漫游（id 主会话换 learn 票，不碰 WebVPN 单会话）
       const { relearnRoamOnce } = await import("./data.js");
-      if (await enqueue(() => relearnRoamOnce(), ROAM_TIMEOUT, false)) return true;
+      if (await enqueue(() => relearnRoamOnce(), ROAM_TIMEOUT, false)) return "repaired";
       // 阶梯第 3 级：完整重登（自带单飞 + 熔断退避，绝不会高频锤风控）
       const { softRecover } = await import("../lib/reload.js");
       const ok = await enqueue(() => softRecover(`plane-${tag}`), RELOGIN_TIMEOUT, false);
-      if (ok && (await enqueue(verify, VERIFY_TIMEOUT, false))) return true;
+      if (ok && (await enqueue(verify, VERIFY_TIMEOUT, false))) return "repaired";
       logPageError("PLANE", new Error(`会话恢复失败(${tag})：三级阶梯均未成功`));
-      return false;
+      return "fail";
     } catch (err) {
       logPageError("PLANE", err);
-      return false;
+      return "fail";
     } finally {
-      inflight = null;
+      inflightResult = null;
     }
   })();
-  return inflight;
+  return inflightResult;
 }
 
-/** 心跳/回前台/唤醒统一入口：确保会话可用，成功则广播静默刷新 */
+/** 广播限流：10s 内至多一次（防「失败→广播→重拉→再失败」自激） */
+let lastBroadcast = 0;
+let broadcastCount = 0;
+
+/** 心跳/回前台/唤醒/页面自愈统一入口：只在「真的救回了会话」时广播刷新。
+ *  2026-09-14 事故：旧版只要成功就广播，配合 TTL 命中秒回 = 页面无限重拉循环。 */
 export async function keepAlive(tag: PlaneTag): Promise<void> {
-  const ok = await ensureSession(tag);
-  if (ok) window.dispatchEvent(new Event("onethu:session-refresh"));
+  const r = await ensureSession(tag);
+  if (r === "repaired") broadcast();
+  else if (r === "fail") broadcast(); // 失败也放行一次：让等着的页面拿到结果而不是干等
+}
+
+/** 会话修复完成广播（限流 10s；诊断可查次数） */
+export function broadcast(): void {
+  const now = Date.now();
+  if (now - lastBroadcast < 10_000) return;
+  lastBroadcast = now;
+  broadcastCount += 1;
+  window.dispatchEvent(new Event("onethu:session-refresh"));
+}
+
+/** 诊断：平面状态 */
+export function planeStats(): { lastVerifyOk: number; inflight: boolean; ttlMs: number; broadcastCount: number } {
+  return { lastVerifyOk, inflight: inflightResult !== null, ttlMs: VERIFY_TTL, broadcastCount };
 }
 
 /** 启动预热（app ready 后调用，不阻塞任何 UI）：把会话在建链风暴之前建立好 */
@@ -94,7 +122,3 @@ export function warmUp(): void {
   void ensureSession("warmup").catch(() => undefined);
 }
 
-/** 诊断用：平面状态快照 */
-export function planeStats(): { lastVerifyOk: number; inflight: boolean; ttlMs: number } {
-  return { lastVerifyOk, inflight: inflight !== null, ttlMs: VERIFY_TTL };
-}

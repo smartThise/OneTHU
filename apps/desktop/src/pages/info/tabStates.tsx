@@ -33,6 +33,8 @@ export function logTabErr(tag: string, err: unknown, retry?: () => void): void {
       .then((m) => m.keepAlive("heartbeat"))
       .then(() => {
         logLine("TAB-HEAL " + tag + " 会话平面已处理").catch(() => undefined);
+        // 注意：retry 只在这里主动调一次；页面另订阅 onethu:session-refresh（限流 10s），
+        // 二者不会自激（旧版「成功即广播 + TTL 秒回」曾造成无限重拉）
         if (retry) retry();
       })
       .catch(() => undefined);
