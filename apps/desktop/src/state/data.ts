@@ -2887,8 +2887,12 @@ export function useTodayNewsFeed(subs: string[]) {
       setData(feed);
       setState("ready");
     } catch (err) {
+      // 登录态丢失自愈（2026-09-14 与 useCard 同款）：此前这里裸判红且永不重试——
+      // 重启后死会话下新闻卡必红的元凶。softRecover 透明重建 → 原地重拉一次。
+      if (isAuthError(err) && (await softRecover("today-news"))) return load(silent);
       logPageError("TODAY-NEWS", err);
       if (silent && data !== null) return;
+      if (data !== null) return; // SWR：有旧值不闪红
       setData(null);
       setState("error"); // 静默：Today 页据此整卡隐藏
     }

@@ -210,33 +210,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       if (cancelled) return;
       if (ok) {
-        // 开机会话实测（2026-09-14 真机实录）：resumeSession 只验票根存在，下游
-        // id/learn/card 可能已死——模块带着死会话开火=红条风暴，softRecover 要
-        // 10s 后才救回。此处真探一发（8s 超时），死了当 resumeSession 失败处理，
-        // 直接走下方既有的静默重登链：模块永远只见到活会话。
-        const alive = await (async () => {
-          try {
-            return await Promise.race([
-              clients.learn
-                .getCurrentSemester()
-                .then(() => true)
-                .catch(() => false),
-              new Promise<false>((r) => setTimeout(() => r(false), 8000)),
-            ]);
-          } catch {
-            return false;
-          }
-        })();
-        if (cancelled) return;
-        if (alive) {
-          const saved = await clients.store.loadSession();
-          setUser({ username: saved?.username ?? "" });
-          setStatus("ready");
-          return;
-        }
-        void import("../lib/clients.js").then(({ logLine }) =>
-          logLine(`BOOT-T 票根活着但下游死（探活失败）→ 走静默重登`),
-        ).catch(() => undefined);
+        const saved = await clients.store.loadSession();
+        setUser({ username: saved?.username ?? "" });
+        setStatus("ready");
+        return;
       }
       // 恢复失败（learn/id 会话过期是常态）且勾选了记住密码 → 静默重登一次，免输密码
       // 同款看门狗 15s：重登链悬挂时放行到登录页（用户手点也不至于困死）
