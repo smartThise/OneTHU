@@ -884,6 +884,48 @@ async fn fetch_binary(url: String, cookies: String, referer: Option<String>) -> 
     })
 }
 
+/// 全局共享 HTTP 客户端（2026-09-14 公网访问定案）：reqwest::Client 自带连接池、
+/// HTTP/2 复用与 TCP keep-alive——每请求新建等于每跳重做 DNS+TCP+TLS。
+/// 蜂窝 RTT 100-300ms 下建连 3-6 RTT/跳，SSO 链 15+ 跳、单页 30+ 请求
+/// → 累计十几秒到一分钟且随抖动随机（「数据网玄学」根因；校园网 1-5ms 无感）。
+/// 超时下沉到请求级（req.timeout），连接级另设 connect_timeout。
+static HTTP_CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+
+/// 场馆反代专用客户端（跟随重定向）：同样全局复用连接池
+static VENUE_CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+
+fn venue_client() -> &'static reqwest::Client {
+    VENUE_CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::limited(10))
+            .no_proxy()
+            .tcp_nodelay(true)
+            .tcp_keepalive(Duration::from_secs(30))
+            .pool_max_idle_per_host(16)
+            .pool_idle_timeout(Duration::from_secs(300))
+            .connect_timeout(Duration::from_secs(8))
+            .build()
+            .expect("场馆客户端构建失败")
+    })
+}
+
+fn shared_http_client() -> &'static reqwest::Client {
+    HTTP_CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            // 清华全系域名直连：reqwest 0.12 默认读系统代理，全局梯子会把清华流量送出境
+            // （id 风控慢响应、验证码出口 IP 不一致、响应被拦）
+            .no_proxy()
+            .tcp_nodelay(true)
+            .tcp_keepalive(Duration::from_secs(30))
+            .pool_max_idle_per_host(32)
+            .pool_idle_timeout(Duration::from_secs(300))
+            .connect_timeout(Duration::from_secs(8))
+            .build()
+            .expect("共享 HTTP 客户端构建失败")
+    })
+}
+
 #[tauri::command]
 async fn http_request(input: HttpInput) -> Result<HttpOutput, String> {
     let method: reqwest::Method = input
@@ -892,19 +934,10 @@ async fn http_request(input: HttpInput) -> Result<HttpOutput, String> {
         .parse()
         .map_err(|e| format!("非法 HTTP 方法: {e}"))?;
 
-    let client = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
-        // 主网络通道：全部目标域均为 *.tsinghua.edu.cn（webvpn/id/learn/info/card…），
-        // 直连即可。reqwest 0.12 默认读 Windows/macOS 系统代理——全局模式梯子会把
-        // 清华流量送出境：id 风控慢响应（转圈）、验证码与会话出口 IP 不一致（对码
-        // 判错）、响应被代理拦截（点重发反而直接进入，#1 实录）。
-        // ⚠️ 只救系统代理场景：TUN 模式在网络层接管，应用层无解（参考 PR #2）。
-        .no_proxy()
-        .timeout(Duration::from_millis(input.timeout_ms.unwrap_or(20000)))
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    let mut req = client.request(method, &input.url);
+    let client = shared_http_client();
+    let mut req = client
+        .request(method, &input.url)
+        .timeout(Duration::from_millis(input.timeout_ms.unwrap_or(20000)));
     for (k, v) in &input.headers {
         // 跳过宿主自动管理的头，避免重复/冲突
         let lower = k.to_lowercase();
@@ -1201,18 +1234,10 @@ async fn venue_proxy_fetch(
     });
     let url = format!("{VENUE_ORIGIN}{pq}");
     let method = request.method().clone();
-    let client = match reqwest::Client::builder()
-        // 主网络通道同 http_request：清华域直连，禁系统代理（#1 风控实录）
-        .no_proxy()
-        .redirect(reqwest::redirect::Policy::limited(5))
-        .timeout(Duration::from_secs(30))
-        .build()
-    {
-        Ok(c) => c,
-        Err(e) => return upstream_err(format!("proxy client: {e}")),
-    };
+    let client = venue_client();
     let mut req = client
         .request(method, &url)
+        .timeout(Duration::from_secs(30))
         .header("origin", VENUE_ORIGIN)
         .header("referer", format!("{VENUE_ORIGIN}/venue/index.html"));
     for (k, v) in request.headers() {
