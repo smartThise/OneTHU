@@ -227,8 +227,11 @@ export function invalidateLearnCache(): void {
 let roamInflight: Promise<boolean> | null = null;
 function relearnRoamOnce(): Promise<boolean> {
   if (!roamInflight) {
-    roamInflight = session
-      .relearnRoam()
+    // 全局登录互斥（2026-09-14）：learn 漫游也是上游登录链，与 softRelogin 并发=互踩
+    roamInflight = (async () => {
+      const { withLoginLock } = await import("./sessionSupervisor.js");
+      return withLoginLock(() => session.relearnRoam());
+    })()
       .catch(() => false)
       .finally(() => {
         roamInflight = null;
