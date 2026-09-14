@@ -30,12 +30,12 @@ export function logTabErr(tag: string, err: unknown, retry?: () => void): void {
     // 会话平面唯一入口（2026-09-14 重构）：全局串行阶梯（轻探→免密漫游→完整重登），
     // 成功即广播 onethu:session-refresh——订阅了 useSessionRefresh 的页面自动重拉。
     void import("../../state/sessionPlane.js")
-      .then((m) => m.keepAlive("heartbeat"))
-      .then(() => {
-        logLine("TAB-HEAL " + tag + " 会话平面已处理").catch(() => undefined);
-        // 注意：retry 只在这里主动调一次；页面另订阅 onethu:session-refresh（限流 10s），
-        // 二者不会自激（旧版「成功即广播 + TTL 秒回」曾造成无限重拉）
-        if (retry) retry();
+      .then((m) => m.ensureSession("heartbeat"))
+      .then((r) => {
+        logLine("TAB-HEAL " + tag + " 平面=" + r).catch(() => undefined);
+        // 只有真修好才主动重拉一次（repaired）；fresh/ok 说明会话本身没问题，
+        // 失败原因在别处——重拉只会徒增流量（节拍器事故教训）
+        if (r === "repaired" && retry) retry();
       })
       .catch(() => undefined);
     void softRecover; // 保留引用：旧路径仍被其它调用方使用

@@ -91,7 +91,7 @@ export function ensureSession(tag: PlaneTag): Promise<PlaneResult> {
   return inflightResult;
 }
 
-/** 广播限流：10s 内至多一次（防「失败→广播→重拉→再失败」自激） */
+/** 广播限流：30s 内至多一次（防「失败→广播→重拉→再失败」自激；正常修复不会这么频繁） */
 let lastBroadcast = 0;
 let broadcastCount = 0;
 
@@ -99,14 +99,16 @@ let broadcastCount = 0;
  *  2026-09-14 事故：旧版只要成功就广播，配合 TTL 命中秒回 = 页面无限重拉循环。 */
 export async function keepAlive(tag: PlaneTag): Promise<void> {
   const r = await ensureSession(tag);
+  // 只在真修好时广播（2026-09-14 节拍器事故定案）：修不好还广播 = 每 10s 让全站
+  // 页面重拉一轮（85s 内 1946 请求、页面反复闪、错误反复刷）——「兜兜转转」的根。
+  // 修不好时页面停在软提示「正在重新连接…」，由用户手动重试或下一轮心跳再试。
   if (r === "repaired") broadcast();
-  else if (r === "fail") broadcast(); // 失败也放行一次：让等着的页面拿到结果而不是干等
 }
 
 /** 会话修复完成广播（限流 10s；诊断可查次数） */
 export function broadcast(): void {
   const now = Date.now();
-  if (now - lastBroadcast < 10_000) return;
+  if (now - lastBroadcast < 30_000) return;
   lastBroadcast = now;
   broadcastCount += 1;
   window.dispatchEvent(new Event("onethu:session-refresh"));
