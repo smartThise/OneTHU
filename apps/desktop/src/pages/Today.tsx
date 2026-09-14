@@ -594,6 +594,7 @@ export function TodayPage() {
       />
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}><DiagButton /></div>
 
       {/* 顶部三块统计已并入「今日概览」卡（today-overview），随卡片系统移动/隐藏 */}
       {portrait ? (
@@ -618,5 +619,64 @@ export function TodayPage() {
         <AddCardsModal hidden={hiddenDefs} portrait={portrait} onAdd={addCard} onClose={() => setAddOpen(false)} />
       ) : null}
     </>
+  );
+}
+
+/** 应用内诊断（2026-09-14）：手机无 adb 后 logcat 不可读——log_tail 内存环形缓冲
+ *  直接在 app 内看最后 300 条调试日志，可复制全文发回定位。 */
+export function DiagButton() {
+  const [open, setOpen] = useState(false);
+  const [lines, setLines] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const refresh = async () => {
+    setBusy(true);
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      setLines(await invoke<string[]>("log_tail", { n: 300 }));
+    } catch {
+      setLines(["(读取失败：非 Tauri 环境)"]);
+    } finally {
+      setBusy(false);
+    }
+  };
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className="btn"
+        style={{ marginLeft: "auto", fontSize: 12, padding: "2px 10px", opacity: 0.55 }}
+        onClick={() => {
+          setOpen(true);
+          void refresh();
+        }}
+        title="应用诊断日志"
+      >
+        诊断
+      </button>
+    );
+  }
+  return (
+    <div className="home-modal-mask" onClick={() => setOpen(false)}>
+      <div className="home-modal" role="dialog" aria-modal="true" aria-label="应用诊断" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 720 }}>
+        <div className="home-modal-head">
+          <b>应用诊断（最近 300 条）</b>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="btn" disabled={busy} onClick={() => void refresh()}>
+              {busy ? "读取中…" : "刷新"}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => void navigator.clipboard?.writeText(lines.join("\n")).then(() => setOpen(false))}
+            >
+              复制并关闭
+            </button>
+          </div>
+        </div>
+        <pre style={{ maxHeight: "60vh", overflow: "auto", fontSize: 11, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0 }}>
+          {lines.length ? lines.join("\n") : "(空)"}
+        </pre>
+      </div>
+    </div>
   );
 }

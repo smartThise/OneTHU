@@ -6,7 +6,7 @@ mod mail;
 mod seafile;
 mod harness_embed;
 mod plugins;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::time::Duration;
 use tauri::Manager;
 
@@ -192,9 +192,26 @@ fn trace_key() -> String {
         .collect()
 }
 
+/// 内存环形日志（2026-09-14）：Android 调试通道只落 logcat，用户无 adb 时整条链失明——
+/// in-app 诊断页经 log_tail 读最后 N 条（无文件系统依赖，Android 可用）。
+static RING: std::sync::Mutex<VecDeque<String>> = std::sync::Mutex::new(VecDeque::new());
+
+#[tauri::command]
+fn log_tail(n: Option<usize>) -> Result<Vec<String>, String> {
+    let take = n.unwrap_or(300).min(2000);
+    let ring = RING.lock().map_err(|e| e.to_string())?;
+    Ok(ring.iter().rev().take(take).rev().cloned().collect())
+}
+
 #[tauri::command]
 fn log_debug(line: String) -> Result<(), String> {
     use std::io::Write;
+    if let Ok(mut ring) = RING.lock() {
+        if ring.len() >= 2000 {
+            ring.pop_front();
+        }
+        ring.push_back(line.clone());
+    }
     const LOG: &str = "/tmp/onethu-debug.log";
     // 体积闸门：超 16MB 轮转为 .old（防 HTML dump 类循环刷盘——曾灌到 1GB）
     if let Ok(meta) = std::fs::metadata(LOG) {
@@ -1326,7 +1343,7 @@ tauri::Builder::default()
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            log_debug,read_file_text,trace_key,macos_location,speech_supported,speech_start,speech_poll,speech_stop,mail::mail_list,mail::mail_read,mail::mail_mark_seen,mail::mail_send,mail::mail_search,seafile::seafile_account,seafile::seafile_repos,seafile::seafile_dir,seafile::seafile_download,seafile::seafile_upload,seafile::seafile_mkdir,seafile::seafile_share,seafile::seafile_search,seafile::seafile_pick_upload,http_request,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,plugin_dir_remove,state_read,state_write,state_delete,
+            log_debug,log_tail,read_file_text,trace_key,macos_location,speech_supported,speech_start,speech_poll,speech_stop,mail::mail_list,mail::mail_read,mail::mail_mark_seen,mail::mail_send,mail::mail_search,seafile::seafile_account,seafile::seafile_repos,seafile::seafile_dir,seafile::seafile_download,seafile::seafile_upload,seafile::seafile_mkdir,seafile::seafile_share,seafile::seafile_search,seafile::seafile_pick_upload,http_request,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,plugin_dir_remove,state_read,state_write,state_delete,
             open_external,open_eid_window,open_sports_window,venue_sso_set,
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,
             harness_embed::harness_start,harness_embed::harness_bridge_take,harness_embed::harness_call,harness_embed::harness_notify,harness_embed::harness_rpc_reply,harness_embed::harness_stop])

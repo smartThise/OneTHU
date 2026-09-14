@@ -981,6 +981,9 @@ export function useXkWorkbench(): XkWorkbench {
   const commitCore = useCallback(async (sem: string, ltP: Promise<Record<string, XkLevelTableRow> | null> | null, myGen: number): Promise<XkPlanItem[]> => {
     const coreSeq = ++coreSeqRef.current;
     const opt = { semester: sem };
+    // 会话总管门：选课核心加载等登录落定（冷启动风暴根治；15s 兜底）
+    const { waitReady } = await import("./sessionSupervisor.js");
+    await waitReady(15_000);
     // 失登自愈（稳定性专项 2026-09-11）：auth 错 → softRecover 全链重建 → 整组
     // 原地重试一次（有界：每轮调用至多一轮）。此前直接 return []——当轮右栏
     // 数据缺失要等下一条管线；会话已能透明重建，原地补齐才是「任何时刻稳定」。
