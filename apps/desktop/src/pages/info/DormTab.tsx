@@ -5,6 +5,7 @@
  * - 订水：thu-info-app network/water.ts 移植（清华水站 dingshui.bjqzhd.com 公开接口），
  *   订水编号查询联系人/地址后提交；dorm.ts 内无订水端点，端点以 RN 端 network/water.ts 为准。
  */
+import { useSessionRefresh } from "./tabStates.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ElePayRecord, EleRemainder } from "@onethu/core";
 import { WATER_BRANDS, getWaterUserInformation, isAuthError, submitWaterOrder } from "@onethu/core";
@@ -40,6 +41,11 @@ const ELEC_KEY = "dorm:elec.v2";
 const ELEC_TTL = 5 * 60 * 1000;
 
 export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {}) {
+  // 会话平面修复成功 → 自动重拉（2026-09-14 重构：失败不再是终点）
+  useSessionRefresh(() => {
+    void loadRecords();
+  });
+
   const { status } = useApp();
 
   /* ---------------- 充值记录（家园网会话 + SWR 缓存） ----------------

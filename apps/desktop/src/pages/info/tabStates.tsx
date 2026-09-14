@@ -9,6 +9,7 @@
  * - 登录态失效只落静态提示 + 重试，绝不整页刷新——但会触发 keepalive 探针，
  *   会话真死则 softRelogin 透明重建（用户点「重试」时踩的已是活会话）。
  */
+import { useEffect } from "react";
 import { ErrorNote, Empty, Card } from "../../components/Layout.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { logLine, session } from "../../lib/clients.js";
@@ -26,14 +27,16 @@ export function logTabErr(tag: string, err: unknown, retry?: () => void): void {
   if (isServiceUnavailable(err)) return;
   if (isTransientNetworkError(err)) return;
   if (isAuthExpired(err)) {
-    void softRecover(tag)
-      .then((ok) => {
-        if (ok && retry) {
-          logLine("TAB-HEAL " + tag + " 会话重建成功→自动重拉").catch(() => undefined);
-          retry();
-        }
+    // 会话平面唯一入口（2026-09-14 重构）：全局串行阶梯（轻探→免密漫游→完整重登），
+    // 成功即广播 onethu:session-refresh——订阅了 useSessionRefresh 的页面自动重拉。
+    void import("../../state/sessionPlane.js")
+      .then((m) => m.keepAlive("heartbeat"))
+      .then(() => {
+        logLine("TAB-HEAL " + tag + " 会话平面已处理").catch(() => undefined);
+        if (retry) retry();
       })
       .catch(() => undefined);
+    void softRecover; // 保留引用：旧路径仍被其它调用方使用
     return;
   }
   void session.keepalive().catch(() => undefined);
@@ -98,4 +101,14 @@ export function TabEmpty({ text }: { text: string }) {
       <Empty text={text} />
     </Card>
   );
+}
+
+/** 会话修复成功后的自动重拉订阅（2026-09-14 重构）：页面把它接在自己的 load 上，
+ *  任何模块的失败都不再是终点——平面修复成功 → 广播 → 全站相关页面自动取新数据。 */
+export function useSessionRefresh(reload: () => void): void {
+  useEffect(() => {
+    const handler = () => reload();
+    window.addEventListener("onethu:session-refresh", handler);
+    return () => window.removeEventListener("onethu:session-refresh", handler);
+  }, [reload]);
 }

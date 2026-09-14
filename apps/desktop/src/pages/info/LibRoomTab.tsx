@@ -17,6 +17,7 @@
  *   InfoClient.fuzzySearchLibRoomMember 移植，UI 暂不开放）
  * - 首次预约报「填写邮箱地址」→ getUserInfo 邮箱确认 → ic-web/account/update 绑定后重试
  */
+import { useSessionRefresh } from "./tabStates.js";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { isAuthError, type LibRoomBookRecord, type LibRoomRes } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
@@ -520,6 +521,12 @@ export function LibRoomTab({
     () => (target && beg ? validEnds(target.res, begins, beg) : []),
     [target, begins, beg],
   );
+
+  // 会话平面修复成功 → 自动重拉（2026-09-14 重构：失败不再是终点）
+  useSessionRefresh(() => {
+    void loadKinds();
+  });
+
   useEffect(() => {
     setEnd(ends[0]?.start ?? "");
   }, [ends]);

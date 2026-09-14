@@ -9,6 +9,7 @@
  * 座位区顶部 = 区域/楼层座位分布图（libraryMap/librarySeat 的
  * Public/home/images/web/area/<id>/{seat-free,floor}.jpg，带会话抓取内联）。
  */
+import { useSessionRefresh } from "./tabStates.js";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import type { LibBookRecord, Library, LibraryFloor, LibrarySeat, LibrarySection } from "@onethu/core";
 import { infoUrls, isAuthError } from "@onethu/core";
@@ -914,4 +915,10 @@ export function LibraryTab({
       ) : null}
     </>
   );
+
+  // 会话平面修复成功 → 自动重拉（2026-09-14 重构：失败不再是终点）
+  useSessionRefresh(() => {
+    void loadLibs();
+  });
+
 }
