@@ -82,9 +82,12 @@ async function loadReal(): Promise<CampusData> {
   const semester = await learn.getCurrentSemester();
   const courses = await learn.getCourseList(semester.id);
   const ids = courses.map((c) => c.id);
+  // 蜂窝兜底（2026-09-14，无锁无循环纯改良）：失败槽位用上次成功缓存垫底，
+  // 绝不让空数组毒化缓存（首页残缺根源）；courses 失败整组走原错误路径
+  const prevHome = cacheGet<CampusData>(CAMPUS_KEY)?.data;
   const [homework, notifications, files, schedule, user] = await Promise.all([
-    learn.getAllHomework(ids),
-    learn.getAllNotifications(ids),
+    learn.getAllHomework(ids).catch(() => prevHome?.homework ?? []),
+    learn.getAllNotifications(ids).catch(() => prevHome?.notifications ?? []),
     Promise.all(ids.slice(0, 8).map((id) => learn.getFileList(id).catch(() => [])))
       .then((rs) => rs.flat())
       .catch(() => [] as CourseFile[]),

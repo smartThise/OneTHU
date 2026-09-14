@@ -641,7 +641,7 @@ export function DiagButton() {
     }
   };
   const shown = errOnly ? lines.filter((l) => /ERR|RETRY|SOFT-RECOVER|BOUNCE|失败|超限|错误/i.test(l)) : lines;
-  const text = shown.slice(-120).join("\n");
+  const text = shown.slice(-60).join("\n");
   if (!open) {
     return (
       <button
@@ -674,20 +674,23 @@ export function DiagButton() {
               type="button"
               className="btn"
               onClick={() => {
-                // Android WebView 长选区复制困难：优先系统分享面板（可发微信/文件），
-                // 无 share 时回退剪贴板
-                const nav = navigator as Navigator & { share?: (d: { title: string; text: string }) => Promise<void> };
-                if (nav.share) void nav.share({ title: "OneTHU 诊断日志", text: text }).catch(() => undefined);
-                else void navigator.clipboard?.writeText(text).catch(() => undefined);
+                void navigator.clipboard?.writeText(text).then(
+                  () => alert("已复制到剪贴板（也可在下方文本框长按全选复制）"),
+                  () => alert("剪贴板失败：请在下方文本框长按 → 全选 → 复制"),
+                );
               }}
             >
-              分享
+              复制
             </button>
           </div>
         </div>
-        <pre style={{ maxHeight: "60vh", overflow: "auto", fontSize: 11, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0 }}>
-          {text || "(空)"}
-        </pre>
+        {/* textarea（非 pre）：Android 长按→全选→复制唯一可靠路径 */}
+        <textarea
+          readOnly
+          value={text || "(空)"}
+          onFocus={(e) => e.currentTarget.select()}
+          style={{ width: "100%", height: "50vh", fontSize: 11, lineHeight: 1.5, resize: "none", boxSizing: "border-box" }}
+        />
       </div>
     </div>
   );
