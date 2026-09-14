@@ -103,10 +103,9 @@ function installResumePreflight(): void {
           window.dispatchEvent(new Event("onethu:session-refresh"));
           return; // 会话活着：只触发静默数据刷新
         }
-        // 死了：静默恢复（softRecover 自带节流去重），成功再广播
-        const { softRecover } = await import("../lib/reload.js");
-        const ok = await softRecover("resume-preflight");
-        if (ok) window.dispatchEvent(new Event("onethu:session-refresh"));
+        // 死了：交给会话平面（串行阶梯+单飞），成功由其广播刷新
+        const { keepAlive } = await import("./sessionPlane.js");
+        await keepAlive("resume");
       } finally {
         resumeProbeInflight = false;
       }
@@ -138,9 +137,11 @@ function installHeartbeat(): void {
       void logLine(`${tag} ok`);
       return;
     }
-    void logLine(`${tag} dead(${res ? res.status : "timeout"})→自愈`);
-    const { softRecover } = await import("../lib/reload.js");
-    if (await softRecover(tag)) window.dispatchEvent(new Event("onethu:session-refresh"));
+    // 会话平面唯一入口（2026-09-14 架构重构）：全局串行 + 三级阶梯 + 单飞，
+    // 消灭「多模块并行建链互相踢掉会话」的风暴根因
+    void logLine(`${tag} dead(${res ? res.status : "timeout"})→会话平面`);
+    const { keepAlive } = await import("./sessionPlane.js");
+    await keepAlive(tag === "WAKE" ? "wake" : "heartbeat");
   };
   // Kotlin 哑闹钟入口：后台被 evaluateJavascript 显式执行（不受定时器节流）
   (window as unknown as { __onethuWake?: () => string }).__onethuWake = () => {
@@ -336,7 +337,7 @@ export function invalidateLearnCache(): void {
  *  同一时刻多个数据钩子（useLearnData 各子页 / useCampusData）一起撞上
  *  AuthRequiredError 时只漫游一次（此前并发各自漫游，幂等但浪费且拉长 loading 空窗）。 */
 let roamInflight: Promise<boolean> | null = null;
-function relearnRoamOnce(): Promise<boolean> {
+export function relearnRoamOnce(): Promise<boolean> {
   if (!roamInflight) {
     roamInflight = session
       .relearnRoam()

@@ -218,6 +218,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setUser({ username: saved?.username ?? "" });
         mark("T5 ready");
         setStatus("ready");
+        // 会话平面预热（架构第 2 步）：在建链风暴之前把会话建好，不阻塞 UI
+        void import("./sessionPlane.js").then((m) => m.warmUp()).catch(() => undefined);
         return;
       }
       // 恢复失败（learn/id 会话过期是常态）且勾选了记住密码 → 静默重登一次，免输密码
