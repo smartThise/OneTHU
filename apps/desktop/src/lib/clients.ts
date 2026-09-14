@@ -388,6 +388,23 @@ export async function persist(): Promise<void> {
   await store.saveSession(snapshot);
   // 镜像到 appData 文件：localStorage 被 WKWebView 驱逐时 boot 仍可恢复
   await fileWrite(SESSION_FILE, JSON.stringify(snapshot));
+  // 原生心跳弹药（2026-09-14）：KeepAliveService 后台直连探活用——WebView JS
+  // 定时器在后台被 Chromium 暂停（真机实证 HB 零触发），心跳必须住 Kotlin 层。
+  // 隧道路径=一站保鲜 webvpn 票据+learn 会话两层。
+  try {
+    const { encodeUrl } = await import("@onethu/core");
+    const recs = JSON.parse(snapshot.cookiesJson) as Array<{ domain: string; name: string; value: string }>;
+    const cookie = recs
+      .filter((r) => "webvpn.tsinghua.edu.cn" === r.domain || r.domain.endsWith(".webvpn.tsinghua.edu.cn"))
+      .map((r) => `${r.name}=${r.value}`)
+      .join("; ");
+    await fileWrite(
+      "native-hb",
+      JSON.stringify({ url: encodeUrl("https://learn.tsinghua.edu.cn/"), cookie }),
+    );
+  } catch {
+    /* 尽力而为 */
+  }
   // 记住密码：登录成功链路（含 2FA 完成）统一在此落盘
   if (pendingSecret?.remember && pendingSecret.password) {
     await fileWrite(
