@@ -640,7 +640,7 @@ export function DiagButton() {
       setBusy(false);
     }
   };
-  const shown = errOnly ? lines.filter((l) => /ERR|RETRY|SOFT-RECOVER|BOUNCE|失败|超限|错误/i.test(l)) : lines;
+  const shown = lines.filter((l) => !/DUMP|HTTP-WENGINE/.test(l)).filter((l) => (errOnly ? /ERR|RETRY|SOFT-RECOVER|BOUNCE|AUTH|失败|超限|错误|无法|公钥/i.test(l) : true));
   const text = shown.slice(-60).join("\n");
   if (!open) {
     return (

@@ -3,7 +3,7 @@
  * classroomList/classroomDetail 移植）。两级只读视图：教学楼列表 → 本周状态，
  * 今天 6 大节空闲格（绿=空闲）。空数据/维护态铁律见 tabStates.tsx。
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Card, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { SearchSelect } from "../../components/SearchSelect.jsx";
 import { info } from "../../lib/clients.js";
@@ -97,6 +97,8 @@ export function ClassroomTab({
 
   /* 深链只落一次的把关（对象 ref 即可，无需触发渲染） */
   const deepApplied = { current: false };
+  const loadBuildingsRetried = useRef(false);
+  const loadStateRetried = useRef<string | null>(null);
   const loadBuildings = useCallback(async () => {
     if (status !== "ready") return;
     setBState("loading");
@@ -116,7 +118,16 @@ export function ClassroomTab({
         }
       }
     } catch (err) {
+      // 蜂窝瞬断单次静默重试（5s，有界）+ 原子缓存垫底：有旧目录不闪红
+      const transient = /网络|timeout|timed? ?out|重定向超限|Failed to fetch/i.test(String(err));
+      if (transient && !loadBuildingsRetried.current) {
+        loadBuildingsRetried.current = true;
+        logTabErr("CLASSROOM-LIST-RETRY", err);
+        setTimeout(() => void loadBuildings(), 5000);
+        return;
+      }
       logTabErr("CLASSROOM-LIST", err);
+      if (buildings && buildings.length) { setBState("ready"); return; }
       setBUnavailable(isServiceUnavailable(err));
       setBError(tabErrorText(err));
       setBState("error");
@@ -132,7 +143,17 @@ export function ClassroomTab({
       setResult(await info.getClassroomState(b.searchName, b.weekNumber));
       setRState("ready");
     } catch (err) {
+      // 同款：瞬态单次重试 + 旧结果垫底
+      const transient = /网络|timeout|timed? ?out|重定向超限|Failed to fetch/i.test(String(err));
+      if (transient && sel?.searchName && loadStateRetried.current !== sel.searchName) {
+        loadStateRetried.current = sel.searchName;
+        logTabErr("CLASSROOM-STATE-RETRY", err);
+        const b = sel;
+        setTimeout(() => void loadState(b), 5000);
+        return;
+      }
       logTabErr("CLASSROOM-STATE", err);
+      if (result) { setRState("ready"); return; }
       setRUnavailable(isServiceUnavailable(err));
       setRError(tabErrorText(err));
       setRState("error");

@@ -206,6 +206,16 @@ fn log_tail(n: Option<usize>) -> Result<Vec<String>, String> {
 #[tauri::command]
 fn log_debug(line: String) -> Result<(), String> {
     use std::io::Write;
+    // 单行截断（2026-09-14：29KB HTML 转储一条淹没整页日志，真错全被盖）
+    let line = if line.len() > 1500 {
+        let mut cut = 1500;
+        while cut > 0 && !line.is_char_boundary(cut) {
+            cut -= 1;
+        }
+        format!("{}…[截断,原{}字]", &line[..cut], line.len())
+    } else {
+        line
+    };
     if let Ok(mut ring) = RING.lock() {
         if ring.len() >= 2000 {
             ring.pop_front();

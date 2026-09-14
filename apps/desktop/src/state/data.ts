@@ -78,6 +78,43 @@ function fmtDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/* ── 回前台会话预检（2026-09-14，无锁有界版）──────────────────────
+ * 症状：重启/挂起后全部功能暂时瘫痪——会话在挂起期间服务端过期，回前台各模块
+ * 各自撞墙。此处：visibilitychange→visible 时探活 webvpn（5s 超时），死则
+ * softRecover（内部 20s 节流+单飞=天然有界，绝无无界锁），成功后广播事件，
+ * useCampusData 静默重拉（有旧值不闪红）。探活失败也无害：各模块走原路。 */
+let resumeProbeInflight = false;
+function installResumePreflight(): void {
+  if (typeof document === "undefined") return;
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || resumeProbeInflight) return;
+    resumeProbeInflight = true;
+    void (async () => {
+      try {
+        const { universalFetch } = await import("../lib/transport.js");
+        const res = await Promise.race([
+          universalFetch("https://webvpn.tsinghua.edu.cn/", {
+            redirect: "manual",
+            headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+          }).catch(() => null),
+          new Promise<null>((r) => setTimeout(() => r(null), 5000)),
+        ]);
+        if (res && res.status === 200) {
+          window.dispatchEvent(new Event("onethu:session-refresh"));
+          return; // 会话活着：只触发静默数据刷新
+        }
+        // 死了：静默恢复（softRecover 自带节流去重），成功再广播
+        const { softRecover } = await import("../lib/reload.js");
+        const ok = await softRecover("resume-preflight");
+        if (ok) window.dispatchEvent(new Event("onethu:session-refresh"));
+      } finally {
+        resumeProbeInflight = false;
+      }
+    })();
+  });
+}
+let resumePreflightInstalled = false;
+
 async function loadReal(): Promise<CampusData> {
   const semester = await learn.getCurrentSemester();
   const courses = await learn.getCourseList(semester.id);
@@ -169,11 +206,22 @@ export function useCampusData() {
 
   useEffect(() => {
     if (status !== "ready" && status !== "demo") return;
+    if (!resumePreflightInstalled) {
+      resumePreflightInstalled = true;
+      installResumePreflight();
+    }
     const cached = cacheGet<CampusData>(CAMPUS_KEY);
     if (!cached) void load(false);
     // 日程残缺（空）的缓存不当作新鲜：静默补拉一次
     else if (Date.now() - cached.at > CAMPUS_TTL || !cached.data?.schedule?.length) void load(true);
   }, [status, load]);
+
+  // 回前台预检成功 → 静默重拉（有旧值不闪红）
+  useEffect(() => {
+    const onRefresh = () => void load(true);
+    window.addEventListener("onethu:session-refresh", onRefresh);
+    return () => window.removeEventListener("onethu:session-refresh", onRefresh);
+  }, [load]);
 
 
   return { data, state, error, reload: load };
