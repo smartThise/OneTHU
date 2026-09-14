@@ -201,6 +201,8 @@ export function useCampusData() {
   const [data, setData] = useState<CampusData | null>(() => cacheGet<CampusData>(CAMPUS_KEY)?.data ?? null);
   const [state, setState] = useState<DataState>(() => (cacheGet<CampusData>(CAMPUS_KEY) ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
+  /** 有界自动重试计数（成功清零）：把「一次失败=红条」改成自动恢复 */
+  const campusRetryRef = useRef(0);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) {
@@ -223,6 +225,7 @@ export function useCampusData() {
       const fresh = await cacheFetch(CAMPUS_KEY, loadReal);
       setData(fresh);
       setState("ready");
+      campusRetryRef.current = 0;
       notifyCampusData();
     } catch (err) {
       // 会话真死了（AuthRequiredError）：先免密重漫游一次，仍失败才送回登录页
@@ -238,13 +241,31 @@ export function useCampusData() {
           await load(silent);
           return;
         }
+        // 两条链都失败：会话正在恢复窗口（闸流/并发）——有界等待后原地重试，
+        // 绝不把用户扔回登录页也不闪红（2026-09-14：首页「失败即红」最常见来路）
+        const retries = (campusRetryRef.current += 1);
+        if (retries <= 3) {
+          logPageError("CAMPUS-AUTH-RETRY", err);
+          await new Promise((r) => setTimeout(r, [2000, 5000, 12_000][retries - 1] ?? 12_000));
+          await load(silent);
+          return;
+        }
+        if (data !== null) return;
         backToLogin();
         return;
       }
       logPageError("CAMPUS", err);
-      // 已有旧数据（缓存/上次成功）时不闪红：SWR 语义，保留旧值下轮挂载再重验证
-      // SWR 语义（极限稳定目标）：已有旧值时刷新失败不闪红，旧数据继续展示——
-      // 红条只在「一无所获」时才允许露脸（useWeekSchedule 同款）
+      // 瞬态（网络/超时/代理抖动/会话竞态）有界自动重试：2s/5s/12s 三次，
+      // 期间保持 loading 而非红条——「重启后首页拉胯」的最大来路
+      const transient = /Failed to fetch|网络|timeout|timed? ?out|重定向超限|跟跳超限|未落地|身份确认失败|SM2|公钥|登录未成功|失效/.test(String(err));
+      if (transient && campusRetryRef.current < 3 && data === null) {
+        campusRetryRef.current += 1;
+        logPageError("CAMPUS-RETRY", err);
+        await new Promise((r) => setTimeout(r, [2000, 5000, 12_000][campusRetryRef.current - 1] ?? 12_000));
+        await load(silent);
+        return;
+      }
+      // 已有旧数据（缓存/上次成功）时不闪红：SWR 语义，保留旧值
       if (data !== null) return;
       setState("error");
       setError(explainNetworkError(err));
