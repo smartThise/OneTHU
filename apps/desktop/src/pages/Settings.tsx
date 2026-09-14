@@ -429,6 +429,18 @@ export function SettingsPage() {
         ) : null}
       </Card>
 
+      <SectionHead title="数据层" />
+      <Card>
+        <div className="setting-row">
+          <div>
+            <div className="setting-title">info-lib 数据层验收</div>
+            <div className="setting-desc">THU Info 同款核心（MIT）：登录→课程表→个人信息→图书馆 四项一键验收，蜂窝网可直接跑</div>
+          </div>
+          <button className="btn" onClick={() => navigate("infolib")}>
+            进入验收页
+          </button>
+        </div>
+      </Card>
       <SectionHead title="插件" />
       <Card>
         <div className="setting-row">

@@ -19,6 +19,7 @@ export type Page =
   | "cloud" // 清华云盘（Seafile Web API）
   | "folder" // 用户收藏夹页（navParams.folderId 指向具体收藏夹）
   | "settings"
+  | "infolib" // info-lib 数据层验收探针（2026-09-14 硬换数据层）
   | "plugins" // 插件管理页（机架视觉；设置页留入口，不动侧栏导航）
   | "learn-course" // 课程详情（courseId）
   | "learn-assignments" // 全部作业

@@ -1,0 +1,66 @@
+{
+  "name": "@onethu/info-lib",
+  "version": "7.1.5-onethu",
+  "description": "The JavaScript library that provides a program-friendly interface to Tsinghua web portal",
+  "main": "dist/index.js",
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ],
+  "keywords": [
+    "tsinghua",
+    "thu",
+    "info",
+    "thuinfo",
+    "thu-info",
+    "thu info"
+  ],
+  "maintainers": [
+    {
+      "name": "UNIDY2002",
+      "email": "UNIDY2002@outlook.com"
+    },
+    {
+      "name": "Ashitemaru",
+      "email": "qhd19@mails.tsinghua.edu.cn"
+    }
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thu-info-community/thu-info-lib.git"
+  },
+  "dependencies": {
+    "cheerio": "1.0.0-rc.12",
+    "crypto-js": "4.1.1",
+    "dayjs": "1.11.10",
+    "he": "^1.2.0",
+    "iconv-lite": "0.6.3",
+    "image-size": "^1.0.1",
+    "jspdf": "^2.5.1"
+  },
+  "pre-commit": [
+    "lint"
+  ],
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node"
+  },
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./network": {
+      "import": "./dist/utils/network.js",
+      "types": "./dist/utils/network.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p ."
+  },
+  "devDependencies": {
+    "typescript": "5.2.2"
+  }
+}

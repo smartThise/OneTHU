@@ -20,6 +20,7 @@ import { useToastHost, hideToast } from "./state/toast.js";
 import type { ReactNode } from "react";
 import { TracePage } from "./pages/Trace.js";
 import { SettingsPage } from "./pages/Settings.js";
+import { InfoLibProbePage } from "./pages/InfoLibProbe.js";
 import { PluginsPage } from "./pages/Plugins.js";
 import { TodayPage } from "./pages/Today.js";
 import { OtherInfoPage } from "./pages/OtherInfoPage.js";
@@ -92,6 +93,7 @@ function Routed() {
         {page === "zhjwxk" && <ZhjwxkCoursesPage />}
         {page === "folder" && <FolderPage />}
         {page === "settings" && <SettingsPage />}
+        {page === "infolib" && <InfoLibProbePage />}
         {page === "plugins" && <PluginsPage />}
         {page === "learn-course" && <CourseDetailPage />}
         {page === "learn-assignments" && <AssignmentsPage />}
