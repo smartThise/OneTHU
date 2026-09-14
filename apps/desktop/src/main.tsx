@@ -1,5 +1,8 @@
 import { StrictMode } from "react";
 import { logLine } from "./lib/clients.js";
+// 启动计时（2026-09-14 真机实录 53s 静默——T0=JS 入口求值时刻）
+const BOOT_T0 = Date.now();
+void logLine(`BOOT-T2 js-entry t=${Date.now() - BOOT_T0}ms`).catch(() => undefined);
 // 渲染层崩溃捕获：白屏=未被记录的 JS 异常（webview 控制台/系统日志都拿不到），
 // 全局 error/unhandledrejection 直接落盘 /tmp/onethu-debug.log。
 function hookRenderError(kind: string, detail: string): void {

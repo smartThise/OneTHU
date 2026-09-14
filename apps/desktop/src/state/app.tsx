@@ -193,7 +193,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void import("../lib/clients.js").then(({ logLine }) => logLine("PROBE boot-effect")).catch(() => undefined);
+    const BT = Date.now();
+    const mark = (tag: string) =>
+      void import("../lib/clients.js").then(({ logLine }) => logLine(`BOOT-${tag} +${Date.now() - BT}ms`)).catch(() => undefined);
+    mark("T3 effect-enter");
     let cancelled = false;
     void (async () => {
       let ok = false;
@@ -208,10 +211,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } catch {
         ok = false;
       }
+      mark(ok ? "T4 resume-ok" : "T4 resume-fail");
       if (cancelled) return;
       if (ok) {
         const saved = await clients.store.loadSession();
         setUser({ username: saved?.username ?? "" });
+        mark("T5 ready");
         setStatus("ready");
         return;
       }
@@ -294,7 +299,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           await clients.verifyLearn2FA(code);
           setTwoFactor(null);
           setUser({ username: twoFactor.username });
-          setStatus("ready");
+        setStatus("ready");
           navigate("today");
           return;
         }
