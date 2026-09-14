@@ -79,9 +79,6 @@ function fmtDate(d: Date): string {
 }
 
 async function loadReal(): Promise<CampusData> {
-  // 会话总管门：等登录落定再放行数据加载（冷启动风暴根治；15s 兜底绝不死等）
-  const { waitReady } = await import("./sessionSupervisor.js");
-  await waitReady(15_000);
   const semester = await learn.getCurrentSemester();
   const courses = await learn.getCourseList(semester.id);
   const ids = courses.map((c) => c.id);
@@ -175,12 +172,6 @@ export function useCampusData() {
     else if (Date.now() - cached.at > CAMPUS_TTL || !cached.data?.schedule?.length) void load(true);
   }, [status, load]);
 
-  // 会话总管广播：回前台预检恢复成功 / 心跳复活 → 静默重拉（有旧值不闪红）
-  useEffect(() => {
-    const onRefresh = () => void load(true);
-    window.addEventListener("onethu:session-refresh", onRefresh);
-    return () => window.removeEventListener("onethu:session-refresh", onRefresh);
-  }, [load]);
 
   return { data, state, error, reload: load };
 }
@@ -227,11 +218,8 @@ export function invalidateLearnCache(): void {
 let roamInflight: Promise<boolean> | null = null;
 function relearnRoamOnce(): Promise<boolean> {
   if (!roamInflight) {
-    // 全局登录互斥（2026-09-14）：learn 漫游也是上游登录链，与 softRelogin 并发=互踩
-    roamInflight = (async () => {
-      const { withLoginLock } = await import("./sessionSupervisor.js");
-      return withLoginLock(() => session.relearnRoam());
-    })()
+    roamInflight = session
+      .relearnRoam()
       .catch(() => false)
       .finally(() => {
         roamInflight = null;
@@ -984,9 +972,6 @@ export function useXkWorkbench(): XkWorkbench {
   const commitCore = useCallback(async (sem: string, ltP: Promise<Record<string, XkLevelTableRow> | null> | null, myGen: number): Promise<XkPlanItem[]> => {
     const coreSeq = ++coreSeqRef.current;
     const opt = { semester: sem };
-    // 会话总管门：选课核心加载等登录落定（冷启动风暴根治；15s 兜底）
-    const { waitReady } = await import("./sessionSupervisor.js");
-    await waitReady(15_000);
     // 失登自愈（稳定性专项 2026-09-11）：auth 错 → softRecover 全链重建 → 整组
     // 原地重试一次（有界：每轮调用至多一轮）。此前直接 return []——当轮右栏
     // 数据缺失要等下一条管线；会话已能透明重建，原地补齐才是「任何时刻稳定」。

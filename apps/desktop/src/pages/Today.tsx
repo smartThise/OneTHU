@@ -628,17 +628,20 @@ export function DiagButton() {
   const [open, setOpen] = useState(false);
   const [lines, setLines] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [errOnly, setErrOnly] = useState(true);
   const refresh = async () => {
     setBusy(true);
     try {
       const { invoke } = await import("@tauri-apps/api/core");
-      setLines(await invoke<string[]>("log_tail", { n: 300 }));
+      setLines(await invoke<string[]>("log_tail", { n: 400 }));
     } catch {
       setLines(["(读取失败：非 Tauri 环境)"]);
     } finally {
       setBusy(false);
     }
   };
+  const shown = errOnly ? lines.filter((l) => /ERR|RETRY|SOFT-RECOVER|BOUNCE|失败|超限|错误/i.test(l)) : lines;
+  const text = shown.slice(-120).join("\n");
   if (!open) {
     return (
       <button
@@ -661,20 +664,29 @@ export function DiagButton() {
         <div className="home-modal-head">
           <b>应用诊断（最近 300 条）</b>
           <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="btn" disabled={busy} onClick={() => { setErrOnly((v) => !v); }}>
+              {errOnly ? "只看错误(开)" : "只看错误(关)"}
+            </button>
             <button type="button" className="btn" disabled={busy} onClick={() => void refresh()}>
               {busy ? "读取中…" : "刷新"}
             </button>
             <button
               type="button"
               className="btn"
-              onClick={() => void navigator.clipboard?.writeText(lines.join("\n")).then(() => setOpen(false))}
+              onClick={() => {
+                // Android WebView 长选区复制困难：优先系统分享面板（可发微信/文件），
+                // 无 share 时回退剪贴板
+                const nav = navigator as Navigator & { share?: (d: { title: string; text: string }) => Promise<void> };
+                if (nav.share) void nav.share({ title: "OneTHU 诊断日志", text: text }).catch(() => undefined);
+                else void navigator.clipboard?.writeText(text).catch(() => undefined);
+              }}
             >
-              复制并关闭
+              分享
             </button>
           </div>
         </div>
         <pre style={{ maxHeight: "60vh", overflow: "auto", fontSize: 11, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0 }}>
-          {lines.length ? lines.join("\n") : "(空)"}
+          {text || "(空)"}
         </pre>
       </div>
     </div>
