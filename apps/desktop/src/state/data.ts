@@ -987,7 +987,8 @@ export function useXkWorkbench(): XkWorkbench {
     // 失登自愈（稳定性专项 2026-09-11）：auth 错 → softRecover 全链重建 → 整组
     // 原地重试一次（有界：每轮调用至多一轮）。此前直接 return []——当轮右栏
     // 数据缺失要等下一条管线；会话已能透明重建，原地补齐才是「任何时刻稳定」。
-    for (let authRound = 0; authRound < 2; authRound++) {
+    const coreBackoffs = [1000, 3000, 8000, 15000];
+    for (let authRound = 0; authRound <= coreBackoffs.length; authRound++) {
     try {
       // 课余量改按需逐门查（2026-09-14 对齐插件）：查询集 = 已选+候补+暂存，
       // kyl 只发 p_kch 单课请求（并发 5）。已选/候补两路 promise 共享，队列
@@ -1041,6 +1042,13 @@ export function useXkWorkbench(): XkWorkbench {
       // 失登不再整页重载（重载=app 重启回首页目录，搜索/培养方案状态全丢——2026-09-03 实录
       // 「课表跳转过一会又刷成首页」）。会话每次调用自动重建（60s 热缓存），SWR 保旧/错误条兜底。
       if (isAuthError(err)) { logPageError("XK-CORE-AUTH", err); return []; }
+      // 瞬态静默重试（蜂窝瞬断）：预算 4、退避 1/3/8/15s，不闪红
+      const transient = /Failed to fetch|网络|timeout|timed? ?out|重定向超限|跟跳超限|未落地|身份确认失败|SM2|公钥|登录未成功/.test(String(err));
+      if (transient && authRound < coreBackoffs.length) {
+        logPageError("XK-CORE-RETRY", err);
+        await new Promise((r) => setTimeout(r, coreBackoffs[authRound] ?? 8000));
+        continue;
+      }
       if (coreSeededRef.current) return []; // 秒渲旧值在屏：保旧不闪红（SWR），重试/下轮再验证
       logPageError("ZHJWXK", err);
       setCoreState("error");
@@ -1337,6 +1345,11 @@ export function useXkWorkbench(): XkWorkbench {
   const [searchRunId, setSearchRunId] = useState(0);
   const [searchError, setSearchError] = useState<string | null>(null);
   const searchSeqRef = useRef(0);
+  // 瞬态自愈（2026-09-14 恢复适度版 1/3/8/15s）：会话总管挡冷启动风暴后，
+  // 只需盖蜂窝瞬断；与「选课完全好了」验证版的区别=去掉 40s 长尾（转圈投诉源）
+  const searchRetryRef = useRef(0);
+  const lastSearchMetaRef = useRef<XkSearchMeta | null>(null);
+  const newSearchRef = useRef<((m: XkSearchMeta) => void) | null>(null);
   const searchMetaRef = useRef<XkSearchMeta | null>(null);
   const searchRows = useMemo(
     () => {
@@ -1375,6 +1388,16 @@ export function useXkWorkbench(): XkWorkbench {
 
   const failSearch = useCallback((err: unknown, seq: number): void => {
     if (seq !== searchSeqRef.current) return;
+    // 瞬态（网络/超限/SM2 变体页）自动重试：预算 4、退避 1/3/8/15s；用户取消不试
+    const transient = /Failed to fetch|网络|timeout|timed? ?out|重定向超限|跟跳超限|未落地|身份确认失败|SM2|公钥|登录未成功/.test(String(err));
+    const backoffs = [1000, 3000, 8000, 15000];
+    if (transient && searchRetryRef.current < backoffs.length && lastSearchMetaRef.current) {
+      searchRetryRef.current += 1;
+      logPageError("XK-SEARCH-RETRY", err);
+      const m: XkSearchMeta = lastSearchMetaRef.current;
+      setTimeout(() => newSearchRef.current?.(m), backoffs[searchRetryRef.current - 1]);
+      return;
+    }
     logPageError("XK-SEARCH", err);
     // 失登不整页重载：错误条 + 重试（proxyZhjwxkApi 内部已带 relogin 自愈），保住搜索现场
     setSearchError(explainNetworkError(err));
@@ -1385,6 +1408,7 @@ export function useXkWorkbench(): XkWorkbench {
     async (meta: XkSearchMeta) => {
       const seq = ++searchSeqRef.current;
       searchMetaRef.current = meta;
+      lastSearchMetaRef.current = meta;
       setSearchError(null);
       setSearchRunId((v) => v + 1);
       if (status === "demo") {
@@ -1489,6 +1513,7 @@ export function useXkWorkbench(): XkWorkbench {
         setSearchHasMore(false);
         setSearchIncomplete(deficit > 0 || tp > okPages || (tp === 0 && okPages === probeTo && lastFull)); // 总数核对优先，页数兜底
         setSearchError(head.pageKind === "unknown" ? `教务返回异常页（首段: ${head.htmlHead}）` : null);
+        searchRetryRef.current = 0;
         setSearchState("ready");
         if (deficit > 0) setToast(`爬取不完整：教务共 ${locked} 门，实得 ${merged.length} 门，缺 ${deficit} 门。建议刷新或待会再来看看`);
       } catch (err) {
@@ -1497,6 +1522,7 @@ export function useXkWorkbench(): XkWorkbench {
     },
     [status, fetchXkPage, failSearch],
   );
+  newSearchRef.current = (m: XkSearchMeta) => { void newSearch(m); };
 
   /** 搜索模式「加载当前关键词全部」：从第 4 页起爬到空页（5 并发池 + 30ms 限速），完成 toast */
   const loadAllSearch = useCallback(async () => {
@@ -1578,6 +1604,7 @@ export function useXkWorkbench(): XkWorkbench {
   const gotoPage = useCallback(
     async (page: number) => {
       const meta = searchMetaRef.current;
+      lastSearchMetaRef.current = meta; // 翻页路也登记：首载浏览走这条路
       if (status === "demo" || !meta || page < 1) return;
       const seq = ++searchSeqRef.current;
       setSearchState("loading");
