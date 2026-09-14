@@ -79,6 +79,9 @@ function fmtDate(d: Date): string {
 }
 
 async function loadReal(): Promise<CampusData> {
+  // 会话总管门：等登录落定再放行数据加载（冷启动风暴根治；15s 兜底绝不死等）
+  const { waitReady } = await import("./sessionSupervisor.js");
+  await waitReady(15_000);
   const semester = await learn.getCurrentSemester();
   const courses = await learn.getCourseList(semester.id);
   const ids = courses.map((c) => c.id);
@@ -96,7 +99,7 @@ async function loadReal(): Promise<CampusData> {
       // 失败时用上次缓存的真实日程垫底（2026-09-14 凌晨）：空数组会毒化缓存 3 分钟，
       // 首页「日程与提醒」残缺、要绕别的页面回来才看得见
       return info.getSchedule(fmtDate(start), fmtDate(end)).catch(
-        () => cacheGet<CampusData>(CAMPUS_KEY)?.data.schedule ?? [] as ScheduleEntry[],
+        () => cacheGet<CampusData>(CAMPUS_KEY)?.data?.schedule ?? ([] as ScheduleEntry[]),
       );
     })(),
     info.getUserInfo().catch(() => null),
@@ -169,8 +172,15 @@ export function useCampusData() {
     const cached = cacheGet<CampusData>(CAMPUS_KEY);
     if (!cached) void load(false);
     // 日程残缺（空）的缓存不当作新鲜：静默补拉一次
-    else if (Date.now() - cached.at > CAMPUS_TTL || !cached.data.schedule?.length) void load(true);
+    else if (Date.now() - cached.at > CAMPUS_TTL || !cached.data?.schedule?.length) void load(true);
   }, [status, load]);
+
+  // 会话总管广播：回前台预检恢复成功 / 心跳复活 → 静默重拉（有旧值不闪红）
+  useEffect(() => {
+    const onRefresh = () => void load(true);
+    window.addEventListener("onethu:session-refresh", onRefresh);
+    return () => window.removeEventListener("onethu:session-refresh", onRefresh);
+  }, [load]);
 
   return { data, state, error, reload: load };
 }

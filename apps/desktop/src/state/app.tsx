@@ -213,6 +213,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const saved = await clients.store.loadSession();
         setUser({ username: saved?.username ?? "" });
         setStatus("ready");
+        void import("./sessionSupervisor.js").then((m) => m.markReady()).catch(() => undefined);
         return;
       }
       // 恢复失败（learn/id 会话过期是常态）且勾选了记住密码 → 静默重登一次，免输密码
@@ -230,6 +231,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const saved = await clients.store.loadSession();
         setUser({ username: saved?.username ?? "" });
         setStatus("ready");
+        void import("./sessionSupervisor.js").then((m) => m.markReady()).catch(() => undefined);
       } else {
         setStatus("logged-out");
       }
@@ -267,6 +269,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         setUser({ username });
         setStatus("ready");
+        void import("./sessionSupervisor.js").then((m) => m.markReady()).catch(() => undefined);
         navigate("today");
       } catch (err) {
         setStatus("logged-out");
@@ -295,6 +298,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setTwoFactor(null);
           setUser({ username: twoFactor.username });
           setStatus("ready");
+        void import("./sessionSupervisor.js").then((m) => m.markReady()).catch(() => undefined);
           navigate("today");
           return;
         }
@@ -307,6 +311,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTwoFactor(null);
         setUser({ username: twoFactor.username });
         setStatus("ready");
+        void import("./sessionSupervisor.js").then((m) => m.markReady()).catch(() => undefined);
         navigate("today");
       } catch (err) {
         setError(explainNetworkError(err));
