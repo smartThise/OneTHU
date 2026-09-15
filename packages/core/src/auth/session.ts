@@ -99,6 +99,13 @@ export class CampusSession {
     this.#dbg("INFO-ERA cookies=" + this.#infoEraCookies.split(";").map((x) => x.trim().split("=")[0]).filter(Boolean).join(","));
   }
 
+  /** learn 域嫁接提供者（内嵌 RN 壳注入）：原生 thu-info-lib 已 2FA 的直连会话，
+   *  只灌 learn 域桶——不动 webvpn/info 桶（我们自己的会话在那里）。 */
+  #learnGraft: (() => Promise<{cookies: string; jsid: string} | null>) | null = null;
+  setLearnGraftProvider(fn: () => Promise<{cookies: string; jsid: string} | null>): void {
+    this.#learnGraft = fn;
+  }
+
   constructor(options: CampusSessionOptions) {
     this.http = options.http;
     this.learn = options.learn;
@@ -208,9 +215,22 @@ export class CampusSession {
       return { state: "need-2fa", methods, debugHtml: this.#demo.twoFaHtml };
     }
 
-    let csrf: string;
     try {
       await this.#roamId();
+    } catch (e) {
+      this.#dbg("ROAM-ID-FAIL " + String(e) + "\n" + this.#demo.debug);
+      throw e;
+    }
+    if (this.#learnGraft) {
+      // 内嵌桥模式：learn 不走 demoEnterLearn（其二次认证墙无 UI 出口），
+      // 由原生嫁接免密提供（relearnRoam 桥分支）。其余收尾照旧。
+      this.#seedJar();
+      await this.info.resume().catch(() => undefined);
+      this.state = "ready";
+      return { state: "ready" };
+    }
+    let csrf: string;
+    try {
       csrf = await demoEnterLearn(this.fetchLike, this.#demo, this.username, this.#password, this.fingerprint, this.finger3);
     } catch (e) {
       this.#dbg("ENTER-LEARN-FAIL " + String(e) + "\n" + this.#demo.debug);
@@ -339,6 +359,30 @@ export class CampusSession {
   }
 
   async relearnRoam(): Promise<boolean> {
+    // 内嵌桥模式优先：learn 走原生嫁接（thu-info-lib 已 2FA 的直连会话），
+    // 只灌 learn 域桶；失败再走原免密重漫游链。
+    if (this.#learnGraft) {
+      try {
+        const g = await this.#learnGraft();
+        if (g?.cookies) {
+          const learnUrl = new URL("https://learn.tsinghua.edu.cn/");
+          for (const pair of g.cookies.split(";")) {
+            const t = pair.trim();
+            if (!t || !t.includes("=")) continue;
+            try {
+              this.http.jar.setRaw(learnUrl, t + "; Path=/");
+            } catch {
+              /* 坏条容忍 */
+            }
+          }
+          const ok = await this.learn.resume().catch(() => false);
+          this.#dbg(`LEARN-GRAFT ${ok ? "ok" : "fail"}`);
+          if (ok) return true;
+        }
+      } catch (e) {
+        this.#dbg("LEARN-GRAFT err " + String(e).slice(0, 120));
+      }
+    }
     const jsid = this.#demo.idJsid;
     if (!jsid) {
       this.#dbg("RE-ROAM skip: 无持久化 id 主会话");

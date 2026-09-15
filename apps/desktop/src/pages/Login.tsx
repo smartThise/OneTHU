@@ -1,7 +1,7 @@
 import { BrandLogo, HardRefreshButton, Slogan } from "../components/Layout.js";
 import { useEffect, useState, type FormEvent } from "react";
 import type { TwoFactorMethod } from "@onethu/core";
-import { isTauri } from "../lib/transport.js";
+import { isFullApp } from "../lib/transport.js";
 import { loadRemembered } from "../lib/clients.js";
 import { useApp } from "../state/context.js";
 
@@ -36,7 +36,7 @@ export function LoginPage() {
           <Slogan size={13} />
         </div>
 
-        {!isTauri ? (
+        {!isFullApp ? (
           <div className="browser-hint">
             浏览器预览无法直连校园网（CORS）。完整功能请运行桌面端：pnpm tauri:dev
           </div>

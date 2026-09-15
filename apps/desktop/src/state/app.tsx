@@ -202,6 +202,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void (async () => {
       let ok = false;
       try {
+        // 桥模式优先：直连 + 原生会话（照抄 thu-info-lib，无 webvpn/2FA）
+        ok = await Promise.race([
+          clients.adoptBridgeSession(),
+          new Promise<false>((res) => setTimeout(() => res(false), 75_000)),
+        ]);
+      } catch {
+        ok = false;
+      }
+      if (!ok) {
+      try {
         // 看门狗（2026-09-13 蜂窝实锤「死在恢复会话」零日志悬挂）：启动门
         // 10s 必开——resume 链任何请求悬挂时强制放行，走静默重登/登录页，
         // 绝不无限转圈。成功路径完全不受影响（实测正常恢复 <1s）。
@@ -211,6 +221,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ]);
       } catch {
         ok = false;
+      }
       }
       mark(ok ? "T4 resume-ok" : "T4 resume-fail");
       if (cancelled) return;

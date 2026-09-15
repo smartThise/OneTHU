@@ -34,6 +34,11 @@ export function initInfoLib(): InfoHelper {
       const headers: Array<[string, string]> = [];
       res.headers.forEach((value, key) => headers.push([key, value]));
       const text = await res.text();
+      // 全量请求日志（诊断用）：方法+状态+URL+响应开头，失败时一眼看到服务器回话
+      const { logLine } = await import("./clients.js");
+      void logLine(
+        `ILIB ${init.method ?? "GET"} ${res.status} ${url.slice(0, 90)} → ${text.slice(0, 160).replace(/\s+/g, " ")}`,
+      ).catch(() => undefined);
       return {
         status: res.status,
         headers,
@@ -58,5 +63,12 @@ export async function infoLibLogin(userId: string, password: string): Promise<vo
   helper.clearCookieHandler = async () => {
     http.jar.clear();
   };
-  await helper.login({ userId, password });
+  try {
+    await helper.login({ userId, password });
+  } catch (err) {
+    // 登录失败现场（http.lastDebug 有响应体前 800 字：msg_note/captcha 一眼可见）
+    const { logLine } = await import("./clients.js");
+    void logLine(`INFOLIB login fail: ${err instanceof Error ? err.message : String(err)} | scene=${String(http.lastDebug).slice(0, 400)}`).catch(() => undefined);
+    throw err;
+  }
 }

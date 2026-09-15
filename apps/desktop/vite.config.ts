@@ -6,6 +6,8 @@ import { readFileSync } from "node:fs";
 const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string };
 
 export default defineConfig({
+  // baseOnethuDone: RN WebView 内嵌（file://android_asset）需要相对资源路径
+  base: "./",
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [react()],
   optimizeDeps: {

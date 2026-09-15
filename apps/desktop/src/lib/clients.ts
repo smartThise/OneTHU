@@ -511,6 +511,133 @@ export async function resumeSession(): Promise<boolean> {
   return true;
 }
 
+/** RN 壳嫁接（2026-09-15）：fork 原生层 thu-info-lib 已登录（其 2FA 已完成），
+ *  扁平 cookie 表经桥注入（window.__onethuNativeSession）——免登录直用其会话，
+ *  learn 走免密重建（relearnRoam，id 主会话随要随发票），彻底绕开 learn 二次认证墙。
+ *  远古 thu-app 同款思路（import 其 cookies 表）。 */
+// learn 域嫁接注册（内嵌桥模式）：relearnRoam 优先走原生会话
+import {bridgeGetNativeSession, bridgeEnsureNativeLogin} from "./transport.js";
+if ((globalThis as any).__onethuBridge) {
+  session.setLearnGraftProvider(bridgeGetNativeSession);
+}
+
+/** 桥模式会话（2026-09-15 终局对齐 thu-info-lib）：直连 + RN 原生登录态。
+ *  无 webvpn、无 demo 登录、无 2FA 墙——原生层已认证（或此刻被触发登录），
+ *  cookie 由 RN 共享仓自动携带。探测 learn 首页判活。 */
+export async function adoptBridgeSession(): Promise<boolean> {
+  const plog = (m: string) => void (globalThis as any).__onethuBridge?.log?.(`[桥会话]${m}`);
+  if (!(globalThis as any).__onethuBridge) return false;
+  try {
+    plog("触发原生登录");
+    const okLogin = await bridgeEnsureNativeLogin();
+    plog(`原生登录=${okLogin}`);
+    if (!okLogin) return false;
+    // 直连探测 learn 学期 API（RN cookie 自动带）：200 JSON=会话活。
+    // 首页是框架页（含"登录"字样导航），文本启发式会误杀（2026-09-15 实录 1702B 200 被判死）。
+    const probe = await universalFetch(
+      "https://learn.tsinghua.edu.cn/b/kc/zhjw_v_code_xnxq/getCurrentAndNextSemester?_csrf=probe",
+      {method: "GET"},
+    );
+    const text = await probe.text().catch(() => "");
+    const alive = probe.status === 200 && text.trimStart().startsWith("{");
+    plog(`learnAPI探测 status=${probe.status} alive=${alive} head=${text.slice(0, 40)}`);
+    if (!alive) return false;
+    session.username = session.username || "onethu";
+    session.state = "ready";
+    plog("ready（直连+原生会话）");
+    return true;
+  } catch (e) {
+    plog("异常 " + String(e).slice(0, 160));
+    return false;
+  }
+}
+
+export async function adoptNativeSession(): Promise<boolean> {
+  const plog = (m: string) => void (globalThis as any).__onethuBridge?.log?.(`[嫁接]${m}`);
+  let flat = (globalThis as any).__onethuNativeSession?.cookies?.trim?.() ?? "";
+  let jsid = (globalThis as any).__onethuNativeSession?.jsid ?? "";
+  if (!flat) {
+    plog("快照空 → 向 RN 活取原生会话（等待原生自动重登）");
+    // 活取：__onethuBridge.request + __onethuWaits（与 bridgeFetch 同机制）
+    for (let attempt = 0; attempt < 3 && !flat; attempt++) {
+      flat = await new Promise<string>((resolve) => {
+        const g = globalThis as any;
+        const id = "graft-" + Date.now() + Math.random().toString(36).slice(2);
+        const waits = (g.__onethuWaits ??= {});
+        waits[id] = {resolve: (respJson: string) => {
+          try {
+            const r = JSON.parse(respJson) as {cookies?: string; jsid?: string};
+            resolve((r.cookies ?? "").trim());
+            if (r.jsid) jsid = r.jsid;
+          } catch {
+            resolve("");
+          }
+        }};
+        g.__onethuBridge.request(JSON.stringify({id, payload: "", type: "getNativeSession"}));
+        setTimeout(() => {
+          if (waits[id]) { delete waits[id]; resolve(""); }
+        }, 20000);
+      });
+      if (!flat) plog(`活取第${attempt + 1}轮空`);
+    }
+  }
+  if (!flat) {
+    plog("无原生 cookie（原生层未登录且等待超时）");
+    return false;
+  }
+  // 竞态兜底（2026-09-15 实录：原生登录完成晚于回表）：嫁接半成品失败后
+  // 重新活取再试，最多 3 轮。
+  for (let round = 1; round <= 3; round++) {
+    try {
+      plog(`第${round}轮采用原生会话 ` + flat.split(";").map((x) => x.trim().split("=")[0]).join(","));
+      session.username = session.username || "";
+      session.restoreDemo(flat, jsid);
+      session.restoreInfoCookies(flat);
+      session.reseed();
+      let okLearn = await learn.resume().catch(() => false);
+      plog(`learn.resume=${okLearn}`);
+      if (!okLearn) {
+        okLearn = await session.relearnRoam();
+        plog(`relearnRoam=${okLearn}`);
+      }
+      if (!okLearn) {
+        if (round < 3) {
+          // 重新活取（原生登录此刻可能已完成）
+          flat = await new Promise<string>((resolve) => {
+            const g = globalThis as any;
+            const id = "graft-" + Date.now() + Math.random().toString(36).slice(2);
+            const waits = (g.__onethuWaits ??= {});
+            waits[id] = {resolve: (respJson: string) => {
+              try {
+                const r = JSON.parse(respJson) as {cookies?: string; jsid?: string};
+                resolve((r.cookies ?? "").trim());
+                if (r.jsid) jsid = r.jsid;
+              } catch {
+                resolve("");
+              }
+            }};
+            g.__onethuBridge.request(JSON.stringify({id, payload: "", type: "getNativeSession"}));
+            setTimeout(() => {
+              if (waits[id]) { delete waits[id]; resolve(""); }
+            }, 45000);
+          });
+          if (!flat.includes("JSESSIONID=")) return false;
+          continue;
+        }
+        return false;
+      }
+      session.state = "ready";
+      await info.resume().catch(() => false);
+      plog("ready");
+      return true;
+    } catch (e) {
+      plog("异常 " + String(e).slice(0, 160));
+      return false;
+    }
+  }
+  return false;
+}
+
 /** 是否存在「曾登录」的会话快照（显式 logout 会清空，防止 boot 静默重登顶替登出） */
 async function hasLiveSnapshot(): Promise<boolean> {
   const saved = await store.loadSession().catch(() => null);
@@ -615,9 +742,29 @@ export async function downloadLearnUrl(url: string, filename: string): Promise<s
   return invoke("download_file", { url: target, cookies: jarCookies, filename });
 }
 
+
+/** 桥模式图片抓取：RN 原生 fetch 自动带会话 Cookie 跟重定向，直接转 dataURL。 */
+async function bridgeImageAsDataUrl(url: string): Promise<string> {
+	const resp = await universalFetch(url, {method: "GET"});
+	const mime = (resp.headers.get("content-type") ?? "").split(";")[0];
+	if (!resp.ok || !/^image\//i.test(mime)) {
+		throw new Error(`bridge image not image (mime=${mime} status=${resp.status})`);
+	}
+	const buf = new Uint8Array(await (await resp.blob()).arrayBuffer());
+	if (buf.length < 80) throw new Error("bridge image too small");
+	let bin = "";
+	for (let i = 0; i < buf.length; i += 8192) {
+		bin += String.fromCharCode(...buf.subarray(i, i + 8192));
+	}
+	return `data:${mime};base64,${btoa(bin)}`;
+}
+
 /** 正文图片 → dataURL：webview 的 <img> 不携带应用会话 Cookie，
  *  直挂 learn 地址只会得到登录页；须由应用侧带 Cookie 抓取后内联。 */
 export async function fetchImageAsDataUrl(url: string): Promise<string> {
+	if (!isTauri && typeof window !== "undefined" && "__onethuBridge" in window) {
+		return bridgeImageAsDataUrl(url); // RN 原生 jar 自带 learn 会话
+	}
   const target = withLearnCsrf(url);
   const jarCookies = http.jar
     .getCookies(new URL(target))
@@ -656,6 +803,9 @@ const CAMPUS_PUBLIC_HOSTS = new Set([
  *  ② Cookie 取包装目标域 + 解码真实域两桶合并（HttpClient #cookieHeaderFor 同语义）；
  *  ③ 复用 Rust fetch_binary 抓字节转 dataURL。失败由调用方处理（隐藏图块）。 */
 export async function fetchImageByUrl(url: string, forceWrap = false): Promise<string> {
+	if (!isTauri && typeof window !== "undefined" && "__onethuBridge" in window) {
+		return bridgeImageAsDataUrl(url);
+	}
   let target = url;
   try {
     const host = new URL(url).hostname;

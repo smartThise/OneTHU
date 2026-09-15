@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { Card } from "../components/Layout.js";
 import { helper, infoLibLogin, initInfoLib } from "../lib/infoLib.js";
-import { session } from "../lib/clients.js";
+import { session, logLine } from "../lib/clients.js";
 
 type Row = { name: string; state: "idle" | "run" | "ok" | "err"; ms: number; note: string };
 
@@ -24,7 +24,10 @@ export function InfoLibProbePage() {
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
 
-  const append = (line: string) => setLog((v) => [`${new Date().toLocaleTimeString()} ${line}`, ...v].slice(0, 40));
+  const append = (line: string) => {
+    setLog((v) => [`${new Date().toLocaleTimeString()} ${line}`, ...v].slice(0, 40));
+    void logLine(`INFOLIB ${line}`).catch(() => undefined);
+  };
   const set = (i: number, patch: Partial<Row>) =>
     setRows((v) => v.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
 

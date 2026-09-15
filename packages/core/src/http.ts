@@ -325,6 +325,9 @@ export class HttpClient {
       // 新逻辑：**恒按域名策略**（公网可达域直连、内网专属域包装），粘性开关
       // 不再影响单请求包装决策。直连组与 info app 同款。
       goDirect = PUBLIC_HOSTS.has(host);
+      // 2026-09-15 自审定案：桥模式与桌面端同路由（learn/id/oauth/webvpn 直连，
+      // info 等内网域 webvpn 包装——新闻/图书馆今晚能通全靠包装；全直连会拆掉
+      // 它们）。webvpn 会话由静默重登链（skip-learn 版）自动建立，无需人工登录。
     }
     const target = this.webVPNEncoder && !goDirect && host && !PUBLIC_HOSTS.has(host)
       ? this.webVPNEncoder(url)

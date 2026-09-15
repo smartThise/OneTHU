@@ -10,6 +10,11 @@ import type { FetchLike } from "@onethu/core";
 export const isTauri =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
+/** 完整运行环境：Tauri 桌面端 或 OneTHU RN 内嵌桥（原生网络栈，无 CORS 限制）。 */
+export const isFullApp =
+	isTauri ||
+	(typeof window !== "undefined" && "__onethuBridge" in window);
+
 /** 每跳 cookie 供应者（clients.ts 注入）：包装 URL 解码出真实域 / 直连跳自身域，
  *  从 jar 取该域会话 cookie —— 教务漫游链的 CAS 中间跳必须带 id 桶会话。 */
 let hopCookieProvider: ((hopUrl: string) => string | null) | null = null;
@@ -131,6 +136,55 @@ async function serializeFormData(
     bin += String.fromCharCode(...sub);
   }
   return { textBody: null, b64Body: btoa(bin), contentType };
+}
+
+/** RN 桥（OneTHU-App 内嵌模式）：window.__onethuBridge 由 RN 侧注入。
+ *  全部校园请求走 RN 原生 fetch（OkHttp 连接池 + 原生 cookie 存储 =
+ *  THU Info 同款网络环境），WebView 只做视图层。 */
+type BridgeEvent = {t: string; k: string; info: string};
+export const bridgeEvents: BridgeEvent[] = ((globalThis as any).__onethuEvents ??= []);
+export function pushBridgeEvent(k: string, info: string): void {
+    (globalThis as any).__onethuBridge?.log?.(`[桥]${k} ${info}`);
+    bridgeEvents.push({t: new Date().toTimeString().slice(0, 8), k, info});
+    if (bridgeEvents.length > 300) bridgeEvents.splice(0, bridgeEvents.length - 300);
+}
+
+export async function bridgeFetch(url: string, init: RequestInit = {}): Promise<Response> {
+    const bridge = (globalThis as { __onethuBridge?: { request: (p: string) => void } }).__onethuBridge;
+    if (!bridge) throw new Error("bridge 未注入");
+    const payload = JSON.stringify({
+        url,
+        method: init.method ?? "GET",
+        headers: (init.headers as Record<string, string>) ?? {},
+        body: typeof init.body === "string" ? init.body : undefined,
+    });
+    const text = await new Promise<string>((resolve, reject) => {
+        const id = String(Date.now()) + Math.random().toString(36).slice(2);
+        (globalThis as Record<string, unknown>).__onethuResolve?.(id, ""); // noop 占位防未定义
+        const waits = ((globalThis as any).__onethuWaits ??= {});
+        waits[id] = { resolve, reject };
+        pushBridgeEvent("→", `${init.method ?? "GET"} ${url.replace(/^https?:\/\//, "").slice(0, 60)}`);
+        bridge.request(JSON.stringify({ id, payload }));
+        setTimeout(() => {
+            if (waits[id]) {
+                delete waits[id];
+                pushBridgeEvent("⏱", `timeout ${url.replace(/^https?:\/\//, "").slice(0, 50)}`);
+                reject(new Error("bridge timeout"));
+            }
+        }, 30000);
+    }).then((text) => {
+        try {
+            const r = JSON.parse(text) as {status: number};
+            pushBridgeEvent("←", `${r.status} ${url.replace(/^https?:\/\//, "").slice(0, 50)}`);
+        } catch {
+            pushBridgeEvent("!", `bad-reply ${text.slice(0, 60)}`);
+        }
+        return text;
+    });
+    const r = JSON.parse(text) as { status: number; headers: Array<[string, string]>; body: string; finalUrl: string };
+    const h = new Headers();
+    r.headers.forEach(([k, v]) => h.set(k, v));
+    return new Response(r.body, { status: r.status, headers: h });
 }
 
 export async function tauriFetch(url: string, init: RequestInit = {}): Promise<Response> {
@@ -280,7 +334,11 @@ function b64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
 
 /** 注入 HttpClient 的 FetchLike */
 export const universalFetch: FetchLike = (url, init) =>
-  isTauri ? tauriFetch(url, init) : window.fetch(url, init);
+  (globalThis as any).__onethuBridge
+    ? bridgeFetch(url, init)
+    : isTauri
+      ? tauriFetch(url, init)
+      : window.fetch(url, init);
 
 /** 登录失败的场景化提示 */
 export function explainNetworkError(err: unknown): string {
@@ -294,4 +352,54 @@ export function explainNetworkError(err: unknown): string {
     return err.message;
   }
   return "未知网络错误";
+}
+
+
+/** 活取 RN 原生 thu-info-lib 扁平 cookie 表（嫁接用）。失败/超时返回 null。 */
+export function bridgeGetNativeSession(timeoutMs = 45000): Promise<{cookies: string; jsid: string} | null> {
+  const g = globalThis as any;
+  if (!g.__onethuBridge?.request) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const id = "graft-" + Date.now() + Math.random().toString(36).slice(2);
+    const waits = (g.__onethuWaits ??= {});
+    waits[id] = {resolve: (respJson: string) => {
+      try {
+        const r = JSON.parse(respJson) as {cookies?: string; jsid?: string};
+        if (r.cookies && r.cookies.includes("JSESSIONID=")) {
+          resolve({cookies: r.cookies, jsid: r.jsid ?? ""});
+        } else {
+          resolve(null);
+        }
+      } catch {
+        resolve(null);
+      }
+    }};
+    g.__onethuBridge.request(JSON.stringify({id, payload: "", type: "getNativeSession"}));
+    setTimeout(() => {
+      if (waits[id]) { delete waits[id]; resolve(null); }
+    }, timeoutMs);
+  });
+}
+
+
+/** 触发 RN 原生全链登录（thu-info-lib，单飞节流在 RN 侧）。返回是否成功。 */
+export function bridgeEnsureNativeLogin(timeoutMs = 90000): Promise<boolean> {
+  const g = globalThis as any;
+  if (!g.__onethuBridge?.request) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const id = "nlogin-" + Date.now() + Math.random().toString(36).slice(2);
+    const waits = (g.__onethuWaits ??= {});
+    waits[id] = {resolve: (respJson: string) => {
+      try {
+        const r = JSON.parse(respJson) as {ok?: boolean};
+        resolve(!!r.ok);
+      } catch {
+        resolve(false);
+      }
+    }};
+    g.__onethuBridge.request(JSON.stringify({id, payload: "", type: "ensureNativeLogin"}));
+    setTimeout(() => {
+      if (waits[id]) { delete waits[id]; resolve(false); }
+    }, timeoutMs);
+  });
 }
