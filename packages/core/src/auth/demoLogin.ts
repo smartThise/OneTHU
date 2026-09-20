@@ -292,7 +292,16 @@ export async function demoLogin(
     return "logged_in";
   }
 
-  // 检查是否需要 2FA（仅在非成功页上）
+  // CAS 拒绝账密时仍返回登录表单，页脚也有「短信 / 企业微信」等说明。
+  // 必须先保留真正的错误，否则误入 FIND_APPROACHES 后只剩「未知异常」。
+  const loginError = msgNoteOf(submitHtml);
+  if (loginError || /<form[^>]*id=["']theform["']/i.test(submitHtml)) {
+    const reason = loginError || "登录未完成，请检查账号、密码或验证码后重试。";
+    s.debug = "FINAL-URL: " + submitUrl2 + "\nMSG: " + reason;
+    return { error: reason };
+  }
+
+  // 检查是否需要 2FA（仅在非成功、非登录错误页上）
   if (
     submitHtml.includes("二次认证") || // 新版 CAS 的 2FA 页标题（React SPA），demo 时代无此词
     submitHtml.includes("双因素") ||
@@ -801,4 +810,3 @@ export async function demoReenterLearn(
   if (!csrf) throw new Error("重新漫游失败（id CAS 会话可能已过期，需重新登录）");
   return csrf;
 }
-

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Card, PageHead, SectionHead } from "../components/Layout.js";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { clearRemembered, loadRemembered, session } from "../lib/clients.js";
+import { clearRemembered, loadRemembered, session, isTauri } from "../lib/clients.js";
 import { clearHomeLayout } from "../lib/homeCards.js";
 import { useFavs } from "../state/favs.js";
 import { parseFavs, resetFavs } from "../state/favorites.js";
@@ -332,6 +332,8 @@ export function SettingsPage() {
           </div>
         )}
       </Card>
+      <DownloadSettings />
+
       <SectionHead title="首页" />
       <Card>
         <div className="setting-row">
@@ -463,6 +465,77 @@ export function SettingsPage() {
   );
 }
 
+type DownloadDirectory = { path: string; isDefault: boolean };
+
+function DownloadSettings() {
+  const [visible, setVisible] = useState(isTauri && !/Android/i.test(navigator.userAgent));
+  const [directory, setDirectory] = useState<DownloadDirectory | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    let active = true;
+    void invoke<DownloadDirectory | null>("download_directory_get")
+      .then((value) => {
+        if (!active) return;
+        setDirectory(value);
+        if (!value) setVisible(false);
+      })
+      .catch((e: unknown) => {
+        if (active) setMessage(`读取下载位置失败：${e instanceof Error ? e.message : String(e)}`);
+      })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [visible]);
+
+  const changeDirectory = async (reset: boolean) => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const value = await invoke<DownloadDirectory | null>(
+        reset ? "download_directory_reset" : "download_directory_pick",
+      );
+      if (value) {
+        setDirectory(value);
+        setMessage(reset ? "已恢复默认下载位置。" : "下载位置已保存，下次下载时生效。");
+      }
+    } catch (e) {
+      setMessage(`修改失败：${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!visible) return null;
+  return (
+    <>
+      <SectionHead title="下载" />
+      <Card>
+        <div className="setting-row" style={{ flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 240px", minWidth: 0 }}>
+            <div className="setting-title">下载位置</div>
+            <div className="setting-desc" style={{ overflowWrap: "anywhere" }}>
+              {loading ? "正在读取…" : directory?.path || "下载位置读取失败，请重新选择文件夹或恢复默认。"}
+            </div>
+            <div className="setting-desc">网络学堂附件与云盘文件将保存到此文件夹，已下载的文件不会移动。</div>
+            {message ? <div role="status" style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)", overflowWrap: "anywhere" }}>{message}</div> : null}
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <button className="btn" disabled={loading || busy} onClick={() => void changeDirectory(false)}>
+              选择文件夹
+            </button>
+            <button className="btn" disabled={loading || busy || directory?.isDefault} onClick={() => void changeDirectory(true)}>
+              恢复默认
+            </button>
+          </div>
+        </div>
+      </Card>
+    </>
+  );
+}
+
 /* ── 版本更新检查（GitHub Releases）── */
 function UpdateRow() {
   const [checking, setChecking] = useState(false);
@@ -520,5 +593,4 @@ function UpdateRow() {
     </div>
   );
 }
-
 

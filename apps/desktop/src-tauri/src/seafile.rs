@@ -169,7 +169,7 @@ pub async fn seafile_dir(token: String, repo_id: String, path: String) -> Result
     Ok(out)
 }
 
-/// 下载到 ~/Downloads（Content-Disposition 真名优先；同 lib.rs download_file 约定）
+/// 下载到设置中的下载目录（Content-Disposition 真名优先；同 lib.rs download_file 约定）
 #[tauri::command]
 pub async fn seafile_download(
     app: tauri::AppHandle,
@@ -233,11 +233,7 @@ pub async fn seafile_download(
     }
     #[cfg(not(target_os = "android"))]
     {
-        let _ = &app;
-        let home = std::env::var("HOME")
-            .or_else(|_| std::env::var("USERPROFILE"))
-            .map_err(|_| "无法定位主目录")?;
-        let dir = std::path::Path::new(&home).join("Downloads");
+        let dir = crate::downloads::directory(&app)?;
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         let path = dir.join(&safe_name);
         std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;

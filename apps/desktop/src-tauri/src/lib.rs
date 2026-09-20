@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 mod mail;
 mod seafile;
+mod downloads;
 mod harness_embed;
 mod plugins;
 use std::collections::HashMap;
@@ -681,7 +682,7 @@ async fn save_text_file(
     Ok(Some(real.to_string_lossy().to_string()))
 }
 
-/// 带会话 Cookie 下载文件到 ~/Downloads（learn 直连；登录失效/空文件识别拒绝）。
+/// 带会话 Cookie 下载文件到设置中的下载目录（learn 直连；登录失效/空文件识别拒绝）。
 /// 落盘名：响应 Content-Disposition 真名优先，其次调用方传入名（title.fileType）。
 #[tauri::command]
 async fn download_file(
@@ -733,7 +734,6 @@ async fn download_file(
         .and_then(parse_cd_filename)
         .filter(|n| !n.trim().is_empty())
         .unwrap_or(filename);
-    // Windows 没有 HOME（只有 USERPROFILE）——旧版在 Windows 下载文件恒报"无法定位主目录"
     let safe_name: String = name
         .chars()
         .map(|c| if c == '/' || c == ':' { '_' } else { c })
@@ -768,11 +768,7 @@ async fn download_file(
     }
     #[cfg(not(target_os = "android"))]
     {
-        let _ = &app;
-        let home = std::env::var("HOME")
-            .or_else(|_| std::env::var("USERPROFILE"))
-            .map_err(|_| "无法定位主目录")?;
-        let dir = std::path::Path::new(&home).join("Downloads");
+        let dir = downloads::directory(&app)?;
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         let path = dir.join(&safe_name);
         std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
@@ -1326,6 +1322,7 @@ tauri::Builder::default()
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            downloads::download_directory_get,downloads::download_directory_pick,downloads::download_directory_reset,
             log_debug,read_file_text,trace_key,macos_location,speech_supported,speech_start,speech_poll,speech_stop,mail::mail_list,mail::mail_read,mail::mail_mark_seen,mail::mail_send,mail::mail_search,seafile::seafile_account,seafile::seafile_repos,seafile::seafile_dir,seafile::seafile_download,seafile::seafile_upload,seafile::seafile_mkdir,seafile::seafile_share,seafile::seafile_search,seafile::seafile_pick_upload,http_request,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,plugin_dir_remove,state_read,state_write,state_delete,
             open_external,open_eid_window,open_sports_window,venue_sso_set,
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,

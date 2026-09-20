@@ -129,7 +129,7 @@ export async function refreshDir(repoId: string, path: string): Promise<void> {
 export async function seafileDownload(repoId: string, path: string): Promise<string> {
   if (!cfg) throw new Error("云盘未配置");
   const local = await invoke<string>("seafile_download", { token: cfg.token, repoId, path });
-  showToast(`已下载到 Downloads/${local.split("/").pop()}`);
+  showToast(`已下载到：${local}`);
   return local;
 }
 

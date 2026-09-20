@@ -580,7 +580,7 @@ export function withLearnCsrf(url: string): string {
   }
 }
 
-/** learn 文件下载：带会话 Cookie 直连取字节，落盘 ~/Downloads */
+/** learn 文件下载：带会话 Cookie 直连取字节，落盘到设置中的下载目录 */
 export async function downloadLearnFile(fileId: string, filename: string): Promise<string> {
   const { LEARN_FILE_DOWNLOAD } = await import("@onethu/core");
   return downloadLearnUrl(LEARN_FILE_DOWNLOAD(fileId), filename);
