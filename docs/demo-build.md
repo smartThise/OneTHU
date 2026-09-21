@@ -1,7 +1,7 @@
 # 脱敏演示版（OneTHU Demo）构建说明
 
 本分支（`demo`）用于构建**自动化演示用**的脱敏版应用。它与正式版是同一份代码，
-只有三处差异。
+只在少数文件上有差异（见下），镜像纪律见「双线纪律」。
 
 ## 与正式版的差异（全部差异就这三处）
 
@@ -13,6 +13,21 @@
 
 因为应用 id 不同（`app.onethu.demo`），脱敏版与正式版**可以装在同一台机器 / 同一台手机上共存**，
 互不覆盖数据。
+
+## 双线纪律
+
+`demo` 与发布线（`dev2` → 远端 `dev3`）**只允许在上面列出的文件上不同**。镜像改动只按文件摘取：
+
+```bash
+git checkout <sha> -- <files>    # 在发布线单独提交；本分支独有的文件不得带过去
+```
+
+**不得 `git merge` 或快进把 `demo` 合入发布线**。2026-09-21 的实际事故即由此产生：demo 的两个
+专属提交（脱敏开关、独立应用身份）进入 `dev3`，发布线于是带着 `DESENSITIZE_ENABLED = true`
+（正式版会脱敏）与 `identifier = app.onethu.demo`（装成另一个应用、覆盖不了线上版本）。
+
+门禁：`node tools/release-line-check.mjs` 检查 git 引用（发布线必须脱敏关闭、身份为
+`app.onethu.desktop`、无 demo 专属产物；demo 线反之），`--worktree` 在镜像提交前自查工作区。
 
 ## 脱敏口径
 
@@ -38,8 +53,13 @@
 pnpm install
 pnpm --filter @onethu/desktop tauri:dev      # 桌面壳开发态（脱敏已生效）
 pnpm --filter @onethu/desktop tauri:build    # macOS DMG / Windows EXE（productName = OneTHU Demo）
-pnpm --filter @onethu/desktop exec tauri android build --apk --target aarch64
+
+bash apps/desktop/scripts/build-demo-apk.sh  # Android APK：脱敏 + app.onethu.demo，工程落在 ~/onethu-android-demo
 ```
+
+发布线的对应脚本是 `build-release-apk.sh`：两者都把 Android 工程放在内盘 APFS（exFAT 卷上
+Gradle 会误读 AppleDouble 副档），差别是发布线脚本在构建前先自检发布线不变量，demo 线脚本
+使用独立的应用身份与工程目录。
 
 **Android 注意事项**：`apps/desktop/src-tauri/gen/android` 为本地生成物（不入库）。若此前已按
 正式版生成过 Android 工程，应用 id 仍为 `app.onethu.desktop`，需重新生成才能得到
