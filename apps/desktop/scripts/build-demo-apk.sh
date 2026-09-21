@@ -81,10 +81,10 @@ if needle in t:
 PY
 
 # ③ 符号链接指向内盘工程
-if [ "$PREV_LINK" != "$PROJ_PRIMARY" ]; then
-  ln -sfn "$PROJ_PRIMARY" "$GEN"
-  echo "· gen/android → ${PROJ_PRIMARY}（原指向：${PREV_LINK:-无}）"
-fi
+# 无条件重指：曾经用 `if [ "$PREV_LINK" != "$PROJ_PRIMARY" ]` 判断，结果上一次构建
+# 留下的指向（正式工程）会让 demo 包实际打进正式工程（产物名是 demo、内容是正式版）。
+ln -sfn "$PROJ_PRIMARY" "$GEN"
+echo "· gen/android → ${PROJ_PRIMARY}（原指向：${PREV_LINK:-无}）"
 
 # ④ 清干净（exFAT 时代残留的 ._ 与旧产物一并处理）
 rm -rf "$PROJ_PRIMARY/build" "$PROJ_PRIMARY/buildSrc/build" "$PROJ_PRIMARY/app/build" \
@@ -116,6 +116,13 @@ BT="$(ls -d "$ANDROID_HOME"/build-tools/* 2>/dev/null | tail -1)"
 "$BT/zipalign" -p -f 4 "$SRC" "$OUT"
 "$BT/apksigner" sign --ks "$HOME/.android/debug.keystore" --ks-key-alias androiddebugkey \
   --ks-pass pass:android --key-pass pass:android "$OUT"
+
+# ③.5 产物身份校验：demo 包必须是 app.onethu.demo（防「打错工程」这类静默错配）
+PKG="$("$BT/aapt2" dump badging "$OUT" 2>/dev/null | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -1)"
+if [ "$PKG" != "app.onethu.demo" ]; then
+  echo "✗ 产物包名是 ${PKG:-未知}，不是 app.onethu.demo——工程指向错了（期望 ${PROJ_PRIMARY}）"
+  exit 1
+fi
 
 echo
 echo "✓ 产物：$OUT ($(du -h "$OUT" | cut -f1))"
