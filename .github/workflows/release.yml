@@ -49,7 +49,7 @@ jobs:
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
       # sccache：跨运行的编译结果缓存（Windows 上依赖编译是主要开销）
-      - uses: mozilla-actions/sccache-action@v8
+      - uses: mozilla-actions/sccache-action@v0.0.11
       - uses: swatinem/rust-cache@v2
         with:
           # sidecar 是独立 cargo 工程（target 在自己目录下），不列出则每轮
