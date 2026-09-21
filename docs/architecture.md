@@ -152,8 +152,12 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
 - 声明 `dark: true` 的主题激活时，将 `document.documentElement.style.colorScheme`
   设为 `dark`，使原生控件与滚动条同步切换；切换回浅色主题或默认外观时恢复 `light`，
   维持原有针对 Android WebView 强制反色的防护。
-- 内置深色主题「凝夜」（`onethu.theme.night`）在主题层以附加 CSS 修正
-  `global.css` 中硬编码的浅色元素。
+- 内置深色主题「凝夜」（`onethu.theme.night`）以令牌覆盖修正 `global.css` 的浅色硬编码；
+  骨架屏流光高光已令牌化（`--skeleton-shine`，亮色 0.6 / 凝夜 0.12），CSS 侧不再硬编码白色。
+- **内置主题升级通道**：已安装的内置主题与随版本分发的新定义比对，**版本号或令牌集任一
+  不同即整体刷新**，因此内置主题的出厂设置不会被用户改动保留；`source: "plugin"` 的主题
+  不参与（插件可能占用同名 id）。仅比较版本号会漏掉「补了令牌却未升版本」的情形——护栏
+  `tools/theme-builtin-upgrade-test.mjs` 断言每个 dark 主题都覆盖 `--skeleton-shine`。
 
 ## 5. 模型调度（onethu.harness）
 

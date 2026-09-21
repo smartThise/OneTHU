@@ -55,7 +55,7 @@
 
 | 项 | 位置 | 说明 |
 |---|---|---|
-| 首启导览 | `components/OnboardingTour.tsx`、`state/onboarding.ts` | 首屏二选一（自行选择 / 按场景预设）→ 侧栏功能（2 列方块，带图标与内容说明）→ 各页二级页签（chip 排列）→ 收藏夹引导（一键创建「示例收藏夹」并放入 网络学堂 / 选课 / 空教室 三项原子）。选课不参与询问；可跳过、可重放 |
+| 首启导览 | `components/OnboardingTour.tsx`、`state/onboarding.ts` | 首屏二选一（自行选择 / 按场景预设）→ 侧栏功能（2 列方块，带图标与内容说明）→ 各页二级页签（chip 排列）→ 收藏夹引导（一键创建「示例收藏夹」并放入 网络学堂 / 选课 / 空教室 三项原子）。账号接入四步（雨课堂 / OJ 平台 / 邮箱日历 / 云盘，已配置项只标识不重复索要）→ 桌面小组件（一键放置「今日日程」，启动器不支持时给出长按桌面的手动路径）；选课不参与询问，可跳过、可重放。导览键随内容升版本（账号步骤 v2、小组件步骤 v3，`onethu.onboarded.v3`）：导览有新内容时新旧用户都看一轮 |
 | 场景预设 | `state/onboarding.ts:PRESETS` | 完整 / 极简 / 预约狂人 / 信息大师；与手动路径写同一批既有存储（`favs.foldSidebar`、`saveTabLayout`、`homeCards`） |
 | 设置页二级页签 | `pages/Settings.tsx` | 页签：账号 / 通知与提醒 / 外观与布局 / 数据与同步 / 下载与存储 / 插件 / 关于；形态与信息页一致（`SegmentedOverflow` + `role="tab"`）；「管理栏目」接入既有 `TabManageModal`，写入 `tabLayout("settings")` |
 | 设置页操作区 | 同上 | 「导览」与「管理栏目」并列；导览不再占用页签 |

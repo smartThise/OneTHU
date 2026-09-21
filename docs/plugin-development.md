@@ -158,7 +158,8 @@ export const theme = {
 
 | 类别 | 变量 |
 |---|---|
-| 面 | `--bg`、`--bg-soft`、`--surface`、`--surface-2`、`--surface-3`、`--skeleton` |
+| 面 | `--bg`、`--bg-soft`、`--surface`、`--surface-2`、`--surface-3` |
+| 骨架屏 | `--skeleton`、`--skeleton-shine`（流光高光；**深色主题必须覆盖**，否则暗底上会扫过一道白色高光） |
 | 线 | `--border`、`--border-soft`、`--border-strong` |
 | 文字 | `--text-1`、`--text-2`、`--text-3`、`--text-dim` |
 | 品牌与强调 | `--primary`、`--primary-hover`、`--on-primary`、`--accent`、`--accent-soft`、`--accent-border` |
@@ -168,6 +169,12 @@ export const theme = {
 | 字体 | `--font-ui`、`--font-mono` |
 | 字号 | `--text-xxs` 至 `--text-xl` |
 | 间距与形状 | `--gap-1` 至 `--gap-6`、`--r-sm`、`--r-md`、`--r-lg`、`--r-pill`、`--sidebar-w` |
+
+**内置主题的升级通道**：已安装的内置主题在启动时与随版本分发的新定义比对，**版本号或
+令牌集任一不同即整体刷新为新定义**，因此用户对内置主题的修改不会保留（「恢复内置主题」
+同理），删除名单依然生效。声明 `source: "plugin"` 的主题不参与该通道——插件可能占用同名
+id，内置定义不得覆盖插件主题。补充令牌后即使忘记升版本也会被令牌集判据捕获（护栏
+`tools/theme-builtin-upgrade-test.mjs`）。
 
 **实现边界**（边界契约）：主题只做令牌覆盖，不得改变组件结构与布局骨架。深色主题
 如需修正应用内硬编码的浅色元素，通过 `css` 字段附加作用域限定的规则，示例：

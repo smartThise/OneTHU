@@ -61,6 +61,13 @@ bash apps/desktop/scripts/build-demo-apk.sh  # Android APK：脱敏 + app.onethu
 Gradle 会误读 AppleDouble 副档），差别是发布线脚本在构建前先自检发布线不变量，demo 线脚本
 使用独立的应用身份与工程目录。
 
+两条防错配护栏（2026-09-21 加）：
+
+- **符号链接无条件重指**：`gen/android` 每次都重指到 demo 工程。此前写成「与当前指向不同
+  才改」，于是上一次构建留下的正式工程指向被沿用，产物名是 demo、内容却是正式版。
+- **构建后校验产物包名**：用 `aapt2 dump badging` 读取产物，包名不是 `app.onethu.demo`
+  即报错退出——把「打错工程」这类静默错配挡在安装之前。
+
 **Android 注意事项**：`apps/desktop/src-tauri/gen/android` 为本地生成物（不入库）。若此前已按
 正式版生成过 Android 工程，应用 id 仍为 `app.onethu.desktop`，需重新生成才能得到
 `app.onethu.demo`（否则会覆盖正式版安装）：

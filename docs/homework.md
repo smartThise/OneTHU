@@ -80,7 +80,7 @@
 
 | 能力 | 实现要点 |
 |---|---|
-| 插图 | 四个通道：工具栏选图 / 拍照（`capture="environment"`）/ 粘贴 / 拖拽；均经官方正文插图通道（`get_aliyun_oss_token` 表单直传），判卷侧读取正文图片 |
+| 插图 | 四个通道：工具栏选图 / 拍照（`capture="environment"`）/ 粘贴 / 拖拽；均经官方正文插图通道（`get_aliyun_oss_token` 表单直传），判卷侧读取正文图片。**插图必须带 `referrerpolicy="no-referrer"`**：CDN 的 Referer 白名单不放行应用来源（`tauri.localhost` 返回 403），上传成功但渲染破损；插入、粘贴、受控值重渲染、草稿回填与提交态均须统一加固（复用 `yktBody.hardenYktImgs`） |
 | 公式 | LaTeX 输入并以内置 KaTeX 实时预览；编辑器内为 `img.kfformula`，提交时由 `toSubmitHtml()` 转为官方形态（1px gif 的 `src` 与 `data-latex` 并存），并包裹 `<div class="custom_ueditor_cn_body">` |
 | 草稿 | 按「课堂 + 题目」持久化在 localStorage，提交成功后清除；再次进入以服务端 `my_answer` 回填 |
 | 提交 | 用户显式点击「提交」并经确认对话框（展示剩余次数与覆盖语义）后调用 `submitYktSubjective`；按钮文案为「提交作答」或「提交（剩余 N 次）」 |
