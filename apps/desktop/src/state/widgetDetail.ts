@@ -19,6 +19,9 @@ export interface WidgetDetailDeps {
   schedule: PlanScheduleEntry[];
   homework: PlanHomework[];
   now: number;
+  /** 校园卡余额（由调用方从 SWR 缓存读入；本模块保持纯函数，不自己碰缓存/网络）。
+   *  null/undefined = 应用侧还没拉到过余额 → 如实说「打开应用刷新」，不猜数字。 */
+  cardBalance?: { amount: number; at?: number } | null;
   /** 最多补几行（原生按占位决定；这里给个上界免得白算） */
   maxRows?: number;
 }
@@ -68,6 +71,23 @@ export function atomDetail(
   deps: WidgetDetailDeps,
 ): { rows: DetailRow[]; footer?: string } | null {
   const max = Math.max(1, deps.maxRows ?? 4);
+
+  /* 校园卡余额（「校园卡余额」原子 = widget/cardEntry）：余额来自应用侧缓存 ——
+   * 小组件进程没有网络，只有应用算快照时把数字递进来。2026-09-21 用户实录：
+   * 这个原子的桌面组件此前只显示标题，不显示余额。 */
+  if (ref.kind === "widget" && ref.key === "cardEntry") {
+    const bal = deps.cardBalance;
+    if (!bal || !Number.isFinite(bal.amount)) return { rows: [], footer: "打开应用刷新余额" };
+    return {
+      rows: [
+        {
+          text: `余额 ¥${bal.amount.toFixed(2)}`,
+          sub: bal.at ? `更新于 ${hm(bal.at)}` : undefined,
+        },
+      ],
+      footer: "点一下进校园卡",
+    };
+  }
 
   /* 课程：这门课接下来什么时候上、在哪 */
   if (ref.kind === "course") {

@@ -76,5 +76,30 @@ const base = {
   eq("maxRows 不影响脚注（脚注是总数）", d.footer, "4 次待上");
 }
 
+/* ⑤ 校园卡余额（widget/cardEntry）：余额来自应用侧缓存注入 ——
+ * 2026-09-21 用户实录：这个原子的桌面组件此前只显示标题、不显示余额。
+ * 注意这一条**不能**退化成「其余原子不硬凑」：余额是我们真能算的。 */
+{
+  const withBal = atomDetail(
+    { kind: "widget", key: "cardEntry" },
+    { title: "校园卡余额", sub: "快捷入口" },
+    { ...base, cardBalance: { amount: 123.4, at: Date.now() } },
+  );
+  eq("校园卡：有余额时给出一行", withBal.rows.length, 1);
+  eq("校园卡：金额保留两位", withBal.rows[0].text, "余额 ¥123.40");
+  eq("校园卡：脚注指路", withBal.footer, "点一下进校园卡");
+
+  const noBal = atomDetail({ kind: "widget", key: "cardEntry" }, { title: "校园卡余额" }, base);
+  eq("校园卡：没拉到余额时不猜数字", noBal.rows, []);
+  eq("校园卡：没余额时如实提示", noBal.footer, "打开应用刷新余额");
+
+  const nan = atomDetail(
+    { kind: "widget", key: "cardEntry" },
+    { title: "校园卡余额" },
+    { ...base, cardBalance: { amount: Number.NaN } },
+  );
+  eq("校园卡：坏数字按「没拉到」处理", nan.footer, "打开应用刷新余额");
+}
+
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`);
 process.exit(fail === 0 ? 0 : 1);

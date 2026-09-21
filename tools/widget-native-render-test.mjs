@@ -144,4 +144,12 @@ assert.ok(nightColors.includes("#E8EBF2"), "夜色文字色必须在位");
 assert.ok(nightBg.includes("#151A24"), "夜色卡底必须在位");
 assert.ok(!/--/.test(nightBg.replace(/<!--[\s\S]*?-->/g, "")), "XML 注释外不得有连续连字符（AAPT 解析失败实录）");
 
+/* 页脚分流（2026-09-21 用户实录：洗衣机状态正常、底下多一行「今天没有课与截止」）：
+ * 页脚重算只允许用于「今日」内容（带 counts），其余内容必须用它自带的 footer。 */
+const kw = readFileSync(new URL("../apps/desktop/src-tauri/plugins/onethu-mobile/android/src/main/java/app/onethu/mobile/OnethuWidget.kt", import.meta.url), "utf8");
+const footerFn = kw.slice(kw.indexOf("private fun footerOf("), kw.indexOf("private fun footerOf(") + 900);
+assert.ok(/content\.optJSONObject\("counts"\)\s*\n?\s*\?: return content\.optString\("footer"\)/.test(footerFn.replace(/\s+/g, " ")) ||
+  /\?: return content\.optString\("footer"\)/.test(footerFn),
+  "非今日内容必须用自带的 footer（否则详情组件被套上今日空态文案）");
+
 console.log("widget-native-render-test: 全部断言通过（nativeRow 7 态 + 脚注标题 3 态 + 快照契约 + 两端同步守卫）");
