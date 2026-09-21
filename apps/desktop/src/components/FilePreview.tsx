@@ -813,6 +813,8 @@ export function FilePreviewHost() {
   const [cur, setCur] = useState<OpenState | null>(null);
   const [phase, setPhase] = useState<Phase>({ s: "loading" });
   const [dlBusy, setDlBusy] = useState(false);
+  /** Windows 上「仍要尝试预览」的低调出口（默认 false：直接给下载路径，不冒白屏的险） */
+  const [winTryPreview, setWinTryPreview] = useState(false);
   const [dlMsg, setDlMsg] = useState("");
   const seqRef = useRef(0);
 
@@ -999,6 +1001,29 @@ export function FilePreviewHost() {
             </div>
           ) : null}
 
+          {IS_WINDOWS_HOST && !winTryPreview ? (
+            /* Windows 文件预览**暂不可用**（2026-09-21 用户定案）：WebView2 上点开任意预览
+               都会白屏，而排查成本远高于收益（用户原话「win 的构建维护成本太高了」）。
+               所以这里不再尝试渲染，直接给出明确说明与下载出口——下载后本地用系统应用打开
+               是可用路径。保留一个低调的「仍要尝试」出口：将来要在 Windows 上接着排查时，
+               不用改代码就能进到渲染分支（同时错误边界会把崩溃收在面板内）。 */
+            <div style={{ padding: 16, fontSize: 13, lineHeight: 1.8 }}>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>Windows 暂不支持应用内预览</div>
+              <div style={{ color: "var(--text-3)", marginBottom: 4 }}>
+                已知问题：Windows 端打开预览会白屏，暂未修复。请下载后用系统自带应用查看。
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                <button className="btn btn-primary" disabled={dlBusy} onClick={() => void doDownload()}>
+                  {dlBusy ? "下载中…" : "下载"}
+                </button>
+                <button className="btn" disabled={dlBusy} onClick={() => void doSaveAs()}>另存为…</button>
+                <button className="btn btn-ghost" onClick={() => setWinTryPreview(true)}>仍要尝试预览</button>
+              </div>
+              {dlMsg ? (
+                <div style={{ marginTop: 10, fontSize: 12, color: "var(--text-3)", wordBreak: "break-all" }}>{dlMsg}</div>
+              ) : null}
+            </div>
+          ) : (
           <PreviewErrorBoundary onRetry={retry}>
           {view?.kind === "image" ? (
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, background: "rgba(127,127,127,.05)", minHeight: 220 }}>
@@ -1077,6 +1102,7 @@ export function FilePreviewHost() {
             </div>
           ) : null}
           </PreviewErrorBoundary>
+          )}
         </div>
 
         {dlMsg ? (

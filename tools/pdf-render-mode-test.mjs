@@ -32,6 +32,14 @@ assert.ok(/PDF-MODE canvas/.test(fpSrc), "诊断日志要写清通道=canvas（�
 assert.ok(!/choosePdfRenderMode/.test(fpSrc) && !/choosePdfRenderMode/.test(hostSrc),
   "分档函数已删除——通道统一后不该再存在「按平台选 embed」的入口");
 
+/* ---------- [1b] Windows：预览暂不可用，只给下载（用户定案） ----------
+ * 用户原话：「win 的构建维护成本太高了，我们先注明 win 的文件预览暂不可用，只能下载吧」。
+ * 所以 Windows 不得再尝试渲染预览主体，必须给明确说明 + 下载/另存为出口。 */
+assert.ok(/IS_WINDOWS_HOST && !winTryPreview/.test(fpCode), "Windows 必须走「暂不可用」分支，不再尝试渲染");
+assert.ok(fpCode.includes("Windows 暂不支持应用内预览"), "要给用户明确说明（不要静默失败）");
+assert.ok(fpCode.includes("doDownload()") && fpCode.includes("doSaveAs()"), "必须提供下载与另存为出口");
+assert.ok(fpCode.includes("仍要尝试预览"), "保留低调的排查出口（将来在 Windows 上复现时不必改代码）");
+
 /* ---------- [2] 预览崩溃兜底：任何预览出错不许白屏 ---------- */
 assert.ok(/class PreviewErrorBoundary/.test(fpSrc), "预览必须有错误边界（否则一处抛错整窗白屏）");
 assert.ok(/getDerivedStateFromError/.test(fpSrc), "错误边界要真的接管渲染错误");
