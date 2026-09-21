@@ -13,7 +13,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { http, downloadLearnUrl, saveLearnUrlAs, withLearnCsrf } from "../lib/clients.js";
 import { isAndroidHost } from "../lib/yktWebview.js";
-import { choosePdfRenderMode, isAndroidNavigator } from "../lib/androidHost.js";
+import { choosePdfRenderMode, isAndroidNavigator, isWindowsNavigator } from "../lib/androidHost.js";
 import { normalizeWebvpnUrl } from "@onethu/core";
 import { explainNetworkError, rawErrorText } from "../lib/transport.js";
 import { Empty } from "./Layout.js";
@@ -31,6 +31,10 @@ import type { PptxSlide, ZipEntry, ZipNode } from "../lib/zipTree.js";
  * 9-13 的 pdf.js 内嵌预览在真机从未执行、PDF 预览一直空白（用户实录 09-21）的根因。
  * 必须走 androidHost 的多信号判定（UA + userAgentData + platform）。 */
 const IS_ANDROID_HOST = isAndroidNavigator(typeof navigator !== "undefined" ? navigator : undefined);
+/** Windows 宿主（WebView2）：内置 PDF 查看器不可靠 + Chromium 系限制 data: URL 的 PDF 加载
+ *  → 默认用 pdf.js 自绘（2026-09-21 用户实录「windows pdf 预览好像不行」）。判定只看
+ *  userAgentData.platform / platform —— UA 里的 "Windows" 在安卓上是伪装的，不能当依据。 */
+const IS_WINDOWS_HOST = isWindowsNavigator(typeof navigator !== "undefined" ? navigator : undefined);
 /** 本内核是否自带 PDF 渲染器（Chromium 96+ 标准信号；旧内核无此属性 → undefined） */
 const PDF_VIEWER_ENABLED =
   typeof navigator !== "undefined" && "pdfViewerEnabled" in navigator
@@ -862,8 +866,15 @@ export function FilePreviewHost() {
   /* PDF 渲染通道：桌面/自带渲染器的内核 → embed；其余安卓 → pdf.js 自绘。
    * 用户可从自绘界面手动「换内嵌渲染」覆盖（判错时的人工出口），换文件即复位。 */
   const [pdfForceEmbed, setPdfForceEmbed] = useState(false);
-  const pdfEmbedded = pdfForceEmbed || choosePdfRenderMode({ android: IS_ANDROID_HOST, pdfViewerEnabled: PDF_VIEWER_ENABLED }) === "embed";
+  const pdfMode = choosePdfRenderMode({
+    android: IS_ANDROID_HOST,
+    windows: IS_WINDOWS_HOST,
+    pdfViewerEnabled: PDF_VIEWER_ENABLED,
+  });
+  const pdfEmbedded = pdfForceEmbed || pdfMode === "embed";
   const [pdfBusy, setPdfBusy] = useState(false);
+  /** 内嵌渲染用的 blob URL（仅 PDF 且走 embed 时创建；卸载/换文件时 revoke） */
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const openPdfExternally = async (): Promise<void> => {
     if (!cur || pdfBusy) return;
     setPdfBusy(true);
@@ -889,6 +900,32 @@ export function FilePreviewHost() {
   };
 
   const view = phase.s === "ready" ? phase.view : null;
+  useEffect(() => {
+    if (view?.kind !== "pdf" || !pdfEmbedded) {
+      setPdfBlobUrl(null);
+      return;
+    }
+    let url: string | null = null;
+    try {
+      const bin = atob(view.dataUrl.slice(view.dataUrl.indexOf(",") + 1));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      setPdfBlobUrl(url);
+    } catch {
+      setPdfBlobUrl(null); // 造 blob 失败就退回 data: URL（旧行为）
+    }
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [view?.kind === "pdf" ? view.dataUrl : null, pdfEmbedded]);
+  // 诊断：渲染通道与平台一次性落日志（真机/客户端排查时不用猜走了哪条路）
+  useEffect(() => {
+    if (view?.kind !== "pdf") return;
+    void import("../lib/clients.js")
+      .then((m) => m.logLine(`PDF-MODE ${pdfEmbedded ? "embed" : "canvas"} android=${IS_ANDROID_HOST} windows=${IS_WINDOWS_HOST} viewer=${String(PDF_VIEWER_ENABLED)}`))
+      .catch(() => undefined);
+  }, [view?.kind === "pdf" ? view.dataUrl : null, pdfEmbedded]);
   const metaBits: string[] = [];
   if (view) {
     if (view.size) metaBits.push(fmtBytes(view.size));
@@ -953,7 +990,14 @@ export function FilePreviewHost() {
 
           {view?.kind === "pdf" ? (
             pdfEmbedded ? (
-              <embed src={view.dataUrl} type="application/pdf" style={{ width: "100%", height: "70vh", border: "none" }} />
+              /* 内嵌渲染用 blob: URL 而不是 data: URL：Chromium 系（含 WebView2）对 data: URL
+                 的插件/框架加载限制严格，PDF 常常直接空白（2026-09-21 Windows 实录）。
+                 blob 在卸载时 revoke，避免长会话泄漏。 */
+              <embed
+                src={pdfBlobUrl ?? view.dataUrl}
+                type="application/pdf"
+                style={{ width: "100%", height: "70vh", border: "none" }}
+              />
             ) : (
               /* 安卓且本内核无自带 PDF 渲染器：pdf.js canvas 自绘（modern→legacy 两级兜底），
                  「系统应用打开」与「换内嵌渲染」保留为人工出口 */

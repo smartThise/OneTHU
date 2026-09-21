@@ -13,7 +13,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const { choosePdfRenderMode, isAndroidNavigator } = await import("../apps/desktop/src/lib/androidHost.ts");
+const { choosePdfRenderMode, isAndroidNavigator, isWindowsNavigator } = await import("../apps/desktop/src/lib/androidHost.ts");
 
 /* ---------- [1] choosePdfRenderMode 分档 ---------- */
 
@@ -46,6 +46,32 @@ assert.equal(
   "Windows 桌面不得误判",
 );
 
+/* ---------- [1b] Windows（WebView2）分档：一律 pdf.js 自绘 ----------
+ * 用户实录（2026-09-21）：「windows pdf 预览好像不行」——WebView2 的内置 PDF 查看器不可靠，
+ * 且 Chromium 系对 data: URL 的 PDF 加载限制严格。 */
+assert.equal(choosePdfRenderMode({ android: false, windows: true, pdfViewerEnabled: true }), "canvas",
+  "Windows 即使内核自称有查看器也走自绘（WebView2 不可靠）");
+assert.equal(choosePdfRenderMode({ android: false, windows: true, pdfViewerEnabled: undefined }), "canvas");
+// 其余桌面保持 embed（行为不变，零回归）
+assert.equal(choosePdfRenderMode({ android: false, windows: false, pdfViewerEnabled: undefined }), "embed");
+assert.equal(choosePdfRenderMode({ android: false, pdfViewerEnabled: true }), "embed", "未传 windows 时行为与改档前一致");
+
+/* ---------- [1c] Windows 判定：绝不能吃伪装的 UA ----------
+ * tauri.conf.json 把主窗口 UA 写成 Windows Chrome/79（webvpn 票绑定），
+ * 安卓真机的 UA 也因此含 "Windows" → 判 Windows 只能用 userAgentData / platform。 */
+assert.equal(
+  isWindowsNavigator({ platform: "Win32", userAgentData: { platform: "Windows" } }),
+  true,
+  "真 Windows 桌面要认出来",
+);
+assert.equal(
+  isWindowsNavigator({ platform: "Linux aarch64", userAgentData: null }),
+  false,
+  "安卓（UA 伪装成 Windows）绝不能误判为 Windows",
+);
+assert.equal(isWindowsNavigator({ platform: "MacIntel", userAgentData: { platform: "macOS" } }), false, "macOS 不误判");
+assert.equal(isWindowsNavigator(undefined), false, "无信号按非 Windows");
+
 /* ---------- [2][3] 源码守卫 ---------- */
 
 const fpSrc = readFileSync(new URL("../apps/desktop/src/components/FilePreview.tsx", import.meta.url), "utf8");
@@ -59,8 +85,15 @@ assert.ok(fpSrc.includes("legacy/build/pdf.mjs"), "pdf.js 自绘必须带 legacy
 assert.ok(fpSrc.includes("换内嵌渲染"), "自绘失败必须保留「换内嵌渲染」人工出口");
 assert.ok(fpSrc.includes("[FILE-PREVIEW]"), "解析失败必须留痕（console 可被 logcat 抓到）");
 assert.ok(hostSrc.includes("export function choosePdfRenderMode"), "androidHost 应导出 choosePdfRenderMode");
+assert.ok(hostSrc.includes("export function isWindowsNavigator"), "androidHost 应导出 isWindowsNavigator");
+assert.ok(fpSrc.includes("isWindowsNavigator("), "FilePreview 必须用多信号判 Windows（UA 不可信）");
+assert.ok(/choosePdfRenderMode\(\{[\s\S]{0,200}windows: IS_WINDOWS_HOST/.test(fpSrc), "分档必须把 Windows 信号传进去");
+// embed 必须用 blob: URL（data: URL 的 PDF 在 Chromium 系常空白），且要 revoke
+assert.ok(fpSrc.includes("URL.createObjectURL("), "内嵌渲染必须用 blob URL，而不是 data: URL");
+assert.ok(fpSrc.includes("URL.revokeObjectURL("), "blob URL 必须在卸载时 revoke（防长会话泄漏）");
+assert.ok(fpSrc.includes("PDF-MODE"), "渲染通道与平台必须落一行诊断日志（排查不用猜）");
 
-console.log("pdf-render-mode-test: 全部断言通过（7 组分档 + 多信号锚点 + 8 条源码守卫）");
+console.log("pdf-render-mode-test: 全部断言通过（含 Windows 分档与伪装 UA 负例 + blob URL + 诊断日志）");
 
 /* ---------- [4] 同族全库扫描：src 内禁止再出现「裸 UA 判安卓」的任何写法 ----------
  * 主窗口 UA 被 tauri.conf.json 伪装成 Windows Chrome/79（webvpn 票绑定），任何

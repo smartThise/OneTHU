@@ -35,6 +35,22 @@ export interface AndroidHostSignals {
 /** Android WebView 的 navigator.platform 固定报法：Linux + arm/aarch，绝不含 x86 */
 const ANDROID_PLATFORM_RE = /^Linux (armv\d|aarch)/;
 
+/** 判定所需的 Windows 信号（结构化子集，DOM 的 Navigator 可直接传入）。 */
+export interface WindowsHostSignals {
+  platform?: string;
+  userAgentData?: { platform?: string } | null;
+}
+
+/** Windows 宿主（WebView2）判定：**只用不受 UA 伪装影响的通道**。
+ *  为什么不能用 UA：tauri.conf.json 把主窗口 UA 写成 Windows Chrome/79（webvpn 票绑定），
+ *  所以 UA 里的 "Windows" 在安卓上也会命中——必须靠 userAgentData.platform / platform。 */
+export function isWindowsNavigator(nav: WindowsHostSignals | null | undefined): boolean {
+  if (!nav) return false;
+  const uaData = nav.userAgentData?.platform?.toLowerCase();
+  if (uaData === "windows") return true;
+  return /^win/i.test(nav.platform ?? "");
+}
+
 /** 多信号判定：UA / userAgentData.platform / navigator.platform 任一命中即 Android。 */
 export function isAndroidNavigator(nav: AndroidHostSignals | null | undefined): boolean {
   if (!nav) return false;
@@ -88,9 +104,12 @@ export type PdfRenderMode = "embed" | "canvas";
 
 export function choosePdfRenderMode(signals: {
   android: boolean;
+  /** Windows 宿主（WebView2 内置查看器不可靠）→ 一律 pdf.js 自绘 */
+  windows?: boolean;
   /** navigator.pdfViewerEnabled；旧内核无此属性时为 undefined */
   pdfViewerEnabled?: boolean;
 }): PdfRenderMode {
+  if (signals.windows) return "canvas";
   if (!signals.android) return "embed";
   return signals.pdfViewerEnabled === true ? "embed" : "canvas";
 }
