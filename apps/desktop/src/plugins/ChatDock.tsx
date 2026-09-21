@@ -208,8 +208,6 @@ export function ChatDock(): ReactNode {
   const [voiceFail, setVoiceFail] = useState<string | null>(null); // 失败原因：留在遮罩上 2.6s 再散
   const [slidIn, setSlidIn] = useState(false); // 语音开面板用滑动进场（区别于点击 morph）
   const islandText = useIslandText();
-  const islandTextRef = useRef<HTMLSpanElement>(null);
-  const [islandW, setIslandW] = useState(0); // 胶囊宽度随内容（测量布局宽，动画交给 CSS transition）
   const pressTimer = useRef<number | null>(null); // 长按计时（null=未按/已触发语音）
   const [msgs, setMsgs] = useState<ViewMsg[]>([]);
   const [input, setInput] = useState("");
@@ -634,11 +632,6 @@ export function ChatDock(): ReactNode {
 
   /* ───────── 灵动岛：点击展开 / 长按语音 ───────── */
 
-  // 胶囊宽度 = 布局测量（字符下坠动画只是视觉位移，不影响布局宽；过渡交给 CSS）
-  useLayoutEffect(() => {
-    if (islandTextRef.current) setIslandW(islandTextRef.current.getBoundingClientRect().width);
-  }, [islandText]);
-
   // 语音轮询：listening 期间每 180ms 拉一次部分转写
   useEffect(() => {
     if (voice !== "listening") return;
@@ -791,7 +784,6 @@ export function ChatDock(): ReactNode {
       {/* 灵动岛胶囊：底部中央 */}
       <button
         className={"dock-island" + (voice !== "off" ? " is-voice" : "") + (open ? " is-open" : "")}
-        style={islandW ? ({ "--island-w": `${Math.round(islandW) + 58}px` } as CSSProperties) : undefined}
         aria-label="OneTHU 对话（点击展开，长按语音输入）"
         onPointerDown={onIslandPointerDown}
         onPointerUp={onIslandPointerUp}
@@ -800,7 +792,7 @@ export function ChatDock(): ReactNode {
         onKeyDown={onIslandKeyDown}
       >
         <span className="dock-island-logo"><HarnessMark size={15} /></span>
-        <span className="dock-island-text" ref={islandTextRef} key={islandText}>
+        <span className="dock-island-text" key={islandText}>
           {[...islandText].map((ch, i) => (
             <i key={i} style={{ animationDelay: `${i * 26}ms` }}>{ch === " " ? "\u00A0" : ch}</i>
           ))}

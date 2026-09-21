@@ -3069,7 +3069,11 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   align-items: center;
   gap: 9px;
   height: 46px;
-  width: var(--island-w, auto);
+  /* R21c：**内容自适应**，不再用 JS 测得的定宽。原先 width: var(--island-w) 的宽度来自
+     getBoundingClientRect 测量，而文字 span 在 flex 里默认可收缩——字体度量一变宽
+     （HyperOS/MiSans 等），测得宽度跟不上实际渲染宽度，文字就溢出胶囊而不是把胶囊撑长
+     （用户实录：小米 HyperOS 上「靠近日程显示条的长文字超出胶囊」，其他设备正常）。 */
+  width: auto;
   min-width: 138px;
   max-width: calc(100vw - 28px);
   padding: 0 20px 0 13px;
@@ -3119,6 +3123,12 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .dock-island-text {
   display: inline-flex;
   white-space: pre;
+  /* 不收缩：宁可胶囊变长，也不让文字溢出（flex 项默认 flex-shrink:1 正是溢出根因） */
+  flex: none;
+  /* 极端长文本（超过一屏宽度）时省略号收尾，仍不溢出胶囊 */
+  max-width: min(72vw, 460px);
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: var(--text-sm);
   font-weight: 600;
   letter-spacing: 0.2px;
