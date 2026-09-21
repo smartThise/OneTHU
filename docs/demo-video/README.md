@@ -160,3 +160,81 @@ ffmpeg -i out.mp4 -vf "fade=t=in:st=0:d=0.4,fade=t=out:st=29.6:d=0.4" -c:a none 
 | 预览在 Windows 上白屏 | 已知问题：Windows 文件预览暂不可用，界面直接给「下载 / 另存为」（不尝试渲染） |
 | ColorOS 上小组件放不上桌面 | 已知问题：放置路径已统一为「先落空白卡片、点它再配置」，但 ColorOS 仍未通过 |
 | 录到的页面是上次停留页 | `--prep` 会 `force-stop` 后冷启动；分镜 1 假设当前在首页 |
+
+
+---
+
+## 7. 手动录制速查（不想用自动脚本时）
+
+> **这台测试机（Honor PPG-AN00，1264×2800 @560dpi）的实测数值**：
+> 状态栏高 **135px**（`InsetsSource type=statusBars frame=[0,0][1264,135]`），
+> 手势条 **78px**；内容区 = **1264 × 2587 @ (0,135)**。
+> （与 CDP 量到的 WebView 视口 739dp × 3.5 = 2586.5px 互相印证。）
+
+### 7.1 隐藏状态栏：三条路，按可靠性排序
+
+**① scrcpy 裁剪录制（最稳，不改系统设置）**
+
+```bash
+scrcpy --no-audio --max-size=1920 --max-fps=60 --bit-rate=24M --stay-awake \
+       --crop=1264:2587:0:135 \
+       --record=OneTHU-demo-$(date +%m%d-%H%M).mp4
+```
+
+`--crop=宽:高:x:y`：裁掉顶部 135px 状态栏与底部 78px 手势条 → **成片里根本没有状态栏**，
+不需要改任何系统设置，也不怕 ROM 不配合。
+
+**② 沉浸式隐藏（改设置，部分 ROM 有效）**
+
+```bash
+adb shell settings put global policy_control immersive.status=app.onethu.demo
+# 若无效试：immersive.full=app.onethu.demo
+# 收尾：adb shell settings put global policy_control null
+```
+
+**③ 后期裁掉**
+
+```bash
+ffmpeg -i raw.mp4 -vf "crop=1264:2587:0:135" -c:a none cropped.mp4
+```
+
+### 7.2 一次性环境（手动，建议跑一遍）
+
+```bash
+# 状态栏演示模式：固定 09:41、满电、满信号、隐藏通知（不隐藏状态栏时的"体面版"）
+adb shell settings put global sysui_demo_allowed 1
+adb shell am broadcast -a com.android.systemui.demo -e command enter \
+  -e time 0941 -e battery 100 -e battery_charging true \
+  -e network wifi -e wifi show -e mobile hide -e notifications hide
+adb shell settings put global zen_mode 1                    # 勿扰，挡通知横幅
+adb shell settings put system screen_brightness_mode 0
+adb shell settings put system screen_brightness 180         # 亮度固定
+adb shell settings put system accelerometer_rotation 0 && adb shell settings put system user_rotation 0
+adb shell svc power stayon true                             # 常亮
+```
+
+**收尾复位**：
+
+```bash
+adb shell am broadcast -a com.android.systemui.demo -e command exit
+adb shell settings put global sysui_demo_allowed 0
+adb shell settings put global zen_mode 0
+adb shell settings put system accelerometer_rotation 1
+adb shell svc power stayon false
+```
+
+### 7.3 手动操作时的节奏清单
+
+| 分镜 | 手动动作 | 停留 |
+|---|---|---|
+| 1 今日概览 | 冷启动进首页 → 慢速下滚一屏 → 回滚 | 首屏 **3s**，每次滚动后 **2.5s** |
+| 2 OH 直达 | 点底部胶囊 → **不点输入框**（避免键盘入镜）→ 直接用系统「粘贴」或先在外面写好再粘 → 回车 → 等结果出现 | 展开后 1.5s，结果出现后 **2.5s** |
+| 3 作业 | 首页点「未交作业」→ 滚一屏 → 返回 | 每屏 2s |
+| 4 成绩 | 打开导航菜单 → 信息 → 成绩 → 滚一屏 | 2s |
+| 5 校园卡 | 导航 → 生活 → 校园卡 → 滚一屏 | 余额卡停留 **2.5s** |
+| 6 寻迹 | 导航 → 寻迹 → 滚一屏 | 2s |
+| 7 收尾 | 回桌面（展示小组件） | 2.5s |
+
+> **避免键盘入镜的两条路**：① 用 scrcpy 裁剪时手动点输入框打字也没关系——键盘在**底部**，
+> 但会挡住内容；② 更省事：先在备忘录里写好问题 → 复制 → 在应用里长按输入框粘贴 → 回车。
+> （自动脚本走的是「不聚焦注入文字」，所以它从不弹键盘。）

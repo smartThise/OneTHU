@@ -23,7 +23,7 @@
  * 开关：--pkg=app.onethu.demo（默认）、--fast（节奏 ×0.6，预览用）
  */
 import { adb, connectCdp, FIND_JS, human } from "./cdp.mjs";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 
 const PKG = process.argv.find((a) => a.startsWith("--pkg="))?.split("=")[1] ?? "app.onethu.demo";
 const SPEED = process.argv.includes("--fast") ? 0.6 : 1;
@@ -89,6 +89,80 @@ class Demo {
     await beatPause();
   }
 
+  /** 确保屏幕上没有软键盘（宣传片不展示真实键盘：皮肤/候选词/剪贴板都会出戏）。
+   *  手段是**在 prep 阶段禁用系统输入法**（CDP 注入文字不经过输入法，逐字输入效果照旧），
+   *  这里只做失焦清理；**绝不发 ESC/BACK**——实测那两个键会打断 OH 的生成（「已打断，开新会话」）。 */
+  async noKeyboard() {
+    await this.cdp.evaluate(`(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      return true;
+    })()`);
+    await human(400);
+    const left = await this.cdp.evaluate("(window.visualViewport ? Math.round(innerHeight - visualViewport.height) : 0)");
+    beat(this.scene, "确认无键盘", { 视口被遮挡: left });
+    if (left >= 80) console.log(`    ⚠ 视口仍被遮挡 ${left}px：输入法可能没禁用（prep 未跑？）`);
+    await beatPause();
+  }
+
+  /** **不聚焦**打字：直接把字符写进输入框并派发 input 事件（React 状态照常更新），
+   *  因此屏幕上绝不会出现软键盘——无论 ROM 是否服从 ime disable。
+   *  逐字写入保留「打字感」，宣传片观感与真打字一致。 */
+  async typeNoFocus(text, { into }) {
+    const hit = await this.cdp.evaluate(`(() => {
+      const el = [...document.querySelectorAll('textarea, input')]
+        .find((e) => ((e.getAttribute('placeholder') || '') + (e.getAttribute('aria-label') || '')).includes(${JSON.stringify(into)}));
+      if (!el) return null;
+      el.setAttribute('data-demo-input', '1');
+      const r = el.getBoundingClientRect();
+      return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+    })()`);
+    if (!hit) throw new Error(`找不到输入框：「${into}」`);
+    for (const ch of text) {
+      await this.cdp.evaluate(`(() => {
+        const el = document.querySelector('[data-demo-input="1"]');
+        const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+        const setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
+        setter.call(el, (el.value || '') + ${JSON.stringify(ch)});
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        return el.value.length;
+      })()`);
+      await human(PACE.typeDelay);
+    }
+    beat(this.scene, "输入（不聚焦）", { text });
+    await beatPause();
+    return hit;
+  }
+
+  /** **不聚焦**提交：在输入框上派发合成的 Enter 键事件（React 的 onKeyDown 会收到）。
+   *  不聚焦 = 不弹键盘。 */
+  /** 提交是否生效：应用发送后会清空输入框 → 轮询空值判定（比等正文关键词可靠，且与提问内容无关） */
+  async sentWithin(ms = 2500) {
+    const t0 = Date.now();
+    for (;;) {
+      const empty = await this.cdp.evaluate(`(() => {
+        const el = document.querySelector('[data-demo-input="1"]');
+        return !el || (el.value || '').trim() === '';
+      })()`);
+      if (empty === true) return true;
+      if (Date.now() - t0 > ms) return false;
+      await human(250);
+    }
+  }
+
+  async submitNoFocus() {
+    const ok = await this.cdp.evaluate(`(() => {
+      const el = document.querySelector('[data-demo-input="1"]');
+      if (!el) return false;
+      for (const type of ['keydown', 'keypress', 'keyup']) {
+        el.dispatchEvent(new KeyboardEvent(type, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true }));
+      }
+      return true;
+    })()`);
+    beat(this.scene, "回车提交（不聚焦）");
+    await beatPause();
+    return ok === true;
+  }
+
   async enter() {
     const k = { key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 };
     await this.cdp.send("Input.dispatchKeyEvent", { type: "keyDown", ...k });
@@ -109,6 +183,19 @@ class Demo {
     }
     beat(this.scene, dir === "down" ? "向下滑动" : "向上滑动", { px });
     await beatPause();
+  }
+
+  /** 等元素出现（冷启动/切页后界面未就绪时不要急着点） */
+  async waitFor(text, timeoutMs = 25000) {
+    const t0 = Date.now();
+    for (;;) {
+      const hits = await this.cdp.evaluate(FIND_JS(text));
+      if (hits?.length) return hits[0];
+      if (Date.now() - t0 > timeoutMs) {
+        throw new Error(`等不到元素：「${text}」（${Math.round((Date.now() - t0) / 1000)}s）——应用可能未登录或仍在加载`);
+      }
+      await human(600);
+    }
   }
 
   /** 打开导航抽屉并点某一项（手机布局导航在抽屉里；锚点为实测 aria-label） */
@@ -133,23 +220,42 @@ class Demo {
 const SCENES = [
   { id: 1, title: "开场：今日概览（一眼看清今天）", value: "课表、未交作业、近三日截止同屏，滚动有呼吸感",
     async run(d) {
-      await d.focus(1800);
-      await d.scroll("down", { px: 380 });
-      await d.focus(1700);
-      await d.scroll("up", { px: 380 });
-      await d.focus(1400);
-    } },
-  { id: 2, title: "爽点：OH 一句话直达", value: "自然语言 → 结构化结果卡片，秒级生成",
-    async run(d) {
-      await d.tap("对话");
-      await d.focus(1600);
-      await d.type("明天图书馆哪有空座？", { into: "问点什么" });
-      await d.enter();
+      // 第一幕刻意放慢：观众要先看清这是什么应用、这一屏有什么
+      await d.focus(3000);
+      await d.scroll("down", { px: 300 });
       await d.focus(2600);
       await d.scroll("down", { px: 320 });
-      await d.focus(1800);
-      await d.tap("关闭", { optional: true });
-      await d.focus(1200);
+      await d.focus(2600);
+      await d.scroll("up", { px: 620 });
+      await d.focus(2200);
+    } },
+  { id: 2, title: "爽点：OH 一句话直达", value: "自然语言 → 工具调用 → 结构化结果卡片（秒级）",
+    async run(d) {
+      await d.tap("对话");
+      await d.focus(1500);                        // 面板展开动效
+      const q = "明天有哪些课";                 // 用日程类问题：数据本地就有，不受外部服务波动影响
+
+      const box = await d.typeNoFocus(q, { into: "问点什么" });   // 不聚焦：全程无键盘
+      await d.submitNoFocus();
+      // 校验提交真的生效（面板里应出现我的提问）；否则回退到聚焦路径（输入法已禁用，仍无键盘）
+      const sent = await d.sentWithin(2500);
+      if (!sent) {
+        console.log("    · 不聚焦提交未生效，回退到点击输入框 + Enter（输入法已禁用或未被 ROM 复原时仍无键盘）");
+        const okTap = await d.tap("问点什么", { optional: true });
+        if (okTap) { await d.type(q); await d.enter(); }
+        else console.log("    · 输入框已不在，跳过回退（说明其实已发送）");
+      }
+      await d.noKeyboard();
+      // 座位查询要走工具调用：等结果真的来了再停；等不到就退而等正文关键词
+      await d.waitFor("工具调用", 30000).catch(() => d.waitFor("明天", 10000).then(() => null));
+      await d.focus(2200);                        // 结果卡片静止聚焦
+      await d.noKeyboard();
+      await d.scroll("down", { px: 240 });
+      await d.focus(1500);
+      const closed = (await d.tap("收起", { optional: true })) || (await d.tap("关闭", { optional: true }));
+      if (!closed) { adb(["shell", "input", "keyevent", "4"]); beat(d.scene, "系统返回键（关面板）"); }
+      await d.focus(1000);
+      void box;
     } },
   { id: 3, title: "作业：一屏管全部（网络学堂 / 雨课堂 / OJ）", value: "多源合并、状态分组、行内忽略与提醒",
     async run(d) {
@@ -208,6 +314,14 @@ async function prep() {
   sh(["settings", "put", "system", "accelerometer_rotation", "0"]);
   sh(["settings", "put", "system", "user_rotation", "0"]);
   sh(["svc", "power", "stayon", "true"]);
+  // 禁用系统输入法：宣传片不展示真实键盘。CDP 的 Input.insertText 直接注入渲染进程，
+  // 不经过输入法，所以逐字输入效果保留、键盘不会出现。清单写文件供 cleanup 复位。
+  try {
+    const imes = adb(["shell", "ime", "list", "-s"]).split("\n").map((x) => x.trim()).filter(Boolean);
+    writeFileSync("/tmp/onethu-demo-imes.txt", imes.join("\n"));
+    for (const id of imes) { try { adb(["shell", "ime", "disable", id]); } catch { /* 有的 ROM 禁不掉 */ } }
+    console.log(`  已禁用输入法 ${imes.length} 个（清单：/tmp/onethu-demo-imes.txt）`);
+  } catch { console.log("  ⚠ 未能取得输入法清单（继续，键盘可能仍会弹出）"); }
   sh(["am", "force-stop", PKG]);
   await human(700);
   sh(["monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1"]);
@@ -217,6 +331,11 @@ async function prep() {
 
 async function cleanup() {
   console.log("· 环境复位");
+  try {
+    const list = readFileSync("/tmp/onethu-demo-imes.txt", "utf8").split("\n").map((x) => x.trim()).filter(Boolean);
+    for (const id of list) { try { adb(["shell", "ime", "enable", id]); } catch { /* ignore */ } }
+    if (list.length) console.log(`  已恢复输入法 ${list.length} 个`);
+  } catch { /* 没有清单就跳过 */ }
   const sh = (cmd) => { try { adb(["shell", ...cmd]); } catch { /* ignore */ } };
   sh(["am", "broadcast", "-a", "com.android.systemui.demo", "-e", "command", "exit"]);
   sh(["settings", "put", "global", "sysui_demo_allowed", "0"]);
@@ -247,6 +366,8 @@ async function main() {
       d.scene = `scene${s.id}`;
       console.log(`\n▶ 分镜 ${s.id}：${s.title}`);
       beat(d.scene, "分镜开始", { title: s.title });
+      // 冷启动/切页后先等界面就绪：底部胶囊在所有页面都在，用它当"应用可用"锚点
+      await d.waitFor("对话");
       await s.run(d);
       beat(d.scene, "分镜结束");
     }

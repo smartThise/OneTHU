@@ -29,52 +29,70 @@ export function webviewSocket(pkg, { tries = 6, gapMs = 1200 } = {}) {
   throw new Error("未找到 WebView devtools socket（该构建未开启调试，或应用始终未启动）");
 }
 
-/** 建立 CDP 连接：adb forward → /json 列表 → WebSocket */
+/** 建立 CDP 连接：socket 发现 → adb forward → /json 列表 → WebSocket。
+ *  应用重启后 socket 名里的 pid 会变、转发会失效，所以整链重试几次。 */
 export async function connectCdp(pkg, port = 9222) {
-  void pkg;
-  const socket = webviewSocket(pkg);
-  try { adb(["forward", "--remove", `tcp:${port}`], { stdio: "ignore" }); } catch { /* 没有旧的 */ }
-  adb(["forward", `tcp:${port}`, `localabstract:${socket}`]);
+  let lastErr = null;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      const socket = webviewSocket(pkg, { tries: attempt === 1 ? 1 : 3 });
+      try { adb(["forward", "--remove", `tcp:${port}`], { stdio: "ignore" }); } catch { /* 没有旧的 */ }
+      adb(["forward", `tcp:${port}`, `localabstract:${socket}`]);
 
-  const list = await fetch(`http://127.0.0.1:${port}/json`).then((r) => r.json());
-  const page = list.find((t) => t.type === "page") ?? list[0];
-  if (!page?.webSocketDebuggerUrl) throw new Error("没有可连接的页面目标");
+      // 转发刚建立时 devtools 端点可能还没就绪：短重试
+      let list = null;
+      for (let i = 0; i < 6 && !list; i++) {
+        try {
+          const r = await fetch(`http://127.0.0.1:${port}/json`);
+          if (r.ok) list = await r.json();
+        } catch (e) { lastErr = e; }
+        if (!list) await new Promise((res) => setTimeout(res, 700));
+      }
+      if (!list) throw lastErr ?? new Error("devtools /json 无响应");
 
-  const ws = new WebSocket(page.webSocketDebuggerUrl);
-  await new Promise((res, rej) => {
-    ws.addEventListener("open", () => res());
-    ws.addEventListener("error", (e) => rej(new Error(`WS 连接失败：${e?.message ?? e}`)));
-  });
+      const page = list.find((t) => t.type === "page") ?? list[0];
+      if (!page?.webSocketDebuggerUrl) throw new Error("没有可连接的页面目标");
 
-  let id = 0;
-  const pending = new Map();
-  ws.addEventListener("message", (ev) => {
-    const msg = JSON.parse(ev.data);
-    if (msg.id && pending.has(msg.id)) {
-      const { resolve, reject } = pending.get(msg.id);
-      pending.delete(msg.id);
-      msg.error ? reject(new Error(msg.error.message)) : resolve(msg.result);
+      const ws = new WebSocket(page.webSocketDebuggerUrl);
+      await new Promise((res, rej) => {
+        ws.addEventListener("open", () => res());
+        ws.addEventListener("error", (e) => rej(new Error(`WS 连接失败：${e?.message ?? e}`)));
+      });
+
+      let id = 0;
+      const pending = new Map();
+      ws.addEventListener("message", (ev) => {
+        const msg = JSON.parse(ev.data);
+        if (msg.id && pending.has(msg.id)) {
+          const { resolve, reject } = pending.get(msg.id);
+          pending.delete(msg.id);
+          msg.error ? reject(new Error(msg.error.message)) : resolve(msg.result);
+        }
+      });
+
+      const send = (method, params = {}) =>
+        new Promise((resolve, reject) => {
+          const mid = ++id;
+          pending.set(mid, { resolve, reject });
+          ws.send(JSON.stringify({ id: mid, method, params }));
+          setTimeout(() => {
+            if (pending.has(mid)) { pending.delete(mid); reject(new Error(`CDP 超时：${method}`)); }
+          }, 15000);
+        });
+
+      const evaluate = async (expression) => {
+        const r = await send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true });
+        if (r.exceptionDetails) throw new Error(`页面求值异常：${r.exceptionDetails.text}`);
+        return r.result?.value;
+      };
+
+      return { send, evaluate, close: () => ws.close() };
+    } catch (e) {
+      lastErr = e;
+      await new Promise((res) => setTimeout(res, 1200));
     }
-  });
-
-  const send = (method, params = {}) =>
-    new Promise((resolve, reject) => {
-      const mid = ++id;
-      pending.set(mid, { resolve, reject });
-      ws.send(JSON.stringify({ id: mid, method, params }));
-      setTimeout(() => {
-        if (pending.has(mid)) { pending.delete(mid); reject(new Error(`CDP 超时：${method}`)); }
-      }, 15000);
-    });
-
-  /** 在页面里求值（返回 JSON 化结果） */
-  const evaluate = async (expression) => {
-    const r = await send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true });
-    if (r.exceptionDetails) throw new Error(`页面求值异常：${r.exceptionDetails.text}`);
-    return r.result?.value;
-  };
-
-  return { send, evaluate, close: () => ws.close() };
+  }
+  throw new Error(`连接 CDP 失败（已重试 5 次）：${lastErr?.message ?? lastErr}`);
 }
 
 /** 人类化等待：±25% 抖动，避免机械秒点 */
