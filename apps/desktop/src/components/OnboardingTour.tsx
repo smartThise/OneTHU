@@ -6,7 +6,7 @@
  *    （NAV 的 foldedDefaults 就是它的消费方），二级页签写**既有** `saveTabLayout`；
  *  - 判定"是否第一次"：onethu.onboarded.v1；设置页有常驻「重新导览」。
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PRESETS, SCENARIOS, applyTodayCards, cardsForScenarios, cardsOfScenario, hasOnboarded, markOnboarded, todayChoosableCards, type Preset } from "../state/onboarding.js";
 import { askNotifyPermissionOnce } from "../state/notifyPermissionAsk.js";
 import {
@@ -22,6 +22,11 @@ import { accountErrMsg } from "../state/accountSetup.js";
 import { YktQrPanel, YktWebLoginPanel } from "./ExtHwLoginModal.js";
 import { YKT_WEB_LOGIN_AVAILABLE } from "../lib/yktWebview.js";
 import { openExternal } from "../pages/info/openExternal.js";
+import { pinWidget } from "../state/widgetBridge.js";
+import { ensureWidgetRuntime } from "../state/notifySources.js";
+import { setWidgetFallback } from "../state/widgetInstances.js";
+import { isAndroidNavigator } from "../lib/androidHost.js";
+import { showToast } from "../state/toast.js";
 import { TABS as INFO_TABS } from "../pages/info/InfoPage.js";
 import { TABS as LIFE_TABS } from "../pages/info/LifePage.js";
 import { loadTabLayout, saveTabLayout } from "../lib/tabLayout.js";
@@ -131,6 +136,9 @@ export function OnboardingTour(): React.ReactNode {
   const [mailCode, setMailCode] = useState("");
   const [cloudToken, setCloudToken] = useState("");
   const [acctBusy, setAcctBusy] = useState<string | null>(null);
+  /** 桌面小组件步骤（最后一步）：是否已发出放置请求 + 该启动器是否支持请求式放置 */
+  const [pinState, setPinState] = useState<"idle" | "requested" | "unsupported" | "failed">("idle");
+  const isAndroidHost = useMemo(() => isAndroidNavigator(navigator), []);
   const [acctMsg, setAcctMsg] = useState<string | null>(null);
 
   // 导览打开时加载一次接入状态（凭据解密 + 模块缓存）；失败按未配置展示
@@ -240,8 +248,8 @@ export function OnboardingTour(): React.ReactNode {
     </button>
   );
 
-  // 0–4 界面定制；5–8 账号接入（雨课堂 / OJ / 邮箱 / 云盘），新旧用户都展示
-  const STEPS = 9;
+  // 0–4 界面定制；5–8 账号接入（雨课堂 / OJ / 邮箱 / 云盘）；9 桌面小组件
+  const STEPS = 10;
   return (
     <div style={panel} role="dialog" aria-modal="true" aria-label="首次使用导览">
       <div style={box}>
@@ -575,6 +583,58 @@ export function OnboardingTour(): React.ReactNode {
             </div>
             <p style={{ ...acctIntro, marginTop: 12, marginBottom: 0 }}>
               Token 获取：清华云盘网站 → 设置 → Web API Auth Token → 生成（一次性生成，长期有效）。
+            </p>
+          </>
+        ) : null}
+
+        {step === 9 ? (
+          <>
+            <h3 style={{ margin: "0 0 4px", fontSize: 17 }}>桌面小组件</h3>
+            <p style={acctIntro}>
+              在桌面放一块「今日日程」小组件：今天有课、有截止时自动更新，点一下直接进应用。
+              {isAndroidHost ? "" : "（当前平台不支持桌面小组件，可跳过此步）"}
+            </p>
+            {isAndroidHost ? (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  className="btn btn-primary"
+                  disabled={acctBusy !== null}
+                  onClick={() => {
+                    setAcctBusy("widget");
+                    void (async () => {
+                      try {
+                        // 新放的这块默认显示「今日日程」（未绑定的实例即用默认内容）；
+                        // 再确保小组件运行时就绪，放上去立刻有内容而不是「点一下选择」。
+                        setWidgetFallback({ kind: "today" });
+                        const r = await pinWidget();
+                        if (r.requested) {
+                          void ensureWidgetRuntime();
+                          setPinState("requested");
+                          showToast("已请求系统添加到桌面，请查看桌面");
+                        } else if (r.supported) {
+                          setPinState("failed");
+                          showToast("系统未接受放置请求，可长按桌面 → 小组件 → OneTHU 手动添加", 6000);
+                        } else {
+                          setPinState("unsupported");
+                          showToast("当前启动器不支持一键添加，请长按桌面 → 小组件 → OneTHU", 6000);
+                        }
+                      } catch {
+                        setPinState("failed");
+                        showToast("添加失败，可长按桌面 → 小组件 → OneTHU 手动添加", 6000);
+                      } finally {
+                        setAcctBusy(null);
+                      }
+                    })();
+                  }}
+                >
+                  {acctBusy === "widget" ? "请求中…" : pinState === "requested" ? "再放一块" : "放到桌面"}
+                </button>
+              </div>
+            ) : null}
+            <p style={{ ...acctIntro, marginTop: 12, marginBottom: 0 }}>
+              {pinState === "requested"
+                ? "放好后可直接下一步；之后在 设置 → 桌面小组件 里可以改每一块显示什么。"
+                : "手动添加路径：桌面长按 → 小组件 → OneTHU；同一块可以随时在设置里换内容。"}
             </p>
           </>
         ) : null}

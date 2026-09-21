@@ -20,7 +20,7 @@ const tour = read("apps/desktop/src/components/OnboardingTour.tsx");
 for (const n of [5, 6, 7, 8]) {
   assert.ok(tour.includes(`step === ${n} ? (`), `导览缺少步骤 ${n} 的账号接入窗`);
 }
-assert.ok(/const STEPS = 9;/.test(tour), "STEPS 必须是 9（0–4 界面定制 + 5–8 账号接入）");
+assert.ok(/const STEPS = 10;/.test(tour), "STEPS 必须是 10（0–4 界面定制 + 5–8 账号接入 + 9 桌面小组件）");
 assert.ok(tour.includes("跳过此步"), "账号步骤必须有「跳过此步」");
 assert.ok(/step < STEPS - 1 \? setStep\(step \+ 1\) : finish\(\)/.test(tour),
   "最后一步跳过必须能直接完成导览");
@@ -30,6 +30,22 @@ assert.ok(tour.includes("YKT_WEB_LOGIN_AVAILABLE"), "webview 入口必须按平�
 assert.ok(tour.includes("客户端专用密码获取：清华大学电子邮件系统网站 → 设置 → 安全设置 → 客户端专用密码"),
   "邮箱步骤须带获取路径说明");
 assert.ok(tour.includes("Web API Auth Token → 生成"), "云盘步骤须带获取路径说明");
+
+/* ---------- [1b] 桌面小组件步骤（R21c 用户令：引导里放一块今日日程小组件） ---------- */
+assert.ok(tour.includes("step === 9 ? ("), "导览缺少桌面小组件步骤（step 9）");
+const widgetStep = tour.slice(tour.indexOf("step === 9 ? ("), tour.indexOf("step === 9 ? (") + 2600);
+assert.ok(widgetStep.includes("桌面小组件"), "步骤标题必须是「桌面小组件」");
+assert.ok(widgetStep.includes("pinWidget()"), "必须经系统请求式放置（pinWidget）");
+assert.ok(/setWidgetFallback\(\{ kind: "today" \}\)/.test(widgetStep), "新放的这块要默认显示「今日日程」");
+assert.ok(widgetStep.includes("ensureWidgetRuntime()"), "放置后要确保运行时就绪（否则显示「点一下选择」）");
+assert.ok(widgetStep.includes("isAndroidHost"), "非 Android 不得展示一个点不动的按钮");
+assert.ok(widgetStep.includes("长按桌面"), "不支持请求式放置时要给出手动路径");
+// 安全性：这一步只碰小组件相关 API，不得动账号/提交/忽略等既有链路
+for (const forbidden of ["submitHomework", "ignoreHw", "connectMail(", "loginTyche("]) {
+  assert.ok(!widgetStep.includes(forbidden), `小组件步骤不得触碰 ${forbidden}（保证不影响其他功能）`);
+}
+// 每步可跳过：step 9 也落在「>=5 用跳过此步」的区间里
+assert.ok(/step >= 5 \?/.test(tour), "step 9 必须有「跳过此步」");
 
 /* ---------- [2] 组合不复制：登录实现走既有 state 模块 ---------- */
 const setup = read("apps/desktop/src/state/accountSetup.ts");
