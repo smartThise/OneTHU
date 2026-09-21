@@ -88,5 +88,24 @@ const saved = JSON.parse(store.get("onethu.theme.v1"));
 eq("持久态不含已删主题", saved.installed.filter((t) => t.id.startsWith("onethu.theme.barbie")).length, 0);
 ok("持久态仍在架的主题都有 id", saved.installed.every((t) => typeof t.id === "string"));
 
+/* ⑧ 暗色主题令牌完备性（2026-09-21 霖实测：暗黑模式下骨架流光仍是白色模式）
+ * 骨架屏流光高光 --skeleton-shine 亮色是白光扫过；任何 dark 主题都必须覆盖它，
+ * 否则暗底上会扫过一道刺眼白带。CSS 侧也必须走令牌（禁止再硬编码 rgba 白）。 */
+const { readFileSync } = await import("node:fs");
+const darkThemes = listThemes().filter((t) => t.dark === true);
+ok("存在内置暗色主题（护栏前置）", darkThemes.length > 0);
+for (const t of darkThemes) {
+  ok(`暗色主题 ${t.id} 覆盖 --skeleton-shine`, typeof t.vars?.["--skeleton-shine"] === "string");
+}
+const tokensCss = readFileSync(new URL("../packages/ui/src/tokens.css", import.meta.url), "utf8");
+ok("亮色令牌基线定义 --skeleton-shine", /--skeleton-shine\s*:/.test(tokensCss));
+const globalCss = readFileSync(new URL("../apps/desktop/src/styles/global.css", import.meta.url), "utf8");
+const shimmerRule = globalCss.slice(globalCss.indexOf(".skeleton::after"), globalCss.indexOf("@keyframes shimmer"));
+ok("骨架流光高光走令牌", shimmerRule.includes("var(--skeleton-shine"));
+// 允许 var() 的兜底值仍是白光（无令牌上下文用），但禁止出现**裸**硬编码色标
+const bareWhite = (shimmerRule.match(/rgba\(255,\s*255,\s*255,\s*0\.6\)/g) || []).length;
+const fallbackWhite = (shimmerRule.match(/var\(--skeleton-shine,\s*rgba\(255,\s*255,\s*255,\s*0\.6\)\)/g) || []).length;
+eq("骨架流光高光无裸硬编码白光（仅 var 兜底）", bareWhite, fallbackWhite);
+
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`);
 process.exit(fail === 0 ? 0 : 1);

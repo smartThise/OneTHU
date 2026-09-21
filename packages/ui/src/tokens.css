@@ -13,6 +13,9 @@
   --surface-2: #f9fafb;
   --surface-3: #ebeef2;
   --skeleton: rgba(0, 0, 0, 0.04);
+  /* 骨架屏流光高光：亮色=白光扫过；暗色主题必须覆盖（否则暗底上一道刺眼白光，
+     霖实测「暗黑模式下的流光还是白色模式的」）。见 state/theme.ts 各 dark 主题。 */
+  --skeleton-shine: rgba(255, 255, 255, 0.6);
 
   /* 线 */
   --border: rgba(0, 0, 0, 0.1);

@@ -776,7 +776,9 @@
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  /* 流光高光走令牌：亮色=白光扫过，暗色主题（凝夜）覆盖为低透明度白光，
+     避免暗底上一道刺眼白带（霖实测「暗黑模式下的流光还是白色模式的」）。 */
+  background: linear-gradient(90deg, transparent, var(--skeleton-shine, rgba(255, 255, 255, 0.6)), transparent);
   animation: shimmer 1.4s infinite;
 }
 
@@ -4806,11 +4808,14 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   border-color: var(--border);
   border-radius: 0 0 10px 10px;
   background: var(--bg);
-  min-height: 150px;
   font-size: var(--text-md, 14px);
   font-family: inherit;
 }
-.ykt-editor .ql-editor { color: var(--text-1); line-height: 1.7; }
+/* 可编辑区必须自己撑高：Quill 的 .ql-editor 是 height:100%，而百分比高度在
+   「只有 min-height 的父级」上不成立 → 编辑器只有一行高、容器却是三四行视觉框，
+   下方成死区（点击不聚焦、选区高亮只有一行）。min-height 放编辑器上（与
+   .rich-editor 同款口径），容器高度随内容自适应。 */
+.ykt-editor .ql-editor { color: var(--text-1); line-height: 1.7; min-height: 150px; }
 .ykt-editor .ql-editor.ql-blank::before { color: var(--text-3); font-style: normal; }
 /* 图标描边/填充（Quill 图标是 SVG stroke=#444 硬编码） */
 .ykt-editor .ql-snow .ql-stroke { stroke: var(--text-2); }

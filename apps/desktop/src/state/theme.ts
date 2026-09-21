@@ -162,7 +162,7 @@ const BUILTIN_THEMES: ThemeDef[] = [
   {
     id: "onethu.theme.night",
     name: "凝夜",
-    version: "1.0.0",
+    version: "1.0.1",
     author: "OneTHU",
     dark: true,
     description: "深夜工作台：墨蓝黑纸面 + 亮钢蓝强调，昼夜调度的黑夜档。",
@@ -173,6 +173,7 @@ const BUILTIN_THEMES: ThemeDef[] = [
       "--surface-2": "#1a2030",
       "--surface-3": "#232b3d",
       "--skeleton": "rgba(255, 255, 255, 0.06)",
+      "--skeleton-shine": "rgba(255, 255, 255, 0.12)",
       "--border": "rgba(255, 255, 255, 0.1)",
       "--border-soft": "rgba(255, 255, 255, 0.05)",
       "--border-strong": "rgba(255, 255, 255, 0.18)",
@@ -268,13 +269,23 @@ function bootstrap(): void {
     state.installed = [...seeds, ...state.installed];
     persist();
   }
-  // 内置升级通道：已安装的内置主题若与随版本分发的新定义版本不同，整体
-  // 刷新为新定义（用户改不掉内置的"出厂设置"，但删除名单依然生效）
+  // 内置升级通道：已安装的内置主题若与随版本分发的新定义不一致，整体刷新为新定义
+  // （用户改不掉内置的"出厂设置"，但删除名单依然生效）。
+  // ⚠️ 判据是「版本号 或 令牌集」——只比版本会踩坑：给内置主题补一个令牌却忘了升版本，
+  // 存档旧副本将永远缺该令牌（霖实测：night 补 --skeleton-shine 未升版本 → 暗色下骨架
+  // 流光仍走 CSS 兜底白光）。令牌集比较兜住这类遗漏；source 为 plugin 的不动（插件
+  // 可能占用同名 id，不能拿内置定义覆盖）。
   let upgraded = false;
   const shipped = new Map(BUILTIN_THEMES.map((b) => [b.id, b]));
+  const varsDiffer = (a: Record<string, string> = {}, b: Record<string, string> = {}): boolean => {
+    const ak = Object.keys(a);
+    if (ak.length !== Object.keys(b).length) return true;
+    return ak.some((k) => a[k] !== b[k]);
+  };
   state.installed = state.installed.map((t) => {
     const fresh = shipped.get(t.id);
-    if (fresh && t.source === "builtin" && t.version !== fresh.version) {
+    if (!fresh || t.source === "plugin") return t;
+    if (t.version !== fresh.version || varsDiffer(t.vars, fresh.vars)) {
       upgraded = true;
       return fresh;
     }

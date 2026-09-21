@@ -79,5 +79,21 @@ check("编辑器提供拍照上传（capture=environment）", editorSrc.includes
 check("编辑器图片走正文内联通道（uploadYktInlineImage）", editorSrc.includes("uploadYktInlineImage"));
 check("编辑器不含附件通道 filelist 提交", !/attachments\s*:/.test(editorSrc));
 
+/* ── 6. 真机 bug 回归护栏（2026-09-21 霖实测两条）──
+ * BUG1 插入图片显示破损：CDN（阿里云 OSS）Referer 白名单放行空 Referer，
+ *   而 WebView 来源 tauri.localhost 被 403（curl 实测：无 Referer 200 /
+ *   tauri.localhost 403 / pro.yuketang.cn 200）→ 编辑器与提交态都必须补
+ *   referrerpolicy="no-referrer"。
+ * BUG2 点击高亮范围只有一行：Quill .ql-editor 是 height:100%，在只有 min-height
+ *   的父级上不成立 → min-height 必须落在 .ql-editor 自身（.rich-editor 同款口径）。 */
+check("BUG1：编辑器图片统一补 no-referrer（hardenImgs 钩子）", /hardenImgs/.test(editorSrc) && /referrerpolicy/.test(editorSrc));
+check("BUG1：复用 yktBody.hardenYktImgs 同口径（不另造轮子）", editorSrc.includes("hardenYktImgs"));
+check("BUG1：插入后立即补 referrerpolicy（不只靠 text-change）", /insertEmbed\(idx, "image"[\s\S]{0,400}referrerpolicy/.test(editorSrc));
+check("BUG1：提交态也带 no-referrer（hardenYktImgs 作用于 toSubmitHtml）", /toSubmitHtml[\s\S]{0,900}hardenYktImgs\(/.test(editorSrc));
+const cssSrc = readFileSync(join(ROOT, "apps/desktop/src/styles/global.css"), "utf8");
+const yktEditorCss = cssSrc.slice(cssSrc.indexOf("/* ── R20-C2 P3：雨课堂主观题原生作答编辑器"));
+check("BUG2：.ql-editor 自身有 min-height（可编辑区撑满视觉框）", /\.ykt-editor \.ql-editor \{[^}]*min-height/.test(yktEditorCss));
+check("BUG2：容器不再单独承担 min-height（避免死区）", !/\.ykt-editor \.ql-container\.ql-snow \{[^}]*min-height/.test(yktEditorCss));
+
 console.log(`\n${pass} 通过 / ${fail} 失败`);
 process.exit(fail === 0 ? 0 : 1);

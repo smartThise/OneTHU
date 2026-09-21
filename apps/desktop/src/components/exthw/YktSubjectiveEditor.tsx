@@ -20,6 +20,7 @@ import { prepImageForUpload, uploadFileName } from "../../lib/yktImagePrep.js";
 import { uploadYktInlineImage } from "../../state/exthw.js";
 import { loadYktLatexBundle } from "../../lib/yktKatex.js";
 import { isAndroidNavigator } from "../../lib/androidHost.js";
+import { hardenYktImgs } from "../../lib/yktBody.js";
 
 /* ── Quill 定制 blot：img.kfformula（官方公式图）作为一等 embed，编辑中不被误改 ── */
 
@@ -77,7 +78,7 @@ Quill.register(KfformulaBlot, true);
 const OFFICIAL_GIF_SRC =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
-/** 编辑器 HTML → 提交态 HTML：公式换官方形态 + UEditor 包裹层（§31.5.3）。 */
+/** 编辑器 HTML → 提交态 HTML：公式换官方形态 + 图片防盗链加固 + UEditor 包裹层（§31.5.3）。 */
 export function toSubmitHtml(editorHtml: string): string {
   const doc = new DOMParser().parseFromString(editorHtml, "text/html");
   doc.querySelectorAll("img.kfformula").forEach((img) => {
@@ -87,7 +88,10 @@ export function toSubmitHtml(editorHtml: string): string {
     img.removeAttribute("width");
     img.removeAttribute("height");
   });
-  const inner = doc.body.innerHTML.trim();
+  // 防盗链：CDN 为 Referer 白名单 + 放行空 Referer，官方页 Referer 在白名单内；
+  // 但本应用 WebView 来源（tauri.localhost）会被 403——提交态一并带上 no-referrer，
+  // 保证任何渲染方（含官方页）都不因 Referer 丢图（与 yktBody.hardenYktImgs 同口径）。
+  const inner = hardenYktImgs(doc.body.innerHTML.trim());
   if (inner.includes("custom_ueditor_cn_body")) return inner;
   return `<div class="custom_ueditor_cn_body">${inner}</div>`;
 }
@@ -167,6 +171,10 @@ export function YktSubjectiveEditor(props: YktSubjectiveEditorProps) {
           });
           const idx = typeof at === "number" ? at : quill.getLength();
           quill.insertEmbed(idx, "image", fileUrl, "user");
+          // 防盗链（真机实录）：CDN 放行空 Referer，但 WebView 来源 Referer 被 403——
+          // 图片一进来就补 no-referrer，避免显示破损图标（与 yktBody.hardenYktImgs 同口径）
+          const leaf = quill.getLeaf(idx)[0] as unknown as { domNode?: HTMLElement } | undefined;
+          leaf?.domNode?.setAttribute?.("referrerpolicy", "no-referrer");
           quill.insertText(idx + 1, "\n", "user");
           quill.setSelection(idx + 2, 0, "user");
         } catch (e: unknown) {
@@ -189,6 +197,17 @@ export function YktSubjectiveEditor(props: YktSubjectiveEditorProps) {
       const quill = el.getEditor();
       if (attached.current.has(quill)) return;
       attached.current.add(quill);
+
+      // 防盗链统一加固：任何路径进来的 <img>（插入/粘贴/拖拽/受控值重渲染/草稿回填）
+      // 都补 referrerpolicy="no-referrer"——CDN Referer 白名单放行空 Referer，
+      // 而 WebView 来源（tauri.localhost）会被 403 显示破损图标（真机实录）。
+      const hardenImgs = (): void => {
+        quill.root.querySelectorAll("img:not([referrerpolicy])").forEach((img) => {
+          img.setAttribute("referrerpolicy", "no-referrer");
+        });
+      };
+      hardenImgs();
+      quill.on("text-change", hardenImgs);
 
       // 粘贴：文件/截图直接走上传通道（放行纯文本与富文本）
       quill.root.addEventListener("paste", (ev: ClipboardEvent) => {
