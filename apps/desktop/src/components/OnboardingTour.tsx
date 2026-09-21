@@ -632,9 +632,9 @@ export function OnboardingTour(): React.ReactNode {
               </div>
             ) : null}
             <p style={{ ...acctIntro, marginTop: 12, marginBottom: 0 }}>
-              {pinState === "requested"
-                ? "放好后可直接下一步；之后在 设置 → 桌面小组件 里可以改每一块显示什么。"
-                : "手动添加路径：桌面长按 → 小组件 → OneTHU；同一块可以随时在设置里换内容。"}
+              {pinState === "requested" ? "已请求添加。" : ""}改内容：设置 → 通知与提醒 → 桌面小组件（每一块各改各的）。
+              <br />
+              也可以直接在桌面长按 → 小组件 → OneTHU 添加；ColorOS 暂不支持添加（已知问题）。
             </p>
           </>
         ) : null}
