@@ -76,27 +76,49 @@ const base = {
   eq("maxRows 不影响脚注（脚注是总数）", d.footer, "4 次待上");
 }
 
-/* ⑤ 校园卡余额（widget/cardEntry）：余额来自应用侧缓存注入 ——
- * 2026-09-21 用户实录：这个原子的桌面组件此前只显示标题、不显示余额。
- * 注意这一条**不能**退化成「其余原子不硬凑」：余额是我们真能算的。 */
+/* ⑤ 校园卡（widget/cardEntry）：余额大号加粗 + 最近流水（拉长显示更多）——
+ * 2026-09-21 用户实录：这个原子的桌面组件此前只显示标题、不显示余额；补上后又太单薄
+ * （「太丑太平铺」），所以这里是「余额 + 流水」两段式，样式字段要真的给到原生。 */
 {
-  const withBal = atomDetail(
+  const now = 1_760_000_000_000;
+  const c = {
+    amount: 123.4,
+    at: now,
+    cardId: "2025013332",
+    status: "正常",
+    transactions: [
+      { name: "紫荆园食堂", amount: 12.5, at: now - 3600_000 },
+      { name: "微信充值", amount: 100, at: now - 86400_000 },
+    ],
+  };
+  const d = atomDetail({ kind: "widget", key: "cardEntry" }, { title: "校园卡余额" }, { ...base, now, card: c });
+  eq("校园卡：首行是余额（不带「余额」二字，金额自己说话）", d.rows[0].text, "¥123.40");
+  eq("校园卡：余额行加粗", d.rows[0].strong, true);
+  eq("校园卡：余额行大号", d.rows[0].size, "lg");
+  eq("校园卡：余额行副文带卡号与更新时间", /卡号 2025013332/.test(d.rows[0].sub), true);
+  eq("校园卡：流水进第二行", d.rows[1].text, "紫荆园食堂");
+  eq("校园卡：消费行用红色方向色", d.rows[1].color, "#e5484d");
+  eq("校园卡：消费金额带负号", /−¥12\.50/.test(d.rows[1].sub), true);
+  eq("校园卡：收入行用绿色方向色", d.rows[2].color, "#2e9e5b");
+  eq("校园卡：收入金额带正号", /\+¥100\.00/.test(d.rows[2].sub), true);
+  eq("校园卡：脚注给出笔数", d.footer, "最近 2 笔");
+
+  const many = atomDetail(
     { kind: "widget", key: "cardEntry" },
-    { title: "校园卡余额", sub: "快捷入口" },
-    { ...base, cardBalance: { amount: 123.4, at: Date.now() } },
+    { title: "校园卡余额" },
+    { ...base, now, card: { ...c, transactions: Array.from({ length: 20 }, (_, i) => ({ name: `商户${i}`, amount: 1, at: now - i * 1000 })) } },
   );
-  eq("校园卡：有余额时给出一行", withBal.rows.length, 1);
-  eq("校园卡：金额保留两位", withBal.rows[0].text, "余额 ¥123.40");
-  eq("校园卡：脚注指路", withBal.footer, "点一下进校园卡");
+  eq("校园卡：行数受 maxRows 约束（原生按高度再裁）", many.rows.length, 4);
+  eq("校园卡：行数上限时脚注按实际给出笔数", many.footer, "最近 3 笔");
 
   const noBal = atomDetail({ kind: "widget", key: "cardEntry" }, { title: "校园卡余额" }, base);
-  eq("校园卡：没拉到余额时不猜数字", noBal.rows, []);
-  eq("校园卡：没余额时如实提示", noBal.footer, "打开应用刷新余额");
+  eq("校园卡：没拉到数据时不猜数字", noBal.rows, []);
+  eq("校园卡：没数据时如实提示", noBal.footer, "打开应用刷新余额");
 
   const nan = atomDetail(
     { kind: "widget", key: "cardEntry" },
     { title: "校园卡余额" },
-    { ...base, cardBalance: { amount: Number.NaN } },
+    { ...base, card: { amount: Number.NaN } },
   );
   eq("校园卡：坏数字按「没拉到」处理", nan.footer, "打开应用刷新余额");
 }

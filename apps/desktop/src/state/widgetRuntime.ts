@@ -88,6 +88,9 @@ export function createWidgetRuntime(deps: WidgetRuntimeDeps): WidgetRuntime {
       return buildDetailSnapshot({
         title: resolved.title, rows: resolved.rows, footer: resolved.footer,
         target: resolved.target, now,
+        // 多给几行：原生 listFit(h) 会按实际高度裁——矮的只显示一两行，拉长的能看到
+        // 更多（校园卡流水这类「越长越有用」的内容靠这个生效）
+        maxRows: 8,
       });
     }
     if (resolved.kind === "grid") {

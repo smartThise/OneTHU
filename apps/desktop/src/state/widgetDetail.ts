@@ -13,17 +13,40 @@ import type { PlanHomework, PlanScheduleEntry } from "./notifyPlan.js";
 export interface DetailRow {
   text: string;
   sub?: string;
+  /** 左侧色条与文字颜色（消费红 / 收入绿这类方向色） */
+  color?: string;
+  /** 主文加粗（余额这类必须抢眼的一行） */
+  strong?: boolean;
+  /** 字号档：lg 给「最该看到的那一行」 */
+  size?: "sm" | "md" | "lg";
 }
 
 export interface WidgetDetailDeps {
   schedule: PlanScheduleEntry[];
   homework: PlanHomework[];
   now: number;
-  /** 校园卡余额（由调用方从 SWR 缓存读入；本模块保持纯函数，不自己碰缓存/网络）。
-   *  null/undefined = 应用侧还没拉到过余额 → 如实说「打开应用刷新」，不猜数字。 */
-  cardBalance?: { amount: number; at?: number } | null;
+  /** 校园卡（由调用方从 SWR 缓存读入；本模块保持纯函数，不自己碰缓存/网络）。
+   *  null/undefined = 应用侧还没拉到过 → 如实说「打开应用刷新」，不猜数字。
+   *  transactions 是最近流水（新→旧），拉长小组件时原生会按高度多显示几笔。 */
+  card?: {
+    amount: number;
+    at?: number;
+    cardId?: string;
+    status?: string;
+    transactions?: Array<{ name: string; amount: number; at: number }>;
+  } | null;
   /** 最多补几行（原生按占位决定；这里给个上界免得白算） */
   maxRows?: number;
+}
+
+/** 收入判定：与校园卡页同口径（服务端金额恒为正，按名称分类） */
+const INCOME_RE = /充值|圈存|补助/;
+
+/** "MM-DD HH:mm"（流水行用；年份在同一条流水列表里没有信息量） */
+function mdhm(ms: number): string {
+  const d = new Date(ms);
+  const p = (n: number): string => String(n).padStart(2, "0");
+  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 function hm(ms: number): string {
@@ -76,16 +99,26 @@ export function atomDetail(
    * 小组件进程没有网络，只有应用算快照时把数字递进来。2026-09-21 用户实录：
    * 这个原子的桌面组件此前只显示标题，不显示余额。 */
   if (ref.kind === "widget" && ref.key === "cardEntry") {
-    const bal = deps.cardBalance;
-    if (!bal || !Number.isFinite(bal.amount)) return { rows: [], footer: "打开应用刷新余额" };
+    const c = deps.card;
+    if (!c || !Number.isFinite(c.amount)) return { rows: [], footer: "打开应用刷新余额" };
+    // 首行 = 余额：大号加粗，一眼要看到（此前只有一行小字，用户实录「太平铺」）
+    const meta = [c.cardId ? `卡号 ${c.cardId}` : "校园卡", c.status ? c.status : null, c.at ? `更新 ${hm(c.at)}` : null]
+      .filter(Boolean)
+      .join(" · ");
+    const rows: DetailRow[] = [{ text: `¥${c.amount.toFixed(2)}`, sub: meta, strong: true, size: "lg" }];
+    // 之后 = 最近流水（按可用行数显示：3×2 放一两笔，拉长能看更多；原生 listFit 按高度裁）
+    const tx = (c.transactions ?? []).slice(0, Math.max(0, max - 1));
+    for (const t of tx) {
+      const income = INCOME_RE.test(t.name);
+      rows.push({
+        text: clip(t.name || "交易", 14),
+        sub: `${mdhm(t.at)} · ${income ? "+" : "−"}¥${Math.abs(t.amount).toFixed(2)}`,
+        color: income ? "#2e9e5b" : "#e5484d",
+      });
+    }
     return {
-      rows: [
-        {
-          text: `余额 ¥${bal.amount.toFixed(2)}`,
-          sub: bal.at ? `更新于 ${hm(bal.at)}` : undefined,
-        },
-      ],
-      footer: "点一下进校园卡",
+      rows,
+      footer: tx.length > 0 ? `最近 ${tx.length} 笔` : "点一下进校园卡",
     };
   }
 

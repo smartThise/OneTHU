@@ -111,11 +111,31 @@ function resolveBindingProd(binding: Parameters<typeof resolveWidgetSource>[0], 
         schedule: inputs.schedule,
         homework: inputs.homework,
         now: Date.now(),
-        // 校园卡余额：读应用侧 SWR 缓存（小组件进程没有网络；余额由 useCard 拉到后缓存）
-        cardBalance: (() => {
-          const c = cacheGet<{ info?: { balance?: number } }>("card:30");
+        // 校园卡：读应用侧 SWR 缓存（小组件进程没有网络；数据由 useCard 拉到后缓存）。
+        // 余额 + 最近流水一起给：原生按高度裁行，矮的显示余额、拉长的显示更多流水。
+        card: (() => {
+          type Cached = {
+            info?: { balance?: number; cardId?: string; cardStatus?: string };
+            transactions?: Array<{ name?: string; summary?: string; txName?: string; amount?: number; timestamp?: string | Date }>;
+          };
+          const c = cacheGet<Cached>("card:30");
           const amount = c?.data?.info?.balance;
-          return typeof amount === "number" ? { amount, at: c?.at } : null;
+          if (typeof amount !== "number") return null;
+          const tx = (c?.data?.transactions ?? [])
+            .map((t) => ({
+              name: String(t.name || t.summary || t.txName || "交易"),
+              amount: Number(t.amount) || 0,
+              at: new Date(t.timestamp ?? 0).getTime() || 0,
+            }))
+            .filter((t) => t.at > 0)
+            .sort((a, b) => b.at - a.at);
+          return {
+            amount,
+            at: c?.at,
+            cardId: c?.data?.info?.cardId,
+            status: c?.data?.info?.cardStatus,
+            transactions: tx,
+          };
         })(),
       });
       return d ? { rows: d.rows, footer: d.footer } : null;

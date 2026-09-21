@@ -16,6 +16,10 @@ import { encodeWidgetTarget } from "./widgetTarget.js";
 export interface SourceRow {
   text: string;
   sub?: string;
+  /** 见 widgetDetail 的 DetailRow：方向色 / 加粗 / 字号档，详情快照会原样透传 */
+  color?: string;
+  strong?: boolean;
+  size?: "sm" | "md" | "lg";
 }
 
 /**
