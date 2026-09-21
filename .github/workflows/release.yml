@@ -45,13 +45,6 @@ jobs:
         if: runner.os == 'Linux'
       - name: Install pnpm deps
         run: pnpm install --frozen-lockfile
-      # 工作区库里 main 指向 dist 的必须先构建（dist 不入库）：
-      #   Windows/macOS 的 tauri build 在 beforeBuildCommand 阶段会因
-      #   「Failed to resolve entry for package "@onethu/info-lib"」直接失败
-      #   （2026-09-21 windows-latest 实录）。本机不复发是因为 dist 已存在。
-      # 规则：任一 packages/* 的 package.json main 指向 dist 时，都要加进这一行。
-      - name: Build workspace libraries
-        run: pnpm --filter @onethu/info-lib build
       # sidecar 必须在目标平台现场构建（仓库不带任何架构的二进制；
       # 旧版 Windows 安装包曾打进 mac 的 Mach-O → 插件宿主拉起必死）
       - name: Build harness sidecar (host-native)
