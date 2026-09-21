@@ -120,6 +120,12 @@ export function WidgetSettingsSection(): ReactNode {
                 ? "未登记任何形态，请将本行内容反馈给开发者"
                 : `${status.providersRegistered.length} 个：${status.providersRegistered.join("、")}`}
               <span style={{ color: "var(--text-3)" }}>　桌面「小组件」列表中可选的即以下形态。</span>
+              {status.romSignals ? (
+                <>
+                  <br />
+                  <span style={{ color: "var(--text-3)" }}>机型判定：{status.rom}（{status.romSignals}）</span>
+                </>
+              ) : null}
             </div>
           </div>
         </div>

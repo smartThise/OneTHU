@@ -1028,6 +1028,7 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
                     .put("ok", true)
                     .put("rom", RomInfo.describeForJs())
                     .put("colorOs", RomInfo.isColorOs)
+                    .put("romSignals", RomInfo.signals())
                     .put("hostPlaced", host)
                     .put("slotsPlaced", slots)
                     .put("hasSnapshot", snap != null)

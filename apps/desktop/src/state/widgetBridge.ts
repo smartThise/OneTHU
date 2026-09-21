@@ -20,9 +20,11 @@ export interface NativeWidgetStatus {
   slotTitles: Record<string, string>;
   /** 系统侧已登记的 provider（宿主 / 槽位N）——空数组说明清单合并没生效 */
   providersRegistered: string[];
-  /** 机型标记：coloros 系（OPPO/OnePlus/realme）走「先落空白卡片、点它再配置」的路径 */
+  /** 机型标记：coloros 系（OPPO/OnePlus/realme）；放置路径已与机型无关，标记只用于文案 */
   rom?: string;
   colorOs?: boolean;
+  /** 判定依据（brand/prop 命中详情）——真机核对「到底检没检到」用 */
+  romSignals?: string;
   reason?: string;
 }
 
@@ -83,6 +85,7 @@ export async function fetchWidgetStatus(): Promise<NativeWidgetStatus | null> {
       providersRegistered: Array.isArray(raw.providersRegistered) ? (raw.providersRegistered as string[]) : [],
       rom: typeof raw.rom === "string" ? raw.rom : undefined,
       colorOs: raw.colorOs === true,
+      romSignals: typeof raw.romSignals === "string" ? raw.romSignals : undefined,
     };
   } catch {
     return null;      // 桌面端 not-android：诊断里跳过这一步

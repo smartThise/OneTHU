@@ -53,16 +53,23 @@ assert.ok(/object RomInfo/.test(romInfo) && /val isColorOs/.test(romInfo), "必�
 assert.ok(/oppo|oneplus|realme/.test(romInfo), "判定必须覆盖 OPPO / OnePlus / realme");
 const cfg = read("apps/desktop/src-tauri/plugins/onethu-mobile/android/src/main/java/app/onethu/mobile/OnethuWidgetConfigActivity.kt");
 const cfgBody = cfg.slice(cfg.indexOf("override fun onCreate"));
-assert.ok(/if \(RomInfo\.isColorOs\) \{[\s\S]{0,120}finish\(\)[\s\S]{0,40}return/.test(cfgBody),
-  "ColorOS 必须在配置活动里提前收尾：落完卡片不跳应用（跳应用会被判放置失败）");
 assert.ok(/setResult\(RESULT_OK/.test(cfgBody), "RESULT_OK 契约必须保持（否则启动器删卡片）");
+assert.ok(/finish\(\)/.test(cfgBody), "配置活动必须立即收尾");
+assert.ok(!/getLaunchIntentForPackage|startActivity/.test(cfgBody),
+  "配置活动不得再拉起应用：统一「先落空白卡片、点它再配置」（不押机型判定）");
+assert.ok(cfgBody.indexOf("LaunchTarget.put") < cfgBody.indexOf("finish()"),
+  "落点必须在收尾之前写入（否则点卡片时无从配置）");
 const pluginKt = read("apps/desktop/src-tauri/plugins/onethu-mobile/android/src/main/java/app/onethu/mobile/OnethuMobilePlugin.kt");
 assert.ok(/\.put\("colorOs", RomInfo\.isColorOs\)/.test(pluginKt), "widgetStatus 必须回传机型标记给 UI");
 const bridge = read("apps/desktop/src/state/widgetBridge.ts");
 assert.ok(/colorOs\?: boolean;/.test(bridge) && /colorOs: raw\.colorOs === true/.test(bridge), "JS 侧要接住 colorOs");
-assert.ok(/fetchWidgetStatus\(\)\.then\(\(st\) => setColorOs/.test(tour), "引导要按机型分流文案");
-assert.ok(tour.includes("空白卡片"), "ColorOS 文案要说明「先落空白卡片，点它再选内容」");
-assert.ok(/colorOs \? \(/.test(tour), "文案必须真的按 colorOs 分支");
+assert.ok(/fetchWidgetStatus\(\)\.then\(\(st\) => setColorOs/.test(tour), "引导要取机型标记");
+assert.ok(tour.includes("空白卡片"), "引导要说明「放置后先是一块空白卡片，点它再选内容」");
+// 判定通道可靠性：主通道必须是公开 API（品牌），属性通道只作补充且有 getprop 兜底
+assert.ok(/Build\.BRAND/.test(romInfo) && /Build\.MANUFACTURER/.test(romInfo),
+  "主通道必须用公开 API 的品牌/厂商字段");
+assert.ok(/getprop/.test(romInfo), "属性通道要有 getprop 兜底（隐藏 API 反射可能被拒）");
+assert.ok(/fun signals\(\)/.test(romInfo) && /romSignals/.test(bridge), "判定依据要回传 UI 供真机核对");
 
 /* ---------- [2] 组合不复制：登录实现走既有 state 模块 ---------- */
 const setup = read("apps/desktop/src/state/accountSetup.ts");

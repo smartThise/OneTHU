@@ -138,8 +138,8 @@ export function OnboardingTour(): React.ReactNode {
   const [acctBusy, setAcctBusy] = useState<string | null>(null);
   /** 桌面小组件步骤（最后一步）：是否已发出放置请求 + 该启动器是否支持请求式放置 */
   const [pinState, setPinState] = useState<"idle" | "requested" | "unsupported" | "failed">("idle");
-  /** ColorOS 系（OPPO/OnePlus/realme）：放置路径不同——先落空白卡片、点它再配置，
-   *  引导文案要照这个说，别让用户以为「一键添加」能用（R21c 用户定案） */
+  /** ColorOS 系（OPPO/OnePlus/realme）：放置路径已统一（先落空白卡片、点它再配置），
+   *  这个标记只用来在「一键添加」失败时给出 ColorOS 专属的手动路径提示（R21c 用户定案） */
   const [colorOs, setColorOs] = useState(false);
   const isAndroidHost = useMemo(() => isAndroidNavigator(navigator), []);
   const [acctMsg, setAcctMsg] = useState<string | null>(null);
@@ -646,15 +646,9 @@ export function OnboardingTour(): React.ReactNode {
             <p style={{ ...acctIntro, marginTop: 12, marginBottom: 0 }}>
               {pinState === "requested" ? "已请求添加。" : ""}改内容：设置 → 通知与提醒 → 桌面小组件。
               <br />
-              {colorOs ? (
-                <>
-                  ColorOS：桌面长按 → 小组件 → OneTHU 添加。
-                  <br />
-                  放上去先是一块空白卡片，点它进应用选内容。
-                </>
-              ) : (
-                "也可以直接在桌面长按 → 小组件 → OneTHU 添加。"
-              )}
+              也可以直接在桌面长按 → 小组件 → OneTHU 添加。
+              <br />
+              放上去先是一块空白卡片，点它进应用选内容。
             </p>
           </>
         ) : null}
