@@ -36,7 +36,8 @@ assert.ok(tour.includes("step === 9 ? ("), "导览缺少桌面小组件步骤（
 const widgetStep = tour.slice(tour.indexOf("step === 9 ? ("), tour.indexOf("step === 9 ? (") + 2600);
 assert.ok(widgetStep.includes("桌面小组件"), "步骤标题必须是「桌面小组件」");
 assert.ok(widgetStep.includes("pinWidget()"), "必须经系统请求式放置（pinWidget）");
-assert.ok(/setWidgetFallback\(\{ kind: "today" \}\)/.test(widgetStep), "新放的这块要默认显示「今日日程」");
+// 导览**不得**改用户自己的「新小组件默认内容」（setWidgetFallback 会覆盖用户配置）
+assert.ok(!widgetStep.includes("setWidgetFallback"), "导览不得覆盖用户的小组件默认内容");
 assert.ok(widgetStep.includes("ensureWidgetRuntime()"), "放置后要确保运行时就绪（否则显示「点一下选择」）");
 assert.ok(widgetStep.includes("isAndroidHost"), "非 Android 不得展示一个点不动的按钮");
 assert.ok(widgetStep.includes("长按桌面"), "不支持请求式放置时要给出手动路径");
