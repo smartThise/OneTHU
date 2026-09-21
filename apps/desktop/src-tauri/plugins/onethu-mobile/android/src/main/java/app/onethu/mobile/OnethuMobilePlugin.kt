@@ -958,6 +958,61 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    /**
+     * 把系统栏 inset 垫成内容视图 padding（edge-to-edge 下的正确姿势）。
+     *
+     * 为什么放在插件里而不是各工程的 MainActivity（2026-09-21 实录）：wry/Tauri 内部强制
+     * edge-to-edge，WebView 会铺到状态栏底下；而 `env(safe-area-inset-*)` 在 Android WebView
+     * 里并不总能拿到值 → 顶栏被状态栏压住。正式工程的 MainActivity 早有一段手写补丁把 inset
+     * 转 padding（所以正式版正常），但 **demo 工程是纯生成的**（只有 enableEdgeToEdge()），
+     * 于是 demo 版顶栏被压——同一份前端、两种观感。
+     * 现在这条能力随插件入库：任何生成工程、任何线，启动时调一次就对齐，不必再改本机工程。
+     * IME（软键盘）insets 一并取 max：edge-to-edge 下系统不缩放窗口，不处理键盘会盖住输入框。
+     */
+    @Command
+    fun applyContentInsets(invoke: Invoke) {
+        try {
+            activity.runOnUiThread {
+                try {
+                    val content = activity.findViewById<android.view.View>(android.R.id.content)
+                    content.setOnApplyWindowInsetsListener { v, insets ->
+                        val bars = if (android.os.Build.VERSION.SDK_INT >= 30) {
+                            insets.getInsets(android.view.WindowInsets.Type.systemBars())
+                        } else {
+                            @Suppress("DEPRECATION")
+                            android.graphics.Insets.of(
+                                insets.systemWindowInsetLeft,
+                                insets.systemWindowInsetTop,
+                                insets.systemWindowInsetRight,
+                                insets.systemWindowInsetBottom,
+                            )
+                        }
+                        val imeBottom = if (android.os.Build.VERSION.SDK_INT >= 30) {
+                            insets.getInsets(android.view.WindowInsets.Type.ime()).bottom
+                        } else {
+                            @Suppress("DEPRECATION")
+                            insets.systemWindowInsetBottom
+                        }
+                        v.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, imeBottom))
+                        // 已消费：内容自己垫，别再让系统缩窗口（两套一起上会双重留白）
+                        if (android.os.Build.VERSION.SDK_INT >= 30) {
+                            android.view.WindowInsets.CONSUMED
+                        } else {
+                            @Suppress("DEPRECATION")
+                            insets.consumeSystemWindowInsets()
+                        }
+                    }
+                    content.requestApplyInsets()
+                    invoke.resolve(JSObject().put("ok", true))
+                } catch (e: Exception) {
+                    invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "insets-failed"))
+                }
+            }
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "insets-exception"))
+        }
+    }
+
     /** 一键把标准形态小组件放到桌面（R21c：ColorOS 等启动器的选择器行为不一致，
      *  用户「绑定完桌面上没有」——这条走系统 requestPinAppWidget，由启动器直接落卡片）。
      *  supported=false 表示该启动器不支持请求式放置，此时 UI 应引导手动添加。 */

@@ -1,4 +1,5 @@
 import { Shell, BrandLogo } from "./components/Layout.js";
+import { isAndroidNavigator } from "./lib/androidHost.js";
 import { NotifyBridge } from "./components/NotifyBridge.js";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { FilePreviewHost } from "./components/FilePreview.js";
@@ -66,6 +67,17 @@ function Routed() {
       stopLearnAutoRefresh();
     };
   }, [status]);
+
+  // Android：把系统栏 inset 垫成内容 padding（启动一次即可，原生 listener 会跟随旋转/键盘）。
+  // 为什么需要（2026-09-21）：wry 内部强制 edge-to-edge，而生成工程的 MainActivity 未必有
+  // inset 处理——demo 版顶栏因此被状态栏压住，正式版恰好有手写补丁所以正常。能力入库后与
+  // 生成工程无关：两条线、任何工程都对齐。
+  useEffect(() => {
+    if (!isAndroidNavigator(typeof navigator !== "undefined" ? navigator : undefined)) return;
+    void import("@tauri-apps/api/core")
+      .then(({ invoke }) => invoke("ui_apply_insets"))
+      .catch(() => undefined);
+  }, []);
 
   const body = (() => {
     if (status === "booting") {
