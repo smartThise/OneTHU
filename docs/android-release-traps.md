@@ -76,6 +76,20 @@ WebView 直连 `devUrl`。当时的判据 `strings | grep 5180` **两种构建�
   `--surface`，直接导致 `parseDebugLocalResources` 报 `ResourceDirectoryParseException`，
   报错信息完全未提及注释，排查成本极高。
 - 使用 write 工具新建文件会返回 ENOTSUP，需使用 `cat > f << 'EOF'` 落盘。
+- **Android 工程不能放在 exFAT 卷上**：Gradle 会把自己写出的 AppleDouble 副档
+  （`._drawable`、`._X.class`）当作真实条目读取与删除，报 `is not a directory` 或
+  `Failed to delete some children`。工程须置于内盘（APFS），再以符号链接挂回
+  `src-tauri/gen/android`。
+- 改用符号链接后出现第二个问题：`app/build.gradle.kts` 的 `rootDirRel = "../../../"`
+  由 Tauri CLI 按工程位置推导，Gradle 解析出真实路径后该相对路径落到 `/Users`，npm 在
+  该目录找不到 `package.json`；解法是改为绝对路径。
+- 第三个问题：Gradle 调 cargo 时工作目录为 `apps/desktop`，而指定内盘 target 的
+  `.cargo/config.toml` 位于 `src-tauri/`（cargo 只按当前目录逐级向上查找），于是落回
+  exFAT 的 `src-tauri/target`，tauri 的 `build.rs` 读到 `._default.toml` 直接 panic；
+  解法是用 `CARGO_TARGET_DIR` 环境变量强制覆盖。
+
+上述三步已固化在打包脚本里：`apps/desktop/scripts/build-release-apk.sh`（发布线）与
+`build-demo-apk.sh`（demo 线）。
 - 插件构建中间产物在 `/tmp/onethu-android-plugin-build`（异常时先删）；
   Rust 构建需 `CARGO_TARGET_DIR=/Users/st/Library/Caches/onethu/cargo-target`。
 
@@ -88,3 +102,15 @@ WebView 直连 `devUrl`。当时的判据 `strings | grep 5180` **两种构建�
   Span 颜色按 `uiMode` 选取，**不新增设置项**。
 - 网络：校内每个 webvpn 包装请求实测 4–6.4 秒（外网几百毫秒），冷启动耗时主要是
   漫游链 + 并行抓取的叠加；排查时查看 `[NATIVE-HOP]` 与 `[NET-RESOLVE]` 两行日志。
+
+## 7. OEM 系统差异
+
+- **灵动岛胶囊文字溢出（小米 HyperOS）**：胶囊宽度原为 JS 测量得到的定宽
+  （`--island-w` = `getBoundingClientRect().width` + 58），而文字 span 在 flex 容器中
+  默认可收缩且不换行；字体度量一变宽（MiSans 等），测量值跟不上实际渲染宽度，文字于是溢出
+  胶囊而不是把胶囊撑长（其他设备正常）。改为内容自适应（`width: auto` + `flex: none`），
+  并以 `max-width: min(72vw, 460px)` 对超长文本作省略号收尾。护栏
+  `tools/island-layout-test.mjs`。
+- **小组件放置（ColorOS）**：部分启动器的选择器与配置流程行为不一致，出现「绑定完成后桌面
+  没有卡片」。改用系统请求式放置（`requestPinAppWidget`）；启动器不支持时
+  （`supported=false`）界面引导手动添加，并把系统登记的 provider 数回报给界面用于自检。

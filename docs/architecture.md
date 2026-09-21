@@ -84,7 +84,7 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
   **内容按块绑定**（`state/widgetInstances.ts`，键为 appWidgetId）：桌面可同时放置日程与 DDL、
   单个原子占满的详情、一个收藏夹的图标组、一个 1×1 快捷方式，四类内容互不影响；绑定的入口是
   AppWidget 的 configure 流程（放置时由 `OnethuWidgetConfigActivity` 将 `widget-config:<id>` 记录为
-  落点后拉起应用，应用显示选择层），亦可点击桌面上未绑定的实例或在设置页逐块修改。原生按
+  落点后拉起应用，应用显示选择层），亦可点击桌面上未绑定的实例或在设置页逐块修改。设置页提供**请求式放置**（`widget_pin` → 系统 `requestPinAppWidget`）：各启动器的选择器行为不一致（ColorOS 上出现过绑定完成后桌面无卡片），支持时由启动器直接落卡片；返回 `supported=false` 表示该启动器不支持请求式放置，界面改为引导手动添加。选择器内的预览图由 `res/drawable/onethu_widget_preview*.png` 按形态提供。原生按
   appWidgetId 存内容，实例清单由 `widget_instances` 命令报回（读不到时**不允许原生修剪**，
   否则会误删所有内容）。宿主小组件声明五种初始形态（1×1 快捷方式 / 2×1 / 2×2 / 3×2 / 4×1）：
   选择器内可选的形态数等于清单中的 provider 数，故形态只能通过多声明 provider 提供（五者共用同一套
@@ -255,3 +255,20 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
 | 市场名单解析测试 | `node --import ./tools/ts-resolve-register.mjs tools/market-parse-test.mjs` |
 
 分支约定：开发在 `dev2` 分支，发布时推送至 `dev3`（GitHub 与清华 Git 两个远端）。
+
+## 9. 数据层：缓存与新鲜度
+
+数据读取采用 SWR 语义（先给缓存、后台刷新），由此有两条必须遵守的口径：
+
+1. **有旧值时刷新失败不改数据状态，但必须单独给出提示**。以校园卡为例，静默刷新失败时
+   `state` 保持成功态，另以 `refreshError` 报出「流水明细获取失败，已显示上次拉到的明细」，
+   卡片同时显示「更新于 x 分钟前」（缓存中记录写入时刻）。失败而不提示时，用户会长期停留在
+   旧数据上且无从察觉（R21c 用户实录：流水滞后 1–6 天，清数据重登才恢复）。
+2. **部分失败不得以空值覆盖缓存**。取流水失败时返回 `null` 而非空列表，写入缓存时与上一次的
+   真实数据合并；此前返回 `[]` 会被落盘，用户看到的「没有流水」是假象。
+
+**硬过期**：校园卡的旧缓存上限为 6 小时（`state/data.ts` 的 `CARD_HARD_STALE`，与卡页提示
+同口径），超过即不再静默沿用，直接提示过期。
+
+实现见 `apps/desktop/src/state/data.ts` 与 `apps/desktop/src/pages/info/CardTab.tsx`，
+护栏 `tools/card-freshness-test.mjs`。
