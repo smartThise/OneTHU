@@ -47,6 +47,23 @@ for (const forbidden of ["submitHomework", "ignoreHw", "connectMail(", "loginTyc
 // 每步可跳过：step 9 也落在「>=5 用跳过此步」的区间里
 assert.ok(/step >= 5 \?/.test(tour), "step 9 必须有「跳过此步」");
 
+/* ---------- [1c] ColorOS 分流（用户定案：先落空白卡片，点它再配置） ---------- */
+const romInfo = read("apps/desktop/src-tauri/plugins/onethu-mobile/android/src/main/java/app/onethu/mobile/RomInfo.kt");
+assert.ok(/object RomInfo/.test(romInfo) && /val isColorOs/.test(romInfo), "必须有 ColorOS 判定（品牌名 + ROM 属性双通道）");
+assert.ok(/oppo|oneplus|realme/.test(romInfo), "判定必须覆盖 OPPO / OnePlus / realme");
+const cfg = read("apps/desktop/src-tauri/plugins/onethu-mobile/android/src/main/java/app/onethu/mobile/OnethuWidgetConfigActivity.kt");
+const cfgBody = cfg.slice(cfg.indexOf("override fun onCreate"));
+assert.ok(/if \(RomInfo\.isColorOs\) \{[\s\S]{0,120}finish\(\)[\s\S]{0,40}return/.test(cfgBody),
+  "ColorOS 必须在配置活动里提前收尾：落完卡片不跳应用（跳应用会被判放置失败）");
+assert.ok(/setResult\(RESULT_OK/.test(cfgBody), "RESULT_OK 契约必须保持（否则启动器删卡片）");
+const pluginKt = read("apps/desktop/src-tauri/plugins/onethu-mobile/android/src/main/java/app/onethu/mobile/OnethuMobilePlugin.kt");
+assert.ok(/\.put\("colorOs", RomInfo\.isColorOs\)/.test(pluginKt), "widgetStatus 必须回传机型标记给 UI");
+const bridge = read("apps/desktop/src/state/widgetBridge.ts");
+assert.ok(/colorOs\?: boolean;/.test(bridge) && /colorOs: raw\.colorOs === true/.test(bridge), "JS 侧要接住 colorOs");
+assert.ok(/fetchWidgetStatus\(\)\.then\(\(st\) => setColorOs/.test(tour), "引导要按机型分流文案");
+assert.ok(tour.includes("空白卡片"), "ColorOS 文案要说明「先落空白卡片，点它再选内容」");
+assert.ok(/colorOs \? \(/.test(tour), "文案必须真的按 colorOs 分支");
+
 /* ---------- [2] 组合不复制：登录实现走既有 state 模块 ---------- */
 const setup = read("apps/desktop/src/state/accountSetup.ts");
 for (const dep of ["./exthw.js", "./cloudCal.js", "./seafile.js"]) {

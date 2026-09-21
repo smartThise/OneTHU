@@ -22,7 +22,7 @@ import { accountErrMsg } from "../state/accountSetup.js";
 import { YktQrPanel, YktWebLoginPanel } from "./ExtHwLoginModal.js";
 import { YKT_WEB_LOGIN_AVAILABLE } from "../lib/yktWebview.js";
 import { openExternal } from "../pages/info/openExternal.js";
-import { pinWidget } from "../state/widgetBridge.js";
+import { fetchWidgetStatus, pinWidget } from "../state/widgetBridge.js";
 import { ensureWidgetRuntime } from "../state/notifySources.js";
 import { setWidgetFallback } from "../state/widgetInstances.js";
 import { isAndroidNavigator } from "../lib/androidHost.js";
@@ -138,6 +138,9 @@ export function OnboardingTour(): React.ReactNode {
   const [acctBusy, setAcctBusy] = useState<string | null>(null);
   /** 桌面小组件步骤（最后一步）：是否已发出放置请求 + 该启动器是否支持请求式放置 */
   const [pinState, setPinState] = useState<"idle" | "requested" | "unsupported" | "failed">("idle");
+  /** ColorOS 系（OPPO/OnePlus/realme）：放置路径不同——先落空白卡片、点它再配置，
+   *  引导文案要照这个说，别让用户以为「一键添加」能用（R21c 用户定案） */
+  const [colorOs, setColorOs] = useState(false);
   const isAndroidHost = useMemo(() => isAndroidNavigator(navigator), []);
   const [acctMsg, setAcctMsg] = useState<string | null>(null);
 
@@ -159,6 +162,12 @@ export function OnboardingTour(): React.ReactNode {
       .catch((e: unknown) => setAcctMsg(`${label}失败：${accountErrMsg(e)}`))
       .finally(() => setAcctBusy(null));
   };
+
+  // 机型标记：仅在 Android 宿主上问一次；失败按非 ColorOS 处理（走通用文案）
+  useEffect(() => {
+    if (!open) return;
+    void fetchWidgetStatus().then((st) => setColorOs(st?.colorOs === true)).catch(() => undefined);
+  }, [open]);
 
   if (!open) return null;
 
@@ -614,6 +623,9 @@ export function OnboardingTour(): React.ReactNode {
                         } else if (r.supported) {
                           setPinState("failed");
                           showToast("系统未接受放置请求，可长按桌面 → 小组件 → OneTHU 手动添加", 6000);
+                        } else if (colorOs) {
+                          setPinState("unsupported");
+                          showToast("ColorOS：请到桌面长按 → 小组件 → OneTHU 添加", 8000);
                         } else {
                           setPinState("unsupported");
                           showToast("当前启动器不支持一键添加，请长按桌面 → 小组件 → OneTHU", 6000);
@@ -632,9 +644,17 @@ export function OnboardingTour(): React.ReactNode {
               </div>
             ) : null}
             <p style={{ ...acctIntro, marginTop: 12, marginBottom: 0 }}>
-              {pinState === "requested" ? "已请求添加。" : ""}改内容：设置 → 通知与提醒 → 桌面小组件（每一块各改各的）。
+              {pinState === "requested" ? "已请求添加。" : ""}改内容：设置 → 通知与提醒 → 桌面小组件。
               <br />
-              也可以直接在桌面长按 → 小组件 → OneTHU 添加；ColorOS 暂不支持添加（已知问题）。
+              {colorOs ? (
+                <>
+                  ColorOS：桌面长按 → 小组件 → OneTHU 添加。
+                  <br />
+                  放上去先是一块空白卡片，点它进应用选内容。
+                </>
+              ) : (
+                "也可以直接在桌面长按 → 小组件 → OneTHU 添加。"
+              )}
             </p>
           </>
         ) : null}

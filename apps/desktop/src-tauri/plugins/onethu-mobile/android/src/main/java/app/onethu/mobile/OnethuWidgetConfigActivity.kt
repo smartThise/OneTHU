@@ -25,6 +25,13 @@ class OnethuWidgetConfigActivity : Activity() {
         }
         // 让启动器保留这块小组件
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id))
+        // ColorOS 分流（2026-09-21 用户定案）：配置活动里立刻跳回应用会被判为放置失败，
+        // 桌面上留不下卡片。改为**先落一块空白小组件**（显示「点一下选择内容」），
+        // 用户点它时再由小组件自身的点击目标把 bind 层拉起来——这条路径实测可行。
+        if (RomInfo.isColorOs) {
+            finish()
+            return
+        }
         packageManager.getLaunchIntentForPackage(packageName)?.let { launch ->
             launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             try {
