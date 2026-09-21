@@ -12,6 +12,15 @@ on:
         description: "只跑 Windows job（日常验证 Windows 构建链用）"
         type: boolean
         default: false
+      runner:
+        description: "构建机：github-hosted（云，约 11 分钟）/ self-hosted（自己的 Windows 机，热缓存 1–3 分钟）"
+        type: choice
+        options: ["github-hosted", "self-hosted"]
+        default: "github-hosted"
+      no_bundle:
+        description: "只出便携 exe（跳过 NSIS 安装包，迭代更快）"
+        type: boolean
+        default: false
 
 jobs:
   desktop:
@@ -21,11 +30,16 @@ jobs:
       matrix: ${{ (github.event_name == 'workflow_dispatch' && inputs.only_windows)
         && fromJSON('{"include":[{"os":"windows-latest","args":""}]}')
         || fromJSON('{"include":[{"os":"macos-latest","args":"--target aarch64-apple-darwin"},{"os":"windows-latest","args":""}]}') }}
-    runs-on: ${{ matrix.os }}
+    # 自建 runner（自己的 Windows 机）：热 target 目录增量编译，比云上快一个数量级。
+    # 标签用 [self-hosted, Windows]（GitHub 给自建 runner 的默认标签）。
+    runs-on: ${{ (github.event_name == 'workflow_dispatch' && inputs.runner == 'self-hosted')
+      && fromJSON('["self-hosted","Windows"]') || matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          # 自建 runner 不 clean：保住 target/ 与 node_modules 的热缓存（clean 会 git clean -ffdx）
+          clean: ${{ !(github.event_name == 'workflow_dispatch' && inputs.runner == 'self-hosted') }}
       - uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -34,6 +48,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
+      # sccache：跨运行的编译结果缓存（Windows 上依赖编译是主要开销）
+      - uses: mozilla-actions/sccache-action@v8
       - uses: swatinem/rust-cache@v2
         with:
           # sidecar 是独立 cargo 工程（target 在自己目录下），不列出则每轮
@@ -57,8 +73,10 @@ jobs:
       - name: Build harness sidecar (host-native)
         run: pnpm --filter @onethu/desktop build:harness
       - name: Build desktop bundles
-        run: pnpm --filter @onethu/desktop exec tauri build ${{ matrix.args }}
+        run: pnpm --filter @onethu/desktop exec tauri build ${{ matrix.args }} ${{ (github.event_name == 'workflow_dispatch' && inputs.no_bundle) && '--no-bundle' || '' }}
         env:
+          RUSTC_WRAPPER: sccache
+          SCCACHE_GHA_ENABLED: "true"
           TAURI_SIGNING_PRIVATE_KEY: ""
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -66,4 +84,5 @@ jobs:
           name: onethu-${{ matrix.os }}
           path: |
             apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
+            apps/desktop/src-tauri/target/release/onethu.exe
             apps/desktop/src-tauri/target/**/*.dmg
