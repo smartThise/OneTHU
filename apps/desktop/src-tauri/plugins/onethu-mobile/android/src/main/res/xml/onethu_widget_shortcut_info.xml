@@ -8,6 +8,8 @@
 
   - android:configure：放置时先拉起配置活动（转发到应用里的选择层）。
   - minResize 与初始占位一致：1×1 是这套形态的下界。
+  - previewImage：部分国产启动器（ColorOS 等）不认 previewLayout，选择器里会显示空白
+    甚至放置失败 → 同时提供静态 PNG 兜底（R21c 用户实录：ColorOS 上放上去桌面没有）。
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="40dp"
@@ -18,6 +20,9 @@
     android:minResizeHeight="40dp"
     android:updatePeriodMillis="1800000"
     android:previewLayout="@layout/onethu_widget_preview_shortcut"
+
+    android:previewImage="@drawable/onethu_widget_preview_shortcut"
+    android:widgetFeatures="reconfigurable"
     android:initialLayout="@layout/onethu_widget_shortcut"
     android:configure="app.onethu.mobile.OnethuWidgetConfigActivity"
     android:resizeMode="horizontal|vertical"

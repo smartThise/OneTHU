@@ -26,6 +26,18 @@ import { isAndroidNavigator } from "../../lib/androidHost.js";
  *  曾让真机上「调起支付宝」通道从不出现）：决定出「调起支付宝」还是纯扫码 UI */
 const isAndroid = isAndroidNavigator(typeof navigator !== "undefined" ? navigator : undefined);
 
+/** 「x 前」相对时间（数据新鲜度展示用；与提醒文案无关，粒度够粗即可） */
+function fmtAgo(at: number): string {
+  const min = Math.floor((Date.now() - at) / 60000);
+  if (min < 1) return "刚刚";
+  if (min < 60) return `${min} 分钟前`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h} 小时前`;
+  return `${Math.floor(h / 24)} 天前`;
+}
+/** 硬过期：超过 6 小时未更新即提示（与 state/data.ts 的 CARD_HARD_STALE 同口径） */
+const isStale = (at: number | null): boolean => at !== null && Date.now() - at > 6 * 60 * 60 * 1000;
+
 const incomeRe = /充值|圈存|补助/;
 const isIncome = (t: CardTransaction): boolean =>
   incomeRe.test(`${t.name ?? ""} ${t.summary ?? ""} ${t.txName ?? ""}`);
@@ -232,7 +244,7 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
 /* --------------------------------- 主组件 --------------------------------- */
 
 export function CardTab({ active = true }: { active?: boolean }) {
-  const { data, state, error, reload } = useCard(30);
+  const { data, state, error, reload, updatedAt, refreshError } = useCard(30);
   const [rchOpen, setRchOpen] = useState(false);
   // 切回本栏时若上次报错（如会话过期）则自动重试一次，不再让用户手动点刷新
   useEffect(() => { if (active && state === "error") void reload(); }, [active]);
@@ -262,12 +274,23 @@ export function CardTab({ active = true }: { active?: boolean }) {
                 {data?.info.cardStatus ? ` · ${data.info.cardStatus}` : ""}
               </div>
             </div>
-            <button className="btn btn-primary" style={{ marginLeft: "auto", height: 30 }} onClick={() => setRchOpen(true)}>
+            <button
+              className="btn"
+              style={{ marginLeft: "auto", height: 30 }}
+              disabled={state === "loading"}
+              title="重新拉取余额与流水"
+              onClick={() => void reload()}
+            >
+              {state === "loading" ? "刷新中…" : "刷新"}
+            </button>
+            <button className="btn btn-primary" style={{ height: 30 }} onClick={() => setRchOpen(true)}>
               充值
             </button>
           </div>
           <div className="card-hero-meta">
             <span>卡号 {data?.info.cardId || "–"}</span>
+            {/* R21c：数据时间必须可见——此前用户被旧缓存压着 1–6 天却无从察觉 */}
+            {updatedAt ? <span title={new Date(updatedAt).toLocaleString()}>更新于 {fmtAgo(updatedAt)}</span> : null}
             {data?.info.departmentName ? <span>{data.info.departmentName}</span> : null}
             {data?.info.maxOneTimeTransactionAmount !== undefined ? (
               <span>单笔上限 ¥{data.info.maxOneTimeTransactionAmount.toFixed(0)}</span>
@@ -295,6 +318,20 @@ export function CardTab({ active = true }: { active?: boolean }) {
       </div>
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
+      {state !== "error" && (refreshError || isStale(updatedAt)) ? (
+        <Card>
+          <div className="exthw-note is-warn" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <span>
+              {refreshError
+                ? `刷新失败，当前显示 ${updatedAt ? fmtAgo(updatedAt) : "上次"}的数据（${refreshError}）`
+                : `数据已超过 6 小时未更新（${updatedAt ? fmtAgo(updatedAt) : "未知时间"}），可能不是最新`}
+            </span>
+            <button className="btn" style={{ height: 26, padding: "0 10px", fontSize: 12 }} onClick={() => void reload()}>
+              重新拉取
+            </button>
+          </div>
+        </Card>
+      ) : null}
 
       <SectionHead title="最近消费" aside="最近 30 天（数据源：card.tsinghua.edu.cn）" />
       {state === "loading" && !data ? (

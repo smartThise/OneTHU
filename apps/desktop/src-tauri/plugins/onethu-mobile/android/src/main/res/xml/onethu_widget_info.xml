@@ -7,6 +7,8 @@
   - updatePeriodMillis=1800000：系统允许的最小刷新间隔（30 分钟）。真正的新鲜度靠
     App 前台刷新后主动 push 快照 + 点击打开 App 重算，不靠这里轮询。
   - widgetCategory=home_screen：仅桌面（不做锁屏小组件——锁屏下没有交互上下文）。
+  - previewImage：部分国产启动器（ColorOS 等）不认 previewLayout，选择器里会显示空白
+    甚至放置失败 → 同时提供静态 PNG 兜底（R21c 用户实录：ColorOS 上放上去桌面没有）。
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="180dp"
@@ -17,6 +19,9 @@
     android:minResizeHeight="40dp"
     android:updatePeriodMillis="1800000"
     android:previewLayout="@layout/onethu_widget_preview_list"
+
+    android:previewImage="@drawable/onethu_widget_preview"
+    android:widgetFeatures="reconfigurable"
     android:initialLayout="@layout/onethu_widget"
     android:configure="app.onethu.mobile.OnethuWidgetConfigActivity"
     android:resizeMode="horizontal|vertical"

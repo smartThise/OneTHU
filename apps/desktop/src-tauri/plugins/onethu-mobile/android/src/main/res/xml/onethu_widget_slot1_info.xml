@@ -5,6 +5,8 @@
   槽位是「固定预留」的：Android 不允许运行时注册 AppWidgetProvider，所以清单里先声明
   3 个槽位，插件按声明顺序占位；内容由 JS 侧解析插件声明后放进快照的 slots["1"]。
   与宿主小组件同尺寸（3×2），但由插件内容决定实际显示。
+  - previewImage：部分国产启动器（ColorOS 等）不认 previewLayout，选择器里会显示空白
+    甚至放置失败 → 同时提供静态 PNG 兜底（R21c 用户实录：ColorOS 上放上去桌面没有）。
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="180dp"
@@ -15,6 +17,8 @@
     android:minResizeHeight="40dp"
     android:updatePeriodMillis="1800000"
     android:previewLayout="@layout/onethu_widget_preview_list"
+
+    android:previewImage="@drawable/onethu_widget_preview"
     android:initialLayout="@layout/onethu_widget"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"

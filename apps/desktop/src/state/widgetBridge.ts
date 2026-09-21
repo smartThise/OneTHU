@@ -48,6 +48,24 @@ export async function fetchWidgetInstances(): Promise<WidgetInstanceInfo[] | nul
   }
 }
 
+/** 一键把小组件放到桌面（系统 requestPinAppWidget）。返回 supported=false 表示该启动器
+ *  不支持请求式放置（此时 UI 引导手动长按桌面添加）。R21c：ColorOS 上用户「绑定完桌面上
+ *  没有」——选择器与配置流程的行为各家不一，能请求式放置就绕开选择器。 */
+export async function pinWidget(): Promise<{ supported: boolean; requested: boolean; reason?: string }> {
+  try {
+    const raw = (await invoke<Record<string, unknown>>("widget_pin")) as {
+      ok?: boolean;
+      supported?: boolean;
+      requested?: boolean;
+      reason?: string;
+    };
+    if (raw?.ok !== true) return { supported: false, requested: false, reason: raw?.reason ?? "pin-failed" };
+    return { supported: raw.supported === true, requested: raw.requested === true, reason: raw.reason };
+  } catch (e) {
+    return { supported: false, requested: false, reason: String(e).slice(0, 80) };
+  }
+}
+
 export async function fetchWidgetStatus(): Promise<NativeWidgetStatus | null> {
   try {
     const raw = (await invoke<Record<string, unknown>>("widget_status")) as Partial<NativeWidgetStatus> & { ok?: boolean };

@@ -2049,6 +2049,9 @@ export function useReport() {
 
 /** 校园卡余额 + 最近消费（getCardInfo / getCardTransactions 并行 + SWR 缓存） */
 const CARD_TTL = 60 * 1000;
+/** 旧缓存的硬上限：超过它就不再「静默压着」——R21c 用户实录（部分用户流水滞后 1–6 天，
+ *  清数据重登才恢复）就是静默刷新失败 + 旧缓存长期展示造成的。 */
+const CARD_HARD_STALE = 6 * 60 * 60 * 1000;
 
 /** localStorage 回灌的 bundle 里 Date 已被 JSON 化成 ISO 字符串——读出处就地复活。
  *  （2026-09-02 白屏事故根因：字符串直进 fmtTime 调 .getMonth() 崩掉整棵 React 树。
@@ -2074,6 +2077,12 @@ export function useCard(days = 30) {
   });
   const [state, setState] = useState<DataState>(() => (cacheGet<CardBundle>(cardKey) ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
+  /** 数据时间（缓存写入时刻）：卡页据此显示「更新于 …」——R21c 用户实录：
+   *  部分用户被「旧版本测试包的缓存一直压着」，流水滞后 1–6 天且界面上无从察觉。 */
+  const [updatedAt, setUpdatedAt] = useState<number | null>(() => cacheGet<CardBundle>(cardKey)?.at ?? null);
+  /** 最近一次静默刷新失败的原因：有旧值时 state 不会变 error（SWR 语义），
+   *  但用户必须知道「现在看的是旧数据」——否则只能靠清数据自救。 */
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   /* 登录态丢失静默自愈：成功清零，同一次失败最多自动恢复 1 次（reload 清零重计） */
   const recover = useRef(0);
 
@@ -2092,15 +2101,22 @@ export function useCard(days = 30) {
         infoHelper.getCampusCardTransactions(fmtDate(start), fmtDate(end), -1 /* CardTransactionType.Any */).catch((err: unknown) => {
           // 余额正常但流水失败时必须有日志可查（此前静默吞掉导致无法诊断）
           logPageError("CARD-TX", err);
-          return [] as CardTransaction[];
+          return null; // null = 这次流水没拿到（**不得**当空列表覆盖缓存）
         }),
       ]);
-      cacheSet(cardKey, { info: cardInfo, transactions });
-      setData({ info: cardInfo, transactions });
+      // R21c 真 bug：此前流水失败会返回 [] 并被 cacheSet 落盘，把此前的真实流水覆盖成
+      // 「没有流水」，用户看到的是假的空列表。现在失败保留旧流水并单独报「部分失败」。
+      const prev = cacheGet<CardBundle>(cardKey)?.data ?? null;
+      const mergedTx = transactions ?? prev?.transactions ?? [];
+      cacheSet(cardKey, { info: cardInfo, transactions: mergedTx });
+      setData({ info: cardInfo, transactions: mergedTx });
+      setUpdatedAt(Date.now());
+      setRefreshError(transactions === null ? "流水明细获取失败，已显示上次拉到的明细" : null);
       recover.current = 0;
       setState("ready");
     } catch (err) {
       logPageError("CARD", err);
+      setRefreshError(explainNetworkError(err));
       // 2026-09-17 定案：剪掉 softRecover/forceEnsure 级联——旧客户端的
       // forceEnsure 是整套 id 舞（表单+check+锚点），失败后连环 public key
       // 风暴把全局会话拖红（真机实录）。lib 钩子失败一律走 SWR 旧值/页内
@@ -2117,6 +2133,9 @@ export function useCard(days = 30) {
     if (status !== "ready") return;
     const cached = cacheGet<CardBundle>(cardKey);
     if (!cached) void load(false);
+    // 过期太久（跨天级别的旧缓存）不再静默：静默失败会让旧数据无限压着（用户实录），
+    // 这时要走非静默路径——失败就把错误和重试按钮摆出来。
+    else if (Date.now() - cached.at > CARD_HARD_STALE) void load(false);
     else if (Date.now() - cached.at > CARD_TTL) void load(true);
   }, [status, load, cardKey]);
 
@@ -2126,7 +2145,7 @@ export function useCard(days = 30) {
     return load();
   }, [load]);
 
-  return { data, state, error, reload };
+  return { data, state, error, reload, updatedAt, refreshError };
 }
 
 /* ============ 今日预约（首页聚合卡：图书馆座位 + 研讨间，按「今天」过滤） ============ */

@@ -958,6 +958,42 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    /** 一键把标准形态小组件放到桌面（R21c：ColorOS 等启动器的选择器行为不一致，
+     *  用户「绑定完桌面上没有」——这条走系统 requestPinAppWidget，由启动器直接落卡片）。
+     *  supported=false 表示该启动器不支持请求式放置，此时 UI 应引导手动添加。 */
+    @Command
+    fun widgetPin(invoke: Invoke) {
+        try {
+            val ctx = activity.applicationContext
+            val manager = AppWidgetManager.getInstance(ctx)
+            val cls = OnethuBaseWidget.hostProviders().firstOrNull()
+            if (manager == null || cls == null) {
+                invoke.resolve(JSObject().put("ok", false).put("reason", "no-provider"))
+                return
+            }
+            val supported = manager.isRequestPinAppWidgetSupported
+            if (!supported) {
+                // 不支持请求式放置：把系统登记的 provider 数一并回给 UI，便于自检对照
+                invoke.resolve(
+                    JSObject().put("ok", true).put("supported", false)
+                        .put("registered", manager.installedProviders.count { it.provider.packageName == ctx.packageName })
+                )
+                return
+            }
+            // 必须在 UI 线程调用（Activity 上下文相关）
+            activity.runOnUiThread {
+                try {
+                    val ok = manager.requestPinAppWidget(ComponentName(ctx, cls), null, null)
+                    invoke.resolve(JSObject().put("ok", true).put("supported", true).put("requested", ok))
+                } catch (e: Exception) {
+                    invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "pin-failed"))
+                }
+            }
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "pin-exception"))
+        }
+    }
+
     /** 小组件落地状态：桌面上放了几个、每个槽位几个、快照时间与槽位内容。
      *  存在的意义是把「用户说没看到」变成可查的数字——自检链路要用。 */
     @Command

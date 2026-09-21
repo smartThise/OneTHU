@@ -9,7 +9,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useFavs } from "../state/favs.js";
 import { ensureWidgetRuntime } from "../state/notifySources.js";
-import { fetchWidgetStatus, type NativeWidgetStatus } from "../state/widgetBridge.js";
+import { fetchWidgetStatus, pinWidget, type NativeWidgetStatus } from "../state/widgetBridge.js";
+import { showToast } from "../state/toast.js";
 import type { WidgetInstanceInfo } from "../state/widgetRuntime.js";
 import { fetchWidgetInstances } from "../state/widgetBridge.js";
 import {
@@ -83,6 +84,27 @@ export function WidgetSettingsSection(): ReactNode {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flex: "none" }}>
+          {/* R21c：ColorOS 等启动器上「绑定完桌面上没有」——直接请求系统放一块，
+              绕开各家行为不一致的选择器；不支持时给出明确的手动路径。 */}
+          <button
+            className="btn"
+            title="调用系统方式直接在桌面放一块标准形态小组件"
+            onClick={() => {
+              void (async () => {
+                const r = await pinWidget();
+                if (r.requested) {
+                  showToast("已请求系统添加到桌面，请查看桌面");
+                  void refresh();
+                } else if (r.supported) {
+                  showToast("系统未接受放置请求，请长按桌面 → 小组件 → OneTHU 手动添加", 6000);
+                } else {
+                  showToast("当前启动器不支持一键添加，请长按桌面 → 小组件 → OneTHU", 6000);
+                }
+              })();
+            }}
+          >
+            放到桌面
+          </button>
           <button className="btn btn-ghost" onClick={() => void pushNow()}>立即刷新</button>
           <button className="btn btn-ghost" onClick={() => void refresh()}>重新载入</button>
         </div>
