@@ -224,7 +224,15 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
 |---|---|
 | 重建桌面 sidecar | `cd apps/desktop && node scripts/build-harness.mjs` |
 | 启动开发环境 | `cd apps/desktop && ./scripts/dev-launch.sh` |
-| 构建 Android 安装包 | `JAVA_HOME=… ANDROID_HOME=… npx tauri android build --apk --target aarch64`，随后执行 zipalign 与 apksigner 签名 |
+| 构建 Android 安装包（发布线） | `bash apps/desktop/scripts/build-release-apk.sh`：自检发布线不变量（正式包名 + 不脱敏）→ 内盘工程 → 构建 → zipalign + 签名（默认 debug 证书，与线上 Release 同证书） |
+
+> **双线纪律（2026-09-21 事故后加）**：`demo` 与发布线（`dev2`→远端 `dev3`）**只允许在
+> 少数文件上不同**（`packages/core/src/privacy/config.ts` 的脱敏开关、`tauri.conf.json`
+> 的应用身份、demo 专属文档与脚本）。镜像改动**只按文件摘取**
+> （`git checkout <sha> -- <files>` 后在发布线单独提交），**永远不要 `git merge`/快进把
+> demo 合进发布线**——demo 的脱敏开关与 `app.onethu.demo` 身份会一起进正式版。
+> 门禁：`node tools/release-line-check.mjs`（检查 git 引用）/ `--worktree`（提交前自查）。
+| 构建 Android 安装包（demo 线） | `bash apps/desktop/scripts/build-demo-apk.sh`：脱敏演示版，独立应用身份 `app.onethu.demo`，可与正式版同机共存 |
 | 前端类型检查 | `pnpm --filter @onethu/core typecheck`；`cd apps/desktop && npx tsc --noEmit` |
 | Rust 检查 | `cd plugins/OneTHU-Harness/core && cargo check` |
 | 数据层测试 | `node tools/exthw-status-test.mjs`、`tools/tuoj-cas-test.mjs`、`tools/ykt-qr-test.mjs` |
