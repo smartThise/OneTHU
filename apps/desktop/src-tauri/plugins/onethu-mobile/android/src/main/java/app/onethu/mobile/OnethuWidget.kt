@@ -497,28 +497,19 @@ abstract class OnethuBaseWidget : AppWidgetProvider() {
             return Triple(true, text, "$dayLabel ${hmOf(at)} · ${leftText(at - now)}")
         }
 
-        /**
-         * 页脚：**只有「今日」内容才按可见行重算**，其余内容一律用它自带的 footer。
-         *
-         * 为什么必须分流（2026-09-21 用户实录：洗衣机小组件状态正常、底下却多一行
-         * 「今天没有课与截止」；校园卡余额组件同样被这行占住）：
-         * R21 把页脚改成「按 counts 重算」时没区分内容类型——详情类内容（洗衣机/校园卡/
-         * 课程…）没有 counts，于是永远掉进「全空」分支，被套上今日的空态文案。
-         * 判定依据用 counts 是否存在（今日快照必带 counts/titleAt，详情快照不带）。
-         */
+        /** 脚注重算：按仍可见的行计数；全空时按「快照当天且有过课」说「今天的课已上完」 */
         private fun footerOf(content: JSONObject, now: Long, visClasses: Int, visDdls: Int): String {
             val counts = content.optJSONObject("counts")
-                ?: return content.optString("footer").orEmpty() // 非今日内容：用自带页脚（可能为空=不显示）
             val parts = mutableListOf<String>()
             if (visClasses > 0) parts.add("$visClasses 节课")
             if (visDdls > 0) parts.add("$visDdls 个截止")
             if (parts.isEmpty()) {
-                val hadClass = counts.optBoolean("hadClass", false) == true
+                val hadClass = counts?.optBoolean("hadClass", false) == true
                 val titleAt = content.optLong("titleAt", 0L)
                 return if (hadClass && (titleAt <= 0L || dayKey(titleAt) == dayKey(now))) "今天的课已上完"
                 else "今天没有课与截止"
             }
-            val more = counts.optInt("more", 0) ?: 0
+            val more = counts?.optInt("more", 0) ?: 0
             return parts.joinToString(" · ") + if (more > 0) " · 还有 $more 项" else ""
         }
 

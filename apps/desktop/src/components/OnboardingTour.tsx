@@ -24,6 +24,7 @@ import { YKT_WEB_LOGIN_AVAILABLE } from "../lib/yktWebview.js";
 import { openExternal } from "../pages/info/openExternal.js";
 import { fetchWidgetStatus, pinWidget } from "../state/widgetBridge.js";
 import { ensureWidgetRuntime } from "../state/notifySources.js";
+import { setWidgetFallback } from "../state/widgetInstances.js";
 import { isAndroidNavigator } from "../lib/androidHost.js";
 import { showToast } from "../state/toast.js";
 import { TABS as INFO_TABS } from "../pages/info/InfoPage.js";
@@ -611,10 +612,9 @@ export function OnboardingTour(): React.ReactNode {
                     setAcctBusy("widget");
                     void (async () => {
                       try {
-                        // 只确保小组件运行时就绪（放上去立刻有内容，而不是「点一下选择」）。
-                        // 这里**不写组件的默认内容**：那是用户自己的「新小组件默认内容」，
-                        // 导览去覆盖它等于改用户设置（2026-09-21 实录：这一步曾把用户配好的
-                        // 默认内容顶成今日，导致绑了洗衣机的组件底下冒出今日空态文案）。
+                        // 新放的这块默认显示「今日日程」（未绑定的实例即用默认内容）；
+                        // 再确保小组件运行时就绪，放上去立刻有内容而不是「点一下选择」。
+                        setWidgetFallback({ kind: "today" });
                         const r = await pinWidget();
                         if (r.requested) {
                           void ensureWidgetRuntime();

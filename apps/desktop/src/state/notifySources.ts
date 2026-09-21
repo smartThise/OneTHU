@@ -23,7 +23,6 @@ import { atomDetail } from "./widgetDetail.js";
 import { liveDetail, warmLiveData } from "./widgetLive.js";
 import { fetchWidgetInstances } from "./widgetBridge.js";
 import { collectNotifyInputs } from "./notifyInputs.js";
-import { cacheGet } from "./cache.js";
 import { createNotifyRuntime, type NotifyRuntime } from "./notifyRuntime.js";
 import { createWidgetRuntime, type WidgetRuntime } from "./widgetRuntime.js";
 import type { NotifyInvoke } from "./notifyScheduler.js";
@@ -111,12 +110,6 @@ function resolveBindingProd(binding: Parameters<typeof resolveWidgetSource>[0], 
         schedule: inputs.schedule,
         homework: inputs.homework,
         now: Date.now(),
-        // 校园卡余额：读应用侧 SWR 缓存（小组件进程没有网络；余额由 useCard 拉到后缓存）
-        cardBalance: (() => {
-          const c = cacheGet<{ info?: { balance?: number } }>("card:30");
-          const amount = c?.data?.info?.balance;
-          return typeof amount === "number" ? { amount, at: c?.at } : null;
-        })(),
       });
       return d ? { rows: d.rows, footer: d.footer } : null;
     },
