@@ -1,36 +1,44 @@
 /**
- * R21：PDF 预览渲染通道护栏（2026-09-21「手机 PDF 预览还是不行」事故）。
+ * PDF 预览渲染通道护栏（2026-09-21 两次真机事故后定稿）。
  *
- * 根因回顾：FilePreview 旧实现用 `/android/i.test(navigator.userAgent)` 判安卓，
- * 但主窗口 UA 被 tauri.conf.json 伪装成 Windows Chrome/79（webvpn 票绑定）→
- * 真机恒 false → pdf.js 分支从未在真机执行，一直渲染安卓上空白的 <embed>。
+ * 事故一（安卓）：旧实现用裸 UA 正则判安卓（主窗口 UA 被 tauri.conf 伪装成
+ *   Windows Chrome/79）→ pdf.js 分支从未在真机执行，一直渲染空白的 <embed>。
+ * 事故二（Windows）：
+ *   ① WebView2 的内置 PDF 查看器不可靠，<embed> 点开空白；
+ *   ② data: URL 的 PDF 在 Chromium 系受限（改 blob: 也只是换一种脆弱）；
+ *   ③ 最终用户实录「点任何预览直接白屏」→ 用户令：统一成安卓那种。
  *
- * 护栏三件事：
- *   [1] choosePdfRenderMode 纯函数分档（桌面 / 自带渲染器 / 其余安卓）；
- *   [2] 源码守卫：FilePreview 禁止再出现裸 UA 正则判安卓，必须走多信号判定与分流函数；
- *   [3] 源码守卫：pdf.js 自绘路径必须带 legacy 构建兜底 + 换内嵌渲染出口。
+ * 现在只有两条路：**pdf.js canvas 自绘（默认，全平台）** 与 **系统应用打开（人工出口）**。
+ * 本护栏锁死这一点：任何平台都不许再引入 <embed> 渲染通道。
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const { choosePdfRenderMode, isAndroidNavigator, isWindowsNavigator } = await import("../apps/desktop/src/lib/androidHost.ts");
+const { isAndroidNavigator, isWindowsNavigator } = await import("../apps/desktop/src/lib/androidHost.ts");
+const fpSrc = readFileSync(new URL("../apps/desktop/src/components/FilePreview.tsx", import.meta.url), "utf8");
+const hostSrc = readFileSync(new URL("../apps/desktop/src/lib/androidHost.ts", import.meta.url), "utf8");
 
-/* ---------- [1] choosePdfRenderMode 分档 ---------- */
+/* ---------- [1] 统一通道：只有自绘 ---------- */
+/** 剔除注释行后再判定：注释里提到旧通道名（解释为什么删）不算违规——
+ *  护栏自己踩过三次「注释里的字样被当成代码」的坑，这里一律先剥注释。 */
+const fpCode = fpSrc.split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join("\n");
+assert.ok(!/<embed[\s>]/.test(fpCode), "不得再用 <embed> 渲染 PDF（Windows/WebView2 白屏根因）");
+assert.ok(!/type="application\/pdf"/.test(fpCode), "不得再声明 application/pdf 内嵌通道");
+assert.ok(!fpCode.includes("createObjectURL"), "blob URL 通道已删除（embed 专用）");
+assert.ok(fpSrc.includes("<PdfCanvasView"), "PDF 必须走 pdf.js canvas 自绘");
+assert.ok(fpSrc.includes("legacy/build/pdf.mjs"), "自绘必须保留 legacy 构建兜底（老内核缺现代 API）");
+assert.ok(fpSrc.includes("系统应用打开"), "必须保留「系统应用打开」作为唯一人工出口");
+assert.ok(/PDF-MODE canvas/.test(fpSrc), "诊断日志要写清通道=canvas（客户端排查用）");
+assert.ok(!/choosePdfRenderMode/.test(fpSrc) && !/choosePdfRenderMode/.test(hostSrc),
+  "分档函数已删除——通道统一后不该再存在「按平台选 embed」的入口");
 
-// 桌面（任何信号）：一律 embed（WKWebView / WebView2 原生支持）
-assert.equal(choosePdfRenderMode({ android: false, pdfViewerEnabled: undefined }), "embed");
-assert.equal(choosePdfRenderMode({ android: false, pdfViewerEnabled: false }), "embed");
-assert.equal(choosePdfRenderMode({ android: false, pdfViewerEnabled: true }), "embed");
+/* ---------- [2] 预览崩溃兜底：任何预览出错不许白屏 ---------- */
+assert.ok(/class PreviewErrorBoundary/.test(fpSrc), "预览必须有错误边界（否则一处抛错整窗白屏）");
+assert.ok(/getDerivedStateFromError/.test(fpSrc), "错误边界要真的接管渲染错误");
+assert.ok(/PREVIEW-CRASH/.test(fpSrc), "崩溃要落日志（客户端排查用）");
+assert.ok(/<PreviewErrorBoundary/.test(fpSrc), "预览主体必须被边界包住");
 
-// 安卓 + 内核自带 PDF 渲染器（pdfViewerEnabled === true）→ embed 观感最好
-assert.equal(choosePdfRenderMode({ android: true, pdfViewerEnabled: true }), "embed");
-
-// 安卓 + 无自带渲染器（false / 旧内核无此属性 undefined）→ pdf.js 自绘
-assert.equal(choosePdfRenderMode({ android: true, pdfViewerEnabled: false }), "canvas");
-assert.equal(choosePdfRenderMode({ android: true, pdfViewerEnabled: undefined }), "canvas");
-
-// isAndroidNavigator 多信号回归（与 ykt-qr-test 互补的快速锚点）：
-// 主窗口 UA 被伪装成 Windows Chrome/79 时，platform 报法仍是 Android 的 Linux arm
+/* ---------- [3] 平台判定锚点（伪装 UA 不得击穿） ---------- */
 assert.equal(
   isAndroidNavigator({
     userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36",
@@ -43,57 +51,13 @@ assert.equal(
 assert.equal(
   isAndroidNavigator({ userAgent: "Mozilla/5.0 (Windows NT 10.0…) Chrome/126", platform: "Win32", userAgentData: { platform: "Windows" } }),
   false,
-  "Windows 桌面不得误判",
+  "Windows 桌面不得误判为 Android",
 );
-
-/* ---------- [1b] Windows（WebView2）分档：一律 pdf.js 自绘 ----------
- * 用户实录（2026-09-21）：「windows pdf 预览好像不行」——WebView2 的内置 PDF 查看器不可靠，
- * 且 Chromium 系对 data: URL 的 PDF 加载限制严格。 */
-assert.equal(choosePdfRenderMode({ android: false, windows: true, pdfViewerEnabled: true }), "canvas",
-  "Windows 即使内核自称有查看器也走自绘（WebView2 不可靠）");
-assert.equal(choosePdfRenderMode({ android: false, windows: true, pdfViewerEnabled: undefined }), "canvas");
-// 其余桌面保持 embed（行为不变，零回归）
-assert.equal(choosePdfRenderMode({ android: false, windows: false, pdfViewerEnabled: undefined }), "embed");
-assert.equal(choosePdfRenderMode({ android: false, pdfViewerEnabled: true }), "embed", "未传 windows 时行为与改档前一致");
-
-/* ---------- [1c] Windows 判定：绝不能吃伪装的 UA ----------
- * tauri.conf.json 把主窗口 UA 写成 Windows Chrome/79（webvpn 票绑定），
- * 安卓真机的 UA 也因此含 "Windows" → 判 Windows 只能用 userAgentData / platform。 */
-assert.equal(
-  isWindowsNavigator({ platform: "Win32", userAgentData: { platform: "Windows" } }),
-  true,
-  "真 Windows 桌面要认出来",
-);
-assert.equal(
-  isWindowsNavigator({ platform: "Linux aarch64", userAgentData: null }),
-  false,
-  "安卓（UA 伪装成 Windows）绝不能误判为 Windows",
-);
-assert.equal(isWindowsNavigator({ platform: "MacIntel", userAgentData: { platform: "macOS" } }), false, "macOS 不误判");
-assert.equal(isWindowsNavigator(undefined), false, "无信号按非 Windows");
-
-/* ---------- [2][3] 源码守卫 ---------- */
-
-const fpSrc = readFileSync(new URL("../apps/desktop/src/components/FilePreview.tsx", import.meta.url), "utf8");
-const hostSrc = readFileSync(new URL("../apps/desktop/src/lib/androidHost.ts", import.meta.url), "utf8");
-
-assert.ok(!fpSrc.includes("/android/i.test(") && !fpSrc.includes("/Android/.test("), "FilePreview 禁止用裸 UA 正则判安卓（真机 UA 被伪装，恒 false）");
-assert.ok(fpSrc.includes("isAndroidNavigator("), "FilePreview 必须走 androidHost 多信号判定");
-assert.ok(fpSrc.includes("choosePdfRenderMode("), "PDF 渲染通道必须经 choosePdfRenderMode 分流");
-assert.ok(fpSrc.includes("pdfViewerEnabled"), "必须读取内核自带渲染器信号");
-assert.ok(fpSrc.includes("legacy/build/pdf.mjs"), "pdf.js 自绘必须带 legacy 构建兜底（老内核缺现代 API）");
-assert.ok(fpSrc.includes("换内嵌渲染"), "自绘失败必须保留「换内嵌渲染」人工出口");
-assert.ok(fpSrc.includes("[FILE-PREVIEW]"), "解析失败必须留痕（console 可被 logcat 抓到）");
-assert.ok(hostSrc.includes("export function choosePdfRenderMode"), "androidHost 应导出 choosePdfRenderMode");
-assert.ok(hostSrc.includes("export function isWindowsNavigator"), "androidHost 应导出 isWindowsNavigator");
-assert.ok(fpSrc.includes("isWindowsNavigator("), "FilePreview 必须用多信号判 Windows（UA 不可信）");
-assert.ok(/choosePdfRenderMode\(\{[\s\S]{0,200}windows: IS_WINDOWS_HOST/.test(fpSrc), "分档必须把 Windows 信号传进去");
-// embed 必须用 blob: URL（data: URL 的 PDF 在 Chromium 系常空白），且要 revoke
-assert.ok(fpSrc.includes("URL.createObjectURL("), "内嵌渲染必须用 blob URL，而不是 data: URL");
-assert.ok(fpSrc.includes("URL.revokeObjectURL("), "blob URL 必须在卸载时 revoke（防长会话泄漏）");
-assert.ok(fpSrc.includes("PDF-MODE"), "渲染通道与平台必须落一行诊断日志（排查不用猜）");
-
-console.log("pdf-render-mode-test: 全部断言通过（含 Windows 分档与伪装 UA 负例 + blob URL + 诊断日志）");
+assert.equal(isWindowsNavigator({ platform: "Linux aarch64", userAgentData: null }), false,
+  "安卓（UA 伪装成 Windows）不得误判为 Windows");
+assert.equal(isWindowsNavigator({ platform: "Win32", userAgentData: { platform: "Windows" } }), true, "真 Windows 要认出");
+assert.ok(fpSrc.includes("isAndroidNavigator(") && fpSrc.includes("isWindowsNavigator("),
+  "平台判定必须走 androidHost 多信号（用于诊断）");
 
 /* ---------- [4] 同族全库扫描：src 内禁止再出现「裸 UA 判安卓」的任何写法 ----------
  * 主窗口 UA 被 tauri.conf.json 伪装成 Windows Chrome/79（webvpn 票绑定），任何

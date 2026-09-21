@@ -8,12 +8,12 @@
  * Office 全部本地解析（mammoth/SheetJS 动态 import + zipTree 解包），不外传文件内容；
  * 任一环节失败（依赖加载失败/格式异常/算法不支持）都回退"内部文件树 + 下载"兜底，绝不白屏。
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Component, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { http, downloadLearnUrl, saveLearnUrlAs, withLearnCsrf } from "../lib/clients.js";
 import { isAndroidHost } from "../lib/yktWebview.js";
-import { choosePdfRenderMode, isAndroidNavigator, isWindowsNavigator } from "../lib/androidHost.js";
+import { isAndroidNavigator, isWindowsNavigator } from "../lib/androidHost.js";
 import { normalizeWebvpnUrl } from "@onethu/core";
 import { explainNetworkError, rawErrorText } from "../lib/transport.js";
 import { Empty } from "./Layout.js";
@@ -90,7 +90,50 @@ async function loadPdfDoc(dataUrl: string): Promise<PdfDocLike> {
   throw lastErr instanceof Error ? lastErr : new Error(String(lastErr ?? "未知错误"));
 }
 
-function PdfCanvasView({ dataUrl, onOpenExternally, onSwitchToEmbed, pdfBusy, dlMsg }: { dataUrl: string; onOpenExternally: () => Promise<void>; onSwitchToEmbed: () => void; pdfBusy: boolean; dlMsg: string }): React.ReactNode {
+/**
+ * 预览内容错误边界（2026-09-21 用户实录：「Windows 点任何预览直接白屏」）。
+ *
+ * 预览是一堆渲染分支（pdf.js / 图片 / 文本 / zip / office 摘要），任何一支在某个内核上
+ * 抛错都会让整棵 React 树卸载 → 整个应用白屏，用户只看到「什么都没了」。边界把错误收在
+ * 预览面板内部：显示原因 + 重试，应用其余部分不受影响。
+ */
+class PreviewErrorBoundary extends Component<{ children: ReactNode; onRetry?: () => void }, { err: string | null }> {
+  constructor(props: { children: ReactNode; onRetry?: () => void }) {
+    super(props);
+    this.state = { err: null };
+  }
+
+  static getDerivedStateFromError(e: unknown): { err: string } {
+    return { err: e instanceof Error ? e.message : String(e) };
+  }
+
+  componentDidCatch(e: unknown): void {
+    void import("../lib/clients.js")
+      .then((m) => m.logLine(`PREVIEW-CRASH ${String(e).slice(0, 300)}`))
+      .catch(() => undefined);
+  }
+
+  render(): ReactNode {
+    if (this.state.err === null) return this.props.children;
+    return (
+      <div style={{ padding: 16, fontSize: 13, lineHeight: 1.7 }}>
+        <div style={{ color: "var(--red)", marginBottom: 8 }}>预览渲染出错，已停在这一条上（应用其余功能不受影响）。</div>
+        <div style={{ color: "var(--text-3)", marginBottom: 12, wordBreak: "break-all" }}>{this.state.err.slice(0, 300)}</div>
+        <button
+          className="btn"
+          onClick={() => {
+            this.setState({ err: null });
+            this.props.onRetry?.();
+          }}
+        >
+          重试
+        </button>
+      </div>
+    );
+  }
+}
+
+function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy, dlMsg }: { dataUrl: string; onOpenExternally: () => Promise<void>; pdfBusy: boolean; dlMsg: string }): React.ReactNode {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [doc, setDoc] = useState<PdfDocLike | null>(null);
@@ -162,7 +205,7 @@ function PdfCanvasView({ dataUrl, onOpenExternally, onSwitchToEmbed, pdfBusy, dl
         <div style={{ fontSize: 12.5, color: "var(--red, #e5484d)", textAlign: "center" }}>{err}</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
           <button className="btn" disabled={pdfBusy} onClick={() => void onOpenExternally()}>用系统应用打开</button>
-          <button className="btn btn-ghost" onClick={onSwitchToEmbed}>换内嵌渲染</button>
+          <button className="btn btn-ghost" disabled={pdfBusy} onClick={() => void onOpenExternally()}>系统应用打开</button>
         </div>
       </div>
     );
@@ -180,7 +223,7 @@ function PdfCanvasView({ dataUrl, onOpenExternally, onSwitchToEmbed, pdfBusy, dl
         <button className="btn btn-ghost" disabled={pdfBusy} title="下载临时文件后调起系统 PDF 应用" onClick={() => void onOpenExternally()}>
           {pdfBusy ? "调起中…" : "系统应用"}
         </button>
-        <button className="btn btn-ghost" title="自绘画面异常时，换用本机自带的方式渲染" onClick={onSwitchToEmbed}>换内嵌渲染</button>
+        <button className="btn btn-ghost" title="用本机 PDF 应用打开（要打印/目录时用）" disabled={pdfBusy} onClick={() => void onOpenExternally()}>系统应用打开</button>
       </div>
       {dlMsg ? <div style={{ fontSize: 11.5, color: "var(--text-3)", wordBreak: "break-all", padding: "0 8px 8px" }}>{dlMsg}</div> : null}
     </div>
@@ -777,7 +820,6 @@ export function FilePreviewHost() {
     _open = (t) => {
       seqRef.current += 1;
       setDlMsg("");
-      setPdfForceEmbed(false);
       setCur({ name: t.name, url: t.url, seq: seqRef.current });
     };
     return () => {
@@ -863,18 +905,16 @@ export function FilePreviewHost() {
     }
   }, [cur, dlBusy]);
 
-  /* PDF 渲染通道：桌面/自带渲染器的内核 → embed；其余安卓 → pdf.js 自绘。
-   * 用户可从自绘界面手动「换内嵌渲染」覆盖（判错时的人工出口），换文件即复位。 */
-  const [pdfForceEmbed, setPdfForceEmbed] = useState(false);
-  const pdfMode = choosePdfRenderMode({
-    android: IS_ANDROID_HOST,
-    windows: IS_WINDOWS_HOST,
-    pdfViewerEnabled: PDF_VIEWER_ENABLED,
-  });
-  const pdfEmbedded = pdfForceEmbed || pdfMode === "embed";
+  /* PDF 渲染通道：**全平台统一 pdf.js 自绘**（2026-09-21 用户令：「统一成安卓那种」）。
+   *
+   * 为什么删掉 <embed> 这条曾经「观感最好」的路：
+   *   - Windows/WebView2 上 <embed type=application/pdf> 点开直接白屏（用户实录），
+   *     且 data: URL 在 Chromium 系对 PDF 加载限制严格（曾试 blob: URL 也只是换一种脆弱）；
+   *   - 安卓 WebView 本来就没有内置查看器，一直走自绘；
+   *   - 自绘是**我们完全可控**的一条路：字体、缩放、翻页、失败降级都在手里，
+   *     唯一的代价是没有浏览器自带的打印/目录，需要时用「系统应用打开」拿到原生体验。
+   * 于是三条路变两条：自绘（默认）/ 系统应用（人工出口）。 */
   const [pdfBusy, setPdfBusy] = useState(false);
-  /** 内嵌渲染用的 blob URL（仅 PDF 且走 embed 时创建；卸载/换文件时 revoke） */
-  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const openPdfExternally = async (): Promise<void> => {
     if (!cur || pdfBusy) return;
     setPdfBusy(true);
@@ -900,32 +940,13 @@ export function FilePreviewHost() {
   };
 
   const view = phase.s === "ready" ? phase.view : null;
-  useEffect(() => {
-    if (view?.kind !== "pdf" || !pdfEmbedded) {
-      setPdfBlobUrl(null);
-      return;
-    }
-    let url: string | null = null;
-    try {
-      const bin = atob(view.dataUrl.slice(view.dataUrl.indexOf(",") + 1));
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-      setPdfBlobUrl(url);
-    } catch {
-      setPdfBlobUrl(null); // 造 blob 失败就退回 data: URL（旧行为）
-    }
-    return () => {
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [view?.kind === "pdf" ? view.dataUrl : null, pdfEmbedded]);
-  // 诊断：渲染通道与平台一次性落日志（真机/客户端排查时不用猜走了哪条路）
+  // 诊断：PDF 一律自绘；把平台与内核信号落一行日志（客户端排查时不用猜）
   useEffect(() => {
     if (view?.kind !== "pdf") return;
     void import("../lib/clients.js")
-      .then((m) => m.logLine(`PDF-MODE ${pdfEmbedded ? "embed" : "canvas"} android=${IS_ANDROID_HOST} windows=${IS_WINDOWS_HOST} viewer=${String(PDF_VIEWER_ENABLED)}`))
+      .then((m) => m.logLine(`PDF-MODE canvas android=${IS_ANDROID_HOST} windows=${IS_WINDOWS_HOST} viewer=${String(PDF_VIEWER_ENABLED)}`))
       .catch(() => undefined);
-  }, [view?.kind === "pdf" ? view.dataUrl : null, pdfEmbedded]);
+  }, [view?.kind === "pdf" ? view.dataUrl : null]);
   const metaBits: string[] = [];
   if (view) {
     if (view.size) metaBits.push(fmtBytes(view.size));
@@ -978,6 +999,7 @@ export function FilePreviewHost() {
             </div>
           ) : null}
 
+          <PreviewErrorBoundary onRetry={retry}>
           {view?.kind === "image" ? (
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, background: "rgba(127,127,127,.05)", minHeight: 220 }}>
               <img
@@ -989,26 +1011,14 @@ export function FilePreviewHost() {
           ) : null}
 
           {view?.kind === "pdf" ? (
-            pdfEmbedded ? (
-              /* 内嵌渲染用 blob: URL 而不是 data: URL：Chromium 系（含 WebView2）对 data: URL
-                 的插件/框架加载限制严格，PDF 常常直接空白（2026-09-21 Windows 实录）。
-                 blob 在卸载时 revoke，避免长会话泄漏。 */
-              <embed
-                src={pdfBlobUrl ?? view.dataUrl}
-                type="application/pdf"
-                style={{ width: "100%", height: "70vh", border: "none" }}
-              />
-            ) : (
-              /* 安卓且本内核无自带 PDF 渲染器：pdf.js canvas 自绘（modern→legacy 两级兜底），
-                 「系统应用打开」与「换内嵌渲染」保留为人工出口 */
-              <PdfCanvasView
-                dataUrl={view.dataUrl}
-                onOpenExternally={openPdfExternally}
-                onSwitchToEmbed={() => setPdfForceEmbed(true)}
-                pdfBusy={pdfBusy}
-                dlMsg={dlMsg}
-              />
-            )
+            /* 全平台统一：pdf.js canvas 自绘（modern→legacy 两级兜底）；
+               「系统应用打开」是唯一的人工作为出口（要打印/目录时用） */
+            <PdfCanvasView
+              dataUrl={view.dataUrl}
+              onOpenExternally={openPdfExternally}
+              pdfBusy={pdfBusy}
+              dlMsg={dlMsg}
+            />
           ) : null}
 
           {view?.kind === "text" ? (
@@ -1066,6 +1076,7 @@ export function FilePreviewHost() {
               </button>
             </div>
           ) : null}
+          </PreviewErrorBoundary>
         </div>
 
         {dlMsg ? (

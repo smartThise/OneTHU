@@ -100,16 +100,4 @@ export function pickExtHwOpenChannel(
  *    Chromium 96+ 标准信号）：embed 观感最好（缩放/翻页/选中文本）→ "embed"；
  *  - 其余 Android（无内置渲染器）：pdf.js canvas 自绘 → "canvas"；
  *    pdf.js 失败时 UI 提供「换内嵌渲染」人工兜底 + 「系统应用打开」，绝不静默。 */
-export type PdfRenderMode = "embed" | "canvas";
 
-export function choosePdfRenderMode(signals: {
-  android: boolean;
-  /** Windows 宿主（WebView2 内置查看器不可靠）→ 一律 pdf.js 自绘 */
-  windows?: boolean;
-  /** navigator.pdfViewerEnabled；旧内核无此属性时为 undefined */
-  pdfViewerEnabled?: boolean;
-}): PdfRenderMode {
-  if (signals.windows) return "canvas";
-  if (!signals.android) return "embed";
-  return signals.pdfViewerEnabled === true ? "embed" : "canvas";
-}
