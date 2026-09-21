@@ -621,7 +621,7 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
         await invoke("open_web_modal", { url, dark: currentThemeIsDark() });
       },
       /** 应用内确认弹窗（Promise 化）：resolve 用户是否确认。opts.danger 为危险操作样式；
-       *  danger 时 `title` / `confirmText` 由插件按场景给（宿主只提供通用兜底措辞）。 */
+       *  danger 时 `title` / `confirmText` 应由插件按场景提供（宿主只提供通用兜底措辞）。 */
       confirm: async (
         msg: string,
         opts?: { danger?: boolean; title?: string; confirmText?: string },

@@ -1,0 +1,33 @@
+{
+  "docs/ui-copy-audit.md": [
+    {
+      "text": "顺手看看",
+      "why": "UI 文案样例（应用内「猜你喜欢」卡片的说明文字），逐字引用"
+    },
+    {
+      "text": "点了没反应",
+      "why": "用户报障原话引用，逐字保留"
+    },
+    {
+      "text": "「看到了就说明这条链通了」",
+      "why": "被审计的旧文案样例，逐字引用"
+    }
+  ],
+  "docs/README.md": [],
+  "docs/api-reference.md": [
+    {
+      "text": "一句话直达",
+      "why": "功能名（OH 的 open_page 直达能力），非叙述措辞"
+    }
+  ],
+  "docs/plugin-development.md": [
+    {
+      "text": "一句话直达",
+      "why": "功能名（OH 的 open_page 直达能力），非叙述措辞"
+    },
+    {
+      "text": "\"description\": \"一句话说明\"",
+      "why": "市场名单条目的示例取值，属数据样例"
+    }
+  ]
+}

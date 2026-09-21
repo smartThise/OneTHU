@@ -11,7 +11,8 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm --filter @onethu/core test",
-    "lint:ui-copy": "node tools/ui-copy-lint.mjs"
+    "lint:ui-copy": "node tools/ui-copy-lint.mjs",
+    "lint:docs": "node tools/docs-prose-lint.mjs"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

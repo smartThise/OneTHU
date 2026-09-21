@@ -36,7 +36,16 @@ OneTHU 是清华大学校园助手应用，基于 Tauri v2 与 React 实现，�
   [plugin-development.md §9.3–9.5](./plugin-development.md)。
 - 修改宿主实现：读 [architecture.md](./architecture.md)，构建命令见该文档 §8。
 - 改安卓插件 / 排查真机问题：读 [android-release-traps.md](./android-release-traps.md)。
-- 写用户可见文案：读 [ui-copy-audit.md](./ui-copy-audit.md)，并跑 `pnpm lint:ui-copy`。
+- 写用户可见文案：读 [ui-copy-audit.md](./ui-copy-audit.md)，并执行 `pnpm lint:ui-copy`。
+
+## 文档语言纪律
+
+正文一律使用陈述式技术说明：不写口号式引号短语、比喻性动词、第一人称与第二人称、元话语
+与建议式祈使。具体禁用词表以 `tools/docs-prose-lint.mjs` 为准（不在本文重复列举，避免文档
+自身触发规则）。用户报障原句、报错原文、日志行与 UI 文案样例属证据，逐字保留，并在行尾加
+`<!-- docs-prose-lint-ok: 理由 -->` 或写入 `tools/docs-prose-allow.json` 豁免。
+
+改完执行 `pnpm lint:docs`（`tools/docs-prose-lint.mjs`，有违规退出码 1）。
 
 ## 接口真源
 
