@@ -28,6 +28,12 @@
 - **会话守卫**：HttpClient 检测到响应含登录页特征时，先探活，失效则使用内存凭据
   完整重登（受信凭据免二次认证），随后自动重放原请求。重登失败时按指数退避冷却
   （初始 30 秒，上限 10 分钟），避免触发风控。
+- **网络学堂静默重登**（R21c）：learn 专线的响应为登录页或网关页时抛出
+  `SessionExpiredError`，由 `#withRelogin` 静默重登一次并重放原请求；仅该类错误触发重登，
+  启动期无会话时抛出的 `AuthRequiredError` 仍直接上抛，避免无凭据时空转重登。重登只重试
+  一次，仍失败则交还上层提示。
+- **登录链路重试**：登录过程首次失败（校园网冷漫游中断等）时使用同一凭据静默重试一次，
+  期间保持 connecting 状态，两次均失败才回到登录页。
 - **设备指纹策略**（2026-09-18 决议）：设备指纹固定，不执行轮换。轮换方案会使
   强制二次认证链路与保活、静默重登、lib 会话链相互干扰，稳定性不可控。指纹缺失时
   由选课模块的死结自愈机制处理（确认失败后清除账密凭据直接登录）。
@@ -185,9 +191,18 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
 
 ## 6. 外部作业源
 
-雨课堂、TUOJ（AI 版与经典版）、Tyche 三源统一映射为 `ExternalHomework` 模型，以
-`ext:` 前缀并入作业页。凭据维护、故障恢复与新源接入方式见
-[external-homework.md](./external-homework.md)。
+雨课堂、TUOJ（AI 版与经典版）、Tyche 与 DSA OJ 统一映射为 `ExternalHomework` 模型，
+以 `ext:` 前缀并入作业页。凭据维护、故障恢复与新源接入方式见
+[external-homework.md](./external-homework.md)；作业区的交互能力（忽略、附件上传与必交
+附件预检、雨课堂主观题原生作答、学术红线）见 [homework.md](./homework.md)。
+
+**写入通道**：作业相关写请求的请求体统一经 `apps/desktop/src/lib/bodySerialize.ts`
+序列化，该模块为唯一真源，nativeFetch 与 tauriFetch 共用；雨课堂正文插图上传与主观题
+提交实现在 `packages/core/src/exthw/yuketang.ts`，multipart 由应用侧手工拼装。这两类
+写能力**不注册进插件宿主的可调用工具清单**（护栏见 [homework.md §5](./homework.md)）。
+
+**本机状态**：作业忽略（`onethu.hw.ignored.v1`）与必交附件记忆
+（`onethu.learn.needFile.v1`）均为纯本机 localStorage 状态，不参与数据源同步。
 
 ## 7. 扫码与内嵌浏览
 

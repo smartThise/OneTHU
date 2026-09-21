@@ -749,6 +749,7 @@ Android WebView 环境不允许执行任意路径的二进制文件，sidecar �
 
 | 版本 | 变更 |
 |---|---|
+| v1.16 | `ui.confirm` 的 `opts` 新增 `title` 与 `confirmText`：危险样式建议按场景显式给出标题与确认按钮文案，宿主兜底为通用措辞（写死场景文案会使不同场景互相串味） |
 | v1.15 | 服务名匹配改为分档打分（100 / 80+ / 70 / 40+ / 20~35，`SERVICE_CONFIDENT=40`）：40 分及以上直接打开，近似名称仅返回候选由用户确认；`services.search` 返回 `score`；OH 兜底查询失败时如实上报，不再统一回复「没有相近名称」 |
 | v1.14 | 插件 API 新增 `services.search` / `services.open`（在线服务目录检索与应用内打开，支持简称匹配）；OH `open_page` 本机未命中时自动检索服务目录（§9.3） |
 | v1.13 | 今日页新增「最近使用 / 猜你喜欢」两张按本机使用习惯生成的卡（空则不渲染）；插件 API `nav` 新增 `usage` / `clearUsage`；OH 新增 `query_usage` 工具 |
