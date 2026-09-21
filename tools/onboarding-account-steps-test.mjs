@@ -64,8 +64,8 @@ assert.ok(tour.includes("YktQrPanel") && tour.includes("YktWebLoginPanel"),
 
 /* ---------- [3] 版本号：老用户也要看到 ---------- */
 const onboarding = read("apps/desktop/src/state/onboarding.ts");
-assert.ok(/const KEY = "onethu\.onboarded\.v2";/.test(onboarding),
-  "导览版本必须是 v2（新增账号步骤后，老用户升一轮）");
+assert.ok(/const KEY = "onethu\.onboarded\.v3";/.test(onboarding),
+  "导览版本必须是 v3（新增账号步骤 v2、桌面小组件步骤 v3，老用户各升一轮）");
 assert.ok(!onboarding.includes("onethu.onboarded.v1"), "不得再读写 v1 旧键");
 
 /* ---------- [4] 已配置标识 ---------- */

@@ -20,9 +20,10 @@ import {
 export { SCENARIOS, cardsForScenarios, cardsOfScenario, type Scenario } from "../lib/onboardingCards.js";
 import { cardsForScenarios, planTodayCards, SCENARIOS } from "../lib/onboardingCards.js";
 
-// v2（2026-09-21）：导览新增账号接入步骤（雨课堂 / OJ / 邮箱 / 云盘），新旧用户都要
-// 展示一轮——换版本号让老用户也会再看到；已配置的项只标识、不重复索要。
-const KEY = "onethu.onboarded.v2";
+// v2（2026-09-21）：导览新增账号接入步骤（雨课堂 / OJ / 邮箱 / 云盘）。
+// v3（2026-09-21）：导览再新增「桌面小组件」步骤——沿用同一口径：导览有新增内容时
+// 新旧用户都要看一轮，所以继续换版本号；已配置的项只标识、不重复索要。
+const KEY = "onethu.onboarded.v3";
 
 export function hasOnboarded(): boolean {
   try {
