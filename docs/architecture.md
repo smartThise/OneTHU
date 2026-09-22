@@ -1,6 +1,6 @@
 # 系统架构
 
-> 最后更新：2026-09-22 22:56
+> 最后更新：2026-09-22 22:59
 
 本文档描述 OneTHU 的进程模型与各子系统设计，面向宿主贡献者。
 
@@ -232,7 +232,7 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
 | 启动开发环境 | `cd apps/desktop && ./scripts/dev-launch.sh` |
 | 构建 Android 安装包（发布线） | `bash apps/desktop/scripts/build-release-apk.sh`：自检发布线不变量（正式包名 + 不脱敏）→ 内盘工程 → 构建 → zipalign + 签名（默认 debug 证书，与线上 Release 同证书） |
 
-> **双线纪律（2026-09-21 事故后加）**：`demo` 与发布线（`dev2`→远端 `dev3`）**只允许在
+> **双线纪律（2026-09-21 事故后加）**：`demo` 与发布线 `dev3`（本地检出的分支名为 `dev2`）**只允许在
 > 少数文件上不同**（`packages/core/src/privacy/config.ts` 的脱敏开关、`tauri.conf.json`
 > 的应用身份、demo 专属文档与脚本）。镜像改动**只按文件摘取**
 > （`git checkout <sha> -- <files>` 后在发布线单独提交），**永远不要 `git merge`/快进把
@@ -260,7 +260,8 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
 | Rust 单测（通知载荷解析等） | `cd apps/desktop/src-tauri && cargo test --lib` |
 | 市场名单解析测试 | `node --import ./tools/ts-resolve-register.mjs tools/market-parse-test.mjs` |
 
-分支约定：开发在 `dev2` 分支，发布时推送至 `dev3`（GitHub 与清华 Git 两个远端）。
+分支约定：开发与发布都在 `dev3`（GitHub 与清华 Git 两个远端同步）；本地检出的分支名为
+`dev2`，推送目标为 `dev3`。
 
 ## 9. 数据层：缓存与新鲜度
 
