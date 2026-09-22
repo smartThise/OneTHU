@@ -91,8 +91,9 @@ console.log("[5] 无障碍：尊重系统「减弱动态效果」");
   ok(/transition-duration:\s*1ms !important/.test(block), "降级过渡时长");
   ok(/animation-iteration-count:\s*1 !important/.test(block), "降级循环次数（呼吸/流光停）");
   ok(/export function prefersReducedMotion/.test(motion), "JS 侧同样有判断（不能只靠 CSS）");
-  ok(/prefersReducedMotion\(\)/.test(motion.slice(motion.indexOf("export function withViewTransition"))) , "转场前检查减弱动态");
   ok(/prefersReducedMotion\(\)/.test(motion.slice(motion.indexOf("export function useCountUp"))), "数字滚动前检查减弱动态");
+  // 页面转场是纯 CSS，降级由上面的 CSS 块覆盖；确认没有绕过降级块的 JS 帧动画旁路
+  ok(!/requestAnimationFrame/.test(css), "CSS 里没有绕过降级块的手写帧动画");
 }
 
 console.log("[6] 分级开关：重效果只在桌面，涟漪只在真机");
@@ -111,20 +112,28 @@ console.log("[7] 无限动画白名单：不许页面一直在动");
   ok(infinite.every((n) => allow.has(n)), `无限动画只有骨架/呼吸/斜纹（实际：${[...new Set(infinite)].join(",")}）`);
 }
 
-console.log("[8] 页面转场：View Transitions 为主 + CSS 兜底，两条路都在");
+console.log("[8] 页面转场：只走 CSS 进场（快照转场已因整页残影移除，禁止回归）");
 {
-  ok(/\.page-root\s*\{\s*view-transition-name: page;/.test(css), "转场容器单独命名（从根快照里抠出来单独动）");
-  ok(/::view-transition-old\(page\)/.test(css) && /::view-transition-new\(page\)/.test(css), "新旧快照各自动画");
-  ok(/::view-transition-group\(page\)\s*\{\s*animation: none;/.test(css), "容器几何不插值（两页高度不同也不拉伸）");
-  ok(/data-nav-dir="forward"/.test(css) && /data-nav-dir="back"/.test(css), "方向感：前进/后退不同曲线");
-  ok(/page-anim/.test(css) && /"page-root page-anim"/.test(app), "不支持 View Transitions 的宿主退回 CSS 转场");
-  ok(/VT_OK/.test(app) && /startViewTransition/.test(app), "宿主能力探测（避免快照抓到动画起始帧＝透明）");
-  ok(/withViewTransition\(\(\) => \{[\s\S]{0,900}?setPage\(p\)/.test(appState), "navigate 走转场");
-  ok(/hashchange[\s\S]{0,900}?withViewTransition/.test(appState), "浏览器后退/前进也走转场");
-  ok(/flushSync\(apply\)/.test(motion), "React 状态同步提交（否则快照抓不到新 DOM）");
+  ok(/\.page-anim\s*\{/.test(css), "转场容器 .page-anim 存在");
+  ok(/data-dir="back"/.test(css) && /data-level="sub"/.test(css), "方向与层级两档曲线");
+  ok(/page-anim/.test(app) && /key=\{page\}/.test(app), "key=page 让容器重新挂载并播一次进场");
+  // 回归护栏（霖实测 2026-09-22）：整页快照交叉淡入会让旧页在新页下层残留 → 每次切换都闪
+  ok(!/startViewTransition/.test(app + appState + motion), "导航不再调用 View Transitions（整页快照会残影）");
+  ok(!/view-transition/.test(css), "CSS 里没有 ::view-transition 快照规则");
+  ok(!/withViewTransition|flushSync/.test(appState + motion), "没有遗留的快照转场接线");
+  ok(/useNavDirection/.test(app) && /useNavDirection/.test(motion), "方向由上一页比较得出（幂等，StrictMode 安全）");
 }
 
-console.log("[9] 各个角落的接线：微交互、页签、弹层、提示、数字、主题");
+console.log("[9] hover 策略：只让「点进去会跳转」的大卡位移");
+{
+  const hoverBlock = css.slice(css.indexOf("@media (hover: hover)"), css.indexOf("/* ---------- 6."));
+  ok(/\.entry:hover\s*\{[\s\S]{0,120}?translate3d\(0, -2px, 0\)/.test(hoverBlock), "入口大卡 hover 上浮");
+  ok(!/\.stat-card:hover\s*\{[\s\S]{0,160}?transform/.test(hoverBlock), "数字卡片 hover 不位移（只点亮边框/底色）");
+  ok(/\.stat-card:hover\s*\{[\s\S]{0,120}?background: var\(--hover\)/.test(hoverBlock), "数字卡片 hover 改为底色反馈");
+  ok(!/\.row-click:hover\s*\{[\s\S]{0,120}?transform/.test(hoverBlock), "列表行 hover 不做横向位移（鼠标横扫会抖）");
+}
+
+console.log("[10] 各个角落的接线：微交互、页签、弹层、提示、数字、主题");
 {
   ok(/\.btn:active,[\s\S]{0,200}?scale\(0\.965\)/.test(css), "按钮/行/芯片统一按压回弹");
   ok(/\.row-caret\s*\{[\s\S]{0,120}?transition: transform/.test(css), "折叠箭头旋转过渡");
@@ -147,7 +156,7 @@ console.log("[9] 各个角落的接线：微交互、页签、弹层、提示、
   ok(/\[data-pdf-page\]/.test(css) && /\[data-pptx-page\]/.test(css), "预览逐页淡入");
 }
 
-console.log("[10] 弹层风格统一：遮罩淡入 + 面板弹簧（内联样式的那些也要接上）");
+console.log("[11] 弹层风格统一：遮罩淡入 + 面板弹簧（内联样式的那些也要接上）");
 {
   const files = [
     "components/ExtHwLoginModal.tsx", "components/TabManageModal.tsx", "pages/info/CardTab.tsx",

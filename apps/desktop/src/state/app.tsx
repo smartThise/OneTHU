@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as clients from "../lib/clients.js";
 import { explainNetworkError } from "../lib/transport.js";
-import { withViewTransition } from "../lib/motion.js";
 import type { TwoFactorMethod } from "@onethu/core";
 
 /** 轻路由：一级页（含选课系统 zhjwxk）+ 网络学堂子页（learnX 移植） */
@@ -189,11 +188,6 @@ function folderParamsFromHash(): LearnNav | null {
   return m ? { folderId: m[1] } : null;
 }
 
-/** 二级页判定（local/anim-delight）：只用来决定转场方向（进详情=前进，回列表=后退） */
-function isSubPageKey(p: string): boolean {
-  return p.startsWith("learn-") || p.startsWith("plugin:");
-}
-
 export function AppProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<SessionStatus>("booting");
   const [user, setUser] = useState<SessionUser | null>(null);
@@ -205,8 +199,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
    *  （如 今日 → 作业详情，hash #/today → #/learn）时异步回调会把刚设置的
    *  page/navParams 冲回顶层列表页 + 空参——详情页"闪回列表/空白"的根源。 */
   const selfNavHashRef = useRef<string | null>(null);
-  /** 当前页镜像（转场方向用）：navigate 是 [] 依赖的 useCallback，读不到最新 page state */
-  const pageRef = useRef<Page>(page);
 
   useEffect(() => {
     const onHash = (ev: HashChangeEvent) => {
@@ -224,14 +216,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return;
       }
       const fp = folderParamsFromHash();
-      // 浏览器后退/前进：也走一次转场（方向按二级页深度判断），不再"瞬间跳变"
-      const next = fp ? ("folder" as Page) : pageFromHash();
-      const dir: "forward" | "back" = !isSubPageKey(next) && isSubPageKey(pageRef.current) ? "back" : "forward";
-      pageRef.current = next;
-      withViewTransition(() => {
-        setPage(next);
-        setNavParams(fp);
-      }, dir);
+      setPage(fp ? "folder" : pageFromHash());
+      setNavParams(fp);
     };
     addEventListener("hashchange", onHash);
     return () => removeEventListener("hashchange", onHash);
@@ -296,28 +282,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const navigate = useCallback((p: Page, params?: LearnNav) => {
-    // 方向感（local/anim-delight）：进二级页=前进，从二级页回顶层=后退；
-    // 方向只影响转场方向，不影响任何状态语义。
-    const dir: "forward" | "back" = !isSubPageKey(p) && isSubPageKey(pageRef.current) ? "back" : "forward";
-    pageRef.current = p;
-    withViewTransition(() => {
-      // hash 只承载一级页：子页刷新后落回所属入口，避免丢参数的死链；
-      // 记录本次写入，onHash 对自身触发的 hashchange 直接忽略（见 selfNavHashRef）。
-      // hash 本就相同时没有新事件，但此前可能仍有同目标旧事件挂起——保留对账标记等它到达。
-      const h = p === "folder" && params?.folderId ? `#/folder/${params.folderId}` : `#/${topLevelPage(p)}`;
-      if (location.hash === h) {
-        if (selfNavHashRef.current !== h) selfNavHashRef.current = null;
-      } else {
-        selfNavHashRef.current = h;
-        location.hash = h;
-      }
-      setPage(p);
-      setNavParams(params ?? null);
-      // 本机使用统计（今日页「最近使用」的数据源）：动态 import 回避 app↔atoms 的模块环
-      void import("./atoms.js")
-        .then((m) => m.recordPageAtomUse(p, params ?? null))
-        .catch(() => undefined);
-    }, dir);
+    // hash 只承载一级页：子页刷新后落回所属入口，避免丢参数的死链；
+    // 记录本次写入，onHash 对自身触发的 hashchange 直接忽略（见 selfNavHashRef）。
+    // hash 本就相同时没有新事件，但此前可能仍有同目标旧事件挂起——保留对账标记等它到达。
+    const h = p === "folder" && params?.folderId ? `#/folder/${params.folderId}` : `#/${topLevelPage(p)}`;
+    if (location.hash === h) {
+      if (selfNavHashRef.current !== h) selfNavHashRef.current = null;
+    } else {
+      selfNavHashRef.current = h;
+      location.hash = h;
+    }
+    setPage(p);
+    setNavParams(params ?? null);
+    // 本机使用统计（今日页「最近使用」的数据源）：动态 import 回避 app↔atoms 的模块环
+    void import("./atoms.js")
+      .then((m) => m.recordPageAtomUse(p, params ?? null))
+      .catch(() => undefined);
   }, []);
 
   const login = useCallback(

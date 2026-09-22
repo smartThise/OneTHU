@@ -157,7 +157,7 @@
   }
 }
 
-/* 页面转场（View Transitions 不可用时的 CSS 兜底） */
+/* 页面转场（唯一路径：CSS 进场；快照转场已因整页残影移除，见 §7 说明） */
 @keyframes m-page-in {
   from {
     opacity: 0;
@@ -166,20 +166,6 @@
   to {
     opacity: 1;
     transform: none;
-  }
-}
-
-@keyframes m-vt-out {
-  to {
-    opacity: 0;
-    transform: translate3d(-12px, 0, 0) scale(0.996);
-  }
-}
-
-@keyframes m-vt-in {
-  from {
-    opacity: 0;
-    transform: translate3d(12px, 0, 0) scale(0.996);
   }
 }
 
@@ -326,20 +312,30 @@ select {
 
 /* ---------- 5. 桌面才有的"悬浮感" ---------- */
 
+/* 原则：只有"点进去会跳转"的大卡才位移；数字卡片、列表行不做位移——
+   数字卡片的信息主体是数字，位移会让人误以为整块在漂（霖实测反馈）；
+   列表行在鼠标横扫时位移会显得抖。它们只改边框/背景色。 */
 @media (hover: hover) and (pointer: fine) {
-  .stat-card:hover,
   .entry:hover {
     transform: translate3d(0, -2px, 0);
     box-shadow: var(--shadow-2);
-  }
-  .row-click:hover {
-    transform: translate3d(2px, 0, 0);
   }
   .btn:hover {
     transform: translate3d(0, -1px, 0);
   }
   .btn:active {
     transform: scale(0.965);
+  }
+  /* 数字卡片：只把边框与底色点亮一点，不位移 */
+  .stat-card {
+    transition:
+      background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out),
+      box-shadow var(--dur-2) var(--ease-out);
+  }
+  .stat-card:hover {
+    background: var(--hover);
+    box-shadow: var(--shadow-1);
   }
   /* 卡片：不位移，只把边框"点亮"，避免整页在动 */
   .card {
@@ -437,40 +433,10 @@ select {
   animation: m-page-in var(--dur-4) var(--ease-ios) backwards;
 }
 
-/* View Transitions API：支持的宿主上做真正的"快照转场"（不支持则自动忽略）。
-   .page-root 单独命名 = 从根快照里"抠出来"单独动，侧栏/顶栏等常驻部分只做根级交叉淡入。 */
-.page-root {
-  view-transition-name: page;
-}
-/* 容器几何不插值（两页高度不同时避免拉伸），只让新旧快照各自淡出/滑入 */
-::view-transition-group(page) {
-  animation: none;
-}
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: var(--dur-3);
-  animation-timing-function: var(--ease-out);
-}
-::view-transition-old(page),
-::view-transition-new(page) {
-  animation-duration: var(--dur-3);
-  animation-timing-function: var(--ease-ios);
-  mix-blend-mode: normal;
-}
-html[data-nav-dir="forward"]::view-transition-old(page) {
-  animation-name: m-vt-out;
-}
-html[data-nav-dir="forward"]::view-transition-new(page) {
-  animation-name: m-vt-in;
-}
-html[data-nav-dir="back"]::view-transition-old(page) {
-  animation-name: m-vt-in;
-  animation-direction: reverse;
-}
-html[data-nav-dir="back"]::view-transition-new(page) {
-  animation-name: m-vt-out;
-  animation-direction: reverse;
-}
+/* 页面转场：只有 CSS 一条路。
+   为什么不用 View Transitions 快照转场（实测 2026-09-22）：整页 tab 切换时旧页快照会在
+   新页下层以半透明残留（两张整页截图叠加），观感是"旧页面在下面闪一下"，每次切换都闪。
+   快照转场适合"列表卡 → 详情页"这类有共享元素的场景，不适合整页替换。 */
 
 /* ---------- 8. 弹层：遮罩淡入 + 卡片弹簧 ---------- */
 

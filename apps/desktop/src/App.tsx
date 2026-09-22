@@ -43,10 +43,7 @@ import { getPluginTab, lastTabError, setTabRoot } from "./plugins/tabs.js";
 import type { Page } from "./state/app.js";
 import { ChatDock } from "./plugins/ChatDock.js";
 import { refreshLearnDataSilently, startLearnAutoRefresh, stopLearnAutoRefresh } from "./state/data.js";
-import { prefersReducedMotion } from "./lib/motion.js";
-
-/** 宿主是否支持 View Transitions（WebView2 / 新版安卓 WebView 支持；老宿主自动退回 CSS 转场） */
-const VT_OK = typeof document !== "undefined" && typeof (document as Document & { startViewTransition?: unknown }).startViewTransition === "function" && !prefersReducedMotion();
+import { useNavDirection } from "./lib/motion.js";
 
 /** 二级页（列表→详情、插件页）：转场走横向滑入，与顶层页签的纵向淡入区分开 */
 function isSubPage(p: string): boolean {
@@ -63,6 +60,8 @@ function PluginBridge() {
 
 function Routed() {
   const { status, page } = useApp();
+  // 转场方向（进详情=前进、回列表=后退）：只影响曲线，不影响任何状态语义
+  const navDir = useNavDirection(page, isSubPage);
 
   // learnX 式后台更新：登录后每 30 分钟静默重拉 learn 数据（作业 DDL/提交状态
   // 变化 → 日历同步、灵动岛文案、挂载中的页面自动跟进）；启动 90 秒后先来一轮，
@@ -108,10 +107,9 @@ function Routed() {
 
     return (
       <Shell>
-        {/* local/anim-delight：切页转场。key=page 让容器重新挂载并播一次进场动画；
-            宿主支持 View Transitions API 时交给快照转场（此时容器不再自己播动画，
-            否则新快照会抓到动画起始帧＝透明，转场就空了）。 */}
-        <div className={VT_OK ? "page-root" : "page-root page-anim"} key={page} data-level={isSubPage(page) ? "sub" : undefined}>
+        {/* local/anim-delight：切页转场。key=page 让容器重新挂载并播一次 CSS 进场；
+            旧页直接卸载，不做快照叠加（整页快照交叉淡入会出现旧页残影，实测有闪烁）。 */}
+        <div className="page-anim" key={page} data-dir={navDir} data-level={isSubPage(page) ? "sub" : undefined}>
           {page === "today" && <TodayPage />}
           {page === "learn" && <LearnPage />}
           {page === "schedule" && <SchedulePage />}

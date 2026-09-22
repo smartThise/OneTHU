@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 
 /**
  * 动效工具（local/anim-delight）：把"什么时候该动、什么时候不该动"的判断收在一处。
@@ -16,38 +15,32 @@ export function isPhoneShell(): boolean {
   return typeof document !== "undefined" && document.documentElement.classList.contains("is-phone");
 }
 
-type DocWithVT = Document & {
-  startViewTransition?: (cb: () => void) => { finished: Promise<void> };
-};
+/**
+ * 页面转场**不用** View Transitions API。
+ *
+ * 实测（霖 2026-09-22）：整页 tab 切换走快照交叉淡入时，旧页快照会在新页**下层**
+ * 以半透明残留（两张整页截图叠加），观感是"旧页面在下面闪一下"——每次切换都闪。
+ * 快照转场适合"列表卡 → 详情页"这类有共享元素的场景，不适合整页替换。
+ * 因此转场统一走 .page-anim 的 CSS 进场（新页淡入上浮，旧页直接卸载，无叠加）。
+ */
 
 /**
- * 用 View Transitions API 包一次 DOM 变更（支持的宿主上是真正的快照转场，
- * 不支持/减弱动态时退化为同步执行，行为完全一致）。
- * React 状态更新必须同步提交（flushSync）快照才抓得到新 DOM——这一步在这里做掉，
- * 调用方只管写普通的状态更新代码。
+ * 导航方向（CSS 转场用）：进二级页=前进，从二级页回顶层=后退。
+ * 只在渲染期比较"上一页 vs 当前页"，比较是幂等的（StrictMode 双渲染下结果一致）。
  */
-export function withViewTransition(apply: () => void, dir: "forward" | "back" = "forward"): void {
-  const doc = document as DocWithVT;
-  if (typeof doc.startViewTransition !== "function" || prefersReducedMotion()) {
-    apply();
-    return;
+export function useNavDirection(page: string, isSubPage: (p: string) => boolean): "forward" | "back" {
+  const prevRef = useRef(page);
+  const dirRef = useRef<"forward" | "back">("forward");
+  if (prevRef.current !== page) {
+    dirRef.current = !isSubPage(page) && isSubPage(prevRef.current) ? "back" : "forward";
+    prevRef.current = page;
   }
-  document.documentElement.dataset.navDir = dir;
-  let started = false;
-  try {
-    doc.startViewTransition(() => {
-      started = true;
-      flushSync(apply);
-    });
-  } catch {
-    // 快照启动失败（宿主怪癖）不能让导航丢失：兜底再同步跑一次状态更新
-    if (!started) apply();
-  }
+  return dirRef.current;
 }
 
 /**
  * 数字滚动：值变化时从旧值平滑滚到新值（统计卡用）。
- * 减弱动态时直接返回目标值——不做"为了动而动的"动画。
+ * 减弱动态时直接返回目标值——不做"为了而动的"动画。
  */
 export function useCountUp(value: number, dur = 680): number {
   const [shown, setShown] = useState(value);
