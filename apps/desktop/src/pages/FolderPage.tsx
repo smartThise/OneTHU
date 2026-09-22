@@ -316,7 +316,7 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
           ) : null}
 
           {visibleIds.map((id) => (
-            <div key={id} hidden={effTab !== id}>
+            <div key={id} hidden={effTab !== id} className={effTab === id ? "tab-anim" : undefined}>
               {visited.has(id) || id === effTab ? (
                 id === ROOT_TAB ? (
                   <>

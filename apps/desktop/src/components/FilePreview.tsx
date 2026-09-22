@@ -1357,9 +1357,9 @@ export function FilePreviewHost() {
   }
 
   return createPortal(
-    <div style={maskStyle} onClick={close}>
+    <div className="confirm-mask" style={maskStyle} onClick={close}>
       <style>{DOCX_CSS}</style>
-      <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
+      <div className="confirm-card" style={panelStyle} onClick={(e) => e.stopPropagation()}>
         <div style={headStyle} className="fp-head">
           <b style={{ flex: "1 1 120px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }} title={cur.name}>
             {cur.name || "文件预览"}

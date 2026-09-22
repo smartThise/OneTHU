@@ -131,14 +131,14 @@ export function InfoPage() {
         <Empty text="所有栏目已隐藏，点击右上「管理栏目」恢复。" />
       ) : (
         <>
-          <div hidden={effTab !== "report"}>{visited.has("report") ? <ReportTab /> : null}</div>
-          <div hidden={effTab !== "fitness"}>{visited.has("fitness") ? <FitnessTab /> : null}</div>
-          <div hidden={effTab !== "exams"}>{visited.has("exams") ? <ExamsTab /> : null}</div>
-          <div hidden={effTab !== "evaluation"}>{visited.has("evaluation") ? <EvaluationTab /> : null}</div>
-          <div hidden={effTab !== "calendar"}>{visited.has("calendar") ? <CalendarTab /> : null}</div>
-          <div hidden={effTab !== "news"}>{visited.has("news") ? <NewsTab newsId={newsId} onConsumeNewsId={() => setNewsId(null)} initialQuery={newsQuery} onConsumeQuery={() => setNewsQuery(null)} deepSubSource={navParams?.newsSubSource} /> : null}</div>
-          <div hidden={effTab !== "profile"}>{visited.has("profile") ? <ProfileTab /> : null}</div>
-          <div hidden={effTab !== "courseinfo"}>{visited.has("courseinfo") ? <CourseInfoTab /> : null}</div>
+          <div hidden={effTab !== "report"} className={effTab === "report" ? "tab-anim" : undefined}>{visited.has("report") ? <ReportTab /> : null}</div>
+          <div hidden={effTab !== "fitness"} className={effTab === "fitness" ? "tab-anim" : undefined}>{visited.has("fitness") ? <FitnessTab /> : null}</div>
+          <div hidden={effTab !== "exams"} className={effTab === "exams" ? "tab-anim" : undefined}>{visited.has("exams") ? <ExamsTab /> : null}</div>
+          <div hidden={effTab !== "evaluation"} className={effTab === "evaluation" ? "tab-anim" : undefined}>{visited.has("evaluation") ? <EvaluationTab /> : null}</div>
+          <div hidden={effTab !== "calendar"} className={effTab === "calendar" ? "tab-anim" : undefined}>{visited.has("calendar") ? <CalendarTab /> : null}</div>
+          <div hidden={effTab !== "news"} className={effTab === "news" ? "tab-anim" : undefined}>{visited.has("news") ? <NewsTab newsId={newsId} onConsumeNewsId={() => setNewsId(null)} initialQuery={newsQuery} onConsumeQuery={() => setNewsQuery(null)} deepSubSource={navParams?.newsSubSource} /> : null}</div>
+          <div hidden={effTab !== "profile"} className={effTab === "profile" ? "tab-anim" : undefined}>{visited.has("profile") ? <ProfileTab /> : null}</div>
+          <div hidden={effTab !== "courseinfo"} className={effTab === "courseinfo" ? "tab-anim" : undefined}>{visited.has("courseinfo") ? <CourseInfoTab /> : null}</div>
         </>
       )}
 

@@ -18,6 +18,7 @@ import { openHomeworkRow } from "../lib/homeworkEntry.js";
 import { useIgnoredHw } from "../state/hwIgnore.js";
 import { toHomework, useExternalHomework } from "../state/exthw.js";
 import { parseLearnTime, type Homework, type ScheduleEntry } from "@onethu/core";
+import { useCountUp } from "../lib/motion.js";
 
 /** 轻路由签名（与 AppState.navigate 一致） */
 export type Nav = (page: Page, params?: LearnNav) => void;
@@ -76,6 +77,10 @@ export function EntryCard({
   disabled?: boolean;
   dimLabel?: string;
 }) {
+  // 数字滚动（local/anim-delight）：数值型从旧值滚到新值（数据到达时"长"出来）；
+  // 字符串（"–"、"¥12.34"）原样显示，不硬凑动画。
+  const rolled = useCountUp(typeof num === "number" ? num : 0);
+  const shown = typeof num === "number" ? Math.round(rolled) : num;
   return (
     <Card className="stat-card stat-click">
       <button
@@ -88,7 +93,7 @@ export function EntryCard({
       >
         {icon}
         <span className="stat-text">
-          <span className="stat-num">{num}</span>
+          <span className="stat-num num-roll">{shown}</span>
           <span className="stat-label">{dimLabel ?? label}</span>
         </span>
         {!disabled ? <IconChevron width={14} height={14} className="row-caret" /> : null}

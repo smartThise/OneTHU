@@ -83,12 +83,12 @@ export function ReservePage() {
       </SegmentedOverflow>
 
       {/* LibraryTab 自带「图书馆座位」分区标题，不再叠加模块头 */}
-      <div hidden={tab !== "library"}>{visited.has("library") ? <LibraryTab deepLib={navParams?.libraryId} deepFloor={navParams?.libraryFloorId} deepSection={navParams?.librarySectionId} /> : null}</div>
-      <div hidden={tab !== "libroom"}>{visited.has("libroom") ? <LibRoomTab deepKind={navParams?.libroomKind} /> : null}</div>
-      <div hidden={tab !== "classroom"}>{visited.has("classroom") ? <ClassroomTab deepBuilding={navParams?.classroomBuilding} deepBuildingName={navParams?.classroomBuildingName} deepRoom={navParams?.classroomRoom} /> : null}</div>
-      <div hidden={tab !== "sports"}>{visited.has("sports") ? <VenueSportsTab deepScene={navParams?.sportsScene} /> : null}</div>
-      <div hidden={tab !== "kongjian"}>{visited.has("kongjian") ? <KongjianTab kongjianSpace={navParams?.kongjianSpace} kongjianRoom={navParams?.kongjianRoom} /> : null}</div>
-      <div hidden={tab !== "more"}>
+      <div hidden={tab !== "library"} className={tab === "library" ? "tab-anim" : undefined}>{visited.has("library") ? <LibraryTab deepLib={navParams?.libraryId} deepFloor={navParams?.libraryFloorId} deepSection={navParams?.librarySectionId} /> : null}</div>
+      <div hidden={tab !== "libroom"} className={tab === "libroom" ? "tab-anim" : undefined}>{visited.has("libroom") ? <LibRoomTab deepKind={navParams?.libroomKind} /> : null}</div>
+      <div hidden={tab !== "classroom"} className={tab === "classroom" ? "tab-anim" : undefined}>{visited.has("classroom") ? <ClassroomTab deepBuilding={navParams?.classroomBuilding} deepBuildingName={navParams?.classroomBuildingName} deepRoom={navParams?.classroomRoom} /> : null}</div>
+      <div hidden={tab !== "sports"} className={tab === "sports" ? "tab-anim" : undefined}>{visited.has("sports") ? <VenueSportsTab deepScene={navParams?.sportsScene} /> : null}</div>
+      <div hidden={tab !== "kongjian"} className={tab === "kongjian" ? "tab-anim" : undefined}>{visited.has("kongjian") ? <KongjianTab kongjianSpace={navParams?.kongjianSpace} kongjianRoom={navParams?.kongjianRoom} /> : null}</div>
+      <div hidden={tab !== "more"} className={tab === "more" ? "tab-anim" : undefined}>
         {visited.has("more") ? (
           <Card>
             <Empty text="游泳馆、健身房等陆续接入" />

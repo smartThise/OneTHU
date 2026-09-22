@@ -1,0 +1,684 @@
+/* ============================================================
+   OneTHU 动效层（local/anim-delight 自用分支）
+   —— 目标：像 Apple 一样的"丝滑、有回应、不喧哗"。
+
+   五条纪律（写新动效前先读）：
+   1) 只动 transform / opacity（合成器线程，安卓 WebView 也稳）；
+      颜色/阴影/边框色可以过渡，但**不要**在 keyframes 里动 width/height/top/left。
+   2) 时长分级：--dur-1 微反馈 140ms｜--dur-2 常规 220ms｜--dur-3 容器 340ms｜--dur-4 大场景 520ms。
+   3) 缓动统一走令牌：出场 easeOutQuint、弹层轻弹簧、页面 iOS 曲线。
+   4) prefers-reduced-motion 全量降级（见 §2）。
+   5) 重效果（模糊/视差）只在桌面（hover:hover + pointer:fine）开，手机不做。
+   ============================================================ */
+
+/* ---------- 1. 动效令牌 ---------- */
+
+:root {
+  --dur-1: 140ms; /* 按压 / hover */
+  --dur-2: 220ms; /* 淡入 / 状态切换 */
+  --dur-3: 340ms; /* 容器 / 页面 */
+  --dur-4: 520ms; /* 首次进入 / 大场景 */
+
+  /* 出场曲线：起步快、尾巴长——iOS 的"从容感"来源 */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  /* 轻弹簧：只给"被点/被弹出来"的元素，幅度克制（1.34 过头量≈3%） */
+  --ease-spring: cubic-bezier(0.34, 1.34, 0.5, 1);
+  /* 页面/大容器转场：Apple 常用 (0.32, 0.72, 0, 1) */
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* 位移基准：小距离才有"贵"的感觉 */
+  --rise-1: 4px;
+  --rise-2: 8px;
+  --rise-3: 14px;
+  --stagger: 26ms; /* 列表逐项间隔 */
+}
+
+/* ---------- 2. 无障碍：跟随系统"减弱动态效果" ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- 3. keyframes 库 ---------- */
+
+@keyframes m-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--rise-2), 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes m-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes m-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes m-spring-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translate3d(0, 10px, 0);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.012) translate3d(0, -1px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes m-sheet-up {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes m-sheet-down {
+  from {
+    transform: none;
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(0, 100%, 0);
+    opacity: 0.6;
+  }
+}
+
+@keyframes m-slide-right {
+  from {
+    opacity: 0;
+    transform: translate3d(18px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes m-slide-left {
+  from {
+    opacity: 0;
+    transform: translate3d(-18px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 提示条：从上方"掉"下来一点 + 淡入，退出反向 */
+@keyframes m-toast-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -14px, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes m-toast-out {
+  to {
+    opacity: 0;
+    transform: translate3d(0, -10px, 0) scale(0.98);
+  }
+}
+
+/* 页面转场（View Transitions 不可用时的 CSS 兜底） */
+@keyframes m-page-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes m-vt-out {
+  to {
+    opacity: 0;
+    transform: translate3d(-12px, 0, 0) scale(0.996);
+  }
+}
+
+@keyframes m-vt-in {
+  from {
+    opacity: 0;
+    transform: translate3d(12px, 0, 0) scale(0.996);
+  }
+}
+
+/* 触摸涟漪 */
+@keyframes m-ripple {
+  from {
+    opacity: 0.28;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+/* 完成勾：描边"画"出来 */
+@keyframes m-check-draw {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* 呼吸（在线状态点、录音中） */
+@keyframes m-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.86);
+  }
+}
+
+/* 进度条：斜纹流动（下载中/加载中） */
+@keyframes m-stripes {
+  to {
+    background-position: 28px 0;
+  }
+}
+
+/* 弹簧按压：抬起→落下的两段（给开关旋钮） */
+@keyframes m-knob {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ---------- 4. 通用微交互 ---------- */
+
+/* 按钮 / 图标钮 / 芯片 / 分段 / 可点行：统一"按下去有回应" */
+.btn,
+.icon-btn,
+.chip,
+.seg-item,
+.row-click,
+.entry,
+.stat-card,
+.nav-item,
+.tab,
+.plg-tab {
+  transition:
+    transform var(--dur-1) var(--ease-spring),
+    background-color var(--dur-2) var(--ease-out),
+    background var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    opacity var(--dur-2) var(--ease-out);
+}
+
+.btn:active,
+.icon-btn:active,
+.chip:active,
+.seg-item:active,
+.row-click:active,
+.nav-item:active,
+.plg-tab:active {
+  transform: scale(0.965);
+  transition-duration: 70ms;
+}
+
+/* 图标钮里的 svg 跟着缩一点，手感更"实体" */
+.icon-btn svg,
+.btn svg {
+  transition: transform var(--dur-1) var(--ease-spring);
+}
+.icon-btn:active svg {
+  transform: scale(0.9);
+}
+
+/* 输入框：聚焦时边框颜色平滑过渡（不做发光，保持克制） */
+.input,
+textarea,
+select {
+  transition:
+    border-color var(--dur-2) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out);
+}
+
+/* 焦点环：淡入而不是"啪"地出现 */
+:focus-visible {
+  outline: none;
+  animation: m-focus-ring var(--dur-2) var(--ease-out) backwards;
+}
+@keyframes m-focus-ring {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+  }
+}
+
+/* 折叠箭头：旋转走弹簧 */
+.row-caret {
+  transition: transform var(--dur-3) var(--ease-spring);
+}
+.row-click.is-open .row-caret,
+.nav-folded-toggle.is-open .row-caret {
+  transform: rotate(90deg);
+}
+
+/* 开关旋钮：切换时轻微弹一下（不改布局，只 scale） */
+.switch .knob,
+.switch-knob {
+  transition: transform var(--dur-2) var(--ease-spring);
+}
+.switch:active .knob,
+.switch:active .switch-knob {
+  animation: m-knob 260ms var(--ease-spring);
+}
+
+/* ---------- 5. 桌面才有的"悬浮感" ---------- */
+
+@media (hover: hover) and (pointer: fine) {
+  .stat-card:hover,
+  .entry:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: var(--shadow-2);
+  }
+  .row-click:hover {
+    transform: translate3d(2px, 0, 0);
+  }
+  .btn:hover {
+    transform: translate3d(0, -1px, 0);
+  }
+  .btn:active {
+    transform: scale(0.965);
+  }
+  /* 卡片：不位移，只把边框"点亮"，避免整页在动 */
+  .card {
+    transition:
+      border-color var(--dur-2) var(--ease-out),
+      box-shadow var(--dur-2) var(--ease-out);
+  }
+  .card:hover {
+    border-color: color-mix(in srgb, var(--accent) 26%, var(--border));
+  }
+}
+
+/* ---------- 6. 列表逐项进场（stagger） ---------- */
+
+/* 零 JS：前 14 项用 nth-child 递增延迟；更长的列表由 JS 给 --i。
+   覆盖三类容器：列表(.list/.stagger)、统计卡行(.stats)、各种网格(.today-grid/.market-grid/.icon-grid)。 */
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > * {
+  animation: m-rise var(--dur-3) var(--ease-out) backwards;
+}
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(1) {
+  animation-delay: calc(var(--stagger) * 0);
+}
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(2) {
+  animation-delay: calc(var(--stagger) * 1);
+}
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(3) {
+  animation-delay: calc(var(--stagger) * 2);
+}
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(4) {
+  animation-delay: calc(var(--stagger) * 3);
+}
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(5) {
+  animation-delay: calc(var(--stagger) * 4);
+}
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(6) {
+  animation-delay: calc(var(--stagger) * 5);
+}
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(7) {
+  animation-delay: calc(var(--stagger) * 6);
+}
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(8) {
+  animation-delay: calc(var(--stagger) * 7);
+}
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(9) {
+  animation-delay: calc(var(--stagger) * 8);
+}
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(10) {
+  animation-delay: calc(var(--stagger) * 9);
+}
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(11) {
+  animation-delay: calc(var(--stagger) * 10);
+}
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(12) {
+  animation-delay: calc(var(--stagger) * 11);
+}
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(13) {
+  animation-delay: calc(var(--stagger) * 12);
+}
+:is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(14) {
+  animation-delay: calc(var(--stagger) * 13);
+}
+/* 显式给了 --i 的（长列表）优先，且不再叠加 nth-child 延迟 */
+.list > [style*="--i"],
+.stagger > [style*="--i"] {
+  animation-delay: calc(var(--stagger) * var(--i, 0));
+}
+
+/* ---------- 7. 页面转场 ---------- */
+
+/* 顶层页签切换：keyed 容器重新挂载 → 播放一次转场 */
+.page-anim {
+  animation: m-page-in var(--dur-3) var(--ease-ios) backwards;
+  will-change: transform, opacity;
+}
+.page-anim[data-dir="back"] {
+  animation-name: m-page-in-back;
+}
+@keyframes m-page-in-back {
+  from {
+    opacity: 0;
+    transform: translate3d(-10px, 0, 0) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* 次级页面（列表 → 详情）：横向滑入，带一点纵深 */
+.page-anim[data-level="sub"] {
+  animation: m-slide-right var(--dur-3) var(--ease-ios) backwards;
+}
+
+/* 应用启动时 .content 的首屏揭示（覆盖 global.css 的 page-in 时长/曲线） */
+.content {
+  animation: m-page-in var(--dur-4) var(--ease-ios) backwards;
+}
+
+/* View Transitions API：支持的宿主上做真正的"快照转场"（不支持则自动忽略）。
+   .page-root 单独命名 = 从根快照里"抠出来"单独动，侧栏/顶栏等常驻部分只做根级交叉淡入。 */
+.page-root {
+  view-transition-name: page;
+}
+/* 容器几何不插值（两页高度不同时避免拉伸），只让新旧快照各自淡出/滑入 */
+::view-transition-group(page) {
+  animation: none;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur-3);
+  animation-timing-function: var(--ease-out);
+}
+::view-transition-old(page),
+::view-transition-new(page) {
+  animation-duration: var(--dur-3);
+  animation-timing-function: var(--ease-ios);
+  mix-blend-mode: normal;
+}
+html[data-nav-dir="forward"]::view-transition-old(page) {
+  animation-name: m-vt-out;
+}
+html[data-nav-dir="forward"]::view-transition-new(page) {
+  animation-name: m-vt-in;
+}
+html[data-nav-dir="back"]::view-transition-old(page) {
+  animation-name: m-vt-in;
+  animation-direction: reverse;
+}
+html[data-nav-dir="back"]::view-transition-new(page) {
+  animation-name: m-vt-out;
+  animation-direction: reverse;
+}
+
+/* ---------- 8. 弹层：遮罩淡入 + 卡片弹簧 ---------- */
+
+.plg-form-overlay,
+.confirm-mask {
+  animation: m-fade var(--dur-2) var(--ease-out) backwards;
+}
+.plg-form-modal,
+.confirm-card {
+  animation: m-spring-in var(--dur-3) var(--ease-out) backwards;
+}
+/* 桌面：遮罩加一点模糊，纵深更足（安卓不做，模糊很贵） */
+@media (hover: hover) and (pointer: fine) {
+  .plg-form-overlay,
+  .confirm-mask {
+    backdrop-filter: blur(2px);
+  }
+}
+
+/* 手机端底部抽屉：从下往上弹（iOS sheet 手感） */
+@media (max-width: 860px) {
+  .plg-form-modal,
+  .confirm-card {
+    animation: m-spring-in var(--dur-3) var(--ease-ios) backwards;
+  }
+}
+
+/* 抽屉导航：遮罩淡入 + 面板弹簧 + 逐项进场 */
+.drawer {
+  animation: m-slide-left var(--dur-3) var(--ease-ios) backwards;
+}
+.drawer-mask {
+  animation: m-fade var(--dur-2) var(--ease-out) backwards;
+}
+.drawer .nav-item {
+  animation: m-rise var(--dur-3) var(--ease-out) backwards;
+}
+.drawer .nav-item:nth-child(1) { animation-delay: 30ms; }
+.drawer .nav-item:nth-child(2) { animation-delay: 55ms; }
+.drawer .nav-item:nth-child(3) { animation-delay: 80ms; }
+.drawer .nav-item:nth-child(4) { animation-delay: 105ms; }
+.drawer .nav-item:nth-child(5) { animation-delay: 130ms; }
+.drawer .nav-item:nth-child(6) { animation-delay: 155ms; }
+.drawer .nav-item:nth-child(7) { animation-delay: 180ms; }
+.drawer .nav-item:nth-child(8) { animation-delay: 205ms; }
+
+/* 侧栏当前项：左侧强调条"长出来" + 图标轻微放大 */
+.nav-item {
+  position: relative;
+}
+.nav-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 0;
+  border-radius: 2px;
+  background: var(--accent);
+  transform: translateY(-50%);
+  transition:
+    height var(--dur-3) var(--ease-spring),
+    opacity var(--dur-2) var(--ease-out);
+  opacity: 0;
+}
+.nav-item.is-active::before {
+  height: 16px;
+  opacity: 1;
+}
+.nav-item.is-active svg {
+  transform: scale(1.06);
+}
+
+/* 移动端顶栏：滚动后浮起（由 JS 打 .is-scrolled） */
+.mobile-topbar {
+  transition:
+    box-shadow var(--dur-3) var(--ease-out),
+    background-color var(--dur-3) var(--ease-out);
+}
+.mobile-topbar.is-scrolled {
+  box-shadow: var(--shadow-2);
+}
+
+/* ---------- 9. 提示条（toast） ---------- */
+
+.toast-host,
+.toast {
+  animation: m-toast-in var(--dur-3) var(--ease-spring) backwards;
+}
+.toast.is-closing {
+  animation: m-toast-out var(--dur-2) var(--ease-out) both;
+}
+
+/* ---------- 10. 加载 / 骨架 / 进度 ---------- */
+
+.skeleton::after {
+  animation-duration: 1.15s;
+  animation-timing-function: linear;
+}
+/* 进度条斜纹流动（给 .bar.is-busy 这类用） */
+.bar.is-busy,
+.progress.is-busy {
+  background-image: linear-gradient(
+    115deg,
+    transparent 0 6px,
+    color-mix(in srgb, var(--accent) 22%, transparent) 6px 14px,
+    transparent 14px 20px
+  );
+  background-size: 28px 100%;
+  animation: m-stripes 620ms linear infinite;
+}
+/* 在线状态点呼吸 */
+.dot.is-live {
+  animation: m-breathe 2.2s var(--ease-in-out) infinite;
+}
+
+/* ---------- 11. 触摸涟漪（只在手机开） ---------- */
+
+.m-ripple {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: currentColor;
+  transform: scale(0.2);
+  animation: m-ripple 520ms var(--ease-out) forwards;
+  z-index: 0;
+}
+.is-phone .btn,
+.is-phone .row-click,
+.is-phone .nav-item,
+.is-phone .chip {
+  position: relative;
+  overflow: hidden;
+}
+.is-phone .btn > *,
+.is-phone .row-click > *,
+.is-phone .nav-item > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- 12. 数字滚动 / 完成勾 ---------- */
+
+.num-roll {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  transition: transform var(--dur-2) var(--ease-spring);
+}
+.check-draw path,
+.check-draw polyline {
+  stroke-dasharray: 24;
+  animation: m-check-draw var(--dur-4) var(--ease-out) both;
+}
+
+/* 页签内容切换：容器保持挂载（tab 状态不丢），只靠"加上类名"重放一次进场动画 */
+.tab-anim {
+  animation: m-rise var(--dur-3) var(--ease-out) backwards;
+}
+
+/* ---------- 13. 工具类（组件里直接用） ---------- */
+
+.anim-rise {
+  animation: m-rise var(--dur-3) var(--ease-out) backwards;
+}
+.anim-fade {
+  animation: m-fade var(--dur-2) var(--ease-out) backwards;
+}
+.anim-pop {
+  animation: m-pop var(--dur-3) var(--ease-spring) backwards;
+}
+.anim-spring {
+  animation: m-spring-in var(--dur-3) var(--ease-out) backwards;
+}
+.anim-slide-right {
+  animation: m-slide-right var(--dur-3) var(--ease-ios) backwards;
+}
+.anim-delay-1 { animation-delay: 60ms; }
+.anim-delay-2 { animation-delay: 120ms; }
+.anim-delay-3 { animation-delay: 180ms; }
+.anim-delay-4 { animation-delay: 240ms; }
+
+/* ---------- 14. 主题切换：颜色平滑过渡（JS 短暂挂 .theme-anim） ---------- */
+
+html.theme-anim,
+html.theme-anim body,
+html.theme-anim .card,
+html.theme-anim .sidebar,
+html.theme-anim .mobile-topbar,
+html.theme-anim .btn,
+html.theme-anim .input,
+html.theme-anim .row {
+  transition:
+    background-color var(--dur-3) var(--ease-out),
+    color var(--dur-3) var(--ease-out),
+    border-color var(--dur-3) var(--ease-out) !important;
+}
+
+/* ---------- 15. 滚动条：细一点、悬停才显形（桌面） ---------- */
+
+@media (hover: hover) and (pointer: fine) {
+  * {
+    scrollbar-width: thin;
+  }
+}
+
+/* ---------- 16. 文件预览：逐页淡入 ---------- */
+
+[data-pdf-page],
+[data-pptx-page] {
+  animation: m-fade var(--dur-3) var(--ease-out) backwards;
+}

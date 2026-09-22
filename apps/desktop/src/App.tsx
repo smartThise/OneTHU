@@ -43,6 +43,15 @@ import { getPluginTab, lastTabError, setTabRoot } from "./plugins/tabs.js";
 import type { Page } from "./state/app.js";
 import { ChatDock } from "./plugins/ChatDock.js";
 import { refreshLearnDataSilently, startLearnAutoRefresh, stopLearnAutoRefresh } from "./state/data.js";
+import { prefersReducedMotion } from "./lib/motion.js";
+
+/** 宿主是否支持 View Transitions（WebView2 / 新版安卓 WebView 支持；老宿主自动退回 CSS 转场） */
+const VT_OK = typeof document !== "undefined" && typeof (document as Document & { startViewTransition?: unknown }).startViewTransition === "function" && !prefersReducedMotion();
+
+/** 二级页（列表→详情、插件页）：转场走横向滑入，与顶层页签的纵向淡入区分开 */
+function isSubPage(p: string): boolean {
+  return p.startsWith("learn-") || p.startsWith("plugin:");
+}
 
 /** 插件桥回填：每帧把 navigate/status 同步给插件门面（bridges 无任何反向依赖） */
 function PluginBridge() {
@@ -99,35 +108,40 @@ function Routed() {
 
     return (
       <Shell>
-        {page === "today" && <TodayPage />}
-        {page === "learn" && <LearnPage />}
-        {page === "schedule" && <SchedulePage />}
-        {page === "mail" && <MailPage />}
-        {page === "cloud" && <CloudPage />}
-        {page === "thubook" && <ThubookPage />}
-        {page === "trace" && <TracePage />}
-        {page === "otherinfo" && <OtherInfoPage />}
-        {page === "info" && <InfoPage />}
-        {page === "life" && <LifePage />}
-        {page === "reserve" && <ReservePage />}
-        {page === "thos" && <ThosPage />}
-        {page === "zhjwxk" && <ZhjwxkCoursesPage />}
-        {page === "folder" && <FolderPage />}
-        {page === "settings" && <SettingsPage />}
-        {page === "plugins" && <PluginsPage />}
-        {page === "learn-course" && <CourseDetailPage />}
-        {page === "learn-assignments" && <AssignmentsPage />}
-        {page === "learn-notices" && <NoticesPage />}
-        {page === "learn-files" && <FilesPage />}
-        {page === "learn-search" && <SearchPage />}
-        {page === "learn-semester" && <SemesterSelectionPage />}
-        {page === "learn-assignment-detail" && <AssignmentDetailPage />}
-        {page === "learn-notice-detail" && <NoticeDetailPage />}
-        {page === "learn-forum-thread" && <ForumThreadPage />}
-        {page === "learn-file-detail" && <FileDetailPage />}
-        {/* R20-B2：雨课堂作业原生只读详情页（移动端雨课堂条目直达；桌面亦可打开） */}
-        {page === "learn-ykt-detail" && <YktAssignmentDetailPage />}
-        {page.startsWith("plugin:") && <PluginTabHost pageKey={page} />}
+        {/* local/anim-delight：切页转场。key=page 让容器重新挂载并播一次进场动画；
+            宿主支持 View Transitions API 时交给快照转场（此时容器不再自己播动画，
+            否则新快照会抓到动画起始帧＝透明，转场就空了）。 */}
+        <div className={VT_OK ? "page-root" : "page-root page-anim"} key={page} data-level={isSubPage(page) ? "sub" : undefined}>
+          {page === "today" && <TodayPage />}
+          {page === "learn" && <LearnPage />}
+          {page === "schedule" && <SchedulePage />}
+          {page === "mail" && <MailPage />}
+          {page === "cloud" && <CloudPage />}
+          {page === "thubook" && <ThubookPage />}
+          {page === "trace" && <TracePage />}
+          {page === "otherinfo" && <OtherInfoPage />}
+          {page === "info" && <InfoPage />}
+          {page === "life" && <LifePage />}
+          {page === "reserve" && <ReservePage />}
+          {page === "thos" && <ThosPage />}
+          {page === "zhjwxk" && <ZhjwxkCoursesPage />}
+          {page === "folder" && <FolderPage />}
+          {page === "settings" && <SettingsPage />}
+          {page === "plugins" && <PluginsPage />}
+          {page === "learn-course" && <CourseDetailPage />}
+          {page === "learn-assignments" && <AssignmentsPage />}
+          {page === "learn-notices" && <NoticesPage />}
+          {page === "learn-files" && <FilesPage />}
+          {page === "learn-search" && <SearchPage />}
+          {page === "learn-semester" && <SemesterSelectionPage />}
+          {page === "learn-assignment-detail" && <AssignmentDetailPage />}
+          {page === "learn-notice-detail" && <NoticeDetailPage />}
+          {page === "learn-forum-thread" && <ForumThreadPage />}
+          {page === "learn-file-detail" && <FileDetailPage />}
+          {/* R20-B2：雨课堂作业原生只读详情页（移动端雨课堂条目直达；桌面亦可打开） */}
+          {page === "learn-ykt-detail" && <YktAssignmentDetailPage />}
+          {page.startsWith("plugin:") && <PluginTabHost pageKey={page} />}
+        </div>
       </Shell>
     );
   })();
@@ -188,12 +202,14 @@ function PluginTabHost({ pageKey }: { pageKey: Page }): ReactNode {
   );
 }
 
-/** 全局轻提示（原子操作反馈）：单条覆盖式，点按关闭 */
+/** 全局轻提示（原子操作反馈）：单条覆盖式，点按关闭。退出时先播淡出再卸载 */
 function ToastHost(): ReactNode {
-  const msg = useToastHost();
+  const { msg, closing } = useToastHost();
   if (!msg) return null;
   return (
-    <div className="toast-host" onClick={hideToast} role="status">{msg}</div>
+    <div className={"toast-host" + (closing ? " is-closing" : "")} onClick={hideToast} role="status">
+      {msg}
+    </div>
   );
 }
 

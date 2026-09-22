@@ -236,10 +236,12 @@ export function OnboardingTour(): React.ReactNode {
   };
 
   const panel: React.CSSProperties = {
+    animation: "m-fade var(--dur-2) var(--ease-out) both", 
     position: "fixed", inset: 0, zIndex: 2000, display: "flex", alignItems: "center",
     justifyContent: "center", background: "rgba(0,0,0,.45)", padding: 20,
   };
   const box: React.CSSProperties = {
+    animation: "m-spring-in var(--dur-3) var(--ease-out) both", 
     width: "100%", maxWidth: 520, maxHeight: "86vh", overflowY: "auto",
     background: "var(--surface, #fff)", color: "var(--text-1, #1f2329)",
     borderRadius: 14, padding: "18px 20px", boxShadow: "0 18px 50px rgba(0,0,0,.28)",

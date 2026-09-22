@@ -524,6 +524,7 @@ function NewThreadDialog({
   return (
     <div
       style={{
+        animation: "m-fade var(--dur-2) var(--ease-out) both",
         position: "fixed",
         inset: 0,
         background: "rgba(15,23,42,.45)",
@@ -537,6 +538,7 @@ function NewThreadDialog({
     >
       <div
         style={{
+          animation: "m-spring-in var(--dur-3) var(--ease-out) both",
           background: "var(--surface, #fff)",
           borderRadius: 14,
           padding: 16,

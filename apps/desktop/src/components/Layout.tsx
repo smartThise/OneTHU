@@ -235,6 +235,14 @@ export function Shell({ children }: { children: ReactNode }) {
   const page = topLevelPage(rawPage);
   const [navOpen, setNavOpen] = useState(false);
   const [navClosing, setNavClosing] = useState(false);
+  /** 顶栏滚动浮起（local/anim-delight）：滚过 8px 后加阴影，做出"页面在顶栏下滚动"的层次 */
+  const [topbarScrolled, setTopbarScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setTopbarScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   /** 「已折叠收藏夹（N）」组展开态（会话态，不持久化） */
   const [foldedOpen, setFoldedOpen] = useState(false);
   const closeNav = useCallback(() => {
@@ -462,7 +470,7 @@ export function Shell({ children }: { children: ReactNode }) {
       ) : null}
       <main className="content">
         {/* 移动端顶栏：汉堡菜单 + 品牌标识，桌面隐藏（桌面走侧栏） */}
-        <header className="mobile-topbar">
+        <header className={"mobile-topbar" + (topbarScrolled ? " is-scrolled" : "")}>
           <button className="topbar-menu" onClick={() => setNavOpen(true)} aria-label="打开导航菜单">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
               <path d="M4 6h16M4 12h16M4 18h16" />

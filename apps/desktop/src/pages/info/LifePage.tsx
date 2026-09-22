@@ -108,14 +108,14 @@ export function LifePage() {
       ) : (
         <>
           {/* 模块头由栏目名与各 tab 内部分区标题承担（WasherTab 自带「洗衣机」头） */}
-          <div hidden={effTab !== "dorm"}>{visited.has("dorm") ? <DormTab deepSection={navParams?.dormSection} /> : null}</div>
-          <div hidden={effTab !== "washer"}>{visited.has("washer") ? <WasherTab deepBuildingId={navParams?.washerBuildingId} deepBuildingName={navParams?.washerBuildingName} deepProvider={navParams?.washerBuildingProvider} deepHlsh={navParams?.washerBuildingHlsh} deepMachine={navParams?.washerMachine} /> : null}</div>
-          <div hidden={effTab !== "hygiene"}>{visited.has("hygiene") ? <HygieneTab /> : null}</div>
-          <div hidden={effTab !== "card"}>{visited.has("card") ? <CardTab /> : null}</div>
-          <div hidden={effTab !== "invoice"}>{visited.has("invoice") ? <InvoiceTab /> : null}</div>
-          <div hidden={effTab !== "payroll"}>{visited.has("payroll") ? <PayrollTab /> : null}</div>
-          <div hidden={effTab !== "gradincome"}>{visited.has("gradincome") ? <GradIncomeTab /> : null}</div>
-          <div hidden={effTab !== "network"}>{visited.has("network") ? <NetworkTab /> : null}</div>
+          <div hidden={effTab !== "dorm"} className={effTab === "dorm" ? "tab-anim" : undefined}>{visited.has("dorm") ? <DormTab deepSection={navParams?.dormSection} /> : null}</div>
+          <div hidden={effTab !== "washer"} className={effTab === "washer" ? "tab-anim" : undefined}>{visited.has("washer") ? <WasherTab deepBuildingId={navParams?.washerBuildingId} deepBuildingName={navParams?.washerBuildingName} deepProvider={navParams?.washerBuildingProvider} deepHlsh={navParams?.washerBuildingHlsh} deepMachine={navParams?.washerMachine} /> : null}</div>
+          <div hidden={effTab !== "hygiene"} className={effTab === "hygiene" ? "tab-anim" : undefined}>{visited.has("hygiene") ? <HygieneTab /> : null}</div>
+          <div hidden={effTab !== "card"} className={effTab === "card" ? "tab-anim" : undefined}>{visited.has("card") ? <CardTab /> : null}</div>
+          <div hidden={effTab !== "invoice"} className={effTab === "invoice" ? "tab-anim" : undefined}>{visited.has("invoice") ? <InvoiceTab /> : null}</div>
+          <div hidden={effTab !== "payroll"} className={effTab === "payroll" ? "tab-anim" : undefined}>{visited.has("payroll") ? <PayrollTab /> : null}</div>
+          <div hidden={effTab !== "gradincome"} className={effTab === "gradincome" ? "tab-anim" : undefined}>{visited.has("gradincome") ? <GradIncomeTab /> : null}</div>
+          <div hidden={effTab !== "network"} className={effTab === "network" ? "tab-anim" : undefined}>{visited.has("network") ? <NetworkTab /> : null}</div>
         </>
       )}
 

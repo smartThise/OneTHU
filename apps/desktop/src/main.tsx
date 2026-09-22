@@ -20,6 +20,8 @@ function markPhone(): void {
 }
 markPhone();
 window.addEventListener("resize", markPhone);
+// 触摸涟漪：全局单监听，只在 is-phone 密度层生效（桌面不挂）
+installRipple();
 
 import { createRoot } from "react-dom/client";
 import { activateInstalledPlugins, seedBuiltinHarness } from "./plugins/loader.js";
@@ -33,6 +35,10 @@ import { initSystemCalAutoSync } from "./state/systemCal.js";
 initSystemCalAutoSync();
 import "@onethu/ui/base.css";
 import "./styles/global.css";
+// 动效层（local/anim-delight）：令牌 + keyframes + 全局微交互。必须在 global.css 之后，
+// 否则同选择器的 transition/animation 会被 global.css 覆盖。
+import "./styles/motion.css";
+import { installRipple } from "./lib/motion.js";
 import { App } from "./App.js";
 import { ConfirmHost } from "./lib/confirm.js";
 import { FormModalHost } from "./lib/formModal.js";
