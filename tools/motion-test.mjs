@@ -24,6 +24,7 @@ const ok = (cond, label) => {
 
 const src = (p) => readFileSync(new URL(`../apps/desktop/src/${p}`, import.meta.url), "utf8");
 const css = src("styles/motion.css");
+const globalCss = src("styles/global.css");
 const main = src("main.tsx");
 const motion = src("lib/motion.ts");
 const app = src("App.tsx");
@@ -145,7 +146,7 @@ console.log("[10] 各个角落的接线：微交互、页签、弹层、提示�
   ok(/tab-anim" : undefined/.test(src("pages/info/InfoPage.tsx")), "页签容器保持挂载（只切类名，不丢页签状态）");
   ok(/confirm-mask/.test(confirm) && /confirm-card/.test(confirm), "确认框接了遮罩淡入 + 卡片弹簧");
   ok(/confirm-mask/.test(preview) && /confirm-card/.test(preview), "文件预览面板同款进场");
-  ok(/is-closing/.test(app) && /\.toast\.is-closing/.test(css), "提示条有退出相位（不是瞬间消失）");
+  ok(/is-closing/.test(app) && /\.toast-host\.is-closing/.test(css), "提示条有退出相位（不是瞬间消失）");
   ok(/EXIT_MS/.test(toast) && /beginExit/.test(toast), "退出相位由状态机驱动（先播动画再卸载）");
   ok(/useCountUp/.test(widgets) && /num-roll/.test(widgets), "统计数字滚动");
   ok(/typeof num === "number"/.test(widgets), "只滚数值型（–/¥12.34 这类字符串原样显示）");
@@ -169,4 +170,55 @@ console.log("[11] 弹层风格统一：遮罩淡入 + 面板弹簧（内联样�
   }
 }
 
-console.log(`\n动效护栏：${pass} 断言全部通过（只动 transform/opacity + 令牌化 + 减弱动态降级 + 不锁死 hover）`);
+console.log("[12] 不许覆盖既有动画选择器（基态可能靠 forwards 钉住，覆盖会闪没/重现）");
+{
+  // 扫描两文件里"定义了 animation 的选择器"（嵌套感知：@media/@supports 只当容器）
+  const animatedSelectors = (text) => {
+    const out = new Map();
+    let sel = "";
+    let inRule = false;
+    let inKeyframes = false;
+    for (const raw of text.split("\n")) {
+      const line = raw.trim();
+      if (!line || line.startsWith("/*")) continue;
+      if (line.startsWith("@media") || line.startsWith("@supports")) continue;
+      if (line.startsWith("@keyframes") || line.startsWith("@-webkit-keyframes")) {
+        inKeyframes = true;
+        continue;
+      }
+      if (line.startsWith("}")) {
+        if (inKeyframes) inKeyframes = false;
+        else inRule = false;
+        continue;
+      }
+      if (inKeyframes) continue;
+      if (line.includes("{")) {
+        sel = line.split("{")[0].trim();
+        inRule = true;
+        continue;
+      }
+      if (inRule && line.startsWith("animation:")) {
+        for (const one of sel.split(",")) out.set(one.trim(), line.slice(10).trim().replace(/;$/, ""));
+      }
+    }
+    return out;
+  };
+  const gAnim = animatedSelectors(globalCss);
+  const mAnim = animatedSelectors(css);
+  ok(gAnim.size >= 25, `global.css 里被动画的选择器扫描到 ${gAnim.size} 个`);
+  // 允许清单：必须写明理由。默认禁止覆盖——既有动画的基态可能是"藏身态"
+  // （如 .drawer 的 translateX(-100%)），靠 forwards 钉住可见位置，覆盖即闪没。
+  const ALLOW = new Map([
+    [".content", "基态可见（无 transform/opacity），换曲线安全"],
+    [".toast-host", "基态可见；新动画自带 translateX(-50%) 居中（global 的 plg-up 反而丢了居中）"],
+  ]);
+  const clash = [...mAnim.keys()].filter((s) => gAnim.has(s) && !ALLOW.has(s));
+  ok(clash.length === 0, `motion.css 未越权覆盖既有动画（越权：${clash.join(" | ") || "无"}）`);
+  ok([...ALLOW.values()].every((why) => why && why.length > 6), "允许清单每条都写了理由");
+  ok(!/^\.drawer\s*\{/m.test(css) && !/^\.drawer-mask\s*\{/m.test(css), "抽屉与遮罩沿用 global.css 的 drawer-in/out（基态 translateX(-100%) 靠 forwards 钉住）");
+  ok(/^\.drawer \.nav-item\s*\{/m.test(css), "只给抽屉内导航项加逐项进场（基态可见，覆盖安全）");
+  ok(/translateX\(-50%\)/.test(css.slice(css.indexOf("@keyframes m-toast-in"), css.indexOf("@keyframes m-toast-out"))), "提示条入场保留 -50% 居中");
+  ok(/translateX\(-50%\)/.test(css.slice(css.indexOf("@keyframes m-toast-out"), css.indexOf("@keyframes m-toast-out") + 200)), "提示条退场保留 -50% 居中");
+}
+
+console.log(`\n动效护栏：${pass} 断言全部通过（只动 transform/opacity + 令牌化 + 减弱动态降级 + 不锁死 hover + 不越权覆盖）`);

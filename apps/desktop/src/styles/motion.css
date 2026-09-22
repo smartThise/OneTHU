@@ -138,22 +138,23 @@
   }
 }
 
-/* 提示条：从上方"掉"下来一点 + 淡入，退出反向 */
+/* 提示条：从上方"掉"下来一点 + 淡入，退出反向。
+   位移里始终带 translateX(-50%)：提示条靠它水平居中，动画覆盖 transform 时不能丢。 */
 @keyframes m-toast-in {
   from {
     opacity: 0;
-    transform: translate3d(0, -14px, 0) scale(0.97);
+    transform: translateX(-50%) translate3d(0, -14px, 0) scale(0.97);
   }
   to {
     opacity: 1;
-    transform: none;
+    transform: translateX(-50%);
   }
 }
 
 @keyframes m-toast-out {
   to {
     opacity: 0;
-    transform: translate3d(0, -10px, 0) scale(0.98);
+    transform: translateX(-50%) translate3d(0, -10px, 0) scale(0.98);
   }
 }
 
@@ -464,13 +465,12 @@ select {
   }
 }
 
-/* 抽屉导航：遮罩淡入 + 面板弹簧 + 逐项进场 */
-.drawer {
-  animation: m-slide-left var(--dur-3) var(--ease-ios) backwards;
-}
-.drawer-mask {
-  animation: m-fade var(--dur-2) var(--ease-out) backwards;
-}
+/* 抽屉导航：**不覆盖** .drawer / .drawer-mask 自身的动画。
+   原因（霖实测 2026-09-22）：抽屉基态是 transform: translateX(-100%)（入场前藏身态），
+   可见位置完全靠 global.css 的 drawer-in … forwards 钉住；一旦被这里的规则覆盖成
+   backwards，动画结束基态立刻生效 → 抽屉当场消失，关闭时又会"重现再播退场"。
+   同理 .drawer-mask-closing / .drawer-closing 靠同特异度后位规则生效，覆盖会吃掉退场。
+   这里只给抽屉里的导航项加逐项进场（它们的基态可见，覆盖安全）。 */
 .drawer .nav-item {
   animation: m-rise var(--dur-3) var(--ease-out) backwards;
 }
@@ -522,11 +522,13 @@ select {
 
 /* ---------- 9. 提示条（toast） ---------- */
 
-.toast-host,
-.toast {
+/* 提示条基态是 transform: translateX(-50%)（水平居中），动画必须把 -50% 带上，
+   否则入场/退场期间提示条会先跳到偏右再弹回中间。
+   退出选择器与组件类名一致：ToastHost 渲染的是 .toast-host.is-closing。 */
+.toast-host {
   animation: m-toast-in var(--dur-3) var(--ease-spring) backwards;
 }
-.toast.is-closing {
+.toast-host.is-closing {
   animation: m-toast-out var(--dur-2) var(--ease-out) both;
 }
 
