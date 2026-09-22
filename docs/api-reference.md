@@ -1,6 +1,6 @@
 # `onethu.*` API 参考
 
-> 最后更新：2026-09-22 22:59
+> 最后更新：2026-09-22 23:04
 
 本文档描述插件可用的全部接口。每个命名空间对应一类校园业务系统或应用能力。
 
@@ -90,7 +90,7 @@ return {
 
 | 方法 | 返回 | 说明 |
 |---|---|---|
-| `session.status()` | 字符串枚举 | `"ready"`（可用）、`"demo"`、`"logged-out"`、`"connecting"`、`"2fa"`（等待二次认证）、`"booting"`。调用业务接口前应确认状态为 `"ready"` |
+| `session.status()` | 字符串枚举 | `"ready"`（可用）、`"logged-out"`、`"connecting"`、`"2fa"`（等待二次认证）、`"booting"`。调用业务接口前应确认状态为 `"ready"` |
 | `session.username()` | `string \| null` | 学号或自定义用户名 |
 | `user.info()` | `BasicUserInfo` | 首次调用触发信息门户会话建立，耗时数秒 |
 

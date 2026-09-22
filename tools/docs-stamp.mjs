@@ -5,11 +5,12 @@
  * 约定：每份文档在标题下方带一行 `> 最后更新：YYYY-MM-DD HH:MM`，读者一眼可知文档是否
  * 跟得上代码。时间取该文件**最后一次内容变更**的时刻：
  *
- *   node tools/docs-stamp.mjs            # 默认：改过的文档取当前时间，未改的取最后提交时间
+ *   node tools/docs-stamp.mjs            # 默认：只给**改动过**的文档打当前时间，其余不动
  *   node tools/docs-stamp.mjs --all      # 全部取当前时间
  *   node tools/docs-stamp.mjs --from-git # 全部取该文件最后一次提交时间（回填用）
  *
- * 提交前跑一次默认模式即可；重复运行不产生多余改动。
+ * 提交前跑一次默认模式即可。默认不动未改动的文件：否则每次提交后，该文件的「最后提交时间」
+ * 都会比时间戳更晚，再跑一次又会刷新，来回抖动。
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -97,7 +98,10 @@ for (const file of targets.sort()) {
   let value;
   if (mode === "all") value = stampOf(Date.now());
   else if (mode === "git") value = stampOf(lastCommitMs(rel) ?? Date.now());
-  else value = stampOf(isDirty(rel) ? Date.now() : (lastCommitMs(rel) ?? Date.now()));
+  else {
+    if (!isDirty(rel)) continue; // 未改动 → 保留现有时间戳
+    value = stampOf(Date.now());
+  }
   if (applyStamp(file, value)) {
     console.log("写入", rel, value);
     changed += 1;
