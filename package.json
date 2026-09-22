@@ -12,7 +12,8 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm --filter @onethu/core test",
     "lint:ui-copy": "node tools/ui-copy-lint.mjs",
-    "lint:docs": "node tools/docs-prose-lint.mjs"
+    "lint:docs": "node tools/docs-prose-lint.mjs",
+    "docs:stamp": "node tools/docs-stamp.mjs"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

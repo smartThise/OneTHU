@@ -1,5 +1,7 @@
 # 作业区：聚合、忽略与提交
 
+> 最后更新：2026-09-22 22:56
+
 作业数据来自网络学堂与外部作业源（雨课堂 / TUOJ / Tyche / DSA OJ），在「全部作业」与
 「今日」两处统一呈现。外部源的接入方式、凭据维护与故障恢复见
 [external-homework.md](./external-homework.md)。
@@ -14,7 +16,9 @@
 | 网络学堂 | 课程作业；读方法见 [api-reference.md §9](./api-reference.md) |
 | 外部作业源 | 雨课堂 / TUOJ（AI 版与经典版）/ Tyche / DSA OJ，统一映射为 `ExternalHomework`，以 `ext:` 前缀并入 |
 
-作业页分为六个分组：进行中、已逾期、已交、已批、已忽略、全部。逾期判定为「未提交且
+作业页分为六个分组：进行中、已逾期、已交、已批、已忽略、全部。**旁听课堂**（雨课堂
+`role=6`）的作业不计入各分组计数，也不计入「全部」，而是在当前分组下方单列「旁听作业」
+一节；首页作业区不混入旁听作业。逾期判定为「未提交且
 截止时间已过」，时间解析统一由 core 的 `parseLearnTime` 完成（兼容外部源的
 `"YYYY-MM-DD HH:mm"` 与 ISO 串），解析失败不判逾期，作业留在「进行中」。
 
@@ -63,6 +67,19 @@
 实现见 `apps/desktop/src/state/learnAttachmentReq.ts` 与
 `apps/desktop/src/pages/learn/AssignmentDetailPage.tsx`；测试
 `tools/learn-need-file-test.mjs`、`tools/learn-camera-upload-test.mjs`。
+
+### 3.4 通知的已读状态（R23）
+
+网络学堂的已读状态只有服务端字段 `sfyd`（拉列表时读取），客户端此前不主动置读：无附件的
+通知无法置读，有附件的通知要等下一次拉列表才在界面反映，于是出现「点开过仍是未读」。现在：
+
+| 环节 | 行为 |
+|---|---|
+| 打开详情 | 立即写入本地已读（`onethu.learn.noticeRead.v1`），列表与未读分组即时反映，跨会话保留 |
+| 服务端同步 | 详情页总是请求 `beforeViewXs`，服务端据此置读，并同时发现附件 |
+| 合并规则 | 本地记录与服务端 `sfyd` 取并集，服务端已读不会被本地状态回退 |
+
+护栏：`tools/notice-read-test.mjs`。
 
 ### 3.3 请求体序列化
 
@@ -122,6 +139,8 @@
 | 工具 | 覆盖范围 |
 |---|---|
 | `tools/hw-ignore-test.mjs` | 忽略状态：增删、上限、坏数据、订阅一致性 |
+| `tools/audited-hw-test.mjs` | 旁听作业单列：不计入计数与「全部」、不与正式课程混排 |
+| `tools/notice-read-test.mjs` | 通知已读：本地覆盖、与服务端并集、不误判未读 |
 | `tools/learn-need-file-test.mjs` | 必交附件记忆：记录、清除、上限 |
 | `tools/learn-camera-upload-test.mjs` | 拍照上传入口的端别分流 |
 | `tools/learn-submit-body-test.mjs` | 请求体序列化（FormData → multipart） |

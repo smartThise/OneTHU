@@ -1,3 +1,5 @@
+> 最后更新：2026-09-22 22:56
+
 <div align="center">
 
 <img src="docs/logo-banner.png" alt="(One / THU) — One THUer should have OneTHU." width="640"/>
@@ -24,7 +26,7 @@ OneTHU 是对 thu-info-app / learnX / NextTHUxk 的完全重构：统一身份�
 - **数据可靠** —— 所有结果同步自 Info 与 网络学堂系统。
 - **全平台** —— macOS / Windows / Android 端安装包齐备，移动端功能与桌面端对齐。
 
-## 功能总览（0.8.0）
+## 功能总览（0.10.0）
 
 - **统一身份**：统一认证账号登录一次，全部模块共用会话；双因素认证支持。
 - **OneTHU Harness**：属于 THUer 的生产力 Agent——一键处理课表 / 成绩 / 考试 / 新闻 / 空教室 / 校园卡 / 电费 / 网费 / 图书馆座位与研讨间/ 网络学堂全部功能，人工智能赋能学习生活；桌面端与 Android 端功能一致
@@ -156,7 +158,7 @@ OneTHU 自有代码以 **MIT** 许可开源（见 [LICENSE](./LICENSE)），**�
 
 ## 版本
 
-当前版本 **0.8.0**（详见 [Releases](https://github.com/smartThise/OneTHU/releases)）。
+当前版本 **0.10.0**（详见 [Releases](https://github.com/smartThise/OneTHU/releases)）。
 
 ## 用户交流群
 

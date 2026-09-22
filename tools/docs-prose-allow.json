@@ -29,5 +29,11 @@
       "text": "\"description\": \"一句话说明\"",
       "why": "市场名单条目的示例取值，属数据样例"
     }
+  ],
+  "docs/demo-video/README.md": [
+    {
+      "text": "一句话直达",
+      "why": "功能名（OH 的 open_page 直达能力），非叙述措辞"
+    }
   ]
 }

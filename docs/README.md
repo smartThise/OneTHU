@@ -1,5 +1,7 @@
 # OneTHU 开发文档
 
+> 最后更新：2026-09-22 22:56
+
 OneTHU 是清华大学校园助手应用，基于 Tauri v2 与 React 实现，支持桌面与 Android
 平台。应用集成课表、作业、日程、图书馆预约、校园卡、宿舍电费、校园网等日常功能，
 并通过插件系统提供扩展能力。
@@ -12,7 +14,6 @@ OneTHU 是清华大学校园助手应用，基于 Tauri v2 与 React 实现，�
 | [api-reference.md](./api-reference.md) | `ctx.onethu.*` 命名空间与方法的完整参考 | 插件开发者 |
 | [外部作业源-需求与实现方案.md](./外部作业源-需求与实现方案.md) | 外部作业源 R15–R21 的设计与实测纪要：接口探测、加密字体与 LaTeX 方案、原生详情页与嵌入式提交入口的实现记录 | 功能贡献者 |
 | [architecture.md](./architecture.md) | 进程模型、会话管线、插件宿主实现、主题系统、模型调度、构建流程 | 宿主贡献者 |
-| [demo-build.md](./demo-build.md) | `demo` 分支脱敏演示版（OneTHU Demo）：与正式版的差异、脱敏口径、构建步骤与残余风险 | 演示 / 出镜使用者 |
 | [homework.md](./homework.md) | 作业区：分组与数据来源、忽略、网络学堂附件上传与必交附件预检、雨课堂主观题原生作答、学术红线与测试工具 | 功能使用者与贡献者 |
 | [external-homework.md](./external-homework.md) | 外部作业源（雨课堂 / TUOJ / Tyche / DSA OJ）的接入方式、凭据维护、故障恢复与接入记录 | 功能使用者与贡献者 |
 | [android-release-traps.md](./android-release-traps.md) | 安卓 release 构建陷阱（`@InvokeArg`、R8、UA 伪装、构建判据）与无 adb 真机取证通道（日志导出、计时埋点） | 宿主贡献者 |
@@ -46,6 +47,17 @@ OneTHU 是清华大学校园助手应用，基于 Tauri v2 与 React 实现，�
 `<!-- docs-prose-lint-ok: 理由 -->` 或写入 `tools/docs-prose-allow.json` 豁免。
 
 改完执行 `pnpm lint:docs`（`tools/docs-prose-lint.mjs`，有违规退出码 1）。
+
+## 更新时间
+
+每份文档在标题下方带一行 `> 最后更新：YYYY-MM-DD HH:MM`。改动文档后执行一次：
+
+```bash
+node tools/docs-stamp.mjs      # 改过的文档取当前时间，未改的取该文件最后一次提交时间
+```
+
+时间取该文件最后一次内容变更的时刻。评审文档时先看这一行：若它早于相关代码的提交，
+说明该文档可能已经过期。
 
 ## 接口真源
 

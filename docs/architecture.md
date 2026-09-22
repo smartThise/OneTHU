@@ -1,5 +1,7 @@
 # 系统架构
 
+> 最后更新：2026-09-22 22:56
+
 本文档描述 OneTHU 的进程模型与各子系统设计，面向宿主贡献者。
 
 ## 1. 进程模型
@@ -276,3 +278,34 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
 
 实现见 `apps/desktop/src/state/data.ts` 与 `apps/desktop/src/pages/info/CardTab.tsx`，
 护栏 `tools/card-freshness-test.mjs`。
+
+## 10. 文件预览与下载
+
+预览全部在应用内自绘，不使用 WebView 的内嵌查看器：Windows/WebView2 上
+`<embed type="application/pdf">` 会白屏，安卓 WebView 本就没有内置查看器，自绘是唯一在各端
+行为一致且可控的通道（字体、缩放、翻页与失败降级都在自己手里）。
+
+| 类型 | 实现要点 |
+|---|---|
+| PDF | `pdfjs-dist` 渲染到 canvas；**连续滚动**（按总页数铺满，滚动即翻页，页码跟随视口上沿），保留跳页、缩放与「适应宽度」 |
+| PDF 内存策略 | 一页按面板宽渲染约 1000×1400（≈5MB 位图），几十页全渲染会拖垮 WebView；只渲染**当前页 ±2** 的窗口，其余按等比占位，离开窗口即卸载 |
+| PDF 并发渲染 | 缩放与进出窗口都会触发重渲染，同一 canvas 上的并发 `render()` 会被 pdf.js 拒绝；用 `taskRef` 跟踪在飞的 `RenderTask`，发起新渲染前先 `cancel()` 并 `await` 其结束，取消异常属预期路径、不提示用户 |
+| PDF 运行时依赖 | pdf.js v6 现代构建依赖较新内核 API（`Map.prototype.getOrInsertComputed`、`Promise.withResolvers`、`Math.sumPrecise`），缺失时**在渲染期**才抛错，既有「解析失败就换 legacy 构建」的兜底不会触发。按能力选择构建（缺 API 时优先 legacy），并补最小垫片；缺 `Math.sumPrecise` 时字体翻译失败会被吞掉，表现为整页乱码 |
+| pptx | `lib/pptxRender.ts` 真正渲染幻灯片页面（零第三方依赖，自带极简 XML 解析）：形状按 `a:xfrm` 绝对定位，没有显式 `xfrm` 的占位符按 slide → layout → master 继承位置，字号、粗斜、下划线与颜色（`srgbClr` 与 `schemeClr` 主题色）均还原 |
+| 下载后操作 | 下载完成提示提供「打开文件 / 打开目录」：`onethu_open_path` 与 `onethu_reveal_path` 为自写 Rust 命令，Rust 侧只放行存在的绝对路径。不用官方 opener 插件的原因是它除命令权限外还需在 capability 中配置**路径 scope**，而下载位置由用户决定，白名单覆盖不全。仅桌面端显示——Android 的下载落在应用私有目录，没有「定位」语义 |
+
+护栏：`tools/preview-scroll-test.mjs`、`tools/pptx-render-test.mjs`、
+`tools/pdf-runtime-test.mjs`、`tools/pdf-render-mode-test.mjs`、
+`tools/dl-open-buttons-test.mjs`。
+
+## 11. 渲染健壮性与错误边界
+
+`components/RootErrorBoundary.tsx` 是应用根部的渲染错误边界：任何组件在渲染期抛错（含 React
+Hook 顺序违规）时，把整棵树卸载导致的纯白窗口变成一张可读的错误卡片，并提供重试与重载，
+而不是只留一行日志。
+
+- 边界只能兜**渲染期**错误；事件回调与异步异常仍由 `main.tsx` 的全局日志钩子记录。
+- 根级边界不可省：组件内的边界兜不住自身抛错，Hook 顺序违规正是这种情况（R24 的预览白屏
+  事故即由它引起——`useState` 落在条件早退之后，整个应用树被卸载）。
+
+护栏：`tools/hook-order-test.mjs`、`tools/root-boundary-test.mjs`。
