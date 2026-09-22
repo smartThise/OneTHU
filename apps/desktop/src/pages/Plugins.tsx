@@ -11,6 +11,7 @@ import { openFormModal } from "../lib/formModal.js";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useSyncExternalStore, useEffect, useRef, useState, type ReactNode } from "react";
+import { confirmOk } from "../lib/confirm.js";
 import { PageHead } from "../components/Layout.js";
 import { PluginLogo } from "../components/PluginLogo.js";
 import {
@@ -78,9 +79,11 @@ export function PluginsPage(): ReactNode {
           </span>
         }
         actions={
-          <div className="seg-track">
+          /* R23：视图切换回归全局 .segmented 药丸口径（此前误用 seg-track 滚动条样式，
+              全宽拉伸 + 抓手光标 + 11px 小字，与整体 UI 明显不符——霖实测） */
+          <div className="segmented" style={{ marginBottom: 0 }}>
             {([["mine", "我的插件"], ["market", "插件市场"]] as const).map(([k, lbl]) => (
-              <button key={k} className={"seg-item" + (view === k ? " is-active" : "")} onClick={() => setView(k)}>
+              <button key={k} className={view === k ? "is-active" : ""} onClick={() => setView(k)}>
                 {lbl}
               </button>
             ))}
@@ -236,8 +239,18 @@ function ThemeManagerSection(): ReactNode {
               >
                 <ThemeSwatch vars={t.vars} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <b style={{ fontSize: "var(--text-base)" }}>{t.name}</b>
+                  {/* R23（霖实测：小屏主题名被挤成竖排）：名字独占整行（wrap 后元信息另起），
+                      名字自身 nowrap+ellipsis+title——再长的名字也不会逐字换行破坏协调 */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <b
+                      title={t.name}
+                      style={{
+                        minWidth: 0, maxWidth: "100%", overflow: "hidden",
+                        textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "var(--text-base)",
+                      }}
+                    >
+                      {t.name}
+                    </b>
                     <span style={{ fontSize: "var(--text-xs)", color: "var(--text-3)" }}>v{t.version}</span>
                     {t.source === "plugin" ? (
                       <span className="chip" style={{ height: 16, fontSize: 9.5, padding: "0 6px" }} title={ownerOf(t) ? `来自插件 ${ownerOf(t)}` : undefined}>
@@ -567,10 +580,30 @@ function PluginSheet({
 }): ReactNode {
   const plugins = useSyncExternalStore(subscribe, installedPlugins);
   const rec = plugins.find((p) => p.manifest.id === id);
+  // R23（霖实测：设置卡片外误点一下直接关闭丢修改）：
+  //  ① 拖拽出界不算点遮罩——按下起点在遮罩上才允许 onClick 关闭（浏览器把
+  //     「卡内按下、遮罩抬起」的 click 派发到二者公共祖先 = 遮罩，旧判定误关）；
+  //  ② 设置草稿有改动时关闭前 confirmOk，绝不静默丢弃。
+  const downOnMask = useRef(false);
+  const dirtyRef = useRef(false);
+  const requestClose = (): void => {
+    if (!dirtyRef.current) return onClose();
+    void confirmOk("设置有未保存的修改，关闭将丢失。确定关闭？").then((ok) => {
+      if (ok) onClose();
+    });
+  };
   if (!rec) return null;
   const title = mode === "settings" ? "设置" : mode === "mcp" ? "MCP 服务器" : "运行日志";
   return (
-    <div className="plg-mask" onClick={onClose}>
+    <div
+      className="plg-mask"
+      onPointerDown={(e) => {
+        downOnMask.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (downOnMask.current && e.target === e.currentTarget) requestClose();
+      }}
+    >
       <section
         className="plg-sheet"
         role="dialog"
@@ -579,12 +612,12 @@ function PluginSheet({
       >
         <div className="plg-sheet-head">
           <b>{title} · {rec.manifest.name}</b>
-          <button className="btn btn-ghost" onClick={onClose}>
+          <button className="btn btn-ghost" onClick={requestClose}>
             关闭
           </button>
         </div>
         {mode === "settings" ? (
-          <SettingsBody id={id} rec={rec} />
+          <SettingsBody id={id} rec={rec} onClose={onClose} dirtyRef={dirtyRef} />
         ) : mode === "mcp" ? (
           <McpBody />
         ) : (
@@ -656,12 +689,20 @@ function McpBody(): ReactNode {
   );
 }
 
-/** 设置：本地草稿 + 显式保存 + 已保存回执（设置在插件下一轮运行时实时读取） */
-function SettingsBody({ id, rec }: { id: string; rec: any }): ReactNode {
+/** 设置：本地草稿 + 显式保存 + 已保存回执（设置在插件下一轮运行时实时读取）。
+ *  R23：dirtyRef 上报未保存改动（Sheet 关闭前据此确认）；onClose 供无配置项分支直接关闭。 */
+function SettingsBody({
+  id, rec, onClose, dirtyRef,
+}: { id: string; rec: any; onClose: () => void; dirtyRef: { current: boolean } }): ReactNode {
   const fields = rec.manifest.settings ?? [];
   const [draft, setDraft] = useState<Record<string, string>>({ ...rec.settings });
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  /** 草稿改动标记：editDraft 置 true，保存成功复位 */
+  const editDraft = (fn: (d: Record<string, string>) => Record<string, string>): void => {
+    dirtyRef.current = true;
+    setDraft(fn);
+  };
 
   // 自动维护字段（MadModel token 等）永远以**当前实时值**保存：草稿是打开面板那一刻的
   // 快照，泵在此之后签发的 token 会被陈旧草稿覆盖成空 → 免费档静默失效（用户实录 2026-09-20）
@@ -673,6 +714,7 @@ function SettingsBody({ id, rec }: { id: string; rec: any }): ReactNode {
       const payload: Record<string, string> = { ...draft };
       for (const f of fields as any[]) if (f.auto) payload[f.key] = liveSettings[f.key] ?? "";
       updatePlugin(id, { settings: payload });
+      dirtyRef.current = false;
       setSavedAt(new Date().toLocaleTimeString("zh-CN", { hour12: false }));
     } finally {
       setSaving(false);
@@ -689,7 +731,7 @@ function SettingsBody({ id, rec }: { id: string; rec: any }): ReactNode {
         </div>
         <div className="plg-sheet-foot">
           <span className="plg-hint">—</span>
-          <button className="btn btn-ghost" onClick={() => (document.querySelector(".plg-mask") as HTMLElement | null)?.click()}>
+          <button className="btn btn-ghost" onClick={onClose}>
             关闭
           </button>
         </div>
@@ -711,7 +753,7 @@ function SettingsBody({ id, rec }: { id: string; rec: any }): ReactNode {
                 <select
                   className="input"
                   value={draft[f.key] ?? ""}
-                  onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
+                  onChange={(e) => editDraft((d) => ({ ...d, [f.key]: e.target.value }))}
                 >
                   {(f.options ?? []).map((o: { value: string; label: string }) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -723,7 +765,7 @@ function SettingsBody({ id, rec }: { id: string; rec: any }): ReactNode {
                   rows={3}
                   placeholder={f.placeholder ?? ""}
                   value={draft[f.key] ?? ""}
-                  onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
+                  onChange={(e) => editDraft((d) => ({ ...d, [f.key]: e.target.value }))}
                 />
               ) : (
                 <input
@@ -731,7 +773,7 @@ function SettingsBody({ id, rec }: { id: string; rec: any }): ReactNode {
                   type={f.type === "password" ? "password" : "text"}
                   placeholder={f.placeholder ?? ""}
                   value={draft[f.key] ?? ""}
-                  onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
+                  onChange={(e) => editDraft((d) => ({ ...d, [f.key]: e.target.value }))}
                 />
               )}
             </label>

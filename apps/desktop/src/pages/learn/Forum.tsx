@@ -15,6 +15,7 @@ import { useLearnData } from "../../state/data.js";
 import { CollectStar } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
 import { BackButton, RichContent, fmtDateTime } from "./shared.js";
+import { DownloadOpenButtons } from "../../components/DownloadOpenButtons.js";
 import { useLearnNavSemester } from "./shared.js";
 import { openExternal } from "../info/openExternal.js";
 import { RichEditor } from "../../components/RichEditor.jsx";
@@ -261,7 +262,8 @@ export function ForumThreadPage() {
   const [replyFile, setReplyFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [sendMsg, setSendMsg] = useState("");
-  const [dlHint, setDlHint] = useState("");
+  // R23：下载提示携带落盘路径（此前该状态从未渲染 → 用户看不到任何反馈）
+  const [dlHint, setDlHint] = useState<{ text: string; path?: string } | null>(null);
 
   const load = useCallback(() => {
     if (!courseId || !threadId) return;
@@ -325,15 +327,21 @@ export function ForumThreadPage() {
   };
 
   const downloadAtt = (wjid: string, wjmc: string) => {
-    setDlHint(`下载 ${wjmc}…`);
+    setDlHint({ text: `下载 ${wjmc}…` });
     downloadLearnUrl(learnUrls.LEARN_BBS_ATTACHMENT(courseId, wjid), wjmc)
-      .then((p) => setDlHint(`已保存：${p}`))
-      .catch((e: unknown) => setDlHint(explainNetworkError(e)));
+      .then((p) => setDlHint({ text: `已下载到：${p}`, path: p }))
+      .catch((e: unknown) => setDlHint({ text: explainNetworkError(e) }));
   };
 
   return (
     <>
       <BackButton to="learn-course" courseId={courseId} courseTab="forum" label="返回课程" />
+      {dlHint ? (
+        <div className="error-note dl-done-note" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+          <span>{dlHint.text}</span>
+          {dlHint.path ? <DownloadOpenButtons path={dlHint.path} /> : null}
+        </div>
+      ) : null}
       {state === "loading" && !head ? (
         <Card>
           <SkeletonRows rows={5} />

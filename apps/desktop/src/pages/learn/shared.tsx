@@ -384,6 +384,12 @@ export function HomeworkRow({ h, courseName, from, style, showGrade = false, sem
         <span className="dot" />
         {score ? `${chip.text} · ${score}` : chip.text}
       </span>
+      {/* R23（霖需求）：部分作答的外部作业（进行中）在截止 chip 右侧标注题级进度 */}
+      {h.externalProgress && !h.submitted ? (
+        <span className="chip chip-gray" title={`已完成 ${h.externalProgress} 题`}>
+          已完成 {h.externalProgress} 题
+        </span>
+      ) : null}
       {/* DDL 提醒（作业列表页启用；行点击导航要 stopPropagation）。R10 15.3：外部作业
           的 h.id（ext:source:...）稳定可用，提醒链路只需 deadline/title，一并放开 */}
       {isIgnored ? <span className="chip chip-gray" title="已忽略：不提醒、不进作业区与日程">已忽略</span> : null}

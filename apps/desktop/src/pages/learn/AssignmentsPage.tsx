@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { parseLearnTime, SOURCE_NAMES } from "@onethu/core";
 import { PageAtomStar } from "../..//components/Collect.js";
-import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
+import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
@@ -159,10 +159,12 @@ export function AssignmentsPage() {
   // R21c：忽略状态（订阅同一份快照：行内忽略/恢复立刻反映到分组与计数）
   const ignored = useIgnoredHw();
 
+  // R23（霖需求）：旁听作业（雨课堂 role=6 课堂）**不计入**各分组计数与「全部」，
+  // 而是在当前分组下方单列「旁听作业」一节——不与正式课程混排。
   const groups = useMemo(() => {
     const hw = [...(data?.homework ?? []), ...extHw].sort((a, b) => a.deadline.localeCompare(b.deadline));
     // R21c：忽略的作业只出现在「已忽略」组，常规分组与「全部」都不再显示
-    const live = hw.filter((h) => !ignored.has(h.id));
+    const live = hw.filter((h) => !ignored.has(h.id) && !h.audited);
     return {
       // 进行中 = 未交且未逾期（含 deadline 解析失败者，保守不判逾期）
       unfinished: live.filter((h) => !h.submitted && !isOverdue(h)),
@@ -173,6 +175,24 @@ export function AssignmentsPage() {
       all: live,
     };
   }, [data, extHw, ignored]);
+
+  /** 旁听作业全集（同样排除已忽略） */
+  const auditAll = useMemo(
+    () =>
+      [...(data?.homework ?? []), ...extHw]
+        .filter((h) => h.audited && !ignored.has(h.id))
+        .sort((a, b) => a.deadline.localeCompare(b.deadline)),
+    [data, extHw, ignored],
+  );
+  /** 旁听节按当前分组同一口径筛选（进行中/已逾期/已交/已批改；「已忽略」组不重复列） */
+  const auditList = useMemo(() => {
+    if (filter === "ignored") return [];
+    if (filter === "unfinished") return auditAll.filter((h) => !h.submitted && !isOverdue(h));
+    if (filter === "overdue") return auditAll.filter(isOverdue);
+    if (filter === "submitted") return auditAll.filter((h) => h.submitted && !h.graded);
+    if (filter === "graded") return auditAll.filter((h) => h.graded);
+    return auditAll;
+  }, [auditAll, filter]);
 
   const list = groups[filter];
   // R10 15.4：页头只留学期文本；各分组计数已并入 SegmentedOverflow 各 tab（含「全部」），
@@ -220,14 +240,31 @@ export function AssignmentsPage() {
 
       {state === "loading" && !data ? (
         <SkeletonRows rows={6} />
-      ) : state === "error" && !data ? null : list.length === 0 ? (
-        <Card><Empty text={filter === "unfinished" ? "没有进行中的作业。" : filter === "overdue" ? "没有已逾期未交的作业。" : filter === "ignored" ? "没有已忽略的作业。" : "该分组暂无作业。"} /></Card>
-      ) : (
-        <Card className="list">
-          {list.map((h, i) => (
-            <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={h.courseName ?? byCourse.get(h.courseId)} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${i * 25}ms` }} />
-          ))}
-        </Card>
+      ) : state === "error" && !data ? null : (
+        <>
+          {list.length === 0 ? (
+            auditList.length === 0 ? (
+              <Card><Empty text={filter === "unfinished" ? "没有进行中的作业。" : filter === "overdue" ? "没有已逾期未交的作业。" : filter === "ignored" ? "没有已忽略的作业。" : "该分组暂无作业。"} /></Card>
+            ) : null
+          ) : (
+            <Card className="list">
+              {list.map((h, i) => (
+                <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={h.courseName ?? byCourse.get(h.courseId)} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${i * 25}ms` }} />
+              ))}
+            </Card>
+          )}
+          {/* R23：旁听作业单列（不计入上方计数与「全部」总数） */}
+          {auditList.length > 0 ? (
+            <>
+              <SectionHead title="旁听作业" />
+              <Card className="list">
+                {auditList.map((h, i) => (
+                  <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={h.courseName ?? byCourse.get(h.courseId)} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${i * 25}ms` }} />
+                ))}
+              </Card>
+            </>
+          ) : null}
+        </>
       )}
     </>
   );

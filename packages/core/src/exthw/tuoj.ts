@@ -31,8 +31,9 @@ const UA =
  *  类型化（而非只比字符串）让自动重漫游判定与文案解耦。 */
 export class TuojSessionError extends Error {
   readonly httpStatus: number;
-  constructor(status: number) {
-    super(`TUOJ 会话已失效（HTTP ${status}），请在设置页更新 Cookie`);
+  /** detail：非 401/403 的失效形态（200+非 JSON / 302 登录页 HTML）给专用文案 */
+  constructor(status: number, detail?: string) {
+    super(detail ?? `TUOJ 会话已失效（HTTP ${status}），请在设置页更新 Cookie`);
     this.name = "TuojSessionError";
     this.httpStatus = status;
   }
@@ -100,7 +101,10 @@ async function requestJson(
   try {
     json = JSON.parse(body);
   } catch {
-    throw new Error("TUOJ 返回非 JSON（会话可能已失效），请更新 Cookie");
+    // R23（霖实测：过一夜会话失效但不再抛 401/403）：会话老化时 TUOJ 常返回
+    // 200 + 登录页 HTML / 非 JSON——此前抛普通 Error，自动重漫游判定不命中，
+    // 用户只能手动退出重登。归一为 TuojSessionError 让 reroute 通道接手。
+    throw new TuojSessionError(200, "TUOJ 返回非 JSON（会话可能已失效），请重新登录");
   }
   return (json ?? {}) as Record<string, unknown>;
 }
@@ -214,7 +218,7 @@ export function createTuojSource(
                 title: String(metadata["title"] ?? ct["title"] ?? "作业"),
                 deadline: fmtLocal(msRaw),
                 kind: "homework",
-                url: `${base}/course/${cid}/contest/${tid}`,
+                url: `${base}/course/${cid}/contest/${tid}/home`,
                 submitted: status.submitted,
               };
               if (status.submittedCount !== undefined) hw.submittedCount = status.submittedCount;

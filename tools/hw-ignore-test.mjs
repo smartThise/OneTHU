@@ -64,7 +64,7 @@ assert.ok(/!h\.submitted && !ignored\.has\(h\.id\)/.test(today), "首页作业�
 
 const assigns = read("apps/desktop/src/pages/learn/AssignmentsPage.tsx");
 assert.ok(/\{ key: "ignored", label: "已忽略" \}/.test(assigns), "「全部作业」必须有已忽略分组");
-assert.ok(/const live = hw\.filter\(\(h\) => !ignored\.has\(h\.id\)\)/.test(assigns), "常规分组必须剔除已忽略");
+assert.ok(/const live = hw\.filter\(\(h\) => !ignored\.has\(h\.id\) && !h\.audited\)/.test(assigns), "常规分组必须剔除已忽略（R23 起同时剔除旁听）");
 assert.ok(/ignored: hw\.filter\(\(h\) => ignored\.has\(h\.id\)\)/.test(assigns), "已忽略分组要能找回来");
 
 /* ---------- [2b] 所有「面向用户的作业聚合点」都要接忽略过滤 ----------
@@ -155,11 +155,11 @@ assert.ok(devdoc.includes("confirmText") && apidoc.includes("confirmText"), "插
 /* ---------- [3b] 课程页：忽略优先级最高 + 自带忽略栏 ---------- */
 const course = read("apps/desktop/src/pages/learn/CourseDetailPage.tsx");
 assert.ok(/\{ key: "ignored", label: "已忽略" \}/.test(course), "每门课必须有自己的「已忽略」栏");
-assert.ok(/const live = homework\.filter\(\(h\) => !ignored\.has\(h\.id\)\)/.test(course),
-  "课程页常规栏必须剔除已忽略");
+assert.ok(/const live = homework\.filter\(\(h\) => !ignored\.has\(h\.id\) && !h\.audited\)/.test(course),
+  "课程页常规栏必须剔除已忽略（R23 起同时剔除旁听）");
 assert.ok(/ignored: homework\.filter\(\(h\) => ignored\.has\(h\.id\)\)/.test(course), "课程页忽略栏要能列出来");
-assert.ok(/assignments: homework\.filter\(\(h\) => !ignored\.has\(h\.id\)\)\.length/.test(course),
-  "课程页作业计数也不得含已忽略");
+assert.ok(/assignments: homework\.filter\(\(h\) => !ignored\.has\(h\.id\) && !h\.audited\)\.length/.test(course),
+  "课程页作业计数也不得含已忽略/旁听");
 
 /* ---------- [4] 调试现场只进日志 ---------- */
 const detail = read("apps/desktop/src/pages/learn/AssignmentDetailPage.tsx");

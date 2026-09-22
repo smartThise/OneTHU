@@ -127,7 +127,9 @@ console.log("\n[雨课堂]");
         errcode: 0,
         data: {
           activities: [
-            { type: 19, id: 10, title: "已交作业", classroom_id: 1, content: { leaf_type_id: 100, leaf_id: 5, score_d: FUTURE } },
+            { type: 19, id: 10, title: "部分作答作业", classroom_id: 1, content: { leaf_type_id: 100, leaf_id: 5, score_d: FUTURE } },
+            // R23：部分作答 ≠ 已提交 —— 无明细（problems 空）时 answer_count>0 保守算已交
+            { type: 19, id: 27, title: "无明细已交作业", classroom_id: 1, content: { leaf_type_id: 110, leaf_id: 27, score_d: FUTURE } },
             { type: 19, id: 11, title: "未交作业", classroom_id: 1, content: { leaf_type_id: 101, leaf_id: 6, score_d: FUTURE } },
             { type: 19, id: 19, title: "已批改作业", classroom_id: 1, content: { leaf_type_id: 102, leaf_id: 20, sku_id: 950, score_d: FUTURE } },
             { type: 19, id: 20, title: "已交未批作业", classroom_id: 1, content: { leaf_type_id: 103, leaf_id: 21, sku_id: 951, score_d: FUTURE } },
@@ -165,6 +167,7 @@ console.log("\n[雨课堂]");
       body: { data: { answer_count: 3, problems: [{ user: { my_answer: { content: "<p>x</p>" } } }, { user: { my_answer: { content: "" } } }] } },
     },
     { match: (u) => u.includes("/get_exercise_list/101/"), body: { data: { answer_count: 0, problems: [{ user: { my_answer: { content: "" } } }, { user: { my_answer: {} } }] } } },
+    { match: (u) => u.includes("/get_exercise_list/110/"), body: { data: { answer_count: 2, problems: [] } } },
     { match: (u) => u.includes("/get_exercise_list/300/"), body: { data: { answer_count: 1, problems: [{ user: { my_answer: { content: "<p>y</p>" } } }] } } },
     // R16 21.1：已批改三态（status 4 + 真实分 = 已批改；status 3 / my_score -1 占位 = 已交未批；无 user = 未交）
     // R20-B3：题面分值 content.score 同响应可得（score 合计 / 满分合计的映射输入）
@@ -248,11 +251,15 @@ console.log("\n[雨课堂]");
   ]);
   const src = createYuketangSource({ cookie: "sessionid=x", uvId: "2598" }, fetchLike, 30);
   const items = await src.fetch();
-  eq(items.length, 18, "拉到 18 条作业");
+  eq(items.length, 19, "拉到 19 条作业");
   const byTitle = new Map(items.map((i) => [i.title, i]));
-  eq(byTitle.get("已交作业")?.submitted, true, "answer_count>0 → 已提交");
-  eq(byTitle.get("已交作业")?.submittedCount, 1, "已交作业 submittedCount=1（有内容的题目数）");
-  eq(byTitle.get("已交作业")?.totalCount, 2, "已交作业 totalCount=2");
+  // R23：部分作答 ≠ 已提交（霖实测：只交一道题被记为已交）——进行中，报进度
+  eq(byTitle.get("部分作答作业")?.submitted, false, "R23：2 题只答 1 题 → 未提交（进行中）");
+  eq(byTitle.get("部分作答作业")?.submittedCount, 1, "部分作答作业 submittedCount=1（有内容的题目数）");
+  eq(byTitle.get("部分作答作业")?.totalCount, 2, "部分作答作业 totalCount=2");
+  eq(byTitle.get("无明细已交作业")?.submitted, true, "R23：无题目明细时 answer_count>0 保守算已提交");
+  eq(byTitle.get("无明细已交作业")?.submittedCount, 2, "无明细已交作业 submittedCount=2（回落 answer_count）");
+  eq(byTitle.get("无明细已交作业")?.totalCount, undefined, "无明细已交作业 totalCount 缺省");
   eq(byTitle.get("未交作业")?.submitted, false, "answer_count=0 且无作答 → 未提交");
   // R16 21.1：graded 三态（status 4=已批改 / status 3=已交未批 / 无 user=未交）
   eq(byTitle.get("已批改作业")?.graded, true, "status=4 + 真实分 → graded=true");
@@ -324,7 +331,7 @@ console.log("\n[雨课堂]");
   eq(byTitle.get("未交试卷")?.graded, false, "未提交试卷 → graded=false");
   eq(byTitle.get("无 result 试卷")?.graded, false, "result 缺失 → graded=false");
   const hwCalls = fetchLike.calls.filter((c) => c.url.includes("/get_exercise_list/"));
-  eq(hwCalls.length, 11, "仅作业（type 19）走 get_exercise_list（11 份，分数与状态同一响应零额外请求）");
+  eq(hwCalls.length, 12, "仅作业（type 19）走 get_exercise_list（12 份，分数与状态同一响应零额外请求）");
   ok(
     hwCalls.every((c) => c.headers["xtbz"] === "ykt"),
     "作业状态请求均带 XTBZ: ykt",
@@ -775,6 +782,39 @@ if (!canResolveTs) {
     const listCalls = fetchLike.calls.filter((c) => c.url.endsWith("/api/course/list"));
     eq(listCalls[0]?.headers["cookie"], "old", "①首发用旧 cookie");
     eq(listCalls[1]?.headers["cookie"], "new", "①重拉用漫游后的新 cookie");
+  }
+
+  // ①b（R23，霖实测）已配置但会话老化 → 200 + 登录页 HTML（非 JSON）→ 同样触发 force 重漫游。
+  //     此前非 JSON 抛普通 Error，isTuojSessionError 不命中 → 自动重登从不触发，只能手动退出重登。
+  {
+    resetTuojSessionRetryState();
+    const creds = { tuoj: { cookie: "old", via: "cas" } };
+    const jsonRes = (body) => new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
+    let listHits = 0;
+    const fetchLike = async (url) => {
+      if (url.endsWith("/api/course/list")) {
+        listHits++;
+        // 首发：会话失效的典型形态（HTTP 200 + 登录页 HTML）
+        if (listHits === 1) return new Response("<html><body>请先登录</body></html>", { status: 200 });
+        return jsonRes({ courses: [{ _id: 8, title: "离散数学" }] });
+      }
+      if (url.endsWith("/api/user/lookup")) return jsonRes({ user: { _id: 1001, username: "2026000000" } });
+      if (url.endsWith("/api/course/8/rank")) return jsonRes({ courseRank: { contests: [{ _id: 83 }] } });
+      return jsonRes({});
+    };
+    let roamCalls = 0;
+    const r = await refreshExternalHomework({
+      getCreds: () => creds,
+      fetchLike,
+      rerouteTuoj: async () => {
+        roamCalls++;
+        creds.tuoj = { cookie: "new", via: "cas" };
+        return true;
+      },
+    });
+    eq(r.reroutedTuoj, true, "①b R23：200+非 JSON 也判会话失效并触发重漫游");
+    eq(roamCalls, 1, "①b 漫游恰好一次");
+    eq(listHits, 2, "①b 课程列表拉取两次（首发非 JSON + 重拉）");
   }
 
   // ② 重拉仍 401 → 不再进入第二轮漫游（防循环），保留 401 错误

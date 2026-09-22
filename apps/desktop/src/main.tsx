@@ -36,12 +36,16 @@ import "./styles/global.css";
 import { App } from "./App.js";
 import { ConfirmHost } from "./lib/confirm.js";
 import { FormModalHost } from "./lib/formModal.js";
+import { RootErrorBoundary } from "./components/RootErrorBoundary.js";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
-    <ConfirmHost />
-    <FormModalHost />
+    {/* R24：根级错误边界——任何渲染期崩溃都变成可读卡片，不再整窗白屏 */}
+    <RootErrorBoundary>
+      <App />
+      <ConfirmHost />
+      <FormModalHost />
+    </RootErrorBoundary>
   </StrictMode>,
 );
 // 恢复已装插件（异步，失败只落日志）

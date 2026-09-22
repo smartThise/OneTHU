@@ -206,6 +206,13 @@ export function HomeworkRows({
               <span className="dot" />
               {chip.text}
             </span>
+            {/* R23（霖需求）：雨课堂等外部作业部分作答 → 进行中（未交），在截止 chip
+                右侧标注「已完成 x/y 题」；整卷已交不显示（有 已提交/已批改 表达） */}
+            {h.externalProgress && !h.submitted ? (
+              <span className="chip chip-gray" title={`已完成 ${h.externalProgress} 题`}>
+                已完成 {h.externalProgress} 题
+              </span>
+            ) : null}
             <IconChevron className="row-caret" width={14} height={14} />
           </RowClick>
         );
@@ -361,10 +368,18 @@ export function TodayOverviewWidget() {
   const ext = useExternalHomework();
   const extHw = useMemo(() => ext.items.map(toHomework), [ext.items]);
   const ignored = useIgnoredHw(); // R21c：忽略的作业不计入任何统计与列表
+  // R23（霖需求）：外部平台同步未完成期间不冒充最终数——先显示网络学堂已到账部分 +
+  // 动态省略号（如「3…」），同步完成后落为全量数（如 6）
+  const learnOnlyUnsubmitted = useMemo(
+    () => (data?.homework ?? []).filter((h) => !h.submitted && !ignored.has(h.id) && !h.audited).length,
+    [data, ignored],
+  );
+  const extPending = ext.configured && (ext.state === "idle" || ext.state === "loading");
   const unsubmitted = useMemo(
     () =>
       [...(data?.homework ?? []), ...extHw]
-        .filter((h) => !h.submitted && !ignored.has(h.id)) // R21c：已忽略不进未交统计
+        // R21c：已忽略不进未交统计；R23：旁听作业单列在「全部作业」页，不计入未交总数/列表
+        .filter((h) => !h.submitted && !ignored.has(h.id) && !h.audited)
         .sort((a, b) => a.deadline.localeCompare(b.deadline)),
     [data, extHw, ignored],
   );
@@ -391,7 +406,19 @@ export function TodayOverviewWidget() {
   );
   return (
     <div className="stats stats-overview">
-      <EntryCard num={dataReady ? unsubmitted.length : "–"} label="未交作业" dimLabel="未交作业" disabled={!dataReady} onClick={() => navigate("learn-assignments")} />
+      <EntryCard
+        num={
+          !dataReady
+            ? "–"
+            : extPending
+              ? <span className="num-pending" title="其他平台作业同步中">{learnOnlyUnsubmitted}<i className="num-dots" /></span>
+              : unsubmitted.length
+        }
+        label="未交作业"
+        dimLabel="未交作业"
+        disabled={!dataReady}
+        onClick={() => navigate("learn-assignments")}
+      />
       <EntryCard num={dataReady ? dueSoon : "–"} label="三日内截止" dimLabel="三日内截止" disabled={!dataReady} onClick={() => navigate("learn-assignments")} />
       <EntryCard num={dataReady ? todayEvents.length : "–"} label="今日课程" dimLabel="今日课程" disabled={!dataReady} onClick={() => navigate("schedule")} />
     </div>
@@ -456,7 +483,8 @@ export function HomeworkWidget(): ReactNode {
   const unsubmitted = useMemo(
     () =>
       [...(data?.homework ?? []), ...extHw]
-        .filter((h) => !h.submitted && !ignored.has(h.id)) // R21c：已忽略不进未交统计
+        // R21c：已忽略不进未交统计；R23：旁听作业单列在「全部作业」页，不计入未交总数/列表
+        .filter((h) => !h.submitted && !ignored.has(h.id) && !h.audited)
         .sort((a, b) => a.deadline.localeCompare(b.deadline)),
     [data, extHw, ignored],
   );

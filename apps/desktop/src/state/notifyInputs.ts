@@ -34,9 +34,10 @@ export function collectNotifyInputs(now = Date.now()): {
   // R21c：被忽略的作业不进提醒计划（用户口径：忽略后不再提醒、不再进日程）
   const ignored = ignoredHwList();
   const ignoredIds = new Set(ignored.map((e) => e.id));
+  // R23：旁听作业不进提醒计划（不评分、非正式课程；仅在「全部作业 → 旁听作业」可见）
   const homework: PlanHomework[] = [
     // 网络学堂：deadline 已是 "YYYY-MM-DD HH:MM"
-    ...(learn?.homework ?? []).map((h) => ({
+    ...(learn?.homework ?? []).filter((h) => !h.audited).map((h) => ({
       id: h.id,
       title: h.title,
       deadline: h.deadline,
@@ -44,10 +45,10 @@ export function collectNotifyInputs(now = Date.now()): {
       courseName: (learn?.courses ?? []).find((c) => c.id === h.courseId)?.name ?? undefined,
     })),
     // 外部作业源（雨课堂 / TUOJ / Tyche / DSA OJ）：经 toHomework 统一形状后取同一批字段
-    ...(ext?.items ?? []).map((e) => {
-      const h = toHomework(e);
-      return { id: h.id, title: h.title, deadline: h.deadline, submitted: h.submitted, courseName: h.courseName };
-    }),
+    ...(ext?.items ?? [])
+      .map((e) => toHomework(e))
+      .filter((h) => !h.audited)
+      .map((h) => ({ id: h.id, title: h.title, deadline: h.deadline, submitted: h.submitted, courseName: h.courseName })),
   ].filter((h) => !ignoredIds.has(h.id));
 
   return { schedule, events: collectCalendarEvents(now), homework };

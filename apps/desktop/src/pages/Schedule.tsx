@@ -29,7 +29,8 @@ import { toHomework, useExternalHomework } from "../state/exthw.js";
 import { useApp } from "../state/context.js";
 import { courseColor, SRC_COLOR } from "../lib/courseColor.js";
 import { confirmOk } from "../lib/confirm.js";
-import { openPath, openUrl } from "@tauri-apps/plugin-opener";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { openLocalPath } from "../lib/localFile.js";
 
 const DAY_NAMES = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 /** 上游 schedule.tsx beginTime/endTime（节次兜底定位用） */
@@ -437,7 +438,8 @@ export function SchedulePage() {
     // R21c：已忽略的作业不进日程格（用户口径：忽略后不在日程显示）
     const ignoredIds = new Set(ignoredHwList().map((e) => e.id));
     const hwAll = [...(campus.data?.homework ?? []), ...extHw.items.map(toHomework)].filter(
-      (h) => !ignoredIds.has(h.id),
+      // R23：已忽略 + 旁听都不进日程格（旁听不评分、非正式课程）
+      (h) => !ignoredIds.has(h.id) && !h.audited,
     );
     for (const h of hwAll) {
       if (!h.deadline) continue;
@@ -595,7 +597,7 @@ export function SchedulePage() {
         contents: caldav.serializeCalendar(events),
       });
       if (!path) return; // 用户取消
-      await openPath(path);
+      await openLocalPath(path);
       setMsg(`已导出 ${events.length} 条日程，系统日历导入窗口应已打开（选择要写入的日历）。iPhone 上想自动同步：设置 → 云同步 → 在 iPhone 上查看。`);
     } catch (err) {
       setMsg(`导出失败：${err instanceof Error ? err.message : String(err)}`);

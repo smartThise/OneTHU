@@ -94,6 +94,18 @@ export function SettingsPage() {
     saveTabLayout("settings", l);
   };
 
+  // R23（霖实测：跳过来还得自己找分区在哪）：引导横幅「去设置」→ **先切到外部作业源
+  // 所在页签再滚动**。此前只在子组件里 scrollIntoView——分区在 display:none 的页签里，
+  // 滚动无效，用户落在设置页顶部还要自己找。
+  useEffect(() => {
+    if (!consumeExtHwScrollRequest()) return;
+    setTab(SETTINGS_TAB_OF["外部作业源"] ?? "数据与同步");
+    const t = setTimeout(() => {
+      document.getElementById("settings-exthw")?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 120); // 等页签显隐 effect（按 tab 切 display）先跑完
+    return () => clearTimeout(t);
+  }, []);
+
   /**
    * 页签显隐。两个坑（2026-09-20 实测）：
    *  ① `hidden` 属性会被 app 里的 display 规则压过去 → 必须用行内 style.display；
@@ -735,14 +747,8 @@ function ExtHwSection() {
     };
   }, []);
 
-  // R11 16.3：引导横幅「去设置」跳转后，把本区滚动到视野（一次性标记）
-  useEffect(() => {
-    if (!consumeExtHwScrollRequest()) return;
-    const t = setTimeout(() => {
-      document.getElementById("settings-exthw")?.scrollIntoView({ block: "center", behavior: "smooth" });
-    }, 0);
-    return () => clearTimeout(t);
-  }, []);
+  // R11 16.3 的「滚动到本区」已上移 SettingsPage（R23：先切页签再滚动，否则分区在
+  // display:none 里滚动无效）——此处不再重复消费标记。
 
   // R11 16.2：自动登录在本区打开后才完成时，把凭据回填到表单（否则状态 ✅ 与「未登录」打架）
   useEffect(() => {

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "主窗口能力：核心权限 + opener 插件（外链系统浏览器；自定义命令不需要插件授权）",
+  "description": "主窗口能力：核心权限 + opener 插件（仅外链系统浏览器；打开/定位本地文件走自写命令，自定义命令不需要插件授权）",
   "windows": [
     "main"
   ],

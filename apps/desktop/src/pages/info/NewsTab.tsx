@@ -42,6 +42,7 @@ import { useNews } from "../../state/data.js";
 import { info, downloadLearnUrl } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { openFilePreview } from "../../components/FilePreview.js";
+import { DownloadOpenButtons } from "../../components/DownloadOpenButtons.js";
 import { RichContent } from "../learn/shared.js";
 import { Highlight, byDateDesc, rankNews, readSubs, tokenize, writeSubs } from "./newsSearch.js";
 import { openExternal } from "./openExternal.js";
@@ -194,7 +195,8 @@ export function NewsTab({
   /* --- 附件下载（详情抽屉）：走桌面统一 download_file 链路 --- */
   /** 正在下载的附件 url（互斥按条目生效），及落盘结果/错误提示 */
   const [dlAtt, setDlAtt] = useState<string | null>(null);
-  const [dlHint, setDlHint] = useState<string | null>(null);
+  // R23：下载提示携带落盘路径，右侧挂「打开文件 / 打开目录」
+  const [dlHint, setDlHint] = useState<{ text: string; path?: string } | null>(null);
   /** 附件下载：downloadLearnUrl 对任意 URL 通用（withLearnCsrf 对非 learn host 原样返回），
    *  info 附件 URL 已由 core 带 _csrf，Cookie 由共享 jar 按 info host 提供；落盘名用附件名。 */
   const doDownloadAtt = async (url: string, name: string): Promise<void> => {
@@ -203,9 +205,9 @@ export function NewsTab({
     setDlHint(null);
     try {
       const path = await downloadLearnUrl(url, name || "news-attachment");
-      setDlHint(`已下载到：${path}`);
+      setDlHint({ text: `已下载到：${path}`, path });
     } catch (err: unknown) {
-      setDlHint("下载失败：" + explainNetworkError(err));
+      setDlHint({ text: "下载失败：" + explainNetworkError(err) });
     } finally {
       setDlAtt(null);
     }
@@ -881,8 +883,9 @@ export function NewsTab({
                       </div>
                     ) : null}
                     {dlHint ? (
-                      <div style={{ marginTop: 8, fontSize: 12, color: "var(--accent)", overflowWrap: "anywhere" }}>
-                        {dlHint}
+                      <div style={{ marginTop: 8, fontSize: 12, color: "var(--accent)", overflowWrap: "anywhere", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span>{dlHint.text}</span>
+                        {dlHint.path ? <DownloadOpenButtons path={dlHint.path} /> : null}
                       </div>
                     ) : null}
                   </>

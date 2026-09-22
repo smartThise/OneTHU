@@ -75,7 +75,8 @@ export function LearnPage() {
   const ignored = useIgnoredHw();
 
   const stats = useMemo(() => {
-    const hw = [...(data?.homework ?? []), ...extHw].filter((h) => !h.submitted && !ignored.has(h.id));
+    // R23：旁听不计入「未交作业」总数（单列在「全部作业 → 旁听作业」）
+    const hw = [...(data?.homework ?? []), ...extHw].filter((h) => !h.submitted && !ignored.has(h.id) && !h.audited);
     return {
       unfinished: hw.length,
       notifications: (data?.notifications ?? []).length,
@@ -86,7 +87,7 @@ export function LearnPage() {
   const courseStats = useMemo(() => {
     const m = new Map<string, { hw: number; notices: number; files: number }>();
     for (const h of data?.homework ?? []) {
-      if (h.submitted || ignored.has(h.id)) continue; // 已忽略不计入课程卡片计数
+      if (h.submitted || ignored.has(h.id) || h.audited) continue; // 已忽略/旁听不计入课程卡片计数
       const s = m.get(h.courseId) ?? { hw: 0, notices: 0, files: 0 };
       s.hw += 1;
       m.set(h.courseId, s);

@@ -78,7 +78,8 @@ export function CourseDetailPage() {
   const [hwFilter, setHwFilter] = useState<HwFilter>("all");
   const hwGroups = useMemo(() => {
     // R21c：忽略的作业从本课程所有常规栏移出，只在「已忽略」栏里（可恢复）
-    const live = homework.filter((h) => !ignored.has(h.id));
+    // R23：旁听作业不属于正式课程作业栏（在「全部作业」页单列）
+    const live = homework.filter((h) => !ignored.has(h.id) && !h.audited);
     return {
       unfinished: live.filter((h) => !h.submitted),
       submitted: live.filter((h) => h.submitted && !h.graded),
@@ -126,7 +127,7 @@ export function CourseDetailPage() {
   const counts: Partial<Record<Tab, number>> = {
     notices: notices.length,
     // R21c：计数只算参与中的作业（忽略的不计入，避免「3 条」点进去只剩 2 条）
-    assignments: homework.filter((h) => !ignored.has(h.id)).length,
+    assignments: homework.filter((h) => !ignored.has(h.id) && !h.audited).length,
     files: files.length,
     groups: groups?.length,
   };

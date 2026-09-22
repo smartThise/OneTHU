@@ -380,6 +380,109 @@ fn spawn_system_open(_url: &str) -> Result<(), String> {
     Err("当前平台不支持外部打开".into())
 }
 
+/* ---------------- 本地文件：打开 / 定位（免 ACL 的自写命令） ----------------
+ * 官方 opener 插件的 open_path / reveal_item_in_dir 除命令权限外，还需要 capability 里配
+ * **路径 scope**（allow 列表里给具体路径通配项，例如用户主目录下的 glob）；
+ * 只给 `opener:allow-open-path` 会直接报 "Not allowed to open path ..."。而下载与「另存为」
+ * 的落盘位置由用户决定（任意盘符/目录），白名单式 scope 覆盖不全，故自写命令直接交给系统
+ * shell —— 自定义命令不受插件 ACL 约束。
+ * 安全：只接受**绝对路径**且**必须已存在**；不放行任何 URL/scheme；不做 shell 字符串拼接
+ * （Windows 用 raw_arg 逐段追加、路径整体加引号，空格与特殊字符都不会被重新解析）。 */
+
+fn validate_local_path(path: &str) -> Result<std::path::PathBuf, String> {
+    if path.trim().is_empty() {
+        return Err("路径为空".into());
+    }
+    let p = std::path::PathBuf::from(path);
+    if !p.is_absolute() {
+        return Err(format!("只接受绝对路径：{path}"));
+    }
+    if !p.exists() {
+        return Err(format!("文件不存在或已被移动：{path}"));
+    }
+    Ok(p)
+}
+
+/// 用系统默认应用打开本地文件
+#[tauri::command]
+fn onethu_open_path(path: String) -> Result<(), String> {
+    let p = validate_local_path(&path)?;
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        let mut c = std::process::Command::new("cmd");
+        c.raw_arg("/C");
+        c.raw_arg("start");
+        c.raw_arg("\"\""); // start 的第一个引号参数是窗口标题，必须占位，否则路径被吞
+        c.raw_arg(format!("\"{}\"", p.display()));
+        c.creation_flags(0x0800_0000); // CREATE_NO_WINDOW，不闪控制台黑框
+        c.spawn().map(|_| ()).map_err(|e| format!("调用系统打开失败: {e}"))
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&p)
+            .spawn()
+            .map(|_| ())
+            .map_err(|e| format!("调用系统 open 失败: {e}"))
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&p)
+            .spawn()
+            .map(|_| ())
+            .map_err(|e| format!("调用 xdg-open 失败: {e}"))
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos", all(unix, not(target_os = "macos")))))]
+    {
+        let _ = p;
+        Err("当前平台不支持打开本地文件".into())
+    }
+}
+
+/// 在文件管理器中定位并选中本地文件
+#[tauri::command]
+fn onethu_reveal_path(path: String) -> Result<(), String> {
+    let p = validate_local_path(&path)?;
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        let mut c = std::process::Command::new("explorer");
+        // explorer 只认 `/select,"路径"` 这种一整段参数形式：raw_arg 原样追加，避免被引号转义破坏
+        c.raw_arg(format!("/select,\"{}\"", p.display()));
+        c.creation_flags(0x0800_0000);
+        c.spawn().map(|_| ()).map_err(|e| format!("调用资源管理器失败: {e}"))
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg("-R")
+            .arg(&p)
+            .spawn()
+            .map(|_| ())
+            .map_err(|e| format!("调用 Finder 失败: {e}"))
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        // Linux 无统一的「定位选中」语义：退化为打开所在目录
+        let dir = p
+            .parent()
+            .map(|d| d.to_path_buf())
+            .unwrap_or_else(|| std::path::PathBuf::from("/"));
+        std::process::Command::new("xdg-open")
+            .arg(dir)
+            .spawn()
+            .map(|_| ())
+            .map_err(|e| format!("调用 xdg-open 失败: {e}"))
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos", all(unix, not(target_os = "macos")))))]
+    {
+        let _ = p;
+        Err("当前平台不支持定位本地文件".into())
+    }
+}
+
 /// 兜底外链打开：Rust 侧再校验一次 scheme，仅放行 http/https
 #[tauri::command]
 fn open_external(app: tauri::AppHandle, url: String) -> Result<(), String> {
@@ -3415,7 +3518,7 @@ tauri::Builder::default()
             http_native_seed,
             downloads::download_directory_get,downloads::download_directory_pick,downloads::download_directory_reset,save_file_as,
             log_debug,debug_log_export,read_file_text,trace_key,macos_location,speech_supported,speech_start,speech_poll,speech_stop,mail::mail_list,mail::mail_read,mail::mail_mark_seen,mail::mail_send,mail::mail_search,seafile::seafile_account,seafile::seafile_repos,seafile::seafile_dir,seafile::seafile_download,seafile::seafile_upload,seafile::seafile_mkdir,seafile::seafile_share,seafile::seafile_search,seafile::seafile_pick_upload,http_request,http_native,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,os_is_android,plugin_dir_remove,state_read,state_write,state_delete,
-            open_external,open_eid_window,open_ykt_window,read_ykt_cookies,close_ykt_window,start_qr_keep_alive,stop_qr_keep_alive,widget_push,widget_clear,widget_take_target,widget_status,widget_instances,widget_pin,ui_apply_insets,notify_backend,notify_open_settings,notify_permission,notify_schedule,notify_cancel,notify_pending,notify_test,notify_take_target,open_web_modal,open_app_settings,open_ykt_submit_window,open_sports_window,venue_sso_set,venue_open_portal,
+            open_external,onethu_open_path,onethu_reveal_path,open_eid_window,open_ykt_window,read_ykt_cookies,close_ykt_window,start_qr_keep_alive,stop_qr_keep_alive,widget_push,widget_clear,widget_take_target,widget_status,widget_instances,widget_pin,ui_apply_insets,notify_backend,notify_open_settings,notify_permission,notify_schedule,notify_cancel,notify_pending,notify_test,notify_take_target,open_web_modal,open_app_settings,open_ykt_submit_window,open_sports_window,venue_sso_set,venue_open_portal,
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,
             harness_embed::harness_start,harness_embed::harness_bridge_take,harness_embed::harness_call,harness_embed::harness_notify,harness_embed::harness_rpc_reply,harness_embed::harness_stop])
         .run(tauri::generate_context!())

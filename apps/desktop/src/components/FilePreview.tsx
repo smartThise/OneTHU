@@ -17,6 +17,8 @@ import { isAndroidNavigator, isWindowsNavigator } from "../lib/androidHost.js";
 import { normalizeWebvpnUrl } from "@onethu/core";
 import { explainNetworkError, rawErrorText } from "../lib/transport.js";
 import { Empty } from "./Layout.js";
+import { DownloadOpenButtons } from "./DownloadOpenButtons.js";
+import { openLocalPath } from "../lib/localFile.js";
 import {
   buildZipTree,
   extractEntryBytes,
@@ -97,8 +99,13 @@ async function loadPdfDoc(dataUrl: string): Promise<PdfDocLike> {
  * 抛错都会让整棵 React 树卸载 → 整个应用白屏，用户只看到「什么都没了」。边界把错误收在
  * 预览面板内部：显示原因 + 重试，应用其余部分不受影响。
  */
-class PreviewErrorBoundary extends Component<{ children: ReactNode; onRetry?: () => void }, { err: string | null }> {
-  constructor(props: { children: ReactNode; onRetry?: () => void }) {
+/** Windows 预览失败时的兜底提示（R24：不再默认拒绝渲染，改为出错时说明 + 下载出口） */
+const WIN_PREVIEW_NOTE = "预览仍出错时，请用上方「下载」查看。";
+class PreviewErrorBoundary extends Component<
+  { children: ReactNode; onRetry?: () => void; note?: string },
+  { err: string | null }
+> {
+  constructor(props: { children: ReactNode; onRetry?: () => void; note?: string }) {
     super(props);
     this.state = { err: null };
   }
@@ -118,6 +125,9 @@ class PreviewErrorBoundary extends Component<{ children: ReactNode; onRetry?: ()
     return (
       <div style={{ padding: 16, fontSize: 13, lineHeight: 1.7 }}>
         <div style={{ color: "var(--red)", marginBottom: 8 }}>预览渲染出错，已停在这一条上（应用其余功能不受影响）。</div>
+        {this.props.note ? (
+          <div style={{ color: "var(--text-3)", marginBottom: 8 }}>{this.props.note}</div>
+        ) : null}
         <div style={{ color: "var(--text-3)", marginBottom: 12, wordBreak: "break-all" }}>{this.state.err.slice(0, 300)}</div>
         <button
           className="btn"
@@ -813,9 +823,8 @@ export function FilePreviewHost() {
   const [cur, setCur] = useState<OpenState | null>(null);
   const [phase, setPhase] = useState<Phase>({ s: "loading" });
   const [dlBusy, setDlBusy] = useState(false);
-  /** Windows 上「仍要尝试预览」的低调出口（默认 false：直接给下载路径，不冒白屏的险） */
-  const [winTryPreview, setWinTryPreview] = useState(false);
   const [dlMsg, setDlMsg] = useState("");
+  const [dlPath, setDlPath] = useState("");  // R23：下载成功的目标路径（供「打开文件/目录」按钮）
   const seqRef = useRef(0);
 
   useEffect(() => {
@@ -885,8 +894,10 @@ export function FilePreviewHost() {
     try {
       const path = await downloadLearnUrl(cur.url, cur.name || "download");
       setDlMsg(`已下载到：${path}`);
+      setDlPath(path);
     } catch (err) {
       setDlMsg("下载失败：" + errMsg(err));
+      setDlPath("");
     } finally {
       setDlBusy(false);
     }
@@ -900,6 +911,7 @@ export function FilePreviewHost() {
     try {
       const path = await saveLearnUrlAs(cur.url, cur.name || "download");
       setDlMsg(path ? `已保存到：${path}` : "已取消另存为。");
+      setDlPath(path ?? "");
     } catch (err) {
       setDlMsg("另存为失败：" + errMsg(err));
     } finally {
@@ -923,14 +935,26 @@ export function FilePreviewHost() {
     setDlMsg("");
     try {
       const path = await downloadLearnUrl(cur.url, cur.name || "preview.pdf");
-      const { openPath } = await import("@tauri-apps/plugin-opener");
-      await openPath(path);
+      await openLocalPath(path);
     } catch (err) {
       setDlMsg("打开失败：" + (err instanceof Error ? err.message : String(err)));
     } finally {
       setPdfBusy(false);
     }
   };
+
+  // 诊断：PDF 一律自绘；把平台与内核信号落一行日志（客户端排查时不用猜）。
+  // ⚠️ 必须在下方 `if (!cur) return null` **之前**——Hook 不能条件调用：放在早返回之后
+  // 会让「打开预览」这次渲染比上一次多一个 Hook，React 直接抛
+  // 「Rendered more hooks than during the previous render」并**整窗白屏**
+  // （上游 98f863d 引入的回归，各端点预览即崩，Windows 最明显）。
+  const pdfDiagKey = phase.s === "ready" && phase.view.kind === "pdf" ? phase.view.dataUrl : null;
+  useEffect(() => {
+    if (!pdfDiagKey) return;
+    void import("../lib/clients.js")
+      .then((m) => m.logLine(`PDF-MODE canvas android=${IS_ANDROID_HOST} windows=${IS_WINDOWS_HOST} viewer=${String(PDF_VIEWER_ENABLED)}`))
+      .catch(() => undefined);
+  }, [pdfDiagKey]);
 
   if (!cur) return null;
 
@@ -942,13 +966,6 @@ export function FilePreviewHost() {
   };
 
   const view = phase.s === "ready" ? phase.view : null;
-  // 诊断：PDF 一律自绘；把平台与内核信号落一行日志（客户端排查时不用猜）
-  useEffect(() => {
-    if (view?.kind !== "pdf") return;
-    void import("../lib/clients.js")
-      .then((m) => m.logLine(`PDF-MODE canvas android=${IS_ANDROID_HOST} windows=${IS_WINDOWS_HOST} viewer=${String(PDF_VIEWER_ENABLED)}`))
-      .catch(() => undefined);
-  }, [view?.kind === "pdf" ? view.dataUrl : null]);
   const metaBits: string[] = [];
   if (view) {
     if (view.size) metaBits.push(fmtBytes(view.size));
@@ -1001,30 +1018,8 @@ export function FilePreviewHost() {
             </div>
           ) : null}
 
-          {IS_WINDOWS_HOST && !winTryPreview ? (
-            /* Windows 文件预览**暂不可用**（2026-09-21 用户定案）：WebView2 上点开任意预览
-               都会白屏，而排查成本远高于收益（用户原话「win 的构建维护成本太高了」）。
-               所以这里不再尝试渲染，直接给出明确说明与下载出口——下载后本地用系统应用打开
-               是可用路径。保留一个低调的「仍要尝试」出口：将来要在 Windows 上接着排查时，
-               不用改代码就能进到渲染分支（同时错误边界会把崩溃收在面板内）。 */
-            <div style={{ padding: 16, fontSize: 13, lineHeight: 1.8 }}>
-              <div style={{ fontWeight: 600, marginBottom: 6 }}>Windows 暂不支持应用内预览</div>
-              <div style={{ color: "var(--text-3)", marginBottom: 4 }}>
-                已知问题：Windows 端打开预览会白屏，暂未修复。请下载后用系统自带应用查看。
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
-                <button className="btn btn-primary" disabled={dlBusy} onClick={() => void doDownload()}>
-                  {dlBusy ? "下载中…" : "下载"}
-                </button>
-                <button className="btn" disabled={dlBusy} onClick={() => void doSaveAs()}>另存为…</button>
-                <button className="btn btn-ghost" onClick={() => setWinTryPreview(true)}>仍要尝试预览</button>
-              </div>
-              {dlMsg ? (
-                <div style={{ marginTop: 10, fontSize: 12, color: "var(--text-3)", wordBreak: "break-all" }}>{dlMsg}</div>
-              ) : null}
-            </div>
-          ) : (
-          <PreviewErrorBoundary onRetry={retry}>
+          <PreviewErrorBoundary onRetry={retry} note={IS_WINDOWS_HOST ? WIN_PREVIEW_NOTE : undefined}>
+
           {view?.kind === "image" ? (
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, background: "rgba(127,127,127,.05)", minHeight: 220 }}>
               <img
@@ -1102,12 +1097,14 @@ export function FilePreviewHost() {
             </div>
           ) : null}
           </PreviewErrorBoundary>
-          )}
         </div>
 
         {dlMsg ? (
-          <div style={{ flexShrink: 0, padding: "6px 14px", fontSize: 12, borderTop: "1px solid var(--border, #eee)", color: "var(--accent)", wordBreak: "break-all" }}>
-            {dlMsg}
+          /* 面板底部下载/另存为提示：右侧挂「打开文件 / 打开目录」（R23 需求；此前误加在
+             PDF 画布内部与 Windows 门闸里，用户看到的这条反而没有按钮） */
+          <div style={{ flexShrink: 0, padding: "6px 14px", fontSize: 12, borderTop: "1px solid var(--border, #eee)", color: "var(--accent)", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span>{dlMsg}</span>
+            {dlPath ? <DownloadOpenButtons path={dlPath} /> : null}
           </div>
         ) : null}
       </div>

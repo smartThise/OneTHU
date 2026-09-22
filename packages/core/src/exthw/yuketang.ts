@@ -347,7 +347,8 @@ async function mapLimited<T>(items: T[], limit: number, fn: (item: T) => Promise
  * 查单个作业的提交状态：
  * GET /mooc-api/v1/lms/exercise/get_exercise_list/{leaf_type_id}/?classroom_id=…&term=latest&uv_id=…
  * ⚠️ 必须带请求头 `XTBZ: ykt`，否则报「XTBZ IS REQUIRED」。
- * 判定：`data.answer_count > 0` 或任一 `problems[].user.my_answer.content` 非空 → 已提交。
+ * 判定（R23 起）：有题目明细时全部题都有作答 → 已提交（部分作答 = 进行中，报
+ * submittedCount/totalCount 供「已完成 x/y」）；缺明细时 `answer_count > 0` 保守算已提交。
  * 已批改（R16 21.1，保守）：已提交且不存在「已作答但未批改」的题；
  * 「已作答」= `user.my_answer.content` 非空或整卷 `answer_count>0`；
  * 「未批改」= `user.status === 3` 或 `user.my_score` 为 -1 占位（含 "-1.00"）。
@@ -408,7 +409,11 @@ async function fetchYktStatus(
       }
     }
   }
-  const submitted = answerCount > 0 || answered > 0;
+  // R23（霖需求 2026-09-21）：部分作答 ≠ 已提交——作业只交了一道题仍属「进行中」，
+  // 入口按 未交 分组并显示「已完成 x/y」。判定：有题目明细时按「有内容题数 ≥ 题目数」；
+  // 缺明细（problems 为空）无法逐题核对 → 退回旧行为（answer_count>0 保守算已提交）。
+  // ⚠️ 口径依赖 my_answer.content（与 R20-C2 详情页逐题作答同源；霖实测几乎全是主观题）。
+  const submitted = problems.length > 0 ? answered >= problems.length : answerCount > 0;
   const submittedCount = answered > 0 ? answered : answerCount;
   // 无题目明细（problems 为空）时无法判定批改状态 → 保守 false
   const graded = submitted && problems.length > 0 && !answeredUngraded;

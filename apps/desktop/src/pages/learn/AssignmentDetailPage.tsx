@@ -13,6 +13,7 @@ import { invalidateLearnCache, useLearnData } from "../../state/data.js";
 import { BackButton, RichContent, fmtDateTime, gradeLabel, timeLeft } from "./shared.js";
 import { useLearnNavSemester } from "./shared.js";
 import { openExternal } from "../info/openExternal.js";
+import { DownloadOpenButtons } from "../../components/DownloadOpenButtons.js";
 import { isAndroidNavigator } from "../../lib/androidHost.js";
 import { clearNeedFile, isNeedFile, markNeedFile } from "../../state/learnAttachmentReq.js";
 import { parseLearnTime } from "@onethu/core";
@@ -47,7 +48,7 @@ export function AssignmentDetailPage() {
      撤回附件是附件区里的独立按钮、独立请求（isDeleted=1），与提交互不掺和 */
   const [customName, setCustomName] = useState("");
   const [subOk, setSubOk] = useState(true);
-  const [dlHint, setDlHint] = useState<string | null>(null);
+  const [dlHint, setDlHint] = useState<{ text: string; path?: string } | null>(null);
   const [dlBusy, setDlBusy] = useState("");
 
   const courseId = navParams?.courseId ?? "";
@@ -105,9 +106,9 @@ export function AssignmentDetailPage() {
     setDlHint(null);
     try {
       const path = await downloadLearnUrl(a.downloadUrl, a.name || `learn-attachment-${a.id}`);
-      setDlHint(`已下载到：${path}`);
+      setDlHint({ text: `已下载到：${path}`, path });
     } catch (err) {
-      setDlHint("下载失败：" + explainNetworkError(err));
+      setDlHint({ text: "下载失败：" + explainNetworkError(err) });
     } finally {
       setDlBusy("");
     }
@@ -388,8 +389,10 @@ export function AssignmentDetailPage() {
       ) : null}
 
       {dlHint ? (
-        <div className="error-note" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
-          <span>{dlHint}</span>
+        <div className="error-note dl-done-note" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+          <span>{dlHint.text}</span>
+          {/* R23：下载完成就地给「打开文件/打开目录」（霖需求；失败态无 path 不渲染按钮） */}
+          {dlHint.path ? <DownloadOpenButtons path={dlHint.path} /> : null}
         </div>
       ) : null}
 

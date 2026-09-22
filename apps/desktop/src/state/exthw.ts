@@ -714,6 +714,11 @@ export function getExtHwSnapshot(): ExtHwSnapshot {
 
 let inflight: Promise<void> | null = null;
 
+/** R23（霖需求）：每次打开 OneTHU 都对已配置的 TUOJ CAS 源主动续期一次——
+ *  本会话首次 refreshExtHw 时 force+relaxThrottle 漫游（不等被动 401/非 JSON 才补救），
+ *  尊重「显式退出」抑制；未配置的源仍走下方非 force 的首次自动登录。 */
+let tuojStartupRenewed = false;
+
 /** 各源并发拉取（allSettled）；未配置凭据则清空并直接就绪。
  *  R12 17.1 / R15 20.2：TUOJ 系任一源已配置但会话失效（401/403）→ 强制重漫游该源一次 → 自动重试。 */
 export function refreshExtHw(): Promise<void> {
@@ -723,6 +728,14 @@ export function refreshExtHw(): Promise<void> {
     // R11 16.2：TUOJ 系未配置时静默自动漫游一次（永不抛出；失败仅记状态 + 24h 频控）
     await maybeAutoTuojCas("tuoj");
     await maybeAutoTuojCas("tuojClassic");
+    // R23：已配置源的本会话首次启动续期（CAS 漫游零用户输入；偶尔需 2FA 时漫游失败
+    // 仅记 tuojAuto 状态，设置页展示手动入口——绝不打断正常取数）
+    if (!tuojStartupRenewed) {
+      tuojStartupRenewed = true;
+      for (const s of ["tuoj", "tuojClassic"] as const) {
+        if (isTuojConfigured(s)) await maybeAutoTuojCas(s, { force: true, relaxThrottle: true });
+      }
+    }
     if (!hasAnyExtHwCreds()) {
       items = [];
       errors = {};

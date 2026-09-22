@@ -7,6 +7,7 @@ import { IconRefresh } from "../../components/Icons.js";
 import { useLearnData } from "../../state/data.js";
 import { BackButton, NoticeRow, semesterText } from "./shared.js";
 import { useLearnNavSemester } from "./shared.js";
+import { noticeHasRead, useNoticeReadVersion } from "../../lib/noticeRead.js";
 
 type Filter = "all" | "important" | "unread";
 
@@ -26,14 +27,19 @@ export function NoticesPage() {
     [data],
   );
 
+  // R23：本地已读覆盖也要参与（打开过的通知立刻移出「未读」，不等服务端 sfyd 刷新）
+  const readVersion = useNoticeReadVersion();
   const groups = useMemo(() => {
     const ns = [...(data?.notifications ?? [])].sort((a, b) => b.publishTime.localeCompare(a.publishTime));
+    const hasRead = (n: { courseId: string; id: string; hasRead?: boolean }): boolean =>
+      noticeHasRead(n.hasRead, n.courseId, n.id);
     return {
       all: ns,
       important: ns.filter((n) => n.important),
-      unread: ns.filter((n) => !n.hasRead),
+      unread: ns.filter((n) => !hasRead(n)),
     };
-  }, [data]);
+    // readVersion 参与依赖：本地置读后立即重算分组与计数
+  }, [data, readVersion]);
 
   const list = groups[filter];
 

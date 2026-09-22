@@ -10,6 +10,7 @@ import { BackButton, InfoRow, fmtDateTime, learnFileName } from "./shared.js";
 import { useLearnNavSemester } from "./shared.js";
 import { downloadLearnFile } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
+import { DownloadOpenButtons } from "../../components/DownloadOpenButtons.js";
 import { openFilePreview } from "../../components/FilePreview.js";
 import { LEARN_FILE_DOWNLOAD } from "@onethu/core";
 
@@ -17,7 +18,8 @@ export function FileDetailPage() {
   useLearnNavSemester();
   const { navParams } = useApp();
   const { data, state, error, reload } = useLearnData();
-  const [hint, setHint] = useState<string | null>(null);
+  // R23：下载提示携带落盘路径，右侧挂「打开文件 / 打开目录」
+  const [hint, setHint] = useState<{ text: string; path?: string } | null>(null);
   const [downloading, setDownloading] = useState(false);
 
   const courseId = navParams?.courseId ?? "";
@@ -36,9 +38,9 @@ export function FileDetailPage() {
     try {
       // 落盘名 = title + "." + fileType（title 已带该后缀则不重复；mobile fs.downloadFile 同构）
       const path = await downloadLearnFile(f.id, learnFileName(f.title || `learn-file-${f.id}`, f.fileType));
-      setHint(`已下载到：${path}`);
+      setHint({ text: `已下载到：${path}`, path });
     } catch (err) {
-      setHint("下载失败：" + explainNetworkError(err));
+      setHint({ text: "下载失败：" + explainNetworkError(err) });
     } finally {
       setDownloading(false);
     }
@@ -90,8 +92,9 @@ export function FileDetailPage() {
       />
 
       {hint ? (
-        <div className="error-note" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
-          <span>{hint}</span>
+        <div className="error-note dl-done-note" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+          <span>{hint.text}</span>
+          {hint.path ? <DownloadOpenButtons path={hint.path} /> : null}
         </div>
       ) : null}
 

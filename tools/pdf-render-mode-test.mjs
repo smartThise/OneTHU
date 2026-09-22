@@ -32,13 +32,17 @@ assert.ok(/PDF-MODE canvas/.test(fpSrc), "诊断日志要写清通道=canvas（�
 assert.ok(!/choosePdfRenderMode/.test(fpSrc) && !/choosePdfRenderMode/.test(hostSrc),
   "分档函数已删除——通道统一后不该再存在「按平台选 embed」的入口");
 
-/* ---------- [1b] Windows：预览暂不可用，只给下载（用户定案） ----------
- * 用户原话：「win 的构建维护成本太高了，我们先注明 win 的文件预览暂不可用，只能下载吧」。
- * 所以 Windows 不得再尝试渲染预览主体，必须给明确说明 + 下载/另存为出口。 */
-assert.ok(/IS_WINDOWS_HOST && !winTryPreview/.test(fpCode), "Windows 必须走「暂不可用」分支，不再尝试渲染");
-assert.ok(fpCode.includes("Windows 暂不支持应用内预览"), "要给用户明确说明（不要静默失败）");
-assert.ok(fpCode.includes("doDownload()") && fpCode.includes("doSaveAs()"), "必须提供下载与另存为出口");
-assert.ok(fpCode.includes("仍要尝试预览"), "保留低调的排查出口（将来在 Windows 上复现时不必改代码）");
+/* ---------- [1b] Windows：恢复真实预览（R24 定案，反转 R23 的「暂不可用」） ----------
+ * 上游 d3bd84d 曾把 Windows 预览整体关掉（给下载出口），理由是「WebView2 点任何预览都白屏」。
+ * R24 定位到真因其实是 **Hook 顺序违规**（`if (!cur) return null` 之后写 useEffect）——
+ * 该崩溃在**所有平台**都会发生，Windows 只是因为 WebView2 更敏感而被当成平台问题。
+ * 修掉后 Windows 应与其他平台一样尝试渲染；失败由错误边界收在面板内（附下载出口提示）。 */
+assert.ok(!/IS_WINDOWS_HOST && !winTryPreview/.test(fpCode),
+  "Windows 不得再默认拒绝预览（真因是 Hook 顺序违规，已修）");
+assert.ok(!/winTryPreview/.test(fpCode), "「仍要尝试预览」开关随门闸一并移除（默认就尝试）");
+assert.ok(/note=\{IS_WINDOWS_HOST \? WIN_PREVIEW_NOTE : undefined\}/.test(fpCode),
+  "Windows 预览若出错，错误边界要给出「改用下载」的提示");
+assert.ok(fpCode.includes("doDownload()") && fpCode.includes("doSaveAs()"), "必须保留下载与另存为出口");
 
 /* ---------- [2] 预览崩溃兜底：任何预览出错不许白屏 ---------- */
 assert.ok(/class PreviewErrorBoundary/.test(fpSrc), "预览必须有错误边界（否则一处抛错整窗白屏）");
@@ -94,3 +98,21 @@ const offenders = [];
 })(SRC_ROOT);
 assert.deepEqual(offenders, [], `发现裸 UA 判安卓残留（改走 androidHost 多信号）:\n${offenders.join("\n")}`);
 console.log("同族扫描：apps/desktop/src 无裸 UA 判安卓残留 ✓");
+
+/* ── 护栏（R23）：FilePreview 早返回之后不得再调用 Hook ──
+ * 上游 98f863d 把 PDF 诊断 useEffect 放在 `if (!cur) return null` 之后：点开预览时
+ * 本次渲染比上次多一个 Hook → React 抛「Rendered more hooks than during the previous
+ * render」→ 各端点预览即崩（Windows 整窗白屏）。此处静态钉住，防同类复发。 */
+{
+  const src = readFileSync(join(SRC_ROOT, "components/FilePreview.tsx"), "utf8");
+  const early = src.indexOf("if (!cur) return null;");
+  assert.ok(early > 0, "FilePreview 应保留 `if (!cur) return null` 早返回");
+  const after = src.slice(early);
+  const hookAfter = /\buse(State|Effect|Ref|Callback|Memo|LayoutEffect|Reducer|Context|SyncExternalStore)\s*\(/.exec(after);
+  assert.equal(
+    hookAfter,
+    null,
+    `FilePreview 早返回之后出现 Hook 调用（会整窗白屏）：${hookAfter?.[0]}`,
+  );
+  console.log("FilePreview 早返回后无 Hook 调用（防整窗白屏）✓");
+}
