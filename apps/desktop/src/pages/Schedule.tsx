@@ -480,6 +480,20 @@ export function SchedulePage() {
 
   const placed = useMemo(() => layout(entries), [entries]);
 
+  /* 落在展示时段内的块 + 它们的「行号」。placed 是按天（列）再按时间排的，直接用数组序号
+     会变成竖直按列扫；入场应该按行（同一时间带跨天同时出现）、时间从早到晚自上而下。
+     行号 = 该块起始时刻在所有不同起始时刻里的序号。 */
+  const visiblePlaced = useMemo(
+    () => placed.filter((p) => p.endMin > AXIS_BEGIN && p.beginMin < AXIS_END),
+    [placed],
+  );
+  const blockRows = useMemo(() => {
+    const keys = Array.from(new Set(visiblePlaced.map((p) => Math.max(p.beginMin, AXIS_BEGIN)))).sort((a, b) => a - b);
+    const m = new Map<number, number>();
+    keys.forEach((k, i) => m.set(k, i));
+    return m;
+  }, [visiblePlaced]);
+
   /** 所选周 7 个日期（时间轴表头） */
   const dayDates = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
@@ -1073,7 +1087,7 @@ export function SchedulePage() {
                           })()
                         : null}
                       {/* 事件块（可点击） */}
-                      {placed.filter((p) => p.endMin > AXIS_BEGIN && p.beginMin < AXIS_END).map((p, i) => {
+                      {visiblePlaced.map((p, i) => {
                         const laneW = 100 / p.lanes;
                         const leftPct = ((p.day * 100) + p.lane * laneW) / 7;
                         const widthPct = laneW / 7;
@@ -1098,10 +1112,10 @@ export function SchedulePage() {
                             onClick={() => onBlockClick(p.entry)}
                             style={{
                               position: "absolute",
-                              // 入场：按序小幅上浮（14ms 间隔、最多 12 档）。key 里带周戳，
-                              // 所以切周/切模式时整批重播，像课表「铺开」一次
+                              // 入场：按「行」（时间带）递延——同一时刻跨天的块同时出现，时间从早到晚
+                              // 自上而下展开（13ms/行、16 行封顶）。key 带周戳，切周整批重播一次
                               animation: "m-rise var(--dur-2) var(--ease-out) backwards",
-                              animationDelay: `${Math.min(i, 12) * 14}ms`,
+                              animationDelay: `${Math.min(blockRows.get(Math.max(p.beginMin, AXIS_BEGIN)) ?? 0, 16) * 13}ms`,
                               left: `calc(${leftPct}% + 3px)`,
                               width: `calc(${widthPct}% - 6px)`,
                               top,

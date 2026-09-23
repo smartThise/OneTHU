@@ -297,6 +297,7 @@ console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵�
   ok(/Math\.max\(bottom - top, 2\) \* 3/.test(motion), "拉伸上限 3 个行高（相距远不拉成长条）");
   ok(/Math\.min\(220, Math\.max\(140,/.test(motion), "时长按距离算（140–220ms），近处快远处稳");
   ok(/8 \* u \* u \* u \* u/.test(motion), "指示条端点走四次缓入缓出（非线性明显，不再像匀速）");
+  ok(/Math\.max\(bottom - top, 2\) \* 0\.25/.test(motion) && /const BOUNCE = 90/.test(motion), "到位后有刹车回弹（前冲 1/4 项高再弹回）");
   ok(/@keyframes m-grid-in/.test(css) && /m-grid-in var\(--dur-2\) var\(--ease-out\) backwards/.test(css), "网格入场用小幅 m-grid-in（6px 上浮 + 0.99 缩放）");
   ok(/\.nav-item\.is-active::before\s*\{\s*\n\s*display: none;/.test(css), "每项自己的 ::before 强调条退位（避免双条）");
   ok(/\.mail-layout:not\(\.detail-open\) \.mail-detail/.test(css) && /\.mail-layout\.detail-open \.mail-list/.test(css), "邮箱窄屏：列表/详情 transform 推入推出（不再 display 硬切）");
@@ -312,7 +313,8 @@ console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵�
   ok(/m-fade-out var\(--dur-2\) var\(--ease-out\) both/.test(sched), "日程遮罩退场淡出");
   ok(/m-spring-out var\(--dur-2\) var\(--ease-out\) both/.test(sched), "日程面板退场收回");
   ok(/detailHold\.held/.test(sched) && /draftHold\.held/.test(sched), "退场期间沿用最后一次内容（不闪空壳）");
-  ok(/m-rise var\(--dur-2\) var\(--ease-out\) backwards/.test(sched) && /Math\.min\(i, 12\) \* 14/.test(sched), "课表块按序上浮入场（14ms 间隔、封顶 12 档）");
+  ok(/m-rise var\(--dur-2\) var\(--ease-out\) backwards/.test(sched) && /blockRows\.get/.test(sched), "课表块按行（时间带）上浮入场：同排同时、时间自上而下");
+  ok(/visiblePlaced\.map\(\(p, i\) =>/.test(sched) && /new Set\(visiblePlaced\.map/.test(sched), "行号由起始时刻去重排序得出（不是数组序号，避免按列扫）");
   ok(/ymdOf\(weekStart\)/.test(sched) && /key=\{/.test(sched), "块 key 带周戳：切周整批重播入场");
 }
 console.log(`\n动效护栏：${pass} 断言全部通过（只动 transform/opacity + 令牌化 + 减弱动态降级 + 不锁死 hover + 不越权覆盖）`);

@@ -322,11 +322,15 @@ export function useNavIndicator() {
     const N = 24;
     const e0t = c0 - BAR / 2, e0b = c0 + BAR / 2; // 旧静息条的两端
     const e1t = c1 - BAR / 2, e1b = c1 + BAR / 2; // 新静息条的两端
+    // 行程 + 刹车回弹共用一条时间轴：回弹固定 90ms，按比例换算行程的占比
+    const BOUNCE = 90;
+    const total = dur + BOUNCE;
+    const share = dur / total;
     const frames: Keyframe[] = [];
     for (let k = 0; k <= N; k++) {
-      const t = k / N;
-      const lead = ease(t); // 前端点：全程一条曲线
-      const trail = t <= 0.3 ? 0 : ease((t - 0.3) / 0.7); // 尾端点：延迟 30% 再跟上
+      const u = k / N; // 行程进度
+      const lead = ease(u); // 前端点：全程一条曲线
+      const trail = u <= 0.3 ? 0 : ease((u - 0.3) / 0.7); // 尾端点：延迟 30% 再跟上
       let ta = down ? e0t + (e1t - e0t) * trail : e0t + (e1t - e0t) * lead;
       let tb = down ? e0b + (e1b - e0b) * lead : e0b + (e1b - e0b) * trail;
       if (tb - ta > MAX) {
@@ -336,12 +340,23 @@ export function useNavIndicator() {
       }
       frames.push({
         transform: `translateY(${(ta + tb) / 2 - BAR / 2}px) scaleY(${Math.max(tb - ta, 2) / BAR})`,
-        offset: t,
-        easing: "linear",
+        offset: u * share,
+        easing: k === N ? "cubic-bezier(0.45, 0, 0.55, 1)" : "linear",
+      });
+    }
+    /* 刹车回弹（霖需求）：到位后顺着运动方向再前冲约 1/4 项高，再阻尼弹回正确位置——
+       像刹车时车身前倾再回正。振幅逐次衰减 1 → -0.28 → 0.09 → 0。 */
+    const over = Math.max(bottom - top, 2) * 0.25 * (down ? 1 : -1);
+    for (const [p, amp] of [[0.35, 1], [0.62, -0.28], [0.82, 0.09], [1, 0]] as const) {
+      const c = c1 + over * amp;
+      frames.push({
+        transform: `translateY(${c - BAR / 2}px) scaleY(1)`,
+        offset: share + (1 - share) * p,
+        easing: "cubic-bezier(0.45, 0, 0.55, 1)",
       });
     }
     setFinal(); // 终态先落定（动画结束后即停在这里），动画期间由关键帧接管
-    bar.animate(frames, { duration: dur });
+    bar.animate(frames, { duration: total });
   }, []);
 
   useLayoutEffect(() => {
