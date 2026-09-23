@@ -29,6 +29,7 @@ import { toHomework, useExternalHomework } from "../state/exthw.js";
 import { useApp } from "../state/context.js";
 import { courseColor, SRC_COLOR } from "../lib/courseColor.js";
 import { confirmOk } from "../lib/confirm.js";
+import { useExitHold } from "../lib/motion.js";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { openLocalPath } from "../lib/localFile.js";
 
@@ -318,6 +319,10 @@ export function SchedulePage() {
   const [windowRows, setWindowRows] = useState<ScheduleEntry[] | null>(null);
   const [winLoading, setWinLoading] = useState(false);
   const [winError, setWinError] = useState<string | null>(null);
+  /* 弹层退场相位：详情 / 编辑器关闭时多挂 220ms 播完淡出+收回再卸载
+     （霖反馈：点开只有入场、关掉瞬间消失）。两者互斥，各持一份。 */
+  const detailHold = useExitHold(detail, 220);
+  const draftHold = useExitHold(draft, 220);
   /** 周窗失败自动重试计数（每窗口最多 2 次、间隔 4.2s）：选课死结借 lib 重登
    *  后教务/漫游会话重建需几秒，softRecover 的一次原地重取不够——静默自愈，
    *  红条不再吓人（2026-09-19 快速往返实录） */
@@ -1080,7 +1085,7 @@ export function SchedulePage() {
                         const compact = height < 44;
                         return (
                           <div
-                            key={`b-${i}`}
+                            key={`b-${ymdOf(weekStart)}-${i}`}
                             title={
                               p.entry.src === "cluster"
                                 ? `${p.entry.courseName}（${hhmm(p.beginMin)}–${hhmm(p.endMin)}）：${p.entry.clusterItems?.map((m) => `${m.courseName}${m.location ? "@" + m.location : ""}`).join("；")} · 点击展开`
@@ -1093,6 +1098,10 @@ export function SchedulePage() {
                             onClick={() => onBlockClick(p.entry)}
                             style={{
                               position: "absolute",
+                              // 入场：按序小幅上浮（14ms 间隔、最多 12 档）。key 里带周戳，
+                              // 所以切周/切模式时整批重播，像课表「铺开」一次
+                              animation: "m-rise var(--dur-2) var(--ease-out) backwards",
+                              animationDelay: `${Math.min(i, 12) * 14}ms`,
                               left: `calc(${leftPct}% + 3px)`,
                               width: `calc(${widthPct}% - 6px)`,
                               top,
@@ -1142,11 +1151,16 @@ export function SchedulePage() {
         </>
       )}
 
-      {/* 只读详情弹窗（课程/考试：来自教务，只能看不能改） */}
-      {detail
-        ? createPortal(
-            <div style={MODAL_MASK} onClick={() => setDetail(null)}>
-              <div style={MODAL_PANEL} onClick={(e) => e.stopPropagation()}>
+      {/* 只读详情弹窗（课程/考试：来自教务，只能看不能改）。
+          退场：useExitHold 让它在 setDetail(null) 之后多挂 220ms 播完淡出/收回 */}
+      {(() => {
+        const detail = detailHold.held; // 退场期间沿用最后一次内容，否则会闪成空壳
+        if (!detailHold.mounted || !detail) return null;
+        const maskStyle = detailHold.closing ? { ...MODAL_MASK, animation: "m-fade-out var(--dur-2) var(--ease-out) both" } : MODAL_MASK;
+        const panelStyle = detailHold.closing ? { ...MODAL_PANEL, animation: "m-spring-out var(--dur-2) var(--ease-out) both" } : MODAL_PANEL;
+        return createPortal(
+            <div style={maskStyle} onClick={() => setDetail(null)}>
+              <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
                 <div style={{ padding: 16 }}>
                   {detail.clusterItems ? (
                     // 重叠簇详情：列出该时段全部事项
@@ -1252,14 +1266,18 @@ export function SchedulePage() {
               </div>
             </div>,
             document.body,
-          )
-        : null}
+          );
+      })()}
 
-      {/* 事件编辑器弹窗（页面级：两视图共用） */}
-      {draft ? (
-        createPortal(
-        <div style={MODAL_MASK} onClick={() => { if (!busy) setDraft(null); }}>
-          <div style={MODAL_PANEL} onClick={(e) => e.stopPropagation()}>
+      {/* 事件编辑器弹窗（页面级：两视图共用）。退场同详情：先播完再卸载 */}
+      {(() => {
+        const draft = draftHold.held; // 退场期间沿用最后一次草稿
+        if (!draftHold.mounted || !draft) return null;
+        const maskStyle = draftHold.closing ? { ...MODAL_MASK, animation: "m-fade-out var(--dur-2) var(--ease-out) both" } : MODAL_MASK;
+        const panelStyle = draftHold.closing ? { ...MODAL_PANEL, animation: "m-spring-out var(--dur-2) var(--ease-out) both" } : MODAL_PANEL;
+        return createPortal(
+        <div style={maskStyle} onClick={() => { if (!busy) setDraft(null); }}>
+          <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
           <div style={{ padding: 16 }}>
           <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>{draft.uid ? "编辑日程" : "新建日程"}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -1316,7 +1334,8 @@ export function SchedulePage() {
           </div>
         </div>,
         document.body,
-      )) : null}
+      );
+      })()}
     </>
   );
 }

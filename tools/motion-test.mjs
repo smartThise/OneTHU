@@ -294,7 +294,7 @@ console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵�
   ok(/\.nav-indicator\s*\{[\s\S]{0,700}?transition: opacity var\(--dur-2\) var\(--ease-out\);/.test(css), "指示条只保留 opacity 过渡（运动由 WAAPI 一段式驱动）");
   ok(/\.nav-indicator\s*\{[\s\S]{0,320}?z-index: 1/.test(css), "指示条在当前项灰底之上（此前被盖住）");
   ok(/Math\.max\(bottom - top, 2\) \* 3/.test(motion), "拉伸上限 3 个行高（相距远不拉成长条）");
-  ok(/Math\.min\(300, Math\.max\(140,/.test(motion), "时长按距离算（140–300ms），近处快远处稳");
+  ok(/Math\.min\(220, Math\.max\(140,/.test(motion), "时长按距离算（140–220ms），近处快远处稳");
   ok(/\.nav-item\.is-active::before\s*\{\s*\n\s*display: none;/.test(css), "每项自己的 ::before 强调条退位（避免双条）");
   ok(/\.mail-layout:not\(\.detail-open\) \.mail-detail/.test(css) && /\.mail-layout\.detail-open \.mail-list/.test(css), "邮箱窄屏：列表/详情 transform 推入推出（不再 display 硬切）");
   ok(/export function useExitHold/.test(motion), "useExitHold 收在 lib/motion.ts（弹层退场相位 + 内容保持）");
@@ -302,5 +302,14 @@ console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵�
   ok(/sheetHold/.test(src("pages/Plugins.tsx")), "插件页 Sheet 接了退场相位");
   ok(/\.mail-compose-mask\.is-closing/.test(css) && /composeHold/.test(src("pages/MailPage.tsx")), "写信弹层有退场动画");
   ok(/html\.has-reveal :is\(\.app-grid, \.thos-grid\) > \* \{/.test(css) && /html\.has-reveal :is\(\.app-grid, \.thos-grid\) > \*\[data-reveal-in\]/.test(css), "方阵网格纳入滚动揭示（可见才入场，视口外不再错过动画）");
+
+  console.log("\n[20] 日程：弹层退场 + 课表块入场");
+  const sched = src("pages/Schedule.tsx");
+  ok(/const detailHold = useExitHold\(detail, 220\)/.test(sched) && /const draftHold = useExitHold\(draft, 220\)/.test(sched), "日程详情/编辑弹层各接退场相位");
+  ok(/m-fade-out var\(--dur-2\) var\(--ease-out\) both/.test(sched), "日程遮罩退场淡出");
+  ok(/m-spring-out var\(--dur-2\) var\(--ease-out\) both/.test(sched), "日程面板退场收回");
+  ok(/detailHold\.held/.test(sched) && /draftHold\.held/.test(sched), "退场期间沿用最后一次内容（不闪空壳）");
+  ok(/m-rise var\(--dur-2\) var\(--ease-out\) backwards/.test(sched) && /Math\.min\(i, 12\) \* 14/.test(sched), "课表块按序上浮入场（14ms 间隔、封顶 12 档）");
+  ok(/ymdOf\(weekStart\)/.test(sched) && /key=\{/.test(sched), "块 key 带周戳：切周整批重播入场");
 }
 console.log(`\n动效护栏：${pass} 断言全部通过（只动 transform/opacity + 令牌化 + 减弱动态降级 + 不锁死 hover + 不越权覆盖）`);

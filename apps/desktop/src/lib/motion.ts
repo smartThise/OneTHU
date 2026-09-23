@@ -289,11 +289,11 @@ export function useNavIndicator() {
        起点，每次切换条都先突变成一行长再动、到地方再突变缩回（霖实测）。
        前端点（下移=下端，上移=上端）全程走一条 smoothstep 曲线连续起停，
        尾端点延迟 30% 再同样跟上：条自然先拉长再收回，没有拼接突变。
-       拉伸上限 3 个行高；时长按移动距离算（140–300ms），近处快、远处稳。 */
+       拉伸上限 3 个行高；时长按移动距离算（140–220ms），近处快、远处稳。 */
     const c0 = (prev.a + prev.b) / 2;
     const c1 = (top + bottom) / 2;
     const down = c1 >= c0;
-    const dur = Math.min(300, Math.max(140, Math.round(Math.abs(c1 - c0) * 1.2)));
+    const dur = Math.min(220, Math.max(140, Math.round(Math.abs(c1 - c0) * 1.2)));
     const MAX = Math.max(bottom - top, 2) * 3;
     const sstep = (u: number) => u * u * (3 - 2 * u); // smoothstep：两端速度为 0，连续
     const N = 16;
