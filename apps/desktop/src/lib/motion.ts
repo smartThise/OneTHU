@@ -78,6 +78,9 @@ export function useExitPhase(active: boolean, ms = 200): { mounted: boolean; clo
  * 改由观察器在进入视口时加 .is-in 播 m-reveal-in（同批按 26ms 递延）。两者不能同时作用于
  * 同一元素——挂载动画结束回落到基态 opacity: 0 会让元素消失。关闭 JS / 减弱动态时不加
  * has-reveal，元素保持可见。
+ *
+ * 可重播：离开视口就撤掉 .is-in（回到藏身态）且不注销观察，所以每次进入视野都会播一次，
+ * 往上滚回去与往下滚新出现的行为一致。
  */
 export const REVEAL_SELECTOR =
   ":is(.list, .stats, .today-grid, .market-grid, .icon-grid, .setting-group) > *, .row-click, .mail-row, .news-row, .setting-row, .cloud-row";
@@ -91,20 +94,24 @@ export function installScrollReveal(): void {
     (entries) => {
       let i = 0;
       for (const e of entries) {
-        if (!e.isIntersecting) continue;
         const el = e.target as HTMLElement;
-        // 同一批（首屏同时出现的一屏）按序递延，避免整屏同时亮起
+        if (!e.isIntersecting) {
+          // 离开视口就回到藏身态、且不注销观察：之后不管从哪个方向再进视野都会重播
+          // （2026-09-23 霖需求：不是只有往下滚新出现的才有，往上滚回去的也要有）
+          el.classList.remove("is-in");
+          continue;
+        }
+        // 同一批（同时进入视口的一屏）按序递延，避免整屏同时亮起
         el.style.animationDelay = `${Math.min(i++, 11) * 26}ms`;
         el.classList.add("is-in");
-        io.unobserve(el);
       }
     },
-    { rootMargin: "0px 0px -8% 0px", threshold: 0.01 },
+    { rootMargin: "0px 0px -8% 0px", threshold: 0 },
   );
 
   const scan = () => {
     document.querySelectorAll<HTMLElement>(REVEAL_SELECTOR).forEach((el) => {
-      if (el.classList.contains("is-in") || el.dataset.reveal === "1") return;
+      if (el.dataset.reveal === "1") return;
       el.dataset.reveal = "1";
       io.observe(el);
     });

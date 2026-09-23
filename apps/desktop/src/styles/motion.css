@@ -694,6 +694,15 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row).
   animation: m-spring-out var(--dur-2) var(--ease-out) both;
 }
 
+/* 预览面板底部的下载/另存为结果提示（蓝色那条，唯一一条）：入场从下浮起，
+   清空后随 useExitPhase 的 .is-closing 淡出——和提示条一样"消失也要有过程" */
+.fp-dl-hint {
+  animation: m-rise var(--dur-3) var(--ease-out) backwards;
+}
+.fp-dl-hint.is-closing {
+  animation: m-fade-out var(--dur-2) var(--ease-out) both;
+}
+
 /* 分段条 / 页签的"当前项"改成滑动块：切换时从旧位置滑到新位置，而不是瞬间跳。
    块由 useSegPill（lib/motion.ts）渲染并测量，位置与宽度写进内联样式；
    只有块真正量到尺寸（.is-ready）时才撤掉按钮自带的底色，

@@ -376,7 +376,7 @@ function PdfPage({
 
 /** PDF 预览：**连续滚动**（R26 霖需求：翻页不是必须的）+ 适应宽度/缩放 + 页码跳转。
  *  渲染策略：只渲染当前页 ±2，其余留等比占位——长讲义也不会把内存吃满。 */
-function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy, dlMsg }: { dataUrl: string; onOpenExternally: () => Promise<void>; pdfBusy: boolean; dlMsg: string }): React.ReactNode {
+function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy }: { dataUrl: string; onOpenExternally: () => Promise<void>; pdfBusy: boolean }): React.ReactNode {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const pagesRef = useRef(new Map<number, HTMLDivElement>());
   const [doc, setDoc] = useState<PdfDocLike | null>(null);
@@ -495,7 +495,6 @@ function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy, dlMsg }: { dataUrl:
           {pdfBusy ? "调起中…" : "系统应用打开"}
         </button>
       </div>
-      {dlMsg ? <div style={{ flexShrink: 0, fontSize: 11.5, color: "var(--text-3)", wordBreak: "break-all", padding: "0 10px 8px" }}>{dlMsg}</div> : null}
     </div>
   );
 }
@@ -1315,6 +1314,14 @@ export function FilePreviewHost() {
   const lastRef = useRef<OpenState | null>(null);
   const shown = cur ?? lastRef.current;
 
+  /* 下载/另存为结果提示（蓝色那条）的退场相位：setDlMsg("") 清空后多挂 200ms 播完淡出，
+   * 而不是"啪"地消失。同样必须在下面的早返回之前调用（Hook 不能条件调用）。 */
+  const { mounted: dlHintMounted, closing: dlHintClosing } = useExitPhase(dlMsg !== "", 200);
+  const dlHintRef = useRef("");
+  useEffect(() => {
+    if (dlMsg) dlHintRef.current = dlMsg;
+  }, [dlMsg]);
+
   useEffect(() => {
     _open = (t) => {
       seqRef.current += 1;
@@ -1465,9 +1472,9 @@ export function FilePreviewHost() {
   }
 
   return createPortal(
-    <div className="confirm-mask" style={maskStyle} onClick={close}>
+    <div className={"confirm-mask" + (closing ? " is-closing" : "")} style={maskStyle} onClick={close}>
       <style>{DOCX_CSS}</style>
-      <div className="confirm-card" style={panelStyle} onClick={(e) => e.stopPropagation()}>
+      <div className={"confirm-card" + (closing ? " is-closing" : "")} style={panelStyle} onClick={(e) => e.stopPropagation()}>
         <div style={headStyle} className="fp-head">
           <b style={{ flex: "1 1 120px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }} title={cur?.name ?? shown.name}>
             {cur?.name || shown.name || "文件预览"}
@@ -1529,7 +1536,6 @@ export function FilePreviewHost() {
               dataUrl={view.dataUrl}
               onOpenExternally={openPdfExternally}
               pdfBusy={pdfBusy}
-              dlMsg={dlMsg}
             />
           ) : null}
 
@@ -1596,11 +1602,16 @@ export function FilePreviewHost() {
           </PreviewErrorBoundary>
         </div>
 
-        {dlMsg ? (
+        {dlMsg || dlHintMounted ? (
           /* 面板底部下载/另存为提示：右侧挂「打开文件 / 打开目录」（R23 需求；此前误加在
-             PDF 画布内部与 Windows 门闸里，用户看到的这条反而没有按钮） */
-          <div style={{ flexShrink: 0, padding: "6px 14px", fontSize: 12, borderTop: "1px solid var(--border, #eee)", color: "var(--accent)", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <span>{dlMsg}</span>
+             PDF 画布内部与 Windows 门闸里，用户看到的这条反而没有按钮）。
+             只留蓝色这一条（灰色那条在 PDF 画布里，同一信息渲染两遍，已删）。
+             动效：入场从下浮起（.fp-dl-hint），清空后走 200ms 退场相位淡出（.is-closing）。 */
+          <div
+            className={"fp-dl-hint" + (dlHintClosing ? " is-closing" : "")}
+            style={{ flexShrink: 0, padding: "6px 14px", fontSize: 12, borderTop: "1px solid var(--border, #eee)", color: "var(--accent)", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
+          >
+            <span>{dlMsg || dlHintRef.current}</span>
             {dlPath ? <DownloadOpenButtons path={dlPath} /> : null}
           </div>
         ) : null}

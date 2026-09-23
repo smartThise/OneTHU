@@ -197,6 +197,8 @@
 
 - `<html>` 挂 `has-reveal` 后，命中 `REVEAL_SELECTOR` 的元素被置为 `opacity: 0; animation: none`，
   进入视口时由观察器加 `.is-in` 播 `m-reveal-in`（从左侧滑入 14px）。
+- **可重播（2026-09-23 霖需求）**：离开视口就撤掉 `.is-in` 回到藏身态，且**不注销观察**——
+  之后不管从哪个方向再进视野都会重播，往上滚回去与往下滚新出现的行为一致。
 - 同批进入视口的元素按 26ms 递延（上限 11 个），避免整屏同时亮起。
 - 动态内容（翻页、筛选、新数据）由 `MutationObserver` 纳入，100ms 防抖。
 - 关闭 JS 或减弱动态时不挂 `has-reveal`，元素保持可见。
@@ -212,7 +214,11 @@
 ### 4.9 文件预览（§15、§16）
 
 - PDF / PPTX 每页淡入（`[data-pdf-page]`、`[data-pptx-page]`）。
-- 预览面板进场用遮罩+弹簧，退场走 `useExitPhase`。
+- 预览面板进场用遮罩+弹簧，退场走 `useExitPhase`——`.is-closing` 必须真实挂到
+  `confirm-mask` / `confirm-card` 上（此前只取了 `closing` 没用上，关掉没有动画，2026-09-23 修）。
+- 面板底部下载/另存为提示只留蓝色一条（`.fp-dl-hint`，带「打开文件/打开目录」）：
+  入场 `m-rise`、清空后随退场相位淡出；灰色那条（PDF 画布内）已删——同一信息渲染两遍。
+- 下载/另存为的全局蓝色提示走 `.toast-host` 的 `m-toast-in/out`。
 
 ---
 

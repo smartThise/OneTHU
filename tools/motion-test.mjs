@@ -232,6 +232,7 @@ console.log("[13] 滚动揭示：进入视口才滑入，且不与挂载逐项�
   ok(/html\.has-reveal[\s\S]{0,400}?opacity: 0;\s*animation: none;/.test(css), "命中元素先置藏身态 + animation: none（压掉挂载进场）");
   ok(/\.is-in[\s\S]{0,220}?animation: m-reveal-in/.test(css), ".is-in 才播 m-reveal-in（两条规则必须同时存在）");
   ok(/Math\.min\(i\+\+, 11\)/.test(motion), "同批进入视口的递延上限为 11");
+  ok(!/io\.unobserve/.test(motion), "不注销观察（离开视口撤 .is-in，再进视野重播）");
   ok(/new MutationObserver/.test(motion) && /\}, 100\);/.test(motion), "动态内容由 MutationObserver 纳入（100ms 防抖）");
 }
 
@@ -274,5 +275,14 @@ console.log("[17] 分段条滑动块 / 横幅 / 无涟漪回归");
   ok(/\.browser-hint\s*\{[\s\S]{0,90}?animation: m-rise/.test(css), "引导横幅出现不突变");
   ok(!/installRipple/.test(main + motion + css + layout), "涟漪已整体移除（无 installRipple 残留）");
   ok(!/\.is-phone \.btn/.test(css), "没有 is-phone 涟漪规则");
+}
+console.log("[18] 预览退场接线 / 下载提示 / 滚动揭示可重播");
+{
+  ok(/"confirm-mask" \+ \(closing \? " is-closing" : ""\)/.test(preview), "预览遮罩关闭时挂 .is-closing（此前漏接，关掉没有动画）");
+  ok(/"confirm-card" \+ \(closing \? " is-closing" : ""\)/.test(preview), "预览面板关闭时挂 .is-closing");
+  ok(/fp-dl-hint/.test(preview) && /\.fp-dl-hint/.test(css), "下载提示（蓝色那条）有入场/退场动效");
+  ok(!/dlMsg=\{dlMsg\}/.test(preview), "灰色下载提示已移除（只留蓝色那条，不再同信息渲染两遍）");
+  ok(!/io\.unobserve/.test(motion), "滚动揭示不注销元素：往回滚再进视野会重播");
+  ok(/classList\.remove\("is-in"\)/.test(motion), "离开视口撤掉 .is-in（回藏身态，方向无关）");
 }
 console.log(`\n动效护栏：${pass} 断言全部通过（只动 transform/opacity + 令牌化 + 减弱动态降级 + 不锁死 hover + 不越权覆盖）`);
