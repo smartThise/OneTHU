@@ -79,9 +79,11 @@ console.log("[5] 构建脚本：dev 链带开关 + 产物校验；正式版链�
     const dev = read(DEV_SH);
     ok(dev.includes("export ONETHU_DEV=1"), "dev APK 脚本导出 ONETHU_DEV=1");
     ok(dev.includes("onethu.dev.badge.hidden"), "dev APK 脚本校验 dev 面板进了产物");
+    ok(dev.includes("/assets/DevPanel-"), "dev APK 脚本按 APK 内 .so 硬校验面板已进包");
     const rel = read(REL_SH);
     ok(!rel.includes("export ONETHU_DEV") && !rel.includes("ONETHU_DEV=1"), "正式版 APK 脚本不设置 ONETHU_DEV");
     ok(rel.includes("onethu.dev.badge.hidden"), "正式版 APK 脚本反向校验产物里没有 dev 标记");
+    ok(rel.includes("/assets/DevPanel-"), "正式版 APK 脚本按 .so 反向校验面板不存在");
   } else {
     console.log("  · 跳过：本机没有 /home/lin/tools 构建脚本（非开发机）");
   }
@@ -89,6 +91,7 @@ console.log("[5] 构建脚本：dev 链带开关 + 产物校验；正式版链�
     const exe = read(DEV_EXE_SH);
     ok(exe.includes("export ONETHU_DEV=1"), "桌面 dev exe 脚本导出 ONETHU_DEV=1");
     ok(exe.includes("onethu-dev.exe"), "桌面 dev exe 产物与正式版分开（onethu-dev.exe）");
+    ok(exe.includes("/assets/DevPanel-"), "桌面 dev exe 脚本按 exe 内资源名硬校验面板已进包");
   } else {
     console.log("  · 跳过：本机没有桌面 dev exe 脚本");
   }
