@@ -213,17 +213,35 @@
 
 ### 4.10 侧栏指示条 / 邮箱推入 / 弹层退场 / 方阵网格（2026-09-23，§17）
 
-- **侧栏 / 抽屉当前项指示条**（`.nav-indicator` + `useNavIndicator`）：切换时先把条撑满
-  旧→新两项、再收拢到新项——Office 功能区切换的手感，幅度收着（拉伸 110ms、收拢 200ms）。
-  只动 transform（translateY + scaleY）；挂在 `.nav`（滚动容器）里算内容坐标，滚动随内容走，
-  内层 `.nav-folders-scroll` 的滚动也监听。每项自己的 `::before` 强调条已退位（避免双条）。
+- **侧栏 / 抽屉当前项指示条**（`.nav-indicator` + `useNavIndicator`）：最终实现是**一次 WAAPI**
+  采样动画——起止都是静息条（16px、行内居中），前端点（下移=下端 / 上移=上端）全程一条
+  smoothstep 曲线连续起停，尾端点延迟 30% 跟上，条自然先拉长再收回；拉伸上限 3 个行高；
+  时长按移动距离算 `clamp(140ms, 距离×1.2, 220ms)`。只动 transform（translateY + scaleY），
+  CSS 里不再挂 transform transition（会与动画拼出速度突变）。挂在 `.nav`（滚动容器）里算内容
+  坐标，滚动随内容走，内层 `.nav-folders-scroll` 也监听。每项自己的 `::before` 强调条已退位。
+  > 踩过的坑：①两段 transition 各自从 0 起速 → 接缝处速度突变；②动画起点误用「整行框」
+  > 而非 16px 静息条 → 每次切换条先蹦成一行长再缩回。
 - **邮箱窄屏推入**：点开一封邮件列表向左滑出、详情从右滑入，返回反向。此前 `display:none`
   硬切、内容"啪"地消失；现在两栏保持挂载、只用 transform 挪位，离场栏延迟 visibility 隐藏。
+  > 另一个坑：滚动揭示的「已揭示」状态若用 `classList.add("is-in")`，React 重渲染会整体重写
+  > `className`（行选中高亮等交互类）把它抹掉，元素当场回到 `opacity:0` 隐身——点中的邮件行
+  > 直接消失、要滚出视口再回来才重现。现统一改用 **`data-reveal-in` 属性**（React 不管理）。
 - **二级弹层退场**（`useExitHold`）：插件设置 / MCP / 运行日志 Sheet（`plg-mask`/`plg-sheet`）、
   写信（`mail-compose-mask`/`mail-compose`）关闭时先播 200ms 淡出/收走再卸载，此前瞬间消失。
-- **方阵网格**（其他 Info 服务 `.app-grid`、在线服务 `.thos-grid`）：逐个弹簧 pop
-  （`m-spring-in`），nth-child 递增 18ms、14 项封顶，读作从左上往右下扫过的一道波；
-  筛选/搜索时只有新出现的项弹，已有项不重播。只做了入场——退场做逐项会伴随每次击键闪动。
+- **方阵网格**（其他 Info 服务 `.app-grid`、在线服务 `.thos-grid`）：纳入滚动揭示，**可见才入场**
+  （`m-spring-in`，间隔 16ms、不封顶），读作从左上往右下扫过的一道波；视口外不再错过动画。
+  > 坑：已揭示规则漏写 `opacity: 1`，`backwards` 播完回落到藏身态 → 整批卡片播完集体隐身；
+  > 递延曾封顶 11 档，第 12 张起拿同一延迟 → 第一波播完齐刷刷一起出现。两者均已修。
+
+### 4.11 日程弹层退场 + 课表块入场（2026-09-23）
+
+- **日程详情 / 编辑弹窗**：`MODAL_MASK` / `MODAL_PANEL` 原本只有入场内联动画，关闭瞬间消失。
+  接 `useExitHold(detail, 220)` / `useExitHold(draft, 220)`：遮罩 `m-fade-out`、面板 `m-spring-out`；
+  渲染处用 IIFE 把 `detail`/`draft` 影子化为 `xxxHold.held`，退场期间沿用最后一次内容，不闪空壳。
+- **课表事件块**：入场按序小幅上浮（`m-rise` 220ms，间隔 14ms、封顶 12 档）；`key` 里带周戳
+  （`b-${ymdOf(weekStart)}-${i}`），切周 / 切模式整批重播一次，像课表"铺开"。**不做滚动揭示**：
+  块是周内固定网格（绝对定位），揭示会在切周、筛选时反复抖动。
+- **引导条**（`.browser-hint`）：340ms ease-out → 240ms `cubic-bezier(0.55, 0, 0.22, 1)`，中段更陡。
 
 ### 4.9 文件预览（§15、§16）
 
