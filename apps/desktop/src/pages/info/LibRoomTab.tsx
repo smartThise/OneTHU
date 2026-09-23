@@ -7,6 +7,9 @@
  *   时段文本与占用状态，明确指出哪几个时段被占）；资源请求带代数去重（仅最新一次
  *   请求可落状态），房型/日期切换才清空列表，预约/取消后的刷新为软刷新（旧列表
  *   保留展示，杜绝占用条闪没）
+ * - 时段筛选：按 5 分钟粒度选起止时间，只显示整段连续空闲且满足房间
+ *   开放时间、最短/最长时长与当日未过期约束的房间；从筛选结果点「预约」
+ *   会自动带入该时段
  * - 选时段（开始/结束 5 分钟粒度、min/max 时长与占用约束，libRoomPerformBook 同算法；
  *   开始时刻可点时段格直接改选，改开始后结束回落到首个合法值，与 lib 同语义；
  *   lib 为开始/结束双轮单选连续区间，不支持多选离散时段，此处保持一致）
@@ -169,7 +172,8 @@ const validEnds = (res: LibRoomRes, begs: TimePoint[], beg: string): TimePoint[]
   const result: TimePoint[] = [];
   let h = Number(beg.slice(0, 2));
   let m = Number(beg.slice(3, 5)) + res.minMinute;
-  const count = Math.floor((item.duration - res.minMinute - timeDiff(item.start, beg)) / 5) + 1;
+  const availableMinute = res.maxMinute > 0 ? Math.min(item.duration, res.maxMinute) : item.duration;
+  const count = Math.floor((availableMinute - res.minMinute - timeDiff(item.start, beg)) / 5) + 1;
   for (let i = 0; i < count; i++) {
     h += Math.floor(m / 60);
     m -= Math.floor(m / 60) * 60;
@@ -218,6 +222,32 @@ interface RoomSlot {
 
 const toMin = (hm: string): number => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5));
 const minToHm = (m: number): string => (m >= 1440 ? "24:00" : `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`);
+
+/** 所选时段是否可以在该房间作为一次完整预约。 */
+const isRoomFreeForRange = (res: LibRoomRes, iso: string, start: string, end: string): boolean => {
+  if (!res.openStart || !res.openEnd || res.kindName.includes("暂未开放")) return false;
+  const startMin = toMin(start);
+  const endMin = toMin(end);
+  const openStartMin = toMin(res.openStart);
+  const openEndMin = toMin(res.openEnd);
+  if (![startMin, endMin, openStartMin, openEndMin].every(Number.isFinite)) return false;
+  if (startMin >= endMin || startMin < openStartMin || endMin > openEndMin) return false;
+
+  const duration = endMin - startMin;
+  if (duration < res.minMinute || (res.maxMinute > 0 && duration > res.maxMinute)) return false;
+
+  // 与预约面板共用同一组候选时刻：同时覆盖 5 分钟粒度、当日已过期、
+  // 最短/最长时长和连续空闲段，保证「筛得出」就一定能在下方选中。
+  const begins = validBegins(res, iso);
+  if (!begins.some((p) => p.start === start)) return false;
+  if (!validEnds(res, begins, start).some((p) => p.start === end)) return false;
+
+  return !res.usage.some((u) => {
+    const usageStart = toMin(hhmmSafe(u.start));
+    const usageEnd = toMin(hhmmSafe(u.end));
+    return Number.isFinite(usageStart) && Number.isFinite(usageEnd) && usageStart < endMin && usageEnd > startMin;
+  });
+};
 
 /** 占用归属（tooltip 展示预约人/事由；解析失败返回空串） */
 const usageAt = (res: LibRoomRes, s: number, e: number): string => {
@@ -334,6 +364,8 @@ function SlotGrid({
 interface BookTarget {
   res: LibRoomRes;
   day: DayChoice;
+  preferredBeg?: string;
+  preferredEnd?: string;
 }
 
 export function LibRoomTab({
@@ -358,6 +390,9 @@ export function LibRoomTab({
   const [resState, setResState] = useState<LoadState>("loading");
   const [resError, setResError] = useState<string | null>(null);
   const [resTick, setResTick] = useState(0);
+  /* 时段筛选：两端都有值且起点早于终点时才生效 */
+  const [filterBeg, setFilterBeg] = useState("");
+  const [filterEnd, setFilterEnd] = useState("");
 
   /* 预约面板 */
   const [target, setTarget] = useState<BookTarget | null>(null);
@@ -512,27 +547,44 @@ export function LibRoomTab({
   /* 预约面板：目标/日期变化时重置时段选择 */
   const begins = useMemo(() => (target ? validBegins(target.res, target.day.iso) : []), [target]);
   useEffect(() => {
-    setBeg(begins[0]?.start ?? "");
+    const preferred = target?.preferredBeg;
+    setBeg(preferred && begins.some((p) => p.start === preferred) ? preferred : (begins[0]?.start ?? ""));
     setEnd("");
-  }, [begins]);
+  }, [begins, target?.preferredBeg]);
   const ends = useMemo(
     () => (target && beg ? validEnds(target.res, begins, beg) : []),
     [target, begins, beg],
   );
   useEffect(() => {
-    setEnd(ends[0]?.start ?? "");
-  }, [ends]);
+    const preferred = target?.preferredEnd;
+    setEnd(preferred && ends.some((p) => p.start === preferred) ? preferred : (ends[0]?.start ?? ""));
+  }, [ends, target?.preferredEnd]);
   /* 预约面板逐格三态（红/灰禁点，绿格点击改选开始时刻） */
   const targetSlots = useMemo(
     () => (target ? roomSlots(target.res, target.day.iso) : []),
     [target],
   );
 
+  const filterComplete = filterBeg !== "" && filterEnd !== "";
+  const filterValid = filterComplete && filterBeg < filterEnd;
+  const visibleResources = useMemo(
+    () =>
+      resources === null || !filterValid
+        ? resources
+        : resources.filter((r) => isRoomFreeForRange(r, day.iso, filterBeg, filterEnd)),
+    [resources, filterValid, day.iso, filterBeg, filterEnd],
+  );
+
   const pickRoom = (res: LibRoomRes): void => {
     setBookError(null);
     setPendingEmail(null);
     setNotice(null);
-    setTarget({ res, day });
+    setTarget({
+      res,
+      day,
+      preferredBeg: filterValid ? filterBeg : undefined,
+      preferredEnd: filterValid ? filterEnd : undefined,
+    });
   };
 
   const doBook = useCallback(
@@ -675,11 +727,50 @@ export function LibRoomTab({
                 ))}
               </select>
             </div>
+            <div className="field" style={{ margin: 0 }}>
+              <label htmlFor="libroom-filter-beg">空闲时段</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input
+                  id="libroom-filter-beg"
+                  className="input"
+                  type="time"
+                  step={300}
+                  aria-label="空闲时段开始"
+                  value={filterBeg}
+                  onChange={(e) => setFilterBeg(e.target.value)}
+                />
+                <span style={{ color: "var(--text-3)" }}>至</span>
+                <input
+                  className="input"
+                  type="time"
+                  step={300}
+                  aria-label="空闲时段结束"
+                  value={filterEnd}
+                  onChange={(e) => setFilterEnd(e.target.value)}
+                />
+                {filterBeg || filterEnd ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    style={{ height: 32, whiteSpace: "nowrap" }}
+                    onClick={() => {
+                      setFilterBeg("");
+                      setFilterEnd("");
+                    }}
+                  >
+                    清除
+                  </button>
+                ) : null}
+              </div>
+              {filterComplete && !filterValid ? (
+                <div className="t-red" style={{ fontSize: 12, marginTop: 4 }}>结束时间需晚于开始时间</div>
+              ) : null}
+            </div>
           </div>
 
           <SectionHead
             title="可约房间"
-            aside={`${day.label} · 时段格 绿=可约 红=已被占 灰=不可选${resState === "loading" && resources !== null ? " · 刷新中…" : ""}`}
+            aside={`${day.label}${filterValid ? ` · ${filterBeg}~${filterEnd} 连续空闲 ${visibleResources?.length ?? 0} 间` : ""} · 时段格 绿=可约 红=已被占 灰=不可选${resState === "loading" && resources !== null ? " · 刷新中…" : ""}`}
           />
           {resState === "loading" && resources === null ? <SkeletonRows rows={4} /> : null}
           {resState === "error" ? (
@@ -697,9 +788,14 @@ export function LibRoomTab({
               <Empty text="该房型当日暂无可约房间。" />
             </Card>
           ) : null}
-          {resources !== null && resources.length > 0 ? (
+          {resources !== null && resources.length > 0 && visibleResources?.length === 0 ? (
+            <Card>
+              <Empty text={`没有研讨间在 ${filterBeg}~${filterEnd} 整段可约，请调整时间或清除筛选。`} />
+            </Card>
+          ) : null}
+          {visibleResources !== null && visibleResources.length > 0 ? (
             <Card className="list">
-              {resources.map((r) => (
+              {visibleResources.map((r) => (
                 <div className="row" key={r.devId}>
                   <div className="row-main">
                     <div className="row-title">
