@@ -43,7 +43,7 @@
 
 ## 2. 分支现状
 
-### 2.1 已提交（3 个）
+### 2.1 已提交（5 个）
 
 | 提交 | 内容 |
 | --- | --- |
@@ -51,21 +51,30 @@
 | `8d89903` | `fix(anim)`: 去掉整页快照转场（切换残影）；hover 位移只给会跳转的大卡 |
 | `2db68b0` | `fix(anim)`: 不再覆盖既有动画选择器——修抽屉"播完消失/关闭重现"与提示条偏心 |
 
-### 2.2 未提交的工作区改动（8 个文件，约 +371 / −113 行）
+| `1ce0aaf` | `docs(anim)`: 本交接文档 |
+| `46ec795` | `feat(anim)`: 分段条滑动块 + 折叠组展开 + 护栏补到 107 断言（§6.1–§6.3 收尾） |
+
+### 2.2 工作区
+
+**工作区已干净**（2026-09-23：`git status` 无改动、`git stash list` 为空）。下表这批改动，
+连同 §6 的组件接线与护栏更新，已随 `46ec795` 一起提交：
 
 | 文件 | 改动要点 |
 | --- | --- |
 | `apps/desktop/src/styles/motion.css` | 新增 §16：页签衔接、滚动揭示、横幅、可展开、退场相位、分段滑动块 |
-| `apps/desktop/src/lib/motion.ts` | 新增 `useExitPhase` / `useTabDirection` / `installScrollReveal` / `REVEAL_SELECTOR`；移除 `installRipple` |
+| `apps/desktop/src/lib/motion.ts` | 新增 `useExitPhase` / `useTabDirection` / `installScrollReveal` / `REVEAL_SELECTOR` / `useSegPill`；移除 `installRipple` |
 | `apps/desktop/src/main.tsx` | 入口由 `installRipple()` 换成 `installScrollReveal()` |
 | `apps/desktop/src/pages/info/InfoPage.tsx` | `useTabDirection` + 各页签容器 `data-dir={tabDir}` |
 | `apps/desktop/src/pages/info/LifePage.tsx` | 同上 |
 | `apps/desktop/src/pages/info/ReservePage.tsx` | 同上 |
-| `apps/desktop/src/pages/FolderPage.tsx` | 同上 |
+| `apps/desktop/src/pages/FolderPage.tsx` | 同上；并把栏目布局与 `useTabDirection` 挪到早返回**之前**（见 §6.4 注） |
 | `apps/desktop/src/components/FilePreview.tsx` | `useExitPhase(cur !== null)`：预览面板改为"先播退场再卸载" |
+| `apps/desktop/src/components/Layout.tsx` | `SegmentedOverflow` 渲染 `.seg-pill`；折叠组包进 `.nav-folded-body` |
+| `apps/desktop/src/pages/MailPage.tsx`、`Plugins.tsx` | 两处直写 `.segmented` 也接上滑动块 |
+| `tools/motion-test.mjs`、`tools/pdf-render-mode-test.mjs` | 护栏更新（见 §6.3、§6.4 注） |
 
-> 工作区状态即为**最新进度**。接手第一步：`git status` + `git stash list` 确认没有遗留 stash
-> （历史上多次 stash/pop 过，名称为 `anim-wip*`）。
+> 接手第一步仍是 `git status` + `git stash list`，确认没有遗留 stash（历史上多次 stash/pop 过，
+> 名称为 `anim-wip*`）。
 
 ---
 
@@ -111,6 +120,7 @@
 | `REVEAL_SELECTOR` | 滚动揭示命中的选择器集合 |
 | `installScrollReveal()` | 在 `<html>` 挂 `has-reveal`，用 `IntersectionObserver` 逐个加 `.is-in` |
 | `useCountUp(value, dur = 680)` | 数字滚动（`easeOutCubic`），减弱动态时直接返回目标值 |
+| `useSegPill()` | 分段条滑动块测量，返回 `[rowRef, pillRef]`；首帧不滑入、量不到宽度不显形 |
 
 方向类 hook 都在**渲染期**比较"上一项 vs 当前项"，幂等，StrictMode 双渲染下结果一致。
 
@@ -126,6 +136,8 @@
 | 移动端顶栏浮起 | `components/Layout.tsx`（`is-scrolled`） |
 | 页签方向 | `pages/info/{InfoPage,LifePage,ReservePage}.tsx`、`pages/FolderPage.tsx` |
 | 数字滚动 | `components/HomeWidgets.tsx`（`useCountUp` + `.num-roll`） |
+| 分段条滑动块 | `components/Layout.tsx` 的 `SegmentedOverflow`、`pages/MailPage.tsx`、`pages/Plugins.tsx`（`useSegPill` + `.seg-pill`） |
+| 折叠组展开 | `components/Layout.tsx`（`.nav-folded-body`） |
 | 预览面板退场 | `components/FilePreview.tsx`（`useExitPhase` + `.is-closing`） |
 | 弹层统一 | `lib/confirm.tsx`、`FilePreview.tsx`、以及测试 §11 列出的 8 个内联弹层文件 |
 
@@ -223,8 +235,7 @@
 6. **hover 位移只给会跳转的大卡**（理由见 §4.2）。
 7. **触摸涟漪已整体移除。** 早期版本在 `lib/motion.ts` 有 `installRipple`、在 CSS 有 `.is-phone .btn`
    相关规则，按用户偏好（无 Material 涟漪）全部删除。`main.tsx` 现在装的是 `installScrollReveal()`。
-   ⚠️ 遗留物：`lib/motion.ts` 末尾（约 160-162 行）还留着描述涟漪的孤立注释块，需要删除；
-   `tools/motion-test.mjs` 里仍有 3 条断言指向涟漪（见 §7）。
+   遗留注释与 3 条涟漪断言已于 `46ec795` 清理（见 §6.3），并加了"无涟漪回归"断言。
 8. **无限循环动画白名单**：只有 `shimmer`（骨架）、`m-breathe`、`m-stripes`，不允许页面一直在动。
 9. **单条动画时长上限 700ms**，测试 §3 会扫 `animation: ... Nms`。
 10. **`keyframes` 里不出现布局属性**（`width/height/top/left/right/bottom/margin/padding/font-size/line-height`），
@@ -235,7 +246,11 @@
 
 ## 6. 剩余任务
 
-### 6.1 分段条滑动块（`.seg-pill`）—— CSS 已就绪，组件未实现
+> **2026-09-23 进度**：§6.1–§6.3 与 §6.4 的第 1/2/4 条已完成（提交 `46ec795`）。
+> 还没做的只剩：**真机 / 桌面验收**、**merge `origin/dev3`（仍落后 10 个提交）**、**安卓 APK 重出**。
+> 小节标题标了 ✅/⬜，正文保留原始分析供追溯。
+
+### 6.1 分段条滑动块（`.seg-pill`）✅ 已完成
 
 - CSS 已在 `motion.css` §16 末尾（约 697-729 行）写好：`.segmented` 需要 `position: relative`，
   `.seg-pill` 绝对定位、`transform/width/opacity` 过渡，`.seg-pill.is-ready` 才显形；
@@ -251,8 +266,12 @@
   `pages/zhjwxk/Courses.tsx`）。
 - 实现要点：切换页签时块从旧位置滑到新位置（`--dur-3` + `--ease-ios`）；首帧不要从 0 位置滑入，
   用 `.is-ready` 控制首帧不显形；测量失败（宽度为 0）时保持按钮自带底色，避免"没有块也没有底色"。
+- ✅ 落点：`lib/motion.ts` 的 `useSegPill()` 返回 `[rowRef, pillRef]`——`rowRef` 挂 `.segmented`、
+  `pillRef` 挂 `<span className="seg-pill" />`；测量在 layout 相位完成（首帧就在位，不会从 0 滑入），
+  只有量到有效宽度才加 `.is-ready`，CSS 相应改成 `:has(.seg-pill.is-ready)` 才撤按钮底色。
+  三处 `.segmented` 全部接上：`SegmentedOverflow`、`MailPage.tsx:241`、`Plugins.tsx:84`。
 
-### 6.2 折叠组展开动画（`.nav-folded-body`）
+### 6.2 折叠组展开动画（`.nav-folded-body`）✅ 已完成
 
 - CSS 已在 `motion.css`（约 669-674 行）定义 `.nav-folded-body`（`display: flex; flex-direction: column;
   gap: 1px;` + `m-expand-in`）。
@@ -269,10 +288,12 @@
 
   需要把这批 `navRow(...)` 包进 `<div className="nav-folded-body">…</div>`，展开时才有滑入效果。
   收起仍是即时（纯 CSS 无法延迟卸载）；若需要收起动画，走 `useExitPhase` 那一套。
+- ✅ 落点：`Layout.tsx` 折叠组已包进 `<div className="nav-folded-body">`，展开滑入生效；收起仍即时。
 
-### 6.3 测试更新（`tools/motion-test.mjs`）
+### 6.3 测试更新（`tools/motion-test.mjs`）✅ 已完成
 
-当前状态：把断言改成"不中断收集"后跑，**74 条通过、3 条失效**：
+已完成（`46ec795`）：3 条失效断言按下表改掉、新增断言补齐，现在 `node tools/motion-test.mjs`
+**107 条全绿**。下表是当时的失效清单与处理方式（保留供追溯）：
 
 | 失效断言 | 所在区 | 处理 |
 | --- | --- | --- |
@@ -280,7 +301,7 @@
 | `both` 只留给"必须保留终帧"的退出动画（4 处） | §4 | 白名单加上 `m-fade-out` / `m-spring-out`（`.is-closing` 两条规则新增了 `both`） |
 | 涟漪只在 `is-phone` 密度层生效（桌面不挂） | §6 | 删除；替换为"按压纪律"断言（紧凑控件缩放、整行只压暗底色、`keyframes` 里没有整行 `scale`） |
 
-要补的新断言（建议按区追加）：
+已补的新断言（落在 §13–§17）：
 
 - 滚动揭示：`installScrollReveal` 里有 `prefersReducedMotion()` 早退、`has-reveal` 挂在 `<html>`、
   CSS 里 `html.has-reveal … { opacity: 0; animation: none }` 与 `.is-in` 两条规则同时存在
@@ -299,11 +320,22 @@
 
 ### 6.4 收尾
 
-1. 删除 `lib/motion.ts` 末尾的涟漪遗留注释（约 160-162 行）。
-2. `pnpm exec tsc --noEmit`（当前 0 错误，改完保持）。
-3. 真机 + 桌面各过一遍 §8 验收清单。
-4. 提交工作区改动；发布前先 `git merge origin/dev3`（或 rebase）——基点落后 10 个提交。
-5. 出包：桌面 exe 与安卓 APK（构建方式见 §9），备份旧产物后再覆盖。
+1. ✅ 删除 `lib/motion.ts` 末尾的涟漪遗留注释。
+2. ✅ `pnpm exec tsc --noEmit` 0 错误。
+3. ⬜ **真机 + 桌面各过一遍验收清单**（§7.2 / §7.3）——只能人工，exe 已就位。
+4. ✅ 提交工作区改动（`46ec795`）；⬜ 发布前仍需 `git merge origin/dev3`（或 rebase）——落后 10 个提交。
+5. 出包：✅ 桌面 exe 已重编并部署到 `D:\OneTHU\onethu.exe`（2026-09-23，带
+   `--features tauri/custom-protocol`，prod 校验 `assets/index-` 命中 5；旧产物备份为
+   `onethu.exe.bak-0923-anim-segp`）；⬜ 安卓 APK 本次未重出。
+
+> 顺带修掉两个 `46ec795` 之前的遗留问题：
+> - `pages/FolderPage.tsx` 在 `if (!f) return null` 之后调用 `useTabDirection()`——Hook 顺序违规：
+>   删除收藏夹时本次渲染比上次多一个 Hook，React 抛错且错误边界兜不住，**整窗白屏**。已把栏目布局
+>   与方向计算挪到早返回之前；`tools/hook-order-test.mjs` 现在全绿。
+> - `tools/pdf-render-mode-test.mjs` 里"必须保留 `if (!cur) return null`"的断言，已放宽为接受
+>   `useExitPhase` 的 `if (!shown || (cur === null && !mounted)) return null;` 形态
+>   （"早返回之后不得有 Hook"的核心断言不变）。
+> - 既有失败、与动效无关、本次未动：`tools/notify-runtime-test.mjs` 有 1 条 DDL 断言失败。
 
 ---
 
@@ -313,7 +345,7 @@
 
 | 命令 | 作用 |
 | --- | --- |
-| `node tools/motion-test.mjs` | 动效护栏（12 个区，74+ 断言） |
+| `node tools/motion-test.mjs` | 动效护栏（17 个区，107 断言） |
 | `pnpm exec tsc --noEmit` | 类型检查（在 `apps/desktop` 下执行） |
 | `pnpm run lint:docs` | 文档措辞检查（只覆盖 `docs/`，本文件也在范围内） |
 | `pnpm run lint:ui-copy` | UI 文案检查（新增文案后跑） |
