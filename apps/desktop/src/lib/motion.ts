@@ -92,7 +92,8 @@ export function installScrollReveal(): void {
 
   const io = new IntersectionObserver(
     (entries) => {
-      let i = 0;
+      // 先收进这一批「进入视口」的元素，按视觉位置排序，再分组递延。
+      const batch: HTMLElement[] = [];
       for (const e of entries) {
         const el = e.target as HTMLElement;
         if (!e.isIntersecting) {
@@ -101,11 +102,31 @@ export function installScrollReveal(): void {
           delete el.dataset.revealIn;
           continue;
         }
-        // 同一批（同时进入视口的一屏）按序递延，避免整屏同时亮起。
-        // 不封顶：封顶会让排在后面的卡片拿到同一延迟，第一波播完齐刷刷一起出现（霖实测）。
-        // 方阵网格（app/thos）间隔收得更短——霖反馈出现要再快一些。
-        const step = el.closest(".app-grid, .thos-grid") ? 16 : 30;
-        el.style.animationDelay = `${i++ * step}ms`;
+        batch.push(el);
+      }
+      batch.sort((a, b) => a.offsetTop - b.offsetTop || a.offsetLeft - b.offsetLeft);
+      // 方阵网格按「行」递延：同一行的卡片同时出现，行与行自上而下依次展开——读作"铺开"
+      // 的流程感，而不是从左上往右下斜扫（霖反馈）。列表项各占一行，等价于逐项递延。
+      // 不封顶：封顶会让后面的卡片拿同一延迟、第一波播完齐刷刷出现（霖实测）。
+      const rows = new Map<Element, Map<number, number>>();
+      let li = 0;
+      for (const el of batch) {
+        const grid = el.closest(".app-grid, .thos-grid");
+        let slot: number;
+        if (grid) {
+          const parent = el.parentElement as Element;
+          let seen = rows.get(parent);
+          if (!seen) {
+            seen = new Map();
+            rows.set(parent, seen);
+          }
+          const top = Math.round(el.offsetTop);
+          if (!seen.has(top)) seen.set(top, seen.size);
+          slot = seen.get(top) as number;
+        } else {
+          slot = li++;
+        }
+        el.style.animationDelay = `${slot * (grid ? 9 : 30)}ms`;
         // ⚠️ 用 data 属性、不用 class：React 重渲染会整体重写 className（行选中高亮等），
         // classList 手加的类会被抹掉，元素当场回到藏身态隐身（霖实测：点中的邮件行直接消失）
         el.dataset.revealIn = "1";
@@ -295,15 +316,17 @@ export function useNavIndicator() {
     const down = c1 >= c0;
     const dur = Math.min(220, Math.max(140, Math.round(Math.abs(c1 - c0) * 1.2)));
     const MAX = Math.max(bottom - top, 2) * 3;
-    const sstep = (u: number) => u * u * (3 - 2 * u); // smoothstep：两端速度为 0，连续
-    const N = 16;
+    // 四次缓入缓出：两端速度 0、中段峰值约 4×平均速度。此前 smoothstep 峰值只有 1.5×，
+    // 加上首尾端点曲线错峰取平均，观感接近匀速（霖反馈：看不出缓入缓出）。
+    const ease = (u: number) => (u < 0.5 ? 8 * u * u * u * u : 1 - 8 * Math.pow(1 - u, 4));
+    const N = 24;
     const e0t = c0 - BAR / 2, e0b = c0 + BAR / 2; // 旧静息条的两端
     const e1t = c1 - BAR / 2, e1b = c1 + BAR / 2; // 新静息条的两端
     const frames: Keyframe[] = [];
     for (let k = 0; k <= N; k++) {
       const t = k / N;
-      const lead = sstep(t); // 前端点：全程一条曲线
-      const trail = t <= 0.3 ? 0 : sstep((t - 0.3) / 0.7); // 尾端点：延迟 30% 再跟上
+      const lead = ease(t); // 前端点：全程一条曲线
+      const trail = t <= 0.3 ? 0 : ease((t - 0.3) / 0.7); // 尾端点：延迟 30% 再跟上
       let ta = down ? e0t + (e1t - e0t) * trail : e0t + (e1t - e0t) * lead;
       let tb = down ? e0b + (e1b - e0b) * lead : e0b + (e1b - e0b) * trail;
       if (tb - ta > MAX) {

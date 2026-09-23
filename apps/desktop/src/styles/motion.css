@@ -50,6 +50,19 @@
 
 /* ---------- 3. keyframes 库 ---------- */
 
+/* 方阵网格入场：幅度刻意收小（6px 上浮 + 0.99 缩放），读作"铺开"而不是"弹跳"。
+   配合按行递延：同排同时出现、行与行自上而下展开。 */
+@keyframes m-grid-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes m-rise {
   from {
     opacity: 0;
@@ -837,5 +850,5 @@ html.has-reveal :is(.app-grid, .thos-grid) > *[data-reveal-in] {
   /* ⚠️ opacity: 1 必须显式写——藏身态是 opacity:0，backwards 播完回落到基态，
      不写这条整批卡片会在动画结束后集体隐身（霖实测） */
   opacity: 1;
-  animation: m-spring-in var(--dur-3) var(--ease-spring) backwards;
+  animation: m-grid-in var(--dur-2) var(--ease-out) backwards;
 }

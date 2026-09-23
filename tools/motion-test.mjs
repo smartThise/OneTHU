@@ -233,7 +233,8 @@ console.log("[13] 滚动揭示：进入视口才滑入，且不与挂载逐项�
   ok(/\[data-reveal-in\][\s\S]{0,220}?animation: m-reveal-in/.test(css), "data-reveal-in 才播 m-reveal-in（两条规则必须同时存在）");
   ok(/\[data-reveal-in\][\s\S]{0,200}?opacity: 1/.test(css), "已揭示态显式 opacity: 1（否则动画播完回落藏身态集体隐身）");
   ok(/delete el\.dataset\.revealIn/.test(motion), "揭示标记用 data 属性（React 重写 className 抹不掉）");
-  ok(/i\+\+ \* step/.test(motion) && /\.app-grid, \.thos-grid"\) \? 16 : 30/.test(motion), "同批逐个递延且不封顶（网格 16ms / 列表 30ms）");
+  ok(/slot \* \(grid \? 9 : 30\)/.test(motion), "递延不封顶（网格按行 9ms / 列表逐项 30ms）");
+  ok(/seen\.set\(top, seen\.size\)/.test(motion) && /batch\.sort\(\(a, b\) => a\.offsetTop - b\.offsetTop/.test(motion), "网格按行分组：同行同时、自上而下展开（不斜扫）");
   ok(!/io\.unobserve/.test(motion), "不注销观察（离开视口撤 .is-in，再进视野重播）");
   ok(/new MutationObserver/.test(motion) && /\}, 100\);/.test(motion), "动态内容由 MutationObserver 纳入（100ms 防抖）");
 }
@@ -295,6 +296,8 @@ console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵�
   ok(/\.nav-indicator\s*\{[\s\S]{0,320}?z-index: 1/.test(css), "指示条在当前项灰底之上（此前被盖住）");
   ok(/Math\.max\(bottom - top, 2\) \* 3/.test(motion), "拉伸上限 3 个行高（相距远不拉成长条）");
   ok(/Math\.min\(220, Math\.max\(140,/.test(motion), "时长按距离算（140–220ms），近处快远处稳");
+  ok(/8 \* u \* u \* u \* u/.test(motion), "指示条端点走四次缓入缓出（非线性明显，不再像匀速）");
+  ok(/@keyframes m-grid-in/.test(css) && /m-grid-in var\(--dur-2\) var\(--ease-out\) backwards/.test(css), "网格入场用小幅 m-grid-in（6px 上浮 + 0.99 缩放）");
   ok(/\.nav-item\.is-active::before\s*\{\s*\n\s*display: none;/.test(css), "每项自己的 ::before 强调条退位（避免双条）");
   ok(/\.mail-layout:not\(\.detail-open\) \.mail-detail/.test(css) && /\.mail-layout\.detail-open \.mail-list/.test(css), "邮箱窄屏：列表/详情 transform 推入推出（不再 display 硬切）");
   ok(/export function useExitHold/.test(motion), "useExitHold 收在 lib/motion.ts（弹层退场相位 + 内容保持）");
