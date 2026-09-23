@@ -284,23 +284,28 @@ export function useNavIndicator() {
     // 位置没变（普通重渲染 / 容器宽度变化）：不重播动画
     if (Math.abs(prev.a - top) < 0.5 && Math.abs(prev.b - bottom) < 0.5) return;
 
-    /* 端点速度连续（霖反馈：人眼追的是运动方向那个端点，不是条的中心）——
-       前端点（下移=下端，上移=上端）全程走一条 smoothstep 曲线：起停平滑、速度连续；
-       尾端点延迟 30% 再用同样的曲线跟上。条因此自然先拉长、再收回，没有拼接突变。
-       拉伸上限 3 个行高（霖反馈：相距远不拉成细长条），采样成关键帧、段间线性。 */
-    const itemH = Math.max(bottom - top, 2);
-    const MAX = itemH * 3;
-    const down = top >= prev.a; // 目标在旧项下方：下端是前端点
-    const a0 = prev.a, b0 = prev.b, a1 = top, b1 = bottom;
+    /* 端点速度连续（霖反馈：人眼追的是运动方向那个端点，不是条的中心）。
+       ⚠️ 起止姿态都是「静息条」：16px、在行内居中——不是整行框。此前用整行框当
+       起点，每次切换条都先突变成一行长再动、到地方再突变缩回（霖实测）。
+       前端点（下移=下端，上移=上端）全程走一条 smoothstep 曲线连续起停，
+       尾端点延迟 30% 再同样跟上：条自然先拉长再收回，没有拼接突变。
+       拉伸上限 3 个行高；时长按移动距离算（140–300ms），近处快、远处稳。 */
+    const c0 = (prev.a + prev.b) / 2;
+    const c1 = (top + bottom) / 2;
+    const down = c1 >= c0;
+    const dur = Math.min(300, Math.max(140, Math.round(Math.abs(c1 - c0) * 1.2)));
+    const MAX = Math.max(bottom - top, 2) * 3;
     const sstep = (u: number) => u * u * (3 - 2 * u); // smoothstep：两端速度为 0，连续
     const N = 16;
+    const e0t = c0 - BAR / 2, e0b = c0 + BAR / 2; // 旧静息条的两端
+    const e1t = c1 - BAR / 2, e1b = c1 + BAR / 2; // 新静息条的两端
     const frames: Keyframe[] = [];
     for (let k = 0; k <= N; k++) {
       const t = k / N;
       const lead = sstep(t); // 前端点：全程一条曲线
       const trail = t <= 0.3 ? 0 : sstep((t - 0.3) / 0.7); // 尾端点：延迟 30% 再跟上
-      let ta = down ? a0 + (a1 - a0) * trail : a0 + (a1 - a0) * lead;
-      let tb = down ? b0 + (b1 - b0) * lead : b0 + (b1 - b0) * trail;
+      let ta = down ? e0t + (e1t - e0t) * trail : e0t + (e1t - e0t) * lead;
+      let tb = down ? e0b + (e1b - e0b) * lead : e0b + (e1b - e0b) * trail;
       if (tb - ta > MAX) {
         const c = (ta + tb) / 2;
         ta = c - MAX / 2;
@@ -313,7 +318,7 @@ export function useNavIndicator() {
       });
     }
     setFinal(); // 终态先落定（动画结束后即停在这里），动画期间由关键帧接管
-    bar.animate(frames, { duration: 320 });
+    bar.animate(frames, { duration: dur });
   }, []);
 
   useLayoutEffect(() => {

@@ -293,7 +293,8 @@ console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵�
   ok(/className="nav-indicator"/.test(layout), "侧栏与抽屉都渲染了 .nav-indicator（NavBody）");
   ok(/\.nav-indicator\s*\{[\s\S]{0,700}?transition: opacity var\(--dur-2\) var\(--ease-out\);/.test(css), "指示条只保留 opacity 过渡（运动由 WAAPI 一段式驱动）");
   ok(/\.nav-indicator\s*\{[\s\S]{0,320}?z-index: 1/.test(css), "指示条在当前项灰底之上（此前被盖住）");
-  ok(/itemH \* 3/.test(motion), "拉伸上限 3 个行高（相距远不拉成长条）");
+  ok(/Math\.max\(bottom - top, 2\) \* 3/.test(motion), "拉伸上限 3 个行高（相距远不拉成长条）");
+  ok(/Math\.min\(300, Math\.max\(140,/.test(motion), "时长按距离算（140–300ms），近处快远处稳");
   ok(/\.nav-item\.is-active::before\s*\{\s*\n\s*display: none;/.test(css), "每项自己的 ::before 强调条退位（避免双条）");
   ok(/\.mail-layout:not\(\.detail-open\) \.mail-detail/.test(css) && /\.mail-layout\.detail-open \.mail-list/.test(css), "邮箱窄屏：列表/详情 transform 推入推出（不再 display 硬切）");
   ok(/export function useExitHold/.test(motion), "useExitHold 收在 lib/motion.ts（弹层退场相位 + 内容保持）");
