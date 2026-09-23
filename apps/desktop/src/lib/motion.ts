@@ -101,9 +101,11 @@ export function installScrollReveal(): void {
           delete el.dataset.revealIn;
           continue;
         }
-        // 同一批（同时进入视口的一屏）按序递延，避免整屏同时亮起（30ms：霖反馈稍稍调大）。
+        // 同一批（同时进入视口的一屏）按序递延，避免整屏同时亮起。
         // 不封顶：封顶会让排在后面的卡片拿到同一延迟，第一波播完齐刷刷一起出现（霖实测）。
-        el.style.animationDelay = `${i++ * 30}ms`;
+        // 方阵网格（app/thos）间隔收得更短——霖反馈出现要再快一些。
+        const step = el.closest(".app-grid, .thos-grid") ? 16 : 30;
+        el.style.animationDelay = `${i++ * step}ms`;
         // ⚠️ 用 data 属性、不用 class：React 重渲染会整体重写 className（行选中高亮等），
         // classList 手加的类会被抹掉，元素当场回到藏身态隐身（霖实测：点中的邮件行直接消失）
         el.dataset.revealIn = "1";

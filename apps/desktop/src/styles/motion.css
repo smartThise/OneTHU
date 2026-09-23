@@ -663,8 +663,9 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[
 }
 
 /* 引导横幅 / 提示条：出现时不再突变 */
+/* 引导条：出现要干脆（霖反馈：太慢、中间要陡）——时长收短 + 中段更陡的自定曲线 */
 .browser-hint {
-  animation: m-rise var(--dur-3) var(--ease-out) backwards;
+  animation: m-rise 240ms cubic-bezier(0.55, 0, 0.22, 1) backwards;
 }
 
 /* 可展开菜单：展开时内容滑入（收起仍是即时——纯 CSS 无法延迟卸载） */
