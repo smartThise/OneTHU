@@ -344,15 +344,20 @@ export function useNavIndicator() {
         easing: k === N ? "cubic-bezier(0.45, 0, 0.55, 1)" : "linear",
       });
     }
-    /* 刹车回弹（霖需求）：到位后顺着运动方向再前冲约 1/4 项高，再阻尼弹回正确位置——
-       像刹车时车身前倾再回正。振幅逐次衰减 1 → -0.28 → 0.09 → 0。 */
+    /* 刹车回弹（霖需求）：到位后顺着运动方向「稍微超出一点」再收回原位——像刹车时车身
+       前倾再回正。只超出一次、随即平稳收住，不做来回震荡（霖反馈：来回弹看起来像在抖）。
+       峰值用 easeOutQuint 收回：起步快、落点稳。 */
     const over = Math.max(bottom - top, 2) * 0.25 * (down ? 1 : -1);
-    for (const [p, amp] of [[0.35, 1], [0.62, -0.28], [0.82, 0.09], [1, 0]] as const) {
+    const tail: ReadonlyArray<readonly [number, number, string]> = [
+      [0.42, 1, "cubic-bezier(0.22, 1, 0.36, 1)"], // 超出峰值 → 收住
+      [1, 0, "linear"],
+    ];
+    for (const [p, amp, easing] of tail) {
       const c = c1 + over * amp;
       frames.push({
         transform: `translateY(${c - BAR / 2}px) scaleY(1)`,
         offset: share + (1 - share) * p,
-        easing: "cubic-bezier(0.45, 0, 0.55, 1)",
+        easing,
       });
     }
     setFinal(); // 终态先落定（动画结束后即停在这里），动画期间由关键帧接管
