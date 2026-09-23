@@ -230,7 +230,9 @@ console.log("[13] 滚动揭示：进入视口才滑入，且不与挂载逐项�
   ok(/if \(prefersReducedMotion\(\)\) return;/.test(reveal), "减弱动态时早退，不挂 has-reveal（元素保持可见）");
   ok(/documentElement\.classList\.add\("has-reveal"\)/.test(motion), "has-reveal 挂在 <html> 上");
   ok(/html\.has-reveal[\s\S]{0,400}?opacity: 0;\s*animation: none;/.test(css), "命中元素先置藏身态 + animation: none（压掉挂载进场）");
-  ok(/\.is-in[\s\S]{0,220}?animation: m-reveal-in/.test(css), ".is-in 才播 m-reveal-in（两条规则必须同时存在）");
+  ok(/\[data-reveal-in\][\s\S]{0,220}?animation: m-reveal-in/.test(css), "data-reveal-in 才播 m-reveal-in（两条规则必须同时存在）");
+  ok(/\[data-reveal-in\][\s\S]{0,200}?opacity: 1/.test(css), "已揭示态显式 opacity: 1（否则动画播完回落藏身态集体隐身）");
+  ok(/delete el\.dataset\.revealIn/.test(motion), "揭示标记用 data 属性（React 重写 className 抹不掉）");
   ok(/Math\.min\(i\+\+, 11\)/.test(motion), "同批进入视口的递延上限为 11");
   ok(!/io\.unobserve/.test(motion), "不注销观察（离开视口撤 .is-in，再进视野重播）");
   ok(/new MutationObserver/.test(motion) && /\}, 100\);/.test(motion), "动态内容由 MutationObserver 纳入（100ms 防抖）");
@@ -283,13 +285,13 @@ console.log("[18] 预览退场接线 / 下载提示 / 滚动揭示可重播");
   ok(/fp-dl-hint/.test(preview) && /\.fp-dl-hint/.test(css), "下载提示（蓝色那条）有入场/退场动效");
   ok(!/dlMsg=\{dlMsg\}/.test(preview), "灰色下载提示已移除（只留蓝色那条，不再同信息渲染两遍）");
   ok(!/io\.unobserve/.test(motion), "滚动揭示不注销元素：往回滚再进视野会重播");
-  ok(/classList\.remove\("is-in"\)/.test(motion), "离开视口撤掉 .is-in（回藏身态，方向无关）");
+  ok(/delete el\.dataset\.revealIn/.test(motion), "离开视口撤标记（回藏身态，方向无关）");
 }
 console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵网格");
 {
   ok(/export function useNavIndicator/.test(motion), "侧栏指示条测量收在 lib/motion.ts");
   ok(/className="nav-indicator"/.test(layout), "侧栏与抽屉都渲染了 .nav-indicator（NavBody）");
-  ok(/\.nav-indicator\s*\{[\s\S]{0,320}?transition:/.test(css), "指示条只动 transform/opacity");
+  ok(/\.nav-indicator\s*\{[\s\S]{0,700}?transition: opacity var\(--dur-2\) var\(--ease-out\);/.test(css), "指示条只保留 opacity 过渡（运动由 WAAPI 一段式驱动）");
   ok(/\.nav-indicator\s*\{[\s\S]{0,320}?z-index: 1/.test(css), "指示条在当前项灰底之上（此前被盖住）");
   ok(/itemH \* 3/.test(motion), "拉伸上限 3 个行高（相距远不拉成长条）");
   ok(/\.nav-item\.is-active::before\s*\{\s*\n\s*display: none;/.test(css), "每项自己的 ::before 强调条退位（避免双条）");
@@ -298,6 +300,6 @@ console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵�
   ok(/\.plg-mask\.is-closing/.test(css) && /\.plg-sheet\.is-closing/.test(css), "插件 Sheet 遮罩/面板有退场动画");
   ok(/sheetHold/.test(src("pages/Plugins.tsx")), "插件页 Sheet 接了退场相位");
   ok(/\.mail-compose-mask\.is-closing/.test(css) && /composeHold/.test(src("pages/MailPage.tsx")), "写信弹层有退场动画");
-  ok(/html\.has-reveal :is\(\.app-grid, \.thos-grid\) > \* \{/.test(css) && /html\.has-reveal :is\(\.app-grid, \.thos-grid\) > \*\.is-in/.test(css), "方阵网格纳入滚动揭示（可见才入场，视口外不再错过动画）");
+  ok(/html\.has-reveal :is\(\.app-grid, \.thos-grid\) > \* \{/.test(css) && /html\.has-reveal :is\(\.app-grid, \.thos-grid\) > \*\[data-reveal-in\]/.test(css), "方阵网格纳入滚动揭示（可见才入场，视口外不再错过动画）");
 }
 console.log(`\n动效护栏：${pass} 断言全部通过（只动 transform/opacity + 令牌化 + 减弱动态降级 + 不锁死 hover + 不越权覆盖）`);

@@ -650,8 +650,10 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row) 
   opacity: 0;
   animation: none;
 }
-html.has-reveal :is(.list, .stats, .today-grid, .market-grid, .icon-grid, .setting-group) > *.is-in,
-html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row).is-in {
+/* 已揭示态用 data 属性标记：React 重渲染会整体重写 className（行选中高亮等交互类），
+   classList 手加的 class 会被抹掉，元素当场隐身；data 属性 React 不管理，安全。 */
+html.has-reveal :is(.list, .stats, .today-grid, .market-grid, .icon-grid, .setting-group) > *[data-reveal-in],
+html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[data-reveal-in] {
   opacity: 1;
   animation: m-reveal-in var(--dur-3) var(--ease-out) backwards;
 }
@@ -758,9 +760,9 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row).
   transform-origin: center;
   pointer-events: none;
   z-index: 1; /* 压在当前项灰底之上（此前被盖住） */
-  transition:
-    transform var(--dur-3) var(--ease-ios),
-    opacity var(--dur-2) var(--ease-out);
+  /* transform 的运动全部由 useNavIndicator 的 WAAPI 一段式动画驱动（速度曲线连续），
+     这里只保留透明度过渡；若再挂 transform transition 会和动画拼接出速度突变 */
+  transition: opacity var(--dur-2) var(--ease-out);
 }
 .nav-indicator.is-ready {
   opacity: 1;
@@ -830,6 +832,9 @@ html.has-reveal :is(.app-grid, .thos-grid) > * {
   opacity: 0;
   animation: none;
 }
-html.has-reveal :is(.app-grid, .thos-grid) > *.is-in {
+html.has-reveal :is(.app-grid, .thos-grid) > *[data-reveal-in] {
+  /* ⚠️ opacity: 1 必须显式写——藏身态是 opacity:0，backwards 播完回落到基态，
+     不写这条整批卡片会在动画结束后集体隐身（霖实测） */
+  opacity: 1;
   animation: m-spring-in var(--dur-3) var(--ease-spring) backwards;
 }

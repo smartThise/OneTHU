@@ -75,11 +75,11 @@ export function useExitPhase(active: boolean, ms = 200): { mounted: boolean; clo
  * 滚动揭示：列表项进入视口时侧向滑入（长列表滚动时"新出现的项"不再突变）。
  *
  * 与挂载逐项进场的关系：命中本选择器的元素在 CSS 里被置为 animation: none + opacity: 0，
- * 改由观察器在进入视口时加 .is-in 播 m-reveal-in（同批按 26ms 递延）。两者不能同时作用于
+ * 改由观察器在进入视口时打 data-reveal-in 标记播 m-reveal-in（同批按 30ms 递延）。两者不能同时作用于
  * 同一元素——挂载动画结束回落到基态 opacity: 0 会让元素消失。关闭 JS / 减弱动态时不加
  * has-reveal，元素保持可见。
  *
- * 可重播：离开视口就撤掉 .is-in（回到藏身态）且不注销观察，所以每次进入视野都会播一次，
+ * 可重播：离开视口就撤掉标记（回到藏身态）且不注销观察，所以每次进入视野都会播一次，
  * 往上滚回去与往下滚新出现的行为一致。
  */
 export const REVEAL_SELECTOR =
@@ -98,12 +98,14 @@ export function installScrollReveal(): void {
         if (!e.isIntersecting) {
           // 离开视口就回到藏身态、且不注销观察：之后不管从哪个方向再进视野都会重播
           // （2026-09-23 霖需求：不是只有往下滚新出现的才有，往上滚回去的也要有）
-          el.classList.remove("is-in");
+          delete el.dataset.revealIn;
           continue;
         }
         // 同一批（同时进入视口的一屏）按序递延，避免整屏同时亮起（30ms：霖反馈稍稍调大）
         el.style.animationDelay = `${Math.min(i++, 11) * 30}ms`;
-        el.classList.add("is-in");
+        // ⚠️ 用 data 属性、不用 class：React 重渲染会整体重写 className（行选中高亮等），
+        // classList 手加的类会被抹掉，元素当场回到藏身态隐身（霖实测：点中的邮件行直接消失）
+        el.dataset.revealIn = "1";
       }
     },
     { rootMargin: "0px 0px -8% 0px", threshold: 0 },
@@ -233,8 +235,10 @@ export function useExitHold<T>(value: T | null, ms = 220): { mounted: boolean; c
  * 侧栏 / 抽屉当前项指示条（.nav-indicator）：一条会"拉伸平移"的强调条。
  *
  * 切换时先把条撑到覆盖旧→新两项，再收拢到新项——Office 功能区切换那种手感，
- * 但幅度刻意收着：拉伸 110ms、收拢 200ms，条本身始终 3px 宽。只动 transform
+ * 但幅度刻意收着：全程一段 320ms 动画，条本身始终 3px 宽。只动 transform
  * （translateY + scaleY，center 原点），不碰布局属性。
+ * 用 Web Animations API 而不是两段 transition：两段拼接各自从 0 起速，接缝处
+ * 会「突然减慢/突然加快」（霖实测）；一段动画一条速度曲线，过渡自然。
  *
  * 测量与 useSegPill 同款：绝对定位子元素挂在滚动容器（.nav）里、算内容坐标，
  * 容器滚动时条随内容走。嵌套的 .nav-folders-scroll 也要监听 scroll——激活的收藏夹
@@ -244,7 +248,6 @@ export function useNavIndicator() {
   const rowRef = useRef<HTMLElement | null>(null);
   const barRef = useRef<HTMLSpanElement | null>(null);
   const prevRef = useRef<{ a: number; b: number } | null>(null); // 上一项的 [top, bottom]，内容坐标 px
-  const timerRef = useRef<number | null>(null);
 
   const place = useCallback(() => {
     const el = rowRef.current;
@@ -267,21 +270,22 @@ export function useNavIndicator() {
     // 条最终高度固定 16px、在行内垂直居中（与旧版 ::before 一致；抽屉 40px 行也居中，
     // 不随行高撑满——撑满会显得整根条往下坠）
     const BAR = 16;
-    const setFinal = () => {
-      bar.style.transform = `translateY(${(top + bottom) / 2 - BAR / 2}px) scaleY(1)`;
+    const setFinal = (): string => {
+      const t = `translateY(${(top + bottom) / 2 - BAR / 2}px) scaleY(1)`;
+      bar.style.transform = t;
+      return t;
     };
-    const setSpan = (a: number, b: number) => {
+    const setSpan = (a: number, b: number): string => {
       const h = Math.max(b - a, 2);
-      bar.style.transform = `translateY(${(a + b) / 2 - BAR / 2}px) scaleY(${h / BAR})`;
+      return `translateY(${(a + b) / 2 - BAR / 2}px) scaleY(${h / BAR})`;
     };
     // 首次（或减弱动态）：直接到位，不玩拉伸
     if (!prev || prefersReducedMotion()) {
       setFinal();
       return;
     }
-    // 位置没变（普通重渲染 / 容器宽度变化）：不打断正在进行的收拢
+    // 位置没变（普通重渲染 / 容器宽度变化）：不重播动画
     if (Math.abs(prev.a - top) < 0.5 && Math.abs(prev.b - bottom) < 0.5) return;
-    if (timerRef.current !== null) clearTimeout(timerRef.current);
     // 拉伸上限 3 个行高：相距再远也不拉成一根细长条（霖反馈：太夸张）
     const itemH = Math.max(bottom - top, 2);
     const MAX = itemH * 3;
@@ -292,14 +296,18 @@ export function useNavIndicator() {
       sa = c - MAX / 2;
       sb = c + MAX / 2;
     }
-    bar.style.transitionDuration = "110ms";
-    setSpan(sa, sb);
-    void bar.offsetHeight; // 强制 reflow：让"撑满"成为下一次过渡的起点
-    timerRef.current = window.setTimeout(() => {
-      timerRef.current = null;
-      bar.style.transitionDuration = "200ms";
-      setFinal();
-    }, 110);
+    // 终态先写进内联样式（动画结束即落在它上面），WAAPI 动画期间由动画值接管。
+    // 两段同一对称缓动：中点（撑满态）速度平滑归零再起步，没有拼接突变。
+    const from = bar.style.transform || "none";
+    setFinal();
+    bar.animate(
+      [
+        { transform: from, offset: 0, easing: "cubic-bezier(0.45, 0, 0.55, 1)" },
+        { transform: setSpan(sa, sb), offset: 0.42, easing: "cubic-bezier(0.45, 0, 0.55, 1)" },
+        { transform: setFinal(), offset: 1 },
+      ],
+      { duration: 320 },
+    );
   }, []);
 
   useLayoutEffect(() => {
@@ -321,7 +329,6 @@ export function useNavIndicator() {
       ro.disconnect();
       el.removeEventListener("scroll", onScroll);
       inners.forEach((n) => n.removeEventListener("scroll", onScroll));
-      if (timerRef.current !== null) clearTimeout(timerRef.current);
     };
   }, [place]);
 
