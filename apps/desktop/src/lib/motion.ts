@@ -101,8 +101,9 @@ export function installScrollReveal(): void {
           delete el.dataset.revealIn;
           continue;
         }
-        // 同一批（同时进入视口的一屏）按序递延，避免整屏同时亮起（30ms：霖反馈稍稍调大）
-        el.style.animationDelay = `${Math.min(i++, 11) * 30}ms`;
+        // 同一批（同时进入视口的一屏）按序递延，避免整屏同时亮起（30ms：霖反馈稍稍调大）。
+        // 不封顶：封顶会让排在后面的卡片拿到同一延迟，第一波播完齐刷刷一起出现（霖实测）。
+        el.style.animationDelay = `${i++ * 30}ms`;
         // ⚠️ 用 data 属性、不用 class：React 重渲染会整体重写 className（行选中高亮等），
         // classList 手加的类会被抹掉，元素当场回到藏身态隐身（霖实测：点中的邮件行直接消失）
         el.dataset.revealIn = "1";
@@ -270,14 +271,8 @@ export function useNavIndicator() {
     // 条最终高度固定 16px、在行内垂直居中（与旧版 ::before 一致；抽屉 40px 行也居中，
     // 不随行高撑满——撑满会显得整根条往下坠）
     const BAR = 16;
-    const setFinal = (): string => {
-      const t = `translateY(${(top + bottom) / 2 - BAR / 2}px) scaleY(1)`;
-      bar.style.transform = t;
-      return t;
-    };
-    const setSpan = (a: number, b: number): string => {
-      const h = Math.max(b - a, 2);
-      return `translateY(${(a + b) / 2 - BAR / 2}px) scaleY(${h / BAR})`;
+    const setFinal = (): void => {
+      bar.style.transform = `translateY(${(top + bottom) / 2 - BAR / 2}px) scaleY(1)`;
     };
     // 首次（或减弱动态）：直接到位，不玩拉伸
     if (!prev || prefersReducedMotion()) {
@@ -286,28 +281,37 @@ export function useNavIndicator() {
     }
     // 位置没变（普通重渲染 / 容器宽度变化）：不重播动画
     if (Math.abs(prev.a - top) < 0.5 && Math.abs(prev.b - bottom) < 0.5) return;
-    // 拉伸上限 3 个行高：相距再远也不拉成一根细长条（霖反馈：太夸张）
+
+    /* 端点速度连续（霖反馈：人眼追的是运动方向那个端点，不是条的中心）——
+       前端点（下移=下端，上移=上端）全程走一条 smoothstep 曲线：起停平滑、速度连续；
+       尾端点延迟 30% 再用同样的曲线跟上。条因此自然先拉长、再收回，没有拼接突变。
+       拉伸上限 3 个行高（霖反馈：相距远不拉成细长条），采样成关键帧、段间线性。 */
     const itemH = Math.max(bottom - top, 2);
     const MAX = itemH * 3;
-    let sa = Math.min(prev.a, top);
-    let sb = Math.max(prev.b, bottom);
-    if (sb - sa > MAX) {
-      const c = (sa + sb) / 2;
-      sa = c - MAX / 2;
-      sb = c + MAX / 2;
+    const down = top >= prev.a; // 目标在旧项下方：下端是前端点
+    const a0 = prev.a, b0 = prev.b, a1 = top, b1 = bottom;
+    const sstep = (u: number) => u * u * (3 - 2 * u); // smoothstep：两端速度为 0，连续
+    const N = 16;
+    const frames: Keyframe[] = [];
+    for (let k = 0; k <= N; k++) {
+      const t = k / N;
+      const lead = sstep(t); // 前端点：全程一条曲线
+      const trail = t <= 0.3 ? 0 : sstep((t - 0.3) / 0.7); // 尾端点：延迟 30% 再跟上
+      let ta = down ? a0 + (a1 - a0) * trail : a0 + (a1 - a0) * lead;
+      let tb = down ? b0 + (b1 - b0) * lead : b0 + (b1 - b0) * trail;
+      if (tb - ta > MAX) {
+        const c = (ta + tb) / 2;
+        ta = c - MAX / 2;
+        tb = c + MAX / 2;
+      }
+      frames.push({
+        transform: `translateY(${(ta + tb) / 2 - BAR / 2}px) scaleY(${Math.max(tb - ta, 2) / BAR})`,
+        offset: t,
+        easing: "linear",
+      });
     }
-    // 终态先写进内联样式（动画结束即落在它上面），WAAPI 动画期间由动画值接管。
-    // 两段同一对称缓动：中点（撑满态）速度平滑归零再起步，没有拼接突变。
-    const from = bar.style.transform || "none";
-    setFinal();
-    bar.animate(
-      [
-        { transform: from, offset: 0, easing: "cubic-bezier(0.45, 0, 0.55, 1)" },
-        { transform: setSpan(sa, sb), offset: 0.42, easing: "cubic-bezier(0.45, 0, 0.55, 1)" },
-        { transform: setFinal(), offset: 1 },
-      ],
-      { duration: 320 },
-    );
+    setFinal(); // 终态先落定（动画结束后即停在这里），动画期间由关键帧接管
+    bar.animate(frames, { duration: 320 });
   }, []);
 
   useLayoutEffect(() => {

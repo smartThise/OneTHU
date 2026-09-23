@@ -233,7 +233,7 @@ console.log("[13] 滚动揭示：进入视口才滑入，且不与挂载逐项�
   ok(/\[data-reveal-in\][\s\S]{0,220}?animation: m-reveal-in/.test(css), "data-reveal-in 才播 m-reveal-in（两条规则必须同时存在）");
   ok(/\[data-reveal-in\][\s\S]{0,200}?opacity: 1/.test(css), "已揭示态显式 opacity: 1（否则动画播完回落藏身态集体隐身）");
   ok(/delete el\.dataset\.revealIn/.test(motion), "揭示标记用 data 属性（React 重写 className 抹不掉）");
-  ok(/Math\.min\(i\+\+, 11\)/.test(motion), "同批进入视口的递延上限为 11");
+  ok(/i\+\+ \* 30/.test(motion), "同批逐个递延 30ms 且不封顶（封顶会让其余卡片同一瞬间齐现）");
   ok(!/io\.unobserve/.test(motion), "不注销观察（离开视口撤 .is-in，再进视野重播）");
   ok(/new MutationObserver/.test(motion) && /\}, 100\);/.test(motion), "动态内容由 MutationObserver 纳入（100ms 防抖）");
 }
