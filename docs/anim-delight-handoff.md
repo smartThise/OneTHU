@@ -211,6 +211,20 @@
   加逐项进场（它们的基态可见，覆盖安全）。
 - 侧栏当前项：左侧强调条 `.nav-item::before` 高度 0 → 16px"长出来"，图标 `scale(1.06)`。
 
+### 4.10 侧栏指示条 / 邮箱推入 / 弹层退场 / 方阵网格（2026-09-23，§17）
+
+- **侧栏 / 抽屉当前项指示条**（`.nav-indicator` + `useNavIndicator`）：切换时先把条撑满
+  旧→新两项、再收拢到新项——Office 功能区切换的手感，幅度收着（拉伸 110ms、收拢 200ms）。
+  只动 transform（translateY + scaleY）；挂在 `.nav`（滚动容器）里算内容坐标，滚动随内容走，
+  内层 `.nav-folders-scroll` 的滚动也监听。每项自己的 `::before` 强调条已退位（避免双条）。
+- **邮箱窄屏推入**：点开一封邮件列表向左滑出、详情从右滑入，返回反向。此前 `display:none`
+  硬切、内容"啪"地消失；现在两栏保持挂载、只用 transform 挪位，离场栏延迟 visibility 隐藏。
+- **二级弹层退场**（`useExitHold`）：插件设置 / MCP / 运行日志 Sheet（`plg-mask`/`plg-sheet`）、
+  写信（`mail-compose-mask`/`mail-compose`）关闭时先播 200ms 淡出/收走再卸载，此前瞬间消失。
+- **方阵网格**（其他 Info 服务 `.app-grid`、在线服务 `.thos-grid`）：逐个弹簧 pop
+  （`m-spring-in`），nth-child 递增 18ms、14 项封顶，读作从左上往右下扫过的一道波；
+  筛选/搜索时只有新出现的项弹，已有项不重播。只做了入场——退场做逐项会伴随每次击键闪动。
+
 ### 4.9 文件预览（§15、§16）
 
 - PDF / PPTX 每页淡入（`[data-pdf-page]`、`[data-pptx-page]`）。

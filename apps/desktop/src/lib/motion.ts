@@ -214,3 +214,101 @@ export function useSegPill() {
 
   return [rowRef, pillRef] as const;
 }
+
+/**
+ * 退场相位 + 内容保持：给「父组件条件渲染」的弹层 / Sheet 用（插件设置、写信…）。
+ * active 变 false 后组件多挂 ms 毫秒播完退场；held 是最后一次非空值，退场期间照常渲染，
+ * 否则会闪成空壳。CSS 侧配合 .is-closing 规则。
+ */
+export function useExitHold<T>(value: T | null, ms = 220): { mounted: boolean; closing: boolean; held: T | null } {
+  const { mounted, closing } = useExitPhase(value !== null, ms);
+  const heldRef = useRef<T | null>(null);
+  useEffect(() => {
+    if (value !== null) heldRef.current = value;
+  }, [value]);
+  return { mounted, closing, held: value ?? heldRef.current };
+}
+
+/**
+ * 侧栏 / 抽屉当前项指示条（.nav-indicator）：一条会"拉伸平移"的强调条。
+ *
+ * 切换时先把条撑到覆盖旧→新两项，再收拢到新项——Office 功能区切换那种手感，
+ * 但幅度刻意收着：拉伸 110ms、收拢 200ms，条本身始终 3px 宽。只动 transform
+ * （translateY + scaleY，center 原点），不碰布局属性。
+ *
+ * 测量与 useSegPill 同款：绝对定位子元素挂在滚动容器（.nav）里、算内容坐标，
+ * 容器滚动时条随内容走。嵌套的 .nav-folders-scroll 也要监听 scroll——激活的收藏夹
+ * 落在里面时，内层滚动会改变它的视口位置。
+ */
+export function useNavIndicator() {
+  const rowRef = useRef<HTMLElement | null>(null);
+  const barRef = useRef<HTMLSpanElement | null>(null);
+  const prevRef = useRef<{ a: number; b: number } | null>(null); // 上一项的 [top, bottom]，内容坐标 px
+  const timerRef = useRef<number | null>(null);
+
+  const place = useCallback(() => {
+    const el = rowRef.current;
+    const bar = barRef.current;
+    if (!el || !bar) return;
+    const active = el.querySelector<HTMLElement>(".nav-item.is-active");
+    if (!active || active.offsetHeight <= 0) {
+      bar.classList.remove("is-ready");
+      prevRef.current = null;
+      return;
+    }
+    const base = el.getBoundingClientRect();
+    const box = active.getBoundingClientRect();
+    const top = box.top - base.top - el.clientTop + el.scrollTop;
+    const bottom = top + box.height;
+    const prev = prevRef.current;
+    prevRef.current = { a: top, b: bottom };
+    if (!bar.classList.contains("is-ready")) bar.classList.add("is-ready");
+
+    const BAR = 16; // 与 .nav-indicator 的 height 一致（最终态高度）
+    const setBox = (a: number, b: number) => {
+      const h = Math.max(b - a, 2);
+      bar.style.transform = `translateY(${(a + b) / 2 - BAR / 2}px) scaleY(${h / BAR})`;
+    };
+    // 首次（或减弱动态）：直接到位，不玩拉伸
+    if (!prev || prefersReducedMotion()) {
+      setBox(top, bottom);
+      return;
+    }
+    // 位置没变（普通重渲染 / 容器宽度变化）：不打断正在进行的收拢
+    if (Math.abs(prev.a - top) < 0.5 && Math.abs(prev.b - bottom) < 0.5) return;
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
+    bar.style.transitionDuration = "110ms";
+    setBox(Math.min(prev.a, top), Math.max(prev.b, bottom));
+    void bar.offsetHeight; // 强制 reflow：让"撑满旧→新"成为下一次过渡的起点
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = null;
+      bar.style.transitionDuration = "200ms";
+      setBox(top, bottom);
+    }, 110);
+  }, []);
+
+  useLayoutEffect(() => {
+    place();
+  });
+
+  useLayoutEffect(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => place());
+    ro.observe(el);
+    const onScroll = () => place();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    // 内层限高滚动段（收藏夹）：激活项在里面时它自己的滚动也要重新对位
+    const inners = el.querySelectorAll<HTMLElement>(".nav-folders-scroll");
+    inners.forEach((n) => n.addEventListener("scroll", onScroll, { passive: true }));
+    void document.fonts?.ready.then(() => place()).catch(() => {});
+    return () => {
+      ro.disconnect();
+      el.removeEventListener("scroll", onScroll);
+      inners.forEach((n) => n.removeEventListener("scroll", onScroll));
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
+  }, [place]);
+
+  return [rowRef, barRef] as const;
+}

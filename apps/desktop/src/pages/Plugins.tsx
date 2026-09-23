@@ -13,7 +13,7 @@ import remarkGfm from "remark-gfm";
 import { useSyncExternalStore, useEffect, useRef, useState, type ReactNode } from "react";
 import { confirmOk } from "../lib/confirm.js";
 import { PageHead } from "../components/Layout.js";
-import { useSegPill } from "../lib/motion.js";
+import { useExitHold, useSegPill } from "../lib/motion.js";
 import { PluginLogo } from "../components/PluginLogo.js";
 import {
   commandsSnapshot, disablePlugin, enablePlugin, installedPlugins,
@@ -51,6 +51,8 @@ export function PluginsPage(): ReactNode {
   const themesSnap = useThemes();
   const plugins = cat === "all" ? allPlugins : allPlugins.filter((p) => (p.manifest.category ?? "general") === cat);
   const [sheet, setSheet] = useState<{ id: string; mode: "settings" | "log" | "mcp" } | null>(null);
+  /* 插件设置 / MCP / 运行日志 Sheet：关闭时多挂 240ms 播完退场，而不是瞬间消失 */
+  const sheetHold = useExitHold(sheet, 240);
   /** 市场名单版本（5 分钟缓存内零开销；用于已装卡片「可更新」提示） */
   const [marketVersions, setMarketVersions] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -163,7 +165,14 @@ export function PluginsPage(): ReactNode {
         </div>
       )}
 
-      {sheet ? <PluginSheet id={sheet.id} mode={sheet.mode} onClose={() => setSheet(null)} /> : null}
+      {sheetHold.mounted && sheetHold.held ? (
+        <PluginSheet
+          id={sheetHold.held.id}
+          mode={sheetHold.held.mode}
+          closing={sheetHold.closing}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
         </>
       )}
     </div>
@@ -575,10 +584,13 @@ function Switch({ on, onToggle, label }: { on: boolean; onToggle: () => void; la
 function PluginSheet({
   id,
   mode,
+  closing,
   onClose,
 }: {
   id: string;
   mode: "settings" | "log" | "mcp";
+  /** 退场相位：真值时挂 .is-closing 播完退场再由父级卸载 */
+  closing: boolean;
   onClose: () => void;
 }): ReactNode {
   const plugins = useSyncExternalStore(subscribe, installedPlugins);
@@ -599,7 +611,7 @@ function PluginSheet({
   const title = mode === "settings" ? "设置" : mode === "mcp" ? "MCP 服务器" : "运行日志";
   return (
     <div
-      className="plg-mask"
+      className={"plg-mask" + (closing ? " is-closing" : "")}
       onPointerDown={(e) => {
         downOnMask.current = e.target === e.currentTarget;
       }}
@@ -608,7 +620,7 @@ function PluginSheet({
       }}
     >
       <section
-        className="plg-sheet"
+        className={"plg-sheet" + (closing ? " is-closing" : "")}
         role="dialog"
         aria-label={`${title} · ${rec.manifest.name}`}
         onClick={(e) => e.stopPropagation()}

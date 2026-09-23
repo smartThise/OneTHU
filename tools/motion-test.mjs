@@ -141,7 +141,7 @@ console.log("[10] 各个角落的接线：微交互、页签、弹层、提示�
 {
   ok(/\.btn:active,[\s\S]{0,200}?scale\(0\.965\)/.test(css), "按钮/行/芯片统一按压回弹");
   ok(/\.row-caret\s*\{[\s\S]{0,120}?transition: transform/.test(css), "折叠箭头旋转过渡");
-  ok(/\.nav-item\.is-active::before/.test(css), "侧栏当前项强调条「长出来」");
+  ok(/\.nav-indicator\s*\{/.test(css), "侧栏当前项强调条由 .nav-indicator 统一绘制（可拉伸平移）");
   ok(/\.tab-anim\s*\{/.test(css), "页签内容切换进场");
   const tabs = ["pages/info/InfoPage.tsx", "pages/info/LifePage.tsx", "pages/info/ReservePage.tsx", "pages/FolderPage.tsx"];
   const tabHits = tabs.map((f) => (src(f).match(/tab-anim/g) ?? []).length);
@@ -284,5 +284,18 @@ console.log("[18] 预览退场接线 / 下载提示 / 滚动揭示可重播");
   ok(!/dlMsg=\{dlMsg\}/.test(preview), "灰色下载提示已移除（只留蓝色那条，不再同信息渲染两遍）");
   ok(!/io\.unobserve/.test(motion), "滚动揭示不注销元素：往回滚再进视野会重播");
   ok(/classList\.remove\("is-in"\)/.test(motion), "离开视口撤掉 .is-in（回藏身态，方向无关）");
+}
+console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵网格");
+{
+  ok(/export function useNavIndicator/.test(motion), "侧栏指示条测量收在 lib/motion.ts");
+  ok(/className="nav-indicator"/.test(layout), "侧栏与抽屉都渲染了 .nav-indicator（NavBody）");
+  ok(/\.nav-indicator\s*\{[\s\S]{0,320}?transition:/.test(css), "指示条只动 transform/opacity");
+  ok(/\.nav-item\.is-active::before\s*\{\s*\n\s*display: none;/.test(css), "每项自己的 ::before 强调条退位（避免双条）");
+  ok(/\.mail-layout:not\(\.detail-open\) \.mail-detail/.test(css) && /\.mail-layout\.detail-open \.mail-list/.test(css), "邮箱窄屏：列表/详情 transform 推入推出（不再 display 硬切）");
+  ok(/export function useExitHold/.test(motion), "useExitHold 收在 lib/motion.ts（弹层退场相位 + 内容保持）");
+  ok(/\.plg-mask\.is-closing/.test(css) && /\.plg-sheet\.is-closing/.test(css), "插件 Sheet 遮罩/面板有退场动画");
+  ok(/sheetHold/.test(src("pages/Plugins.tsx")), "插件页 Sheet 接了退场相位");
+  ok(/\.mail-compose-mask\.is-closing/.test(css) && /composeHold/.test(src("pages/MailPage.tsx")), "写信弹层有退场动画");
+  ok(/\.app-grid > \.app-card/.test(css) && /\.thos-grid > \.thos-service-card/.test(css), "其他 Info 服务 / 在线服务方阵逐项弹出");
 }
 console.log(`\n动效护栏：${pass} 断言全部通过（只动 transform/opacity + 令牌化 + 减弱动态降级 + 不锁死 hover + 不越权覆盖）`);

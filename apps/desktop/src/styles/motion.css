@@ -737,3 +737,119 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row).
   background: transparent;
   box-shadow: none;
 }
+
+/* ---------- 17. 侧栏指示条 / 邮箱推入 / 弹层退场 / 方阵网格 ---------- */
+
+/* 侧栏 / 抽屉当前项指示条：一条会"拉伸平移"的强调条（useNavIndicator 测量驱动）。
+   切换时先撑满旧→新两项、再收拢到新项——Office 功能区切换的手感，幅度收着。
+   只动 transform（translateY + scaleY），滚动容器内用内容坐标，滚动时条随内容走。 */
+.nav {
+  position: relative;
+}
+.nav-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transform-origin: center;
+  pointer-events: none;
+  transition:
+    transform var(--dur-3) var(--ease-ios),
+    opacity var(--dur-2) var(--ease-out);
+}
+.nav-indicator.is-ready {
+  opacity: 1;
+}
+/* 每项自己的 ::before 强调条退位（避免出现两根条）；
+   量不到指示条时当前项仍有底色高亮兜底 */
+.nav-item.is-active::before {
+  display: none;
+}
+
+/* 邮箱窄屏（≤860px）：点开一封邮件时列表向左滑出、详情从右滑入，返回反向。
+   此前是 display:none 硬切——内容"啪"地消失。两栏保持挂载，只用 transform 挪位；
+   离场的一栏延迟 visibility 隐藏，不挡点击、不进 tab 焦点。桌面并排不受影响。 */
+@media (max-width: 860px) {
+  .mail-layout {
+    position: relative;
+  }
+  .mail-list,
+  .mail-detail {
+    grid-area: 1 / 1;
+    min-height: 0;
+    transition:
+      transform var(--dur-3) var(--ease-ios),
+      opacity var(--dur-2) var(--ease-out),
+      visibility 0s linear 0s;
+  }
+  .mail-detail {
+    display: flex; /* 原来是 display:none，改由 transform/visibility 藏 */
+  }
+  .mail-layout:not(.detail-open) .mail-detail {
+    transform: translate3d(28%, 0, 0);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition-delay: 0s, 0s, var(--dur-3);
+  }
+  .mail-layout.detail-open .mail-list {
+    transform: translate3d(-28%, 0, 0);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition-delay: 0s, 0s, var(--dur-3);
+  }
+}
+
+/* 二级弹层退场：此前只有入场，关闭全部瞬间消失。
+   遮罩淡出 + 面板收走，与 confirm/预览同一套相位（useExitHold 驱动 .is-closing）。 */
+.plg-mask.is-closing {
+  animation: m-fade-out var(--dur-2) var(--ease-out) both;
+}
+.plg-sheet.is-closing {
+  animation: m-sheet-down var(--dur-2) var(--ease-out) both;
+}
+.mail-compose-mask.is-closing {
+  animation: m-fade-out var(--dur-2) var(--ease-out) both;
+}
+.mail-compose.is-closing {
+  animation: m-spring-out var(--dur-2) var(--ease-out) both;
+}
+
+/* 方阵网格（其他 Info 服务 .app-grid / 在线服务 .thos-grid）：逐个弹出，
+   读作从左上往右下扫过的一道波。与列表的 m-rise 区分：这里用弹簧 pop（过冲约 3%），
+   步进 18ms、14 项封顶——筛选/搜索时新匹配的项单独弹出，已有项不重播。 */
+.app-grid > .app-card,
+.thos-grid > .thos-service-card {
+  animation: m-spring-in var(--dur-3) var(--ease-spring) backwards;
+}
+.app-grid > :nth-child(2),
+.thos-grid > :nth-child(2) { animation-delay: 18ms; }
+.app-grid > :nth-child(3),
+.thos-grid > :nth-child(3) { animation-delay: 36ms; }
+.app-grid > :nth-child(4),
+.thos-grid > :nth-child(4) { animation-delay: 54ms; }
+.app-grid > :nth-child(5),
+.thos-grid > :nth-child(5) { animation-delay: 72ms; }
+.app-grid > :nth-child(6),
+.thos-grid > :nth-child(6) { animation-delay: 90ms; }
+.app-grid > :nth-child(7),
+.thos-grid > :nth-child(7) { animation-delay: 108ms; }
+.app-grid > :nth-child(8),
+.thos-grid > :nth-child(8) { animation-delay: 126ms; }
+.app-grid > :nth-child(9),
+.thos-grid > :nth-child(9) { animation-delay: 144ms; }
+.app-grid > :nth-child(10),
+.thos-grid > :nth-child(10) { animation-delay: 162ms; }
+.app-grid > :nth-child(11),
+.thos-grid > :nth-child(11) { animation-delay: 180ms; }
+.app-grid > :nth-child(12),
+.thos-grid > :nth-child(12) { animation-delay: 198ms; }
+.app-grid > :nth-child(13),
+.thos-grid > :nth-child(13) { animation-delay: 216ms; }
+.app-grid > :nth-child(14),
+.thos-grid > :nth-child(14) { animation-delay: 234ms; }

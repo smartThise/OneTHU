@@ -9,7 +9,7 @@ import { useFavs } from "../state/favs.js";
 import { pluginTabsSnapshot, subscribePluginTabs } from "../plugins/tabs.js";
 import { showToast } from "../state/toast.js";
 import { checkUpdateSilently } from "../lib/update.js";
-import { useSegPill } from "../lib/motion.js";
+import { useNavIndicator, useSegPill } from "../lib/motion.js";
 
 /**
  * 默认一级入口（万物原子化定案）：钉死不可删隐，仅可在侧栏折叠进
@@ -229,6 +229,17 @@ export function Slogan({ size = 13 }: { size?: number }) {
   );
 }
 
+/** 侧栏 / 抽屉共用的导航容器：内含当前项指示条（.nav-indicator，拉伸平移由 useNavIndicator 驱动） */
+function NavBody({ label, children }: { label: string; children: ReactNode }) {
+  const [rowRef, barRef] = useNavIndicator();
+  return (
+    <nav className="nav" aria-label={label} ref={rowRef}>
+      <span className="nav-indicator" ref={barRef} aria-hidden="true" />
+      {children}
+    </nav>
+  );
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const { page: rawPage, navigate, navParams } = useApp();
 
@@ -441,9 +452,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <BrandLogo size={16} />
         </div>
         <div className="nav-label">校园</div>
-        <nav className="nav" aria-label="主导航">
-          {navContent()}
-        </nav>
+        <NavBody label="主导航">{navContent()}</NavBody>
         <div className="sidebar-foot">
           <span className="foot-badge">
             <span className="dot" style={{ background: DESENSITIZE_BUILD ? "var(--amber)" : "var(--green)" }} />
@@ -459,9 +468,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <div className="drawer-brand">
               <BrandLogo size={15} />
             </div>
-            <nav className="nav" aria-label="抽屉导航">
-              {navContent(() => closeNav())}
-            </nav>
+            <NavBody label="抽屉导航">{navContent(() => closeNav())}</NavBody>
             <div className="drawer-foot">
               <span className="foot-badge">
                 <span className="dot" style={{ background: DESENSITIZE_BUILD ? "var(--amber)" : "var(--green)" }} />
