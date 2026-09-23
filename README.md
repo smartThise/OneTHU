@@ -1,3 +1,5 @@
+> 最后更新：2026-09-22 23:03
+
 <div align="center">
 
 <img src="docs/logo-banner.png" alt="(One / THU) — One THUer should have OneTHU." width="640"/>
@@ -6,7 +8,7 @@
 
 `One App · One Identity · One Campus`
 
-[官网](https://onethu.github.io/)　·　[下载最新版](https://github.com/smartThise/OneTHU/releases/latest)　·　[插件市场](https://onethu.github.io/#market)　·　[设计令牌](https://onethu.github.io/tokens.html)　·　[文档](docs/README.md)
+[官网](https://onethu.github.io/)　·　[文档](https://onethu.github.io/docs/)　·　[下载最新版](https://github.com/smartThise/OneTHU/releases/latest)　·　[插件市场](https://onethu.github.io/market.html)
 
 </div>
 
@@ -14,40 +16,52 @@
 
 **One THU in OneTHU.**
 
-OneTHU 是对 thu-info-app / learnX / NextTHUxk 的完全重构：统一身份、统一数据层、统一界面的清华校园套件，覆盖 macOS / Windows / Android 端。
+OneTHU 是面向清华学生的校园应用：统一身份、统一数据、统一界面，覆盖 macOS / Windows / Android，
+并内置 AI Agent（OneTHU Harness）。项目是对 thu-info-app / learnX / NextTHUxk 的整合重构。
 
 ## 为什么是 OneTHU
 
-- **一个身份** —— 登录一次，全校通行：网络学堂、信息门户、图书馆、校园卡共用同一次登录；二次验证支持。
-- **处处一致** —— 所有页面读同一份数据、用同一套界面规范。
-- **一个对话入口** —— OneTHU Harness：一句话完成查课表、查成绩、查电费、订座位，真正的校园助手或许就在眼前。
-- **数据可靠** —— 所有结果同步自 Info 与 网络学堂系统。
-- **全平台** —— macOS / Windows / Android 端安装包齐备，移动端功能与桌面端对齐。
+- **一个身份**：登录一次即可使用全部模块——网络学堂、信息门户、图书馆与校园卡共用同一次登录；
+  登录状态过期后自动恢复，无需重新登录。
+- **处处一致**：所有页面使用同一份数据与同一套界面、配色；同一个对象在各页面共用同一个原子。
+- **一个对话入口**：内置 AI Agent，用一句话查询作业、课表、成绩、电费、图书馆预约与校园新闻。
+- **数据可靠**：只读取校方公开接口；数据未取到时如实显示，不会提前标记为已提交。
+- **全平台**：macOS / Windows / Android 功能对齐，通知、小组件与下载位置在三端均可用。
 
-## 功能总览（0.8.0）
+## 功能总览（0.10.0）
 
-- **统一身份**：统一认证账号登录一次，全部模块共用会话；双因素认证支持。
-- **OneTHU Harness**：属于 THUer 的生产力 Agent——一键处理课表 / 成绩 / 考试 / 新闻 / 空教室 / 校园卡 / 电费 / 网费 / 图书馆座位与研讨间/ 网络学堂全部功能，人工智能赋能学习生活；桌面端与 Android 端功能一致
-- **选课**：与 NextTHUxk 同源的教务选课查询与提交系统
-- **网络学堂**：课程 / 作业 / 通知 / 文件下载
-- **信息门户**：个人信息 / 课表 / 成绩（中英文成绩单）/ 学年汇总 / 倒计时 / 新闻 / 校历 / 空教室 / 教学评估 / 体测 / 卫生成绩
-- **生活服务**：校园卡流水 / 宿舍电费（充值）/ 校园网 / 电子发票 / 银行代发 / 研究生收入
-- **图书馆**：座位预约
-- **体育场馆**：场馆/场次/余量查询 + 我的预约 + 退订（应用内不做预约提交——见「使用边界与声明」；维护窗口 01:00-02:00）
-- **学生宿舍公共空间预约**：空间 / 房间 / 日期 / 场次一站式预约
-- **移动端**：Android APK（arm64 / universal）
+- **统一身份**：统一认证账号登录一次，全部模块共用登录状态，支持二次验证。
+- **网络学堂**：课程、作业、通知、文件与讨论区集中管理；作业截止时间与提交状态与学校系统保持一致。
+- **作业区**：网络学堂与外部作业源（雨课堂 / TUOJ / Tyche / DSA OJ）合并到「全部作业」与「今日」；
+  支持忽略、附件拍照上传、必交附件预检，以及雨课堂主观题的应用内作答与提交。
+- **信息门户**：个人信息 / 课表 / 成绩（中英文成绩单）/ 学年汇总 / 倒计时 / 新闻 / 校历 / 空教室 /
+  教学评估 / 体测 / 卫生成绩。
+- **日程与提醒**：课表、云日历与自定义日程合并为一条时间轴；提醒通过系统通知送达，支持静默时段。
+- **生活服务**：校园卡流水、宿舍电费（充值）、校园网、电子发票、银行代发、研究生收入。
+- **预约查询**：图书馆座位、研讨间、空教室、学生宿舍公共空间与体育场馆余量。
+- **文件与下载**：课件、附件与云盘文件在应用内预览（Office / PDF / 图片 / 压缩包），并可选择保存位置。
+- **原子化**：页面、组件与校园数据统一为「原子」，可搜索、可收藏、可通过链接直接打开，也可放置到桌面。
+- **桌面小组件（Android）**：日程与截止任务、单个原子、收藏夹图标组与快捷方式，每块小组件可单独设置。
+- **选课**：与 NextTHUxk 同源的教务选课查询系统。
+- **插件与 Agent**：JS 插件、Rust 插件与 Android 内嵌三种形态；插件市场人工审查收录，一键安装。
+- **OneTHU Harness**：内置 AI Agent，左下角常驻对话面板，可调用工具完成任务，并与插件双向联动。
 
 ## 下载与上手
 
-安装包见 [Releases](https://github.com/smartThise/OneTHU/releases)：macOS DMG / Windows EXE / Android APK；
-也可以从 [官网](https://onethu.github.io/) 进入（含功能总览与**实时同步的插件市场**）。
+安装包发布在 [Releases](https://github.com/smartThise/OneTHU/releases)：macOS DMG / Windows EXE /
+Android APK；也可从 [官网](https://onethu.github.io/) 按平台获取。
 
-1. 安装后用清华统一认证账号登录（支持双因素认证）；
-2. 数据异常时点右下角**刷新按钮**重试。如果有问题，请及时在 Issue 中提出。
+1. 使用清华大学统一认证账号登录，支持二次验证；
+2. 首启导览会依次引导界面定制、账号接入（雨课堂 / OJ / 邮箱日历 / 云盘）与桌面小组件，每步均可跳过；
+3. 在「设置 → 通知」打开提醒、设置提前量与静默时段；数据异常时使用页面右下角的刷新按钮重试。
 
-需要在不暴露真实姓名 / 学号 / 成绩的前提下演示界面时，用 `demo` 分支构建的
-**OneTHU Demo**（脱敏版：登录与正式版完全一致，姓名与学号替换为化名、成绩为编造成绩，
-课表 / 洗衣机 / 教室等非敏感数据仍为真实数据）。
+问题与建议请在 [Issues](https://github.com/smartThise/OneTHU/issues) 反馈，并附上应用版本与设置页的
+自检结果。完整说明见 [在线文档](https://onethu.github.io/docs/)。
+
+需要在不暴露真实姓名、学号与成绩的前提下演示界面时，使用 `demo` 分支构建的 **OneTHU Demo**
+（脱敏演示版）：登录流程与正式版一致，姓名与学号替换为化名、成绩为编造成绩，课表、洗衣机、
+教室等非敏感数据仍为真实数据；应用标识为 `app.onethu.demo`，可与正式版装在同一台设备上。
+构建方式见 [脱敏演示版构建](docs/demo-build.md)。
 
 ## 使用边界与声明
 
@@ -57,14 +71,18 @@ OneTHU 是对 thu-info-app / learnX / NextTHUxk 的完全重构：统一身份�
 
 ### 外部作业源（荷塘雨课堂 / TUOJ / Tyche / DSA OJ）
 
-设置页「外部作业源」可把各平台的作业 DDL 合并进「全部作业」与「今日」，一处看全：
-雨课堂、TUOJ（AI 版与经典版）、Tyche、DSA OJ。
+「设置 → 外部作业源」可将各平台的作业合并进「全部作业」与「今日」：
 
-- **只读**：只取「标题 + 课程 + 截止时间 + 来源」，不提交、不答题、不抓题目内容。
-- **登录即可**：雨课堂用扫码或官方网页登录；TUOJ / Tyche 复用清华统一认证（TUOJ 也可配独立账密）；DSA OJ 用邮箱 + 密码（该站无统一认证）。登录成功后由应用从传输层自定义响应头（`x-onethu-set-cookie`）取回会话 Cookie，**无需手动爬 Cookie**。登录只在桌面端（Tauri）可用：浏览器预览读不到 `Set-Cookie`。
-- **凭据存储**：`onethu.exthw.v1` 只存**密文**（WebCrypto AES-GCM；密钥由本机随机 salt + 固定串经 PBKDF2 派生）。⚠️ **这只是本地混淆，不是真正的安全** —— 密钥与密文同在本机 localStorage，能读存储的人仍可解出明文；它只避免凭据以肉眼可读的形式被顺手看到或随备份导出。请勿在共享设备上使用。
-- **地址硬编码**：各平台的服务端地址写死在代码里（雨课堂 `pro.yuketang.cn`、TUOJ `ai.tuoj.thusaac.com` 与 `oj.cs.tsinghua.edu.cn`、Tyche `166.111.236.164:6080`、DSA OJ `dsa.cs.tsinghua.edu.cn`），不向用户暴露；Tyche 在校外需 WebVPN。
-- 各平台接口均为逆向自其网页端的非官方用法，可能随对方改版失效；外部源拉取失败**不影响**网络学堂主流程。
+- **只读取**标题、课程、截止时间与状态，不代为提交，也不抓取题目内容。
+- **登录方式**：雨课堂使用扫码或官方网页登录；TUOJ 与 Tyche 复用清华统一认证（TUOJ 也可配置独立账号）；
+  DSA OJ 使用邮箱与密码（该站无统一认证）。登录成功后由应用从传输层取回登录凭据，无需手动复制 Cookie。
+  应用内登录仅在桌面端可用，浏览器预览无法读取响应头。
+- **凭据存储**：各平台凭据只以密文保存在本机（WebCrypto AES-GCM，密钥由本机随机盐与固定串派生）。
+  ⚠️ **这属于本地混淆，不构成真正的安全防护**——密钥与密文同在本机，能读取本机存储的人仍可解出明文；
+  它只避免凭据以可读形式被看到或随备份导出。请勿在共享设备上使用。
+- **服务端地址固定写在代码中**（雨课堂、TUOJ、Tyche、DSA OJ 各自的校内或公网站点），不向用户暴露；
+  Tyche 在校外网络需要 WebVPN。
+- 各平台接口均为逆向自其网页端的非官方用法，可能随对方改版失效；外部源拉取失败不影响网络学堂主流程。
 
 ---
 
@@ -72,61 +90,73 @@ OneTHU 是对 thu-info-app / learnX / NextTHUxk 的完全重构：统一身份�
 
 ## 快速开始
 
-环境要求：Node ≥ 20、pnpm、Rust toolchain（桌面/移动壳需 Rust 编译）；Android 构建另需 Android SDK + NDK。
+环境要求：Node ≥ 20、pnpm、Rust toolchain；Android 构建另需 Android SDK 与 NDK。
 
 ```bash
-pnpm install      # workspace 全量装依赖
+pnpm install      # 安装 workspace 全部依赖
 ```
 
 ### 日常开发
 
 ```bash
-pnpm dev                                  # 纯浏览器预览（Vite dev server；浏览器直连校园网受 CORS 限制）
-pnpm --filter @onethu/desktop tauri:dev   # 原生桌面壳开发模式（Tauri 2，改前端即时热更）
+pnpm dev                                  # 浏览器预览（直连校园接口受同源策略限制）
+pnpm --filter @onethu/desktop tauri:dev   # 原生桌面壳开发模式（前端热更新）
 ```
 
 ### 生产构建
 
 ```bash
 pnpm build                                # 构建全部包；web 资产产出到 apps/desktop/dist
-pnpm --filter @onethu/desktop tauri:build # 桌面安装包（macOS DMG / Windows EXE / Linux 包；会自动先跑 pnpm build）
-pnpm --filter @onethu/desktop exec tauri android build --apk   # Android APK（arm64 / universal，需 SDK+NDK）
+pnpm --filter @onethu/desktop tauri:build # 桌面安装包（macOS DMG / Windows EXE / Linux 包）
+
+bash apps/desktop/scripts/build-release-apk.sh   # Android APK（发布线）
+bash apps/desktop/scripts/build-demo-apk.sh      # Android APK（demo 线，脱敏演示版）
 ```
 
 - 桌面产物：`apps/desktop/src-tauri/target/release/bundle/`
-- Android 产物：`apps/desktop/src-tauri/gen/android/.../build/outputs/apk/`
-- CI（`.github/workflows/release.yml`）打包命令与本地一致；sidecar 在目标平台现场构建，仓库不携带任何架构的二进制
+- Android 产物由上面的脚本输出到 `~/Desktop/OneTHU-builds`
+- CI（`.github/workflows/release.yml`）在打 `v*` 标签时构建桌面安装包；sidecar 在目标平台现场构建，
+  仓库不携带任何架构的二进制
+
+### 分支约定
+
+开发与发布都在 `dev3`（GitHub 与清华 Git 两个远端同步）；本地检出的分支名为 `dev2`，推送目标为
+`dev3`。`demo` 分支用于脱敏演示版，两线只允许在少数文件上不同，镜像改动按文件摘取、不合并分支。
 
 ### 仓库结构
 
 ```
 OneTHU/
 ├── packages/
-│   ├── core/        @onethu/core   统一 API 客户端                          
-│   └── ui/          @onethu/ui     设计令牌与基础样式
+│   ├── core/        @onethu/core      统一 API 客户端与数据层
+│   ├── info-lib/    thu-info-lib 移植 信息门户数据层
+│   └── ui/          @onethu/ui        设计令牌与基础样式
 ├── apps/
-│   └── desktop/     @onethu/desktop  桌面端 + Android（Tauri 2，Vite + React）
+│   └── desktop/     @onethu/desktop   桌面端 + Android（Tauri 2，Vite + React）
 ├── plugins/
-│   └── OneTHU-Harness/              核心）
-└── docs/                            品牌横幅、插件与接口规范、移动端通告等
+│   └── OneTHU-Harness/                官方骨干插件（Rust / Android 内嵌）
+├── tools/                             测试与检查脚本、站点页面同步
+└── docs/                              工程文档（在线文档站同步其正文）
 ```
 
-### API 与插件开发
+### 文档与插件开发
 
-OneTHU 为开发者封装并开放丰富的统一平台调度接口，鼓励开发者利用 OneTHU API 创造更多可能。
-为 OneTHU 编写插件（JS 模块 / Rust sidecar / Android 内嵌），见 [插件开发指南](docs/plugin-development.md) 与 [API 参考](docs/api-reference.md)。
+工程文档的正文在 `docs/`，在线访问 <https://onethu.github.io/docs/>。
+文档在标题下方带「最后更新」时间，改动后执行 `pnpm docs:stamp` 刷新；文案纪律执行 `pnpm lint:docs`。
+
+插件支持 JS 插件、Rust 插件与 Android 内嵌三种形态，开放 30 个命名空间、133 个方法。
+入门见 [插件开发指南](docs/plugin-development.md)，接口细节查 [API 参考](docs/api-reference.md)。
 
 ## OneTHU Harness（OH）
 
-大模型驱动的对话助手，助力您在清华的学习生活。
-
-详见 **[plugins/OneTHU-Harness](https://github.com/smartThise/OneTHU-Harness)**。
+内置的校园 AI Agent：左下角常驻对话面板，覆盖作业、上课时间、图书馆预约、校园新闻等场景，
+可与插件双向联动。详见 [plugins/OneTHU-Harness](https://github.com/smartThise/OneTHU-Harness)。
 
 ## 致谢
 
 核心 API 结论分别验证自 [thu-learn-lib](https://github.com/Harry-Chen/thu-learn-lib)、
 [thu-info-app](https://github.com/thu-info-community/thu-info-app)、[learnX](https://github.com/robertying/learnX)、
-thu-tok-auto、yuketang-helper-auto，向以上项目的长期维护者致敬。OneTHU 为个人使用的整合重构。
+thu-tok-auto、yuketang-helper-auto，向以上项目的长期维护者致敬。
 
 - **THU Info App / thu-info-lib**：数据层移植自上游，经 THU Info 团队**邮件授权**在非商业用途下
   二次分发（授权截止 **2036-12-31**，邮件原文存档于仓库）。
@@ -156,11 +186,11 @@ OneTHU 自有代码以 **MIT** 许可开源（见 [LICENSE](./LICENSE)），**�
 
 ## 版本
 
-当前版本 **0.8.0**（详见 [Releases](https://github.com/smartThise/OneTHU/releases)）。
+当前版本 **0.10.0**（详见 [Releases](https://github.com/smartThise/OneTHU/releases)）。
 
 ## 用户交流群
 
-扫码进 QQ 群：问题反馈、功能催更、使用技巧交流。
+扫码加入 OneTHU 用户 QQ 群：反馈问题、提出需求、交流使用经验。
 
 <p align="center">
   <img src="docs/qrcode_group.jpg" alt="OneTHU 用户 QQ 群" width="240"/>

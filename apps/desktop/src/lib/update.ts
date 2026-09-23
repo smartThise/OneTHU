@@ -9,7 +9,7 @@
 import { universalFetch } from "./transport.js";
 
 /** 版本代号（随主版本更新） */
-export const APP_CODENAME = "Fishman";
+export const APP_CODENAME = "Complex Variable";
 
 declare const __APP_VERSION__: string;
 

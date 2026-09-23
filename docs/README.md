@@ -1,5 +1,7 @@
 # OneTHU 开发文档
 
+> 最后更新：2026-09-22 22:57
+
 OneTHU 是清华大学校园助手应用，基于 Tauri v2 与 React 实现，支持桌面与 Android
 平台。应用集成课表、作业、日程、图书馆预约、校园卡、宿舍电费、校园网等日常功能，
 并通过插件系统提供扩展能力。
@@ -45,6 +47,17 @@ OneTHU 是清华大学校园助手应用，基于 Tauri v2 与 React 实现，�
 `<!-- docs-prose-lint-ok: 理由 -->` 或写入 `tools/docs-prose-allow.json` 豁免。
 
 改完执行 `pnpm lint:docs`（`tools/docs-prose-lint.mjs`，有违规退出码 1）。
+
+## 更新时间
+
+每份文档在标题下方带一行 `> 最后更新：YYYY-MM-DD HH:MM`。改动文档后执行一次：
+
+```bash
+node tools/docs-stamp.mjs      # 改过的文档取当前时间，未改的取该文件最后一次提交时间
+```
+
+时间取该文件最后一次内容变更的时刻。评审文档时先看这一行：若它早于相关代码的提交，
+说明该文档可能已经过期。
 
 ## 接口真源
 

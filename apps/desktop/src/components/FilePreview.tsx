@@ -30,6 +30,7 @@ import {
 import type { PptxSlide, ZipEntry, ZipNode } from "../lib/zipTree.js";
 import { parsePptxModel } from "../lib/pptxRender.js";
 import type { PptxModel, PptxPara, PptxShape } from "../lib/pptxRender.js";
+import { ensurePdfRuntimeShims, hasModernPdfRuntime } from "../lib/pdf-runtime.js";
 
 /* ⚠️ 安卓宿主判定绝不能用裸 UA 正则（R21 修正）：主窗口 UA 被 tauri.conf.json 伪装成
  * Windows Chrome/79（webvpn 票绑定），裸 UA 正则在真机恒 false —— 正是
@@ -69,118 +70,31 @@ interface PdfDocLike {
   getPage(n: number): Promise<PdfPageLike>;
 }
 
-/** pdf.js 现代构建在**渲染阶段**才调用 Map/WeakMap.getOrInsertComputed（Chromium 137+）
- *  与 Promise.withResolvers（Chromium 119+）：getDocument() 本身不抛错，所以"解析失败再换
- *  legacy"的兜底根本等不到——老内核上用户看到的是渲染期 TypeError
- *  （安卓实录：n(...).getOrInsertComputed is not a function）。这里在加载前先探能力，
- *  不具备就把 legacy 排到前面（自带 core-js 垫片），另一个仍留作兜底。 */
-function hasModernPdfRuntime(): boolean {
-  const mapProto = Map.prototype as unknown as Record<string, unknown>;
-  const weakProto = WeakMap.prototype as unknown as Record<string, unknown>;
-  const promiseCtor = Promise as unknown as Record<string, unknown>;
-  const mathObj = Math as unknown as Record<string, unknown>;
-  return (
-    typeof mapProto.getOrInsertComputed === "function" &&
-    typeof weakProto.getOrInsertComputed === "function" &&
-    typeof promiseCtor.withResolvers === "function" &&
-    // R27 真机定位：缺 Math.sumPrecise 时 pdf.js 的字体修复 checkAndRepair()（跑在 **worker** 里）
-    // 抛异常并被吞掉，退化成按名字找 local(SimSun) 系统字体 → 安卓没有这些 Windows 字体 →
-    // 用默认字体画 MacRoman 编码码位（满屏 ü Ä ñ ™ ≤）。垫片只在主线程，worker 是独立 realm，
-    // 所以这一项必须按**原生**能力判定，且本函数要在 ensurePdfRuntimeShims() 之前调用。
-    typeof mathObj.sumPrecise === "function"
-  );
-}
-
-/** 集合原型的最小结构面：垫片只走 has/get/set，不直接触碰内部槽（子类/代理上也成立） */
-interface MapProtoLike {
-  has(key: unknown): boolean;
-  get(key: unknown): unknown;
-  set(key: unknown, value: unknown): unknown;
-}
-
-/** 老内核缺的现代集合 API 最小垫片：语义按规范（has 命中就返回旧值、回调只在未命中时调用）。
- *  只在缺失时定义且 configurable——legacy 构建自带的 core-js 垫片不会被覆盖，也不会互相打架。
- *  必须在**每次 getDocument 之前**调用：换构建/换 worker 后这些全局 API 依旧可能缺席。 */
-function ensurePdfRuntimeShims(): void {
-  const define = (target: object, name: string, value: unknown): void => {
-    if (typeof (target as Record<string, unknown>)[name] === "function") return;
-    Object.defineProperty(target, name, { configurable: true, writable: true, value });
-  };
-
-  define(Map.prototype, "getOrInsert", function (this: MapProtoLike, key: unknown, value: unknown): unknown {
-    if (this.has(key)) return this.get(key);
-    this.set(key, value);
-    return value;
-  });
-  define(WeakMap.prototype, "getOrInsert", function (this: MapProtoLike, key: unknown, value: unknown): unknown {
-    if (this.has(key)) return this.get(key);
-    this.set(key, value);
-    return value;
-  });
-  define(Map.prototype, "getOrInsertComputed", function (this: MapProtoLike, key: unknown, cb: (key: unknown) => unknown): unknown {
-    if (this.has(key)) return this.get(key);
-    const v = cb(key);
-    this.set(key, v);
-    return v;
-  });
-  define(WeakMap.prototype, "getOrInsertComputed", function (this: MapProtoLike, key: unknown, cb: (key: unknown) => unknown): unknown {
-    if (this.has(key)) return this.get(key);
-    const v = cb(key);
-    this.set(key, v);
-    return v;
-  });
-  define(Promise, "withResolvers", function <T>(): {
-    promise: Promise<T>;
-    resolve: (value: T | PromiseLike<T>) => void;
-    reject: (reason?: unknown) => void;
-  } {
-    let resolve!: (value: T | PromiseLike<T>) => void;
-    let reject!: (reason?: unknown) => void;
-    const promise = new Promise<T>((res, rej) => {
-      resolve = res;
-      reject = rej;
-    });
-    return { promise, resolve, reject };
-  });
-  // Neumaier 补偿求和（规范要求比朴素累加精确）。注意它只覆盖主线程：pdf.js 的字体修复在
-  // worker 里跑，缺这项时真正的兜底是走 legacy 构建（其 worker 内打包了 core-js）。
-  define(Math, "sumPrecise", function (items: Iterable<number>): number {
-    let sum = 0;
-    let compensation = 0;
-    for (const value of items) {
-      if (typeof value !== "number") throw new TypeError("Math.sumPrecise: 元素必须是 number");
-      const t = sum + value;
-      compensation += Math.abs(sum) >= Math.abs(value) ? sum - t + value : value - t + sum;
-      sum = t;
-    }
-    return sum + compensation;
-  });
-}
-
-/** pdf.js 现代版构建对内核要求很高，老内核 WebView 会直接抛错——失败自动换 legacy 构建
- *  （自带面向旧环境的转译与垫片），两轮都失败才把错误交回 UI。
+/** pdf.js 现代版构建对内核要求很高（Promise.withResolvers、Math.sumPrecise 等），
+ *  老内核 WebView 会在渲染期抛错或静默退化成系统字体——按内核**原生**能力挑构建，
+ *  缺 API 时优先 legacy（自带面向旧环境的转译与垫片），两轮都失败才把错误交回 UI。
  *  留痕用 console（安卓上可被 logcat 抓到），便于下次排障。 */
 async function loadPdfDoc(dataUrl: string): Promise<PdfDocLike> {
-  const variants = [
-    { mod: () => import("pdfjs-dist"), worker: () => import("pdfjs-dist/build/pdf.worker.min.mjs?url"), tag: "modern" },
-    {
-      mod: () => import("pdfjs-dist/legacy/build/pdf.mjs"),
-      worker: () => import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"),
-      tag: "legacy",
-    },
-  ] as const;
-  // 现代构建的坑在渲染期（见 hasModernPdfRuntime 注释），只靠解析失败兜不住：能力不足时先上 legacy
+  // 顺序要紧：先探测内核**原生**能力，再补垫片。
+  // 垫片只作用于主线程；pdf.js 的字体修复（checkAndRepair → Math.sumPrecise）跑在 worker，
+  // 那是独立 realm，主线程的垫片进不去。若先补垫片，探测会被自己的垫片污染成 true，
+  // 于是选中现代构建、worker 里再抛异常并静默退化成系统字体（R27 手机乱码的真因）。
   const modernOk = hasModernPdfRuntime();
-  const order = modernOk ? variants : ([variants[1], variants[0]] as const);
-  console.info(
-    `[FILE-PREVIEW] pdf.js 构建优先级 ${order.map((v) => v.tag).join(" → ")}（内核${modernOk ? "具备" : "缺少"} getOrInsertComputed/withResolvers）`,
-  );
+  ensurePdfRuntimeShims();
+  const modern = { mod: () => import("pdfjs-dist"), worker: () => import("pdfjs-dist/build/pdf.worker.min.mjs?url"), tag: "modern" } as const;
+  const legacy = {
+    mod: () => import("pdfjs-dist/legacy/build/pdf.mjs"),
+    worker: () => import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"),
+    tag: "legacy",
+  } as const;
+  // 内核缺新 API 时先上 legacy（自带垫片）；否则先用体积更小的现代构建
+  const variants = modernOk ? ([modern, legacy] as const) : ([legacy, modern] as const);
+  if (!modernOk) console.info("[FILE-PREVIEW] 内核缺 pdf.js v6 依赖的新 API，优先 legacy 构建");
   let lastErr: unknown = null;
-  for (const v of order) {
+  for (const v of variants) {
     try {
       const pdfjs = await v.mod();
       pdfjs.GlobalWorkerOptions.workerSrc = (await v.worker()).default;
-      ensurePdfRuntimeShims();
       const d = await pdfjs.getDocument({ data: dataUrlBytes(dataUrl) }).promise;
       if (v.tag === "legacy") console.info("[FILE-PREVIEW] legacy 兜底解析成功");
       return d as unknown as PdfDocLike;
