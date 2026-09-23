@@ -290,12 +290,14 @@ console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵�
   ok(/export function useNavIndicator/.test(motion), "侧栏指示条测量收在 lib/motion.ts");
   ok(/className="nav-indicator"/.test(layout), "侧栏与抽屉都渲染了 .nav-indicator（NavBody）");
   ok(/\.nav-indicator\s*\{[\s\S]{0,320}?transition:/.test(css), "指示条只动 transform/opacity");
+  ok(/\.nav-indicator\s*\{[\s\S]{0,320}?z-index: 1/.test(css), "指示条在当前项灰底之上（此前被盖住）");
+  ok(/itemH \* 3/.test(motion), "拉伸上限 3 个行高（相距远不拉成长条）");
   ok(/\.nav-item\.is-active::before\s*\{\s*\n\s*display: none;/.test(css), "每项自己的 ::before 强调条退位（避免双条）");
   ok(/\.mail-layout:not\(\.detail-open\) \.mail-detail/.test(css) && /\.mail-layout\.detail-open \.mail-list/.test(css), "邮箱窄屏：列表/详情 transform 推入推出（不再 display 硬切）");
   ok(/export function useExitHold/.test(motion), "useExitHold 收在 lib/motion.ts（弹层退场相位 + 内容保持）");
   ok(/\.plg-mask\.is-closing/.test(css) && /\.plg-sheet\.is-closing/.test(css), "插件 Sheet 遮罩/面板有退场动画");
   ok(/sheetHold/.test(src("pages/Plugins.tsx")), "插件页 Sheet 接了退场相位");
   ok(/\.mail-compose-mask\.is-closing/.test(css) && /composeHold/.test(src("pages/MailPage.tsx")), "写信弹层有退场动画");
-  ok(/\.app-grid > \.app-card/.test(css) && /\.thos-grid > \.thos-service-card/.test(css), "其他 Info 服务 / 在线服务方阵逐项弹出");
+  ok(/html\.has-reveal :is\(\.app-grid, \.thos-grid\) > \* \{/.test(css) && /html\.has-reveal :is\(\.app-grid, \.thos-grid\) > \*\.is-in/.test(css), "方阵网格纳入滚动揭示（可见才入场，视口外不再错过动画）");
 }
 console.log(`\n动效护栏：${pass} 断言全部通过（只动 transform/opacity + 令牌化 + 减弱动态降级 + 不锁死 hover + 不越权覆盖）`);

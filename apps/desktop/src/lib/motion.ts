@@ -83,7 +83,7 @@ export function useExitPhase(active: boolean, ms = 200): { mounted: boolean; clo
  * 往上滚回去与往下滚新出现的行为一致。
  */
 export const REVEAL_SELECTOR =
-  ":is(.list, .stats, .today-grid, .market-grid, .icon-grid, .setting-group) > *, .row-click, .mail-row, .news-row, .setting-row, .cloud-row";
+  ":is(.list, .stats, .today-grid, .market-grid, .icon-grid, .setting-group, .app-grid, .thos-grid) > *, .row-click, .mail-row, .news-row, .setting-row, .cloud-row";
 
 export function installScrollReveal(): void {
   if (typeof document === "undefined" || typeof IntersectionObserver === "undefined" || typeof MutationObserver === "undefined") return;
@@ -101,8 +101,8 @@ export function installScrollReveal(): void {
           el.classList.remove("is-in");
           continue;
         }
-        // 同一批（同时进入视口的一屏）按序递延，避免整屏同时亮起
-        el.style.animationDelay = `${Math.min(i++, 11) * 26}ms`;
+        // 同一批（同时进入视口的一屏）按序递延，避免整屏同时亮起（30ms：霖反馈稍稍调大）
+        el.style.animationDelay = `${Math.min(i++, 11) * 30}ms`;
         el.classList.add("is-in");
       }
     },
@@ -264,26 +264,41 @@ export function useNavIndicator() {
     prevRef.current = { a: top, b: bottom };
     if (!bar.classList.contains("is-ready")) bar.classList.add("is-ready");
 
-    const BAR = 16; // 与 .nav-indicator 的 height 一致（最终态高度）
-    const setBox = (a: number, b: number) => {
+    // 条最终高度固定 16px、在行内垂直居中（与旧版 ::before 一致；抽屉 40px 行也居中，
+    // 不随行高撑满——撑满会显得整根条往下坠）
+    const BAR = 16;
+    const setFinal = () => {
+      bar.style.transform = `translateY(${(top + bottom) / 2 - BAR / 2}px) scaleY(1)`;
+    };
+    const setSpan = (a: number, b: number) => {
       const h = Math.max(b - a, 2);
       bar.style.transform = `translateY(${(a + b) / 2 - BAR / 2}px) scaleY(${h / BAR})`;
     };
     // 首次（或减弱动态）：直接到位，不玩拉伸
     if (!prev || prefersReducedMotion()) {
-      setBox(top, bottom);
+      setFinal();
       return;
     }
     // 位置没变（普通重渲染 / 容器宽度变化）：不打断正在进行的收拢
     if (Math.abs(prev.a - top) < 0.5 && Math.abs(prev.b - bottom) < 0.5) return;
     if (timerRef.current !== null) clearTimeout(timerRef.current);
+    // 拉伸上限 3 个行高：相距再远也不拉成一根细长条（霖反馈：太夸张）
+    const itemH = Math.max(bottom - top, 2);
+    const MAX = itemH * 3;
+    let sa = Math.min(prev.a, top);
+    let sb = Math.max(prev.b, bottom);
+    if (sb - sa > MAX) {
+      const c = (sa + sb) / 2;
+      sa = c - MAX / 2;
+      sb = c + MAX / 2;
+    }
     bar.style.transitionDuration = "110ms";
-    setBox(Math.min(prev.a, top), Math.max(prev.b, bottom));
-    void bar.offsetHeight; // 强制 reflow：让"撑满旧→新"成为下一次过渡的起点
+    setSpan(sa, sb);
+    void bar.offsetHeight; // 强制 reflow：让"撑满"成为下一次过渡的起点
     timerRef.current = window.setTimeout(() => {
       timerRef.current = null;
       bar.style.transitionDuration = "200ms";
-      setBox(top, bottom);
+      setFinal();
     }, 110);
   }, []);
 

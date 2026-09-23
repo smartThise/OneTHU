@@ -757,6 +757,7 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row).
   opacity: 0;
   transform-origin: center;
   pointer-events: none;
+  z-index: 1; /* 压在当前项灰底之上（此前被盖住） */
   transition:
     transform var(--dur-3) var(--ease-ios),
     opacity var(--dur-2) var(--ease-out);
@@ -797,6 +798,8 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row).
     transition-delay: 0s, 0s, var(--dur-3);
   }
   .mail-layout.detail-open .mail-list {
+    /* 必须显式顶掉 global 的 display:none（同特异性、本文件在后）——否则列表瞬间消失 */
+    display: flex;
     transform: translate3d(-28%, 0, 0);
     opacity: 0;
     visibility: hidden;
@@ -820,36 +823,13 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row).
   animation: m-spring-out var(--dur-2) var(--ease-out) both;
 }
 
-/* 方阵网格（其他 Info 服务 .app-grid / 在线服务 .thos-grid）：逐个弹出，
-   读作从左上往右下扫过的一道波。与列表的 m-rise 区分：这里用弹簧 pop（过冲约 3%），
-   步进 18ms、14 项封顶——筛选/搜索时新匹配的项单独弹出，已有项不重播。 */
-.app-grid > .app-card,
-.thos-grid > .thos-service-card {
+/* 方阵网格（其他 Info 服务 .app-grid / 在线服务 .thos-grid）：可见才入场——
+   纳入滚动揭示，滚到哪弹到哪（此前 nth-child 首屏一次播完，视口外的卡片直接错过动画）。
+   弹簧 pop（过冲约 3%）与列表的侧滑区分；间隔由揭示器统一给（30ms 步进）。 */
+html.has-reveal :is(.app-grid, .thos-grid) > * {
+  opacity: 0;
+  animation: none;
+}
+html.has-reveal :is(.app-grid, .thos-grid) > *.is-in {
   animation: m-spring-in var(--dur-3) var(--ease-spring) backwards;
 }
-.app-grid > :nth-child(2),
-.thos-grid > :nth-child(2) { animation-delay: 18ms; }
-.app-grid > :nth-child(3),
-.thos-grid > :nth-child(3) { animation-delay: 36ms; }
-.app-grid > :nth-child(4),
-.thos-grid > :nth-child(4) { animation-delay: 54ms; }
-.app-grid > :nth-child(5),
-.thos-grid > :nth-child(5) { animation-delay: 72ms; }
-.app-grid > :nth-child(6),
-.thos-grid > :nth-child(6) { animation-delay: 90ms; }
-.app-grid > :nth-child(7),
-.thos-grid > :nth-child(7) { animation-delay: 108ms; }
-.app-grid > :nth-child(8),
-.thos-grid > :nth-child(8) { animation-delay: 126ms; }
-.app-grid > :nth-child(9),
-.thos-grid > :nth-child(9) { animation-delay: 144ms; }
-.app-grid > :nth-child(10),
-.thos-grid > :nth-child(10) { animation-delay: 162ms; }
-.app-grid > :nth-child(11),
-.thos-grid > :nth-child(11) { animation-delay: 180ms; }
-.app-grid > :nth-child(12),
-.thos-grid > :nth-child(12) { animation-delay: 198ms; }
-.app-grid > :nth-child(13),
-.thos-grid > :nth-child(13) { animation-delay: 216ms; }
-.app-grid > :nth-child(14),
-.thos-grid > :nth-child(14) { animation-delay: 234ms; }
