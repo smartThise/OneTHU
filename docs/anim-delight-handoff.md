@@ -421,10 +421,10 @@
 
 安卓侧无法在本地复现时，可用这两个自写脚本驱动真机：
 
-- `/home/lin/tools/adbclient.py`：WSL 内没有 adb、Windows interop 关闭时，用 adb host 协议
+- `~/tools/adbclient.py`（本机工具，仓库外）：WSL 内没有 adb、Windows interop 关闭时，用 adb host 协议
   直连 Windows 侧 adb server（前置：Windows 上执行 `adb.exe -a start-server`）。
   支持 `devices` / `shell` / `push` / `pull` / `install` / `forward` / `logcat-dump`。
-- `/home/lin/tools/cdp.py`：经 `adb forward 9222 localabstract:webview_devtools_remote_<pid>` 后，
+- `~/tools/cdp.py`（本机工具，仓库外）：经 `adb forward 9222 localabstract:webview_devtools_remote_<pid>` 后，
   用 CDP 在 WebView 里执行 JS——读 `document.fonts`、统计 canvas 绘制调用、注入动效探针等。
   动效验收里"元素有没有在动画结束后消失"这类问题，用它可以不依赖肉眼截图确认。
 
