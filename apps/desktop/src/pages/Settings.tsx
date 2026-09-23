@@ -228,7 +228,9 @@ export function SettingsPage() {
           </button>
         </div>
         <UpdateRow />
-        <DebugLogRow />
+        {/* 运行日志导出属开发者功能：正式版不显示（真机取证走 adb logcat -s onethu:V，
+            或用开发者构建的右上角面板导出）。要让正式版也显示，去掉这层门控即可。 */}
+        {__ONETHU_DEV__ ? <DebugLogRow /> : null}
       </Card>
 
       <SectionHead title="账户" />
