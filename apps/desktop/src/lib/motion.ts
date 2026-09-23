@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 /**
  * 动效工具（local/anim-delight）：把"什么时候该动、什么时候不该动"的判断收在一处。
@@ -8,11 +8,6 @@ import { useEffect, useRef, useState } from "react";
 /** 系统级「减弱动态效果」（iOS/安卓/Windows 都有这个开关，必须尊重） */
 export function prefersReducedMotion(): boolean {
   return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-/** 真机密度层（main.tsx 按触屏 + 窄窗打标），涟漪等触摸特效只在这里开 */
-export function isPhoneShell(): boolean {
-  return typeof document !== "undefined" && document.documentElement.classList.contains("is-phone");
 }
 
 /**
@@ -36,6 +31,95 @@ export function useNavDirection(page: string, isSubPage: (p: string) => boolean)
     prevRef.current = page;
   }
   return dirRef.current;
+}
+
+/**
+ * 页签切换方向：按页签在顺序表中的位置比较"上一项 vs 当前项"，决定内容从哪一侧滑入。
+ * 只在渲染期比较，幂等（StrictMode 双渲染下结果一致）。
+ */
+export function useTabDirection(activeId: string | null, order: readonly string[]): "next" | "prev" {
+  const prevRef = useRef<string | null>(activeId);
+  const dirRef = useRef<"next" | "prev">("next");
+  if (prevRef.current !== activeId) {
+    const from = prevRef.current === null ? -1 : order.indexOf(prevRef.current);
+    const to = activeId === null ? -1 : order.indexOf(activeId);
+    dirRef.current = from >= 0 && to >= 0 && to < from ? "prev" : "next";
+    prevRef.current = activeId;
+  }
+  return dirRef.current;
+}
+
+/**
+ * 退场相位：active 变 false 后仍保持挂载 ms 毫秒，并返回 closing=true。
+ * 纯 CSS 做不到"先播完退场再卸载"，弹层/遮罩/抽屉的关闭都需要这一层状态机。
+ */
+export function useExitPhase(active: boolean, ms = 200): { mounted: boolean; closing: boolean } {
+  const [state, setState] = useState<"in" | "out" | "gone">(active ? "in" : "gone");
+  const wasActive = useRef(active);
+  useEffect(() => {
+    if (active) {
+      wasActive.current = true;
+      setState("in");
+      return;
+    }
+    if (!wasActive.current) return;
+    wasActive.current = false;
+    setState("out");
+    const t = window.setTimeout(() => setState("gone"), ms);
+    return () => window.clearTimeout(t);
+  }, [active, ms]);
+  return { mounted: state !== "gone", closing: state === "out" };
+}
+
+/**
+ * 滚动揭示：列表项进入视口时侧向滑入（长列表滚动时"新出现的项"不再突变）。
+ *
+ * 与挂载逐项进场的关系：命中本选择器的元素在 CSS 里被置为 animation: none + opacity: 0，
+ * 改由观察器在进入视口时加 .is-in 播 m-reveal-in（同批按 26ms 递延）。两者不能同时作用于
+ * 同一元素——挂载动画结束回落到基态 opacity: 0 会让元素消失。关闭 JS / 减弱动态时不加
+ * has-reveal，元素保持可见。
+ */
+export const REVEAL_SELECTOR =
+  ":is(.list, .stats, .today-grid, .market-grid, .icon-grid, .setting-group) > *, .row-click, .mail-row, .news-row, .setting-row, .cloud-row";
+
+export function installScrollReveal(): void {
+  if (typeof document === "undefined" || typeof IntersectionObserver === "undefined" || typeof MutationObserver === "undefined") return;
+  if (prefersReducedMotion()) return;
+  document.documentElement.classList.add("has-reveal");
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      let i = 0;
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        const el = e.target as HTMLElement;
+        // 同一批（首屏同时出现的一屏）按序递延，避免整屏同时亮起
+        el.style.animationDelay = `${Math.min(i++, 11) * 26}ms`;
+        el.classList.add("is-in");
+        io.unobserve(el);
+      }
+    },
+    { rootMargin: "0px 0px -8% 0px", threshold: 0.01 },
+  );
+
+  const scan = () => {
+    document.querySelectorAll<HTMLElement>(REVEAL_SELECTOR).forEach((el) => {
+      if (el.classList.contains("is-in") || el.dataset.reveal === "1") return;
+      el.dataset.reveal = "1";
+      io.observe(el);
+    });
+  };
+  scan();
+
+  // 动态内容（翻页 / 筛选 / 新数据）也要纳入；100ms 防抖，避免频繁重排时反复全量查询
+  let timer = 0;
+  new MutationObserver(() => {
+    if (timer) return;
+    timer = window.setTimeout(() => {
+      timer = 0;
+      scan();
+    }, 100);
+  }).observe(document.body, { childList: true, subtree: true });
 }
 
 /**
@@ -74,30 +158,52 @@ export function useCountUp(value: number, dur = 680): number {
 }
 
 /**
- * 触摸涟漪：全局只挂一个 pointerdown 监听（不是每个按钮一个），
- * 只在真机密度层生效。节点追加到宿主元素内部，动画结束自行移除。
+ * 分段条滑动块（.seg-pill）：把"当前项"从按钮自带底色换成会滑动的块，
+ * 切换页签时块从旧位置滑到新位置（`--dur-3` + `--ease-ios`）。
+ *
+ * 用法：`const [rowRef, pillRef] = useSegPill();`，rowRef 挂到 .segmented 容器，
+ * pillRef 挂到容器内第一个 `<span className="seg-pill" />`。
+ *
+ * 两条纪律：
+ *  - 测量放在 layout 相位（首帧 paint 之前就位），不会出现"从 0 位置滑进来"；
+ *  - `.is-ready` 只在量到有效宽度后才加——测量失败时按钮保留自带底色，
+ *    不会退化成"没有块也没有底色"。CSS 侧用 `:has(.seg-pill.is-ready)` 对齐这条。
  */
-export function installRipple(): void {
-  if (typeof document === "undefined") return;
-  document.addEventListener(
-    "pointerdown",
-    (e) => {
-      if (!isPhoneShell()) return;
-      const target = e.target as Element | null;
-      const host = target?.closest?.(".btn, .row-click, .nav-item, .chip") as HTMLElement | null;
-      if (!host) return;
-      const rect = host.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-      const size = Math.max(rect.width, rect.height) * 1.1;
-      const span = document.createElement("span");
-      span.className = "m-ripple";
-      span.style.width = `${size}px`;
-      span.style.height = `${size}px`;
-      span.style.left = `${e.clientX - rect.left - size / 2}px`;
-      span.style.top = `${e.clientY - rect.top - size / 2}px`;
-      span.addEventListener("animationend", () => span.remove(), { once: true });
-      host.appendChild(span);
-    },
-    { passive: true },
-  );
+export function useSegPill() {
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  const pillRef = useRef<HTMLSpanElement | null>(null);
+
+  const place = useCallback(() => {
+    const el = rowRef.current;
+    const pill = pillRef.current;
+    if (!el || !pill) return;
+    const active = el.querySelector<HTMLElement>("button.is-active");
+    const box = active?.getBoundingClientRect();
+    if (!active || !box || box.width <= 0) {
+      if (pill.classList.contains("is-ready")) pill.classList.remove("is-ready");
+      return;
+    }
+    // 块是容器的绝对定位子元素：left:0 落在 padding 边，故减掉 clientLeft、加上 scrollLeft
+    const base = el.getBoundingClientRect();
+    pill.style.width = `${box.width}px`;
+    pill.style.transform = `translateX(${box.left - base.left - el.clientLeft + el.scrollLeft}px)`;
+    if (!pill.classList.contains("is-ready")) pill.classList.add("is-ready");
+  }, []);
+
+  // 每次渲染后重测：active 切换、页签文案变化都会改变块的位置与宽度
+  useLayoutEffect(() => {
+    place();
+  });
+
+  useLayoutEffect(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => place());
+    ro.observe(el);
+    // 字体后加载会改变按钮宽度（容器尺寸不变），补测一次
+    void document.fonts?.ready.then(() => place()).catch(() => {});
+    return () => ro.disconnect();
+  }, [place]);
+
+  return [rowRef, pillRef] as const;
 }

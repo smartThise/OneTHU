@@ -21,6 +21,7 @@ import { LibRoomTab } from "./LibRoomTab.js";
 import { ClassroomTab } from "./ClassroomTab.js";
 import { VenueSportsTab } from "./VenueSportsTab.js";
 import { KongjianTab } from "./KongjianTab.js";
+import { useTabDirection } from "../../lib/motion.js";
 
 export type ReserveTab = "library" | "libroom" | "classroom" | "sports" | "kongjian" | "more";
 
@@ -32,6 +33,8 @@ const TABS: Array<{ id: ReserveTab; label: string }> = [
   { id: "kongjian", label: "公共空间" },
   { id: "more", label: "更多场馆" },
 ];
+
+const TAB_IDS = TABS.map((t) => t.id);
 
 /** LearnNav.reserveTab 契约值 → 页内 tab id（"more" 仅页内可达，不作直达参数） */
 const PARAM_TO_TAB: Record<NonNullable<LearnNav["reserveTab"]>, ReserveTab> = {
@@ -46,6 +49,8 @@ export function ReservePage() {
   const { navParams } = useApp();
   const direct = navParams?.reserveTab ? PARAM_TO_TAB[navParams.reserveTab] : undefined;
   const [tab, setTab] = useState<ReserveTab>(() => direct ?? "library");
+  // 页签切换方向（决定内容从哪一侧滑入）
+  const tabDir = useTabDirection(tab ?? null, TAB_IDS);
   /** 已激活过的 tab 保持挂载：切回即显（数据在 hook 里，无需重复请求） */
   const [visited, setVisited] = useState<ReadonlySet<ReserveTab>>(() => new Set([direct ?? "library"]));
 
@@ -83,12 +88,12 @@ export function ReservePage() {
       </SegmentedOverflow>
 
       {/* LibraryTab 自带「图书馆座位」分区标题，不再叠加模块头 */}
-      <div hidden={tab !== "library"} className={tab === "library" ? "tab-anim" : undefined}>{visited.has("library") ? <LibraryTab deepLib={navParams?.libraryId} deepFloor={navParams?.libraryFloorId} deepSection={navParams?.librarySectionId} /> : null}</div>
-      <div hidden={tab !== "libroom"} className={tab === "libroom" ? "tab-anim" : undefined}>{visited.has("libroom") ? <LibRoomTab deepKind={navParams?.libroomKind} /> : null}</div>
-      <div hidden={tab !== "classroom"} className={tab === "classroom" ? "tab-anim" : undefined}>{visited.has("classroom") ? <ClassroomTab deepBuilding={navParams?.classroomBuilding} deepBuildingName={navParams?.classroomBuildingName} deepRoom={navParams?.classroomRoom} /> : null}</div>
-      <div hidden={tab !== "sports"} className={tab === "sports" ? "tab-anim" : undefined}>{visited.has("sports") ? <VenueSportsTab deepScene={navParams?.sportsScene} /> : null}</div>
-      <div hidden={tab !== "kongjian"} className={tab === "kongjian" ? "tab-anim" : undefined}>{visited.has("kongjian") ? <KongjianTab kongjianSpace={navParams?.kongjianSpace} kongjianRoom={navParams?.kongjianRoom} /> : null}</div>
-      <div hidden={tab !== "more"} className={tab === "more" ? "tab-anim" : undefined}>
+      <div hidden={tab !== "library"} className={tab === "library" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("library") ? <LibraryTab deepLib={navParams?.libraryId} deepFloor={navParams?.libraryFloorId} deepSection={navParams?.librarySectionId} /> : null}</div>
+      <div hidden={tab !== "libroom"} className={tab === "libroom" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("libroom") ? <LibRoomTab deepKind={navParams?.libroomKind} /> : null}</div>
+      <div hidden={tab !== "classroom"} className={tab === "classroom" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("classroom") ? <ClassroomTab deepBuilding={navParams?.classroomBuilding} deepBuildingName={navParams?.classroomBuildingName} deepRoom={navParams?.classroomRoom} /> : null}</div>
+      <div hidden={tab !== "sports"} className={tab === "sports" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("sports") ? <VenueSportsTab deepScene={navParams?.sportsScene} /> : null}</div>
+      <div hidden={tab !== "kongjian"} className={tab === "kongjian" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("kongjian") ? <KongjianTab kongjianSpace={navParams?.kongjianSpace} kongjianRoom={navParams?.kongjianRoom} /> : null}</div>
+      <div hidden={tab !== "more"} className={tab === "more" ? "tab-anim" : undefined} data-dir={tabDir}>
         {visited.has("more") ? (
           <Card>
             <Empty text="游泳馆、健身房等陆续接入" />

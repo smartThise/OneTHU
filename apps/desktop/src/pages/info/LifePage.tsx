@@ -28,6 +28,7 @@ import { InvoiceTab } from "./InvoiceTab.js";
 import { PayrollTab } from "./PayrollTab.js";
 import { GradIncomeTab } from "./GradIncomeTab.js";
 import { NetworkTab } from "./NetworkTab.js";
+import { useTabDirection } from "../../lib/motion.js";
 
 export type LifeTab =
   | "dorm" | "washer" | "hygiene" | "card"
@@ -63,6 +64,8 @@ export function LifePage() {
   const visibleIds = layout.order.filter((id) => !layout.hidden.includes(id)) as LifeTab[];
   /** 当前 tab 被隐藏 → 回落到第一个可见栏目（全部隐藏则保持 null 走空态） */
   const effTab = visibleIds.includes(tab) ? tab : visibleIds[0];
+  // 页签切换方向（决定内容从哪一侧滑入）
+  const tabDir = useTabDirection(effTab ?? null, visibleIds);
 
   useEffect(() => {
     const direct = navParams?.lifeTab;
@@ -108,14 +111,14 @@ export function LifePage() {
       ) : (
         <>
           {/* 模块头由栏目名与各 tab 内部分区标题承担（WasherTab 自带「洗衣机」头） */}
-          <div hidden={effTab !== "dorm"} className={effTab === "dorm" ? "tab-anim" : undefined}>{visited.has("dorm") ? <DormTab deepSection={navParams?.dormSection} /> : null}</div>
-          <div hidden={effTab !== "washer"} className={effTab === "washer" ? "tab-anim" : undefined}>{visited.has("washer") ? <WasherTab deepBuildingId={navParams?.washerBuildingId} deepBuildingName={navParams?.washerBuildingName} deepProvider={navParams?.washerBuildingProvider} deepHlsh={navParams?.washerBuildingHlsh} deepMachine={navParams?.washerMachine} /> : null}</div>
-          <div hidden={effTab !== "hygiene"} className={effTab === "hygiene" ? "tab-anim" : undefined}>{visited.has("hygiene") ? <HygieneTab /> : null}</div>
-          <div hidden={effTab !== "card"} className={effTab === "card" ? "tab-anim" : undefined}>{visited.has("card") ? <CardTab /> : null}</div>
-          <div hidden={effTab !== "invoice"} className={effTab === "invoice" ? "tab-anim" : undefined}>{visited.has("invoice") ? <InvoiceTab /> : null}</div>
-          <div hidden={effTab !== "payroll"} className={effTab === "payroll" ? "tab-anim" : undefined}>{visited.has("payroll") ? <PayrollTab /> : null}</div>
-          <div hidden={effTab !== "gradincome"} className={effTab === "gradincome" ? "tab-anim" : undefined}>{visited.has("gradincome") ? <GradIncomeTab /> : null}</div>
-          <div hidden={effTab !== "network"} className={effTab === "network" ? "tab-anim" : undefined}>{visited.has("network") ? <NetworkTab /> : null}</div>
+          <div hidden={effTab !== "dorm"} className={effTab === "dorm" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("dorm") ? <DormTab deepSection={navParams?.dormSection} /> : null}</div>
+          <div hidden={effTab !== "washer"} className={effTab === "washer" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("washer") ? <WasherTab deepBuildingId={navParams?.washerBuildingId} deepBuildingName={navParams?.washerBuildingName} deepProvider={navParams?.washerBuildingProvider} deepHlsh={navParams?.washerBuildingHlsh} deepMachine={navParams?.washerMachine} /> : null}</div>
+          <div hidden={effTab !== "hygiene"} className={effTab === "hygiene" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("hygiene") ? <HygieneTab /> : null}</div>
+          <div hidden={effTab !== "card"} className={effTab === "card" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("card") ? <CardTab /> : null}</div>
+          <div hidden={effTab !== "invoice"} className={effTab === "invoice" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("invoice") ? <InvoiceTab /> : null}</div>
+          <div hidden={effTab !== "payroll"} className={effTab === "payroll" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("payroll") ? <PayrollTab /> : null}</div>
+          <div hidden={effTab !== "gradincome"} className={effTab === "gradincome" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("gradincome") ? <GradIncomeTab /> : null}</div>
+          <div hidden={effTab !== "network"} className={effTab === "network" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("network") ? <NetworkTab /> : null}</div>
         </>
       )}
 

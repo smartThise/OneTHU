@@ -7,7 +7,7 @@
  *  3) 入场动画必须 animation-fill-mode: backwards——用 both 会把 transform 锁在终值，
  *     压过 :hover/:active（按压回弹、悬浮抬起会整体失效），这是最容易踩的坑；
  *  4) 必须尊重 prefers-reduced-motion（CSS 全量降级 + JS 侧判断）；
- *  5) 重效果（模糊）只在桌面；涟漪只在 is-phone；
+ *  5) 重效果（模糊）只在桌面；按压纪律（紧凑控件缩放、整行只压暗底色，绝不改尺寸）；
  *  6) 无限循环动画必须白名单（骨架流光/呼吸点/进度斜纹），别让页面一直在动。
  *
  * 跑法：node tools/motion-test.mjs
@@ -41,7 +41,7 @@ console.log("[1] 动效层接线：必须在 global.css 之后导入（否则同
   const iGlobal = main.indexOf('import "./styles/global.css"');
   const iMotion = main.indexOf('import "./styles/motion.css"');
   ok(iGlobal >= 0 && iMotion > iGlobal, "motion.css 在 global.css 之后导入");
-  ok(/installRipple\(\)/.test(main) && /export function installRipple/.test(motion), "涟漪在入口安装、实现收在 lib/motion.ts");
+  ok(/installScrollReveal\(\)/.test(main) && /export function installScrollReveal/.test(motion), "滚动揭示在入口安装、实现收在 lib/motion.ts");
 }
 
 console.log("[2] 令牌：时长/缓动/位移都有名字，不在组件里散落魔法数字");
@@ -79,7 +79,7 @@ console.log("[4] 最容易踩的坑：入场动画必须 backwards（both 会锁
 {
   ok(/animation-fill-mode|backwards;/.test(css), "入场动画用 backwards 归还样式");
   const bothLines = css.split("\n").filter((l) => /both;/.test(l));
-  ok(bothLines.every((l) => /m-toast-out|m-check-draw|m-sheet-down/.test(l)), `both 只留给"必须保留终帧"的退出动画（${bothLines.length} 处）`);
+  ok(bothLines.every((l) => /m-toast-out|m-check-draw|m-sheet-down|m-fade-out|m-spring-out/.test(l)), `both 只留给"必须保留终帧"的退出动画（${bothLines.length} 处）`);
   const backwards = (css.match(/backwards;/g) ?? []).length;
   ok(backwards >= 15, `入场动画全部 backwards（${backwards} 处）`);
 }
@@ -97,13 +97,16 @@ console.log("[5] 无障碍：尊重系统「减弱动态效果」");
   ok(!/requestAnimationFrame/.test(css), "CSS 里没有绕过降级块的手写帧动画");
 }
 
-console.log("[6] 分级开关：重效果只在桌面，涟漪只在真机");
+console.log("[6] 分级开关与按压纪律：重效果只在桌面，整行按压不改尺寸");
 {
   ok(/@media \(hover: hover\) and \(pointer: fine\)/.test(css), "悬浮抬起/模糊只在桌面指针设备");
   const blur = css.slice(css.indexOf("backdrop-filter"), css.indexOf("backdrop-filter") + 200);
   ok(/@media \(hover: hover\)/.test(css.slice(Math.max(0, css.indexOf("backdrop-filter") - 260), css.indexOf("backdrop-filter"))), "模糊被桌面媒体查询包住");
   ok(blur.length > 0, "模糊确实存在（桌面纵深）");
-  ok(/\.is-phone \.btn/.test(css) && /if \(!isPhoneShell\(\)\) return;/.test(motion), "涟漪只在 is-phone 密度层生效（桌面不挂）");
+  // 按压纪律（涟漪已整体移除，见 §17 回归断言）
+  ok(/\.btn:active,[\s\S]{0,160}?scale\(0\.965\)/.test(css), "紧凑控件按压回弹（缩放）");
+  ok(/\.row-click:active,[\s\S]{0,220}?background: var\(--hover\)/.test(css), "整行/整卡按压只压暗底色");
+  ok(!/\.row-click:active,[\s\S]{0,220}?transform/.test(css), "整行/整卡按压不改尺寸（block 里不出现 transform）");
 }
 
 console.log("[7] 无限动画白名单：不许页面一直在动");
@@ -221,4 +224,55 @@ console.log("[12] 不许覆盖既有动画选择器（基态可能靠 forwards �
   ok(/translateX\(-50%\)/.test(css.slice(css.indexOf("@keyframes m-toast-out"), css.indexOf("@keyframes m-toast-out") + 200)), "提示条退场保留 -50% 居中");
 }
 
+console.log("[13] 滚动揭示：进入视口才滑入，且不与挂载逐项进场叠加");
+{
+  const reveal = motion.slice(motion.indexOf("export function installScrollReveal"));
+  ok(/if \(prefersReducedMotion\(\)\) return;/.test(reveal), "减弱动态时早退，不挂 has-reveal（元素保持可见）");
+  ok(/documentElement\.classList\.add\("has-reveal"\)/.test(motion), "has-reveal 挂在 <html> 上");
+  ok(/html\.has-reveal[\s\S]{0,400}?opacity: 0;\s*animation: none;/.test(css), "命中元素先置藏身态 + animation: none（压掉挂载进场）");
+  ok(/\.is-in[\s\S]{0,220}?animation: m-reveal-in/.test(css), ".is-in 才播 m-reveal-in（两条规则必须同时存在）");
+  ok(/Math\.min\(i\+\+, 11\)/.test(motion), "同批进入视口的递延上限为 11");
+  ok(/new MutationObserver/.test(motion) && /\}, 100\);/.test(motion), "动态内容由 MutationObserver 纳入（100ms 防抖）");
+}
+
+console.log("[14] 页签方向：内容按页签的左右关系滑入，不是一律同一侧");
+{
+  const tabs = ["pages/info/InfoPage.tsx", "pages/info/LifePage.tsx", "pages/info/ReservePage.tsx", "pages/FolderPage.tsx"];
+  const texts = tabs.map((f) => src(f));
+  ok(texts.every((t) => /useTabDirection/.test(t)), `四个多页签页面都接了 useTabDirection（${tabs.map((f) => f.split("/").pop()).join(" / ")}）`);
+  ok(texts.every((t) => /data-dir=\{tabDir\}/.test(t)), "页签容器都挂了 data-dir={tabDir}");
+  ok(/@keyframes m-tab-in\s*\{/.test(css) && /@keyframes m-tab-in-back\s*\{/.test(css), "两个方向的关键帧都存在");
+  ok(/\.tab-anim\[data-dir="prev"\]/.test(css), "prev 方向走 m-tab-in-back");
+}
+
+console.log("[15] 退场相位：先播完退场再卸载（纯 CSS 做不到）");
+{
+  ok(/useExitPhase\(/.test(preview), "文件预览面板接了 useExitPhase");
+  ok(/\.confirm-mask\.is-closing\s*\{[\s\S]{0,80}?animation: m-fade-out/.test(css), "遮罩退场相位");
+  ok(/\.confirm-card\.is-closing\s*\{[\s\S]{0,80}?animation: m-spring-out/.test(css), "面板退场相位");
+  ok(/export function useExitPhase\(active: boolean, ms = 200\)/.test(motion), "useExitPhase 默认 200ms");
+  ok(/mounted: state !== "gone"/.test(motion) && /closing: state === "out"/.test(motion), "返回 { mounted, closing } 两态");
+  ok(/window\.clearTimeout\(t\)/.test(motion), "退场定时器在重入/卸载时清理");
+}
+
+console.log("[16] 可展开：展开时内容滑入（折叠组不再是裸 Fragment）");
+{
+  ok(/\.nav-folded-body\s*\{[\s\S]{0,160}?animation: m-expand-in/.test(css), ".nav-folded-body 展开滑入");
+  ok(/\.collect-row\s*\{[\s\S]{0,90}?animation: m-expand-in/.test(css), ".collect-row 展开滑入");
+  ok(/@keyframes m-expand-in/.test(css), "m-expand-in 关键帧存在");
+  ok(/className="nav-folded-body"/.test(layout), "折叠组渲染进 .nav-folded-body");
+}
+
+console.log("[17] 分段条滑动块 / 横幅 / 无涟漪回归");
+{
+  ok(/\.seg-pill\s*\{[\s\S]{0,420}?transform var\(--dur-3\)[\s\S]{0,90}?width var\(--dur-3\)/.test(css), ".seg-pill 的位移/宽度走 --dur-3 过渡");
+  ok(/\.seg-pill\.is-ready\s*\{[\s\S]{0,60}?opacity: 1/.test(css), "is-ready 才显形（首帧不滑入）");
+  ok(/\.segmented:has\(\.seg-pill\.is-ready\) button\.is-active\s*\{[\s\S]{0,90}?background: transparent/.test(css), "块就位后才撤按钮自带底色（量不到时保留底色）");
+  ok(/export function useSegPill/.test(motion), "测量逻辑收在 lib/motion.ts");
+  const sites = [layout, src("pages/MailPage.tsx"), src("pages/Plugins.tsx")];
+  ok(sites.every((t) => /className="seg-pill"/.test(t)), "三处 .segmented 都渲染了滑动块（SegmentedOverflow / 邮箱 / 插件）");
+  ok(/\.browser-hint\s*\{[\s\S]{0,90}?animation: m-rise/.test(css), "引导横幅出现不突变");
+  ok(!/installRipple/.test(main + motion + css + layout), "涟漪已整体移除（无 installRipple 残留）");
+  ok(!/\.is-phone \.btn/.test(css), "没有 is-phone 涟漪规则");
+}
 console.log(`\n动效护栏：${pass} 断言全部通过（只动 transform/opacity + 令牌化 + 减弱动态降级 + 不锁死 hover + 不越权覆盖）`);

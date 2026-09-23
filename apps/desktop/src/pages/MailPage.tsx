@@ -11,6 +11,7 @@ import { MAIL_FOLDERS, useMail, useMailCounts, useMailBody, sendMail, mailSearch
 import { IconMail, IconRefresh, IconPen, IconChevron } from "../components/Icons.js";
 import { CollectStar } from "../components/Collect.js";
 import { showToast } from "../state/toast.js";
+import { useSegPill } from "../lib/motion.js";
 
 /** 邮件时间：今天 14:05 / 昨天 / 9月5日 / 2025年12月3日 */
 function fmtMailDate(ms: number): string {
@@ -189,6 +190,7 @@ export function MailPage(): React.ReactNode {
   const [searching, setSearching] = useState(false);
   const mail = useMail(folder);
   const unreadCounts = useMailCounts();
+  const [segRef, pillRef] = useSegPill();
 
   // 原子深链：写信 / 邮件实体（先弹层再落位，双触发幂等）
   useEffect(() => {
@@ -238,7 +240,8 @@ export function MailPage(): React.ReactNode {
         </div>
       </div>
       <div className="mail-toolbar">
-        <div className="segmented">
+        <div className="segmented" ref={segRef}>
+          <span className="seg-pill" ref={pillRef} aria-hidden="true" />
           {MAIL_FOLDERS.map((f) => (
             <button
               key={f.id}

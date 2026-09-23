@@ -9,6 +9,7 @@ import { useFavs } from "../state/favs.js";
 import { pluginTabsSnapshot, subscribePluginTabs } from "../plugins/tabs.js";
 import { showToast } from "../state/toast.js";
 import { checkUpdateSilently } from "../lib/update.js";
+import { useSegPill } from "../lib/motion.js";
 
 /**
  * 默认一级入口（万物原子化定案）：钉死不可删隐，仅可在侧栏折叠进
@@ -92,7 +93,7 @@ export function SegmentedOverflow({
   style?: CSSProperties;
   children: ReactNode;
 }) {
-  const rowRef = useRef<HTMLDivElement>(null);
+  const [rowRef, pillRef] = useSegPill();
   const indiRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLElement>(null);
   const drag = useRef<{ x: number; sl: number } | null>(null);
@@ -177,6 +178,8 @@ export function SegmentedOverflow({
           }
         }}
       >
+        {/* 滑动块：位置/宽度由 useSegPill 量出后写入内联样式，量不到时不显形 */}
+        <span className="seg-pill" ref={pillRef} aria-hidden="true" />
         {children}
       </div>
       {/* 真滚动条：滑块可抓取拖动，点槽任意处跳转（拇指中心对齐点击点） */}
@@ -370,7 +373,7 @@ export function Shell({ children }: { children: ReactNode }) {
               <IconChevron width={13} height={13} className="row-caret" />
             </button>
             {foldedOpen ? (
-              <>
+              <div className="nav-folded-body">
                 {foldedDefaults.map(({ page: p, label, icon: Icon }) =>
                   navRow("fd-" + p, {
                     active: page === p,
@@ -397,7 +400,7 @@ export function Shell({ children }: { children: ReactNode }) {
                     onFold: () => favs.foldSidebar(id, false),
                   }),
                 )}
-              </>
+              </div>
             ) : null}
           </>
         ) : null}

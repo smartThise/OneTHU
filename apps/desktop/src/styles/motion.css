@@ -170,17 +170,6 @@
   }
 }
 
-/* 触摸涟漪 */
-@keyframes m-ripple {
-  from {
-    opacity: 0.28;
-    transform: scale(0.2);
-  }
-  to {
-    opacity: 0;
-    transform: scale(2.4);
-  }
-}
 
 /* 完成勾：描边"画"出来 */
 @keyframes m-check-draw {
@@ -248,14 +237,26 @@
     opacity var(--dur-2) var(--ease-out);
 }
 
+/* 紧凑控件：按下去缩一点（实体感，尺寸变化小且元素本身是"按钮"语义） */
 .btn:active,
 .icon-btn:active,
 .chip:active,
-.seg-item:active,
+.seg-item:active {
+  transform: scale(0.965);
+  transition-duration: 70ms;
+}
+
+/* 整行 / 整卡：按下去只压暗底色，**绝不改尺寸**。
+   原因（霖实测 2026-09-22）：手机上按住整行时缩放会被读成"布局变了"，
+   若行内是 flex 布局还会连带文字重排；改为底色反馈后尺寸与排版全程不动。 */
 .row-click:active,
 .nav-item:active,
-.plg-tab:active {
-  transform: scale(0.965);
+.entry:active,
+.stat-card:active,
+.tab:active,
+.plg-tab:active,
+.setting-row:active {
+  background: var(--hover);
   transition-duration: 70ms;
 }
 
@@ -555,32 +556,7 @@ select {
   animation: m-breathe 2.2s var(--ease-in-out) infinite;
 }
 
-/* ---------- 11. 触摸涟漪（只在手机开） ---------- */
-
-.m-ripple {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  background: currentColor;
-  transform: scale(0.2);
-  animation: m-ripple 520ms var(--ease-out) forwards;
-  z-index: 0;
-}
-.is-phone .btn,
-.is-phone .row-click,
-.is-phone .nav-item,
-.is-phone .chip {
-  position: relative;
-  overflow: hidden;
-}
-.is-phone .btn > *,
-.is-phone .row-click > *,
-.is-phone .nav-item > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* ---------- 12. 数字滚动 / 完成勾 ---------- */
+/* ---------- 11. 数字滚动 / 完成勾 ---------- */
 
 .num-roll {
   display: inline-block;
@@ -593,12 +569,16 @@ select {
   animation: m-check-draw var(--dur-4) var(--ease-out) both;
 }
 
-/* 页签内容切换：容器保持挂载（tab 状态不丢），只靠"加上类名"重放一次进场动画 */
+/* 页签内容切换：容器保持挂载（tab 状态不丢），只靠"加上类名"重放一次进场动画。
+   横向小幅侧滑，方向与页签的左右关系一致（data-dir=prev 时从左侧来）。 */
 .tab-anim {
-  animation: m-rise var(--dur-3) var(--ease-out) backwards;
+  animation: m-tab-in var(--dur-3) var(--ease-ios) backwards;
+}
+.tab-anim[data-dir="prev"] {
+  animation-name: m-tab-in-back;
 }
 
-/* ---------- 13. 工具类（组件里直接用） ---------- */
+/* ---------- 12. 工具类（组件里直接用） ---------- */
 
 .anim-rise {
   animation: m-rise var(--dur-3) var(--ease-out) backwards;
@@ -620,7 +600,7 @@ select {
 .anim-delay-3 { animation-delay: 180ms; }
 .anim-delay-4 { animation-delay: 240ms; }
 
-/* ---------- 14. 主题切换：颜色平滑过渡（JS 短暂挂 .theme-anim） ---------- */
+/* ---------- 13. 主题切换：颜色平滑过渡（JS 短暂挂 .theme-anim） ---------- */
 
 html.theme-anim,
 html.theme-anim body,
@@ -636,7 +616,7 @@ html.theme-anim .row {
     border-color var(--dur-3) var(--ease-out) !important;
 }
 
-/* ---------- 15. 滚动条：细一点、悬停才显形（桌面） ---------- */
+/* ---------- 14. 滚动条：细一点、悬停才显形（桌面） ---------- */
 
 @media (hover: hover) and (pointer: fine) {
   * {
@@ -644,9 +624,107 @@ html.theme-anim .row {
   }
 }
 
-/* ---------- 16. 文件预览：逐页淡入 ---------- */
+/* ---------- 15. 文件预览：逐页淡入 ---------- */
 
 [data-pdf-page],
 [data-pptx-page] {
   animation: m-fade var(--dur-3) var(--ease-out) backwards;
+}
+
+/* ---------- 16. 页签衔接、滚动揭示、横幅、可展开、退场相位 ---------- */
+
+@keyframes m-tab-in {
+  from { opacity: 0; transform: translate3d(16px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes m-tab-in-back {
+  from { opacity: 0; transform: translate3d(-16px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 滚动揭示：进入视口才滑入。JS 在 <html> 上挂 has-reveal（关闭 JS / 减弱动态时不挂，
+   元素保持可见）。这里必须 animation: none 压掉挂载逐项进场——两条动画叠加会在动画
+   结束后回落到基态 opacity: 0，元素会消失。 */
+html.has-reveal :is(.list, .stats, .today-grid, .market-grid, .icon-grid, .setting-group) > *,
+html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row) {
+  opacity: 0;
+  animation: none;
+}
+html.has-reveal :is(.list, .stats, .today-grid, .market-grid, .icon-grid, .setting-group) > *.is-in,
+html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row).is-in {
+  opacity: 1;
+  animation: m-reveal-in var(--dur-3) var(--ease-out) backwards;
+}
+@keyframes m-reveal-in {
+  from { opacity: 0; transform: translate3d(-14px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 引导横幅 / 提示条：出现时不再突变 */
+.browser-hint {
+  animation: m-rise var(--dur-3) var(--ease-out) backwards;
+}
+
+/* 可展开菜单：展开时内容滑入（收起仍是即时——纯 CSS 无法延迟卸载） */
+.nav-folded-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  animation: m-expand-in var(--dur-3) var(--ease-out) backwards;
+}
+.collect-row {
+  animation: m-expand-in var(--dur-2) var(--ease-out) backwards;
+}
+@keyframes m-expand-in {
+  from { opacity: 0; transform: translate3d(0, -6px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 退场相位：纯 CSS 无法延迟卸载，配合 lib/motion.ts 的 useExitPhase（closing=true 时挂 .is-closing） */
+@keyframes m-fade-out {
+  to { opacity: 0; }
+}
+@keyframes m-spring-out {
+  to { opacity: 0; transform: scale(0.985) translate3d(0, 6px, 0); }
+}
+.confirm-mask.is-closing {
+  animation: m-fade-out var(--dur-2) var(--ease-out) both;
+}
+.confirm-card.is-closing {
+  animation: m-spring-out var(--dur-2) var(--ease-out) both;
+}
+
+/* 分段条 / 页签的"当前项"改成滑动块：切换时从旧位置滑到新位置，而不是瞬间跳。
+   块由 useSegPill（lib/motion.ts）渲染并测量，位置与宽度写进内联样式；
+   只有块真正量到尺寸（.is-ready）时才撤掉按钮自带的底色，
+   避免测量失败时退化成"没有块也没有底色"。 */
+.segmented {
+  position: relative;
+}
+.segmented button {
+  position: relative;
+  z-index: 1;
+}
+.seg-pill {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  z-index: 0;
+  border-radius: var(--r-pill, 999px);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    transform var(--dur-3) var(--ease-ios),
+    width var(--dur-3) var(--ease-ios),
+    opacity var(--dur-2) var(--ease-out);
+}
+.seg-pill.is-ready {
+  opacity: 1;
+}
+.segmented:has(.seg-pill.is-ready) button.is-active {
+  background: transparent;
+  box-shadow: none;
 }

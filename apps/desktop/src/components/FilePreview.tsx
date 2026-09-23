@@ -11,6 +11,7 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useExitPhase } from "../lib/motion.js";
 import { http, downloadLearnUrl, saveLearnUrlAs, withLearnCsrf } from "../lib/clients.js";
 import { isAndroidHost } from "../lib/yktWebview.js";
 import { isAndroidNavigator, isWindowsNavigator } from "../lib/androidHost.js";
@@ -68,9 +69,97 @@ interface PdfDocLike {
   getPage(n: number): Promise<PdfPageLike>;
 }
 
-/** pdf.js 现代版构建对内核要求很高（如 Promise.withResolvers 需要 Chromium 119+），
- *  老内核 WebView 会直接抛错——失败自动换 legacy 构建（自带面向旧环境的转译与垫片），
- *  两轮都失败才把错误交回 UI。留痕用 console（安卓上可被 logcat 抓到），便于下次排障。 */
+/** pdf.js 现代构建在**渲染阶段**才调用 Map/WeakMap.getOrInsertComputed（Chromium 137+）
+ *  与 Promise.withResolvers（Chromium 119+）：getDocument() 本身不抛错，所以"解析失败再换
+ *  legacy"的兜底根本等不到——老内核上用户看到的是渲染期 TypeError
+ *  （安卓实录：n(...).getOrInsertComputed is not a function）。这里在加载前先探能力，
+ *  不具备就把 legacy 排到前面（自带 core-js 垫片），另一个仍留作兜底。 */
+function hasModernPdfRuntime(): boolean {
+  const mapProto = Map.prototype as unknown as Record<string, unknown>;
+  const weakProto = WeakMap.prototype as unknown as Record<string, unknown>;
+  const promiseCtor = Promise as unknown as Record<string, unknown>;
+  const mathObj = Math as unknown as Record<string, unknown>;
+  return (
+    typeof mapProto.getOrInsertComputed === "function" &&
+    typeof weakProto.getOrInsertComputed === "function" &&
+    typeof promiseCtor.withResolvers === "function" &&
+    // R27 真机定位：缺 Math.sumPrecise 时 pdf.js 的字体修复 checkAndRepair()（跑在 **worker** 里）
+    // 抛异常并被吞掉，退化成按名字找 local(SimSun) 系统字体 → 安卓没有这些 Windows 字体 →
+    // 用默认字体画 MacRoman 编码码位（满屏 ü Ä ñ ™ ≤）。垫片只在主线程，worker 是独立 realm，
+    // 所以这一项必须按**原生**能力判定，且本函数要在 ensurePdfRuntimeShims() 之前调用。
+    typeof mathObj.sumPrecise === "function"
+  );
+}
+
+/** 集合原型的最小结构面：垫片只走 has/get/set，不直接触碰内部槽（子类/代理上也成立） */
+interface MapProtoLike {
+  has(key: unknown): boolean;
+  get(key: unknown): unknown;
+  set(key: unknown, value: unknown): unknown;
+}
+
+/** 老内核缺的现代集合 API 最小垫片：语义按规范（has 命中就返回旧值、回调只在未命中时调用）。
+ *  只在缺失时定义且 configurable——legacy 构建自带的 core-js 垫片不会被覆盖，也不会互相打架。
+ *  必须在**每次 getDocument 之前**调用：换构建/换 worker 后这些全局 API 依旧可能缺席。 */
+function ensurePdfRuntimeShims(): void {
+  const define = (target: object, name: string, value: unknown): void => {
+    if (typeof (target as Record<string, unknown>)[name] === "function") return;
+    Object.defineProperty(target, name, { configurable: true, writable: true, value });
+  };
+
+  define(Map.prototype, "getOrInsert", function (this: MapProtoLike, key: unknown, value: unknown): unknown {
+    if (this.has(key)) return this.get(key);
+    this.set(key, value);
+    return value;
+  });
+  define(WeakMap.prototype, "getOrInsert", function (this: MapProtoLike, key: unknown, value: unknown): unknown {
+    if (this.has(key)) return this.get(key);
+    this.set(key, value);
+    return value;
+  });
+  define(Map.prototype, "getOrInsertComputed", function (this: MapProtoLike, key: unknown, cb: (key: unknown) => unknown): unknown {
+    if (this.has(key)) return this.get(key);
+    const v = cb(key);
+    this.set(key, v);
+    return v;
+  });
+  define(WeakMap.prototype, "getOrInsertComputed", function (this: MapProtoLike, key: unknown, cb: (key: unknown) => unknown): unknown {
+    if (this.has(key)) return this.get(key);
+    const v = cb(key);
+    this.set(key, v);
+    return v;
+  });
+  define(Promise, "withResolvers", function <T>(): {
+    promise: Promise<T>;
+    resolve: (value: T | PromiseLike<T>) => void;
+    reject: (reason?: unknown) => void;
+  } {
+    let resolve!: (value: T | PromiseLike<T>) => void;
+    let reject!: (reason?: unknown) => void;
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  });
+  // Neumaier 补偿求和（规范要求比朴素累加精确）。注意它只覆盖主线程：pdf.js 的字体修复在
+  // worker 里跑，缺这项时真正的兜底是走 legacy 构建（其 worker 内打包了 core-js）。
+  define(Math, "sumPrecise", function (items: Iterable<number>): number {
+    let sum = 0;
+    let compensation = 0;
+    for (const value of items) {
+      if (typeof value !== "number") throw new TypeError("Math.sumPrecise: 元素必须是 number");
+      const t = sum + value;
+      compensation += Math.abs(sum) >= Math.abs(value) ? sum - t + value : value - t + sum;
+      sum = t;
+    }
+    return sum + compensation;
+  });
+}
+
+/** pdf.js 现代版构建对内核要求很高，老内核 WebView 会直接抛错——失败自动换 legacy 构建
+ *  （自带面向旧环境的转译与垫片），两轮都失败才把错误交回 UI。
+ *  留痕用 console（安卓上可被 logcat 抓到），便于下次排障。 */
 async function loadPdfDoc(dataUrl: string): Promise<PdfDocLike> {
   const variants = [
     { mod: () => import("pdfjs-dist"), worker: () => import("pdfjs-dist/build/pdf.worker.min.mjs?url"), tag: "modern" },
@@ -80,11 +169,18 @@ async function loadPdfDoc(dataUrl: string): Promise<PdfDocLike> {
       tag: "legacy",
     },
   ] as const;
+  // 现代构建的坑在渲染期（见 hasModernPdfRuntime 注释），只靠解析失败兜不住：能力不足时先上 legacy
+  const modernOk = hasModernPdfRuntime();
+  const order = modernOk ? variants : ([variants[1], variants[0]] as const);
+  console.info(
+    `[FILE-PREVIEW] pdf.js 构建优先级 ${order.map((v) => v.tag).join(" → ")}（内核${modernOk ? "具备" : "缺少"} getOrInsertComputed/withResolvers）`,
+  );
   let lastErr: unknown = null;
-  for (const v of variants) {
+  for (const v of order) {
     try {
       const pdfjs = await v.mod();
       pdfjs.GlobalWorkerOptions.workerSrc = (await v.worker()).default;
+      ensurePdfRuntimeShims();
       const d = await pdfjs.getDocument({ data: dataUrlBytes(dataUrl) }).promise;
       if (v.tag === "legacy") console.info("[FILE-PREVIEW] legacy 兜底解析成功");
       return d as unknown as PdfDocLike;
@@ -1211,11 +1307,21 @@ export function FilePreviewHost() {
   const [dlPath, setDlPath] = useState("");  // R23：下载成功的目标路径（供「打开文件/目录」按钮）
   const seqRef = useRef(0);
 
+  /* 退场相位（local/anim-delight）：关闭时 cur 先被置空，但面板还要多挂 200ms 播完淡出。
+   * 必须在下面 `if (!cur) return null` **之前**调用——Hook 不能条件调用（见文件下方 pdfDiag 注释）。
+   * 判定用 cur !== null：shown 是本组件内保留的"上一份内容"，不能拿它当开关。 */
+  const { mounted, closing } = useExitPhase(cur !== null);
+  /** 最后一次非空内容：退场期间 cur 已是 null，仍要拿它渲染，否则会闪成空白壳 */
+  const lastRef = useRef<OpenState | null>(null);
+  const shown = cur ?? lastRef.current;
+
   useEffect(() => {
     _open = (t) => {
       seqRef.current += 1;
       setDlMsg("");
-      setCur({ name: t.name, url: t.url, seq: seqRef.current });
+      const next = { name: t.name, url: t.url, seq: seqRef.current };
+      lastRef.current = next;
+      setCur(next);
     };
     return () => {
       _open = null;
@@ -1340,7 +1446,9 @@ export function FilePreviewHost() {
       .catch(() => undefined);
   }, [pdfDiagKey]);
 
-  if (!cur) return null;
+  // 从未打开过（shown 为空）就直接卸载；关闭后要等退场相位走完（mounted 变 false）再卸载，
+  // 期间继续用 shown 渲染上一次的内容，动画收尾而不是"啪"地消失。
+  if (!shown || (cur === null && !mounted)) return null;
 
   const retry = () => {
     if (!cur) return;
@@ -1361,8 +1469,8 @@ export function FilePreviewHost() {
       <style>{DOCX_CSS}</style>
       <div className="confirm-card" style={panelStyle} onClick={(e) => e.stopPropagation()}>
         <div style={headStyle} className="fp-head">
-          <b style={{ flex: "1 1 120px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }} title={cur.name}>
-            {cur.name || "文件预览"}
+          <b style={{ flex: "1 1 120px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }} title={cur?.name ?? shown.name}>
+            {cur?.name || shown.name || "文件预览"}
           </b>
           {metaBits.length ? (
             <span style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)", flexShrink: 0 }}>{metaBits.join(" · ")}</span>
@@ -1408,7 +1516,7 @@ export function FilePreviewHost() {
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, background: "rgba(127,127,127,.05)", minHeight: 220 }}>
               <img
                 src={view.dataUrl}
-                alt={cur.name}
+                alt={cur?.name ?? shown.name}
                 style={{ maxWidth: "100%", maxHeight: "66vh", objectFit: "contain", borderRadius: 8 }}
               />
             </div>
@@ -1444,23 +1552,23 @@ export function FilePreviewHost() {
           ) : null}
 
           {view?.kind === "zip" ? (
-            <ZipTreeView key={`z${cur.seq}`} zip={view.zip} notice={view.notice} />
+            <ZipTreeView key={`z${cur?.seq ?? 0}`} zip={view.zip} notice={view.notice} />
           ) : null}
 
           {view?.kind === "docx" ? (
-            <OfficeShell key={`d${cur.seq}`} zip={view.zip}>
+            <OfficeShell key={`d${cur?.seq ?? 0}`} zip={view.zip}>
               <div className="docx-preview" style={{ padding: "14px 18px" }} dangerouslySetInnerHTML={{ __html: view.html }} />
             </OfficeShell>
           ) : null}
 
           {view?.kind === "xlsx" ? (
-            <OfficeShell key={`x${cur.seq}`} zip={view.zip}>
+            <OfficeShell key={`x${cur?.seq ?? 0}`} zip={view.zip}>
               <XlsxView sheets={view.sheets} />
             </OfficeShell>
           ) : null}
 
           {view?.kind === "pptx" || view?.kind === "pptx-outline" ? (
-            <OfficeShell key={`p${cur.seq}`} zip={view.zip}>
+            <OfficeShell key={`p${cur?.seq ?? 0}`} zip={view.zip}>
               {view.kind === "pptx" ? <PptxSlidesView model={view.model} /> : <PptxView slides={view.slides} />}
               {"notice" in view && view.notice ? (
                 <div style={{ padding: "6px 12px 8px", fontSize: 11.5, color: "var(--text-3, #9aa1ac)", wordBreak: "break-all" }}>
