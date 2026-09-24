@@ -758,7 +758,7 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[
 
 /* 侧栏 / 抽屉当前项指示条：一条会"拉伸平移"的强调条（useNavIndicator 测量驱动）。
    切换时先撑满旧→新两项、再收拢到新项——Office 功能区切换的手感，幅度收着。
-   只动 transform（translateY + scaleY），滚动容器内用内容坐标，滚动时条随内容走。 */
+   只动 translateY 与 height（不缩放，宽度恒为 3px），滚动容器内用内容坐标，滚动时条随内容走。 */
 .nav {
   position: relative;
 }
@@ -766,16 +766,17 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[
   position: absolute;
   left: 0;
   top: 0;
+  /* 宽度恒定 3px：运动只改 translateY 与 height，绝不缩放——缩放会让合成层的光栅化
+     比例随拉伸倍数变化，同一根条在静息/运动态的渲染宽度可能差出 1 个物理像素 */
   width: 3px;
   height: 16px;
   border-radius: 2px;
   background: var(--accent);
   opacity: 0;
-  transform-origin: center;
   pointer-events: none;
   z-index: 1; /* 压在当前项灰底之上（此前被盖住） */
-  /* transform 的运动全部由 useNavIndicator 的 WAAPI 一段式动画驱动（速度曲线连续），
-     这里只保留透明度过渡；若再挂 transform transition 会和动画拼接出速度突变 */
+  /* translateY / height 的运动全部由 useNavIndicator 的两条同步 WAAPI 动画驱动
+     （速度曲线连续），这里只保留透明度过渡；若再挂 transition 会和动画拼出速度突变 */
   transition: opacity var(--dur-2) var(--ease-out);
 }
 .nav-indicator.is-ready {

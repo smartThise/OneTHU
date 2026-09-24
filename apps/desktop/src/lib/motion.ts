@@ -259,10 +259,13 @@ export function useExitHold<T>(value: T | null, ms = 220): { mounted: boolean; c
  * 侧栏 / 抽屉当前项指示条（.nav-indicator）：一条会"拉伸平移"的强调条。
  *
  * 切换时先把条撑到覆盖旧→新两项，再收拢到新项——Office 功能区切换那种手感，
- * 但幅度刻意收着：全程一段 320ms 动画，条本身始终 3px 宽。只动 transform
- * （translateY + scaleY，center 原点），不碰布局属性。
- * 用 Web Animations API 而不是两段 transition：两段拼接各自从 0 起速，接缝处
- * 会「突然减慢/突然加快」（霖实测）；一段动画一条速度曲线，过渡自然。
+ * 但幅度刻意收着：条本身始终 3px 宽、2px 圆角，长度在 2px–3 个行高之间。
+ * 只动 translateY（位置）与 height（长度），**不做任何缩放**——缩放会让合成层的
+ * 光栅化比例随拉伸倍数变化，同一根条在静息/运动态的渲染宽度可能差出 1 个物理像素
+ * （用户反馈"运动时稍微粗一点点"，低分辨率设备更明显）。
+ * 位置与长度拆成两条同步 WAAPI 动画：transform 走合成器线程（位置永远平滑），
+ * height 在主线程只改这根绝对定位元素自身。用 WAAPI 而不是两段 transition：
+ * 两段拼接各自从 0 起速，接缝处会「突然减慢/突然加快」（霖实测）。
  *
  * 测量与 useSegPill 同款：绝对定位子元素挂在滚动容器（.nav）里、算内容坐标，
  * 容器滚动时条随内容走。嵌套的 .nav-folders-scroll 也要监听 scroll——激活的收藏夹
@@ -295,7 +298,8 @@ export function useNavIndicator() {
     // 不随行高撑满——撑满会显得整根条往下坠）
     const BAR = 16;
     const setFinal = (): void => {
-      bar.style.transform = `translateY(${(top + bottom) / 2 - BAR / 2}px) scaleY(1)`;
+      bar.style.height = `${BAR}px`;
+      bar.style.transform = `translateY(${(top + bottom) / 2 - BAR / 2}px)`;
     };
     // 首次（或减弱动态）：直接到位，不玩拉伸
     if (!prev || prefersReducedMotion()) {
@@ -322,11 +326,21 @@ export function useNavIndicator() {
     const N = 24;
     const e0t = c0 - BAR / 2, e0b = c0 + BAR / 2; // 旧静息条的两端
     const e1t = c1 - BAR / 2, e1b = c1 + BAR / 2; // 新静息条的两端
-    // 行程 + 刹车回弹共用一条时间轴：回弹固定 90ms，按比例换算行程的占比
-    const BOUNCE = 90;
+    /* 行程 + 刹车回弹共用一条时间轴；回弹窗 200ms（2026-09-24 由 90ms 拉长——霖反馈
+       回弹太短太硬、看着像卡住）。同一批关键帧交给两条同步动画：
+         · moves —— transform: translateY(条顶端)，合成器线程，位置永远平滑；
+         · sizes —— height(条长度)，主线程只改这根 3px 绝对定位元素自身。
+       不用 scaleY（旧实现）的原因：非等比缩放把 2px 圆角纵向拉成椭圆，且合成层的
+       光栅化比例会随拉伸倍数变化，同一根条在静息/运动态的渲染宽度可能差出 1 个物理
+       像素（用户反馈"运动时稍微粗一点点"，低分辨率设备更明显）。改成 height 后，
+       运动中的条与静息条是同一段 3px 宽、2px 圆角矩形，只是更长，宽度不经任何缩放。 */
+    const BOUNCE = 200;
     const total = dur + BOUNCE;
     const share = dur / total;
-    const frames: Keyframe[] = [];
+    // 回弹两侧统一 ease-in-out：峰值与落点速度都归零，速度连续 → 不顿不弹
+    const SOFT = "cubic-bezier(0.45, 0, 0.55, 1)";
+    const moves: Keyframe[] = [];
+    const sizes: Keyframe[] = [];
     for (let k = 0; k <= N; k++) {
       const u = k / N; // 行程进度
       const lead = ease(u); // 前端点：全程一条曲线
@@ -338,30 +352,29 @@ export function useNavIndicator() {
         ta = c - MAX / 2;
         tb = c + MAX / 2;
       }
-      frames.push({
-        transform: `translateY(${(ta + tb) / 2 - BAR / 2}px) scaleY(${Math.max(tb - ta, 2) / BAR})`,
-        offset: u * share,
-        easing: k === N ? "cubic-bezier(0.45, 0, 0.55, 1)" : "linear",
-      });
+      const easing = k === N ? SOFT : "linear";
+      moves.push({ transform: `translateY(${ta}px)`, offset: u * share, easing });
+      sizes.push({ height: `${Math.max(tb - ta, 2)}px`, offset: u * share, easing });
     }
     /* 刹车回弹（霖需求）：到位后顺着运动方向「稍微超出一点」再收回原位——像刹车时车身
        前倾再回正。只超出一次、随即平稳收住，不做来回震荡（霖反馈：来回弹看起来像在抖）。
-       峰值用 easeOutQuint 收回：起步快、落点稳。 */
-    const over = Math.max(bottom - top, 2) * 0.25 * (down ? 1 : -1);
-    const tail: ReadonlyArray<readonly [number, number, string]> = [
-      [0.42, 1, "cubic-bezier(0.22, 1, 0.36, 1)"], // 超出峰值 → 收住
-      [1, 0, "linear"],
+       2026-09-24 调柔：超出量 1/4→1/5 项高、回弹窗 90→200ms；回程此前用 easeOutQuint
+       （起步极快），峰值处速度从 0 突跳成峰值，看着像"顿一下再弹回去"（霖反馈像卡了）。
+       现在进出峰值两侧都是 ease-in-out、峰值速度为 0：先慢慢越过去，再慢慢收回来。 */
+    const over = Math.max(bottom - top, 2) * 0.2 * (down ? 1 : -1);
+    const tail: ReadonlyArray<readonly [number, number]> = [
+      [0.45, 1], // 越过峰值
+      [1, 0], // 收回原位
     ];
-    for (const [p, amp, easing] of tail) {
+    for (const [p, amp] of tail) {
       const c = c1 + over * amp;
-      frames.push({
-        transform: `translateY(${c - BAR / 2}px) scaleY(1)`,
-        offset: share + (1 - share) * p,
-        easing,
-      });
+      const offset = share + (1 - share) * p;
+      moves.push({ transform: `translateY(${c - BAR / 2}px)`, offset, easing: SOFT });
+      sizes.push({ height: `${BAR}px`, offset, easing: SOFT });
     }
     setFinal(); // 终态先落定（动画结束后即停在这里），动画期间由关键帧接管
-    bar.animate(frames, { duration: total });
+    bar.animate(moves, { duration: total });
+    bar.animate(sizes, { duration: total });
   }, []);
 
   useLayoutEffect(() => {
