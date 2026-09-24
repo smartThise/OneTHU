@@ -297,7 +297,8 @@ console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵�
   ok(/Math\.max\(bottom - top, 2\) \* 3/.test(motion), "拉伸上限 3 个行高（相距远不拉成长条）");
   ok(/Math\.min\(220, Math\.max\(140,/.test(motion), "时长按距离算（140–220ms），近处快远处稳");
   ok(/8 \* u \* u \* u \* u/.test(motion), "指示条端点走四次缓入缓出（非线性明显，不再像匀速）");
-  ok(/Math\.max\(bottom - top, 2\) \* 0\.2/.test(motion) && /const BOUNCE = 200/.test(motion), "到位后有刹车回弹（超出 1/5 项高、回弹窗 200ms，比 90ms 更柔更长）");
+  ok(/Math\.max\(bottom - top, 2\) \* 0\.2 \* bounce/.test(motion) && /const BOUNCE = bounce > 0 \? 200 : 0/.test(motion), "到位后有刹车回弹（满额 1/5 项高、200ms；相邻项连回弹窗都不挂）");
+  ok(/const rows = Math\.abs\(c1 - c0\) \/ Math\.max\(bottom - top, 1\)/.test(motion) && /\(rows - 1\.15\) \/ \(5 - 1\.15\)/.test(motion) && /const bounce = ramp \* ramp/.test(motion), "回弹强度按路程递增（1.15 行内为 0、二次渐入、5 行满额）");
   ok(/\[0\.45, 1\]/.test(motion) && /const SOFT = "cubic-bezier\(0\.45, 0, 0\.55, 1\)"/.test(motion), "回弹进出峰值都用 ease-in-out（峰值速度 0，不再顿一下再弹回）");
   ok(!/0\.22, 1, 0\.36, 1/.test(motion), "旧的 easeOutQuint 回程已移除（起步过快，峰值处速度突跳）");
   ok(!/scaleY\(/.test(motion), "指示条不做缩放：宽度只由 CSS 的 3px 决定，静息/运动态不差像素");

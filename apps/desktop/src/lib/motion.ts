@@ -334,7 +334,14 @@ export function useNavIndicator() {
        光栅化比例会随拉伸倍数变化，同一根条在静息/运动态的渲染宽度可能差出 1 个物理
        像素（用户反馈"运动时稍微粗一点点"，低分辨率设备更明显）。改成 height 后，
        运动中的条与静息条是同一段 3px 宽、2px 圆角矩形，只是更长，宽度不经任何缩放。 */
-    const BOUNCE = 200;
+    /* 回弹强度按路程递增（霖需求 2026-09-24）：相邻项不弹、隔两项很轻微、5 项以上满额。
+       路程折算成「行数」= 位移 / 行高（行高含 gap 时相邻≈1.03、隔两项≈3.1、5 项≈5.2，
+       抽屉 40px 行同理）。1.15 行以内系数 0——连回弹窗都不挂，到位即停；之后二次曲线
+       渐入、5 行满额：近处几乎看不见，只有长距离才给足那一下"刹车前倾"。 */
+    const rows = Math.abs(c1 - c0) / Math.max(bottom - top, 1);
+    const ramp = Math.min(1, Math.max(0, (rows - 1.15) / (5 - 1.15)));
+    const bounce = ramp * ramp;
+    const BOUNCE = bounce > 0 ? 200 : 0;
     const total = dur + BOUNCE;
     const share = dur / total;
     // 回弹两侧统一 ease-in-out：峰值与落点速度都归零，速度连续 → 不顿不弹
@@ -360,17 +367,20 @@ export function useNavIndicator() {
        前倾再回正。只超出一次、随即平稳收住，不做来回震荡（霖反馈：来回弹看起来像在抖）。
        2026-09-24 调柔：超出量 1/4→1/5 项高、回弹窗 90→200ms；回程此前用 easeOutQuint
        （起步极快），峰值处速度从 0 突跳成峰值，看着像"顿一下再弹回去"（霖反馈像卡了）。
-       现在进出峰值两侧都是 ease-in-out、峰值速度为 0：先慢慢越过去，再慢慢收回来。 */
-    const over = Math.max(bottom - top, 2) * 0.2 * (down ? 1 : -1);
-    const tail: ReadonlyArray<readonly [number, number]> = [
-      [0.45, 1], // 越过峰值
-      [1, 0], // 收回原位
-    ];
-    for (const [p, amp] of tail) {
-      const c = c1 + over * amp;
-      const offset = share + (1 - share) * p;
-      moves.push({ transform: `translateY(${c - BAR / 2}px)`, offset, easing: SOFT });
-      sizes.push({ height: `${BAR}px`, offset, easing: SOFT });
+       现在进出峰值两侧都是 ease-in-out、峰值速度为 0：先慢慢越过去，再慢慢收回来。
+       超出量再乘 bounce：相邻项为 0（整段回弹窗都不挂），越远越接近满额 1/5 项高。 */
+    if (BOUNCE > 0) {
+      const over = Math.max(bottom - top, 2) * 0.2 * bounce * (down ? 1 : -1);
+      const tail: ReadonlyArray<readonly [number, number]> = [
+        [0.45, 1], // 越过峰值
+        [1, 0], // 收回原位
+      ];
+      for (const [p, amp] of tail) {
+        const c = c1 + over * amp;
+        const offset = share + (1 - share) * p;
+        moves.push({ transform: `translateY(${c - BAR / 2}px)`, offset, easing: SOFT });
+        sizes.push({ height: `${BAR}px`, offset, easing: SOFT });
+      }
     }
     setFinal(); // 终态先落定（动画结束后即停在这里），动画期间由关键帧接管
     bar.animate(moves, { duration: total });
