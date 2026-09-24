@@ -288,7 +288,13 @@ export function useNavIndicator() {
     }
     const base = el.getBoundingClientRect();
     const box = active.getBoundingClientRect();
-    const top = box.top - base.top - el.clientTop + el.scrollTop;
+    /* 抽屉里的导航项有逐项入场动画（`.drawer .nav-item` → `m-rise`：translate3d 从下方升起，
+       `backwards` 填充），动画期间 rect 里带着这段位移——抽屉一开就量，条会按「项还在下面」
+       的位置落位（霖实测 2026-09-24：条偏在项中间偏下，滑一下侧栏才回正）。条要的是**稳定后**
+       的位置，所以把元素自身的动画位移扣掉（getComputedStyle 反映动画当前值）。 */
+    const tf = getComputedStyle(active).transform;
+    const riseY = !tf || tf === "none" ? 0 : new DOMMatrixReadOnly(tf).m42;
+    const top = box.top - riseY - base.top - el.clientTop + el.scrollTop;
     const bottom = top + box.height;
     const prev = prevRef.current;
     prevRef.current = { a: top, b: bottom };
@@ -403,9 +409,15 @@ export function useNavIndicator() {
     const inners = el.querySelectorAll<HTMLElement>(".nav-folders-scroll");
     inners.forEach((n) => n.addEventListener("scroll", onScroll, { passive: true }));
     void document.fonts?.ready.then(() => place()).catch(() => {});
+    // 兜底：任何入场/退场动画或过渡结束（抽屉逐项 m-rise、当前项 m-spring-in 等）都重新对位
+    const onSettle = () => place();
+    el.addEventListener("animationend", onSettle);
+    el.addEventListener("transitionend", onSettle);
     return () => {
       ro.disconnect();
       el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("animationend", onSettle);
+      el.removeEventListener("transitionend", onSettle);
       inners.forEach((n) => n.removeEventListener("scroll", onScroll));
     };
   }, [place]);

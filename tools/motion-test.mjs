@@ -299,6 +299,8 @@ console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵�
   ok(/8 \* u \* u \* u \* u/.test(motion), "指示条端点走四次缓入缓出（非线性明显，不再像匀速）");
   ok(/Math\.max\(bottom - top, 2\) \* 0\.2 \* bounce/.test(motion) && /const BOUNCE = bounce > 0 \? 200 : 0/.test(motion), "到位后有刹车回弹（满额 1/5 项高、200ms；相邻项连回弹窗都不挂）");
   ok(/const rows = Math\.abs\(c1 - c0\) \/ Math\.max\(bottom - top, 1\)/.test(motion) && /\(rows - 1\.15\) \/ \(5 - 1\.15\)/.test(motion) && /const bounce = ramp \* ramp/.test(motion), "回弹强度按路程递增（1.15 行内为 0、二次渐入、5 行满额）");
+  ok(/new DOMMatrixReadOnly\(tf\)\.m42/.test(motion) && /box\.top - riseY/.test(motion), "量测扣掉导航项自身的入场动画位移（否则抽屉一开条偏下，滑一下才回正）");
+  ok(/addEventListener\("animationend", onSettle\)/.test(motion) && /addEventListener\("transitionend", onSettle\)/.test(motion), "动画/过渡结束后兜底重新对位");
   ok(/const apex = c1 \+ over/.test(motion) && /translateY\(\$\{c1 - BAR \/ 2\}px\) scaleY\(1\)/.test(motion) && /const SOFT = "cubic-bezier\(0\.45, 0, 0\.55, 1\)"/.test(motion), "行程终点=惯性顶点，收尾一帧回到精确位置（穿过目标位不停顿、峰值两侧 ease-in-out）");
   ok(!/0\.22, 1, 0\.36, 1/.test(motion), "旧的 easeOutQuint 回程已移除（起步过快，峰值处速度突跳）");
   ok(!/bar\.animate\(sizes/.test(motion) && /bar\.animate\(frames, \{ duration: total \}\)/.test(motion), "位置与长度同属一条动画（拆成两条会各走各的：主线程卡住时条按自身长度探出去）");
