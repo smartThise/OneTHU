@@ -323,8 +323,21 @@ export function useNavIndicator() {
     // 加上首尾端点曲线错峰取平均，观感接近匀速（霖反馈：看不出缓入缓出）。
     const ease = (u: number) => (u < 0.5 ? 8 * u * u * u * u : 1 - 8 * Math.pow(1 - u, 4));
     const N = 24;
-    const e0t = c0 - BAR / 2, e0b = c0 + BAR / 2; // 旧静息条的两端
-    const e1t = c1 - BAR / 2, e1b = c1 + BAR / 2; // 新静息条的两端
+    const e0t = c0 - BAR / 2, e0b = c0 + BAR / 2; // 起点：旧静息条的两端
+    /* 回弹强度按路程递增（霖需求 2026-09-24）：相邻项不弹、隔两项很轻微、5 项以上满额。
+       路程折算成「行数」= 位移 / 行高（行高含 gap 时相邻≈1.03、隔两项≈3.1、5 项≈5.2，
+       抽屉 40px 行同理）。1.15 行以内系数 0——连滑行量都不留，到位即停；之后二次曲线
+       渐入、5 行满额：近处几乎看不见，只有长距离才给足那一下惯性。 */
+    const rows = Math.abs(c1 - c0) / Math.max(bottom - top, 1);
+    const ramp = Math.min(1, Math.max(0, (rows - 1.15) / (5 - 1.15)));
+    const bounce = ramp * ramp;
+    /* 行程终点不是目标位，而是顺运动方向多滑出去的一点（**惯性顶点**）：条带着末端速度
+       **穿过**目标位、减速停在顶点，再平滑收回精确位置。此前是「终点=目标位，另补一段从
+       目标位滑到顶点」，末端速度先归零、再重新起步，观感是"到了-停住-弹簧"（霖反馈：
+       衔接不流畅，中间多了一段不合理的停顿）。 */
+    const over = bounce > 0 ? Math.max(bottom - top, 2) * 0.2 * bounce * (down ? 1 : -1) : 0;
+    const apex = c1 + over;
+    const e1t = apex - BAR / 2, e1b = apex + BAR / 2; // 终点：惯性顶点的两端
     /* 行程 + 刹车回弹共用一条时间轴；回弹窗 200ms（2026-09-24 由 90ms 拉长——霖反馈
        回弹太短太硬、看着像卡住）。
        ⚠️ 位置与长度必须落在**同一条动画**里（2026-09-24 事故）：曾把「位置」放 transform
@@ -337,13 +350,6 @@ export function useNavIndicator() {
        > 比例也会随拉伸倍数变化（用户曾反馈"运动时稍微粗一点点"）。Chromium 实测（1x/2x
        > 逐帧量测）宽度恒为 3.00px、未复现该差异；若真机复现，应改用 clip-path 开窗
        > （不缩放、仍是单一属性驱动），而不是再把几何拆到两条线程上。 */
-    /* 回弹强度按路程递增（霖需求 2026-09-24）：相邻项不弹、隔两项很轻微、5 项以上满额。
-       路程折算成「行数」= 位移 / 行高（行高含 gap 时相邻≈1.03、隔两项≈3.1、5 项≈5.2，
-       抽屉 40px 行同理）。1.15 行以内系数 0——连回弹窗都不挂，到位即停；之后二次曲线
-       渐入、5 行满额：近处几乎看不见，只有长距离才给足那一下"刹车前倾"。 */
-    const rows = Math.abs(c1 - c0) / Math.max(bottom - top, 1);
-    const ramp = Math.min(1, Math.max(0, (rows - 1.15) / (5 - 1.15)));
-    const bounce = ramp * ramp;
     const BOUNCE = bounce > 0 ? 200 : 0;
     const total = dur + BOUNCE;
     const share = dur / total;
@@ -367,26 +373,16 @@ export function useNavIndicator() {
         easing: k === N ? SOFT : "linear",
       });
     }
-    /* 刹车回弹（霖需求）：到位后顺着运动方向「稍微超出一点」再收回原位——像刹车时车身
-       前倾再回正。只超出一次、随即平稳收住，不做来回震荡（霖反馈：来回弹看起来像在抖）。
-       2026-09-24 调柔：超出量 1/4→1/5 项高、回弹窗 90→200ms；回程此前用 easeOutQuint
-       （起步极快），峰值处速度从 0 突跳成峰值，看着像"顿一下再弹回去"（霖反馈像卡了）。
-       现在进出峰值两侧都是 ease-in-out、峰值速度为 0：先慢慢越过去，再慢慢收回来。
-       超出量再乘 bounce：相邻项为 0（整段回弹窗都不挂），越远越接近满额 1/5 项高。 */
+    /* 收尾（2026-09-24 二改，霖需求）：从惯性顶点平滑收回精确位置。顶点两侧速度都是 0
+       （行程末段 quartic 缓出把速度降到 0，回程 ease-in-out 从 0 起步），接缝连续、无停顿。
+       只收一次、不来回震荡（霖反馈：来回弹看起来像在抖）；峰值两侧都用 ease-in-out
+       （此前回程用 easeOutQuint，起步极快，峰值处速度从 0 突跳成峰值，看着像"顿一下"）。 */
     if (BOUNCE > 0) {
-      const over = Math.max(bottom - top, 2) * 0.2 * bounce * (down ? 1 : -1);
-      const tail: ReadonlyArray<readonly [number, number]> = [
-        [0.45, 1], // 越过峰值
-        [1, 0], // 收回原位
-      ];
-      for (const [p, amp] of tail) {
-        const c = c1 + over * amp;
-        frames.push({
-          transform: `translateY(${c - BAR / 2}px) scaleY(1)`,
-          offset: share + (1 - share) * p,
-          easing: SOFT,
-        });
-      }
+      frames.push({
+        transform: `translateY(${c1 - BAR / 2}px) scaleY(1)`,
+        offset: 1,
+        easing: SOFT,
+      });
     }
     setFinal(); // 终态先落定（动画结束后即停在这里），动画期间由关键帧接管
     bar.animate(frames, { duration: total });
