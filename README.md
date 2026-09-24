@@ -1,4 +1,4 @@
-> 最后更新：2026-09-22 23:03
+> 最后更新：2026-09-23 10:35
 
 <div align="center">
 
@@ -49,7 +49,8 @@ OneTHU 是面向清华学生的校园应用：统一身份、统一数据、统�
 ## 下载与上手
 
 安装包发布在 [Releases](https://github.com/smartThise/OneTHU/releases)：macOS DMG / Windows EXE /
-Android APK；也可从 [官网](https://onethu.github.io/) 按平台获取。
+Android APK；也可从 [官网](https://onethu.github.io/) 按平台获取。校内网络访问 GitHub 不畅时，使用
+[清华云盘下载](https://cloud.tsinghua.edu.cn/d/56f78a2a0b144a6ab737/)（与 Releases 同一批文件，按系统分 Android / macOS / Windows 三个文件夹）。
 
 1. 使用清华大学统一认证账号登录，支持二次验证；
 2. 首启导览会依次引导界面定制、账号接入（雨课堂 / OJ / 邮箱日历 / 云盘）与桌面小组件，每步均可跳过；
