@@ -301,8 +301,8 @@ console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵�
   ok(/const rows = Math\.abs\(c1 - c0\) \/ Math\.max\(bottom - top, 1\)/.test(motion) && /\(rows - 1\.15\) \/ \(5 - 1\.15\)/.test(motion) && /const bounce = ramp \* ramp/.test(motion), "回弹强度按路程递增（1.15 行内为 0、二次渐入、5 行满额）");
   ok(/\[0\.45, 1\]/.test(motion) && /const SOFT = "cubic-bezier\(0\.45, 0, 0\.55, 1\)"/.test(motion), "回弹进出峰值都用 ease-in-out（峰值速度 0，不再顿一下再弹回）");
   ok(!/0\.22, 1, 0\.36, 1/.test(motion), "旧的 easeOutQuint 回程已移除（起步过快，峰值处速度突跳）");
-  ok(!/scaleY\(/.test(motion), "指示条不做缩放：宽度只由 CSS 的 3px 决定，静息/运动态不差像素");
-  ok(/bar\.animate\(moves/.test(motion) && /bar\.animate\(sizes/.test(motion) && /sizes\.push\(\{ height: /.test(motion), "位置（transform，合成器线程）与长度（height）拆成两条同步动画");
+  ok(!/bar\.animate\(sizes/.test(motion) && /bar\.animate\(frames, \{ duration: total \}\)/.test(motion), "位置与长度同属一条动画（拆成两条会各走各的：主线程卡住时条按自身长度探出去）");
+  ok(/translateY\(\$\{\(ta \+ tb\) \/ 2 - BAR \/ 2\}px\) scaleY\(/.test(motion) && !/bar\.style\.height/.test(motion), "位置与长度都用 transform 表达（合成器一条曲线，没有主线程的 height）");
   ok(/@keyframes m-grid-in/.test(css) && /m-grid-in var\(--dur-2\) var\(--ease-out\) backwards/.test(css), "网格入场用小幅 m-grid-in（6px 上浮 + 0.99 缩放）");
   ok(/\.nav-item\.is-active::before\s*\{\s*\n\s*display: none;/.test(css), "每项自己的 ::before 强调条退位（避免双条）");
   ok(/\.mail-layout:not\(\.detail-open\) \.mail-detail/.test(css) && /\.mail-layout\.detail-open \.mail-list/.test(css), "邮箱窄屏：列表/详情 transform 推入推出（不再 display 硬切）");

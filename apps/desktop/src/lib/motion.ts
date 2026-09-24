@@ -298,8 +298,7 @@ export function useNavIndicator() {
     // 不随行高撑满——撑满会显得整根条往下坠）
     const BAR = 16;
     const setFinal = (): void => {
-      bar.style.height = `${BAR}px`;
-      bar.style.transform = `translateY(${(top + bottom) / 2 - BAR / 2}px)`;
+      bar.style.transform = `translateY(${(top + bottom) / 2 - BAR / 2}px) scaleY(1)`;
     };
     // 首次（或减弱动态）：直接到位，不玩拉伸
     if (!prev || prefersReducedMotion()) {
@@ -327,13 +326,17 @@ export function useNavIndicator() {
     const e0t = c0 - BAR / 2, e0b = c0 + BAR / 2; // 旧静息条的两端
     const e1t = c1 - BAR / 2, e1b = c1 + BAR / 2; // 新静息条的两端
     /* 行程 + 刹车回弹共用一条时间轴；回弹窗 200ms（2026-09-24 由 90ms 拉长——霖反馈
-       回弹太短太硬、看着像卡住）。同一批关键帧交给两条同步动画：
-         · moves —— transform: translateY(条顶端)，合成器线程，位置永远平滑；
-         · sizes —— height(条长度)，主线程只改这根 3px 绝对定位元素自身。
-       不用 scaleY（旧实现）的原因：非等比缩放把 2px 圆角纵向拉成椭圆，且合成层的
-       光栅化比例会随拉伸倍数变化，同一根条在静息/运动态的渲染宽度可能差出 1 个物理
-       像素（用户反馈"运动时稍微粗一点点"，低分辨率设备更明显）。改成 height 后，
-       运动中的条与静息条是同一段 3px 宽、2px 圆角矩形，只是更长，宽度不经任何缩放。 */
+       回弹太短太硬、看着像卡住）。
+       ⚠️ 位置与长度必须落在**同一条动画**里（2026-09-24 事故）：曾把「位置」放 transform
+       （合成器线程）、「长度」放 height（主线程），两条动画各自计时——主线程被页面渲染
+       占住时位置继续走、长度卡在拉伸态，而条是从顶端往下长的，于是按自身长度往目标外
+       多探出去一大截，主线程缓过来再瞬间收回（霖反馈：长程回弹时小概率"弹出去很长一截，
+       大部分是条自己的长度"）。现在两者都在 transform（translateY + scaleY）里，合成器
+       一条曲线算完，不可能再各走各的。
+       > 已知取舍：scaleY 是非等比缩放，2px 圆角会被纵向拉成椭圆；理论上合成层的光栅化
+       > 比例也会随拉伸倍数变化（用户曾反馈"运动时稍微粗一点点"）。Chromium 实测（1x/2x
+       > 逐帧量测）宽度恒为 3.00px、未复现该差异；若真机复现，应改用 clip-path 开窗
+       > （不缩放、仍是单一属性驱动），而不是再把几何拆到两条线程上。 */
     /* 回弹强度按路程递增（霖需求 2026-09-24）：相邻项不弹、隔两项很轻微、5 项以上满额。
        路程折算成「行数」= 位移 / 行高（行高含 gap 时相邻≈1.03、隔两项≈3.1、5 项≈5.2，
        抽屉 40px 行同理）。1.15 行以内系数 0——连回弹窗都不挂，到位即停；之后二次曲线
@@ -346,8 +349,7 @@ export function useNavIndicator() {
     const share = dur / total;
     // 回弹两侧统一 ease-in-out：峰值与落点速度都归零，速度连续 → 不顿不弹
     const SOFT = "cubic-bezier(0.45, 0, 0.55, 1)";
-    const moves: Keyframe[] = [];
-    const sizes: Keyframe[] = [];
+    const frames: Keyframe[] = [];
     for (let k = 0; k <= N; k++) {
       const u = k / N; // 行程进度
       const lead = ease(u); // 前端点：全程一条曲线
@@ -359,9 +361,11 @@ export function useNavIndicator() {
         ta = c - MAX / 2;
         tb = c + MAX / 2;
       }
-      const easing = k === N ? SOFT : "linear";
-      moves.push({ transform: `translateY(${ta}px)`, offset: u * share, easing });
-      sizes.push({ height: `${Math.max(tb - ta, 2)}px`, offset: u * share, easing });
+      frames.push({
+        transform: `translateY(${(ta + tb) / 2 - BAR / 2}px) scaleY(${Math.max(tb - ta, 2) / BAR})`,
+        offset: u * share,
+        easing: k === N ? SOFT : "linear",
+      });
     }
     /* 刹车回弹（霖需求）：到位后顺着运动方向「稍微超出一点」再收回原位——像刹车时车身
        前倾再回正。只超出一次、随即平稳收住，不做来回震荡（霖反馈：来回弹看起来像在抖）。
@@ -377,14 +381,15 @@ export function useNavIndicator() {
       ];
       for (const [p, amp] of tail) {
         const c = c1 + over * amp;
-        const offset = share + (1 - share) * p;
-        moves.push({ transform: `translateY(${c - BAR / 2}px)`, offset, easing: SOFT });
-        sizes.push({ height: `${BAR}px`, offset, easing: SOFT });
+        frames.push({
+          transform: `translateY(${c - BAR / 2}px) scaleY(1)`,
+          offset: share + (1 - share) * p,
+          easing: SOFT,
+        });
       }
     }
     setFinal(); // 终态先落定（动画结束后即停在这里），动画期间由关键帧接管
-    bar.animate(moves, { duration: total });
-    bar.animate(sizes, { duration: total });
+    bar.animate(frames, { duration: total });
   }, []);
 
   useLayoutEffect(() => {
