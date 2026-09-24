@@ -1,6 +1,6 @@
 # OneTHU 开发文档
 
-> 最后更新：2026-09-22 22:57
+> 最后更新：2026-09-23 19:50
 
 OneTHU 是清华大学校园助手应用，基于 Tauri v2 与 React 实现，支持桌面与 Android
 平台。应用集成课表、作业、日程、图书馆预约、校园卡、宿舍电费、校园网等日常功能，
@@ -17,6 +17,7 @@ OneTHU 是清华大学校园助手应用，基于 Tauri v2 与 React 实现，�
 | [homework.md](./homework.md) | 作业区：分组与数据来源、忽略、网络学堂附件上传与必交附件预检、雨课堂主观题原生作答、学术红线与测试工具 | 功能使用者与贡献者 |
 | [external-homework.md](./external-homework.md) | 外部作业源（雨课堂 / TUOJ / Tyche / DSA OJ）的接入方式、凭据维护、故障恢复与接入记录 | 功能使用者与贡献者 |
 | [android-release-traps.md](./android-release-traps.md) | 安卓 release 构建陷阱（`@InvokeArg`、R8、UA 伪装、构建判据）与无 adb 真机取证通道（日志导出、计时埋点） | 宿主贡献者 |
+| [dev-build.md](./dev-build.md) | 开发者构建（dev 版独立构建）：产物差异、桌面与 Android 构建命令、开关实现方式与守卫 | 宿主贡献者 |
 | [ui-copy-audit.md](./ui-copy-audit.md) | UI 文案纪律审计：禁用词与字数规则、历次用户反馈的根因与修法留痕 | 界面贡献者 |
 
 ## 阅读路径
@@ -37,6 +38,7 @@ OneTHU 是清华大学校园助手应用，基于 Tauri v2 与 React 实现，�
   [plugin-development.md §9.3–9.5](./plugin-development.md)。
 - 修改宿主实现：读 [architecture.md](./architecture.md)，构建命令见该文档 §8。
 - 改安卓插件 / 排查真机问题：读 [android-release-traps.md](./android-release-traps.md)。
+- 构建与正式版共存的开发者版（桌面 dev 包 / OneTHU-Dev APK）：读 [dev-build.md](./dev-build.md)。
 - 写用户可见文案：读 [ui-copy-audit.md](./ui-copy-audit.md)，并执行 `pnpm lint:ui-copy`。
 
 ## 文档语言纪律

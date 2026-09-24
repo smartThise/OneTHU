@@ -29,6 +29,7 @@ import { toHomework, useExternalHomework } from "../state/exthw.js";
 import { useApp } from "../state/context.js";
 import { courseColor, SRC_COLOR } from "../lib/courseColor.js";
 import { confirmOk } from "../lib/confirm.js";
+import { useExitHold } from "../lib/motion.js";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { openLocalPath } from "../lib/localFile.js";
 
@@ -256,8 +257,8 @@ interface Draft {
   originalCloud: boolean; // 编辑中的是云端事件
 }
 /** 居中弹窗（黑色遮罩）：编辑日程 / 课程详情共用骨架，风格同 TabManageModal */
-const MODAL_MASK = { position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } as const;
-const MODAL_PANEL = { width: "100%", maxWidth: 440, maxHeight: "84vh", overflowY: "auto", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)" } as const;
+const MODAL_MASK = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } as const;
+const MODAL_PANEL = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 440, maxHeight: "84vh", overflowY: "auto", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)" } as const;
 
 const emptyDraft = (date: string, canCloud: boolean): Draft => ({
   title: "", date, start: "08:00", end: "09:35", allDay: false, location: "", note: "",
@@ -318,6 +319,10 @@ export function SchedulePage() {
   const [windowRows, setWindowRows] = useState<ScheduleEntry[] | null>(null);
   const [winLoading, setWinLoading] = useState(false);
   const [winError, setWinError] = useState<string | null>(null);
+  /* 弹层退场相位：详情 / 编辑器关闭时多挂 220ms 播完淡出+收回再卸载
+     （霖反馈：点开只有入场、关掉瞬间消失）。两者互斥，各持一份。 */
+  const detailHold = useExitHold(detail, 220);
+  const draftHold = useExitHold(draft, 220);
   /** 周窗失败自动重试计数（每窗口最多 2 次、间隔 4.2s）：选课死结借 lib 重登
    *  后教务/漫游会话重建需几秒，softRecover 的一次原地重取不够——静默自愈，
    *  红条不再吓人（2026-09-19 快速往返实录） */
@@ -474,6 +479,20 @@ export function SchedulePage() {
   }, [viewWindow, windowRows, campus.data, cal.cloudEvents, cal.localEvents, extHw.items]);
 
   const placed = useMemo(() => layout(entries), [entries]);
+
+  /* 落在展示时段内的块 + 它们的「行号」。placed 是按天（列）再按时间排的，直接用数组序号
+     会变成竖直按列扫；入场应该按行（同一时间带跨天同时出现）、时间从早到晚自上而下。
+     行号 = 该块起始时刻在所有不同起始时刻里的序号。 */
+  const visiblePlaced = useMemo(
+    () => placed.filter((p) => p.endMin > AXIS_BEGIN && p.beginMin < AXIS_END),
+    [placed],
+  );
+  const blockRows = useMemo(() => {
+    const keys = Array.from(new Set(visiblePlaced.map((p) => Math.max(p.beginMin, AXIS_BEGIN)))).sort((a, b) => a - b);
+    const m = new Map<number, number>();
+    keys.forEach((k, i) => m.set(k, i));
+    return m;
+  }, [visiblePlaced]);
 
   /** 所选周 7 个日期（时间轴表头） */
   const dayDates = useMemo(() => {
@@ -1068,7 +1087,7 @@ export function SchedulePage() {
                           })()
                         : null}
                       {/* 事件块（可点击） */}
-                      {placed.filter((p) => p.endMin > AXIS_BEGIN && p.beginMin < AXIS_END).map((p, i) => {
+                      {visiblePlaced.map((p, i) => {
                         const laneW = 100 / p.lanes;
                         const leftPct = ((p.day * 100) + p.lane * laneW) / 7;
                         const widthPct = laneW / 7;
@@ -1080,7 +1099,7 @@ export function SchedulePage() {
                         const compact = height < 44;
                         return (
                           <div
-                            key={`b-${i}`}
+                            key={`b-${ymdOf(weekStart)}-${i}`}
                             title={
                               p.entry.src === "cluster"
                                 ? `${p.entry.courseName}（${hhmm(p.beginMin)}–${hhmm(p.endMin)}）：${p.entry.clusterItems?.map((m) => `${m.courseName}${m.location ? "@" + m.location : ""}`).join("；")} · 点击展开`
@@ -1093,6 +1112,10 @@ export function SchedulePage() {
                             onClick={() => onBlockClick(p.entry)}
                             style={{
                               position: "absolute",
+                              // 入场：按「行」（时间带）递延——同一时刻跨天的块同时出现，时间从早到晚
+                              // 自上而下展开（13ms/行、16 行封顶）。key 带周戳，切周整批重播一次
+                              animation: "m-rise var(--dur-2) var(--ease-out) backwards",
+                              animationDelay: `${Math.min(blockRows.get(Math.max(p.beginMin, AXIS_BEGIN)) ?? 0, 16) * 13}ms`,
                               left: `calc(${leftPct}% + 3px)`,
                               width: `calc(${widthPct}% - 6px)`,
                               top,
@@ -1142,11 +1165,16 @@ export function SchedulePage() {
         </>
       )}
 
-      {/* 只读详情弹窗（课程/考试：来自教务，只能看不能改） */}
-      {detail
-        ? createPortal(
-            <div style={MODAL_MASK} onClick={() => setDetail(null)}>
-              <div style={MODAL_PANEL} onClick={(e) => e.stopPropagation()}>
+      {/* 只读详情弹窗（课程/考试：来自教务，只能看不能改）。
+          退场：useExitHold 让它在 setDetail(null) 之后多挂 220ms 播完淡出/收回 */}
+      {(() => {
+        const detail = detailHold.held; // 退场期间沿用最后一次内容，否则会闪成空壳
+        if (!detailHold.mounted || !detail) return null;
+        const maskStyle = detailHold.closing ? { ...MODAL_MASK, animation: "m-fade-out var(--dur-2) var(--ease-out) both" } : MODAL_MASK;
+        const panelStyle = detailHold.closing ? { ...MODAL_PANEL, animation: "m-spring-out var(--dur-2) var(--ease-out) both" } : MODAL_PANEL;
+        return createPortal(
+            <div style={maskStyle} onClick={() => setDetail(null)}>
+              <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
                 <div style={{ padding: 16 }}>
                   {detail.clusterItems ? (
                     // 重叠簇详情：列出该时段全部事项
@@ -1252,14 +1280,18 @@ export function SchedulePage() {
               </div>
             </div>,
             document.body,
-          )
-        : null}
+          );
+      })()}
 
-      {/* 事件编辑器弹窗（页面级：两视图共用） */}
-      {draft ? (
-        createPortal(
-        <div style={MODAL_MASK} onClick={() => { if (!busy) setDraft(null); }}>
-          <div style={MODAL_PANEL} onClick={(e) => e.stopPropagation()}>
+      {/* 事件编辑器弹窗（页面级：两视图共用）。退场同详情：先播完再卸载 */}
+      {(() => {
+        const draft = draftHold.held; // 退场期间沿用最后一次草稿
+        if (!draftHold.mounted || !draft) return null;
+        const maskStyle = draftHold.closing ? { ...MODAL_MASK, animation: "m-fade-out var(--dur-2) var(--ease-out) both" } : MODAL_MASK;
+        const panelStyle = draftHold.closing ? { ...MODAL_PANEL, animation: "m-spring-out var(--dur-2) var(--ease-out) both" } : MODAL_PANEL;
+        return createPortal(
+        <div style={maskStyle} onClick={() => { if (!busy) setDraft(null); }}>
+          <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
           <div style={{ padding: 16 }}>
           <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>{draft.uid ? "编辑日程" : "新建日程"}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -1316,7 +1348,8 @@ export function SchedulePage() {
           </div>
         </div>,
         document.body,
-      )) : null}
+      );
+      })()}
     </>
   );
 }

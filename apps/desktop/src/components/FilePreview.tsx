@@ -11,6 +11,7 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useExitPhase } from "../lib/motion.js";
 import { http, downloadLearnUrl, saveLearnUrlAs, withLearnCsrf } from "../lib/clients.js";
 import { isAndroidHost } from "../lib/yktWebview.js";
 import { isAndroidNavigator, isWindowsNavigator } from "../lib/androidHost.js";
@@ -290,7 +291,7 @@ function PdfPage({
 
 /** PDF 预览：**连续滚动**（R26 霖需求：翻页不是必须的）+ 适应宽度/缩放 + 页码跳转。
  *  渲染策略：只渲染当前页 ±2，其余留等比占位——长讲义也不会把内存吃满。 */
-function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy, dlMsg }: { dataUrl: string; onOpenExternally: () => Promise<void>; pdfBusy: boolean; dlMsg: string }): React.ReactNode {
+function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy }: { dataUrl: string; onOpenExternally: () => Promise<void>; pdfBusy: boolean }): React.ReactNode {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const pagesRef = useRef(new Map<number, HTMLDivElement>());
   const [doc, setDoc] = useState<PdfDocLike | null>(null);
@@ -409,7 +410,6 @@ function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy, dlMsg }: { dataUrl:
           {pdfBusy ? "调起中…" : "系统应用打开"}
         </button>
       </div>
-      {dlMsg ? <div style={{ flexShrink: 0, fontSize: 11.5, color: "var(--text-3)", wordBreak: "break-all", padding: "0 10px 8px" }}>{dlMsg}</div> : null}
     </div>
   );
 }
@@ -1221,11 +1221,29 @@ export function FilePreviewHost() {
   const [dlPath, setDlPath] = useState("");  // R23：下载成功的目标路径（供「打开文件/目录」按钮）
   const seqRef = useRef(0);
 
+  /* 退场相位（local/anim-delight）：关闭时 cur 先被置空，但面板还要多挂 200ms 播完淡出。
+   * 必须在下面 `if (!cur) return null` **之前**调用——Hook 不能条件调用（见文件下方 pdfDiag 注释）。
+   * 判定用 cur !== null：shown 是本组件内保留的"上一份内容"，不能拿它当开关。 */
+  const { mounted, closing } = useExitPhase(cur !== null);
+  /** 最后一次非空内容：退场期间 cur 已是 null，仍要拿它渲染，否则会闪成空白壳 */
+  const lastRef = useRef<OpenState | null>(null);
+  const shown = cur ?? lastRef.current;
+
+  /* 下载/另存为结果提示（蓝色那条）的退场相位：setDlMsg("") 清空后多挂 200ms 播完淡出，
+   * 而不是"啪"地消失。同样必须在下面的早返回之前调用（Hook 不能条件调用）。 */
+  const { mounted: dlHintMounted, closing: dlHintClosing } = useExitPhase(dlMsg !== "", 200);
+  const dlHintRef = useRef("");
+  useEffect(() => {
+    if (dlMsg) dlHintRef.current = dlMsg;
+  }, [dlMsg]);
+
   useEffect(() => {
     _open = (t) => {
       seqRef.current += 1;
       setDlMsg("");
-      setCur({ name: t.name, url: t.url, seq: seqRef.current });
+      const next = { name: t.name, url: t.url, seq: seqRef.current };
+      lastRef.current = next;
+      setCur(next);
     };
     return () => {
       _open = null;
@@ -1350,7 +1368,9 @@ export function FilePreviewHost() {
       .catch(() => undefined);
   }, [pdfDiagKey]);
 
-  if (!cur) return null;
+  // 从未打开过（shown 为空）就直接卸载；关闭后要等退场相位走完（mounted 变 false）再卸载，
+  // 期间继续用 shown 渲染上一次的内容，动画收尾而不是"啪"地消失。
+  if (!shown || (cur === null && !mounted)) return null;
 
   const retry = () => {
     if (!cur) return;
@@ -1367,12 +1387,12 @@ export function FilePreviewHost() {
   }
 
   return createPortal(
-    <div style={maskStyle} onClick={close}>
+    <div className={"confirm-mask" + (closing ? " is-closing" : "")} style={maskStyle} onClick={close}>
       <style>{DOCX_CSS}</style>
-      <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
+      <div className={"confirm-card" + (closing ? " is-closing" : "")} style={panelStyle} onClick={(e) => e.stopPropagation()}>
         <div style={headStyle} className="fp-head">
-          <b style={{ flex: "1 1 120px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }} title={cur.name}>
-            {cur.name || "文件预览"}
+          <b style={{ flex: "1 1 120px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }} title={cur?.name ?? shown.name}>
+            {cur?.name || shown.name || "文件预览"}
           </b>
           {metaBits.length ? (
             <span style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)", flexShrink: 0 }}>{metaBits.join(" · ")}</span>
@@ -1418,7 +1438,7 @@ export function FilePreviewHost() {
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, background: "rgba(127,127,127,.05)", minHeight: 220 }}>
               <img
                 src={view.dataUrl}
-                alt={cur.name}
+                alt={cur?.name ?? shown.name}
                 style={{ maxWidth: "100%", maxHeight: "66vh", objectFit: "contain", borderRadius: 8 }}
               />
             </div>
@@ -1431,7 +1451,6 @@ export function FilePreviewHost() {
               dataUrl={view.dataUrl}
               onOpenExternally={openPdfExternally}
               pdfBusy={pdfBusy}
-              dlMsg={dlMsg}
             />
           ) : null}
 
@@ -1454,23 +1473,23 @@ export function FilePreviewHost() {
           ) : null}
 
           {view?.kind === "zip" ? (
-            <ZipTreeView key={`z${cur.seq}`} zip={view.zip} notice={view.notice} />
+            <ZipTreeView key={`z${cur?.seq ?? 0}`} zip={view.zip} notice={view.notice} />
           ) : null}
 
           {view?.kind === "docx" ? (
-            <OfficeShell key={`d${cur.seq}`} zip={view.zip}>
+            <OfficeShell key={`d${cur?.seq ?? 0}`} zip={view.zip}>
               <div className="docx-preview" style={{ padding: "14px 18px" }} dangerouslySetInnerHTML={{ __html: view.html }} />
             </OfficeShell>
           ) : null}
 
           {view?.kind === "xlsx" ? (
-            <OfficeShell key={`x${cur.seq}`} zip={view.zip}>
+            <OfficeShell key={`x${cur?.seq ?? 0}`} zip={view.zip}>
               <XlsxView sheets={view.sheets} />
             </OfficeShell>
           ) : null}
 
           {view?.kind === "pptx" || view?.kind === "pptx-outline" ? (
-            <OfficeShell key={`p${cur.seq}`} zip={view.zip}>
+            <OfficeShell key={`p${cur?.seq ?? 0}`} zip={view.zip}>
               {view.kind === "pptx" ? <PptxSlidesView model={view.model} /> : <PptxView slides={view.slides} />}
               {"notice" in view && view.notice ? (
                 <div style={{ padding: "6px 12px 8px", fontSize: 11.5, color: "var(--text-3, #9aa1ac)", wordBreak: "break-all" }}>
@@ -1498,11 +1517,16 @@ export function FilePreviewHost() {
           </PreviewErrorBoundary>
         </div>
 
-        {dlMsg ? (
+        {dlMsg || dlHintMounted ? (
           /* 面板底部下载/另存为提示：右侧挂「打开文件 / 打开目录」（R23 需求；此前误加在
-             PDF 画布内部与 Windows 门闸里，用户看到的这条反而没有按钮） */
-          <div style={{ flexShrink: 0, padding: "6px 14px", fontSize: 12, borderTop: "1px solid var(--border, #eee)", color: "var(--accent)", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <span>{dlMsg}</span>
+             PDF 画布内部与 Windows 门闸里，用户看到的这条反而没有按钮）。
+             只留蓝色这一条（灰色那条在 PDF 画布里，同一信息渲染两遍，已删）。
+             动效：入场从下浮起（.fp-dl-hint），清空后走 200ms 退场相位淡出（.is-closing）。 */
+          <div
+            className={"fp-dl-hint" + (dlHintClosing ? " is-closing" : "")}
+            style={{ flexShrink: 0, padding: "6px 14px", fontSize: 12, borderTop: "1px solid var(--border, #eee)", color: "var(--accent)", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
+          >
+            <span>{dlMsg || dlHintRef.current}</span>
             {dlPath ? <DownloadOpenButtons path={dlPath} /> : null}
           </div>
         ) : null}

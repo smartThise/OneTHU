@@ -295,9 +295,29 @@ function bootstrap(): void {
   applyActive();
 }
 
+/** 上一次真正应用的主题 id（null=基础亮色）；只用于判断"是不是切换" */
+let lastThemeId: string | null = null;
+let themeAnimTimer: ReturnType<typeof setTimeout> | null = null;
+/** 短暂挂 .theme-anim：颜色类属性走 320ms 过渡（motion.css §14），到点摘掉不留副作用 */
+function flashThemeAnim(root: HTMLElement): void {
+  // 测试替身/极简宿主可能没有 classList：没有就跳过（动效是锦上添花，绝不能挡住主题切换）
+  if (!root.classList) return;
+  root.classList.add("theme-anim");
+  if (themeAnimTimer) clearTimeout(themeAnimTimer);
+  themeAnimTimer = setTimeout(() => {
+    root.classList.remove("theme-anim");
+    themeAnimTimer = null;
+  }, 420);
+}
+
 /** 生成并注入主题样式；html[data-theme] 挂钩（清除用 null） */
 function applyTheme(def: ThemeDef | null): void {
   const root = document.documentElement;
+  // 主题切换动效（local/anim-delight）：换主题时给 <html> 挂 400ms 的 .theme-anim，
+  // 让背景/文字/边框颜色平滑过渡而不是"啪"地跳色。启动首次应用不挂（那时不需要）。
+  const nextId = def?.id ?? null;
+  if (lastThemeId !== null && lastThemeId !== nextId) flashThemeAnim(root);
+  lastThemeId = nextId;
   let style = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
   if (!def) {
     delete root.dataset.theme;

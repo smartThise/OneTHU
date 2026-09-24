@@ -105,8 +105,14 @@ console.log("同族扫描：apps/desktop/src 无裸 UA 判安卓残留 ✓");
  * render」→ 各端点预览即崩（Windows 整窗白屏）。此处静态钉住，防同类复发。 */
 {
   const src = readFileSync(join(SRC_ROOT, "components/FilePreview.tsx"), "utf8");
-  const early = src.indexOf("if (!cur) return null;");
-  assert.ok(early > 0, "FilePreview 应保留 `if (!cur) return null` 早返回");
+  // 早返回的两种合法形态：无退场相位时 `if (!cur) return null;`；接了 useExitPhase
+  // （local/anim-delight：关闭先播退场再卸载）后判据多一个 mounted。
+  // 无论哪种，都必须在全部 Hook 之后（下半段断言）。
+  const early = Math.max(
+    src.indexOf("if (!cur) return null;"),
+    src.indexOf("if (!shown || (cur === null && !mounted)) return null;"),
+  );
+  assert.ok(early > 0, "FilePreview 应保留早返回（无 cur / 未挂载时卸载）");
   const after = src.slice(early);
   const hookAfter = /\buse(State|Effect|Ref|Callback|Memo|LayoutEffect|Reducer|Context|SyncExternalStore)\s*\(/.exec(after);
   assert.equal(

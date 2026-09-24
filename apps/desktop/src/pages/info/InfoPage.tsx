@@ -31,6 +31,7 @@ import { FitnessTab } from "./FitnessTab.js";
 import { EvaluationTab } from "./EvaluationTab.js";
 import { CalendarTab } from "./CalendarTab.js";
 import { CourseInfoTab } from "./CourseInfoTab.js";
+import { useTabDirection } from "../../lib/motion.js";
 
 export type InfoTab = "report" | "fitness" | "exams" | "evaluation" | "calendar" | "news" | "profile" | "courseinfo";
 
@@ -72,6 +73,8 @@ export function InfoPage() {
   const visibleIds = layout.order.filter((id) => !layout.hidden.includes(id)) as InfoTab[];
   /** 当前 tab 被隐藏 → 回落到第一个可见栏目（全部隐藏则保持 null 走空态） */
   const effTab = visibleIds.includes(tab) ? tab : visibleIds[0];
+  // 页签切换方向（决定内容从哪一侧滑入）
+  const tabDir = useTabDirection(effTab ?? null, visibleIds);
 
   useEffect(() => {
     const params = navParams;
@@ -131,14 +134,14 @@ export function InfoPage() {
         <Empty text="所有栏目已隐藏，点击右上「管理栏目」恢复。" />
       ) : (
         <>
-          <div hidden={effTab !== "report"}>{visited.has("report") ? <ReportTab /> : null}</div>
-          <div hidden={effTab !== "fitness"}>{visited.has("fitness") ? <FitnessTab /> : null}</div>
-          <div hidden={effTab !== "exams"}>{visited.has("exams") ? <ExamsTab /> : null}</div>
-          <div hidden={effTab !== "evaluation"}>{visited.has("evaluation") ? <EvaluationTab /> : null}</div>
-          <div hidden={effTab !== "calendar"}>{visited.has("calendar") ? <CalendarTab /> : null}</div>
-          <div hidden={effTab !== "news"}>{visited.has("news") ? <NewsTab newsId={newsId} onConsumeNewsId={() => setNewsId(null)} initialQuery={newsQuery} onConsumeQuery={() => setNewsQuery(null)} deepSubSource={navParams?.newsSubSource} /> : null}</div>
-          <div hidden={effTab !== "profile"}>{visited.has("profile") ? <ProfileTab /> : null}</div>
-          <div hidden={effTab !== "courseinfo"}>{visited.has("courseinfo") ? <CourseInfoTab /> : null}</div>
+          <div hidden={effTab !== "report"} className={effTab === "report" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("report") ? <ReportTab /> : null}</div>
+          <div hidden={effTab !== "fitness"} className={effTab === "fitness" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("fitness") ? <FitnessTab /> : null}</div>
+          <div hidden={effTab !== "exams"} className={effTab === "exams" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("exams") ? <ExamsTab /> : null}</div>
+          <div hidden={effTab !== "evaluation"} className={effTab === "evaluation" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("evaluation") ? <EvaluationTab /> : null}</div>
+          <div hidden={effTab !== "calendar"} className={effTab === "calendar" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("calendar") ? <CalendarTab /> : null}</div>
+          <div hidden={effTab !== "news"} className={effTab === "news" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("news") ? <NewsTab newsId={newsId} onConsumeNewsId={() => setNewsId(null)} initialQuery={newsQuery} onConsumeQuery={() => setNewsQuery(null)} deepSubSource={navParams?.newsSubSource} /> : null}</div>
+          <div hidden={effTab !== "profile"} className={effTab === "profile" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("profile") ? <ProfileTab /> : null}</div>
+          <div hidden={effTab !== "courseinfo"} className={effTab === "courseinfo" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("courseinfo") ? <CourseInfoTab /> : null}</div>
         </>
       )}
 

@@ -163,3 +163,12 @@ if [ -n "$COMMITTED_LINK" ] && [ "$COMMITTED_LINK" != "$PROJ_PRIMARY" ]; then
 else
   echo "· gen/android 保持指向 ${PROJ_PRIMARY}（入库指向即内盘 demo 工程）"
 fi
+
+# ⑧ 反向复核：正式版产物不得含开发者面板（开关泄漏即拦下；dev 包见 scripts/build-dev-apk.sh）
+python3 - "$OUT" <<\PY
+import sys, zipfile
+z = zipfile.ZipFile(sys.argv[1])
+hit = any(b"/assets/DevPanel-" in z.read(n) for n in z.namelist() if n.endswith(".so"))
+print("开发者面板: " + ("泄漏进正式包" if hit else "正式包中确认不存在"))
+sys.exit(1 if hit else 0)
+PY
