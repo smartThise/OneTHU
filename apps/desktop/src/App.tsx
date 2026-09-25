@@ -35,6 +35,7 @@ import { ThosPage } from "./pages/info/ThosPage.js";
 import { ZhjwxkCoursesPage } from "./pages/zhjwxk/Courses.js";
 import { FolderPage } from "./pages/FolderPage.js";
 import { ServicesPage } from "./pages/ServicesPage.js";
+import { TasksPage } from "./pages/TasksPage.js";
 import { FavsHomePage } from "./pages/FavsHomePage.js";
 import { AppProvider } from "./state/app.js";
 import { FavsProvider } from "./state/favs.js";
@@ -126,6 +127,7 @@ function Routed() {
           {page === "thos" && <ThosPage />}
           {page === "zhjwxk" && <ZhjwxkCoursesPage />}
           {page === "folder" && <FolderPage />}
+          {page === "tasks" && <TasksPage />}
           {page === "services" && <ServicesPage />}
           {page === "favs" && <FavsHomePage />}
           {page === "settings" && <SettingsPage />}

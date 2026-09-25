@@ -46,7 +46,7 @@ function usePluginNavEntries(): Array<{ page: Page; label: string; icon: (p: obj
  */
 const BOTTOM_NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode; activePages?: Page[] }> = [
   { page: "today", label: "今日", icon: IconToday },
-  { page: "learn-assignments", label: "待办", icon: IconPen, activePages: ["learn-assignments", "learn-assignment-detail", "learn-ykt-detail"] },
+  { page: "tasks", label: "待办", icon: IconPen, activePages: ["tasks", "learn-assignments", "learn-assignment-detail", "learn-ykt-detail"] },
   { page: "services", label: "服务", icon: IconInfo },
   { page: "favs", label: "收藏", icon: IconStar, activePages: ["favs", "folder"] },
   { page: "settings", label: "我的", icon: IconSettings },

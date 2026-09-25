@@ -15,7 +15,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Card, Empty, ErrorNote, PageHead } from "../components/Layout.js";
-import { IconChevron, IconRefresh } from "../components/Icons.js";
+import { IconCalendar, IconChevron, IconFlag, IconRefresh, IconSchedule, IconTrace } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
 import type { LearnNav, Page } from "../state/app.js";
 import { useCampusData, useCard, useTodayCalendar, useTodayDeadlines, useTodayNewsFeed, useTodayReservations } from "../state/data.js";
@@ -36,7 +36,6 @@ import { openExternal } from "./info/openExternal.js";
 import { toHomework, useExternalHomework } from "../state/exthw.js";
 import { useIgnoredHw } from "../state/hwIgnore.js";
 import { parseLearnTime, type ScheduleEntry } from "@onethu/core";
-import { recentAtomUses, type UsageEntry } from "../lib/usage.js";
 import { suggestAtoms } from "../lib/suggest.js";
 import { resolveAtom } from "../state/atoms.js";
 
@@ -97,13 +96,6 @@ function logEmpty(which: string): void {
   void import("../lib/clients.js")
     .then((m) => m.logLine(`[TODAY-CARD] ${which} 暂无内容（显示空态说明）`))
     .catch(() => undefined);
-}
-
-/** 最近使用：按最后一次点击倒序（最多 6 条；没点过任何东西 → 空数组 → 显示空态说明） */
-function recentRows(): UsageEntry[] {
-  const rows = recentAtomUses(6).filter((e) => e.title);
-  if (rows.length === 0) logEmpty("最近使用");
-  return rows;
 }
 
 /** 猜你喜欢：同类推荐 + 起步项（绝不会是已收藏/已用过的） */
@@ -552,26 +544,6 @@ export function TodayPage() {
 
   /* ---- 注册表：静态元数据 + bespoke 渲染闭包（数据 hook 全在本组件，单次取数） ---- */
   const registry: HomeCardDef[] = buildHomeRegistry({
-    greeting: {
-      // 新 IA（§2.2）顶部问候：时段问候 + 姓名；数据未就绪只有通用问候
-      render: () => {
-        const h = now.getHours();
-        const period = h < 5 ? "夜深了" : h < 11 ? "早上好" : h < 13 ? "中午好" : h < 18 ? "下午好" : "晚上好";
-        return (
-          <div className="today-greeting">
-            <div className="today-greeting-line">
-              {period}
-              {data?.user?.name ? "，" + data.user.name : ""}
-            </div>
-            <div className="today-greeting-sub">
-              {todayEvents.length > 0
-                ? "今天有 " + todayEvents.length + " 节课 · 第一节 " + (todayEvents[0]?.startTime ?? "")
-                : "今天没有课，自由安排～"}
-            </div>
-          </div>
-        );
-      },
-    },
     "balance-strip": {
       // 余额速览条（§2.2）：校园卡余额直读；电费需宿舍上下文（P2 接入），先做入口
       render: () => (
@@ -627,16 +599,6 @@ export function TodayPage() {
     },
     notices: {
       render: () => <NoticeRows items={data?.notifications ?? []} navigate={navigate} />,
-    },
-    recent: {
-      // 空态**不隐藏整卡**：只留这张卡的用户否则看到的是一片空白（用户实录）
-      render: () => (
-        <AtomUseRows
-          rows={recentRows().map((e) => ({ ref: { kind: e.kind, key: e.key }, title: e.title ?? "", sub: e.sub }))}
-          onOpen={navigate}
-          emptyText="还没有使用记录——在应用里点开几个页面或服务，最近用过的就会出现在这里。"
-        />
-      ),
     },
     "for-you": {
       render: () => (
@@ -756,6 +718,33 @@ export function TodayPage() {
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
 
+      {/* 页面级问候（非卡片，§2.2）：时段问候 + 今日要事摘要 + 日程快捷入口。
+          不进卡片系统——它是页面骨架，不该被「添加卡片」勾选。 */}
+      <div className="today-hero">
+        <div className="today-hero-line">
+          {now.getHours() < 5 ? "夜深了" : now.getHours() < 11 ? "早上好" : now.getHours() < 13 ? "中午好" : now.getHours() < 18 ? "下午好" : "晚上好"}
+          {data?.user?.name ? "，" + data.user.name : ""}
+        </div>
+        <div className="today-hero-sub">
+          {todayEvents.length > 0
+            ? "今天有 " + todayEvents.length + " 节课" + (todayEvents[0]?.startTime ? " · 第一节 " + todayEvents[0]!.startTime : "")
+            : "今天没有课，自由安排"}
+        </div>
+        <div className="today-quick">
+          <button className="today-quick-chip" onClick={() => navigate("schedule")}>
+            <IconSchedule width={14} height={14} />课表
+          </button>
+          <button className="today-quick-chip" onClick={() => navigate("trace")}>
+            <IconTrace width={14} height={14} />寻迹
+          </button>
+          <button className="today-quick-chip" onClick={() => navigate("reserve")}>
+            <IconFlag width={14} height={14} />预约
+          </button>
+          <button className="today-quick-chip" onClick={() => navigate("info", { infoTab: "calendar" })}>
+            <IconCalendar width={14} height={14} />校历
+          </button>
+        </div>
+      </div>
       {/* 顶部三块统计已并入「今日概览」卡（today-overview），随卡片系统移动/隐藏 */}
       {portrait ? (
         /* 竖屏：无左右栏，主栏+侧栏串成一条展示序列 */

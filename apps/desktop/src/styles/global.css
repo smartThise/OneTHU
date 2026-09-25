@@ -5095,9 +5095,84 @@ section > .svc-label { margin-top: 14px; }
 .svc-actions { display: flex; justify-content: center; padding: 4px 0 10px; }
 
 /* —— 今日页：问候语 + 余额速览条（新 IA §2.2，shellFree 卡） —— */
-.today-greeting { padding: 6px 2px 2px; }
-.today-greeting-line { font-size: 22px; font-weight: 700; letter-spacing: 0.2px; color: var(--text-1); }
-.today-greeting-sub { margin-top: 4px; font-size: 13px; color: var(--text-3); }
+/* 页面级问候（非卡片）+ 日程快捷 chips */
+.today-hero { padding: 10px 2px 2px; }
+.today-hero-line { font-size: 24px; font-weight: 700; letter-spacing: 0.2px; color: var(--text-1); }
+.today-hero-sub { margin-top: 4px; font-size: 13px; color: var(--text-3); }
+.today-quick { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.today-quick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.today-quick-chip:active { transform: scale(0.96); }
+.today-quick-chip:hover { color: var(--accent); border-color: var(--accent-border); }
+
+/* —— 待办聚合页（分节卡片；桌面双栏、移动单列） —— */
+.task-grid { display: grid; grid-template-columns: 1fr; gap: 6px 16px; margin-top: 14px; }
+@media (min-width: 861px) {
+  .task-grid { grid-template-columns: 1fr 1fr; align-items: start; }
+}
+.task-sec { min-width: 0; }
+.task-sec-head { display: flex; align-items: center; gap: 8px; margin: 12px 2px 6px; }
+.task-sec-title { font-size: 15px; font-weight: 600; color: var(--text-1); }
+.task-sec-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+.task-sec-more {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 0;
+  background: none;
+  color: var(--text-3);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.task-sec-more:hover { color: var(--accent); }
+.task-card { padding: 4px; }
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.task-row:hover { background: var(--surface-2); }
+.task-row:active { transform: scale(0.99); }
+.task-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.task-row-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-row-sub { font-size: 12px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-row-meta { flex: none; font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; }
 .balance-strip {
   display: flex;
   align-items: stretch;
