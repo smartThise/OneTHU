@@ -5278,9 +5278,37 @@ section > .svc-label { margin-top: 14px; }
 
 /* 计数 + 入口（压缩高度） */
 .tasks-mid { display: flex; align-items: stretch; gap: 12px; margin-top: 8px; }
-.tasks-stats { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
-.task-stat { display: flex; align-items: baseline; gap: 8px; cursor: pointer; border-radius: 8px; }
+.tasks-stats { flex: 1; display: flex; flex-direction: row; gap: 10px; }
+/* 独立计数卡 + 轻拟物：左上受光、右下投影、内顶高光（不引入任何 UI 库，纯 CSS 造材质感） */
+.task-stat {
+  flex: 1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px;
+  padding: 10px 14px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface);
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+  box-shadow:
+    3px 3px 7px rgba(15, 20, 40, 0.10),
+    -3px -3px 7px rgba(255, 255, 255, 0.78),
+    inset 0 1px 0 rgba(255, 255, 255, 0.60);
+  transition: box-shadow 0.16s ease, transform 0.16s ease;
+}
+.task-stat:active {
+  transform: translateY(1px);
+  box-shadow:
+    inset 2px 2px 5px rgba(15, 20, 40, 0.13),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.65);
+}
 .task-stat:hover .task-stat-label { color: var(--accent); }
+/* 凝夜（深色）：白色高光压到极弱，否则卡片会发灰、拟物感变成脏边 */
+:root[data-theme="onethu.theme.night"] .task-stat {
+  box-shadow:
+    3px 3px 8px rgba(0, 0, 0, 0.55),
+    -2px -2px 6px rgba(255, 255, 255, 0.045),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+:root[data-theme="onethu.theme.night"] .task-stat:active {
+  box-shadow:
+    inset 2px 2px 6px rgba(0, 0, 0, 0.60),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.04);
+}
 .tasks-body { touch-action: pan-y; }
 .task-stat-num { font-size: 20px; font-weight: 700; color: var(--text-1); font-variant-numeric: tabular-nums; animation: stat-pop 0.4s cubic-bezier(0.22, 1.2, 0.36, 1); }
 .task-stat-num.task-stat-urgent { color: var(--red); }

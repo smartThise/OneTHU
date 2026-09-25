@@ -28,10 +28,9 @@ import { isAndroidNavigator } from "../lib/androidHost.js";
 import { useCard, useLearnData, useTodayNewsFeed } from "../state/data.js";
 import { enc } from "../state/atoms.js";
 import { readSubs } from "./info/newsSearch.js";
+import { noticeHasRead, useNoticeReadVersion } from "../lib/noticeRead.js";
 import { NewsRows } from "../components/HomeWidgets.js";
 import type { Homework } from "@onethu/core";
-
-const READ_KEY = "onethu.tasks.readNotices.v1";
 
 /** 忽略图标（内联线性 SVG，1.6px 描边，与 Icons.tsx 同风格；仓库暂无现成 IconX） */
 const IconIgnore = ({ size = 14 }: { size?: number }): ReactNode => (
@@ -39,26 +38,6 @@ const IconIgnore = ({ size = 14 }: { size?: number }): ReactNode => (
     <path d="M4 4l8 8M12 4l-8 8" />
   </svg>
 );
-
-function readNoticeIds(): Set<string> {
-  try {
-    const raw = globalThis.localStorage?.getItem(READ_KEY);
-    const arr = raw ? (JSON.parse(raw) as unknown) : [];
-    return new Set(Array.isArray(arr) ? arr.filter((x): x is string => typeof x === "string") : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function markNoticeRead(id: string): void {
-  try {
-    const s = readNoticeIds();
-    s.add(id);
-    globalThis.localStorage?.setItem(READ_KEY, JSON.stringify([...s].slice(-200)));
-  } catch {
-    /* 静默 */
-  }
-}
 
 /** DDL 解析：剩余天数 + 色档 + 展示文案（大数字 + 日期两行） */
 function ddlInfo(deadline: string): { days: number | null; overdue: boolean; big: string; small: string; date: string; cls: string } {
@@ -360,7 +339,7 @@ export function TasksPage(): ReactNode {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
   const news = useTodayNewsFeed(subs);
-  const [readTick, setReadTick] = useState(0);
+  const readVersion = useNoticeReadVersion(); // 通知未读口径：全站共享的本地已读覆盖
 
   const courseMap = useMemo(() => new Map((data?.courses ?? []).map((c) => [c.id, c.name])), [data]);
   const courseNameOf = (id: string): string => courseMap.get(id) ?? "课程";
@@ -379,14 +358,12 @@ export function TasksPage(): ReactNode {
   const semesterId = data?.semester.id;
 
   const notices = useMemo(() => (data?.notifications ?? []), [data]);
-  void readTick;
-  const readSet = readNoticeIds();
-  const unread = notices.filter((n) => !readSet.has(n.id));
+  // 未读口径与通知页/详情页完全一致：服务端 sfyd ∪ 本地已读覆盖（lib/noticeRead）。
+  // 此前待办页另起了一套只按 id 记的私有 localStorage，与全站口径不一致，故
+  // 会出现「别处 11 条未读、这里暂无未读」。
+  readVersion; // 订阅本地置读：打开通知后本页立刻重算
+  const unread = notices.filter((n) => !noticeHasRead(n.hasRead, n.courseId, n.id));
   const hasImportantUnread = unread.some((n) => n.important);
-  const markReadAllVisible = (): void => {
-    for (const n of unread.slice(0, 20)) markNoticeRead(n.id);
-    setReadTick((t) => t + 1);
-  };
 
   const cardLow = (card.data?.info.balance ?? null) != null && (card.data?.info.balance ?? 0) < 20;
 
@@ -441,14 +418,15 @@ export function TasksPage(): ReactNode {
           {/* 计数 + 双入口 */}
           <div className="tasks-mid">
             <div className="tasks-stats">
-              <div className="task-stat" role="button" tabIndex={0} onClick={() => navigate("learn-assignments")} onKeyDown={(e) => { if (e.key === "Enter") navigate("learn-assignments"); }}>
+              {/* 两项计数各自独立成卡（轻拟物：受光面 + 投影 + 内高光，按下内凹） */}
+              <button className="task-stat" onClick={() => navigate("learn-assignments")}>
                 <span className="task-stat-num" key={"n" + flow.length}>{flow.length}</span>
-                <span className="task-stat-label">还剩作业（项）</span>
-              </div>
-              <div className="task-stat" role="button" tabIndex={0} onClick={() => navigate("learn-assignments")} onKeyDown={(e) => { if (e.key === "Enter") navigate("learn-assignments"); }}>
+                <span className="task-stat-label">还剩作业</span>
+              </button>
+              <button className="task-stat" onClick={() => navigate("learn-assignments")}>
                 <span className="task-stat-num task-stat-urgent" key={"s" + dueSoon}>{dueSoon}</span>
-                <span className="task-stat-label">3 日内截止（项）</span>
-              </div>
+                <span className="task-stat-label">3 日内截止</span>
+              </button>
             </div>
             <div className="tasks-entries">
               <button className="task-entry" onClick={() => navigate("learn-assignments")}>全部作业 →</button>
@@ -464,11 +442,11 @@ export function TasksPage(): ReactNode {
                   课程通知：<b>{unread.length} 条未读</b>
                   {hasImportantUnread ? <span className="task-unread-important">重要未读</span> : null}
                 </>
-      ) : (
+              ) : (
                 <>课程通知：暂无未读</>
-      )}
+              )}
             </span>
-            <button className="task-sec-more" onClick={() => { markReadAllVisible(); navigate("learn-notices"); }}>全部通知 →</button>
+            <button className="task-sec-more" onClick={() => navigate("learn-notices")}>全部通知 →</button>
           </div>
         </div>
       ) : (
