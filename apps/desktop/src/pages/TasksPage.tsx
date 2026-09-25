@@ -86,14 +86,37 @@ const STEP = 170;
 
 function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; courseNameOf: (id: string) => string; semesterId?: string }): ReactNode {
   const { navigate } = useApp();
-  const [pos, setPos] = useState(0); // 浮点步进位置：整数 = 停在一张卡上
-  const [dragPx, setDragPx] = useState<number | null>(null); // 拖拽中的手指位移（跟手）；null = 未拖拽
-  const touch = useRef<{ y0: number; lastY: number; lastT: number; v: number } | null>(null);
+  // 位置真值放 ref，setPos 只做渲染镜像：逐帧补间时避免闭包读旧值
+  const posRef = useRef(0);
+  const [pos, setPos] = useState(0);
+  const [dragging, setDragging] = useState(false); // 拖拽中 = 1:1 跟手（无补间）
+  const touch = useRef<{ y0: number; pos0: number; lastY: number; lastT: number; v: number } | null>(null);
   const movedRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
   const n = items.length;
+  const setPosBoth = (v: number): void => {
+    posRef.current = v;
+    setPos(v);
+  };
   useEffect(() => {
-    if (n === 0) setPos(0);
+    if (n === 0) setPosBoth(0);
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    };
   }, [n]);
+  // 前台卡变化 → 轮盘式轻微振动 tick（HyperOS 手感；设备/权限不支持时静默）
+  const curIdx = ((Math.round(pos) % n) + n) % n;
+  const lastTick = useRef(curIdx);
+  useEffect(() => {
+    if (curIdx !== lastTick.current) {
+      lastTick.current = curIdx;
+      try {
+        navigator.vibrate?.(4);
+      } catch {
+        /* 不支持：静默 */
+      }
+    }
+  }, [curIdx]);
   if (n === 0) {
     return (
       <div className="hw-carousel-empty">
@@ -104,21 +127,42 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
       </div>
     );
   }
-  const cur = ((Math.round(pos) % n) + n) % n;
-  const go = (delta: number): void => setPos((p) => p + delta);
+  /** 逐帧补间：所有位置变化（吸附/点列/翻页）统一走这里，天然带起停缓动 */
+  const animatePos = (target: number, dur: number): void => {
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    const from = posRef.current;
+    const dist = target - from;
+    if (Math.abs(dist) < 0.001) {
+      setPosBoth(target);
+      return;
+    }
+    const t0 = performance.now();
+    const ease = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2); // easeInOutCubic：起步与收尾都缓
+    const step = (now: number): void => {
+      const t = Math.min(1, (now - t0) / dur);
+      setPosBoth(from + dist * ease(t));
+      if (t < 1) rafRef.current = requestAnimationFrame(step);
+      else rafRef.current = null;
+    };
+    rafRef.current = requestAnimationFrame(step);
+  };
+  const go = (delta: number): void => animatePos(posRef.current + delta, 320);
   const gotoIdx = (k: number): void =>
-    setPos((p) => {
-      const c = ((p % n) + n) % n;
+    (() => {
+      const c = ((posRef.current % n) + n) % n;
       let d = (k - c) % n;
       if (d > n / 2) d -= n;
       if (d < -n / 2) d += n;
-      return p + d; // 环向最短路径 → transform 过渡自然呈现滚动动画
-    });
+      animatePos(posRef.current + d, Math.min(720, 260 + Math.abs(d) * 90)); // 步数越多时长略增
+    })();
   const onTouchStart = (e: TouchEvent<HTMLDivElement>): void => {
     const y = e.touches[0]?.clientY;
     if (y == null) return;
-    touch.current = { y0: y, lastY: y, lastT: Date.now(), v: 0 };
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current); // 手指按下即接管
+    rafRef.current = null;
+    touch.current = { y0: y, pos0: posRef.current, lastY: y, lastT: Date.now(), v: 0 };
     movedRef.current = false;
+    setDragging(true);
   };
   const onTouchMove = (e: TouchEvent<HTMLDivElement>): void => {
     const t = touch.current;
@@ -127,35 +171,36 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
     const dy = y - t.y0;
     if (Math.abs(dy) > 8) movedRef.current = true;
     const dt = Math.max(1, Date.now() - t.lastT);
-    t.v = (y - t.lastY) / dt; // px/ms，带符号（判惯性轻扫）
+    t.v = (y - t.lastY) / dt;
     t.lastY = y;
     t.lastT = Date.now();
-    setDragPx(dy); // 整列 1:1 跟手
+    setPosBoth(t.pos0 - dy / STEP); // 1:1 跟手（列随手上行 = 前进）
   };
   const onTouchEnd = (e: TouchEvent<HTMLDivElement>): void => {
     const t = touch.current;
     touch.current = null;
-    setDragPx(null);
+    setDragging(false);
     if (!t) return;
     const endY = e.changedTouches[0]?.clientY ?? t.lastY;
-    const dy = endY - t.y0;
-    let steps = Math.round(-dy / STEP);
-    if (steps === 0 && Math.abs(t.v) > 0.45) steps = t.v < 0 ? 1 : -1; // 快速轻扫惯性翻一张
-    if (steps !== 0) go(steps);
+    const dy = endY - t.y0; // 手指净位移
+    const movedSteps = -dy / STEP; // 本次拖拽折算的步数（上滑为正=前进）
+    let target = Math.round(posRef.current);
+    // 未跨过整卡时看轻扫速度：快速一挥也翻一张（HyperOS 轮盘手感）
+    if (Math.abs(movedSteps) < 0.5 && Math.abs(t.v) > 0.45) target += t.v < 0 ? 1 : -1;
+    animatePos(target, 340);
   };
   const relOf = (k: number): number => {
     const c = ((pos % n) + n) % n;
     let d = (k - c) % n;
     if (d > n / 2) d -= n;
     if (d < -n / 2) d += n;
-    return d * STEP + (dragPx ?? 0);
+    return d * STEP;
   };
   return (
     <div className="hw-carousel-row">
-      {/* 左缘进度点轨：点击直达（环向最短路径，带滚动动画） */}
       <div className="hw-dots" aria-hidden>
         {items.map((_, k) => (
-          <span key={k} className={"hw-dot" + (k === cur ? " is-cur" : "")} onClick={() => gotoIdx(k)} />
+          <span key={k} className={"hw-dot" + (k === curIdx ? " is-cur" : "")} onClick={() => gotoIdx(k)} />
         ))}
       </div>
       <div
@@ -163,14 +208,14 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        onTouchCancel={() => { touch.current = null; setDragPx(null); }}
+        onTouchCancel={() => { touch.current = null; setDragging(false); }}
       >
         {items.map((h, k) => {
           const yPx = relOf(k);
-          if (Math.abs(yPx) > 270) return null; // 视口外不渲染
+          if (Math.abs(yPx) > 270) return null;
           const ad = Math.abs(yPx) / STEP;
-          const scale = Math.max(0.84, 1 - ad * 0.08);
-          const opacity = Math.max(0.3, 1 - ad * 0.24);
+          const scale = Math.max(0.86, 1 - ad * 0.07);
+          const opacity = Math.max(0.3, 1 - ad * 0.22);
           const info = ddlInfo(h.deadline);
           const front = ad < 0.5;
           return (
@@ -181,7 +226,6 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
                 transform: "translate(-50%, -50%) translateY(" + yPx + "px) scale(" + scale + ")",
                 opacity,
                 zIndex: 100 - Math.round(Math.abs(yPx)),
-                transition: dragPx == null ? undefined : "none", // 拖拽中禁过渡=实时跟手
               }}
               onClickCapture={(e) => {
                 if (movedRef.current || !front) {
@@ -193,28 +237,28 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
             >
               <div className="hw-card-head">
                 <div className="hw-card-course">{h.source ? h.courseName ?? courseNameOf(h.courseId) : courseNameOf(h.courseId)}</div>
-                {front ? (
-                  <div className="hw-card-actions" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      className="hw-card-act"
-                      title="忽略这条作业"
-                      aria-label="忽略这条作业"
-                      onClick={async () => {
-                        const ok = await confirmDanger(
-                        `确定要忽略《${h.title}》吗？\n\n忽略后它不再出现在作业区与日程提醒中，可在「全部作业 → 已忽略」恢复。`,
-                          CONFIRM_IGNORE_HW,
-                        );
-                        if (ok) ignoreHw(h.id, h.title);
-                      }}
-                    >
-                      <IconIgnore />
-                    </button>
-                    <HwRemindButton h={h} />
-                    {!h.source && semesterId ? (
-                      <CollectStar atom={{ kind: "assignment", key: enc(h.courseId, h.id, h.title, courseNameOf(h.courseId), semesterId) }} title="收藏作业" />
-                    ) : null}
-                  </div>
-                ) : null}
+                {/* 动作钮所有卡常驻（非前台仅隐藏），避免前台切换时头部重排造成字距突变 */}
+                <div className={"hw-card-actions" + (front ? "" : " is-hidden")} onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="hw-card-act"
+                    title="忽略这条作业"
+                    aria-label="忽略这条作业"
+                    tabIndex={front ? 0 : -1}
+                    onClick={async () => {
+                      const ok = await confirmDanger(
+                      `确定要忽略《${h.title}》吗？\n\n忽略后它不再出现在作业区与日程提醒中，可在「全部作业 → 已忽略」恢复。`,
+                        CONFIRM_IGNORE_HW,
+                      );
+                      if (ok) ignoreHw(h.id, h.title);
+                    }}
+                  >
+                    <IconIgnore />
+                  </button>
+                  <HwRemindButton h={h} />
+                  {!h.source && semesterId ? (
+                    <CollectStar atom={{ kind: "assignment", key: enc(h.courseId, h.id, h.title, courseNameOf(h.courseId), semesterId) }} title="收藏作业" />
+                  ) : null}
+                </div>
               </div>
               <div className="hw-card-title">{h.title}</div>
               <div className="hw-card-foot">
