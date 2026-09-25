@@ -1073,12 +1073,17 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
                         invoke.resolve(JSObject().put("ok", false).put("reason", "no-vibrator"))
                         return@runOnUiThread
                     }
-                    if (Build.VERSION.SDK_INT >= 31) {
-                        val effect = android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_TICK)
+                    if (Build.VERSION.SDK_INT >= 26) {
+                        // 老式表盘「咔嗒」：20ms 单次满幅——短促、干脆、有钢性。
+                        val effect = android.os.VibrationEffect.createWaveform(
+                            longArrayOf(0, 20),
+                            intArrayOf(255),
+                            -1,
+                        )
                         vib.vibrate(effect)
                     } else {
                         @Suppress("DEPRECATION")
-                        vib.vibrate(5)
+                        vib.vibrate(20)
                     }
                     invoke.resolve(JSObject().put("ok", true))
                 } catch (e: Exception) {
