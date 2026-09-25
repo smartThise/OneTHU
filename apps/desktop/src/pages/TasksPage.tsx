@@ -13,7 +13,7 @@
  *
  * 数据全复用既有层（useLearnData/exthw/hwIgnore/hwCard/news），零新取数。
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type TouchEvent } from "react";
 import { parseLearnTime, SOURCE_NAMES } from "@onethu/core";
 import { SegmentedOverflow, Card, Empty, PageHead } from "../components/Layout.js";
 import { IconRefresh } from "../components/Icons.js";
@@ -86,12 +86,13 @@ const STEP = 170;
 
 function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; courseNameOf: (id: string) => string; semesterId?: string }): ReactNode {
   const { navigate } = useApp();
-  const [idx, setIdx] = useState(0);
-  const [drag, setDrag] = useState<number | null>(null); // 拖拽中的手指位移 px；null=未拖拽
-  const touchY = useRef<number | null>(null);
+  const [pos, setPos] = useState(0); // 浮点步进位置：整数 = 停在一张卡上
+  const [dragPx, setDragPx] = useState<number | null>(null); // 拖拽中的手指位移（跟手）；null = 未拖拽
+  const touch = useRef<{ y0: number; lastY: number; lastT: number; v: number } | null>(null);
+  const movedRef = useRef(false);
   const n = items.length;
   useEffect(() => {
-    setIdx((i) => (n === 0 ? 0 : Math.min(i, n - 1)));
+    if (n === 0) setPos(0);
   }, [n]);
   if (n === 0) {
     return (
@@ -103,81 +104,104 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
       </div>
     );
   }
-  const go = (delta: number): void => setIdx((i) => (i + delta + n) % n);
-  const off = (k: number): number => {
-    let d = (k - idx) % n;
+  const cur = ((Math.round(pos) % n) + n) % n;
+  const go = (delta: number): void => setPos((p) => p + delta);
+  const gotoIdx = (k: number): void =>
+    setPos((p) => {
+      const c = ((p % n) + n) % n;
+      let d = (k - c) % n;
+      if (d > n / 2) d -= n;
+      if (d < -n / 2) d += n;
+      return p + d; // 环向最短路径 → transform 过渡自然呈现滚动动画
+    });
+  const onTouchStart = (e: TouchEvent<HTMLDivElement>): void => {
+    const y = e.touches[0]?.clientY;
+    if (y == null) return;
+    touch.current = { y0: y, lastY: y, lastT: Date.now(), v: 0 };
+    movedRef.current = false;
+  };
+  const onTouchMove = (e: TouchEvent<HTMLDivElement>): void => {
+    const t = touch.current;
+    const y = e.touches[0]?.clientY;
+    if (!t || y == null) return;
+    const dy = y - t.y0;
+    if (Math.abs(dy) > 8) movedRef.current = true;
+    const dt = Math.max(1, Date.now() - t.lastT);
+    t.v = (y - t.lastY) / dt; // px/ms，带符号（判惯性轻扫）
+    t.lastY = y;
+    t.lastT = Date.now();
+    setDragPx(dy); // 整列 1:1 跟手
+  };
+  const onTouchEnd = (e: TouchEvent<HTMLDivElement>): void => {
+    const t = touch.current;
+    touch.current = null;
+    setDragPx(null);
+    if (!t) return;
+    const endY = e.changedTouches[0]?.clientY ?? t.lastY;
+    const dy = endY - t.y0;
+    let steps = Math.round(-dy / STEP);
+    if (steps === 0 && Math.abs(t.v) > 0.45) steps = t.v < 0 ? 1 : -1; // 快速轻扫惯性翻一张
+    if (steps !== 0) go(steps);
+  };
+  const relOf = (k: number): number => {
+    const c = ((pos % n) + n) % n;
+    let d = (k - c) % n;
     if (d > n / 2) d -= n;
     if (d < -n / 2) d += n;
-    return d;
-  };
-  // 只渲染中心 ±1（上下各一张）；dragDelta 叠加到所有可见卡实现实时跟手
-  const styleOf = (d: number): CSSProperties => {
-    const dragPx = drag == null ? 0 : drag;
-    const base = d * STEP;
-    const y = base + (d === 0 ? dragPx * 0.45 : dragPx);
-    const scale = d === 0 ? 1 : 0.94;
-    return { transform: "translate(-50%, -50%) translateY(" + y + "px) scale(" + scale + ")", opacity: d === 0 ? 1 : 0.6, zIndex: d === 0 ? 3 : 2, transition: drag == null ? undefined : "none" };
+    return d * STEP + (dragPx ?? 0);
   };
   return (
     <div className="hw-carousel-row">
-      {/* 左缘进度圆点轨：每项一个点，当前项白点放大（深色半透明底，亮暗主题都可读） */}
+      {/* 左缘进度点轨：点击直达（环向最短路径，带滚动动画） */}
       <div className="hw-dots" aria-hidden>
         {items.map((_, k) => (
-          <span key={k} className={"hw-dot" + (k === idx ? " is-cur" : "")} onClick={() => setIdx(k)} />
+          <span key={k} className={"hw-dot" + (k === cur ? " is-cur" : "")} onClick={() => gotoIdx(k)} />
         ))}
       </div>
       <div
         className="hw-carousel"
-        onTouchStart={(e) => {
-          touchY.current = e.touches[0]?.clientY ?? null;
-          setDrag(0);
-        }}
-        onTouchMove={(e) => {
-          const y0 = touchY.current;
-          if (y0 == null) return;
-          const dy = (e.touches[0]?.clientY ?? y0) - y0;
-          setDrag(dy);
-        }}
-        onTouchEnd={(e) => {
-          const y0 = touchY.current;
-          const dy = drag ?? 0;
-          touchY.current = null;
-          setDrag(null);
-          if (y0 == null) return;
-          const endY = e.changedTouches[0]?.clientY ?? y0;
-          const total = endY - y0;
-          if (total < -40) go(1);
-          else if (total > 40) go(-1);
-          void dy;
-        }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={() => { touch.current = null; setDragPx(null); }}
       >
         {items.map((h, k) => {
-          const d = off(k);
-          if (Math.abs(d) > 1) return null;
+          const yPx = relOf(k);
+          if (Math.abs(yPx) > 270) return null; // 视口外不渲染
+          const ad = Math.abs(yPx) / STEP;
+          const scale = Math.max(0.84, 1 - ad * 0.08);
+          const opacity = Math.max(0.3, 1 - ad * 0.24);
           const info = ddlInfo(h.deadline);
+          const front = ad < 0.5;
           return (
             <div
               key={h.id}
-              className={"hw-card" + (d === 0 ? " is-cur" : "")}
-              style={styleOf(d)}
-              onClick={() => {
-                if (drag == null && d === 0) openHomeworkRow(h, { navigate, from: "tasks", courseName: courseNameOf(h.courseId) });
-                else if (d !== 0) go(d);
+              className={"hw-card" + (front ? " is-cur" : "")}
+              style={{
+                transform: "translate(-50%, -50%) translateY(" + yPx + "px) scale(" + scale + ")",
+                opacity,
+                zIndex: 100 - Math.round(Math.abs(yPx)),
+                transition: dragPx == null ? undefined : "none", // 拖拽中禁过渡=实时跟手
+              }}
+              onClickCapture={(e) => {
+                if (movedRef.current || !front) {
+                  e.stopPropagation();
+                  return;
+                }
+                openHomeworkRow(h, { navigate, from: "tasks", courseName: courseNameOf(h.courseId) });
               }}
             >
               <div className="hw-card-head">
                 <div className="hw-card-course">{h.source ? h.courseName ?? courseNameOf(h.courseId) : courseNameOf(h.courseId)}</div>
-                {d === 0 ? (
+                {front ? (
                   <div className="hw-card-actions" onClick={(e) => e.stopPropagation()}>
-                    {!h.source && semesterId ? <CollectStar atom={{ kind: "assignment", key: enc(h.courseId, h.id, h.title, courseNameOf(h.courseId), semesterId) }} title="收藏作业" /> : null}
-                    <HwRemindButton h={h} />
                     <button
                       className="hw-card-act"
                       title="忽略这条作业"
                       aria-label="忽略这条作业"
                       onClick={async () => {
                         const ok = await confirmDanger(
-                          `确定要忽略《${h.title}》吗？\n\n忽略后它不再出现在作业区与日程提醒中，可在「全部作业 → 已忽略」恢复。`,
+                        `确定要忽略《${h.title}》吗？\n\n忽略后它不再出现在作业区与日程提醒中，可在「全部作业 → 已忽略」恢复。`,
                           CONFIRM_IGNORE_HW,
                         );
                         if (ok) ignoreHw(h.id, h.title);
@@ -185,8 +209,12 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
                     >
                       <IconIgnore />
                     </button>
+                    <HwRemindButton h={h} />
+                    {!h.source && semesterId ? (
+                      <CollectStar atom={{ kind: "assignment", key: enc(h.courseId, h.id, h.title, courseNameOf(h.courseId), semesterId) }} title="收藏作业" />
+                    ) : null}
                   </div>
-        ) : null}
+                ) : null}
               </div>
               <div className="hw-card-title">{h.title}</div>
               <div className="hw-card-foot">

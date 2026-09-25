@@ -5206,6 +5206,9 @@ section > .svc-label { margin-top: 14px; }
   height: 300px;
   overflow: hidden;
   touch-action: none; /* 纵向手势全交给卡片流，页面不滚动 */
+  /* 滚筒遮罩：上下边缘渐隐，营造“一列卡片循环滚动”的纵深感 */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 84%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 84%, transparent 100%);
 }
 .hw-card {
   position: absolute;
@@ -5236,7 +5239,7 @@ section > .svc-label { margin-top: 14px; }
 .hw-card-actions .btn { min-height: 0; padding: 4px 6px; }
 .hw-card-act {
   border: 0;
-  background: var(--surface-3);
+  background: none; /* 与提醒/收藏一致：无底色纯图标 */
   color: var(--text-2);
   border-radius: 8px;
   width: 26px;
