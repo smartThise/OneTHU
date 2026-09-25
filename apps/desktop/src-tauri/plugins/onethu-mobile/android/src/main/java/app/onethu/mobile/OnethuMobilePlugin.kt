@@ -1062,11 +1062,17 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
 
     /** 触觉 tick（作业流切卡的段落感）。
      *
-     *  走系统「预烘焙效果」（Prebaked）：ROM 在振动 HAL 里存了厂商标定好的波形，
-     *  与桌面/系统 UI 的点击振动同源（实测本机 CLICK 总长约 62ms、MEDIUM 强度），
-     *  远比自绘的原始通断波形结实——线性马达在 5~10ms 时仍处起振阶段，必然发软。
-     *  并挂 USAGE_TOUCH 走触觉通道（此前 usage=UNKNOWN，绕开了系统标定与用户触感强度）。
-     *  API 26 以下退化为短波形。 */
+     *  走 AOSP 标准「预烘焙效果」（Prebaked）：ROM 在振动 HAL 里为 EFFECT_CLICK 备了
+     *  自家标定波形——本机（MIUI）实测与桌面点击同源：Prebaked=CLICK(MEDIUM) ≈ 63ms。
+     *  关键点：用的是公开常量而非 MIUI 私有 id，所以换 ROM 由对方 HAL 出自家手感，
+     *  这正是跨机型一致性的来源。
+     *
+     *  降级链（逐级兜底，返回值回传实际路径便于跨机型排查）：
+     *  1. API 30+ 且 HAL 报告支持 EFFECT_CLICK → 预烘焙 CLICK；
+     *  2. API 26~29（无能力查询 API）→ 仍试预烘焙，异常则降级；
+     *  3. 预烘焙不可用 → 自绘 30ms 单击（线性马达起振需 10~20ms，此前 5ms 等于没振）；
+     *  4. API < 26 → 旧式 vibrate(30)。
+     *  API 33+ 一律挂 USAGE_TOUCH：走触觉通道、尊重用户触感强度设置。 */
     @Command
     fun hapticTick(invoke: Invoke) {
         try {
@@ -1077,26 +1083,59 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
                         invoke.resolve(JSObject().put("ok", false).put("reason", "no-vibrator"))
                         return@runOnUiThread
                     }
-                    if (Build.VERSION.SDK_INT >= 26) {
-                        val effect = android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_CLICK)
-                        if (Build.VERSION.SDK_INT >= 33) {
-                            val attrs = android.os.VibrationAttributes.createForUsage(android.os.VibrationAttributes.USAGE_TOUCH)
-                            vib.vibrate(effect, attrs)
-                        } else {
-                            @Suppress("DEPRECATION")
-                            vib.vibrate(effect)
-                        }
-                    } else {
-                        @Suppress("DEPRECATION")
-                        vib.vibrate(15)
-                    }
-                    invoke.resolve(JSObject().put("ok", true))
+                    val mode = playHapticTick(vib)
+                    invoke.resolve(JSObject().put("ok", true).put("mode", mode))
                 } catch (e: Exception) {
                     invoke.resolve(JSObject().put("ok", false).put("reason", "haptic-failed"))
                 }
             }
         } catch (e: Exception) {
             invoke.resolve(JSObject().put("ok", false).put("reason", "haptic-exception"))
+        }
+    }
+
+    /** 播放一次切卡 tick，返回实际走的路径（prebaked / waveform / legacy）。 */
+    private fun playHapticTick(vib: android.os.Vibrator): String {
+        if (Build.VERSION.SDK_INT < 26) {
+            @Suppress("DEPRECATION")
+            vib.vibrate(30)
+            return "legacy"
+        }
+        // API 30 起才有能力查询，且返回三态（YES/NO/UNKNOWN，UNKNOWN 视为可用，交给 try 兜底）；
+        // 30 以下没有查询 API，直接试，失败走 catch 降级。
+        val clickSupported = if (Build.VERSION.SDK_INT >= 30) {
+            vib.areAllEffectsSupported(android.os.VibrationEffect.EFFECT_CLICK) !=
+                android.os.Vibrator.VIBRATION_EFFECT_SUPPORT_NO
+        } else {
+            true
+        }
+        if (clickSupported) {
+            try {
+                val effect = android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_CLICK)
+                vibrateWith(vib, effect)
+                return "prebaked"
+            } catch (_: Exception) {
+                // 个别 HAL 不认预烘焙效果：落到自绘波形
+            }
+        }
+        // 自绘兜底：30ms 单次满幅。不要再缩到 5~10ms——那是起振区，只有嗡感没有脆感。
+        val shaped = android.os.VibrationEffect.createWaveform(
+            longArrayOf(0, 30),
+            intArrayOf(0, 255),
+            -1,
+        )
+        vibrateWith(vib, shaped)
+        return "waveform"
+    }
+
+    /** 统一带触觉通道属性播放：API 33+ 走 USAGE_TOUCH（尊重用户触感强度），旧版本用弃用重载。 */
+    private fun vibrateWith(vib: android.os.Vibrator, effect: android.os.VibrationEffect) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            val attrs = android.os.VibrationAttributes.createForUsage(android.os.VibrationAttributes.USAGE_TOUCH)
+            vib.vibrate(effect, attrs)
+        } else {
+            @Suppress("DEPRECATION")
+            vib.vibrate(effect)
         }
     }
 

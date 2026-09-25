@@ -131,6 +131,7 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
   }, []);
   const curIdx = ((Math.round(pos) % n) + n) % n;
   const lastTick = useRef(curIdx);
+  const hapticPathLogged = useRef(false); // 触觉降级路径只记一次日志
   useEffect(() => {
     if (curIdx === lastTick.current) return;
     lastTick.current = curIdx;
@@ -139,7 +140,17 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
       return;
     }
     void import("@tauri-apps/api/core")
-      .then(({ invoke }) => invoke("ui_haptic_tick"))
+      .then(({ invoke }) => invoke<{ ok: boolean; mode?: string }>("ui_haptic_tick"))
+      .then((r) => {
+        // 跨机型排查：只记一次实际路径。prebaked=各 ROM 自家标定波形（理想）；
+        // waveform/legacy=该机 HAL 不认预烘焙，已降级自绘波形（手感会略弱）。
+        if (r?.mode && r.mode !== "prebaked" && !hapticPathLogged.current) {
+          hapticPathLogged.current = true;
+          void import("../lib/clients.js")
+            .then((m) => m.logLine(`[HAPTIC] 预烘焙不可用，降级路径=${r.mode}`))
+            .catch(() => undefined);
+        }
+      })
       .catch(() => undefined);
   }, [curIdx]);
   if (n === 0) {
