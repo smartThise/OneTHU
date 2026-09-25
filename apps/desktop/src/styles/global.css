@@ -5329,14 +5329,27 @@ section > .svc-label { margin-top: 14px; }
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
   gap: 20px;
-  align-items: start;
+  /* stretch（默认）：右栏与左栏同高，内嵌详情在自己栏内滚动，不把整页顶高 */
+  align-items: stretch;
 }
 .tasks-pane { min-width: 0; }
 .tasks-pane.is-hidden { display: none; }
 .tasks-pane-head { display: none; }
 .tasks-body.is-wide .tasks-pane-head {
-  display: block; margin: 0 2px 6px; font-size: 13px; font-weight: 600; color: var(--text-2);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin: 0 2px 6px; font-size: 13px; font-weight: 600; color: var(--text-2);
 }
+/* 宽屏右栏切到详情时，两栏各自成列、详情占满栏高并独立滚动 */
+.tasks-body.is-wide .tasks-pane { display: flex; flex-direction: column; min-height: 0; }
+.tasks-detail { flex: 1; min-height: 0; overflow: auto; padding-right: 4px; }
+/* 详情组件自带的页头（标题 + 返回）由分栏头接管——只改容器渲染，不动详情组件内部 */
+.tasks-detail .page-head { display: none; }
+.tasks-detail > :first-child { margin-top: 0; }
+.tasks-pane-close {
+  border: 0; background: none; padding: 0 2px;
+  color: var(--accent); font: inherit; font-size: var(--text-xs); font-weight: 500; cursor: pointer;
+}
+.tasks-pane-close:hover { text-decoration: underline; }
 /* 宽屏下两侧列各自撑满所在栏，不再走移动端的通栏居中 */
 .tasks-body.is-wide .tasks-learn { max-width: none; margin: 0; }
 /* 作业流上方的「按课程检索」下拉 */

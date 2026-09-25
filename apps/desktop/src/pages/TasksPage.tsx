@@ -32,6 +32,10 @@ import { readSubs } from "./info/newsSearch.js";
 import { noticeHasRead, useNoticeReadVersion } from "../lib/noticeRead.js";
 import { NewsRows } from "../components/HomeWidgets.js";
 import { useExpanded } from "../state/usePlatformLayout.js";
+import { AssignmentDetailPage } from "./learn/AssignmentDetailPage.js";
+import { YktAssignmentDetailPage } from "./learn/YktAssignmentDetailPage.js";
+import { yktDetailParams } from "../lib/homeworkEntry.js";
+import { pickHomeworkRoute } from "../lib/yktDetail.js";
 import type { Homework } from "@onethu/core";
 
 /** 忽略图标（内联线性 SVG，1.6px 描边，与 Icons.tsx 同风格；仓库暂无现成 IconX） */
@@ -66,7 +70,7 @@ function hwTags(h: Homework): Array<{ text: string; cls: string }> {
 /** 卡片纵向位移（px）：0=居中；±1=上/下露出（STEP > 半卡高，保下方卡露出标题区）；拖拽时叠加 dragDelta 实时跟手 */
 const STEP_DEFAULT = 170;
 
-function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId }: { items: Homework[]; courseNameOf: (id: string) => string; courseLabelOf: (h: Homework) => string; semesterId?: string }): ReactNode {
+function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick }: { items: Homework[]; courseNameOf: (id: string) => string; courseLabelOf: (h: Homework) => string; semesterId?: string; onPick?: (h: Homework) => void }): ReactNode {
   const { navigate } = useApp();
   // 位置真值放 ref，setPos 只做渲染镜像：逐帧补间时避免闭包读旧值
   const posRef = useRef(0);
@@ -297,6 +301,11 @@ function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId }: { items:
                   e.stopPropagation();
                   return;
                 }
+                // 宽屏分栏（§2.8.2）：前台卡点开 → 右栏就地渲染详情，不跳页
+                if (onPick) {
+                  onPick(h);
+                  return;
+                }
                 openHomeworkRow(h, { navigate, from: "tasks", courseName: courseLabelOf(h) });
               }}
             >
@@ -394,6 +403,18 @@ export function TasksPage(): ReactNode {
     () => (courseFilter ? flowAll.filter((h) => hwCourseKey(h) === courseFilter) : flowAll),
     [flowAll, courseFilter],
   );
+  // 宽屏分栏右栏（§2.8.2）：默认「生活」，点卡片换成该作业详情——不点就是生活、点了就是详情、
+  // 关掉回到生活。与计划书的「左列表/右详情」和主人要的「左学习/右生活」合成一体。
+  const [pcSel, setPcSel] = useState<Homework | null>(null);
+  const pcPick = (h: Homework): void => {
+    // 外部网页源没有站内详情（雨课堂参数不齐 / 作业网等）：宽屏也照旧走原分流
+    const route = pickHomeworkRoute(h);
+    if (route !== "internal" && route !== "ykt-native") {
+      openHomeworkRow(h, { navigate, from: "tasks", courseName: hwCourseLabel(h, courseMap, extHwSourceName) });
+      return;
+    }
+    setPcSel(h);
+  };
 
   const dueSoon = flow.filter((h) => { const i = ddlInfo(h.deadline); return !i.overdue && i.days != null && i.days <= 3; }).length;
   const semesterId = data?.semester.id;
@@ -490,6 +511,7 @@ export function TasksPage(): ReactNode {
                 courseNameOf={courseNameOf}
                 courseLabelOf={(h) => hwCourseLabel(h, courseMap, extHwSourceName)}
                 semesterId={semesterId}
+                onPick={wide ? pcPick : undefined}
               />
       )}
           </div>
@@ -529,6 +551,27 @@ export function TasksPage(): ReactNode {
         </div>
       </section>
       <section className={"tasks-pane" + (wide || tab === "life" ? "" : " is-hidden")}>
+        {wide && pcSel ? (
+          <>
+            <div className="tasks-pane-head">
+              <span>作业详情</span>
+              <button className="tasks-pane-close" onClick={() => setPcSel(null)}>返回生活 →</button>
+            </div>
+            {/* 复用现有详情组件（§2.8.2：只改容器渲染，不改数据流与子组件）：
+                页头由上面的分栏头接管，目标作业经 props 直给，不污染全局 navParams */}
+            <div className="tasks-detail">
+              {pickHomeworkRoute(pcSel) === "ykt-native" ? (
+                <YktAssignmentDetailPage
+                  ykt={yktDetailParams(pcSel, hwCourseLabel(pcSel, courseMap, extHwSourceName), "tasks")}
+                  from="tasks"
+                />
+              ) : (
+                <AssignmentDetailPage courseId={pcSel.courseId} itemId={pcSel.id} />
+              )}
+            </div>
+          </>
+        ) : (
+          <>
         <div className="tasks-pane-head">生活</div>
         <div className="tasks-life">
           {cardLow ? (
@@ -553,6 +596,8 @@ export function TasksPage(): ReactNode {
       )}
           <div className="task-life-note">行政类通知（报到、党团活动等）暂无稳定数据源，接入后补充到这里。</div>
         </div>
+          </>
+        )}
       </section>
       </div>
     </>

@@ -21,7 +21,7 @@ import type { HomeworkPageDetail, LearnAttachment } from "@onethu/core";
 
 type DescState = "idle" | "skip" | "loading" | "ok" | "error";
 
-export function AssignmentDetailPage() {
+export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdProp }: { courseId?: string; itemId?: string } = {}) {
   useLearnNavSemester();
   const { navParams } = useApp();
 
@@ -51,8 +51,9 @@ export function AssignmentDetailPage() {
   const [dlHint, setDlHint] = useState<{ text: string; path?: string } | null>(null);
   const [dlBusy, setDlBusy] = useState("");
 
-  const courseId = navParams?.courseId ?? "";
-  const itemId = navParams?.itemId ?? "";
+  // 宽屏分栏内嵌（§2.8.2）时由 props 直给，路由页仍走 navParams
+  const courseId = courseIdProp ?? navParams?.courseId ?? "";
+  const itemId = itemIdProp ?? navParams?.itemId ?? "";
 
   const h = useMemo(
     () => data?.homework.find((x) => x.courseId === courseId && x.id === itemId) ?? null,

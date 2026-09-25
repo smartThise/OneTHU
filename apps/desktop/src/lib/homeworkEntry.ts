@@ -31,22 +31,28 @@ export interface HwEntryOptions {
   courseName?: string;
 }
 
+/**
+ * 雨课堂原生详情的参数（§2.8.2 宽屏分栏右栏内嵌复用）。
+ * 与 openHomeworkRow 同一构造：分栏右栏不跳页、也不污染全局 navParams，
+ * 直接把这份参数当 props 交给详情组件。
+ */
+export function yktDetailParams(h: Homework, courseName: string, from?: Page): NonNullable<LearnNav["ykt"]> {
+  return {
+    leafTypeId: h.externalLeafTypeId ?? "",
+    classroomId: h.externalClassroomId ?? "",
+    externalUrl: h.externalUrl,
+    title: h.title,
+    deadline: h.deadline,
+    courseName: h.courseName ?? courseName,
+    kind: h.kind,
+  };
+}
+
 /** 作业行点击统一入口：按 pickHomeworkRoute 三态落地，任何点击点不得绕过本函数。 */
 export function openHomeworkRow(h: Homework, opts: HwEntryOptions): void {
   const route = pickHomeworkRoute(h);
   if (route === "ykt-native") {
-    opts.navigate("learn-ykt-detail", {
-      ykt: {
-        leafTypeId: h.externalLeafTypeId ?? "",
-        classroomId: h.externalClassroomId ?? "",
-        externalUrl: h.externalUrl,
-        title: h.title,
-        deadline: h.deadline,
-        courseName: h.courseName ?? opts.courseName,
-        kind: h.kind,
-      },
-      from: opts.from,
-    });
+    opts.navigate("learn-ykt-detail", { ykt: yktDetailParams(h, opts.courseName ?? "", opts.from), from: opts.from });
     return;
   }
   if (route === "external-web") {

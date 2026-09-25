@@ -45,6 +45,7 @@ import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components
 import { ProblemBody } from "../../components/exthw/ProblemBody.js";
 import { YktSubjectiveEditor, toSubmitHtml } from "../../components/exthw/YktSubjectiveEditor.js";
 import { useApp } from "../../state/context.js";
+import type { LearnNav, Page } from "../../state/app.js";
 import { fetchYktExerciseDetail, getYktCookie, submitYktSubjective } from "../../state/exthw.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { confirmOk } from "../../lib/confirm.js";
@@ -285,10 +286,11 @@ function ProblemCard({ p, fontUrl, cookies, answer }: { p: YkProblem; fontUrl?: 
   );
 }
 
-export function YktAssignmentDetailPage() {
+export function YktAssignmentDetailPage({ ykt: yktProp, from: fromProp }: { ykt?: NonNullable<LearnNav["ykt"]>; from?: Page } = {}) {
   const { navParams } = useApp();
-  const ykt = navParams?.ykt ?? null;
-  const from = navParams?.from ?? "learn";
+  // 宽屏分栏内嵌（§2.8.2）时由 props 直给，路由页仍走 navParams
+  const ykt = yktProp ?? navParams?.ykt ?? null;
+  const from = fromProp ?? navParams?.from ?? "learn";
   const [detail, setDetail] = useState<YkExerciseDetail | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [errMsg, setErrMsg] = useState("");
