@@ -2,9 +2,9 @@
 import { Children, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, useSyncExternalStore} from "react";
 import { useThemes } from "../state/theme.js";
 import { useApp } from "../state/context.js";
-import { topLevelPage, type Page } from "../state/app.js";
+import { topLevelPage, type LearnNav, type Page } from "../state/app.js";
 import { DESENSITIZE_BUILD } from "../lib/privacy.js";
-import { IconChevron, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconPlug, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal, IconThos, IconTrace, IconMail, IconCloud, IconBook } from "./Icons.js";
+import { IconChevron, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconPen, IconPlug, IconSchedule, IconSettings, IconStar, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal, IconThos, IconTrace, IconMail, IconCloud, IconBook } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
 import { pluginTabsSnapshot, subscribePluginTabs } from "../plugins/tabs.js";
 import { showToast } from "../state/toast.js";
@@ -35,6 +35,44 @@ function usePluginNavEntries(): Array<{ page: Page; label: string; icon: (p: obj
       />
     ),
   }));
+}
+
+/**
+ * 底部 5 Tab（UI/UX 改造方案 §2.2，M1 beta）：移动端（≤860px，与现有抽屉断点
+ * 暂保持一致；§2.8.1 的 840 断点归 M1 收尾统一）固定底栏。服务/收藏两个直达页
+ * 是本批次新增（pages/ServicesPage、pages/FavsHomePage）；「待办」暂指
+ * learn-assignments（全部作业），§2.3-4 升级为独立 tab 页后再换实现。
+ * 长尾功能仍走抽屉/服务目录页，底栏只承担 §1.2 的 core 直达。
+ */
+const BOTTOM_NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode; activePages?: Page[] }> = [
+  { page: "today", label: "今日", icon: IconToday },
+  { page: "learn-assignments", label: "待办", icon: IconPen, activePages: ["learn-assignments", "learn-assignment-detail", "learn-ykt-detail"] },
+  { page: "services", label: "服务", icon: IconInfo },
+  { page: "favs", label: "收藏", icon: IconStar, activePages: ["favs", "folder"] },
+  { page: "settings", label: "我的", icon: IconSettings },
+];
+
+/** 移动端底部导航条（CSS 侧 ≤860px 显示；桌面恒隐藏） */
+function BottomNav({ page, navigate }: { page: Page; navigate: (p: Page, params?: LearnNav) => void }): ReactNode {
+  return (
+    <nav className="bottom-nav" aria-label="底部导航">
+      {BOTTOM_NAV.map((item) => {
+        const active = item.page === page || item.activePages?.includes(page) === true;
+        const Icon = item.icon;
+        return (
+          <button
+            key={item.page}
+            className={"bottom-nav-item" + (active ? " is-active" : "")}
+            onClick={() => navigate(item.page)}
+            aria-current={active ? "page" : undefined}
+          >
+            <Icon />
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
 }
 
 export const NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode }> = [
@@ -448,7 +486,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const topbarTitle =
     page === "folder" && navParams?.folderId
       ? favs.data.folders[navParams.folderId]?.title ?? "收藏夹"
-      : navAll.find((n) => n.page === page)?.label ?? (page === "plugins" ? "插件" : "OneTHU");
+      : navAll.find((n) => n.page === page)?.label ?? (page === "plugins" ? "插件" : page === "services" ? "服务" : page === "favs" ? "收藏" : "OneTHU");
 
   return (
     <div className="shell">
@@ -498,6 +536,8 @@ export function Shell({ children }: { children: ReactNode }) {
         </header>
         {children}
       </main>
+      {/* M1 beta：移动端底部 5 Tab（CSS ≤860px 显示） */}
+      <BottomNav page={rawPage} navigate={navigate} />
       <HardRefreshButton />
       {DevPanel ? (
         <Suspense fallback={null}>

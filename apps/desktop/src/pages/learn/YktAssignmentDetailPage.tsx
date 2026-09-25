@@ -261,7 +261,11 @@ function ProblemCard({ p, fontUrl, cookies, answer }: { p: YkProblem; fontUrl?: 
             </div>
           ) : p.myStatus === "unanswered" ? (
             <div className="ykt-ans-empty">未作答</div>
-          ) : null}
+          ) : (
+            /* R24 fix：已交 / 已批但服务端未回传作答正文（实测存在此响应形态）→
+               明示「已提交」而非静默空白（此前整块不渲染，用户误以为没交） */
+            <div className="ykt-ans-empty">已提交（服务端未返回作答正文{p.submitTime ? ` · ${p.submitTime}` : ""}）</div>
+          )}
           {hasRemark ? (
             <div className="ykt-remark">
               <CollapsibleSection label="老师评语">
