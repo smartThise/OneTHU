@@ -361,7 +361,7 @@ export function TasksPage(): ReactNode {
   // 未读口径与通知页/详情页完全一致：服务端 sfyd ∪ 本地已读覆盖（lib/noticeRead）。
   // 此前待办页另起了一套只按 id 记的私有 localStorage，与全站口径不一致，故
   // 会出现「别处 11 条未读、这里暂无未读」。
-  readVersion; // 订阅本地置读：打开通知后本页立刻重算
+  void readVersion; // 仅订阅：本地置读后本页立刻重算（值本身不用）
   const unread = notices.filter((n) => !noticeHasRead(n.hasRead, n.courseId, n.id));
   const hasImportantUnread = unread.some((n) => n.important);
 
