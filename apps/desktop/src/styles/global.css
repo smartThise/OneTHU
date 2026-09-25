@@ -5298,6 +5298,26 @@ section > .svc-label { margin-top: 14px; }
 .task-stat:hover { border-color: var(--accent-border); }
 .task-stat:hover .task-stat-label { color: var(--accent); }
 .tasks-body { touch-action: pan-y; }
+/* 待办页（移动端）：把整页锁成一屏高，卡片流吃掉剩余高度——
+   底部按「OH 悬浮岛带」预留（岛底距屏底 80 + 岛高 46 = 126，留到 140），
+   不再用「100dvh - 固定魔数」去猜：岛顶会随视口高度/系统栏浮动，猜必然有偏差
+   （实测同一台机两次测量差 16px，一次正好压住通知条）。 */
+@media (max-width: 860px) {
+  .content:has(.tasks-body) {
+    box-sizing: border-box;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: auto; /* 正常一屏放得下；只有极端小屏才滚 */
+    padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+  }
+  .content:has(.tasks-body) .tasks-body { flex: 1; min-height: 0; }
+  .content:has(.tasks-body) .tasks-pane:not(.is-hidden) { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .content:has(.tasks-body) .tasks-learn { flex: 1; min-height: 0; }
+  .content:has(.tasks-body) .tasks-flow-wrap { flex: 1; min-height: 0; display: flex; }
+  .content:has(.tasks-body) .hw-carousel-row { flex: 1; min-width: 0; }
+  .content:has(.tasks-body) .hw-carousel { height: auto; min-height: 230px; }
+}
 /* 宽屏（≥1080px）：学习 / 生活 双栏同显，两条 pane 同时可见 */
 .tasks-body.is-wide {
   display: grid;
