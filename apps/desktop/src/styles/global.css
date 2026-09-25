@@ -4066,6 +4066,26 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   text-overflow: ellipsis;
 }
 
+/* 中央提示：必须看见的失败（正文图片因会话失效全部加载失败）走这一档——
+   底部轻提示会被滚动内容与注意力漏掉，这里放屏幕正中、字号与留白都更重 */
+.toast-host.is-center {
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  padding: 14px 22px;
+  border-radius: var(--r-md);
+  font-size: var(--text-md);
+  font-weight: 600;
+  text-align: center;
+  white-space: normal;
+  max-width: min(360px, calc(100vw - 48px));
+  animation: toast-center-in 0.18s ease both;
+}
+
+@keyframes toast-center-in {
+  from { opacity: 0; transform: translate(-50%, -46%) scale(0.98); }
+}
+
 /* —— 窄屏（灵动岛面板 / 手机竖屏）：单栏，阅读推入 —— */
 @media (max-width: 860px) {
   .mail-layout { grid-template-columns: minmax(0, 1fr); height: calc(100dvh - 190px); min-height: 380px; }

@@ -11,6 +11,8 @@ import { useApp } from "../../state/context.js";
 import { getSelectedSemester, setSelectedSemester } from "../../state/data.js";
 import { topLevelPage, type Page } from "../../state/app.js";
 import { fetchImageAsDataUrl, fetchImageByUrl } from "../../lib/clients.js";
+import { isSessionExpiredError } from "../../lib/sessionErrors.js";
+import { showToast } from "../../state/toast.js";
 import { invoke } from "@tauri-apps/api/core";
 import { openFilePreview } from "../../components/FilePreview.js";
 import { openExternal } from "../info/openExternal.js";
@@ -114,6 +116,20 @@ const IMG_PLACEHOLDER =
 /** 正文图片 dataURL 会话缓存：详情页反复进出不重复抓 2MB 级大图 */
 const imgDataCache = new Map<string, string>();
 
+/** 会话失效提示的去重窗口：一页往往同时挂好几张图（论坛一屏十几张），
+ *  它们会一起失败——只在第一张失败时提醒一次，别把用户刷屏 */
+const SESSION_TOAST_GAP_MS = 10_000;
+let lastSessionToastAt = 0;
+
+/** 会话失效时给一次「看得见」的提示：这类失败不看图片、也不看日志就无从推断，
+ *  放在屏幕正中并留够时间（点按即关）。 */
+function warnImagesNeedLogin(): void {
+  const now = Date.now();
+  if (now - lastSessionToastAt < SESSION_TOAST_GAP_MS) return;
+  lastSessionToastAt = now;
+  showToast("图片加载失败，请重新登录", 6000, { center: true });
+}
+
 /**
  * 正文里的 <img> 指向 learn 资源（需会话 Cookie），webview 直挂只会得到登录页。
  * 渲染后经应用侧 fetch_binary 抓字节转 dataURL 回填（isTauri 才可用，预览环境跳过）。
@@ -145,11 +161,17 @@ export function RichContent({ html, fallback = "暂无内容。" }: { html?: str
         if (imgDataCache.size > 60) imgDataCache.clear();
         imgDataCache.set(abs, dataUrl);
         img.src = dataUrl;
-      } catch {
+      } catch (e) {
         if (!cancelled) {
+          const reason = e instanceof Error ? e.message : String(e);
           img.setAttribute("alt", (img.getAttribute("alt") ? img.getAttribute("alt") + " " : "") + "（图片加载失败）");
+          // 悬停可看原因（此前失败只剩一个半透明碎图，原因在 catch 里被丢掉）
+          img.setAttribute("title", `图片加载失败：${reason.slice(0, 120)}`);
           img.style.opacity = "0.45";
-          void invoke("log_debug", { line: `RichContent 图片抓取失败: ${abs.slice(0, 180)}` }).catch(() => undefined);
+          // 登录态没了：数据页有错误链会提示，图片这条旁路必须自己提醒，
+          // 否则用户看到的只是「几张图不显示」，推不到「该重新登录了」
+          if (isSessionExpiredError(e)) warnImagesNeedLogin();
+          void invoke("log_debug", { line: `RichContent 图片抓取失败: ${abs.slice(0, 180)} | ${reason.slice(0, 120)}` }).catch(() => undefined);
         }
       }
     };
