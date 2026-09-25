@@ -18,6 +18,7 @@ import { Card, Empty, ErrorNote, PageHead } from "../components/Layout.js";
 import { IconCalendar, IconChevron, IconFlag, IconRefresh, IconSchedule, IconTrace } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
 import type { LearnNav, Page } from "../state/app.js";
+import { useExpanded } from "../state/usePlatformLayout.js";
 import { useCampusData, useCard, useTodayCalendar, useTodayDeadlines, useTodayNewsFeed, useTodayReservations } from "../state/data.js";
 import {
   AgendaRows, CardBalanceBody, ClassRows, EntryCard, HomeworkRows, NewsRows, NoticeRows, ResvRows,
@@ -90,6 +91,28 @@ function AtomUseRows({
 
 /** 空态留痕：这类卡"没内容"必须能在日志里看出来，否则用户只看到一片空白 */
 let emptyLogged: Record<string, boolean> = {};
+/** 节次 → 当日分钟数（下一节课判定用）。SECTION_OF 是「开始时间」表，末节按 45 分钟一节算结束 */
+function sectionStartMin(n: number): number | null {
+  const t = SECTION_OF[n];
+  if (!t) return null;
+  const parts = t.split(":");
+  const h = Number(parts[0]);
+  const m = Number(parts[1]);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  return h * 60 + m;
+}
+
+/** "HH:MM" → 当日分钟数 */
+function hhmmMin(t: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(t);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+/** 当日分钟数 → "HH:MM" */
+function minText(m: number): string {
+  return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+}
+
 function logEmpty(which: string): void {
   if (emptyLogged[which]) return;
   emptyLogged[which] = true;
@@ -339,6 +362,11 @@ export function TodayPage() {
   // 倒计时时间窗的稳定「现在」（useMemo 依赖用；页头日期每次渲染取真实 now）
   const stableNow = useMemo(() => new Date(), []);
   const now = new Date();
+  // 分端（§2.8.2）：PC/横屏（expanded）下问候语缩进顶栏，右栏常驻「下一节课」
+  const expanded = useExpanded();
+  const greetWord =
+    now.getHours() < 5 ? "夜深了" : now.getHours() < 11 ? "早上好" : now.getHours() < 13 ? "中午好" : now.getHours() < 18 ? "下午好" : "晚上好";
+  const nowMin = now.getHours() * 60 + now.getMinutes();
 
   /* ---- 朝向（宽>高=横屏）：竖屏/横屏各存一套布局 ---- */
   const [portrait, setPortrait] = useState<boolean>(() =>
@@ -490,6 +518,17 @@ export function TodayPage() {
       });
   }, [data]);
 
+  /** 下一节课：今天还没结束的最近一节（§2.8.2 PC 右栏常驻卡）；今天没课 → 整卡不渲染 */
+  const nextClass = useMemo(() => {
+    for (const s of todayEvents) {
+      const st = s.startTime ? hhmmMin(s.startTime) : sectionStartMin(s.startSection ?? 1);
+      if (st == null) continue;
+      const en = (sectionStartMin(s.endSection ?? s.startSection ?? 1) ?? st) + 45;
+      if (en > nowMin) return { s, st, en, left: st - nowMin };
+    }
+    return null;
+  }, [todayEvents, nowMin]);
+
   /** 三日内截止（今明后三天内、且尚未过期） */
   const dueSoon = useMemo(
     () =>
@@ -589,6 +628,21 @@ export function TodayPage() {
         </div>
       ),
     },
+    "next-class": {
+      // 右栏常驻「下一节课」：时间 + 课名 + 地点；上课前给「还有 N 分钟」，上课中显示「进行中」
+      render: () =>
+        nextClass ? (
+          <div className="next-class">
+            <div className="next-class-when">
+              <span className="next-class-time">{minText(nextClass.st) + "–" + minText(nextClass.en)}</span>
+              <span className="next-class-left">{nextClass.left > 0 ? nextClass.left + " 分钟后" : "进行中"}</span>
+            </div>
+            <div className="next-class-name">{nextClass.s.courseName}</div>
+            {nextClass.s.location ? <div className="next-class-where">{nextClass.s.location}</div> : null}
+          </div>
+        ) : null,
+      aside: nextClass ? (nextClass.left > 0 ? nextClass.left + " 分钟后开始" : "正在进行") : undefined,
+    },
     agenda: {
       // 两路都还没就绪 → 整卡不渲染；就绪但都为空 → 也隐藏（首页不留死卡）
       render: () => (agendaRows.length > 0 ? <AgendaRows rows={agendaRows} /> : null),
@@ -685,7 +739,11 @@ export function TodayPage() {
     <>
       <PageHead
         title="今日"
-        meta={now.getMonth() + 1 + "月" + now.getDate() + "日 星期" + WEEKDAYS[now.getDay()] + (data?.user ? " · " + data.user.name : "")}
+        meta={
+          (expanded ? greetWord + " · " : "") +
+          now.getMonth() + 1 + "月" + now.getDate() + "日 星期" + WEEKDAYS[now.getDay()] +
+          (data?.user ? " · " + data.user.name : "")
+        }
         actions={
           <>
             <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
@@ -720,16 +778,21 @@ export function TodayPage() {
 
       {/* 页面级问候（非卡片，§2.2）：时段问候 + 今日要事摘要 + 日程快捷入口。
           不进卡片系统——它是页面骨架，不该被「添加卡片」勾选。 */}
-      <div className="today-hero">
-        <div className="today-hero-line">
-          {now.getHours() < 5 ? "夜深了" : now.getHours() < 11 ? "早上好" : now.getHours() < 13 ? "中午好" : now.getHours() < 18 ? "下午好" : "晚上好"}
-          {data?.user?.name ? "，" + data.user.name : ""}
-        </div>
-        <div className="today-hero-sub">
-          {todayEvents.length > 0
-            ? "今天有 " + todayEvents.length + " 节课" + (todayEvents[0]?.startTime ? " · 第一节 " + todayEvents[0]!.startTime : "")
-            : "今天没有课，自由安排"}
-        </div>
+      <div className={"today-hero" + (expanded ? " is-slim" : "")}>
+        {/* PC/横屏（expanded）：问候语已缩进顶栏（§2.8.2），这里不再重复一遍 */}
+        {!expanded ? (
+          <>
+            <div className="today-hero-line">
+              {greetWord}
+              {data?.user?.name ? "，" + data.user.name : ""}
+            </div>
+            <div className="today-hero-sub">
+              {todayEvents.length > 0
+                ? "今天有 " + todayEvents.length + " 节课" + (todayEvents[0]?.startTime ? " · 第一节 " + todayEvents[0]!.startTime : "")
+                : "今天没有课，自由安排"}
+            </div>
+          </>
+        ) : null}
         <div className="today-quick">
           <button className="today-quick-chip" onClick={() => navigate("schedule")}>
             <IconSchedule width={14} height={14} />课表

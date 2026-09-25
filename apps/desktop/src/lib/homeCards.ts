@@ -31,7 +31,7 @@ import {
 export type HomeCardId =
   | "balance-strip"
   | "today-overview"
-  | "agenda" | "homework" | "resv" | "classes" | "news" | "notices" | "cardEntry"
+  | "agenda" | "homework" | "resv" | "classes" | "news" | "notices" | "cardEntry" | "next-class"
   | "xk" | "learn-assignments" | "learn-notices" | "learn-files"
   | "info-news" | "info-report" | "info-exams" | "info-profile"
   | "life-dorm" | "life-washer" | "life-card"
@@ -105,6 +105,9 @@ export const HOME_CARD_META: HomeCardDef[] = [
   /* —— 默认收起的展示卡（「添加卡片」可找回） —— */
   { id: "today-overview", title: "今日概览", kind: "bespoke", icon: IconIn, defaultCol: "main", defaultOrder: 5, defaultHidden: true, shellFree: true, aside: "未交作业 · 截止 · 今日课程" },
   { id: "agenda", title: "日程与提醒", kind: "bespoke", icon: IconCalendar, defaultCol: "main", defaultOrder: 6, defaultHidden: true, aside: "校历 · 学校重要事项" },
+  // 下一节课（§2.8.2 PC 右栏常驻面板）：唯一默认可见的 rail 卡——它是「现在最该知道的一件事」，
+  // 其余 rail 卡仍按需添加。今天已无课时整卡不渲染（不留死卡）。
+  { id: "next-class", title: "下一节课", kind: "bespoke", icon: IconToday, defaultCol: "rail", defaultOrder: 6.5, aside: "今天最近的一节" },
   { id: "cardEntry", title: "校园卡余额", kind: "bespoke", icon: IconCard, defaultCol: "rail", defaultOrder: 7, defaultHidden: true, aside: "点击进入生活页" },
   { id: "resv", title: "今日预约", kind: "bespoke", icon: IconSchedule, defaultCol: "rail", defaultOrder: 8, defaultHidden: true, aside: "座位 · 研讨间 · 点击管理" },
   { id: "news", title: "订阅新闻", kind: "bespoke", icon: IconExternal, defaultCol: "rail", defaultOrder: 9, defaultHidden: true },

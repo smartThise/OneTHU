@@ -5544,3 +5544,35 @@ section > .svc-label { margin-top: 14px; }
   .content:has(.tasks-body) .tasks-body { flex: 1; min-height: 0; }
   .tasks-body.is-wide .tasks-pane { overflow: auto; overscroll-behavior: contain; }
 }
+
+/* ============================================================
+   §2.8.2 今日页分端：PC/横屏右栏常驻「下一节课」；问候语已缩进顶栏。
+   ============================================================ */
+.next-class { display: flex; flex-direction: column; gap: 4px; }
+.next-class-when { display: flex; align-items: baseline; gap: 8px; }
+.next-class-time {
+  font-size: 15px; font-weight: 600; color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+.next-class-left { font-size: var(--text-xs); color: var(--accent); }
+.next-class-name { font-size: 13px; color: var(--text-2); }
+.next-class-where { font-size: var(--text-xs); color: var(--text-3); }
+/* 问候语缩进顶栏后，hero 只剩快捷入口行：去掉上方留白 */
+.today-hero.is-slim { padding-top: 0; }
+.today-hero.is-slim .today-quick { margin-top: 0; }
+
+/* ============================================================
+   §2.8.2 信息 / 生活类 tab 页：PC 单列限宽 720 居中。
+   含表格的栏目（成绩单、学年汇总、账单等）保完整宽度——表格要横向铺开才好读。
+   靠 .page-anim[data-page] 定位页面（CSS 选不到祖先，用 :has()）。
+   ============================================================ */
+@media (min-width: 840px) {
+  .content:has(> .page-anim[data-page="info"]),
+  .content:has(> .page-anim[data-page="life"]) {
+    max-width: 720px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .content:has(> .page-anim[data-page="info"]:has(table)),
+  .content:has(> .page-anim[data-page="life"]:has(table)) { max-width: none; }
+}

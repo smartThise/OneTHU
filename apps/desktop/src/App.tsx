@@ -112,7 +112,7 @@ function Routed() {
       <Shell>
         {/* local/anim-delight：切页转场。key=page 让容器重新挂载并播一次 CSS 进场；
             旧页直接卸载，不做快照叠加（整页快照交叉淡入会出现旧页残影，实测有闪烁）。 */}
-        <div className="page-anim" key={page} data-dir={navDir} data-level={isSubPage(page) ? "sub" : undefined}>
+        <div className="page-anim" key={page} data-page={page} data-dir={navDir} data-level={isSubPage(page) ? "sub" : undefined}>
           {page === "today" && <TodayPage />}
           {page === "learn" && <LearnPage />}
           {page === "schedule" && <SchedulePage />}
