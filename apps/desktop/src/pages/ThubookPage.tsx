@@ -89,7 +89,7 @@ const BODY_STYLE = `
 .thubook-body blockquote { border-left: 3px solid var(--border, #e5e6eb); margin: .8em 0; padding: .2em 1em; color: var(--text-2, #555); }
 .thubook-body img { max-width: min(100%, 480px); max-height: 320px; height: auto; border-radius: 8px; display: block; margin: .6em 0; }
 .thubook-body hr { border: none; border-top: 1px solid var(--border, #e5e6eb); margin: 1.2em 0; }
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   .thubook-shell { grid-template-columns: 1fr !important; height: auto !important; }
   .thubook-toc { max-height: 180px; }
 }

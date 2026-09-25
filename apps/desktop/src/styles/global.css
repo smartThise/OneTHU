@@ -920,7 +920,7 @@
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   .shell { grid-template-columns: 1fr; }
   /* sidebar/nav 移动端样式统一由文件尾 v2 块接管（此处曾与之打架导致 563px 撑爆） */
   .sidebar-foot { margin: 0 0 0 auto; border-top: 0; padding: 0; }
@@ -1942,7 +1942,7 @@
    4) 文本任意断行：中英文混排/URL/长词不再撑宽。
    5) 触控目标 ≥36px，字号 14px 起，safe-area 全程避让。
    ============================================================ */
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   /* 轨道拒绝长大：1fr 的自动最小尺寸是 min-content，宽表格会把整列撑到 600+；
      minmax(0,1fr) 让列严格等于视口，内部溢出交给 clip/卡内滚动 */
   .shell { grid-template-columns: minmax(0, 1fr) !important; }
@@ -1963,7 +1963,7 @@
     font-size: 11.5px;
   }
   .section-head { flex-wrap: wrap; max-width: 100%; }
-  /* 选课双栏在 ≤860 由 .xk-mobile-tabs 三页签接管（见文件尾） */
+  /* 选课双栏在 ≤840 由 .xk-mobile-tabs 三页签接管（见文件尾） */
   body {
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
@@ -2211,7 +2211,7 @@
 
 /* 抽屉导航件与标题胶囊：仅移动端媒体块内显示 */
 .mobile-topbar, .drawer-mask, .drawer { display: none; }
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   .mobile-topbar { display: flex; }
   .drawer-mask { display: block; }
   .drawer { display: flex; }
@@ -2384,8 +2384,8 @@
 .slot-cell.picked { background: var(--accent, #16a34a); color: #fff; }
 .slot-cell.picked small { opacity: 0.92; }
 
-/* ===== 移动端卡片密度：今日入口卡 / 今日home卡 / 网络学堂课程卡（≤860 竖屏带） ===== */
-@media (max-width: 860px) {
+/* ===== 移动端卡片密度：今日入口卡 / 今日home卡 / 网络学堂课程卡（≤840 竖屏带） ===== */
+@media (max-width: 839.98px) {
   .stat-card { padding: 9px 12px; gap: 10px; }
   .stat-link { padding: 9px 12px; gap: 10px; }
   .stat-icon { width: 28px; height: 28px; border-radius: 8px; }
@@ -2409,7 +2409,7 @@
   .tt-head span { margin-left: 0 !important; font-size: 9px; opacity: 0.75; }
   /* 卡内列表行：巨高元凶（原 11/16+gap14） */
   .row { padding: 7px 12px; gap: 10px; }
-  /* 701-860 内容区此前仍在用 20/16 旧内边距，统一收紧 */
+  /* 701-839 内容区此前仍在用 20/16 旧内边距，统一收紧 */
   .content { padding: 12px 14px calc(72px + env(safe-area-inset-bottom, 0px)); }
 
   /* —— 第二档激进压缩：控件基准全线下调 —— */
@@ -2456,7 +2456,7 @@
 
 /* 回到顶层 FAB：叠在硬刷新上方 */
 .top-fab { bottom: 74px; }
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   .top-fab { bottom: calc(62px + env(safe-area-inset-bottom, 0px)); }
   /* 二级导航：移动端比桌面更矮 */
   .seg-track { gap: 2px; padding: 2px; }
@@ -2475,7 +2475,7 @@
 
 /* ===== 选课（zhjwxk）竖屏三页签 + 弹窗适配 ===== */
 .xk-mobile-tabs { display: none; }
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   .xk-two-col { display: none !important; }
   .xk-mobile-tabs { display: block; }
   /* 课程简介 / 选课评价弹窗：竖屏收窄适配（!important 压过内联样式） */
@@ -2511,7 +2511,7 @@
 /* 首页网格对 auto-fill 兜底免疫：(0,3,0) 恒压 [class*="grid"] 的 (0,2,0)。
    158px 两列阈值在内容 328-490px 时把首页切成 163px 窄条（0.7.x 真机惨案）。
    仅窄屏生效——桌面横屏的 双栏(主列+312px侧栏) 布局不受影响。 */
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   .content .today-grid, .content .today-grid-flat { grid-template-columns: minmax(0, 1fr) !important; }
 }
 
@@ -2623,7 +2623,7 @@ html.is-phone .data-table { font-size: 13px; }
 html.is-phone .data-table th { font-size: 12px; }
 
 /* ===== 0.7.10 真机第二轮修复 ===== */
-/* 竖字总病根：≤860 的 overflow-wrap:anywhere 会把 min-content 塌缩到一个字宽，
+/* 竖字总病根：≤840 的 overflow-wrap:anywhere 会把 min-content 塌缩到一个字宽，
    flex 收缩时把日程行中间列捏成"一字一行"。break-word 断行行为相同但不影响
    intrinsic sizing——收缩下限回到"最长词"而非"单字"。 */
 html.is-phone body { overflow-wrap: break-word; }
@@ -2646,7 +2646,7 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 /* ===== 0.7.11 日程行手机两行式 =====
    flex 收缩在 CJK 文本下无解（min-content 恒为单字宽），直接改网格：
    第一行 = 标题通栏；第二行 = 日期 · 状态胶囊 · 箭头。竖字从结构上不可能。 */
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   html.is-phone .list .row-click {
     display: grid;
     grid-template-columns: max-content 1fr max-content max-content;
@@ -3038,7 +3038,7 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .plg-empty-d { color: var(--text-3); font-size: var(--text-sm); margin-bottom: 6px; }
 
 @media (prefers-reduced-motion: reduce) { .plg-card, .plg-install { animation: none; } .plg-led.is-run { animation: none; } }
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   .plg-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .plg-stat { padding: 8px 12px; }
   .plg-stat-n { font-size: var(--text-md); }
@@ -4067,7 +4067,7 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
 }
 
 /* —— 窄屏（灵动岛面板 / 手机竖屏）：单栏，阅读推入 —— */
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   .mail-layout { grid-template-columns: minmax(0, 1fr); height: calc(100dvh - 190px); min-height: 380px; }
   .mail-detail { display: none; }
   .mail-layout.detail-open .mail-list { display: none; }
@@ -4981,12 +4981,12 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
 /* ═══════════════════════════════════════════════════════════════
    UI/UX 改造 M1 beta（next/ui-ux-overhaul）
    移动端底部 5 Tab（§2.2）+ 服务/收藏目录页样式。
-   断点沿用现有 860px（抽屉同源）；§2.8.1 的 840 统一挪到 M1 收尾。
+   断点已按 §2.8.1 统一到 840（media: max-width 839.98px），与 state/platform.ts 的 BP 同源。
    ═══════════════════════════════════════════════════════════════ */
 
 .bottom-nav { display: none; }
 
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   .bottom-nav {
     position: fixed;
     left: 0;
@@ -5119,7 +5119,7 @@ section > .svc-label { margin-top: 14px; }
 
 /* —— 待办聚合页（分节卡片；桌面双栏、移动单列） —— */
 .task-grid { display: grid; grid-template-columns: 1fr; gap: 6px 16px; margin-top: 14px; }
-@media (min-width: 861px) {
+@media (min-width: 840px) {
   .task-grid { grid-template-columns: 1fr 1fr; align-items: start; }
 }
 .task-sec { min-width: 0; }
@@ -5302,7 +5302,7 @@ section > .svc-label { margin-top: 14px; }
    底部按「OH 悬浮岛带」预留（岛底距屏底 80 + 岛高 46 = 126，留到 140），
    不再用「100dvh - 固定魔数」去猜：岛顶会随视口高度/系统栏浮动，猜必然有偏差
    （实测同一台机两次测量差 16px，一次正好压住通知条）。 */
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   /* 选择器要压过 html.is-phone .content（0,2,1）那条 92px 预留，否则本规则失效 */
   html.is-phone .content:has(.tasks-body),
   .shell .content:has(.tasks-body) {
@@ -5415,7 +5415,7 @@ section > .svc-label { margin-top: 14px; }
 /* 学习 tab 整页不滚动：定高元素纵向排布；桌面限宽居中 */
 .tasks-learn { display: flex; flex-direction: column; }
 /* 桌面端学习 tab 限宽居中，避免轮播拉满超宽屏（宽屏双栏时由 .tasks-body.is-wide 覆盖） */
-@media (min-width: 861px) {
+@media (min-width: 840px) {
   .tasks-learn { max-width: 720px; margin: 0 auto; width: 100%; }
 }
 .balance-strip {
@@ -5444,3 +5444,51 @@ section > .svc-label { margin-top: 14px; }
 .balance-value { font-size: 20px; font-weight: 700; color: var(--text-1); font-variant-numeric: tabular-nums; }
 .balance-value-dim { font-size: 15px; font-weight: 500; color: var(--text-2); }
 .balance-sep { width: 1px; background: var(--border-soft); }
+
+/* ============================================================
+   §2.8.1 medium 档（600–840px）：手机横屏 / 平板竖屏 / 小窗。
+   底栏保持（≤840 的规则照旧命中），内容单列并限宽 600 居中。
+   断点常量与 state/platform.ts 的 BP 一一对应，改这里必须同步改那里。
+   ============================================================ */
+@media (min-width: 600px) and (max-width: 839.98px) {
+  .content { max-width: 600px; margin: 0 auto; width: 100%; }
+}
+
+/* ============================================================
+   §2.8.1 PC 侧边栏折叠态：72px 图标态（仅 expanded 档；移动端侧栏本就隐藏）。
+   折叠与否由 Layout 打在 .sidebar 上的 is-collapsed 决定，偏好存本机 localStorage。
+   ============================================================ */
+.sidebar-collapse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.18s ease;
+}
+.sidebar-collapse:hover { color: var(--text-1); border-color: var(--border-strong); }
+.shell { transition: grid-template-columns 0.18s ease; }
+.shell:has(.sidebar.is-collapsed) { --sidebar-w: 72px; }
+.sidebar.is-collapsed { padding-left: 8px; padding-right: 8px; }
+.sidebar.is-collapsed .sidebar-collapse { transform: rotate(180deg); }
+/* 分组小标题退化成细分隔线，保留分区节奏 */
+.sidebar.is-collapsed .nav-label {
+  height: 1px;
+  margin: 8px 6px;
+  padding: 0;
+  font-size: 0;
+  line-height: 0;
+  overflow: hidden;
+  background: var(--border-soft);
+}
+/* 图标态：只留图标并居中；文字标签、折叠箭头、状态文字退场 */
+.sidebar.is-collapsed .nav-item { justify-content: center; gap: 0; padding-left: 0; padding-right: 0; }
+.sidebar.is-collapsed .nav-item > span:not(.nav-indicator) { display: none; }
+.sidebar.is-collapsed .nav-folded-toggle { display: none; }
+.sidebar.is-collapsed .sidebar-foot { flex-direction: column; align-items: center; gap: 6px; }
+.sidebar.is-collapsed .foot-badge { font-size: 0; padding: 0; }

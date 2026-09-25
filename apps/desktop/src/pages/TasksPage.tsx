@@ -31,20 +31,8 @@ import { enc } from "../state/atoms.js";
 import { readSubs } from "./info/newsSearch.js";
 import { noticeHasRead, useNoticeReadVersion } from "../lib/noticeRead.js";
 import { NewsRows } from "../components/HomeWidgets.js";
+import { useExpanded } from "../state/usePlatformLayout.js";
 import type { Homework } from "@onethu/core";
-
-/** 宽屏（桌面）判定：≥1080px 时学习 / 生活 双栏同时显示，不再用 tab 切换 */
-const WIDE_MQ = "(min-width: 1080px)";
-function useWideLayout(): boolean {
-  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia(WIDE_MQ).matches);
-  useEffect(() => {
-    const mq = window.matchMedia(WIDE_MQ);
-    const onChange = (): void => setWide(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return wide;
-}
 
 /** 忽略图标（内联线性 SVG，1.6px 描边，与 Icons.tsx 同风格；仓库暂无现成 IconX） */
 const IconIgnore = ({ size = 14 }: { size?: number }): ReactNode => (
@@ -376,7 +364,7 @@ export function TasksPage(): ReactNode {
   const news = useTodayNewsFeed(subs);
   const readVersion = useNoticeReadVersion(); // 通知未读口径：全站共享的本地已读覆盖
   const [courseFilter, setCourseFilter] = useState<string>(""); // "" = 全部课程
-  const wide = useWideLayout(); // 宽屏双栏
+  const wide = useExpanded(); // ≥840px（§2.8.1 expanded）：学习/生活 双栏同显
 
   const courseMap = useMemo(() => new Map((data?.courses ?? []).map((c) => [c.id, c.name])), [data]);
   const courseNameOf = (id: string): string => courseMap.get(id) ?? "课程";

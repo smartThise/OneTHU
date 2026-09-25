@@ -472,7 +472,7 @@ select {
 }
 
 /* 手机端底部抽屉：从下往上弹（iOS sheet 手感） */
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   .plg-form-modal,
   .confirm-card {
     animation: m-spring-in var(--dur-3) var(--ease-ios) backwards;
@@ -788,10 +788,10 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[
   display: none;
 }
 
-/* 邮箱窄屏（≤860px）：点开一封邮件时列表向左滑出、详情从右滑入，返回反向。
+/* 邮箱窄屏（≤840px）：点开一封邮件时列表向左滑出、详情从右滑入，返回反向。
    此前是 display:none 硬切——内容"啪"地消失。两栏保持挂载，只用 transform 挪位；
    离场的一栏延迟 visibility 隐藏，不挡点击、不进 tab 焦点。桌面并排不受影响。 */
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   .mail-layout {
     position: relative;
   }

@@ -3,6 +3,9 @@ import { Children, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useR
 import { useThemes } from "../state/theme.js";
 import { useApp } from "../state/context.js";
 import { topLevelPage, type LearnNav, type Page } from "../state/app.js";
+import { useExpanded } from "../state/usePlatformLayout.js";
+import { useSidebarCollapsed } from "../state/uiPrefs.js";
+import { NAV_REGISTRY } from "../state/navigation.js";
 import { DESENSITIZE_BUILD } from "../lib/privacy.js";
 import { IconChevron, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconPen, IconPlug, IconSchedule, IconSettings, IconStar, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal, IconThos, IconTrace, IconMail, IconCloud, IconBook } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
@@ -37,9 +40,18 @@ function usePluginNavEntries(): Array<{ page: Page; label: string; icon: (p: obj
   }));
 }
 
+/** 侧边栏分区顺序（§2.8.1）；分组名与 navigation.ts 的 category 同名，新 IA 另加「总览」 */
+const NAV_GROUP_ORDER = ["总览", "学习", "日程", "生活", "预约", "行政"] as const;
+
+/** 页面 → 侧栏分区：取自导航注册表；今日/待办是 M1 新 IA，不在注册表里 */
+function navCategoryOf(page: Page): string {
+  if (page === "today" || page === "tasks") return "总览";
+  return NAV_REGISTRY.find((e) => e.page === page)?.category ?? "行政";
+}
+
 /**
- * 底部 5 Tab（UI/UX 改造方案 §2.2，M1 beta）：移动端（≤860px，与现有抽屉断点
- * 暂保持一致；§2.8.1 的 840 断点归 M1 收尾统一）固定底栏。服务/收藏两个直达页
+ * 底部 5 Tab（UI/UX 改造方案 §2.2，M1 beta）：移动端（≤840px，§2.8.1 统一断点）固定底栏。
+ * 服务/收藏两个直达页
  * 是本批次新增（pages/ServicesPage、pages/FavsHomePage）；「待办」暂指
  * learn-assignments（全部作业），§2.3-4 升级为独立 tab 页后再换实现。
  * 长尾功能仍走抽屉/服务目录页，底栏只承担 §1.2 的 core 直达。
@@ -52,7 +64,7 @@ const BOTTOM_NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactN
   { page: "settings", label: "我的", icon: IconSettings },
 ];
 
-/** 移动端底部导航条（CSS 侧 ≤860px 显示；桌面恒隐藏） */
+/** 移动端底部导航条（CSS 侧 ≤840px 显示；桌面恒隐藏） */
 function BottomNav({ page, navigate }: { page: Page; navigate: (p: Page, params?: LearnNav) => void }): ReactNode {
   return (
     <nav className="bottom-nav" aria-label="底部导航">
@@ -291,6 +303,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { page: rawPage, navigate, navParams } = useApp();
 
   const favs = useFavs();
+  const [sbCollapsed, setSbCollapsed] = useSidebarCollapsed(); // PC 侧栏折叠（§2.8.1）
   const pluginNav = usePluginNavEntries();
   const navAll = [...NAV, ...pluginNav];
   const page = topLevelPage(rawPage);
@@ -348,6 +361,28 @@ export function Shell({ children }: { children: ReactNode }) {
   /** 侧栏/抽屉共用导航内容 */
   const navContent = (onAfter?: () => void) => {
     const unfoldedDefaults = NAV.filter(({ page: p }) => !favs.data.foldedDefaults.includes(p));
+    // 分区小标题（§2.8.1）：分组取自导航注册表的 category，新 IA 的今日/待办归「总览」。
+    // 只插小标题、不重排类内顺序；未注册的页面兜底进「行政」。
+    const navGrouped: Array<
+      | { kind: "label"; text: string }
+      | { kind: "item"; page: Page; label: string; icon: (p: object) => ReactNode; activePages?: Page[] }
+    > = (() => {
+      const groups = new Map<string, Array<{ page: Page; label: string; icon: (p: object) => ReactNode; activePages?: Page[] }>>();
+      for (const it of unfoldedDefaults) {
+        const cat = navCategoryOf(it.page);
+        const list = groups.get(cat);
+        if (list) list.push(it);
+        else groups.set(cat, [it]);
+      }
+      const out: typeof navGrouped = [];
+      for (const cat of NAV_GROUP_ORDER) {
+        const list = groups.get(cat);
+        if (!list) continue;
+        out.push({ kind: "label", text: cat });
+        for (const it of list) out.push({ kind: "item", ...it });
+      }
+      return out;
+    })();
     const foldedDefaults = NAV.filter(({ page: p }) => favs.data.foldedDefaults.includes(p));
     const unfoldedUser = favs.data.order.filter((id) => !favs.data.foldedRoots.includes(id));
     const foldedUser = favs.data.order.filter((id) => favs.data.foldedRoots.includes(id));
@@ -355,19 +390,21 @@ export function Shell({ children }: { children: ReactNode }) {
     return (
       <>
         {/* 默认一级入口（内置）：今日恒在最上（不可折叠），其余可折叠 */}
-        {unfoldedDefaults.map(({ page: p, label, icon: Icon, activePages }) =>
-          navRow("d-" + p, {
-            active: page === p || activePages?.includes(page) === true,
-            label,
+        {navGrouped.map((row) => {
+          if (row.kind === "label") return <div className="nav-label" key={"g-" + row.text}>{row.text}</div>;
+          const Icon = row.icon;
+          return navRow("d-" + row.page, {
+            active: page === row.page || row.activePages?.includes(page) === true,
+            label: row.label,
             icon: <Icon />,
             onClick: () => {
               onAfter?.();
-              navigate(p);
+              navigate(row.page);
             },
             folded: false,
-            onFold: p === "today" ? undefined : () => favs.foldSidebar(p, true),
-          }),
-        )}
+            onFold: row.page === "today" ? undefined : () => favs.foldSidebar(row.page, true),
+          });
+        })}
         {/* 插件功能页分组：与内置入口视觉分离 */}
         {pluginNav.length ? (
           <>
@@ -494,13 +531,23 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div className="shell">
-      <aside className="sidebar">
+      <aside className={"sidebar" + (sbCollapsed ? " is-collapsed" : "")} aria-label="主导航">
         <div className="brand">
           <BrandLogo size={16} />
         </div>
-        <div className="nav-label">校园</div>
         <NavBody label="主导航">{navContent()}</NavBody>
         <div className="sidebar-foot">
+          <button
+            className="sidebar-collapse"
+            onClick={() => setSbCollapsed(!sbCollapsed)}
+            title={sbCollapsed ? "展开侧边栏" : "折叠侧边栏"}
+            aria-label={sbCollapsed ? "展开侧边栏" : "折叠侧边栏"}
+            aria-expanded={!sbCollapsed}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M10 4l-4 4 4 4" />
+            </svg>
+          </button>
           <span className="foot-badge">
             <span className="dot" style={{ background: DESENSITIZE_BUILD ? "var(--amber)" : "var(--green)" }} />
             {DESENSITIZE_BUILD ? "脱敏演示版" : "就绪"}
@@ -607,11 +654,9 @@ export function PageHead({
   const pluginNav = usePluginNavEntries();
   // 窄屏顶栏已展示当前页名：与导航名相同的标题不再重复渲染（详情页等子标题不受影响）
   const navLabel = [...NAV, ...pluginNav].find((n) => n.page === page)?.label ?? (page === "plugins" ? "插件" : undefined);
-  const dupOnTopbar =
-    typeof window !== "undefined" &&
-    window.matchMedia("(max-width: 860px)").matches &&
-    typeof title === "string" &&
-    title === navLabel;
+  // 统一断点读取（§2.8.1）：此前各组件自写 matchMedia，改断点必漏
+  const expanded = useExpanded();
+  const dupOnTopbar = !expanded && typeof title === "string" && title === navLabel;
   return (
     <header className="page-head">
       <div>
