@@ -75,8 +75,12 @@ function BottomNav({ page, navigate }: { page: Page; navigate: (p: Page, params?
   );
 }
 
-export const NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode }> = [
+export const NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode; activePages?: Page[] }> = [
   { page: "today", label: "今日", icon: IconToday },
+  /* 与移动端底栏的桥：底栏那五项不整体搬进侧边栏（太臃肿），只补一个「待办」——
+     桌面端此前完全没有待办入口。其余四项侧边栏本来就各有对应（服务→信息/在线服务、
+     收藏→收藏夹分组、我的→设置），因此只差这一个。 */
+  { page: "tasks", label: "待办", icon: IconPen, activePages: ["tasks", "learn-assignments", "learn-assignment-detail", "learn-ykt-detail"] },
   { page: "learn", label: "网络学堂", icon: IconLearn },
   { page: "schedule", label: "日程", icon: IconSchedule },
   { page: "trace", label: "寻迹", icon: IconTrace },
@@ -351,9 +355,9 @@ export function Shell({ children }: { children: ReactNode }) {
     return (
       <>
         {/* 默认一级入口（内置）：今日恒在最上（不可折叠），其余可折叠 */}
-        {unfoldedDefaults.map(({ page: p, label, icon: Icon }) =>
+        {unfoldedDefaults.map(({ page: p, label, icon: Icon, activePages }) =>
           navRow("d-" + p, {
-            active: page === p,
+            active: page === p || activePages?.includes(page) === true,
             label,
             icon: <Icon />,
             onClick: () => {

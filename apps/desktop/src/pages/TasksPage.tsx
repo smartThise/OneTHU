@@ -22,7 +22,7 @@ import { HwRemindButton, semesterText, useLearnNavSemester } from "./learn/share
 import { openHomeworkRow } from "../lib/homeworkEntry.js";
 import { CONFIRM_IGNORE_HW, confirmDanger } from "../lib/confirm.js";
 import { ignoreHw, useIgnoredHw } from "../state/hwIgnore.js";
-import { toHomework, useExternalHomework } from "../state/exthw.js";
+import { extHwSourceName, toHomework, useExternalHomework } from "../state/exthw.js";
 import { useApp } from "../state/context.js";
 import { isAndroidNavigator } from "../lib/androidHost.js";
 import { useCard, useLearnData, useTodayNewsFeed } from "../state/data.js";
@@ -31,6 +31,17 @@ import { readSubs } from "./info/newsSearch.js";
 import { noticeHasRead, useNoticeReadVersion } from "../lib/noticeRead.js";
 import { NewsRows } from "../components/HomeWidgets.js";
 import type { Homework } from "@onethu/core";
+
+/** 课程分组键：网络学堂用 courseId；外部源（雨课堂/OJ）的 courseId 是合成值 ext:<source>，
+ *  同一源的多门课会撞成一个 id —— 真实课程在 h.courseName，故以 (source, courseName) 为键。 */
+function hwCourseKey(h: Homework): string {
+  return h.source ? "ext:" + h.source + "::" + (h.courseName ?? "") : "learn::" + h.courseId;
+}
+/** 课程展示名：外部源优先用真实课名（雨课堂有多门课，不能都叫「雨课堂」） */
+function hwCourseLabel(h: Homework, courseMap: Map<string, string>): string {
+  if (h.source) return h.courseName ?? extHwSourceName(h.source);
+  return courseMap.get(h.courseId) ?? "课程";
+}
 
 /** 宽屏（桌面）判定：≥1080px 时学习 / 生活 双栏同时显示，不再用 tab 切换 */
 const WIDE_MQ = "(min-width: 1080px)";
@@ -75,9 +86,9 @@ function hwTags(h: Homework): Array<{ text: string; cls: string }> {
 }
 
 /** 卡片纵向位移（px）：0=居中；±1=上/下露出（STEP > 半卡高，保下方卡露出标题区）；拖拽时叠加 dragDelta 实时跟手 */
-const STEP = 170;
+const STEP_DEFAULT = 170;
 
-function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; courseNameOf: (id: string) => string; semesterId?: string }): ReactNode {
+function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId }: { items: Homework[]; courseNameOf: (id: string) => string; courseLabelOf: (h: Homework) => string; semesterId?: string }): ReactNode {
   const { navigate } = useApp();
   // 位置真值放 ref，setPos 只做渲染镜像：逐帧补间时避免闭包读旧值
   const posRef = useRef(0);
@@ -89,6 +100,24 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
   const dragPidRef = useRef<number | null>(null); // 当前拖拽的 pointerId
   const capturedRef = useRef(false); // 是否已对该指针 setPointerCapture
   const n = items.length;
+  // 卡片流几何自适应：容器高度由 CSS 给（clamp 到 100dvh 减去页头/筛选/计数/通知/底栏/OH 岛的预留），
+  // 步距与卡高按实测高度放大 —— 屏幕越长卡片越大、能看到的邻卡越多，而不是在底部留一片空白。
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const [geo, setGeo] = useState({ h: 300, step: STEP_DEFAULT });
+  useEffect(() => {
+    const el = shellRef.current;
+    if (!el) return;
+    const apply = (): void => {
+      const h = el.clientHeight;
+      if (h <= 0) return;
+      const step = Math.max(STEP_DEFAULT, Math.min(215, Math.round(h / 2.05)));
+      setGeo((g) => (g.h === h && g.step === step ? g : { h, step }));
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const setPosBoth = (v: number): void => {
     posRef.current = v;
     setPos(v);
@@ -199,7 +228,7 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
     const dy = endY - t.y0; // 手指净位移（上滑为负）
     // 梯度惯性：按松手速度做投射（速度 × 150ms 阻尼视野），再吸附到最近整卡。
     const v = Math.abs(t.v) > 3 ? 3 * Math.sign(t.v) : t.v; // 限幅，防极端甩出十几张
-    const projSteps = -(v * 150) / STEP;
+    const projSteps = -(v * 150) / geo.step;
     const target = Math.round(posRef.current + projSteps);
     const dist = Math.abs(target - posRef.current);
     // 有惯性=快起缓收（easeOut）；无惯性=普通吸附（inout）。时长随距离增长。
@@ -238,7 +267,7 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
     t.v = (y - t.lastY) / dt;
     t.lastY = y;
     t.lastT = Date.now();
-    setPosBoth(t.pos0 - dy / STEP); // 1:1 跟手（列随手上行 = 前进）
+    setPosBoth(t.pos0 - dy / geo.step); // 1:1 跟手（列随手上行 = 前进）
   };
   const onPointerUp = (e: PointerEvent<HTMLDivElement>): void => {
     if (dragPidRef.current != null && e.pointerId !== dragPidRef.current) return;
@@ -249,7 +278,7 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
     let d = (k - c) % n;
     if (d > n / 2) d -= n;
     if (d < -n / 2) d += n;
-    return d * STEP;
+    return d * geo.step;
   };
   return (
     <div className="hw-carousel-row">
@@ -260,6 +289,7 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
       </div>
       <div
         className="hw-carousel"
+        ref={shellRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -267,8 +297,9 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
       >
         {items.map((h, k) => {
           const yPx = relOf(k);
-          if (Math.abs(yPx) > 270) return null;
-          const ad = Math.abs(yPx) / STEP;
+          // 可见范围 = 容器半高 + 一步：容器越高，滚筒里同时出现的卡越多
+          if (Math.abs(yPx) > geo.h / 2 + geo.step) return null;
+          const ad = Math.abs(yPx) / geo.step;
           const scale = Math.max(0.86, 1 - ad * 0.07);
           const opacity = Math.max(0.3, 1 - ad * 0.22);
           const info = ddlInfo(h.deadline);
@@ -281,13 +312,14 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
                 transform: "translate(-50%, -50%) translateY(" + yPx + "px) scale(" + scale + ")",
                 opacity,
                 zIndex: 100 - Math.round(Math.abs(yPx)),
+                height: geo.step - 2, // 卡高随步距缩放（CSS 的 168px 只是首帧兜底）
               }}
               onClickCapture={(e) => {
                 if (movedRef.current || !front) {
                   e.stopPropagation();
                   return;
                 }
-                openHomeworkRow(h, { navigate, from: "tasks", courseName: courseNameOf(h.courseId) });
+                openHomeworkRow(h, { navigate, from: "tasks", courseName: courseLabelOf(h) });
               }}
             >
               <div className="hw-card-head">
@@ -371,12 +403,27 @@ export function TasksPage(): ReactNode {
 
   // 按课程检索（作业流上方的下拉）：默认全部；候选只列**当前确实有未完成作业**的课程，
   // 免得选到一门已清空的课只看到空态。
+  // 关键：候选从作业本身聚合，而不是从 data.courses 取——雨课堂等外部作业源的 courseId 是
+  // 合成值 ext:yuketang，不在课程表里，按老写法它们的课永远进不了这份清单。
   const flowCourses = useMemo(() => {
-    const ids = new Set(flowAll.map((h) => h.courseId));
-    return (data?.courses ?? []).filter((c) => ids.has(c.id));
-  }, [flowAll, data]);
+    const m = new Map<string, { key: string; label: string; count: number; source?: Homework["source"] }>();
+    for (const h of flowAll) {
+      const key = hwCourseKey(h);
+      const cur = m.get(key);
+      if (cur) cur.count += 1;
+      else m.set(key, { key, label: hwCourseLabel(h, courseMap), count: 1, source: h.source });
+    }
+    return [...m.values()].sort((a, b) => {
+      if (!a.source !== !b.source) return a.source ? 1 : -1; // 网络学堂在前，外部源在后
+      return a.label.localeCompare(b.label, "zh");
+    });
+  }, [flowAll, courseMap]);
+  const flowExtSources = useMemo(
+    () => [...new Set(flowCourses.map((c) => c.source).filter((s): s is NonNullable<typeof s> => !!s))],
+    [flowCourses],
+  );
   const flow = useMemo(
-    () => (courseFilter ? flowAll.filter((h) => h.courseId === courseFilter) : flowAll),
+    () => (courseFilter ? flowAll.filter((h) => hwCourseKey(h) === courseFilter) : flowAll),
     [flowAll, courseFilter],
   );
 
@@ -446,8 +493,19 @@ export function TasksPage(): ReactNode {
               aria-label="按课程筛选作业"
             >
               <option value="">全部课程（{flowAll.length}）</option>
-              {flowCourses.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}（{flowAll.filter((h) => h.courseId === c.id).length}）</option>
+              {flowCourses.some((c) => !c.source) ? (
+                <optgroup label="网络学堂">
+                  {flowCourses.filter((c) => !c.source).map((c) => (
+                    <option key={c.key} value={c.key}>{c.label}（{c.count}）</option>
+                  ))}
+                </optgroup>
+              ) : null}
+              {flowExtSources.map((src) => (
+                <optgroup key={src} label={extHwSourceName(src)}>
+                  {flowCourses.filter((c) => c.source === src).map((c) => (
+                    <option key={c.key} value={c.key}>{c.label}（{c.count}）</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
             {courseFilter ? (
@@ -459,7 +517,12 @@ export function TasksPage(): ReactNode {
             {state === "loading" && flow.length === 0 ? (
               <Card><Empty text="正在取作业…" /></Card>
       ) : (
-              <HwCarousel items={flow} courseNameOf={courseNameOf} semesterId={semesterId} />
+              <HwCarousel
+                items={flow}
+                courseNameOf={courseNameOf}
+                courseLabelOf={(h) => hwCourseLabel(h, courseMap)}
+                semesterId={semesterId}
+              />
       )}
           </div>
           {/* 计数 + 双入口 */}

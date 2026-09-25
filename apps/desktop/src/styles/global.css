@@ -5203,7 +5203,10 @@ section > .svc-label { margin-top: 14px; }
 .hw-carousel {
   position: relative;
   flex: 1;
-  height: 300px;
+  /* 高度自适应：短屏维持 300px 基线，长屏按可用高度长高（最多 470px）。
+     减去 470px = 页头/tab/课程筛选/计数双入口/通知条 + 底栏 62 + OH 悬浮岛 ~96 + 安全区，
+     保证长高之后既不顶到 OH，也不把整页撑出滚动。 */
+  height: clamp(300px, calc(100dvh - 470px), 470px);
   overflow: hidden;
   touch-action: none; /* 纵向手势全交给卡片流，页面不滚动 */
   /* 滚筒遮罩：上下边缘渐隐，营造“一列卡片循环滚动”的纵深感 */
