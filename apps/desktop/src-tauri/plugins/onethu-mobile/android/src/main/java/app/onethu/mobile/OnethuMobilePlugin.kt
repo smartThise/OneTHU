@@ -1060,9 +1060,13 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    /** 触觉 tick（作业流切卡的「青轴」段落感）：API 31+ 用系统预定义 EFFECT_TICK
-     *  （HyperOS/类原生的刻度感即来自它）；旧设备退化为 5ms 短振。
-     *  WebView 的 navigator.vibrate 在部分 ROM 不触发，故 UI 走原生命令。 */
+    /** 触觉 tick（作业流切卡的段落感）。
+     *
+     *  走系统「预烘焙效果」（Prebaked）：ROM 在振动 HAL 里存了厂商标定好的波形，
+     *  与桌面/系统 UI 的点击振动同源（实测本机 CLICK 总长约 62ms、MEDIUM 强度），
+     *  远比自绘的原始通断波形结实——线性马达在 5~10ms 时仍处起振阶段，必然发软。
+     *  并挂 USAGE_TOUCH 走触觉通道（此前 usage=UNKNOWN，绕开了系统标定与用户触感强度）。
+     *  API 26 以下退化为短波形。 */
     @Command
     fun hapticTick(invoke: Invoke) {
         try {
@@ -1074,17 +1078,17 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
                         return@runOnUiThread
                     }
                     if (Build.VERSION.SDK_INT >= 26) {
-                        // 老式表盘「咔嗒」：20ms 单次满幅——短促、干脆、有钢性。
-                        // timings 与 amplitudes 必须等长：首项 0ms 延时（幅 0）+ 20ms 满幅。
-                        val effect = android.os.VibrationEffect.createWaveform(
-                            longArrayOf(0, 5),
-                            intArrayOf(0, 255),
-                            -1,
-                        )
-                        vib.vibrate(effect)
+                        val effect = android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_CLICK)
+                        if (Build.VERSION.SDK_INT >= 33) {
+                            val attrs = android.os.VibrationAttributes.createForUsage(android.os.VibrationAttributes.USAGE_TOUCH)
+                            vib.vibrate(effect, attrs)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            vib.vibrate(effect)
+                        }
                     } else {
                         @Suppress("DEPRECATION")
-                        vib.vibrate(20)
+                        vib.vibrate(15)
                     }
                     invoke.resolve(JSObject().put("ok", true))
                 } catch (e: Exception) {
