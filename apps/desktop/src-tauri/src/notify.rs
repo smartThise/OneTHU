@@ -192,6 +192,29 @@ pub fn test() -> Value {
     }
 }
 
+/// 立即投递一条通知（事件驱动，如校园卡余额预警）。
+///
+/// macOS 的 UNUserNotificationCenter 只有「定时触发」一条路，故按 1.5 秒后的时刻投递：
+/// 在用户感知里就是立刻，且不需要为此引入第二套投递机制（与 `test()` 同一做法）。
+#[cfg(target_os = "macos")]
+pub fn post(id: &str, title: &str, body: &str, _channel: &str, target: &str) -> Value {
+    match crate::notify_macos::post(id, title, body, target) {
+        Ok(()) => json!({ "ok": true }),
+        Err(e) => json!({ "ok": false, "reason": e }),
+    }
+}
+
+/// 撤回**已展示**的通知（待投递的那条由 `cancel` 管）
+#[cfg(target_os = "macos")]
+pub fn dismiss(ids_json: &str) -> Value {
+    let ids = parse_ids(ids_json);
+    let n = ids.len();
+    match crate::notify_macos::remove_delivered(&ids) {
+        Ok(()) => json!({ "ok": true, "dismissed": n }),
+        Err(e) => json!({ "ok": false, "dismissed": 0, "reason": e }),
+    }
+}
+
 /* ── Windows（WinRT toast + AddToSchedule） ── */
 
 #[cfg(target_os = "windows")]
@@ -284,6 +307,27 @@ pub fn test() -> Value {
     }
 }
 
+/// 立即投递一条通知（事件驱动，如校园卡余额预警）：WinRT 的 toast 直接 Show，
+/// 不进 AddToSchedule（那是排程通道）。
+#[cfg(target_os = "windows")]
+pub fn post(id: &str, title: &str, body: &str, _channel: &str, target: &str) -> Value {
+    match crate::notify_windows::post(id, title, body, target) {
+        Ok(()) => json!({ "ok": true }),
+        Err(e) => json!({ "ok": false, "reason": e }),
+    }
+}
+
+/// 撤回**已展示**的通知（按 Tag 从通知历史里移除）
+#[cfg(target_os = "windows")]
+pub fn dismiss(ids_json: &str) -> Value {
+    let ids = parse_ids(ids_json);
+    let n = ids.len();
+    match crate::notify_windows::dismiss(&ids) {
+        Ok(()) => json!({ "ok": true, "dismissed": n }),
+        Err(e) => json!({ "ok": false, "dismissed": 0, "reason": e }),
+    }
+}
+
 /* ── 其他桌面平台（Linux 等）：无后端 ── */
 
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
@@ -309,6 +353,16 @@ pub fn pending() -> Value {
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 pub fn test() -> Value {
     json!({ "ok": false, "reason": "not-implemented-desktop" })
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+pub fn post(_id: &str, _title: &str, _body: &str, _channel: &str, _target: &str) -> Value {
+    json!({ "ok": false, "reason": "not-implemented-desktop" })
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+pub fn dismiss(_ids_json: &str) -> Value {
+    json!({ "ok": false, "dismissed": 0, "reason": "not-implemented-desktop" })
 }
 
 #[cfg(test)]

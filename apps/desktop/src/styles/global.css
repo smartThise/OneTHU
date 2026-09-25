@@ -4066,6 +4066,26 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   text-overflow: ellipsis;
 }
 
+/* 中央提示：必须看见的失败（正文图片因会话失效全部加载失败）走这一档——
+   底部轻提示会被滚动内容与注意力漏掉，这里放屏幕正中、字号与留白都更重 */
+.toast-host.is-center {
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  padding: 14px 22px;
+  border-radius: var(--r-md);
+  font-size: var(--text-md);
+  font-weight: 600;
+  text-align: center;
+  white-space: normal;
+  max-width: min(360px, calc(100vw - 48px));
+  animation: toast-center-in 0.18s ease both;
+}
+
+@keyframes toast-center-in {
+  from { opacity: 0; transform: translate(-50%, -46%) scale(0.98); }
+}
+
 /* —— 窄屏（灵动岛面板 / 手机竖屏）：单栏，阅读推入 —— */
 @media (max-width: 860px) {
   .mail-layout { grid-template-columns: minmax(0, 1fr); height: calc(100dvh - 190px); min-height: 380px; }
@@ -4977,3 +4997,180 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   align-items: center;
   justify-content: center;
 }
+
+/* ===== 手机端双击看全文（TextPeek）=====
+   被 text-overflow: ellipsis / -webkit-line-clamp 截断的文本，双击后在文本旁整段
+   换行显示。落点与尺寸由组件内联给出（要按实际高度翻上翻下），这里只管观感。 */
+.text-peek-wrap {
+  /* 箭头那 5px 悬空不吃事件；浮层本体在下面单独放开 */
+  pointer-events: none;
+}
+.text-peek-arrow {
+  position: absolute;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  background: var(--surface, #fff);
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  transform: rotate(45deg);
+}
+.text-peek-wrap.is-above .text-peek-arrow {
+  top: auto;
+  bottom: -5px;
+  border-left: 0;
+  border-top: 0;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.text-peek {
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  color: var(--text-1);
+  font-size: var(--text-base, 15px);
+  line-height: 1.6;
+  box-shadow: var(--shadow-3);
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  pointer-events: auto;
+  /* 浮层里必须能划选区、能长按出系统复制菜单——这是本功能的一半 */
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+  touch-action: auto;
+  animation: text-peek-in 0.12s ease both;
+}
+.text-peek-body {
+  display: block;
+  white-space: pre-wrap;
+  /* 被截断的多半是长 ID / 长标题，用 anywhere 就会横向撑破浮层 */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+@keyframes text-peek-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ===== 手机端长按看图（ImageViewer）=====
+   全屏一屏看一张图：双指缩放与拖动由组件直接写 transform（每帧都改，不走 React 渲染），
+   底部「保存图片」写进系统相册，单击任意处退出。只有真机密度层（html.is-phone）会打开它，
+   桌面端连挂载机会都没有。 */
+.imgview {
+  position: fixed;
+  inset: 0;
+  /* 不透明：这是「单独一屏」，底下页面的文字透出来会让图看不干净 */
+  background: #08090b;
+  /* 浏览器自己的滚动与双指缩放一律关掉：手势全部由组件接管 */
+  touch-action: none;
+  overscroll-behavior: none;
+  animation: imgview-in 0.14s ease both;
+}
+.imgview-stage {
+  /* 铺满整屏：放大后的图片要能一直铺到屏幕四边（此前底栏另占一行，放大后仍留一条黑边） */
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.imgview-img {
+  /* 适应一屏：小图放大到能看清，大图缩到装得下；双指在 1× 之上继续放大 */
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: center center;
+  will-change: transform;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.imgview-bar {
+  /* 只让按钮浮在图片之上：容器本身不吃事件，点按钮以外的地方仍然退出看图 */
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.imgview-save {
+  pointer-events: auto;
+  min-width: 148px;
+  height: 40px;
+  /* 自带灰度：主按钮色（--primary = #0f1115）压在全黑浮层上几乎看不出边界（真机实录），
+     这里按浮层自己的深色调给一档中灰，三端主题下都保持醒目 */
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: #3f464e;
+  color: #f4f5f7;
+}
+.imgview-save:hover,
+.imgview-save:active {
+  background: #4b535c;
+  border-color: rgba(255, 255, 255, 0.26);
+}
+.imgview-save:disabled {
+  opacity: 0.55;
+}
+@keyframes imgview-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 长按看图的前提：图片本身不参与拖拽（否则原生拖影会先于长按判定出现）。
+   选区不关——正文里的文字仍要能长按选词。 */
+html.is-phone img {
+  -webkit-user-drag: none;
+}
+
+/* 看图时收起右下角常驻的刷新按钮：它的层级（9999）高于浮层，会压在图上 */
+html.imgview-open .hard-refresh-fab {
+  display: none;
+}
+
+/* ── 校园卡余额预警卡（卡页「最近消费」之前）──
+   一行标题 + 开关，下面三行设置（预警线 / 提醒冷却 / 余额未变化不重复），末行是状态。
+   手机上设置行改为纵向堆叠，避免输入框被压成几十像素宽。 */
+.card-warn-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 16px 11px;
+}
+.card-warn-body {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--border-soft);
+}
+.card-warn-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  border-top: 1px solid var(--border-soft);
+}
+.card-warn-field:first-child { border-top: 0; }
+.card-warn-label { font-size: var(--text-sm); color: var(--text-2); flex: none; width: 76px; }
+.card-warn-ctl { display: inline-flex; align-items: center; gap: 4px; }
+.card-warn-prefix { color: var(--text-3); font-size: var(--text-sm); }
+.card-warn-num { width: 96px; height: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+.card-warn-unit { font-size: var(--text-xs); color: var(--text-3); }
+/* 置灰行（冷却被「不重复提醒」接管时）：整行降一档对比度，禁用输入框不再抢注意力 */
+.card-warn-field.is-off .card-warn-label,
+.card-warn-field.is-off .card-warn-unit,
+.card-warn-field.is-off .card-warn-prefix { color: var(--text-dim); }
+.card-warn-ctl .input:disabled { opacity: 0.55; cursor: default; }
+.card-warn-status {
+  padding: 9px 16px 12px;
+  margin-top: 1px;
+  border-top: 1px solid var(--border-soft);
+  font-size: var(--text-xs);
+  line-height: 18px;
+  color: var(--text-3);
+}
+html.is-phone .card-warn-field { flex-wrap: wrap; gap: 6px 10px; }
+html.is-phone .card-warn-label { width: auto; }

@@ -255,6 +255,35 @@ pub fn add(id: &str, at_ms: i64, title: &str, body: &str, target: &str) -> Resul
     }
 }
 
+/// 立即投递一条通知（事件驱动，如校园卡余额预警）。
+///
+/// 通知中心只有「定时触发」一条路，故按 1.5 秒后的相对时刻投递：用户感知即立刻，
+/// 且不必为此引入第二套投递机制（与 `test()` 同一做法）。
+pub fn post(id: &str, title: &str, body: &str, target: &str) -> Result<(), String> {
+    add(id, now_ms() + 1500, title, body, target)
+}
+
+/// 撤回**已展示**的通知。
+///
+/// `cancel` 撤的是待投递（removePending…），用户已经看到的那条属于「已投递」，
+/// 两条通道在系统侧就是不同的 API，撤回余额预警要用这一个。
+pub fn remove_delivered(ids: &[String]) -> Result<(), String> {
+    if ids.is_empty() {
+        return Ok(());
+    }
+    let center = center()?;
+    if let Ok(mut m) = TARGETS.lock() {
+        for id in ids {
+            m.remove(id);
+        }
+        save_targets(&m);
+    }
+    let arr: Vec<Retained<NSString>> = ids.iter().map(|s| NSString::from_str(s)).collect();
+    let ns = NSArray::from_retained_slice(&arr);
+    unsafe { center.removeDeliveredNotificationsWithIdentifiers(&ns) };
+    Ok(())
+}
+
 /// 撤销待投递通知（按 id 覆盖/撤销是系统通知层唯一的去重手段）
 pub fn cancel(ids: &[String]) {
     if ids.is_empty() {
@@ -293,7 +322,7 @@ pub fn pending_ids() -> Result<Vec<String>, String> {
 /// 立即投递一条测试通知（设置页「试一下」）
 pub fn test() -> Result<(), String> {
     let id = format!("onethu-test-{}", now_ms());
-    add(&id, now_ms() + 1500, "OneTHU 提醒测试", "看到这条说明 macOS 通知渠道已就绪。", "settings")
+    post(&id, "OneTHU 提醒测试", "看到这条说明 macOS 通知渠道已就绪。", "settings")
 }
 
 

@@ -88,7 +88,8 @@ async function loadPdfDoc(dataUrl: string): Promise<PdfDocLike> {
   } as const;
   // 内核缺新 API 时先上 legacy（自带垫片）；否则先用体积更小的现代构建
   const variants = modernOk ? ([modern, legacy] as const) : ([legacy, modern] as const);
-  if (!modernOk) console.info("[FILE-PREVIEW] 内核缺 pdf.js v6 依赖的新 API，优先 legacy 构建");
+  // 控制台诊断行（不是界面文案）：内核缺 pdf.js v6 依赖的新 API 时先上 legacy 构建
+  if (!modernOk) console.info("[FILE-PREVIEW] 内核缺新 API，优先 legacy 构建"); // ui-copy-lint-ok: 控制台诊断行
   let lastErr: unknown = null;
   for (const v of variants) {
     try {

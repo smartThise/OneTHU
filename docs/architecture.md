@@ -1,6 +1,6 @@
 # 系统架构
 
-> 最后更新：2026-09-22 22:59
+> 最后更新：2026-09-25 19:35
 
 本文档描述 OneTHU 的进程模型与各子系统设计，面向宿主贡献者。
 
@@ -31,9 +31,23 @@
   完整重登（受信凭据免二次认证），随后自动重放原请求。重登失败时按指数退避冷却
   （初始 30 秒，上限 10 分钟），避免触发风控。
 - **网络学堂静默重登**（R21c）：learn 专线的响应为登录页或网关页时抛出
-  `SessionExpiredError`，由 `#withRelogin` 静默重登一次并重放原请求；仅该类错误触发重登，
-  启动期无会话时抛出的 `AuthRequiredError` 仍直接上抛，避免无凭据时空转重登。重登只重试
-  一次，仍失败则交还上层提示。
+  `SessionExpiredError`，由 `#withRelogin` 经 `#recoverSession` 重建一次并重放原请求；
+  仅该类错误触发重登，启动期无会话时抛出的 `AuthRequiredError` 仍直接上抛，避免无凭据时
+  空转重登。重登只重试一次，仍失败则交还上层提示；并发调用共用同一条重建链，避免同时
+  重链互相作废票据。
+- **登录状态的建立与自证**（2026-09-23，issue #42 复核）：学习模块的每个接口都要先拿到
+  课程页里的登录凭据才能取数，而作业、通知、详情三个入口的凭据检查位于 `#withRelogin`
+  之外——会话失效时它们连一次重建机会都没有，用户看到的是「详情、通知、作业都提示会话
+  已失效，其它数据仍在出」。现在这些入口先经 `#ensureCsrfReady` 自证：按现状取一次凭据，
+  取不到再走重建链（宿主注入的主会话探活与身份漫游 → 服务端登录入口 → 账密全链），并发
+  调用只跑一条链。凭据提取同时接受隐藏域、链接参数与脚本变量三种页面形态，不再只认一种
+  写法。重建失败时文案是「登录状态没有建立起来」，不再谎报「已失效」把用户引向改密码。
+- **失效现场分级**：回登录页判定为会话失效（抛可重建标记，重建后重放一次）；回服务端
+  错误页（Tomcat 400/500）判定为请求本身被拒（不重登，直接报错）；凭据提取失败判定为
+  页面形态变化（记入诊断并按上一条重建）。三类现场各自记录回页种类与页面长度，不记录
+  凭据值与票据。
+- **反馈取证**：设置中的「复制诊断摘要」输出脱敏后的现场（版本、运行环境、登录状态、
+  回页种类、最近一次报错），用户可直接粘贴到反馈中，无需交出含学号的运行日志。
 - **登录链路重试**：登录过程首次失败（校园网冷漫游中断等）时使用同一凭据静默重试一次，
   期间保持 connecting 状态，两次均失败才回到登录页。
 - **设备指纹策略**（2026-09-18 决议）：设备指纹固定，不执行轮换。轮换方案会使
@@ -97,9 +111,13 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
   原生渲染只能用 RemoteViews 白名单里的控件（标了 `@RemoteView` 的类：LinearLayout / TextView /
   ImageView 等）：**未列入白名单的 `View` 会导致启动器 inflate 失败，整个小组件显示为「无法加载」的黑框**；
   同样地，RemoteViews 不能设置加粗（`setTypeface` 需要 Typeface 参数，反射式 `setInt` 会直接抛出异常），
-  故主次层级通过每行两个 TextView（粗体/常规）切换可见性、`setTextViewTextSize` 字号与左侧色条
-  （课程色 / 紧迫度色 / 状态色）表达。单屏可显示的行数必须按**真实高度**计算（一条带说明约 38dp），
-  采用「矮/中/高」三档估算会导致矮尺寸上的第二行被挤出可视区。
+  故主次层级靠**一条一行、行内用 Span 分层**（主文加粗上色 + 说明小字灰）与左侧色条
+  （课程色 / 紧迫度色 / 状态色）表达。卡片尺寸由用户在桌面上拖动决定（Android 允许任意大小），
+  故单屏可显示的行数必须按**真实高度**逐行量文本（`OnethuWidget.kt` 的 `fitRows`/`lineHeightPx`，
+  布局备 20 条槽位、快照按 `WIDGET_MAX_ROWS` 给足候选行）；按「矮/中/高」三档估算会在高卡片上
+  留一大片空白、在矮卡片上把最后一行挤出可视区。脚注前半段只数**卡片上真的显示出来的行**，
+  「还有 N 项」= 仍有效但没显示的条目（可见行 − 已显示行 + 快照都没装下的 `counts.more`），
+  两者之和恒等于仍有效的条目总数。
   详情行同理：课程下次上课与作业截止由 `state/widgetDetail.ts` 从内存计算，**下沉原子**（教室占用、
   洗衣机状态）由 `state/widgetLive.ts` 在计算快照前统一抓取一次（与收藏夹方卡共用缓存键，带超时），
   解读逻辑放在纯函数 `state/widgetLiveParse.ts`（「现在第几节」「哪几节空着」的判断均在时间边界上易出错，
@@ -248,6 +266,7 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
 | 通知状态文案测试 | `node --import ./tools/ts-resolve-register.mjs tools/notify-status-test.mjs` |
 | 通知自检编排测试 | `node --import ./tools/ts-resolve-register.mjs tools/notify-doctor-test.mjs` |
 | 通知 id 约定与归组测试 | `node --import ./tools/ts-resolve-register.mjs tools/notify-ids-test.mjs` |
+| 校园卡余额预警测试 | `node --import ./tools/ts-resolve-register.mjs tools/card-warn-test.mjs` |
 | 小组件快照测试 | `node --import ./tools/ts-resolve-register.mjs tools/widget-snapshot-test.mjs` |
 | 小组件内容来源解析测试 | `node --import ./tools/ts-resolve-register.mjs tools/widget-source-test.mjs` |
 | 小组件详情补充测试 | `node --import ./tools/ts-resolve-register.mjs tools/widget-detail-test.mjs` |
@@ -291,7 +310,7 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
 | PDF | `pdfjs-dist` 渲染到 canvas；**连续滚动**（按总页数铺满，滚动即翻页，页码跟随视口上沿），保留跳页、缩放与「适应宽度」 |
 | PDF 内存策略 | 一页按面板宽渲染约 1000×1400（≈5MB 位图），几十页全渲染会拖垮 WebView；只渲染**当前页 ±2** 的窗口，其余按等比占位，离开窗口即卸载 |
 | PDF 并发渲染 | 缩放与进出窗口都会触发重渲染，同一 canvas 上的并发 `render()` 会被 pdf.js 拒绝；用 `taskRef` 跟踪在飞的 `RenderTask`，发起新渲染前先 `cancel()` 并 `await` 其结束，取消异常属预期路径、不提示用户 |
-| PDF 运行时依赖 | pdf.js v6 现代构建依赖较新内核 API（`Map.prototype.getOrInsertComputed`、`Promise.withResolvers`、`Math.sumPrecise`），缺失时**在渲染期**才抛错，既有「解析失败就换 legacy 构建」的兜底不会触发。按能力选择构建（缺 API 时优先 legacy），并补最小垫片；缺 `Math.sumPrecise` 时字体翻译失败会被吞掉，表现为整页乱码 |
+| PDF 运行时依赖 | pdf.js v6 现代构建依赖较新内核 API（`Map.prototype.getOrInsertComputed`、`Promise.withResolvers`、`Math.sumPrecise`），缺失时**在渲染期**才抛错，既有「解析失败就换 legacy 构建」的兜底不会触发。缺 `Math.sumPrecise` 时字体修复失败会被吞掉，表现为整页乱码（手机端实测）。**垫片只覆盖主线程**：字体修复在 worker 中执行，worker 是独立 realm，主线程垫片装不进去，因此能力探测必须在加载构建之前完成（缺 API 时直接选 legacy 构建），不能依赖垫片兜底 |
 | pptx | `lib/pptxRender.ts` 真正渲染幻灯片页面（零第三方依赖，自带极简 XML 解析）：形状按 `a:xfrm` 绝对定位，没有显式 `xfrm` 的占位符按 slide → layout → master 继承位置，字号、粗斜、下划线与颜色（`srgbClr` 与 `schemeClr` 主题色）均还原 |
 | 下载后操作 | 下载完成提示提供「打开文件 / 打开目录」：`onethu_open_path` 与 `onethu_reveal_path` 为自写 Rust 命令，Rust 侧只放行存在的绝对路径。不用官方 opener 插件的原因是它除命令权限外还需在 capability 中配置**路径 scope**，而下载位置由用户决定，白名单覆盖不全。仅桌面端显示——Android 的下载落在应用私有目录，没有「定位」语义 |
 

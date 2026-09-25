@@ -8,13 +8,18 @@
  *   · class 行：没上课 → 「地点 · 还有 X」；正在上课 → 「正在上课 · 地点」加粗；
  *               下课了 → 整行剔除；跨天后的旧课行 → 剔除（防隔天残留）。
  *   · ddl 行：  还有 X；过点即剔除。
- *   · 脚注：    按仍可见的行重计「N 节课 · M 个截止」；全没了时
- *               快照当天且有课 → 「今天的课已上完」，否则「今天没有课与截止」。
+ *   · 行数：    按**卡片真实高度**铺满（尺寸由用户在桌面上拖动决定），一行一个事件；
+ *               快照给足候选行（WIDGET_MAX_ROWS），放不下的不显示。
+ *   · 脚注：    前半段数**卡片上真的显示出来的行**，后半段「还有 N 项」数仍有效但没显示的
+ *               条目（可见行数 − 已显示行数 + 快照都没装下的 counts.more）；
+ *               两者之和恒等于仍有效的条目总数。全没了时：快照当天且有课 →
+ *               「今天的课已上完」，否则「今天没有课与截止」。
  *   · 标题：    按当前日期重写「今天 M月d日」。
  *
- * Kotlin 侧（OnethuWidget.kt 的 renderList/footer/title 段）按同一语义实现，
+ * Kotlin 侧（OnethuWidget.kt 的 fitRows/renderList/footerOf 段）按同一语义实现，
  * 本文件是语义的**锚**：改任何一侧先改这里并跑 tools/widget-native-render-test.mjs，
- * 再同步 Kotlin，谁都不许单方面漂移。
+ * 再同步 Kotlin，谁都不许单方面漂移。行高的测量只在 Kotlin 侧（要量真实文本），
+ * 这里以 maxRows 的形式把「能放几行」作为输入接住。
  *
  * 30 分钟兜底自续 tick + 状态翻转点的精准闹钟（WidgetTicker）保证重画真的会发生。
  */
@@ -43,6 +48,8 @@ export interface NativeRenderInput {
   /** 快照归属日（epoch ms）；缺省＝不可知，隔天残留守卫退化为按 at 判 */
   titleAt?: number;
   now: number;
+  /** 卡片上能放几行（原生按真实高度算出来的值）；缺省＝不限，把带上的行都算作已显示 */
+  maxRows?: number;
 }
 
 export interface NativeRenderOut {
@@ -113,31 +120,42 @@ export function nativeRow(r: WidgetRow, now: number, titleAt?: number): NativeRo
   return { ...out, visible: true, strong: at - now <= 6 * 3600_000, sub };
 }
 
-/** 重画入口：行、脚注、标题（Kotlin renderFor 的语义基准） */
+/**
+ * 重画入口：行、脚注、标题（Kotlin 的 fitRows/renderList/footerOf 的语义基准）。
+ *
+ * 行数由卡片真实高度决定，故 `maxRows` 由原生算好传进来（缺省＝不限）；脚注按「显示了几行」
+ * 与「还有几项」分别数，两者之和为仍有效的条目总数。
+ */
 export function nativeRender(input: NativeRenderInput): NativeRenderOut {
   const now = input.now;
-  const rows = (input.rows ?? []).map((r) => nativeRow(r, now, input.titleAt)).filter((r) => r.visible);
   const c = input.counts;
-  let footer: string;
-  const visibleClasses = countRel(input.rows ?? [], now, input.titleAt, "class");
-  const visibleDdls = countRel(input.rows ?? [], now, input.titleAt, "ddl");
+  const all = (input.rows ?? []).map((row) => ({ row, out: nativeRow(row, now, input.titleAt) }));
+  const visible = all.filter((x) => x.out.visible);
+  const cap = typeof input.maxRows === "number" ? Math.max(1, input.maxRows) : visible.length;
+  const shown = visible.slice(0, cap);
+
+  let shownClasses = 0;
+  let shownDdls = 0;
+  for (const x of shown) {
+    if (x.row.rel === "class") shownClasses++;
+    else if (x.row.rel === "ddl") shownDdls++;
+  }
+  let visibleRel = 0;
+  for (const x of visible) if (x.row.rel === "class" || x.row.rel === "ddl") visibleRel++;
+
   const parts: string[] = [];
-  if (visibleClasses) parts.push(`${visibleClasses} 节课`);
-  if (visibleDdls) parts.push(`${visibleDdls} 个截止`);
+  if (shownClasses) parts.push(`${shownClasses} 节课`);
+  if (shownDdls) parts.push(`${shownDdls} 个截止`);
+  let footer: string;
   if (parts.length === 0) {
     footer = c?.hadClass && (!input.titleAt || dayKey(input.titleAt) === dayKey(now))
       ? "今天的课已上完"
       : "今天没有课与截止";
   } else {
-    footer = `${parts.join(" · ")}${c && c.more > 0 ? ` · 还有 ${c.more} 项` : ""}`;
+    // 还有 N 项 = 仍有效但没显示在卡片上的（可见行 − 已显示行） + 快照都没装下的
+    const hidden = visibleRel - (shownClasses + shownDdls) + (c?.more ?? 0);
+    footer = `${parts.join(" · ")}${hidden > 0 ? ` · 还有 ${hidden} 项` : ""}`;
   }
   const title = `今天 ${new Date(now).getMonth() + 1}月${new Date(now).getDate()}日`;
-  return { rows, footer, title };
-}
-
-/** 数仍可见的某类行（与 nativeRow 的可见判定一致） */
-function countRel(rows: WidgetRow[], now: number, titleAt: number | undefined, rel: "class" | "ddl"): number {
-  let n = 0;
-  for (const r of rows) if (r.rel === rel && nativeRow(r, now, titleAt).visible) n++;
-  return n;
+  return { rows: shown.map((x) => x.out), footer, title };
 }

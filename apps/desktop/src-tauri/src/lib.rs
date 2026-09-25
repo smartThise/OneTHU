@@ -2820,6 +2820,81 @@ fn ui_apply_insets() -> serde_json::Value {
     serde_json::json!({ "ok": false, "reason": "not-android" })
 }
 
+/* ── 手机端「保存图片到相册」──
+ * 字节由前端交过来（base64）：屏幕上那张图的 src 多半是应用侧带会话抓回来的 dataURL，
+ * 原生侧重现不了那条通道（详见 apps/desktop/src/lib/imageSave.ts 顶部说明）。
+ * Rust 只把它落成应用缓存里的一个文件，再交 onethu-mobile 插件写进系统相册
+ * （MediaStore.Images + Pictures/OneTHU，见插件 Kotlin 侧 saveImage）。
+ * 桌面端没有相册概念，落到用户设置的「下载」目录——同一条命令在三端都不空转。 */
+
+/// base64 → 字节。上限与前端 imageSave.ts 的 MAX_B64_LEN 同口径（16MB ≈ 12MB 原图）：
+/// 字节以 base64 经 IPC 传过来，再大的图片会把 WebView 拖住，早拒比卡死好。
+fn decode_image_base64(data: &str) -> Result<Vec<u8>, String> {
+    use base64::Engine as _;
+    const MAX_B64_LEN: usize = 16 * 1024 * 1024;
+    if data.is_empty() {
+        return Err("图片内容为空".into());
+    }
+    if data.len() > MAX_B64_LEN {
+        return Err("图片过大，无法保存".into());
+    }
+    base64::engine::general_purpose::STANDARD
+        .decode(data)
+        .map_err(|e| format!("图片内容解析失败：{e}"))
+}
+
+#[cfg(mobile)]
+#[tauri::command]
+async fn save_image_to_gallery(
+    app: tauri::AppHandle,
+    data: String,
+    mime: String,
+    name: String,
+) -> Result<serde_json::Value, String> {
+    use tauri::Manager;
+    let bytes = decode_image_base64(&data)?;
+    let dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|e| format!("无法定位缓存目录: {e}"))?
+        .join("onethu-img");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let tmp = dir.join(&name);
+    std::fs::write(&tmp, &bytes).map_err(|e| e.to_string())?;
+    let handle = app
+        .state::<tauri_plugin_onethu_mobile::OnethuMobile<tauri::Wry>>()
+        .0
+        .clone();
+    handle
+        .run_mobile_plugin_async(
+            "saveImage",
+            serde_json::json!({ "path": tmp.to_string_lossy(), "name": name, "mime": mime }),
+        )
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+async fn save_image_to_gallery<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    data: String,
+    mime: String,
+    name: String,
+) -> Result<serde_json::Value, String> {
+    // 桌面端不区分「相册」：扩展名已由前端拼进 name，mime 只用于安卓侧建媒体条目
+    let _ = mime;
+    let bytes = decode_image_base64(&data)?;
+    let dir = downloads::directory(&app)?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join(&name);
+    std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
+    Ok(serde_json::json!({
+        "name": name,
+        "dir": path.parent().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default(),
+    }))
+}
+
 /// 一键把标准形态小组件放到桌面（requestPinAppWidget；ColorOS 等启动器选择器行为不一致
 /// 时用户「绑定完桌面上没有」，这条由启动器直接落卡片）。
 #[cfg(mobile)]
@@ -2858,6 +2933,70 @@ async fn widget_instances(app: tauri::AppHandle) -> Result<serde_json::Value, St
 #[tauri::command]
 fn widget_instances() -> serde_json::Value {
     serde_json::json!({ "ok": false, "reason": "not-android", "instances": [] })
+}
+
+/* 立即投递与撤回已展示的通知（事件驱动：校园卡余额预警）。
+ * 与 notify_schedule/notify_cancel 的分工：那两条是「将来某刻发 / 撤待投递」，
+ * 这两条是「现在发 / 撤已弹出的那一条」。 */
+
+#[cfg(mobile)]
+#[tauri::command]
+async fn notify_post(
+    app: tauri::AppHandle,
+    id: String,
+    title: String,
+    body: String,
+    channel: Option<String>,
+    target: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let handle = app
+        .state::<tauri_plugin_onethu_mobile::OnethuMobile<tauri::Wry>>()
+        .0
+        .clone();
+    handle
+        .run_mobile_plugin_async(
+            "notifyPost",
+            serde_json::json!({
+                "id": id,
+                "title": title,
+                "body": body,
+                "channel": channel.unwrap_or_default(),
+                "target": target.unwrap_or_default(),
+            }),
+        )
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[cfg(mobile)]
+#[tauri::command]
+async fn notify_dismiss(app: tauri::AppHandle, ids: String) -> Result<serde_json::Value, String> {
+    let handle = app
+        .state::<tauri_plugin_onethu_mobile::OnethuMobile<tauri::Wry>>()
+        .0
+        .clone();
+    handle
+        .run_mobile_plugin_async("notifyDismiss", serde_json::json!({ "ids": ids }))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+fn notify_post(
+    id: String,
+    title: String,
+    body: String,
+    channel: Option<String>,
+    target: Option<String>,
+) -> serde_json::Value {
+    notify::post(&id, &title, &body, &channel.unwrap_or_default(), &target.unwrap_or_default())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+fn notify_dismiss(ids: String) -> serde_json::Value {
+    notify::dismiss(&ids)
 }
 
 /// 打开系统通知设置页（渠道管理 / 精确闹钟授权都在系统设置里，应用只能带路）
@@ -3518,7 +3657,7 @@ tauri::Builder::default()
             http_native_seed,
             downloads::download_directory_get,downloads::download_directory_pick,downloads::download_directory_reset,save_file_as,
             log_debug,debug_log_export,read_file_text,trace_key,macos_location,speech_supported,speech_start,speech_poll,speech_stop,mail::mail_list,mail::mail_read,mail::mail_mark_seen,mail::mail_send,mail::mail_search,seafile::seafile_account,seafile::seafile_repos,seafile::seafile_dir,seafile::seafile_download,seafile::seafile_upload,seafile::seafile_mkdir,seafile::seafile_share,seafile::seafile_search,seafile::seafile_pick_upload,http_request,http_native,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,os_is_android,plugin_dir_remove,state_read,state_write,state_delete,
-            open_external,onethu_open_path,onethu_reveal_path,open_eid_window,open_ykt_window,read_ykt_cookies,close_ykt_window,start_qr_keep_alive,stop_qr_keep_alive,widget_push,widget_clear,widget_take_target,widget_status,widget_instances,widget_pin,ui_apply_insets,notify_backend,notify_open_settings,notify_permission,notify_schedule,notify_cancel,notify_pending,notify_test,notify_take_target,open_web_modal,open_app_settings,open_ykt_submit_window,open_sports_window,venue_sso_set,venue_open_portal,
+            open_external,onethu_open_path,onethu_reveal_path,open_eid_window,open_ykt_window,read_ykt_cookies,close_ykt_window,start_qr_keep_alive,stop_qr_keep_alive,widget_push,widget_clear,widget_take_target,widget_status,widget_instances,widget_pin,ui_apply_insets,save_image_to_gallery,notify_backend,notify_open_settings,notify_permission,notify_schedule,notify_cancel,notify_pending,notify_test,notify_take_target,notify_post,notify_dismiss,open_web_modal,open_app_settings,open_ykt_submit_window,open_sports_window,venue_sso_set,venue_open_portal,
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,
             harness_embed::harness_start,harness_embed::harness_bridge_take,harness_embed::harness_call,harness_embed::harness_notify,harness_embed::harness_rpc_reply,harness_embed::harness_stop])
         .run(tauri::generate_context!())

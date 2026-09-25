@@ -28,9 +28,13 @@ const T = (y, mo, d, h = 0, mi = 0) => new Date(y, mo - 1, d, h, mi, 0, 0).getTi
 // 课程日期必须相对当前时间生成：钉死日期一过 10:00，课程就掉出 7 天规划窗口（2026-09-21 时间炸弹实录）
 const CLS_DATE = (() => { const d = new Date(Date.now() + 86_400_000); const p2 = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; })();
+// DDL 同理（2026-09-25 实录：钉死的 2026-09-22 一过，② 的「计划含 DDL」就红了——
+// 运行时按真实时钟算计划，这里注入的假时钟不参与，故截止时刻必须落在真实未来）
+const DDL_AT = (() => { const d = new Date(Date.now() + 2 * 86_400_000); const p2 = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} 23:59:59`; })();
 const hw = (id, deadline) => ({ id, title: "第三章习题", deadline, submitted: false, courseName: "数据结构" });
 
-function harness({ hold = hw("h1", "2026-09-22 23:59:59"), failOn = null } = {}) {
+function harness({ hold = hw("h1", DDL_AT), failOn = null } = {}) {
   store.clear();
   const calls = [];
   const listeners = [];

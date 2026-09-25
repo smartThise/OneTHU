@@ -14,10 +14,21 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
 import type { CardTransaction } from "@onethu/core";
-import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { Card, Empty, ErrorNote, SectionHead, SkeletonRows, Switch } from "../../components/Layout.js";
 import { IconCard } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useCard } from "../../state/data.js";
+import {
+  CARD_WARN_MAX_COOLDOWN,
+  CARD_WARN_MAX_THRESHOLD,
+  applyCardWarnChange,
+  cardWarnStatusText,
+  loadCardWarnSettings,
+  loadCardWarnState,
+  saveCardWarnSettings,
+  subscribeCardWarn,
+  type CardWarnSettings,
+} from "../../state/cardWarn.js";
 import { info } from "../../lib/clients.js";
 import { openAlipayDeepLink, openExternal } from "./openExternal.js";
 import { isAndroidNavigator } from "../../lib/androidHost.js";
@@ -241,6 +252,117 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
   );
 }
 
+/* ------------------------------- 余额预警卡 ------------------------------- */
+
+/** 金额输入的统一提交口径：非法输入回落原值，合法值夹到上限内 */
+function useNumberDraft(initial: number, commit: (v: number) => void) {
+  const [draft, setDraft] = useState(() => String(initial));
+  const submit = (min: number, max: number, round = false): void => {
+    const raw = Number(draft);
+    if (!Number.isFinite(raw)) {
+      setDraft(String(initial));
+      return;
+    }
+    let next = Math.min(Math.max(raw, min), max);
+    if (round) next = Math.round(next);
+    setDraft(String(next));
+    if (next !== initial) commit(next);
+  };
+  return { draft, setDraft, submit };
+}
+
+/**
+ * 余额预警卡（排在「最近消费」之前）：预警线、提醒冷却与「余额未变化不重复」三个设置，
+ * 外加一行当前状态。判定与投递都在 state/cardWarn.ts，这里只负责取值与展示。
+ */
+function BalanceWarnCard({ balance }: { balance: number | null }) {
+  const [s, setS] = useState<CardWarnSettings>(() => loadCardWarnSettings());
+  const [st, setSt] = useState(() => loadCardWarnState());
+
+  // 判定发生在取数层（任何一次刷新），状态变化由订阅回传，卡片据此重画状态行
+  useEffect(() => subscribeCardWarn(() => setSt(loadCardWarnState())), []);
+
+  const patch = (p: Partial<CardWarnSettings>): void => {
+    setS(saveCardWarnSettings(p));
+    void applyCardWarnChange(balance);
+  };
+
+  const threshold = useNumberDraft(s.threshold, (v) => patch({ threshold: v }));
+  const cooldown = useNumberDraft(s.cooldownMin, (v) => patch({ cooldownMin: v }));
+
+  // 打开本栏已拿到余额时按当前设置过一遍：与刷新走同一条判定（冷却与「未变化不重复」照旧生效）。
+  // 只跟开关联动——余额变化时判定已由取数层做过，这里再跟一次会与它抢同一毫秒。
+  useEffect(() => {
+    if (s.enabled) void applyCardWarnChange(balance);
+  }, [s.enabled]);
+
+  const status = cardWarnStatusText({ settings: s, state: st, balance, now: Date.now() });
+
+  return (
+    <Card className="card-warn">
+      <div className="card-warn-head">
+        <div>
+          <div className="setting-title">余额预警</div>
+          <div className="setting-desc">余额刷新后低于预警线时发系统通知，恢复后自动撤回。</div>
+        </div>
+        <Switch on={s.enabled} onChange={(v) => patch({ enabled: v })} label="余额预警" />
+      </div>
+
+      {s.enabled ? (
+        <div className="card-warn-body">
+          <div className="card-warn-field">
+            <span className="card-warn-label">预警线</span>
+            <span className="card-warn-ctl">
+              <span className="card-warn-prefix">¥</span>
+              <input
+                className="input card-warn-num"
+                inputMode="decimal"
+                aria-label="余额预警线（元）"
+                value={threshold.draft}
+                onChange={(e) => threshold.setDraft(e.target.value)}
+                onBlur={() => threshold.submit(0, CARD_WARN_MAX_THRESHOLD)}
+                onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+              />
+            </span>
+            <span className="card-warn-unit">元</span>
+          </div>
+
+          {/* 冷却只在「定时重复」模式下有意义：开着「不重复提醒」时余额一变就立刻提醒，
+              冷却设了也不会生效，故直接置灰并说明原因（避免出现「设了没用」的字段） */}
+          <div className={"card-warn-field" + (s.skipUnchanged ? " is-off" : "")}>
+            <span className="card-warn-label">提醒冷却</span>
+            <span className="card-warn-ctl">
+              <input
+                className="input card-warn-num"
+                inputMode="numeric"
+                aria-label="提醒冷却（分钟）"
+                disabled={s.skipUnchanged}
+                value={cooldown.draft}
+                onChange={(e) => cooldown.setDraft(e.target.value)}
+                onBlur={() => cooldown.submit(1, CARD_WARN_MAX_COOLDOWN, true)}
+                onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+              />
+            </span>
+            <span className="card-warn-unit">分钟</span>
+          </div>
+
+          <div className="card-warn-field">
+            <span className="card-warn-label">不重复提醒</span>
+            <Switch
+              on={s.skipUnchanged}
+              onChange={(v) => patch({ skipUnchanged: v })}
+              label="不重复提醒（当余额未变化）"
+            />
+            <span className="card-warn-unit">当余额未变化</span>
+          </div>
+        </div>
+      ) : null}
+
+      {s.enabled ? <div className="card-warn-status">{status}</div> : null}
+    </Card>
+  );
+}
+
 /* --------------------------------- 主组件 --------------------------------- */
 
 export function CardTab({ active = true }: { active?: boolean }) {
@@ -332,6 +454,8 @@ export function CardTab({ active = true }: { active?: boolean }) {
           </div>
         </Card>
       ) : null}
+
+      <BalanceWarnCard balance={data?.info.balance ?? null} />
 
       <SectionHead title="最近消费" aside="最近 30 天（数据源：card.tsinghua.edu.cn）" />
       {state === "loading" && !data ? (

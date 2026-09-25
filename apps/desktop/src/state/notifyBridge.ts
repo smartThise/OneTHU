@@ -94,6 +94,50 @@ export async function cancelNotifications(ids: string[]): Promise<void> {
   }
 }
 
+/**
+ * 立即投递一条通知（事件驱动，如校园卡余额预警）。
+ *
+ * 与 `scheduleNotifications` 的分工：排程是「将来某刻发」，这里要的是「现在发」，
+ * 因此不走 AlarmManager / AddToSchedule，投递结果如实回报（未授权、后端未接等）。
+ * 同一 id 重发即覆盖系统里的那一条，不会堆一屏。
+ */
+export async function postNotificationNow(item: {
+  id: string;
+  title: string;
+  body: string;
+  channel?: string;
+  target?: string;
+}): Promise<{ ok: boolean; reason?: string }> {
+  try {
+    const raw = (await invoke<Record<string, unknown>>("notify_post", {
+      id: item.id,
+      title: item.title,
+      body: item.body,
+      channel: item.channel ?? "",
+      target: item.target ?? "",
+    })) as { ok?: boolean; reason?: string };
+    return { ok: raw?.ok === true, reason: typeof raw?.reason === "string" ? raw.reason : undefined };
+  } catch (e) {
+    return { ok: false, reason: String(e).slice(0, 120) };
+  }
+}
+
+/**
+ * 撤回**已展示**的通知（撤销与投递是两条通道）。
+ *
+ * 不复用 `cancelNotifications` 的原因：那条撤的是「待投递的排程」，Android 侧只做
+ * 闹钟撤销与库清理；而已弹出的通知要按同一个 id 从通知栏撤掉——两者混用会让「按计划
+ * 对齐」的那轮同步把刚弹出的课程提醒一并抹掉。
+ */
+export async function dismissNotifications(ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  try {
+    await invoke("notify_dismiss", { ids: JSON.stringify(ids) });
+  } catch {
+    /* 撤回失败无害：下次观察到余额恢复时会再撤一次 */
+  }
+}
+
 /** 立即发一条测试通知 */
 export async function sendTestNotification(): Promise<boolean> {
   try {

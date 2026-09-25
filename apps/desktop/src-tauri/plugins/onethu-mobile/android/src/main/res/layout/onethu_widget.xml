@@ -2,12 +2,18 @@
 <!--
   桌面小组件布局（RemoteViews 受限控件集：LinearLayout / TextView / ImageView）。
 
-  JS 侧算好内容（标题 / 至多五条 / 脚注，每条可带色条、加粗与说明）后推到原生，这里只负责
+  JS 侧算好内容（标题 / 至多 20 条 / 脚注，每条可带色条、加粗与说明）后推到原生，这里只负责
   摆位置——小组件进程里没有 WebView，也没有会话，任何需要网络或解析的逻辑都不在这里做。
 
   为什么「一条一行、行内分层」：给每条再单独占一行说明，会让两行的小组件只放得下一条内容
   （用户看到的就是「拉到三行才看得见东西」）。改成同一行内用 Span 分层——主文加粗上色、
   说明小字灰字跟在其后——两行就能放两条，主次也清楚。
+
+  为什么备 20 条槽位：卡片尺寸由用户在桌面上拖动决定（Android 允许任意大小），
+  显示几行由原生按**真实高度**算（见 OnethuWidget.kt 的 fitRows），但布局里必须真有那条槽位
+  （RemoteViews 只能引用布局中已存在的 id），故这里一次备足；放不满的槽位一律 GONE。
+  每条：左侧色条（无色时占位不可见，保证各行文字对齐）+ 一个单行 TextView（主文与说明同
+  一行用 Span 分层；加粗只能用 StyleSpan，RemoteViews 的 setTypeface 需要 Typeface 参数）。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/onethu_widget_root"
@@ -35,8 +41,6 @@
         android:layout_marginTop="6dp"
         android:orientation="horizontal">
 
-        <!-- 左侧色条：课程色 / 紧迫度色 / 状态色；无色时占位不可见（保证各行文字对齐）。
-             用 TextView 而不是 View：RemoteViews 只能 inflate 标了 @RemoteView 的控件。 -->
         <TextView
             android:id="@+id/onethu_widget_bar1"
             android:layout_width="3dp"
@@ -44,9 +48,6 @@
             android:layout_marginRight="8dp"
             android:background="@android:color/transparent" />
 
-        <!-- 一条一行：主文与说明在同一个 TextView 里用 Span 分层（主文加粗/上色、说明小字灰），
-             这样「两行」放得下两条内容，而不会因为给每条单独占一行说明而挤掉内容。
-             加粗只能用 StyleSpan：RemoteViews 的 setTypeface 需要 Typeface 参数，反射式 setInt 会抛。 -->
         <TextView
             android:id="@+id/onethu_widget_row1"
             android:layout_width="0dp"
@@ -65,8 +66,6 @@
         android:layout_marginTop="4dp"
         android:orientation="horizontal">
 
-        <!-- 左侧色条：课程色 / 紧迫度色 / 状态色；无色时占位不可见（保证各行文字对齐）。
-             用 TextView 而不是 View：RemoteViews 只能 inflate 标了 @RemoteView 的控件。 -->
         <TextView
             android:id="@+id/onethu_widget_bar2"
             android:layout_width="3dp"
@@ -74,9 +73,6 @@
             android:layout_marginRight="8dp"
             android:background="@android:color/transparent" />
 
-        <!-- 一条一行：主文与说明在同一个 TextView 里用 Span 分层（主文加粗/上色、说明小字灰），
-             这样「两行」放得下两条内容，而不会因为给每条单独占一行说明而挤掉内容。
-             加粗只能用 StyleSpan：RemoteViews 的 setTypeface 需要 Typeface 参数，反射式 setInt 会抛。 -->
         <TextView
             android:id="@+id/onethu_widget_row2"
             android:layout_width="0dp"
@@ -95,8 +91,6 @@
         android:layout_marginTop="4dp"
         android:orientation="horizontal">
 
-        <!-- 左侧色条：课程色 / 紧迫度色 / 状态色；无色时占位不可见（保证各行文字对齐）。
-             用 TextView 而不是 View：RemoteViews 只能 inflate 标了 @RemoteView 的控件。 -->
         <TextView
             android:id="@+id/onethu_widget_bar3"
             android:layout_width="3dp"
@@ -104,9 +98,6 @@
             android:layout_marginRight="8dp"
             android:background="@android:color/transparent" />
 
-        <!-- 一条一行：主文与说明在同一个 TextView 里用 Span 分层（主文加粗/上色、说明小字灰），
-             这样「两行」放得下两条内容，而不会因为给每条单独占一行说明而挤掉内容。
-             加粗只能用 StyleSpan：RemoteViews 的 setTypeface 需要 Typeface 参数，反射式 setInt 会抛。 -->
         <TextView
             android:id="@+id/onethu_widget_row3"
             android:layout_width="0dp"
@@ -125,8 +116,6 @@
         android:layout_marginTop="4dp"
         android:orientation="horizontal">
 
-        <!-- 左侧色条：课程色 / 紧迫度色 / 状态色；无色时占位不可见（保证各行文字对齐）。
-             用 TextView 而不是 View：RemoteViews 只能 inflate 标了 @RemoteView 的控件。 -->
         <TextView
             android:id="@+id/onethu_widget_bar4"
             android:layout_width="3dp"
@@ -134,9 +123,6 @@
             android:layout_marginRight="8dp"
             android:background="@android:color/transparent" />
 
-        <!-- 一条一行：主文与说明在同一个 TextView 里用 Span 分层（主文加粗/上色、说明小字灰），
-             这样「两行」放得下两条内容，而不会因为给每条单独占一行说明而挤掉内容。
-             加粗只能用 StyleSpan：RemoteViews 的 setTypeface 需要 Typeface 参数，反射式 setInt 会抛。 -->
         <TextView
             android:id="@+id/onethu_widget_row4"
             android:layout_width="0dp"
@@ -155,8 +141,6 @@
         android:layout_marginTop="4dp"
         android:orientation="horizontal">
 
-        <!-- 左侧色条：课程色 / 紧迫度色 / 状态色；无色时占位不可见（保证各行文字对齐）。
-             用 TextView 而不是 View：RemoteViews 只能 inflate 标了 @RemoteView 的控件。 -->
         <TextView
             android:id="@+id/onethu_widget_bar5"
             android:layout_width="3dp"
@@ -164,11 +148,383 @@
             android:layout_marginRight="8dp"
             android:background="@android:color/transparent" />
 
-        <!-- 一条一行：主文与说明在同一个 TextView 里用 Span 分层（主文加粗/上色、说明小字灰），
-             这样「两行」放得下两条内容，而不会因为给每条单独占一行说明而挤掉内容。
-             加粗只能用 StyleSpan：RemoteViews 的 setTypeface 需要 Typeface 参数，反射式 setInt 会抛。 -->
         <TextView
             android:id="@+id/onethu_widget_row5"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot6"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar6"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row6"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot7"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar7"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row7"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot8"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar8"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row8"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot9"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar9"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row9"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot10"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar10"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row10"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot11"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar11"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row11"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot12"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar12"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row12"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot13"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar13"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row13"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot14"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar14"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row14"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot15"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar15"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row15"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot16"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar16"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row16"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot17"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar17"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row17"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot18"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar18"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row18"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot19"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar19"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row19"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textColor="@color/onethu_widget_ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/onethu_widget_slot20"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onethu_widget_bar20"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="8dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/onethu_widget_row20"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"

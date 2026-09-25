@@ -37,6 +37,8 @@ import { App } from "./App.js";
 import { ConfirmHost } from "./lib/confirm.js";
 import { FormModalHost } from "./lib/formModal.js";
 import { RootErrorBoundary } from "./components/RootErrorBoundary.js";
+import { TextPeekHost } from "./components/TextPeek.js";
+import { ImageViewerHost } from "./components/ImageViewer.js";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -45,6 +47,10 @@ createRoot(document.getElementById("root")!).render(
       <App />
       <ConfirmHost />
       <FormModalHost />
+      {/* 手机端双击看全文：被省略号截断的文本双击后弹浮层（可选中） */}
+      <TextPeekHost />
+      {/* 手机端长按看图：全屏查看 + 双指缩放 + 保存到相册，单击任意处退出 */}
+      <ImageViewerHost />
     </RootErrorBoundary>
   </StrictMode>,
 );

@@ -42,7 +42,7 @@ const hw = (extra = {}) => ({ id: "h1", title: "第三章习题", deadline: "202
   ok("可序列化", typeof serializeWidgetSnapshot(s) === "string" && JSON.parse(serializeWidgetSnapshot(s)).rows.length === 0);
 }
 
-/* 排序：正在上的课 → 下一节 → 最近的 DDL；且只放三行 */
+/* 排序：正在上的课 → 下一节 → 最近的 DDL；截断口径本身 */
 {
   const s = buildWidgetSnapshot({
     schedule: [
@@ -62,7 +62,23 @@ const hw = (extra = {}) => ({ id: "h1", title: "第三章习题", deadline: "202
   eq("第二行带地点与倒计时", s.rows[1].sub, "六教6A215 · 还有 5 小时");
   eq("第三行是最近的 DDL", s.rows[2].text, "DDL 第三章习题");
   ok("DDL 副标题带今天与剩余", s.rows[2].sub.startsWith("今天 20:00 · 还有"));
-  eq("脚注统计总数并提示截断", s.footer, "3 节课 · 2 个截止 · 还有 2 项");
+  /* 脚注口径：前半段只数**快照带上的行**，「还有 N 项」数没带上的条目——两者之和 = 条目光总数。
+   * 卡片上真的显示几行由原生按高度决定，届时它按同一口径重算（见 nativeRender）。 */
+  eq("脚注只数带上的行并提示未带上的", s.footer, "2 节课 · 1 个截止 · 还有 2 项");
+  eq("未带上的条目数在 counts 里", s.counts.more, 2);
+}
+
+/* 候选行给足：卡片能被拖到任意大，快照不能只给 5 行（否则拉大后没东西可填） */
+{
+  const many = buildWidgetSnapshot({
+    schedule: [],
+    homework: Array.from({ length: 14 }, (_, i) => hw({ id: `m${i}`, title: `作业${i}`, deadline: `2026-09-${String(22 + (i % 5)).padStart(2, "0")} 12:00:00` })),
+    remind: REMIND,
+    now: NOW,
+  });
+  eq("默认带上全部候选（不再卡在 5 行）", many.rows.length, 14);
+  eq("全部带上时脚注不再写「还有」", many.footer, "14 个截止");
+  eq("全部带上时 more 为 0", many.counts.more, 0);
 }
 
 /* 过滤：不相关的一律不进快照 */
@@ -174,7 +190,10 @@ const hw = (extra = {}) => ({ id: "h1", title: "第三章习题", deadline: "202
   eq("详情：行", s.rows.map((r) => r.text), ["数据结构", "明天 10:00 六教6A215"]);
   eq("详情：落点带参数", s.target, "learn-course?courseId=1");
   eq("详情：脚注", s.footer, "3 次待上");
-  eq("详情：行数上限", buildDetailSnapshot({ title: "x", rows: [1, 2, 3, 4, 5, 6, 7].map((n) => ({ text: `第${n}` })), target: "today", now: NOW }).rows.length, 5);
+  // 候选行给足（卡片能被拖高，5 行卡死会让拉长的卡片空着大半）；显式上限仍生效
+  const twelve = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => ({ text: `第${n}` }));
+  eq("详情：候选行给足", buildDetailSnapshot({ title: "x", rows: twelve, target: "today", now: NOW }).rows.length, 12);
+  eq("详情：显式上限仍生效", buildDetailSnapshot({ title: "x", rows: twelve, target: "today", now: NOW, maxRows: 3 }).rows.length, 3);
 }
 
 /* 图标组形态：每个格子各有落点；没有图标的格子留给原生（退回系统图标） */

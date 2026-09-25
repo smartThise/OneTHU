@@ -188,12 +188,14 @@ function PluginTabHost({ pageKey }: { pageKey: Page }): ReactNode {
   );
 }
 
-/** 全局轻提示（原子操作反馈）：单条覆盖式，点按关闭 */
+/** 全局轻提示（原子操作反馈）：单条覆盖式，点按关闭；center 的是屏幕正中的强调提示 */
 function ToastHost(): ReactNode {
   const msg = useToastHost();
   if (!msg) return null;
   return (
-    <div className="toast-host" onClick={hideToast} role="status">{msg}</div>
+    <div className={"toast-host" + (msg.center ? " is-center" : "")} onClick={hideToast} role="status">
+      {msg.text}
+    </div>
   );
 }
 

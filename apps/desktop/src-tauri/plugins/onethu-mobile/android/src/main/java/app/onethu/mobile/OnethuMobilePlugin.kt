@@ -26,6 +26,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
+import android.media.MediaScannerConnection
 import android.os.Build
 import android.util.Log
 import android.os.Environment
@@ -58,6 +59,14 @@ import java.net.URLConnection
 class SaveDownloadArgs {
     var path: String = ""
     var name: String = ""
+}
+
+/** 保存图片到相册：字节已由 Rust 落到应用缓存，这里只认路径与元信息 */
+@InvokeArg
+class SaveImageArgs {
+    var path: String = ""
+    var name: String = ""
+    var mime: String = ""
 }
 
 @InvokeArg
@@ -124,6 +133,24 @@ class NotifyPermissionArgs {
 /** 要撤销的通知 id 数组（JSON 字符串） */
 @InvokeArg
 class NotifyCancelArgs {
+    var ids: String = ""
+}
+
+/** 立即投递的通知（事件驱动，如校园卡余额预警）：id 稳定，重发即覆盖同一条 */
+@InvokeArg
+class NotifyPostArgs {
+    var id: String = ""
+    var title: String = ""
+    var body: String = ""
+    /** 渠道：course / ddl / briefing / balance */
+    var channel: String = ""
+    /** 点击落点（`page` 或 `page?k=v`，见 state/widgetTarget.ts） */
+    var target: String = ""
+}
+
+/** 要从通知栏撤回的已展示通知 id 数组（JSON 字符串） */
+@InvokeArg
+class NotifyDismissArgs {
     var ids: String = ""
 }
 
@@ -195,6 +222,9 @@ private const val DARK_INJECT_JS = """
     permissions = [
         // R18c：API 33+ 展示前台服务常驻通知需运行时权限（清单在插件库 Manifest 声明）
         Permission(strings = [Manifest.permission.POST_NOTIFICATIONS], alias = "notifications"),
+        // 保存图片到相册：API 29+ 走 MediaStore 自建条目，不需要任何权限；
+        // API 24–28 写公共 Pictures 才需要它（清单里标了 maxSdkVersion=28）
+        Permission(strings = [Manifest.permission.WRITE_EXTERNAL_STORAGE], alias = "legacy-storage"),
     ],
 )
 class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
@@ -270,6 +300,114 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
                 activity.runOnUiThread { invoke.resolve(ret) }
             } catch (e: Exception) {
                 val msg = e.message ?: "转存失败"
+                activity.runOnUiThread { invoke.reject(msg) }
+            }
+        }.start()
+    }
+
+    /* ── 保存图片到相册 ──
+     * 与 saveDownload 的分工：那条去「下载」（MediaStore.Downloads / 用户选的 SAF 目录），
+     * 这条去「相册」（MediaStore.Images + Pictures/OneTHU）。两者不能互相顶替——相册应用
+     * 只索引 Images 集合，落在 Downloads 里的图片不会出现在相册里，用户也就找不到它。
+     *
+     * 权限：API 29+ 插入本人创建的媒体条目不需要任何权限（分区存储），这也是主力路径；
+     * API 24–28 写公共 Pictures 需要 WRITE_EXTERNAL_STORAGE，缺权限时按插件既有姿势
+     * （notifications 同款）先请求再写，被拒就明确报错，不静默失败。 */
+
+    /** 权限回调时要用的参数（@PermissionCallback 只回传 Invoke，取不回原始实参） */
+    private var pendingSaveImageArgs: SaveImageArgs? = null
+
+    private fun hasImageStoragePermission(): Boolean =
+        Build.VERSION.SDK_INT >= 29 ||
+            ContextCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+            PackageManager.PERMISSION_GRANTED
+
+    /** 应用缓存里的图片 → 系统相册；回传 { name, dir } */
+    @Command
+    fun saveImage(invoke: Invoke) {
+        val args = invoke.parseArgs(SaveImageArgs::class.java)
+        if (!hasImageStoragePermission()) {
+            pendingSaveImageArgs = args
+            requestPermissionForAliases(arrayOf("legacy-storage"), invoke, "imageStoragePermissionCallback")
+            return
+        }
+        doSaveImage(invoke, args)
+    }
+
+    @PermissionCallback
+    fun imageStoragePermissionCallback(invoke: Invoke) {
+        val args = pendingSaveImageArgs
+        pendingSaveImageArgs = null
+        if (args == null || !hasImageStoragePermission()) {
+            invoke.reject("未授予存储权限，无法保存到相册")
+            return
+        }
+        doSaveImage(invoke, args)
+    }
+
+    private fun doSaveImage(invoke: Invoke, args: SaveImageArgs) {
+        Thread {
+            try {
+                val src = File(args.path)
+                if (!src.exists()) {
+                    activity.runOnUiThread { invoke.reject("源文件不存在：${args.path}") }
+                    return@Thread
+                }
+                val name = args.name.ifBlank { src.name }
+                val mime = args.mime.ifBlank {
+                    try {
+                        URLConnection.guessContentTypeFromName(name)
+                    } catch (_: Exception) {
+                        null
+                    } ?: "image/*"
+                }
+                if (Build.VERSION.SDK_INT >= 29) {
+                    val resolver = activity.contentResolver
+                    val values = ContentValues().apply {
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+                        put(MediaStore.MediaColumns.MIME_TYPE, mime)
+                        // 独立子目录：用户在图库/文件管理器里一眼能认出是应用存的图
+                        put(
+                            MediaStore.MediaColumns.RELATIVE_PATH,
+                            Environment.DIRECTORY_PICTURES + "/OneTHU",
+                        )
+                        // 写一半的条目不许被相册扫到，写完再撤 pending
+                        put(MediaStore.MediaColumns.IS_PENDING, 1)
+                    }
+                    val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                        ?: throw IllegalStateException("相册建条目失败")
+                    try {
+                        val out = resolver.openOutputStream(uri)
+                            ?: throw IllegalStateException("打开输出流失败")
+                        out.use { o -> src.inputStream().use { it.copyTo(o) } }
+                    } catch (e: Exception) {
+                        // 半截条目留在相册里就是一张坏图：失败即删（best effort），再抛原错
+                        try {
+                            resolver.delete(uri, null, null)
+                        } catch (_: Exception) {
+                            /* 删不掉也不掩盖原始错误 */
+                        }
+                        throw e
+                    }
+                    val done = ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }
+                    resolver.update(uri, done, null, null)
+                } else {
+                    // 旧机型（API 24–28）：公共 Pictures 直写 + 通知媒体库扫描
+                    val dir = File(
+                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                        "OneTHU",
+                    )
+                    if (!dir.exists() && !dir.mkdirs()) throw IllegalStateException("无法创建相册目录")
+                    val out = File(dir, name)
+                    src.copyTo(out, overwrite = true)
+                    MediaScannerConnection.scanFile(activity, arrayOf(out.absolutePath), arrayOf(mime), null)
+                }
+                val ret = JSObject()
+                ret.put("name", name)
+                ret.put("dir", "相册/OneTHU")
+                activity.runOnUiThread { invoke.resolve(ret) }
+            } catch (e: Exception) {
+                val msg = e.message ?: "保存到相册失败"
                 activity.runOnUiThread { invoke.reject(msg) }
             }
         }.start()
@@ -1193,6 +1331,60 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
             invoke.resolve(JSObject().put("ok", true).put("ids", ids))
         } catch (e: Exception) {
             invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "pending-failed"))
+        }
+    }
+
+    /**
+     * 立即投递一条通知（事件驱动，如校园卡余额预警）。
+     *
+     * 与 notifySchedule 的分工：那条是「将来某刻发」（AlarmManager + 库条目），这里要的是
+     * 「现在发」，故直接进通知栏、不写库、不排闹钟——`notify_pending` 因此不会把它算作
+     * 待投递条目（排程对齐的那轮同步也就不会误撤它）。同 id 重发即覆盖同一条通知。
+     *
+     * 权限：这里**不**发起运行时授权请求（判定发生在一次普通的余额刷新里，弹框很唐突），
+     * 未授权时如实回报 `reason = notifications-denied`，卡片据此说明原因。
+     */
+    @Command
+    fun notifyPost(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(NotifyPostArgs::class.java)
+            if (args.id.isEmpty()) {
+                invoke.resolve(JSObject().put("ok", false).put("reason", "missing-id"))
+                return
+            }
+            if (!hasNotificationPermission()) {
+                invoke.resolve(JSObject().put("ok", false).put("reason", "notifications-denied"))
+                return
+            }
+            val item = JSONObject()
+                .put("title", args.title)
+                .put("body", args.body)
+                .put("channel", args.channel)
+                .put("target", args.target)
+            val ok = NotifyCenter.post(activity.applicationContext, args.id, item)
+            invoke.resolve(JSObject().put("ok", ok).put("granted", hasNotificationPermission()))
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "post-failed"))
+        }
+    }
+
+    /** 撤回已展示的通知（余额恢复正常 / 关掉预警时调用；不改动待投递的排程） */
+    @Command
+    fun notifyDismiss(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(NotifyDismissArgs::class.java)
+            val ctx = activity.applicationContext
+            val arr = JSONArray(args.ids)
+            var dismissed = 0
+            for (i in 0 until arr.length()) {
+                val id = arr.optString(i)
+                if (id.isEmpty()) continue
+                NotifyCenter.dismiss(ctx, id)
+                dismissed++
+            }
+            invoke.resolve(JSObject().put("ok", true).put("dismissed", dismissed))
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "dismiss-failed"))
         }
     }
 

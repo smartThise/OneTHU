@@ -229,6 +229,7 @@ export function SettingsPage() {
         </div>
         <UpdateRow />
         <DebugLogRow />
+        <DiagnosticsRow />
       </Card>
 
       <SectionHead title="账户" />
@@ -1589,6 +1590,34 @@ function DebugLogRow() {
       </div>
       <button className="btn" disabled={busy} onClick={() => void run()}>
         {busy ? "导出中…" : "导出日志"}
+      </button>
+    </div>
+  );
+}
+
+/* ── 诊断摘要（2026-09-23）：反馈问题时一键复制，用户不必交出运行日志 ── */
+function DiagnosticsRow() {
+  const [busy, setBusy] = useState(false);
+  const run = async (): Promise<void> => {
+    setBusy(true);
+    try {
+      const { buildDiagnostics } = await import("../lib/diagnostics.js");
+      await navigator.clipboard.writeText(await buildDiagnostics());
+      showToast("诊断摘要已复制，可直接粘贴到反馈里");
+    } catch (err) {
+      showToast(String(err instanceof Error ? err.message : err).slice(0, 60));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="setting-row">
+      <div>
+        <div className="setting-title">诊断摘要</div>
+        <div className="setting-desc">反馈问题时粘贴这段文字，不含学号等个人信息</div>
+      </div>
+      <button className="btn" disabled={busy} onClick={() => void run()}>
+        {busy ? "复制中…" : "复制摘要"}
       </button>
     </div>
   );
