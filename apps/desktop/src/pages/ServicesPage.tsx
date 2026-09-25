@@ -12,10 +12,28 @@
 import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Card, Empty, PageHead } from "../components/Layout.js";
 import { IconSearch } from "../components/Icons.js";
-import { pageAtomRef, resolveAtom } from "../state/atoms.js";
+import { pageAtomRef, resolveAtom, searchAtoms, type AtomHit } from "../state/atoms.js";
 import { NAV_CATEGORIES, byCategory, matchNavQuery, type NavEntry } from "../state/navigation.js";
 import { useApp } from "../state/context.js";
 import { pluginTabsSnapshot, subscribePluginTabs } from "../plugins/tabs.js";
+import { ohAsk } from "../plugins/ChatDock.js";
+
+/** 搜索结果里的原子行（页面/实体/门户应用/在线服务），点击走原子 open（自动记使用统计） */
+function AtomResultRow({ hit }: { hit: AtomHit }): ReactNode {
+  const { navigate } = useApp();
+  const view = resolveAtom({ kind: hit.kind, key: hit.key });
+  if (!view) return null;
+  const icon = view.icon;
+  return (
+    <button className="svc-row" onClick={() => view.open(navigate)}>
+      <span className="svc-row-icon">{icon({})}</span>
+      <span className="svc-row-main">
+        <span className="svc-row-name">{view.title}</span>
+        <span className="svc-row-sub">{(hit.group ? hit.group + " · " : "") + (view.sub ?? "")}</span>
+      </span>
+    </button>
+  );
+}
 
 /** 目录行：优先复用同名页面原子的图标/副标题/使用统计链路 */
 function ServiceRow({ entry }: { entry: NavEntry }): ReactNode {
@@ -49,6 +67,14 @@ export function ServicesPage(): ReactNode {
   const [showAll, setShowAll] = useState(false);
   const query = q.trim();
   const hits = useMemo(() => matchNavQuery(query), [query]);
+  // 原子搜索（含门户 Info 应用、在线服务目录、课程/新闻等实体；本机缓存）——
+  // 与导航命中去重：页面原子 key 已在注册表的不再重复出。
+  const atomHits = useMemo(() => {
+    const navIds = new Set(hits.map((h) => h.id));
+    return searchAtoms(query, 14).filter(
+      (a) => !((a.kind === "page" || a.kind === "widget") && navIds.has(a.key)),
+    );
+  }, [query, hits]);
 
   const groups = NAV_CATEGORIES.map((cat) => ({
     cat,
@@ -68,12 +94,35 @@ export function ServicesPage(): ReactNode {
         />
       </div>
       {query ? (
-        hits.length ? (
-          <Card className="svc-card">
-            {hits.map((e) => (
-              <ServiceRow key={e.id} entry={e} />
-            ))}
-          </Card>
+        hits.length || atomHits.length ? (
+          <>
+            {/* OH 兜底置顶（§2.7）：搜不到/搜到了都给一条「直接问 OH」 */}
+            <Card className="svc-card">
+              <button className="svc-row svc-row-oh" onClick={() => ohAsk(query)}>
+                <span className="svc-row-main">
+                  <span className="svc-row-name">问小 OH：「{query}」</span>
+                  <span className="svc-row-sub">智能助手直接回答，或帮你打开对应功能</span>
+                </span>
+              </button>
+            </Card>
+            {hits.length ? (
+              <Card className="svc-card">
+                {hits.map((e) => (
+                  <ServiceRow key={e.id} entry={e} />
+                ))}
+              </Card>
+            ) : null}
+            {atomHits.length ? (
+              <section>
+                <div className="svc-label">相关内容</div>
+                <Card className="svc-card">
+                  {atomHits.map((h) => (
+                    <AtomResultRow key={h.kind + "|" + h.key} hit={h} />
+                  ))}
+                </Card>
+              </section>
+            ) : null}
+          </>
         ) : (
           <Card>
             <Empty text="没找到相关功能。可以换个说法，或到「全部」里翻一翻。" />

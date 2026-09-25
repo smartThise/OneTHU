@@ -5077,6 +5077,8 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
 }
 .svc-row-new { color: var(--accent); }
 .svc-row-new .svc-row-name { font-weight: 500; }
+.svc-row-oh .svc-row-name { color: var(--accent); font-weight: 600; }
+section > .svc-label { margin-top: 14px; }
 .svc-all-toggle {
   display: block;
   margin: 14px auto 8px;

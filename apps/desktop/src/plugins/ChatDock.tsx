@@ -31,6 +31,32 @@ import { openExternal } from "../pages/info/openExternal.js";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const OPEN_KEY = "onethu.chatdock.open";
+
+/* ══════════ OH 直达（UI/UX 改造 §2.7 P0：搜索页「问 OH」透传） ══════════
+ * 模块级 pending 请求 + useSyncExternalStore：外部（如 ServicesPage 搜索）调
+ * ohAsk(text) → ChatDock 消费：打开面板并直接以该文本发送。未挂载（登录前）
+ * 则请求留在模块级，挂载后消费。seq 防同文本重复触发。 */
+interface OhPromptReq {
+  text: string;
+  seq: number;
+}
+let ohPrompt: OhPromptReq | null = null;
+const ohPromptListeners = new Set<() => void>();
+export function ohAsk(text: string): void {
+  const t = text.trim();
+  if (!t) return;
+  ohPrompt = { text: t, seq: (ohPrompt?.seq ?? 0) + 1 };
+  for (const l of ohPromptListeners) l();
+}
+function subscribeOhPrompt(fn: () => void): () => void {
+  ohPromptListeners.add(fn);
+  return () => {
+    ohPromptListeners.delete(fn);
+  };
+}
+function ohPromptSnapshot(): OhPromptReq | null {
+  return ohPrompt;
+}
 /** 灵动岛：长按判定时长（毫秒）——超过即进入语音，未超过视为点击 */
 const VOICE_HOLD_MS = 450;
 /** 松手后等待识别器吐最终结果的宽限 */
@@ -488,6 +514,23 @@ export function ChatDock(): ReactNode {
       }
     }
   }, [pid, open]);
+
+  /* OH 直达：外部请求（搜索页「问 OH」）→ 开面板并直接发送（seq 去重，绝不重复发） */
+  const ohReq = useSyncExternalStore(subscribeOhPrompt, ohPromptSnapshot, ohPromptSnapshot);
+  const ohDoneSeq = useRef(ohPrompt?.seq ?? 0);
+  useEffect(() => {
+    if (!ohReq || ohReq.seq === ohDoneSeq.current) return;
+    ohDoneSeq.current = ohReq.seq;
+    localStorage.setItem(OPEN_KEY, "1");
+    setClosing(false);
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    setOpen(true);
+    setUnread(0);
+    void send(ohReq.text);
+  }, [ohReq, send]);
 
   const runCmd = async (command: string, input = ""): Promise<any> => {
     if (!pid) return null;
