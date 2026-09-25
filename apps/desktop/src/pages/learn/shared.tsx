@@ -301,7 +301,7 @@ export function HwRemindPop({
 }
 
 /** 单作业铃铛：覆盖值（null = 跟随全局默认） */
-function HwRemindButton({ h }: { h: Homework }) {
+export function HwRemindButton({ h }: { h: Homework }) {
   const cur = useHwReminder(h.id);
   const def = useHwDefault();
   const [open, setOpen] = useState(false);
