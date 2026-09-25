@@ -1013,6 +1013,45 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    /**
+     * 系统栏随主题（暗色 = 状态栏/导航栏白图标；edge-to-edge 垫白区涂主题背景色）。
+     *
+     * 为什么需要（2026-09-25 用户实录）：applyContentInsets 把系统栏 inset 垫成
+     * android.R.id.content 的 padding，而该视图背景是窗口默认白底——暗色主题下
+     * 屏幕上下两条仍是白的，非常刺眼。这条命令做两件事：
+     *   ① WindowCompat insets controller 切图标明暗（暗主题用白图标）；
+     *   ② 把 content 背景涂成前端传入的主题背景色（--bg），垫白区消失。
+     * 前端在每次主题应用后调用（state/theme.ts syncSystemBars），非 Android 不存在此命令。
+     */
+    @Command
+    fun setBarTheme(invoke: Invoke) {
+        try {
+            val dark = invoke.getBoolean("dark") ?: false
+            val colorArg = invoke.getString("color")
+            activity.runOnUiThread {
+                try {
+                    val window = activity.window
+                    val controller = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+                    controller.isAppearanceLightStatusBars = !dark
+                    controller.isAppearanceLightNavigationBars = !dark
+                    if (colorArg != null) {
+                        try {
+                            activity.findViewById<android.view.View>(android.R.id.content)
+                                .setBackgroundColor(Color.parseColor(colorArg))
+                        } catch (_: Exception) {
+                            // 颜色解析失败只跳过涂色，图标明暗照常生效
+                        }
+                    }
+                    invoke.resolve(JSObject().put("ok", true))
+                } catch (e: Exception) {
+                    invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "bartheme-failed"))
+                }
+            }
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "bartheme-exception"))
+        }
+    }
+
     /** 一键把标准形态小组件放到桌面（R21c：ColorOS 等启动器的选择器行为不一致，
      *  用户「绑定完桌面上没有」——这条走系统 requestPinAppWidget，由启动器直接落卡片）。
      *  supported=false 表示该启动器不支持请求式放置，此时 UI 应引导手动添加。 */

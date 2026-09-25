@@ -11,6 +11,7 @@
  */
 
 import { useSyncExternalStore } from "react";
+import { isAndroidNavigator } from "../lib/androidHost.js";
 
 /** 主题定义（插件模块 export const theme: ThemeDef） */
 export interface ThemeDef {
@@ -310,6 +311,28 @@ function flashThemeAnim(root: HTMLElement): void {
   }, 420);
 }
 
+/**
+ * Android 系统栏随主题：状态栏/导航栏图标明暗 + edge-to-edge 垫白区涂 --bg。
+ * 每次主题应用后调用；非 Android（isAndroidNavigator 不命中）静默跳过，
+ * 命令缺失/失败也静默——系统栏观感是锦上添花，绝不挡主题切换主流程。
+ */
+let barThemeTimer: ReturnType<typeof setTimeout> | null = null;
+function syncSystemBars(dark: boolean): void {
+  if (typeof window === "undefined" || !isAndroidNavigator(navigator)) return;
+  if (barThemeTimer) clearTimeout(barThemeTimer);
+  barThemeTimer = setTimeout(() => {
+    barThemeTimer = null;
+    try {
+      const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+      void import("@tauri-apps/api/core")
+        .then(({ invoke }) => invoke("ui_set_bar_theme", { dark, color: bg || null }))
+        .catch(() => undefined);
+    } catch {
+      /* 极简宿主/测试替身：跳过 */
+    }
+  }, 50);
+}
+
 /** 生成并注入主题样式；html[data-theme] 挂钩（清除用 null） */
 function applyTheme(def: ThemeDef | null): void {
   const root = document.documentElement;
@@ -324,6 +347,7 @@ function applyTheme(def: ThemeDef | null): void {
     root.style.colorScheme = "light"; // 回归基础令牌 = 亮色（安卓 WebView 强制反色防护恢复）
     if (style) style.textContent = "";
     logoSvg = null;
+    syncSystemBars(false);
     return;
   }
   const varLines = Object.entries(def.vars)
@@ -347,6 +371,7 @@ function applyTheme(def: ThemeDef | null): void {
   // （global.css 的 :root { color-scheme: light } 特异度 (0,1,0) 被这里 (0,2,0) 稳压）
   root.style.colorScheme = def.dark ? "dark" : "light";
   logoSvg = def.logo && def.logo.includes("<svg") ? def.logo : null;
+  syncSystemBars(!!def.dark);
 }
 
 /** 应用当前应生效的主题：跟随系统时按系统暗/亮取日夜两档，否则手动单选 */
