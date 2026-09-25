@@ -5191,7 +5191,7 @@ section > .svc-label { margin-top: 14px; }
   top: 50%;
   width: min(88%, 420px);
   min-height: 200px;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%); /* 居中锚定；JS 侧 styleOf 覆盖时必须保留首段 */
   display: flex;
   flex-direction: column;
   justify-content: space-between;

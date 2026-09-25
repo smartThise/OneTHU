@@ -109,12 +109,15 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
     if (d < -n / 2) d += n;
     return d;
   };
+  // 注意：transform 首段必须是 translate(-50%,-50%) 完成居中锚定（.hw-card 的
+  // left/top 是 50%），位移/缩放叠加在其后——漏掉首段卡片就会锚在容器中心点、
+  // 只露出一个角（2026-09-25 真机实录）。
   const styleOf = (d: number): CSSProperties | undefined => {
-    if (d === 0) return { transform: "translateY(0) scale(1)", opacity: 1, zIndex: 3 };
-    if (d === -1) return { transform: "translateY(-74%) scale(0.92)", opacity: 0.55, zIndex: 2 };
-    if (d === 1) return { transform: "translateY(74%) scale(0.92)", opacity: 0.55, zIndex: 2 };
-    if (d === -2) return { transform: "translateY(-128%) scale(0.84)", opacity: 0.22, zIndex: 1 };
-    if (d === 2) return { transform: "translateY(128%) scale(0.84)", opacity: 0.22, zIndex: 1 };
+    if (d === 0) return { transform: "translate(-50%, -50%)", opacity: 1, zIndex: 3 };
+    if (d === -1) return { transform: "translate(-50%, -50%) translateY(-64%) scale(0.92)", opacity: 0.55, zIndex: 2 };
+    if (d === 1) return { transform: "translate(-50%, -50%) translateY(64%) scale(0.92)", opacity: 0.55, zIndex: 2 };
+    if (d === -2) return { transform: "translate(-50%, -50%) translateY(-112%) scale(0.84)", opacity: 0.22, zIndex: 1 };
+    if (d === 2) return { transform: "translate(-50%, -50%) translateY(112%) scale(0.84)", opacity: 0.22, zIndex: 1 };
     return undefined;
   };
   return (
