@@ -32,6 +32,19 @@ import { noticeHasRead, useNoticeReadVersion } from "../lib/noticeRead.js";
 import { NewsRows } from "../components/HomeWidgets.js";
 import type { Homework } from "@onethu/core";
 
+/** 宽屏（桌面）判定：≥1080px 时学习 / 生活 双栏同时显示，不再用 tab 切换 */
+const WIDE_MQ = "(min-width: 1080px)";
+function useWideLayout(): boolean {
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia(WIDE_MQ).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(WIDE_MQ);
+    const onChange = (): void => setWide(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return wide;
+}
+
 /** 忽略图标（内联线性 SVG，1.6px 描边，与 Icons.tsx 同风格；仓库暂无现成 IconX） */
 const IconIgnore = ({ size = 14 }: { size?: number }): ReactNode => (
   <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
@@ -340,12 +353,14 @@ export function TasksPage(): ReactNode {
   }, []);
   const news = useTodayNewsFeed(subs);
   const readVersion = useNoticeReadVersion(); // 通知未读口径：全站共享的本地已读覆盖
+  const [courseFilter, setCourseFilter] = useState<string>(""); // "" = 全部课程
+  const wide = useWideLayout(); // 宽屏双栏
 
   const courseMap = useMemo(() => new Map((data?.courses ?? []).map((c) => [c.id, c.name])), [data]);
   const courseNameOf = (id: string): string => courseMap.get(id) ?? "课程";
   const extHw = useMemo(() => ext.items.map(toHomework), [ext.items]);
 
-  const flow = useMemo(() => {
+  const flowAll = useMemo(() => {
     const live = [...(data?.homework ?? []), ...extHw]
       .filter((h) => !ignored.has(h.id) && !h.audited && !h.submitted && !h.graded);
     const withDays = live.map((h) => ({ h, d: ddlInfo(h.deadline) }));
@@ -353,6 +368,17 @@ export function TasksPage(): ReactNode {
     const over = withDays.filter((x) => x.d.overdue).sort((a, b) => a.h.deadline.localeCompare(b.h.deadline));
     return [...notOver, ...over].map((x) => x.h);
   }, [data, extHw, ignored]);
+
+  // 按课程检索（作业流上方的下拉）：默认全部；候选只列**当前确实有未完成作业**的课程，
+  // 免得选到一门已清空的课只看到空态。
+  const flowCourses = useMemo(() => {
+    const ids = new Set(flowAll.map((h) => h.courseId));
+    return (data?.courses ?? []).filter((c) => ids.has(c.id));
+  }, [flowAll, data]);
+  const flow = useMemo(
+    () => (courseFilter ? flowAll.filter((h) => h.courseId === courseFilter) : flowAll),
+    [flowAll, courseFilter],
+  );
 
   const dueSoon = flow.filter((h) => { const i = ddlInfo(h.deadline); return !i.overdue && i.days != null && i.days <= 3; }).length;
   const semesterId = data?.semester.id;
@@ -379,6 +405,7 @@ export function TasksPage(): ReactNode {
     if (!s) return;
     const dx = e.clientX - s.x0;
     const dy = e.clientY - s.y0;
+    if (wide) return; // 宽屏双栏同显，无需横滑切换
     if (Math.abs(dx) < 60 || Math.abs(dx) < 2 * Math.abs(dy)) return;
     if (dx < 0 && tab === "learn") setTab("life");
     else if (dx > 0 && tab === "life") setTab("learn");
@@ -399,14 +426,34 @@ export function TasksPage(): ReactNode {
         }
       />
 
-      <SegmentedOverflow>
-        <button role="tab" aria-selected={tab === "learn"} className={tab === "learn" ? "is-active" : ""} onClick={() => setTab("learn")}>学习</button>
-        <button role="tab" aria-selected={tab === "life"} className={tab === "life" ? "is-active" : ""} onClick={() => setTab("life")}>生活</button>
-      </SegmentedOverflow>
+      {!wide ? (
+        <SegmentedOverflow>
+          <button role="tab" aria-selected={tab === "learn"} className={tab === "learn" ? "is-active" : ""} onClick={() => setTab("learn")}>学习</button>
+          <button role="tab" aria-selected={tab === "life"} className={tab === "life" ? "is-active" : ""} onClick={() => setTab("life")}>生活</button>
+        </SegmentedOverflow>
+      ) : null}
 
-      <div className="tasks-body" onPointerDown={onHDown} onPointerUp={onHUp}>
-      {tab === "learn" ? (
+      <div className={"tasks-body" + (wide ? " is-wide" : "")} onPointerDown={onHDown} onPointerUp={onHUp}>
+      <section className={"tasks-pane" + (wide || tab === "learn" ? "" : " is-hidden")}>
+        <div className="tasks-pane-head">学习</div>
         <div className="tasks-learn">
+          {/* 按课程检索：作业流上方，避免在几十条作业里翻找某一科 */}
+          <div className="hw-filter">
+            <select
+              className="hw-filter-select"
+              value={courseFilter}
+              onChange={(e) => setCourseFilter(e.target.value)}
+              aria-label="按课程筛选作业"
+            >
+              <option value="">全部课程（{flowAll.length}）</option>
+              {flowCourses.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}（{flowAll.filter((h) => h.courseId === c.id).length}）</option>
+              ))}
+            </select>
+            {courseFilter ? (
+              <button className="hw-filter-clear" onClick={() => setCourseFilter("")}>清除</button>
+            ) : null}
+          </div>
           {/* 作业卡片流（拖拽实时跟手） */}
           <div className="tasks-flow-wrap">
             {state === "loading" && flow.length === 0 ? (
@@ -449,7 +496,9 @@ export function TasksPage(): ReactNode {
             <button className="task-sec-more" onClick={() => navigate("learn-notices")}>全部通知 →</button>
           </div>
         </div>
-      ) : (
+      </section>
+      <section className={"tasks-pane" + (wide || tab === "life" ? "" : " is-hidden")}>
+        <div className="tasks-pane-head">生活</div>
         <div className="tasks-life">
           {cardLow ? (
             <Card className="task-card">
@@ -473,7 +522,7 @@ export function TasksPage(): ReactNode {
       )}
           <div className="task-life-note">行政类通知（报到、党团活动等）暂无稳定数据源，接入后补充到这里。</div>
         </div>
-      )}
+      </section>
       </div>
     </>
   );

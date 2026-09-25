@@ -5271,48 +5271,60 @@ section > .svc-label { margin-top: 14px; }
 .hw-card-ddl-big { font-size: 21px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .hw-card-ddl-sub { font-size: 11px; opacity: 0.75; font-variant-numeric: tabular-nums; }
 .hw-card-ddl.task-ddl-red { color: var(--red); }
-.hw-card-ddl.task-ddl-amber { color: #b45309; }
+/* 紧急档用主题令牌而非硬编码深琥珀：硬编码的 #b45309 在深色主题（凝夜）下发暗看不清，
+   令牌在亮色系是 #d9730d、凝夜自动切到亮琥珀 #ffb457，两端都够亮 */
+.hw-card-ddl.task-ddl-amber { color: var(--amber); }
 .hw-card-ddl.task-ddl-blue { color: var(--accent); }
 .hw-card-ddl.task-ddl-gray { color: var(--text-2); }
 .hw-carousel-empty { padding-top: 6vh; }
 
 /* 计数 + 入口（压缩高度） */
 .tasks-mid { display: flex; align-items: stretch; gap: 12px; margin-top: 8px; }
-.tasks-stats { flex: 1; display: flex; flex-direction: row; gap: 10px; }
-/* 独立计数卡 + 轻拟物：左上受光、右下投影、内顶高光（不引入任何 UI 库，纯 CSS 造材质感） */
+/* 两栏比例：左（计数卡）略宽，保证「3 日内截止」整行放得下 */
+.tasks-stats { flex: 1.15; display: flex; flex-direction: row; gap: 10px; min-width: 0; }
+/* 独立计数卡：与旁边入口按钮同语言（描边 + 面），刻意不加阴影——加拟物阴影会和整体风格打架 */
 .task-stat {
-  flex: 1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px;
-  padding: 10px 14px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface);
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px;
+  padding: 9px 11px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface);
   color: inherit; font: inherit; text-align: left; cursor: pointer;
-  box-shadow:
-    3px 3px 7px rgba(15, 20, 40, 0.10),
-    -3px -3px 7px rgba(255, 255, 255, 0.78),
-    inset 0 1px 0 rgba(255, 255, 255, 0.60);
-  transition: box-shadow 0.16s ease, transform 0.16s ease;
+  transition: border-color 0.16s ease, transform 0.16s ease;
 }
-.task-stat:active {
-  transform: translateY(1px);
-  box-shadow:
-    inset 2px 2px 5px rgba(15, 20, 40, 0.13),
-    inset -2px -2px 5px rgba(255, 255, 255, 0.65);
-}
+.task-stat:active { transform: scale(0.98); }
+.task-stat:hover { border-color: var(--accent-border); }
 .task-stat:hover .task-stat-label { color: var(--accent); }
-/* 凝夜（深色）：白色高光压到极弱，否则卡片会发灰、拟物感变成脏边 */
-:root[data-theme="onethu.theme.night"] .task-stat {
-  box-shadow:
-    3px 3px 8px rgba(0, 0, 0, 0.55),
-    -2px -2px 6px rgba(255, 255, 255, 0.045),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-:root[data-theme="onethu.theme.night"] .task-stat:active {
-  box-shadow:
-    inset 2px 2px 6px rgba(0, 0, 0, 0.60),
-    inset -2px -2px 5px rgba(255, 255, 255, 0.04);
-}
 .tasks-body { touch-action: pan-y; }
+/* 宽屏（≥1080px）：学习 / 生活 双栏同显，两条 pane 同时可见 */
+.tasks-body.is-wide {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  gap: 20px;
+  align-items: start;
+}
+.tasks-pane { min-width: 0; }
+.tasks-pane.is-hidden { display: none; }
+.tasks-pane-head { display: none; }
+.tasks-body.is-wide .tasks-pane-head {
+  display: block; margin: 0 2px 6px; font-size: 13px; font-weight: 600; color: var(--text-2);
+}
+/* 宽屏下两侧列各自撑满所在栏，不再走移动端的通栏居中 */
+.tasks-body.is-wide .tasks-learn { max-width: none; margin: 0; }
+/* 作业流上方的「按课程检索」下拉 */
+.hw-filter { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.hw-filter-select {
+  flex: 1; min-width: 0; height: 34px; padding: 0 10px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text-1);
+  font: inherit; font-size: 13px; cursor: pointer;
+}
+.hw-filter-select:hover { border-color: var(--accent-border); }
+.hw-filter-clear {
+  flex: none; height: 34px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface); color: var(--text-2); font: inherit; font-size: 12px; cursor: pointer;
+}
+.hw-filter-clear:hover { color: var(--accent); border-color: var(--accent-border); }
 .task-stat-num { font-size: 20px; font-weight: 700; color: var(--text-1); font-variant-numeric: tabular-nums; animation: stat-pop 0.4s cubic-bezier(0.22, 1.2, 0.36, 1); }
 .task-stat-num.task-stat-urgent { color: var(--red); }
-.task-stat-label { font-size: 12px; color: var(--text-3); }
+/* nowrap：卡片够宽也不要让「3 日内截止」在「止」处折行 */
+.task-stat-label { font-size: 11.5px; color: var(--text-3); white-space: nowrap; }
 @keyframes stat-pop { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 .tasks-entries { flex: 1; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
 .task-entry {
