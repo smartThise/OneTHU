@@ -13,7 +13,7 @@
  *
  * 数据全复用既有层（useLearnData/exthw/hwIgnore/hwCard/news），零新取数。
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type WheelEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import { parseLearnTime, SOURCE_NAMES } from "@onethu/core";
 import { SegmentedOverflow, Card, Empty, PageHead } from "../components/Layout.js";
 import { IconRefresh } from "../components/Icons.js";
@@ -169,9 +169,13 @@ function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick, on
   // 滚轮/触控板：滚一格换一项。累积到阈值才动 + 时间锁，避免触控板细碎 delta 连翻好几张。
   const wheelAcc = useRef(0);
   const wheelLock = useRef(0);
-  const onWheel = (e: WheelEvent<HTMLDivElement>): void => {
+  // 用原生非被动监听：React 的 onWheel 是被动监听，preventDefault 无效，
+  // 结果「滚轮翻卡」会同时带动外层滚动。卡流自己吃掉滚轮，一格一项。
+  const wheelRef = useRef<(e: WheelEvent) => void>(() => undefined);
+  wheelRef.current = (e: WheelEvent): void => {
     if (n === 0) return;
     const now = performance.now();
+    e.preventDefault();
     if (now < wheelLock.current) return; // 补间窗口内不再叠加
     // deltaMode: 0=像素、1=行、2=页；行/页折算成像素再累计
     const { acc, dir } = takeWheelStep(wheelAcc.current, normalizeWheelDelta(e.deltaY, e.deltaMode, geo.step));
@@ -182,6 +186,13 @@ function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick, on
     animatePos(target, 300);
     reportFront(target);
   };
+  useEffect(() => {
+    const el = shellRef.current;
+    if (!el) return;
+    const onWheelNative = (e: WheelEvent): void => wheelRef.current(e);
+    el.addEventListener("wheel", onWheelNative, { passive: false });
+    return () => el.removeEventListener("wheel", onWheelNative);
+  }, []);
   if (n === 0) {
     return (
       <div className="hw-carousel-empty">
@@ -304,7 +315,6 @@ function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick, on
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp} // 中断也走同一收尾：吸附，绝不卡在两张之间
-        onWheel={onWheel} // 滚轮/触控板：一格换一项（桌面端）
       >
         {items.map((h, k) => {
           const yPx = relOf(k);
