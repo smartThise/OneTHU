@@ -5093,3 +5093,34 @@ section > .svc-label { margin-top: 14px; }
 }
 .svc-all-toggle:hover { color: var(--accent); border-color: var(--accent-border); }
 .svc-actions { display: flex; justify-content: center; padding: 4px 0 10px; }
+
+/* —— 今日页：问候语 + 余额速览条（新 IA §2.2，shellFree 卡） —— */
+.today-greeting { padding: 6px 2px 2px; }
+.today-greeting-line { font-size: 22px; font-weight: 700; letter-spacing: 0.2px; color: var(--text-1); }
+.today-greeting-sub { margin-top: 4px; font-size: 13px; color: var(--text-3); }
+.balance-strip {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.balance-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  text-align: left;
+}
+.balance-label { font-size: 12px; color: var(--text-3); }
+.balance-value { font-size: 20px; font-weight: 700; color: var(--text-1); font-variant-numeric: tabular-nums; }
+.balance-value-dim { font-size: 15px; font-weight: 500; color: var(--text-2); }
+.balance-sep { width: 1px; background: var(--border-soft); }

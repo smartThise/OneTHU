@@ -552,6 +552,44 @@ export function TodayPage() {
 
   /* ---- 注册表：静态元数据 + bespoke 渲染闭包（数据 hook 全在本组件，单次取数） ---- */
   const registry: HomeCardDef[] = buildHomeRegistry({
+    greeting: {
+      // 新 IA（§2.2）顶部问候：时段问候 + 姓名；数据未就绪只有通用问候
+      render: () => {
+        const h = now.getHours();
+        const period = h < 5 ? "夜深了" : h < 11 ? "早上好" : h < 13 ? "中午好" : h < 18 ? "下午好" : "晚上好";
+        return (
+          <div className="today-greeting">
+            <div className="today-greeting-line">
+              {period}
+              {data?.user?.name ? "，" + data.user.name : ""}
+            </div>
+            <div className="today-greeting-sub">
+              {todayEvents.length > 0
+                ? "今天有 " + todayEvents.length + " 节课 · 第一节 " + (todayEvents[0]?.startTime ?? "")
+                : "今天没有课，自由安排～"}
+            </div>
+          </div>
+        );
+      },
+    },
+    "balance-strip": {
+      // 余额速览条（§2.2）：校园卡余额直读；电费需宿舍上下文（P2 接入），先做入口
+      render: () => (
+        <div className="balance-strip">
+          <button className="balance-cell" onClick={() => navigate("life", { lifeTab: "card" })}>
+            <span className="balance-label">校园卡</span>
+            <span className="balance-value">
+              {card.data?.info.balance != null ? "¥" + card.data.info.balance : "—"}
+            </span>
+          </button>
+          <span className="balance-sep" aria-hidden />
+          <button className="balance-cell" onClick={() => navigate("life", { lifeTab: "dorm", dormSection: "ele" })}>
+            <span className="balance-label">宿舍电费</span>
+            <span className="balance-value balance-value-dim">去查询</span>
+          </button>
+        </div>
+      ),
+    },
     "today-overview": {
       render: () => (
         <div className="stats stats-overview">

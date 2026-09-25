@@ -29,6 +29,8 @@ import {
 
 /** 首页卡片 id（注册表唯一键，localStorage 里也用它） */
 export type HomeCardId =
+  | "greeting"
+  | "balance-strip"
   | "today-overview"
   | "agenda" | "homework" | "resv" | "classes" | "news" | "notices" | "cardEntry"
   | "xk" | "learn-assignments" | "learn-notices" | "learn-files"
@@ -90,20 +92,24 @@ export interface HomeLayoutItem {
  * 入口卡（entry）默认全部隐藏，用户可在「添加卡片」弹层自行加回。
  */
 export const HOME_CARD_META: HomeCardDef[] = [
-  /* —— bespoke：特殊展示卡（render 由 Today.tsx 注入） —— */
-  { id: "today-overview", title: "今日概览", kind: "bespoke", icon: IconIn, defaultCol: "main", defaultOrder: 0, shellFree: true, aside: "未交作业 · 截止 · 今日课程" },
-  { id: "agenda", title: "日程与提醒", kind: "bespoke", icon: IconCalendar, defaultCol: "main", defaultOrder: 1, aside: "校历 · 学校重要事项" },
-  { id: "homework", title: "未提交作业", kind: "bespoke", icon: IconPen, defaultCol: "main", defaultOrder: 2 },
-  { id: "notices", title: "最近通知", kind: "bespoke", icon: IconBell, defaultCol: "main", defaultOrder: 3, aside: "点击查看详情" },
-  { id: "cardEntry", title: "校园卡余额", kind: "bespoke", icon: IconCard, defaultCol: "rail", defaultOrder: 1, aside: "点击进入生活页" },
-  { id: "resv", title: "今日预约", kind: "bespoke", icon: IconSchedule, defaultCol: "rail", defaultOrder: 2, aside: "座位 · 研讨间 · 点击管理" },
-  { id: "classes", title: "今日课程", kind: "bespoke", icon: IconToday, defaultCol: "rail", defaultOrder: 3, aside: "点击打开课表" },
-  { id: "news", title: "订阅新闻", kind: "bespoke", icon: IconExternal, defaultCol: "rail", defaultOrder: 4 },
-  /* 按本机使用习惯生成（lib/usage.ts + lib/suggest.ts）：卡体为空时整卡不渲染
-     （没点过东西就看不到「最近使用」，没有可推的就看不到「猜你喜欢」）。
-     只是入口，**绝不替用户收藏任何东西**——星号仍由用户自己按。 */
-  { id: "recent", title: "最近使用", kind: "bespoke", icon: IconRefresh, defaultCol: "rail", defaultOrder: 5, aside: "你刚点过的" },
-  { id: "for-you", title: "猜你喜欢", kind: "bespoke", icon: IconStar, defaultCol: "rail", defaultOrder: 6, aside: "按使用习惯推荐" },
+  /* —— bespoke：特殊展示卡（render 由 Today.tsx 注入） ——
+     默认可见集 = 新 IA（docs/ui-ux-overhaul-plan.md §2.2）：
+     问候语 → 今日课程 → 未提交作业 → 余额速览条 → 最近通知 → 猜你喜欢（≤6 张，§0.4）；
+     其余（今日概览/日程与提醒/校园卡余额/今日预约/订阅新闻/最近使用）转为默认隐藏，
+     「添加卡片」可找回；老用户已存布局不受影响（resolveLayout 只追加新卡）。 */
+  { id: "greeting", title: "问候语", kind: "bespoke", icon: IconToday, defaultCol: "main", defaultOrder: 0, shellFree: true },
+  { id: "balance-strip", title: "余额速览", kind: "bespoke", icon: IconCard, defaultCol: "main", defaultOrder: 1, shellFree: true, aside: "校园卡 · 电费" },
+  { id: "classes", title: "今日课程", kind: "bespoke", icon: IconToday, defaultCol: "main", defaultOrder: 2, aside: "下一节课 · 点击打开课表" },
+  { id: "homework", title: "未提交作业", kind: "bespoke", icon: IconPen, defaultCol: "main", defaultOrder: 3 },
+  { id: "notices", title: "最近通知", kind: "bespoke", icon: IconBell, defaultCol: "main", defaultOrder: 4, aside: "点击查看详情" },
+  { id: "for-you", title: "猜你喜欢", kind: "bespoke", icon: IconStar, defaultCol: "main", defaultOrder: 5, aside: "按使用习惯推荐" },
+  /* —— 默认收起的展示卡（「添加卡片」可找回） —— */
+  { id: "today-overview", title: "今日概览", kind: "bespoke", icon: IconIn, defaultCol: "main", defaultOrder: 6, defaultHidden: true, shellFree: true, aside: "未交作业 · 截止 · 今日课程" },
+  { id: "agenda", title: "日程与提醒", kind: "bespoke", icon: IconCalendar, defaultCol: "main", defaultOrder: 7, defaultHidden: true, aside: "校历 · 学校重要事项" },
+  { id: "cardEntry", title: "校园卡余额", kind: "bespoke", icon: IconCard, defaultCol: "rail", defaultOrder: 8, defaultHidden: true, aside: "点击进入生活页" },
+  { id: "resv", title: "今日预约", kind: "bespoke", icon: IconSchedule, defaultCol: "rail", defaultOrder: 9, defaultHidden: true, aside: "座位 · 研讨间 · 点击管理" },
+  { id: "news", title: "订阅新闻", kind: "bespoke", icon: IconExternal, defaultCol: "rail", defaultOrder: 10, defaultHidden: true },
+  { id: "recent", title: "最近使用", kind: "bespoke", icon: IconRefresh, defaultCol: "rail", defaultOrder: 11, defaultHidden: true, aside: "你刚点过的" },
 
   /* —— entry：一键入口卡（默认全部隐藏；除选课二级菜单外所有二级菜单都做入口，
         选课一级菜单本身也是入口，故无 learn 一级入口） —— */
