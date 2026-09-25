@@ -41,6 +41,11 @@ docs/BUILD-AGENT-GUIDE.md
 # 一次本地构建就留下 1000+ 文件，含 .class 与打包资源）
 apps/desktop/src-tauri/plugins/*/android/tmp/
 
+# tauri android init 生成的安卓工程（每次构建可再生，含 gradle-wrapper.jar 与启动图标）。
+# 仓库里曾跟踪一个指向 /Users/st/onethu-android 的符号链接——那是上游机器的绝对路径，
+# 对其他机器本就是坏链，故移除跟踪项并整体忽略（与既有的 src-tauri/gen/schemas/ 同口径）
+apps/desktop/src-tauri/gen/android/
+
 # 本机专用目录：编辑器调试配置（.vscode）与本机暂存/日志目录（.dsh-tmp）。
 # 只留在本地，不入库（.vscode 里的调试配置因人而异，机器路径不可共享）
 .vscode/
