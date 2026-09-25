@@ -23,6 +23,7 @@ import { openHomeworkRow } from "../lib/homeworkEntry.js";
 import { CONFIRM_IGNORE_HW, confirmDanger } from "../lib/confirm.js";
 import { ignoreHw, useIgnoredHw } from "../state/hwIgnore.js";
 import { extHwSourceName, toHomework, useExternalHomework } from "../state/exthw.js";
+import { hwCourseGroups, hwCourseKey, hwCourseLabel } from "../lib/hwCourse.js";
 import { useApp } from "../state/context.js";
 import { isAndroidNavigator } from "../lib/androidHost.js";
 import { useCard, useLearnData, useTodayNewsFeed } from "../state/data.js";
@@ -31,17 +32,6 @@ import { readSubs } from "./info/newsSearch.js";
 import { noticeHasRead, useNoticeReadVersion } from "../lib/noticeRead.js";
 import { NewsRows } from "../components/HomeWidgets.js";
 import type { Homework } from "@onethu/core";
-
-/** 课程分组键：网络学堂用 courseId；外部源（雨课堂/OJ）的 courseId 是合成值 ext:<source>，
- *  同一源的多门课会撞成一个 id —— 真实课程在 h.courseName，故以 (source, courseName) 为键。 */
-function hwCourseKey(h: Homework): string {
-  return h.source ? "ext:" + h.source + "::" + (h.courseName ?? "") : "learn::" + h.courseId;
-}
-/** 课程展示名：外部源优先用真实课名（雨课堂有多门课，不能都叫「雨课堂」） */
-function hwCourseLabel(h: Homework, courseMap: Map<string, string>): string {
-  if (h.source) return h.courseName ?? extHwSourceName(h.source);
-  return courseMap.get(h.courseId) ?? "课程";
-}
 
 /** 宽屏（桌面）判定：≥1080px 时学习 / 生活 双栏同时显示，不再用 tab 切换 */
 const WIDE_MQ = "(min-width: 1080px)";
@@ -405,19 +395,9 @@ export function TasksPage(): ReactNode {
   // 免得选到一门已清空的课只看到空态。
   // 关键：候选从作业本身聚合，而不是从 data.courses 取——雨课堂等外部作业源的 courseId 是
   // 合成值 ext:yuketang，不在课程表里，按老写法它们的课永远进不了这份清单。
-  const flowCourses = useMemo(() => {
-    const m = new Map<string, { key: string; label: string; count: number; source?: Homework["source"] }>();
-    for (const h of flowAll) {
-      const key = hwCourseKey(h);
-      const cur = m.get(key);
-      if (cur) cur.count += 1;
-      else m.set(key, { key, label: hwCourseLabel(h, courseMap), count: 1, source: h.source });
-    }
-    return [...m.values()].sort((a, b) => {
-      if (!a.source !== !b.source) return a.source ? 1 : -1; // 网络学堂在前，外部源在后
-      return a.label.localeCompare(b.label, "zh");
-    });
-  }, [flowAll, courseMap]);
+  // 聚合逻辑抽到 lib/hwCourse.ts 并带单测（tools/hw-course-test.mjs）：真机上雨课堂当前没有
+  // 未完成作业，只能靠单测钉住「同源多课分开、空课程表也能列出外部源」这两条口径。
+  const flowCourses = useMemo(() => hwCourseGroups(flowAll, courseMap, extHwSourceName), [flowAll, courseMap]);
   const flowExtSources = useMemo(
     () => [...new Set(flowCourses.map((c) => c.source).filter((s): s is NonNullable<typeof s> => !!s))],
     [flowCourses],
@@ -520,7 +500,7 @@ export function TasksPage(): ReactNode {
               <HwCarousel
                 items={flow}
                 courseNameOf={courseNameOf}
-                courseLabelOf={(h) => hwCourseLabel(h, courseMap)}
+                courseLabelOf={(h) => hwCourseLabel(h, courseMap, extHwSourceName)}
                 semesterId={semesterId}
               />
       )}
