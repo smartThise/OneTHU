@@ -107,6 +107,16 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
   }, [n]);
   // 前台卡变化 → 轮盘式振动 tick（Android 原生 EFFECT_TICK = 青轴段落感；
   // WebView 的 navigator.vibrate 在部分机型不触发，原生命令优先，纯前端兜底）
+  // 兜底吸附：拖拽结束后（含 touchend 丢失/被取消/松手在流外等一切路径），
+  // 只要 pos 不在整卡上就自动补间对齐——绝不停在两张卡之间。
+  useEffect(() => {
+    if (dragging || rafRef.current != null) return; // 补间进行中不抢
+    const frac = pos - Math.round(pos);
+    if (Math.abs(frac) > 0.01) {
+      const id = requestAnimationFrame(() => animateSnap());
+      return () => cancelAnimationFrame(id);
+    }
+  }, [dragging, pos]);
   const curIdx = ((Math.round(pos) % n) + n) % n;
   const lastTick = useRef(curIdx);
   useEffect(() => {
@@ -152,6 +162,8 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
     };
     rafRef.current = requestAnimationFrame(step);
   };
+  /** 吸附到最近整卡（兜底路径共用） */
+  const animateSnap = (): void => animatePos(Math.round(posRef.current), 320);
   const go = (delta: number): void => animatePos(posRef.current + delta, 320);
   const gotoIdx = (k: number): void =>
     (() => {
