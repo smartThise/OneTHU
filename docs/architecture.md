@@ -1,6 +1,6 @@
 # 系统架构
 
-> 最后更新：2026-09-25 19:35
+> 最后更新：2026-09-23 17:28
 
 本文档描述 OneTHU 的进程模型与各子系统设计，面向宿主贡献者。
 
@@ -111,13 +111,9 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
   原生渲染只能用 RemoteViews 白名单里的控件（标了 `@RemoteView` 的类：LinearLayout / TextView /
   ImageView 等）：**未列入白名单的 `View` 会导致启动器 inflate 失败，整个小组件显示为「无法加载」的黑框**；
   同样地，RemoteViews 不能设置加粗（`setTypeface` 需要 Typeface 参数，反射式 `setInt` 会直接抛出异常），
-  故主次层级靠**一条一行、行内用 Span 分层**（主文加粗上色 + 说明小字灰）与左侧色条
-  （课程色 / 紧迫度色 / 状态色）表达。卡片尺寸由用户在桌面上拖动决定（Android 允许任意大小），
-  故单屏可显示的行数必须按**真实高度**逐行量文本（`OnethuWidget.kt` 的 `fitRows`/`lineHeightPx`，
-  布局备 20 条槽位、快照按 `WIDGET_MAX_ROWS` 给足候选行）；按「矮/中/高」三档估算会在高卡片上
-  留一大片空白、在矮卡片上把最后一行挤出可视区。脚注前半段只数**卡片上真的显示出来的行**，
-  「还有 N 项」= 仍有效但没显示的条目（可见行 − 已显示行 + 快照都没装下的 `counts.more`），
-  两者之和恒等于仍有效的条目总数。
+  故主次层级通过每行两个 TextView（粗体/常规）切换可见性、`setTextViewTextSize` 字号与左侧色条
+  （课程色 / 紧迫度色 / 状态色）表达。单屏可显示的行数必须按**真实高度**计算（一条带说明约 38dp），
+  采用「矮/中/高」三档估算会导致矮尺寸上的第二行被挤出可视区。
   详情行同理：课程下次上课与作业截止由 `state/widgetDetail.ts` 从内存计算，**下沉原子**（教室占用、
   洗衣机状态）由 `state/widgetLive.ts` 在计算快照前统一抓取一次（与收藏夹方卡共用缓存键，带超时），
   解读逻辑放在纯函数 `state/widgetLiveParse.ts`（「现在第几节」「哪几节空着」的判断均在时间边界上易出错，
@@ -266,7 +262,6 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
 | 通知状态文案测试 | `node --import ./tools/ts-resolve-register.mjs tools/notify-status-test.mjs` |
 | 通知自检编排测试 | `node --import ./tools/ts-resolve-register.mjs tools/notify-doctor-test.mjs` |
 | 通知 id 约定与归组测试 | `node --import ./tools/ts-resolve-register.mjs tools/notify-ids-test.mjs` |
-| 校园卡余额预警测试 | `node --import ./tools/ts-resolve-register.mjs tools/card-warn-test.mjs` |
 | 小组件快照测试 | `node --import ./tools/ts-resolve-register.mjs tools/widget-snapshot-test.mjs` |
 | 小组件内容来源解析测试 | `node --import ./tools/ts-resolve-register.mjs tools/widget-source-test.mjs` |
 | 小组件详情补充测试 | `node --import ./tools/ts-resolve-register.mjs tools/widget-detail-test.mjs` |
@@ -329,44 +324,3 @@ Hook 顺序违规）时，把整棵树卸载导致的纯白窗口变成一张可
   事故即由它引起——`useState` 落在条件早退之后，整个应用树被卸载）。
 
 护栏：`tools/hook-order-test.mjs`、`tools/root-boundary-test.mjs`。
-
-## 12. 手机端看图与保存到相册
-
-手机屏幕上的正文图片（网络学堂通知/作业/讨论区、信息门户成绩单与校历、文件预览里的图片）
-在流里只能缩着看。长按图片后单独一屏显示该图：双指缩放、放大后单指拖动，底部「保存图片」
-写入系统相册，单击任意处退出。桌面端不挂任何行为。
-
-| 环节 | 实现要点 |
-|---|---|
-| 触发 | `components/ImageViewer.tsx` 在 document 捕获阶段监听触屏：按住 400ms 判定长按；位移超过 12px 或出现第二根手指即取消。与 `TextPeek` 同一套纪律，且只在真机密度层（`html.is-phone`）生效 |
-| 命中范围 | 渲染尺寸 ≥ 44px 且原始尺寸 ≥ 48px 的 `<img>`。行内图标与插件 logo 不参与（保留系统长按菜单），`contenteditable` 内的图片不参与（那里的长按用于选词与图片操作） |
-| 原生长按菜单 | 候选期与看图期一律拦截 `contextmenu`；长按开图那一次手势的后续 `click` 一并吞掉，避免松手把底下的行点开 |
-| 退出 | 单击（位移 < 10px）即退出；安卓返回键同样先退出看图。做法是开图时压入一层 **URL 与当前完全相同**的历史条目：wry 的返回回调只做 `webView.goBack()`，而应用路由只听 `hashchange`，于是这次返回 hash 未变、页面不动，只多出一个 `popstate` 用于关浮层。点按关闭时把该条目弹掉（`history.back()`），否则下一次返回键会先弹掉这条空条目 |
-| 缩放 | 浮层用 `touch-action: none` 关掉浏览器自身手势，缩放与位移直接写 `transform`（手势期间不触发 React 渲染）；缩放按双指距离比例计算并保持焦点（双指中点下的内容点跟随中点），上限 6× |
-| 布局 | 图片区铺满整屏（`position: absolute; inset: 0`），放大后可以一直铺到屏幕四边；「保存图片」只是压在图上的一层浮层，容器 `pointer-events: none`（点按钮以外的地方仍然退出看图）、按钮自身 `pointer-events: auto`。底栏另占一行时，放大后的图片会在按钮附近留一条黑边（用户实录） |
-| 保存 | `lib/imageSave.ts` 把屏幕上的图解析成字节：`dataURL` 直接取，`blob:` 就地读，`http(s)` 复用正文图片的抓取链（会话 Cookie + WebVPN 包装）。字节以 base64 经 IPC 交给 Rust `save_image_to_gallery`，Rust 落到应用缓存，再由插件 Kotlin 侧 `saveImage` 写入 `MediaStore.Images` 的 `Pictures/OneTHU` |
-| 相册而非下载 | 相册应用只索引 `MediaStore.Images`，落在「下载」里的图片不会出现在相册中，故保存图片是独立于 `saveDownload` 的一条通道 |
-| 版本分支 | API 29+ 插入本人创建的媒体条目不需要权限（`IS_PENDING` 写完才可见，写入失败即删条目）；API 24–28 写公共 `Pictures` 需要 `WRITE_EXTERNAL_STORAGE`（清单里标 `maxSdkVersion=28`），缺权限时就地请求，被拒则明确报错 |
-| IPC 上限 | base64 上限 16MB（约 12MB 原图），前端与 Rust 两侧同值：超过即拒绝，避免大图把 WebView 拖住 |
-
-护栏：`tools/image-viewer-test.mjs`。
-
-## 13. 校园卡余额预警
-
-校园卡页在「最近消费」之前有一张余额预警卡：设定预警线后，余额刷新到小于等于该值时
-发一条系统通知，余额回到预警线以上时撤回。桌面三端与手机端同一套判定，投递各走本机后端。
-
-| 环节 | 实现要点 |
-|---|---|
-| 触发口径 | 判定点在取数层（`state/data.ts` 的 `useCard` 成功分支），因此「任何一次余额刷新」都覆盖：卡页手动刷新、切回本栏的自动重试、首页与小组件的静默重验证、充值后的刷新。判定写在取数之后，新增刷新途径不需要再接线 |
-| 判定 | `state/cardWarn.ts` 的 `evaluateCardWarn` 是纯函数（快照进出），投递经 `CardWarnDeps` 注入 |
-| 两种模式 | 「不重复提醒」（默认开）是事件驱动：余额一变就在那次刷新的当下提醒，同一个余额只提醒一次，**冷却不参与判定**；关掉它则用冷却（分钟，默认 240 即 4 小时）节流重复提醒——冷却期内余额没变也不发，过了冷却的下一次刷新会重发（判定只发生在刷新时，没有定时器）。两者互斥，卡片上「不重复提醒」开着时冷却输入置灰并写明原因，避免留下设了不生效的字段 |
-| 卡片 | 总开关关闭时整块设置与状态行都不渲染（只留标题与开关），开启后才显示预警线 / 提醒冷却 / 不重复提醒与状态行 |
-| 恢复 | 余额回到预警线以上、或用户关掉预警，都撤回已展示的通知并清空状态，于是下次再低于预警线能立刻提醒。把预警线调到当前余额之下按恢复处理 |
-| 通知 id | 固定 `card-warn:balance`：同 id 重发即覆盖系统里的那一条，不会堆一屏。落点 `life?lifeTab=card`，点通知进生活页校园卡栏 |
-| 递送通道 | 立即投递与排程是两条通道：`notify_post` / `notify_dismiss` 走「现在发 / 撤已展示」，`notify_schedule` / `notify_cancel` 走「将来某刻发 / 撤待投递」。Android 侧的立即投递不写待投递库，故按计划对齐的那轮同步不会把它当计划外条目撤掉；撤回已展示的通知必须用 `NotificationManager.cancel`，不能复用待投递撤销（复用会让刚弹出的课程提醒被下一轮同步一并抹掉） |
-| 投递状态 | 原生如实回报结果：未授权、后端未接时通知不发出，卡片状态行写明原因；状态照记「提醒过一次」，避免每次刷新重投 |
-| 渠道 | Android 新增 `onethu_balance`（校园卡余额）一档，与课程 / 作业截止 / 每日早报分开，用户可以单独关掉它而不影响其它提醒。投递时不发起运行时授权请求（判定发生在一次普通刷新里），只在设置页由用户主动请求 |
-| 并发 | 状态读改写走一条串行队列：两处 `useCard` 实例与设置变更可能在同一毫秒各观察一次，并发读到的都是「尚未提醒」会重复判定 |
-
-护栏：`tools/card-warn-test.mjs`。
