@@ -66,6 +66,13 @@ class OpenIntentArgs {
 }
 
 @InvokeArg
+class SetBarThemeArgs {
+    var dark: Boolean = false
+    /** 主题背景色（--bg，#rrggbb）；空/解析失败只跳过涂色，图标明暗照常 */
+    var color: String? = null
+}
+
+@InvokeArg
 class ReadCookiesArgs {
     var url: String = ""
 }
@@ -1026,8 +1033,9 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
     @Command
     fun setBarTheme(invoke: Invoke) {
         try {
-            val dark = invoke.getBoolean("dark") ?: false
-            val colorArg = invoke.getString("color")
+            val args = invoke.parseArgs(SetBarThemeArgs::class.java)
+            val dark = args.dark
+            val colorArg = args.color
             activity.runOnUiThread {
                 try {
                     val window = activity.window
