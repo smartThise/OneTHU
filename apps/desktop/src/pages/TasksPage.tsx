@@ -13,7 +13,7 @@
  *
  * 数据全复用既有层（useLearnData/exthw/hwIgnore/hwCard/news），零新取数。
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type WheelEvent } from "react";
 import { parseLearnTime, SOURCE_NAMES } from "@onethu/core";
 import { SegmentedOverflow, Card, Empty, PageHead } from "../components/Layout.js";
 import { IconRefresh } from "../components/Icons.js";
@@ -36,6 +36,7 @@ import { AssignmentDetailPage } from "./learn/AssignmentDetailPage.js";
 import { YktAssignmentDetailPage } from "./learn/YktAssignmentDetailPage.js";
 import { yktDetailParams } from "../lib/homeworkEntry.js";
 import { pickHomeworkRoute } from "../lib/yktDetail.js";
+import { activateSlot, normalizeWheelDelta, takeWheelStep, type DetailSlot } from "../lib/detailSlots.js";
 import type { Homework } from "@onethu/core";
 
 /** 忽略图标（内联线性 SVG，1.6px 描边，与 Icons.tsx 同风格；仓库暂无现成 IconX） */
@@ -70,7 +71,7 @@ function hwTags(h: Homework): Array<{ text: string; cls: string }> {
 /** 卡片纵向位移（px）：0=居中；±1=上/下露出（STEP > 半卡高，保下方卡露出标题区）；拖拽时叠加 dragDelta 实时跟手 */
 const STEP_DEFAULT = 170;
 
-function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick }: { items: Homework[]; courseNameOf: (id: string) => string; courseLabelOf: (h: Homework) => string; semesterId?: string; onPick?: (h: Homework) => void }): ReactNode {
+function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick, onFront }: { items: Homework[]; courseNameOf: (id: string) => string; courseLabelOf: (h: Homework) => string; semesterId?: string; onPick?: (h: Homework) => void; onFront?: (h: Homework) => void }): ReactNode {
   const { navigate } = useApp();
   // 位置真值放 ref，setPos 只做渲染镜像：逐帧补间时避免闭包读旧值
   const posRef = useRef(0);
@@ -156,6 +157,31 @@ function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick }: 
       })
       .catch(() => undefined);
   }, [curIdx]);
+  // 前台卡上报（宽屏右栏详情自动跟随）：只在**用户主动换卡**时报（拖拽/滚轮/点列），
+  // 不在列表数据变化时报——否则「提交完作业、它从待办流里消失」的瞬间右栏会被抢走，
+  // 用户看不到提交回执。数据侧同步由详情组件自己的失效逻辑负责。
+  const onFrontRef = useRef(onFront);
+  onFrontRef.current = onFront;
+  const reportFront = (idx: number): void => {
+    const h = n > 0 ? items[((idx % n) + n) % n] : undefined;
+    if (h) onFrontRef.current?.(h);
+  };
+  // 滚轮/触控板：滚一格换一项。累积到阈值才动 + 时间锁，避免触控板细碎 delta 连翻好几张。
+  const wheelAcc = useRef(0);
+  const wheelLock = useRef(0);
+  const onWheel = (e: WheelEvent<HTMLDivElement>): void => {
+    if (n === 0) return;
+    const now = performance.now();
+    if (now < wheelLock.current) return; // 补间窗口内不再叠加
+    // deltaMode: 0=像素、1=行、2=页；行/页折算成像素再累计
+    const { acc, dir } = takeWheelStep(wheelAcc.current, normalizeWheelDelta(e.deltaY, e.deltaMode, geo.step));
+    wheelAcc.current = acc;
+    if (!dir) return; // 向下滚 = 下一条（与拖拽上滑前进同向）
+    wheelLock.current = now + 240;
+    const target = Math.round(posRef.current) + dir;
+    animatePos(target, 300);
+    reportFront(target);
+  };
   if (n === 0) {
     return (
       <div className="hw-carousel-empty">
@@ -198,6 +224,7 @@ function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick }: 
       if (d > n / 2) d -= n;
       if (d < -n / 2) d += n;
       animatePos(posRef.current + d, Math.min(720, 260 + Math.abs(d) * 90)); // 步数越多时长略增
+      reportFront(k);
     })();
   /** 拖拽收尾：惯性投射 + 吸附。pointerup / pointercancel / window 兜底共用（幂等）。 */
   const finishDrag = (endY: number): void => {
@@ -216,6 +243,7 @@ function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick }: 
     // 有惯性=快起缓收（easeOut）；无惯性=普通吸附（inout）。时长随距离增长。
     const flinging = Math.abs(v) > 0.45;
     animatePos(target, Math.min(760, 300 + dist * 70), flinging ? "out" : "inout");
+    reportFront(target);
   };
   // 用 Pointer Events 而非 Touch Events：实测本机 WebView 在手指移出卡片流后
   // 会直接掐断 touch 事件流（touchend/touchcancel 都收不到，实测 end=0/cancel=0），
@@ -276,6 +304,7 @@ function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick }: 
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp} // 中断也走同一收尾：吸附，绝不卡在两张之间
+        onWheel={onWheel} // 滚轮/触控板：一格换一项（桌面端）
       >
         {items.map((h, k) => {
           const yPx = relOf(k);
@@ -406,15 +435,42 @@ export function TasksPage(): ReactNode {
   // 宽屏分栏右栏（§2.8.2）：默认「生活」，点卡片换成该作业详情——不点就是生活、点了就是详情、
   // 关掉回到生活。与计划书的「左列表/右详情」和主人要的「左学习/右生活」合成一体。
   const [pcSel, setPcSel] = useState<Homework | null>(null);
+  const [pcFull, setPcFull] = useState(false); // 详情全屏：复用同一挂载实例，切换不重拉
+  // 打开过的详情槽位：**保持挂载 = 天然缓存**（说明/作答/附件状态都不必重拉），上限 8 个。
+  // 超过 TTL 的槽位再次激活时换 nonce 重建（等价于重拉一次），满足「5 分钟一刷新」；
+  // 提交/撤回在详情组件内部完成，它会自己 invalidateLearnCache，右侧立刻是新状态。
+  const [pcSlots, setPcSlots] = useState<Array<DetailSlot<Homework>>>([]);
+  const pcActivate = (h: Homework): void => setPcSlots((list) => activateSlot(list, h, Date.now()));
+  /** 这条作业有没有站内详情可内嵌（外部网页源没有） */
+  const detailable = (h: Homework): boolean => {
+    const route = pickHomeworkRoute(h);
+    return route === "internal" || route === "ykt-native";
+  };
   const pcPick = (h: Homework): void => {
     // 外部网页源没有站内详情（雨课堂参数不齐 / 作业网等）：宽屏也照旧走原分流
-    const route = pickHomeworkRoute(h);
-    if (route !== "internal" && route !== "ykt-native") {
+    if (!detailable(h)) {
       openHomeworkRow(h, { navigate, from: "tasks", courseName: hwCourseLabel(h, courseMap, extHwSourceName) });
       return;
     }
+    pcActivate(h);
     setPcSel(h);
   };
+  // 滚轮/拖拽换卡 → 右栏详情跟着换，不必再点一次（只在「已经在看详情」时跟随；
+  // 没点过卡片时右栏仍然是生活，保持「不点就是生活」）
+  const pcFollow = (h: Homework): void => {
+    if (!detailable(h)) return;
+    pcActivate(h);
+    setPcSel(h);
+  };
+  // 全屏详情：Esc 收起（与点「收起」同效）
+  useEffect(() => {
+    if (!pcFull) return;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") setPcFull(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pcFull]);
 
   const dueSoon = flow.filter((h) => { const i = ddlInfo(h.deadline); return !i.overdue && i.days != null && i.days <= 3; }).length;
   const semesterId = data?.semester.id;
@@ -512,6 +568,7 @@ export function TasksPage(): ReactNode {
                 courseLabelOf={(h) => hwCourseLabel(h, courseMap, extHwSourceName)}
                 semesterId={semesterId}
                 onPick={wide ? pcPick : undefined}
+                onFront={wide && pcSel ? pcFollow : undefined}
               />
       )}
           </div>
@@ -555,19 +612,47 @@ export function TasksPage(): ReactNode {
           <>
             <div className="tasks-pane-head">
               <span>作业详情</span>
-              <button className="tasks-pane-close" onClick={() => setPcSel(null)}>返回生活 →</button>
+              <span className="tasks-pane-acts">
+                <button className="tasks-pane-close" onClick={() => setPcFull((v) => !v)}>
+                  {pcFull ? "收起 ⤡" : "展开 ⤢"}
+                </button>
+                <button
+                  className="tasks-pane-close"
+                  onClick={() => {
+                    setPcFull(false);
+                    setPcSel(null);
+                  }}
+                >
+                  返回生活 →
+                </button>
+              </span>
             </div>
             {/* 复用现有详情组件（§2.8.2：只改容器渲染，不改数据流与子组件）：
-                页头由上面的分栏头接管，目标作业经 props 直给，不污染全局 navParams */}
-            <div className="tasks-detail">
-              {pickHomeworkRoute(pcSel) === "ykt-native" ? (
-                <YktAssignmentDetailPage
-                  ykt={yktDetailParams(pcSel, hwCourseLabel(pcSel, courseMap, extHwSourceName), "tasks")}
-                  from="tasks"
-                />
-              ) : (
-                <AssignmentDetailPage courseId={pcSel.courseId} itemId={pcSel.id} />
-              )}
+                页头由上面的分栏头接管，目标作业经 props 直给，不污染全局 navParams。
+                每个访问过的作业各占一个槽位并保持挂载——换回旧卡不重拉，滚动位置也在。
+                「展开」只切一个 class（同一个实例变成全屏浮层），所以展开/收起不重拉数据。 */}
+            <div className={"tasks-detail" + (pcFull ? " is-full" : "")}>
+              {pcFull ? (
+                <div className="tasks-detail-fullbar">
+                  <span className="tasks-detail-fulltitle">{pcSel.title}</span>
+                  <button className="tasks-pane-close" onClick={() => setPcFull(false)}>收起 ⤡</button>
+                </div>
+              ) : null}
+              {pcSlots.map((s) => (
+                <div
+                  key={s.h.id + "#" + s.nonce}
+                  className={"tasks-detail-slot" + (s.h.id === pcSel.id ? "" : " is-hidden")}
+                >
+                  {pickHomeworkRoute(s.h) === "ykt-native" ? (
+                    <YktAssignmentDetailPage
+                      ykt={yktDetailParams(s.h, hwCourseLabel(s.h, courseMap, extHwSourceName), "tasks")}
+                      from="tasks"
+                    />
+                  ) : (
+                    <AssignmentDetailPage courseId={s.h.courseId} itemId={s.h.id} />
+                  )}
+                </div>
+              ))}
             </div>
           </>
         ) : (

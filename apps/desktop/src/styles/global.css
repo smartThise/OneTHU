@@ -5341,10 +5341,28 @@ section > .svc-label { margin-top: 14px; }
 }
 /* 宽屏右栏切到详情时，两栏各自成列、详情占满栏高并独立滚动 */
 .tasks-body.is-wide .tasks-pane { display: flex; flex-direction: column; min-height: 0; }
-.tasks-detail { flex: 1; min-height: 0; overflow: auto; padding-right: 4px; }
+.tasks-pane-acts { display: inline-flex; align-items: center; gap: 10px; }
+.tasks-detail { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* 每个作业一个槽位：只有当前那条可见并不滚动，其余保留挂载（=天然缓存，换回旧卡不重拉） */
+.tasks-detail-slot { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; padding-right: 4px; }
+.tasks-detail-slot.is-hidden { display: none; }
+/* 展开 = 同一个实例切成全屏浮层（不重挂载，所以展开/收起都不重拉数据） */
+.tasks-detail.is-full {
+  position: fixed; inset: 0; z-index: 90;
+  background: var(--bg);
+  padding: 16px clamp(16px, 5vw, 80px) calc(20px + env(safe-area-inset-bottom, 0px));
+}
+.tasks-detail-fullbar {
+  flex: none; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--border-soft);
+}
+.tasks-detail-fulltitle {
+  font-size: 14px; font-weight: 600; color: var(--text-1);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 /* 详情组件自带的页头（标题 + 返回）由分栏头接管——只改容器渲染，不动详情组件内部 */
 .tasks-detail .page-head { display: none; }
-.tasks-detail > :first-child { margin-top: 0; }
+.tasks-detail-slot > :first-child { margin-top: 0; }
 .tasks-pane-close {
   border: 0; background: none; padding: 0 2px;
   color: var(--accent); font: inherit; font-size: var(--text-xs); font-weight: 500; cursor: pointer;
@@ -5505,3 +5523,24 @@ section > .svc-label { margin-top: 14px; }
 .sidebar.is-collapsed .nav-folded-toggle { display: none; }
 .sidebar.is-collapsed .sidebar-foot { flex-direction: column; align-items: center; gap: 6px; }
 .sidebar.is-collapsed .foot-badge { font-size: 0; padding: 0; }
+
+/* ============================================================
+   §2.8.2 expanded 档：待办页锁一屏高，两栏各自内部滚动。
+   此前详情内容一长就把整页顶出去（页面长度不再由设计决定），
+   现在页面高度固定，长内容在右栏/左栏内部滚。
+   ============================================================ */
+@media (min-width: 840px) {
+  html.is-phone .content:has(.tasks-body),
+  .shell .content:has(.tasks-body) {
+    box-sizing: border-box;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* OH 岛带：桌面岛底距 18 + 岛高 46 + 间隙 = 92（再叠安全区） */
+    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+  .content:has(.tasks-body) > .page-anim { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .content:has(.tasks-body) .tasks-body { flex: 1; min-height: 0; }
+  .tasks-body.is-wide .tasks-pane { overflow: auto; overscroll-behavior: contain; }
+}
