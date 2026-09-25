@@ -13,7 +13,7 @@
  *
  * 数据全复用既有层（useLearnData/exthw/hwIgnore/hwCard/news），零新取数。
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type TouchEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import { parseLearnTime, SOURCE_NAMES } from "@onethu/core";
 import { SegmentedOverflow, Card, Empty, PageHead } from "../components/Layout.js";
 import { IconRefresh } from "../components/Icons.js";
@@ -94,6 +94,8 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
   const touch = useRef<{ y0: number; pos0: number; lastY: number; lastT: number; v: number } | null>(null);
   const movedRef = useRef(false);
   const rafRef = useRef<number | null>(null);
+  const dragPidRef = useRef<number | null>(null); // 当前拖拽的 pointerId
+  const capturedRef = useRef(false); // 是否已对该指针 setPointerCapture
   const n = items.length;
   const setPosBoth = (v: number): void => {
     posRef.current = v;
@@ -117,6 +119,16 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
       return () => cancelAnimationFrame(id);
     }
   }, [dragging, pos]);
+  // 指针兜底：即便元素级事件丢失（捕获失败等），window 级 pointerup 也能收尾；幂等调用
+  useEffect(() => {
+    const onWinUp = (e: WindowEventMap["pointerup"]): void => finishDrag(e.clientY);
+    window.addEventListener("pointerup", onWinUp);
+    window.addEventListener("pointercancel", onWinUp);
+    return () => {
+      window.removeEventListener("pointerup", onWinUp);
+      window.removeEventListener("pointercancel", onWinUp);
+    };
+  }, []);
   const curIdx = ((Math.round(pos) % n) + n) % n;
   const lastTick = useRef(curIdx);
   useEffect(() => {
@@ -173,36 +185,16 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
       if (d < -n / 2) d += n;
       animatePos(posRef.current + d, Math.min(720, 260 + Math.abs(d) * 90)); // 步数越多时长略增
     })();
-  const onTouchStart = (e: TouchEvent<HTMLDivElement>): void => {
-    const y = e.touches[0]?.clientY;
-    if (y == null) return;
-    if (rafRef.current != null) cancelAnimationFrame(rafRef.current); // 手指按下即接管
-    rafRef.current = null;
-    touch.current = { y0: y, pos0: posRef.current, lastY: y, lastT: Date.now(), v: 0 };
-    movedRef.current = false;
-    setDragging(true);
-  };
-  const onTouchMove = (e: TouchEvent<HTMLDivElement>): void => {
-    const t = touch.current;
-    const y = e.touches[0]?.clientY;
-    if (!t || y == null) return;
-    const dy = y - t.y0;
-    if (Math.abs(dy) > 8) movedRef.current = true;
-    const dt = Math.max(1, Date.now() - t.lastT);
-    t.v = (y - t.lastY) / dt;
-    t.lastY = y;
-    t.lastT = Date.now();
-    setPosBoth(t.pos0 - dy / STEP); // 1:1 跟手（列随手上行 = 前进）
-  };
-  const onTouchEnd = (e: TouchEvent<HTMLDivElement>): void => {
+  /** 拖拽收尾：惯性投射 + 吸附。pointerup / pointercancel / window 兜底共用（幂等）。 */
+  const finishDrag = (endY: number): void => {
     const t = touch.current;
     touch.current = null;
+    dragPidRef.current = null;
+    capturedRef.current = false;
     setDragging(false);
-    if (!t) return;
-    const endY = e.changedTouches[0]?.clientY ?? t.lastY;
+    if (!t) return; // 已收尾过：直接返回，不打断正在跑的补间
     const dy = endY - t.y0; // 手指净位移（上滑为负）
     // 梯度惯性：按松手速度做投射（速度 × 150ms 阻尼视野），再吸附到最近整卡。
-    // 阻尼偏大（用户反馈）：慢滑基本原地，快甩约 2~3 张即停。
     const v = Math.abs(t.v) > 3 ? 3 * Math.sign(t.v) : t.v; // 限幅，防极端甩出十几张
     const projSteps = -(v * 150) / STEP;
     const target = Math.round(posRef.current + projSteps);
@@ -210,8 +202,44 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
     // 有惯性=快起缓收（easeOut）；无惯性=普通吸附（inout）。时长随距离增长。
     const flinging = Math.abs(v) > 0.45;
     animatePos(target, Math.min(760, 300 + dist * 70), flinging ? "out" : "inout");
-    // TEMP-DEBUG: 定位「松手在流外不对齐」——确认事件到达与吸附目标
-    void import("../lib/clients.js").then((m) => m.logLine(`[HWDEBUG] touchEnd dy=${dy} v=${t.v.toFixed(2)} pos=${posRef.current.toFixed(2)} target=${target.toFixed(2)}`)).catch(() => undefined);
+  };
+  // 用 Pointer Events 而非 Touch Events：实测本机 WebView 在手指移出卡片流后
+  // 会直接掐断 touch 事件流（touchend/touchcancel 都收不到，实测 end=0/cancel=0），
+  // 于是 dragging 永远为真、卡片停在两张之间。指针事件 + 指针捕获同场景 16/16 全达。
+  const onPointerDown = (e: PointerEvent<HTMLDivElement>): void => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current); // 手指按下即接管
+    rafRef.current = null;
+    dragPidRef.current = e.pointerId;
+    capturedRef.current = false;
+    touch.current = { y0: e.clientY, pos0: posRef.current, lastY: e.clientY, lastT: Date.now(), v: 0 };
+    movedRef.current = false;
+    setDragging(true);
+  };
+  const onPointerMove = (e: PointerEvent<HTMLDivElement>): void => {
+    const t = touch.current;
+    if (!t || (dragPidRef.current != null && e.pointerId !== dragPidRef.current)) return;
+    const y = e.clientY;
+    const dy = y - t.y0;
+    // 位移过阈值才捕获指针：否则卡内按钮与点列的点击会被重定向到容器
+    if (!capturedRef.current && Math.abs(dy) > 6) {
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        capturedRef.current = true;
+      } catch {
+        /* 不支持捕获：交给 window 级兜底 */
+      }
+    }
+    if (Math.abs(dy) > 8) movedRef.current = true;
+    const dt = Math.max(1, Date.now() - t.lastT);
+    t.v = (y - t.lastY) / dt;
+    t.lastY = y;
+    t.lastT = Date.now();
+    setPosBoth(t.pos0 - dy / STEP); // 1:1 跟手（列随手上行 = 前进）
+  };
+  const onPointerUp = (e: PointerEvent<HTMLDivElement>): void => {
+    if (dragPidRef.current != null && e.pointerId !== dragPidRef.current) return;
+    finishDrag(e.clientY);
   };
   const relOf = (k: number): number => {
     const c = ((pos % n) + n) % n;
@@ -229,10 +257,10 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
       </div>
       <div
         className="hw-carousel"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        onTouchCancel={() => { touch.current = null; setDragging(false); animatePos(Math.round(posRef.current), 300); }} // 中断也吸附，绝不卡在两张之间
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp} // 中断也走同一收尾：吸附，绝不卡在两张之间
       >
         {items.map((h, k) => {
           const yPx = relOf(k);
@@ -354,18 +382,15 @@ export function TasksPage(): ReactNode {
   // 横向滑动切换 学习/生活 tab：全程页面无横滑元素，横滑手势专用于此；
   // 防误触：位移 >60px 且 |dx| > 2|dy|（排除竖向滚动手势的横向漂移）。
   const horiz = useRef<{ x0: number; y0: number } | null>(null);
-  const onHTouchStart = (e: TouchEvent<HTMLDivElement>): void => {
-    const t = e.touches[0];
-    if (t) horiz.current = { x0: t.clientX, y0: t.clientY };
+  const onHDown = (e: PointerEvent<HTMLDivElement>): void => {
+    horiz.current = { x0: e.clientX, y0: e.clientY };
   };
-  const onHTouchEnd = (e: TouchEvent<HTMLDivElement>): void => {
+  const onHUp = (e: PointerEvent<HTMLDivElement>): void => {
     const s = horiz.current;
     horiz.current = null;
     if (!s) return;
-    const t = e.changedTouches[0];
-    if (!t) return;
-    const dx = t.clientX - s.x0;
-    const dy = t.clientY - s.y0;
+    const dx = e.clientX - s.x0;
+    const dy = e.clientY - s.y0;
     if (Math.abs(dx) < 60 || Math.abs(dx) < 2 * Math.abs(dy)) return;
     if (dx < 0 && tab === "learn") setTab("life");
     else if (dx > 0 && tab === "life") setTab("learn");
@@ -391,7 +416,7 @@ export function TasksPage(): ReactNode {
         <button role="tab" aria-selected={tab === "life"} className={tab === "life" ? "is-active" : ""} onClick={() => setTab("life")}>生活</button>
       </SegmentedOverflow>
 
-      <div className="tasks-body" onTouchStart={onHTouchStart} onTouchEnd={onHTouchEnd}>
+      <div className="tasks-body" onPointerDown={onHDown} onPointerUp={onHUp}>
       {tab === "learn" ? (
         <div className="tasks-learn">
           {/* 作业卡片流（拖拽实时跟手） */}
