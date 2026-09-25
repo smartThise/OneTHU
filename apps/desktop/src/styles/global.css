@@ -5303,20 +5303,26 @@ section > .svc-label { margin-top: 14px; }
    不再用「100dvh - 固定魔数」去猜：岛顶会随视口高度/系统栏浮动，猜必然有偏差
    （实测同一台机两次测量差 16px，一次正好压住通知条）。 */
 @media (max-width: 860px) {
-  .content:has(.tasks-body) {
+  /* 选择器要压过 html.is-phone .content（0,2,1）那条 92px 预留，否则本规则失效 */
+  html.is-phone .content:has(.tasks-body),
+  .shell .content:has(.tasks-body) {
     box-sizing: border-box;
     height: 100dvh;
     display: flex;
     flex-direction: column;
     overflow: auto; /* 正常一屏放得下；只有极端小屏才滚 */
-    padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+    /* OH 岛带：岛底距屏底 80（含安全区）+ 岛高 46 + 16 间隙 = 142（再叠安全区） */
+    padding-bottom: calc(142px + env(safe-area-inset-bottom, 0px));
   }
-  .content:has(.tasks-body) .tasks-body { flex: 1; min-height: 0; }
+  /* 路由动画包一层 .page-anim（flex: 0 1 auto），高度就断在这里，必须让它也撑开 */
+  .content:has(.tasks-body) > .page-anim { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  /* 非宽屏时 .tasks-body 是 block，pane 的 flex:1 不生效 → 这里显式做 flex 列，把高度传下去 */
+  .content:has(.tasks-body) .tasks-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   .content:has(.tasks-body) .tasks-pane:not(.is-hidden) { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   .content:has(.tasks-body) .tasks-learn { flex: 1; min-height: 0; }
-  .content:has(.tasks-body) .tasks-flow-wrap { flex: 1; min-height: 0; display: flex; }
+  .content:has(.tasks-body) .tasks-flow-wrap { flex: 1; min-height: 230px; max-height: 470px; display: flex; }
   .content:has(.tasks-body) .hw-carousel-row { flex: 1; min-width: 0; }
-  .content:has(.tasks-body) .hw-carousel { height: auto; min-height: 230px; }
+  .content:has(.tasks-body) .hw-carousel { height: auto; }
 }
 /* 宽屏（≥1080px）：学习 / 生活 双栏同显，两条 pane 同时可见 */
 .tasks-body.is-wide {
