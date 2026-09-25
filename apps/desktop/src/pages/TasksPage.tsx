@@ -210,6 +210,8 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
     // 有惯性=快起缓收（easeOut）；无惯性=普通吸附（inout）。时长随距离增长。
     const flinging = Math.abs(v) > 0.45;
     animatePos(target, Math.min(760, 300 + dist * 70), flinging ? "out" : "inout");
+    // TEMP-DEBUG: 定位「松手在流外不对齐」——确认事件到达与吸附目标
+    void import("../lib/clients.js").then((m) => m.logLine(`[HWDEBUG] touchEnd dy=${dy} v=${t.v.toFixed(2)} pos=${posRef.current.toFixed(2)} target=${target.toFixed(2)}`)).catch(() => undefined);
   };
   const relOf = (k: number): number => {
     const c = ((pos % n) + n) % n;

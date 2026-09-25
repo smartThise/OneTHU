@@ -1077,7 +1077,7 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
                         // 老式表盘「咔嗒」：20ms 单次满幅——短促、干脆、有钢性。
                         // timings 与 amplitudes 必须等长：首项 0ms 延时（幅 0）+ 20ms 满幅。
                         val effect = android.os.VibrationEffect.createWaveform(
-                            longArrayOf(0, 20),
+                            longArrayOf(0, 10),
                             intArrayOf(0, 255),
                             -1,
                         )
