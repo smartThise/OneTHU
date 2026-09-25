@@ -24,6 +24,7 @@ import { CONFIRM_IGNORE_HW, confirmDanger } from "../lib/confirm.js";
 import { ignoreHw, useIgnoredHw } from "../state/hwIgnore.js";
 import { toHomework, useExternalHomework } from "../state/exthw.js";
 import { useApp } from "../state/context.js";
+import { isAndroidNavigator } from "../lib/androidHost.js";
 import { useCard, useLearnData, useTodayNewsFeed } from "../state/data.js";
 import { enc } from "../state/atoms.js";
 import { readSubs } from "./info/newsSearch.js";
@@ -104,18 +105,20 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
   }, [n]);
-  // 前台卡变化 → 轮盘式轻微振动 tick（HyperOS 手感；设备/权限不支持时静默）
+  // 前台卡变化 → 轮盘式振动 tick（Android 原生 EFFECT_TICK = 青轴段落感；
+  // WebView 的 navigator.vibrate 在部分机型不触发，原生命令优先，纯前端兜底）
   const curIdx = ((Math.round(pos) % n) + n) % n;
   const lastTick = useRef(curIdx);
   useEffect(() => {
-    if (curIdx !== lastTick.current) {
-      lastTick.current = curIdx;
-      try {
-        navigator.vibrate?.(4);
-      } catch {
-        /* 不支持：静默 */
-      }
+    if (curIdx === lastTick.current) return;
+    lastTick.current = curIdx;
+    if (!isAndroidNavigator(navigator)) {
+      try { navigator.vibrate?.(4); } catch { /* 静默 */ }
+      return;
     }
+    void import("@tauri-apps/api/core")
+      .then(({ invoke }) => invoke("ui_haptic_tick"))
+      .catch(() => undefined);
   }, [curIdx]);
   if (n === 0) {
     return (
@@ -127,8 +130,9 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
       </div>
     );
   }
-  /** 逐帧补间：所有位置变化（吸附/点列/翻页）统一走这里，天然带起停缓动 */
-  const animatePos = (target: number, dur: number): void => {
+  /** 逐帧补间：所有位置变化（吸附/点列/翻页）统一走这里。
+   *  mode "inout"=普通起停；"out"=惯性阻尼（快起缓收，专配甩动）。 */
+  const animatePos = (target: number, dur: number, mode: "inout" | "out" = "inout"): void => {
     if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     const from = posRef.current;
     const dist = target - from;
@@ -137,7 +141,9 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
       return;
     }
     const t0 = performance.now();
-    const ease = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2); // easeInOutCubic：起步与收尾都缓
+    const ease = mode === "out"
+      ? (t: number): number => 1 - Math.pow(1 - t, 3) // easeOutCubic：甩出去先快后慢
+      : (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2); // easeInOutCubic
     const step = (now: number): void => {
       const t = Math.min(1, (now - t0) / dur);
       setPosBoth(from + dist * ease(t));
@@ -182,12 +188,16 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
     setDragging(false);
     if (!t) return;
     const endY = e.changedTouches[0]?.clientY ?? t.lastY;
-    const dy = endY - t.y0; // 手指净位移
-    const movedSteps = -dy / STEP; // 本次拖拽折算的步数（上滑为正=前进）
-    let target = Math.round(posRef.current);
-    // 未跨过整卡时看轻扫速度：快速一挥也翻一张（HyperOS 轮盘手感）
-    if (Math.abs(movedSteps) < 0.5 && Math.abs(t.v) > 0.45) target += t.v < 0 ? 1 : -1;
-    animatePos(target, 340);
+    const dy = endY - t.y0; // 手指净位移（上滑为负）
+    // 梯度惯性：按松手速度做投射（速度 × 220ms 阻尼视野），再吸附到最近整卡。
+    // 慢速 v≈0.2 → 投射 <1 步（基本原地吸附）；快速一甩 v≥2 → 惯性 3~4 张。
+    const v = Math.abs(t.v) > 3 ? 3 * Math.sign(t.v) : t.v; // 限幅，防极端甩出十几张
+    const projSteps = -(v * 220) / STEP;
+    const target = Math.round(posRef.current + projSteps);
+    const dist = Math.abs(target - posRef.current);
+    // 有惯性=快起缓收（easeOut）；无惯性=普通吸附（inout）。时长随距离增长。
+    const flinging = Math.abs(v) > 0.45;
+    animatePos(target, Math.min(760, 300 + dist * 70), flinging ? "out" : "inout");
   };
   const relOf = (k: number): number => {
     const c = ((pos % n) + n) % n;
@@ -208,7 +218,7 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        onTouchCancel={() => { touch.current = null; setDragging(false); }}
+        onTouchCancel={() => { touch.current = null; setDragging(false); animatePos(Math.round(posRef.current), 300); }} // 中断也吸附，绝不卡在两张之间
       >
         {items.map((h, k) => {
           const yPx = relOf(k);

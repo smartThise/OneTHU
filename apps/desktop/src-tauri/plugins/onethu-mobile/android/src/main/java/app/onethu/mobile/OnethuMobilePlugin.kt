@@ -1060,6 +1060,36 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    /** 触觉 tick（作业流切卡的「青轴」段落感）：API 31+ 用系统预定义 EFFECT_TICK
+     *  （HyperOS/类原生的刻度感即来自它）；旧设备退化为 5ms 短振。
+     *  WebView 的 navigator.vibrate 在部分 ROM 不触发，故 UI 走原生命令。 */
+    @Command
+    fun hapticTick(invoke: Invoke) {
+        try {
+            activity.runOnUiThread {
+                try {
+                    val vib = activity.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+                    if (vib == null || !vib.hasVibrator()) {
+                        invoke.resolve(JSObject().put("ok", false).put("reason", "no-vibrator"))
+                        return@runOnUiThread
+                    }
+                    if (Build.VERSION.SDK_INT >= 31) {
+                        val effect = android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_TICK)
+                        vib.vibrate(effect)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        vib.vibrate(5)
+                    }
+                    invoke.resolve(JSObject().put("ok", true))
+                } catch (e: Exception) {
+                    invoke.resolve(JSObject().put("ok", false).put("reason", "haptic-failed"))
+                }
+            }
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().put("ok", false).put("reason", "haptic-exception"))
+        }
+    }
+
     /** 一键把标准形态小组件放到桌面（R21c：ColorOS 等启动器的选择器行为不一致，
      *  用户「绑定完桌面上没有」——这条走系统 requestPinAppWidget，由启动器直接落卡片）。
      *  supported=false 表示该启动器不支持请求式放置，此时 UI 应引导手动添加。 */
