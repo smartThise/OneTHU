@@ -189,10 +189,10 @@ function HwCarousel({ items, courseNameOf, semesterId }: { items: Homework[]; co
     if (!t) return;
     const endY = e.changedTouches[0]?.clientY ?? t.lastY;
     const dy = endY - t.y0; // 手指净位移（上滑为负）
-    // 梯度惯性：按松手速度做投射（速度 × 220ms 阻尼视野），再吸附到最近整卡。
-    // 慢速 v≈0.2 → 投射 <1 步（基本原地吸附）；快速一甩 v≥2 → 惯性 3~4 张。
+    // 梯度惯性：按松手速度做投射（速度 × 150ms 阻尼视野），再吸附到最近整卡。
+    // 阻尼偏大（用户反馈）：慢滑基本原地，快甩约 2~3 张即停。
     const v = Math.abs(t.v) > 3 ? 3 * Math.sign(t.v) : t.v; // 限幅，防极端甩出十几张
-    const projSteps = -(v * 220) / STEP;
+    const projSteps = -(v * 150) / STEP;
     const target = Math.round(posRef.current + projSteps);
     const dist = Math.abs(target - posRef.current);
     // 有惯性=快起缓收（easeOut）；无惯性=普通吸附（inout）。时长随距离增长。
@@ -337,6 +337,26 @@ export function TasksPage(): ReactNode {
 
   const cardLow = (card.data?.info.balance ?? null) != null && (card.data?.info.balance ?? 0) < 20;
 
+  // 横向滑动切换 学习/生活 tab：全程页面无横滑元素，横滑手势专用于此；
+  // 防误触：位移 >60px 且 |dx| > 2|dy|（排除竖向滚动手势的横向漂移）。
+  const horiz = useRef<{ x0: number; y0: number } | null>(null);
+  const onHTouchStart = (e: TouchEvent<HTMLDivElement>): void => {
+    const t = e.touches[0];
+    if (t) horiz.current = { x0: t.clientX, y0: t.clientY };
+  };
+  const onHTouchEnd = (e: TouchEvent<HTMLDivElement>): void => {
+    const s = horiz.current;
+    horiz.current = null;
+    if (!s) return;
+    const t = e.changedTouches[0];
+    if (!t) return;
+    const dx = t.clientX - s.x0;
+    const dy = t.clientY - s.y0;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < 2 * Math.abs(dy)) return;
+    if (dx < 0 && tab === "learn") setTab("life");
+    else if (dx > 0 && tab === "life") setTab("learn");
+  };
+
   return (
     <>
       <PageHead
@@ -357,6 +377,7 @@ export function TasksPage(): ReactNode {
         <button role="tab" aria-selected={tab === "life"} className={tab === "life" ? "is-active" : ""} onClick={() => setTab("life")}>生活</button>
       </SegmentedOverflow>
 
+      <div className="tasks-body" onTouchStart={onHTouchStart} onTouchEnd={onHTouchEnd}>
       {tab === "learn" ? (
         <div className="tasks-learn">
           {/* 作业卡片流（拖拽实时跟手） */}
@@ -370,11 +391,11 @@ export function TasksPage(): ReactNode {
           {/* 计数 + 双入口 */}
           <div className="tasks-mid">
             <div className="tasks-stats">
-              <div className="task-stat">
+              <div className="task-stat" role="button" tabIndex={0} onClick={() => navigate("learn-assignments")} onKeyDown={(e) => { if (e.key === "Enter") navigate("learn-assignments"); }}>
                 <span className="task-stat-num" key={"n" + flow.length}>{flow.length}</span>
                 <span className="task-stat-label">还剩作业（项）</span>
               </div>
-              <div className="task-stat">
+              <div className="task-stat" role="button" tabIndex={0} onClick={() => navigate("learn-assignments")} onKeyDown={(e) => { if (e.key === "Enter") navigate("learn-assignments"); }}>
                 <span className="task-stat-num task-stat-urgent" key={"s" + dueSoon}>{dueSoon}</span>
                 <span className="task-stat-label">3 日内截止（项）</span>
               </div>
@@ -425,6 +446,7 @@ export function TasksPage(): ReactNode {
           <div className="task-life-note">行政类通知（报到、党团活动等）暂无稳定数据源，接入后补充到这里。</div>
         </div>
       )}
+      </div>
     </>
   );
 }
