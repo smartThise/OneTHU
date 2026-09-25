@@ -5383,11 +5383,7 @@ section > .svc-label { margin-top: 14px; }
 .task-life-note { margin: 12px 2px; font-size: 12px; color: var(--text-3); }
 /* 学习 tab 整页不滚动：定高元素纵向排布；桌面限宽居中 */
 .tasks-learn { display: flex; flex-direction: column; }
-@media (min-width: 861px) {
-  .tasks-learn { max-width: 720px; margin: 0 auto; width: 100%; }
-}
-
-/* 桌面端学习 tab 限宽居中，避免轮播拉满超宽屏 */
+/* 桌面端学习 tab 限宽居中，避免轮播拉满超宽屏（宽屏双栏时由 .tasks-body.is-wide 覆盖） */
 @media (min-width: 861px) {
   .tasks-learn { max-width: 720px; margin: 0 auto; width: 100%; }
 }
