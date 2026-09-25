@@ -5018,6 +5018,11 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   /* 内容不被底栏遮住；回顶/刷新 FAB 抬到底栏上方 */
   .content { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
   .hard-refresh-fab { bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+  /* OH 灵动岛抬到底栏上方，避免与 5 Tab 重合（面板展开时仍覆盖底栏，属模态行为） */
+  .dock-island { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+  /* 新 IA：移动端侧边栏（抽屉）退役——底栏 5 Tab + 服务目录页承接全部入口；
+     汉堡钮一并隐藏（JSX 暂保留，M1 收尾时删） */
+  .drawer-mask, .drawer, .topbar-menu { display: none; }
 }
 
 /* —— 服务目录页 / 收藏首页（两页共用行样式） —— */

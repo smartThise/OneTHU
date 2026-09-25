@@ -9,12 +9,13 @@
  *   注册表里没有对应原子的条目（聚合型如雨课堂/OJ 作业）直接 navigate；
  * - buried 条目默认隐藏，「显示全部」展开；advanced（插件/开发者面板）永不出现（§4.4）。
  */
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Card, Empty, PageHead } from "../components/Layout.js";
 import { IconSearch } from "../components/Icons.js";
 import { pageAtomRef, resolveAtom } from "../state/atoms.js";
 import { NAV_CATEGORIES, byCategory, matchNavQuery, type NavEntry } from "../state/navigation.js";
 import { useApp } from "../state/context.js";
+import { pluginTabsSnapshot, subscribePluginTabs } from "../plugins/tabs.js";
 
 /** 目录行：优先复用同名页面原子的图标/副标题/使用统计链路 */
 function ServiceRow({ entry }: { entry: NavEntry }): ReactNode {
@@ -41,7 +42,10 @@ function ServiceRow({ entry }: { entry: NavEntry }): ReactNode {
 }
 
 export function ServicesPage(): ReactNode {
+  const { navigate } = useApp();
   const [q, setQ] = useState("");
+  // 插件功能页：抽屉退役后的移动端插件入口（与侧栏同一数据源）
+  const pluginTabs = useSyncExternalStore(subscribePluginTabs, pluginTabsSnapshot, pluginTabsSnapshot);
   const [showAll, setShowAll] = useState(false);
   const query = q.trim();
   const hits = useMemo(() => matchNavQuery(query), [query]);
@@ -87,6 +91,21 @@ export function ServicesPage(): ReactNode {
               </Card>
             </section>
           ))}
+          {pluginTabs.length ? (
+            <section>
+              <div className="svc-label">插件功能页</div>
+              <Card className="svc-card">
+                {pluginTabs.map((t) => (
+                  <button key={t.pageKey} className="svc-row" onClick={() => navigate(t.pageKey as never)}>
+                    <span className="svc-row-main">
+                      <span className="svc-row-name">{t.title}</span>
+                      <span className="svc-row-sub">来自插件</span>
+                    </span>
+                  </button>
+                ))}
+              </Card>
+            </section>
+          ) : null}
           <button className="svc-all-toggle" onClick={() => setShowAll((v) => !v)}>
             {showAll ? "收起低频功能" : "显示全部功能（含低频）"}
           </button>
