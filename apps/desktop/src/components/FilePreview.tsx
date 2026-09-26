@@ -12,6 +12,7 @@ import { Component, useCallback, useEffect, useMemo, useRef, useState } from "re
 import type { CSSProperties, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useExitPhase } from "../lib/motion.js";
+import { useExpanded } from "../state/usePlatformLayout.js";
 import { http, downloadLearnUrl, saveLearnUrlAs, withLearnCsrf } from "../lib/clients.js";
 import { isAndroidHost } from "../lib/yktWebview.js";
 import { isAndroidNavigator, isWindowsNavigator } from "../lib/androidHost.js";
@@ -1197,6 +1198,16 @@ const panelStyle: CSSProperties = {
   background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)",
   borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)", overflow: "hidden",
 };
+/* PC（expanded）文件预览：居中大窗（§2.8.2）。同 TabManageModal——内联样式优先于类选择器，
+   所以只能在组件里换样式对象，写 CSS 是白写。 */
+const maskStyleWide: CSSProperties = { ...maskStyle, padding: 32 };
+const panelStyleWide: CSSProperties = {
+  ...panelStyle,
+  width: "min(1120px, 92vw)",
+  maxWidth: "none",
+  height: "min(86vh, 920px)",
+  maxHeight: "92vh",
+};
 const headStyle: CSSProperties = {
   display: "flex", alignItems: "center", gap: 8, padding: "10px 14px",
   borderBottom: "1px solid var(--border, #eee)", flexShrink: 0,
@@ -1217,6 +1228,7 @@ export function FilePreviewHost() {
   const [cur, setCur] = useState<OpenState | null>(null);
   const [phase, setPhase] = useState<Phase>({ s: "loading" });
   const [dlBusy, setDlBusy] = useState(false);
+  const expanded = useExpanded(); // 钩子必须在下方 if (!shown) 早返回之前
   const [dlMsg, setDlMsg] = useState("");
   const [dlPath, setDlPath] = useState("");  // R23：下载成功的目标路径（供「打开文件/目录」按钮）
   const seqRef = useRef(0);
@@ -1387,9 +1399,9 @@ export function FilePreviewHost() {
   }
 
   return createPortal(
-    <div className={"confirm-mask" + (closing ? " is-closing" : "")} style={maskStyle} onClick={close}>
+    <div className={"confirm-mask" + (closing ? " is-closing" : "")} style={expanded ? maskStyleWide : maskStyle} onClick={close}>
       <style>{DOCX_CSS}</style>
-      <div className={"confirm-card" + (closing ? " is-closing" : "")} style={panelStyle} onClick={(e) => e.stopPropagation()}>
+      <div className={"confirm-card" + (closing ? " is-closing" : "")} style={expanded ? panelStyleWide : panelStyle} onClick={(e) => e.stopPropagation()}>
         <div style={headStyle} className="fp-head">
           <b style={{ flex: "1 1 120px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }} title={cur?.name ?? shown.name}>
             {cur?.name || shown.name || "文件预览"}

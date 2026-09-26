@@ -6,9 +6,25 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { TabLayout } from "../lib/tabLayout.js";
+import { useExpanded } from "../state/usePlatformLayout.js";
 
 const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
 const panelStyle: React.CSSProperties = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 420, maxHeight: "70vh", display: "flex", flexDirection: "column", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)" };
+
+/* PC（expanded）：右侧推入面板（§2.8.2 设置二级）。
+   必须在这里覆盖——上面两个样式是内联的，类选择器压不过内联（CSS 版面里写没用）。 */
+const maskStylePc: React.CSSProperties = { ...maskStyle, background: "rgba(0,0,0,.18)", justifyContent: "flex-end", padding: 0 };
+const panelStylePc: React.CSSProperties = {
+  ...panelStyle,
+  animation: "m-slide-right var(--dur-3) var(--ease-ios) both",
+  width: "min(420px, 42vw)",
+  maxWidth: "none",
+  maxHeight: "none",
+  height: "100%",
+  borderRadius: 0,
+  borderLeft: "1px solid var(--border, #e5e7eb)",
+  boxShadow: "-18px 0 48px rgba(0,0,0,.24)",
+};
 
 export function TabManageModal({
   open,
@@ -27,6 +43,7 @@ export function TabManageModal({
   onApply: (layout: TabLayout) => void;
   onReset: () => void;
 }) {
+  const expanded = useExpanded(); // 钩子必须在下方 if (!open) 早返回之前
   /* Esc 关闭（即时生效型弹窗：直接关闭即保存，无需确认步骤） */
   useEffect(() => {
     if (!open) return;
@@ -57,8 +74,8 @@ export function TabManageModal({
   };
 
   return createPortal(
-    <div className="tab-manage-mask" style={maskStyle} onClick={onClose}>
-      <div className="tab-manage-panel" style={panelStyle} onClick={(e) => e.stopPropagation()}>
+    <div className="tab-manage-mask" style={expanded ? maskStylePc : maskStyle} onClick={onClose}>
+      <div className="tab-manage-panel" style={expanded ? panelStylePc : panelStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border, #eee)" }}>
           <b>{title}</b>
           <span style={{ flex: 1 }} />
