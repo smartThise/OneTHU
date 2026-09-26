@@ -57,8 +57,8 @@ export function TabManageModal({
   };
 
   return createPortal(
-    <div style={maskStyle} onClick={onClose}>
-      <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
+    <div className="tab-manage-mask" style={maskStyle} onClick={onClose}>
+      <div className="tab-manage-panel" style={panelStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border, #eee)" }}>
           <b>{title}</b>
           <span style={{ flex: 1 }} />

@@ -5576,3 +5576,39 @@ section > .svc-label { margin-top: 14px; }
   .content:has(> .page-anim[data-page="info"]:has(table)),
   .content:has(> .page-anim[data-page="life"]:has(table)) { max-width: none; }
 }
+
+/* ============================================================
+   §2.8.2 / §2.8.3 弹层分端：移动端仍是居中弹窗（bottom sheet 样式待 B3 批次），
+   PC（expanded）改为右侧推入面板。骨架共用一份，只换落位。
+   ============================================================ */
+@media (min-width: 840px) {
+  .tab-manage-mask { background: rgba(0, 0, 0, 0.18); justify-content: flex-end; padding: 0; }
+  .tab-manage-panel {
+    width: min(420px, 42vw);
+    max-width: none;
+    max-height: none;
+    height: 100%;
+    border-radius: 0;
+    border-left: 1px solid var(--border);
+    box-shadow: -18px 0 48px rgba(0, 0, 0, 0.24);
+    animation: m-slide-right var(--dur-3) var(--ease-ios) both;
+  }
+  /* 设置页 PC 单列限宽 720 居中（与信息/生活同款；含表格的区块保完整宽度） */
+  .content:has(> .page-anim[data-page="settings"]) {
+    max-width: 720px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .content:has(> .page-anim[data-page="settings"]:has(table)) { max-width: none; }
+}
+
+/* §2.8.2 文件预览：PC 居中大窗（移动端仍是贴合屏幕的卡片）。
+   侧边附件信息栏需要改 FilePreview 内部标记，留到 B3 弹层批次一起做。 */
+@media (min-width: 840px) {
+  .confirm-card:has(> .fp-head) {
+    width: min(1120px, 92vw);
+    max-width: none;
+    height: min(86vh, 920px);
+    max-height: 92vh;
+  }
+}
