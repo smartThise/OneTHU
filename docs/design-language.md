@@ -27,6 +27,28 @@ background: var(--surface); background: #ffffff;
 最后一条同样重要：**颜色不写死十六进制**。写死的色值在切主题、切暗色时不会跟着变，
 在暗色下就是一块刺眼的亮斑。
 
+### 动态取色（§3.4）
+
+Android 12+ 打开「跟随系统取色」后，System 颜色角色由系统 Material You 调色板重算。
+原生侧只回「族 × 档位」（primary / secondary / tertiary / neutral / neutralVariant，后缀 = tone×10），
+映射表在 `apps/desktop/src/lib/dynamicRoles.ts`（纯函数，单测 `tools/dynamic-color-test.mjs`）。
+
+| 跟随取色（22 个角色） | 不跟随（语义必须稳定） |
+|---|---|
+| 品牌：`primary` / `primary-hover` / `on-primary`、`secondary` / `secondary-container` / `secondary-container-border` | 功能色：`error` / `warning` / `success` 及其 container |
+| 面与字：`surface` 五级 + `skeleton` / `skeleton-shine`、`on-surface` / `on-surface-variant` / `outline` / `on-surface-disabled`、`outline-variant` / `-soft` / `-strong`、`state-hover` / `state-pressed` | 焦点环 `--md-sys-focus-ring`（键盘可达性标识，跨主题恒定） |
+
+- 档位按 M3 约定：亮色 `primary` = tone 40（键 `400`）、暗色 = tone 80（`800`）；
+  面层级用 `mix()` 从基面按 0.035–0.18 派生——系统调色板档位稀疏（1000 → 900 是一大跳），
+  直接取相邻档做卡片面会得到刺眼的分层。
+- 写入位置：`<style id="onethu-dynamic-color">`，选择器 `html:root[data-dynamic="on"]`
+  与其暗色变体（特异性 0,2,1 / 0,3,1，高于令牌 `:root` 与主题注入 0,2,0）；关掉开关即整体移除。
+- **降级链**：系统取色 → 「清华紫」主题 → 跟随系统亮暗。原生不可用（桌面 / Android < 12 /
+  厂商 ROM 裁掉调色板）时 `enableDynamicColor()` 清场并激活清华紫，不留「半套」配色。
+- 取不到的档位一律不注入该角色，保留令牌默认值。
+- **未验证项**：真机读取（需 Android 12+ 实机）。原生命令目前只有 APK 构建的编译校验；
+  失败时按上面的降级链走，不会破相。
+
 ---
 
 ## 1. 字阶：五档，各占一个语义位

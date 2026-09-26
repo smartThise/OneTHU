@@ -2557,6 +2557,33 @@ async fn read_ykt_cookies(app: tauri::AppHandle) -> Result<String, String> {
     Ok(cookie)
 }
 
+/// 动态取色（§3.4）：Android 12+ 读系统 Material You 调色板（族 × 档位），其余平台返回 None。
+/// 前端据此注入 System 角色；不可用时降级到「清华紫」主题（见 apps/desktop/src/lib/dynamicColor.ts）。
+#[tauri::command]
+async fn dynamic_color(app: tauri::AppHandle) -> Result<Option<serde_json::Value>, String> {
+    #[cfg(mobile)]
+    {
+        let handle = app
+            .state::<tauri_plugin_onethu_mobile::OnethuMobile<tauri::Wry>>()
+            .0
+            .clone();
+        let r: serde_json::Value = handle
+            .run_mobile_plugin_async("getDynamicColor", serde_json::json!({}))
+            .await
+            .map_err(|e| e.to_string())?;
+        if r.get("supported").and_then(|v| v.as_bool()).unwrap_or(false) {
+            Ok(r.get("palette").cloned())
+        } else {
+            Ok(None)
+        }
+    }
+    #[cfg(not(mobile))]
+    {
+        let _ = app;
+        Ok(None)
+    }
+}
+
 #[cfg(mobile)]
 #[tauri::command]
 fn close_ykt_window(_app: tauri::AppHandle) -> Result<(), String> {
@@ -3563,7 +3590,7 @@ tauri::Builder::default()
             thos_open_portal,
             http_native_seed,
             downloads::download_directory_get,downloads::download_directory_pick,downloads::download_directory_reset,save_file_as,
-            log_debug,debug_log_export,read_file_text,trace_key,macos_location,speech_supported,speech_start,speech_poll,speech_stop,mail::mail_list,mail::mail_read,mail::mail_mark_seen,mail::mail_send,mail::mail_search,seafile::seafile_account,seafile::seafile_repos,seafile::seafile_dir,seafile::seafile_download,seafile::seafile_upload,seafile::seafile_mkdir,seafile::seafile_share,seafile::seafile_search,seafile::seafile_pick_upload,http_request,http_native,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,os_is_android,plugin_dir_remove,state_read,state_write,state_delete,
+            log_debug,debug_log_export,read_file_text,trace_key,macos_location,speech_supported,speech_start,speech_poll,speech_stop,mail::mail_list,mail::mail_read,mail::mail_mark_seen,mail::mail_send,mail::mail_search,seafile::seafile_account,seafile::seafile_repos,seafile::seafile_dir,seafile::seafile_download,seafile::seafile_upload,seafile::seafile_mkdir,seafile::seafile_share,seafile::seafile_search,seafile::seafile_pick_upload,http_request,http_native,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,os_is_android,plugin_dir_remove,state_read,state_write,state_delete,dynamic_color,
             open_external,onethu_open_path,onethu_reveal_path,open_eid_window,open_ykt_window,read_ykt_cookies,close_ykt_window,start_qr_keep_alive,stop_qr_keep_alive,widget_push,widget_clear,widget_take_target,widget_status,widget_instances,widget_pin,ui_apply_insets,ui_set_bar_theme,ui_haptic_tick,notify_backend,notify_open_settings,notify_permission,notify_schedule,notify_cancel,notify_pending,notify_test,notify_take_target,open_web_modal,open_app_settings,open_ykt_submit_window,open_sports_window,venue_sso_set,venue_open_portal,
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,
             harness_embed::harness_start,harness_embed::harness_bridge_take,harness_embed::harness_call,harness_embed::harness_notify,harness_embed::harness_rpc_reply,harness_embed::harness_stop])

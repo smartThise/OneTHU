@@ -46,6 +46,7 @@ import "./styles/global.css";
 // 否则同选择器的 transition/animation 会被 global.css 覆盖。
 import "./styles/motion.css";
 import { installScrollReveal } from "./lib/motion.js";
+import { initDynamicColor, watchDynamicColor } from "./lib/dynamicColor.js";
 import { App } from "./App.js";
 import { ConfirmHost } from "./lib/confirm.js";
 import { FormModalHost } from "./lib/formModal.js";
@@ -61,6 +62,11 @@ createRoot(document.getElementById("root")!).render(
     </RootErrorBoundary>
   </StrictMode>,
 );
+// 动态取色（§3.4）：上次开着就重开；取色不可用会自动降级到「清华紫」主题。
+// 放在 CSS 导入之后：注入的 <style> 需要插在令牌样式之后（且自身特异性更高，顺序无关紧要）。
+initDynamicColor();
+watchDynamicColor();
+
 // 恢复已装插件（异步，失败只落日志）
 void (async () => {
   await seedBuiltinHarness();

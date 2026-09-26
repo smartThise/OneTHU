@@ -53,6 +53,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.net.URLConnection
+import java.util.Locale
 
 @InvokeArg
 class SaveDownloadArgs {
@@ -1392,6 +1393,52 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
             invoke.resolve(JSObject().put("ok", true).put("target", target))
         } catch (e: Exception) {
             invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "take-failed"))
+        }
+    }
+
+    /** 动态取色（§3.4）：读系统 Material You 调色板。
+     *  API 31 起 framework 自带 system_accent1_* / system_neutral1_* 等资源，取的就是系统自己那份
+     *  调色板，前端只做「档位 → System 角色」的映射，不做色彩运算（保持零依赖）。
+     *  API < 31：supported=false，前端降级到「清华紫」主题。
+     *  资源名走 getIdentifier（framework 资源，包名 android）：厂商 ROM 裁掉某档时跳过该档，
+     *  不因为一个缺失资源让整条命令失败。 */
+    @Command
+    fun getDynamicColor(invoke: Invoke) {
+        val ret = JSObject()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            ret.put("supported", false)
+            invoke.resolve(ret)
+            return
+        }
+        try {
+            val tones = intArrayOf(0, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
+            val families = linkedMapOf(
+                "primary" to "system_accent1",
+                "secondary" to "system_accent2",
+                "tertiary" to "system_accent3",
+                "neutral" to "system_neutral1",
+                "neutralVariant" to "system_neutral2",
+            )
+            val palette = JSObject()
+            for ((family, prefix) in families) {
+                val bag = JSObject()
+                for (tone in tones) {
+                    val id = activity.resources.getIdentifier("${prefix}_$tone", "color", "android")
+                    if (id == 0) continue
+                    val argb = activity.resources.getColor(id, activity.theme)
+                    bag.put(tone.toString(), String.format(Locale.US, "#%06X", 0xFFFFFF and argb))
+                }
+                if (bag.length() > 0) palette.put(family, bag)
+            }
+            if (palette.length() == 0) {
+                ret.put("supported", false)
+            } else {
+                ret.put("supported", true)
+                ret.put("palette", palette)
+            }
+            invoke.resolve(ret)
+        } catch (e: Exception) {
+            invoke.reject(e.message ?: "读取系统取色失败")
         }
     }
 }

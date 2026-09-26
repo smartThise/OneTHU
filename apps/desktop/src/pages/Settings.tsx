@@ -34,6 +34,12 @@ import {
 import { YktQrPanel, YktWebLoginPanel } from "../components/ExtHwLoginModal.js";
 import { YKT_WEB_LOGIN_AVAILABLE } from "../lib/yktWebview.js";
 import {
+  disableDynamicColor,
+  enableDynamicColor,
+  fetchSystemPalette,
+  isDynamicEnabled,
+} from "../lib/dynamicColor.js";
+import {
   clearTuojAutoStatus,
   clearTycheLogoutSuppress,
   consumeExtHwScrollRequest,
@@ -1688,6 +1694,27 @@ function UpdateRow() {
 /** 外观：昼夜主题调度——跟随系统暗/亮自动切日夜两档主题 */
 function AppearanceSection(): ReactNode {
   const snap = useThemes();
+  /* 动态取色（§3.4）：原生探活一次决定开关是否可用。
+     桌面与 Android < 12 都返回"不可用"——此时开关置灰而不是隐藏，让用户知道原因。 */
+  const [dyn, setDyn] = useState(isDynamicEnabled());
+  const [dynOk, setDynOk] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void fetchSystemPalette().then((p) => {
+      if (alive) setDynOk(!!p && Object.keys(p).length > 0);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const toggleDyn = async (): Promise<void> => {
+    if (dyn) {
+      disableDynamicColor();
+      setDyn(false);
+      return;
+    }
+    setDyn(await enableDynamicColor());
+  };
   const themes = [{ id: "", name: "基础令牌（默认外观）" }, ...snap.themes.map((t) => ({ id: t.id, name: t.dark ? `${t.name}（暗色）` : t.name }))];
   return (
     <div className="setting-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
@@ -1737,6 +1764,28 @@ function AppearanceSection(): ReactNode {
           手动换主题在 插件页 → 主题 里操作；想昼夜自动切换就打开上面的开关。
         </div>
       )}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
+        <div>
+          <div className="setting-title">跟随系统取色</div>
+          {dynOk === false ? (
+            <div className="setting-desc">当前系统不支持，开启后改用「清华紫」主题。</div>
+          ) : (
+            <div className="setting-desc">用壁纸颜色重算全站配色，品牌色与纸面一起变。</div>
+          )}
+        </div>
+        <button
+          className={"switch" + (dyn ? " on" : "")}
+          role="switch"
+          aria-checked={dyn}
+          aria-label="跟随系统取色"
+          onClick={() => void toggleDyn()}
+        />
+      </div>
+      {dyn && dynOk ? (
+        <div className="setting-desc" style={{ color: "var(--text-3)" }}>
+          取色生效中：主题选择暂不生效，关掉开关即恢复所选项。
+        </div>
+      ) : null}
     </div>
   );
 }
