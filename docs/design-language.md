@@ -1,0 +1,196 @@
+# 设计语言（OneTHU 视觉规范）
+
+令牌层解决「有什么可用」，本手册解决「怎么用」。改版期间为活文档：M3 每批次验收对照本手册逐条过，
+新增规则或放宽规则都改这里，并以 `docs/design-language.md` 的 diff 作为依据。
+
+可执行的只有两条（其余靠走查）：`node tools/style-scan.mjs` 查 4pt 间距与字阶，
+`node tools/token-guard.mjs` 查「引用了不存在的令牌」。
+
+---
+
+## 0. 令牌三层与写法
+
+`packages/ui/src/tokens.css` 分三层，写入顺序即阅读顺序：
+
+| 层 | 前缀 | 谁能用 |
+|---|---|---|
+| Reference | `--md-ref-palette-*`（`palette.css`，生成物） | **只有 System 层**。组件直接引用会让主题/暗色失效 |
+| System | `--md-sys-color-*` / `-shape-*` / `-typescale-*` / `-elevation-*` / `-motion-*` | 新代码 |
+| Compat | `--bg` / `--surface` / `--primary` / `--text-1` …（39 个旧名） | 既有代码；语义与 System 一一对应 |
+
+`@css
+/* ✅ 新代码 */           /* ❌ 组件里直接用 Reference 层 */
+color: var(--text-2);       color: var(--md-ref-palette-neutral-50);
+background: var(--surface); background: #ffffff;
+`@
+
+最后一条同样重要：**颜色不写死十六进制**。写死的色值在切主题、切暗色时不会跟着变，
+在暗色下就是一块刺眼的亮斑。
+
+---
+
+## 1. 字阶：五档，各占一个语义位
+
+五档与语义**一对一**，不新增第六档：
+
+| 令牌 | 值 | 唯一语义 |
+|---|---|---|
+| `--md-sys-typescale-display` | 24px | 页标题（`PageHead` 的 h1） |
+| `--md-sys-typescale-headline` | 20px | 卡片标题（`hw-card-title`、`task-sec-title`） |
+| `--md-sys-typescale-title` | 16px | 小标题 / 弹层标题 |
+| `--md-sys-typescale-body` | 14px | 正文、列表主行 |
+| `--md-sys-typescale-label` | 12px | 辅助信息、时间戳、标签 |
+
+`@css
+/* ✅ */                          /* ❌ */
+font-size: var(--text-xl);         font-size: 22px;      /* 规格外 */
+font-size: var(--text-base);       font-size: 13px;      /* 规格外（--text-sm） */
+font-size: var(--text-xs);         font-size: 0.95em;    /* 相对值，层级会漂 */
+`@
+
+**同屏最多 3 档**（页标题 + 正文 + 辅助是常见组合）。第四档出现时，先问能不能降级或删掉。
+
+现状（`tools/style-scan.mjs`）：**97 处规格外**字号，集中在
+`11px×26 / 13px×24 / 10px×20 / 10.5px×9 / 15px×7 / 11.5px×3`。
+其中 `--text-xxs`(11px) 与 `--text-sm`(13px) 是明确的退役对象，
+10px / 10.5px / 11.5px / 12.5px / 18px / 21px / 22px 属历史遗留，
+在 M3 组件批次里逐块收敛到五档。
+
+§3.8 的「移动端 base 14→15px」与本表不冲突，因为那是**令牌值的断点覆盖**而非新档位：
+只改 `--md-sys-typescale-body`（与 `--text-base`）在移动端的取值，五档仍是五档。
+组件里照旧写 `var(--text-base)`；**字面量 `15px` 依旧违规**（扫描按字面量判），
+所以这条规则不因为基准位移而放宽。
+
+---
+
+## 2. 4pt 间距网格
+
+`padding` / `margin` / `gap` 的 px 值只允许 4 的倍数。标准档位七个，对应令牌 `--gap-1..6`：
+
+`@text
+4 (--gap-1)  8 (--gap-2)  12 (--gap-3)  16 (--gap-4)  24 (--gap-5)  32 (--gap-6)
+`@
+
+`@css
+/* ✅ */                                  /* ❌ */
+padding: var(--gap-3) var(--gap-4);        padding: 6px 10px;
+gap: 8px;                                  gap: 10px;      /* 不在网格 */
+margin-bottom: 24px;                       margin-bottom: 20px;
+`@
+
+- 例外：`1px` 描边（`border`）不属于间距，不扫描；图标内部绘制坐标不扫描。
+- 允许 `0`、`auto`、`%`、`calc()` 与 `var()`（走令牌即视为合规）。
+- 现状：**557 处不在网格**（`global.css` 556 / `motion.css` 1），最高频是 `10px`（161 处）。
+
+基线策略见 §8：`tools/style-scan-baseline.json` 只拦**新增**，清理一批就把基线调低。
+
+---
+
+## 3. 分层：色块优先、描边辅助、阴影克制
+
+三级 surface 表达层级，**同一元素只用一种手段**：
+
+| 层级 | 令牌 | 典型用途 |
+|---|---|---|
+| 页面底 | `--bg`（surface） | `.content` 背景 |
+| 分区 | `--bg-soft`（surface-container-low） | 页面内的成组区域、侧栏 |
+| 卡片 | `--surface`（container-lowest）/ `--surface-2`（container） | 卡片、面板、列表容器 |
+
+`@css
+/* ✅ 卡片 = 色块 + 圆角，无边框无阴影 */
+.card { background: var(--surface); border-radius: var(--r-lg); }
+
+/* ❌ 三重表达：更深的底 + 描边 + 阴影同时上，层级反而说不清 */
+.card { background: var(--surface-3); border: 1px solid var(--border); box-shadow: var(--elev-2); }
+`@
+
+阴影 `--elev-1..3` **同屏最多 2 级**；浮层（弹窗、抽屉、命令面板）才用 `--elev-3`。
+暗色下阴影几乎不可见，层级改由 surface 明度承担——所以只靠阴影分层在暗色里会塌掉。
+
+---
+
+## 4. 用色：中性打底，彩色点睛
+
+- **正文区保持中性 surface**；彩色 surface（tonal container）只用于两处：「今日」卡片、功能分组头。
+- **强调色每屏 ≤ 1 处**。蓝色 `--accent` 表达「可点、可去」，红/琥珀/绿只表达状态（错/警/成），不做装饰。
+- 功能色不与强调色混用在同一元素的同一属性上（例如「未读」既用蓝底又用红字）。
+
+`@css
+/* ✅ 今日卡片用 primary-container，其余卡片中性 */   /* ❌ 每张卡片一个颜色 */
+.today-hero { background: var(--accent-soft); }        .card--hw { background: #eef4ff; }
+`@
+
+---
+
+## 5. 状态层：hover / pressed / focused / disabled
+
+指针设备用 **state layer 叠色**，不做涟漪（§2.8.3 已禁用 Ripple）：
+
+| 状态 | 令牌 | 叠色强度 |
+|---|---|---|
+| hover | `--hover` | 8% |
+| pressed | `--active` | 12% |
+| focused | `--ring`（焦点环）+ `--hover` | 8% |
+| disabled | 内容 `opacity: 0.38` | — |
+
+`@css
+/* ✅ 只叠一层半透明色，色值本体不动 */        /* ❌ hover 改的是色值本体 */
+.row:hover { background: var(--hover); }        .row:hover { background: #eceff3; }
+`@
+
+后者的后果：主题或暗色切换后，这个写死的 hover 底色不跟着变。焦点环同理——一律用 `--ring`，
+不自己写 `box-shadow: 0 0 0 3px rgba(...)`；键盘可达性要求**焦点可见**，所以移除焦点环必须同时给出替代高亮。
+
+---
+
+## 6. 图标：保留自绘体系
+
+`apps/desktop/src/components/Icons.tsx` 是统一的内联线性图标集，本项只做一致性约束，不引入图标库：
+
+- 默认档：18×18，`viewBox="0 0 24 24"`，`strokeWidth 1.6`，`stroke="currentColor"`，`aria-hidden`。
+- 尺寸只有 16 / 18 / 20 / 24 四档；**16px 档用 1.4 描边**（小尺寸下 1.6 会显糊），已在 Icons.tsx 内体现。
+- 颜色随文字（`currentColor`），不单独给图标上色；状态由所在容器承担。
+- 语义重复的图标不新增：先查 Icons.tsx 是否已有同义项。
+
+`@tsx
+/* ✅ */                                  /* ❌ */
+<IconRefresh />                            <svg strokeWidth="2.2" fill="#333">…</svg>
+<IconRefresh size={16} />                  <i className="fa fa-refresh" />
+`@
+
+---
+
+## 7. 插画：尚未落地，先定规则
+
+§3.7 计划在「今日」顶部时段问候处放 4 张手绘 SVG（`assets/greeting/`），
+**当前代码库还没有插画资源**，所以本节只定规则，落地时按规则实现：
+
+1. 线条与图标同源：1.6px 圆头圆角描边，`currentColor` 或令牌色；
+2. 配色只用令牌色（`--accent` / `--accent-soft` / `--amber` 及其 container 档），不引入新色；
+3. 场景清单固定四张：早（6–11）、午（11–17）、晚（17–22）、夜（22–6）；
+4. 尺寸单一档（宽度 ≤ 96px），不随断点缩放；暗色下靠令牌色自动适配，不做两套图。
+
+---
+
+## 8. 走查机制与基线
+
+**每批次（PR）验收**：对照 §1–§7 逐条过一遍，新增违规由扫描拦下：
+
+`@bash
+node tools/style-scan.mjs        # 4pt 间距 + 字阶，只拦新增（基线 tools/style-scan-baseline.json）
+node tools/token-guard.mjs       # 引用了不存在的令牌 / CSS 注释嵌套
+node tools/theme-vars-test.mjs   # 主题声明的变量名必须真实存在
+`@
+
+**基线**：历史违规 `557 处间距 + 97 处字号`已记入基线，**只拦新增**。
+按「文件 + 违规值 → 数量」记，不记行号：行号会随任何一次编辑漂移，逐行基线次日即失效。
+代价是同文件内「加一处、删一处」能互相抵消——批次验收时人眼补这一位。
+
+**发布前**：一次「细节走查日」，固定清单——焦点态（键盘 Tab 走一圈）、空态、边界宽度
+（375 / 768 / 1440）、暗色与跟随系统、系统「减弱动态效果」、超长标题与超长列表。
+
+**清理进度**（每次调低基线后更新）：
+
+| 批次 | 间距不在网格 | 规格外字号 |
+|---|---|---|
+| §3.9 建档（当前） | 557 | 97 |
