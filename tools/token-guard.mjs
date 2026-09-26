@@ -24,6 +24,25 @@ function walk(dir, out = []) {
 }
 const files = ROOTS.flatMap((r) => walk(r));
 
+/* CSS 注释不能嵌套：注释里再写 /* 会把外层提前关掉，后面的字变成真 CSS（构建才报错）。
+   这个坑真踩过——tokens.css 注释里写示例变量时带了一对注释符，vite 构建直接 Unknown word。 */
+const commentNest = [];
+function checkCommentNesting(f, t) {
+  let inComment = false;
+  for (let i = 0; i < t.length - 1; i++) {
+    const two = t.slice(i, i + 2);
+    if (two === "/*") {
+      if (inComment) commentNest.push(f + " 注释嵌套（注释里又出现 /*）");
+      inComment = true;
+      i++;
+    } else if (two === "*/") {
+      inComment = false;
+      i++;
+    }
+  }
+  if (inComment) commentNest.push(f + " 注释没有闭合（缺 */）");
+}
+
 const defined = new Set();
 const used = new Map();
 /** 运行时注入的自定义属性（TSX 里 style={{ "--i": n }}）——CSS 里查不到定义，但确实存在 */
@@ -35,7 +54,9 @@ function stripComments(t) {
   return t.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
 }
 for (const f of files) {
-  const text = stripComments(readFileSync(f, "utf8"));
+  const raw = readFileSync(f, "utf8");
+  if (f.endsWith(".css")) checkCommentNesting(f, raw);
+  const text = stripComments(raw);
   for (const m of text.matchAll(/(--[a-z0-9-]+)\s*:/g)) defined.add(m[1]);
   for (const m of text.matchAll(/var\((--[a-z0-9-]+)(\s*,[^)]*)?\)/g)) {
     if (!used.has(m[1])) used.set(m[1], new Set());
@@ -58,6 +79,11 @@ const isRef = (v) => v.startsWith("--md-ref-palette-");
 const refUnused = unused.filter(isRef);
 const otherUnused = unused.filter((v) => !isRef(v));
 
+if (commentNest.length) {
+  console.error("  ✗ CSS 注释问题（注释不能嵌套，会让后面的字变成真 CSS）：");
+  for (const c of [...new Set(commentNest)]) console.error("    " + c);
+  process.exit(1);
+}
 console.log(
   "令牌守卫：定义 " + defined.size + " 个 / 引用 " + used.size + " 个" +
   " / 运行时注入 " + runtimeInjected.size + " 个 / 可选(带 fallback) " + optional.size + " 个",

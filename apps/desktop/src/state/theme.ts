@@ -92,6 +92,44 @@ const BUILTIN_THEMES: ThemeDef[] = [
     source: "builtin",
   },
   {
+    // 清华紫：校色主题。全部取值由 tonal palette 派生（种子 #660874，见 packages/ui/src/palette.css
+    // 与 docs/tokens-map.md 的亮色 scheme），不是手调色——种子一改、重跑 tools/gen-tokens.mjs，这里照抄即可。
+    id: "onethu.theme.tsinghua",
+    name: "清华紫",
+    version: "1.0.0",
+    author: "OneTHU",
+    description: "校色紫：紫底白字主按钮 + 藕紫纸面，链接与激活同色（MD3 tonal palette 派生）。",
+    vars: {
+      // 品牌族：primary tone 40 / 悬停 tone 30（加深一档，紫底白字变浅会掉对比度）
+      "--primary": "#90399c",
+      "--primary-hover": "#751d82",
+      "--on-primary": "#ffffff",
+      // 链接/激活跟校色走——主题要"整屏是紫的"，而不只是换个按钮色
+      "--accent": "#90399c",
+      "--accent-soft": "#ffd6fd",       // primary-container
+      "--accent-border": "#e8b4e6",
+      // 面：neutral 系列，带一点藕紫（surface tone 99 / 98 / 95 / surface-variant）
+      "--bg": "#fffbff",
+      "--bg-soft": "#f7eef2",
+      "--surface": "#fff7fa",
+      "--surface-2": "#f7eef2",
+      "--surface-3": "#eddfe8",
+      "--border": "#d0c3cc",            // outline-variant
+      "--border-soft": "rgba(88, 0, 101, 0.06)",
+      "--border-strong": "#b9a8b3",
+      // 字色：on-surface / on-surface-variant / outline
+      "--text-1": "#1e1a1d",
+      "--text-2": "#4d444c",
+      "--text-3": "#7f747c",
+      "--text-dim": "#cfc4cb",
+      // 交互：紫调状态层 + 紫调焦点环（默认主题的焦点环是业务蓝，切到这个主题应一起变）
+      "--hover": "rgba(88, 0, 101, 0.06)",
+      "--active": "rgba(88, 0, 101, 0.11)",
+      "--ring": "0 0 0 3px rgba(144, 57, 156, 0.25)",
+    },
+    source: "builtin",
+  },
+  {
     id: "onethu.theme.celadon",
     name: "青瓷",
     version: "1.1.0",

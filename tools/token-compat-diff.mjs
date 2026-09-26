@@ -58,8 +58,8 @@ const newMap = collect(stripSchemeBlocks(newCss));
 
 /* 本批次**有意**变化（§3.2 品牌色）：不算失败，但要显式列出来，避免"预期变化"和"意外变色"混在一起。 */
 const INTENTIONAL = new Map([
-  ["--primary", "§3.2 主按钮黑 → 清华紫 tonal tone 40（#90399c）"],
-  ["--primary-hover", "§3.2 悬停方向改为加深一档（tone 30 #751d82）"],
+  ["--primary", "默认主题回黑白配；清华紫改由内置主题 onethu.theme.tsinghua 承载"],
+  ["--primary-hover", "同上（悬停回 #43454a）"],
 ]);
 const fails = [];
 const changed = [];
