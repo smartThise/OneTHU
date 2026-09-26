@@ -373,6 +373,9 @@ function syncSystemBars(dark: boolean): void {
 
 /** 生成并注入主题样式；html[data-theme] 挂钩（清除用 null） */
 function applyTheme(def: ThemeDef | null): void {
+  // 取色生效时主题让位：昼夜调度或插件切主题引起的注入一律跳过（显式切主题会先让取色退场，
+  // 见 activateTheme——那里摘掉取色注入后才走到这里，所以不会被这一条挡住）。
+  if (def && document.documentElement.dataset.dynamic === "on") return;
   const root = document.documentElement;
   // 主题切换动效（local/anim-delight）：换主题时给 <html> 挂 400ms 的 .theme-anim，
   // 让背景/文字/边框颜色平滑过渡而不是"啪"地跳色。启动首次应用不挂（那时不需要）。
@@ -472,6 +475,17 @@ export function useThemes(): ThemeSnapshot {
 export function activateTheme(id: string): boolean {
   const def = state.installed.find((t) => t.id === id);
   if (!def) return false;
+  /* 取色生效时切主题 → 先让取色退场（不 import dynamicColor，避免循环依赖；只碰同一份偏好键与 DOM）。
+     插件页 → 主题 也能切主题，只在外观设置里挡是挡不住的。 */
+  try {
+    if (typeof document !== "undefined" && document.documentElement.dataset.dynamic === "on") {
+      localStorage.setItem("onethu.dynamicColor", "0");
+      document.getElementById("onethu-dynamic-color")?.remove();
+      delete document.documentElement.dataset.dynamic;
+    }
+  } catch {
+    /* 隐私模式下 localStorage 不可用：取色注入仍被摘掉，本次会话行为正确 */
+  }
   state.activeId = id;
   applyTheme(def);
   persist();
@@ -497,6 +511,11 @@ export function setDayNightTheme(dayId: string | null, nightId: string | null): 
 }
 
 /** 停用主题：回到基础令牌（不删除） */
+/** 重新应用"当前应当生效"的主题（取色退场后调用：把昼夜调度/手动单选的状态接回来） */
+export function reapplyActiveTheme(): void {
+  applyActive();
+}
+
 export function deactivateTheme(): void {
   state.activeId = null;
   applyTheme(null);

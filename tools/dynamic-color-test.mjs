@@ -8,7 +8,7 @@
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { rolesFromPalette, mix, alpha } from "../apps/desktop/src/lib/dynamicRoles.ts";
+import { rolesFromPalette, detectInverted, mix, alpha } from "../apps/desktop/src/lib/dynamicRoles.ts";
 
 const TONES = [0, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
 
@@ -70,26 +70,64 @@ const lum = (hexStr) => {
 };
 const SURFACES = ["surface", "surface-container-lowest", "surface-container-low", "surface-container", "surface-container-high"];
 
-/* [4] 面层级：亮色都在高处、暗色都在低处，且容器面在正确的方向上分层 */
-for (const s of SURFACES) {
-  const l = lum(light["--md-sys-color-" + s]);
-  const d = lum(dark["--md-sys-color-" + s]);
-  assert.ok(l > 0.8, "亮色面不够亮：" + s + " → " + light["--md-sys-color-" + s]);
-  assert.ok(d < 0.25, "暗色面不够暗：" + s + " → " + dark["--md-sys-color-" + s]);
+/* [4] 面层级：亮色都在高处、暗色都在低处，且容器面在正确的方向上分层。
+       —— 这一组就是真机抓出来的那个 bug：档位方向判断错时，亮色面会变成近黑。 */
+function checkSurfaceDirection(r, label) {
+  for (const s of SURFACES) {
+    const l = lum(r.light["--md-sys-color-" + s]);
+    const d = lum(r.dark["--md-sys-color-" + s]);
+    assert.ok(l > 0.75, label + " 亮色面不够亮：" + s + " → " + r.light["--md-sys-color-" + s]);
+    assert.ok(d < 0.25, label + " 暗色面不够暗：" + s + " → " + r.dark["--md-sys-color-" + s]);
+  }
+  assert.ok(
+    lum(r.light["--md-sys-color-surface-container-high"]) < lum(r.light["--md-sys-color-surface"]),
+    label + " 亮色容器面应比页面底更深",
+  );
+  assert.ok(
+    lum(r.dark["--md-sys-color-surface-container-high"]) > lum(r.dark["--md-sys-color-surface"]),
+    label + " 暗色容器面应比页面底更浅",
+  );
+  assert.equal(
+    r.light["--md-sys-color-surface"],
+    r.light["--md-sys-color-surface-container-lowest"],
+    label + " 亮色 surface 与 lowest 基线相同",
+  );
+  /* 暗色下卡片面比页面底**更浅**（与凝夜主题同方向：--bg #0e1117 → --surface #151a24） */
+  assert.ok(
+    lum(r.dark["--md-sys-color-surface-container-lowest"]) > lum(r.dark["--md-sys-color-surface"]),
+    label + " 暗色 lowest 应比页面底更浅",
+  );
 }
+checkSurfaceDirection(roles, "AOSP 方向");
+
+/* [4b] 档位方向自检：真机（Android 16 / HyperOS）实测 _0 = 白、_1000 = 黑，
+       与 AOSP 命名相反。两种约定都必须得出正确的亮暗面——这是本文件最重要的一条。 */
+const invertedFamily = (h, s) =>
+  Object.fromEntries(TONES.map((t) => [String(t), hsl(h, s, 1 - t / 1000)]));
+const INVERTED = {
+  primary: invertedFamily(295, 0.5),
+  secondary: invertedFamily(300, 0.12),
+  neutral: invertedFamily(280, 0.02),
+  neutralVariant: invertedFamily(280, 0.06),
+};
+assert.equal(detectInverted(PALETTE), false, "AOSP 约定不应被判为反向");
+assert.equal(detectInverted(INVERTED), true, "真机约定应被判为反向");
+checkSurfaceDirection(rolesFromPalette(INVERTED), "真机方向");
+
+/* [4c] 真机实测样本直接回放（tools/device-palette.json，Xiaomi 25102RKBEC / Android 16）。
+       样本在，才有人敢改映射表：改坏了这三条断言会立刻说话。 */
+const device = JSON.parse(readFileSync("tools/device-palette.json", "utf8"));
+assert.equal(detectInverted(device.palette), true, "真机样本应被判为反向");
+const devRoles = rolesFromPalette(device.palette);
+checkSurfaceDirection(devRoles, "真机样本");
+assert.match(devRoles.dark["--md-sys-color-primary"], /^#[0-9a-f]{6}$/i, "真机样本应产出可用的 primary");
 assert.ok(
-  lum(light["--md-sys-color-surface-container-high"]) < lum(light["--md-sys-color-surface"]),
-  "亮色容器面应比页面底更深",
+  lum(devRoles.light["--md-sys-color-on-surface"]) < 0.1,
+  "真机样本亮色文字应近黑：" + devRoles.light["--md-sys-color-on-surface"],
 );
 assert.ok(
-  lum(dark["--md-sys-color-surface-container-high"]) > lum(dark["--md-sys-color-surface"]),
-  "暗色容器面应比页面底更浅",
-);
-assert.equal(light["--md-sys-color-surface"], light["--md-sys-color-surface-container-lowest"], "亮色 surface 与 lowest 基线相同");
-/* 暗色下卡片面比页面底**更浅**（与凝夜主题同方向：--bg #0e1117 → --surface #151a24） */
-assert.ok(
-  lum(dark["--md-sys-color-surface-container-lowest"]) > lum(dark["--md-sys-color-surface"]),
-  "暗色 lowest 应比页面底更浅",
+  lum(devRoles.dark["--md-sys-color-on-surface"]) > 0.5,
+  "真机样本暗色文字应偏亮：" + devRoles.dark["--md-sys-color-on-surface"],
 );
 
 /* [5] 描边/状态层保持"半透明叠色"形态（令牌里本就是 rgba，换成实色会变重） */
@@ -116,5 +154,24 @@ assert.ok(/delete document\.documentElement\.dataset\.dynamic/.test(src), "关�
 assert.ok(src.includes("onethu.theme.tsinghua"), "缺少降级主题（清华紫）");
 assert.ok(/try\s*\{[\s\S]*invoke[\s\S]*catch/.test(src), "原生调用必须包 try/catch（桌面没有这条命令）");
 assert.ok(/if \(!palette \|\| Object\.keys\(palette\)\.length === 0\)/.test(src), "空调色板必须走降级分支");
+/* [8] 主题让位（真机抓到的第二个问题：主题注入的 :root[data-theme] 块自己声明了 --accent/--bg，
+       与取色并存会得到"面跟随壁纸、强调色还是主题的"半套配色） */
+assert.ok(src.includes("deactivateTheme()"), "开启取色必须让主题退场");
+assert.ok(src.includes("RESTORE_KEY") && src.includes("activeThemeId()"), "必须记住被顶掉的主题以便恢复");
+assert.ok(src.includes("reapplyActiveTheme()"), "关掉取色必须把昼夜调度/基础令牌接回来");
+assert.ok(
+  /if \(!readPref\(\)\) writeRestore\(activeThemeId\(\)\)/.test(src),
+  "只有用户主动开启时才快照主题（开机自举会覆盖成 null，把用户选的主题弄丢）",
+);
+assert.ok(src.includes("syncScheme()") && /dataset\.scheme = "dark"/.test(src), "取色期间必须自己驱动 data-scheme（主题已让位）");
+const themeSrc = readFileSync("apps/desktop/src/state/theme.ts", "utf8");
+assert.ok(
+  /if \(def && document\.documentElement\.dataset\.dynamic === "on"\) return;/.test(themeSrc),
+  "取色生效时主题注入必须被跳过（否则昼夜调度会偷偷把主题压回来）",
+);
+assert.ok(
+  /localStorage\.setItem\("onethu\.dynamicColor", "0"\)/.test(themeSrc),
+  "从插件页切主题时必须先让取色退场",
+);
 
 console.log("动态取色护栏：映射 " + (Object.keys(light).length + Object.keys(dark).length) + " 个角色值 / 完整性 ✓ / 缺档安全 ✓ / 注入与降级接线 ✓");

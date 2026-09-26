@@ -11,9 +11,17 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { rolesFromPalette, type DynamicPalette, type DynamicRoles } from "./dynamicRoles.js";
-import { activateTheme } from "../state/theme.js";
+import {
+  activateTheme,
+  activeThemeId,
+  deactivateTheme,
+  hasTheme,
+  reapplyActiveTheme,
+} from "../state/theme.js";
 
 const PREF_KEY = "onethu.dynamicColor";
+/** 开启取色时被顶掉的主题，关掉时还给用户 */
+const RESTORE_KEY = "onethu.dynamicColor.restore";
 const STYLE_ID = "onethu-dynamic-color";
 /** 取色不可用时的降级主题（§3.4 降级链：系统取色 → 清华紫） */
 export const DYNAMIC_FALLBACK_THEME = "onethu.theme.tsinghua";
@@ -30,6 +38,21 @@ const writePref = (on: boolean): void => {
     localStorage.setItem(PREF_KEY, on ? "1" : "0");
   } catch {
     /* 隐私模式下 localStorage 不可用：本次会话仍然生效 */
+  }
+};
+const readRestore = (): string | null => {
+  try {
+    return localStorage.getItem(RESTORE_KEY);
+  } catch {
+    return null;
+  }
+};
+const writeRestore = (id: string | null): void => {
+  try {
+    if (id) localStorage.setItem(RESTORE_KEY, id);
+    else localStorage.removeItem(RESTORE_KEY);
+  } catch {
+    /* 同上 */
   }
 };
 
@@ -65,9 +88,8 @@ export function applyDynamicColor(palette: DynamicPalette): void {
   }
   el.textContent = render(roles);
   document.documentElement.dataset.dynamic = "on";
-  // 亮暗两套都在上面注入了，但 <html> 的 colorScheme 由主题引擎负责——
-  // 取色生效时按系统亮暗走（跟随系统），避免"暗色壁纸配亮色表单控件"。
-  document.documentElement.style.colorScheme = prefersDark() ? "dark" : "light";
+  // 亮/暗两套角色都在上面注入了，选哪一套看 data-scheme——取色期间按系统亮暗走。
+  syncScheme();
 }
 
 export function clearDynamicColor(): void {
@@ -77,6 +99,14 @@ export function clearDynamicColor(): void {
 
 const prefersDark = (): boolean =>
   typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches;
+
+/** 取色生效期间由取色自己驱动 §3.3 的暗色套开关：主题已让位，没人再设 data-scheme 了 */
+const syncScheme = (): void => {
+  const root = document.documentElement;
+  if (prefersDark()) root.dataset.scheme = "dark";
+  else delete root.dataset.scheme;
+  root.style.colorScheme = prefersDark() ? "dark" : "light";
+};
 
 export const isDynamicEnabled = readPref;
 
@@ -89,6 +119,14 @@ export async function enableDynamicColor(): Promise<boolean> {
     activateTheme(DYNAMIC_FALLBACK_THEME);
     return false;
   }
+  /* 主题必须让位：主题注入的 :root[data-theme] 块（特异度 0,2,0）自己声明了 --accent/--bg 这些
+     兼容变量，而取色只改 System 角色——两者并存会得到"半套取色"（面跟随壁纸、强调色还是主题的）。
+     真机验证时就是这样：--md-sys-color-surface 变了，--accent 还是凝夜的蓝。 */
+  /* 只在"用户主动开启"时快照：开机自举时主题已被上一轮让位（activeThemeId() 为 null），
+     若在这里覆盖快照就会把用户真正选的主题弄丢（真机残留过一次 restore=violet 配 pref=0，
+     那种状态再关掉会把"跟随昼夜"的用户错误地拉到 violet）。 */
+  if (!readPref()) writeRestore(activeThemeId());
+  deactivateTheme();
   applyDynamicColor(palette);
   writePref(true);
   return true;
@@ -97,6 +135,11 @@ export async function enableDynamicColor(): Promise<boolean> {
 export function disableDynamicColor(): void {
   clearDynamicColor();
   writePref(false);
+  const prev = readRestore();
+  writeRestore(null);
+  if (prev && hasTheme(prev)) activateTheme(prev);
+  // 没有可恢复的手动主题时，把昼夜调度（或"基础令牌"）的状态接回来
+  else reapplyActiveTheme();
 }
 
 /** 开机自举：上次开着就重开（取色失败自动降级，不会留半套配色） */
@@ -109,9 +152,7 @@ export function watchDynamicColor(): () => void {
   if (typeof matchMedia !== "function") return () => undefined;
   const mq = matchMedia("(prefers-color-scheme: dark)");
   const onChange = (): void => {
-    if (document.documentElement.dataset.dynamic === "on") {
-      document.documentElement.style.colorScheme = mq.matches ? "dark" : "light";
-    }
+    if (document.documentElement.dataset.dynamic === "on") syncScheme();
   };
   mq.addEventListener("change", onChange);
   return () => mq.removeEventListener("change", onChange);

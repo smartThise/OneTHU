@@ -1742,6 +1742,7 @@ function AppearanceSection(): ReactNode {
               className="input"
               value={snap.dayThemeId ?? ""}
               onChange={(e) => setDayNightTheme(e.target.value || null, snap.nightThemeId)}
+              disabled={dyn}
               style={{ maxWidth: 240 }}
             >
               {themes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -1753,6 +1754,7 @@ function AppearanceSection(): ReactNode {
               className="input"
               value={snap.nightThemeId ?? ""}
               onChange={(e) => setDayNightTheme(snap.dayThemeId, e.target.value || null)}
+              disabled={dyn}
               style={{ maxWidth: 240 }}
             >
               {themes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
