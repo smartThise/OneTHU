@@ -3228,7 +3228,9 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   overflow: hidden;
   animation: dock-panel-in 0.38s cubic-bezier(0.22, 1.1, 0.36, 1) both;
 }
-.dock-panel.is-closing { animation: dock-panel-out 0.2s cubic-bezier(0.4, 0, 1, 1) both; }
+.dock-panel.is-closing {
+  animation: dock-panel-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both;
+}
 /* 语音松手后的滑动进场（区别于点击的 morph） */
 .dock-panel.is-slide { animation: dock-panel-slide 0.42s cubic-bezier(0.22, 1.05, 0.36, 1) both; }
 @keyframes dock-panel-in {

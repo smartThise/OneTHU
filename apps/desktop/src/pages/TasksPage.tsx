@@ -538,7 +538,11 @@ export function TasksPage(): ReactNode {
       <div className={"tasks-body" + (wide ? " is-wide" : "")} onPointerDown={onHDown} onPointerUp={onHUp}>
       <section className={"tasks-pane" + (wide || tab === "learn" ? "" : " is-hidden")}>
         <div className="tasks-pane-head">学习</div>
-        <div className="tasks-learn">
+        {/* 元素出场（§3.6：「待办页元素错峰出场」此前延后到动效令牌落地）：
+            只在这一层用一个 .stagger——筛选行 → 卡片流 → 统计/入口逐项上浮 26ms。
+            不在子容器再套一层：父子同时进场会糊成一团，也不给卡片流内的卡加动画
+            （那层是拖拽 transform 的地盘，动画叠上去会和手势抢属性）。 */}
+        <div className="tasks-learn stagger">
           {/* 按课程检索：作业流上方，避免在几十条作业里翻找某一科 */}
           <div className="hw-filter">
             <select
