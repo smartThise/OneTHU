@@ -14,11 +14,14 @@ const TOKENS = "packages/ui/src/tokens.css";
 const PALETTE = "packages/ui/src/palette.css";
 const OUT = "docs/tokens-map.md";
 
-const tokensCss = readFileSync(TOKENS, "utf8");
+const paletteCss = readFileSync(PALETTE, "utf8"); // Reference 层：System 的 var() 要靠它解析
+const tokensCssRaw = readFileSync(TOKENS, "utf8");
+/** 剔除暗色套块：同名角色在那里重复声明，不剔除会把"亮色实况"列污染成暗色值 */
+const tokensCss = tokensCssRaw.replace(/:root\[data-scheme="dark"\]\s*\{[\s\S]*?\n\}/g, " ");
 
 /* ---- 表 1：解析 Compat 层 ---- */
 const decls = new Map();
-for (const m of tokensCss.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) decls.set(m[1], m[2].trim());
+for (const m of (paletteCss + "\n" + tokensCss).matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) decls.set(m[1], m[2].trim());
 function resolve(name, depth = 0) {
   if (depth > 10) return "?";
   const raw = decls.get(name);
@@ -31,6 +34,14 @@ function resolve(name, depth = 0) {
 /* Compat 块 = --md- 开头之外的全部声明，且值里含 var(--md- */
 const compat = [...decls.entries()].filter(([n, v]) => !n.startsWith("--md-") && v.includes("var(--md-"));
 
+/* ---- 暗色套实况（tokens.css 的 :root[data-scheme="dark"]） ---- */
+const darkBlock = (() => {
+  const i = tokensCssRaw.indexOf(":root[data-scheme=\"dark\"]");
+  if (i < 0) return "";
+  return tokensCssRaw.slice(tokensCssRaw.indexOf("{", i), tokensCssRaw.indexOf("\n}", i));
+})();
+const darkDecls = new Map();
+for (const m of darkBlock.matchAll(/(--md-sys-[a-z0-9-]+)\s*:\s*([^;]+);/g)) darkDecls.set(m[1], m[2].trim());
 /* ---- 表 2：palette.css 里注释形态的派生 System 角色 ---- */
 const pal = readFileSync(PALETTE, "utf8");
 const schemes = { light: [], dark: [] };
@@ -56,11 +67,12 @@ L.push("→ **Compat**（`--bg` / `--surface` / `--primary` / `--text-1` … 旧
 L.push("");
 L.push("## 1. Compat 层实况（旧变量 → System 角色 → 当前解析值）");
 L.push("");
-L.push("| 旧变量 | System 角色 | 当前解析值 |");
-L.push("|---|---|---|");
+L.push("| 旧变量 | System 角色 | 亮色（实况） | 暗色（System 暗色套） |");
+L.push("|---|---|---|---|");
 for (const [name, val] of compat) {
   const role = (val.match(/var\((--[a-z0-9-]+)/) ?? [])[1] ?? "—";
-  L.push("| `" + name + "` | `" + role + "` | `" + resolve(name) + "` |");
+  const darkVal = darkDecls.get(role) ?? (role.startsWith("--md-sys-shape-") ? "同亮色" : "（未覆盖）");
+  L.push("| `" + name + "` | `" + role + "` | `" + resolve(name) + "` | `" + darkVal + "` |");
 }
 L.push("");
 L.push("共 " + compat.length + " 个旧变量全部有映射。**重写不改变观感**由 `node tools/token-compat-diff.mjs` 逐条比对证明");

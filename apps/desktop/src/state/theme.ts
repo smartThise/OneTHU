@@ -344,6 +344,7 @@ function applyTheme(def: ThemeDef | null): void {
   let style = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
   if (!def) {
     delete root.dataset.theme;
+    delete root.dataset.scheme;       // 回归基础令牌 = 亮色（System 暗色套由 tokens.css 提供）
     root.style.colorScheme = "light"; // 回归基础令牌 = 亮色（安卓 WebView 强制反色防护恢复）
     if (style) style.textContent = "";
     logoSvg = null;
@@ -370,6 +371,10 @@ function applyTheme(def: ThemeDef | null): void {
   // color-scheme 跟随主题声明：暗色主题让原生控件/滚动条/表单控件同步反色
   // （global.css 的 :root { color-scheme: light } 特异度 (0,1,0) 被这里 (0,2,0) 稳压）
   root.style.colorScheme = def.dark ? "dark" : "light";
+  // §3.3 双通道：手动通道 = 主题（data-theme）+ System 暗色套开关（data-scheme）。
+  // 亮色主题不声明该属性，让 tears.css 的亮色 :root 生效。
+  if (def.dark) root.dataset.scheme = "dark";
+  else delete root.dataset.scheme;
   logoSvg = def.logo && def.logo.includes("<svg") ? def.logo : null;
   syncSystemBars(!!def.dark);
 }

@@ -16,6 +16,12 @@ const REF = process.argv[2] ?? "HEAD";
 const OLD_PATH = "packages/ui/src/tokens.css";
 const NEW_FILES = ["packages/ui/src/palette.css", "packages/ui/src/tokens.css"];
 
+/** 剔除暗色套块（同名角色在 [data-scheme=dark] 里重复声明，混进 map 会污染亮色值——
+    这个坑也真踩过：collect 只认最后一个声明，于是"亮色值"被暗色值覆盖，全是假报警） */
+function stripSchemeBlocks(css) {
+  return css.replace(/:root\[data-scheme="dark"\]\s*\{[\s\S]*?\n\}/g, " ");
+}
+
 /** 收集 --name: value; 声明（后出现的覆盖先出现的） */
 function collect(css) {
   const map = new Map();
@@ -38,24 +44,46 @@ function resolve(name, map, depth = 0) {
 const norm = (s) => s.replace(/\s+/g, " ").replace(/\s*,\s*/g, ",").trim().toLowerCase();
 
 const oldCss = execFileSync("git", ["show", REF + ":" + OLD_PATH], { encoding: "utf8" });
+/* 旧版也要能解析 var() 链：重写提交本身可能已经进 HEAD，那时旧值里就带 var() 了
+   （拿「原始值」比「解析值」会全是假报警——这个 bug 真出现过）。 */
+let oldPalette = "";
+try {
+  oldPalette = execFileSync("git", ["show", REF + ":packages/ui/src/palette.css"], { encoding: "utf8" });
+} catch {
+  oldPalette = ""; // 重写前没有 palette.css，正常
+}
 const newCss = NEW_FILES.map((f) => readFileSync(f, "utf8")).join("\n");
-const oldMap = collect(oldCss);
-const newMap = collect(newCss);
+const oldMap = collect(stripSchemeBlocks(oldPalette + "\n" + oldCss));
+const newMap = collect(stripSchemeBlocks(newCss));
 
+/* 本批次**有意**变化（§3.2 品牌色）：不算失败，但要显式列出来，避免"预期变化"和"意外变色"混在一起。 */
+const INTENTIONAL = new Map([
+  ["--primary", "§3.2 主按钮黑 → 清华紫 tonal tone 40（#90399c）"],
+  ["--primary-hover", "§3.2 悬停方向改为加深一档（tone 30 #751d82）"],
+]);
 const fails = [];
+const changed = [];
 let checked = 0;
 for (const [name, oldVal] of oldMap) {
   if (name.startsWith("--md-")) continue; // 新层自有的，不在旧文件里
   checked++;
+  const want = resolve(name, oldMap) ?? oldVal;
   const got = resolve(name, newMap);
   if (got === null) { fails.push(name + "：新版没有定义（Compat 层漏迁）"); continue; }
-  if (norm(got) !== norm(oldVal)) fails.push(name + "：旧 " + oldVal + " → 新 " + got);
+  if (norm(got) !== norm(want)) {
+    if (INTENTIONAL.has(name)) changed.push(name + "：" + want + " → " + got + "（" + INTENTIONAL.get(name) + "）");
+    else fails.push(name + "：旧 " + want + " → 新 " + got);
+  }
 }
 
 console.log("令牌兼容比对（旧 " + REF + " vs 新版）：检查 " + checked + " 个旧变量");
+if (changed.length) {
+  console.log("  预期变化 " + changed.length + " 项：");
+  for (const c of changed) console.log("    · " + c);
+}
 if (fails.length) {
   console.error("  ✗ " + fails.length + " 个变量观感会变：");
   for (const f of fails) console.error("    " + f);
   process.exit(1);
 }
-console.log("  全部变量解析值一致 —— 令牌层重写零观感变化 ✓");
+console.log("  其余变量解析值一致 —— 除上列预期变化外无意外变色 ✓");

@@ -19,9 +19,14 @@
   color-scheme: light;
 
   /* ---------- System：面（§3.1 映射表） ---------- */
-  --md-sys-color-surface: #ffffff;                  /* ← --bg / --surface */
-  --md-sys-color-surface-container-low: #f9fafb;    /* ← --bg-soft / --surface-2 */
-  --md-sys-color-surface-container: #ebeef2;        /* ← --surface-3 */
+  /* 5 级 surface：亮色下只用到 3 个值（旧实现如此），但凝夜主题的 5 个面各不相同——
+     按 5 级映射才不会在暗色下把卡片面压成页面底（方案 §3.1 简表把 --bg/--surface 合并，
+     复核后发现会改掉暗色层次，故按复核结果拆开）。 */
+  --md-sys-color-surface: #ffffff;                        /* ← --bg：页面底 */
+  --md-sys-color-surface-container-low: #f9fafb;          /* ← --bg-soft */
+  --md-sys-color-surface-container-lowest: #ffffff;       /* ← --surface：卡片面 */
+  --md-sys-color-surface-container: #f9fafb;              /* ← --surface-2 */
+  --md-sys-color-surface-container-high: #ebeef2;         /* ← --surface-3 */
   --md-sys-color-skeleton: rgba(0, 0, 0, 0.04);
   /* 骨架屏流光高光：亮色=白光扫过；暗色主题必须覆盖（否则暗底上一道刺眼白光，
      霖实测「暗黑模式下的流光还是白色模式的」）。见 state/theme.ts 各 dark 主题。 */
@@ -38,12 +43,12 @@
   --md-sys-color-outline: #81858c;               /* ← --text-3 */
   --md-sys-color-on-surface-disabled: #d5dbe3;   /* ← --text-dim */
 
-  /* ---------- System：品牌 / 强调 ----------
-     §3.2 待办：主按钮黑 → 品牌色（清华紫种子 tonal palette 已生成）——
-     把下面 --md-sys-color-primary 换成 var(--md-ref-palette-primary-40) 即可，改动只此一行。
-     对照：palette primary-40 = #90399c（亮色 scheme 的 primary）。 */
-  --md-sys-color-primary: #0f1115;
-  --md-sys-color-primary-hover: #43454a;   /* 过渡：§3.9 状态层用 primary + state layer 取代 */
+  /* ---------- System：品牌 / 强调（§3.2 已接入：主按钮黑 → 品牌色） ----------
+     清华紫种子 tonal palette 派生：tone 40 作亮色 primary，tone 30 作悬停（加深一档——
+     原设计悬停是变浅，紫底白字变浅会掉对比度，故改方向）。
+     想换深浅只改这两行的 tone：20 #580065 更深 / 50 #ad53b7 更亮。 */
+  --md-sys-color-primary: var(--md-ref-palette-primary-40);      /* #90399c */
+  --md-sys-color-primary-hover: var(--md-ref-palette-primary-30); /* #751d82 */
   --md-sys-color-on-primary: #ffffff;
   --md-sys-color-secondary: #4176e6;        /* ← --accent：业务蓝（链接/激活/信息） */
   --md-sys-color-secondary-container: #edf3fe;        /* ← --accent-soft */
@@ -93,9 +98,9 @@
   /* 面 */
   --bg: var(--md-sys-color-surface);
   --bg-soft: var(--md-sys-color-surface-container-low);
-  --surface: var(--md-sys-color-surface);
-  --surface-2: var(--md-sys-color-surface-container-low);
-  --surface-3: var(--md-sys-color-surface-container);
+  --surface: var(--md-sys-color-surface-container-lowest);
+  --surface-2: var(--md-sys-color-surface-container);
+  --surface-3: var(--md-sys-color-surface-container-high);
   --skeleton: var(--md-sys-color-skeleton);
   --skeleton-shine: var(--md-sys-color-skeleton-shine);
 
@@ -169,4 +174,58 @@
 
   /* 布局 */
   --sidebar-w: 224px;
+}
+
+/* ============================================================
+   System 暗色套（§3.3）
+   值取自既有「凝夜」主题的实测覆盖——把「暗色」从主题包里的 28 条覆盖提升为 System 层一等公民：
+   主题以后只声明 dark: true，暗色基线由这里兜住，漏网变量不会再漏出亮色值
+   （骨架屏流光 --skeleton-shine 就是当年漏过一次的教训：暗底上一道刺眼白光）。
+   state/theme.ts 应用暗色主题时给 <html> 挂 data-scheme="dark"。
+   与主题注入同为 (0,2,0)，主题注入在文档流后 → 主题的显式覆盖仍然赢。
+   ============================================================ */
+:root[data-scheme="dark"] {
+  /* 面（5 级，凝夜原值） */
+  --md-sys-color-surface: #0e1117;
+  --md-sys-color-surface-container-low: #12161f;
+  --md-sys-color-surface-container-lowest: #151a24;
+  --md-sys-color-surface-container: #1a2030;
+  --md-sys-color-surface-container-high: #232b3d;
+  --md-sys-color-skeleton: rgba(255, 255, 255, 0.06);
+  --md-sys-color-skeleton-shine: rgba(255, 255, 255, 0.12);
+
+  /* 线 */
+  --md-sys-color-outline-variant: rgba(255, 255, 255, 0.1);
+  --md-sys-color-outline-soft: rgba(255, 255, 255, 0.05);
+  --md-sys-color-outline-strong: rgba(255, 255, 255, 0.18);
+
+  /* 字色 */
+  --md-sys-color-on-surface: #e8ebf2;
+  --md-sys-color-on-surface-variant: #a3abb8;
+  --md-sys-color-outline: #7d8494;
+  --md-sys-color-on-surface-disabled: #3a4152;
+
+  /* 品牌 / 强调（暗色下主按钮反白 —— 与亮色「紫底白字」相反） */
+  --md-sys-color-primary: #e8ebf2;
+  --md-sys-color-primary-hover: #c6ccd8;
+  --md-sys-color-on-primary: #0e1117;
+  --md-sys-color-secondary: #6b9bff;
+  --md-sys-color-secondary-container: rgba(107, 155, 255, 0.14);
+  --md-sys-color-secondary-container-border: rgba(107, 155, 255, 0.35);
+
+  /* 功能色 */
+  --md-sys-color-error: #ff736f;
+  --md-sys-color-error-container: rgba(229, 72, 77, 0.16);
+  --md-sys-color-warning: #ffb457;
+  --md-sys-color-warning-container: rgba(217, 115, 13, 0.16);
+  --md-sys-color-success: #4ade80;
+  --md-sys-color-success-container: rgba(34, 197, 94, 0.14);
+
+  /* 交互 / 焦点 / 阴影 */
+  --md-sys-color-state-hover: rgba(255, 255, 255, 0.06);
+  --md-sys-color-state-pressed: rgba(255, 255, 255, 0.1);
+  --md-sys-focus-ring: 0 0 0 3px rgba(107, 155, 255, 0.35);
+  --md-sys-elevation-1: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --md-sys-elevation-2: 0 2px 8px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.3);
+  --md-sys-elevation-3: 0 0 1px rgba(0, 0, 0, 0.6), 0 12px 32px rgba(0, 0, 0, 0.45);
 }

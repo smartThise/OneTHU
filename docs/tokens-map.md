@@ -8,47 +8,47 @@
 
 ## 1. Compat 层实况（旧变量 → System 角色 → 当前解析值）
 
-| 旧变量 | System 角色 | 当前解析值 |
-|---|---|---|
-| `--bg` | `--md-sys-color-surface` | `#ffffff` |
-| `--bg-soft` | `--md-sys-color-surface-container-low` | `#f9fafb` |
-| `--surface` | `--md-sys-color-surface` | `#ffffff` |
-| `--surface-2` | `--md-sys-color-surface-container-low` | `#f9fafb` |
-| `--surface-3` | `--md-sys-color-surface-container` | `#ebeef2` |
-| `--skeleton` | `--md-sys-color-skeleton` | `rgba(0, 0, 0, 0.04)` |
-| `--skeleton-shine` | `--md-sys-color-skeleton-shine` | `rgba(255, 255, 255, 0.6)` |
-| `--border` | `--md-sys-color-outline-variant` | `rgba(0, 0, 0, 0.1)` |
-| `--border-soft` | `--md-sys-color-outline-soft` | `rgba(0, 0, 0, 0.04)` |
-| `--border-strong` | `--md-sys-color-outline-strong` | `rgba(0, 0, 0, 0.16)` |
-| `--text-1` | `--md-sys-color-on-surface` | `#0f1115` |
-| `--text-2` | `--md-sys-color-on-surface-variant` | `#61666b` |
-| `--text-3` | `--md-sys-color-outline` | `#81858c` |
-| `--text-dim` | `--md-sys-color-on-surface-disabled` | `#d5dbe3` |
-| `--primary` | `--md-sys-color-primary` | `#0f1115` |
-| `--primary-hover` | `--md-sys-color-primary-hover` | `#43454a` |
-| `--on-primary` | `--md-sys-color-on-primary` | `#ffffff` |
-| `--accent` | `--md-sys-color-secondary` | `#4176e6` |
-| `--accent-soft` | `--md-sys-color-secondary-container` | `#edf3fe` |
-| `--accent-border` | `--md-sys-color-secondary-container-border` | `#c9d9f9` |
-| `--red` | `--md-sys-color-error` | `#e5484d` |
-| `--red-soft` | `--md-sys-color-error-container` | `#feecec` |
-| `--amber` | `--md-sys-color-warning` | `#d9730d` |
-| `--amber-soft` | `--md-sys-color-warning-container` | `#fdf2e2` |
-| `--green` | `--md-sys-color-success` | `#22c55e` |
-| `--green-soft` | `--md-sys-color-success-container` | `#e6f9ee` |
-| `--hover` | `--md-sys-color-state-hover` | `rgba(38, 49, 72, 0.06)` |
-| `--active` | `--md-sys-color-state-pressed` | `rgba(38, 49, 72, 0.1)` |
-| `--elev-1` | `--md-sys-elevation-1` | `0 2px 4px rgba(0, 0, 0, 0.05)` |
-| `--elev-2` | `--md-sys-elevation-2` | `0 2px 8px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02)` |
-| `--elev-3` | `--md-sys-elevation-3` | `0 0 1px rgba(0, 0, 0, 0.2), 0 12px 32px rgba(0, 0, 0, 0.08)` |
-| `--shadow-1` | `--md-sys-elevation-1` | `0 2px 4px rgba(0, 0, 0, 0.05)` |
-| `--shadow-2` | `--md-sys-elevation-2` | `0 2px 8px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02)` |
-| `--shadow-3` | `--md-sys-elevation-3` | `0 0 1px rgba(0, 0, 0, 0.2), 0 12px 32px rgba(0, 0, 0, 0.08)` |
-| `--ring` | `--md-sys-focus-ring` | `0 0 0 3px rgba(65, 118, 230, 0.25)` |
-| `--r-sm` | `--md-sys-shape-corner-small` | `6px` |
-| `--r-md` | `--md-sys-shape-corner-medium` | `8px` |
-| `--r-lg` | `--md-sys-shape-corner-large` | `12px` |
-| `--r-pill` | `--md-sys-shape-corner-full` | `999px` |
+| 旧变量 | System 角色 | 亮色（实况） | 暗色（System 暗色套） |
+|---|---|---|---|
+| `--bg` | `--md-sys-color-surface` | `#ffffff` | `#0e1117` |
+| `--bg-soft` | `--md-sys-color-surface-container-low` | `#f9fafb` | `#12161f` |
+| `--surface` | `--md-sys-color-surface-container-lowest` | `#ffffff` | `#151a24` |
+| `--surface-2` | `--md-sys-color-surface-container` | `#f9fafb` | `#1a2030` |
+| `--surface-3` | `--md-sys-color-surface-container-high` | `#ebeef2` | `#232b3d` |
+| `--skeleton` | `--md-sys-color-skeleton` | `rgba(0, 0, 0, 0.04)` | `rgba(255, 255, 255, 0.06)` |
+| `--skeleton-shine` | `--md-sys-color-skeleton-shine` | `rgba(255, 255, 255, 0.6)` | `rgba(255, 255, 255, 0.12)` |
+| `--border` | `--md-sys-color-outline-variant` | `rgba(0, 0, 0, 0.1)` | `rgba(255, 255, 255, 0.1)` |
+| `--border-soft` | `--md-sys-color-outline-soft` | `rgba(0, 0, 0, 0.04)` | `rgba(255, 255, 255, 0.05)` |
+| `--border-strong` | `--md-sys-color-outline-strong` | `rgba(0, 0, 0, 0.16)` | `rgba(255, 255, 255, 0.18)` |
+| `--text-1` | `--md-sys-color-on-surface` | `#0f1115` | `#e8ebf2` |
+| `--text-2` | `--md-sys-color-on-surface-variant` | `#61666b` | `#a3abb8` |
+| `--text-3` | `--md-sys-color-outline` | `#81858c` | `#7d8494` |
+| `--text-dim` | `--md-sys-color-on-surface-disabled` | `#d5dbe3` | `#3a4152` |
+| `--primary` | `--md-sys-color-primary` | `#90399c` | `#e8ebf2` |
+| `--primary-hover` | `--md-sys-color-primary-hover` | `#751d82` | `#c6ccd8` |
+| `--on-primary` | `--md-sys-color-on-primary` | `#ffffff` | `#0e1117` |
+| `--accent` | `--md-sys-color-secondary` | `#4176e6` | `#6b9bff` |
+| `--accent-soft` | `--md-sys-color-secondary-container` | `#edf3fe` | `rgba(107, 155, 255, 0.14)` |
+| `--accent-border` | `--md-sys-color-secondary-container-border` | `#c9d9f9` | `rgba(107, 155, 255, 0.35)` |
+| `--red` | `--md-sys-color-error` | `#e5484d` | `#ff736f` |
+| `--red-soft` | `--md-sys-color-error-container` | `#feecec` | `rgba(229, 72, 77, 0.16)` |
+| `--amber` | `--md-sys-color-warning` | `#d9730d` | `#ffb457` |
+| `--amber-soft` | `--md-sys-color-warning-container` | `#fdf2e2` | `rgba(217, 115, 13, 0.16)` |
+| `--green` | `--md-sys-color-success` | `#22c55e` | `#4ade80` |
+| `--green-soft` | `--md-sys-color-success-container` | `#e6f9ee` | `rgba(34, 197, 94, 0.14)` |
+| `--hover` | `--md-sys-color-state-hover` | `rgba(38, 49, 72, 0.06)` | `rgba(255, 255, 255, 0.06)` |
+| `--active` | `--md-sys-color-state-pressed` | `rgba(38, 49, 72, 0.1)` | `rgba(255, 255, 255, 0.1)` |
+| `--elev-1` | `--md-sys-elevation-1` | `0 2px 4px rgba(0, 0, 0, 0.05)` | `0 2px 4px rgba(0, 0, 0, 0.4)` |
+| `--elev-2` | `--md-sys-elevation-2` | `0 2px 8px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02)` | `0 2px 8px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.3)` |
+| `--elev-3` | `--md-sys-elevation-3` | `0 0 1px rgba(0, 0, 0, 0.2), 0 12px 32px rgba(0, 0, 0, 0.08)` | `0 0 1px rgba(0, 0, 0, 0.6), 0 12px 32px rgba(0, 0, 0, 0.45)` |
+| `--shadow-1` | `--md-sys-elevation-1` | `0 2px 4px rgba(0, 0, 0, 0.05)` | `0 2px 4px rgba(0, 0, 0, 0.4)` |
+| `--shadow-2` | `--md-sys-elevation-2` | `0 2px 8px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02)` | `0 2px 8px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.3)` |
+| `--shadow-3` | `--md-sys-elevation-3` | `0 0 1px rgba(0, 0, 0, 0.2), 0 12px 32px rgba(0, 0, 0, 0.08)` | `0 0 1px rgba(0, 0, 0, 0.6), 0 12px 32px rgba(0, 0, 0, 0.45)` |
+| `--ring` | `--md-sys-focus-ring` | `0 0 0 3px rgba(65, 118, 230, 0.25)` | `0 0 0 3px rgba(107, 155, 255, 0.35)` |
+| `--r-sm` | `--md-sys-shape-corner-small` | `6px` | `同亮色` |
+| `--r-md` | `--md-sys-shape-corner-medium` | `8px` | `同亮色` |
+| `--r-lg` | `--md-sys-shape-corner-large` | `12px` | `同亮色` |
+| `--r-pill` | `--md-sys-shape-corner-full` | `999px` | `同亮色` |
 
 共 39 个旧变量全部有映射。**重写不改变观感**由 `node tools/token-compat-diff.mjs` 逐条比对证明
 （拿 git HEAD 版的 tokens.css 与新版解析值比，全部相等才通过）。
