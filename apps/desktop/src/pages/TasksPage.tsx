@@ -13,7 +13,7 @@
  *
  * 数据全复用既有层（useLearnData/exthw/hwIgnore/hwCard/news），零新取数。
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import { parseLearnTime, SOURCE_NAMES } from "@onethu/core";
 import { SegmentedOverflow, Card, Empty, PageHead } from "../components/Layout.js";
 import { IconRefresh } from "../components/Icons.js";
@@ -35,6 +35,7 @@ import { useExpanded } from "../state/usePlatformLayout.js";
 import { AssignmentDetailPage } from "./learn/AssignmentDetailPage.js";
 import { YktAssignmentDetailPage } from "./learn/YktAssignmentDetailPage.js";
 import { yktDetailParams } from "../lib/homeworkEntry.js";
+import { prefersReducedMotion } from "../lib/motion.js";
 import { pickHomeworkRoute } from "../lib/yktDetail.js";
 import { activateSlot, normalizeWheelDelta, takeWheelStep, type DetailSlot } from "../lib/detailSlots.js";
 import type { Homework } from "@onethu/core";
@@ -472,15 +473,52 @@ export function TasksPage(): ReactNode {
     pcActivate(h);
     setPcSel(h);
   };
+  /* 「展开 / 收起」是 position: static → fixed 的硬切换（列内 → 全屏浮层），
+     inset/position 不可过渡，光靠 CSS 只能是"啪"一下——所以走 FLIP：
+     切换前记住旧矩形，切换后用 WAAPI 从旧矩形补一段"长大 / 缩回"。
+     用 WAAPI 而不是 CSS keyframes，是因为起点矩形只有运行时才知道。 */
+  const detailRef = useRef<HTMLDivElement | null>(null);
+  const morphFrom = useRef<{ rect: DOMRect; grow: boolean } | null>(null);
+  const toggleFull = useCallback((next: boolean): void => {
+    const el = detailRef.current;
+    // 减弱动态效果时不动。CSS 那条 animation-duration: 1ms !important 管不到 WAAPI，必须自己判。
+    if (el && !prefersReducedMotion()) {
+      morphFrom.current = { rect: el.getBoundingClientRect(), grow: next };
+    }
+    setPcFull(next);
+  }, []);
+  useLayoutEffect(() => {
+    const el = detailRef.current;
+    const m = morphFrom.current;
+    morphFrom.current = null;
+    if (!el || !m || typeof el.animate !== "function") return;
+    const now = el.getBoundingClientRect();
+    if (!now.width || !now.height) return;
+    el.animate(
+      [
+        {
+          transformOrigin: "top left",
+          transform:
+            "translate(" + (m.rect.left - now.left) + "px, " + (m.rect.top - now.top) + "px)" +
+            " scale(" + m.rect.width / now.width + ", " + m.rect.height / now.height + ")",
+          opacity: m.grow ? 0.6 : 1,
+        },
+        { transformOrigin: "top left", transform: "none", opacity: 1 },
+      ],
+      // 400ms + MD3 emphasized：大容器变形用强调档，别跟小控件抢速度
+      { duration: 400, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+    );
+  }, [pcFull]);
+
   // 全屏详情：Esc 收起（与点「收起」同效）
   useEffect(() => {
     if (!pcFull) return;
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") setPcFull(false);
+      if (e.key === "Escape") toggleFull(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [pcFull]);
+  }, [pcFull, toggleFull]);
 
   const dueSoon = flow.filter((h) => { const i = ddlInfo(h.deadline); return !i.overdue && i.days != null && i.days <= 3; }).length;
   const semesterId = data?.semester.id;
@@ -627,7 +665,7 @@ export function TasksPage(): ReactNode {
             <div className="tasks-pane-head">
               <span>作业详情</span>
               <span className="tasks-pane-acts">
-                <button className="tasks-pane-close" onClick={() => setPcFull((v) => !v)}>
+                <button className="tasks-pane-close" onClick={() => toggleFull(!pcFull)}>
                   {pcFull ? "收起 ⤡" : "展开 ⤢"}
                 </button>
                 <button
@@ -645,11 +683,11 @@ export function TasksPage(): ReactNode {
                 页头由上面的分栏头接管，目标作业经 props 直给，不污染全局 navParams。
                 每个访问过的作业各占一个槽位并保持挂载——换回旧卡不重拉，滚动位置也在。
                 「展开」只切一个 class（同一个实例变成全屏浮层），所以展开/收起不重拉数据。 */}
-            <div className={"tasks-detail" + (pcFull ? " is-full" : "")}>
+            <div ref={detailRef} className={"tasks-detail tab-anim" + (pcFull ? " is-full" : "")}>
               {pcFull ? (
                 <div className="tasks-detail-fullbar">
                   <span className="tasks-detail-fulltitle">{pcSel.title}</span>
-                  <button className="tasks-pane-close" onClick={() => setPcFull(false)}>收起 ⤡</button>
+                  <button className="tasks-pane-close" onClick={() => toggleFull(false)}>收起 ⤡</button>
                 </div>
               ) : null}
               {pcSlots.map((s) => (
@@ -672,7 +710,7 @@ export function TasksPage(): ReactNode {
         ) : (
           <>
         <div className="tasks-pane-head">生活</div>
-        <div className="tasks-life">
+        <div className="tasks-life tab-anim" data-dir="prev">
           {cardLow ? (
             <Card className="task-card">
               <button className="task-row" onClick={() => navigate("life", { lifeTab: "card" })}>

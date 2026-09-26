@@ -65,6 +65,25 @@ if (!/className="tasks-learn stagger"/.test(readFileSync(TASKS, "utf8"))) {
   fails.push("待办页元素错峰出场没落地（tasks-learn 缺 stagger 类）");
 }
 
+/* 6. 待办页右侧详情：形态切换（展开/收起）与生活↔详情的过渡必须真的接线。
+       这两处用户明确报过「没有动画」——它们都是「条件渲染 + 硬切换」，
+       没有任何 CSS 能自动生效，全靠组件里显式接线，所以必须钉住。 */
+const tasksSrc = readFileSync(TASKS, "utf8");
+if (!tasksSrc.includes("ref={detailRef}") || !tasksSrc.includes("el.animate(")) {
+  fails.push("展开/收起 没有 FLIP 接线（position: static→fixed 不可过渡，必须有 detailRef + el.animate）");
+}
+if (!tasksSrc.includes("prefersReducedMotion()")) {
+  fails.push("展开/收起 的 FLIP 没有减弱动态效果判断（CSS 的 1ms !important 管不到 WAAPI）");
+}
+/* 三个入口都要走 toggleFull：分栏头的「展开」、全屏头的「收起」、Esc。
+   漏一个就是"这个入口没动画"——用户报过一次，所以逐条点名。 */
+if (!tasksSrc.includes("toggleFull(!pcFull)")) fails.push("分栏头的展开/收起按钮没走 toggleFull（点它不会有动画）");
+if ((tasksSrc.match(/toggleFull\(false\)/g) ?? []).length < 2) {
+  fails.push("收起入口（全屏头的收起按钮 / Esc）没走 toggleFull——至少有一处不会有动画");
+}
+if (!/tasks-detail tab-anim/.test(tasksSrc)) fails.push("生活 → 作业详情 没有进场动画（tasks-detail 缺 tab-anim）");
+if (!/tasks-life tab-anim" data-dir="prev"/.test(tasksSrc)) fails.push("作业详情 → 生活 没有回退动画（tasks-life 缺 tab-anim + data-dir=prev）");
+
 if (fails.length) {
   console.error("动效令牌守卫：不合格");
   for (const f of fails) console.error("  ✗ " + f);
