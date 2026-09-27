@@ -117,6 +117,29 @@ ok(PICKER.includes("useExitPhase(onClose)"), "收藏选择器应用共用 hook")
 ok(!PICKER.includes("onClick={onClose}"), "收藏选择器的关闭入口应全部走 requestClose");
 ok(PICKER.includes('" is-closing"'), "收藏选择器应把 closing 挂成 is-closing class");
 
+/* [12] B3c 退场相位全覆盖：以下组件必须接入共用 hook，且关闭入口不得残留直接 onClose */
+const MIGRATED = [
+  "apps/desktop/src/components/FavAtomPicker.tsx",
+  "apps/desktop/src/components/Collect.tsx",
+  "apps/desktop/src/components/WidgetBindModal.tsx",
+  "apps/desktop/src/components/TabManageModal.tsx",
+  "apps/desktop/src/components/ExtHwLoginModal.tsx",
+];
+for (const f of MIGRATED) {
+  const src = readFileSync(f, "utf8");
+  ok(src.includes("useExitPhase"), f + " 未接入 useExitPhase");
+  ok(!src.includes("onClick={onClose}"), f + " 仍有关闭入口直接调 onClose");
+  ok(!src.includes('"Escape") onClose();'), f + " Escape 路径仍是直接 onClose");
+}
+/* 内联几何弹层：退场用内联 animation 覆盖，不得新增 CSS 类规则（style-scan 会拦） */
+for (const f of ["apps/desktop/src/components/TabManageModal.tsx", "apps/desktop/src/components/ExtHwLoginModal.tsx"]) {
+  const src = readFileSync(f, "utf8");
+  ok(src.includes("maskOut") && src.includes("panelOut"), f + " 缺少内联退场样式常量");
+  ok(src.includes("is-closing") || src.includes("...maskOut"), f + " 未在 closing 时应用退场样式");
+}
+/* 校园卡充值弹窗（走 class 路线）：.rch-*.is-closing 已由 CSS 覆盖 */
+ok(CSS.includes(".rch-mask.is-closing"), "校园卡充值弹窗 class 退场缺失");
+
 if (fails.length) {
   console.error("弹层护栏：不通过");
   for (const f of fails) console.error("  ✗ " + f);
