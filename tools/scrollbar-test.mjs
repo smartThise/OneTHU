@@ -97,6 +97,11 @@ const htmlBlock = baseCss.slice(baseCss.indexOf("html {"), baseCss.indexOf("}", 
 ok(/scrollbar-gutter:\s*stable/.test(htmlBlock), "base.css 的 html 未声明 scrollbar-gutter: stable（切 tab 时整页会随滚动条出现/消失横移）");
 ok(/overflow-y:\s*scroll/.test(htmlBlock), "base.css 的 html 未声明 overflow-y: scroll（滚动条槽缺双保险）");
 
+/* 6) iframe 内的滚动条要各自注入：父页面样式进不了独立文档（邮件正文预览，用户报过） */
+const MAIL = readFileSync("apps/desktop/src/pages/MailPage.tsx", "utf8");
+ok(MAIL.includes("::-webkit-scrollbar-thumb") && MAIL.includes("srcDoc"), "邮件 iframe 的 srcDoc 未注入令牌化滚动条（预览区会退回平台默认风）");
+ok(MAIL.includes("::-webkit-scrollbar-button"), "邮件 iframe 未去掉滚动条两端箭头");
+
 if (fails.length) {
   console.error("滚动条护栏：不通过");
   for (const f of fails) console.error("  ✗ " + f);
