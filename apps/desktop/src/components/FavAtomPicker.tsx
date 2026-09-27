@@ -11,6 +11,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useExitPhase } from "../lib/useExitPhase.js";
 import { IconSearch, IconStar } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
 import { resolveAtom } from "../state/atoms.js";
@@ -77,12 +78,14 @@ export function FavAtomPicker({ title, hint, onPick, onClose }: {
     return [...inFav, ...extra];
   }, [q, favHits]);
 
+  const [closing, requestClose] = useExitPhase(onClose);
+
   return createPortal(
-    <div className="home-modal-mask" onClick={onClose}>
-      <div className="home-modal collect-modal" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+    <div className={"home-modal-mask" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"home-modal collect-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <div className="home-modal-head">
           <h3>{title}</h3>
-          <button className="btn btn-ghost" onClick={onClose}>关闭</button>
+          <button className="btn btn-ghost" onClick={requestClose}>关闭</button>
         </div>
         <div className="home-modal-body">
           <div className="collect-search">

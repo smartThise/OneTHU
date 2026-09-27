@@ -107,6 +107,16 @@ ok(!CARD.includes("maskStyle: React.CSSProperties = { animation:"), "退场动�
   ok(ms !== null && CARD.includes("onClose(), " + ms + ")"), "校园卡充值的退场延时应与 --dur-2（short-4）一致");
 }
 
+/* [10] B3c：退场相位共用 hook —— 组件不再各写一遍 closing/setTimeout */
+const HOOK = readFileSync("apps/desktop/src/lib/useExitPhase.ts", "utf8");
+ok(HOOK.includes("export function useExitPhase("), "缺少共用退场相位 hook");
+ok(HOOK.includes("if (open === true)"), "hook 必须支持受控弹层重开复位（closing 残留会导致第二次关不掉）");
+ok(/EXIT_MS = 200/.test(HOOK), "hook 的 EXIT_MS 应与 --dur-2（short-4 = 200ms）一致");
+const PICKER = readFileSync("apps/desktop/src/components/FavAtomPicker.tsx", "utf8");
+ok(PICKER.includes("useExitPhase(onClose)"), "收藏选择器应用共用 hook");
+ok(!PICKER.includes("onClick={onClose}"), "收藏选择器的关闭入口应全部走 requestClose");
+ok(PICKER.includes('" is-closing"'), "收藏选择器应把 closing 挂成 is-closing class");
+
 if (fails.length) {
   console.error("弹层护栏：不通过");
   for (const f of fails) console.error("  ✗ " + f);
