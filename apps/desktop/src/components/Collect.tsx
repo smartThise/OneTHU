@@ -8,6 +8,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useExitPhase } from "../lib/useExitPhase.js";
 import { Empty } from "./Layout.js";
 import { IconChevron, IconFolderPlus, IconSearch, IconStar } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
@@ -132,9 +133,10 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
   };
   walk(null, 0);
 
+  const [closing, requestClose] = useExitPhase(onClose);
   useEffect(() => {
     const onKey = (ev: KeyboardEvent): void => {
-      if (ev.key === "Escape") onClose();
+      if (ev.key === "Escape") requestClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -150,11 +152,11 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
   };
 
   return createPortal(
-    <div className="home-modal-mask" onClick={onClose}>
-      <div className="home-modal collect-modal" role="dialog" aria-modal="true" aria-label="收藏到收藏夹" onClick={(e) => e.stopPropagation()}>
+    <div className={"home-modal-mask" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"home-modal collect-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label="收藏到收藏夹" onClick={(e) => e.stopPropagation()}>
         <div className="home-modal-head">
           <h3>收藏到…</h3>
-          <button className="btn btn-ghost" onClick={onClose}>关闭</button>
+          <button className="btn btn-ghost" onClick={requestClose}>关闭</button>
         </div>
         <div className="home-modal-body">
           <div className="home-modal-hint">
@@ -207,21 +209,22 @@ export function AtomPickerModal({ onPick, onClose, title = "添加到收藏夹",
   const inputRef = useRef<HTMLInputElement>(null);
   const results = useMemo<AtomHit[]>(() => searchAtoms(q), [q]);
 
+  const [closing, requestClose] = useExitPhase(onClose);
   useEffect(() => {
     inputRef.current?.focus();
     const onKey = (ev: KeyboardEvent): void => {
-      if (ev.key === "Escape") onClose();
+      if (ev.key === "Escape") requestClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
   return createPortal(
-    <div className="home-modal-mask" onClick={onClose}>
-      <div className="home-modal collect-modal" role="dialog" aria-modal="true" aria-label="搜索并添加原子" onClick={(e) => e.stopPropagation()}>
+    <div className={"home-modal-mask" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"home-modal collect-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label="搜索并添加原子" onClick={(e) => e.stopPropagation()}>
         <div className="home-modal-head">
           <h3>{title}</h3>
-          <button className="btn btn-ghost" onClick={onClose}>关闭</button>
+          <button className="btn btn-ghost" onClick={requestClose}>关闭</button>
         </div>
         <div className="home-modal-body">
           <div className="collect-search">
