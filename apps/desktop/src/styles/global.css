@@ -1892,17 +1892,38 @@
   height: 44px;
   border-radius: 50%;
   border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-2);
+  background: var(--md-sys-color-surface-container-lowest);
+  color: var(--md-sys-color-on-surface-variant);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
-  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+  box-shadow: var(--md-sys-elevation-2, 0 2px 10px rgba(0, 0, 0, 0.14));
+  transition:
+    color var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out);
 }
-.hard-refresh-fab:hover { color: var(--accent); }
-.hard-refresh-fab:active { transform: scale(0.94); }
+/* §3.5 B1：FAB 也走统一模型——状态层叠色 + 触摸涟漪 + 令牌焦点环，不再"换色 + 缩放" */
+.hard-refresh-fab::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--md-sys-color-state-hover);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+.hard-refresh-fab:hover::after { opacity: 1; }
+.hard-refresh-fab:active::after {
+  background: var(--md-sys-color-state-pressed);
+  opacity: 1;
+}
+.hard-refresh-fab:hover { color: var(--md-sys-color-on-surface); }
+.hard-refresh-fab:focus-visible {
+  outline: none;
+  box-shadow: var(--md-sys-focus-ring);
+}
 
 /* (One / THU) 品牌标识：五列网格 —— ( | O n e 空 / 空 T H U ) */
 .brand-logo {

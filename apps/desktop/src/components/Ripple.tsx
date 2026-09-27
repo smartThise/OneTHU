@@ -13,7 +13,7 @@
  */
 import { prefersReducedMotion } from "../lib/motion.js";
 
-const HOST = ".btn, .icon-btn, .chip, [data-ripple]";
+const HOST = ".btn, .icon-btn, .chip, .hard-refresh-fab, [data-ripple]";
 const RIPPLE = "md-ripple";
 const LAYER = "md-ripple-layer";
 const MAX_LIVE = 3; // 同一宿主同时最多 3 个（连点时不至于堆 DOM）

@@ -73,7 +73,7 @@ ok(!/\.btn:hover\s*{[^}]*background/.test(CSS), "基础按钮悬停不再换底�
 ok(!/\.btn-primary:hover\s*{[^}]*background/.test(CSS), "primary 悬停不再换底色");
 ok(!/\.btn:active\s*{[^}]*transform/.test(CSS), "按压反馈统一由状态层 + 涟漪承担，不再各写位移");
 
-/* [6] 定位基准：状态层与涟漪都要宿主 position: relative */
+/* [6] 定位基准：状态层与涟漪都要宿主 position: relative（FAB 自身 position: fixed） */
 for (const cls of [".btn {", ".icon-btn {", ".chip {"]) {
   ok(
     new RegExp(cls.replace(/[.{]/g, "\\$&") + "[\\s\\S]{0,260}position: relative").test(CSS),
@@ -94,6 +94,12 @@ ok(
   "涟漪时长应走动效令牌",
 );
 ok(/overflow: hidden/.test(block(MOTION, ".md-ripple-layer {")), "涟漪层自己负责裁剪，不动宿主 overflow");
+/* FAB 同款模型（B1 范围含 FAB） */
+const fab = block(CSS, ".hard-refresh-fab {");
+ok(fab.includes("background: var(--md-sys-color-surface-container-lowest)"), "FAB 底色应走令牌");
+ok(block(CSS, ".hard-refresh-fab::after").includes("var(--md-sys-color-state-hover)"), "FAB 应共用状态层");
+ok(!/\.hard-refresh-fab:active\s*{[^}]*transform/.test(CSS), "FAB 按压不该再各写缩放");
+ok(RIPPLE.includes(".hard-refresh-fab"), "FAB 应接入涟漪");
 ok(
   /installRipple\(\);/.test(MAIN) && /from "\.\/components\/Ripple\.js"/.test(MAIN),
   "启动时必须挂上全局涟漪",
