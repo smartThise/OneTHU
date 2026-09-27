@@ -91,6 +91,12 @@ for (const t of ["--md-sys-color-outline:", "--md-sys-color-on-surface-variant:"
   ok(TOKENS.includes(t), "tokens.css 缺少 " + t);
 }
 
+/* 5) 根滚动容器必须预留滚动条槽：PC 上 10px 占布局滚动条出现/消失会让整页横移 */
+const baseCss = readFileSync("packages/ui/src/base.css", "utf8");
+const htmlBlock = baseCss.slice(baseCss.indexOf("html {"), baseCss.indexOf("}", baseCss.indexOf("html {")));
+ok(/scrollbar-gutter:\s*stable/.test(htmlBlock), "base.css 的 html 未声明 scrollbar-gutter: stable（切 tab 时整页会随滚动条出现/消失横移）");
+ok(/overflow-y:\s*scroll/.test(htmlBlock), "base.css 的 html 未声明 overflow-y: scroll（滚动条槽缺双保险）");
+
 if (fails.length) {
   console.error("滚动条护栏：不通过");
   for (const f of fails) console.error("  ✗ " + f);

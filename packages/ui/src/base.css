@@ -7,6 +7,12 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* 预留滚动条槽：Windows/WebView2 上 ::-webkit-scrollbar 的 10px 是**占布局**的，
+     切 tab 时内容高度变化会让滚动条出现/消失，导致整页横移 10px（用户报的
+     「所有 tab 页切换时整页轻移」）。Android 是覆盖式滚动条，无此位移（真机实测
+     clientWidth 不随内容溢出变化）。overflow-y: scroll 作双保险，轨道透明故视觉无痕。 */
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
 }
 
 body {
