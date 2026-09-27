@@ -100,6 +100,19 @@ ok(fab.includes("background: var(--md-sys-color-surface-container-lowest)"), "FA
 ok(block(CSS, ".hard-refresh-fab::after").includes("var(--md-sys-color-state-hover)"), "FAB 应共用状态层");
 ok(!/\.hard-refresh-fab:active\s*{[^}]*transform/.test(CSS), "FAB 按压不该再各写缩放");
 ok(RIPPLE.includes(".hard-refresh-fab"), "FAB 应接入涟漪");
+
+/* 两个自成一派的按钮类（待办计数卡、今日快速入口）也必须在同一套模型里 */
+for (const cls of [".task-stat", ".today-quick-chip"]) {
+  ok(CSS.includes(cls + "::after"), cls + " 应共用状态层");
+  ok(
+    new RegExp("\\" + cls + "[^{]*\\{[^}]*position: relative").test(CSS),
+    cls + " 需要 position: relative（状态层/涟漪的定位基准）",
+  );
+  ok(!new RegExp("\\" + cls + ":active\\s*\\{[^}]*transform").test(CSS), cls + " 按压不该再各写缩放");
+  ok(RIPPLE.includes(cls), cls + " 应接入涟漪");
+}
+ok(!/\.today-quick-chip:hover\s*\{[^}]*color:/.test(CSS), "悬停不该改色值本体（手册 §5）");
+ok(!/\.task-stat:hover\s*\{/.test(CSS), "悬停不该改色值本体（手册 §5）");
 ok(
   /installRipple\(\);/.test(MAIN) && /from "\.\/components\/Ripple\.js"/.test(MAIN),
   "启动时必须挂上全局涟漪",

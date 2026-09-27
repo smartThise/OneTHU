@@ -454,7 +454,9 @@
 /* 状态层：hover 8% / pressed 12%（同一层换色，不换底色） */
 .btn::after,
 .icon-btn::after,
-.chip::after {
+.chip::after,
+.today-quick-chip::after,
+.task-stat::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -466,10 +468,13 @@
 }
 .btn:hover::after,
 .icon-btn:hover::after,
-.chip:hover::after { opacity: 1; }
+.chip:hover::after,
+.today-quick-chip:hover::after { opacity: 1; }
 .btn:active::after,
 .icon-btn:active::after,
-.chip:active::after {
+.chip:active::after,
+.today-quick-chip:active::after,
+.task-stat:active::after {
   background: var(--md-sys-color-state-pressed);
   opacity: 1;
 }
@@ -508,6 +513,8 @@
 .chip:focus-visible,
 .row-click:focus-visible,
 .exthw-oj-head:focus-visible,
+.today-quick-chip:focus-visible,
+.task-stat:focus-visible,
 .home-card-title:focus-visible,
 .home-entry-btn:focus-visible {
   outline: none;
@@ -5166,8 +5173,8 @@ section > .svc-label { margin-top: 14px; }
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.today-quick-chip:active { transform: scale(0.96); }
-.today-quick-chip:hover { color: var(--accent); border-color: var(--accent-border); }
+/* §3.5 B1：快速入口 chip 走统一模型（共享状态层已含它；悬停不再改色值本体，手册 §5） */
+.today-quick-chip { position: relative; }
 
 /* —— 待办聚合页（分节卡片；桌面双栏、移动单列） —— */
 .task-grid { display: grid; grid-template-columns: 1fr; gap: 6px 16px; margin-top: 14px; }
@@ -5346,9 +5353,8 @@ section > .svc-label { margin-top: 14px; }
   color: inherit; font: inherit; text-align: left; cursor: pointer;
   transition: border-color 0.16s ease, transform 0.16s ease;
 }
-.task-stat:active { transform: scale(0.98); }
-.task-stat:hover { border-color: var(--accent-border); }
-.task-stat:hover .task-stat-label { color: var(--accent); }
+/* §3.5 B1：卡片型按钮同样走统一模型——按压用共享状态层，悬停不再改色值本体（手册 §5） */
+.task-stat { position: relative; }
 .tasks-body { touch-action: pan-y; }
 /* 待办页（移动端）：把整页锁成一屏高，卡片流吃掉剩余高度——
    底部按「OH 悬浮岛带」预留（岛底距屏底 80 + 岛高 46 = 126，留到 140），

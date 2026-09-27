@@ -165,7 +165,7 @@ margin-bottom: 24px;                       margin-bottom: 20px;
 ## 5. 状态层：hover / pressed / focused / disabled
 
 指针设备用 **state layer 叠色**，不做涟漪；触摸与笔另有涟漪做空间反馈（§2.8.3 × §3.5 B1）：
-状态层是**四个组件类共用的一层** —— `.btn::after / .icon-btn::after / .chip::after`（`inset: 0` + `border-radius: inherit`），
+状态层是**共用的一层** —— 凡可点组件（按钮 / chip / FAB / 待办计数卡 / 今日快速入口）都挂同一个 `::after`（`inset: 0` + `border-radius: inherit`），
 变体只改自身底色，不各写一套 hover；焦点环统一 `--md-sys-focus-ring`；涟漪在 `components/Ripple.tsx`（`installRipple()` 全局单监听）。
 以上由 `tools/button-variants-test.mjs` 钉住（状态层/焦点环/禁用/涟漪各一条）。
 
