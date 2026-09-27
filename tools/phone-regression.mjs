@@ -138,6 +138,15 @@ if (!navs.length) {
 }
 const rows = [];
 let sessionExpired = false;
+/* 前置闸门：锁屏/应用不在前台时，Android WebView 的 innerWidth 会塌成 0，
+   此时 scrollWidth - innerWidth 是个无意义的常数（曾误报 16 页横向溢出 32px，
+   白查半天）。宁可直接拒绝跑。 */
+const vp = await evaluate("innerWidth");
+if (!vp) {
+  console.error("✗ 视口为 0：手机多半处于锁屏或应用不在前台（mCurrentFocus 应为应用）。请解锁并保持亮屏后重跑。");
+  process.exit(1);
+}
+
 for (const label of navs) {
   const clicked = await evaluate(
     "(() => { const s = [...document.querySelectorAll('.nav-item')].find(e => (e.textContent || '').trim() === " +
