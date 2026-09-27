@@ -21,7 +21,8 @@ import {
 } from "../state/theme.js";
 
 const PREF_KEY = "onethu.dynamicColor";
-/** 开启取色时被顶掉的主题，关掉时还给用户 */
+/** 开启取色时被顶掉的外观状态，关掉时还给用户。
+ *  存 JSON：必须能表达"用户当时没选主题（基础令牌）"，不能与"没记过快照"混为一谈。 */
 const RESTORE_KEY = "onethu.dynamicColor.restore";
 const STYLE_ID = "onethu-dynamic-color";
 /** 取色不可用时的降级主题（§3.4 降级链：系统取色 → 清华紫） */
@@ -41,16 +42,25 @@ const writePref = (on: boolean): void => {
     /* 隐私模式下 localStorage 不可用：本次会话仍然生效 */
   }
 };
-const readRestore = (): string | null => {
+interface RestoreSnapshot {
+  /** 用户手动选中的主题；null = 当时是"基础令牌（默认外观）" */
+  activeId: string | null;
+}
+const readRestore = (): RestoreSnapshot | null => {
   try {
-    return localStorage.getItem(RESTORE_KEY);
+    const raw = localStorage.getItem(RESTORE_KEY);
+    if (!raw) return null;
+    // 旧格式是裸 id 字符串：继续认，避免升级后把老用户的主题弄丢
+    if (!raw.startsWith("{")) return { activeId: raw };
+    const p = JSON.parse(raw) as { activeId?: unknown };
+    return { activeId: typeof p?.activeId === "string" ? p.activeId : null };
   } catch {
     return null;
   }
 };
-const writeRestore = (id: string | null): void => {
+const writeRestore = (snap: RestoreSnapshot | null): void => {
   try {
-    if (id) localStorage.setItem(RESTORE_KEY, id);
+    if (snap) localStorage.setItem(RESTORE_KEY, JSON.stringify(snap));
     else localStorage.removeItem(RESTORE_KEY);
   } catch {
     /* 同上 */
@@ -116,7 +126,7 @@ export async function enableDynamicColor(): Promise<void> {
   const palette = await fetchSystemPalette();
   const usable = paletteUsable(palette);
   const plan = dynamicPlan(usable, readPref(), activeThemeId());
-  if (plan.touchRestore) writeRestore(plan.restoreTo);
+  if (plan.restore.action === "set") writeRestore({ activeId: plan.restore.activeId });
   /* 主题必须让位：主题注入的 :root[data-theme] 块（特异度 0,2,0）自己声明了 --accent/--bg 这些
      兼容变量，而取色只改 System 角色——两者并存会得到"半套取色"（面跟随壁纸、强调色还是主题的）。
      真机验证时就是这样：--md-sys-color-surface 变了，--accent 还是凝夜的蓝。 */
@@ -135,9 +145,18 @@ export function disableDynamicColor(): void {
   writePref(false);
   const prev = readRestore();
   writeRestore(null);
-  if (prev && hasTheme(prev)) activateTheme(prev);
-  // 没有可恢复的手动主题时，把昼夜调度（或"基础令牌"）的状态接回来
-  else reapplyActiveTheme();
+  if (!prev) {
+    // 没记过快照（开机自举）：把昼夜调度（或"基础令牌"）的状态接回来
+    reapplyActiveTheme();
+    return;
+  }
+  /* 如实恢复"手动选中的主题"，**包括 null（基础令牌）**：
+     早期版本只在 id 非空时恢复，于是"基础令牌 + 取色降级到清华紫"这条路上，
+     activeId 被降级主题占住，关掉开关就停在清华紫不动（用户看到的"要手动再选一次才刷新"）。 */
+  if (prev.activeId && hasTheme(prev.activeId)) activateTheme(prev.activeId);
+  else deactivateTheme();
+  // 跟随昼夜生效时把调度接回来；也兜住 applyTheme 的任何早退
+  reapplyActiveTheme();
 }
 
 /** 开机自举：上次开着就重开（取不到调色板会自动降级到清华紫，不会留半套配色） */

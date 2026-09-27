@@ -162,9 +162,14 @@ assert.ok(src.includes("deactivateTheme()"), "开启取色必须让主题退场"
 assert.ok(src.includes("RESTORE_KEY") && src.includes("activeThemeId()"), "必须记住被顶掉的主题以便恢复");
 assert.ok(src.includes("reapplyActiveTheme()"), "关掉取色必须把昼夜调度/基础令牌接回来");
 assert.ok(
-  /if \(plan\.touchRestore\) writeRestore\(plan\.restoreTo\)/.test(src),
+  /if \(plan\.restore\.action === "set"\) writeRestore\(\{ activeId: plan\.restore\.activeId \}\)/.test(src),
   "快照写入必须只由 dynamicPlan 决定（开机自举不许覆盖，见状态机 4 态）",
 );
+assert.ok(
+  /else deactivateTheme\(\)/.test(src),
+  "快照里 activeId 为 null（基础令牌）时必须真的恢复成基础令牌，不能停在降级主题上",
+);
+assert.ok(/reapplyActiveTheme\(\)/.test(src), "恢复后要把昼夜调度接回来");
 assert.ok(src.includes("syncScheme()") && /dataset\.scheme = "dark"/.test(src), "取色期间必须自己驱动 data-scheme（主题已让位）");
 const themeSrc = readFileSync("apps/desktop/src/state/theme.ts", "utf8");
 assert.ok(
@@ -181,13 +186,14 @@ assert.ok(
        「主题变成清华紫、开关还是关的、也回不去」——根因是降级分支把开关写成了关。 */
 const cases = [
   ["Windows：不支持取色 + 用户主动开启", dynamicPlan(false, false, "onethu.theme.violet"),
-    { mode: "fallback", touchRestore: true, restoreTo: "onethu.theme.violet" }],
-  ["Android 12+：有调色板 + 用户主动开启（无手动主题）", dynamicPlan(true, false, null),
-    { mode: "palette", touchRestore: true, restoreTo: null }],
+    { mode: "fallback", restore: { action: "set", activeId: "onethu.theme.violet" } }],
+  /* "当时没选主题"必须与"没记过快照"区分：前者要如实恢复成基础令牌 */
+  ["Android 12+：有调色板 + 用户主动开启（基础令牌态）", dynamicPlan(true, false, null),
+    { mode: "palette", restore: { action: "set", activeId: null } }],
   ["开机自举（已开着）：保留原快照，不覆盖", dynamicPlan(false, true, "onethu.theme.violet"),
-    { mode: "fallback", touchRestore: false, restoreTo: null }],
+    { mode: "fallback", restore: { action: "keep" } }],
   ["开机自举（已开着）+ 有调色板", dynamicPlan(true, true, "x"),
-    { mode: "palette", touchRestore: false, restoreTo: null }],
+    { mode: "palette", restore: { action: "keep" } }],
 ];
 for (const [label, got, want] of cases) assert.deepEqual(got, want, "状态机不符：" + label);
 assert.equal(paletteUsable(null), false);
