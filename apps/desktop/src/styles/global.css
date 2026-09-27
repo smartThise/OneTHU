@@ -3627,6 +3627,14 @@ html.is-phone .dock-head .dock-btn:not(.dock-ico) { height: 28px; padding: 0 10p
 
 /* ---------- 退场：整族统一补齐（入场各写各的，退场必须有，否则弹层"啪"地消失） ----------
    退场用 accelerate 曲线（§动效纪律：离场加速），时长取 short-4。 */
+/* 校园卡充值弹窗（内联样式组件）：入场/退场都走 class。
+   坑：内联 style 里带 animation 时，class 的退场动画会被内联 animation 压掉（动画优先于内联），
+   所以入场也必须搬到 class 上，退场才能生效。 */
+.rch-mask { animation: m-fade var(--dur-2) var(--ease-out) both; }
+.rch-panel { animation: m-spring-in var(--dur-3) var(--ease-out) both; }
+.rch-mask.is-closing { animation: m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both; }
+.rch-panel.is-closing { animation: m-pop-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both; }
+
 @keyframes m-fade-out { to { opacity: 0; } }
 @keyframes m-pop-out { to { opacity: 0; transform: scale(0.96); } }
 @keyframes m-sheet-down { to { opacity: 0; transform: translateY(100%); } }

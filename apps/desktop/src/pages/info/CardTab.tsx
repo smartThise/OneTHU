@@ -63,8 +63,8 @@ const RCH_CHANNELS: Array<{ key: RchChannel; label: string; hint: string }> = [
   { key: "bank", label: "银行卡圈存", hint: "从卡系统绑定的银行卡直接划转（限 6:00~20:40）" },
 ];
 
-const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
-const panelStyle: React.CSSProperties = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 380, maxHeight: "78vh", overflowY: "auto", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)", padding: "16px 18px" };
+const maskStyle: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
+const panelStyle: React.CSSProperties = { width: "100%", maxWidth: 380, maxHeight: "78vh", overflowY: "auto", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)", padding: "16px 18px" };
 
 function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () => void; onPaid: () => void }) {
   const [step, setStep] = useState<RchStep>("form");
@@ -134,8 +134,8 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
   };
 
   return createPortal(
-    <div style={{ ...maskStyle, opacity: closing ? 0 : 1, transition: "opacity .16s ease" }} onClick={requestClose}>
-      <div style={{ ...panelStyle, opacity: closing ? 0 : 1, transform: closing ? "scale(0.97)" : "none", transition: "opacity .16s ease, transform .16s ease" }} onClick={(e) => e.stopPropagation()}>
+    <div className={"rch-mask" + (closing ? " is-closing" : "")} style={maskStyle} onClick={requestClose}>
+      <div className={"rch-panel" + (closing ? " is-closing" : "")} style={panelStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
           <b>校园卡充值</b>
           <span style={{ flex: 1 }} />
