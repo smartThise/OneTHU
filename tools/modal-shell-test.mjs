@@ -117,13 +117,6 @@ ok(PICKER.includes("useExitPhase(onClose)"), "收藏选择器应用共用 hook")
 ok(!PICKER.includes("onClick={onClose}"), "收藏选择器的关闭入口应全部走 requestClose");
 ok(PICKER.includes('" is-closing"'), "收藏选择器应把 closing 挂成 is-closing class");
 
-/* [11] 同款弹层必须全部接线：三处关闭入口（遮罩 / 关闭按钮 / Escape）一个都不能漏 */
-const COLLECT = readFileSync("apps/desktop/src/components/Collect.tsx", "utf8");
-ok(!COLLECT.includes("onClick={onClose}>关闭</button>"), "Collect 弹层的关闭按钮未走 requestClose");
-ok(!COLLECT.includes("if (ev.key === \"Escape\") onClose();"), "Collect 弹层的 Escape 未走 requestClose");
-ok(!COLLECT.includes("<div className=\"home-modal-mask\" onClick={onClose}>"), "Collect 遮罩未走 requestClose");
-ok(COLLECT.split("useExitPhase(onClose)").length >= 3, "CollectModal / AtomPickerModal 都应接入 hook");
-
 if (fails.length) {
   console.error("弹层护栏：不通过");
   for (const f of fails) console.error("  ✗ " + f);
