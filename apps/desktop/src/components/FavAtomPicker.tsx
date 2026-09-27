@@ -42,7 +42,7 @@ export function FavAtomPicker({ title, hint, onPick, onClose }: {
   useEffect(() => {
     inputRef.current?.focus();
     const onKey = (ev: KeyboardEvent): void => {
-      if (ev.key === "Escape") onClose();
+      if (ev.key === "Escape") requestClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
