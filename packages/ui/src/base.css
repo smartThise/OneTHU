@@ -11,7 +11,8 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
+  /* 页面底比卡片低一级（§3）：卡片 = container-lowest，靠色阶而不是描边分层 */
+  background: var(--md-sys-color-surface-container-low);
   color: var(--text-1);
   font-family: var(--font-ui);
   font-size: var(--text-base);

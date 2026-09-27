@@ -156,6 +156,11 @@ margin-bottom: 24px;                       margin-bottom: 20px;
 `@
 
 阴影 `--elev-1..3` **同屏最多 2 级**；浮层（弹窗、抽屉、命令面板）才用 `--elev-3`。
+
+**§3.5 B2 已落地**：页面底 `--md-sys-color-surface-container-low`（比卡片低一级），
+卡片（`.card` / `.home-card` / `.plg-stat` / `.plg-card`）`container-lowest` 色块 + 形状令牌，**去描边、去阴影**；
+卡片 hover 走 §5 状态层。护栏 `tools/card-layers-test.mjs`（含"未迁移清单"——输入类保留描边、浮层保留描边+阴影、
+表格线是网格语义，其余列表容器 B2b 接着做）。
 暗色下阴影几乎不可见，层级改由 surface 明度承担——所以只靠阴影分层在暗色里会塌掉。
 
 ---
