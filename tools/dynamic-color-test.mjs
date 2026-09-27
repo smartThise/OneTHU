@@ -9,6 +9,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { rolesFromPalette, detectInverted, mix, alpha } from "../apps/desktop/src/lib/dynamicRoles.ts";
+import { dynamicPlan, paletteUsable } from "../apps/desktop/src/lib/dynamicPlan.ts";
 
 const TONES = [0, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
 
@@ -153,15 +154,16 @@ assert.ok(src.includes("document.documentElement.dataset.dynamic = \"on\""), "�
 assert.ok(/delete document\.documentElement\.dataset\.dynamic/.test(src), "关闭时没有摘掉 data-dynamic");
 assert.ok(src.includes("onethu.theme.tsinghua"), "缺少降级主题（清华紫）");
 assert.ok(/try\s*\{[\s\S]*invoke[\s\S]*catch/.test(src), "原生调用必须包 try/catch（桌面没有这条命令）");
-assert.ok(/if \(!palette \|\| Object\.keys\(palette\)\.length === 0\)/.test(src), "空调色板必须走降级分支");
+assert.ok(/const usable = paletteUsable\(palette\)/.test(src), "空调色板判定必须走 paletteUsable（纯函数、可单测）");
+assert.ok(/const plan = dynamicPlan\(/.test(src), "开关决策必须走 dynamicPlan（纯函数、可单测）");
 /* [8] 主题让位（真机抓到的第二个问题：主题注入的 :root[data-theme] 块自己声明了 --accent/--bg，
        与取色并存会得到"面跟随壁纸、强调色还是主题的"半套配色） */
 assert.ok(src.includes("deactivateTheme()"), "开启取色必须让主题退场");
 assert.ok(src.includes("RESTORE_KEY") && src.includes("activeThemeId()"), "必须记住被顶掉的主题以便恢复");
 assert.ok(src.includes("reapplyActiveTheme()"), "关掉取色必须把昼夜调度/基础令牌接回来");
 assert.ok(
-  /if \(!readPref\(\)\) writeRestore\(activeThemeId\(\)\)/.test(src),
-  "只有用户主动开启时才快照主题（开机自举会覆盖成 null，把用户选的主题弄丢）",
+  /if \(plan\.touchRestore\) writeRestore\(plan\.restoreTo\)/.test(src),
+  "快照写入必须只由 dynamicPlan 决定（开机自举不许覆盖，见状态机 4 态）",
 );
 assert.ok(src.includes("syncScheme()") && /dataset\.scheme = "dark"/.test(src), "取色期间必须自己驱动 data-scheme（主题已让位）");
 const themeSrc = readFileSync("apps/desktop/src/state/theme.ts", "utf8");
@@ -174,4 +176,40 @@ assert.ok(
   "从插件页切主题时必须先让取色退场",
 );
 
-console.log("动态取色护栏：映射 " + (Object.keys(light).length + Object.keys(dark).length) + " 个角色值 / 完整性 ✓ / 缺档安全 ✓ / 注入与降级接线 ✓");
+/* [9] 开关状态机：**开启一定要真的开启**。
+       这一节就是 Windows 侧那个 bug 的回归测试：不支持取色的平台点开关后
+       「主题变成清华紫、开关还是关的、也回不去」——根因是降级分支把开关写成了关。 */
+const cases = [
+  ["Windows：不支持取色 + 用户主动开启", dynamicPlan(false, false, "onethu.theme.violet"),
+    { mode: "fallback", touchRestore: true, restoreTo: "onethu.theme.violet" }],
+  ["Android 12+：有调色板 + 用户主动开启（无手动主题）", dynamicPlan(true, false, null),
+    { mode: "palette", touchRestore: true, restoreTo: null }],
+  ["开机自举（已开着）：保留原快照，不覆盖", dynamicPlan(false, true, "onethu.theme.violet"),
+    { mode: "fallback", touchRestore: false, restoreTo: null }],
+  ["开机自举（已开着）+ 有调色板", dynamicPlan(true, true, "x"),
+    { mode: "palette", touchRestore: false, restoreTo: null }],
+];
+for (const [label, got, want] of cases) assert.deepEqual(got, want, "状态机不符：" + label);
+assert.equal(paletteUsable(null), false);
+assert.equal(paletteUsable({}), false);
+assert.equal(paletteUsable(PALETTE), true);
+
+const io = readFileSync("apps/desktop/src/lib/dynamicColor.ts", "utf8");
+const enableBody = io.slice(
+  io.indexOf("export async function enableDynamicColor"),
+  io.indexOf("export function disableDynamicColor"),
+);
+assert.ok(!/writePref\(false\)/.test(enableBody), "开启路径绝不能把开关写成关（Windows 侧死结的根因）");
+assert.ok(/writePref\(true\)/.test(enableBody), "开启路径必须把开关落盘为开");
+assert.ok(/DYNAMIC_FALLBACK_THEME/.test(enableBody), "取不到调色板必须降级到清华紫，而不是什么都不做");
+const settingsSrc = readFileSync("apps/desktop/src/pages/Settings.tsx", "utf8");
+assert.ok(
+  (settingsSrc.match(/setDyn\(isDynamicEnabled\(\)\)/g) ?? []).length >= 2,
+  "开关必须从偏好这一个真源重新推导（含别处切主题时的同步）",
+);
+assert.ok(/系统取色不可用，已改用「清华紫」主题。/.test(settingsSrc), "不支持时要说清开关是真的开着（改了主题）");
+
+console.log(
+  "动态取色护栏：映射 " + (Object.keys(light).length + Object.keys(dark).length) +
+  " 个角色值 / 完整性 ✓ / 缺档安全 ✓ / 方向自检 ✓ / 开关状态机 4 态 ✓ / 注入与降级接线 ✓",
+);

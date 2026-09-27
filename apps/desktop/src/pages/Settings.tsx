@@ -39,6 +39,7 @@ import {
   fetchSystemPalette,
   isDynamicEnabled,
 } from "../lib/dynamicColor.js";
+import { subscribeThemes } from "../state/theme.js";
 import {
   clearTuojAutoStatus,
   clearTycheLogoutSuppress,
@@ -1707,14 +1708,18 @@ function AppearanceSection(): ReactNode {
       alive = false;
     };
   }, []);
+  /* 开关状态只认 local 偏好这一个真源：enable/disable 之后重新读，任何分支（含降级到清华紫、
+     抛错）都不会留下"主题变了但开关还是关的"这种说谎状态。 */
   const toggleDyn = async (): Promise<void> => {
-    if (dyn) {
-      disableDynamicColor();
-      setDyn(false);
-      return;
+    try {
+      if (isDynamicEnabled()) disableDynamicColor();
+      else await enableDynamicColor();
+    } finally {
+      setDyn(isDynamicEnabled());
     }
-    setDyn(await enableDynamicColor());
   };
+  // 别处（插件页→主题）切主题会让取色退场：开关跟着回真
+  useEffect(() => subscribeThemes(() => setDyn(isDynamicEnabled())), []);
   const themes = [{ id: "", name: "基础令牌（默认外观）" }, ...snap.themes.map((t) => ({ id: t.id, name: t.dark ? `${t.name}（暗色）` : t.name }))];
   return (
     <div className="setting-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
@@ -1770,7 +1775,9 @@ function AppearanceSection(): ReactNode {
         <div>
           <div className="setting-title">跟随系统取色</div>
           {dynOk === false ? (
-            <div className="setting-desc">当前系统不支持，开启后改用「清华紫」主题。</div>
+            <div className="setting-desc">
+              {dyn ? "系统取色不可用，已改用「清华紫」主题。" : "当前系统不支持，开启后改用「清华紫」主题。"}
+            </div>
           ) : (
             <div className="setting-desc">用壁纸颜色重算全站配色，品牌色与纸面一起变。</div>
           )}
@@ -1783,9 +1790,9 @@ function AppearanceSection(): ReactNode {
           onClick={() => void toggleDyn()}
         />
       </div>
-      {dyn && dynOk ? (
+      {dyn ? (
         <div className="setting-desc" style={{ color: "var(--text-3)" }}>
-          取色生效中：主题选择暂不生效，关掉开关即恢复所选项。
+          生效中：关掉开关即恢复所选主题。
         </div>
       ) : null}
     </div>

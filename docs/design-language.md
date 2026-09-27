@@ -44,7 +44,12 @@ Android 12+ 打开「跟随系统取色」后，System 颜色角色由系统 Mat
 - 写入位置：`<style id="onethu-dynamic-color">`，选择器 `html:root[data-dynamic="on"]`
   与其暗色变体（特异性 0,2,1 / 0,3,1，高于令牌 `:root` 与主题注入 0,2,0）；关掉开关即整体移除。
 - **降级链**：系统取色 → 「清华紫」主题 → 跟随系统亮暗。原生不可用（桌面 / Android < 12 /
-  厂商 ROM 裁掉调色板）时 `enableDynamicColor()` 清场并激活清华紫，不留「半套」配色。
+  厂商 ROM 裁掉调色板）时 `enableDynamicColor()` 清场并激活清华紫，不留「半套」配色，
+  且**把开关如实置为开**。开关的唯一真源是本地偏好；旧实现在这条分支写了 `pref=false` 并返回 false，
+  用户看到的是「主题变了、开关还是关的、也回不去」的死结（Windows 侧实测到），
+  现在由 `dynamicPlan()` 纯函数兜住：任何状态下"开启"都一定真的开启。
+- **手机端回归**：`node tools/phone-regression.mjs`（需真机在线）遍历每个导航页，检查页面挂载、
+  横向溢出、JS 异常、`is-phone` 密度层、待办页手机单栏、取色开关与本地偏好是否一致。
 - 取不到的档位一律不注入该角色，保留令牌默认值。
 - **档位方向必须运行时自检**，不能写死：真机（Xiaomi / Android 16 / SDK 36）实测 `system_neutral1_0 = #FFFFFF`、
   `system_neutral1_1000 = #000000`，后缀与 M3 tone **反向**；AOSP 的命名约定相反。

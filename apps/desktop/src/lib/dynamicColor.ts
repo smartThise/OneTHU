@@ -11,6 +11,7 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { rolesFromPalette, type DynamicPalette, type DynamicRoles } from "./dynamicRoles.js";
+import { dynamicPlan, paletteUsable } from "./dynamicPlan.js";
 import {
   activateTheme,
   activeThemeId,
@@ -110,26 +111,23 @@ const syncScheme = (): void => {
 
 export const isDynamicEnabled = readPref;
 
-/** 打开开关：取色成功返回 true；不可用则清场并降级到清华紫主题，返回 false */
-export async function enableDynamicColor(): Promise<boolean> {
+/** 打开开关。取到调色板就注入角色；取不到就降级到「清华紫」主题。两种情况下开关都是"开"。*/
+export async function enableDynamicColor(): Promise<void> {
   const palette = await fetchSystemPalette();
-  if (!palette || Object.keys(palette).length === 0) {
-    clearDynamicColor();
-    writePref(false);
-    activateTheme(DYNAMIC_FALLBACK_THEME);
-    return false;
-  }
+  const usable = paletteUsable(palette);
+  const plan = dynamicPlan(usable, readPref(), activeThemeId());
+  if (plan.touchRestore) writeRestore(plan.restoreTo);
   /* 主题必须让位：主题注入的 :root[data-theme] 块（特异度 0,2,0）自己声明了 --accent/--bg 这些
      兼容变量，而取色只改 System 角色——两者并存会得到"半套取色"（面跟随壁纸、强调色还是主题的）。
      真机验证时就是这样：--md-sys-color-surface 变了，--accent 还是凝夜的蓝。 */
-  /* 只在"用户主动开启"时快照：开机自举时主题已被上一轮让位（activeThemeId() 为 null），
-     若在这里覆盖快照就会把用户真正选的主题弄丢（真机残留过一次 restore=violet 配 pref=0，
-     那种状态再关掉会把"跟随昼夜"的用户错误地拉到 violet）。 */
-  if (!readPref()) writeRestore(activeThemeId());
   deactivateTheme();
-  applyDynamicColor(palette);
+  if (plan.mode === "palette" && palette) {
+    applyDynamicColor(palette);
+  } else {
+    clearDynamicColor();
+    activateTheme(DYNAMIC_FALLBACK_THEME);
+  }
   writePref(true);
-  return true;
 }
 
 export function disableDynamicColor(): void {
@@ -142,7 +140,7 @@ export function disableDynamicColor(): void {
   else reapplyActiveTheme();
 }
 
-/** 开机自举：上次开着就重开（取色失败自动降级，不会留半套配色） */
+/** 开机自举：上次开着就重开（取不到调色板会自动降级到清华紫，不会留半套配色） */
 export function initDynamicColor(): void {
   if (readPref()) void enableDynamicColor();
 }
