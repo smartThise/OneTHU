@@ -73,7 +73,16 @@ if (navActive) {
   ok(/secondary-container/.test(navActive), "侧栏激活项未用 secondary-container 胶囊");
   ok(/corner-full/.test(navActive), "侧栏激活胶囊圆角未走 corner-full");
 }
-ok(/\.nav-indicator\s*\{\s*display:\s*none/.test(MOTION), "旧竖条指示器未退役（与胶囊并存会出现两层）");
+/* 竖条是刻意设计（用户确认）：必须在，且已按胶囊调形 */
+const bar = /\/\* -+ B4：3px 竖条指示器与胶囊共存[\s\S]*?\.nav-indicator \{([\s\S]*?)\}/.exec(MOTION);
+ok(bar !== null, "竖条指示器规则未找到（B4 恢复块）");
+if (bar) {
+  ok(/left:\s*6px/.test(bar[1]), "竖条未内缩 6px（会顶到胶囊圆角切线外）");
+  ok(/corner-full/.test(bar[1]), "竖条圆角未走 corner-full（与胶囊形状语言不一致）");
+}
+ok(!/\.nav-indicator\s*\{\s*display:\s*none/.test(MOTION), "竖条仍处于退役状态（用户要求保留）");
+ok(/\.nav-item \{[^}]*border-radius:\s*var\(--md-sys-shape-corner-full/.test(CSS), "hover 底色与激活胶囊圆角不一致");
+ok(/\.sidebar-foot \{[^}]*flex:\s*none/.test(CSS), "侧栏底未禁止收缩（会被压扁致折叠钮与「就绪」重合）");
 ok(/\.nav-label\s*\{[^}]*on-surface-variant/.test(CSS), "分区小标题未令牌化");
 ok(/\.sidebar-collapse\s*\{[^}]*border:\s*0/.test(CSS), "折叠钮仍用描边");
 

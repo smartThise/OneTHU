@@ -78,7 +78,8 @@
   height: 32px;
   padding: 0 8px;
   border: 0;
-  border-radius: var(--r-md);
+  /* hover 底色与激活胶囊同半径：两者只差颜色，形状必须一致 */
+  border-radius: var(--md-sys-shape-corner-full, var(--r-md));
   background: transparent;
   color: var(--text-2);
   font-size: var(--text-base);
@@ -100,6 +101,13 @@
 .nav-item.is-active svg { color: var(--accent); }
 
 .sidebar-foot {
+  /* flex 行 + flex: none：侧栏内容再高也不压扁它——被压扁时 26px 折叠钮会溢出，
+     与右侧「就绪」徽标叠在一起（用户报的重合 bug） */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: none;
   margin-top: auto;
   padding: 10px 8px 2px;
   border-top: 1px solid var(--border-soft);
