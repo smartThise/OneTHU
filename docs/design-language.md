@@ -157,11 +157,31 @@ margin-bottom: 24px;                       margin-bottom: 20px;
 
 阴影 `--elev-1..3` **同屏最多 2 级**；浮层（弹窗、抽屉、命令面板）才用 `--elev-3`。
 
-**§3.5 B2 已落地**：页面底 `--md-sys-color-surface-container-low`（比卡片低一级），
-卡片（`.card` / `.home-card` / `.plg-stat` / `.plg-card`）`container-lowest` 色块 + 形状令牌，**去描边、去阴影**；
-卡片 hover 走 §5 状态层。护栏 `tools/card-layers-test.mjs`（含"未迁移清单"——输入类保留描边、浮层保留描边+阴影、
-表格线是网格语义，其余列表容器 B2b 接着做）。
+**§3.5 B2/B2b 已落地**：页面底 `--md-sys-color-surface-container-low`（比卡片低一级），
+卡片与列表面板（`.card` / `.home-card` / `.plg-stat` / `.plg-card` / `.app-card` / `.week-course` /
+`.plg-install` / `.mail-list` / `.mail-detail`）`container-lowest` 色块 + 形状令牌，**去描边、去阴影**；
+卡片/列表行 hover 走 §5 状态层。护栏 `tools/card-layers-test.mjs`（含未迁移清单——输入类保留描边、
+浮层保留描边+阴影、表格线是网格语义、模态内卡片随 B3）。
 暗色下阴影几乎不可见，层级改由 surface 明度承担——所以只靠阴影分层在暗色里会塌掉。
+
+### 3.1 滚动条：令牌化，不用平台默认风
+
+滚动条是页面里出现频率最高的系统部件，用平台默认风（两端箭头、灰蓝渐变槽）会立刻泄掉整体感。
+统一在 `packages/ui/src/base.css` 用 `::-webkit-scrollbar` 定制（目标环境 WebView2 / Android WebView 都是 Chromium）：
+
+`@css
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-outline);      /* 悬停 on-surface-variant、拖拽 on-surface */
+  border: 3px solid transparent;                /* 视觉 4px、命中区 10px */
+  background-clip: content-box;
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-button { display: none; }  /* 去掉两端箭头 */
+`@
+
+**别写 `scrollbar-width` / `scrollbar-color`**（`none` 除外）：Chromium ≥121 一旦看到这两个属性就
+整体忽略 `::-webkit-scrollbar`，桌面端会悄悄退回平台默认风。护栏 `tools/scrollbar-test.mjs` 会拦住它。
 
 ---
 

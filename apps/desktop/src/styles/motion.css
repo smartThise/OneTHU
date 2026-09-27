@@ -646,13 +646,10 @@ html.theme-anim .row {
     border-color var(--dur-3) var(--ease-out) !important;
 }
 
-/* ---------- 14. 滚动条：细一点、悬停才显形（桌面） ---------- */
-
-@media (hover: hover) and (pointer: fine) {
-  * {
-    scrollbar-width: thin;
-  }
-}
+/* ---------- 14. 滚动条 ----------
+   样式统一在 packages/ui/src/base.css（令牌化 ::-webkit-scrollbar）。
+   这里**不要**再写 scrollbar-width / scrollbar-color：Chromium ≥121 一旦看到这两个属性，
+   就整体忽略 ::-webkit-scrollbar，PC（细指针）会直接退回平台默认风——这正是之前的 bug。 */
 
 /* ---------- 15. 文件预览：逐页淡入 ---------- */
 
