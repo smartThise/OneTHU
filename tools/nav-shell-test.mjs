@@ -73,14 +73,24 @@ if (navActive) {
   ok(/secondary-container/.test(navActive), "侧栏激活项未用 secondary-container 胶囊");
   ok(/corner-full/.test(navActive), "侧栏激活胶囊圆角未走 corner-full");
 }
-/* 竖条是刻意设计（用户确认）：必须在，且已按胶囊调形 */
-const bar = /\/\* -+ B4：3px 竖条指示器与胶囊共存[\s\S]*?\.nav-indicator \{([\s\S]*?)\}/.exec(MOTION);
-ok(bar !== null, "竖条指示器规则未找到（B4 恢复块）");
-if (bar) {
-  ok(/left:\s*6px/.test(bar[1]), "竖条未内缩 6px（会顶到胶囊圆角切线外）");
-  ok(/corner-full/.test(bar[1]), "竖条圆角未走 corner-full（与胶囊形状语言不一致）");
+/* 蓝条：侧栏那支关闭（与 drawer 整行胶囊不匹配），改到移动端水平导航栏做水平滑动 */
+ok(/\.nav-indicator\s*\{\s*display:\s*none/.test(MOTION), "侧栏竖条未关闭（用户判定与 drawer 胶囊风格不匹配）");
+const barCell = /\.bottom-nav-indicator \{([\s\S]*?)\}/.exec(CSS);
+ok(barCell !== null, "底栏水平蓝条规则缺失");
+if (barCell) {
+  ok(/translateX\(calc\(var\(--nav-i/.test(barCell[1]), "蓝条未用 --nav-i 做水平平移");
+  ok(/transition:[\s\S]{0,20}transform/.test(barCell[1]), "蓝条水平移动没有过渡");
+  ok(/width:\s*calc\(\(100% - 8px\) \/ 5\)/.test(barCell[1]), "蓝条宽度未按一列（5 等分）");
 }
-ok(!/\.nav-indicator\s*\{\s*display:\s*none/.test(MOTION), "竖条仍处于退役状态（用户要求保留）");
+const barInk = /\.bottom-nav-indicator::after \{([\s\S]*?)\}/.exec(CSS);
+ok(barInk !== null, "蓝条可见线段（::after）缺失");
+if (barInk) {
+  ok(/background:\s*var\(--accent/.test(barInk[1]), "蓝条可见线段未用主题色 --accent");
+  ok(/corner-full/.test(barInk[1]), "蓝条可见线段未走 corner-full");
+  ok(/width:\s*26px/.test(barInk[1]), "蓝条可见线段长度未收窄（宽视口下会被拉成长线）");
+}
+ok(/bottom-nav-indicator/.test(LAYOUT), "底栏 JSX 未渲染蓝条元素");
+ok(/--nav-i/.test(LAYOUT), "底栏 JSX 未下发 --nav-i（蓝条不会跟着当前项走）");
 ok(/\.nav-item \{[^}]*border-radius:\s*var\(--md-sys-shape-corner-full/.test(CSS), "hover 底色与激活胶囊圆角不一致");
 ok(/\.sidebar-foot \{[^}]*flex:\s*none/.test(CSS), "侧栏底未禁止收缩（会被压扁致折叠钮与「就绪」重合）");
 ok(/\.nav-label\s*\{[^}]*on-surface-variant/.test(CSS), "分区小标题未令牌化");
@@ -95,4 +105,4 @@ if (fails.length) {
   for (const f of fails) console.error("  ✗ " + f);
   process.exit(1);
 }
-console.log("导航壳护栏：底栏 5 Tab + 64×32 胶囊 + 安全区 + 无描边 ✓ 侧栏 ≤240px + 整行胶囊 + 竖条保留并调形 + 分区标题 ✓ 圆角一致 ✓ 底栏不收缩 ✓");
+console.log("导航壳护栏：底栏 5 Tab + 64×32 胶囊 + 安全区 + 无描边 ✓ 侧栏 ≤240px + 整行胶囊 + 侧栏竖条关闭 + 分区标题 ✓ 底栏水平蓝条 ✓ 圆角一致 ✓ 底栏不收缩 ✓");

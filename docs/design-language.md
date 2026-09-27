@@ -240,9 +240,9 @@ EXIT_MS 与 --dur-2（short-4 = 200ms）同源。关闭入口一个都不能漏�
 
 ### 3.4 导航壳：底栏 / 侧栏 / 大标题（B4）
 
-**移动端 navigation bar**：5 目的地；激活项有 **64×32 胶囊指示器**（`--md-sys-color-secondary-container`，`corner-full`）**压在图标之下**（图标与文字 `z-index: 1`），激活标签走 `on-surface`、图标走主题 `--accent`；**不用 `border-top`** 分层，靠色阶 + 高程（B2 约定）；贴底必吃 `env(safe-area-inset-bottom)`。
+**移动端 navigation bar**：5 目的地；激活项有 **64×32 胶囊指示器**（`--md-sys-color-secondary-container`，`corner-full`）**压在图标之下**（图标与文字 `z-index: 1`），激活标签走 `on-surface`、图标走主题 `--accent`；**不用 `border-top`** 分层，靠色阶 + 高程（B2 约定）；贴底必吃 `env(safe-area-inset-bottom)`。**蓝条**：选项文字下方一条 3px 主题色短横线，随当前项做**水平**滑动（一个横跨一列的元素用 `translateX(列数 × 100%)` 平移，可见线段由 `::after` 固定收窄到 26px，免得平板宽视口下被拉成长线）。
 
-**PC navigation drawer**：`--sidebar-w: 224px`（≤ 240px）；激活项是**整行胶囊**（`secondary-container` + `corner-full`），图标用主题 `--accent`；分区小标题走 `label-medium` + `on-surface-variant`；侧栏背景走 `surface-container` 色阶分层、去 `border-right`；折叠钮是**无描边 tonal** 小按钮。旧的 3px 竖条指示器（`.nav-indicator`）**退役**——与整行胶囊并存会出现两层；`useNavIndicator` 的 WAAPI 逻辑保留（抽屉/侧栏共用，无害）。
+**PC navigation drawer**：`--sidebar-w: 224px`（≤ 240px）；激活项是**整行胶囊**（`secondary-container` + `corner-full`），图标用主题 `--accent`；分区小标题走 `label-medium` + `on-surface-variant`；侧栏背景走 `surface-container` 色阶分层、去 `border-right`；折叠钮是**无描边 tonal** 小按钮。侧栏**不放竖条**：竖条本身是刻意设计，但与 drawer 的整行胶囊风格不匹配，已按用户裁定移到移动端底栏（见上）。`useNavIndicator` 的 WAAPI 逻辑失去消费者，暂留不删，与抽屉 DOM 一并在收尾批次清理。
 
 **顶部大标题**：compact 下页标题 28/36（`headline-medium`，即 MD3 large top app bar）；滚动后标题收进既有 sticky 小顶栏，大标题只承担页面入口的第一眼层级。
 

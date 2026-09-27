@@ -901,12 +901,9 @@ html.has-reveal :is(.app-grid, .thos-grid) > *[data-reveal-in] {
   }
 }
 
-/* ---------- B4：3px 竖条指示器与胶囊共存（用户确认竖条是刻意设计） ----------
-   胶囊（.nav-item.is-active 的 secondary-container）表达"当前在哪"，竖条作为左缘的重音。
-   为贴合胶囊：内缩 6px 避开圆角切线、圆角走 corner-full、宽度 3px、高度保持 16px
-   （useNavIndicator 里 BAR 常量就是 16，改高会与 JS 居中逻辑错开）。 */
-.nav-indicator {
-  left: 6px;
-  border-radius: var(--md-sys-shape-corner-full, 2px);
-  height: 16px;
-}
+/* ---------- B4：侧栏不再有竖条 ----------
+   竖条是刻意设计，但用户判定它与 navigation drawer 的整行胶囊风格不匹配，
+   要求移到移动端水平导航栏做「文字下方横线 + 水平滑动」。见 global.css 的
+   .bottom-nav-indicator。这里只关掉侧栏那一支；useNavIndicator 的 WAAPI 逻辑
+   失去消费者，暂留不删（与抽屉 DOM 一起在收尾批次清理）。 */
+.nav-indicator { display: none; }

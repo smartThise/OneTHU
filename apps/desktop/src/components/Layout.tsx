@@ -1,5 +1,5 @@
 /** 侧栏 + 内容骨架 + 基础 UI 件（卡片 / 徽标 / 骨架屏 / 开关） */
-import { Children, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, useSyncExternalStore} from "react";
+import { Children, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, useSyncExternalStore } from "react";
 import { useThemes } from "../state/theme.js";
 import { useApp } from "../state/context.js";
 import { topLevelPage, type LearnNav, type Page } from "../state/app.js";
@@ -66,8 +66,16 @@ const BOTTOM_NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactN
 
 /** 移动端底部导航条（CSS 侧 ≤840px 显示；桌面恒隐藏） */
 function BottomNav({ page, navigate }: { page: Page; navigate: (p: Page, params?: LearnNav) => void }): ReactNode {
+  /* 当前项序号驱动蓝条水平滑动；不在 5 Tab 内（如子页面）时不渲染蓝条 */
+  const activeIdx = BOTTOM_NAV.findIndex(
+    (item) => item.page === page || item.activePages?.includes(page) === true,
+  );
   return (
-    <nav className="bottom-nav" aria-label="底部导航">
+    <nav
+      className="bottom-nav"
+      aria-label="底部导航"
+      style={{ "--nav-i": Math.max(0, activeIdx) } as CSSProperties}
+    >
       {BOTTOM_NAV.map((item) => {
         const active = item.page === page || item.activePages?.includes(page) === true;
         const Icon = item.icon;
@@ -83,6 +91,7 @@ function BottomNav({ page, navigate }: { page: Page; navigate: (p: Page, params?
           </button>
         );
       })}
+      {activeIdx >= 0 ? <span className="bottom-nav-indicator" aria-hidden="true" /> : null}
     </nav>
   );
 }
