@@ -7,6 +7,7 @@ import { courseColor } from "../../lib/courseColor.js";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import { PageAtomStar } from "../..//components/Collect.js";
 import { createPortal } from "react-dom";
+import { useExitPhase } from "../../lib/useExitPhase.js";
 import { Card, Empty, ErrorNote, PageHead, SegmentedOverflow, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { nextVolCheckpoint, useXkWorkbench, type XkSearchMeta, type XkStageItem } from "../../state/data.js";
@@ -154,6 +155,9 @@ const openDetail = (code: string, teacherId: string): void => { _detailOpen?.(co
 const openReviews = (v: { code: string; seq: string; name: string; teacher: string }): void => { _reviewOpen?.(v); };
 
 /* ══════════ 弹窗（自带表面色，不依赖 Card 上下文变量）══════════ */
+/** 退场：内联 animation 覆盖入场（本项目不给内联几何弹层写 CSS 规则） */
+const maskOut: React.CSSProperties = { animation: "m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both" };
+const panelOut: React.CSSProperties = { animation: "m-pop-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both" };
 const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
 const panelStyle: React.CSSProperties = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 620, maxHeight: "78vh", display: "flex", flexDirection: "column", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)" };
 const panelHead: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border, #eee)" };
@@ -174,6 +178,7 @@ function DetailModal({ wb, code, tid, onClose }: { wb: ReturnType<typeof useXkWo
     // void wb.getRatings(code).then((v) => { if (alive) setRrows(v); });
     // return () => { alive = false; };
   }, [code, tid]);
+  const [closing, requestClose] = useExitPhase(onClose);
   if (!code) return null;
   const order = ["课程编号", "课程名称", "总学时数", "总学分", "课程内容简介", "Course Description", "考核安排", "联系人", "教材及参考书", "上课教师", "选课指导语", "先修要求", "教师教学特色", "Office Hour", "成绩评定标准", "参考书"];
   const entries = data ? Object.entries(data.fields) : [];
@@ -182,9 +187,9 @@ function DetailModal({ wb, code, tid, onClose }: { wb: ReturnType<typeof useXkWo
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
   });
   return createPortal(
-    <div style={maskStyle} className="xk-mask" onClick={onClose}>
-      <div style={panelStyle} className="xk-panel" onClick={(e) => e.stopPropagation()}>
-        <div style={panelHead}><b>课程简介</b><span style={{ flex: 1 }} /><button className="btn" onClick={onClose}>✕</button></div>
+    <div style={closing ? { ...maskStyle, ...maskOut } : maskStyle} className="xk-mask" onClick={requestClose}>
+      <div style={closing ? { ...panelStyle, ...panelOut } : panelStyle} className="xk-panel" onClick={(e) => e.stopPropagation()}>
+        <div style={panelHead}><b>课程简介</b><span style={{ flex: 1 }} /><button className="btn" onClick={requestClose}>✕</button></div>
         <div style={panelBody}>
           {/* 【教评#31冻结】教评三态块（整块注释保留，教务修好解开）
            {rrows === undefined ? (
@@ -258,11 +263,12 @@ function ReviewsModal({ code, seq, name, teacher, onClose }: { code: string | nu
   // Esc 关闭（插件 modal 同款：mask 点击/Esc 均可退出）
   useEffect(() => {
     if (!code) return;
-    const onKey = (ev: KeyboardEvent): void => { if (ev.key === "Escape") onClose(); };
+    const onKey = (ev: KeyboardEvent): void => { if (ev.key === "Escape") requestClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [code, onClose]);
   // 未打开时绝不渲染（重写时弄丢的守卫 —— 空态也渲染遮罩且永远关不掉，就是糊脸黑罩的根因）
+  const [closing, requestClose] = useExitPhase(onClose);
   if (!code) return null;
 
   const headBits: React.ReactNode[] = [];
@@ -291,9 +297,9 @@ function ReviewsModal({ code, seq, name, teacher, onClose }: { code: string | nu
     </div>,
   );
   return createPortal(
-    <div style={maskStyle} className="xk-mask" onClick={onClose}>
-      <div style={panelStyle} className="xk-panel" onClick={(e) => e.stopPropagation()}>
-        <div style={panelHead}><b>{name} · 社区点评</b><span style={{ flex: 1 }} /><button className="btn" onClick={onClose}>✕</button></div>
+    <div style={closing ? { ...maskStyle, ...maskOut } : maskStyle} className="xk-mask" onClick={requestClose}>
+      <div style={closing ? { ...panelStyle, ...panelOut } : panelStyle} className="xk-panel" onClick={(e) => e.stopPropagation()}>
+        <div style={panelHead}><b>{name} · 社区点评</b><span style={{ flex: 1 }} /><button className="btn" onClick={requestClose}>✕</button></div>
         <div style={panelBody}>
           {headBits}
           {entry ? (
