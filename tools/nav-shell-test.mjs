@@ -77,6 +77,10 @@ ok(/\.nav-indicator\s*\{\s*display:\s*none/.test(MOTION), "旧竖条指示器未
 ok(/\.nav-label\s*\{[^}]*on-surface-variant/.test(CSS), "分区小标题未令牌化");
 ok(/\.sidebar-collapse\s*\{[^}]*border:\s*0/.test(CSS), "折叠钮仍用描边");
 
+/* --- 顶部大标题（MD3 large top app bar）--- */
+ok(/html\.is-phone \.page-head-title\s*\{[^}]*headline-medium-size/.test(CSS), "手机端页标题未走 headline-medium 大标题令牌");
+ok(!/html\.is-phone \.page-head-title\s*\{[^}]*font-size:\s*20px/.test(CSS), "手机端页标题仍是 20px（未升为大标题）");
+
 if (fails.length) {
   console.error("导航壳护栏：不通过");
   for (const f of fails) console.error("  ✗ " + f);

@@ -1395,7 +1395,6 @@
   transition: box-shadow 100ms ease, background 100ms ease;
 }
 
-
 /* 楼栋搜索下拉（filter-dd 变体）：搜索框 + 分组滚动列表 */
 .search-dd-search,
 .washer-dd-search {
@@ -2679,7 +2678,14 @@ html.is-phone .home-card-head { padding: 12px 14px 12px 16px; }
 html.is-phone .home-card-title { font-size: 15px; }
 html.is-phone .stats-overview .stat-num { font-size: 20px; }
 html.is-phone .stats-overview .stat-label { font-size: 12px; }
-html.is-phone .page-head-title { font-size: 20px; }
+/* B4c 顶部大标题：MD3 large top app bar = headline-medium（28/36）。滚动后标题收进
+   .mobile-topbar 的小顶栏（既有行为），大标题只承担页面入口的第一眼层级。 */
+html.is-phone .page-head-title {
+  font-size: var(--md-sys-typescale-headline-medium-size, 28px);
+  line-height: 36px;
+  letter-spacing: 0;
+}
+
 html.is-phone .section-head { font-size: 15px; }
 html.is-phone .data-table { font-size: 13px; }
 html.is-phone .data-table th { font-size: 12px; }
@@ -5139,7 +5145,7 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
     -webkit-tap-highlight-color: transparent;
   }
   /* MD3 active indicator：64×32 胶囊压在图标之下；主题色取 secondary-container。
-     图标激活色用主题感知的 --accent（System 层暂无 on-secondary-container，见手册 §3.5） */
+     图标激活色用主题感知的 --accent（System 层暂无 on-secondary-container，见手册 §3.4） */
   .bottom-nav-item::before {
     content: "";
     position: absolute;

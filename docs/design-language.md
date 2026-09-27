@@ -235,6 +235,18 @@ margin-bottom: 24px;                       margin-bottom: 20px;
 EXIT_MS 与 --dur-2（short-4 = 200ms）同源。关闭入口一个都不能漏——遮罩点击、关闭按钮、取消、Escape 都走 requestClose；
 护栏 [12] 会检查这五个已迁移组件是否残留直接 onClose。
 
+### 3.4 导航壳：底栏 / 侧栏 / 大标题（B4）
+
+**移动端 navigation bar**：5 目的地；激活项有 **64×32 胶囊指示器**（`--md-sys-color-secondary-container`，`corner-full`）**压在图标之下**（图标与文字 `z-index: 1`），激活标签走 `on-surface`、图标走主题 `--accent`；**不用 `border-top`** 分层，靠色阶 + 高程（B2 约定）；贴底必吃 `env(safe-area-inset-bottom)`。
+
+**PC navigation drawer**：`--sidebar-w: 224px`（≤ 240px）；激活项是**整行胶囊**（`secondary-container` + `corner-full`），图标用主题 `--accent`；分区小标题走 `label-medium` + `on-surface-variant`；侧栏背景走 `surface-container` 色阶分层、去 `border-right`；折叠钮是**无描边 tonal** 小按钮。旧的 3px 竖条指示器（`.nav-indicator`）**退役**——与整行胶囊并存会出现两层；`useNavIndicator` 的 WAAPI 逻辑保留（抽屉/侧栏共用，无害）。
+
+**顶部大标题**：compact 下页标题 28/36（`headline-medium`，即 MD3 large top app bar）；滚动后标题收进既有 sticky 小顶栏，大标题只承担页面入口的第一眼层级。
+
+**令牌缺位时的取舍**：System 层暂无 `on-secondary-container`，激活图标色取主题感知的 `--accent`（主题写 Compat → 注入时镜像到 System，见 §0.1）。
+
+**护栏**：`tools/nav-shell-test.mjs`（已进 `pnpm guard`）。注意同名规则在文件里可能有多处、且多档媒体查询都叫 `max-width: 839.98px`，**一律按内容特征挑真身**，不要用下标——护栏第一版就在这上面误读过 `.bottom-nav { display: none }`。
+
 ## 4. 用色：中性打底，彩色点睛
 
 - **正文区保持中性 surface**；彩色 surface（tonal container）只用于两处：「今日」卡片、功能分组头。
