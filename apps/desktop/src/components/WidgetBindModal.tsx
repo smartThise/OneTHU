@@ -13,6 +13,7 @@
  */
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useExitPhase } from "../lib/useExitPhase.js";
 import { FavAtomPicker } from "./FavAtomPicker.js";
 import { IconCard, IconFile, IconFolder, IconToday } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
@@ -70,6 +71,7 @@ export const CONTENT_KINDS: Array<{
 ];
 
 export function WidgetBindModal(): ReactNode {
+  const [closing, requestClose] = useExitPhase(() => close());
   const req = useWidgetBindRequest();
   const favs = useFavs();
   const backend = useNotifyBackend();
@@ -127,11 +129,11 @@ export function WidgetBindModal(): ReactNode {
   if (req.to === "pick") {
     const binding = req.binding;
     return createPortal(
-      <div className="home-modal-mask" onClick={close}>
-        <div className="home-modal" role="dialog" aria-modal="true" aria-label="放到哪一块小组件" onClick={(e) => e.stopPropagation()}>
+      <div className={"home-modal-mask" + (closing ? " is-closing" : "")} onClick={requestClose}>
+        <div className={"home-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label="放到哪一块小组件" onClick={(e) => e.stopPropagation()}>
           <div className="home-modal-head">
             <h3>放到哪一块小组件？</h3>
-            <button className="btn btn-ghost" onClick={close}>关闭</button>
+            <button className="btn btn-ghost" onClick={requestClose}>关闭</button>
           </div>
           <div className="home-modal-body">
             <div className="wb-current">
@@ -173,11 +175,11 @@ export function WidgetBindModal(): ReactNode {
   const id = req.id;
   const cur = loadWidgetInstances().byId[id] ?? { kind: "today" as const };
   return createPortal(
-    <div className="home-modal-mask" onClick={close}>
-      <div className="home-modal" role="dialog" aria-modal="true" aria-label="这块小组件显示什么" onClick={(e) => e.stopPropagation()}>
+    <div className={"home-modal-mask" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"home-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label="这块小组件显示什么" onClick={(e) => e.stopPropagation()}>
         <div className="home-modal-head">
           <h3>这块小组件显示什么？</h3>
-          <button className="btn btn-ghost" onClick={close}>关闭</button>
+          <button className="btn btn-ghost" onClick={requestClose}>关闭</button>
         </div>
         <div className="home-modal-body">
           <div className="wb-current">
@@ -228,7 +230,7 @@ export function WidgetBindModal(): ReactNode {
 
       {folderPick ? (
         <div className="home-modal-mask" onClick={() => setFolderPick(false)}>
-          <div className="home-modal" role="dialog" aria-modal="true" aria-label="选一个收藏夹" onClick={(e) => e.stopPropagation()}>
+          <div className={"home-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label="选一个收藏夹" onClick={(e) => e.stopPropagation()}>
             <div className="home-modal-head">
               <h3>选一个收藏夹</h3>
               <button className="btn btn-ghost" onClick={() => setFolderPick(false)}>返回</button>
