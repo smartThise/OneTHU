@@ -288,6 +288,9 @@
 - 图书馆**座位分布图消失**：`fetchImageAsDataUrl` 有 mime 守卫（会话墙返回 HTML 会抛错），而 `useAreaImage` 的 `.catch()` 把「登录过期」与「该区域本来没图(404)」**一起静默隐藏** → 改为按原因分流：404 静默隐藏，其余显式报错 + 重试（`.map-error`），把原因亮给用户。**若你看到的是登录过期，请重新登录后再看该页。**
 - 邮件右侧预览的滚动条仍是旧版：`sandbox="" + srcDoc` 的 iframe 是独立文档，父页面滚动条样式进不去 → 在 `srcDoc` 注入一份令牌化滚动条（含暗色）。
 
+**验证与一次假警报（诚实记录）**：真机实测——底栏胶囊 64×32 / radius 999px / opacity 1 ✓，切换 Tab 时胶囊与激活态同步 ✓（禁掉 transition 后复测：我的=1 → 点服务 → 服务=1，其余全 0）；蓝竖条在手机上 rect=0×0、offsetParent=null（只存在于 PC 侧栏，不会误现 ✓）；16 页回归通过 ✓。
+排查中出现过一次**假警报**：手机锁屏 + 通知栏遮挡时，Android WebView 的 innerWidth 会塌成 0，回归的 scrollWidth - innerWidth 变成常数，于是「16 页全部横向溢出 32px」。真凶是环境（isKeyguardShowing=true、mCurrentFocus=NotificationShade），**不是代码回归**。已给回归加**视口前置闸门**（innerWidth 为 0 直接拒绝跑并提示解锁）+ 失败时报告上下文身份与越界元素，避免重蹈。
+
 **B3c 弹层退场相位（大部分已落地，真机复验通过）**：新增共用 hook apps/desktop/src/lib/useExitPhase.ts
 （幂等 closingRef 守卫、卸载清定时器、受控弹层传 open 重开复位、EXIT_MS 与 --dur-2 同源）。
 已迁移：FavAtomPicker、Collect.tsx（CollectModal / AtomPickerModal，含 Escape）、WidgetBindModal、
