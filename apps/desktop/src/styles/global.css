@@ -454,7 +454,8 @@
 .today-quick-chip::after,
 .task-stat::after,
 .app-card::after,
-.mail-row::after {
+.mail-row::after,
+.wb-row::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -469,7 +470,8 @@
 .chip:hover::after,
 .today-quick-chip:hover::after,
 .app-card:hover::after,
-.mail-row:hover::after { opacity: 1; }
+.mail-row:hover::after,
+.wb-row:hover::after { opacity: 1; }
 .btn:active::after,
 .icon-btn:active::after,
 .chip:active::after,
@@ -1702,7 +1704,7 @@
   position: fixed;
   inset: 0;
   z-index: 70;
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--md-sys-color-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1716,9 +1718,9 @@
   display: flex;
   flex-direction: column;
   background: var(--md-sys-color-surface-container-lowest);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border); /* 浮层保留描边，与页面分离（§3） */
+  border-radius: var(--md-sys-shape-corner-large);
+  box-shadow: var(--md-sys-elevation-3);
   animation: page-in 180ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
@@ -1782,22 +1784,21 @@
 }
 
 .wb-kind {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
   padding: 12px;
-  border: 1px solid var(--border-soft);
-  border-radius: 12px;
-  background: var(--md-sys-color-surface-container-lowest);
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: var(--md-sys-color-surface-container); /* 弹层是白底，卡片用灰阶分层 */
   text-align: left;
   cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition: background 120ms ease;
 }
 
 .wb-kind:hover, .wb-kind.is-active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  background: var(--accent-soft); /* 选中/悬停用色块（§5：不改描边） */
 }
 
 .wb-kind-icon {
@@ -1829,19 +1830,18 @@
 }
 
 .wb-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid var(--border-soft);
-  border-radius: 12px;
-  background: var(--md-sys-color-surface-container-lowest);
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: var(--md-sys-color-surface-container); /* 弹层是白底，卡片用灰阶分层 */
   text-align: left;
   cursor: pointer;
-  transition: border-color 120ms ease;
 }
 
-.wb-row:hover { border-color: var(--accent); }
+/* hover 走共享状态层（.wb-row::after，§5） */
 
 .wb-row-main { flex: 1 1 auto; min-width: 0; }
 
@@ -3119,7 +3119,27 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   .plg-state-sub { display: none; }
   html.is-phone .plg-ops .btn { height: 32px; padding: 0 12px; font-size: 12px; }
   .plg-mask { align-items: stretch; }
-  .plg-sheet { width: 100%; max-width: 100%; max-height: 92dvh; border-radius: 14px 14px 0 0; margin: 0; }
+  .plg-sheet { width: 100%; max-width: 100%; max-height: 92dvh; border-radius: var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-large) 0 0; margin: 0; }
+
+  /* B3b：弹层统一成底部抽屉（bottom sheet）——贴底、满宽、上圆角、把手、安全区 */
+  .home-modal-mask { align-items: flex-end; padding: 0; }
+  .home-modal {
+    max-width: 100%;
+    max-height: 92dvh;
+    border-radius: var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-large) 0 0;
+    border-bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    animation: m-sheet-up 260ms var(--md-sys-motion-easing-emphasized-decelerate, ease-out) both;
+  }
+  .home-modal::before { /* 抽屉把手：纯 CSS，不动组件 */
+    content: "";
+    flex: none;
+    width: 32px;
+    height: 4px;
+    margin: 8px auto 0;
+    border-radius: 999px;
+    background: var(--md-sys-color-outline-variant);
+  }
 }
 
 /* 旧通用提示 toast（第三方 JS 插件可能引用） */

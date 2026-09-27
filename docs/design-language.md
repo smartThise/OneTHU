@@ -200,6 +200,19 @@ margin-bottom: 24px;                       margin-bottom: 20px;
 | 聚焦 | outline 关掉 + 描边转强调色 + 令牌聚焦环 md-sys-focus-ring |
 
 紧凑行内控件（filter-select / hwremind-custom input / trace-opt select）尺寸跟随所在行，
+
+### 3.3 弹层：桌面居中对话框 / 手机底部抽屉
+
+浮层是 §3 分层的**例外**：它允许「描边 + 投影」同时在（与页面不是同一层级关系，需要"浮起来"）。统一后：
+
+| 端 | 形态 |
+|---|---|
+| 桌面 | 遮罩 `--md-sys-color-scrim`；面板 `container-lowest` + 形状令牌 large + `--md-sys-elevation-3` |
+| 手机 | **bottom sheet**：贴底、满宽、只圆上面两角、92dvh 限高、CSS 把手（`::before` 32×4 胶囊）、`env(safe-area-inset-bottom)`、`m-sheet-up` 上滑入场 |
+
+抽屉内卡片（`.wb-kind` / `.wb-row`）在**白底弹层**上用灰阶 `surface-container` 分层，不再描边；
+`.wb-row` 的 hover 接共享状态层。遮罩新增 System 角色 `--md-sys-color-scrim`（明暗各一档）。
+护栏 `tools/modal-shell-test.mjs`。
 在护栏里单独登记，不并入常规输入。护栏 tools/input-system-test.mjs。
 
 ---

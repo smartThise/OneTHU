@@ -18,12 +18,10 @@ const BASE = readFileSync("packages/ui/src/base.css", "utf8");
 /* 尚未迁移（各有理由，别误判为漏做）：
    · 输入/表单类（.input/.field/.search-box/.mail-compose/.trace-opt/[select]）—— 描边属于输入语言，§3 明确保留
    · 浮层（.home-modal/.plg-sheet/.dock-panel/.hwremind-pop/.trace-card 地图浮卡）—— 需要描边 + 阴影与页面分离
-   · 模态内卡片（.wb-kind/.wb-row）—— 底色是模态自身，须与弹层一起改，随 B3 移动端弹层批次
+   · 模态内卡片（.wb-kind/.wb-row）—— 已随 B3b 弹层一起迁移（白底弹层上用灰阶分层）
    · 表格（.rich table/.dock-md table）—— 表格线是网格语义，不适用卡片规则
    · 收藏磁贴（.fav-tile*）—— 收藏是红线区，不动 */
 export const PENDING = [
-  ".wb-kind",
-  ".wb-row",
   ".trace-card",
   ".trace-opt",
   ".mail-compose",

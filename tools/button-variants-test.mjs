@@ -49,7 +49,7 @@ ok(/--md-sys-color-state-focus:\s*rgba\(255, 255, 255, 0\.08\)/.test(dark), "暗
 const layer = block(CSS, ".btn::after,");
 ok(layer.includes("background: var(--md-sys-color-state-hover)"), "状态层底色应为 hover 令牌");
 ok(layer.includes("inset: 0") && layer.includes("border-radius: inherit"), "状态层应铺满并继承圆角");
-ok(/\.btn:hover::after[\s\S]{0,140}opacity: 1/.test(CSS), "hover 应点亮状态层");
+ok(block(CSS, ".btn:hover::after,").includes("opacity: 1"), "hover 应点亮状态层（跟随选择器列表增删）");
 ok(
   /\.btn:active::after[\s\S]{0,200}var\(--md-sys-color-state-pressed\)/.test(CSS),
   "pressed 状态层应用 12% 令牌",
