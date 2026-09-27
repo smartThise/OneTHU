@@ -8,7 +8,6 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { useExitPhase } from "../lib/useExitPhase.js";
 import { Empty } from "./Layout.js";
 import { IconChevron, IconFolderPlus, IconSearch, IconStar } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
@@ -49,7 +48,6 @@ export function PageAtomStar({ atomKey, title }: { atomKey: string; title: strin
 }
 
 export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => void }) {
-  const [closing, requestClose] = useExitPhase(onClose);
   const favs = useFavs();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
@@ -136,7 +134,7 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent): void => {
-      if (ev.key === "Escape") requestClose();
+      if (ev.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -152,11 +150,11 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
   };
 
   return createPortal(
-    <div className={"home-modal-mask" + (closing ? " is-closing" : "")} onClick={requestClose}>
-      <div className={"home-modal collect-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label="收藏到收藏夹" onClick={(e) => e.stopPropagation()}>
+    <div className="home-modal-mask" onClick={onClose}>
+      <div className="home-modal collect-modal" role="dialog" aria-modal="true" aria-label="收藏到收藏夹" onClick={(e) => e.stopPropagation()}>
         <div className="home-modal-head">
           <h3>收藏到…</h3>
-          <button className="btn btn-ghost" onClick={requestClose}>关闭</button>
+          <button className="btn btn-ghost" onClick={onClose}>关闭</button>
         </div>
         <div className="home-modal-body">
           <div className="home-modal-hint">
@@ -198,7 +196,6 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
 
 /** 原子搜索添加弹层（收藏夹页「添加」） */
 export function AtomPickerModal({ onPick, onClose, title = "添加到收藏夹", hint }: {
-  const [closing, requestClose] = useExitPhase(onClose);
   onPick: (atom: AtomRef) => void;
   onClose: () => void;
   /** 标题与说明可覆盖：收藏夹「添加原子」与小组件「选一个原子」共用同一个搜索层 */
@@ -213,18 +210,18 @@ export function AtomPickerModal({ onPick, onClose, title = "添加到收藏夹",
   useEffect(() => {
     inputRef.current?.focus();
     const onKey = (ev: KeyboardEvent): void => {
-      if (ev.key === "Escape") requestClose();
+      if (ev.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
   return createPortal(
-    <div className={"home-modal-mask" + (closing ? " is-closing" : "")} onClick={requestClose}>
-      <div className={"home-modal collect-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label="搜索并添加原子" onClick={(e) => e.stopPropagation()}>
+    <div className="home-modal-mask" onClick={onClose}>
+      <div className="home-modal collect-modal" role="dialog" aria-modal="true" aria-label="搜索并添加原子" onClick={(e) => e.stopPropagation()}>
         <div className="home-modal-head">
           <h3>{title}</h3>
-          <button className="btn btn-ghost" onClick={requestClose}>关闭</button>
+          <button className="btn btn-ghost" onClick={onClose}>关闭</button>
         </div>
         <div className="home-modal-body">
           <div className="collect-search">
