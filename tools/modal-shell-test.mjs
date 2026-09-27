@@ -65,6 +65,21 @@ for (const sel of [".wb-kind {", ".wb-row {"]) {
 ok(block(".btn::after,").includes(".wb-row::after"), "共享状态层应包含 .wb-row::after");
 ok(!/\.wb-kind:hover[^{]*\{[^}]*border-color/.test(CSS), ".wb-kind hover 不该再改描边");
 
+/* [5] 退场：整族必须有退场动画（缺了弹层会"啪"地消失） */
+ok(CSS.includes(".plg-mask.is-closing") && CSS.includes(".home-modal-mask.is-closing"), "遮罩退场动画缺失");
+ok(/\.plg-sheet\.is-closing,[\s\S]{0,120}m-pop-out/.test(CSS), "面板退场动画缺失（桌面缩小淡出）");
+ok(/html\.is-phone \.plg-sheet\.is-closing,\nhtml\.is-phone \.home-modal\.is-closing \{\n  animation: m-sheet-down/.test(CSS), "手机抽屉退场应往下滑");
+ok(CSS.includes("@keyframes m-fade-out") && CSS.includes("@keyframes m-sheet-down"), "退场关键帧缺失");
+ok(/is-closing[\s\S]{0,80}emphasized-accelerate/.test(CSS), "退场应用 accelerate 曲线（离场加速）");
+
+/* [6] 弹层必须 portal 到 body：否则祖先的动画/变换会成为 position:fixed 的包含块，
+       遮罩只盖住所在页面那一块（R24 霖实测：插件设置页只把插件页那块遮罩变黑） */
+const PLG = readFileSync("apps/desktop/src/pages/Plugins.tsx", "utf8");
+ok(/return createPortal\(/.test(PLG) && PLG.includes("document.body"), "插件设置弹层未 portal 到 body");
+const RCH = readFileSync("apps/desktop/src/pages/info/CardTab.tsx", "utf8");
+ok(/const \[closing, setClosing\] = useState/.test(RCH), "校园卡充值弹窗缺退场相位（closing）");
+ok(RCH.indexOf("setClosing(false)") < RCH.indexOf("if (!open)"), "closing 状态必须在早返回之前（hook 顺序）");
+
 if (fails.length) {
   console.error("弹层护栏：不通过");
   for (const f of fails) console.error("  ✗ " + f);

@@ -5,6 +5,7 @@
  * 日志全高终端（时间戳 + 方法符着色 + 自动贴底 + 打断/清空）。
  */
 import { compareVersions, fetchEntryFromMarket, fetchEntryFromRepo, fetchRegistry, fetchStarMap, normalizeRepoUrl, parseRepoInput, type MarketEntry } from "../lib/market.js";
+import { createPortal } from "react-dom";
 import type { CommandResult } from "../plugins/types.js";
 import { loadMcpServers, saveMcpServers, type McpServerEntry } from "../lib/mcpStore.js";
 import { openFormModal } from "../lib/formModal.js";
@@ -609,7 +610,7 @@ function PluginSheet({
   };
   if (!rec) return null;
   const title = mode === "settings" ? "设置" : mode === "mcp" ? "MCP 服务器" : "运行日志";
-  return (
+  return createPortal(
     <div
       className={"plg-mask" + (closing ? " is-closing" : "")}
       onPointerDown={(e) => {
@@ -640,6 +641,8 @@ function PluginSheet({
         )}
       </section>
     </div>
+    ,
+    document.body,
   );
 }
 

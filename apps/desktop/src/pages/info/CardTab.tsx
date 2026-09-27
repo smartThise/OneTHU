@@ -73,6 +73,8 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
   const [webUrl, setWebUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  /* 退场相位：先播 160ms 淡出再真正关闭（此前无退场动画，弹窗"啪"地消失） */
+  const [closing, setClosing] = useState(false);
   if (!open) return null;
 
   const amt = Number(amount);
@@ -81,6 +83,12 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
   // 起步 10 元（真机实录「至少充 10 块」）——三端统一成一条规则，不再分渠道。
   const minAmt = 10;
   const valid = Number.isFinite(amt) && amt >= minAmt && amt <= 1000 && Math.round(amt * 100) === amt * 100;
+  const requestClose = (): void => {
+    if (closing) return;
+    setClosing(true);
+    window.setTimeout(() => onClose(), 160);
+  };
+
   const close = () => {
     setStep("form");
     setErr("");
@@ -118,12 +126,12 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
   };
 
   return createPortal(
-    <div style={maskStyle} onClick={close}>
-      <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
+    <div style={{ ...maskStyle, opacity: closing ? 0 : 1, transition: "opacity .16s ease" }} onClick={requestClose}>
+      <div style={{ ...panelStyle, opacity: closing ? 0 : 1, transform: closing ? "scale(0.97)" : "none", transition: "opacity .16s ease, transform .16s ease" }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
           <b>校园卡充值</b>
           <span style={{ flex: 1 }} />
-          <button className="btn" onClick={close}>✕</button>
+          <button className="btn" onClick={requestClose}>✕</button>
         </div>
 
         {step === "form" ? (
@@ -232,7 +240,7 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
             <div style={{ fontSize: 13, lineHeight: 1.8, marginBottom: 10 }}>
               圈存请求已提交。资金到账以校园卡<b>余额 / 流水</b>为准；若未到账请稍后在「最近消费」中查看圈存记录。
             </div>
-            <button className="btn btn-primary" style={{ width: "100%" }} onClick={close}>好的</button>
+            <button className="btn btn-primary" style={{ width: "100%" }} onClick={requestClose}>好的</button>
           </>
         ) : null}
       </div>

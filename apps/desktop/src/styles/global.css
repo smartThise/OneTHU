@@ -3625,6 +3625,28 @@ html.is-phone .dock-head .dock-btn:not(.dock-ico) { height: 28px; padding: 0 10p
 .plg-caret { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid currentColor; transition: transform 0.18s ease; display: inline-block; }
 .plg-caret.is-open { transform: rotate(180deg); }
 
+/* ---------- 退场：整族统一补齐（入场各写各的，退场必须有，否则弹层"啪"地消失） ----------
+   退场用 accelerate 曲线（§动效纪律：离场加速），时长取 short-4。 */
+@keyframes m-fade-out { to { opacity: 0; } }
+@keyframes m-pop-out { to { opacity: 0; transform: scale(0.96); } }
+@keyframes m-sheet-down { to { opacity: 0; transform: translateY(100%); } }
+.plg-mask.is-closing,
+.home-modal-mask.is-closing,
+.confirm-mask.is-closing,
+.mail-compose-mask.is-closing {
+  animation: m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both;
+}
+.plg-sheet.is-closing,
+.home-modal.is-closing,
+.confirm-card.is-closing,
+.mail-compose.is-closing {
+  animation: m-pop-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both;
+}
+/* 手机上是抽屉：退场必须往下滑，不能缩小 */
+html.is-phone .plg-sheet.is-closing,
+html.is-phone .home-modal.is-closing {
+  animation: m-sheet-down var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both;
+}
 .plg-mask { position: fixed; inset: 0; background: rgba(15, 17, 21, 0.44); z-index: 9995; display: flex; align-items: center; justify-content: center; animation: plg-fade 0.18s ease both; }
 @keyframes plg-fade { from { opacity: 0; } }
 .plg-sheet { width: min(560px, calc(100% - 24px)); max-height: min(86dvh, 720px); background: var(--md-sys-color-surface-container-lowest); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-3); display: flex; flex-direction: column; overflow: hidden; animation: plg-up 0.22s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
