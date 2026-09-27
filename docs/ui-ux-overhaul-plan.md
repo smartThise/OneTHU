@@ -278,9 +278,26 @@
 |------|------|----------|--------|
 | B1 ✅ | 按钮/pill/FAB + 新增 `Ripple.tsx`（2026-02 落地：状态层 8%/12%、焦点环令牌化、禁用 38%、触摸涟漪） | filled/tonal/text；统一涟漪；`prefers-reduced-motion` 降级 | 全应用按钮一致 |
 | B2 ✅（卡片）/ 列表项待 B2b | 卡片/列表项 | elevated/filled 卡片、`--shape-l` 圆角、分层底色去描边 | 「今日」卡流成立 |
-| B3 ✅（输入/表单 + 手机底部抽屉） | 输入/表单/modal | outlined field；移动端 modal → bottom sheet | 登录/设置表单统一 |
+| B3 ✅（输入/表单 + 手机底部抽屉 + 弹层退场相位） | 输入/表单/modal | outlined field；移动端 modal → bottom sheet | 登录/设置表单统一 |
 | B4 | 导航/tab/底栏 | 移动端 navigation bar + active indicator 胶囊；**PC 侧边栏升级为 navigation rail（§2.8.1）**；顶部大标题 | 新 IA 壳双端成型 |
 | B5 | chip/开关/进度/骨架屏/空状态 | 对应规范 | 全局截图走查 |
+
+**B3c 弹层退场相位（大部分已落地，真机复验通过）**：新增共用 hook apps/desktop/src/lib/useExitPhase.ts
+（幂等 closingRef 守卫、卸载清定时器、受控弹层传 open 重开复位、EXIT_MS 与 --dur-2 同源）。
+已迁移：FavAtomPicker、Collect.tsx（CollectModal / AtomPickerModal，含 Escape）、WidgetBindModal、
+TabManageModal、ExtHwLoginModal、校园卡充值 RechargeDialog。
+
+两条路线（按项目策略分流）：
+- 共享 class 弹层（.home-modal* / .plg-* / .confirm-*）：closing 时挂 .is-closing，CSS 换退场动画（B3b 已就绪）。
+- 内联几何弹层（maskStyle/panelStyle 写死 position/inset）：项目策略禁止用 CSS 类给它们加样式（style-scan 护栏会拦），
+  因此退场也走内联——closing 时把 maskOut/panelOut 合并进 style，用退场 animation 覆盖入场那条。
+
+B3c 余项（勿丢）：
+- pages/zhjwxk/Courses.tsx 的 DetailModal / ReviewsModal：内联退场已写、锚点已核对，但 typecheck 报 10 错未定位，已回滚。
+- WidgetBindModal 的夹选择浮层（setFolderPick 路径）：浮层内二级导航，退场语义与关闭不同。
+- 定位型浮层：.dock-panel（对话面板）、.hwremind-pop（作业提醒）、.trace-card（地图浮卡）——锚点/拖拽定位，退场需单独设计。
+- 关闭入口纪律：遮罩点击、关闭按钮、取消、Escape 一个都不能漏（护栏 [12] 已覆盖五个组件）。
+
 
 每批 PR 附移动端+桌面端改前/改后截图与变量清单；只改观感不改布局逻辑（双端布局本身的改动归 §2.8 的 M1 范围）。
 

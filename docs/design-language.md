@@ -223,6 +223,15 @@ margin-bottom: 24px;                       margin-bottom: 20px;
 - **退场动画必须显式写**。入场各写各的没问题，但退场缺一条 CSS，弹层就会在卸载瞬间"啪"地消失。整族统一：遮罩 m-fade-out / 面板 m-pop-out / 手机抽屉 m-sheet-down，曲线用 accelerate（离场加速）。内联样式写的弹层（如校园卡充值）没有相位，要自己补 closing + 延时关闭，且 closing 状态必须放在早返回之前（hook 顺序护栏会抓）。
 **第三个坑：内联 `animation` 会压掉 class 的退场动画**。校园卡充值弹窗的 `maskStyle`/`panelStyle` 是内联样式且自带入场 `animation: … both`，而**动画在层叠顺序上优先于内联样式**——退场时无论怎么改内联 `opacity`，终态值都被动画按住，表现就是"等了 0.x 秒然后啪地消失"。修法：入场也搬到 class 上（`.rch-mask`/`.rch-panel`），退场再由 `.is-closing` 换动画。
 
+**退场相位的两种落地（按弹层实现方式分流）**：
+- 走共享 class 的弹层：closing 时挂 .is-closing，CSS 换退场动画（遮罩 m-fade-out / 面板 m-pop-out / 手机抽屉 m-sheet-down）。
+- 内联几何弹层（maskStyle/panelStyle 写死 position/inset）：本项目策略禁止用 CSS 类给它们加样式（style-scan 护栏会拦，
+  理由是内联属性优先、类样式不生效）。这类弹层退场也走内联：closing 时把 maskOut/panelOut 合并进 style，用退场 animation 覆盖入场那条。
+
+共用相位逻辑在 apps/desktop/src/lib/useExitPhase.ts：幂等、卸载清定时器、受控弹层传 open 重开复位、
+EXIT_MS 与 --dur-2（short-4 = 200ms）同源。关闭入口一个都不能漏——遮罩点击、关闭按钮、取消、Escape 都走 requestClose；
+护栏 [12] 会检查这五个已迁移组件是否残留直接 onClose。
+
 ## 4. 用色：中性打底，彩色点睛
 
 - **正文区保持中性 surface**；彩色 surface（tonal container）只用于两处：「今日」卡片、功能分组头。
