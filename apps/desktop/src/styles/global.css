@@ -456,7 +456,9 @@
 .icon-btn::after,
 .chip::after,
 .today-quick-chip::after,
-.task-stat::after {
+.task-stat::after,
+.app-card::after,
+.mail-row::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -469,12 +471,16 @@
 .btn:hover::after,
 .icon-btn:hover::after,
 .chip:hover::after,
-.today-quick-chip:hover::after { opacity: 1; }
+.today-quick-chip:hover::after,
+.app-card:hover::after,
+.mail-row:hover::after { opacity: 1; }
 .btn:active::after,
 .icon-btn:active::after,
 .chip:active::after,
 .today-quick-chip:active::after,
-.task-stat:active::after {
+.task-stat:active::after,
+.app-card:active::after,
+.mail-row:active::after {
   background: var(--md-sys-color-state-pressed);
   opacity: 1;
 }
@@ -1329,8 +1335,7 @@
 .week-day-head span { font-variant-numeric: tabular-nums; }
 .week-course {
   background: var(--md-sys-color-surface-container-lowest);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
+  border-radius: var(--md-sys-shape-corner-medium);
   padding: 8px 10px;
   font-size: var(--text-xs);
   animation: rise 0.28s both;
@@ -2802,17 +2807,17 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .icon-cell.is-active { border-color: var(--accent); color: var(--accent); background: var(--hover); }
 /* 其他 Info 应用：入口卡片网格 */
 .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+/* 更多 info 应用卡：色块 + 圆角，hover 走 §5 状态层（原为改描边 + 改底色两重） */
 .app-card {
+  position: relative; /* 状态层定位 */
   display: flex; align-items: center; gap: 8px;
   padding: 10px 10px 10px 12px;
-  border: 1px solid var(--border); border-radius: var(--r-md);
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-surface-container-lowest); cursor: pointer;
   min-width: 0;
 }
-.app-card:hover { border-color: var(--accent); background: var(--hover); }
-.app-card.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.app-card.is-active { background: var(--accent-soft); }
 .app-card-icon { display: inline-flex; align-items: center; color: var(--text-3); flex: 0 0 auto; }
-.app-card:hover .app-card-icon { color: var(--accent); }
 .app-card-name {
   flex: 1 1 auto; min-width: 0;
   font-size: 13px; color: var(--text-1);
@@ -3086,7 +3091,7 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 .plg-ev-log .plg-ev-tag { color: var(--text-3); }
 
 /* 安装面板：三路 tab + 虚线拖入区 */
-.plg-install { background: var(--md-sys-color-surface-container-lowest); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--gap-3) var(--gap-4); margin-bottom: var(--gap-4); display: grid; gap: var(--gap-3); box-shadow: var(--shadow-1); animation: plg-in 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.plg-install { background: var(--md-sys-color-surface-container-lowest); border-radius: var(--md-sys-shape-corner-large); padding: var(--gap-3) var(--gap-4); margin-bottom: var(--gap-4); display: grid; gap: var(--gap-3); animation: plg-in 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
 .plg-install-tabs { display: inline-flex; gap: 2px; padding: 2px; background: var(--surface-3); border-radius: var(--r-md); width: fit-content; max-width: 100%; flex-wrap: wrap; }
 .plg-tab { border: 0; background: transparent; padding: 5px 12px; border-radius: 6px; font-size: var(--text-sm); color: var(--text-2); cursor: pointer; transition: background 0.12s ease, color 0.12s ease; min-height: 28px; }
 .plg-tab.is-on { background: var(--md-sys-color-surface-container-lowest); color: var(--text-1); font-weight: 500; box-shadow: var(--shadow-1); }
@@ -3963,12 +3968,12 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  border-radius: var(--md-sys-shape-corner-large);
   background: var(--md-sys-color-surface-container-lowest);
   min-height: 0;
 }
 .mail-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -3982,7 +3987,6 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   transition: background 120ms ease;
 }
 .mail-row:last-child { border-bottom: 0; }
-.mail-row:hover { background: var(--hover); }
 .mail-row.active { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
 .mail-avatar {
   display: inline-flex;
@@ -4035,8 +4039,7 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  border-radius: var(--md-sys-shape-corner-large);
   background: var(--md-sys-color-surface-container-lowest);
   overflow: hidden;
 }
