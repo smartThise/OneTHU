@@ -297,6 +297,10 @@ B3c 余项（勿丢）：
 - WidgetBindModal 的夹选择浮层（setFolderPick 路径）：浮层内二级导航，退场语义与关闭不同。
 - 定位型浮层：.dock-panel（对话面板）、.hwremind-pop（作业提醒）、.trace-card（地图浮卡）——锚点/拖拽定位，退场需单独设计。
 - 关闭入口纪律：遮罩点击、关闭按钮、取消、Escape 一个都不能漏（护栏 [12] 已覆盖五个组件）。
+**走查缺陷（待用户确认页面）**：多 tab 页切换 tab 时 tab 条轻微左右移位，方向与切换一致。
+已排除：`.tabstrip` / `.plg-tab` / `.segmented` 的激活态不产生尺寸变化（真机注入探针实测：加激活类前后各节点 left 与条宽完全一致；灵敏度对照 +28px 内距可检出 56px 位移）。
+主嫌疑：`SegmentedOverflow` 的 `.seg-track`（`flex-wrap: nowrap; width: 100%; overflow-x: auto`）——点击 tab 后按钮获焦、浏览器将其滚入视野，导致整条横滑。用在设置页 / 通知页。
+注：本轮已把 `.tabstrip`/`.plg-tab` 的字重移到基态（激活态不再改字重），作为「激活态不得改变尺寸」的约定与护栏（tools/tabstrip-layout-test.mjs），但它并非本次位移的成因。
 
 
 每批 PR 附移动端+桌面端改前/改后截图与变量清单；只改观感不改布局逻辑（双端布局本身的改动归 §2.8 的 M1 范围）。
