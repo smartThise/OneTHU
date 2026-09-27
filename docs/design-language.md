@@ -16,13 +16,24 @@
 |---|---|---|
 | Reference | `--md-ref-palette-*`（`palette.css`，生成物） | **只有 System 层**。组件直接引用会让主题/暗色失效 |
 | System | `--md-sys-color-*` / `-shape-*` / `-typescale-*` / `-elevation-*` / `-motion-*` | 新代码 |
-| Compat | `--bg` / `--surface` / `--primary` / `--text-1` …（39 个旧名） | 既有代码；语义与 System 一一对应 |
+| Compat | `--bg` / `--surface` / `--primary` / `--text-1` …（39 个旧名） | 既有代码；语义与 System 一一对应。**主题覆盖仍写在这层**（注入时自动镜像到 System，见 §0.1） |
 
 `@css
-/* ✅ 新代码 */           /* ❌ 组件里直接用 Reference 层 */
-color: var(--text-2);       color: var(--md-ref-palette-neutral-50);
-background: var(--surface); background: #ffffff;
+/* ✅ 新代码用 System 角色 */   /* ❌ 组件里直接用 Reference 层 */
+color: var(--md-sys-color-on-surface-variant);  color: var(--md-ref-palette-neutral-50);
+background: var(--md-sys-color-surface-container-lowest);  background: #ffffff;
 `@
+
+### 0.1 主题与两层的关系（真回归的教训）
+
+主题覆盖写的是 **Compat 层**的老名字（`--surface` / `--border` / `--primary`…，7 个内置主题都是这么写的），
+而 Compat 只是 **Compat → System 的单向别名**——覆盖 Compat **不会**回流到 System。
+所以组件一旦迁到 System 角色（§3.5 B1 的按钮/chip/FAB），主题就会"改了 Compat、按钮却不变色"（已实测发生过）。
+
+现在的做法：注入主题时把每条 Compat 覆盖**镜像**到对应 System 角色（同一选择器、同一个值），
+老组件读 Compat、新组件读 System，两边同时跟随主题；
+镜像表 `state/theme.ts` 的 `COMPAT_TO_SYSTEM` 由 `tools/theme-system-test.mjs` 从 `tokens.css` 反解逐条核对，**漂移即红**。
+新增主题照旧只写 Compat 名；新增组件照旧只读 System 角色——中间那层映射由代码负责，谁都不用记两套名字。
 
 最后一条同样重要：**颜色不写死十六进制**。写死的色值在切主题、切暗色时不会跟着变，
 在暗色下就是一块刺眼的亮斑。
