@@ -240,7 +240,7 @@ EXIT_MS 与 --dur-2（short-4 = 200ms）同源。关闭入口一个都不能漏�
 
 ### 3.4 导航壳：底栏 / 侧栏 / 大标题（B4）
 
-**移动端 navigation bar**：5 目的地；激活项有 **64×32 胶囊指示器**（`--md-sys-color-secondary-container`，`corner-full`）**压在图标之下**（图标与文字 `z-index: 1`），激活标签走 `on-surface`、图标走主题 `--accent`；**不用 `border-top`** 分层，靠色阶 + 高程（B2 约定）；贴底必吃 `env(safe-area-inset-bottom)`。**胶囊是单个滑动元素**：切换时按导航共享的那套运动（平滑切换 + 惯性回弹）水平移动，不再是每一项各自的 `::before` 就地淡入。运动数值与旧竖条**共用一组常量**（`NAV_EASE` / `NAV_APEX` / `NAV_BOUNCE_MS` …，见 `lib/motion.ts`），只做两处几何适配：竖直位移换水平位移、去掉沿运动轴的长度拉伸（拉伸是 3px 细线才需要的表达，64px 胶囊再放大就不是同一件事）。横向蓝条方案已撤除。
+**移动端 navigation bar**：5 目的地；激活项有 **64×32 胶囊指示器**（`--md-sys-color-secondary-container`，`corner-full`）**压在图标之下**（图标与文字 `z-index: 1`），激活标签走 `on-surface`、图标走主题 `--accent`；**不用 `border-top`** 分层，靠色阶 + 高程（B2 约定）；贴底必吃 `env(safe-area-inset-bottom)`。**胶囊是单个滑动元素**：切换时按导航共享的那套运动（平滑切换 + 惯性回弹）水平移动，不再是每一项各自的 `::before` 就地淡入。运动数值与旧竖条**共用一组常量**（`NAV_EASE` / `NAV_APEX` / `NAV_BOUNCE_MS` …，见 `lib/motion.ts`），几何适配两处：竖直位移换水平位移；形变从「细线纵向拉伸」改成**横向拉伸 + 竖向略收窄**（`NAV_PILL_STRETCH_MAX` = 1.4 上限、`NAV_PILL_SQUASH` = 0.45 耦合，横向越长竖向越瘦，维持体积感）。位置与形变必须落在**同一条 transform** 里——曾把位置放 transform、长度放 height，两条线程各计时，主线程一忙就错位。横向蓝条方案已撤除。
 
 **PC navigation drawer**：`--sidebar-w: 224px`（≤ 240px）；激活项是**整行胶囊**（`secondary-container` + `corner-full`），图标用主题 `--accent`；分区小标题走 `label-medium` + `on-surface-variant`；侧栏背景走 `surface-container` 色阶分层、去 `border-right`；折叠钮是**无描边 tonal** 小按钮。侧栏**不放竖条**：竖条与 drawer 的整行胶囊风格不匹配。其运动后来被底栏胶囊接手（见上），竖条本身不再出现在任何位置。`useNavIndicator` 的 WAAPI 逻辑失去消费者，暂留不删，与抽屉 DOM 一并在收尾批次清理。
 

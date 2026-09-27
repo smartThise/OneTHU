@@ -285,6 +285,11 @@ const NAV_ROWS_FULL = 5;      // 满额回弹的行数
 const NAV_APEX = 0.2;         // 惯性顶点 = 落点外 0.2 个行尺寸
 const NAV_BOUNCE_MS = 200;    // 刹车回弹窗 ms
 const NAV_TRAIL_DELAY = 0.3;  // 尾端点延迟（占比）
+/* 胶囊形变（用户要求：横向变长的同时竖向略收窄，增强运动感）。
+   蓝条是 3px 细线，靠 scaleY 拉伸就能表达运动；胶囊是 64×32 的面，改成
+   横向拉伸（scaleX 上限 1.4×）+ 竖向按比例略收窄（体积感）。 */
+const NAV_PILL_STRETCH_MAX = 1.4;
+const NAV_PILL_SQUASH = 0.45;
 const NAV_SOFT = "cubic-bezier(0.45, 0, 0.55, 1)";
 /** 四次缓入缓出：两端速度 0、中段峰值约 4× 平均速度 */
 const NAV_EASE = (u: number): number => (u < 0.5 ? 8 * u * u * u * u : 1 - 8 * Math.pow(1 - u, 4));
@@ -493,19 +498,40 @@ export function useBottomNavPill() {
     const BOUNCE = bounce > 0 ? NAV_BOUNCE_MS : 0;
     const total = dur + BOUNCE;
     const share = dur / total;
+    /* 与蓝条同构的两端点模型（左端=尾端点、右端=前端点，方向对调），只是把
+       「长度」从竖直的 3px 细线换成胶囊的横向宽度，长度上限按胶囊量级收到 1.4×。 */
+    const MAX = pillW * NAV_PILL_STRETCH_MAX;
+    const e0l = prev - pillW / 2;
+    const e0r = prev + pillW / 2;
+    const e1l = apex - pillW / 2;
+    const e1r = apex + pillW / 2;
     const frames: Keyframe[] = [];
     for (let k = 0; k <= NAV_FRAMES; k++) {
       const u = k / NAV_FRAMES;
-      const x = prev + (apex - prev) * NAV_EASE(u);
+      const lead = NAV_EASE(u);
+      const trail = u <= NAV_TRAIL_DELAY ? 0 : NAV_EASE((u - NAV_TRAIL_DELAY) / (1 - NAV_TRAIL_DELAY));
+      let la = right ? e0l + (e1l - e0l) * trail : e0l + (e1l - e0l) * lead;
+      let ra = right ? e0r + (e1r - e0r) * lead : e0r + (e1r - e0r) * trail;
+      if (ra - la > MAX) {
+        const c = (la + ra) / 2;
+        la = c - MAX / 2;
+        ra = c + MAX / 2;
+      }
+      const sx = Math.max(ra - la, pillW * 0.8) / pillW;
+      const sy = 1 - (sx - 1) * NAV_PILL_SQUASH; // 横向拉长 → 竖向略收窄
       frames.push({
-        transform: "translateX(" + (x - pillW / 2) + "px)",
+        transform:
+          "translateX(" + ((la + ra) / 2 - pillW / 2) + "px) scaleX(" + sx + ") scaleY(" + sy + ")",
         offset: u * share,
         easing: k === NAV_FRAMES ? NAV_SOFT : "linear",
       });
     }
-    if (BOUNCE > 0) {
-      frames.push({ transform: "translateX(" + (c1 - pillW / 2) + "px)", offset: 1, easing: NAV_SOFT });
-    }
+    /* 收尾：从惯性顶点平滑收回精确位置，同时形变复位（scaleX/scaleY 回 1） */
+    frames.push({
+      transform: "translateX(" + (c1 - pillW / 2) + "px) scaleX(1) scaleY(1)",
+      offset: 1,
+      easing: NAV_SOFT,
+    });
     setFinal();
     pill.animate(frames, { duration: total });
   }, []);

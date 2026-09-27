@@ -63,7 +63,10 @@ ok(hook !== null, "motion.ts 未导出 useBottomNavPill");
 if (hook) {
   ok(/NAV_EASE/.test(hook[0]) && /NAV_APEX/.test(hook[0]) && /NAV_BOUNCE_MS/.test(hook[0]), "胶囊运动未复用共享常量（会与蓝条那套分叉）");
   ok(/NAV_ROWS_KNEE/.test(hook[0]) && /NAV_DUR_SLOPE/.test(hook[0]), "胶囊运动缺少惯性/时长共享常量");
-  ok(!/scaleX/.test(hook[0]), "胶囊不该沿运动轴拉伸（拉伸是 3px 细蓝条的表达）");
+  ok(/scaleX/.test(hook[0]) && /scaleY/.test(hook[0]), "胶囊未做横向拉伸 + 竖向收窄（缺运动感）");
+  ok(/NAV_PILL_STRETCH_MAX/.test(hook[0]) && /NAV_PILL_SQUASH/.test(hook[0]), "胶囊形变未走专用常量");
+  ok(/1 - \(sx - 1\) \* NAV_PILL_SQUASH/.test(hook[0]), "竖向收窄未与横向拉伸按比例耦合");
+  ok(/translateX\([\s\S]{0,120}scaleX\([\s\S]{0,60}scaleY\(/.test(hook[0]), "位置与形变不在同一条 transform 里（会各走一条线程而错位）");
   ok(/translateX/.test(hook[0]), "胶囊运动不是水平位移");
 }
 ok(/\.bottom-nav-item > \*\s*\{[^}]*z-index:\s*1/.test(CSS), "图标/文字未压在胶囊之上");
