@@ -217,6 +217,12 @@ margin-bottom: 24px;                       margin-bottom: 20px;
 
 ---
 
+
+**两个必须踩过的坑（都已进护栏）**：
+- **弹层一律 portal 到 body**。.plg-mask 曾经也是 position: fixed，但挂在页面子树里 —— 祖先的动画/变换会成为 fixed 的包含块，遮罩于是只盖住所在页面那一块（霖实测：插件设置页只把插件页遮黑）。同族其它弹层本来就 portal，漏了一个就出这种"局部变黑"。
+- **退场动画必须显式写**。入场各写各的没问题，但退场缺一条 CSS，弹层就会在卸载瞬间"啪"地消失。整族统一：遮罩 m-fade-out / 面板 m-pop-out / 手机抽屉 m-sheet-down，曲线用 accelerate（离场加速）。内联样式写的弹层（如校园卡充值）没有相位，要自己补 closing + 延时关闭，且 closing 状态必须放在早返回之前（hook 顺序护栏会抓）。
+**第三个坑：内联 `animation` 会压掉 class 的退场动画**。校园卡充值弹窗的 `maskStyle`/`panelStyle` 是内联样式且自带入场 `animation: … both`，而**动画在层叠顺序上优先于内联样式**——退场时无论怎么改内联 `opacity`，终态值都被动画按住，表现就是"等了 0.x 秒然后啪地消失"。修法：入场也搬到 class 上（`.rch-mask`/`.rch-panel`），退场再由 `.is-closing` 换动画。
+
 ## 4. 用色：中性打底，彩色点睛
 
 - **正文区保持中性 surface**；彩色 surface（tonal container）只用于两处：「今日」卡片、功能分组头。
