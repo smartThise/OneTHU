@@ -41,6 +41,17 @@ const unmapped = new Set();
 for (const t of themes) for (const k of Object.keys(t.vars ?? {})) if (!COMPAT_TO_SYSTEM[k]) unmapped.add(k);
 assert.deepEqual([...unmapped], [], "有主题覆盖键映射不到 System 角色（主题改了 Compat、System 组件看不到）");
 
+/* [2b] 页面底与卡片底色要成对给：页面底现在读 container-low（= --bg-soft 的镜像），
+   只给 --bg 会让页面停在默认灰、只有卡片变色（§3.5 B2 之后新增主题最容易踩的坑） */
+for (const t of themes) {
+  const vars = t.vars ?? {};
+  if (!Object.keys(vars).length) continue; // 基础令牌（ivory）本来就没有覆盖
+  assert.ok(
+    vars["--bg"] && vars["--bg-soft"],
+    t.id + "：页面底与卡片底色必须成对给（--bg + --bg-soft），否则页面不跟随主题",
+  );
+}
+
 /* [3] 行为：逐主题应用，Compat 行与 System 行成对同值 */
 const BUTTON_COMPAT = ["--surface", "--border", "--text-1", "--text-2", "--primary", "--hover", "--ring"];
 const themeStyle = () => {
