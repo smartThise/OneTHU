@@ -726,6 +726,7 @@
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   cursor: pointer;
+  font-weight: 600;
 }
 .tabstrip > span { display: inline-flex; align-items: center; gap: 2px; margin-bottom: -1px; }
 /* tabstrip 里的收藏星走「裸图标」形态：无底无框无圆角块（方块阴影按钮和下划线 tab 气质相冲），
@@ -750,7 +751,6 @@
 .tabstrip > span > button:not(.collect-star).is-active {
   color: var(--accent);
   border-bottom-color: var(--accent);
-  font-weight: 600;
 }
 
 /* ---------- 课表 ---------- */
@@ -3089,8 +3089,8 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 /* 安装面板：三路 tab + 虚线拖入区 */
 .plg-install { background: var(--md-sys-color-surface-container-lowest); border-radius: var(--md-sys-shape-corner-large); padding: var(--gap-3) var(--gap-4); margin-bottom: var(--gap-4); display: grid; gap: var(--gap-3); animation: plg-in 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
 .plg-install-tabs { display: inline-flex; gap: 2px; padding: 2px; background: var(--surface-3); border-radius: var(--r-md); width: fit-content; max-width: 100%; flex-wrap: wrap; }
-.plg-tab { border: 0; background: transparent; padding: 5px 12px; border-radius: 6px; font-size: var(--text-sm); color: var(--text-2); cursor: pointer; transition: background 0.12s ease, color 0.12s ease; min-height: 28px; }
-.plg-tab.is-on { background: var(--md-sys-color-surface-container-lowest); color: var(--text-1); font-weight: 500; box-shadow: var(--shadow-1); }
+.plg-tab { border: 0; background: transparent; padding: 5px 12px; border-radius: 6px; font-size: var(--text-sm); color: var(--text-2); font-weight: 500; cursor: pointer; transition: background 0.12s ease, color 0.12s ease; min-height: 28px; }
+.plg-tab.is-on { background: var(--md-sys-color-surface-container-lowest); color: var(--text-1); box-shadow: var(--shadow-1); }
 .plg-install-body { display: grid; gap: 10px; }
 .plg-paste { font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.6; }
 .plg-install-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-2); flex-wrap: wrap; }
