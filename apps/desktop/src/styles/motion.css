@@ -901,3 +901,8 @@ html.has-reveal :is(.app-grid, .thos-grid) > *[data-reveal-in] {
   }
 }
 
+/* ---------- B4：旧 3px 竖条指示器退役 ----------
+   MD3 navigation drawer 用「整行胶囊」（.nav-item.is-active 的 secondary-container）表达当前项，
+   竖条与胶囊并存会显得两层。useNavIndicator 的 WAAPI 逻辑保留（抽屉/侧栏共用，无害），
+   这里只关掉它的显示；PC 之外侧栏本就隐藏。 */
+.nav-indicator { display: none; }

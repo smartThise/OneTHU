@@ -19,8 +19,8 @@
   display: flex;
   flex-direction: column;
   padding: 12px 10px;
-  background: var(--bg-soft);
-  border-right: 1px solid var(--border-soft);
+  /* MD3：靠色阶分层（内容面 = surface-container-low，侧栏高一档），不用描边（B2 约定） */
+  background: var(--md-sys-color-surface-container, var(--bg-soft));
 }
 
 .brand {
@@ -49,11 +49,12 @@
 }
 
 .nav-label {
+  /* MD3 分区小标题：label-medium + on-surface-variant */
   padding: 14px 8px 6px;
-  font-size: var(--text-xxs);
+  font-size: var(--md-sys-typescale-label-medium-size, var(--text-xxs));
   font-weight: 500;
-  color: var(--text-3);
-  letter-spacing: 0.02em;
+  color: var(--md-sys-color-on-surface-variant, var(--text-3));
+  letter-spacing: 0.04em;
 }
 
 .nav {
@@ -90,11 +91,13 @@
 .nav-item:hover svg { color: var(--text-2); }
 
 .nav-item.is-active {
-  background: var(--surface-3);
-  color: var(--text-1);
+  /* MD3 navigation drawer 的 active indicator：整行胶囊（secondary-container） */
+  background: var(--md-sys-color-secondary-container, var(--surface-3));
+  border-radius: var(--md-sys-shape-corner-full, 999px);
+  color: var(--md-sys-color-on-surface, var(--text-1));
   font-weight: 500;
 }
-.nav-item.is-active svg { color: var(--text-1); }
+.nav-item.is-active svg { color: var(--accent); }
 
 .sidebar-foot {
   margin-top: auto;
@@ -5115,10 +5118,12 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     background: var(--md-sys-color-surface-container-lowest);
-    border-top: 1px solid var(--border);
-    padding: 4px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    /* MD3 navigation bar：靠色阶 + 高程分层，不用描边（B2 约定） */
+    box-shadow: var(--md-sys-elevation-2, var(--shadow-2));
+    padding: 8px 4px calc(10px + env(safe-area-inset-bottom, 0px));
   }
   .bottom-nav-item {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -5126,13 +5131,35 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
     padding: 6px 0 4px;
     border: 0;
     background: none;
-    color: var(--text-2);
-    font-size: 11px;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--md-sys-typescale-label-medium-size, 12px);
+    font-weight: 500;
     line-height: 1.2;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
-  .bottom-nav-item.is-active { color: var(--accent); }
+  /* MD3 active indicator：64×32 胶囊压在图标之下；主题色取 secondary-container。
+     图标激活色用主题感知的 --accent（System 层暂无 on-secondary-container，见手册 §3.5） */
+  .bottom-nav-item::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    width: 64px;
+    height: 32px;
+    border-radius: var(--md-sys-shape-corner-full, 999px);
+    background: var(--md-sys-color-secondary-container, var(--accent-soft));
+    opacity: 0;
+    transform: translateX(-50%) scale(0.86);
+    transition:
+      opacity var(--dur-2, 200ms) var(--md-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1)),
+      transform var(--dur-2, 200ms) var(--md-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1));
+    pointer-events: none;
+  }
+  .bottom-nav-item > * { position: relative; z-index: 1; }
+  .bottom-nav-item.is-active { color: var(--md-sys-color-on-surface); }
+  .bottom-nav-item.is-active svg { color: var(--accent); }
+  .bottom-nav-item.is-active::before { opacity: 1; transform: translateX(-50%) scale(1); }
   .bottom-nav-item:active { transform: scale(0.94); }
   /* 内容不被底栏遮住；回顶/刷新 FAB 抬到底栏上方 */
   .content { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
@@ -5613,14 +5640,15 @@ section > .svc-label { margin-top: 14px; }
   justify-content: center;
   width: 26px;
   height: 26px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--md-sys-color-surface-container-lowest);
-  color: var(--text-3);
+  /* 无描边的 tonal 小按钮（B1 约定：幽灵/tonal 不用边框表达层级） */
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-full, 8px);
+  background: var(--md-sys-color-surface-container-highest, var(--surface-3));
+  color: var(--md-sys-color-on-surface-variant, var(--text-3));
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, transform 0.18s ease;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.18s ease;
 }
-.sidebar-collapse:hover { color: var(--text-1); border-color: var(--border-strong); }
+.sidebar-collapse:hover { color: var(--md-sys-color-on-surface, var(--text-1)); background: var(--surface-3); }
 .shell { transition: grid-template-columns 0.18s ease; }
 .shell:has(.sidebar.is-collapsed) { --sidebar-w: 72px; }
 .sidebar.is-collapsed { padding-left: 8px; padding-right: 8px; }
