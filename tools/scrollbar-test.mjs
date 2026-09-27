@@ -48,12 +48,20 @@ const rule = (sel) => {
 };
 const bar = rule("*::-webkit-scrollbar");
 ok(/width:\s*\d+px/.test(bar) && /height:\s*\d+px/.test(bar), "滚动条应有明确宽高（细）");
+const SUBTLE = 22; // 默认态混色百分比上限：超过就"太深太显眼"
 const thumb = rule("*::-webkit-scrollbar-thumb");
-ok(thumb.includes("var(--md-sys-color-outline)"), "拇指底色应用中性令牌 --md-sys-color-outline");
+ok(thumb.includes("color-mix(in srgb, var(--md-sys-color-primary)"), "拇指应用主色相 color-mix（换主题要跟着变色）");
+ok(thumb.includes("var(--md-sys-color-outline-variant)"), "拇指要有不支持 color-mix 时的兜底色");
+const mix = thumb.match(/color-mix\(in srgb, var\(--md-sys-color-primary\) (\d+)%/);
+ok(!!mix, "解析不出默认态混色百分比");
+ok(mix && Number(mix[1]) <= SUBTLE, "默认态混色 " + (mix ? mix[1] : "?") + "% 太深（应 ≤ " + SUBTLE + "%，滚动条不能抢视线）");
 ok(/border:\s*\d+px solid transparent/.test(thumb) && thumb.includes("background-clip: content-box"), "拇指应用透明边 + content-box 收细（细但好抓）");
 ok(/border-radius:\s*(999px|var\()/.test(thumb), "拇指应是胶囊形");
-ok(rule("*::-webkit-scrollbar-thumb:hover").includes("var(--md-sys-color-on-surface-variant)"), "悬停应加深（on-surface-variant）");
-ok(rule("*::-webkit-scrollbar-thumb:active").includes("var(--md-sys-color-on-surface)"), "拖拽应更深（on-surface）");
+const hov = rule("*::-webkit-scrollbar-thumb:hover");
+const act = rule("*::-webkit-scrollbar-thumb:active");
+ok(hov.includes("color-mix(in srgb, var(--md-sys-color-primary)") && act.includes("color-mix(in srgb, var(--md-sys-color-primary)"), "悬停/拖拽也应走主色相");
+const pct = (b) => Number((b.match(/(\d+)%/) || [0, 0])[1]);
+ok(pct(hov) > (mix ? Number(mix[1]) : 0) && pct(act) > pct(hov), "悬停/拖拽要逐级加深（默认 < 悬停 < 拖拽）");
 ok(rule("*::-webkit-scrollbar-track").includes("transparent"), "轨道应透明");
 ok(rule("*::-webkit-scrollbar-button").includes("display: none"), "应去掉两端箭头按钮");
 

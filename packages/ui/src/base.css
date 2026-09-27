@@ -53,12 +53,15 @@ button { font-family: inherit; }
 *::-webkit-scrollbar { width: 10px; height: 10px; }
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb {
-  background: var(--md-sys-color-outline);
+  /* 兜底（不支持 color-mix 的引擎）：中性、更浅一档 */
+  background: var(--md-sys-color-outline-variant);
+  /* 主色相 × 低透明度：跟随主题换色，但浅到不抢视线（"太深太显眼"的教训） */
+  background: color-mix(in srgb, var(--md-sys-color-primary) 20%, transparent);
   border: 3px solid transparent; /* 视觉 4px、命中区 10px：细但好抓 */
   background-clip: content-box;
   border-radius: 999px;
 }
-*::-webkit-scrollbar-thumb:hover { background: var(--md-sys-color-on-surface-variant); background-clip: content-box; }
-*::-webkit-scrollbar-thumb:active { background: var(--md-sys-color-on-surface); background-clip: content-box; }
+*::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--md-sys-color-primary) 32%, transparent); background-clip: content-box; }
+*::-webkit-scrollbar-thumb:active { background: color-mix(in srgb, var(--md-sys-color-primary) 46%, transparent); background-clip: content-box; }
 *::-webkit-scrollbar-corner { background: transparent; }
 *::-webkit-scrollbar-button { display: none; width: 0; height: 0; } /* 去掉两端箭头（最"平台默认"的部分） */

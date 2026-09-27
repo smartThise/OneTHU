@@ -172,13 +172,17 @@ margin-bottom: 24px;                       margin-bottom: 20px;
 `@css
 *::-webkit-scrollbar { width: 10px; height: 10px; }
 *::-webkit-scrollbar-thumb {
-  background: var(--md-sys-color-outline);      /* 悬停 on-surface-variant、拖拽 on-surface */
+  /* 主色相 × 20%：换主题跟着变色，又浅到不抢视线（悬停 32%、拖拽 46%） */
+  background: color-mix(in srgb, var(--md-sys-color-primary) 20%, transparent);
   border: 3px solid transparent;                /* 视觉 4px、命中区 10px */
   background-clip: content-box;
   border-radius: 999px;
 }
 *::-webkit-scrollbar-button { display: none; }  /* 去掉两端箭头 */
 `@
+
+深浅有护栏：默认态混色 **≤ 22%**（滚动条不能比内容抢眼），悬停/拖拽必须逐级加深；
+色相走 `--md-sys-color-primary`，所以换主题（乃至切暗色）滚动条都会跟着变。
 
 **别写 `scrollbar-width` / `scrollbar-color`**（`none` 除外）：Chromium ≥121 一旦看到这两个属性就
 整体忽略 `::-webkit-scrollbar`，桌面端会悄悄退回平台默认风。护栏 `tools/scrollbar-test.mjs` 会拦住它。
