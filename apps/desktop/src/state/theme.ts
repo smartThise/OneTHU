@@ -250,6 +250,60 @@ const BUILTIN_THEMES: ThemeDef[] = [
 const STORE_KEY = "onethu.theme.v1";
 const STYLE_ID = "onethu-theme-style";
 
+/**
+ * 主题覆盖写的是 **Compat 层** 的老名字（--surface / --primary…，人类可读、7 个主题都是这么写的），
+ * 但组件（§3.5 B1 起逐步迁移）读的是 **System 角色**（--md-sys-color-*）。
+ * Compat 只是 Compat → System 的**单向别名**：覆盖 Compat 不会回流到 System，
+ * 于是"主题换了、按钮没换"（霖实测：内置主题不再改按钮颜色）。
+ * 所以注入主题时必须把每条 Compat 覆盖**镜像**到它的 System 角色上——两边同一个值，
+ * 老组件（读 Compat）与新组件（读 System）同时跟随主题。
+ *
+ * 这张表是 tokens.css Compat 层的逆映射，必须逐条一致：由
+ * tools/theme-system-test.mjs 从 tokens.css 反解并核对（任何漂移直接红）。
+ */
+export const COMPAT_TO_SYSTEM: Record<string, string> = {
+  "--bg": "--md-sys-color-surface",
+  "--bg-soft": "--md-sys-color-surface-container-low",
+  "--surface": "--md-sys-color-surface-container-lowest",
+  "--surface-2": "--md-sys-color-surface-container",
+  "--surface-3": "--md-sys-color-surface-container-high",
+  "--skeleton": "--md-sys-color-skeleton",
+  "--skeleton-shine": "--md-sys-color-skeleton-shine",
+  "--border": "--md-sys-color-outline-variant",
+  "--border-soft": "--md-sys-color-outline-soft",
+  "--border-strong": "--md-sys-color-outline-strong",
+  "--text-1": "--md-sys-color-on-surface",
+  "--text-2": "--md-sys-color-on-surface-variant",
+  "--text-3": "--md-sys-color-outline",
+  "--text-dim": "--md-sys-color-on-surface-disabled",
+  "--primary": "--md-sys-color-primary",
+  "--primary-hover": "--md-sys-color-primary-hover",
+  "--on-primary": "--md-sys-color-on-primary",
+  "--accent": "--md-sys-color-secondary",
+  "--accent-soft": "--md-sys-color-secondary-container",
+  "--accent-border": "--md-sys-color-secondary-container-border",
+  "--red": "--md-sys-color-error",
+  "--red-soft": "--md-sys-color-error-container",
+  "--amber": "--md-sys-color-warning",
+  "--amber-soft": "--md-sys-color-warning-container",
+  "--green": "--md-sys-color-success",
+  "--green-soft": "--md-sys-color-success-container",
+  "--hover": "--md-sys-color-state-hover",
+  "--active": "--md-sys-color-state-pressed",
+  "--elev-1": "--md-sys-elevation-1",
+  "--elev-2": "--md-sys-elevation-2",
+  "--elev-3": "--md-sys-elevation-3",
+  "--shadow-1": "--md-sys-elevation-1",
+  "--shadow-2": "--md-sys-elevation-2",
+  "--shadow-3": "--md-sys-elevation-3",
+  "--ring": "--md-sys-focus-ring",
+  // 形状也一并镜像：主题想改圆角时，System 层的组件同样跟随（当前 7 个主题都没用到）
+  "--r-sm": "--md-sys-shape-corner-small",
+  "--r-md": "--md-sys-shape-corner-medium",
+  "--r-lg": "--md-sys-shape-corner-large",
+  "--r-pill": "--md-sys-shape-corner-full",
+};
+
 interface PersistShape {
   installed: ThemeDef[];
   activeId: string | null;
@@ -392,9 +446,14 @@ function applyTheme(def: ThemeDef | null): void {
     syncSystemBars(false);
     return;
   }
-  const varLines = Object.entries(def.vars)
-    .filter(([k]) => /^--[\w-]+$/.test(k))
-    .map(([k, v]) => `${k}: ${v};`);
+  const varLines: string[] = [];
+  for (const [k, v] of Object.entries(def.vars)) {
+    if (!/^--[\w-]+$/.test(k)) continue;
+    varLines.push(`${k}: ${v};`);
+    const sys = COMPAT_TO_SYSTEM[k];
+    // 镜像到 System 角色：迁移到 System 层的组件（按钮/chip/FAB…）才能跟着主题变色
+    if (sys) varLines.push(`${sys}: ${v};`);
+  }
   if (def.fonts?.ui) varLines.push(`--font-ui: ${def.fonts.ui};`);
   if (def.fonts?.mono) varLines.push(`--font-mono: ${def.fonts.mono};`);
   // :root[data-theme] 特异度 (0,2,0) 稳压 tokens.css 的 :root (0,1,0)——

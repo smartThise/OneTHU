@@ -24,15 +24,26 @@ for (const dir of CSS_DIRS) {
 const src = readFileSync(THEME, "utf8");
 const themes = [];
 let cur = null;
+/* 只认 vars 块里的键：theme.ts 里还有一张 COMPAT_TO_SYSTEM 镜像表（Compat → System 角色），
+   形状与主题 vars 相同但不是主题覆盖——按块识别跳过它；
+   其余"长得像主题变量"的行仍然报出来（防止有人把 vars 写到主题定义之外）。 */
+let inVars = false;
+let inMap = false;
 for (const line of src.split("\n")) {
+  if (/^export const COMPAT_TO_SYSTEM\b/.test(line)) inMap = true;
+  if (inMap) {
+    if (/^\};/.test(line)) inMap = false;
+    continue;
+  }
   const idm = line.match(/id:\s*"(onethu\.theme\.[a-z0-9-]+)"/);
-  if (idm) cur = { id: idm[1], vars: [] };
+  if (idm) { cur = { id: idm[1], vars: [] }; inVars = false; }
+  if (cur && /vars:\s*\{/.test(line)) inVars = true;
   const vm = line.match(/"(--[a-z0-9-]+)"\s*:/);
   if (vm) {
-    if (cur) cur.vars.push(vm[1]);
+    if (inVars && cur) cur.vars.push(vm[1]);
     else themes.push({ id: "(未识别主题)", vars: [vm[1]] });
   }
-  if (cur && /^\s{4}source:/.test(line)) { themes.push(cur); cur = null; }
+  if (cur && /^\s{4}source:/.test(line)) { themes.push(cur); cur = null; inVars = false; }
 }
 
 const fails = [];
