@@ -73,7 +73,7 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
   const [webUrl, setWebUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  /* 退场相位：先播 160ms 淡出再真正关闭（此前无退场动画，弹窗"啪"地消失） */
+  /* 退场相位：先播 200ms 淡出再真正关闭（此前无退场动画，弹窗"啪"地消失） */
   const [closing, setClosing] = useState(false);
   // 重新打开必须复位退场相位：父级只把 open 置 false、组件并不卸载，
   // 残留的 closing=true 会让第二次打开后永远关不掉（霖实测）。
@@ -94,7 +94,7 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
   const requestClose = (): void => {
     if (closing) return;
     setClosing(true);
-    window.setTimeout(() => onClose(), 160);
+    window.setTimeout(() => onClose(), 200); // 与 CSS 退场时长一致（--dur-2 = short-4 = 200ms）
   };
 
   const close = () => {

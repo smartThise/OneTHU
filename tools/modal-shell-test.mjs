@@ -94,6 +94,19 @@ ok(CSS.includes(".rch-mask.is-closing") && CSS.includes(".rch-panel.is-closing")
 ok(CARD.includes('className={"rch-mask"'), "校园卡充值遮罩应由 class 驱动（内联 opacity 会被动画压制）");
 ok(!CARD.includes("maskStyle: React.CSSProperties = { animation:"), "退场动画必须搬离内联样式（内联 animation 优先级更高）");
 
+/* [9] 退场 JS 延时必须与 CSS 退场时长同源：CSS 走 var(--dur-2)，JS 写死会截尾 */
+{
+  const MOTION = readFileSync("apps/desktop/src/styles/motion.css", "utf8");
+  let ms = null;
+  for (const f of ["packages/ui/src/tokens.css", "apps/desktop/src/styles/motion.css"]) {
+    const t = readFileSync(f, "utf8");
+    const m = /--md-sys-motion-duration-short-4:\s*(\d+)ms/.exec(t);
+    if (m) { ms = Number(m[1]); break; }
+  }
+  ok(MOTION.includes("--dur-2: var(--md-sys-motion-duration-short-4)"), "--dur-2 应指向 short-4");
+  ok(ms !== null && CARD.includes("onClose(), " + ms + ")"), "校园卡充值的退场延时应与 --dur-2（short-4）一致");
+}
+
 if (fails.length) {
   console.error("弹层护栏：不通过");
   for (const f of fails) console.error("  ✗ " + f);
