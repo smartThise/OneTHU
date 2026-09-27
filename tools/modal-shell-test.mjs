@@ -88,6 +88,12 @@ ok(CARD.includes("if (open) setClosing(false);"), "closing 应在重新打开时
 const DOCK = readFileSync("apps/desktop/src/plugins/ChatDock.tsx", "utf8");
 ok(DOCK.includes("setClosing(false)"), "对话面板的 closing 相位缺复位路径");
 
+/* [8] 内联 animation 会压掉 class 的退场动画：内联样式自带 animation 的弹层，
+       入场也必须搬到 class 上，否则退场永远不生效（霖实测：校园卡充值"等 0.x 秒后啪地消失"） */
+ok(CSS.includes(".rch-mask.is-closing") && CSS.includes(".rch-panel.is-closing"), "校园卡充值弹窗缺 class 退场动画");
+ok(CARD.includes('className={"rch-mask"'), "校园卡充值遮罩应由 class 驱动（内联 opacity 会被动画压制）");
+ok(!CARD.includes("maskStyle: React.CSSProperties = { animation:"), "退场动画必须搬离内联样式（内联 animation 优先级更高）");
+
 if (fails.length) {
   console.error("弹层护栏：不通过");
   for (const f of fails) console.error("  ✗ " + f);
