@@ -102,4 +102,4 @@ if (fails.length) {
   for (const f of fails) console.error("  ✗ " + f);
   process.exit(1);
 }
-console.log("滚动条护栏：无 scrollbar-width/color 压制 ✓ 令牌化细滚动条 ✓ 悬停/拖拽加深 ✓ 去箭头 + 透明轨道 ✓ 元素级只改宽度 ✓");
+console.log("滚动条护栏：无 scrollbar-width/color 压制 ✓ 令牌化细滚动条 ✓ 悬停/拖拽加深 ✓ 去箭头 + 透明轨道 ✓ 元素级只改宽度 ✓ 根容器预留滚动条槽 ✓");
