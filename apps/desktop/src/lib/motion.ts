@@ -271,6 +271,24 @@ export function useExitHold<T>(value: T | null, ms = 220): { mounted: boolean; c
  * 容器滚动时条随内容走。嵌套的 .nav-folders-scroll 也要监听 scroll——激活的收藏夹
  * 落在里面时，内层滚动会改变它的视口位置。
  */
+/* 导航指示器的运动数值：蓝条（竖直）与底栏胶囊（水平）**共用同一套**。
+   这些数字是逐个打磨出来的（霖反馈多轮：缓入缓出要看得出来、回弹要够但不抖、
+   位置与长度必须同一条动画），改任何一个都会同时改两处表现，别单独改一边。 */
+const NAV_DUR_MIN = 140;      // 最短时长 ms（相邻项）
+const NAV_DUR_MAX = 220;      // 最长时长 ms
+const NAV_DUR_SLOPE = 1.2;    // 时长随位移增长的系数
+const NAV_MIN_ROW = 2;        // 行尺寸兜底 px
+const NAV_STRETCH_ROWS = 3;   // 拉伸上限 = 3 个行尺寸
+const NAV_FRAMES = 24;        // 关键帧数（配 linear 采样）
+const NAV_ROWS_KNEE = 1.15;   // 回弹起点：1.15 行以内完全不弹
+const NAV_ROWS_FULL = 5;      // 满额回弹的行数
+const NAV_APEX = 0.2;         // 惯性顶点 = 落点外 0.2 个行尺寸
+const NAV_BOUNCE_MS = 200;    // 刹车回弹窗 ms
+const NAV_TRAIL_DELAY = 0.3;  // 尾端点延迟（占比）
+const NAV_SOFT = "cubic-bezier(0.45, 0, 0.55, 1)";
+/** 四次缓入缓出：两端速度 0、中段峰值约 4× 平均速度 */
+const NAV_EASE = (u: number): number => (u < 0.5 ? 8 * u * u * u * u : 1 - 8 * Math.pow(1 - u, 4));
+
 export function useNavIndicator() {
   const rowRef = useRef<HTMLElement | null>(null);
   const barRef = useRef<HTMLSpanElement | null>(null);
@@ -323,25 +341,25 @@ export function useNavIndicator() {
     const c0 = (prev.a + prev.b) / 2;
     const c1 = (top + bottom) / 2;
     const down = c1 >= c0;
-    const dur = Math.min(220, Math.max(140, Math.round(Math.abs(c1 - c0) * 1.2)));
-    const MAX = Math.max(bottom - top, 2) * 3;
+    const dur = Math.min(NAV_DUR_MAX, Math.max(NAV_DUR_MIN, Math.round(Math.abs(c1 - c0) * NAV_DUR_SLOPE)));
+    const MAX = Math.max(bottom - top, NAV_MIN_ROW) * NAV_STRETCH_ROWS;
     // 四次缓入缓出：两端速度 0、中段峰值约 4×平均速度。此前 smoothstep 峰值只有 1.5×，
     // 加上首尾端点曲线错峰取平均，观感接近匀速（霖反馈：看不出缓入缓出）。
-    const ease = (u: number) => (u < 0.5 ? 8 * u * u * u * u : 1 - 8 * Math.pow(1 - u, 4));
-    const N = 24;
+    const ease = NAV_EASE;
+    const N = NAV_FRAMES;
     const e0t = c0 - BAR / 2, e0b = c0 + BAR / 2; // 起点：旧静息条的两端
     /* 回弹强度按路程递增（霖需求 2026-09-24）：相邻项不弹、隔两项很轻微、5 项以上满额。
        路程折算成「行数」= 位移 / 行高（行高含 gap 时相邻≈1.03、隔两项≈3.1、5 项≈5.2，
        抽屉 40px 行同理）。1.15 行以内系数 0——连滑行量都不留，到位即停；之后二次曲线
        渐入、5 行满额：近处几乎看不见，只有长距离才给足那一下惯性。 */
     const rows = Math.abs(c1 - c0) / Math.max(bottom - top, 1);
-    const ramp = Math.min(1, Math.max(0, (rows - 1.15) / (5 - 1.15)));
+    const ramp = Math.min(1, Math.max(0, (rows - NAV_ROWS_KNEE) / (NAV_ROWS_FULL - NAV_ROWS_KNEE)));
     const bounce = ramp * ramp;
     /* 行程终点不是目标位，而是顺运动方向多滑出去的一点（**惯性顶点**）：条带着末端速度
        **穿过**目标位、减速停在顶点，再平滑收回精确位置。此前是「终点=目标位，另补一段从
        目标位滑到顶点」，末端速度先归零、再重新起步，观感是"到了-停住-弹簧"（霖反馈：
        衔接不流畅，中间多了一段不合理的停顿）。 */
-    const over = bounce > 0 ? Math.max(bottom - top, 2) * 0.2 * bounce * (down ? 1 : -1) : 0;
+    const over = bounce > 0 ? Math.max(bottom - top, NAV_MIN_ROW) * NAV_APEX * bounce * (down ? 1 : -1) : 0;
     const apex = c1 + over;
     const e1t = apex - BAR / 2, e1b = apex + BAR / 2; // 终点：惯性顶点的两端
     /* 行程 + 刹车回弹共用一条时间轴；回弹窗 200ms（2026-09-24 由 90ms 拉长——霖反馈
@@ -356,16 +374,16 @@ export function useNavIndicator() {
        > 比例也会随拉伸倍数变化（用户曾反馈"运动时稍微粗一点点"）。Chromium 实测（1x/2x
        > 逐帧量测）宽度恒为 3.00px、未复现该差异；若真机复现，应改用 clip-path 开窗
        > （不缩放、仍是单一属性驱动），而不是再把几何拆到两条线程上。 */
-    const BOUNCE = bounce > 0 ? 200 : 0;
+    const BOUNCE = bounce > 0 ? NAV_BOUNCE_MS : 0;
     const total = dur + BOUNCE;
     const share = dur / total;
     // 回弹两侧统一 ease-in-out：峰值与落点速度都归零，速度连续 → 不顿不弹
-    const SOFT = "cubic-bezier(0.45, 0, 0.55, 1)";
+    const SOFT = NAV_SOFT;
     const frames: Keyframe[] = [];
     for (let k = 0; k <= N; k++) {
       const u = k / N; // 行程进度
       const lead = ease(u); // 前端点：全程一条曲线
-      const trail = u <= 0.3 ? 0 : ease((u - 0.3) / 0.7); // 尾端点：延迟 30% 再跟上
+      const trail = u <= NAV_TRAIL_DELAY ? 0 : ease((u - NAV_TRAIL_DELAY) / (1 - NAV_TRAIL_DELAY)); // 尾端点：延迟 30% 再跟上
       let ta = down ? e0t + (e1t - e0t) * trail : e0t + (e1t - e0t) * lead;
       let tb = down ? e0b + (e1b - e0b) * lead : e0b + (e1b - e0b) * trail;
       if (tb - ta > MAX) {
@@ -423,4 +441,94 @@ export function useNavIndicator() {
   }, [place]);
 
   return [rowRef, barRef] as const;
+}
+
+/**
+ * 移动端底栏「蓝色胶囊」指示器：把蓝条那套已打磨好的运动搬过来——平滑切换 + 惯性回弹，
+ * 只做两处几何适配：竖直位移换成水平位移、去掉沿运动轴的长度拉伸（蓝条拉伸是为了让 3px
+ * 细线在长程移动中看得见，64px 胶囊再放大就不是同一件事了）。曲线、时长、惯性顶点取值
+ * 全部来自上面那组共享常量，没有另立一套。
+ */
+export function useBottomNavPill() {
+  const rowRef = useRef<HTMLElement | null>(null);
+  const pillRef = useRef<HTMLSpanElement | null>(null);
+  const prevRef = useRef<number | null>(null); // 上一项中心（内容坐标 px）
+
+  const place = useCallback(() => {
+    const el = rowRef.current;
+    const pill = pillRef.current;
+    if (!el || !pill) return;
+    const active = el.querySelector<HTMLElement>(".bottom-nav-item.is-active");
+    if (!active || active.offsetWidth <= 0) {
+      pill.classList.remove("is-ready");
+      prevRef.current = null;
+      return;
+    }
+    const base = el.getBoundingClientRect();
+    const box = active.getBoundingClientRect();
+    const left = box.left - base.left - el.clientLeft + el.scrollLeft;
+    const c1 = left + box.width / 2;
+    const rowSize = Math.max(box.width, NAV_MIN_ROW);
+    const pillW = pill.offsetWidth || 64;
+    const prev = prevRef.current;
+    prevRef.current = c1;
+    if (!pill.classList.contains("is-ready")) pill.classList.add("is-ready");
+
+    const setFinal = (): void => {
+      pill.style.transform = "translateX(" + (c1 - pillW / 2) + "px)";
+    };
+    if (prev === null || prefersReducedMotion()) {
+      setFinal();
+      return;
+    }
+    if (Math.abs(prev - c1) < 0.5) return;
+
+    const right = c1 >= prev;
+    const dur = Math.min(NAV_DUR_MAX, Math.max(NAV_DUR_MIN, Math.round(Math.abs(c1 - prev) * NAV_DUR_SLOPE)));
+    const rows = Math.abs(c1 - prev) / rowSize;
+    const ramp = Math.min(1, Math.max(0, (rows - NAV_ROWS_KNEE) / (NAV_ROWS_FULL - NAV_ROWS_KNEE)));
+    const bounce = ramp * ramp;
+    const over = bounce > 0 ? rowSize * NAV_APEX * bounce * (right ? 1 : -1) : 0;
+    const apex = c1 + over;
+    const BOUNCE = bounce > 0 ? NAV_BOUNCE_MS : 0;
+    const total = dur + BOUNCE;
+    const share = dur / total;
+    const frames: Keyframe[] = [];
+    for (let k = 0; k <= NAV_FRAMES; k++) {
+      const u = k / NAV_FRAMES;
+      const x = prev + (apex - prev) * NAV_EASE(u);
+      frames.push({
+        transform: "translateX(" + (x - pillW / 2) + "px)",
+        offset: u * share,
+        easing: k === NAV_FRAMES ? NAV_SOFT : "linear",
+      });
+    }
+    if (BOUNCE > 0) {
+      frames.push({ transform: "translateX(" + (c1 - pillW / 2) + "px)", offset: 1, easing: NAV_SOFT });
+    }
+    setFinal();
+    pill.animate(frames, { duration: total });
+  }, []);
+
+  useLayoutEffect(() => {
+    place();
+  });
+
+  useLayoutEffect(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => place());
+    ro.observe(el);
+    void document.fonts?.ready.then(() => place()).catch(() => {});
+    const onSettle = () => place();
+    el.addEventListener("animationend", onSettle);
+    el.addEventListener("transitionend", onSettle);
+    return () => {
+      ro.disconnect();
+      el.removeEventListener("animationend", onSettle);
+      el.removeEventListener("transitionend", onSettle);
+    };
+  }, [place]);
+
+  return [rowRef, pillRef] as const;
 }

@@ -5153,52 +5153,26 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
     -webkit-tap-highlight-color: transparent;
   }
   /* MD3 active indicator：64×32 胶囊压在图标之下；主题色取 secondary-container。
-     图标激活色用主题感知的 --accent（System 层暂无 on-secondary-container，见手册 §3.4） */
-  .bottom-nav-item::before {
-    content: "";
+     图标激活色用主题感知的 --accent（System 层暂无 on-secondary-container，见手册 §3.4）。
+     胶囊是**单个**滑动元素（位置由 useBottomNavPill 用蓝条那套共享的导航运动驱动：
+     平滑切换 + 惯性回弹），不再是每一项各自的 ::before 就地淡入。它是底栏第一个子元素，
+     因此天然画在各项之下，而各项自己的图标与文字仍在其上。 */
+  .bottom-nav-pill {
     position: absolute;
-    top: 4px;
-    left: 50%;
+    top: 12px;
+    left: 0;
     width: 64px;
     height: 32px;
     border-radius: var(--md-sys-shape-corner-full, 999px);
     background: var(--md-sys-color-secondary-container, var(--accent-soft));
     opacity: 0;
-    transform: translateX(-50%) scale(0.86);
-    transition:
-      opacity var(--dur-2, 200ms) var(--md-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1)),
-      transform var(--dur-2, 200ms) var(--md-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1));
+    transition: opacity var(--dur-2, 200ms) var(--md-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1));
     pointer-events: none;
   }
+  .bottom-nav-pill.is-ready { opacity: 1; }
   .bottom-nav-item > * { position: relative; z-index: 1; }
   .bottom-nav-item.is-active { color: var(--md-sys-color-on-surface); }
   .bottom-nav-item.is-active svg { color: var(--accent); }
-  .bottom-nav-item.is-active::before { opacity: 1; transform: translateX(-50%) scale(1); }
-  /* 蓝条（用户指定的刻意设计）：不在 PC 侧栏，改到移动端水平导航栏——
-     位于选项文字下方，随当前项做**水平**滑动（原来在侧栏是竖直运动）。
-     做法：单个 3px 小条横跨一列（宽 = 一列），靠 translateX(列数×100%) 平移，
-     可见线段由 ::after 收成文字下方一小段，避免平板宽视口下被拉成一条长线。 */
-  .bottom-nav-indicator {
-    position: absolute;
-    left: 4px;
-    bottom: calc(5px + env(safe-area-inset-bottom, 0px));
-    width: calc((100% - 8px) / 5);
-    height: 3px;
-    transform: translateX(calc(var(--nav-i, 0) * 100%));
-    transition: transform var(--dur-2, 200ms) var(--md-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1));
-    pointer-events: none;
-  }
-  .bottom-nav-indicator::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    bottom: 0;
-    width: 26px;
-    height: 3px;
-    border-radius: var(--md-sys-shape-corner-full, 999px);
-    background: var(--accent);
-    transform: translateX(-50%);
-  }
   .bottom-nav-item:active { transform: scale(0.94); }
   /* 内容不被底栏遮住；回顶/刷新 FAB 抬到底栏上方 */
   .content { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }

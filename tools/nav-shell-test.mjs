@@ -1,12 +1,14 @@
 import { readFileSync } from "node:fs";
 
 /* 护栏：导航壳（B4）。移动端底栏 = MD3 navigation bar；PC 侧栏 = MD3 navigation drawer/rail。
-   底栏：5 目的地、64×32 胶囊指示器（secondary-container）、图标压在胶囊上、安全区、无描边。
+   底栏：5 目的地、单个滑动胶囊（secondary-container，复用蓝条那套共享的导航运动）、
+   图标压在胶囊上、安全区、无描边、无横向蓝条。
    侧栏：宽度 ≤ 240px、激活项整行胶囊、分区小标题令牌化、旧竖条指示器退役、折叠钮无描边。 */
 const CSS = readFileSync("apps/desktop/src/styles/global.css", "utf8");
 const MOTION = readFileSync("apps/desktop/src/styles/motion.css", "utf8");
 const TOKENS = readFileSync("packages/ui/src/tokens.css", "utf8");
 const LAYOUT = readFileSync("apps/desktop/src/components/Layout.tsx", "utf8");
+const MOTION_TS = readFileSync("apps/desktop/src/lib/motion.ts", "utf8");
 const fails = [];
 const ok = (cond, msg) => { if (!cond) fails.push(msg); };
 
@@ -45,14 +47,25 @@ if (item) {
   ok(/position:\s*relative/.test(item), "底栏项不是相对定位（胶囊指示器无处安放）");
   ok(/font-weight:\s*500/.test(item), "底栏标签未按 label-medium 加中粗");
 }
-const ind = pick(".bottom-nav-item::before", /64px/);
+const ind = pick(".bottom-nav-pill", /64px/);
 ok(ind !== null, "底栏缺少 active indicator 胶囊");
 if (ind) {
   ok(/width:\s*64px/.test(ind) && /height:\s*32px/.test(ind), "胶囊尺寸不是 MD3 的 64×32");
   ok(/corner-full/.test(ind), "胶囊圆角未走 --md-sys-shape-corner-full");
   ok(/secondary-container/.test(ind), "胶囊底色未走 secondary-container");
 }
-ok(/\.bottom-nav-item\.is-active::before\s*\{[^}]*opacity:\s*1/.test(CSS), "激活态未点亮胶囊指示器");
+ok(/\.bottom-nav-pill\.is-ready\s*\{[^}]*opacity:\s*1/.test(CSS), "胶囊未在就位后点亮");
+/* 胶囊是单个滑动元素：运动复用蓝条那套共享常量，只换轴、不拉伸；横向蓝条方案已撤 */
+ok(!/bottom-nav-indicator/.test(CSS) && !/bottom-nav-indicator/.test(LAYOUT), "横向蓝条未撤除");
+ok(/bottom-nav-pill/.test(LAYOUT) && /useBottomNavPill\(\)/.test(LAYOUT), "底栏未接 useBottomNavPill（会退回就地淡入）");
+const hook = /export function useBottomNavPill[\s\S]*$/.exec(MOTION_TS);
+ok(hook !== null, "motion.ts 未导出 useBottomNavPill");
+if (hook) {
+  ok(/NAV_EASE/.test(hook[0]) && /NAV_APEX/.test(hook[0]) && /NAV_BOUNCE_MS/.test(hook[0]), "胶囊运动未复用共享常量（会与蓝条那套分叉）");
+  ok(/NAV_ROWS_KNEE/.test(hook[0]) && /NAV_DUR_SLOPE/.test(hook[0]), "胶囊运动缺少惯性/时长共享常量");
+  ok(!/scaleX/.test(hook[0]), "胶囊不该沿运动轴拉伸（拉伸是 3px 细蓝条的表达）");
+  ok(/translateX/.test(hook[0]), "胶囊运动不是水平位移");
+}
 ok(/\.bottom-nav-item > \*\s*\{[^}]*z-index:\s*1/.test(CSS), "图标/文字未压在胶囊之上");
 ok(/\{ page: "today", label: "今日"/.test(LAYOUT) && /label: "我的"/.test(LAYOUT), "底栏 5 目的地不全");
 ok(/aria-current={active \? "page"/.test(LAYOUT), "底栏激活项缺 aria-current");
@@ -73,24 +86,8 @@ if (navActive) {
   ok(/secondary-container/.test(navActive), "侧栏激活项未用 secondary-container 胶囊");
   ok(/corner-full/.test(navActive), "侧栏激活胶囊圆角未走 corner-full");
 }
-/* 蓝条：侧栏那支关闭（与 drawer 整行胶囊不匹配），改到移动端水平导航栏做水平滑动 */
-ok(/\.nav-indicator\s*\{\s*display:\s*none/.test(MOTION), "侧栏竖条未关闭（用户判定与 drawer 胶囊风格不匹配）");
-const barCell = /\.bottom-nav-indicator \{([\s\S]*?)\}/.exec(CSS);
-ok(barCell !== null, "底栏水平蓝条规则缺失");
-if (barCell) {
-  ok(/translateX\(calc\(var\(--nav-i/.test(barCell[1]), "蓝条未用 --nav-i 做水平平移");
-  ok(/transition:[\s\S]{0,20}transform/.test(barCell[1]), "蓝条水平移动没有过渡");
-  ok(/width:\s*calc\(\(100% - 8px\) \/ 5\)/.test(barCell[1]), "蓝条宽度未按一列（5 等分）");
-}
-const barInk = /\.bottom-nav-indicator::after \{([\s\S]*?)\}/.exec(CSS);
-ok(barInk !== null, "蓝条可见线段（::after）缺失");
-if (barInk) {
-  ok(/background:\s*var\(--accent/.test(barInk[1]), "蓝条可见线段未用主题色 --accent");
-  ok(/corner-full/.test(barInk[1]), "蓝条可见线段未走 corner-full");
-  ok(/width:\s*26px/.test(barInk[1]), "蓝条可见线段长度未收窄（宽视口下会被拉成长线）");
-}
-ok(/bottom-nav-indicator/.test(LAYOUT), "底栏 JSX 未渲染蓝条元素");
-ok(/--nav-i/.test(LAYOUT), "底栏 JSX 未下发 --nav-i（蓝条不会跟着当前项走）");
+/* 竖条不再出现在任何位置（其运动由底栏胶囊接手） */
+ok(/\.nav-indicator\s*\{\s*display:\s*none/.test(MOTION), "侧栏竖条未关闭（与 drawer 整行胶囊风格不匹配）");
 ok(/\.nav-item \{[^}]*border-radius:\s*var\(--md-sys-shape-corner-full/.test(CSS), "hover 底色与激活胶囊圆角不一致");
 ok(/\.sidebar-foot \{[^}]*flex:\s*none/.test(CSS), "侧栏底未禁止收缩（会被压扁致折叠钮与「就绪」重合）");
 ok(/\.nav-label\s*\{[^}]*on-surface-variant/.test(CSS), "分区小标题未令牌化");
@@ -105,4 +102,4 @@ if (fails.length) {
   for (const f of fails) console.error("  ✗ " + f);
   process.exit(1);
 }
-console.log("导航壳护栏：底栏 5 Tab + 64×32 胶囊 + 安全区 + 无描边 ✓ 侧栏 ≤240px + 整行胶囊 + 侧栏竖条关闭 + 分区标题 ✓ 底栏水平蓝条 ✓ 圆角一致 ✓ 底栏不收缩 ✓");
+console.log("导航壳护栏：底栏 5 Tab + 64×32 胶囊 + 安全区 + 无描边 ✓ 侧栏 ≤240px + 整行胶囊 + 侧栏竖条关闭 + 分区标题 ✓ 底栏滑动胶囊 ✓ 无横向蓝条 ✓ 圆角一致 ✓ 底栏不收缩 ✓");

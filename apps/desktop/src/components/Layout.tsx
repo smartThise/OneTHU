@@ -12,7 +12,7 @@ import { useFavs } from "../state/favs.js";
 import { pluginTabsSnapshot, subscribePluginTabs } from "../plugins/tabs.js";
 import { showToast } from "../state/toast.js";
 import { checkUpdateSilently } from "../lib/update.js";
-import { useNavIndicator, useSegPill } from "../lib/motion.js";
+import { useBottomNavPill, useNavIndicator, useSegPill } from "../lib/motion.js";
 
 /** 开发者面板（仅 dev 构建）：右上角 commit 徽标 + 前端日志/诊断/导出。
  *  正式版里 __ONETHU_DEV__ 折叠为 false → 这句动态 import 被 rollup 删除，
@@ -66,16 +66,12 @@ const BOTTOM_NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactN
 
 /** 移动端底部导航条（CSS 侧 ≤840px 显示；桌面恒隐藏） */
 function BottomNav({ page, navigate }: { page: Page; navigate: (p: Page, params?: LearnNav) => void }): ReactNode {
-  /* 当前项序号驱动蓝条水平滑动；不在 5 Tab 内（如子页面）时不渲染蓝条 */
-  const activeIdx = BOTTOM_NAV.findIndex(
-    (item) => item.page === page || item.activePages?.includes(page) === true,
-  );
+  /* 蓝色胶囊是单个滑动元素：切换时按共享的导航运动（平滑 + 惯性回弹）水平移动，
+     不再是每一项各自的 ::before 就地淡入。当前项由钩子自己在 DOM 里找（无激活项即隐藏）。 */
+  const [navRef, pillRef] = useBottomNavPill();
   return (
-    <nav
-      className="bottom-nav"
-      aria-label="底部导航"
-      style={{ "--nav-i": Math.max(0, activeIdx) } as CSSProperties}
-    >
+    <nav className="bottom-nav" aria-label="底部导航" ref={navRef}>
+      <span className="bottom-nav-pill" ref={pillRef} aria-hidden="true" />
       {BOTTOM_NAV.map((item) => {
         const active = item.page === page || item.activePages?.includes(page) === true;
         const Icon = item.icon;
@@ -91,7 +87,6 @@ function BottomNav({ page, navigate }: { page: Page; navigate: (p: Page, params?
           </button>
         );
       })}
-      {activeIdx >= 0 ? <span className="bottom-nav-indicator" aria-hidden="true" /> : null}
     </nav>
   );
 }
