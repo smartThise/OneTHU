@@ -538,9 +538,9 @@
 .field input {
   height: 38px;
   padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
+  border: 1px solid var(--border); /* 输入类保留描边：§3「描边属于输入语言」 */
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: var(--md-sys-color-surface-container);
   font-size: var(--text-base);
   color: var(--text-1);
   transition: border-color 100ms ease, background 100ms ease, box-shadow 100ms ease;
@@ -556,7 +556,7 @@
   outline: none;
   background: var(--md-sys-color-surface-container-lowest);
   border-color: var(--accent);
-  box-shadow: var(--ring);
+  box-shadow: var(--md-sys-focus-ring);
 }
 
 /* ---------- 登录 / 2FA ---------- */
@@ -1155,8 +1155,8 @@
   padding: 0 12px;
   height: 40px;
   border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: var(--md-sys-color-surface-container);
   margin-bottom: 16px;
   color: var(--text-3);
   transition: border-color 100ms ease, background 100ms ease, box-shadow 100ms ease;
@@ -1165,7 +1165,7 @@
   outline: none;
   background: var(--md-sys-color-surface-container-lowest);
   border-color: var(--accent);
-  box-shadow: var(--ring);
+  box-shadow: var(--md-sys-focus-ring);
   color: var(--text-2);
 }
 .search-box input {
@@ -1187,10 +1187,10 @@
 .field select,
 .input {
   height: 38px;
-  padding: 0 10px;
+  padding: 0 12px; /* 与 .field input 对齐（原 10px 是历史遗留，不在 4pt 栅格上） */
   border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: var(--md-sys-color-surface-container);
   font-size: var(--text-base);
   color: var(--text-1);
 }
@@ -1199,7 +1199,7 @@
   outline: none;
   background: var(--md-sys-color-surface-container-lowest);
   border-color: var(--accent);
-  box-shadow: var(--ring);
+  box-shadow: var(--md-sys-focus-ring);
 }
 
 @media (max-width: 700px) {

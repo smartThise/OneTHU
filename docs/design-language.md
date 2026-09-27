@@ -187,6 +187,21 @@ margin-bottom: 24px;                       margin-bottom: 20px;
 **别写 `scrollbar-width` / `scrollbar-color`**（`none` 除外）：Chromium ≥121 一旦看到这两个属性就
 整体忽略 `::-webkit-scrollbar`，桌面端会悄悄退回平台默认风。护栏 `tools/scrollbar-test.mjs` 会拦住它。
 
+### 3.2 输入/表单：描边保留，其余全令牌化
+
+输入类与卡片**相反**：卡片去描边，输入类**必须保留 1px 描边**（§3：描边属于输入语言）。统一的是：
+
+| 项 | 规则 |
+|---|---|
+| 高度 | 38px 常规 / 40px 搜索框与手机端 / 32px 紧凑行内（筛选条等） |
+| 横向 padding | 12px（落 4pt 栅格） |
+| 圆角 | 形状令牌 medium |
+| 底色 | surface-container；聚焦时切 container-lowest |
+| 聚焦 | outline 关掉 + 描边转强调色 + 令牌聚焦环 md-sys-focus-ring |
+
+紧凑行内控件（filter-select / hwremind-custom input / trace-opt select）尺寸跟随所在行，
+在护栏里单独登记，不并入常规输入。护栏 tools/input-system-test.mjs。
+
 ---
 
 ## 4. 用色：中性打底，彩色点睛

@@ -278,7 +278,7 @@
 |------|------|----------|--------|
 | B1 ✅ | 按钮/pill/FAB + 新增 `Ripple.tsx`（2026-02 落地：状态层 8%/12%、焦点环令牌化、禁用 38%、触摸涟漪） | filled/tonal/text；统一涟漪；`prefers-reduced-motion` 降级 | 全应用按钮一致 |
 | B2 ✅（卡片）/ 列表项待 B2b | 卡片/列表项 | elevated/filled 卡片、`--shape-l` 圆角、分层底色去描边 | 「今日」卡流成立 |
-| B3 | 输入/表单/modal | outlined field；移动端 modal → bottom sheet | 登录/设置表单统一 |
+| B3 ✅a（输入/表单）/ 移动端弹层待 B3b | 输入/表单/modal | outlined field；移动端 modal → bottom sheet | 登录/设置表单统一 |
 | B4 | 导航/tab/底栏 | 移动端 navigation bar + active indicator 胶囊；**PC 侧边栏升级为 navigation rail（§2.8.1）**；顶部大标题 | 新 IA 壳双端成型 |
 | B5 | chip/开关/进度/骨架屏/空状态 | 对应规范 | 全局截图走查 |
 
