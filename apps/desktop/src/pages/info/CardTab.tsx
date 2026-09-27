@@ -75,6 +75,14 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
   const [err, setErr] = useState("");
   /* 退场相位：先播 160ms 淡出再真正关闭（此前无退场动画，弹窗"啪"地消失） */
   const [closing, setClosing] = useState(false);
+  // 重新打开必须复位退场相位：父级只把 open 置 false、组件并不卸载，
+  // 残留的 closing=true 会让第二次打开后永远关不掉（霖实测）。
+  useEffect(() => {
+    if (open) setClosing(false);
+  }, [open]);
+  useEffect(() => {
+    if (!open) setClosing(false);
+  }, [open]);
   if (!open) return null;
 
   const amt = Number(amount);
