@@ -70,8 +70,12 @@
   /* ---------- System：交互状态层 ----------
      §3.9 目标 8% / 12%（现在 6% / 10%），状态层规范落地时再换；
      同屏禁止各写各的 hover。 */
-  --md-sys-color-state-hover: rgba(38, 49, 72, 0.06);
-  --md-sys-color-state-pressed: rgba(38, 49, 72, 0.1);
+  /* 状态层（§3.9-5）：hover 8% / pressed 12% / focus 8% / disabled 38%（MD3 规范值）。
+     取 on-surface 的叠色而非改底色——按钮/列表项/卡片统一接入，彩色底上也成立。 */
+  --md-sys-color-state-hover: rgba(38, 49, 72, 0.08);
+  --md-sys-color-state-pressed: rgba(38, 49, 72, 0.12);
+  --md-sys-color-state-focus: rgba(38, 49, 72, 0.08);
+  --md-sys-state-opacity-disabled: 0.38;
   --md-sys-focus-ring: 0 0 0 3px rgba(65, 118, 230, 0.25);  /* 整条阴影，不是颜色 */
 
   /* ---------- System：阴影（§3.1.3：--elev-1..3；同屏 ≤ 2 级，§3.9） ---------- */
@@ -227,8 +231,9 @@
   --md-sys-color-success-container: rgba(34, 197, 94, 0.14);
 
   /* 交互 / 焦点 / 阴影 */
-  --md-sys-color-state-hover: rgba(255, 255, 255, 0.06);
-  --md-sys-color-state-pressed: rgba(255, 255, 255, 0.1);
+  --md-sys-color-state-hover: rgba(255, 255, 255, 0.08);
+  --md-sys-color-state-pressed: rgba(255, 255, 255, 0.12);
+  --md-sys-color-state-focus: rgba(255, 255, 255, 0.08);
   --md-sys-focus-ring: 0 0 0 3px rgba(107, 155, 255, 0.35);
   --md-sys-elevation-1: 0 2px 4px rgba(0, 0, 0, 0.4);
   --md-sys-elevation-2: 0 2px 8px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.3);

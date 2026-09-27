@@ -871,3 +871,36 @@ html.has-reveal :is(.app-grid, .thos-grid) > *[data-reveal-in] {
   opacity: 1;
   animation: m-grid-in var(--dur-2) var(--ease-out) backwards;
 }
+/* ---------- MD3 涟漪（§3.5 B1） ----------
+   只动画 transform / opacity（§3.10）；宿主负责 position: relative，
+   这里不动宿主的 overflow——涟漪装在自己的裁剪层里，按钮里的浮层不会被连带裁掉。 */
+.md-ripple-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.md-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0);
+  animation: md-ripple var(--md-sys-motion-duration-long-2) var(--md-sys-motion-easing-standard-decelerate)
+    forwards;
+}
+
+@keyframes md-ripple {
+  0% {
+    opacity: 0.16;
+    transform: scale(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+

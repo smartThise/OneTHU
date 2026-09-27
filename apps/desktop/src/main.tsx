@@ -27,8 +27,10 @@ function markPhone(): void {
 }
 markPhone();
 window.addEventListener("resize", markPhone);
-// 触摸涟漪：全局单监听，只在 is-phone 密度层生效（桌面不挂）
+// 列表/网格入场 stagger（手机密度层才挂）
 installScrollReveal();
+// 按钮涟漪（§3.5 B1）：全局单监听，认类名不认调用点；触摸/笔出涟漪，鼠标只走状态层（§2.8.3）
+installRipple();
 
 import { createRoot } from "react-dom/client";
 import { activateInstalledPlugins, seedBuiltinHarness } from "./plugins/loader.js";
@@ -46,6 +48,7 @@ import "./styles/global.css";
 // 否则同选择器的 transition/animation 会被 global.css 覆盖。
 import "./styles/motion.css";
 import { installScrollReveal } from "./lib/motion.js";
+import { installRipple } from "./components/Ripple.js";
 import { initDynamicColor, watchDynamicColor } from "./lib/dynamicColor.js";
 import { App } from "./App.js";
 import { ConfirmHost } from "./lib/confirm.js";

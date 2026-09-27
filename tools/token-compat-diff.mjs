@@ -60,6 +60,8 @@ const newMap = collect(stripSchemeBlocks(newCss));
 const INTENTIONAL = new Map([
   ["--primary", "默认主题回黑白配；清华紫改由内置主题 onethu.theme.tsinghua 承载"],
   ["--primary-hover", "同上（悬停回 #43454a）"],
+  ["--hover", "§3.5 B1：状态层对齐 MD3（hover 6% → 8%）"],
+  ["--active", "§3.5 B1：状态层对齐 MD3（pressed 10% → 12%）"],
 ]);
 const fails = [];
 const changed = [];

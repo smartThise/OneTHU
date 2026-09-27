@@ -140,7 +140,12 @@ console.log("\n[雨课堂]");
             { type: 19, id: 24, title: "零分已批改作业", classroom_id: 1, content: { leaf_type_id: 107, leaf_id: 24, sku_id: 954, score_d: FUTURE } },
             { type: 19, id: 25, title: "缺分已批改作业", classroom_id: 1, content: { leaf_type_id: 108, leaf_id: 25, sku_id: 955, score_d: FUTURE } },
             { type: 19, id: 26, title: "无满分已批改作业", classroom_id: 1, content: { leaf_type_id: 109, leaf_id: 26, sku_id: 956, score_d: FUTURE } },
+            // R24 fix（霖 bug 2026-09-23）：5/5 全部已批改有评语，但服务端不回传 my_answer.content
+            // → 旧口径只认正文，整卷被误判未提交；新口径按 status/submit_time/my_count 多信号判已作答
+            { type: 19, id: 28, title: "已批无正文作业", classroom_id: 1, content: { leaf_type_id: 111, leaf_id: 28, sku_id: 957, score_d: FUTURE } },
             { type: 20, id: 12, title: "已交试卷", classroom_id: 1, content: { leaf_type_id: 200, leaf_id: 7, sku_id: 900, score_d: FUTURE } },
+            // R24 fix（霖 bug 2026-09-23）：11 题完成 10 题 → 未提交（进行中），不再误报已交
+            { type: 20, id: 29, title: "部分完成试卷", classroom_id: 1, content: { leaf_type_id: 207, leaf_id: 29, sku_id: 907, score_d: FUTURE } },
             { type: 20, id: 13, title: "未交试卷", classroom_id: 1, content: { leaf_type_id: 201, leaf_id: 8, sku_id: 901, score_d: FUTURE } },
             { type: 20, id: 14, title: "无 result 试卷", classroom_id: 1, content: { leaf_type_id: 202, leaf_id: 9, sku_id: 902, score_d: FUTURE } },
             { type: 20, id: 15, title: "状态报错试卷", classroom_id: 1, content: { leaf_type_id: 203, leaf_id: 10, sku_id: 903, score_d: FUTURE } },
@@ -241,6 +246,19 @@ console.log("\n[雨课堂]");
         },
       },
     },
+    // R24 fix（bug1）：已批改（status 4）+ 评语 + 有效分，但 my_answer 为空壳 → 多信号判已作答，整卷已提交
+    {
+      match: (u) => u.includes("/get_exercise_list/111/"),
+      body: {
+        data: {
+          answer_count: 5,
+          problems: [1, 2, 3, 4, 5].map((n) => ({
+            content: { score: 10 },
+            user: { status: 4, my_score: "6.00", submit_time: "2026-09-17 17:52", my_count: 1, comment: [{ content: `批注${n}` }], my_answer: {} },
+          })),
+        },
+      },
+    },
     { match: (u) => u.includes("/v/exam/cover") && u.includes("exam_id=200"), body: { data: { problem_count: 20, total_score: 100, result: { status: 5, unfinished_count: 0, score: 60, score_finish: true } } } },
     { match: (u) => u.includes("/v/exam/cover") && u.includes("exam_id=201"), body: { data: { problem_count: 31, total_score: 100, result: { status: 6, unfinished_count: 31, score: 0, score_finish: true } } } },
     { match: (u) => u.includes("/v/exam/cover") && u.includes("exam_id=202"), body: { data: { problem_count: 10, total_score: 100, result: null } } },
@@ -248,11 +266,22 @@ console.log("\n[雨课堂]");
     { match: (u) => u.includes("/v/exam/cover") && u.includes("exam_id=204"), body: { data: { problem_count: 10, total_score: 100, result: { status: 5, unfinished_count: 0, score: 60, score_finish: false } } } },
     { match: (u) => u.includes("/v/exam/cover") && u.includes("exam_id=205"), body: { data: { problem_count: 10, result: { status: 5, unfinished_count: 0, score: 60, score_finish: true } } } },
     { match: (u) => u.includes("/v/exam/cover") && u.includes("exam_id=206"), body: { data: { problem_count: 10, total_score: 100, result: { status: 5, unfinished_count: 0, score: 0, score_finish: true } } } },
+    // R24 fix（bug2）：11 题完成 10 题 → 未提交（进行中），进度 10/11
+    { match: (u) => u.includes("/v/exam/cover") && u.includes("exam_id=207"), body: { data: { problem_count: 11, total_score: 100, result: { status: 5, unfinished_count: 1 } } } },
   ]);
   const src = createYuketangSource({ cookie: "sessionid=x", uvId: "2598" }, fetchLike, 30);
   const items = await src.fetch();
-  eq(items.length, 19, "拉到 19 条作业");
+  eq(items.length, 21, "拉到 21 条作业");
   const byTitle = new Map(items.map((i) => [i.title, i]));
+  // R24 fix（bug1）：已批改有评语但服务端不回传 my_answer.content → 多信号判已作答，整卷已提交
+  eq(byTitle.get("已批无正文作业")?.submitted, true, "R24：5/5 已批改（status 4 + submit_time + my_count）无正文 → 已提交");
+  eq(byTitle.get("已批无正文作业")?.submittedCount, 5, "已批无正文作业 submittedCount=5");
+  eq(byTitle.get("已批无正文作业")?.totalCount, 5, "已批无正文作业 totalCount=5");
+  eq(byTitle.get("已批无正文作业")?.graded, true, "已批无正文作业 graded=true（全 status 4 无 -1 占位）");
+  // R24 fix（bug2）：试卷部分完成（10/11）→ 未提交（进行中），报进度
+  eq(byTitle.get("部分完成试卷")?.submitted, false, "R24：试卷 10/11 → 未提交（不再误报已交）");
+  eq(byTitle.get("部分完成试卷")?.submittedCount, 10, "部分完成试卷 submittedCount=10");
+  eq(byTitle.get("部分完成试卷")?.totalCount, 11, "部分完成试卷 totalCount=11");
   // R23：部分作答 ≠ 已提交（霖实测：只交一道题被记为已交）——进行中，报进度
   eq(byTitle.get("部分作答作业")?.submitted, false, "R23：2 题只答 1 题 → 未提交（进行中）");
   eq(byTitle.get("部分作答作业")?.submittedCount, 1, "部分作答作业 submittedCount=1（有内容的题目数）");
@@ -331,7 +360,7 @@ console.log("\n[雨课堂]");
   eq(byTitle.get("未交试卷")?.graded, false, "未提交试卷 → graded=false");
   eq(byTitle.get("无 result 试卷")?.graded, false, "result 缺失 → graded=false");
   const hwCalls = fetchLike.calls.filter((c) => c.url.includes("/get_exercise_list/"));
-  eq(hwCalls.length, 12, "仅作业（type 19）走 get_exercise_list（12 份，分数与状态同一响应零额外请求）");
+  eq(hwCalls.length, 13, "仅作业（type 19）走 get_exercise_list（13 份，分数与状态同一响应零额外请求）");
   ok(
     hwCalls.every((c) => c.headers["xtbz"] === "ykt"),
     "作业状态请求均带 XTBZ: ykt",
@@ -341,7 +370,7 @@ console.log("\n[雨课堂]");
     "作业状态请求均带 classroom_id / uv_id",
   );
   const examCalls = fetchLike.calls.filter((c) => c.url.includes("/v/exam/cover"));
-  eq(examCalls.length, 7, "试卷（type 20）走 /v/exam/cover");
+  eq(examCalls.length, 8, "试卷（type 20）走 /v/exam/cover");
   ok(
     examCalls.every((c) => c.headers["xtbz"] === "ykt"),
     "试卷状态请求均带 XTBZ: ykt",

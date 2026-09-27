@@ -28,7 +28,13 @@ const light = roles(block(":root {"));
 const dark = new Set(roles(block(":root[data-scheme=\"dark\"]")));
 
 /** 明暗无关的角色：形状/字阶/间距——暗色不需要重复声明 */
-const schemeAgnostic = (r) => r.startsWith("--md-sys-shape-") || r.startsWith("--md-sys-typescale-") || r.startsWith("--md-sys-spacing-");
+/* 与明暗无关：形状/字阶/间距，以及"不透明度"这类纯数值状态（--md-sys-state-opacity-*）——
+   禁用态的 38% 在明暗下是同一个值，暗色块里重复声明反而会掩盖"真的漏了角色"的情况 */
+const schemeAgnostic = (r) =>
+  r.startsWith("--md-sys-shape-") ||
+  r.startsWith("--md-sys-typescale-") ||
+  r.startsWith("--md-sys-spacing-") ||
+  r.startsWith("--md-sys-state-opacity-");
 const mustMirror = light.filter((r) => !schemeAgnostic(r));
 const missing = mustMirror.filter((r) => !dark.has(r));
 

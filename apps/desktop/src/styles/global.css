@@ -236,6 +236,7 @@
 /* ---------- 徽标 ---------- */
 
 .chip {
+  position: relative; /* 状态层与涟漪的定位基准 */
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -422,9 +423,13 @@
   white-space: nowrap;
 }
 
-/* ---------- 按钮（pill） ---------- */
-
+/* ---------- 按钮（§3.5 B1：MD3 变体 + 统一状态层/涟漪/焦点环） ----------
+   四态一律走令牌叠色（§3.9-5）：hover 8% / pressed 12% / focus 令牌环 / disabled 38%。
+   叠色用 ::after 铺满而不是"悬停换底色"——彩色底（primary/danger）上同样成立，
+   也免得每个变体各写一套 hover；内联 background 的调用点也不会把状态层冲掉。
+   变体映射：.btn 描边式（中性）/ .btn-primary 填充（主 CTA）/ .btn-ghost 文本 / .btn-danger 危险。 */
 .btn {
+  position: relative; /* 状态层与涟漪的定位基准 */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -435,40 +440,79 @@
      个别要伸缩的按钮用内联 flex 覆盖（CardTab 等） */
   white-space: nowrap;
   flex: 0 0 auto;
-  border: 1px solid var(--border);
+  border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: var(--r-pill);
-  background: var(--surface);
-  color: var(--text-1);
+  background: var(--md-sys-color-surface-container-lowest);
+  color: var(--md-sys-color-on-surface);
   font-size: var(--text-base);
   cursor: pointer;
-  transition: background 100ms ease, border-color 100ms ease, transform 80ms ease;
+  transition:
+    border-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out);
 }
 
-.btn:hover { background: var(--hover); }
-.btn:active { transform: scale(0.98); }
+/* 状态层：hover 8% / pressed 12%（同一层换色，不换底色） */
+.btn::after,
+.icon-btn::after,
+.chip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--md-sys-color-state-hover);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+.btn:hover::after,
+.icon-btn:hover::after,
+.chip:hover::after { opacity: 1; }
+.btn:active::after,
+.icon-btn:active::after,
+.chip:active::after {
+  background: var(--md-sys-color-state-pressed);
+  opacity: 1;
+}
 
 .btn-primary {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--on-primary);
+  background: var(--md-sys-color-primary);
+  border-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
 }
-
-.btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
 
 .btn-ghost {
   border: 0;
   background: transparent;
-  color: var(--text-2);
+  color: var(--md-sys-color-on-surface-variant);
 }
-.btn-ghost:hover { background: var(--hover); color: var(--text-1); }
-/* 危险动作按钮（删除收藏夹等）：红字红描边，hover 红底 */
-.btn-danger {
-  border-color: color-mix(in srgb, var(--red) 40%, transparent);
-  color: var(--red);
-}
-.btn-danger:hover { background: var(--red-soft); border-color: var(--red); color: var(--red); }
+.btn-ghost:hover { color: var(--md-sys-color-on-surface); }
 
-.btn[disabled] { opacity: 0.4; cursor: default; pointer-events: none; }
+/* 危险动作按钮（删除收藏夹等）：红字红描边（状态层负责按压反馈） */
+.btn-danger {
+  border-color: color-mix(in srgb, var(--md-sys-color-error) 40%, transparent);
+  color: var(--md-sys-color-error);
+}
+.btn-danger:hover { border-color: var(--md-sys-color-error); }
+
+/* 禁用：内容与容器统一 38%（此前 .btn 0.4 / .icon-btn 0.3 各写一套） */
+.btn[disabled],
+.icon-btn[disabled] {
+  opacity: var(--md-sys-state-opacity-disabled);
+  cursor: default;
+  pointer-events: none;
+}
+
+/* 焦点环：统一令牌环（此前 6 处各写 accent 描边，且全局那条动画 200ms 后会把环收掉） */
+.btn:focus-visible,
+.icon-btn:focus-visible,
+.chip:focus-visible,
+.row-click:focus-visible,
+.exthw-oj-head:focus-visible,
+.home-card-title:focus-visible,
+.home-entry-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--md-sys-focus-ring);
+}
 
 /* ---------- 表单 ---------- */
 
@@ -848,7 +892,6 @@
 }
 
 .exthw-oj-head:hover { background: var(--surface-2); }
-.exthw-oj-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 .exthw-oj-caret { flex: none; color: var(--text-3); }
 
@@ -933,7 +976,6 @@
 
 /* 可点击行 */
 .row-click { cursor: pointer; }
-.row-click:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--r-sm); }
 
 .row-caret { color: var(--text-3); flex: none; }
 
@@ -1339,11 +1381,7 @@
   cursor: pointer;
   transition: box-shadow 100ms ease, background 100ms ease;
 }
-.chips button.chip:hover { box-shadow: var(--shadow-1); }
-.chips button.chip:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
+
 
 /* 楼栋搜索下拉（filter-dd 变体）：搜索框 + 分组滚动列表 */
 .search-dd-search,
@@ -1525,15 +1563,11 @@
   white-space: nowrap;
 }
 
-.home-card-title:focus-visible,
-.home-entry-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-  border-radius: var(--r-sm);
-}
+
 
 /* 通用小图标按钮（折叠箭头 / 编辑 ↑↓←→） */
 .icon-btn {
+  position: relative; /* 状态层与涟漪的定位基准 */
   display: inline-grid;
   place-items: center;
   width: 26px;
@@ -1550,8 +1584,7 @@
 }
 
 .icon-btn:hover { background: var(--hover); color: var(--text-1); }
-.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.icon-btn[disabled] { opacity: 0.3; cursor: default; pointer-events: none; }
+
 
 /* 折叠箭头：展开朝下 / 收起朝右（旋转过渡） */
 .home-card-fold svg { transition: transform 140ms cubic-bezier(0.2, 0.7, 0.3, 1); transform: rotate(90deg); }
@@ -2578,12 +2611,8 @@ button, .btn, .icon-btn, .chip {
   min-height: 0;
 }
 
-/* 编辑工具：永远可点（边界无操作），按压给即时反馈 */
+/* 编辑工具：永远可点（边界无操作），按压反馈统一由状态层 + 涟漪承担（§3.5 B1） */
 .home-card-tools { position: relative; z-index: 2; }
-.icon-btn:active {
-  background: var(--surface-3, #ebeef2);
-}
-.btn:active { transform: translateY(1px); }
 /* 编辑态头部允许换行：窄卡标题长时工具行自己掉到第二行，永不溢出裁剪 */
 .home-card.is-editing .home-card-head { flex-wrap: wrap; row-gap: 4px; }
 

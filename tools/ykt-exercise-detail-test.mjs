@@ -148,6 +148,30 @@ const SNAPSHOT = {
         index: 3,
         content: { ProblemType: 2, TypeText: "多选题", Body: "<p>（脱敏）</p>", Options: [], score: 2 },
       },
+      {
+        // R24 fix ②（2026-09-23 实测快照）：拍图作答 —— content 为空、图片在 my_answer.pics[]
+        problem_id: 40204,
+        index: 4,
+        content: { ProblemType: 5, TypeText: "主观题", Body: "<p>（脱敏）</p>", AllowResults: ["pic"], score: 10 },
+        user: {
+          my_answer: {
+            content: "",
+            time: "0",
+            oSubject: { attachments: { filelist: [] } },
+            pics: [
+              { status: "success", name: "a.jpg", url: "blob:https://pro.yuketang.cn/xxxx", fileUrl: "https://qn1-next.xuetangonline.com/17896291161802.jpg", size: 602285 },
+              { status: "success", name: "b.jpg", url: "blob:https://pro.yuketang.cn/yyyy", fileUrl: "https://qn1-next.xuetangonline.com/17896291212185.jpg", size: 423885 },
+            ],
+          },
+          remark: "已批",
+          comment: [],
+          my_score: "8.00",
+          status: 4,
+          submit_time: "2026-09-17 15:15",
+          my_count: 1,
+          count: 5,
+        },
+      },
     ],
   },
 };
@@ -168,7 +192,7 @@ console.log("\n[1] 快照归一化（exercise 级 + 单题字段映射）");
   eq(d.lateAllowed, true, "is_allowed_late_submission → lateAllowed");
   eq(d.answerCount, 2, "answer_count → answerCount");
   eq(d.fontUrl, "https://fe-static-yuketang.yuketang.cn/fe_font/product/exam_font_0123abcd5678.ttf", "font → fontUrl");
-  eq(d.problems.length, 3, "problems 数量");
+  eq(d.problems.length, 4, "problems 数量");
 
   const p1 = d.problems[0];
   eq(p1.problemId, "40201", "problem_id String 化");
@@ -220,6 +244,19 @@ console.log("\n[1] 快照归一化（exercise 级 + 单题字段映射）");
   deepEq(p3.allowResults, [], "缺 AllowResults → []");
   eq(p3.maxRetry, 0, "缺 content.max_retry → 0（保守）");
   deepEq(p3.options, [], "Options: [] → 空数组透传");
+
+  // R24 fix ②（2026-09-23 实测快照）：拍图作答 —— content 空串、图片在 my_answer.pics[]
+  const p4 = d.problems[3];
+  eq(p4.myStatus, "graded", "pics 作答 + status 4 → graded");
+  eq(p4.submitTime, "2026-09-17 15:15", "submit_time 字符串形态 → submitTime（取前 16 位）");
+  eq(p4.usedCount, 1, "my_count=1 → usedCount 1");
+  ok(
+    p4.myAnswerHtml !== undefined && (p4.myAnswerHtml.match(/<img /g) ?? []).length === 2,
+    "my_answer.pics[] → 2 张 <img> 追加进 myAnswerHtml（content 为空也能显示我的提交）",
+  );
+  ok(p4.myAnswerHtml.includes('src="https://qn1-next.xuetangonline.com/17896291161802.jpg"'), "img src 取 fileUrl（CDN 直链）");
+  ok(!p4.myAnswerHtml.includes("blob:"), "pics[].url 的 blob: 临时引用不入 HTML");
+  ok(p4.myAnswerHtml.includes('referrerpolicy="no-referrer"'), "img 带 referrerpolicy=no-referrer（CDN Referer 白名单口径）");
 }
 
 /* ───────────────── [2] 请求形状与 uvId 回落 ───────────────── */

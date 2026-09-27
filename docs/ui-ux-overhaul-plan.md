@@ -276,7 +276,7 @@
 
 | 批次 | 范围 | MD3 模式 | 验收点 |
 |------|------|----------|--------|
-| B1 | 按钮/pill/FAB + 新增 `Ripple.tsx` | filled/tonal/text；统一涟漪；`prefers-reduced-motion` 降级 | 全应用按钮一致 |
+| B1 ✅ | 按钮/pill/FAB + 新增 `Ripple.tsx`（2026-02 落地：状态层 8%/12%、焦点环令牌化、禁用 38%、触摸涟漪） | filled/tonal/text；统一涟漪；`prefers-reduced-motion` 降级 | 全应用按钮一致 |
 | B2 | 卡片/列表项 | elevated/filled 卡片、`--shape-l` 圆角、分层底色去描边 | 「今日」卡流成立 |
 | B3 | 输入/表单/modal | outlined field；移动端 modal → bottom sheet | 登录/设置表单统一 |
 | B4 | 导航/tab/底栏 | 移动端 navigation bar + active indicator 胶囊；**PC 侧边栏升级为 navigation rail（§2.8.1）**；顶部大标题 | 新 IA 壳双端成型 |
@@ -310,7 +310,7 @@
 2. [ ] **4pt 间距网格**：全部 padding/margin/gap 只允许 4 的倍数（4/8/12/16/24/32），lint 可查（扩展 `ui-copy-lint` 或新增样式扫描脚本）；
 3. [ ] **分层规则**：明确"色块优先、描边辅助、阴影克制"三原则——页面底/分区/卡片三级 surface 表达层级；描边仅用于输入类；阴影仅 `--elev-1..2`，同屏 ≤ 2 级；
 4. [ ] **用色规则**：彩色 surface 只用于「今日」卡片与功能分组头；正文区保持中性 surface；强调色每屏 ≤ 1 处主 CTA；
-5. [ ] **状态层规范**（"高级感"核心细节）：hover/pressed/focused/disabled 统一 MD3 state layer 叠色（8%/12%/8%/38%），在 `Ripple.tsx` 基础上封装 `Interactive` 基础组件，按钮/列表项/卡片统一接入，禁止各写各的 hover 效果；
+5. [x] **状态层规范**（"高级感"核心细节）：hover/pressed/focused/disabled 统一 MD3 state layer 叠色（8%/12%/8%/38%），在 `Ripple.tsx` 基础上封装 `Interactive` 基础组件，按钮/列表项/卡片统一接入，禁止各写各的 hover 效果；
 6. [ ] **图标规范**：`Icons.tsx` 已是统一的内联线性图标集（1.6px 描边、墨色）——**保留自绘体系**，本项只做两件事：① 令牌化描边粗细与圆角（跟随形状/字阶令牌）；② 盘点缺口的图标按同一风格补齐，不引入 Material Symbols 等外部图标集；
 7. [ ] **插画规范**：§3.7 的 greeting 插画扩展出一套风格规则（线条粗细、配色限令牌色、场景清单），后续加图照章办理，避免风格漂移；
 8. [ ] **风格走查机制**：M3 每批次 PR 验收时对照本手册逐条过；发布前做一次全应用"细节走查日"（焦点态、空态、加载态、错误态、极端长文本、单字符文案六态逐页过）。
