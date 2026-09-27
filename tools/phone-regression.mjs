@@ -152,9 +152,14 @@ for (const label of navs) {
   const m = await js(
     "{ mounted: !!document.querySelector('.page-anim'), overflow: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - innerWidth, scrollers: [...document.querySelectorAll('*')].filter(e => e.scrollWidth > e.clientWidth + 2 && ['auto','scroll'].includes(getComputedStyle(e).overflowX)).length, errs: (window.__regErrs || []).slice(-2), txt: (document.body.innerText || '').replace(/\\s+/g, ' ').trim().length }",
   );
+  /* 诊断：上下文身份 + 越界元素（曾经整个走查跑在"分离文档"里，读数全是假的） */
+  const ctx = await evaluate("[location.href.slice(0,40), top === window ? 'self' : 'iframe', 'iw=' + innerWidth, 'ifr=' + document.querySelectorAll('iframe').length, document.title.slice(0,18)].join(' | ')");
+  const overAt = m.overflow > 2
+    ? await evaluate("(() => { const iw = innerWidth; let bad = null; for (const e of document.querySelectorAll('body *')) { const r = e.getBoundingClientRect(); if (r.width > 0 && r.right > iw + 0.5 && (!bad || r.right > bad[1].right)) bad = [e, r]; } return bad ? bad[0].tagName.toLowerCase() + '.' + String(bad[0].className || '').slice(0,40) + ' right=' + Math.round(bad[1].right) : ''; })()")
+    : "";
   rows.push({ label, ...m });
   hard(m.mounted, label + "：页面没挂载（.page-anim 缺失）");
-  hard(m.overflow <= 2, label + "：横向溢出 " + m.overflow + "px（页面比视口宽）");
+  hard(m.overflow <= 2, label + "：横向溢出 " + m.overflow + "px（页面比视口宽）" + (overAt ? " ← " + overAt : "") + " | " + ctx);
   /* 会话过期是**环境态**不是 UI 回归：应用会自己弹重新登录，把它当失败会让回归在"这台手机
      放了两天"之后永远红。其余异常仍然硬失败。 */
   const envErrs = m.errs.filter((e) => /AuthRequiredError|会话已失效/.test(e));
