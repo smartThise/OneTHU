@@ -5750,3 +5750,17 @@ section > .svc-label { margin-top: 14px; }
 }
 
 /* 文件预览的 PC 大窗同样走组件内联样式（见 FilePreview.tsx panelStyleWide）。 */
+
+/* 座位分布图抓取失败：可见的报错 + 重试（不再静默整块消失） */
+.map-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--r-md);
+  background: var(--md-sys-color-surface-container, var(--surface-2));
+  color: var(--md-sys-color-on-surface-variant, var(--text-2));
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}

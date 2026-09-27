@@ -283,6 +283,10 @@
 | B5 | chip/开关/进度/骨架屏/空状态 | 对应规范 | 全局截图走查 |
 **B4 进度（2026-02）**：底栏 navigation bar + PC navigation drawer + 顶部大标题已落地（提交 `8d2bbe2` / `dbeae18`），护栏 `tools/nav-shell-test.mjs` 已进 guard（22 项）。
 余项：手机端实测待设备恢复（adb 掉线）；PC 侧栏观感待用户确认。PC 图标态折叠（72px）已有，可后续考虑 rail 展开/收起过渡动画。
+**本轮走查缺陷（用户报告）与处置**：
+- 导航：hover 底色与激活胶囊**圆角不一致** → `.nav-item` 基态圆角改 `corner-full`；3px 蓝竖条是**刻意设计**（曾被我误退役）→ 恢复并按胶囊调形（内缩 6px、`corner-full`、高度 16px 与 `useNavIndicator` 的 BAR 常量对齐）；「收起」按钮与「·就绪」徽标**重合** → `.sidebar-foot` 被压扁（缺 `flex: none`），改 flex 行 + 不收缩。
+- 图书馆**座位分布图消失**：`fetchImageAsDataUrl` 有 mime 守卫（会话墙返回 HTML 会抛错），而 `useAreaImage` 的 `.catch()` 把「登录过期」与「该区域本来没图(404)」**一起静默隐藏** → 改为按原因分流：404 静默隐藏，其余显式报错 + 重试（`.map-error`），把原因亮给用户。**若你看到的是登录过期，请重新登录后再看该页。**
+- 邮件右侧预览的滚动条仍是旧版：`sandbox="" + srcDoc` 的 iframe 是独立文档，父页面滚动条样式进不去 → 在 `srcDoc` 注入一份令牌化滚动条（含暗色）。
 
 **B3c 弹层退场相位（大部分已落地，真机复验通过）**：新增共用 hook apps/desktop/src/lib/useExitPhase.ts
 （幂等 closingRef 守卫、卸载清定时器、受控弹层传 open 重开复位、EXIT_MS 与 --dur-2 同源）。

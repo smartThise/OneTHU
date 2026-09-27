@@ -134,7 +134,25 @@ function Detail({ folder, uid, onBack }: { folder: string; uid: number; onBack: 
 body { font: 14px/1.65 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; margin: 0; padding: 14px; word-break: break-word; }
 img { max-width: 100%; height: auto; }
 a { color: #2f6df6; }
-@media (prefers-color-scheme: dark) { body { color: #e8e8ea; background: transparent; } a { color: #7ba2ff; } }
+/* 滚动条：iframe 是独立文档，父页面的 ::-webkit-scrollbar 进不来（用户报「预览滑动条还是旧版」）。
+   这里按 base.css §滚动条 的语言重写一份：10px 命中区 + 3px 透明边 → 视觉 4px 细拇指、透明轨道、
+   去两端箭头。颜色沿用本文件既有的硬编码方案（iframe 取不到父页面 CSS 变量）。 */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(47, 109, 246, 0.22);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(47, 109, 246, 0.34); }
+::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+@media (prefers-color-scheme: dark) {
+  body { color: #e8e8ea; background: transparent; }
+  a { color: #7ba2ff; }
+  ::-webkit-scrollbar-thumb { background: rgba(123, 162, 255, 0.24); }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(123, 162, 255, 0.36); }
+}
 </style></head><body>${body.html}</body></html>`;
   }, [body?.html]);
   return (

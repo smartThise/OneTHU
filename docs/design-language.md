@@ -190,6 +190,9 @@ margin-bottom: 24px;                       margin-bottom: 20px;
 
 
 **滚动条槽（PC 专属坑）**：`base.css` 给 `html` 预留 `scrollbar-gutter: stable` + `overflow-y: scroll`。Windows/WebView2 上 `::-webkit-scrollbar` 的 10px 是**占布局**的，切 tab 时内容高度变化会让滚动条出现/消失，**整页横移 10px**（用户报的「所有 tab 页切换时整页轻移、方向随切换」）。Android 是覆盖式滚动条，本就没有这个位移（真机实测 `clientWidth` 不随内容溢出变化）——所以这是 PC 专属缺陷，手机端验不出来。
+
+
+**独立文档（iframe）里的滚动条必须各自注入**：父页面的 `::-webkit-scrollbar` **进不去子文档** —— 邮件正文预览（`sandbox="" + srcDoc`）就是这么一直显示平台默认滚动条的（用户 2026-02 报「预览滑动条还是旧版」）。注入 `srcDoc` 时按 base.css 的语言重写一份（10px 命中区 + 3px 透明边 → 视觉 4px、透明轨道、去两端箭头）；子文档也**取不到父页面的 CSS 变量**，所以要用字面色值（或 `prefers-color-scheme` 分支）。护栏：`tools/scrollbar-test.mjs` 第 6 条。
 ### 3.2 输入/表单：描边保留，其余全令牌化
 
 输入类与卡片**相反**：卡片去描边，输入类**必须保留 1px 描边**（§3：描边属于输入语言）。统一的是：
