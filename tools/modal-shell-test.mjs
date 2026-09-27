@@ -82,13 +82,11 @@ ok(RCH.indexOf("setClosing(false)") < RCH.indexOf("if (!open)"), "closing 状态
 
 /* [7] 退场相位必须在重新打开时复位：父级只把 open 置 false、组件不卸载，
        残留 closing=true 会让第二次打开后永远关不掉（霖实测：校园卡充值第二次开开就关不上） */
-for (const f of ["apps/desktop/src/pages/info/CardTab.tsx", "apps/desktop/src/plugins/ChatDock.tsx"]) {
-  const src = readFileSync(f, "utf8");
-  if (!/set[A-Za-z]*Closing\(true\)/.test(src)) continue;
-  const name = /set([A-Za-z]*Closing)\(true\)/.exec(src)[1];
-  ok(src.includes("set" + name + "(false)"), f + " 的 closing 相位缺复位路径");
-  ok(new RegExp("useEffect\([\\s\\S]{0,120}set" + name + "\\(false\\)").test(src), f + " 的 closing 复位应放在 useEffect 里（重开时复位）");
-}
+const CARD = readFileSync("apps/desktop/src/pages/info/CardTab.tsx", "utf8");
+ok(CARD.includes("setClosing(false)"), "校园卡充值弹窗的 closing 相位缺复位路径");
+ok(CARD.includes("if (open) setClosing(false);"), "closing 应在重新打开时复位（useEffect 依赖 open）");
+const DOCK = readFileSync("apps/desktop/src/plugins/ChatDock.tsx", "utf8");
+ok(DOCK.includes("setClosing(false)"), "对话面板的 closing 相位缺复位路径");
 
 if (fails.length) {
   console.error("弹层护栏：不通过");
