@@ -3,7 +3,9 @@
  *
  * 布局：上「已安装」、下「主题市场」，共用顶部搜索（套用插件市场的匹配口径：名称/描述/作者/标签）。
  * 已安装的社区主题同时出现在两栏（市场栏显示「已安装」，不可重复安装）。
- * 骨架沿用 TabManageModal：portal + mask/panel，PC 右推面板、手机居中弹窗，同款退场动画。
+ * 骨架沿用 TabManageModal：portal + mask/panel，PC 右推面板、手机底部抽屉（B3b），同款退场动画。
+ * 高度纪律：面板自身 maxHeight 封顶，正文容器 flex:1 + min-height:0 才能内部滚动——
+ * 少了 min-height:0，列向 flex 子项默认 min-height:auto，内容会把面板撑出屏幕（用户实锤）。
  */
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -14,12 +16,12 @@ import { fetchEntryFromMarket, fetchRegistry, normalizeRepoUrl, type MarketEntry
 import { installedPlugins, subscribe, uninstallPlugin } from "../plugins/loader.js";
 import { confirmOk } from "../lib/confirm.js";
 
-const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
-const panelStyle: React.CSSProperties = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 460, maxHeight: "76vh", display: "flex", flexDirection: "column", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)" };
+const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 0 };
+const panelStyle: React.CSSProperties = { animation: "m-sheet-up 260ms var(--md-sys-motion-easing-emphasized-decelerate, ease-out) both", width: "100%", maxWidth: "100%", maxHeight: "92dvh", display: "flex", flexDirection: "column", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: "var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-large) 0 0", paddingBottom: "env(safe-area-inset-bottom)", boxShadow: "0 18px 50px rgba(0,0,0,.28)" };
 const maskOut: React.CSSProperties = { animation: "m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both" };
 const panelOut: React.CSSProperties = { animation: "m-pop-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both" };
-const maskStylePc: React.CSSProperties = { ...maskStyle, background: "rgba(0,0,0,.18)", justifyContent: "flex-end", padding: 0 };
-const panelStylePc: React.CSSProperties = { ...panelStyle, animation: "m-slide-right var(--dur-3) var(--ease-ios) both", width: "min(460px, 44vw)", maxWidth: "none", maxHeight: "none", height: "100%", borderRadius: 0, borderLeft: "1px solid var(--border, #e5e7eb)", boxShadow: "-18px 0 48px rgba(0,0,0,.24)" };
+const maskStylePc: React.CSSProperties = { ...maskStyle, background: "rgba(0,0,0,.18)", alignItems: "center", justifyContent: "flex-end", padding: 0 };
+const panelStylePc: React.CSSProperties = { ...panelStyle, animation: "m-slide-right var(--dur-3) var(--ease-ios) both", width: "min(460px, 44vw)", maxWidth: "none", maxHeight: "none", height: "100%", borderRadius: 0, paddingBottom: 0, borderLeft: "1px solid var(--border, #e5e7eb)", boxShadow: "-18px 0 48px rgba(0,0,0,.24)" };
 
 /** 主题色卡：从 vars 抽 accent / accent-soft / bg 三色出预览（缺省回退令牌默认）。
  *  只显示名字看不出样式，所以每一行都带这块色卡。 */
@@ -145,13 +147,13 @@ export function ThemePickerModal({ open, onClose }: { open: boolean; onClose: ()
         style={closing ? { ...(expanded ? panelStylePc : panelStyle), ...panelOut } : expanded ? panelStylePc : panelStyle}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border, #eee)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border, #eee)", flex: "none" }}>
           <b>更改主题</b>
           <span style={{ flex: 1 }} />
           <button className="btn" onClick={requestClose}>✕</button>
         </div>
 
-        <div style={{ padding: "10px 16px 16px", overflowY: "auto" }}>
+        <div style={{ padding: "10px 16px 16px", overflowY: "auto", flex: 1, minHeight: 0 }}>
           <input
             className="input"
             style={{ width: "100%" }}

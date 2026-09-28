@@ -3236,6 +3236,16 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
     border-radius: var(--r-pill);
     background: var(--md-sys-color-outline-variant);
   }
+  /* 主题二级菜单（设置 → 外观 →「更改主题」）：同款底部抽屉把手 */
+  .theme-pick-panel::before {
+    content: "";
+    flex: none;
+    width: 32px;
+    height: 4px;
+    margin: 8px auto 0;
+    border-radius: var(--r-pill);
+    background: var(--md-sys-color-outline-variant);
+  }
 }
 
 /* 旧通用提示 toast（第三方 JS 插件可能引用） */
