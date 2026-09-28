@@ -34,7 +34,15 @@ for (const k of keys) {
 // ② 标准模式 ≤7 项
 const order = settings.match(/const SETTINGS_TAB_ORDER = \[([^\]]+)\]/)?.[1] ?? "";
 const tabOrder = order.split(",").map((s) => s.trim().replace(/"/g, "")).filter(Boolean);
-assert.ok(tabOrder.length <= 7, "标准模式页签必须 ≤7 项，现在 " + tabOrder.length + " 项：" + tabOrder.join("/"));
+const advNames = (settings.match(/const ADVANCED_TABS = \[([^\]]+)\]/)?.[1] ?? "")
+  .split(",")
+  .map((s) => s.trim().replace(/"/g, ""))
+  .filter(Boolean);
+const stdTabs = tabOrder.filter((t) => !advNames.includes(t));
+assert.ok(
+  stdTabs.length <= 7,
+  "标准模式页签必须 ≤7 项（高级页签不计），现在 " + stdTabs.length + " 项：" + stdTabs.join("/"),
+);
 
 // ③ 高级页签 + 过滤 + 回退
 const advTabs = settings.match(/const ADVANCED_TABS = \[([^\]]+)\]/)?.[1] ?? "";

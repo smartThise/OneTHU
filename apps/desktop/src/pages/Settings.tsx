@@ -17,6 +17,7 @@ import { setDayNightTheme, setFollowSystem, useThemes } from "../state/theme.js"
 import { consumeSettingsTabRequest, setAdvancedMode, useAdvancedMode } from "../state/settingsMode.js";
 import { ThemePickerModal } from "../components/ThemePickerModal.js";
 import { PluginsPage } from "./Plugins.js";
+import { HelpSection } from "../components/HelpSection.js";
 import { parseFavs, resetFavs } from "../state/favorites.js";
 import { confirmOk } from "../lib/confirm.js";
 import { useApp } from "../state/context.js";
@@ -67,6 +68,7 @@ const SETTINGS_GROUPS: Array<{ label: string; sections: string[] }> = [
   { label: "数据与同步", sections: ["云同步", "外部作业源"] },
   { label: "下载与存储", sections: ["下载"] },
   { label: "插件", sections: ["插件"] },
+  { label: "帮助", sections: ["帮助"] },
   { label: "关于", sections: ["关于"] },
 ];
 
@@ -88,9 +90,9 @@ const SETTINGS_TAB_OF: Record<string, string> = {
   云同步: "数据与同步", 外部作业源: "数据与同步",
   首页布局: "外观与布局", 收藏夹: "外观与布局", 外观: "外观与布局",
   通知: "通知与提醒", 桌面小组件: "通知与提醒",
-  插件: "插件", 下载: "下载与存储",
+  插件: "插件", 下载: "下载与存储", 帮助: "帮助",
 };
-const SETTINGS_TAB_ORDER = ["账号", "通知与提醒", "外观与布局", "数据与同步", "下载与存储", "插件", "关于"];
+const SETTINGS_TAB_ORDER = ["账号", "通知与提醒", "外观与布局", "数据与同步", "下载与存储", "帮助", "插件", "关于"];
 
 /** 只在高级模式出现的页签（§4.4：标准模式 ≤7 项，插件系统属进阶） */
 const ADVANCED_TABS = ["插件"];
@@ -238,6 +240,11 @@ export function SettingsPage() {
             </button>
           ))}
       </SegmentedOverflow>
+
+      <SectionHead title="帮助" />
+      <Card>
+        <HelpSection />
+      </Card>
 
       <SectionHead title="关于" />
       <Card>

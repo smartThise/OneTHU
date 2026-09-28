@@ -5870,3 +5870,11 @@ section > .svc-label { margin-top: 14px; }
   font-size: var(--text-xs);
   line-height: 1.5;
 }
+
+
+/* 首页一次性引导（§4.6）：给被指的目标加一圈高亮，卡片本身样式在组件里 */
+.coach-target {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 3px;
+  border-radius: var(--r-md);
+}

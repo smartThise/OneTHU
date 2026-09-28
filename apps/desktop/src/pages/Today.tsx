@@ -15,6 +15,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Card, Empty, ErrorNote, PageHead } from "../components/Layout.js";
+import { HomeCoachMarks } from "../components/HomeCoachMarks.js";
 import { IconCalendar, IconChevron, IconFlag, IconRefresh, IconSchedule, IconTrace } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
 import type { LearnNav, Page } from "../state/app.js";
@@ -162,7 +163,7 @@ function HomeCard({
   /* shellFree（今日概览条）：卡体即整卡；标题行常显（与编辑态一致），工具行仅编辑时出现 */
   if (def.shellFree && def.kind === "bespoke") {
     return (
-      <section className={cls}>
+      <section className={cls} data-card={def.id}>
         {
           <div className="home-card-head">
             <span className="home-card-title" style={{ cursor: "default" }}>
@@ -200,7 +201,7 @@ function HomeCard({
   }
 
   return (
-    <section className={cls}>
+    <section className={cls} data-card={def.id}>
       <div className="home-card-head">
         {def.kind === "entry" ? (
           <button
@@ -223,6 +224,7 @@ function HomeCard({
             type="button"
             className="home-card-title"
             onClick={() => onToggle(def.id)}
+            data-coach="home-collapse"
             aria-expanded={!collapsed}
             title={collapsed ? "展开" : "折叠"}
           >
@@ -265,7 +267,8 @@ function HomeCard({
           type="button"
           className="icon-btn home-card-fold"
           aria-label={collapsed ? "展开" + def.title : "折叠" + def.title}
-          aria-expanded={!collapsed}
+          data-coach="home-collapse"
+            aria-expanded={!collapsed}
           title={collapsed ? "展开" : "折叠"}
           onClick={() => onToggle(def.id)}
         >
@@ -767,7 +770,7 @@ export function TodayPage() {
                 </button>
               </>
             ) : (
-              <button className="btn" onClick={() => setEditing(true)}>
+              <button className="btn" data-coach="home-edit" onClick={() => setEditing(true)}>
                 编辑
               </button>
             )}
@@ -775,6 +778,7 @@ export function TodayPage() {
         }
       />
 
+      <HomeCoachMarks />
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
 
       {/* 页面级问候（非卡片，§2.2）：时段问候 + 今日要事摘要 + 日程快捷入口。
