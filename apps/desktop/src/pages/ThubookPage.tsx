@@ -3,6 +3,7 @@ import { stripInlineColors } from "../lib/htmlTheme.js";
 import type { ReactNode } from "react";
 import { Card, PageHead } from "../components/Layout.js";
 import { universalFetch } from "../lib/transport.js";
+import { ErrorLine } from "../components/Details.js";
 
 /** THUbook（thubook.help，VuePress 2 预渲染静态站）内嵌阅读器。
  *  目录 = 抓各分组页预渲染侧边栏（带汉字标题，sitemap 只有拼音文件名）；
@@ -111,7 +112,7 @@ export default function ThubookPage(): ReactNode {
       try {
         const home = await universalFetch(`${BASE}/thubook/`);
         const homeText = await home.text();
-        if (!home.ok) throw new Error(`HTTP ${home.status}`);
+        if (!home.ok) throw new Error(`手册页暂时打不开，请稍后再试：HTTP ${home.status}`);
         const homeExt = extractSidebar(homeText);
         const top = homeExt.groups.length ? homeExt.groups : [{ label: "手册首页", path: "/thubook/", children: [] }];
         const cache: Map<string, { title: string; html: string }> = new Map();
@@ -170,7 +171,7 @@ export default function ThubookPage(): ReactNode {
     setErr("");
     try {
       const res = await universalFetch(`${BASE}${path}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error(`手册页暂时打不开，请稍后再试：HTTP ${res.status}`);
       const ext = extractMain(await res.text());
       CACHE.set(path, ext);
       setCurrent(path);
@@ -267,7 +268,9 @@ export default function ThubookPage(): ReactNode {
           </div>
         </Card>
         <Card style={{ overflowY: "auto", padding: "16px 22px" }}>
-          {err ? <div style={{ color: "#e5484d", fontSize: 13, marginBottom: 10 }}>{err}</div> : null}
+          {err ? (
+            <ErrorLine text={err} style={{ color: "#e5484d", fontSize: 13, marginBottom: 10 }} />
+          ) : null}
           {loading ? <div style={{ fontSize: 12.5, color: "var(--text-3, #999)" }}>加载中…</div> : null}
           {/* 正文：站点预渲染 HTML 注入（script/icon/svg 已剔除，图片补全域名+限高） */}
           <div className="thubook-body" ref={bodyRef} dangerouslySetInnerHTML={{ __html: page?.html ?? "" }} />

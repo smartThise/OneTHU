@@ -58,6 +58,7 @@ import {
 } from "../state/exthw.js";
 import { buildYktCookieExportJson, parseYktCookieExportJson, SOURCE_CATEGORY_NAMES, SOURCE_NAMES } from "@onethu/core";
 import type { ExtHwCreds, ExtHwSourceId, TuojSourceId } from "@onethu/core";
+import { ErrorLine } from "../components/Details.js";
 
 /** 设置分组（按"你要改什么"索引，而不是按功能罗列）——
  *  点一下即滚动到对应分节；分节标题保持原位，不重排大段 JSX（低风险）。 */
@@ -295,7 +296,7 @@ export function SettingsPage() {
               <b>删除已保存的登录信息或修改密码，可能导致 OneTHU 退出登录</b>，需重新登录一次。
             </div>
             {eidMsg ? (
-              <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }}>{eidMsg}</div>
+              <ErrorLine text={eidMsg} style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }} />
             ) : null}
           </div>
           <button
@@ -331,7 +332,7 @@ export function SettingsPage() {
               <div className="setting-title">日程云同步 · 已连接</div>
               <div className="setting-desc">
                 {cloud.email} · 通过清华邮箱日历（CalDAV）多设备同步日程；在「日程」页查看与编辑。
-                {calMsg ? <div style={{ marginTop: 6, color: "var(--text-2)" }}>{calMsg}</div> : null}
+                {calMsg ? <ErrorLine text={calMsg} style={{ marginTop: 6, color: "var(--text-2)" }} /> : null}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -412,7 +413,7 @@ export function SettingsPage() {
                   {calBusy ? "连接中…" : "保存并验证"}
                 </button>
               </div>
-              {calMsg ? <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }}>{calMsg}</div> : null}
+              {calMsg ? <ErrorLine text={calMsg} style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }} /> : null}
             </div>
           </div>
         )}
@@ -436,7 +437,7 @@ export function SettingsPage() {
                 {syscal.lastError ? (
                   <div style={{ marginTop: 6, color: "var(--red, #c04848)" }}>最近一次同步失败：{syscal.lastError}</div>
                 ) : null}
-                {sysMsg ? <div style={{ marginTop: 6, color: "var(--text-2)" }}>{sysMsg}</div> : null}
+                {sysMsg ? <ErrorLine text={sysMsg} style={{ marginTop: 6, color: "var(--text-2)" }} /> : null}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -493,7 +494,7 @@ export function SettingsPage() {
               <div className="setting-title">系统日历同步</div>
               <div className="setting-desc">
                 把课表与日程写入系统日历里的专属日历「OneTHU 日程」（不影响你已有的日历）。开启后自动保持最新：添加、修改、删除日程或刷新课表都会同步更新，课程与考试带提前 15 分钟提醒。无需配置任何账户，一键开启。
-                {sysMsg ? <div style={{ marginTop: 6, color: "var(--text-2)" }}>{sysMsg}</div> : null}
+                {sysMsg ? <ErrorLine text={sysMsg} style={{ marginTop: 6, color: "var(--text-2)" }} /> : null}
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                 <button

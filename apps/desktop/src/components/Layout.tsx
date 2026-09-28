@@ -14,6 +14,7 @@ import { pluginTabsSnapshot, subscribePluginTabs } from "../plugins/tabs.js";
 import { showToast } from "../state/toast.js";
 import { checkUpdateSilently } from "../lib/update.js";
 import { useBottomNavPill, useNavIndicator, useSegPill } from "../lib/motion.js";
+import { ErrorLine } from "./Details.js";
 
 /** 开发者面板（仅 dev 构建）：右上角 commit 徽标 + 前端日志/诊断/导出。
  *  正式版里 __ONETHU_DEV__ 折叠为 false → 这句动态 import 被 rollup 删除，
@@ -719,7 +720,7 @@ export function Empty({
 export function ErrorNote({ text, onRetry }: { text: string; onRetry?: () => void }) {
   return (
     <div className="error-note">
-      <span>{text}</span>
+      <ErrorLine text={text} />
       {onRetry ? (
         <button className="btn btn-ghost" onClick={onRetry}>
           重试

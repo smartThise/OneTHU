@@ -5878,3 +5878,38 @@ section > .svc-label { margin-top: 14px; }
   outline-offset: 3px;
   border-radius: var(--r-md);
 }
+
+/* 技术细节折叠区（§4.5）：正文说人话，状态码/原始报错折进「详情」。原生 details，键盘可用。 */
+.tech-details {
+  margin-top: 4px;
+  font-size: var(--text-xs, 12px);
+}
+.tech-details > summary {
+  cursor: pointer;
+  color: var(--text-3, #8a8a8a);
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.tech-details > summary::before {
+  content: "▸";
+}
+.tech-details[open] > summary::before {
+  content: "▾";
+}
+.tech-details-body {
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: var(--r-sm, 6px);
+  background: var(--surface-2, rgba(127, 127, 127, 0.08));
+  font-family: var(--font-mono, ui-monospace, monospace);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+}
+.error-line {
+  display: block;
+  min-width: 0;
+}
