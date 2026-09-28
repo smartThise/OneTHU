@@ -1730,8 +1730,8 @@ function AppearanceSection(): ReactNode {
         <div>
           <div className="setting-title">主题</div>
           <div className="setting-desc">
-            当前：${themes.find((th) => (snap.activeId ?? "") === th.id)?.name ?? "基础令牌（默认外观）"}
-            ${dyn ? " · 系统取色生效中，换主题会关掉取色" : ""}
+            当前：{themes.find((th) => (snap.activeId ?? "") === th.id)?.name ?? "基础令牌（默认外观）"}
+            {dyn ? " · 系统取色生效中，换主题会关掉取色" : ""}
           </div>
         </div>
         <button className="btn" onClick={() => setPickerOpen(true)}>更改主题</button>
