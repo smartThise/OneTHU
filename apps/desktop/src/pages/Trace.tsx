@@ -332,8 +332,10 @@ export function TracePage(): React.ReactNode {
       if (m) setAnchor(pointOf(map, m));
     });
     map.on("click", () => {
+      /* 点空白处取消选中也是关闭入口：走退场相位，与浮卡 ✕ 走同一条路
+         （requestCardClose 是 useCallback 稳定的，地图初始化 effect 里引用安全） */
       selectedIdRef.current = null;
-      setSelectedId(null);
+      requestCardClose();
       setAnchor(null);
     });
     mapRef.current = map;
