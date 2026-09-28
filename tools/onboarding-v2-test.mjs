@@ -13,6 +13,8 @@ const v2 = readFileSync("apps/desktop/src/components/OnboardingTourV2.tsx", "utf
 const tour = readFileSync("apps/desktop/src/components/OnboardingTour.tsx", "utf8");
 const state = readFileSync("apps/desktop/src/state/onboarding.ts", "utf8");
 const settings = readFileSync("apps/desktop/src/pages/Settings.tsx", "utf8");
+const washer = readFileSync("apps/desktop/src/pages/info/WasherTab.tsx", "utf8");
+const pref = readFileSync("apps/desktop/src/state/washerPref.ts", "utf8");
 
 // ① 只问三件"此刻有答案"的事
 assert.ok(/const ASKS = 3;/.test(v2), "三问的条数要写死成常量（ASKS = 3）");
@@ -26,10 +28,26 @@ assert.ok(/markOnboardedV2\(\)/.test(v2) && /navigate\("today"\)/.test(v2), "完
 
 const skipBlock = v2.match(/<button className="btn" onClick=\{\(\) => setStep\(\(s\) => s \+ 1\)\}>[\s\S]{0,40}跳过此步/)?.[0] ?? "";
 assert.ok(skipBlock !== "", "没找到「跳过此步」的处理逻辑");
-assert.ok(!/setDormBuilding/.test(skipBlock), "跳过此步不该把没确认的楼栋存下来");
+assert.ok(!/setWasherChoice/.test(skipBlock), "跳过此步不该把没确认的楼栋写进去");
 assert.ok(
-  /className="btn btn-primary"[\s\S]{0,120}if \(step === 2\) setDormBuilding\(dorm\);/.test(v2),
-  "「下一步」才保存在这一问填的内容",
+  /className="btn btn-primary"[\s\S]{0,220}if \(step === 2\) \{/.test(v2) && /setWasherChoice\(\{/.test(v2),
+  "「下一步」才写入楼栋",
+);
+
+// ②b 楼栋这一问必须"有人用"：下拉选择 + 与洗衣机页共用同一份记忆
+assert.ok(/<SearchSelect/.test(v2), "楼栋要用下拉（可搜索），不是自由填写");
+assert.ok(
+  !/<input[\s\S]{0,200}(楼|公寓)/.test(v2),
+  "楼栋这一问不该出现自由填写输入框——选一个不存在的楼栋，洗衣机页认不出来",
+);
+assert.ok(/setWasherChoice/.test(v2), "首启选完要写进洗衣机页读的那份记忆");
+assert.ok(
+  /getWasherChoice/.test(washer) && /setWasherChoice/.test(washer) && /washerPref\.js/.test(washer),
+  "洗衣机页必须读（进来自动落回）也写（手动改也记住）这份记忆，否则首启那一问等于白问",
+);
+assert.ok(
+  /const KEY = "onethu\.life\.washerBuilding"/.test(pref),
+  "楼栋记忆的键只能有一处定义（两边各写一份就又会分叉）",
 );
 
 // ③ 灰度：默认 v1，标记独立，分发器到位
