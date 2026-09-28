@@ -1001,7 +1001,7 @@
   font-size: var(--text-sm);
 }
 .empty-icon { color: var(--md-sys-color-outline); }
-.empty-title { color: var(--md-sys-color-on-surface-variant); }
+.empty-title { font-size: var(--text-md); font-weight: 600; color: var(--md-sys-color-on-surface); }
 .empty-hint { color: var(--md-sys-color-outline); font-size: var(--text-xs); line-height: 18px; }
 .empty-action { margin-top: 4px; }
 
@@ -5347,7 +5347,8 @@ section > .svc-label { margin-top: 14px; }
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 14px;
+  height: 36px;
+  padding: 0 16px;
   border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: var(--r-pill);
   background: var(--md-sys-color-surface-container-lowest);

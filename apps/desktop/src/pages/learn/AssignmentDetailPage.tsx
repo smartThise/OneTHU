@@ -23,7 +23,7 @@ type DescState = "idle" | "skip" | "loading" | "ok" | "error";
 
 export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdProp }: { courseId?: string; itemId?: string } = {}) {
   useLearnNavSemester();
-  const { navParams } = useApp();
+  const { navParams, navigate } = useApp();
 
   const { data, state, error, reload } = useLearnData();
   const [desc, setDesc] = useState("");
@@ -144,7 +144,10 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
         ) : state === "error" ? (
           <ErrorNote text={error ?? ""} onRetry={() => void reload()} />
         ) : (
-          <Card><Empty text="未找到该作业，可能数据已刷新，请返回列表重试。" /></Card>
+          <Card><Empty
+            text="未找到该作业，可能数据已刷新，请返回列表重试。"
+            action={<button className="btn btn-ghost" onClick={() => navigate("learn")}>回网络学堂</button>}
+          /></Card>
         )}
       </>
     );

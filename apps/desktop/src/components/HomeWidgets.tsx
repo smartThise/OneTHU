@@ -174,7 +174,10 @@ export function HomeworkRows({
   if (rows.length === 0) {
     return (
       <Card>
-        <Empty text="没有未提交的作业，享受今天吧。" />
+        <Empty
+          text="没有未提交的作业，享受今天吧。"
+          action={<button className="btn btn-ghost" onClick={() => navigate("tasks")}>去待办看看</button>}
+        />
       </Card>
     );
   }
@@ -231,7 +234,10 @@ export function NoticeRows({ items, navigate }: { items: CampusDataT["notificati
   return (
     <Card className="list">
       {items.length === 0 ? (
-        <Empty text="暂无通知。" />
+        <Empty
+          text="暂时没有新通知。"
+          action={<button className="btn btn-ghost" onClick={() => navigate("learn")}>去网络学堂</button>}
+        />
       ) : (
         items.slice(0, 3).map((n, i) => (
           <RowClick key={i} onClick={() => navigate("learn-notice-detail", { courseId: n.courseId, itemId: n.id, from: "today" })}>
@@ -282,7 +288,10 @@ export function ClassRows({ events, navigate }: { events: ScheduleEntry[]; navig
   return (
     <Card className="list">
       {events.length === 0 ? (
-        <Empty text="今天没有课。" />
+        <Empty
+          text="今天没有课。"
+          action={<button className="btn btn-ghost" onClick={() => navigate("schedule")}>看本周课表</button>}
+        />
       ) : (
         events.map((s, i) => (
           <RowClick key={(s.date ?? "d") + "-" + i + "-" + s.courseName} style={{ animationDelay: i * 35 + "ms" }} onClick={() => navigate("schedule")}>

@@ -131,7 +131,11 @@ export function InfoPage() {
       </SegmentedOverflow>
 
       {effTab === null ? (
-        <Empty text="所有栏目已隐藏，点击右上「管理栏目」恢复。" />
+        <Empty
+          text="所有栏目都被藏起来了。"
+          hint="点下面的按钮可以把它们叫回来。"
+          action={<button className="btn btn-primary" onClick={() => setManageOpen(true)}>管理栏目</button>}
+        />
       ) : (
         <>
           <div hidden={effTab !== "report"} className={effTab === "report" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("report") ? <ReportTab /> : null}</div>

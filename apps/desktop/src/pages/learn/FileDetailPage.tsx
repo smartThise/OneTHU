@@ -16,7 +16,7 @@ import { LEARN_FILE_DOWNLOAD } from "@onethu/core";
 
 export function FileDetailPage() {
   useLearnNavSemester();
-  const { navParams } = useApp();
+  const { navParams, navigate } = useApp();
   const { data, state, error, reload } = useLearnData();
   // R23：下载提示携带落盘路径，右侧挂「打开文件 / 打开目录」
   const [hint, setHint] = useState<{ text: string; path?: string } | null>(null);
@@ -55,7 +55,10 @@ export function FileDetailPage() {
         ) : state === "error" ? (
           <ErrorNote text={error ?? ""} onRetry={() => void reload()} />
         ) : (
-          <Card><Empty text="未找到该文件，可能数据已刷新，请返回列表重试。" /></Card>
+          <Card><Empty
+            text="未找到该文件，可能数据已刷新，请返回列表重试。"
+            action={<button className="btn btn-ghost" onClick={() => navigate("learn")}>回网络学堂</button>}
+          /></Card>
         )}
       </>
     );

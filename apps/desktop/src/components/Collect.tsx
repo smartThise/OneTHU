@@ -243,7 +243,10 @@ export function AtomPickerModal({ onPick, onClose, title = "添加到收藏夹",
               支持搜索：全部功能页面与今日组件；本机已见过的实体（课程、作业、文件、通知、新闻、洗衣机楼栋、教学楼、体育场馆、研讨间类型、图书馆）——先打开过对应页面，具体实体才会进入搜索。
             </div>
           ) : results.length === 0 ? (
-            <Empty text="没有匹配的原子——试试更短的关键词，或先去对应页面打开一次。" />
+            <Empty
+              text="没有匹配的原子——试试更短的关键词，或先去对应页面打开一次。"
+              action={<button className="btn btn-ghost" onClick={() => setQ("")}>清空关键词</button>}
+            />
           ) : (
             results.map((h) => {
               const Icon = h.icon;

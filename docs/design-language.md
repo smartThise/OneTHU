@@ -273,11 +273,12 @@ EXIT_MS 与 --dur-2（short-4 = 200ms）同源。关闭入口一个都不能漏�
 
 ### 3.7 进度、骨架屏、空状态
 
-- **进度**：`.thos-progress-bar` 与 `.cloud-quota-bar` 原是两条配方（5px/`--surface-3` 与 4px/`--border-soft`），现统一为 4px + `var(--r-pill)` + `surface-container-high` 轨道 + `--md-sys-color-primary` 填充。
-- **骨架屏**：曾经有**两条互相打架的 `.skeleton` 规则**（一条只给底色，另一条又给 10px 高度 + 渐变 + `cloud-skeleton`），现在合并成一条：底色 `var(--skeleton)`，流光单独一层 `::after` 且色值走 `var(--skeleton-shine)`（暗底上一道刺眼白光就是当年漏掉这条的教训）。
-- **空状态**：`.empty` 改为纵向 flex + 8px 间距 + 令牌化文案色，`Empty` 组件新增可选 `icon` / `hint` / `action` 三个槽位 —— 旧调用 `<Empty text="..." />` 一字不改仍然成立。
+**空状态配方**：口语说明 + 行动按钮（图标可选；插画环节 2026-02 决定跳过）。
 
-以上由 `tools/controls-test.mjs` 一并钉住。
+- 容器 `.empty` 是纵向 flex、gap 8px、padding 32px 16px；标题 `.empty-title` 用 `--text-md` + 600 字重；
+- 文案**说人话**："暂时没有新通知。" 好过 "暂无数据"；出现内部键名或工程词会被 `ui-copy-lint` 拦下；
+- **能给出下一步的都要给按钮**：主行动用 `.btn.btn-primary`，次要/跳转用 `.btn.btn-ghost`；目前 8 处空状态各有按钮（通知→去网络学堂、今天没课→看本周课表、作业→去待办看看、信息页栏目全隐藏→管理栏目、收藏搜索无匹配→清空关键词、三个详情页"未找到"→回网络学堂、邮箱待配置→去设置）；
+- 要不要图标看场景：整页空白值得给，卡片内的小空态给文字就够。
 
 ### 3.8 PC 分端内容布局（指向 §2.8.2）
 
