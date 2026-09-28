@@ -22,12 +22,15 @@ function files(dir, out = []) {
   return out;
 }
 
-/* 逐行扫描，报出第一个不平衡的位置，便于直接跳到出错行 */
+/* 逐行扫描：既查括号配平，也查「规则被嵌进非 @ 规则」——后者正是少写一个 } 的典型后果，
+   即使括号总数凑巧配平（一处删、一处多）也能抓出来。 */
 function scan(file) {
   const raw = readFileSync(file, "utf8").split("\n");
   let depth = 0;
   let inComment = false;
   let openLine = 0;
+  let cur = "";
+  const stack = [];
   for (let n = 0; n < raw.length; n++) {
     const line = raw[n];
     for (let i = 0; i < line.length; i++) {
@@ -35,9 +38,27 @@ function scan(file) {
       if (!inComment && two === "/*") { inComment = true; i++; continue; }
       if (inComment && two === "*/") { inComment = false; i++; continue; }
       if (inComment) continue;
-      if (line[i] === "{") { if (depth === 0) openLine = n + 1; depth++; }
-      else if (line[i] === "}") { depth--; if (depth < 0) return { bad: "多了一个 }", line: n + 1, depth }; }
+      if (line[i] === "{") {
+        const sel = cur.trim().split(/\s+/).slice(-6).join(" ");
+        if (depth > 0) {
+          const parent = stack[stack.length - 1] || "";
+          if (!parent.startsWith("@")) {
+            return { bad: "规则被嵌进了非 @ 规则「" + parent + "」里（多半是上面少了 }）", line: n + 1, depth };
+          }
+        } else openLine = n + 1;
+        stack.push(cur.trim());
+        depth++;
+        cur = "";
+      } else if (line[i] === "}") {
+        depth--;
+        stack.pop();
+        if (depth < 0) return { bad: "多了一个 }", line: n + 1, depth };
+        cur = "";
+      } else {
+        cur += line[i];
+      }
     }
+    cur += " ";
   }
   if (inComment) return { bad: "注释没有闭合 /*", line: raw.length, depth };
   if (depth !== 0) return { bad: "有 " + depth + " 个规则块没有闭合", line: openLine, depth };

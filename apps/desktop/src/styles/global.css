@@ -3471,7 +3471,7 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
 /* 触屏密度层 html.is-phone .btn { height:38px } 特异度更高会顶穿头部行高——
    头部图标钮在此定高压制（触屏顺带加大点击面 32×28） */
 html.is-phone .dock-head .dock-btn.dock-ico { height: 28px; width: 32px; }
-html.is-phone .dock-head .dock-btn:not(.dock-ico) { height: 28px; padding: 0 12px; 
+html.is-phone .dock-head .dock-btn:not(.dock-ico) { height: 28px; padding: 0 12px; }
 
 .dock-notice {
   padding: 8px 12px;
@@ -4524,8 +4524,6 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   pointer-events: none;
 }
 
-  to { background-position: -200% 0; }
-}
 
 /* ── 云盘搜索框美化（v2：套壳容器 + 内嵌无边框输入，对齐 .input 设计语言）── */
 .cloud-search {
