@@ -7,7 +7,8 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../state/context.js";
-import { MAIL_FOLDERS, useMail, useMailCounts, useMailBody, sendMail, mailSearch, type MailHead } from "../state/mail.js";
+import { MAIL_FOLDERS, useMail, useMailCounts, useMailBody, sendMail, mailSearch, type MailHead } from "../state/mail.js"
+import { ConnectGate } from "../components/ConnectGate.js";;
 import { IconMail, IconRefresh, IconPen, IconChevron } from "../components/Icons.js";
 import { CollectStar } from "../components/Collect.js";
 import { showToast } from "../state/toast.js";
@@ -207,6 +208,7 @@ export function MailPage(): React.ReactNode {
   const [results, setResults] = useState<MailHead[] | null>(null);
   const [searching, setSearching] = useState(false);
   const mail = useMail(folder);
+  const [bindOpen, setBindOpen] = useState(false); // §4.3：未配置时在原地绑，不必先去设置
   const unreadCounts = useMailCounts();
   const [segRef, pillRef] = useSegPill();
   /* 写信弹层：关闭时多挂 220ms 播完退场，而不是瞬间消失 */
@@ -237,8 +239,12 @@ export function MailPage(): React.ReactNode {
       <div className="card mail-guide">
         <IconMail style={{ width: 40, height: 40 }} />
         <h2>邮箱待配置</h2>
-        <p>邮箱与云日历共用同一个清华邮箱：先在「设置 → 云同步」配置。</p>
-        <button className="btn btn-primary" onClick={() => navigate("settings")}>去设置</button>
+        <p>邮箱与云日历共用同一个清华邮箱，绑一次两处都能用。</p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn btn-primary" onClick={() => setBindOpen(true)}>绑定邮箱</button>
+          <button className="btn" onClick={() => navigate("settings")}>去设置</button>
+        </div>
+        <ConnectGate need="mail" open={bindOpen} onClose={() => setBindOpen(false)} />
       </div>
     );
   }

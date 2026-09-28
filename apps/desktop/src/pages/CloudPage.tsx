@@ -16,6 +16,7 @@ import {
   seafileDownload, seafileShare, seafileUpload, seafileSearch, refreshDir,
   type SeafileEntry, type SeafileRepo,
 } from "../state/seafile.js";
+import { ConnectGate } from "../components/ConnectGate.js";
 import { IconRefresh, IconUpload, IconSearch, IconChevron, IconExternal } from "../components/Icons.js";
 import { showToast } from "../state/toast.js";
 
@@ -44,6 +45,7 @@ const TOKEN_PAGE = "https://cloud.tsinghua.edu.cn/profile/#get-auth-token";
 export default function CloudPage(): ReactNode {
   const { navParams } = useApp();
   const { configured, account, repos, busy, lastError } = useSeafile();
+  const [bindOpen, setBindOpen] = useState(false); // §4.3：口令输入统一走 ConnectGate
   const [repo, setRepo] = useState<SeafileRepo | null>(null);
   const [path, setPath] = useState("/");
   const [tokenInput, setTokenInput] = useState("");
@@ -119,33 +121,11 @@ export default function CloudPage(): ReactNode {
             <button className="btn primary" onClick={() => openExternal(TOKEN_PAGE)}>打开授权页面</button>
           </div>
           <div className="row" style={{ gap: 8, marginTop: 8 }}>
-            <input
-              className="input"
-              style={{ flex: 1, minWidth: 200 }}
-              placeholder="粘贴云盘访问口令"
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value.trim())}
-            />
-            <button
-              className="btn primary"
-              disabled={!tokenInput || savingToken}
-              onClick={async () => {
-                setSavingToken(true);
-                try {
-                  const acc = await setSeafileToken(tokenInput);
-                  showToast(`云盘已连接：${acc.name || acc.email}`);
-                  setTokenInput("");
-                  refreshRepos().catch(() => undefined);
-                } catch (e) {
-                  showToast(`连接失败：${String(e).slice(0, 90)}`);
-                } finally {
-                  setSavingToken(false);
-                }
-              }}
-            >
-              {savingToken ? "连接中…" : "连接"}
+            <button className="btn primary" onClick={() => setBindOpen(true)}>
+              连接云盘
             </button>
           </div>
+          <ConnectGate need="cloud" open={bindOpen} onClose={() => setBindOpen(false)} />
           <p className="dim" style={{ fontSize: "var(--text-xs)" }}>
             Token 仅存本机（混淆落盘），用于直连 cloud.tsinghua.edu.cn。
           </p>

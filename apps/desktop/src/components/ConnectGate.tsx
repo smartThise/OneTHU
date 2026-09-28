@@ -14,28 +14,24 @@ import { createPortal } from "react-dom";
 import { useExpanded } from "../state/usePlatformLayout.js";
 import { YktQrPanel, YktWebLoginPanel, saveYuketang } from "./ExtHwLoginModal.js";
 import { extHwLogin, refreshExtHw } from "../state/exthw.js";
-import { setSeafileToken } from "../state/seafile.js";
+import { connectCloudDisk, connectMail } from "../state/accountSetup.js";
 import { showToast } from "../state/toast.js";
-import { useApp } from "../state/context.js";
-import { requestSettingsTab } from "../state/settingsMode.js";
 
-export type BindNeed = "yuketang" | "tuoj" | "mail" | "cloud" | "calendar";
+export type BindNeed = "yuketang" | "tuoj" | "mail" | "cloud";
 
 const LABEL: Record<BindNeed, string> = {
   yuketang: "雨课堂",
   tuoj: "TUOJ",
   mail: "清华邮箱",
   cloud: "清华云盘",
-  calendar: "日程云同步",
 };
 
 /** 每种绑定「为什么要绑」的一句话——别只说"未登录" */
 const WHY: Record<BindNeed, string> = {
   yuketang: "绑定后把雨课堂作业 DDL 合并到「全部作业」与「今日」。",
   tuoj: "绑定后用清华账号读回 OJ 作业，只读课业信息，不提交任何内容。",
-  mail: "绑定后在本机收发清华邮箱，用于作业与通知。",
+  mail: "绑定后在本机收发清华邮箱；云日历同步用的是同一套登录信息。",
   cloud: "绑定后把清华云盘的文件接进「云盘」页，可浏览与下载。",
-  calendar: "绑定后日程可在多台设备间同步（走清华邮箱日历服务）。",
 };
 
 export function ConnectGate({
@@ -51,9 +47,10 @@ export function ConnectGate({
   onDone?: () => void;
 }): React.ReactNode {
   const expanded = useExpanded();
-  const { navigate } = useApp();
   const [channel, setChannel] = useState<"qr" | "web">("qr");
   const [token, setToken] = useState("");
+  const [mailAddr, setMailAddr] = useState("");
+  const [mailCode, setMailCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -87,14 +84,13 @@ export function ConnectGate({
     }
   };
 
-  const cloudConnect = async (): Promise<void> => {
+  const mailConnect = async (): Promise<void> => {
     setBusy(true);
     setErr(null);
     try {
-      const acc = await setSeafileToken(token);
-      showToast(`云盘已连接：${acc.name || acc.email}`);
-      onDone?.();
-      onClose();
+      const st = await connectMail(mailAddr, mailCode);
+      void refreshExtHw().catch(() => undefined);
+      done(st.mail ? "邮箱已连接（云日历同步共用同一套登录信息）" : "邮箱没连上，请再试一次");
     } catch (e) {
       fail(e);
     } finally {
@@ -102,10 +98,19 @@ export function ConnectGate({
     }
   };
 
-  const goSettings = (): void => {
-    requestSettingsTab("数据与同步");
-    navigate("settings");
-    onClose();
+  const cloudConnect = async (): Promise<void> => {
+    setBusy(true);
+    setErr(null);
+    try {
+      await connectCloudDisk(token);
+      showToast("云盘已连接");
+      onDone?.();
+      onClose();
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(false);
+    }
   };
 
   /* 手机：贴底抽屉（B3b 口径）；PC：居中卡片 */
@@ -197,16 +202,31 @@ export function ConnectGate({
         </div>
       );
     }
-    /* mail / calendar：填写项在设置里，这里给步骤 + 直达那一栏 */
+    /* mail：真实输入框——与设置页同一个动作（accountSetup → cloudCal），语义不分叉 */
     return (
       <div style={{ display: "grid", gap: 10 }}>
         <div className="setting-desc" style={{ margin: 0 }}>
-          {need === "mail"
-            ? "需要邮箱的「客户端专用密码」：网页版邮箱 → 设置 → 客户端专用密码。"
-            : "需要邮箱的「客户端专用密码」，在设置里填入即可。"}
+          密码不是邮箱登录密码，是「客户端专用密码」：网页版邮箱 → 设置 → 客户端专用密码。
         </div>
-        <button className="btn primary" onClick={goSettings}>
-          去设置里填写
+        <input
+          className="input"
+          placeholder="完整邮箱地址（如 someone@mails.tsinghua.edu.cn）"
+          value={mailAddr}
+          onChange={(e) => setMailAddr(e.target.value.trim())}
+        />
+        <input
+          className="input"
+          type="password"
+          placeholder="客户端专用密码"
+          value={mailCode}
+          onChange={(e) => setMailCode(e.target.value)}
+        />
+        <button
+          className="btn primary"
+          disabled={!/.+@.+/.test(mailAddr) || !mailCode || busy}
+          onClick={() => void mailConnect()}
+        >
+          {busy ? "连接中…" : "保存并验证"}
         </button>
       </div>
     );
