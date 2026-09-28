@@ -663,6 +663,18 @@ async function parseOffice(name: string, zip: ZipPayload, size: number): Promise
 
 /* ---------- 渲染态 ---------- */
 
+/** §2.8.2 文件预览分端：侧边信息栏里的类型名（OfficeView 的细分 kind 走兜底直接用原值） */
+const KIND_LABEL: Record<string, string> = {
+  image: "图片",
+  pdf: "PDF",
+  text: "文本",
+  zip: "压缩包",
+  other: "其他",
+  docx: "Word 文档",
+  xlsx: "Excel 表格",
+  pptx: "PowerPoint 演示",
+};
+
 type ReadyView =
   | { kind: "image"; dataUrl: string; mime: string; size: number }
   | { kind: "pdf"; dataUrl: string; size: number }
@@ -1207,8 +1219,14 @@ const panelStyleWide: CSSProperties = {
   maxWidth: "none",
   height: "min(86vh, 920px)",
   maxHeight: "92vh",
+  /* §2.8.2：PC 上正文 + 右侧附件信息栏两列。gridColumn 写在头部/底部提示上，
+     窄屏（panelStyle 的 flex column）会直接忽略这两个属性。 */
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) 264px",
+  gridTemplateRows: "auto minmax(0, 1fr) auto",
 };
 const headStyle: CSSProperties = {
+  gridColumn: "1 / -1",
   display: "flex", alignItems: "center", gap: 8, padding: "10px 14px",
   borderBottom: "1px solid var(--border, #eee)", flexShrink: 0,
   // 窄屏（手机）把按钮换到第二行，而不是把 ✕ 挤出屏幕：三个按钮 + 文件名 + 元信息
@@ -1392,6 +1410,9 @@ export function FilePreviewHost() {
   };
 
   const view = phase.s === "ready" ? phase.view : null;
+  /* 侧边信息栏的值（view 为空时显示占位符） */
+  const kindLabel = view ? (KIND_LABEL[view.kind] ?? view.kind) : "";
+  const mimeLabel = view && "mime" in view ? view.mime : "";
   const metaBits: string[] = [];
   if (view) {
     if (view.size) metaBits.push(fmtBytes(view.size));
@@ -1529,6 +1550,30 @@ export function FilePreviewHost() {
           </PreviewErrorBoundary>
         </div>
 
+        {expanded ? (
+          <aside className="fp-info" aria-label="附件信息">
+            <h3 className="fp-info-h">附件信息</h3>
+            <div className="fp-info-name" title={cur?.name || shown.name || "文件预览"}>
+              {cur?.name || shown.name || "文件预览"}
+            </div>
+            <dl className="fp-info-list">
+              <div>
+                <dt>类型</dt>
+                <dd>{kindLabel || "—"}</dd>
+              </div>
+              <div>
+                <dt>大小</dt>
+                <dd>{view?.size ? fmtBytes(view.size) : "—"}</dd>
+              </div>
+              <div>
+                <dt>格式</dt>
+                <dd>{mimeLabel || "—"}</dd>
+              </div>
+            </dl>
+            {IS_WINDOWS_HOST && WIN_PREVIEW_NOTE ? <p className="fp-info-note">{WIN_PREVIEW_NOTE}</p> : null}
+          </aside>
+        ) : null}
+
         {dlMsg || dlHintMounted ? (
           /* 面板底部下载/另存为提示：右侧挂「打开文件 / 打开目录」（R23 需求；此前误加在
              PDF 画布内部与 Windows 门闸里，用户看到的这条反而没有按钮）。
@@ -1536,7 +1581,7 @@ export function FilePreviewHost() {
              动效：入场从下浮起（.fp-dl-hint），清空后走 200ms 退场相位淡出（.is-closing）。 */
           <div
             className={"fp-dl-hint" + (dlHintClosing ? " is-closing" : "")}
-            style={{ flexShrink: 0, padding: "6px 14px", fontSize: 12, borderTop: "1px solid var(--border, #eee)", color: "var(--accent)", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
+            style={{ gridColumn: "1 / -1", flexShrink: 0, padding: "6px 14px", fontSize: 12, borderTop: "1px solid var(--border, #eee)", color: "var(--accent)", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
           >
             <span>{dlMsg || dlHintRef.current}</span>
             {dlPath ? <DownloadOpenButtons path={dlPath} /> : null}

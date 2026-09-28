@@ -1926,6 +1926,24 @@
   color: var(--text-2);
 }
 
+/* §2.8.2 文件预览分端：PC 大窗右侧附件信息栏（窄屏由 FilePreview 的 expanded 判断不渲染） */
+.fp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+  border-left: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-container-lowest);
+}
+.fp-info-h { margin: 0; font-size: var(--text-sm); font-weight: 600; color: var(--md-sys-color-on-surface); }
+.fp-info-name { font-size: var(--text-sm); line-height: 1.5; color: var(--md-sys-color-on-surface); overflow-wrap: anywhere; }
+.fp-info-list { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+.fp-info-list > div { display: flex; flex-direction: column; gap: 4px; }
+.fp-info-list dt { font-size: var(--text-xs); color: var(--md-sys-color-outline); }
+.fp-info-list dd { margin: 0; font-size: var(--text-xs); color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
+.fp-info-note { margin: 0; font-size: var(--text-xs); line-height: 18px; color: var(--md-sys-color-outline); }
+
 /* 文件预览头部：窄屏收紧内边距与按钮，保证「关闭」不被挤出面板 */
 @media (max-width: 480px) {
   .fp-head {

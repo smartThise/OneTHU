@@ -279,6 +279,16 @@ EXIT_MS 与 --dur-2（short-4 = 200ms）同源。关闭入口一个都不能漏�
 
 以上由 `tools/controls-test.mjs` 一并钉住。
 
+### 3.8 PC 分端内容布局（指向 §2.8.2）
+
+逐页的「移动端一套 / PC 一套」不写在本手册，写在 `docs/ui-ux-overhaul-plan.md` 的 §2.8.2（那是规范原文 + 逐行核对表）。这里只留三条通用约定：
+
+- 双栏页**只改容器渲染，不改数据流**：`AssignmentDetailPage`、邮件阅读 pane 等作为子组件被两个壳复用；
+- PC 限宽用 `.content:has(> .page-anim[data-page="xxx"])` 定位页面（CSS 选不到祖先，只能靠 `:has()`），含表格的栏目要放开全宽；
+- 分端判定统一走 `state/usePlatformLayout.ts` 的 `useExpanded()`，**禁止组件各自写断点**。
+
+护栏 `tools/pc-layout-test.mjs` 把 §2.8.2 的每一行都钉了一条断言——改布局时改断言，别只改文档。
+
 ## 4. 用色：中性打底，彩色点睛
 
 - **正文区保持中性 surface**；彩色 surface（tonal container）只用于两处：「今日」卡片、功能分组头。
