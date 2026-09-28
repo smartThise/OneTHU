@@ -47,7 +47,7 @@ export type PluginPermission =
   | "notify"; // 发送系统通知（三端；内容与时刻由插件自定）
 
 export const PLUGIN_PERMISSIONS: ReadonlyArray<{ id: PluginPermission; label: string; desc: string }> = [
-  { id: "user:read", label: "读取基本信息", desc: "姓名/学号/院系与登录会话状态" },
+  { id: "user:read", label: "读取基本信息", desc: "姓名/学号/院系与登录状态" },
   { id: "info:read", label: "读取信息门户", desc: "成绩、考试、新闻、校历、空教室、缴费记录等只读查询" },
   { id: "learn:read", label: "读取网络学堂", desc: "课程/作业/通知/文件/讨论区只读查询" },
   { id: "learn:write", label: "网络学堂发帖", desc: "讨论区发帖/回帖（写操作，需确认）" },
@@ -69,7 +69,7 @@ export const PLUGIN_PERMISSIONS: ReadonlyArray<{ id: PluginPermission; label: st
   { id: "nav", label: "应用内跳转", desc: "跳转到应用的任意页面与子栏" },
   { id: "ui", label: "显示提示", desc: "弹出 toast 消息" },
   { id: "storage", label: "本地存储", desc: "插件私有键值存储（卸载即清除）" },
-  { id: "net:external", label: "外部网络请求", desc: "直接请求任意外部 HTTP(S) 接口（大模型 API 等）" },
+  { id: "net:external", label: "外部网络请求", desc: "直接请求任意外部网络地址（HTTP(S)）（大模型 API 等）" },
   { id: "widget", label: "桌面小组件", desc: "向 Android 桌面小组件声明要显示的内容（渲染与取值由宿主完成，插件不写原生代码）" },
   { id: "notify", label: "发送系统通知", desc: "向系统通知中心推送通知（三端），内容与时刻由插件决定" },
   { id: "css", label: "注入全局样式", desc: "注入影响整个应用外观的 CSS（安装时重点确认）" },

@@ -214,7 +214,7 @@ export function VenueSportsTab({
       if (ok && venueHasToken()) {
         setAuthed(true);
       } else if (!twoFA) {
-        setAuthMsg("未能自动登录（统一身份会话可能已失效），请用登录窗口完成一次认证。");
+        setAuthMsg("未能自动登录（统一身份登录可能已过期），请用登录窗口完成一次认证。");
       }
     } catch (err) {
       logTabErr("VENUE-AUTH", err);

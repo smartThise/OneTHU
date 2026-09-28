@@ -232,7 +232,7 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
           setNeedFileHint(true);
           throw new Error("本作业要求必须带附件：请选择文件或拍照上传后再提交");
         }
-        throw new Error(why || "提交失败");
+        throw new Error(why || "提交未成功，请稍后重试");
       }
       clearNeedFile(h.id); // 本次带附件提交成功 → 要求以最新为准
       setSubOk(true);
@@ -262,7 +262,7 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
         throw new Error(
           /请上传附件/.test(why)
             ? "该作业要求必须带附件，网络学堂不允许只删不传——请直接选新附件提交替换"
-            : why || "撤回失败",
+            : why || "撤回未成功，请稍后重试",
         );
       }
       setSubOk(true);

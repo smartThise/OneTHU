@@ -11,6 +11,9 @@
  *   R1 禁用词：内部键名 / 工程术语 / 品牌无关的技术名词
  *   R2 设置项说明过长：> MAX_DESC 字的说明句
  *   R3 文案里出现裸变量名样式（onethu.xxx.yyy、foo_bar、camelCase 出现在中文句里）
+ *   R4 语气：完整句的「失败/异常」必须带行动词（重试/刷新/重新登录…）。
+ *      以「：」结尾的是「前缀 + 详情」，详情由代码拼接，不算违规；
+ *      状态标签等确实给不出行动词的，行尾写 `// ui-copy-lint-ok: 理由` 豁免。
  *
  * 豁免：行尾写 `// ui-copy-lint-ok`（须写明理由），或整文件在 ALLOW_FILES 里。
  *
@@ -33,13 +36,28 @@ const BANNED = [
   [/\bonethu\.[a-z0-9.]+/i, "内部存储键名（onethu.*）"],
   [/\blocalStorage\b|\bsessionStorage\b/i, "内部存储 API 名"],
   [/\bSWR\b|\bIPC\b|\bJSON\b|\bRust\b|\bTauri\b|\bWebView\b/i, "框架/实现术语"],
-  [/webvpn|wengine|XSRF|csrf|CSRF/, "校内网关/令牌术语"],
+  [/webvpn|wengine|XSRF|csrf|CAS|SM2|manifest|插件宿主/i, "校内网关/协议/工程术语"],
+  [/原子/, "内部名词（用户侧应说「收藏项」）"],
+  [/会话/, "内部名词（用户侧应说「登录状态」）"],
+  [/凭据|凭证/, "内部名词（用户侧应说「绑定」）"],
+  [/接口/, "工程术语（用户侧应说「数据」「来源」）"],
   [/\btoken\b|Token|Cookie|cookie/, "令牌术语（用户只需知道「登录状态」）"],
   [/漫游|会话桶|预取|埋点|幂等|降级|回退链/, "工程黑话"],
   [/缓存(?!已清除)/, "「缓存」对用户无意义"],
   [/变量|字段|参数|返回值|null|undefined|NaN/, "编程概念"],
   [/网堂|学堂首页(?!的)/, "机构简称（须用全称「网络学堂」）"],
 ];
+
+/** R4：语气。完整句里出现失败类字眼却不说下一步做什么，就算违规。
+ *  前缀式（以「：」结尾、后面由代码接详情）与带行动词的都放过。 */
+const TONE_WORDS = /失败|异常|出错|错误|不可用|无法使用|超时|未授权|未成功/;
+const ACTION_WORDS = /重试|再试|稍后|刷新|重新|检查|查看|确认|联系|网络|请|建议|打开|切换|设置|登录|下拉|手动|完成|详情|窗口/;
+function r4Hit(s) {
+  if (!TONE_WORDS.test(s)) return null;
+  if (/[：:]\s*$/.test(s)) return null;
+  if (ACTION_WORDS.test(s)) return null;
+  return s;
+}
 
 /** 只有当字符串"看起来是给用户看的"才检查：含中文，或出现在 JSX 文本/常见 UI 属性里 */
 function looksUserFacing(text) {
@@ -95,8 +113,15 @@ for (const dir of SCAN_DIRS) {
     const rel = path.relative(ROOT, file);
     if (ALLOW_FILES.has(rel)) continue;
     const lines = fs.readFileSync(file, "utf8").split("\n");
+    let inBlock = false;
     lines.forEach((line, i) => {
-      if (isComment(line)) return;
+      // 块注释跨行：/* ... */ 之间的续行行首没有 * 也不是 //，必须靠状态跟踪
+      const wasInBlock = inBlock;
+      const opens = (line.match(/\/\*/g) || []).length;
+      const closes = (line.match(/\*\//g) || []).length;
+      if (inBlock) { if (closes > 0) inBlock = false; }
+      else if (opens > closes) inBlock = true;
+      if (wasInBlock || isComment(line)) return;
       if (line.includes("ui-copy-lint-ok")) return;
       for (const s of userStrings(line)) {
         if (allowedByFile(rel, s)) continue;
@@ -106,6 +131,9 @@ for (const dir of SCAN_DIRS) {
             violations.push({ file: rel, line: i + 1, rule: "R1", why, text: s.trim().slice(0, 60), hit: hit[0] });
             break;
           }
+        }
+        if (r4Hit(s)) {
+          violations.push({ file: rel, line: i + 1, rule: "R4", why: "失败/异常类文案没有告诉用户下一步做什么", text: s.trim().slice(0, 60), hit: "" });
         }
         if (s.length > MAX_DESC) {
           violations.push({ file: rel, line: i + 1, rule: "R2", why: `说明超过 ${MAX_DESC} 字`, text: s.trim().slice(0, 70) });

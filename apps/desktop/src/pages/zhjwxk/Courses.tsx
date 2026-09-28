@@ -195,7 +195,7 @@ function DetailModal({ wb, code, tid, onClose }: { wb: ReturnType<typeof useXkWo
            {rrows === undefined ? (
              <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--text-3, #9aa1ac)" }}>正在获取官方教评…</div>
            ) : rrows === null ? (
-             <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--red)" }}>官方教评获取失败（教务会话或网络），稍后重试</div>
+             <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--red)" }}>官方教评获取未成功（教务登录或网络问题），请稍后重试</div>
            ) : rrows.length > 0 ? (
              <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "10px 0 14px" }}>
                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>官方教评 · 选课学生推荐度（1-7 分）</div>
@@ -848,7 +848,7 @@ function PlanView({ wb, query, onSearchCode }: { wb: ReturnType<typeof useXkWork
   if (!coverage.length) {
     return (
       <Card>
-        <Empty text="暂无培养方案数据（可能该学期未配置培养方案，或会话已过期）" />
+        <Empty text="暂无培养方案数据（该学期可能未配置，或登录已过期）" />
         <div style={{ textAlign: "center", paddingBottom: 10 }}>
           <button className="btn" onClick={() => void wb.refresh()}>重试</button>
         </div>

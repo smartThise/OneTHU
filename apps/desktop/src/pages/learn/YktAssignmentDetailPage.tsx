@@ -468,7 +468,7 @@ export function YktAssignmentDetailPage({ ykt: yktProp, from: fromProp }: { ykt?
             客观题/试卷/超次数仍只读——官方页兜底入口保留） */}
         {d.problems.length === 0 ? (
           <Card>
-            <Empty text="本作业暂无题目明细（可能接口未返回 problems）。" />
+            <Empty text="本作业暂无题目明细（老师端未提供）。" />
           </Card>
         ) : (
           d.problems.map((p) => (

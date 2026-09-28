@@ -307,7 +307,7 @@ export function YktWebLoginPanel({ onSuccess, onCancel }: { onSuccess: (cookie: 
       ) : null}
       <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10, flexWrap: "wrap" }}>
         <button className="btn btn-primary" disabled={phase === "reading"} onClick={read}>
-          {phase === "reading" ? "读取中…" : "我已登录，读取会话"}
+          {phase === "reading" ? "读取中…" : "我已登录，读取登录信息"}
         </button>
         <button className="btn btn-ghost" onClick={onCancel}>
           取消

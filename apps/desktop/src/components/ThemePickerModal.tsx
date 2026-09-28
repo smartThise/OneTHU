@@ -174,7 +174,7 @@ export function ThemePickerModal({ open, onClose }: { open: boolean; onClose: ()
           <div style={{ display: "grid", gap: 8, gridTemplateColumns: "minmax(0, 1fr)" }}>
             {/* 基础令牌不在 snap.themes 里（它不是 ThemeDef），所以单列一行，
                 否则切了主题就回不到默认外观了。 */}
-            {hit(["默认外观", "基础令牌"]) ? (
+            {hit(["默认外观"]) ? (
               <div
                 style={{
                   display: "flex", alignItems: "center", gap: 10, padding: "8px 10px",
@@ -188,7 +188,7 @@ export function ThemePickerModal({ open, onClose }: { open: boolean; onClose: ()
                     <b>默认外观</b>
                     {snap.activeId ? null : <span className="chip" style={{ height: 16, fontSize: 9.5, padding: "0 6px" }}>使用中</span>}
                   </div>
-                  <div style={{ fontSize: "var(--text-xs)", color: "var(--text-3)", marginTop: 2 }}>不套用任何主题，用基础令牌</div>
+                  <div style={{ fontSize: "var(--text-xs)", color: "var(--text-3)", marginTop: 2 }}>不套用任何主题，使用应用自带配色</div>
                 </div>
                 {snap.activeId ? (
                   <button className="btn btn-primary" onClick={() => { deactivateTheme(); setMsg("已回到默认外观"); }}>应用</button>

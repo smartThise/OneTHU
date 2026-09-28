@@ -348,7 +348,7 @@ export function LibraryTab({
     try {
       const list = await info.getLibraryList();
       // 空馆列表 ≠ 正常空态：下拉块按 libs.length>0 渲染，静默吞掉会整块消失且无 ErrorNote
-      if (list.length === 0) throw new Error("馆列表为空（seat.lib 返回空 list，会话可能未建立）");
+      if (list.length === 0) throw new Error("馆列表为空（数据源未返回内容，登录状态可能未建立）");
       libRecover.current = 0;
       cacheSet("library:tree", list);
       setLibs(list);
@@ -576,7 +576,7 @@ export function LibraryTab({
     if (sectionId === null) return;
     const userId = session.username;
     if (!userId) {
-      setBookError("需要登录会话（未获取到学号）");
+      setBookError("需要先登录（未读取到学号）");
       setPendingSeat(null);
       return;
     }
@@ -605,7 +605,7 @@ export function LibraryTab({
     const userId = session.username;
     if (!r.delId) return;
     if (!userId) {
-      setAction({ ok: false, text: "需要登录会话（未获取到学号）" });
+      setAction({ ok: false, text: "需要先登录（未读取到学号）" });
       return;
     }
     setBusyCancel(r.delId);

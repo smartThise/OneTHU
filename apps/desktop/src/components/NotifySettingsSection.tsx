@@ -101,7 +101,7 @@ export function NotifySettingsSection(): ReactNode {
       const st = await fetchNotifyStatus(true);
       setStatus(st);
       const sent = await sendTestNotification();
-      setMsg(sent ? "测试通知已发送；未收到请检查系统通知设置" : `测试失败：${st.granted ? "投递失败，请运行诊断查看原因" : "通知未授权"}`);
+      setMsg(sent ? "测试通知已发送；未收到请检查系统通知设置" : `测试失败：${st.granted ? "投递失败，请运行诊断查看原因" : "通知权限未开启，请在系统设置中打开"}`);
     } catch (e) {
       setMsg(`测试失败：${String(e).slice(0, 80)}`);
     } finally {

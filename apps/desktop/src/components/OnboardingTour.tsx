@@ -529,7 +529,7 @@ export function OnboardingTour(): React.ReactNode {
         {step === 6 ? (
           <>
             <h3 style={{ margin: "0 0 4px", fontSize: 17 }}>OJ 平台<AcctBadge on={acct.tyche || acct.dsa} /></h3>
-            <p style={acctIntro}>配其中任意一个即可，也可以全部跳过；会话失效时在 设置 → 外部作业源 重登。</p>
+            <p style={acctIntro}>配其中任意一个即可，也可以全部跳过；登录过期时在 设置 → 外部作业源 重登。</p>
             {[
               {
                 key: "tyche", label: "Tyche", done: acct.tyche,

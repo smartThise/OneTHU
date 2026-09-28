@@ -105,7 +105,7 @@ async function loadPdfDoc(dataUrl: string): Promise<PdfDocLike> {
       console.error(`[FILE-PREVIEW] pdf.js(${v.tag}) 解析失败`, e);
     }
   }
-  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr ?? "未知错误"));
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr ?? "出现未知问题，请重新打开"));
 }
 
 /**
@@ -140,7 +140,7 @@ class PreviewErrorBoundary extends Component<
     if (this.state.err === null) return this.props.children;
     return (
       <div style={{ padding: 16, fontSize: 13, lineHeight: 1.7 }}>
-        <div style={{ color: "var(--red)", marginBottom: 8 }}>预览渲染出错，已停在这一条上（应用其余功能不受影响）。</div>
+        <div style={{ color: "var(--red)", marginBottom: 8 }}>这一条预览失败，其他内容不受影响；可换一条，或用上方「打开」查看原文件。</div>
         {this.props.note ? (
           <div style={{ color: "var(--text-3)", marginBottom: 8 }}>{this.props.note}</div>
         ) : null}
@@ -614,7 +614,7 @@ async function parseOffice(name: string, zip: ZipPayload, size: number): Promise
   if (ext === "docx") {
     const mod = (await import("mammoth")) as unknown as { default?: MammothLike } & Partial<MammothLike>;
     const mammoth = mod.default?.convertToHtml ? mod.default : mod;
-    if (!mammoth.convertToHtml) throw new Error("mammoth 模块加载失败");
+    if (!mammoth.convertToHtml) throw new Error("docx 预览组件没有加载成功，请重新打开");
     const res = await mammoth.convertToHtml({ arrayBuffer: bytesToArrayBuffer(zip.bytes) });
     return { kind: "docx", html: sanitizeDocxHtml(res.value), zip, size };
   }
@@ -826,7 +826,7 @@ function ZipTreeView({ zip, notice }: { zip: ZipPayload; notice?: string }) {
           {preview.phase === "loading" ? <Empty text="正在解压该条目…" /> : null}
           {preview.phase === "error" ? (
             <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
-              <Empty text={`无法内联预览：${preview.err ?? "未知错误"}`} />
+              <Empty text={`无法内联预览：${preview.err ?? "出现未知问题，请重新打开"}`} />
             </div>
           ) : null}
           {preview.phase === "done" ? (

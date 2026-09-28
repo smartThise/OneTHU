@@ -481,7 +481,7 @@ export function NewsTab({
     setOpBusy(c.id);
     try {
       const ok = await info.removeNewsSubscription(c.id);
-      if (!ok) throw new Error("服务端返回删除失败");
+      if (!ok) throw new Error("删除未成功，请刷新后重试");
       setSubsTick((t) => t + 1);
       setSubFeedTick((t) => t + 1);
     } catch (err: unknown) {
@@ -501,11 +501,11 @@ export function NewsTab({
       if (existing.length > 0) {
         for (const c of existing) {
           const ok = await info.removeNewsSubscription(c.id);
-          if (!ok) throw new Error("服务端返回删除失败");
+          if (!ok) throw new Error("删除未成功，请刷新后重试");
         }
       } else {
         const ok = await info.addNewsSubscription({ sourceId: unit.sourceId });
-        if (!ok) throw new Error("服务端返回添加失败");
+        if (!ok) throw new Error("添加未成功，请刷新后重试");
       }
       setSubsTick((t) => t + 1);
       setSubFeedTick((t) => t + 1);

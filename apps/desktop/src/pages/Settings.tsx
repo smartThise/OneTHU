@@ -59,7 +59,7 @@ import type { ExtHwCreds, ExtHwSourceId, TuojSourceId } from "@onethu/core";
 /** 设置分组（按"你要改什么"索引，而不是按功能罗列）——
  *  点一下即滚动到对应分节；分节标题保持原位，不重排大段 JSX（低风险）。 */
 const SETTINGS_GROUPS: Array<{ label: string; sections: string[] }> = [
-  { label: "账号", sections: ["账户", "账号与凭据", "安全"] },
+  { label: "账号", sections: ["账户", "账号与绑定", "安全"] },
   { label: "通知与提醒", sections: ["通知", "桌面小组件"] },
   { label: "外观与布局", sections: ["外观", "首页布局", "收藏夹"] },
   { label: "数据与同步", sections: ["云同步", "外部作业源"] },
@@ -256,7 +256,7 @@ export function SettingsPage() {
       </Card>
 
 
-      <SectionHead title="账号与凭据" />
+      <SectionHead title="账号与绑定" />
       <Card>
         <div className="setting-row" style={{ alignItems: "flex-start" }}>
           <div>
@@ -533,7 +533,7 @@ export function SettingsPage() {
                 void clip
                   .writeText(json)
                   .then(() => setFavMsg("收藏夹已复制到剪贴板（" + favs.data.order.length + " 个根收藏夹）"))
-                  .catch(() => setFavMsg("复制失败，可改用导入框核对"));
+                  .catch(() => setFavMsg("复制未成功，请改用下方的导入框核对"));
               }}
             >
               导出（复制 JSON）
@@ -841,12 +841,12 @@ function ExtHwSection() {
     void runYktSessionCheck()
       .then((st) => {
         if (!st) {
-          notify("yuketang", "未配置雨课堂会话——请先登录。");
+          notify("yuketang", "未配置雨课堂登录状态——请先登录。");
           return;
         }
         if (st.alive === true) notify("yuketang", `会话有效${st.userName ? `（${st.userName}）` : ""}。`);
         else if (st.alive === false) notify("yuketang", `会话已失效（${st.reason ?? "未知原因"}）——可扫码重登，或导入其他设备导出的 Cookie。`);
-        else notify("yuketang", "检查失败：网络异常，会话状态未知");
+        else notify("yuketang", "检查未成功：网络异常，登录状态未知");
       })
       .finally(() => setBusy(null));
   };
@@ -886,7 +886,7 @@ function ExtHwSection() {
       }
       const { open } = await import("@tauri-apps/plugin-dialog");
       const { invoke } = await import("@tauri-apps/api/core");
-      const sel = await open({ multiple: false, filters: [{ name: "雨课堂会话", extensions: ["json"] }] });
+      const sel = await open({ multiple: false, filters: [{ name: "雨课堂登录状态", extensions: ["json"] }] });
       if (!sel || typeof sel !== "string") return "已取消导入。";
       const text = await invoke<string>("read_file_text", { path: sel });
       const parsed = parseYktCookieExportJson(text);
@@ -1154,21 +1154,21 @@ function ExtHwSection() {
             <>
               <div className="exthw-note">
                 {ext.yktSession.checkedAt === null
-                  ? "会话健康：尚未检查（启动后会自动心跳，约每 6 小时一次；也可手动检查）。"
+                  ? "登录状态：尚未检查（应用启动后会自动检查，约每 6 小时一次，也可手动检查）。"
                   : ext.yktSession.alive === true
                     ? `会话健康：有效${ext.yktSession.userName ? `（${ext.yktSession.userName}）` : ""} · 检查于 ${new Date(ext.yktSession.checkedAt).toLocaleTimeString()}`
                     : ext.yktSession.alive === false
                       ? `会话健康：已失效（${ext.yktSession.reason}）· 检查于 ${new Date(ext.yktSession.checkedAt).toLocaleTimeString()}`
-                      : "会话健康：未知（上次检查网络异常，不判失效）"}
+                      : "登录状态：未知（上次检查时网络异常，不判定为失效）"}
               </div>
               <div style={fieldStyle}>
                 <button className="btn" disabled={busy !== null} onClick={onYktCheckSession}>
-                  {busy === "ykt-check" ? "检查中…" : "检查会话"}
+                  {busy === "ykt-check" ? "检查中…" : "检查登录状态"}
                 </button>
                 <button
                   className="btn"
                   disabled={busy !== null}
-                  title="把当前会话导出成文件，供其他设备导入（免重复扫码）。文件等同账号凭据，用完即删。"
+                  title="导出当前登录状态，供其他设备导入（免重复扫码）。文件等同账号绑定，用完请即删。"
                   onClick={onYktExportCookie}
                 >
                   {busy === "ykt-export" ? "导出中…" : "导出登录状态"}
@@ -1176,7 +1176,7 @@ function ExtHwSection() {
                 <button
                   className="btn"
                   disabled={busy !== null}
-                  title="导入其他已登录设备导出的会话文件，免扫码直接恢复登录"
+                  title="导入其他已登录设备导出的登录状态文件，免扫码直接恢复登录"
                   onClick={onYktImportCookie}
                 >
                   {busy === "ykt-import" ? "导入中…" : "导入登录状态"}
@@ -1222,7 +1222,7 @@ function ExtHwSection() {
                 setYktCookie(cookie);
                 setYktWebOpen(false);
                 void saveExtHwCreds(credsWith({ ykt: cookie })).then(() => {
-                  notify("yuketang", "雨课堂官方网页登录成功，已保存会话。");
+                  notify("yuketang", "雨课堂官方网页登录成功，已保存登录状态。");
                   void refreshExtHw();
                 });
               }}
@@ -1387,7 +1387,7 @@ function ExtHwSection() {
                   <div style={{ marginTop: 4, fontSize: 12, opacity: 0.65 }}>
                     {tycheRemember
                       ? "密码以密文存在本机，不上传、不进日志；退出登录即清除。"
-                      : "不勾选则只保存本次会话，失效后需手动重新登录。"}
+                      : "不勾选则只保存本次登录状态，失效后需手动重新登录。"}
                   </div>
                 </div>
               ) : null}
@@ -1722,7 +1722,7 @@ function AppearanceSection(): ReactNode {
   };
   // 别处（设置 → 外观 的主题列表）切主题会让取色退场：开关跟着回真
   useEffect(() => subscribeThemes(() => setDyn(isDynamicEnabled())), []);
-  const themes = [{ id: "", name: "基础令牌（默认外观）" }, ...snap.themes.map((t) => ({ id: t.id, name: t.dark ? `${t.name}（暗色）` : t.name }))];
+  const themes = [{ id: "", name: "默认外观" }, ...snap.themes.map((t) => ({ id: t.id, name: t.dark ? `${t.name}（暗色）` : t.name }))];
   return (
     <div className="setting-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
       {/* 主题（§4.4）：只留一个「更改主题」入口，色卡预览与主题市场都在二级菜单里 */}
@@ -1730,7 +1730,7 @@ function AppearanceSection(): ReactNode {
         <div>
           <div className="setting-title">主题</div>
           <div className="setting-desc">
-            当前：{themes.find((th) => (snap.activeId ?? "") === th.id)?.name ?? "基础令牌（默认外观）"}
+            当前：{themes.find((th) => (snap.activeId ?? "") === th.id)?.name ?? "默认外观"}
             {dyn ? " · 系统取色生效中，换主题会关掉取色" : ""}
           </div>
         </div>
@@ -1789,7 +1789,7 @@ function AppearanceSection(): ReactNode {
           <div className="setting-title">跟随系统取色</div>
           {dynOk === false ? (
             <div className="setting-desc">
-              {dyn ? "系统取色不可用，已改用「清华紫」主题。" : "当前系统不支持，开启后改用「清华紫」主题。"}
+              {dyn ? "系统取色暂不可用，已自动改用「清华紫」主题，稍后可在外观里手动更换。" : "当前系统不支持，开启后改用「清华紫」主题。"}
             </div>
           ) : (
             <div className="setting-desc">用壁纸颜色重算全站配色，品牌色与纸面一起变。</div>

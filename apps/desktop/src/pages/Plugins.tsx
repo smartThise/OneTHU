@@ -245,7 +245,7 @@ function PluginCard({
   const widgetSlots = collectWidgetSlots().filter((x) => x.pluginId === id);
   const active = rec.enabled && isLive(id);
   const failed = rec.enabled && !isLive(id);
-  const stateText = active ? "运行中" : failed ? "加载失败" : "已停用";
+  const stateText = active ? "运行中" : failed ? "加载失败" : "已停用"; // ui-copy-lint-ok: 状态标签，同一行操作区就有「日志」按钮
 
   const doRun = async (cmdId: string): Promise<void> => {
     setRunMsg("执行中…");

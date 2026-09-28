@@ -213,7 +213,7 @@ assert.ok(
   (settingsSrc.match(/setDyn\(isDynamicEnabled\(\)\)/g) ?? []).length >= 2,
   "开关必须从偏好这一个真源重新推导（含别处切主题时的同步）",
 );
-assert.ok(/系统取色不可用，已改用「清华紫」主题。/.test(settingsSrc), "不支持时要说清开关是真的开着（改了主题）");
+assert.ok(/系统取色暂不可用，已自动改用「清华紫」主题/.test(settingsSrc), "不支持时要说清开关是真的开着、并已降级到某个主题（§4.5 改写后仍要保留这两层意思）");
 
 console.log(
   "动态取色护栏：映射 " + (Object.keys(light).length + Object.keys(dark).length) +

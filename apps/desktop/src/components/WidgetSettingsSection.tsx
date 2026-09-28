@@ -30,7 +30,7 @@ export function WidgetSettingsSection(): ReactNode {
   const [status, setStatus] = useState<NativeWidgetStatus | null>(null);
   const [map, setMap] = useState(() => loadWidgetInstances());
   const [msg, setMsg] = useState<string | null>(null);
-  /** 默认内容选「快捷方式」时要挑原子 */
+  /** 默认内容选「快捷方式」时要挑收藏项 */
   const [fallbackPicker, setFallbackPicker] = useState(false);
 
   const android = backend === "android";
@@ -60,7 +60,7 @@ export function WidgetSettingsSection(): ReactNode {
         <div>
           <div className="setting-title">桌面小组件</div>
           <div className="setting-desc">
-            桌面小组件由 Android 版提供：日程与 DDL、某个原子的详情、收藏夹图标组、1×1 快捷方式；
+            桌面小组件由 Android 版提供：日程与 DDL、某个收藏项的详情、收藏夹图标组、1×1 快捷方式；
             当前平台不支持。
           </div>
         </div>
@@ -191,7 +191,7 @@ export function WidgetSettingsSection(): ReactNode {
 
       {fallbackPicker ? (
         <FavAtomPicker
-          title="默认内容用哪个原子做快捷方式"
+          title="默认内容用哪个收藏项做快捷方式"
           hint="尚未选择内容时，桌面小组件先显示此项。"
           onPick={(atom) => {
             setFallbackPicker(false);
