@@ -352,6 +352,10 @@ EXIT_MS 与 --dur-2（short-4 = 200ms）同源。关闭入口一个都不能漏�
 <IconRefresh size={16} />                  <i className="fa fa-refresh" />
 `@
 
+**2026-02 清点**：页面里曾有 **13 处散装 SVG**（对话浮层 5、侧栏骨架 4、插件页 2、论坛 1、作业页 1），其中 8 处是 `strokeWidth="2"`、尺寸也不在四档内（12/13/14/15px）。现已全部归入 Icons.tsx，并补了 `IconPlus` / `IconClock` / `IconX` / `IconGithub` / `IconMenu` / `IconArrowUp`。
+
+仍以**字符串**形式存在的 SVG 只有 3 处，是白名单：两个标签页回退图标（`Layout.tsx` / `atoms.tsx`，16 号画布 1.4 描边，属于「图标数据」而非组件）与富文本导出的标记（`YktSubjectiveEditor.tsx`）。护栏 `tools/icon-test.mjs` 会核对这个数量与基座规格。
+
 ---
 
 ## 7. 插画：素材待外部提供，规则先定
