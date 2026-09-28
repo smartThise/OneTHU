@@ -21,6 +21,11 @@ import { FavAtomPicker } from "./FavAtomPicker.js";
 import { bindingSummary, shapeLabel } from "./WidgetBindModal.js";
 import { useNotifyBackend } from "./useNotifyBackend.js";
 
+/** 系统报回的 provider 名（宿主 1×1 / 槽位 2）→ 用户看得懂的尺寸名 */
+function plainShapeName(name: string): string {
+  return name.replace(/^宿主\s*/, "").replace(/^槽位\s*/, "可自选 ");
+}
+
 export function WidgetSettingsSection(): ReactNode {
   const favs = useFavs();
   const backend = useNotifyBackend();
@@ -110,20 +115,20 @@ export function WidgetSettingsSection(): ReactNode {
         </div>
       </div>
 
-      {/* 形态登记情况：选择器里「看不到某个尺寸」时，先确认系统到底登记了哪几个 provider */}
+      {/* 形态登记情况：选择器里「看不到某个尺寸」时，先确认系统到底登记了哪几个尺寸 */}
       {status ? (
         <div className="setting-row">
           <div>
-            <div className="setting-title">系统已登记的小组件形态</div>
+            <div className="setting-title">本机可用的小组件尺寸</div>
             <div className="setting-desc">
               {status.providersRegistered.length === 0
-                ? "未登记任何形态，请将本行内容反馈给开发者"
-                : `${status.providersRegistered.length} 个：${status.providersRegistered.join("、")}`}
-              <span style={{ color: "var(--text-3)" }}>　桌面「小组件」列表中可选的即以下形态。</span>
+                ? "还没读到任何可用尺寸，请把这一行内容反馈给开发者"
+                : `${status.providersRegistered.length} 种：${status.providersRegistered.map(plainShapeName).join("、")}`}
+              <span style={{ color: "var(--text-3)" }}>　桌面「小组件」列表里能选的就是这些。</span>
               {status.romSignals ? (
                 <>
                   <br />
-                  <span style={{ color: "var(--text-3)" }}>机型判定：{status.rom}（{status.romSignals}）</span>
+                  <span style={{ color: "var(--text-3)" }}>系统判定：{status.rom}（依据 {status.romSignals}）</span>
                 </>
               ) : null}
             </div>

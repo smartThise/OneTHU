@@ -37,6 +37,23 @@ export function subscribeSettingsMode(f: () => void): () => void {
   };
 }
 
+/**
+ * 请求切到某个设置页签（页面外的入口用：插件页从侧栏撤掉后，
+ * 旧链接与外部跳转都要落到「设置 → 插件」而不是设置页第一栏）。
+ * 与外部作业源那条消费请求同形：写下 → 设置页挂载时取走。
+ */
+let pendingTab: string | null = null;
+
+export function requestSettingsTab(tab: string): void {
+  pendingTab = tab;
+}
+
+export function consumeSettingsTabRequest(): string | null {
+  const t = pendingTab;
+  pendingTab = null;
+  return t;
+}
+
 export function useAdvancedMode(): boolean {
   return useSyncExternalStore(subscribeSettingsMode, isAdvancedMode, () => false);
 }

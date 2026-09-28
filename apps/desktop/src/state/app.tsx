@@ -24,7 +24,7 @@ export type Page =
   | "services" // 服务分组目录页（UI/UX 改造 §2.2 M1：底部导航「服务」直达）
   | "favs" // 收藏首页（UI/UX 改造 §2.2 M1：底部导航「收藏」直达，根收藏夹列表）
   | "settings"
-  | "plugins" // 插件管理页（机架视觉；设置页留入口，不动侧栏导航）
+  | "plugins" // 旧插件页路由：§4.4b 起并进设置页，进来即跳「设置 → 插件」
   | "learn-course" // 课程详情（courseId）
   | "learn-assignments" // 全部作业
   | "learn-notices" // 全部通知

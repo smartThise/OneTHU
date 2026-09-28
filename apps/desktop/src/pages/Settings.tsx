@@ -14,8 +14,9 @@ import { clearRemembered, loadRemembered, session, isTauri } from "../lib/client
 import { clearHomeLayout } from "../lib/homeCards.js";
 import { useFavs } from "../state/favs.js";
 import { setDayNightTheme, setFollowSystem, useThemes } from "../state/theme.js";
-import { setAdvancedMode, useAdvancedMode } from "../state/settingsMode.js";
+import { consumeSettingsTabRequest, setAdvancedMode, useAdvancedMode } from "../state/settingsMode.js";
 import { ThemePickerModal } from "../components/ThemePickerModal.js";
+import { PluginsPage } from "./Plugins.js";
 import { parseFavs, resetFavs } from "../state/favorites.js";
 import { confirmOk } from "../lib/confirm.js";
 import { useApp } from "../state/context.js";
@@ -118,6 +119,8 @@ export function SettingsPage() {
   // 所在页签再滚动**。此前只在子组件里 scrollIntoView——分区在 display:none 的页签里，
   // 滚动无效，用户落在设置页顶部还要自己找。
   useEffect(() => {
+    const wantTab = consumeSettingsTabRequest();
+    if (wantTab && (advanced || !ADVANCED_TABS.includes(wantTab))) setTab(wantTab);
     if (!consumeExtHwScrollRequest()) return;
     setTab(SETTINGS_TAB_OF["外部作业源"] ?? "数据与同步");
     const t = setTimeout(() => {
@@ -279,10 +282,10 @@ export function SettingsPage() {
       <Card>
         <div className="setting-row" style={{ alignItems: "flex-start" }}>
           <div>
-            <div className="setting-title">清华电子身份（信任因子 / 密码管理）</div>
+            <div className="setting-title">清华电子身份（账号密码管理）</div>
             <div className="setting-desc">
-              在原生窗口打开 id.tsinghua.edu.cn，自动填入账号密码（有图形验证码时需手动输入）。
-              <b>删除信任因子或修改密码可能导致 OneTHU 退出登录</b>，需重新登录一次。
+              在应用内的窗口打开清华统一身份认证，自动填入账号密码（有图形验证码时需手动输入）。
+              <b>删除已保存的登录信息或修改密码，可能导致 OneTHU 退出登录</b>，需重新登录一次。
             </div>
             {eidMsg ? (
               <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }}>{eidMsg}</div>
@@ -516,8 +519,7 @@ export function SettingsPage() {
           <div>
             <div className="setting-title">恢复默认首页布局</div>
             <div className="setting-desc">
-              清除「今日」页卡片的排列、折叠与隐藏记录（onethu.home.layout /
-              onethu.home.defaults 两个本地键），下次打开首页回到默认版式（主栏：
+              清除「今日」页卡片的排列、折叠与隐藏记录，下次打开首页回到默认版式（主栏：
               日程与提醒 / 未提交作业 / 最近通知；侧栏：校园卡余额 / 今日预约 /
               今日课程 / 订阅新闻；入口卡全部隐藏）。
             </div>
@@ -535,7 +537,7 @@ export function SettingsPage() {
             <div className="setting-title">恢复默认收藏夹</div>
             <div className="setting-desc">
               删除全部用户收藏夹与折叠记录（默认一级入口不受影响，永远在左侧栏）。
-              各功能原子仍锚定在原位页面，收藏夹只是跳转入口层。
+              各功能仍在原来的页面，收藏夹只是跳转入口。
             </div>
             {favMsg ? <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }}>{favMsg}</div> : null}
           </div>
@@ -620,17 +622,8 @@ export function SettingsPage() {
         <WidgetSettingsSection />
       </Card>
       <SectionHead title="插件" />
-      <Card>
-        <div className="setting-row">
-          <div>
-            <div className="setting-title">插件管理</div>
-            <div className="setting-desc">插件的安装、启停、权限与运行记录</div>
-          </div>
-          <button className="btn" onClick={() => navigate("plugins")}>
-            进入插件页
-          </button>
-        </div>
-      </Card>
+      {/* §4.4b：插件不再是单独一页，管理界面直接嵌在这里（本分节随页签显隐整块收放） */}
+      <PluginsPage embedded />
       <SectionHead title="安全" />
       <Card>
         <div className="setting-row">
@@ -1100,7 +1093,7 @@ function ExtHwSection() {
     <div id="settings-exthw">
       <div className="setting-desc" style={{ margin: "0 2px 6px" }}>
         把各平台作业 DDL 合并到「全部作业」与「今日」；只读拉取（标题 / 课程 / 截止时间），不提交、
-        不抓题目。凭据以 AES-GCM 加盐混淆后存本机。
+        不抓题目。登录信息在本机加密保存，只用来读取作业。
       </div>
 
       {/* ── R14 19.1 / R15 20.3：雨课堂独立 Card，统一行范式 ── */}
@@ -1473,10 +1466,10 @@ function ExtHwSection() {
                 </button>
               </div>
 
-              {/* 高级：手动粘贴 Cookie（一般用户用不到） */}
+              {/* 高级：手动粘贴浏览器登录信息（一般用户用不到） */}
               <div>
                 <button className="btn btn-ghost" style={{ padding: "2px 0" }} onClick={() => setAdvanced((v) => !v)}>
-                  {advanced ? "▾" : "▸"} 高级：手动粘贴 Cookie
+                  {advanced ? "▾" : "▸"} 高级：手动粘贴浏览器登录信息
                 </button>
                 {advanced ? (
                   <div style={{ display: "grid", gap: 10, marginTop: 8 }}>
@@ -1685,8 +1678,8 @@ function UpdateRow() {
             ? "正在检查…"
             : rel == null
               ? failed
-                ? "检查失败（网络不可达或 GitHub 限流），可稍后重试"
-                : "当前版本自动与 GitHub Releases 比对"
+                ? "检查未成功（网络不通或 GitHub 忙），请稍后重试"
+                : "当前版本会自动与 GitHub 的发布页比对"
               : hasNew
                 ? `当前 v${currentVersion()} · 最新 ${rel.name}${dismissed ? "（已忽略此版本的启动提醒）" : ""}`
                 : `已是最新版本（v${currentVersion()}）`}
@@ -1750,7 +1743,7 @@ function AppearanceSection(): ReactNode {
           <div className="setting-title">主题</div>
           <div className="setting-desc">
             当前：{themes.find((th) => (snap.activeId ?? "") === th.id)?.name ?? "默认外观"}
-            {dyn ? " · 系统取色生效中，换主题会关掉取色" : ""}
+            {dyn ? " · 系统取色生效中，换主题后会自动关闭" : ""}
           </div>
         </div>
         <button className="btn" onClick={() => setPickerOpen(true)}>更改主题</button>
@@ -1811,7 +1804,7 @@ function AppearanceSection(): ReactNode {
               {dyn ? "系统取色暂不可用，已自动改用「清华紫」主题，稍后可在外观里手动更换。" : "当前系统不支持，开启后改用「清华紫」主题。"}
             </div>
           ) : (
-            <div className="setting-desc">用壁纸颜色重算全站配色，品牌色与纸面一起变。</div>
+            <div className="setting-desc">用壁纸的颜色重新计算全站配色，品牌色与背景色一起变。</div>
           )}
         </div>
         <button

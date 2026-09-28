@@ -43,7 +43,7 @@ function monogram(name: string, id: string): string {
   return (id.split(".").pop() ?? "pk").slice(0, 2).toUpperCase();
 }
 
-export function PluginsPage(): ReactNode {
+export function PluginsPage({ embedded = false }: { embedded?: boolean } = {}): ReactNode {
   const allPlugins = useSyncExternalStore(subscribe, installedPlugins);
   const cmds = useSyncExternalStore(subscribeCommands, commandsSnapshot);
   const [view, setView] = useState<"mine" | "market">("mine");
@@ -74,29 +74,36 @@ export function PluginsPage(): ReactNode {
   const liveCount = plugins.filter((p) => p.enabled && isLive(p.manifest.id)).length;
   const coreCount = plugins.filter((p) => p.embedded).length;
 
+  /* R23：视图切换回归全局 .segmented 药丸口径（此前误用 seg-track 滚动条样式，
+      全宽拉伸 + 抓手光标 + 11px 小字，与整体 UI 明显不符——霖实测）。
+      §4.4b：嵌进设置页时保留这个切换器（它是「我的插件 / 插件市场」的唯一入口），只去掉页面级大标题。 */
+  const viewSwitch = (
+    <div className="segmented" ref={segRef} style={{ marginBottom: 0 }}>
+      <span className="seg-pill" ref={pillRef} aria-hidden="true" />
+      {([["mine", "我的插件"], ["market", "插件市场"]] as const).map(([k, lbl]) => (
+        <button key={k} className={view === k ? "is-active" : ""} onClick={() => setView(k)}>
+          {lbl}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="plg-page">
-      <PageHead
-        title="插件"
-        meta={
-          <span>
-            经 <code className="plg-code">onethu.*</code> 公共接口扩展 OneTHU——权限门禁、会话自愈、
-            45s 超时由宿主统一承担
-          </span>
-        }
-        actions={
-          /* R23：视图切换回归全局 .segmented 药丸口径（此前误用 seg-track 滚动条样式，
-              全宽拉伸 + 抓手光标 + 11px 小字，与整体 UI 明显不符——霖实测） */
-          <div className="segmented" ref={segRef} style={{ marginBottom: 0 }}>
-            <span className="seg-pill" ref={pillRef} aria-hidden="true" />
-            {([["mine", "我的插件"], ["market", "插件市场"]] as const).map(([k, lbl]) => (
-              <button key={k} className={view === k ? "is-active" : ""} onClick={() => setView(k)}>
-                {lbl}
-              </button>
-            ))}
-          </div>
-        }
-      />
+      {embedded ? (
+        <div className="plg-embed-bar" style={{ marginBottom: 12 }}>{viewSwitch}</div>
+      ) : (
+        <PageHead
+          title="插件"
+          meta={
+            <span>
+              经 <code className="plg-code">onethu.*</code> 公共接口扩展 OneTHU——权限门禁、会话自愈、
+              45s 超时由宿主统一承担
+            </span>
+          }
+          actions={viewSwitch}
+        />
+      )}
 
       {/* 电表概览条 */}
       <div className="plg-stats">
