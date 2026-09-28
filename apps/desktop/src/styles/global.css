@@ -2796,6 +2796,7 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
       "time sep chip caret";
     row-gap: 8px;
     align-items: center;
+  }
   
   html.is-phone .list .row-click .tl-main { grid-area: main; }
   html.is-phone .list .row-click .tl-time { grid-area: time; font-size: var(--text-sm); }
