@@ -7,6 +7,7 @@
  * 万物原子化定案：这些组件是「组件原子」，收藏夹里点标题跳回原位功能页。
  */
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { WEEKDAYS } from "../lib/dateText.js";
 import { Card, Empty, SkeletonRows } from "../components/Layout.js";
 import { IconCard, IconChevron } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
@@ -23,7 +24,8 @@ import { useCountUp } from "../lib/motion.js";
 /** 轻路由签名（与 AppState.navigate 一致） */
 export type Nav = (page: Page, params?: LearnNav) => void;
 
-export const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
+// 星期名与日期文案统一收在 lib/dateText.ts（无 JSX，护栏可直接 import 做行为测试）
+export { WEEKDAYS };
 
 /** 本地日期 "YYYY-MM-DD"（与 core getSchedule 的 nq 同口径） */
 export function ymd(d: Date): string {

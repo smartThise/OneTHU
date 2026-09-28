@@ -25,6 +25,7 @@ import {
   RowClick, SECTION_OF, WEEKDAYS, calDaysUntil, deadlineMs, countdownChip, ymd,
   type AgendaRow,
 } from "../components/HomeWidgets.js";
+import { fmtMonthDayWeek } from "../lib/dateText.js";
 import {
   buildHomeRegistry, loadCollapsedDefaults, loadLayout, resolveLayout,
   saveCollapsedDefaults, saveLayout, type HomeOrientation,
@@ -741,7 +742,7 @@ export function TodayPage() {
         title="今日"
         meta={
           (expanded ? greetWord + " · " : "") +
-          now.getMonth() + 1 + "月" + now.getDate() + "日 星期" + WEEKDAYS[now.getDay()] +
+          fmtMonthDayWeek(now) +
           (data?.user ? " · " + data.user.name : "")
         }
         actions={
