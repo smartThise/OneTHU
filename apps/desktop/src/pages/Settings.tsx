@@ -13,7 +13,8 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { clearRemembered, loadRemembered, session, isTauri } from "../lib/clients.js";
 import { clearHomeLayout } from "../lib/homeCards.js";
 import { useFavs } from "../state/favs.js";
-import { activateTheme, deactivateTheme, setDayNightTheme, setFollowSystem, useThemes } from "../state/theme.js";
+import { setDayNightTheme, setFollowSystem, useThemes } from "../state/theme.js";
+import { ThemePickerModal } from "../components/ThemePickerModal.js";
 import { parseFavs, resetFavs } from "../state/favorites.js";
 import { confirmOk } from "../lib/confirm.js";
 import { useApp } from "../state/context.js";
@@ -1699,6 +1700,7 @@ function AppearanceSection(): ReactNode {
      桌面与 Android < 12 都返回"不可用"——此时开关置灰而不是隐藏，让用户知道原因。 */
   const [dyn, setDyn] = useState(isDynamicEnabled());
   const [dynOk, setDynOk] = useState<boolean | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   useEffect(() => {
     let alive = true;
     void fetchSystemPalette().then((p) => {
@@ -1723,34 +1725,16 @@ function AppearanceSection(): ReactNode {
   const themes = [{ id: "", name: "基础令牌（默认外观）" }, ...snap.themes.map((t) => ({ id: t.id, name: t.dark ? `${t.name}（暗色）` : t.name }))];
   return (
     <div className="setting-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
-      {/* 主题切换（§4.4）：切换归设置、安装/卸载归插件页——只保留一个切换入口，避免双头管理 */}
-      <div>
-        <div className="setting-title">主题</div>
-        <div className="setting-desc">
-          {dyn
-            ? "系统取色生效中：点任一主题会关掉取色，改用该主题。"
-            : "点一下立即生效。主题插件的安装与卸载在「插件」页。"}
+      {/* 主题（§4.4）：只留一个「更改主题」入口，色卡预览与主题市场都在二级菜单里 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
+        <div>
+          <div className="setting-title">主题</div>
+          <div className="setting-desc">
+            当前：${themes.find((th) => (snap.activeId ?? "") === th.id)?.name ?? "基础令牌（默认外观）"}
+            ${dyn ? " · 系统取色生效中，换主题会关掉取色" : ""}
+          </div>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-          {themes.map((th) => {
-            const on = (snap.activeId ?? "") === th.id;
-            return (
-              <button
-                key={th.id}
-                className={"btn " + (on ? "btn-primary" : "btn-ghost")}
-                aria-pressed={on}
-                title={on ? "当前使用中" : "应用「" + th.name + "」"}
-                onClick={() => {
-                  if (th.id) activateTheme(th.id);
-                  else deactivateTheme();
-                }}
-              >
-                {th.name}
-                {on ? " · 使用中" : ""}
-              </button>
-            );
-          })}
-        </div>
+        <button className="btn" onClick={() => setPickerOpen(true)}>更改主题</button>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
         <div>
@@ -1824,6 +1808,7 @@ function AppearanceSection(): ReactNode {
           生效中：关掉开关即恢复所选主题。
         </div>
       ) : null}
+      <ThemePickerModal open={pickerOpen} onClose={() => setPickerOpen(false)} />
     </div>
   );
 }

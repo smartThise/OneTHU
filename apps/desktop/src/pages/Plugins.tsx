@@ -26,7 +26,7 @@ import { clearPluginEvents, pluginEvents, subscribePluginEvents } from "../plugi
 import { notifyRust } from "../plugins/rust.js";
 import { PLUGIN_PERMISSIONS } from "../plugins/types.js";
 import { collectWidgetSlots } from "../plugins/pluginWidgets.js";
-import { removeTheme, restoreBuiltins, useThemes, type ThemeDef } from "../state/theme.js";
+import { useThemes } from "../state/theme.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -145,7 +145,6 @@ export function PluginsPage(): ReactNode {
         </button>
       </div>
 
-      {cat === "theme" || cat === "all" ? <ThemeManagerSection /> : null}
 
       {plugins.length === 0 && cat !== "theme" ? (
         <div className="plg-empty">
@@ -158,7 +157,7 @@ export function PluginsPage(): ReactNode {
         </div>
       ) : plugins.length === 0 && cat === "theme" ? (
         <div style={{ fontSize: "var(--text-sm)", color: "var(--text-3)", padding: "6px 2px" }}>
-          暂无主题插件——上方主题区即全部可用主题（内置可删可恢复）。
+          暂无主题插件——换主题、装主题都在 设置 → 外观 →「更改主题」里。
         </div>
       ) : (
         <div className="plg-rack">
@@ -178,131 +177,6 @@ export function PluginsPage(): ReactNode {
       ) : null}
         </>
       )}
-    </div>
-  );
-}
-
-/** 主题色卡：从 vars 抽 accent/soft/bg 三色出预览（缺省回退令牌默认） */
-function ThemeSwatch({ vars }: { vars: Record<string, string> }): ReactNode {
-  const accent = vars["--accent"] ?? "#4176e6";
-  const soft = vars["--accent-soft"] ?? "#edf3fe";
-  const bg = vars["--bg"] ?? "#ffffff";
-  return (
-    <span className="theme-swatch" style={{ background: soft, display: "inline-flex", gap: 3, padding: 3, borderRadius: 6, flex: "none" }}>
-      <i style={{ width: 14, height: 14, borderRadius: 4, background: accent }} />
-      <i style={{ width: 14, height: 14, borderRadius: 4, background: bg, boxShadow: "inset 0 0 0 1px rgba(0,0,0,.08)" }} />
-    </span>
-  );
-}
-
-/** 主题管理区（插件页 · 主题页签）：内置主题 + 插件安装的主题一页全管 */
-function ThemeManagerSection(): ReactNode {
-  const snap = useThemes();
-  const plugins = useSyncExternalStore(subscribe, installedPlugins);
-  const [msg, setMsg] = useState<string | null>(null);
-  /** 主题所属插件：优先安装时写入的 owner（同一插件可换主题 id），
-   *  退化到「主题 id 与插件 id 同名」的文档约定（历史记录没有 owner） */
-  const ownerOf = (t: ThemeDef): string | null => {
-    if (t.owner && plugins.some((p) => p.manifest.id === t.owner)) return t.owner;
-    if (plugins.some((p) => p.manifest.id === t.id)) return t.id;
-    return null;
-  };
-  /** 删除插件主题：主题定义由插件提供，只删定义会留下「孤儿插件卡」（用户实锤：
-   *  主题区删了、插件管理里还在）。有归属插件时按「卸载插件」处理，插件卸载路径
-   *  会回收主题定义，两处状态因此始终一致。 */
-  const delTheme = async (t: ThemeDef): Promise<void> => {
-    const owner = ownerOf(t);
-    if (!owner) {
-      removeTheme(t.id);
-      setMsg(`已删除「${t.name}」`);
-      return;
-    }
-    const { confirmOk } = await import("../lib/confirm.js");
-    const yes = await confirmOk(`删除主题「${t.name}」将同时卸载插件「${owner}」，其设置与命令一并移除。继续？`);
-    if (!yes) return;
-    try {
-      await uninstallPlugin(owner);
-      setMsg(`已删除「${t.name}」及插件「${owner}」`);
-    } catch (e) {
-      setMsg(`删除失败：${String(e).slice(0, 100)}`);
-    }
-  };
-  return (
-    <div
-      style={{
-        border: "1px solid var(--border)", borderRadius: "var(--r-lg)",
-        background: "var(--surface)", padding: "10px 12px", marginBottom: 10,
-      }}
-    >
-      {msg ? (
-        <div style={{ fontSize: "var(--text-sm)", color: "var(--accent)", marginBottom: 8 }}>{msg}</div>
-      ) : null}
-      {snap.themes.length === 0 ? (
-        <div style={{ fontSize: "var(--text-sm)", color: "var(--text-3)" }}>机架空空——所有主题都被删掉了。</div>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 8 }}>
-          {snap.themes.map((t) => {
-            const on = snap.activeId === t.id;
-            return (
-              <div
-                key={t.id}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10, padding: "8px 10px",
-                  border: `1px solid ${on ? "var(--accent)" : "var(--border)"}`,
-                  borderRadius: "var(--r-md)", background: on ? "var(--accent-soft)" : "var(--surface)",
-                }}
-              >
-                <ThemeSwatch vars={t.vars} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* R23（霖实测：小屏主题名被挤成竖排）：名字独占整行（wrap 后元信息另起），
-                      名字自身 nowrap+ellipsis+title——再长的名字也不会逐字换行破坏协调 */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    <b
-                      title={t.name}
-                      style={{
-                        minWidth: 0, maxWidth: "100%", overflow: "hidden",
-                        textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "var(--text-base)",
-                      }}
-                    >
-                      {t.name}
-                    </b>
-                    <span style={{ fontSize: "var(--text-xs)", color: "var(--text-3)" }}>v{t.version}</span>
-                    {t.source === "plugin" ? (
-                      <span className="chip" style={{ height: 16, fontSize: 9.5, padding: "0 6px" }} title={ownerOf(t) ? `来自插件 ${ownerOf(t)}` : undefined}>
-                        插件
-                      </span>
-                    ) : null}
-                  </div>
-                  <div style={{ fontSize: "var(--text-xs)", color: "var(--text-3)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {t.description ?? t.id}
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 4, flex: "none" }}>
-                  {on ? (
-                    <span className="chip" title="当前使用中">使用中</span>
-                  ) : null}
-                  {t.source === "plugin" ? (
-                    <button
-                      className="btn btn-ghost"
-                      title={ownerOf(t) ? `删除主题并卸载插件 ${ownerOf(t)}` : "删除主题（内置主题不可删除）"}
-                      onClick={() => void delTheme(t)}
-                    >
-                      删除
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {snap.deletedBuiltins.length > 0 ? (
-        <div style={{ marginTop: 8 }}>
-          <button className="btn" onClick={() => setMsg(`已恢复 ${restoreBuiltins()} 个内置主题`)}>
-            恢复内置主题（{snap.deletedBuiltins.length} 个已删）
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }
