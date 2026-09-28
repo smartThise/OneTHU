@@ -4,6 +4,9 @@
  * 布局：上「已安装」、下「主题市场」，共用顶部搜索（套用插件市场的匹配口径：名称/描述/作者/标签）。
  * 已安装的社区主题同时出现在两栏（市场栏显示「已安装」，不可重复安装）。
  * 骨架沿用 TabManageModal：portal + mask/panel，PC 右推面板、手机底部抽屉（B3b），同款退场动画。
+ * 横向纪律（用户实锤：右侧「应用/卸载」被推出屏幕，要手动横滑）：网格列一律 minmax(0,1fr)、
+ * 网格项 min-width:0，且不渲染不可断行的裸仓库地址——否则子项 min-content 会把列撑开，
+ * 整个正文容器横向溢出，所有行的右侧按钮一起被推出可视区。
  * 高度纪律：面板自身 maxHeight 封顶，正文容器 flex:1 + min-height:0 才能内部滚动——
  * 少了 min-height:0，列向 flex 子项默认 min-height:auto，内容会把面板撑出屏幕（用户实锤）。
  */
@@ -17,7 +20,7 @@ import { installedPlugins, subscribe, uninstallPlugin } from "../plugins/loader.
 import { confirmOk } from "../lib/confirm.js";
 
 const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 0 };
-const panelStyle: React.CSSProperties = { animation: "m-sheet-up 260ms var(--md-sys-motion-easing-emphasized-decelerate, ease-out) both", width: "100%", maxWidth: "100%", maxHeight: "92dvh", display: "flex", flexDirection: "column", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: "var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-large) 0 0", paddingBottom: "env(safe-area-inset-bottom)", boxShadow: "0 18px 50px rgba(0,0,0,.28)" };
+const panelStyle: React.CSSProperties = { animation: "m-sheet-up 260ms var(--md-sys-motion-easing-emphasized-decelerate, ease-out) both", width: "100%", minWidth: 0, overflow: "hidden", maxWidth: "100%", maxHeight: "92dvh", display: "flex", flexDirection: "column", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: "var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-large) 0 0", paddingBottom: "env(safe-area-inset-bottom)", boxShadow: "0 18px 50px rgba(0,0,0,.28)" };
 const maskOut: React.CSSProperties = { animation: "m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both" };
 const panelOut: React.CSSProperties = { animation: "m-pop-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both" };
 const maskStylePc: React.CSSProperties = { ...maskStyle, background: "rgba(0,0,0,.18)", alignItems: "center", justifyContent: "flex-end", padding: 0 };
@@ -153,7 +156,7 @@ export function ThemePickerModal({ open, onClose }: { open: boolean; onClose: ()
           <button className="btn" onClick={requestClose}>✕</button>
         </div>
 
-        <div style={{ padding: "10px 16px 16px", overflowY: "auto", flex: 1, minHeight: 0 }}>
+        <div style={{ padding: "10px 16px 16px", overflowY: "auto", overflowX: "hidden", flex: 1, minHeight: 0, minWidth: 0 }}>
           <input
             className="input"
             style={{ width: "100%" }}
@@ -168,7 +171,7 @@ export function ThemePickerModal({ open, onClose }: { open: boolean; onClose: ()
             <button className="btn btn-ghost" onClick={() => setMsg("已恢复 " + restoreBuiltins() + " 个内置主题")}>恢复内置</button>,
           )}
           {installedThemes.length === 0 ? <div className="plg-hint">没有匹配的已安装主题。</div> : null}
-          <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "grid", gap: 8, gridTemplateColumns: "minmax(0, 1fr)" }}>
             {/* 基础令牌不在 snap.themes 里（它不是 ThemeDef），所以单列一行，
                 否则切了主题就回不到默认外观了。 */}
             {hit(["默认外观", "基础令牌"]) ? (
@@ -198,7 +201,7 @@ export function ThemePickerModal({ open, onClose }: { open: boolean; onClose: ()
                 <div
                   key={t.id}
                   style={{
-                    display: "flex", alignItems: "center", gap: 10, padding: "8px 10px",
+                    display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", minWidth: 0,
                     border: "1px solid " + (on ? "var(--accent)" : "var(--border)"),
                     borderRadius: "var(--r-md)", background: on ? "var(--accent-soft)" : "var(--surface)",
                   }}
@@ -229,11 +232,11 @@ export function ThemePickerModal({ open, onClose }: { open: boolean; onClose: ()
           )}
           {!items && busy ? <div className="plg-hint">正在拉取主题市场…</div> : null}
           {items && !marketHits.length ? <div className="plg-hint">没有匹配的主题。</div> : null}
-          <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "grid", gap: 8, gridTemplateColumns: "minmax(0, 1fr)" }}>
             {marketHits.map((x) => {
               const has = hasInMarket(x);
               return (
-                <div key={x.id} className="market-card" style={{ margin: 0 }}>
+                <div key={x.id} className="market-card" style={{ margin: 0, minWidth: 0, maxWidth: "100%" }}>
                   <div className="market-card-head">
                     <span className="market-card-name">
                       {x.name}
@@ -241,15 +244,15 @@ export function ThemePickerModal({ open, onClose }: { open: boolean; onClose: ()
                     </span>
                   </div>
                   <div className="market-card-meta">v{x.version}{x.author ? " · " + x.author : ""}</div>
-                  <div className="market-card-desc">{x.description || x.repo}</div>
+                  <div className="market-card-desc" style={{ overflowWrap: "anywhere" }}>{x.description || x.repo}</div>
                   {x.tags?.length ? (
                     <div className="market-card-tags">
                       {x.tags.map((tag) => <span key={tag} className="market-tag">{tag}</span>)}
                     </div>
                   ) : null}
                   <div className="market-card-foot">
-                    <span className="market-repo-link">{x.repo}</span>
-                    <button className="btn btn-primary" disabled={busy || has} onClick={() => void install(x)}>
+                    <span style={{ fontSize: "var(--text-xs)", color: "var(--text-3)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.repo}</span>
+                    <button className="btn btn-primary" style={{ flex: "none" }} disabled={busy || has} onClick={() => void install(x)}>
                       {has ? "已安装" : busy ? "…" : "安装"}
                     </button>
                   </div>
