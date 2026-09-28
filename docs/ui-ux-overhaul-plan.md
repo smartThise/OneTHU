@@ -284,9 +284,15 @@
 
 ### 3.4 动态取色（Android 12+）
 
-- [ ] `plugins/onethu-mobile` 新增 `getDynamicColor()` 命令，读取系统 monet 取色返回 seed/tone；
-- [ ] 前端注入 Reference 层变量，Compat 层自动生效；
-- [ ] 降级链：Android 12+ 取色 → 清华紫 → 跟随系统亮暗。设置中提供"跟随系统取色"开关。
+- [x] `plugins/onethu-mobile` 新增 `getDynamicColor()` 命令（Rust: src-tauri/src/lib.rs dynamic_color → run_mobile_plugin_async("getDynamicColor")，supported=false 时返回 None 走降级），读取系统 monet 取色返回 seed/tone；
+- [x] 前端注入 Reference 层变量，Compat 层自动生效（src/lib/dynamicColor.ts：注入 <style id="onethu-dynamic-color">，选择器 html:root[data-dynamic="on"] 特异性高于令牌/暗色套/主题注入，关开关即整体移除）；
+- [x] 降级链：Android 12+ 取色 → 清华紫 → 跟随系统亮暗。设置中提供"跟随系统取色"开关。
+
+
+**真机取证（2026-02，Android 16 / SDK 36，设备 3540f5d7）**：开关默认开启且可用（原生探活成功，未落降级）；`localStorage["onethu.dynamicColor"]="1"`；注入的样式表 2091 字符、`html[data-dynamic="on"]` 生效。
+判据：**基础令牌 primary = `#0f1115`（近黑的中性默认），取色生效时 primary = `#35618E`（系统壁纸来的蓝）** —— 注入确实不是默认值，系统调色板真的落到了 Compat 变量上。
+未测清的一处：用 CDP 点开关测"关掉后 primary 变回什么"时，异步链路（退场 → 还原主题 → 重注入）比读取慢，多次点击/读取对不上时序，**没有拿到干净的关闭态读数**；开关最终已还原为开启。
+已知细节：`dynamicRoles.ts` 未映射 `tertiary` 角色（注入表里 `--md-sys-color-tertiary` 为空）。核实过影响面：该变量目前**只有调色板定义、没有组件消费**，所以取色开启时不会出现观感不一致，属于完备性小缺口。
 
 ### 3.5 组件分期迁移（5 个独立可回滚 PR）
 
