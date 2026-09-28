@@ -4,7 +4,6 @@ import { loadTabLayout, saveTabLayout, type TabLayout } from "../lib/tabLayout.j
 import type { ReactNode } from "react";
 import { Card, PageHead, SectionHead, SegmentedOverflow, Switch } from "../components/Layout.js";
 import { TabManageModal } from "../components/TabManageModal.js";
-import { resetOnboarding } from "../state/onboarding.js";
 import { NotifySettingsSection } from "../components/NotifySettingsSection.js";
 import { WidgetSettingsSection } from "../components/WidgetSettingsSection.js";
 import { invoke } from "@tauri-apps/api/core";
@@ -59,6 +58,7 @@ import {
 import { buildYktCookieExportJson, parseYktCookieExportJson, SOURCE_CATEGORY_NAMES, SOURCE_NAMES } from "@onethu/core";
 import type { ExtHwCreds, ExtHwSourceId, TuojSourceId } from "@onethu/core";
 import { ErrorLine } from "../components/Details.js";
+import { resetActiveOnboarding, setOnboardingFlow, useOnboardingFlow } from "../state/onboarding.js";
 
 /** 设置分组（按"你要改什么"索引，而不是按功能罗列）——
  *  点一下即滚动到对应分节；分节标题保持原位，不重排大段 JSX（低风险）。 */
@@ -101,6 +101,7 @@ const ADVANCED_TABS = ["插件"];
 export function SettingsPage() {
   /** 当前二级页签（默认第一个栏目） */
   const [tab, setTab] = useState<string>(SETTINGS_TAB_ORDER[0] ?? "账号");
+  const onboardingFlow = useOnboardingFlow(); // §4.2 灰度：首启流程开关（仅高级模式可见）
   /** 标准 / 高级分层（§4.4） */
   const advanced = useAdvancedMode();
   const settingsTabLayout: TabLayout = loadTabLayout("settings", SETTINGS_TAB_ORDER);
@@ -212,7 +213,7 @@ export function SettingsPage() {
             <button
               className="btn"
               onClick={() => {
-                resetOnboarding();
+                resetActiveOnboarding();
                 location.reload();
               }}
               title="重新运行首次使用引导"
@@ -270,6 +271,19 @@ export function SettingsPage() {
           </div>
           <Switch on={advanced} onChange={setAdvancedMode} label="高级模式" />
         </div>
+        {advanced ? (
+          <div className="setting-row">
+            <div>
+              <div className="setting-title">新首启流程</div>
+              <div className="setting-desc">下一版首启只问三件事，可全部跳过；确认没问题后再默认开启。</div>
+            </div>
+            <Switch
+              on={onboardingFlow === "v2"}
+              onChange={(v) => setOnboardingFlow(v ? "v2" : "v1")}
+              label="新首启流程"
+            />
+          </div>
+        ) : null}
       </Card>
 
       <SectionHead title="账户" />
