@@ -46,6 +46,32 @@ assert.ok(/data-coach="home-collapse"/.test(today), "卡片折叠控件上没有
 assert.ok(/data-card=\{def\.id\}/.test(today), "卡片外壳没暴露 id，引导指不到具体卡片");
 assert.ok(/<HomeCoachMarks \/>/.test(today), "首页没有挂上引导组件");
 
+// ④ 每个锚点都要真的指得到东西——"第三条静默消失"就是这么来的
+/** 剥掉注释再扫锚点：注释里提到某个锚点，不该被当成真的用了它 */
+const stripComments = (s) =>
+  s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+const coachCode = stripComments(coach);
+
+const homeCards = readFileSync("apps/desktop/src/lib/homeCards.ts", "utf8");
+const cardIds = new Set([...homeCards.matchAll(/\{ id: "([^"]+)", title:/g)].map((m) => m[1]));
+assert.ok(cardIds.size >= 15, "首页卡片 id 解析失败（" + cardIds.size + "）");
+const cardTargets = [...coachCode.matchAll(/data-card="([^"]+)"/g)].map((m) => m[1]);
+for (const id of cardTargets) {
+  assert.ok(cardIds.has(id), "引导指着 data-card=\"" + id + "\"，但首页没有这张卡（id 写错了？）");
+}
+const coachTargets = [...coachCode.matchAll(/data-coach="([^"]+)"/g)].map((m) => m[1]);
+assert.ok(coachTargets.length >= 2, "引导锚点太少：" + coachTargets.length);
+for (const name of coachTargets) {
+  assert.ok(
+    today.includes('data-coach="' + name + '"'),
+    "引导指着 data-coach=\"" + name + "\"，但「今日」页没有这个锚点",
+  );
+}
+assert.ok(
+  /const found = TIPS\.filter\(\(x\) => document\.querySelector\(x\.target\)\)/.test(coach),
+  "引导条数必须按真正能指的条数算，不能拿写死的 3 当分母",
+);
+
 console.log(
   "帮助与引导护栏：帮助 " + helpIds.length + " 个入口全部命中注册表（" + registryIds.size + " 条）✓ / " +
   "跳转取自注册表 ✓ / 设置「帮助」栏两处一致 ✓ / 首页引导 " + tipCount + " 条、可关、可跳过 ✓",
