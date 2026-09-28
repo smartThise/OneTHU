@@ -250,6 +250,17 @@ EXIT_MS 与 --dur-2（short-4 = 200ms）同源。关闭入口一个都不能漏�
 
 **护栏**：`tools/nav-shell-test.mjs`（已进 `pnpm guard`）。注意同名规则在文件里可能有多处、且多档媒体查询都叫 `max-width: 839.98px`，**一律按内容特征挑真身**，不要用下标——护栏第一版就在这上面误读过 `.bottom-nav { display: none }`。
 
+### 3.5 列表项与行
+
+行家族（邮箱、云盘、服务目录、待办、组件绑定、弹窗内行）是最容易各自长歪的一类：
+
+- **圆角**：一律走 System 形状令牌（--md-sys-shape-corner-medium），**不写 border-radius: 10px 这类字面值**；
+- **分隔线**：色块优先、描边辅助（§3 总则），要描边就用 --md-sys-color-outline-variant，不要用 Compat 的 --border-soft；
+- **状态层**：交互行必须有反馈——hover 一档、press 再深一档，用 --md-sys-color-surface-container → 其 -high 档递进；
+- **字面色值**：行类里不允许出现 #rgb / rgba()。
+
+护栏 tools/list-row-test.mjs（已进 pnpm guard）：按行类取规则体，逐条检查圆角/描边/字面色值与状态层。新加行样式时它会直接拦下来。
+
 ## 4. 用色：中性打底，彩色点睛
 
 - **正文区保持中性 surface**；彩色 surface（tonal container）只用于两处：「今日」卡片、功能分组头。

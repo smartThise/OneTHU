@@ -110,7 +110,7 @@
   flex: none;
   margin-top: auto;
   padding: 10px 8px 2px;
-  border-top: 1px solid var(--border-soft);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
 }
 
 .foot-badge {
@@ -183,7 +183,7 @@
   align-items: center;
   gap: 14px;
   padding: 11px 16px;
-  border-top: 1px solid var(--border-soft);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
   transition: background 100ms ease;
   animation: row-in 260ms ease both;
   min-width: 0;
@@ -388,7 +388,7 @@
   display: flex;
   gap: 12px;
   padding: 10px 16px;
-  border-top: 1px solid var(--border-soft);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
 }
 
 .tl-item:first-child { border-top: 0; }
@@ -483,6 +483,7 @@
 .app-card:hover::after,
 .mail-row:hover::after,
 .wb-row:hover::after { opacity: 1; }
+.wb-row:active { background: var(--md-sys-color-surface-container-high); }
 .btn:active::after,
 .icon-btn:active::after,
 .chip:active::after,
@@ -888,7 +889,7 @@
   justify-content: space-between;
   gap: 20px;
   padding: 13px 16px;
-  border-top: 1px solid var(--border-soft);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
 }
 
 .setting-row:first-child { border-top: 0; }
@@ -1127,7 +1128,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 7px 16px;
-  border-top: 1px solid var(--border-soft);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
   font-size: var(--text-sm);
   line-height: 20px;
 }
@@ -1541,7 +1542,7 @@
 
 /* 展开的 bespoke 卡：标题行下加分隔线（折叠/入口卡不需要） */
 .home-card:not(.is-collapsed):not(.home-entry) .home-card-head {
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
 
 /* 标题按钮（bespoke）：整行可点 = 折叠/展开 */
@@ -1763,7 +1764,7 @@
   align-items: center;
   gap: 12px;
   padding: 10px 0;
-  border-top: 1px solid var(--border-soft);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
   min-width: 0;
 }
 
@@ -2084,7 +2085,7 @@
     gap: 8px;
     background: var(--bg, #050505);
     border-right: 0;
-    border-bottom: 1px solid var(--border-soft);
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
   }
   /* 收缩链：sidebar 子项默认 min-width:auto，nav 内容多宽它就被撑多宽（563px 事故根源） */
   .sidebar > * { min-width: 0; }
@@ -3366,7 +3367,7 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
   justify-content: space-between;
   gap: 8px;
   padding: 9px 10px 8px 12px;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
   background: var(--surface-2);
 }
 .dock-title { display: inline-flex; align-items: center; gap: 7px;  font-size: var(--text-sm); font-weight: 600; color: var(--text-1); }
@@ -3549,7 +3550,7 @@ html.is-phone .dock-head .dock-btn:not(.dock-ico) { height: 28px; padding: 0 10p
   align-items: flex-end;
   gap: 6px;
   padding: 8px 10px;
-  border-top: 1px solid var(--border-soft);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
   background: var(--md-sys-color-surface-container-lowest);
 }
 .dock-input {
@@ -3574,7 +3575,7 @@ html.is-phone .dock-head .dock-btn:not(.dock-ico) { height: 28px; padding: 0 10p
   align-items: center;
   gap: 10px;
   padding: 5px 12px 7px;
-  border-top: 1px solid var(--border-soft);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
   font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--text-3);
@@ -4051,7 +4052,7 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   gap: 10px;
   padding: 10px 12px;
   border: 0;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
   background: transparent;
   cursor: pointer;
   text-align: left;
@@ -4167,7 +4168,7 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
   flex: none;
 }
 .mail-compose-head h2 { font-size: var(--text-md); margin: 0; }
@@ -4336,7 +4337,7 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
   cursor: pointer;
 }
 .cloud-row:last-child {
@@ -5221,9 +5222,9 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 10px 10px;
+  padding: 10px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: none;
   color: var(--text-1);
   font: inherit;
@@ -5231,7 +5232,8 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.svc-row:hover { background: var(--surface-2); }
+.svc-row:hover { background: var(--md-sys-color-surface-container); }
+.svc-row:active { background: var(--md-sys-color-surface-container-high); }
 .svc-row:active { transform: scale(0.99); }
 .svc-row-icon { display: inline-flex; color: var(--text-2); }
 .svc-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -5327,7 +5329,7 @@ section > .svc-label { margin-top: 14px; }
   width: 100%;
   padding: 10px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: none;
   color: var(--text-1);
   font: inherit;
@@ -5335,7 +5337,8 @@ section > .svc-label { margin-top: 14px; }
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.task-row:hover { background: var(--surface-2); }
+.task-row:hover { background: var(--md-sys-color-surface-container); }
+.task-row:active { background: var(--md-sys-color-surface-container-high); }
 .task-row:active { transform: scale(0.99); }
 .task-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .task-row-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

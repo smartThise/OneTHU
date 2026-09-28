@@ -277,7 +277,7 @@
 | 批次 | 范围 | MD3 模式 | 验收点 |
 |------|------|----------|--------|
 | B1 ✅ | 按钮/pill/FAB + 新增 `Ripple.tsx`（2026-02 落地：状态层 8%/12%、焦点环令牌化、禁用 38%、触摸涟漪） | filled/tonal/text；统一涟漪；`prefers-reduced-motion` 降级 | 全应用按钮一致 |
-| B2 ✅（卡片）/ 列表项待 B2b | 卡片/列表项 | elevated/filled 卡片、`--shape-l` 圆角、分层底色去描边 | 「今日」卡流成立 |
+| B2 ✅ | 卡片/列表项 | elevated/filled 卡片、`--shape-l` 圆角、分层底色去描边 | 「今日」卡流成立 |
 | B3 ✅（输入/表单 + 手机底部抽屉 + 弹层退场相位） | 输入/表单/modal | outlined field；移动端 modal → bottom sheet | 登录/设置表单统一 |
 | B4 ✅ | 导航/tab/底栏 | 移动端 navigation bar + active indicator 胶囊；**PC 侧边栏升级为 navigation rail（§2.8.1）**；顶部大标题 | 新 IA 壳双端成型 |
 | B5 | chip/开关/进度/骨架屏/空状态 | 对应规范 | 全局截图走查 |
@@ -296,6 +296,7 @@
 
 **B3c 弹层退场相位（大部分已落地，真机复验通过）**：新增共用 hook apps/desktop/src/lib/useExitPhase.ts
 **清尾记录（2026-02，B2b + B3c）**：
+- **B2b 列表项已落地**：行家族（邮箱/云盘/服务目录/待办/组件绑定/弹窗内行）圆角与描边走 System 令牌、交互行补齐 hover/press 状态层；新护栏 `tools/list-row-test.mjs`（guard 共 23 项）。分隔线换令牌是全局替换（不止行类），见手册 §3.5。
 - **过期结论已更正**：本节上方「多 tab 页切换 tab 时 tab 条左右移位」的旧记录已作废——真因是 PC 上 `::-webkit-scrollbar` 占布局（内容高度变化时出现/消失，整页横移），已由根容器 `scrollbar-gutter: stable` + `overflow-y: scroll` 修掉并经用户验收。结论与护栏见手册 §3.1、`tools/scrollbar-test.mjs`。
 - **`.dock-panel` 退场已在 B3c 落地**（`plugins/ChatDock.tsx` 挂 `.is-closing` + `.dock-panel-out`），旧待办项失去意义，移出清单。
 - 本轮补上：`.hwremind-pop`（作业提醒浮层）与 `.trace-card`（地图浮卡）的退场相位，以及 `WidgetBindModal` 夹选择浮层的独立退场（它是模态内的二级视图，遮罩与面板必须同一相位）。
