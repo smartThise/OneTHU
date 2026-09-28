@@ -3246,6 +3246,17 @@ html.is-phone .course-card-sub { overflow-wrap: normal; }
     border-radius: var(--r-pill);
     background: var(--md-sys-color-outline-variant);
   }
+
+  /* ConnectGate（§4.3）：手机贴底抽屉抓手，口径同主题选择面板 */
+  .connect-gate-panel::before {
+    content: "";
+    flex: none;
+    width: 32px;
+    height: 4px;
+    margin: 8px auto 0;
+    border-radius: var(--r-pill);
+    background: var(--md-sys-color-outline-variant);
+  }
 }
 
 /* 旧通用提示 toast（第三方 JS 插件可能引用） */

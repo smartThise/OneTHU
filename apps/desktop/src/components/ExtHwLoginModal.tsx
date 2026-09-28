@@ -52,7 +52,8 @@ const YKT_CHANNELS: Array<{ key: YktChannel; label: string; hint: string; disabl
 ];
 
 /** 合并写入雨课堂凭据（保留 TUOJ/Tyche 等既有配置）后刷新 */
-async function saveYuketang(cookie: string): Promise<void> {
+/** 供 ConnectGate（§4.3）复用：扫码/网页登录拿到 cookie 后的落地（保存 + 刷新 + 心跳） */
+export async function saveYuketang(cookie: string): Promise<void> {
   const c = await ensureExtHwCredsLoaded();
   await saveExtHwCreds({
     ...c,
