@@ -36,6 +36,17 @@ assert.ok(
 
 // ②b 楼栋这一问必须"有人用"：下拉选择 + 与洗衣机页共用同一份记忆
 assert.ok(/<SearchSelect/.test(v2), "楼栋要用下拉（可搜索），不是自由填写");
+
+// ②c 下拉必须挂到 body 上：首启卡片自己会滚（overflow），面板留在原地就会被裁掉
+//     ——霖实测"下拉被局限在卡片里，啥都看不到"
+const ss = readFileSync("apps/desktop/src/components/SearchSelect.tsx", "utf8");
+assert.ok(/createPortal\(menu, document\.body\)/.test(ss), "下拉面板要 portal 到 body，否则会被祖先 overflow 裁掉");
+assert.ok(
+  /position: "fixed"/.test(ss) && /getBoundingClientRect\(\)/.test(ss),
+  "面板要按触发按钮的 rect 做 fixed 定位（不能靠 absolute 跟着流）",
+);
+assert.ok(/box\.up/.test(ss), "下面放不下时要能向上翻，否则贴着屏幕底部的下拉看不见");
+assert.ok(/zIndex: PANEL_Z \+ 1/.test(ss), "面板层级要在应用内弹层之上（导览是 2000）");
 assert.ok(
   !/<input[\s\S]{0,200}(楼|公寓)/.test(v2),
   "楼栋这一问不该出现自由填写输入框——选一个不存在的楼栋，洗衣机页认不出来",
