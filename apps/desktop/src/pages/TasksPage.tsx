@@ -14,6 +14,7 @@
  * 数据全复用既有层（useLearnData/exthw/hwIgnore/hwCard/news），零新取数。
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { IconX } from "../components/Icons";
 import { parseLearnTime, SOURCE_NAMES } from "@onethu/core";
 import { SegmentedOverflow, Card, Empty, PageHead } from "../components/Layout.js";
 import { IconRefresh } from "../components/Icons.js";
@@ -40,12 +41,6 @@ import { pickHomeworkRoute } from "../lib/yktDetail.js";
 import { activateSlot, normalizeWheelDelta, takeWheelStep, type DetailSlot } from "../lib/detailSlots.js";
 import type { Homework } from "@onethu/core";
 
-/** 忽略图标（内联线性 SVG，1.6px 描边，与 Icons.tsx 同风格；仓库暂无现成 IconX） */
-const IconIgnore = ({ size = 14 }: { size?: number }): ReactNode => (
-  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
-    <path d="M4 4l8 8M12 4l-8 8" />
-  </svg>
-);
 
 /** DDL 解析：剩余天数 + 色档 + 展示文案（大数字 + 日期两行） */
 function ddlInfo(deadline: string): { days: number | null; overdue: boolean; big: string; small: string; date: string; cls: string } {
@@ -366,7 +361,7 @@ function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick, on
                       if (ok) ignoreHw(h.id, h.title);
                     }}
                   >
-                    <IconIgnore />
+                    <IconX />
                   </button>
                   <HwRemindButton h={h} />
                   {!h.source && semesterId ? (

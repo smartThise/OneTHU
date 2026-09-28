@@ -23,6 +23,7 @@ import remarkGfm from "remark-gfm";
 import { callRust, notifyRust } from "./rust.js";
 import { commandsSnapshot, subscribeCommands } from "./loader.js";
 import { EMPTY_EVENTS, pluginEvents, subscribePluginEvents } from "./events.js";
+import { IconClock, IconDownload, IconPlus, IconUpload, IconX } from "../components/Icons";
 import { HarnessMark } from "../components/HarnessMark.js";
 import { useIslandText } from "../state/island.js";
 import { speechAvailable, speechPoll, speechStart, speechStop } from "../lib/speech.js";
@@ -859,16 +860,16 @@ export function ChatDock(): ReactNode {
             <span className="dock-title" title="小OH"><HarnessMark size={15} /></span>
             <div className="dock-ops">
               <button className="btn dock-btn dock-ico" title="新会话" aria-label="新会话" onClick={() => void newSession()}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+                <IconPlus />
               </button>
               <button className="btn dock-btn dock-ico" title="历史会话" aria-label="历史会话" onClick={() => void openHistory()}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
+                <IconClock />
               </button>
               <button className="btn dock-btn dock-ico" title="导出当前会话 JSON" aria-label="导出会话" onClick={() => void exportSession()}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3v12" /><path d="m8 11 4 4 4-4" /><path d="M4 19h16" /></svg>
+                <IconDownload />
               </button>
               <button className="btn dock-btn dock-ico" title="导入会话 JSON" aria-label="导入会话" onClick={() => fileRef.current?.click()}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 15V3" /><path d="m8 7 4-4 4 4" /><path d="M4 19h16" /></svg>
+                <IconUpload />
               </button>
               <input
                 ref={fileRef}
@@ -881,7 +882,7 @@ export function ChatDock(): ReactNode {
                 }}
               />
               <button className="btn dock-btn dock-ico" title="收起" aria-label="收起" onClick={toggle}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="m6 6 12 12M18 6 6 18" /></svg>
+                <IconX />
               </button>
             </div>
           </div>

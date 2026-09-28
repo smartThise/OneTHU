@@ -7,7 +7,7 @@ import { useExpanded } from "../state/usePlatformLayout.js";
 import { useSidebarCollapsed } from "../state/uiPrefs.js";
 import { NAV_REGISTRY } from "../state/navigation.js";
 import { DESENSITIZE_BUILD } from "../lib/privacy.js";
-import { IconChevron, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconPen, IconPlug, IconSchedule, IconSettings, IconStar, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal, IconThos, IconTrace, IconMail, IconCloud, IconBook } from "./Icons.js";
+import { IconArrowUp, IconChevron, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconMenu, IconPen, IconPlug, IconRefresh, IconSchedule, IconSettings, IconStar, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal, IconThos, IconTrace, IconMail, IconCloud, IconBook } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
 import { pluginTabsSnapshot, subscribePluginTabs } from "../plugins/tabs.js";
 import { showToast } from "../state/toast.js";
@@ -548,9 +548,7 @@ export function Shell({ children }: { children: ReactNode }) {
             aria-label={sbCollapsed ? "展开侧边栏" : "折叠侧边栏"}
             aria-expanded={!sbCollapsed}
           >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M10 4l-4 4 4 4" />
-            </svg>
+            <IconChevron width={16} height={16} style={{ transform: "rotate(180deg)" }} />
           </button>
           <span className="foot-badge">
             <span className="dot" style={{ background: DESENSITIZE_BUILD ? "var(--amber)" : "var(--green)" }} />
@@ -580,9 +578,7 @@ export function Shell({ children }: { children: ReactNode }) {
         {/* 移动端顶栏：汉堡菜单 + 品牌标识，桌面隐藏（桌面走侧栏） */}
         <header className={"mobile-topbar" + (topbarScrolled ? " is-scrolled" : "")}>
           <button className="topbar-menu" onClick={() => setNavOpen(true)} aria-label="打开导航菜单">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-              <path d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <IconMenu width={18} height={18} />
           </button>
           <div className="topbar-brand">
             <BrandLogo size={11} />
@@ -623,10 +619,7 @@ export function HardRefreshButton() {
           aria-label="回到顶层"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M12 19V5" />
-            <path d="M5 12l7-7 7 7" />
-          </svg>
+          <IconArrowUp width={18} height={18} />
         </button>
       ) : null}
       <button
@@ -635,10 +628,7 @@ export function HardRefreshButton() {
       aria-label="硬刷新"
       onClick={() => window.location.reload()}
     >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-        <path d="M21 3v6h-6" />
-      </svg>
+      <IconRefresh width={18} height={18} />
     </button>
     </>
   );
