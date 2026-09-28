@@ -261,6 +261,16 @@ EXIT_MS 与 --dur-2（short-4 = 200ms）同源。关闭入口一个都不能漏�
 
 护栏 tools/list-row-test.mjs（已进 pnpm guard）：按行类取规则体，逐条检查圆角/描边/字面色值与状态层。新加行样式时它会直接拦下来。
 
+### 3.6 控件：胶囊 chip 与开关
+
+这两族的病是「各写一套」，B5 归一到一套：
+
+- **胶囊一家**：`.chip` / `.chip-btn` / 快速入口胶囊共用 24px 高、`var(--r-pill)`、`--md-sys-color-surface-container` 底、`outline-variant` 描边；状态层复用 B1 那一层（`.chip-btn` 已并入同一组选择器），焦点环走 `--md-sys-focus-ring`，禁用 38%。
+- **开关一家**：`.switch` 与 `.plg-switch` 曾经是 36×22 / 34×20 两套几何、on 态一个走强调色一个走语义绿、拇指一个 `#fff` 一个 `var(--green)`，现在统一为 36×22 + `outline` 描边 + `surface-container-high` 轨道 + `primary`/`on-primary` 的 on 态。开关的状态层是轨道外一圈光晕（`::before`，因为 `::after` 已经被拇指占用），沿用共享的 8% / 12% 令牌。
+- **字面值**：全文不再有 `border-radius: 999px`（22 处转 `var(--r-pill)`）；行类/控件类里不允许出现字面色值。
+
+护栏 `tools/controls-test.mjs` 钉住以上各条。
+
 ## 4. 用色：中性打底，彩色点睛
 
 - **正文区保持中性 surface**；彩色 surface（tonal container）只用于两处：「今日」卡片、功能分组头。

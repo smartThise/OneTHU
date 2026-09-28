@@ -51,7 +51,7 @@ ok(sheet.includes("var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-la
 ok(sheet.includes("env(safe-area-inset-bottom)"), "抽屉应留安全区内边距");
 ok(/animation:\s*m-sheet-up/.test(sheet), "抽屉应有上滑动画");
 ok(MOT.includes("@keyframes m-sheet-up"), "motion.css 缺少 m-sheet-up 关键帧");
-ok(block(".home-modal::before").includes("border-radius: 999px"), "抽屉应有把手（纯 CSS ::before）");
+ok(block(".home-modal::before").includes("border-radius: var(--r-pill)"), "抽屉应有把手（纯 CSS ::before，胶囊令牌）");
 ok(CSS.includes(".plg-sheet { width: 100%; max-width: 100%; max-height: 92dvh; border-radius: var(--md-sys-shape-corner-large)"), "插件抽屉圆角也应令牌化");
 
 /* [4] 抽屉内卡片：灰阶分层、去描边、有状态层 */
