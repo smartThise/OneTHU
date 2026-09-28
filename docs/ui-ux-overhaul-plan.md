@@ -357,6 +357,23 @@ B3c 余项（勿丢）：
 - [ ] 首页不放图标大网格（外部建议 4.7 同款结论），用卡片与分组列表；
 - [ ] 目标同屏信息量 -20%：**待真机走查确认**（手机未连接期间无法量测，本轮只把刻度抬到位的确定性改动做完）。
 
+
+**真机取证（2026-02，设备 3540f5d7 / Android SDK 36 / 视口 400×805）**
+
+| 验的什么 | 结果 |
+|---|---|
+| 16 个导航页挂载 + 横向溢出 | 全部挂载，**16/16 无横向溢出**（降密度最担心的指标） |
+| JS 异常 | 无 UI 相关异常 |
+| 移动密度层实况 | `--text-base` 15px、body 行高 24px、gap 4/8/12/16/20/24、.content 16px、.row/.card 12px 16px |
+| 删掉的装饰线 | .home-card-head 的 border-bottom = 0px（5 张卡片全 0） |
+| 图标统一后可用性 | .btn 为应用样式（999px 圆角、cursor:pointer）、elementFromPoint 命中按钮、OH 对话按钮在位（fixed、156×46） |
+| 开关几何（B5a） | 可见开关 36×22 / radius 999px；开态底色与描边同为 primary，关态 surface-container-high + outline |
+| 胶囊 chip | 今日快捷 chip radius 999px + outline-variant 描边 |
+| 空状态（B5b） | padding 32px 16px、gap 8px、column —— 与令牌一致 |
+| 未做 | 观感截图走查与暗色：截图已存 `.tmp-shots/`（01-today / 02-todo / 03-settings），但本轮 read_image 工具报内部错误，我看不到图，需人眼过一遍 |
+
+用法：`node tools/phone-regression.mjs`（真机 + dev 包已装）；临时探针写在 `/tmp/probe.mjs`，不进仓库。
+
 ### 3.9 设计规范手册（"规范感"的落地机制，B1 开工前定稿）
 
 > 令牌解决"有什么可用"，本节解决"怎么用"。没有这一节，令牌换完依然是乱的。
