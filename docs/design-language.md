@@ -271,6 +271,14 @@ EXIT_MS 与 --dur-2（short-4 = 200ms）同源。关闭入口一个都不能漏�
 
 护栏 `tools/controls-test.mjs` 钉住以上各条。
 
+### 3.7 进度、骨架屏、空状态
+
+- **进度**：`.thos-progress-bar` 与 `.cloud-quota-bar` 原是两条配方（5px/`--surface-3` 与 4px/`--border-soft`），现统一为 4px + `var(--r-pill)` + `surface-container-high` 轨道 + `--md-sys-color-primary` 填充。
+- **骨架屏**：曾经有**两条互相打架的 `.skeleton` 规则**（一条只给底色，另一条又给 10px 高度 + 渐变 + `cloud-skeleton`），现在合并成一条：底色 `var(--skeleton)`，流光单独一层 `::after` 且色值走 `var(--skeleton-shine)`（暗底上一道刺眼白光就是当年漏掉这条的教训）。
+- **空状态**：`.empty` 改为纵向 flex + 8px 间距 + 令牌化文案色，`Empty` 组件新增可选 `icon` / `hint` / `action` 三个槽位 —— 旧调用 `<Empty text="..." />` 一字不改仍然成立。
+
+以上由 `tools/controls-test.mjs` 一并钉住。
+
 ## 4. 用色：中性打底，彩色点睛
 
 - **正文区保持中性 surface**；彩色 surface（tonal container）只用于两处：「今日」卡片、功能分组头。

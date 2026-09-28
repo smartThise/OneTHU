@@ -63,7 +63,7 @@ function AtomUseRows({
   if (views.length === 0) {
     return (
       <Card className="list">
-        <Empty text={emptyText} />
+        <Empty text={emptyText} icon={<IconFlag width={20} height={20} />} />
       </Card>
     );
   }

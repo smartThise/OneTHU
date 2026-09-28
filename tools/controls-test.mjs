@@ -48,9 +48,37 @@ ok(/\.switch:hover::before/.test(CSS) || /\.switch:hover/.test(CSS), ".switch �
 ok(/\.switch:focus-visible/.test(CSS), ".switch 缺焦点环");
 ok(/\.plg-switch:focus-visible/.test(CSS), ".plg-switch 缺焦点环");
 
+/* 进度：两条配方归一 */
+for (const sel of [".thos-progress-bar", ".cloud-quota-bar"]) {
+  const b = block(sel);
+  ok(b !== null, sel + " 规则缺失");
+  if (b) {
+    ok(b.includes("var(--r-pill)"), sel + " 端点应为胶囊令牌");
+    ok(b.includes("--md-sys-color-surface-container-high"), sel + " 轨道应走 System 令牌");
+    ok(!/var\(--surface-3\)|var\(--border-soft\)/.test(b), sel + " 仍用 Compat 轨道色");
+  }
+}
+for (const sel of [".thos-progress-bar > span", ".cloud-quota-bar > div"]) {
+  const b = block(sel);
+  ok(b !== null && b.includes("var(--md-sys-color-primary)") && b.includes("var(--r-pill)"), sel + " 填充应走 primary + 胶囊令牌");
+}
+
+/* 骨架屏：只许一条规则，流光只许走 --skeleton-shine */
+ok((CSS.match(/^\.skeleton \{/gm) || []).length === 1, "骨架屏规则应合并为一条");
+ok(/\.skeleton::after[^}]*var\(--skeleton-shine\)/.test(CSS), "骨架屏流光应走 --skeleton-shine 令牌");
+ok(!CSS.includes("cloud-skeleton"), "退役的 cloud-skeleton 关键帧仍在");
+
+/* 空状态：令牌化 + 4pt 网格 */
+const em = block(".empty");
+ok(em !== null, ".empty 规则缺失");
+if (em) {
+  ok(em.includes("--md-sys-color-on-surface-variant"), ".empty 文案色应走 System 令牌");
+  ok(/padding: 32px 16px/.test(em), ".empty 内边距应在 4pt 网格上");
+}
+
 console.log(
   fails.length
     ? "控件护栏不通过：\n" + fails.map((f) => "  ✗ " + f).join("\n")
-    : "控件护栏：胶囊一套几何 + 状态层/焦点环 ✓ 开关两实现归一 + System 令牌 ✓ 无字面 999px ✓",
+    : "控件护栏：胶囊一套几何 + 状态层/焦点环 ✓ 开关两实现归一 + System 令牌 ✓ 进度两条配方归一 ✓ 骨架屏单条 + 流光令牌 ✓ 空状态令牌化 ✓ 无字面 999px ✓",
 );
 process.exit(fails.length ? 1 : 0);

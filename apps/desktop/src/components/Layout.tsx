@@ -703,8 +703,27 @@ export function Card({
   );
 }
 
-export function Empty({ text }: { text: string }) {
-  return <div className="empty">{text}</div>;
+/* 空状态：text 必填，icon/hint/action 可选（B5b）。
+   旧调用 <Empty text="..." /> 一字不改仍然成立；需要更完整的空状态时再加图标与副文案。 */
+export function Empty({
+  text,
+  icon,
+  hint,
+  action,
+}: {
+  text: string;
+  icon?: ReactNode;
+  hint?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="empty">
+      {icon ? <div className="empty-icon" aria-hidden="true">{icon}</div> : null}
+      <div className="empty-title">{text}</div>
+      {hint ? <div className="empty-hint">{hint}</div> : null}
+      {action ? <div className="empty-action">{action}</div> : null}
+    </div>
+  );
 }
 
 export function ErrorNote({ text, onRetry }: { text: string; onRetry?: () => void }) {

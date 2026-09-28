@@ -282,6 +282,7 @@
 | B4 ✅ | 导航/tab/底栏 | 移动端 navigation bar + active indicator 胶囊；**PC 侧边栏升级为 navigation rail（§2.8.1）**；顶部大标题 | 新 IA 壳双端成型 |
 | B5 | chip/开关/进度/骨架屏/空状态 | 对应规范 | 全局截图走查 |
 | B5a ✅ | 胶囊 chip + 开关（两套几何归一、System 令牌、状态层/焦点环/禁用） | 手册 §3.6 + tools/controls-test.mjs | PC 观感走查待做 |
+| B5b ✅ | 进度 / 骨架屏 / 空状态（两条打架的骨架屏规则合一、流光走令牌、Empty 加可选槽位） | 手册 §3.7 + tools/controls-test.mjs | PC 观感走查待做 |
 **B4 进度（2026-02）**：底栏 navigation bar + PC navigation drawer + 顶部大标题已落地（提交 `8d2bbe2` / `dbeae18`），护栏 `tools/nav-shell-test.mjs` 已进 guard（22 项）。
 余项：手机端实测待设备恢复（adb 掉线）；PC 侧栏观感待用户确认。PC 图标态折叠（72px）已有，可后续考虑 rail 展开/收起过渡动画。
 **本轮走查缺陷（用户报告）与处置**：
