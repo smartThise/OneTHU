@@ -295,6 +295,10 @@
 排查中出现过一次**假警报**：手机锁屏 + 通知栏遮挡时，Android WebView 的 innerWidth 会塌成 0，回归的 scrollWidth - innerWidth 变成常数，于是「16 页全部横向溢出 32px」。真凶是环境（isKeyguardShowing=true、mCurrentFocus=NotificationShade），**不是代码回归**。已给回归加**视口前置闸门**（innerWidth 为 0 直接拒绝跑并提示解锁）+ 失败时报告上下文身份与越界元素，避免重蹈。
 
 **B3c 弹层退场相位（大部分已落地，真机复验通过）**：新增共用 hook apps/desktop/src/lib/useExitPhase.ts
+**清尾记录（2026-02，B2b + B3c）**：
+- **过期结论已更正**：本节上方「多 tab 页切换 tab 时 tab 条左右移位」的旧记录已作废——真因是 PC 上 `::-webkit-scrollbar` 占布局（内容高度变化时出现/消失，整页横移），已由根容器 `scrollbar-gutter: stable` + `overflow-y: scroll` 修掉并经用户验收。结论与护栏见手册 §3.1、`tools/scrollbar-test.mjs`。
+- **`.dock-panel` 退场已在 B3c 落地**（`plugins/ChatDock.tsx` 挂 `.is-closing` + `.dock-panel-out`），旧待办项失去意义，移出清单。
+- 本轮补上：`.hwremind-pop`（作业提醒浮层）与 `.trace-card`（地图浮卡）的退场相位，以及 `WidgetBindModal` 夹选择浮层的独立退场（它是模态内的二级视图，遮罩与面板必须同一相位）。
 （幂等 closingRef 守卫、卸载清定时器、受控弹层传 open 重开复位、EXIT_MS 与 --dur-2 同源）。
 已迁移：FavAtomPicker、Collect.tsx（CollectModal / AtomPickerModal，含 Escape）、WidgetBindModal、
 TabManageModal、ExtHwLoginModal、校园卡充值 RechargeDialog。

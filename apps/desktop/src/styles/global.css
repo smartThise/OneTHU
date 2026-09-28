@@ -3469,6 +3469,10 @@ html.is-phone .dock-head .dock-btn:not(.dock-ico) { height: 28px; padding: 0 10p
 /* 消息入场：轻微上浮淡入（挂载时一次） */
 .dock-msg, .dock-think, .dock-confirm { animation: dock-msg-in 0.18s ease both; }
 @keyframes dock-msg-in { from { opacity: 0; transform: translateY(4px); } }
+@keyframes dock-msg-out { to { opacity: 0; transform: translateY(4px); } }
+.trace-card.is-closing {
+  animation: dock-msg-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both;
+}
 
 .dock-msg {
   max-width: 88%;
@@ -3956,6 +3960,11 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
   animation: hwremind-in 0.16s ease-out both;
 }
 @keyframes hwremind-in { from { opacity: 0; transform: translateY(6px); } }
+@keyframes hwremind-out { to { opacity: 0; transform: translateY(6px); } }
+/* 退场：加速曲线、与 --dur-2 同步（B3c 退场相位） */
+.hwremind-pop.is-closing {
+  animation: hwremind-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both;
+}
 .hwremind-pop-title { font-size: var(--text-xs); color: var(--text-3); margin-bottom: 8px; }
 .hwremind-pop-foot { margin-top: 8px; font-size: var(--text-xs); color: var(--text-3); line-height: 16px; }
 

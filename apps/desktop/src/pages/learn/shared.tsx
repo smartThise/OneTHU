@@ -3,6 +3,7 @@
  * 数据统一来自 useLearnData（state/data.ts），行点击经 app 轻路由进只读详情页。
  */
 import { useEffect, useRef, useState } from "react";
+import { useExitPhase } from "../../lib/useExitPhase.js";
 import { stripInlineColors } from "../../lib/htmlTheme.js";
 import type { CSSProperties, ReactNode } from "react";
 import type { CourseFile, Homework, Notification } from "@onethu/core";
@@ -261,15 +262,24 @@ export function HwRemindPop({
   foot?: string;
 }) {
   const [custom, setCustom] = useState("");
+  /* 退场相位：选档/自定义会关掉弹层（外层 onApply 里 setOpen(false)）→ 先播退场再回调。
+     清除（m=null）后弹层仍然开着，走退场会淡出后卡住，因此那条路径直接应用。 */
+  const pending = useRef<number | null>(null);
+  const [closing, requestClose] = useExitPhase(() => onApply(pending.current));
   const apply = (m: number | null): void => {
-    onApply(m); // 关闭弹层由外层 onApply 自己决定
+    if (m == null) {
+      onApply(null);
+      return;
+    }
+    pending.current = m;
+    requestClose();
   };
   const applyCustom = (): void => {
     const n = Math.round(Number(custom));
     if (Number.isFinite(n) && n >= REMIND_MIN && n <= REMIND_MAX) apply(n);
   };
   return (
-    <div className="hwremind-pop" role="menu" aria-label="提醒时间">
+    <div className={"hwremind-pop" + (closing ? " is-closing" : "")} role="menu" aria-label="提醒时间">
       <div className="hwremind-pop-title">{title}</div>
       <div className="hwremind-grid">
         {REMIND_PRESETS.map((m) => (

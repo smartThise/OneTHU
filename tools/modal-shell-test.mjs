@@ -140,6 +140,20 @@ for (const f of ["apps/desktop/src/components/TabManageModal.tsx", "apps/desktop
 /* 校园卡充值弹窗（走 class 路线）：.rch-*.is-closing 已由 CSS 覆盖 */
 ok(CSS.includes(".rch-mask.is-closing"), "校园卡充值弹窗 class 退场缺失");
 
+/* 定位型浮层：提醒浮层与地图浮卡的退场（class 路线；两者的几何各自是锚点定位，动画不受影响） */
+for (const f of ["apps/desktop/src/pages/learn/shared.tsx", "apps/desktop/src/pages/Trace.tsx"]) {
+  ok(readFileSync(f, "utf8").includes("useExitPhase"), f + " 未接入退场相位");
+}
+ok(CSS.includes(".hwremind-pop.is-closing"), "提醒浮层缺退场动画");
+ok(CSS.includes(".trace-card.is-closing"), "地图浮卡缺退场动画");
+ok(readFileSync("apps/desktop/src/pages/learn/shared.tsx", "utf8").includes('hwremind-pop" + (closing'), "提醒浮层未挂 is-closing");
+ok(readFileSync("apps/desktop/src/pages/Trace.tsx", "utf8").includes('trace-card" + (cardClosing'), "地图浮卡未挂 is-closing");
+
+/* 夹选择是模态内的二级视图：遮罩与面板必须同一相位（过去遮罩直接消失、面板还在动） */
+const WB = readFileSync("apps/desktop/src/components/WidgetBindModal.tsx", "utf8");
+ok(WB.includes("requestPickClose"), "夹选择浮层未接退场");
+ok(/home-modal-mask" \+ \(pickClosing/.test(WB), "夹选择遮罩未跟随面板相位");
+
 if (fails.length) {
   console.error("弹层护栏：不通过");
   for (const f of fails) console.error("  ✗ " + f);

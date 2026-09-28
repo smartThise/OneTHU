@@ -81,6 +81,8 @@ export function WidgetBindModal(): ReactNode {
   const [picker, setPicker] = useState<null | "detail" | "shortcut">(null);
   /** 收藏夹图标组：先选哪个收藏夹（可能有很多个） */
   const [folderPick, setFolderPick] = useState(false);
+  /* 夹选择是模态内的二级视图：它自己的关闭（遮罩/返回）也走退场，不然遮罩先消失、面板还在动 */
+  const [pickClosing, requestPickClose] = useExitPhase(() => setFolderPick(false), folderPick);
 
   useEffect(() => {
     if (!req) return;
@@ -229,11 +231,11 @@ export function WidgetBindModal(): ReactNode {
       </div>
 
       {folderPick ? (
-        <div className="home-modal-mask" onClick={() => setFolderPick(false)}>
-          <div className={"home-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label="选一个收藏夹" onClick={(e) => e.stopPropagation()}>
+        <div className={"home-modal-mask" + (pickClosing ? " is-closing" : "")} onClick={requestPickClose}>
+          <div className={"home-modal" + (pickClosing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label="选一个收藏夹" onClick={(e) => e.stopPropagation()}>
             <div className="home-modal-head">
               <h3>选一个收藏夹</h3>
-              <button className="btn btn-ghost" onClick={() => setFolderPick(false)}>返回</button>
+              <button className="btn btn-ghost" onClick={requestPickClose}>返回</button>
             </div>
             <div className="home-modal-body">
               <div className="home-modal-hint">夹里的原子会以图标并列显示在这块小组件上（放不下的自动略过）。</div>

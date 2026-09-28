@@ -7,6 +7,7 @@
  * - 导航：右上角默认地图 App 深链（高德/腾讯/百度/苹果），不自研导航
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useExitPhase } from "../lib/useExitPhase.js";
 import L from "leaflet";
 import { invoke } from "@tauri-apps/api/core";
 import { checkPermissions, getCurrentPosition, requestPermissions } from "@tauri-apps/plugin-geolocation";
@@ -98,6 +99,11 @@ export function TracePage(): React.ReactNode {
   const [markers, setMarkers] = useState<MarkerData[] | null>(null);
   const [unresolved, setUnresolved] = useState<string[]>([]);   // 检索不到/无地点的原始地点串
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  /* 浮卡退场：✕ 先播退场再真正清除选中（选中项变化时 open=true 自动复位）。 */
+  const [cardClosing, requestCardClose] = useExitPhase(() => {
+    setSelectedId(null);
+    setAnchor(null);
+  }, selectedId != null);
   const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -497,11 +503,11 @@ export function TracePage(): React.ReactNode {
 
         {/* 详情卡：锚定选中标注 */}
         {selected && anchorClamped ? (
-          <div className="trace-card" style={{ left: anchorClamped.x, top: anchorClamped.y }}>
+          <div className={"trace-card" + (cardClosing ? " is-closing" : "")} style={{ left: anchorClamped.x, top: anchorClamped.y }}>
             <div className="trace-card-title">
               <span className="trace-card-dot" style={{ background: URGENCY_COLOR[selected.urgency] }} />
               {selected.poi.name}
-              <button className="trace-card-x" aria-label="关闭" onClick={() => { setSelectedId(null); setAnchor(null); }}>✕</button>
+              <button className="trace-card-x" aria-label="关闭" onClick={requestCardClose}>✕</button>
             </div>
             <div className="trace-card-sub">
               {selected.poi.address || "清华大学"} · {URGENCY_LABEL[selected.urgency]}
