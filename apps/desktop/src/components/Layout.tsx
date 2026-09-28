@@ -5,6 +5,7 @@ import { useApp } from "../state/context.js";
 import { topLevelPage, type LearnNav, type Page } from "../state/app.js";
 import { useExpanded } from "../state/usePlatformLayout.js";
 import { useSidebarCollapsed } from "../state/uiPrefs.js";
+import { useAdvancedMode } from "../state/settingsMode.js";
 import { NAV_REGISTRY } from "../state/navigation.js";
 import { DESENSITIZE_BUILD } from "../lib/privacy.js";
 import { IconArrowUp, IconChevron, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconMenu, IconPen, IconPlug, IconRefresh, IconSchedule, IconSettings, IconStar, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal, IconThos, IconTrace, IconMail, IconCloud, IconBook } from "./Icons.js";
@@ -310,6 +311,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const [sbCollapsed, setSbCollapsed] = useSidebarCollapsed(); // PC 侧栏折叠（§2.8.1）
   const pluginNav = usePluginNavEntries();
   const navAll = [...NAV, ...pluginNav];
+  const advanced = useAdvancedMode(); // 标准模式收起插件系统（§4.4）
   const page = topLevelPage(rawPage);
   const [navOpen, setNavOpen] = useState(false);
   const [navClosing, setNavClosing] = useState(false);
@@ -323,6 +325,11 @@ export function Shell({ children }: { children: ReactNode }) {
   }, []);
   /** 「已折叠收藏夹（N）」组展开态（会话态，不持久化） */
   const [foldedOpen, setFoldedOpen] = useState(false);
+  /* 切回标准模式时人可能正停在插件页：退回今日，避免「入口没了却还站在里面」 */
+  useEffect(() => {
+    if (!advanced && page === "plugins") navigate("today");
+  }, [advanced, page, navigate]);
+
   const closeNav = useCallback(() => {
     setNavClosing(true);
     window.setTimeout(() => {
@@ -505,15 +512,17 @@ export function Shell({ children }: { children: ReactNode }) {
         ) : null}
         {/* 钉底固定项：插件 + 设置——不进收藏夹体系，不可折叠不可改序 */}
         <div className="nav-sep" aria-hidden />
-        {navRow("plugins", {
-          active: page === "plugins",
-          label: "插件",
-          icon: <IconPlug />,
-          onClick: () => {
-            onAfter?.();
-            navigate("plugins");
-          },
-        })}
+        {advanced
+          ? navRow("plugins", {
+              active: page === "plugins",
+              label: "插件",
+              icon: <IconPlug />,
+              onClick: () => {
+                onAfter?.();
+                navigate("plugins");
+              },
+            })
+          : null}
         {navRow("settings", {
           active: page === "settings",
           label: "设置",

@@ -2,7 +2,7 @@ declare const __APP_VERSION__: string;
 import { useEffect, useState } from "react";
 import { loadTabLayout, saveTabLayout, type TabLayout } from "../lib/tabLayout.js";
 import type { ReactNode } from "react";
-import { Card, PageHead, SectionHead, SegmentedOverflow } from "../components/Layout.js";
+import { Card, PageHead, SectionHead, SegmentedOverflow, Switch } from "../components/Layout.js";
 import { TabManageModal } from "../components/TabManageModal.js";
 import { resetOnboarding } from "../state/onboarding.js";
 import { NotifySettingsSection } from "../components/NotifySettingsSection.js";
@@ -14,6 +14,7 @@ import { clearRemembered, loadRemembered, session, isTauri } from "../lib/client
 import { clearHomeLayout } from "../lib/homeCards.js";
 import { useFavs } from "../state/favs.js";
 import { setDayNightTheme, setFollowSystem, useThemes } from "../state/theme.js";
+import { setAdvancedMode, useAdvancedMode } from "../state/settingsMode.js";
 import { ThemePickerModal } from "../components/ThemePickerModal.js";
 import { parseFavs, resetFavs } from "../state/favorites.js";
 import { confirmOk } from "../lib/confirm.js";
@@ -82,7 +83,7 @@ function jumpToSection(titles: string[]): void {
 
 /** 设置页的二级页签（与信息页 / 生活页同形态）：标题 → 页签分组 */
 const SETTINGS_TAB_OF: Record<string, string> = {
-  关于: "关于", 账户: "账号", 账号与凭据: "账号", 安全: "账号",
+  关于: "关于", 账户: "账号", 账号与绑定: "账号", 安全: "账号",
   云同步: "数据与同步", 外部作业源: "数据与同步",
   首页布局: "外观与布局", 收藏夹: "外观与布局", 外观: "外观与布局",
   通知: "通知与提醒", 桌面小组件: "通知与提醒",
@@ -90,9 +91,14 @@ const SETTINGS_TAB_OF: Record<string, string> = {
 };
 const SETTINGS_TAB_ORDER = ["账号", "通知与提醒", "外观与布局", "数据与同步", "下载与存储", "插件", "关于"];
 
+/** 只在高级模式出现的页签（§4.4：标准模式 ≤7 项，插件系统属进阶） */
+const ADVANCED_TABS = ["插件"];
+
 export function SettingsPage() {
   /** 当前二级页签（默认第一个栏目） */
   const [tab, setTab] = useState<string>(SETTINGS_TAB_ORDER[0] ?? "账号");
+  /** 标准 / 高级分层（§4.4） */
+  const advanced = useAdvancedMode();
   const settingsTabLayout: TabLayout = loadTabLayout("settings", SETTINGS_TAB_ORDER);
   const settingsTabHidden = settingsTabLayout.hidden;
   const [manageOpen, setManageOpen] = useState(false);
@@ -101,6 +107,12 @@ export function SettingsPage() {
     setTabLayout(l);
     saveTabLayout("settings", l);
   };
+
+  /* 从高级模式切回标准模式时，当前页签可能已被收起：退回第一个可见页签，
+     否则那一栏的内容会因为没有匹配页签而全部露出来 */
+  useEffect(() => {
+    if (!advanced && ADVANCED_TABS.includes(tab)) setTab(SETTINGS_TAB_ORDER[0] ?? "账号");
+  }, [advanced, tab]);
 
   // R23（霖实测：跳过来还得自己找分区在哪）：引导横幅「去设置」→ **先切到外部作业源
   // 所在页签再滚动**。此前只在子组件里 scrollIntoView——分区在 display:none 的页签里，
@@ -210,7 +222,7 @@ export function SettingsPage() {
 
       <SegmentedOverflow ariaLabel="设置栏目" style={{ marginBottom: 14 }}>
         {settingsTabLayout.order
-          .filter((t) => SETTINGS_TAB_ORDER.includes(t) && !tabLayout.hidden.includes(t))
+          .filter((t) => SETTINGS_TAB_ORDER.includes(t) && !tabLayout.hidden.includes(t) && (advanced || !ADVANCED_TABS.includes(t)))
           .map((t) => (
             <button
               key={t}
@@ -240,6 +252,13 @@ export function SettingsPage() {
             或改用开发者构建的右上角面板导出）。要恢复成正式版也显示，去掉这层门控即可。 */}
         {__ONETHU_DEV__ ? <DebugLogRow /> : null}
         <DiagnosticsRow />
+        <div className="setting-row">
+          <div>
+            <div className="setting-title">高级模式</div>
+            <div className="setting-desc">打开后显示扩展功能、开发者工具等进阶设置，日常使用不必开。</div>
+          </div>
+          <Switch on={advanced} onChange={setAdvancedMode} label="高级模式" />
+        </div>
       </Card>
 
       <SectionHead title="账户" />
