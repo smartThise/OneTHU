@@ -13,7 +13,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { clearRemembered, loadRemembered, session, isTauri } from "../lib/clients.js";
 import { clearHomeLayout } from "../lib/homeCards.js";
 import { useFavs } from "../state/favs.js";
-import { setDayNightTheme, setFollowSystem, useThemes } from "../state/theme.js";
+import { activateTheme, deactivateTheme, setDayNightTheme, setFollowSystem, useThemes } from "../state/theme.js";
 import { parseFavs, resetFavs } from "../state/favorites.js";
 import { confirmOk } from "../lib/confirm.js";
 import { useApp } from "../state/context.js";
@@ -1718,11 +1718,40 @@ function AppearanceSection(): ReactNode {
       setDyn(isDynamicEnabled());
     }
   };
-  // 别处（插件页→主题）切主题会让取色退场：开关跟着回真
+  // 别处（设置 → 外观 的主题列表）切主题会让取色退场：开关跟着回真
   useEffect(() => subscribeThemes(() => setDyn(isDynamicEnabled())), []);
   const themes = [{ id: "", name: "基础令牌（默认外观）" }, ...snap.themes.map((t) => ({ id: t.id, name: t.dark ? `${t.name}（暗色）` : t.name }))];
   return (
     <div className="setting-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+      {/* 主题切换（§4.4）：切换归设置、安装/卸载归插件页——只保留一个切换入口，避免双头管理 */}
+      <div>
+        <div className="setting-title">主题</div>
+        <div className="setting-desc">
+          {dyn
+            ? "系统取色生效中：点任一主题会关掉取色，改用该主题。"
+            : "点一下立即生效。主题插件的安装与卸载在「插件」页。"}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+          {themes.map((th) => {
+            const on = (snap.activeId ?? "") === th.id;
+            return (
+              <button
+                key={th.id}
+                className={"btn " + (on ? "btn-primary" : "btn-ghost")}
+                aria-pressed={on}
+                title={on ? "当前使用中" : "应用「" + th.name + "」"}
+                onClick={() => {
+                  if (th.id) activateTheme(th.id);
+                  else deactivateTheme();
+                }}
+              >
+                {th.name}
+                {on ? " · 使用中" : ""}
+              </button>
+            );
+          })}
+        </div>
+      </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
         <div>
           <div className="setting-title">跟随系统昼夜</div>
@@ -1768,7 +1797,7 @@ function AppearanceSection(): ReactNode {
         </>
       ) : (
         <div className="setting-desc" style={{ color: "var(--text-3)" }}>
-          手动换主题在 插件页 → 主题 里操作；想昼夜自动切换就打开上面的开关。
+          想昼夜自动切换就打开上面的开关；单独换主题点上面的「主题」。
         </div>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>

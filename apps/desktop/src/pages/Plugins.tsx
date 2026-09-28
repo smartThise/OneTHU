@@ -26,7 +26,7 @@ import { clearPluginEvents, pluginEvents, subscribePluginEvents } from "../plugi
 import { notifyRust } from "../plugins/rust.js";
 import { PLUGIN_PERMISSIONS } from "../plugins/types.js";
 import { collectWidgetSlots } from "../plugins/pluginWidgets.js";
-import { activateTheme, deactivateTheme, removeTheme, restoreBuiltins, useThemes, type ThemeDef } from "../state/theme.js";
+import { removeTheme, restoreBuiltins, useThemes, type ThemeDef } from "../state/theme.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -122,8 +122,9 @@ export function PluginsPage(): ReactNode {
       </div>
 
 
-      {/* 主题管理区：主题即插件，管理面就在插件页（主题页签下展开；用户定案
-          2026-09-13：设置页不放，避免双头管理） */}
+      {/* 主题管理区（安装/卸载）：主题即插件，安装面在插件页。
+          切换主题在 设置 → 外观（唯一入口）——2026-02 用户反馈切换入口错位到插件页；
+          2026-09-13 原定案「设置页不放」针对的是管理面，与切换入口不冲突。 */}
       {view === "market" ? (
         <MarketView />
       ) : (
@@ -278,14 +279,8 @@ function ThemeManagerSection(): ReactNode {
                 </div>
                 <div style={{ display: "flex", gap: 4, flex: "none" }}>
                   {on ? (
-                    <button className="btn btn-ghost" onClick={() => { deactivateTheme(); setMsg(`已停用「${t.name}」`); }}>
-                      停用
-                    </button>
-                  ) : (
-                    <button className="btn btn-primary" onClick={() => { activateTheme(t.id); setMsg(`已应用「${t.name}」`); }}>
-                      应用
-                    </button>
-                  )}
+                    <span className="chip" title="当前使用中">使用中</span>
+                  ) : null}
                   {t.source === "plugin" ? (
                     <button
                       className="btn btn-ghost"
@@ -309,46 +304,6 @@ function ThemeManagerSection(): ReactNode {
         </div>
       ) : null}
     </div>
-  );
-}
-
-/** 主题插件卡上的「应用/撤下主题」动作（主题管理在插件页 · 主题区，此处为快捷入口）。
- *  主题 id 与插件 id 未必同名：按 owner 找，退化到 id 同名约定；插件停用（其主题已被
- *  回收）时按钮置灰，不再点出一个「主题定义尚未注册」。 */
-function ThemeApplyButton({ pluginId, enabled, onMsg }: { pluginId: string; enabled: boolean; onMsg: (s: string) => void }): ReactNode {
-  const snap = useThemes();
-  const theme = snap.themes.find((t) => t.owner === pluginId) ?? snap.themes.find((t) => t.id === pluginId);
-  const applied = !!theme && snap.activeId === theme.id;
-  if (!enabled) {
-    return (
-      <button className="btn btn-ghost" disabled title="插件已停用，启用后可应用其主题">
-        应用主题
-      </button>
-    );
-  }
-  if (!theme) {
-    return (
-      <button className="btn btn-ghost" disabled title="该插件当前未声明主题定义">
-        无主题
-      </button>
-    );
-  }
-  return (
-    <button
-      className={"btn " + (applied ? "btn-ghost" : "btn-primary")}
-      onClick={() => {
-        if (applied) {
-          deactivateTheme();
-          onMsg("已撤下主题，回到默认配色");
-        } else if (activateTheme(theme.id)) {
-          onMsg(`已应用「${theme.name}」（插件页 · 主题区可管理全部主题）`);
-        } else {
-          onMsg("主题定义尚未注册（插件未启用？）");
-        }
-      }}
-    >
-      {applied ? "撤下主题" : "应用主题"}
-    </button>
   );
 }
 
@@ -488,7 +443,7 @@ function PluginCard({
               <IconGithub width={16} height={16} />
             </button>
           ) : null}
-          {m.category === "theme" ? <ThemeApplyButton pluginId={m.id} enabled={active} onMsg={setRunMsg} /> : null}
+          {m.category === "theme" ? <span className="chip" title="切换主题在 设置 → 外观">切换在 设置 → 外观</span> : null}
           <Switch on={rec.enabled} label={rec.enabled ? "停用" : "启用"} onToggle={() => void (rec.enabled ? disablePlugin(id) : enablePlugin(id)).catch((e: unknown) => setRunMsg(String(e)))} />
           {id === "onethu.harness" ? (
             <button className="btn btn-ghost" title="管理 MCP 服务器" onClick={() => onOpenSheet({ id, mode: "mcp" })}>
