@@ -1,15 +1,13 @@
 /**
  * 首页一次性引导（§4.6）：改版后首次进新首页，最多 3 处、可跳过、看过不再打扰。
  *
- * 不做全屏遮罩式的"指哪打哪"——首页是两栏自适应布局，遮罩在窄屏和宽屏上都会盖住
- * 它正要指的东西。改成：给目标加一圈高亮、提示卡贴着目标放。
- *
- * 一次改版教训（2026-09-28，霖实测只出现两条）：第三条的卡片 id 写错了（写成了 suggest，
- * 实际那张卡是 for-you）——找不到目标就静默跳过，于是看起来像"走两条就没了"。
- * 两处修正：锚点改对；**"共几条"按真正能指的条数算**，数不到的条目不进分母，
- * 不再出现"明明说三条、实际只走两条"的错觉。锚点写错现在由 tools/help-coach-test.mjs 拦下。
+ * 呈现方式（2026-09-28 霖反馈后定稿）：
+ *  · **始终贴着被指的那个按钮/卡片**，像气泡一样跟在旁边——不再有"窄屏退化成底部卡片"的兜底；
+ *  · 目标在屏幕外时**先平滑滚到它**再落卡片（演示一遍"它在哪"，而不是让用户自己找）；
+ *  · 卡片不越界：上方放不下就翻到下面，下边缘让开底部导航栏（量它的实际位置，不写死高度）；
+ *  · 找不到目标（卡片被隐藏、内容为空整卡不渲染）就跳过该条——指错地方比不指更糟。
  */
-import { useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 const KEY = "onethu.home.coach.v1";
@@ -20,6 +18,30 @@ const TIPS: Array<{ target: string; text: string }> = [
   { target: '[data-coach="home-collapse"]', text: "标题行右侧的箭头能把卡片折叠，首页就短了。" },
   { target: '[data-card="for-you"]', text: "这里会按你的习惯推荐功能；找不到的都在「服务」页，也能直接搜。" },
 ];
+
+const GAP = 10;
+const EDGE = 12;
+
+type Rect = { top: number; left: number; right: number; bottom: number };
+
+/** 底部导航栏的顶边（没量到就退回视口底）：卡片要让它 */
+function navTop(): number {
+  const el = document.querySelector(".bottom-nav, .bottom-nav-item")?.parentElement ?? document.querySelector(".bottom-nav");
+  const t = el?.getBoundingClientRect().top;
+  return typeof t === "number" && t > 0 ? t : window.innerHeight;
+}
+
+/** 贴着目标摆：优先下方，放不下翻上方；水平夹在视口内 */
+function place(target: Rect, card: { w: number; h: number }): { top: number; left: number; width: number } {
+  const vw = window.innerWidth;
+  const bottomLimit = Math.min(window.innerHeight, navTop()) - EDGE;
+  const below = target.bottom + GAP + card.h <= bottomLimit;
+  const top = below
+    ? target.bottom + GAP
+    : Math.max(EDGE, Math.min(target.top - GAP - card.h, bottomLimit - card.h));
+  const left = Math.max(EDGE, Math.min(target.left, vw - card.w - EDGE));
+  return { top, left, width: card.w };
+}
 
 export function HomeCoachMarks(): ReactNode {
   const [done, setDone] = useState<boolean>(() => {
@@ -32,7 +54,9 @@ export function HomeCoachMarks(): ReactNode {
   const [ready, setReady] = useState(false);
   const [avail, setAvail] = useState<typeof TIPS>([]);
   const [idx, setIdx] = useState(0);
-  const [rect, setRect] = useState<{ top: number; left: number; bottom: number; right: number } | null>(null);
+  const [rect, setRect] = useState<Rect | null>(null);
+  const [card, setCard] = useState<{ w: number; h: number } | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   const finish = useCallback(() => {
     try {
@@ -64,20 +88,40 @@ export function HomeCoachMarks(): ReactNode {
       setIdx((i) => i + 1); // 中途消失（卡片被隐藏）→ 看下一条
       return;
     }
+    setCard(null); // 换目标要重新量卡片（文案变了，高度就变了）
     el.classList.add("coach-target");
-    const update = (): void => {
+
+    const read = (): void => {
       const r = el.getBoundingClientRect();
-      setRect({ top: r.top, left: r.left, bottom: r.bottom, right: r.right });
+      setRect({ top: r.top, left: r.left, right: r.right, bottom: r.bottom });
     };
-    update();
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
+
+    // 目标不在可视区就先滚过去（避开底部导航），等滚动停下来再量
+    const first = el.getBoundingClientRect();
+    const hiddenBelow = first.bottom > navTop() - EDGE;
+    const hiddenAbove = first.top < EDGE;
+    const wait = hiddenBelow || hiddenAbove ? 460 : 0;
+    if (wait > 0) el.scrollIntoView({ block: "center", behavior: "smooth" });
+
+    const timer = window.setTimeout(read, wait);
+    const onMove = (): void => read();
+    window.addEventListener("resize", onMove);
+    window.addEventListener("scroll", onMove, true);
     return () => {
+      window.clearTimeout(timer);
       el.classList.remove("coach-target");
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", onMove);
+      window.removeEventListener("scroll", onMove, true);
     };
   }, [tip]);
+
+  /* 卡片自己多高要量过才知道：先隐身渲染一次，量完再摆上去 */
+  useLayoutEffect(() => {
+    const el = cardRef.current;
+    if (!el || !rect) return;
+    const r = el.getBoundingClientRect();
+    setCard((c) => (c && Math.abs(c.h - r.height) < 1 && Math.abs(c.w - r.width) < 1 ? c : { w: r.width, h: r.height }));
+  }, [rect, tip]);
 
   useEffect(() => {
     if (done || !ready) return;
@@ -86,31 +130,19 @@ export function HomeCoachMarks(): ReactNode {
 
   if (!tip) return null;
 
-  /* 贴着目标放；窄屏（放不下 320 宽）就退化成底部一张卡，别挤出屏幕 */
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const wide = vw >= 420 && rect !== null;
-  const style: React.CSSProperties = wide && rect
-    ? {
-        position: "fixed",
-        top: Math.min(rect.bottom + 10, vh - 160),
-        left: Math.max(12, Math.min(rect.left, vw - 336)),
-        width: 320,
-      }
-    : {
-        position: "fixed",
-        left: 12,
-        right: 12,
-        bottom: "calc(12px + env(safe-area-inset-bottom))",
-      };
-
+  const width = Math.min(320, window.innerWidth - EDGE * 2);
+  const pos = rect && card ? place(rect, card) : null;
   const last = idx === avail.length - 1;
 
   return createPortal(
     <div
+      ref={cardRef}
       className="coach-card"
       style={{
-        ...style,
+        position: "fixed",
+        top: pos ? pos.top : EDGE,
+        left: pos ? pos.left : EDGE,
+        width,
         zIndex: 1400,
         background: "var(--md-sys-color-surface)",
         color: "var(--text-1)",
@@ -119,6 +151,7 @@ export function HomeCoachMarks(): ReactNode {
         padding: 12,
         display: "grid",
         gap: 8,
+        visibility: pos ? "visible" : "hidden",
       }}
       role="status"
     >

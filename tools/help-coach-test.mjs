@@ -45,6 +45,13 @@ assert.ok(/data-coach="home-edit"/.test(today), "首页「编辑」按钮上没�
 assert.ok(/data-coach="home-collapse"/.test(today), "卡片折叠控件上没有引导锚点");
 assert.ok(/data-card=\{def\.id\}/.test(today), "卡片外壳没暴露 id，引导指不到具体卡片");
 assert.ok(/<HomeCoachMarks \/>/.test(today), "首页没有挂上引导组件");
+// ④ 卡片摆位：必须贴着目标，且让开底部导航（霖反馈：窄屏退化成底部卡片，既被挡又挡导航）
+assert.ok(/scrollIntoView\(\{ block: "center", behavior: "smooth" \}\)/.test(coach), "目标在屏幕外要先滚过去演示，不能只画个框");
+assert.ok(/bottom-nav/.test(coach), "卡片要让开底部导航栏（量它的实际位置，不写死高度）");
+assert.ok(/function place\(target: Rect/.test(coach), "卡片位置要由目标矩形算出来（贴着目标）");
+assert.ok(/visibility: pos \? "visible" : "hidden"/.test(coach), "卡片要先隐身量高度再摆，否则第一次会闪到错位置");
+assert.ok(!/bottom: "calc\(/.test(coach) && !/position: "fixed",\s*\n\s*bottom:/.test(coach), "不许再退回固定在底部那种卡片");
+assert.ok(/getBoundingClientRect\(\)/.test(coach), "卡片自身高度要实测（文案长短会变），不能估");
 
 // ④ 每个锚点都要真的指得到东西——"第三条静默消失"就是这么来的
 /** 剥掉注释再扫锚点：注释里提到某个锚点，不该被当成真的用了它 */
