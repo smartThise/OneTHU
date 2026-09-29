@@ -15,6 +15,7 @@ const coach = readFileSync("apps/desktop/src/components/HomeCoachMarks.tsx", "ut
 const today = readFileSync("apps/desktop/src/pages/Today.tsx", "utf8");
 const settings = readFileSync("apps/desktop/src/pages/Settings.tsx", "utf8");
 const nav = readFileSync("apps/desktop/src/state/navigation.ts", "utf8");
+const mode = readFileSync("apps/desktop/src/state/settingsMode.ts", "utf8");
 
 // ① 帮助：引注册表、不硬编码路由，且引用的 id 真实存在
 assert.ok(/NAV_REGISTRY/.test(help), "帮助必须从功能注册表取数据，不能自己写一份清单");
@@ -28,7 +29,10 @@ assert.ok(/navigate\(e\.page, e\.params\)|navigate\(entry\.page/.test(help), "�
 assert.ok(!/navigate\("(?!settings)/.test(help.replace(/requestSettingsTab/g, "")), "帮助里不该出现写死的页面跳转");
 
 // ② 帮助栏真的进了设置页，且栏目清单两处一致（分节 ↔ 页签）
-assert.ok(/const SETTINGS_TAB_ORDER = \[[^\]]*"帮助"[^\]]*\]/.test(settings), "设置页签少了「帮助」");
+assert.ok(
+  /SETTINGS_TAB_ORDER = \[[^\]]*"帮助"[^\]]*\]/.test(mode),
+  "设置页签少了「帮助」（清单已挪到 state/settingsMode.ts，设置页与命令面板共用这一份）",
+);
 assert.ok(/\{ label: "帮助", sections: \["帮助"\] \}/.test(settings), "SETTINGS_GROUPS 少了「帮助」分组");
 assert.ok(/<SectionHead title="帮助" \/>[\s\S]{0,120}<HelpSection \/>/.test(settings), "「帮助」分节没有渲染 HelpSection");
 assert.ok(/import \{ HelpSection \}/.test(settings), "设置页没导入 HelpSection");

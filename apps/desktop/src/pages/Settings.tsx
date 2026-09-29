@@ -13,7 +13,7 @@ import { clearRemembered, loadRemembered, session, isTauri } from "../lib/client
 import { clearHomeLayout } from "../lib/homeCards.js";
 import { useFavs } from "../state/favs.js";
 import { setDayNightTheme, setFollowSystem, useThemes } from "../state/theme.js";
-import { consumeSettingsTabRequest, setAdvancedMode, useAdvancedMode } from "../state/settingsMode.js";
+import { consumeSettingsTabRequest, setAdvancedMode, useAdvancedMode, SETTINGS_TAB_ORDER, ADVANCED_SETTINGS_TABS } from "../state/settingsMode.js";
 import { ThemePickerModal } from "../components/ThemePickerModal.js";
 import { PluginsPage } from "./Plugins.js";
 import { HelpSection } from "../components/HelpSection.js";
@@ -93,10 +93,7 @@ const SETTINGS_TAB_OF: Record<string, string> = {
   通知: "通知与提醒", 桌面小组件: "通知与提醒",
   插件: "插件", 下载: "下载与存储", 帮助: "帮助",
 };
-const SETTINGS_TAB_ORDER = ["账号", "通知与提醒", "外观与布局", "数据与同步", "下载与存储", "帮助", "插件", "关于"];
-
-/** 只在高级模式出现的页签（§4.4：标准模式 ≤7 项，插件系统属进阶） */
-const ADVANCED_TABS = ["插件"];
+/* 页签清单与高级页签定义已挪到 state/settingsMode.ts（命令面板与护栏共用同一份，见该文件注释） */
 
 export function SettingsPage() {
   /** 当前二级页签（默认第一个栏目） */
@@ -116,7 +113,7 @@ export function SettingsPage() {
   /* 从高级模式切回标准模式时，当前页签可能已被收起：退回第一个可见页签，
      否则那一栏的内容会因为没有匹配页签而全部露出来 */
   useEffect(() => {
-    if (!advanced && ADVANCED_TABS.includes(tab)) setTab(SETTINGS_TAB_ORDER[0] ?? "账号");
+    if (!advanced && ADVANCED_SETTINGS_TABS.includes(tab)) setTab(SETTINGS_TAB_ORDER[0] ?? "账号");
   }, [advanced, tab]);
 
   // R23（霖实测：跳过来还得自己找分区在哪）：引导横幅「去设置」→ **先切到外部作业源
@@ -124,7 +121,7 @@ export function SettingsPage() {
   // 滚动无效，用户落在设置页顶部还要自己找。
   useEffect(() => {
     const wantTab = consumeSettingsTabRequest();
-    if (wantTab && (advanced || !ADVANCED_TABS.includes(wantTab))) setTab(wantTab);
+    if (wantTab && (advanced || !ADVANCED_SETTINGS_TABS.includes(wantTab))) setTab(wantTab);
     if (!consumeExtHwScrollRequest()) return;
     setTab(SETTINGS_TAB_OF["外部作业源"] ?? "数据与同步");
     const t = setTimeout(() => {
@@ -229,7 +226,7 @@ export function SettingsPage() {
 
       <SegmentedOverflow ariaLabel="设置栏目" style={{ marginBottom: 14 }}>
         {settingsTabLayout.order
-          .filter((t) => SETTINGS_TAB_ORDER.includes(t) && !tabLayout.hidden.includes(t) && (advanced || !ADVANCED_TABS.includes(t)))
+          .filter((t) => SETTINGS_TAB_ORDER.includes(t) && !tabLayout.hidden.includes(t) && (advanced || !ADVANCED_SETTINGS_TABS.includes(t)))
           .map((t) => (
             <button
               key={t}

@@ -8,13 +8,15 @@ import { useSidebarCollapsed } from "../state/uiPrefs.js";
 import { requestSettingsTab } from "../state/settingsMode.js";
 import { NAV_REGISTRY } from "../state/navigation.js";
 import { DESENSITIZE_BUILD } from "../lib/privacy.js";
-import { IconArrowUp, IconChevron, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconMenu, IconPen, IconPlug, IconRefresh, IconSchedule, IconSettings, IconStar, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal, IconThos, IconTrace, IconMail, IconCloud, IconBook } from "./Icons.js";
+import { IconArrowUp, IconChevron, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconMenu, IconPen, IconPlug, IconRefresh, IconSchedule, IconSettings, IconStar, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal, IconThos, IconTrace, IconMail, IconCloud, IconSearch, IconBook } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
 import { pluginTabsSnapshot, subscribePluginTabs } from "../plugins/tabs.js";
 import { showToast } from "../state/toast.js";
 import { checkUpdateSilently } from "../lib/update.js";
 import { useBottomNavPill, useNavIndicator, useSegPill } from "../lib/motion.js";
 import { ErrorLine } from "./Details.js";
+import { CommandPalette, shortcutLabel } from "./CommandPalette.js";
+import { openPalette } from "../state/palette.js";
 
 /** 开发者面板（仅 dev 构建）：右上角 commit 徽标 + 前端日志/诊断/导出。
  *  正式版里 __ONETHU_DEV__ 折叠为 false → 这句动态 import 被 rollup 删除，
@@ -540,6 +542,12 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="brand">
           <BrandLogo size={16} />
         </div>
+        {/* 命令面板入口（§2.8.4）：不逼人记快捷键，旁边顺手写出当前平台的键位 */}
+        <button className="sb-search" onClick={openPalette} title={"搜索功能（" + shortcutLabel() + "）"}>
+          <IconSearch width={14} height={14} />
+          <span className="sb-search-label">搜索功能</span>
+          <kbd className="sb-kbd">{shortcutLabel()}</kbd>
+        </button>
         <NavBody label="主导航">{navContent()}</NavBody>
         <div className="sidebar-foot">
           <button
@@ -590,6 +598,8 @@ export function Shell({ children }: { children: ReactNode }) {
       </main>
       {/* M1 beta：移动端底部 5 Tab（CSS ≤860px 显示） */}
       <BottomNav page={rawPage} navigate={navigate} />
+      {/* 命令面板：⌘/Ctrl+K 或侧栏按钮唤起；挂在 shell 顶层，任何页面都能用 */}
+      <CommandPalette />
       <HardRefreshButton />
       {DevPanel ? (
         <Suspense fallback={null}>

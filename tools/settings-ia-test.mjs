@@ -32,9 +32,9 @@ for (const k of keys) {
 }
 
 // ② 标准模式 ≤7 项
-const order = settings.match(/const SETTINGS_TAB_ORDER = \[([^\]]+)\]/)?.[1] ?? "";
+const order = mode.match(/SETTINGS_TAB_ORDER = \[([^\]]+)\]/)?.[1] ?? "";
 const tabOrder = order.split(",").map((s) => s.trim().replace(/"/g, "")).filter(Boolean);
-const advNames = (settings.match(/const ADVANCED_TABS = \[([^\]]+)\]/)?.[1] ?? "")
+const advNames = (mode.match(/ADVANCED_SETTINGS_TABS = \[([^\]]+)\]/)?.[1] ?? "")
   .split(",")
   .map((s) => s.trim().replace(/"/g, ""))
   .filter(Boolean);
@@ -45,12 +45,12 @@ assert.ok(
 );
 
 // ③ 高级页签 + 过滤 + 回退
-const advTabs = settings.match(/const ADVANCED_TABS = \[([^\]]+)\]/)?.[1] ?? "";
+const advTabs = mode.match(/ADVANCED_SETTINGS_TABS = \[([^\]]+)\]/)?.[1] ?? "";
 const advList = advTabs.split(",").map((s) => s.trim().replace(/"/g, "")).filter(Boolean);
-assert.ok(advList.length >= 1, "ADVANCED_TABS 不能为空（插件系统是进阶项）");
-assert.ok(/advanced \|\| !ADVANCED_TABS\.includes\(t\)/.test(settings), "页签条必须按模式过滤高级页签");
+assert.ok(advList.length >= 1, "ADVANCED_SETTINGS_TABS 不能为空（插件系统是进阶项）");
+assert.ok(/advanced \|\| !ADVANCED_SETTINGS_TABS\.includes\(t\)/.test(settings), "页签条必须按模式过滤高级页签");
 assert.ok(
-  /if \(!advanced && ADVANCED_TABS\.includes\(tab\)\) setTab\(/.test(settings),
+  /if \(!advanced && ADVANCED_SETTINGS_TABS\.includes\(tab\)\) setTab\(/.test(settings),
   "切回标准模式时当前页签若被收起，必须退回可见页签（否则那一节会全露出来）",
 );
 

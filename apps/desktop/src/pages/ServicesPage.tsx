@@ -12,8 +12,9 @@
 import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Card, Empty, PageHead } from "../components/Layout.js";
 import { IconSearch } from "../components/Icons.js";
-import { pageAtomRef, resolveAtom, searchAtoms, type AtomHit } from "../state/atoms.js";
-import { NAV_CATEGORIES, byCategory, matchNavQuery, type NavEntry } from "../state/navigation.js";
+import { pageAtomRef, resolveAtom, type AtomHit } from "../state/atoms.js";
+import { NAV_CATEGORIES, byCategory, type NavEntry } from "../state/navigation.js";
+import { searchAll } from "../state/searchAll.js";
 import { useApp } from "../state/context.js";
 import { pluginTabsSnapshot, subscribePluginTabs } from "../plugins/tabs.js";
 import { ohAsk } from "../plugins/ChatDock.js";
@@ -66,15 +67,10 @@ export function ServicesPage(): ReactNode {
   const pluginTabs = useSyncExternalStore(subscribePluginTabs, pluginTabsSnapshot, pluginTabsSnapshot);
   const [showAll, setShowAll] = useState(false);
   const query = q.trim();
-  const hits = useMemo(() => matchNavQuery(query), [query]);
-  // 原子搜索（含门户 Info 应用、在线服务目录、课程/新闻等实体；本机缓存）——
-  // 与导航命中去重：页面原子 key 已在注册表的不再重复出。
-  const atomHits = useMemo(() => {
-    const navIds = new Set(hits.map((h) => h.id));
-    return searchAtoms(query, 14).filter(
-      (a) => !((a.kind === "page" || a.kind === "widget") && navIds.has(a.key)),
-    );
-  }, [query, hits]);
+  // 搜索走 state/searchAll.ts：与 PC 命令面板同一份组合（注册表 + 原子 + 设置页签），
+  // 避免两处各写一套导致「面板搜得到、服务页搜不到」。
+  const hits = useMemo(() => searchAll(query).entries, [query]);
+  const atomHits = useMemo(() => searchAll(query).atoms, [query]);
 
   const groups = NAV_CATEGORIES.map((cat) => ({
     cat,
