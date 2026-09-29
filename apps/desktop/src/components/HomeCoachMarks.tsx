@@ -67,17 +67,27 @@ export function HomeCoachMarks(): ReactNode {
     setDone(true);
   }, []);
 
-  /* 先等一小会儿再数：首页部分卡片是异步算出来的，"还没渲染"不等于"没有" */
+  /* 首页部分卡片是异步算出来的，"还没渲染"不等于"没有"——所以要轮询几次；
+     实在一条都指不到，这一次不显示，但**绝不能落 done**：那会把引导永久烧掉，
+     用户下次冷启动就再也看不到了（2026-09-28 验收时抓到的真 bug）。 */
   useEffect(() => {
     if (done) return;
-    const t = window.setTimeout(() => {
+    let tries = 0;
+    let timer = window.setTimeout(function look(): void {
       const found = TIPS.filter((x) => document.querySelector(x.target));
-      setAvail(found);
-      setReady(true);
-      if (found.length === 0) finish(); // 一条都指不到就别打扰
-    }, 400);
-    return () => window.clearTimeout(t);
-  }, [done, finish]);
+      if (found.length > 0) {
+        setAvail(found);
+        setReady(true);
+        return;
+      }
+      if (++tries < 8) {
+        timer = window.setTimeout(look, 500);
+        return;
+      }
+      setReady(true); // 这次不打扰，下次进来重新试
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [done]);
 
   const tip = !done && ready && idx < avail.length ? avail[idx] : null;
 
@@ -124,7 +134,7 @@ export function HomeCoachMarks(): ReactNode {
   }, [rect, tip]);
 
   useEffect(() => {
-    if (done || !ready) return;
+    if (done || !ready || avail.length === 0) return; // 一条都没有时不算"走完"，更不落 done
     if (idx >= avail.length) finish();
   }, [done, ready, idx, avail.length, finish]);
 

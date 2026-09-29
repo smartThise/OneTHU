@@ -52,6 +52,11 @@ assert.ok(/function place\(target: Rect/.test(coach), "卡片位置要由目标�
 assert.ok(/visibility: pos \? "visible" : "hidden"/.test(coach), "卡片要先隐身量高度再摆，否则第一次会闪到错位置");
 assert.ok(!/bottom: "calc\(/.test(coach) && !/position: "fixed",\s*\n\s*bottom:/.test(coach), "不许再退回固定在底部那种卡片");
 assert.ok(/getBoundingClientRect\(\)/.test(coach), "卡片自身高度要实测（文案长短会变），不能估");
+// ⑤ 找不到锚点不许落 done：冷启动慢时首页卡片还没渲染，一次没找到就落盘会把引导永久烧掉
+assert.ok(/tries < 8/.test(coach) && /setTimeout\(look, 500\)/.test(coach), "锚点没渲染出来要重试（卡片是异步算的）");
+assert.ok(/avail\.length === 0\) return;/.test(coach), "一条都没找到时不算「走完了」，更不能落 done");
+const notFoundPath = coach.slice(coach.indexOf("let tries = 0"), coach.indexOf("}, [done]);"));
+assert.ok(!/finish\(\)/.test(notFoundPath), "找不到锚点的分支里不许落 done");
 
 // ④ 每个锚点都要真的指得到东西——"第三条静默消失"就是这么来的
 /** 剥掉注释再扫锚点：注释里提到某个锚点，不该被当成真的用了它 */
