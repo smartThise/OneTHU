@@ -43,10 +43,23 @@ apps/desktop/src-tauri/plugins/*/android/tmp/
 
 # tauri android init 生成的安卓工程（每次构建可再生，含 gradle-wrapper.jar 与启动图标）。
 # 仓库里曾跟踪一个指向 /Users/st/onethu-android 的符号链接——那是上游机器的绝对路径，
-# 对其他机器本就是坏链，故移除跟踪项并整体忽略（与既有的 src-tauri/gen/schemas/ 同口径）
-apps/desktop/src-tauri/gen/android/
+# 对其他机器本就是坏链，故移除跟踪项并整体忽略（与既有的 src-tauri/gen/schemas/ 同口径）。
+#
+# 末尾**不写 `/`**：gitignore(5) 里 `foo/` 只匹配真目录，"will not match a regular file
+# or a symbolic link"。而 macOS 发布线恰是把这里做成指向内盘工程的**软链**
+# （build-release-apk.sh 第③步）——若写成 `gen/android/`，软链形态会以未跟踪条目的
+# 样子重新出现在 `git status` 里，一不小心又被 add 回来。不带斜杠则两种形态都忽略。
+apps/desktop/src-tauri/gen/android
 
 # 本机专用目录：编辑器调试配置（.vscode）与本机暂存/日志目录（.dsh-tmp）。
 # 只留在本地，不入库（.vscode 里的调试配置因人而异，机器路径不可共享）
 .vscode/
 .dsh-tmp/
+
+# Windows 本机构建脚本（dev-launch / android-dev / build-android 的 .mjs 实现）：只服务本机
+# 的 Windows 工具链（%LOCALAPPDATA% 下的 SDK/JDK、.bat 经 cmd /c、符号链接权限自检），
+# macOS/Linux 各有同名的 .sh 正路（dev-launch.sh / build-release-apk.sh）。故只留本地、不入库，
+# 换机器按需自行携带；`.vscode/launch.json`（同样不入库）里调用的就是这里的 android-dev.mjs。
+apps/desktop/scripts/dev-launch.mjs
+apps/desktop/scripts/android-dev.mjs
+apps/desktop/scripts/build-android.mjs
