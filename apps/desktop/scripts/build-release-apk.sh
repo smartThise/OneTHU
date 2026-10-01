@@ -155,11 +155,16 @@ echo "✓ 产物：$OUT ($(du -h "$OUT" | cut -f1))"
 "$BT/aapt2" dump badging "$OUT" 2>/dev/null | head -3 || true
 echo "· 安装：adb install -r \"$OUT\""
 
-# ⑦ 复原 gen/android 指向——基准是**入库的**符号链接目标
+# ⑦ 收尾：gen/android 的指向
+#    自 2026-09-25 起它**不入库**（.gitignore 忽略，每次构建可再生），指向内盘工程属于
+#    本机状态，无需复原，也不会再脏工作区。老分支仍可能跟踪着它，故保留「按索引复原」
+#    这条路：仅在真的入库、且入库指向与本机内盘工程不同（例如 demo 线）时才动它。
 COMMITTED_LINK="$(git -C "$REPO" cat-file -p HEAD:apps/desktop/src-tauri/gen/android 2>/dev/null || true)"
-if [ -n "$COMMITTED_LINK" ] && [ "$COMMITTED_LINK" != "$PROJ_PRIMARY" ]; then
+if [ -z "$COMMITTED_LINK" ]; then
+  echo "· gen/android 未入库（.gitignore 忽略）：保持指向 ${PROJ_PRIMARY}"
+elif [ "$COMMITTED_LINK" != "$PROJ_PRIMARY" ]; then
   git -C "$REPO" checkout -- apps/desktop/src-tauri/gen/android
   echo "· gen/android 已复原为入库指向：${COMMITTED_LINK}"
 else
-  echo "· gen/android 保持指向 ${PROJ_PRIMARY}（入库指向即内盘 demo 工程）"
+  echo "· gen/android 保持指向 ${PROJ_PRIMARY}（入库指向即内盘正式工程）"
 fi

@@ -67,14 +67,20 @@ function checkRelease(label, read, exists) {
     if (exists("apps/desktop/scripts/build-demo-apk.sh")) {
       failures.push(`${label}：出现 demo 专属脚本 apps/desktop/scripts/build-demo-apk.sh`);
     }
-    // 入库的 gen/android 是符号链接（值随构建机不同），但发布线不该指向 demo 工程
-    try {
-      const link = read("apps/desktop/src-tauri/gen/android").trim();
-      if (link.includes("onethu-android-demo")) {
-        failures.push(`${label}：gen/android 软链指向 demo 工程（${link}）`);
+    // gen/android 自 2026-09-25 起不入库（.gitignore 忽略，每次构建可再生）；本机把它软链到
+    // 哪个工程属于本机状态。但老分支/老 tag 仍可能跟踪着它（历史上入库过一个指向 demo 工程的
+    // 软链），所以：**只在它确实入库时**才检查——不这样的话，这道护栏会静默失效。
+    if (exists("apps/desktop/src-tauri/gen/android")) {
+      try {
+        const link = read("apps/desktop/src-tauri/gen/android").trim();
+        if (link.includes("onethu-android-demo")) {
+          failures.push(`${label}：gen/android 软链指向 demo 工程（${link}）`);
+        }
+      } catch {
+        /* 是目录或读不到：跳过（工程树内容不参与发布线不变量） */
       }
-    } catch {
-      /* 不是符号链接或读不到：跳过 */
+    } else {
+      notes.push(`${label}：gen/android 未入库（.gitignore 忽略），跳过软链指向检查`);
     }
   } catch (e) {
     failures.push(`${label}：读取失败 ${String(e).slice(0, 80)}`);
