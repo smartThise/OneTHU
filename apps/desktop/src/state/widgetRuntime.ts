@@ -16,7 +16,8 @@ import type { PlanHomework, PlanScheduleEntry } from "./notifyPlan.js";
 import type { NotifyInvoke } from "./notifyScheduler.js";
 import {
   buildDetailSnapshot, buildGridSnapshot, buildShortcutSnapshot, buildWidgetSnapshot,
-  serializeWidgetPush, type WidgetInstanceContent, type WidgetSnapshot,
+  serializeWidgetPush, WIDGET_MAX_ROWS,
+  type WidgetInstanceContent, type WidgetSnapshot,
 } from "./widgetSnapshot.js";
 import { collectWidgetSlots } from "../plugins/pluginWidgets.js";
 import { atomIconPng } from "./widgetIcon.js";
@@ -88,9 +89,9 @@ export function createWidgetRuntime(deps: WidgetRuntimeDeps): WidgetRuntime {
       return buildDetailSnapshot({
         title: resolved.title, rows: resolved.rows, footer: resolved.footer,
         target: resolved.target, now,
-        // 多给几行：原生 listFit(h) 会按实际高度裁——矮的只显示一两行，拉长的能看到
-        // 更多（校园卡流水这类「越长越有用」的内容靠这个生效）
-        maxRows: 8,
+        // 候选行给足：原生 fitRows(h) 按真实高度铺满——矮的只显示一两行，拉长的全铺上
+        // （校园卡流水这类「越长越有用」的内容靠这个生效）
+        maxRows: WIDGET_MAX_ROWS,
       });
     }
     if (resolved.kind === "grid") {

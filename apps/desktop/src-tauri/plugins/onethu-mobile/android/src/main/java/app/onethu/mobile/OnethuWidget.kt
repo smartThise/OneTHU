@@ -23,6 +23,14 @@
 //   重画语义唯一参考：JS state/widgetNativeRender.ts（改语义先改那里再两端同步）。
 //   重画的触发 = 30 分钟兜底自续 tick + 最近的 at/until 翻转点精准闹钟（WidgetTicker）。
 //
+// R25（2026-09-25「能显示的行数远少于实际空间 / 总是显示还有 2 项」）：卡片尺寸由用户在
+// 桌面上拖动决定（Android 允许任意大小），故行数一律按**真实高度**算——fitRows 逐行量文本，
+// 不再按「矮/中/高」三档估（估低了留一大片空白、估高了把最后一行挤出可视区）；布局里备足
+// SLOT_IDS 条槽位，快照也按 WIDGET_MAX_ROWS 给足候选行。脚注口径：前半段数**卡片上真的
+// 显示出来的行**，「还有 N 项」= 仍有效但没显示的（可见行 − 已显示行）+ 快照都没装下的
+// counts.more；两者之和恒等于仍有效的条目总数（此前「还有」直接用快照写死的值，与卡片
+// 实际显示几条无关）。
+//
 // 未绑定的实例显示「点一下选择显示内容」，点击落点 widget-config:<appWidgetId>，
 // 由应用打开绑定层（也可以长按小组件 → 编辑，走同样的落点）。
 
@@ -42,6 +50,7 @@ import android.graphics.BitmapFactory
 import android.util.Base64
 import android.view.View
 import android.widget.RemoteViews
+import android.widget.TextView
 import org.json.JSONObject
 
 /** 快照存储：SharedPreferences。槽位小组件用全局键，宿主家族按 appWidgetId 一实例一键。 */
@@ -176,8 +185,8 @@ abstract class OnethuBaseWidget : AppWidgetProvider() {
     }
 
     companion object {
-        /** 列表布局能放几条（slot1..slot5） */
-        private const val SLOT_IDS = 5
+        /** 列表布局能放几条（res/layout/onethu_widget.xml 里的 slot/bar/row 编号上限） */
+        private const val SLOT_IDS = 20
         /** 兜底自续 tick：没有任何翻转点时也要隔这么久重画一次（顺带跨午夜换标题） */
         private const val FALLBACK_TICK_MS = 30 * 60_000L
         /** 两次重画的最小间隔：防异常快照把闹钟排成紧密循环 */
@@ -186,8 +195,10 @@ abstract class OnethuBaseWidget : AppWidgetProvider() {
         private const val INK = 0xFF0F1115.toInt()
         /** 深色卡片底上的正文墨色（自动跟随系统深色，无需设置项） */
         private const val INK_NIGHT = 0xFFE8EBF2.toInt()
-        /** 一条内容占的高度（dp）：一条一行，说明在同一条里 */
-        private const val SLOT_H = 22
+        /** 布局里三处文本的字号（sp）；行高一律按这些字号**真实测量**（见 fitRows） */
+        private const val TITLE_SP = 13
+        private const val ROW_SP = 13
+        private const val FOOTER_SP = 10
         /** 说明文字的颜色（灰）与字号 */
         private const val SUB_COLOR = 0xFF81858C.toInt()
         /** 深色卡片上的说明灰 */
@@ -305,24 +316,54 @@ abstract class OnethuBaseWidget : AppWidgetProvider() {
         }
 
         /**
-         * 列表形态能放几条、要不要带说明——**同一套布局靠可见性自适应**。
+         * 一段文本的行高（px）：按字号**真实测量**。
          *
-         * 一条一行（说明用 Span 跟在主文后面，不另占一行），故每条约 22dp；标题 20dp、
-         * 脚注 16dp、内边距 24dp（矮条隐藏标题，只留 12dp）。上限按高度分档，避免出现
-         * 「一屏挤五条」那种密到看不清的排版。
+         * 不再按「矮/中/高」估行高：卡片尺寸由用户拖动决定，估算在大卡片上留一大片空白、
+         * 在矮卡片上把最后一行挤出可视区（用户实录「能显示的行数远少于实际拥有的空间」）。
+         * 测量用与布局同字号的 TextView：系统字体缩放、字体本身的度量差异都自然跟上。
          */
-        private fun listFit(h: Int): Pair<Int, Boolean> {
-            if (h <= 0) return 3 to true           // 拿不到尺寸（老系统/首次）→ 按默认 3 条渲染
-            val padding = if (h < 90) 12 else 24
-            val title = if (h < 90) 0 else 20      // 矮条隐藏标题，把这一行让给内容
-            val footer = if (h < 90) 0 else 16
-            val usable = h - padding - title - footer
-            val cap = when {
-                h < 200 -> 3
-                h < 260 -> 4
-                else -> 5
+        private fun lineHeightPx(ctx: Context, sp: Int, bold: Boolean, sample: CharSequence): Int {
+            val tv = TextView(ctx)
+            tv.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp.toFloat())
+            if (bold) tv.setTypeface(tv.typeface, android.graphics.Typeface.BOLD)
+            tv.maxLines = 1
+            tv.text = sample
+            val spec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            tv.measure(spec, spec)
+            return tv.measuredHeight
+        }
+
+        /** 一条内容占的高度（px）：整行文本的真实行高 + 行间距（与布局一致：首行 6dp、其余 4dp） */
+        private fun rowPitchPx(ctx: Context, styled: CharSequence, first: Boolean): Int {
+            val d = ctx.resources.displayMetrics.density
+            return lineHeightPx(ctx, ROW_SP, false, styled) + ((if (first) 6 else 4) * d).toInt()
+        }
+
+        /**
+         * 这个尺寸能铺几行（一行一个事件）：逐行按真实行高累加，直到放不下为止。
+         *
+         * 至少放一行（卡片再矮也要有内容），最多 SLOT_IDS 行（布局里的槽位数）；放不下的由
+         * 脚注的「还有 N 项」如实交代。`withSub=false`（极矮）时行文本更短，行高不受影响。
+         */
+        private fun fitRows(ctx: Context, rows: List<CharSequence>, h: Int, compact: Boolean, withSub: Boolean): Int {
+            if (rows.isEmpty()) return 0
+            if (h <= 0) return minOf(3, rows.size)      // 拿不到尺寸（老系统/首次）→ 按默认 3 行渲染
+            val d = ctx.resources.displayMetrics.density
+            val px = { v: Int -> (v * d).toInt() }
+            val padding = px(if (compact) 12 else 24)   // 上下内边距合计（与 applyCompactPadding 同口径）
+            val title = if (compact) 0 else lineHeightPx(ctx, TITLE_SP, true, "今天 9月25日")
+            val footer = if (withSub) px(6) + lineHeightPx(ctx, FOOTER_SP, false, "5 节课 · 3 个截止") else 0
+            val avail = px(h) - padding - title - footer
+            var used = 0
+            var n = 0
+            for ((i, r) in rows.withIndex()) {
+                if (n >= SLOT_IDS) break
+                val cost = rowPitchPx(ctx, r, i == 0)
+                if (n > 0 && used + cost > avail) break   // 第一行无论如何都留下
+                used += cost
+                n++
             }
-            return minOf(cap, maxOf(1, usable / SLOT_H)) to (h >= 100)
+            return n
         }
 
         /** 图标组能放几个：列数按宽度、行数按高度（每格约 56dp），最多 2 行 × 4 列 */
@@ -389,58 +430,81 @@ abstract class OnethuBaseWidget : AppWidgetProvider() {
         /** 列表形态：标题 + 若干条（每条「色条 + 主文 + 小字说明」，一条一行）+ 脚注。
          *  用于日程与 DDL、单原子详情、以及教室/洗衣机这类实时状态。
          *  R21：带 at/until/rel 的行先经 nativeRow 重算（可见性/次行/加粗随当前时钟），
-         *  过期行剔除后从顶上重新装填；脚注与标题同步重算。语义锚 = widgetNativeRender.ts。 */
+         *  过期行剔除后从顶上重新装填；脚注与标题同步重算。语义锚 = widgetNativeRender.ts。
+         *  R25：两趟——先把**仍有效**的行全部算出来（含两类条数），再按真实高度决定铺几行；
+         *  于是脚注能如实说「卡片上显示了几行 + 还有几项没显示」。 */
         private fun renderList(ctx: Context, manager: AppWidgetManager, widgetId: Int, content: JSONObject, h: Int) {
             val views = RemoteViews(ctx.packageName, R.layout.onethu_widget)
             val rows = content.optJSONArray("rows")
             val now = System.currentTimeMillis()
-            val (maxSlots, withSub) = listFit(h)
             // 矮条（2×1）里标题是冗余的（用户自己知道放的是什么），把这一行让给内容：
             // 隐藏标题、收紧内边距，于是「一条内容 + 脚注」都放得下，而不是被裁掉半行。
-            val compact = h < 90
+            val compact = h > 0 && h < 90
+            val withSub = h <= 0 || h >= 100
             applyCompactPadding(ctx, views, compact)
             views.setViewVisibility(R.id.onethu_widget_title, if (compact) View.GONE else View.VISIBLE)
             views.setTextViewText(R.id.onethu_widget_title, titleOf(content, now))
 
             val ink = inkOf(ctx)
             val subC = subOf(ctx)
-            var packed = 0
+
+            // ① 先按当前时钟算出所有仍有效的行（可见性 / 次行 / 样式），并统计两类条数：
+            //    脚注的「还有 N 项」要用「全部有效行」减去「真正显示出来的行」。
+            val texts = mutableListOf<CharSequence>()
+            val colors = mutableListOf<Int?>()
+            val rels = mutableListOf<String>()
             var visClasses = 0
             var visDdls = 0
             if (rows != null) {
                 for (i in 0 until rows.length()) {
-                    if (packed >= maxSlots) break
                     val row = rows.optJSONObject(i) ?: continue
                     val (visible, text, rowSub) = nativeRow(row, now)
                     if (!visible) continue
                     val sub = if (withSub) rowSub else ""
                     if (text.isEmpty() && sub.isEmpty()) continue
-
-                    val slot = slotId(packed + 1)
-                    views.setViewVisibility(slot, View.VISIBLE)
-
-                    // 色条：课程色 / 紧迫度色 / 状态色；无色时保留占位但不可见（各行文字对齐）
-                    val bar = barId(packed + 1)
                     val color = parseColor(row.optString("color").orEmpty())
-                    if (color != null) {
-                        views.setViewVisibility(bar, View.VISIBLE)
-                        views.setInt(bar, "setBackgroundColor", color)
-                    } else {
-                        views.setViewVisibility(bar, View.INVISIBLE)
-                    }
-
-                    views.setTextViewText(rowId(packed + 1), styledRow(text, sub, row, color, ink, subC))
-                    when (row.optString("rel")) {
+                    texts.add(styledRow(text, sub, row, color, ink, subC))
+                    colors.add(color)
+                    val rel = row.optString("rel")
+                    rels.add(rel)
+                    when (rel) {
                         "class" -> visClasses++
                         "ddl" -> visDdls++
                     }
-                    packed++
                 }
+            }
+
+            // ② 按真实高度铺满：一行一个事件；放不下的由脚注交代，而不是空着半张卡片
+            val maxSlots = fitRows(ctx, texts, h, compact, withSub)
+            var packed = 0
+            var shownClasses = 0
+            var shownDdls = 0
+            for (i in texts.indices) {
+                if (packed >= maxSlots) break
+                val slot = slotId(packed + 1)
+                views.setViewVisibility(slot, View.VISIBLE)
+
+                // 色条：课程色 / 紧迫度色 / 状态色；无色时保留占位但不可见（各行文字对齐）
+                val bar = barId(packed + 1)
+                val color = colors[i]
+                if (color != null) {
+                    views.setViewVisibility(bar, View.VISIBLE)
+                    views.setInt(bar, "setBackgroundColor", color)
+                } else {
+                    views.setViewVisibility(bar, View.INVISIBLE)
+                }
+
+                views.setTextViewText(rowId(packed + 1), texts[i])
+                when (rels[i]) {
+                    "class" -> shownClasses++
+                    "ddl" -> shownDdls++
+                }
+                packed++
             }
             for (i in packed + 1..SLOT_IDS) views.setViewVisibility(slotId(i), View.GONE)
 
-            // 脚注：按仍可见的行重计（矮条里让位给内容）
-            val footer = if (withSub) footerOf(content, now, visClasses, visDdls) else ""
+            // 脚注：数卡片上显示出来的行 + 还没显示的条目数（矮条里让位给内容）
+            val footer = if (withSub) footerOf(content, now, shownClasses, shownDdls, visClasses + visDdls) else ""
             views.setViewVisibility(R.id.onethu_widget_footer, if (footer.isEmpty()) View.GONE else View.VISIBLE)
             views.setTextViewText(R.id.onethu_widget_footer, footer)
             views.setOnClickPendingIntent(
@@ -505,21 +569,26 @@ abstract class OnethuBaseWidget : AppWidgetProvider() {
          * R21 把页脚改成「按 counts 重算」时没区分内容类型——详情类内容（洗衣机/校园卡/
          * 课程…）没有 counts，于是永远掉进「全空」分支，被套上今日的空态文案。
          * 判定依据用 counts 是否存在（今日快照必带 counts/titleAt，详情快照不带）。
+         *
+         * 计数口径（R25）：前半段数**卡片上真的显示出来的行**（shownClasses/shownDdls），
+         * 「还有 N 项」= 仍有效但没显示的（visibleRel − 已显示）+ 快照都没装下的
+         * counts.more；两者之和恒等于仍有效的条目总数。此前「还有」直接用快照里写死的
+         * counts.more，与卡片实际显示几条无关——用户实录「空着大半张卡却一直写着还有 2 项」。
          */
-        private fun footerOf(content: JSONObject, now: Long, visClasses: Int, visDdls: Int): String {
+        private fun footerOf(content: JSONObject, now: Long, shownClasses: Int, shownDdls: Int, visibleRel: Int): String {
             val counts = content.optJSONObject("counts")
                 ?: return content.optString("footer").orEmpty() // 非今日内容：用自带页脚（可能为空=不显示）
             val parts = mutableListOf<String>()
-            if (visClasses > 0) parts.add("$visClasses 节课")
-            if (visDdls > 0) parts.add("$visDdls 个截止")
+            if (shownClasses > 0) parts.add("$shownClasses 节课")
+            if (shownDdls > 0) parts.add("$shownDdls 个截止")
             if (parts.isEmpty()) {
                 val hadClass = counts.optBoolean("hadClass", false) == true
                 val titleAt = content.optLong("titleAt", 0L)
                 return if (hadClass && (titleAt <= 0L || dayKey(titleAt) == dayKey(now))) "今天的课已上完"
                 else "今天没有课与截止"
             }
-            val more = counts.optInt("more", 0) ?: 0
-            return parts.joinToString(" · ") + if (more > 0) " · 还有 $more 项" else ""
+            val hidden = (visibleRel - (shownClasses + shownDdls)) + counts.optInt("more", 0)
+            return parts.joinToString(" · ") + if (hidden > 0) " · 还有 $hidden 项" else ""
         }
 
         /**
@@ -642,7 +711,22 @@ abstract class OnethuBaseWidget : AppWidgetProvider() {
             2 -> R.id.onethu_widget_slot2
             3 -> R.id.onethu_widget_slot3
             4 -> R.id.onethu_widget_slot4
-            else -> R.id.onethu_widget_slot5
+            5 -> R.id.onethu_widget_slot5
+            6 -> R.id.onethu_widget_slot6
+            7 -> R.id.onethu_widget_slot7
+            8 -> R.id.onethu_widget_slot8
+            9 -> R.id.onethu_widget_slot9
+            10 -> R.id.onethu_widget_slot10
+            11 -> R.id.onethu_widget_slot11
+            12 -> R.id.onethu_widget_slot12
+            13 -> R.id.onethu_widget_slot13
+            14 -> R.id.onethu_widget_slot14
+            15 -> R.id.onethu_widget_slot15
+            16 -> R.id.onethu_widget_slot16
+            17 -> R.id.onethu_widget_slot17
+            18 -> R.id.onethu_widget_slot18
+            19 -> R.id.onethu_widget_slot19
+            else -> R.id.onethu_widget_slot20
         }
 
         private fun barId(n: Int): Int = when (n) {
@@ -650,7 +734,22 @@ abstract class OnethuBaseWidget : AppWidgetProvider() {
             2 -> R.id.onethu_widget_bar2
             3 -> R.id.onethu_widget_bar3
             4 -> R.id.onethu_widget_bar4
-            else -> R.id.onethu_widget_bar5
+            5 -> R.id.onethu_widget_bar5
+            6 -> R.id.onethu_widget_bar6
+            7 -> R.id.onethu_widget_bar7
+            8 -> R.id.onethu_widget_bar8
+            9 -> R.id.onethu_widget_bar9
+            10 -> R.id.onethu_widget_bar10
+            11 -> R.id.onethu_widget_bar11
+            12 -> R.id.onethu_widget_bar12
+            13 -> R.id.onethu_widget_bar13
+            14 -> R.id.onethu_widget_bar14
+            15 -> R.id.onethu_widget_bar15
+            16 -> R.id.onethu_widget_bar16
+            17 -> R.id.onethu_widget_bar17
+            18 -> R.id.onethu_widget_bar18
+            19 -> R.id.onethu_widget_bar19
+            else -> R.id.onethu_widget_bar20
         }
 
         private fun rowId(n: Int): Int = when (n) {
@@ -658,7 +757,22 @@ abstract class OnethuBaseWidget : AppWidgetProvider() {
             2 -> R.id.onethu_widget_row2
             3 -> R.id.onethu_widget_row3
             4 -> R.id.onethu_widget_row4
-            else -> R.id.onethu_widget_row5
+            5 -> R.id.onethu_widget_row5
+            6 -> R.id.onethu_widget_row6
+            7 -> R.id.onethu_widget_row7
+            8 -> R.id.onethu_widget_row8
+            9 -> R.id.onethu_widget_row9
+            10 -> R.id.onethu_widget_row10
+            11 -> R.id.onethu_widget_row11
+            12 -> R.id.onethu_widget_row12
+            13 -> R.id.onethu_widget_row13
+            14 -> R.id.onethu_widget_row14
+            15 -> R.id.onethu_widget_row15
+            16 -> R.id.onethu_widget_row16
+            17 -> R.id.onethu_widget_row17
+            18 -> R.id.onethu_widget_row18
+            19 -> R.id.onethu_widget_row19
+            else -> R.id.onethu_widget_row20
         }
 
         private fun cellId(i: Int): Int = when (i) {

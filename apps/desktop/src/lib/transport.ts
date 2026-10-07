@@ -431,22 +431,13 @@ export const universalFetch: FetchLike = (url, init) =>
  * 那些值不是 Error 实例。曾经这里只认 `err instanceof Error`，于是所有原生错误
  * （会话失效 / HTTP 403 / 文件过大 / 空文件）统统显示成「未知网络错误」——
  * 真话被吞掉，排查只能靠猜。现在先把任意形态的 err 归一成一句话，再场景化。
+ *
+ * 归一（`rawErrorText`）与「会话失效」判定（`isSessionExpiredError`）已挪到
+ * `lib/sessionErrors.ts`：那是零依赖叶子模块，单测能直接 import（本文件会把整个
+ * `@onethu/core` 拖进来，Node 的类型剥离跑不动 core 的参数属性语法）。
  */
-export function rawErrorText(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  if (typeof err === "string") return err;
-  if (err && typeof err === "object") {
-    const m = (err as { message?: unknown }).message;
-    if (typeof m === "string" && m) return m;
-    try {
-      return JSON.stringify(err);
-    } catch {
-      /* 循环引用等：落到下面的兜底 */
-    }
-  }
-  if (err === null || err === undefined) return "";
-  return String(err);
-}
+export { rawErrorText, isSessionExpiredError } from "./sessionErrors.js";
+import { rawErrorText } from "./sessionErrors.js";
 
 /** 最近一次界面报错的原文（只随「复制诊断摘要」带出，不自动上报） */
 let lastRawError = "";

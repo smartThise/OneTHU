@@ -3,16 +3,19 @@ import { useEffect, useState } from "react";
  * 全局轻提示（原子操作反馈用）：单条覆盖式，2.8s 自动消失。
  * local/anim-delight：加了「退出相位」——消息不是瞬间消失，而是先播 200ms 淡出动画
  * （closing=true），播完再真正清空，这样退场也有动效，而不是"啪"地不见。
+ * 另有 center 提示：必须看见的失败（如正文图片因会话失效全部加载失败）用，
+ * 底部轻提示会被滚动内容与用户注意力漏掉。
  */
 const EXIT_MS = 200;
 let current: string | null = null;
+let center = false;
 let closing = false;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let exitTimer: ReturnType<typeof setTimeout> | null = null;
 const listeners = new Set<(s: ToastState) => void>();
-export type ToastState = { msg: string | null; closing: boolean };
+export type ToastState = { msg: string | null; closing: boolean; center: boolean };
 function emit(): void {
-  const snapshot: ToastState = { msg: current, closing };
+  const snapshot: ToastState = { msg: current, closing, center };
   listeners.forEach((fn) => fn(snapshot));
 }
 function clearTimers(): void {
@@ -48,11 +51,11 @@ export function muteToasts<T>(fn: () => T): T {
     muted = prev;
   }
 }
-export function showToast(text: string, ms = 2800): void {
+export function showToast(text: string, ms = 2800, opts: { center?: boolean } = {}): void {
   if (muted) return;
   clearTimers();
   current = text;
-  closing = false;
+  center = opts.center === true;
   emit();
   timer = setTimeout(beginExit, ms);
 }
@@ -61,7 +64,7 @@ export function hideToast(): void {
   beginExit();
 }
 export function useToastHost(): ToastState {
-  const [state, setState] = useState<ToastState>({ msg: current, closing });
+  const [state, setState] = useState<ToastState>({ msg: current, closing, center });
   useEffect(() => {
     listeners.add(setState);
     return () => {

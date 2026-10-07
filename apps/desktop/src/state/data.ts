@@ -43,6 +43,7 @@ import type { XkPlanItem } from "@onethu/core";
 import { useApp } from "./context.js";
 import { cacheGet, cacheSet, cacheFetch, cacheKeys,
   purgeXkCaches } from "./cache.js";
+import { observeCardBalance } from "./cardWarn.js";
 
 /** info/zhjwxk 页内错误落盘（/tmp/onethu-debug.log），解析不匹配时可一轮定位 */
 export function logPageError(tag: string, err: unknown): void {
@@ -2106,11 +2107,18 @@ export function useCard(days = 30) {
       ]);
       // R21c 真 bug：此前流水失败会返回 [] 并被 cacheSet 落盘，把此前的真实流水覆盖成
       // 「没有流水」，用户看到的是假的空列表。现在失败保留旧流水并单独报「部分失败」。
+      // 旧流水是从 localStorage 读回来的，时间戳是 JSON 化后的字符串，必须就地复活：
+      // 否则 CardTab 的 fmtTime 拿到字符串会抛 `d.getMonth is not a function`，整棵树
+      // 被根错误边界换掉（2026-09-25 真机实录：流水接口返回错误页时卡片直接变错误页）。
       const prev = cacheGet<CardBundle>(cardKey)?.data ?? null;
-      const mergedTx = transactions ?? prev?.transactions ?? [];
+      const prevBundle = prev ? reviveCardBundle(prev) : null;
+      const mergedTx = transactions ?? prevBundle?.transactions ?? [];
       cacheSet(cardKey, { info: cardInfo, transactions: mergedTx });
       setData({ info: cardInfo, transactions: mergedTx });
       setUpdatedAt(Date.now());
+      // 余额预警：任何一次余额刷新（卡页手刷 / 切回本栏重试 / 首页与小组件的静默重验证 /
+      // 充值后刷新）都在这里过一遍判定，判定放在取数之后，新增刷新途径无需再接线。
+      void observeCardBalance(cardInfo.balance);
       setRefreshError(transactions === null ? "流水明细获取失败，已显示上次拉到的明细" : null);
       recover.current = 0;
       setState("ready");

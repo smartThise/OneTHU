@@ -98,11 +98,15 @@ object NotifyCenter {
     const val CH_COURSE = "onethu_course"
     const val CH_DDL = "onethu_ddl"
     const val CH_BRIEFING = "onethu_briefing"
+    const val CH_BALANCE = "onethu_balance"
 
     private val CHANNELS = listOf(
         Triple(CH_COURSE, "课程与日程", "上课前、开考前与自定义日程提醒"),
         Triple(CH_DDL, "作业截止", "作业 DDL 提醒"),
         Triple(CH_BRIEFING, "每日早报", "当天课程与截止汇总"),
+        // 校园卡余额预警：事件驱动（余额刷新后判定），与「排程到点发」的三档分开，
+        // 用户可以单独关掉它而不影响课程与 DDL 提醒
+        Triple(CH_BALANCE, "校园卡余额", "校园卡余额低于预警线时提醒"),
     )
 
     /** 幂等创建三个渠道（重复调用安全）；App 启动与排程前各调一次。 */
@@ -122,10 +126,28 @@ object NotifyCenter {
     fun channelOf(raw: String): String = when (raw) {
         "ddl" -> CH_DDL
         "briefing" -> CH_BRIEFING
+        "balance" -> CH_BALANCE
         else -> CH_COURSE
     }
 
     private fun notifId(id: String): Int = id.hashCode() and 0x7fffffff
+
+    /**
+     * 撤回**已展示**的通知。
+     *
+     * 与 `OnethuNotifyReceiver.cancel` 是两条通道：那条撤的是「还没到点的闹钟 + 库条目」，
+     * 已弹出的通知在 AlarmManager 侧没有痕迹，只认通知栏里那一条。两者合一会让按计划
+     * 对齐的那轮同步把刚弹出的课程提醒一并抹掉，故分开。
+     */
+    fun dismiss(ctx: Context, id: String): Boolean {
+        return try {
+            NotificationManagerCompat.from(ctx).cancel(notifId(id))
+            true
+        } catch (e: Exception) {
+            // 个别 ROM 在通知权限被关时抛异常：撤回失败不上报（用户表现为通知自己消不掉）
+            false
+        }
+    }
 
     /** 弹一条通知；点击后落点交给 LaunchTarget（复用启动广播）。 */
     fun post(ctx: Context, id: String, item: JSONObject): Boolean {

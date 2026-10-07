@@ -103,6 +103,47 @@ const rows = [
   assert.equal(out.footer, "今天没有课与截止");
 }
 
+/* ---------- [2b] 行数按卡片高度铺满 + 脚注「还有 N 项」（R25） ----------
+ * 2026-09-25 用户实录：卡片拖大后能显示的行数远少于实际空间（旧实现按矮/中/高估行高并
+ * 封顶 5 行），脚注又总写着快照里算死的「还有 2 项」，与卡片实际显示几条无关。 */
+
+const many = [
+  { text: "11:00 数据结构", rel: "class", at: T(2026, 9, 21, 11, 0), until: T(2026, 9, 21, 12, 40), loc: "六教" },   // 正在上
+  { text: "14:00 高数", rel: "class", at: T(2026, 9, 21, 14, 0), until: T(2026, 9, 21, 15, 40), loc: "六教" },
+  { text: "DDL 习题", rel: "ddl", at: T(2026, 9, 21, 17, 0) },
+  { text: "DDL 报告", rel: "ddl", at: T(2026, 9, 23, 23, 59) },
+];
+const counts4 = { classes: 2, ddls: 2, more: 0, hadClass: true };
+
+{
+  // 卡片放得下全部 4 行：脚注只报显示出来的，不再多写「还有」
+  const out = nativeRender({ rows: many, counts: counts4, titleAt: T(2026, 9, 21, 8, 0), now, maxRows: 4 });
+  assert.equal(out.rows.length, 4);
+  assert.equal(out.footer, "2 节课 · 2 个截止");
+}
+{
+  // 卡片只放得下 1 行：显示 1 + 还有 3，两者之和 = 仍有效的条目总数（4）
+  const out = nativeRender({ rows: many, counts: counts4, titleAt: T(2026, 9, 21, 8, 0), now, maxRows: 1 });
+  assert.equal(out.rows.length, 1);
+  assert.equal(out.footer, "1 节课 · 还有 3 项");
+}
+{
+  // 快照都没装下的条目（counts.more）也要算进「还有」：显示 2 + 快照外 2
+  const out = nativeRender({ rows: many.slice(0, 2), counts: { ...counts4, more: 2 }, titleAt: T(2026, 9, 21, 8, 0), now, maxRows: 2 });
+  assert.equal(out.footer, "2 节课 · 还有 2 项");
+}
+{
+  // 中间尺寸：显示 3（2 课 + 1 截止）→ 还有 1
+  const out = nativeRender({ rows: many, counts: counts4, titleAt: T(2026, 9, 21, 8, 0), now, maxRows: 3 });
+  assert.equal(out.footer, "2 节课 · 1 个截止 · 还有 1 项");
+}
+{
+  // 过点的行不算「还有」：过期的那条既不上卡片也不进剩余数
+  const expired = [...many, { text: "DDL 过期", rel: "ddl", at: T(2026, 9, 21, 9, 0) }];
+  const out = nativeRender({ rows: expired, counts: { ...counts4, ddls: 3 }, titleAt: T(2026, 9, 21, 8, 0), now, maxRows: 2 });
+  assert.equal(out.footer, "2 节课 · 还有 2 项");
+}
+
 /* ---------- [3] 快照构建侧写入机器字段 ---------- */
 
 {
@@ -152,4 +193,25 @@ assert.ok(/content\.optJSONObject\("counts"\)\s*\n?\s*\?: return content\.optStr
   /\?: return content\.optString\("footer"\)/.test(footerFn),
   "非今日内容必须用自带的 footer（否则详情组件被套上今日空态文案）");
 
-console.log("widget-native-render-test: 全部断言通过（nativeRow 7 态 + 脚注标题 3 态 + 快照契约 + 两端同步守卫）");
+/* 行数铺满 + 剩余项数（R25，2026-09-25「行数远少于实际空间 / 总是还有 2 项」）：
+ * 快照给足候选行、布局备足槽位、原生按真实高度算行数、脚注按「显示了几行 + 还有几项」数。 */
+const snapSrc = readFileSync(new URL("../apps/desktop/src/state/widgetSnapshot.ts", import.meta.url), "utf8");
+const layout = readFileSync(new URL("../apps/desktop/src-tauri/plugins/onethu-mobile/android/src/main/res/layout/onethu_widget.xml", import.meta.url), "utf8");
+
+assert.ok(/export const WIDGET_MAX_ROWS = 20/.test(snapSrc), "快照必须给足候选行（WIDGET_MAX_ROWS），否则卡片拉大后没东西可填");
+const slotIds = [...layout.matchAll(/@\+id\/onethu_widget_row(\d+)/g)].map((m) => Number(m[1]));
+assert.equal(Math.max(...slotIds), 20, "布局必须备足 20 条槽位（RemoteViews 只能引用布局里已存在的 id）");
+assert.equal(slotIds.length, 20, "槽位 id 不许重复或缺失");
+assert.ok(kt.includes("private const val SLOT_IDS = 20"), "Kotlin 的槽位数必须与布局一致");
+assert.ok(kt.includes("private fun fitRows(") && kt.includes("private fun lineHeightPx("), "行数必须按真实高度算（fitRows + lineHeightPx 逐行量文本）");
+assert.ok(!kt.includes("listFit"), "旧的矮/中/高估算必须彻底移除（它把行数封顶在 5 行）");
+assert.ok(
+  /val hidden = \(visibleRel - \(shownClasses \+ shownDdls\)\) \+ counts\.optInt\("more", 0\)/.test(kt),
+  "脚注的「还有 N 项」必须是「没显示的有效行 + 快照都没装下的条目」",
+);
+assert.ok(
+  kt.includes("private fun footerOf(content: JSONObject, now: Long, shownClasses: Int, shownDdls: Int, visibleRel: Int)"),
+  "footerOf 必须同时拿到「已显示的行数」与「全部有效行数」，否则算不出还有几项",
+);
+
+console.log("widget-native-render-test: 全部断言通过（nativeRow 7 态 + 脚注标题 3 态 + 铺满与剩余项数 5 态 + 快照契约 + 两端同步守卫）");

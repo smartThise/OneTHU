@@ -104,12 +104,19 @@ export interface WidgetPushPayload {
   prune: boolean;
 }
 
+/** 快照里最多带几行。
+ *
+ *  卡片上真正显示几行由**原生按真实高度**决定（用户可以在桌面上任意拖动尺寸），所以快照
+ *  必须先把候选行给足，否则卡片拉大后没东西可填——用户实录「能显示的行数远少于实际空间」。
+ *  20 行 ≈ 520dp 内容，覆盖手机桌面上能拖出的尺寸；仍放不下的条目由脚注的「还有 N 项」交代。 */
+export const WIDGET_MAX_ROWS = 20;
+
 export interface WidgetSnapshotInput {
   schedule?: PlanScheduleEntry[] | null;
   homework?: PlanHomework[] | null;
   remind: HwRemindState;
   now: number;
-  /** 最多几行（原生按实际高度截断；这里给个上界，多的在 footer 里计数体现） */
+  /** 最多带几行候选（缺省 WIDGET_MAX_ROWS）。原生再按实际高度截断，故这里只需给足。 */
   maxRows?: number;
   /** 插件声明的小组件条目：插到课程/DDL 之后（宿主小组件里的插件行） */
   extraRows?: WidgetRow[];
@@ -147,7 +154,7 @@ function left(ms: number): string {
 export function buildWidgetSnapshot(input: WidgetSnapshotInput): WidgetSnapshot {
   const now = input.now;
   const today = ymd(now);
-  const maxRows = Math.max(1, input.maxRows ?? 5);
+  const maxRows = Math.max(1, input.maxRows ?? WIDGET_MAX_ROWS);
 
   interface Entry {
     at: number;
@@ -225,12 +232,17 @@ export function buildWidgetSnapshot(input: WidgetSnapshotInput): WidgetSnapshot 
     rows.push(extra);
   }
 
+  /* 脚注口径：前半段只数**快照真的带上的行**，「还有 N 项」数没带上的条目。
+   * 卡片上实际显示几行由原生按高度决定，届时它按同一口径重算（见 widgetNativeRender.ts
+   * 的 nativeRender）：显示几行 + 还有几项，两者之和恒等于仍有效的条目总数。 */
+  const shownClasses = rows.filter((r) => r.rel === "class").length;
+  const shownDdls = rows.filter((r) => r.rel === "ddl").length;
   const classCount = entries.filter((e) => e.kind === "class").length;
   const ddlCount = entries.filter((e) => e.kind === "ddl").length;
+  const more = Math.max(0, entries.length - (shownClasses + shownDdls));
   const parts: string[] = [];
-  if (classCount) parts.push(`${classCount} 节课`);
-  if (ddlCount) parts.push(`${ddlCount} 个截止`);
-  const more = entries.length - rows.length;
+  if (shownClasses) parts.push(`${shownClasses} 节课`);
+  if (shownDdls) parts.push(`${shownDdls} 个截止`);
   const footer = parts.length === 0
     ? (hadClass ? "今天的课已上完" : "今天没有课与截止")
     : `${parts.join(" · ")}${more > 0 ? ` · 还有 ${more} 项` : ""}`;
@@ -242,7 +254,7 @@ export function buildWidgetSnapshot(input: WidgetSnapshotInput): WidgetSnapshot 
     target: "today",
     rows,
     footer,
-    counts: { classes: classCount, ddls: ddlCount, more: Math.max(0, more), hadClass },
+    counts: { classes: classCount, ddls: ddlCount, more, hadClass },
   };
 }
 
@@ -298,7 +310,7 @@ export function buildDetailSnapshot(input: {
     updatedAt: input.now,
     titleAt: input.now,
     target: encodeWidgetTarget(input.target || "today", input.params ?? null),
-    rows: input.rows.slice(0, Math.max(1, input.maxRows ?? 5)).map((r) => ({
+    rows: input.rows.slice(0, Math.max(1, input.maxRows ?? WIDGET_MAX_ROWS)).map((r) => ({
       text: String(r.text ?? ""),
       sub: r.sub ? String(r.sub) : undefined,
       color: r.color,
