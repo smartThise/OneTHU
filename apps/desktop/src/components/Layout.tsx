@@ -1,5 +1,5 @@
 /** 侧栏 + 内容骨架 + 基础 UI 件（卡片 / 徽标 / 骨架屏 / 开关） */
-import { Children, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, useSyncExternalStore} from "react";
+import { Children, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, useSyncExternalStore} from "react";
 import { useThemes } from "../state/theme.js";
 import { useApp } from "../state/context.js";
 import { topLevelPage, type Page } from "../state/app.js";
@@ -9,6 +9,11 @@ import { useFavs } from "../state/favs.js";
 import { pluginTabsSnapshot, subscribePluginTabs } from "../plugins/tabs.js";
 import { showToast } from "../state/toast.js";
 import { checkUpdateSilently } from "../lib/update.js";
+
+/** 开发者面板（仅 dev 构建）：右上角 commit 徽标 + 前端日志/诊断/导出。
+ *  正式版里 __ONETHU_DEV__ 折叠为 false → 这句动态 import 被 rollup 删除，
+ *  dev 面板整块不进产物（守卫 tools/devtools-test.mjs，构建后再按二进制内资源名复核）。 */
+const DevPanel = __ONETHU_DEV__ ? lazy(() => import("./DevPanel.js")) : null;
 
 /**
  * 默认一级入口（万物原子化定案）：钉死不可删隐，仅可在侧栏折叠进
@@ -476,6 +481,11 @@ export function Shell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <HardRefreshButton />
+      {DevPanel ? (
+        <Suspense fallback={null}>
+          <DevPanel />
+        </Suspense>
+      ) : null}
     </div>
   );
 }
