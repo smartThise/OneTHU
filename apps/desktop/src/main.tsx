@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { logLine } from "./lib/clients.js";
+import { platformOf } from "./state/platform.js";
 // 渲染层崩溃捕获：白屏=未被记录的 JS 异常（webview 控制台/系统日志都拿不到），
 // 全局 error/unhandledrejection 直接落盘 /tmp/onethu-debug.log。
 function hookRenderError(kind: string, detail: string): void {
@@ -18,13 +19,18 @@ window.addEventListener("unhandledrejection", (e) => {
 if (__ONETHU_DEV__) {
   void import("./lib/devlog.js").then((m) => m.installDevLogBridge());
 }
-// 真机密度标记：触屏 + 窄窗 → html.is-phone（CSS 密度层挂此类，不依赖媒体查询细节）
+// 真机密度标记：触屏 + 窄窗 → html.is-phone（CSS 密度层挂此类，不依赖媒体查询细节）。
+// 宽度阈值取 state/platform.ts（§2.8.1 统一断点，此前这里散落 860）。
 function markPhone(): void {
   const touch = (navigator.maxTouchPoints ?? 0) > 0 || window.matchMedia("(pointer: coarse)").matches;
-  document.documentElement.classList.toggle("is-phone", touch && window.innerWidth <= 860);
+  document.documentElement.classList.toggle("is-phone", touch && platformOf(window.innerWidth) !== "expanded");
 }
 markPhone();
 window.addEventListener("resize", markPhone);
+// 列表/网格入场 stagger（手机密度层才挂）
+installScrollReveal();
+// 按钮涟漪（§3.5 B1）：全局单监听，认类名不认调用点；触摸/笔出涟漪，鼠标只走状态层（§2.8.3）
+installRipple();
 
 import { createRoot } from "react-dom/client";
 import { activateInstalledPlugins, seedBuiltinHarness } from "./plugins/loader.js";
@@ -38,10 +44,18 @@ import { initSystemCalAutoSync } from "./state/systemCal.js";
 initSystemCalAutoSync();
 import "@onethu/ui/base.css";
 import "./styles/global.css";
+// 动效层（local/anim-delight）：令牌 + keyframes + 全局微交互。必须在 global.css 之后，
+// 否则同选择器的 transition/animation 会被 global.css 覆盖。
+import "./styles/motion.css";
+import { installScrollReveal } from "./lib/motion.js";
+import { installRipple } from "./components/Ripple.js";
+import { initDynamicColor, watchDynamicColor } from "./lib/dynamicColor.js";
 import { App } from "./App.js";
 import { ConfirmHost } from "./lib/confirm.js";
 import { FormModalHost } from "./lib/formModal.js";
 import { RootErrorBoundary } from "./components/RootErrorBoundary.js";
+import { TextPeekHost } from "./components/TextPeek.js";
+import { ImageViewerHost } from "./components/ImageViewer.js";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -50,9 +64,18 @@ createRoot(document.getElementById("root")!).render(
       <App />
       <ConfirmHost />
       <FormModalHost />
+      {/* 手机端双击看全文：被省略号截断的文本双击后弹浮层（可选中） */}
+      <TextPeekHost />
+      {/* 手机端长按看图：全屏查看 + 双指缩放 + 保存到相册，单击任意处退出 */}
+      <ImageViewerHost />
     </RootErrorBoundary>
   </StrictMode>,
 );
+// 动态取色（§3.4）：上次开着就重开；取色不可用会自动降级到「清华紫」主题。
+// 放在 CSS 导入之后：注入的 <style> 需要插在令牌样式之后（且自身特异性更高，顺序无关紧要）。
+initDynamicColor();
+watchDynamicColor();
+
 // 恢复已装插件（异步，失败只落日志）
 void (async () => {
   await seedBuiltinHarness();

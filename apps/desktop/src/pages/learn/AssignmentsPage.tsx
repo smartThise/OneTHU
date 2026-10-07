@@ -6,7 +6,7 @@ import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SectionHead, Skele
 import { IconRefresh } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
-import { ExtHwLoginModal } from "../../components/ExtHwLoginModal.js";
+import { ConnectGate } from "../../components/ConnectGate.js";
 import {
   dismissExtHwGuide,
   isExtHwGuideDismissed,
@@ -89,7 +89,7 @@ function ExtHwGuide() {
           知道了
         </button>
       </div>
-      <ExtHwLoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <ConnectGate need="yuketang" open={loginOpen} onClose={() => setLoginOpen(false)} />
     </>
   );
 }
@@ -107,6 +107,7 @@ function ExtHwSourceErrorNote() {
   const { navigate } = useApp();
   const ext = useExternalHomework();
   const [yktLoginOpen, setYktLoginOpen] = useState(false);
+  const [tuojLoginOpen, setTuojLoginOpen] = useState(false);
   const rows = (["tuoj", "tuojClassic", "tyche", "yuketang"] as const)
     .map((id) => ({ id, name: SOURCE_NAMES[id], err: ext.errors[id] }))
     .filter((r) => Boolean(r.err));
@@ -128,6 +129,11 @@ function ExtHwSourceErrorNote() {
             雨课堂扫码重登
           </button>
         ) : null}
+        {rows.some((r) => r.id === "tuoj" || r.id === "tuojClassic") ? (
+          <button className="btn btn-primary" onClick={() => setTuojLoginOpen(true)}>
+            TUOJ 重新登录
+          </button>
+        ) : null}
         <button
           className="btn"
           onClick={() => {
@@ -138,7 +144,8 @@ function ExtHwSourceErrorNote() {
           去设置重新登录
         </button>
       </div>
-      <ExtHwLoginModal open={yktLoginOpen} onClose={() => setYktLoginOpen(false)} />
+      <ConnectGate need="yuketang" open={yktLoginOpen} onClose={() => setYktLoginOpen(false)} />
+      <ConnectGate need="tuoj" open={tuojLoginOpen} onClose={() => setTuojLoginOpen(false)} />
     </>
   );
 }

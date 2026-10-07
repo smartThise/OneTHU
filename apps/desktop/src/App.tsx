@@ -34,6 +34,9 @@ import { ReservePage } from "./pages/info/ReservePage.js";
 import { ThosPage } from "./pages/info/ThosPage.js";
 import { ZhjwxkCoursesPage } from "./pages/zhjwxk/Courses.js";
 import { FolderPage } from "./pages/FolderPage.js";
+import { ServicesPage } from "./pages/ServicesPage.js";
+import { TasksPage } from "./pages/TasksPage.js";
+import { FavsHomePage } from "./pages/FavsHomePage.js";
 import { AppProvider } from "./state/app.js";
 import { FavsProvider } from "./state/favs.js";
 import { useApp } from "./state/context.js";
@@ -43,6 +46,12 @@ import { getPluginTab, lastTabError, setTabRoot } from "./plugins/tabs.js";
 import type { Page } from "./state/app.js";
 import { ChatDock } from "./plugins/ChatDock.js";
 import { refreshLearnDataSilently, startLearnAutoRefresh, stopLearnAutoRefresh } from "./state/data.js";
+import { useNavDirection } from "./lib/motion.js";
+
+/** 二级页（列表→详情、插件页）：转场走横向滑入，与顶层页签的纵向淡入区分开 */
+function isSubPage(p: string): boolean {
+  return p.startsWith("learn-") || p.startsWith("plugin:");
+}
 
 /** 插件桥回填：每帧把 navigate/status 同步给插件门面（bridges 无任何反向依赖） */
 function PluginBridge() {
@@ -54,6 +63,8 @@ function PluginBridge() {
 
 function Routed() {
   const { status, page } = useApp();
+  // 转场方向（进详情=前进、回列表=后退）：只影响曲线，不影响任何状态语义
+  const navDir = useNavDirection(page, isSubPage);
 
   // learnX 式后台更新：登录后每 30 分钟静默重拉 learn 数据（作业 DDL/提交状态
   // 变化 → 日历同步、灵动岛文案、挂载中的页面自动跟进）；启动 90 秒后先来一轮，
@@ -84,7 +95,7 @@ function Routed() {
       return (
         <div className="login-wrap">
           <BrandLogo size={40} />
-          <div style={{ color: "var(--text-3)", fontSize: "var(--text-sm)", marginTop: 18 }}>正在恢复会话…</div>
+          <div style={{ color: "var(--text-3)", fontSize: "var(--text-sm)", marginTop: 18 }}>正在恢复登录状态…</div>
         </div>
       );
     }
@@ -99,35 +110,42 @@ function Routed() {
 
     return (
       <Shell>
-        {page === "today" && <TodayPage />}
-        {page === "learn" && <LearnPage />}
-        {page === "schedule" && <SchedulePage />}
-        {page === "mail" && <MailPage />}
-        {page === "cloud" && <CloudPage />}
-        {page === "thubook" && <ThubookPage />}
-        {page === "trace" && <TracePage />}
-        {page === "otherinfo" && <OtherInfoPage />}
-        {page === "info" && <InfoPage />}
-        {page === "life" && <LifePage />}
-        {page === "reserve" && <ReservePage />}
-        {page === "thos" && <ThosPage />}
-        {page === "zhjwxk" && <ZhjwxkCoursesPage />}
-        {page === "folder" && <FolderPage />}
-        {page === "settings" && <SettingsPage />}
-        {page === "plugins" && <PluginsPage />}
-        {page === "learn-course" && <CourseDetailPage />}
-        {page === "learn-assignments" && <AssignmentsPage />}
-        {page === "learn-notices" && <NoticesPage />}
-        {page === "learn-files" && <FilesPage />}
-        {page === "learn-search" && <SearchPage />}
-        {page === "learn-semester" && <SemesterSelectionPage />}
-        {page === "learn-assignment-detail" && <AssignmentDetailPage />}
-        {page === "learn-notice-detail" && <NoticeDetailPage />}
-        {page === "learn-forum-thread" && <ForumThreadPage />}
-        {page === "learn-file-detail" && <FileDetailPage />}
-        {/* R20-B2：雨课堂作业原生只读详情页（移动端雨课堂条目直达；桌面亦可打开） */}
-        {page === "learn-ykt-detail" && <YktAssignmentDetailPage />}
-        {page.startsWith("plugin:") && <PluginTabHost pageKey={page} />}
+        {/* local/anim-delight：切页转场。key=page 让容器重新挂载并播一次 CSS 进场；
+            旧页直接卸载，不做快照叠加（整页快照交叉淡入会出现旧页残影，实测有闪烁）。 */}
+        <div className="page-anim" key={page} data-page={page} data-dir={navDir} data-level={isSubPage(page) ? "sub" : undefined}>
+          {page === "today" && <TodayPage />}
+          {page === "learn" && <LearnPage />}
+          {page === "schedule" && <SchedulePage />}
+          {page === "mail" && <MailPage />}
+          {page === "cloud" && <CloudPage />}
+          {page === "thubook" && <ThubookPage />}
+          {page === "trace" && <TracePage />}
+          {page === "otherinfo" && <OtherInfoPage />}
+          {page === "info" && <InfoPage />}
+          {page === "life" && <LifePage />}
+          {page === "reserve" && <ReservePage />}
+          {page === "thos" && <ThosPage />}
+          {page === "zhjwxk" && <ZhjwxkCoursesPage />}
+          {page === "folder" && <FolderPage />}
+          {page === "tasks" && <TasksPage />}
+          {page === "services" && <ServicesPage />}
+          {page === "favs" && <FavsHomePage />}
+          {page === "settings" && <SettingsPage />}
+          {page === "plugins" && <PluginsPage />}
+          {page === "learn-course" && <CourseDetailPage />}
+          {page === "learn-assignments" && <AssignmentsPage />}
+          {page === "learn-notices" && <NoticesPage />}
+          {page === "learn-files" && <FilesPage />}
+          {page === "learn-search" && <SearchPage />}
+          {page === "learn-semester" && <SemesterSelectionPage />}
+          {page === "learn-assignment-detail" && <AssignmentDetailPage />}
+          {page === "learn-notice-detail" && <NoticeDetailPage />}
+          {page === "learn-forum-thread" && <ForumThreadPage />}
+          {page === "learn-file-detail" && <FileDetailPage />}
+          {/* R20-B2：雨课堂作业原生只读详情页（移动端雨课堂条目直达；桌面亦可打开） */}
+          {page === "learn-ykt-detail" && <YktAssignmentDetailPage />}
+          {page.startsWith("plugin:") && <PluginTabHost pageKey={page} />}
+        </div>
       </Shell>
     );
   })();
@@ -188,12 +206,18 @@ function PluginTabHost({ pageKey }: { pageKey: Page }): ReactNode {
   );
 }
 
-/** 全局轻提示（原子操作反馈）：单条覆盖式，点按关闭 */
+/** 全局轻提示（原子操作反馈）：单条覆盖式，点按关闭；center 的是屏幕正中的强调提示。退出时先播淡出再卸载 */
 function ToastHost(): ReactNode {
-  const msg = useToastHost();
+  const { msg, closing, center } = useToastHost();
   if (!msg) return null;
   return (
-    <div className="toast-host" onClick={hideToast} role="status">{msg}</div>
+    <div
+      className={"toast-host" + (center ? " is-center" : "") + (closing ? " is-closing" : "")}
+      onClick={hideToast}
+      role="status"
+    >
+      {msg}
+    </div>
   );
 }
 

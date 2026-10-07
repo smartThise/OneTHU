@@ -23,6 +23,7 @@ import remarkGfm from "remark-gfm";
 import { callRust, notifyRust } from "./rust.js";
 import { commandsSnapshot, subscribeCommands } from "./loader.js";
 import { EMPTY_EVENTS, pluginEvents, subscribePluginEvents } from "./events.js";
+import { IconClock, IconDownload, IconPlus, IconUpload, IconX } from "../components/Icons";
 import { HarnessMark } from "../components/HarnessMark.js";
 import { useIslandText } from "../state/island.js";
 import { speechAvailable, speechPoll, speechStart, speechStop } from "../lib/speech.js";
@@ -31,6 +32,32 @@ import { openExternal } from "../pages/info/openExternal.js";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const OPEN_KEY = "onethu.chatdock.open";
+
+/* ══════════ OH 直达（UI/UX 改造 §2.7 P0：搜索页「问 OH」透传） ══════════
+ * 模块级 pending 请求 + useSyncExternalStore：外部（如 ServicesPage 搜索）调
+ * ohAsk(text) → ChatDock 消费：打开面板并直接以该文本发送。未挂载（登录前）
+ * 则请求留在模块级，挂载后消费。seq 防同文本重复触发。 */
+interface OhPromptReq {
+  text: string;
+  seq: number;
+}
+let ohPrompt: OhPromptReq | null = null;
+const ohPromptListeners = new Set<() => void>();
+export function ohAsk(text: string): void {
+  const t = text.trim();
+  if (!t) return;
+  ohPrompt = { text: t, seq: (ohPrompt?.seq ?? 0) + 1 };
+  for (const l of ohPromptListeners) l();
+}
+function subscribeOhPrompt(fn: () => void): () => void {
+  ohPromptListeners.add(fn);
+  return () => {
+    ohPromptListeners.delete(fn);
+  };
+}
+function ohPromptSnapshot(): OhPromptReq | null {
+  return ohPrompt;
+}
 /** 灵动岛：长按判定时长（毫秒）——超过即进入语音，未超过视为点击 */
 const VOICE_HOLD_MS = 450;
 /** 松手后等待识别器吐最终结果的宽限 */
@@ -489,6 +516,23 @@ export function ChatDock(): ReactNode {
     }
   }, [pid, open]);
 
+  /* OH 直达：外部请求（搜索页「问 OH」）→ 开面板并直接发送（seq 去重，绝不重复发） */
+  const ohReq = useSyncExternalStore(subscribeOhPrompt, ohPromptSnapshot, ohPromptSnapshot);
+  const ohDoneSeq = useRef(ohPrompt?.seq ?? 0);
+  useEffect(() => {
+    if (!ohReq || ohReq.seq === ohDoneSeq.current) return;
+    ohDoneSeq.current = ohReq.seq;
+    localStorage.setItem(OPEN_KEY, "1");
+    setClosing(false);
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    setOpen(true);
+    setUnread(0);
+    void send(ohReq.text);
+  }, [ohReq, send]);
+
   const runCmd = async (command: string, input = ""): Promise<any> => {
     if (!pid) return null;
     try {
@@ -816,16 +860,16 @@ export function ChatDock(): ReactNode {
             <span className="dock-title" title="小OH"><HarnessMark size={15} /></span>
             <div className="dock-ops">
               <button className="btn dock-btn dock-ico" title="新会话" aria-label="新会话" onClick={() => void newSession()}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+                <IconPlus />
               </button>
               <button className="btn dock-btn dock-ico" title="历史会话" aria-label="历史会话" onClick={() => void openHistory()}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
+                <IconClock />
               </button>
               <button className="btn dock-btn dock-ico" title="导出当前会话 JSON" aria-label="导出会话" onClick={() => void exportSession()}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3v12" /><path d="m8 11 4 4 4-4" /><path d="M4 19h16" /></svg>
+                <IconDownload />
               </button>
               <button className="btn dock-btn dock-ico" title="导入会话 JSON" aria-label="导入会话" onClick={() => fileRef.current?.click()}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 15V3" /><path d="m8 7 4-4 4 4" /><path d="M4 19h16" /></svg>
+                <IconUpload />
               </button>
               <input
                 ref={fileRef}
@@ -838,7 +882,7 @@ export function ChatDock(): ReactNode {
                 }}
               />
               <button className="btn dock-btn dock-ico" title="收起" aria-label="收起" onClick={toggle}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="m6 6 12 12M18 6 6 18" /></svg>
+                <IconX />
               </button>
             </div>
           </div>

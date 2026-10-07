@@ -393,6 +393,47 @@ function parseBbsPostJson(raw: unknown): LearnBbsPost {
  *  继承 AuthRequiredError：既有 catch 兼容不变。 */
 class SessionExpiredError extends AuthRequiredError {}
 
+/** 登录状态压根没建立起来（例如取不到网页表单里的登录凭据）——与「服务器回了
+ *  登录页」区分：前者可能只是一次建链没成，值得先重建再报错，文案也不该说
+ *  「已失效」把用户吓去改密码。继承 SessionExpiredError，让 #withRelogin 的
+ *  静默重建兜住（2026-09-23 复核 #42：作业/通知/详情三个入口的这条抛错在
+ *  #withRelogin 之外，会话一死连重试机会都没有，而课程列表还在（缓存），
+ *  用户看到的就是「只有详情/通知/作业说会话已失效」）。 */
+class LearnSessionMissingError extends SessionExpiredError {
+  constructor() {
+    super("网络学堂的登录状态没有建立起来");
+  }
+}
+
+/** 登录凭据提取：站点不同版本把它放在隐藏域、链接参数或脚本变量里，
+ *  只认一种写法就会让整个学习模块判「未登录」——多策略都要认。 */
+function extractLearnCsrf(html: string): { token: string; via: string } | null {
+  const pats: Array<[RegExp, string]> = [
+    [/_csrf=([^&"'\s<]+)/, "link"],
+    [/name=["']_csrf["'][^>]*value=["']([^"']+)["']/i, "form"],
+    [/value=["']([^"']+)["'][^>]*name=["']_csrf["']/i, "form"],
+    [/["']?_csrf["']?\s*[:=]\s*["']([^"'\s]+)["']/i, "script"],
+    [/["']csrfToken["']\s*:\s*["']([^"']+)["']/i, "script"],
+  ];
+  for (const [re, via] of pats) {
+    const t = re.exec(html)?.[1];
+    if (t) return { token: decodeHtml(t), via };
+  }
+  return null;
+}
+
+/** 回页种类（只进诊断，不进界面）：分清「登录状态死了」与「页面换了形状」——
+ *  两者的处置完全不同，以前都报同一句话，排查只能靠猜。 */
+function classifyLearnPage(html: string): string {
+  if (looksLikeLearnLoginShell(html)) return "learn-login-shell";
+  if (/id="sm2publicKey"|name="i_pass"/i.test(html)) return "id-login-form";
+  if (/j_spring_security_check/i.test(html)) return "learn-login-form";
+  if (/__vpn_|wengine/i.test(html)) return "webvpn-guide";
+  if (/<title>\s*(?:Apache Tomcat|Error report)/i.test(html)) return "server-error-page";
+  if (/\/do\/off\/ui\/auth\/login\//i.test(html)) return "id-login-link";
+  return html.trim().length === 0 ? "empty" : "unknown";
+}
+
 /** 真·登录页特征：learn 登录页标题 / id 登录表单 / oauth 跳转。
  *  注意区分**服务器错误页**（Tomcat 400/500）——那是请求本身被拒（字段缺失、请求体
  *  没送到），重登毫无用处；R21c 真机实录：FormData 被序列化成 "[object FormData]" 导致
@@ -426,7 +467,7 @@ export class LearnClient {
       { redirect: "follow" },
     );
     const csrf = await this.#fetchCsrf();
-    if (!csrf) throw new AuthRequiredError("漫游后未能获取网络学堂会话");
+    if (!csrf) throw new LearnSessionMissingError();
     this.#csrf = csrf;
   }
 
@@ -457,6 +498,22 @@ export class LearnClient {
   async silentRelogin(): Promise<boolean> {
     const wrap = (u: string): string =>
       this.#http.webVPNEncoder ? this.#http.webVPNEncoder(u) : u;
+    // 路径零：宿主注入的 id-漫游（lib 探活主会话后漫游建学习会话）。
+    // 2026-09-17 定案：本管线里学习会话就是靠它建的，/f/login 已不作数——但
+    // 保留在后作兜底，成本只有一次请求。
+    if (this.reloginHook) {
+      try {
+        const hooked = await this.reloginHook();
+        const csrf0 = hooked ? await this.#fetchCsrf() : null;
+        this.#http.debug?.(`LEARN-SILENT 路径零 hook=${hooked ? "ok" : "fail"} 凭据=${csrf0 ? "ok" : "无"}`);
+        if (csrf0) {
+          this.#csrf = csrf0;
+          return true;
+        }
+      } catch (e) {
+        this.#http.debug?.(`LEARN-SILENT 路径零异常 ${String(e).slice(0, 120)}`);
+      }
+    }
     // 路径一：/f/login 是 learn 的服务端 302 CAS 入口
     try {
       await this.#http.text(wrap("https://learn.tsinghua.edu.cn/f/login"));
@@ -514,8 +571,15 @@ export class LearnClient {
     }
   }
 
-  /** 诊断现场：最后一次课程页内容（csrf 提取失败时用于定位） */
+  /** 诊断现场：最后一次课程页内容（登录凭据提取失败时用于定位） */
   lastDebug = "";
+
+  /** 诊断现场：最近一次取登录凭据的结果（只记种类与长度，不记凭据值本身） */
+  lastCsrfDebug = "";
+
+  /** 宿主侧会话重建钩子（桌面端注入：lib 探活 + id-漫游建学习会话）。
+   *  本模块不依赖桌面端实现，但在这条管线下学习会话正是靠它建起来的。 */
+  reloginHook: (() => Promise<boolean>) | null = null;
 
   /** 诊断现场：最近一次 getCourseGroups 的解析情况（返回空数组时用于定位） */
   lastGroupsDebug = "";
@@ -528,29 +592,78 @@ export class LearnClient {
 
   async #fetchCsrf(): Promise<string | null> {
     try {
-      // 抓 csrf 的请求本身不能要求已有 csrf（原 #withCsrf 写法 =
-      // 「无 csrf 即抛」死锁，learn 会话从未真正建立——2026-09-17 实录）
+      // 抓登录凭据的请求本身不能要求已有凭据（原 #withCsrf 写法 =
+      // 「无凭据即抛」死锁，学习会话从未真正建立——2026-09-17 实录）
       const html = await this.#http.text(urls.LEARN_COURSE_LIST_PAGE());
       this.lastDebug = html.slice(0, 1200);
-      const m = /_csrf=([^&"\x27\s<]+)/.exec(html);
-      return m?.[1] ?? null;
+      const hit = extractLearnCsrf(html);
+      this.lastCsrfDebug = hit
+        ? `ok via=${hit.via} len=${html.length}`
+        : `miss kind=${classifyLearnPage(html)} len=${html.length} final=${this.#http.lastFinalUrl.slice(0, 90)}`;
+      return hit?.token ?? null;
     } catch (e) {
       this.lastDebug = "FETCH-ERROR " + String(e);
+      this.lastCsrfDebug = "FETCH-ERROR " + String(e).replace(/\s+/g, " ").slice(0, 150);
       return null;
     }
   }
 
-  /** 会话失效 → 静默重登一次再重试（R21c 用户口径：有记住的账密就该静默恢复，
-   *  不该把用户踹回登录页）。仅对 SessionExpiredError 生效——启动期无会话的
-   *  AuthRequiredError（#requireCsrf）仍直接上抛，避免无凭据时空转重登。
-   *  只重试一次：重登成功仍过期说明会话层真坏了，交还上层提示。 */
+  /** 会话重建去重：同一时刻多个数据钩子一起撞上会话死，只重建一次
+   *  （并发重链互相烧票据，2026-09-17 实录）。 */
+  #reloginInflight: Promise<boolean> | null = null;
+
+  async #recoverSession(): Promise<boolean> {
+    if (this.#reloginInflight) return this.#reloginInflight;
+    this.#reloginInflight = this.silentRelogin()
+      .catch(() => false)
+      .finally(() => {
+        this.#reloginInflight = null;
+      });
+    return this.#reloginInflight;
+  }
+
+  /** 会话自证的并发去重：入口们是并行调用的（作业/通知/文件列表），
+   *  同时进来只跑一条链。 */
+  #csrfInflight: Promise<string | null> | null = null;
+
+  /** 会话自证：没有登录状态就先取一次凭据，取不到再重建，最后才谈报错。
+   *  作业/通知/详情这几个入口的凭据检查落在 #withRelogin 之外，会话一死
+   *  它们连一次重试机会都没有——用户看到的是「详情/通知/作业都说过期，
+   *  别的数据还在出」（2026-09-23 复核 #42）。
+   *  先取一次再重建：刚启动时凭据本来就还没取过，直接走重建链会白跑一趟
+   *  主会话探活与漫游。 */
+  async #ensureCsrfReady(): Promise<void> {
+    if (this.#csrf) return;
+    if (!this.#csrfInflight) {
+      this.#csrfInflight = this.#establishSession().finally(() => {
+        this.#csrfInflight = null;
+      });
+    }
+    const token = await this.#csrfInflight;
+    if (!token) this.#requireCsrf();
+    this.#csrf = token;
+  }
+
+  /** 建立登录状态：先按现状取凭据（一次请求），取不到再走重建链。 */
+  async #establishSession(): Promise<string | null> {
+    const direct = await this.#fetchCsrf();
+    if (direct) return direct;
+    if (await this.#recoverSession()) return this.#csrf;
+    return null;
+  }
+
+  /** 会话失效 → 重建一次再重试（R21c 用户口径：有记住的账密就该静默恢复，
+   *  不该把用户踹回登录页）。只对会话类标记生效——启动期凭据就拿不到时抛的
+   *  是 LearnSessionMissingError（同为 SessionExpiredError），入口侧先经
+   *  #ensureCsrfReady 自证，不会无凭据空转重建。
+   *  只重试一次：重建成功仍失效说明会话层真坏了，交还上层提示。 */
   async #withRelogin<T>(fn: () => Promise<T>): Promise<T> {
     try {
       return await fn();
     } catch (e) {
       if (!(e instanceof SessionExpiredError)) throw e;
       this.#http.debug?.("LEARN-RELOGIN 会话失效，静默重登后重试一次");
-      if (!(await this.silentRelogin())) {
+      if (!(await this.#recoverSession())) {
         this.#http.debug?.("LEARN-RELOGIN 静默重登失败，交还上层");
         throw e;
       }
@@ -559,7 +672,10 @@ export class LearnClient {
   }
 
   #requireCsrf(): string {
-    if (!this.#csrf) throw new AuthRequiredError();
+    if (!this.#csrf) {
+      this.#http.debug?.(`LEARN-CSRF 未建立 ${this.lastCsrfDebug}`);
+      throw new LearnSessionMissingError();
+    }
     return this.#csrf;
   }
 
@@ -700,6 +816,7 @@ export class LearnClient {
 
   /** 全部课程的作业（未交 + 已交未批 + 已批） */
   async getAllHomework(courseIds: string[]): Promise<Homework[]> {
+    await this.#ensureCsrfReady();
     this.#requireCsrf();
     const groups = await Promise.all(
       courseIds.map((courseId) =>
@@ -793,7 +910,9 @@ export class LearnClient {
       if (/<(!DOCTYPE|html)/i.test(res.slice(0, 200))) {
         this.lastDebug = "TJZY-HTML " + res.slice(0, 400).replace(/\s+/g, " ");
         // 只有真登录页才值得静默重登；服务器错误页如实报错（别再指向会话）
-        if (LEARN_LOGIN_PAGE_RE.test(res)) throw new SessionExpiredError("submit-html");
+        if (LEARN_LOGIN_PAGE_RE.test(res)) {
+          throw new SessionExpiredError("网络学堂会话已失效（提交后没等到确认）");
+        }
         const status = /HTTP Status (\d{3})/.exec(res)?.[1] ?? "";
         return {
           ok: false,
@@ -907,6 +1026,7 @@ export class LearnClient {
   lastPageDetailDebug = "";
 
   async getHomeworkPageDetail(courseId: string, studentHomeworkId: string): Promise<HomeworkPageDetail> {
+    await this.#ensureCsrfReady();
     this.#requireCsrf();
     // 双页解析（thu-app learnApi 同款）：提交表单（zynr/fileupload）在 tijiao 页，
     // viewCj 是成绩详情页——未交作业的 viewCj 上没有表单，只抓 viewCj 会把提交卡
@@ -979,6 +1099,7 @@ export class LearnClient {
   /** 通知详情页（beforeViewXs HTML）附件解析 —— thu-learn-lib parseNotificationDetail 等价。
    *  学生版附件锚点带 class="ml-10"（href 含 wjid）；fjmc 只有文件名，下载地址在页面里。 */
   async getNotificationPageDetail(courseId: string, notificationId: string): Promise<NotificationPageDetail> {
+    await this.#ensureCsrfReady();
     this.#requireCsrf();
     const html = await this.#http.text(urls.LEARN_NOTIFICATION_DETAIL(courseId, notificationId));
     const anchors = [...html.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)];
@@ -1003,6 +1124,7 @@ export class LearnClient {
 
   /** 通知（全部课程或指定课程）；expired=已过期 */
   async getAllNotifications(courseIds: string[], expired = false): Promise<Notification[]> {
+    await this.#ensureCsrfReady();
     this.#requireCsrf();
     const groups = await Promise.all(
       courseIds.map((courseId) =>
@@ -1238,7 +1360,8 @@ export class LearnClient {
         .then((r) => r.text());
       if (looksLikeLearnLoginShell(html)) {
         this.lastBbsThreadDebug = `POSTS-PAGE(page=${pageNum}) 登录壳 len=${html.length}`;
-        throw new AuthRequiredError("网络学堂会话已失效（回复分页返回登录壳）");
+        // 回登录页 = 会话真的死了（可静默重建），不是解析失败
+        throw new SessionExpiredError("网络学堂会话已失效（讨论区回复页面返回了登录页）");
       }
       const posts = parseBbsReplyBlocks(html);
       this.lastBbsThreadDebug =
@@ -1327,7 +1450,7 @@ export class LearnClient {
       const html = await this.#http.text(pageUrl);
       if (looksLikeLoginHtml(html)) {
         this.lastGroupsDebug = "GROUPS login-page len=" + html.length + " " + html.slice(0, 300).replace(/\s+/g, " ");
-        throw new AuthRequiredError("网络学堂会话已失效（分组页返回登录页）");
+        throw new SessionExpiredError("网络学堂会话已失效（分组页面返回了登录页）");
       }
       const table = parseGroupTables(html);
       if (table.length > 0) {

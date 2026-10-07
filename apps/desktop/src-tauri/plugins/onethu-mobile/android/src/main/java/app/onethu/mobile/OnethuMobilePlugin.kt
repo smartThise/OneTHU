@@ -26,6 +26,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
+import android.media.MediaScannerConnection
 import android.os.Build
 import android.util.Log
 import android.os.Environment
@@ -53,6 +54,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.net.URLConnection
+import java.util.Locale
 
 @InvokeArg
 class SaveDownloadArgs {
@@ -60,9 +62,24 @@ class SaveDownloadArgs {
     var name: String = ""
 }
 
+/** 保存图片到相册：字节已由 Rust 落到应用缓存，这里只认路径与元信息 */
+@InvokeArg
+class SaveImageArgs {
+    var path: String = ""
+    var name: String = ""
+    var mime: String = ""
+}
+
 @InvokeArg
 class OpenIntentArgs {
     var url: String = ""
+}
+
+@InvokeArg
+class SetBarThemeArgs {
+    var dark: Boolean = false
+    /** 主题背景色（--bg，#rrggbb）；空/解析失败只跳过涂色，图标明暗照常 */
+    var color: String? = null
 }
 
 @InvokeArg
@@ -124,6 +141,24 @@ class NotifyPermissionArgs {
 /** 要撤销的通知 id 数组（JSON 字符串） */
 @InvokeArg
 class NotifyCancelArgs {
+    var ids: String = ""
+}
+
+/** 立即投递的通知（事件驱动，如校园卡余额预警）：id 稳定，重发即覆盖同一条 */
+@InvokeArg
+class NotifyPostArgs {
+    var id: String = ""
+    var title: String = ""
+    var body: String = ""
+    /** 渠道：course / ddl / briefing / balance */
+    var channel: String = ""
+    /** 点击落点（`page` 或 `page?k=v`，见 state/widgetTarget.ts） */
+    var target: String = ""
+}
+
+/** 要从通知栏撤回的已展示通知 id 数组（JSON 字符串） */
+@InvokeArg
+class NotifyDismissArgs {
     var ids: String = ""
 }
 
@@ -195,6 +230,9 @@ private const val DARK_INJECT_JS = """
     permissions = [
         // R18c：API 33+ 展示前台服务常驻通知需运行时权限（清单在插件库 Manifest 声明）
         Permission(strings = [Manifest.permission.POST_NOTIFICATIONS], alias = "notifications"),
+        // 保存图片到相册：API 29+ 走 MediaStore 自建条目，不需要任何权限；
+        // API 24–28 写公共 Pictures 才需要它（清单里标了 maxSdkVersion=28）
+        Permission(strings = [Manifest.permission.WRITE_EXTERNAL_STORAGE], alias = "legacy-storage"),
     ],
 )
 class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
@@ -270,6 +308,114 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
                 activity.runOnUiThread { invoke.resolve(ret) }
             } catch (e: Exception) {
                 val msg = e.message ?: "转存失败"
+                activity.runOnUiThread { invoke.reject(msg) }
+            }
+        }.start()
+    }
+
+    /* ── 保存图片到相册 ──
+     * 与 saveDownload 的分工：那条去「下载」（MediaStore.Downloads / 用户选的 SAF 目录），
+     * 这条去「相册」（MediaStore.Images + Pictures/OneTHU）。两者不能互相顶替——相册应用
+     * 只索引 Images 集合，落在 Downloads 里的图片不会出现在相册里，用户也就找不到它。
+     *
+     * 权限：API 29+ 插入本人创建的媒体条目不需要任何权限（分区存储），这也是主力路径；
+     * API 24–28 写公共 Pictures 需要 WRITE_EXTERNAL_STORAGE，缺权限时按插件既有姿势
+     * （notifications 同款）先请求再写，被拒就明确报错，不静默失败。 */
+
+    /** 权限回调时要用的参数（@PermissionCallback 只回传 Invoke，取不回原始实参） */
+    private var pendingSaveImageArgs: SaveImageArgs? = null
+
+    private fun hasImageStoragePermission(): Boolean =
+        Build.VERSION.SDK_INT >= 29 ||
+            ContextCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+            PackageManager.PERMISSION_GRANTED
+
+    /** 应用缓存里的图片 → 系统相册；回传 { name, dir } */
+    @Command
+    fun saveImage(invoke: Invoke) {
+        val args = invoke.parseArgs(SaveImageArgs::class.java)
+        if (!hasImageStoragePermission()) {
+            pendingSaveImageArgs = args
+            requestPermissionForAliases(arrayOf("legacy-storage"), invoke, "imageStoragePermissionCallback")
+            return
+        }
+        doSaveImage(invoke, args)
+    }
+
+    @PermissionCallback
+    fun imageStoragePermissionCallback(invoke: Invoke) {
+        val args = pendingSaveImageArgs
+        pendingSaveImageArgs = null
+        if (args == null || !hasImageStoragePermission()) {
+            invoke.reject("未授予存储权限，无法保存到相册")
+            return
+        }
+        doSaveImage(invoke, args)
+    }
+
+    private fun doSaveImage(invoke: Invoke, args: SaveImageArgs) {
+        Thread {
+            try {
+                val src = File(args.path)
+                if (!src.exists()) {
+                    activity.runOnUiThread { invoke.reject("源文件不存在：${args.path}") }
+                    return@Thread
+                }
+                val name = args.name.ifBlank { src.name }
+                val mime = args.mime.ifBlank {
+                    try {
+                        URLConnection.guessContentTypeFromName(name)
+                    } catch (_: Exception) {
+                        null
+                    } ?: "image/*"
+                }
+                if (Build.VERSION.SDK_INT >= 29) {
+                    val resolver = activity.contentResolver
+                    val values = ContentValues().apply {
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+                        put(MediaStore.MediaColumns.MIME_TYPE, mime)
+                        // 独立子目录：用户在图库/文件管理器里一眼能认出是应用存的图
+                        put(
+                            MediaStore.MediaColumns.RELATIVE_PATH,
+                            Environment.DIRECTORY_PICTURES + "/OneTHU",
+                        )
+                        // 写一半的条目不许被相册扫到，写完再撤 pending
+                        put(MediaStore.MediaColumns.IS_PENDING, 1)
+                    }
+                    val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                        ?: throw IllegalStateException("相册建条目失败")
+                    try {
+                        val out = resolver.openOutputStream(uri)
+                            ?: throw IllegalStateException("打开输出流失败")
+                        out.use { o -> src.inputStream().use { it.copyTo(o) } }
+                    } catch (e: Exception) {
+                        // 半截条目留在相册里就是一张坏图：失败即删（best effort），再抛原错
+                        try {
+                            resolver.delete(uri, null, null)
+                        } catch (_: Exception) {
+                            /* 删不掉也不掩盖原始错误 */
+                        }
+                        throw e
+                    }
+                    val done = ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }
+                    resolver.update(uri, done, null, null)
+                } else {
+                    // 旧机型（API 24–28）：公共 Pictures 直写 + 通知媒体库扫描
+                    val dir = File(
+                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                        "OneTHU",
+                    )
+                    if (!dir.exists() && !dir.mkdirs()) throw IllegalStateException("无法创建相册目录")
+                    val out = File(dir, name)
+                    src.copyTo(out, overwrite = true)
+                    MediaScannerConnection.scanFile(activity, arrayOf(out.absolutePath), arrayOf(mime), null)
+                }
+                val ret = JSObject()
+                ret.put("name", name)
+                ret.put("dir", "相册/OneTHU")
+                activity.runOnUiThread { invoke.resolve(ret) }
+            } catch (e: Exception) {
+                val msg = e.message ?: "保存到相册失败"
                 activity.runOnUiThread { invoke.reject(msg) }
             }
         }.start()
@@ -1013,6 +1159,125 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    /**
+     * 系统栏随主题（暗色 = 状态栏/导航栏白图标；edge-to-edge 垫白区涂主题背景色）。
+     *
+     * 为什么需要（2026-09-25 用户实录）：applyContentInsets 把系统栏 inset 垫成
+     * android.R.id.content 的 padding，而该视图背景是窗口默认白底——暗色主题下
+     * 屏幕上下两条仍是白的，非常刺眼。这条命令做两件事：
+     *   ① WindowCompat insets controller 切图标明暗（暗主题用白图标）；
+     *   ② 把 content 背景涂成前端传入的主题背景色（--bg），垫白区消失。
+     * 前端在每次主题应用后调用（state/theme.ts syncSystemBars），非 Android 不存在此命令。
+     */
+    @Command
+    fun setBarTheme(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(SetBarThemeArgs::class.java)
+            val dark = args.dark
+            val colorArg = args.color
+            activity.runOnUiThread {
+                try {
+                    val window = activity.window
+                    val controller = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+                    controller.isAppearanceLightStatusBars = !dark
+                    controller.isAppearanceLightNavigationBars = !dark
+                    if (colorArg != null) {
+                        try {
+                            activity.findViewById<android.view.View>(android.R.id.content)
+                                .setBackgroundColor(Color.parseColor(colorArg))
+                        } catch (_: Exception) {
+                            // 颜色解析失败只跳过涂色，图标明暗照常生效
+                        }
+                    }
+                    invoke.resolve(JSObject().put("ok", true))
+                } catch (e: Exception) {
+                    invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "bartheme-failed"))
+                }
+            }
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "bartheme-exception"))
+        }
+    }
+
+    /** 触觉 tick（作业流切卡的段落感）。
+     *
+     *  走 AOSP 标准「预烘焙效果」（Prebaked）：ROM 在振动 HAL 里为 EFFECT_CLICK 备了
+     *  自家标定波形——本机（MIUI）实测与桌面点击同源：Prebaked=CLICK(MEDIUM) ≈ 63ms。
+     *  关键点：用的是公开常量而非 MIUI 私有 id，所以换 ROM 由对方 HAL 出自家手感，
+     *  这正是跨机型一致性的来源。
+     *
+     *  降级链（逐级兜底，返回值回传实际路径便于跨机型排查）：
+     *  1. API 30+ 且 HAL 报告支持 EFFECT_CLICK → 预烘焙 CLICK；
+     *  2. API 26~29（无能力查询 API）→ 仍试预烘焙，异常则降级；
+     *  3. 预烘焙不可用 → 自绘 30ms 单击（线性马达起振需 10~20ms，此前 5ms 等于没振）；
+     *  4. API < 26 → 旧式 vibrate(30)。
+     *  API 33+ 一律挂 USAGE_TOUCH：走触觉通道、尊重用户触感强度设置。 */
+    @Command
+    fun hapticTick(invoke: Invoke) {
+        try {
+            activity.runOnUiThread {
+                try {
+                    val vib = activity.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+                    if (vib == null || !vib.hasVibrator()) {
+                        invoke.resolve(JSObject().put("ok", false).put("reason", "no-vibrator"))
+                        return@runOnUiThread
+                    }
+                    val mode = playHapticTick(vib)
+                    invoke.resolve(JSObject().put("ok", true).put("mode", mode))
+                } catch (e: Exception) {
+                    invoke.resolve(JSObject().put("ok", false).put("reason", "haptic-failed"))
+                }
+            }
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().put("ok", false).put("reason", "haptic-exception"))
+        }
+    }
+
+    /** 播放一次切卡 tick，返回实际走的路径（prebaked / waveform / legacy）。 */
+    private fun playHapticTick(vib: android.os.Vibrator): String {
+        if (Build.VERSION.SDK_INT < 26) {
+            @Suppress("DEPRECATION")
+            vib.vibrate(30)
+            return "legacy"
+        }
+        // API 30 起才有能力查询，且返回三态（YES/NO/UNKNOWN，UNKNOWN 视为可用，交给 try 兜底）；
+        // 30 以下没有查询 API，直接试，失败走 catch 降级。
+        val clickSupported = if (Build.VERSION.SDK_INT >= 30) {
+            vib.areAllEffectsSupported(android.os.VibrationEffect.EFFECT_CLICK) !=
+                android.os.Vibrator.VIBRATION_EFFECT_SUPPORT_NO
+        } else {
+            true
+        }
+        if (clickSupported) {
+            try {
+                val effect = android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_CLICK)
+                vibrateWith(vib, effect)
+                return "prebaked"
+            } catch (_: Exception) {
+                // 个别 HAL 不认预烘焙效果：落到自绘波形
+            }
+        }
+        // 自绘兜底：30ms 单次满幅。不要再缩到 5~10ms——那是起振区，只有嗡感没有脆感。
+        val shaped = android.os.VibrationEffect.createWaveform(
+            longArrayOf(0, 30),
+            intArrayOf(0, 255),
+            -1,
+        )
+        vibrateWith(vib, shaped)
+        return "waveform"
+    }
+
+    /** 统一带触觉通道属性播放：API 33+ 走 USAGE_TOUCH（尊重用户触感强度），旧版本用弃用重载。 */
+    private fun vibrateWith(vib: android.os.Vibrator, effect: android.os.VibrationEffect) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            val attrs = android.os.VibrationAttributes.createForUsage(android.os.VibrationAttributes.USAGE_TOUCH)
+            vib.vibrate(effect, attrs)
+        } else {
+            @Suppress("DEPRECATION")
+            vib.vibrate(effect)
+        }
+    }
+
     /** 一键把标准形态小组件放到桌面（R21c：ColorOS 等启动器的选择器行为不一致，
      *  用户「绑定完桌面上没有」——这条走系统 requestPinAppWidget，由启动器直接落卡片）。
      *  supported=false 表示该启动器不支持请求式放置，此时 UI 应引导手动添加。 */
@@ -1196,6 +1461,60 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    /**
+     * 立即投递一条通知（事件驱动，如校园卡余额预警）。
+     *
+     * 与 notifySchedule 的分工：那条是「将来某刻发」（AlarmManager + 库条目），这里要的是
+     * 「现在发」，故直接进通知栏、不写库、不排闹钟——`notify_pending` 因此不会把它算作
+     * 待投递条目（排程对齐的那轮同步也就不会误撤它）。同 id 重发即覆盖同一条通知。
+     *
+     * 权限：这里**不**发起运行时授权请求（判定发生在一次普通的余额刷新里，弹框很唐突），
+     * 未授权时如实回报 `reason = notifications-denied`，卡片据此说明原因。
+     */
+    @Command
+    fun notifyPost(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(NotifyPostArgs::class.java)
+            if (args.id.isEmpty()) {
+                invoke.resolve(JSObject().put("ok", false).put("reason", "missing-id"))
+                return
+            }
+            if (!hasNotificationPermission()) {
+                invoke.resolve(JSObject().put("ok", false).put("reason", "notifications-denied"))
+                return
+            }
+            val item = JSONObject()
+                .put("title", args.title)
+                .put("body", args.body)
+                .put("channel", args.channel)
+                .put("target", args.target)
+            val ok = NotifyCenter.post(activity.applicationContext, args.id, item)
+            invoke.resolve(JSObject().put("ok", ok).put("granted", hasNotificationPermission()))
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "post-failed"))
+        }
+    }
+
+    /** 撤回已展示的通知（余额恢复正常 / 关掉预警时调用；不改动待投递的排程） */
+    @Command
+    fun notifyDismiss(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(NotifyDismissArgs::class.java)
+            val ctx = activity.applicationContext
+            val arr = JSONArray(args.ids)
+            var dismissed = 0
+            for (i in 0 until arr.length()) {
+                val id = arr.optString(i)
+                if (id.isEmpty()) continue
+                NotifyCenter.dismiss(ctx, id)
+                dismissed++
+            }
+            invoke.resolve(JSObject().put("ok", true).put("dismissed", dismissed))
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "dismiss-failed"))
+        }
+    }
+
     /** 立即发一条测试通知（设置页「试一下」按钮）：渠道与权限链路自证。 */
     @Command
     fun notifyTest(invoke: Invoke) {
@@ -1266,6 +1585,52 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
             invoke.resolve(JSObject().put("ok", true).put("target", target))
         } catch (e: Exception) {
             invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "take-failed"))
+        }
+    }
+
+    /** 动态取色（§3.4）：读系统 Material You 调色板。
+     *  API 31 起 framework 自带 system_accent1_* / system_neutral1_* 等资源，取的就是系统自己那份
+     *  调色板，前端只做「档位 → System 角色」的映射，不做色彩运算（保持零依赖）。
+     *  API < 31：supported=false，前端降级到「清华紫」主题。
+     *  资源名走 getIdentifier（framework 资源，包名 android）：厂商 ROM 裁掉某档时跳过该档，
+     *  不因为一个缺失资源让整条命令失败。 */
+    @Command
+    fun getDynamicColor(invoke: Invoke) {
+        val ret = JSObject()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            ret.put("supported", false)
+            invoke.resolve(ret)
+            return
+        }
+        try {
+            val tones = intArrayOf(0, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
+            val families = linkedMapOf(
+                "primary" to "system_accent1",
+                "secondary" to "system_accent2",
+                "tertiary" to "system_accent3",
+                "neutral" to "system_neutral1",
+                "neutralVariant" to "system_neutral2",
+            )
+            val palette = JSObject()
+            for ((family, prefix) in families) {
+                val bag = JSObject()
+                for (tone in tones) {
+                    val id = activity.resources.getIdentifier("${prefix}_$tone", "color", "android")
+                    if (id == 0) continue
+                    val argb = activity.resources.getColor(id, activity.theme)
+                    bag.put(tone.toString(), String.format(Locale.US, "#%06X", 0xFFFFFF and argb))
+                }
+                if (bag.length() > 0) palette.put(family, bag)
+            }
+            if (palette.length() == 0) {
+                ret.put("supported", false)
+            } else {
+                ret.put("supported", true)
+                ret.put("palette", palette)
+            }
+            invoke.resolve(ret)
+        } catch (e: Exception) {
+            invoke.reject(e.message ?: "读取系统取色失败")
         }
     }
 }

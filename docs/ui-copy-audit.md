@@ -1,87 +1,102 @@
-# UI 文案与信息密度审计（2026-09-20）
+# UI 文案审计（§4.5 对照表 · 续篇）
 
-> 最后更新：2026-09-22 22:57
+状态：**已落地**。本表经你审定后执行，词表扩展与全部改写同一批提交，中间没有留红。
+> 最后更新：2026-09-25 20:30
 
-> 由来：开发群反馈「非计算机专业同学试用后觉得太复杂/太极客」，其中很具体的一条是
-> 设置页出现内部实现术语。前端大量由 AI 生成，AI 会如实将后端字段渲染给用户，
-> 人工检查难以长期保持，因此该规则由工具校验。
+## 一、审定意见（已按此执行）
 
-## 规则（tools/ui-copy-lint.mjs）
+1. 语气比原来的极客风好，但有些过于口语 —— 改为**书面语表达，保留亲民与普适性**：
+去掉「没收藏上」「试试」「点一下」这类口语助词，保留「请重试」「请刷新」「稍后再试」这类明确动作。
+2. 用户可见文案里，「原子」统一改叫 **「收藏项」**。
 
-| 规则 | 内容 |
-|---|---|
-| R1 禁用词 | 内部存储键名（`onethu.*`）、`localStorage`、`token/Cookie`、`webvpn/wengine/XSRF/csrf`、`Rust/Tauri/WebView/JSON/IPC/SWR`、`漫游/会话桶/埋点/幂等/降级`、`缓存`、`变量/字段/参数/返回值/null/undefined/NaN` |
-| R2 说明超长 | 单条说明 > 42 字 |
-| 豁免 | 行内 `// ui-copy-lint-ok: 理由`；或 `tools/ui-copy-allow.json` 按文件+文案片段豁免（**只允许插件作者向字段**，用户可见文案一律不得豁免） |
+## 二、量法与结果
 
-运行方式：`pnpm lint:ui-copy`（有违规退出码 1，可直接接 CI）。
+扫描 `apps/desktop/src/pages` 与 `appsrc/components` 下的全部 `.tsx/.ts`，
+取「看着是给人看的」字面量（含中文、出现在 JSX 文本或常见 UI 属性里），跳过注释行、块注释续行与带 `ui-copy-lint-ok` 的行。
 
-## 首轮结果
+| 阶段 | 结果 |
+| --- | --- |
+| 扩展词表后首次扫描 | 违规 **63** 处（R1 术语 42 / R4 语气 21 / R2 超长 0） |
+| 改写后 | 违规 **0** 处 |
+| 另人工清出的扫描范围外用户可见文案 | 7 处（启动提示 1、toast 1、组件/收藏标题 3、插件权限说明 2） |
 
-- 扫描范围：`apps/desktop/src/pages`、`apps/desktop/src/components`
-- 首轮命中 157 处 → 收紧规则（跳过模板插值 `${}` 与 JSX 表达式片段）后 **48 处真违规**
-- 已改 **26 处**用户可见文案，例如：
-  - `yyfw 漫游（demo 同款）` → `由信息门户提供`
-  - `粘贴 Seafile API Token` → `粘贴云盘访问口令`
-  - `收藏夹 JSON 已复制` / `导入失败：需要 onethu.favs.v1 导出格式` → `收藏夹已复制` / `内容格式不对，请粘贴本应用导出的内容`
-  - `Rust 骨干与 JS 模块的安装、启停、权限与运行轨迹` → `插件的安装、启停、权限与运行记录`
-  - 雨课堂/TUOJ 的 `Cookie`、`sessionid/csrftoken/uv_id` → `登录状态`
-  - 若干超长说明精简到 42 字内
-- 余 **14 处**显式豁免，全部是**插件作者向**字段（manifest.json / sidecar 二进制 / 环境变量 / 仓库安装约定），理由逐条写在 `tools/ui-copy-allow.json`
+扫描范围的边界：日志与排障行不列入（`state/exthw.ts` 的 `logLine`、`info/tabStates.tsx` 的 TAB-HEAL 等，用户看不到），
+其余未被自动扫描的目录（`App.tsx`、`state/`、`plugins/`）已按人工逐条过一遍，用户可见的都已改，诊断用的按原样保留。
 
-## 给 AI 生成前端的硬约束（复制进 Prompt）
+## 三、词表（本轮新增）
 
-```
-只用既有 class 与设计令牌（packages/ui/src/tokens.css），不得新增颜色/圆角/字号。
-不得在用户可见文案里出现：内部键名、store/缓存/token/Cookie/漫游/API/Rust/WebView 等实现术语。
-每条设置说明 ≤1 句且 ≤42 字，超出请收进「?」。
-每张卡片状态标签 ≤3 个；列表必须有空状态；异步加载必须有骨架屏。
-按钮用动词（办理/查看），不用名词（服务/入口）。
-```
+| 词 | 处置 |
+| --- | --- |
+| 原子 | 收藏项 |
+| 会话 | 登录状态（聊天语境除外，`ChatDock` 里指对话，不动） |
+| 凭据、凭证 | 绑定（「账号与凭据」→「账号与绑定」） |
+| 接口 | 数据、来源、网络地址 |
+| CAS、SM2、manifest、插件宿主、WebVPN | 加入禁用词（WebVPN 原规则漏了大小写标志，一并补上） |
+| R4 语气 | 完整句里的失败类字眼必须带行动词；以「：」结尾的「前缀 + 详情」不算违规；状态标签走行内豁免并写明理由 |
 
-## 后续（本次未做，按序推进）
+## 四、逐条对照
 
-1. 功能可见性模型（页面级 + 二级菜单级折叠，默认全展开，暴露给 OH 读写）
-2. 设置页按用途重组 + 「重新导览」入口置顶
-3. 首启导览（场景勾选 → 落到折叠 → 教一次收藏）
-4. 首页/列表信息密度（概览 Chip 直达、日程留 2–3 条、卡片 ≤3 标签、空状态/骨架屏统一）
-5. 在线服务：搜索置顶 + 可解释排序（收藏 → 最近 → 全部）
-6. 「猜你喜欢」：今日页**可选添加**的卡片 + OH 可读统计（不默认、不自动写入收藏）
+### 语气（错误与空态带行动词）
 
+| 位置 | 现在 | 改成 |
+| --- | --- | --- |
+| learn/AssignmentDetailPage.tsx:235 | 提交失败 | 提交未成功，请稍后重试 |
+| learn/AssignmentDetailPage.tsx:265 | 撤回失败 | 撤回未成功，请稍后重试 |
+| learn/CourseDetailPage.tsx:254 | 分组加载失败 | 分组没有加载出来，请刷新后重试 |
+| info/SportsTab.tsx:43 | 体育预约服务暂不可用（info app 同样无法使用） | 体育预约暂不可用，请在「清华体育」App 中预约 |
+| info/tabStates.tsx:80 | 该服务暂不可用（上游服务维护中） | 该服务暂不可用（正在维护），请稍后再试 |
+| info/NewsTab.tsx:484、504 | 服务端返回删除失败 | 删除未成功，请刷新后重试 |
+| info/NewsTab.tsx:508 | 服务端返回添加失败 | 添加未成功，请刷新后重试 |
+| info/ThosPage.tsx:49 | 办理失败 | 办理未成功，请重试 |
+| info/ThosPage.tsx:186 | 服务目录加载失败 | 服务列表没有加载出来，请刷新后重试 |
+| info/ThosPage.tsx:193 | 在线服务连接失败（会话可能已失效） | 连不上在线服务，登录可能已过期，请重新登录 |
+| info/ThosPage.tsx:271 | 收藏保存失败 | 收藏未保存，请再试一次 |
+| components/RootErrorBoundary.tsx:47 | 界面渲染出错，已停在当前页面 | 本页出现问题，已停留在当前页面，可刷新页面重试 |
+| components/FilePreview.tsx:108、829 | 未知错误 | 出现未知问题，请重新打开 |
+| components/FilePreview.tsx:143 | 预览渲染出错，已停在这一条上（应用其余功能不受影响）。 | 这一条预览失败，其他内容不受影响；可换一条，或用上方「打开」查看原文件。 |
+| components/FilePreview.tsx:617 | mammoth 模块加载失败 | docx 预览组件没有加载成功，请重新打开 |
+| components/NotifySettingsSection.tsx:104 | 通知未授权 | 通知权限未开启，请在系统设置中打开 |
+| pages/Settings.tsx:536 | 复制失败，可改用导入框核对 | 复制未成功，请改用下方的导入框核对 |
+| pages/Settings.tsx:1792 | 系统取色不可用，已改用「清华紫」主题。 | 系统取色暂不可用，已自动改用「清华紫」主题，稍后可在外观里手动更换。 |
 
----
+行内豁免（理由写在代码行尾）：
 
-# 附：本轮 UX 改造已落地清单（2026-09-20）
+| 位置 | 文案 | 理由 |
+| --- | --- | --- |
+| pages/Plugins.tsx:248 | 加载失败 | 状态标签，同一行操作区就有「日志」按钮 |
+| components/NotifyBridge.tsx:39 | [notify] 启动失败 | 只进 `console.warn`，用户看不到 |
+| info/tabStates.tsx:32 | 会话重建成功→自动重拉 | 排障日志，TAB-HEAL 前缀即诊断标记 |
 
-## 已上线
+### 技术细节
 
-| 项 | 位置 | 说明 |
-|---|---|---|
-| 首启导览 | `components/OnboardingTour.tsx`、`state/onboarding.ts` | 首屏二选一（自行选择 / 按场景预设）→ 侧栏功能（2 列方块，带图标与内容说明）→ 各页二级页签（chip 排列）→ 收藏夹引导（一键创建「示例收藏夹」并放入 网络学堂 / 选课 / 空教室 三项原子）。账号接入四步（雨课堂 / OJ 平台 / 邮箱日历 / 云盘，已配置项只标识不重复索要）→ 桌面小组件（一键放置「今日日程」，启动器不支持时给出长按桌面的手动路径）；选课不参与询问，可跳过、可重放。导览键随内容升版本（账号步骤 v2、小组件步骤 v3，`onethu.onboarded.v3`）：导览有新内容时新旧用户都看一轮 |
-| 场景预设 | `state/onboarding.ts:PRESETS` | 完整 / 极简 / 预约狂人 / 信息大师；与手动路径写同一批既有存储（`favs.foldSidebar`、`saveTabLayout`、`homeCards`） |
-| 设置页二级页签 | `pages/Settings.tsx` | 页签：账号 / 通知与提醒 / 外观与布局 / 数据与同步 / 下载与存储 / 插件 / 关于；形态与信息页一致（`SegmentedOverflow` + `role="tab"`）；「管理栏目」接入既有 `TabManageModal`，写入 `tabLayout("settings")` |
-| 设置页操作区 | 同上 | 「导览」与「管理栏目」并列；导览不再占用页签 |
-| 在线服务默认视图 | `pages/info/ThosPage.tsx` | 有常用项时默认进「常用服务」；首次预置 亲友来访人员报备、缓考申请 |
-| 在线服务排序 | 同上 | 收藏 → 最近使用（`thos-recent:<userId>`，20 条上限）→ 学校原序；同一档内稳定排序 |
-| 在线服务搜索 | 同上 | 搜索框移至页签之上 |
-| 在线服务常用标记 | 同上 + `components/Icons.tsx:IconPin` | 图钉 = 在常用（既有 `thos-favorites`）；与"收藏进收藏夹"的星号语义分离 |
-| 网络学堂同步说明 | `pages/Learn.tsx` | 指明雨课堂与 OJ 的作业同步在「设置 → 数据与同步」配置 |
-| 文案纪律 | `tools/ui-copy-lint.mjs`、`tools/ui-copy-allow.json` | `pnpm lint:ui-copy`；新增「机构简称」规则（网堂等） |
+| 位置 | 现在 | 改成 |
+| --- | --- | --- |
+| Settings.tsx:62、259 | 账号与凭据 | 账号与绑定 |
+| Settings.tsx（雨课堂区 9 处、导出/导入标题 3 处） | 会话 / 会话健康 / 检查会话 / 导出会话 | 登录状态（如「登录状态：尚未检查」「检查登录状态」） |
+| learn/YktAssignmentDetailPage.tsx:471 | 本作业暂无题目明细（可能接口未返回 problems）。 | 本作业暂无题目明细（老师端未提供）。 |
+| info/LibraryTab.tsx:351、579、608、LibRoomTab.tsx:542 | 需要登录会话（未获取到学号） | 需要先登录（未读取到学号） |
+| info/LibraryTab.tsx:351 | 馆列表为空（seat.lib 返回空 list，会话可能未建立） | 馆列表为空（数据源未返回内容，登录状态可能未建立） |
+| info/VenueSportsTab.tsx:217 | 未能自动登录（统一身份会话可能已失效） | 未能自动登录（统一身份登录可能已过期） |
+| zhjwxk/Courses.tsx:198 | 官方教评获取失败（教务会话或网络），稍后重试 | 官方教评获取未成功（教务登录或网络问题），请稍后重试 |
+| zhjwxk/Courses.tsx:851 | 暂无培养方案数据（可能该学期未配置培养方案，或会话已过期） | 暂无培养方案数据（该学期可能未配置，或登录已过期） |
+| components/ThemePickerModal.tsx、Settings.tsx | 基础令牌 | 默认外观 / 应用自带配色 |
+| components/ExtHwLoginModal.tsx:310 | 我已登录，读取会话 | 我已登录，读取登录信息 |
+| components/OnboardingTour.tsx:532 | 会话失效时在 设置 → 外部作业源 重登。 | 登录过期时在 设置 → 外部作业源 重登。 |
+| plugins/types.ts:50、72 | 登录会话状态 / 任意外部 HTTP(S) 接口 | 登录状态 / 任意外部网络地址（HTTP(S)） |
+| info/DormTab.tsx:199 | 清华水站 dingshui.bjqzhd.com · 公开接口 | 清华水站 dingshui.bjqzhd.com · 公开数据（域名保留：来源标注对用户有意义，不按「URL 必须折叠」处理） |
 
-## 已修复缺陷
+### 禁用词：「原子」→「收藏项」
 
-| 缺陷 | 根因 |
-|---|---|
-| 二级课表「1-4 被读成 4-1」（实验室课错位、与主课表重复） | CR 课表格子 id 为 `a{session}_{day}`，本项目误将 `anchor[0]` 当作星期；抽出 `core/zhjwxk/anchor.ts:parseCellAnchor` 对齐 info app 口径，并加 14 条断言 |
-| 深色主题大量黑字 | 引用了不存在的令牌（`--text` / `--bg-elev` / `--bg-hover` 等 14 个），硬编码兜底值恒生效；全量审计后改为真实令牌 |
-| THUbook / 学堂正文深色黑字 | 源站行内颜色覆盖主题令牌 → `lib/htmlTheme.ts:stripInlineColors` |
-| 导览「跳过/完成」白屏 | `useState` 落在 `if (!open) return null` 之后，hooks 顺序违规；已移至早退之前 |
-| 设置页页签切换后仍显示其它分组 | `hidden` 属性被 CSS display 规则覆盖；且分节不在同一父节点 → 改为行内 `style.display` + 逐分节在各自父节点内收拢 |
-| 在线服务跳收藏夹落到空夹 | 跳转未带 `folderId`，而 `FolderPage` 以 `navParams.folderId` 为渲染根 |
-| 内嵌官方页每次要求二次登录（三端） | 桌面：独立子窗口 + `set_cookie`（**必须带 Domain**）+ UA 同主窗口（wengine 按 UA 指纹管会话）；Android：全屏 Dialog + 原生 CookieManager 种票 + 关闭后回灌 jar |
+涉及 6 个文件（FolderPage 6 处、Collect 3 处、WidgetBindModal 6 处、WidgetSettingsSection 1 处、FavAtomPicker 1 处），
+另清出 3 处扫描范围外的（`state` 的组件标题、收藏项详情标题、选课页说明）。
+**只动用户可见文案**，数据层与 `FavAtom`、`atom` 等标识符未动，收藏行为不变。
 
-## 待办（未实现）
+## 五、遗留
 
+1. 「技术细节（状态码 / URL）收进『详情』折叠区」**未做完**：本轮只做措辞改写。真正折叠需要折叠组件支持，
+   且部分页面没有折叠位（如 `DormTab` 的来源标注）。计划表里这一格保持未勾。
+2. `ChatDock` 里的「会话」指聊天对话，不属于本次禁用的登录语境，保持原样（lint 若将来扫到该目录，需按语境豁免）。
+3. 扫描器的注释识别本轮补了**块注释跨行**跟踪（此前 `/* ... */` 的续行行首没有 `*`，会被当成代码文本误报一条）。
 1. **新增 `thos-service` 原子类型**：THOS 服务列表加载时写入原子缓存；解析器提供标题/部门与打开动作。
    完成后可同时满足：① 服务行星号（统一收藏，可入收藏夹）与图钉并列；② OH 以单句指令打开对应服务页。
 2. **体育馆改为应用内打开并共享登录态**：复用在线服务方案（桌面独立子窗口 / 手机全屏 Dialog），
@@ -160,6 +175,26 @@ Windows Chrome/79（webvpn 票绑定）→ 真机恒 false → 9-13 的 pdf.js �
 
 语义锚 = `state/widgetNativeRender.ts`（两端同步的纯函数参考），
 护栏 = `tools/widget-native-render-test.mjs`。
+
+**续修（2026-09-25，用户把卡片拖大后的两处实录）**：「能显示的行数远少于实际拥有的空间」
+与「总是显示还有 2 项」。根因是行数按「矮/中/高」三档估算并封顶 5 行（快照也只带 5 行候选），
+而脚注的「还有」直接用快照里算死的 `counts.more`。修法：
+- 快照按 `WIDGET_MAX_ROWS`（20）给足候选行，原生按**真实高度**逐行量文本铺满
+  （`fitRows`/`lineHeightPx`，布局备 20 条槽位，仍放不下的才不显示）；
+- 脚注前半段只数**卡片上真的显示出来的行**，「还有 N 项」= 可见行 − 已显示行 + 快照外的
+  `counts.more`，两者之和恒等于仍有效的条目总数（卡片拉大时「还有」实时变小）。
+
+**追加（2026-09-25，PC 上「通知里的图片都不能正常显示」）**：真机/PC 现场查下去是**会话失效**——
+原生 `fetch_binary` 判定拿回的是登录页时直接抛字符串「会话已失效，需要重新登录」（`lib.rs:1181`），
+而 `RichContent` 的 `catch {` 不接错误、只把图调暗到 0.45，唯一的留痕还只记 URL（`log_debug`
+落在 `/tmp/onethu-debug.log`，Windows 上是 `D:\tmp\…`），数据页那条会话提示链又完全不覆盖
+这条图片旁路——于是界面只剩几个碎图，用户推不到「该重新登录了」。修法：
+- `catch (e)` 接住原因：写进 `title`（悬停可看）与 `log_debug` 行；
+- 会话类失败（`lib/sessionErrors.ts` 的 `isSessionExpiredError`，认字符串错误与
+  `SessionExpiredError` 两种）弹一次**屏幕正中**的提示「图片加载失败，请重新登录」
+  （`showToast` 新增 `center` 档位，`toast-host is-center`），一次内容最多一次（10s 去重——
+  一页十几张图会一起失败）。
+护栏 = `tools/session-img-toast-test.mjs`（判定 9 态 + 接线与样式守卫）。
 
 ## ④ Windows 用户端出现 127.0.0.1:5180
 

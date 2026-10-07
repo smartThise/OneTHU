@@ -77,7 +77,7 @@ interface DetailState {
 
 /* ══════════ 弹层（createPortal 挂 body：视口定位不再受滚动容器/祖先 transform 影响）══════════ */
 /* 订阅管理弹层：遮罩 flex 视口垂直居中（Courses.tsx maskStyle/panelStyle 同款） */
-const subMaskStyle: CSSProperties = {
+const subMaskStyle: CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both",
   position: "fixed",
   inset: 0,
   background: "rgba(15, 23, 42, 0.45)",
@@ -87,7 +87,7 @@ const subMaskStyle: CSSProperties = {
   justifyContent: "center",
   padding: 24,
 };
-const subPanelStyle: CSSProperties = {
+const subPanelStyle: CSSProperties = { animation: "m-spring-in var(--dur-3) var(--ease-out) both",
   width: "100%",
   maxWidth: 560,
   maxHeight: "78vh",
@@ -481,7 +481,7 @@ export function NewsTab({
     setOpBusy(c.id);
     try {
       const ok = await info.removeNewsSubscription(c.id);
-      if (!ok) throw new Error("服务端返回删除失败");
+      if (!ok) throw new Error("删除未成功，请刷新后重试");
       setSubsTick((t) => t + 1);
       setSubFeedTick((t) => t + 1);
     } catch (err: unknown) {
@@ -501,11 +501,11 @@ export function NewsTab({
       if (existing.length > 0) {
         for (const c of existing) {
           const ok = await info.removeNewsSubscription(c.id);
-          if (!ok) throw new Error("服务端返回删除失败");
+          if (!ok) throw new Error("删除未成功，请刷新后重试");
         }
       } else {
         const ok = await info.addNewsSubscription({ sourceId: unit.sourceId });
-        if (!ok) throw new Error("服务端返回添加失败");
+        if (!ok) throw new Error("添加未成功，请刷新后重试");
       }
       setSubsTick((t) => t + 1);
       setSubFeedTick((t) => t + 1);

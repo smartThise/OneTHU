@@ -16,6 +16,7 @@ import { explainNetworkError, universalFetch } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
 import { CollectStar } from "../../components/Collect.js";
 import { enc, noteAtomCache } from "../../state/atoms.js";
+import { getWasherChoice, setWasherChoice } from "../../state/washerPref.js";
 
 function logErr(tag: string, err: unknown): void {
   void logLine(
@@ -108,6 +109,8 @@ export function WasherTab({
 
   const loadDevices = useCallback(async (b: WasherBuilding) => {
     setSel(b);
+    // 记下这栋（首启导览问过的那栋也走这里）：下次进来自动落回，不用重选
+    setWasherChoice({ provider: washerProviderCode(b.provider), id: b.id, name: b.name });
     setDState("loading");
     setDError(null);
     try {
@@ -138,6 +141,18 @@ export function WasherTab({
       }
     }
   }, [groups, gState, deepBuildingId, wantProvider, loadDevices]);
+
+  /* 楼栋列表就绪后，若还没选，就落回上次那栋（首启问过的那栋） */
+  useEffect(() => {
+    if (gState !== "ready" || sel !== null) return;
+    const want = getWasherChoice();
+    if (!want) return;
+    const all = (groups ?? []).flatMap((g) => g.buildings);
+    const hit =
+      all.find((b) => b.id === want.id && washerProviderCode(b.provider) === want.provider) ??
+      all.find((b) => b.name === want.name);
+    if (hit) void loadDevices(hit);
+  }, [gState, groups, sel, loadDevices]);
 
   return (
     <>

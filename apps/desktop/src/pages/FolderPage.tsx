@@ -1,14 +1,14 @@
 /**
- * 用户收藏夹页（万物原子化 · 跳转入口层）。
- * - 子收藏夹 = 功能原始页同款 segmented 导航栏：直属原子落最左「默认」栏，
+ * 用户收藏夹页（万物收藏项化 · 跳转入口层）。
+ * - 子收藏夹 = 功能原始页同款 segmented 导航栏：直属收藏项落最左「默认」栏，
  *   各子收藏夹一栏；没有子收藏夹就没有导航栏；「管理栏目」与聚合页同款
  *   （TabManageModal 勾选显隐 + ↑↓ 调序 + 恢复默认，tabLayout 按夹分键持久化，
  *   新建子夹天然追加可见、删除子夹自动对账——与 InfoPage/LifePage/ReservePage
  *   完全同构）；子层内容递归同构，最深四层；
- * - 瀑布流：原子长卡全宽、方卡瓦片块（相邻方卡聚块，顺序语义不变）；子收藏夹
- *   项不进瀑布流（只做栏），原子排序与相邻原子交换（跨子夹引用不挡排序）；
- * - 原子点击 = 跳回原位功能页特定位置（深链），组件原子整卡直播；
- * - 编辑模式：添加原子（搜索弹层）/ 新建子收藏夹 / 重命名 / 删除（页头=根，
+ * - 瀑布流：收藏项长卡全宽、方卡瓦片块（相邻方卡聚块，顺序语义不变）；子收藏夹
+ *   项不进瀑布流（只做栏），收藏项排序与相邻收藏项交换（跨子夹引用不挡排序）；
+ * - 收藏项点击 = 跳回原位功能页特定位置（深链），组件收藏项整卡直播；
+ * - 编辑模式：添加收藏项（搜索弹层）/ 新建子收藏夹 / 重命名 / 删除（页头=根，
  *   栏内=子夹），与聚合页「栏目删减走管理栏目、实体删除走页内」同思路。
  */
 import { useEffect, useState, type ReactNode } from "react";
@@ -27,6 +27,7 @@ import { resolveAtom } from "../state/atoms.js";
 import { AtomPickerModal, CollectStar } from "../components/Collect.js";
 import { loadTabLayout, saveTabLayout, type TabLayout } from "../lib/tabLayout.js";
 import { confirmOk } from "../lib/confirm.js";
+import { useTabDirection } from "../lib/motion.js";
 
 const ROOT_TAB = "__root";
 
@@ -54,7 +55,7 @@ export function FolderPage() {
   const orderIdx = favs.data.order.indexOf(rootId);
 
   const removeRoot = async () => {
-    const ok = await confirmOk("删除收藏夹「" + folder.title + "」？\n其子收藏夹与收录的原子入口将一并删除（原功能不受影响）。");
+    const ok = await confirmOk("删除收藏夹「" + folder.title + "」？\n其子收藏夹与收录的收藏项入口将一并删除（原功能不受影响）。");
     if (!ok) return;
     favs.remove(rootId);
     setEditing(false);
@@ -90,7 +91,7 @@ export function FolderPage() {
             folder.title
           )
         }
-        meta={"收藏夹 · " + atomCount + " 原子" + (subCount > 0 ? " · " + subCount + " 子收藏夹" : "")}
+        meta={"收藏夹 · " + atomCount + " 收藏项" + (subCount > 0 ? " · " + subCount + " 子收藏夹" : "")}
         actions={
           editing ? (
             <>
@@ -123,7 +124,7 @@ function isWidgetFolder(folderId: string): boolean {
   return Object.values(map.byId).some((b) => b.kind === "folder" && b.folderId === folderId);
 }
 
-/** 桌面上是否已有某块小组件正在显示这个原子（详情或快捷方式都算） */
+/** 桌面上是否已有某块小组件正在显示这个收藏项（详情或快捷方式都算） */
 function isWidgetAtom(atom: AtomRef): boolean {
   const map = loadWidgetInstances();
   return Object.values(map.byId).some(
@@ -151,7 +152,7 @@ function FolderWidgetButton({ folderId }: { folderId: string }): ReactNode {
   );
 }
 
-/** 原子级入口：长卡工具条上的「桌」 */
+/** 收藏项级入口：长卡工具条上的「桌」 */
 function AtomWidgetButton({ atom }: { atom: AtomRef }): ReactNode {
   const backend = useNotifyBackend();
   const [, bump] = useState(0);
@@ -161,7 +162,7 @@ function AtomWidgetButton({ atom }: { atom: AtomRef }): ReactNode {
     <button
       type="button"
       className="icon-btn"
-      title={on ? "这个原子已经在桌面某块小组件上" : "把这个原子显示到桌面小组件（详情）"}
+      title={on ? "这个收藏项已经在桌面某块小组件上" : "把这个收藏项显示到桌面小组件（详情）"}
       aria-label="显示到桌面小组件"
       onClick={() => {
         requestWidgetBind({ to: "pick", binding: { kind: "detail", atom: { kind: atom.kind, key: atom.key } } });
@@ -191,14 +192,19 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
   const [renameVal, setRenameVal] = useState("");
   const [iconOpen, setIconOpen] = useState(false);
 
-  if (!f) return null;
-
-  const subIds = f.items.filter((it) => it.t === "f" && !!favs.data.folders[it.id]).map((it) => (it as { id: string }).id);
+  /* 栏目布局与页签方向必须在早返回**之前**算完：Hook 不能出现在 `if (!f) return null` 之后，
+     否则收藏夹被删除时本次渲染比上次多一个 Hook → React 抛错且错误边界兜不住 → 整窗白屏
+     （tools/hook-order-test.mjs 静态钉死这条）。f 缺失时按空栏目算，返回值马上被丢弃。 */
+  const subIds = f ? f.items.filter((it) => it.t === "f" && !!favs.data.folders[it.id]).map((it) => (it as { id: string }).id) : [];
   const tabIds = [ROOT_TAB, ...subIds];
   const { order, hidden } = loadTabLayout("fav." + folderId, tabIds);
   const visibleIds = order.filter((id) => !hidden.includes(id));
   /** 当前栏被隐藏/删除 → 回落第一个可见栏（功能页同款） */
   const effTab = visibleIds.includes(tab) ? tab : visibleIds[0];
+  // 页签切换方向（决定内容从哪一侧滑入）
+  const tabDir = useTabDirection(effTab ?? null, visibleIds);
+
+  if (!f) return null;
   const labelOf = (id: string) => (id === ROOT_TAB ? "默认" : favs.data.folders[id]?.title ?? "收藏夹");
   const activate = (id: string) => {
     setTab(id);
@@ -216,7 +222,7 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
     setNewSubName("");
   };
   const removeSelf = async () => {
-    const ok = await confirmOk("删除子收藏夹「" + f.title + "」？\n其子层与收录的原子入口将一并删除（原功能不受影响）。");
+    const ok = await confirmOk("删除子收藏夹「" + f.title + "」？\n其子层与收录的收藏项入口将一并删除（原功能不受影响）。");
     if (ok) favs.remove(folderId);
   };
 
@@ -252,7 +258,7 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
 
           {editing ? (
             <div className="fav-toolbar">
-              <button className="btn" onClick={() => setPickerOpen(true)}>添加原子</button>
+              <button className="btn" onClick={() => setPickerOpen(true)}>添加收藏项</button>
               <button className="btn" title="从图标库选择收藏夹图标" onClick={() => setIconOpen(true)}>图标</button>
               <button
                 className="btn"
@@ -292,7 +298,7 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
                 />
               ) : null}
               <span className="fav-toolbar-hint">
-                {isRoot ? "根收藏夹的重命名/删除在页头；原子排序点各项 ↑↓。" : "栏目显隐与排序点右上「管理栏目」。"}
+                {isRoot ? "根收藏夹的重命名/删除在页头；收藏项排序点各项 ↑↓。" : "栏目显隐与排序点右上「管理栏目」。"}
               </span>
             </div>
           ) : null}
@@ -316,14 +322,14 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
           ) : null}
 
           {visibleIds.map((id) => (
-            <div key={id} hidden={effTab !== id}>
+            <div key={id} hidden={effTab !== id} className={effTab === id ? "tab-anim" : undefined} data-dir={tabDir}>
               {visited.has(id) || id === effTab ? (
                 id === ROOT_TAB ? (
                   <>
                     <ItemsBlock folderId={folderId} editing={editing} />
                     {directAtoms === 0 ? (
                       <Card>
-                        <Empty text="此栏暂无原子——「编辑」→「添加原子」搜索添加，或在任意页面点星标收藏。" />
+                        <Empty text="此栏暂无收藏项——「编辑」→「添加收藏项」搜索添加，或在任意页面点星标收藏。" />
                       </Card>
                     ) : null}
                   </>
@@ -364,7 +370,7 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
   );
 }
 
-/* ══════════ 瀑布流（直属原子；子收藏夹项不进流，只做导航栏） ══════════ */
+/* ══════════ 瀑布流（直属收藏项；子收藏夹项不进流，只做导航栏） ══════════ */
 
 function ItemsBlock({ folderId, editing }: { folderId: string; editing: boolean }) {
   const favs = useFavs();
@@ -372,7 +378,7 @@ function ItemsBlock({ folderId, editing }: { folderId: string; editing: boolean 
   if (!f) return null;
   const items = f.items;
 
-  /** 与最近的相邻原子交换（子收藏夹项是导航栏，不挡原子排序） */
+  /** 与最近的相邻收藏项交换（子收藏夹项是导航栏，不挡收藏项排序） */
   const moveAtom = (index: number, dir: -1 | 1) => {
     let j = index + dir;
     while (j >= 0 && j < items.length && items[j]!.t !== "a") j += dir;
@@ -380,14 +386,14 @@ function ItemsBlock({ folderId, editing }: { folderId: string; editing: boolean 
     favs.swap(folderId, index, j);
   };
 
-  /** 连续的方卡原子聚成一个瓦片块（跳过子夹引用，保持顺序语义） */
+  /** 连续的方卡收藏项聚成一个瓦片块（跳过子夹引用，保持顺序语义） */
   type Block = { t: "tiles"; from: number; items: number[] } | { t: "one"; index: number };
   const blocks: Block[] = [];
   let cur: Block | null = null;
   items.forEach((it, i) => {
     if (it.t !== "a") return;
     /* 方/长判定：显式 sq 优先；缺省按 defaultSq/tileLive。今日 widget 件无方卡形态
-       恒为长卡；教室这类「方=当前节、长=今日总览」双形态原子两种都允许 */
+       恒为长卡；教室这类「方=当前节、长=今日总览」双形态收藏项两种都允许 */
     const v0 = resolveAtom(it.atom);
     const canTile = !v0?.widget || !!v0?.tileLive;
     const isSqTile = canTile && (it.sq === true || (it.sq == null && !!(v0?.defaultSq || v0?.tileLive)));
@@ -420,7 +426,7 @@ function ItemsBlock({ folderId, editing }: { folderId: string; editing: boolean 
   );
 }
 
-/** 原子长卡（widget=整卡直播） */
+/** 收藏项长卡（widget=整卡直播） */
 function OneItem({
   folderId, index, editing, moveAtom,
 }: {
@@ -435,7 +441,7 @@ function OneItem({
   const it = f?.items[index];
   if (!f || !it || it.t !== "a") return null;
   const view = resolveAtom(it.atom);
-  if (!view) return null; // 注册表已下线的原子：直接不渲染
+  if (!view) return null; // 注册表已下线的收藏项：直接不渲染
 
   const tools = (
     <div className="home-card-tools">
@@ -445,7 +451,7 @@ function OneItem({
       <button type="button" className="icon-btn" title="下移" aria-label="下移" onClick={() => moveAtom(index, 1)}>
         <IconChevron width={13} height={13} style={{ transform: "rotate(90deg)" }} />
       </button>
-      {/* 长卡上的「方」：今日 widget 件没有方卡形态，双形态原子（教室）才有 */}
+      {/* 长卡上的「方」：今日 widget 件没有方卡形态，双形态收藏项（教室）才有 */}
       {!view.widget || view.tileLive ? (
         <button type="button" className="icon-btn" title="改为方卡" aria-label="改为方卡" onClick={() => favs.setVariant(folderId, index, true)}>
           方

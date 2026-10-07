@@ -2,9 +2,8 @@ declare const __APP_VERSION__: string;
 import { useEffect, useState } from "react";
 import { loadTabLayout, saveTabLayout, type TabLayout } from "../lib/tabLayout.js";
 import type { ReactNode } from "react";
-import { Card, PageHead, SectionHead, SegmentedOverflow } from "../components/Layout.js";
+import { Card, PageHead, SectionHead, SegmentedOverflow, Switch } from "../components/Layout.js";
 import { TabManageModal } from "../components/TabManageModal.js";
-import { resetOnboarding } from "../state/onboarding.js";
 import { NotifySettingsSection } from "../components/NotifySettingsSection.js";
 import { WidgetSettingsSection } from "../components/WidgetSettingsSection.js";
 import { invoke } from "@tauri-apps/api/core";
@@ -14,6 +13,10 @@ import { clearRemembered, loadRemembered, session, isTauri } from "../lib/client
 import { clearHomeLayout } from "../lib/homeCards.js";
 import { useFavs } from "../state/favs.js";
 import { setDayNightTheme, setFollowSystem, useThemes } from "../state/theme.js";
+import { consumeSettingsTabRequest, setAdvancedMode, useAdvancedMode, SETTINGS_TAB_ORDER, ADVANCED_SETTINGS_TABS } from "../state/settingsMode.js";
+import { ThemePickerModal } from "../components/ThemePickerModal.js";
+import { PluginsPage } from "./Plugins.js";
+import { HelpSection } from "../components/HelpSection.js";
 import { parseFavs, resetFavs } from "../state/favorites.js";
 import { confirmOk } from "../lib/confirm.js";
 import { useApp } from "../state/context.js";
@@ -34,6 +37,13 @@ import {
 import { YktQrPanel, YktWebLoginPanel } from "../components/ExtHwLoginModal.js";
 import { YKT_WEB_LOGIN_AVAILABLE } from "../lib/yktWebview.js";
 import {
+  disableDynamicColor,
+  enableDynamicColor,
+  fetchSystemPalette,
+  isDynamicEnabled,
+} from "../lib/dynamicColor.js";
+import { subscribeThemes } from "../state/theme.js";
+import {
   clearTuojAutoStatus,
   clearTycheLogoutSuppress,
   consumeExtHwScrollRequest,
@@ -47,16 +57,19 @@ import {
 } from "../state/exthw.js";
 import { buildYktCookieExportJson, parseYktCookieExportJson, SOURCE_CATEGORY_NAMES, SOURCE_NAMES } from "@onethu/core";
 import type { ExtHwCreds, ExtHwSourceId, TuojSourceId } from "@onethu/core";
+import { ErrorLine } from "../components/Details.js";
+import { resetActiveOnboarding, setOnboardingFlow, useOnboardingFlow } from "../state/onboarding.js";
 
 /** 设置分组（按"你要改什么"索引，而不是按功能罗列）——
  *  点一下即滚动到对应分节；分节标题保持原位，不重排大段 JSX（低风险）。 */
 const SETTINGS_GROUPS: Array<{ label: string; sections: string[] }> = [
-  { label: "账号", sections: ["账户", "账号与凭据", "安全"] },
+  { label: "账号", sections: ["账户", "账号与绑定", "安全"] },
   { label: "通知与提醒", sections: ["通知", "桌面小组件"] },
   { label: "外观与布局", sections: ["外观", "首页布局", "收藏夹"] },
   { label: "数据与同步", sections: ["云同步", "外部作业源"] },
   { label: "下载与存储", sections: ["下载"] },
   { label: "插件", sections: ["插件"] },
+  { label: "帮助", sections: ["帮助"] },
   { label: "关于", sections: ["关于"] },
 ];
 
@@ -74,17 +87,20 @@ function jumpToSection(titles: string[]): void {
 
 /** 设置页的二级页签（与信息页 / 生活页同形态）：标题 → 页签分组 */
 const SETTINGS_TAB_OF: Record<string, string> = {
-  关于: "关于", 账户: "账号", 账号与凭据: "账号", 安全: "账号",
+  关于: "关于", 账户: "账号", 账号与绑定: "账号", 安全: "账号",
   云同步: "数据与同步", 外部作业源: "数据与同步",
   首页布局: "外观与布局", 收藏夹: "外观与布局", 外观: "外观与布局",
   通知: "通知与提醒", 桌面小组件: "通知与提醒",
-  插件: "插件", 下载: "下载与存储",
+  插件: "插件", 下载: "下载与存储", 帮助: "帮助",
 };
-const SETTINGS_TAB_ORDER = ["账号", "通知与提醒", "外观与布局", "数据与同步", "下载与存储", "插件", "关于"];
+/* 页签清单与高级页签定义已挪到 state/settingsMode.ts（命令面板与护栏共用同一份，见该文件注释） */
 
 export function SettingsPage() {
   /** 当前二级页签（默认第一个栏目） */
   const [tab, setTab] = useState<string>(SETTINGS_TAB_ORDER[0] ?? "账号");
+  const onboardingFlow = useOnboardingFlow(); // §4.2 灰度：首启流程开关（仅高级模式可见）
+  /** 标准 / 高级分层（§4.4） */
+  const advanced = useAdvancedMode();
   const settingsTabLayout: TabLayout = loadTabLayout("settings", SETTINGS_TAB_ORDER);
   const settingsTabHidden = settingsTabLayout.hidden;
   const [manageOpen, setManageOpen] = useState(false);
@@ -94,10 +110,18 @@ export function SettingsPage() {
     saveTabLayout("settings", l);
   };
 
+  /* 从高级模式切回标准模式时，当前页签可能已被收起：退回第一个可见页签，
+     否则那一栏的内容会因为没有匹配页签而全部露出来 */
+  useEffect(() => {
+    if (!advanced && ADVANCED_SETTINGS_TABS.includes(tab)) setTab(SETTINGS_TAB_ORDER[0] ?? "账号");
+  }, [advanced, tab]);
+
   // R23（霖实测：跳过来还得自己找分区在哪）：引导横幅「去设置」→ **先切到外部作业源
   // 所在页签再滚动**。此前只在子组件里 scrollIntoView——分区在 display:none 的页签里，
   // 滚动无效，用户落在设置页顶部还要自己找。
   useEffect(() => {
+    const wantTab = consumeSettingsTabRequest();
+    if (wantTab && (advanced || !ADVANCED_SETTINGS_TABS.includes(wantTab))) setTab(wantTab);
     if (!consumeExtHwScrollRequest()) return;
     setTab(SETTINGS_TAB_OF["外部作业源"] ?? "数据与同步");
     const t = setTimeout(() => {
@@ -186,7 +210,7 @@ export function SettingsPage() {
             <button
               className="btn"
               onClick={() => {
-                resetOnboarding();
+                resetActiveOnboarding();
                 location.reload();
               }}
               title="重新运行首次使用引导"
@@ -202,7 +226,7 @@ export function SettingsPage() {
 
       <SegmentedOverflow ariaLabel="设置栏目" style={{ marginBottom: 14 }}>
         {settingsTabLayout.order
-          .filter((t) => SETTINGS_TAB_ORDER.includes(t) && !tabLayout.hidden.includes(t))
+          .filter((t) => SETTINGS_TAB_ORDER.includes(t) && !tabLayout.hidden.includes(t) && (advanced || !ADVANCED_SETTINGS_TABS.includes(t)))
           .map((t) => (
             <button
               key={t}
@@ -215,6 +239,11 @@ export function SettingsPage() {
             </button>
           ))}
       </SegmentedOverflow>
+
+      <SectionHead title="帮助" />
+      <Card>
+        <HelpSection />
+      </Card>
 
       <SectionHead title="关于" />
       <Card>
@@ -229,8 +258,29 @@ export function SettingsPage() {
         </div>
         <UpdateRow />
         {/* 运行日志导出属开发者功能：正式版不显示（真机取证走 adb logcat -s onethu:V，
-            或用开发者构建的右上角面板导出）。要让正式版也显示，去掉这层门控即可。 */}
+            或改用开发者构建的右上角面板导出）。要恢复成正式版也显示，去掉这层门控即可。 */}
         {__ONETHU_DEV__ ? <DebugLogRow /> : null}
+        <DiagnosticsRow />
+        <div className="setting-row">
+          <div>
+            <div className="setting-title">高级模式</div>
+            <div className="setting-desc">打开后显示扩展功能、开发者工具等进阶设置，日常使用不必开。</div>
+          </div>
+          <Switch on={advanced} onChange={setAdvancedMode} label="高级模式" />
+        </div>
+        {advanced ? (
+          <div className="setting-row">
+            <div>
+              <div className="setting-title">新首启流程</div>
+              <div className="setting-desc">下一版首启只问三件事，可全部跳过；确认没问题后再默认开启。</div>
+            </div>
+            <Switch
+              on={onboardingFlow === "v2"}
+              onChange={(v) => setOnboardingFlow(v ? "v2" : "v1")}
+              label="新首启流程"
+            />
+          </div>
+        ) : null}
       </Card>
 
       <SectionHead title="账户" />
@@ -247,17 +297,17 @@ export function SettingsPage() {
       </Card>
 
 
-      <SectionHead title="账号与凭据" />
+      <SectionHead title="账号与绑定" />
       <Card>
         <div className="setting-row" style={{ alignItems: "flex-start" }}>
           <div>
-            <div className="setting-title">清华电子身份（信任因子 / 密码管理）</div>
+            <div className="setting-title">清华电子身份（账号密码管理）</div>
             <div className="setting-desc">
-              在原生窗口打开 id.tsinghua.edu.cn，自动填入账号密码（有图形验证码时需手动输入）。
-              <b>删除信任因子或修改密码可能导致 OneTHU 退出登录</b>，需重新登录一次。
+              在应用内的窗口打开清华统一身份认证，自动填入账号密码（有图形验证码时需手动输入）。
+              <b>删除已保存的登录信息或修改密码，可能导致 OneTHU 退出登录</b>，需重新登录一次。
             </div>
             {eidMsg ? (
-              <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }}>{eidMsg}</div>
+              <ErrorLine text={eidMsg} style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }} />
             ) : null}
           </div>
           <button
@@ -293,7 +343,7 @@ export function SettingsPage() {
               <div className="setting-title">日程云同步 · 已连接</div>
               <div className="setting-desc">
                 {cloud.email} · 通过清华邮箱日历（CalDAV）多设备同步日程；在「日程」页查看与编辑。
-                {calMsg ? <div style={{ marginTop: 6, color: "var(--text-2)" }}>{calMsg}</div> : null}
+                {calMsg ? <ErrorLine text={calMsg} style={{ marginTop: 6, color: "var(--text-2)" }} /> : null}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -374,7 +424,7 @@ export function SettingsPage() {
                   {calBusy ? "连接中…" : "保存并验证"}
                 </button>
               </div>
-              {calMsg ? <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }}>{calMsg}</div> : null}
+              {calMsg ? <ErrorLine text={calMsg} style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }} /> : null}
             </div>
           </div>
         )}
@@ -398,7 +448,7 @@ export function SettingsPage() {
                 {syscal.lastError ? (
                   <div style={{ marginTop: 6, color: "var(--red, #c04848)" }}>最近一次同步失败：{syscal.lastError}</div>
                 ) : null}
-                {sysMsg ? <div style={{ marginTop: 6, color: "var(--text-2)" }}>{sysMsg}</div> : null}
+                {sysMsg ? <ErrorLine text={sysMsg} style={{ marginTop: 6, color: "var(--text-2)" }} /> : null}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -455,7 +505,7 @@ export function SettingsPage() {
               <div className="setting-title">系统日历同步</div>
               <div className="setting-desc">
                 把课表与日程写入系统日历里的专属日历「OneTHU 日程」（不影响你已有的日历）。开启后自动保持最新：添加、修改、删除日程或刷新课表都会同步更新，课程与考试带提前 15 分钟提醒。无需配置任何账户，一键开启。
-                {sysMsg ? <div style={{ marginTop: 6, color: "var(--text-2)" }}>{sysMsg}</div> : null}
+                {sysMsg ? <ErrorLine text={sysMsg} style={{ marginTop: 6, color: "var(--text-2)" }} /> : null}
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                 <button
@@ -488,8 +538,7 @@ export function SettingsPage() {
           <div>
             <div className="setting-title">恢复默认首页布局</div>
             <div className="setting-desc">
-              清除「今日」页卡片的排列、折叠与隐藏记录（onethu.home.layout /
-              onethu.home.defaults 两个本地键），下次打开首页回到默认版式（主栏：
+              清除「今日」页卡片的排列、折叠与隐藏记录，下次打开首页回到默认版式（主栏：
               日程与提醒 / 未提交作业 / 最近通知；侧栏：校园卡余额 / 今日预约 /
               今日课程 / 订阅新闻；入口卡全部隐藏）。
             </div>
@@ -507,7 +556,7 @@ export function SettingsPage() {
             <div className="setting-title">恢复默认收藏夹</div>
             <div className="setting-desc">
               删除全部用户收藏夹与折叠记录（默认一级入口不受影响，永远在左侧栏）。
-              各功能原子仍锚定在原位页面，收藏夹只是跳转入口层。
+              各功能仍在原来的页面，收藏夹只是跳转入口。
             </div>
             {favMsg ? <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-2)" }}>{favMsg}</div> : null}
           </div>
@@ -524,7 +573,7 @@ export function SettingsPage() {
                 void clip
                   .writeText(json)
                   .then(() => setFavMsg("收藏夹已复制到剪贴板（" + favs.data.order.length + " 个根收藏夹）"))
-                  .catch(() => setFavMsg("复制失败，可改用导入框核对"));
+                  .catch(() => setFavMsg("复制未成功，请改用下方的导入框核对"));
               }}
             >
               导出（复制 JSON）
@@ -592,17 +641,8 @@ export function SettingsPage() {
         <WidgetSettingsSection />
       </Card>
       <SectionHead title="插件" />
-      <Card>
-        <div className="setting-row">
-          <div>
-            <div className="setting-title">插件管理</div>
-            <div className="setting-desc">插件的安装、启停、权限与运行记录</div>
-          </div>
-          <button className="btn" onClick={() => navigate("plugins")}>
-            进入插件页
-          </button>
-        </div>
-      </Card>
+      {/* §4.4b：插件不再是单独一页，管理界面直接嵌在这里（本分节随页签显隐整块收放） */}
+      <PluginsPage embedded />
       <SectionHead title="安全" />
       <Card>
         <div className="setting-row">
@@ -832,12 +872,12 @@ function ExtHwSection() {
     void runYktSessionCheck()
       .then((st) => {
         if (!st) {
-          notify("yuketang", "未配置雨课堂会话——请先登录。");
+          notify("yuketang", "未配置雨课堂登录状态——请先登录。");
           return;
         }
         if (st.alive === true) notify("yuketang", `会话有效${st.userName ? `（${st.userName}）` : ""}。`);
         else if (st.alive === false) notify("yuketang", `会话已失效（${st.reason ?? "未知原因"}）——可扫码重登，或导入其他设备导出的 Cookie。`);
-        else notify("yuketang", "检查失败：网络异常，会话状态未知");
+        else notify("yuketang", "检查未成功：网络异常，登录状态未知");
       })
       .finally(() => setBusy(null));
   };
@@ -877,7 +917,7 @@ function ExtHwSection() {
       }
       const { open } = await import("@tauri-apps/plugin-dialog");
       const { invoke } = await import("@tauri-apps/api/core");
-      const sel = await open({ multiple: false, filters: [{ name: "雨课堂会话", extensions: ["json"] }] });
+      const sel = await open({ multiple: false, filters: [{ name: "雨课堂登录状态", extensions: ["json"] }] });
       if (!sel || typeof sel !== "string") return "已取消导入。";
       const text = await invoke<string>("read_file_text", { path: sel });
       const parsed = parseYktCookieExportJson(text);
@@ -1072,7 +1112,7 @@ function ExtHwSection() {
     <div id="settings-exthw">
       <div className="setting-desc" style={{ margin: "0 2px 6px" }}>
         把各平台作业 DDL 合并到「全部作业」与「今日」；只读拉取（标题 / 课程 / 截止时间），不提交、
-        不抓题目。凭据以 AES-GCM 加盐混淆后存本机。
+        不抓题目。登录信息在本机加密保存，只用来读取作业。
       </div>
 
       {/* ── R14 19.1 / R15 20.3：雨课堂独立 Card，统一行范式 ── */}
@@ -1145,21 +1185,21 @@ function ExtHwSection() {
             <>
               <div className="exthw-note">
                 {ext.yktSession.checkedAt === null
-                  ? "会话健康：尚未检查（启动后会自动心跳，约每 6 小时一次；也可手动检查）。"
+                  ? "登录状态：尚未检查（应用启动后会自动检查，约每 6 小时一次，也可手动检查）。"
                   : ext.yktSession.alive === true
                     ? `会话健康：有效${ext.yktSession.userName ? `（${ext.yktSession.userName}）` : ""} · 检查于 ${new Date(ext.yktSession.checkedAt).toLocaleTimeString()}`
                     : ext.yktSession.alive === false
                       ? `会话健康：已失效（${ext.yktSession.reason}）· 检查于 ${new Date(ext.yktSession.checkedAt).toLocaleTimeString()}`
-                      : "会话健康：未知（上次检查网络异常，不判失效）"}
+                      : "登录状态：未知（上次检查时网络异常，不判定为失效）"}
               </div>
               <div style={fieldStyle}>
                 <button className="btn" disabled={busy !== null} onClick={onYktCheckSession}>
-                  {busy === "ykt-check" ? "检查中…" : "检查会话"}
+                  {busy === "ykt-check" ? "检查中…" : "检查登录状态"}
                 </button>
                 <button
                   className="btn"
                   disabled={busy !== null}
-                  title="把当前会话导出成文件，供其他设备导入（免重复扫码）。文件等同账号凭据，用完即删。"
+                  title="导出当前登录状态，供其他设备导入（免重复扫码）。文件等同账号绑定，用完请即删。"
                   onClick={onYktExportCookie}
                 >
                   {busy === "ykt-export" ? "导出中…" : "导出登录状态"}
@@ -1167,7 +1207,7 @@ function ExtHwSection() {
                 <button
                   className="btn"
                   disabled={busy !== null}
-                  title="导入其他已登录设备导出的会话文件，免扫码直接恢复登录"
+                  title="导入其他已登录设备导出的登录状态文件，免扫码直接恢复登录"
                   onClick={onYktImportCookie}
                 >
                   {busy === "ykt-import" ? "导入中…" : "导入登录状态"}
@@ -1213,7 +1253,7 @@ function ExtHwSection() {
                 setYktCookie(cookie);
                 setYktWebOpen(false);
                 void saveExtHwCreds(credsWith({ ykt: cookie })).then(() => {
-                  notify("yuketang", "雨课堂官方网页登录成功，已保存会话。");
+                  notify("yuketang", "雨课堂官方网页登录成功，已保存登录状态。");
                   void refreshExtHw();
                 });
               }}
@@ -1378,7 +1418,7 @@ function ExtHwSection() {
                   <div style={{ marginTop: 4, fontSize: 12, opacity: 0.65 }}>
                     {tycheRemember
                       ? "密码以密文存在本机，不上传、不进日志；退出登录即清除。"
-                      : "不勾选则只保存本次会话，失效后需手动重新登录。"}
+                      : "不勾选则只保存本次登录状态，失效后需手动重新登录。"}
                   </div>
                 </div>
               ) : null}
@@ -1445,10 +1485,10 @@ function ExtHwSection() {
                 </button>
               </div>
 
-              {/* 高级：手动粘贴 Cookie（一般用户用不到） */}
+              {/* 高级：手动粘贴浏览器登录信息（一般用户用不到） */}
               <div>
                 <button className="btn btn-ghost" style={{ padding: "2px 0" }} onClick={() => setAdvanced((v) => !v)}>
-                  {advanced ? "▾" : "▸"} 高级：手动粘贴 Cookie
+                  {advanced ? "▾" : "▸"} 高级：手动粘贴浏览器登录信息
                 </button>
                 {advanced ? (
                   <div style={{ display: "grid", gap: 10, marginTop: 8 }}>
@@ -1596,6 +1636,34 @@ function DebugLogRow() {
   );
 }
 
+/* ── 诊断摘要（2026-09-23）：反馈问题时一键复制，用户不必交出运行日志 ── */
+function DiagnosticsRow() {
+  const [busy, setBusy] = useState(false);
+  const run = async (): Promise<void> => {
+    setBusy(true);
+    try {
+      const { buildDiagnostics } = await import("../lib/diagnostics.js");
+      await navigator.clipboard.writeText(await buildDiagnostics());
+      showToast("诊断摘要已复制，可直接粘贴到反馈里");
+    } catch (err) {
+      showToast(String(err instanceof Error ? err.message : err).slice(0, 60));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="setting-row">
+      <div>
+        <div className="setting-title">诊断摘要</div>
+        <div className="setting-desc">反馈问题时粘贴这段文字，不含学号等个人信息</div>
+      </div>
+      <button className="btn" disabled={busy} onClick={() => void run()}>
+        {busy ? "复制中…" : "复制摘要"}
+      </button>
+    </div>
+  );
+}
+
 /* ── 版本更新检查（GitHub Releases）── */
 function UpdateRow() {
   const [checking, setChecking] = useState(false);
@@ -1629,8 +1697,8 @@ function UpdateRow() {
             ? "正在检查…"
             : rel == null
               ? failed
-                ? "检查失败（网络不可达或 GitHub 限流），可稍后重试"
-                : "当前版本自动与 GitHub Releases 比对"
+                ? "检查未成功（网络不通或 GitHub 忙），请稍后重试"
+                : "当前版本会自动与 GitHub 的发布页比对"
               : hasNew
                 ? `当前 v${currentVersion()} · 最新 ${rel.name}${dismissed ? "（已忽略此版本的启动提醒）" : ""}`
                 : `已是最新版本（v${currentVersion()}）`}
@@ -1659,9 +1727,46 @@ function UpdateRow() {
 /** 外观：昼夜主题调度——跟随系统暗/亮自动切日夜两档主题 */
 function AppearanceSection(): ReactNode {
   const snap = useThemes();
-  const themes = [{ id: "", name: "基础令牌（默认外观）" }, ...snap.themes.map((t) => ({ id: t.id, name: t.dark ? `${t.name}（暗色）` : t.name }))];
+  /* 动态取色（§3.4）：原生探活一次决定开关是否可用。
+     桌面与 Android < 12 都返回"不可用"——此时开关置灰而不是隐藏，让用户知道原因。 */
+  const [dyn, setDyn] = useState(isDynamicEnabled());
+  const [dynOk, setDynOk] = useState<boolean | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void fetchSystemPalette().then((p) => {
+      if (alive) setDynOk(!!p && Object.keys(p).length > 0);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  /* 开关状态只认 local 偏好这一个真源：enable/disable 之后重新读，任何分支（含降级到清华紫、
+     抛错）都不会留下"主题变了但开关还是关的"这种说谎状态。 */
+  const toggleDyn = async (): Promise<void> => {
+    try {
+      if (isDynamicEnabled()) disableDynamicColor();
+      else await enableDynamicColor();
+    } finally {
+      setDyn(isDynamicEnabled());
+    }
+  };
+  // 别处（设置 → 外观 的主题列表）切主题会让取色退场：开关跟着回真
+  useEffect(() => subscribeThemes(() => setDyn(isDynamicEnabled())), []);
+  const themes = [{ id: "", name: "默认外观" }, ...snap.themes.map((t) => ({ id: t.id, name: t.dark ? `${t.name}（暗色）` : t.name }))];
   return (
     <div className="setting-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+      {/* 主题（§4.4）：只留一个「更改主题」入口，色卡预览与主题市场都在二级菜单里 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
+        <div>
+          <div className="setting-title">主题</div>
+          <div className="setting-desc">
+            当前：{themes.find((th) => (snap.activeId ?? "") === th.id)?.name ?? "默认外观"}
+            {dyn ? " · 系统取色生效中，换主题后会自动关闭" : ""}
+          </div>
+        </div>
+        <button className="btn" onClick={() => setPickerOpen(true)}>更改主题</button>
+      </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
         <div>
           <div className="setting-title">跟随系统昼夜</div>
@@ -1686,6 +1791,7 @@ function AppearanceSection(): ReactNode {
               className="input"
               value={snap.dayThemeId ?? ""}
               onChange={(e) => setDayNightTheme(e.target.value || null, snap.nightThemeId)}
+              disabled={dyn}
               style={{ maxWidth: 240 }}
             >
               {themes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -1697,6 +1803,7 @@ function AppearanceSection(): ReactNode {
               className="input"
               value={snap.nightThemeId ?? ""}
               onChange={(e) => setDayNightTheme(snap.dayThemeId, e.target.value || null)}
+              disabled={dyn}
               style={{ maxWidth: 240 }}
             >
               {themes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -1705,9 +1812,34 @@ function AppearanceSection(): ReactNode {
         </>
       ) : (
         <div className="setting-desc" style={{ color: "var(--text-3)" }}>
-          手动换主题在 插件页 → 主题 里操作；想昼夜自动切换就打开上面的开关。
+          想昼夜自动切换就打开上面的开关；单独换主题点上面的「主题」。
         </div>
       )}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
+        <div>
+          <div className="setting-title">跟随系统取色</div>
+          {dynOk === false ? (
+            <div className="setting-desc">
+              {dyn ? "系统取色暂不可用，已自动改用「清华紫」主题，稍后可在外观里手动更换。" : "当前系统不支持，开启后改用「清华紫」主题。"}
+            </div>
+          ) : (
+            <div className="setting-desc">用壁纸的颜色重新计算全站配色，品牌色与背景色一起变。</div>
+          )}
+        </div>
+        <button
+          className={"switch" + (dyn ? " on" : "")}
+          role="switch"
+          aria-checked={dyn}
+          aria-label="跟随系统取色"
+          onClick={() => void toggleDyn()}
+        />
+      </div>
+      {dyn ? (
+        <div className="setting-desc" style={{ color: "var(--text-3)" }}>
+          生效中：关掉开关即恢复所选主题。
+        </div>
+      ) : null}
+      <ThemePickerModal open={pickerOpen} onClose={() => setPickerOpen(false)} />
     </div>
   );
 }

@@ -66,7 +66,8 @@ assert.ok(!/body_b64: null/.test(nativeBody), "nativeFetch 不得再把 body_b64
 const client = readFileSync(new URL("../packages/core/src/learn/client.ts", import.meta.url), "utf8");
 const submit = client.slice(client.indexOf("async submitHomework"), client.indexOf("async getHomeworkDetail"));
 assert.ok(client.includes("LEARN_LOGIN_PAGE_RE"), "必须有登录页特征判定");
-assert.ok(/if \(LEARN_LOGIN_PAGE_RE\.test\(res\)\) throw new SessionExpiredError/.test(submit),
+// 只认行为、不认排版：dev3 把这条改成了花括号块（行为一致），行内正则别再卡格式
+assert.ok(/if \(LEARN_LOGIN_PAGE_RE\.test\(res\)\)\s*(?:\{\s*)?throw new SessionExpiredError/.test(submit),
   "只有真登录页才抛会话失效");
 assert.ok(submit.includes("服务器拒绝请求（HTTP"), "服务器错误页必须如实报 HTTP 状态");
 

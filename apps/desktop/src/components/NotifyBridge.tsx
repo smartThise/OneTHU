@@ -36,7 +36,7 @@ export function NotifyBridge(): ReactNode {
         await ensureNotifyRuntime();
         await ensureWidgetRuntime();
       } catch (e) {
-        console.warn("[notify] 启动失败", e);
+        console.warn("[notify] 启动失败", e); // ui-copy-lint-ok: 只进 console.warn，用户看不到
       }
     })();
     return () => {

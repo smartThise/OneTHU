@@ -121,6 +121,38 @@ pub fn add(id: &str, at_ms: i64, title: &str, body: &str, target: &str) -> Resul
         .map_err(|e| format!("排入系统调度失败：{}", err_msg(e)))
 }
 
+/// 通知分组：同一 id 的立即通知与排程通知放一组，撤回时按 (tag, group) 定位
+const GROUP: &str = "onethu";
+
+/// 立即投递一条通知（事件驱动，如校园卡余额预警）：直接 Show，不进 AddToSchedule。
+/// Tag 用稳定 id，撤回按同一个 Tag 定位（见 `dismiss`）。
+pub fn post(id: &str, title: &str, body: &str, target: &str) -> Result<(), String> {
+    let n = notifier()?;
+    let doc = XmlDocument::new().map_err(|e| err_msg(e))?;
+    doc.LoadXml(&HSTRING::from(crate::notify::toast_xml(title, body, target)))
+        .map_err(|e| format!("toast 载荷非法：{}", err_msg(e)))?;
+    let notif = ToastNotification::CreateToastNotification(&doc)
+        .map_err(|e| format!("创建通知失败：{}", err_msg(e)))?;
+    let _ = notif.SetTag(&HSTRING::from(id));
+    let _ = notif.SetGroup(&HSTRING::from(GROUP));
+    n.Show(&notif).map_err(|e| format!("展示通知失败：{}", err_msg(e)))
+}
+
+/// 撤回**已展示**的通知：按 (tag, group, AUMID) 从通知历史里移除。
+/// 待投递的排程由 `cancel` 撤（RemoveFromSchedule），两条通道互不影响。
+pub fn dismiss(ids: &[String]) -> Result<(), String> {
+    if ids.is_empty() {
+        return Ok(());
+    }
+    let history = ToastNotificationManager::History().map_err(|e| err_msg(e))?;
+    for id in ids {
+        history
+            .RemoveGroupedTagWithId(&HSTRING::from(id.as_str()), &HSTRING::from(GROUP), &HSTRING::from(AUMID))
+            .map_err(|e| format!("撤回通知失败：{}", err_msg(e)))?;
+    }
+    Ok(())
+}
+
 pub fn pending_ids() -> Result<Vec<String>, String> {
     let n = notifier()?;
     let list = n

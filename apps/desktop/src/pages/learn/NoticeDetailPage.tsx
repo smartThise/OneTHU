@@ -18,7 +18,7 @@ import type { LearnAttachment } from "@onethu/core";
 
 export function NoticeDetailPage() {
   useLearnNavSemester();
-  const { navParams } = useApp();
+  const { navParams, navigate } = useApp();
 
   const { data, state, error, reload } = useLearnData();
   const [att, setAtt] = useState<LearnAttachment | null>(null);
@@ -92,7 +92,10 @@ export function NoticeDetailPage() {
         ) : state === "error" ? (
           <ErrorNote text={error ?? ""} onRetry={() => void reload()} />
         ) : (
-          <Card><Empty text="未找到该通知，可能数据已刷新，请返回列表重试。" /></Card>
+          <Card><Empty
+            text="未找到该通知，可能数据已刷新，请返回列表重试。"
+            action={<button className="btn btn-ghost" onClick={() => navigate("learn")}>回网络学堂</button>}
+          /></Card>
         )}
       </>
     );

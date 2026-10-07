@@ -97,11 +97,11 @@ export async function runNotifyDoctor(deps: NotifyDoctorDeps): Promise<DoctorRep
       const slotInfo = Object.entries(ws.slotsPlaced)
         .map(([k, v]) => `槽位${k}:${v}`)
         .join(" ");
-      const titles = Object.entries(ws.slotTitles).map(([k, t]) => `槽位${k}=${t}`).join("；");
+      const titles = Object.entries(ws.slotTitles).map(([k, t]) => `可自选尺寸${k}=${t}`).join("；");
       const providerInfo =
         ws.providersRegistered.length === 0
-          ? "系统未登记任何小组件 provider（清单合并可能未生效，请把这条反馈给开发者）"
-          : `系统已登记 ${ws.providersRegistered.length} 个 provider（${ws.providersRegistered.join("、")}）`;
+          ? "系统没有读到任何小组件尺寸（清单合并可能没生效，请把这条反馈给开发者）"
+          : `系统读到 ${ws.providersRegistered.length} 个小组件尺寸（${ws.providersRegistered.join("、")}）`;
       const widgetStatus: DoctorStep["status"] = ws.providersRegistered.length === 0 ? "fail" : ws.hasSnapshot ? "ok" : "warn";
       push(
         "widget",

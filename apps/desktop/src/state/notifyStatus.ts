@@ -47,7 +47,7 @@ export function notifyHint(s: NotifyStatusInput): NotifyHint {
   if (s.backend === "android" && !s.exact) {
     return {
       level: "warn",
-      text: "通知已可用；精确提醒未授权，系统可能允许少量延迟（不影响送达）。可在系统设置的「闹钟与提醒」里允许精确提醒。",
+      text: "通知已可用；「精确提醒」还没允许，系统可能略有延迟（不影响送达）。可在系统设置的「闹钟与提醒」里允许精确提醒。",
       action: { kind: "exact-alarm", label: "允许精确提醒" },
     };
   }

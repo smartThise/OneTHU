@@ -8,6 +8,7 @@
  *
  * [1] 取数层：暴露数据时间与刷新失败；过期过久强制非静默；失败不覆盖流水
  * [2] 卡页：常驻刷新按钮 + 「更新于 …」 + 旧数据显式提示与「重新拉取」
+ * [3] 失败回退的旧流水必须复活成 Date：JSON 化后的时间戳字符串会直接崩掉整页
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -25,7 +26,12 @@ assert.ok(/const \[refreshError, setRefreshError\] = useState<string \| null>/.t
 assert.ok(/return \{ data, state, error, reload, updatedAt, refreshError \};/.test(card), "必须把两者返回给 UI");
 // 流水失败不得当空列表覆盖缓存
 assert.ok(/return null; \/\/ null = 这次流水没拿到/.test(card), "流水失败必须返回 null（不是 []）");
-assert.ok(/const mergedTx = transactions \?\? prev\?\.transactions \?\? \[\];/.test(card), "失败时保留旧流水");
+assert.ok(/const mergedTx = transactions \?\? prevBundle\?\.transactions \?\? \[\];/.test(card), "失败时保留旧流水");
+// 2026-09-25 真机实录：流水接口返回错误页 → 走「保留旧流水」这条路 → 旧流水的时间戳
+// 还是 JSON 化后的字符串 → fmtTime 抛 d.getMonth is not a function，整个卡页被根错误
+// 边界换掉。旧流水必须与首屏同一口径复活成 Date。
+assert.ok(/const prevBundle = prev \? reviveCardBundle\(prev\) : null;/.test(card),
+  "旧缓存流水必须复活成 Date（否则失败回退时整页崩）");
 assert.ok(/cacheSet\(cardKey, \{ info: cardInfo, transactions: mergedTx \}\);/.test(card), "落盘写合并后的流水");
 // 过期过久必须非静默（失败要露脸）
 assert.ok(/else if \(Date\.now\(\) - cached\.at > CARD_HARD_STALE\) void load\(false\);/.test(card),

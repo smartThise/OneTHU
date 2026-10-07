@@ -38,13 +38,16 @@ const SEAT_CAP = 200;
  * 加载中给骨架，失败整块隐藏（不显破图）。 */
 
 interface MapImage {
-  state: "loading" | "ok" | "hidden";
+  state: "loading" | "ok" | "hidden" | "error";
   src: string;
+  /** state === "error" 时的原因（直接展示给用户，便于判断是登录过期还是上游变化） */
+  msg?: string;
 }
 
 /** 分布图抓取 hook：url 为空串 = 无目标区域 → 直接隐藏 */
-function useAreaImage(url: string): MapImage {
+function useAreaImage(url: string): [MapImage, () => void] {
   const [img, setImg] = useState<MapImage>({ state: "loading", src: "" });
+  const [nonce, setNonce] = useState(0);
   useEffect(() => {
     if (!url) {
       setImg({ state: "hidden", src: "" });
@@ -56,18 +59,40 @@ function useAreaImage(url: string): MapImage {
       .then((dataUrl) => {
         if (alive) setImg({ state: "ok", src: dataUrl });
       })
-      .catch(() => {
-        // 部分区域/楼层没有分布图（404）属正常态：静默整块隐藏
-        if (alive) setImg({ state: "hidden", src: "" });
+      .catch((err: unknown) => {
+        /* 过去这里一律静默隐藏，于是「会话墙返回登录页 HTML」与「该区域本来就没分布图(404)」
+           长得一模一样：都是整块凭空消失，用户只能看到"座位图没了"（2026-02 用户报）。
+           现在按原因分流——404/无图仍是静默隐藏；其余（mime 守卫拦下的登录页、网络/上游变化）
+           显式报错并可重试，把原因亮出来。 */
+        if (!alive) return;
+        const m = err instanceof Error ? err.message : String(err);
+        if (/404|not\s*found|\u4e0d\u5b58\u5728/i.test(m)) setImg({ state: "hidden", src: "" });
+        else setImg({ state: "error", src: "", msg: m.trim().slice(0, 160) || "未知原因" });
       });
     return () => {
       alive = false;
     };
-  }, [url]);
-  return img;
+  }, [url, nonce]);
+  const retry = useCallback(() => setNonce((n) => n + 1), []);
+  return [img, retry];
 }
 
-function MapFigure({ img, caption }: { img: MapImage; caption: string }) {
+function MapFigure({ img, caption, onRetry }: { img: MapImage; caption: string; onRetry?: () => void }) {
+  if (img.state === "error") {
+    /* 抓取失败要看得见：过去静默隐藏导致「座位图凭空消失」无从判断（用户 2026-02 报） */
+    return (
+      <div className="map-error" role="alert">
+        <span>
+          {caption}加载失败：{img.msg}
+        </span>
+        {onRetry ? (
+          <button className="btn" onClick={onRetry}>
+            重试
+          </button>
+        ) : null}
+      </div>
+    );
+  }
   if (img.state === "loading") {
     return (
       <div
@@ -283,10 +308,10 @@ export function LibraryTab({
   const [libTick, setLibTick] = useState(0);
 
   /* 分布图抓取（区域空闲座位图 + 楼层平面图；url 空 = 未选中，隐藏） */
-  const seatMap = useAreaImage(
+  const [seatMap, retrySeatMap] = useAreaImage(
     sectionId !== null ? infoUrls.LIBRARY_AREA_IMAGE(sectionId, "seat-free") : "",
   );
-  const floorMap = useAreaImage(
+  const [floorMap, retryFloorMap] = useAreaImage(
     floorId !== null ? infoUrls.LIBRARY_AREA_IMAGE(floorId, "floor") : "",
   );
 
@@ -323,7 +348,7 @@ export function LibraryTab({
     try {
       const list = await info.getLibraryList();
       // 空馆列表 ≠ 正常空态：下拉块按 libs.length>0 渲染，静默吞掉会整块消失且无 ErrorNote
-      if (list.length === 0) throw new Error("馆列表为空（seat.lib 返回空 list，会话可能未建立）");
+      if (list.length === 0) throw new Error("馆列表为空（数据源未返回内容，登录状态可能未建立）");
       libRecover.current = 0;
       cacheSet("library:tree", list);
       setLibs(list);
@@ -551,7 +576,7 @@ export function LibraryTab({
     if (sectionId === null) return;
     const userId = session.username;
     if (!userId) {
-      setBookError("需要登录会话（未获取到学号）");
+      setBookError("需要先登录（未读取到学号）");
       setPendingSeat(null);
       return;
     }
@@ -580,7 +605,7 @@ export function LibraryTab({
     const userId = session.username;
     if (!r.delId) return;
     if (!userId) {
-      setAction({ ok: false, text: "需要登录会话（未获取到学号）" });
+      setAction({ ok: false, text: "需要先登录（未读取到学号）" });
       return;
     }
     setBusyCancel(r.delId);
@@ -731,10 +756,10 @@ export function LibraryTab({
         <Card style={{ marginTop: 12 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {section && seatMap.state !== "hidden" ? (
-              <MapFigure img={seatMap} caption={`${section.zhName} · 座位分布`} />
+              <MapFigure img={seatMap} onRetry={retrySeatMap} caption={`${section.zhName} · 座位分布`} />
             ) : null}
             {floor && floorMap.state !== "hidden" ? (
-              <MapFigure img={floorMap} caption={`${floor.zhName} · 楼层平面图`} />
+              <MapFigure img={floorMap} onRetry={retryFloorMap} caption={`${floor.zhName} · 楼层平面图`} />
             ) : null}
           </div>
         </Card>

@@ -21,9 +21,9 @@ import type { HomeworkPageDetail, LearnAttachment } from "@onethu/core";
 
 type DescState = "idle" | "skip" | "loading" | "ok" | "error";
 
-export function AssignmentDetailPage() {
+export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdProp }: { courseId?: string; itemId?: string } = {}) {
   useLearnNavSemester();
-  const { navParams } = useApp();
+  const { navParams, navigate } = useApp();
 
   const { data, state, error, reload } = useLearnData();
   const [desc, setDesc] = useState("");
@@ -51,8 +51,9 @@ export function AssignmentDetailPage() {
   const [dlHint, setDlHint] = useState<{ text: string; path?: string } | null>(null);
   const [dlBusy, setDlBusy] = useState("");
 
-  const courseId = navParams?.courseId ?? "";
-  const itemId = navParams?.itemId ?? "";
+  // 宽屏分栏内嵌（§2.8.2）时由 props 直给，路由页仍走 navParams
+  const courseId = courseIdProp ?? navParams?.courseId ?? "";
+  const itemId = itemIdProp ?? navParams?.itemId ?? "";
 
   const h = useMemo(
     () => data?.homework.find((x) => x.courseId === courseId && x.id === itemId) ?? null,
@@ -143,7 +144,10 @@ export function AssignmentDetailPage() {
         ) : state === "error" ? (
           <ErrorNote text={error ?? ""} onRetry={() => void reload()} />
         ) : (
-          <Card><Empty text="未找到该作业，可能数据已刷新，请返回列表重试。" /></Card>
+          <Card><Empty
+            text="未找到该作业，可能数据已刷新，请返回列表重试。"
+            action={<button className="btn btn-ghost" onClick={() => navigate("learn")}>回网络学堂</button>}
+          /></Card>
         )}
       </>
     );
@@ -228,7 +232,7 @@ export function AssignmentDetailPage() {
           setNeedFileHint(true);
           throw new Error("本作业要求必须带附件：请选择文件或拍照上传后再提交");
         }
-        throw new Error(why || "提交失败");
+        throw new Error(why || "提交未成功，请稍后重试");
       }
       clearNeedFile(h.id); // 本次带附件提交成功 → 要求以最新为准
       setSubOk(true);
@@ -258,7 +262,7 @@ export function AssignmentDetailPage() {
         throw new Error(
           /请上传附件/.test(why)
             ? "该作业要求必须带附件，网络学堂不允许只删不传——请直接选新附件提交替换"
-            : why || "撤回失败",
+            : why || "撤回未成功，请稍后重试",
         );
       }
       setSubOk(true);

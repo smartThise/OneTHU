@@ -1,0 +1,45 @@
+{
+  "apps/desktop/src/styles/global.css": {
+    "spacing": {
+      "10px": 161,
+      "9px": 32,
+      "6px": 114,
+      "14px": 48,
+      "1px": 27,
+      "2px": 81,
+      "11px": 8,
+      "18px": 5,
+      "22px": 4,
+      "7px": 30,
+      "-1px": 2,
+      "5px": 22,
+      "13px": 5,
+      "3px": 12,
+      "-14px": 1,
+      "26px": 1,
+      "30px": 1,
+      "-3px": 1
+    },
+    "fontsize": {
+      "13px": 23,
+      "10px": 20,
+      "32px": 1,
+      "26px": 1,
+      "11px": 25,
+      "15px": 7,
+      "11.5px": 3,
+      "10.5px": 9,
+      "9px": 1,
+      "22px": 2,
+      "12.5px": 1,
+      "18px": 1,
+      "21px": 1
+    }
+  },
+  "apps/desktop/src/styles/motion.css": {
+    "spacing": {
+      "1px": 1
+    },
+    "fontsize": {}
+  }
+}

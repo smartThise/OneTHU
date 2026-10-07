@@ -11,6 +11,8 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useExitPhase } from "../lib/motion.js";
+import { useExpanded } from "../state/usePlatformLayout.js";
 import { http, downloadLearnUrl, saveLearnUrlAs, withLearnCsrf } from "../lib/clients.js";
 import { isAndroidHost } from "../lib/yktWebview.js";
 import { isAndroidNavigator, isWindowsNavigator } from "../lib/androidHost.js";
@@ -88,7 +90,8 @@ async function loadPdfDoc(dataUrl: string): Promise<PdfDocLike> {
   } as const;
   // 内核缺新 API 时先上 legacy（自带垫片）；否则先用体积更小的现代构建
   const variants = modernOk ? ([modern, legacy] as const) : ([legacy, modern] as const);
-  if (!modernOk) console.info("[FILE-PREVIEW] 内核缺 pdf.js v6 依赖的新 API，优先 legacy 构建");
+  // 控制台诊断行（不是界面文案）：内核缺 pdf.js v6 依赖的新 API 时先上 legacy 构建
+  if (!modernOk) console.info("[FILE-PREVIEW] 内核缺新 API，优先 legacy 构建"); // ui-copy-lint-ok: 控制台诊断行
   let lastErr: unknown = null;
   for (const v of variants) {
     try {
@@ -102,7 +105,7 @@ async function loadPdfDoc(dataUrl: string): Promise<PdfDocLike> {
       console.error(`[FILE-PREVIEW] pdf.js(${v.tag}) 解析失败`, e);
     }
   }
-  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr ?? "未知错误"));
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr ?? "出现未知问题，请重新打开"));
 }
 
 /**
@@ -137,7 +140,7 @@ class PreviewErrorBoundary extends Component<
     if (this.state.err === null) return this.props.children;
     return (
       <div style={{ padding: 16, fontSize: 13, lineHeight: 1.7 }}>
-        <div style={{ color: "var(--red)", marginBottom: 8 }}>预览渲染出错，已停在这一条上（应用其余功能不受影响）。</div>
+        <div style={{ color: "var(--red)", marginBottom: 8 }}>这一条预览失败，其他内容不受影响；可换一条，或用上方「打开」查看原文件。</div>
         {this.props.note ? (
           <div style={{ color: "var(--text-3)", marginBottom: 8 }}>{this.props.note}</div>
         ) : null}
@@ -289,7 +292,7 @@ function PdfPage({
 
 /** PDF 预览：**连续滚动**（R26 霖需求：翻页不是必须的）+ 适应宽度/缩放 + 页码跳转。
  *  渲染策略：只渲染当前页 ±2，其余留等比占位——长讲义也不会把内存吃满。 */
-function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy, dlMsg }: { dataUrl: string; onOpenExternally: () => Promise<void>; pdfBusy: boolean; dlMsg: string }): React.ReactNode {
+function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy }: { dataUrl: string; onOpenExternally: () => Promise<void>; pdfBusy: boolean }): React.ReactNode {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const pagesRef = useRef(new Map<number, HTMLDivElement>());
   const [doc, setDoc] = useState<PdfDocLike | null>(null);
@@ -408,7 +411,6 @@ function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy, dlMsg }: { dataUrl:
           {pdfBusy ? "调起中…" : "系统应用打开"}
         </button>
       </div>
-      {dlMsg ? <div style={{ flexShrink: 0, fontSize: 11.5, color: "var(--text-3)", wordBreak: "break-all", padding: "0 10px 8px" }}>{dlMsg}</div> : null}
     </div>
   );
 }
@@ -612,7 +614,7 @@ async function parseOffice(name: string, zip: ZipPayload, size: number): Promise
   if (ext === "docx") {
     const mod = (await import("mammoth")) as unknown as { default?: MammothLike } & Partial<MammothLike>;
     const mammoth = mod.default?.convertToHtml ? mod.default : mod;
-    if (!mammoth.convertToHtml) throw new Error("mammoth 模块加载失败");
+    if (!mammoth.convertToHtml) throw new Error("docx 预览组件没有加载成功，请重新打开");
     const res = await mammoth.convertToHtml({ arrayBuffer: bytesToArrayBuffer(zip.bytes) });
     return { kind: "docx", html: sanitizeDocxHtml(res.value), zip, size };
   }
@@ -660,6 +662,18 @@ async function parseOffice(name: string, zip: ZipPayload, size: number): Promise
 }
 
 /* ---------- 渲染态 ---------- */
+
+/** §2.8.2 文件预览分端：侧边信息栏里的类型名（OfficeView 的细分 kind 走兜底直接用原值） */
+const KIND_LABEL: Record<string, string> = {
+  image: "图片",
+  pdf: "PDF",
+  text: "文本",
+  zip: "压缩包",
+  other: "其他",
+  docx: "Word 文档",
+  xlsx: "Excel 表格",
+  pptx: "PowerPoint 演示",
+};
 
 type ReadyView =
   | { kind: "image"; dataUrl: string; mime: string; size: number }
@@ -812,7 +826,7 @@ function ZipTreeView({ zip, notice }: { zip: ZipPayload; notice?: string }) {
           {preview.phase === "loading" ? <Empty text="正在解压该条目…" /> : null}
           {preview.phase === "error" ? (
             <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
-              <Empty text={`无法内联预览：${preview.err ?? "未知错误"}`} />
+              <Empty text={`无法内联预览：${preview.err ?? "出现未知问题，请重新打开"}`} />
             </div>
           ) : null}
           {preview.phase === "done" ? (
@@ -1196,7 +1210,23 @@ const panelStyle: CSSProperties = {
   background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)",
   borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)", overflow: "hidden",
 };
+/* PC（expanded）文件预览：居中大窗（§2.8.2）。同 TabManageModal——内联样式优先于类选择器，
+   所以只能在组件里换样式对象，写 CSS 是白写。 */
+const maskStyleWide: CSSProperties = { ...maskStyle, padding: 32 };
+const panelStyleWide: CSSProperties = {
+  ...panelStyle,
+  width: "min(1120px, 92vw)",
+  maxWidth: "none",
+  height: "min(86vh, 920px)",
+  maxHeight: "92vh",
+  /* §2.8.2：PC 上正文 + 右侧附件信息栏两列。gridColumn 写在头部/底部提示上，
+     窄屏（panelStyle 的 flex column）会直接忽略这两个属性。 */
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) 264px",
+  gridTemplateRows: "auto minmax(0, 1fr) auto",
+};
 const headStyle: CSSProperties = {
+  gridColumn: "1 / -1",
   display: "flex", alignItems: "center", gap: 8, padding: "10px 14px",
   borderBottom: "1px solid var(--border, #eee)", flexShrink: 0,
   // 窄屏（手机）把按钮换到第二行，而不是把 ✕ 挤出屏幕：三个按钮 + 文件名 + 元信息
@@ -1216,15 +1246,34 @@ export function FilePreviewHost() {
   const [cur, setCur] = useState<OpenState | null>(null);
   const [phase, setPhase] = useState<Phase>({ s: "loading" });
   const [dlBusy, setDlBusy] = useState(false);
+  const expanded = useExpanded(); // 钩子必须在下方 if (!shown) 早返回之前
   const [dlMsg, setDlMsg] = useState("");
   const [dlPath, setDlPath] = useState("");  // R23：下载成功的目标路径（供「打开文件/目录」按钮）
   const seqRef = useRef(0);
+
+  /* 退场相位（local/anim-delight）：关闭时 cur 先被置空，但面板还要多挂 200ms 播完淡出。
+   * 必须在下面 `if (!cur) return null` **之前**调用——Hook 不能条件调用（见文件下方 pdfDiag 注释）。
+   * 判定用 cur !== null：shown 是本组件内保留的"上一份内容"，不能拿它当开关。 */
+  const { mounted, closing } = useExitPhase(cur !== null);
+  /** 最后一次非空内容：退场期间 cur 已是 null，仍要拿它渲染，否则会闪成空白壳 */
+  const lastRef = useRef<OpenState | null>(null);
+  const shown = cur ?? lastRef.current;
+
+  /* 下载/另存为结果提示（蓝色那条）的退场相位：setDlMsg("") 清空后多挂 200ms 播完淡出，
+   * 而不是"啪"地消失。同样必须在下面的早返回之前调用（Hook 不能条件调用）。 */
+  const { mounted: dlHintMounted, closing: dlHintClosing } = useExitPhase(dlMsg !== "", 200);
+  const dlHintRef = useRef("");
+  useEffect(() => {
+    if (dlMsg) dlHintRef.current = dlMsg;
+  }, [dlMsg]);
 
   useEffect(() => {
     _open = (t) => {
       seqRef.current += 1;
       setDlMsg("");
-      setCur({ name: t.name, url: t.url, seq: seqRef.current });
+      const next = { name: t.name, url: t.url, seq: seqRef.current };
+      lastRef.current = next;
+      setCur(next);
     };
     return () => {
       _open = null;
@@ -1349,7 +1398,9 @@ export function FilePreviewHost() {
       .catch(() => undefined);
   }, [pdfDiagKey]);
 
-  if (!cur) return null;
+  // 从未打开过（shown 为空）就直接卸载；关闭后要等退场相位走完（mounted 变 false）再卸载，
+  // 期间继续用 shown 渲染上一次的内容，动画收尾而不是"啪"地消失。
+  if (!shown || (cur === null && !mounted)) return null;
 
   const retry = () => {
     if (!cur) return;
@@ -1359,6 +1410,9 @@ export function FilePreviewHost() {
   };
 
   const view = phase.s === "ready" ? phase.view : null;
+  /* 侧边信息栏的值（view 为空时显示占位符） */
+  const kindLabel = view ? (KIND_LABEL[view.kind] ?? view.kind) : "";
+  const mimeLabel = view && "mime" in view ? view.mime : "";
   const metaBits: string[] = [];
   if (view) {
     if (view.size) metaBits.push(fmtBytes(view.size));
@@ -1366,12 +1420,12 @@ export function FilePreviewHost() {
   }
 
   return createPortal(
-    <div style={maskStyle} onClick={close}>
+    <div className={"confirm-mask" + (closing ? " is-closing" : "")} style={expanded ? maskStyleWide : maskStyle} onClick={close}>
       <style>{DOCX_CSS}</style>
-      <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
+      <div className={"confirm-card" + (closing ? " is-closing" : "")} style={expanded ? panelStyleWide : panelStyle} onClick={(e) => e.stopPropagation()}>
         <div style={headStyle} className="fp-head">
-          <b style={{ flex: "1 1 120px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }} title={cur.name}>
-            {cur.name || "文件预览"}
+          <b style={{ flex: "1 1 120px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }} title={cur?.name ?? shown.name}>
+            {cur?.name || shown.name || "文件预览"}
           </b>
           {metaBits.length ? (
             <span style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)", flexShrink: 0 }}>{metaBits.join(" · ")}</span>
@@ -1417,7 +1471,7 @@ export function FilePreviewHost() {
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, background: "rgba(127,127,127,.05)", minHeight: 220 }}>
               <img
                 src={view.dataUrl}
-                alt={cur.name}
+                alt={cur?.name ?? shown.name}
                 style={{ maxWidth: "100%", maxHeight: "66vh", objectFit: "contain", borderRadius: 8 }}
               />
             </div>
@@ -1430,7 +1484,6 @@ export function FilePreviewHost() {
               dataUrl={view.dataUrl}
               onOpenExternally={openPdfExternally}
               pdfBusy={pdfBusy}
-              dlMsg={dlMsg}
             />
           ) : null}
 
@@ -1453,23 +1506,23 @@ export function FilePreviewHost() {
           ) : null}
 
           {view?.kind === "zip" ? (
-            <ZipTreeView key={`z${cur.seq}`} zip={view.zip} notice={view.notice} />
+            <ZipTreeView key={`z${cur?.seq ?? 0}`} zip={view.zip} notice={view.notice} />
           ) : null}
 
           {view?.kind === "docx" ? (
-            <OfficeShell key={`d${cur.seq}`} zip={view.zip}>
+            <OfficeShell key={`d${cur?.seq ?? 0}`} zip={view.zip}>
               <div className="docx-preview" style={{ padding: "14px 18px" }} dangerouslySetInnerHTML={{ __html: view.html }} />
             </OfficeShell>
           ) : null}
 
           {view?.kind === "xlsx" ? (
-            <OfficeShell key={`x${cur.seq}`} zip={view.zip}>
+            <OfficeShell key={`x${cur?.seq ?? 0}`} zip={view.zip}>
               <XlsxView sheets={view.sheets} />
             </OfficeShell>
           ) : null}
 
           {view?.kind === "pptx" || view?.kind === "pptx-outline" ? (
-            <OfficeShell key={`p${cur.seq}`} zip={view.zip}>
+            <OfficeShell key={`p${cur?.seq ?? 0}`} zip={view.zip}>
               {view.kind === "pptx" ? <PptxSlidesView model={view.model} /> : <PptxView slides={view.slides} />}
               {"notice" in view && view.notice ? (
                 <div style={{ padding: "6px 12px 8px", fontSize: 11.5, color: "var(--text-3, #9aa1ac)", wordBreak: "break-all" }}>
@@ -1497,11 +1550,40 @@ export function FilePreviewHost() {
           </PreviewErrorBoundary>
         </div>
 
-        {dlMsg ? (
+        {expanded ? (
+          <aside className="fp-info" aria-label="附件信息">
+            <h3 className="fp-info-h">附件信息</h3>
+            <div className="fp-info-name" title={cur?.name || shown.name || "文件预览"}>
+              {cur?.name || shown.name || "文件预览"}
+            </div>
+            <dl className="fp-info-list">
+              <div>
+                <dt>类型</dt>
+                <dd>{kindLabel || "—"}</dd>
+              </div>
+              <div>
+                <dt>大小</dt>
+                <dd>{view?.size ? fmtBytes(view.size) : "—"}</dd>
+              </div>
+              <div>
+                <dt>格式</dt>
+                <dd>{mimeLabel || "—"}</dd>
+              </div>
+            </dl>
+            {IS_WINDOWS_HOST && WIN_PREVIEW_NOTE ? <p className="fp-info-note">{WIN_PREVIEW_NOTE}</p> : null}
+          </aside>
+        ) : null}
+
+        {dlMsg || dlHintMounted ? (
           /* 面板底部下载/另存为提示：右侧挂「打开文件 / 打开目录」（R23 需求；此前误加在
-             PDF 画布内部与 Windows 门闸里，用户看到的这条反而没有按钮） */
-          <div style={{ flexShrink: 0, padding: "6px 14px", fontSize: 12, borderTop: "1px solid var(--border, #eee)", color: "var(--accent)", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <span>{dlMsg}</span>
+             PDF 画布内部与 Windows 门闸里，用户看到的这条反而没有按钮）。
+             只留蓝色这一条（灰色那条在 PDF 画布里，同一信息渲染两遍，已删）。
+             动效：入场从下浮起（.fp-dl-hint），清空后走 200ms 退场相位淡出（.is-closing）。 */
+          <div
+            className={"fp-dl-hint" + (dlHintClosing ? " is-closing" : "")}
+            style={{ gridColumn: "1 / -1", flexShrink: 0, padding: "6px 14px", fontSize: 12, borderTop: "1px solid var(--border, #eee)", color: "var(--accent)", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
+          >
+            <span>{dlMsg || dlHintRef.current}</span>
             {dlPath ? <DownloadOpenButtons path={dlPath} /> : null}
           </div>
         ) : null}

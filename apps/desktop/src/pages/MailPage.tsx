@@ -7,10 +7,12 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../state/context.js";
-import { MAIL_FOLDERS, useMail, useMailCounts, useMailBody, sendMail, mailSearch, type MailHead } from "../state/mail.js";
+import { MAIL_FOLDERS, useMail, useMailCounts, useMailBody, sendMail, mailSearch, type MailHead } from "../state/mail.js"
+import { ConnectGate } from "../components/ConnectGate.js";;
 import { IconMail, IconRefresh, IconPen, IconChevron } from "../components/Icons.js";
 import { CollectStar } from "../components/Collect.js";
 import { showToast } from "../state/toast.js";
+import { useExitHold, useSegPill } from "../lib/motion.js";
 
 /** 邮件时间：今天 14:05 / 昨天 / 9月5日 / 2025年12月3日 */
 function fmtMailDate(ms: number): string {
@@ -64,7 +66,7 @@ function Row({ h, folder, active, onClick }: { h: MailHead; folder: string; acti
   );
 }
 
-function Compose({ onClose, onSent }: { onClose: () => void; onSent: (msg: string) => void }): React.ReactNode {
+function Compose({ closing, onClose, onSent }: { closing: boolean; onClose: () => void; onSent: (msg: string) => void }): React.ReactNode {
   const [to, setTo] = useState("");
   const [cc, setCc] = useState("");
   const [subject, setSubject] = useState("");
@@ -86,8 +88,8 @@ function Compose({ onClose, onSent }: { onClose: () => void; onSent: (msg: strin
     }
   };
   return (
-    <div className="mail-compose-mask" onClick={(e) => { if (e.target === e.currentTarget && !sending) onClose(); }}>
-      <div className="mail-compose">
+    <div className={"mail-compose-mask" + (closing ? " is-closing" : "")} onClick={(e) => { if (e.target === e.currentTarget && !sending) onClose(); }}>
+      <div className={"mail-compose" + (closing ? " is-closing" : "")}>
         <div className="mail-compose-head">
           <h2>写信</h2>
           <button className="btn btn-ghost" onClick={onClose} disabled={sending}>取消</button>
@@ -133,7 +135,25 @@ function Detail({ folder, uid, onBack }: { folder: string; uid: number; onBack: 
 body { font: 14px/1.65 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; margin: 0; padding: 14px; word-break: break-word; }
 img { max-width: 100%; height: auto; }
 a { color: #2f6df6; }
-@media (prefers-color-scheme: dark) { body { color: #e8e8ea; background: transparent; } a { color: #7ba2ff; } }
+/* 滚动条：iframe 是独立文档，父页面的 ::-webkit-scrollbar 进不来（用户报「预览滑动条还是旧版」）。
+   这里按 base.css §滚动条 的语言重写一份：10px 命中区 + 3px 透明边 → 视觉 4px 细拇指、透明轨道、
+   去两端箭头。颜色沿用本文件既有的硬编码方案（iframe 取不到父页面 CSS 变量）。 */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(47, 109, 246, 0.22);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(47, 109, 246, 0.34); }
+::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+@media (prefers-color-scheme: dark) {
+  body { color: #e8e8ea; background: transparent; }
+  a { color: #7ba2ff; }
+  ::-webkit-scrollbar-thumb { background: rgba(123, 162, 255, 0.24); }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(123, 162, 255, 0.36); }
+}
 </style></head><body>${body.html}</body></html>`;
   }, [body?.html]);
   return (
@@ -188,7 +208,11 @@ export function MailPage(): React.ReactNode {
   const [results, setResults] = useState<MailHead[] | null>(null);
   const [searching, setSearching] = useState(false);
   const mail = useMail(folder);
+  const [bindOpen, setBindOpen] = useState(false); // §4.3：未配置时在原地绑，不必先去设置
   const unreadCounts = useMailCounts();
+  const [segRef, pillRef] = useSegPill();
+  /* 写信弹层：关闭时多挂 220ms 播完退场，而不是瞬间消失 */
+  const composeHold = useExitHold(composing ? "compose" : null, 220);
 
   // 原子深链：写信 / 邮件实体（先弹层再落位，双触发幂等）
   useEffect(() => {
@@ -215,8 +239,12 @@ export function MailPage(): React.ReactNode {
       <div className="card mail-guide">
         <IconMail style={{ width: 40, height: 40 }} />
         <h2>邮箱待配置</h2>
-        <p>邮箱与云日历共用同一个清华邮箱：先在「设置 → 云同步」配置。</p>
-        <button className="btn btn-primary" onClick={() => navigate("settings")}>去设置</button>
+        <p>邮箱与云日历共用同一个清华邮箱，绑一次两处都能用。</p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn btn-primary" onClick={() => setBindOpen(true)}>绑定邮箱</button>
+          <button className="btn" onClick={() => navigate("settings")}>去设置</button>
+        </div>
+        <ConnectGate need="mail" open={bindOpen} onClose={() => setBindOpen(false)} />
       </div>
     );
   }
@@ -238,7 +266,8 @@ export function MailPage(): React.ReactNode {
         </div>
       </div>
       <div className="mail-toolbar">
-        <div className="segmented">
+        <div className="segmented" ref={segRef}>
+          <span className="seg-pill" ref={pillRef} aria-hidden="true" />
           {MAIL_FOLDERS.map((f) => (
             <button
               key={f.id}
@@ -296,15 +325,16 @@ export function MailPage(): React.ReactNode {
           </div>
         )}
       </div>
-      {composing && (
+      {composeHold.mounted && composeHold.held ? (
         <Compose
+          closing={composeHold.closing}
           onClose={() => setComposing(false)}
           onSent={(m) => {
             showToast(m);
             void mail.refresh();
           }}
         />
-      )}
+      ) : null}
     </>
   );
 }

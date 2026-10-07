@@ -241,6 +241,18 @@ learn.credentialProvider = () => {
     finger3: session.finger3,
   };
 };
+// learn 会话的宿主侧重建：#42 复核 —— 主会话活着、学习会话死了时，学习客户端
+// 自己静默重建缺这条路（lib 探活 + id-漫游）。以前它只存在于登录后与数据层恢复环
+// 里，于是「别的数据都在出，只有详情/通知/作业说会话已失效」没有任何自愈入口。
+learn.reloginHook = async () => {
+  try {
+    const { libEnsureSession, libRoamLearn } = await import("./infoLib.js");
+    if (!(await libEnsureSession())) return false;
+    return await libRoamLearn().catch(() => false);
+  } catch {
+    return false;
+  }
+};
 export const info = withPrivacy(new InfoClient(http), "info");
 
 export const session = new CampusSession({
