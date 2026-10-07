@@ -148,7 +148,7 @@ export function pruneWidgetInstances(liveIds: Array<string | number>): WidgetIns
 export function describeBinding(b: WidgetBinding, names: { folder?: string; atom?: string } = {}): string {
   if (b.kind === "today") return "日程与 DDL";
   if (b.kind === "folder") return `收藏夹「${names.folder ?? b.folderId}」图标组`;
-  if (b.kind === "detail") return `原子详情：${names.atom ?? b.atom.key}`;
+  if (b.kind === "detail") return `收藏项详情：${names.atom ?? b.atom.key}`;
   return `快捷方式：${names.atom ?? b.atom.key}`;
 }
 

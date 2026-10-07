@@ -46,7 +46,7 @@ const STATUS_LABEL: Record<string, string> = {
   正在办理: "正在办理",
   已办结: "已办结",
   办理成功: "办理成功",
-  办理失败: "办理失败",
+  办理失败: "办理未成功，请重试",
   已撤回: "已撤回",
   草稿: "草稿",
   未阅: "未阅",
@@ -183,14 +183,14 @@ export function ThosPage() {
         const page = await helper.getThosServices();
         if (alive()) setServices(page);
       } catch {
-        warnings.push("服务目录加载失败");
+        warnings.push("服务列表没有加载出来，请刷新后重试");
       }
       if (alive()) {
         setUpdated(Date.now());
         setError(warnings.length ? warnings.join("\n") : undefined);
       }
     } catch {
-      if (alive()) setError("在线服务连接失败（会话可能已失效）");
+      if (alive()) setError("连不上在线服务，登录可能已过期，请重新登录");
     } finally {
       if (alive()) setBusy(false);
     }
@@ -268,7 +268,7 @@ export function ThosPage() {
     try {
       localStorage.setItem(favKey(userId), JSON.stringify(next));
     } catch {
-      setError("收藏保存失败");
+      setError("收藏未保存，请再试一次");
     }
   };
 

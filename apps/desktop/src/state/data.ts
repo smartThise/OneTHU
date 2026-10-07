@@ -1880,7 +1880,7 @@ export function useXkWorkbench(): XkWorkbench {
           return;
         }
       }
-      setToast("课余量排队人数获取失败，可稍后重试（会话已自动重建）");
+      setToast("课余量排队人数获取失败，可稍后重试（登录状态已自动重建）");
       setQueueState("ready");
     }
   }, [status, candidates, selected, stageCart]);

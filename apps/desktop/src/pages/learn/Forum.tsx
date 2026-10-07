@@ -19,6 +19,7 @@ import { DownloadOpenButtons } from "../../components/DownloadOpenButtons.js";
 import { useLearnNavSemester } from "./shared.js";
 import { openExternal } from "../info/openExternal.js";
 import { RichEditor } from "../../components/RichEditor.jsx";
+import { IconChevron } from "../../components/Icons";
 
 /* ══════════ 列表（课程详情 → 讨论区 tab） ══════════ */
 
@@ -186,9 +187,7 @@ export function BbsPanel({
                 atom={{ kind: "forum", key: enc(courseId, t.id, t.bqid, t.title, courseName ?? "", sem ?? "") }}
                 title={t.title}
               />
-              <svg className="row-caret" width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-                <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              </svg>
+              <IconChevron className="row-caret" width={16} height={16} />
             </div>
           ))}
           {threads && threads.length < total ? (

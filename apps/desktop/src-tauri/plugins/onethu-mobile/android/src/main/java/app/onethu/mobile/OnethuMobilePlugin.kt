@@ -53,6 +53,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.net.URLConnection
+import java.util.Locale
 
 @InvokeArg
 class SaveDownloadArgs {
@@ -63,6 +64,13 @@ class SaveDownloadArgs {
 @InvokeArg
 class OpenIntentArgs {
     var url: String = ""
+}
+
+@InvokeArg
+class SetBarThemeArgs {
+    var dark: Boolean = false
+    /** 主题背景色（--bg，#rrggbb）；空/解析失败只跳过涂色，图标明暗照常 */
+    var color: String? = null
 }
 
 @InvokeArg
@@ -1013,6 +1021,125 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    /**
+     * 系统栏随主题（暗色 = 状态栏/导航栏白图标；edge-to-edge 垫白区涂主题背景色）。
+     *
+     * 为什么需要（2026-09-25 用户实录）：applyContentInsets 把系统栏 inset 垫成
+     * android.R.id.content 的 padding，而该视图背景是窗口默认白底——暗色主题下
+     * 屏幕上下两条仍是白的，非常刺眼。这条命令做两件事：
+     *   ① WindowCompat insets controller 切图标明暗（暗主题用白图标）；
+     *   ② 把 content 背景涂成前端传入的主题背景色（--bg），垫白区消失。
+     * 前端在每次主题应用后调用（state/theme.ts syncSystemBars），非 Android 不存在此命令。
+     */
+    @Command
+    fun setBarTheme(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(SetBarThemeArgs::class.java)
+            val dark = args.dark
+            val colorArg = args.color
+            activity.runOnUiThread {
+                try {
+                    val window = activity.window
+                    val controller = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+                    controller.isAppearanceLightStatusBars = !dark
+                    controller.isAppearanceLightNavigationBars = !dark
+                    if (colorArg != null) {
+                        try {
+                            activity.findViewById<android.view.View>(android.R.id.content)
+                                .setBackgroundColor(Color.parseColor(colorArg))
+                        } catch (_: Exception) {
+                            // 颜色解析失败只跳过涂色，图标明暗照常生效
+                        }
+                    }
+                    invoke.resolve(JSObject().put("ok", true))
+                } catch (e: Exception) {
+                    invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "bartheme-failed"))
+                }
+            }
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "bartheme-exception"))
+        }
+    }
+
+    /** 触觉 tick（作业流切卡的段落感）。
+     *
+     *  走 AOSP 标准「预烘焙效果」（Prebaked）：ROM 在振动 HAL 里为 EFFECT_CLICK 备了
+     *  自家标定波形——本机（MIUI）实测与桌面点击同源：Prebaked=CLICK(MEDIUM) ≈ 63ms。
+     *  关键点：用的是公开常量而非 MIUI 私有 id，所以换 ROM 由对方 HAL 出自家手感，
+     *  这正是跨机型一致性的来源。
+     *
+     *  降级链（逐级兜底，返回值回传实际路径便于跨机型排查）：
+     *  1. API 30+ 且 HAL 报告支持 EFFECT_CLICK → 预烘焙 CLICK；
+     *  2. API 26~29（无能力查询 API）→ 仍试预烘焙，异常则降级；
+     *  3. 预烘焙不可用 → 自绘 30ms 单击（线性马达起振需 10~20ms，此前 5ms 等于没振）；
+     *  4. API < 26 → 旧式 vibrate(30)。
+     *  API 33+ 一律挂 USAGE_TOUCH：走触觉通道、尊重用户触感强度设置。 */
+    @Command
+    fun hapticTick(invoke: Invoke) {
+        try {
+            activity.runOnUiThread {
+                try {
+                    val vib = activity.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+                    if (vib == null || !vib.hasVibrator()) {
+                        invoke.resolve(JSObject().put("ok", false).put("reason", "no-vibrator"))
+                        return@runOnUiThread
+                    }
+                    val mode = playHapticTick(vib)
+                    invoke.resolve(JSObject().put("ok", true).put("mode", mode))
+                } catch (e: Exception) {
+                    invoke.resolve(JSObject().put("ok", false).put("reason", "haptic-failed"))
+                }
+            }
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().put("ok", false).put("reason", "haptic-exception"))
+        }
+    }
+
+    /** 播放一次切卡 tick，返回实际走的路径（prebaked / waveform / legacy）。 */
+    private fun playHapticTick(vib: android.os.Vibrator): String {
+        if (Build.VERSION.SDK_INT < 26) {
+            @Suppress("DEPRECATION")
+            vib.vibrate(30)
+            return "legacy"
+        }
+        // API 30 起才有能力查询，且返回三态（YES/NO/UNKNOWN，UNKNOWN 视为可用，交给 try 兜底）；
+        // 30 以下没有查询 API，直接试，失败走 catch 降级。
+        val clickSupported = if (Build.VERSION.SDK_INT >= 30) {
+            vib.areAllEffectsSupported(android.os.VibrationEffect.EFFECT_CLICK) !=
+                android.os.Vibrator.VIBRATION_EFFECT_SUPPORT_NO
+        } else {
+            true
+        }
+        if (clickSupported) {
+            try {
+                val effect = android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_CLICK)
+                vibrateWith(vib, effect)
+                return "prebaked"
+            } catch (_: Exception) {
+                // 个别 HAL 不认预烘焙效果：落到自绘波形
+            }
+        }
+        // 自绘兜底：30ms 单次满幅。不要再缩到 5~10ms——那是起振区，只有嗡感没有脆感。
+        val shaped = android.os.VibrationEffect.createWaveform(
+            longArrayOf(0, 30),
+            intArrayOf(0, 255),
+            -1,
+        )
+        vibrateWith(vib, shaped)
+        return "waveform"
+    }
+
+    /** 统一带触觉通道属性播放：API 33+ 走 USAGE_TOUCH（尊重用户触感强度），旧版本用弃用重载。 */
+    private fun vibrateWith(vib: android.os.Vibrator, effect: android.os.VibrationEffect) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            val attrs = android.os.VibrationAttributes.createForUsage(android.os.VibrationAttributes.USAGE_TOUCH)
+            vib.vibrate(effect, attrs)
+        } else {
+            @Suppress("DEPRECATION")
+            vib.vibrate(effect)
+        }
+    }
+
     /** 一键把标准形态小组件放到桌面（R21c：ColorOS 等启动器的选择器行为不一致，
      *  用户「绑定完桌面上没有」——这条走系统 requestPinAppWidget，由启动器直接落卡片）。
      *  supported=false 表示该启动器不支持请求式放置，此时 UI 应引导手动添加。 */
@@ -1266,6 +1393,52 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
             invoke.resolve(JSObject().put("ok", true).put("target", target))
         } catch (e: Exception) {
             invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "take-failed"))
+        }
+    }
+
+    /** 动态取色（§3.4）：读系统 Material You 调色板。
+     *  API 31 起 framework 自带 system_accent1_* / system_neutral1_* 等资源，取的就是系统自己那份
+     *  调色板，前端只做「档位 → System 角色」的映射，不做色彩运算（保持零依赖）。
+     *  API < 31：supported=false，前端降级到「清华紫」主题。
+     *  资源名走 getIdentifier（framework 资源，包名 android）：厂商 ROM 裁掉某档时跳过该档，
+     *  不因为一个缺失资源让整条命令失败。 */
+    @Command
+    fun getDynamicColor(invoke: Invoke) {
+        val ret = JSObject()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            ret.put("supported", false)
+            invoke.resolve(ret)
+            return
+        }
+        try {
+            val tones = intArrayOf(0, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
+            val families = linkedMapOf(
+                "primary" to "system_accent1",
+                "secondary" to "system_accent2",
+                "tertiary" to "system_accent3",
+                "neutral" to "system_neutral1",
+                "neutralVariant" to "system_neutral2",
+            )
+            val palette = JSObject()
+            for ((family, prefix) in families) {
+                val bag = JSObject()
+                for (tone in tones) {
+                    val id = activity.resources.getIdentifier("${prefix}_$tone", "color", "android")
+                    if (id == 0) continue
+                    val argb = activity.resources.getColor(id, activity.theme)
+                    bag.put(tone.toString(), String.format(Locale.US, "#%06X", 0xFFFFFF and argb))
+                }
+                if (bag.length() > 0) palette.put(family, bag)
+            }
+            if (palette.length() == 0) {
+                ret.put("supported", false)
+            } else {
+                ret.put("supported", true)
+                ret.put("palette", palette)
+            }
+            invoke.resolve(ret)
+        } catch (e: Exception) {
+            invoke.reject(e.message ?: "读取系统取色失败")
         }
     }
 }

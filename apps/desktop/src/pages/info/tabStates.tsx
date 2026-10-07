@@ -29,7 +29,7 @@ export function logTabErr(tag: string, err: unknown, retry?: () => void): void {
     void softRecover(tag)
       .then((ok) => {
         if (ok && retry) {
-          logLine("TAB-HEAL " + tag + " 会话重建成功→自动重拉").catch(() => undefined);
+          logLine("TAB-HEAL " + tag + " 会话重建成功→自动重拉").catch(() => undefined); // ui-copy-lint-ok: 排障日志，TAB-HEAL 前缀即诊断标记
           retry();
         }
       })
@@ -77,7 +77,7 @@ export function tabErrorText(err: unknown): string {
 
 /** 上游维护静态提示（ErrorNote 样式，文案固定 + 手动重试按钮） */
 export function UnavailableNote({ onRetry }: { onRetry?: () => void }) {
-  return <ErrorNote text="该服务暂不可用（上游服务维护中）" onRetry={onRetry} />;
+  return <ErrorNote text="该服务暂不可用（正在维护），请稍后再试" onRetry={onRetry} />;
 }
 
 /**

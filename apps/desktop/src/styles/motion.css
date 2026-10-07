@@ -14,18 +14,35 @@
 /* ---------- 1. 动效令牌 ---------- */
 
 :root {
-  --dur-1: 140ms; /* 按压 / hover */
-  --dur-2: 220ms; /* 淡入 / 状态切换 */
-  --dur-3: 340ms; /* 容器 / 页面 */
-  --dur-4: 520ms; /* 首次进入 / 大场景 */
+  /* ---- MD3 曲线与时长档（§3.6）----
+     进场一律用 decelerate（起步快、尾巴长），退场一律用 accelerate（起步慢、收得快）——
+     这是"穿门进、穿门出"的物理隐喻，也是 MD3 区分进出场的唯一依据。 */
+  --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --md-sys-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --md-sys-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-easing-standard-decelerate: cubic-bezier(0, 0, 0, 1);
+  --md-sys-motion-easing-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --md-sys-motion-duration-short-2: 100ms;
+  --md-sys-motion-duration-short-4: 200ms;
+  --md-sys-motion-duration-medium-2: 300ms;
+  --md-sys-motion-duration-medium-4: 400ms;
+  --md-sys-motion-duration-long-2: 500ms;
 
-  /* 出场曲线：起步快、尾巴长——iOS 的"从容感"来源 */
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-  /* 轻弹簧：只给"被点/被弹出来"的元素，幅度克制（1.34 过头量≈3%） */
+  /* Compat：既有档位接到 MD3 原语上（组件不用改，全应用一次到位）。
+     dur-1 保留原值——按压反馈要"立刻"，MD3 的 100/200 档在这太钝。 */
+  --dur-1: 140ms; /* 按压 / hover */
+  --dur-2: var(--md-sys-motion-duration-short-4);  /* 淡入 / 状态切换：220 → 200 */
+  --dur-3: var(--md-sys-motion-duration-medium-2); /* 容器 / 页面：340 → 300（standard） */
+  --dur-4: var(--md-sys-motion-duration-long-2);   /* 首次进入 / 大场景：520 → 500（emphasized） */
+
+  /* 出场曲线（进场用）：起步快、尾巴长——MD3 emphasized-decelerate */
+  --ease-out: var(--md-sys-motion-easing-emphasized-decelerate);
+  --ease-in-out: var(--md-sys-motion-easing-standard);
+  /* 轻弹簧：MD3 没有弹簧，这是本项目的品牌抖动（只给"被点/被弹出来"的元素，过头量≈3%） */
   --ease-spring: cubic-bezier(0.34, 1.34, 0.5, 1);
-  /* 页面/大容器转场：Apple 常用 (0.32, 0.72, 0, 1) */
-  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+  /* 页面/大容器转场：MD3 emphasized */
+  --ease-ios: var(--md-sys-motion-easing-emphasized);
 
   /* 位移基准：小距离才有"贵"的感觉 */
   --rise-1: 4px;
@@ -472,7 +489,7 @@ select {
 }
 
 /* 手机端底部抽屉：从下往上弹（iOS sheet 手感） */
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   .plg-form-modal,
   .confirm-card {
     animation: m-spring-in var(--dur-3) var(--ease-ios) backwards;
@@ -543,7 +560,7 @@ select {
   animation: m-toast-in var(--dur-3) var(--ease-spring) backwards;
 }
 .toast-host.is-closing {
-  animation: m-toast-out var(--dur-2) var(--ease-out) both;
+  animation: m-toast-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both;
 }
 
 /* ---------- 10. 加载 / 骨架 / 进度 ---------- */
@@ -629,13 +646,10 @@ html.theme-anim .row {
     border-color var(--dur-3) var(--ease-out) !important;
 }
 
-/* ---------- 14. 滚动条：细一点、悬停才显形（桌面） ---------- */
-
-@media (hover: hover) and (pointer: fine) {
-  * {
-    scrollbar-width: thin;
-  }
-}
+/* ---------- 14. 滚动条 ----------
+   样式统一在 packages/ui/src/base.css（令牌化 ::-webkit-scrollbar）。
+   这里**不要**再写 scrollbar-width / scrollbar-color：Chromium ≥121 一旦看到这两个属性，
+   就整体忽略 ::-webkit-scrollbar，PC（细指针）会直接退回平台默认风——这正是之前的 bug。 */
 
 /* ---------- 15. 文件预览：逐页淡入 ---------- */
 
@@ -703,11 +717,12 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[
 @keyframes m-spring-out {
   to { opacity: 0; transform: scale(0.985) translate3d(0, 6px, 0); }
 }
+/* 退场用 accelerate（收得快）：横竖是"离开"，不该和进场同一曲线 */
 .confirm-mask.is-closing {
-  animation: m-fade-out var(--dur-2) var(--ease-out) both;
+  animation: m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both;
 }
 .confirm-card.is-closing {
-  animation: m-spring-out var(--dur-2) var(--ease-out) both;
+  animation: m-spring-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both;
 }
 
 /* 预览面板底部的下载/另存为结果提示（蓝色那条，唯一一条）：入场从下浮起，
@@ -716,7 +731,7 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[
   animation: m-rise var(--dur-3) var(--ease-out) backwards;
 }
 .fp-dl-hint.is-closing {
-  animation: m-fade-out var(--dur-2) var(--ease-out) both;
+  animation: m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both;
 }
 
 /* 分段条 / 页签的"当前项"改成滑动块：切换时从旧位置滑到新位置，而不是瞬间跳。
@@ -788,10 +803,10 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[
   display: none;
 }
 
-/* 邮箱窄屏（≤860px）：点开一封邮件时列表向左滑出、详情从右滑入，返回反向。
+/* 邮箱窄屏（≤840px）：点开一封邮件时列表向左滑出、详情从右滑入，返回反向。
    此前是 display:none 硬切——内容"啪"地消失。两栏保持挂载，只用 transform 挪位；
    离场的一栏延迟 visibility 隐藏，不挡点击、不进 tab 焦点。桌面并排不受影响。 */
-@media (max-width: 860px) {
+@media (max-width: 839.98px) {
   .mail-layout {
     position: relative;
   }
@@ -828,16 +843,16 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[
 /* 二级弹层退场：此前只有入场，关闭全部瞬间消失。
    遮罩淡出 + 面板收走，与 confirm/预览同一套相位（useExitHold 驱动 .is-closing）。 */
 .plg-mask.is-closing {
-  animation: m-fade-out var(--dur-2) var(--ease-out) both;
+  animation: m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both;
 }
 .plg-sheet.is-closing {
-  animation: m-sheet-down var(--dur-2) var(--ease-out) both;
+  animation: m-sheet-down var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both;
 }
 .mail-compose-mask.is-closing {
-  animation: m-fade-out var(--dur-2) var(--ease-out) both;
+  animation: m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both;
 }
 .mail-compose.is-closing {
-  animation: m-spring-out var(--dur-2) var(--ease-out) both;
+  animation: m-spring-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both;
 }
 
 /* 方阵网格（其他 Info 服务 .app-grid / 在线服务 .thos-grid）：可见才入场——
@@ -853,3 +868,42 @@ html.has-reveal :is(.app-grid, .thos-grid) > *[data-reveal-in] {
   opacity: 1;
   animation: m-grid-in var(--dur-2) var(--ease-out) backwards;
 }
+/* ---------- MD3 涟漪（§3.5 B1） ----------
+   只动画 transform / opacity（§3.10）；宿主负责 position: relative，
+   这里不动宿主的 overflow——涟漪装在自己的裁剪层里，按钮里的浮层不会被连带裁掉。 */
+.md-ripple-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.md-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0);
+  animation: md-ripple var(--md-sys-motion-duration-long-2) var(--md-sys-motion-easing-standard-decelerate)
+    forwards;
+}
+
+@keyframes md-ripple {
+  0% {
+    opacity: 0.16;
+    transform: scale(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* ---------- B4：侧栏不再有竖条 ----------
+   竖条是刻意设计，但用户判定它与 navigation drawer 的整行胶囊风格不匹配，
+   要求移到移动端水平导航栏做「文字下方横线 + 水平滑动」。见 global.css 的
+   .bottom-nav-indicator。这里只关掉侧栏那一支；useNavIndicator 的 WAAPI 逻辑
+   失去消费者，暂留不删（与抽屉 DOM 一起在收尾批次清理）。 */
+.nav-indicator { display: none; }

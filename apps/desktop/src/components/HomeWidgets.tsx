@@ -7,6 +7,7 @@
  * 万物原子化定案：这些组件是「组件原子」，收藏夹里点标题跳回原位功能页。
  */
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { WEEKDAYS } from "../lib/dateText.js";
 import { Card, Empty, SkeletonRows } from "../components/Layout.js";
 import { IconCard, IconChevron } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
@@ -23,7 +24,8 @@ import { useCountUp } from "../lib/motion.js";
 /** 轻路由签名（与 AppState.navigate 一致） */
 export type Nav = (page: Page, params?: LearnNav) => void;
 
-export const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
+// 星期名与日期文案统一收在 lib/dateText.ts（无 JSX，护栏可直接 import 做行为测试）
+export { WEEKDAYS };
 
 /** 本地日期 "YYYY-MM-DD"（与 core getSchedule 的 nq 同口径） */
 export function ymd(d: Date): string {
@@ -174,7 +176,10 @@ export function HomeworkRows({
   if (rows.length === 0) {
     return (
       <Card>
-        <Empty text="没有未提交的作业，享受今天吧。" />
+        <Empty
+          text="没有未提交的作业，享受今天吧。"
+          action={<button className="btn btn-ghost" onClick={() => navigate("tasks")}>去待办看看</button>}
+        />
       </Card>
     );
   }
@@ -231,7 +236,10 @@ export function NoticeRows({ items, navigate }: { items: CampusDataT["notificati
   return (
     <Card className="list">
       {items.length === 0 ? (
-        <Empty text="暂无通知。" />
+        <Empty
+          text="暂时没有新通知。"
+          action={<button className="btn btn-ghost" onClick={() => navigate("learn")}>去网络学堂</button>}
+        />
       ) : (
         items.slice(0, 3).map((n, i) => (
           <RowClick key={i} onClick={() => navigate("learn-notice-detail", { courseId: n.courseId, itemId: n.id, from: "today" })}>
@@ -282,7 +290,10 @@ export function ClassRows({ events, navigate }: { events: ScheduleEntry[]; navig
   return (
     <Card className="list">
       {events.length === 0 ? (
-        <Empty text="今天没有课。" />
+        <Empty
+          text="今天没有课。"
+          action={<button className="btn btn-ghost" onClick={() => navigate("schedule")}>看本周课表</button>}
+        />
       ) : (
         events.map((s, i) => (
           <RowClick key={(s.date ?? "d") + "-" + i + "-" + s.courseName} style={{ animationDelay: i * 35 + "ms" }} onClick={() => navigate("schedule")}>

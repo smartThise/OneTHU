@@ -34,6 +34,9 @@ import { ReservePage } from "./pages/info/ReservePage.js";
 import { ThosPage } from "./pages/info/ThosPage.js";
 import { ZhjwxkCoursesPage } from "./pages/zhjwxk/Courses.js";
 import { FolderPage } from "./pages/FolderPage.js";
+import { ServicesPage } from "./pages/ServicesPage.js";
+import { TasksPage } from "./pages/TasksPage.js";
+import { FavsHomePage } from "./pages/FavsHomePage.js";
 import { AppProvider } from "./state/app.js";
 import { FavsProvider } from "./state/favs.js";
 import { useApp } from "./state/context.js";
@@ -92,7 +95,7 @@ function Routed() {
       return (
         <div className="login-wrap">
           <BrandLogo size={40} />
-          <div style={{ color: "var(--text-3)", fontSize: "var(--text-sm)", marginTop: 18 }}>正在恢复会话…</div>
+          <div style={{ color: "var(--text-3)", fontSize: "var(--text-sm)", marginTop: 18 }}>正在恢复登录状态…</div>
         </div>
       );
     }
@@ -109,7 +112,7 @@ function Routed() {
       <Shell>
         {/* local/anim-delight：切页转场。key=page 让容器重新挂载并播一次 CSS 进场；
             旧页直接卸载，不做快照叠加（整页快照交叉淡入会出现旧页残影，实测有闪烁）。 */}
-        <div className="page-anim" key={page} data-dir={navDir} data-level={isSubPage(page) ? "sub" : undefined}>
+        <div className="page-anim" key={page} data-page={page} data-dir={navDir} data-level={isSubPage(page) ? "sub" : undefined}>
           {page === "today" && <TodayPage />}
           {page === "learn" && <LearnPage />}
           {page === "schedule" && <SchedulePage />}
@@ -124,6 +127,9 @@ function Routed() {
           {page === "thos" && <ThosPage />}
           {page === "zhjwxk" && <ZhjwxkCoursesPage />}
           {page === "folder" && <FolderPage />}
+          {page === "tasks" && <TasksPage />}
+          {page === "services" && <ServicesPage />}
+          {page === "favs" && <FavsHomePage />}
           {page === "settings" && <SettingsPage />}
           {page === "plugins" && <PluginsPage />}
           {page === "learn-course" && <CourseDetailPage />}

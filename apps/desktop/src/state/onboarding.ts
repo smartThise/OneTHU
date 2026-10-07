@@ -18,6 +18,7 @@ import {
 } from "../lib/homeCards.js";
 
 export { SCENARIOS, cardsForScenarios, cardsOfScenario, type Scenario } from "../lib/onboardingCards.js";
+import { useSyncExternalStore } from "react";
 import { cardsForScenarios, planTodayCards, SCENARIOS } from "../lib/onboardingCards.js";
 
 // v2（2026-09-21）：导览新增账号接入步骤（雨课堂 / OJ / 邮箱 / 云盘）。
@@ -209,3 +210,103 @@ export function applyPreset(
 
 /** 预设与手动路径共用的页签 id 全集（供导览展示与对账） */
 export const TAB_IDS_BY_KEY: Record<string, string[]> = ALL_TABS;
+
+
+/* ══════════ 首启 v2（§4.2，2026-09-28）══════════
+ * 只问 3 件事：通知权限 / 统一认证登录 / 宿舍楼；全部可跳过，完成后直接进「今日」。
+ * 界面定制交给「我的 → 外观」即时预览，小组件教学删除（默认配置兜底）。
+ * 旧的 v3 流程保留一个版本做灰度：feature flag 默认仍走旧流程，确认没问题后再删。
+ */
+const KEY_V2 = "onethu.onboarded.flow2";
+const FLOW_KEY = "onethu.onboarding.flow";
+const DORM_KEY = "onethu.dorm.building";
+
+export type OnboardingFlow = "v1" | "v2";
+
+const flowListeners = new Set<() => void>();
+let flowCache: OnboardingFlow | null = null;
+
+/** 当前生效的首启流程（默认 v1 = 灰度期不改变老用户体验） */
+export function getOnboardingFlow(): OnboardingFlow {
+  if (flowCache !== null) return flowCache;
+  let v: OnboardingFlow = "v1";
+  try {
+    v = globalThis.localStorage?.getItem(FLOW_KEY) === "v2" ? "v2" : "v1";
+  } catch {
+    /* 读不到就走旧流程，别因为存储问题改变首启表现 */
+  }
+  flowCache = v;
+  return v;
+}
+
+export function setOnboardingFlow(flow: OnboardingFlow): void {
+  flowCache = flow;
+  try {
+    globalThis.localStorage?.setItem(FLOW_KEY, flow);
+  } catch {
+    /* ignore */
+  }
+  flowListeners.forEach((fn) => fn());
+}
+
+function subscribeOnboardingFlow(fn: () => void): () => void {
+  flowListeners.add(fn);
+  return () => {
+    flowListeners.delete(fn);
+  };
+}
+
+/** 组件用：订阅当前流程（设置页切换后立即生效，不必重启） */
+export function useOnboardingFlow(): OnboardingFlow {
+  return useSyncExternalStore(subscribeOnboardingFlow, getOnboardingFlow, (): OnboardingFlow => "v1");
+}
+
+/** v2 自己的完成标记：与 v1 互不影响，灰度期两套流程各自独立 */
+export function hasOnboardedV2(): boolean {
+  try {
+    return globalThis.localStorage?.getItem(KEY_V2) === "1";
+  } catch {
+    return true; // 存不下时别反复弹
+  }
+}
+
+export function markOnboardedV2(): void {
+  try {
+    globalThis.localStorage?.setItem(KEY_V2, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function resetOnboardingV2(): void {
+  try {
+    globalThis.localStorage?.removeItem(KEY_V2);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 设置页「重新导览」：清当前生效流程的标志 */
+export function resetActiveOnboarding(): void {
+  if (getOnboardingFlow() === "v2") resetOnboardingV2();
+  else resetOnboarding();
+}
+
+/** 宿舍楼/园区（§4.2 问题 3）：P0 只问不消费，P2 供今日卡与洗衣机、电费的上下文用 */
+export function getDormBuilding(): string {
+  try {
+    return globalThis.localStorage?.getItem(DORM_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function setDormBuilding(name: string): void {
+  try {
+    const v = name.trim();
+    if (v === "") globalThis.localStorage?.removeItem(DORM_KEY);
+    else globalThis.localStorage?.setItem(DORM_KEY, v);
+  } catch {
+    /* ignore */
+  }
+}

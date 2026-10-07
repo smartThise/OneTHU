@@ -44,7 +44,7 @@ export class RootErrorBoundary extends Component<Props, State> {
     if (this.state.err === null) return this.props.children;
     return (
       <div style={{ padding: 24, fontFamily: "inherit", color: "var(--text-1, #1b1f24)" }}>
-        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>界面渲染出错，已停在当前页面</div>
+        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>本页出现问题，已停留在当前页面，可刷新页面重试</div>
         <div style={{ fontSize: 13, color: "var(--text-3, #9aa1ac)", lineHeight: 1.8, marginBottom: 12 }}>
           应用其余数据与已保存的设置不受影响。可以先「重试」回到出错前的页面；仍不行就「重新加载」。
         </div>

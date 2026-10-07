@@ -836,7 +836,7 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
         gate(perms, "tsinghua:sdk", "ts.ensure");
         const ok = await campusLearn.resume().catch(() => false);
         if (!ok) {
-          throw new AuthRequiredError("清华会话未能建立：请在 OneTHU 中重新登录后再试。");
+          throw new AuthRequiredError("清华登录状态未能建立：请在 OneTHU 中重新登录后再试。");
         }
       },
       username: async (): Promise<string | null> => {

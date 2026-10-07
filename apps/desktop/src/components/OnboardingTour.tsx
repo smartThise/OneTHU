@@ -33,6 +33,8 @@ import type { HomeCardId, HomeOrientation } from "../lib/homeCards.js";
 import { useApp } from "../state/context.js";
 import { useFavs } from "../state/favs.js";
 import { NAV } from "./Layout.js";
+import { OnboardingTourV2 } from "./OnboardingTourV2.js";
+import { useOnboardingFlow } from "../state/onboarding.js";
 
 /** 当前朝向（判据与 Today.tsx 一致）：首页布局按横竖屏各存一份，
  *  导览的卡片取舍必须落到用户此刻在看的那一份，否则等于没生效。 */
@@ -89,7 +91,7 @@ function AcctBadge({ on }: { on: boolean }): React.ReactNode {
   );
 }
 
-export function OnboardingTour(): React.ReactNode {
+export function OnboardingTourV1(): React.ReactNode {
   const { navigate } = useApp();
   const favs = useFavs();
   const [open, setOpen] = useState(() => !hasOnboarded());
@@ -529,7 +531,7 @@ export function OnboardingTour(): React.ReactNode {
         {step === 6 ? (
           <>
             <h3 style={{ margin: "0 0 4px", fontSize: 17 }}>OJ 平台<AcctBadge on={acct.tyche || acct.dsa} /></h3>
-            <p style={acctIntro}>配其中任意一个即可，也可以全部跳过；会话失效时在 设置 → 外部作业源 重登。</p>
+            <p style={acctIntro}>配其中任意一个即可，也可以全部跳过；登录过期时在 设置 → 外部作业源 重登。</p>
             {[
               {
                 key: "tyche", label: "Tyche", done: acct.tyche,
@@ -685,4 +687,14 @@ export function OnboardingTour(): React.ReactNode {
       </div>
     </div>
   );
+}
+
+
+/**
+ * 首启流程分发（§4.2）：灰度期两套流程并存——默认走 v1 不改老用户体验，
+ * 设置 → 关于（高级模式）里可切到 v2。v2 确认没问题后，v1 与这个分发器一起删。
+ */
+export function OnboardingTour(): React.ReactNode {
+  const flow = useOnboardingFlow();
+  return flow === "v2" ? <OnboardingTourV2 /> : <OnboardingTourV1 />;
 }

@@ -20,8 +20,11 @@ export type Page =
   | "cloud" // 清华云盘（Seafile Web API）
   | "thubook" // THUbook（清华手册 thubook.help 内嵌阅读器 + OH 工具）
   | "folder" // 用户收藏夹页（navParams.folderId 指向具体收藏夹）
+  | "tasks" // 待办聚合页（UI/UX 改造 §2.2 M1：作业+预约+考试+余额的"今天该管的事"）
+  | "services" // 服务分组目录页（UI/UX 改造 §2.2 M1：底部导航「服务」直达）
+  | "favs" // 收藏首页（UI/UX 改造 §2.2 M1：底部导航「收藏」直达，根收藏夹列表）
   | "settings"
-  | "plugins" // 插件管理页（机架视觉；设置页留入口，不动侧栏导航）
+  | "plugins" // 旧插件页路由：§4.4b 起并进设置页，进来即跳「设置 → 插件」
   | "learn-course" // 课程详情（courseId）
   | "learn-assignments" // 全部作业
   | "learn-notices" // 全部通知
@@ -112,7 +115,7 @@ export interface LearnNav {
   folderId?: string;
 }
 
-const TOP_PAGES = ["today", "learn", "schedule", "trace", "mail", "cloud", "thubook", "info", "life", "reserve", "zhjwxk", "thos", "otherinfo", "plugins", "folder", "settings"] as const; // trace/otherinfo 各漏过一次：不加的话侧栏/标题/hash 全落到 learn 兜底
+const TOP_PAGES = ["today", "learn", "schedule", "trace", "mail", "cloud", "thubook", "info", "life", "reserve", "zhjwxk", "thos", "otherinfo", "plugins", "folder", "settings", "services", "favs", "tasks"] as const; // services/favs：M1 新 IA 底栏直达页（漏过会落到 learn 兜底） // trace/otherinfo 各漏过一次：不加的话侧栏/标题/hash 全落到 learn 兜底
 
 /**
  * R20-B2：雨课堂作业原生详情页参数。

@@ -45,6 +45,7 @@ import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components
 import { ProblemBody } from "../../components/exthw/ProblemBody.js";
 import { YktSubjectiveEditor, toSubmitHtml } from "../../components/exthw/YktSubjectiveEditor.js";
 import { useApp } from "../../state/context.js";
+import type { LearnNav, Page } from "../../state/app.js";
 import { fetchYktExerciseDetail, getYktCookie, submitYktSubjective } from "../../state/exthw.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { confirmOk } from "../../lib/confirm.js";
@@ -261,7 +262,11 @@ function ProblemCard({ p, fontUrl, cookies, answer }: { p: YkProblem; fontUrl?: 
             </div>
           ) : p.myStatus === "unanswered" ? (
             <div className="ykt-ans-empty">未作答</div>
-          ) : null}
+          ) : (
+            /* R24 fix：已交 / 已批但服务端未回传作答正文（实测存在此响应形态）→
+               明示「已提交」而非静默空白（此前整块不渲染，用户误以为没交） */
+            <div className="ykt-ans-empty">已提交（服务端未返回作答正文{p.submitTime ? ` · ${p.submitTime}` : ""}）</div>
+          )}
           {hasRemark ? (
             <div className="ykt-remark">
               <CollapsibleSection label="老师评语">
@@ -281,10 +286,11 @@ function ProblemCard({ p, fontUrl, cookies, answer }: { p: YkProblem; fontUrl?: 
   );
 }
 
-export function YktAssignmentDetailPage() {
+export function YktAssignmentDetailPage({ ykt: yktProp, from: fromProp }: { ykt?: NonNullable<LearnNav["ykt"]>; from?: Page } = {}) {
   const { navParams } = useApp();
-  const ykt = navParams?.ykt ?? null;
-  const from = navParams?.from ?? "learn";
+  // 宽屏分栏内嵌（§2.8.2）时由 props 直给，路由页仍走 navParams
+  const ykt = yktProp ?? navParams?.ykt ?? null;
+  const from = fromProp ?? navParams?.from ?? "learn";
   const [detail, setDetail] = useState<YkExerciseDetail | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [errMsg, setErrMsg] = useState("");
@@ -462,7 +468,7 @@ export function YktAssignmentDetailPage() {
             客观题/试卷/超次数仍只读——官方页兜底入口保留） */}
         {d.problems.length === 0 ? (
           <Card>
-            <Empty text="本作业暂无题目明细（可能接口未返回 problems）。" />
+            <Empty text="本作业暂无题目明细（老师端未提供）。" />
           </Card>
         ) : (
           d.problems.map((p) => (

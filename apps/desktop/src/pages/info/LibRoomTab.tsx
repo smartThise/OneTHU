@@ -591,7 +591,7 @@ export function LibRoomTab({
     async (t: BookTarget, begin: string, finish: string): Promise<void> => {
       const accNo = info.getLibRoomAccNo();
       if (!userId) {
-        setBookError("需要登录会话（未获取到学号）");
+        setBookError("需要先登录（未读取到学号）");
         return;
       }
       if (accNo === null) {

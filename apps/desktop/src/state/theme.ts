@@ -11,6 +11,7 @@
  */
 
 import { useSyncExternalStore } from "react";
+import { isAndroidNavigator } from "../lib/androidHost.js";
 
 /** 主题定义（插件模块 export const theme: ThemeDef） */
 export interface ThemeDef {
@@ -87,6 +88,44 @@ const BUILTIN_THEMES: ThemeDef[] = [
       "--surface-3": "#e8dcf7",
       "--border": "rgba(88, 28, 135, 0.13)",
       "--text-1": "#1e1432",
+    },
+    source: "builtin",
+  },
+  {
+    // 清华紫：校色主题。全部取值由 tonal palette 派生（种子 #660874，见 packages/ui/src/palette.css
+    // 与 docs/tokens-map.md 的亮色 scheme），不是手调色——种子一改、重跑 tools/gen-tokens.mjs，这里照抄即可。
+    id: "onethu.theme.tsinghua",
+    name: "清华紫",
+    version: "1.0.0",
+    author: "OneTHU",
+    description: "校色紫：紫底白字主按钮 + 藕紫纸面，链接与激活同色（MD3 tonal palette 派生）。",
+    vars: {
+      // 品牌族：primary tone 40 / 悬停 tone 30（加深一档，紫底白字变浅会掉对比度）
+      "--primary": "#90399c",
+      "--primary-hover": "#751d82",
+      "--on-primary": "#ffffff",
+      // 链接/激活跟校色走——主题要"整屏是紫的"，而不只是换个按钮色
+      "--accent": "#90399c",
+      "--accent-soft": "#ffd6fd",       // primary-container
+      "--accent-border": "#e8b4e6",
+      // 面：neutral 系列，带一点藕紫（surface tone 99 / 98 / 95 / surface-variant）
+      "--bg": "#fffbff",
+      "--bg-soft": "#f7eef2",
+      "--surface": "#fff7fa",
+      "--surface-2": "#f7eef2",
+      "--surface-3": "#eddfe8",
+      "--border": "#d0c3cc",            // outline-variant
+      "--border-soft": "rgba(88, 0, 101, 0.06)",
+      "--border-strong": "#b9a8b3",
+      // 字色：on-surface / on-surface-variant / outline
+      "--text-1": "#1e1a1d",
+      "--text-2": "#4d444c",
+      "--text-3": "#7f747c",
+      "--text-dim": "#cfc4cb",
+      // 交互：紫调状态层 + 紫调焦点环（默认主题的焦点环是业务蓝，切到这个主题应一起变）
+      "--hover": "rgba(88, 0, 101, 0.06)",
+      "--active": "rgba(88, 0, 101, 0.11)",
+      "--ring": "0 0 0 3px rgba(144, 57, 156, 0.25)",
     },
     source: "builtin",
   },
@@ -211,6 +250,60 @@ const BUILTIN_THEMES: ThemeDef[] = [
 const STORE_KEY = "onethu.theme.v1";
 const STYLE_ID = "onethu-theme-style";
 
+/**
+ * 主题覆盖写的是 **Compat 层** 的老名字（--surface / --primary…，人类可读、7 个主题都是这么写的），
+ * 但组件（§3.5 B1 起逐步迁移）读的是 **System 角色**（--md-sys-color-*）。
+ * Compat 只是 Compat → System 的**单向别名**：覆盖 Compat 不会回流到 System，
+ * 于是"主题换了、按钮没换"（霖实测：内置主题不再改按钮颜色）。
+ * 所以注入主题时必须把每条 Compat 覆盖**镜像**到它的 System 角色上——两边同一个值，
+ * 老组件（读 Compat）与新组件（读 System）同时跟随主题。
+ *
+ * 这张表是 tokens.css Compat 层的逆映射，必须逐条一致：由
+ * tools/theme-system-test.mjs 从 tokens.css 反解并核对（任何漂移直接红）。
+ */
+export const COMPAT_TO_SYSTEM: Record<string, string> = {
+  "--bg": "--md-sys-color-surface",
+  "--bg-soft": "--md-sys-color-surface-container-low",
+  "--surface": "--md-sys-color-surface-container-lowest",
+  "--surface-2": "--md-sys-color-surface-container",
+  "--surface-3": "--md-sys-color-surface-container-high",
+  "--skeleton": "--md-sys-color-skeleton",
+  "--skeleton-shine": "--md-sys-color-skeleton-shine",
+  "--border": "--md-sys-color-outline-variant",
+  "--border-soft": "--md-sys-color-outline-soft",
+  "--border-strong": "--md-sys-color-outline-strong",
+  "--text-1": "--md-sys-color-on-surface",
+  "--text-2": "--md-sys-color-on-surface-variant",
+  "--text-3": "--md-sys-color-outline",
+  "--text-dim": "--md-sys-color-on-surface-disabled",
+  "--primary": "--md-sys-color-primary",
+  "--primary-hover": "--md-sys-color-primary-hover",
+  "--on-primary": "--md-sys-color-on-primary",
+  "--accent": "--md-sys-color-secondary",
+  "--accent-soft": "--md-sys-color-secondary-container",
+  "--accent-border": "--md-sys-color-secondary-container-border",
+  "--red": "--md-sys-color-error",
+  "--red-soft": "--md-sys-color-error-container",
+  "--amber": "--md-sys-color-warning",
+  "--amber-soft": "--md-sys-color-warning-container",
+  "--green": "--md-sys-color-success",
+  "--green-soft": "--md-sys-color-success-container",
+  "--hover": "--md-sys-color-state-hover",
+  "--active": "--md-sys-color-state-pressed",
+  "--elev-1": "--md-sys-elevation-1",
+  "--elev-2": "--md-sys-elevation-2",
+  "--elev-3": "--md-sys-elevation-3",
+  "--shadow-1": "--md-sys-elevation-1",
+  "--shadow-2": "--md-sys-elevation-2",
+  "--shadow-3": "--md-sys-elevation-3",
+  "--ring": "--md-sys-focus-ring",
+  // 形状也一并镜像：主题想改圆角时，System 层的组件同样跟随（当前 7 个主题都没用到）
+  "--r-sm": "--md-sys-shape-corner-small",
+  "--r-md": "--md-sys-shape-corner-medium",
+  "--r-lg": "--md-sys-shape-corner-large",
+  "--r-pill": "--md-sys-shape-corner-full",
+};
+
 interface PersistShape {
   installed: ThemeDef[];
   activeId: string | null;
@@ -310,8 +403,33 @@ function flashThemeAnim(root: HTMLElement): void {
   }, 420);
 }
 
+/**
+ * Android 系统栏随主题：状态栏/导航栏图标明暗 + edge-to-edge 垫白区涂 --bg。
+ * 每次主题应用后调用；非 Android（isAndroidNavigator 不命中）静默跳过，
+ * 命令缺失/失败也静默——系统栏观感是锦上添花，绝不挡主题切换主流程。
+ */
+let barThemeTimer: ReturnType<typeof setTimeout> | null = null;
+function syncSystemBars(dark: boolean): void {
+  if (typeof window === "undefined" || !isAndroidNavigator(navigator)) return;
+  if (barThemeTimer) clearTimeout(barThemeTimer);
+  barThemeTimer = setTimeout(() => {
+    barThemeTimer = null;
+    try {
+      const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+      void import("@tauri-apps/api/core")
+        .then(({ invoke }) => invoke("ui_set_bar_theme", { dark, color: bg || null }))
+        .catch(() => undefined);
+    } catch {
+      /* 极简宿主/测试替身：跳过 */
+    }
+  }, 50);
+}
+
 /** 生成并注入主题样式；html[data-theme] 挂钩（清除用 null） */
 function applyTheme(def: ThemeDef | null): void {
+  // 取色生效时主题让位：昼夜调度或插件切主题引起的注入一律跳过（显式切主题会先让取色退场，
+  // 见 activateTheme——那里摘掉取色注入后才走到这里，所以不会被这一条挡住）。
+  if (def && document.documentElement.dataset.dynamic === "on") return;
   const root = document.documentElement;
   // 主题切换动效（local/anim-delight）：换主题时给 <html> 挂 400ms 的 .theme-anim，
   // 让背景/文字/边框颜色平滑过渡而不是"啪"地跳色。启动首次应用不挂（那时不需要）。
@@ -321,14 +439,21 @@ function applyTheme(def: ThemeDef | null): void {
   let style = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
   if (!def) {
     delete root.dataset.theme;
+    delete root.dataset.scheme;       // 回归基础令牌 = 亮色（System 暗色套由 tokens.css 提供）
     root.style.colorScheme = "light"; // 回归基础令牌 = 亮色（安卓 WebView 强制反色防护恢复）
     if (style) style.textContent = "";
     logoSvg = null;
+    syncSystemBars(false);
     return;
   }
-  const varLines = Object.entries(def.vars)
-    .filter(([k]) => /^--[\w-]+$/.test(k))
-    .map(([k, v]) => `${k}: ${v};`);
+  const varLines: string[] = [];
+  for (const [k, v] of Object.entries(def.vars)) {
+    if (!/^--[\w-]+$/.test(k)) continue;
+    varLines.push(`${k}: ${v};`);
+    const sys = COMPAT_TO_SYSTEM[k];
+    // 镜像到 System 角色：迁移到 System 层的组件（按钮/chip/FAB…）才能跟着主题变色
+    if (sys) varLines.push(`${sys}: ${v};`);
+  }
   if (def.fonts?.ui) varLines.push(`--font-ui: ${def.fonts.ui};`);
   if (def.fonts?.mono) varLines.push(`--font-mono: ${def.fonts.mono};`);
   // :root[data-theme] 特异度 (0,2,0) 稳压 tokens.css 的 :root (0,1,0)——
@@ -346,7 +471,12 @@ function applyTheme(def: ThemeDef | null): void {
   // color-scheme 跟随主题声明：暗色主题让原生控件/滚动条/表单控件同步反色
   // （global.css 的 :root { color-scheme: light } 特异度 (0,1,0) 被这里 (0,2,0) 稳压）
   root.style.colorScheme = def.dark ? "dark" : "light";
+  // §3.3 双通道：手动通道 = 主题（data-theme）+ System 暗色套开关（data-scheme）。
+  // 亮色主题不声明该属性，让 tears.css 的亮色 :root 生效。
+  if (def.dark) root.dataset.scheme = "dark";
+  else delete root.dataset.scheme;
   logoSvg = def.logo && def.logo.includes("<svg") ? def.logo : null;
+  syncSystemBars(!!def.dark);
 }
 
 /** 应用当前应生效的主题：跟随系统时按系统暗/亮取日夜两档，否则手动单选 */
@@ -404,6 +534,17 @@ export function useThemes(): ThemeSnapshot {
 export function activateTheme(id: string): boolean {
   const def = state.installed.find((t) => t.id === id);
   if (!def) return false;
+  /* 取色生效时切主题 → 先让取色退场（不 import dynamicColor，避免循环依赖；只碰同一份偏好键与 DOM）。
+     插件页 → 主题 也能切主题，只在外观设置里挡是挡不住的。 */
+  try {
+    if (typeof document !== "undefined" && document.documentElement.dataset.dynamic === "on") {
+      localStorage.setItem("onethu.dynamicColor", "0");
+      document.getElementById("onethu-dynamic-color")?.remove();
+      delete document.documentElement.dataset.dynamic;
+    }
+  } catch {
+    /* 隐私模式下 localStorage 不可用：取色注入仍被摘掉，本次会话行为正确 */
+  }
   state.activeId = id;
   applyTheme(def);
   persist();
@@ -429,6 +570,11 @@ export function setDayNightTheme(dayId: string | null, nightId: string | null): 
 }
 
 /** 停用主题：回到基础令牌（不删除） */
+/** 重新应用"当前应当生效"的主题（取色退场后调用：把昼夜调度/手动单选的状态接回来） */
+export function reapplyActiveTheme(): void {
+  applyActive();
+}
+
 export function deactivateTheme(): void {
   state.activeId = null;
   applyTheme(null);

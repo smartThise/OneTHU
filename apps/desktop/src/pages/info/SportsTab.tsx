@@ -9,7 +9,7 @@
  * 支付流不接（免费场景 skipPayment=true，返回的支付码弃用），记录只展示状态；
  * 线上支付/稍后支付（paySportsReservation）暂不入口。
  *
- * 错误铁律：ServiceUnavailable → 「体育预约服务暂不可用（info app 同样无法使用）」
+ * 错误铁律：ServiceUnavailable → 「体育预约暂不可用，请在「清华体育」App 中预约」
  * 静态提示 + 重试；空记录 → 「暂无预约记录」；绝不自动整页刷新、绝不失登自愈。
  */
 import { confirmOk } from "../../lib/confirm.js";
@@ -40,7 +40,7 @@ function bookable(r: SportsResourceT): boolean {
   return !r.bookId && !r.locked && r.canNetBook;
 }
 
-const SPORTS_UNAVAILABLE = "体育预约服务暂不可用（info app 同样无法使用）";
+const SPORTS_UNAVAILABLE = "体育预约暂不可用，请在「清华体育」App 中预约";
 const PHONE_RE = /^(1[3-9][0-9]|15[036789]|18[89])\d{8}$/;
 
 export function SportsTab() {

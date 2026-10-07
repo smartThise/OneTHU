@@ -12,6 +12,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useExitPhase } from "../lib/useExitPhase.js";
 import { invoke } from "@tauri-apps/api/core";
 import { QRCodeSVG } from "qrcode.react";
 import type { YktQrPhase } from "@onethu/core";
@@ -29,6 +30,9 @@ import {
 } from "../lib/yktWebview.js";
 
 /** 与 CardTab 充值弹窗同款遮罩 / 面板（移动端也留出 24px 边距、限高可滚动） */
+/** 退场：内联 animation 覆盖入场（本项目不给内联几何弹层写 CSS 规则） */
+const maskOut: React.CSSProperties = { animation: "m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both" };
+const panelOut: React.CSSProperties = { animation: "m-pop-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both" };
 const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
 const panelStyle: React.CSSProperties = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 380, maxHeight: "78vh", overflowY: "auto", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)", padding: "16px 18px" };
 
@@ -48,7 +52,8 @@ const YKT_CHANNELS: Array<{ key: YktChannel; label: string; hint: string; disabl
 ];
 
 /** 合并写入雨课堂凭据（保留 TUOJ/Tyche 等既有配置）后刷新 */
-async function saveYuketang(cookie: string): Promise<void> {
+/** 供 ConnectGate（§4.3）复用：扫码/网页登录拿到 cookie 后的落地（保存 + 刷新 + 心跳） */
+export async function saveYuketang(cookie: string): Promise<void> {
   const c = await ensureExtHwCredsLoaded();
   await saveExtHwCreds({
     ...c,
@@ -303,7 +308,7 @@ export function YktWebLoginPanel({ onSuccess, onCancel }: { onSuccess: (cookie: 
       ) : null}
       <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10, flexWrap: "wrap" }}>
         <button className="btn btn-primary" disabled={phase === "reading"} onClick={read}>
-          {phase === "reading" ? "读取中…" : "我已登录，读取会话"}
+          {phase === "reading" ? "读取中…" : "我已登录，读取登录信息"}
         </button>
         <button className="btn btn-ghost" onClick={onCancel}>
           取消
@@ -315,15 +320,16 @@ export function YktWebLoginPanel({ onSuccess, onCancel }: { onSuccess: (cookie: 
 
 export function ExtHwLoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [channel, setChannel] = useState<YktChannel>("qr");
+  const [closing, requestClose] = useExitPhase(onClose, open);
   if (!open) return null;
 
   return createPortal(
-    <div style={maskStyle} onClick={onClose}>
-      <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
+    <div style={closing ? { ...maskStyle, ...maskOut } : maskStyle} onClick={requestClose}>
+      <div style={closing ? { ...panelStyle, ...panelOut } : panelStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
           <b>登录雨课堂</b>
           <span style={{ flex: 1 }} />
-          <button className="btn" onClick={onClose}>✕</button>
+          <button className="btn" onClick={requestClose}>✕</button>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
@@ -356,14 +362,14 @@ export function ExtHwLoginModal({ open, onClose }: { open: boolean; onClose: () 
 
         {channel === "web" ? (
           <YktWebLoginPanel
-            onCancel={onClose}
+            onCancel={requestClose}
             onSuccess={(cookie) => {
               void saveYuketang(cookie).then(onClose);
             }}
           />
         ) : (
           <YktQrPanel
-            onCancel={onClose}
+            onCancel={requestClose}
             onSuccess={(cookie) => {
               void saveYuketang(cookie).then(onClose);
             }}

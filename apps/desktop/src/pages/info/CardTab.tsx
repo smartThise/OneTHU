@@ -63,8 +63,8 @@ const RCH_CHANNELS: Array<{ key: RchChannel; label: string; hint: string }> = [
   { key: "bank", label: "银行卡圈存", hint: "从卡系统绑定的银行卡直接划转（限 6:00~20:40）" },
 ];
 
-const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
-const panelStyle: React.CSSProperties = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 380, maxHeight: "78vh", overflowY: "auto", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)", padding: "16px 18px" };
+const maskStyle: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
+const panelStyle: React.CSSProperties = { width: "100%", maxWidth: 380, maxHeight: "78vh", overflowY: "auto", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)", padding: "16px 18px" };
 
 function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () => void; onPaid: () => void }) {
   const [step, setStep] = useState<RchStep>("form");
@@ -73,6 +73,16 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
   const [webUrl, setWebUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  /* 退场相位：先播 200ms 淡出再真正关闭（此前无退场动画，弹窗"啪"地消失） */
+  const [closing, setClosing] = useState(false);
+  // 重新打开必须复位退场相位：父级只把 open 置 false、组件并不卸载，
+  // 残留的 closing=true 会让第二次打开后永远关不掉（霖实测）。
+  useEffect(() => {
+    if (open) setClosing(false);
+  }, [open]);
+  useEffect(() => {
+    if (!open) setClosing(false);
+  }, [open]);
   if (!open) return null;
 
   const amt = Number(amount);
@@ -81,6 +91,12 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
   // 起步 10 元（真机实录「至少充 10 块」）——三端统一成一条规则，不再分渠道。
   const minAmt = 10;
   const valid = Number.isFinite(amt) && amt >= minAmt && amt <= 1000 && Math.round(amt * 100) === amt * 100;
+  const requestClose = (): void => {
+    if (closing) return;
+    setClosing(true);
+    window.setTimeout(() => onClose(), 200); // 与 CSS 退场时长一致（--dur-2 = short-4 = 200ms）
+  };
+
   const close = () => {
     setStep("form");
     setErr("");
@@ -118,12 +134,12 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
   };
 
   return createPortal(
-    <div style={maskStyle} onClick={close}>
-      <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
+    <div className={"rch-mask" + (closing ? " is-closing" : "")} style={maskStyle} onClick={requestClose}>
+      <div className={"rch-panel" + (closing ? " is-closing" : "")} style={panelStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
           <b>校园卡充值</b>
           <span style={{ flex: 1 }} />
-          <button className="btn" onClick={close}>✕</button>
+          <button className="btn" onClick={requestClose}>✕</button>
         </div>
 
         {step === "form" ? (
@@ -232,7 +248,7 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
             <div style={{ fontSize: 13, lineHeight: 1.8, marginBottom: 10 }}>
               圈存请求已提交。资金到账以校园卡<b>余额 / 流水</b>为准；若未到账请稍后在「最近消费」中查看圈存记录。
             </div>
-            <button className="btn btn-primary" style={{ width: "100%" }} onClick={close}>好的</button>
+            <button className="btn btn-primary" style={{ width: "100%" }} onClick={requestClose}>好的</button>
           </>
         ) : null}
       </div>

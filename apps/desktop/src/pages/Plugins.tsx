@@ -5,6 +5,8 @@
  * 日志全高终端（时间戳 + 方法符着色 + 自动贴底 + 打断/清空）。
  */
 import { compareVersions, fetchEntryFromMarket, fetchEntryFromRepo, fetchRegistry, fetchStarMap, normalizeRepoUrl, parseRepoInput, type MarketEntry } from "../lib/market.js";
+import { IconGithub } from "../components/Icons";
+import { createPortal } from "react-dom";
 import type { CommandResult } from "../plugins/types.js";
 import { loadMcpServers, saveMcpServers, type McpServerEntry } from "../lib/mcpStore.js";
 import { openFormModal } from "../lib/formModal.js";
@@ -24,7 +26,7 @@ import { clearPluginEvents, pluginEvents, subscribePluginEvents } from "../plugi
 import { notifyRust } from "../plugins/rust.js";
 import { PLUGIN_PERMISSIONS } from "../plugins/types.js";
 import { collectWidgetSlots } from "../plugins/pluginWidgets.js";
-import { activateTheme, deactivateTheme, removeTheme, restoreBuiltins, useThemes, type ThemeDef } from "../state/theme.js";
+import { useThemes } from "../state/theme.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -41,7 +43,7 @@ function monogram(name: string, id: string): string {
   return (id.split(".").pop() ?? "pk").slice(0, 2).toUpperCase();
 }
 
-export function PluginsPage(): ReactNode {
+export function PluginsPage({ embedded = false }: { embedded?: boolean } = {}): ReactNode {
   const allPlugins = useSyncExternalStore(subscribe, installedPlugins);
   const cmds = useSyncExternalStore(subscribeCommands, commandsSnapshot);
   const [view, setView] = useState<"mine" | "market">("mine");
@@ -72,29 +74,36 @@ export function PluginsPage(): ReactNode {
   const liveCount = plugins.filter((p) => p.enabled && isLive(p.manifest.id)).length;
   const coreCount = plugins.filter((p) => p.embedded).length;
 
+  /* R23：视图切换回归全局 .segmented 药丸口径（此前误用 seg-track 滚动条样式，
+      全宽拉伸 + 抓手光标 + 11px 小字，与整体 UI 明显不符——霖实测）。
+      §4.4b：嵌进设置页时保留这个切换器（它是「我的插件 / 插件市场」的唯一入口），只去掉页面级大标题。 */
+  const viewSwitch = (
+    <div className="segmented" ref={segRef} style={{ marginBottom: 0 }}>
+      <span className="seg-pill" ref={pillRef} aria-hidden="true" />
+      {([["mine", "我的插件"], ["market", "插件市场"]] as const).map(([k, lbl]) => (
+        <button key={k} className={view === k ? "is-active" : ""} onClick={() => setView(k)}>
+          {lbl}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="plg-page">
-      <PageHead
-        title="插件"
-        meta={
-          <span>
-            经 <code className="plg-code">onethu.*</code> 公共接口扩展 OneTHU——权限门禁、会话自愈、
-            45s 超时由宿主统一承担
-          </span>
-        }
-        actions={
-          /* R23：视图切换回归全局 .segmented 药丸口径（此前误用 seg-track 滚动条样式，
-              全宽拉伸 + 抓手光标 + 11px 小字，与整体 UI 明显不符——霖实测） */
-          <div className="segmented" ref={segRef} style={{ marginBottom: 0 }}>
-            <span className="seg-pill" ref={pillRef} aria-hidden="true" />
-            {([["mine", "我的插件"], ["market", "插件市场"]] as const).map(([k, lbl]) => (
-              <button key={k} className={view === k ? "is-active" : ""} onClick={() => setView(k)}>
-                {lbl}
-              </button>
-            ))}
-          </div>
-        }
-      />
+      {embedded ? (
+        <div className="plg-embed-bar" style={{ marginBottom: 12 }}>{viewSwitch}</div>
+      ) : (
+        <PageHead
+          title="插件"
+          meta={
+            <span>
+              经 <code className="plg-code">onethu.*</code> 公共接口扩展 OneTHU——权限门禁、会话自愈、
+              45s 超时由宿主统一承担
+            </span>
+          }
+          actions={viewSwitch}
+        />
+      )}
 
       {/* 电表概览条 */}
       <div className="plg-stats">
@@ -120,8 +129,9 @@ export function PluginsPage(): ReactNode {
       </div>
 
 
-      {/* 主题管理区：主题即插件，管理面就在插件页（主题页签下展开；用户定案
-          2026-09-13：设置页不放，避免双头管理） */}
+      {/* 主题管理区（安装/卸载）：主题即插件，安装面在插件页。
+          切换主题在 设置 → 外观（唯一入口）——2026-02 用户反馈切换入口错位到插件页；
+          2026-09-13 原定案「设置页不放」针对的是管理面，与切换入口不冲突。 */}
       {view === "market" ? (
         <MarketView />
       ) : (
@@ -142,7 +152,6 @@ export function PluginsPage(): ReactNode {
         </button>
       </div>
 
-      {cat === "theme" || cat === "all" ? <ThemeManagerSection /> : null}
 
       {plugins.length === 0 && cat !== "theme" ? (
         <div className="plg-empty">
@@ -155,7 +164,7 @@ export function PluginsPage(): ReactNode {
         </div>
       ) : plugins.length === 0 && cat === "theme" ? (
         <div style={{ fontSize: "var(--text-sm)", color: "var(--text-3)", padding: "6px 2px" }}>
-          暂无主题插件——上方主题区即全部可用主题（内置可删可恢复）。
+          暂无主题插件——换主题、装主题都在 设置 → 外观 →「更改主题」里。
         </div>
       ) : (
         <div className="plg-rack">
@@ -176,177 +185,6 @@ export function PluginsPage(): ReactNode {
         </>
       )}
     </div>
-  );
-}
-
-/** 主题色卡：从 vars 抽 accent/soft/bg 三色出预览（缺省回退令牌默认） */
-function ThemeSwatch({ vars }: { vars: Record<string, string> }): ReactNode {
-  const accent = vars["--accent"] ?? "#4176e6";
-  const soft = vars["--accent-soft"] ?? "#edf3fe";
-  const bg = vars["--bg"] ?? "#ffffff";
-  return (
-    <span className="theme-swatch" style={{ background: soft, display: "inline-flex", gap: 3, padding: 3, borderRadius: 6, flex: "none" }}>
-      <i style={{ width: 14, height: 14, borderRadius: 4, background: accent }} />
-      <i style={{ width: 14, height: 14, borderRadius: 4, background: bg, boxShadow: "inset 0 0 0 1px rgba(0,0,0,.08)" }} />
-    </span>
-  );
-}
-
-/** 主题管理区（插件页 · 主题页签）：内置主题 + 插件安装的主题一页全管 */
-function ThemeManagerSection(): ReactNode {
-  const snap = useThemes();
-  const plugins = useSyncExternalStore(subscribe, installedPlugins);
-  const [msg, setMsg] = useState<string | null>(null);
-  /** 主题所属插件：优先安装时写入的 owner（同一插件可换主题 id），
-   *  退化到「主题 id 与插件 id 同名」的文档约定（历史记录没有 owner） */
-  const ownerOf = (t: ThemeDef): string | null => {
-    if (t.owner && plugins.some((p) => p.manifest.id === t.owner)) return t.owner;
-    if (plugins.some((p) => p.manifest.id === t.id)) return t.id;
-    return null;
-  };
-  /** 删除插件主题：主题定义由插件提供，只删定义会留下「孤儿插件卡」（用户实锤：
-   *  主题区删了、插件管理里还在）。有归属插件时按「卸载插件」处理，插件卸载路径
-   *  会回收主题定义，两处状态因此始终一致。 */
-  const delTheme = async (t: ThemeDef): Promise<void> => {
-    const owner = ownerOf(t);
-    if (!owner) {
-      removeTheme(t.id);
-      setMsg(`已删除「${t.name}」`);
-      return;
-    }
-    const { confirmOk } = await import("../lib/confirm.js");
-    const yes = await confirmOk(`删除主题「${t.name}」将同时卸载插件「${owner}」，其设置与命令一并移除。继续？`);
-    if (!yes) return;
-    try {
-      await uninstallPlugin(owner);
-      setMsg(`已删除「${t.name}」及插件「${owner}」`);
-    } catch (e) {
-      setMsg(`删除失败：${String(e).slice(0, 100)}`);
-    }
-  };
-  return (
-    <div
-      style={{
-        border: "1px solid var(--border)", borderRadius: "var(--r-lg)",
-        background: "var(--surface)", padding: "10px 12px", marginBottom: 10,
-      }}
-    >
-      {msg ? (
-        <div style={{ fontSize: "var(--text-sm)", color: "var(--accent)", marginBottom: 8 }}>{msg}</div>
-      ) : null}
-      {snap.themes.length === 0 ? (
-        <div style={{ fontSize: "var(--text-sm)", color: "var(--text-3)" }}>机架空空——所有主题都被删掉了。</div>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 8 }}>
-          {snap.themes.map((t) => {
-            const on = snap.activeId === t.id;
-            return (
-              <div
-                key={t.id}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10, padding: "8px 10px",
-                  border: `1px solid ${on ? "var(--accent)" : "var(--border)"}`,
-                  borderRadius: "var(--r-md)", background: on ? "var(--accent-soft)" : "var(--surface)",
-                }}
-              >
-                <ThemeSwatch vars={t.vars} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* R23（霖实测：小屏主题名被挤成竖排）：名字独占整行（wrap 后元信息另起），
-                      名字自身 nowrap+ellipsis+title——再长的名字也不会逐字换行破坏协调 */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    <b
-                      title={t.name}
-                      style={{
-                        minWidth: 0, maxWidth: "100%", overflow: "hidden",
-                        textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "var(--text-base)",
-                      }}
-                    >
-                      {t.name}
-                    </b>
-                    <span style={{ fontSize: "var(--text-xs)", color: "var(--text-3)" }}>v{t.version}</span>
-                    {t.source === "plugin" ? (
-                      <span className="chip" style={{ height: 16, fontSize: 9.5, padding: "0 6px" }} title={ownerOf(t) ? `来自插件 ${ownerOf(t)}` : undefined}>
-                        插件
-                      </span>
-                    ) : null}
-                  </div>
-                  <div style={{ fontSize: "var(--text-xs)", color: "var(--text-3)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {t.description ?? t.id}
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 4, flex: "none" }}>
-                  {on ? (
-                    <button className="btn btn-ghost" onClick={() => { deactivateTheme(); setMsg(`已停用「${t.name}」`); }}>
-                      停用
-                    </button>
-                  ) : (
-                    <button className="btn btn-primary" onClick={() => { activateTheme(t.id); setMsg(`已应用「${t.name}」`); }}>
-                      应用
-                    </button>
-                  )}
-                  {t.source === "plugin" ? (
-                    <button
-                      className="btn btn-ghost"
-                      title={ownerOf(t) ? `删除主题并卸载插件 ${ownerOf(t)}` : "删除主题（内置主题不可删除）"}
-                      onClick={() => void delTheme(t)}
-                    >
-                      删除
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {snap.deletedBuiltins.length > 0 ? (
-        <div style={{ marginTop: 8 }}>
-          <button className="btn" onClick={() => setMsg(`已恢复 ${restoreBuiltins()} 个内置主题`)}>
-            恢复内置主题（{snap.deletedBuiltins.length} 个已删）
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-/** 主题插件卡上的「应用/撤下主题」动作（主题管理在插件页 · 主题区，此处为快捷入口）。
- *  主题 id 与插件 id 未必同名：按 owner 找，退化到 id 同名约定；插件停用（其主题已被
- *  回收）时按钮置灰，不再点出一个「主题定义尚未注册」。 */
-function ThemeApplyButton({ pluginId, enabled, onMsg }: { pluginId: string; enabled: boolean; onMsg: (s: string) => void }): ReactNode {
-  const snap = useThemes();
-  const theme = snap.themes.find((t) => t.owner === pluginId) ?? snap.themes.find((t) => t.id === pluginId);
-  const applied = !!theme && snap.activeId === theme.id;
-  if (!enabled) {
-    return (
-      <button className="btn btn-ghost" disabled title="插件已停用，启用后可应用其主题">
-        应用主题
-      </button>
-    );
-  }
-  if (!theme) {
-    return (
-      <button className="btn btn-ghost" disabled title="该插件当前未声明主题定义">
-        无主题
-      </button>
-    );
-  }
-  return (
-    <button
-      className={"btn " + (applied ? "btn-ghost" : "btn-primary")}
-      onClick={() => {
-        if (applied) {
-          deactivateTheme();
-          onMsg("已撤下主题，回到默认配色");
-        } else if (activateTheme(theme.id)) {
-          onMsg(`已应用「${theme.name}」（插件页 · 主题区可管理全部主题）`);
-        } else {
-          onMsg("主题定义尚未注册（插件未启用？）");
-        }
-      }}
-    >
-      {applied ? "撤下主题" : "应用主题"}
-    </button>
   );
 }
 
@@ -414,7 +252,7 @@ function PluginCard({
   const widgetSlots = collectWidgetSlots().filter((x) => x.pluginId === id);
   const active = rec.enabled && isLive(id);
   const failed = rec.enabled && !isLive(id);
-  const stateText = active ? "运行中" : failed ? "加载失败" : "已停用";
+  const stateText = active ? "运行中" : failed ? "加载失败" : "已停用"; // ui-copy-lint-ok: 状态标签，同一行操作区就有「日志」按钮
 
   const doRun = async (cmdId: string): Promise<void> => {
     setRunMsg("执行中…");
@@ -483,12 +321,10 @@ function PluginCard({
                 }
               })()}
             >
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
-              </svg>
+              <IconGithub width={16} height={16} />
             </button>
           ) : null}
-          {m.category === "theme" ? <ThemeApplyButton pluginId={m.id} enabled={active} onMsg={setRunMsg} /> : null}
+          {m.category === "theme" ? <span className="chip" title="切换主题在 设置 → 外观">切换在 设置 → 外观</span> : null}
           <Switch on={rec.enabled} label={rec.enabled ? "停用" : "启用"} onToggle={() => void (rec.enabled ? disablePlugin(id) : enablePlugin(id)).catch((e: unknown) => setRunMsg(String(e)))} />
           {id === "onethu.harness" ? (
             <button className="btn btn-ghost" title="管理 MCP 服务器" onClick={() => onOpenSheet({ id, mode: "mcp" })}>
@@ -609,7 +445,7 @@ function PluginSheet({
   };
   if (!rec) return null;
   const title = mode === "settings" ? "设置" : mode === "mcp" ? "MCP 服务器" : "运行日志";
-  return (
+  return createPortal(
     <div
       className={"plg-mask" + (closing ? " is-closing" : "")}
       onPointerDown={(e) => {
@@ -640,6 +476,8 @@ function PluginSheet({
         )}
       </section>
     </div>
+    ,
+    document.body,
   );
 }
 
@@ -1009,9 +847,7 @@ function MarketView(): ReactNode {
                       }
                     })()}
                   >
-                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-                      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
-                    </svg>
+                    <IconGithub width={16} height={16} />
                     {item.repo}
                   </button>
                   {(() => {

@@ -251,7 +251,7 @@ export function CourseDetailPage() {
           <SkeletonRows rows={2} />
         ) : groupsState === "error" ? (
           <ErrorNote
-            text={groupsError || "分组加载失败"}
+            text={groupsError || "分组没有加载出来，请刷新后重试"}
             onRetry={() => {
               groupsCache = null; // 强制绕过缓存重试
               setGroupsNonce((n) => n + 1);

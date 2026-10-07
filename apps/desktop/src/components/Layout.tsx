@@ -1,15 +1,22 @@
 /** 侧栏 + 内容骨架 + 基础 UI 件（卡片 / 徽标 / 骨架屏 / 开关） */
-import { Children, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, useSyncExternalStore} from "react";
+import { Children, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, useSyncExternalStore } from "react";
 import { useThemes } from "../state/theme.js";
 import { useApp } from "../state/context.js";
-import { topLevelPage, type Page } from "../state/app.js";
+import { topLevelPage, type LearnNav, type Page } from "../state/app.js";
+import { useExpanded } from "../state/usePlatformLayout.js";
+import { useSidebarCollapsed } from "../state/uiPrefs.js";
+import { requestSettingsTab } from "../state/settingsMode.js";
+import { NAV_REGISTRY } from "../state/navigation.js";
 import { DESENSITIZE_BUILD } from "../lib/privacy.js";
-import { IconChevron, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconPlug, IconSchedule, IconSettings, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal, IconThos, IconTrace, IconMail, IconCloud, IconBook } from "./Icons.js";
+import { IconArrowUp, IconChevron, IconFolder, IconFolderPlus, IconInfo, IconLearn, IconMenu, IconPen, IconPlug, IconRefresh, IconSchedule, IconSettings, IconStar, IconToday, IconXk, IconCard, IconCalendar, FolderIcon, IconExternal, IconThos, IconTrace, IconMail, IconCloud, IconSearch, IconBook } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
 import { pluginTabsSnapshot, subscribePluginTabs } from "../plugins/tabs.js";
 import { showToast } from "../state/toast.js";
 import { checkUpdateSilently } from "../lib/update.js";
-import { useNavIndicator, useSegPill } from "../lib/motion.js";
+import { useBottomNavPill, useNavIndicator, useSegPill } from "../lib/motion.js";
+import { ErrorLine } from "./Details.js";
+import { CommandPalette, shortcutLabel } from "./CommandPalette.js";
+import { openPalette } from "../state/palette.js";
 
 /** 开发者面板（仅 dev 构建）：右上角 commit 徽标 + 前端日志/诊断/导出。
  *  正式版里 __ONETHU_DEV__ 折叠为 false → 这句动态 import 被 rollup 删除，
@@ -37,8 +44,63 @@ function usePluginNavEntries(): Array<{ page: Page; label: string; icon: (p: obj
   }));
 }
 
-export const NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode }> = [
+/** 侧边栏分区顺序（§2.8.1）；分组名与 navigation.ts 的 category 同名，新 IA 另加「总览」 */
+const NAV_GROUP_ORDER = ["总览", "学习", "日程", "生活", "预约", "行政"] as const;
+
+/** 页面 → 侧栏分区：取自导航注册表；今日/待办是 M1 新 IA，不在注册表里 */
+function navCategoryOf(page: Page): string {
+  if (page === "today" || page === "tasks") return "总览";
+  return NAV_REGISTRY.find((e) => e.page === page)?.category ?? "行政";
+}
+
+/**
+ * 底部 5 Tab（UI/UX 改造方案 §2.2，M1 beta）：移动端（≤840px，§2.8.1 统一断点）固定底栏。
+ * 服务/收藏两个直达页
+ * 是本批次新增（pages/ServicesPage、pages/FavsHomePage）；「待办」暂指
+ * learn-assignments（全部作业），§2.3-4 升级为独立 tab 页后再换实现。
+ * 长尾功能仍走抽屉/服务目录页，底栏只承担 §1.2 的 core 直达。
+ */
+const BOTTOM_NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode; activePages?: Page[] }> = [
   { page: "today", label: "今日", icon: IconToday },
+  { page: "tasks", label: "待办", icon: IconPen, activePages: ["tasks", "learn-assignments", "learn-assignment-detail", "learn-ykt-detail"] },
+  { page: "services", label: "服务", icon: IconInfo },
+  { page: "favs", label: "收藏", icon: IconStar, activePages: ["favs", "folder"] },
+  { page: "settings", label: "我的", icon: IconSettings },
+];
+
+/** 移动端底部导航条（CSS 侧 ≤840px 显示；桌面恒隐藏） */
+function BottomNav({ page, navigate }: { page: Page; navigate: (p: Page, params?: LearnNav) => void }): ReactNode {
+  /* 蓝色胶囊是单个滑动元素：切换时按共享的导航运动（平滑 + 惯性回弹）水平移动，
+     不再是每一项各自的 ::before 就地淡入。当前项由钩子自己在 DOM 里找（无激活项即隐藏）。 */
+  const [navRef, pillRef] = useBottomNavPill();
+  return (
+    <nav className="bottom-nav" aria-label="底部导航" ref={navRef}>
+      <span className="bottom-nav-pill" ref={pillRef} aria-hidden="true" />
+      {BOTTOM_NAV.map((item) => {
+        const active = item.page === page || item.activePages?.includes(page) === true;
+        const Icon = item.icon;
+        return (
+          <button
+            key={item.page}
+            className={"bottom-nav-item" + (active ? " is-active" : "")}
+            onClick={() => navigate(item.page)}
+            aria-current={active ? "page" : undefined}
+          >
+            <Icon />
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+export const NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode; activePages?: Page[] }> = [
+  { page: "today", label: "今日", icon: IconToday },
+  /* 与移动端底栏的桥：底栏那五项不整体搬进侧边栏（太臃肿），只补一个「待办」——
+     桌面端此前完全没有待办入口。其余四项侧边栏本来就各有对应（服务→信息/在线服务、
+     收藏→收藏夹分组、我的→设置），因此只差这一个。 */
+  { page: "tasks", label: "待办", icon: IconPen, activePages: ["tasks", "learn-assignments", "learn-assignment-detail", "learn-ykt-detail"] },
   { page: "learn", label: "网络学堂", icon: IconLearn },
   { page: "schedule", label: "日程", icon: IconSchedule },
   { page: "trace", label: "寻迹", icon: IconTrace },
@@ -249,6 +311,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { page: rawPage, navigate, navParams } = useApp();
 
   const favs = useFavs();
+  const [sbCollapsed, setSbCollapsed] = useSidebarCollapsed(); // PC 侧栏折叠（§2.8.1）
   const pluginNav = usePluginNavEntries();
   const navAll = [...NAV, ...pluginNav];
   const page = topLevelPage(rawPage);
@@ -264,6 +327,14 @@ export function Shell({ children }: { children: ReactNode }) {
   }, []);
   /** 「已折叠收藏夹（N）」组展开态（会话态，不持久化） */
   const [foldedOpen, setFoldedOpen] = useState(false);
+  /* §4.4b：插件已并进设置页。旧链接/历史记录里的 plugins 路由统一落到「设置 → 插件」，
+     侧栏不再保留单独入口（标准/高级都一样，高级只决定设置里那一栏显示与否）。 */
+  useEffect(() => {
+    if (page !== "plugins") return;
+    requestSettingsTab("插件");
+    navigate("settings");
+  }, [page, navigate]);
+
   const closeNav = useCallback(() => {
     setNavClosing(true);
     window.setTimeout(() => {
@@ -306,6 +377,28 @@ export function Shell({ children }: { children: ReactNode }) {
   /** 侧栏/抽屉共用导航内容 */
   const navContent = (onAfter?: () => void) => {
     const unfoldedDefaults = NAV.filter(({ page: p }) => !favs.data.foldedDefaults.includes(p));
+    // 分区小标题（§2.8.1）：分组取自导航注册表的 category，新 IA 的今日/待办归「总览」。
+    // 只插小标题、不重排类内顺序；未注册的页面兜底进「行政」。
+    const navGrouped: Array<
+      | { kind: "label"; text: string }
+      | { kind: "item"; page: Page; label: string; icon: (p: object) => ReactNode; activePages?: Page[] }
+    > = (() => {
+      const groups = new Map<string, Array<{ page: Page; label: string; icon: (p: object) => ReactNode; activePages?: Page[] }>>();
+      for (const it of unfoldedDefaults) {
+        const cat = navCategoryOf(it.page);
+        const list = groups.get(cat);
+        if (list) list.push(it);
+        else groups.set(cat, [it]);
+      }
+      const out: typeof navGrouped = [];
+      for (const cat of NAV_GROUP_ORDER) {
+        const list = groups.get(cat);
+        if (!list) continue;
+        out.push({ kind: "label", text: cat });
+        for (const it of list) out.push({ kind: "item", ...it });
+      }
+      return out;
+    })();
     const foldedDefaults = NAV.filter(({ page: p }) => favs.data.foldedDefaults.includes(p));
     const unfoldedUser = favs.data.order.filter((id) => !favs.data.foldedRoots.includes(id));
     const foldedUser = favs.data.order.filter((id) => favs.data.foldedRoots.includes(id));
@@ -313,19 +406,21 @@ export function Shell({ children }: { children: ReactNode }) {
     return (
       <>
         {/* 默认一级入口（内置）：今日恒在最上（不可折叠），其余可折叠 */}
-        {unfoldedDefaults.map(({ page: p, label, icon: Icon }) =>
-          navRow("d-" + p, {
-            active: page === p,
-            label,
+        {navGrouped.map((row) => {
+          if (row.kind === "label") return <div className="nav-label" key={"g-" + row.text}>{row.text}</div>;
+          const Icon = row.icon;
+          return navRow("d-" + row.page, {
+            active: page === row.page || row.activePages?.includes(page) === true,
+            label: row.label,
             icon: <Icon />,
             onClick: () => {
               onAfter?.();
-              navigate(p);
+              navigate(row.page);
             },
             folded: false,
-            onFold: p === "today" ? undefined : () => favs.foldSidebar(p, true),
-          }),
-        )}
+            onFold: row.page === "today" ? undefined : () => favs.foldSidebar(row.page, true),
+          });
+        })}
         {/* 插件功能页分组：与内置入口视觉分离 */}
         {pluginNav.length ? (
           <>
@@ -422,15 +517,6 @@ export function Shell({ children }: { children: ReactNode }) {
         ) : null}
         {/* 钉底固定项：插件 + 设置——不进收藏夹体系，不可折叠不可改序 */}
         <div className="nav-sep" aria-hidden />
-        {navRow("plugins", {
-          active: page === "plugins",
-          label: "插件",
-          icon: <IconPlug />,
-          onClick: () => {
-            onAfter?.();
-            navigate("plugins");
-          },
-        })}
         {navRow("settings", {
           active: page === "settings",
           label: "设置",
@@ -448,17 +534,31 @@ export function Shell({ children }: { children: ReactNode }) {
   const topbarTitle =
     page === "folder" && navParams?.folderId
       ? favs.data.folders[navParams.folderId]?.title ?? "收藏夹"
-      : navAll.find((n) => n.page === page)?.label ?? (page === "plugins" ? "插件" : "OneTHU");
+      : navAll.find((n) => n.page === page)?.label ?? (page === "plugins" ? "插件" : page === "services" ? "服务" : page === "favs" ? "收藏" : "OneTHU");
 
   return (
     <div className="shell">
-      <aside className="sidebar">
+      <aside className={"sidebar" + (sbCollapsed ? " is-collapsed" : "")} aria-label="主导航">
         <div className="brand">
           <BrandLogo size={16} />
         </div>
-        <div className="nav-label">校园</div>
+        {/* 命令面板入口（§2.8.4）：不逼人记快捷键，旁边顺手写出当前平台的键位 */}
+        <button className="sb-search" onClick={openPalette} title={"搜索功能（" + shortcutLabel() + "）"}>
+          <IconSearch width={14} height={14} />
+          <span className="sb-search-label">搜索功能</span>
+          <kbd className="sb-kbd">{shortcutLabel()}</kbd>
+        </button>
         <NavBody label="主导航">{navContent()}</NavBody>
         <div className="sidebar-foot">
+          <button
+            className="sidebar-collapse"
+            onClick={() => setSbCollapsed(!sbCollapsed)}
+            title={sbCollapsed ? "展开侧边栏" : "折叠侧边栏"}
+            aria-label={sbCollapsed ? "展开侧边栏" : "折叠侧边栏"}
+            aria-expanded={!sbCollapsed}
+          >
+            <IconChevron width={16} height={16} style={{ transform: "rotate(180deg)" }} />
+          </button>
           <span className="foot-badge">
             <span className="dot" style={{ background: DESENSITIZE_BUILD ? "var(--amber)" : "var(--green)" }} />
             {DESENSITIZE_BUILD ? "脱敏演示版" : "就绪"}
@@ -487,9 +587,7 @@ export function Shell({ children }: { children: ReactNode }) {
         {/* 移动端顶栏：汉堡菜单 + 品牌标识，桌面隐藏（桌面走侧栏） */}
         <header className={"mobile-topbar" + (topbarScrolled ? " is-scrolled" : "")}>
           <button className="topbar-menu" onClick={() => setNavOpen(true)} aria-label="打开导航菜单">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-              <path d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <IconMenu width={18} height={18} />
           </button>
           <div className="topbar-brand">
             <BrandLogo size={11} />
@@ -498,6 +596,10 @@ export function Shell({ children }: { children: ReactNode }) {
         </header>
         {children}
       </main>
+      {/* M1 beta：移动端底部 5 Tab（CSS ≤860px 显示） */}
+      <BottomNav page={rawPage} navigate={navigate} />
+      {/* 命令面板：⌘/Ctrl+K 或侧栏按钮唤起；挂在 shell 顶层，任何页面都能用 */}
+      <CommandPalette />
       <HardRefreshButton />
       {DevPanel ? (
         <Suspense fallback={null}>
@@ -528,10 +630,7 @@ export function HardRefreshButton() {
           aria-label="回到顶层"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M12 19V5" />
-            <path d="M5 12l7-7 7 7" />
-          </svg>
+          <IconArrowUp width={18} height={18} />
         </button>
       ) : null}
       <button
@@ -540,10 +639,7 @@ export function HardRefreshButton() {
       aria-label="硬刷新"
       onClick={() => window.location.reload()}
     >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-        <path d="M21 3v6h-6" />
-      </svg>
+      <IconRefresh width={18} height={18} />
     </button>
     </>
   );
@@ -563,11 +659,9 @@ export function PageHead({
   const pluginNav = usePluginNavEntries();
   // 窄屏顶栏已展示当前页名：与导航名相同的标题不再重复渲染（详情页等子标题不受影响）
   const navLabel = [...NAV, ...pluginNav].find((n) => n.page === page)?.label ?? (page === "plugins" ? "插件" : undefined);
-  const dupOnTopbar =
-    typeof window !== "undefined" &&
-    window.matchMedia("(max-width: 860px)").matches &&
-    typeof title === "string" &&
-    title === navLabel;
+  // 统一断点读取（§2.8.1）：此前各组件自写 matchMedia，改断点必漏
+  const expanded = useExpanded();
+  const dupOnTopbar = !expanded && typeof title === "string" && title === navLabel;
   return (
     <header className="page-head">
       <div>
@@ -610,14 +704,33 @@ export function Card({
   );
 }
 
-export function Empty({ text }: { text: string }) {
-  return <div className="empty">{text}</div>;
+/* 空状态：text 必填，icon/hint/action 可选（B5b）。
+   旧调用 <Empty text="..." /> 一字不改仍然成立；需要更完整的空状态时再加图标与副文案。 */
+export function Empty({
+  text,
+  icon,
+  hint,
+  action,
+}: {
+  text: string;
+  icon?: ReactNode;
+  hint?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="empty">
+      {icon ? <div className="empty-icon" aria-hidden="true">{icon}</div> : null}
+      <div className="empty-title">{text}</div>
+      {hint ? <div className="empty-hint">{hint}</div> : null}
+      {action ? <div className="empty-action">{action}</div> : null}
+    </div>
+  );
 }
 
 export function ErrorNote({ text, onRetry }: { text: string; onRetry?: () => void }) {
   return (
     <div className="error-note">
-      <span>{text}</span>
+      <ErrorLine text={text} />
       {onRetry ? (
         <button className="btn btn-ghost" onClick={onRetry}>
           重试

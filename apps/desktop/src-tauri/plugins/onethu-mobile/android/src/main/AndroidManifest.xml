@@ -22,6 +22,8 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <!-- 重启后重排：AlarmManager 的闹钟不跨重启存活，凭持久化条目重建。 -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 待办作业流切卡 tick：navigator.vibrate 需要的普通振动权限。 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application>
         <service

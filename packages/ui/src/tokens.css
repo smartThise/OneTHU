@@ -1,65 +1,165 @@
 /* ============================================================
-   OneTHU 设计令牌 v3 —— 仅亮色，对齐 DeepSeek Harness 设计语言
-   中性蓝灰阶 + 黑 primary 按钮 + 业务蓝强调；pill 控件；紧凑字号。
+   OneTHU 设计令牌 v2 —— MD3 三层结构（改造方案 §3.1）
+
+   阅读顺序（也是改动顺序）：
+     Reference  reference/tonal palette —— palette.css（由 tools/gen-tokens.mjs 生成，勿手改）
+     System     --md-sys-color-* / --md-sys-shape-* / --md-sys-typescale-* / --md-sys-elevation-*
+     Compat     --bg / --surface / --primary / --text-1 … 旧名全保留，映射到 System
+
+   纪律：
+   1. 组件只准用 Compat 旧名或 System 名，不准写死颜色字面量；
+   2. 改外观改本文件，改结构改组件；
+   3. v2 System 层初值是「改造前实测值」（基线），所以这次重写**不改变任何观感**——
+      §3.2 品牌色 / §3.3 暗色双套 只在 System 层把基线换成 var(--md-ref-palette-*)，
+      每次只换一族，改完可单独回滚。
    ============================================================ */
+@import "./palette.css";
 
 :root {
   color-scheme: light;
 
-  /* 面 */
-  --bg: #ffffff;
-  --bg-soft: #f9fafb;
-  --surface: #ffffff;
-  --surface-2: #f9fafb;
-  --surface-3: #ebeef2;
-  --skeleton: rgba(0, 0, 0, 0.04);
+  /* ---------- System：面（§3.1 映射表） ---------- */
+  /* 5 级 surface：亮色下只用到 3 个值（旧实现如此），但凝夜主题的 5 个面各不相同——
+     按 5 级映射才不会在暗色下把卡片面压成页面底（方案 §3.1 简表把 --bg/--surface 合并，
+     复核后发现会改掉暗色层次，故按复核结果拆开）。 */
+  --md-sys-color-surface: #ffffff;                        /* ← --bg：页面底 */
+  --md-sys-color-surface-container-low: #f9fafb;          /* ← --bg-soft */
+  --md-sys-color-surface-container-lowest: #ffffff;       /* ← --surface：卡片面 */
+  --md-sys-color-surface-container: #f9fafb;              /* ← --surface-2 */
+  --md-sys-color-surface-container-high: #ebeef2;         /* ← --surface-3 */
+  --md-sys-color-skeleton: rgba(0, 0, 0, 0.04);
   /* 骨架屏流光高光：亮色=白光扫过；暗色主题必须覆盖（否则暗底上一道刺眼白光，
      霖实测「暗黑模式下的流光还是白色模式的」）。见 state/theme.ts 各 dark 主题。 */
-  --skeleton-shine: rgba(255, 255, 255, 0.6);
+  --md-sys-color-skeleton-shine: rgba(255, 255, 255, 0.6);
+
+  /* ---------- System：线（描边仅用于输入类，§3.9 分层规则） ---------- */
+  --md-sys-color-outline-variant: rgba(0, 0, 0, 0.1);   /* ← --border */
+  --md-sys-color-outline-soft: rgba(0, 0, 0, 0.04);      /* 扩展角色 ← --border-soft */
+  --md-sys-color-outline-strong: rgba(0, 0, 0, 0.16);    /* 扩展角色 ← --border-strong */
+
+  /* ---------- System：字色 ---------- */
+  --md-sys-color-on-surface: #0f1115;            /* ← --text-1 */
+  --md-sys-color-on-surface-variant: #61666b;    /* ← --text-2 */
+  --md-sys-color-outline: #81858c;
+  --md-sys-color-scrim: rgba(15, 23, 42, 0.45);   /* 弹层遮罩（明） */               /* ← --text-3 */
+  --md-sys-color-on-surface-disabled: #d5dbe3;   /* ← --text-dim */
+
+  /* ---------- System：品牌 / 强调 ----------
+     默认主题 = 黑白配（主按钮黑底白字，既有的强对比识别）。
+     清华紫不在 System 层当 primary，而是做成**内置主题**「清华紫」
+     （state/theme.ts 的 onethu.theme.tsinghua，用同一套 tonal palette 派生）——
+     想要校色就切主题，默认观感不动。
+     若哪天要把校色提为全应用默认，把下面两行换回 tone 即可：
+       primary = var(--md-ref-palette-primary-40)  （#90399c）
+       primary-hover = var(--md-ref-palette-primary-30)  （#751d82）
+     注意：CSS 注释不能嵌套，别在注释里写 斜杠星号 注释。 */
+  --md-sys-color-primary: #0f1115;
+  --md-sys-color-primary-hover: #43454a;   /* 过渡：§3.9 状态层用 primary + state layer 取代 */
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-secondary: #4176e6;        /* ← --accent：业务蓝（链接/激活/信息） */
+  --md-sys-color-secondary-container: #edf3fe;        /* ← --accent-soft */
+  --md-sys-color-secondary-container-border: #c9d9f9; /* ← --accent-border */
+
+  /* ---------- System：功能色（warning/success 是 MD3 之外的扩展角色） ---------- */
+  --md-sys-color-error: #e5484d;
+  --md-sys-color-error-container: #feecec;
+  --md-sys-color-warning: #d9730d;
+  --md-sys-color-warning-container: #fdf2e2;
+  --md-sys-color-success: #22c55e;
+  --md-sys-color-success-container: #e6f9ee;
+
+  /* ---------- System：交互状态层 ----------
+     §3.9 目标 8% / 12%（现在 6% / 10%），状态层规范落地时再换；
+     同屏禁止各写各的 hover。 */
+  /* 状态层（§3.9-5）：hover 8% / pressed 12% / focus 8% / disabled 38%（MD3 规范值）。
+     取 on-surface 的叠色而非改底色——按钮/列表项/卡片统一接入，彩色底上也成立。 */
+  --md-sys-color-state-hover: rgba(38, 49, 72, 0.08);
+  --md-sys-color-state-pressed: rgba(38, 49, 72, 0.12);
+  --md-sys-color-state-focus: rgba(38, 49, 72, 0.08);
+  --md-sys-state-opacity-disabled: 0.38;
+  --md-sys-focus-ring: 0 0 0 3px rgba(65, 118, 230, 0.25);  /* 整条阴影，不是颜色 */
+
+  /* ---------- System：阴影（§3.1.3：--elev-1..3；同屏 ≤ 2 级，§3.9） ---------- */
+  --md-sys-elevation-1: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --md-sys-elevation-2: 0 2px 8px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+  --md-sys-elevation-3: 0 0 1px rgba(0, 0, 0, 0.2), 0 12px 32px rgba(0, 0, 0, 0.08);
+
+  /* ---------- System：形状（§3.1.3 新增 16px/full；6px 是现状值，属 Compat 保真） ---------- */
+  --md-sys-shape-corner-small: 6px;
+  --md-sys-shape-corner-medium: 8px;
+  --md-sys-shape-corner-large: 12px;
+  --md-sys-shape-corner-extra-large: 16px;
+  --md-sys-shape-corner-full: 999px;
+
+  /* ---------- System：五档字阶（§3.1.3 / §3.9 字阶规则） ----------
+     现值为基线。§3.9 要「同屏最多 3 档、禁止规格外字号」：
+     11px(--text-xxs) 与 13px(--text-sm) 是规格外字号，退役属 M3 组件批次 + 样式扫描的活。 */
+  --md-sys-typescale-display: 24px;   /* 页标题 */
+  --md-sys-typescale-headline: 20px;  /* 卡片标题 */
+  --md-sys-typescale-title: 16px;     /* 小标题 */
+  --md-sys-typescale-body: 14px;      /* 正文 */
+  --md-sys-typescale-label: 12px;     /* 辅助 */
+
+  /* ============================================================
+     Compat 层：旧变量名全量保留（§3.1 要求），组件无需改动。
+     新增组件请优先用 System 名。
+     ============================================================ */
+
+  /* 面 */
+  --bg: var(--md-sys-color-surface);
+  --bg-soft: var(--md-sys-color-surface-container-low);
+  --surface: var(--md-sys-color-surface-container-lowest);
+  --surface-2: var(--md-sys-color-surface-container);
+  --surface-3: var(--md-sys-color-surface-container-high);
+  --skeleton: var(--md-sys-color-skeleton);
+  --skeleton-shine: var(--md-sys-color-skeleton-shine);
 
   /* 线 */
-  --border: rgba(0, 0, 0, 0.1);
-  --border-soft: rgba(0, 0, 0, 0.04);
-  --border-strong: rgba(0, 0, 0, 0.16);
+  --border: var(--md-sys-color-outline-variant);
+  --border-soft: var(--md-sys-color-outline-soft);
+  --border-strong: var(--md-sys-color-outline-strong);
 
   /* 字色 */
-  --text-1: #0f1115;
-  --text-2: #61666b;
-  --text-3: #81858c;
-  --text-dim: #d5dbe3;
+  --text-1: var(--md-sys-color-on-surface);
+  --text-2: var(--md-sys-color-on-surface-variant);
+  --text-3: var(--md-sys-color-outline);
+  --text-dim: var(--md-sys-color-on-surface-disabled);
 
   /* 品牌 / 强调 */
-  --primary: #0f1115;          /* 主按钮：黑 */
-  --primary-hover: #43454a;
-  --on-primary: #ffffff;
-  --accent: #4176e6;           /* 业务蓝：链接、激活、信息 */
-  --accent-soft: #edf3fe;
-  --accent-border: #c9d9f9;
+  --primary: var(--md-sys-color-primary);
+  --primary-hover: var(--md-sys-color-primary-hover);
+  --on-primary: var(--md-sys-color-on-primary);
+  --accent: var(--md-sys-color-secondary);
+  --accent-soft: var(--md-sys-color-secondary-container);
+  --accent-border: var(--md-sys-color-secondary-container-border);
 
   /* 功能色 */
-  --red: #e5484d;
-  --red-soft: #feecec;
-  --amber: #d9730d;
-  --amber-soft: #fdf2e2;
-  --green: #22c55e;
-  --green-soft: #e6f9ee;
+  --red: var(--md-sys-color-error);
+  --red-soft: var(--md-sys-color-error-container);
+  --amber: var(--md-sys-color-warning);
+  --amber-soft: var(--md-sys-color-warning-container);
+  --green: var(--md-sys-color-success);
+  --green-soft: var(--md-sys-color-success-container);
 
   /* 交互 */
-  --hover: rgba(38, 49, 72, 0.06);
-  --active: rgba(38, 49, 72, 0.1);
+  --hover: var(--md-sys-color-state-hover);
+  --active: var(--md-sys-color-state-pressed);
 
-  /* 阴影 */
-  --shadow-1: 0 2px 4px rgba(0, 0, 0, 0.05);
-  --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
-  --shadow-3: 0 0 1px rgba(0, 0, 0, 0.2), 0 12px 32px rgba(0, 0, 0, 0.08);
-  --ring: 0 0 0 3px rgba(65, 118, 230, 0.25);
+  /* 阴影（Compat；新代码用 --elev-* 或 --md-sys-elevation-*） */
+  --elev-1: var(--md-sys-elevation-1);
+  --elev-2: var(--md-sys-elevation-2);
+  --elev-3: var(--md-sys-elevation-3);
+  --shadow-1: var(--md-sys-elevation-1);
+  --shadow-2: var(--md-sys-elevation-2);
+  --shadow-3: var(--md-sys-elevation-3);
+  --ring: var(--md-sys-focus-ring);
 
-  /* 字体 */
+  /* 字体（基础刻度，非角色令牌） */
   --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
     "Hiragino Sans GB", "Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
   --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 
-  /* 字号（harness 刻度） */
+  /* 字号（Compat；语义档位见 --md-sys-typescale-*） */
   --text-xxs: 11px;
   --text-xs: 12px;
   --text-sm: 13px;
@@ -68,16 +168,76 @@
   --text-lg: 20px;
   --text-xl: 24px;
 
-  /* 间距 / 形状 */
+  /* 间距（已是 4pt 网格，§3.9 规则 2 合规） */
   --gap-1: 4px;
   --gap-2: 8px;
   --gap-3: 12px;
   --gap-4: 16px;
   --gap-5: 24px;
   --gap-6: 32px;
-  --r-sm: 6px;
-  --r-md: 8px;
-  --r-lg: 12px;
-  --r-pill: 999px;
+
+  /* 形状（Compat；形状类是 §3.1.3 的新名） */
+  --r-sm: var(--md-sys-shape-corner-small);
+  --r-md: var(--md-sys-shape-corner-medium);
+  --r-lg: var(--md-sys-shape-corner-large);
+  --r-pill: var(--md-sys-shape-corner-full);
+
+  /* 布局 */
   --sidebar-w: 224px;
+}
+
+/* ============================================================
+   System 暗色套（§3.3）
+   值取自既有「凝夜」主题的实测覆盖——把「暗色」从主题包里的 28 条覆盖提升为 System 层一等公民：
+   主题以后只声明 dark: true，暗色基线由这里兜住，漏网变量不会再漏出亮色值
+   （骨架屏流光 --skeleton-shine 就是当年漏过一次的教训：暗底上一道刺眼白光）。
+   state/theme.ts 应用暗色主题时给 <html> 挂 data-scheme="dark"。
+   与主题注入同为 (0,2,0)，主题注入在文档流后 → 主题的显式覆盖仍然赢。
+   ============================================================ */
+:root[data-scheme="dark"] {
+  /* 面（5 级，凝夜原值） */
+  --md-sys-color-surface: #0e1117;
+  --md-sys-color-surface-container-low: #12161f;
+  --md-sys-color-surface-container-lowest: #151a24;
+  --md-sys-color-surface-container: #1a2030;
+  --md-sys-color-surface-container-high: #232b3d;
+  --md-sys-color-skeleton: rgba(255, 255, 255, 0.06);
+  --md-sys-color-skeleton-shine: rgba(255, 255, 255, 0.12);
+
+  /* 线 */
+  --md-sys-color-outline-variant: rgba(255, 255, 255, 0.1);
+  --md-sys-color-outline-soft: rgba(255, 255, 255, 0.05);
+  --md-sys-color-outline-strong: rgba(255, 255, 255, 0.18);
+
+  /* 字色 */
+  --md-sys-color-on-surface: #e8ebf2;
+  --md-sys-color-on-surface-variant: #a3abb8;
+  --md-sys-color-outline: #7d8494;
+  --md-sys-color-scrim: rgba(0, 0, 0, 0.62);      /* 弹层遮罩（暗，比明色更实） */
+  --md-sys-color-on-surface-disabled: #3a4152;
+
+  /* 品牌 / 强调（暗色下主按钮反白 —— 与亮色「紫底白字」相反） */
+  --md-sys-color-primary: #e8ebf2;
+  --md-sys-color-primary-hover: #c6ccd8;
+  --md-sys-color-on-primary: #0e1117;
+  --md-sys-color-secondary: #6b9bff;
+  --md-sys-color-secondary-container: rgba(107, 155, 255, 0.14);
+  --md-sys-color-secondary-container-border: rgba(107, 155, 255, 0.35);
+
+  /* 功能色 */
+  --md-sys-color-error: #ff736f;
+  --md-sys-color-error-container: rgba(229, 72, 77, 0.16);
+  --md-sys-color-warning: #ffb457;
+  --md-sys-color-warning-container: rgba(217, 115, 13, 0.16);
+  --md-sys-color-success: #4ade80;
+  --md-sys-color-success-container: rgba(34, 197, 94, 0.14);
+
+  /* 交互 / 焦点 / 阴影 */
+  --md-sys-color-state-hover: rgba(255, 255, 255, 0.08);
+  --md-sys-color-state-pressed: rgba(255, 255, 255, 0.12);
+  --md-sys-color-state-focus: rgba(255, 255, 255, 0.08);
+  --md-sys-focus-ring: 0 0 0 3px rgba(107, 155, 255, 0.35);
+  --md-sys-elevation-1: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --md-sys-elevation-2: 0 2px 8px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.3);
+  --md-sys-elevation-3: 0 0 1px rgba(0, 0, 0, 0.6), 0 12px 32px rgba(0, 0, 0, 0.45);
 }

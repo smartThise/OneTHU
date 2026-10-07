@@ -196,7 +196,7 @@ export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {})
       )}
 
       <div data-sec="water">
-        <SectionHead title="订水" aside="清华水站 dingshui.bjqzhd.com · 公开接口" />
+        <SectionHead title="订水" aside="清华水站 dingshui.bjqzhd.com · 公开数据" />
       </div>
       <Card style={{ padding: 18 }}>
         <div className="field">

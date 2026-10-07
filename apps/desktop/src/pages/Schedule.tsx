@@ -27,6 +27,7 @@ import {
 import { info, logLine } from "../lib/clients.js";
 import { toHomework, useExternalHomework } from "../state/exthw.js";
 import { useApp } from "../state/context.js";
+import { usePlatformLayout } from "../state/usePlatformLayout.js";
 import { courseColor, SRC_COLOR } from "../lib/courseColor.js";
 import { confirmOk } from "../lib/confirm.js";
 import { useExitHold } from "../lib/motion.js";
@@ -282,7 +283,20 @@ export function SchedulePage() {
   /** 「显示时段」弹层开关 */
   const [winOpen, setWinOpen] = useState(false);
   /** 视图模式：时间轴（周网格 24h）/ 列表（月历+所选日清单） */
-  const [mode, setMode] = useState<"timetable" | "agenda">("timetable");
+  // 视图默认分端（§2.8.2）：expanded（PC/平板横屏）落「时间轴」网格；
+  // compact/medium（手机竖屏、横屏、平板竖屏）落「列表」——周网格横向滚动在手机上是
+  // 已知的糟糕体验。用户手动切过之后就不再自动跟随（其选择保留）。
+  const tier = usePlatformLayout();
+  const [mode, setMode] = useState<"timetable" | "agenda">(tier === "expanded" ? "timetable" : "agenda");
+  const modeTouched = useRef(false);
+  useEffect(() => {
+    if (modeTouched.current) return;
+    setMode(tier === "expanded" ? "timetable" : "agenda");
+  }, [tier]);
+  const pickMode = (m: "timetable" | "agenda"): void => {
+    modeTouched.current = true;
+    setMode(m);
+  };
   /** 日期锚点：任意日期，导航无边界（1970–2099） */
   const [anchor, setAnchor] = useState<Date>(new Date());
   const [selected, setSelected] = useState<string>(ymdOf(new Date()));
@@ -759,7 +773,7 @@ export function SchedulePage() {
             key={m}
             className={mode === m ? "btn btn-primary" : "btn"}
             style={mode === m ? undefined : { opacity: 0.75 }}
-            onClick={() => setMode(m)}
+            onClick={() => pickMode(m)}
           >
             {lbl}
           </button>
