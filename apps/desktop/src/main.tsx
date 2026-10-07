@@ -13,6 +13,11 @@ void logLine("PROBE js-modules-evaluated").catch(() => undefined);
 window.addEventListener("unhandledrejection", (e) => {
   hookRenderError("rejection", `${String((e.reason as Error)?.message ?? e.reason).slice(0, 300)} stack=${(e.reason as Error)?.stack?.slice(0, 900) ?? ""}`);
 });
+// 开发者构建（ONETHU_DEV=1）：把 console.* 也灌进 Rust 日志链，真机导出的日志才有现场。
+// 正式版 __ONETHU_DEV__ 折叠为 false → 整块（含动态 import）被静态删除。
+if (__ONETHU_DEV__) {
+  void import("./lib/devlog.js").then((m) => m.installDevLogBridge());
+}
 // 真机密度标记：触屏 + 窄窗 → html.is-phone（CSS 密度层挂此类，不依赖媒体查询细节）
 function markPhone(): void {
   const touch = (navigator.maxTouchPoints ?? 0) > 0 || window.matchMedia("(pointer: coarse)").matches;
@@ -20,6 +25,8 @@ function markPhone(): void {
 }
 markPhone();
 window.addEventListener("resize", markPhone);
+// 触摸涟漪：全局单监听，只在 is-phone 密度层生效（桌面不挂）
+installScrollReveal();
 
 import { createRoot } from "react-dom/client";
 import { activateInstalledPlugins, seedBuiltinHarness } from "./plugins/loader.js";
@@ -33,6 +40,10 @@ import { initSystemCalAutoSync } from "./state/systemCal.js";
 initSystemCalAutoSync();
 import "@onethu/ui/base.css";
 import "./styles/global.css";
+// 动效层（local/anim-delight）：令牌 + keyframes + 全局微交互。必须在 global.css 之后，
+// 否则同选择器的 transition/animation 会被 global.css 覆盖。
+import "./styles/motion.css";
+import { installScrollReveal } from "./lib/motion.js";
 import { App } from "./App.js";
 import { ConfirmHost } from "./lib/confirm.js";
 import { FormModalHost } from "./lib/formModal.js";

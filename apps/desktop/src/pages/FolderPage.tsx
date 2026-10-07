@@ -27,6 +27,7 @@ import { resolveAtom } from "../state/atoms.js";
 import { AtomPickerModal, CollectStar } from "../components/Collect.js";
 import { loadTabLayout, saveTabLayout, type TabLayout } from "../lib/tabLayout.js";
 import { confirmOk } from "../lib/confirm.js";
+import { useTabDirection } from "../lib/motion.js";
 
 const ROOT_TAB = "__root";
 
@@ -191,14 +192,19 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
   const [renameVal, setRenameVal] = useState("");
   const [iconOpen, setIconOpen] = useState(false);
 
-  if (!f) return null;
-
-  const subIds = f.items.filter((it) => it.t === "f" && !!favs.data.folders[it.id]).map((it) => (it as { id: string }).id);
+  /* 栏目布局与页签方向必须在早返回**之前**算完：Hook 不能出现在 `if (!f) return null` 之后，
+     否则收藏夹被删除时本次渲染比上次多一个 Hook → React 抛错且错误边界兜不住 → 整窗白屏
+     （tools/hook-order-test.mjs 静态钉死这条）。f 缺失时按空栏目算，返回值马上被丢弃。 */
+  const subIds = f ? f.items.filter((it) => it.t === "f" && !!favs.data.folders[it.id]).map((it) => (it as { id: string }).id) : [];
   const tabIds = [ROOT_TAB, ...subIds];
   const { order, hidden } = loadTabLayout("fav." + folderId, tabIds);
   const visibleIds = order.filter((id) => !hidden.includes(id));
   /** 当前栏被隐藏/删除 → 回落第一个可见栏（功能页同款） */
   const effTab = visibleIds.includes(tab) ? tab : visibleIds[0];
+  // 页签切换方向（决定内容从哪一侧滑入）
+  const tabDir = useTabDirection(effTab ?? null, visibleIds);
+
+  if (!f) return null;
   const labelOf = (id: string) => (id === ROOT_TAB ? "默认" : favs.data.folders[id]?.title ?? "收藏夹");
   const activate = (id: string) => {
     setTab(id);
@@ -316,7 +322,7 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
           ) : null}
 
           {visibleIds.map((id) => (
-            <div key={id} hidden={effTab !== id}>
+            <div key={id} hidden={effTab !== id} className={effTab === id ? "tab-anim" : undefined} data-dir={tabDir}>
               {visited.has(id) || id === effTab ? (
                 id === ROOT_TAB ? (
                   <>

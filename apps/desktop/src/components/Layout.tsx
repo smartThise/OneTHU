@@ -1,5 +1,5 @@
 /** 侧栏 + 内容骨架 + 基础 UI 件（卡片 / 徽标 / 骨架屏 / 开关） */
-import { Children, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, useSyncExternalStore} from "react";
+import { Children, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, useSyncExternalStore} from "react";
 import { useThemes } from "../state/theme.js";
 import { useApp } from "../state/context.js";
 import { topLevelPage, type Page } from "../state/app.js";
@@ -9,6 +9,12 @@ import { useFavs } from "../state/favs.js";
 import { pluginTabsSnapshot, subscribePluginTabs } from "../plugins/tabs.js";
 import { showToast } from "../state/toast.js";
 import { checkUpdateSilently } from "../lib/update.js";
+import { useNavIndicator, useSegPill } from "../lib/motion.js";
+
+/** 开发者面板（仅 dev 构建）：右上角 commit 徽标 + 前端日志/诊断/导出。
+ *  正式版里 __ONETHU_DEV__ 折叠为 false → 这句动态 import 被 rollup 删除，
+ *  dev 面板整块不进产物（守卫 tools/devtools-test.mjs，构建后再 grep dist 复核）。 */
+const DevPanel = __ONETHU_DEV__ ? lazy(() => import("./DevPanel.js")) : null;
 
 /**
  * 默认一级入口（万物原子化定案）：钉死不可删隐，仅可在侧栏折叠进
@@ -92,7 +98,7 @@ export function SegmentedOverflow({
   style?: CSSProperties;
   children: ReactNode;
 }) {
-  const rowRef = useRef<HTMLDivElement>(null);
+  const [rowRef, pillRef] = useSegPill();
   const indiRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLElement>(null);
   const drag = useRef<{ x: number; sl: number } | null>(null);
@@ -177,6 +183,8 @@ export function SegmentedOverflow({
           }
         }}
       >
+        {/* 滑动块：位置/宽度由 useSegPill 量出后写入内联样式，量不到时不显形 */}
+        <span className="seg-pill" ref={pillRef} aria-hidden="true" />
         {children}
       </div>
       {/* 真滚动条：滑块可抓取拖动，点槽任意处跳转（拇指中心对齐点击点） */}
@@ -226,6 +234,17 @@ export function Slogan({ size = 13 }: { size?: number }) {
   );
 }
 
+/** 侧栏 / 抽屉共用的导航容器：内含当前项指示条（.nav-indicator，拉伸平移由 useNavIndicator 驱动） */
+function NavBody({ label, children }: { label: string; children: ReactNode }) {
+  const [rowRef, barRef] = useNavIndicator();
+  return (
+    <nav className="nav" aria-label={label} ref={rowRef}>
+      <span className="nav-indicator" ref={barRef} aria-hidden="true" />
+      {children}
+    </nav>
+  );
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const { page: rawPage, navigate, navParams } = useApp();
 
@@ -235,6 +254,14 @@ export function Shell({ children }: { children: ReactNode }) {
   const page = topLevelPage(rawPage);
   const [navOpen, setNavOpen] = useState(false);
   const [navClosing, setNavClosing] = useState(false);
+  /** 顶栏滚动浮起（local/anim-delight）：滚过 8px 后加阴影，做出"页面在顶栏下滚动"的层次 */
+  const [topbarScrolled, setTopbarScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setTopbarScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   /** 「已折叠收藏夹（N）」组展开态（会话态，不持久化） */
   const [foldedOpen, setFoldedOpen] = useState(false);
   const closeNav = useCallback(() => {
@@ -362,7 +389,7 @@ export function Shell({ children }: { children: ReactNode }) {
               <IconChevron width={13} height={13} className="row-caret" />
             </button>
             {foldedOpen ? (
-              <>
+              <div className="nav-folded-body">
                 {foldedDefaults.map(({ page: p, label, icon: Icon }) =>
                   navRow("fd-" + p, {
                     active: page === p,
@@ -389,7 +416,7 @@ export function Shell({ children }: { children: ReactNode }) {
                     onFold: () => favs.foldSidebar(id, false),
                   }),
                 )}
-              </>
+              </div>
             ) : null}
           </>
         ) : null}
@@ -430,9 +457,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <BrandLogo size={16} />
         </div>
         <div className="nav-label">校园</div>
-        <nav className="nav" aria-label="主导航">
-          {navContent()}
-        </nav>
+        <NavBody label="主导航">{navContent()}</NavBody>
         <div className="sidebar-foot">
           <span className="foot-badge">
             <span className="dot" style={{ background: DESENSITIZE_BUILD ? "var(--amber)" : "var(--green)" }} />
@@ -448,9 +473,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <div className="drawer-brand">
               <BrandLogo size={15} />
             </div>
-            <nav className="nav" aria-label="抽屉导航">
-              {navContent(() => closeNav())}
-            </nav>
+            <NavBody label="抽屉导航">{navContent(() => closeNav())}</NavBody>
             <div className="drawer-foot">
               <span className="foot-badge">
                 <span className="dot" style={{ background: DESENSITIZE_BUILD ? "var(--amber)" : "var(--green)" }} />
@@ -462,7 +485,7 @@ export function Shell({ children }: { children: ReactNode }) {
       ) : null}
       <main className="content">
         {/* 移动端顶栏：汉堡菜单 + 品牌标识，桌面隐藏（桌面走侧栏） */}
-        <header className="mobile-topbar">
+        <header className={"mobile-topbar" + (topbarScrolled ? " is-scrolled" : "")}>
           <button className="topbar-menu" onClick={() => setNavOpen(true)} aria-label="打开导航菜单">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
               <path d="M4 6h16M4 12h16M4 18h16" />
@@ -476,6 +499,11 @@ export function Shell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <HardRefreshButton />
+      {DevPanel ? (
+        <Suspense fallback={null}>
+          <DevPanel />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

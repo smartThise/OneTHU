@@ -11,6 +11,7 @@ import { MAIL_FOLDERS, useMail, useMailCounts, useMailBody, sendMail, mailSearch
 import { IconMail, IconRefresh, IconPen, IconChevron } from "../components/Icons.js";
 import { CollectStar } from "../components/Collect.js";
 import { showToast } from "../state/toast.js";
+import { useExitHold, useSegPill } from "../lib/motion.js";
 
 /** 邮件时间：今天 14:05 / 昨天 / 9月5日 / 2025年12月3日 */
 function fmtMailDate(ms: number): string {
@@ -64,7 +65,7 @@ function Row({ h, folder, active, onClick }: { h: MailHead; folder: string; acti
   );
 }
 
-function Compose({ onClose, onSent }: { onClose: () => void; onSent: (msg: string) => void }): React.ReactNode {
+function Compose({ closing, onClose, onSent }: { closing: boolean; onClose: () => void; onSent: (msg: string) => void }): React.ReactNode {
   const [to, setTo] = useState("");
   const [cc, setCc] = useState("");
   const [subject, setSubject] = useState("");
@@ -86,8 +87,8 @@ function Compose({ onClose, onSent }: { onClose: () => void; onSent: (msg: strin
     }
   };
   return (
-    <div className="mail-compose-mask" onClick={(e) => { if (e.target === e.currentTarget && !sending) onClose(); }}>
-      <div className="mail-compose">
+    <div className={"mail-compose-mask" + (closing ? " is-closing" : "")} onClick={(e) => { if (e.target === e.currentTarget && !sending) onClose(); }}>
+      <div className={"mail-compose" + (closing ? " is-closing" : "")}>
         <div className="mail-compose-head">
           <h2>写信</h2>
           <button className="btn btn-ghost" onClick={onClose} disabled={sending}>取消</button>
@@ -189,6 +190,9 @@ export function MailPage(): React.ReactNode {
   const [searching, setSearching] = useState(false);
   const mail = useMail(folder);
   const unreadCounts = useMailCounts();
+  const [segRef, pillRef] = useSegPill();
+  /* 写信弹层：关闭时多挂 220ms 播完退场，而不是瞬间消失 */
+  const composeHold = useExitHold(composing ? "compose" : null, 220);
 
   // 原子深链：写信 / 邮件实体（先弹层再落位，双触发幂等）
   useEffect(() => {
@@ -238,7 +242,8 @@ export function MailPage(): React.ReactNode {
         </div>
       </div>
       <div className="mail-toolbar">
-        <div className="segmented">
+        <div className="segmented" ref={segRef}>
+          <span className="seg-pill" ref={pillRef} aria-hidden="true" />
           {MAIL_FOLDERS.map((f) => (
             <button
               key={f.id}
@@ -296,15 +301,16 @@ export function MailPage(): React.ReactNode {
           </div>
         )}
       </div>
-      {composing && (
+      {composeHold.mounted && composeHold.held ? (
         <Compose
+          closing={composeHold.closing}
           onClose={() => setComposing(false)}
           onSent={(m) => {
             showToast(m);
             void mail.refresh();
           }}
         />
-      )}
+      ) : null}
     </>
   );
 }

@@ -7,8 +7,8 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { TabLayout } from "../lib/tabLayout.js";
 
-const maskStyle: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
-const panelStyle: React.CSSProperties = { width: "100%", maxWidth: 420, maxHeight: "70vh", display: "flex", flexDirection: "column", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)" };
+const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
+const panelStyle: React.CSSProperties = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 420, maxHeight: "70vh", display: "flex", flexDirection: "column", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)" };
 
 export function TabManageModal({
   open,
