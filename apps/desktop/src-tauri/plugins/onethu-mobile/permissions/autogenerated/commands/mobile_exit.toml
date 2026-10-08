@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-mobile-exit"
+description = "Enables the mobile_exit command without any pre-configured scope."
+commands.allow = ["mobile_exit"]
+
+[[permission]]
+identifier = "deny-mobile-exit"
+description = "Denies the mobile_exit command without any pre-configured scope."
+commands.deny = ["mobile_exit"]

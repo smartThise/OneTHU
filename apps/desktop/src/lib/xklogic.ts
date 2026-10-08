@@ -63,7 +63,7 @@ export const FLAG_LABELS: Record<XkFlag, string> = { bx: "必修", xx: "限选",
 /* ── §6 概率模型 ────────────────────────────────────────────── */
 export interface VolStrings { volRequired: string; volElective: string; volOptional: string; volSports: string }
 export interface ProbResult { prob: number; label: string; percentLabel: string; ratioLabel: string; color: string; bg: string }
-const P_GREEN = "#07c160", P_AMBER = "#ff9f1a", P_RED = "#ee4d4d", P_GRAY = "#9aa1ac";
+const P_GREEN = "var(--green)", P_AMBER = "var(--amber)", P_RED = "var(--red)", P_GRAY = "var(--text-3)";
 export const probBg = (color: string): string => color + "22";
 
 function probResult(rem: number, applicants: number): ProbResult {
@@ -149,12 +149,12 @@ export function occupancyOf(
 
 /** 竞争色阶（volColor 逐字）：≤0.8 宽松绿 / ≤1.2 适中黄 / 其余激烈红 */
 export function volColor(applied: number, cap: number): { level: "easy" | "medium" | "hard" | "unknown"; color: string; pct: number } {
-  if (!cap || cap === 0) return { level: "unknown", color: "#9aa1ac", pct: 0 };
+  if (!cap || cap === 0) return { level: "unknown", color: "var(--text-3)", pct: 0 };
   const ratio = applied / cap;
-  if (ratio <= 0.8) return { level: "easy", color: "#07c160", pct: Math.min(ratio * 100, 100) };
-  if (ratio < 1) return { level: "medium", color: "#ff9f1a", pct: Math.min(ratio * 100, 100) };
+  if (ratio <= 0.8) return { level: "easy", color: "var(--green)", pct: Math.min(ratio * 100, 100) };
+  if (ratio < 1) return { level: "medium", color: "var(--amber)", pct: Math.min(ratio * 100, 100) };
   // 已满/超载一律红（用户令：已满拿红色标出来——扩展原 1.2 阈值对「恰好满」是黄的，改）
-  return { level: "hard", color: "#ee4d4d", pct: Math.min(ratio * 100, 100) };
+  return { level: "hard", color: "var(--red)", pct: Math.min(ratio * 100, 100) };
 }
 
 /* ── §5 合并行实体 ──────────────────────────────────────────── */

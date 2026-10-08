@@ -1,9 +1,9 @@
 /** 通知只读详情（learnX NoticeDetail）：标题/发布者/正文富文本 + 附件下载 */
 import { useEffect, useMemo, useState } from "react";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
-import { CollectStar } from "../../components/Collect.js";
+import { usePageCollect } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
-import { IconDownload } from "../../components/Icons.js";
+import { IconDownload, IconExternal } from "../../components/Icons.js";
 import { learn, downloadLearnUrl } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { openFilePreview } from "../../components/FilePreview.js";
@@ -15,10 +15,11 @@ import { openExternal } from "../info/openExternal.js";
 import { DownloadOpenButtons } from "../../components/DownloadOpenButtons.js";
 import { markNoticeReadLocally, noticeHasRead, useNoticeReadVersion } from "../../lib/noticeRead.js";
 import type { LearnAttachment } from "@onethu/core";
+import type { PageMenuItem } from "../../state/pageChrome.js";
 
 export function NoticeDetailPage() {
   useLearnNavSemester();
-  const { navParams, navigate } = useApp();
+  const { navParams, navigate, back } = useApp();
 
   const { data, state, error, reload } = useLearnData();
   const [att, setAtt] = useState<LearnAttachment | null>(null);
@@ -83,10 +84,16 @@ export function NoticeDetailPage() {
     setAttState("idle");
   };
 
+  /* hook 必须在早返回之前：n 还没到就先不给收藏项 */
+  const collect = usePageCollect(
+    n ? { kind: "notice", key: enc(n.courseId, n.id, n.title, course?.name ?? "", data?.semester.id ?? "") } : null,
+    n?.title,
+  );
+
   if (!n) {
     return (
       <>
-        <PageHead title="通知详情" actions={<BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} courseTab="notices" />} />
+        <PageHead title="通知详情" back={<BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} courseTab="notices" />} />
         {state === "loading" ? (
           <SkeletonRows rows={4} />
         ) : state === "error" ? (
@@ -94,7 +101,7 @@ export function NoticeDetailPage() {
         ) : (
           <Card><Empty
             text="未找到该通知，可能数据已刷新，请返回列表重试。"
-            action={<button className="btn btn-ghost" onClick={() => navigate("learn")}>回网络学堂</button>}
+            action={<button className="btn btn-ghost" onClick={() => back(() => navigate("learn", undefined, { replace: true }))}>回网络学堂</button>}
           /></Card>
         )}
       </>
@@ -103,21 +110,15 @@ export function NoticeDetailPage() {
 
   return (
     <>
+      {collect.modal}
       <PageHead
         title={n.title}
         meta={`${course?.name ?? "课程"} · ${n.publisher} 发布于 ${fmtDateTime(n.publishTime)}`}
-        actions={
-          <>
-            <BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} courseTab="notices" />
-            <CollectStar
-              atom={{ kind: "notice", key: enc(n.courseId, n.id, n.title, course?.name ?? "", data?.semester.id ?? "") }}
-              title={n.title}
-            />
-            <button className="btn" onClick={() => void openExternal(n.url)} title="在系统浏览器打开">
-              网页端打开
-            </button>
-          </>
-        }
+        back={<BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} courseTab="notices" />}
+        menu={[
+          collect.item,
+          { key: "open-web", label: "网页端打开", icon: <IconExternal width={16} height={16} />, onSelect: () => void openExternal(n.url) },
+        ].filter(Boolean) as PageMenuItem[]}
       />
 
       <Card className="detail-head">

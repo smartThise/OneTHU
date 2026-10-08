@@ -5,13 +5,15 @@
  * 得分 0 过滤；按得分降序、同分时间倒序；行内展示相对最高分的分数条与命中词高亮。
  */
 import { useMemo, useState } from "react";
-import { PageAtomStar } from "../..//components/Collect.js";
+import { usePageCollect } from "../../components/Collect.js";
+import { pageAtomRef } from "../../state/atoms.js";
+import type { PageMenuItem } from "../../state/pageChrome.js";
 import type { ReactNode } from "react";
-import { Card, Empty, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { Card, Empty, PageHead, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { IconChevron, IconSearch } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
-import { homeworkChip } from "./shared.js";
+import { BackButton, homeworkChip } from "./shared.js";
 import { openHomeworkRow } from "../../lib/homeworkEntry.js";
 import type { CourseFile, CourseInfo, Homework, Notification } from "@onethu/core";
 
@@ -279,7 +281,7 @@ function SearchFileRow({ f, courseName, tokens, score, max, delay }: { f: Course
 /* ---------- 页面 ---------- */
 
 export function SearchPage() {
-  const { navigate } = useApp();
+  const { navigate, back } = useApp();
   const { data, state } = useLearnData();
   const [q, setQ] = useState("");
 
@@ -361,18 +363,17 @@ export function SearchPage() {
     [data],
   );
 
+  const collect = usePageCollect(pageAtomRef("learn-search"), "网络学堂搜索");
+
   return (
     <>
-      <div className="page-head">
-        <div>
-          <h1>搜索</h1>
-          <div className="page-head-meta">搜课程、作业、通知、文件（含正文与附件）</div>
-        </div>
-        <div className="page-head-actions">
-          <PageAtomStar atomKey="learn-search" title="网络学堂搜索" />
-          <button className="btn btn-ghost" onClick={() => navigate("learn")}>← 返回</button>
-        </div>
-      </div>
+      {collect.modal}
+      <PageHead
+        title="搜索"
+        meta="搜课程、作业、通知、文件（含正文与附件）"
+        back={<BackButton to="learn" label="网络学堂" />}
+        menu={[collect.item].filter(Boolean) as PageMenuItem[]}
+      />
 
       <div className="search-box">
         <IconSearch width={15} height={15} />

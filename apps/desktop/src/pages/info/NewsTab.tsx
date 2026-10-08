@@ -32,17 +32,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import type { NewsDetail, NewsItem } from "@onethu/core";
+import type { NewsItem } from "@onethu/core";
 import { SegmentedOverflow, Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { CollectStar } from "../../components/Collect.js";
 import { enc, noteAtomCache } from "../../state/atoms.js";
-import { IconDownload, IconExternal, IconSearch } from "../../components/Icons.js";
+import { IconExternal, IconSearch } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useNews } from "../../state/data.js";
-import { info, downloadLearnUrl } from "../../lib/clients.js";
+import { info } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
-import { openFilePreview } from "../../components/FilePreview.js";
-import { DownloadOpenButtons } from "../../components/DownloadOpenButtons.js";
+import { NewsDetailDrawer, type NewsDetailState } from "../../components/NewsDetailDrawer.js";
 import { RichContent } from "../learn/shared.js";
 import { Highlight, byDateDesc, rankNews, readSubs, tokenize, writeSubs } from "./newsSearch.js";
 import { openExternal } from "./openExternal.js";
@@ -68,19 +67,13 @@ interface SubCondition {
 const conditionLabel = (c: SubCondition): string =>
   c.source || c.channel || c.keyword || c.title || c.id;
 
-interface DetailState {
-  item: NewsItem;
-  state: "loading" | "ok" | "error";
-  data?: NewsDetail;
-  err?: string;
-}
 
 /* ══════════ 弹层（createPortal 挂 body：视口定位不再受滚动容器/祖先 transform 影响）══════════ */
 /* 订阅管理弹层：遮罩 flex 视口垂直居中（Courses.tsx maskStyle/panelStyle 同款） */
 const subMaskStyle: CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both",
   position: "fixed",
   inset: 0,
-  background: "rgba(15, 23, 42, 0.45)",
+  background: "var(--md-sys-color-scrim)",
   zIndex: 70,
   display: "flex",
   alignItems: "center",
@@ -96,7 +89,7 @@ const subPanelStyle: CSSProperties = { animation: "m-spring-in var(--dur-3) var(
   background: "var(--surface)",
   borderRadius: 14,
   border: "1px solid var(--border)",
-  boxShadow: "0 18px 50px rgba(0, 0, 0, 0.28)",
+  boxShadow: "var(--shadow-3)",
 };
 const subPanelHead: CSSProperties = {
   display: "flex",
@@ -108,24 +101,6 @@ const subPanelHead: CSSProperties = {
 };
 const subPanelBody: CSSProperties = { padding: "12px 20px 20px", overflowY: "auto" };
 
-/* 新闻详情抽屉：同样挂 body，保持右侧滑出形态 */
-const drawerMaskStyle: CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(15, 23, 42, 0.45)",
-  display: "flex",
-  justifyContent: "flex-end",
-  zIndex: 60,
-};
-const drawerPanelStyle: CSSProperties = {
-  width: "min(720px, 94vw)",
-  background: "var(--surface)",
-  overflowY: "auto",
-  padding: "20px 26px 28px",
-  borderRadius: "16px 0 0 16px",
-  border: "1px solid var(--border)",
-  borderRight: "none",
-};
 
 /** 新闻行：标题命中高亮；订阅动态行附加来源 chip 标注 */
 function NewsRow({
@@ -190,28 +165,10 @@ export function NewsTab({
 } = {}) {
   const [page, setPage] = useState(1);
   const { data, state, error, reload } = useNews(page, PAGE_SIZE);
-  const [detail, setDetail] = useState<DetailState | null>(null);
+  const [detail, setDetail] = useState<NewsDetailState | null>(null);
 
-  /* --- 附件下载（详情抽屉）：走桌面统一 download_file 链路 --- */
-  /** 正在下载的附件 url（互斥按条目生效），及落盘结果/错误提示 */
-  const [dlAtt, setDlAtt] = useState<string | null>(null);
-  // R23：下载提示携带落盘路径，右侧挂「打开文件 / 打开目录」
-  const [dlHint, setDlHint] = useState<{ text: string; path?: string } | null>(null);
-  /** 附件下载：downloadLearnUrl 对任意 URL 通用（withLearnCsrf 对非 learn host 原样返回），
-   *  info 附件 URL 已由 core 带 _csrf，Cookie 由共享 jar 按 info host 提供；落盘名用附件名。 */
-  const doDownloadAtt = async (url: string, name: string): Promise<void> => {
-    if (dlAtt) return;
-    setDlAtt(url);
-    setDlHint(null);
-    try {
-      const path = await downloadLearnUrl(url, name || "news-attachment");
-      setDlHint({ text: `已下载到：${path}`, path });
-    } catch (err: unknown) {
-      setDlHint({ text: "下载失败：" + explainNetworkError(err) });
-    } finally {
-      setDlAtt(null);
-    }
-  };
+  /* 附件下载（dlAtt / dlHint / doDownloadAtt）已随详情抽屉搬进
+     components/NewsDetailDrawer.tsx：抽屉自己管自己那条新闻的下载状态，换条自动重置。 */
 
   /* --- 分栏：全部新闻 / 订阅动态（无订阅时隐藏分段控件，恒显全部新闻） --- */
   const [seg, setSeg] = useState<"all" | "subs">("all");
@@ -522,8 +479,6 @@ export function NewsTab({
       return;
     }
     setDetail({ item, state: "loading" });
-    setDlHint(null);
-    setDlAtt(null);
     info
       .getNewsDetail(item.xxid)
       .then((d) => {
@@ -812,89 +767,9 @@ export function NewsTab({
         </>
       )}
 
-      {detail
-        ? createPortal(
-            <div style={drawerMaskStyle} onClick={() => setDetail(null)}>
-              <div style={drawerPanelStyle} onClick={(e) => e.stopPropagation()}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-                  <h2 style={{ margin: 0, fontSize: 18, lineHeight: 1.45 }}>
-                    {detail.item.name || detail.data?.title || "新闻详情"}
-                  </h2>
-                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                    {detail.item.url ? (
-                      <button className="btn" onClick={() => void openExternal(detail.item.url!)}>
-                        <IconExternal width={14} height={14} />
-                        在浏览器打开
-                      </button>
-                    ) : null}
-                    <button className="btn btn-ghost" onClick={() => setDetail(null)}>关闭</button>
-                  </div>
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 12 }}>
-                  {[detail.item.source, detail.item.date].filter(Boolean).join(" · ")}
-                </div>
-                {detail.state === "loading" ? (
-                  <SkeletonRows rows={6} />
-                ) : detail.state === "error" ? (
-                  <ErrorNote text={detail.err ?? ""} onRetry={() => openDetail(detail.item)} />
-                ) : (
-                  <>
-                    <RichContent html={detail.data?.html} fallback="正文为空。" />
-                    {detail.data && detail.data.attachments.length > 0 ? (
-                      <div
-                        style={{
-                          marginTop: 14,
-                          border: "1px solid var(--border)",
-                          borderRadius: 10,
-                          padding: "10px 12px",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 6,
-                        }}
-                      >
-                        <div style={{ fontSize: 12, color: "var(--text-3)" }}>
-                          附件（{detail.data.attachments.length}）
-                        </div>
-                        {detail.data.attachments.map((a, i) => (
-                          <div key={`${i}-${a.url}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ flexShrink: 0 }}>📄</span>
-                            <span
-                              style={{ flex: 1, fontSize: 13, overflowWrap: "anywhere" }}
-                              title={a.name}
-                            >
-                              {a.name}
-                            </span>
-                            <button
-                              className="btn btn-ghost"
-                              onClick={() => openFilePreview({ name: a.name, url: a.url })}
-                            >
-                              预览
-                            </button>
-                            <button
-                              className="btn btn-ghost"
-                              disabled={dlAtt === a.url}
-                              onClick={() => void doDownloadAtt(a.url, a.name)}
-                            >
-                              <IconDownload width={14} height={14} />
-                              {dlAtt === a.url ? "下载中…" : "下载"}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                    {dlHint ? (
-                      <div style={{ marginTop: 8, fontSize: 12, color: "var(--accent)", overflowWrap: "anywhere", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                        <span>{dlHint.text}</span>
-                        {dlHint.path ? <DownloadOpenButtons path={dlHint.path} /> : null}
-                      </div>
-                    ) : null}
-                  </>
-                )}
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
+      {/* D7：详情抽屉抽成 components/NewsDetailDrawer.tsx（PC 右侧留边距 / 手机底部抽屉，
+          返回键先关它），新闻页与待办页共用同一个组件、同一套进出场 */}
+      <NewsDetailDrawer detail={detail} onClose={() => setDetail(null)} onRetry={openDetail} />
 
       {subsOpen
         ? createPortal(
@@ -906,8 +781,8 @@ export function NewsTab({
                 </div>
                 <div style={subPanelBody}>
                   <div style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 12 }}>
-                    订阅条件以信息门户服务端为权威（与 thu-info 同接口、同账号），添加/删除
-                    即时写入门户订阅并刷新；本机 localStorage 仅作界面偏好缓存。
+                    订阅条件以信息门户服务端为权威（与信息门户同账号），添加/删除
+                    即时写入门户订阅并刷新；本机只记住界面偏好。
                   </div>
                   {opErr ? <ErrorNote text={opErr} /> : null}
 

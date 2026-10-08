@@ -259,11 +259,12 @@ export class HttpClient {
   #fetch: FetchLike;
   #ua: string;
   #webVPN = false;
-  #relogin: (() => Promise<void>) | null = null;
-  /** 重登单飞：并发多个请求同时发现失登时只跑一次——两个重登并发会各自重立
-   *  webvpn 会话互烧 wengine_vpn_ticket（2026-09-06 校外 14 连败实录：3 条并发
-   *  链各自内部重舞 oauth，票据互相顶掉成环）。 */
-  #reloginInflight: Promise<void> | null = null;
+  // F3 ③（b17）：本类此前有一套「#looksLoggedOut 判登录页 → #relogin → 重放一次」的
+  // 触发+重放（唯一注册点在 desktop 的 `http.onAuthRequired`）。触发面下移到
+  // `nativeFetch` 后，同一失败会被判两次（本类一次 + 传输层一次），且本类拿到的
+  // body 已由 nativeFetch 重放过——故整套删除，判据与重放语义收在
+  // `apps/desktop/src/lib/libSessionGuard.ts`（共享单飞）。AuthRequiredError 与
+  // 全局 onAuthRequired 广播不受影响。
 
   /** 诊断现场：最后一次 text() 响应（URL + 状态 + 正文前 800 字）。
    *  info/learn 解析失败时由 UI 落盘到 /tmp/onethu-debug.log 定位。 */
@@ -298,11 +299,6 @@ export class HttpClient {
 
   withWebVPN(on: boolean): this {
     this.#webVPN = on;
-    return this;
-  }
-
-  onAuthRequired(fn: () => Promise<void>): this {
-    this.#relogin = fn;
     return this;
   }
 
@@ -472,19 +468,6 @@ export class HttpClient {
         this.#emitDebug(body);
       }
     }
-    if (this.#looksLoggedOut(body, response) && this.#relogin) {
-      this.#reloginInflight ??= this.#relogin().finally(() => {
-        this.#reloginInflight = null;
-      });
-      await this.#reloginInflight;
-      response = await this.request(url, init);
-      body = await response.text();
-      const wireNote2 = this.lastTarget && this.lastTarget !== url
-        ? "[wire " + this.lastTarget.slice(0, 100) + "] " : "";
-      this.lastDebug = wireNote2 +
-        (response.url || url).slice(0, 160) + " status=" + response.status + " body=" +
-        body.slice(0, 800).replace(/\s+/g, " ");
-    }
     return body;
   }
 
@@ -568,14 +551,5 @@ export class HttpClient {
       aoData: JSON.stringify(Object.entries(params).map(([name, value]) => ({ name, value }))),
     });
     return this.text(url, { method: "POST", body });
-  }
-
-  #looksLoggedOut(body: string, response: Response): boolean {
-    if (this.#relogin === null) return false;
-    if (/\/do\/off\/ui\/auth\/login\//.test(response.url || "")) return true;
-    // 舞步中止标记（transport 层检测到链被 302 进 webvpn 登录舞）：视为失登，
-    // 走 #relogin 单飞重建后重试——绝不各自跳登录舞互烧票据（2026-09-13 定案）
-    if (response.headers.get("x-onethu-auth-dance") === "webvpn-login") return true;
-    return /id="sm2publicKey"/.test(body) || /name="i_pass"/.test(body);
   }
 }

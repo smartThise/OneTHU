@@ -36,7 +36,7 @@ export interface AgendaItem {
   allDay?: boolean;
 }
 const KIND_LABEL: Record<AgendaKind, string> = { course: "课程", exam: "考试", cloud: "云", local: "本" };
-const KIND_COLOR: Record<AgendaKind, string> = { course: "#6d7ff0", exam: "#e5484d", cloud: "#1fa487", local: "#8a8f98" };
+const KIND_COLOR: Record<AgendaKind, string> = { course: "var(--accent)", exam: "var(--red)", cloud: "var(--green)", local: "var(--text-3)" };
 
 function fmtRange(a: number, b: number, allDay?: boolean): string {
   if (allDay) return "全天";
@@ -164,7 +164,7 @@ export function ScheduleAgenda({
       <Card style={{ padding: 12, marginBottom: 10 }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, textAlign: "center" }}>
           {WEEK_SHORT.map((w) => (
-            <div key={w} style={{ fontSize: 11, color: "var(--text-3, #999)", padding: "2px 0" }}>{w}</div>
+            <div key={w} style={{ fontSize: 11, color: "var(--text-3)", padding: "2px 0" }}>{w}</div>
           ))}
           {gridDays.map((c, i) =>
             c ? (
@@ -172,8 +172,8 @@ export function ScheduleAgenda({
                 key={c.day}
                 onClick={() => onSelect(c.day)}
                 style={{
-                  position: "relative", border: "none", background: c.day === selected ? "var(--accent, #6d7ff0)" : c.day === todayStr ? "rgba(109,127,240,0.10)" : "transparent",
-                  color: c.day === selected ? "#fff" : "inherit", borderRadius: 7, padding: "5px 0 7px", cursor: "pointer",
+                  position: "relative", border: "none", background: c.day === selected ? "var(--accent)" : c.day === todayStr ? "var(--accent-soft)" : "transparent",
+                  color: c.day === selected ? "var(--on-primary)" : "inherit", borderRadius: 7, padding: "5px 0 7px", cursor: "pointer",
                 }}
               >
                 <span style={{ fontSize: 12.5, fontWeight: c.day === todayStr || c.day === selected ? 700 : 400 }}>{c.num}</span>
@@ -181,7 +181,7 @@ export function ScheduleAgenda({
                   {(["course", "exam", "cloud", "local"] as const)
                     .filter((k) => monthMarks.get(c.day)?.[k])
                     .map((k) => (
-                      <i key={k} style={{ width: 4, height: 4, borderRadius: 2, background: c.day === selected ? "#fff" : KIND_COLOR[k], display: "inline-block" }} />
+                      <i key={k} style={{ width: 4, height: 4, borderRadius: 2, background: c.day === selected ? "var(--on-primary)" : KIND_COLOR[k], display: "inline-block" }} />
                     ))}
                 </span>
               </button>
@@ -194,10 +194,10 @@ export function ScheduleAgenda({
 
       {/* 所选日清单 */}
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
-        <span style={{ fontWeight: 700, fontSize: 15, color: selected === todayStr ? "var(--accent, #6d7ff0)" : undefined }}>
+        <span style={{ fontWeight: 700, fontSize: 15, color: selected === todayStr ? "var(--accent)" : undefined }}>
           {selD.getMonth() + 1}月{selD.getDate()}日
         </span>
-        <span style={{ fontSize: 12, color: "var(--text-3, #999)" }}>
+        <span style={{ fontSize: 12, color: "var(--text-3)" }}>
           {selected === todayStr ? "今天 · " : ""}周{WEEK_SHORT[(selD.getDay() + 6) % 7]} · {dayItems.length} 项
         </span>
       </div>
@@ -222,10 +222,10 @@ export function ScheduleAgenda({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <span style={{ fontWeight: 600, fontSize: 13.5 }}>{it.title}</span>
-                  <span style={{ fontSize: 10, color: "#fff", background: KIND_COLOR[it.kind], borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>{KIND_LABEL[it.kind]}</span>
+                  <span style={{ fontSize: 10, color: "var(--on-primary)", background: KIND_COLOR[it.kind], borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>{KIND_LABEL[it.kind]}</span>
                 </div>
                 {it.location ? <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 1 }}>📍 {it.location}</div> : null}
-                {it.note ? <div style={{ fontSize: 11.5, color: "var(--text-3, #999)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.note}</div> : null}
+                {it.note ? <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.note}</div> : null}
               </div>
             </button>
           ))}

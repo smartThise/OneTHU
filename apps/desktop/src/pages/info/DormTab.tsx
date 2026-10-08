@@ -12,7 +12,10 @@ import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../compone
 import { info, logLine } from "../../lib/clients.js";
 import { explainNetworkError, universalFetch } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
-import { softRecover } from "../../lib/reload.js";
+import { RELOGIN_PENDING_NOTE } from "../../state/data.js";
+import { softRecoverResult } from "../../lib/reload.js";
+// 三态（b23 可选组）：复用既有判定（done→retry-load / failed→keep-error / skipped→mark-pending）
+import { libSoftTabAction, settleLibSoftPending } from "../../state/libSoftSettle.js";
 import { cacheGet, cacheSet } from "../../state/cache.js";
 
 function logErr(tag: string, err: unknown): void {
@@ -63,10 +66,30 @@ export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {})
       setRecords(recs);
       setRecState("ready");
     } catch (err) {
-      logErr("ELE-RECORD", err);
-      // 登录态丢失：不闪红，静默强制重建家园网会话后自动重载一次；仍失败才亮 ErrorNote
-      // 登录态丢失：softRelogin 透明全链重建 → 原地重拉
-      if (isAuthError(err) && (await softRecover("dorm"))) return loadRecords();
+      // 登录态丢失：不闪红，静默强制重建家园网会话后自动重载一次；仍失败才亮 ErrorNote。
+      // 三态（b23 可选组）：只有真 `failed` 才亮失败条；`skipped`（冷却判掉 / 链内再入）
+      // 不是失败——既有数据级兜底（forceEnsure）调用次数不变，兜底用尽后留 pending 条。
+      if (isAuthError(err)) {
+        const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("dorm")));
+        if (act === "mark-pending") {
+          // 不是失败：既有数据级兜底（forceEnsure）调用次数不变；兜底用尽后留 pending 条。
+          if (elecRecover.current < 1) {
+            elecRecover.current += 1;
+            await info.forceEnsure("dorm").catch((renewErr: unknown) => {
+              logErr("ELEC-RENEW", renewErr);
+            });
+            return loadRecords();
+          }
+          logErr("ELE-RECORD-PENDING", err);
+          setRecState("error");
+          setRecError(RELOGIN_PENDING_NOTE);
+          return;
+        }
+        logErr("ELE-RECORD", err);
+        if (act === "retry-load") return loadRecords();
+      } else {
+        logErr("ELE-RECORD", err);
+      }
       // softRecover 失败/节流 → 落回数据级恢复兜底
       if (isAuthError(err) && elecRecover.current < 1) {
         elecRecover.current += 1;
@@ -156,7 +179,7 @@ export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {})
       {/* 余额接口不可用说明条（固定展示） */}
       <Card style={{ padding: "12px 16px" }}>
         <span style={{ fontSize: 13, color: "var(--text-dim)" }}>
-          家园网系统暂时无法获取余额接口
+          家园网系统暂时无法获取余额数据
         </span>
       </Card>
       <SectionHead title="充值记录" aside="Netweb 缴费流水" />

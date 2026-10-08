@@ -35,7 +35,15 @@ export function useExitPhase(onClose: () => void, open?: boolean): [boolean, () 
   );
 
   const requestClose = useCallback(() => {
-    if (closingRef.current) return;
+    /* 已经在退场里：**不能早退**——那是「关不掉」的死角。
+       F1（霖 2026-10-02）：受控弹层漏传 open 时，第一次关闭后 closingRef 永久为 true，
+       第二次打开即以退场态渲染、✕ 被这里吃掉，遮罩（opacity 0 但仍 pointer-events: auto）
+       留在 body 上把整屏点击全拦截。第二次点击直接立刻关，永远留一条出路。 */
+    if (closingRef.current) {
+      if (timer.current !== null) window.clearTimeout(timer.current);
+      onCloseRef.current();
+      return;
+    }
     closingRef.current = true;
     setClosing(true);
     timer.current = window.setTimeout(() => onCloseRef.current(), EXIT_MS);

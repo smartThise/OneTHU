@@ -25,10 +25,12 @@ import { useToastHost, hideToast } from "./state/toast.js";
 import type { ReactNode } from "react";
 import { TracePage } from "./pages/Trace.js";
 import { SettingsPage } from "./pages/Settings.js";
+import { MinePage } from "./pages/Mine.js";
 import { PluginsPage } from "./pages/Plugins.js";
 import { TodayPage } from "./pages/Today.js";
 import { OtherInfoPage } from "./pages/OtherInfoPage.js";
 import { InfoPage } from "./pages/info/InfoPage.js";
+import { isSoloPage, SoloTabPage } from "./pages/solo/SoloTabPage.js";
 import { LifePage } from "./pages/info/LifePage.js";
 import { ReservePage } from "./pages/info/ReservePage.js";
 import { ThosPage } from "./pages/info/ThosPage.js";
@@ -46,6 +48,7 @@ import { getPluginTab, lastTabError, setTabRoot } from "./plugins/tabs.js";
 import type { Page } from "./state/app.js";
 import { ChatDock } from "./plugins/ChatDock.js";
 import { refreshLearnDataSilently, startLearnAutoRefresh, stopLearnAutoRefresh } from "./state/data.js";
+import { tbWarmIndexOnIdle } from "./lib/xkreviews.js";
 import { useNavDirection } from "./lib/motion.js";
 
 /** 二级页（列表→详情、插件页）：转场走横向滑入，与顶层页签的纵向淡入区分开 */
@@ -71,6 +74,10 @@ function Routed() {
   // 不用等满 30 分钟，前台恢复即刷。
   useEffect(() => {
     if (status !== "ready") return;
+    // b26：登录就绪后**空闲**预热选课页要用的 THUbook 评价索引（约 111KB 的本地缓存
+    // 解析 + 1080 条 NFKC 建图，真机实测 24.6ms 同步阻塞）——只在本地缓存仍新鲜时预热，
+    // 不发网络；缓存缺失/过期仍由选课页自己 SWR 抓取（数据新鲜度不变）。
+    tbWarmIndexOnIdle();
     const kick = setTimeout(() => void refreshLearnDataSilently(), 90_000);
     startLearnAutoRefresh();
     return () => {
@@ -130,6 +137,7 @@ function Routed() {
           {page === "tasks" && <TasksPage />}
           {page === "services" && <ServicesPage />}
           {page === "favs" && <FavsHomePage />}
+          {page === "mine" && <MinePage />}
           {page === "settings" && <SettingsPage />}
           {page === "plugins" && <PluginsPage />}
           {page === "learn-course" && <CourseDetailPage />}
@@ -144,6 +152,8 @@ function Routed() {
           {page === "learn-file-detail" && <FileDetailPage />}
           {/* R20-B2：雨课堂作业原生只读详情页（移动端雨课堂条目直达；桌面亦可打开） */}
           {page === "learn-ykt-detail" && <YktAssignmentDetailPage />}
+          {/* G2：23 个独立页（薄壳，共用一份 spec 表；不许各写一份 tab 实现） */}
+          {isSoloPage(page) && <SoloTabPage id={page} />}
           {page.startsWith("plugin:") && <PluginTabHost pageKey={page} />}
         </div>
       </Shell>
@@ -206,16 +216,12 @@ function PluginTabHost({ pageKey }: { pageKey: Page }): ReactNode {
   );
 }
 
-/** 全局轻提示（原子操作反馈）：单条覆盖式，点按关闭；center 的是屏幕正中的强调提示。退出时先播淡出再卸载 */
+/** 全局轻提示（原子操作反馈）：单条覆盖式，点按关闭。退出时先播淡出再卸载 */
 function ToastHost(): ReactNode {
-  const { msg, closing, center } = useToastHost();
+  const { msg, closing } = useToastHost();
   if (!msg) return null;
   return (
-    <div
-      className={"toast-host" + (center ? " is-center" : "") + (closing ? " is-closing" : "")}
-      onClick={hideToast}
-      role="status"
-    >
+    <div className={"toast-host" + (closing ? " is-closing" : "")} onClick={hideToast} role="status">
       {msg}
     </div>
   );

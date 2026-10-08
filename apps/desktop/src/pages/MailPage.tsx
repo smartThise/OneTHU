@@ -10,6 +10,8 @@ import { useApp } from "../state/context.js";
 import { MAIL_FOLDERS, useMail, useMailCounts, useMailBody, sendMail, mailSearch, type MailHead } from "../state/mail.js"
 import { ConnectGate } from "../components/ConnectGate.js";;
 import { IconMail, IconRefresh, IconPen, IconChevron } from "../components/Icons.js";
+import { PageHead } from "../components/Layout.js";
+import type { PageMenuItem } from "../state/pageChrome.js";
 import { CollectStar } from "../components/Collect.js";
 import { showToast } from "../state/toast.js";
 import { useExitHold, useSegPill } from "../lib/motion.js";
@@ -134,25 +136,29 @@ function Detail({ folder, uid, onBack }: { folder: string; uid: number; onBack: 
 :root { color-scheme: light dark; }
 body { font: 14px/1.65 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; margin: 0; padding: 14px; word-break: break-word; }
 img { max-width: 100%; height: auto; }
-a { color: #2f6df6; }
+a { color: #2f6df6; }  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
 /* 滚动条：iframe 是独立文档，父页面的 ::-webkit-scrollbar 进不来（用户报「预览滑动条还是旧版」）。
    这里按 base.css §滚动条 的语言重写一份：10px 命中区 + 3px 透明边 → 视觉 4px 细拇指、透明轨道、
    去两端箭头。颜色沿用本文件既有的硬编码方案（iframe 取不到父页面 CSS 变量）。 */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(47, 109, 246, 0.22);
+  background: rgba(47, 109, 246, 0.22);  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
   border: 3px solid transparent;
   background-clip: content-box;
   border-radius: 999px;
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(47, 109, 246, 0.34); }
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar-thumb:hover { background: rgba(47, 109, 246, 0.34); }  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
+}
 ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
 @media (prefers-color-scheme: dark) {
-  body { color: #e8e8ea; background: transparent; }
-  a { color: #7ba2ff; }
-  ::-webkit-scrollbar-thumb { background: rgba(123, 162, 255, 0.24); }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(123, 162, 255, 0.36); }
+  body { color: #e8e8ea; background: transparent; }  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
+  a { color: #7ba2ff; }  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
+  ::-webkit-scrollbar-thumb { background: rgba(123, 162, 255, 0.24); }  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
+  @media (hover: hover) and (pointer: fine) {
+    ::-webkit-scrollbar-thumb:hover { background: rgba(123, 162, 255, 0.36); }  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
+  }
 }
 </style></head><body>${body.html}</body></html>`;
   }, [body?.html]);
@@ -251,20 +257,20 @@ export function MailPage(): React.ReactNode {
 
   return (
     <>
-      <div className="page-head">
-        <div>
-          <h1>邮箱</h1>
-          <div className="page-head-meta">{mail.email} · IMAP/SMTP 直连</div>
-        </div>
-        <div className="page-head-actions">
-          <button className="btn btn-ghost" onClick={() => void mail.refresh()} disabled={mail.loading}>
-            <IconRefresh /> {mail.loading ? "同步中…" : "刷新"}
-          </button>
-          <button className="btn" onClick={() => setComposing(true)}>
-            <IconPen /> 写信
-          </button>
-        </div>
-      </div>
+      <PageHead
+        title="邮箱"
+        meta={`${mail.email} · IMAP/SMTP 直连`}
+        menu={[
+          {
+            key: "refresh",
+            label: mail.loading ? "同步中…" : "刷新",
+            icon: <IconRefresh width={16} height={16} />,
+            disabled: mail.loading,
+            onSelect: () => void mail.refresh(),
+          },
+          { key: "compose", label: "写信", icon: <IconPen width={16} height={16} />, onSelect: () => setComposing(true) },
+        ].filter(Boolean) as PageMenuItem[]}
+      />
       <div className="mail-toolbar">
         <div className="segmented" ref={segRef}>
           <span className="seg-pill" ref={pillRef} aria-hidden="true" />

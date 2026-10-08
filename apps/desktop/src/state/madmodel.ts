@@ -100,7 +100,7 @@ export async function preflightMadModel(): Promise<string | null> {
     writeSettings({ madmodelReachable: ok ? "1" : "0", madmodelReachableAt: String(Date.now()) });
   }
   // token 为空但「未到期」只可能是设置被外部写坏（如手改设置页覆盖）——此时明确报出来
-  if (!tok) return freeTierHint("设置里没有 madmodelToken");
+  if (!tok) return freeTierHint("免费档还没有取到登录信息（可稍后重试，或切到自费 API）");
   return null;
 }
 
@@ -108,7 +108,7 @@ export async function preflightMadModel(): Promise<string | null> {
 function freeTierHint(why: string): string {
   return [
     "清华免费档（MadModel）暂不可用：" + why + "。",
-    "· 校园网内会自动签发 token（本应用每 10 分钟自动续期），可稍候重试；",
+    "· 校园网内会自动续期（本应用每 10 分钟自动检查一次），可稍候重试；",
     "· 校外 / 走了代理或 VPN 时 IP 门禁会拦（MadModel 仅限校内 IP）——请连校园网或学校 VPN（EasyConnect），",
     "  或在 设置 → 插件 → OneTHU Harness 填入自费 API Key 并把模型源切到「自费 API」。",
   ].join("\n");
@@ -121,6 +121,15 @@ export async function forceRemint(): Promise<void> {
   );
 }
 
+/** 连续「校外 / 拿不到登录信息」时快速重试的退避（b25 收紧）。
+ *  b25 真机实测（前台静置 5 分钟）：旧的「60s 无条件快试」在已知校外的情况下仍每 60s
+ *  发一轮 3 跳请求 + 4 行日志（`[MADMODEL] 续期失败：校外环境…`），而「校外 IP 门禁」
+ *  这个结论不会随分钟变化。收紧为按连续失败次数指数退避：首次仍是 60s（保住「刚连上
+ *  校园网/刚回校」的快速恢复），此后 2 → 4 → **5 分钟封顶**；拿到登录信息或探针判校内
+ *  立即复位。10 分钟的大巡检（上面的 `tick`）与对话前的按需 `preflightMadModel()` 都不受影响。 */
+let fastRetryBackoffMs = 60_000;
+let fastRetryAt = 0;
+
 /** 续期泵：启动即试一枚 + 每 10 分钟巡检（到期才真拉；顺带保持可达性新鲜） */
 export function startMadModelPump(): void {
   const tick = (): void => {
@@ -130,10 +139,28 @@ export function startMadModelPump(): void {
   };
   void tick();
   setInterval(tick, 10 * 60_000).unref?.();
-  // 免费档没签出来时 60s 快速重试（校园网刚连上/刚回校的场景，不必等满 10 分钟）
+  // 免费档没签出来时的快速重试（校园网刚连上/刚回校的场景，不必等满 10 分钟）
   setInterval(() => {
     if (!madmodelActive()) return;
-    if (String(getPlugin(HARNESS_ID)?.settings?.madmodelToken ?? "")) return;
-    void preflightMadModel().catch(() => undefined);
+    if (String(getPlugin(HARNESS_ID)?.settings?.madmodelToken ?? "")) {
+      fastRetryBackoffMs = 60_000;
+      fastRetryAt = 0;
+      return;
+    }
+    if (Date.now() < fastRetryAt) return;
+    void preflightMadModel()
+      .then(() => {
+        const st = getPlugin(HARNESS_ID)?.settings ?? {};
+        if (String(st.madmodelToken ?? "") || st.madmodelReachable === "1") {
+          fastRetryBackoffMs = 60_000;
+          fastRetryAt = 0;
+          return;
+        }
+        fastRetryBackoffMs = Math.min(fastRetryBackoffMs * 2, 5 * 60_000);
+        fastRetryAt = Date.now() + fastRetryBackoffMs;
+      })
+      .catch(() => {
+        fastRetryAt = Date.now() + fastRetryBackoffMs;
+      });
   }, 60_000).unref?.();
 }

@@ -5,6 +5,7 @@
  * 用 DOM 覆盖层替代，<ConfirmHost/> 挂在应用根部一次即可。
  */
 import { useSyncExternalStore } from "react";
+import { IconWarn } from "../components/Icons.js";
 
 type Pending = {
   msg: string;
@@ -69,34 +70,58 @@ function subscribe(l: () => void): () => void {
 export function ConfirmHost(): React.ReactNode {
   const cur = useSyncExternalStore(subscribe, () => pending);
   if (!cur) return null;
-  const glass: React.CSSProperties = {
-    background: "rgba(255,255,255,.62)",
-    backdropFilter: "blur(28px) saturate(180%)",
-    WebkitBackdropFilter: "blur(28px) saturate(180%)",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,.9), inset 0 0 0 1px rgba(28,39,64,.08), 0 24px 80px rgba(28,39,64,.28)",
+  /* A6（霖 2026-10-05）：此前是「46px emoji ⚠️ + 写死的白玻璃卡 + 17px 红标题 + 全部居中」——
+     emoji 是彩色字体、白玻璃在深色主题下就是一块刺眼的白板，和设置页/详情页的卡片不是一个语言。
+     现在：浮层走「描边 + 投影」（§3，与卡片相反），底色/描边/投影/文字全走令牌（深色自动跟随）；
+     图标用图标集里的线性 SVG（页面不许手写 svg）；警示色只留给确认按钮，标题回到 --text-1。 */
+  const mask: React.CSSProperties = {
+    position: "fixed", inset: 0, zIndex: 9999,
+    background: "var(--md-sys-color-scrim)",
+    display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
   };
+  const card: React.CSSProperties = {
+    width: "100%",
+    background: "var(--md-sys-color-surface-container-lowest)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--md-sys-shape-corner-large)",
+    boxShadow: "var(--md-sys-elevation-3)",
+  };
+  const body: React.CSSProperties = {
+    /* 正文走 --text-sm（桌面 13px / 手机 14px）：与 .dock-confirm-text 同一口径，
+       也正是 A6 要的 13–14px。用 --text-base 会落到手机密度层的 15px（§3.8）。 */
+    fontSize: "var(--text-sm)",
+    lineHeight: 1.6,
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    color: "var(--text-2)",
+  };
+  const ops: React.CSSProperties = { display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 };
   if (cur.danger) {
     return (
-      <div className="confirm-mask" style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,.4)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-        <div className="confirm-card" style={{ ...glass, borderRadius: 20, padding: "26px 26px 20px", maxWidth: 440, width: "100%", textAlign: "center" }}>
-          <div style={{ fontSize: 46, lineHeight: 1, marginBottom: 14 }}>⚠️</div>
-          <div style={{ fontSize: 17, fontWeight: 700, color: "#d33330", marginBottom: 8 }}>{cur.title ?? "此操作不可撤销，请确认"}</div>
-          <div style={{ fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap", wordBreak: "break-word", color: "rgba(28,39,64,.75)" }}>{cur.msg}</div>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 18 }}>
-            <button className="btn" style={{ minWidth: 118, height: 38, fontSize: 14 }} onClick={() => answerConfirm(false)}>取消</button>
-            <button className="btn" style={{ minWidth: 118, height: 38, fontSize: 14, background: "#e5484d", borderColor: "#e5484d", color: "#fff", boxShadow: "0 6px 20px rgba(229,72,77,.35)" }} onClick={() => answerConfirm(true)}>{cur.confirmText ?? "确认执行"}</button>
+      <div className="confirm-mask" style={mask}>
+        <div className="confirm-card" style={{ ...card, maxWidth: 440, padding: "16px 16px 12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{ display: "flex", flex: "0 0 auto", color: "var(--text-2)" }}>
+              <IconWarn width={18} height={18} />
+            </span>
+            <div style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--text-1)" }}>{cur.title ?? "此操作不可撤销，请确认"}</div>
+          </div>
+          <div style={body}>{cur.msg}</div>
+          <div style={ops}>
+            <button className="btn" onClick={() => answerConfirm(false)}>取消</button>
+            <button className="btn" style={{ minWidth: 96, background: "var(--red)", borderColor: "var(--red)", color: "var(--on-primary)", boxShadow: "0 6px 20px color-mix(in srgb, var(--red) 35%, transparent)" }} onClick={() => answerConfirm(true)}>{cur.confirmText ?? "确认执行"}</button>
           </div>
         </div>
       </div>
     );
   }
   return (
-    <div className="confirm-mask" style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,.35)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div className="confirm-card" style={{ ...glass, borderRadius: 14, padding: "18px 18px 14px", maxWidth: 420, width: "100%" }}>
-        <div style={{ fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{cur.msg}</div>
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 14 }}>
+    <div className="confirm-mask" style={mask}>
+      <div className="confirm-card" style={{ ...card, maxWidth: 420, padding: "16px 16px 12px" }}>
+        <div style={body}>{cur.msg}</div>
+        <div style={ops}>
           <button className="btn" onClick={() => answerConfirm(false)}>取消</button>
-          <button className="btn" style={{ borderColor: "var(--accent, #6d7ff0)", color: "var(--accent, #6d7ff0)" }} onClick={() => answerConfirm(true)}>确定</button>
+          <button className="btn" style={{ borderColor: "var(--accent)", color: "var(--accent)" }} onClick={() => answerConfirm(true)}>确定</button>
         </div>
       </div>
     </div>

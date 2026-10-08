@@ -9,6 +9,9 @@
 //!   登录页（扫码 / 短信），并经 android.webkit.CookieManager 读回会话 Cookie。
 //! - openWebModal（R20-A）：全屏 Dialog WebView 以桌面模式打开任意 http(s) 页面
 //!   （外部作业详情链接救急，只读浏览、无 Cookie 回读，与登录通道互不影响）。
+//! - systemNightMode / system-night-mode 事件（b40）：原生读 Configuration 的实际
+//!   night 位送给前端（WebView 96 不透传 prefers-color-scheme 的兜底），系统档切换
+//!   由 Kotlin onConfigurationChanged 推事件，不做轮询。
 //!
 //! 桌面端无此桥——主 crate 相关调用全部 cfg(target_os = "android") 隔离。
 
@@ -34,6 +37,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("onethu-mobile")
         .invoke_handler(tauri::generate_handler![
             commands::mobile_supported,
+            commands::mobile_exit,
+            commands::system_night_mode,
         ])
         .setup(|app, api| {
             #[cfg(not(target_os = "android"))]

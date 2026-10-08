@@ -263,7 +263,7 @@ const SPECS: Spec[] = [
 ];
 
 /** 骨架屏流光在两种模式下都是"白光扫过"，与取色无关，故写死（与令牌基线同值） */
-const SKELETON_SHINE = { light: "rgba(255, 255, 255, 0.6)", dark: "rgba(255, 255, 255, 0.12)" };
+const SKELETON_SHINE = { light: "rgba(255, 255, 255, 0.6)", dark: "rgba(255, 255, 255, 0.12)" };  /* token-ok: 动态取色主题生成器：这里就是令牌定义处（与 state/theme.ts 同类） */
 
 export function rolesFromPalette(palette: DynamicPalette): DynamicRoles {
   const tone = makeLookup(palette);

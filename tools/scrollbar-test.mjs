@@ -77,12 +77,16 @@ const ruleIn = (src, sel) => {
   const i = src.indexOf(sel + " {");
   return i < 0 ? "" : src.slice(i, src.indexOf("}", i) + 1);
 };
-for (const sel of [".nav::-webkit-scrollbar", ".nav-folders-scroll::-webkit-scrollbar"]) {
+for (const sel of [".nav::-webkit-scrollbar"]) {
   const b = ruleIn(APP, sel);
   ok(!!b, "找不到 " + sel);
   ok(/width:\s*\d+px/.test(b), sel + " 应给出宽度");
   ok(!/background|border-radius/.test(b), sel + " 只该改宽度，拇指样式统一走令牌");
 }
+/* 霖 2026-10-06：收藏夹段**不再**限高滚动（限高滚动会让滚轮被吃、拖动像被困在框里、
+   拖不到「已折叠」），所以它不该再有元素级滚动条样式，也不该有 max-height/overflow-y。 */
+ok(!ruleIn(APP, ".nav-folders-scroll::-webkit-scrollbar"), "收藏夹段又有元素级滚动条样式（该段已改为跟随 .nav 一起滚）");
+ok(!/\.nav-folders-scroll\s*\{[^}]*overflow-y/.test(APP) && !/\.nav-folders-scroll\s*\{[^}]*max-height/.test(APP), "收藏夹段又限高滚动了");
 ok(!/::-webkit-scrollbar-thumb\s*\{[^}]*var\(--border\b/.test(APP), "不应再用 --border 当拇指色（太淡，暗色下看不见）");
 
 /* [5] 令牌确实存在 */

@@ -6,15 +6,19 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { PageAtomStar } from "../components/Collect.js";
+import { usePageCollect } from "../components/Collect.js";
+import { pageAtomRef } from "../state/atoms.js";
+import type { PageMenuItem } from "../state/pageChrome.js";
 import { Card, ErrorNote, PageHead } from "../components/Layout.js";
-import { IconRefresh, IconSchedule } from "../components/Icons.js";
-import { useCalendar, useCampusData } from "../state/data.js";
+import { IconCalendar, IconRefresh, IconSchedule } from "../components/Icons.js";
+import { useCalendar, useCampusData, RELOGIN_PENDING_NOTE } from "../state/data.js";
 import { ignoredHwList } from "../state/hwIgnore.js";
 import { useScheduleWindow, WINDOW_PRESETS, FULL_DAY, hhmm as hhmmWin } from "../state/scheduleWindow.js";
 import { cacheSet } from "../state/cache.js";
 import { isAuthError, learnUrls } from "@onethu/core";
-import { softRecover } from "../lib/reload.js";
+import { softRecoverResult } from "../lib/reload.js";
+// 三态（b23 可选组）：复用既有判定（done→retry-load / failed→keep-error / skipped→mark-pending）
+import { libSoftTabAction, settleLibSoftPending } from "../state/libSoftSettle.js";
 import { ScheduleAgenda } from "./ScheduleAgenda.js";
 import type { AgendaItem } from "./ScheduleAgenda.js";
 import { caldav } from "@onethu/core";
@@ -42,7 +46,12 @@ const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
 const BEGIN_MIN = BEGIN_TIME.map(toMin);
 const END_MIN = END_TIME.map(toMin);
 /** 24 小时全轴 */
-const PX_PER_MIN = 0.52;
+/** 小时高（分钟→px）。C9：由「可视区高度 ÷ 窗口时长」现算（见 fitAxis），
+ *  这里只是首帧兜底——写死大值会把 06:00–24:00 推出屏幕，又要手动滚。 */
+let PX_PER_MIN = 0.52;
+/** 自适应上下限：太扁看不清、太胖又超出屏幕 */
+const PX_PER_MIN_MIN = 0.34;
+const PX_PER_MIN_MAX = 0.62;
 /** 时段下拉选项：起点 00–23、终点 01–24（整点；分钟级留待后续需要再放开） */
 const WIN_FROM_OPTS = Array.from({ length: 24 }, (_, h) => h * 60);
 const WIN_TO_OPTS = Array.from({ length: 24 }, (_, i) => (i + 1) * 60);
@@ -258,8 +267,8 @@ interface Draft {
   originalCloud: boolean; // 编辑中的是云端事件
 }
 /** 居中弹窗（黑色遮罩）：编辑日程 / 课程详情共用骨架，风格同 TabManageModal */
-const MODAL_MASK = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } as const;
-const MODAL_PANEL = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 440, maxHeight: "84vh", overflowY: "auto", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)" } as const;
+const MODAL_MASK = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "var(--md-sys-color-scrim)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } as const;
+const MODAL_PANEL = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 440, maxHeight: "84vh", overflowY: "auto", background: "var(--surface)", color: "var(--text-1)", borderRadius: 14, boxShadow: "var(--shadow-3)" } as const;
 
 const emptyDraft = (date: string, canCloud: boolean): Draft => ({
   title: "", date, start: "08:00", end: "09:35", allDay: false, location: "", note: "",
@@ -282,6 +291,8 @@ export function SchedulePage() {
 
   /** 「显示时段」弹层开关 */
   const [winOpen, setWinOpen] = useState(false);
+  /** C9：学期/周跳转进了二级菜单，这里控制它那块面板 */
+  const [semJumpOpen, setSemJumpOpen] = useState(false);
   /** 视图模式：时间轴（周网格 24h）/ 列表（月历+所选日清单） */
   // 视图默认分端（§2.8.2）：expanded（PC/平板横屏）落「时间轴」网格；
   // compact/medium（手机竖屏、横屏、平板竖屏）落「列表」——周网格横向滚动在手机上是
@@ -383,7 +394,9 @@ export function SchedulePage() {
     grab()
       .catch(async (err) => {
         if (!alive) return;
-        // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才亮条
+        // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才亮条。
+        // 三态（b23 可选组）：只有真 `failed` 才亮失败条；`skipped`（冷却判掉 / 链内再入）
+        // 不是失败——既有 4.2s 有界自动重试照走，重试预算用尽后留 pending 可重试条。
         const scheduleAutoRetry = (): boolean => {
           const st = winRetryRef.current;
           if (st.key !== windowKey) { st.key = windowKey; st.count = 0; }
@@ -392,11 +405,19 @@ export function SchedulePage() {
           setTimeout(() => { if (alive) setReloadTick((t) => t + 1); }, 4200);
           return true;
         };
-        if (isAuthError(err) && (await softRecover("schedule-win"))) {
-          await grab().catch((e2) => {
-            if (alive && !scheduleAutoRetry()) setWinError(e2 instanceof Error ? e2.message : String(e2));
-          });
-          return;
+        if (isAuthError(err)) {
+          const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("schedule-win")));
+          if (act === "retry-load") {
+            await grab().catch((e2) => {
+              if (alive && !scheduleAutoRetry()) setWinError(e2 instanceof Error ? e2.message : String(e2));
+            });
+            return;
+          }
+          if (act === "mark-pending") {
+            if (!alive) return;
+            if (!scheduleAutoRetry()) setWinError(RELOGIN_PENDING_NOTE);
+            return;
+          }
         }
         if (alive) {
           if (scheduleAutoRetry()) return;
@@ -521,10 +542,19 @@ export function SchedulePage() {
     return ymdOf(w) === ymdOf(weekStart);
   }, [weekStart]);
   const todayIdx = useMemo(() => (new Date().getDay() + 6) % 7, []);
-  // 展示时段（用户可选，默认全天）：直接改轴区间，所有 y() 调用随之生效
+  // 展示时段（用户可选，默认 06:00–24:00）：直接改轴区间，所有 y() 调用随之生效
   AXIS_BEGIN = win.from;
   AXIS_END = win.to;
+  /* C9：把窗口铺进可视区——可用高 = 视口高 − 顶栏/工具栏/表头等固定开销（手机顶栏 ~60、
+     工具栏两行 ~96、表头 ~40、页头 ~64，取 260），再按窗口分钟数折算每 px 对应的分钟；
+     夹在 [0.34, 0.62] 内（8–20 这种短窗口不至于被拉得过高，全天也不至于被压成一条）。
+     整窗放得下时也不再自动滚动（打开即尽收眼底）。 */
+  const axisAvail = Math.max(240, (typeof window === "undefined" ? 800 : window.innerHeight) - 260);
+  const axisMinutes = Math.max(120, AXIS_END - AXIS_BEGIN);
+  PX_PER_MIN = Math.min(PX_PER_MIN_MAX, Math.max(PX_PER_MIN_MIN, axisAvail / axisMinutes));
   const canvasH = y(AXIS_END) + 12;
+  /** 整窗是否一屏放得下（放得下就不自动滚：C9「打开即尽收眼底」） */
+  const axisFits = canvasH <= axisAvail;
 
   /** 半小时刻度序列（跟随显示区间；起点对齐到 30 分钟刻度） */
   const halfHours = useMemo(() => {
@@ -534,11 +564,11 @@ export function SchedulePage() {
     return out;
   }, [win.from, win.to]);
 
-  /** 24h 轴自动定位：当前时刻（当前周）或 6:30 */
+  /** 轴自动定位：只在「整窗放不下」时滚到当前时刻（或 6:30）附近；放得下就停在顶上 */
   const scrollRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el || mode !== "timetable") return;
+    if (!el || mode !== "timetable" || axisFits) return;
     const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
     const target = inCurrentWeek ? Math.max(nowMin - 45, win.from) : Math.max(6 * 60 + 30, win.from);
     el.scrollTop = Math.max(0, y(Math.min(target, win.to)) - 8);
@@ -733,6 +763,8 @@ export function SchedulePage() {
       ? `${weekStart.getMonth() + 1}月${weekStart.getDate()}日 – ${new Date(weekStart.getTime() + 6 * 86_400_000).getDate()}日`
       : `${anchor.getFullYear()} 年 ${anchor.getMonth() + 1} 月`;
 
+  const collect = usePageCollect(pageAtomRef("schedule"), "日程");
+
   return (
     <>
       <PageHead
@@ -742,28 +774,52 @@ export function SchedulePage() {
             ? `${label}${detected ? ` · ${detected.sem.semesterName || detected.sem.semesterId} 第 ${detected.weekNo} 周` : " · 假期（学期外）"}`
             : `${label}${detected ? ` · ${detected.sem.semesterName || detected.sem.semesterId} 第 ${detected.weekNo} 周` : ""}`
         }
-        actions={
-          <>
-            <PageAtomStar atomKey="schedule" title="日程" />
-            {(mode === "timetable" && !inCurrentWeek) || (mode === "agenda" && ymdOf(new Date()).slice(0, 7) !== ymdOf(anchor).slice(0, 7)) ? (
-              <button className="btn" onClick={() => { setAnchor(new Date()); setSelected(todayStr); }}>
-                回到今天
-              </button>
-            ) : null}
-            <button
-              className="btn"
-              onClick={() => {
-                setReloadTick((t) => t + 1);
-                if (!calendar.data) void calendar.reload();
-                else void campus.reload();
-              }}
-              disabled={winLoading}
-            >
-              <IconRefresh width={14} height={14} />
-              刷新
-            </button>
-          </>
-        }
+        menu={[
+          collect.item,
+          (mode === "timetable" && !inCurrentWeek) || (mode === "agenda" && ymdOf(new Date()).slice(0, 7) !== ymdOf(anchor).slice(0, 7))
+            ? {
+                key: "today",
+                label: "回到今天",
+                icon: <IconCalendar width={16} height={16} />,
+                onSelect: () => {
+                  setAnchor(new Date());
+                  setSelected(todayStr);
+                },
+              }
+            : null,
+          {
+            key: "window",
+            label: "显示时段…",
+            icon: <IconSchedule width={16} height={16} />,
+            onSelect: () => setWinOpen((v) => !v),
+          },
+          {
+            key: "syscal",
+            label: sysNative === false ? "导出 .ics" : "同步到系统日历",
+            icon: <IconCalendar width={16} height={16} />,
+            disabled: busy,
+            onSelect: () => void onSystemCal(),
+          },
+          semesters.length > 0
+            ? {
+                key: "semweek",
+                label: "跳转学期 / 周…",
+                icon: <IconCalendar width={16} height={16} />,
+                onSelect: () => setSemJumpOpen((v) => !v),
+              }
+            : null,
+          {
+            key: "refresh",
+            label: "刷新",
+            icon: <IconRefresh width={16} height={16} />,
+            disabled: winLoading,
+            onSelect: () => {
+              setReloadTick((t) => t + 1);
+              if (!calendar.data) void calendar.reload();
+              else void campus.reload();
+            },
+          },
+        ].filter(Boolean) as PageMenuItem[]}
       />
 
       {/* 视图与动作（两视图共用）：切换 | 状态 | 同步 / 系统日历 / 上云 / 新建 */}
@@ -778,101 +834,52 @@ export function SchedulePage() {
             {lbl}
           </button>
         ))}
-        {/* 显示时段：24h 全轴会把 17–19 这类空档也铺出来（"整体下移不美观"），
-            但直接砍掉会丢 6:30 升旗 / 晚间自定义日程——所以交给用户自己选，
-            默认全天（既有观感不变）。选择落 localStorage，两端共享。 */}
-        <div style={{ position: "relative" }}>
-          <button className="btn" onClick={() => setWinOpen((v) => !v)} title="选择课表显示的时间段">
-            时段 {hhmmWin(win.from)}–{hhmmWin(win.to)}
-          </button>
-          {winOpen ? (
-            <>
-              <div style={{ position: "fixed", inset: 0, zIndex: 20 }} onClick={() => setWinOpen(false)} />
-              <div
-                style={{
-                  position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 21,
-                  background: "var(--surface, #fff)", color: "var(--text-1, #1f2329)",
-                  border: "1px solid var(--border, #e5e6eb)", borderRadius: 10,
-                  boxShadow: "0 10px 30px rgba(0,0,0,.14)", padding: 10, minWidth: 250,
-                }}
-              >
-                <div style={{ fontSize: 12, color: "var(--text-3, #999)", marginBottom: 6 }}>
-                  显示时段（只影响画布，不改数据；默认全天）
-                </div>
-                <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8 }}>
-                  <select
-                    className="input"
-                    aria-label="起始时间"
-                    value={win.from}
-                    onChange={(e) => setWin({ ...win, from: Number(e.target.value) })}
-                  >
-                    {WIN_FROM_OPTS.map((m) => (<option key={m} value={m}>{hhmmWin(m)}</option>))}
-                  </select>
-                  <span style={{ color: "var(--text-3, #999)" }}>–</span>
-                  <select
-                    className="input"
-                    aria-label="结束时间"
-                    value={win.to}
-                    onChange={(e) => setWin({ ...win, to: Number(e.target.value) })}
-                  >
-                    {WIN_TO_OPTS.map((m) => (<option key={m} value={m}>{hhmmWin(m)}</option>))}
-                  </select>
-                </div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {WINDOW_PRESETS.map((p) => (
-                    <button
-                      key={p.label}
-                      className={win.from === p.win.from && win.to === p.win.to ? "btn btn-primary" : "btn"}
-                      style={{ fontSize: 12 }}
-                      onClick={() => setWin(p.win)}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                  <button className="btn" style={{ fontSize: 12 }} onClick={() => setWin(FULL_DAY)}>恢复全天</button>
-                </div>
-              </div>
-            </>
-          ) : null}
-        </div>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 12, color: "var(--text-3, #999)" }}>
+        <span style={{ fontSize: 12, color: "var(--text-3)" }}>
           {canCloud ? `${cal.email} · ${lastSyncText}` : "云同步未配置"}
         </span>
         <button className="btn" onClick={() => void onSync()} disabled={!canCloud || cal.syncing}>
           <IconRefresh width={14} height={14} />
           {cal.syncing ? "同步中…" : "同步"}
         </button>
-        <button className="btn" onClick={() => void onSystemCal()} disabled={busy}>
-          {sysNative === false ? "导出 .ics" : "同步到系统日历"}
-        </button>
-
         <button className="btn btn-primary" onClick={() => setDraft(emptyDraft(defaultDraftDate, canCloud))}>
           ＋ 添加日程
         </button>
       </div>
-      {msg ? (
-        <div style={{ fontSize: 12.5, color: "var(--text-2)", marginBottom: 8, whiteSpace: "pre-wrap" }}>{msg}</div>
+      {winOpen ? (
+        <Card style={{ padding: 12, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 6 }}>
+            显示时段（只影响画布，不改数据；默认 06:00–24:00）
+          </div>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8 }}>
+            <select className="input" aria-label="起始时间" value={win.from} onChange={(e) => setWin({ ...win, from: Number(e.target.value) })}>
+              {WIN_FROM_OPTS.map((m) => (<option key={m} value={m}>{hhmmWin(m)}</option>))}
+            </select>
+            <span style={{ color: "var(--text-3)" }}>–</span>
+            <select className="input" aria-label="结束时间" value={win.to} onChange={(e) => setWin({ ...win, to: Number(e.target.value) })}>
+              {WIN_TO_OPTS.map((m) => (<option key={m} value={m}>{hhmmWin(m)}</option>))}
+            </select>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {WINDOW_PRESETS.map((p) => (
+              <button
+                key={p.label}
+                className={win.from === p.win.from && win.to === p.win.to ? "btn btn-primary" : "btn"}
+                style={{ fontSize: 12 }}
+                onClick={() => setWin(p.win)}
+              >
+                {p.label}
+              </button>
+            ))}
+            <button className="btn" style={{ fontSize: 12 }} onClick={() => setWin(FULL_DAY)}>恢复全天</button>
+          </div>
+        </Card>
       ) : null}
 
-      {/* 导航（两视图共用）：日历快跳 + 窗口步进 + 今天 ‖ 学期周跳转 */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: calOpen ? 8 : 10 }}>
-        <button className="btn" onClick={() => setCalOpen((v) => !v)} title="打开日历，快速跳到任意年月">
-          <IconSchedule width={14} height={14} />
-          {label}
-        </button>
-        <button className="btn" onClick={() => setAnchor(stepAnchor(-1))} title={mode === "timetable" ? "上一周" : "上个月"}>
-          ‹
-        </button>
-        <button className="btn" onClick={() => setAnchor(stepAnchor(1))} title={mode === "timetable" ? "下一周" : "下个月"}>
-          ›
-        </button>
-        <button className="btn" onClick={() => { setAnchor(new Date()); setSelected(todayStr); }}>
-          今天
-        </button>
-        {semesters.length > 0 ? (
-          <>
-            <span style={{ width: 1, alignSelf: "stretch", background: "var(--border, #e8e8e8)" }} />
+      {semJumpOpen && semesters.length > 0 ? (
+        <Card style={{ padding: 12, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 6 }}>跳转学期 / 周</div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <select
               className="input"
               value={Math.min(jumpSemIdx, semesters.length - 1)}
@@ -899,8 +906,29 @@ export function SchedulePage() {
             <button className="btn" onClick={goSemWeek}>
               前往
             </button>
-          </>
-        ) : null}
+          </div>
+        </Card>
+      ) : null}
+
+      {msg ? (
+        <div style={{ fontSize: 12.5, color: "var(--text-2)", marginBottom: 8, whiteSpace: "pre-wrap" }}>{msg}</div>
+      ) : null}
+
+      {/* 导航（两视图共用）：日历快跳 + 窗口步进 + 今天 ‖ 学期周跳转 */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: calOpen ? 8 : 10 }}>
+        <button className="btn" onClick={() => setCalOpen((v) => !v)} title="打开日历，快速跳到任意年月">
+          <IconSchedule width={14} height={14} />
+          {label}
+        </button>
+        <button className="btn" onClick={() => setAnchor(stepAnchor(-1))} title={mode === "timetable" ? "上一周" : "上个月"}>
+          ‹
+        </button>
+        <button className="btn" onClick={() => setAnchor(stepAnchor(1))} title={mode === "timetable" ? "下一周" : "下个月"}>
+          ›
+        </button>
+        <button className="btn" onClick={() => { setAnchor(new Date()); setSelected(todayStr); }}>
+          今天
+        </button>
       </div>
 
       {/* 日历快跳面板（任意年月，两视图共用；选日即跳对应周/月） */}
@@ -919,7 +947,7 @@ export function SchedulePage() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, textAlign: "center" }}>
             {DAY_NAMES.map((n) => (
-              <div key={n} style={{ fontSize: 11, color: "var(--text-3, #999)", padding: "2px 0" }}>{n[1] ?? n}</div>
+              <div key={n} style={{ fontSize: 11, color: "var(--text-3)", padding: "2px 0" }}>{n[1] ?? n}</div>
             ))}
             {(() => {
               const first = new Date(calView.getFullYear(), calView.getMonth(), 1);
@@ -935,9 +963,9 @@ export function SchedulePage() {
                     onClick={() => pickDay(d)}
                     style={{
                       border: "none", borderRadius: 7, padding: "5px 0", cursor: "pointer", fontSize: 12.5,
-                      background: ymdOf(d) === todayStr ? "rgba(109,127,240,0.14)" : "transparent",
+                      background: ymdOf(d) === todayStr ? "var(--accent-soft)" : "transparent",
                       fontWeight: ymdOf(d) === todayStr ? 700 : 400,
-                      color: ymdOf(d) === todayStr ? "var(--accent, #6d7ff0)" : "inherit",
+                      color: ymdOf(d) === todayStr ? "var(--accent)" : "inherit",
                     }}
                   >
                     {d.getDate()}
@@ -948,7 +976,7 @@ export function SchedulePage() {
               );
             })()}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-3, #999)", marginTop: 8, textAlign: "center" }}>
+          <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 8, textAlign: "center" }}>
             {mode === "timetable" ? "选择日期将跳到该日期所在的教学周" : "选择日期将跳到该日期所在月份"}
           </div>
         </Card>
@@ -978,7 +1006,7 @@ export function SchedulePage() {
                 <button
                   key={i}
                   onClick={() => c.uid && onBlockClick({ courseName: c.label, src: c.src, uid: c.uid })}
-                  style={{ fontSize: 11.5, padding: "2px 8px", borderRadius: 6, border: "none", cursor: c.uid ? "pointer" : "default", background: c.src === "cloud" ? "rgba(31,164,135,0.12)" : "rgba(138,143,152,0.14)", color: SRC_COLOR[c.src] }}
+                  style={{ fontSize: 11.5, padding: "2px 8px", borderRadius: 6, border: "none", cursor: c.uid ? "pointer" : "default", background: c.src === "cloud" ? "var(--green-soft)" : "var(--surface-2)", color: SRC_COLOR[c.src] }}
                 >
                   全天 · {c.label}
                 </button>
@@ -1016,7 +1044,7 @@ export function SchedulePage() {
                               top: Math.max(0, y(m) - 6),
                               right: 6,
                               fontSize: 9,
-                              color: "var(--text-3, #aaa)",
+                              color: "var(--text-3)",
                               fontVariantNumeric: "tabular-nums",
                               lineHeight: 1,
                             }}
@@ -1031,7 +1059,7 @@ export function SchedulePage() {
                       {/* 空周提示（网格照常渲染，提示浮于其上不挡交互） */}
                       {entries.length === 0 ? (
                         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", zIndex: 4 }}>
-                          <span style={{ fontSize: 13, color: "var(--text-3, #999)", background: "var(--surface, #fff)", padding: "6px 14px", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
+                          <span style={{ fontSize: 13, color: "var(--text-3)", background: "var(--surface)", padding: "6px 14px", borderRadius: 8, boxShadow: "var(--shadow-1)" }}>
                             {winLoading ? "正在从教务系统取数…" : "本周暂无排课与日程"}
                           </span>
                         </div>
@@ -1046,8 +1074,8 @@ export function SchedulePage() {
                             width: `${100 / 7}%`,
                             top: 0,
                             height: canvasH,
-                            borderLeft: day === 0 ? "none" : "1px solid var(--border, #ececec)",
-                            background: inCurrentWeek && day === todayIdx ? "rgba(109,127,240,0.055)" : undefined,
+                            borderLeft: day === 0 ? "none" : "1px solid var(--border)",
+                            background: inCurrentWeek && day === todayIdx ? "var(--accent-soft)" : undefined,
                           }}
                         />
                       ))}
@@ -1062,10 +1090,10 @@ export function SchedulePage() {
                             top: y(m),
                             borderTop:
                               m % 60 === 0
-                                ? "1px solid var(--border, #e8e8e8)"
+                                ? "1px solid var(--border)"
                                 : m < 6 * 60 || m >= 23 * 60
-                                  ? "1px solid var(--border, #f5f5f5)"
-                                  : "1px solid var(--border, #f2f2f2)",
+                                  ? "1px solid var(--border)"
+                                  : "1px solid var(--border)",
                           }}
                         />
                       ))}
@@ -1081,7 +1109,7 @@ export function SchedulePage() {
                                   left: `${(todayIdx * 100) / 7}%`,
                                   width: `${100 / 7}%`,
                                   top: y(nm),
-                                  borderTop: "2px solid #e5484d",
+                                  borderTop: "2px solid var(--red)",
                                   zIndex: 5,
                                 }}
                               >
@@ -1093,7 +1121,7 @@ export function SchedulePage() {
                                     width: 6,
                                     height: 6,
                                     borderRadius: 3,
-                                    background: "#e5484d",
+                                    background: "var(--red)",
                                   }}
                                 />
                               </div>
@@ -1138,10 +1166,10 @@ export function SchedulePage() {
                               opacity: p.entry.src === "hw" && p.entry.hwMeta?.submitted ? 0.55 : undefined,
                               borderRadius: 5,
                               padding: compact ? "2px 4px" : "3px 5px",
-                              color: "#fff",
+                              color: "#fff",  /* token-ok: 课程块底色来自 COURSE_PALETTE 固定身份色（深色档同样深），块上文字固定白才是对比 */
                               overflow: "hidden",
                               boxSizing: "border-box",
-                              boxShadow: "0 1px 3px rgba(0,0,0,0.18)",
+                              boxShadow: "var(--shadow-1)",
                               zIndex: 6,
                               cursor: "pointer",
                             }}
@@ -1196,7 +1224,7 @@ export function SchedulePage() {
                       <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
                         {detail.courseName}（{detail.startTime ?? ""}–{detail.endTime ?? ""}）
                       </div>
-                      <div style={{ fontSize: 12, color: "var(--text-3, #999)", marginBottom: 10 }}>
+                      <div style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 10 }}>
                         {detail.location} · 此时间段事项较多，已合并显示
                       </div>
                       <div style={{ display: "grid", gap: 6 }}>
@@ -1205,18 +1233,18 @@ export function SchedulePage() {
                             key={i}
                             title="点击查看详情"
                             onClick={() => setDetail({ ...m })}
-                            style={{ fontSize: 12.5, padding: "7px 10px", borderRadius: 8, background: "var(--surface-3, #f4f5f7)", display: "flex", gap: 8, alignItems: "baseline", cursor: "pointer" }}
+                            style={{ fontSize: 12.5, padding: "7px 10px", borderRadius: 8, background: "var(--surface-3)", display: "flex", gap: 8, alignItems: "baseline", cursor: "pointer" }}
                           >
                             <span style={{ fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {m.src === "hw" ? `⏰ ${m.courseName}` : m.courseName}
                             </span>
-                            <span style={{ color: "var(--text-2, #555)", flexShrink: 0, marginLeft: "auto" }}>
+                            <span style={{ color: "var(--text-2)", flexShrink: 0, marginLeft: "auto" }}>
                               {m.src === "hw"
                                 ? `${m.startTime}–${m.endTime} · ${m.hwMeta?.submitted ? "已提交" : "未提交"}${m.hwMeta?.ext ? " · " + (m.hwMeta.source ?? "") : ""}`
                                 : `${m.startTime ?? ""}–${m.endTime ?? ""}${m.location ? " @" + m.location : ""}`}
                             </span>
                             {m.location && m.src === "hw" ? (
-                              <span style={{ color: "var(--text-3, #999)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.location}</span>
+                              <span style={{ color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.location}</span>
                             ) : null}
                           </div>
                         ))}
@@ -1228,16 +1256,16 @@ export function SchedulePage() {
                       <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
                         ⏰ {detail.courseName}
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "64px 1fr", rowGap: 8, fontSize: 13, color: "var(--text-1, #1f2329)" }}>
-                        <span style={{ color: "var(--text-3, #999)" }}>课程</span>
+                      <div style={{ display: "grid", gridTemplateColumns: "64px 1fr", rowGap: 8, fontSize: 13, color: "var(--text-1)" }}>
+                        <span style={{ color: "var(--text-3)" }}>课程</span>
                         <span>{detail.location ?? "—"}</span>
-                        <span style={{ color: "var(--text-3, #999)" }}>截止</span>
+                        <span style={{ color: "var(--text-3)" }}>截止</span>
                         <span>{detail.date} {detail.endTime}</span>
-                        <span style={{ color: "var(--text-3, #999)" }}>状态</span>
-                        <span style={{ color: detail.hwMeta?.submitted ? "#1fa487" : "#e5484d", fontWeight: 600 }}>
+                        <span style={{ color: "var(--text-3)" }}>状态</span>
+                        <span style={{ color: detail.hwMeta?.submitted ? "var(--green)" : "var(--red)", fontWeight: 600 }}>
                           {detail.hwMeta?.submitted ? "已提交" : "未提交"}
                         </span>
-                        <span style={{ color: "var(--text-3, #999)" }}>来源</span>
+                        <span style={{ color: "var(--text-3)" }}>来源</span>
                         <span>{detail.hwMeta?.ext ? detail.hwMeta.source ?? "外部" : "网络学堂"}</span>
                       </div>
                       {detail.hwMeta?.externalUrl ? (
@@ -1255,10 +1283,10 @@ export function SchedulePage() {
                   <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
                     {detail.src === "exam" ? "考试详情" : "课程详情"}
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "64px 1fr", rowGap: 8, fontSize: 13, color: "var(--text-1, #1f2329)" }}>
-                    <span style={{ color: "var(--text-3, #999)" }}>名称</span>
+                  <div style={{ display: "grid", gridTemplateColumns: "64px 1fr", rowGap: 8, fontSize: 13, color: "var(--text-1)" }}>
+                    <span style={{ color: "var(--text-3)" }}>名称</span>
                     <span style={{ fontWeight: 600 }}>{detail.courseName}</span>
-                    <span style={{ color: "var(--text-3, #999)" }}>时间</span>
+                    <span style={{ color: "var(--text-3)" }}>时间</span>
                     <span>
                       {detail.date}{" "}
                       {detail.startTime && detail.endTime
@@ -1269,20 +1297,20 @@ export function SchedulePage() {
                     </span>
                     {detail.location ? (
                       <>
-                        <span style={{ color: "var(--text-3, #999)" }}>地点</span>
+                        <span style={{ color: "var(--text-3)" }}>地点</span>
                         <span>{detail.location}</span>
                       </>
                     ) : null}
                     {detail.teacher ? (
                       <>
-                        <span style={{ color: "var(--text-3, #999)" }}>教师</span>
+                        <span style={{ color: "var(--text-3)" }}>教师</span>
                         <span>{detail.teacher}</span>
                       </>
                     ) : null}
                   </div>
                     </>
                   )}
-                  <div style={{ fontSize: 12, color: "var(--text-3, #999)", margin: "12px 0 4px" }}>
+                  <div style={{ fontSize: 12, color: "var(--text-3)", margin: "12px 0 4px" }}>
                     课程与考试来自教务系统数据，不能在此修改；自建日程点击即可编辑。
                   </div>
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
@@ -1353,7 +1381,7 @@ export function SchedulePage() {
             <button className="btn" onClick={() => setDraft(null)}>取消</button>
             <span style={{ flex: 1 }} />
             {draft.uid ? (
-              <button className="btn" style={{ color: "#e5484d" }} disabled={busy} onClick={() => void onDeleteDraft()}>
+              <button className="btn" style={{ color: "var(--red)" }} disabled={busy} onClick={() => void onDeleteDraft()}>
                 删除
               </button>
             ) : null}

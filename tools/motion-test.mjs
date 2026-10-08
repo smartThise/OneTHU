@@ -92,7 +92,7 @@ console.log("[5] 无障碍：尊重系统「减弱动态效果」");
   ok(/transition-duration:\s*1ms !important/.test(block), "降级过渡时长");
   ok(/animation-iteration-count:\s*1 !important/.test(block), "降级循环次数（呼吸/流光停）");
   ok(/export function prefersReducedMotion/.test(motion), "JS 侧同样有判断（不能只靠 CSS）");
-  ok(/prefersReducedMotion\(\)/.test(motion.slice(motion.indexOf("export function useCountUp"))), "数字滚动前检查减弱动态");
+  ok(/prefersReducedMotion\(\)/.test(motion.slice(motion.indexOf("export function useNumberRoll"))), "数字滚动前检查减弱动态");
   // 页面转场是纯 CSS，降级由上面的 CSS 块覆盖；确认没有绕过降级块的 JS 帧动画旁路
   ok(!/requestAnimationFrame/.test(css), "CSS 里没有绕过降级块的手写帧动画");
 }
@@ -151,7 +151,7 @@ console.log("[10] 各个角落的接线：微交互、页签、弹层、提示�
   ok(/confirm-mask/.test(preview) && /confirm-card/.test(preview), "文件预览面板同款进场");
   ok(/is-closing/.test(app) && /\.toast-host\.is-closing/.test(css), "提示条有退出相位（不是瞬间消失）");
   ok(/EXIT_MS/.test(toast) && /beginExit/.test(toast), "退出相位由状态机驱动（先播动画再卸载）");
-  ok(/useCountUp/.test(widgets) && /num-roll/.test(widgets), "统计数字滚动");
+  ok(/useNumberRoll/.test(widgets) && /num-roll/.test(widgets), "统计数字滚动");
   ok(/typeof num === "number"/.test(widgets), "只滚数值型（–/¥12.34 这类字符串原样显示）");
   ok(/theme-anim/.test(theme) && /html\.theme-anim/.test(css), "换主题时颜色平滑过渡");
   ok(/lastThemeId !== null/.test(theme), "启动首次应用不挂过渡（避免开场整页渐变）");

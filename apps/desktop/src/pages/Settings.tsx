@@ -1,6 +1,8 @@
 declare const __APP_VERSION__: string;
 import { useEffect, useState } from "react";
 import { loadTabLayout, saveTabLayout, type TabLayout } from "../lib/tabLayout.js";
+import { useSwipeTabs } from "../lib/useSwipeTabs.js";
+import { readStoredTraceKey, saveStoredTraceKey } from "../lib/trace.js";
 import type { ReactNode } from "react";
 import { Card, PageHead, SectionHead, SegmentedOverflow, Switch } from "../components/Layout.js";
 import { TabManageModal } from "../components/TabManageModal.js";
@@ -21,6 +23,7 @@ import { parseFavs, resetFavs } from "../state/favorites.js";
 import { confirmOk } from "../lib/confirm.js";
 import { useApp } from "../state/context.js";
 import { displayStudentId } from "../lib/privacy.js";
+import { userCopy } from "../lib/userCopy.js";
 import { useCloudCal, configureCloudCal, disconnectCloudCal, syncCloudCal } from "../state/cloudCal.js";
 import {
   useSystemCal,
@@ -59,6 +62,7 @@ import { buildYktCookieExportJson, parseYktCookieExportJson, SOURCE_CATEGORY_NAM
 import type { ExtHwCreds, ExtHwSourceId, TuojSourceId } from "@onethu/core";
 import { ErrorLine } from "../components/Details.js";
 import { resetActiveOnboarding, setOnboardingFlow, useOnboardingFlow } from "../state/onboarding.js";
+import { clearAllReloginCredentials, isAutoReloginOn, setAutoRelogin } from "../lib/relogin.js";
 
 /** 设置分组（按"你要改什么"索引，而不是按功能罗列）——
  *  点一下即滚动到对应分节；分节标题保持原位，不重排大段 JSX（低风险）。 */
@@ -66,7 +70,7 @@ const SETTINGS_GROUPS: Array<{ label: string; sections: string[] }> = [
   { label: "账号", sections: ["账户", "账号与绑定", "安全"] },
   { label: "通知与提醒", sections: ["通知", "桌面小组件"] },
   { label: "外观与布局", sections: ["外观", "首页布局", "收藏夹"] },
-  { label: "数据与同步", sections: ["云同步", "外部作业源"] },
+  { label: "数据与同步", sections: ["云同步", "外部作业源", "寻迹地图"] },
   { label: "下载与存储", sections: ["下载"] },
   { label: "插件", sections: ["插件"] },
   { label: "帮助", sections: ["帮助"] },
@@ -88,7 +92,7 @@ function jumpToSection(titles: string[]): void {
 /** 设置页的二级页签（与信息页 / 生活页同形态）：标题 → 页签分组 */
 const SETTINGS_TAB_OF: Record<string, string> = {
   关于: "关于", 账户: "账号", 账号与绑定: "账号", 安全: "账号",
-  云同步: "数据与同步", 外部作业源: "数据与同步",
+  云同步: "数据与同步", 外部作业源: "数据与同步", 寻迹地图: "数据与同步",
   首页布局: "外观与布局", 收藏夹: "外观与布局", 外观: "外观与布局",
   通知: "通知与提醒", 桌面小组件: "通知与提醒",
   插件: "插件", 下载: "下载与存储", 帮助: "帮助",
@@ -156,6 +160,9 @@ export function SettingsPage() {
   }, [tab, tabLayout.hidden.join(",")]);
 
   const { user, logout, navigate } = useApp();
+  /** C19：寻迹页的自填高德 Key（本机 localStorage） */
+  const [traceKey, setTraceKey] = useState(() => readStoredTraceKey());
+  const [traceKeyMsg, setTraceKeyMsg] = useState<string | null>(null);
   const favs = useFavs();
   const [favMsg, setFavMsg] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -165,6 +172,9 @@ export function SettingsPage() {
   // 首页布局恢复：点击后短暂显示「已恢复默认」，到点回位
   const [homeResetAt, setHomeResetAt] = useState(0);
   const [eidMsg, setEidMsg] = useState<string | null>(null);
+  /* F3 静默重登：开关默认关，读的是 localStorage 里的同一份真相 */
+  const [reloginOn, setReloginOn] = useState(isAutoReloginOn());
+  const [reloginMsg, setReloginMsg] = useState("");
   // 云同步（清华邮箱 CalDAV 日历）
   const cloud = useCloudCal();
   const [calEmail, setCalEmail] = useState("");
@@ -201,8 +211,14 @@ export function SettingsPage() {
     }
   };
 
+  /* C7：页面上真正渲染的 tab 顺序（含用户自定义排序/隐藏与「高级模式」过滤），
+     横滑按它取相邻项；起手落在分段控件上不算（它自己要用横滑拖胶囊）。 */
+  const visibleTabs = settingsTabLayout.order
+    .filter((t) => SETTINGS_TAB_ORDER.includes(t) && !tabLayout.hidden.includes(t) && (advanced || !ADVANCED_SETTINGS_TABS.includes(t)));
+  const swipeRef = useSwipeTabs<HTMLDivElement>({ order: visibleTabs, current: tab, onChange: setTab });
+
   return (
-    <>
+    <div className="swipe-tabs" ref={swipeRef}>
       <PageHead
         title="设置"
         actions={
@@ -225,9 +241,7 @@ export function SettingsPage() {
       />
 
       <SegmentedOverflow ariaLabel="设置栏目" style={{ marginBottom: 14 }}>
-        {settingsTabLayout.order
-          .filter((t) => SETTINGS_TAB_ORDER.includes(t) && !tabLayout.hidden.includes(t) && (advanced || !ADVANCED_SETTINGS_TABS.includes(t)))
-          .map((t) => (
+        {visibleTabs.map((t) => (
             <button
               key={t}
               role="tab"
@@ -295,6 +309,43 @@ export function SettingsPage() {
           </button>
         </div>
       </Card>
+
+        <div className="setting-row">
+          <div>
+            <div className="setting-title">自动重登</div>
+            <div className="setting-desc">
+              登录状态失效时，应用会自动尝试恢复，不必手动重新登录。这个开关先记录你的偏好
+              （默认关），暂不改动既有行为。登录信息在本机加密保存（AES-GCM），日志不打印账号密码。
+            </div>
+            {reloginMsg ? <div className="setting-desc">{reloginMsg}</div> : null}
+          </div>
+          <Switch
+            on={reloginOn}
+            onChange={(v) => {
+              setAutoRelogin(v);
+              setReloginOn(v);
+              setReloginMsg(v ? "已开启：已记录你的偏好" : "已关闭：已回到默认");
+            }}
+            label="自动重登"
+          />
+        </div>
+
+        <div className="setting-row">
+          <div>
+            <div className="setting-title">清除已保存的登录信息</div>
+            <div className="setting-desc">删除本机保存的登录信息（外部作业源等）。关掉自动重登后也建议清一次。</div>
+          </div>
+          <button
+            className="btn"
+            onClick={() => {
+              void clearAllReloginCredentials().then((n) =>
+                setReloginMsg(n ? `已清除 ${n} 个站点的登录信息` : "没有可清除的登录信息"),
+              );
+            }}
+          >
+            清除登录信息
+          </button>
+        </div>
 
 
       <SectionHead title="账号与绑定" />
@@ -446,7 +497,7 @@ export function SettingsPage() {
               <div className="setting-desc">
                 日历「OneTHU 日程」· 上次同步 {syscal.lastSyncAt ? new Date(syscal.lastSyncAt).toLocaleString() : "—"} · {syscal.lastCount} 条。课表与日程变化后会自动更新（含提前 15 分钟的课程提醒）。
                 {syscal.lastError ? (
-                  <div style={{ marginTop: 6, color: "var(--red, #c04848)" }}>最近一次同步失败：{syscal.lastError}</div>
+                  <div style={{ marginTop: 6, color: "var(--red)" }}>最近一次同步失败：{syscal.lastError}</div>
                 ) : null}
                 {sysMsg ? <ErrorLine text={sysMsg} style={{ marginTop: 6, color: "var(--text-2)" }} /> : null}
               </div>
@@ -529,6 +580,39 @@ export function SettingsPage() {
       </Card>
       <SectionHead title="外部作业源" />
       <ExtHwSection />
+
+      {/* C19（霖 2026-10-01 走查）：高德 Key 的自填入口。只存本机 localStorage
+          （lib/trace.ts 的 readStoredTraceKey/saveStoredTraceKey），不上传、不写进安装包；
+          构建期 .env → Rust trace_key 那条内置通道照旧优先。 */}
+      <SectionHead title="寻迹地图" />
+      <Card>
+        <div className="setting-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+          <div>
+            <div className="setting-title">高德 Web 服务 Key</div>
+            <div className="setting-desc">
+              供寻迹页做地点检索与路程估算。只存在本机，填完回寻迹页即生效；留空并「清除」即恢复未配置状态。
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              className="input"
+              style={{ flex: 1, minWidth: 0 }}
+              type="password"
+              value={traceKey}
+              onChange={(e) => { setTraceKey(e.target.value); setTraceKeyMsg(null); }}
+              placeholder="粘贴高德 Web 服务 Key"
+              aria-label="高德 Web 服务 Key"
+            />
+            <button className="btn" onClick={() => { saveStoredTraceKey(traceKey); setTraceKey(traceKey.trim()); setTraceKeyMsg("已保存到本机"); }}>
+              保存
+            </button>
+            <button className="btn" onClick={() => { saveStoredTraceKey(""); setTraceKey(""); setTraceKeyMsg("已清除"); }}>
+              清除
+            </button>
+          </div>
+          {traceKeyMsg ? <div className="setting-desc">{traceKeyMsg}</div> : null}
+        </div>
+      </Card>
 
       <DownloadSettings />
 
@@ -671,7 +755,7 @@ export function SettingsPage() {
         onReset={() => applyTabLayout({ order: SETTINGS_TAB_ORDER, hidden: [] })}
       />
 
-    </>
+    </div>
   );
 }
 
@@ -875,8 +959,8 @@ function ExtHwSection() {
           notify("yuketang", "未配置雨课堂登录状态——请先登录。");
           return;
         }
-        if (st.alive === true) notify("yuketang", `会话有效${st.userName ? `（${st.userName}）` : ""}。`);
-        else if (st.alive === false) notify("yuketang", `会话已失效（${st.reason ?? "未知原因"}）——可扫码重登，或导入其他设备导出的 Cookie。`);
+        if (st.alive === true) notify("yuketang", `登录状态正常${st.userName ? `（${st.userName}）` : ""}。`);
+        else if (st.alive === false) notify("yuketang", `登录状态已失效（${userCopy(st.reason ?? "未知原因")}）——可扫码重登，或导入其他设备导出的登录状态。`);
         else notify("yuketang", "检查未成功：网络异常，登录状态未知");
       })
       .finally(() => setBusy(null));
@@ -900,7 +984,7 @@ function ExtHwSection() {
         contents: json,
       });
       if (!path) return "已取消导出。";
-      return `已导出到 ${path}。⚠️ 该文件等同账号凭据：勿放同步盘 / 群聊 / 仓库，导入完成后请删除。`;
+      return `已导出到 ${path}。⚠️ 该文件可直接登录你的账号：勿放同步盘 / 群聊 / 仓库，导入完成后请删除。`;
     })()
       .then((m) => notify("yuketang", m))
       .catch((e: unknown) => notify("yuketang", `导出失败：${errMsg(e)}`))
@@ -1039,7 +1123,7 @@ function ExtHwSection() {
   /** R12 17.2：单源退出登录 —— 确认后只清该源凭据，不影响其他源 */
   const onLogout = (source: ExtHwSourceId) => {
     const label = SOURCE_NAMES[source];
-    void confirmOk(`确定退出${label}登录？将清除本机保存的${label}凭据，不影响其他源。`).then(
+    void confirmOk(`确定退出${label}登录？将清除本机保存的${label}登录信息，不影响其他源。`).then(
       async (ok) => {
         if (!ok) return;
         setBusy(`logout-${source}`);
@@ -1090,10 +1174,10 @@ function ExtHwSection() {
     const st = ext.tuojAuto[source];
     return (
       <>
-        {ext.errors[source] ? <div className="exthw-note is-error">{ext.errors[source]}</div> : null}
+        {ext.errors[source] ? <div className="exthw-note is-error">{userCopy(ext.errors[source])}</div> : null}
         {st.kind === "failed" ? (
           <div className="exthw-note is-warn">
-            自动登录未成功{st.message ? `（${st.message.slice(0, 160)}）` : ""}——可点「统一认证登录」重试。
+            自动登录未成功{st.message ? `（${userCopy(st.message).slice(0, 160)}）` : ""}——可点「统一认证登录」重试。
           </div>
         ) : null}
         {st.kind === "no-courses" ? (
@@ -1179,17 +1263,17 @@ function ExtHwSection() {
           {msg && msgArea === "yuketang" ? (
             <div className="exthw-note" role="status">{msg}</div>
           ) : null}
-          {ext.errors.yuketang ? <div className="exthw-note is-error">{ext.errors.yuketang}</div> : null}
-          {/* R21-B：会话健康 + 保活状态 + 导出/导入（仅已登录时） */}
+          {ext.errors.yuketang ? <div className="exthw-note is-error">{userCopy(ext.errors.yuketang)}</div> : null}
+          {/* R21-B：登录状态 + 保活状态 + 导出/导入（仅已登录时） */}
           {configured.yuketang ? (
             <>
               <div className="exthw-note">
                 {ext.yktSession.checkedAt === null
                   ? "登录状态：尚未检查（应用启动后会自动检查，约每 6 小时一次，也可手动检查）。"
                   : ext.yktSession.alive === true
-                    ? `会话健康：有效${ext.yktSession.userName ? `（${ext.yktSession.userName}）` : ""} · 检查于 ${new Date(ext.yktSession.checkedAt).toLocaleTimeString()}`
+                    ? `登录状态：正常${ext.yktSession.userName ? `（${ext.yktSession.userName}）` : ""} · 检查于 ${new Date(ext.yktSession.checkedAt).toLocaleTimeString()}`
                     : ext.yktSession.alive === false
-                      ? `会话健康：已失效（${ext.yktSession.reason}）· 检查于 ${new Date(ext.yktSession.checkedAt).toLocaleTimeString()}`
+                      ? `登录状态：已失效（${userCopy(ext.yktSession.reason ?? "")}）· 检查于 ${new Date(ext.yktSession.checkedAt).toLocaleTimeString()}`
                       : "登录状态：未知（上次检查时网络异常，不判定为失效）"}
               </div>
               <div style={fieldStyle}>
@@ -1215,8 +1299,8 @@ function ExtHwSection() {
               </div>
               {ext.yktSession.alive === false ? (
                 <div className="exthw-note is-error">
-                  会话已失效：作业页将拉不到雨课堂数据。可「一键重登（扫码）」，或在其他已登录设备「导出
-                  Cookie」后在此「导入 Cookie」恢复。
+                  登录状态已失效：作业页将拉不到雨课堂数据。可「一键重登（扫码）」，或在其他已登录设备「导出
+                  登录状态」后在此「导入登录状态」恢复。
                   <div style={{ marginTop: 6 }}>
                     <button
                       className="btn btn-primary"
@@ -1395,7 +1479,7 @@ function ExtHwSection() {
               }
               note={
                 ext.errors.tyche ? (
-                  <div className="exthw-note is-error">{ext.errors.tyche}</div>
+                  <div className="exthw-note is-error">{userCopy(ext.errors.tyche)}</div>
                 ) : tycheRemember && configured.tyche ? (
                   <div className="exthw-note">已记住密码，登录状态失效时自动重新登录。</div>
                 ) : undefined
@@ -1413,7 +1497,7 @@ function ExtHwSection() {
                   {/* R21-A：记住密码 → 会话失效时用存档账密静默自动重登一次（同源 ≥10min、每进程 ≤3 次） */}
                   <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 12, opacity: 0.9 }}>
                     <input type="checkbox" checked={tycheRemember} onChange={(e) => setTycheRemember(e.target.checked)} />
-                    记住密码（会话失效后自动重新登录）
+                    记住密码（登录状态失效后自动重新登录）
                   </label>
                   <div style={{ marginTop: 4, fontSize: 12, opacity: 0.65 }}>
                     {tycheRemember
@@ -1446,7 +1530,7 @@ function ExtHwSection() {
                   </button>
                 ) : undefined
               }
-              note={ext.errors.dsa ? <div className="exthw-note is-error">{ext.errors.dsa}</div> : undefined}
+              note={ext.errors.dsa ? <div className="exthw-note is-error">{userCopy(ext.errors.dsa)}</div> : undefined}
             >
               {dsaFormOpen ? (
                 <div className="exthw-src-body">
@@ -1509,7 +1593,7 @@ function ExtHwSection() {
                   return (
                     <div key={id} style={{ fontSize: 13, color: "var(--text-2)" }}>
                       {label}：{logged ? "已登录" : "未登录"} ·{" "}
-                      {err ? <span style={{ color: "var(--red, #c04848)" }}>需重新登录</span> : `${count} 条`}
+                      {err ? <span style={{ color: "var(--red)" }}>需重新登录</span> : `${count} 条`}
                     </div>
                   );
                 })}

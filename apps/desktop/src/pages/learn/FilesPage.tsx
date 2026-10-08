@@ -1,6 +1,8 @@
 /** 全部课程文件（learnX Files）：按上传时间倒序，可按课程筛选 */
 import { useMemo, useState } from "react";
-import { PageAtomStar } from "../..//components/Collect.js";
+import { usePageCollect } from "../../components/Collect.js";
+import { pageAtomRef } from "../../state/atoms.js";
+import type { PageMenuItem } from "../../state/pageChrome.js";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useLearnData } from "../../state/data.js";
@@ -22,21 +24,25 @@ export function FilesPage() {
     return courseId ? fs.filter((f) => f.courseId === courseId) : fs;
   }, [data, courseId]);
 
+  const collect = usePageCollect(pageAtomRef("learn-files"), "全部课程文件");
+
   return (
     <>
+      {collect.modal}
       <PageHead
         title="课程文件"
         meta={data ? `${semesterText(data.semester.id)} · 共 ${data.files.length} 个文件` : "按上传时间倒序"}
-        actions={
-          <>
-            <PageAtomStar atomKey="learn-files" title="全部课程文件" />
-            <BackButton to="learn" label="课程列表" />
-            <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
-              <IconRefresh width={14} height={14} />
-              刷新
-            </button>
-          </>
-        }
+        back={<BackButton to="learn" label="课程列表" />}
+        menu={[
+          collect.item,
+          {
+            key: "refresh",
+            label: "刷新",
+            icon: <IconRefresh width={16} height={16} />,
+            disabled: state === "loading",
+            onSelect: () => void reload(),
+          },
+        ].filter(Boolean) as PageMenuItem[]}
       />
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
@@ -62,7 +68,7 @@ export function FilesPage() {
       ) : state === "error" && !data ? null : files.length === 0 ? (
         <Card><Empty text={courseId ? "该课程暂无文件。" : "暂无课程文件。"} /></Card>
       ) : (
-        <Card className="list">
+        <Card className="list swap-in">
           {files.map((f, i) => (
             <FileRow key={`${f.courseId}-${f.id}`} f={f} courseName={byCourse.get(f.courseId)} sem={data?.semester.id} from="learn-files" style={{ animationDelay: `${i * 25}ms` }} />
           ))}

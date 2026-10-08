@@ -50,8 +50,17 @@ if (item) {
 const ind = pick(".bottom-nav-pill", /64px/);
 ok(ind !== null, "底栏缺少 active indicator 胶囊");
 if (ind) {
-  ok(/width:\s*64px/.test(ind) && /height:\s*32px/.test(ind), "胶囊尺寸不是 MD3 的 64×32");
-  ok(/corner-full/.test(ind), "胶囊圆角未走 --md-sys-shape-corner-full");
+  /* C4（霖 2026-10-01 走查）：胶囊高度改成按当前项的内容盒实测（32px 装不下一行标签，
+     文字会从下沿露出来），宽度也跟标签走、下限 64px。这里只钉「宽度下限来自常量、
+     高度不写死」——具体数值由 useBottomNavPill 现算。 */
+  ok(/width:\s*64px/.test(ind), "胶囊宽度下限不是 64px（NAV_PILL_MIN_W）");
+  ok(/height:\s*var\(--nav-pill-h/.test(ind) && /top:\s*var\(--nav-pill-top/.test(ind),
+    "胶囊高度/top 又写死了（应走 --nav-pill-h / --nav-pill-top，由内容盒实测写入）");
+  ok(!/height:\s*32px/.test(ind), "胶囊又写回 height: 32px");
+  /* 霖 2026-10-07：半径必须**同时**保留全圆角令牌、又按实测高度夹住（min(令牌, h/2)）——
+     只写令牌时高度不足会被按比例压缩成方角，只写 h/2 又绕开了令牌纪律。 */
+  const radiusDecl = (ind.match(/border-radius:[^;]*;/) || [""])[0];
+  ok(/corner-full/.test(radiusDecl) && /nav-pill-h/.test(radiusDecl) && /\/\s*2\)/.test(radiusDecl), "胶囊圆角不是「令牌与实测高度取小」（曲率会随高度退化）");
   ok(/secondary-container/.test(ind), "胶囊底色未走 secondary-container");
 }
 ok(/\.bottom-nav-pill\.is-ready\s*\{[^}]*opacity:\s*1/.test(CSS), "胶囊未在就位后点亮");
@@ -68,6 +77,29 @@ if (hook) {
   ok(/1 - \(sx - 1\) \* NAV_PILL_SQUASH/.test(hook[0]), "竖向收窄未与横向拉伸按比例耦合");
   ok(/translateX\([\s\S]{0,120}scaleX\([\s\S]{0,60}scaleY\(/.test(hook[0]), "位置与形变不在同一条 transform 里（会各走一条线程而错位）");
   ok(/translateX/.test(hook[0]), "胶囊运动不是水平位移");
+  /* D2：挤压相位 + 只动 transform + reduced-motion 降级 */
+  ok(
+    /NAV_PILL_SQUASH_APEX/.test(hook[0]) && /NAV_PILL_SQUASH_WIDE/.test(hook[0]) && /Math\.sin\(Math\.PI \* sq\)/.test(hook[0]),
+    "D2：胶囊没有挤压相位（减速接近目标时应横向收短、竖向变厚再弹回）",
+  );
+  ok(/1 - NAV_PILL_SQUASH_APEX \* bump/.test(hook[0]) && /1 \+ NAV_PILL_SQUASH_APEX \* NAV_PILL_SQUASH_WIDE \* bump/.test(hook[0]), "D2：挤压没有按「横向收多少、竖向就厚多少」耦合");
+  ok(!/frames\.push\(\{[^}]*\b(width|height|left|top|margin|padding)\s*:/.test(hook[0]), "D2：形变动画动了布局属性（只许 transform，否则触发布局与重排）");
+  ok(/prefersReducedMotion\(\)/.test(hook[0]), "D2：胶囊形变没有 reduced-motion 降级");
+  /* 连点打断（review-animations「可中断性」）：底栏是一秒内可能连点两次的元件。
+     WAAPI 不会自动取消旧动画——旧的若更长，会在新的播完后继续把 transform 抢回去；
+     起点也必须取当前表现值，否则会从上次的逻辑落点跳一下。 */
+  ok(
+    /function presentationCenter[\s\S]{0,900}?getAnimations\([\s\S]{0,400}?\.cancel\(\)/.test(MOTION_TS),
+    "连点打断：起新动画前没有取消旧动画（旧动画会在新的播完后夺回 transform）",
+  );
+  ok(
+    /presentationCenter\(pill\)/.test(hook[0]) && /const prev = present \?\? target;/.test(hook[0]),
+    "连点打断：起点不是当前表现值（会从上次逻辑落点跳一下）",
+  );
+  ok(
+    /const sameTarget = target !== null && Math\.abs\(target - c1\) < 0\.5;/.test(hook[0]) && /if \(sameTarget\) return;/.test(hook[0]),
+    "目标没变时又重启动了动画（无关重渲染会让胶囊一顿一顿）",
+  );
 }
 ok(/\.bottom-nav-item > \*\s*\{[^}]*z-index:\s*1/.test(CSS), "图标/文字未压在胶囊之上");
 ok(/\{ page: "today", label: "今日"/.test(LAYOUT) && /label: "我的"/.test(LAYOUT), "底栏 5 目的地不全");
@@ -105,4 +137,4 @@ if (fails.length) {
   for (const f of fails) console.error("  ✗ " + f);
   process.exit(1);
 }
-console.log("导航壳护栏：底栏 5 Tab + 64×32 胶囊 + 安全区 + 无描边 ✓ 侧栏 ≤240px + 整行胶囊 + 侧栏竖条关闭 + 分区标题 ✓ 底栏滑动胶囊 ✓ 无横向蓝条 ✓ 圆角一致 ✓ 底栏不收缩 ✓");
+console.log("导航壳护栏：底栏 5 Tab + 胶囊按内容盒实测（宽度下限 64） + 安全区 + 无描边 ✓ 侧栏 ≤240px + 整行胶囊 + 侧栏竖条关闭 + 分区标题 ✓ 底栏滑动胶囊 ✓ 无横向蓝条 ✓ 圆角一致 ✓ 底栏不收缩 ✓");

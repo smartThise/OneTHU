@@ -14,6 +14,7 @@ import { IconChevron, IconFolderPlus, IconSearch, IconStar } from "./Icons.js";
 import { useFavs } from "../state/favs.js";
 import { pageAtomRef, resolveAtom, searchAtoms, type AtomHit } from "../state/atoms.js";
 import type { AtomRef } from "../state/favorites.js";
+import type { CtxItem } from "./ContextMenu.js";
 
 /** 星标按钮：已收录点亮；点击开弹层 */
 export function CollectStar({ atom, title }: { atom: AtomRef; title?: string }) {
@@ -38,6 +39,26 @@ export function CollectStar({ atom, title }: { atom: AtomRef; title?: string }) 
       {open ? <CollectModal atom={atom} onClose={() => setOpen(false)} /> : null}
     </>
   );
+}
+
+/**
+ * 页面级「收藏」菜单项（G1）：顶栏「···」菜单里的收藏入口，开关的是**同一个**
+ * `CollectModal`（菜单里点「收藏」也是选收藏夹，不是一键塞进默认夹）。
+ * 返回 `{ item, modal }`：页面把 item 放进 PageHead 的 menu，把 modal 渲染在任意位置。
+ */
+export function usePageCollect(atom: AtomRef | null, title?: string): { item: CtxItem | null; modal: ReactNode } {
+  const favs = useFavs();
+  const [open, setOpen] = useState(false);
+  const on = atom ? favs.foldersContaining(atom).length > 0 : false;
+  const item: CtxItem | null = atom
+    ? {
+        key: "collect",
+        label: on ? "管理收藏" : "收藏",
+        icon: <IconStar width={16} height={16} />,
+        onSelect: () => setOpen(true),
+      }
+    : null;
+  return { item, modal: open && atom ? <CollectModal atom={atom} onClose={() => setOpen(false)} /> : null };
 }
 
 /** 「收藏到…」弹层：多选收藏夹 + 当场新建 */

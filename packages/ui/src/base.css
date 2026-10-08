@@ -67,7 +67,30 @@ button { font-family: inherit; }
   background-clip: content-box;
   border-radius: 999px;
 }
-*::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--md-sys-color-primary) 32%, transparent); background-clip: content-box; }
+@media (hover: hover) and (pointer: fine) {
+  *::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--md-sys-color-primary) 32%, transparent); background-clip: content-box; }
+}
 *::-webkit-scrollbar-thumb:active { background: color-mix(in srgb, var(--md-sys-color-primary) 46%, transparent); background-clip: content-box; }
 *::-webkit-scrollbar-corner { background: transparent; }
 *::-webkit-scrollbar-button { display: none; width: 0; height: 0; } /* 去掉两端箭头（最"平台默认"的部分） */
+
+/* ── 老引擎兜底：Chromium 96 无 color-mix()（霖 2026-10-04 老机型适配）──
+   上面 63→65 那条「紧邻静态声明」的兜底在 96 上**不成立**：值里含 var() → computed-value
+   阶段整条作废（unset），不会回落到 63 的静态声明 → 滚动条拇指变透明（命中区还在，但看不见）。
+   这里用不含 var() 的判据在文件末尾重声明，静态值取「中性一档」。 */
+@supports not (color: color-mix(in srgb, red 50%, transparent)) {
+  *::-webkit-scrollbar-thumb {
+    background: var(--md-sys-color-outline-variant);
+    background-clip: content-box;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    *::-webkit-scrollbar-thumb:hover {
+      background: var(--md-sys-color-outline-strong, var(--md-sys-color-outline-variant));
+      background-clip: content-box;
+    }
+  }
+  *::-webkit-scrollbar-thumb:active {
+    background: var(--md-sys-color-outline-strong, var(--md-sys-color-outline-variant));
+    background-clip: content-box;
+  }
+}

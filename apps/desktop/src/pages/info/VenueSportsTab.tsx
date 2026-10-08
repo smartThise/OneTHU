@@ -651,7 +651,7 @@ export function VenueSportsTab({
               {twoFABusy ? "验证中…" : "确认"}
             </button>
           </div>
-          {twoFAErr ? <div style={{ fontSize: 13, color: "#d33" }}>{twoFAErr}</div> : null}
+          {twoFAErr ? <div style={{ fontSize: 13, color: "var(--red)" }}>{twoFAErr}</div> : null}
         </Card>
       </>
     );
@@ -664,7 +664,7 @@ export function VenueSportsTab({
         <SectionHead title="体育场馆预约" aside="体育系统 · 统一身份认证" />
         <Card style={{ marginBottom: 14 }}>
           <div style={{ lineHeight: 1.7, fontSize: 13, marginBottom: 12 }}>
-            预约清华体育场馆（气膜馆、综体、游泳馆等 33 个场馆）复用 OneTHU 的统一身份登录，通常无需任何操作。仅当统一会话与本机凭证都不可用时，才需要点下方按钮在弹窗里认证一次。
+            预约清华体育场馆（气膜馆、综体、游泳馆等 33 个场馆）复用 OneTHU 的统一身份登录，通常无需任何操作。仅当统一身份与本机登录信息都不可用时，才需要点下方按钮在弹窗里认证一次。
           </div>
           <button className="btn btn-primary" onClick={() => void doAuth()} disabled={authBusy}>
             {authBusy ? "登录中…" : "重新登录体育系统"}
@@ -672,7 +672,7 @@ export function VenueSportsTab({
           {authMsg ? (
             /维护中/.test(authMsg)
               ? <VenueNote text={authMsg} onRetry={() => void doAuth()} />
-              : <div style={{ marginTop: 10, fontSize: 13, color: "#d33", lineHeight: 1.5 }}>{authMsg}</div>
+              : <div style={{ marginTop: 10, fontSize: 13, color: "var(--red)", lineHeight: 1.5 }}>{authMsg}</div>
           ) : null}
         </Card>
       </>
@@ -872,8 +872,8 @@ export function VenueSportsTab({
                 lineHeight: 1.7,
                 margin: "10px 0 12px",
                 padding: "8px 10px",
-                background: "rgba(220, 38, 38, 0.06)",
-                border: "1px solid rgba(220, 38, 38, 0.25)",
+                background: "var(--red-soft)",
+                border: "1px solid color-mix(in srgb, var(--red) 25%, transparent)",
                 borderRadius: 8,
               }}
             >

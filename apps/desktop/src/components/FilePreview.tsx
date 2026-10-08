@@ -9,6 +9,7 @@
  * 任一环节失败（依赖加载失败/格式异常/算法不支持）都回退"内部文件树 + 下载"兜底，绝不白屏。
  */
 import { Component, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useOverlayBack } from "../state/navStack.js";
 import type { CSSProperties, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useExitPhase } from "../lib/motion.js";
@@ -270,7 +271,7 @@ function PdfPage({
         width,
         height: Math.round(width * (ratio ?? 1.414)),
         margin: "0 auto 12px",
-        background: "#fff",
+        background: "#fff",  /* token-ok: 文档页面对纸张必须纯白（PDF/PPT 画布模拟纸面） */
         borderRadius: 6,
         boxShadow: "var(--shadow-1)",
         display: "flex",
@@ -280,7 +281,7 @@ function PdfPage({
       }}
     >
       {err ? (
-        <div style={{ fontSize: 11.5, color: "var(--red, #e5484d)", padding: 12, textAlign: "center" }}>{err}</div>
+        <div style={{ fontSize: 11.5, color: "var(--red)", padding: 12, textAlign: "center" }}>{err}</div>
       ) : active ? (
         <canvas ref={canvasRef} style={{ display: "block" }} />
       ) : (
@@ -375,7 +376,7 @@ function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy }: { dataUrl: string
   if (err) {
     return (
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, padding: 24 }}>
-        <div style={{ fontSize: 12.5, color: "var(--red, #e5484d)", textAlign: "center" }}>{err}</div>
+        <div style={{ fontSize: 12.5, color: "var(--red)", textAlign: "center" }}>{err}</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
           <button className="btn" disabled={pdfBusy} onClick={() => void onOpenExternally()}>系统应用打开</button>
         </div>
@@ -391,14 +392,14 @@ function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy }: { dataUrl: string
       <div
         ref={wrapRef}
         onScroll={onScroll}
-        style={{ flex: 1, minHeight: 0, position: "relative", overflow: "auto", padding: "10px 12px 0", background: "rgba(127,127,127,.06)" }}
+        style={{ flex: 1, minHeight: 0, position: "relative", overflow: "auto", padding: "10px 12px 0", background: "var(--surface-2)" }}
       >
         {Array.from({ length: doc.numPages }, (_, i) => i + 1).map((no) => (
           <PdfPage key={no} doc={doc} no={no} width={width} active={Math.abs(no - cur) <= 2} register={register} />
         ))}
         <div style={{ height: 8 }} />
       </div>
-      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderTop: "1px solid var(--border, #eee)", flexWrap: "wrap", justifyContent: "center" }}>
+      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderTop: "1px solid var(--border)", flexWrap: "wrap", justifyContent: "center" }}>
         <button className="btn" disabled={cur <= 1} title="上一页" onClick={() => jump(cur - 1)}>‹</button>
         <span style={{ fontSize: 12, color: "var(--text-2)", minWidth: 64, textAlign: "center" }}>{cur} / {doc.numPages}</span>
         <button className="btn" disabled={cur >= doc.numPages} title="下一页" onClick={() => jump(cur + 1)}>›</button>
@@ -589,10 +590,10 @@ const DOCX_CSS = `
 .docx-preview h1{font-size:1.5em}.docx-preview h2{font-size:1.3em}.docx-preview h3{font-size:1.15em}
 .docx-preview p{margin:.45em 0}
 .docx-preview table{border-collapse:collapse;margin:.6em 0;max-width:100%}
-.docx-preview td,.docx-preview th{border:1px solid var(--border,#d9d9d9);padding:4px 8px;font-size:12.5px}
+.docx-preview td,.docx-preview th{border:1px solid var(--border);padding:4px 8px;font-size:12.5px}
 .docx-preview img{max-width:100%;height:auto;border-radius:6px}
 .docx-preview ul,.docx-preview ol{margin:.4em 0;padding-left:1.6em}
-.docx-preview a{color:var(--accent,#1677ff)}
+.docx-preview a{color:var(--accent)}
 `;
 
 interface ZipPayload {
@@ -732,15 +733,15 @@ interface EntryPreviewState {
 
 const zipRowStyle: CSSProperties = {
   display: "flex", gap: 8, alignItems: "baseline", padding: "4px 2px",
-  borderBottom: "1px solid var(--border, #f0f0f0)", fontSize: 12.5,
+  borderBottom: "1px solid var(--border)", fontSize: 12.5,
 };
 const zipNameStyle: CSSProperties = { flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
-const zipMetaStyle: CSSProperties = { color: "var(--text-3, #9aa1ac)", flexShrink: 0, fontSize: 11.5 };
+const zipMetaStyle: CSSProperties = { color: "var(--text-3)", flexShrink: 0, fontSize: 11.5 };
 
 function crumbStyle(active: boolean): CSSProperties {
   return {
     cursor: "pointer", background: "none", border: "none", padding: 0, fontSize: 12.5,
-    color: active ? "var(--text-1, #1f2329)" : "var(--accent, #1677ff)",
+    color: active ? "var(--text-1)" : "var(--accent)",
     fontWeight: active ? 600 : 400,
   };
 }
@@ -748,9 +749,9 @@ function crumbStyle(active: boolean): CSSProperties {
 function chipStyle(active: boolean): CSSProperties {
   return {
     padding: "3px 12px", borderRadius: 999, fontSize: 12, cursor: "pointer",
-    border: `1px solid ${active ? "var(--accent, #1677ff)" : "var(--border, #e0e0e0)"}`,
-    background: active ? "var(--accent-soft, rgba(22,119,255,.08))" : "transparent",
-    color: active ? "var(--accent, #1677ff)" : "var(--text-2, #57606a)",
+    border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+    background: active ? "var(--accent-soft)" : "transparent",
+    color: active ? "var(--accent)" : "var(--text-2)",
     flexShrink: 0,
   };
 }
@@ -758,6 +759,8 @@ function chipStyle(active: boolean): CSSProperties {
 function ZipTreeView({ zip, notice }: { zip: ZipPayload; notice?: string }) {
   const [dirPath, setDirPath] = useState<string[]>([]);
   const [preview, setPreview] = useState<EntryPreviewState | null>(null);
+  /* E1：压缩包内预览是浮层——返回键先关它，不再让整页退出 */
+  useOverlayBack("file-preview", preview !== null, () => setPreview(null));
   const previewSeq = useRef(0);
   const root = useMemo(() => buildZipTree(zip.entries), [zip.entries]);
   const node = resolveZipNode(root, dirPath) ?? root;
@@ -795,7 +798,7 @@ function ZipTreeView({ zip, notice }: { zip: ZipPayload; notice?: string }) {
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: "10px 14px 14px" }}>
       {notice ? (
-        <div style={{ fontSize: 12.5, color: "var(--amber, #ff9f1a)", background: "var(--accent-soft, rgba(255,159,26,.08))", borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
+        <div style={{ fontSize: 12.5, color: "var(--amber)", background: "var(--accent-soft)", borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
           {notice}
         </div>
       ) : null}
@@ -805,19 +808,19 @@ function ZipTreeView({ zip, notice }: { zip: ZipPayload; notice?: string }) {
         <button style={crumbStyle(dirPath.length === 0)} onClick={() => jump([])}>根</button>
         {dirPath.map((seg, i) => (
           <span key={`${i}-${seg}`} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <span style={{ color: "var(--text-3, #9aa1ac)" }}>/</span>
+            <span style={{ color: "var(--text-3)" }}>/</span>
             <button style={crumbStyle(i === dirPath.length - 1)} onClick={() => jump(dirPath.slice(0, i + 1))}>{seg}</button>
           </span>
         ))}
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)", flexShrink: 0 }}>
+        <span style={{ fontSize: 11, color: "var(--text-3)", flexShrink: 0 }}>
           当前层 {children.length} 项 · 全部 {root.fileCount} 个文件
         </span>
       </div>
 
       {preview ? (
         /* 单条文本条目的内联预览面板（替代列表展示） */
-        <div style={{ border: "1px solid var(--border, #e5e5e5)", borderRadius: 10, padding: 10, display: "flex", flexDirection: "column", gap: 8, flex: 1, minHeight: 0 }}>
+        <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, display: "flex", flexDirection: "column", gap: 8, flex: 1, minHeight: 0 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
             <button className="btn" onClick={() => setPreview(null)}>← 返回列表</button>
             <span style={{ ...zipNameStyle, fontSize: 12 }} title={preview.path}>📄 {preview.path}</span>
@@ -832,7 +835,7 @@ function ZipTreeView({ zip, notice }: { zip: ZipPayload; notice?: string }) {
           {preview.phase === "done" ? (
             <div style={{ overflowY: "auto", minHeight: 0 }}>
               {preview.mojibake ? (
-                <div style={{ fontSize: 12, color: "var(--amber, #ff9f1a)", marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: "var(--amber)", marginBottom: 8 }}>
                   条目可能不是 UTF-8 编码（如 GBK），部分字符可能显示为乱码。
                 </div>
               ) : null}
@@ -877,20 +880,20 @@ function ZipTreeView({ zip, notice }: { zip: ZipPayload; notice?: string }) {
                   style={{
                     ...zipNameStyle,
                     textDecoration: previewable ? "underline dotted" : "none",
-                    textDecorationColor: "rgba(127,127,127,.45)",
+                    textDecorationColor: "var(--text-3)",
                   }}
                 >
                   {c.name}
                 </span>
                 {previewable ? (
-                  <span style={{ fontSize: 11, color: "var(--accent, #1677ff)", flexShrink: 0 }}>预览</span>
+                  <span style={{ fontSize: 11, color: "var(--accent)", flexShrink: 0 }}>预览</span>
                 ) : null}
                 <span style={zipMetaStyle}>{fmtBytes(c.size) || "0 B"}</span>
               </div>
             );
           })}
           {children.length > ZIP_ROW_CAP ? (
-            <div style={{ paddingTop: 8, fontSize: 12, color: "var(--text-3, #9aa1ac)" }}>
+            <div style={{ paddingTop: 8, fontSize: 12, color: "var(--text-3)" }}>
               当前层还有 {children.length - ZIP_ROW_CAP} 项未显示，可下载查看完整内容
             </div>
           ) : null}
@@ -910,7 +913,7 @@ function OfficeShell({ zip, children }: { zip: ZipPayload; children: ReactNode }
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, padding: "10px 14px 8px", flexShrink: 0 }}>
         <button style={chipStyle(tab === "doc")} onClick={() => setTab("doc")}>内容预览</button>
         <button style={chipStyle(tab === "tree")} onClick={() => setTab("tree")}>内部文件</button>
-        <span style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)" }}>本地解析渲染，可切换查看文档内部文件</span>
+        <span style={{ fontSize: 11, color: "var(--text-3)" }}>本地解析渲染，可切换查看文档内部文件</span>
       </div>
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflowY: "auto" }}>
         {tab === "doc" ? children : <ZipTreeView zip={zip} />}
@@ -924,11 +927,11 @@ function XlsxView({ sheets }: { sheets: XlsxSheetView[] }) {
   if (!sheets.length) return <Empty text="工作簿中没有可显示的工作表" />;
   const sheet = sheets[Math.min(idx, sheets.length - 1)] ?? sheets[0]!;
   const thStyle: CSSProperties = {
-    border: "1px solid var(--border, #e0e0e0)", padding: "4px 8px", textAlign: "left",
-    fontWeight: 600, whiteSpace: "nowrap", background: "var(--surface-3, rgba(127,127,127,.06))",
+    border: "1px solid var(--border)", padding: "4px 8px", textAlign: "left",
+    fontWeight: 600, whiteSpace: "nowrap", background: "var(--surface-3)",
   };
   const tdStyle: CSSProperties = {
-    border: "1px solid var(--border, #e0e0e0)", padding: "4px 8px",
+    border: "1px solid var(--border)", padding: "4px 8px",
     verticalAlign: "top", maxWidth: 320, overflowWrap: "break-word",
   };
   return (
@@ -938,7 +941,7 @@ function XlsxView({ sheets }: { sheets: XlsxSheetView[] }) {
           <button key={`${i}-${s.name}`} style={chipStyle(i === idx)} onClick={() => setIdx(i)}>{s.name}</button>
         ))}
       </div>
-      <div style={{ fontSize: 11.5, color: "var(--text-3, #9aa1ac)" }}>
+      <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>
         工作表「{sheet.name}」共 {sheet.totalRows} 行
         {sheet.truncatedRows ? `，仅显示前 ${XLSX_ROW_LIMIT} 行` : ""}
         {sheet.truncatedCols ? `；列过多，仅显示前 ${XLSX_COL_LIMIT} 列` : ""}
@@ -973,9 +976,9 @@ function PptxView({ slides }: { slides: PptxSlide[] }) {
       {slides.map((s) => (
         <div
           key={s.no}
-          style={{ border: "1px solid var(--border, #e5e5e5)", borderRadius: 10, padding: "10px 14px" }}
+          style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "10px 14px" }}
         >
-          <div style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)" }}>幻灯片 {s.no}</div>
+          <div style={{ fontSize: 11, color: "var(--text-3)" }}>幻灯片 {s.no}</div>
           <div style={{ fontWeight: 700, fontSize: 14, margin: "2px 0 6px", wordBreak: "break-word" }}>
             {s.title || "（无标题）"}
           </div>
@@ -987,7 +990,7 @@ function PptxView({ slides }: { slides: PptxSlide[] }) {
             </ul>
           ) : null}
           {s.notes ? (
-            <div style={{ marginTop: 8, paddingTop: 6, borderTop: "1px dashed var(--border, #eee)", fontSize: 11.5, color: "var(--text-3, #9aa1ac)" }}>
+            <div style={{ marginTop: 8, paddingTop: 6, borderTop: "1px dashed var(--border)", fontSize: 11.5, color: "var(--text-3)" }}>
               备注：{s.notes}
             </div>
           ) : null}
@@ -1026,7 +1029,7 @@ function PptxShapeView({ shape, model, pxPerPt }: { shape: PptxShape; model: Ppt
           ...box,
           height: vertical ? box.height : 1,
           width: vertical ? 1 : box.width,
-          background: shape.color ?? "#c9ced6",
+          background: shape.color ?? "var(--surface-3)",
         }}
       />
     );
@@ -1037,14 +1040,14 @@ function PptxShapeView({ shape, model, pxPerPt }: { shape: PptxShape; model: Ppt
       <div
         style={{
           ...box,
-          border: "1px dashed var(--border, #c9ced6)",
+          border: "1px dashed var(--border)",
           borderRadius: 4,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           fontSize: 11,
-          color: "var(--text-3, #9aa1ac)",
-          background: "rgba(127,127,127,.05)",
+          color: "var(--text-3)",
+          background: "var(--surface-2)",
         }}
       >
         {shape.label}
@@ -1055,12 +1058,12 @@ function PptxShapeView({ shape, model, pxPerPt }: { shape: PptxShape; model: Ppt
   if (shape.kind === "table") {
     return (
       <div style={{ ...box, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, color: "#111" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, color: "var(--text-1)" }}>
           <tbody>
             {shape.rows.map((row, ri) => (
               <tr key={ri}>
                 {row.map((cell, ci) => (
-                  <td key={ci} style={{ border: "1px solid #b9bfc8", padding: "2px 5px", verticalAlign: "top" }}>
+                  <td key={ci} style={{ border: "1px solid var(--border)", padding: "2px 5px", verticalAlign: "top" }}>
                     {cell.map((p, pi) => (
                       <div key={pi}>{p.runs.map((r) => r.text).join("")}</div>
                     ))}
@@ -1107,7 +1110,7 @@ function PptxShapeView({ shape, model, pxPerPt }: { shape: PptxShape; model: Ppt
                   fontWeight: r.bold ? 700 : 400,
                   fontStyle: r.italic ? "italic" : undefined,
                   textDecoration: r.underline ? "underline" : undefined,
-                  color: r.color ?? "#111",
+                  color: r.color ?? "var(--text-1)",
                   whiteSpace: "pre-wrap",
                 }}
               >
@@ -1148,10 +1151,10 @@ function PptxSlidesView({ model }: { model: PptxModel }): React.ReactNode {
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-      <div ref={wrapRef} style={{ flex: 1, minHeight: 0, overflow: "auto", padding: "10px 12px 0", background: "rgba(127,127,127,.06)" }}>
+      <div ref={wrapRef} style={{ flex: 1, minHeight: 0, overflow: "auto", padding: "10px 12px 0", background: "var(--surface-2)" }}>
         {model.slides.map((sl) => (
           <div key={sl.no} style={{ margin: "0 auto 14px", width: Math.round(PPTX_LOGICAL_W * k) }}>
-            <div style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)", padding: "2px 0" }}>
+            <div style={{ fontSize: 11, color: "var(--text-3)", padding: "2px 0" }}>
               第 {sl.no} 页 / 共 {model.slides.length} 页
             </div>
             <div style={{ position: "relative", width: Math.round(PPTX_LOGICAL_W * k), height: Math.round(pageH * k) }}>
@@ -1163,7 +1166,7 @@ function PptxSlidesView({ model }: { model: PptxModel }): React.ReactNode {
                   left: 0,
                   width: PPTX_LOGICAL_W,
                   height: pageH,
-                  background: "#fff",
+                  background: "#fff",  /* token-ok: 文档页面对纸张必须纯白（PDF/PPT 画布模拟纸面） */
                   boxShadow: "var(--shadow-1)",
                   borderRadius: 6,
                   overflow: "hidden",
@@ -1177,7 +1180,7 @@ function PptxSlidesView({ model }: { model: PptxModel }): React.ReactNode {
               </div>
             </div>
             {sl.notes ? (
-              <div style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)", padding: "4px 2px 0", wordBreak: "break-word" }}>
+              <div style={{ fontSize: 11, color: "var(--text-3)", padding: "4px 2px 0", wordBreak: "break-word" }}>
                 备注：{sl.notes}
               </div>
             ) : null}
@@ -1185,14 +1188,14 @@ function PptxSlidesView({ model }: { model: PptxModel }): React.ReactNode {
         ))}
         <div style={{ height: 8 }} />
       </div>
-      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderTop: "1px solid var(--border, #eee)", flexWrap: "wrap", justifyContent: "center" }}>
-        <span style={{ fontSize: 11.5, color: "var(--text-3, #9aa1ac)" }}>连续滚动查看全部页面</span>
+      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderTop: "1px solid var(--border)", flexWrap: "wrap", justifyContent: "center" }}>
+        <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>连续滚动查看全部页面</span>
         <button className="btn btn-ghost" title="缩小" disabled={zoom <= 0.5} onClick={() => setZoom((z) => Math.max(0.5, Math.round((z - 0.15) * 100) / 100))}>−</button>
         <span style={{ fontSize: 12, color: "var(--text-2)", minWidth: 40, textAlign: "center" }}>{Math.round(zoom * 100)}%</span>
         <button className="btn btn-ghost" title="放大" disabled={zoom >= 3} onClick={() => setZoom((z) => Math.min(3, Math.round((z + 0.15) * 100) / 100))}>＋</button>
         <button className="btn btn-ghost" disabled={zoom === 1} onClick={() => setZoom(1)}>适应宽度</button>
         {model.unsupported > 0 ? (
-          <span style={{ fontSize: 11.5, color: "var(--text-3, #9aa1ac)" }}>{model.unsupported} 个图表/对象未渲染</span>
+          <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{model.unsupported} 个图表/对象未渲染</span>
         ) : null}
       </div>
     </div>
@@ -1202,13 +1205,13 @@ function PptxSlidesView({ model }: { model: PptxModel }): React.ReactNode {
 /* ---------- 宿主 + 弹窗（表面样式同 zhjwxk/Courses.tsx 的 maskStyle/panelStyle） ---------- */
 
 const maskStyle: CSSProperties = {
-  position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000,
+  position: "fixed", inset: 0, background: "var(--md-sys-color-scrim)", zIndex: 1000,
   display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
 };
 const panelStyle: CSSProperties = {
   width: "100%", maxWidth: 920, maxHeight: "88vh", display: "flex", flexDirection: "column",
-  background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)",
-  borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)", overflow: "hidden",
+  background: "var(--surface)", color: "var(--text-1)",
+  borderRadius: 14, boxShadow: "var(--shadow-3)", overflow: "hidden",
 };
 /* PC（expanded）文件预览：居中大窗（§2.8.2）。同 TabManageModal——内联样式优先于类选择器，
    所以只能在组件里换样式对象，写 CSS 是白写。 */
@@ -1228,7 +1231,7 @@ const panelStyleWide: CSSProperties = {
 const headStyle: CSSProperties = {
   gridColumn: "1 / -1",
   display: "flex", alignItems: "center", gap: 8, padding: "10px 14px",
-  borderBottom: "1px solid var(--border, #eee)", flexShrink: 0,
+  borderBottom: "1px solid var(--border)", flexShrink: 0,
   // 窄屏（手机）把按钮换到第二行，而不是把 ✕ 挤出屏幕：三个按钮 + 文件名 + 元信息
   // 在 360dp 上挤不下，flex 不换行时最后一个按钮会被顶到面板外面
   flexWrap: "wrap", rowGap: 8,
@@ -1428,7 +1431,7 @@ export function FilePreviewHost() {
             {cur?.name || shown.name || "文件预览"}
           </b>
           {metaBits.length ? (
-            <span style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)", flexShrink: 0 }}>{metaBits.join(" · ")}</span>
+            <span style={{ fontSize: 11, color: "var(--text-3)", flexShrink: 0 }}>{metaBits.join(" · ")}</span>
           ) : null}
           {/* 按钮组整体靠右且不收缩：空间不够时整组换行，✕ 永远在面板内 */}
           <span className="fp-actions" style={{ display: "flex", gap: 8, flexShrink: 0, marginLeft: "auto" }}>
@@ -1449,7 +1452,7 @@ export function FilePreviewHost() {
             <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
               <Empty text={`预览加载失败：${phase.msg}`} />
               {phase.raw ? (
-                <div style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)", maxWidth: 640, textAlign: "center", overflowWrap: "anywhere" }}>
+                <div style={{ fontSize: 11, color: "var(--text-3)", maxWidth: 640, textAlign: "center", overflowWrap: "anywhere" }}>
                   原生返回：{phase.raw}
                 </div>
               ) : null}
@@ -1468,7 +1471,7 @@ export function FilePreviewHost() {
           <PreviewErrorBoundary onRetry={retry} note={IS_WINDOWS_HOST ? WIN_PREVIEW_NOTE : undefined}>
 
           {view?.kind === "image" ? (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, background: "rgba(127,127,127,.05)", minHeight: 220 }}>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, background: "var(--surface-2)", minHeight: 220 }}>
               <img
                 src={view.dataUrl}
                 alt={cur?.name ?? shown.name}
@@ -1490,7 +1493,7 @@ export function FilePreviewHost() {
           {view?.kind === "text" ? (
             <div style={{ padding: 12 }}>
               {view.mojibake ? (
-                <div style={{ fontSize: 12, color: "var(--amber, #ff9f1a)", marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: "var(--amber)", marginBottom: 8 }}>
                   文件可能不是 UTF-8 编码（如 GBK），部分字符可能显示为乱码。
                 </div>
               ) : null}
@@ -1525,7 +1528,7 @@ export function FilePreviewHost() {
             <OfficeShell key={`p${cur?.seq ?? 0}`} zip={view.zip}>
               {view.kind === "pptx" ? <PptxSlidesView model={view.model} /> : <PptxView slides={view.slides} />}
               {"notice" in view && view.notice ? (
-                <div style={{ padding: "6px 12px 8px", fontSize: 11.5, color: "var(--text-3, #9aa1ac)", wordBreak: "break-all" }}>
+                <div style={{ padding: "6px 12px 8px", fontSize: 11.5, color: "var(--text-3)", wordBreak: "break-all" }}>
                   {view.notice}
                 </div>
               ) : null}
@@ -1535,7 +1538,7 @@ export function FilePreviewHost() {
           {view?.kind === "other" ? (
             <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 12, alignItems: "center", justifyContent: "center", flex: 1 }}>
               <Empty text={view.hint ?? "该格式暂不支持在线预览"} />
-              <div style={{ fontSize: 12, color: "var(--text-3, #9aa1ac)", textAlign: "center" }}>
+              <div style={{ fontSize: 12, color: "var(--text-3)", textAlign: "center" }}>
                 {view.mime}
                 {view.size ? ` · ${fmtBytes(view.size)}` : ""}
               </div>
@@ -1581,7 +1584,7 @@ export function FilePreviewHost() {
              动效：入场从下浮起（.fp-dl-hint），清空后走 200ms 退场相位淡出（.is-closing）。 */
           <div
             className={"fp-dl-hint" + (dlHintClosing ? " is-closing" : "")}
-            style={{ gridColumn: "1 / -1", flexShrink: 0, padding: "6px 14px", fontSize: 12, borderTop: "1px solid var(--border, #eee)", color: "var(--accent)", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
+            style={{ gridColumn: "1 / -1", flexShrink: 0, padding: "6px 14px", fontSize: 12, borderTop: "1px solid var(--border)", color: "var(--accent)", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
           >
             <span>{dlMsg || dlHintRef.current}</span>
             {dlPath ? <DownloadOpenButtons path={dlPath} /> : null}

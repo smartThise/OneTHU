@@ -3,9 +3,13 @@
  * 原四页签列表功能移入 pages/learn/ 专属页面（Assignments/Notices/Files）。
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PageAtomStar } from "..//components/Collect.js";
+import { CollectModal, usePageCollect } from "../components/Collect.js";
+import { pageAtomRef } from "../state/atoms.js";
+import type { PageMenuItem } from "../state/pageChrome.js";
+import { useContextMenu, useLongPressZone, type CtxItem } from "../components/ContextMenu.js";
+import type { AtomRef } from "../state/favorites.js";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../components/Layout.js";
-import { IconBell, IconCalendar, IconChevron, IconFile, IconPen, IconRefresh, IconSearch } from "../components/Icons.js";
+import { IconBell, IconCalendar, IconChevron, IconFile, IconPen, IconRefresh, IconSearch, IconStar } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
 import { CollectStar } from "../components/Collect.js";
 import { enc } from "../state/atoms.js";
@@ -39,6 +43,7 @@ function HwRemindDefaultCard({ openSignal }: { openSignal?: boolean }) {
           value={def}
           title="所有作业共用：截止前提醒（写入系统日历闹钟，改完即同步）"
           foot="单个作业想单独改 → 作业行/课程详情页的铃铛（覆盖此默认）"
+          onDismiss={() => setOpen(false)}
           onApply={(m) => {
             if (m != null) {
               setHwDefault(m);
@@ -54,6 +59,26 @@ function HwRemindDefaultCard({ openSignal }: { openSignal?: boolean }) {
 export function LearnPage() {
   const { navigate, navParams } = useApp();
   const { data, state, error, reload } = useLearnData();
+  const menu = useContextMenu();
+  /* A3：课程卡片长按 = 收藏（矩阵「课程与页面」一行）。收藏走卡片星标同一条通路
+     （CollectModal 多选收藏夹），不新建存储。 */
+  const [collectAtom, setCollectAtom] = useState<AtomRef | null>(null);
+  const courseGridRef = useLongPressZone<HTMLDivElement>({
+    selector: ".course-card",
+    onLongPress: (el, x, y) => {
+      const c = (data?.courses ?? []).find((v) => v.id === el.dataset.courseId);
+      if (!c) return;
+      const items: CtxItem[] = [
+        {
+          key: "collect",
+          label: "收藏",
+          icon: <IconStar width={14} height={14} />,
+          onSelect: () => setCollectAtom({ kind: "course", key: enc(c.id, c.name, c.teacherName) }),
+        },
+      ];
+      menu.open({ x, y, title: c.name, items });
+    },
+  });
 
   // 学期切换显式参数（SemesterSelectionPage 传入）：数据学期与所选学期不一致时
   // 自动重校验一次（缓存竞态/漫游残留旧学期 bundle 的兜底，避免"点进去一片空白/旧学期"）。
@@ -105,28 +130,26 @@ export function LearnPage() {
     return m;
   }, [data, ignored]);
 
+  const collect = usePageCollect(pageAtomRef("learn"), "网络学堂");
+
   return (
     <>
+      {collect.modal}
       <PageHead
         title="网络学堂"
         meta={data ? `${semesterText(data.semester.id)} · ${data.courses.length} 门课程` : "加载中…"}
-        actions={
-          <>
-            <PageAtomStar atomKey="learn" title="网络学堂" />
-            <button className="btn btn-ghost" onClick={() => navigate("learn-search")}>
-              <IconSearch width={14} height={14} />
-              搜索
-            </button>
-            <button className="btn btn-ghost" onClick={() => navigate("learn-semester")}>
-              <IconCalendar width={14} height={14} />
-              学期
-            </button>
-            <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
-              <IconRefresh width={14} height={14} />
-              刷新
-            </button>
-          </>
-        }
+        menu={[
+          collect.item,
+          { key: "search", label: "搜索", icon: <IconSearch width={16} height={16} />, onSelect: () => navigate("learn-search") },
+          { key: "semester", label: "学期", icon: <IconCalendar width={16} height={16} />, onSelect: () => navigate("learn-semester") },
+          {
+            key: "refresh",
+            label: "刷新",
+            icon: <IconRefresh width={16} height={16} />,
+            disabled: state === "loading",
+            onSelect: () => void reload(),
+          },
+        ].filter(Boolean) as PageMenuItem[]}
       />
       <div className="row-sub" style={{ margin: "0 0 10px" }}>
         雨课堂与 OJ 的作业同步在「设置 → 数据与同步」里配置（登录一次后作业会自动并入「全部作业」）。
@@ -134,7 +157,7 @@ export function LearnPage() {
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
 
-      <div className="stats">
+      <div className="stats stats-quad">
         <Card className="stat-card stat-click" >
           <button className="stat-link" onClick={() => navigate("learn-assignments")} aria-label="查看全部作业">
             <span className="stat-icon red">
@@ -191,12 +214,13 @@ export function LearnPage() {
           </Card>
         )
       ) : (
-        <div className="course-grid">
+        <div className="course-grid" ref={courseGridRef}>
           {data.courses.map((c, i) => {
             const s = courseStats.get(c.id);
             return (
               <Card
                 key={c.id}
+                data-course-id={c.id}
                 className="course-card"
                 style={{ animationDelay: `${i * 30}ms` }}
               >
@@ -233,6 +257,7 @@ export function LearnPage() {
           })}
         </div>
       )}
+      {collectAtom ? <CollectModal atom={collectAtom} onClose={() => setCollectAtom(null)} /> : null}
     </>
   );
 }

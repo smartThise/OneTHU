@@ -19,6 +19,8 @@ import type { YktQrPhase } from "@onethu/core";
 import { ensureExtHwCredsLoaded, extHwLogin, refreshExtHw, saveExtHwCreds } from "../state/exthw.js";
 import { bindQrKeepAlive, createQrKeepAlive } from "../lib/qrKeepAlive.js";
 import type { QrKeepAliveController } from "../lib/qrKeepAlive.js";
+// b26：扫码登录失败/超时原文来自 core（如「等待扫码超时」），上屏前过显示层净化
+import { userCopy } from "../lib/userCopy.js";
 import {
   YKT_WEB_FALLBACK_HINT,
   YKT_WEB_LOGIN_AVAILABLE,
@@ -31,10 +33,14 @@ import {
 
 /** 与 CardTab 充值弹窗同款遮罩 / 面板（移动端也留出 24px 边距、限高可滚动） */
 /** 退场：内联 animation 覆盖入场（本项目不给内联几何弹层写 CSS 规则） */
-const maskOut: React.CSSProperties = { animation: "m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both" };
+const maskOut: React.CSSProperties = {
+  animation: "m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both",
+  /* F1：退场遮罩不吃点击（同一族弹层的统一口径） */
+  pointerEvents: "none",
+};
 const panelOut: React.CSSProperties = { animation: "m-pop-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both" };
-const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
-const panelStyle: React.CSSProperties = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 380, maxHeight: "78vh", overflowY: "auto", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)", padding: "16px 18px" };
+const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "var(--md-sys-color-scrim)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
+const panelStyle: React.CSSProperties = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 380, maxHeight: "78vh", overflowY: "auto", background: "var(--surface)", color: "var(--text-1)", borderRadius: 14, boxShadow: "var(--shadow-3)", padding: "16px 18px" };
 
 type YktChannel = "qr" | "web" | "sms";
 
@@ -147,8 +153,8 @@ export function YktQrPanel({ onSuccess, onCancel }: { onSuccess: (cookie: string
     marginTop: 8,
     padding: "6px 8px",
     borderRadius: 8,
-    background: "rgba(26,111,212,0.08)",
-    color: "var(--text-1, #1f2329)",
+    background: "var(--accent-soft)",
+    color: "var(--text-1)",
     textAlign: "left",
   };
 
@@ -157,14 +163,14 @@ export function YktQrPanel({ onSuccess, onCancel }: { onSuccess: (cookie: string
       style={{
         marginTop: 10,
         padding: 12,
-        border: "1px solid var(--border, #e5e5e5)",
+        border: "1px solid var(--border)",
         borderRadius: 10,
-        background: "var(--surface-2, rgba(0,0,0,0.02))",
+        background: "var(--surface-2)",
       }}
     >
       <div style={{ textAlign: "center" }}>
         {qr ? (
-          <div style={{ background: "#fff", display: "inline-block", padding: 10, borderRadius: 10 }}>
+          <div style={{ background: "#fff", display: "inline-block", padding: 10, borderRadius: 10 /* token-ok: 二维码衬底必须纯白（扫码识别） */ }}>
             <QRCodeSVG value={qr.qrContent} size={176} level="M" />
           </div>
         ) : (
@@ -175,7 +181,7 @@ export function YktQrPanel({ onSuccess, onCancel }: { onSuccess: (cookie: string
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "#fff",
+              background: "#fff",  /* token-ok: 二维码衬底必须纯白（扫码识别） */
               borderRadius: 10,
               color: "var(--text-2)",
             }}
@@ -200,7 +206,7 @@ export function YktQrPanel({ onSuccess, onCancel }: { onSuccess: (cookie: string
             本机扫码会切走 App，可能被系统冻结导致登录失败。
           </div>
         )}
-        {err ? <div style={{ color: "var(--red, #c04848)", fontSize: 12, marginTop: 8 }}>{err}</div> : null}
+        {err ? <div style={{ color: "var(--red)", fontSize: 12, marginTop: 8 }}>{userCopy(err)}</div> : null}
       </div>
       <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10 }}>
         <button className="btn" onClick={() => setNonce((n) => n + 1)}>
@@ -293,18 +299,18 @@ export function YktWebLoginPanel({ onSuccess, onCancel }: { onSuccess: (cookie: 
       style={{
         marginTop: 10,
         padding: 12,
-        border: "1px solid var(--border, #e5e5e5)",
+        border: "1px solid var(--border)",
         borderRadius: 10,
-        background: "var(--surface-2, rgba(0,0,0,0.02))",
+        background: "var(--surface-2)",
       }}
     >
       <div style={{ fontSize: 13, lineHeight: 1.6 }}>
         已打开官方登录窗口，请在其中完成<b>微信扫码</b>，或<b>手机号 + 图形验证码 + 短信验证码</b>登录。
         <br />
-        登录成功后回到本页，点击「我已登录，读取会话」。
+        登录成功后回到本页，点击「我已登录，读取登录信息」。
       </div>
       {err ? (
-        <div style={{ color: "var(--red, #c04848)", fontSize: 12, marginTop: 8, whiteSpace: "pre-wrap" }}>{err}</div>
+        <div style={{ color: "var(--red)", fontSize: 12, marginTop: 8, whiteSpace: "pre-wrap" }}>{userCopy(err)}</div>
       ) : null}
       <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10, flexWrap: "wrap" }}>
         <button className="btn btn-primary" disabled={phase === "reading"} onClick={read}>

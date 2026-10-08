@@ -17,8 +17,11 @@ export interface ScheduleWindow {
 }
 
 const KEY = "onethu.schedule.window.v1";
-/** 默认全天：不改变既有观感，想要紧凑的人自己收 */
+/** 全天（仍是预设与「恢复全天」的目标，但不再是默认） */
 export const FULL_DAY: ScheduleWindow = { from: 0, to: 1440 };
+/** C9（霖 2026-10-01 走查）：默认窗口改成 06:00–24:00——打开日程即「尽收眼底」，
+ *  不用再手动滚到当天时段；18 小时 × 自适应小时高正好铺满一屏。 */
+export const DEFAULT_WINDOW: ScheduleWindow = { from: 6 * 60, to: 1440 };
 
 export const WINDOW_PRESETS: ReadonlyArray<{ label: string; win: ScheduleWindow }> = [
   { label: "全天", win: FULL_DAY },
@@ -37,12 +40,12 @@ function clampWin(w: ScheduleWindow): ScheduleWindow {
 function load(): ScheduleWindow {
   try {
     const raw = globalThis.localStorage?.getItem(KEY);
-    if (!raw) return FULL_DAY;
+    if (!raw) return DEFAULT_WINDOW;
     const j = JSON.parse(raw) as Partial<ScheduleWindow>;
-    if (typeof j.from !== "number" || typeof j.to !== "number") return FULL_DAY;
+    if (typeof j.from !== "number" || typeof j.to !== "number") return DEFAULT_WINDOW;
     return clampWin({ from: j.from, to: j.to });
   } catch {
-    return FULL_DAY;
+    return DEFAULT_WINDOW;
   }
 }
 

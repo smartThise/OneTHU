@@ -37,10 +37,18 @@ export const IconSchedule = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+/* 真齿轮（G4）：外圈八齿 + 内孔。旧画法是「圆心 + 八条射线」，霖走查判定像太阳。 */
 export const IconSettings = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}>
-    <circle cx="12" cy="12" r="3.2" />
-    <path d="M12 2.8v3M12 18.2v3M21.2 12h-3M5.8 12h-3M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1M18.5 18.5l-2.1-2.1M7.6 7.6 5.5 5.5" />
+    <circle cx="12" cy="12" r="3.1" />
+    <path d="M19.1 14.6a1.5 1.5 0 0 0 .3 1.65l.05.05a1.82 1.82 0 1 1-2.57 2.57l-.05-.05a1.5 1.5 0 0 0-1.65-.3 1.5 1.5 0 0 0-.91 1.37v.14a1.82 1.82 0 1 1-3.64 0v-.07a1.5 1.5 0 0 0-.98-1.37 1.5 1.5 0 0 0-1.65.3l-.05.05a1.82 1.82 0 1 1-2.57-2.57l.05-.05a1.5 1.5 0 0 0 .3-1.65 1.5 1.5 0 0 0-1.37-.91H3.6a1.82 1.82 0 1 1 0-3.64h.07a1.5 1.5 0 0 0 1.37-.98 1.5 1.5 0 0 0-.3-1.65l-.05-.05a1.82 1.82 0 1 1 2.57-2.57l.05.05a1.5 1.5 0 0 0 1.65.3h.07a1.5 1.5 0 0 0 .91-1.37V3.6a1.82 1.82 0 1 1 3.64 0v.07a1.5 1.5 0 0 0 .91 1.37 1.5 1.5 0 0 0 1.65-.3l.05-.05a1.82 1.82 0 1 1 2.57 2.57l-.05.05a1.5 1.5 0 0 0-.3 1.65v.07a1.5 1.5 0 0 0 1.37.91h.14a1.82 1.82 0 1 1 0 3.64h-.07a1.5 1.5 0 0 0-1.37.91Z" />
+  </svg>
+);
+
+export const IconUser = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="8.2" r="3.4" />
+    <path d="M4.8 20c.6-3.6 3.6-5.6 7.2-5.6s6.6 2 7.2 5.6" />
   </svg>
 );
 
@@ -139,10 +147,21 @@ export const IconTrace = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+/** 校历：日历 + 当天标记（与 IconSchedule 的「纯网格日历」区分开——
+ *  反馈修复 2026-10-05：两者此前 SVG 路径逐字节相同，日程与预约并排显示时同形）。 */
 export const IconCalendar = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}>
     <rect x="3.5" y="5" width="17" height="16" rx="1.5" />
-    <path d="M3.5 10h17M8 2.5V6.5M16 2.5V6.5" />
+    <path d="M3.5 10h17M8 2.5V6.5M16 2.5V6.5M12 12.2h4.6V17H12z" />
+  </svg>
+);
+
+/** 预约：座位（图书馆座位 / 研讨间 / 空教室 / 体育场馆 / 公共空间都是「订一个位置」） */
+export const IconReserve = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M6.6 3.5h10.8v7.2H6.6z" />
+    <path d="M4.2 13.4h15.6v3.4H4.2z" />
+    <path d="M6.6 16.8v3.7M17.4 16.8v3.7" />
   </svg>
 );
 
@@ -156,6 +175,14 @@ export const IconDownload = (p: SVGProps<SVGSVGElement>) => (
 export const IconFlag = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}>
     <path d="M5 21V4M5 4h11l-2 4 2 4H5" />
+  </svg>
+);
+
+/** 警示（危险操作确认弹窗用，与 .btn-danger 同一语义）：三角外廓 + 感叹号 */
+export const IconWarn = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M10.3 3.9 1.9 18.1A2 2 0 0 0 3.6 21h16.8a2 2 0 0 0 1.7-2.9L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+    <path d="M12 9.5v4.5M12 17.3h.01" />
   </svg>
 );
 
@@ -279,6 +306,13 @@ export const IconX = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+/** E8：「已忽略」入口（垃圾桶）——从「全部作业」tab 栏移出后的顶部入口 */
+export const IconTrash = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M4 6.5h16M9.5 6.5V4.5h5v2M6.5 6.5l1 13h9l1-13M10.5 10v6M13.5 10v6" />
+  </svg>
+);
+
 /** GitHub 标（品牌填充形，故单独覆盖 fill/stroke；16 号画布按 1.5 倍放到 24 网格） */
 export const IconGithub = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base({ fill: "currentColor", stroke: "none", ...p })}>
@@ -290,6 +324,22 @@ export const IconGithub = (p: SVGProps<SVGSVGElement>) => (
 export const IconMenu = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}>
     <path d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+);
+
+/** G1 顶栏返回键（←） */
+export const IconBack = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M19 12H5M12 19l-7-7 7-7" />
+  </svg>
+);
+
+/** G1 顶栏「···」（页面级操作菜单）；三个实心圆点，不描边 */
+export const IconMore = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none" />
+    <circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none" />
   </svg>
 );
 

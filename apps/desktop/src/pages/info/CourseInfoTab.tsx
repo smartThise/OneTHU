@@ -173,7 +173,7 @@ export function CourseInfoTab() {
                       </tr>
                       {detail?.key === c.id ? (
                         <tr>
-                          <td colSpan={3} style={{ background: "rgba(0,0,0,0.02)" }}>
+                          <td colSpan={3} style={{ background: "var(--surface-2)" }}>
                             {detail.loading ? (
                               <span style={{ opacity: 0.6 }}>正在加载时间地点…</span>
                             ) : detail.error ? (

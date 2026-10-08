@@ -7,7 +7,7 @@
  *   应用内 iframe 内嵌整页空白（2026-09-04 实证），iframe 方案已废弃。
  */
 import { useMemo, useState } from "react";
-import { Card, Empty, PageHead } from "../components/Layout.js";
+import { Card, Empty, PageHead, SegmentedOverflow } from "../components/Layout.js";
 import { IconExternal, IconSearch } from "../components/Icons.js";
 import { CollectStar } from "../components/Collect.js";
 import { INFO_APPS, INFO_APP_CATS, infoAppUrl } from "../lib/infoApps.js";
@@ -45,20 +45,36 @@ export function OtherInfoPage() {
           />
         </div>
       </div>
-      <div className="chips" style={{ marginBottom: 14 }}>
-        <button type="button" className={"chip " + (cat === "all" ? "chip-blue" : "chip-gray")} onClick={() => setCat("all")}>
+      {/* B3（霖 2026-10-02）：分类标签此前是自建的一套 chip 按钮（chip-blue/chip-gray 当选中态），
+          与设置页/通知页的分段控件不是同一个东西。改用全局分段控件（滑动胶囊 + 溢出指示），
+          类名与交互口径与设置页一致，不再自建 tab 容器。 */}
+      <SegmentedOverflow ariaLabel="Info 应用分类" style={{ marginBottom: 14 }}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={cat === "all"}
+          className={cat === "all" ? "is-active" : ""}
+          onClick={() => setCat("all")}
+        >
           全部（{INFO_APPS.length}）
         </button>
         {INFO_APP_CATS.map((c) => {
           const n = INFO_APPS.filter((a) => a.cat === c).length;
           if (n === 0) return null;
           return (
-            <button key={c} type="button" className={"chip " + (cat === c ? "chip-blue" : "chip-gray")} onClick={() => setCat(c)}>
+            <button
+              key={c}
+              type="button"
+              role="tab"
+              aria-selected={cat === c}
+              className={cat === c ? "is-active" : ""}
+              onClick={() => setCat(c)}
+            >
               {c}（{n}）
             </button>
           );
         })}
-      </div>
+      </SegmentedOverflow>
 
       {total === 0 ? (
         <Card>

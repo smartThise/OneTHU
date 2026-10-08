@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { fileRead, fileWrite } from "../lib/clients.js";
+import { userCopy } from "../lib/userCopy.js";
 import { getCloudCalConfig, onCloudCalChange, ensureCloudCalLoaded } from "./cloudCal.js";
 
 export interface MailHead {
@@ -283,7 +284,7 @@ export function useMailBody(folder: string, uid: number | null): { body: MailBod
         if (alive) setBody(b);
       })
       .catch((err: unknown) => {
-        if (alive) setError(err instanceof Error ? err.message : String(err));
+        if (alive) setError(userCopy(err instanceof Error ? err.message : String(err)));
       })
       .finally(() => {
         if (alive) setLoading(false);

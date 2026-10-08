@@ -1,9 +1,9 @@
 /** 文件详情（learnX FileDetail）：类型/大小/说明 + 下载占位按钮 */
 import { useMemo, useState } from "react";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
-import { CollectStar } from "../../components/Collect.js";
+import { usePageCollect } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
-import { IconDownload } from "../../components/Icons.js";
+import { IconDownload, IconExternal } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
 import { BackButton, InfoRow, fmtDateTime, learnFileName } from "./shared.js";
@@ -13,10 +13,11 @@ import { explainNetworkError } from "../../lib/transport.js";
 import { DownloadOpenButtons } from "../../components/DownloadOpenButtons.js";
 import { openFilePreview } from "../../components/FilePreview.js";
 import { LEARN_FILE_DOWNLOAD } from "@onethu/core";
+import type { PageMenuItem } from "../../state/pageChrome.js";
 
 export function FileDetailPage() {
   useLearnNavSemester();
-  const { navParams, navigate } = useApp();
+  const { navParams, navigate, back } = useApp();
   const { data, state, error, reload } = useLearnData();
   // R23：下载提示携带落盘路径，右侧挂「打开文件 / 打开目录」
   const [hint, setHint] = useState<{ text: string; path?: string } | null>(null);
@@ -46,10 +47,16 @@ export function FileDetailPage() {
     }
   };
 
+  /* hook 必须在早返回之前：f 还没到就先不给收藏项 */
+  const collect = usePageCollect(
+    f ? { kind: "file", key: enc(f.courseId, f.id, f.title, course?.name ?? "", data?.semester.id ?? "") } : null,
+    f?.title,
+  );
+
   if (!f) {
     return (
       <>
-        <PageHead title="文件详情" actions={<><BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} courseTab="files" /></>} />
+        <PageHead title="文件详情" back={<BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} courseTab="files" />} />
         {state === "loading" ? (
           <SkeletonRows rows={4} />
         ) : state === "error" ? (
@@ -57,7 +64,7 @@ export function FileDetailPage() {
         ) : (
           <Card><Empty
             text="未找到该文件，可能数据已刷新，请返回列表重试。"
-            action={<button className="btn btn-ghost" onClick={() => navigate("learn")}>回网络学堂</button>}
+            action={<button className="btn btn-ghost" onClick={() => back(() => navigate("learn", undefined, { replace: true }))}>回网络学堂</button>}
           /></Card>
         )}
       </>
@@ -66,33 +73,26 @@ export function FileDetailPage() {
 
   return (
     <>
+      {collect.modal}
       <PageHead
         title={f.title}
         meta={`${course?.name ?? "课程"}${course?.teacherName ? ` · ${course.teacherName}` : ""} · 上传于 ${fmtDateTime(f.uploadTime)}`}
-        actions={
-          <>
-            <BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} courseTab="files" />
-            <CollectStar
-              atom={{ kind: "file", key: enc(f.courseId, f.id, f.title, course?.name ?? "", data?.semester.id ?? "") }}
-              title={f.title}
-            />
-            <button
-              className="btn"
-              onClick={() => openFilePreview({ name: learnFileName(f.title || `课件 ${f.id}`, f.fileType), url: LEARN_FILE_DOWNLOAD(f.id) })}
-            >
-              预览
-            </button>
-            <button
-              className="btn btn-primary"
-              disabled={downloading}
-              onClick={() => void doDownload()}
-            >
-              <IconDownload width={14} height={14} />
-              {downloading ? "下载中…" : "下载"}
-            </button>
-          </>
-        }
+        back={<BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} courseTab="files" />}
+        menu={[collect.item].filter(Boolean) as PageMenuItem[]}
       />
+
+      {/* A2（霖 2026-10-05）：预览 / 下载 是一级高频动作，回归页面主体；
+          页头「…」菜单只留次要项（收藏）——不出现「菜单一份、主体一份」的重复入口。 */}
+      <div className="detail-actions">
+        <button className="btn btn-primary" onClick={() => openFilePreview({ name: learnFileName(f.title || `课件 ${f.id}`, f.fileType), url: LEARN_FILE_DOWNLOAD(f.id) })}>
+          <IconExternal width={16} height={16} />
+          预览
+        </button>
+        <button className="btn" disabled={downloading} onClick={() => void doDownload()}>
+          <IconDownload width={16} height={16} />
+          {downloading ? "下载中…" : "下载"}
+        </button>
+      </div>
 
       {hint ? (
         <div className="error-note dl-done-note" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>

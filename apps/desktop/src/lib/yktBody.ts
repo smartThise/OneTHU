@@ -447,12 +447,12 @@ export interface YktDocTheme {
 
 /** 历史浅色定稿（buildYktProblemDoc 未传 theme 时的缺省，观感与旧版逐字节一致） */
 export const DEFAULT_YKT_DOC_THEME: YktDocTheme = {
-  text: "#222",
-  textSoft: "#666",
+  text: "#222",  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
+  textSoft: "#666",  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
   bg: "transparent",
-  border: "#ddd",
-  link: "#1a73e8",
-  fallbackBg: "#fafafa",
+  border: "#ddd",  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
+  link: "#1a73e8",  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
+  fallbackBg: "#fafafa",  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
 };
 
 /**
@@ -530,8 +530,8 @@ export function yktDocCss(t: YktDocTheme = DEFAULT_YKT_DOC_THEME): string {
   const dark = yktDocIsDark(t);
   // 暗底自检兜底：底色没解析出来（transparent）→ 强制中性暗纸面（对齐上游 night 档）；
   // 文字是暗色（解析失败回退 #222 之类）→ 强制亮墨，暗底上不可见字比白底更伤
-  const bg = dark && (!t.bg || t.bg === "transparent") ? "#16181d" : t.bg;
-  const text = dark && (cssColorLuminance(t.text) ?? 1) < 0.35 ? "#e8ebf2" : t.text;
+  const bg = dark && (!t.bg || t.bg === "transparent") ? "#16181d" : t.bg;  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
+  const text = dark && (cssColorLuminance(t.text) ?? 1) < 0.35 ? "#e8ebf2" : t.text;  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
   return [
     "html,body{margin:0;padding:0}",
     // 底色必须显式给定（不能 transparent 兜底）：Chromium 系对 color-scheme 为

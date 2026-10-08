@@ -169,6 +169,9 @@ export const PAGE_ATOMS: StaticAtom[] = [
   { kind: "page", key: "mail-compose", title: "写信", sub: "邮箱 · 新邮件", icon: IconPen, group: "页面", page: "mail", params: { mailCompose: true } },
   { kind: "page", key: "cloud", title: "云盘", sub: "清华云盘 · 资料库 · 上传下载 · 分享", icon: IconCloud, group: "页面", page: "cloud" },
   { kind: "page", key: "zhjwxk", title: "选课", sub: "选课系统 · 已选课程与候补队列（不可拆分的收藏项）", icon: IconXk, group: "页面", page: "zhjwxk" },
+  /* G2：选课移动端双页签各自成页（手机入口走独立页，PC 走旧双栏页） */
+  { kind: "page", key: "xk-find", title: "课程查找", sub: "选课 · 检索与筛选", icon: IconSearch, group: "页面", page: "zhjwxk", params: { xkTab: "find" } },
+  { kind: "page", key: "xk-manage", title: "选课管理", sub: "选课 · 已选与候补", icon: IconCheck, group: "页面", page: "zhjwxk", params: { xkTab: "manage" } },
   { kind: "page", key: "learn", title: "网络学堂", sub: "本学期课程总览", icon: IconLearn, group: "页面", page: "learn" },
   { kind: "page", key: "learn-assignments", title: "全部作业", sub: "网络学堂 · 作业列表", icon: IconPen, group: "页面", page: "learn-assignments" },
   { kind: "page", key: "learn-notices", title: "全部通知", sub: "网络学堂 · 课程通知", icon: IconBell, group: "页面", page: "learn-notices" },

@@ -13,17 +13,40 @@
  * - 2FA futures：lib 的同步 hooks 桥接 OneTHU 的两段式 UI（选方式→发码→输码）
  * - 登录/验证/登出/会话守卫（libEnsureSession：lib verifyAndReLogin 语义）
  */
-import { nativeFetch, nativeCookieClear } from "./transport.js";
+import { nativeFetch, nativeCookieClear, nativeCookieClearAll } from "./transport.js";
 import { markLoginAttempt, loginCooldownLeftMs, consumeLoginFailedPublicKey } from "./loginGate.js";
-import { http } from "./clients.js";
-import { setPlatformFetch, setPlatformClearCookies } from "@onethu/info-lib/network";
+import { http, info } from "./clients.js";
+import { setPlatformFetch, setPlatformClearCookies, clearCookies } from "@onethu/info-lib/network";
 const SAVE_FINGER_URL = "https://id.tsinghua.edu.cn/b/doubleAuth/personal/saveFinger";
 import { InfoHelper, roam, verifyAndReLogin } from "@onethu/info-lib";
 import { loadRemembered } from "./clients.js";
 import { withPrivacy } from "./privacy.js";
-import { sm2crypto, makeFingerprint, webvpnDecodeUrl, parseCellAnchor, type TwoFactorMethod } from "@onethu/core";
+import { sm2crypto, makeFingerprint, webvpnDecodeUrl, parseCellAnchor, infoUrls, type TwoFactorMethod } from "@onethu/core";
+import {
+  ensureLibSessionFlow,
+  notePortalSkipReason,
+  consumePortalSkipReason,
+  normalizeLibSites,
+  probeInfoOwnSession,
+  runLibSoftSingleFlightResult,
+  sitesOfLostUrl,
+  type LibRebuildSite,
+  type LibSoftResult,
+} from "./libSessionGuard.js";
+
+export type { LibRebuildSite } from "./libSessionGuard.js";
 
 let initialized = false;
+
+/** ④（b21）：显式登出的一次性标记——只有 `libLogout()` 会置它，平台清仓钩子据此
+ *  在「两仓全清」与「登录前只清 id/oauth」之间分流。 */
+let explicitLogoutClear = false;
+
+/** 两个 cookie 仓一起全清（只允许显式登出路径调用；正常业务流一律走域清）。 */
+async function clearBothCookieJarsFull(): Promise<void> {
+  http.jar.clear();
+  await nativeCookieClearAll().catch(() => undefined);
+}
 
 async function log(line: string): Promise<void> {
   const { logLine } = await import("./clients.js");
@@ -125,14 +148,22 @@ export function initInfoLib(): InfoHelper {
       };
     });
     setPlatformClearCookies(() => {
-      // 上游对齐（2026-09-17，thu-info-lib 原源实读）：RN 的 clearCookies() 只清
-      // lib 内部的 JS cookie 表——而 RN 模式下那张表根本不参与收发（Cookie 头只在
-      // Node 模式才手动设置），okhttp 原生 cookie 仓从不被清。id/oauth/webvpn 会话
-      // 因此跨登录存活，oauth 回调走活会话路径每次发新鲜 code。
-      // 此前 jar.clear() 全清后，回调落入「按 sig 查缓存授权」路径返回同一个已消费
-      // code（真机实锤：code=21d148… 跨轮恒定，兑付 302 只回修饰 cookie 不发会话票）
-      // → 永远匿名。故此处对齐上游：不清任何桶。
-      void 0;
+      // F3 ④（b21）：真正实现（b16–b20 为空实现）。info-lib 的 `clearCookies()` 有**两个**
+      // 调用面，必须分开对待，否则「登出清仓」与「登录前清旧票」会互相踩：
+      //   - `libLogout()`（显式登出 / Settings「退出登录」）：先置 `explicitLogoutClear`，
+      //     这里把**两个仓一起全清**（JS jar + 原生仓 `http_native_clear_cookies`）。
+      //     此前只清 JS jar，原生仓的会话票跨登出存活——登出并不彻底。
+      //   - info-lib `login()` 开头（静默重登也走这里）：**绝不全清**（全清会让
+      //     learn/info 会话陪葬、各页集体红条几秒，且会把刚建立的 id 信任清掉）。
+      //     只按既有 `nativeCookieClear` 的能力边界清 id/oauth —— 原生侧那一步由
+      //     `libLogin()` 自己 await `nativeCookieClear()` 完成，这里只管 JS jar 同域副本。
+      if (explicitLogoutClear) {
+        explicitLogoutClear = false;
+        void clearBothCookieJarsFull();
+        return;
+      }
+      http.jar.clear("id.tsinghua.edu.cn");
+      http.jar.clear("oauth.tsinghua.edu.cn");
     });
     // SM2 密码加密（OneTHU 自有实现；未注入时 lib 回退明文=上游 MIT 边界原行为）
     initialized = true;
@@ -338,7 +369,7 @@ export async function libVerify2FA(type: string, code: string, trust: boolean): 
       resolveMethod?.(type as "wechat" | "mobile" | "totp");
     });
   }
-  if (!inflight) throw new Error("登录会话不存在");
+  if (!inflight) throw new Error("二次认证流程已失效，请重新登录一次");
   resolveMethod?.(type as "wechat" | "mobile" | "totp");
   pendingTrust = trust;
   resolveCode?.(code);
@@ -346,14 +377,22 @@ export async function libVerify2FA(type: string, code: string, trust: boolean): 
   // 成功：SAVE_FINGER 的受信凭据已写入 helper.fingerGenPrint（本次 trust=true 时）
 }
 
-/** 登出（lib 链 + 共享 jar） */
+/** 登出（lib 链 + 共享 jar + 原生仓）：两个 cookie 仓一起清（b21 ④）。
+ *  经 info-lib 的 `clearCookies()` 走平台清仓钩子，保证「显式登出」这一条路径
+ *  是两个仓唯一的全清入口。 */
 export async function libLogout(): Promise<void> {
   try {
     await helper.logout();
   } catch {
     /* 网络层失败不阻断本地登出 */
   }
-  http.jar.clear();
+  explicitLogoutClear = true;
+  clearCookies();
+  // 钩子未接线时的兜底（initInfoLib 未跑）：直接全清两仓，不留悬空标记。
+  if (explicitLogoutClear) {
+    explicitLogoutClear = false;
+    await clearBothCookieJarsFull();
+  }
 }
 
 /** 会话守卫（lib verifyAndReLogin 语义，供 InfoClient renewers / auth-dance 重连）：
@@ -381,67 +420,177 @@ export async function libRoamLearn(): Promise<boolean> {
  * 指纹同理：`helper.fingerGenPrint` 为空时 id 会要求 2FA，静默重登必失败
  * （2026-09-18 已实锤过一次；libForceRelogin 里修了，libEnsureSession 没同步修）。
  */
-async function hydrateLibCredentials(): Promise<boolean> {
+async function hydrateLibCredentials(): Promise<{ hasCreds: boolean; expectedUserId: string }> {
   const h = helper as unknown as { userId: string; password: string; fingerGenPrint?: string };
+  let rememberedName = "";
   if (!h.userId || !h.password) {
     const remembered = await loadRemembered().catch(() => null);
+    rememberedName = remembered?.username ?? "";
     if (remembered?.username && remembered.password) {
       h.userId = remembered.username;
       h.password = remembered.password;
-      void log(`LIB-CRED 从「记住密码」回灌凭据（${remembered.username.slice(0, 4)}****）`);
+      void log(`LIB-CRED 从「记住密码」回灌登录信息（${remembered.username.slice(0, 4)}****）`);
     }
   }
   const f3 = sessionFinger3 || h.fingerGenPrint || "";
   if (f3) h.fingerGenPrint = f3;
-  return Boolean(h.userId && h.password);
+  const hasCreds = Boolean(h.userId && h.password);
+  if (!hasCreds) {
+    // 真机取证要看清走哪支：无账密时 verifyAndReLogin 分支整个被跳过，只剩探针
+    void log(
+      `LIB-CRED 未命中（${h.userId ? "有身份无密码" : "无记住的登录信息"}）→ verifyAndReLogin 跳过，走 info 域本人校验探针`,
+    );
+  }
+  return { hasCreds, expectedUserId: h.userId || rememberedName };
 }
 
-export async function libEnsureSession(): Promise<boolean> {
-  // ① 对齐 info app：凭据 + 受信指纹先就位（否则重启后无从重登）
-  const hasCreds = await hydrateLibCredentials();
+/** ② info 域本人校验探针的取数口：原生通道 + Set-Cookie 结算入 JS jar（诊断透视用）。 */
+async function probeFetchText(url: string): Promise<{ status: number; body: string }> {
+  const res = await nativeFetch(url, { method: "GET" });
+  const body = await res.text();
+  try {
+    http.jar.setFromResponse(new URL(url), res);
+  } catch {
+    /* 忽略畸形 URL */
+  }
+  return { status: res.status, body };
+}
+
+/**
+ * ② 判活（去假活）：与 `packages/info-lib/src/lib/core.ts` 的 `verifyAndReLogin` 同源——
+ * 取 info 域用户信息比对 `object.ryh === 期望学号`。拿不到明确结论一律 fail；
+ * 保留一次抖动重试（`probeInfoOwnSession`）。**不再**用「200 + body 含 XSRF-TOKEN=」
+ * 判活：那只是网关发了票，不证明 info 域会话是本人的活会话。
+ */
+async function probeInfoAlive(expectedUserId: string): Promise<boolean> {
+  if (!expectedUserId) {
+    void log("LIB-ENSURE 探针拿不到期望学号 → 无明确结论，按 fail 处理");
+    return false;
+  }
+  const alive = await probeInfoOwnSession(probeFetchText, expectedUserId);
+  void log(`LIB-ENSURE 探针 info 域本人校验 ${alive ? "ok" : "fail"}（重试一次后）`);
+  return alive;
+}
+
+/** info 门户判活/重登：凭据就位 → verifyAndReLogin；否则/失败 → 探针；再死 → 内存凭据完整重登。 */
+async function ensureInfoPortal(): Promise<boolean> {
+  notePortalSkipReason(null); // 第 48 条：每次判活先清标注，只在冷却分支置位
+  // ① 对齐 info app：登录信息 + 受信指纹先就位（否则重启后无从重登）
+  const { hasCreds, expectedUserId } = await hydrateLibCredentials();
   // ② 权威探活 + 按需重登（info app 的 verifyAndReLogin 同源实现）：
-  //    取用户信息比对 ryh——活着且是本人 → 无需重登；否则用 helper 上的凭据重登。
-  //    比原来「webvpn 端点里有 XSRF-TOKEN 就算活」强：后者只证明网关发了票，
-  //    不证明 info 域会话是本人的活会话，会「假活」→ 后续 401 → 用户被踢。
+  //    取用户信息比对 ryh——活着且是本人 → 无需重登；否则用 helper 上的登录信息重登。
   if (hasCreds && loginCooldownLeftMs() <= 0) {
     try {
       const relogged = await verifyAndReLogin(helper); // 返回 false = 会话还活着
       if (relogged) void log("LIB-ENSURE 静默重登成功（verifyAndReLogin）");
       return true;
     } catch (e) {
-      // 需要 2FA / 网络异常 → 落到下面的轻探针，仍活着就别误判成死
+      // 需要 2FA / 网络异常 → 落到下面的本人校验探针，仍活着就别误判成死
       void log(`LIB-ENSURE verifyAndReLogin 失败：${e instanceof Error ? e.message : e}`);
     }
+  } else if (hasCreds) {
+    void log(`LIB-ENSURE loginGate 冷却中（剩 ${Math.ceil(loginCooldownLeftMs() / 1000)}s）→ 跳过 verifyAndReLogin，走探针`);
   }
-  try {
-    // 探针走原生通道（Rust 仓=权威会话，重定向透明跟完）+ 现行 info 域
-    // （info2021 已被服务端弃用，旧探针永远探死 → 每轮误触发重登循环）
-    const probe = await nativeFetch(
-      "https://webvpn.tsinghua.edu.cn/wengine-vpn/cookie?method=get&host=info.tsinghua.edu.cn&scheme=https&path=/f/info/gxfw_fg/common/index",
-      { method: "GET" },
-    );
-    const body = await probe.text();
-    if (probe.status === 200 && /XSRF-TOKEN=/.test(body)) {
-      try {
-        http.jar.setFromResponse(new URL("https://webvpn.tsinghua.edu.cn/"), probe);
-      } catch {
-        /* ignore */
-      }
-      return true;
-    }
-  } catch {
-    /* 网络失败按死会话处理 */
-  }
+  if (await probeInfoAlive(expectedUserId)) return true;
   if (!inflight || inflight.settled) {
     if (!inflight?.username || !inflight?.password) return false;
-    // 冷却期内不再自动重登（防恢复环风暴把设备拉黑）
-    if (loginCooldownLeftMs() > 0) return false;
+    // 冷却期内不再自动重登（防恢复环风暴把设备拉黑）。
+    // 第 48 条：这里的 false 是「**没执行**」而不是「执行后失败」——用只读标注把语义交给上层，
+    // 让 libEnsureSessionResult 落成 skipped/cooldown（否则会被当 failed，触发假登出）。
+    if (loginCooldownLeftMs() > 0) {
+      notePortalSkipReason("cooldown");
+      return false;
+    }
     const r = await libLogin(inflight.username, inflight.password, helper.fingerprint).catch(() => null);
     if (r?.state === "ready") return true;
     return false; // need-2fa：静默重登撞墙，等人工
   }
   await inflight.p.catch(() => undefined);
   return true;
+}
+
+/**
+ * ① 判活面扩到子服务：按站点复用**既有**重建入口（不自造登录流程）——
+ * - learn  → `libRoamLearn()`（roam "id"，本文件）
+ * - card   → `helper.loginCampusCard()`（info-lib `index.ts` → `cardLogin` → roam "card"）
+ * - seat   → `info.forceEnsure("library")`（core `InfoClient` 既有公开重建口，seat.lib）
+ * - libroom→ `helper.loginLibraryRoomBooking()`（info-lib `index.ts` → `cabLogin` → roam "cab"）
+ * - zhjw   → `roam(helper, "default", infoUrls.JXRL_ROAM_ID)`（info-lib 导出 roam +
+ *            core 导出常量，与 `InfoClient.#ensureZhjw` 同源；InfoClient 的
+ *            `#zhjwRoamed` 一次性标记不在本层可见，重建后由下一次业务请求验证）
+ * 全部经共享单飞（`ensureLibSessionFlow`）执行，绝不并发互烧票。
+ */
+async function rebuildLibSite(site: LibRebuildSite): Promise<boolean> {
+  try {
+    switch (site) {
+      case "learn":
+        return await libRoamLearn();
+      case "card":
+        await helper.loginCampusCard();
+        return true;
+      case "seat":
+        await info.forceEnsure("library");
+        return true;
+      case "libroom":
+        await helper.loginLibraryRoomBooking();
+        return true;
+      case "zhjw":
+        await roam(helper, "default", infoUrls.JXRL_ROAM_ID);
+        return true;
+    }
+  } catch (e) {
+    void log(`LIB-ENSURE 子服务重建异常 site=${site}：${e instanceof Error ? e.message : e}`);
+    return false;
+  }
+  return false;
+}
+
+/** ① 从「当前失联」的请求 URL 反推要补建的站点（webvpn 包装 URL 先解码回真实域）。 */
+export function libSitesOfLostUrl(url: string | null | undefined): LibRebuildSite[] {
+  const raw = String(url ?? "");
+  if (!raw) return [];
+  let decoded = raw;
+  try {
+    decoded = webvpnDecodeUrl(raw) ?? raw;
+  } catch {
+    /* 非包装 URL 原样匹配 */
+  }
+  return sitesOfLostUrl(decoded);
+}
+
+/**
+ * 会话守卫（lib verifyAndReLogin 语义，供 InfoClient renewers / auth-dance 重连 /
+ * learn.reloginHook / softRecover / keepalive 共用）：
+ * 走**共享单飞**（⑤），info 门户 alive 后按「当前失联/需要的站点」补一次重建（①）。
+ * `opts.sites` 为空 = 只判活门户（旧语义），不无差别烧票。
+ *
+ * 三态出口（b19 P0）：`done` / `failed` / `skipped` 逐字透传共享单飞结果。
+ * **`skipped` ≠ 失败**——它是「冷却窗内 / 同键在飞，任务没执行」，调用方不许据此登出；
+ * 只有 `failed`（真执行过且失败）才是失败。三态出不了门的地方用下面的旧布尔薄封装。
+ */
+export async function libEnsureSessionResult(
+  opts: { sites?: LibRebuildSite[] } = {},
+): Promise<LibSoftResult> {
+  const sites = normalizeLibSites(opts.sites);
+  const r = await runLibSoftSingleFlightResult("lib-session", () =>
+    ensureLibSessionFlow({
+      sites,
+      ensurePortal: ensureInfoPortal,
+      rebuildSite: rebuildLibSite,
+      log: (line) => void log(line),
+    }),
+  );
+  // 第 48 条：无条件下读一次标注（不泄漏到下一次调用）；仅当结论是 failed 且标注为冷却时改判。
+  const skip = consumePortalSkipReason();
+  if (r.state === "failed" && skip === "cooldown") {
+    return { state: "skipped", reason: "cooldown" };
+  }
+  return r;
+}
+
+/** 旧布尔薄封装（b19 P0）：`state === "done"`，语义与三态之前一致。 */
+export async function libEnsureSession(opts: { sites?: LibRebuildSite[] } = {}): Promise<boolean> {
+  return (await libEnsureSessionResult(opts)).state === "done";
 }
 
 /** 二级课表（实验课）自实现：直连拉 portal3rd + 正则解析（本地验证过）。

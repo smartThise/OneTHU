@@ -24,14 +24,38 @@ import { universalFetch } from "./transport.js";
 const RUST_PLACEHOLDER = "0000000000000000000000000000dead"; // 未配置标记值
 let keyCache: string | null = null;
 
+/** C19（霖 2026-10-01 走查）：设置页可自填 Key，只存本机 localStorage——
+ *  构建期 `.env` → Rust `trace_key` 仍是首选通道（打包内置），这里只是**运行时补充**：
+ *  没有内置 Key 的用户不必再改仓库文件、重装应用。key 不写死进包、不上传。 */
+const LS_TRACE_KEY = "onethu.trace.amapKey";
+
+export function readStoredTraceKey(): string {
+  try {
+    return globalThis.localStorage?.getItem(LS_TRACE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function saveStoredTraceKey(k: string): void {
+  try {
+    const v = k.trim();
+    if (v) globalThis.localStorage?.setItem(LS_TRACE_KEY, v);
+    else globalThis.localStorage?.removeItem(LS_TRACE_KEY);
+  } catch {
+    /* 隐私模式/无存储：静默（本次会话内仍走内存缓存） */
+  }
+}
+
 function amapKey(): string | null {
   const raw = (globalThis as Record<string, unknown>).__ONETHU_TRACE_KEY__ as string | undefined;
-  return raw ?? keyCache;
+  return raw ?? keyCache ?? (readStoredTraceKey() || null);
 }
 
 /** 取 key（幂等）：Tauri trace_key 命令 → 内存缓存。返回是否已配置。 */
 export async function ensureTraceKey(): Promise<boolean> {
   if (amapKey()) return true;
+  if (readStoredTraceKey()) return true; // 设置页自填的 Key（无需 Rust 通道）
   try {
     const { invoke } = await import("@tauri-apps/api/core");
     const k = (await invoke("trace_key")) as string;

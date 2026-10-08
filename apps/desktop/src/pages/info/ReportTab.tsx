@@ -7,17 +7,7 @@ import type { ReportRow } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { IconPen, IconRefresh } from "../../components/Icons.js";
 import { useReport } from "../../state/data.js";
-
-function weightedAverage(rows: ReportRow[]): number | null {
-  let credits = 0;
-  let points = 0;
-  for (const r of rows) {
-    if (!Number.isFinite(r.point) || !Number.isFinite(r.credit) || r.credit <= 0) continue;
-    credits += r.credit;
-    points += r.point * r.credit;
-  }
-  return credits > 0 ? points / credits : null;
-}
+import { weightedAverage } from "../../lib/grades.js";
 
 /** 学期串 → 学年（"2024-2025秋" → "2024-2025"） */
 function academicYear(semester: string): string {
@@ -70,7 +60,7 @@ export function ReportTab() {
 
   return (
     <>
-      <div className="stats">
+      <div className="stats stats-quad">
         <Card className="stat-card">
           <span className="stat-icon">
             <IconPen width={17} height={17} />

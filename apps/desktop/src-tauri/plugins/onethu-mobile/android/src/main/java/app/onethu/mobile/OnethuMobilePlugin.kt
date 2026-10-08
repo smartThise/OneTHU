@@ -20,13 +20,13 @@ import android.content.ActivityNotFoundException
 import android.content.ContentValues
 import android.content.ComponentName
 import android.content.Intent
+import android.content.res.Configuration
 import android.provider.Settings
 import android.provider.DocumentsContract
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
-import android.media.MediaScannerConnection
 import android.os.Build
 import android.util.Log
 import android.os.Environment
@@ -62,14 +62,6 @@ class SaveDownloadArgs {
     var name: String = ""
 }
 
-/** 保存图片到相册：字节已由 Rust 落到应用缓存，这里只认路径与元信息 */
-@InvokeArg
-class SaveImageArgs {
-    var path: String = ""
-    var name: String = ""
-    var mime: String = ""
-}
-
 @InvokeArg
 class OpenIntentArgs {
     var url: String = ""
@@ -80,6 +72,25 @@ class SetBarThemeArgs {
     var dark: Boolean = false
     /** 主题背景色（--bg，#rrggbb）；空/解析失败只跳过涂色，图标明暗照常 */
     var color: String? = null
+}
+
+/** A2：触感效果名（click/heavy/longPress/tick/reject）；缺省 tick 兼容旧调用点 */
+@InvokeArg
+class HapticArgs {
+    var effect: String? = null
+}
+
+/** A2 触感探针参数（诊断用）：kind ∈ caps/prebaked/hfc/wave/primitive */
+@InvokeArg
+class HapticProbeArgs {
+    var kind: String = "caps"
+    var id: Int = -1
+    var constant: Int = -1
+    var ms: Long = 30
+    var amp: Int = 255
+    var ops: String? = null
+    /** usage：touch（默认，触摸反馈）/ hardware（硬件反馈，系统演示页用的就是它）/ assist */
+    var usage: String = "touch"
 }
 
 @InvokeArg
@@ -144,24 +155,6 @@ class NotifyCancelArgs {
     var ids: String = ""
 }
 
-/** 立即投递的通知（事件驱动，如校园卡余额预警）：id 稳定，重发即覆盖同一条 */
-@InvokeArg
-class NotifyPostArgs {
-    var id: String = ""
-    var title: String = ""
-    var body: String = ""
-    /** 渠道：course / ddl / briefing / balance */
-    var channel: String = ""
-    /** 点击落点（`page` 或 `page?k=v`，见 state/widgetTarget.ts） */
-    var target: String = ""
-}
-
-/** 要从通知栏撤回的已展示通知 id 数组（JSON 字符串） */
-@InvokeArg
-class NotifyDismissArgs {
-    var ids: String = ""
-}
-
 /**
  * 深色主题下把官方页「正文黑字」涂白（2026-09-20）。
  *
@@ -186,6 +179,9 @@ private fun runInjectJs(web: WebView, js: String) {
         /* 注入失败不致命：页面会自行要求登录 */
     }
 }
+
+/** b40：系统 night 档变更事件名（前端 addPluginListener("onethu-mobile", …) 收） */
+private const val NIGHT_MODE_EVENT = "system-night-mode"
 
 private const val DARK_INJECT_JS = """
 (function(){
@@ -230,12 +226,55 @@ private const val DARK_INJECT_JS = """
     permissions = [
         // R18c：API 33+ 展示前台服务常驻通知需运行时权限（清单在插件库 Manifest 声明）
         Permission(strings = [Manifest.permission.POST_NOTIFICATIONS], alias = "notifications"),
-        // 保存图片到相册：API 29+ 走 MediaStore 自建条目，不需要任何权限；
-        // API 24–28 写公共 Pictures 才需要它（清单里标了 maxSdkVersion=28）
-        Permission(strings = [Manifest.permission.WRITE_EXTERNAL_STORAGE], alias = "legacy-storage"),
     ],
 )
 class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
+
+    /* ── b40：系统夜间模式原生信号 ──
+     * 为什么需要：WebView 96（老机型）不把系统暗色透传到 `prefers-color-scheme`
+     * （改前实测：`mNightMode=2`、应用 Configuration 已 night，但
+     * `matchMedia('(prefers-color-scheme: dark)')` 恒 false，含冷启四次全 false），
+     * 于是老机器上「跟随系统」永远停在亮色档。这里在原生侧读当前 Configuration 的
+     * **实际 night 位**送给前端，绕开 WebView 的缺口；现代引擎两者一致，行为不变。
+     * 非 Android（PC）没有这条桥，前端回落 `matchMedia`。 */
+
+    /** 上次回报给前端的 night 档；onConfigurationChanged 也会因旋转/字体触发，只在真变化时发事件 */
+    private var lastNightMode: String = nightModeOf(activity.resources.configuration)
+
+    /** Configuration → dark/light/unknown。只认 `UI_MODE_NIGHT_MASK` 的实际位：
+     *  auto 档系统已折算成 YES/NO，**不看** `getNightMode()` 的 auto 值。 */
+    private fun nightModeOf(config: Configuration): String =
+        when (config.uiMode and Configuration.UI_MODE_NIGHT_MASK) {
+            Configuration.UI_MODE_NIGHT_YES -> "dark"
+            Configuration.UI_MODE_NIGHT_NO -> "light"
+            else -> "unknown"
+        }
+
+    /** 读当前系统夜间模式，回 `{ mode: "dark" | "light" | "unknown" }`（前端启动时读一次） */
+    @Command
+    fun systemNightMode(invoke: Invoke) {
+        try {
+            invoke.resolve(JSObject().put("mode", nightModeOf(activity.resources.configuration)))
+        } catch (e: Exception) {
+            // 读不到不等于亮色：如实回 unknown，前端回落 matchMedia
+            invoke.resolve(JSObject().put("mode", "unknown"))
+        }
+    }
+
+    /** 系统 night 切换：TauriActivity 已按 manifest 的 `uiMode` 自处理配置变更（不重建
+     *  Activity），钩子在这里把新档推给 WebView；unknown 不发事件（不让前端把「读不到」
+     *  当成一种档位）。 */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        try {
+            val mode = nightModeOf(newConfig)
+            if (mode == "unknown" || mode == lastNightMode) return
+            lastNightMode = mode
+            trigger(NIGHT_MODE_EVENT, JSObject().put("mode", mode))
+        } catch (_: Throwable) {
+            /* 事件失败不致命：前端下次启动仍读到当前档 */
+        }
+    }
 
     /** 沙盒文件 → 系统「下载」；回传 { name }（转存成功后的显示名） */
     @Command
@@ -308,114 +347,6 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
                 activity.runOnUiThread { invoke.resolve(ret) }
             } catch (e: Exception) {
                 val msg = e.message ?: "转存失败"
-                activity.runOnUiThread { invoke.reject(msg) }
-            }
-        }.start()
-    }
-
-    /* ── 保存图片到相册 ──
-     * 与 saveDownload 的分工：那条去「下载」（MediaStore.Downloads / 用户选的 SAF 目录），
-     * 这条去「相册」（MediaStore.Images + Pictures/OneTHU）。两者不能互相顶替——相册应用
-     * 只索引 Images 集合，落在 Downloads 里的图片不会出现在相册里，用户也就找不到它。
-     *
-     * 权限：API 29+ 插入本人创建的媒体条目不需要任何权限（分区存储），这也是主力路径；
-     * API 24–28 写公共 Pictures 需要 WRITE_EXTERNAL_STORAGE，缺权限时按插件既有姿势
-     * （notifications 同款）先请求再写，被拒就明确报错，不静默失败。 */
-
-    /** 权限回调时要用的参数（@PermissionCallback 只回传 Invoke，取不回原始实参） */
-    private var pendingSaveImageArgs: SaveImageArgs? = null
-
-    private fun hasImageStoragePermission(): Boolean =
-        Build.VERSION.SDK_INT >= 29 ||
-            ContextCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
-            PackageManager.PERMISSION_GRANTED
-
-    /** 应用缓存里的图片 → 系统相册；回传 { name, dir } */
-    @Command
-    fun saveImage(invoke: Invoke) {
-        val args = invoke.parseArgs(SaveImageArgs::class.java)
-        if (!hasImageStoragePermission()) {
-            pendingSaveImageArgs = args
-            requestPermissionForAliases(arrayOf("legacy-storage"), invoke, "imageStoragePermissionCallback")
-            return
-        }
-        doSaveImage(invoke, args)
-    }
-
-    @PermissionCallback
-    fun imageStoragePermissionCallback(invoke: Invoke) {
-        val args = pendingSaveImageArgs
-        pendingSaveImageArgs = null
-        if (args == null || !hasImageStoragePermission()) {
-            invoke.reject("未授予存储权限，无法保存到相册")
-            return
-        }
-        doSaveImage(invoke, args)
-    }
-
-    private fun doSaveImage(invoke: Invoke, args: SaveImageArgs) {
-        Thread {
-            try {
-                val src = File(args.path)
-                if (!src.exists()) {
-                    activity.runOnUiThread { invoke.reject("源文件不存在：${args.path}") }
-                    return@Thread
-                }
-                val name = args.name.ifBlank { src.name }
-                val mime = args.mime.ifBlank {
-                    try {
-                        URLConnection.guessContentTypeFromName(name)
-                    } catch (_: Exception) {
-                        null
-                    } ?: "image/*"
-                }
-                if (Build.VERSION.SDK_INT >= 29) {
-                    val resolver = activity.contentResolver
-                    val values = ContentValues().apply {
-                        put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-                        put(MediaStore.MediaColumns.MIME_TYPE, mime)
-                        // 独立子目录：用户在图库/文件管理器里一眼能认出是应用存的图
-                        put(
-                            MediaStore.MediaColumns.RELATIVE_PATH,
-                            Environment.DIRECTORY_PICTURES + "/OneTHU",
-                        )
-                        // 写一半的条目不许被相册扫到，写完再撤 pending
-                        put(MediaStore.MediaColumns.IS_PENDING, 1)
-                    }
-                    val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-                        ?: throw IllegalStateException("相册建条目失败")
-                    try {
-                        val out = resolver.openOutputStream(uri)
-                            ?: throw IllegalStateException("打开输出流失败")
-                        out.use { o -> src.inputStream().use { it.copyTo(o) } }
-                    } catch (e: Exception) {
-                        // 半截条目留在相册里就是一张坏图：失败即删（best effort），再抛原错
-                        try {
-                            resolver.delete(uri, null, null)
-                        } catch (_: Exception) {
-                            /* 删不掉也不掩盖原始错误 */
-                        }
-                        throw e
-                    }
-                    val done = ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }
-                    resolver.update(uri, done, null, null)
-                } else {
-                    // 旧机型（API 24–28）：公共 Pictures 直写 + 通知媒体库扫描
-                    val dir = File(
-                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
-                        "OneTHU",
-                    )
-                    if (!dir.exists() && !dir.mkdirs()) throw IllegalStateException("无法创建相册目录")
-                    val out = File(dir, name)
-                    src.copyTo(out, overwrite = true)
-                    MediaScannerConnection.scanFile(activity, arrayOf(out.absolutePath), arrayOf(mime), null)
-                }
-                val ret = JSObject()
-                ret.put("name", name)
-                ret.put("dir", "相册/OneTHU")
-                activity.runOnUiThread { invoke.resolve(ret) }
-            } catch (e: Exception) {
-                val msg = e.message ?: "保存到相册失败"
                 activity.runOnUiThread { invoke.reject(msg) }
             }
         }.start()
@@ -1199,22 +1130,36 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    /** 触觉 tick（作业流切卡的段落感）。
+    /** 触觉（A2 效果矩阵）。
      *
-     *  走 AOSP 标准「预烘焙效果」（Prebaked）：ROM 在振动 HAL 里为 EFFECT_CLICK 备了
-     *  自家标定波形——本机（MIUI）实测与桌面点击同源：Prebaked=CLICK(MEDIUM) ≈ 63ms。
-     *  关键点：用的是公开常量而非 MIUI 私有 id，所以换 ROM 由对方 HAL 出自家手感，
-     *  这正是跨机型一致性的来源。
+     *  走 AOSP 标准「预烘焙效果」（Prebaked）：ROM 在振动 HAL 里为各 EFFECT_* 备了自家
+     *  标定波形——本机（MIUI）实测 EFFECT_CLICK 与桌面点击同源。关键点：用的是公开常量
+     *  而非 MIUI 私有 id，所以换 ROM 由对方 HAL 出自家手感，这正是跨机型一致性的来源。
+     *
+     *  效果矩阵（与前端 apps/desktop/src/lib/haptics.ts 的 HAPTIC_EFFECTS 一一对应，
+     *  改一边必须改另一边）：
+     *   tick      轻量按钮 / 涟漪               → EFFECT_TICK
+     *   click     底栏项、tab 切换（胶囊弹性）   → EFFECT_CLICK
+     *   heavy     开关切换（物理「咔哒」的实感） → EFFECT_HEAVY_CLICK
+     *   longPress 长按触发                     → EFFECT_LONG_PRESS（API<30 退 HEAVY_CLICK）
+     *   reject    操作被拒绝                   → EFFECT_REJECT（API<30 退 DOUBLE_CLICK）
      *
      *  降级链（逐级兜底，返回值回传实际路径便于跨机型排查）：
-     *  1. API 30+ 且 HAL 报告支持 EFFECT_CLICK → 预烘焙 CLICK；
-     *  2. API 26~29（无能力查询 API）→ 仍试预烘焙，异常则降级；
-     *  3. 预烘焙不可用 → 自绘 30ms 单击（线性马达起振需 10~20ms，此前 5ms 等于没振）；
-     *  4. API < 26 → 旧式 vibrate(30)。
+     *  1. API 29+ 且 HAL 报告支持该效果 → 预烘焙；
+     *  2. API 26~28（没有 createPredefined）或预烘焙不被认 → 自绘波形（各效果波形不同，
+     *     保证「强弱可区分」）；
+     *  3. API < 26 → 旧式 vibrate(短脉冲)；
+     *  4. 整条 invoke 失败 → 前端 navigator.vibrate 兜底（haptics.ts）。
      *  API 33+ 一律挂 USAGE_TOUCH：走触觉通道、尊重用户触感强度设置。 */
     @Command
     fun hapticTick(invoke: Invoke) {
         try {
+            // 参数解析失败不该变成「不振动」：旧调用点不带参数，按 tick 兜底
+            val effect = try {
+                invoke.parseArgs(HapticArgs::class.java).effect ?: "tick"
+            } catch (_: Exception) {
+                "tick"
+            }
             activity.runOnUiThread {
                 try {
                     val vib = activity.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator
@@ -1222,8 +1167,8 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
                         invoke.resolve(JSObject().put("ok", false).put("reason", "no-vibrator"))
                         return@runOnUiThread
                     }
-                    val mode = playHapticTick(vib)
-                    invoke.resolve(JSObject().put("ok", true).put("mode", mode))
+                    val mode = playHaptic(effect, vib)
+                    invoke.resolve(JSObject().put("ok", true).put("mode", mode).put("effect", effect))
                 } catch (e: Exception) {
                     invoke.resolve(JSObject().put("ok", false).put("reason", "haptic-failed"))
                 }
@@ -1233,50 +1178,294 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    /** 播放一次切卡 tick，返回实际走的路径（prebaked / waveform / legacy）。 */
-    private fun playHapticTick(vib: android.os.Vibrator): String {
-        if (Build.VERSION.SDK_INT < 26) {
-            @Suppress("DEPRECATION")
-            vib.vibrate(30)
-            return "legacy"
+    /** 关掉 WebView 这一层的触感反馈（霖 2026-10-02「长按手感恢复」）。
+     *
+     *  背景：长按的触感本仓自己发（前端 `haptic("longPress")` → hapticTick），但 WebView 识别到
+     *  长按后系统还会自己补一条 `HapticFeedbackConstants.LONG_PRESS`——真机 `dumpsys
+     *  vibrator_manager` 取证是两条（43ms CLICK + 我们 221ms 的 THUD），听感就是「连振两下」。
+     *  JS 侧压掉系统那条只能 `touchstart.preventDefault()`，会连带废掉 click（整站按钮全点不动），
+     *  所以改在宿主侧：`View.isHapticFeedbackEnabled = false` 只影响
+     *  `View.performHapticFeedback`（也就是 WebView 那条系统反馈），我们自己的触感走 Vibrator
+     *  服务，不受影响。
+     *
+     *  为什么遍历视图树而不是 `Plugin.load(webView)`：前者不依赖 Tauri 插件基类的版本差异，
+     *  主 WebView 用 `activity.window.decorView` 一定能拿到；对话框里的临时 WebView 不在
+     *  decorView 里，不会被误伤。前端在应用挂载时调一次（此时主 WebView 必然已挂上）。 */
+    private var webHapticsDisabled = false
+
+    @Command
+    fun webHapticsOff(invoke: Invoke) {
+        try {
+            if (!webHapticsDisabled) {
+                webHapticsDisabled = true
+                activity.runOnUiThread {
+                    try {
+                        val root = activity.window?.decorView as? android.view.ViewGroup
+                        var hit = 0
+                        if (root != null) {
+                            val stack = ArrayDeque<android.view.View>()
+                            stack.addLast(root)
+                            while (stack.isNotEmpty()) {
+                                val v = stack.removeLast()
+                                if (v is WebView) {
+                                    v.isHapticFeedbackEnabled = false
+                                    hit++
+                                }
+                                if (v is android.view.ViewGroup) {
+                                    for (i in 0 until v.childCount) stack.addLast(v.getChildAt(i))
+                                }
+                            }
+                        }
+                        invoke.resolve(JSObject().put("ok", hit > 0).put("views", hit))
+                    } catch (e: Exception) {
+                        invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "webhaptics-failed"))
+                    }
+                }
+            } else {
+                invoke.resolve(JSObject().put("ok", true).put("cached", true))
+            }
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().put("ok", false).put("reason", "webhaptics-exception"))
         }
-        // API 30 起才有能力查询，且返回三态（YES/NO/UNKNOWN，UNKNOWN 视为可用，交给 try 兜底）；
-        // 30 以下没有查询 API，直接试，失败走 catch 降级。
-        val clickSupported = if (Build.VERSION.SDK_INT >= 30) {
-            vib.areAllEffectsSupported(android.os.VibrationEffect.EFFECT_CLICK) !=
-                android.os.Vibrator.VIBRATION_EFFECT_SUPPORT_NO
-        } else {
-            true
-        }
-        if (clickSupported) {
-            try {
-                val effect = android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_CLICK)
-                vibrateWith(vib, effect)
-                return "prebaked"
+    }
+
+    /** A2 触感探针（诊断入口，正式路径不调用）：先列能力，再按 id 打单个效果。
+     *
+     *  为什么需要它：自绘波形怎么调都只是「震」（霖 2026-09-30 #5）。真机事实是
+     *  `supportedPrimitives = []`（组合原语不支持）、`/vendor/etc/HapticsPolicy.xml` 的
+     *  `hapticsComposeAPI` 为空而 `hapticsPerformAPI` 放行 `effect_id = 0,1,2,3,4,5`——
+     *  也就是说这台机器上**只有 6 个系统标定过的预定义效果**能出真触感。
+     *  探针据此逐个试，用 `dumpsys vibrator_manager` 记录 + 手感挑档位。 */
+    @Command
+    fun hapticProbe(invoke: Invoke) {
+        try {
+            val a = try {
+                invoke.parseArgs(HapticProbeArgs::class.java)
             } catch (_: Exception) {
-                // 个别 HAL 不认预烘焙效果：落到自绘波形
+                HapticProbeArgs()
+            }
+            activity.runOnUiThread {
+                try {
+                    val vib = activity.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+                    if (vib == null || !vib.hasVibrator()) {
+                        invoke.resolve(JSObject().put("ok", false).put("reason", "no-vibrator"))
+                        return@runOnUiThread
+                    }
+                    val detail: String = when (a.kind) {
+                        "caps" -> capsText(vib)
+                        "prebaked" -> {
+                            vibrateWith(vib, android.os.VibrationEffect.createPredefined(a.id), a.usage)
+                            "prebaked:" + a.id + " usage=" + a.usage
+                        }
+                        "hfc" -> {
+                            activity.window.decorView.performHapticFeedback(a.constant)
+                            "hfc:" + a.constant
+                        }
+                        "wave" -> {
+                            vibrateWith(vib, android.os.VibrationEffect.createWaveform(longArrayOf(0, a.ms), intArrayOf(0, a.amp), -1))
+                            "wave:" + a.ms + "@" + a.amp
+                        }
+                        "primitive" -> primitiveText(vib, a.ops)
+                        else -> "unknown-kind"
+                    }
+                    invoke.resolve(JSObject().put("ok", true).put("kind", a.kind).put("detail", detail))
+                } catch (e: Exception) {
+                    invoke.resolve(JSObject().put("ok", false).put("reason", "probe-failed:" + e.javaClass.simpleName))
+                }
+            }
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().put("ok", false).put("reason", "probe-exception"))
+        }
+    }
+
+    /** 能力组合判据用的系统组合原语 id（与既有 `prims=[…]` 诊断同一组）。 */
+    private val PRIMITIVE_IDS = intArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
+    /** 能力组合判据用的厂商标定扩展效果块（AOSP 只公开 0..5；本仓调音选用的 167/186 在其中）。 */
+    private val EXT_EFFECT_IDS = (161..192).toList()
+
+    /** 能力表（一行字符串，便于 CDP 直接读回，不必翻 logcat）。 */
+    private fun capsText(vib: android.os.Vibrator): String {
+        val sb = StringBuilder()
+        sb.append("sdk=").append(Build.VERSION.SDK_INT)
+        sb.append(" id=").append(try { vib.id } catch (_: Throwable) { -1 })
+        sb.append(" ampCtl=").append(try { vib.hasAmplitudeControl() } catch (_: Throwable) { false })
+        if (Build.VERSION.SDK_INT >= 30) {
+            val ids = intArrayOf(0, 1, 2, 3, 4, 5, 6, 7, 8)
+            sb.append(" effects9=[").append(ids.joinToString(",") { i ->
+                if (vib.areAllEffectsSupported(i) == android.os.Vibrator.VIBRATION_EFFECT_SUPPORT_NO) "x" else i.toString()
+            }).append("]")
+        }
+        if (Build.VERSION.SDK_INT >= 33) {
+            val prims = PRIMITIVE_IDS.filter { vib.areAllPrimitivesSupported(it) }
+            sb.append(" prims=[").append(prims.joinToString(",")).append("]")
+            if (prims.isNotEmpty()) {
+                sb.append(" primDur=").append(vib.getPrimitiveDurations(*prims.toIntArray()).joinToString(","))
             }
         }
-        // 自绘兜底：30ms 单次满幅。不要再缩到 5~10ms——那是起振区，只有嗡感没有脆感。
-        val shaped = android.os.VibrationEffect.createWaveform(
-            longArrayOf(0, 30),
-            intArrayOf(0, 255),
-            -1,
-        )
-        vibrateWith(vib, shaped)
+        /* b29 能力组合判据的两项（前端 lib/hapticCaps.ts 读；缺项时整项不输出，前端判 unknown）：
+           · primsN = 系统组合原语的支持个数（API 30+ 公开接口）；
+           · extFx  = 厂商标定扩展效果块 161..192 里被 HAL 承认的条数——本仓 A2 调音选用的
+             167/186 就在这一块里，代表「能不能渲染调校过的触感」。
+           两台真机取证（2026-10-04）：退役机 ampCtl=true / primsN=0 / extFx=0；
+           日常机 ampCtl=true / primsN=0 / extFx=32。两台机器的 mSupportedPrimitives、
+           mMaxAmplitudes count、mResonantFrequency 都为空或 NaN，公开 API 里能区分两者的
+           只有这一项扩展效果表（maxAmplitudesCount 无公开读法）。 */
+        if (Build.VERSION.SDK_INT >= 30) {
+            sb.append(" primsN=").append(PRIMITIVE_IDS.count { vib.areAllPrimitivesSupported(it) })
+            sb.append(" extFx=").append(
+                EXT_EFFECT_IDS.count { vib.areAllEffectsSupported(it) == android.os.Vibrator.VIBRATION_EFFECT_SUPPORT_YES },
+            )
+        }
+        return sb.toString()
+    }
+
+    /** 组合原语：本机能力表已说 `supportedPrimitives = []`，这里只是把「确实没戏」坐实。 */
+    private fun primitiveText(vib: android.os.Vibrator, ops: String?): String {
+        if (Build.VERSION.SDK_INT < 33) return "primitive-needs-api33"
+        val c = android.os.VibrationEffect.startComposition()
+        var n = 0
+        for (raw in (ops ?: "").split(",")) {
+            val part = raw.trim().split(":")
+            val pid = part.getOrNull(0)?.toIntOrNull() ?: continue
+            val scale = part.getOrNull(1)?.toFloatOrNull() ?: 1f
+            c.addPrimitive(pid, scale)
+            n++
+        }
+        if (n == 0) return "primitive-no-ops"
+        vibrateWith(vib, c.compose())
+        return "primitive:" + n + "ops"
+    }
+
+    /** 效果名 → 系统预定义效果 id（**五档全部走系统标定波形**）。
+     *
+     *  霖 2026-09-30 #5 的返工结论：「自定义振动只是震，只有系统 prebake 的振动效果能做到
+     *  模仿触感」。真机取证（这台 REDMI K90 Pro Max / Android 16 / HyperOS 3）：
+     *  1. `/vendor/etc/Hapticsconfig.xml` 里 Qualcomm 标定的预定义效果只有 6 个——
+     *     **0 CLICK（35ms 脉冲 / 锐度 80）、1 DOUBLE CLICK（10/25/35ms PWL 包络）、
+     *     2 TICK、3 THUD、4 POP、5 HEAVY CLICK**，每个的脉宽/锐度/包络都不同；
+     *  2. `/vendor/etc/HapticsPolicy.xml` 的 `hapticsPerformAPI` 放行 `effect_id = 0..5`，
+     *     而 `hapticsComposeAPI` 为空、`supportedPrimitives = []`（组合原语这条路是死的）；
+     *  3. `VibrationEffect.EFFECT_LONG_PRESS` / `EFFECT_REJECT` 仍**不是公开常量**，
+     *     所以长按/拒绝只能用语义最接近的 THUD / DOUBLE CLICK。
+     *  A2 时曾据 `dumpsys` 记录断言「MIUI 把 TICK/CLICK/HEAVY_CLICK 合成同一个」——
+     *  那是把记录里的描述串当成了效果身份（见 `docs/ui-ux-polish-detailed.md` §A2 更正）。 */
+    /** 效果 id 只写字面量：`EFFECT_THUD` / `EFFECT_POP` / `EFFECT_LONG_PRESS` / `EFFECT_REJECT`
+     *  在 compileSdk 36 里**都不是公开常量**，写名字直接编译失败（本轮真的撞了一次构建）。
+     *  数值取自本机 `/vendor/etc/Hapticsconfig.xml` 的 `<Hapticseffect effect="N">`。 */
+    /* 预定义效果 id（厂商表；EFFECT_THUD/EFFECT_POP 等不是公开常量，只能写字面量） */
+    private val ID_CLICK = 0
+    private val ID_DOUBLE_CLICK = 1
+    private val ID_TICK = 2
+    private val ID_THUD = 3
+    private val ID_POP = 4
+    private val ID_HEAVY_CLICK = 5
+    /* 霖真机 A/B 试听后选定的厂商标定 id（超出 AOSP 范围、手调波形）：
+       167 取自系统「设置 → 触感演示」同一族实测记录（159/167/169/171），用作 longPress 的「弹」；
+       186 用作 reject。别的 ROM 不一定有这两个 id，playHaptic 会退到 aospId。 */
+    private val ID_BOUNCE = 167
+    private val ID_REJECT_DEEP = 186
+
+    /** 五档实际使用的效果 id（厂商标定优先） */
+    private fun predefinedId(effect: String): Int = when (effect) {
+        // 霖 2026-10-01 强弱微调（PCM 能量 + 试听定档）：click 稍弱→POP(4)、tick 稍强→THUD(3)。
+        // 注意 click 与 heavy 现在同为 POP(4)：这是霖的选择，若要拆开需再定一档。
+        "click" -> ID_POP
+        "reject" -> ID_REJECT_DEEP
+        "tick" -> ID_THUD
+        "longPress" -> ID_BOUNCE
+        "heavy" -> ID_POP
+        else -> ID_TICK
+    }
+
+    /** 厂商 id 不被该 ROM 支持时的第二跳：退回 AOSP 标定 id（仍是系统波形，最后才轮到自绘） */
+    private fun aospId(effect: String): Int = when (effect) {
+        "click" -> ID_POP
+        "reject" -> ID_DOUBLE_CLICK
+        "tick" -> ID_THUD
+        "longPress" -> ID_THUD
+        "heavy" -> ID_HEAVY_CLICK
+        else -> ID_TICK
+    }
+
+    /** 自绘波形（API 26~28 无 createPredefined，或该 HAL 不认预烘焙）：各效果时长/幅度
+     *  不同，保证降级后的手感仍有强弱区分度。 */
+    private fun waveformFor(effect: String): android.os.VibrationEffect {
+        val timings: LongArray
+        val amps: IntArray
+        when (effect) {
+            /* 三档短促且互相拉开（真机 dumpsys 实测 Step 包络）：
+               轻量按钮 18ms@0.59 → 长按 35ms@1.00（脆）→ 开关 60ms@1.00（最实）；
+               拒绝 = 双脉冲，与「生效」类一耳朵分得开。都别再缩到 5~10ms——那是起振区。 */
+            "tick" -> { timings = longArrayOf(0, 20); amps = intArrayOf(0, 190) }
+            "longPress" -> { timings = longArrayOf(0, 35); amps = intArrayOf(0, 255) }
+            "heavy" -> { timings = longArrayOf(0, 60); amps = intArrayOf(0, 255) }
+            "reject" -> { timings = longArrayOf(0, 16, 60, 24); amps = intArrayOf(0, 220, 0, 255) }
+            "click" -> { timings = longArrayOf(0, 18); amps = intArrayOf(0, 150) }
+            // 未知名（前端已白名单，这里是二道闸）：中等偏实的兜底，别缩到 5~10ms——那是起振区
+            else -> { timings = longArrayOf(0, 30); amps = intArrayOf(0, 255) }
+        }
+        return android.os.VibrationEffect.createWaveform(timings, amps, -1)
+    }
+
+    /** 播放一次触感，返回实际走的路径（prebaked / waveform / legacy）。 */
+    private fun playHaptic(effect: String, vib: android.os.Vibrator): String {
+        if (Build.VERSION.SDK_INT < 26) {
+            @Suppress("DEPRECATION")
+            vib.vibrate(legacyMs(effect))
+            return "legacy"
+        }
+        // createPredefined 是 API 29+；API 29 没有能力查询 API，直接试、失败走 catch 降级。
+        // 五档都先走系统预定义效果（系统标定过的波形才有真触感，见 predefinedId 注释），
+        // 该 ROM 不支持时才落到自绘波形——降级路径仍挂 USAGE_TOUCH，跟随系统设置。
+        if (Build.VERSION.SDK_INT >= 29) {
+            /* 厂商 id 优先；该 ROM 不认时退到 AOSP 标定 id，两个都不行才自绘波形 */
+            for (id in listOf(predefinedId(effect), aospId(effect)).distinct()) {
+                val supported = if (Build.VERSION.SDK_INT >= 30) {
+                    vib.areAllEffectsSupported(id) != android.os.Vibrator.VIBRATION_EFFECT_SUPPORT_NO
+                } else {
+                    true
+                }
+                if (!supported) continue
+                try {
+                    vibrateWith(vib, android.os.VibrationEffect.createPredefined(id))
+                    return "prebaked"
+                } catch (_: Throwable) {
+                    // 个别 HAL 不认预烘焙效果（旧内核还可能缺常量）：试下一个候选
+                }
+            }
+        }
+        vibrateWith(vib, waveformFor(effect)) /* 不认预烘焙时的兜底：仍带 TOUCH 属性 */
         return "waveform"
     }
 
+    /** API < 26 的旧式脉冲时长（ms）：没有波形 API，只能靠时长区分强弱。 */
+    private fun legacyMs(effect: String): Long = when (effect) {
+        "click" -> 20L
+        "heavy" -> 30L
+        "longPress" -> 30L
+        "reject" -> 25L
+        else -> 15L
+    }
+
     /** 统一带触觉通道属性播放：API 33+ 走 USAGE_TOUCH（尊重用户触感强度），旧版本用弃用重载。 */
-    private fun vibrateWith(vib: android.os.Vibrator, effect: android.os.VibrationEffect) {
+    /** usage 名 → VibrationAttributes（仅探针使用；生产路径恒为 USAGE_TOUCH） */
+    private fun attrsFor(usage: String): android.os.VibrationAttributes {
+        val u = when (usage) {
+            "hardware" -> android.os.VibrationAttributes.USAGE_HARDWARE_FEEDBACK
+            else -> android.os.VibrationAttributes.USAGE_TOUCH
+        }
+        return android.os.VibrationAttributes.createForUsage(u)
+    }
+
+    private fun vibrateWith(vib: android.os.Vibrator, effect: android.os.VibrationEffect, usage: String = "touch") {
         if (Build.VERSION.SDK_INT >= 33) {
-            val attrs = android.os.VibrationAttributes.createForUsage(android.os.VibrationAttributes.USAGE_TOUCH)
-            vib.vibrate(effect, attrs)
+            vib.vibrate(effect, attrsFor(usage))
         } else {
             @Suppress("DEPRECATION")
             vib.vibrate(effect)
         }
     }
+
 
     /** 一键把标准形态小组件放到桌面（R21c：ColorOS 等启动器的选择器行为不一致，
      *  用户「绑定完桌面上没有」——这条走系统 requestPinAppWidget，由启动器直接落卡片）。
@@ -1461,60 +1650,6 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    /**
-     * 立即投递一条通知（事件驱动，如校园卡余额预警）。
-     *
-     * 与 notifySchedule 的分工：那条是「将来某刻发」（AlarmManager + 库条目），这里要的是
-     * 「现在发」，故直接进通知栏、不写库、不排闹钟——`notify_pending` 因此不会把它算作
-     * 待投递条目（排程对齐的那轮同步也就不会误撤它）。同 id 重发即覆盖同一条通知。
-     *
-     * 权限：这里**不**发起运行时授权请求（判定发生在一次普通的余额刷新里，弹框很唐突），
-     * 未授权时如实回报 `reason = notifications-denied`，卡片据此说明原因。
-     */
-    @Command
-    fun notifyPost(invoke: Invoke) {
-        try {
-            val args = invoke.parseArgs(NotifyPostArgs::class.java)
-            if (args.id.isEmpty()) {
-                invoke.resolve(JSObject().put("ok", false).put("reason", "missing-id"))
-                return
-            }
-            if (!hasNotificationPermission()) {
-                invoke.resolve(JSObject().put("ok", false).put("reason", "notifications-denied"))
-                return
-            }
-            val item = JSONObject()
-                .put("title", args.title)
-                .put("body", args.body)
-                .put("channel", args.channel)
-                .put("target", args.target)
-            val ok = NotifyCenter.post(activity.applicationContext, args.id, item)
-            invoke.resolve(JSObject().put("ok", ok).put("granted", hasNotificationPermission()))
-        } catch (e: Exception) {
-            invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "post-failed"))
-        }
-    }
-
-    /** 撤回已展示的通知（余额恢复正常 / 关掉预警时调用；不改动待投递的排程） */
-    @Command
-    fun notifyDismiss(invoke: Invoke) {
-        try {
-            val args = invoke.parseArgs(NotifyDismissArgs::class.java)
-            val ctx = activity.applicationContext
-            val arr = JSONArray(args.ids)
-            var dismissed = 0
-            for (i in 0 until arr.length()) {
-                val id = arr.optString(i)
-                if (id.isEmpty()) continue
-                NotifyCenter.dismiss(ctx, id)
-                dismissed++
-            }
-            invoke.resolve(JSObject().put("ok", true).put("dismissed", dismissed))
-        } catch (e: Exception) {
-            invoke.resolve(JSObject().put("ok", false).put("reason", e.message ?: "dismiss-failed"))
-        }
-    }
-
     /** 立即发一条测试通知（设置页「试一下」按钮）：渠道与权限链路自证。 */
     @Command
     fun notifyTest(invoke: Invoke) {
@@ -1632,5 +1767,19 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
         } catch (e: Exception) {
             invoke.reject(e.message ?: "读取系统取色失败")
         }
+    }
+
+    /**
+     * 退出应用（返回栈到根时的原生行为）。
+     *
+     * 为什么自己开一条：Tauri 的 `plugin:app|exit` 需要 ACL 权限 `core:app:allow-exit`，
+     * 而该权限根本不存在（core:app 的权限集里没有 exit），真机实测「Command plugin:app|exit
+     * not allowed by ACL」。所以根节点的返回由前端调本命令收口，语义与 Tauri 自身的
+     * AppPlugin.exit 一致（finish 当前 Activity）。
+     */
+    @Command
+    fun exitApp(invoke: Invoke) {
+        invoke.resolve()
+        activity.finish()
     }
 }

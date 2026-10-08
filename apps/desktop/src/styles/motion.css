@@ -41,6 +41,15 @@
   --ease-in-out: var(--md-sys-motion-easing-standard);
   /* 轻弹簧：MD3 没有弹簧，这是本项目的品牌抖动（只给"被点/被弹出来"的元素，过头量≈3%） */
   --ease-spring: cubic-bezier(0.34, 1.34, 0.5, 1);
+  /* B2 动效曲线收敛（霖 2026-10-02）：业务文件里原来散着 23 处裸 cubic-bezier，收敛成这几个
+     令牌。**过冲不是脏数据**——卡片入场、胶囊回弹、菜单生长、数字滚动都靠它，所以按强度
+     留三档，而不是一律换成标准曲线（那是手感退化）。取值与改前一致；只有两处按强度归并：
+     (0.22,0.9,0.3,1) 并入 --ease-smooth、(0.22,1.05/1.15,0.36,1) 并入 soft / 标准档。 */
+  --ease-smooth: cubic-bezier(0.2, 0.7, 0.3, 1);              /* 常规 ease-out（原散落 10 处） */
+  --ease-overshoot-soft: cubic-bezier(0.22, 1.1, 0.36, 1);    /* 轻微过冲：胶囊/菜单小幅回弹 */
+  --ease-overshoot: cubic-bezier(0.22, 1.2, 0.36, 1);         /* 标准过冲：卡片入场、数字滚动 */
+  --ease-overshoot-strong: cubic-bezier(0.22, 1.35, 0.36, 1); /* 强过冲：收藏钉、轨迹标记 */
+  --ease-drop: cubic-bezier(0.2, 0.85, 0.3, 1.3);             /* 下坠：先慢后越过（OH 胶囊换字） */
   /* 页面/大容器转场：MD3 emphasized */
   --ease-ios: var(--md-sys-motion-easing-emphasized);
 
@@ -278,7 +287,9 @@
 
 /* 整行 / 整卡：按下去只压暗底色，**绝不改尺寸**。
    原因（霖实测 2026-09-22）：手机上按住整行时缩放会被读成"布局变了"，
-   若行内是 flex 布局还会连带文字重排；改为底色反馈后尺寸与排版全程不动。 */
+   若行内是 flex 布局还会连带文字重排；改为底色反馈后尺寸与排版全程不动。
+   例外（霖 2026-10-01 #5）：**长按目标**的两级按压反馈用纯 transform 缩放（0.97 ↔ 1.1），
+   transform 在绘制期生效、不参与布局，所以行内文字与邻居都不动；只挂在 [data-ctx-press] 上。 */
 .row-click:active,
 .nav-item:active,
 .entry:active,
@@ -320,6 +331,17 @@ select {
   }
   to {
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+  }
+}
+/* ── 老引擎兜底：Chromium 96 无 color-mix()（霖 2026-10-04 老机型适配）──
+   含 `var()` 的 color-mix 声明在 96 上是「computed-value 阶段无效」→ 整条按 unset 处理，
+   **不会**回落到同关键帧里更早的静态声明（真机实验坐实）。焦点环是唯一的键盘焦点可视
+   提示（上面 `:focus-visible { outline: none }`），掉了就是无焦点环 → 功能性，必须兜。
+   判据里**不能带 var()**（96 对带 var 的 @supports 条件一律返回 true）。 */
+@supports not (color: color-mix(in srgb, red 50%, transparent)) {
+  @keyframes m-focus-ring {
+    from { box-shadow: 0 0 0 0 var(--accent-soft); }
+    to { box-shadow: 0 0 0 3px var(--accent-soft); }
   }
 }
 
@@ -581,6 +603,19 @@ select {
   background-size: 28px 100%;
   animation: m-stripes 620ms linear infinite;
 }
+/* 老引擎兜底（color-mix，理由同 m-focus-ring）：忙碌斜纹掉了这条进度条就没有任何「在跑」
+   的视觉信号 → 功能性。静态版用 --accent-soft 顶掉那条含 var() 的 color-mix 声明。 */
+@supports not (color: color-mix(in srgb, red 50%, transparent)) {
+  .bar.is-busy,
+  .progress.is-busy {
+    background-image: repeating-linear-gradient(
+      115deg,
+      transparent 0 6px,
+      var(--accent-soft) 6px 14px,
+      transparent 14px 20px
+    );
+  }
+}
 /* 在线状态点呼吸 */
 .dot.is-live {
   animation: m-breathe 2.2s var(--ease-in-out) infinite;
@@ -637,6 +672,9 @@ html.theme-anim body,
 html.theme-anim .card,
 html.theme-anim .sidebar,
 html.theme-anim .mobile-topbar,
+/* 手机顶栏真正承载底色的是 ::before 垫层（本体是 transparent / color-mix）：不列进来，
+   切主题时它会一帧到位，留下约 300ms 的色差（此前记为已知残余）。 */
+html.theme-anim .mobile-topbar::before,
 html.theme-anim .btn,
 html.theme-anim .input,
 html.theme-anim .row {
@@ -767,6 +805,20 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[
 .segmented:has(.seg-pill.is-ready) button.is-active {
   background: transparent;
   box-shadow: none;
+}
+/* ── 老引擎兜底：Chromium 96 无 :has()（霖 2026-10-04 老机型适配）──────────────
+   真机现象「切换 tab 出现两个胶囊」的根因：上面这条在 96 上被解析期整条丢弃 →
+   `global.css` 里 `.segmented button.is-active` 的静态高亮底（surface-container-lowest
+   + shadow-1）与滑动的 `.seg-pill` 同时可见：`is-active` 是类名瞬时切换（新位置立刻出现
+   一个胶囊），`.seg-pill` 走 CSS transition 从旧位置滑过来（旧胶囊随后运动过去）。
+   96 上看不到后代状态，等价判据只能放在「块存在」这一层：`.seg-pill` 由组件恒渲染，
+   故这里直接撤掉激活按钮自带的底色/阴影；量不到尺寸（容器不可见）时本来也看不到这一行。
+   现代引擎（Chromium ≥105）该块求值为 false → `:has()` 那条仍是唯一机制，逐像素不变。 */
+@supports not selector(:has(*)) {
+  .segmented button.is-active {
+    background: transparent;
+    box-shadow: none;
+  }
 }
 
 /* ---------- 17. 侧栏指示条 / 邮箱推入 / 弹层退场 / 方阵网格 ---------- */

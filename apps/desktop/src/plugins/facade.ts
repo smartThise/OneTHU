@@ -265,7 +265,7 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
   const cloudToken = async (): Promise<string> => {
     await ensureSeafileLoaded();
     const t = getSeafileToken();
-    if (!t) throw new Error("云盘未配置：请先在应用的「云盘」页连接（Seafile API Token）");
+    if (!t) throw new Error("云盘未配置：请先在应用的「云盘」页连接（需要一份云盘访问口令）");
     return t;
   };
   const cloudRead = wrap({
@@ -493,7 +493,7 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
             return await info.bookLibrarySeat(seat, sectionId, dateChoice, appSession.username);
           } catch (e2) {
             const m2 = e2 instanceof Error ? e2.message : String(e2);
-            throw new Error(`${m2}（重试前会话重建: ${ensured}；座位系统 uid=${InfoClient.libUserid || "?"}）`);
+            throw new Error(`${m2}（重试前登录状态重建: ${ensured}；座位系统 uid=${InfoClient.libUserid || "?"}）`);
           }
         }
       },

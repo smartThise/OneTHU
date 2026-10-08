@@ -14,7 +14,8 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Card, Empty, ErrorNote, PageHead } from "../components/Layout.js";
+import { Card, Empty, ErrorNote, PageHead, Switch } from "../components/Layout.js";
+import { useContextMenu, useLongPress } from "../components/ContextMenu.js";
 import { HomeCoachMarks } from "../components/HomeCoachMarks.js";
 import { IconCalendar, IconChevron, IconFlag, IconRefresh, IconSchedule, IconTrace } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
@@ -29,10 +30,14 @@ import {
 import { fmtMonthDayWeek } from "../lib/dateText.js";
 import {
   buildHomeRegistry, loadCollapsedDefaults, loadLayout, resolveLayout,
-  saveCollapsedDefaults, saveLayout, type HomeOrientation,
+  saveCollapsedDefaults, saveLayout, sortPlacedByTimeOrder, type HomeOrientation,
   HOME_CARD_META,
   type HomeCardDef, type HomeCardId, type HomeCol, type HomeLayoutItem,
 } from "../lib/homeCards.js";
+import {
+  isTimeOrderActive, loadHomeOrder, markHomeManualEdit, saveHomeOrder,
+  setHomeTimeOrder, setHomeUserOrder, type HomeClassSpan, type HomeOrderState,
+} from "../state/homeOrder.js";
 import { restoreDefaultTodayCards } from "../state/onboarding.js";
 import { readSubs } from "./info/newsSearch.js";
 import { openExternal } from "./info/openExternal.js";
@@ -41,6 +46,7 @@ import { useIgnoredHw } from "../state/hwIgnore.js";
 import { parseLearnTime, type ScheduleEntry } from "@onethu/core";
 import { suggestAtoms } from "../lib/suggest.js";
 import { resolveAtom } from "../state/atoms.js";
+import type { PageMenuItem } from "../state/pageChrome.js";
 
 /** 轻路由签名（与 AppState.navigate 一致） */
 type Nav = (page: Page, params?: LearnNav) => void;
@@ -123,6 +129,38 @@ function logEmpty(which: string): void {
     .catch(() => undefined);
 }
 
+/* ══════════ E4 时段推荐：排序用的「现在」与当天课表（可 mock） ══════════ */
+
+/** 真机 DoD 用的 mock 入口（只读 globalThis，不进任何存储）：
+ *  CDP 里设 `window.__onethuHomeMock = { now: "21:10", events: [{ startMin, endMin }] }`
+ *  即固定排序时刻与当天课表；`events: []` = 休息日（当天课表无课）。改完调一次
+ *  `window.__onethuHomeReeval()` 立刻重排，不必等下一分钟的 tick。不设则用真实时间与课表。 */
+interface HomeMock {
+  now?: string;
+  events?: Array<{ startMin: number; endMin: number }>;
+}
+
+function homeMock(): HomeMock | null {
+  const m = (globalThis as { __onethuHomeMock?: unknown }).__onethuHomeMock;
+  return m && typeof m === "object" ? (m as HomeMock) : null;
+}
+
+/** 排序用的「现在」：mock 支持 "HH:MM" 与 ISO 串，非法值回落真实时间 */
+function homeOrderNow(): Date {
+  const mock = homeMock()?.now;
+  if (typeof mock === "string" && mock.trim()) {
+    const hm = /^(\d{1,2}):(\d{2})$/.exec(mock.trim());
+    const d = new Date();
+    if (hm) {
+      d.setHours(Number(hm[1]), Number(hm[2]), 0, 0);
+      return d;
+    }
+    const iso = new Date(mock);
+    if (!Number.isNaN(iso.getTime())) return iso;
+  }
+  return new Date();
+}
+
 /** 猜你喜欢：同类推荐 + 起步项（绝不会是已收藏/已用过的） */
 function suggestRows(): Array<{ ref: { kind: string; key: string }; title: string; sub?: string; why?: string }> {
   const rows = suggestAtoms(5).map((s) => ({ ref: s.ref, title: s.title, sub: s.sub, why: s.why }));
@@ -155,15 +193,32 @@ function HomeCard({
   onRemove: (id: HomeCardId) => void;
 }) {
   const body = def.kind === "bespoke" ? (def.render?.() ?? null) : null;
-  if (def.kind === "bespoke" && body === null) return null;
   const collapsed = item.collapsed;
   const cls = "home-card" + (collapsed ? " is-collapsed" : "") + (editing ? " is-editing" : "");
   const Icon = def.icon;
+  /* 霖 2026-09-30 #4：今日页卡片此前长按没反应。这里放**这张卡自己的操作**
+     （收起/展开、上移、下移、隐藏）——卡片本身没有可收藏的原子（原子在收藏页那侧），
+     摆一个点了没反应的「收藏」是反例。 */
+  const menu = useContextMenu();
+  const lp = useLongPress((x, y) => {
+    menu.open({
+      x,
+      y,
+      title: def.title,
+      items: [
+        { key: "toggle", label: collapsed ? "展开" : "收起", onSelect: () => onToggle(def.id) },
+        { key: "up", label: "上移", onSelect: () => onMove(def.id, "up") },
+        { key: "down", label: "下移", onSelect: () => onMove(def.id, "down") },
+        { key: "hide", label: "隐藏此卡片", danger: true, onSelect: () => onRemove(def.id) },
+      ],
+    });
+  });
+  if (def.kind === "bespoke" && body === null) return null;
 
   /* shellFree（今日概览条）：卡体即整卡；标题行常显（与编辑态一致），工具行仅编辑时出现 */
   if (def.shellFree && def.kind === "bespoke") {
     return (
-      <section className={cls} data-card={def.id}>
+      <section className={cls} data-card={def.id} {...lp}>
         {
           <div className="home-card-head">
             <span className="home-card-title" style={{ cursor: "default" }}>
@@ -201,7 +256,7 @@ function HomeCard({
   }
 
   return (
-    <section className={cls} data-card={def.id}>
+    <section className={cls} data-card={def.id} {...lp}>
       <div className="home-card-head">
         {def.kind === "entry" ? (
           <button
@@ -401,6 +456,34 @@ export function TodayPage() {
   const [foldDefaults, setFoldDefaults] = useState<Partial<Record<HomeCardId, boolean>>>(() => loadCollapsedDefaults());
   const [editing, setEditing] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+
+  /* ---- E4 时段推荐：模式 + 用户顺序（state/homeOrder.ts 持久化） ---- */
+  const [orderState, setOrderState] = useState<HomeOrderState>(() => loadHomeOrder());
+  useEffect(() => {
+    saveHomeOrder(orderState);
+  }, [orderState]);
+  // 排序用的「现在」：每分钟 tick + 页面重新可见时重算，跨时段边界实时重排
+  const [orderNow, setOrderNow] = useState<Date>(() => homeOrderNow());
+  useEffect(() => {
+    const tick = (): void => setOrderNow(homeOrderNow());
+    const timer = window.setInterval(tick, 60_000);
+    const onVisible = (): void => {
+      if (!document.hidden) tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+  // 真机 mock：改完 __onethuHomeMock 调一次它立刻重排
+  useEffect(() => {
+    const g = globalThis as { __onethuHomeReeval?: () => void };
+    g.__onethuHomeReeval = () => setOrderNow(homeOrderNow());
+    return () => {
+      delete g.__onethuHomeReeval;
+    };
+  }, []);
   // 布局变动即时持久化到「当前朝向」的桶；朝向刚切换时先载入另一套，本次不保存（防串桶）
   useEffect(() => {
     if (orientation !== oriRef.current) {
@@ -425,6 +508,8 @@ export function TodayPage() {
   };
 
   const moveCard = (id: HomeCardId, dir: MoveDir) => {
+    // E4：用户动过排序 → 「时段推荐」自动关闭，不再打扰（此后一律用户顺序）
+    setOrderState(markHomeManualEdit);
     if (portrait && (dir === "up" || dir === "down")) {
       // 竖屏：无左右栏概念，按展示顺序（主栏→侧栏串成一条）上下移；
       // 跨过主/侧栏边界时继承邻居的栏位（回到横屏后位置自洽）
@@ -472,11 +557,15 @@ export function TodayPage() {
 
   /** 隐藏卡片（col→off；入口卡与固有 bespoke 卡一视同仁，均可经「添加卡片」找回） */
   const removeCard = (id: HomeCardId) => {
+    // E4：动过显隐 → 同样自动关闭时段推荐
+    setOrderState(markHomeManualEdit);
     setLayout((prev) => prev.map((it) => (it.id === id ? { ...it, col: "off" as const } : it)));
   };
 
   /** 把隐藏的卡片加回所选列末尾；竖屏无栏位概念，落到展示序列最末（继承末卡栏位） */
   const addCard = (id: HomeCardId, col: HomeCol) => {
+    // E4：动过显隐 → 自动关闭时段推荐
+    setOrderState(markHomeManualEdit);
     if (portrait) {
       setLayout((prev) => {
         const flat = prev.filter((it) => it.col === "main" || it.col === "rail");
@@ -521,6 +610,26 @@ export function TodayPage() {
         return ta.localeCompare(tb);
       });
   }, [data]);
+
+  /** 排序用的当天课表（起止都折算成当日分钟数）：mock 给了 events 就用 mock（[] = 休息日） */
+  const mockEventsKey = JSON.stringify(homeMock()?.events ?? null);
+  const classSpans = useMemo<HomeClassSpan[]>(() => {
+    const forced = homeMock()?.events;
+    if (Array.isArray(forced)) {
+      return forced
+        .filter((e) => e && Number.isFinite(e.startMin) && Number.isFinite(e.endMin))
+        .map((e) => ({ startMin: e.startMin, endMin: e.endMin }));
+    }
+    const out: HomeClassSpan[] = [];
+    for (const s of todayEvents) {
+      const st = s.startTime ? hhmmMin(s.startTime) : sectionStartMin(s.startSection ?? 1);
+      if (st == null) continue;
+      const en = (sectionStartMin(s.endSection ?? s.startSection ?? 1) ?? st) + 45;
+      out.push({ startMin: st, endMin: en });
+    }
+    return out;
+    // mockEventsKey：真机 mock 换了课表也要重算（orderNow 由 reeval/tick 触发）
+  }, [todayEvents, mockEventsKey, orderNow]);
 
   /** 下一节课：今天还没结束的最近一节（§2.8.2 PC 右栏常驻卡）；今天没课 → 整卡不渲染 */
   const nextClass = useMemo(() => {
@@ -705,17 +814,31 @@ export function TodayPage() {
   /** 竖屏展示序列：主栏在前、侧栏在后串成一条（与旧布局竖向堆叠顺序一致） */
   const flatItems = useMemo(() => (portrait ? [...mainItems, ...railItems] : mainItems), [portrait, mainItems, railItems]);
 
+  /* ---- E4 时段推荐：只重排展示序，集合不变（关或已手动编辑 → input=null → 用户顺序） ---- */
+  const timeOrderOn = isTimeOrderActive(orderState);
+  const timeInput = useMemo(
+    () => (timeOrderOn ? { now: orderNow, events: classSpans } : null),
+    [timeOrderOn, orderNow, classSpans],
+  );
+  const shownFlat = useMemo(() => sortPlacedByTimeOrder(flatItems, timeInput), [flatItems, timeInput]);
+  const shownMain = useMemo(() => sortPlacedByTimeOrder(mainItems, timeInput), [mainItems, timeInput]);
+  const shownRail = useMemo(() => sortPlacedByTimeOrder(railItems, timeInput), [railItems, timeInput]);
+  // 用户顺序快照（推荐改的是展示序，这一份始终是用户自己排的）
+  useEffect(() => {
+    setOrderState((s) => setHomeUserOrder(s, layout.map((it) => it.id)));
+  }, [layout]);
+
   // 布局留痕：卡片系统完全由 localStorage 驱动，"首页怎么空了"只能靠这一行回放
   // （记录已落位的卡 id 与朝向；每次进入今日页一行，便于对照设置里的选择）
   useEffect(() => {
     void import("../lib/clients.js")
       .then((m) =>
         m.logLine(
-          `[TODAY] 朝向=${orientation} 主栏=[${mainItems.map((i) => i.id).join(",")}] 侧栏=[${railItems.map((i) => i.id).join(",")}] 收起=${layout.filter((i) => i.col === "off").length}`,
+          `[TODAY] 朝向=${orientation} 推荐=${timeOrderOn ? "开" : "关"} 主栏=[${mainItems.map((i) => i.id).join(",")}] 侧栏=[${railItems.map((i) => i.id).join(",")}] 展示=[${shownFlat.map((i) => i.id).join(",")}] 收起=${layout.filter((i) => i.col === "off").length}`,
         ),
       )
       .catch(() => undefined);
-  }, [orientation, mainItems, railItems, layout]);
+  }, [orientation, timeOrderOn, mainItems, railItems, shownFlat, layout]);
 
   const renderCard = (it: PlacedCard, index: number, list: PlacedCard[]) => {
     const def = defById.get(it.id);
@@ -748,12 +871,15 @@ export function TodayPage() {
           fmtMonthDayWeek(now) +
           (data?.user ? " · " + data.user.name : "")
         }
+        menu={[{
+            key: "refresh",
+            label: "刷新",
+            icon: <IconRefresh width={16} height={16} />,
+            disabled: state === "loading",
+            onSelect: () => void reload(),
+          }].filter(Boolean) as PageMenuItem[]}
         actions={
           <>
-            <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
-              <IconRefresh width={14} height={14} />
-              刷新
-            </button>
             {editing ? (
               <>
                 <button className="btn" onClick={() => setAddOpen(true)}>
@@ -780,6 +906,21 @@ export function TodayPage() {
 
       <HomeCoachMarks />
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
+
+      {/* E4 编辑界面：时段推荐开关（默认开；用户一动排序或显隐就自动关闭、不再打扰） */}
+      {editing ? (
+        <div className="today-order-row" data-order-switch="time">
+          <span className="today-order-label">时段推荐</span>
+          <Switch
+            on={timeOrderOn}
+            label="时段推荐"
+            onChange={(v) => setOrderState((s) => setHomeTimeOrder(s, v))}
+          />
+          <span className="today-order-hint">
+            {timeOrderOn ? "按当前时段把常用卡片提前" : "已按你自己的顺序排列"}
+          </span>
+        </div>
+      ) : null}
 
       {/* 页面级问候（非卡片，§2.2）：时段问候 + 今日要事摘要 + 日程快捷入口。
           不进卡片系统——它是页面骨架，不该被「添加卡片」勾选。 */}
@@ -817,16 +958,16 @@ export function TodayPage() {
       {portrait ? (
         /* 竖屏：无左右栏，主栏+侧栏串成一条展示序列 */
         <div className="today-grid today-grid-flat" style={{ marginTop: 14 }}>
-          <div className="today-col">{flatItems.map((it, i) => renderCard(it, i, flatItems))}</div>
+          <div className="today-col">{shownFlat.map((it, i) => renderCard(it, i, shownFlat))}</div>
         </div>
       ) : (
         <div className="today-grid" style={{ marginTop: 14 }}>
-          <div className="today-col">{mainItems.map((it, i) => renderCard(it, i, mainItems))}</div>
-          <div className="today-rail">{railItems.map((it, i) => renderCard(it, i, railItems))}</div>
+          <div className="today-col">{shownMain.map((it, i) => renderCard(it, i, shownMain))}</div>
+          <div className="today-rail">{shownRail.map((it, i) => renderCard(it, i, shownRail))}</div>
         </div>
       )}
 
-      {flatItems.length === 0 ? (
+      {shownFlat.length === 0 ? (
         <Card>
           <Empty text="首页卡片都被收起来了——恢复默认，或自己挑几张。" />
           <div style={{ display: "flex", justifyContent: "center", gap: 8, paddingBottom: 14 }}>

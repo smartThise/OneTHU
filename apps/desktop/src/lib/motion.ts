@@ -156,10 +156,13 @@ export function installScrollReveal(): void {
 }
 
 /**
- * 数字滚动：值变化时从旧值平滑滚到新值（统计卡用）。
- * 减弱动态时直接返回目标值——不做"为了而动的"动画。
+ * 统计数字滚动（数值版）：值变化时从旧值滚到新值，返回当前显示值。
+ *
+ * 与 D4 的 `components/CountUp.tsx` **不是同一个东西**，所以名字分开（曾同名，是隐患）：
+ *   · 这里 `useNumberRoll` —— 输入输出都是 number，**每次数值变化都重播**（统计卡刷新要靠它）；
+ *   · 那边 `useCountUp` —— 收 fmt 字符串、**每个挂载周期只播一次**（页面余额/学分/GPA 口径）。
  */
-export function useCountUp(value: number, dur = 680): number {
+export function useNumberRoll(value: number, dur = 680): number {
   const [shown, setShown] = useState(value);
   const fromRef = useRef(value);
   const rafRef = useRef<number | null>(null);
@@ -285,11 +288,28 @@ const NAV_ROWS_FULL = 5;      // 满额回弹的行数
 const NAV_APEX = 0.2;         // 惯性顶点 = 落点外 0.2 个行尺寸
 const NAV_BOUNCE_MS = 200;    // 刹车回弹窗 ms
 const NAV_TRAIL_DELAY = 0.3;  // 尾端点延迟（占比）
+/* C4：底栏激活胶囊的尺寸下限与文字两侧留白（宽 = 标签宽 + 2×留白，不小于下限、不超过单元格）。
+   高度不在这里写死——它由 useBottomNavPill 按当前项的内容盒实测后写进 CSS 变量。 */
+const NAV_PILL_MIN_W = 64;
+const NAV_PILL_PAD_X = 16;
+/* 胶囊纵向内衬（霖 2026-10-07 走查）：内容盒（图标 + 一行标签）上下各留 3px，
+   胶囊才算「完全包裹」；取 3 而非 4，是因为底栏项自身只有 4px 下内边距，取 4 会正好贴到单元格下沿。
+   它只写进内联 CSS 变量，不进样式扫描（扫描只看 CSS 里的 padding/margin/gap）。 */
+const NAV_PILL_PAD_Y = 3;
 /* 胶囊形变（用户要求：横向变长的同时竖向略收窄，增强运动感）。
    蓝条是 3px 细线，靠 scaleY 拉伸就能表达运动；胶囊是 64×32 的面，改成
    横向拉伸（scaleX 上限 1.4×）+ 竖向按比例略收窄（体积感）。 */
 const NAV_PILL_STRETCH_MAX = 1.4;
 const NAV_PILL_SQUASH = 0.45;
+/* D2：减速接近目标时的「挤压」相位——横向收短、竖向变厚，然后弹回 1/1。
+   只动 transform（scaleX/scaleY）：用 width/height 做这件事会触发布局与重排，是反例。 */
+const NAV_PILL_SQUASH_APEX = 0.06; // 横向最多收 6%
+const NAV_PILL_SQUASH_WIDE = 1.6;  // 竖向变厚相对横向收量的比例（近似体积守恒）
+const NAV_PILL_SQUASH_FRAMES = 6;  // 收尾采样帧数
+/** WAAPI 用的曲线常量（必须是字符串字面量，CSS 变量在 el.animate 里无效）。
+ *  B2 收敛后这里的取值与 styles/motion.css 的同名令牌一一对应：
+ *  NAV_SOFT ←→ 导航用软入软出；EASE_EMPHASIZED ←→ --md-sys-motion-easing-emphasized。 */
+export const EASE_EMPHASIZED = "cubic-bezier(0.2, 0, 0, 1)";
 const NAV_SOFT = "cubic-bezier(0.45, 0, 0.55, 1)";
 /** 四次缓入缓出：两端速度 0、中段峰值约 4× 平均速度 */
 const NAV_EASE = (u: number): number => (u < 0.5 ? 8 * u * u * u * u : 1 - 8 * Math.pow(1 - u, 4));
@@ -448,6 +468,28 @@ export function useNavIndicator() {
   return [rowRef, barRef] as const;
 }
 
+/** 底栏胶囊「当前在屏幕上的中心」（导航条内容坐标）。
+ *  连点打断用：进行中的 WAAPI 动画会把它带离落点，而 getComputedStyle 反映的是**动画当前值**，
+ *  所以这里读到的就是表现值；读完顺手 cancel 掉那批动画——WAAPI 不会自动取消，旧动画若更长，
+ *  会在新动画结束后把 transform 继续抢回去（长程 220+200ms 之后再点相邻项 140ms，胶囊就会弹回旧方向）。
+ *  几何全在一条 transform 上（translateX 定位 + scaleX/scaleY 形变），缩放的 origin 是中心，
+ *  所以中心 = m41 + 布局宽 / 2。没有动画在跑时返回 null（调用方沿用上一次的落点）。 */
+function presentationCenter(pill: HTMLElement): number | null {
+  const running: Animation[] = typeof pill.getAnimations === "function" ? pill.getAnimations() : [];
+  if (running.length === 0) return null;
+  let center: number | null = null;
+  const tf = getComputedStyle(pill).transform;
+  if (tf && tf !== "none") {
+    try {
+      center = new DOMMatrixReadOnly(tf).m41 + (pill.offsetWidth || NAV_PILL_MIN_W) / 2;
+    } catch {
+      center = null;
+    }
+  }
+  for (const a of running) a.cancel();
+  return center;
+}
+
 /**
  * 移动端底栏「蓝色胶囊」指示器：把蓝条那套已打磨好的运动搬过来——平滑切换 + 惯性回弹，
  * 只做两处几何适配：竖直位移换成水平位移、去掉沿运动轴的长度拉伸（蓝条拉伸是为了让 3px
@@ -471,11 +513,39 @@ export function useBottomNavPill() {
     }
     const base = el.getBoundingClientRect();
     const box = active.getBoundingClientRect();
+    /* C4（霖 2026-10-01 走查）：胶囊曾经写死 64×32、`top: 12px`，而底栏项的内容盒（图标 + 一行
+       标签）比 32px 高——文字从胶囊下沿露出来。改成按**当前项的内容盒**量：高度 = item 高度减去
+       它自己的上下 padding，top 同样从内容盒顶起算（换算到 .bottom-nav 的 padding box 坐标，
+       所以再减掉底栏自身的 padding-top）；宽度取「标签宽 + 两侧留白」与下限 64px 的较大者，
+       但不超出单元格。文字行高一变、label 字号一换，胶囊自动跟着长。 */
+    const cs = getComputedStyle(active);
+    const navCs = getComputedStyle(el);
+    const padTop = parseFloat(cs.paddingTop) || 0;
+    const padBottom = parseFloat(cs.paddingBottom) || 0;
+    /* 绝对定位子元素的包含块是**内边距盒**：`top: 0` 已经在底栏自身 padding 之外，
+       所以从 border box 顶端换算过去只减 border-top。此前这里减的是 navPadTop（8px），
+       等于把底栏 padding-top 扣了两次 —— 实测胶囊顶比内容盒顶高 8px，下沿正好从标签中间
+       穿过（霖 2026-10-07 走查：只盖住文字上半部分）。 */
+    const navBorderTop = parseFloat(navCs.borderTopWidth) || 0;
+    const label = active.querySelector<HTMLElement>("span");
+    const labelW = label ? label.getBoundingClientRect().width : 0;
+    pill.style.setProperty("--nav-pill-top", box.top - base.top + padTop - navBorderTop - NAV_PILL_PAD_Y + "px");
+    pill.style.setProperty("--nav-pill-h", Math.max(0, box.height - padTop - padBottom + NAV_PILL_PAD_Y * 2) + "px");
+    pill.style.width = Math.max(NAV_PILL_MIN_W, Math.min(box.width, labelW + NAV_PILL_PAD_X * 2)) + "px";
     const left = box.left - base.left - el.clientLeft + el.scrollLeft;
     const c1 = left + box.width / 2;
     const rowSize = Math.max(box.width, NAV_MIN_ROW);
-    const pillW = pill.offsetWidth || 64;
-    const prev = prevRef.current;
+    const pillW = pill.offsetWidth || NAV_PILL_MIN_W;
+    const target = prevRef.current;
+    /* 目标没变（普通重渲染 / 滚动重测 / 字体后加载）：让进行中的动画自己跑完，既不打断也不重播——
+       否则每来一次无关渲染都会按剩余距离重算时长与回弹，观感变成一顿一顿。 */
+    const sameTarget = target !== null && Math.abs(target - c1) < 0.5;
+    /* 连点打断（review-animations 判据「可中断性」）：**目标变了**才动手——先 cancel 旧动画，
+       再把起点换成当前屏幕上的中心（表现值）。不取消的话，旧动画会在新动画播完后继续把
+       transform 抢回去（长程 220+200ms 之后再点相邻项 140ms，胶囊就会弹回旧方向）；
+       不从表现值起步则会从上次的逻辑落点跳一下。 */
+    const present = sameTarget ? null : presentationCenter(pill);
+    const prev = present ?? target;
     prevRef.current = c1;
     if (!pill.classList.contains("is-ready")) pill.classList.add("is-ready");
 
@@ -486,7 +556,7 @@ export function useBottomNavPill() {
       setFinal();
       return;
     }
-    if (Math.abs(prev - c1) < 0.5) return;
+    if (sameTarget) return;
 
     const right = c1 >= prev;
     const dur = Math.min(NAV_DUR_MAX, Math.max(NAV_DUR_MIN, Math.round(Math.abs(c1 - prev) * NAV_DUR_SLOPE)));
@@ -525,6 +595,22 @@ export function useBottomNavPill() {
         offset: u * share,
         easing: k === NAV_FRAMES ? NAV_SOFT : "linear",
       });
+    }
+    /* D2 挤压相位：从惯性顶点往目标收的这段路上先横向收短、竖向变厚，再弹回 1/1。
+       位移与形变仍在同一条 transform 上（分开写会各走一条线程而错位）。 */
+    if (bounce > 0) {
+      for (let k = 1; k <= NAV_PILL_SQUASH_FRAMES; k++) {
+        const sq = k / (NAV_PILL_SQUASH_FRAMES + 1);
+        const bump = Math.sin(Math.PI * sq); // 0 → 1 → 0：进出都平滑，不在端点起跳
+        const x = apex + (c1 - apex) * NAV_EASE(sq);
+        const qx = 1 - NAV_PILL_SQUASH_APEX * bump;
+        const qy = 1 + NAV_PILL_SQUASH_APEX * NAV_PILL_SQUASH_WIDE * bump;
+        frames.push({
+          transform: "translateX(" + (x - pillW / 2) + "px) scaleX(" + qx + ") scaleY(" + qy + ")",
+          offset: share + (1 - share) * sq,
+          easing: "linear",
+        });
+      }
     }
     /* 收尾：从惯性顶点平滑收回精确位置，同时形变复位（scaleX/scaleY 回 1） */
     frames.push({

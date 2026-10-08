@@ -53,6 +53,21 @@ export async function ensureSeafileLoaded(): Promise<void> {
   }
 }
 
+/**
+ * 「我的」页等处只读用量：先读本地 token，还没拿到账号信息就拉一次
+ * （account 有缓存，重复进页不会重复请求）。失败静默——调用方按 configured/account
+ * 决定副标题回落，不显示占位数字。
+ */
+export async function ensureSeafileAccount(): Promise<void> {
+  await ensureSeafileLoaded();
+  if (!cfg?.token || account) return;
+  try {
+    await refreshSeafileAccount();
+  } catch {
+    /* 取不到就回落文案：未绑定/离线都不是这一行该报的错 */
+  }
+}
+
 /** 配置 token（先调 seafile_account 校验，通过才落盘） */
 export async function setSeafileToken(token: string): Promise<SeafileAccount> {
   const account = await invoke<SeafileAccount>("seafile_account", { token });

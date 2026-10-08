@@ -12,10 +12,13 @@
  * 不共享 cookie，内嵌 webview 的 cookie 桥是后续增强，不阻塞本期。
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CollectStar } from "../../components/Collect.js";
+import { CollectModal, CollectStar } from "../../components/Collect.js";
+import type { PageMenuItem } from "../../state/pageChrome.js";
+import { useContextMenu, useLongPressZone, type CtxItem } from "../../components/ContextMenu.js";
+import type { AtomRef } from "../../state/favorites.js";
 import { SEED_KEYWORDS, loadSeedState, pickSeedServices } from "../../lib/thosSeed.js";
 import { enc, noteAtomCache } from "../../state/atoms.js";
-import { IconPin } from "../../components/Icons.js";
+import { IconPin, IconRefresh, IconStar } from "../../components/Icons.js";
 import type {
   ThosCounts,
   ThosPage,
@@ -261,6 +264,39 @@ export function ThosPage() {
     }
   }, [services, favorites, userId]);
 
+  const menu = useContextMenu();
+  /* 长按菜单里的「收藏」与行尾星标同一条通路：CollectModal（收进任意收藏夹），
+     不新建存储；「固定」复用本页既有的常用列表 favorite()。 */
+  const [collectAtom, setCollectAtom] = useState<AtomRef | null>(null);
+  /** 在线服务行的长按菜单项（A3 矩阵第二行：固定 / 收藏） */
+  const serviceMenuItems = (item: ThosService): CtxItem[] => {
+    const on = favorites.includes(item.id);
+    return [
+      {
+        key: "pin",
+        label: on ? "取消固定" : "固定",
+        icon: <IconPin width={14} height={14} />,
+        onSelect: () => favorite(item.id),
+      },
+      {
+        key: "collect",
+        label: "收藏",
+        icon: <IconStar width={14} height={14} />,
+        onSelect: () => setCollectAtom({ kind: "thos-service", key: enc(item.id, item.name, item.department ?? "") }),
+      },
+    ];
+  };
+  /* A3 长按区：装在服务网格上按事件委托找手指底下那张卡（行是 map 出来的），
+     卡上的 data-thos-id 供这里回查服务对象 */
+  const gridRef = useLongPressZone<HTMLDivElement>({
+    selector: ".thos-service-card",
+    onLongPress: (el, x, y) => {
+      const item = (services?.items ?? []).find((v) => v.id === el.dataset.thosId);
+      if (!item) return;
+      menu.open({ x, y, title: item.name, items: serviceMenuItems(item) });
+    },
+  });
+
   const favorite = (id: string) => {
     const next = favorites.includes(id) ? favorites.filter((x) => x !== id) : [...favorites, id];
     setFavorites(next);
@@ -337,11 +373,15 @@ export function ThosPage() {
       <PageHead
         title="在线服务"
         meta={updated ? `更新于 ${new Date(updated).toLocaleTimeString()}` : undefined}
-        actions={
-          <button className="btn btn-ghost" onClick={() => void load()} disabled={busy}>
-            刷新
-          </button>
-        }
+        menu={[
+          {
+            key: "refresh",
+            label: "刷新",
+            icon: <IconRefresh width={16} height={16} />,
+            disabled: busy,
+            onSelect: () => void load(),
+          },
+        ].filter(Boolean) as PageMenuItem[]}
       />
       {demo ? (
         <Card>
@@ -396,9 +436,9 @@ export function ThosPage() {
       )}
 
       {tab === "services" ? (
-        <div className="thos-grid">
+        <div className="thos-grid" ref={gridRef}>
           {serviceRows.map((item) => (
-            <Card key={item.id} className="thos-service-card">
+            <Card key={item.id} className="thos-service-card" data-thos-id={item.id}>
               <div className="row" style={{ animation: "none" }}>
                 <button
                   className="row-main thos-service-open"
@@ -418,23 +458,14 @@ export function ThosPage() {
                     </span>
                   ) : null}
                 </button>
-                {/* 两个动作语义互不相同，故并列：
-                    星号 = 统一收藏原子（收进任意收藏夹）；图钉 = 仅"在常用"（排序置顶） */}
+                {/* C3（霖 2026-10-01 走查）：卡面只留「收藏」这一项最必要的动作；
+                    「固定/取消固定」已经在长按菜单里（serviceMenuItems），不再占到卡面的宽度——
+                    窄屏上这两个按钮原本会把服务名挤到只剩 ~46px。 */}
                 <span className="thos-service-actions">
                   <CollectStar
                     atom={{ kind: "thos-service", key: enc(item.id, item.name, item.department ?? "") }}
                     title={item.name}
                   />
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    aria-label={favorites.includes(item.id) ? `取消常用 ${item.name}` : `加入常用 ${item.name}`}
-                    title={favorites.includes(item.id) ? "取消常用" : "钉在常用"}
-                    style={{ color: favorites.includes(item.id) ? "var(--accent, #4176e6)" : "var(--text-3, #999)", flex: "none" }}
-                    onClick={() => favorite(item.id)}
-                  >
-                    <IconPin width={14} height={14} />
-                  </button>
                 </span>
               </div>
             </Card>
@@ -471,6 +502,8 @@ export function ThosPage() {
           ))}
         </div>
       )}
+
+      {collectAtom ? <CollectModal atom={collectAtom} onClose={() => setCollectAtom(null)} /> : null}
 
       {page && (tab === "services" ? serviceRows : taskRows).length === 0 && !busy ? (
         <Card>

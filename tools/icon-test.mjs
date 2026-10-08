@@ -29,6 +29,33 @@ ok(icons.indexOf('strokeWidth="1.4"') >= 0, "16px 档的 1.4 描边丢失");
 const smallBox = (icons.match(/viewBox="0 0 16 16"/g) || []).length;
 ok(smallBox === 1, "Icons.tsx 里的 16 号画布应只有 1 处（16px 档），实为 " + smallBox);
 
+/* 1b G4：「设置」必须是真齿轮，不许退回「圆心 + 八条射线」的太阳画法 */
+const gear = (() => {
+  const i = icons.indexOf("export const IconSettings");
+  if (i < 0) return "";
+  return icons.slice(i, icons.indexOf(");", i));
+})();
+ok(!!gear, "Icons.tsx 里找不到 IconSettings");
+ok(/<circle cx="12" cy="12" r="3\.1"/.test(gear), "设置图标没有内孔（齿轮要有中心圆孔）");
+const gearPath = (/<path d="([^"]+)"/.exec(gear) ?? ["", ""])[1];
+ok(gearPath.length > 200, "设置图标的齿轮外廓太短（看着不像齿，实长 " + gearPath.length + "）");
+ok((gearPath.match(/a1\.5 1\.5 0 0 0/g) || []).length >= 8, "齿轮少于 8 个齿（G4：要一眼看出是齿轮）");
+ok(!/M12 2\.8v3/.test(gear), "设置图标退回成「圆心 + 八条射线」的太阳画法了（G4 明确否掉）");
+
+/* 1c 图标体不许重复（反馈 2026-10-05：IconSchedule 与 IconCalendar 的 SVG 路径逐字节相同，
+   日程与预约并排显示时同形。这类复制粘贴肉眼看不出来，必须机器比） */
+{
+  const bodies = new Map();
+  const re = /export const (Icon\w+) = \(p: SVGProps<SVGSVGElement>\) => \(\s*<svg {\.\.\.base\(p\)\}>([\s\S]*?)<\/svg>/g;
+  for (const m of icons.matchAll(re)) {
+    const body = m[2].replace(/\s+/g, " ").trim();
+    const prev = bodies.get(body);
+    if (prev) ok(false, "图标 " + m[1] + " 与 " + prev + " 的图形完全相同（并排显示会同形）");
+    else bodies.set(body, m[1]);
+  }
+  ok(bodies.size >= 25, "图标体只解析出 " + bodies.size + " 个（正则可能失配，护栏失效）");
+}
+
 /* 2 收集所有 tsx 里手写的 svg */
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
