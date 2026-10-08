@@ -4,7 +4,7 @@ import { isAndroidNavigator } from "../lib/androidHost.js";
 import { installTheme, removePluginThemes, type ThemeDef } from "../state/theme.js";
 import { registerPluginWidget, unregisterPluginWidgets } from "./pluginWidgets.js";
 import { bindRustApi, callRust, disposeRust, spawnRustPlugin, startHarnessEmbedded } from "./rust.js";
-import { preflightMadModel, startMadModelPump } from "../state/madmodel.js";
+import { healMadModelChannel, isChannelError, preflightMadModel, startMadModelPump } from "../state/madmodel.js";
 import { forceRemint } from "../state/madmodel.js";
 import { addPlugin, addRustPlugin, getPlugin, removePlugin, snapshot, subscribe, updatePlugin } from "./registry.js";
 import { registerPluginTab, unregisterPluginTabs } from "./tabs.js";
@@ -157,10 +157,16 @@ async function activate(id: string, mod?: any, blobUrl?: string): Promise<void> 
                 if (warn) return { type: "chat", ok: false, error: warn };
               }
               const out = await callRust(id, "run", { command: c.id, input });
-              // 漏判兜底：免费档请求仍被 IP 门禁弹掉（307）→ 强制重签 + 刷新可达性
+              // 通道类失败（校外首次最易命中：webvpn 会话尚未建立、或直连吃 IP 门禁）：
+              // 先自愈——重签 token（307 场景纠正可达性判定）＋ 预热 webvpn 会话并刷新通道
+              // 参数——再**自动重试一次**。该失败发生在 LLM 调用之前，未执行任何工具，重试安全；
+              // 过去这一场景需要用户手动重载插件才恢复（2026-10-08 校外实录）。
               const errMsg = String((out as { error?: string })?.error ?? "");
-              if (id === "onethu.harness" && errMsg.includes("307")) {
-                void forceRemint();
+              if (id === "onethu.harness" && isChannelError(errMsg)) {
+                await forceRemint().catch(() => undefined);
+                await healMadModelChannel().catch(() => undefined);
+                void logLine(`[MADMODEL] 通道类失败已自愈，重试一次：${errMsg.slice(0, 80)}`).catch(() => undefined);
+                return callRust(id, "run", { command: c.id, input });
               }
               return out;
             },
@@ -351,13 +357,13 @@ const EMBEDDED_HARNESS_MANIFEST: PluginManifest = {
     "nav", "ui", "storage", "net:external", "llm", "plugins:call"],
   settings: [
     { key: "provider", label: "模型源", type: "select", default: "", options: [
-      { value: "madmodel", label: "清华 MadModel 免费（DeepSeek-V4-Flash · 校园网/VPN · 自动续期）" },
+      { value: "madmodel", label: "清华 MadModel 免费（DeepSeek-V4.1-Flash · 校园网/VPN · 自动续期）" },
       { value: "custom", label: "自费 API（下方 Key/Endpoint/Model 生效）" },
       { value: "", label: "默认（自动：填了 Key 走自费，没填走 MadModel）" },
     ] },
     { key: "apiKey", label: "API Key（自费模式用）", type: "password", placeholder: "sk-…" },
     { key: "baseUrl", label: "API Endpoint（OpenAI 兼容，/v1 结尾）", type: "text", default: "https://api.deepseek.com/v1" },
-    { key: "model", label: "模型（自费模式用；免费档固定 DeepSeek-V4-Flash）", type: "text", default: "deepseek-chat" },
+    { key: "model", label: "模型（自费模式用；免费档固定 DeepSeek-V4.1-Flash）", type: "text", default: "deepseek-chat" },
     { key: "thinking", label: "思考模式（DeepSeek 自动切 reasoner）", type: "text", default: "off" },
     { key: "maxContext", label: "上下文预算（tokens，超出裁剪）", type: "text", default: "24000" },
     { key: "stream", label: "流式输出（off 回退非流式）", type: "text", default: "on" },
