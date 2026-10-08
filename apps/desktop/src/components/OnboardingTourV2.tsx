@@ -24,7 +24,7 @@ const MASK: React.CSSProperties = {
   position: "fixed",
   inset: 0,
   zIndex: 2000,
-  background: "rgba(0,0,0,.42)",
+  background: "var(--md-sys-color-scrim)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -35,15 +35,15 @@ const PANEL: React.CSSProperties = {
   width: "min(460px, 100%)",
   maxHeight: "88dvh",
   overflowY: "auto",
-  background: "var(--surface, #fff)",
-  color: "var(--text-1, #222)",
+  background: "var(--surface)",
+  color: "var(--text-1)",
   borderRadius: 14,
   padding: 20,
   boxSizing: "border-box",
 };
 
 const H: React.CSSProperties = { margin: "0 0 8px", fontSize: 17 };
-const P: React.CSSProperties = { margin: "0 0 12px", fontSize: 13.5, lineHeight: 1.75, color: "var(--text-2, #555)" };
+const P: React.CSSProperties = { margin: "0 0 12px", fontSize: 13.5, lineHeight: 1.75, color: "var(--text-2)" };
 
 export function OnboardingTourV2(): ReactNode {
   const { navigate } = useApp();
@@ -127,7 +127,7 @@ export function OnboardingTourV2(): ReactNode {
               {notify === "asking" ? "请求中…" : "开启提醒"}
             </button>
             {notify === "done" ? (
-              <span style={{ fontSize: 12.5, color: "var(--text-2, #555)" }}>
+              <span style={{ fontSize: 12.5, color: "var(--text-2)" }}>
                 已请求权限；没看到弹窗就去系统设置里给 OneTHU 打开通知。
               </span>
             ) : null}
@@ -148,7 +148,7 @@ export function OnboardingTourV2(): ReactNode {
             </button>
             {sso === "ok" ? <span style={{ fontSize: 12.5 }}>登录成功，课表与作业马上就能读。</span> : null}
             {sso === "err" ? (
-              <span style={{ fontSize: 12.5, color: "var(--red, #c04848)" }}>
+              <span style={{ fontSize: 12.5, color: "var(--red)" }}>
                 这次没登上，稍后可在「设置 → 外部作业源」重试。
               </span>
             ) : null}
@@ -201,7 +201,7 @@ export function OnboardingTourV2(): ReactNode {
                   width: 6,
                   height: 6,
                   borderRadius: 3,
-                  background: i <= step ? "var(--accent, #4176e6)" : "var(--border, #e5e6eb)",
+                  background: i <= step ? "var(--accent)" : "var(--border)",
                 }}
               />
             ))}

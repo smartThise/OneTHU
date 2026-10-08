@@ -113,7 +113,7 @@ export function atomDetail(
       rows.push({
         text: clip(t.name || "交易", 14),
         sub: `${mdhm(t.at)} · ${income ? "+" : "−"}¥${Math.abs(t.amount).toFixed(2)}`,
-        color: income ? "#2e9e5b" : "#e5484d",
+        color: income ? "#2e9e5b" : "#e5484d",  /* token-ok: 桌面小组件走原生渲染，色值不经 CSS 变量 */
       });
     }
     return {

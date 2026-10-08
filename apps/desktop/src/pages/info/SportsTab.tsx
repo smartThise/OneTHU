@@ -385,7 +385,7 @@ export function SportsTab() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                border: "1px solid var(--border, #ccc)",
+                border: "1px solid var(--border)",
                 borderRadius: 8,
                 cursor: "pointer",
                 overflow: "hidden",
@@ -408,7 +408,7 @@ export function SportsTab() {
                 if (e.key === "Enter") void doBook();
               }}
               placeholder="验证码"
-              style={{ width: 130, height: 38, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border, #ccc)", fontSize: 14 }}
+              style={{ width: 130, height: 38, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 14 }}
             />
             <button className="btn btn-primary" onClick={() => void doBook()} disabled={booking || !code.trim()}>
               {booking ? "提交中…" : "确认预约"}
@@ -417,7 +417,7 @@ export function SportsTab() {
               取消
             </button>
           </div>
-          {captchaErr ? <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: "#d33" }}>{captchaErr}</div> : null}
+          {captchaErr ? <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: "var(--red)" }}>{captchaErr}</div> : null}
         </Card>
       ) : null}
 

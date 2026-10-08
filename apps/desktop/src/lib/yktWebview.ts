@@ -18,7 +18,7 @@ import { isTauri } from "./transport.js";
 
 /** 读取失败时的统一回退提示（桌面端读不到 / Android 未取到会话均适用） */
 export const YKT_WEB_FALLBACK_HINT =
-  "读取失败。请在电脑浏览器登录 pro.yuketang.cn 后，用下方「高级：手动粘贴 Cookie」粘贴会话（浏览器 F12 → Application → Cookies）。";
+  "读取失败。请在电脑浏览器登录 pro.yuketang.cn 后，用下方「高级：手动粘贴浏览器登录信息」粘贴登录状态（浏览器 F12 → Application）。";
 
 /**
  * 当前是否 Android 宿主（应用内全屏 WebView 的移动端实现）。
@@ -85,7 +85,7 @@ export async function readYuketangWebCookies(): Promise<string> {
   if (!isTauri) throw new Error("官方网页登录需在 OneTHU App 内使用（浏览器预览不可用）。");
   const raw = await invoke<string>("read_ykt_cookies");
   if (!raw || !/sessionid=/i.test(raw)) {
-    throw new Error("尚未检测到雨课堂登录会话（请先在窗口内完成扫码或短信登录）。");
+    throw new Error("尚未检测到雨课堂登录状态（请先在窗口内完成扫码或短信登录）。");
   }
   return yuketangCookieFromHeader(raw);
 }

@@ -55,7 +55,7 @@ export async function prepImageForUpload(file: Blob, baseName: string): Promise<
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("canvas 不可用");
     // PNG 截图保透明无意义（作业图），白底更稳；JPEG 必须白底（透明会变黑）
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#ffffff";  /* token-ok: Canvas 2D fillStyle 不解析 CSS 变量 */
     ctx.fillRect(0, 0, w, h);
     ctx.drawImage(bitmap, 0, 0, w, h);
     const outMime = isPng ? "image/png" : "image/jpeg";

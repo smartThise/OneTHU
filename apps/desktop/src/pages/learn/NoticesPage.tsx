@@ -1,9 +1,11 @@
 /** 全部课程通知（learnX Notices）：按发布时间倒序，可筛重要/未读 */
 import { useMemo, useState } from "react";
-import { PageAtomStar } from "../..//components/Collect.js";
+import { usePageCollect } from "../../components/Collect.js";
+import { pageAtomRef } from "../../state/atoms.js";
+import type { PageMenuItem } from "../../state/pageChrome.js";
 import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { useApp } from "../../state/context.js";
-import { IconRefresh } from "../../components/Icons.js";
+import { IconRefresh, IconSearch } from "../../components/Icons.js";
 import { useLearnData } from "../../state/data.js";
 import { BackButton, NoticeRow, semesterText } from "./shared.js";
 import { useLearnNavSemester } from "./shared.js";
@@ -44,22 +46,25 @@ export function NoticesPage() {
   const list = groups[filter];
 
   const { navigate } = useApp();
+  const collect = usePageCollect(pageAtomRef("learn-notices"), "全部通知");
   return (
     <>
+      {collect.modal}
       <PageHead
         title="课程通知"
         meta={data ? `${semesterText(data.semester.id)} · 共 ${groups.all.length} 条` : "按发布时间倒序"}
-        actions={
-          <>
-            <PageAtomStar atomKey="learn-notices" title="全部通知" />
-            <BackButton to="learn" label="课程列表" />
-            <button className="btn" onClick={() => navigate("learn-search", { from: "learn-notices" })}>搜索</button>
-            <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
-              <IconRefresh width={14} height={14} />
-              刷新
-            </button>
-          </>
-        }
+        back={<BackButton to="learn" label="课程列表" />}
+        menu={[
+          collect.item,
+          { key: "search", label: "搜索", icon: <IconSearch width={16} height={16} />, onSelect: () => navigate("learn-search", { from: "learn-notices" }) },
+          {
+            key: "refresh",
+            label: "刷新",
+            icon: <IconRefresh width={16} height={16} />,
+            disabled: state === "loading",
+            onSelect: () => void reload(),
+          },
+        ].filter(Boolean) as PageMenuItem[]}
       />
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
@@ -84,7 +89,7 @@ export function NoticesPage() {
       ) : state === "error" && !data ? null : list.length === 0 ? (
         <Card><Empty text={filter === "all" ? "暂无课程通知。" : "该分组暂无通知。"} /></Card>
       ) : (
-        <Card className="list">
+        <Card className="list swap-in">
           {list.map((n, i) => (
             <NoticeRow key={`${n.courseId}-${n.id}`} n={n} courseName={byCourse.get(n.courseId)} sem={data?.semester.id} from="learn-notices" style={{ animationDelay: `${i * 25}ms` }} />
           ))}

@@ -12,12 +12,13 @@ import { explainNetworkError } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
 import { noteAtomCache } from "../../state/atoms.js";
 import { useLearnData } from "../../state/data.js";
-import { CollectStar } from "../../components/Collect.js";
+import { CollectStar, usePageCollect } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
 import { BackButton, RichContent, fmtDateTime } from "./shared.js";
 import { DownloadOpenButtons } from "../../components/DownloadOpenButtons.js";
 import { useLearnNavSemester } from "./shared.js";
 import { openExternal } from "../info/openExternal.js";
+import type { PageMenuItem } from "../../state/pageChrome.js";
 import { RichEditor } from "../../components/RichEditor.jsx";
 import { IconChevron } from "../../components/Icons";
 
@@ -114,7 +115,11 @@ export function BbsPanel({
 
   return (
     <>
-      <PageHead title="讨论区" meta="课程讨论与答疑（实名制）" />
+      <PageHead
+        title="讨论区"
+        meta="课程讨论与答疑（实名制）"
+        back={<BackButton to="learn-course" courseId={courseId} courseTab="forum" label="返回课程" />}
+      />
       <div className="tabstrip">
         {boards.map((b) => (
           <span key={b.bqid} style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
@@ -219,7 +224,7 @@ export function BbsPanel({
 }
 
 function Badge({ text, tone }: { text: string; tone: "red" | "gold" }) {
-  const color = tone === "red" ? "#d24545" : "#a8842c";
+  const color = tone === "red" ? "var(--red)" : "var(--amber)";
   return (
     <span
       style={{
@@ -332,9 +337,17 @@ export function ForumThreadPage() {
       .catch((e: unknown) => setDlHint({ text: explainNetworkError(e) }));
   };
 
+  /* 话题详情是异步拿的：head 还没到就先不给菜单项（hook 必须无条件调用） */
+  const collect = usePageCollect(
+    head
+      ? { kind: "forum", key: enc(courseId, threadId, bqid ?? "", head.title, learnData?.courses.find((c) => c.id === courseId)?.name ?? "", learnData?.semester.id ?? "") }
+      : null,
+    head?.title,
+  );
+
   return (
     <>
-      <BackButton to="learn-course" courseId={courseId} courseTab="forum" label="返回课程" />
+      {collect.modal}
       {dlHint ? (
         <div className="error-note dl-done-note" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
           <span>{dlHint.text}</span>
@@ -354,15 +367,7 @@ export function ForumThreadPage() {
           <PageHead
             title={head.title}
             meta={[head.author, fmtDateTime(head.time)].filter(Boolean).join(" · ")}
-            actions={
-              <CollectStar
-                atom={{
-                  kind: "forum",
-                  key: enc(courseId, threadId, bqid ?? "", head.title, learnData?.courses.find((c) => c.id === courseId)?.name ?? "", learnData?.semester.id ?? ""),
-                }}
-                title={head.title}
-              />
-            }
+            menu={[collect.item].filter(Boolean) as PageMenuItem[]}
           />
           <Card>
             <RichContent html={head.html} />
@@ -471,7 +476,7 @@ function PostBlock({
             <div
               style={{
                 margin: "10px 0 0 14px",
-                borderLeft: "2px solid var(--border, rgba(0,0,0,.1))",
+                borderLeft: "2px solid var(--border)",
                 paddingLeft: 12,
               }}
             >
@@ -526,7 +531,7 @@ function NewThreadDialog({
         animation: "m-fade var(--dur-2) var(--ease-out) both",
         position: "fixed",
         inset: 0,
-        background: "rgba(15,23,42,.45)",
+        background: "var(--md-sys-color-scrim)",
         zIndex: 60,
         display: "flex",
         alignItems: "center",
@@ -538,13 +543,13 @@ function NewThreadDialog({
       <div
         style={{
           animation: "m-spring-in var(--dur-3) var(--ease-out) both",
-          background: "var(--surface, #fff)",
+          background: "var(--surface)",
           borderRadius: 14,
           padding: 16,
           width: "min(640px, 94vw)",
           maxHeight: "88vh",
           overflowY: "auto",
-          boxShadow: "0 18px 50px rgba(0,0,0,.22)",
+          boxShadow: "var(--shadow-3)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>

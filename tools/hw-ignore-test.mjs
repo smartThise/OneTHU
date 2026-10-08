@@ -63,9 +63,11 @@ const today = read("apps/desktop/src/pages/Today.tsx");
 assert.ok(/!h\.submitted && !ignored\.has\(h\.id\)/.test(today), "首页作业区必须剔除已忽略");
 
 const assigns = read("apps/desktop/src/pages/learn/AssignmentsPage.tsx");
-assert.ok(/\{ key: "ignored", label: "已忽略" \}/.test(assigns), "「全部作业」必须有已忽略分组");
 assert.ok(/const live = hw\.filter\(\(h\) => !ignored\.has\(h\.id\) && !h\.audited\)/.test(assigns), "常规分组必须剔除已忽略（R23 起同时剔除旁听）");
-assert.ok(/ignored: hw\.filter\(\(h\) => ignored\.has\(h\.id\)\)/.test(assigns), "已忽略分组要能找回来");
+/* E8（霖 2026-10-04）：「已忽略」从 tab 栏移到顶部垃圾桶入口 + A3 弹层——入口与恢复动作都必须在，
+   语义仍是「移出列表、可在忽略列表里找回并恢复」，不是删除 */
+assert.ok(/<IgnoredHwEntry \/>/.test(assigns) && /unignoreHw\(e\.id\)/.test(assigns),
+  "「全部作业」必须保留已忽略入口与恢复动作（只是从 tab 栏搬到垃圾桶弹层）");
 
 /* ---------- [2b] 所有「面向用户的作业聚合点」都要接忽略过滤 ----------
  * 教训（用户实录）：第一版只过滤了「全部作业/首页作业区/提醒」，网络学堂首页的
@@ -113,8 +115,14 @@ assert.ok(row.includes("confirmDanger("), "忽略必须先经危险确认弹窗"
 assert.ok(/确定要忽略《\$\{h\.title\}》吗？/.test(row), "确认弹窗要指名作业");
 assert.ok(row.includes("错过截止的后果"), "确认弹窗必须写明后果（用户口径：后果自负）");
 assert.ok(row.includes("ignoreHw(") && row.includes("unignoreHw("), "必须有忽略与恢复两个动作");
-assert.ok(row.includes("已忽略") && row.includes("恢复"), "已忽略标记与恢复入口都要有");
-assert.ok(/e\.stopPropagation\(\)/.test(row), "行内按钮不得触发行点击导航");
+assert.ok(row.includes("已忽略") && /取消忽略|恢复/.test(row), "已忽略标记与恢复入口都要有（霖 2026-10-02：恢复入口挪进长按菜单的「取消忽略」）");
+/* 霖 2026-10-02：忽略/提醒/收藏三个**行内控件**撤掉——它们占标题的横向空间，三个功能都已在长按菜单里。
+   只有「作业流」卡片（TasksPage 的 .hw-card）保留卡面按钮。 */
+assert.ok(
+  !/hw-ignore-btn/.test(row) && !/<HwRemindButton/.test(row) && !/<CollectStar/.test(row),
+  "作业行又出现了行内的忽略/提醒/收藏控件（这三个功能只走长按菜单，卡面按钮只在作业流卡片上保留）",
+);
+assert.ok(/key: "ignore"/.test(row) && /key: "remind"/.test(row) && /key: "collect"/.test(row), "长按菜单缺项：忽略/提醒/收藏要齐（行内控件撤掉后这是唯一入口）");
 // 忽略与作业状态无关：入口常驻，不得挂在 remind 开关上（未交/已交/已批都要能忽略）
 assert.ok(!/\{remind \|\| isIgnored \?/.test(row), "忽略入口必须常驻（不随 remind 条件渲染）");
 // 弹窗措辞不得照抄退选场景（用户实录：「确认退选是什么鬼东西」）——见下方预设断言

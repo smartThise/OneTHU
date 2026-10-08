@@ -118,7 +118,7 @@ export function ConnectGate({
     position: "fixed",
     inset: 0,
     zIndex: 1200,
-    background: "rgba(0,0,0,.4)",
+    background: "var(--md-sys-color-scrim)",
     display: "flex",
     alignItems: expanded ? "center" : "flex-end",
     justifyContent: "center",
@@ -185,7 +185,7 @@ export function ConnectGate({
       return (
         <div style={{ display: "grid", gap: 10 }}>
           <div className="setting-desc" style={{ margin: 0 }}>
-            在云盘网页端生成一个访问口令（Web API Auth Token），粘贴到下面。口令只存本机。
+            在云盘网页端生成一个访问口令，粘贴到下面。口令只存本机。
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <input
@@ -247,7 +247,7 @@ export function ConnectGate({
         </div>
         {body}
         {err ? (
-          <div style={{ marginTop: 10, fontSize: "var(--text-sm)", color: "var(--red, #c04848)" }}>{err}</div>
+          <div style={{ marginTop: 10, fontSize: "var(--text-sm)", color: "var(--red)" }}>{err}</div>
         ) : null}
       </div>
     </div>,

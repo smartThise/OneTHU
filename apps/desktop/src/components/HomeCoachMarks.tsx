@@ -157,7 +157,7 @@ export function HomeCoachMarks(): ReactNode {
         background: "var(--md-sys-color-surface)",
         color: "var(--text-1)",
         borderRadius: "var(--r-lg)",
-        boxShadow: "0 8px 28px rgba(0,0,0,.22)",
+        boxShadow: "var(--shadow-3)",
         padding: 12,
         display: "grid",
         gap: 8,

@@ -8,6 +8,7 @@
  *    但两个都认，将来出 Mac 版不用返工；侧栏还留了可点击入口，不逼人记快捷键。
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useOverlayBack } from "../state/navStack.js";
 import { createPortal } from "react-dom";
 import { IconSearch } from "./Icons.js";
 import { pageAtomRef, resolveAtom } from "../state/atoms.js";
@@ -30,6 +31,7 @@ type Row =
 
 export function CommandPalette(): ReactNode {
   const open = usePaletteOpen();
+  useOverlayBack("palette", open, closePalette);
   const { navigate } = useApp();
   const advanced = useAdvancedMode();
   const [q, setQ] = useState("");

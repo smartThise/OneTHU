@@ -27,6 +27,19 @@ function markPhone(): void {
 }
 markPhone();
 window.addEventListener("resize", markPhone);
+
+/* C1：顶部安全区由谁补——运行时判定，避免原生壳与 env() 重复计算。
+   真机实测（<设备>，屏 400×870）：窗口高 805，即壳**已**让开状态栏 48 + 手势条 17；
+   而 WebView 仍把 env(safe-area-inset-top) 报成 48px。此时若照搬 env() 到顶栏，
+   首屏会白多 48px 空白（实测顶栏 42 → 89.5）。反之，壳让 WebView 铺满整屏
+   （edge-to-edge，窗口高 == 屏幕高）时，env() 才是真正需要的补偿。
+   判据只有一句：窗口比屏幕矮 ⇒ 已让开 ⇒ --safe-top 记 0。底部沿用改造前的 env() 口径不动。 */
+function syncSafeTop(): void {
+  const gap = Math.round((window.screen?.height ?? 0) - window.innerHeight);
+  document.documentElement.style.setProperty("--safe-top", gap > 0 ? "0px" : "env(safe-area-inset-top)");
+}
+syncSafeTop();
+window.addEventListener("resize", syncSafeTop);
 // 列表/网格入场 stagger（手机密度层才挂）
 installScrollReveal();
 // 按钮涟漪（§3.5 B1）：全局单监听，认类名不认调用点；触摸/笔出涟漪，鼠标只走状态层（§2.8.3）
@@ -54,8 +67,6 @@ import { App } from "./App.js";
 import { ConfirmHost } from "./lib/confirm.js";
 import { FormModalHost } from "./lib/formModal.js";
 import { RootErrorBoundary } from "./components/RootErrorBoundary.js";
-import { TextPeekHost } from "./components/TextPeek.js";
-import { ImageViewerHost } from "./components/ImageViewer.js";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -64,10 +75,6 @@ createRoot(document.getElementById("root")!).render(
       <App />
       <ConfirmHost />
       <FormModalHost />
-      {/* 手机端双击看全文：被省略号截断的文本双击后弹浮层（可选中） */}
-      <TextPeekHost />
-      {/* 手机端长按看图：全屏查看 + 双指缩放 + 保存到相册，单击任意处退出 */}
-      <ImageViewerHost />
     </RootErrorBoundary>
   </StrictMode>,
 );

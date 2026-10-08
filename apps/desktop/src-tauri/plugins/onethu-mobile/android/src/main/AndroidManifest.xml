@@ -3,7 +3,7 @@
   R18c：扫码期间前台服务保活（插件 Android 库清单）。
 
   本文件位于仓库内的插件模块，由 manifest merger 合并进 app 模块
-  （gen/android 实际工程不入库、本机软链到 /home/lin/onethu-android），
+  （gen/android 实际工程不入库、本机软链到 <安卓工程目录>），
   因此权限与 Service 声明随仓库入库，无需改本地工程或构建脚本 sed。
 
   - FOREGROUND_SERVICE：API 28+ 启动前台服务的前置权限（normal）。
@@ -17,11 +17,6 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- 保存图片到相册：API 29+ 走 MediaStore 自建条目，无需任何权限；API 24–28 写公共
-         Pictures 才需要它，故只在旧系统上声明（maxSdkVersion=28），新系统不申请多余权限。 -->
-    <uses-permission
-        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
     <!-- 定时提醒：API 31+ 精确闹钟需用户在系统设置里允许（应用无法自行授予）；
          未授权时降级 setAndAllowWhileIdle，宁晚不丢。 -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />

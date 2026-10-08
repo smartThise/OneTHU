@@ -52,7 +52,12 @@ ok(sheet.includes("env(safe-area-inset-bottom)"), "抽屉应留安全区内边�
 ok(/animation:\s*m-sheet-up/.test(sheet), "抽屉应有上滑动画");
 ok(MOT.includes("@keyframes m-sheet-up"), "motion.css 缺少 m-sheet-up 关键帧");
 ok(block(".home-modal::before").includes("border-radius: var(--r-pill)"), "抽屉应有把手（纯 CSS ::before，胶囊令牌）");
-ok(CSS.includes(".plg-sheet { width: 100%; max-width: 100%; max-height: 92dvh; border-radius: var(--md-sys-shape-corner-large)"), "插件抽屉圆角也应令牌化");
+/* 拆成两条：别把「限高有 vh/dvh 兜底」和「圆角走令牌」塞进同一个整段字面量——
+   前者是成对声明（同属性同值，vh 前置 + dvh 后置），用正则匹配这一对；
+   后者才是这条断言原本要守的「圆角令牌化」。加一行兜底不该让无关的那条一起红。 */
+const plgSheetPhone = block(".plg-sheet { width: 100%;");
+ok(/max-height:\s*92vh;\s*max-height:\s*92dvh;/.test(plgSheetPhone), "插件抽屉限高应先给 vh 兜底、再给 dvh（老 WebView 无 dvh）");
+ok(plgSheetPhone.includes("border-radius: var(--md-sys-shape-corner-large)"), "插件抽屉圆角也应令牌化");
 
 /* [4] 抽屉内卡片：灰阶分层、去描边、有状态层 */
 for (const sel of [".wb-kind {", ".wb-row {"]) {

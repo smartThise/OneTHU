@@ -57,6 +57,40 @@ for (const [file, sel, body] of exitRules) {
   else if (!body.includes("-accelerate")) fails.push("退场没用 accelerate 曲线：" + sel);
 }
 
+/* 3b. B2 收敛（霖 2026-10-02）：裸 cubic-bezier 只许待在令牌文件里
+     —— CSS 只认 styles/motion.css，JS 只认 lib/motion.ts（WAAPI 要字符串，没法用 var()）。 */
+{
+  const { readdirSync } = await import("node:fs");
+  const files = [
+    ...readdirSync("apps/desktop/src/styles").filter((f) => f.endsWith(".css")).map((f) => "apps/desktop/src/styles/" + f),
+  ];
+  for (const dir of ["apps/desktop/src/lib", "apps/desktop/src/components", "apps/desktop/src/pages", "apps/desktop/src/state", "apps/desktop/src/plugins"]) {
+    const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => {
+      const p = d + "/" + e.name;
+      if (e.isDirectory()) return walk(p);
+      return /\.(ts|tsx|css)$/.test(e.name) ? [p] : [];
+    });
+    files.push(...walk(dir));
+  }
+  const TOKEN_FILES = ["apps/desktop/src/styles/motion.css", "apps/desktop/src/lib/motion.ts"];
+  const bad = files
+    .filter((f) => !TOKEN_FILES.includes(f))
+    .filter((f) => /cubic-bezier\s*\(/.test(readFileSync(f, "utf8")));
+  if (bad.length) fails.push("裸 cubic-bezier 又散回业务文件（应登记成令牌）：" + bad.join(" / "));
+  /* 新令牌必须真的存在且被用到，否则「收敛」只是把曲线删掉 */
+  for (const t of ["--ease-smooth:", "--ease-overshoot-soft:", "--ease-overshoot:", "--ease-overshoot-strong:", "--ease-drop:"]) {
+    if (!src.includes(t)) fails.push("缺少 B2 过冲/常规曲线令牌 " + t);
+  }
+  const tokenUsed = (name) => globalSrc.includes("var(" + name + ")");
+  for (const t of ["--ease-smooth", "--ease-overshoot-soft", "--ease-overshoot", "--ease-overshoot-strong", "--ease-drop"]) {
+    if (!tokenUsed(t)) fails.push("令牌没人用（等于没收敛）：" + t);
+  }
+  /* 过冲曲线不许被「顺手」换成标准曲线——那是手感退化（B2 反例） */
+  if (/--ease-overshoot(-strong|-soft)?:\s*cubic-bezier\(0\.2, 0, 0, 1\)/.test(src)) {
+    fails.push("过冲令牌被换成了标准曲线（B2 反例：手感退化）");
+  }
+}
+
 /* 4. 无障碍降级 */
 if (!src.includes("@media (prefers-reduced-motion: reduce)")) fails.push("prefers-reduced-motion 全量降级不见了");
 
@@ -83,6 +117,56 @@ if ((tasksSrc.match(/toggleFull\(false\)/g) ?? []).length < 2) {
 }
 if (!/tasks-detail tab-anim/.test(tasksSrc)) fails.push("生活 → 作业详情 没有进场动画（tasks-detail 缺 tab-anim）");
 if (!/tasks-life tab-anim" data-dir="prev"/.test(tasksSrc)) fails.push("作业详情 → 生活 没有回退动画（tasks-life 缺 tab-anim + data-dir=prev）");
+
+/* 7. 入场 fill-mode（2026-10-07 从 review-animations 的发现补上）：
+     入场动画用 both 会把 transform 钉在终帧，压掉同元素的 hover/active——K5「今日页余额速览按下
+     是突变」就是这个根因，当时用独立 scale 属性绕过（旧引擎上仍是突变）。允许保留 both 的只有：
+       ① 名字以 -out 结尾的退场（节点要播完退场再摘）、m-sheet-down；
+       ② 必须保留终帧的两条：m-check-draw（描边终点）、ctx-bloom（clip-path 圆角是终帧承重的）；
+       ③ ctx-blur-in / ctx-item-in：由 context-menu-test 钉住，且终帧与基态同值。 */
+{
+  const allow = new Set(["m-sheet-down", "m-check-draw", "ctx-bloom", "ctx-blur-in", "ctx-item-in"]);
+  const collect = (t) =>
+    [...t.matchAll(/animation:\s*([^;]+);/g)]
+      .map((m) => m[1])
+      .filter((d) => /\bboth\b/.test(d))
+      .map((d) => d.trim().split(/\s+/)[0]);
+  for (const [file, bad] of [
+    [MOTION, collect(src).filter((n) => !/-out$/.test(n) && !allow.has(n))],
+    [GLOBAL, collect(globalSrc).filter((n) => !/-out$/.test(n) && !allow.has(n))],
+  ]) {
+    if (bad.length) fails.push(file + " 的入场动画用了 both（会锁死 transform）：" + [...new Set(bad)].join(","));
+  }
+}
+
+/* 8. animation 名必须有对应的 @keyframes：
+     曾经 .data-table tbody tr 与 .week-course 都写着 `animation: rise …`，而 rise 关键帧全仓不存在
+     ——动画静默失效、几轮评审都没发现（截图里动效等于不存在）。这里把这条堵死。 */
+{
+  const kf = new Set([
+    ...[...src.matchAll(/@keyframes\s+([\w-]+)/g)].map((m) => m[1]),
+    ...[...globalSrc.matchAll(/@keyframes\s+([\w-]+)/g)].map((m) => m[1]),
+  ]);
+  const keywords = new Set(["none", "inherit", "initial", "unset", "revert"]);
+  const refs = [...(src + globalSrc).matchAll(/animation:\s*([\w-]+)/g)].map((m) => m[1]);
+  const missing = [...new Set(refs)].filter((n) => !keywords.has(n) && !kf.has(n));
+  if (missing.length) fails.push("animation 引用了不存在的 @keyframes：" + missing.join(","));
+}
+
+/* 9. 入场关��帧必须带上基态的锚定位移：
+      关键帧里的 transform 是**整条替换**，漏掉锚定位移会让元素在动画期间先跳到锚点再弹回。
+      提示条（translateX(-50%) 居中）是有记录的旧坑，trace-card（translate(-50%,-100%) 锚在标注上方）
+      是 2026-10-07 复核时抓到的同类问题（它借用了 dock-msg-in，那条 from 是整条 translateY(4px)）。 */
+/* ⚠️ 匹配必须**限定在关键帧自己的块内**（用 [^}]* 卡住 from/to 的括号）：
+   早先写成 \{[\s\S]{0,220}?translateX(-50%) 时，窗口会跨出关键帧、命中紧随其后那条规则里的
+   同名位移，注入反例打不红（真发生过）。 */
+if (!/@keyframes m-toast-in \{[\s\S]{0,40}?from \{[^}]*translateX\(-50%\)/.test(src) ||
+    !/@keyframes m-toast-out \{[\s\S]{0,40}?to \{[^}]*translateX\(-50%\)/.test(src)) {
+  fails.push("提示条关键帧丢了 translateX(-50%)（动画期间会先偏右再弹回）");
+}
+if (!/@keyframes trace-card-in \{ from \{[^}]*translate\(-50%, -100%\)/.test(globalSrc)) {
+  fails.push("trace-card 的入场关键帧丢了 translate(-50%, -100%) 锚定位移（动画期间会跳到锚点再弹回）");
+}
 
 if (fails.length) {
   console.error("动效令牌守卫：不合格");

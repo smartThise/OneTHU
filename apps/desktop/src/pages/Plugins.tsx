@@ -14,7 +14,7 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useSyncExternalStore, useEffect, useRef, useState, type ReactNode } from "react";
 import { confirmOk } from "../lib/confirm.js";
-import { PageHead } from "../components/Layout.js";
+import { PageHead, SegmentedOverflow } from "../components/Layout.js";
 import { useExitHold, useSegPill } from "../lib/motion.js";
 import { PluginLogo } from "../components/PluginLogo.js";
 import {
@@ -140,13 +140,15 @@ export function PluginsPage({ embedded = false }: { embedded?: boolean } = {}): 
 
       {/* 我的插件 · 工具行：类别页签 + 安装入口（归拢一行；主切换只留视图级） */}
       <div className="plg-toolbar">
-        <div className="seg-track">
+        {/* B4（霖 2026-10-02）：这条「全部/主题/通用」原来用 .seg-track + .seg-item（滚动条样式），
+            和设置页的分段控件不是一套。改用全局分段控件，三处分区口径统一。 */}
+        <SegmentedOverflow ariaLabel="插件分区" style={{ marginBottom: 0 }}>
           {([["all", `全部 ${allPlugins.length}`], ["theme", `主题 ${themesSnap.themes.length}`], ["general", `通用 ${allPlugins.filter((p) => (p.manifest.category ?? "general") === "general").length}`]] as const).map(([k, lbl]) => (
-            <button key={k} className={"seg-item" + (cat === k ? " is-active" : "")} onClick={() => setCat(k)}>
+            <button key={k} role="tab" aria-selected={cat === k} className={cat === k ? "is-active" : ""} onClick={() => setCat(k)}>
               {lbl}
             </button>
           ))}
-        </div>
+        </SegmentedOverflow>
         <button className="btn btn-ghost plg-install-toggle" onClick={() => setInstOpen((o) => !o)}>
           {instOpen ? "收起安装" : "安装插件"}
         </button>
@@ -779,13 +781,13 @@ function MarketView(): ReactNode {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <div className="seg-track">
+        <SegmentedOverflow ariaLabel="市场排序" style={{ marginBottom: 0 }}>
           {([["stars", "按热度"], ["name", "按名称"]] as const).map(([k, lbl]) => (
-            <button key={k} className={"seg-item" + (sortBy === k ? " is-active" : "")} onClick={() => setSortBy(k)}>
+            <button key={k} role="tab" aria-selected={sortBy === k} className={sortBy === k ? "is-active" : ""} onClick={() => setSortBy(k)}>
               {lbl}
             </button>
           ))}
-        </div>
+        </SegmentedOverflow>
         <button className="btn" disabled={busy} onClick={() => void load(true)}>
           {busy ? "刷新中…" : "刷新"}
         </button>

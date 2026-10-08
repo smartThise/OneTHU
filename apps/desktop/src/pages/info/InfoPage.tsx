@@ -18,8 +18,11 @@
  * 当前 tab 被隐藏时回落到第一个可见栏目。
  */
 import { useEffect, useState } from "react";
-import { PageAtomStar } from "../..//components/Collect.js";
+import { usePageCollect } from "../../components/Collect.js";
+import { pageAtomRef } from "../../state/atoms.js";
+import type { PageMenuItem } from "../../state/pageChrome.js";
 import { Empty, PageHead, SegmentedOverflow } from "../../components/Layout.js";
+import { useSwipeTabs } from "../../lib/useSwipeTabs.js";
 import { TabManageModal } from "../../components/TabManageModal.js";
 import { loadTabLayout, saveTabLayout, type TabLayout } from "../../lib/tabLayout.js";
 import { useApp } from "../../state/context.js";
@@ -103,17 +106,21 @@ export function InfoPage() {
     setVisited((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
   };
 
+  /* C7：横滑切栏目，顺序就是页面上 render 的那份 TABS；起手落在分段控件上不算 */
+  const swipeRef = useSwipeTabs<HTMLDivElement>({ order: TAB_IDS, current: tab, onChange: (next) => activate(next as InfoTab) });
+
+  const collect = usePageCollect(pageAtomRef("info-" + (effTab ?? "")), "信息页 · 当前栏目");
+
   return (
-    <>
+    <div className="swipe-tabs" ref={swipeRef}>
+      {collect.modal}
       <PageHead
         title="信息"
+        menu={[collect.item].filter(Boolean) as PageMenuItem[]}
         actions={
-          <>
-            <PageAtomStar atomKey={"info-" + (effTab ?? "")} title="信息页 · 当前栏目" />
-            <button className="btn" onClick={() => setManageOpen(true)} title="栏目显隐与排序">
-              管理栏目
-            </button>
-          </>
+          <button className="btn" onClick={() => setManageOpen(true)} title="栏目显隐与排序">
+            管理栏目
+          </button>
         }
       />
       <SegmentedOverflow ariaLabel="信息功能" style={{ marginBottom: 14 }}>
@@ -158,6 +165,6 @@ export function InfoPage() {
         onApply={applyLayout}
         onReset={() => applyLayout(DEFAULT_LAYOUT)}
       />
-    </>
+    </div>
   );
 }

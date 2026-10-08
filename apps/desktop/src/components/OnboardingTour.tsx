@@ -74,7 +74,7 @@ const TAB_GROUPS: Array<{ key: string; title: string; tabs: Array<{ id: string; 
 /** 清华云盘 Web API Token 生成页（与 CloudPage 同一入口） */
 const CLOUD_TOKEN_PAGE = "https://cloud.tsinghua.edu.cn/profile/#get-auth-token";
 
-const acctIntro: React.CSSProperties = { margin: "0 0 12px", fontSize: 13, color: "var(--text-3, #999)", lineHeight: 1.55 };
+const acctIntro: React.CSSProperties = { margin: "0 0 12px", fontSize: 13, color: "var(--text-3)", lineHeight: 1.55 };
 const acctInput: React.CSSProperties = { width: "100%", marginBottom: 8 };
 
 /** 已配置标识：填过的项只做标识，输入区照常展示（用户定案 2026-09-21） */
@@ -83,7 +83,7 @@ function AcctBadge({ on }: { on: boolean }): React.ReactNode {
     <span
       style={{
         marginLeft: 8, fontSize: 12, fontWeight: 400,
-        color: on ? "var(--green, #2e9e5b)" : "var(--text-3, #999)",
+        color: on ? "var(--green)" : "var(--text-3)",
       }}
     >
       {on ? "已配置" : "未配置"}
@@ -240,13 +240,13 @@ export function OnboardingTourV1(): React.ReactNode {
   const panel: React.CSSProperties = {
     animation: "m-fade var(--dur-2) var(--ease-out) both", 
     position: "fixed", inset: 0, zIndex: 2000, display: "flex", alignItems: "center",
-    justifyContent: "center", background: "rgba(0,0,0,.45)", padding: 20,
+    justifyContent: "center", background: "var(--md-sys-color-scrim)", padding: 20,
   };
   const box: React.CSSProperties = {
     animation: "m-spring-in var(--dur-3) var(--ease-out) both", 
     width: "100%", maxWidth: 520, maxHeight: "86vh", overflowY: "auto",
-    background: "var(--surface, #fff)", color: "var(--text-1, #1f2329)",
-    borderRadius: 14, padding: "18px 20px", boxShadow: "0 18px 50px rgba(0,0,0,.28)",
+    background: "var(--surface)", color: "var(--text-1)",
+    borderRadius: 14, padding: "18px 20px", boxShadow: "var(--shadow-3)",
   };
   const row = (on: boolean, label: string, hint: string, onClick: () => void): React.ReactNode => (
     <button
@@ -268,10 +268,10 @@ export function OnboardingTourV1(): React.ReactNode {
         {step === 0 ? (
           <>
             <h3 style={{ margin: "0 0 8px", fontSize: 17 }}>欢迎使用 OneTHU</h3>
-            <p style={{ margin: "0 0 6px", fontSize: 13.5, lineHeight: 1.75, color: "var(--text-2, #555)" }}>
+            <p style={{ margin: "0 0 6px", fontSize: 13.5, lineHeight: 1.75, color: "var(--text-2)" }}>
               接下来用四步把界面调成你自己的样子：<b>侧栏功能 → 各页页签 → 今日页卡片 → 收藏夹</b>。
             </p>
-            <p style={{ margin: "0 0 14px", fontSize: 13.5, lineHeight: 1.75, color: "var(--text-2, #555)" }}>
+            <p style={{ margin: "0 0 14px", fontSize: 13.5, lineHeight: 1.75, color: "var(--text-2)" }}>
               功能一个都不会少，只是不常用的先折起来，随时能展开。
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -284,12 +284,12 @@ export function OnboardingTourV1(): React.ReactNode {
                   onClick={() => setMode(m)}
                   style={{
                     textAlign: "left", padding: "12px 13px", borderRadius: 10, cursor: "pointer",
-                    border: mode === m ? "1px solid var(--accent, #4176e6)" : "1px solid var(--border, #e5e6eb)",
-                    background: mode === m ? "var(--accent-soft, rgba(65,118,230,.08))" : "var(--surface, #fff)",
+                    border: mode === m ? "1px solid var(--accent)" : "1px solid var(--border)",
+                    background: mode === m ? "var(--accent-soft)" : "var(--surface)",
                   }}
                 >
                   <span style={{ display: "block", fontWeight: 600, fontSize: 14 }}>{label}</span>
-                  <span style={{ display: "block", marginTop: 2, fontSize: 12, color: "var(--text-3, #999)", lineHeight: 1.5 }}>
+                  <span style={{ display: "block", marginTop: 2, fontSize: 12, color: "var(--text-3)", lineHeight: 1.5 }}>
                     {hint}
                   </span>
                 </button>
@@ -301,7 +301,7 @@ export function OnboardingTourV1(): React.ReactNode {
         {step === 1 && mode === "preset" ? (
           <>
             <h3 style={{ margin: "0 0 4px", fontSize: 17 }}>选一个场景</h3>
-            <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-3, #999)" }}>
+            <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-3)" }}>
               选定后仍可返回上一步改选手动逐项，或随时在设置里重来。
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -311,12 +311,12 @@ export function OnboardingTourV1(): React.ReactNode {
                   onClick={() => choosePreset(pr)}
                   style={{
                     textAlign: "left", padding: "12px 13px", borderRadius: 10, cursor: "pointer",
-                    border: preset?.id === pr.id ? "1px solid var(--accent, #4176e6)" : "1px solid var(--border, #e5e6eb)",
-                    background: preset?.id === pr.id ? "var(--accent-soft, rgba(65,118,230,.08))" : "var(--surface, #fff)",
+                    border: preset?.id === pr.id ? "1px solid var(--accent)" : "1px solid var(--border)",
+                    background: preset?.id === pr.id ? "var(--accent-soft)" : "var(--surface)",
                   }}
                 >
                   <span style={{ display: "block", fontWeight: 600, fontSize: 14 }}>{pr.label}</span>
-                  <span style={{ display: "block", marginTop: 2, fontSize: 12, color: "var(--text-3, #999)", lineHeight: 1.5 }}>
+                  <span style={{ display: "block", marginTop: 2, fontSize: 12, color: "var(--text-3)", lineHeight: 1.5 }}>
                     {pr.hint}
                   </span>
                 </button>
@@ -328,7 +328,7 @@ export function OnboardingTourV1(): React.ReactNode {
         {step === 1 && mode === "manual" ? (
           <>
             <h3 style={{ margin: "0 0 4px", fontSize: 17 }}>侧栏要放哪些？</h3>
-            <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-3, #999)" }}>
+            <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-3)" }}>
               点一下取消 = 收进「已折叠」，不是删掉。
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -344,17 +344,17 @@ export function OnboardingTourV1(): React.ReactNode {
                     style={{
                       display: "flex", gap: 9, alignItems: "flex-start", textAlign: "left",
                       padding: "10px 11px", borderRadius: 10, cursor: "pointer",
-                      border: on ? "1px solid var(--accent, #4176e6)" : "1px solid var(--border, #e5e6eb)",
-                      background: on ? "var(--accent-soft, rgba(65,118,230,.08))" : "var(--surface, #fff)",
+                      border: on ? "1px solid var(--accent)" : "1px solid var(--border)",
+                      background: on ? "var(--accent-soft)" : "var(--surface)",
                       opacity: on ? 1 : 0.55,
                     }}
                   >
-                    <span style={{ flex: "none", marginTop: 1, color: on ? "var(--accent, #4176e6)" : "var(--text-3, #999)" }}>
+                    <span style={{ flex: "none", marginTop: 1, color: on ? "var(--accent)" : "var(--text-3)" }}>
                       <Icon width={16} height={16} />
                     </span>
                     <span style={{ minWidth: 0 }}>
                       <span style={{ display: "block", fontWeight: 600, fontSize: 13.5 }}>{n.label}</span>
-                      <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3, #999)", lineHeight: 1.5 }}>
+                      <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
                         {PAGE_HINTS[n.page] ?? ""}
                       </span>
                     </span>
@@ -368,12 +368,12 @@ export function OnboardingTourV1(): React.ReactNode {
         {step === 2 && mode === "manual" ? (
           <>
             <h3 style={{ margin: "0 0 4px", fontSize: 17 }}>各页里的页签呢？</h3>
-            <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-3, #999)" }}>
+            <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-3)" }}>
               同上一页：点一下取消 = 该页签先隐藏（在该页的「管理」里能加回来）。
             </p>
             {TAB_GROUPS.map((g) => (
               <div key={g.key} style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 12.5, color: "var(--text-3, #999)", margin: "6px 0 8px" }}>{g.title}</div>
+                <div style={{ fontSize: 12.5, color: "var(--text-3)", margin: "6px 0 8px" }}>{g.title}</div>
                 {/* 页签按 chip 排（与页内页签栏同观感），不做成大方块 */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   {g.tabs.map((t) => {
@@ -402,18 +402,18 @@ export function OnboardingTourV1(): React.ReactNode {
           <>
             <h3 style={{ margin: "0 0 4px", fontSize: 17 }}>
               今日页留哪些卡？
-              <span style={{ marginLeft: 8, fontSize: 12.5, fontWeight: 400, color: "var(--text-3, #999)" }}>
+              <span style={{ marginLeft: 8, fontSize: 12.5, fontWeight: 400, color: "var(--text-3)" }}>
                 已留 {keepCards.length} 张
               </span>
             </h3>
-            <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-3, #999)", lineHeight: 1.6 }}>
+            <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-3)", lineHeight: 1.6 }}>
               现在默认是<b>全面版</b>首页：内容一次给全。点一下取消 = 这张卡先收进「添加卡片」，
               以后在首页「编辑 → 添加卡片」里随时能加回来。
               <b>「最近使用 / 猜你喜欢」要先用一阵才有内容</b>（刚装好时会显示一句说明），
               想第一眼就看到东西的话，留着「今日概览 / 日程与提醒 / 未提交作业」这几张。
             </p>
             {keepCards.length === 0 ? (
-              <p style={{ margin: "0 0 10px", fontSize: 12.5, lineHeight: 1.7, color: "var(--red, #d33)" }}>
+              <p style={{ margin: "0 0 10px", fontSize: 12.5, lineHeight: 1.7, color: "var(--red)" }}>
                 一张都没留的话，今日页会没有任何卡片。至少留一张（推荐「今日概览」）。
               </p>
             ) : null}
@@ -439,11 +439,11 @@ export function OnboardingTourV1(): React.ReactNode {
         {step === 4 ? (
           <>
             <h3 style={{ margin: "0 0 8px", fontSize: 17 }}>最后一步：完成一次收藏</h3>
-            <p style={{ margin: "0 0 10px", fontSize: 13.5, lineHeight: 1.8, color: "var(--text-2, #555)" }}>
+            <p style={{ margin: "0 0 10px", fontSize: 13.5, lineHeight: 1.8, color: "var(--text-2)" }}>
               点下面的按钮，会为你建一个<b>示例收藏夹</b>，并放入三项：
               <b>网络学堂</b>（一级页面）、<b>选课</b>（一级页面）、<b>空教室</b>（预约页里的二级页签）。
             </p>
-            <p style={{ margin: "0 0 12px", fontSize: 13.5, lineHeight: 1.8, color: "var(--text-2, #555)" }}>
+            <p style={{ margin: "0 0 12px", fontSize: 13.5, lineHeight: 1.8, color: "var(--text-2)" }}>
               收藏夹建好后可以改名、拖拽排序、放桌面小组件——<b>万物皆可收藏</b>：
               任何页面、任何页签、任何一门课、任何一项作业、任何一台洗衣机，都能收进来，下次一点直达。
             </p>
@@ -455,7 +455,7 @@ export function OnboardingTourV1(): React.ReactNode {
             >
               {seeded ? "✓ 示例收藏夹已创建（含 3 项）" : "创建示例收藏夹并进入（含 3 项）"}
             </button>
-            <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-3, #999)" }}>
+            <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-3)" }}>
               下面还可按场景收起首页卡片，不需要的直接点掉。
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -658,7 +658,7 @@ export function OnboardingTourV1(): React.ReactNode {
         ) : null}
 
         {acctMsg ? (
-          <p style={{ margin: "10px 0 0", fontSize: 12.5, color: acctMsg.includes("成功") ? "var(--green, #2e9e5b)" : "var(--red, #d64541)" }}>
+          <p style={{ margin: "10px 0 0", fontSize: 12.5, color: acctMsg.includes("成功") ? "var(--green)" : "var(--red)" }}>
             {acctMsg}
           </p>
         ) : null}

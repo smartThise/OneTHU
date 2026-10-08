@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-system-night-mode"
+description = "Enables the system_night_mode command without any pre-configured scope."
+commands.allow = ["system_night_mode"]
+
+[[permission]]
+identifier = "deny-system-night-mode"
+description = "Denies the system_night_mode command without any pre-configured scope."
+commands.deny = ["system_night_mode"]

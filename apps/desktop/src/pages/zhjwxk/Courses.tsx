@@ -5,7 +5,9 @@
  */
 import { courseColor } from "../../lib/courseColor.js";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
-import { PageAtomStar } from "../..//components/Collect.js";
+import { usePageCollect } from "../../components/Collect.js";
+import { pageAtomRef } from "../../state/atoms.js";
+import type { PageMenuItem } from "../../state/pageChrome.js";
 import { createPortal } from "react-dom";
 import { useExitPhase } from "../../lib/useExitPhase.js";
 import { Card, Empty, ErrorNote, PageHead, SegmentedOverflow, SkeletonRows } from "../../components/Layout.js";
@@ -99,7 +101,18 @@ const pvColorOf = (name: string): string => courseColor(name);
 /** 外校课程标注：课号前缀 PK=北大本科、GPK=北大研究生（2026 秋 38 门）、BW=北外（形如 BW3w0007） */
 type Origin = "北大" | "北大研" | "北外" | "";
 const originOf = (code: string): Origin => (code.startsWith("GPK") ? "北大研" : code.startsWith("PK") ? "北大" : code.startsWith("BW") ? "北外" : "");
-const ORIGIN_COLORS: Record<Origin, string> = { 北大: "#c0392b", 北大研: "#c0392b", 北外: "#1f4e79", "": "transparent" };
+const ORIGIN_COLORS: Record<Origin, string> = { 北大: "#c0392b", 北大研: "#c0392b", 北外: "#1f4e79", "": "transparent" };  /* token-ok: 生源校色为数据色（北大红 / 北外蓝），不属于主题令牌 */
+/** 数据色块上的固定白（课程身份色、生源校色都是固定深色，白字才有对比） */
+const ON_DATA_INK = "#fff"; // token-ok: 数据色块上的固定白
+const ON_DATA_INK_SOFT = "rgba(255,255,255,.25)"; // token-ok: 同上（半透明徽标底）
+/** 占用/备注紫：第四类状态色（候选橙 / 已选绿 / 已满红之外），令牌表无对应语义色 */
+const PURPLE = "#8b5cf6"; // token-ok: 第四状态色
+const PURPLE_TAG = "#7c5cff"; // token-ok: 同上（备注标签文字）
+const PURPLE_TAG_TEXT = "#7c3aed"; // token-ok: 同上（自定义占用 chip 文字）
+const PURPLE_TAG_BG = "rgba(124,92,255,.1)"; // token-ok: 同上（标签底）
+const PURPLE_TAG_BG2 = "rgba(124,92,255,.05)"; // token-ok: 同上（课程说明块底）
+const PURPLE_TAG_BORDER = "1px solid rgba(124,92,255,.25)"; // token-ok: 同上（标签描边）
+const PURPLE_CHIP_BG = "rgba(139,92,246,.12)"; // token-ok: 同上（占用 chip 底）
 
 const fmtVol = (v: string): string => {
   // NextTHUxk 2.0 probability.js 逐字：全零且无优先 → 空（不上屏）；优先 (N) 前缀
@@ -156,11 +169,15 @@ const openReviews = (v: { code: string; seq: string; name: string; teacher: stri
 
 /* ══════════ 弹窗（自带表面色，不依赖 Card 上下文变量）══════════ */
 /** 退场：内联 animation 覆盖入场（本项目不给内联几何弹层写 CSS 规则） */
-const maskOut: React.CSSProperties = { animation: "m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both" };
+const maskOut: React.CSSProperties = {
+  animation: "m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both",
+  /* F1：退场中的遮罩只负责淡出，不该再吃点击——万一它没被卸载，也不许把整屏堵死 */
+  pointerEvents: "none",
+};
 const panelOut: React.CSSProperties = { animation: "m-pop-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both" };
-const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
-const panelStyle: React.CSSProperties = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 620, maxHeight: "78vh", display: "flex", flexDirection: "column", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.28)" };
-const panelHead: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border, #eee)" };
+const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "var(--md-sys-color-scrim)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
+const panelStyle: React.CSSProperties = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 620, maxHeight: "78vh", display: "flex", flexDirection: "column", background: "var(--surface)", color: "var(--text-1)", borderRadius: 14, boxShadow: "var(--shadow-3)" };
+const panelHead: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border)" };
 const panelBody: React.CSSProperties = { padding: "12px 16px", overflowY: "auto", fontSize: 13, lineHeight: 1.65 };
 
 function DetailModal({ wb, code, tid, onClose }: { wb: ReturnType<typeof useXkWorkbench>; code: string | null; tid: string; onClose: () => void }) {
@@ -178,7 +195,8 @@ function DetailModal({ wb, code, tid, onClose }: { wb: ReturnType<typeof useXkWo
     // void wb.getRatings(code).then((v) => { if (alive) setRrows(v); });
     // return () => { alive = false; };
   }, [code, tid]);
-  const [closing, requestClose] = useExitPhase(onClose);
+  /* 受控弹层：组件常驻挂载、关闭只把 code 置 null —— 必须把 open 传进来复位 closing（F1） */
+  const [closing, requestClose] = useExitPhase(onClose, code !== null);
   if (!code) return null;
   const order = ["课程编号", "课程名称", "总学时数", "总学分", "课程内容简介", "Course Description", "考核安排", "联系人", "教材及参考书", "上课教师", "选课指导语", "先修要求", "教师教学特色", "Office Hour", "成绩评定标准", "参考书"];
   const entries = data ? Object.entries(data.fields) : [];
@@ -193,36 +211,36 @@ function DetailModal({ wb, code, tid, onClose }: { wb: ReturnType<typeof useXkWo
         <div style={panelBody}>
           {/* 【教评#31冻结】教评三态块（整块注释保留，教务修好解开）
            {rrows === undefined ? (
-             <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--text-3, #9aa1ac)" }}>正在获取官方教评…</div>
+             <div style={{ borderBottom: "1px solid var(--border)", padding: "6px 0 10px", fontSize: 12, color: "var(--text-3)" }}>正在获取官方教评…</div>
            ) : rrows === null ? (
-             <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--red)" }}>官方教评获取未成功（教务登录或网络问题），请稍后重试</div>
+             <div style={{ borderBottom: "1px solid var(--border)", padding: "6px 0 10px", fontSize: 12, color: "var(--red)" }}>官方教评获取未成功（教务登录或网络问题），请稍后重试</div>
            ) : rrows.length > 0 ? (
-             <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "10px 0 14px" }}>
+             <div style={{ borderBottom: "1px solid var(--border)", padding: "10px 0 14px" }}>
                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>官方教评 · 选课学生推荐度（1-7 分）</div>
                {rrows.map((row) => (
                  <div key={row.teacher + row.total} style={{ marginBottom: 8 }}>
                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 12 }}>
                      <span style={{ fontWeight: 600 }}>{row.teacher || "（未署名教师）"}</span>
                      <span style={{ color: xkAvgColor(row.average), fontWeight: 700 }}>{row.average.toFixed(2)} / 7</span>
-                     <span style={{ color: "var(--text-3, #9aa1ac)" }}>{row.total} 人评分 · 高分率 {(row.highRatio * 100).toFixed(0)}%</span>
+                     <span style={{ color: "var(--text-3)" }}>{row.total} 人评分 · 高分率 {(row.highRatio * 100).toFixed(0)}%</span>
                    </div>
-                   <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", marginTop: 4, background: "var(--border, #f0f0f0)" }}>
+                   <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", marginTop: 4, background: "var(--border)" }}>
                      {row.distribution.map((v, i) => v > 0 ? (
                        <div key={i} title={`${i + 1} 分：${v} 人`} style={{ width: `${(v / Math.max(1, row.total)) * 100}%`, background: i >= 5 ? "var(--green)" : i >= 3 ? "var(--amber)" : "var(--red)", opacity: i >= 5 ? 0.85 : i >= 3 ? 0.75 : 0.65 }} />
                      ) : null)}
                    </div>
                  </div>
                ))}
-               <div style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)", marginTop: 4 }}>数据来自教务 xgpg 学生评教；绿=6/7 分，黄=4/5 分，红=1-3 分</div>
+               <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 4 }}>数据来自教务 xgpg 学生评教；绿=6/7 分，黄=4/5 分，红=1-3 分</div>
              </div>
            ) : (
-             <div style={{ borderBottom: "1px solid var(--border, #f0f0f0)", padding: "6px 0 10px", fontSize: 12, color: "var(--text-3, #9aa1ac)" }}>该课暂无官方教评数据</div>
+             <div style={{ borderBottom: "1px solid var(--border)", padding: "6px 0 10px", fontSize: 12, color: "var(--text-3)" }}>该课暂无官方教评数据</div>
            )}
 
           */}
           {loading ? <Empty text="正在加载课程简介…" /> : !data ? <Empty text="暂无课程简介信息（该课缺教师号，无法拉取）" /> : entries.map(([k, v]) => (
-            <div key={k} style={{ display: "flex", gap: 10, padding: "6px 0", borderBottom: "1px solid var(--border, #f0f0f0)" }}>
-              <div style={{ width: 108, flexShrink: 0, color: "var(--text-3, #9aa1ac)", fontSize: 12 }}>{k}</div>
+            <div key={k} style={{ display: "flex", gap: 10, padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
+              <div style={{ width: 108, flexShrink: 0, color: "var(--text-3)", fontSize: 12 }}>{k}</div>
               <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>{v}</div>
             </div>
           ))}
@@ -268,22 +286,23 @@ function ReviewsModal({ code, seq, name, teacher, onClose }: { code: string | nu
     return () => window.removeEventListener("keydown", onKey);
   }, [code, onClose]);
   // 未打开时绝不渲染（重写时弄丢的守卫 —— 空态也渲染遮罩且永远关不掉，就是糊脸黑罩的根因）
-  const [closing, requestClose] = useExitPhase(onClose);
+  /* 受控弹层：组件常驻挂载、关闭只把 code 置 null —— 必须把 open 传进来复位 closing（F1） */
+  const [closing, requestClose] = useExitPhase(onClose, code !== null);
   if (!code) return null;
 
   const headBits: React.ReactNode[] = [];
   if (entry && entry.count) {
     headBits.push(
       <div key="h" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 22, fontWeight: 700, color: "var(--amber, #ff9f1a)" }}>{Number(entry.avg).toFixed(1)}</span>
+        <span style={{ fontSize: 22, fontWeight: 700, color: "var(--amber)" }}>{Number(entry.avg).toFixed(1)}</span>
         <span>
-          <span style={{ color: "var(--amber, #ff9f1a)", letterSpacing: 1 }}>{tbStars(entry.avg)}</span>
-          <span style={{ fontSize: 12, color: "var(--text-3, #9aa1ac)" }}> {entry.count} 条点评{entry.kkdw ? ` · ${entry.kkdw}` : ""}</span>
+          <span style={{ color: "var(--amber)", letterSpacing: 1 }}>{tbStars(entry.avg)}</span>
+          <span style={{ fontSize: 12, color: "var(--text-3)" }}> {entry.count} 条点评{entry.kkdw ? ` · ${entry.kkdw}` : ""}</span>
         </span>
       </div>,
     );
   } else {
-    headBits.push(<div key="h" style={{ fontSize: 13, color: "var(--text-3, #9aa1ac)" }}>这门课在 THU选课社区还没有点评</div>);
+    headBits.push(<div key="h" style={{ fontSize: 13, color: "var(--text-3)" }}>这门课在 THU选课社区还没有点评</div>);
   }
   const courseUrl = entry ? tbCourseUrl(entry) : tbCourseUrl(entry!);
   headBits.push(
@@ -291,7 +310,7 @@ function ReviewsModal({ code, seq, name, teacher, onClose }: { code: string | nu
       <a className="btn" href={courseUrl} onClick={(e) => { e.preventDefault(); void openExternal(courseUrl); }}>查看课程页 ↗</a>
       <a className="btn" style={{ borderColor: "var(--accent)", color: "var(--accent)" }} href={tbWriteUrl(entry)} onClick={(e) => { e.preventDefault(); void openExternal(tbWriteUrl(entry)); }}>✎ 去写点评</a>
     </div>,
-    <div key="l" style={{ marginTop: 8, fontSize: 11, color: "var(--text-3, #9aa1ac)" }}>
+    <div key="l" style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>
       点评数据来自 <a href={courseUrl} onClick={(e) => { e.preventDefault(); void openExternal(courseUrl); }} style={{ color: "var(--accent)" }}>THU选课社区</a> 贡献者，以{" "}
       <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.zh" onClick={(e) => { e.preventDefault(); void openExternal("https://creativecommons.org/licenses/by-nc/4.0/deed.zh"); }} style={{ color: "var(--accent)" }}>CC BY-NC 4.0</a> 提供 · 仅限非商业用途
     </div>,
@@ -307,12 +326,12 @@ function ReviewsModal({ code, seq, name, teacher, onClose }: { code: string | nu
             !data?.results.length ? <Empty text="暂无点评正文" /> : (
               <div style={{ marginTop: 10 }}>
                 {data.results.map((r, i) => (
-                  <div key={i} style={{ borderTop: "1px solid var(--border, #f0f0f0)", padding: "8px 0" }}>
+                  <div key={i} style={{ borderTop: "1px solid var(--border)", padding: "8px 0" }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                      <span style={{ color: "var(--amber, #ff9f1a)", letterSpacing: 1 }}>{tbStars(r.rating ?? 0)}</span>
+                      <span style={{ color: "var(--amber)", letterSpacing: 1 }}>{tbStars(r.rating ?? 0)}</span>
                       <span style={{ fontWeight: 700 }}>{Number(r.rating ?? 0)}</span>
                       {r.score ? <span className="chip" style={{ fontSize: 10 }}>给分 {String(r.score).slice(0, 8)}</span> : null}
-                      <span style={{ fontSize: 11, color: "var(--text-3, #9aa1ac)", marginLeft: "auto" }}>{r.created_at ?? ""}</span>
+                      <span style={{ fontSize: 11, color: "var(--text-3)", marginLeft: "auto" }}>{r.created_at ?? ""}</span>
                     </div>
                     <div style={{ marginTop: 4, whiteSpace: "pre-wrap", fontSize: 12.5 }}>{String(r.comment ?? "").trim()}</div>
                   </div>
@@ -341,16 +360,20 @@ function Sec({ title, extra, children }: { title: string; extra?: React.ReactNod
   );
 }
 
-/* ══════════ 主页面：单屏两栏 ══════════ */
-export function ZhjwxkCoursesPage() {
+/* ══════════ 页面主机：跳转/详情/评价通路（旧双栏页与 G2 独立页共用一份）══════════ */
+type XkReviewTarget = { code: string; seq: string; name: string; teacher: string };
+
+/**
+ * 选课工作台主机：注入跳转/详情/评价三条 module-level 通路 + 预热课程评价索引。
+ * G2 的独立页（课程查找 / 选课管理）与旧双栏页都用它——**不复制实现**；
+ * 少注入一处，独立页里的「查看详情/评价/课表跳转」就会点了没反应。
+ */
+function useXkPageHost() {
   const wb = useXkWorkbench();
-  const [detailCode, setDetailCode] = useState<string | null>(null);
-  const [detailTid, setDetailTid] = useState("");
-  const [reviewCode, setReviewCode] = useState<{ code: string; seq: string; name: string; teacher: string } | null>(null);
+  const [detail, setDetail] = useState<{ code: string; tid: string } | null>(null);
+  const [review, setReview] = useState<XkReviewTarget | null>(null);
   const [jump, setJump] = useState("");
   const [jumpSeq, setJumpSeq] = useState("");
-  // 竖屏双页签：课程查找 / 选课管理（AI 能力已并入小OH 助手；桌面仍为双栏，此状态仅移动端消费）
-  const [mTab, setMTab] = useState<"find" | "manage">("find");
   useEffect(() => {
     void tbEnsureIndex().catch(() => undefined);
     // 跳转唯一权威通路：注入搜索栏（setJump → jump effect）+ 按课号真实搜索
@@ -360,10 +383,19 @@ export function ZhjwxkCoursesPage() {
       setJumpSeq(String(seq || ""));
       void wb.newSearch({ kcm: "", kch: code, teacher: "", department: "", weekday: "", section: "", grade: "", rxklxm: "", kctsm: "", onlyAvailable: false, gradAvail: false });
     };
-    _detailOpen = (code, tid) => { setDetailCode(code); setDetailTid(tid); };
-    _reviewOpen = setReviewCode;
+    _detailOpen = (code, tid) => setDetail({ code, tid });
+    _reviewOpen = setReview;
     return () => { _jumpSetter = null; _detailOpen = null; _reviewOpen = null; };
   }, []);
+  return { wb, detail, setDetail, review, setReview, jump, jumpSeq };
+}
+
+/* ══════════ 主页面：单屏两栏 ══════════ */
+export function ZhjwxkCoursesPage() {
+  const { wb, detail, setDetail, review, setReview, jump, jumpSeq } = useXkPageHost();
+  // 竖屏双页签：课程查找 / 选课管理（AI 能力已并入小OH 助手；桌面仍为双栏，此状态仅移动端消费）
+  const { navParams } = useApp();
+  const [mTab, setMTab] = useState<"find" | "manage">(() => navParams?.xkTab ?? "find");
 
   useEffect(() => {
     if (jump) setMTab("find"); // 点课表/暂存里的课 → 跳回「课程查找」页签
@@ -409,8 +441,11 @@ export function ZhjwxkCoursesPage() {
     else if (pct > 70) setSplitP({ pct: 70, collapsed: "right" }); // 只显示右栏
   };
 
+  const collect = usePageCollect(pageAtomRef("zhjwxk"), "选课");
+
   return (
     <>
+      {collect.modal}
       <PageHead
         title="选课"
         meta={[
@@ -419,18 +454,29 @@ export function ZhjwxkCoursesPage() {
           `已选 ${wb.selected.length} 门 · ${selCredits} 学分`,
           `已浏览 ${wb.searchRows.length} 门（实时）`,
         ].filter(Boolean).join(" · ")}
+        menu={[
+          collect.item,
+          wb.phase
+            ? {
+                key: "queue",
+                label: "刷新队列",
+                icon: <IconRefresh width={16} height={16} />,
+                disabled: wb.queueState === "loading",
+                onSelect: () => void wb.refreshQueue(),
+              }
+            : null,
+          {
+            key: "refresh",
+            label: "刷新数据",
+            icon: <IconRefresh width={16} height={16} />,
+            disabled: wb.coreState === "loading",
+            onSelect: () => void wb.refresh(),
+          },
+        ].filter(Boolean) as PageMenuItem[]}
         actions={
-          <>
-            <PageAtomStar atomKey="zhjwxk" title="选课" />
-            <select className="input" style={{ height: 28, fontSize: 12 }} value={wb.semester ?? ""} onChange={(e) => void wb.setSemesterOverride(e.target.value)}>
-              {(wb.semesterOptions ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-            {wb.phase ? <button className="btn" onClick={() => void wb.refreshQueue()} disabled={wb.queueState === "loading"}>刷新队列</button> : null}
-            <button className="btn" onClick={() => void wb.refresh()} disabled={wb.coreState === "loading"}>
-              <IconRefresh width={14} height={14} />
-              刷新数据
-            </button>
-          </>
+          <select className="input" style={{ height: 28, fontSize: 12 }} value={wb.semester ?? ""} onChange={(e) => void wb.setSemesterOverride(e.target.value)}>
+            {(wb.semesterOptions ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
         }
       />
       {wb.coreState === "error" ? <ErrorNote text={wb.error ?? ""} onRetry={() => void wb.refresh()} /> : null}
@@ -466,9 +512,9 @@ export function ZhjwxkCoursesPage() {
             onPointerMove={onSepMove}
             onPointerUp={onSepUp}
             onPointerCancel={onSepUp}
-            style={{ flex: "0 0 6px", cursor: "col-resize", borderRadius: 3, background: "var(--border, #ececec)", position: "relative", touchAction: "none" }}
+            style={{ flex: "0 0 6px", cursor: "col-resize", borderRadius: 3, background: "var(--border)", position: "relative", touchAction: "none" }}
           >
-            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 3, height: 40, borderRadius: 2, background: "var(--text-3, #b8b8b8)" }} />
+            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 3, height: 40, borderRadius: 2, background: "var(--text-3)" }} />
           </div>
         ) : (
           <button
@@ -519,9 +565,36 @@ export function ZhjwxkCoursesPage() {
         ) : null}
       </div>
 
-      <DetailModal wb={wb} code={detailCode} tid={detailTid} onClose={() => setDetailCode(null)} />
-      <ReviewsModal code={reviewCode?.code ?? null} seq={reviewCode?.seq ?? ""} name={reviewCode?.name ?? ""} teacher={reviewCode?.teacher ?? ""} onClose={() => setReviewCode(null)} />
+      <DetailModal wb={wb} code={detail?.code ?? null} tid={detail?.tid ?? ""} onClose={() => setDetail(null)} />
+      <ReviewsModal code={review?.code ?? null} seq={review?.seq ?? ""} name={review?.name ?? ""} teacher={review?.teacher ?? ""} onClose={() => setReview(null)} />
     </>
+  );
+}
+
+/* ══════════ G2 独立页：课程查找 / 选课管理（手机入口；薄壳，复用同一批组件）══════════ */
+
+/** 课程查找独立页：左栏检索 + 详情/评价弹层（与旧页左栏同一实现） */
+export function XkFindSoloPage() {
+  const { wb, detail, setDetail, review, setReview, jump, jumpSeq } = useXkPageHost();
+  return (
+    <>
+      <CourseListPanel wb={wb} jump={jump} jumpSeq={jumpSeq} />
+      <DetailModal wb={wb} code={detail?.code ?? null} tid={detail?.tid ?? ""} onClose={() => setDetail(null)} />
+      <ReviewsModal code={review?.code ?? null} seq={review?.seq ?? ""} name={review?.name ?? ""} teacher={review?.teacher ?? ""} onClose={() => setReview(null)} />
+    </>
+  );
+}
+
+/** 选课管理独立页：已选方案 / 预选 / 志愿 / 候补队列（与旧页右栏同一实现） */
+export function XkManageSoloPage() {
+  const { wb } = useXkPageHost();
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <PlanSection wb={wb} />
+      <PreviewSection wb={wb} />
+      <StageSection wb={wb} />
+      <QueueSection wb={wb} />
+    </div>
   );
 }
 
@@ -745,7 +818,7 @@ function CourseListPanel({ wb, jump, jumpSeq }: { wb: ReturnType<typeof useXkWor
   const selStyle: React.CSSProperties = { height: 26, fontSize: 12, flex: 1, minWidth: 96 };
   return (
     <>
-      <Card style={{ padding: "8px 10px", marginBottom: 10, position: "sticky", top: 0, zIndex: 8, background: "var(--surface-2, #faf8f2)", borderColor: "var(--amber)" }}>
+      <Card style={{ padding: "8px 10px", marginBottom: 10, position: "sticky", top: 0, zIndex: 8, background: "var(--surface-2)", borderColor: "var(--amber)" }}>
         <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--text-2)" }}>
           📌 北大、北外课程时间为通知附件形式（含单双周），<b>无法在筛选栏按时间筛选</b>。开放选课通知：
           <button className="btn" style={{ marginLeft: 6, padding: "1px 8px", fontSize: 11 }} onClick={() => navigate("info", { infoNewsQuery: "北京大学 北京外国语大学" })}>北大·北外本科</button>
@@ -870,7 +943,7 @@ function PlanView({ wb, query, onSearchCode }: { wb: ReturnType<typeof useXkWork
     <>
       <Card style={{ marginBottom: 12, padding: "12px 16px", fontSize: 13 }}>
         <b>培养方案进度</b>: {coveredN}/{coverage.length}门 · {coveredCr}/{totalCr}学分
-        <div style={{ marginTop: 6, height: 6, background: "rgba(0,0,0,.06)", borderRadius: 3, overflow: "hidden" }}>
+        <div style={{ marginTop: 6, height: 6, background: "var(--surface-3)", borderRadius: 3, overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${totalCr ? Math.round((coveredCr / totalCr) * 100) : 0}%`, background: "var(--accent)", borderRadius: 3 }} />
         </div>
       </Card>
@@ -879,12 +952,12 @@ function PlanView({ wb, query, onSearchCode }: { wb: ReturnType<typeof useXkWork
         const gCovered = courses.filter((c) => c.covered).reduce((s, c) => s + c.credits, 0);
         return (
           <div key={g} style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, padding: "5px 12px", background: "rgba(127,127,127,.06)", borderRadius: 8, display: "flex", justifyContent: "space-between" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, padding: "5px 12px", background: "var(--surface-2)", borderRadius: 8, display: "flex", justifyContent: "space-between" }}>
               <span>{g}</span>
               <span style={{ fontSize: 11, fontWeight: 400, color: gCovered >= gTotal ? "var(--green)" : "var(--text-3)" }}>{gCovered}/{gTotal}学分</span>
             </div>
             {courses.map((p) => {
-              const bg = p.covered ? "rgba(7,193,96,.06)" : "rgba(238,77,77,.04)";
+              const bg = p.covered ? "var(--green-soft)" : "var(--red-soft)";
               return (
                 <div key={p.code} title={`点击搜索 ${p.code}`} onClick={() => onSearchCode(p.code)}
                   style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 10, background: bg, marginBottom: 3, fontSize: 12, cursor: "pointer" }}>
@@ -940,7 +1013,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
       <div className="row-main">
         <div className="row-title" style={{ whiteSpace: "normal" }}>
           {(() => { const o = originOf(r.c.code); return o
-            ? <span style={{ fontSize: 10, padding: "1px 5px", marginRight: 6, borderRadius: 4, color: "#fff", background: ORIGIN_COLORS[o], verticalAlign: "1px", whiteSpace: "nowrap" }}>{o}</span>
+            ? <span style={{ fontSize: 10, padding: "1px 5px", marginRight: 6, borderRadius: 4, color: ON_DATA_INK, background: ORIGIN_COLORS[o], verticalAlign: "1px", whiteSpace: "nowrap" }}>{o}</span>
             : null; })()}
           {r.name}
 
@@ -966,10 +1039,10 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
         {/* 元数据分属性表述（用户实锤「一堆灰字挤在一起看不清」）：课号班次=等宽
             底色 chip；教师=加粗主色正文；时间=accent chip；学分=中性小字；院系=弱化尾注 */}
         <div style={{ marginTop: 3, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", whiteSpace: "normal" }}>
-          <span style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: 11, padding: "1px 6px", borderRadius: 4, background: "rgba(127,127,127,.12)", color: "var(--text-2)" }}>{r.c.code}{r.c.seq && r.c.seq !== "0" ? `·${r.c.seq}班` : ""}</span>
+          <span style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: 11, padding: "1px 6px", borderRadius: 4, background: "var(--surface-2)", color: "var(--text-2)" }}>{r.c.code}{r.c.seq && r.c.seq !== "0" ? `·${r.c.seq}班` : ""}</span>
           {/* 纯数字教师=教务多教师格解析未明（取证中，见 xkParseDebug）——隐藏不误导 */}
           {r.teacher && !/^\d{1,3}$/.test(r.teacher) ? <b style={{ fontSize: 13, color: "var(--text-1)" }}>{r.teacher}</b> : null}
-          {r.time ? <span style={{ fontSize: 11, padding: "1px 6px", borderRadius: 4, color: "var(--accent)", background: "rgba(59,130,246,.08)", whiteSpace: "nowrap" }}>{r.time}</span> : null}
+          {r.time ? <span style={{ fontSize: 11, padding: "1px 6px", borderRadius: 4, color: "var(--accent)", background: "var(--accent-soft)", whiteSpace: "nowrap" }}>{r.time}</span> : null}
           {r.credits ? <span style={{ fontSize: 11, color: "var(--text-2)" }}>{r.credits} 学分</span> : null}
           {r.c.department ? <span style={{ fontSize: 11, color: "var(--text-3)" }}>{r.c.department}</span> : null}
         </div>
@@ -991,13 +1064,13 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           return segs.length ? (
             <div style={{ marginTop: 3, display: "flex", flexWrap: "wrap", gap: 4 }}>
               {segs.map((t) => (
-                <span key={t} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, color: "#7c5cff", background: "rgba(124,92,255,.1)", border: "1px solid rgba(124,92,255,.25)", whiteSpace: "nowrap" }}>{t}</span>
+                <span key={t} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, color: PURPLE_TAG, background: PURPLE_TAG_BG, border: PURPLE_TAG_BORDER, whiteSpace: "nowrap" }}>{t}</span>
               ))}
             </div>
           ) : null;
         })()}
         {r.c.note ? (
-          <div style={{ marginTop: 4, padding: "5px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "rgba(124,92,255,.05)", fontSize: 12, lineHeight: 1.6, color: "var(--text-1)", whiteSpace: "normal" }}>
+          <div style={{ marginTop: 4, padding: "5px 8px", borderRadius: 6, border: "1px solid var(--border)", background: PURPLE_TAG_BG2, fontSize: 12, lineHeight: 1.6, color: "var(--text-1)", whiteSpace: "normal" }}>
             <b style={{ color: "var(--accent)" }}>课程说明</b>　{r.c.note}
           </div>
         ) : null}
@@ -1126,7 +1199,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           </div>
         )}
       </div>
-      <span className={"chip " + (r.selected ? "chip-green" : r.isCandidate ? "chip-amber" : "")} style={state === "full" ? { color: "#ee4d4d", background: "rgba(238,77,77,.1)" } : undefined}>
+      <span className={"chip " + (r.selected ? "chip-green" : r.isCandidate ? "chip-amber" : "")} style={state === "full" ? { color: "var(--red)", background: "var(--red-soft)" } : undefined}>
         <span className="dot" />
         {r.selected ? `已选${r.zy ? ` · ${r.zy}志愿` : ""}` : r.isCandidate ? (r.cand?.myPos ? `候补 第${r.cand.myPos}名` : "候选") : state === "full" ? "已满" : r.available ? "可选" : "已满"}
       </span>
@@ -1154,7 +1227,7 @@ function PlanSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
           const cr = items.reduce((a, c) => a + c.credits, 0);
           const cov = items.filter((c) => c.covered).reduce((a, c) => a + c.credits, 0);
           return (
-            <div key={g} style={{ padding: "10px 14px", borderRadius: 16, background: "var(--surface, #fff)", boxShadow: "inset 0 0 0 1px rgba(127,127,127,.12), 0 4px 18px rgba(28,39,64,.06)", flex: 1, minWidth: 100, cursor: "pointer" }} onClick={() => { planGroupClick?.(g); }}>
+            <div key={g} style={{ padding: "10px 14px", borderRadius: 16, background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--border), 0 4px 18px var(--shadow-1)", flex: 1, minWidth: 100, cursor: "pointer" }} onClick={() => { planGroupClick?.(g); }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: cov >= cr ? "var(--green)" : "var(--accent)" }}>{cov}<small style={{ fontSize: 12, fontWeight: 400, color: "var(--text-3)" }}>/{cr}学分</small></div>
               <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{g} ({items.length}门)</div>
             </div>
@@ -1208,18 +1281,18 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
 
   // 概率/余量信息（绿=有余量/已选，橙=排队，红=已满；色块直接画在时间轴课块上）
   const probOf = (c: { code: string; seq: string; zy: number; manual?: boolean; flag?: XkFlag; typeCode?: string }): { color: string; label: string } => {
-    if (c.manual) return { color: "#8b5cf6", label: "占用" };
+    if (c.manual) return { color: PURPLE, label: "占用" };
     if (wb.phase) {
       const qKey = `${c.code}_${c.seq || "0"}`;
       const r = wb.courses.find((x) => x.c.code === c.code && String(x.c.seq || "0") === String(c.seq || "0"));
       const qd = wb.queueMap[qKey] ?? r?.q;
       const cand = wb.candidates.find((cc) => cc.code === c.code && String(cc.seq) === String(c.seq || "0"));
-      if (cand) return { color: "#ff9f1a", label: cand.myPos ? `排队第${cand.myPos}/${cand.queueTotal}人` : "候选" };
-      if (mode === "selected") return { color: "#07c160", label: "已选" };
+      if (cand) return { color: "var(--amber)", label: cand.myPos ? `排队第${cand.myPos}/${cand.queueTotal}人` : "候选" };
+      if (mode === "selected") return { color: "var(--green)", label: "已选" };
       if (qd) {
-        if (qd.qRemaining > 0) return { color: "#07c160", label: `余${qd.qRemaining}` };
-        if (qd.qQueue > 0) return { color: "#ff9f1a", label: `排队${qd.qQueue}人` };
-        return { color: "#ee4d4d", label: "已满" };
+        if (qd.qRemaining > 0) return { color: "var(--green)", label: `余${qd.qRemaining}` };
+        if (qd.qQueue > 0) return { color: "var(--amber)", label: `排队${qd.qQueue}人` };
+        return { color: "var(--red)", label: "已满" };
       }
       return { color: "", label: "" };
     }
@@ -1250,7 +1323,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
     for (const c of all) {
       const lbl = (c.cand ? "候选：" : "") + (c.teacher ? `${c.name}(${c.teacher})` : c.name);
       const prob = probOf(c);
-      const color = c.cand ? "#ff9f1a" : c.manual ? "#8b5cf6" : prob.color || pvColorOf(c.name);
+      const color = c.cand ? "var(--amber)" : c.manual ? PURPLE : prob.color || pvColorOf(c.name);
       const mk = (day: number, begin: number, end: number, tag: string): PvBlock => ({
         key: `${c.code}_${c.seq || "0"}_${tag}`, day, begin, end, label: lbl, color,
         probLabel: prob.label || undefined, manual: c.manual, id: c.id, code: c.code, seq: c.seq, origin: originOf(c.code), cand: c.cand,
@@ -1364,10 +1437,10 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
               </div>
               <div style={{ flex: 1, position: "relative", height: canvasH }}>
                 {Array.from({ length: 7 }, (_, day) => (
-                  <div key={`col-${day}`} style={{ position: "absolute", left: `${(day * 100) / 7}%`, width: `${100 / 7}%`, top: 0, height: canvasH, borderLeft: day === 0 ? "none" : "1px solid var(--border, #ececec)", background: day === todayIdx ? "rgba(109,127,240,0.055)" : undefined }} />
+                  <div key={`col-${day}`} style={{ position: "absolute", left: `${(day * 100) / 7}%`, width: `${100 / 7}%`, top: 0, height: canvasH, borderLeft: day === 0 ? "none" : "1px solid var(--border)", background: day === todayIdx ? "var(--accent-soft)" : undefined }} />
                 ))}
                 {PV_HALF_HOURS.map((m) => (
-                  <div key={`gl-${m}`} style={{ position: "absolute", left: 0, right: 0, top: pvY(m), borderTop: m % 60 === 0 ? "1px solid var(--border, #e8e8e8)" : "1px solid var(--border, #f2f2f2)" }} />
+                  <div key={`gl-${m}`} style={{ position: "absolute", left: 0, right: 0, top: pvY(m), borderTop: m % 60 === 0 ? "1px solid var(--border)" : "1px solid var(--border)" }} />
                 ))}
                 {placed.map((b) => {
                   const laneW = 100 / b.lanes;
@@ -1378,14 +1451,14 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
                   const compact = height < 40;
                   return (
                     <div key={b.key} title={`${b.label}（${pvHm(b.begin)}–${pvHm(b.end)}）${b.probLabel ? " · " + b.probLabel : ""}`}
-                      style={{ position: "absolute", left: `calc(${leftPct}% + 3px)`, width: `calc(${widthPct}% - 6px)`, top, height, background: b.color, borderRadius: 5, padding: compact ? "2px 4px" : "3px 5px", color: "#fff", overflow: "hidden", boxSizing: "border-box", boxShadow: "0 1px 3px rgba(0,0,0,0.18)", zIndex: 6, cursor: b.manual ? undefined : "pointer" }}
+                      style={{ position: "absolute", left: `calc(${leftPct}% + 3px)`, width: `calc(${widthPct}% - 6px)`, top, height, background: b.color, borderRadius: 5, padding: compact ? "2px 4px" : "3px 5px", color: ON_DATA_INK, overflow: "hidden", boxSizing: "border-box", boxShadow: "var(--shadow-1)", zIndex: 6, cursor: b.manual ? undefined : "pointer" }}
                       onClick={() => { if (!b.manual && b.code) jumpTo(b.code, "all", b.seq || ""); }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                         <div style={{ fontSize: compact ? 8.5 : 9.5, fontWeight: 700, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.label}</div>
                       </div>
                       {!compact ? <div style={{ fontSize: 8, opacity: 0.9, lineHeight: 1.3 }}>{pvHm(b.begin)}–{pvHm(b.end)}{b.tag ? ` ${b.tag}` : ""}</div> : null}
-                      {b.probLabel && height > 44 ? <span style={{ display: "inline-block", marginTop: 1, padding: "0 4px", borderRadius: 999, fontSize: 8, fontWeight: 700, background: "rgba(255,255,255,.25)" }}>{b.probLabel}</span> : null}
-                      <button className="btn" style={{ position: "absolute", top: 1, right: 1, padding: "0 3px", fontSize: 8, lineHeight: 1.4, opacity: 0.65, border: "none", background: "transparent", color: "#fff" }}
+                      {b.probLabel && height > 44 ? <span style={{ display: "inline-block", marginTop: 1, padding: "0 4px", borderRadius: 999, fontSize: 8, fontWeight: 700, background: ON_DATA_INK_SOFT }}>{b.probLabel}</span> : null}
+                      <button className="btn" style={{ position: "absolute", top: 1, right: 1, padding: "0 3px", fontSize: 8, lineHeight: 1.4, opacity: 0.65, border: "none", background: "transparent", color: ON_DATA_INK }}
                         title={b.cand ? "退出候补" : "移除"} onClick={(e) => { e.stopPropagation(); if (b.manual && b.id) wb.removeManualEvent(b.id); else if (b.cand && b.code && b.seq) void wb.drop(b.code, b.seq, true); else if (b.code && b.seq) void removeItem(b.code, b.seq); }}>✕</button>
                     </div>
                   );
@@ -1414,7 +1487,7 @@ function PreviewSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
             const slots = parseTimeSlots(e.time || "");
             const when = e.begin && e.end ? `${["周一","周二","周三","周四","周五","周六","周日"][(e.day ?? 1) - 1]} ${e.begin}–${e.end}` : slots.map((x) => `${x.day}第${x.slot}大节`).join("、");
             return (
-              <button key={e.id} className="chip" style={{ borderRadius: 999, padding: "3px 10px", background: "rgba(139,92,246,.12)", color: "#7c3aed", fontSize: 11, cursor: "pointer", border: "none" }} title="删除此占用" onClick={() => wb.removeManualEvent(e.id)}>
+              <button key={e.id} className="chip" style={{ borderRadius: 999, padding: "3px 10px", background: PURPLE_CHIP_BG, color: PURPLE_TAG_TEXT, fontSize: 11, cursor: "pointer", border: "none" }} title="删除此占用" onClick={() => wb.removeManualEvent(e.id)}>
                 {e.name}{when ? ` · ${when}` : ""} ✕
               </button>
             );
@@ -1505,7 +1578,7 @@ function StageSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
             // 余量按 (课号,班次) 精确匹配——同课号多班次只按课号会串行（简介串台同款病）
             const vol = wb.courses.find((r) => r.c.code === s.code && String(r.c.seq || "0") === String(s.seq || "0"))?.q?.qRemaining;
             return (
-              <div key={`${s.code}_${s.seq || "0"}_${i}`} style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2, fontSize: 12, padding: "6px 8px", borderRadius: 10, background: "var(--surface, #f7f7f8)", border: "1px solid var(--border)" }}>
+              <div key={`${s.code}_${s.seq || "0"}_${i}`} style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2, fontSize: 12, padding: "6px 8px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                   <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600, cursor: "pointer" }} title={`点击搜索：${s.name}（${s.code}）`} onClick={() => jumpTo(s.code, "all", s.seq)}>
                     {s.name}{s.teacher ? <span style={{ color: "var(--text-3)", fontWeight: 400 }}> {s.teacher}</span> : null}

@@ -17,14 +17,16 @@ import { useNotifyBackend } from "../components/useNotifyBackend.js";
 import { bindingOf, loadWidgetInstances } from "../state/widgetInstances.js";
 import { requestWidgetBind } from "../state/widgetBindUi.js";
 import { Card, Empty, PageHead, SegmentedOverflow } from "../components/Layout.js";
+import { useSwipeTabs } from "../lib/useSwipeTabs.js";
 import { TabManageModal } from "../components/TabManageModal.js";
-import { FolderIcon, FOLDER_ICONS, IconChevron, IconPen } from "../components/Icons.js";
+import { FolderIcon, FOLDER_ICONS, IconChevron, IconPen, IconStar } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
 import { useFavs } from "../state/favs.js";
 import type { AtomRef } from "../state/favorites.js";
 import { canNestUnder, FAVS_MAX_DEPTH } from "../state/favorites.js";
 import { resolveAtom } from "../state/atoms.js";
-import { AtomPickerModal, CollectStar } from "../components/Collect.js";
+import { AtomPickerModal, CollectModal, CollectStar } from "../components/Collect.js";
+import { useContextMenu, useLongPress, type CtxItem } from "../components/ContextMenu.js";
 import { loadTabLayout, saveTabLayout, type TabLayout } from "../lib/tabLayout.js";
 import { confirmOk } from "../lib/confirm.js";
 import { useTabDirection } from "../lib/motion.js";
@@ -204,12 +206,26 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
   // 页签切换方向（决定内容从哪一侧滑入）
   const tabDir = useTabDirection(effTab ?? null, visibleIds);
 
+  /* C7：横滑切栏目——顺序就是页面上 render 的 visibleIds（含用户排序/隐藏后的结果），
+     当前项用 effTab（tab 被隐藏时会回落到首项）；起手落在分段控件上不算。
+     必须在下面的 `if (!f) return null` **之前**（Hook 不能排在早返回后面，会整窗白屏），
+     所以这里直接内联 activate 的两步，而不是引用早返回之后才定义的函数。 */
+  const swipeRef = useSwipeTabs<HTMLDivElement>({
+    order: visibleIds,
+    current: effTab ?? visibleIds[0] ?? ROOT_TAB,
+    onChange: (id) => {
+      setTab(id);
+      setVisited((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
+    },
+  });
+
   if (!f) return null;
   const labelOf = (id: string) => (id === ROOT_TAB ? "默认" : favs.data.folders[id]?.title ?? "收藏夹");
   const activate = (id: string) => {
     setTab(id);
     setVisited((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
   };
+
   const applyLayout = (l: TabLayout) => {
     saveTabLayout("fav." + folderId, l);
     bumpLayout((v) => v + 1);
@@ -227,7 +243,7 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
   };
 
   return (
-    <>
+    <div className="swipe-tabs" ref={swipeRef}>
       {visibleIds.length === 0 ? (
         <Card>
           <Empty text="所有栏目已隐藏，点「管理栏目」恢复。" />
@@ -366,7 +382,7 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
           onClose={() => setIconOpen(false)}
         />
       ) : null}
-    </>
+    </div>
   );
 }
 
@@ -437,8 +453,26 @@ function OneItem({
 }) {
   const favs = useFavs();
   const { navigate } = useApp();
+  const menu = useContextMenu();
+  const [collect, setCollect] = useState(false);
   const f = favs.data.folders[folderId];
   const it = f?.items[index];
+  /* A3 长按 = 收藏（矩阵「课程与页面」一行）：同一批收藏器多选收藏夹，不新写存储。
+     Hook 必须在早返回之前调用（hook-order 护栏），所以回调里重新解析一次收藏项。 */
+  const lp = useLongPress((x, y) => {
+    if (!it || it.t !== "a") return;
+    const v = resolveAtom(it.atom);
+    if (!v) return;
+    const items: CtxItem[] = [
+      {
+        key: "collect",
+        label: "收藏",
+        icon: <IconStar width={14} height={14} />,
+        onSelect: () => setCollect(true),
+      },
+    ];
+    menu.open({ x, y, title: v.title, items });
+  });
   if (!f || !it || it.t !== "a") return null;
   const view = resolveAtom(it.atom);
   if (!view) return null; // 注册表已下线的收藏项：直接不渲染
@@ -467,7 +501,8 @@ function OneItem({
   if (view.widget) {
     const body = view.widget();
     return (
-      <section className="home-card fav-widget">
+      <>
+      <section className="home-card fav-widget" {...lp}>
         <div className="home-card-head">
           <button type="button" className="home-card-title" onClick={() => view.open(navigate)} title="打开来源页">
             <h2>{view.title}</h2>
@@ -478,12 +513,15 @@ function OneItem({
         </div>
         <div className="home-card-body">{body ?? <Empty text="暂无数据（数据为空时今日同款组件会整卡隐藏）。" />}</div>
       </section>
+      {collect ? <CollectModal atom={it.atom} onClose={() => setCollect(false)} /> : null}
+      </>
     );
   }
 
   const Icon = view.icon;
   return (
-    <section className="home-card">
+    <>
+    <section className="home-card" {...lp}>
       <div className="home-card-head">
         <button
           type="button"
@@ -522,6 +560,8 @@ function OneItem({
         ) : null}
       </div>
     </section>
+    {collect ? <CollectModal atom={it.atom} onClose={() => setCollect(false)} /> : null}
+    </>
   );
 }
 
@@ -529,14 +569,30 @@ function OneItem({
 function TileItem({ folderId, index, editing }: { folderId: string; index: number; editing: boolean }) {
   const favs = useFavs();
   const { navigate } = useApp();
+  const menu = useContextMenu();
+  const [collect, setCollect] = useState(false);
   const f = favs.data.folders[folderId];
   const it = f?.items[index];
+  const lp = useLongPress((x, y) => {
+    if (!it || it.t !== "a") return;
+    const v = resolveAtom(it.atom);
+    if (!v) return;
+    const items: CtxItem[] = [
+      {
+        key: "collect",
+        label: "收藏",
+        icon: <IconStar width={14} height={14} />,
+        onSelect: () => setCollect(true),
+      },
+    ];
+    menu.open({ x, y, title: v.title, items });
+  });
   if (!f || !it || it.t !== "a") return null;
   const view = resolveAtom(it.atom);
   if (!view) return null;
   const Icon = view.icon;
   return (
-    <Card className="fav-tile">
+    <Card className="fav-tile" {...lp}>
       <button
         className="fav-tile-btn"
         onClick={() => view.open(navigate)}
@@ -562,6 +618,7 @@ function TileItem({ folderId, index, editing }: { folderId: string; index: numbe
       ) : (
         <span className="fav-tile-star"><CollectStar atom={it.atom} title={view.title} /></span>
       )}
+      {collect ? <CollectModal atom={it.atom} onClose={() => setCollect(false)} /> : null}
     </Card>
   );
 }

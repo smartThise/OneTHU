@@ -9,6 +9,15 @@ import type { FetchLike } from "@onethu/core";
 import { webvpnWrap } from "@onethu/core";
 // R21c：body 序列化的唯一真源（FormData→multipart / 二进制→base64）
 import { serializeFetchBody } from "./bodySerialize.js";
+import { userCopy } from "./userCopy.js";
+// F3 ③④：判定/编排/脱敏都收在零依赖的共享模块（业务侧与护栏加载同一份）
+import {
+  isLibAuthFailureText,
+  isLibAuthJudgeUrl,
+  looksLibLoggedOut,
+  withLibAuthRecovery,
+  type LibAuthFailure,
+} from "./libSessionGuard.js";
 
 export const isTauri =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -33,6 +42,43 @@ export function setHopUrlWrapper(fn: (url: string) => string): void {
 let hopLogger: ((hopUrl: string, status: number, cookies?: string) => void) | null = null;
 export function setHopLogger(fn: (hopUrl: string, status: number, cookies?: string) => void): void {
   hopLogger = fn;
+}
+
+/**
+ * ③ 会话恢复钩子（clients.ts 注入）：nativeFetch 命中「Rust 鉴权类错误 / 200 但
+ * 响应体是登录页」时回调一次。恢复动作（站点反推 + 共享单飞重登）留在业务侧，
+ * 传输层**不持任何调度器/冷却/退避**——绝不新增第二套。
+ */
+export interface NativeFetchAuthHooks {
+  /** 返回 true = 已恢复，nativeFetch 重放一次；false = 不重放，原样交回调用方。 */
+  recover: (url: string, failure: LibAuthFailure) => Promise<boolean>;
+  /** 诊断日志出口（可与业务日志同一落点） */
+  log?: (line: string) => void;
+}
+let nativeFetchAuthHooks: NativeFetchAuthHooks | null = null;
+export function setNativeFetchAuthHooks(hooks: NativeFetchAuthHooks | null): void {
+  nativeFetchAuthHooks = hooks;
+}
+
+/**
+ * ④ 旁证探针（clients.ts 注入，只加日志）：每次把请求交给原生仓前置一次回调，
+ * 宿主据此并列打印 JS jar 的 wengine 票值（脱敏），与紧邻的 Rust `[NATIVE-STORE]`
+ * 行对照两仓是否不同步。探针异常绝不影响主链。
+ */
+let nativePreflightProbe: ((wireUrl: string) => void) | null = null;
+export function setNativePreflightProbe(fn: ((wireUrl: string) => void) | null): void {
+  nativePreflightProbe = fn;
+}
+
+/**
+ * ④ 回灌钩子（b21，clients.ts 注入）：原生响应**带 Set-Cookie 时**回调一次，
+ * 逐跳交回 (所在跳 URL, 原始行)；宿主按物理域把 wengine 基础设施票回灌 JS jar
+ * （单调保护在 `lib/cookieSync.ts`）。传输层只做「交回事实」，不持世代表/调度器；
+ * 无 Set-Cookie 的响应不触发（不是每请求动作——过一帧一次的高频播种已明确不做）。
+ */
+let nativeCookieSink: ((hops: Array<{ u: string; l: string }>) => void) | null = null;
+export function setNativeCookieSink(fn: ((hops: Array<{ u: string; l: string }>) => void) | null): void {
+  nativeCookieSink = fn;
 }
 
 interface HttpOutput {
@@ -117,6 +163,16 @@ export async function nativeSeedCookies(url: string, lines: string[]): Promise<v
   }
 }
 
+/** F3 ④ 旁枝 (i)（b35）：原生仓**只读快照**（生效 host/path + name/value），供 JS 侧
+ *  主动核对两仓。只读——不改原生仓任何状态；失败向上抛，由 `cookieSync` 的 reconciler
+ *  静默降级并留一行可检索日志（核对失败绝不影响登录 / boot 主链）。 */
+export async function nativeCookieDump(): Promise<
+  Array<{ host: string; path: string; name: string; value: string }>
+> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return await invoke("http_native_cookie_dump");
+}
+
 export async function nativeCookieClear(): Promise<void> {
   try {
     const { invoke } = await import("@tauri-apps/api/core");
@@ -130,15 +186,35 @@ export async function nativeCookieClear(): Promise<void> {
   }
 }
 
-export async function nativeFetch(
-  url: string,
-  init: {
-    method?: string;
-    body?: string | URLSearchParams | FormData | Uint8Array;
-    headers?: Record<string, string>;
-    timeoutMs?: number;
-  } = {},
-): Promise<Response> {
+/** F3 ④（b21）：原生仓**全清**。只允许显式登出/清仓路径调用（见 `infoLib.ts` 的
+ *  平台清仓钩子）；正常业务流一律走上面的域清。 */
+export async function nativeCookieClearAll(): Promise<void> {
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("http_native_clear_cookies");
+  } catch {
+    /* 非 tauri 环境忽略 */
+  }
+}
+
+export interface NativeFetchInit {
+  method?: string;
+  body?: string | URLSearchParams | FormData | Uint8Array;
+  headers?: Record<string, string>;
+  timeoutMs?: number;
+}
+
+/** nativeFetch 单次尝试的产物：Response 本体 + 判「200 登录页」所需的现场。 */
+interface NativeFetchOnce {
+  res: Response;
+  status: number;
+  finalUrl: string;
+  /** 文本响应体（二进制走 body_b64 时为 null）——登录页判据只对文本体成立 */
+  bodyText: string | null;
+  authDance: string | null;
+}
+
+async function nativeFetchOnce(url: string, init: NativeFetchInit): Promise<NativeFetchOnce> {
   const { invoke } = await import("@tauri-apps/api/core");
   // body 统一压成 string / base64（2026-09-17 实录：URLSearchParams 直接传会被 invoke
   // 序列化成 map，Rust HttpInput.body 要 string——learn 作业/通知 POST 全灭根因）
@@ -194,6 +270,13 @@ export async function nativeFetch(
   } catch {
     /* 畸形 URL 原样 */
   }
+  // ④ 旁证日志（只加日志，不改行为）：交给原生仓前回调一次，宿主并列打印 JS jar
+  // 的 wengine 票值（脱敏），与紧邻的 Rust `[NATIVE-STORE]` 行对照两仓是否不同步。
+  try {
+    nativePreflightProbe?.(wireUrl);
+  } catch {
+    /* 旁证失败不影响请求 */
+  }
   const p = invoke<HttpOutput>("http_native", {
     input: {
       url: wireUrl,
@@ -228,17 +311,91 @@ export async function nativeFetch(
       res.set_cookie_hops.map(([u, l]) => ({ u, l })),
     ));
   }
+  // ④ 回灌挂点（b21）：本次原生响应**真的带 Set-Cookie** 时才回调一次，逐跳交回
+  // (所在跳 URL, 原始行)。无 Set-Cookie 的响应一次都不触发——绝不在每请求前播种。
+  if (res.set_cookie_hops && res.set_cookie_hops.length > 0) {
+    try {
+      nativeCookieSink?.(res.set_cookie_hops.map(([u, l]) => ({ u, l })));
+    } catch {
+      /* 回灌失败不影响主链 */
+    }
+  }
   const bodyInit: BodyInit | null =
     res.status === 204 || res.status === 205 || res.status === 304
       ? null
       : res.body_b64
         ? b64ToBytes(res.body_b64)
         : res.body;
-  return new Response(bodyInit, {
+  return {
+    res: new Response(bodyInit, {
+      status: res.status,
+      statusText: res.status_text,
+      headers: respHeaders,
+    }),
     status: res.status,
-    statusText: res.status_text,
-    headers: respHeaders,
+    finalUrl: res.url,
+    bodyText: typeof res.body === "string" ? res.body : null,
+    authDance: respHeaders.get("x-onethu-auth-dance"),
+  };
+}
+
+/**
+ * F3 ③（b17 落地 / b36 收口）：触发面下移到传输层——两类信号在**唯一**的判定入口
+ * `judgedNativeFetch()` 统一捕获：
+ *   - Rust 侧抛出的鉴权类错误（`Err("会话已失效，需要重新登录")` 等，文案集合复用既有）；
+ *   - HTTP 200 但响应体是登录页/被踢页（判据复用既有 `looksLibLoggedOut` 集合）。
+ * 命中后只做一件事：回调注入的恢复钩子（业务侧接共享单飞），成功则**重放一次**；
+ * 恢复失败或重放再失败，把原始结果/错误原样交回调用方。本层不持第二套调度。
+ *
+ * **b36 口径 1：两条原生通道都必须经这一个入口，不许存在绕过判定的原生通道**——
+ *   - `nativeFetch`：`http_native` 原语 `nativeFetchOnce`（lib 主数据链的 platformFetch、
+ *     `http` / `learnHttp`、`session.fetchLike`、venue…）；
+ *   - `tauriFetch`：逐跳跳循环原语 `tauriFetchOnce`（`universalFetch` 在 Tauri 下的落点，
+ *     以及 market / DormTab / CourseInfoTab / ThubookPage / exthw / cloudCal / plugins 等调用方）。
+ * 两个原语各自**不含任何判定**、也**互不调用**（后者若调前者就会双重包装），所以
+ * 「每条请求恰好一次判定、恰好一次共享单飞」由结构本身保证（护栏 ㉘ 守）。
+ *
+ * **b38 域限缩（霖 2026-10-05 裁定）**：判定只对清华 / WebVPN 域生效——入口第一步用
+ * `isLibAuthJudgeUrl(url)` 过闸，域外直接执行原语、不进判定也不进恢复。理由与边界：
+ *   - gate 落在**唯一判定入口**上，两条原生通道（`http_native` / `http_request`）一并生效
+ *     ⇒ 不会留下「某条通道漏 gate」的新绕过面（b36 的「触发面唯一」结构一行未动）；
+ *   - 域名单来自既有常量（`libSessionGuard.ts` 的 `LIB_AUTH_JUDGE_HOST_BASE`，同源于
+ *     `nativeFetchOnce` 的域分流 / 五站点域表 / core 的 `WEBVPN_ROOT`），护栏 ㉙ 钉死；
+ *   - 清华会话链（learn / info / venue / 选课 / library / webvpn 包装 URL / id 登录链）
+ *     判定与恢复**一字未改**；b36 外溢名单（market / exthw 拓课·雨课堂·tyche·dsa /
+ *     cloudCal / trace / thubook / plugins 出口 / 水站 / 洗衣机外部域 / `tsinghua.app`）
+ *     不再触发。传 `nativeFetch`（`http_native`）的消费方在本仓全是清华 / webvpn 域，
+ *     所以该通道行为零变化——gate 只是把它结构上也钉住。
+ */
+async function judgedNativeFetch(
+  url: string,
+  attempt: () => Promise<NativeFetchOnce>,
+): Promise<Response> {
+  // b38：域外请求不判、不恢复（原语结果/错误原样交回调用方）
+  if (!isLibAuthJudgeUrl(url)) return (await attempt()).res;
+  const hooks = nativeFetchAuthHooks;
+  const outcome = await withLibAuthRecovery<NativeFetchOnce>({
+    attempt,
+    classifyError: (err) => {
+      const raw = rawErrorText(err);
+      return isLibAuthFailureText(raw)
+        ? { signal: "rust-auth-error" as const, detail: raw.slice(0, 60) }
+        : null;
+    },
+    classifyValue: (r) =>
+      r.status === 200 && looksLibLoggedOut({ body: r.bodyText, url: r.finalUrl, authDance: r.authDance })
+        ? { signal: "logged-out-page" as const, detail: "status=200" }
+        : null,
+    recover: (failure) => (hooks ? hooks.recover(url, failure) : Promise.resolve(false)),
+    log: (line) => hooks?.log?.(line),
   });
+  if (outcome.kind === "error") throw outcome.error;
+  return outcome.value.res;
+}
+
+/** lib / info / learn / venue 等主数据链的原生通道（`http_native` 原语 + ③ 判定）。 */
+export async function nativeFetch(url: string, init: NativeFetchInit = {}): Promise<Response> {
+  return judgedNativeFetch(url, () => nativeFetchOnce(url, init));
 }
 
 function collectHeaders(init: RequestInit): Record<string, string> {
@@ -261,7 +418,7 @@ function collectHeaders(init: RequestInit): Record<string, string> {
  *   是 UTF-8 字符串，二进制经字符串通道会损坏，必须 base64。
  * 返回 textBody / b64Body 二选一（恒有一个为 null）。
  */
-export async function tauriFetch(url: string, init: RequestInit = {}): Promise<Response> {
+async function tauriFetchOnce(url: string, init: RequestInit = {}): Promise<NativeFetchOnce> {
   let currentUrl = url;
   let method = (init.method ?? "GET").toUpperCase();
   // R17 23.1：signal / timeoutMs 为 core 侧扩展字段（FetchLike 的 RequestInit 之外）
@@ -401,14 +558,36 @@ export async function tauriFetch(url: string, init: RequestInit = {}): Promise<R
       res.status === 204 || res.status === 205 || res.status === 304
         ? null
         : res.body_b64 ? b64ToBytes(res.body_b64) : res.body;
-    return new Response(bodyInit, {
+    return {
+      res: new Response(bodyInit, {
+        status: res.status,
+        statusText: res.status_text,
+        headers: respHeaders,
+      }),
       status: res.status,
-      statusText: res.status_text,
-      headers: respHeaders,
-    });
+      finalUrl: currentUrl,
+      // 登录页判据只对文本体成立（二进制走 body_b64 时为 null）
+      bodyText: typeof res.body === "string" ? res.body : null,
+      authDance: respHeaders.get("x-onethu-auth-dance"),
+    };
   }
 
   throw new Error(`重定向次数超限（${maxHops}）末跳=${currentUrl.slice(0, 140)}`);
+}
+
+/**
+ * Tauri 下 `universalFetch` 的落点（b36 口径 1）：逐跳跳循环原语 + **同一个** ③ 判定入口。
+ * 收进判定面之后，这条通道上原先「不经过 `nativeFetch` 就抓不到」的登录状态失效
+ * （DormTab / CourseInfoTab / ThubookPage / market / exthw / cloudCal / plugins 等）
+ * 也能被捕获并走到同一把共享单飞；重放一次由 `withLibAuthRecovery` 保证。
+ * 判据集合未改（仍是 `isLibAuthFailureText` + `looksLibLoggedOut`），未新增 401/403 判据。
+ *
+ * **b38 修正**：上列消费方全是外部 / 非清华域，按霖「判定限缩到清华 / WebVPN 域」的裁定，
+ * 它们不再进 ③ 判定（见 `judgedNativeFetch` 的域闸）；这条通道上仍受判定的是清华 /
+ * webvpn 域请求（选课 / xk、`app.cs` 等）。
+ */
+export async function tauriFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  return judgedNativeFetch(url, () => tauriFetchOnce(url, init));
 }
 
 /** base64 → 字节（二进制响应体通道；Response(string) 会把 0x89 等
@@ -420,7 +599,12 @@ function b64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
   return u8;
 }
 
-/** 注入 HttpClient 的 FetchLike */
+/**
+ * 注入 HttpClient / 插件 / 外部服务调用方的 FetchLike。
+ * Tauri 下落 `tauriFetch`（b36 口径 1 起带 ③ 判定面，不再是绕过判定的通道；
+ * b38 起该判定面限缩到清华 / WebVPN 域，外部消费方不触发）；
+ * 浏览器预览降级 `window.fetch`（无原生会话，不涉及登录状态失效判定）。
+ */
 export const universalFetch: FetchLike = (url, init) =>
   isTauri ? tauriFetch(url, init) : window.fetch(url, init);
 
@@ -431,13 +615,22 @@ export const universalFetch: FetchLike = (url, init) =>
  * 那些值不是 Error 实例。曾经这里只认 `err instanceof Error`，于是所有原生错误
  * （会话失效 / HTTP 403 / 文件过大 / 空文件）统统显示成「未知网络错误」——
  * 真话被吞掉，排查只能靠猜。现在先把任意形态的 err 归一成一句话，再场景化。
- *
- * 归一（`rawErrorText`）与「会话失效」判定（`isSessionExpiredError`）已挪到
- * `lib/sessionErrors.ts`：那是零依赖叶子模块，单测能直接 import（本文件会把整个
- * `@onethu/core` 拖进来，Node 的类型剥离跑不动 core 的参数属性语法）。
  */
-export { rawErrorText, isSessionExpiredError } from "./sessionErrors.js";
-import { rawErrorText } from "./sessionErrors.js";
+export function rawErrorText(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object") {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === "string" && m) return m;
+    try {
+      return JSON.stringify(err);
+    } catch {
+      /* 循环引用等：落到下面的兜底 */
+    }
+  }
+  if (err === null || err === undefined) return "";
+  return String(err);
+}
 
 /** 最近一次界面报错的原文（只随「复制诊断摘要」带出，不自动上报） */
 let lastRawError = "";
@@ -445,7 +638,8 @@ export function lastErrorText(): string {
   return lastRawError;
 }
 
-export function explainNetworkError(err: unknown): string {
+/** 面向用户的错误说明（内部实现）：识别与文案分支都在这里，输入是原始错误文本。 */
+function explainNetworkErrorRaw(err: unknown): string {
   const raw = rawErrorText(err).trim();
   lastRawError = raw;
   if (!raw) return "操作失败（原生未给出原因，可到「设置 → 诊断」看日志）";
@@ -475,4 +669,11 @@ export function explainNetworkError(err: unknown): string {
     return "网络超时：请确认校园网 / WebVPN 可达。";
   }
   return raw;
+}
+
+/** 面向用户的错误说明（**唯一出口**）：在原文分支判定之后统一做一次术语净化，
+ *  保证任何一条分支（包括直接回原文的兜底）都不会把「会话 / 凭据 / Cookie」这类
+ *  内部名词漏给用户（b25）。判定用的正则仍在 `rawErrorText` 原文上跑，不受影响。 */
+export function explainNetworkError(err: unknown): string {
+  return userCopy(explainNetworkErrorRaw(err));
 }

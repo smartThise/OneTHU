@@ -28,6 +28,19 @@ export const PENDING = [
   ".fav-tile-btn",
 ];
 
+/* C18（霖 2026-10-01 走查）：余额速览是 shellFree 的整条卡，曾经自带一条外描边——今日页其它
+   卡片（.card）都没有描边，只有它突兀。这里钉两件事：它不再有描边；它在默认顺序里已后移
+   （「降低优先级」而不是删除，电费入口仍在）。 */
+const TODAY = readFileSync("apps/desktop/src/pages/Today.tsx", "utf8");
+const CARDS = readFileSync("apps/desktop/src/lib/homeCards.ts", "utf8");
+const strip = CSS.slice(CSS.indexOf(".balance-strip {"), CSS.indexOf("}", CSS.indexOf(".balance-strip {")));
+if (/border: 1px solid/.test(strip)) fails.push("余额速览又有了外描边（今日页只有它一处突兀）");
+if (/border:\s*0/.test(strip) === false) fails.push("余额速览没有显式声明 border: 0");
+const order = /id: "balance-strip"[^}]*defaultOrder: ([\d.]+)/.exec(CARDS);
+if (!order) fails.push("找不到 balance-strip 的 defaultOrder");
+else if (Number(order[1]) < 4) fails.push("余额速览的默认顺序没有后移（现在 " + order[1] + "，应在猜你喜欢之后）");
+if (!/dormSection: "ele"/.test(TODAY) || !/宿舍电费/.test(TODAY)) fails.push("电费入口被删了（只能降优先级，不能做功能减法）");
+
 const fails = [];
 const ok = (cond, msg) => {
   if (!cond) fails.push(msg);

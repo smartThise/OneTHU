@@ -161,7 +161,7 @@ async function casFormRelogin(): Promise<void> {
   const remembered = await loadRemembered();
   const username = session.username;
   if (!username || !remembered?.password) {
-    throw new VenueAuthRequiredError("本机无记住的统一身份凭证");
+    throw new VenueAuthRequiredError("本机没有记住的统一身份登录信息，请在设置里重新登录一次统一身份认证");
   }
   const ID = "https://id.tsinghua.edu.cn";
   const pickUni = (src: string): string | null => /[?&]uniToken=([^&\s"'<>]+)/.exec(src)?.[1] ?? null;
@@ -342,7 +342,7 @@ export async function venueSubmit2FA(type: string, code: string): Promise<boolea
   try {
     json = JSON.parse(text);
   } catch {
-    throw new VenueApiError("二次认证接口返回异常", "2FA");
+    throw new VenueApiError("二次认证返回的内容无法识别，请重试", "2FA");
   }
   if (json.result !== "success") throw new VenueApiError(json.msg ?? "验证码错误或已过期", "2FA");
   const redirectUrl = json.object?.redirectUrl;

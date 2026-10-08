@@ -14,29 +14,39 @@
  * 数据全复用既有层（useLearnData/exthw/hwIgnore/hwCard/news），零新取数。
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
-import { IconX } from "../components/Icons";
+import { IconBell, IconRefresh, IconStar, IconX } from "../components/Icons.js";
 import { parseLearnTime, SOURCE_NAMES } from "@onethu/core";
+import type { NewsItem } from "@onethu/core";
 import { SegmentedOverflow, Card, Empty, PageHead } from "../components/Layout.js";
-import { IconRefresh } from "../components/Icons.js";
-import { CollectStar } from "../components/Collect.js";
-import { HwRemindButton, semesterText, useLearnNavSemester } from "./learn/shared.js";
+import { CollectModal, CollectStar } from "../components/Collect.js";
+import { SearchSelect } from "../components/SearchSelect.js";
+import { useContextMenu, useLongPressZone, type CtxItem } from "../components/ContextMenu.js";
+import { HwRemindButton, HwRemindPop, semesterText, useLearnNavSemester } from "./learn/shared.js";
 import { openHomeworkRow } from "../lib/homeworkEntry.js";
+import { useSwipeTabs } from "../lib/useSwipeTabs.js";
 import { CONFIRM_IGNORE_HW, confirmDanger } from "../lib/confirm.js";
 import { ignoreHw, useIgnoredHw } from "../state/hwIgnore.js";
+import { fmtRemindOffset, setHwReminder, useHwDefault, useHwReminder } from "../state/hwRemind.js";
+import type { AtomRef } from "../state/favorites.js";
 import { extHwSourceName, toHomework, useExternalHomework } from "../state/exthw.js";
 import { hwCourseGroups, hwCourseKey, hwCourseLabel } from "../lib/hwCourse.js";
 import { useApp } from "../state/context.js";
-import { isAndroidNavigator } from "../lib/androidHost.js";
+import { haptic } from "../lib/haptics.js";
 import { useCard, useLearnData, useTodayNewsFeed } from "../state/data.js";
 import { enc } from "../state/atoms.js";
+import type { PageMenuItem } from "../state/pageChrome.js";
 import { readSubs } from "./info/newsSearch.js";
 import { noticeHasRead, useNoticeReadVersion } from "../lib/noticeRead.js";
 import { NewsRows } from "../components/HomeWidgets.js";
+import { NewsDetailDrawer, type NewsDetailState } from "../components/NewsDetailDrawer.js";
+import { info } from "../lib/clients.js";
+import { explainNetworkError } from "../lib/transport.js";
+import { openExternal } from "./info/openExternal.js";
 import { useExpanded } from "../state/usePlatformLayout.js";
 import { AssignmentDetailPage } from "./learn/AssignmentDetailPage.js";
 import { YktAssignmentDetailPage } from "./learn/YktAssignmentDetailPage.js";
 import { yktDetailParams } from "../lib/homeworkEntry.js";
-import { prefersReducedMotion } from "../lib/motion.js";
+import { EASE_EMPHASIZED, prefersReducedMotion } from "../lib/motion.js";
 import { pickHomeworkRoute } from "../lib/yktDetail.js";
 import { activateSlot, normalizeWheelDelta, takeWheelStep, type DetailSlot } from "../lib/detailSlots.js";
 import type { Homework } from "@onethu/core";
@@ -67,6 +77,95 @@ function hwTags(h: Homework): Array<{ text: string; cls: string }> {
 /** 卡片纵向位移（px）：0=居中；±1=上/下露出（STEP > 半卡高，保下方卡露出标题区）；拖拽时叠加 dragDelta 实时跟手 */
 const STEP_DEFAULT = 170;
 
+/** 忽略作业的二次确认：卡片动作钮与长按菜单共用同一段文案与 CONFIRM_IGNORE_HW 常量 */
+async function ignoreWithConfirm(h: Homework): Promise<void> {
+  const ok = await confirmDanger(
+    `确定要忽略《${h.title}》吗？\n\n忽略后它不再出现在作业区与日程提醒中，可在「全部作业 → 已忽略」恢复。`,
+    CONFIRM_IGNORE_HW,
+  );
+  if (ok) ignoreHw(h.id, h.title);
+}
+
+/** 菜单里的提醒档位面板：走订阅版取值（不是打开菜单那一刻的快照），
+ *  否则「清除」之后高亮档位与清除按钮都还停在旧值上。 */
+function HwRemindPanel({ h, close }: { h: Homework; close: () => void }): ReactNode {
+  const cur = useHwReminder(h.id);
+  const def = useHwDefault();
+  return (
+    <HwRemindPop
+      value={cur}
+      title={`作业截止前提醒（覆盖全局默认 ${fmtRemindOffset(def)}）`}
+      allowClear
+      onApply={(m) => {
+        setHwReminder(h.id, m);
+        if (m != null) close();
+      }}
+    />
+  );
+}
+
+/** 作业卡片的长按菜单项（施工图 A3 矩阵第一行：忽略 / 提醒 / 收藏）。
+ *  提醒复用卡片铃铛的 HwRemindPop（同一套档位与 setHwReminder），不另写一份预设。 */
+function hwMenuItems(
+  h: Homework,
+  opts: { courseName: string; semesterId?: string; onCollect: (atom: AtomRef) => void },
+): CtxItem[] {
+  const items: CtxItem[] = [
+    {
+      key: "ignore",
+      label: "忽略",
+      danger: true,
+      icon: <IconX width={14} height={14} />,
+      onSelect: () => void ignoreWithConfirm(h),
+    },
+    {
+      key: "remind",
+      label: "提醒",
+      icon: <IconBell width={14} height={14} />,
+      panel: (close) => <HwRemindPanel h={h} close={close} />,
+    },
+  ];
+  /* 与卡片上的星标同条件：外部源作业没有站内收藏项，不摆一个点了没反应的项 */
+  if (!h.source && opts.semesterId) {
+    items.push({
+      key: "collect",
+      label: "收藏",
+      icon: <IconStar width={14} height={14} />,
+      onSelect: () => opts.onCollect({ kind: "assignment", key: enc(h.courseId, h.id, h.title, opts.courseName, opts.semesterId) }),
+    });
+  }
+  return items;
+}
+
+/** A1（霖 2026-10-05）：加载态骨架卡。
+ *  几何**完全复用真实卡那条 class 链**（.hw-carousel-row > .hw-carousel > .hw-card），
+ *  宽/高/位置/圆角/底色因此与随后的真实卡同源，切换时不会有横向跳动。
+ *  指示点轨道放一枚占位点：真卡轨道的宽度只由「点宽 + 内边距」决定、与点的数量无关，
+ *  少了它卡宽会差十几像素，所以这一枚是几何对齐的一部分。
+ *  骨架条一律用百分比宽（窄屏不溢出），文案在卡内居中。 */
+function HwSkeletonCard(): ReactNode {
+  return (
+    <div className="hw-carousel-row" aria-busy="true">
+      <div className="hw-dots" aria-hidden>
+        <span className="hw-dot is-cur" />
+      </div>
+      <div className="hw-carousel">
+        <div className="hw-card is-skeleton">
+          <div className="hw-card-head">
+            <div className="skeleton" style={{ width: "44%", height: 18 }} />
+          </div>
+          <div className="skeleton" style={{ width: "72%", height: 12, marginTop: 10 }} />
+          <div className="hw-skeleton-note">正在获取作业…</div>
+          <div className="hw-card-foot">
+            <div className="skeleton" style={{ width: "30%", height: 12 }} />
+            <div className="skeleton" style={{ width: "26%", height: 22 }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick, onFront }: { items: Homework[]; courseNameOf: (id: string) => string; courseLabelOf: (h: Homework) => string; semesterId?: string; onPick?: (h: Homework) => void; onFront?: (h: Homework) => void }): ReactNode {
   const { navigate } = useApp();
   // 位置真值放 ref，setPos 只做渲染镜像：逐帧补间时避免闭包读旧值
@@ -81,7 +180,25 @@ function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick, on
   const n = items.length;
   // 卡片流几何自适应：容器高度由 CSS 给（clamp 到 100dvh 减去页头/筛选/计数/通知/底栏/OH 岛的预留），
   // 步距与卡高按实测高度放大 —— 屏幕越长卡片越大、能看到的邻卡越多，而不是在底部留一片空白。
-  const shellRef = useRef<HTMLDivElement | null>(null);
+  const menu = useContextMenu();
+  /* 长按菜单里的「收藏」与卡片星标走同一条通路（CollectModal 的收藏夹多选），
+     不是另写一份存储：弹层挂在轮播容器上，一处状态管所有卡。 */
+  const [collectAtom, setCollectAtom] = useState<AtomRef | null>(null);
+  /* A3 长按区：装在容器上按事件委托找手指底下那张卡（卡是 map 出来的，
+     逐张挂 Hook 写不出来）；卡上的 data-hw-id 供这里回查作业对象。 */
+  const shellRef = useLongPressZone<HTMLDivElement>({
+    selector: ".hw-card",
+    onLongPress: (el, x, y) => {
+      const h = items.find((it) => it.id === el.dataset.hwId);
+      if (!h) return;
+      menu.open({
+        x,
+        y,
+        title: h.title,
+        items: hwMenuItems(h, { courseName: courseNameOf(h.courseId), semesterId, onCollect: setCollectAtom }),
+      });
+    },
+  });
   const [geo, setGeo] = useState({ h: 300, step: STEP_DEFAULT });
   useEffect(() => {
     const el = shellRef.current;
@@ -131,27 +248,14 @@ function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick, on
   }, []);
   const curIdx = ((Math.round(pos) % n) + n) % n;
   const lastTick = useRef(curIdx);
-  const hapticPathLogged = useRef(false); // 触觉降级路径只记一次日志
   useEffect(() => {
     if (curIdx === lastTick.current) return;
     lastTick.current = curIdx;
-    if (!isAndroidNavigator(navigator)) {
-      try { navigator.vibrate?.(4); } catch { /* 静默 */ }
-      return;
-    }
-    void import("@tauri-apps/api/core")
-      .then(({ invoke }) => invoke<{ ok: boolean; mode?: string }>("ui_haptic_tick"))
-      .then((r) => {
-        // 跨机型排查：只记一次实际路径。prebaked=各 ROM 自家标定波形（理想）；
-        // waveform/legacy=该机 HAL 不认预烘焙，已降级自绘波形（手感会略弱）。
-        if (r?.mode && r.mode !== "prebaked" && !hapticPathLogged.current) {
-          hapticPathLogged.current = true;
-          void import("../lib/clients.js")
-            .then((m) => m.logLine(`[HAPTIC] 预烘焙不可用，降级路径=${r.mode}`))
-            .catch(() => undefined);
-        }
-      })
-      .catch(() => undefined);
+    /* A2：触感的唯一入口是 lib/haptics.ts（降级链与「只记一次日志」都在那边），
+       这里只管「换卡了要 tick 一下」。
+       b29：这是老机型**唯一**放行的 tick 调用点（霖：只保留长按 + 作业瀑布流切卡），
+       所以显式传 `legacyKeep`；同档位的普通按钮委托（installGlobalHaptics）不传，老机型静默。 */
+    haptic("tick", { legacyKeep: true });
   }, [curIdx]);
   // 前台卡上报（宽屏右栏详情自动跟随）：只在**用户主动换卡**时报（拖拽/滚轮/点列），
   // 不在列表数据变化时报——否则「提交完作业、它从待办流里消失」的瞬间右栏会被抢走，
@@ -324,14 +428,21 @@ function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick, on
           return (
             <div
               key={h.id}
+              data-hw-id={h.id}
               className={"hw-card" + (front ? " is-cur" : "")}
               style={{
-                transform: "translate(-50%, -50%) translateY(" + yPx + "px) scale(" + scale + ")",
+                /* 霖 2026-10-02 #3：卡片的位置就是这个内联 transform，长按放大必须**乘进去**
+                   （`--ctx-press-k` 由按压样式给出，见 global.css），否则按压那条
+                   `scale` 会把定位一起顶掉、整张卡跳到右下角。 */
+                transform: "translate(-50%, -50%) translateY(" + yPx + "px) scale(calc(" + scale + " * var(--ctx-press-k, 1)))",
                 opacity,
                 zIndex: 100 - Math.round(Math.abs(yPx)),
                 height: geo.step - 2, // 卡高随步距缩放（CSS 的 168px 只是首帧兜底）
               }}
-              onClickCapture={(e) => {
+              /* C8（霖 2026-10-01 走查）：这里原来用 onClickCapture——捕获阶段先跑，
+                 卡面动作钮的 stopPropagation 拦不住，点「忽略」会先把详情打开。改成冒泡阶段，
+                 子元素先拿到事件；拖拽过（movedRef）或不是前台卡时仍然吞掉这次点击。 */
+              onClick={(e) => {
                 if (movedRef.current || !front) {
                   e.stopPropagation();
                   return;
@@ -353,12 +464,9 @@ function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick, on
                     title="忽略这条作业"
                     aria-label="忽略这条作业"
                     tabIndex={front ? 0 : -1}
-                    onClick={async () => {
-                      const ok = await confirmDanger(
-                      `确定要忽略《${h.title}》吗？\n\n忽略后它不再出现在作业区与日程提醒中，可在「全部作业 → 已忽略」恢复。`,
-                        CONFIRM_IGNORE_HW,
-                      );
-                      if (ok) ignoreHw(h.id, h.title);
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void ignoreWithConfirm(h);
                     }}
                   >
                     <IconX />
@@ -385,6 +493,7 @@ function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onPick, on
           );
         })}
       </div>
+      {collectAtom ? <CollectModal atom={collectAtom} onClose={() => setCollectAtom(null)} /> : null}
     </div>
   );
 }
@@ -406,6 +515,22 @@ export function TasksPage(): ReactNode {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
   const news = useTodayNewsFeed(subs);
+
+  /* D7（霖 2026-10-02）：待办页生活 tab 点新闻项**不跳页**，在本页弹详情抽屉。
+     抽屉组件与新闻页共用（components/NewsDetailDrawer.tsx），取数逻辑与 NewsTab.openDetail
+     一致（只少了搜索高亮缓存——待办页没有搜索框）。 */
+  const [newsDetail, setNewsDetail] = useState<NewsDetailState | null>(null);
+  const openNewsDetail = useCallback((item: NewsItem) => {
+    if (!item.xxid) {
+      if (item.url) void openExternal(item.url);
+      return;
+    }
+    setNewsDetail({ item, state: "loading" });
+    info
+      .getNewsDetail(item.xxid)
+      .then((d) => setNewsDetail({ item, state: "ok", data: d }))
+      .catch((err: unknown) => setNewsDetail({ item, state: "error", err: explainNetworkError(err) }));
+  }, []);
   const readVersion = useNoticeReadVersion(); // 通知未读口径：全站共享的本地已读覆盖
   const [courseFilter, setCourseFilter] = useState<string>(""); // "" = 全部课程
   const wide = useExpanded(); // ≥840px（§2.8.1 expanded）：学习/生活 双栏同显
@@ -501,7 +626,7 @@ export function TasksPage(): ReactNode {
         { transformOrigin: "top left", transform: "none", opacity: 1 },
       ],
       // 400ms + MD3 emphasized：大容器变形用强调档，别跟小控件抢速度
-      { duration: 400, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+      { duration: 400, easing: EASE_EMPHASIZED },
     );
   }, [pcFull]);
 
@@ -528,37 +653,27 @@ export function TasksPage(): ReactNode {
 
   const cardLow = (card.data?.info.balance ?? null) != null && (card.data?.info.balance ?? 0) < 20;
 
-  // 横向滑动切换 学习/生活 tab：全程页面无横滑元素，横滑手势专用于此；
-  // 防误触：位移 >60px 且 |dx| > 2|dy|（排除竖向滚动手势的横向漂移）。
-  const horiz = useRef<{ x0: number; y0: number } | null>(null);
-  const onHDown = (e: PointerEvent<HTMLDivElement>): void => {
-    horiz.current = { x0: e.clientX, y0: e.clientY };
-  };
-  const onHUp = (e: PointerEvent<HTMLDivElement>): void => {
-    const s = horiz.current;
-    horiz.current = null;
-    if (!s) return;
-    const dx = e.clientX - s.x0;
-    const dy = e.clientY - s.y0;
-    if (wide) return; // 宽屏双栏同显，无需横滑切换
-    if (Math.abs(dx) < 60 || Math.abs(dx) < 2 * Math.abs(dy)) return;
-    if (dx < 0 && tab === "learn") setTab("life");
-    else if (dx > 0 && tab === "life") setTab("learn");
-  };
+  /* 横向滑动切换 学习/生活 tab（C7）：手势本体在 lib/useSwipeTabs.ts（touch 事件 +
+     主轴判定 + touch-action: pan-y）。这里只管「按可见顺序取相邻项」——宽屏双栏同显时关掉。 */
+  const swipeRef = useSwipeTabs<HTMLDivElement>({
+    order: ["learn", "life"],
+    current: tab,
+    onChange: (next) => setTab(next as typeof tab),
+    disabled: wide,
+  });
 
   return (
     <>
       <PageHead
         title="待办"
         meta={data ? semesterText(data.semester.id) : "今天该管的事"}
-        actions={
-          <>
-            <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
-              <IconRefresh width={14} height={14} />
-              刷新
-            </button>
-          </>
-        }
+        menu={[{
+            key: "refresh",
+            label: "刷新",
+            icon: <IconRefresh width={16} height={16} />,
+            disabled: state === "loading",
+            onSelect: () => void reload(),
+          }].filter(Boolean) as PageMenuItem[]}
       />
 
       {!wide ? (
@@ -568,7 +683,7 @@ export function TasksPage(): ReactNode {
         </SegmentedOverflow>
       ) : null}
 
-      <div className={"tasks-body" + (wide ? " is-wide" : "")} onPointerDown={onHDown} onPointerUp={onHUp}>
+      <div className={"tasks-body" + (wide ? " is-wide" : "")} ref={swipeRef}>
       <section className={"tasks-pane" + (wide || tab === "learn" ? "" : " is-hidden")}>
         <div className="tasks-pane-head">学习</div>
         {/* 元素出场（§3.6：「待办页元素错峰出场」此前延后到动效令牌落地）：
@@ -578,28 +693,24 @@ export function TasksPage(): ReactNode {
         <div className="tasks-learn stagger">
           {/* 按课程检索：作业流上方，避免在几十条作业里翻找某一科 */}
           <div className="hw-filter">
-            <select
-              className="hw-filter-select"
+            {/* C16（霖 2026-10-01 走查）：这里原来是裸 <select>（浏览器默认样式的下拉），
+                统一换成全站共用的 SearchSelect（portal + fixed、圆角/描边/阴影/字号同款）。 */}
+            <SearchSelect
               value={courseFilter}
-              onChange={(e) => setCourseFilter(e.target.value)}
-              aria-label="按课程筛选作业"
-            >
-              <option value="">全部课程（{flowAll.length}）</option>
-              {flowCourses.some((c) => !c.source) ? (
-                <optgroup label="网络学堂">
-                  {flowCourses.filter((c) => !c.source).map((c) => (
-                    <option key={c.key} value={c.key}>{c.label}（{c.count}）</option>
-                  ))}
-                </optgroup>
-              ) : null}
-              {flowExtSources.map((src) => (
-                <optgroup key={src} label={extHwSourceName(src)}>
-                  {flowCourses.filter((c) => c.source === src).map((c) => (
-                    <option key={c.key} value={c.key}>{c.label}（{c.count}）</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+              onChange={setCourseFilter}
+              placeholder={`全部课程（${flowAll.length}）`}
+              options={[
+                { value: "", label: `全部课程（${flowAll.length}）` },
+                ...flowCourses
+                  .filter((c) => !c.source)
+                  .map((c) => ({ value: c.key, label: `${c.label}（${c.count}）`, group: "网络学堂" })),
+                ...flowExtSources.flatMap((src) =>
+                  flowCourses
+                    .filter((c) => c.source === src)
+                    .map((c) => ({ value: c.key, label: `${c.label}（${c.count}）`, group: extHwSourceName(src) })),
+                ),
+              ]}
+            />
             {courseFilter ? (
               <button className="hw-filter-clear" onClick={() => setCourseFilter("")}>清除</button>
             ) : null}
@@ -607,7 +718,7 @@ export function TasksPage(): ReactNode {
           {/* 作业卡片流（拖拽实时跟手） */}
           <div className="tasks-flow-wrap">
             {state === "loading" && flow.length === 0 ? (
-              <Card><Empty text="正在取作业…" /></Card>
+              <HwSkeletonCard />
       ) : (
               <HwCarousel
                 items={flow}
@@ -620,7 +731,9 @@ export function TasksPage(): ReactNode {
       )}
           </div>
           {/* 计数 + 双入口 */}
-          <div className="tasks-mid">
+          {/* 霖 2026-09-30 #4：汇总区与通知条此前长按没反应 —— 挂 data-ctx-atom，
+              由 ContextMenuLayer 的全局兜底层给「收藏」（收「全部作业」「全部通知」页面原子） */}
+          <div className="tasks-mid" data-ctx-atom='{"kind":"page","key":"learn-assignments"}' data-ctx-title="全部作业">
             <div className="tasks-stats">
               {/* 两项计数各自独立成卡（轻拟物：受光面 + 投影 + 内高光，按下内凹） */}
               <button className="task-stat" onClick={() => navigate("learn-assignments")}>
@@ -638,7 +751,7 @@ export function TasksPage(): ReactNode {
             </div>
           </div>
           {/* 课程通知提示条（不再列条目） */}
-          <div className={"notice-strip" + (unread.length > 0 ? " has-unread" : "")}>
+          <div className={"notice-strip" + (unread.length > 0 ? " has-unread" : "")} data-ctx-atom='{"kind":"page","key":"learn-notices"}' data-ctx-title="全部通知">
             <span className="task-dot" style={{ visibility: unread.length > 0 ? "visible" : "hidden" }} />
             <span className="notice-strip-text">
               {unread.length > 0 ? (
@@ -722,7 +835,7 @@ export function TasksPage(): ReactNode {
             <button className="task-sec-more" onClick={() => navigate("info", { infoTab: "news" })}>全部新闻 →</button>
           </div>
           {news.state === "ready" && (news.data?.list.length ?? 0) > 0 ? (
-            <NewsRows feed={news.data!} navigate={navigate} />
+            <NewsRows feed={news.data!} navigate={navigate} onOpen={openNewsDetail} />
       ) : (
             <Card><Empty text="新闻还在路上，稍后再来看看。" /></Card>
       )}
@@ -732,6 +845,13 @@ export function TasksPage(): ReactNode {
         )}
       </section>
       </div>
+      {/* D7：详情抽屉挂在页面根上（组件内部 createPortal 到 body，位置只影响重渲染时机）。
+          手机是底部抽屉、PC 是留 20px 边距的右侧面板；返回键先关它（E1 浮层帧）。 */}
+      <NewsDetailDrawer
+        detail={newsDetail}
+        onClose={() => setNewsDetail(null)}
+        onRetry={openNewsDetail}
+      />
     </>
   );
 }

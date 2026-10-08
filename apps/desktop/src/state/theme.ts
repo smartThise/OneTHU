@@ -488,10 +488,43 @@ function applyActive(): void {
   applyTheme(def);
 }
 
-/** 系统暗色监听：跟随模式下系统切换即时换主题 */
+/* ---------- 系统暗色原生信号（b40）----------
+ * 为什么需要：WebView 96（老机型）不把系统暗色透传到 `prefers-color-scheme`
+ * （`matchMedia('(prefers-color-scheme: dark)')` 恒 false，含冷启四次全 false），
+ * 「跟随系统」在老机器上永远停在亮色档。Android 侧改由 onethu-mobile 插件读
+ * Configuration 的实际 night 位送来（启动读一次 + 系统档切换事件）；
+ * 取不到 / PC 回 `unknown` → 回落下面的 `matchMedia`，现代引擎两者一致、行为不变。
+ * 这里只换 `systemDark` 的**来源**，themeSchedule() 的语义与持久化结构都不动。 */
+let nativeDark: boolean | null = null;
+
+/** 采用原生 night 信号：dark/light 为准；unknown 回落 matchMedia。导出供护栏直测。 */
+export function applyNativeNightMode(mode: unknown): void {
+  const next = mode === "dark" ? true : mode === "light" ? false : null;
+  if (next === null) {
+    // unknown（PC / 命令缺失 / 读取失败）：**不许**当成 light 硬覆盖，回落媒体查询
+    if (nativeDark === null) return; // 本来就是回落态，无需动作
+    nativeDark = null;
+    const fallback = !!darkMq?.matches;
+    if (fallback === systemDark) return;
+    systemDark = fallback;
+    if (state.followSystem) applyActive();
+    emit();
+    return;
+  }
+  if (next === nativeDark) return;
+  nativeDark = next;
+  if (next === systemDark) return;
+  systemDark = next;
+  if (state.followSystem) applyActive();
+  emit();
+}
+
+/** 系统暗色监听：跟随模式下系统切换即时换主题。
+ *  原生信号可用时以原生为准（这里让位，避免同一档双触发/抖动）。 */
 const darkMq = typeof window !== "undefined" && "matchMedia" in window ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 if (darkMq) {
   const onSys = (): void => {
+    if (nativeDark !== null) return; // b40：原生信号为准（现代引擎两者一致）
     const was = systemDark;
     systemDark = darkMq.matches;
     if (state.followSystem && was !== systemDark) {
@@ -505,6 +538,24 @@ if (darkMq) {
 }
 
 bootstrap();
+
+/* 原生信号接线：启动读一次 + 订阅系统档切换事件（插件 onConfigurationChanged 推）。
+ * 命令回的是裸字符串 "dark" / "light" / "unknown"（事件 payload 是 { mode }）；
+ * 非 Android / 命令缺失 / 被 ACL 拒 → promise 落地前失败，走 matchMedia 回落；
+ * 全程无轮询、无定时器。 */
+if (typeof window !== "undefined" && isAndroidNavigator(navigator)) {
+  void import("@tauri-apps/api/core")
+    .then(({ invoke }) => invoke<string | null>("plugin:onethu-mobile|system_night_mode"))
+    .then((mode) => applyNativeNightMode(mode))
+    .catch(() => undefined);
+  void import("@tauri-apps/api/core")
+    .then(({ addPluginListener }) =>
+      addPluginListener<{ mode?: string }>("onethu-mobile", "system-night-mode", (p) =>
+        applyNativeNightMode(p && typeof p === "object" ? p.mode : null),
+      ),
+    )
+    .catch(() => undefined);
+}
 
 /* ---------- 公开 API ---------- */
 

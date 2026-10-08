@@ -11,6 +11,7 @@
  * 少了 min-height:0，列向 flex 子项默认 min-height:auto，内容会把面板撑出屏幕（用户实锤）。
  */
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useOverlayBack } from "../state/navStack.js";
 import { createPortal } from "react-dom";
 import { useExitPhase } from "../lib/useExitPhase.js";
 import { useExpanded } from "../state/usePlatformLayout.js";
@@ -19,28 +20,33 @@ import { fetchEntryFromMarket, fetchRegistry, normalizeRepoUrl, type MarketEntry
 import { installedPlugins, subscribe, uninstallPlugin } from "../plugins/loader.js";
 import { confirmOk } from "../lib/confirm.js";
 
-const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 0 };
-const panelStyle: React.CSSProperties = { animation: "m-sheet-up 260ms var(--md-sys-motion-easing-emphasized-decelerate, ease-out) both", width: "100%", minWidth: 0, overflow: "hidden", maxWidth: "100%", maxHeight: "92dvh", display: "flex", flexDirection: "column", background: "var(--surface, #ffffff)", color: "var(--text-1, #1f2329)", borderRadius: "var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-large) 0 0", paddingBottom: "env(safe-area-inset-bottom)", boxShadow: "0 18px 50px rgba(0,0,0,.28)" };
-const maskOut: React.CSSProperties = { animation: "m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both" };
+const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "var(--md-sys-color-scrim)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 0 };
+const panelStyle: React.CSSProperties = { animation: "m-sheet-up 260ms var(--md-sys-motion-easing-emphasized-decelerate, ease-out) both", width: "100%", minWidth: 0, overflow: "hidden", maxWidth: "100%", maxHeight: "92dvh", display: "flex", flexDirection: "column", background: "var(--surface)", color: "var(--text-1)", borderRadius: "var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-large) 0 0", paddingBottom: "env(safe-area-inset-bottom)", boxShadow: "var(--shadow-3)" };
+const maskOut: React.CSSProperties = {
+  animation: "m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both",
+  /* F1：退场遮罩不吃点击（同一族弹层的统一口径） */
+  pointerEvents: "none",
+};
 const panelOut: React.CSSProperties = { animation: "m-pop-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both" };
-const maskStylePc: React.CSSProperties = { ...maskStyle, background: "rgba(0,0,0,.18)", alignItems: "center", justifyContent: "flex-end", padding: 0 };
-const panelStylePc: React.CSSProperties = { ...panelStyle, animation: "m-slide-right var(--dur-3) var(--ease-ios) both", width: "min(460px, 44vw)", maxWidth: "none", maxHeight: "none", height: "100%", borderRadius: 0, paddingBottom: 0, borderLeft: "1px solid var(--border, #e5e7eb)", boxShadow: "-18px 0 48px rgba(0,0,0,.24)" };
+const maskStylePc: React.CSSProperties = { ...maskStyle, background: "var(--md-sys-color-scrim)", alignItems: "center", justifyContent: "flex-end", padding: 0 };
+const panelStylePc: React.CSSProperties = { ...panelStyle, animation: "m-slide-right var(--dur-3) var(--ease-ios) both", width: "min(460px, 44vw)", maxWidth: "none", maxHeight: "none", height: "100%", borderRadius: 0, paddingBottom: 0, borderLeft: "1px solid var(--border)", boxShadow: "var(--shadow-3)" };
 
 /** 主题色卡：从 vars 抽 accent / accent-soft / bg 三色出预览（缺省回退令牌默认）。
  *  只显示名字看不出样式，所以每一行都带这块色卡。 */
 export function ThemeSwatch({ vars }: { vars: Record<string, string> }): ReactNode {
-  const accent = vars["--accent"] ?? "#4176e6";
-  const soft = vars["--accent-soft"] ?? "#edf3fe";
-  const bg = vars["--bg"] ?? "#ffffff";
+  const accent = vars["--accent"] ?? "#4176e6";  /* token-ok: 取不到主题变量时的兜底色（正常路径走不到） */
+  const soft = vars["--accent-soft"] ?? "#edf3fe";  /* token-ok: 取不到主题变量时的兜底色（正常路径走不到） */
+  const bg = vars["--bg"] ?? "#ffffff";  /* token-ok: 取不到主题变量时的兜底色（正常路径走不到） */
   return (
     <span className="theme-swatch" style={{ background: soft, display: "inline-flex", gap: 3, padding: 3, borderRadius: 8, flex: "none" }}>
       <i style={{ width: 18, height: 18, borderRadius: 5, background: accent }} />
-      <i style={{ width: 18, height: 18, borderRadius: 5, background: bg, boxShadow: "inset 0 0 0 1px rgba(0,0,0,.08)" }} />
+      <i style={{ width: 18, height: 18, borderRadius: 5, background: bg, boxShadow: "inset 0 0 0 1px var(--border)" }} />
     </span>
   );
 }
 
 export function ThemePickerModal({ open, onClose }: { open: boolean; onClose: () => void }): ReactNode {
+  useOverlayBack("theme-picker", open, onClose);
   const expanded = useExpanded();
   const snap = useThemes();
   const plugins = useSyncExternalStore(subscribe, installedPlugins);
@@ -150,7 +156,7 @@ export function ThemePickerModal({ open, onClose }: { open: boolean; onClose: ()
         style={closing ? { ...(expanded ? panelStylePc : panelStyle), ...panelOut } : expanded ? panelStylePc : panelStyle}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border, #eee)", flex: "none" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border)", flex: "none" }}>
           <b>更改主题</b>
           <span style={{ flex: 1 }} />
           <button className="btn" onClick={requestClose}>✕</button>

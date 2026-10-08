@@ -15,7 +15,7 @@ export interface LiveRow {
 }
 
 /** 状态色（与课表配色同族：绿=可用、橙=进行中、红=不可用） */
-export const STATE_COLOR = { ok: "#1fa487", busy: "#e8873a", bad: "#e5484d", muted: "#8a8f98" } as const;
+export const STATE_COLOR = { ok: "#1fa487", busy: "#e8873a", bad: "#e5484d", muted: "#8a8f98" } as const;  /* token-ok: 桌面小组件走原生渲染，色值不经 CSS 变量 */
 
 /** core ClassroomStatus.AVAILABLE = 5 */
 export const AVAILABLE = 5;

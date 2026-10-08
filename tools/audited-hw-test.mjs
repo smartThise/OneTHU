@@ -26,9 +26,9 @@ assert.ok(/!ignored\.has\(h\.id\) && !h\.audited/.test(page),
 assert.ok(/const auditAll = useMemo/.test(page) && /const auditList = useMemo/.test(page),
   "必须有旁听作业全集与按当前分组口径的旁听列表");
 assert.ok(/<SectionHead title="旁听作业" \/>/.test(page), "旁听作业必须单列一节（SectionHead「旁听作业」）");
-assert.ok(/filter === "unfinished"\) return auditAll\.filter\(\(h\) => !h\.submitted && !isOverdue\(h\)\)/.test(page),
-  "「进行中」分组下的旁听节必须同样按未交未逾期筛选（旁听仍列为未完成）");
-assert.ok(/if \(filter === "ignored"\) return \[\];/.test(page), "「已忽略」分组不重复列旁听");
+assert.ok(/filter === "unfinished"\) return auditAll\.filter\(\(h\) => !h\.submitted\)/.test(page),
+  "「进行中」分组下的旁听节必须同样按未交筛选（E8 起「进行中」含已逾期，旁听仍列为未完成）");
+assert.ok(/<SectionHead title="已逾期" \/>/.test(page), "E8：「已逾期」必须在「进行中」下单独一栏（旁听分栏之外新的一栏）");
 
 /* [3] 首页：未交作业总数与作业区都不含旁听 */
 const home = read("apps/desktop/src/components/HomeWidgets.tsx");

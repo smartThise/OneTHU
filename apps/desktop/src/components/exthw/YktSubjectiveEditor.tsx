@@ -38,8 +38,8 @@ function formulaChipSrc(latex: string): string {
     .replace(/"/g, "&quot;");
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="26">` +
-    `<rect width="100%" height="100%" rx="4" fill="rgba(128,132,140,0.16)" stroke="rgba(128,132,140,0.35)"/>` +
-    `<text x="7" y="18" font-family="monospace" font-size="12.5" fill="#9aa0a8">${esc}</text>` +
+    `<rect width="100%" height="100%" rx="4" fill="rgba(128,132,140,0.16)" stroke="rgba(128,132,140,0.35)"/>` +  /* token-ok: SVG 经 data: URL 变成独立文档，CSS 变量不解析 */
+    `<text x="7" y="18" font-family="monospace" font-size="12.5" fill="#9aa0a8">${esc}</text>` +  /* token-ok: SVG 经 data: URL 变成独立文档，CSS 变量不解析 */
     `</svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }

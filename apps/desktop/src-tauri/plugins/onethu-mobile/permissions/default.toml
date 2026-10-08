@@ -3,8 +3,12 @@
 [default]
 description = """
 OneTHU Android 系统桥：
-查询系统桥可用性（下载转存 / intent 深链由主 crate 内部调用，不经 IPC）。
+查询系统桥可用性（下载转存 / intent 深链由主 crate 内部调用，不经 IPC）；
+b40 起含系统夜间模式原生信号（system_night_mode）与其变更事件监听（register_listener）。
 """
 permissions = [
   "allow-mobile-supported",
+  "allow-mobile-exit",
+  "allow-system-night-mode",
+  "allow-register-listener",
 ]

@@ -83,6 +83,22 @@ assert.ok(
   "设置页要消费页签请求（外部跳转直接落在插件那一栏）",
 );
 
+/* C19（霖 2026-10-01 走查）：寻迹页的高德 Key 不再把开发者路径甩给用户——
+   横幅只留人话 + 「去设置填写」，设置里必须有对应入口，且 Key 只走本机存储。 */
+const traceRaw = readFileSync("apps/desktop/src/pages/Trace.tsx", "utf8");
+/* 注释里可以提这段历史，甩给用户的**可见文案**里不许再出现 */
+const trace = traceRaw.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/^\s*\/\/.*$/gm, "");
+assert.ok(!/\.env\.example|TRACE_AMAP_KEY/.test(trace), "Trace.tsx 的可见文案里又出现开发者路径（.env.example / TRACE_AMAP_KEY）");
+assert.ok(/requestSettingsTab\("数据与同步"\)/.test(trace), "Trace 的「去设置填写」没有跳到设置对应栏目");
+assert.ok(/去设置填写/.test(trace), "Trace 的引导按钮文案丢了");
+assert.ok(/<SectionHead title="寻迹地图" \/>/.test(settings), "设置里没有「寻迹地图」这一节");
+assert.ok(/高德 Web 服务 Key/.test(settings), "设置里没有高德 Key 输入入口");
+assert.ok(/寻迹地图: "数据与同步"/.test(settings), "「寻迹地图」没登记进 SETTINGS_TAB_OF（会出现在每个页签下）");
+const traceLib = readFileSync("apps/desktop/src/lib/trace.ts", "utf8");
+assert.ok(/export function saveStoredTraceKey/.test(traceLib) && /onethu\.trace\.amapKey/.test(traceLib),
+  "Key 没有本机存储通道（只存 localStorage，不写死进包）");
+assert.ok(!/amapKey\s*=\s*"[0-9a-f]{32}"/.test(traceLib), "trace.ts 里写死了 Key");
+
 console.log(
   "设置分层与插件归位：分节↔页签映射 " + sections.length + " 项双向一致 / 标准模式 " + tabOrder.length +
   " 项（≤7） / 高级页签 " + advList.join("、") + " / 开关与订阅 ✓ / 插件嵌进设置页 ✓ / 旧路由落回设置 ✓",

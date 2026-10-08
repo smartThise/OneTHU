@@ -10,10 +10,13 @@ import type { CourseFile, Homework, Notification } from "@onethu/core";
 import { LEARN_PREFIX, LEARN_FILE_DOWNLOAD, parseLearnTime } from "@onethu/core";
 import { useApp } from "../../state/context.js";
 import { getSelectedSemester, setSelectedSemester } from "../../state/data.js";
-import { topLevelPage, type Page } from "../../state/app.js";
-import { fetchImageAsDataUrl, fetchImageByUrl } from "../../lib/clients.js";
-import { isSessionExpiredError } from "../../lib/sessionErrors.js";
+import { backTargetOf, type Page } from "../../state/app.js";
+import { downloadLearnFile, fetchImageAsDataUrl, fetchImageByUrl } from "../../lib/clients.js";
+import { revealLocalPath } from "../../lib/localFile.js";
+import { isAndroidNavigator } from "../../lib/androidHost.js";
+import { explainNetworkError } from "../../lib/transport.js";
 import { showToast } from "../../state/toast.js";
+import { useContextMenu, useLongPress, type CtxItem } from "../../components/ContextMenu.js";
 import { invoke } from "@tauri-apps/api/core";
 import { openFilePreview } from "../../components/FilePreview.js";
 import { openExternal } from "../info/openExternal.js";
@@ -22,8 +25,10 @@ import { CONFIRM_IGNORE_HW, confirmDanger } from "../../lib/confirm.js";
 import { ignoreHw, unignoreHw, useHwIgnored } from "../../state/hwIgnore.js";
 import { homeworkEntryScoreText } from "../../lib/yktDetail.js";
 import { Card } from "../../components/Layout.js";
-import { IconBell, IconChevron } from "../../components/Icons.js";
-import { CollectStar } from "../../components/Collect.js";
+import { IconBell, IconChevron, IconDownload, IconExternal, IconFolder, IconStar, IconX } from "../../components/Icons.js";
+import { CollectModal } from "../../components/Collect.js";
+import { useFavs } from "../../state/favs.js";
+import type { AtomRef } from "../../state/favorites.js";
 import { enc } from "../../state/atoms.js";
 import { fmtRemindOffset, REMIND_MAX, REMIND_MIN, REMIND_PRESETS, setHwReminder, useHwDefault, useHwReminder } from "../../state/hwRemind.js";
 import { extHwSourceName } from "../../state/exthw.js";
@@ -117,20 +122,6 @@ const IMG_PLACEHOLDER =
 /** 正文图片 dataURL 会话缓存：详情页反复进出不重复抓 2MB 级大图 */
 const imgDataCache = new Map<string, string>();
 
-/** 会话失效提示的去重窗口：一页往往同时挂好几张图（论坛一屏十几张），
- *  它们会一起失败——只在第一张失败时提醒一次，别把用户刷屏 */
-const SESSION_TOAST_GAP_MS = 10_000;
-let lastSessionToastAt = 0;
-
-/** 会话失效时给一次「看得见」的提示：这类失败不看图片、也不看日志就无从推断，
- *  放在屏幕正中并留够时间（点按即关）。 */
-function warnImagesNeedLogin(): void {
-  const now = Date.now();
-  if (now - lastSessionToastAt < SESSION_TOAST_GAP_MS) return;
-  lastSessionToastAt = now;
-  showToast("图片加载失败，请重新登录", 6000, { center: true });
-}
-
 /**
  * 正文里的 <img> 指向 learn 资源（需会话 Cookie），webview 直挂只会得到登录页。
  * 渲染后经应用侧 fetch_binary 抓字节转 dataURL 回填（isTauri 才可用，预览环境跳过）。
@@ -162,17 +153,11 @@ export function RichContent({ html, fallback = "暂无内容。" }: { html?: str
         if (imgDataCache.size > 60) imgDataCache.clear();
         imgDataCache.set(abs, dataUrl);
         img.src = dataUrl;
-      } catch (e) {
+      } catch {
         if (!cancelled) {
-          const reason = e instanceof Error ? e.message : String(e);
           img.setAttribute("alt", (img.getAttribute("alt") ? img.getAttribute("alt") + " " : "") + "（图片加载失败）");
-          // 悬停可看原因（此前失败只剩一个半透明碎图，原因在 catch 里被丢掉）
-          img.setAttribute("title", `图片加载失败：${reason.slice(0, 120)}`);
           img.style.opacity = "0.45";
-          // 登录态没了：数据页有错误链会提示，图片这条旁路必须自己提醒，
-          // 否则用户看到的只是「几张图不显示」，推不到「该重新登录了」
-          if (isSessionExpiredError(e)) warnImagesNeedLogin();
-          void invoke("log_debug", { line: `RichContent 图片抓取失败: ${abs.slice(0, 180)} | ${reason.slice(0, 120)}` }).catch(() => undefined);
+          void invoke("log_debug", { line: `RichContent 图片抓取失败: ${abs.slice(0, 180)}` }).catch(() => undefined);
         }
       }
     };
@@ -247,15 +232,13 @@ export function BackButton({
   /** 三级页 → 课程详情「各回各家」：目标 tab（仅 to=learn-course 时附带） */
   courseTab?: string;
 }) {
-  const { navigate } = useApp();
-  // 返回课程详情必须带回 courseId，否则详情页空参渲染成白页（此前要退两次的根因）；
-  // 返回一级页（learn 等）则一律不带参数，避免列表页残留上一页的导航态
-  const params =
-    courseId && topLevelPage(to) !== to
-      ? { courseId, ...(to === "learn-course" && courseTab ? { courseTab } : {}) }
-      : undefined;
+  const { navigate, back } = useApp();
+  /* G1：目标与参数由 backTargetOf 算（顶栏返回键共用同一份，不再两处各写一遍） */
+  const target = backTargetOf(to, label, courseId, courseTab);
+  /* E1：优先退会话内导航栈——「待办 → 全部作业 → 某作业」返回应落在**全部作业**，
+     而不是各页硬编码的父页；只有深链冷启动（栈里没有上一页）才回落到声明父页。 */
   return (
-    <button className="btn btn-ghost" onClick={() => navigate(to, params)}>
+    <button className="btn btn-ghost" onClick={() => back(() => navigate(target.to, target.params, { replace: true }))}>
       ← {label ?? "返回"}
     </button>
   );
@@ -273,29 +256,51 @@ interface RowProps {
 export function HwRemindPop({
   value,
   onApply,
+  onDismiss,
   title,
   allowClear,
   foot,
 }: {
   value: number | null;
   onApply: (m: number | null) => void;
+  /** Escape 关闭（b32）：**不改变提醒值**，只是把弹层关掉。缺省=本弹层不接管 Esc
+   *  （长按菜单里的提醒面板就属这种：Esc 归外层 A3 菜单的捕获期监听处理）。 */
+  onDismiss?: () => void;
   title: string;
   allowClear?: boolean;
   foot?: string;
 }) {
   const [custom, setCustom] = useState("");
   /* 退场相位：选档/自定义会关掉弹层（外层 onApply 里 setOpen(false)）→ 先播退场再回调。
-     清除（m=null）后弹层仍然开着，走退场会淡出后卡住，因此那条路径直接应用。 */
+     清除（m=null）后弹层仍然开着，走退场会淡出后卡住，因此那条路径直接应用。
+     b32：Esc 走同一条退场动画，但退场动作换成 onDismiss（用 esc 标志在回调里分流，
+     因为 useExitPhase 的回调是挂载时就固定的那一个）。 */
   const pending = useRef<number | null>(null);
-  const [closing, requestClose] = useExitPhase(() => onApply(pending.current));
+  const esc = useRef(false);
+  const [closing, requestClose] = useExitPhase(() => (esc.current ? onDismiss?.() : onApply(pending.current)));
   const apply = (m: number | null): void => {
     if (m == null) {
       onApply(null);
       return;
     }
+    esc.current = false;
     pending.current = m;
     requestClose();
   };
+  /* Esc 关闭：浮层要自己先吃掉 Esc（捕获阶段 + 阻断），否则页面自己的 Esc 处理会跟着跑一遍。
+     与 components/ContextMenu.tsx 的 A3 菜单同款口径。 */
+  useEffect(() => {
+    if (!onDismiss) return;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopPropagation();
+      esc.current = true;
+      requestClose();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onDismiss, requestClose]);
   const applyCustom = (): void => {
     const n = Math.round(Number(custom));
     if (Number.isFinite(n) && n >= REMIND_MIN && n <= REMIND_MAX) apply(n);
@@ -353,6 +358,7 @@ export function HwRemindButton({ h }: { h: Homework }) {
           value={cur}
           title={`作业截止前提醒（覆盖全局默认 ${fmtRemindOffset(def)}）`}
           allowClear
+          onDismiss={() => setOpen(false)}
           onApply={(m) => {
             setHwReminder(h.id, m);
             if (m != null) setOpen(false);
@@ -363,8 +369,29 @@ export function HwRemindButton({ h }: { h: Homework }) {
   );
 }
 
-export function HomeworkRow({ h, courseName, from, style, showGrade = false, sem, remind }: RowProps & { h: Homework; showGrade?: boolean; sem?: string; remind?: boolean }) {
+/** 作业行长按菜单里的「提醒」档位面板：与卡片铃铛同一条通路（订阅当前值，不是打开时的快照） */
+function RowRemindPanel({ h, close }: { h: Homework; close: () => void }): ReactNode {
+  const cur = useHwReminder(h.id);
+  const def = useHwDefault();
+  return (
+    <HwRemindPop
+      value={cur}
+      title={`作业截止前提醒（覆盖全局默认 ${fmtRemindOffset(def)}）`}
+      allowClear
+      onApply={(m) => {
+        setHwReminder(h.id, m);
+        if (m != null) close();
+      }}
+    />
+  );
+}
+
+export function HomeworkRow({ h, courseName, from, style, showGrade = false, sem }: RowProps & { h: Homework; showGrade?: boolean; sem?: string }) {
   const { navigate } = useApp();
+  /* 霖 2026-09-30 #4：作业列表行此前完全没有长按菜单（只有作业卡片有）。
+     与卡片同一套项：忽略 / 提醒 / 收藏（外部源没有站内收藏项，与卡片同条件）。 */
+  const menu = useContextMenu();
+  const [collect, setCollect] = useState<AtomRef | null>(null);
   // R21c：忽略状态。已忽略的行灰显并标「已忽略」，可在此就地恢复；忽略需二次确认
   // （弹窗写明后果）；入口在全部作业、各学科作业、搜索结果里都出现（共用本组件）。
   const isIgnored = useHwIgnored(h.id);
@@ -390,12 +417,39 @@ export function HomeworkRow({ h, courseName, from, style, showGrade = false, sem
   // 外部源分数（R9 考试 + R20-B3 已批改雨课堂作业同口径）：已提交且带分 → 「已批改 · 30/40」
   const examScore = homeworkEntryScoreText(h);
   const score = gradeScore || examScore;
+  const lp = useLongPress((x, y) => {
+    const items: CtxItem[] = [
+      {
+        key: "ignore",
+        label: isIgnored ? "取消忽略" : "忽略",
+        danger: !isIgnored,
+        icon: isIgnored ? <IconStar width={14} height={14} /> : <IconX width={14} height={14} />,
+        onSelect: () => void toggleIgnore(),
+      },
+      {
+        key: "remind",
+        label: "提醒",
+        icon: <IconBell width={14} height={14} />,
+        panel: (close) => <RowRemindPanel h={h} close={close} />,
+      },
+    ];
+    if (!h.source) {
+      items.push({
+        key: "collect",
+        label: "收藏",
+        icon: <IconStar width={14} height={14} />,
+        onSelect: () => setCollect({ kind: "assignment", key: enc(h.courseId, h.id, h.title, courseName ?? "", sem ?? "") }),
+      });
+    }
+    menu.open({ x, y, title: h.title, items });
+  });
   return (
     <div
       className={`row row-click${isIgnored ? " is-hw-ignored" : ""}`}
       style={isIgnored ? { ...style, opacity: 0.55 } : style}
       role="button"
       tabIndex={0}
+      {...lp}
       onClick={go}
       onKeyDown={(e) => e.key === "Enter" && go()}
     >
@@ -425,36 +479,56 @@ export function HomeworkRow({ h, courseName, from, style, showGrade = false, sem
       {/* DDL 提醒（作业列表页启用；行点击导航要 stopPropagation）。R10 15.3：外部作业
           的 h.id（ext:source:...）稳定可用，提醒链路只需 deadline/title，一并放开 */}
       {isIgnored ? <span className="chip chip-gray" title="已忽略：不提醒、不进作业区与日程">已忽略</span> : null}
-      {/* 忽略/恢复：任何状态（未交/已交/已批）的作业都能忽略，故常驻（不随 remind 开关） */}
-      <button
-        className="btn btn-ghost hw-ignore-btn"
-        style={{ height: 22, padding: "0 8px", fontSize: 11, flex: "none" }}
-        title={isIgnored ? "恢复：重新参与提醒与显示" : "忽略：不再提醒，也不在作业区与日程显示"}
-        onClick={(e) => {
-          e.stopPropagation();
-          void toggleIgnore();
-        }}
-      >
-        {isIgnored ? "恢复" : "忽略"}
-      </button>
-      {remind && !isIgnored ? <HwRemindButton h={h} /> : null}
-      {/* 列表级星标：与详情页 key 同构（courseId~id~title~课程名~学期），点进行前就能收。
-          R10 15.3：外部作业复用同款拼接（courseId=ext:source、id=ext:...，稳定唯一） */}
-      <CollectStar atom={{ kind: "assignment", key: enc(h.courseId, h.id, h.title, courseName ?? "", sem ?? "") }} title={h.title} />
+      {/* 霖 2026-10-02：忽略/提醒/收藏这三个行内控件撤掉——它们占着标题的横向空间，而三个功能
+          已经在行的长按菜单里齐了（忽略/取消忽略、提醒、收藏），要用按住这一行即可。
+          只有「作业流」卡片（TasksPage 的 .hw-card）保留卡面上的这三个按钮。 */}
+      {collect ? <CollectModal atom={collect} onClose={() => setCollect(null)} /> : null}
       <IconChevron className="row-caret" width={14} height={14} />
     </div>
   );
 }
 
+/** A3 / A4 行内收藏的统一入口：列表行不再内联星标，收藏进 ctx 菜单。
+ *  语义与列表星标同源（都读 useFavs）：已收录 → 「取消收藏」，就地从它所在的各收藏夹移除；
+ *  未收录 → 「收藏」，打开 CollectModal 选夹（与页面级「收藏」同一模型，不是一键塞默认夹）。 */
+function useRowCollect(atom: AtomRef): { item: CtxItem; modal: ReactNode } {
+  const favs = useFavs();
+  const [open, setOpen] = useState(false);
+  const folders = favs.foldersContaining(atom);
+  const item: CtxItem =
+    folders.length > 0
+      ? {
+          key: "collect",
+          label: "取消收藏",
+          icon: <IconStar width={14} height={14} />,
+          onSelect: () => folders.forEach((id) => favs.toggleAtomIn(id, atom)),
+        }
+      : {
+          key: "collect",
+          label: "收藏",
+          icon: <IconStar width={14} height={14} />,
+          onSelect: () => setOpen(true),
+        };
+  return { item, modal: open ? <CollectModal atom={atom} onClose={() => setOpen(false)} /> : null };
+}
+
 export function NoticeRow({ n, courseName, from, style, sem }: RowProps & { n: Notification; sem?: string }) {
   const { navigate } = useApp();
   const go = () => navigate("learn-notice-detail", { courseId: n.courseId, itemId: n.id, from });
+  /* A3（霖 2026-10-05）：通知行此前没有长按菜单（只有作业行有）——接上与作业行同一套矩阵。
+     行内星标按 A4 的统一口径撤掉：列表项只留信息，收藏进菜单。 */
+  const menu = useContextMenu();
+  const collect = useRowCollect({ kind: "notice", key: enc(n.courseId, n.id, n.title, courseName ?? "", sem ?? "") });
+  const lp = useLongPress((x, y) => {
+    menu.open({ x, y, title: n.title, items: [collect.item] });
+  });
   return (
     <div
       className="row row-click"
       style={style}
       role="button"
       tabIndex={0}
+      {...lp}
       onClick={go}
       onKeyDown={(e) => e.key === "Enter" && go()}
     >
@@ -471,23 +545,84 @@ export function NoticeRow({ n, courseName, from, style, sem }: RowProps & { n: N
           {courseName ?? "课程"} · {n.publisher}
         </div>
       </div>
-      <CollectStar atom={{ kind: "notice", key: enc(n.courseId, n.id, n.title, courseName ?? "", sem ?? "") }} title={n.title} />
+      {collect.modal}
       <IconChevron className="row-caret" width={14} height={14} />
     </div>
   );
 }
 
+/** 拼接落盘绝对路径：下载目录可能以 `/` 或 `\` 结尾（Windows 资源管理器路径） */
+function joinDownloadPath(dir: string, name: string): string {
+  if (!dir) return "";
+  const sep = dir.includes("\\") ? "\\" : "/";
+  return dir.endsWith("/") || dir.endsWith("\\") ? dir + name : dir + sep + name;
+}
+
 export function FileRow({ f, courseName, from, style, sem }: RowProps & { f: CourseFile; sem?: string }) {
   const { navigate } = useApp();
+  const menu = useContextMenu();
+  /* A4（霖 2026-10-05）：列表项只留信息——行内「预览」与星标撤掉，预览 / 下载 / 收藏进 ctx 菜单。 */
+  const collect = useRowCollect({ kind: "file", key: enc(f.courseId, f.id, f.title, courseName ?? "", sem ?? "") });
+  /** 本次会话里这条路真实落过盘的路径：Rust 侧在响应头给出真名时以真名为准，
+   *  所以「在文件夹中显示」优先用它，没有才按「下载目录 + 前端文件名」推算 */
+  const [savedPath, setSavedPath] = useState("");
   const go = () => navigate("learn-file-detail", { courseId: f.courseId, itemId: f.id, from });
   const preview = () =>
     openFilePreview({ name: learnFileName(f.title || `课件 ${f.id}`, f.fileType), url: LEARN_FILE_DOWNLOAD(f.id) });
+  const doDownload = async (): Promise<void> => {
+    try {
+      const path = await downloadLearnFile(f.id, learnFileName(f.title || `课件 ${f.id}`, f.fileType));
+      setSavedPath(path);
+      showToast(`已下载到：${path}`);
+    } catch (e) {
+      showToast("下载失败：" + explainNetworkError(e));
+    }
+  };
+  const doReveal = async (): Promise<void> => {
+    try {
+      let target = savedPath;
+      if (!target) {
+        const dir = await invoke<{ path: string; isDefault: boolean } | null>("download_directory_get");
+        target = dir?.path ? joinDownloadPath(dir.path, learnFileName(f.title || `课件 ${f.id}`, f.fileType)) : "";
+      }
+      if (!target) {
+        showToast("当前平台不支持在文件夹中显示，请先下载后用文件管理器打开");
+        return;
+      }
+      await revealLocalPath(target);
+    } catch {
+      showToast("未找到已下载的文件，请先下载后重试");
+    }
+  };
+  /* A3 长按菜单（矩阵第四行）。A4 起顺序固定为：预览 / 下载 /（在文件夹中显示）/ 收藏 ——
+     前三项都是「对这个文件的操作」，收藏是原子操作，放最后，避免同一菜单里两类混排。
+     三项都走既有通路：预览 = openFilePreview，下载 = downloadLearnFile（与文件详情页同一命令），
+     定位 = 自写 Rust 命令 revealLocalPath。 */
+  const lp = useLongPress((x, y) => {
+    const items: CtxItem[] = [
+      { key: "preview", label: "预览", icon: <IconExternal width={14} height={14} />, onSelect: () => preview() },
+      { key: "download", label: "下载", icon: <IconDownload width={14} height={14} />, onSelect: () => void doDownload() },
+    ];
+    /* Android 的下载落在应用私有目录，系统文件管理器没有「定位」语义
+       （与 DownloadOpenButtons 同一口径：那一端不显示，而不是显示一个点了必然失败的项） */
+    if (!isAndroidNavigator(typeof navigator !== "undefined" ? navigator : undefined)) {
+      items.push({
+        key: "reveal",
+        label: "在文件夹中显示",
+        icon: <IconFolder width={14} height={14} />,
+        onSelect: () => void doReveal(),
+      });
+    }
+    items.push(collect.item);
+    menu.open({ x, y, title: f.title, items });
+  });
   return (
     <div
       className="row row-click"
       style={style}
       role="button"
       tabIndex={0}
+      {...lp}
       onClick={go}
       onKeyDown={(e) => e.key === "Enter" && go()}
     >
@@ -500,18 +635,8 @@ export function FileRow({ f, courseName, from, style, sem }: RowProps & { f: Cou
         <div className="row-sub">{courseName ?? "课程"}</div>
       </div>
       {f.fileType ? <span className="chip chip-gray">{f.fileType.toUpperCase()}</span> : null}
-      <button
-        className="btn btn-ghost"
-        style={{ flexShrink: 0, padding: "0 8px", fontSize: 12 }}
-        onClick={(e) => {
-          e.stopPropagation(); // 不触发行进详情
-          preview();
-        }}
-        onKeyDown={(e) => e.stopPropagation()}
-      >
-        预览
-      </button>
-      <CollectStar atom={{ kind: "file", key: enc(f.courseId, f.id, f.title, courseName ?? "", sem ?? "") }} title={f.title} />
+      {/* 行内「预览」与星标已按 A4 撤掉（进 ctx 菜单）：行高与其它列表项一致，命中区不再被撑开 */}
+      {collect.modal}
       <IconChevron className="row-caret" width={14} height={14} />
     </div>
   );

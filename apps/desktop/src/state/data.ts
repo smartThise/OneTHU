@@ -37,19 +37,54 @@ import { http, info, learn, logLine, session } from "../lib/clients.js";
 // 的手搓会话管理（探活/漫游/票信任链）整体退役，登录态由 lib + Rust 原生仓负责。
 import { helper as infoHelper } from "../lib/infoLib.js";
 import { explainNetworkError } from "../lib/transport.js";
-import { softRecover } from "../lib/reload.js";
+import { softRecoverResult } from "../lib/reload.js";
+import type { LibSoftResult } from "../lib/libSessionGuard.js";
+import { libSoftCooldownLeftMs, libSoftLastDoneAtMs, libSoftRecoveryInFlight } from "../lib/libSessionGuard.js";
+// b31 P0：登录代次（RC2 守卫）+ 冷却态自动重试（RC1）
+import { currentAuthEpoch } from "./authEpoch.js";
+import {
+  armLibSoftAutoRetry,
+  releaseLibSoftAutoRetry,
+  setLibSoftAutoRetryLogger,
+} from "./libSoftAutoRetry.js";
+// 判据 C（b20）：`skipped/reentrant + pending` 在守卫之外等真结算（见 libSoftSettle.ts）
+// 三态动作（b23 P2）：复用既有 `libSoftTabAction`（done→retry-load / failed→keep-error /
+// skipped→mark-pending），不另造第二套判定。
+import { claimLibAuthDeadLine, libSoftSessionLooksAlive, libSoftTabAction, settleLibSoftPending } from "./libSoftSettle.js";
+// 止血（b20）：今日新闻源的有界退避纯函数（护栏可确定性断言）
+import { nextTodayNewsRetryDelay, shouldRetryTodayNews } from "./todayNewsRetry.js";
 import { buildRows, buildSlotIndex, canAdjustZy as canAdjustZyFn, levelTypesOf, parseTimeSlots, type SlotItem, type XkRow, type XkKnote, applyKnote, rememberKnote, isSportsCourse } from "../lib/xklogic.js";
 import type { XkPlanItem } from "@onethu/core";
 import { useApp } from "./context.js";
 import { cacheGet, cacheSet, cacheFetch, cacheKeys,
   purgeXkCaches } from "./cache.js";
-import { observeCardBalance } from "./cardWarn.js";
 
 /** info/zhjwxk 页内错误落盘（/tmp/onethu-debug.log），解析不匹配时可一轮定位 */
 export function logPageError(tag: string, err: unknown): void {
   const detail = err instanceof Error ? err.message + (err.stack ? "" : "") : String(err);
   void logLine("PAGE-ERR " + tag + " " + detail + "\nHTTP " + http.lastDebug).catch(() => undefined);
 }
+
+/** 三态（b19 P0）：「恢复被冷却/在飞判掉、任务根本没执行」时给用户的原地可重试提示。
+ *  用户侧统一说「登录状态」，不许出现内部名词「会话」「凭据」；错误条上的「重试」
+ *  按钮会走既有手动清零出口（`clearLibSoftBackoff`）后重拉。 */
+export const RELOGIN_PENDING_NOTE =
+  "登录状态暂时未能自动恢复，请稍后重试；若持续出现，请到「设置 → 账户」重新登录。";
+
+/**
+ * b31 P0（RC2）：陈旧结算守卫。
+ * 加载在**发起时**捕获登录代次，任何结算点代次已变（期间登录成功 / 登出 / 落登录页）
+ * 就**一律不写回**——不 `backToLogin()`、不 `setState("error")`、不 `setError(...)`、
+ * 不写数据。登录前发出、登录后才回来的响应，不许把刚登录成功的用户踢回登录页。
+ */
+function epochStale(epochAtStart: number): boolean {
+  return currentAuthEpoch() !== epochAtStart;
+}
+
+/** b31 P0（RC1）：自动重试的摘要日志出口（每 epoch 至多一条，见 libSoftAutoRetry）。 */
+setLibSoftAutoRetryLogger((line) => {
+  void logLine(line).catch(() => undefined);
+});
 
 export interface CampusData {
   courses: CourseInfo[];
@@ -137,31 +172,86 @@ export function useCampusData() {
   const [state, setState] = useState<DataState>(() => (cacheGet<CampusData>(CAMPUS_KEY) ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
 
+  // b31 P0（RC1，页面级自动重试）：稳定句柄 + 最新闭包；卸载时注销等待者。
+  const autoRetryRef = useRef<(() => void) | null>(null);
+  const autoRetry = useCallback(() => autoRetryRef.current?.(), []);
+  useEffect(() => () => releaseLibSoftAutoRetry(currentAuthEpoch(), autoRetry), [autoRetry]);
+
   const load = useCallback(async (silent = false) => {
+    const epochAtStart = currentAuthEpoch();
+    const doneAtStart = libSoftLastDoneAtMs(); // b33：存活复核基线（本次加载发起时的最近恢复成功时刻）
     if (!silent) {
       setState("loading");
       setError(null);
     }
     try {
       const fresh = await cacheFetch(CAMPUS_KEY, loadReal);
+      if (epochStale(epochAtStart)) return; // 陈旧结算：登录代次已变，一律不写回
       setData(fresh);
       setState("ready");
       notifyCampusData();
     } catch (err) {
+      if (epochStale(epochAtStart)) return;
       // 会话真死了（AuthRequiredError）：先免密重漫游一次，仍失败才送回登录页
       if (err instanceof Error && err.name === "AuthRequiredError") {
         logPageError("CAMPUS-AUTH", err);
-        const reRoamed = await relearnRoamOnce();
-        if (reRoamed) {
+        // 判据 C（b20）：`skipped/reentrant + pending`（运输层恢复钩子持飞）时，
+        // 在**守卫之外** await 该链的真结算——failed 才登出、done 就重取一次；
+        // `skipped/cooldown`（没有 pending）原样回来，落到下面的 skipped 分支不登出。
+        const reRoamed = await settleLibSoftPending(await relearnRoamOnce());
+        if (epochStale(epochAtStart)) return;
+        if (reRoamed.state === "done") {
           await load(silent);
           return;
         }
-        // relearnRoam 也救不了（无 id 主会话等）→ WebVPN 全链 softRelogin 最后一搏
-        if (await softRecover("campus")) {
+        // 免密重建被节流/冷却判掉（skipped）时不视为失败，仍给 WebVPN 全链一次机会
+        const recovered = await settleLibSoftPending(await softRecoverResult("campus"));
+        if (epochStale(epochAtStart)) return;
+        if (recovered.state === "done") {
           await load(silent);
           return;
         }
-        backToLogin();
+        // 三态（b19 P0）：**只有真失败才落登录页**。`skipped` = 冷却窗内 / 同键在飞，
+        // 恢复任务根本没执行——b18 现场正是这一支被当成失败，把用户踢到登录页且不自愈；
+        // 退避窗过后第一次业务请求仍会真正重建。
+        if (recovered.state === "failed" || reRoamed.state === "failed") {
+          // b33（第三条路径）：落登录页之前复核「同代次内是否已有恢复成功 / 是否仍有恢复
+          // 在飞」（只读观测口）。命中=会话其实是活的（同窗口另一跳刚 done、这一跳的请求旧了）
+          // → **不登出**，改为有限次重跑该加载；不命中（会话真的死了）或次数用尽 → 如实登出。
+          const alive = libSoftSessionLooksAlive({
+            doneAtStart,
+            doneNow: libSoftLastDoneAtMs(),
+            recoveryInFlight: libSoftRecoveryInFlight(),
+            now: Date.now(),
+          });
+          if (alive.alive) {
+            autoRetryRef.current = () => { void load(silent); };
+            const left = Math.max(libSoftCooldownLeftMs(), relearnRoamCooldownLeftMs());
+            // recoveryInFlight:false —— 在飞链的结论要等，但重跑必须有人负责，否则
+            // 「in-flight」这一支会既不定时也不登出，把用户卡在坏页面上。
+            const arm = armLibSoftAutoRetry(currentAuthEpoch(), left, autoRetry, { recoveryInFlight: false });
+            void logLine(`LIB-AUTH-ALIVE-RECHECK CAMPUS-AUTH verdict=${alive.verdict} arm=${arm}`).catch(() => undefined);
+            if (arm !== "exhausted") return;
+          } else {
+            // b36（b33 遗留）：真死侧（verdict=none）也留一行可复核日志——每 epoch 至多一条，
+            // 行内只有 verdict/scope/hits，绝不打印凭据、票值、URL 或查询串。
+            const deadLine = claimLibAuthDeadLine(currentAuthEpoch(), "CAMPUS-AUTH");
+            if (deadLine) void logLine(deadLine).catch(() => undefined);
+          }
+          backToLogin();
+          return;
+        }
+        // b31 P0（RC1）：两个恢复入口都没真执行 = `skipped/cooldown`（没有 pending，没人持飞）。
+        // **不再立刻弹警示**：读既有冷却剩余（含 relearn 自己的 20s 节流），到期后自动重试一次
+        // （有限次、带抖动、同 epoch 共用、有在飞恢复时不叠加）。只有次数用尽才落警示；
+        // 自动重试真执行且 `failed` 时，自然会走上面的登出分支（诚实落登录页）。
+        autoRetryRef.current = () => { void load(silent); };
+        const left = Math.max(libSoftCooldownLeftMs(), relearnRoamCooldownLeftMs());
+        if (armLibSoftAutoRetry(currentAuthEpoch(), left, autoRetry, { recoveryInFlight: libSoftRecoveryInFlight() }) === "exhausted") {
+          logPageError("CAMPUS-AUTH-PENDING", err);
+          setState("error");
+          setError(RELOGIN_PENDING_NOTE);
+        }
         return;
       }
       logPageError("CAMPUS", err);
@@ -238,30 +328,48 @@ export function invalidateLearnCache(): void {
 
 /** 会话失效后的免密重建去重：lib 单管线里 learn 经 wengine 透明 SSO，无独立
  *  「漫游」可重做——会话死即整条 webvpn 死，走 lib 会话守卫（探活+静默重登）。
- *  同一时刻多个数据钩子一起撞上 AuthRequiredError 时只重建一次。 */
-let roamInflight: Promise<boolean> | null = null;
+ *  同一时刻多个数据钩子一起撞上 AuthRequiredError 时只重建一次。
+ *
+ *  三态（b19 P0）：返回 `done`/`failed`/`skipped` 三态，**不再把 `skipped`
+ *  折成失败**——`skipped` = 20s 节流窗内、或共享单飞的占位冷却/同键在飞，
+ *  重建任务根本没执行；此前后续 `backToLogin()` 会据此把用户踢到登录页（b18 现场）。 */
+let roamInflight: Promise<LibSoftResult> | null = null;
 let lastRelearnAt = 0;
-function relearnRoamOnce(): Promise<boolean> {
+function relearnRoamOnce(): Promise<LibSoftResult> {
   // 20s 节流（2026-09-17）：恢复环每秒一轮 learn 重链（/f/login+账密全链）
   // 也是风暴源——与 softRecover 同窗口；loginGate 冷却只管 libLogin 本身。
-  if (Date.now() - lastRelearnAt < 20_000) return Promise.resolve(false);
+  if (Date.now() - lastRelearnAt < 20_000) {
+    return Promise.resolve({ state: "skipped", reason: "cooldown" } as LibSoftResult);
+  }
   if (!roamInflight) {
     lastRelearnAt = Date.now();
     roamInflight = import("../lib/infoLib.js")
-      .then(async (m) => {
-        const ok = await m.libEnsureSession();
-        if (!ok) return false;
+      .then(async (m): Promise<LibSoftResult> => {
+        // 判据 C（b20）：守卫在「已有别的链在跑」（libSoftDepth>0）时会回
+        // `skipped/reentrant + pending`——这是页面层唯一能拿到真结算的窗口，
+        // 必须在**守卫之外** await `pending`（b19 真机：真结算 failed 被 skipped 遮住）。
+        // `skipped/cooldown`（没有 pending、没人持飞）原样透传，绝不瞎等。
+        const raw = await m.libEnsureSessionResult();
+        const r = await settleLibSoftPending(raw);
+        if (r.state !== "done") return r;  // skipped / failed 原样透传（skipped ≠ 失败）
         // 主会话活了 ≠ learn 会话活了：先 roam("id", learn 表单) 建 learn 会话
         // （card/info 同款 id-漫游，2026-09-17 定案；/f/login 路径全部作废）
         await m.libRoamLearn().catch(() => false);
-        return await learn.resume().catch(() => false);
+        const resumed = await learn.resume().catch(() => false);
+        return { state: resumed ? "done" : "failed" } as LibSoftResult;
       })
-      .catch(() => false)
+      .catch((): LibSoftResult => ({ state: "failed" }))
       .finally(() => {
         roamInflight = null;
       });
   }
   return roamInflight;
+}
+
+/** b31 P0（RC1）：`relearnRoamOnce` 自己的 20s 节流剩余——自动重试的延迟必须把它算进去，
+ *  否则会在节流窗内空转（每次都被 `skipped/cooldown` 判掉，把 3 次机会飞快烧光）。 */
+function relearnRoamCooldownLeftMs(): number {
+  return Math.max(0, 20_000 - (Date.now() - lastRelearnAt));
 }
 
 async function loadLearnBundle(semesterId: string): Promise<LearnBundle> {
@@ -338,7 +446,7 @@ export function getCampusSnapshot(): CampusData | null {
  * 日历同步（systemCal）/ 灵动岛文案 / 挂载中的 learn 页全部自动跟进。
  * 失败完全静默（会话过期先免密重漫游一次），用户打开页面照常走 loading 流程。 */
 
-let refreshInflight: Promise<LearnBundle | null> | null = null;
+let refreshInflight: Promise<LearnSilentResult> | null = null;
 
 async function fetchLearnBundleFresh(): Promise<LearnBundle> {
   const semester = selectedSemester ? { id: selectedSemester } : await learn.getCurrentSemester();
@@ -356,26 +464,76 @@ function adoptLearnBundle(key: string, d: LearnBundle): void {
   notifyLearnData();
 }
 
-/** 后台静默刷新当前学期 learn 数据（失败返回 null，绝不打扰用户） */
-export function refreshLearnDataSilently(): Promise<LearnBundle | null> {
-  if (refreshInflight) return refreshInflight;
-  refreshInflight = (async () => {
-    const key = selectedSemester ?? "current";
+/** 静默刷新的结算（b23 P2 同句式，霖 2026-10-07 第 49 条）：把三件事分开——
+ *  - `done`    真拉到并已写回，调用方可重读；
+ *  - `skipped` **没有执行**（单飞已在飞 `reentrant` / 免密重登被 20s 节流判掉 `cooldown` /
+ *              非鉴权类瞬时错误 `transient`）——一律**保旧值**，调用方不得据此清空；
+ *  - `failed`  真执行且失败（鉴权失效且免密重建也失败）——**只有这一态允许落空**。
+ *  旧版返回 `LearnBundle | null`，把「没执行」与「失败」混成一个 null，调用方无从区分
+ *  （旧 `data.ts:369` 曾据此把缓存清空 = 静默丢数据）。 */
+export type LearnSilentState = "done" | "skipped" | "failed";
+export type LearnSilentSkipReason = "reentrant" | "cooldown" | "transient";
+export interface LearnSilentResult {
+  state: LearnSilentState;
+  /** 仅 skipped 时有值 */
+  reason?: LearnSilentSkipReason;
+  /** done 时是新包；skipped/failed 时是当前缓存（保旧值的句柄，可能为 null） */
+  data: LearnBundle | null;
+}
+
+/** 静默刷新结算的日志标记（真机走查：logcat 按 LEARN-SILENT 过滤；成功不刷屏） */
+function logLearnSilent(r: LearnSilentResult, key: string): void {
+  if (r.state === "done") return;
+  void logLine(`LEARN-SILENT state=${r.state} reason=${r.reason ?? "-"} key=${key}`).catch(() => undefined);
+}
+
+/** 后台静默刷新当前学期 learn 数据（绝不打扰用户；三态结算见 LearnSilentResult） */
+export function refreshLearnDataSilently(): Promise<LearnSilentResult> {
+  const key = selectedSemester ?? "current";
+  if (refreshInflight) {
+    // 单飞已在飞：本次**没有执行**（reentrant），按 skipped 结算，绝不把失败混进来
+    return refreshInflight.then(
+      (r): LearnSilentResult => ({ state: "skipped", reason: "reentrant", data: r.data }),
+      (): LearnSilentResult => ({ state: "skipped", reason: "reentrant", data: cache?.data ?? null }),
+    );
+  }
+  refreshInflight = (async (): Promise<LearnSilentResult> => {
+    const snapshot = (): LearnBundle | null => cache?.data ?? null;
     try {
-      adoptLearnBundle(key, await fetchLearnBundleFresh());
-      return cache?.data ?? null;
+      const bundle = await fetchLearnBundleFresh();
+      adoptLearnBundle(key, bundle);
+      return { state: "done", data: cache?.data ?? bundle };
     } catch (err) {
       if (err instanceof Error && err.name === "AuthRequiredError") {
         try {
-          if (await relearnRoamOnce()) {
-            adoptLearnBundle(key, await fetchLearnBundleFresh());
-            return cache?.data ?? null;
+          // 判据 C（b20）：页面层必须在守卫之外等真结算——skipped/cooldown 不是失败
+          const re = await settleLibSoftPending(await relearnRoamOnce());
+          if (re.state === "done") {
+            const bundle = await fetchLearnBundleFresh();
+            adoptLearnBundle(key, bundle);
+            return { state: "done", data: cache?.data ?? bundle };
+          }
+          if (re.state === "skipped") {
+            // 免密重登被节流判掉：本次没执行，不是失败 → **保旧值**
+            const r: LearnSilentResult = {
+              state: "skipped",
+              reason: re.reason === "cooldown" ? "cooldown" : "reentrant",
+              data: snapshot(),
+            };
+            logLearnSilent(r, key);
+            return r;
           }
         } catch {
-          /* 静默 */
+          /* 静默：下面的 failed 分支统一结算 */
         }
+        const r: LearnSilentResult = { state: "failed", data: snapshot() };
+        logLearnSilent(r, key);
+        return r;
       }
-      return null;
+      // 非鉴权类错误（网络抖动等）：没拿到新数据，就**保旧值**，不动缓存
+      const r: LearnSilentResult = { state: "skipped", reason: "transient", data: snapshot() };
+      logLearnSilent(r, key);
+      return r;
     } finally {
       refreshInflight = null;
     }
@@ -406,7 +564,14 @@ export function useLearnData() {
   const [state, setState] = useState<DataState>(cache?.data ? "ready" : "loading");
   const [error, setError] = useState<string | null>(null);
 
+  // b31 P0（RC1，页面级自动重试）：稳定句柄 + 最新闭包；卸载时注销等待者。
+  const autoRetryRef = useRef<(() => void) | null>(null);
+  const autoRetry = useCallback(() => autoRetryRef.current?.(), []);
+  useEffect(() => () => releaseLibSoftAutoRetry(currentAuthEpoch(), autoRetry), [autoRetry]);
+
   const load = useCallback(async () => {
+    const epochAtStart = currentAuthEpoch();
+    const doneAtStart = libSoftLastDoneAtMs(); // b33：存活复核基线（本次加载发起时的最近恢复成功时刻）
     setState("loading");
     setError(null);
     try {
@@ -425,6 +590,7 @@ export function useLearnData() {
         cache = entry;
         entry.promise.then(
           (d) => {
+            if (epochStale(epochAtStart)) return; // 陈旧结算：不许把上一代数据写进缓存
             entry.data = d;
             // 空学期包不配长缓存：会话半死时 loadCourseBySemesterId 可能吐一次
             // 空 resultList（HTTP 200 + 可解析 JSON，不抛错），把"0 门课程"毒进
@@ -436,21 +602,77 @@ export function useLearnData() {
         );
       }
       const entry = cache; // 局部引用：等待期间 cache 被置空也不受影响
-      setData(await entry.promise);
+      const d = await entry.promise;
+      if (epochStale(epochAtStart)) return; // 陈旧结算：登录代次已变，一律不写回
+      setData(d);
       setState("ready");
       notifyLearnData();
     } catch (err) {
+      if (epochStale(epochAtStart)) return;
       // 会话失效（AuthRequiredError）：先用持久化 id 主会话重漫游一次（learn 漫游会话
       // 约 8 分钟过期是常态，免密可重建）；仍失败才送回登录页
       if (err instanceof Error && err.name === "AuthRequiredError") {
         logPageError("LEARN-AUTH", err);
         cache = null;
-        const reRoamed = await relearnRoamOnce();
-        if (reRoamed) {
+        // 判据 C（b20）：同 campus——`skipped/reentrant + pending` 在守卫之外等真结算，
+        // failed 才 fallthrough 到 backToLogin；done 就重走数据链；cooldown 不登出。
+        const reRoamed = await settleLibSoftPending(await relearnRoamOnce());
+        if (epochStale(epochAtStart)) return;
+        if (reRoamed.state === "done") {
           await load(); // 递归一次：缓存已清，重走数据链；再失败走下一轮分支
           return;
         }
-        backToLogin();
+        // W2（b25）：learn 比 campus 更容易被踢（learn 漫游会话约 8 分钟过期是常态），
+        // 此前这一支只试 `relearnRoamOnce()`，failed 就直接登出；campus 还会再给 WebVPN
+        // 全链一次机会。这里补上同样的第二跳——只有真 failed 才登出。
+        const recovered = await settleLibSoftPending(await softRecoverResult("learn"));
+        if (epochStale(epochAtStart)) return;
+        if (recovered.state === "done") {
+          await load();
+          return;
+        }
+        // 三态（b19 P0）：`skipped`（冷却窗内/同键在飞，重建任务没执行）**不是失败**，
+        // 不登出。第二跳已经跑过：它真 failed 时落到下面的失败分支（与 campus 同判据）。
+        // b31 P0（RC1）：这里**不再立刻弹警示**，改为「冷却到期自动重试一次，有限次」——
+        // 重建任务压根没执行（没有 pending），警示只是把等待甩给用户；只有自动重试用尽
+        // （exhausted）才落可重试警示。自动重试真执行且 `failed` 时，自然会走下面的登出支。
+        if (reRoamed.state === "skipped") {
+          if (recovered.state !== "failed") {
+            autoRetryRef.current = () => { void load(); };
+            const left = Math.max(libSoftCooldownLeftMs(), relearnRoamCooldownLeftMs());
+            if (armLibSoftAutoRetry(currentAuthEpoch(), left, autoRetry, { recoveryInFlight: libSoftRecoveryInFlight() }) === "exhausted") {
+              logPageError("LEARN-AUTH-PENDING", err);
+              setState("error");
+              setError(RELOGIN_PENDING_NOTE);
+            }
+            return;
+          }
+        }
+        if (recovered.state === "failed" || reRoamed.state === "failed") {
+          // b33（第三条路径）：与 campus 同判据——落登录页之前复核「同代次内是否已有恢复
+          // 成功 / 是否仍有恢复在飞」；命中不登出、有限次重跑，不命中或次数用尽才如实登出。
+          const alive = libSoftSessionLooksAlive({
+            doneAtStart,
+            doneNow: libSoftLastDoneAtMs(),
+            recoveryInFlight: libSoftRecoveryInFlight(),
+            now: Date.now(),
+          });
+          if (alive.alive) {
+            autoRetryRef.current = () => { void load(); };
+            const left = Math.max(libSoftCooldownLeftMs(), relearnRoamCooldownLeftMs());
+            const arm = armLibSoftAutoRetry(currentAuthEpoch(), left, autoRetry, { recoveryInFlight: false });
+            void logLine(`LIB-AUTH-ALIVE-RECHECK LEARN-AUTH verdict=${alive.verdict} arm=${arm}`).catch(() => undefined);
+            if (arm !== "exhausted") return;
+          } else {
+            // b36（b33 遗留）：真死侧（verdict=none）也留一行可复核日志——每 epoch 至多一条，
+            // 行内只有 verdict/scope/hits，绝不打印凭据、票值、URL 或查询串。
+            const deadLine = claimLibAuthDeadLine(currentAuthEpoch(), "LEARN-AUTH");
+            if (deadLine) void logLine(deadLine).catch(() => undefined);
+          }
+          backToLogin();
+          return;
+        }
+        // 兜底：两个恢复入口都不是 done 且不是上面两支（理论上不可达，保守原地返回）。
         return;
       }
       logPageError("LEARN", err);
@@ -490,7 +712,14 @@ export function useSemesters() {
   const [state, setState] = useState<DataState>(() => (cachedSem ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
 
+  // b31 P0（RC1，页面级自动重试）：稳定句柄 + 最新闭包；卸载时注销等待者。
+  const autoRetryRef = useRef<(() => void) | null>(null);
+  const autoRetry = useCallback(() => autoRetryRef.current?.(), []);
+  useEffect(() => () => releaseLibSoftAutoRetry(currentAuthEpoch(), autoRetry), [autoRetry]);
+
   const load = useCallback(async (silent = false) => {
+    const epochAtStart = currentAuthEpoch();
+    const doneAtStart = libSoftLastDoneAtMs(); // b33：存活复核基线（本次加载发起时的最近恢复成功时刻）
     if (!silent) {
       setState("loading");
       setError(null);
@@ -500,13 +729,65 @@ export function useSemesters() {
         learn.getSemesterIdList(),
         learn.getCurrentSemester().catch(() => null),
       ]);
+      if (epochStale(epochAtStart)) return; // 陈旧结算：登录代次已变，一律不写回
       cacheSet(SEM_KEY, { list: ids, current: cur?.id ?? null });
       setList(ids);
       setCurrent(cur?.id ?? null);
       setState("ready");
     } catch (err) {
+      if (epochStale(epochAtStart)) return;
+      // W1（b25）：这里此前是「catch 到 AuthRequiredError 就 backToLogin()」——一次恢复都不试，
+      // 学期列表一失败就把用户踢到登录页。改成与 useCampusData 同款的三态收口：
+      // 先免密重建一次，再给 WebVPN 全链一次机会；只有真 failed 才登出，
+      // skipped（冷却窗内 / 同键在飞，恢复任务根本没执行）保留旧值 + 可重试提示条。
       if (err instanceof Error && err.name === "AuthRequiredError") {
-        backToLogin();
+        logPageError("SEMESTERS-AUTH", err);
+        const reRoamed = await settleLibSoftPending(await relearnRoamOnce());
+        if (epochStale(epochAtStart)) return;
+        if (reRoamed.state === "done") {
+          await load(silent);
+          return;
+        }
+        const recovered = await settleLibSoftPending(await softRecoverResult("semesters"));
+        if (epochStale(epochAtStart)) return;
+        if (recovered.state === "done") {
+          await load(silent);
+          return;
+        }
+        if (recovered.state === "failed" || reRoamed.state === "failed") {
+          // b33（第三条路径）：与 campus 同判据——落登录页之前复核「同代次内是否已有恢复
+          // 成功 / 是否仍有恢复在飞」；命中不登出、有限次重跑，不命中或次数用尽才如实登出。
+          const alive = libSoftSessionLooksAlive({
+            doneAtStart,
+            doneNow: libSoftLastDoneAtMs(),
+            recoveryInFlight: libSoftRecoveryInFlight(),
+            now: Date.now(),
+          });
+          if (alive.alive) {
+            autoRetryRef.current = () => { void load(silent); };
+            const left = Math.max(libSoftCooldownLeftMs(), relearnRoamCooldownLeftMs());
+            const arm = armLibSoftAutoRetry(currentAuthEpoch(), left, autoRetry, { recoveryInFlight: false });
+            void logLine(`LIB-AUTH-ALIVE-RECHECK SEMESTERS-AUTH verdict=${alive.verdict} arm=${arm}`).catch(() => undefined);
+            if (arm !== "exhausted") return;
+          } else {
+            // b36（b33 遗留）：真死侧（verdict=none）也留一行可复核日志——每 epoch 至多一条，
+            // 行内只有 verdict/scope/hits，绝不打印凭据、票值、URL 或查询串。
+            const deadLine = claimLibAuthDeadLine(currentAuthEpoch(), "SEMESTERS-AUTH");
+            if (deadLine) void logLine(deadLine).catch(() => undefined);
+          }
+          backToLogin();
+          return;
+        }
+        // b31 P0（RC1）：两个恢复入口都没真执行 = `skipped/cooldown`。**不再立刻弹警示**：
+        // 冷却（含 relearn 20s 节流）到期后自动重试一次；只有次数用尽才落警示。
+        // list/current 保留旧值（SWR），不登出。
+        autoRetryRef.current = () => { void load(silent); };
+        const left = Math.max(libSoftCooldownLeftMs(), relearnRoamCooldownLeftMs());
+        if (armLibSoftAutoRetry(currentAuthEpoch(), left, autoRetry, { recoveryInFlight: libSoftRecoveryInFlight() }) === "exhausted") {
+          logPageError("SEMESTERS-AUTH-PENDING", err);
+          setState("error");
+          setError(RELOGIN_PENDING_NOTE);
+        }
         return;
       }
       setState("error");
@@ -554,19 +835,29 @@ export function useZhjwxkCourses() {
       setData({ semester, courses, queue });
       setState("ready");
     } catch (err) {
-      logPageError("ZHJWXK", err);
-      // 会话过期（稳定性专项）：softRecover 全链重建 → 原地重取一次；仍败才亮错
-      if (isAuthError(err) && (await softRecover("xk-boot"))) {
-        try {
-          const semester = await resolveZhjwxkSemester(xkSession()).catch(() => null);
-          const opt = semester ? { semester } : undefined;
-          const courses = await getSelectedCourses(xkSession(), opt);
-          const queue = await getQueueStatus(xkSession(), opt).catch(() => [] as QueueCandidate[]);
-          setData({ semester, courses, queue });
-          setState("ready");
+      // 会话过期（稳定性专项）：softRecover 全链重建 → 原地重取一次；仍败才亮错。
+      // 三态（b23 P2）：只有真 `failed` 才亮失败条；`skipped`（被冷却判掉 / 链内再入）
+      // 不是失败——原地留可重试态（既有 pending 文案 + 错误条上的「重试」）。
+      if (isAuthError(err)) {
+        const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("xk-boot")));
+        if (act === "retry-load") {
+          try {
+            const semester = await resolveZhjwxkSemester(xkSession()).catch(() => null);
+            const opt = semester ? { semester } : undefined;
+            const courses = await getSelectedCourses(xkSession(), opt);
+            const queue = await getQueueStatus(xkSession(), opt).catch(() => [] as QueueCandidate[]);
+            setData({ semester, courses, queue });
+            setState("ready");
+            return;
+          } catch { /* 落错误条 */ }
+        } else if (act === "mark-pending") {
+          logPageError("ZHJWXK-AUTH-PENDING", err);
+          setState("error");
+          setError(RELOGIN_PENDING_NOTE);
           return;
-        } catch { /* 落错误条 */ }
+        }
       }
+      logPageError("ZHJWXK", err);
       setState("error");
       setError(explainNetworkError(err));
     }
@@ -670,10 +961,15 @@ async function fetchLevelTable(sem: string, fresh = false): Promise<Record<strin
       levelCache = { sem, at: Date.now(), table };
       return table;
     } catch (err) {
+      // 失登（稳定性专项）：后台触发透明重建，下一轮管线即用活会话（本层只兜类型标签）。
+      // 三态（b23 P2）：`skipped` 不是失败——不把该学期标记成「失败学期」（标记会抑制
+      // 下一轮管线用刚重建好的活会话重抓），也不落失败行；`done` / `failed` 行为不变。
+      if (isAuthError(err)) {
+        const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("xk-level")));
+        if (act === "mark-pending") return null;
+      }
       levelFailedSems.add(sem);
       logPageError("XK-LEVEL", err);
-      // 失登（稳定性专项）：后台触发透明重建，下一轮管线即用活会话（本层只兜类型标签）
-      if (isAuthError(err)) void softRecover("xk-level").catch(() => undefined);
       return null;
     } finally {
       levelInflight.delete(sem);
@@ -979,6 +1275,9 @@ export function useXkWorkbench(): XkWorkbench {
     // 失登自愈（稳定性专项 2026-09-11）：auth 错 → softRecover 全链重建 → 整组
     // 原地重试一次（有界：每轮调用至多一轮）。此前直接 return []——当轮右栏
     // 数据缺失要等下一条管线；会话已能透明重建，原地补齐才是「任何时刻稳定」。
+    // 三态（b23 P2）：`retryAfterPending` 标记「这一次 auth 失败是上一轮 `skipped`
+    // 触发的有界重试的产物」——那种再败不是失败结论，只记 pending（见下）。
+    let retryAfterPending = false;
     for (let authRound = 0; authRound < 2; authRound++) {
     try {
       // 课余量改按需逐门查（2026-09-14 对齐插件）：查询集 = 已选+候补+暂存，
@@ -1026,13 +1325,24 @@ export function useXkWorkbench(): XkWorkbench {
     } catch (err) {
       if (genRef.current !== myGen || coreSeqRef.current !== coreSeq) return [];
       if (isAuthError(err) && authRound === 0) {
+        // 三态（b23 P2）：`done` 重建成功 → 重试整组（原样）；`skipped` 不是失败——
+        // 按既有「至多一轮原地重试」的有界机制重试，不再直接交空数组；
+        // `failed` 才维持既有「返回空数组、交下一轮管线」的表现。
+        const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("xk-core")));
+        if (act === "mark-pending") { retryAfterPending = true; continue; }
         logPageError("XK-CORE-AUTH", err);
-        if (await softRecover("xk-core")) continue;   // 重建成功 → 重试整组
+        if (act === "retry-load") continue;   // 重建成功 → 重试整组
         return [];
       }
       // 失登不再整页重载（重载=app 重启回首页目录，搜索/培养方案状态全丢——2026-09-03 实录
       // 「课表跳转过一会又刷成首页」）。会话每次调用自动重建（60s 热缓存），SWR 保旧/错误条兜底。
-      if (isAuthError(err)) { logPageError("XK-CORE-AUTH", err); return []; }
+      if (isAuthError(err)) {
+        // 三态（b23 P2）：上一轮是 `skipped` 触发的有界重试 → 这一轮再败也不许记失败 tag
+        // （真机窗口里它会以 `XK-CORE-AUTH` 出现在「被冷却判掉」的窗口内）；只记 pending。
+        // 上一轮是 `done`（重建成功）或 `failed` 之后仍败 → 保留既有 `XK-CORE-AUTH` 失败表现。
+        logPageError(retryAfterPending ? "XK-CORE-AUTH-PENDING" : "XK-CORE-AUTH", err);
+        return [];
+      }
       if (coreSeededRef.current) return []; // 秒渲旧值在屏：保旧不闪红（SWR），重试/下轮再验证
       logPageError("ZHJWXK", err);
       setCoreState("error");
@@ -1363,22 +1673,57 @@ export function useXkWorkbench(): XkWorkbench {
     !meta.kch && !meta.kcm && !meta.teacher && !meta.department && !meta.weekday &&
     !meta.section && !meta.grade && !meta.rxklxm && !meta.kctsm && !meta.onlyAvailable && !meta.gradAvail;
 
+  /**
+   * W3（b25）：选课搜索的 auth 类失败按三态收口——P2 之外的漏网出口。
+   * 此前无论什么失败都直接 `explainNetworkError` 落一条黄条；而「共享单飞被冷却判掉 /
+   * 链内再入」这种**恢复任务根本没执行**的情形也被当成失败展示（与 b19–b23 修掉的那批同型）。
+   * 现在：`done` → 立即重跑一次搜索（用户只感知到多一次加载）；`failed` → 保留既有失败表现
+   * （原错误文案 + 4.2s 有界重试）；`skipped` → 不落失败表现，改 `XK-SEARCH-AUTH-PENDING`
+   * 日志 + `RELOGIN_PENDING_NOTE` 提示条，并沿用既有 4.2s 有界重试把黄条自愈。
+   * 本函数在数据加载的调用栈里（守卫之外），因此允许 `settleLibSoftPending` 取在飞链真结果。
+   */
   const failSearch = useCallback((err: unknown, seq: number): void => {
     if (seq !== searchSeqRef.current) return;
     const msg = explainNetworkError(err);
-    logPageError("XK-SEARCH", err);
     // 落地类失败自动重试一次：首刷撞自愈窗口（16:33/16:48 实录第二波必成），
     // 等 4.2s（选课侧 3s 冷却 + 余量）后自动重跑 refresh——成功则黄条自愈，
-    // 不再让用户手动点重试
-    // 引导壳型异常页（htmlHead 带 __vpn_hostname_data）同为可自愈态
-    if (/登录未落地|恢复冷却中|__vpn_hostname_data/.test(msg)) {
+    // 不再让用户手动点重试。引导壳型异常页（htmlHead 带 __vpn_hostname_data）同为可自愈态。
+    const armAutoRetry = (): void => {
       setTimeout(() => {
         if (seq === searchSeqRef.current) void refreshRef.current?.(false);
       }, 4200);
-    }
+    };
+    const authish =
+      (err instanceof Error && err.name === "AuthRequiredError") ||
+      /登录未落地|恢复冷却中|__vpn_hostname_data/.test(msg);
     // 失登不整页重载：错误条 + 重试（proxyZhjwxkApi 内部已带 relogin 自愈），保住搜索现场
-    setSearchError(msg);
-    setSearchState("error");
+    if (!authish) {
+      logPageError("XK-SEARCH", err);
+      setSearchError(msg);
+      setSearchState("error");
+      return;
+    }
+    void (async (): Promise<void> => {
+      const r = await settleLibSoftPending(await softRecoverResult("xk-search"));
+      if (seq !== searchSeqRef.current) return;
+      if (r.state === "done") {
+        // 登录状态已重建：直接重跑一次搜索（比等 4.2s 更快）
+        void refreshRef.current?.(false);
+        return;
+      }
+      if (r.state === "failed") {
+        logPageError("XK-SEARCH", err);
+        setSearchError(msg);
+        setSearchState("error");
+        armAutoRetry();
+        return;
+      }
+      // skipped（冷却窗内 / 链内再入，恢复任务没执行）：不当失败，留可重试提示条
+      logPageError("XK-SEARCH-AUTH-PENDING", err);
+      setSearchError(RELOGIN_PENDING_NOTE);
+      setSearchState("error");
+      armAutoRetry();
+    })();
   }, []);
 
   const newSearch = useCallback(
@@ -1733,7 +2078,7 @@ export function useXkWorkbench(): XkWorkbench {
     }
   }, [savedDrafts]);
   const importDraft = useCallback(() => {
-    const raw = globalThis.prompt?.("粘贴导出的草稿 JSON");
+    const raw = globalThis.prompt?.("粘贴导出的草稿内容");
     if (!raw) { setToast("已取消"); return; }
     try {
       const obj = JSON.parse(raw) as { name?: string; courses?: XkStageItem[] };
@@ -1868,20 +2213,36 @@ export function useXkWorkbench(): XkWorkbench {
       setQueueState("ready");
       setToast(`队列数据已刷新 · ${Object.keys(qd.map).length}门课余量 · ${candidates.length}门我的队列`);
     } catch (err) {
-      logPageError("XK-QUEUE", err);
-      // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才 toast
-      if (isAuthError(err) && (await softRecover("xk-queue"))) {
-        const codes = [...new Set([...selected.map((r) => r.code), ...candidates.map((r) => r.code), ...stageCart.map((x) => x.code)])];
-        const qd = await getXkQueueData(xkSession(), { semester: semBarRef.current ?? semesterFromDate(), codes }).catch(() => null);
-        if (qd && genRef.current === myGen) {
-          setQueueMap(qd.map);
-          setPhase(qd.phase);
+      // 三态（b23 P2）：只有真 `failed` 才落失败 toast；`skipped`（冷却判掉 / 链内再入）
+      // 不是失败——原地留可重试态（队列保持原数据，按钮可再点），文案也不许宣称「已重建」。
+      let rebuilt = false;
+      if (isAuthError(err)) {
+        const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("xk-queue")));
+        if (act === "mark-pending") {
           setQueueState("ready");
-          setToast(`队列数据已刷新 · ${Object.keys(qd.map).length}门课余量 · ${candidates.length}门我的队列`);
+          setToast("登录状态暂时未能自动恢复，队列数据可稍后重试");
           return;
         }
+        logPageError("XK-QUEUE", err);
+        if (act === "retry-load") {
+          rebuilt = true;
+          const codes = [...new Set([...selected.map((r) => r.code), ...candidates.map((r) => r.code), ...stageCart.map((x) => x.code)])];
+          const qd = await getXkQueueData(xkSession(), { semester: semBarRef.current ?? semesterFromDate(), codes }).catch(() => null);
+          if (qd && genRef.current === myGen) {
+            setQueueMap(qd.map);
+            setPhase(qd.phase);
+            setQueueState("ready");
+            setToast(`队列数据已刷新 · ${Object.keys(qd.map).length}门课余量 · ${candidates.length}门我的队列`);
+            return;
+          }
+        }
+      } else {
+        logPageError("XK-QUEUE", err);
       }
-      setToast("课余量排队人数获取失败，可稍后重试（登录状态已自动重建）");
+      // 文案与三态一致：只有真的走完 `done` 重建（rebuilt）时才提「已自动重建」。
+      setToast(rebuilt
+        ? "课余量排队人数获取失败（登录状态已自动重建），可稍后重试"
+        : "课余量排队人数获取失败，可稍后重试");
       setQueueState("ready");
     }
   }, [status, candidates, selected, stageCart]);
@@ -2107,18 +2468,11 @@ export function useCard(days = 30) {
       ]);
       // R21c 真 bug：此前流水失败会返回 [] 并被 cacheSet 落盘，把此前的真实流水覆盖成
       // 「没有流水」，用户看到的是假的空列表。现在失败保留旧流水并单独报「部分失败」。
-      // 旧流水是从 localStorage 读回来的，时间戳是 JSON 化后的字符串，必须就地复活：
-      // 否则 CardTab 的 fmtTime 拿到字符串会抛 `d.getMonth is not a function`，整棵树
-      // 被根错误边界换掉（2026-09-25 真机实录：流水接口返回错误页时卡片直接变错误页）。
       const prev = cacheGet<CardBundle>(cardKey)?.data ?? null;
-      const prevBundle = prev ? reviveCardBundle(prev) : null;
-      const mergedTx = transactions ?? prevBundle?.transactions ?? [];
+      const mergedTx = transactions ?? prev?.transactions ?? [];
       cacheSet(cardKey, { info: cardInfo, transactions: mergedTx });
       setData({ info: cardInfo, transactions: mergedTx });
       setUpdatedAt(Date.now());
-      // 余额预警：任何一次余额刷新（卡页手刷 / 切回本栏重试 / 首页与小组件的静默重验证 /
-      // 充值后刷新）都在这里过一遍判定，判定放在取数之后，新增刷新途径无需再接线。
-      void observeCardBalance(cardInfo.balance);
       setRefreshError(transactions === null ? "流水明细获取失败，已显示上次拉到的明细" : null);
       recover.current = 0;
       setState("ready");
@@ -2312,44 +2666,79 @@ function calendarNodes(cal: CalendarData): TodayCalendarNode[] {
  * 首页「最近日程」数据源：learn.getCalendarData 展开为未来校历节点（升序，
  * UI 取前 N 条）。失败静默（state="error" 且 nodes=null）：首页该卡整卡隐藏，
  * 不弹错误条。
+ *
+ * 止血（b20）根因之一：`TODAYCAL_KEY` 原先被 `cacheFetch` 写成**原始 `CalendarData`**
+ * （`cacheSet(key, fetcher 的返回值)`，cache.ts:104），而本 hook 的 state 直接读
+ * `cacheGet(TODAYCAL_KEY).data` → 再次挂载今日页时 `nodes` 是个非数组对象，
+ * 下面渲染期的形状日志**每次渲染**都写一条（b19 现场 `TODAYCAL-SHAPE` 1272 条/139s，
+ * 是新闻重试环的重渲染把它放大的）。现在派生输入（原始日历）与派生结果（节点数组）
+ * 分键存放，读侧再按 `Array.isArray` 消毒，旧版本毒化缓存自然被忽略并覆盖。
  */
 const TODAYCAL_KEY = "todaycal";
+/** 原始 `CalendarData` 的缓存键（`cacheFetch` 的落点，只作 `calendarNodes` 的输入）。 */
+const TODAYCAL_SRC_KEY = "todaycal:src";
 const TODAYCAL_TTL = 30 * 60 * 1000;
 
 export function useTodayCalendar() {
   const { status } = useApp();
-  const [nodes, setNodes] = useState<TodayCalendarNode[] | null>(() => cacheGet<TodayCalendarNode[]>(TODAYCAL_KEY)?.data ?? null);
-  const [state, setState] = useState<DataState>(() => (cacheGet<TodayCalendarNode[]>(TODAYCAL_KEY) ? "ready" : "loading"));
+  const [nodes, setNodes] = useState<TodayCalendarNode[] | null>(() => {
+    const c = cacheGet<TodayCalendarNode[]>(TODAYCAL_KEY);
+    // 只认数组：旧版本可能把原始 CalendarData 写进这个键（见上方注释），不许再上屏
+    return c && Array.isArray(c.data) ? c.data : null;
+  });
+  const [state, setState] = useState<DataState>(() => {
+    const c = cacheGet<TodayCalendarNode[]>(TODAYCAL_KEY);
+    return c && Array.isArray(c.data) ? "ready" : "loading";
+  });
+  const nodesRef = useRef<TodayCalendarNode[] | null>(null);
+  const shapeLoggedRef = useRef("");
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setState("loading");
     try {
-      const nodes2 = calendarNodes(await cacheFetch(TODAYCAL_KEY, () => infoHelper.getCalendar()));
+      const cal = await cacheFetch(TODAYCAL_SRC_KEY, () => infoHelper.getCalendar());
+      const nodes2 = calendarNodes(cal);
+      cacheSet(TODAYCAL_KEY, nodes2); // 派生结果单独落键（原始值在 :src）
+      nodesRef.current = nodes2;
       setNodes(nodes2);
       setState("ready");
     } catch (err) {
       logPageError("TODAY-CALENDAR", err);
-      if (silent && nodes !== null) return;
+      // 失败判定走 ref：`load` 不再依赖 `nodes`（同一类「依赖不稳导致 effect 重跑」根因）
+      if (silent && nodesRef.current !== null) return;
+      nodesRef.current = null;
       setNodes(null);
       setState("error"); // 静默：Today 页据此整卡隐藏
     }
-  }, [status, nodes]);
+  }, [status]);
 
   useEffect(() => {
     if (status !== "ready") return;
     const cached = cacheGet<TodayCalendarNode[]>(TODAYCAL_KEY);
-    if (!cached) void load(false);
-    else if (Date.now() - cached.at > TODAYCAL_TTL) void load(true);
+    if (!cached || !Array.isArray(cached.data)) {
+      void load(false); // 无缓存 / 旧毒化缓存（非数组）：直接重取
+      return;
+    }
+    nodesRef.current = cached.data;
+    setNodes(cached.data);
+    setState("ready");
+    if (Date.now() - cached.at > TODAYCAL_TTL) void load(true);
   }, [status, load]);
 
   // 形状消毒：nodes 必须是数组（2026-09-05 实录：cal.nodes 为非数组时
   // Today 卡片 .slice 崩白屏——HMR 保留回退前组件旧 state 的嫌疑最大）。
-  // 异形样本落盘诊断通道，抓住真源头。
-  if (nodes !== null && !Array.isArray(nodes)) {
+  // 止血（b20）：这条诊断原先写在**渲染期**，异形 state 下每次渲染写一条
+  // （1272 条/139s）；现在搬进 effect，且同一形状只写一次，退避期不再重复刷。
+  useEffect(() => {
+    if (nodes === null || Array.isArray(nodes)) return;
+    const shape = `${typeof nodes}:${Object.keys(nodes as object).join("+")}`;
+    if (shapeLoggedRef.current === shape) return;
+    shapeLoggedRef.current = shape;
     void logLine(
       `TODAYCAL-SHAPE nodes=${typeof nodes} keys=${Object.keys(nodes as object).join("+")} sample=${JSON.stringify(nodes).slice(0, 200)}`,
     ).catch(() => undefined);
-  }
+  }, [nodes]);
+
   return { nodes: Array.isArray(nodes) ? nodes : null, state, reload: load };
 }
 
@@ -2379,13 +2768,27 @@ export function useCalendar() {
       setState("ready");
       notifyCalendarData();
     } catch (err) {
-      logPageError("CALENDAR", err);
-      // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才落错误条
-      if (isAuthError(err) && (await softRecover("calendar"))) {
-        setData(await cacheFetch(CAL_KEY, () => learn.getCalendarData()));
-        setState("ready");
-        notifyCalendarData();
-        return;
+      // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才落错误条。
+      // 三态（b23 P2）：只有真 `failed` 才落失败条；`skipped` 不是失败——有旧值保旧
+      // （SWR），无旧值留 pending 可重试条。
+      if (isAuthError(err)) {
+        const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("calendar")));
+        if (act === "mark-pending") {
+          if (data !== null) return;
+          logPageError("CALENDAR-AUTH-PENDING", err);
+          setState("error");
+          setError(RELOGIN_PENDING_NOTE);
+          return;
+        }
+        logPageError("CALENDAR", err);
+        if (act === "retry-load") {
+          setData(await cacheFetch(CAL_KEY, () => learn.getCalendarData()));
+          setState("ready");
+          notifyCalendarData();
+          return;
+        }
+      } else {
+        logPageError("CALENDAR", err);
       }
       // SWR 语义（极限稳定目标）：已有旧值时刷新失败不闪红，旧数据继续展示——
       // 红条只在「一无所获」时才允许露脸（useWeekSchedule 同款）
@@ -2478,18 +2881,33 @@ export function useWeekSchedule(semester: CalendarSemester | null, week: number)
         }
       })
       .catch(async (err: unknown) => {
-        logPageError("SCHEDULE", err);
-        // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才落错误条
-        if (!cancelled && isAuthError(err) && (await softRecover("weeksched"))) {
-          const entries = await info
-            .getSchedule(fmtDate(start), fmtDate(end))
-            .catch(() => null);
-          if (entries && !cancelled) {
-            cacheSet(wsKey, entries);
-            setData(entries);
-            setState("ready");
+        // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才落错误条。
+        // 三态（b23 P2）：只有真 `failed` 才落失败条；`skipped` 不是失败——有旧值保旧，
+        // 无旧值留 pending 可重试条。
+        if (!cancelled && isAuthError(err)) {
+          const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("weeksched")));
+          if (act === "mark-pending") {
+            if (cancelled) return;
+            if (cacheGet<ScheduleEntry[]>(wsKey)) return;
+            logPageError("SCHEDULE-AUTH-PENDING", err);
+            setError(RELOGIN_PENDING_NOTE);
+            setState("error");
             return;
           }
+          logPageError("SCHEDULE", err);
+          if (act === "retry-load") {
+            const entries = await info
+              .getSchedule(fmtDate(start), fmtDate(end))
+              .catch(() => null);
+            if (entries && !cancelled) {
+              cacheSet(wsKey, entries);
+              setData(entries);
+              setState("ready");
+              return;
+            }
+          }
+        } else {
+          logPageError("SCHEDULE", err);
         }
         if (!cancelled) {
           // 已有旧值（缓存）时不闪红：SWR 语义，保留旧课表
@@ -2526,14 +2944,26 @@ export function useExams() {  const { status } = useApp();
       setData(await cacheFetch(EXAMS_KEY, () => info.getExams()));
       setState("ready");
     } catch (err) {
-      logPageError("EXAMS", err);
-      // 失登（稳定性专项）：softRecover 透明重建 → 原地重取一次；仍败才落错误条
-      if (isAuthError(err) && (await softRecover("exams"))) {
-        try {
-          setData(await cacheFetch(EXAMS_KEY, () => info.getExams()));
-          setState("ready");
-          return;
-        } catch { /* 二次失败落错误条，绝不逃出 catch 卡死 loading */ }
+      // 三态（b23 P2）：只有真 `failed` 才落失败条；`skipped`（冷却判掉 / 链内再入）
+      // 不是失败——既有的 1.5s / 25s 有界重试照走，只是不再把判掉当加载失败
+      // （没有旧值时留 pending 可重试条，让既有 25s 自愈闭环仍能触发）。
+      let pendingAuth = false;
+      if (isAuthError(err)) {
+        const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("exams")));
+        if (act === "mark-pending") {
+          pendingAuth = true;
+        } else {
+          logPageError("EXAMS", err);
+          if (act === "retry-load") {
+            try {
+              setData(await cacheFetch(EXAMS_KEY, () => info.getExams()));
+              setState("ready");
+              return;
+            } catch { /* 二次失败落错误条，绝不逃出 catch 卡死 loading */ }
+          }
+        }
+      } else {
+        logPageError("EXAMS", err);
       }
       // boot 竞态兜底（2026-09-13 凌晨实锤：boot 重登全链成功后 12s，考试首跳
       // 仍落登录超时页——请求与 info roam 并发赛跑，softRecover 又在 20s 节流窗
@@ -2560,6 +2990,12 @@ export function useExams() {  const { status } = useApp();
       // SWR 语义（极限稳定目标）：已有旧值时刷新失败不闪红，旧数据继续展示——
       // 红条只在「一无所获」时才允许露脸（useWeekSchedule 同款）
       if (data !== null) return;
+      if (pendingAuth) {
+        logPageError("EXAMS-AUTH-PENDING", err);
+        setState("error");
+        setError(RELOGIN_PENDING_NOTE);
+        return;
+      }
       setState("error");
       setError(explainNetworkError(err));
     }
@@ -2629,6 +3065,26 @@ export function useNews(page: number, length = 20) {
 const DEADLINES_KEY = "deadlines";
 const DEADLINES_TTL = 10 * 60 * 1000;
 
+/** 同步读「重要事项（含选课/退课阶段）」缓存；**不发起请求**。侧栏选课季判定用（§9.2）。 */
+export function cachedDeadlines(): DeadlineItem[] | null {
+  return cacheGet<DeadlineItem[]>(DEADLINES_KEY)?.data ?? null;
+}
+
+/** 按需拉一次「重要事项」（与 useTodayDeadlines 同一条链、同一个 key）；失败由调用方决定处置。 */
+export function ensureDeadlines(): Promise<DeadlineItem[]> {
+  return cacheFetch(DEADLINES_KEY, async () => {
+    const tt = await infoHelper.getCrTimetable();
+    return tt.flatMap((sem) =>
+      sem.events.map((e) => ({
+        title: e.stage,
+        begin: e.begin,
+        end: e.end,
+        url: e.messages[0],
+      })),
+    );
+  });
+}
+
 export function useTodayDeadlines() {
   const { status } = useApp();
   const [list, setList] = useState<DeadlineItem[] | null>(() => cacheGet<DeadlineItem[]>(DEADLINES_KEY)?.data ?? null);
@@ -2637,17 +3093,7 @@ export function useTodayDeadlines() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setState("loading");
     try {
-      const items = await cacheFetch(DEADLINES_KEY, async () => {
-        const tt = await infoHelper.getCrTimetable();
-        return tt.flatMap((sem) =>
-          sem.events.map((e) => ({
-            title: e.stage,
-            begin: e.begin,
-            end: e.end,
-            url: e.messages[0],
-          })),
-        );
-      });
+      const items = await ensureDeadlines();
       setList(items);
       setState("ready");
     } catch (err) {
@@ -2696,6 +3142,56 @@ export interface TodayNewsFeed {
  */
 const TODAYNEWS_TTL = 5 * 60 * 1000;
 
+/** 今日新闻**单飞表**（止血，b20）：同一 feedKey 同一时刻只允许一份在飞请求。
+ *  Today 页与「收藏夹自持组件」可能同时挂载同一个 feedKey，b19 现场一份失败会看到
+ *  两条一模一样的 `PAGE-ERR TODAY-NEWS`（一个失败周期 2 份请求）。
+ *  语义同 `cacheFetch`：成功写缓存，失败不驻留。 */
+const todayNewsInflight = new Map<string, Promise<TodayNewsFeed>>();
+/** 每个 feedKey 的「本失败串已记过日志」标记：退避重试期间只记一次（b19：844 条）。 */
+const todayNewsLogged = new Set<string>();
+
+/** 取数（单飞出口，网络层唯一入口）。成功才写缓存并复位失败标记。 */
+function fetchTodayNewsOnce(feedKey: string, subList: string[]): Promise<TodayNewsFeed> {
+  const running = todayNewsInflight.get(feedKey);
+  if (running) return running;
+  const latest = async (): Promise<TodayNewsFeed> => {
+    const items = await infoHelper.getNewsList(1, 20);
+    return { list: items.slice(0, 5), from: "latest", subCount: subList.length };
+  };
+  const p = (async (): Promise<TodayNewsFeed> => {
+    if (subList.length > 0) {
+      // 服务端订阅条件（权威）→ 来源名映射条件 id（本地无对应服务端条件的来源跳过）
+      const conds: Array<{ id: string; source?: string }> = await infoHelper
+        .getNewsSubscriptionList()
+        .catch(() => []);
+      const ids = subList
+        .map((s) => conds.find((c) => c.source === s)?.id ?? "")
+        .filter(Boolean);
+      const results = await Promise.allSettled(ids.map((id) => infoHelper.getNewsListBySubscription(1, id)));
+      const pooled: NewsItem[] = [];
+      for (const r of results) if (r.status === "fulfilled") pooled.push(...r.value.slice(0, 5));
+      const seen = new Set<string>();
+      const items = pooled
+        .sort((a, b) => newsTimeOf(b.date) - newsTimeOf(a.date))
+        .filter((n) => (n.xxid ? !seen.has(n.xxid) && seen.add(n.xxid) : true))
+        .slice(0, 5);
+      if (items.length > 0) return { list: items, from: "subs", subCount: subList.length };
+      // 订阅链失败/来源无内容 → 回退最新新闻（卡片注明）
+    }
+    return latest();
+  })()
+    .then((feed) => {
+      cacheSet(feedKey, feed);
+      todayNewsLogged.delete(feedKey); // 成功即复位：下一次失败串重新记一条
+      return feed;
+    })
+    .finally(() => {
+      if (todayNewsInflight.get(feedKey) === p) todayNewsInflight.delete(feedKey);
+    });
+  todayNewsInflight.set(feedKey, p);
+  return p;
+}
+
 export function useTodayNewsFeed(subs: string[]) {
   const { status } = useApp();
   const [data, setData] = useState<TodayNewsFeed | null>(null);
@@ -2705,64 +3201,96 @@ export function useTodayNewsFeed(subs: string[]) {
   const subsKey = subs.join("\u0001");
   const feedKey = `todaynews:${subsKey}`;
 
-  const load = useCallback(async (silent = false) => {
-    if (!silent) setState("loading");
-    const subList = subsKey ? subsKey.split("\u0001") : [];
-    const latest = async (): Promise<TodayNewsFeed> => {
-      const items = await infoHelper.getNewsList(1, 20);
-      return { list: items.slice(0, 5), from: "latest", subCount: subList.length };
-    };
-    try {
-      if (subList.length > 0) {
-        // 服务端订阅条件（权威）→ 来源名映射条件 id（本地无对应服务端条件的来源跳过）
-        const conds: Array<{ id: string; source?: string }> = await infoHelper
-          .getNewsSubscriptionList()
-          .catch(() => []);
-        const ids = subList
-          .map((s) => conds.find((c) => c.source === s)?.id ?? "")
-          .filter(Boolean);
-        const results = await Promise.allSettled(ids.map((id) => infoHelper.getNewsListBySubscription(1, id)));
-        const pooled: NewsItem[] = [];
-        for (const r of results) if (r.status === "fulfilled") pooled.push(...r.value.slice(0, 5));
-        const seen = new Set<string>();
-        const items = pooled
-          .sort((a, b) => newsTimeOf(b.date) - newsTimeOf(a.date))
-          .filter((n) => (n.xxid ? !seen.has(n.xxid) && seen.add(n.xxid) : true))
-          .slice(0, 5);
-        if (items.length > 0) {
-          const feed = { list: items, from: "subs" as const, subCount: subList.length };
-          cacheSet(feedKey, feed);
-          setData(feed);
-          setState("ready");
-          return;
-        }
-        // 订阅链失败/来源无内容 → 回退最新新闻（卡片注明）
+  /* 止血（b20）根因修复：`load` 的依赖里原先带着 `data`，而失败分支又用**闭包里的旧
+   * `data`** 判「是否静默失败」，两者合起来就是那个 6 次/s 的环：
+   * 挂载有**过期缓存** → effect 先 `setData(缓存)` 再 `load(true)`；这次 `load` 闭包里
+   * `data===null` → 失败走硬失败分支 `setData(null)` → `data` 变了 → `load` 换身份 →
+   * effect（依赖 `load`）重跑 → 缓存仍过期（失败从不写缓存）→ 又 `setData(缓存)` +
+   * `load(true)` → 立刻重拉。一次失败 ≈ 2 次 setState，环周期 = 一次失败请求耗时
+   * （现场 ~280ms）。修法：失败判定走 ref（`dataRef`）、`load` 不再依赖 `data`，
+   * 重拉只由**退避定时器**驱动（成功/手动刷新复位）。 */
+  const dataRef = useRef<TodayNewsFeed | null>(null);
+  const attemptRef = useRef(0); // 连续失败次数（首失败前 0；成功/手动/换 feedKey 复位）
+  const aliveRef = useRef(true);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** 定时器回调里重入 `load` 的句柄：避免 load ↔ 定时器互相进依赖造成身份抖动。 */
+  const loadRef = useRef<(silent?: boolean) => Promise<void>>(async () => undefined);
+
+  const load = useCallback(async (silent = false): Promise<void> => {
+    if (!silent) {
+      setState("loading");
+      attemptRef.current = 0;
+      todayNewsLogged.delete(feedKey); // 手动刷新：允许重新记一条
+      if (retryTimerRef.current !== null) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
       }
-      const feed = await latest();
-      cacheSet(feedKey, feed);
+    }
+    const subList = subsKey ? subsKey.split("\u0001") : [];
+    try {
+      const feed = await fetchTodayNewsOnce(feedKey, subList);
+      // 成功即复位：退避计数与日志标记清零（健康路径下次照常零延迟）
+      attemptRef.current = 0;
+      dataRef.current = feed;
       setData(feed);
       setState("ready");
     } catch (err) {
-      logPageError("TODAY-NEWS", err);
-      if (silent && data !== null) return;
-      setData(null);
-      setState("error"); // 静默：Today 页据此整卡隐藏
+      // 错误只记一次（每个失败串），退避重试期间不再刷日志
+      if (!todayNewsLogged.has(feedKey)) {
+        todayNewsLogged.add(feedKey);
+        logPageError("TODAY-NEWS", err);
+      }
+      // 失败判定走 ref（不是闭包里的 data）：已有旧值时 SWR 不闪红
+      if (!(silent && dataRef.current !== null)) {
+        dataRef.current = null;
+        setData(null);
+        setState("error"); // 静默：Today 页据此整卡隐藏
+      }
+      attemptRef.current += 1;
+      if (
+        aliveRef.current &&
+        retryTimerRef.current === null &&
+        shouldRetryTodayNews(attemptRef.current)
+      ) {
+        retryTimerRef.current = setTimeout(() => {
+          retryTimerRef.current = null;
+          if (aliveRef.current) void loadRef.current(true);
+        }, nextTodayNewsRetryDelay(attemptRef.current));
+      }
     }
-  }, [status, subsKey, feedKey, data]);
+  }, [status, subsKey, feedKey]);
+
+  useEffect(() => {
+    loadRef.current = load;
+  }, [load]);
 
   useEffect(() => {
     if (status !== "ready") return;
     const cached = cacheGet<TodayNewsFeed>(feedKey);
     if (!cached) void load(false);
     else if (Date.now() - cached.at > TODAYNEWS_TTL) {
+      dataRef.current = cached.data;
       setData(cached.data);
       setState("ready");
       void load(true);
     } else {
+      dataRef.current = cached.data;
       setData(cached.data);
       setState("ready");
     }
   }, [status, load, feedKey]);
+
+  // 卸载即停：清退避定时器（挂载期才允许排重试）
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+      if (retryTimerRef.current !== null) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    };
+  }, []);
 
   return { data, state, reload: load };
 }

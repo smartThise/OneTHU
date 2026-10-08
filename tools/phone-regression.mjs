@@ -22,7 +22,8 @@ const arg = (name, dflt) => {
   const i = argv.indexOf("--" + name);
   return i >= 0 ? argv[i + 1] : dflt;
 };
-const ADB = process.env.ADB || "/mnt/c/temp/platform-tools/adb.exe";
+/* 脱敏：默认不再写死本机 adb 路径，改为走 PATH 里的 adb（可用 ADB=... 覆盖） */
+const ADB = process.env.ADB || "adb";
 const PORT = arg("port", "5137");
 const PKG = arg("pkg", "app.onethu.desktop.dev");
 const CDP_PORT = Number(arg("cdp", "9222"));

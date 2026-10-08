@@ -6,11 +6,13 @@
  * define 折叠后是 null，那句动态 import 一并被 rollup 删除（守卫 + 构建后 grep dist 双重把关）。
  * 样式全部内联：dev 代码不往正式版的 CSS 里留任何选择器。
  */
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { isAndroidNavigator, isWindowsNavigator } from "../lib/androidHost.js";
 import { APP_VERSION, BUILD_COMMIT, BUILD_TIME } from "../lib/buildinfo.js";
 import { clearDevLog, devLogEntries, devLogText, type DevLogEntry } from "../lib/devlog.js";
+import { navDebugState, subscribeNav } from "../state/navStack.js";
+import { armDevSelfHealFailure } from "../lib/relogin.js";
 
 const HIDE_KEY = "onethu.dev.badge.hidden";
 
@@ -19,34 +21,34 @@ const S: Record<string, CSSProperties> = {
     position: "fixed", top: 6, right: 8, zIndex: 9000,
     display: "inline-flex", alignItems: "center", gap: 6,
     padding: "2px 8px", borderRadius: 999,
-    background: "rgba(22,24,29,0.88)", color: "#8ef0b0",
-    border: "1px solid rgba(142,240,176,0.35)",
+    background: "rgba(22,24,29,0.88)", color: "#8ef0b0",  /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */
+    border: "1px solid rgba(142,240,176,0.35)",  /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */
     font: "11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
     cursor: "pointer", userSelect: "none", backdropFilter: "blur(4px)",
   },
   panel: {
     position: "fixed", top: 30, right: 8, zIndex: 9001,
     width: "min(560px, 94vw)", maxHeight: "76vh", overflow: "auto",
-    background: "#16181d", color: "#e6e8ec",
-    border: "1px solid #3a3f4b", borderRadius: 10,
-    boxShadow: "0 18px 48px rgba(0,0,0,0.45)",
+    background: "#16181d", color: "#e6e8ec",  /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */
+    border: "1px solid #3a3f4b", borderRadius: 10,  /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */
+    boxShadow: "0 18px 48px rgba(0,0,0,0.45)",  /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */
     font: "12px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
     padding: 12,
   },
-  row: { display: "flex", gap: 8, alignItems: "baseline", borderBottom: "1px solid #23262e", padding: "3px 0" },
-  key: { color: "#8b93a3", flex: "0 0 76px" },
-  val: { color: "#e6e8ec", wordBreak: "break-all", flex: "1 1 auto" },
+  row: { display: "flex", gap: 8, alignItems: "baseline", borderBottom: "1px solid #23262e", padding: "3px 0" },  /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */
+  key: { color: "#8b93a3", flex: "0 0 76px" },  /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */
+  val: { color: "#e6e8ec", wordBreak: "break-all", flex: "1 1 auto" },  /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */
   bar: { display: "flex", gap: 6, flexWrap: "wrap", margin: "10px 0 8px" },
   btn: {
-    background: "#232733", color: "#e6e8ec", border: "1px solid #3a3f4b",
+    background: "#232733", color: "#e6e8ec", border: "1px solid #3a3f4b",  /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */
     borderRadius: 6, padding: "3px 10px", cursor: "pointer", font: "inherit",
   },
   log: {
-    background: "#0f1115", border: "1px solid #23262e", borderRadius: 6,
+    background: "#0f1115", border: "1px solid #23262e", borderRadius: 6,  /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */
     padding: 8, maxHeight: "38vh", overflow: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all",
   },
   line: { display: "flex", gap: 6 },
-  note: { color: "#ffd479", marginTop: 6, minHeight: 16 },
+  note: { color: "#ffd479", marginTop: 6, minHeight: 16 },  /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */
 };
 
 function hostName(): string {
@@ -63,9 +65,9 @@ function buildTimeText(): string {
 }
 
 function levelColor(level: string): string {
-  if (level === "error") return "#ff8a8a";
-  if (level === "warn") return "#ffd479";
-  return "#9fb3c8";
+  if (level === "error") return "#ff8a8a";  /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */
+  if (level === "warn") return "#ffd479";  /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */
+  return "#9fb3c8";  /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */
 }
 
 export default function DevPanel() {
@@ -74,6 +76,8 @@ export default function DevPanel() {
   const [logs, setLogs] = useState<DevLogEntry[]>([]);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  /* 导航栈自检：真机走查 E1/E6/E9 时直接看栈深、返回键监听是否在册（含注册/摘除异常） */
+  const navState = useSyncExternalStore(subscribeNav, navDebugState, navDebugState);
 
   useEffect(() => {
     try {
@@ -135,6 +139,7 @@ export default function DevPanel() {
       "视口: " + window.innerWidth + "x" + window.innerHeight + " dpr=" + window.devicePixelRatio,
       "语言: " + (nav ? nav.language : "?"),
       "UA: " + (nav ? nav.userAgent : "?"),
+      "导航栈: 栈深 " + navState.depth + " / 可返回 " + (navState.canGoBack ? "是" : "否") + " / 返回键监听 " + (navState.listening ? "在册" : "未注册") + (navState.error ? " / 返回键通道出错，请把日志一起反馈：" + navState.error : ""),
     ].join("\n");
   };
 
@@ -142,14 +147,17 @@ export default function DevPanel() {
 
   return (
     <>
-      <button style={S.badge} onClick={() => setOpen(!open)} title={"dev 构建 " + buildTimeText()}>
-        dev · {BUILD_COMMIT}
+      {/* 霖 2026-10-01 #2：手机上这枚徽标放**顶栏正中**、缩成一枚只写「dev」的小标——
+          提交号那截用 .dev-badge-commit 在手机端隐藏（进面板里仍能看到完整 commit）。
+          定位与尺寸走 .dev-badge 的媒体查询覆盖，PC 侧保持右上角原样。 */}
+      <button className="dev-badge" style={S.badge} onClick={() => setOpen(!open)} title={"dev 构建 " + buildTimeText()}>
+        dev<span className="dev-badge-commit"> · {BUILD_COMMIT}</span>
       </button>
       {open ? (
         <div style={S.panel}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <strong style={{ color: "#8ef0b0" }}>OneTHU dev</strong>
-            <span style={{ color: "#8b93a3" }}>v{APP_VERSION}</span>
+            <strong style={{ color: "#8ef0b0" /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */ }}>OneTHU dev</strong>
+            <span style={{ color: "#8b93a3" /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */ }}>v{APP_VERSION}</span>
             <span style={{ flex: "1 1 auto" }} />
             <button style={S.btn} onClick={hide}>隐藏徽标</button>
             <button style={S.btn} onClick={() => setOpen(false)}>关闭</button>
@@ -161,16 +169,24 @@ export default function DevPanel() {
             <span style={S.key}>视口</span>
             <span style={S.val}>{window.innerWidth}x{window.innerHeight} · dpr {window.devicePixelRatio}</span>
           </div>
+          <div style={S.row}>
+            <span style={S.key}>导航栈</span>
+            <span style={S.val}>
+              栈深 {navState.depth} · 可返回 {navState.canGoBack ? "是" : "否"} · 返回键监听 {navState.listening ? "在册" : "未注册"}
+              {navState.error ? " · 返回键通道出错，请把下面日志一起反馈：" + navState.error : ""}
+            </span>
+          </div>
           <div style={S.bar}>
             <button style={S.btn} disabled={busy} onClick={() => void exportLog()}>{busy ? "导出中…" : "导出运行日志"}</button>
             <button style={S.btn} onClick={() => void copy(devLogText(), "前端日志")}>复制前端日志</button>
             <button style={S.btn} onClick={() => void copy(diagnostics(), "诊断信息")}>复制诊断信息</button>
             <button style={S.btn} onClick={() => { clearDevLog(); setLogs([]); setNote("已清空前端日志缓冲"); }}>清空</button>
+            <button style={S.btn} onClick={() => { armDevSelfHealFailure(); setNote("已标记：下一次「登录状态自动恢复」会被当成失败一次（F3 取证，挂点待定）"); }}>模拟登录状态失效</button>
           </div>
           <div style={S.note}>{note}</div>
-          <div style={{ color: "#8b93a3", margin: "6px 0 4px" }}>前端日志（{logs.length} 条，最新在下；已同步进 onethu-debug.log）</div>
+          <div style={{ color: "#8b93a3", margin: "6px 0 4px" /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */ }}>前端日志（{logs.length} 条，最新在下；已同步进 onethu-debug.log）</div>
           <div style={S.log}>
-            {logs.length === 0 ? <div style={{ color: "#5f6673" }}>（暂无）</div> : null}
+            {logs.length === 0 ? <div style={{ color: "#5f6673" /* token-ok: DevPanel 固定终端配色（与主题解耦，两种主题同一观感） */ }}>（暂无）</div> : null}
             {logs.map((e, i) => (
               <div style={S.line} key={String(e.t) + "-" + i}>
                 <span style={{ color: levelColor(e.level), flex: "0 0 44px" }}>{e.level}</span>

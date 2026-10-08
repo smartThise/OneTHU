@@ -32,7 +32,7 @@ export async function callAi(cfg: AiConfig, system: string, user: string): Promi
   });
   if (!res.ok) {
     const t = await res.text().catch(() => "");
-    throw new Error(`AI 接口 ${res.status}: ${t.slice(0, 160)}`);
+    throw new Error(`AI 服务返回 ${res.status}，请稍后重试：${t.slice(0, 160)}`);
   }
   const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
   const out = data.choices?.[0]?.message?.content ?? "";

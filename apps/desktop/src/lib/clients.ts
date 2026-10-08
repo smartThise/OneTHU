@@ -17,10 +17,25 @@ import {
   type SessionData,
   type TwoFactorMethod,
 } from "@onethu/core";
-import { universalFetch, nativeFetch, nativeSeedCookies, nativeCookieClear, isTauri, setHopCookieProvider, setHopLogger, setHopUrlWrapper } from "./transport.js";
+import { universalFetch, nativeFetch, nativeSeedCookies, nativeCookieClear, nativeCookieDump, isTauri, setHopCookieProvider, setHopLogger, setHopUrlWrapper, setNativeFetchAuthHooks, setNativePreflightProbe, setNativeCookieSink } from "./transport.js";
+// F3 ④（b21）：两仓同步的单调保护（零依赖，业务侧与护栏同一份实现）
+import { createCookieReconciler, planNativeCookieMirror, planSeedToNative, resetCookieSyncState } from "./cookieSync.js";
 import { loginCooldownLeftMs, markLoginFailedPublicKey } from "./loginGate.js";
+import {
+  ALL_LIB_REBUILD_SITES,
+  isLibLoginChainUrl,
+  judgeLibFullChainRecovery,
+  libSoftCooldownLeftMs,
+  libSoftStreak,
+  maskLibTicket,
+  resetLibSoftBackoff,
+  type LibRebuildSite,
+  type LibSoftResult,
+} from "./libSessionGuard.js";
 import { setWebvpnLog, setZhjwxkDebug, setZhjwxkNativeClear, setZhjwxkReloginHook } from "@onethu/core";
 import { withPrivacy } from "./privacy.js";
+// P1（b22）：b20 抽好的守卫外结算 + 三处旧布尔出口的三态动作判定（零依赖，护栏同一份实现）
+import { libSoftHookReplay, libSoftRenewDecision, settleLibSoftPending } from "../state/libSoftSettle.js";
 
 export type { TwoFactorMethod };
 
@@ -152,12 +167,12 @@ export const http = new HttpClient({
 http.webVPNEncoder = webvpnWrap;
 http.debug = (line) => void logLine(line);
 // jar→rust 播种桥（wengine 引导页票种同步进原生仓；learn 同款，基础设施票过滤）
+// ④（b21）：播种一律过 `planSeedToNative` 的单调保护——基础设施票绝不播种
+// （2026-09-17 实录：铸好的真票被引导页回放的陈旧匿名票覆盖，首页瞬间全绿→几秒后死），
+// 其余票也只在「原生侧没见过这个值」时才播，旧值回放直接被拒。
 http.nativeSeedHook = (url, pair) => {
-  const name = pair.split("=")[0]!.trim();
-  if (name === "wengine_vpn_ticket" || name.startsWith("show_") || name === "heartbeat" || name === "refresh") {
-    return;
-  }
-  void nativeSeedCookies(url, [`${pair}; Path=/`]);
+  const line = planSeedToNative(url, pair);
+  if (line) void nativeSeedCookies(url, [line]);
 };
 // 重定向链逐跳日志：定位教务漫游链在哪一跳断掉（CAS 票据流/登录页）
 setHopLogger((hopUrl, status, ck) => void logLine(`[HOP] ${status} ${hopUrl.slice(0, 150)} ck=${ck ?? "(无)"}`));
@@ -221,12 +236,10 @@ learnHttp.debug = (line) => void logLine(line);
 // 只进 jar 的票 rust 侧永远看不到）。但 wengine 基础设施票（wengine_vpn_ticket/
 // show_*/heartbeat/refresh）绝不播种——2026-09-17 实录：铸好的真票被引导页
 // 回放的陈旧匿名票覆盖，首页瞬间全绿→几秒后死。只播种目标应用域会话票。
+// ④（b21）：与 http 同一条播种口，单调保护同一份实现。
 learnHttp.nativeSeedHook = (url, pair) => {
-  const name = pair.split("=")[0]!.trim();
-  if (name === "wengine_vpn_ticket" || name.startsWith("show_") || name === "heartbeat" || name === "refresh") {
-    return;
-  }
-  void nativeSeedCookies(url, [`${pair}; Path=/`]);
+  const line = planSeedToNative(url, pair);
+  if (line) void nativeSeedCookies(url, [line]);
 };
 // 脱敏版（demo 分支）在取数出口统一过一遍：姓名 / 学号 / 成绩在离开客户端时就被替换
 export const learn = withPrivacy(new LearnClient(learnHttp), "learn");
@@ -246,9 +259,9 @@ learn.credentialProvider = () => {
 // 里，于是「别的数据都在出，只有详情/通知/作业说会话已失效」没有任何自愈入口。
 learn.reloginHook = async () => {
   try {
-    const { libEnsureSession, libRoamLearn } = await import("./infoLib.js");
-    if (!(await libEnsureSession())) return false;
-    return await libRoamLearn().catch(() => false);
+    // ① learn 会话死在 info 门户活的时候：点名校验 learn 站点，由共享单飞补 roam("id")
+    const { libEnsureSession } = await import("./infoLib.js");
+    return await libEnsureSession({ sites: ["learn"] });
   } catch {
     return false;
   }
@@ -264,34 +277,212 @@ export const session = new CampusSession({
 
 // InfoClient 会话过期续约：lib 会话守卫（探活+静默重登）替代 demo roam-id 链
 // ——登录链已统一到 thu-info-lib（单管线），demo 链退役后其漫游钩子不再可用。
+// ① card 续约点名校验校园卡站点（info 门户活 ≠ 卡会话活）；info 只判活门户。
+// P1-2（b22）：桥内消化三态——`skipped` 绝不再折成 `false` 交给 core。core 的
+// `#withRenew` / `#withCardSession` / `#ensureCardSession` 收到假值会立刻抛原
+// `AuthRequiredError` / 「校园卡会话未能建立」，把一次可救的续期变成用户可见错误条；
+// `packages/core` 的 renewer 类型（`() => Promise<boolean>`）与逻辑一行未动。
 session.info.setRenewers({
-  info: () => libSoftRelogin(),
-  card: () => libSoftRelogin(),
+  info: () => libSoftRenewUsable(),
+  card: () => libSoftRenewUsable(["card"]),
 });
 
 // HttpClient 实例级透明重放：响应带登录页特征（#looksLoggedOut）→ lib 会话守卫
-// （探活 → 死则内存凭据完整重登，受信凭据免 2FA）→ 原请求自动重放一次。
-// 指数冷却（30s 起步、封顶 10min）防风控连锤。
-let libSoftFailStreak = 0;
-let libSoftCooldownUntil = 0;
-async function libSoftRelogin(): Promise<boolean> {
-  if (Date.now() < libSoftCooldownUntil) return false;
+// （探活 → 死则完整重登，受信凭据免 2FA）→ 原请求自动重放一次。
+// ⑤ 冷却/单飞/退避全部收在 libSessionGuard：守卫前置于任何 await，
+//    五个入口并发只穿透一次；30s 起步、封顶 120s；手动路径可清零。
+// 三态出口（b19 P0）：日志按 `state=done|failed|skipped` 如实落，`skipped` 附带
+// `reason=cooldown|reentrant`——`fail` 一个词同时表示「真失败」与「冷却判掉」正是
+// 本轮要消灭的误读面（旧日志只能靠 streak=0 + cooldown 满值反推，不可靠）。
+async function libSoftReloginResult(sites: LibRebuildSite[] = []): Promise<LibSoftResult> {
+  const { libEnsureSessionResult } = await import("./infoLib.js");
+  const r = await libEnsureSessionResult({ sites });
+  void logLine(
+    `SOFT-RELOGIN state=${r.state}${r.reason ? ` reason=${r.reason}` : ""} streak=${libSoftStreak()} cooldown=${Math.ceil(libSoftCooldownLeftMs() / 1000)}s sites=[${sites.join(",")}]`,
+  ).catch(() => undefined);
+  return r;
+}
+
+/** 旧布尔薄封装（b19 P0）：`state === "done"`。**P1（b22）起本文件内不再有调用点**——
+ *  renewer 桥与 nativeFetch 恢复钩子都改为消费三态（`libSoftRenewUsable` /
+ *  `libSoftReplayOnce`，见下）。保留定义是 b19 定下的旧语义出口（含 `skipped → false`
+ *  的逐字语义），护栏 ⑱-8 守它不许消失；不再有新调用点，也不再被当成失败结论。 */
+async function libSoftRelogin(sites: LibRebuildSite[] = []): Promise<boolean> {
+  return (await libSoftReloginResult(sites)).state === "done";
+}
+
+/** P1-2（b22）：renewer 桥的三态出口 —— 先把 `skipped/reentrant + pending` 在**守卫之外**
+ *  结算成真结果，再按「只有 `failed` 是真失败」交回 core：
+ *  - `done` → `true`：core 按既有语义刷新存活时间戳 / 重试一次；
+ *  - `failed` → `false`：core 走它既有的失败语义（如实抛原错）；
+ *  - `skipped/cooldown`（无人持飞）→ `true`：**不把「被冷却判掉」当失败交给 core**，
+ *    让 core 走它自己的有界重试（`#withRenew` 一次 2.5s 缓冲重试 / `#withCardSession`
+ *    一次重试 / `#ensureCardSession` 再探一次），冷却窗过后第一笔业务请求仍会真正重建。
+ *  到这里为止：桥内消化，`packages/core` 的类型与逻辑一行未动。 */
+async function libSoftRenewUsable(sites: LibRebuildSite[] = []): Promise<boolean> {
+  return libSoftRenewDecision(await settleLibSoftPending(await libSoftReloginResult(sites)));
+}
+
+/**
+ * 站点来源（b18 A，**只剩这一处**）：每一次失败都用**该次请求自身的落点**反推
+ * （`libSitesOfLostUrl()` 先 `webvpnDecodeUrl` 解回真实域，再走真实域表 + 证据驱动的
+ * 路径特征兜底）。b17 之前这里还给 `softRecover` 供过 `http.lastFinalUrl`（全局
+ * 「最后一次失败落点」）——真机实录 `SOFT-RECOVER[global] fail sites=[libroom]` 就是
+ * 那条过期归属（那次失败其实在别处）。看门狗没有请求上下文，现在不再猜站点。
+ */
+
+// ③ 触发面下移到 nativeFetch（b17）：取代此处此前的 `http.onAuthRequired` 实例级
+// 「判登录页 → 重登 → 重放」——那条与本层会同时命中同一次失败。现在两类信号在
+// 传输层统一捕获：Rust 抛出的鉴权类错误、200 但响应体是登录页/被踢页。恢复一律走
+// 上一轮抽好的共享单飞（libSoftRelogin → libEnsureSession → runLibSoftSingleFlight），
+// 本层不新增第二套调度；站点由请求落点 URL 反推（webvpn 包装先解码回真实域），
+// 认不出不猜；站点反推为空时走 B 兜底（b18，见下）。
+setNativeFetchAuthHooks({
+  recover: async (url, failure) => {
+    const { libSitesOfLostUrl } = await import("./infoLib.js");
+    const sites = libSitesOfLostUrl(url);
+    if (sites.length) {
+      void logLine(
+        `LIB-AUTH signal=${failure.signal} sites=[${sites.join(",")}] siteSrc=request → 共享单飞重登一次`,
+      ).catch(() => undefined);
+      return libSoftReplayOnce(await libSoftReloginResult(sites), "request");
+    }
+    // B 兜底（b18）：站点反推为空时**不再直接放弃**。三道闸：
+    // ① 该次请求本身是不是登录链的舞步（id 登录表单 / oauth / webvpn 裸 login / madmodel）——
+    //    b17 真机 21 条判定里 20 条属此类，命中一律不触发（重登风暴入口）；
+    // ② 交互登录 / 2FA 进行中（loginGate 20s 冷却 + lib 登录链未 settle）——不抢跑；
+    // ③ 再看「UI 是否在登录页 + 有没有已保存登录信息 + 窗内连续次数」。
+    const j = judgeLibFullChainRecovery({
+      onLoginPage: session.state !== "ready",
+      interactiveLogin: loginCooldownLeftMs() > 0 || (await libLoginPendingSafe()),
+      hasCreds: Boolean(await loadRemembered().catch(() => null)),
+      loginChainPage: isLibLoginChainUrl(url),
+    });
+    void logLine(
+      `LIB-AUTH signal=${failure.signal} sites=[] siteSrc=none 兜底判定 escalate=${j.escalate} reason=${j.reason} hits=${j.hits}`,
+    ).catch(() => undefined);
+    if (!j.escalate) return false;
+    // 全链恢复 = libEnsureSession(五站点) → 门户判活（verifyAndReLogin 同源）+ 逐站点
+    // 既有重建入口；仍走共享单飞与 30s/120s 冷却，绝不新增调度。
+    void logLine("LIB-AUTH 兜底升级：全链恢复（门户判活 + 五站点补建）").catch(() => undefined);
+    return libSoftReplayOnce(await libSoftReloginResult([...ALL_LIB_REBUILD_SITES]), "escalate");
+  },
+  log: (line) => void logLine(line).catch(() => undefined),
+});
+
+/** P1-1（b22）：nativeFetch 恢复钩子的三态出口 —— `skipped` 不再被当成失败结论。
+ *  契约仍是 `transport.ts:52` 的 `recover: () => Promise<boolean>`（true = 重放一次；
+ *  「只重放一次」依旧由 `withLibAuthRecovery` 保证，这里不新增重放、不新增调度）：
+ *  - `done` → `true`（重放一次）；
+ *  - `failed` → `false`，原样交回第一个错误，日志落 `state=failed`；
+ *  - `skipped/cooldown` → `false`，日志**写明是「被冷却判掉」**——不许再与「重登失败」
+ *    共用一个结论（旧布尔口径下两种含义混在一个 `false` 里）；
+ *  - `skipped/reentrant` → `false`，日志写明「在飞链未结算」。
+ *
+ *  **本层同步判定、绝不 `await` 在飞链**（与 renewer 桥 / tab 层不同）：钩子由「某一次
+ *  请求」的失败触发，而恢复链自身的请求也走同一个 `nativeFetch`——链内请求命中登录页时
+ *  拿到的 `pending` 就是**自己所在的那条链**，`await` 它＝等自己 → 整条链永久卡死
+ *  （b22 真机窗口一实录：23:24:16 起链、23:33:20 仍在飞，期间零结算零重建日志）。
+ *  判定与文案都在 `state/libSoftSettle.ts:libSoftHookReplay()`（零依赖，护栏同一份实现）。 */
+function libSoftReplayOnce(raw: LibSoftResult, siteSrc: "request" | "escalate"): boolean {
+  const o = libSoftHookReplay(raw);
+  if (!o.replay) void logLine(`LIB-AUTH ${siteSrc} ${o.line}`).catch(() => undefined);
+  return o.replay;
+}
+
+/** 登录链是否挂起（用户正在 2FA 界面）——B 兜底的「交互登录中」判据之一。
+ *  动态 import 防环（infoLib ↔ clients），失败按「不在交互登录」处理（旧行为）。 */
+async function libLoginPendingSafe(): Promise<boolean> {
   try {
-    const { libEnsureSession } = await import("./infoLib.js");
-    const ok = await libEnsureSession();
-    libSoftFailStreak = ok ? 0 : libSoftFailStreak + 1;
-    libSoftCooldownUntil = Date.now() + Math.min(30_000 * 2 ** libSoftFailStreak, 10 * 60_000);
-    void logLine(`SOFT-RELOGIN ${ok ? "ok" : "fail"} streak=${libSoftFailStreak}`).catch(() => undefined);
-    return ok;
+    const { libLoginPending } = await import("./infoLib.js");
+    return libLoginPending();
   } catch {
-    libSoftFailStreak += 1;
-    libSoftCooldownUntil = Date.now() + Math.min(30_000 * 2 ** libSoftFailStreak, 10 * 60_000);
     return false;
   }
 }
-http.onAuthRequired(async () => {
-  await libSoftRelogin();
+
+// ④ 旁证日志（b17，只加日志、不改行为）：每次原生请求前打印 JS jar 的 wengine 票值
+// （脱敏：只留前 12 位——前 8 位是固定前缀 `wrdvpn1-`），与紧邻的 Rust
+// `[NATIVE-STORE] webvpn.tsinghua.edu.cn` 行并列
+// 对照两个 cookie 仓是否长期不同步。播种 / 回写 / setPlatformClearCookies 一律不动。
+setNativePreflightProbe((wireUrl) => {
+  if (!wireUrl.startsWith("https://webvpn.tsinghua.edu.cn/")) return;
+  let jsTicket: string | null = null;
+  try {
+    jsTicket =
+      http.jar
+        .getCookies(new URL("https://webvpn.tsinghua.edu.cn/"))
+        .find((c) => c.name === "wengine_vpn_ticket")?.value ?? null;
+  } catch {
+    jsTicket = null;
+  }
+  void logLine(`LIB-JAR wengine_vpn_ticket=${maskLibTicket(jsTicket)}`).catch(() => undefined);
 });
+
+// ④ 回灌（b21，挂点 = 原生响应带 Set-Cookie 时）：把原生侧真实收到的 wengine 基础设施票
+// 按**物理跳域**写回 JS jar，两仓由此收敛（此前 learn/info 侧的解码入账只覆盖应用会话票，
+// 物理域的 wengine 票从未回灌，JS 侧那张持久化旧票因此长期不动）。
+// 单调保护在 cookieSync.ts：先用水合基线退役旧值，之后旧值回放一律拒收。
+setNativeCookieSink((hops) => {
+  const plans = planNativeCookieMirror(hops, (host, path, name) => {
+    try {
+      return http.jar.getCookies(new URL(`https://${host}${path}`)).find((c) => c.name === name)?.value ?? null;
+    } catch {
+      return null;
+    }
+  });
+  for (const p of plans) {
+    try {
+      http.jar.setRaw(new URL(p.url), p.line);
+    } catch {
+      /* 坏跳跳过，不影响主链 */
+    }
+  }
+});
+
+/**
+ * ④ 旁枝 (i)（b35，霖 2026-10-05 裁定「把旁支解决了」）：**其余票种两仓主动核对**。
+ *
+ * 背景：b21 只覆盖「JS jar 里的 wengine 基础设施票由物理域回灌收敛」；其余票种在两仓之间
+ * 长期没有主动核对，只在 Set-Cookie 到达时被动入账。这里补一条**有界、幂等、可观测**的
+ * 主动核对：登录成功 / 冷启就绪各一次（无轮询、无定时器），把原生仓里「存在而 JS 缺 /
+ * 不同」的键按 `cookieSync` 的单调规则回灌到 JS 侧；基础设施票只回灌、不反播。
+ *
+ * 判定与有界性都在零依赖的 `cookieSync.ts:createCookieReconciler()`（护栏同一份实现）；
+ * 本处只做真实 IO 接线（读原生仓只读快照 / 写 JS jar / 落一行日志）。失败静默降级
+ * （`run` 绝不抛），核对失败不影响登录 / boot 主链。
+ */
+const jarReconciler = createCookieReconciler({
+  dumpNative: () => nativeCookieDump(),
+  existingValueOf: (host, path, name) => {
+    try {
+      return http.jar.getCookies(new URL(`https://${host}${path}`)).find((c) => c.name === name)?.value ?? null;
+    } catch {
+      return null;
+    }
+  },
+  writeJs: (p) => {
+    http.jar.setRaw(new URL(p.url), p.line);
+  },
+  log: (line) => {
+    void logLine(line).catch(() => undefined);
+  },
+});
+
+/** 主动核对入口（有界：同一触发器本进程最多真跑一次；第二个调用静默 skipped）。
+ *  只允许 `login` / `boot` 两个触发器，只允许在下面四处挂点调用。 */
+function reconcileCookieJarsOnce(trigger: "login" | "boot"): void {
+  void jarReconciler.run(trigger).catch(() => undefined);
+}
+
+/** ⑤ 手动路径（用户点重试）：清零 streak 与冷却，让下一次恢复立刻能跑。
+ *  b31（RC1）：返回 Promise 以便 `ErrorNote` 的重试按钮**先 await 清冷却再重载**
+ *  （旧实现是 fire-and-forget，紧接着开跑加载 → 请求又落回冷却窗 → 点了还弹）。
+ *  返回值由同步变 Promise，既有忽略返回值的调用点（`void import(...).then(m => m.clearLibSoftBackoff())`）
+ *  语义不变。 */
+export async function clearLibSoftBackoff(): Promise<void> {
+  resetLibSoftBackoff();
+}
 
 /** 诊断落盘（UI 各处复用；写 /tmp/onethu-debug.log） */
 export async function logLine(text: string): Promise<void> {
@@ -357,6 +548,8 @@ export async function login(
   try {
     const r = await libLogin(username, password, fingerprint);
     if (r.state === "ready") {
+      // ⑤ 手动路径（交互登录成功）：清零静默重登的 streak 与冷却
+      resetLibSoftBackoff();
       session.username = username;
       session.state = "ready";
       // SAVE_FINGER 受信凭据同步（2FA 链内签发的才有效；直登后补签=身份异常）
@@ -371,6 +564,8 @@ export async function login(
       await logLine("LOGIN-OK (lib 链，单管线)");
       // R17 23.3-4：设备信任已建立 → 自动重试一次此前失败的 TUOJ 漫游
       retryTuojAfterTrust();
+      // ④ 旁枝 (i)：登录成功 → 主动核对一次两仓（有界幂等；失败静默降级）
+      reconcileCookieJarsOnce("login");
       // lib 主会话活了 → learn 客户端经 webvpn 透明 SSO 抓 _csrf（2026-09-17
       // 实录：缺此步则 loadReal 的 learn.* 预请求即抛 AuthRequiredError →
       // CAMPUS-AUTH 无限循环；resume 内部抓不到就保持未登录，不抛错）
@@ -427,6 +622,8 @@ export async function verify2FA(type: string, code: string, trust: boolean): Pro
   const { libVerify2FA, helper, getSelfFinger3 } = await import("./infoLib.js");
   try {
     await libVerify2FA(type, code, trust);
+    // ⑤ 手动路径（2FA 完成 = 交互登录成功）：清零静默重登的 streak 与冷却
+    resetLibSoftBackoff();
     session.state = "ready";
     // SAVE_FINGER 的受信凭据（trust=true 时服务端新发）必须立刻落盘：
     // hook 自签路径写 selfFinger3（lib 内置路径丢 object）；lib 的 helper.
@@ -442,6 +639,8 @@ export async function verify2FA(type: string, code: string, trust: boolean): Pro
     await logLine("VERIFY-OK (lib 链完成)");
     // R17 23.3-4：2FA + 信任设备完成 → 自动重试一次此前失败的 TUOJ 漫游
     retryTuojAfterTrust();
+    // ④ 旁枝 (i)：2FA 完成 = 交互登录成功 → 主动核对一次两仓（有界幂等）
+    reconcileCookieJarsOnce("login");
     // 同 login()：2FA 完成即主会话活，learn 透明 SSO 建 csrf
     await learn.resume().catch(() => false);
     return null;
@@ -531,6 +730,9 @@ export async function resumeSession(): Promise<boolean> {
     return false;
   }
   http.jar.hydrate(saved.cookiesJson);
+  // ④（b21）：新进程的 cookie 世代为空——用刚水合的 jar 值当基线，使「持久化快照里
+  // 的旧票」在第一张新票到来时退役，之后同一旧值的回放一律被拒（单调保护的起点）。
+  resetCookieSyncState();
   session.username = saved.username;
   session.fingerprint = saved.fingerprint;
   session.finger3 = saved.finger3 ?? "";
@@ -581,6 +783,9 @@ export async function resumeSession(): Promise<boolean> {
   }
   await logLine("RESUME ok (lib 单管线)");
   mark("READY(总耗时)");
+  // ④ 旁枝 (i)：冷启就绪（快路径：水合 + learn/info 探活成功 = 会话活）→ 主动核对一次
+  // 两仓（有界幂等；无轮询、无定时器）。慢路径（boot 静默重登）由 login() 的 login 触发器覆盖。
+  reconcileCookieJarsOnce("boot");
   return true;
 }
 

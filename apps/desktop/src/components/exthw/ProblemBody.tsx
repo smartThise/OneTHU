@@ -71,7 +71,7 @@ function normalizeColor(v: string): string {
       normCtx = c.getContext("2d");
     }
     if (!normCtx) return v;
-    normCtx.fillStyle = "#000000"; // 先放一个必成功的值，防上一次非法赋值残留
+    normCtx.fillStyle = "#000000"; // 先放一个必成功的值，防上一次非法赋值残留  /* token-ok: Canvas 2D fillStyle 不解析 CSS 变量 */
     normCtx.fillStyle = v;
     return normCtx.fillStyle;
   } catch {
@@ -125,12 +125,12 @@ function resolveEffectiveBg(el: Element | null): string {
  *  绝不假设「明/暗」二元。 */
 export function readYktDocTheme(container: Element | null): YktDocTheme {
   return {
-    text: sanitizeDocColor(probeColor(container, "var(--text-1, #222)"), DEFAULT_YKT_DOC_THEME.text),
-    textSoft: sanitizeDocColor(probeColor(container, "var(--text-2, #666)"), DEFAULT_YKT_DOC_THEME.textSoft),
+    text: sanitizeDocColor(probeColor(container, "var(--text-1, #222)"), DEFAULT_YKT_DOC_THEME.text),  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
+    textSoft: sanitizeDocColor(probeColor(container, "var(--text-2, #666)"), DEFAULT_YKT_DOC_THEME.textSoft),  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
     bg: sanitizeDocColor(resolveEffectiveBg(container), DEFAULT_YKT_DOC_THEME.bg),
-    border: sanitizeDocColor(probeColor(container, "var(--border, #ddd)"), DEFAULT_YKT_DOC_THEME.border),
-    link: sanitizeDocColor(probeColor(container, "var(--accent, #1a73e8)"), DEFAULT_YKT_DOC_THEME.link),
-    fallbackBg: sanitizeDocColor(probeColor(container, "var(--surface-3, #fafafa)"), DEFAULT_YKT_DOC_THEME.fallbackBg),
+    border: sanitizeDocColor(probeColor(container, "var(--border, #ddd)"), DEFAULT_YKT_DOC_THEME.border),  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
+    link: sanitizeDocColor(probeColor(container, "var(--accent, #1a73e8)"), DEFAULT_YKT_DOC_THEME.link),  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
+    fallbackBg: sanitizeDocColor(probeColor(container, "var(--surface-3, #fafafa)"), DEFAULT_YKT_DOC_THEME.fallbackBg),  /* token-ok: srcdoc 是 opaque origin，CSS 变量进不去，只能字面量（主题色由组件层探针注入） */
   };
 }
 

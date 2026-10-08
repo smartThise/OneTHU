@@ -92,6 +92,40 @@ export function tbEnsureIndex(): Promise<boolean> {
   return S.loadingPromise;
 }
 
+/**
+ * 空闲预热索引（b26 切页长帧归因）。
+ *
+ * 为什么需要：选课页挂载时 `useXkPageHost` 会 `void tbEnsureIndex()`，而缓存命中时这条
+ * 调用要在**点击后的那一帧里**同步做两件重活——`JSON.parse` 约 111KB 的 `onethu.tbookIdx`
+ * （真机实测 10.8ms）与对全部 1080 条课程做 NFKC 归一化 + 三张 Map 建图（13.8ms），
+ * 冷 JIT 下更贵；这正是真机「切到选课卡一下」中可确定归因的一段（见 §7 F3）。
+ *
+ * 预热把这段重计算挪到**浏览器空闲期**（登录就绪后 `requestIdleCallback`，带 3s 超时兜底；
+ * 不支持 idle 回调时退化为 1.2s 定时器），点击路径只剩查表。
+ *
+ * 口径（刻意收窄，避免变成新的网络打扰）：
+ *  - 只在本地缓存**仍然新鲜**（`onethu.tbookIdxTs` 在 `IDX_TTL` 内）时预热——此时
+ *    `tbEnsureIndex()` 的 `fresh` 分支为真、**不发任何网络请求**；
+ *  - 缓存缺失/过期一律不预热：仍由选课页自己走它原有的 SWR 抓取，数据新鲜度语义一字不改；
+ *  - 已就绪 / 已有在飞 promise 时直接返回，幂等。
+ */
+export function tbWarmIndexOnIdle(): void {
+  if (S.loadingPromise || S.ready) return;
+  try {
+    if (!globalThis.localStorage?.getItem("onethu.tbookIdx")) return;
+    const ts = Number(globalThis.localStorage?.getItem("onethu.tbookIdxTs") ?? 0);
+    if (!ts || Date.now() - ts >= IDX_TTL) return;
+  } catch {
+    return; // storage 异常不在此处兜底：交给页面自己的 tbEnsureIndex
+  }
+  const run = (): void => {
+    void tbEnsureIndex().catch(() => undefined);
+  };
+  const ric = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+  if (typeof ric === "function") ric(run, { timeout: 3000 });
+  else setTimeout(run, 1200);
+}
+
 /** 三级匹配（reviews.js tbMatch 同语义） */
 export function tbMatch(name: string, teacher: string): TbEntry | null {
   const ck = `${name}\u0001${teacher}`;

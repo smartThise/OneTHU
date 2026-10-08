@@ -18,7 +18,10 @@ import { useApp } from "../state/context.js";
 import { useCampusData } from "../state/data.js";
 import { useCloudCal } from "../state/cloudCal.js";
 import { PageHead } from "../components/Layout.js";
-import { PageAtomStar } from "../components/Collect.js";
+import { requestSettingsTab } from "../state/settingsMode.js";
+import { usePageCollect } from "../components/Collect.js";
+import { pageAtomRef } from "../state/atoms.js";
+import type { PageMenuItem } from "../state/pageChrome.js";
 import { openExternal } from "./info/openExternal.js";
 import {
   ensureTraceKey, fmtEta, locationQuery, navOpenUrl, routeEta, searchPoi, wgs84ToGcj02,
@@ -35,11 +38,11 @@ const LS_POS = "onethu.trace.pos";
 
 type Urgency = "ok" | "warn" | "urgent" | "live" | "done";
 const URGENCY_COLOR: Record<Urgency, string> = {
-  ok: "#2e9e5b",      // 裕量 > 30min
-  warn: "#d9a406",    // 10–30min
-  urgent: "#e5484d",  // < 10min
-  live: "#e5484d",    // 已开始
-  done: "#8a8f98",    // 已结束
+  ok: "var(--green)",      // 裕量 > 30min
+  warn: "var(--amber)",    // 10–30min
+  urgent: "var(--red)",  // < 10min
+  live: "var(--red)",    // 已开始
+  done: "var(--text-3)",    // 已结束
 };
 const URGENCY_LABEL: Record<Urgency, string> = {
   ok: "充裕", warn: "留意", urgent: "紧张", live: "进行中", done: "已结束",
@@ -84,7 +87,7 @@ function urgencyOf(ev: TraceEvent, etaSec: number | null, now: number): Urgency 
 /* ───────── 页面 ───────── */
 
 export function TracePage(): React.ReactNode {
-  const { status } = useApp();
+  const { status, navigate } = useApp();
   const campus = useCampusData();
   const cal = useCloudCal();
 
@@ -444,14 +447,17 @@ export function TracePage(): React.ReactNode {
   const modeLabel = TRAVEL_MODES.find((m) => m.id === mode)?.label ?? "步行";
   const appLabel = MAP_APPS.find((a) => a.id === mapApp)?.label ?? "高德";
 
+  const collect = usePageCollect(pageAtomRef("trace"), "寻迹");
+
   return (
     <>
+      {collect.modal}
       <PageHead
         title="寻迹"
         meta={`今日 ${todayEvents.length} 个日程 · ${markers?.length ?? "…"} 处地点${unresolved.length > 0 ? ` · ${unresolved.length} 处未识别` : ""}`}
+        menu={[collect.item].filter(Boolean) as PageMenuItem[]}
         actions={
           <>
-            <PageAtomStar atomKey="trace" title="寻迹" />
             <label className="trace-opt" title="常用交通方式（决定标注上的路程时间）">
               <select value={mode} onChange={(e) => setModePersist(e.target.value as TravelMode)}>
                 {TRAVEL_MODES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
@@ -468,9 +474,20 @@ export function TracePage(): React.ReactNode {
         }
       />
 
+      {/* C19（霖 2026-10-01 走查）：这里原来把开发者路径（.env.example / TRACE_AMAP_KEY）
+          甩给用户看。改成一句人话 + 「去设置填写」，直接跳到设置页的对应栏目（自填 Key 只存本机）。 */}
       {keyReady === false ? (
-        <div className="trace-note trace-note-err">
-          高德 Web 服务 Key 未配置：POI 定位与路程估算不可用（地图与今日日程仍可查看）。将 apps/desktop/src-tauri/.env.example 复制为同目录 .env，填入 TRACE_AMAP_KEY=&lt;你的key&gt; 后重启应用。
+        <div className="trace-note">
+          还没配置高德 Key，地点检索与路程估算暂时用不了（地图与今日日程照常查看）。
+          <button
+            className="btn trace-retry"
+            onClick={() => {
+              requestSettingsTab("数据与同步");
+              navigate("settings");
+            }}
+          >
+            去设置填写
+          </button>
         </div>
       ) : null}
       {err ? <div className="trace-note trace-note-err">{err}</div> : null}

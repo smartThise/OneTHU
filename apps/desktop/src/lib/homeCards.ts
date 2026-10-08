@@ -22,6 +22,7 @@
  */
 import type { ReactNode } from "react";
 import type { LearnNav, Page } from "../state/app.js";
+import { applyHomeTimeOrder, type HomeTimeInput } from "../state/homeOrder.js";
 import {
   IconBell, IconCalendar, IconCard, IconCheck, IconExternal, IconFile, IconFlag,
   IconIn, IconInfo, IconPen, IconRefresh, IconSchedule, IconSearch, IconStar, IconToday, IconXk,
@@ -97,7 +98,9 @@ export const HOME_CARD_META: HomeCardDef[] = [
      余额速览 → 今日课程 → 未提交作业 → 最近通知 → 猜你喜欢（≤5 卡，§0.4）；
      其余（今日概览/日程与提醒/校园卡余额/今日预约/订阅新闻/最近使用）默认隐藏，
      「添加卡片」可找回；老用户已存布局不受影响（resolveLayout 只追加新卡）。 */
-  { id: "balance-strip", title: "余额速览", kind: "bespoke", icon: IconCard, defaultCol: "main", defaultOrder: 0, shellFree: true, aside: "校园卡 · 电费" },
+  /* C18（霖 2026-10-01 走查）：余额速览降优先级——默认排到「猜你喜欢」之后（后移，不删除；
+     已自定义过顺序的用户仍按自己存的顺序走）。 */
+  { id: "balance-strip", title: "余额速览", kind: "bespoke", icon: IconCard, defaultCol: "main", defaultOrder: 5.5, shellFree: true, aside: "校园卡 · 电费" },
   { id: "classes", title: "今日课程", kind: "bespoke", icon: IconToday, defaultCol: "main", defaultOrder: 1, aside: "点击打开课表" },
   { id: "homework", title: "未提交作业", kind: "bespoke", icon: IconPen, defaultCol: "main", defaultOrder: 2 },
   { id: "notices", title: "最近通知", kind: "bespoke", icon: IconBell, defaultCol: "main", defaultOrder: 3, aside: "点击查看详情" },
@@ -155,6 +158,24 @@ export function buildHomeRegistry(bespoke: Partial<Record<HomeCardId, HomeBespok
     const part = bespoke[meta.id];
     return part ? { ...meta, render: part.render, aside: part.aside ?? meta.aside } : meta;
   });
+}
+
+/* ══════════ 时段推荐（E4）══════════ */
+
+/**
+ * 今日页「时段推荐」的排序入口：按规则表把**已落位**卡片重排（优先项提前，
+ * 其余保持用户相对顺序跟在后面）。
+ *
+ * 「优先」是排序不是过滤——这里只返回重排后的数组，集合一个不少；隐藏（off）的卡
+ * 根本不在入参里，也不会被这里放出来。规则表与判据在 `state/homeOrder.ts`
+ * （那一层是纯模块，护栏能直接加载它跑行为断言）；`input = null`（开关关或已手动编辑）
+ * 时原样返回用户顺序。
+ */
+export function sortPlacedByTimeOrder<T extends { id: HomeCardId }>(
+  items: readonly T[],
+  input: HomeTimeInput | null,
+): T[] {
+  return applyHomeTimeOrder(items, input);
 }
 
 /* ══════════ 布局持久化 ══════════ */

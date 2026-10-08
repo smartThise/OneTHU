@@ -314,7 +314,7 @@
 - [x] 降级链：Android 12+ 取色 → 清华紫 → 跟随系统亮暗。设置中提供"跟随系统取色"开关。
 
 
-**真机取证（2026-02，Android 16 / SDK 36，设备 3540f5d7）**：开关默认开启且可用（原生探活成功，未落降级）；`localStorage["onethu.dynamicColor"]="1"`；注入的样式表 2091 字符、`html[data-dynamic="on"]` 生效。
+**真机取证（2026-02，Android 16 / SDK 36，设备 <设备>）**：开关默认开启且可用（原生探活成功，未落降级）；`localStorage["onethu.dynamicColor"]="1"`；注入的样式表 2091 字符、`html[data-dynamic="on"]` 生效。
 判据：**基础令牌 primary = `#0f1115`（近黑的中性默认），取色生效时 primary = `#35618E`（系统壁纸来的蓝）** —— 注入确实不是默认值，系统调色板真的落到了 Compat 变量上。
 未测清的一处：用 CDP 点开关测"关掉后 primary 变回什么"时，异步链路（退场 → 还原主题 → 重注入）比读取慢，多次点击/读取对不上时序，**没有拿到干净的关闭态读数**；开关最终已还原为开启。
 已知细节：`dynamicRoles.ts` 未映射 `tertiary` 角色（注入表里 `--md-sys-color-tertiary` 为空）。核实过影响面：该变量目前**只有调色板定义、没有组件消费**，所以取色开启时不会出现观感不一致，属于完备性小缺口。
@@ -330,7 +330,7 @@
 | B5 | chip/开关/进度/骨架屏/空状态 | 对应规范 | 全局截图走查 |
 | B5a ✅ | 胶囊 chip + 开关（两套几何归一、System 令牌、状态层/焦点环/禁用） | 手册 §3.6 + tools/controls-test.mjs | PC 观感走查待做 |
 | B5b ✅ | 进度 / 骨架屏 / 空状态（两条打架的骨架屏规则合一、流光走令牌、Empty 加可选槽位） | 手册 §3.7 + tools/controls-test.mjs | PC 观感走查待做 |
-**B4 进度（2026-02）**：底栏 navigation bar + PC navigation drawer + 顶部大标题已落地（提交 `8d2bbe2` / `dbeae18`），护栏 `tools/nav-shell-test.mjs` 已进 guard（22 项）。
+**B4 进度（2026-02）**：底栏 navigation bar + PC navigation drawer + 顶部大标题已落地（提交 `bafe87d` / `e70cf9f`），护栏 `tools/nav-shell-test.mjs` 已进 guard（22 项）。
 余项：手机端实测待设备恢复（adb 掉线）；PC 侧栏观感待用户确认。PC 图标态折叠（72px）已有，可后续考虑 rail 展开/收起过渡动画。
 **本轮走查缺陷（用户报告）与处置**：
 - 导航：hover 底色与激活胶囊**圆角不一致** → `.nav-item` 基态圆角改 `corner-full`；3px 蓝竖条是**刻意设计**（曾被我误退役）→ 恢复并按胶囊调形（内缩 6px、`corner-full`、高度 16px 与 `useNavIndicator` 的 BAR 常量对齐）；「收起」按钮与「·就绪」徽标**重合** → `.sidebar-foot` 被压扁（缺 `flex: none`），改 flex 行 + 不收缩。
@@ -394,7 +394,7 @@ B3c 余项（勿丢）：
   — 手机已连上，现在可量：我给基线数字，砍哪里由你定（打磨建议 C3）。
 
 
-**真机取证（2026-02，设备 3540f5d7 / Android SDK 36 / 视口 400×805）**
+**真机取证（2026-02，设备 <设备> / Android SDK 36 / 视口 400×805）**
 
 | 验的什么 | 结果 |
 |---|---|

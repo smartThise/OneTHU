@@ -1,9 +1,9 @@
 /** 作业只读详情（learnX AssignmentDetail）：提交/批改情况 + 说明富文本 + 四类附件；提交/撤回已移植（tjzy）*/
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
-import { CollectStar } from "../../components/Collect.js";
+import { usePageCollect } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
-import { IconDownload } from "../../components/Icons.js";
+import { IconDownload, IconExternal } from "../../components/Icons.js";
 import { learn, downloadLearnUrl } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { openFilePreview } from "../../components/FilePreview.js";
@@ -18,12 +18,13 @@ import { isAndroidNavigator } from "../../lib/androidHost.js";
 import { clearNeedFile, isNeedFile, markNeedFile } from "../../state/learnAttachmentReq.js";
 import { parseLearnTime } from "@onethu/core";
 import type { HomeworkPageDetail, LearnAttachment } from "@onethu/core";
+import type { PageMenuItem } from "../../state/pageChrome.js";
 
 type DescState = "idle" | "skip" | "loading" | "ok" | "error";
 
 export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdProp }: { courseId?: string; itemId?: string } = {}) {
   useLearnNavSemester();
-  const { navParams, navigate } = useApp();
+  const { navParams, navigate, back } = useApp();
 
   const { data, state, error, reload } = useLearnData();
   const [desc, setDesc] = useState("");
@@ -135,10 +136,16 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageState, page]);
 
+  /* hook 必须在早返回之前：h 还没到就先不给收藏项（顺序见 tools/hook-order-test.mjs） */
+  const collect = usePageCollect(
+    h ? { kind: "assignment", key: enc(h.courseId, h.id, h.title, course?.name ?? "", data?.semester.id ?? "") } : null,
+    h?.title,
+  );
+
   if (!h) {
     return (
       <>
-        <PageHead title="作业详情" actions={<BackButton to={navParams?.from ?? "learn-assignments"} courseId={navParams?.courseId} courseTab="assignments" />} />
+        <PageHead title="作业详情" back={<BackButton to={navParams?.from ?? "learn-assignments"} courseId={navParams?.courseId} courseTab="assignments" />} />
         {state === "loading" ? (
           <SkeletonRows rows={4} />
         ) : state === "error" ? (
@@ -146,7 +153,7 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
         ) : (
           <Card><Empty
             text="未找到该作业，可能数据已刷新，请返回列表重试。"
-            action={<button className="btn btn-ghost" onClick={() => navigate("learn")}>回网络学堂</button>}
+            action={<button className="btn btn-ghost" onClick={() => back(() => navigate("learn", undefined, { replace: true }))}>回网络学堂</button>}
           /></Card>
         )}
       </>
@@ -277,21 +284,15 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
 
   return (
     <>
+      {collect.modal}
       <PageHead
         title={h.title}
         meta={`${course?.name ?? "课程"} · ${fmtDateTime(h.deadline)} 截止`}
-        actions={
-          <>
-            <BackButton to={navParams?.from ?? "learn-assignments"} courseId={navParams?.courseId} courseTab="assignments" />
-            <CollectStar
-              atom={{ kind: "assignment", key: enc(h.courseId, h.id, h.title, course?.name ?? "", data?.semester.id ?? "") }}
-              title={h.title}
-            />
-            <button className="btn" onClick={() => void openExternal(h.url)} title="在系统浏览器打开">
-              网页端打开
-            </button>
-          </>
-        }
+        back={<BackButton to={navParams?.from ?? "learn-assignments"} courseId={navParams?.courseId} courseTab="assignments" />}
+        menu={[
+          collect.item,
+          { key: "open-web", label: "网页端打开", icon: <IconExternal width={16} height={16} />, onSelect: () => void openExternal(h.url) },
+        ].filter(Boolean) as PageMenuItem[]}
       />
 
       <Card className="detail-head">
@@ -482,7 +483,7 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
               ) : null}
               {page?.submittedAttachment ? (
                 <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                  <span style={{ color: "var(--text-dim, #888)" }}>已上传：{page.submittedAttachment.name}</span>
+                  <span style={{ color: "var(--text-dim)" }}>已上传：{page.submittedAttachment.name}</span>
                   <button
                     className="btn btn-ghost"
                     style={{ height: 22, padding: "0 8px", fontSize: 11, color: "var(--red)" }}
@@ -495,7 +496,7 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
                 </span>
               ) : null}
               {page?.submittedAttachment && subFile ? (
-                <span style={{ color: "var(--text-dim, #888)", fontSize: 12 }}>提交后新附件将替换已上传附件</span>
+                <span style={{ color: "var(--text-dim)", fontSize: 12 }}>提交后新附件将替换已上传附件</span>
               ) : null}
             </div>
             {needFileHint ? (
@@ -526,7 +527,7 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
               <div style={{ fontSize: 12, color: "var(--red)" }}>已过截止时间，提交入口已停用（撤回附件仍可用）。</div>
             ) : null}
             {h.submitted && h.submitTime ? (
-              <div style={{ fontSize: 12, color: "var(--text-dim, #888)" }}>上次提交于 {fmtDateTime(h.submitTime)}</div>
+              <div style={{ fontSize: 12, color: "var(--text-dim)" }}>上次提交于 {fmtDateTime(h.submitTime)}</div>
             ) : null}
             {subMsg ? <div style={{ fontSize: 12, color: subOk ? "var(--green)" : "var(--red)", wordBreak: "break-all" }}>{subMsg}</div> : null}
           </div>

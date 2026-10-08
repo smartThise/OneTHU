@@ -154,9 +154,23 @@
   --shadow-3: var(--md-sys-elevation-3);
   --ring: var(--md-sys-focus-ring);
 
-  /* 字体（基础刻度，非角色令牌） */
-  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
-    "Hiragino Sans GB", "Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  /* 字体（基础刻度，非角色令牌）。
+     老机型适配（霖 2026-10-04）：真机取证（Android 12 / WebView 96 的老机）——
+       · 原栈第一串命中的是 `Noto Sans CJK SC`（只有 400 一个字面），而全仓 91 处
+         `font-weight: 600/650` 在旧引擎上只能**合成加粗**，中文粗体发糊；
+       · `document.fonts`/canvas 都测不准系统字体，最终用 CDP `CSS.getPlatformFontsForNode`
+         坐实（注意：拿「不存在的族名」也会拿到该机默认 sans，所以判定要看它**是否与默认
+         不同**）：该机默认 sans = Noto Sans CJK SC，而 `miui` 与 `system-ui` 都解析到
+         `MiSans VF`（可变字重 100–900，600/650 是真字重，不是合成）；`"MiSans"` 不解析；
+       · `"MiSans"` 仍放最前，是给真把 MiSans 注册成族名的机型（HyperOS / 桌面端）；
+         老机由紧邻的 `miui` 接住（K30 实测 miui → MiSans VF，与默认的 Noto CJK 不同）。
+     ⚠️ **不许往这条栈里加 `system-ui`**：现代机型（实测 Android 16 / WebView 143）上用户
+     自装的系统字体（该机是 TsangerJinKai04 W03）会通过 `system-ui` 漏进来，把现代机型的
+     字体观感改掉 —— `sans-serif` 才是与旧栈完全一致的最后一档（实测仍解析到 MiSans VF）。
+     `Microsoft YaHei` 仍排在 `sans-serif` 之前，Windows 桌面（WebView2）命中链不变。 */
+  --font-ui: "MiSans", miui, "HarmonyOS Sans SC", "HarmonyOS Sans", -apple-system,
+    BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Source Han Sans SC",
+    "Noto Sans SC", "Microsoft YaHei", sans-serif;
   --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 
   /* 字号（Compat；语义档位见 --md-sys-typescale-*） */
@@ -184,6 +198,15 @@
 
   /* 布局 */
   --sidebar-w: 224px;
+
+  /* 老机型顶栏磨砂的半透明档位（霖 2026-10-05 裁定 (b)；详见 global.css 末尾 96 兜底块）。
+     96 上没有 color-mix()，无法把 --bg 调成 86% 透明，于是兜底块改为
+     「顶栏自身 background: transparent + ::before 铺 var(--bg) 并以本令牌降 opacity」。
+     这里只放**alpha 数值**、颜色仍走 --bg：主题覆盖 --md-sys-color-surface（亮 #fffbff /
+     暗 #1e1a1d）时顶栏跟着变；硬编码 rgba 会在主题下露白。
+     0.86 与基态 color-mix(in srgb, var(--bg) 86%, transparent) 的档位对应。
+     现代引擎该兜底块条件为 false、读不到本令牌，观感零变化。 */
+  --topbar-bg-alpha: 0.86;
 }
 
 /* ============================================================

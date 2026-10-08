@@ -18,8 +18,8 @@ import { openExternal } from "../pages/info/openExternal.js";
 import { openHomeworkRow } from "../lib/homeworkEntry.js";
 import { useIgnoredHw } from "../state/hwIgnore.js";
 import { toHomework, useExternalHomework } from "../state/exthw.js";
-import { parseLearnTime, type Homework, type ScheduleEntry } from "@onethu/core";
-import { useCountUp } from "../lib/motion.js";
+import { parseLearnTime, type Homework, type NewsItem, type ScheduleEntry } from "@onethu/core";
+import { useNumberRoll } from "../lib/motion.js";
 
 /** 轻路由签名（与 AppState.navigate 一致） */
 export type Nav = (page: Page, params?: LearnNav) => void;
@@ -81,7 +81,7 @@ export function EntryCard({
 }) {
   // 数字滚动（local/anim-delight）：数值型从旧值滚到新值（数据到达时"长"出来）；
   // 字符串（"–"、"¥12.34"）原样显示，不硬凑动画。
-  const rolled = useCountUp(typeof num === "number" ? num : 0);
+  const rolled = useNumberRoll(typeof num === "number" ? num : 0);
   const shown = typeof num === "number" ? Math.round(rolled) : num;
   return (
     <Card className="stat-card stat-click">
@@ -314,15 +314,27 @@ export function ClassRows({ events, navigate }: { events: ScheduleEntry[]; navig
   );
 }
 
-/** 订阅新闻卡体（订阅来源优先，回退最新；点击行直达该条新闻详情） */
-export function NewsRows({ feed, navigate }: { feed: TodayFeedT; navigate: Nav }) {
+/** 订阅新闻卡体（订阅来源优先，回退最新；点击行直达该条新闻详情）
+ *
+ *  D7（霖 2026-10-02）：可选 `onOpen` —— 传了就在**当前页**弹详情（待办页生活 tab 用），
+ *  没传保持原来的 `navigate("info", { infoNewsId })` 切页（今日页 / 各类小组件行为不变）。
+ *  「全部新闻 →」那种入口不走这里，仍然切页。 */
+export function NewsRows({
+  feed,
+  navigate,
+  onOpen,
+}: {
+  feed: TodayFeedT;
+  navigate: Nav;
+  onOpen?: (n: NewsItem) => void;
+}) {
   return (
     <Card className="list">
       {feed.list.map((n, i) => (
         <RowClick
           key={n.xxid || i}
           style={{ animationDelay: i * 35 + "ms" }}
-          onClick={() => navigate("info", { infoNewsId: n.xxid })}
+          onClick={() => (onOpen ? onOpen(n) : navigate("info", { infoNewsId: n.xxid }))}
         >
           <div className="tl-time">{n.date ? n.date.slice(5, 10) : "—"}</div>
           <div className="tl-bar" style={{ background: "var(--border-strong)" }} />

@@ -1,6 +1,8 @@
 /** 学期切换（learnX SemesterSelection）：列表 + 最新/当前标记，选择后回到课程列表 */
 import { useMemo } from "react";
-import { PageAtomStar } from "../..//components/Collect.js";
+import { usePageCollect } from "../../components/Collect.js";
+import { pageAtomRef } from "../../state/atoms.js";
+import type { PageMenuItem } from "../../state/pageChrome.js";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { IconCheck, IconRefresh } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
@@ -25,21 +27,25 @@ export function SemesterSelectionPage() {
     navigate("learn", id ? { semesterId: id } : undefined);
   };
 
+  const collect = usePageCollect(pageAtomRef("learn-semester"), "学期切换");
+
   return (
     <>
+      {collect.modal}
       <PageHead
         title="切换学期"
         
-        actions={
-          <>
-            <PageAtomStar atomKey="learn-semester" title="学期切换" />
-            <BackButton to="learn" label="课程列表" />
-            <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
-              <IconRefresh width={14} height={14} />
-              刷新
-            </button>
-          </>
-        }
+        back={<BackButton to="learn" label="课程列表" />}
+        menu={[
+          collect.item,
+          {
+            key: "refresh",
+            label: "刷新",
+            icon: <IconRefresh width={16} height={16} />,
+            disabled: state === "loading",
+            onSelect: () => void reload(),
+          },
+        ].filter(Boolean) as PageMenuItem[]}
       />
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}

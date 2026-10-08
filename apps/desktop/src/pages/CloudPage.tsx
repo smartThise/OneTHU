@@ -19,15 +19,9 @@ import {
 import { ConnectGate } from "../components/ConnectGate.js";
 import { IconRefresh, IconUpload, IconSearch, IconChevron, IconExternal } from "../components/Icons.js";
 import { showToast } from "../state/toast.js";
+import { fmtSize } from "../lib/size.js";
 
 /** 字节数 → 人类可读 */
-function fmtSize(b: number): string {
-  if (b < 0) return "-";
-  if (b < 1024) return `${b} B`;
-  if (b < 1024 ** 2) return `${(b / 1024).toFixed(1)} KB`;
-  if (b < 1024 ** 3) return `${(b / 1024 ** 2).toFixed(1)} MB`;
-  return `${(b / 1024 ** 3).toFixed(2)} GB`;
-}
 
 function fmtMtime(sec: number): string {
   if (!sec) return "";

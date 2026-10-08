@@ -62,6 +62,7 @@ const INTENTIONAL = new Map([
   ["--primary-hover", "同上（悬停回 #43454a）"],
   ["--hover", "§3.5 B1：状态层对齐 MD3（hover 6% → 8%）"],
   ["--active", "§3.5 B1：状态层对齐 MD3（pressed 10% → 12%）"],
+  ["--font-ui", "老机型适配（霖 2026-10-04）：厂牌 CJK 前置（MiSans / miui / HarmonyOS Sans），旧引擎 600 不再合成加粗；雅黑仍排在 sans-serif 之前，Windows 命中链不变；刻意不加 system-ui（会把用户自装系统字体漏进现代机型）"],
 ]);
 const fails = [];
 const changed = [];

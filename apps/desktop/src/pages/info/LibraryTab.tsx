@@ -19,8 +19,11 @@ import { enc, noteAtomCache } from "../../state/atoms.js";
 import { cacheGet, cacheSet } from "../../state/cache.js";
 import { fetchImageByUrl, info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
-import { softRecover } from "../../lib/reload.js";
+import { softRecoverResult } from "../../lib/reload.js";
+// 三态（b23 可选组）：复用既有判定（done→retry-load / failed→keep-error / skipped→mark-pending）
+import { libSoftTabAction, settleLibSoftPending } from "../../state/libSoftSettle.js";
 import { useApp } from "../../state/context.js";
+import { RELOGIN_PENDING_NOTE } from "../../state/data.js";
 
 function logErr(tag: string, err: unknown): void {
   void logLine(
@@ -358,10 +361,29 @@ export function LibraryTab({
       // 守卫：stale 已选的馆不覆盖（重验证不改用户选择）
       if (firstValid) setLibId((cur) => cur ?? firstValid.id);
     } catch (err) {
-      logErr("LIB-LIST", err);
-      // 登录态丢失：不闪红，静默强制重建座位会话后自动重载一次；仍失败才亮 ErrorNote
-      // 登录态丢失：softRelogin 透明全链重建（含 WebVPN 层）→ 原地重拉（THU Info 语义，绝不整页刷新）
-      if (isAuthError(err) && (await softRecover("lib"))) return loadLibs();
+      // 登录态丢失：不闪红，静默强制重建座位会话后自动重载一次；仍失败才亮 ErrorNote。
+      // 三态（b23 可选组）：只有真 `failed` 才亮失败条；`skipped`（冷却判掉 / 链内再入）
+      // 不是失败——既有数据级兜底（forceEnsure）调用次数不变，兜底用尽后留 pending 条。
+      if (isAuthError(err)) {
+        const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("lib")));
+        if (act === "mark-pending") {
+          if (libRecover.current < 1) {
+            libRecover.current += 1;
+            await info.forceEnsure("library").catch((renewErr: unknown) => {
+              logErr("LIB-RENEW", renewErr);
+            });
+            return loadLibs();
+          }
+          logErr("LIB-LIST-PENDING", err);
+          setLibState("error");
+          setLibError(RELOGIN_PENDING_NOTE);
+          return;
+        }
+        logErr("LIB-LIST", err);
+        if (act === "retry-load") return loadLibs();
+      } else {
+        logErr("LIB-LIST", err);
+      }
       // softRecover 失败/节流 → 落回数据级恢复兜底
       if (isAuthError(err) && libRecover.current < 1) {
         libRecover.current += 1;
@@ -384,10 +406,28 @@ export function LibraryTab({
       recRecover.current = 0;
       setRecState("ready");
     } catch (err) {
-      logErr("LIB-REC", err);
-      // 登录态丢失：静默重建会话后自动重载一次（保持骨架，不闪红）
-      // 登录态丢失：softRelogin 透明全链重建 → 原地重拉
-      if (isAuthError(err) && (await softRecover("lib"))) return loadRecords();
+      // 登录态丢失：静默重建会话后自动重载一次（保持骨架，不闪红）。
+      // 三态（b23 可选组）：只有真 `failed` 才亮失败条；`skipped` 走既有兜底 + pending 条。
+      if (isAuthError(err)) {
+        const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("lib")));
+        if (act === "mark-pending") {
+          if (recRecover.current < 1) {
+            recRecover.current += 1;
+            await info.forceEnsure("library").catch((renewErr: unknown) => {
+              logErr("LIB-RENEW", renewErr);
+            });
+            return loadRecords();
+          }
+          logErr("LIB-REC-PENDING", err);
+          setRecState("error");
+          setRecError(RELOGIN_PENDING_NOTE);
+          return;
+        }
+        logErr("LIB-REC", err);
+        if (act === "retry-load") return loadRecords();
+      } else {
+        logErr("LIB-REC", err);
+      }
       // softRecover 失败/节流 → 落回数据级恢复兜底
       if (isAuthError(err) && recRecover.current < 1) {
         recRecover.current += 1;
@@ -451,10 +491,32 @@ export function LibraryTab({
         pickFirst(list);
       })
       .catch(async (err: unknown) => {
-        logErr("LIB-FLOOR", err);
         if (!alive) return;
-        // 登录态丢失：softRelogin 透明全链重建 → tick 链自动重拉
-        if (isAuthError(err) && (await softRecover("lib"))) { floorRecover.current = 0; setLibTick((t) => t + 1); return; }
+        // 登录态丢失：softRelogin 透明全链重建 → tick 链自动重拉；仍败才亮 ErrorNote。
+        // 三态（b23 可选组）：只有真 `failed` 才亮失败条；`skipped` 不是失败——
+        // 既有数据级兜底（forceEnsure）调用次数不变，兜底用尽后留 pending 条。
+        if (isAuthError(err)) {
+          const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("lib")));
+          if (!alive) return;
+          if (act === "mark-pending") {
+            if (floorRecover.current < 1) {
+              floorRecover.current += 1;
+              info
+                .forceEnsure("library")
+                .catch((renewErr: unknown) => logErr("LIB-RENEW", renewErr))
+                .finally(() => setLibTick((t) => t + 1));
+              return;
+            }
+            logErr("LIB-FLOOR-PENDING", err);
+            setSeatState("error");
+            setSeatError(RELOGIN_PENDING_NOTE);
+            return;
+          }
+          logErr("LIB-FLOOR", err);
+          if (act === "retry-load") { floorRecover.current = 0; setLibTick((t) => t + 1); return; }
+        } else {
+          logErr("LIB-FLOOR", err);
+        }
         // softRecover 失败/节流 → 落回数据级恢复兜底
         if (isAuthError(err) && floorRecover.current < 1) {
           // 登录态丢失：静默重建会话后整链重载（保持骨架，不闪红）
@@ -502,10 +564,32 @@ export function LibraryTab({
         );
       })
       .catch(async (err: unknown) => {
-        logErr("LIB-SECTION", err);
         if (!alive) return;
-        // 登录态丢失：softRelogin 透明全链重建 → tick 链自动重拉
-        if (isAuthError(err) && (await softRecover("lib"))) { sectionRecover.current = 0; setLibTick((t) => t + 1); return; }
+        // 登录态丢失：softRelogin 透明全链重建 → tick 链自动重拉；仍败才亮 ErrorNote。
+        // 三态（b23 可选组）：只有真 `failed` 才亮失败条；`skipped` 不是失败——
+        // 既有数据级兜底（forceEnsure）调用次数不变，兜底用尽后留 pending 条。
+        if (isAuthError(err)) {
+          const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("lib")));
+          if (!alive) return;
+          if (act === "mark-pending") {
+            if (sectionRecover.current < 1) {
+              sectionRecover.current += 1;
+              info
+                .forceEnsure("library")
+                .catch((renewErr: unknown) => logErr("LIB-RENEW", renewErr))
+                .finally(() => setLibTick((t) => t + 1));
+              return;
+            }
+            logErr("LIB-SECTION-PENDING", err);
+            setSeatState("error");
+            setSeatError(RELOGIN_PENDING_NOTE);
+            return;
+          }
+          logErr("LIB-SECTION", err);
+          if (act === "retry-load") { sectionRecover.current = 0; setLibTick((t) => t + 1); return; }
+        } else {
+          logErr("LIB-SECTION", err);
+        }
         // softRecover 失败/节流 → 落回数据级恢复兜底
         if (isAuthError(err) && sectionRecover.current < 1) {
           // 登录态丢失：静默重建会话后整链重载（保持骨架，不闪红）
@@ -543,10 +627,32 @@ export function LibraryTab({
         setSeatState("ready");
       })
       .catch(async (err: unknown) => {
-        logErr("LIB-SEAT", err);
         if (!alive) return;
-        // 登录态丢失：softRelogin 透明全链重建 → tick 链自动重拉
-        if (isAuthError(err) && (await softRecover("lib"))) { seatRecover.current = 0; setSeatTick((t) => t + 1); return; }
+        // 登录态丢失：softRelogin 透明全链重建 → tick 链自动重拉；仍败才亮 ErrorNote。
+        // 三态（b23 可选组）：只有真 `failed` 才亮失败条；`skipped` 不是失败——
+        // 既有数据级兜底（forceEnsure）调用次数不变，兜底用尽后留 pending 条。
+        if (isAuthError(err)) {
+          const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("lib")));
+          if (!alive) return;
+          if (act === "mark-pending") {
+            if (seatRecover.current < 1) {
+              seatRecover.current += 1;
+              info
+                .forceEnsure("library")
+                .catch((renewErr: unknown) => logErr("LIB-RENEW", renewErr))
+                .finally(() => setSeatTick((t) => t + 1));
+              return;
+            }
+            logErr("LIB-SEAT-PENDING", err);
+            setSeatState("error");
+            setSeatError(RELOGIN_PENDING_NOTE);
+            return;
+          }
+          logErr("LIB-SEAT", err);
+          if (act === "retry-load") { seatRecover.current = 0; setSeatTick((t) => t + 1); return; }
+        } else {
+          logErr("LIB-SEAT", err);
+        }
         // softRecover 失败/节流 → 落回数据级恢复兜底
         if (isAuthError(err) && seatRecover.current < 1) {
           // 登录态丢失：静默重建座位会话后自动重取一次（保持骨架，不闪红）

@@ -7,9 +7,6 @@
  *   时段文本与占用状态，明确指出哪几个时段被占）；资源请求带代数去重（仅最新一次
  *   请求可落状态），房型/日期切换才清空列表，预约/取消后的刷新为软刷新（旧列表
  *   保留展示，杜绝占用条闪没）
- * - 时段筛选：按 5 分钟粒度选起止时间，只显示整段连续空闲且满足房间
- *   开放时间、最短/最长时长与当日未过期约束的房间；从筛选结果点「预约」
- *   会自动带入该时段
  * - 选时段（开始/结束 5 分钟粒度、min/max 时长与占用约束，libRoomPerformBook 同算法；
  *   开始时刻可点时段格直接改选，改开始后结束回落到首个合法值，与 lib 同语义；
  *   lib 为开始/结束双轮单选连续区间，不支持多选离散时段，此处保持一致）
@@ -30,7 +27,10 @@ import { info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { openExternal } from "./openExternal.js";
 import { useApp } from "../../state/context.js";
-import { softRecover } from "../../lib/reload.js";
+import { softRecoverResult } from "../../lib/reload.js";
+// 三态（b23 可选组）：复用既有判定（done→retry-load / failed→keep-error / skipped→mark-pending）
+import { libSoftTabAction, settleLibSoftPending } from "../../state/libSoftSettle.js";
+import { RELOGIN_PENDING_NOTE } from "../../state/data.js";
 
 /** 研讨间「未绑定邮箱」检测卡（2026-09 用户反馈：新生首次使用必须在 cab.lib
  *  原网站绑定邮箱，否则会话建立/userInfo 校验恒败，只报错会让用户干等）。
@@ -42,7 +42,7 @@ function EmailBindHint({ text }: { text: string }) {
       <div style={{ fontSize: 13, lineHeight: 1.7 }}>
         <b>首次使用研讨间？需要先绑定邮箱</b>
         <div style={{ opacity: 0.75, marginTop: 4 }}>
-          研讨间系统要求先在原网站（cab.lib.tsinghua.edu.cn）登录并绑定邮箱后才能预约，新生未绑定时会一直报「会话未能建立」。
+          研讨间系统要求先在原网站（cab.lib.tsinghua.edu.cn）登录并绑定邮箱后才能预约，新生未绑定时会一直报「登录未能建立」。
           请在原网站绑定邮箱后，回到这里点「重试」。
         </div>
         <button className="btn" style={{ marginTop: 8 }} onClick={() => void openExternal("https://cab.lib.tsinghua.edu.cn/")}>
@@ -172,8 +172,7 @@ const validEnds = (res: LibRoomRes, begs: TimePoint[], beg: string): TimePoint[]
   const result: TimePoint[] = [];
   let h = Number(beg.slice(0, 2));
   let m = Number(beg.slice(3, 5)) + res.minMinute;
-  const availableMinute = res.maxMinute > 0 ? Math.min(item.duration, res.maxMinute) : item.duration;
-  const count = Math.floor((availableMinute - res.minMinute - timeDiff(item.start, beg)) / 5) + 1;
+  const count = Math.floor((item.duration - res.minMinute - timeDiff(item.start, beg)) / 5) + 1;
   for (let i = 0; i < count; i++) {
     h += Math.floor(m / 60);
     m -= Math.floor(m / 60) * 60;
@@ -222,32 +221,6 @@ interface RoomSlot {
 
 const toMin = (hm: string): number => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5));
 const minToHm = (m: number): string => (m >= 1440 ? "24:00" : `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`);
-
-/** 所选时段是否可以在该房间作为一次完整预约。 */
-const isRoomFreeForRange = (res: LibRoomRes, iso: string, start: string, end: string): boolean => {
-  if (!res.openStart || !res.openEnd || res.kindName.includes("暂未开放")) return false;
-  const startMin = toMin(start);
-  const endMin = toMin(end);
-  const openStartMin = toMin(res.openStart);
-  const openEndMin = toMin(res.openEnd);
-  if (![startMin, endMin, openStartMin, openEndMin].every(Number.isFinite)) return false;
-  if (startMin >= endMin || startMin < openStartMin || endMin > openEndMin) return false;
-
-  const duration = endMin - startMin;
-  if (duration < res.minMinute || (res.maxMinute > 0 && duration > res.maxMinute)) return false;
-
-  // 与预约面板共用同一组候选时刻：同时覆盖 5 分钟粒度、当日已过期、
-  // 最短/最长时长和连续空闲段，保证「筛得出」就一定能在下方选中。
-  const begins = validBegins(res, iso);
-  if (!begins.some((p) => p.start === start)) return false;
-  if (!validEnds(res, begins, start).some((p) => p.start === end)) return false;
-
-  return !res.usage.some((u) => {
-    const usageStart = toMin(hhmmSafe(u.start));
-    const usageEnd = toMin(hhmmSafe(u.end));
-    return Number.isFinite(usageStart) && Number.isFinite(usageEnd) && usageStart < endMin && usageEnd > startMin;
-  });
-};
 
 /** 占用归属（tooltip 展示预约人/事由；解析失败返回空串） */
 const usageAt = (res: LibRoomRes, s: number, e: number): string => {
@@ -364,8 +337,6 @@ function SlotGrid({
 interface BookTarget {
   res: LibRoomRes;
   day: DayChoice;
-  preferredBeg?: string;
-  preferredEnd?: string;
 }
 
 export function LibRoomTab({
@@ -390,9 +361,6 @@ export function LibRoomTab({
   const [resState, setResState] = useState<LoadState>("loading");
   const [resError, setResError] = useState<string | null>(null);
   const [resTick, setResTick] = useState(0);
-  /* 时段筛选：两端都有值且起点早于终点时才生效 */
-  const [filterBeg, setFilterBeg] = useState("");
-  const [filterEnd, setFilterEnd] = useState("");
 
   /* 预约面板 */
   const [target, setTarget] = useState<BookTarget | null>(null);
@@ -430,10 +398,29 @@ export function LibRoomTab({
       setKindId((prev) => prev ?? list[0]!.kindId);
       noteAtomCache({ libroomKinds: list.map((k) => ({ kindId: k.kindId, kindName: k.kindName })) });
     } catch (err) {
-      logErr("LIBROOM-KIND", err);
-      // 登录态丢失：不闪红，静默重建研讨间 cab 会话后自动重载一次；仍失败才亮 ErrorNote
-      // 登录态丢失：softRelogin 透明全链重建 → 原地重拉
-      if (isAuthError(err) && (await softRecover("libroom"))) return loadKinds();
+      // 登录态丢失：不闪红，静默重建研讨间 cab 会话后自动重载一次；仍失败才亮 ErrorNote。
+      // 三态（b23 可选组）：只有真 `failed` 才亮失败条；`skipped`（冷却判掉 / 链内再入）
+      // 不是失败——既有数据级兜底（forceEnsure）调用次数不变，兜底用尽后留 pending 条。
+      if (isAuthError(err)) {
+        const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("libroom")));
+        if (act === "mark-pending") {
+          if (kindRecover.current < 1) {
+            kindRecover.current += 1;
+            await info.forceEnsure("libroom", userId).catch((renewErr: unknown) => {
+              logErr("LIBROOM-RENEW", renewErr);
+            });
+            return loadKinds();
+          }
+          logErr("LIBROOM-KIND-PENDING", err);
+          setKindState("error");
+          setKindError(RELOGIN_PENDING_NOTE);
+          return;
+        }
+        logErr("LIBROOM-KIND", err);
+        if (act === "retry-load") return loadKinds();
+      } else {
+        logErr("LIBROOM-KIND", err);
+      }
       // softRecover 失败/节流 → 落回数据级恢复兜底
       if (isAuthError(err) && kindRecover.current < 1) {
         kindRecover.current += 1;
@@ -463,10 +450,28 @@ export function LibRoomTab({
       recRecover.current = 0;
       setRecState("ready");
     } catch (err) {
-      logErr("LIBROOM-REC", err);
-      // 登录态丢失：静默重建会话后自动重载一次（保持骨架，不闪红）
-      // 登录态丢失：softRelogin 透明全链重建 → 原地重拉
-      if (isAuthError(err) && (await softRecover("libroom"))) return loadRecords();
+      // 登录态丢失：静默重建会话后自动重载一次（保持骨架，不闪红）。
+      // 三态（b23 可选组）：只有真 `failed` 才亮失败条；`skipped` 走既有兜底 + pending 条。
+      if (isAuthError(err)) {
+        const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("libroom")));
+        if (act === "mark-pending") {
+          if (recRecover.current < 1) {
+            recRecover.current += 1;
+            await info.forceEnsure("libroom", userId).catch((renewErr: unknown) => {
+              logErr("LIBROOM-RENEW", renewErr);
+            });
+            return loadRecords();
+          }
+          logErr("LIBROOM-REC-PENDING", err);
+          setRecState("error");
+          setRecError(RELOGIN_PENDING_NOTE);
+          return;
+        }
+        logErr("LIBROOM-REC", err);
+        if (act === "retry-load") return loadRecords();
+      } else {
+        logErr("LIBROOM-REC", err);
+      }
       // softRecover 失败/节流 → 落回数据级恢复兜底
       if (isAuthError(err) && recRecover.current < 1) {
         recRecover.current += 1;
@@ -523,9 +528,31 @@ export function LibRoomTab({
       })
       .catch(async (err: unknown) => {
         if (!alive || gen !== resGen.current) return;
-        logErr("LIBROOM-RES", err);
-        // 登录态丢失：softRelogin 透明全链重建 → tick 链自动重拉
-        if (isAuthError(err) && (await softRecover("libroom"))) { resRecover.current = 0; setResTick((n) => n + 1); return; }
+        // 登录态丢失：softRelogin 透明全链重建 → tick 链自动重拉；仍败才亮 ErrorNote。
+        // 三态（b23 可选组）：只有真 `failed` 才亮失败条；`skipped` 不是失败——
+        // 既有数据级兜底（forceEnsure）调用次数不变，兜底用尽后留 pending 条。
+        if (isAuthError(err)) {
+          const act = libSoftTabAction(await settleLibSoftPending(await softRecoverResult("libroom")));
+          if (!alive || gen !== resGen.current) return;
+          if (act === "mark-pending") {
+            if (resRecover.current < 1) {
+              resRecover.current += 1;
+              info
+                .forceEnsure("libroom", userId)
+                .catch((renewErr: unknown) => logErr("LIBROOM-RENEW", renewErr))
+                .finally(() => setResTick((n) => n + 1));
+              return;
+            }
+            logErr("LIBROOM-RES-PENDING", err);
+            setResState("error");
+            setResError(RELOGIN_PENDING_NOTE);
+            return;
+          }
+          logErr("LIBROOM-RES", err);
+          if (act === "retry-load") { resRecover.current = 0; setResTick((n) => n + 1); return; }
+        } else {
+          logErr("LIBROOM-RES", err);
+        }
         // softRecover 失败/节流 → 落回数据级恢复兜底
         if (isAuthError(err) && resRecover.current < 1) {
           // 登录态丢失：静默重建研讨间会话后自动重取一次（保持骨架，不闪红）
@@ -547,44 +574,27 @@ export function LibRoomTab({
   /* 预约面板：目标/日期变化时重置时段选择 */
   const begins = useMemo(() => (target ? validBegins(target.res, target.day.iso) : []), [target]);
   useEffect(() => {
-    const preferred = target?.preferredBeg;
-    setBeg(preferred && begins.some((p) => p.start === preferred) ? preferred : (begins[0]?.start ?? ""));
+    setBeg(begins[0]?.start ?? "");
     setEnd("");
-  }, [begins, target?.preferredBeg]);
+  }, [begins]);
   const ends = useMemo(
     () => (target && beg ? validEnds(target.res, begins, beg) : []),
     [target, begins, beg],
   );
   useEffect(() => {
-    const preferred = target?.preferredEnd;
-    setEnd(preferred && ends.some((p) => p.start === preferred) ? preferred : (ends[0]?.start ?? ""));
-  }, [ends, target?.preferredEnd]);
+    setEnd(ends[0]?.start ?? "");
+  }, [ends]);
   /* 预约面板逐格三态（红/灰禁点，绿格点击改选开始时刻） */
   const targetSlots = useMemo(
     () => (target ? roomSlots(target.res, target.day.iso) : []),
     [target],
   );
 
-  const filterComplete = filterBeg !== "" && filterEnd !== "";
-  const filterValid = filterComplete && filterBeg < filterEnd;
-  const visibleResources = useMemo(
-    () =>
-      resources === null || !filterValid
-        ? resources
-        : resources.filter((r) => isRoomFreeForRange(r, day.iso, filterBeg, filterEnd)),
-    [resources, filterValid, day.iso, filterBeg, filterEnd],
-  );
-
   const pickRoom = (res: LibRoomRes): void => {
     setBookError(null);
     setPendingEmail(null);
     setNotice(null);
-    setTarget({
-      res,
-      day,
-      preferredBeg: filterValid ? filterBeg : undefined,
-      preferredEnd: filterValid ? filterEnd : undefined,
-    });
+    setTarget({ res, day });
   };
 
   const doBook = useCallback(
@@ -727,50 +737,11 @@ export function LibRoomTab({
                 ))}
               </select>
             </div>
-            <div className="field" style={{ margin: 0 }}>
-              <label htmlFor="libroom-filter-beg">空闲时段</label>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <input
-                  id="libroom-filter-beg"
-                  className="input"
-                  type="time"
-                  step={300}
-                  aria-label="空闲时段开始"
-                  value={filterBeg}
-                  onChange={(e) => setFilterBeg(e.target.value)}
-                />
-                <span style={{ color: "var(--text-3)" }}>至</span>
-                <input
-                  className="input"
-                  type="time"
-                  step={300}
-                  aria-label="空闲时段结束"
-                  value={filterEnd}
-                  onChange={(e) => setFilterEnd(e.target.value)}
-                />
-                {filterBeg || filterEnd ? (
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    style={{ height: 32, whiteSpace: "nowrap" }}
-                    onClick={() => {
-                      setFilterBeg("");
-                      setFilterEnd("");
-                    }}
-                  >
-                    清除
-                  </button>
-                ) : null}
-              </div>
-              {filterComplete && !filterValid ? (
-                <div className="t-red" style={{ fontSize: 12, marginTop: 4 }}>结束时间需晚于开始时间</div>
-              ) : null}
-            </div>
           </div>
 
           <SectionHead
             title="可约房间"
-            aside={`${day.label}${filterValid ? ` · ${filterBeg}~${filterEnd} 连续空闲 ${visibleResources?.length ?? 0} 间` : ""} · 时段格 绿=可约 红=已被占 灰=不可选${resState === "loading" && resources !== null ? " · 刷新中…" : ""}`}
+            aside={`${day.label} · 时段格 绿=可约 红=已被占 灰=不可选${resState === "loading" && resources !== null ? " · 刷新中…" : ""}`}
           />
           {resState === "loading" && resources === null ? <SkeletonRows rows={4} /> : null}
           {resState === "error" ? (
@@ -788,14 +759,9 @@ export function LibRoomTab({
               <Empty text="该房型当日暂无可约房间。" />
             </Card>
           ) : null}
-          {resources !== null && resources.length > 0 && visibleResources?.length === 0 ? (
-            <Card>
-              <Empty text={`没有研讨间在 ${filterBeg}~${filterEnd} 整段可约，请调整时间或清除筛选。`} />
-            </Card>
-          ) : null}
-          {visibleResources !== null && visibleResources.length > 0 ? (
+          {resources !== null && resources.length > 0 ? (
             <Card className="list">
-              {visibleResources.map((r) => (
+              {resources.map((r) => (
                 <div className="row" key={r.devId}>
                   <div className="row-main">
                     <div className="row-title">

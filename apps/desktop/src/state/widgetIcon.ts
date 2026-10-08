@@ -73,7 +73,7 @@ export async function atomIconPng(ref: AtomRef, size = 96): Promise<string | nul
   try {
     host = document.createElement("div");
     // 固定深色描边：小组件背景是浅色的，图标在深色应用主题下若沿用 currentColor 会看不见
-    host.setAttribute("style", "position:fixed;left:-9999px;top:0;color:#0F1115;pointer-events:none");
+    host.setAttribute("style", "position:fixed;left:-9999px;top:0;color:#0F1115;pointer-events:none");  /* token-ok: 小组件图标离屏光栅化：固定深描边（小组件背景恒浅） */
     document.body.appendChild(host);
     root = createRoot(host);
     const Icon = view.icon as ComponentType<{ width?: number; height?: number }>;

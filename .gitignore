@@ -37,21 +37,5 @@ tools/*/target/
 .reasonix/
 docs/BUILD-AGENT-GUIDE.md
 
-# tauri-plugin 的 Gradle 构建中间产物落在插件 android 目录里（每次构建可再生；
-# 一次本地构建就留下 1000+ 文件，含 .class 与打包资源）
-apps/desktop/src-tauri/plugins/*/android/tmp/
-
-# 注意：`gen/android` 是发布线刻意入库的软链（`build-release-apk.sh` 第⑦步按入库值复原），别加到这里。
-
-# 本机专用目录：编辑器调试配置（.vscode）与本机暂存/日志目录（.dsh-tmp）。
-# 只留在本地，不入库（.vscode 里的调试配置因人而异，机器路径不可共享）
-.vscode/
-.dsh-tmp/
-
-# Windows 本机构建脚本（dev-launch / android-dev / build-android 的 .mjs 实现）：只服务本机
-# 的 Windows 工具链（%LOCALAPPDATA% 下的 SDK/JDK、.bat 经 cmd /c、符号链接权限自检），
-# macOS/Linux 各有同名的 .sh 正路（dev-launch.sh / build-release-apk.sh）。故只留本地、不入库，
-# 换机器按需自行携带；`.vscode/launch.json`（同样不入库）里调用的就是这里的 android-dev.mjs。
-apps/desktop/scripts/dev-launch.mjs
-apps/desktop/scripts/android-dev.mjs
-apps/desktop/scripts/build-android.mjs
+# 验收/探针的临时产物（真机截图、CDP 脚本）：属于工作过程，不入库
+.tmp-shots/

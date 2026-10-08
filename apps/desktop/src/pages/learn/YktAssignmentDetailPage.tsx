@@ -41,6 +41,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { YkExerciseDetail, YkProblem } from "@onethu/core";
 import { BackButton, timeLeft } from "./shared.js";
+import { IconExternal, IconPen } from "../../components/Icons.js";
+import type { PageMenuItem } from "../../state/pageChrome.js";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { ProblemBody } from "../../components/exthw/ProblemBody.js";
 import { YktSubjectiveEditor, toSubmitHtml } from "../../components/exthw/YktSubjectiveEditor.js";
@@ -334,7 +336,7 @@ export function YktAssignmentDetailPage({ ykt: yktProp, from: fromProp }: { ykt?
   if (!ykt || !leafTypeId || !classroomId) {
     return (
       <>
-        <PageHead title="雨课堂作业" actions={<BackButton to={from} />} />
+        <PageHead title="雨课堂作业" back={<BackButton to={from} />} />
         <Card>
           <Empty text="这个入口不完整，请从作业列表重新进入。" />
         </Card>
@@ -494,26 +496,21 @@ export function YktAssignmentDetailPage({ ykt: yktProp, from: fromProp }: { ykt?
       <PageHead
         title={state === "ok" && detail?.name ? detail.name : ykt.title || "雨课堂作业"}
         meta={meta}
-        actions={
-          <>
-            <BackButton to={from} />
-            {eligibility.eligible && ykt.externalUrl ? (
-              <button
-                className="btn btn-primary"
-                disabled={submitBusy}
-                onClick={() => void openSubmit()}
-                title="应用内打开雨课堂官方作答页（官方提交逻辑原样保留）"
-              >
-                {submitBusy ? "作答页已打开…" : "作答 / 提交"}
-              </button>
-            ) : null}
-            {ykt.externalUrl ? (
-              <button className="btn" onClick={openInWeb} title="在系统浏览器或应用内打开官方页">
-                浏览器打开
-              </button>
-            ) : null}
-          </>
-        }
+        back={<BackButton to={from} />}
+        menu={[
+          eligibility.eligible && ykt.externalUrl
+            ? {
+                key: "submit",
+                label: submitBusy ? "作答页已打开…" : "作答 / 提交",
+                icon: <IconPen width={16} height={16} />,
+                disabled: submitBusy,
+                onSelect: () => void openSubmit(),
+              }
+            : null,
+          ykt.externalUrl
+            ? { key: "open-web", label: "浏览器打开", icon: <IconExternal width={16} height={16} />, onSelect: openInWeb }
+            : null,
+        ].filter(Boolean) as PageMenuItem[]}
       />
       {submitErr ? (
         <Card>

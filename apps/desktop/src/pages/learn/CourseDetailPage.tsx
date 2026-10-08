@@ -4,7 +4,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { LearnGroup } from "@onethu/core";
 import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
-import { CollectStar } from "../../components/Collect.js";
+import { usePageCollect } from "../../components/Collect.js";
+import type { PageMenuItem } from "../../state/pageChrome.js";
 import { enc } from "../../state/atoms.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
@@ -132,8 +133,17 @@ export function CourseDetailPage() {
     groups: groups?.length,
   };
 
+  /* 课程异步到：没到之前不给收藏项（hook 必须无条件调用） */
+  const collect = usePageCollect(
+    course
+      ? { kind: "course", key: enc(course.id, course.name, course.teacherName, data?.semester.id ?? "") }
+      : null,
+    course?.name,
+  );
+
   return (
     <>
+      {collect.modal}
       <PageHead
         title={course?.name ?? (state === "loading" && !data ? "加载中…" : "课程")}
         meta={
@@ -141,19 +151,17 @@ export function CourseDetailPage() {
             ? `${course.courseNumber}-${course.courseIndex} · ${course.teacherName}${data ? ` · ${semesterText(data.semester.id)}` : ""}`
             : "课程详情"
         }
-        actions={
-          <>
-            <BackButton to="learn" label="课程列表" />
-            <CollectStar
-              atom={{ kind: "course", key: enc(course?.id ?? navParams?.courseId ?? "", course?.name ?? "", course?.teacherName ?? "", data?.semester.id ?? "") }}
-              title={course?.name}
-            />
-            <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
-              <IconRefresh width={14} height={14} />
-              刷新
-            </button>
-          </>
-        }
+        back={<BackButton to="learn" label="课程列表" />}
+        menu={[
+          collect.item,
+          {
+            key: "refresh",
+            label: "刷新",
+            icon: <IconRefresh width={16} height={16} />,
+            disabled: state === "loading",
+            onSelect: () => void reload(),
+          },
+        ].filter(Boolean) as PageMenuItem[]}
       />
 
       {course && course.timeAndLocation.length > 0 ? (
@@ -228,7 +236,6 @@ export function CourseDetailPage() {
                     sem={data?.semester.id}
                     from="learn-course"
                     showGrade
-                    remind
                     style={{ animationDelay: `${i * 25}ms` }}
                   />
                 ))}

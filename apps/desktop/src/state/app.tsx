@@ -1,7 +1,8 @@
 /** 应用全局状态：登录（含 2FA）→ 会话 → 轻路由 */
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import * as clients from "../lib/clients.js";
 import { explainNetworkError } from "../lib/transport.js";
+import { back as navBack, canGoBack, initNavStack, pushNav, replaceNav, subscribeNav, topPageFrame } from "./navStack.js";
 import type { TwoFactorMethod } from "@onethu/core";
 
 /** 轻路由：一级页（含选课系统 zhjwxk）+ 网络学堂子页（learnX 移植） */
@@ -24,6 +25,7 @@ export type Page =
   | "services" // 服务分组目录页（UI/UX 改造 §2.2 M1：底部导航「服务」直达）
   | "favs" // 收藏首页（UI/UX 改造 §2.2 M1：底部导航「收藏」直达，根收藏夹列表）
   | "settings"
+  | "mine" // 「我的」页（E3：底栏第 5 项，个人数据与入口归口）
   | "plugins" // 旧插件页路由：§4.4b 起并进设置页，进来即跳「设置 → 插件」
   | "learn-course" // 课程详情（courseId）
   | "learn-assignments" // 全部作业
@@ -36,7 +38,12 @@ export type Page =
   | "learn-forum-thread" // 讨论区话题阅读/回复（courseId+threadId）
   | "learn-file-detail" // 文件详情（courseId+itemId）
   | `plugin:${string}` // 插件动态 tab（plugins/tabs.ts 注册表；pageKey = plugin:<pluginId>:<tabId>）
-  | "learn-ykt-detail"; // R20-B2：雨课堂作业原生详情（只读；navParams.ykt 必带）
+  | "learn-ykt-detail" // R20-B2：雨课堂作业原生详情（只读；navParams.ykt 必带）
+  /* —— G2：旧多 tab 页里 23 个 tab 的独立页（手机入口走这里；PC 与旧深链仍是旧页）—— */
+  | "grade" | "fitness" | "exams" | "evaluation" | "calendar" | "news" | "profile" | "course-info"
+  | "dorm" | "washer" | "hygiene" | "campus-card" | "invoice" | "payroll" | "grad-income" | "campus-net"
+  | "lib-seat" | "lib-room" | "classroom" | "sports" | "public-space"
+  | "xk-find" | "xk-manage";
 
 /** 子页导航参数：详情页按 id 在已缓存数据中查找实体 */
 export interface LearnNav {
@@ -113,9 +120,18 @@ export interface LearnNav {
   kongjianRoom?: string;
   /** 用户收藏夹页：folder id（page=folder 时必带） */
   folderId?: string;
+  /** G2：选课移动端双页签直达（旧选课页消费；独立页 xk-find / xk-manage 用它分流） */
+  xkTab?: "find" | "manage";
 }
 
-const TOP_PAGES = ["today", "learn", "schedule", "trace", "mail", "cloud", "thubook", "info", "life", "reserve", "zhjwxk", "thos", "otherinfo", "plugins", "folder", "settings", "services", "favs", "tasks"] as const; // services/favs：M1 新 IA 底栏直达页（漏过会落到 learn 兜底） // trace/otherinfo 各漏过一次：不加的话侧栏/标题/hash 全落到 learn 兜底
+const TOP_PAGES = [
+  "today", "learn", "schedule", "trace", "mail", "cloud", "thubook", "info", "life", "reserve", "zhjwxk",
+  "thos", "otherinfo", "plugins", "folder", "settings", "mine", "services", "favs", "tasks",
+  /* G2 独立页：可深链（手机开 #/grade 直接到成绩，不再落回旧「信息」页） */
+  "grade", "fitness", "exams", "evaluation", "calendar", "news", "profile", "course-info",
+  "dorm", "washer", "hygiene", "campus-card", "invoice", "payroll", "grad-income", "campus-net",
+  "lib-seat", "lib-room", "classroom", "sports", "public-space", "xk-find", "xk-manage",
+] as const; // services/favs：M1 新 IA 底栏直达页（漏过会落到 learn 兜底） // trace/otherinfo 各漏过一次：不加的话侧栏/标题/hash 全落到 learn 兜底
 
 /**
  * R20-B2：雨课堂作业原生详情页参数。
@@ -145,6 +161,26 @@ export function topLevelPage(p: Page): Page {
   return (TOP_PAGES as readonly string[]).includes(p) ? p : "learn";
 }
 
+/** 返回目标：页内返回键（BackButton）与顶栏返回键共用同一条数据 */
+export interface BackTarget {
+  to: Page;
+  label?: string;
+  params?: LearnNav;
+}
+
+/**
+ * 「返回哪里、带什么参数」的唯一口径（G1）：BackButton 与顶栏「<」都调它。
+ * - 返回课程详情这类非一级页必须带回 courseId，否则详情页空参渲染成白页；
+ * - 返回一级页（learn 等）一律不带参数，避免列表页残留上一页的导航态。
+ */
+export function backTargetOf(to: Page, label?: string, courseId?: string, courseTab?: string): BackTarget {
+  const params =
+    courseId && topLevelPage(to) !== to
+      ? { courseId, ...(to === "learn-course" && courseTab ? { courseTab } : {}) }
+      : undefined;
+  return { to, label, params };
+}
+
 export type SessionStatus = "booting" | "logged-out" | "connecting" | "2fa" | "ready";
 
 export interface SessionUser {
@@ -167,7 +203,10 @@ export interface AppState {
     /** 1=统一认证验证；2=网络学堂验证（极少触发） */
     round?: number;
   } | null;
-  navigate: (page: Page, params?: LearnNav) => void;
+  navigate: (page: Page, params?: LearnNav, opts?: { replace?: boolean }) => void;
+  /** E1：退一步（浮层优先关闭 → 退页帧 → 栈空时由 wry 退出应用）。
+   *  深链冷启动（栈里只有当前页）时执行 fallback——由调用方给「本来该回的父页」。 */
+  back: (fallback?: () => void) => void;
   login: (username: string, password: string, remember?: boolean) => Promise<void>;
   submit2FA: (type: string, code: string, trust: boolean) => Promise<void>;
   send2FA: (type: string) => Promise<void>;
@@ -175,9 +214,15 @@ export interface AppState {
   backToLogin: () => void;
   logout: () => Promise<void>;
   dismissError: () => void;
+  /** 登录代次（b31 P0）：每次登录成功 / 2FA 完成 / 交互重登 / 登出自增。
+   *  页面层加载在发起时捕获它，结算时若已变则一律不写回（陈旧结算不许踢人）。 */
+  authEpoch: number;
 }
 
 import { Ctx } from "./context.js";
+import { soloTargetFor } from "./navigation.js";
+import { platformOf } from "./platform.js";
+import { bumpAuthEpoch, currentAuthEpoch } from "./authEpoch.js";
 
 function pageFromHash(): Page {
   const h = location.hash.replace(/^#\/?/, "");
@@ -198,29 +243,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [navParams, setNavParams] = useState<LearnNav | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [twoFactor, setTwoFactor] = useState<AppState["twoFactor"]>(null);
-  /** navigate 自身写入的 hash：它触发的 hashchange 必须忽略，否则跨一级页进子页
-   *  （如 今日 → 作业详情，hash #/today → #/learn）时异步回调会把刚设置的
-   *  page/navParams 冲回顶层列表页 + 空参——详情页"闪回列表/空白"的根源。 */
-  const selfNavHashRef = useRef<string | null>(null);
-
+  /** b31 P0：登录代次的 React 镜像（真值在 authEpoch.ts 的模块变量里——
+   *  陈旧闭包（组件已卸载）也必须能读到最新代次，所以不能用组件内 ref）。 */
+  const [authEpoch, setAuthEpoch] = useState(() => currentAuthEpoch());
+  const bumpEpoch = useCallback(() => {
+    setAuthEpoch(bumpAuthEpoch());
+  }, []);
+  /* E1：栈是页面状态的来源。
+     建根帧用 replaceState（栈空 → 系统返回键由 wry 直接退出应用）；
+     之后 navigate 走 pushNav/replaceNav，系统返回键触发的 popstate 由栈模块处理，
+     这里只把「栈顶页帧」回灌进 React 状态。
+     注：pushState **不会**触发 hashchange，所以旧版「自身导航的 hashchange 把状态
+     冲回顶层列表页」的闪回根因已被结构性消除，不再需要 selfNavHashRef 对账。 */
+  const navTop = useSyncExternalStore(subscribeNav, topPageFrame, topPageFrame);
   useEffect(() => {
-    const onHash = (ev: HashChangeEvent) => {
-      // 用事件自带的 newURL 对账：只忽略"确实是 navigate 写入的那个 hash"的事件；
-      // 连续两次导航时，先到的旧事件 newURL 与最新目标不符，也不会误伤最新状态
-      const target = (() => {
-        try {
-          return new URL(ev.newURL).hash;
-        } catch {
-          return location.hash;
-        }
-      })();
-      if (selfNavHashRef.current !== null && target === selfNavHashRef.current) {
-        selfNavHashRef.current = null; // 自身导航触发的 hashchange：状态已由 navigate 设定
-        return;
-      }
+    initNavStack({
+      page: pageFromHash(),
+      params: folderParamsFromHash(),
+      url: location.hash || "#/today",
+    });
+  }, []);
+  useEffect(() => {
+    const f = topPageFrame();
+    if (!f) return;
+    setPage((prev) => (prev === f.page ? prev : f.page));
+    setNavParams((prev) => (JSON.stringify(prev ?? null) === JSON.stringify(f.params ?? null) ? prev : f.params));
+  }, [navTop]);
+  /* 外部改 hash（手输 URL / 深链）时对账：只替换栈顶，不入栈 */
+  useEffect(() => {
+    const onHash = () => {
       const fp = folderParamsFromHash();
-      setPage(fp ? "folder" : pageFromHash());
-      setNavParams(fp);
+      replaceNav({ page: fp ? "folder" : pageFromHash(), params: fp, url: location.hash || "#/today" });
     };
     addEventListener("hashchange", onHash);
     return () => removeEventListener("hashchange", onHash);
@@ -284,18 +337,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const navigate = useCallback((p: Page, params?: LearnNav) => {
-    // hash 只承载一级页：子页刷新后落回所属入口，避免丢参数的死链；
-    // 记录本次写入，onHash 对自身触发的 hashchange 直接忽略（见 selfNavHashRef）。
-    // hash 本就相同时没有新事件，但此前可能仍有同目标旧事件挂起——保留对账标记等它到达。
-    const h = p === "folder" && params?.folderId ? `#/folder/${params.folderId}` : `#/${topLevelPage(p)}`;
-    if (location.hash === h) {
-      if (selfNavHashRef.current !== h) selfNavHashRef.current = null;
-    } else {
-      selfNavHashRef.current = h;
-      location.hash = h;
-    }
-    setPage(p);
+  const navigate = useCallback((p: Page, params?: LearnNav, opts?: { replace?: boolean }) => {
+    // hash 只承载一级页：子页刷新后落回所属入口，避免丢参数的死链。
+    // E1：入栈/替换由 navStack 决定（同路由去重、上限 50、浮层优先），
+    // 并用 pushState 写 URL——不再直接写 location.hash（那会触发 hashchange 闪回）。
+    // G2：手机/平板档（compact/medium）把「旧多 tab 落点」改写成独立页；PC（expanded）
+    // 原样进旧多 tab 页。分流只有这一处：NAV_REGISTRY 的 soloPage 是唯一映射表，
+    // 服务页 / 今日卡片 / 搜索 / 命令面板 / 收藏 / 原子 open 全都经过这里。
+    const solo = soloTargetFor(p, params);
+    const target = solo && platformOf(window.innerWidth) !== "expanded" ? solo : p;
+    const h = target === "folder" && params?.folderId ? `#/folder/${params.folderId}` : `#/${topLevelPage(target)}`;
+    const frame = { page: target, params: params ?? null, url: h };
+    if (opts?.replace) replaceNav(frame);
+    else pushNav(frame);
+    setPage(target);
     setNavParams(params ?? null);
     // 本机使用统计（今日页「最近使用」的数据源）：动态 import 回避 app↔atoms 的模块环
     void import("./atoms.js")
@@ -313,9 +368,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setStatus("2fa");
           return;
         }
+        // b31 P0：交互登录成功 → 代次 +1（在此之前的在飞请求全部作废，不再写回）
+        bumpEpoch();
         setUser({ username });
         setStatus("ready");
-        navigate("today");
+        navigate("today", undefined, { replace: true });
       };
       try {
         const result = await clients.login(username, password, { remember });
@@ -336,7 +393,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [navigate],
+    [navigate, bumpEpoch],
   );
 
   const send2FA = useCallback(async (type: string) => {
@@ -355,10 +412,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         if (round === 2) {
           await clients.verifyLearn2FA(code);
+          bumpEpoch(); // b31 P0：2FA 完成 = 交互登录成功
           setTwoFactor(null);
           setUser({ username: twoFactor.username });
           setStatus("ready");
-          navigate("today");
+          navigate("today", undefined, { replace: true });
           return;
         }
         const round2 = await clients.verify2FA(type, code, trust);
@@ -367,30 +425,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setTwoFactor({ ...twoFactor, round: 2, methods: round2 });
           return;
         }
+        bumpEpoch(); // b31 P0：2FA 完成 = 交互登录成功
         setTwoFactor(null);
         setUser({ username: twoFactor.username });
         setStatus("ready");
-        navigate("today");
+        navigate("today", undefined, { replace: true });
       } catch (err) {
         setError(explainNetworkError(err));
       }
     },
-    [twoFactor, navigate],
+    [twoFactor, navigate, bumpEpoch],
   );
 
   const backToLogin = useCallback(() => {
+    bumpEpoch(); // b31 P0：落登录页也作废在飞请求（否则它可能再次触发落页）
     setTwoFactor(null);
     setError(null);
     setStatus("logged-out");
-  }, []);
+  }, [bumpEpoch]);
 
   const logout = useCallback(async () => {
     await clients.logout();
+    bumpEpoch(); // b31 P0：登出 = 代次推进
     setUser(null);
     setTwoFactor(null);
     setStatus("logged-out");
-    navigate("today");
-  }, [navigate]);
+    navigate("today", undefined, { replace: true });
+  }, [navigate, bumpEpoch]);
 
   const value = useMemo<AppState>(
     () => ({
@@ -401,6 +462,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       error,
       twoFactor,
       navigate,
+      back: (fallback?: () => void) => {
+        if (canGoBack()) navBack();
+        else fallback?.();
+      },
       login,
       submit2FA,
       send2FA,
@@ -408,8 +473,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       backToLogin,
       logout,
       dismissError: () => setError(null),
+      authEpoch,
     }),
-    [status, user, page, navParams, error, twoFactor, navigate, login, submit2FA, send2FA, sendLearn2FA, backToLogin, logout],
+    [status, user, page, navParams, error, twoFactor, navigate, login, submit2FA, send2FA, sendLearn2FA, backToLogin, logout, authEpoch],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -1192,10 +1192,20 @@ async fn fetch_binary(
 /// 的主域归并/属性忽略是当晚一切串票怪病的根因。种子/清仓走本类型真 API。
 struct SharedNativeJar(std::sync::RwLock<cookie_store::CookieStore>, std::sync::atomic::AtomicBool);
 
-/// cookie 仓落盘（2026-09-17：纯内存仓每次进程重启丢光 id 信任票据 →
+/// cookie 仓落盘（2026-09-17 gjl25 首次落地：纯内存仓每次进程重启丢光 id 信任票据 →
 /// 服务器反复索要 2FA；持久化后冷启动直接带票复用，登录/2FA 频率大幅下降）。
-/// 行格式：domain<TAB>path<TAB>secure<TAB>name=value（Domain/Path 显式回种，
-/// 不存 Expires——加载即会话票，运行期由服务器重新盖章续命）。
+///
+/// **格式 + 一次真 bug 修复（b35 / F3 ④ 旁枝 (ii)，2026-10-05；霖裁定「把旁支解决了」）**：
+/// 旧实现手写 tsv（`domain<TAB>path<TAB>secure<TAB>name=value`），域取
+/// `cookie::Cookie::domain()`——该访问器读的是原始 `Domain=` **属性**，对 host-only
+/// cookie **返回 None**（`cookie_store::Cookie` deref 到 `cookie` 0.18 的 `RawCookie`）。
+/// 旧代码把空域 `continue` 直接丢掉，于是**所有 host-only 票（多数会话票，含 webvpn 的
+/// `wengine_vpn_ticket`）从未落过盘**——这正是 b21 真机「原生仓每次冷启从 `(无)` 起铸新票」
+/// 的根因：落盘/回种链路一直在（`load_from_file` 在 setup、`save_if_dirty` 在 30s 循环），
+/// 丢的是 host-only。现在改用 cookie_store 自带的 serde JSON（`HostOnly`/`Suffix` 两个
+/// domain 变体都保真，路径/secure/过期全带），加载先试 JSON、失败再回退读旧 tsv
+/// （老安装平滑迁移一次）。文件名沿用 `native-jar.tsv`（dev/正式包都按这个路径读；
+/// 文件内容现在是 JSON 文本）。
 impl SharedNativeJar {
     fn seed_line(&self, url: &str, line: &str) {
         let Ok(u) = reqwest::Url::parse(url) else { return };
@@ -1206,46 +1216,150 @@ impl SharedNativeJar {
         self.0.write().unwrap().clear();
         self.1.store(true, std::sync::atomic::Ordering::Relaxed);
     }
-    fn save_to_file(&self, path: &std::path::Path) {
-        let g = self.0.read().unwrap();
-        let mut out = String::new();
-        for c in g.iter_unexpired() {
-            let domain = c.domain().unwrap_or("");
-            let path = c.path().unwrap_or("/");
-            let host = domain.trim_start_matches('.');
-            if host.is_empty() { continue; }
-            let line = format!(
-                "{domain}\t{path}\t{}\t{}={}",
-                if c.secure().unwrap_or(false) { "1" } else { "0" },
-                c.name(),
-                c.value()
-            );
-            out.push_str(&line);
-            out.push('\n');
+    /// 整个仓（含会话票与已过期票）→ cookie_store 自带 JSON。落盘用。
+    fn jar_json(store: &cookie_store::CookieStore) -> Option<String> {
+        let mut buf: Vec<u8> = Vec::new();
+        cookie_store::serde::json::save_incl_expired_and_nonpersistent(store, &mut buf).ok()?;
+        String::from_utf8(buf).ok()
+    }
+    /// 仅**未过期**票 → 同一 JSON 格式（④ 旁枝 (i) 的只读快照用）。过期票绝不能再以
+    /// 「无 Expires」的形态进 JS jar——那会让死票被老通道重新发出去。
+    fn jar_live_json(store: &cookie_store::CookieStore) -> Option<String> {
+        let live: Vec<cookie_store::Cookie<'static>> =
+            store.iter_unexpired().map(|c| c.clone().into_owned()).collect();
+        let tmp = cookie_store::CookieStore::from_cookies(
+            live.into_iter().map(Ok::<_, cookie_store::Error>),
+            false,
+        )
+        .ok()?;
+        Self::jar_json(&tmp)
+    }
+    /// 有界诊断：只在「未过期票条数变化」时落一行（30s 周期不许刷屏；条数不含票值）。
+    fn note_jar_count(n: usize) {
+        if JAR_LAST_SAVED_COUNT.swap(n, std::sync::atomic::Ordering::Relaxed) != n {
+            debug_log_line(&format!("[NATIVE-JAR] n={n}"));
         }
-        let _ = std::fs::write(path, out);
-        self.1.store(false, std::sync::atomic::Ordering::Relaxed);
+    }
+    fn save_to_file(&self, path: &std::path::Path) {
+        let (json, n) = {
+            let g = self.0.read().unwrap();
+            let n = g.iter_unexpired().count();
+            (Self::jar_json(&g), n)
+        };
+        let Some(json) = json else {
+            // 序列化失败：dirty 保留，下一轮（30s）重试
+            debug_log_line("[NATIVE-JAR] save failed 序列化失败（dirty 保留，30s 后重试）");
+            return;
+        };
+        if let Some(parent) = path.parent() {
+            // Windows / Android 首次运行时目录可能不存在：旧实现 `let _ = write` 静默失败
+            let _ = std::fs::create_dir_all(parent);
+        }
+        match std::fs::write(path, json) {
+            Ok(()) => {
+                self.1.store(false, std::sync::atomic::Ordering::Relaxed);
+                Self::note_jar_count(n);
+            }
+            Err(e) => {
+                // 写失败：**不**清 dirty（旧实现无条件清 → 失败即永久丢数据）
+                debug_log_line(&format!("[NATIVE-JAR] save failed {e}（dirty 保留，30s 后重试）"));
+            }
+        }
     }
     fn load_from_file(&self, path: &std::path::Path) {
-        let Ok(text) = std::fs::read_to_string(path) else { return };
+        let Ok(text) = std::fs::read_to_string(path) else {
+            debug_log_line("[NATIVE-JAR] load n=0 fmt=none（首次运行或文件不存在）");
+            return;
+        };
         let mut g = self.0.write().unwrap();
+        // 新格式：cookie_store 自带 JSON（保真 host-only / 默认路径 / 过期）
+        if let Ok(store) = cookie_store::serde::json::load_all(text.as_bytes()) {
+            *g = store;
+            let n = g.iter_unexpired().count();
+            self.1.store(false, std::sync::atomic::Ordering::Relaxed);
+            debug_log_line(&format!("[NATIVE-JAR] load n={n} fmt=json"));
+            return;
+        }
+        // 旧 tsv 回退（一次性迁移：下一次 30s 落盘即写成 JSON）
+        let mut n = 0usize;
         for line in text.lines() {
             let parts: Vec<&str> = line.split('\t').collect();
             if parts.len() != 4 { continue; }
             let (domain, cpath, secure, kv) = (parts[0], parts[1], parts[2], parts[3]);
             let host = domain.trim_start_matches('.');
+            if host.is_empty() { continue; }
             let scheme = if secure == "1" { "https" } else { "http" };
             let Ok(u) = reqwest::Url::parse(&format!("{scheme}://{host}{cpath}")) else { continue };
             let set_cookie = format!("{kv}; Domain={domain}; Path={cpath}");
-            let _ = g.parse(&set_cookie, &u);
+            if g.parse(&set_cookie, &u).is_ok() { n += 1; }
         }
         self.1.store(false, std::sync::atomic::Ordering::Relaxed);
+        debug_log_line(&format!("[NATIVE-JAR] load n={n} fmt=tsv(legacy)"));
     }
     fn save_if_dirty(&self, path: &std::path::Path) {
         if self.1.load(std::sync::atomic::Ordering::Relaxed) {
             self.save_to_file(path);
         }
     }
+}
+
+/// 落盘条数诊断的上一次读数（`usize::MAX` = 还没写过）
+static JAR_LAST_SAVED_COUNT: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(usize::MAX);
+
+/// 主动核对用的只读行（④ 旁枝 (i)）：一条未过期 cookie 的**生效** host/path + name/value。
+#[derive(serde::Serialize)]
+struct NativeCookieRow {
+    host: String,
+    path: String,
+    name: String,
+    value: String,
+}
+
+/// 原生仓 → 只读行。解析的是 cookie_store 自己的 serde JSON（`domain` 为
+/// `{"HostOnly": …}` / `{"Suffix": …}`、`path` 为 `[值, match_any]`），因此 host-only
+/// 与默认路径都能拿到生效值。只读，不碰任何状态。
+fn native_cookie_rows(store: &cookie_store::CookieStore) -> Vec<NativeCookieRow> {
+    let Some(text) = SharedNativeJar::jar_live_json(store) else { return Vec::new() };
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(&text) else { return Vec::new() };
+    let Some(arr) = v.as_array() else { return Vec::new() };
+    let mut out = Vec::new();
+    for c in arr {
+        let Some(raw) = c.get("raw_cookie").and_then(|x| x.as_str()) else { continue };
+        let Some(host) = c
+            .get("domain")
+            .and_then(|d| d.as_object())
+            .and_then(|o| o.get("HostOnly").or_else(|| o.get("Suffix")))
+            .and_then(|x| x.as_str())
+        else {
+            continue;
+        };
+        let path = c
+            .get("path")
+            .and_then(|p| p.as_array())
+            .and_then(|a| a.first())
+            .and_then(|x| x.as_str())
+            .unwrap_or("/");
+        let head = raw.split(';').next().unwrap_or("");
+        let Some(eq) = head.find('=') else { continue };
+        let name = head[..eq].trim();
+        if name.is_empty() { continue; }
+        out.push(NativeCookieRow {
+            host: host.trim_start_matches('.').to_lowercase(),
+            path: if path.is_empty() { "/".to_string() } else { path.to_string() },
+            name: name.to_string(),
+            value: head[eq + 1..].trim().to_string(),
+        });
+    }
+    out
+}
+
+/// ④ 旁枝 (i)：原生仓只读快照（JS 侧主动核对两仓用）。**只读**——不 seed、不清仓、
+/// 不落盘、不改 dirty 标记；失败返回 Err 由 JS 侧静默降级。
+#[tauri::command]
+fn http_native_cookie_dump() -> Result<Vec<NativeCookieRow>, String> {
+    let g = NATIVE_JAR_ARC.0.read().unwrap();
+    Ok(native_cookie_rows(&g))
 }
 
 fn jar_store_path(app: &tauri::AppHandle) -> std::path::PathBuf {
@@ -2873,75 +2987,86 @@ fn ui_set_bar_theme(dark: bool, color: Option<String>) -> serde_json::Value {
     serde_json::json!({ "ok": false, "reason": "not-android" })
 }
 
-/// 触觉 tick（作业流切卡段落感）：Android 12+ 用系统 EFFECT_TICK 预定义触感。
+/// 触觉（A2 反馈层）：效果矩阵落到 AOSP 预烘焙触感，见 Kotlin 侧 playHaptic。
+/// `effect` ∈ click/heavy/longPress/tick/reject，缺省 tick（兼容不带参数的旧调用点）。
 #[cfg(mobile)]
 #[tauri::command]
-async fn ui_haptic_tick(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+async fn ui_haptic_tick(
+    app: tauri::AppHandle,
+    effect: Option<String>,
+) -> Result<serde_json::Value, String> {
     let handle = app
         .state::<tauri_plugin_onethu_mobile::OnethuMobile<tauri::Wry>>()
         .0
         .clone();
+    let effect = effect.unwrap_or_else(|| "tick".to_string());
     handle
-        .run_mobile_plugin_async("hapticTick", serde_json::json!({}))
+        .run_mobile_plugin_async("hapticTick", serde_json::json!({ "effect": effect }))
         .await
         .map_err(|e| e.to_string())
 }
 
 #[cfg(desktop)]
 #[tauri::command]
-fn ui_haptic_tick() -> serde_json::Value {
+fn ui_haptic_tick(effect: Option<String>) -> serde_json::Value {
+    let _ = effect; /* PC 端静默跳过：不振动、不打日志 */
     serde_json::json!({ "ok": false, "reason": "not-android" })
 }
 
-/* ── 手机端「保存图片到相册」──
- * 字节由前端交过来（base64）：屏幕上那张图的 src 多半是应用侧带会话抓回来的 dataURL，
- * 原生侧重现不了那条通道（详见 apps/desktop/src/lib/imageSave.ts 顶部说明）。
- * Rust 只把它落成应用缓存里的一个文件，再交 onethu-mobile 插件写进系统相册
- * （MediaStore.Images + Pictures/OneTHU，见插件 Kotlin 侧 saveImage）。
- * 桌面端没有相册概念，落到用户设置的「下载」目录——同一条命令在三端都不空转。 */
-
-/// base64 → 字节。上限与前端 imageSave.ts 的 MAX_B64_LEN 同口径（16MB ≈ 12MB 原图）：
-/// 字节以 base64 经 IPC 传过来，再大的图片会把 WebView 拖住，早拒比卡死好。
-fn decode_image_base64(data: &str) -> Result<Vec<u8>, String> {
-    use base64::Engine as _;
-    const MAX_B64_LEN: usize = 16 * 1024 * 1024;
-    if data.is_empty() {
-        return Err("图片内容为空".into());
-    }
-    if data.len() > MAX_B64_LEN {
-        return Err("图片过大，无法保存".into());
-    }
-    base64::engine::general_purpose::STANDARD
-        .decode(data)
-        .map_err(|e| format!("图片内容解析失败：{e}"))
-}
-
+/// 关掉 WebView 这一层的触感反馈（霖 2026-10-02「长按手感恢复」）：
+/// 长按触感由本仓发，但 WebView 识别到长按后系统还会补一条 LONG_PRESS（真机 dumpsys 两条）。
+/// JS 侧压不掉（preventDefault 会废掉 click），改由宿主关掉 View 层触感；本仓触感走 Vibrator，不受影响。
 #[cfg(mobile)]
 #[tauri::command]
-async fn save_image_to_gallery(
+async fn ui_web_haptics_off(
     app: tauri::AppHandle,
-    data: String,
-    mime: String,
-    name: String,
 ) -> Result<serde_json::Value, String> {
-    use tauri::Manager;
-    let bytes = decode_image_base64(&data)?;
-    let dir = app
-        .path()
-        .app_cache_dir()
-        .map_err(|e| format!("无法定位缓存目录: {e}"))?
-        .join("onethu-img");
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let tmp = dir.join(&name);
-    std::fs::write(&tmp, &bytes).map_err(|e| e.to_string())?;
+    let handle = app
+        .state::<tauri_plugin_onethu_mobile::OnethuMobile<tauri::Wry>>()
+        .0
+        .clone();
+    handle
+        .run_mobile_plugin_async("webHapticsOff", serde_json::json!({}))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+fn ui_web_haptics_off() -> serde_json::Value {
+    serde_json::json!({ "ok": false, "reason": "not-android" })
+}
+
+/// A2 触感探针（诊断用，正式路径不调用）：列能力 / 逐个试系统预定义效果。
+/// 霖 2026-09-30 #5「自绘波形只是震，系统 prebake 才有真触感」——这条命令就是取证据的入口。
+#[cfg(mobile)]
+#[tauri::command]
+async fn ui_haptic_probe(
+    app: tauri::AppHandle,
+    kind: Option<String>,
+    id: Option<i32>,
+    constant: Option<i32>,
+    ms: Option<i64>,
+    amp: Option<i32>,
+    ops: Option<String>,
+    usage: Option<String>,
+) -> Result<serde_json::Value, String> {
     let handle = app
         .state::<tauri_plugin_onethu_mobile::OnethuMobile<tauri::Wry>>()
         .0
         .clone();
     handle
         .run_mobile_plugin_async(
-            "saveImage",
-            serde_json::json!({ "path": tmp.to_string_lossy(), "name": name, "mime": mime }),
+            "hapticProbe",
+            serde_json::json!({
+                "kind": kind.unwrap_or_else(|| "caps".to_string()),
+                "id": id.unwrap_or(-1),
+                "constant": constant.unwrap_or(-1),
+                "ms": ms.unwrap_or(30),
+                "amp": amp.unwrap_or(255),
+                "ops": ops.unwrap_or_default(),
+                "usage": usage.unwrap_or_else(|| "touch".to_string()),
+            }),
         )
         .await
         .map_err(|e| e.to_string())
@@ -2949,23 +3074,17 @@ async fn save_image_to_gallery(
 
 #[cfg(desktop)]
 #[tauri::command]
-async fn save_image_to_gallery<R: tauri::Runtime>(
-    app: tauri::AppHandle<R>,
-    data: String,
-    mime: String,
-    name: String,
-) -> Result<serde_json::Value, String> {
-    // 桌面端不区分「相册」：扩展名已由前端拼进 name，mime 只用于安卓侧建媒体条目
-    let _ = mime;
-    let bytes = decode_image_base64(&data)?;
-    let dir = downloads::directory(&app)?;
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let path = dir.join(&name);
-    std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
-    Ok(serde_json::json!({
-        "name": name,
-        "dir": path.parent().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default(),
-    }))
+fn ui_haptic_probe(
+    kind: Option<String>,
+    id: Option<i32>,
+    constant: Option<i32>,
+    ms: Option<i64>,
+    amp: Option<i32>,
+    ops: Option<String>,
+    usage: Option<String>,
+) -> serde_json::Value {
+    let _ = (kind, id, constant, ms, amp, ops, usage);
+    serde_json::json!({ "ok": false, "reason": "not-android" })
 }
 
 /// 一键把标准形态小组件放到桌面（requestPinAppWidget；ColorOS 等启动器选择器行为不一致
@@ -3006,70 +3125,6 @@ async fn widget_instances(app: tauri::AppHandle) -> Result<serde_json::Value, St
 #[tauri::command]
 fn widget_instances() -> serde_json::Value {
     serde_json::json!({ "ok": false, "reason": "not-android", "instances": [] })
-}
-
-/* 立即投递与撤回已展示的通知（事件驱动：校园卡余额预警）。
- * 与 notify_schedule/notify_cancel 的分工：那两条是「将来某刻发 / 撤待投递」，
- * 这两条是「现在发 / 撤已弹出的那一条」。 */
-
-#[cfg(mobile)]
-#[tauri::command]
-async fn notify_post(
-    app: tauri::AppHandle,
-    id: String,
-    title: String,
-    body: String,
-    channel: Option<String>,
-    target: Option<String>,
-) -> Result<serde_json::Value, String> {
-    let handle = app
-        .state::<tauri_plugin_onethu_mobile::OnethuMobile<tauri::Wry>>()
-        .0
-        .clone();
-    handle
-        .run_mobile_plugin_async(
-            "notifyPost",
-            serde_json::json!({
-                "id": id,
-                "title": title,
-                "body": body,
-                "channel": channel.unwrap_or_default(),
-                "target": target.unwrap_or_default(),
-            }),
-        )
-        .await
-        .map_err(|e| e.to_string())
-}
-
-#[cfg(mobile)]
-#[tauri::command]
-async fn notify_dismiss(app: tauri::AppHandle, ids: String) -> Result<serde_json::Value, String> {
-    let handle = app
-        .state::<tauri_plugin_onethu_mobile::OnethuMobile<tauri::Wry>>()
-        .0
-        .clone();
-    handle
-        .run_mobile_plugin_async("notifyDismiss", serde_json::json!({ "ids": ids }))
-        .await
-        .map_err(|e| e.to_string())
-}
-
-#[cfg(desktop)]
-#[tauri::command]
-fn notify_post(
-    id: String,
-    title: String,
-    body: String,
-    channel: Option<String>,
-    target: Option<String>,
-) -> serde_json::Value {
-    notify::post(&id, &title, &body, &channel.unwrap_or_default(), &target.unwrap_or_default())
-}
-
-#[cfg(desktop)]
-#[tauri::command]
-fn notify_dismiss(ids: String) -> serde_json::Value {
-    notify::dismiss(&ids)
 }
 
 /// 打开系统通知设置页（渠道管理 / 精确闹钟授权都在系统设置里，应用只能带路）
@@ -3726,11 +3781,12 @@ tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             http_native_clear_cookies,
             http_native_clear_cookies_domain,
+            http_native_cookie_dump,
             thos_open_portal,
             http_native_seed,
             downloads::download_directory_get,downloads::download_directory_pick,downloads::download_directory_reset,save_file_as,
             log_debug,debug_log_export,read_file_text,trace_key,macos_location,speech_supported,speech_start,speech_poll,speech_stop,mail::mail_list,mail::mail_read,mail::mail_mark_seen,mail::mail_send,mail::mail_search,seafile::seafile_account,seafile::seafile_repos,seafile::seafile_dir,seafile::seafile_download,seafile::seafile_upload,seafile::seafile_mkdir,seafile::seafile_share,seafile::seafile_search,seafile::seafile_pick_upload,http_request,http_native,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,os_is_android,plugin_dir_remove,state_read,state_write,state_delete,dynamic_color,
-            open_external,onethu_open_path,onethu_reveal_path,open_eid_window,open_ykt_window,read_ykt_cookies,close_ykt_window,start_qr_keep_alive,stop_qr_keep_alive,widget_push,widget_clear,widget_take_target,widget_status,widget_instances,widget_pin,ui_apply_insets,save_image_to_gallery,ui_set_bar_theme,ui_haptic_tick,notify_backend,notify_open_settings,notify_permission,notify_schedule,notify_cancel,notify_pending,notify_test,notify_take_target,notify_post,notify_dismiss,open_web_modal,open_app_settings,open_ykt_submit_window,open_sports_window,venue_sso_set,venue_open_portal,
+            open_external,onethu_open_path,onethu_reveal_path,open_eid_window,open_ykt_window,read_ykt_cookies,close_ykt_window,start_qr_keep_alive,stop_qr_keep_alive,widget_push,widget_clear,widget_take_target,widget_status,widget_instances,widget_pin,ui_apply_insets,ui_set_bar_theme,ui_haptic_tick,ui_haptic_probe,ui_web_haptics_off,notify_backend,notify_open_settings,notify_permission,notify_schedule,notify_cancel,notify_pending,notify_test,notify_take_target,open_web_modal,open_app_settings,open_ykt_submit_window,open_sports_window,venue_sso_set,venue_open_portal,
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,
             harness_embed::harness_start,harness_embed::harness_bridge_take,harness_embed::harness_call,harness_embed::harness_notify,harness_embed::harness_rpc_reply,harness_embed::harness_stop])
         .run(tauri::generate_context!())

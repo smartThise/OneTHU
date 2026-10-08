@@ -183,7 +183,9 @@ const DockMsgList = memo(function DockMsgList(p: MsgListProps): ReactNode {
           <div key={i} className="dock-msg dock-msg-user">{m.text}</div>
         ),
       )}
-      {p.trace.length > 0 ? <ChainBlock label="工具调用" lines={p.trace} defaultOpen /> : null}
+      {/* C20（霖 2026-10-01 走查）：流式期的原始日志/trace 行不再默认摊开在聊天里——
+          人话状态由下面的「思考中…」承担，需要看原始行时自己点开这条链。 */}
+      {p.trace.length > 0 ? <ChainBlock label="工具调用" lines={p.trace} /> : null}
       {p.think ? (
         <div className="dock-think">
           <button className="dock-think-head" onClick={p.onToggleThink} aria-expanded={p.thinkOpen}>

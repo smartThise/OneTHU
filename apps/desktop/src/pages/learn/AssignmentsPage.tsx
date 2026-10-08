@@ -1,9 +1,19 @@
-/** 全部作业（learnX Assignments）：按状态分组（进行中/已逾期/已交/已批改），组内按截止时间排序 */
-import { useMemo, useState } from "react";
+/** 全部作业（learnX Assignments）：tab 分「进行中 / 已交 / 已批 / 全部」，组内按截止时间排序。
+ *
+ * E8（霖 2026-10-04）两条口径：
+ * - 「已忽略」从 tab 栏移出，顶部改成一个垃圾桶图标入口，点开走 A3 既有弹层列出忽略列表
+ *   并可就地恢复（不是删除数据，仍可找回）；tab 栏因此变短。
+ * - 「已逾期」不再是独立 tab：归入「进行中」并**单独一栏**（模仿旁听作业的分栏规则），
+ *   且**计入**「进行中」的计数。
+ */
+import { useMemo, useRef, useState } from "react";
 import { parseLearnTime, SOURCE_NAMES } from "@onethu/core";
-import { PageAtomStar } from "../..//components/Collect.js";
+import { usePageCollect } from "../../components/Collect.js";
+import { pageAtomRef } from "../../state/atoms.js";
+import type { PageMenuItem } from "../../state/pageChrome.js";
 import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SectionHead, SkeletonRows } from "../../components/Layout.js";
-import { IconRefresh } from "../../components/Icons.js";
+import { IconRefresh, IconTrash } from "../../components/Icons.js";
+import { useContextMenu } from "../../components/ContextMenu.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
 import { ConnectGate } from "../../components/ConnectGate.js";
@@ -15,18 +25,17 @@ import {
   useExternalHomework,
 } from "../../state/exthw.js";
 import { BackButton, HomeworkRow, semesterText } from "./shared.js";
-import { useIgnoredHw } from "../../state/hwIgnore.js";
+import { userCopy } from "../../lib/userCopy.js";
+import { unignoreHw, useIgnoredHw } from "../../state/hwIgnore.js";
 import { useLearnNavSemester } from "./shared.js";
 
-type Filter = "unfinished" | "overdue" | "submitted" | "graded" | "ignored" | "all";
+/** 「已逾期」与「已忽略」都不再是 tab：逾期并入「进行中」单列一栏，忽略走垃圾桶入口 */
+type Filter = "unfinished" | "submitted" | "graded" | "all";
 
 const FILTERS: Array<{ key: Filter; label: string }> = [
   { key: "unfinished", label: "进行中" },
-  { key: "overdue", label: "已逾期" },
   { key: "submitted", label: "已交" },
   { key: "graded", label: "已批" },
-  // R21c：忽略的作业从常规分组移出、单独成组——可在此查看与恢复
-  { key: "ignored", label: "已忽略" },
   { key: "all", label: "全部" },
 ];
 
@@ -119,8 +128,8 @@ function ExtHwSourceErrorNote() {
       <div className="browser-hint ext-hw-hint">
         <span className="ext-hw-hint-text">
           {rows.map(({ id, name, err }) => (
-            <div key={id} style={{ color: "var(--red, #c04848)" }}>
-              {name}：{err}
+            <div key={id} style={{ color: "var(--red)" }}>
+              {name}：{userCopy(err ?? "")}
             </div>
           ))}
         </span>
@@ -150,6 +159,65 @@ function ExtHwSourceErrorNote() {
   );
 }
 
+/** E8 忽略列表弹层体（A3 弹层内的内容）：订阅同一份忽略快照——恢复一条后列表立刻少一条，
+ *  不是一个打开时刻的冻结副本。 */
+function IgnoredHwPanel() {
+  const ignored = useIgnoredHw();
+  const list = useMemo(() => [...ignored.values()].sort((a, b) => b.at - a.at), [ignored]);
+  if (list.length === 0) return <div className="asg-ignored-empty">没有被忽略的作业。</div>;
+  return (
+    <div className="asg-ignored">
+      {list.map((e) => (
+        <div key={e.id} className="asg-ignored-row">
+          <span className="asg-ignored-title" title={e.title || "未命名作业"}>
+            {e.title || "未命名作业"}
+          </span>
+          <button type="button" className="btn" onClick={() => unignoreHw(e.id)}>
+            恢复
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** E8 顶部垃圾桶入口：点开走 A3 的长按菜单本体（同一个 ContextMenuLayer）。
+ *  霖 2026-10-04 裁定「一步展开」：点垃圾桶**直接**进忽略列表，不再先出一层单项菜单——
+ *  所以走 `ctx.openPanel()`，面板里列出忽略列表并可逐条恢复。tab 栏因此不再有「已忽略」这一项。 */
+function IgnoredHwEntry() {
+  const ctx = useContextMenu();
+  const ignored = useIgnoredHw();
+  const btn = useRef<HTMLButtonElement>(null);
+  const open = (): void => {
+    if (ctx.isOpen()) {
+      ctx.close();
+      return;
+    }
+    const r = btn.current?.getBoundingClientRect();
+    ctx.openPanel({
+      x: r ? r.right : 0,
+      y: r ? r.bottom : 0,
+      title: "已忽略的作业",
+      panel: () => <IgnoredHwPanel />,
+    });
+  };
+  return (
+    <button
+      ref={btn}
+      type="button"
+      className="icon-btn asg-trash"
+      data-ctx-trigger
+      aria-haspopup="menu"
+      aria-label="已忽略的作业"
+      title="已忽略的作业（可恢复）"
+      onClick={open}
+    >
+      <IconTrash width={16} height={16} />
+      {ignored.size > 0 ? <span className="asg-trash-count">{ignored.size}</span> : null}
+    </button>
+  );
+}
+
 export function AssignmentsPage() {
   useLearnNavSemester();
   const { data, state, error, reload } = useLearnData();
@@ -168,17 +236,18 @@ export function AssignmentsPage() {
 
   // R23（霖需求）：旁听作业（雨课堂 role=6 课堂）**不计入**各分组计数与「全部」，
   // 而是在当前分组下方单列「旁听作业」一节——不与正式课程混排。
+  // E8：逾期不再单开 tab——`unfinished` 含逾期（计数含它），渲染时拆成「进行中 / 已逾期」两栏。
   const groups = useMemo(() => {
     const hw = [...(data?.homework ?? []), ...extHw].sort((a, b) => a.deadline.localeCompare(b.deadline));
-    // R21c：忽略的作业只出现在「已忽略」组，常规分组与「全部」都不再显示
+    // R21c：忽略的作业不再进常规分组与「全部」（只在垃圾桶弹层里）
     const live = hw.filter((h) => !ignored.has(h.id) && !h.audited);
     return {
-      // 进行中 = 未交且未逾期（含 deadline 解析失败者，保守不判逾期）
-      unfinished: live.filter((h) => !h.submitted && !isOverdue(h)),
+      // 进行中 = 未交（含已逾期；deadline 解析失败者保守留在进行中）
+      unfinished: live.filter((h) => !h.submitted),
+      // 已逾期 = 未交且截止已过（⊂ 进行中，栏内单列但计入上面的计数）
       overdue: live.filter(isOverdue),
       submitted: live.filter((h) => h.submitted && !h.graded),
       graded: live.filter((h) => h.graded),
-      ignored: hw.filter((h) => ignored.has(h.id)),
       all: live,
     };
   }, [data, extHw, ignored]);
@@ -191,36 +260,59 @@ export function AssignmentsPage() {
         .sort((a, b) => a.deadline.localeCompare(b.deadline)),
     [data, extHw, ignored],
   );
-  /** 旁听节按当前分组同一口径筛选（进行中/已逾期/已交/已批改；「已忽略」组不重复列） */
+  /** 旁听节按当前分组同一口径筛选（与正式分组同口径：进行中已含逾期） */
   const auditList = useMemo(() => {
-    if (filter === "ignored") return [];
-    if (filter === "unfinished") return auditAll.filter((h) => !h.submitted && !isOverdue(h));
-    if (filter === "overdue") return auditAll.filter(isOverdue);
+    if (filter === "unfinished") return auditAll.filter((h) => !h.submitted);
     if (filter === "submitted") return auditAll.filter((h) => h.submitted && !h.graded);
     if (filter === "graded") return auditAll.filter((h) => h.graded);
     return auditAll;
   }, [auditAll, filter]);
 
   const list = groups[filter];
+  // E8：「进行中」栏内拆两段——未到期在前、已逾期单列一栏（逾期项仍算在 groups.unfinished 计数里）
+  const onTimeList = filter === "unfinished" ? list.filter((h) => !isOverdue(h)) : list;
+  const overdueList = filter === "unfinished" ? groups.overdue : [];
   // R10 15.4：页头只留学期文本；各分组计数已并入 SegmentedOverflow 各 tab（含「全部」），
   // 「外部 N」删除（已融入各组、无信息量）
   const meta = data ? semesterText(data.semester.id) : "按截止时间排序";
 
+  const collect = usePageCollect(pageAtomRef("learn-assignments"), "全部作业");
+
+  const renderRows = (rows: typeof list, delayBase = 0) => (
+    <Card className="list swap-in">
+      {rows.map((h, i) => (
+        <HomeworkRow
+          key={`${h.courseId}-${h.id}`}
+          h={h}
+          courseName={h.courseName ?? byCourse.get(h.courseId)}
+          sem={data?.semester.id}
+          from="learn-assignments"
+          style={{ animationDelay: `${(delayBase + i) * 25}ms` }}
+        />
+      ))}
+    </Card>
+  );
+
   return (
     <>
+      {collect.modal}
       <PageHead
         title="全部作业"
         meta={meta}
+        back={<BackButton to="learn" label="课程列表" />}
         actions={
-          <>
-            <PageAtomStar atomKey="learn-assignments" title="全部作业" />
-            <BackButton to="learn" label="课程列表" />
-            <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
-              <IconRefresh width={14} height={14} />
-              刷新
-            </button>
-          </>
+          <IgnoredHwEntry />
         }
+        menu={[
+          collect.item,
+          {
+            key: "refresh",
+            label: "刷新",
+            icon: <IconRefresh width={16} height={16} />,
+            disabled: state === "loading",
+            onSelect: () => void reload(),
+          },
+        ].filter(Boolean) as PageMenuItem[]}
       />
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
@@ -230,6 +322,7 @@ export function AssignmentsPage() {
       {/* R19 27.1：TUOJ 自动重漫游仍失败的静默条幅（含「去设置重新登录」手动入口） */}
       <ExtHwSourceErrorNote />
 
+      {/* E8：tab 栏只剩进行中 / 已交 / 已批 / 全部（已逾期并入进行中、已忽略移到顶部垃圾桶） */}
       <SegmentedOverflow>
         {FILTERS.map(({ key, label }) => (
           <button
@@ -249,26 +342,24 @@ export function AssignmentsPage() {
         <SkeletonRows rows={6} />
       ) : state === "error" && !data ? null : (
         <>
-          {list.length === 0 ? (
-            auditList.length === 0 ? (
-              <Card><Empty text={filter === "unfinished" ? "没有进行中的作业。" : filter === "overdue" ? "没有已逾期未交的作业。" : filter === "ignored" ? "没有已忽略的作业。" : "该分组暂无作业。"} /></Card>
-            ) : null
-          ) : (
-            <Card className="list">
-              {list.map((h, i) => (
-                <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={h.courseName ?? byCourse.get(h.courseId)} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${i * 25}ms` }} />
-              ))}
+          {onTimeList.length === 0 && overdueList.length === 0 && auditList.length === 0 ? (
+            <Card>
+              <Empty text={filter === "unfinished" ? "没有进行中的作业。" : "该分组暂无作业。"} />
             </Card>
-          )}
+          ) : null}
+          {onTimeList.length > 0 ? renderRows(onTimeList) : null}
+          {/* E8：已逾期在「进行中」下单独一栏（仿旁听作业分栏；计数已含在「进行中」里） */}
+          {overdueList.length > 0 ? (
+            <>
+              <SectionHead title="已逾期" />
+              {renderRows(overdueList, onTimeList.length)}
+            </>
+          ) : null}
           {/* R23：旁听作业单列（不计入上方计数与「全部」总数） */}
           {auditList.length > 0 ? (
             <>
               <SectionHead title="旁听作业" />
-              <Card className="list">
-                {auditList.map((h, i) => (
-                  <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={h.courseName ?? byCourse.get(h.courseId)} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${i * 25}ms` }} />
-                ))}
-              </Card>
+              {renderRows(auditList, onTimeList.length + overdueList.length)}
             </>
           ) : null}
         </>
