@@ -2032,6 +2032,54 @@ export class InfoClient {
     return this.#consumeIdTicketUrl(out.ticketUrl, formUrl);
   }
 
+  /**
+   * 取任意服务的**一次性票据 URL**（不兑付）——供 MadModel 免费档换 token 用。
+   *
+   * 站点 2026-09-29 关闭了免登录签发（无凭据 GET /model-api/auth-login/check 恒返回
+   * 10001 ticket已过期或无效），此后换 token 只剩统一认证发票一途（2026-10-08 实测）：
+   * ① 会话活着：GET 服务表单（同时把 service 挂到 CAS 会话上）→ 落 checkSingle 指纹
+   *    确认页 → POST 指纹确认 → 成功页锚点/JS 跳转里带 ?ticket=；
+   * ② 会话死了：账密直登（lib roam("id") 正门，变体循环与 ensureDirectIdLogin 同策略）。
+   * **只取票不兑付**：目标服务自己回通道校验票据（MadModel 的 /check 即如此），无需
+   * 走 #consumeIdTicketUrl 的浏览器式落地（那是给建服务会话用的）。
+   * id 链一律直连：TGT 必须落在 id 直连桶，包装桶的会话看不到。
+   */
+  async idServiceTicketUrl(formUrl: string): Promise<string | null> {
+    let diag = "";
+    // ① 会话活着：表单直落票据（部分链路 302 带票）或 checkSingle 确认页
+    try {
+      const res = await this.#http.request(formUrl, { redirect: "manual", direct: true });
+      const location = res.headers.get("location") ?? "";
+      if (res.status >= 300 && res.status < 400 && /ticket=/.test(location)) {
+        return new URL(location, formUrl).toString();
+      }
+      const html = await res.text().catch(() => "");
+      if (/checkSingle/.test(html)) {
+        const out = await this.#idCheckSingle(formUrl, false);
+        diag += out.diag + "; ";
+        if (out.ticketUrl) return out.ticketUrl;
+      } else {
+        diag += `form status=${res.status}（无 checkSingle：id 会话可能已失效）; `;
+      }
+    } catch (e) {
+      diag += `form-error=${e instanceof Error ? e.message : String(e)}; `;
+    }
+    // ② 会话死了：账密直登取票（无内存凭据则只能由调用方提示「需重新登录」）
+    const creds = this.#idCredentials?.();
+    if (!creds?.username || !creds.password) {
+      this.lastDebug = (diag + "no-id-credentials").slice(0, 400);
+      return null;
+    }
+    for (const variant of ["zhjwxk", "lib"] as const) {
+      const probe = await this.#idLoginProbe(formUrl, creds, variant);
+      diag += probe.diag + "; ";
+      if (probe.ticketUrl) return probe.ticketUrl;
+      if (probe.fatal) break;
+    }
+    this.lastDebug = diag.replace(/\s+/g, " ").slice(0, 400);
+    return null;
+  }
+
   /** 单次账密登录尝试：取票（#idLoginProbe）→ 兑付（#consumeIdTicketUrl）。2FA 抛
    *  AuthRequiredError，其余失败返回诊断现场。 */
   async #idLoginAttempt(

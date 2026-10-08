@@ -1,6 +1,6 @@
 # 系统架构
 
-> 最后更新：2026-09-23 17:28
+> 最后更新：2026-10-08 20:38
 
 本文档描述 OneTHU 的进程模型与各子系统设计，面向宿主贡献者。
 
@@ -177,16 +177,16 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
 
 ## 5. 模型调度（onethu.harness）
 
-内置对话插件对接清华大学 MadModel 服务（`madmodel.cs.tsinghua.edu.cn`），该服务在
-校园网内免登录提供 DeepSeek 模型，接口兼容 OpenAI 协议。
+内置对话插件对接清华大学 MadModel 服务（`madmodel.cs.tsinghua.edu.cn`），该服务提供
+DeepSeek 系列模型（现行标识 `DeepSeek-V4.1-Flash`），接口兼容 OpenAI 协议。
 
-**服务端行为**（实测结论）：
+**服务端行为**（2026-10-08 复测结论）：
 
 | 行为 | 说明 |
 |---|---|
-| 令牌签发 | `GET /model-api/auth-login/check` 在校园网内返回有效期 6 小时的 JWT |
-| 校外访问 | 校园网外 IP 的全部请求被重定向至统一认证（HTTP 307），该限制位于令牌校验之前，校外持有的令牌无效 |
-| webvpn | 该域名未纳入 webvpn 服务范围，无法经 webvpn 建立会话 |
+| 令牌签发 | 站点自 2026-09-29 关闭免登录签发：无凭据 `GET /model-api/auth-login/check` 恒返回 `10001 ticket已过期或无效`。现行入口为统一认证发票——带 id 会话请求 `GET /do/off/ui/auth/login/form/<md5('DEEPSEEK')>/0?/authLogin`，落 `checkSingle` 指纹确认页后 `POST /do/off/ui/auth/login/checkSingle`（字段 `i_rememberme`、`fingerPrint`、`fingerGenPrint`），成功页以锚点或脚本跳转携带 `?ticket=`；以该票据请求 `GET /model-api/auth-login/check?ticket=<票据>` 换取有效期 6 小时的 JWT。票据单次有效，每次续期须重新发票 |
+| 校外访问 | 校园网外 IP 的全部请求被重定向至统一认证（HTTP 307），该限制位于令牌校验之前，校外持有的令牌无效；门禁仅判源 IP（附加 `X-Forwarded-For` 不改变判定），经校内出口的代理请求可通过 |
+| webvpn | 该域名已纳入 webvpn（2026-10-08 实测：包装域发票、兑换与对话均正常）。校外对话经 **应用进程内的回环中继**（`src-tauri/src/madmodel_relay.rs`）：中继监听 127.0.0.1 随机端口，用共享原生客户端（原生 cookie 仓 + 与 webview 同款 UA）转发到包装域，OH 只连本机地址。单张会话票注入不可行——wengine 需要完整 cookie 集（`refresh` / `heartbeat` / `wengine_vpn_ticket` / `show_*`），而该集合的活体只在原生仓 |
 
 **模型源设置**：插件设置项 `provider` 提供三个取值——`madmodel`（清华免费服务）、
 `custom`（自费 API）、空值（自动：已配置密钥时使用自费，否则使用免费服务）。设置入口
@@ -194,15 +194,30 @@ Rust 插件的 `onethu.call` 请求经 webview 门面执行相同校验。协议
 
 **校外环境处理**：
 
-1. **可达性探测**：后台任务每 10 分钟执行一次探测（直连
-   `GET /model-api/auth-login/check`，不跟随重定向），每次对话前也会执行。探测结果
-   写入 `madmodelReachable`，有效期为 10 分钟。
+1. **可达性探测**：每次对话前执行一次直连探测（`GET /model-api/auth-login/check`；
+   后台任务每 10 分钟另有一次巡检），结果写入 `madmodelReachable`。两条判据都必须满足，
+   否则会把校外判成校内（2026-10-08 校外实录，两个坑各踩一次）：
+   - **不吃 TTL**：复用旧结果会留下「刚离校仍判校内」的窗口；
+   - **终点必须仍在直连域**：传输层是手动逐跳跟随（Rust hop loop），`redirect: "manual"`
+     拦不住它——校外时请求被 307 弹到 oauth，再由其带入 webvpn 包装域，终态为 200。
+     故判定为「状态 200 且 `x-onethu-final-url` 不在 webvpn/oauth 域」。
 2. **状态调度**（Rust 侧 `config.rs`）：校园网内使用免费服务并自动续期令牌（阈值
-   5 小时 50 分）；校外且已配置自费密钥时自动切换至自费 API；校外且无自费密钥时
-   保持免费服务参数。
+   5 小时 50 分，续期即重新走一次统一认证发票与票据兑换）。**校外不再自动切自费**：
+   webvpn 通道打通后，校外仍优先免费档；仅在拿不到免费档 token（统一认证未就绪）且
+   已配置自费密钥时临时走自费，宿主签到后下一轮对话自动回免费档。
 3. **错误提示**：校外且无自费密钥时，请求在发送前被拦截，返回包含处理指引的错误
    信息（连接校园网或学校 VPN，或在插件设置中切换至自费 API）。若仍出现 307 响应，
    宿主返回明确错误并触发一次令牌重签。
+4. **发票前置**：免费档取票依赖宿主统一认证会话（`id.tsinghua.edu.cn`）。会话有效时
+   自动完成发票与兑换；会话失效且内存存有凭据时以账密直登补建会话后重试；触发二次
+   认证且设备未受信任时中断本次续期，提示重新登录清华账号。
+5. **通道参数与自愈**：每次对话前由宿主刷新——校外幂等启动回环中继，并把
+   `http://127.0.0.1:<端口>/v1` 写入 `madmodelBase`；回到校园网则收掉中继并清空该字段
+   （直连语义）。中继首次启动前先**预热** webvpn 会话（经应用运输层对包装域发一次 GET，
+   让原生 cookie 仓建立/续期 wengine 会话；同一中继不重复预热）；中继启动失败不写退化基址
+   （留空基址，由预检给出可操作提示）。中继转发失败或 Rust 侧被弹回登录页时，错误串带
+   「webvpn 会话已失效」标记，宿主先重签并刷新通道参数再**自动重试一次**（该失败发生在
+   LLM 调用之前、未执行任何工具，重试安全）。
 
 **MCP 服务器**：宿主侧配置存于 `localStorage` 键 `onethu.mcp.servers.v1`
 （`lib/mcpStore.ts`，逐条增删改），在 `settings.get` 时以 `mcpServers` JSON 注入 OH
