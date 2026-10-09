@@ -5,9 +5,11 @@
  * 设置页保存/开关后调 syncChannels() 增量启停（配置即真相，不重启 App）。
  * 适配器只在 boot 装配（设置页打开不拉起全部协议代码）。
  */
-import { loadImConfig, type ImConfig } from "./store.js";
+import { configSnapshot, loadImConfig, type ImConfig } from "./store.js";
 import { getAdapter, isChannelRunning, registerAdapter, startChannel, stopChannel } from "./registry.js";
 import { feishuChannel } from "./feishu.js";
+import { WechatChannel } from "./wechat.js";
+import { ILINK_API_BASE } from "./wechatProto.js";
 import { logLine } from "../lib/clients.js";
 import type { ChannelId } from "./types.js";
 
@@ -19,6 +21,11 @@ export async function bootIm(): Promise<void> {
   if (booted) return;
   booted = true;
   registerAdapter(feishuChannel);
+  registerAdapter(new WechatChannel(() => {
+    const c = configSnapshot();
+    const w = c?.channels.wechat;
+    return w?.botToken ? { token: w.botToken, baseUrl: w.baseUrl || ILINK_API_BASE } : null;
+  }));
   try {
     await syncChannels(); // 内部先 loadImConfig 填充快照（probe 依赖）
   } catch (e) {

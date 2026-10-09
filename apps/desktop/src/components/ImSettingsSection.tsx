@@ -11,7 +11,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Card } from "./Layout.js"; /* eslint-disable-line @typescript-eslint/no-unused-vars */
 import { Switch } from "./Layout.js";
+import { QRCodeSVG } from "qrcode.react";
 import { loadImConfig, patchImConfig } from "../im/store.js";
+import { wechatLoginCancel, wechatLoginPoll, wechatLoginStart } from "../im/wechat.js";
 import { newBindCode, useChannelStatus } from "../im/registry.js";
 import { syncChannels } from "../im/boot.js";
 import type { ImConfig } from "../im/store.js";
@@ -38,6 +40,8 @@ export function ImSettingsSection(): ReactNode {
   const [appSecret, setAppSecret] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
+  const [wxQr, setWxQr] = useState<string | null>(null);
+  const [wxNote, setWxNote] = useState("");
   const fs = useChannelStatus("feishu");
   const wechatStatus = useChannelStatus("wechat");
 
@@ -70,6 +74,38 @@ export function ImSettingsSection(): ReactNode {
     setCfg(await loadImConfig());
     await syncChannels();
     flash(v ? "已启用，正在连接…" : "已停用");
+  };
+
+  // 微信扫码登录轮询（登录会话有效期内 1.5s 一次）
+  useEffect(() => {
+    if (!wxQr) return;
+    const t = window.setInterval(() => {
+      void wechatLoginPoll()
+        .then(async (r) => {
+          setWxNote(r.note);
+          if (r.done) {
+            setWxQr(null);
+            setCfg(await loadImConfig());
+            await syncChannels();
+            flash("微信通道已启用（扫码登录成功）");
+          } else if (r.status === "expired" || r.status === "verify_code_blocked") {
+            setWxQr(null);
+          }
+        })
+        .catch(() => undefined);
+    }, 1_500);
+    return () => window.clearInterval(t);
+  }, [wxQr]);
+
+  const startWxLogin = async (): Promise<void> => {
+    setMsg(null);
+    try {
+      const r = await wechatLoginStart();
+      setWxQr(r.imgContent || r.qrcode);
+      setWxNote("等待扫码…");
+    } catch (e) {
+      flash(`发起扫码失败：${e instanceof Error ? e.message : String(e)}`);
+    }
   };
 
   const genBind = (): void => {
@@ -155,13 +191,40 @@ export function ImSettingsSection(): ReactNode {
 
       <div className="setting-row">
         <div>
-          <div className="setting-title">微信通道（待实现）</div>
+          <div className="setting-title">微信（iLink 官方 Bot · 扫码即用）</div>
           <div className="setting-desc">
-            官方 iLink Bot（扫码授权 + 长轮询）适配器规划中——调研与协议笔记见 docs/im-cloud/。
-            当前状态：{PHASE_TEXT[wechatStatus.phase] ?? wechatStatus.phase}（适配器未装配，开关不生效）。
+            微信扫码授权后即可对话（无需任何 App ID/Secret）：消息经官方 iLink 通道长轮询到达本机，
+            OH 回复原路发回。当前状态：{PHASE_TEXT[wechatStatus.phase] ?? wechatStatus.phase}
+            {wechatStatus.note ? `：${wechatStatus.note}` : ""}
+            {cfg?.channels.wechat?.botId ? `（bot ${cfg.channels.wechat.botId.slice(0, 10)}…）` : ""}
           </div>
         </div>
+        <button className="btn btn-primary" onClick={() => void startWxLogin()}>
+          {cfg?.channels.wechat?.botToken ? "重新扫码" : "扫码登录"}
+        </button>
       </div>
+
+      {wxQr ? (
+        <div className="setting-row">
+          <div>
+            <div style={{ background: "#fff", padding: 10, borderRadius: 10, display: "inline-block" }}>
+              <QRCodeSVG value={wxQr} size={148} />
+            </div>
+            <div className="setting-desc" style={{ marginTop: 6 }}>
+              {wxNote || "等待扫码…"}（用微信扫一扫）
+            </div>
+          </div>
+          <button
+            className="btn"
+            onClick={() => {
+              wechatLoginCancel();
+              setWxQr(null);
+            }}
+          >
+            取消
+          </button>
+        </div>
+      ) : null}
 
       {msg ? <div className="setting-desc" style={{ opacity: 0.8 }}>{msg}</div> : null}
     </>
