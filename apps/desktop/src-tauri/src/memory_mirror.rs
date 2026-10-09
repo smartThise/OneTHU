@@ -66,7 +66,15 @@ pub async fn memory_io<R: tauri::Runtime>(
 
 /// 与命令同逻辑、root 可注入（单测用 tempdir，绝不碰真实 appData）。
 fn mirror_io_at(root: &std::path::Path, op: &str, path: &str, content: Option<String>) -> Result<Value, String> {
-    let rel = safe_rel(path)?;
+    // 目录类操作（list/mkdir/abspath）允许空路径或 "/"（= 根目录）——文件类仍拒绝
+    let rel = safe_rel(path).or_else(|e| {
+        let t = path.trim();
+        if matches!(op, "list" | "mkdir" | "abspath") && (t.is_empty() || t == "/") {
+            Ok(std::path::PathBuf::new())
+        } else {
+            Err(e)
+        }
+    })?;
     let abs = root.join(&rel);
     match op {
         "write" => {
