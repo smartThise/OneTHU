@@ -37,8 +37,15 @@ export async function ensureMemoryRepo(): Promise<string | null> {
   const tk = await token();
   if (!tk) return null;
   const repos = await invoke<Array<{ id: string; name: string }>>("seafile_repos", { token: tk });
-  const hit = repos.find((r) => r.name === REPO_NAME);
-  const repo = hit ?? (await invoke<{ id: string; name: string }>("seafile_create_repo", { token: tk, name: REPO_NAME }));
+  let repo = repos.find((r) => r.name === REPO_NAME);
+  if (!repo) {
+    // 建库响应的 id 字段在不同 Seafile 版本形态不一（清华实例实测缺 id）——
+    // create 之后**无论成败都列表复查**：建出了就能按名找到，解析失败也不丢、不重复建
+    await invoke("seafile_create_repo", { token: tk, name: REPO_NAME }).catch(() => undefined);
+    const repos2 = await invoke<Array<{ id: string; name: string }>>("seafile_repos", { token: tk });
+    repo = repos2.find((r) => r.name === REPO_NAME);
+  }
+  if (!repo) throw new Error("OH-Memory 资料库建立失败（云盘侧未出现）");
   localStorage.setItem(REPO_KEY, repo.id);
   void logLine(`[MEMORY] 云盘记忆库就绪：《${repo.name}》(${repo.id.slice(0, 8)}…)`).catch(() => undefined);
   return repo.id;
