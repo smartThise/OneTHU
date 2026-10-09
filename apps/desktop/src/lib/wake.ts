@@ -63,3 +63,56 @@ export async function onVoiceState(cb: (e: VoiceStateEvent) => void): Promise<()
   const un = await listen<VoiceStateEvent>("onethu-voice://state", (ev) => cb(ev.payload));
   return un;
 }
+
+// ---------- 本地 TTS（同一 onethu-voice 插件；模型运行时下载，不打包） ----------
+
+export interface TtsStatus {
+  state: "none" | "downloading" | "extracting" | "ready" | "error" | "unsupported";
+  progress: number;
+  ready: boolean;
+}
+
+export async function ttsSupported(): Promise<boolean> {
+  if (!isAndroid) return false;
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    return await invoke<boolean>(cmd("tts_supported"));
+  } catch {
+    return false;
+  }
+}
+
+/** 触发后台准备（下载→校验→解包→初始化）；进度轮询 ttsStatus */
+export async function ttsPrepare(): Promise<void> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke(cmd("tts_prepare"));
+}
+
+export async function ttsSpeak(text: string, speed = 1.0, sid = 0): Promise<void> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke(cmd("tts_speak"), { text, speed, sid });
+}
+
+export async function ttsStop(): Promise<void> {
+  if (!isAndroid) return;
+  void import("@tauri-apps/api/core")
+    .then((m) => m.invoke(cmd("tts_stop")))
+    .catch(() => undefined);
+}
+
+export async function ttsStatus(): Promise<TtsStatus> {
+  if (!isAndroid) return { state: "unsupported", progress: 0, ready: false };
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    return await invoke<TtsStatus>(cmd("tts_status"));
+  } catch {
+    return { state: "unsupported", progress: 0, ready: false };
+  }
+}
+
+/** 朗读结束/被停/出错事件 */
+export async function onTtsDone(cb: (reason: string) => void): Promise<() => void> {
+  const { listen } = await import("@tauri-apps/api/event");
+  const un = await listen<{ reason: string }>("onethu-voice://tts-done", (ev) => cb(ev.payload.reason));
+  return un;
+}

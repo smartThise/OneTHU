@@ -12,4 +12,9 @@ permissions = [
   "allow-wake-stop",
   "allow-wake-status",
   "allow-wake-mark-state",
+  "allow-tts-supported",
+  "allow-tts-prepare",
+  "allow-tts-speak",
+  "allow-tts-stop",
+  "allow-tts-status",
 ]

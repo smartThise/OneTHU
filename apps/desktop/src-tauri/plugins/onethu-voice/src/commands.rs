@@ -98,3 +98,100 @@ pub async fn wake_mark_state<R: Runtime>(
         Ok(())
     }
 }
+
+/// 当前平台是否支持本地 TTS（Android：JNI 库可加载）
+#[tauri::command]
+pub async fn tts_supported<R: Runtime>(app: AppHandle<R>) -> Result<bool, String> {
+    #[cfg(target_os = "android")]
+    {
+        let handle = app.state::<crate::OnethuVoice<R>>().0.clone();
+        let v: serde_json::Value = handle
+            .run_mobile_plugin("ttsSupported", serde_json::json!({}))
+            .map_err(|e| e.to_string())?;
+        Ok(v.get("value").and_then(|g| g.as_bool()).unwrap_or(false))
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = &app;
+        Ok(false)
+    }
+}
+
+/// 触发后台准备（模型下载 → 解包 → 初始化），进度经 tts_status 轮询
+#[tauri::command]
+pub async fn tts_prepare<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        let handle = app.state::<crate::OnethuVoice<R>>().0.clone();
+        let _: serde_json::Value = handle
+            .run_mobile_plugin("ttsPrepare", serde_json::json!({}))
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = &app;
+        Err("此平台暂不支持本地语音合成".into())
+    }
+}
+
+/// 合成并流式朗读（异步：完成/停止经 onethu-voice://tts-done 事件）
+#[tauri::command]
+pub async fn tts_speak<R: Runtime>(
+    app: AppHandle<R>,
+    text: String,
+    speed: Option<f64>,
+    sid: Option<i32>,
+) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        let handle = app.state::<crate::OnethuVoice<R>>().0.clone();
+        let _: serde_json::Value = handle
+            .run_mobile_plugin(
+                "ttsSpeak",
+                serde_json::json!({ "text": text, "speed": speed.unwrap_or(1.0), "sid": sid.unwrap_or(0) }),
+            )
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (&app, &text, &speed, &sid);
+        Err("此平台暂不支持本地语音合成".into())
+    }
+}
+
+/// 停止朗读
+#[tauri::command]
+pub async fn tts_stop<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        let handle = app.state::<crate::OnethuVoice<R>>().0.clone();
+        let _: serde_json::Value = handle
+            .run_mobile_plugin("ttsStop", serde_json::json!({}))
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = &app;
+        Ok(())
+    }
+}
+
+/// 查询 TTS 状态：{ state: none|downloading|extracting|ready|error, progress, ready }
+#[tauri::command]
+pub async fn tts_status<R: Runtime>(app: AppHandle<R>) -> Result<serde_json::Value, String> {
+    #[cfg(target_os = "android")]
+    {
+        let handle = app.state::<crate::OnethuVoice<R>>().0.clone();
+        handle
+            .run_mobile_plugin("ttsStatus", serde_json::json!({}))
+            .map_err(|e| e.to_string())
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = &app;
+        Ok(serde_json::json!({ "state": "unsupported", "progress": 0, "ready": false }))
+    }
+}

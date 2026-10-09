@@ -32,6 +32,11 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::wake_stop,
             commands::wake_status,
             commands::wake_mark_state,
+            commands::tts_supported,
+            commands::tts_prepare,
+            commands::tts_speak,
+            commands::tts_stop,
+            commands::tts_status,
         ])
         .setup(|app, api| {
             #[cfg(not(target_os = "android"))]

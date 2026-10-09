@@ -295,6 +295,66 @@
       "type": "string",
       "oneOf": [
         {
+          "description": "Enables the tts_prepare command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-tts-prepare",
+          "markdownDescription": "Enables the tts_prepare command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_prepare command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-tts-prepare",
+          "markdownDescription": "Denies the tts_prepare command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_speak command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-tts-speak",
+          "markdownDescription": "Enables the tts_speak command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_speak command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-tts-speak",
+          "markdownDescription": "Denies the tts_speak command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-tts-status",
+          "markdownDescription": "Enables the tts_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-tts-status",
+          "markdownDescription": "Denies the tts_status command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_stop command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-tts-stop",
+          "markdownDescription": "Enables the tts_stop command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_stop command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-tts-stop",
+          "markdownDescription": "Denies the tts_stop command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-tts-supported",
+          "markdownDescription": "Enables the tts_supported command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-tts-supported",
+          "markdownDescription": "Denies the tts_supported command without any pre-configured scope."
+        },
+        {
           "description": "Enables the wake_mark_state command without any pre-configured scope.",
           "type": "string",
           "const": "allow-wake-mark-state",
@@ -355,10 +415,10 @@
           "markdownDescription": "Denies the wake_supported command without any pre-configured scope."
         },
         {
-          "description": "允许使用语音唤醒（KWS）：\n查询支持、开启/停止监听、查询状态机、回告状态转移。\n（监听需麦克风前台服务权限，由原生层在开启时申请）\n\n#### This default permission set includes:\n\n- `allow-wake-supported`\n- `allow-wake-start`\n- `allow-wake-stop`\n- `allow-wake-status`\n- `allow-wake-mark-state`",
+          "description": "允许使用语音唤醒（KWS）：\n查询支持、开启/停止监听、查询状态机、回告状态转移。\n（监听需麦克风前台服务权限，由原生层在开启时申请）\n\n#### This default permission set includes:\n\n- `allow-wake-supported`\n- `allow-wake-start`\n- `allow-wake-stop`\n- `allow-wake-status`\n- `allow-wake-mark-state`\n- `allow-tts-supported`\n- `allow-tts-prepare`\n- `allow-tts-speak`\n- `allow-tts-stop`\n- `allow-tts-status`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "允许使用语音唤醒（KWS）：\n查询支持、开启/停止监听、查询状态机、回告状态转移。\n（监听需麦克风前台服务权限，由原生层在开启时申请）\n\n#### This default permission set includes:\n\n- `allow-wake-supported`\n- `allow-wake-start`\n- `allow-wake-stop`\n- `allow-wake-status`\n- `allow-wake-mark-state`"
+          "markdownDescription": "允许使用语音唤醒（KWS）：\n查询支持、开启/停止监听、查询状态机、回告状态转移。\n（监听需麦克风前台服务权限，由原生层在开启时申请）\n\n#### This default permission set includes:\n\n- `allow-wake-supported`\n- `allow-wake-start`\n- `allow-wake-stop`\n- `allow-wake-status`\n- `allow-wake-mark-state`\n- `allow-tts-supported`\n- `allow-tts-prepare`\n- `allow-tts-speak`\n- `allow-tts-stop`\n- `allow-tts-status`"
         }
       ]
     }

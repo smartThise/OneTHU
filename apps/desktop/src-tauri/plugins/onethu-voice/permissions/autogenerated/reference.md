@@ -11,6 +11,11 @@
 - `allow-wake-stop`
 - `allow-wake-status`
 - `allow-wake-mark-state`
+- `allow-tts-supported`
+- `allow-tts-prepare`
+- `allow-tts-speak`
+- `allow-tts-stop`
+- `allow-tts-status`
 
 ## Permission Table
 
@@ -20,6 +25,136 @@
 <th>Description</th>
 </tr>
 
+
+<tr>
+<td>
+
+`onethu-voice:allow-tts-prepare`
+
+</td>
+<td>
+
+Enables the tts_prepare command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`onethu-voice:deny-tts-prepare`
+
+</td>
+<td>
+
+Denies the tts_prepare command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`onethu-voice:allow-tts-speak`
+
+</td>
+<td>
+
+Enables the tts_speak command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`onethu-voice:deny-tts-speak`
+
+</td>
+<td>
+
+Denies the tts_speak command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`onethu-voice:allow-tts-status`
+
+</td>
+<td>
+
+Enables the tts_status command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`onethu-voice:deny-tts-status`
+
+</td>
+<td>
+
+Denies the tts_status command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`onethu-voice:allow-tts-stop`
+
+</td>
+<td>
+
+Enables the tts_stop command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`onethu-voice:deny-tts-stop`
+
+</td>
+<td>
+
+Denies the tts_stop command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`onethu-voice:allow-tts-supported`
+
+</td>
+<td>
+
+Enables the tts_supported command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`onethu-voice:deny-tts-supported`
+
+</td>
+<td>
+
+Denies the tts_supported command without any pre-configured scope.
+
+</td>
+</tr>
 
 <tr>
 <td>

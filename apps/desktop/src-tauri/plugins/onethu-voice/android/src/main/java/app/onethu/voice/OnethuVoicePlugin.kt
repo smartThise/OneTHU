@@ -41,6 +41,11 @@ class OnethuVoicePlugin(private val activity: android.app.Activity) : Plugin(act
             payload.put("to", to.name)
             trigger("onethu-voice://state", payload)
         }
+        TtsEngine.onDone = { reason ->
+            val payload = JSObject()
+            payload.put("reason", reason)
+            trigger("onethu-voice://tts-done", payload)
+        }
     }
 
     private fun hasMic(): Boolean =
@@ -114,6 +119,54 @@ class OnethuVoicePlugin(private val activity: android.app.Activity) : Plugin(act
             else -> Logger.warn(TAG, "未知 mark：$mark")
         }
         invoke.resolve()
+    }
+
+    // ---------- TTS ----------
+
+    @Command
+    fun ttsSupported(invoke: Invoke) {
+        val ok = try {
+            Class.forName("com.k2fsa.sherpa.onnx.OfflineTts")
+            true
+        } catch (_: Throwable) {
+            false
+        }
+        invoke.resolve(JSObject().put("value", ok))
+    }
+
+    /** 触发后台准备（下载/解包/初始化），进度经 ttsStatus 轮询 */
+    @Command
+    fun ttsPrepare(invoke: Invoke) {
+        TtsEngine.prepare(activity)
+        invoke.resolve()
+    }
+
+    @Command
+    fun ttsSpeak(invoke: Invoke) {
+        val text = invoke.getArgs().optString("text", "")
+        val speed = invoke.getArgs().optDouble("speed", 1.0).toFloat()
+        val sid = invoke.getArgs().optInt("sid", 0)
+        if (!TtsEngine.isReady()) {
+            invoke.reject("TTS 未就绪（state=${TtsEngine.state}）——先 tts_prepare")
+            return
+        }
+        val started = TtsEngine.speak(activity, text, speed, sid)
+        if (started) invoke.resolve() else invoke.reject("合成未开始（空文本？）")
+    }
+
+    @Command
+    fun ttsStop(invoke: Invoke) {
+        TtsEngine.stopSpeak()
+        invoke.resolve()
+    }
+
+    @Command
+    fun ttsStatus(invoke: Invoke) {
+        val obj = JSObject()
+        obj.put("state", TtsEngine.state)
+        obj.put("progress", TtsEngine.progress)
+        obj.put("ready", TtsEngine.isReady())
+        invoke.resolve(obj)
     }
 
     private fun startService() {

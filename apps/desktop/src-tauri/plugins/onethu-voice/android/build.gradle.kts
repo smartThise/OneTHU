@@ -26,5 +26,6 @@ android {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.9.0")
+    implementation("org.apache.commons:commons-compress:1.27.1")
     implementation(project(":tauri-android"))
 }

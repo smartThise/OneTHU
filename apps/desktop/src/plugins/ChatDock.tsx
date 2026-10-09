@@ -23,10 +23,11 @@ import remarkGfm from "remark-gfm";
 import { callRust, notifyRust } from "./rust.js";
 import { commandsSnapshot, subscribeCommands } from "./loader.js";
 import { EMPTY_EVENTS, pluginEvents, subscribePluginEvents } from "./events.js";
-import { IconClock, IconDownload, IconPlus, IconUpload, IconX } from "../components/Icons";
+import { IconClock, IconDownload, IconPlus, IconSpeaker, IconUpload, IconX } from "../components/Icons";
 import { HarnessMark } from "../components/HarnessMark.js";
 import { useIslandText } from "../state/island.js";
 import { speechAvailable, speechPoll, speechStart, speechStop } from "../lib/speech.js";
+import { markVoiceState, onTtsDone, ttsPrepare, ttsSpeak, ttsStatus, ttsStop } from "../lib/wake.js";
 import { openExternal } from "../pages/info/openExternal.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -238,6 +239,42 @@ export function ChatDock(): ReactNode {
   const pressTimer = useRef<number | null>(null); // 长按计时（null=未按/已触发语音）
   const [msgs, setMsgs] = useState<ViewMsg[]>([]);
   const [input, setInput] = useState("");
+  // 本地 TTS 朗读：开关持久化；就绪位轮询惰性更新（prepare 后状态由喇叭按钮驱动）
+  const [ttsOn, setTtsOn] = useState<boolean>(() => localStorage.getItem("onethu.voice.tts") === "1");
+  const ttsReadyRef = useRef(false);
+  const ttsOnRef = useRef(ttsOn);
+  ttsOnRef.current = ttsOn;
+  const [ttsReady, setTtsReady] = useState(false);
+  const [ttsPrep, setTtsPrep] = useState(false); // 下载/解包中提示
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      if (!ttsOnRef.current) return;
+      void ttsStatus().then((st) => {
+        ttsReadyRef.current = st.ready;
+        setTtsReady(st.ready);
+        setTtsPrep(st.state === "downloading" || st.state === "extracting");
+      });
+    }, 2_000);
+    return () => window.clearInterval(t);
+  }, []);
+  const toggleTts = (): void => {
+    if (ttsOn) {
+      ttsStop();
+      localStorage.setItem("onethu.voice.tts", "0");
+      setTtsOn(false);
+    } else {
+      localStorage.setItem("onethu.voice.tts", "1");
+      setTtsOn(true);
+      setTtsPrep(true);
+      void ttsPrepare().catch(() => setTtsPrep(false));
+    }
+  };
+  useEffect(() => {
+    void onTtsDone((reason) => {
+      markVoiceState("done"); // 朗读结束 → 状态机恢复监听（KWS resume）
+      void 0 === reason || undefined; // reason: done|stopped|error:...（后续可展示）
+    });
+  }, []);
   const [busy, setBusy] = useState(false);
   const [stream, setStream] = useState<string | null>(null);
   const [trace, setTrace] = useState<string[]>([]);
@@ -438,6 +475,15 @@ export function ChatDock(): ReactNode {
       setUsage((u) => ({ ...u, ...(r.sessionUsage ?? {}), ...(r.totalUsage ?? {}) }));
     }
     if (!open) setUnread((n) => n + 1);
+    // 本地 TTS 朗读（唤醒链路：SPEAKING 态入状态机；手动链路同样朗读）
+    if (ttsOnRef.current && r?.error == null && answer && answer !== "(空响应)") {
+      void ttsStatus().then((st) => {
+        ttsReadyRef.current = st.ready;
+        if (!st.ready) return;
+        markVoiceState("speaking");
+        void ttsSpeak(answer).catch(() => markVoiceState("done"));
+      });
+    }
     requestAnimationFrame(() => {
       const sc = scrollRef.current;
       if (sc) sc.scrollTop = sc.scrollHeight;
@@ -464,6 +510,7 @@ export function ChatDock(): ReactNode {
   const send = useCallback(async (raw: string): Promise<void> => {
     const text = raw.trim();
     if (!pid || busyRef.current || !text) return;
+    ttsStop(); // 新输入打断朗读
     const seq = ++runSeq.current;
     finalizedFor.current = 0;
     streamRef.current = "";
@@ -859,6 +906,19 @@ export function ChatDock(): ReactNode {
           <div className="dock-head">
             <span className="dock-title" title="小OH"><HarnessMark size={15} /></span>
             <div className="dock-ops">
+              <button
+                className={"btn dock-btn dock-ico" + (ttsOn ? " is-on" : "")}
+                title={
+                  !ttsOn ? "开启本地朗读（TTS，首次需下载 ~160MB 模型）"
+                    : ttsReady ? "本地朗读已开启"
+                    : ttsPrep ? "语音模型下载/准备中…" : "模型未就绪，点击重试准备"
+                }
+                aria-label="本地朗读开关"
+                aria-pressed={ttsOn}
+                onClick={toggleTts}
+              >
+                <IconSpeaker />
+              </button>
               <button className="btn dock-btn dock-ico" title="新会话" aria-label="新会话" onClick={() => void newSession()}>
                 <IconPlus />
               </button>

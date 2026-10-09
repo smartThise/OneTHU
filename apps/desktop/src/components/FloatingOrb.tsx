@@ -49,6 +49,7 @@ export const FloatingOrb = memo(function FloatingOrb(): React.ReactNode | null {
       unState = await onVoiceState((e) => {
         if (e.to === "LISTENING") setPhaseSafe("listening");
         else if (e.to === "IDLE") setPhaseSafe("idle");
+        else if (e.to === "SPEAKING") setPhaseSafe("sending"); // 朗读中：KWS 暂停，不显示监听呼吸
       });
       // 前台服务由用户动作拉起（Android while-in-use 限制）——首次需用户点一下球
     })();

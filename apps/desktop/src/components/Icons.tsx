@@ -70,6 +70,13 @@ export const IconBell = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+export const IconSpeaker = (p: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 16 16" width={p.width ?? 14} height={p.height ?? 14} fill={p.fill ?? "currentColor"} aria-hidden="true" {...p}>
+    <path d="M8.7 2.1c.4-.3 1-.02 1 .5v10.8c0 .52-.6.8-1 .5L5.4 11.4H3.2c-.5 0-.9-.4-.9-.9V5.5c0-.5.4-.9.9-.9h2.2l3.3-2.5Z" />
+    <path d="M11.2 5.4a.55.55 0 0 1 .78 0 3.4 3.4 0 0 1 0 5.2.55.55 0 1 1-.78-.78 2.3 2.3 0 0 0 0-3.64.55.55 0 0 1 0-.78Z" />
+  </svg>
+);
+
 export const IconPen = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}>
     <path d="m14.5 5 4.5 4.5L8 20.5l-5 1 1-5z" />

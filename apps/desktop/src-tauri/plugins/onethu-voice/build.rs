@@ -13,6 +13,11 @@ fn main() {
         "wake_stop",
         "wake_status",
         "wake_mark_state",
+        "tts_supported",
+        "tts_prepare",
+        "tts_speak",
+        "tts_stop",
+        "tts_status",
     ];
     let result = tauri_plugin::Builder::new(commands)
         .android_path("android")
