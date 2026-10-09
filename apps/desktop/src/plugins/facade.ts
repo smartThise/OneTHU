@@ -27,6 +27,10 @@ import {
   putCloudEvent, deleteCloudEvent, putLocalEvent, deleteLocalEvent,
 } from "../state/cloudCal.js";
 import { refreshMail, readMail, mailSearch, sendMail, mailFolderTotal } from "../state/mail.js";
+import {
+  memoryAppend, memoryDelete, memoryEdit, memoryList, memoryRead, memoryReady,
+  memoryRefresh, memorySearch, memoryWrite,
+} from "../memory/operations.js";
 import { getLearnSnapshot } from "../state/data.js";
 import { getExtHwSnapshot, toHomework } from "../state/exthw.js";
 import { parseLearnTime } from "@onethu/core";
@@ -279,6 +283,27 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
     share: async (repoId: string, path: string, expireDays: number) => invoke("seafile_share", { token: await cloudToken(), repoId, path, expireDays, password: "" }) as Promise<{ link: string; token: string }>,
   }, perms, "cloud:write");
 
+  // 记忆（OH-Memory 镜像引擎；写操作的两段式确认由 harness 工具层负责，facade 只做权限闸）
+  const memoryReadNs = wrap({
+    search: async (q: Record<string, unknown>) => memorySearch(q as never),
+    read: async (permalink: string) => memoryRead(permalink),
+    list: async (opts: Record<string, unknown>) => memoryList((opts ?? {}) as never),
+    refresh: async () => memoryRefresh(),
+    ready: async () => memoryReady(),
+  }, perms, "memory:read");
+  const memoryWriteNs = wrap({
+    write: async (input: Record<string, unknown>) => memoryWrite(input as never),
+    append: async (permalink: string, category: string, text: string, context?: string) => {
+      await memoryAppend(permalink, category, text, context);
+      return { ok: true as const };
+    },
+    edit: async (permalink: string, find: string, replace: string) => {
+      await memoryEdit(permalink, find, replace);
+      return { ok: true as const };
+    },
+    delete: async (permalink: string, reason?: string) => memoryDelete(permalink, reason),
+  }, perms, "memory:write");
+
   const mailWrite = wrap({
     send: async (to: string, cc: string, subject: string, body: string) => {
       await sendMail(to, cc, subject, body);
@@ -290,6 +315,7 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
     cal: calNs as unknown as OnethuApi["cal"],
     mail: { ...mailRead, ...mailWrite } as OnethuApi["mail"],
     cloud: { ...cloudRead, ...cloudWrite } as OnethuApi["cloud"],
+    memory: { ...memoryReadNs, ...memoryWriteNs } as OnethuApi["memory"],
     session: {
       status: () => {
         gate(perms, "user:read", "session.status");

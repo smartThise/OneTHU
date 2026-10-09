@@ -30,6 +30,8 @@ export type PluginPermission =
   | "mail:write" // 清华邮箱发信（写操作，需确认）
   | "cloud:read" // 清华云盘资料库/目录/搜索/下载（Seafile）
   | "cloud:write" // 清华云盘上传/分享（写操作，需确认）
+  | "memory:read" // OH 记忆检索/读取/清单（只读）
+  | "memory:write" // OH 记忆写入/追加/改写/归档（写操作，需确认）
   | "nav" // 应用内页面跳转
   | "ui" // toast 提示
   | "storage" // 插件私有键值存储
@@ -61,6 +63,8 @@ export const PLUGIN_PERMISSIONS: ReadonlyArray<{ id: PluginPermission; label: st
   { id: "mail:write", label: "发邮件", desc: "从清华邮箱发信（写操作，需确认）" },
   { id: "cloud:read", label: "读取云盘", desc: "清华云盘资料库、目录浏览、库内搜索与下载" },
   { id: "cloud:write", label: "上传/分享云盘", desc: "上传文件到云盘、生成分享链接（写操作，需确认）" },
+  { id: "memory:read", label: "读取记忆", desc: "检索/读取 OH 长期记忆（个人偏好、课程上下文、任务状态）" },
+  { id: "memory:write", label: "写入记忆", desc: "新建/追加/改写/归档 OH 记忆（写操作，需确认）" },
   { id: "card:read", label: "读取校园卡", desc: "余额与消费流水（只读，不含充值）" },
   { id: "dorm:read", label: "读取宿舍信息", desc: "电费余额/缴费记录/卫生分（只读）" },
   { id: "library:read", label: "查询图书馆", desc: "楼层/区域/座位分布/预约记录 + 研讨间资源查询" },
@@ -289,6 +293,36 @@ export interface OnethuApi {
     upload(repoId: string, parentDir: string, localPath: string, replace: boolean): Promise<{ size: number }>;
     /** 分享链接（expireDays=0 永久） */
     share(repoId: string, path: string, expireDays: number): Promise<{ link: string; token: string }>;
+  };
+  memory: {
+    /** 四段检索（无向量）：query 空格分词 + tags/type/folder 过滤 → 命中列表 */
+    search(q: { query?: string; tags?: string[]; type?: string; folder?: string; limit?: number }): Promise<Array<{
+      permalink: string; title: string; type: string; tags: string[]; path: string;
+      modified: string; score: number; snippet: string; via?: string;
+    }>>;
+    /** 按 permalink 读全文（超 8KB 截断） */
+    read(permalink: string): Promise<string>;
+    /** 目录/标签清单（不读正文） */
+    list(opts?: { folder?: string; tag?: string }): Promise<Array<{
+      permalink: string; title: string; type: string; folder: string; tags: string[]; modified: string;
+    }>>;
+    /** 全量重扫重建账本（排障/同步后对齐） */
+    refresh(): Promise<{ count: number }>;
+    ready(): Promise<boolean>;
+    /** 新建实体（title 重复会拒绝并引导 append） */
+    write(input: {
+      title: string;
+      observations: Array<{ category: string; text: string; context?: string }>;
+      relations?: Array<{ rel: string; target: string; context?: string }>;
+      tags?: string[];
+      type?: string;
+      folder?: string;
+      origin?: string;
+    }): Promise<{ permalink: string; path: string }>;
+    append(permalink: string, category: string, text: string, context?: string): Promise<{ ok: true }>;
+    edit(permalink: string, find: string, replace: string): Promise<{ ok: true }>;
+    /** 软删除 → .trash/ */
+    delete(permalink: string, reason?: string): Promise<{ trashedTo: string }>;
   };
   kongjian: {
     page(opts?: { spaceId?: string; roomId?: string; date?: string }): Promise<import("@onethu/core").KongjianPage>;
