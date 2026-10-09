@@ -99,52 +99,24 @@ export function ConnectGate({
     }
   };
 
-  /** 静默优先：直连爬 profile（id 会话活）→ 落确认页就 InfoClient 确认续用 → 再爬；
-   *  仍取不到再回退应用内 WebView。全程零输入。 */
+  /** 静默优先：silentConnectSeafile（直连 SSO + checkSingle 自动确认 + by-session
+   *  只读取票，与导览/IM 共用链）；取不到再回退应用内 WebView。两层都零输入。 */
   const cloudTokenFromWebview = async (): Promise<void> => {
     setBusy(true);
     setErr(null);
     setAutoMsg("正在自动获取云盘访问口令…");
-    const log = async (m: string): Promise<void> => {
-      try {
-        const { logLine } = await import("../lib/clients.js");
-        void logLine(m).catch(() => undefined);
-      } catch { /* noop */ }
-    };
     try {
-      let token = "";
-      const { loadRemembered } = await import("../lib/clients.js");
-      const rememberedForCloud = await loadRemembered().catch(() => null);
-      try {
-        const { invoke } = await import("@tauri-apps/api/core");
-        const { extractToken } = await import("../state/seafileAuto.js");
-        let r = await invoke<{ finalUrl: string; body: string; needConfirm: boolean; plainToken: string }>("cloud_webvpn_profile", {
-          username: rememberedForCloud?.username ?? "",
-          password: rememberedForCloud?.password ?? "",
-        });
-        if (r.needConfirm) {
-          await log(`[CLOUD-DIRECT] 落确认页（finalUrl=${r.finalUrl.slice(0, 90)}）→ confirmIdCheckSingle`);
-          const { info } = await import("../lib/clients.js");
-          const ok = await info.confirmIdCheckSingle(r.finalUrl).catch(() => false);
-          await log(`[CLOUD-DIRECT] 确认=${ok ? "ok" : "fail"} → 重爬 profile`);
-          if (ok) r = await invoke<{ finalUrl: string; body: string; needConfirm: boolean; plainToken: string }>("cloud_webvpn_profile", {
-            username: rememberedForCloud?.username ?? "",
-            password: rememberedForCloud?.password ?? "",
-          });
-        }
-        token = (r.plainToken && /^[0-9a-f]{40}$/i.test(r.plainToken) ? r.plainToken : "") || extractToken(r.body) || "";
-        await log(
-          token
-            ? `[CLOUD-DIRECT] 静默取到口令（finalUrl=${r.finalUrl.slice(0, 90)} len=${r.body.length}）`
-            : `[CLOUD-DIRECT] 页面无口令（finalUrl=${r.finalUrl.slice(0, 90)} len=${r.body.length}）→ 回退窗口`,
-        );
-      } catch (e) {
-        await log(`[CLOUD-DIRECT] 静默爬取失败 ${String(e).slice(0, 100)} → 回退窗口`);
+      const { silentConnectSeafile } = await import("../state/seafileAuto.js");
+      const r = await silentConnectSeafile();
+      if (r.ok) {
+        showToast(`云盘已连接${r.account?.name ? `：${r.account.name}` : ""}`);
+        onDone?.();
+        onClose();
+        return;
       }
-      if (!token) {
-        const { readCloudTokenInWebview } = await import("../lib/cloudTokenWebview.js");
-        token = await readCloudTokenInWebview();
-      }
+      setAutoMsg(r.error ?? "读取未完成，请试试窗口方式或手动粘贴。");
+      const { readCloudTokenInWebview } = await import("../lib/cloudTokenWebview.js");
+      const token = await readCloudTokenInWebview();
       await connectCloudDisk(token);
       showToast("云盘已连接");
       onDone?.();

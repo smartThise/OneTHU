@@ -68,6 +68,44 @@ export async function autoConnectSeafile(
   return autoConnectViaHttp(false, opts.allowRelogin !== false);
 }
 
+/** 静默直连链（2026-10-10 定案，唯一主链）：直连 GET profile → 落 id checkSingle
+ *  壳页则 InfoClient.confirmIdCheckSingle（带设备指纹）确认续用 → cloud 直连会话落
+ *  native jar → 重爬即登录态 → GET /api/v2.1/auth-token-by-session/（云盘 settings
+ *  bundle 实锤的「显示口令」端点，纯只读）→ 40hex 口令 → setSeafileToken 落盘。
+ *  全程零窗口零输入；幂等（已连接直接返回）。ConnectGate / 导览 / IM 指令共用。 */
+export async function silentConnectSeafile(): Promise<AutoConnectResult> {
+  const log = (m: string) => void logLine(`[CLOUD-DIRECT] ${m}`).catch(() => undefined);
+  try {
+    const { getSeafileToken } = await import("./seafile.js");
+    if (getSeafileToken()) {
+      const { refreshSeafileAccount } = await import("./seafile.js");
+      await refreshSeafileAccount().catch(() => undefined);
+      return { ok: true };
+    }
+    const { invoke } = await import("@tauri-apps/api/core");
+    const { info } = await import("../lib/clients.js");
+    let r = await invoke<{ finalUrl: string; body: string; needConfirm: boolean; plainToken: string }>("cloud_webvpn_profile");
+    if (r.needConfirm) {
+      log(`落确认页 → confirmIdCheckSingle（finalUrl=${r.finalUrl.slice(0, 80)}）`);
+      const ok = await info.confirmIdCheckSingle(r.finalUrl).catch(() => false);
+      log(`确认=${ok ? "ok" : "fail"} → 重爬 profile`);
+      if (!ok) return { ok: false, error: "统一认证确认续用失败：请稍后重试" };
+      r = await invoke<{ finalUrl: string; body: string; needConfirm: boolean; plainToken: string }>("cloud_webvpn_profile");
+    }
+    const token = (r.plainToken && /^[0-9a-f]{40}$/i.test(r.plainToken) ? r.plainToken : "") || extractToken(r.body) || "";
+    if (!token) {
+      log(`页面无口令（finalUrl=${r.finalUrl.slice(0, 80)} len=${r.body.length}）`);
+      return { ok: false, error: "云盘上还没有访问口令：请先在云盘设置页生成一次，或在 OneTHU 里用窗口方式连接" };
+    }
+    const account = await setSeafileToken(token);
+    log(`云盘已静默连接：${account.name}（${account.email}）`);
+    return { ok: true, account };
+  } catch (e) {
+    log(`静默链异常 ${String(e).slice(0, 100)}`);
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 /** 二次认证：列可用方式（企业微信 / 短信 / TOTP）——oauth 场景用 */
 export async function cloud2FAMethods(): Promise<TwoFactorMethod[]> {
   const { list2FAMethods } = await import("@onethu/core");

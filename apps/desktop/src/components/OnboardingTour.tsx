@@ -18,7 +18,7 @@ import {
   loginTyche,
   type AccountStatus,
 } from "../state/accountSetup.js";
-import { accountErrMsg } from "../state/accountSetup.js";
+import { accountErrMsg, readAccountStatus } from "../state/accountSetup.js";
 import { YktQrPanel, YktWebLoginPanel } from "./ExtHwLoginModal.js";
 import { YKT_WEB_LOGIN_AVAILABLE } from "../lib/yktWebview.js";
 import { openExternal } from "../pages/info/openExternal.js";
@@ -136,6 +136,8 @@ export function OnboardingTourV1(): React.ReactNode {
   const [mailAddr, setMailAddr] = useState("");
   const [mailCode, setMailCode] = useState("");
   const [cloudToken, setCloudToken] = useState("");
+  /** 云盘步骤：手动粘贴区展开开关（自动连接失败时的兜底） */
+  const [cloudManual, setCloudManual] = useState(false);
   const [acctBusy, setAcctBusy] = useState<string | null>(null);
   /** 桌面小组件步骤（最后一步）：是否已发出放置请求 + 该启动器是否支持请求式放置 */
   const [pinState, setPinState] = useState<"idle" | "requested" | "unsupported" | "failed">("idle");
@@ -581,21 +583,40 @@ export function OnboardingTourV1(): React.ReactNode {
         {step === 8 ? (
           <>
             <h3 style={{ margin: "0 0 4px", fontSize: 17 }}>清华云盘<AcctBadge on={acct.cloud} /></h3>
-            <p style={acctIntro}>{/* ui-copy-lint-ok: 厂商字段原名——「Web API Auth Token」是云盘设置页里的入口名，必须按名索骥 */}粘贴 Web API Auth Token 即可浏览与下载云盘文件。</p>
-            <input className="input" style={acctInput} placeholder="Web API Auth Token"
-              value={cloudToken} onChange={(e) => setCloudToken(e.target.value)} />
+            <p style={acctIntro}>已登录清华账号即可一键连接，用于浏览云盘文件、跨设备记忆与附件转存。</p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button className="btn btn-primary" disabled={acctBusy !== null}
-                onClick={() => runAcct("cloud", "云盘连接", () => connectCloudDisk(cloudToken))}>
-                {acctBusy === "cloud" ? "连接中…" : "保存并验证"}
+                onClick={() =>
+                  runAcct("cloud", "云盘连接", async () => {
+                    const { silentConnectSeafile } = await import("../state/seafileAuto.js");
+                    const r = await silentConnectSeafile();
+                    if (r.ok) return readAccountStatus();
+                    throw new Error(r.error ?? "自动连接未成功，请展开手动粘贴或重试。");
+                  })
+                }>
+                {acctBusy === "cloud" ? "连接中…" : "一键连接"}
               </button>
-              <button className="btn btn-ghost" onClick={() => void openExternal(CLOUD_TOKEN_PAGE)}>
-                打开生成页面
+              <button className="btn btn-ghost" disabled={acctBusy !== null}
+                onClick={() => setCloudManual((v) => !v)}>
+                {cloudManual ? "收起手动粘贴" : "手动粘贴"}
               </button>
             </div>
-            <p style={{ ...acctIntro, marginTop: 12, marginBottom: 0 }}>
-              Token 获取：清华云盘网站 → 设置 → Web API Auth Token → 生成（一次性生成，长期有效）。
-            </p>
+            {cloudManual ? (
+              <div style={{ marginTop: 10 }}>
+                <p style={{ ...acctIntro, marginTop: 0 }}>{/* ui-copy-lint-ok: 厂商字段原名——「Web API Auth Token」是云盘设置页里的入口名，必须按名索骥 */}粘贴 Web API Auth Token（云盘设置页显示或生成）。</p>
+                <input className="input" style={acctInput} placeholder="Web API Auth Token"
+                  value={cloudToken} onChange={(e) => setCloudToken(e.target.value)} />
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button className="btn btn-primary" disabled={!cloudToken || acctBusy !== null}
+                    onClick={() => runAcct("cloud", "云盘连接", () => connectCloudDisk(cloudToken))}>
+                    保存并验证
+                  </button>
+                  <button className="btn btn-ghost" onClick={() => void openExternal(CLOUD_TOKEN_PAGE)}>
+                    打开云盘设置页
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </>
         ) : null}
 

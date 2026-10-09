@@ -340,15 +340,15 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
     }
   }
 
-  /* 云盘自动连接（兜底引导：无 token 时用户一条指令完成 SSO 爬取填充） */
+  /* 云盘自动连接（兜底引导：无 token 时一条指令静默直连取票） */
   if (text.trim() === "/连云盘" || text.trim() === "连云盘" || text.trim() === "连接云盘") {
-    const { autoConnectSeafile } = await import("../state/seafileAuto.js");
-    const r = await autoConnectSeafile();
+    const { silentConnectSeafile } = await import("../state/seafileAuto.js");
+    const r = await silentConnectSeafile();
     await replyTo(
       msg,
       r.ok
-        ? `✅ 云盘已自动连接（${r.account?.name}）——现在可以转存文件了。`
-        : `连接失败：${r.error ?? "未知原因"}。也可在电脑端 OneTHU 的「云盘」页手动粘贴 token。`,
+        ? `✅ 云盘已自动连接${r.account?.name ? `（${r.account.name}）` : ""}——现在可以转存文件了。`
+        : `连接失败：${r.error ?? "未知原因"}。也可在电脑端 OneTHU 的「云盘」页再点一次自动连接。`,
     );
     return;
   }

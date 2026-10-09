@@ -105,13 +105,13 @@ function Routed() {
     // 共享主对话：云盘 pull（远端较新则恢复）+ push（本地新内容）——所有 IM 入口与
     // ChatDock 共用 active 会话，云盘让它跨设备（用户定案 2026-10-09）
     void import("./im/sessionSync.js").then((m) => m.sessionBootSync()).catch(() => undefined);
-    // 云盘自动连接（用户定案：已登录就爬 profile 页 token 自动填充，失败静默）
+    // 云盘自动连接（2026-10-10 定案：静默直连链——checkSingle 自动确认 +
+    // auth-token-by-session 只读取票，零窗口零输入；失败静默，云盘页/导览一键重试）
     void import("./state/seafileAuto.js")
       .then(async (m) => {
-        // 已连上就不重复折腾（启动静默路径不触发重登，避免开机弹 2FA/踢会话）
         const { getSeafileToken } = await import("./state/seafile.js");
         if (getSeafileToken()) return;
-        const r = await m.autoConnectSeafile({ allowRelogin: false });
+        const r = await m.silentConnectSeafile();
         if (r.ok) {
           const { showToast } = await import("./state/toast.js");
           showToast(`云盘已自动连接：${r.account?.name ?? ""}`);

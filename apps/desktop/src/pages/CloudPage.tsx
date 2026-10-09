@@ -274,7 +274,7 @@ export default function CloudPage(): ReactNode {
           className="btn"
           onClick={async () => {
             const ok = await confirmDanger(
-              "断开云盘？\n\n断开后：\n· 记忆与主对话只在**本机**保存（不再跨设备同步）\n· IM 收到的附件只能查看内容，不能转存云盘\n· 云盘页浏览/下载不可用\n\n随时可在云盘页点击「连接云盘」重新连接。",
+              "断开清华云盘？\n\n⚠️ 几乎所有高级与智能功能都依赖云盘，断开后将失去：\n· 跨设备记忆与主对话同步（AI 记忆只留本机）\n· IM 附件转存云盘（微信/飞书收文件仅可查看）\n· 云盘页浏览/下载与文件归档\n· 记忆库与对话历史的多端漫游\n\n确定要断开吗？（随时可在云盘页一键重连）",
               { title: "断开云盘", confirmText: "确认断开" },
             );
             if (!ok) return;
