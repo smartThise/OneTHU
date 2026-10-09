@@ -77,11 +77,57 @@ export async function autoConnectSeafile(): Promise<AutoConnectResult> {
       }
     }
 
+    // 自动提交中转页（id SSO 链常见：<form action=... method=post> + hidden + JS 自动 submit；
+    // http follow 不执行 JS → 手动 POST 等价提交）。特征：有 form 且无登录表单标志（sm2 公钥）。
+    for (let hop = 0; hop < 3; hop++) {
+      const formTag = /<form([^>]*)>/i.exec(body)?.[1] ?? "";
+      const isInterstitial =
+        Boolean(formTag) &&
+        !/sm2publicKey/.test(body) &&
+        !/login\/checkSingle|id="logined"/.test(body) &&
+        !/i_username|i_password/.test(body) &&
+        !/profile/.test(finalUrl);
+      if (!isInterstitial) break;
+      const action = (/action\s*=\s*["']([^"']+)["']/i.exec(formTag)?.[1] ?? "").replace(/&amp;/g, "&");
+      const method = (/method\s*=\s*["']?([a-zA-Z]+)/i.exec(formTag)?.[1] ?? "post").toLowerCase();
+      const fields: Record<string, string> = {};
+      for (const m of body.matchAll(/<input[^>]*>/gi)) {
+        const tag = m[0];
+        const name = /name\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
+        const value = (/value\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1] ?? "").replace(/&amp;/g, "&");
+        if (name) fields[name] = value;
+      }
+      if (!action || Object.keys(fields).length === 0) break;
+      const abs = action.startsWith("http") ? action : new URL(action, "https://id.tsinghua.edu.cn").toString();
+      void logLine(
+        `[SEAFILE-AUTO] 自动提交中转页：${method.toUpperCase()} ${abs.slice(0, 90)} fields=${Object.keys(fields).join(",")}`,
+      ).catch(() => undefined);
+      const r2 = await http.request(abs, {
+        method: method.toUpperCase(),
+        body: method === "get" ? undefined : new URLSearchParams(fields),
+        headers: method === "get" ? undefined : { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        redirect: "follow",
+      });
+      finalUrl = r2.headers.get("x-onethu-final-url") ?? finalUrl;
+      body = await r2.text();
+      // 走完一跳后若没落在 profile，再取一次（OAuth 回跳）
+      if (!/profile/.test(finalUrl)) {
+        const r3 = await http.request(PROFILE_URL, { redirect: "follow" });
+        finalUrl = r3.headers.get("x-onethu-final-url") ?? finalUrl;
+        body = await r3.text();
+      }
+      if (/profile/.test(finalUrl)) break;
+    }
+
     void logLine(
-      `[SEAFILE-AUTO] 拿到页面：finalUrl=${finalUrl.slice(0, 100)} len=${body.length} ` +
+      `[SEAFILE-AUTO] 拿到页面：finalUrl=${finalUrl.slice(0, 120)} len=${body.length} ` +
         `consent=${/authorize|consent|同意|allow/i.test(body.slice(0, 3000)) ? 1 : 0} ` +
         `htmlTitle=${/<title>([^<]{0,60})</i.exec(body)?.[1] ?? "?"}`,
     ).catch(() => undefined);
+    // 诊断增强：壳页全文（len<2000 时全打——这页决定下一步怎么修）
+    if (body.length < 2000) {
+      void logLine(`[SEAFILE-AUTO] 壳页全文：${body.replace(/\s+/g, " ").slice(0, 800)}`).catch(() => undefined);
+    }
     // 真·登录表单（sm2 公钥在 = id 会话确实不在）——区别于上面的 checkSingle 壳页
     if (/sm2publicKey/.test(body) || /login\/form/.test(finalUrl)) {
       return { ok: false, error: "SSO 会话不可用（请先重新登录 OneTHU 再试）" };
