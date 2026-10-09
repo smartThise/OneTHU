@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-wake-start"
+description = "Enables the wake_start command without any pre-configured scope."
+commands.allow = ["wake_start"]
+
+[[permission]]
+identifier = "deny-wake-start"
+description = "Denies the wake_start command without any pre-configured scope."
+commands.deny = ["wake_start"]

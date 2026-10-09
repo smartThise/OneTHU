@@ -1,0 +1,19 @@
+[package]
+name = "tauri-plugin-onethu-voice"
+version = "0.1.0"
+edition = "2021"
+description = "OneTHU 语音中枢：sherpa-onnx KWS 唤醒（前台服务监听）+ 交接状态机；TTS 将挂同一插件"
+links = "tauri-plugin-onethu-voice"
+
+[lib]
+name = "tauri_plugin_onethu_voice"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+log = "0.4"

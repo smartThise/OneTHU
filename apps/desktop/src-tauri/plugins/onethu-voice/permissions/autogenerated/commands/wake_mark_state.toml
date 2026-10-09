@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-wake-mark-state"
+description = "Enables the wake_mark_state command without any pre-configured scope."
+commands.allow = ["wake_mark_state"]
+
+[[permission]]
+identifier = "deny-wake-mark-state"
+description = "Denies the wake_mark_state command without any pre-configured scope."
+commands.deny = ["wake_mark_state"]

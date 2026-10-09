@@ -1,0 +1,15 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = """
+允许使用语音唤醒（KWS）：
+查询支持、开启/停止监听、查询状态机、回告状态转移。
+（监听需麦克风前台服务权限，由原生层在开启时申请）
+"""
+permissions = [
+  "allow-wake-supported",
+  "allow-wake-start",
+  "allow-wake-stop",
+  "allow-wake-status",
+  "allow-wake-mark-state",
+]

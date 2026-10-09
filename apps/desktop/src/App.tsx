@@ -45,6 +45,7 @@ import { installedPlugins, subscribe } from "./plugins/loader.js";
 import { getPluginTab, lastTabError, setTabRoot } from "./plugins/tabs.js";
 import type { Page } from "./state/app.js";
 import { ChatDock } from "./plugins/ChatDock.js";
+import { FloatingOrb } from "./components/FloatingOrb.js";
 import { refreshLearnDataSilently, startLearnAutoRefresh, stopLearnAutoRefresh } from "./state/data.js";
 import { useNavDirection } from "./lib/motion.js";
 
@@ -156,6 +157,7 @@ function Routed() {
       <PluginBridge />
       <NotifyBridge />
       {(status === "ready") && <ChatDock />}
+      {(status === "ready") && <FloatingOrb />}
       {status === "ready" ? <OnboardingTour /> : null}
       <FilePreviewHost />
       <ToastHost />
