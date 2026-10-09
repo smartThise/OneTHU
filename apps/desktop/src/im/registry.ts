@@ -219,6 +219,22 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
       return;
     }
     pendingAtt.set(pkOf(msg.channel, msg.sender), { staged, at: Date.now() });
+    // 库状态提示：已配置→写出库名；未配置→列候选让用户选（不猜）
+    let repoHint = "";
+    try {
+      const { configuredRepo, listRepos } = await import("./mediaPipe.js");
+      const repo = await configuredRepo();
+      if (repo) {
+        repoHint = `（转存将放入你的资料库《${repo.repoName}》）`;
+      } else {
+        const repos = await listRepos();
+        repoHint = repos.length
+          ? `你还没指定存到哪个资料库。你的资料库：\n${repos.map((r, i) => `  ${i + 1}. ${r.name}`).join("\n")}\n回复「存 <序号>」选定并存到建议目录。`
+          : "（你云盘里还没有资料库，先在网页端建一个）";
+      }
+    } catch (e) {
+      repoHint = `（云盘未连接或读取失败：${e instanceof Error ? e.message : String(e)}）`;
+    }
     const parts: string[] = [];
     for (let i = 0; i < staged.length; i++) {
       const s = staged[i]!;
@@ -232,6 +248,7 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
       }
       parts.push(`  要存云盘的话建议放 ${s.suggest.dir || `默认位置（/IM/${s.channel}）`}（${s.suggest.reason}）`);
     }
+    parts.push(repoHint);
     parts.push("回「存」按建议转存 /「存到 <目录>」自定义 /「不」忽略（不存也没关系）。");
     if (errs.length) parts.push(...errs);
     await replyTo(msg, parts.join("\n"));
@@ -247,14 +264,43 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
     const cur = pendingAtt.get(pk);
     if (cur && text) {
       const t = text.trim();
-      // 整句确认词，或含「转存/存到云盘」明示意向；避免「要查课表」这类误判
-      const isStore = /^(存|存吧|要|好|可以|确认|转存|好呀|ok)$/i.test(t) || /转存|存到云盘/.test(t);
+      // 整句确认词 / 「存 N」选库并存 / 含「转存/存到云盘」明示意向；避免「要查课表」这类误判
+      const seqStore = /^(?:存|转存|存到|放到|存入|存在|放进)\s*\d+\s*$/.test(t);
+      const isStore =
+        /^(存|存吧|要|好|可以|确认|转存|好呀|ok)$/i.test(t) || /转存|存到云盘/.test(t) || seqStore;
       const custom = /(?:存到|放到|存入|存在|存进|放进)\s*[《"'“]?([^》"'”\n]+)/.exec(t);
       const isSkip = /^(不|不用|算了|忽略|取消|别存)/.test(t);
       if (isStore || custom) {
+        const { commitStored, configuredRepo, listRepos, setRepo } = await import("./mediaPipe.js");
+        let target = custom?.[1]?.trim();
+
+        // ① 未指定资料库：先引导选库（**绝不自动猜**——用户实测曾被存进「OneTHU 发布」发布库）
+        let repo = await configuredRepo();
+        if (!repo) {
+          const repos = await listRepos().catch(() => [] as Array<{ id: string; name: string }>);
+          if (!repos.length) {
+            await replyTo(msg, "云盘里没有资料库（先在 cloud.tsinghua.edu.cn 建一个再回「存」）。");
+            return;
+          }
+          const seq = /(?:存|转存|存到|放在|放到|存入|存在|放进)\s*(\d+)\s*$/.exec(t)?.[1];
+          let pick = seq ? repos[Number(seq) - 1] : undefined;
+          if (!pick && target) {
+            pick = repos.find((r) => r.name === target) ?? repos.find((r) => target!.includes(r.name));
+            if (pick && target === pick.name) target = "";
+          }
+          if (!pick) {
+            await replyTo(
+              msg,
+              `还没指定存到哪个资料库。你的资料库：\n${repos.map((r, i) => `${i + 1}. ${r.name}`).join("\n")}\n回复「存 <序号>」选定并存到建议目录（也可回「存到 <库名>」）。`,
+            );
+            return; // pending 保留，等用户选库
+          }
+          await setRepo(pick.id, pick.name);
+          repo = { repoId: pick.id, repoName: pick.name };
+        }
+
+        // ② 库已定：执行转存
         pendingAtt.delete(pk);
-        const { commitStored } = await import("./mediaPipe.js");
-        const target = custom?.[1]?.trim();
         const out: string[] = [];
         let storedAny = false;
         for (const s of cur.staged) {
@@ -262,7 +308,12 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
             const r = await commitStored(s, target);
             lastStored.set(pk, { repoId: r.repoId, path: r.path, at: Date.now() });
             storedAny = true;
-            const size = r.size > 0 ? (r.size > 1048576 ? `，${(r.size / 1048576).toFixed(1)}MB` : `，${Math.max(1, Math.round(r.size / 1024))}KB`) : "";
+            const size =
+              r.size > 0
+                ? r.size > 1048576
+                  ? `，${(r.size / 1048576).toFixed(1)}MB`
+                  : `，${Math.max(1, Math.round(r.size / 1024))}KB`
+                : "";
             out.push(`· 《${s.name}》已存入云盘《${r.repoName}》${r.path}${size}`);
           } catch (e) {
             out.push(`· 《${s.name}》转存失败：${e instanceof Error ? e.message : String(e)}`);

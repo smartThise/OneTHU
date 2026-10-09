@@ -50,21 +50,31 @@ async function token(): Promise<string> {
   return t;
 }
 
-/** 目标资料库：优先 IM 配置；否则自动挑一个（名字含 file/文件/OneTHU 优先）并记住（返回 id+名字） */
-export async function targetRepo(): Promise<{ repoId: string; repoName: string }> {
+/** 云盘资料库列表（用户选库用） */
+export async function listRepos(): Promise<Array<{ id: string; name: string }>> {
   const tk = await token();
+  return invoke<Array<{ id: string; name: string }>>("seafile_repos", { token: tk });
+}
+
+/** 已配置的目标资料库（未配置返回 null——**绝不自动猜**，由上层问用户） */
+export async function configuredRepo(): Promise<{ repoId: string; repoName: string } | null> {
   const cfg = await loadImConfig();
-  const repos = await invoke<Array<{ id: string; name: string }>>("seafile_repos", { token: tk });
-  if (!repos.length) throw new Error("云盘里没有资料库（先在网页端建一个）");
-  if (cfg.seafile?.repoId) {
+  if (!cfg.seafile?.repoId) return null;
+  try {
+    const repos = await listRepos();
     const hit = repos.find((r) => r.id === cfg.seafile!.repoId);
-    if (hit) return { repoId: hit.id, repoName: hit.name };
+    return hit ? { repoId: hit.id, repoName: hit.name } : null;
+  } catch {
+    return null;
   }
-  const pick = repos.find((r) => /file|文件|OneTHU/i.test(r.name)) ?? repos[0]!;
+}
+
+/** 记住用户选定的资料库（含默认根目录 /IM） */
+export async function setRepo(repoId: string, repoName: string): Promise<void> {
+  void repoName;
   await patchImConfig((c) => {
-    c.seafile = { repoId: pick.id, dir: c.seafile?.dir || "/IM" };
+    c.seafile = { repoId, dir: c.seafile?.dir || "/IM" };
   });
-  return { repoId: pick.id, repoName: pick.name };
 }
 
 /* ── 目录建议（看文件名/扩展名/预览内容；判断不了回默认） ── */
@@ -148,7 +158,9 @@ export async function commitStored(
   targetDir?: string,
 ): Promise<{ path: string; repoId: string; repoName: string; size: number }> {
   const tk = await token();
-  const { repoId, repoName } = await targetRepo();
+  const repo = await configuredRepo();
+  if (!repo) throw new Error("尚未指定资料库（请先回复库序号或库名，我来记住）");
+  const { repoId, repoName } = repo;
   const cfg = await loadImConfig();
   const base = (cfg.seafile?.dir || "/IM").replace(/\/+$/, "");
   const rawDir = (targetDir ?? staged.suggest.dir ?? "").trim();
