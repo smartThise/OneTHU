@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-tts-set-backend"
+description = "Enables the tts_set_backend command without any pre-configured scope."
+commands.allow = ["tts_set_backend"]
+
+[[permission]]
+identifier = "deny-tts-set-backend"
+description = "Denies the tts_set_backend command without any pre-configured scope."
+commands.deny = ["tts_set_backend"]

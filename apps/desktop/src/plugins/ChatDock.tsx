@@ -240,7 +240,8 @@ export function ChatDock(): ReactNode {
   const [msgs, setMsgs] = useState<ViewMsg[]>([]);
   const [input, setInput] = useState("");
   // 本地 TTS 朗读：开关持久化；就绪位轮询惰性更新（prepare 后状态由喇叭按钮驱动）
-  const [ttsOn, setTtsOn] = useState<boolean>(() => localStorage.getItem("onethu.voice.tts") === "1");
+  // 默认开启（系统 TTS 零下载；显式 "0" 才关）
+  const [ttsOn, setTtsOn] = useState<boolean>(() => localStorage.getItem("onethu.voice.tts") !== "0");
   const ttsReadyRef = useRef(false);
   const ttsOnRef = useRef(ttsOn);
   ttsOnRef.current = ttsOn;
@@ -266,7 +267,7 @@ export function ChatDock(): ReactNode {
       localStorage.setItem("onethu.voice.tts", "1");
       setTtsOn(true);
       setTtsPrep(true);
-      void ttsPrepare().catch(() => setTtsPrep(false));
+      void ttsPrepare("system").catch(() => setTtsPrep(false)); // 系统档即时初始化；neural 档在设置里按需下载
     }
   };
   useEffect(() => {
@@ -909,9 +910,9 @@ export function ChatDock(): ReactNode {
               <button
                 className={"btn dock-btn dock-ico" + (ttsOn ? " is-on" : "")}
                 title={
-                  !ttsOn ? "开启本地朗读（TTS，首次需下载 ~160MB 模型）"
-                    : ttsReady ? "本地朗读已开启"
-                    : ttsPrep ? "语音模型下载/准备中…" : "模型未就绪，点击重试准备"
+                  !ttsOn ? "开启本地朗读（系统语音引擎）"
+                    : ttsReady ? "本地朗读已开启（音色/音高可在语音设置中调）"
+                    : ttsPrep ? "语音引擎初始化中…" : "系统引擎未就绪，点击重试（或换神经引擎档）"
                 }
                 aria-label="本地朗读开关"
                 aria-pressed={ttsOn}

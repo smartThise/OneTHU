@@ -135,13 +135,16 @@ pub async fn tts_prepare<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
     }
 }
 
-/// 合成并流式朗读（异步：完成/停止经 onethu-voice://tts-done 事件）
+/// 合成并流式朗读（异步：完成/停止经 onethu-voice://tts-done 事件）。
+/// speed 两档后端均生效；pitch/voice 仅 system 档生效；sid 仅 neural 档生效。
 #[tauri::command]
 pub async fn tts_speak<R: Runtime>(
     app: AppHandle<R>,
     text: String,
     speed: Option<f64>,
+    pitch: Option<f64>,
     sid: Option<i32>,
+    voice: Option<String>,
 ) -> Result<(), String> {
     #[cfg(target_os = "android")]
     {
@@ -149,14 +152,20 @@ pub async fn tts_speak<R: Runtime>(
         let _: serde_json::Value = handle
             .run_mobile_plugin(
                 "ttsSpeak",
-                serde_json::json!({ "text": text, "speed": speed.unwrap_or(1.0), "sid": sid.unwrap_or(0) }),
+                serde_json::json!({
+                    "text": text,
+                    "speed": speed.unwrap_or(1.0),
+                    "pitch": pitch.unwrap_or(1.0),
+                    "sid": sid.unwrap_or(0),
+                    "voice": voice.unwrap_or_default(),
+                }),
             )
             .map_err(|e| e.to_string())?;
         Ok(())
     }
     #[cfg(not(target_os = "android"))]
     {
-        let _ = (&app, &text, &speed, &sid);
+        let _ = (&app, &text, &speed, &pitch, &sid, &voice);
         Err("此平台暂不支持本地语音合成".into())
     }
 }
@@ -193,5 +202,43 @@ pub async fn tts_status<R: Runtime>(app: AppHandle<R>) -> Result<serde_json::Val
     {
         let _ = &app;
         Ok(serde_json::json!({ "state": "unsupported", "progress": 0, "ready": false }))
+    }
+}
+
+/// 系统引擎中文音色列表（system 档）
+#[tauri::command]
+pub async fn tts_voices<R: Runtime>(app: AppHandle<R>) -> Result<serde_json::Value, String> {
+    #[cfg(target_os = "android")]
+    {
+        let handle = app.state::<crate::OnethuVoice<R>>().0.clone();
+        handle
+            .run_mobile_plugin("ttsVoices", serde_json::json!({}))
+            .map_err(|e| e.to_string())
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = &app;
+        Ok(serde_json::json!({ "voices": [] }))
+    }
+}
+
+/// 切换 TTS 后端（system=系统引擎默认 | neural=sherpa-onnx 可选下载）
+#[tauri::command]
+pub async fn tts_set_backend<R: Runtime>(
+    app: AppHandle<R>,
+    backend: String,
+) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        let handle = app.state::<crate::OnethuVoice<R>>().0.clone();
+        let _: serde_json::Value = handle
+            .run_mobile_plugin("ttsSetBackend", serde_json::json!({ "backend": backend }))
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (&app, &backend);
+        Ok(())
     }
 }

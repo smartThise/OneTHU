@@ -41,11 +41,12 @@ class OnethuVoicePlugin(private val activity: android.app.Activity) : Plugin(act
             payload.put("to", to.name)
             trigger("onethu-voice://state", payload)
         }
-        TtsEngine.onDone = { reason ->
+        VoiceTts.onDone = { reason ->
             val payload = JSObject()
             payload.put("reason", reason)
             trigger("onethu-voice://tts-done", payload)
         }
+        VoiceTts.ensureInit(activity)
     }
 
     private fun hasMic(): Boolean =
@@ -121,23 +122,28 @@ class OnethuVoicePlugin(private val activity: android.app.Activity) : Plugin(act
         invoke.resolve()
     }
 
-    // ---------- TTS ----------
+    // ---------- TTS（双后端：system=Android TextToSpeech 默认 / neural=sherpa-onnx 可选下载） ----------
 
     @Command
     fun ttsSupported(invoke: Invoke) {
-        val ok = try {
+        val neural = try {
             Class.forName("com.k2fsa.sherpa.onnx.OfflineTts")
             true
         } catch (_: Throwable) {
             false
         }
-        invoke.resolve(JSObject().put("value", ok))
+        invoke.resolve(JSObject().put("value", neural || SystemTts.ready))
     }
 
-    /** 触发后台准备（下载/解包/初始化），进度经 ttsStatus 轮询 */
+    /** 准备（backend=neural 时下载/解包/初始化模型；system 即时初始化引擎） */
     @Command
     fun ttsPrepare(invoke: Invoke) {
-        TtsEngine.prepare(activity)
+        val backend = invoke.getArgs().optString("backend", VoiceTts.BACKEND_SYSTEM)
+        if (backend == VoiceTts.BACKEND_NEURAL) {
+            TtsEngine.prepare(activity)
+        } else {
+            SystemTts.ensureInit(activity)
+        }
         invoke.resolve()
     }
 
@@ -145,28 +151,48 @@ class OnethuVoicePlugin(private val activity: android.app.Activity) : Plugin(act
     fun ttsSpeak(invoke: Invoke) {
         val text = invoke.getArgs().optString("text", "")
         val speed = invoke.getArgs().optDouble("speed", 1.0).toFloat()
+        val pitch = invoke.getArgs().optDouble("pitch", 1.0).toFloat()
         val sid = invoke.getArgs().optInt("sid", 0)
-        if (!TtsEngine.isReady()) {
-            invoke.reject("TTS 未就绪（state=${TtsEngine.state}）——先 tts_prepare")
+        val voiceName = invoke.getArgs().optString("voice", "")
+        if (!VoiceTts.isReady()) {
+            invoke.reject("TTS 未就绪（backend=${VoiceTts.backend}, state=${VoiceTts.status()}）")
             return
         }
-        val started = TtsEngine.speak(activity, text, speed, sid)
-        if (started) invoke.resolve() else invoke.reject("合成未开始（空文本？）")
+        val started = VoiceTts.speak(activity, text, speed, pitch, sid, voiceName.ifBlank { null })
+        if (started) invoke.resolve() else invoke.reject("合成未开始（空文本或引擎拒绝）")
     }
 
     @Command
     fun ttsStop(invoke: Invoke) {
-        TtsEngine.stopSpeak()
+        VoiceTts.stop()
         invoke.resolve()
     }
 
     @Command
     fun ttsStatus(invoke: Invoke) {
         val obj = JSObject()
-        obj.put("state", TtsEngine.state)
-        obj.put("progress", TtsEngine.progress)
-        obj.put("ready", TtsEngine.isReady())
+        obj.put("state", VoiceTts.status())
+        obj.put("progress", VoiceTts.progress())
+        obj.put("ready", VoiceTts.isReady())
+        obj.put("backend", VoiceTts.backend)
         invoke.resolve(obj)
+    }
+
+    /** 系统引擎中文音色列表（仅 system 档有效） */
+    @Command
+    fun ttsVoices(invoke: Invoke) {
+        SystemTts.ensureInit(activity)
+        val arr = org.json.JSONArray()
+        SystemTts.zhVoices().forEach { arr.put(it) }
+        invoke.resolve(JSObject().put("voices", arr))
+    }
+
+    /** 切换后端（system | neural），持久化 */
+    @Command
+    fun ttsSetBackend(invoke: Invoke) {
+        val backend = invoke.getArgs().optString("backend", VoiceTts.BACKEND_SYSTEM)
+        val ok = VoiceTts.setBackend(activity, backend)
+        if (ok) invoke.resolve() else invoke.reject("未知后端：$backend")
     }
 
     private fun startService() {

@@ -17,4 +17,6 @@ permissions = [
   "allow-tts-speak",
   "allow-tts-stop",
   "allow-tts-status",
+  "allow-tts-voices",
+  "allow-tts-set-backend",
 ]

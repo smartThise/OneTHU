@@ -18,6 +18,8 @@ fn main() {
         "tts_speak",
         "tts_stop",
         "tts_status",
+        "tts_voices",
+        "tts_set_backend",
     ];
     let result = tauri_plugin::Builder::new(commands)
         .android_path("android")

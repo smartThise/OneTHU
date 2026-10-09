@@ -70,6 +70,8 @@ export interface TtsStatus {
   state: "none" | "downloading" | "extracting" | "ready" | "error" | "unsupported";
   progress: number;
   ready: boolean;
+  /** system=Android 系统引擎（默认，零下载，pitch/voice 生效）| neural=sherpa-onnx（可选下载，音质好） */
+  backend: "system" | "neural";
 }
 
 export async function ttsSupported(): Promise<boolean> {
@@ -83,14 +85,45 @@ export async function ttsSupported(): Promise<boolean> {
 }
 
 /** 触发后台准备（下载→校验→解包→初始化）；进度轮询 ttsStatus */
-export async function ttsPrepare(): Promise<void> {
+export async function ttsPrepare(backend: "system" | "neural" = "system"): Promise<void> {
   const { invoke } = await import("@tauri-apps/api/core");
-  await invoke(cmd("tts_prepare"));
+  await invoke(cmd("tts_prepare"), { backend });
 }
 
-export async function ttsSpeak(text: string, speed = 1.0, sid = 0): Promise<void> {
+/**
+ * 朗读：speed 双后端生效；pitch/voice 仅 system 档；sid 仅 neural 档。
+ * 后端由 ttsSetBackend / ttsStatus.backend 决定。
+ */
+export async function ttsSpeak(
+  text: string,
+  opts: { speed?: number; pitch?: number; voice?: string; sid?: number } = {},
+): Promise<void> {
   const { invoke } = await import("@tauri-apps/api/core");
-  await invoke(cmd("tts_speak"), { text, speed, sid });
+  await invoke(cmd("tts_speak"), {
+    text,
+    speed: opts.speed ?? 1.0,
+    pitch: opts.pitch ?? 1.0,
+    voice: opts.voice ?? "",
+    sid: opts.sid ?? 0,
+  });
+}
+
+/** 系统引擎中文音色列表（system 档真实生效的音色选择） */
+export async function ttsVoices(): Promise<string[]> {
+  if (!isAndroid) return [];
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const v = await invoke<{ voices: string[] }>(cmd("tts_voices"));
+    return v.voices ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** 切换后端（system 即时可用；neural 需先 ttsPrepare("neural") 下载模型） */
+export async function ttsSetBackend(backend: "system" | "neural"): Promise<void> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke(cmd("tts_set_backend"), { backend });
 }
 
 export async function ttsStop(): Promise<void> {
@@ -101,12 +134,12 @@ export async function ttsStop(): Promise<void> {
 }
 
 export async function ttsStatus(): Promise<TtsStatus> {
-  if (!isAndroid) return { state: "unsupported", progress: 0, ready: false };
+  if (!isAndroid) return { state: "unsupported", progress: 0, ready: false, backend: "system" };
   try {
     const { invoke } = await import("@tauri-apps/api/core");
     return await invoke<TtsStatus>(cmd("tts_status"));
   } catch {
-    return { state: "unsupported", progress: 0, ready: false };
+    return { state: "unsupported", progress: 0, ready: false, backend: "system" };
   }
 }
 

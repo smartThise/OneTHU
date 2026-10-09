@@ -16,6 +16,8 @@
 - `allow-tts-speak`
 - `allow-tts-stop`
 - `allow-tts-status`
+- `allow-tts-voices`
+- `allow-tts-set-backend`
 
 ## Permission Table
 
@@ -48,6 +50,32 @@ Enables the tts_prepare command without any pre-configured scope.
 <td>
 
 Denies the tts_prepare command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`onethu-voice:allow-tts-set-backend`
+
+</td>
+<td>
+
+Enables the tts_set_backend command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`onethu-voice:deny-tts-set-backend`
+
+</td>
+<td>
+
+Denies the tts_set_backend command without any pre-configured scope.
 
 </td>
 </tr>
@@ -152,6 +180,32 @@ Enables the tts_supported command without any pre-configured scope.
 <td>
 
 Denies the tts_supported command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`onethu-voice:allow-tts-voices`
+
+</td>
+<td>
+
+Enables the tts_voices command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`onethu-voice:deny-tts-voices`
+
+</td>
+<td>
+
+Denies the tts_voices command without any pre-configured scope.
 
 </td>
 </tr>

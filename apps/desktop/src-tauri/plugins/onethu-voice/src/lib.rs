@@ -37,6 +37,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::tts_speak,
             commands::tts_stop,
             commands::tts_status,
+            commands::tts_voices,
+            commands::tts_set_backend,
         ])
         .setup(|app, api| {
             #[cfg(not(target_os = "android"))]
