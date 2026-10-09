@@ -90,6 +90,13 @@ function Routed() {
       .catch(() => undefined);
   }, []);
 
+  // IM 通道装配（无后端主案）：登录就绪后按配置自动连接（App 常驻 = bot 在线）。
+  // 动态 import：未就绪时不加载协议代码（与 ChatDock 懒加载同习惯）。
+  useEffect(() => {
+    if (status !== "ready") return;
+    void import("./im/boot.js").then((m) => m.bootIm()).catch(() => undefined);
+  }, [status]);
+
   const body = (() => {
     if (status === "booting") {
       return (
