@@ -98,6 +98,13 @@ export const IconBook = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+export const IconGitLab = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M12 21.5 3.6 9.9l1.6-6.4 2.6 4h8.4l2.6-4 1.6 6.4Z" />
+    <path d="M7.8 7.5 12 21.5l4.2-14" />
+  </svg>
+);
+
 export const IconMail = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}>
     <rect x="3" y="5" width="18" height="14" rx="2" />

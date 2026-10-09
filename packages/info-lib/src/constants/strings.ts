@@ -247,6 +247,8 @@ export const SPORTS_PAYMENT_CHECK_URL =
     "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421f6f60c93293c615e7b469dbf915b243daf0f96e17deaf447b4/zjjsfw/zjjs/check.do";
 export const SPORTS_PAYMENT_ACTION_URL =
     "https://webvpn.tsinghua.edu.cn/http/77726476706e69737468656265737421f6f60c93293c615e7b469dbf915b243daf0f96e17deaf447b4/zjjsfw/zjjs/webPay.do";
+export const GITLAB_WEB_BASE_URL =
+    "https://git.tsinghua.edu.cn";
 export const GITLAB_LOGIN_URL =
     "https://git.tsinghua.edu.cn/users/sign_in";
 export const GITLAB_AUTH_URL =

@@ -99,17 +99,66 @@ import {
 import {CrTimetable, SearchCoursePriorityQuery, SearchParams} from "./models/cr/cr";
 import {BankPaymentByMonth, GraduateIncome} from "./models/home/bank";
 import {
+    addAward,
+    addDiscussionNote,
+    addIssueNote,
+    addMergeRequestNote,
+    assignTo,
+    createDiscussion,
+    createMergeRequest,
+    createProjectIssue,
+    deleteDiscussionNote,
+    getAwards,
+    getCurrentUser,
+    getDiscussions,
+    getIssueNotes,
+    getJobTrace,
+    getMergeRequestChanges,
+    getMergeRequestNotes,
     getNamespaces,
     getPersonalProjects,
+    getPipelineJobs,
     getProjectBranches,
     getProjectDetail,
     getProjectFileBlob,
+    getProjectIssue,
+    getProjectIssues,
+    getProjectMergeRequest,
+    getProjectMergeRequests,
+    getProjectPipelines,
     getProjectTree,
     getRecentProjects,
+    getRequestCounts,
     getStarredProjects,
+    mergeMergeRequest,
+    removeAward,
     renderMarkdown,
+    resolveDiscussion,
     searchProjects,
+    setIssueState,
+    setMergeRequestState,
+    updateDiscussionNote,
+    updateIssueNote,
+    updateMergeRequestNote,
 } from "./lib/gitlab";
+export type {
+    Award as GitAward,
+    Branch as GitBranch,
+    DiffChange as GitDiffChange,
+    Discussion as GitDiscussion,
+    File as GitFile,
+    Issue as GitIssue,
+    Job as GitJob,
+    MergeRequest as GitMergeRequest,
+    MergeRequestChanges as GitMergeRequestChanges,
+    Namespace as GitNamespace,
+    Note as GitNote,
+    Pipeline as GitPipeline,
+    PipelineStatus as GitPipelineStatus,
+    Project as GitProject,
+    ProjectDetail as GitProjectDetail,
+    User as GitUser,
+} from "./models/gitlab/gitlab";
 import {CalendarData} from "./models/schedule/calendar";
 import {bookDetail, downloadChapters, searchReservesLib} from "./lib/reserves-lib";
 import {BookChapter} from "./models/home/reserves-lib";
@@ -1000,6 +1049,108 @@ export class InfoHelper {
     public getGitProjectFileBlob = async (id: number, sha: string) => getProjectFileBlob(this, id, sha);
 
     public renderGitMarkdown = async (text: string) => renderMarkdown(this, text);
+
+    public getGitCurrentUser = async () => getCurrentUser(this);
+
+    public getGitProjectIssues = async (id: number, state = "opened", search = "", page = 1) =>
+        getProjectIssues(this, id, state, search, page);
+
+    public getGitProjectIssue = async (id: number, iid: number) => getProjectIssue(this, id, iid);
+
+    public getGitIssueNotes = async (id: number, iid: number) => getIssueNotes(this, id, iid);
+
+    public getGitProjectMergeRequests = async (id: number, state = "opened", search = "", page = 1) =>
+        getProjectMergeRequests(this, id, state, search, page);
+
+    public getGitProjectMergeRequest = async (id: number, iid: number) => getProjectMergeRequest(this, id, iid);
+
+    public getGitMergeRequestNotes = async (id: number, iid: number) => getMergeRequestNotes(this, id, iid);
+
+    public getGitProjectPipelines = async (id: number, ref = "", page = 1) => getProjectPipelines(this, id, ref, page);
+
+    public getGitPipelineJobs = async (id: number, pipelineId: number) => getPipelineJobs(this, id, pipelineId);
+
+    public getGitJobTrace = async (id: number, jobId: number) => getJobTrace(this, id, jobId);
+
+    public createGitProjectIssue = async (id: number, title: string, description: string) =>
+        createProjectIssue(this, id, title, description);
+
+    public setGitIssueState = async (id: number, iid: number, state: "close" | "reopen") =>
+        setIssueState(this, id, iid, state);
+
+    public addGitIssueNote = async (id: number, iid: number, body: string) => addIssueNote(this, id, iid, body);
+
+    public setGitMergeRequestState = async (id: number, iid: number, state: "close" | "reopen") =>
+        setMergeRequestState(this, id, iid, state);
+
+    public addGitMergeRequestNote = async (id: number, iid: number, body: string) =>
+        addMergeRequestNote(this, id, iid, body);
+
+    public updateGitIssueNote = async (id: number, iid: number, noteId: number, body: string) =>
+        updateIssueNote(this, id, iid, noteId, body);
+
+    public updateGitMergeRequestNote = async (id: number, iid: number, noteId: number, body: string) =>
+        updateMergeRequestNote(this, id, iid, noteId, body);
+
+    public getGitAwards = async (kind: "issue" | "mr", id: number, iid: number, noteId?: number) =>
+        getAwards(this, kind, id, iid, noteId);
+
+    public addGitAward = async (kind: "issue" | "mr", id: number, iid: number, name: string, noteId?: number) =>
+        addAward(this, kind, id, iid, name, noteId);
+
+    public removeGitAward = async (kind: "issue" | "mr", id: number, iid: number, awardId: number, noteId?: number) =>
+        removeAward(this, kind, id, iid, awardId, noteId);
+
+    public getGitMergeRequestChanges = async (id: number, iid: number) => getMergeRequestChanges(this, id, iid);
+
+    public createGitMergeRequest = async (
+        id: number,
+        sourceBranch: string,
+        targetBranch: string,
+        title: string,
+        description: string,
+    ) => createMergeRequest(this, id, sourceBranch, targetBranch, title, description);
+
+    public mergeGitMergeRequest = async (id: number, iid: number) => mergeMergeRequest(this, id, iid);
+
+    public getGitDiscussions = async (kind: "issue" | "mr", id: number, iid: number, page = 1) =>
+        getDiscussions(this, kind, id, iid, page);
+
+    public createGitDiscussion = async (kind: "issue" | "mr", id: number, iid: number, body: string) =>
+        createDiscussion(this, kind, id, iid, body);
+
+    public addGitDiscussionNote = async (kind: "issue" | "mr", id: number, iid: number, discussionId: string, body: string) =>
+        addDiscussionNote(this, kind, id, iid, discussionId, body);
+
+    public updateGitDiscussionNote = async (
+        kind: "issue" | "mr",
+        id: number,
+        iid: number,
+        discussionId: string,
+        noteId: number,
+        body: string,
+    ) => updateDiscussionNote(this, kind, id, iid, discussionId, noteId, body);
+
+    public deleteGitDiscussionNote = async (
+        kind: "issue" | "mr",
+        id: number,
+        iid: number,
+        discussionId: string,
+        noteId: number,
+    ) => deleteDiscussionNote(this, kind, id, iid, discussionId, noteId);
+
+    public resolveGitDiscussion = async (
+        kind: "issue" | "mr",
+        id: number,
+        iid: number,
+        discussionId: string,
+        resolved: boolean,
+    ) => resolveDiscussion(this, kind, id, iid, discussionId, resolved);
+
+    public assignGitTo = async (kind: "issue" | "mr", id: number, iid: number, userIds: number[]) =>
+        assignTo(this, kind, id, iid, userIds);
+
+    public getGitRequestCounts = async (kind: "issue" | "mr", id: number) => getRequestCounts(this, kind, id);
 
     public searchReservesLib = async (bookName: string, page?: number) => searchReservesLib(this, bookName, page);
 

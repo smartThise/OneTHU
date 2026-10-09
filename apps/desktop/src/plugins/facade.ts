@@ -31,6 +31,7 @@ import { getLearnSnapshot } from "../state/data.js";
 import { getExtHwSnapshot, toHomework } from "../state/exthw.js";
 import { parseLearnTime } from "@onethu/core";
 import { ensureSeafileLoaded, getSeafileToken } from "../state/seafile.js";
+import type { GitlabIssueState } from "../state/gitlab.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -286,10 +287,76 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
     },
   }, perms, "mail:write");
 
+  /** GitLab：读方法用页号（每页 50 条），写方法在应用内页面之外也能调，
+   *  安装时需向用户说明——写操作直接改远端仓库状态。 */
+  const gitlabRead = wrap({
+    projects: async (page = 1) => (await import("../state/gitlab.js")).gitlabProjectsPage(page),
+    starred: async (page = 1) => (await import("../state/gitlab.js")).gitlabStarredPage(page),
+    search: async (search: string, page = 1) => (await import("../state/gitlab.js")).gitlabSearchPage(String(search ?? ""), page),
+    project: async (id: number) => (await import("../state/gitlab.js")).gitlabProject(Number(id)),
+    branches: async (id: number) => (await import("../state/gitlab.js")).gitlabBranches(Number(id)),
+    tree: async (id: number, path: string, ref: string, page = 1) =>
+      (await import("../state/gitlab.js")).gitlabTreePage(Number(id), String(path ?? ""), String(ref ?? ""), page),
+    file: async (id: number, sha: string) => (await import("../state/gitlab.js")).gitlabFile(Number(id), String(sha ?? "")),
+    issues: async (id: number, opts?: { state?: GitlabIssueState; search?: string; page?: number }) =>
+      (await import("../state/gitlab.js")).gitlabIssuesPage(Number(id), opts?.state ?? "opened", String(opts?.search ?? ""), opts?.page ?? 1),
+    issue: async (id: number, iid: number) => (await import("../state/gitlab.js")).gitlabIssue(Number(id), Number(iid)),
+    issueNotes: async (id: number, iid: number) => (await import("../state/gitlab.js")).gitlabIssueNotes(Number(id), Number(iid)),
+    mergeRequests: async (id: number, opts?: { state?: GitlabIssueState; search?: string; page?: number }) =>
+      (await import("../state/gitlab.js")).gitlabMergeRequestsPage(Number(id), opts?.state ?? "opened", String(opts?.search ?? ""), opts?.page ?? 1),
+    mergeRequest: async (id: number, iid: number) => (await import("../state/gitlab.js")).gitlabMergeRequest(Number(id), Number(iid)),
+    mergeRequestNotes: async (id: number, iid: number) => (await import("../state/gitlab.js")).gitlabMergeRequestNotes(Number(id), Number(iid)),
+    pipelines: async (id: number, opts?: { ref?: string; page?: number }) =>
+      (await import("../state/gitlab.js")).gitlabPipelinesPage(Number(id), String(opts?.ref ?? ""), opts?.page ?? 1),
+    jobs: async (id: number, pipelineId: number) => (await import("../state/gitlab.js")).gitlabPipelineJobs(Number(id), Number(pipelineId)),
+    jobTrace: async (id: number, jobId: number) => (await import("../state/gitlab.js")).gitlabJobTrace(Number(id), Number(jobId)),
+    discussions: async (kind: "issue" | "mr", id: number, iid: number, page = 1) =>
+      (await import("../state/gitlab.js")).gitlabDiscussions(kind === "mr" ? "mr" : "issue", Number(id), Number(iid), Math.max(1, page)),
+    awards: async (kind: "issue" | "mr", id: number, iid: number, noteId?: number) =>
+      (await import("../state/gitlab.js")).gitlabAwards(kind === "mr" ? "mr" : "issue", Number(id), Number(iid), noteId === undefined ? undefined : Number(noteId)),
+    mergeRequestChanges: async (id: number, iid: number) =>
+      (await import("../state/gitlab.js")).gitlabMergeRequestChanges(Number(id), Number(iid)),
+    requestCounts: async (kind: "issue" | "mr", id: number) =>
+      (await import("../state/gitlab.js")).gitlabRequestCounts(kind === "mr" ? "mr" : "issue", Number(id)),
+  }, perms, "gitlab:read");
+  const gitlabWrite = wrap({
+    createIssue: async (id: number, title: string, description: string) =>
+      (await import("../state/gitlab.js")).gitlabCreateIssue(Number(id), String(title ?? ""), String(description ?? "")),
+    comment: async (kind: "issue" | "mr", id: number, iid: number, body: string) =>
+      (await import("../state/gitlab.js")).gitlabAddNote(kind === "mr" ? "mr" : "issue", Number(id), Number(iid), String(body ?? "")),
+    updateComment: async (kind: "issue" | "mr", id: number, iid: number, noteId: number, body: string) =>
+      (await import("../state/gitlab.js")).gitlabUpdateNote(kind === "mr" ? "mr" : "issue", Number(id), Number(iid), Number(noteId), String(body ?? "")),
+    reply: async (kind: "issue" | "mr", id: number, iid: number, discussionId: string, body: string) =>
+      (await import("../state/gitlab.js")).gitlabReply(kind === "mr" ? "mr" : "issue", Number(id), Number(iid), String(discussionId ?? ""), String(body ?? "")),
+    deleteComment: async (kind: "issue" | "mr", id: number, iid: number, discussionId: string, noteId: number) => {
+      await (await import("../state/gitlab.js")).gitlabDeleteNote(kind === "mr" ? "mr" : "issue", Number(id), Number(iid), String(discussionId ?? ""), Number(noteId));
+    },
+    resolveDiscussion: async (kind: "issue" | "mr", id: number, iid: number, discussionId: string, resolved: boolean) => {
+      await (await import("../state/gitlab.js")).gitlabResolveDiscussion(kind === "mr" ? "mr" : "issue", Number(id), Number(iid), String(discussionId ?? ""), resolved !== false);
+    },
+    assignees: async (kind: "issue" | "mr", id: number, iid: number, userIds: number[]) => {
+      const ids = (Array.isArray(userIds) ? userIds : []).map((n) => Number(n)).filter((n) => Number.isFinite(n));
+      await (await import("../state/gitlab.js")).gitlabAssign(kind === "mr" ? "mr" : "issue", Number(id), Number(iid), ids);
+    },
+    react: async (kind: "issue" | "mr", id: number, iid: number, name: string, noteId?: number) =>
+      (await import("../state/gitlab.js")).gitlabAddAward(kind === "mr" ? "mr" : "issue", Number(id), Number(iid), String(name ?? ""), noteId === undefined ? undefined : Number(noteId)),
+    unreact: async (kind: "issue" | "mr", id: number, iid: number, awardId: number, noteId?: number) => {
+      await (await import("../state/gitlab.js")).gitlabRemoveAward(kind === "mr" ? "mr" : "issue", Number(id), Number(iid), Number(awardId), noteId === undefined ? undefined : Number(noteId));
+    },
+    createMergeRequest: async (id: number, sourceBranch: string, targetBranch: string, title: string, description: string) =>
+      (await import("../state/gitlab.js")).gitlabCreateMergeRequest(Number(id), String(sourceBranch ?? ""), String(targetBranch ?? ""), String(title ?? ""), String(description ?? "")),
+    mergeMergeRequest: async (id: number, iid: number) =>
+      (await import("../state/gitlab.js")).gitlabMerge(Number(id), Number(iid)),
+    setState: async (kind: "issue" | "mr", id: number, iid: number, state: "close" | "reopen") => {
+      await (await import("../state/gitlab.js")).gitlabSetState(kind === "mr" ? "mr" : "issue", Number(id), Number(iid), state === "reopen" ? "reopen" : "close");
+    },
+  }, perms, "gitlab:write");
+
   const api: OnethuApi = {
     cal: calNs as unknown as OnethuApi["cal"],
     mail: { ...mailRead, ...mailWrite } as OnethuApi["mail"],
     cloud: { ...cloudRead, ...cloudWrite } as OnethuApi["cloud"],
+    gitlab: { ...gitlabRead, ...gitlabWrite } as unknown as OnethuApi["gitlab"],
     session: {
       status: () => {
         gate(perms, "user:read", "session.status");

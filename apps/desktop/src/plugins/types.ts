@@ -30,6 +30,8 @@ export type PluginPermission =
   | "mail:write" // 清华邮箱发信（写操作，需确认）
   | "cloud:read" // 清华云盘资料库/目录/搜索/下载（Seafile）
   | "cloud:write" // 清华云盘上传/分享（写操作，需确认）
+  | "gitlab:read" // 清华 GitLab 项目/仓库文件/Issue/合并请求/流水线（只读）
+  | "gitlab:write" // 清华 GitLab 新建 Issue、评论、关闭或重开（写操作，需确认）
   | "nav" // 应用内页面跳转
   | "ui" // toast 提示
   | "storage" // 插件私有键值存储
@@ -61,6 +63,8 @@ export const PLUGIN_PERMISSIONS: ReadonlyArray<{ id: PluginPermission; label: st
   { id: "mail:write", label: "发邮件", desc: "从清华邮箱发信（写操作，需确认）" },
   { id: "cloud:read", label: "读取云盘", desc: "清华云盘资料库、目录浏览、库内搜索与下载" },
   { id: "cloud:write", label: "上传/分享云盘", desc: "上传文件到云盘、生成分享链接（写操作，需确认）" },
+  { id: "gitlab:read", label: "读取 GitLab", desc: "清华 GitLab 项目、仓库文件、Issue、合并请求与流水线（只读）" },
+  { id: "gitlab:write", label: "GitLab 写操作", desc: "新建 Issue、发表评论、关闭或重开 Issue 与合并请求（写操作，需确认）" },
   { id: "card:read", label: "读取校园卡", desc: "余额与消费流水（只读，不含充值）" },
   { id: "dorm:read", label: "读取宿舍信息", desc: "电费余额/缴费记录/卫生分（只读）" },
   { id: "library:read", label: "查询图书馆", desc: "楼层/区域/座位分布/预约记录 + 研讨间资源查询" },
@@ -288,8 +292,72 @@ export interface OnethuApi {
     /** 分享链接（expireDays=0 永久） */
     share(repoId: string, path: string, expireDays: number): Promise<{ link: string; token: string }>;
   };
-  kongjian: {
-    page(opts?: { spaceId?: string; roomId?: string; date?: string }): Promise<import("@onethu/core").KongjianPage>;
+  /** 清华 GitLab（git.tsinghua.edu.cn）：项目、仓库文件、Issue、合并请求与流水线。
+   *  id 为项目数字 id（`projects()` / `search()` 返回元素的 id），iid 为项目内编号
+   *  （Issue 与合并请求各自计数，等于网页地址里的那个号）。 */
+  gitlab: {
+    /** 我参与的项目（page 从 1 起，每页 50 条） */
+    projects(page?: number): Promise<import("@onethu/info-lib").GitProject[]>;
+    /** 我星标的项目 */
+    starred(page?: number): Promise<import("@onethu/info-lib").GitProject[]>;
+    /** 按名称搜索项目 */
+    search(search: string, page?: number): Promise<import("@onethu/info-lib").GitProject[]>;
+    /** 项目详情 */
+    project(id: number): Promise<import("@onethu/info-lib").GitProjectDetail>;
+    /** 分支列表（默认分支排在最前） */
+    branches(id: number): Promise<import("@onethu/info-lib").GitBranch[]>;
+    /** 目录内容：path 传空串表示根目录，ref 传分支名 */
+    tree(id: number, path: string, ref: string, page?: number): Promise<import("@onethu/info-lib").GitFile[]>;
+    /** 文件正文（sha 取自 tree 返回元素的 id；二进制文件会得到乱码） */
+    file(id: number, sha: string): Promise<string>;
+    issues(id: number, opts?: { state?: "opened" | "closed" | "all"; search?: string; page?: number }): Promise<import("@onethu/info-lib").GitIssue[]>;
+    issue(id: number, iid: number): Promise<import("@onethu/info-lib").GitIssue>;
+    /** Issue 评论（含系统动态，`system: true` 的条目为状态变更记录） */
+    issueNotes(id: number, iid: number): Promise<import("@onethu/info-lib").GitNote[]>;
+    mergeRequests(id: number, opts?: { state?: "opened" | "closed" | "all"; search?: string; page?: number }): Promise<import("@onethu/info-lib").GitMergeRequest[]>;
+    mergeRequest(id: number, iid: number): Promise<import("@onethu/info-lib").GitMergeRequest>;
+    mergeRequestNotes(id: number, iid: number): Promise<import("@onethu/info-lib").GitNote[]>;
+    /** 流水线记录（ref 传分支名，空串为全部） */
+    pipelines(id: number, opts?: { ref?: string; page?: number }): Promise<import("@onethu/info-lib").GitPipeline[]>;
+    /** 某次流水线的作业 */
+    jobs(id: number, pipelineId: number): Promise<import("@onethu/info-lib").GitJob[]>;
+    /** 作业日志（纯文本，带 ANSI 颜色码） */
+    jobTrace(id: number, jobId: number): Promise<string>;
+    /** 新建 Issue（写操作） */
+    createIssue(id: number, title: string, description: string): Promise<import("@onethu/info-lib").GitIssue>;
+    /** 评论 Issue 或合并请求（写操作） */
+    comment(kind: "issue" | "mr", id: number, iid: number, body: string): Promise<import("@onethu/info-lib").GitNote>;
+    /** 改写自己已有的评论（写操作；noteId 取自 issueNotes / mergeRequestNotes 的元素 id，
+     *  GitLab 只允许作者本人改） */
+    updateComment(kind: "issue" | "mr", id: number, iid: number, noteId: number, body: string): Promise<import("@onethu/info-lib").GitNote>;
+    /** 讨论（评论线程）：首条评论 + 回复；`individual_note` 为真的讨论只有一条 */
+    discussions(kind: "issue" | "mr", id: number, iid: number, page?: number): Promise<import("@onethu/info-lib").GitDiscussion[]>;
+    /** 回复某条评论（写操作，附在该讨论末尾） */
+    reply(kind: "issue" | "mr", id: number, iid: number, discussionId: string, body: string): Promise<import("@onethu/info-lib").GitNote>;
+    /** 删除一条评论（写操作；GitLab 只允许作者本人删） */
+    deleteComment(kind: "issue" | "mr", id: number, iid: number, discussionId: string, noteId: number): Promise<void>;
+    /** 解决 / 重新打开整个讨论（写操作；GitLab 网页上评论右侧那个 Resolve） */
+    resolveDiscussion(kind: "issue" | "mr", id: number, iid: number, discussionId: string, resolved: boolean): Promise<void>;
+    /** 指派（写操作；userIds 传空数组取消全部指派） */
+    assignees(kind: "issue" | "mr", id: number, iid: number, userIds: number[]): Promise<void>;
+    /** 议题 / 合并请求的条数（服务端 x-total：进行中 / 已关闭 / 全部） */
+    requestCounts(kind: "issue" | "mr", id: number): Promise<{ opened: number; closed: number; all: number }>;
+    /** 表情回应（award emoji）：挂在议题 / 合并请求本体，或挂在某条评论上（传 noteId） */
+    awards(kind: "issue" | "mr", id: number, iid: number, noteId?: number): Promise<import("@onethu/info-lib").GitAward[]>;
+    /** 贴一个表情回应（写操作；name 取 thumbsup / thumbsdown / laugh / hooray / confused / heart / eyes / rocket） */
+    react(kind: "issue" | "mr", id: number, iid: number, name: string, noteId?: number): Promise<import("@onethu/info-lib").GitAward>;
+    /** 取消某个表情回应（写操作；awardId 取自 awards 元素的 id） */
+    unreact(kind: "issue" | "mr", id: number, iid: number, awardId: number, noteId?: number): Promise<void>;
+    /** 合并请求的文件变更与差异 */
+    mergeRequestChanges(id: number, iid: number): Promise<import("@onethu/info-lib").GitMergeRequestChanges>;
+    /** 新建合并请求（写操作；源分支与目标分支不能相同） */
+    createMergeRequest(id: number, sourceBranch: string, targetBranch: string, title: string, description: string): Promise<import("@onethu/info-lib").GitMergeRequest>;
+    /** 合入合并请求（写操作；不代删源分支、不改提交信息） */
+    mergeMergeRequest(id: number, iid: number): Promise<import("@onethu/info-lib").GitMergeRequest>;
+    /** 关闭或重新打开（写操作；kind 取 "issue" 或 "mr"，state 取 "close" 或 "reopen"） */
+    setState(kind: "issue" | "mr", id: number, iid: number, state: "close" | "reopen"): Promise<void>;
+  };
+  kongjian: {    page(opts?: { spaceId?: string; roomId?: string; date?: string }): Promise<import("@onethu/core").KongjianPage>;
     my(): Promise<import("@onethu/core").KongjianRecord[]>;
     book(bookUrl: string, info_: { name: string; sid: string; tel: string; other: string }): Promise<string>;
     cancel(target: string): Promise<void>;

@@ -348,6 +348,7 @@ const EMBEDDED_HARNESS_MANIFEST: PluginManifest = {
     "library:read", "library:book", "network:read",
     "learn:read", "learn:write", "venue:read", "venue:book", "xk:read", "kongjian:book",
     "cal:read", "cal:write", "mail:read", "mail:write", "cloud:read", "cloud:write",
+    "gitlab:read", "gitlab:write",
     "nav", "ui", "storage", "net:external", "llm", "plugins:call"],
   settings: [
     { key: "provider", label: "模型源", type: "select", default: "", options: [

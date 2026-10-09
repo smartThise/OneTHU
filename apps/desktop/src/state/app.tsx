@@ -18,6 +18,7 @@ export type Page =
   | "thos" // 在线服务（THOS 服务大厅原生化：事项列表 + 服务目录）
   | "mail" // 邮箱（IMAP 收 / SMTP 发，复用云日历凭据）
   | "cloud" // 清华云盘（Seafile Web API）
+  | "gitlab" // 清华 GitLab（git.tsinghua.edu.cn REST API v4）
   | "thubook" // THUbook（清华手册 thubook.help 内嵌阅读器 + OH 工具）
   | "folder" // 用户收藏夹页（navParams.folderId 指向具体收藏夹）
   | "tasks" // 待办聚合页（UI/UX 改造 §2.2 M1：作业+预约+考试+余额的"今天该管的事"）
@@ -57,6 +58,13 @@ export interface LearnNav {
   semesterId?: string;
   /** 云盘直达资料库：进入云盘页时自动打开该库（原子深链） */
   cloudRepo?: string;
+  /** GitLab 直达项目（原子深链） */
+  gitlabProject?: number;
+  /** GitLab 项目内页签（缺省 code） */
+  gitlabTab?: "code" | "issues" | "mrs" | "pipelines";
+  /** GitLab 实体深链：kind 指明页签归属，iid 为 Issue 或合并请求的内部编号 */
+  gitlabKind?: "issue" | "mr";
+  gitlabIid?: number;
   /** 网络学堂首页直达 DDL 提醒设置：携带 true 时「DDL 提醒」卡自动弹开设置层（原子深链） */
   learnOpenHwRemind?: boolean;
   /** 邮箱页直达写信：携带 true 时挂载即弹写信层（原子深链） */
@@ -115,7 +123,7 @@ export interface LearnNav {
   folderId?: string;
 }
 
-const TOP_PAGES = ["today", "learn", "schedule", "trace", "mail", "cloud", "thubook", "info", "life", "reserve", "zhjwxk", "thos", "otherinfo", "plugins", "folder", "settings", "services", "favs", "tasks"] as const; // services/favs：M1 新 IA 底栏直达页（漏过会落到 learn 兜底） // trace/otherinfo 各漏过一次：不加的话侧栏/标题/hash 全落到 learn 兜底
+const TOP_PAGES = ["today", "learn", "schedule", "trace", "mail", "cloud", "gitlab", "thubook", "info", "life", "reserve", "zhjwxk", "thos", "otherinfo", "plugins", "folder", "settings", "services", "favs", "tasks"] as const; // services/favs：M1 新 IA 底栏直达页（漏过会落到 learn 兜底） // trace/otherinfo 各漏过一次：不加的话侧栏/标题/hash 全落到 learn 兜底
 
 /**
  * R20-B2：雨课堂作业原生详情页参数。
