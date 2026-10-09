@@ -509,7 +509,7 @@ export function Shell({ children }: { children: ReactNode }) {
             ) : null}
           </>
         ) : null}
-        {/* 钉底固定项：插件 + 设置——不进收藏夹体系，不可折叠不可改序 */}
+        {/* 钉底固定项：设置——不进收藏夹体系，不可折叠不可改序（插件 2026-10-09 升一级菜单，见上） */}
         <div className="nav-sep" aria-hidden />
         {navRow("settings", {
           active: page === "settings",
