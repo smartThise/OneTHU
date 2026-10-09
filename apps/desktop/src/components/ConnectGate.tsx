@@ -49,6 +49,8 @@ export function ConnectGate({
   const expanded = useExpanded();
   const [channel, setChannel] = useState<"qr" | "web">("qr");
   const [token, setToken] = useState("");
+  const [manualOpen, setManualOpen] = useState(false);
+  const [autoMsg, setAutoMsg] = useState<string | null>(null);
   const [mailAddr, setMailAddr] = useState("");
   const [mailCode, setMailCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -93,6 +95,30 @@ export function ConnectGate({
       done(st.mail ? "邮箱已连接（云日历同步共用同一套登录信息）" : "邮箱没连上，请再试一次");
     } catch (e) {
       fail(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** 自动连接（SSO 静默爬 profile token）——用户定案：自动为主，手动仅兜底 */
+  const cloudAuto = async (): Promise<void> => {
+    setBusy(true);
+    setErr(null);
+    setAutoMsg(null);
+    try {
+      const { autoConnectSeafile } = await import("../state/seafileAuto.js");
+      const r = await autoConnectSeafile();
+      if (r.ok) {
+        showToast(`云盘已自动连接：${r.account?.name ?? ""}`);
+        onDone?.();
+        onClose();
+      } else {
+        setAutoMsg(r.error ?? "自动获取失败");
+        setManualOpen(true);
+      }
+    } catch (e) {
+      setAutoMsg(e instanceof Error ? e.message : String(e));
+      setManualOpen(true);
     } finally {
       setBusy(false);
     }
@@ -185,20 +211,40 @@ export function ConnectGate({
       return (
         <div style={{ display: "grid", gap: 10 }}>
           <div className="setting-desc" style={{ margin: 0 }}>
-            在云盘网页端生成一个访问口令（Web API Auth Token），粘贴到下面。口令只存本机。
+            已登录 OneTHU 即可<b>自动获取</b>云盘凭证（经统一认证静默授权，凭证只存本机）。
           </div>
+          {autoMsg ? (
+            <div className="setting-desc" style={{ margin: 0, color: "var(--state-warn-primary, #b45309)" }}>
+              {autoMsg}
+            </div>
+          ) : null}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <input
-              className="input"
-              style={{ flex: 1, minWidth: 180 }}
-              placeholder="粘贴云盘访问口令"
-              value={token}
-              onChange={(e) => setToken(e.target.value.trim())}
-            />
-            <button className="btn primary" disabled={!token || busy} onClick={() => void cloudConnect()}>
-              {busy ? "连接中…" : "连接"}
+            <button className="btn primary" disabled={busy} onClick={() => void cloudAuto()}>
+              {busy ? "获取中…" : "自动连接"}
+            </button>
+            <button className="btn" onClick={() => setManualOpen((v) => !v)}>
+              {manualOpen ? "收起手动填写" : "手动填写（自动获取失败时）"}
             </button>
           </div>
+          {manualOpen ? (
+            <>
+              <div className="setting-desc" style={{ margin: 0 }}>
+                云盘网页端 → <b>Web API Auth Token</b> → 生成并复制，粘贴到下面（仅存本机）。
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <input
+                  className="input"
+                  style={{ flex: 1, minWidth: 180 }}
+                  placeholder="粘贴云盘访问口令"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value.trim())}
+                />
+                <button className="btn primary" disabled={!token || busy} onClick={() => void cloudConnect()}>
+                  {busy ? "连接中…" : "连接"}
+                </button>
+              </div>
+            </>
+          ) : null}
         </div>
       );
     }

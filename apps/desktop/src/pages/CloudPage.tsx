@@ -40,6 +40,8 @@ function fmtMtime(sec: number): string {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
+import { confirmDanger } from "../lib/confirm.js";
+
 const TOKEN_PAGE = "https://cloud.tsinghua.edu.cn/profile/#get-auth-token";
 
 export default function CloudPage(): ReactNode {
@@ -280,7 +282,18 @@ export default function CloudPage(): ReactNode {
         <button className="btn" disabled={busy} onClick={() => { refreshSeafileAccount().catch(() => undefined); refreshRepos().catch(() => undefined); }}>
           <IconRefresh style={{ width: 14, height: 14 }} /> 刷新
         </button>
-        <button className="btn" onClick={() => clearSeafileToken().then(() => showToast("已断开云盘"))}>
+        <button
+          className="btn"
+          onClick={async () => {
+            const ok = await confirmDanger(
+              "断开云盘？\n\n断开后：\n· 记忆与主对话只在**本机**保存（不再跨设备同步）\n· IM 收到的附件只能查看内容，不能转存云盘\n· 云盘页浏览/下载不可用\n\n随时可点「自动连接」重新连上。",
+              { title: "断开云盘", confirmText: "确认断开" },
+            );
+            if (!ok) return;
+            await clearSeafileToken();
+            showToast("已断开云盘（记忆/附件转为本地模式，随时可重连）");
+          }}
+        >
           <IconExternal style={{ width: 14, height: 14 }} /> 断开
         </button>
       </div>
