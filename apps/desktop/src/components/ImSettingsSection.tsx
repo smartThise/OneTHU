@@ -14,6 +14,10 @@ import { Switch } from "./Layout.js";
 import { QRCodeSVG } from "qrcode.react";
 import { loadImConfig, patchImConfig } from "../im/store.js";
 import { wechatLoginCancel, wechatLoginPoll, wechatLoginStart } from "../im/wechat.js";
+import {
+  beginFeishuRegistration, pollFeishuRegistration,
+  type FeishuRegSession,
+} from "../im/feishuReg.js";
 import { newBindCode, useChannelStatus } from "../im/registry.js";
 import { syncChannels } from "../im/boot.js";
 import type { ImConfig } from "../im/store.js";
@@ -42,6 +46,9 @@ export function ImSettingsSection(): ReactNode {
   const [code, setCode] = useState<string | null>(null);
   const [wxQr, setWxQr] = useState<string | null>(null);
   const [wxNote, setWxNote] = useState("");
+  const [fsReg, setFsReg] = useState<FeishuRegSession | null>(null);
+  const [fsNote, setFsNote] = useState("");
+  const [fsDomain, setFsDomain] = useState<"feishu" | "lark">("feishu");
   const fs = useChannelStatus("feishu");
   const wechatStatus = useChannelStatus("wechat");
 
@@ -74,6 +81,50 @@ export function ImSettingsSection(): ReactNode {
     setCfg(await loadImConfig());
     await syncChannels();
     flash(v ? "已启用，正在连接…" : "已停用");
+  };
+
+  // 飞书扫码创建应用轮询（device-code 流：按服务端 interval 节奏；成功后自动填凭据）
+  useEffect(() => {
+    if (!fsReg) return;
+    const t = window.setInterval(
+      () => {
+        void pollFeishuRegistration(fsReg, fsDomain)
+          .then(async (r) => {
+            setFsNote(r.note);
+            if (r.status === "pending" && r.note.includes("Lark")) setFsDomain("lark");
+            if (r.status === "success" && r.appId && r.appSecret) {
+              setAppId(r.appId);
+              setAppSecret(r.appSecret);
+              await patchImConfig((c) => {
+                c.channels.feishu = { appId: r.appId!, appSecret: r.appSecret! };
+                c.enabled.feishu = true;
+                if (r.openId) c.bindings.feishu = r.openId; // 应用所有者默认即主人
+              });
+              setCfg(await loadImConfig());
+              await syncChannels();
+              setFsReg(null);
+              flash("飞书应用已创建并连接（扫码建应用成功）");
+            } else if (r.status === "access_denied" || r.status === "expired" || r.status === "error") {
+              setFsReg(null);
+            }
+          })
+          .catch(() => undefined);
+      },
+      Math.max(3, fsReg.intervalSec) * 1_000,
+    );
+    return () => window.clearInterval(t);
+  }, [fsReg, fsDomain]);
+
+  const startFsReg = async (): Promise<void> => {
+    setMsg(null);
+    setFsDomain("feishu");
+    try {
+      const sess = await beginFeishuRegistration();
+      setFsReg(sess);
+      setFsNote("请用手机飞书扫码，并在打开页确认创建智能体应用");
+    } catch (e) {
+      flash(`发起飞书扫码失败：${e instanceof Error ? e.message : String(e)}`);
+    }
   };
 
   // 微信扫码登录轮询（登录会话有效期内 1.5s 一次）
@@ -130,7 +181,30 @@ export function ImSettingsSection(): ReactNode {
 
       <div className="setting-row">
         <div>
-          <div className="setting-title">应用凭据</div>
+          <div className="setting-title">扫码创建应用（推荐，免手工配置）</div>
+          <div className="setting-desc">
+            手机飞书扫码 → 打开页确认创建 → 自动拿回 App ID/Secret 并连接（应用所有者自动绑为主人）。
+            不想扫码时用下方手工填入。
+          </div>
+        </div>
+        <button className="btn btn-primary" onClick={() => void startFsReg()}>扫码创建</button>
+      </div>
+
+      {fsReg ? (
+        <div className="setting-row">
+          <div>
+            <div style={{ background: "#fff", padding: 10, borderRadius: 10, display: "inline-block" }}>
+              <QRCodeSVG value={fsReg.qrUrl} size={148} />
+            </div>
+            <div className="setting-desc" style={{ marginTop: 6 }}>{fsNote || "等待扫码…"}</div>
+          </div>
+          <button className="btn" onClick={() => setFsReg(null)}>取消</button>
+        </div>
+      ) : null}
+
+      <div className="setting-row">
+        <div>
+          <div className="setting-title">应用凭据（手工）</div>
           <div className="setting-desc">飞书开放平台 → 自建应用 → 凭证与基础信息。仅存本机（密文）。</div>
         </div>
       </div>
