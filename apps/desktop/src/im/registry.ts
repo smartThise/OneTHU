@@ -113,6 +113,14 @@ const pendingAtt = new Map<string, PendingAtt>();
 const PENDING_TTL_MS = 10 * 60_000;
 const pkOf = (channel: string, sender: string): string => `${channel}:${sender}`;
 
+/* ── 待确认写操作（预约/取消/发信等；IM 侧加固：模糊肯定词不执行，防误触） ── */
+interface PendingConfirm {
+  summary: string;
+  at: number;
+}
+const pendingConfirm = new Map<string, PendingConfirm>();
+const PENDING_CONFIRM_TTL_MS = 10 * 60_000;
+
 /* ── 最近入库记录（30 分钟；用户回「要链接」时按需生成公开分享——默认绝不分享） ── */
 interface LastStored {
   repoId: string;
@@ -357,6 +365,40 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
     }
   }
 
+  /* 待确认写操作拦截（安全核心）：core 的确认词很宽（好/是/ok/同意…都能触发执行），
+   * 桌面端有确认按钮无妨，IM 里必须收紧——只有明确指令才执行；模糊肯定词只提示不执行
+   * （且不透传：core 侧 pending 保留，用户可再明确回复）。 */
+  {
+    const pk2 = pkOf(msg.channel, msg.sender);
+    const pc = pendingConfirm.get(pk2);
+    if (pc && Date.now() - pc.at > PENDING_CONFIRM_TTL_MS) pendingConfirm.delete(pk2);
+    const cur2 = pendingConfirm.get(pk2);
+    if (cur2 && text) {
+      const t2 = text.trim();
+      if (/^(确认执行|确认预约|确认预订|确认取消|确认提交|确认|执行)$/.test(t2)) {
+        pendingConfirm.delete(pk2);
+        const r = await askOh("确认");
+        await replyTo(msg, r.error ? `⚠ ${r.error}` : r.answer ?? "(无响应)");
+        return;
+      }
+      if (/^(取消|不|不用|算了|放弃|不了|不要)$/.test(t2)) {
+        pendingConfirm.delete(pk2);
+        const r = await askOh("取消");
+        await replyTo(msg, r.error ? `⚠ ${r.error}` : r.answer ?? "(已取消)");
+        return;
+      }
+      if (/^(好|好的|好呀|是|是的|ok|OK|同意|确定|行|对|y|Y|yes|嗯)$/.test(t2)) {
+        // 不透传：避免 core 的宽匹配直接执行
+        await replyTo(
+          msg,
+          `这条是省略回复，IM 里不认（防你手快误触执行）。\n待确认操作：${cur2.summary}\n要执行请回「确认执行」；不需要请回「取消」。`,
+        );
+        return;
+      }
+      pendingConfirm.delete(pk2); // 用户显然在说别的：交给正常流程（core 会清自身 pending）
+    }
+  }
+
   /* 按需公开分享：用户明确说「要链接/分享」时，对最近入库文件生成 7 天链接 */
   {
     const pk = pkOf(msg.channel, msg.sender);
@@ -379,7 +421,12 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
   const parts: string[] = [];
   if (r.error) parts.push(`⚠ ${r.error}`);
   if (r.answer) parts.push(r.answer);
-  if (r.confirm?.summary) parts.push(`${r.confirm.summary}\n（回复「确认」执行，「取消」放弃）`);
+  if (r.confirm?.summary) {
+    pendingConfirm.set(pkOf(msg.channel, msg.sender), { summary: r.confirm.summary, at: Date.now() });
+    parts.push(
+      `⚠️ 待确认操作\n${r.confirm.summary}\n回「确认执行」执行，或回「取消」放弃。\n（IM 里不认「好/ok」等省略回复，防误触；10 分钟内有效）`,
+    );
+  }
   await replyTo(msg, parts.join("\n\n") || "(空响应)");
 }
 
