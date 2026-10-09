@@ -169,47 +169,175 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
   if (!text && msg.attachments.length === 0) return;
 
   /* 命令层：/bind、/status（core 终结，不进 OH） */
-  /* 会话管理（与 ChatDock 同一套 core 命令；所有入口共用 active 主对话） */
-  if (text.trim() === "/new" || text.trim() === "/新会话") {
+  /* ── 会话管理（与 ChatDock 同一套 core 命令；1 号主对话永久保留） ── */
+  {
+    const t0 = text.trim();
+    const pk0 = pkOf(msg.channel, msg.sender);
     const { ohRun } = await import("./oh.js");
-    const r = (await ohRun("new_session")) as { ok?: boolean; sessionId?: string } | null;
-    await replyTo(msg, r?.ok ? "已开新会话（主对话上下文已清空，云盘稍后同步新版本）。" : "新建失败。");
-    return;
-  }
-  if (text.trim() === "/sessions" || text.trim() === "/会话") {
-    const { ohRun } = await import("./oh.js");
-    const r = (await ohRun("list_sessions")) as
-      | { active?: string; sessions?: Array<{ id: string; title: string; updatedAt: number; messages: number }> }
-      | null;
-    const list = r?.sessions ?? [];
-    if (!list.length) {
-      await replyTo(msg, "还没有会话。");
+    const menu = () => sessionMenu.get(pk0) ?? [];
+
+    if (t0 === "/help" || t0 === "/帮助" || t0 === "/?") {
+      await replyTo(
+        msg,
+        [
+          "📖 指令清单：",
+          "/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词",
+          "/bind 码（绑定主人）· /status（通道状态）",
+          "",
+          "· /list —— 列出会话（1=主对话，永久保留不可删；←当前）",
+          "· /new —— 新建会话并切换",
+          "· /switch N —— 切换到编号 N 的会话",
+          "· /detail N [x-y] —— 查看编号 N 会话的第 x 到 y 轮（默认 1-5）",
+          "· /delete N —— 删除编号 N 的会话（1 号主对话不可删）",
+          "· /search 关键词 —— 查找关键词出现在哪些会话（含轮次定位）",
+          "",
+          "📎 发文件/图片给我：自动读取内容、建议云盘目录，回「存」确认转存（默认不出公开链接，回「要链接」再生成）。",
+          "⚠️ 预约/取消等写操作：出现确认提示后回「确认执行」才执行（省略回复不认，防误触）。",
+        ].join("\n"),
+      );
       return;
     }
-    sessionMenu.set(pkOf(msg.channel, msg.sender), list.map((x) => x.id));
-    const lines = list
-      .slice(-8)
-      .reverse()
-      .map((x, i) => {
+
+    if (t0 === "/list" || t0 === "/sessions" || t0 === "/会话") {
+      const r = (await ohRun("list_sessions")) as
+        | { active?: string; sessions?: Array<{ id: string; title: string; updatedAt: number; messages: number }> }
+        | null;
+      const list = r?.sessions ?? [];
+      if (!list.length) {
+        await replyTo(msg, "还没有会话。");
+        return;
+      }
+      sessionMenu.set(pk0, list.map((x) => x.id));
+      const lines = list.slice(-10).reverse().map((x, i) => {
+        const no = list.length - Math.min(list.length, 10) + i + 1;
         const cur = x.id === r?.active ? " ←当前" : "";
-        const t = new Date(x.updatedAt).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
-        return `${i + 1}. ${x.title || "（未命名）"} · ${x.messages} 条 · ${t}${cur}`;
+        const main = no === 1 ? "① 主对话 · " : "";
+        const tm = new Date(x.updatedAt).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+        return `${no}. ${main}${x.title || "（未命名）"} · ${x.messages} 轮 · ${tm}${cur}`;
       });
-    await replyTo(msg, `会话（最近 8 条）：\n${lines.join("\n")}\n回「/switch 序号」切换。`);
-    return;
-  }
-  if (text.trim().startsWith("/switch")) {
-    const arg = text.trim().slice(7).trim();
-    const menu = sessionMenu.get(pkOf(msg.channel, msg.sender)) ?? [];
-    const id = /^\d+$/.test(arg) ? menu[Number(arg) - 1] : arg;
-    if (!id) {
-      await replyTo(msg, "先回 /sessions 看列表，再「/switch 序号」。");
+      await replyTo(msg, `会话（最近 10 条，1 号为主对话）：\n${lines.join("\n")}\n/detail N 看内容 · /switch N 切换 · /delete N 删除`);
       return;
     }
-    const { ohRun } = await import("./oh.js");
-    const r = (await ohRun("switch_session", id)) as { ok?: boolean } | null;
-    await replyTo(msg, r?.ok ? "已切换会话（云盘稍后同步该会话）。" : "切换失败（id 不存在？回 /sessions 重看）。");
-    return;
+
+    if (t0 === "/new" || t0 === "/新会话") {
+      const r = (await ohRun("new_session")) as { ok?: boolean } | null;
+      await replyTo(msg, r?.ok ? "已开新会话（1 号主对话仍保留，/switch 1 可回）。" : "新建失败。");
+      return;
+    }
+
+    if (t0.startsWith("/switch")) {
+      const arg = t0.slice(7).trim();
+      const id = /^\d+$/.test(arg) ? menu()[Number(arg) - 1] : arg;
+      if (!id) {
+        await replyTo(msg, "先回 /list 看编号，再「/switch 编号」。");
+        return;
+      }
+      const r = (await ohRun("switch_session", id)) as { ok?: boolean } | null;
+      await replyTo(msg, r?.ok ? "已切换。/detail 1 5-8 可直接看第 5-8 轮。" : "切换失败（编号过期？回 /list 重看）。");
+      return;
+    }
+
+    if (t0.startsWith("/detail")) {
+      const m = /^\/detail\s+(\d+)(?:\s+(\d+)-(\d+))?/.exec(t0);
+      if (!m) {
+        await replyTo(msg, "用法：/detail 编号 [起始轮-结束轮]，如 /detail 2 或 /detail 1 5-8（默认 1-5）。");
+        return;
+      }
+      const id = menu()[Number(m[1]) - 1];
+      if (!id) {
+        await replyTo(msg, "编号不存在（先 /list）。");
+        return;
+      }
+      const from = Math.max(1, Number(m[2] ?? 1));
+      const to = Math.min(from + 19, Number(m[3] ?? from + 4));
+      const ex = (await ohRun("export_session", id)) as { ok?: boolean; json?: string } | null;
+      if (!ex?.ok || !ex.json) {
+        await replyTo(msg, "读取失败。");
+        return;
+      }
+      const sess = JSON.parse(ex.json) as { title?: string; messages?: Array<{ role: string; content: string }> };
+      // 分轮：user 消息开新轮，轮内聚合其后的 assistant 消息
+      const rounds: Array<{ u: string; a: string[] }> = [];
+      for (const mm of sess.messages ?? []) {
+        if (mm.role === "user") rounds.push({ u: mm.content ?? "", a: [] });
+        else if (rounds.length > 0 && mm.role === "assistant") rounds[rounds.length - 1]!.a.push(mm.content ?? "");
+      }
+      if (!rounds.length) {
+        await replyTo(msg, "该会话没有可显示的对话轮。");
+        return;
+      }
+      const clamp = (str: string, n: number): string => {
+        const flat = str.replace(/\s+/g, " ").trim();
+        return flat.length > n ? flat.slice(0, n) + "…" : flat || "（空）";
+      };
+      const out: string[] = [`《${sess.title || "未命名"}》共 ${rounds.length} 轮，显示第 ${from}-${Math.min(to, rounds.length)} 轮：`];
+      for (let i = from; i <= Math.min(to, rounds.length); i++) {
+        const rr = rounds[i - 1]!;
+        out.push(`〔${i}〕用户：${clamp(rr.u, 120)}`);
+        out.push(`     OH：${clamp(rr.a.join(" "), 400)}`);
+      }
+      await replyTo(msg, out.join("\n"));
+      return;
+    }
+
+    if (t0.startsWith("/delete")) {
+      const arg = t0.slice(7).trim();
+      if (!/^\d+$/.test(arg) || !menu()[Number(arg) - 1]) {
+        await replyTo(msg, "用法：/delete 编号（先 /list 查看）。");
+        return;
+      }
+      if (Number(arg) === 1) {
+        await replyTo(msg, "1 号主对话永久保留，不可删除（用户定案）。想清空就 /switch 1 后 /new 新开。");
+        return;
+      }
+      const id = menu()[Number(arg) - 1]!;
+      const r = (await ohRun("delete_session", id)) as { ok?: boolean; error?: string; active?: string } | null;
+      if (r?.ok) {
+        // 菜单同步（去掉被删项）
+        sessionMenu.set(pk0, menu().filter((x) => x !== id));
+        await replyTo(msg, `已删除编号 ${arg} 的会话。`);
+      } else {
+        await replyTo(msg, r?.error ?? "删除失败。");
+      }
+      return;
+    }
+
+    if (t0.startsWith("/search")) {
+      const kw = t0.slice(7).trim();
+      if (!kw) {
+        await replyTo(msg, "用法：/search 关键词（搜会话标题与内容）。");
+        return;
+      }
+      const r = (await ohRun("list_sessions")) as { sessions?: Array<{ id: string; title: string }> } | null;
+      const list = (r?.sessions ?? []).slice(-20); // 最近 20 条防慢
+      sessionMenu.set(pk0, (r?.sessions ?? []).map((x) => x.id));
+      const hits: string[] = [];
+      for (let i = 0; i < list.length; i++) {
+        const ex = (await ohRun("export_session", list[i]!.id)) as { ok?: boolean; json?: string } | null;
+        if (!ex?.ok || !ex.json) continue;
+        const sess = JSON.parse(ex.json) as { title?: string; messages?: Array<{ role: string; content: string }> };
+        const rounds: Array<number> = [];
+        let ri = 0;
+        for (const mm of sess.messages ?? []) {
+          if (mm.role === "user") ri++;
+          if ((mm.content ?? "").includes(kw)) {
+            if (!rounds.includes(ri)) rounds.push(ri);
+          }
+        }
+        const inTitle = (sess.title ?? "").includes(kw);
+        if (inTitle || rounds.length) {
+          const no = (r?.sessions ?? []).indexOf(list[i]!) + 1;
+          hits.push(`${no}. 《${sess.title || "未命名"}》${inTitle ? "（标题命中）" : `（第 ${rounds.slice(0, 6).join("、")} 轮）`}`);
+        }
+      }
+      await replyTo(
+        msg,
+        hits.length
+          ? `「${kw}」命中 ${hits.length} 个会话：\n${hits.join("\n")}\n/detail 编号 查看（/list 重取编号）。`
+          : `「${kw}」没有命中（搜了最近 20 条会话的标题与内容）。`,
+      );
+      return;
+    }
   }
 
   if (text.startsWith("/bind")) {

@@ -611,6 +611,19 @@ export function ChatDock(): ReactNode {
   const deleteSession = async (id: string): Promise<void> => {
     const r = await runCmd("delete_session", id);
     setHistory(Array.isArray(r?.sessions) ? r.sessions : []);
+    if (r?.ok) {
+      // 修（老 bug，云盘之前就存在）：删除的若是当前显示会话，视图会残留旧对话——
+      // 关开面板也不重水合（hydratedFor 已等于 pid 短路了 345 行的 effect）。
+      // 删除成功即重置水合标记，让 effect 按 core 返回的新 active 立即重建视图。
+      setMsgs([]);
+      setStream(null);
+      setConfirmCard(null);
+      setStatus(null);
+      setNotice("已删除");
+      hydratedFor.current = null;
+    } else {
+      setNotice(r?.error ?? "删除失败");
+    }
   };
 
   const exportSession = async (): Promise<void> => {
@@ -944,13 +957,18 @@ export function ChatDock(): ReactNode {
                 <b>历史会话</b>
                 <button className="btn dock-btn" onClick={() => setHistory(null)}>关闭</button>
               </div>
-              {history.length === 0 ? <div className="dock-empty">（无会话）</div> : history.map((s) => (
+              {history.length === 0 ? <div className="dock-empty">（无会话）</div> : history.map((s, idx) => (
                 <div key={s.id} className="dock-hist-row">
                   <button className="dock-hist-main" onClick={() => void switchSession(s.id)}>
-                    <span className="dock-hist-title">{s.title || "未命名"}</span>
-                    <span className="dock-hist-meta">{s.messages} 轮 · {fmtUsd(s.costUsd)}</span>
+                    <span className="dock-hist-title">{idx === 0 ? "① " : ""}{s.title || "未命名"}</span>
+                    <span className="dock-hist-meta">{idx === 0 ? "主对话 · " : ""}{s.messages} 轮 · {fmtUsd(s.costUsd)}</span>
                   </button>
-                  <button className="btn dock-btn dock-hist-del" aria-label="删除" onClick={() => void deleteSession(s.id)}>✕</button>
+                  {idx === 0 ? (
+                    /* 1 号主对话永久保留（用户定案）：不提供删除入口 */
+                    <span className="dock-hist-meta" style={{ alignSelf: "center", padding: "0 10px" }} title="主对话不可删除">—</span>
+                  ) : (
+                    <button className="btn dock-btn dock-hist-del" aria-label="删除" onClick={() => void deleteSession(s.id)}>✕</button>
+                  )}
                 </div>
               ))}
             </div>
