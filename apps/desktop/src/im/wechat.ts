@@ -12,8 +12,8 @@ import { logLine } from "../lib/clients.js";
 import { patchImConfig } from "./store.js";
 import { reportChannelStatus } from "./registry.js";
 import {
-  ILINK_API_BASE, MessageType, buildTextMessage, extractText, fetchBotQrcode, getUpdates,
-  pollQrcodeStatus, sendMessage, type QrcodeStatus, type WeixinMessage,
+  ILINK_API_BASE, MessageType, buildTextMessage, extractAttachments, extractText, fetchBotQrcode,
+  getUpdates, pollQrcodeStatus, sendMessage, type QrcodeStatus, type WeixinMessage,
 } from "./wechatProto.js";
 import type { ChannelAdapter, ChannelId, InboundMessage } from "./types.js";
 
@@ -94,15 +94,22 @@ export class WechatChannel implements ChannelAdapter {
     if (m.message_type !== MessageType.USER) return; // 只收用户消息（BOT 自己的回声丢弃）
     const from = m.from_user_id ?? "";
     const text = extractText(m);
-    if (!from || !text) return;
+    const hasMedia = (m.item_list ?? []).some((it) => it.type === 2 || it.type === 4 || it.type === 5);
+    if (!from || (!text && !hasMedia)) return;
     if (m.context_token) this.ctx.set(from, m.context_token);
+    const attachments = extractAttachments(m).map((a) => ({
+      kind: a.kind,
+      name: a.name,
+      ref: a.ref,
+      messageId: m.message_id ?? "",
+    }));
     onInbound({
       eventId: m.message_id ?? `${from}:${m.create_time_ms ?? Date.now()}`,
       channel: "wechat",
       sender: from,
       chat: { kind: "dm", id: from },
       text,
-      attachments: [],
+      attachments,
       ts: m.create_time_ms ?? Date.now(),
     });
   }

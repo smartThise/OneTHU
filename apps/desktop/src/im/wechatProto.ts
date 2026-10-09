@@ -14,8 +14,11 @@
  * - 风控：ret/errcode === -14 → 账号会话暂停 1 小时（官方 monitor 行为）
  */
 import { http } from "../lib/clients.js";
+import type { AttachmentRef } from "./mediaPipe.js";
 
 export const ILINK_API_BASE = "https://ilinkai.weixin.qq.com";
+/** 媒体 CDN（协议默认；服务端返回 full_url 时优先用 full_url） */
+export const ILINK_CDN_BASE = "https://novac2c.cdn.weixin.qq.com/c2c";
 export const ILINK_BOT_TYPE = "3";
 const CHANNEL_VERSION = "0.1.0";
 const APP_ID = "bot";
@@ -182,4 +185,66 @@ export function extractText(msg: WeixinMessage): string {
     if (item.type === MessageItemType.VOICE && item.voice_item?.text) return item.voice_item.text;
   }
   return "";
+}
+
+/* ── 入站附件提取（图片/文件；语音首版跳过——silk 转码另做） ── */
+
+interface CdnMedia {
+  encrypt_query_param?: string;
+  aes_key?: string;
+  full_url?: string;
+}
+
+function cdnFetchUrl(media?: CdnMedia): string | null {
+  if (!media) return null;
+  if (media.full_url) return media.full_url;
+  if (media.encrypt_query_param) {
+    return `${ILINK_CDN_BASE}/download?encrypted_query_param=${encodeURIComponent(media.encrypt_query_param)}`;
+  }
+  return null;
+}
+
+/** hex 字符串 → base64（官方：image_item.aeskey 是 hex 形态的 16 字节 key） */
+function hexToBase64(hex: string): string | null {
+  const clean = hex.trim();
+  if (!/^[0-9a-fA-F]{32}$/.test(clean)) return null;
+  const bytes = new Uint8Array(16);
+  for (let i = 0; i < 16; i++) bytes[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  return btoa(String.fromCharCode(...bytes));
+}
+
+export interface WeixinAttachment {
+  kind: "image" | "file" | "video" | "audio";
+  name: string;
+  ref: AttachmentRef;
+}
+
+/** 从一条消息的 item_list 提取可转存附件（对齐官方 media-download.ts 的引用形态） */
+export function extractAttachments(msg: WeixinMessage): WeixinAttachment[] {
+  const out: WeixinAttachment[] = [];
+  for (const item of msg.item_list ?? []) {
+    if (item.type === MessageItemType.IMAGE) {
+      const img = item.image_item as { media?: CdnMedia; aeskey?: string } | undefined;
+      const url = cdnFetchUrl(img?.media);
+      if (!url) continue;
+      const aesKey = img?.aeskey ? (hexToBase64(img.aeskey) ?? img.media?.aes_key) : img?.media?.aes_key;
+      out.push({ kind: "image", name: `image-${Date.now()}.jpg`, ref: { fetchUrl: url, aesKey: aesKey ?? undefined } });
+    } else if (item.type === MessageItemType.FILE) {
+      const f = item.file_item as { media?: CdnMedia; file_name?: string } | undefined;
+      const url = cdnFetchUrl(f?.media);
+      if (!url) continue;
+      out.push({
+        kind: "file",
+        name: f?.file_name || `file-${Date.now()}.bin`,
+        ref: { fetchUrl: url, aesKey: f?.media?.aes_key ?? undefined },
+      });
+    } else if (item.type === MessageItemType.VIDEO) {
+      const v = item.video_item as { media?: CdnMedia } | undefined;
+      const url = cdnFetchUrl(v?.media);
+      if (!url) continue;
+      out.push({ kind: "video", name: `video-${Date.now()}.mp4`, ref: { fetchUrl: url, aesKey: v?.media?.aes_key ?? undefined } });
+    }
+    // VOICE：silk 需转码，首版不转存（registry 会如实回执）
+  }
+  return out;
 }

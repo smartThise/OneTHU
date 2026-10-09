@@ -177,7 +177,26 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
 
   /* 附件（M3 转存云盘管线上线前的占位回复） */
   if (msg.attachments.length > 0) {
-    await replyTo(msg, "收到文件。转存云盘功能即将上线，重要文件请先通过其他途径保存。");
+    const { storeAttachment } = await import("./mediaPipe.js");
+    const adapter = adapters.get(msg.channel);
+    const lines: string[] = [];
+    for (const att of msg.attachments) {
+      try {
+        let ref = att.ref as import("./mediaPipe.js").AttachmentRef | null;
+        if (adapter?.resolveAttachment) {
+          ref = await adapter.resolveAttachment(att.ref, att.messageId);
+        }
+        if (!ref?.fetchUrl) {
+          lines.push(`- ${att.name}：该类型暂不支持转存（首版支持图片/文件/视频）`);
+          continue;
+        }
+        const r = await storeAttachment(msg.channel as "wechat" | "feishu", att.name, ref);
+        lines.push(`- ${att.name}（${r.sizeNote}）已存入云盘 ${r.path}\n  链接：${r.link}`);
+      } catch (e) {
+        lines.push(`- ${att.name}：转存失败（${e instanceof Error ? e.message : String(e)}）`);
+      }
+    }
+    await replyTo(msg, `收到 ${msg.attachments.length} 个附件，已转存云盘：\n${lines.join("\n")}`);
     return;
   }
   if (!text) return;

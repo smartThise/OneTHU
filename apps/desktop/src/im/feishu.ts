@@ -335,7 +335,8 @@ class FeishuChannel implements ChannelAdapter {
       msg.attachments.push({
         kind: mtype === "media" ? "video" : mtype === "image" ? "image" : mtype === "audio" ? "audio" : "file",
         name,
-        ref,
+        // 原始引用（file_key/image_key）；真下载指令由 resolveAttachment 补 token 后给出
+        ref: { fileKey: ref, mtype },
         messageId: message.message_id ?? "",
       });
     } else {
@@ -428,6 +429,18 @@ class FeishuChannel implements ChannelAdapter {
         }
       }
     })();
+  }
+
+  /** 飞书消息资源下载指令（messages/{id}/resources/{key}?type=file|image） */
+  async resolveAttachment(ref: unknown, messageId: string): Promise<import("./mediaPipe.js").AttachmentRef | null> {
+    const r = ref as { fileKey?: string; mtype?: string } | null;
+    if (!r?.fileKey || !messageId) return null;
+    const token = await feishuToken();
+    const type = r.mtype === "image" ? "image" : "file";
+    return {
+      fetchUrl: `${FEISHU_BASE}/open-apis/im/v1/messages/${encodeURIComponent(messageId)}/resources/${encodeURIComponent(r.fileKey)}?type=${type}`,
+      headers: [["Authorization", `Bearer ${token}`]],
+    };
   }
 
   async stop(): Promise<void> {

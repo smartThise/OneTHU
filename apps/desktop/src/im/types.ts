@@ -50,6 +50,9 @@ export interface InboundMessage {
   ts: number;
 }
 
+/** 附件下载指令（mediaPipe 执行；适配器负责把平台引用翻译成它） */
+export type { AttachmentRef } from "./mediaPipe.js";
+
 /** 通道适配器统一接口（core 持策略：安全校验/绑定/OH 对接都在 registry，不进适配器） */
 export interface ChannelAdapter {
   readonly id: ChannelId;
@@ -62,6 +65,8 @@ export interface ChannelAdapter {
   send(orig: InboundMessage, text: string): Promise<void>;
   /** 停止并释放（幂等） */
   stop(): Promise<void>;
+  /** 把平台附件引用翻译成可执行下载指令（需要 token 等鉴权的通道实现；缺省则 ref 直接用） */
+  resolveAttachment?(ref: unknown, messageId: string): Promise<import("./mediaPipe.js").AttachmentRef | null>;
 }
 
 /** OH chat run 的应答形状（与 ChatDock 消费的同一份契约） */
