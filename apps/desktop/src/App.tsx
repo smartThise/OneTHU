@@ -105,6 +105,16 @@ function Routed() {
     // 共享主对话：云盘 pull（远端较新则恢复）+ push（本地新内容）——所有 IM 入口与
     // ChatDock 共用 active 会话，云盘让它跨设备（用户定案 2026-10-09）
     void import("./im/sessionSync.js").then((m) => m.sessionBootSync()).catch(() => undefined);
+    // 云盘自动连接（用户定案：已登录就爬 profile 页 token 自动填充，失败静默）
+    void import("./state/seafileAuto.js")
+      .then(async (m) => {
+        const r = await m.autoConnectSeafile();
+        if (r.ok) {
+          const { showToast } = await import("./state/toast.js");
+          showToast(`云盘已自动连接：${r.account?.name ?? ""}`);
+        }
+      })
+      .catch(() => undefined);
   }, [status]);
 
   const body = (() => {

@@ -340,6 +340,19 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
     }
   }
 
+  /* 云盘自动连接（兜底引导：无 token 时用户一条指令完成 SSO 爬取填充） */
+  if (text.trim() === "/连云盘" || text.trim() === "连云盘" || text.trim() === "连接云盘") {
+    const { autoConnectSeafile } = await import("../state/seafileAuto.js");
+    const r = await autoConnectSeafile();
+    await replyTo(
+      msg,
+      r.ok
+        ? `✅ 云盘已自动连接（${r.account?.name}）——现在可以转存文件了。`
+        : `连接失败：${r.error ?? "未知原因"}。也可在电脑端 OneTHU 的「云盘」页手动粘贴 token。`,
+    );
+    return;
+  }
+
   if (text.startsWith("/bind")) {
     const code = text.slice(5).trim().toUpperCase();
     if (!bindCode || Date.now() > bindCode.expiresAt) {
@@ -418,6 +431,16 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
       repoHint = `（云盘未连接或读取失败：${e instanceof Error ? e.message : String(e)}）`;
     }
     const parts: string[] = [];
+    // 兜底：云盘未连接时如实告知（只能看内容不能转存，给一键连接指令）
+    try {
+      const { getSeafileToken, ensureSeafileLoaded } = await import("../state/seafile.js");
+      await ensureSeafileLoaded();
+      if (!getSeafileToken()) {
+        parts.push("⚠️ 云盘未连接：现在只能看内容，不能转存。回「连云盘」我自动获取凭证。");
+      }
+    } catch {
+      /* 状态读取失败不拦流程 */
+    }
     for (let i = 0; i < staged.length; i++) {
       const s = staged[i]!;
       parts.push(`${staged.length > 1 ? `${i + 1}. ` : ""}《${s.name}》${s.sizeNote ? `（${s.sizeNote}）` : ""}`);
@@ -459,6 +482,16 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
         // ① 未指定资料库：先引导选库（**绝不自动猜**——用户实测曾被存进「OneTHU 发布」发布库）
         let repo = await configuredRepo();
         if (!repo) {
+          try {
+            const { getSeafileToken, ensureSeafileLoaded } = await import("../state/seafile.js");
+            await ensureSeafileLoaded();
+            if (!getSeafileToken()) {
+              await replyTo(msg, "云盘还没连接——回「连云盘」我自动获取（或去电脑端云盘页手动配置）。");
+              return;
+            }
+          } catch {
+            /* 落到原选库引导 */
+          }
           const repos = await listRepos().catch(() => [] as Array<{ id: string; name: string }>);
           if (!repos.length) {
             await replyTo(msg, "云盘里没有资料库（先在 cloud.tsinghua.edu.cn 建一个再回「存」）。");
