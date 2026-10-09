@@ -122,7 +122,7 @@ export const NAV_REGISTRY: NavEntry[] = [
   { id: "otherinfo", name: "其他 Info 应用", category: "行政", visibility: "buried", page: "otherinfo", keywords: ["门户", "应用", "目录"] },
 
   /* —— 高级能力（标准模式不可见，功能完整保留） —— */
-  { id: "plugins", name: "插件系统", category: "行政", visibility: "advanced", page: "plugins", keywords: ["插件", "扩展", "市场"] },
+  { id: "plugins", name: "插件系统", category: "行政", visibility: "group", page: "plugins", keywords: ["插件", "扩展", "市场"], note: "JS / Rust / Android 内嵌三类插件，市场一键安装（2026-10-09 起一级入口）" },
   { id: "trace-dev", name: "开发者面板", category: "行政", visibility: "advanced", page: "settings", keywords: ["开发", "调试"], note: "入口在设置页高级模式开关之下" },
 ];
 

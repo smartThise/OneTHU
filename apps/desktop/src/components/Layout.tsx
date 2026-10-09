@@ -107,6 +107,8 @@ export const NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactN
   { page: "mail", label: "邮箱", icon: IconMail },
   { page: "cloud", label: "云盘", icon: IconCloud },
   { page: "thubook", label: "THUbook", icon: IconBook },
+  /* 2026-10-09：插件升回一级入口（用户拍板：插件无论逻辑还是功能都不该藏在高级设置里） */
+  { page: "plugins", label: "插件", icon: IconPlug },
   { page: "info", label: "信息", icon: IconInfo },
   { page: "life", label: "生活", icon: IconCard },
   { page: "reserve", label: "预约", icon: IconCalendar },
@@ -327,14 +329,6 @@ export function Shell({ children }: { children: ReactNode }) {
   }, []);
   /** 「已折叠收藏夹（N）」组展开态（会话态，不持久化） */
   const [foldedOpen, setFoldedOpen] = useState(false);
-  /* §4.4b：插件已并进设置页。旧链接/历史记录里的 plugins 路由统一落到「设置 → 插件」，
-     侧栏不再保留单独入口（标准/高级都一样，高级只决定设置里那一栏显示与否）。 */
-  useEffect(() => {
-    if (page !== "plugins") return;
-    requestSettingsTab("插件");
-    navigate("settings");
-  }, [page, navigate]);
-
   const closeNav = useCallback(() => {
     setNavClosing(true);
     window.setTimeout(() => {
