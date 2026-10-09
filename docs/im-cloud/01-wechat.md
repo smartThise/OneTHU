@@ -73,10 +73,10 @@ iLink Bot 后端 API（默认 `https://ilinkai.weixin.qq.com`）为 HTTPS + JSON
 
 ## 4. 对 OneTHU 的结论
 
-1. **主推官方 iLink Bot 通道**：合法、支持文件收发、长轮询免公网入站（NAS 友好）、协议 MIT 开源可移植 Rust。限制：仅单聊、灰度覆盖待确认、配额未文档化。
-2. 自研网关时实现自己的 sender 白名单 + 会话绑定（OneTHU 账号 ↔ 微信 `ilink_user_id`），不重蹈 openclaw 插件 2.4.8 的访问控制缺陷。
+1. **主推官方 iLink Bot 通道**：合法、支持文件收发、长轮询免公网入站（桌面直连/NAS 均友好）、协议 MIT 开源可移植。限制：仅单聊、灰度覆盖待确认、配额未文档化。
+2. 自研时实现自己的 sender 白名单 + 会话绑定（OneTHU 账号 ↔ 微信 `ilink_user_id`），不重蹈 openclaw 插件 2.4.8 的访问控制缺陷。
 3. 非官方协议（wechaty-pad/hook/wcferry）一律不做默认能力，最多以「用户自担风险的自选组件」存在于文档附录，不进产品主路径。
-4. 灰度兜底：账号无 ClawBot 入口时引导用户走飞书/企微通道（见 [00-architecture.md](00-architecture.md)）。
+4. 灰度兜底：账号无 ClawBot 入口时引导用户走飞书通道（企微已在无后端主案下出局，见 [00-architecture.md](00-architecture.md) §5）。
 
 ## 参考
 
