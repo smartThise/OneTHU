@@ -15,7 +15,7 @@
  */
 import type { ReactNode } from "react";
 import { openThosInApp } from "../lib/thosOpen.js";
-import { IconBell, IconCalendar, IconCard, IconCheck, IconCloud, IconExternal, IconFile, IconFlag, IconFolder, IconInfo, IconLearn, IconMail, IconPen, IconRefresh, IconSchedule, IconSearch, IconThos, IconToday, IconTrace, IconXk } from "../components/Icons.js";
+import { IconBell, IconCalendar, IconCard, IconCheck, IconCloud, IconExternal, IconFile, IconFlag, IconFolder, IconGitLab, IconInfo, IconLearn, IconMail, IconPen, IconRefresh, IconSchedule, IconSearch, IconThos, IconToday, IconTrace, IconXk } from "../components/Icons.js";
 import {
   AgendaWidget, CardBalanceWidget, HomeworkWidget, RecentNoticesWidget, SubsNewsWidget,
   TodayClassesWidget, TodayOverviewWidget, TodayResvWidget,
@@ -98,6 +98,10 @@ export interface AtomDynCache {
   thosServices?: Array<{ id: string; name: string; department?: string; url?: string }>;
   /** 讨论区话题（BbsPanel 列表页就绪后写入；bqid 为所属板块） */
   bbsThreads?: Array<{ courseId: string; bqid: string; id: string; title: string; courseName?: string; sem?: string }>;
+  /** GitLab 项目 / Issue / 合并请求（GitLab 页就绪后写入） */
+  gitlabProjects?: Array<{ id: number; name: string }>;
+  gitlabIssues?: Array<{ projectId: number; iid: number; title: string }>;
+  gitlabMergeRequests?: Array<{ projectId: number; iid: number; title: string }>;
 }
 
 const dyn: AtomDynCache = {};
@@ -168,6 +172,7 @@ export const PAGE_ATOMS: StaticAtom[] = [
   { kind: "page", key: "mail", title: "邮箱", sub: "收件箱 · 已发送 · 读信 · 全箱搜索", icon: IconMail, group: "页面", page: "mail" },
   { kind: "page", key: "mail-compose", title: "写信", sub: "邮箱 · 新邮件", icon: IconPen, group: "页面", page: "mail", params: { mailCompose: true } },
   { kind: "page", key: "cloud", title: "云盘", sub: "清华云盘 · 资料库 · 上传下载 · 分享", icon: IconCloud, group: "页面", page: "cloud" },
+  { kind: "page", key: "gitlab", title: "GitLab", sub: "清华 GitLab · 项目 · Issue · 合并请求 · 流水线", icon: IconGitLab, group: "页面", page: "gitlab" },
   { kind: "page", key: "zhjwxk", title: "选课", sub: "选课系统 · 已选课程与候补队列（不可拆分的收藏项）", icon: IconXk, group: "页面", page: "zhjwxk" },
   { kind: "page", key: "learn", title: "网络学堂", sub: "本学期课程总览", icon: IconLearn, group: "页面", page: "learn" },
   { kind: "page", key: "learn-assignments", title: "全部作业", sub: "网络学堂 · 作业列表", icon: IconPen, group: "页面", page: "learn-assignments" },
@@ -391,6 +396,32 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
     return view({
       atom: ref, title: title || "讨论区话题", sub: (courseName ? courseName + " · " : "") + "讨论区", icon: IconLearn, group: "网络学堂",
       open: (nav) => openLearn(nav, "learn-forum-thread", { courseId, itemId: threadId, bqid: bqid || undefined }, sem),
+    });
+  }
+  if (kind === "gitlab-proj") {
+    const [id, name] = dec(key);
+    const pid = Number(id);
+    if (!pid) return null;
+    return view({
+      atom: ref, title: name || "GitLab 项目", sub: "GitLab 项目", icon: IconGitLab, group: "GitLab",
+      open: (nav) => nav("gitlab", { gitlabProject: pid }),
+    });
+  }
+  if (kind === "gitlab-issue" || kind === "gitlab-mr") {
+    const [pid, iid, title] = dec(key);
+    const projectId = Number(pid);
+    const iidNum = Number(iid);
+    if (!projectId || !iidNum) return null;
+    const isIssue = kind === "gitlab-issue";
+    return view({
+      atom: ref, title: title || (isIssue ? "Issue" : "合并请求"),
+      sub: "GitLab " + (isIssue ? "Issue" : "合并请求"), icon: isIssue ? IconPen : IconGitLab, group: "GitLab",
+      open: (nav) => nav("gitlab", {
+        gitlabProject: projectId,
+        gitlabTab: isIssue ? "issues" : "mrs",
+        gitlabKind: isIssue ? "issue" : "mr",
+        gitlabIid: iidNum,
+      }),
     });
   }
   if (kind === "news") {
@@ -634,6 +665,9 @@ export function searchAtoms(query: string, limit = 24): AtomHit[] {
   for (const a of INFO_APPS) if (match(a.name, a.cat)) push(hit({ atom: { kind: "infoapp", key: enc(a.cat, a.name, a.id) }, title: a.name, sub: a.cat + " · Info 应用", icon: IconExternal, group: "Info 应用" }));
   // 在线服务目录（ThosPage 打开过一次即入缓存）——OH「一句话打开亲友来访」即命中这里
   for (const s of dyn.thosServices ?? []) if (match(s.name, s.department)) push(hit({ atom: { kind: "thos-service", key: enc(s.id, s.name, s.department ?? "") }, title: s.name, sub: (s.department ? s.department + " · " : "") + "在线服务", icon: IconThos, group: "在线服务" }));
+  for (const p of dyn.gitlabProjects ?? []) if (match(p.name)) push(hit({ atom: { kind: "gitlab-proj", key: enc(p.id, p.name) }, title: p.name, sub: "GitLab 项目", icon: IconGitLab, group: "GitLab" }));
+  for (const i of dyn.gitlabIssues ?? []) if (match(i.title)) push(hit({ atom: { kind: "gitlab-issue", key: enc(i.projectId, i.iid, i.title) }, title: i.title, sub: "GitLab Issue", icon: IconPen, group: "GitLab" }));
+  for (const m of dyn.gitlabMergeRequests ?? []) if (match(m.title)) push(hit({ atom: { kind: "gitlab-mr", key: enc(m.projectId, m.iid, m.title) }, title: m.title, sub: "GitLab 合并请求", icon: IconGitLab, group: "GitLab" }));
   // 收藏夹跳转原子（全部夹：根 + 子，标题命中即出）
   for (const f of Object.values(loadFavs().folders)) if (match(f.title)) push(hit({ atom: { kind: "folder", key: f.id }, title: f.title, sub: "收藏夹 · 点击直达", icon: IconFolder, group: "我的收藏夹" }));
 

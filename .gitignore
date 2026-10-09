@@ -5,6 +5,8 @@ dist/
 *.log
 .env
 .env.*
+# 冒烟脚本的中间结果（二次认证验证码交接）
+tools/.smoke/
 src-tauri/target/
 src-tauri/gen/schemas/
 apps/desktop/src-tauri/target/

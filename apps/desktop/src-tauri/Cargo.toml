@@ -1,5 +1,8 @@
 [package]
 name = "onethu"
+# 本包有两个二进制（应用 onethu 与通知探针 notify_probe）：不给默认项时 `cargo run`
+# （tauri dev 走的就是它）无法自行选择，直接报 could not determine which binary to run
+default-run = "onethu"
 version = "0.10.0"
 description = "OneTHU — 清华万物，汇合于一体"
 edition = "2021"

@@ -124,8 +124,58 @@ export const uFetch = async (
     return response.text;
 };
 
-/** 原版 getRedirectUrl：跟随重定向取最终 URL（平台传输自动跟随并回传 finalUrl） */
-export const getRedirectUrl = async (url: string, timeout = 60000): Promise<string> => {
+/** 指定 HTTP 方法的平台请求（原版 uFetch 只发 GET/POST，GitLab 的 PUT 等语义需要它）：
+ *  与 uFetch 同契约——成功返回响应文本，状态非 2xx 抛 ResponseStatusError。 */
+export const uFetchMethod = async (
+    url: string,
+    method: "GET" | "POST" | "PUT" | "DELETE",
+    body?: object,
+    extraHeaders: {[key: string]: string} = {},
+    requestContentType = "application/json",
+    timeout = 60000,
+): Promise<string> => {
+    if (!platformFetchImpl) {
+        throw new Error("platformFetch 未注入（app 启动时须调 setPlatformFetch）");
+    }
+    const response = await platformFetchImpl(url, {
+        method,
+        body: body === undefined ? undefined : JSON.stringify(body),
+        headers: {
+            "Content-Type": requestContentType,
+            "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            ...extraHeaders,
+        },
+        timeoutMs: timeout,
+    });
+    if (response.status !== 200 && response.status !== 201 && response.status !== 204) {
+        throw new ResponseStatusError(`Unexpected response status code: ${response.status} (${method} ${url})`, response.status);
+    }
+    return response.text;
+};
+
+/** 平台请求的完整回执（状态码 + 最终 URL + 文本）：需要判断「这一跳被送到哪里」时用它，
+ *  例如 GitLab 登录链要区分「落到 id 登录页」与「统一认证会话仍在，一步过票回到 GitLab」。 */
+export const platformFetchWith = async (
+    url: string,
+    init: { method?: string; body?: string; headers?: Record<string, string>; timeoutMs?: number } = {},
+): Promise<PlatformResponse> => {
+    if (!platformFetchImpl) {
+        throw new Error("platformFetch 未注入（app 启动时须调 setPlatformFetch）");
+    }
+    return platformFetchImpl(url, {
+        method: init.method,
+        body: init.body,
+        headers: {
+            "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            ...(init.headers ?? {}),
+        },
+        timeoutMs: init.timeoutMs ?? 60000,
+    });
+};
+
+/** 原版 getRedirectUrl：跟随重定向取最终 URL（平台传输自动跟随并回传 finalUrl） */export const getRedirectUrl = async (url: string, timeout = 60000): Promise<string> => {
     if (!platformFetchImpl) {
         throw new Error("platformFetch 未注入");
     }

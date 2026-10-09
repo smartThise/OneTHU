@@ -184,6 +184,10 @@ export async function nativeFetch(
       h !== "oauth.tsinghua.edu.cn" &&
       h !== "learn.tsinghua.edu.cn" &&
       h !== "mails.tsinghua.edu.cn" &&
+      // 清华 GitLab（2026-10-07 实录）：公网可达站点，且它的会话 cookie 与
+      // 「清华账号登录 → OAuth 回调」都绑定真实域；被 webvpn 包装后回调换票
+      // 落在包装路径上，API 侧仍是未登录（页面上表现为 401 Unauthorized）。
+      h !== "git.tsinghua.edu.cn" &&
       // MadModel 免费档（2026-09-20）：校园网内直连签发 token，webvpn 包装没有意义
       // 且会掩盖失败原因（泵里 direct:true 在应用层这层包装里此前未生效）。
       h !== "madmodel.cs.tsinghua.edu.cn" &&

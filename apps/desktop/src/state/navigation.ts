@@ -114,6 +114,7 @@ export const NAV_REGISTRY: NavEntry[] = [
   /* —— 行政 —— */
   { id: "mail", name: "邮箱", category: "行政", visibility: "group", page: "mail", needBind: "mail", keywords: ["邮件", "邮箱", "收件"] },
   { id: "cloud", name: "云盘", category: "行政", visibility: "group", page: "cloud", needBind: "cloud", keywords: ["云盘", "Seafile", "文件", "资料库"] },
+  { id: "gitlab", name: "GitLab", category: "行政", visibility: "group", page: "gitlab", keywords: ["gitlab", "代码", "仓库", "issue", "合并请求", "流水线", "ci"] },
   { id: "thos", name: "在线服务", category: "行政", visibility: "group", page: "thos", keywords: ["THOS", "服务大厅", "报备", "入校", "亲友"], note: "亲友入校报备前置顶（P2 时间敏感项）" },
   { id: "info-profile", name: "个人信息", category: "行政", visibility: "group", page: "info", params: { infoTab: "profile" }, keywords: ["学籍", "个人信息"] },
   { id: "info-fitness", name: "体测", category: "行政", visibility: "group", page: "info", params: { infoTab: "fitness" }, keywords: ["体测", "体质"] },

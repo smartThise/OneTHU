@@ -23,7 +23,7 @@ import {
 } from "../constants/strings";
 import * as cheerio from "cheerio";
 import {InfoHelper} from "../index";
-import {clearCookies, getRedirectUrl, uFetch} from "../utils/network";
+import {clearCookies, getRedirectUrl, platformFetchWith, stringify, uFetch} from "../utils/network";
 import {IdAuthError, LibError, LoginError, UrlError} from "../utils/error";
 import {sm2} from "sm-crypto";
 
@@ -346,22 +346,85 @@ export const roam = async (helper: InfoHelper, policy: RoamingPolicy, payload: s
         return await uFetch(redirectUrl);
     }
     case "gitlab": {
+        // 统一认证入口：GitLab 的「清华账号登录」按钮 POST 到 /users/auth/thuid，
+        // 由它跳到 oauth.tsinghua.edu.cn/thu-oauth 再落到 id 登录页。会话仍在时该表单不存在。
         const data = await uFetch(GITLAB_LOGIN_URL);
-        if (data.includes("sign_out")) return data;
-        const authenticity_token = cheerio.load(data)("[name=authenticity_token]").attr()!.value;
-        const sm2PublicKey = cheerio.load(await uFetch(GITLAB_AUTH_URL, {authenticity_token}))("#sm2publicKey").text();
+        if (!data.includes("/users/auth/thuid")) return data;
+        // CSRF 令牌在 meta[name=csrf-token]：登录页那个 input 不带 value 属性，真正的值由
+        // 页内脚本从 meta 拷进去。按 input 取会得到 undefined，thuid POST 被服务端打回
+        // 登录页（无任何报错），漫游链路因此永远停在未登录态。
+        const authenticity_token = cheerio.load(data)("meta[name=csrf-token]").attr("content") ?? "";
+        if (authenticity_token === "") {
+            throw new LoginError("Failed to get gitlab csrf token.");
+        }
+        // 带落点回执地发起授权跳转：两种落点都正常，得分开认。
+        // ① 统一认证会话仍在 → OAuth 一步过票，整条回调链走完直接回到 GitLab（无 id 表单）；
+        // ② 需要重新认证 → 落到 id 登录页（#sm2publicKey），继续走下面填表那一段。
+        const auth = await platformFetchWith(GITLAB_AUTH_URL, {
+            method: "POST",
+            body: stringify({authenticity_token}),
+            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        });
+        const sm2PublicKey = cheerio.load(auth.text)("#sm2publicKey").text();
         if (sm2PublicKey === "") {
-            throw new LoginError("Failed to get public key.");
+            // 中间形态（id 会话仍在但不肯直接放行）：单点登录确认页 checkSingle——
+            // 页面只有一个 action 指向 /do/off/ui/auth/login/checkSingle 的表单，回传隐藏字段
+            // 即续用既有会话（裸传隐藏字段会被当作全新登录，进而索要二次认证；故必须带
+            // i_rememberme 与指纹，与 InfoClient / venue 的处理一致）。
+            const $auth = cheerio.load(auth.text);
+            const action = $auth("form[action*='checkSingle']").attr("action") ?? "";
+            if (action !== "") {
+                // 先收页面隐藏字段（续用上下文的凭据），再用本项目自己的三个字段覆盖：
+                // 反过来的话页面里空的 fingerPrint / fingerGenPrint 会盖掉真值，
+                // 服务端按「全新设备」处理，直接要二次认证。
+                const fields: {[key: string]: string} = {};
+                $auth("input[type=hidden]").each((_, el) => {
+                    const name = $auth(el).attr("name");
+                    if (name) fields[name] = $auth(el).attr("value") ?? "";
+                });
+                fields.i_rememberme = "on";
+                fields.fingerPrint = helper.fingerprint;
+                fields.fingerGenPrint = helper.fingerGenPrint ?? "";
+                const confirmed = await platformFetchWith(new URL(action, ID_HOST_URL).toString(), {
+                    method: "POST",
+                    body: stringify(fields),
+                    headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                });
+                if (confirmed.text.includes("二次认证")) {
+                    // 这一跳要验证码时无法在页面内完成（漫游不弹二次认证界面），当场说清怎么解，
+                    // 不许挂着不动
+                    throw new LoginError(
+                        "统一认证要求二次认证：请退出登录后重新登录，二次认证时勾选「信任此设备」，再回到本页刷新。",
+                    );
+                }
+                // 回调被打回 GitLab 登录页 = 统一认证侧那枚授权码已被用过（实测：同一 sig 下
+                // 反复返回同一枚已消费的 code，兑付 302 只回登录页）。此时光重试没用，
+                // 必须重置 id/oauth 域的会话，让下次漫游走完整登录换一枚新码。
+                if (confirmed.text.includes("/users/auth/thuid")) {
+                    throw new LoginError(
+                        "统一认证返回的授权已被使用，GitLab 拒绝了这次回调：请点页面上的「重置统一认证并重试」。",
+                    );
+                }
+                const anchor = /登录成功/.test(confirmed.text) ? cheerio.load(confirmed.text)("a").attr("href") : undefined;
+                return anchor ? await uFetch(new URL(anchor, ID_HOST_URL).toString()) : confirmed.text;
+            }
+            if (!auth.text.includes("/users/auth/thuid")) {
+                return auth.text;
+            }
+            throw new LoginError(`GitLab 授权未完成（落到 ${auth.finalUrl}，HTTP ${auth.status}）`);
         }
         let response = await uFetch(ID_LOGIN_URL, {
             i_user: helper.userId,
             i_pass: SM2_MAGIC_NUMBER + sm2.doEncrypt(helper.password, sm2PublicKey),
             fingerPrint: helper.fingerprint,
-            fingerGenPrint: "",
+            fingerGenPrint: helper.fingerGenPrint ?? "",
             i_captcha: "",
         });
         if (response.includes("二次认证")) {
-            response = await twoFactorAuth(helper);
+            // 同 checkSingle：页面内漫游没有二次认证界面，等下去只会一直挂着
+            throw new LoginError(
+                "统一认证要求二次认证：请退出登录后重新登录，二次认证时勾选「信任此设备」，再回到本页刷新。",
+            );
         }
         if (!response.includes("登录成功。正在重定向到")) {
             throw new IdAuthError();

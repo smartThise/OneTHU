@@ -19,6 +19,7 @@ import { LoginPage, TwoFactorPage } from "./pages/Login.js";
 import { SchedulePage } from "./pages/Schedule.js";
 import { MailPage } from "./pages/MailPage.js";
 import CloudPage from "./pages/CloudPage.js";
+import GitLabPage from "./pages/GitLabPage.js";
 import ThubookPage from "./pages/ThubookPage.js";
 import { OnboardingTour } from "./components/OnboardingTour.js";
 import { useToastHost, hideToast } from "./state/toast.js";
@@ -118,6 +119,7 @@ function Routed() {
           {page === "schedule" && <SchedulePage />}
           {page === "mail" && <MailPage />}
           {page === "cloud" && <CloudPage />}
+          {page === "gitlab" && <GitLabPage />}
           {page === "thubook" && <ThubookPage />}
           {page === "trace" && <TracePage />}
           {page === "otherinfo" && <OtherInfoPage />}

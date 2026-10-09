@@ -13,13 +13,14 @@
  * - 2FA futures：lib 的同步 hooks 桥接 OneTHU 的两段式 UI（选方式→发码→输码）
  * - 登录/验证/登出/会话守卫（libEnsureSession：lib verifyAndReLogin 语义）
  */
-import { nativeFetch, nativeCookieClear } from "./transport.js";
+import { nativeFetch, nativeCookieClear, nativeSeedCookies } from "./transport.js";
 import { markLoginAttempt, loginCooldownLeftMs, consumeLoginFailedPublicKey } from "./loginGate.js";
 import { http } from "./clients.js";
 import { setPlatformFetch, setPlatformClearCookies } from "@onethu/info-lib/network";
 const SAVE_FINGER_URL = "https://id.tsinghua.edu.cn/b/doubleAuth/personal/saveFinger";
 import { InfoHelper, roam, verifyAndReLogin } from "@onethu/info-lib";
 import { loadRemembered } from "./clients.js";
+import { fileRead, fileWrite, obfuscateSecret, deobfuscateSecret } from "./clients.js";
 import { withPrivacy } from "./privacy.js";
 import { sm2crypto, makeFingerprint, webvpnDecodeUrl, parseCellAnchor, type TwoFactorMethod } from "@onethu/core";
 
@@ -72,6 +73,7 @@ export function initInfoLib(): InfoHelper {
         headers: init.headers as Record<string, string> | undefined,
         timeoutMs: init.timeoutMs,
       });
+      rememberGitlabSession(url, res);
       // JAR 透视（真机联调期）：每次平台请求入账后，dump 三个关键桶的 cookie 名单
       // （含 wengine 票据前 8 位，用于识别主票/应用票/陈旧票互踩）
       try {
@@ -142,6 +144,61 @@ export function initInfoLib(): InfoHelper {
 
 /** InfoHelper 单例（userId/password/fingerGenPrint 驻留内存，供静默重登免 2FA） */
 export const helper = withPrivacy(new InfoHelper(), "helper");
+
+/* ═══════════ GitLab 会话票：跨进程保活 ═══════════
+ * `_gitlab_session` 是 GitLab 的会话票（无 Expires），而本机 cookie 仓是进程内内存
+ * （Rust 侧 CookieStore）——应用一重启就没了。于是每次启动/每次改代码重启，GitLab 页
+ * 都要重走一遍统一认证换票；而那条链在统一认证侧的老授权卡住时会一直把回调打回登录页，
+ * 于是表现成「每次更新都 401」。这里把会话票按本站既有的混淆方式落盘，下次开机种回
+ * 原生仓，能直接续用就不再触发换票。
+ */
+const GITLAB_ORIGIN = "https://git.tsinghua.edu.cn/";
+const GITLAB_SESSION_FILE = "gitlab.session";
+const GITLAB_SESSION_KEY = "gitlab";
+let gitlabSessionValue = "";
+let gitlabSessionRestored = false;
+
+function gitlabSessionFromRes(url: string, res: Response): string {
+  try {
+    const host = new URL(res.headers.get("x-onethu-final-url") ?? res.url ?? url).hostname;
+    if (host !== "git.tsinghua.edu.cn") return "";
+  } catch {
+    return "";
+  }
+  for (const line of res.headers.getSetCookie()) {
+    const pair = line.split(";")[0] ?? "";
+    const eq = pair.indexOf("=");
+    if (eq <= 0 || pair.slice(0, eq).trim() !== "_gitlab_session") continue;
+    return pair.slice(eq + 1).trim();
+  }
+  return "";
+}
+
+/** 每次响应顺手记一下会话票（值变了才写盘） */
+function rememberGitlabSession(url: string, res: Response): void {
+  const value = gitlabSessionFromRes(url, res);
+  if (!value || value === gitlabSessionValue) return;
+  gitlabSessionValue = value;
+  void fileWrite(GITLAB_SESSION_FILE, JSON.stringify({ secret: obfuscateSecret(value, GITLAB_SESSION_KEY) })).catch(
+    () => undefined,
+  );
+}
+
+/** 开机第一次用到 GitLab 前种回上次的会话票（种失败/没有就照常走换票） */
+export async function restoreGitlabSession(): Promise<void> {
+  if (gitlabSessionRestored) return;
+  gitlabSessionRestored = true;
+  const raw = await fileRead(GITLAB_SESSION_FILE).catch(() => null);
+  if (!raw) return;
+  try {
+    const value = deobfuscateSecret((JSON.parse(raw) as { secret?: string }).secret ?? "", GITLAB_SESSION_KEY);
+    if (!value) return;
+    gitlabSessionValue = value;
+    await nativeSeedCookies(GITLAB_ORIGIN, [`_gitlab_session=${value}; Path=/`]);
+  } catch {
+    /* 坏文件视作没存过 */
+  }
+}
 
 /* ═══════════════ 2FA futures：lib 同步 hooks ⇄ OneTHU 两段式 UI ═══════════════ */
 
@@ -380,8 +437,10 @@ export async function libRoamLearn(): Promise<boolean> {
  *
  * 指纹同理：`helper.fingerGenPrint` 为空时 id 会要求 2FA，静默重登必失败
  * （2026-09-18 已实锤过一次；libForceRelogin 里修了，libEnsureSession 没同步修）。
+ *
+ * 供漫游类数据层（GitLab）单独调用：它们的换票链要的就是这两样。
  */
-async function hydrateLibCredentials(): Promise<boolean> {
+export async function libHydrateCredentials(): Promise<boolean> {
   const h = helper as unknown as { userId: string; password: string; fingerGenPrint?: string };
   if (!h.userId || !h.password) {
     const remembered = await loadRemembered().catch(() => null);
@@ -398,7 +457,7 @@ async function hydrateLibCredentials(): Promise<boolean> {
 
 export async function libEnsureSession(): Promise<boolean> {
   // ① 对齐 info app：凭据 + 受信指纹先就位（否则重启后无从重登）
-  const hasCreds = await hydrateLibCredentials();
+  const hasCreds = await libHydrateCredentials();
   // ② 权威探活 + 按需重登（info app 的 verifyAndReLogin 同源实现）：
   //    取用户信息比对 ryh——活着且是本人 → 无需重登；否则用 helper 上的凭据重登。
   //    比原来「webvpn 端点里有 XSRF-TOKEN 就算活」强：后者只证明网关发了票，
@@ -512,7 +571,7 @@ export async function libForceRelogin(): Promise<boolean> {
   // 受信凭据喂给 lib：helper.fingerGenPrint 是内存变量，boot 恢复/进程重启后
   // 为空 → libLogin 传空指纹 → id 要 2FA → 强制重登必撞墙（02:23 实录
   // "lib 重登失败 → 回退自清仓"）。sessionFinger3（持久层）优先喂入。
-  await hydrateLibCredentials(); // 凭据 + 受信指纹统一从持久层回灌
+  await libHydrateCredentials(); // 凭据 + 受信指纹统一从持久层回灌
   const r = await libLogin(username, password, helper.fingerprint).catch(() => null);
   return r?.state === "ready";
 }

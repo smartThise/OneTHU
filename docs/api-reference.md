@@ -1,6 +1,6 @@
 # `onethu.*` API 参考
 
-> 最后更新：2026-09-22 22:59
+> 最后更新：2026-10-08 23:58
 
 本文档描述插件可用的全部接口。每个命名空间对应一类校园业务系统或应用能力。
 
@@ -65,6 +65,7 @@ return {
 | `network:read` | `network.*` |
 | `mail:read` / `mail:write` | `mail` 读方法 / `mail.send` |
 | `cloud:read` / `cloud:write` | `cloud.repos`、`list`、`search`、`download` / `upload`、`share` |
+| `gitlab:read` / `gitlab:write` | `gitlab` 的查询方法 / `createIssue`、`comment`、`setState` |
 | `llm` | `llm.*` |
 | `theme` | `theme.*` |
 | `exthw:read` / `exthw:refresh` | `exthw.snapshot` / `exthw.refresh` |
@@ -510,13 +511,82 @@ const r = await ctx.onethu.plugins.call("onethu.dept-notices", "fetch", "");
 | `cloud.upload(repoId, parentDir, localPath, replace)` | 上传（写操作）；`localPath` 支持 `~` |
 | `cloud.share(repoId, path, expireDays)` | 生成分享链接（写操作）；`expireDays` 为 0 表示永久 |
 
-## 17. `nav` / `ui` / `storage` / `settings`
+## 17. `gitlab`
+
+对应清华 GitLab（`git.tsinghua.edu.cn`）。认证复用统一认证会话：首次调用时宿主自动完成
+「GitLab 登录页 → 清华 OAuth → id 登录页 → 回调换票」的漫游，插件无需配置任何凭据。
+
+**权限** `gitlab:read`（查询）、`gitlab:write`（新建 Issue、评论、关闭或重开）
+
+项目用数字 `id` 标识（列表方法返回元素的 `id` 字段），Issue 与合并请求用项目内编号
+`iid` 标识（即网页地址里的那个号，两者各自计数）。
+
+| 方法 | 说明 |
+|---|---|
+| `gitlab.projects(page?)` | 我参与的项目（分页从 1 起，每页 50 条） |
+| `gitlab.starred(page?)` | 我星标的项目 |
+| `gitlab.search(search, page?)` | 按名称搜索项目 |
+| `gitlab.project(id)` | 项目详情：默认分支、可见性、Issue 数与 `web_url` |
+| `gitlab.branches(id)` | 分支列表，默认分支排在最前 |
+| `gitlab.tree(id, path, ref, page?)` | 目录内容：`path` 传空串表示根目录，`ref` 传分支名；元素为 `{ id, name, path, type }`，`type` 取 `tree`（目录）或 `blob`（文件） |
+| `gitlab.file(id, sha)` | 文件正文（`sha` 取自 `tree` 元素的 `id`，返回文本） |
+| `gitlab.issues(id, opts?)` | Issue 列表；`opts` 支持 `state`（`"opened"` / `"closed"` / `"all"`）、`search`、`page` |
+| `gitlab.issue(id, iid)` | Issue 详情：标题、描述（Markdown）、状态、标签、作者 |
+| `gitlab.issueNotes(id, iid)` | Issue 评论；`system: true` 的条目为状态变更记录，展示时可过滤 |
+| `gitlab.mergeRequests(id, opts?)` | 合并请求列表，`opts` 同 `issues` |
+| `gitlab.mergeRequest(id, iid)` | 合并请求详情：源分支、目标分支、草稿标记、合入时间与 `head_pipeline` |
+| `gitlab.mergeRequestNotes(id, iid)` | 合并请求评论 |
+| `gitlab.pipelines(id, opts?)` | 流水线记录；`opts.ref` 传分支名（空串为全部）、`opts.page` 为页码 |
+| `gitlab.jobs(id, pipelineId)` | 某次流水线的作业列表：名称、阶段、状态、耗时、`web_url` |
+| `gitlab.jobTrace(id, jobId)` | 作业日志全文（纯文本，含 ANSI 颜色码） |
+| `gitlab.createIssue(id, title, description)` | 新建 Issue（写操作）；`description` 为 Markdown，可传空串 |
+| `gitlab.comment(kind, id, iid, body)` | 评论 Issue 或合并请求（写操作）；`kind` 取 `"issue"` 或 `"mr"`，`body` 为 Markdown（`:表情名:` 与 unicode 表情均可） |
+| `gitlab.updateComment(kind, id, iid, noteId, body)` | 改写自己已有的评论（写操作）；`noteId` 取自 `issueNotes` / `mergeRequestNotes` 元素的 `id`，GitLab 只允许作者本人改 |
+| `gitlab.setState(kind, id, iid, state)` | 关闭或重新打开（写操作）；`state` 取 `"close"` 或 `"reopen"`。已合入的合并请求不可重开，宿主不代为合入或删除分支 |
+| `gitlab.discussions(kind, id, iid, page?)` | 讨论（评论线程）列表：`{ id, individual_note, notes }`，`notes[0]` 是首条评论，其后为回复；`notes[].resolvable` / `resolved` 表示可否解决与当前状态 |
+| `gitlab.reply(kind, id, iid, discussionId, body)` | 回复某条评论（写操作），追加在该讨论末尾 |
+| `gitlab.deleteComment(kind, id, iid, discussionId, noteId)` | 删除一条评论（写操作）；GitLab 只允许作者本人删 |
+| `gitlab.resolveDiscussion(kind, id, iid, discussionId, resolved)` | 解决或重新打开整个讨论（写操作）；即 GitLab 网页上评论右侧的 Resolve |
+| `gitlab.assignees(kind, id, iid, userIds)` | 指派（写操作）；`userIds` 为 `user.id` 列表，传空数组取消全部指派 |
+| `gitlab.awards(kind, id, iid, noteId?)` | 表情回应（award emoji）：不传 `noteId` 为议题 / 合并请求本体上的，传了就是那条评论上的 |
+| `gitlab.react(kind, id, iid, name, noteId?)` | 贴一个表情回应（写操作）；`name` 取 `thumbsup` / `thumbsdown` / `laugh` / `hooray` / `confused` / `heart` / `eyes` / `rocket` |
+| `gitlab.unreact(kind, id, iid, awardId, noteId?)` | 取消某个表情回应（写操作）；`awardId` 取自 `awards` 元素的 `id` |
+| `gitlab.mergeRequestChanges(id, iid)` | 合并请求的文件变更：`changes[]` 每项含 `old_path` / `new_path` / `new_file` / `renamed_file` / `deleted_file` 与统一格式的 `diff` |
+| `gitlab.requestCounts(kind, id)` | 议题 / 合并请求的条数：`{ opened, closed, all }`（服务端总数，不是当前页条数） |
+| `gitlab.createMergeRequest(id, sourceBranch, targetBranch, title, description)` | 新建合并请求（写操作）；源分支与目标分支不能相同 |
+| `gitlab.mergeMergeRequest(id, iid)` | 合入合并请求（写操作）；不代删源分支、不改提交信息 |
+
+```js
+export const manifest = {
+  id: "onethu.gitlab-digest",
+  name: "GitLab 待办摘要",
+  version: "0.1.0",
+  permissions: ["gitlab:read"],
+};
+
+export default async function activate(ctx) {
+  ctx.registerCommand({ id: "digest", title: "我负责的 Issue" }, async () => {
+    const projects = await ctx.onethu.gitlab.projects(1);
+    const lines = [];
+    for (const p of projects.slice(0, 5)) {
+      const issues = await ctx.onethu.gitlab.issues(p.id, { state: "opened" });
+      lines.push(`${p.name_with_namespace}：${issues.length} 个进行中的 Issue`);
+    }
+    return { text: `${projects.length} 个项目`, markdown: lines.map((l) => `- ${l}`).join("\n") };
+  });
+}
+```
+
+**列表分页**：所有列表方法单页返回（每页 50 条）。返回满页即可能还有下一页，传 `page + 1`
+继续取；返回空数组表示取完。
+
+## 18. `nav` / `ui` / `storage` / `settings`
 
 | 方法 | 权限 | 说明 |
 |---|---|---|
-| `nav.go(page, params?)` | `nav` | 应用内跳转，路由表见 §19 |
+| `nav.go(page, params?)` | `nav` | 应用内跳转，路由表见 §20 |
 | `nav.searchAtoms(query, limit?)` | `nav` | 按关键词检索全应用可跳转原子，返回 `{kind, key, title, sub?, group}[]`（缺省 12 条，上限 50）。只查静态注册表 + 本机缓存，**不发起任何校园请求** |
-| `nav.openAtom(ref)` | `nav` | 打开一个原子，行为等同于用户点击收藏夹中的同一项（跳转功能页 / 切换聚合页页签 / 打开官方服务页）；无法解析时返回 `false`，不会进入空白页。见 §20 |
+| `nav.openAtom(ref)` | `nav` | 打开一个原子，行为等同于用户点击收藏夹中的同一项（跳转功能页 / 切换聚合页页签 / 打开官方服务页）；无法解析时返回 `false`，不会进入空白页。见 §21 |
 | `nav.usage(limit?)` | `nav` | 本机使用统计：`{total, kinds, top[], recent[]}`（每项含 `kind`/`key`/`title`/`n`/`last`，可直接交给 `nav.openAtom`）。仅含本机点击记录，不含校园数据；缺省 10 条，上限 30 |
 | `nav.clearUsage()` | `nav` | 清空本机使用统计（仅在用户主动要求时调用；**不影响收藏夹**） |
 | `services.search(query, limit?)` | `info:read` | 检索在线服务（服务大厅）目录，返回 `{id,name,department,url,score}[]`。**会发起校园请求**（先校验会话再取目录），仅在 `nav.searchAtoms` 的本机检索无结果时调用。支持简称匹配：「亲友预约」以 40 分以上命中「亲友来访预约」；仅后缀不同的名称（如「亲友预约」与「亲友入校报备」）以 20~39 分进入候选。命中结果写回本机原子缓存 |
@@ -540,7 +610,7 @@ const r = await ctx.onethu.plugins.call("onethu.dept-notices", "fetch", "");
 | `storage.get(key)` / `set(key, value)` / `keys()` / `remove(key)` | `storage` | 插件私有键值存储，按插件标识隔离，JSON 序列化，卸载时清除 |
 | `settings.get()` | `storage` | 返回用户在插件设置页填写的值 |
 
-## 18. `net`
+## 19. `net`
 
 外部网络请求接口，经 Rust 传输层发出，不受 WebView 同源策略限制，支持自定义请求头，
 45 秒超时，跟随重定向。仅用于访问校外地址；清华校内业务应使用前述命名空间。
@@ -560,7 +630,7 @@ const reply = (await res.json()).choices[0].message.content;
 
 调用 Anthropic 兼容接口时替换为 `x-api-key` 与 `anthropic-version` 请求头。
 
-## 19. 页面路由
+## 20. 页面路由
 
 `nav.go(page, params?)` 的 `page` 取值：
 
@@ -581,11 +651,12 @@ const reply = (await res.json()).choices[0].message.content;
 | `learn-forum-thread` | 讨论区话题 | `courseId`、`itemId`（话题）、`bqid`（板块） |
 | `learn-ykt-detail` | 雨课堂作业原生详情（只读，见 external-homework.md） | `ykt`：`{ leafTypeId, classroomId, externalUrl?, title?, deadline?, courseName?, kind? }` |
 | `trace` / `otherinfo` / `thos` / `mail` / `cloud` / `thubook` / `folder` | 寻迹 / 其他 Info 应用 / 在线服务 / 邮箱 / 云盘 / THUbook / 收藏夹 | `folder` 需 `folderId` |
+| `gitlab` | 清华 GitLab | `gitlabProject`（项目数字 id）、`gitlabTab`（`code` / `issues` / `mrs` / `pipelines`）、`gitlabKind`（`issue` / `mr`）与 `gitlabIid`（打开该项目内的某条 Issue 或合并请求） |
 
 插件页签的 pageKey 由 `plugin:<插件id>:<页签id>` 构成，插件注册的收藏原子深链即指向
 该路由。插件未安装、已停用或未注册该页签时，页面显示降级提示而非空白。
 
-## 20. 原子（`{kind, key}`）：收藏与「一句话直达」的共同引用
+## 21. 原子（`{kind, key}`）：收藏与「一句话直达」的共同引用
 
 应用内所有可跳转对象均以原子引用 `{ kind, key }` 表示，包括功能页面、今日组件、操作、
 课程、作业、通知、文件、在线服务、场馆、教学楼、洗衣机楼、图书馆、新闻与插件自定义条目。
@@ -593,8 +664,8 @@ const reply = (await res.json()).choices[0].message.content;
 引用在收藏夹、桌面小组件、OH 对话与插件搜索中的行为一致。
 
 - **kind**：原子种类。`page` / `action` / `widget-*` 等为静态注册；`course` /
-  `assignment` / `thos-service` / `sports-v` 等为动态实体（数据来自本机缓存）；
-  `plugin:<插件id>` 为插件注册的种类。
+  `assignment` / `thos-service` / `sports-v` / `gitlab-proj` / `gitlab-issue` / `gitlab-mr`
+  等为动态实体（数据来自本机缓存）；`plugin:<插件id>` 为插件注册的种类。
 - **key**：种类内的稳定标识，由宿主 `enc(...parts)` 以 `~` 连接、`dec(key)` 还原。
   调用方不应自行拼接 key，应将 `nav.searchAtoms` 返回的 `key` 原样回传。
 - **`thos-service`**：在线服务（服务大厅）条目，key = `enc(id, name, department)`。
@@ -608,7 +679,7 @@ const reply = (await res.json()).choices[0].message.content;
 校园请求**，因此响应快且离线可用，但只能返回本机出现过的实体。宿主侧实现真源见
 `apps/desktop/src/state/atoms.tsx`（`searchAtoms` / `resolveAtom`）。
 
-### 20.1 本机使用统计（`nav.usage`）
+### 21.1 本机使用统计（`nav.usage`）
 
 今日页的「最近使用」「猜你喜欢」与 OH 的 `query_usage` 读取同一份记录
 `onethu.usage.counts.v1`，每项为 `{n, last, title?, sub?, group?}`，最多 120 条。
@@ -622,7 +693,7 @@ const reply = (await res.json()).choices[0].message.content;
 2. **统计仅存于本机**，内容为入口使用次数，不含成绩、课程内容等校园数据；插件读取须声明
    `nav` 权限，用户可随时清空（`nav.clearUsage`）。
 
-### 20.2 服务名打分（`services.search` 的 `score`）
+### 21.2 服务名打分（`services.search` 的 `score`）
 
 分值定义如下（实现与测试：`apps/desktop/src/lib/serviceMatch.ts`、
 `tools/service-match-test.mjs`）：
