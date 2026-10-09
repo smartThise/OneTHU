@@ -40,6 +40,8 @@ async function runOne(input: string): Promise<OhChatResult> {
   }
   try {
     const out = await callRust(OH_ID, "run", { command: "chat", input });
+    // 主对话云盘同步：每轮 chat 完成后 debounce push（跨设备共享 active 会话）
+    void import("./sessionSync.js").then((m) => m.scheduleSessionPush()).catch(() => undefined);
     return fmt(out);
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) };
@@ -72,4 +74,9 @@ export function askOh(input: string): Promise<OhChatResult> {
     queue.push({ input, done });
     void pump();
   });
+}
+
+/** 直接执行 OH 的会话管理命令（registry 的 /new /sessions /switch 用；不走单飞队列） */
+export function ohRun(command: string, input = ""): Promise<unknown> {
+  return callRust(OH_ID, "run", { command, input });
 }

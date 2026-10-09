@@ -104,6 +104,9 @@ export function isChannelRunning(id: ChannelId): boolean {
   return running.has(id);
 }
 
+/* ── 会话菜单（/sessions 列表 → /switch 序号映射；会话级，10 分钟过期） ── */
+const sessionMenu = new Map<string, string[]>();
+
 /* ── 附件待确认暂存（per 通道+发送者；10 分钟过期；两段式：确认后才上云盘） ── */
 interface PendingAtt {
   staged: Array<import("./mediaPipe.js").StagedAttachment>;
@@ -166,6 +169,49 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
   if (!text && msg.attachments.length === 0) return;
 
   /* 命令层：/bind、/status（core 终结，不进 OH） */
+  /* 会话管理（与 ChatDock 同一套 core 命令；所有入口共用 active 主对话） */
+  if (text.trim() === "/new" || text.trim() === "/新会话") {
+    const { ohRun } = await import("./oh.js");
+    const r = (await ohRun("new_session")) as { ok?: boolean; sessionId?: string } | null;
+    await replyTo(msg, r?.ok ? "已开新会话（主对话上下文已清空，云盘稍后同步新版本）。" : "新建失败。");
+    return;
+  }
+  if (text.trim() === "/sessions" || text.trim() === "/会话") {
+    const { ohRun } = await import("./oh.js");
+    const r = (await ohRun("list_sessions")) as
+      | { active?: string; sessions?: Array<{ id: string; title: string; updatedAt: number; messages: number }> }
+      | null;
+    const list = r?.sessions ?? [];
+    if (!list.length) {
+      await replyTo(msg, "还没有会话。");
+      return;
+    }
+    sessionMenu.set(pkOf(msg.channel, msg.sender), list.map((x) => x.id));
+    const lines = list
+      .slice(-8)
+      .reverse()
+      .map((x, i) => {
+        const cur = x.id === r?.active ? " ←当前" : "";
+        const t = new Date(x.updatedAt).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+        return `${i + 1}. ${x.title || "（未命名）"} · ${x.messages} 条 · ${t}${cur}`;
+      });
+    await replyTo(msg, `会话（最近 8 条）：\n${lines.join("\n")}\n回「/switch 序号」切换。`);
+    return;
+  }
+  if (text.trim().startsWith("/switch")) {
+    const arg = text.trim().slice(7).trim();
+    const menu = sessionMenu.get(pkOf(msg.channel, msg.sender)) ?? [];
+    const id = /^\d+$/.test(arg) ? menu[Number(arg) - 1] : arg;
+    if (!id) {
+      await replyTo(msg, "先回 /sessions 看列表，再「/switch 序号」。");
+      return;
+    }
+    const { ohRun } = await import("./oh.js");
+    const r = (await ohRun("switch_session", id)) as { ok?: boolean } | null;
+    await replyTo(msg, r?.ok ? "已切换会话（云盘稍后同步该会话）。" : "切换失败（id 不存在？回 /sessions 重看）。");
+    return;
+  }
+
   if (text.startsWith("/bind")) {
     const code = text.slice(5).trim().toUpperCase();
     if (!bindCode || Date.now() > bindCode.expiresAt) {

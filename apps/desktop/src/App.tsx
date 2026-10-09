@@ -102,6 +102,9 @@ function Routed() {
   useEffect(() => {
     if (status !== "ready") return;
     void import("./memory/sync.js").then((m) => m.memoryBootSync()).catch(() => undefined);
+    // 共享主对话：云盘 pull（远端较新则恢复）+ push（本地新内容）——所有 IM 入口与
+    // ChatDock 共用 active 会话，云盘让它跨设备（用户定案 2026-10-09）
+    void import("./im/sessionSync.js").then((m) => m.sessionBootSync()).catch(() => undefined);
   }, [status]);
 
   const body = (() => {

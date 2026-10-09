@@ -217,3 +217,16 @@ fn decode_entities(s: &str) -> String {
 pub fn im_stat_file(path: String) -> Option<u64> {
     std::fs::metadata(path).ok().map(|m| m.len())
 }
+
+/// 写文本到 IM 临时目录（会话快照 push 云盘用；安全文件名，返回绝对路径）
+#[tauri::command]
+pub fn im_write_text_file(file_name: String, content: String) -> Result<String, String> {
+    if content.len() > 8 * 1024 * 1024 {
+        return Err("内容超过 8MB 上限".into());
+    }
+    let dir = std::env::temp_dir().join("onethu-im-files");
+    std::fs::create_dir_all(&dir).map_err(|e| format!("建临时目录失败：{e}"))?;
+    let path = dir.join(safe_name(&file_name));
+    std::fs::write(&path, content.as_bytes()).map_err(|e| format!("写临时文件失败：{e}"))?;
+    Ok(path.to_string_lossy().to_string())
+}
