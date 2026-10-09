@@ -55,7 +55,6 @@ export function ConnectGate({
   const [mailCode, setMailCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-
   if (!open) return null;
 
   const done = (msg: string): void => {
@@ -100,22 +99,56 @@ export function ConnectGate({
     }
   };
 
-  /** 自动连接（SSO 静默爬 profile token）——用户定案：自动为主，手动仅兜底 */
-  const cloudAuto = async (): Promise<void> => {
+  /** 静默优先：直连爬 profile（id 会话活）→ 落确认页就 InfoClient 确认续用 → 再爬；
+   *  仍取不到再回退应用内 WebView。全程零输入。 */
+  const cloudTokenFromWebview = async (): Promise<void> => {
     setBusy(true);
     setErr(null);
-    setAutoMsg(null);
+    setAutoMsg("正在自动获取云盘访问口令…");
+    const log = async (m: string): Promise<void> => {
+      try {
+        const { logLine } = await import("../lib/clients.js");
+        void logLine(m).catch(() => undefined);
+      } catch { /* noop */ }
+    };
     try {
-      const { autoConnectSeafile } = await import("../state/seafileAuto.js");
-      const r = await autoConnectSeafile();
-      if (r.ok) {
-        showToast(`云盘已自动连接：${r.account?.name ?? ""}`);
-        onDone?.();
-        onClose();
-      } else {
-        setAutoMsg(r.error ?? "自动获取失败");
-        setManualOpen(true);
+      let token = "";
+      const { loadRemembered } = await import("../lib/clients.js");
+      const rememberedForCloud = await loadRemembered().catch(() => null);
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const { extractToken } = await import("../state/seafileAuto.js");
+        let r = await invoke<{ finalUrl: string; body: string; needConfirm: boolean; plainToken: string }>("cloud_webvpn_profile", {
+          username: rememberedForCloud?.username ?? "",
+          password: rememberedForCloud?.password ?? "",
+        });
+        if (r.needConfirm) {
+          await log(`[CLOUD-DIRECT] 落确认页（finalUrl=${r.finalUrl.slice(0, 90)}）→ confirmIdCheckSingle`);
+          const { info } = await import("../lib/clients.js");
+          const ok = await info.confirmIdCheckSingle(r.finalUrl).catch(() => false);
+          await log(`[CLOUD-DIRECT] 确认=${ok ? "ok" : "fail"} → 重爬 profile`);
+          if (ok) r = await invoke<{ finalUrl: string; body: string; needConfirm: boolean; plainToken: string }>("cloud_webvpn_profile", {
+            username: rememberedForCloud?.username ?? "",
+            password: rememberedForCloud?.password ?? "",
+          });
+        }
+        token = (r.plainToken && /^[0-9a-f]{40}$/i.test(r.plainToken) ? r.plainToken : "") || extractToken(r.body) || "";
+        await log(
+          token
+            ? `[CLOUD-DIRECT] 静默取到口令（finalUrl=${r.finalUrl.slice(0, 90)} len=${r.body.length}）`
+            : `[CLOUD-DIRECT] 页面无口令（finalUrl=${r.finalUrl.slice(0, 90)} len=${r.body.length}）→ 回退窗口`,
+        );
+      } catch (e) {
+        await log(`[CLOUD-DIRECT] 静默爬取失败 ${String(e).slice(0, 100)} → 回退窗口`);
       }
+      if (!token) {
+        const { readCloudTokenInWebview } = await import("../lib/cloudTokenWebview.js");
+        token = await readCloudTokenInWebview();
+      }
+      await connectCloudDisk(token);
+      showToast("云盘已连接");
+      onDone?.();
+      onClose();
     } catch (e) {
       setAutoMsg(e instanceof Error ? e.message : String(e));
       setManualOpen(true);
@@ -211,7 +244,10 @@ export function ConnectGate({
       return (
         <div style={{ display: "grid", gap: 10 }}>
           <div className="setting-desc" style={{ margin: 0 }}>
-            已登录 OneTHU 即可<b>自动获取</b>云盘凭证（经统一认证静默授权，凭证只存本机）。
+            点击后会在 OneTHU 内打开清华云盘页。
+          </div>
+          <div className="setting-desc" style={{ margin: 0 }}>
+            登录后读取现有访问口令并保存到本机，不会生成或重置。
           </div>
           {autoMsg ? (
             <div className="setting-desc" style={{ margin: 0, color: "var(--state-warn-primary, #b45309)" }}>
@@ -219,17 +255,18 @@ export function ConnectGate({
             </div>
           ) : null}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button className="btn primary" disabled={busy} onClick={() => void cloudAuto()}>
-              {busy ? "获取中…" : "自动连接"}
+            <button className="btn primary" disabled={busy} onClick={() => void cloudTokenFromWebview()}>
+              {busy ? "等待云盘页面…" : "在应用内连接云盘"}
             </button>
             <button className="btn" onClick={() => setManualOpen((v) => !v)}>
-              {manualOpen ? "收起手动填写" : "手动填写（自动获取失败时）"}
+              {manualOpen ? "收起手动填写" : "手动粘贴访问口令"}
             </button>
           </div>
           {manualOpen ? (
             <>
               <div className="setting-desc" style={{ margin: 0 }}>
-                云盘网页端 → <b>Web API Auth Token</b> → 生成并复制，粘贴到下面（仅存本机）。
+                云盘网页端个人资料页：已有访问口令可点眼睛显示后复制。
+                没有访问口令时，请手动生成并粘贴到下面（仅存本机）。
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <input

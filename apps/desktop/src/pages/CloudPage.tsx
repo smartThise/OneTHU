@@ -11,7 +11,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useApp } from "../state/context.js";
 import { openExternal } from "./info/openExternal.js";
 import {
-  ensureSeafileLoaded, setSeafileToken, clearSeafileToken, getSeafileToken,
+  ensureSeafileLoaded, clearSeafileToken, getSeafileToken,
   refreshSeafileAccount, refreshRepos, useSeafile, useSeafileDir,
   seafileDownload, seafileShare, seafileUpload, seafileSearch, refreshDir,
   type SeafileEntry, type SeafileRepo,
@@ -42,16 +42,12 @@ function fmtMtime(sec: number): string {
 
 import { confirmDanger } from "../lib/confirm.js";
 
-const TOKEN_PAGE = "https://cloud.tsinghua.edu.cn/profile/#get-auth-token";
-
 export default function CloudPage(): ReactNode {
   const { navParams } = useApp();
   const { configured, account, repos, busy, lastError } = useSeafile();
   const [bindOpen, setBindOpen] = useState(false); // §4.3：口令输入统一走 ConnectGate
   const [repo, setRepo] = useState<SeafileRepo | null>(null);
   const [path, setPath] = useState("/");
-  const [tokenInput, setTokenInput] = useState("");
-  const [savingToken, setSavingToken] = useState(false);
   const [sharing, setSharing] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [searchHits, setSearchHits] = useState<SeafileEntry[] | null>(null);
@@ -111,17 +107,9 @@ export default function CloudPage(): ReactNode {
       <div className="page">
         <h2>清华云盘</h2>
         <div className="cloud-onboard">
-          <p>
-            清华云盘（Seafile）提供完整 Web API。认证只需一个 <b>API Token</b>（一次性生成，长期有效）：
-          </p>
-          <ol>
-            <li>点下面按钮，用清华账号登录云盘网页端</li>
-            <li>页面里找 <b>Web API Auth Token</b> 区域，点「生成链接」</li>
-            <li>粘贴下图中的访问口令</li>
-          </ol>
-          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-            <button className="btn primary" onClick={() => openExternal(TOKEN_PAGE)}>打开授权页面</button>
-          </div>
+          <p>连接后可浏览与下载清华云盘文件。</p>
+          <p>首次连接会在应用内打开云盘页面。</p>
+          <p>登录后读取现有访问口令，不会自动生成或重置。</p>
           <div className="row" style={{ gap: 8, marginTop: 8 }}>
             <button className="btn primary" onClick={() => setBindOpen(true)}>
               连接云盘
@@ -129,7 +117,7 @@ export default function CloudPage(): ReactNode {
           </div>
           <ConnectGate need="cloud" open={bindOpen} onClose={() => setBindOpen(false)} />
           <p className="dim" style={{ fontSize: "var(--text-xs)" }}>
-            Token 仅存本机（混淆落盘），用于直连 cloud.tsinghua.edu.cn。
+            访问口令仅保存在本机，用于连接清华云盘。
           </p>
         </div>
       </div>
@@ -286,7 +274,7 @@ export default function CloudPage(): ReactNode {
           className="btn"
           onClick={async () => {
             const ok = await confirmDanger(
-              "断开云盘？\n\n断开后：\n· 记忆与主对话只在**本机**保存（不再跨设备同步）\n· IM 收到的附件只能查看内容，不能转存云盘\n· 云盘页浏览/下载不可用\n\n随时可点「自动连接」重新连上。",
+              "断开云盘？\n\n断开后：\n· 记忆与主对话只在**本机**保存（不再跨设备同步）\n· IM 收到的附件只能查看内容，不能转存云盘\n· 云盘页浏览/下载不可用\n\n随时可在云盘页点击「连接云盘」重新连接。",
               { title: "断开云盘", confirmText: "确认断开" },
             );
             if (!ok) return;

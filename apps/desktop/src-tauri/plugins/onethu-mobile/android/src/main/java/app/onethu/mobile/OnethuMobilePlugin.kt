@@ -28,6 +28,8 @@ import android.graphics.Color
 import android.net.Uri
 import android.media.MediaScannerConnection
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.os.Environment
 import android.provider.MediaStore
@@ -38,6 +40,7 @@ import android.widget.LinearLayout
 import androidx.activity.result.ActivityResult
 import app.tauri.annotation.ActivityCallback
 import android.webkit.CookieManager
+import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebSettings
 import android.webkit.WebViewClient
@@ -93,6 +96,18 @@ class SeedCookiesArgs {
     var url: String = ""
     /** "k=v; k2=v2" 原文（仅在内存传递，绝不落盘/打印内容） */
     var cookie: String = ""
+}
+
+/** 云盘访问口令读取窗（openCloudTokenWebview）：共享登录态的全屏 WebView。
+ *  种子来自 Rust 统一 native jar（经 CookieManager 写入）；token 只经
+ *  document.title 回传（WebChromeClient 接住），不设 JavascriptInterface。 */
+@InvokeArg
+class CloudTokenWebviewArgs {
+    var url: String = ""
+    /** 页面脚本（与桌面同一份，只读取已有口令；绝不点「生成/重置」） */
+    var script: String = ""
+    /** `[{"url":…,"cookies":["name=value; Domain=…; Path=/; Secure"]}]`（仅内存传递，绝不打印） */
+    var cookieSeedsJson: String = "[]"
 }
 
 @InvokeArg
@@ -772,6 +787,195 @@ class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
                 Log.i("onethu", "[COOKIE-SEED] $n 条 → ${args.url}")
             } catch (e: Throwable) {
                 invoke.reject("种会话 Cookie 失败: ${e.message}")
+            }
+        }
+    }
+
+    /* ── 云盘访问口令：应用内「共享登录态」读取窗（与桌面 open_cloud_token_window 同一份脚本）──
+     * 进页面：把 Rust 统一 native jar 的认证票经 CookieManager 种进 WebView（THOS 同款）；
+     * 出页面：把 WebView 里新建/续期的票收回去给 Rust 回灌——「进种出灌」双向桥。
+     * token 经 document.title 回传，WebChromeClient.onReceivedTitle 接住；
+     * 不设 JavascriptInterface（零新增攻击面），绝不打印 Cookie/token 值。 */
+    private val cloudCookieOrigins = listOf(
+        "https://cloud.tsinghua.edu.cn/",
+        "https://id.tsinghua.edu.cn/",
+        "https://oauth.tsinghua.edu.cn/",
+        "https://webvpn.tsinghua.edu.cn/",
+    )
+
+    /** 读回 WebView CookieManager 里四域的认证票（dismiss 前调用；dismiss 即 destroy） */
+    private fun collectCloudCookieSeeds(): JSONArray {
+        val cm = CookieManager.getInstance()
+        cm.flush()
+        val arr = JSONArray()
+        for (base in cloudCookieOrigins) {
+            val header = cm.getCookie(base) ?: continue
+            val pairs = JSONArray()
+            for (pair in header.split("; ")) {
+                val p = pair.trim()
+                if (p.isEmpty() || !p.contains("=")) continue
+                pairs.put(p)
+            }
+            if (pairs.length() == 0) continue
+            val seed = JSONObject()
+            seed.put("url", base)
+            seed.put("cookies", pairs)
+            arr.put(seed)
+        }
+        return arr
+    }
+
+    @Command
+    fun openCloudTokenWebview(invoke: Invoke) {
+        val args = invoke.parseArgs(CloudTokenWebviewArgs::class.java)
+        if (!args.url.startsWith("https://")) {
+            invoke.reject("拒绝在应用内打开非 https 链接")
+            return
+        }
+        activity.runOnUiThread {
+            try {
+                val cm = CookieManager.getInstance()
+                cm.setAcceptCookie(true)
+                // 进页面种票：种子来自 Rust 统一 jar（绝不打印内容）
+                try {
+                    val seeds = JSONArray(args.cookieSeedsJson.ifBlank { "[]" })
+                    var seeded = 0
+                    for (i in 0 until seeds.length()) {
+                        val seed = seeds.getJSONObject(i)
+                        val base = seed.optString("url")
+                        val cookies = seed.optJSONArray("cookies") ?: continue
+                        for (j in 0 until cookies.length()) {
+                            cm.setCookie(base, cookies.optString(j))
+                            seeded++
+                        }
+                    }
+                    cm.flush()
+                    Log.i("onethu", "[CLOUD-TOKEN] 已种 $seeded 条会话票 → ${args.url}")
+                } catch (e: Throwable) {
+                    Log.i("onethu", "[CLOUD-TOKEN] 种票解析失败：${e.message}")
+                }
+
+                val web = WebView(activity)
+                cm.setAcceptThirdPartyCookies(web, true)
+                web.settings.javaScriptEnabled = true
+                web.settings.domStorageEnabled = true
+                // 同主窗口 UA 指纹（wengine/webvpn 票按 UA 绑定，换了 UA 票不算数）
+                web.settings.userAgentString = desktopUserAgent
+                web.settings.useWideViewPort = true
+                web.settings.loadWithOverviewMode = true
+                web.settings.setSupportZoom(true)
+                web.settings.builtInZoomControls = true
+                web.settings.displayZoomControls = false
+
+                // 页面脚本注入（脚本自带 window 守卫，重复注入幂等）
+                web.webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        super.onPageFinished(view, url)
+                        if (args.script.isNotBlank()) view?.evaluateJavascript(args.script, null)
+                    }
+                }
+
+                val dialog = Dialog(activity, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+                var settled = false
+                var timeoutHit = false
+                val timeoutRunnable = Runnable {
+                    timeoutHit = true
+                    dialog.dismiss()
+                }
+                val timeoutHandler = Handler(Looper.getMainLooper())
+                fun settleResult(ret: JSObject) {
+                    if (settled) return
+                    settled = true
+                    timeoutHandler.removeCallbacks(timeoutRunnable)
+                    // 统一在此收票：token 成功与用户中途关闭都把 WebView 侧会话带回去
+                    ret.put("cookieSeeds", collectCloudCookieSeeds())
+                    invoke.resolve(ret)
+                }
+
+                // title 回传通道（桌面同款标记）：拿到 40 位口令 → 收票 → 关窗
+                web.webChromeClient = object : WebChromeClient() {
+                    override fun onReceivedTitle(view: WebView?, title: String?) {
+                        super.onReceivedTitle(view, title)
+                        val t = title ?: return
+                        val token = t.removePrefix("ONETHU_CTOKEN::")
+                        if (token.length != t.length && Regex("^[0-9a-fA-F]{40}$").matches(token)) {
+                            val ret = JSObject()
+                            ret.put("token", token)
+                            settleResult(ret)
+                            dialog.dismiss()
+                        }
+                    }
+                }
+
+                // 布局：WebView weight=1 铺满 + 底部按钮条（R18b 同款）
+                val root = LinearLayout(activity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setBackgroundColor(Color.WHITE)
+                }
+                root.addView(
+                    web,
+                    LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f),
+                )
+                val bottom = LinearLayout(activity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER
+                    setPadding(24, 16, 24, 16)
+                    setBackgroundColor(Color.WHITE)
+                }
+                val readBtn = Button(activity).apply {
+                    text = "重新读取现有口令"
+                    setTextColor(Color.WHITE)
+                    setBackgroundColor(Color.parseColor("#1A6FD4"))
+                }
+                val closeBtn = Button(activity).apply {
+                    text = "关闭"
+                    setTextColor(Color.parseColor("#1F2329"))
+                    setBackgroundColor(Color.parseColor("#E5E5E5"))
+                }
+                val readLp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                readLp.marginEnd = 16
+                bottom.addView(readBtn, readLp)
+                bottom.addView(
+                    closeBtn,
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+                )
+                root.addView(
+                    bottom,
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                    ),
+                )
+
+                dialog.setContentView(root)
+                readBtn.setOnClickListener {
+                    // 异步加载后手动触发一次读取（脚本暴露的重入口；只读不生成）
+                    web.evaluateJavascript(
+                        "window.__ONETHU_CLOUD_READ && window.__ONETHU_CLOUD_READ();",
+                        null,
+                    )
+                }
+                closeBtn.setOnClickListener { dialog.dismiss() }
+                dialog.setOnDismissListener {
+                    // 结果只回传一次（token 成功 / 关闭按钮 / 返回键 / 超时都走这里兜底）
+                    if (!settled) {
+                        val ret = JSObject()
+                        ret.put("cancelled", true)
+                        if (timeoutHit) ret.put("reason", "timeout")
+                        settleResult(ret)
+                    }
+                    web.destroy()
+                }
+
+                web.loadUrl(args.url)
+                dialog.show()
+                dialog.window?.setLayout(
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                )
+                timeoutHandler.postDelayed(timeoutRunnable, 10 * 60 * 1000)
+            } catch (e: Exception) {
+                invoke.reject(e.message ?: "打开云盘访问口令窗口失败")
             }
         }
     }

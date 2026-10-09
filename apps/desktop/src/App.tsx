@@ -108,7 +108,10 @@ function Routed() {
     // 云盘自动连接（用户定案：已登录就爬 profile 页 token 自动填充，失败静默）
     void import("./state/seafileAuto.js")
       .then(async (m) => {
-        const r = await m.autoConnectSeafile();
+        // 已连上就不重复折腾（启动静默路径不触发重登，避免开机弹 2FA/踢会话）
+        const { getSeafileToken } = await import("./state/seafile.js");
+        if (getSeafileToken()) return;
+        const r = await m.autoConnectSeafile({ allowRelogin: false });
         if (r.ok) {
           const { showToast } = await import("./state/toast.js");
           showToast(`云盘已自动连接：${r.account?.name ?? ""}`);
