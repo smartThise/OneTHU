@@ -123,8 +123,9 @@ bash apps/desktop/scripts/build-demo-apk.sh      # Android APK（demo 线，脱�
 
 ### 分支约定
 
-开发与发布都在 `dev3`（GitHub 与清华 Git 两个远端同步）；本地检出的分支名为 `dev2`，推送目标为
-`dev3`。`demo` 分支用于脱敏演示版，两线只允许在少数文件上不同，镜像改动按文件摘取、不合并分支。
+开发与发布都在 `dev3`（GitHub 与清华 Git 两个远端同步），本地检出分支同名 `dev3`
+（2026-10-09 前本地旧名 `dev2`；历史 `dev` 线归档于 tag `archive/dev-20261009`）。
+`demo` 分支用于脱敏演示版，两线只允许在少数文件上不同，镜像改动按文件摘取、不合并分支。
 
 ### 仓库结构
 
