@@ -217,6 +217,8 @@ export interface OnethuApi {
     homework(semesterId?: string): Promise<Array<import("@onethu/core").Homework & { courseName: string }>>;
     notifications(semesterId?: string): Promise<Array<import("@onethu/core").Notification & { courseName: string }>>;
     files(courseId: string, semesterId?: string): Promise<import("@onethu/core").CourseFile[]>;
+    /** 下载课件/附件到下载目录，返回本地路径（fileId/filename 来自 files 列表） */
+    download(fileId: string, filename?: string): Promise<string>;
     reply(wlkcid: string, threadId: string, content: string): Promise<void>;
     post(wlkcid: string, bqid: string, title: string, html: string): Promise<void>;
     bbsBoards(wlkcid: string): Promise<import("@onethu/core").LearnBbsBoard[]>;

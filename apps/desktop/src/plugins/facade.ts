@@ -351,6 +351,12 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
         }
         return learn.getFileList(courseId);
       },
+      /** 下载课件/附件到下载目录（Files Hub 源①：字节不过 JS，带会话 Cookie 直连） */
+      download: async (fileId: string, filename?: string) => {
+        const { downloadLearnFile } = await import("../lib/clients.js");
+        const name = filename?.trim() || `learn-${fileId}`;
+        return downloadLearnFile(fileId, name);
+      },
       reply: (wlkcid: string, threadId: string, content: string) => {
         gate(perms, "learn:write", "learn.reply");
         return learn.postBbsReply(wlkcid, threadId, content);

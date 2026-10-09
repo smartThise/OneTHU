@@ -252,12 +252,7 @@ pub async fn seafile_upload(
     local_path: String,
     replace: bool,
 ) -> Result<i64, String> {
-    let expanded = if let Some(rest) = local_path.strip_prefix("~") {
-        let home = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).map_err(|_| "无法定位主目录")?;
-        format!("{home}{rest}")
-    } else {
-        local_path
-    };
+    let expanded = expand_home(&local_path)?;
     seafile_upload_inner(&token, &repo_id, &parent_dir, std::path::Path::new(&expanded), replace).await
 }
 
@@ -464,6 +459,220 @@ pub async fn seafile_pick_upload(
         }
     }
     Ok(out)
+}
+
+/* ═══════════════ 记忆/Files Hub 扩展原语（2026-10 memory-cloud 设计落地） ═══════════════
+ *
+ * 与既有命令的关系（docs/memory-cloud/01-memory-system.md §4 API 三档）：
+ * - seafile_read_bytes     seafile_download 的「到内存」变体（base64 返回），带大小防线；
+ * - seafile_update_file    update-link 覆写已存在文件（编辑原语；thufs 同实例验证）；
+ * - seafile_uploaded_bytes / seafile_upload_resume  断点续传对
+ *   （/file-uploaded-bytes/ + Content-Range 语义，thufs 同实例验证）。
+ * 端点均属「thufs 已验证、seafile.rs 未封装」档——正式接入后跑 live 冒烟复核。 */
+
+/// 读文件到内存（base64 返回）。记忆镜像/摘要解析用：不落盘、不弹下载目录。
+/// max_bytes ≤0 时取默认 8MB——大课件整个拖进 WebView 会 OOM，这是防线。
+#[tauri::command]
+pub async fn seafile_read_bytes(
+    token: String,
+    repo_id: String,
+    path: String,
+    max_bytes: i64,
+) -> Result<String, String> {
+    let p = if path.starts_with('/') { path } else { format!("/{path}") };
+    let limit = if max_bytes > 0 { max_bytes } else { 8 * 1024 * 1024 };
+    let resp = check(
+        client()?
+            .get(format!("{BASE}/api2/repos/{repo_id}/file/"))
+            .bearer_auth(token)
+            .query(&[("p", p.as_str()), ("dl", "1")])
+            .send()
+            .await.map_err(|e| e.to_string())?,
+    )
+    .await?;
+    // 先看 Content-Length 提前拒绝（chunked 场景读后再验）
+    if let Some(v) = resp
+        .headers()
+        .get(reqwest::header::CONTENT_LENGTH)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.parse::<i64>().ok())
+    {
+        if v > limit {
+            return Err(format!("文件过大（{v} 字节 > 上限 {limit}）：记忆镜像只收小文件，大文件请走 seafile_download"));
+        }
+    }
+    let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
+    if bytes.len() as i64 > limit {
+        return Err(format!("文件过大（{} 字节 > 上限 {limit}）：记忆镜像只收小文件，大文件请走 seafile_download", bytes.len()));
+    }
+    use base64::Engine as _;
+    Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
+}
+
+/// 覆写已存在文件（update-link 原语）：GET update-link（指向父目录）→
+/// multipart(file, target_file=完整远端路径)。target_file 带 / 开头完整路径（thufs 同款）。
+#[tauri::command]
+pub async fn seafile_update_file(
+    token: String,
+    repo_id: String,
+    file_path: String,
+    local_path: String,
+) -> Result<i64, String> {
+    let p = if file_path.starts_with('/') { file_path } else { format!("/{file_path}") };
+    let (parent, name) = match p.rsplit_once('/') {
+        Some((dir, n)) if !n.is_empty() => (if dir.is_empty() { "/".to_string() } else { dir.to_string() }, n.to_string()),
+        _ => return Err(format!("路径无文件名：{p}")),
+    };
+    let expanded = expand_home(&local_path)?;
+    let data = std::fs::read(&expanded).map_err(|e| format!("读本地文件失败：{e}"))?;
+    // ① 取 update-link（同 upload-link：带引号裸字符串）
+    let link: String = check(
+        client()?
+            .get(format!("{BASE}/api2/repos/{repo_id}/update-link/"))
+            .bearer_auth(&token)
+            .query(&[("p", parent.as_str())])
+            .send()
+            .await.map_err(|e| e.to_string())?,
+    )
+    .await?
+    .text()
+    .await
+    .map_err(|e| e.to_string())?;
+    let link = link.trim().trim_matches('"').to_string();
+    if link.is_empty() {
+        return Err("服务器未返回更新链接".into());
+    }
+    // ② multipart(file, target_file)——注意 target_file 是含目录的完整路径
+    let part = reqwest::multipart::Part::bytes(data)
+        .file_name(name)
+        .mime_str("application/octet-stream")
+        .map_err(|e| e.to_string())?;
+    let form = reqwest::multipart::Form::new()
+        .part("file", part)
+        .text("target_file", p.clone());
+    let v: Value = check(
+        client()?
+            .post(&link)
+            .bearer_auth(token)
+            .multipart(form)
+            .send()
+            .await.map_err(|e| e.to_string())?,
+    )
+    .await?
+    .json()
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(v.as_array()
+        .and_then(|a| a.first())
+        .and_then(|f| f.get("size"))
+        .and_then(|x| x.as_i64())
+        .unwrap_or(-1))
+}
+
+/// 断点续传探测：服务器已收字节数（0=无断点。端点报错时如实上抛，由上层决定整传重试）。
+#[tauri::command]
+pub async fn seafile_uploaded_bytes(
+    token: String,
+    repo_id: String,
+    parent_dir: String,
+    file_name: String,
+) -> Result<i64, String> {
+    let pd = if parent_dir.starts_with('/') { parent_dir } else { format!("/{parent_dir}") };
+    let v: Value = check(
+        client()?
+            .get(format!("{BASE}/api/v2.1/repos/{repo_id}/file-uploaded-bytes/"))
+            .bearer_auth(token)
+            .query(&[("parent_dir", pd.as_str()), ("file_name", file_name.as_str())])
+            .send()
+            .await.map_err(|e| e.to_string())?,
+    )
+    .await?
+    .json()
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(v.get("uploadedBytes").and_then(|x| x.as_i64()).unwrap_or(0))
+}
+
+/// 断点续传上传：先探测已传字节，再从偏移续传（Content-Range）。
+/// replace=true 时跳过续传直接整传（覆盖语义与续传互斥）。
+/// TODO（Files Hub 大文件优化）：现整读后切片，>200MB 文件应换流式 Body。
+#[tauri::command]
+pub async fn seafile_upload_resume(
+    token: String,
+    repo_id: String,
+    parent_dir: String,
+    local_path: String,
+    replace: bool,
+) -> Result<i64, String> {
+    let pd = if parent_dir.starts_with('/') { parent_dir } else { format!("/{parent_dir}") };
+    let expanded = expand_home(&local_path)?;
+    let total = std::fs::metadata(&expanded).map_err(|e| format!("读本地文件失败：{e}"))?.len();
+    let filename = std::path::Path::new(&expanded)
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "upload.bin".into());
+    let start: u64 = if replace {
+        0
+    } else {
+        seafile_uploaded_bytes(token.clone(), repo_id.clone(), pd.clone(), filename.clone())
+            .await
+            .unwrap_or(0)
+            .clamp(0, total as i64) as u64
+    };
+    let data = std::fs::read(&expanded).map_err(|e| format!("读本地文件失败：{e}"))?;
+    // ① upload-link（同 seafile_upload_inner）
+    let link: String = check(
+        client()?
+            .get(format!("{BASE}/api2/repos/{repo_id}/upload-link/"))
+            .bearer_auth(&token)
+            .query(&[("p", pd.as_str())])
+            .send()
+            .await.map_err(|e| e.to_string())?,
+    )
+    .await?
+    .text()
+    .await
+    .map_err(|e| e.to_string())?;
+    let link = link.trim().trim_matches('"').to_string();
+    if link.is_empty() {
+        return Err("服务器未返回上传链接".into());
+    }
+    // ② 从 start 偏移续传，带 Content-Range（thufs 验证的服务器语义）
+    let part = reqwest::multipart::Part::bytes(data[start as usize..].to_vec())
+        .file_name(filename.clone())
+        .mime_str("application/octet-stream")
+        .map_err(|e| e.to_string())?;
+    let form = reqwest::multipart::Form::new()
+        .part("file", part)
+        .text("parent_dir", pd.clone())
+        .text("replace", if replace { "1".to_string() } else { "0".to_string() });
+    let mut req = client()?
+        .post(format!("{link}?ret-json=1"))
+        .bearer_auth(&token)
+        .multipart(form);
+    if start > 0 {
+        req = req.header("Content-Range", format!("bytes {start}-{}/{total}", total.saturating_sub(1)));
+    }
+    let v: Value = check(req.send().await.map_err(|e| e.to_string())?)
+        .await?
+        .json()
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(v.as_array()
+        .and_then(|a| a.first())
+        .and_then(|f| f.get("size"))
+        .and_then(|x| x.as_i64())
+        .unwrap_or(-1))
+}
+
+/// 本地路径 ~ 前缀展开（seafile_upload 同款逻辑，抽出共用）
+fn expand_home(local_path: &str) -> Result<String, String> {
+    if let Some(rest) = local_path.strip_prefix("~") {
+        let home = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).map_err(|_| "无法定位主目录")?;
+        Ok(format!("{home}{rest}"))
+    } else {
+        Ok(local_path.to_string())
+    }
 }
 
 /* ═══════════════ live 测试（真实实例，需 token）═══════════════
