@@ -13,8 +13,9 @@ import { useSyncExternalStore } from "react";
  *  放在 state 层而不是 Settings.tsx：命令面板要用它，而 state 不该反向依赖 pages。 */
 export const SETTINGS_TAB_ORDER = ["账号", "通知与提醒", "外观与布局", "数据与同步", "下载与存储", "帮助", "插件", "关于"];
 
-/** 只有高级模式才露出的页签（可见性分层，不是功能删减，§4.4） */
-export const ADVANCED_SETTINGS_TABS = ["插件"];
+/** 只有高级模式才露出的页签（可见性分层，不是功能删减，§4.4）。
+ *  2026-10-09 用户拍板：插件升回一级菜单（侧栏），此处不再隐藏任何页签。 */
+export const ADVANCED_SETTINGS_TABS: string[] = [];
 
 const KEY = "onethu.settings.advanced";
 
