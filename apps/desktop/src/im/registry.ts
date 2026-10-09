@@ -113,6 +113,15 @@ const pendingAtt = new Map<string, PendingAtt>();
 const PENDING_TTL_MS = 10 * 60_000;
 const pkOf = (channel: string, sender: string): string => `${channel}:${sender}`;
 
+/* ── 最近入库记录（30 分钟；用户回「要链接」时按需生成公开分享——默认绝不分享） ── */
+interface LastStored {
+  repoId: string;
+  path: string;
+  at: number;
+}
+const lastStored = new Map<string, LastStored>();
+const LAST_STORED_TTL_MS = 30 * 60_000;
+
 /* ── 绑定码（内存态，10 分钟有效；设置页生成，IM 内发送 /bind 码完成绑定） ── */
 let bindCode: { code: string; expiresAt: number } | null = null;
 
@@ -240,18 +249,25 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
       const isSkip = /^(不|不用|算了|忽略|取消|别存)/.test(t);
       if (isStore || custom) {
         pendingAtt.delete(pk);
-        const { commitStaged } = await import("./mediaPipe.js");
+        const { commitStored } = await import("./mediaPipe.js");
         const target = custom?.[1]?.trim();
         const out: string[] = [];
+        let storedAny = false;
         for (const s of cur.staged) {
           try {
-            const r = await commitStaged(s, target);
-            out.push(`· 《${s.name}》→ ${r.path}\n  链接：${r.link}`);
+            const r = await commitStored(s, target);
+            lastStored.set(pk, { repoId: r.repoId, path: r.path, at: Date.now() });
+            storedAny = true;
+            const size = r.size > 0 ? (r.size > 1048576 ? `，${(r.size / 1048576).toFixed(1)}MB` : `，${Math.max(1, Math.round(r.size / 1024))}KB`) : "";
+            out.push(`· 《${s.name}》已存入云盘《${r.repoName}》${r.path}${size}`);
           } catch (e) {
             out.push(`· 《${s.name}》转存失败：${e instanceof Error ? e.message : String(e)}`);
           }
         }
-        await replyTo(msg, `已转存云盘：\n${out.join("\n")}`);
+        const tail = storedAny
+          ? "\n（只存在你自己的资料库里，未生成任何公开链接；需要公开分享链接回「要链接」。）"
+          : "";
+        await replyTo(msg, `转存完成：\n${out.join("\n")}${tail}`);
         return;
       }
       if (isSkip) {
@@ -261,6 +277,22 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
       }
       // 其他意图：保留待确认，提示后继续正常流程（可能是在问别的）
       await replyTo(msg, "（刚才的文件还在待确认：「存」转存 /「不」忽略 /「存到 <目录>」自定义）");
+    }
+  }
+
+  /* 按需公开分享：用户明确说「要链接/分享」时，对最近入库文件生成 7 天链接 */
+  {
+    const pk = pkOf(msg.channel, msg.sender);
+    const ls = lastStored.get(pk);
+    if (ls && Date.now() - ls.at < LAST_STORED_TTL_MS && /(要|给|生成|发)(个|一个)?(公开)?(分享)?链接|分享链接|要分享/.test(text)) {
+      try {
+        const { shareLast } = await import("./mediaPipe.js");
+        const link = await shareLast(ls.repoId, ls.path);
+        await replyTo(msg, `公开分享链接（7 天有效，拿到链接的人都能访问）：\n${link}\n文件：${ls.path}`);
+      } catch (e) {
+        await replyTo(msg, `生成分享链接失败：${e instanceof Error ? e.message : String(e)}`);
+      }
+      return;
     }
   }
 

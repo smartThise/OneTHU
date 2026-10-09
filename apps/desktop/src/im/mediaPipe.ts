@@ -50,18 +50,21 @@ async function token(): Promise<string> {
   return t;
 }
 
-/** 目标资料库：优先 IM 配置；否则自动挑一个（名字含 file/文件/OneTHU 优先）并记住 */
-export async function targetRepo(): Promise<string> {
-  const cfg = await loadImConfig();
-  if (cfg.seafile?.repoId) return cfg.seafile.repoId;
+/** 目标资料库：优先 IM 配置；否则自动挑一个（名字含 file/文件/OneTHU 优先）并记住（返回 id+名字） */
+export async function targetRepo(): Promise<{ repoId: string; repoName: string }> {
   const tk = await token();
+  const cfg = await loadImConfig();
   const repos = await invoke<Array<{ id: string; name: string }>>("seafile_repos", { token: tk });
   if (!repos.length) throw new Error("云盘里没有资料库（先在网页端建一个）");
+  if (cfg.seafile?.repoId) {
+    const hit = repos.find((r) => r.id === cfg.seafile!.repoId);
+    if (hit) return { repoId: hit.id, repoName: hit.name };
+  }
   const pick = repos.find((r) => /file|文件|OneTHU/i.test(r.name)) ?? repos[0]!;
   await patchImConfig((c) => {
     c.seafile = { repoId: pick.id, dir: c.seafile?.dir || "/IM" };
   });
-  return pick.id;
+  return { repoId: pick.id, repoName: pick.name };
 }
 
 /* ── 目录建议（看文件名/扩展名/预览内容；判断不了回默认） ── */
@@ -132,13 +135,18 @@ async function ensureDirs(tk: string, repoId: string, dir: string): Promise<void
   }
 }
 
-/** ② 用户确认后入库：mkdir -p → 上传 → 分享；targetDir 为空则用默认 /IM/{channel} */
-export async function commitStaged(
+/**
+ * ② 用户确认后入库：mkdir -p → 上传。
+ * **默认不生成任何公开分享链接**（隐私红线）：文件只躺在你自己的私有资料库里；
+ * 需要公开链接时用户明确回「要链接」再由 shareLast() 按需生成（7 天有效）。
+ * targetDir 为空则按建议目录，建议也为空则默认 /IM/{channel}。
+ */
+export async function commitStored(
   staged: StagedAttachment,
   targetDir?: string,
-): Promise<{ link: string; path: string }> {
+): Promise<{ path: string; repoId: string; repoName: string; size: number }> {
   const tk = await token();
-  const repoId = await targetRepo();
+  const { repoId, repoName } = await targetRepo();
   const cfg = await loadImConfig();
   const base = (cfg.seafile?.dir || "/IM").replace(/\/+$/, "");
   const rawDir = (targetDir ?? staged.suggest.dir ?? "").trim();
@@ -146,20 +154,29 @@ export async function commitStaged(
     ? rawDir.startsWith("/") ? rawDir.replace(/\/+$/, "") : `${base}/${rawDir.replace(/\/+$/, "")}`
     : `${base}/${staged.channel}`;
   await ensureDirs(tk, repoId, dir);
-  const up = await invoke<{ size: number }>("seafile_upload", {
+  const size = await invoke<number>("seafile_upload", {
     token: tk,
     repoId,
     parentDir: dir,
     localPath: staged.localPath,
     replace: true,
   });
+  void logLine(`[IM] 附件入库：库《${repoName}》 ${dir}/${staged.name}（${size} 字节）`).catch(() => undefined);
+  return { path: `${dir}/${staged.name}`, repoId, repoName, size: typeof size === "number" ? size : 0 };
+}
+
+/** 兼容旧调用名（registry 用 commitStored；保留导出避免遗漏引用） */
+export const commitStaged = commitStored;
+
+/** 按需生成公开分享链接（7 天有效）——仅用户明确要求时调用 */
+export async function shareLast(repoId: string, path: string): Promise<string> {
+  const tk = await token();
   const share = await invoke<{ link: string }>("seafile_share", {
     token: tk,
     repoId,
-    path: `${dir}/${staged.name}`,
-    expireDays: 0,
+    path,
+    expireDays: 7,
     password: "",
   });
-  void logLine(`[IM] 附件入库：${dir}/${staged.name}（${up.size} 字节）`).catch(() => undefined);
-  return { link: share.link, path: `${dir}/${staged.name}` };
+  return share.link;
 }
