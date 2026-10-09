@@ -149,6 +149,7 @@ export async function memoryWrite(input: MemoryWriteInput): Promise<{ permalink:
   await mWrite(path, raw);
   await ledgerPut(path, raw, now);
   invalidateCache();
+  void import("./sync.js").then((m) => m.scheduleMemoryPush()).catch(() => undefined);
   return { permalink, path };
 }
 
@@ -162,6 +163,7 @@ export async function memoryAppend(permalink: string, category: string, text: st
   await mWrite(hit.path, raw);
   await ledgerPut(hit.path, raw, hit.note.modified);
   invalidateCache();
+  void import("./sync.js").then((m) => m.scheduleMemoryPush()).catch(() => undefined);
 }
 
 export async function memoryEdit(permalink: string, find: string, replace: string): Promise<void> {
@@ -173,6 +175,7 @@ export async function memoryEdit(permalink: string, find: string, replace: strin
   await mWrite(hit.path, raw);
   await ledgerPut(hit.path, raw, nowIso());
   invalidateCache();
+  void import("./sync.js").then((m) => m.scheduleMemoryPush()).catch(() => undefined);
 }
 
 export async function memoryDelete(permalink: string, reason?: string): Promise<{ trashedTo: string }> {
@@ -184,6 +187,7 @@ export async function memoryDelete(permalink: string, reason?: string): Promise<
   await mDelete(hit.path);
   await ledgerRemove(hit.path);
   invalidateCache();
+  void import("./sync.js").then((m) => m.scheduleMemoryPush()).catch(() => undefined);
   return { trashedTo: trashPath };
 }
 

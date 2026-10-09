@@ -21,8 +21,16 @@ async function io(op: string, path: string, content?: string): Promise<unknown> 
   return invoke("memory_io", { op, path, content });
 }
 
-export async function mWrite(path: string, content: string): Promise<void> {
-  await io("write", path, content);
+/** 写镜像并返回绝对路径（push 上传需要；Rust write 原子落盘后回 path） */
+export async function mWrite(path: string, content: string): Promise<string> {
+  const r = (await io("write", path, content)) as { path: string };
+  return r.path;
+}
+
+/** 相对路径 → 本地绝对路径（走同一白名单校验；push 上传用） */
+export async function mAbspath(path: string): Promise<string> {
+  const r = (await io("abspath", path)) as { path: string };
+  return r.path;
 }
 
 export async function mRead(path: string): Promise<string> {

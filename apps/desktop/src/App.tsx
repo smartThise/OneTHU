@@ -97,6 +97,13 @@ function Routed() {
     void import("./im/boot.js").then((m) => m.bootIm()).catch(() => undefined);
   }, [status]);
 
+  // OH 记忆云盘同步（OH-Memory 资料库，没有就建）：启动 pull + 本地新内容 push。
+  // 云盘未连接时静默降级——本地记忆照常。
+  useEffect(() => {
+    if (status !== "ready") return;
+    void import("./memory/sync.js").then((m) => m.memoryBootSync()).catch(() => undefined);
+  }, [status]);
+
   const body = (() => {
     if (status === "booting") {
       return (

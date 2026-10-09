@@ -130,6 +130,38 @@ pub async fn seafile_repos(token: String) -> Result<Vec<SeafileRepo>, String> {
         .collect())
 }
 
+/// 创建资料库（POST /api2/repos/，form: name；同名已存在时 Seafile 会新建重名库——
+/// 调用方应先按名字查找，本命令只负责「没有就建」的建侧）。
+#[tauri::command]
+pub async fn seafile_create_repo(token: String, name: String) -> Result<SeafileRepo, String> {
+    let n = name.trim();
+    if n.is_empty() {
+        return Err("资料库名不能为空".into());
+    }
+    let v: Value = check(
+        client()?
+            .post(format!("{BASE}/api2/repos/"))
+            .bearer_auth(token)
+            .form(&[("name", n)])
+            .send()
+            .await.map_err(|e| e.to_string())?,
+    )
+    .await?
+    .json()
+    .await
+    .map_err(|e| e.to_string())?;
+    let id = v.get("id").and_then(|x| x.as_str()).unwrap_or("").to_string();
+    if id.is_empty() {
+        return Err(format!("建库响应缺 id：{}", serde_json::to_string(&v).unwrap_or_default().chars().take(160).collect::<String>()));
+    }
+    Ok(SeafileRepo {
+        id,
+        name: v.get("name").and_then(|x| x.as_str()).unwrap_or(n).to_string(),
+        mtime: v.get("mtime").and_then(|x| x.as_i64()).unwrap_or(0),
+        size: v.get("size").and_then(|x| x.as_i64()).unwrap_or(0),
+    })
+}
+
 /// 目录浏览。path 形如 "/" 或 "/课件/第一周"
 #[tauri::command]
 pub async fn seafile_dir(token: String, repo_id: String, path: String) -> Result<Vec<SeafileEntry>, String> {

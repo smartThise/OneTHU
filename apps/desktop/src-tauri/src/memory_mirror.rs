@@ -85,6 +85,7 @@ fn mirror_io_at(root: &std::path::Path, op: &str, path: &str, content: Option<St
             std::fs::rename(&tmp, &abs).map_err(|e| format!("落盘镜像失败：{e}"))?;
             Ok(json!({ "path": abs.to_string_lossy() }))
         }
+        "abspath" => Ok(json!({ "path": abs.to_string_lossy() })),
         "read" => match std::fs::read_to_string(&abs) {
             Ok(s) => Ok(json!({ "content": s })),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
