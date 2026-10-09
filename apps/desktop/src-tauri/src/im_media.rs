@@ -87,3 +87,28 @@ pub async fn im_fetch_media(
     std::fs::write(&path, &data).map_err(|e| format!("写临时文件失败：{e}"))?;
     Ok(path.to_string_lossy().to_string())
 }
+
+/// 读文本类文件的前 max_len 字符（预览用；非文本/超大/读取失败返回 None，绝不猜测）
+#[tauri::command]
+pub fn im_peek_text(path: String, max_len: Option<usize>) -> Option<String> {
+    let limit = max_len.unwrap_or(400).min(2000);
+    let meta = std::fs::metadata(&path).ok()?;
+    if meta.len() > 2 * 1024 * 1024 {
+        return None; // >2MB 不预览
+    }
+    let bytes = std::fs::read(&path).ok()?;
+    // 文本判定：UTF-8 可解码且控制字符占比低
+    let text = std::str::from_utf8(&bytes).ok()?;
+    let ctrl = text.chars().filter(|c| c.is_control() && *c != '\n' && *c != '\r' && *c != '\t').count();
+    if ctrl * 100 > text.chars().count().max(1) * 2 {
+        return None;
+    }
+    let head: String = text.chars().take(limit).collect();
+    Some(head.replace('\r', ""))
+}
+
+/// 文件大小（字节；读取失败返回 None）
+#[tauri::command]
+pub fn im_stat_file(path: String) -> Option<u64> {
+    std::fs::metadata(path).ok().map(|m| m.len())
+}

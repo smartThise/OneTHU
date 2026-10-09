@@ -1,9 +1,11 @@
 /**
- * IM 附件管道：平台引用 → 下载（Rust im_fetch_media：含微信 CDN AES 解密）→
- * 上传云盘 → 分享链接 → 回复用户。
+ * IM 附件管道（两段式，对齐「不要一股脑直接存」的用户口径）：
+ *   ① stage：下载（Rust im_fetch_media，含微信 CDN 解密）→ 读文本预览（im_peek_text）
+ *      → 规则建议目录（看内容/文件名，判断不了才回默认 /IM/{channel}）；
+ *   ② commit：用户确认（或指定目录）后 → mkdir -p → 上传 → 分享链接。
  *
- * 职责切分（对齐适配器契约）：适配器把平台附件翻译成「可执行下载指令」
- * （fetchUrl/headers/aesKey），本模块只负责执行与入库，不碰平台细节。
+ * 职责切分：适配器把平台附件翻译成「可执行下载指令」（fetchUrl/headers/aesKey），
+ * 本模块只负责执行、建议与入库，不碰平台细节。
  */
 import { invoke } from "@tauri-apps/api/core";
 import { logLine } from "../lib/clients.js";
@@ -19,10 +21,25 @@ export interface AttachmentRef {
   aesKey?: string;
 }
 
+export interface StagedAttachment {
+  channel: "wechat" | "feishu";
+  name: string;
+  localPath: string;
+  sizeNote: string;
+  /** 文本类预览（前 ~300 字；非文本为 null） */
+  preview: string | null;
+  /** 建议目录与理由（用户可改） */
+  suggest: { dir: string; reason: string };
+}
+
 /** 文件名安全化（与 Rust safe_name 同规则，保证上传/分享路径一致） */
 export function safeName(name: string): string {
   const base = name.split(/[/\\]/).pop() ?? name;
-  const cleaned = base.replace(/[/\\:*?"<>|]/g, "_").replace(/[\u0000-\u001f]/g, "_").trim().replace(/^\.+|\.+$/g, "");
+  const cleaned = base
+    .replace(/[/\\:*?"<>|]/g, "_")
+    .replace(/[\u0000-\u001f]/g, "_")
+    .trim()
+    .replace(/^\.+|\.+$/g, "");
   return cleaned || "attachment.bin";
 }
 
@@ -34,31 +51,49 @@ async function token(): Promise<string> {
 }
 
 /** 目标资料库：优先 IM 配置；否则自动挑一个（名字含 file/文件/OneTHU 优先）并记住 */
-async function targetRepo(): Promise<{ repoId: string; dir: string }> {
+export async function targetRepo(): Promise<string> {
   const cfg = await loadImConfig();
-  if (cfg.seafile?.repoId) return { repoId: cfg.seafile.repoId, dir: cfg.seafile.dir || "/IM" };
+  if (cfg.seafile?.repoId) return cfg.seafile.repoId;
   const tk = await token();
   const repos = await invoke<Array<{ id: string; name: string }>>("seafile_repos", { token: tk });
   if (!repos.length) throw new Error("云盘里没有资料库（先在网页端建一个）");
   const pick = repos.find((r) => /file|文件|OneTHU/i.test(r.name)) ?? repos[0]!;
   await patchImConfig((c) => {
-    c.seafile = { repoId: pick.id, dir: "/IM" };
+    c.seafile = { repoId: pick.id, dir: c.seafile?.dir || "/IM" };
   });
-  return { repoId: pick.id, dir: "/IM" };
+  return pick.id;
 }
 
-export interface StoredAttachment {
-  link: string;
-  path: string;
-  sizeNote: string;
+/* ── 目录建议（看文件名/扩展名/预览内容；判断不了回默认） ── */
+
+const IMAGE_EXT = /\.(jpe?g|png|gif|webp|heic|bmp|tiff?|svg)$/i;
+const DOC_EXT = /\.(pdf|docx?|pptx?|xlsx?|md|txt|rtf|odt)$/i;
+const ZIP_EXT = /\.(zip|rar|7z|tar|gz|bz2)$/i;
+const CODE_EXT = /\.(js|ts|tsx|jsx|py|rs|c|cpp|h|java|kt|go|html?|css|json|ya?ml|xml|csv|sql|sh)$/i;
+
+export function suggestDir(name: string, preview: string | null): { dir: string; reason: string } {
+  const text = `${name}\n${preview ?? ""}`;
+  if (/(发票|账单|收据|报销|receipt|invoice)/i.test(text)) return { dir: "/账单", reason: "文件名/内容含发票或账单字样" };
+  if (/(作业|homework|\bhw[\s_-]?\d|assignment)/i.test(text)) return { dir: "/文档/作业", reason: "文件名/内容含作业字样" };
+  if (/(课件|讲义|lecture|slides|第\s*\d+\s*讲)/i.test(text)) return { dir: "/文档/课件", reason: "文件名/内容含课件讲义字样" };
+  if (/(简历|resume|cv)[^a-z]/i.test(text)) return { dir: "/文档", reason: "疑似简历文档" };
+  if (IMAGE_EXT.test(name)) return { dir: "/图片", reason: "图片文件" };
+  if (ZIP_EXT.test(name)) return { dir: "/压缩包", reason: "压缩包" };
+  if (DOC_EXT.test(name)) return { dir: "/文档", reason: "文档文件" };
+  if (CODE_EXT.test(name)) return { dir: "/文档/代码与数据", reason: "代码/数据文件" };
+  return { dir: "", reason: "类型不明确（存默认位置）" };
 }
 
-/** 下载 → 上传 → 分享；返回链接与云盘路径 */
-export async function storeAttachment(
+/* ── 两段式：暂存 → 确认 → 入库 ── */
+
+const MAX_PREVIEW_FILE = 2 * 1024 * 1024;
+
+/** ① 下载暂存 + 预览 + 建议（不落云盘，等用户确认） */
+export async function stageAttachment(
   channel: "wechat" | "feishu",
   rawName: string,
   ref: AttachmentRef,
-): Promise<StoredAttachment> {
+): Promise<StagedAttachment> {
   const name = safeName(rawName);
   const localPath = await invoke<string>("im_fetch_media", {
     url: ref.fetchUrl,
@@ -66,27 +101,65 @@ export async function storeAttachment(
     aesKeyB64: ref.aesKey ?? null,
     fileName: name,
   });
+  let sizeNote = "";
+  let preview: string | null = null;
+  try {
+    preview = (await invoke<string | null>("im_peek_text", { path: localPath, maxLen: 300 })) ?? null;
+  } catch {
+    preview = null;
+  }
+  try {
+    const size = (await invoke<number | null>("im_stat_file", { path: localPath })) ?? 0;
+    sizeNote = size > 0 ? (size > 1024 * 1024 ? `${(size / 1048576).toFixed(1)}MB` : `${Math.max(1, Math.round(size / 1024))}KB`) : "";
+  } catch {
+    sizeNote = "";
+  }
+  const suggest = suggestDir(name, preview);
+  return { channel, name, localPath, sizeNote, preview, suggest };
+}
+
+/** mkdir -p（逐级；已存在忽略） */
+async function ensureDirs(tk: string, repoId: string, dir: string): Promise<void> {
+  const parts = dir.split("/").filter(Boolean);
+  let cur = "";
+  for (const p of parts) {
+    cur += `/${p}`;
+    try {
+      await invoke("seafile_mkdir", { token: tk, repoId, path: cur });
+    } catch {
+      /* 已存在等错误忽略——上传会给出真实结果 */
+    }
+  }
+}
+
+/** ② 用户确认后入库：mkdir -p → 上传 → 分享；targetDir 为空则用默认 /IM/{channel} */
+export async function commitStaged(
+  staged: StagedAttachment,
+  targetDir?: string,
+): Promise<{ link: string; path: string }> {
   const tk = await token();
-  const { repoId, dir } = await targetRepo();
-  const parentDir = `${dir.replace(/\/+$/, "")}/${channel}`;
+  const repoId = await targetRepo();
+  const cfg = await loadImConfig();
+  const base = (cfg.seafile?.dir || "/IM").replace(/\/+$/, "");
+  const rawDir = (targetDir ?? staged.suggest.dir ?? "").trim();
+  const dir = rawDir
+    ? rawDir.startsWith("/") ? rawDir.replace(/\/+$/, "") : `${base}/${rawDir.replace(/\/+$/, "")}`
+    : `${base}/${staged.channel}`;
+  await ensureDirs(tk, repoId, dir);
   const up = await invoke<{ size: number }>("seafile_upload", {
     token: tk,
     repoId,
-    parentDir,
-    localPath,
+    parentDir: dir,
+    localPath: staged.localPath,
     replace: true,
   });
   const share = await invoke<{ link: string }>("seafile_share", {
     token: tk,
     repoId,
-    path: `${parentDir}/${name}`,
+    path: `${dir}/${staged.name}`,
     expireDays: 0,
     password: "",
   });
-  void logLine(`[IM] 附件入库：${parentDir}/${name}（${up.size} 字节）`).catch(() => undefined);
-  return {
-    link: share.link,
-    path: `${parentDir}/${name}`,
-    sizeNote: up.size > 1024 * 1024 ? `${(up.size / 1048576).toFixed(1)}MB` : `${Math.max(1, Math.round(up.size / 1024))}KB`,
-  };
+  void logLine(`[IM] 附件入库：${dir}/${staged.name}（${up.size} 字节）`).catch(() => undefined);
+  return { link: share.link, path: `${dir}/${staged.name}` };
 }

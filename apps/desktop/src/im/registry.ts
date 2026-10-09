@@ -104,6 +104,15 @@ export function isChannelRunning(id: ChannelId): boolean {
   return running.has(id);
 }
 
+/* ── 附件待确认暂存（per 通道+发送者；10 分钟过期；两段式：确认后才上云盘） ── */
+interface PendingAtt {
+  staged: Array<import("./mediaPipe.js").StagedAttachment>;
+  at: number;
+}
+const pendingAtt = new Map<string, PendingAtt>();
+const PENDING_TTL_MS = 10 * 60_000;
+const pkOf = (channel: string, sender: string): string => `${channel}:${sender}`;
+
 /* ── 绑定码（内存态，10 分钟有效；设置页生成，IM 内发送 /bind 码完成绑定） ── */
 let bindCode: { code: string; expiresAt: number } | null = null;
 
@@ -177,9 +186,10 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
 
   /* 附件（M3 转存云盘管线上线前的占位回复） */
   if (msg.attachments.length > 0) {
-    const { storeAttachment } = await import("./mediaPipe.js");
+    const { stageAttachment } = await import("./mediaPipe.js");
     const adapter = adapters.get(msg.channel);
-    const lines: string[] = [];
+    const staged: Array<import("./mediaPipe.js").StagedAttachment> = [];
+    const errs: string[] = [];
     for (const att of msg.attachments) {
       try {
         let ref = att.ref as import("./mediaPipe.js").AttachmentRef | null;
@@ -187,19 +197,72 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
           ref = await adapter.resolveAttachment(att.ref, att.messageId);
         }
         if (!ref?.fetchUrl) {
-          lines.push(`- ${att.name}：该类型暂不支持转存（首版支持图片/文件/视频）`);
+          errs.push(`- ${att.name}：该类型暂不支持（首版支持图片/文件/视频）`);
           continue;
         }
-        const r = await storeAttachment(msg.channel as "wechat" | "feishu", att.name, ref);
-        lines.push(`- ${att.name}（${r.sizeNote}）已存入云盘 ${r.path}\n  链接：${r.link}`);
+        staged.push(await stageAttachment(msg.channel as "wechat" | "feishu", att.name, ref));
       } catch (e) {
-        lines.push(`- ${att.name}：转存失败（${e instanceof Error ? e.message : String(e)}）`);
+        errs.push(`- ${att.name}：读取失败（${e instanceof Error ? e.message : String(e)}）`);
       }
     }
-    await replyTo(msg, `收到 ${msg.attachments.length} 个附件，已转存云盘：\n${lines.join("\n")}`);
+    if (!staged.length) {
+      await replyTo(msg, `附件处理失败：\n${errs.join("\n")}`);
+      return;
+    }
+    pendingAtt.set(pkOf(msg.channel, msg.sender), { staged, at: Date.now() });
+    const parts: string[] = [`收到 ${staged.length} 个文件（还没存）：`];
+    for (const s of staged) {
+      parts.push(`· 《${s.name}》${s.sizeNote ? `（${s.sizeNote}）` : ""}`);
+      if (s.preview) {
+        const p = s.preview.replace(/\s+/g, " ").trim().slice(0, 160);
+        parts.push(`  预览：${p}${s.preview.length > 160 ? "…" : ""}`);
+      }
+      parts.push(`  建议存到：${s.suggest.dir || "默认位置（/IM " + s.channel + "）"}（${s.suggest.reason}）`);
+    }
+    parts.push("回「存」按建议转存；回「存到 <目录>」自定义；回「不」忽略。");
+    if (errs.length) parts.push(...errs);
+    await replyTo(msg, parts.join("\n"));
     return;
   }
   if (!text) return;
+
+  /* 附件待确认层：先解析对「上一个文件」的处置意图，再走正常流程 */
+  {
+    const pk = pkOf(msg.channel, msg.sender);
+    const pend = pendingAtt.get(pk);
+    if (pend && Date.now() - pend.at > PENDING_TTL_MS) pendingAtt.delete(pk);
+    const cur = pendingAtt.get(pk);
+    if (cur && text) {
+      const t = text.trim();
+      // 整句确认词，或含「转存/存到云盘」明示意向；避免「要查课表」这类误判
+      const isStore = /^(存|存吧|要|好|可以|确认|转存|好呀|ok)$/i.test(t) || /转存|存到云盘/.test(t);
+      const custom = /(?:存到|放到|存入|存在|存进|放进)\s*[《"'“]?([^》"'”\n]+)/.exec(t);
+      const isSkip = /^(不|不用|算了|忽略|取消|别存)/.test(t);
+      if (isStore || custom) {
+        pendingAtt.delete(pk);
+        const { commitStaged } = await import("./mediaPipe.js");
+        const target = custom?.[1]?.trim();
+        const out: string[] = [];
+        for (const s of cur.staged) {
+          try {
+            const r = await commitStaged(s, target);
+            out.push(`· 《${s.name}》→ ${r.path}\n  链接：${r.link}`);
+          } catch (e) {
+            out.push(`· 《${s.name}》转存失败：${e instanceof Error ? e.message : String(e)}`);
+          }
+        }
+        await replyTo(msg, `已转存云盘：\n${out.join("\n")}`);
+        return;
+      }
+      if (isSkip) {
+        pendingAtt.delete(pk);
+        await replyTo(msg, "已忽略，未上传。");
+        return;
+      }
+      // 其他意图：保留待确认，提示后继续正常流程（可能是在问别的）
+      await replyTo(msg, "（刚才的文件还在待确认：「存」转存 /「不」忽略 /「存到 <目录>」自定义）");
+    }
+  }
 
   /* OH 单飞队列（两段式确认：confirm 卡片 → 回复「确认/取消」即下一轮 chat 输入，
    * 与 ChatDock 的确认按钮同一映射） */
