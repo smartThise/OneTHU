@@ -107,7 +107,9 @@ export async function stageAttachment(
   let sizeNote = "";
   let preview: string | null = null;
   try {
-    preview = (await invoke<string | null>("im_peek_text", { path: localPath, maxLen: 300 })) ?? null;
+    // clean=true：HTML 等做净化（抽 title、去标签），预览是人能读的正文
+    preview =
+      (await invoke<string | null>("im_peek_text", { path: localPath, maxLen: 1_500, clean: true })) ?? null;
   } catch {
     preview = null;
   }
@@ -179,4 +181,13 @@ export async function shareLast(repoId: string, path: string): Promise<string> {
     password: "",
   });
   return share.link;
+}
+
+/** 读附件全文（净化后，供文件问答/摘要；非文本返回 null） */
+export async function readAttachmentText(localPath: string, maxLen = 12_000): Promise<string | null> {
+  try {
+    return (await invoke<string | null>("im_peek_text", { path: localPath, maxLen, clean: true })) ?? null;
+  } catch {
+    return null;
+  }
 }

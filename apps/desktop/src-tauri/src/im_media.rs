@@ -88,23 +88,128 @@ pub async fn im_fetch_media(
     Ok(path.to_string_lossy().to_string())
 }
 
-/// 读文本类文件的前 max_len 字符（预览用；非文本/超大/读取失败返回 None，绝不猜测）
+/// 读文本类文件（预览/喂模型用；非文本/超大/读取失败返回 None，绝不猜测）。
+/// clean=true 时做 HTML 净化（去 script/style/标签、解码常见实体、压缩空白）——
+/// 否则 HTML 预览全是标签垃圾（用户实测反馈）。
 #[tauri::command]
-pub fn im_peek_text(path: String, max_len: Option<usize>) -> Option<String> {
-    let limit = max_len.unwrap_or(400).min(2000);
+pub fn im_peek_text(path: String, max_len: Option<usize>, clean: Option<bool>) -> Option<String> {
+    let limit = max_len.unwrap_or(400).min(60_000);
     let meta = std::fs::metadata(&path).ok()?;
-    if meta.len() > 2 * 1024 * 1024 {
-        return None; // >2MB 不预览
+    if meta.len() > 8 * 1024 * 1024 {
+        return None; // >8MB 不读
     }
     let bytes = std::fs::read(&path).ok()?;
-    // 文本判定：UTF-8 可解码且控制字符占比低
     let text = std::str::from_utf8(&bytes).ok()?;
+    // 文本判定：控制字符占比低
     let ctrl = text.chars().filter(|c| c.is_control() && *c != '\n' && *c != '\r' && *c != '\t').count();
     if ctrl * 100 > text.chars().count().max(1) * 2 {
         return None;
     }
-    let head: String = text.chars().take(limit).collect();
+    let source = if clean.unwrap_or(false) { strip_html(text) } else { text.to_string() };
+    let head: String = source.chars().take(limit).collect();
     Some(head.replace('\r', ""))
+}
+
+/// 轻量 HTML 净化：抽 <title>、去掉 script/style 块、去标签、解码常见实体、压空白
+fn strip_html(html: &str) -> String {
+    let mut out = String::new();
+    // title 优先放最前（“这个文件是什么”通常就在 title 里）
+    if let Some(t) = extract_between(html, "<title", "</title>") {
+        let t = t.splitn(2, '>').nth(1).unwrap_or("").trim();
+        if !t.is_empty() {
+            out.push_str(&format!("【标题】{t}\n"));
+        }
+    }
+    let lower = html.to_lowercase();
+    let mut rest = String::with_capacity(html.len() / 2);
+    let mut i = 0usize;
+    let bytes = html.as_bytes();
+    let _ = &lower;
+    let mut skip_until: Option<&str> = None;
+    while i < bytes.len() {
+        if let Some(tag) = skip_until {
+            if let Some(pos) = lower[i..].find(tag) {
+                i += pos + tag.len();
+                skip_until = None;
+                continue;
+            }
+            break;
+        }
+        let c = bytes[i] as char;
+        if c == '<' {
+            // 跳过 <script>/<style> 整块
+            for (open, close) in [("<script", "</script>"), ("<style", "</style>")] {
+                if lower[i..].starts_with(open) {
+                    skip_until = Some(close);
+                    break;
+                }
+            }
+            if skip_until.is_none() {
+                // 普通标签：跳到 '>'
+                if let Some(end) = html[i..].find('>') {
+                    i += end + 1;
+                    rest.push(' ');
+                    continue;
+                }
+                break;
+            }
+            continue;
+        }
+        rest.push(html[i..].chars().next().unwrap_or(' '));
+        i += rest.chars().last().map(|ch| ch.len_utf8()).unwrap_or(1);
+    }
+    let decoded = decode_entities(&rest);
+    let collapsed: String = decoded.split_whitespace().collect::<Vec<_>>().join(" ");
+    if !collapsed.is_empty() {
+        out.push_str(&collapsed);
+    }
+    out
+}
+
+fn extract_between<'a>(h: &'a str, open: &str, close: &str) -> Option<&'a str> {
+    let lo = h.to_lowercase();
+    let s = lo.find(open)?;
+    let e = lo[s..].find(close)? + s + close.len();
+    Some(&h[s..e])
+}
+
+fn decode_entities(s: &str) -> String {
+    let mut out = s
+        .replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+        .replace("&mdash;", "—")
+        .replace("&hellip;", "…");
+    // 数字实体 &#123; / &#x1F600;
+    let mut result = String::with_capacity(out.len());
+    let mut chars = out.char_indices().peekable();
+    while let Some((i, c)) = chars.next() {
+        if c == '&' {
+            if let Some(rest) = out.get(i + 1..) {
+                if let Some(end) = rest.find(';').filter(|e| *e <= 8) {
+                    let body = &rest[..end];
+                    let code = if let Some(hex) = body.strip_prefix("#x").or_else(|| body.strip_prefix("#X")) {
+                        u32::from_str_radix(hex, 16).ok()
+                    } else {
+                        body.strip_prefix('#').and_then(|d| d.parse::<u32>().ok())
+                    };
+                    if let Some(cp) = code.and_then(char::from_u32) {
+                        result.push(cp);
+                        for _ in 0..(end + 1) {
+                            chars.next();
+                        }
+                        continue;
+                    }
+                }
+            }
+        }
+        result.push(c);
+    }
+    out = result;
+    out
 }
 
 /// 文件大小（字节；读取失败返回 None）

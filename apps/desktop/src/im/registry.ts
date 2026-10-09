@@ -219,16 +219,20 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
       return;
     }
     pendingAtt.set(pkOf(msg.channel, msg.sender), { staged, at: Date.now() });
-    const parts: string[] = [`收到 ${staged.length} 个文件（还没存）：`];
-    for (const s of staged) {
-      parts.push(`· 《${s.name}》${s.sizeNote ? `（${s.sizeNote}）` : ""}`);
+    const parts: string[] = [];
+    for (let i = 0; i < staged.length; i++) {
+      const s = staged[i]!;
+      parts.push(`${staged.length > 1 ? `${i + 1}. ` : ""}《${s.name}》${s.sizeNote ? `（${s.sizeNote}）` : ""}`);
       if (s.preview) {
-        const p = s.preview.replace(/\s+/g, " ").trim().slice(0, 160);
-        parts.push(`  预览：${p}${s.preview.length > 160 ? "…" : ""}`);
+        const content = s.preview.replace(/\s+/g, " ").trim().slice(0, 400);
+        parts.push(`  内容开头：${content}${s.preview.length > 400 ? "…" : ""}`);
+        parts.push("  （想了解更多直接问我「里面讲了什么」）");
+      } else {
+        parts.push("  （非文本文件，我读不出文字内容）");
       }
-      parts.push(`  建议存到：${s.suggest.dir || "默认位置（/IM " + s.channel + "）"}（${s.suggest.reason}）`);
+      parts.push(`  要存云盘的话建议放 ${s.suggest.dir || `默认位置（/IM/${s.channel}）`}（${s.suggest.reason}）`);
     }
-    parts.push("回「存」按建议转存；回「存到 <目录>」自定义；回「不」忽略。");
+    parts.push("回「存」按建议转存 /「存到 <目录>」自定义 /「不」忽略（不存也没关系）。");
     if (errs.length) parts.push(...errs);
     await replyTo(msg, parts.join("\n"));
     return;
@@ -273,6 +277,28 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
       if (isSkip) {
         pendingAtt.delete(pk);
         await replyTo(msg, "已忽略，未上传。");
+        return;
+      }
+      // 「问内容」：读文件正文交给 OH 回答（不消费待确认，用户还能继续存）
+      const isAsk = /(里面|内容|讲的?什么|是什么|啥内容|看一?下|看看|读一?下|读读|详情|介绍|概括|总结|摘要)/.test(t);
+      if (isAsk) {
+        const { readAttachmentText } = await import("./mediaPipe.js");
+        const s0 = cur.staged[0]!;
+        const content = await readAttachmentText(s0.localPath, 12_000);
+        if (!content) {
+          await replyTo(
+            msg,
+            `《${s0.name}》不是可读文本（二进制/图片等），我读不出文字内容。回「存」转存 /「不」忽略。`,
+          );
+          return;
+        }
+        const q =
+          `（文件问答：用户刚通过 IM 发来文件《${s0.name}》，正文如下；请只基于它回答，不要猜）\n` +
+          `---BEGIN ${s0.name}---\n${content}\n---END---\n` +
+          `用户问：${t}`;
+        const r = await askOh(q);
+        const ans = r.error ? `读取失败：${r.error}` : r.answer ?? "（没有回答）";
+        await replyTo(msg, `${ans}\n\n（文件仍在待确认：回「存」转存 /「存到 <目录>」/「不」忽略）`);
         return;
       }
       // 其他意图：保留待确认，提示后继续正常流程（可能是在问别的）
