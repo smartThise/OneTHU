@@ -43,6 +43,24 @@ function monogram(name: string, id: string): string {
   return (id.split(".").pop() ?? "pk").slice(0, 2).toUpperCase();
 }
 
+/** 动态选项（optionsFrom）：设置里存 JSON 数组（如 madmodelModels 实时名单）；
+ *  合并静态兜底项（空值/默认），解析失败退静态。 */
+function optionsFor(f: any, live: Record<string, string>): Array<{ value: string; label: string }> {
+  const raw = f.optionsFrom ? live[f.optionsFrom] : "";
+  const statik: Array<{ value: string; label: string }> = f.options ?? [];
+  if (!raw) return statik;
+  try {
+    const ids: unknown = JSON.parse(raw);
+    if (Array.isArray(ids) && ids.length) {
+      const base = statik.filter((o) => !o.value);
+      return [...base, ...ids.map((id) => ({ value: String(id), label: String(id) }))];
+    }
+  } catch {
+    /* 退静态 */
+  }
+  return statik;
+}
+
 export function PluginsPage({ embedded = false }: { embedded?: boolean } = {}): ReactNode {
   const allPlugins = useSyncExternalStore(subscribe, installedPlugins);
   const cmds = useSyncExternalStore(subscribeCommands, commandsSnapshot);
@@ -608,7 +626,7 @@ function SettingsBody({
                   value={draft[f.key] ?? ""}
                   onChange={(e) => editDraft((d) => ({ ...d, [f.key]: e.target.value }))}
                 >
-                  {(f.options ?? []).map((o: { value: string; label: string }) => (
+                  {optionsFor(f, liveSettings).map((o: { value: string; label: string }) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
