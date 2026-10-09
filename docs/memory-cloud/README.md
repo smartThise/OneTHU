@@ -60,4 +60,4 @@
 | `plugins/OneTHU-Harness/core/src/agent.rs` | system_prompt 增记忆规范段 | 小改 |
 | `apps/desktop/src/plugins/facade.ts` | 新 memory ns；learn ns 增 download | 新增+小改 |
 | `apps/desktop/src-tauri/src/seafile.rs` | 增 seafile_read_bytes（内存版下载）/ update-link / 断点续传（可选 dir/file detail） | 新增函数 |
-| 记忆引擎本体 | 建议宿主 TS 侧（三端含未来 Node bot 可复用）；core 保持薄转发 | 开放决策，见 01 §9 |
+| 记忆引擎本体 | **已拍板（Lead，2026-10-09）：宿主 TS 侧实现**，core 薄转发；bot 网关若定 Rust 形态再复议 | 已定 |

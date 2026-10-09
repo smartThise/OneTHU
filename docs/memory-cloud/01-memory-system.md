@@ -361,7 +361,7 @@ agent.rs system_prompt（:48）追加一段（示意）：
 宿主侧配套：
 - facade.ts 新 `memory` ns（`search/read/list/write/append/edit/delete/refresh`），内部调记忆引擎模块（宿主进程内，桌面=Tauri 主进程或 TS 侧均可，**建议 TS 侧**：解析/检索是纯文本逻辑，TS 实现三端可共享到未来 RN/云端 Node bot；Rust core 只做工具转发）。
 - 权限清单增补：manifest.json permissions 加 `memory:read`、`memory:write`（用户安装/更新插件时按现有权限门禁流程知情）。
-- **实现归属澄清**：§5.1 的「纯 Rust 模块」与「TS 侧实现」二选一，推荐 **TS 侧（宿主）实现引擎 + core 只留工具定义**——因为云端 bot 网关（另一条线）预计是 Node/Rust 服务，TS 引擎可直接复用到 Node；若 bot 网关选型为 Rust，则反之。此为待 Lead 拍板的**开放决策**，两方案的工具契约完全一致。
+- **实现归属（已拍板，2026-10-09 Lead 决议）**：**宿主 TS 侧实现引擎 + core 只留工具定义**。理由：① OH core 保持宿主无关的既有架构纪律；② IM bot 网关大概率走 TS/Node 生态（openclaw 系是 TS），TS 引擎三端直接复用；③ facade 权限门禁体系现成。保留口子：若 im-cloud 调研最终把 bot 网关定为 Rust 形态再复议——工具契约不变，迁移成本可控。
 
 ## 10. 风险清单
 
