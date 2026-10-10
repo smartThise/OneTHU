@@ -142,7 +142,7 @@ function MoveModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-          <b style={{ fontSize: 15 }}>移动「{entry.name}」到…〔v5〕</b>
+          <b style={{ fontSize: 15 }}>移动「{entry.name}」到…</b>
           <span style={{ flex: 1 }} />
           <button className="btn mini" onClick={onClose} aria-label="关闭">✕</button>
         </div>
