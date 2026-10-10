@@ -19,6 +19,7 @@ import {
   type FeishuRegSession,
 } from "../im/feishuReg.js";
 import { newBindCode, useChannelStatus } from "../im/registry.js";
+import { openExternal } from "../pages/info/openExternal.js";
 import { syncChannels } from "../im/boot.js";
 import type { ImConfig } from "../im/store.js";
 
@@ -197,6 +198,13 @@ export function ImSettingsSection(): ReactNode {
               <QRCodeSVG value={fsReg.qrUrl} size={148} />
             </div>
             <div className="setting-desc" style={{ marginTop: 6 }}>{fsNote || "等待扫码…"}</div>
+            <button
+              className="btn"
+              style={{ marginTop: 6 }}
+              onClick={() => void openExternal(fsReg.qrUrl).catch(() => undefined)}
+            >
+              在本机？直接打开确认页（免扫码）
+            </button>
           </div>
           <button className="btn" onClick={() => setFsReg(null)}>取消</button>
         </div>
@@ -285,7 +293,7 @@ export function ImSettingsSection(): ReactNode {
               <QRCodeSVG value={wxQr} size={148} />
             </div>
             <div className="setting-desc" style={{ marginTop: 6 }}>
-              {wxNote || "等待扫码…"}（用微信扫一扫）
+              {wxNote || "等待扫码…"}（用微信扫一扫；手机上的 OneTHU 无法自扫，可先用飞书通道）
             </div>
           </div>
           <button

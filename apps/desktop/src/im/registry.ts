@@ -373,7 +373,18 @@ async function handleInbound(msg: InboundMessage): Promise<void> {
   }
   if (text === "/status") {
     const bound = cfg.bindings[msg.channel] === msg.sender ? "已绑定" : "未绑定";
-    await replyTo(msg, `[OneTHU] ${msg.channel} 通道在线，${bound}。电脑保持开机与 OneTHU 运行，我才会回复。`);
+    // 云盘状态如实回报（用户问：断开云盘后 bot 的共享/转存怎么办——在这里可见）
+    let cloudLine = "";
+    try {
+      const { ensureSeafileLoaded, getSeafileToken } = await import("../state/seafile.js");
+      await ensureSeafileLoaded();
+      cloudLine = getSeafileToken()
+        ? "\n☁️ 云盘已连接（附件转存/跨设备记忆可用）"
+        : "\n☁️ 云盘未连接：附件只能查看不能转存，记忆仅存本机。机主可在云盘页一键重连。";
+    } catch {
+      cloudLine = "\n☁️ 云盘状态未知";
+    }
+    await replyTo(msg, `[OneTHU] ${msg.channel} 通道在线，${bound}。电脑保持开机与 OneTHU 运行，我才会回复。${cloudLine}`);
     return;
   }
 

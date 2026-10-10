@@ -147,10 +147,16 @@ export function OnboardingTourV1(): React.ReactNode {
   const isAndroidHost = useMemo(() => isAndroidNavigator(navigator), []);
   const [acctMsg, setAcctMsg] = useState<string | null>(null);
 
-  // 导览打开时加载一次接入状态（凭据解密 + 模块缓存）；失败按未配置展示
+  // 导览打开时加载一次接入状态（凭据解密 + 模块缓存）；失败按未配置展示。
+  // 启动静默连接（云盘）完成可能晚于导览打开——0.5/2.5/6s 再补刷三次，
+  // 避免「明明自动连接成功了还显示未连接」（用户实录 2026-10-10）。
   useEffect(() => {
     if (!open) return;
     void ensureAccountStatusLoaded().then(setAcct);
+    const timers = [500, 2_500, 6_000].map((ms) =>
+      window.setTimeout(() => setAcct(readAccountStatus()), ms),
+    );
+    return () => timers.forEach((t) => window.clearTimeout(t));
   }, [open]);
 
   /** 统一跑一个接入动作：busy、结果消息、徽标刷新一并处理 */
@@ -263,7 +269,7 @@ export function OnboardingTourV1(): React.ReactNode {
   );
 
   // 0–4 界面定制；5–8 账号接入（雨课堂 / OJ / 邮箱 / 云盘）；9 桌面小组件
-  const STEPS = 10;
+  const STEPS = 11;
   return (
     <div style={panel} role="dialog" aria-modal="true" aria-label="首次使用导览">
       <div style={box}>
@@ -617,6 +623,20 @@ export function OnboardingTourV1(): React.ReactNode {
                 </div>
               </div>
             ) : null}
+          </>
+        ) : null}
+
+        {step === 10 ? (
+          <>
+            <h3 style={{ margin: "0 0 4px", fontSize: 17 }}>IM 机器人（微信 / 飞书）</h3>
+            <p style={acctIntro}>
+              在手机微信或飞书里发消息就能指挥这台电脑干活、收文件转存云盘。
+              入口在「设置 → IM 机器人」：飞书可扫码/直开链接创建应用，微信扫码授权后即用。
+            </p>
+            <p style={{ ...acctIntro, marginTop: 8 }}>
+              <b>重要：bot 跑在这台电脑上</b>——电脑关机或 OneTHU 退出，手机端发消息不会有回应；
+              重新开机后会自动恢复在线。绑定是单主人的：绑定码只给你自己，别外传。
+            </p>
           </>
         ) : null}
 
