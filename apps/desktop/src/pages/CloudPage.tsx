@@ -111,8 +111,19 @@ function MoveModal({
     setLoading(true);
     setError(null);
     invoke<SeafileEntry[]>("seafile_dir", { token: getSeafileToken(), repoId, path })
-      .then((es) => setDirs(es.filter((x) => x.kind === "dir")))
-      .catch((e) => setError(String(e).slice(0, 90)))
+      .then((es) => {
+        const onlyDirs = es.filter((x) => x.kind === "dir");
+        void import("../lib/clients.js").then(({ logLine }) =>
+          logLine(`[CLOUD-MOVE] 目录列表 ok：共 ${es.length} 项，其中文件夹 ${onlyDirs.length} 个（repo=${repoId.slice(0, 8)}… path=${path}）`).catch(() => undefined),
+        );
+        setDirs(onlyDirs);
+      })
+      .catch((e) => {
+        void import("../lib/clients.js").then(({ logLine }) =>
+          logLine(`[CLOUD-MOVE] 目录列表失败：${String(e).slice(0, 90)}`).catch(() => undefined),
+        );
+        setError(String(e).slice(0, 90));
+      })
       .finally(() => setLoading(false));
   }, [repoId, path]);
 
@@ -153,10 +164,10 @@ function MoveModal({
             </span>
           ))}
         </div>
-        <div style={{ border: "1px solid var(--border-soft, rgba(127,127,127,.25))", borderRadius: 10, minHeight: 120, maxHeight: 260, overflowY: "auto", padding: 4 }}>
-          {loading && <p className="dim" style={{ padding: 10, margin: 0 }}>读取中…</p>}
+        <div style={{ border: "1px solid var(--border-soft, rgba(127,127,127,.25))", borderRadius: 10, minHeight: 120, maxHeight: 260, overflowY: "auto", padding: 4, color: "var(--text-1, inherit)" }}>
+          {loading && <p style={{ padding: 10, margin: 0, color: "var(--text-3, #888)" }}>正在读取文件夹…</p>}
           {error && <p className="cloud-error" style={{ padding: 10, margin: 0 }}>{error}</p>}
-          {!loading && !error && dirs.length === 0 && <p className="dim" style={{ padding: 10, margin: 0 }}>没有子文件夹（将移动到当前位置）</p>}
+          {!loading && !error && dirs.length === 0 && <p style={{ padding: 10, margin: 0, color: "var(--text-3, #888)" }}>没有子文件夹（将移动到当前位置）</p>}
           {dirs.map((d) => (
             <div
               key={d.name}
@@ -167,7 +178,7 @@ function MoveModal({
               onKeyDown={(ev) => { if (ev.key === "Enter") setPath(`${path === "/" ? "" : path}/${d.name}`); }}
             >
               <span className="cloud-kind dir" />
-              <span className="cloud-name">{d.name}</span>
+              <span className="cloud-name" style={{ color: "var(--text-1, #1e1432)" }}>{d.name}</span>
             </div>
           ))}
         </div>
