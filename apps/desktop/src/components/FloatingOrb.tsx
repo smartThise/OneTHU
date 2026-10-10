@@ -9,7 +9,7 @@
 import {
   memo, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent,
 } from "react";
-import { markVoiceState, onVoiceState, onWake, wakeStart, wakeStop, wakeSupported } from "../lib/wake.js";
+import { markVoiceState, onEngineError, onVoiceState, onWake, wakeStart, wakeStop, wakeSupported } from "../lib/wake.js";
 import { speechAvailable, speechPoll, speechStart, speechStop } from "../lib/speech.js";
 import { ohAsk } from "../plugins/ChatDock.js";
 
@@ -40,12 +40,18 @@ export const FloatingOrb = memo(function FloatingOrb(): React.ReactNode | null {
   useEffect(() => {
     let unWake: (() => void) | null = null;
     let unState: (() => void) | null = null;
+    let unErr: (() => void) | null = null;
     let disposed = false;
     void (async () => {
       const ok = await wakeSupported();
       if (disposed || !ok) return;
       setSupported(true);
       unWake = await onWake(() => void startWakeSession());
+      unErr = await onEngineError((m) => {
+        console.error("[onethu-voice] 引擎启动失败：", m);
+        setFail(`唤醒引擎失败：${m.slice(0, 80)}`);
+        window.setTimeout(() => setFail(null), 6_000);
+      });
       unState = await onVoiceState((e) => {
         if (e.to === "LISTENING") setPhaseSafe("listening");
         else if (e.to === "IDLE") setPhaseSafe("idle");
@@ -57,6 +63,7 @@ export const FloatingOrb = memo(function FloatingOrb(): React.ReactNode | null {
       disposed = true;
       unWake?.();
       unState?.();
+      unErr?.();
       if (pollTimer.current) window.clearInterval(pollTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -158,8 +165,10 @@ export const FloatingOrb = memo(function FloatingOrb(): React.ReactNode | null {
       await wakeStart(); // 首次：mic 权限弹窗（需前台，正是用户点击时）
       setPhaseSafe("listening");
     } catch (e) {
-      setFail(e instanceof Error ? e.message : String(e));
-      window.setTimeout(() => setFail(null), 2_600);
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[onethu-voice] wakeStart 失败：", msg); // 落 onethu-debug.log（devlog 桥）
+      setFail(`开监听失败：${msg.slice(0, 90)}`);
+      window.setTimeout(() => setFail(null), 6_000);
     }
   };
 

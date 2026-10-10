@@ -47,6 +47,12 @@ class OnethuVoicePlugin(private val activity: android.app.Activity) : Plugin(act
             trigger("onethu-voice://tts-done", payload)
         }
         VoiceTts.ensureInit(activity)
+        // 引擎错误事件桥：服务内异常 → JS（console.error 落 onethu-debug.log，可导出）
+        VoiceHub.onEngineError = { msg ->
+            val payload = JSObject()
+            payload.put("message", msg.take(600))
+            trigger("onethu-voice://engine-error", payload)
+        }
     }
 
     private fun hasMic(): Boolean =
@@ -75,7 +81,10 @@ class OnethuVoicePlugin(private val activity: android.app.Activity) : Plugin(act
             requestPermissionForAliases(arrayOf("mic"), invoke, "micPermissionCallback")
             return
         }
-        startService()
+        if (!startService()) {
+            invoke.reject("监听服务拉起失败（详见通知/日志）")
+            return
+        }
         invoke.resolve()
     }
 
@@ -85,7 +94,10 @@ class OnethuVoicePlugin(private val activity: android.app.Activity) : Plugin(act
             invoke.reject("无麦克风权限（系统设置 → 应用 → OneTHU → 麦克风）")
             return
         }
-        startService()
+        if (!startService()) {
+            invoke.reject("监听服务拉起失败（详见通知/日志）")
+            return
+        }
         invoke.resolve()
     }
 
@@ -195,10 +207,19 @@ class OnethuVoicePlugin(private val activity: android.app.Activity) : Plugin(act
         if (ok) invoke.resolve() else invoke.reject("未知后端：$backend")
     }
 
-    private fun startService() {
+    private fun startService(): Boolean = try {
         WakeWordService.start(activity)
-        // 唤醒事件桥：引擎命中（已由 VoiceHub 完成 LISTENING→HANDOFF）后推给 JS
-        // onKeyword 回调挂在引擎上会随服务生命周期丢失，这里经状态机一次性挂钩
+        installWakeBridge()
+        true
+    } catch (e: Exception) {
+        Logger.warn(TAG, "监听服务拉起失败：$e")
+        VoiceHub.onEngineError?.invoke("startForegroundService: $e")
+        false
+    }
+
+    /** 唤醒事件桥：引擎命中（已由 VoiceHub 完成 LISTENING→HANDOFF）后推给 JS。
+     *  onKeyword 回调挂在引擎上会随服务生命周期丢失，这里经状态机一次性挂钩。 */
+    private fun installWakeBridge() {
         VoiceHub.onWake = { keyword ->
             val payload = JSObject()
             payload.put("keyword", keyword)

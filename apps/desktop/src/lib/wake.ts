@@ -50,6 +50,14 @@ export interface VoiceStateEvent {
   to: string;
 }
 
+/** 引擎启动失败事件（服务内异常文本；console.error 落 onethu-debug.log 可导出） */
+export async function onEngineError(cb: (msg: string) => void): Promise<() => void> {
+  const { listen } = await import("@tauri-apps/api/event");
+  return await listen("onethu-voice://engine-error", (ev) => {
+    cb(String((ev.payload as { message?: string })?.message ?? ""));
+  });
+}
+
 /** 唤醒命中事件（一次订阅一个回调，返回退订函数） */
 export async function onWake(cb: (e: WakeEvent) => void): Promise<() => void> {
   const { listen } = await import("@tauri-apps/api/event");

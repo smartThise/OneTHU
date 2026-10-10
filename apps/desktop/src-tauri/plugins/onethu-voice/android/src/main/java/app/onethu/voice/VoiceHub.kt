@@ -11,6 +11,8 @@ package app.onethu.voice
  * - JS 经 wake_mark_state 回告只有 JS 知道的时刻（识别结束→processing→speaking→done）
  */
 object VoiceHub {
+    /** 引擎启动失败回告（WakeWordService → 插件事件桥 → JS 日志；真机排障通道） */
+    var onEngineError: ((String) -> Unit)? = null
 
     enum class State { IDLE, LISTENING, HANDOFF, RECOGNIZING, PROCESSING, SPEAKING }
 

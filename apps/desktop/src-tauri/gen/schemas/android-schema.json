@@ -2625,6 +2625,156 @@
           "markdownDescription": "Denies the speech_supported command without any pre-configured scope."
         },
         {
+          "description": "允许使用语音唤醒（KWS）：\n查询支持、开启/停止监听、查询状态机、回告状态转移。\n（监听需麦克风前台服务权限，由原生层在开启时申请）\n\n#### This default permission set includes:\n\n- `allow-wake-supported`\n- `allow-wake-start`\n- `allow-wake-stop`\n- `allow-wake-status`\n- `allow-wake-mark-state`\n- `allow-tts-supported`\n- `allow-tts-prepare`\n- `allow-tts-speak`\n- `allow-tts-stop`\n- `allow-tts-status`\n- `allow-tts-voices`\n- `allow-tts-set-backend`",
+          "type": "string",
+          "const": "onethu-voice:default",
+          "markdownDescription": "允许使用语音唤醒（KWS）：\n查询支持、开启/停止监听、查询状态机、回告状态转移。\n（监听需麦克风前台服务权限，由原生层在开启时申请）\n\n#### This default permission set includes:\n\n- `allow-wake-supported`\n- `allow-wake-start`\n- `allow-wake-stop`\n- `allow-wake-status`\n- `allow-wake-mark-state`\n- `allow-tts-supported`\n- `allow-tts-prepare`\n- `allow-tts-speak`\n- `allow-tts-stop`\n- `allow-tts-status`\n- `allow-tts-voices`\n- `allow-tts-set-backend`"
+        },
+        {
+          "description": "Enables the tts_prepare command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:allow-tts-prepare",
+          "markdownDescription": "Enables the tts_prepare command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_set_backend command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:allow-tts-set-backend",
+          "markdownDescription": "Enables the tts_set_backend command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_speak command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:allow-tts-speak",
+          "markdownDescription": "Enables the tts_speak command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:allow-tts-status",
+          "markdownDescription": "Enables the tts_status command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_stop command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:allow-tts-stop",
+          "markdownDescription": "Enables the tts_stop command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:allow-tts-supported",
+          "markdownDescription": "Enables the tts_supported command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_voices command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:allow-tts-voices",
+          "markdownDescription": "Enables the tts_voices command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the wake_mark_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:allow-wake-mark-state",
+          "markdownDescription": "Enables the wake_mark_state command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the wake_start command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:allow-wake-start",
+          "markdownDescription": "Enables the wake_start command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the wake_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:allow-wake-status",
+          "markdownDescription": "Enables the wake_status command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the wake_stop command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:allow-wake-stop",
+          "markdownDescription": "Enables the wake_stop command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the wake_supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:allow-wake-supported",
+          "markdownDescription": "Enables the wake_supported command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_prepare command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:deny-tts-prepare",
+          "markdownDescription": "Denies the tts_prepare command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_set_backend command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:deny-tts-set-backend",
+          "markdownDescription": "Denies the tts_set_backend command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_speak command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:deny-tts-speak",
+          "markdownDescription": "Denies the tts_speak command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:deny-tts-status",
+          "markdownDescription": "Denies the tts_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_stop command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:deny-tts-stop",
+          "markdownDescription": "Denies the tts_stop command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:deny-tts-supported",
+          "markdownDescription": "Denies the tts_supported command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_voices command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:deny-tts-voices",
+          "markdownDescription": "Denies the tts_voices command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the wake_mark_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:deny-wake-mark-state",
+          "markdownDescription": "Denies the wake_mark_state command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the wake_start command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:deny-wake-start",
+          "markdownDescription": "Denies the wake_start command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the wake_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:deny-wake-status",
+          "markdownDescription": "Denies the wake_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the wake_stop command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:deny-wake-stop",
+          "markdownDescription": "Denies the wake_stop command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the wake_supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-voice:deny-wake-supported",
+          "markdownDescription": "Denies the wake_supported command without any pre-configured scope."
+        },
+        {
           "description": "This permission set allows opening `mailto:`, `tel:`, `https://` and `http://` urls using their default application\nas well as reveal file in directories using default file explorer\n#### This default permission set includes:\n\n- `allow-open-url`\n- `allow-reveal-item-in-dir`\n- `allow-default-urls`",
           "type": "string",
           "const": "opener:default",

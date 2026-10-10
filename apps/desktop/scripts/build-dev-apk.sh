@@ -22,6 +22,11 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 DESKTOP="$REPO/apps/desktop"
+
+# exFAT 仓库坑（2026-10-10 实锤复燃）：checkout/merge 会给 src-tauri 写 ._* AppleDouble
+# 伴生文件，tauri build.rs 扫 capabilities/permissions 时当 TOML/JSON 读直接炸
+# （"stream did not contain valid UTF-8"）。与根 package.json 的 tauri 脚本同款先清。
+find "$DESKTOP/src-tauri" -name "._*" -type f -delete
 GEN="$DESKTOP/src-tauri/gen/android"
 PROJ="${ONETHU_ANDROID_PROJ:-$HOME/onethu-android}"
 KS="${ONETHU_DEV_KEYSTORE:-$HOME/.onethu/onethu-android-dev.keystore}"
