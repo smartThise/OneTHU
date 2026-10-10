@@ -18,7 +18,7 @@ import {
   beginFeishuRegistration, pollFeishuRegistration,
   type FeishuRegSession,
 } from "../im/feishuReg.js";
-import { newBindCode, useChannelStatus } from "../im/registry.js";
+import { newBindCode, reportChannelStatus, useChannelStatus } from "../im/registry.js";
 import { openExternal } from "../pages/info/openExternal.js";
 import { syncChannels } from "../im/boot.js";
 import type { ImConfig } from "../im/store.js";
@@ -139,9 +139,13 @@ export function ImSettingsSection(): ReactNode {
             setWxQr(null);
             setCfg(await loadImConfig());
             await syncChannels();
+            // wechat 无 adapter（syncChannels 跳过启动管理）——轮询由 wechat.ts
+            // 自有循环承担，这里把真实状态补进状态机（此前恒显「未启用」）
+            reportChannelStatus("wechat", "online");
             flash("微信通道已启用（扫码登录成功）");
           } else if (r.status === "expired" || r.status === "verify_code_blocked") {
             setWxQr(null);
+            reportChannelStatus("wechat", "off");
           }
         })
         .catch(() => undefined);
