@@ -1501,7 +1501,13 @@ fn http_native_clear_cookies_domain(suffixes: Vec<String>) -> Result<(), String>
 /// jar → rust 播种（wengine 引导页票种等不经 Set-Cookie 的会话）
 #[tauri::command]
 fn http_native_seed(url: String, lines: Vec<String>) -> Result<(), String> {
+    // webvpn 匿名引导票（wrdvpn1- 前缀）绝不入仓——clients.ts 203 行 TS 侧同名
+    // 过滤的 Rust 对等防线。2026-10-10 实录：TS jar 的匿名票被 seed 进仓后覆盖
+    // lib 真票，wengine 全线按匿名处理（在线服务点击即弹 webvpn 首页）。
     for l in &lines {
+        if l.starts_with("wengine_vpn_ticket=wrdvpn1-") {
+            continue;
+        }
         NATIVE_JAR_ARC.seed_line(&url, l);
     }
     Ok(())
