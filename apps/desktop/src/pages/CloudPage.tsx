@@ -164,7 +164,7 @@ function MoveModal({
             </span>
           ))}
         </div>
-        <div style={{ border: "1px solid var(--border-soft, rgba(127,127,127,.25))", borderRadius: 10, minHeight: 120, maxHeight: 260, overflowY: "auto", padding: 4, color: "var(--text-1, inherit)" }}>
+        <div style={{ border: "1px solid var(--border-soft, rgba(127,127,127,.25))", borderRadius: 10, height: 260, overflowY: "auto", padding: 4, color: "var(--text-1, inherit)", boxSizing: "border-box" }}>
           {loading && <p style={{ padding: 10, margin: 0, color: "var(--text-3, #888)" }}>正在读取文件夹…</p>}
           {error && <p className="cloud-error" style={{ padding: 10, margin: 0 }}>{error}</p>}
           {!loading && !error && dirs.length === 0 && <p style={{ padding: 10, margin: 0, color: "var(--text-3, #888)" }}>没有子文件夹（将移动到当前位置）</p>}
@@ -177,7 +177,7 @@ function MoveModal({
               onClick={() => setPath(`${path === "/" ? "" : path}/${d.name}`)}
               onKeyDown={(ev) => { if (ev.key === "Enter") setPath(`${path === "/" ? "" : path}/${d.name}`); }}
             >
-              <span className="cloud-kind dir" />
+              <span className="cloud-kind dir" style={{ background: "var(--primary, #6d7ff0)" }} />
               <span className="cloud-name" style={{ color: "var(--text-1, #1e1432)" }}>{d.name}</span>
             </div>
           ))}
