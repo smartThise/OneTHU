@@ -126,7 +126,7 @@ function MoveModal({
     >
       <div
         className="connect-gate-panel"
-        style={{ background: "var(--bg-1, #fff)", borderRadius: 16, padding: 18, width: "min(460px, 94vw)", maxHeight: "80dvh", overflowY: "auto" }}
+        style={{ background: "var(--md-sys-color-surface, #fff)", color: "var(--text-1, inherit)", borderRadius: 16, padding: 18, width: "min(460px, 94vw)", maxHeight: "80dvh", overflowY: "auto" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
@@ -474,7 +474,7 @@ export default function CloudPage(): ReactNode {
               );
             })}
             {entries.length === 0 && !dir.loading && <p className="dim" style={{ padding: 16 }}>空目录</p>}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "12px 0", position: "sticky", bottom: 0, background: "var(--bg-1, #fff)", borderTop: "1px solid var(--border-soft, rgba(127,127,127,.2))" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "12px 0", position: "sticky", bottom: 0, background: "var(--md-sys-color-surface, #fff)", borderTop: "1px solid var(--border-soft, rgba(127,127,127,.2))" }}>
               <button
                 className="btn"
                 onClick={() => setSelSet(allSelected ? new Set() : new Set(entries.map((x) => x.name)))}
