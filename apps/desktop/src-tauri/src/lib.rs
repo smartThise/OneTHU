@@ -2978,12 +2978,25 @@ async fn open_cloud_token_window(
     let _ = win.set_focus();
 
     std::thread::spawn(move || {
+        // webvpn 单会话（logoutByOther 实锤，1a28601 会话权威化）：WebView 登录链
+        // 会踢掉 lib 的 webvpn 会话。轮询期间**持续**把 WebView 会话同步回 native
+        // jar——无论最终成功/取消/超时，会话续期都不丢（此前只在成功时回灌，
+        // 失败路径留死票 → 在线服务点击即弹 webvpn 首页）。
+        let mut sync_tick = 0u32;
         for _ in 0..600 {
             std::thread::sleep(std::time::Duration::from_millis(1000));
             let Some(w) = app.get_webview_window(label) else {
                 let _ = app.emit("cloud-token-cancelled", "closed");
                 return;
             };
+            sync_tick += 1;
+            if sync_tick % 5 == 0 {
+                let seeds = cloud_cookie_seeds_from_webview(&w);
+                if !seeds.is_empty() {
+                    seed_native_cloud_cookies(&seeds);
+                    NATIVE_JAR_ARC.save_if_dirty(&jar_store_path(&app));
+                }
+            }
             let title = w.title().unwrap_or_default();
             if let Some(token) = title.strip_prefix("ONETHU_CTOKEN::") {
                 let token = token.to_string();
