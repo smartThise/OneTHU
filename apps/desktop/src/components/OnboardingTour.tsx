@@ -19,6 +19,8 @@ import {
   type AccountStatus,
 } from "../state/accountSetup.js";
 import { accountErrMsg, readAccountStatus } from "../state/accountSetup.js";
+import { ImSettingsSection } from "./ImSettingsSection.js";
+import { loadImConfig, type ImConfig } from "../im/store.js";
 import { YktQrPanel, YktWebLoginPanel } from "./ExtHwLoginModal.js";
 import { YKT_WEB_LOGIN_AVAILABLE } from "../lib/yktWebview.js";
 import { openExternal } from "../pages/info/openExternal.js";
@@ -138,6 +140,8 @@ export function OnboardingTourV1(): React.ReactNode {
   const [cloudToken, setCloudToken] = useState("");
   /** 云盘步骤：手动粘贴区展开开关（自动连接失败时的兜底） */
   const [cloudManual, setCloudManual] = useState(false);
+  /** IM 步骤：配置快照（判断微信/飞书是否已设置，决定展示二维码流程还是已连接说明） */
+  const [imCfg, setImCfg] = useState<ImConfig | null>(null);
   const [acctBusy, setAcctBusy] = useState<string | null>(null);
   /** 桌面小组件步骤（最后一步）：是否已发出放置请求 + 该启动器是否支持请求式放置 */
   const [pinState, setPinState] = useState<"idle" | "requested" | "unsupported" | "failed">("idle");
@@ -177,6 +181,12 @@ export function OnboardingTourV1(): React.ReactNode {
     if (!open) return;
     void fetchWidgetStatus().then((st) => setColorOs(st?.colorOs === true)).catch(() => undefined);
   }, [open]);
+
+  // IM 步骤进入时读配置快照（扫码成功后 ImSettingsSection 内部会触发重渲染，这里只管进门那次）
+  useEffect(() => {
+    if (!open || step !== 10) return;
+    void loadImConfig().then(setImCfg).catch(() => setImCfg(null));
+  }, [open, step]);
 
   if (!open) return null;
 
@@ -631,12 +641,22 @@ export function OnboardingTourV1(): React.ReactNode {
             <h3 style={{ margin: "0 0 4px", fontSize: 17 }}>IM 机器人（微信 / 飞书）</h3>
             <p style={acctIntro}>
               在手机微信或飞书里发消息就能指挥这台电脑干活、收文件转存云盘。
-              入口在「设置 → IM 机器人」：飞书可扫码/直开链接创建应用，微信扫码授权后即用。
-            </p>
-            <p style={{ ...acctIntro, marginTop: 8 }}>
               <b>重要：bot 跑在这台电脑上</b>——电脑关机或 OneTHU 退出，手机端发消息不会有回应；
               重新开机后会自动恢复在线。绑定是单主人的：绑定码只给你自己，别外传。
             </p>
+            {imCfg && ((imCfg.channels.wechat?.botToken && imCfg.enabled.wechat) ||
+              (imCfg.channels.feishu?.appId && imCfg.enabled.feishu)) ? (
+              <p style={{ ...acctIntro, color: "var(--text-2)" }}>
+                ✅ 已有通道在线（可跳过此步；追加通道或换绑在「设置 → IM 机器人」）。
+              </p>
+            ) : (
+              <>
+                <p style={{ ...acctIntro, marginTop: 0 }}>下面直接扫码设置（也可跳过，之后在设置里完成）：</p>
+                <div style={{ maxHeight: "44dvh", overflowY: "auto", padding: "0 2px" }}>
+                  <ImSettingsSection />
+                </div>
+              </>
+            )}
           </>
         ) : null}
 
