@@ -14,7 +14,8 @@ cd "$(dirname "$0")/../src-tauri"
 # （历史遗留：~/.zshrc 曾 export CARGO_TARGET_DIR 指向 ~/.cache，优先级高于
 #  .cargo/config.toml 的 target-dir；2026-09-09 起统一走 config.toml）
 BIN=""
-for c in "$HOME/Library/Caches/onethu-cargo-target/debug/onethu" "$HOME/.cache/onethu/cargo-target/debug/onethu"; do
+ONETHU_BUILD_VOL="${ONETHU_BUILD_VOL:-/Volumes/OneTHUBuild}"
+for c in "$ONETHU_BUILD_VOL/oh-desktop/cargo-target/debug/onethu" "$HOME/Library/Caches/onethu-cargo-target/debug/onethu" "$HOME/.cache/onethu/cargo-target/debug/onethu"; do
   if [ -f "$c" ] && { [ -z "$BIN" ] || [ "$c" -nt "$BIN" ]; }; then BIN="$c"; fi
 done
 if [ -z "$BIN" ]; then echo "✗ 未找到 debug 二进制——先跑 pnpm tauri:dev（或 cargo build）"; exit 1; fi

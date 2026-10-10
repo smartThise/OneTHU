@@ -420,6 +420,11 @@ function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy }: { dataUrl: string
 export interface FilePreviewTarget {
   name: string;
   url: string;
+  /** 云盘等无 URL 直达的来源：按需拉 base64（优先于 url 抓取）。
+   *  b64 是纯 base64 段（无 dataURL 前缀），mime 由调用方给出。 */
+  fetchB64?: () => Promise<{ mime: string; b64: string }>;
+  /** 云盘等自定义下载通道（优先于 downloadLearnUrl）。返回落盘路径。 */
+  download?: () => Promise<string>;
 }
 
 let _open: ((t: FilePreviewTarget) => void) | null = null;
@@ -1238,6 +1243,10 @@ const bodyStyle: CSSProperties = { flex: 1, minHeight: 0, overflowY: "auto", dis
 interface OpenState {
   name: string;
   url: string;
+  /** 云盘等自定义字节源（优先于 url 抓取） */
+  fetchB64?: () => Promise<{ mime: string; b64: string }>;
+  /** 云盘等自定义下载通道（优先于 downloadLearnUrl） */
+  download?: () => Promise<string>;
   /** 每次 open/重试自增，保证同一文件重复打开也会重新抓取 */
   seq: number;
 }
@@ -1271,7 +1280,7 @@ export function FilePreviewHost() {
     _open = (t) => {
       seqRef.current += 1;
       setDlMsg("");
-      const next = { name: t.name, url: t.url, seq: seqRef.current };
+      const next: OpenState = { name: t.name, url: t.url, fetchB64: t.fetchB64, download: t.download, seq: seqRef.current };
       lastRef.current = next;
       setCur(next);
     };
@@ -1299,7 +1308,10 @@ export function FilePreviewHost() {
     setPhase({ s: "loading" });
     void (async () => {
       try {
-        const bin = await fetchBinary(cur.url);
+        // 云盘等自定义字节源优先；无则按 URL 抓取（带会话 cookie）
+        const bin = cur.fetchB64
+          ? await cur.fetchB64().then(({ mime, b64 }) => ({ mime, dataUrl: `data:${mime};base64,${b64}`, b64 }))
+          : await fetchBinary(cur.url);
         if (!alive) return;
         let view = routeByExt(cur.name, bin);
         if (view.kind === "zip" && view.office) {
@@ -1334,7 +1346,9 @@ export function FilePreviewHost() {
     setDlBusy(true);
     setDlMsg("");
     try {
-      const path = await downloadLearnUrl(cur.url, cur.name || "download");
+      const path = cur.download
+        ? await cur.download()
+        : await downloadLearnUrl(cur.url, cur.name || "download");
       setDlMsg(`已下载到：${path}`);
       setDlPath(path);
     } catch (err) {

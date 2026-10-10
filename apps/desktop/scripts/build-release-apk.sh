@@ -26,9 +26,20 @@ TAURI_DIR="$REPO/apps/desktop/src-tauri"
 GEN="$TAURI_DIR/gen/android"
 PROJ_PRIMARY="$HOME/onethu-android"
 OUT_DIR="${ONETHU_APK_OUT:-$HOME/Desktop/OneTHU-builds}"
-CARGO_TARGET="${CARGO_TARGET_DIR:-$HOME/Library/Caches/onethu/cargo-target}"
+# 编译盘探测（可选）：本机 SSD APFS 镜像；存在则优先（SDK/NDK/target 都在上面）
+ONETHU_BUILD_VOL="${ONETHU_BUILD_VOL:-/Volumes/OneTHUBuild}"
+if [ -d "$ONETHU_BUILD_VOL/oh-android-sdk" ]; then
+  CARGO_TARGET="${CARGO_TARGET_DIR:-$ONETHU_BUILD_VOL/oh-desktop/cargo-target}"
+  export CARGO_HOME="${CARGO_HOME:-$ONETHU_BUILD_VOL/cargo-home}"
+  export RUSTUP_HOME="${RUSTUP_HOME:-$ONETHU_BUILD_VOL/rustup-home}"
+  export PATH="$CARGO_HOME/bin:$PATH"
+  DEFAULT_SDK="$ONETHU_BUILD_VOL/oh-android-sdk"
+else
+  CARGO_TARGET="${CARGO_TARGET_DIR:-$HOME/Library/Caches/onethu-cargo-target}"
+  DEFAULT_SDK="$HOME/Library/Android/sdk"
+fi
 
-export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
+export ANDROID_HOME="${ANDROID_HOME:-$DEFAULT_SDK}"
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
 export NDK_HOME="${NDK_HOME:-$(ls -d "$ANDROID_HOME"/ndk/* 2>/dev/null | tail -1)}"
 export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}"

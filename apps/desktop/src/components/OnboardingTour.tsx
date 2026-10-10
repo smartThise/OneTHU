@@ -18,7 +18,9 @@ import {
   loginTyche,
   type AccountStatus,
 } from "../state/accountSetup.js";
-import { accountErrMsg } from "../state/accountSetup.js";
+import { accountErrMsg, readAccountStatus } from "../state/accountSetup.js";
+import { ImSettingsSection } from "./ImSettingsSection.js";
+import { loadImConfig, type ImConfig } from "../im/store.js";
 import { YktQrPanel, YktWebLoginPanel } from "./ExtHwLoginModal.js";
 import { YKT_WEB_LOGIN_AVAILABLE } from "../lib/yktWebview.js";
 import { openExternal } from "../pages/info/openExternal.js";
@@ -136,6 +138,10 @@ export function OnboardingTourV1(): React.ReactNode {
   const [mailAddr, setMailAddr] = useState("");
   const [mailCode, setMailCode] = useState("");
   const [cloudToken, setCloudToken] = useState("");
+  /** 云盘步骤：手动粘贴区展开开关（自动连接失败时的兜底） */
+  const [cloudManual, setCloudManual] = useState(false);
+  /** IM 步骤：配置快照（判断微信/飞书是否已设置，决定展示二维码流程还是已连接说明） */
+  const [imCfg, setImCfg] = useState<ImConfig | null>(null);
   const [acctBusy, setAcctBusy] = useState<string | null>(null);
   /** 桌面小组件步骤（最后一步）：是否已发出放置请求 + 该启动器是否支持请求式放置 */
   const [pinState, setPinState] = useState<"idle" | "requested" | "unsupported" | "failed">("idle");
@@ -145,10 +151,16 @@ export function OnboardingTourV1(): React.ReactNode {
   const isAndroidHost = useMemo(() => isAndroidNavigator(navigator), []);
   const [acctMsg, setAcctMsg] = useState<string | null>(null);
 
-  // 导览打开时加载一次接入状态（凭据解密 + 模块缓存）；失败按未配置展示
+  // 导览打开时加载一次接入状态（凭据解密 + 模块缓存）；失败按未配置展示。
+  // 启动静默连接（云盘）完成可能晚于导览打开——0.5/2.5/6s 再补刷三次，
+  // 避免「明明自动连接成功了还显示未连接」（用户实录 2026-10-10）。
   useEffect(() => {
     if (!open) return;
     void ensureAccountStatusLoaded().then(setAcct);
+    const timers = [500, 2_500, 6_000].map((ms) =>
+      window.setTimeout(() => setAcct(readAccountStatus()), ms),
+    );
+    return () => timers.forEach((t) => window.clearTimeout(t));
   }, [open]);
 
   /** 统一跑一个接入动作：busy、结果消息、徽标刷新一并处理 */
@@ -169,6 +181,12 @@ export function OnboardingTourV1(): React.ReactNode {
     if (!open) return;
     void fetchWidgetStatus().then((st) => setColorOs(st?.colorOs === true)).catch(() => undefined);
   }, [open]);
+
+  // IM 步骤进入时读配置快照（扫码成功后 ImSettingsSection 内部会触发重渲染，这里只管进门那次）
+  useEffect(() => {
+    if (!open || step !== 10) return;
+    void loadImConfig().then(setImCfg).catch(() => setImCfg(null));
+  }, [open, step]);
 
   if (!open) return null;
 
@@ -261,7 +279,7 @@ export function OnboardingTourV1(): React.ReactNode {
   );
 
   // 0–4 界面定制；5–8 账号接入（雨课堂 / OJ / 邮箱 / 云盘）；9 桌面小组件
-  const STEPS = 10;
+  const STEPS = 11;
   return (
     <div style={panel} role="dialog" aria-modal="true" aria-label="首次使用导览">
       <div style={box}>
@@ -581,21 +599,64 @@ export function OnboardingTourV1(): React.ReactNode {
         {step === 8 ? (
           <>
             <h3 style={{ margin: "0 0 4px", fontSize: 17 }}>清华云盘<AcctBadge on={acct.cloud} /></h3>
-            <p style={acctIntro}>{/* ui-copy-lint-ok: 厂商字段原名——「Web API Auth Token」是云盘设置页里的入口名，必须按名索骥 */}粘贴 Web API Auth Token 即可浏览与下载云盘文件。</p>
-            <input className="input" style={acctInput} placeholder="Web API Auth Token"
-              value={cloudToken} onChange={(e) => setCloudToken(e.target.value)} />
+            <p style={acctIntro}>已登录清华账号即可一键连接，用于浏览云盘文件、跨设备记忆与附件转存。</p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button className="btn btn-primary" disabled={acctBusy !== null}
-                onClick={() => runAcct("cloud", "云盘连接", () => connectCloudDisk(cloudToken))}>
-                {acctBusy === "cloud" ? "连接中…" : "保存并验证"}
+                onClick={() =>
+                  runAcct("cloud", "云盘连接", async () => {
+                    const { silentConnectSeafile } = await import("../state/seafileAuto.js");
+                    const r = await silentConnectSeafile();
+                    if (r.ok) return readAccountStatus();
+                    throw new Error(r.error ?? "自动连接未成功，请展开手动粘贴或重试。");
+                  })
+                }>
+                {acctBusy === "cloud" ? "连接中…" : "一键连接"}
               </button>
-              <button className="btn btn-ghost" onClick={() => void openExternal(CLOUD_TOKEN_PAGE)}>
-                打开生成页面
+              <button className="btn btn-ghost" disabled={acctBusy !== null}
+                onClick={() => setCloudManual((v) => !v)}>
+                {cloudManual ? "收起手动粘贴" : "手动粘贴"}
               </button>
             </div>
-            <p style={{ ...acctIntro, marginTop: 12, marginBottom: 0 }}>
-              Token 获取：清华云盘网站 → 设置 → Web API Auth Token → 生成（一次性生成，长期有效）。
+            {cloudManual ? (
+              <div style={{ marginTop: 10 }}>
+                <p style={{ ...acctIntro, marginTop: 0 }}>{/* ui-copy-lint-ok: 厂商字段原名——「Web API Auth Token」是云盘设置页里的入口名，必须按名索骥 */}粘贴 Web API Auth Token（云盘设置页显示或生成）。</p>
+                <input className="input" style={acctInput} placeholder="Web API Auth Token"
+                  value={cloudToken} onChange={(e) => setCloudToken(e.target.value)} />
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button className="btn btn-primary" disabled={!cloudToken || acctBusy !== null}
+                    onClick={() => runAcct("cloud", "云盘连接", () => connectCloudDisk(cloudToken))}>
+                    保存并验证
+                  </button>
+                  <button className="btn btn-ghost" onClick={() => void openExternal(CLOUD_TOKEN_PAGE)}>
+                    打开云盘设置页
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </>
+        ) : null}
+
+        {step === 10 ? (
+          <>
+            <h3 style={{ margin: "0 0 4px", fontSize: 17 }}>IM 机器人（微信 / 飞书）</h3>
+            <p style={acctIntro}>
+              在手机微信或飞书里发消息就能指挥这台电脑干活、收文件转存云盘。
+              <b>重要：bot 跑在这台电脑上</b>——电脑关机或 OneTHU 退出，手机端发消息不会有回应；
+              重新开机后会自动恢复在线。绑定是单主人的：绑定码只给你自己，别外传。
             </p>
+            {imCfg && ((imCfg.channels.wechat?.botToken && imCfg.enabled.wechat) ||
+              (imCfg.channels.feishu?.appId && imCfg.enabled.feishu)) ? (
+              <p style={{ ...acctIntro, color: "var(--text-2)" }}>
+                ✅ 已有通道在线（可跳过此步；追加通道或换绑在「设置 → IM 机器人」）。
+              </p>
+            ) : (
+              <>
+                <p style={{ ...acctIntro, marginTop: 0 }}>下面直接扫码设置（也可跳过，之后在设置里完成）：</p>
+                <div style={{ maxHeight: "44dvh", overflowY: "auto", padding: "0 2px" }}>
+                  <ImSettingsSection />
+                </div>
+              </>
+            )}
           </>
         ) : null}
 

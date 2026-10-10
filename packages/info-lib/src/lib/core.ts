@@ -91,6 +91,94 @@ export const getCsrfToken = async () => {
     return q[1];
 };
 
+/**
+ * 【移植自上游 v3.19.0（授权源码 thu-info-app，2026-10-04 发布）】
+ * Builds the credential `POST` body for the unified ID system.
+ *
+ * `scheme` selects the field names: `/do/off/ui/auth/login/check` expects
+ * `i_user` / `i_pass`, while `/security_check` (the `id_website` policy) expects
+ * `username` / `password`. The upstream login form also carries the "trusted
+ * browser" checkbox `singleLogin`（本次登录使用信任浏览器访问校内其他系统时
+ * 不必再输入账号密码）, which makes the resulting ID session reusable by other
+ * campus systems without a password（see passwordlessEntry）.
+ */
+export const __idCredentialFormForTest = async (
+    helper: InfoHelper,
+    publicKey: string,
+    password: string,
+    scheme: "i_user" | "username",
+): Promise<{ [key: string]: string }> => {
+    const form: { [key: string]: string } = {
+        [scheme === "i_user" ? "i_user" : "username"]: helper.userId,
+        [scheme === "i_user" ? "i_pass" : "password"]: SM2_MAGIC_NUMBER + sm2.doEncrypt(password, publicKey),
+        fingerPrint: helper.fingerprint,
+        fingerGenPrint: "",
+        i_captcha: "",
+    };
+    if (helper.trustBrowser) {
+        form.singleLogin = "on";
+        form.deviceName = await helper.trustFingerprintNameHook();
+    }
+    return form;
+};
+
+/**
+ * 【移植自上游 v3.19.0】Logs in without a password, reusing the trusted-browser
+ * state of a live ID session.
+ *
+ * 受信设备的 id 平台对登录入口回答的是自动提交表单（checkSingle 带
+ * i_rememberme=on；/security_check 无附加字段）而不是凭据表单——提交体从页面
+ * 自身构造（fingerPrint 用 helper 的），action 相对 id 主机解析（id 会话
+ * cookie 在 id 主机上）。返回 null = 平台未给免密通道（调用方保持原行为）。
+ */
+export const passwordlessEntry = async (helper: InfoHelper, entryHtml: string): Promise<string | null> => {
+    if (!helper.trustBrowser) {
+        return null;
+    }
+    const $ = cheerio.load(entryHtml);
+    const form = $("form")
+        .filter((_i, f) => $(f).find("input[name='fingerPrint']").length > 0)
+        .first();
+    const action = form.attr("action");
+    if (action === undefined) {
+        return null;
+    }
+    const body: { [key: string]: string } = {};
+    form.find("input[name]").each((_i, input) => {
+        const name = $(input).attr("name")!;
+        body[name] = name === "fingerPrint" ? helper.fingerprint : $(input).attr("value") ?? "";
+    });
+    let response: string;
+    try {
+        response = await uFetch(action.startsWith("/") ? ID_HOST_URL + action : action, body);
+    } catch {
+        return null;
+    }
+    return response.includes("sm2publicKey") ? null : response;
+};
+
+/**
+ * 【移植自上游 v3.19.0】Obtains the login response for the unified ID system,
+ * preferring the passwordless path when the live session is trusted.
+ * `entryHtml` 无 sm2publicKey = 平台发了受信表单（无 key 可加密）。
+ */
+const idLoginResponse = async (
+    helper: InfoHelper,
+    entryHtml: string,
+    idLoginUrl: string,
+    scheme: "i_user" | "username",
+): Promise<string> => {
+    const sm2PublicKey = cheerio.load(entryHtml)("#sm2publicKey").text();
+    if (sm2PublicKey === "") {
+        const passwordless = await passwordlessEntry(helper, entryHtml);
+        if (passwordless === null) {
+            throw new LoginError("Failed to get public key.");
+        }
+        return passwordless;
+    }
+    return await uFetch(idLoginUrl, await __idCredentialFormForTest(helper, sm2PublicKey, helper.password, scheme));
+};
+
 let outstandingLoginPromise: Promise<void> | undefined = undefined;
 
 const twoFactorAuth = async (helper: InfoHelper): Promise<string> => {
@@ -183,7 +271,7 @@ export const login = async (
                 }, 3 * 60 * 1000);
                 (async () => {
                     await uFetch(WEB_VPN_OAUTH_LOGIN_URL);
-                    let sm2PublicKey = "";
+                    let entryHtml = "";
                     if (getRedirectLocation) {
                         // Patch for OpenHarmony
                         const oauthUrl = await getRedirectLocation(WEB_VPN_OAUTH_LOGIN_URL);
@@ -195,26 +283,17 @@ export const login = async (
                         if (!idUrl) {
                             throw new LoginError("Failed to get id url.");
                         }
-                        sm2PublicKey = cheerio.load(await uFetch(idUrl))("#sm2publicKey").text();
+                        entryHtml = await uFetch(idUrl);
                     } else {
                         // OneTHU 适配（2026-09-17 定案）：库外层（infoLib.libLogin）
                         // 已在登录前清空原生 cookie 仓——干净客户端总是走完整
                         // OAuth 舞（表单带 sig → check → 302 webvpn/login?code=
-                        // → 铸真票）。带陈旧匿名票才会被 IP 续会拦成门户页
-                        // （无 key），此处保持「无 key 即报错」，由外层自愈重试。
-                        const landingPage = await uFetch(WEB_VPN_OAUTH_LOGIN_URL);
-                        sm2PublicKey = cheerio.load(landingPage)("#sm2publicKey").text();
+                        // → 铸真票）。带陈旧匿名票才会被 IP 续会拦成门户页。
+                        // v3.19.0 移植：无 key 可能是受信表单（passwordless），
+                        // 交给 idLoginResponse 处理而非直接报错。
+                        entryHtml = await uFetch(WEB_VPN_OAUTH_LOGIN_URL);
                     }
-                    if (sm2PublicKey === "") {
-                        throw new LoginError("Failed to get public key.");
-                    }
-                    let response = await uFetch(ID_LOGIN_URL, {
-                        i_user: helper.userId,
-                        i_pass: SM2_MAGIC_NUMBER + sm2.doEncrypt(helper.password, sm2PublicKey),
-                        fingerPrint: helper.fingerprint,
-                        fingerGenPrint: "",
-                        i_captcha: "",
-                    });
+                    let response = await idLoginResponse(helper, entryHtml, ID_LOGIN_URL, "i_user");
                     if (response.includes("二次认证")) {
                         response = await twoFactorAuth(helper);
                     }
@@ -297,27 +376,15 @@ export const roam = async (helper: InfoHelper, policy: RoamingPolicy, payload: s
         let response = "";
         const target = policy === "id_website" ? "账号设置" : "登录成功。正在重定向到";
         for (let i = 0; i < 2; i++) {
-            const sm2PublicKey = cheerio.load(await uFetch(policy === "cr" ? CR_LOGIN_HOME_URL : (idBaseUrl + payload)))("#sm2publicKey").text();
-            if (sm2PublicKey === "") {
-                throw new LoginError("Failed to get public key.");
-            }
-            if (policy === "id_website") {
-                response = await uFetch(idLoginUrl, {
-                    username: helper.userId,
-                    password:  SM2_MAGIC_NUMBER + sm2.doEncrypt(helper.password, sm2PublicKey),
-                    fingerPrint: helper.fingerprint,
-                    fingerGenPrint: helper.fingerGenPrint ?? "",
-                    i_captcha: "",
-                });
-            } else {
-                response = await uFetch(idLoginUrl, {
-                    i_user: helper.userId,
-                    i_pass:  SM2_MAGIC_NUMBER + sm2.doEncrypt(helper.password, sm2PublicKey),
-                    fingerPrint: helper.fingerprint,
-                    fingerGenPrint: helper.fingerGenPrint ?? "",
-                    i_captcha: "",
-                });
-            }
+            // v3.19.0 移植：受信设备的入口页是 checkSingle/security_check 表单
+            // （无 sm2publicKey）——idLoginResponse 走 passwordlessEntry 提交。
+            const entryHtml = await uFetch(policy === "cr" ? CR_LOGIN_HOME_URL : (idBaseUrl + payload));
+            response = await idLoginResponse(
+                helper,
+                entryHtml,
+                idLoginUrl,
+                policy === "id_website" ? "username" : "i_user",
+            );
             if (response.includes("二次认证")) {
                 response = await twoFactorAuth(helper);
             }

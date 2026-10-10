@@ -269,6 +269,8 @@ export function ChatDock(): ReactNode {
   const closeTimer = useRef<number | null>(null);
   /* 导入会话：真按钮 + 隐藏 input（label 方案在触屏密度层下渲染高度与 button 不一致） */
   const fileRef = useRef<HTMLInputElement>(null);
+  /* 外部运行标记：IM 入口的对话事件不进本地视图（见事件泵 foreignRun 分支） */
+  const foreignRun = useRef(false);
 
   const flushDelta = (): void => {
     deltaTimer.current = null;
@@ -283,6 +285,8 @@ export function ChatDock(): ReactNode {
     if (open) {
       localStorage.setItem(OPEN_KEY, "0");
       setClosing(true); // 先演退场动画，再卸载
+      // 关面板即允许下次重开重水合：期间 IM/云盘可能写入了新轮次（2026-10-10）
+      hydratedFor.current = null;
       if (closeTimer.current) clearTimeout(closeTimer.current);
       closeTimer.current = window.setTimeout(() => {
         closeTimer.current = null;
@@ -340,10 +344,26 @@ export function ChatDock(): ReactNode {
     };
   }, [pid]);
 
-  // 水合：打开面板且尚未载入当前会话 → 导出会话 JSON 还原视图（R5）+ 拉累计用量
+  // 水合：打开面板且尚未载入当前会话 → 导出会话 JSON 还原视图（R5）+ 拉累计用量。
+  // foreignTick：外部入口（IM 微信/飞书）完成对话后打点——本地无运行在途时静默重水合，
+  // 把 IM 轮次并入视图（IM 的 delta 会被 R10 迟到守卫拦掉，回答回执只走 IM 通道，
+  // 不重水合主界面就永远看不到 IM 的新轮次；2026-10-10 用户实录）。
+  const [foreignTick, setForeignTick] = useState(0);
   useEffect(() => {
     if (!pid || !open || hydratedFor.current === pid) return;
     hydratedFor.current = pid;
+    // 重水合先清流式残影：此刻若 busy 必为本地在途（foreignTick 分支只在 !busy 时打点），
+    // 若非 busy 则 stream/think 里只可能是外部入口（IM）事件的残留——一并冲掉
+    if (!busyRef.current) {
+      if (deltaTimer.current) {
+        clearTimeout(deltaTimer.current);
+        deltaTimer.current = null;
+      }
+      deltaBuf.current = "";
+      streamRef.current = "";
+      setStream(null);
+      setThink("");
+    }
     void (async () => {
       try {
         const res: any = await callRust(pid, "run", { command: "export_session", input: "" });
@@ -373,7 +393,7 @@ export function ChatDock(): ReactNode {
         }
       } catch { /* 保留现值 */ }
     })();
-  }, [pid, open]);
+  }, [pid, open, foreignTick]);
 
   // 事件泵：流式增量 / 工具轨迹 / 用量（R4）
   const events = useSyncExternalStore(subscribePluginEvents, pid ? () => pluginEvents(pid) : () => EMPTY_EVENTS);
@@ -389,6 +409,13 @@ export function ChatDock(): ReactNode {
         return;
       }
       const kind = (e as any).kind;
+      // 外部运行（IM 微信/飞书入口的对话）：本地无运行在途时收到的 delta/think/tool/log
+      // 一律不进本地视图——否则 IM 回复会流进本地流式气泡（永不 finalize → 幽灵光标
+      // 常闪、多轮拼成一长串，2026-10-10 用户实录）。轮次由 usage 事件后的重水合并入。
+      if (!busyRef.current && (kind === "delta" || kind === "think" || kind === "tool" || kind === "log" || kind === "notice")) {
+        foreignRun.current = true;
+        continue;
+      }
       // R10：已落定的对话不得再吃迟到事件——Tauri 事件通道与 invoke 回执无顺序保证，
       // 迟到 delta 会复活流式气泡（幽灵光标一直闪）
       if (finalizedFor.current === runSeq.current && runSeq.current > 0 && (kind === "delta" || kind === "think" || kind === "tool")) {
@@ -412,7 +439,27 @@ export function ChatDock(): ReactNode {
         setTrace((t) => [...t.slice(-40), e.text!]);
       }
       else if (kind === "notice" && e.text) setStatus(e.text);
-      else if (kind === "usage" && (e as any).payload) setUsage((u) => ({ ...u, ...(e as any).payload }));
+      else if (kind === "usage" && (e as any).payload) {
+        setUsage((u) => ({ ...u, ...(e as any).payload }));
+        // 外部入口（IM）对话完成：清掉其残留（不进气泡的保证 + 兜底清 stream/think），
+        // 静默重水合把新轮次（含 IM 侧的用户消息）并入视图
+        if (foreignRun.current || !busyRef.current) {
+          foreignRun.current = false;
+          if (!busyRef.current) {
+            if (deltaTimer.current) {
+              clearTimeout(deltaTimer.current);
+              deltaTimer.current = null;
+            }
+            deltaBuf.current = "";
+            streamRef.current = "";
+            setStream(null);
+            thinkRef.current = "";
+            setThink("");
+            hydratedFor.current = null;
+            setForeignTick((t) => t + 1);
+          }
+        }
+      }
     }
     const sc = scrollRef.current;
     if (sc) sc.scrollTop = sc.scrollHeight;
@@ -466,6 +513,7 @@ export function ChatDock(): ReactNode {
     if (!pid || busyRef.current || !text) return;
     const seq = ++runSeq.current;
     finalizedFor.current = 0;
+    foreignRun.current = false; // 本地运行启动：此后的事件都属本地（IM 单飞队列不会并发进来）
     streamRef.current = "";
     lastEvAt.current = Date.now();
     busyRef.current = true;
@@ -611,6 +659,19 @@ export function ChatDock(): ReactNode {
   const deleteSession = async (id: string): Promise<void> => {
     const r = await runCmd("delete_session", id);
     setHistory(Array.isArray(r?.sessions) ? r.sessions : []);
+    if (r?.ok) {
+      // 修（老 bug，云盘之前就存在）：删除的若是当前显示会话，视图会残留旧对话——
+      // 关开面板也不重水合（hydratedFor 已等于 pid 短路了 345 行的 effect）。
+      // 删除成功即重置水合标记，让 effect 按 core 返回的新 active 立即重建视图。
+      setMsgs([]);
+      setStream(null);
+      setConfirmCard(null);
+      setStatus(null);
+      setNotice("已删除");
+      hydratedFor.current = null;
+    } else {
+      setNotice(r?.error ?? "删除失败");
+    }
   };
 
   const exportSession = async (): Promise<void> => {
@@ -944,13 +1005,18 @@ export function ChatDock(): ReactNode {
                 <b>历史会话</b>
                 <button className="btn dock-btn" onClick={() => setHistory(null)}>关闭</button>
               </div>
-              {history.length === 0 ? <div className="dock-empty">（无会话）</div> : history.map((s) => (
+              {history.length === 0 ? <div className="dock-empty">（无会话）</div> : history.map((s, idx) => (
                 <div key={s.id} className="dock-hist-row">
                   <button className="dock-hist-main" onClick={() => void switchSession(s.id)}>
-                    <span className="dock-hist-title">{s.title || "未命名"}</span>
-                    <span className="dock-hist-meta">{s.messages} 轮 · {fmtUsd(s.costUsd)}</span>
+                    <span className="dock-hist-title">{idx === 0 ? "① " : ""}{s.title || "未命名"}</span>
+                    <span className="dock-hist-meta">{idx === 0 ? "主对话 · " : ""}{s.messages} 轮 · {fmtUsd(s.costUsd)}</span>
                   </button>
-                  <button className="btn dock-btn dock-hist-del" aria-label="删除" onClick={() => void deleteSession(s.id)}>✕</button>
+                  {idx === 0 ? (
+                    /* 1 号主对话永久保留（用户定案）：不提供删除入口 */
+                    <span className="dock-hist-meta" style={{ alignSelf: "center", padding: "0 10px" }} title="主对话不可删除">—</span>
+                  ) : (
+                    <button className="btn dock-btn dock-hist-del" aria-label="删除" onClick={() => void deleteSession(s.id)}>✕</button>
+                  )}
                 </div>
               ))}
             </div>
