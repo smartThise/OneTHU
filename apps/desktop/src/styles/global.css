@@ -1251,9 +1251,24 @@
 .field select:focus,
 .input:focus {
   outline: none;
-  background: var(--md-sys-color-surface-container-lowest);
+  background-color: var(--md-sys-color-surface-container-lowest);
   border-color: var(--accent);
   box-shadow: var(--md-sys-focus-ring);
+}
+
+/* 安卓 WebView 的原生 select 是远古样式（系统箭头 + 系统高亮）：
+   appearance 归零 + 自绘主题箭头，收起态与 .input 完全一体。
+   （弹出层是系统渲染无法定制，但收起态统一后已无割裂感。） */
+select.input {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 32px; /* 4pt 栅格（style-scan 基线） */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5L6 8l3.5-3.5' fill='none' stroke='%23777a86' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+select.input:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5L6 8l3.5-3.5' fill='none' stroke='%23777a86' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 @media (max-width: 700px) {
@@ -4126,7 +4141,8 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
 .mail-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
 .mail-toolbar .segmented { margin-bottom: 0; flex: none; }
 .mail-toolbar .tab-count { background: var(--accent); color: #fff; }
-.mail-toolbar-search { display: inline-flex; align-items: center; gap: 6px; flex: 1 1 180px; min-width: 0; max-width: 320px; }
+.mail-toolbar-search { display: inline-flex; align-items: center; gap: 6px; flex: 1 1 180px; min-width: 0; max-width: min(420px, 100%); }
+html.is-phone .mail-toolbar-search { max-width: 320px; }
 .mail-toolbar-search .input { flex: 1; min-width: 0; }
 .mail-error { font-size: var(--text-xs); color: var(--red); flex: 1 1 100%; }
 /* 列表底部分页条：已显示 X / 共 Y 封 + 加载更早 */
@@ -4513,6 +4529,10 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
 }
 .cloud-search input {
   flex: 1;
+  /* PC 宽屏放开（用户实录 320 在宽屏上过窄）；手机仍收在 320（html.is-phone 覆盖） */
+  max-width: min(520px, 100%);
+}
+html.is-phone .cloud-search input {
   max-width: 320px;
 }
 

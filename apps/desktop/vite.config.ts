@@ -54,6 +54,12 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 5180,
     strictPort: true,
+    headers: {
+      // dev 模式禁缓存：WKWebView 会把模块 HTTP 缓存到磁盘，app 重启后仍加载
+      // 旧 JS（2026-10-10 实录：移动弹窗新代码永远不生效，清 WebKit 缓存才好）。
+      // no-store 让每次启动/刷新都拿最新模块；dev 服务器无带宽顾虑。
+      "Cache-Control": "no-store",
+    },
     watch: {
       // exFAT 卷 inotify 不可靠：不开轮询则 HMR 不推送，窗口永远停在旧渲染
       usePolling: true,

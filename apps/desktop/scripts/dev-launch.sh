@@ -26,6 +26,23 @@ fi
 echo "· vite :5180 ✓"
 
 # ② Rust debug 构建（沿用 ._* 清理惯例）
+# 编译盘（可选，本机约定）：SSD 上的 APFS 稀疏镜像（oh-build.sparsebundle → /Volumes/OneTHUBuild），
+# 装了 Rust/Android 工具链与 cargo target，给内置盘腾空间。探测式：没有编译盘就回退内置盘默认路径
+# （其他机器/CI 不受影响；target 放 APFS 是硬要求——exFAT 产物带 ._ 会让 tauri build.rs panic）。
+ONETHU_BUILD_VOL="${ONETHU_BUILD_VOL:-/Volumes/OneTHUBuild}"
+ONETHU_BUILD_IMG="${ONETHU_BUILD_IMG:-/Volumes/PortableSSD/oh-build.sparsebundle}"
+if [ ! -d "$ONETHU_BUILD_VOL" ] && [ -f "$ONETHU_BUILD_IMG" ]; then
+  echo "· 挂载 SSD 编译盘（oh-build.sparsebundle）…"
+  hdiutil attach "$ONETHU_BUILD_IMG" -mountpoint "$ONETHU_BUILD_VOL" -nobrowse
+fi
+if [ -d "$ONETHU_BUILD_VOL/cargo-home" ]; then
+  export CARGO_HOME="$ONETHU_BUILD_VOL/cargo-home"
+  export RUSTUP_HOME="$ONETHU_BUILD_VOL/rustup-home"
+  export PATH="$CARGO_HOME/bin:$PATH"
+  ONETHU_CARGO_TARGET="$ONETHU_BUILD_VOL/oh-desktop/cargo-target"
+else
+  ONETHU_CARGO_TARGET="$HOME/Library/Caches/onethu-cargo-target"
+fi
 # target 目录必须放内置盘 APFS：exFAT 产物会带 ._ AppleDouble 副档，
 # tauri build.rs 扫权限 toml 时误读非 UTF-8 必 panic。CI（APFS runner）
 # 无此问题走默认 target/——因此该路径不入库（曾入库导致 runner 上
@@ -33,7 +50,7 @@ echo "· vite :5180 ✓"
 (
   cd src-tauri
   find . -name '._*' -delete 2>/dev/null || true
-  CARGO_TARGET_DIR="$HOME/Library/Caches/onethu-cargo-target" cargo build
+  CARGO_TARGET_DIR="$ONETHU_CARGO_TARGET" cargo build
 )
 
 # ③ 装壳 + 启动（定位/语音授权窗都会正常弹）

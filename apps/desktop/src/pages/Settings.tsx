@@ -6,6 +6,7 @@ import { Card, PageHead, SectionHead, SegmentedOverflow, Switch } from "../compo
 import { TabManageModal } from "../components/TabManageModal.js";
 import { NotifySettingsSection } from "../components/NotifySettingsSection.js";
 import { WidgetSettingsSection } from "../components/WidgetSettingsSection.js";
+import { ImSettingsSection } from "../components/ImSettingsSection.js";
 import { invoke } from "@tauri-apps/api/core";
 import { showToast } from "../state/toast.js";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -68,6 +69,7 @@ const SETTINGS_GROUPS: Array<{ label: string; sections: string[] }> = [
   { label: "外观与布局", sections: ["外观", "首页布局", "收藏夹"] },
   { label: "数据与同步", sections: ["云同步", "外部作业源"] },
   { label: "下载与存储", sections: ["下载"] },
+  { label: "IM 通道", sections: ["IM 通道"] },
   { label: "插件", sections: ["插件"] },
   { label: "帮助", sections: ["帮助"] },
   { label: "关于", sections: ["关于"] },
@@ -639,6 +641,10 @@ export function SettingsPage() {
       <SectionHead title="桌面小组件" />
       <Card>
         <WidgetSettingsSection />
+      </Card>
+      <SectionHead title="IM 通道" />
+      <Card>
+        <ImSettingsSection />
       </Card>
       <SectionHead title="插件" />
       {/* §4.4b：插件不再是单独一页，管理界面直接嵌在这里（本分节随页签显隐整块收放） */}

@@ -91,6 +91,36 @@ function Routed() {
       .catch(() => undefined);
   }, []);
 
+  // IM 通道装配（无后端主案）：登录就绪后按配置自动连接（App 常驻 = bot 在线）。
+  // 动态 import：未就绪时不加载协议代码（与 ChatDock 懒加载同习惯）。
+  useEffect(() => {
+    if (status !== "ready") return;
+    void import("./im/boot.js").then((m) => m.bootIm()).catch(() => undefined);
+  }, [status]);
+
+  // OH 记忆云盘同步（OH-Memory 资料库，没有就建）：启动 pull + 本地新内容 push。
+  // 云盘未连接时静默降级——本地记忆照常。
+  useEffect(() => {
+    if (status !== "ready") return;
+    void import("./memory/sync.js").then((m) => m.memoryBootSync()).catch(() => undefined);
+    // 共享主对话：云盘 pull（远端较新则恢复）+ push（本地新内容）——所有 IM 入口与
+    // ChatDock 共用 active 会话，云盘让它跨设备（用户定案 2026-10-09）
+    void import("./im/sessionSync.js").then((m) => m.sessionBootSync()).catch(() => undefined);
+    // 云盘自动连接（2026-10-10 定案：静默直连链——checkSingle 自动确认 +
+    // auth-token-by-session 只读取票，零窗口零输入；失败静默，云盘页/导览一键重试）
+    void import("./state/seafileAuto.js")
+      .then(async (m) => {
+        const { getSeafileToken } = await import("./state/seafile.js");
+        if (getSeafileToken()) return;
+        const r = await m.silentConnectSeafile();
+        if (r.ok) {
+          const { showToast } = await import("./state/toast.js");
+          showToast(`云盘已自动连接：${r.account?.name ?? ""}`);
+        }
+      })
+      .catch(() => undefined);
+  }, [status]);
+
   const body = (() => {
     if (status === "booting") {
       return (

@@ -1,4 +1,4 @@
-import { http, logLine } from "../lib/clients.js";
+import { http, logLine, session } from "../lib/clients.js";
 import { webvpnWrap } from "@onethu/core";
 import { getPlugin, updatePlugin } from "../plugins/registry.js";
 
@@ -25,6 +25,8 @@ const HARNESS_ID = "onethu.harness";
 /** SSO 应用号 = md5('DEEPSEEK')（站点前端现算，DSH 插件复核） */
 const SSO_APP = "d736f067a6705ab942df52f958a0f23b";
 const SSO_FORM = `https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/${SSO_APP}/0?/authLogin`;
+/** checkSingle 指纹确认端点（info 客户端 #idCheckSingle / tuoj / zhjwxk 同款） */
+const SSO_CHECK_SINGLE = "https://id.tsinghua.edu.cn/do/off/ui/auth/login/checkSingle";
 /** 站点上仍有但默认不挂的模型（纯推理/易乱码——DSH 插件同清单） */
 const EXCLUDED_MODEL_IDS = ["DeepSeek-R1-W8A8", "DeepSeek-V4-Flash-Vision-Exp", "DeepSeek-V4-Flash-0731"];
 const MODELS_KEY = "onethu.madmodel.models.v1";
@@ -43,9 +45,30 @@ function madmodelActive(): boolean {
   return true;
 }
 
-/** 是否该续期 token（5h50min 阈值，6h 寿命留 10 分钟缓冲） */
+/** 读取 JWT 的 exp（毫秒）；不是 JWT 或没有 exp 时返回 null。 */
+export function jwtExpiresAt(token: string): number | null {
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  try {
+    const b64 = parts[1]!.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(parts[1]!.length / 4) * 4, "=");
+    const payload = JSON.parse(atob(b64));
+    const exp = Number(payload?.exp);
+    return Number.isFinite(exp) && exp > 0 ? exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 续期阈值：token 剩余不足 60 分钟即续。站点 token 寿命已变（实测 24h），
+ *  以 JWT exp 为准；拿不到 exp 时才退回到「签发时间 + 5h50min」的旧判断。 */
+const RENEW_BEFORE_EXP_MS = 60 * 60_000;
+
+/** 是否该续期 token */
 export function madmodelDue(): boolean {
   const s = getPlugin(HARNESS_ID)?.settings ?? {};
+  const tok = String(s.madmodelToken ?? "");
+  const exp = tok ? jwtExpiresAt(tok) : null;
+  if (exp !== null) return Date.now() > exp - RENEW_BEFORE_EXP_MS;
   const at = Number(s.madmodelAt ?? 0);
   return !at || Date.now() - at > REFRESH_MS;
 }
@@ -90,7 +113,21 @@ export async function ensureMadModelToken(force = false): Promise<string> {
     }
 
     // 层 2：SSO 取票 → 兑换（唯一出口 = ticket，站点已关闭免登录签发）
-    const ticket = await fetchSsoTicket();
+    let sso = await fetchSsoTicket();
+    if (sso.noSession) {
+      // SSO 会话守卫（2026-10-10）：复用 lib 静默重登（记住密码 + 受信指纹 → 免 2FA，
+      // 与 LIB-ENSURE 同一条路），成功后重试一次取票——不再干等退避。
+      let relogged = false;
+      try {
+        const { libEnsureSession } = await import("../lib/infoLib.js");
+        relogged = await libEnsureSession();
+      } catch {
+        /* infoLib 不可用（如启动竞态）→ 按未重登处理 */
+      }
+      void logLine(`[MADMODEL] SSO 会话守卫：${relogged ? "静默重登成功，重试取票" : "静默重登未成"}`).catch(() => undefined);
+      if (relogged) sso = await fetchSsoTicket();
+    }
+    const ticket = sso.ticket;
     if (ticket) {
       // 2a 校内直连兑换
       const tokDirect = await exchangeCheck(
@@ -144,20 +181,58 @@ async function exchangeCheck(url: string, opts: { direct?: boolean }): Promise<s
   }
 }
 
-/** 带本机 id 会话重放 SSO 表单取票（venue.ts 同款：最终 URL / HTML 锚点提 ticket）。 */
-async function fetchSsoTicket(): Promise<string | null> {
+/* ── SSO 取票（三形态解剖，tuoj/zhjwxk/info 客户端同款） ──
+ *  ① 302 落地已带 ticket → 直接用；
+ *  ② checkSingle 指纹确认页 = id 会话**活着**，只差一次 POST 确认 → 确认后取票；
+ *  ③ 真登录页（sm2publicKey / i_pass）= 会话死 → 标记 noSession，由调用方触发静默重登后重试。
+ *  （旧实现把 ② 也当"无会话"直接失败——泵永不自愈的根源，2026-10-10 实锤修复） */
+type TicketResult = { ticket: string | null; noSession: boolean };
+
+const TICKET_RE = /[?&]ticket=([^&\s"']+)/;
+
+async function fetchSsoTicket(): Promise<TicketResult> {
   try {
     const res = await http.request(SSO_FORM, { redirect: "follow" });
     const finalUrl = res.headers.get("x-onethu-final-url") ?? "";
     const body = await res.text();
-    if (/id="sm2publicKey"|login\/checkSingle/i.test(body) && !/ticket=/.test(finalUrl)) {
-      void logLine("[MADMODEL] SSO 取票：无有效 id 会话（返回登录/确认页）").catch(() => undefined);
-      return null;
+    const m = TICKET_RE.exec(finalUrl) ?? TICKET_RE.exec(body);
+    if (m?.[1]) return { ticket: decodeURIComponent(m[1]), noSession: false };
+
+    if (/checkSingle/i.test(body)) {
+      const ticket = await confirmCheckSingle();
+      void logLine(`[MADMODEL] SSO 确认页（checkSingle，会话活着）：${ticket ? "已确认取票" : "确认后仍未取到票"}`).catch(() => undefined);
+      return { ticket, noSession: false };
     }
-    const m = /[?&]ticket=([^&\s"']+)/.exec(finalUrl) ?? /[?&]ticket=([^&\s"']+)/.exec(body);
-    return m?.[1] ? decodeURIComponent(m[1]) : null;
+
+    const loginPage = /id="sm2publicKey"|name="i_pass"/i.test(body);
+    void logLine(`[MADMODEL] SSO 取票：${loginPage ? "id 会话已死（真登录页）" : `未识别页面（finalUrl=${finalUrl.slice(0, 80)}）`}`).catch(() => undefined);
+    return { ticket: null, noSession: true };
   } catch (e) {
     void logLine(`[MADMODEL] SSO 取票异常：${e instanceof Error ? e.message : e}`).catch(() => undefined);
+    return { ticket: null, noSession: false };
+  }
+}
+
+/** checkSingle 确认页取票：POST 指纹确认（i_rememberme + 受信指纹）→ 跟 302/锚点提 ticket。
+ *  会话 cookie 驱动授权，指纹只做 remember-me 跟踪（缺了也能确认，下次会再问）。 */
+async function confirmCheckSingle(): Promise<string | null> {
+  try {
+    const res = await http.request(SSO_CHECK_SINGLE, {
+      method: "POST",
+      body: new URLSearchParams({
+        i_rememberme: "on",
+        fingerPrint: session.fingerprint ?? "",
+        fingerGenPrint: session.finger3 ?? "",
+      }),
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      redirect: "follow",
+    });
+    const finalUrl = res.headers.get("x-onethu-final-url") ?? "";
+    const html = await res.text();
+    const m = TICKET_RE.exec(finalUrl) ?? TICKET_RE.exec(html) ?? /<a[^>]+href="([^"]*ticket=[^"]*)"/i.exec(html);
+    return m?.[1] ? decodeURIComponent(m[1]) : null;
+  } catch (e) {
+    void logLine(`[MADMODEL] checkSingle 确认异常：${e instanceof Error ? e.message : e}`).catch(() => undefined);
     return null;
   }
 }
