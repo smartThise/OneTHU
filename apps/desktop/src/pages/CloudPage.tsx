@@ -156,12 +156,11 @@ function MoveModal({
       onClick={onClose}
     >
       <div
-        className="connect-gate-panel"
-        style={{ background: "var(--bg, #fff)", color: "var(--text-1, inherit)", borderRadius: 16, padding: 18, width: "min(460px, 94vw)", maxHeight: "80dvh", overflowY: "auto" }}
+        style={{ background: "#fff", color: "#1e1432", borderRadius: 16, padding: 18, width: "min(460px, 94vw)", maxHeight: "80dvh", overflowY: "auto" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-          <b style={{ fontSize: 15 }}>移动「{entry.name}」到…</b>
+          <b style={{ fontSize: 15 }}>移动「{entry.name}」到…〔v4〕</b>
           <span style={{ flex: 1 }} />
           <button className="btn mini" onClick={onClose} aria-label="关闭">✕</button>
         </div>
@@ -181,10 +180,10 @@ function MoveModal({
             </span>
           ))}
         </div>
-        <div ref={listRef} style={{ border: "1px solid var(--border-soft, rgba(127,127,127,.25))", borderRadius: 10, height: 260, overflowY: "auto", padding: 4, color: "var(--text-1, inherit)", boxSizing: "border-box" }}>
-          {loading && <p style={{ padding: 10, margin: 0, color: "var(--text-3, #888)" }}>正在读取文件夹…</p>}
+        <div ref={listRef} style={{ border: "1px solid #d8dce6", borderRadius: 8, height: 260, overflowY: "auto", padding: 4, background: "#fff", color: "#1e1432", boxSizing: "border-box" }}>
+          {loading && <p style={{ padding: 10, margin: 0, color: "#8a8f99" }}>正在读取文件夹…</p>}
           {error && <p className="cloud-error" style={{ padding: 10, margin: 0 }}>{error}</p>}
-          {!loading && !error && dirs.length === 0 && <p style={{ padding: 10, margin: 0, color: "var(--text-3, #888)" }}>没有子文件夹（将移动到当前位置）</p>}
+          {!loading && !error && dirs.length === 0 && <p style={{ padding: 10, margin: 0, color: "#8a8f99" }}>没有子文件夹（将移动到当前位置）</p>}
           {dirs.map((d) => (
             <div
               key={d.name}
@@ -194,8 +193,8 @@ function MoveModal({
               onClick={() => setPath(`${path === "/" ? "" : path}/${d.name}`)}
               onKeyDown={(ev) => { if (ev.key === "Enter") setPath(`${path === "/" ? "" : path}/${d.name}`); }}
             >
-              <span className="cloud-kind dir" style={{ background: "var(--primary, #6d7ff0)" }} />
-              <span className="cloud-name" style={{ color: "var(--text-1, #1e1432)" }}>{d.name}</span>
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: "#6d7ff0", flex: "none", display: "inline-block" }} />
+              <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#1e1432", fontSize: 14 }}>{d.name}</span>
             </div>
           ))}
         </div>
