@@ -212,21 +212,7 @@ pub async fn seafile_download<R: tauri::Runtime>(
     path: String,
 ) -> Result<String, String> {
     let p = if path.starts_with('/') { path.clone() } else { format!("/{path}") };
-    let resp = check(
-        client()?
-            .get(format!("{BASE}/api2/repos/{repo_id}/file/"))
-            .bearer_auth(token)
-            .query(&[("p", p.as_str()), ("dl", "1")])
-            .send()
-            .await.map_err(|e| e.to_string())?,
-    )
-    .await?;
-    let content_disposition = resp
-        .headers()
-        .get(reqwest::header::CONTENT_DISPOSITION)
-        .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string());
-    let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
+    let (bytes, content_disposition) = fetch_file_bytes(&token, &repo_id, &p).await?;
     if bytes.is_empty() {
         return Err("下载失败：文件内容为空".into());
     }
@@ -571,32 +557,53 @@ pub async fn seafile_read_bytes(
 ) -> Result<String, String> {
     let p = if path.starts_with('/') { path } else { format!("/{path}") };
     let limit = if max_bytes > 0 { max_bytes } else { 8 * 1024 * 1024 };
-    let resp = check(
-        client()?
-            .get(format!("{BASE}/api2/repos/{repo_id}/file/"))
-            .bearer_auth(token)
-            .query(&[("p", p.as_str()), ("dl", "1")])
-            .send()
-            .await.map_err(|e| e.to_string())?,
-    )
-    .await?;
-    // 先看 Content-Length 提前拒绝（chunked 场景读后再验）
-    if let Some(v) = resp
-        .headers()
-        .get(reqwest::header::CONTENT_LENGTH)
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| s.parse::<i64>().ok())
-    {
-        if v > limit {
-            return Err(format!("文件过大（{v} 字节 > 上限 {limit}）：记忆镜像只收小文件，大文件请走 seafile_download"));
-        }
-    }
-    let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
+    let (bytes, _) = fetch_file_bytes(&token, &repo_id, &p).await?;
     if bytes.len() as i64 > limit {
         return Err(format!("文件过大（{} 字节 > 上限 {limit}）：记忆镜像只收小文件，大文件请走 seafile_download", bytes.len()));
     }
     use base64::Engine as _;
     Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
+}
+
+/// 取文件真字节（download / read_bytes 共用）：GET /api2/repos/<id>/file/?p=…&dl=1。
+/// 本实例（thufs 变体）live 实锤（2026-10-10）：dl=1 既不给 302 也不给字节，
+/// 而是 200 + **带引号的 seafhttp 下载链接文本**（~126B）。认出它就跟随链接取真字节——
+/// 否则 base64/落盘的是 URL 文本：图片预览问号、文本预览显示「文件网址」、下载出 126B 假文件。
+async fn fetch_file_bytes(
+    token: &str,
+    repo_id: &str,
+    p: &str,
+) -> Result<(Vec<u8>, Option<String>), String> {
+    let first = check(
+        client()?
+            .get(format!("{BASE}/api2/repos/{repo_id}/file/"))
+            .bearer_auth(token)
+            .query(&[("p", p), ("dl", "1")])
+            .send()
+            .await.map_err(|e| e.to_string())?,
+    )
+    .await?;
+    let content_disposition = first
+        .headers()
+        .get(reqwest::header::CONTENT_DISPOSITION)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+    let mut bytes = first.bytes().await.map_err(|e| e.to_string())?;
+    if bytes.first() == Some(&b'"') && bytes.len() < 2048 {
+        let link = String::from_utf8_lossy(&bytes).trim().trim_matches('"').trim().to_string();
+        if link.starts_with("http") {
+            let second = check(
+                client()?
+                    .get(&link)
+                    .bearer_auth(token)
+                    .send()
+                    .await.map_err(|e| e.to_string())?,
+            )
+            .await?;
+            bytes = second.bytes().await.map_err(|e| e.to_string())?;
+        }
+    }
+    Ok((bytes.to_vec(), content_disposition))
 }
 
 /// 覆写已存在文件（update-link 原语）：GET update-link（指向父目录）→
