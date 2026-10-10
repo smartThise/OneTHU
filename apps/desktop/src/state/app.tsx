@@ -36,7 +36,8 @@ export type Page =
   | "learn-forum-thread" // 讨论区话题阅读/回复（courseId+threadId）
   | "learn-file-detail" // 文件详情（courseId+itemId）
   | `plugin:${string}` // 插件动态 tab（plugins/tabs.ts 注册表；pageKey = plugin:<pluginId>:<tabId>）
-  | "learn-ykt-detail"; // R20-B2：雨课堂作业原生详情（只读；navParams.ykt 必带）
+  | "learn-ykt-detail" // R20-B2：雨课堂作业原生详情（只读；navParams.ykt 必带）
+  | "learn-ykt-course"; // R25：雨课堂课程内容页（该课全部内容；navParams.extCourseId 缺省取最近打开的课程）
 
 /** 子页导航参数：详情页按 id 在已缓存数据中查找实体 */
 export interface LearnNav {
@@ -44,6 +45,10 @@ export interface LearnNav {
   itemId?: string;
   /** R20-B2：雨课堂作业原生详情页（learn-ykt-detail）参数（必带） */
   ykt?: YktNav;
+  /** 雨课堂课程筛选（全部作业页）：携带 classroom_id 时只列该课程的作业与试卷；
+   *  extCourseName 仅作文案兜底（课程数据未就绪时也能说明「正在看哪门课」）。 */
+  extCourseId?: string;
+  extCourseName?: string;
   /** 讨论区：话题所属板块 id（viewTlById 原生链接必带 tabbh+bqid，缺失会被甩登录壳页） */
   bqid?: string;
   /** 讨论区板块直达（板块原子深链）：课程详情落 forum tab 且 BbsPanel 初始选中该板块 */
@@ -137,6 +142,9 @@ export interface YktNav {
   courseName?: string;
   /** 作业类型（列表行 kind；exam=试卷 —— 红线：试卷页同样不渲染任何提交相关入口） */
   kind?: "homework" | "exam";
+  /** R29：从**网络学堂课程页**进来的雨课堂作业——返回时带回该课程 id，
+   *  否则详情页返回会因缺 courseId 渲染成空页（课程页合并后新增的返回路径）。 */
+  fromCourseId?: string;
 }
 
 /** 子页归属的一级页（侧栏高亮 / hash 用）；插件动态 tab（plugin:<id>:<tabId>）保持原值直通 */

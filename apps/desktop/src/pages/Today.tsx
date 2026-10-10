@@ -36,7 +36,7 @@ import {
 import { restoreDefaultTodayCards } from "../state/onboarding.js";
 import { readSubs } from "./info/newsSearch.js";
 import { openExternal } from "./info/openExternal.js";
-import { toHomework, useExternalHomework } from "../state/exthw.js";
+import { toHomework, useExternalHomework, useExternalNotices } from "../state/exthw.js";
 import { useIgnoredHw } from "../state/hwIgnore.js";
 import { parseLearnTime, type ScheduleEntry } from "@onethu/core";
 import { suggestAtoms } from "../lib/suggest.js";
@@ -344,6 +344,15 @@ function AddCardsModal({
 export function TodayPage() {
   const { navigate } = useApp();
   const { data, state, error, reload } = useCampusData();
+  /** R26：雨课堂公告并入「最近通知」（未登录雨课堂时为空数组，零回归） */
+  const extNotices = useExternalNotices();
+  const noticesMerged = useMemo(
+    () =>
+      [...(data?.notifications ?? []), ...extNotices].sort((a, b) =>
+        b.publishTime.localeCompare(a.publishTime),
+      ),
+    [data, extNotices],
+  );
   // 校园卡余额（快捷入口展示用）：未加载完成前入口置灰不可点
   const card = useCard(1);
   // 今日预约（座位 + 研讨间）：加载中/无预约都不渲染整卡
@@ -656,7 +665,8 @@ export function TodayPage() {
       aside: dataReady ? unsubmitted.length + " 条 · 点击查看详情" : "加载中…",
     },
     notices: {
-      render: () => <NoticeRows items={data?.notifications ?? []} navigate={navigate} />,
+      // R32：两来源通知点击**同一个**站内详情页（雨课堂公告也不例外），此处不再按来源分流
+      render: () => <NoticeRows items={noticesMerged} navigate={navigate} />,
     },
     "for-you": {
       render: () => (

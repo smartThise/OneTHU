@@ -27,6 +27,8 @@ export interface HwEntryOptions {
   navigate: HwNav;
   /** 返回目标（详情页返回键；不传由目标页自定默认） */
   from?: Page;
+  /** R29：`from === "learn-course"` 时要带回的课程 id（否则返回课程页缺参渲染空页） */
+  fromCourseId?: string;
   /** 调用方持有的课程名兜底（今日页/搜索的 courseId → 名称映射；行自带 courseName 优先） */
   courseName?: string;
 }
@@ -36,7 +38,12 @@ export interface HwEntryOptions {
  * 与 openHomeworkRow 同一构造：分栏右栏不跳页、也不污染全局 navParams，
  * 直接把这份参数当 props 交给详情组件。
  */
-export function yktDetailParams(h: Homework, courseName: string, from?: Page): NonNullable<LearnNav["ykt"]> {
+export function yktDetailParams(
+  h: Homework,
+  courseName: string,
+  from?: Page,
+  fromCourseId?: string,
+): NonNullable<LearnNav["ykt"]> {
   return {
     leafTypeId: h.externalLeafTypeId ?? "",
     classroomId: h.externalClassroomId ?? "",
@@ -45,6 +52,8 @@ export function yktDetailParams(h: Homework, courseName: string, from?: Page): N
     deadline: h.deadline,
     courseName: h.courseName ?? courseName,
     kind: h.kind,
+    // R29：从网络学堂课程页点进来的雨课堂作业，返回时带回课程 id
+    ...(fromCourseId ? { fromCourseId } : {}),
   };
 }
 
@@ -52,7 +61,10 @@ export function yktDetailParams(h: Homework, courseName: string, from?: Page): N
 export function openHomeworkRow(h: Homework, opts: HwEntryOptions): void {
   const route = pickHomeworkRoute(h);
   if (route === "ykt-native") {
-    opts.navigate("learn-ykt-detail", { ykt: yktDetailParams(h, opts.courseName ?? "", opts.from), from: opts.from });
+    opts.navigate("learn-ykt-detail", {
+      ykt: yktDetailParams(h, opts.courseName ?? "", opts.from, opts.fromCourseId),
+      from: opts.from,
+    });
     return;
   }
   if (route === "external-web") {

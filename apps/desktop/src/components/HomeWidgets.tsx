@@ -231,8 +231,15 @@ export function HomeworkRows({
   );
 }
 
-/** 最近通知卡体 */
-export function NoticeRows({ items, navigate }: { items: CampusDataT["notifications"]; navigate: Nav }) {
+/** 最近通知卡体。R32：网络学堂通知与雨课堂公告**同一行、同一打开方式**
+ *  （都进 learn-notice-detail 站内详情页），不再按来源分流。 */
+export function NoticeRows({
+  items,
+  navigate,
+}: {
+  items: CampusDataT["notifications"];
+  navigate: Nav;
+}) {
   return (
     <Card className="list">
       {items.length === 0 ? (
@@ -242,7 +249,10 @@ export function NoticeRows({ items, navigate }: { items: CampusDataT["notificati
         />
       ) : (
         items.slice(0, 3).map((n, i) => (
-          <RowClick key={i} onClick={() => navigate("learn-notice-detail", { courseId: n.courseId, itemId: n.id, from: "today" })}>
+          <RowClick
+            key={i}
+            onClick={() => navigate("learn-notice-detail", { courseId: n.courseId, itemId: n.id, from: "today" })}
+          >
             <div className="tl-time">{n.publishTime.slice(5, 10)}</div>
             <div className="tl-bar" style={{ background: "var(--border-strong)" }} />
             <div className="tl-main">

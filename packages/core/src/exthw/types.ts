@@ -81,12 +81,90 @@ export interface ExternalHomework {
   classroomId?: string;
 }
 
+/** 课程内容大类（各源 `activities[].type` 归一）。
+ *  作业/试卷之外的类型同样属于「课程内容」——它们不进作业聚合，但可以按课程展示。 */
+export type ExtContentKind =
+  | "homework"
+  | "exam"
+  | "courseware"
+  | "material"
+  | "video"
+  | "poll"
+  | "discussion"
+  | "announcement"
+  | "other";
+
+/** 源侧的「课程内容」实体（作业 / 试卷 / 课件 / 投票 / 讨论 / 公告 …）。
+ *  与 `ExternalHomework` 的区别：那个是**作业聚合**的输入（带提交状态、参与未交统计），
+ *  这个是**课程内容目录**的输入（只要是该课发布的内容就列出，不看提交状态）。 */
+export interface ExternalContent {
+  /** 源内稳定唯一 id，用于 React key / 去重 */
+  id: string;
+  source: ExtHwSourceId;
+  /** 所属课程 id（雨课堂 = classroom_id） */
+  courseId: string;
+  courseName: string;
+  /** 源侧原始类型值（雨课堂 = activities[].type，未知类型原样保留供诊断） */
+  rawType: number;
+  kind: ExtContentKind;
+  /** 类型展示名（雨课堂已确认的：作业 / 试卷 / 课件 / 投票；未知类型回落「其他」） */
+  kindText: string;
+  title: string;
+  /** 时间信息："YYYY-MM-DD HH:MM"（源未给则不设） */
+  deadline?: string;
+  /** 该内容在平台网页端的地址（可空） */
+  url?: string;
+  /** 作业 / 试卷的原生详情参数（有则宿主可走站内详情页） */
+  leafTypeId?: string;
+  /** 课件 / 视频等「叶子」的 id（源侧 content.leaf_id）：站内叶子路由与
+   *  leaf_info 详情接口都用它（路由形如 /lms/{classroomId}/{segment}/{leafId}） */
+  leafId?: string;
+  /** 公告 id（源侧 content 里的 notice/link id 任一命中）：公告详情页用它 */
+  noticeId?: string;
+  /** 公告 id 的**候选列表**（源侧字段名不固定：notice/topic/link/article… 递归收集，
+   *  按可能性排序）。详情取数按候选逐个试，命中即止——避免猜错字段名导致取不到正文。 */
+  noticeIdCandidates?: string[];
+  /** 公告正文直接内联在学习日志里的形态（有则前端无需再请求详情） */
+  inlineBodyHtml?: string;
+  /** 诊断：公告活动与 content 的**字段名**（不含值）——id 字段名未知时据此适配 */
+  noticeShape?: string[];
+  skuId?: string;
+  /** 是否旁听课堂（与作业同口径） */
+  audited?: boolean;
+}
+
 export interface HomeworkSource {
   id: ExtHwSourceId;
   /** 展示名：雨课堂 / TUOJ / Tyche */
   name: string;
   /** 拉取；失败必须 throw，由调用方隔离（单源失败不影响其他源） */
   fetch(): Promise<ExternalHomework[]>;
+  /** 可选：拉取该源的**课程**列表（当前仅雨课堂提供；OJ 平台只有题目、无课程概念，缺省不实现）。
+   *  失败必须 throw，由调用方隔离；与 `fetch()` 共用同一份课程列表请求（不额外打接口）。 */
+  fetchCourses?(): Promise<ExternalCourse[]>;
+  /** 可选：拉取该源的**全部课程内容**（作业/试卷之外的课件、投票、讨论…也算）。
+   *  只读目录用途，不含提交状态；失败必须 throw，由调用方隔离。
+   *  与 `fetch()` 共用同一份学习日志请求（不额外打接口）。 */
+  fetchContents?(): Promise<ExternalContent[]>;
+}
+
+/** 源侧的「课程」实体（与 `ExternalHomework` 的作业条目区分开）：
+ *  用于把平台课程卡片展示在宿主页面里（如网络学堂页的「雨课堂课程」一节）。 */
+export interface ExternalCourse {
+  /** 源内稳定唯一 id（雨课堂 = classroom_id），用于 React key / 去重 */
+  id: string;
+  source: ExtHwSourceId;
+  /** 源侧课堂全名（雨课堂 = `name`，形如「2026秋-线性代数-8」）——官方卡片里的小标题 */
+  name: string;
+  /** 课程本名（雨课堂 = `course.name`，形如「线性代数」）——官方卡片里的大标题；
+   *  源未提供时缺省，调用方回落 `name`。 */
+  title?: string;
+  /** 授课教师名（雨课堂 = `teacher.name`） */
+  teacher?: string;
+  /** 是否旁听课堂（雨课堂 courses/list 的 role===6；其余源缺省） */
+  audited?: boolean;
+  /** 该课程在平台网页端的入口（可空） */
+  url?: string;
 }
 
 /** 组装后的源：在基础源上附带大类元数据（由 createExternalSources 按
