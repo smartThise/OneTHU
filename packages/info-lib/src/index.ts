@@ -238,6 +238,12 @@ export class InfoHelper {
     public twoFactorAuthLimitHook: (() => Promise<void>) | undefined = undefined;
 
     /**
+     * 【上游 v3.19.0】信任浏览器复选框（singleLogin）：id 会话可被校内其他系统
+     * 免密复用（passwordlessEntry）。关闭后登录链回到纯账密模式。
+     */
+    public trustBrowser = true;
+
+    /**
      * Invoked when it has to be decided whether to trust the current fingerprint.
      *
      * Override this value to customize.
