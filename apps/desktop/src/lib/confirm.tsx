@@ -115,7 +115,7 @@ function PromptHost(): React.ReactNode {
   };
   return (
     <div className="confirm-mask" style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,.35)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div className="confirm-card" style={{ background: "var(--md-sys-color-surface, #fff)", color: "var(--text-1, inherit)", borderRadius: 14, padding: "18px 18px 14px", maxWidth: 380, width: "100%" }}>
+      <div className="confirm-card" style={{ background: "var(--bg, #fff)", color: "var(--text-1, inherit)", borderRadius: 14, padding: "18px 18px 14px", maxWidth: 380, width: "100%" }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>{cur.title}</div>
         <input
           className="input"

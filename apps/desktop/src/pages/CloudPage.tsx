@@ -89,19 +89,22 @@ async function deleteEntry(repo: SeafileRepo, path: string, e: SeafileEntry): Pr
 /* ── 移动弹层：库下拉 + 目录树逐层展开 ─────────────────────────── */
 
 function MoveModal({
-  repos, srcRepoId, srcDir, entry, onClose, onDone,
+  repos, srcRepoId, srcDir, entry, initialDirs, onClose, onDone,
 }: {
   repos: SeafileRepo[];
   srcRepoId: string;
   srcDir: string;
   entry: SeafileEntry;
+  /** 当前目录的缓存子目录（弹窗首屏零网络，见 useSeafileDir 的 15s TTL） */
+  initialDirs: SeafileEntry[] | null;
   onClose: () => void;
   onDone: (dstRepoId: string, dstDir: string) => void;
 }): ReactNode {
   const [repoId, setRepoId] = useState(srcRepoId);
-  const [path, setPath] = useState("/");
-  const [dirs, setDirs] = useState<SeafileEntry[]>([]);
-  const [loading, setLoading] = useState(false);
+  // 初始层=发起目录：首屏直接用页面缓存渲染（零网络等待），后台再拉新鲜数据覆盖
+  const [path, setPath] = useState(srcDir);
+  const [dirs, setDirs] = useState<SeafileEntry[]>(initialDirs ?? []);
+  const [loading, setLoading] = useState(initialDirs === null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -126,7 +129,7 @@ function MoveModal({
     >
       <div
         className="connect-gate-panel"
-        style={{ background: "var(--md-sys-color-surface, #fff)", color: "var(--text-1, inherit)", borderRadius: 16, padding: 18, width: "min(460px, 94vw)", maxHeight: "80dvh", overflowY: "auto" }}
+        style={{ background: "var(--bg, #fff)", color: "var(--text-1, inherit)", borderRadius: 16, padding: 18, width: "min(460px, 94vw)", maxHeight: "80dvh", overflowY: "auto" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
@@ -474,7 +477,7 @@ export default function CloudPage(): ReactNode {
               );
             })}
             {entries.length === 0 && !dir.loading && <p className="dim" style={{ padding: 16 }}>空目录</p>}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "12px 0", position: "sticky", bottom: 0, background: "var(--md-sys-color-surface, #fff)", borderTop: "1px solid var(--border-soft, rgba(127,127,127,.2))" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "12px 0", position: "sticky", bottom: 0, background: "var(--bg, #fff)", borderTop: "1px solid var(--border-soft, rgba(127,127,127,.2))" }}>
               <button
                 className="btn"
                 onClick={() => setSelSet(allSelected ? new Set() : new Set(entries.map((x) => x.name)))}
@@ -604,6 +607,7 @@ export default function CloudPage(): ReactNode {
             srcRepoId={repo.id}
             srcDir={path}
             entry={moving}
+            initialDirs={dir.entries ? dir.entries.filter((x) => x.kind === "dir") : null}
             onClose={() => setMoving(null)}
             onDone={(dst, dstDir) => void doMove(dst, dstDir)}
           />
