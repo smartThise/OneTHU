@@ -55,7 +55,7 @@ registerHooks({
   },
 });
 
-const { pickYktDetailEntry, pickHomeworkRoute, yktStatusChip, yktExerciseSummary, yktTypeText, yktIsExternalLinkProblem, yktAttachmentsText, yktScoreText, dedupeYktRemarks, homeworkEntryScoreText, yktSubmitEligibility, parseYktLocalTime } = await import(
+const { pickYktDetailEntry, pickHomeworkRoute, yktStatusChip, yktExerciseSummary, yktTypeText, yktIsExternalLinkProblem, yktAttachmentsText, yktScoreText, dedupeYktRemarks, homeworkEntryScoreText, yktSubmitEligibility, yktAnswerPanelState, parseYktLocalTime } = await import(
   "../apps/desktop/src/lib/yktDetail.ts"
 );
 
@@ -518,6 +518,25 @@ console.log("\n[7] R20-C1 作答/提交入口资格 yktSubmitEligibility（纯�
     true,
     "无次数信息 + maxRetry=0 但未提交 → 出口（首交）",
   );
+
+  // 7d. R27 fix（用户实测 bug）：服务端 user.my_count 是**整卷**计数 —— 交完第 1 题后，
+  //     尚未作答的题也会带上 my_count=1，剩余 = count − my_count 对每题都变 0；
+  //     旧口径据此把每题面板换成「次数已用尽」，表现为「提交一道题之后剩下所有题的
+  //     提交窗口全部消失」。现口径：未作答的题永不因次数判据隐藏。
+  const afterOneSubmit = [
+    { type: 1, myStatus: "submitted", remainingRetries: 0 },
+    { type: 1, myStatus: "unanswered", remainingRetries: 0 },
+    { type: 1, myStatus: "unanswered", remainingRetries: 0 },
+  ];
+  eq(yktSubmitEligibility(hw({ problems: afterOneSubmit })).eligible, true, "交完一题后其余题未作答 → 提交入口仍在");
+  eq(
+    yktSubmitEligibility(hw({ problems: afterOneSubmit })).remainingRetries,
+    0,
+    "剩余次数只按已作答题统计（不再被未作答题的整卷计数误导）",
+  );
+  eq(yktAnswerPanelState(afterOneSubmit[0]), "exhausted", "已作答且用完次数 → 该题面板显示已用尽");
+  eq(yktAnswerPanelState(afterOneSubmit[1]), "editor", "未作答题即使剩余 0 也保留作答面板");
+  eq(yktAnswerPanelState({ myStatus: "unanswered" }), "editor", "次数未知 → 面板常在");
   eq(yktSubmitEligibility(hw({ problems: [{ type: 1, myStatus: "graded" }], maxRetry: 3 })).eligible, true, "无次数信息 + maxRetry>0 → 出口");
   eq(
     yktSubmitEligibility(hw({ problems: [{ type: 1, remainingRetries: 3 }, { type: 2, remainingRetries: 1 }] })).remainingRetries,

@@ -47,6 +47,7 @@ import { YktSubjectiveEditor, toSubmitHtml } from "../../components/exthw/YktSub
 import { useApp } from "../../state/context.js";
 import type { LearnNav, Page } from "../../state/app.js";
 import { fetchYktExerciseDetail, getYktCookie, submitYktSubjective } from "../../state/exthw.js";
+import { yktAnswerPanelState } from "../../lib/yktDetail.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { confirmOk } from "../../lib/confirm.js";
 import { openExternalHomework } from "../../lib/extHwBrowse.js";
@@ -142,7 +143,9 @@ function YktAnswerPanel({ p, classroomId, onSubmitted }: { p: YkProblem; classro
 
   const remaining = p.remainingRetries;
   const unlimited = typeof remaining !== "number" || remaining >= 999;
-  const exhausted = typeof remaining === "number" && remaining <= 0;
+  // R27 fix：未作答题不因次数判据隐藏面板（服务端 my_count 是整卷计数，交完一题后
+  // 其余题也会看到 剩余=0）——口径见 lib/yktDetail.ts yktAnswerPanelState
+  const exhausted = yktAnswerPanelState(p) === "exhausted";
   const hasContent = html.replace(/<[^>]*>/g, "").trim().length > 0 || /<img\b/i.test(html);
 
   const doSubmit = async (): Promise<void> => {
@@ -291,6 +294,9 @@ export function YktAssignmentDetailPage({ ykt: yktProp, from: fromProp }: { ykt?
   // 宽屏分栏内嵌（§2.8.2）时由 props 直给，路由页仍走 navParams
   const ykt = yktProp ?? navParams?.ykt ?? null;
   const from = fromProp ?? navParams?.from ?? "learn";
+  // R29：从网络学堂课程页进来时（from=learn-course）返回必须带回课程 id，
+  // 否则课程页读不到 courseId 会渲染成空页（BackButton 的既定语义：返回详情页才带参）
+  const backToCourseId = ykt?.fromCourseId;
   const [detail, setDetail] = useState<YkExerciseDetail | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [errMsg, setErrMsg] = useState("");
@@ -496,7 +502,10 @@ export function YktAssignmentDetailPage({ ykt: yktProp, from: fromProp }: { ykt?
         meta={meta}
         actions={
           <>
-            <BackButton to={from} />
+            <BackButton
+              to={from}
+              {...(backToCourseId && from === "learn-course" ? { courseId: backToCourseId } : {})}
+            />
             {eligibility.eligible && ykt.externalUrl ? (
               <button
                 className="btn btn-primary"

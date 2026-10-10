@@ -153,8 +153,14 @@ function ExtHwSourceErrorNote() {
 export function AssignmentsPage() {
   useLearnNavSemester();
   const { data, state, error, reload } = useLearnData();
+  const { navigate, navParams } = useApp();
   const ext = useExternalHomework();
   const [filter, setFilter] = useState<Filter>("unfinished");
+
+  /** 雨课堂课程筛选（网络学堂页的雨课堂课程卡片点进来）：只看该课堂的作业与试卷。
+   *  网络学堂作业没有 classroom 标识，因此筛选后自然只剩该门雨课堂课的内容。 */
+  const extCourseId = navParams?.extCourseId;
+  const extCourseName = navParams?.extCourseName;
 
   const byCourse = useMemo(
     () => new Map((data?.courses ?? []).map((c) => [c.id, c.name])),
@@ -166,10 +172,16 @@ export function AssignmentsPage() {
   // R21c：忽略状态（订阅同一份快照：行内忽略/恢复立刻反映到分组与计数）
   const ignored = useIgnoredHw();
 
+  /** 本页可见的全集（网络学堂 + 外部源），已应用雨课堂课程筛选 */
+  const all = useMemo(() => {
+    const merged = [...(data?.homework ?? []), ...extHw];
+    return extCourseId ? merged.filter((h) => h.externalClassroomId === extCourseId) : merged;
+  }, [data, extHw, extCourseId]);
+
   // R23（霖需求）：旁听作业（雨课堂 role=6 课堂）**不计入**各分组计数与「全部」，
   // 而是在当前分组下方单列「旁听作业」一节——不与正式课程混排。
   const groups = useMemo(() => {
-    const hw = [...(data?.homework ?? []), ...extHw].sort((a, b) => a.deadline.localeCompare(b.deadline));
+    const hw = [...all].sort((a, b) => a.deadline.localeCompare(b.deadline));
     // R21c：忽略的作业只出现在「已忽略」组，常规分组与「全部」都不再显示
     const live = hw.filter((h) => !ignored.has(h.id) && !h.audited);
     return {
@@ -181,15 +193,12 @@ export function AssignmentsPage() {
       ignored: hw.filter((h) => ignored.has(h.id)),
       all: live,
     };
-  }, [data, extHw, ignored]);
+  }, [all, ignored]);
 
   /** 旁听作业全集（同样排除已忽略） */
   const auditAll = useMemo(
-    () =>
-      [...(data?.homework ?? []), ...extHw]
-        .filter((h) => h.audited && !ignored.has(h.id))
-        .sort((a, b) => a.deadline.localeCompare(b.deadline)),
-    [data, extHw, ignored],
+    () => all.filter((h) => h.audited && !ignored.has(h.id)).sort((a, b) => a.deadline.localeCompare(b.deadline)),
+    [all, ignored],
   );
   /** 旁听节按当前分组同一口径筛选（进行中/已逾期/已交/已批改；「已忽略」组不重复列） */
   const auditList = useMemo(() => {
@@ -204,7 +213,12 @@ export function AssignmentsPage() {
   const list = groups[filter];
   // R10 15.4：页头只留学期文本；各分组计数已并入 SegmentedOverflow 各 tab（含「全部」），
   // 「外部 N」删除（已融入各组、无信息量）
-  const meta = data ? semesterText(data.semester.id) : "按截止时间排序";
+  // 从网络学堂页的雨课堂课程卡片进来时，页头改为说明「正在看哪门课」。
+  const meta = extCourseId
+    ? `雨课堂 · ${extCourseName || "该课程"}`
+    : data
+      ? semesterText(data.semester.id)
+      : "按截止时间排序";
 
   return (
     <>
@@ -215,6 +229,11 @@ export function AssignmentsPage() {
           <>
             <PageAtomStar atomKey="learn-assignments" title="全部作业" />
             <BackButton to="learn" label="课程列表" />
+            {extCourseId ? (
+              <button className="btn btn-ghost" onClick={() => navigate("learn-assignments")}>
+                查看全部作业
+              </button>
+            ) : null}
             <button className="btn" onClick={() => void reload()} disabled={state === "loading"}>
               <IconRefresh width={14} height={14} />
               刷新

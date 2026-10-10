@@ -1,4 +1,10 @@
-/** 通知只读详情（learnX NoticeDetail）：标题/发布者/正文富文本 + 附件下载 */
+/**
+ * 通知只读详情（learnX NoticeDetail）：标题/发布者/正文富文本 + 附件下载。
+ *
+ * R32：雨课堂公告**复用同一个页面、同一套 UI**（用户要求「点击后也显示相同 ui 的界面」），
+ * 点击行为与网络学堂通知完全一致；差别只在正文来源（雨课堂 topic 详情）与没有附件区。
+ * 仍不开官方页（页头「网页端打开」按钮保留给确有需要时用）。
+ */
 import { useEffect, useMemo, useState } from "react";
 import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { CollectStar } from "../../components/Collect.js";
@@ -14,6 +20,15 @@ import { useLearnNavSemester } from "./shared.js";
 import { openExternal } from "../info/openExternal.js";
 import { DownloadOpenButtons } from "../../components/DownloadOpenButtons.js";
 import { markNoticeReadLocally, noticeHasRead, useNoticeReadVersion } from "../../lib/noticeRead.js";
+import {
+  fetchYktNoticeDetail,
+  getExternalNoticeRef,
+  getYktCookie,
+  isExternalNoticeId,
+  useExternalHomework,
+  useExternalNotices,
+} from "../../state/exthw.js";
+import { YktContentBody } from "../../components/exthw/YktContentBody.js";
 import type { LearnAttachment } from "@onethu/core";
 
 export function NoticeDetailPage() {
@@ -30,11 +45,34 @@ export function NoticeDetailPage() {
   const courseId = navParams?.courseId ?? "";
   const itemId = navParams?.itemId ?? "";
 
+  const ext = useExternalHomework();
+  /** R32：雨课堂公告并入同一列表后，详情页也要能按 id 找到它（未登录为空数组） */
+  const extNotices = useExternalNotices();
+  const isExt = isExternalNoticeId(itemId);
+
+  /** 雨课堂公告正文（点开才拉；已随学习日志内联返回时直接用，省一次请求） */
+  const [extBody, setExtBody] = useState<{
+    id: string;
+    state: "loading" | "ready" | "error";
+    title?: string;
+    bodyHtml?: string;
+    images?: string[];
+    error?: string;
+  } | null>(null);
+
   const n = useMemo(
-    () => data?.notifications.find((x) => x.courseId === courseId && x.id === itemId) ?? null,
-    [data, courseId, itemId],
+    () =>
+      isExt
+        ? (extNotices.find((x) => x.id === itemId) ?? null)
+        : (data?.notifications.find((x) => x.courseId === courseId && x.id === itemId) ?? null),
+    [data, extNotices, isExt, courseId, itemId],
   );
   const course = useMemo(() => data?.courses.find((c) => c.id === courseId), [data, courseId]);
+  /* 外部公告的课程名：导航参数可能是网络学堂课程 id（合并课程页进入），也可能是雨课堂课堂 id */
+  const extCourseName = useMemo(
+    () => ext.courses.find((c) => c.id === courseId)?.name ?? "",
+    [ext.courses, courseId],
+  );
 
   // R23：打开通知即置读（本地覆盖立即生效；服务端 sfyd 要等下次拉列表，且此前只有
   // 「有附件」的通知才会请求详情页 → 无附件的通知永远置不了读，表现为「点开还是未读」）
@@ -43,11 +81,58 @@ export function NoticeDetailPage() {
     if (n) markNoticeReadLocally(n.courseId, n.id);
   }, [n?.courseId, n?.id]);
 
+  /* R32：外部公告正文懒加载（与列表页同一条取正文链路） */
+  useEffect(() => {
+    if (!isExt || !n) return;
+    let cancelled = false;
+    const ref = getExternalNoticeRef(n.id);
+    if (!ref || (ref.ids.length === 0 && !ref.inlineBodyHtml)) {
+      setExtBody({
+        id: n.id,
+        state: "error",
+        error: "这条公告没有取到可用的内容标识，暂时无法显示正文（已记录到运行日志）。",
+      });
+      return;
+    }
+    if (ref.inlineBodyHtml) {
+      setExtBody({ id: n.id, state: "ready", bodyHtml: ref.inlineBodyHtml });
+      return;
+    }
+    setExtBody({ id: n.id, state: "loading" });
+    void fetchYktNoticeDetail(ref.courseId, ref.ids)
+      .then((d) => {
+        if (cancelled) return;
+        if (!d.bodyHtml && !d.images?.length) {
+          setExtBody({ id: n.id, state: "error", error: "没取到这条公告的正文，请稍后重试。" });
+          return;
+        }
+        setExtBody({
+          id: n.id,
+          state: "ready",
+          ...(d.title ? { title: d.title } : {}),
+          ...(d.bodyHtml ? { bodyHtml: d.bodyHtml } : {}),
+          ...(d.images ? { images: d.images } : {}),
+        });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setExtBody({
+          id: n.id,
+          state: "error",
+          error: err instanceof Error ? err.message : "公告加载失败，请稍后重试。",
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isExt, n?.id]);
+
   // 附件地址懒加载 + 置读：**总是**请求详情 HTML 页（thu-learn-lib parseNotificationDetail）。
   // 服务端在 beforeViewXs 上置读，这里不再以「有附件」为前置条件；无附件声明的通知抓取
   // 失败不打扰用户（静默当无附件）。
   useEffect(() => {
-    if (!n || attState !== "idle") return;
+    // 外部公告没有网络学堂附件区（正文走雨课堂链路），不进这条流程
+    if (!n || isExt || attState !== "idle") return;
     setAttState("loading");
     learn
       .getNotificationPageDetail(courseId, n.id)
@@ -63,7 +148,7 @@ export function NoticeDetailPage() {
         setAttErr(explainNetworkError(err));
         setAttState("error");
       });
-  }, [n, attState, courseId]);
+  }, [n, isExt, attState, courseId]);
 
   const doDownload = async (a: LearnAttachment) => {
     setDownloading(true);
@@ -94,18 +179,25 @@ export function NoticeDetailPage() {
         ) : (
           <Card><Empty
             text="未找到该通知，可能数据已刷新，请返回列表重试。"
-            action={<button className="btn btn-ghost" onClick={() => navigate("learn")}>回网络学堂</button>}
+            action={<button className="btn btn-ghost" onClick={() => navigate(navParams?.from ?? "learn-notices")}>返回列表</button>}
           /></Card>
         )}
       </>
     );
   }
 
+  /* 元信息一行两来源同构：网络学堂 =「课程 · 发布者 发布于 时间」，
+     雨课堂 =「课程 · 雨课堂 发布于 时间」（发布者只有来源名，公告没有发布人字段） */
+  const publishedAt = fmtDateTime(n.publishTime);
+  const metaText = isExt
+    ? `${course?.name ?? extCourseName ?? "雨课堂课程"} · 雨课堂${publishedAt ? ` 发布于 ${publishedAt}` : ""}`
+    : `${course?.name ?? "课程"} · ${n.publisher} 发布于 ${publishedAt}`;
+
   return (
     <>
       <PageHead
         title={n.title}
-        meta={`${course?.name ?? "课程"} · ${n.publisher} 发布于 ${fmtDateTime(n.publishTime)}`}
+        meta={metaText}
         actions={
           <>
             <BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} courseTab="notices" />
@@ -113,9 +205,12 @@ export function NoticeDetailPage() {
               atom={{ kind: "notice", key: enc(n.courseId, n.id, n.title, course?.name ?? "", data?.semester.id ?? "") }}
               title={n.title}
             />
-            <button className="btn" onClick={() => void openExternal(n.url)} title="在系统浏览器打开">
-              网页端打开
-            </button>
+            {/* 外源公告的官方链接可能缺（源侧没给 id），没有链接就不放一个点了没反应的按钮 */}
+            {n.url ? (
+              <button className="btn" onClick={() => void openExternal(n.url)} title="在系统浏览器打开">
+                网页端打开
+              </button>
+            ) : null}
           </>
         }
       />
@@ -184,7 +279,24 @@ export function NoticeDetailPage() {
 
       <Card className="detail-sec">
         <div className="detail-sec-head">正文</div>
-        <RichContent html={n.content} fallback="暂无通知正文。" />
+        {isExt ? (
+          /* R32：雨课堂公告正文就地渲染（图片/字体走既有代理），不做静默空白 */
+          !extBody || extBody.state === "loading" ? (
+            <div className="detail-meta">正在加载公告正文…</div>
+          ) : extBody.state === "error" ? (
+            <div className="detail-meta t-red">{extBody.error}</div>
+          ) : (
+            <YktContentBody
+              title={extBody.title ?? n.title}
+              images={extBody.images}
+              bodyHtml={extBody.bodyHtml}
+              cookies={getYktCookie()}
+              fallbackUrl={n.url}
+            />
+          )
+        ) : (
+          <RichContent html={n.content} fallback="暂无通知正文。" />
+        )}
       </Card>
     </>
   );

@@ -155,10 +155,11 @@ assert.ok(devdoc.includes("confirmText") && apidoc.includes("confirmText"), "插
 /* ---------- [3b] 课程页：忽略优先级最高 + 自带忽略栏 ---------- */
 const course = read("apps/desktop/src/pages/learn/CourseDetailPage.tsx");
 assert.ok(/\{ key: "ignored", label: "已忽略" \}/.test(course), "每门课必须有自己的「已忽略」栏");
-assert.ok(/const live = homework\.filter\(\(h\) => !ignored\.has\(h\.id\) && !h\.audited\)/.test(course),
+// R29 起课程页的作业集合是「网络学堂 + 同名雨课堂」的合并集，变量名由 homework 变为 hwAll
+assert.ok(/const live = (?:homework|hwAll)\.filter\(\(h\) => !ignored\.has\(h\.id\) && !h\.audited\)/.test(course),
   "课程页常规栏必须剔除已忽略（R23 起同时剔除旁听）");
-assert.ok(/ignored: homework\.filter\(\(h\) => ignored\.has\(h\.id\)\)/.test(course), "课程页忽略栏要能列出来");
-assert.ok(/assignments: homework\.filter\(\(h\) => !ignored\.has\(h\.id\) && !h\.audited\)\.length/.test(course),
+assert.ok(/ignored: (?:homework|hwAll)\.filter\(\(h\) => ignored\.has\(h\.id\)\)/.test(course), "课程页忽略栏要能列出来");
+assert.ok(/assignments: (?:homework|hwAll)\.filter\(\(h\) => !ignored\.has\(h\.id\) && !h\.audited\)\.length/.test(course),
   "课程页作业计数也不得含已忽略/旁听");
 
 /* ---------- [4] 调试现场只进日志 ---------- */

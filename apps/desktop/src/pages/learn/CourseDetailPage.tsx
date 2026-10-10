@@ -3,7 +3,7 @@
  *  已批改条目直接显示成绩（HomeworkRow showGrade，thu-app learnHome「已批改 (分数)」语义）。 */
 import { useEffect, useMemo, useState } from "react";
 import type { LearnGroup } from "@onethu/core";
-import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
+import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { CollectStar } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
 import { IconRefresh } from "../../components/Icons.js";
@@ -15,6 +15,9 @@ import { BackButton, FileRow, HomeworkRow, NoticeRow, semesterText } from "./sha
 import { useIgnoredHw } from "../../state/hwIgnore.js";
 import { useLearnNavSemester } from "./shared.js";
 import { BbsPanel } from "./Forum.js";
+import { toExternalNotice, toHomework, useExternalHomework } from "../../state/exthw.js";
+import { mergeCoursesByName, yktKindToCourseTab } from "./courseMerge.js";
+import { YktContentList } from "../../components/exthw/YktContentList.js";
 
 type Tab = "notices" | "assignments" | "files" | "groups" | "forum";
 
@@ -72,6 +75,33 @@ export function CourseDetailPage() {
       .sort((a, b) => a.deadline.localeCompare(b.deadline)),
     [data, courseId],
   );
+
+  /* ── R29：同名雨课堂课程的作业/资料/公告并进本页对应栏位 ──
+   * 匹配沿用「同名课程」口径（courseMerge 的归一化精确匹配）；
+   * 雨课堂侧映射：作业+试卷→作业栏；公告→通知栏；资料/课件/视频/其他→文件栏。 */
+  const ext = useExternalHomework();
+  const yktCourse = useMemo(() => {
+    if (!course) return undefined;
+    const yktCourses = ext.courses.filter((c) => c.source === "yuketang");
+    return mergeCoursesByName([course], yktCourses).byLearnId.get(course.id);
+  }, [course, ext.courses]);
+  const yktHw = useMemo(
+    () =>
+      yktCourse
+        ? ext.items.filter((i) => i.source === "yuketang" && i.classroomId === yktCourse.id).map(toHomework)
+        : [],
+    [ext.items, yktCourse],
+  );
+  const yktContents = useMemo(
+    () => (yktCourse ? ext.contents.filter((c) => c.source === "yuketang" && c.courseId === yktCourse.id) : []),
+    [ext.contents, yktCourse],
+  );
+  /** 公告 → 通知栏 */
+  const yktNotices = useMemo(() => yktContents.filter((c) => yktKindToCourseTab(c.kind) === "notices"), [yktContents]);
+  /** 其余内容（资料/课件/视频/投票/未知）→ 文件栏（雨课堂没有独立"资料库"页签时最自然的落点） */
+  const yktFiles = useMemo(() => yktContents.filter((c) => yktKindToCourseTab(c.kind) === "files"), [yktContents]);
+  /** 本课程作业全集（网络学堂 + 雨课堂），筛选/计数都基于它 */
+  const hwAll = useMemo(() => [...homework, ...yktHw], [homework, yktHw]);
   const ignored = useIgnoredHw(); // R21c：忽略状态（课程页也要过滤 + 自己的忽略栏）
 
   // 作业筛选（默认「全部」：进入页面行为与旧版一致），各组计数供 chip 展示
@@ -79,15 +109,15 @@ export function CourseDetailPage() {
   const hwGroups = useMemo(() => {
     // R21c：忽略的作业从本课程所有常规栏移出，只在「已忽略」栏里（可恢复）
     // R23：旁听作业不属于正式课程作业栏（在「全部作业」页单列）
-    const live = homework.filter((h) => !ignored.has(h.id) && !h.audited);
+    const live = hwAll.filter((h) => !ignored.has(h.id) && !h.audited);
     return {
       unfinished: live.filter((h) => !h.submitted),
       submitted: live.filter((h) => h.submitted && !h.graded),
       graded: live.filter((h) => h.graded),
-      ignored: homework.filter((h) => ignored.has(h.id)),
+      ignored: hwAll.filter((h) => ignored.has(h.id)),
       all: live,
     };
-  }, [homework, ignored]);
+  }, [hwAll, ignored]);
   const hwList = hwGroups[hwFilter];
   const files = useMemo(
     () => (data?.files ?? []).filter((f) => f.courseId === courseId)
@@ -125,10 +155,10 @@ export function CourseDetailPage() {
   }, [tab, status, courseId, groupsNonce]);
 
   const counts: Partial<Record<Tab, number>> = {
-    notices: notices.length,
+    notices: notices.length + yktNotices.length,
     // R21c：计数只算参与中的作业（忽略的不计入，避免「3 条」点进去只剩 2 条）
-    assignments: homework.filter((h) => !ignored.has(h.id) && !h.audited).length,
-    files: files.length,
+    assignments: hwAll.filter((h) => !ignored.has(h.id) && !h.audited).length,
+    files: files.length + yktFiles.length,
     groups: groups?.length,
   };
 
@@ -187,17 +217,41 @@ export function CourseDetailPage() {
       {state === "loading" && !data ? (
         <SkeletonRows rows={5} />
       ) : state === "error" && !data ? null : tab === "notices" ? (
-        notices.length === 0 ? (
+        notices.length === 0 && yktNotices.length === 0 ? (
           <Card><Empty text="本课程暂无通知。" /></Card>
         ) : (
-          <Card className="list">
-            {notices.map((n, i) => (
-              <NoticeRow key={n.id} n={n} sem={data?.semester.id} from="learn-course" style={{ animationDelay: `${i * 25}ms` }} />
-            ))}
-          </Card>
+          <>
+            {notices.length > 0 ? (
+              <Card className="list">
+                {notices.map((n, i) => (
+                  <NoticeRow key={n.id} n={n} sem={data?.semester.id} from="learn-course" style={{ animationDelay: `${i * 25}ms` }} />
+                ))}
+              </Card>
+            ) : null}
+            {/* R29 + R32：雨课堂公告并入本栏，且与网络学堂通知**同款行、同一打开方式**
+                （点击进同一个站内通知详情页）。navCourseId 传本课程 id：详情页「返回」要回到
+                本课程通知栏（外部公告自身的 courseId 是雨课堂课堂 id，退回会缺参）。 */}
+            {yktNotices.length > 0 ? (
+              <>
+                <SectionHead title="雨课堂公告" />
+                <Card className="list">
+                  {yktNotices.map((c, i) => (
+                    <NoticeRow
+                      key={c.id}
+                      n={toExternalNotice(c)}
+                      sem={data?.semester.id}
+                      from="learn-course"
+                      navCourseId={courseId}
+                      style={{ animationDelay: `${i * 25}ms` }}
+                    />
+                  ))}
+                </Card>
+              </>
+            ) : null}
+          </>
         )
       ) : tab === "assignments" ? (
-        homework.length === 0 ? (
+        hwAll.length === 0 ? (
           <Card><Empty text="本课程暂无作业。" /></Card>
         ) : (
           <>
@@ -227,6 +281,8 @@ export function CourseDetailPage() {
                     courseName={course?.name}
                     sem={data?.semester.id}
                     from="learn-course"
+                    // R29：雨课堂作业行返回时带回本课程 id（否则课程页缺参渲染空页）
+                    {...(h.source ? { fromCourseId: courseId } : {})}
                     showGrade
                     remind
                     style={{ animationDelay: `${i * 25}ms` }}
@@ -237,14 +293,25 @@ export function CourseDetailPage() {
           </>
         )
       ) : tab === "files" ? (
-        files.length === 0 ? (
+        files.length === 0 && yktFiles.length === 0 ? (
           <Card><Empty text="本课程暂无文件。" /></Card>
         ) : (
-          <Card className="list">
-            {files.map((f, i) => (
-              <FileRow key={f.id} f={f} sem={data?.semester.id} from="learn-course" style={{ animationDelay: `${i * 25}ms` }} />
-            ))}
-          </Card>
+          <>
+            {files.length > 0 ? (
+              <Card className="list">
+                {files.map((f, i) => (
+                  <FileRow key={f.id} f={f} sem={data?.semester.id} from="learn-course" style={{ animationDelay: `${i * 25}ms` }} />
+                ))}
+              </Card>
+            ) : null}
+            {/* R29：雨课堂「资料」等并入文件栏（行内就地展开/内置预览） */}
+            {yktFiles.length > 0 ? (
+              <>
+                <SectionHead title="雨课堂资料" />
+                <YktContentList items={yktFiles} />
+              </>
+            ) : null}
+          </>
         )
       ) : tab === "groups" ? (
         groupsState === "loading" || groupsState === "idle" ? (

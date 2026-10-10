@@ -11,8 +11,11 @@
  */
 import type { FetchLike, HttpClient } from "../http.js";
 import type {
+  ExtContentKind,
   ExtHwCreds,
   ExtHwSourceId,
+  ExternalContent,
+  ExternalCourse,
   ExternalHomework,
   HomeworkSource,
   RegisteredHomeworkSource,
@@ -180,6 +183,14 @@ export function resetTycheSessionRetryState(): void {
 
 export interface RefreshExternalHomeworkResult {
   items: ExternalHomework[];
+  /** 各源透出的课程列表（当前只有雨课堂提供；OJ 平台无课程概念，恒为空）。
+   *  与 items 同一轮拉取、共用同一次 courses/list 请求；失败静默（课程列表缺失
+   *  不影响作业，也不写进 errors）。 */
+  courses: ExternalCourse[];
+  /** 各源透出的**全部课程内容**（作业/试卷之外的课件、投票…也在内；当前只有雨课堂
+   *  提供，OJ 平台无此概念恒为空）。与 items 同一轮拉取、共用同一次学习日志请求；
+   *  失败静默（内容目录缺失不影响作业，也不写进 errors）。 */
+  contents: ExternalContent[];
   errors: Partial<Record<ExtHwSourceId, string>>;
   /** 是否因 TUOJ 系会话失效触发过强制重漫游（诊断/测试用；任一系列源命中即 true） */
   reroutedTuoj: boolean;
@@ -261,6 +272,9 @@ export async function refreshExternalHomework(
         http: deps.http,
       }).find((s) => s.id === sid);
       if (retry) {
+        // 重登后该源换了凭据/会话：把 sources[i] 一并换成本次重试的实例
+        // （后续课程列表取数也走新会话，而不是旧实例里已过期的 Cookie）
+        sources[i] = retry;
         try {
           results[i] = { status: "fulfilled", value: await retry.fetch() };
         } catch (e) {
@@ -282,11 +296,37 @@ export async function refreshExternalHomework(
     }
   });
   items.sort((a, b) => a.deadline.localeCompare(b.deadline));
-  return { items, errors, reroutedTuoj: reroutedSources.length > 0, reroutedSources, reloginTyche: reloginTycheOk };
+
+  // 课程列表：源实现可选（目前只有雨课堂）——与 jobs 并行取，失败静默隔离
+  const courses: ExternalCourse[] = [];
+  if (sources.some((s) => s.fetchCourses)) {
+    const courseResults = await Promise.allSettled(
+      sources.map((s) => (s.fetchCourses ? s.fetchCourses() : Promise.resolve<ExternalCourse[]>([]))),
+    );
+    // 课程列表失败不打扰用户：作业与 errors 提示照旧，仅该源没有课程卡片
+    for (const r of courseResults) if (r.status === "fulfilled") courses.push(...r.value);
+  }
+  // 全部课程内容目录：同上（源侧与作业共用学习日志请求，因此不额外打接口）
+  const contents: ExternalContent[] = [];
+  if (sources.some((s) => s.fetchContents)) {
+    const contentResults = await Promise.allSettled(
+      sources.map((s) => (s.fetchContents ? s.fetchContents() : Promise.resolve<ExternalContent[]>([]))),
+    );
+    for (const r of contentResults) if (r.status === "fulfilled") contents.push(...r.value);
+  }
+  return {
+    items,
+    courses,
+    contents,
+    errors,
+    reroutedTuoj: reroutedSources.length > 0,
+    reroutedSources,
+    reloginTyche: reloginTycheOk,
+  };
 }
 
 export { SOURCE_NAMES, SOURCE_CATEGORIES, SOURCE_CATEGORY_NAMES } from "./types.js";
-export type { ExtHwCategory, ExtHwCreds, ExtHwSourceId, TuojSourceId, TuojCreds, ExternalHomework, HomeworkSource, RegisteredHomeworkSource } from "./types.js";
+export type { ExtContentKind, ExtHwCategory, ExtHwCreds, ExtHwSourceId, TuojSourceId, TuojCreds, ExternalContent, ExternalCourse, ExternalHomework, HomeworkSource, RegisteredHomeworkSource } from "./types.js";
 export {
   yuketangSendSmsCode,
   yuketangVerifyLogin,
@@ -303,6 +343,7 @@ export type { YktQrStart, YktQrPollResult, YktQrPhase, RunYuketangQrLoginDeps } 
  * R20-B2 增补 YkAttachment（我的作答附件，只读展示）；createYuketangSource 透出到包入口
  * （desktop state 层 fetchYktExerciseDetail 需要自行注入凭据 / universalFetch）。 */
 export type { YkExerciseDetail, YkProblem, YkComment, YkAttachment, YkMyStatus, YuketangSource } from "./yuketang.js";
+export type { YkLeafDetail, YkNoticeDetail } from "./yuketang.js";
 /* R20-C2 P2：主观题提交 + 正文插图上传类型（submitYktProblemSubjective / uploadExerciseInlineImage）。
  * ⛔ 学术红线（docs §32）：提交 API 仅限作答编辑器在用户显式确认后调用，禁止进插件工具清单。 */
 export type {
@@ -312,7 +353,7 @@ export type {
   YktInlineImageUploadOptions,
 } from "./yuketang.js";
 /* R21-B：雨课堂会话失效归一 / 健康检查结果 / Cookie 轮换与导出导入（多设备迁移缓解） */
-export { createYuketangSource, YktSessionError, isYktSessionError, mergeYktCookiePairs, buildYktCookieExportJson, parseYktCookieExportJson, YKT_COOKIE_EXPORT_KIND } from "./yuketang.js";
+export { createYuketangSource, yktStudentLeafUrl, YktSessionError, isYktSessionError, mergeYktCookiePairs, buildYktCookieExportJson, parseYktCookieExportJson, YKT_COOKIE_EXPORT_KIND } from "./yuketang.js";
 export type { YktSessionHealth, YuketangSourceHooks, YktCookieExport } from "./yuketang.js";
 export { tuojRoam, TuojCasError, extractTicketAnchor, isCasLoginPage, isTuojNoCoursesError } from "./tuojCas.js";
 export type { TuojRoamResult, TuojRoamDeps } from "./tuojCas.js";

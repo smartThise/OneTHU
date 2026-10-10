@@ -19,7 +19,7 @@
  * 触发一次静默自动重登（频控：同源 ≥10min、每进程 ≤3 次、并发 in-flight 去重）并自动
  * 重拉；用户显式退出（EXTHW_TYCHE_LOGOUT_KEY）后绝不自动重登，手动登录解除。
  */
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import {
   isTuojNoCoursesError,
   refreshExternalHomework,
@@ -38,9 +38,14 @@ import { maskValue } from "../lib/privacy.js";
 import type {
   ExtHwCreds,
   ExtHwSourceId,
+  ExternalContent,
+  ExternalCourse,
   ExternalHomework,
   Homework,
+  Notification,
   TuojSourceId,
+  YkLeafDetail,
+  YkNoticeDetail,
   YkExerciseDetail,
   YktQrPhase,
   YktQrPollResult,
@@ -675,6 +680,12 @@ export type ExtHwState = "idle" | "loading" | "ready";
 
 export interface ExtHwSnapshot {
   items: ExternalHomework[];
+  /** 各源透出的课程列表（当前只有雨课堂；未登录 / 取数失败时为空）。
+   *  与 items 同一次刷新落地，供网络学堂页把雨课堂课程与网络学堂课程并列展示。 */
+  courses: ExternalCourse[];
+  /** 各源透出的**全部课程内容**（作业/试卷/课件/投票…；当前只有雨课堂，未登录为空）。
+   *  与 items 同一轮落地：雨课堂课程页按类型分栏展示的就是它。 */
+  contents: ExternalContent[];
   errors: Partial<Record<ExtHwSourceId, string>>;
   state: ExtHwState;
   /** 上次刷新完成时间（ms） */
@@ -689,15 +700,17 @@ export interface ExtHwSnapshot {
 }
 
 let items: ExternalHomework[] = [];
+let courses: ExternalCourse[] = [];
+let contents: ExternalContent[] = [];
 let errors: Partial<Record<ExtHwSourceId, string>> = {};
 let state: ExtHwState = "idle";
 let lastAt = 0;
 const listeners = new Set<() => void>();
 
 /** useSyncExternalStore 要求 getSnapshot 引用稳定 —— 变更时才重建 */
-let snapshot: ExtHwSnapshot = { items, errors, state, lastAt, configured: false, tuojAuto, yktSession };
+let snapshot: ExtHwSnapshot = { items, courses, contents, errors, state, lastAt, configured: false, tuojAuto, yktSession };
 function rebuild(): void {
-  snapshot = { items, errors, state, lastAt, configured: hasAnyExtHwCreds(), tuojAuto, yktSession };
+  snapshot = { items, courses, contents, errors, state, lastAt, configured: hasAnyExtHwCreds(), tuojAuto, yktSession };
   listeners.forEach((fn) => fn());
 }
 
@@ -713,6 +726,33 @@ export function getExtHwSnapshot(): ExtHwSnapshot {
 }
 
 let inflight: Promise<void> | null = null;
+
+/** 雨课堂内容目录的类型分布（诊断）：接口新增活动类型时据此补充 kind 映射。
+ *  只记类型号与条数（未识别类型单独列出），不含任何标题 / 正文。 */
+function logYktContentShape(list: ExternalContent[]): void {
+  const ykt = list.filter((c) => c.source === "yuketang");
+  if (ykt.length === 0) return;
+  const byType = new Map<number, number>();
+  for (const c of ykt) byType.set(c.rawType, (byType.get(c.rawType) ?? 0) + 1);
+  const parts = [...byType.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([t, n]) => `${t}:${n}`)
+    .join(" ");
+  const unknown = [...new Set(ykt.filter((c) => c.kind === "other").map((c) => c.rawType))];
+  // 公告排障信息：候选 id 数量 / 有多少条正文已随日志内联返回（只记计数，不记 id 与正文）
+  const notices = ykt.filter((c) => c.kind === "announcement");
+  const noticeInfo = notices.length
+    ? `；公告 ${notices.length} 条：id 候选[${notices.map((c) => c.noticeIdCandidates?.length ?? 0).join("/")}] 内联正文 ${
+        notices.filter((c) => c.inlineBodyHtml).length
+      } 条` +
+      (notices[0]?.noticeShape?.length ? ` 字段[${notices[0].noticeShape.join(",")}]` : "")
+    : "";
+  void logLine(
+    `雨课堂内容目录：${ykt.length} 项 / ${new Set(ykt.map((c) => c.courseId)).size} 门课；类型分布 ${parts}` +
+      (unknown.length ? `；未识别类型 ${unknown.join(",")}` : "") +
+      noticeInfo,
+  );
+}
 
 /** R23（霖需求）：每次打开 OneTHU 都对已配置的 TUOJ CAS 源主动续期一次——
  *  本会话首次 refreshExtHw 时 force+relaxThrottle 漫游（不等被动 401/非 JSON 才补救），
@@ -738,6 +778,8 @@ export function refreshExtHw(): Promise<void> {
     }
     if (!hasAnyExtHwCreds()) {
       items = [];
+      courses = [];
+      contents = [];
       errors = {};
       state = "ready";
       lastAt = Date.now();
@@ -759,10 +801,13 @@ export function refreshExtHw(): Promise<void> {
       reloginTyche: () => maybeAutoTycheRelogin(),
     }), "exthw");
     items = next.items;
+    courses = next.courses;
+    contents = next.contents;
     errors = next.errors;
     state = "ready";
     lastAt = Date.now();
     rebuild();
+    logYktContentShape(next.contents);
   })();
   inflight = run.finally(() => {
     inflight = null;
@@ -804,6 +849,68 @@ export function extHwSourceName(id: ExtHwSourceId): string {
   return SOURCE_NAMES[id] ?? id;
 }
 
+/* ── R26：雨课堂公告并入通知聚合（全部通知 / 今日「最近通知」） ── */
+
+/** 外部通知 id 前缀（网络学堂通知 id 无此前缀，用于分流点击行为） */
+const EXT_NOTICE_PREFIX = "ext:ykt-notice-";
+
+/** 外部通知 id → 源侧标识（课程 id + 公告 id **候选列表** + 可选的日志内联正文） */
+const extNoticeRefs = new Map<
+  string,
+  { courseId: string; ids: string[]; inlineBodyHtml?: string }
+>();
+
+export function getExternalNoticeRef(
+  noticeId: string,
+): { courseId: string; ids: string[]; inlineBodyHtml?: string } | null {
+  return extNoticeRefs.get(noticeId) ?? null;
+}
+
+export function isExternalNoticeId(id: string): boolean {
+  return id.startsWith(EXT_NOTICE_PREFIX);
+}
+
+/**
+ * 雨课堂公告 → 网络学堂通知结构（Notification），使两者可合并到同一列表渲染。
+ * 说明：雨课堂没有「重要 / 已读」字段——important 不设；hasRead 由本地已读覆盖
+ * （lib/noticeRead.ts）管理，与网络学堂通知同一套机制。
+ * courseId 用课程名做展示兜底（调用方传 courseName 时优先）。
+ */
+export function toExternalNotice(c: ExternalContent): Notification {
+  const id = `${EXT_NOTICE_PREFIX}${c.id}`;
+  // 源侧公告 id 字段名不固定：优先用递归收集到的候选列表，退化为单个 noticeId
+  const ids = c.noticeIdCandidates?.length
+    ? c.noticeIdCandidates
+    : c.noticeId
+      ? [c.noticeId]
+      : [];
+  extNoticeRefs.set(id, {
+    courseId: c.courseId,
+    ids,
+    ...(c.inlineBodyHtml ? { inlineBodyHtml: c.inlineBodyHtml } : {}),
+  });
+  return {
+    id,
+    courseId: c.courseId,
+    title: c.title,
+    publisher: `${c.courseName} · 雨课堂`,
+    publishTime: c.deadline ?? "",
+    url: c.url ?? "",
+  };
+}
+
+/** 雨课堂公告（订阅外部作业快照；未登录 / 未取到时为空数组，零回归） */
+export function useExternalNotices(): Notification[] {
+  const snap = useSyncExternalStore(subscribeExtHw, getExtHwSnapshot);
+  return useMemo(
+    () =>
+      snap.contents
+        .filter((c) => c.source === "yuketang" && c.kind === "announcement")
+        .map(toExternalNotice),
+    [snap.contents],
+  );
+}
+
 /* ── R20-B2：雨课堂作业详情（原生详情页用；只读） ── */
 
 /**
@@ -838,6 +945,34 @@ function requireYktSource(): YuketangSource {
     throw new Error("雨课堂未登录：请先在 设置 → 外部作业源 登录雨课堂");
   }
   return createYuketangSource(cred, universalFetch, creds.days ?? 30);
+}
+
+/**
+ * 拉单条雨课堂「叶子内容」详情（课件 / 视频 / 图文…，站内预览用；只读）。
+ * 凭据 / 传输层在此注入（core 不碰存储）。未登录抛错。
+ * 解析口径宽松（字段名不固定）：返回 leaf_type（决定站内路由）与可能的直链 / 正文，
+ * 并带上响应字段名做诊断，接口改版时可据此定位。
+ */
+export async function fetchYktLeafDetail(classroomId: string, leafId: string): Promise<YkLeafDetail> {
+  const src = requireYktSource();
+  const detail = await src.getLeafDetail(classroomId, leafId);
+  void logLine(
+    `雨课堂内容详情：leaf_type=${detail.leafType ?? "?"} 字段[${detail.shape.join(",")}]` +
+      `${detail.fileUrl ? " 有文件直链" : ""}${detail.mediaUrl ? " 有媒体直链" : ""}` +
+      `${detail.images?.length ? ` 有图 ${detail.images.length} 张` : ""}${detail.bodyHtml ? " 有正文" : ""}`,
+  );
+  return detail;
+}
+
+/** 拉单条雨课堂公告详情（站内内嵌渲染正文用；只读）。未登录抛错。 */
+export async function fetchYktNoticeDetail(classroomId: string, ids: string[]): Promise<YkNoticeDetail> {
+  const src = requireYktSource();
+  const detail = await src.getNoticeDetail(classroomId, ids);
+  void logLine(
+    `雨课堂公告详情：字段[${detail.shape.join(",")}]` +
+      `${detail.bodyHtml ? " 有正文" : ""}${detail.images?.length ? ` 有图 ${detail.images.length} 张` : ""}`,
+  );
+  return detail;
 }
 
 /**

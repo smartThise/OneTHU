@@ -26,7 +26,7 @@ import { IconBell, IconChevron } from "../../components/Icons.js";
 import { CollectStar } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
 import { fmtRemindOffset, REMIND_MAX, REMIND_MIN, REMIND_PRESETS, setHwReminder, useHwDefault, useHwReminder } from "../../state/hwRemind.js";
-import { extHwSourceName } from "../../state/exthw.js";
+import { extHwSourceName, isExternalNoticeId } from "../../state/exthw.js";
 
 /* ---------- 深链学期挂钩 ----------
  * 深链（小OH navigate / 收藏原子）可能带 semesterId：courseId 是学期作用域的，
@@ -363,7 +363,23 @@ export function HwRemindButton({ h }: { h: Homework }) {
   );
 }
 
-export function HomeworkRow({ h, courseName, from, style, showGrade = false, sem, remind }: RowProps & { h: Homework; showGrade?: boolean; sem?: string; remind?: boolean }) {
+export function HomeworkRow({
+  h,
+  courseName,
+  from,
+  style,
+  showGrade = false,
+  sem,
+  remind,
+  fromCourseId,
+}: RowProps & {
+  h: Homework;
+  showGrade?: boolean;
+  sem?: string;
+  remind?: boolean;
+  /** R29：from=learn-course 时带回课程 id（课程页合并雨课堂作业后的返回路径） */
+  fromCourseId?: string;
+}) {
   const { navigate } = useApp();
   // R21c：忽略状态。已忽略的行灰显并标「已忽略」，可在此就地恢复；忽略需二次确认
   // （弹窗写明后果）；入口在全部作业、各学科作业、搜索结果里都出现（共用本组件）。
@@ -371,7 +387,7 @@ export function HomeworkRow({ h, courseName, from, style, showGrade = false, sem
   // R20-B2b：行点击统一走 openHomeworkRow 三态分流（雨课堂参数齐备 → learn-ykt-detail
   // 原生详情，全平台默认原生；其余外部源 → R20-A 通道；内部作业 → 站内详情）。
   const go = () => {
-    openHomeworkRow(h, { navigate, from, courseName });
+    openHomeworkRow(h, { navigate, from, courseName, ...(fromCourseId ? { fromCourseId } : {}) });
   };
   const chip = homeworkChip(h);
   const toggleIgnore = async (): Promise<void> => {
@@ -446,9 +462,23 @@ export function HomeworkRow({ h, courseName, from, style, showGrade = false, sem
   );
 }
 
-export function NoticeRow({ n, courseName, from, style, sem }: RowProps & { n: Notification; sem?: string }) {
+export function NoticeRow({
+  n,
+  courseName,
+  from,
+  style,
+  sem,
+  navCourseId,
+}: RowProps & {
+  n: Notification;
+  sem?: string;
+  /** 导航用的课程 id 覆盖（合并课程页进入的雨课堂公告：详情页「返回」要回网络学堂课程） */
+  navCourseId?: string;
+}) {
   const { navigate } = useApp();
-  const go = () => navigate("learn-notice-detail", { courseId: n.courseId, itemId: n.id, from });
+  // R32：**所有来源的通知（含雨课堂公告）都进同一个站内详情页**——同一套 UI、同一套已读口径；
+  // 雨课堂公告的正文由详情页按 id 调雨课堂链路取回后就地渲染，不打开官方页。
+  const go = () => navigate("learn-notice-detail", { courseId: navCourseId ?? n.courseId, itemId: n.id, from });
   return (
     <div
       className="row row-click"
@@ -468,7 +498,11 @@ export function NoticeRow({ n, courseName, from, style, sem }: RowProps & { n: N
           {n.title}
         </div>
         <div className="row-sub">
-          {courseName ?? "课程"} · {n.publisher}
+          {/* 外部公告的 publisher 已含「课程 · 雨课堂」全称（今日页没有课程名上下文），
+              这里不再重复拼课程名 */}
+          {isExternalNoticeId(n.id)
+            ? n.publisher
+            : `${courseName ?? "课程"} · ${n.publisher}`}
         </div>
       </div>
       <CollectStar atom={{ kind: "notice", key: enc(n.courseId, n.id, n.title, courseName ?? "", sem ?? "") }} title={n.title} />

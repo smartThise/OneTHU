@@ -12,6 +12,8 @@ import { enc } from "../state/atoms.js";
 import { useLearnData } from "../state/data.js";
 import { toHomework, useExternalHomework } from "../state/exthw.js";
 import { useIgnoredHw } from "../state/hwIgnore.js";
+import { setYktCourse } from "../state/yktCourse.js";
+import { mergeCoursesByName } from "./learn/courseMerge.js";
 import { fmtRemindOffset, setHwDefault, useHwDefault } from "../state/hwRemind.js";
 import { HwRemindPop, semesterText } from "./learn/shared.js";
 
@@ -71,6 +73,14 @@ export function LearnPage() {
   const ext = useExternalHomework();
   const extHw = useMemo(() => ext.items.map(toHomework), [ext.items]);
 
+  // 雨课堂课程：与网络学堂课程并列展示在同一页（外部源一并拉回的课程列表；未登录时为空）
+  const yktCourses = useMemo(() => ext.courses.filter((c) => c.source === "yuketang"), [ext.courses]);
+  /** R28：按课程名把雨课堂课程并到网络学堂课程卡片上（纯函数，见 pages/learn/courseMerge.ts） */
+  const merge = useMemo(
+    () => mergeCoursesByName(data?.courses ?? [], yktCourses),
+    [data, yktCourses],
+  );
+
   // R21c：忽略优先级最高——所有对用户展示的计数/列表都不含已忽略作业
   const ignored = useIgnoredHw();
 
@@ -105,14 +115,42 @@ export function LearnPage() {
     return m;
   }, [data, ignored]);
 
+  /** R31：雨课堂侧逐课计数（与课程详情页口径一致）：
+   *  未交 = 未提交且未忽略未旁听；通知 = 公告条数；文件 = 非作业/非公告内容（资料/课件/视频…） */
+  const yktCardStats = useMemo(() => {
+    const m = new Map<string, { hw: number; notices: number; files: number }>();
+    for (const y of yktCourses) {
+      const hw = ext.items
+        .filter((i) => i.source === "yuketang" && i.classroomId === y.id)
+        .map(toHomework)
+        .filter((h) => !h.submitted && !h.audited && !ignored.has(h.id)).length;
+      const contents = ext.contents.filter((c) => c.source === "yuketang" && c.courseId === y.id);
+      const notices = contents.filter((c) => c.kind === "announcement").length;
+      const files = contents.filter(
+        (c) => c.kind !== "announcement" && c.kind !== "homework" && c.kind !== "exam",
+      ).length;
+      m.set(y.id, { hw, notices, files });
+    }
+    return m;
+  }, [yktCourses, ext.items, ext.contents, ignored]);
+
+  /** 合并后的卡片计数（网络学堂 + 同名雨课堂），与课程详情页三个栏位的计数同口径 */
+  const cardStats = (learnCourseId: string, learnStats?: { hw: number; notices: number; files: number }) => {
+    const base = learnStats ?? { hw: 0, notices: 0, files: 0 };
+    const ykt = merge.byLearnId.get(learnCourseId);
+    const ys = ykt ? yktCardStats.get(ykt.id) : undefined;
+    if (!ys) return base;
+    return { hw: base.hw + ys.hw, notices: base.notices + ys.notices, files: base.files + ys.files };
+  };
+
   return (
     <>
       <PageHead
-        title="网络学堂"
+        title="课程"
         meta={data ? `${semesterText(data.semester.id)} · ${data.courses.length} 门课程` : "加载中…"}
         actions={
           <>
-            <PageAtomStar atomKey="learn" title="网络学堂" />
+            <PageAtomStar atomKey="learn" title="课程" />
             <button className="btn btn-ghost" onClick={() => navigate("learn-search")}>
               <IconSearch width={14} height={14} />
               搜索
@@ -176,7 +214,7 @@ export function LearnPage() {
       ) : !data ? (
         // 无数据且已不在 loading：error 态的 ErrorNote 已在上方给出，否则兜底骨架
         state === "error" ? null : <SkeletonRows rows={5} />
-      ) : data.courses.length === 0 ? (
+      ) : data.courses.length === 0 && merge.unmatchedYkt.length === 0 ? (
         // 空学期：必须给可自助恢复的出口（此前只是死路的"暂无课程"，
         // 会话半死吐过一次空列表时用户只能硬刷新）
         state === "error" ? null : (
@@ -191,18 +229,25 @@ export function LearnPage() {
           </Card>
         )
       ) : (
+        /* R31：网络学堂课程与「网络学堂没有对应课」的雨课堂课程**同处一个网格**（不再分段标题） */
         <div className="course-grid">
           {data.courses.map((c, i) => {
-            const s = courseStats.get(c.id);
+            const ykt = merge.byLearnId.get(c.id);
+            // R31：计数与课程详情页一致（网络学堂 + 同名雨课堂）
+            const s = cardStats(c.id, courseStats.get(c.id));
             return (
               <Card
                 key={c.id}
                 className="course-card"
                 style={{ animationDelay: `${i * 30}ms` }}
               >
-                <button
+                {/* div+role 而非 <button>：卡内要嵌「雨课堂」徽标按钮（button 不能嵌套） */}
+                <div
                   className="course-card-btn"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => navigate("learn-course", { courseId: c.id })}
+                  onKeyDown={(e) => e.key === "Enter" && navigate("learn-course", { courseId: c.id })}
                   aria-label={`打开课程 ${c.name}`}
                 >
                   <div className="course-card-head">
@@ -220,14 +265,78 @@ export function LearnPage() {
                     <div className="course-card-time">{c.timeAndLocation.join(" · ")}</div>
                   ) : null}
                   <div className="course-card-chips">
-                    {s && s.hw > 0 ? <span className="chip chip-red"><span className="dot" />未交 {s.hw}</span> : null}
-                    {s && s.notices > 0 ? <span className="chip chip-gray">通知 {s.notices}</span> : null}
-                    {s && s.files > 0 ? <span className="chip chip-gray">文件 {s.files}</span> : null}
-                    {!s || (s.hw === 0 && s.notices === 0 && s.files === 0) ? (
+                    {/* R31：两个来源徽标都是蓝标、且排在最前（先来源，后计数） */}
+                    <span className="chip chip-blue">网络学堂</span>
+                    {ykt ? (
+                      <button
+                        type="button"
+                        className="chip chip-blue"
+                        title={`打开雨课堂课程 ${ykt.title ?? ykt.name}`}
+                        aria-label={`打开雨课堂课程 ${ykt.title ?? ykt.name}`}
+                        onClick={(e) => {
+                          e.stopPropagation(); // 不触发「进网络学堂课程」
+                          setYktCourse({ id: ykt.id, name: ykt.name });
+                          navigate("learn-ykt-course", { extCourseId: ykt.id, extCourseName: ykt.name });
+                        }}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      >
+                        雨课堂 ›
+                      </button>
+                    ) : null}
+                    {s.hw > 0 ? <span className="chip chip-red"><span className="dot" />未交 {s.hw}</span> : null}
+                    {s.notices > 0 ? <span className="chip chip-gray">通知 {s.notices}</span> : null}
+                    {s.files > 0 ? <span className="chip chip-gray">文件 {s.files}</span> : null}
+                    {s.hw === 0 && s.notices === 0 && s.files === 0 ? (
                       <span className="chip chip-gray">暂无动态</span>
                     ) : null}
                   </div>
-                </button>
+                </div>
+              </Card>
+            );
+          })}
+          {merge.unmatchedYkt.map((c, i) => {
+            const s = yktCardStats.get(c.id) ?? { hw: 0, notices: 0, files: 0 };
+            return (
+              <Card key={`ykt-${c.id}`} className="course-card" style={{ animationDelay: `${(data.courses.length + i) * 30}ms` }}>
+                <div
+                  className="course-card-btn"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    // 记住本课：课程内容页的详情返回路径不带参数，靠它还原上下文
+                    setYktCourse({ id: c.id, name: c.name });
+                    navigate("learn-ykt-course", { extCourseId: c.id, extCourseName: c.name });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    setYktCourse({ id: c.id, name: c.name });
+                    navigate("learn-ykt-course", { extCourseId: c.id, extCourseName: c.name });
+                  }}
+                  aria-label={`查看雨课堂课程 ${c.name} 的全部内容`}
+                >
+                  <div className="course-card-head">
+                    {/* 仿官方卡片：大标题=课程本名，小标题=教师 + 课堂全名 */}
+                    <b>{c.title ?? c.name}</b>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flex: "0 0 auto" }}>
+                      <IconChevron width={15} height={15} className="row-caret" />
+                    </span>
+                  </div>
+                  {c.teacher || c.title ? (
+                    <div className="course-card-sub">
+                      {[c.teacher, c.title ? c.name : undefined].filter(Boolean).join(" · ")}
+                    </div>
+                  ) : null}
+                  <div className="course-card-chips">
+                    <span className="chip chip-blue">雨课堂</span>
+                    {c.audited ? <span className="chip chip-gray">旁听</span> : null}
+                    {s.hw > 0 ? <span className="chip chip-red"><span className="dot" />未交 {s.hw}</span> : null}
+                    {s.notices > 0 ? <span className="chip chip-gray">通知 {s.notices}</span> : null}
+                    {s.files > 0 ? <span className="chip chip-gray">文件 {s.files}</span> : null}
+                    {s.hw === 0 && s.notices === 0 && s.files === 0 ? (
+                      <span className="chip chip-gray">暂无动态</span>
+                    ) : null}
+                  </div>
+                </div>
               </Card>
             );
           })}

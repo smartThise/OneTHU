@@ -6,6 +6,7 @@ import { FilePreviewHost } from "./components/FilePreview.js";
 import { LearnPage } from "./pages/Learn.js";
 import { AssignmentDetailPage } from "./pages/learn/AssignmentDetailPage.js";
 import { YktAssignmentDetailPage } from "./pages/learn/YktAssignmentDetailPage.js";
+import { YktCoursePage } from "./pages/learn/YktCoursePage.js";
 import { AssignmentsPage } from "./pages/learn/AssignmentsPage.js";
 import { CourseDetailPage } from "./pages/learn/CourseDetailPage.js";
 import { FileDetailPage } from "./pages/learn/FileDetailPage.js";
@@ -163,6 +164,7 @@ function Routed() {
           {page === "settings" && <SettingsPage />}
           {page === "plugins" && <PluginsPage />}
           {page === "learn-course" && <CourseDetailPage />}
+          {page === "learn-ykt-course" && <YktCoursePage />}
           {page === "learn-assignments" && <AssignmentsPage />}
           {page === "learn-notices" && <NoticesPage />}
           {page === "learn-files" && <FilesPage />}
