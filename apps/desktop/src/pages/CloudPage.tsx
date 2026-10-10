@@ -106,24 +106,6 @@ function MoveModal({
   const [dirs, setDirs] = useState<SeafileEntry[]>(initialDirs ?? []);
   const [loading, setLoading] = useState(initialDirs === null);
   const [error, setError] = useState<string | null>(null);
-  /** 诊断：渲染后读真实 DOM（行数/首行文字/计算色）——state 有数据但屏上空白时定性 */
-  const listRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (loading) return;
-    const t = setTimeout(() => {
-      const el = listRef.current;
-      const first = el?.firstElementChild as HTMLElement | null;
-      const cs = first ? getComputedStyle(first) : null;
-      void import("../lib/clients.js").then(({ logLine }) =>
-        logLine(
-          `[CLOUD-MOVE] DOM: rows=${el?.childElementCount ?? -1} box=${el?.clientHeight ?? -1}x${el?.clientWidth ?? -1} firstText="${(first?.textContent ?? "").slice(0, 24)}" color=${cs?.color ?? "?"} display=${cs?.display ?? "?"} fontSize=${cs?.fontSize ?? "?"}`,
-        ).catch(() => undefined),
-      );
-    }, 900);
-    return () => clearTimeout(t);
-  }, [loading, dirs.length, error]);
-
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -160,7 +142,7 @@ function MoveModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-          <b style={{ fontSize: 15 }}>移动「{entry.name}」到…〔v4〕</b>
+          <b style={{ fontSize: 15 }}>移动「{entry.name}」到…〔v5〕</b>
           <span style={{ flex: 1 }} />
           <button className="btn mini" onClick={onClose} aria-label="关闭">✕</button>
         </div>
@@ -180,24 +162,27 @@ function MoveModal({
             </span>
           ))}
         </div>
-        <div ref={listRef} style={{ border: "1px solid #d8dce6", borderRadius: 8, height: 260, overflowY: "auto", padding: 4, background: "#fff", color: "#1e1432", boxSizing: "border-box" }}>
-          {loading && <p style={{ padding: 10, margin: 0, color: "#8a8f99" }}>正在读取文件夹…</p>}
-          {error && <p className="cloud-error" style={{ padding: 10, margin: 0 }}>{error}</p>}
-          {!loading && !error && dirs.length === 0 && <p style={{ padding: 10, margin: 0, color: "#8a8f99" }}>没有子文件夹（将移动到当前位置）</p>}
-          {dirs.map((d) => (
-            <div
-              key={d.name}
-              className="cloud-row"
-              role="button"
-              tabIndex={0}
-              onClick={() => setPath(`${path === "/" ? "" : path}/${d.name}`)}
-              onKeyDown={(ev) => { if (ev.key === "Enter") setPath(`${path === "/" ? "" : path}/${d.name}`); }}
-            >
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: "#6d7ff0", flex: "none", display: "inline-block" }} />
-              <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#1e1432", fontSize: 14 }}>{d.name}</span>
-            </div>
-          ))}
-        </div>
+        {/* WKWebView 合成层怪病（v4 实录：DOM 正确、字面样式仍全白）——目标文件夹
+            改用原生 select（系统绘制）：选中即进入该层，面包屑点返回上级。 */}
+        {error && <p className="cloud-error" style={{ margin: "0 0 8px" }}>{error}</p>}
+        <select
+          className="input"
+          style={{ width: "100%", marginBottom: 8 }}
+          value=""
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v) setPath(`${path === "/" ? "" : path}/${v}`);
+          }}
+        >
+          <option value="">
+            {loading
+              ? "正在读取文件夹…"
+              : dirs.length
+                ? `进入子文件夹（当前层 ${dirs.length} 个）▸`
+                : "当前层没有子文件夹——可直接点「移动到这里」"}
+          </option>
+          {dirs.map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
+        </select>
         {selfNest && <p className="cloud-error" style={{ margin: "8px 0 0" }}>不能移动到自身内部的文件夹</p>}
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}>
           <button className="btn" onClick={onClose}>取消</button>
