@@ -106,6 +106,23 @@ function MoveModal({
   const [dirs, setDirs] = useState<SeafileEntry[]>(initialDirs ?? []);
   const [loading, setLoading] = useState(initialDirs === null);
   const [error, setError] = useState<string | null>(null);
+  /** 诊断：渲染后读真实 DOM（行数/首行文字/计算色）——state 有数据但屏上空白时定性 */
+  const listRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (loading) return;
+    const t = setTimeout(() => {
+      const el = listRef.current;
+      const first = el?.firstElementChild as HTMLElement | null;
+      const cs = first ? getComputedStyle(first) : null;
+      void import("../lib/clients.js").then(({ logLine }) =>
+        logLine(
+          `[CLOUD-MOVE] DOM: rows=${el?.childElementCount ?? -1} box=${el?.clientHeight ?? -1}x${el?.clientWidth ?? -1} firstText="${(first?.textContent ?? "").slice(0, 24)}" color=${cs?.color ?? "?"} display=${cs?.display ?? "?"} fontSize=${cs?.fontSize ?? "?"}`,
+        ).catch(() => undefined),
+      );
+    }, 900);
+    return () => clearTimeout(t);
+  }, [loading, dirs.length, error]);
 
   useEffect(() => {
     setLoading(true);
@@ -164,7 +181,7 @@ function MoveModal({
             </span>
           ))}
         </div>
-        <div style={{ border: "1px solid var(--border-soft, rgba(127,127,127,.25))", borderRadius: 10, height: 260, overflowY: "auto", padding: 4, color: "var(--text-1, inherit)", boxSizing: "border-box" }}>
+        <div ref={listRef} style={{ border: "1px solid var(--border-soft, rgba(127,127,127,.25))", borderRadius: 10, height: 260, overflowY: "auto", padding: 4, color: "var(--text-1, inherit)", boxSizing: "border-box" }}>
           {loading && <p style={{ padding: 10, margin: 0, color: "var(--text-3, #888)" }}>正在读取文件夹…</p>}
           {error && <p className="cloud-error" style={{ padding: 10, margin: 0 }}>{error}</p>}
           {!loading && !error && dirs.length === 0 && <p style={{ padding: 10, margin: 0, color: "var(--text-3, #888)" }}>没有子文件夹（将移动到当前位置）</p>}
