@@ -4,7 +4,7 @@
  * 从未执行（暂存 ✕/清空/退选/草稿提交/场馆退订 2026-09-03 实录）。
  * 用 DOM 覆盖层替代，<ConfirmHost/> 挂在应用根部一次即可。
  */
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 type Pending = {
   msg: string;
@@ -61,12 +61,98 @@ export function answerConfirm(v: boolean): void {
   listeners.forEach((l) => l());
 }
 
+/* ---------- 文本输入弹层（云盘新建资料库/文件夹等命名场景） ----------
+ * 与 confirmOk 同款 DOM 覆盖层（WKWebView 的 window.prompt 同样不可用）。 */
+
+type PromptPending = {
+  title: string;
+  placeholder: string;
+  initial: string;
+  resolve: (v: string | null) => void;
+};
+let promptPending: PromptPending | null = null;
+const promptListeners = new Set<() => void>();
+
+/** 应用内输入弹窗：确认返回文本（trim 后非空），取消返回 null。 */
+export function promptText(
+  title: string,
+  opts: { placeholder?: string; initial?: string } = {},
+): Promise<string | null> {
+  return new Promise((resolve) => {
+    promptPending?.resolve(null); // 新请求顶掉旧请求（旧者按取消结算）
+    promptPending = {
+      title,
+      placeholder: opts.placeholder ?? "",
+      initial: opts.initial ?? "",
+      resolve,
+    };
+    promptListeners.forEach((l) => l());
+  });
+}
+
+export function answerPrompt(v: string | null): void {
+  promptPending?.resolve(v);
+  promptPending = null;
+  promptListeners.forEach((l) => l());
+}
+
+function PromptHost(): React.ReactNode {
+  const cur = useSyncExternalStore(
+    (l) => {
+      promptListeners.add(l);
+      return () => promptListeners.delete(l);
+    },
+    () => promptPending,
+  );
+  const [val, setVal] = useState("");
+  useEffect(() => {
+    setVal(cur?.initial ?? "");
+  }, [cur]);
+  if (!cur) return null;
+  const submit = (): void => {
+    const t = val.trim();
+    if (t) answerPrompt(t);
+  };
+  return (
+    <div className="confirm-mask" style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,.35)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div className="confirm-card" style={{ background: "var(--bg-1, #fff)", borderRadius: 14, padding: "18px 18px 14px", maxWidth: 380, width: "100%" }}>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>{cur.title}</div>
+        <input
+          className="input"
+          autoFocus
+          style={{ width: "100%" }}
+          placeholder={cur.placeholder}
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit();
+            if (e.key === "Escape") answerPrompt(null);
+          }}
+        />
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 14 }}>
+          <button className="btn" onClick={() => answerPrompt(null)}>取消</button>
+          <button className="btn" style={{ borderColor: "var(--accent, #6d7ff0)", color: "var(--accent, #6d7ff0)" }} disabled={!val.trim()} onClick={submit}>确定</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function subscribe(l: () => void): () => void {
   listeners.add(l);
   return () => listeners.delete(l);
 }
 
 export function ConfirmHost(): React.ReactNode {
+  return (
+    <>
+      <ConfirmBody />
+      <PromptHost />
+    </>
+  );
+}
+
+function ConfirmBody(): React.ReactNode {
   const cur = useSyncExternalStore(subscribe, () => pending);
   if (!cur) return null;
   const glass: React.CSSProperties = {

@@ -364,6 +364,64 @@ pub async fn seafile_mkdir(token: String, repo_id: String, path: String) -> Resu
     Ok(())
 }
 
+/// 删除文件或目录（kind="file"|"dir"；目录整棵递归删——UI 层必须 alert 级确认）
+#[tauri::command]
+pub async fn seafile_delete(
+    token: String,
+    repo_id: String,
+    path: String,
+    kind: String,
+) -> Result<(), String> {
+    let p = if path.starts_with('/') { path } else { format!("/{path}") };
+    let seg = if kind == "dir" { "dir" } else { "file" };
+    check(
+        client()?
+            .delete(format!("{BASE}/api2/repos/{repo_id}/{seg}/"))
+            .bearer_auth(token)
+            .query(&[("p", p.as_str())])
+            .send()
+            .await.map_err(|e| e.to_string())?,
+    )
+    .await?;
+    Ok(())
+}
+
+/// 移动/重命名文件或目录（kind="file"|"dir"）：
+/// dst_dir 为目标目录（绝对路径）；new_name 非空时同时改名（Seafile rename 语义）
+#[tauri::command]
+pub async fn seafile_move(
+    token: String,
+    repo_id: String,
+    path: String,
+    kind: String,
+    dst_repo: String,
+    dst_dir: String,
+    new_name: String,
+) -> Result<(), String> {
+    let p = if path.starts_with('/') { path } else { format!("/{path}") };
+    let seg = if kind == "dir" { "dir" } else { "file" };
+    let dd = if dst_dir.starts_with('/') { dst_dir } else { format!("/{dst_dir}") };
+    let mut form: Vec<(&str, String)> = vec![
+        ("operation", "move".into()),
+        ("dst_repo", dst_repo),
+        ("dst_dir", dd),
+    ];
+    if !new_name.trim().is_empty() {
+        form.push(("newname", new_name.trim().to_string()));
+    }
+    check(
+        client()?
+            .post(format!("{BASE}/api2/repos/{repo_id}/{seg}/"))
+            .bearer_auth(token)
+            .query(&[("p", p.as_str())])
+            .form(&form)
+            .send()
+            .await.map_err(|e| e.to_string())?,
+    )
+    .await?;
+    Ok(())
+}
+
 /// 生成分享链接（expire_days=0 表示永久；password 可空）
 #[tauri::command]
 pub async fn seafile_share(
