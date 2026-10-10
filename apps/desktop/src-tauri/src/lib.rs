@@ -1762,6 +1762,12 @@ async fn thos_portal_window(
         if main_ua.is_some() { "同主窗口" } else { "默认" },
         &target[..target.len().min(60)]
     ));
+    // 种完票**必须显式导航到目标页**：建窗落点固定在 webvpn 根（=门户首页），
+    // 漏 navigate 用户看到的就是门户首页而非服务页（2026-10-10 用户实录，
+    // 052d11c 原版有此行，中途丢失）。雨课堂/云盘窗口同款套路。
+    win.navigate(target.parse().map_err(|e| format!("目标 URL 解析失败: {e}"))?)
+        .map_err(|e| e.to_string())?;
+    let _ = win.set_focus();
     Ok(())
 }
 
