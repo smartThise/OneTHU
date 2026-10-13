@@ -29,7 +29,7 @@ import { toHomework, useExternalHomework } from "../state/exthw.js";
 import { useApp } from "../state/context.js";
 import { usePlatformLayout } from "../state/usePlatformLayout.js";
 import { courseColor, SRC_COLOR } from "../lib/courseColor.js";
-import { confirmOk } from "../lib/confirm.js";
+import { confirmDanger, confirmOk } from "../lib/confirm.js";
 import { useExitHold } from "../lib/motion.js";
 import { useNotifyBackend } from "../components/useNotifyBackend.js";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -88,6 +88,8 @@ interface GridEntry {
   clusterItems?: GridEntry[];
   /** 云/本事件可编辑定位 */
   uid?: string;
+  /** 手动补充的课程（X-ONETHU-SRC=course-manual）：虚线描边 + 「手动」角标，一眼区别于教务数据 */
+  manual?: boolean;
 }
 
 /* 课程与来源配色见 lib/courseColor.ts（课表、选课预览、桌面小组件共用一份口径） */
@@ -259,6 +261,15 @@ interface Draft {
   originalCloud: boolean; // 编辑中的是云端事件
   /** 「在桌面小组件显示」：写进事件的私有标记（X-ONETHU-WIDGET），勾了才进桌面「今天」卡片 */
   widget: boolean;
+  /** 日程 = 单次；课程 = 手动补充课程（按教学周重复，X-ONETHU-SRC=course-manual） */
+  kind: "event" | "course";
+  /** 课程模式：星期（1=周一 … 7=周日） */
+  weekday: number;
+  /** 课程模式：起止节次（1 起；时刻由节次表换算） */
+  startSection: number;
+  endSection: number;
+  /** 课程模式：选中的教学周（1 起；空 = 一周都没选，保存时会被拦下） */
+  weeks: number[];
 }
 /** 居中弹窗（黑色遮罩）：编辑日程 / 课程详情共用骨架，风格同 TabManageModal */
 const MODAL_MASK = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } as const;
@@ -269,7 +280,75 @@ const emptyDraft = (date: string, canCloud: boolean): Draft => ({
   toCloud: canCloud, originalCloud: false,
   // 默认不勾：自定义日程一直不上小组件，勾了才上（保持既有行为，避免存量日程突然挤进卡片）
   widget: false,
+  // 课程模式默认按所选日期落在的星期几 + 第 3-4 节（与课表最常见的连堂一致）；周集合进课程模式时再铺满
+  kind: "event", weekday: ((parseYmd(date).getDay() + 6) % 7) + 1, startSection: 3, endSection: 4, weeks: [],
 });
+
+/** 节次下拉选项（1..13 节；表尾那一项是 21:45 结束的第 14 节） */
+const SECTION_OPTS = Array.from({ length: BEGIN_TIME.length - 1 }, (_, i) => i + 1);
+/** 由时刻反推最近的一节（编辑别处建的事件、或补过课的事件缺 X-ONETHU-PERIOD 时用） */
+function sectionOfTime(hm?: string): number {
+  const m = hmToMin(hm);
+  if (m == null) return 1;
+  let best = 1;
+  let bestDiff = Number.POSITIVE_INFINITY;
+  for (const i of SECTION_OPTS) {
+    const d = Math.abs((BEGIN_MIN[i] ?? 0) - m);
+    if (d < bestDiff) { bestDiff = d; best = i; }
+  }
+  return best;
+}
+
+/** 草稿 → ICS 事件。课程模式把「星期 + 节次 + 周集合」换算成重复事件（core 的 courseWeeks）；
+ *  一周都没选等参数不足返回 null，由调用方提示——不静默存一条坏事件。 */
+function buildDraftEvent(
+  draft: Draft,
+  uid: string,
+  semester: { firstDay: string; weekCount: number } | null,
+): caldav.IcsEvent | null {
+  const base = {
+    uid,
+    summary: draft.title.trim(),
+    location: draft.location.trim() || undefined,
+    description: draft.note.trim() || undefined,
+    // 桌面小组件「今天」卡片：勾了才带上这个私有标记（缺省不写 = 不上卡片）
+    onethuWidget: draft.widget || undefined,
+  };
+  if (draft.kind === "event") {
+    const d = parseYmd(draft.date);
+    const [sh, sm] = draft.start.split(":").map(Number);
+    const [eh, em] = draft.end.split(":").map(Number);
+    const start = draft.allDay
+      ? new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+      : new Date(d.getFullYear(), d.getMonth(), d.getDate(), sh ?? 0, sm ?? 0).getTime();
+    let end = draft.allDay
+      ? start + 86_400_000
+      : new Date(d.getFullYear(), d.getMonth(), d.getDate(), eh ?? 23, em ?? 59).getTime();
+    if (!draft.allDay && end <= start) end = start + 45 * 60_000;
+    return { ...base, start, end, allDay: draft.allDay, onethuSource: "manual" };
+  }
+  const startTime = BEGIN_TIME[draft.startSection] ?? "08:00";
+  const endTime = END_TIME[draft.endSection] ?? END_TIME[draft.startSection] ?? "09:35";
+  const series = caldav.buildCourseSeries({
+    term: semester,
+    weekday: draft.weekday,
+    weeks: draft.weeks,
+    startTime,
+    endTime,
+    from: draft.date,
+  });
+  if (!series) return null;
+  return {
+    ...base,
+    start: series.start,
+    end: series.end,
+    rrule: series.rrule,
+    exdates: series.exdates.length ? series.exdates : undefined,
+    onethuSource: caldav.MANUAL_COURSE_SOURCE,
+    onethuWeeks: series.weeks.length ? series.weeks : undefined,
+    onethuPeriod: { start: draft.startSection, end: draft.endSection },
+  };
+}
 
 export function SchedulePage() {
   // 展示时段（用户可选；默认全天）。放在最前：下面所有 y()/刻度都依赖它
@@ -456,6 +535,8 @@ export function SchedulePage() {
           endTime: hmOfMs(o.end),
           src,
           uid: o.uid,
+          // 手动补充的课程：与教务课同格，但画虚线 + 角标（数据来自事件仓，可点开编辑）
+          manual: caldav.isManualCourse(o) || undefined,
         });
       }
     }
@@ -591,6 +672,10 @@ export function SchedulePage() {
     const base = parseYmd(jumpSem.firstDay);
     setAnchor(clampAnchor(new Date(base.getTime() + ((jumpWeek - 1) * 7 + 2) * 86_400_000))); // 周三，稳落周内
   };
+  /** 补充课程用哪个学期定位周次：跟着跳转选择器（它默认跟随当前周所在学期），
+   *  假期里浏览时也能选到最近那个学期——detected 在学期外是 null，用它会让周次整片消失。 */
+  const termSem = jumpSem ? { firstDay: jumpSem.firstDay, weekCount: jumpSem.weekCount } : null;
+  const allTermWeeks = useMemo(() => (jumpSem ? Array.from({ length: jumpSem.weekCount }, (_, i) => i + 1) : []), [jumpSem]);
 
   /* ---------- 两视图共用：同步 / 课表上云 / 系统日历 / 事件编辑 ---------- */
   const canCloud = cal.configured;
@@ -664,6 +749,7 @@ export function SchedulePage() {
     setDetail(null); // 详情/编辑互斥
     const w = caldav.epochToWall("Asia/Shanghai", src.start);
     const we = caldav.epochToWall("Asia/Shanghai", src.end);
+    const course = caldav.isManualCourse(src);
     setDraft({
       uid: src.uid, title: src.summary, date: ymdOf(new Date(src.start)),
       start: `${padN(w.h)}:${padN(w.mi)}`, end: `${padN(we.h)}:${padN(we.mi)}`,
@@ -671,6 +757,13 @@ export function SchedulePage() {
       toCloud: kind === "cloud", originalCloud: kind === "cloud",
       // 原样带回：非 Android 上这个勾选框不显示，保存时也不会把标记抹掉
       widget: src.onethuWidget === true,
+      // 手动补充的课程：星期取首场所在日，节次优先读私有属性（缺了按时刻反推），
+      // 周集合读 X-ONETHU-WEEKS（外部编辑过、或降级模式建的事件可能没有）
+      kind: course ? "course" : "event",
+      weekday: ((new Date(Date.UTC(w.y, w.mo - 1, w.d)).getUTCDay() + 6) % 7) + 1,
+      startSection: src.onethuPeriod?.start ?? sectionOfTime(`${padN(w.h)}:${padN(w.mi)}`),
+      endSection: src.onethuPeriod?.end ?? src.onethuPeriod?.start ?? sectionOfTime(`${padN(we.h)}:${padN(we.mi)}`),
+      weeks: course ? [...(src.onethuWeeks ?? [])] : [],
     });
   };
   /** 列表行点击（云/本可编辑；课程/考试无 uid 不可编辑） */
@@ -691,29 +784,24 @@ export function SchedulePage() {
     setBusy(true);
     setMsg(null);
     try {
-      const d = new Date(Number(draft.date.slice(0, 4)), Number(draft.date.slice(5, 7)) - 1, Number(draft.date.slice(8, 10)));
-      const [sh, sm] = draft.start.split(":").map(Number);
-      const [eh, em] = draft.end.split(":").map(Number);
-      const allDay = draft.allDay;
-      const start = allDay ? new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() : new Date(d.getFullYear(), d.getMonth(), d.getDate(), sh ?? 0, sm ?? 0).getTime();
-      let end = allDay ? start + 86_400_000 : new Date(d.getFullYear(), d.getMonth(), d.getDate(), eh ?? 23, em ?? 59).getTime();
-      if (!allDay && end <= start) end = start + 45 * 60_000;
       const uid = draft.uid ?? `onethu-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}@onethu`;
-      const ev: caldav.IcsEvent = {
-        uid, summary: draft.title.trim(), start, end, allDay,
-        location: draft.location.trim() || undefined,
-        description: draft.note.trim() || undefined,
-        onethuSource: "manual",
-        // 桌面小组件「今天」卡片：勾了才带上这个私有标记（缺省不写 = 不上卡片）
-        onethuWidget: draft.widget || undefined,
-      };
+      const ev = buildDraftEvent(draft, uid, termSem);
+      if (!ev) {
+        setMsg("请至少选择一个教学周。");
+        return;
+      }
       // 跨集合移动（云↔本地）：先删原侧再写新侧
       if (draft.uid && draft.originalCloud && !draft.toCloud) await deleteCloudEvent(draft.uid);
       if (draft.uid && !draft.originalCloud && draft.toCloud) await deleteLocalEvent(draft.uid);
       if (draft.toCloud) await putCloudEvent(ev);
       else await putLocalEvent(ev);
       setDraft(null);
-      setMsg("已保存。");
+      if (draft.kind === "course") {
+        const wk = ev.onethuWeeks?.length ?? 0;
+        setMsg(wk
+          ? `已保存：${DAY_NAMES[draft.weekday - 1]} · 共 ${wk} 周。`
+          : `已保存：${DAY_NAMES[draft.weekday - 1]} · 共 16 周（校历未加载）。`);
+      } else setMsg("已保存。");
     } catch (err) {
       setMsg(`保存失败：${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -723,6 +811,14 @@ export function SchedulePage() {
 
   const onDeleteDraft = async (): Promise<void> => {
     if (!draft?.uid || busy) return;
+    // 补充课程一删就是整学期全部场次（不像单次日程只删一场），先拦一下
+    if (draft.kind === "course") {
+      const ok = await confirmDanger(`「${draft.title}」在全部教学周的场次都会删除。`, {
+        title: "删除这门课，请确认",
+        confirmText: "删除课程",
+      });
+      if (!ok) return;
+    }
     setBusy(true);
     try {
       if (draft.originalCloud) await deleteCloudEvent(draft.uid);
@@ -860,6 +956,13 @@ export function SchedulePage() {
 
         <button className="btn btn-primary" onClick={() => setDraft(emptyDraft(defaultDraftDate, canCloud))}>
           ＋ 添加日程
+        </button>
+        <button
+          className="btn"
+          title="教务课表没排上的课，自己补一门（按教学周重复，与课表同一套）"
+          onClick={() => setDraft({ ...emptyDraft(defaultDraftDate, canCloud), kind: "course", weeks: allTermWeeks })}
+        >
+          ＋ 添加课程
         </button>
       </div>
       {msg ? (
@@ -1132,7 +1235,7 @@ export function SchedulePage() {
                                   ? `${p.entry.courseName}（${p.entry.location ?? ""}）DDL ${hhmm(p.beginMin)}–${hhmm(p.endMin)} · ${p.entry.hwMeta?.submitted ? "已提交" : "未提交"} · ${p.entry.hwMeta?.ext ? p.entry.hwMeta.source ?? "外部" : "网络学堂"} · 点击查看`
                                   : `${p.entry.courseName}${p.entry.teacher ? " · " + p.entry.teacher : ""}${
                                       p.entry.location ? " @" + p.entry.location : ""
-                                    }（${hhmm(p.beginMin)}–${hhmm(p.endMin)}）${p.entry.src === "cloud" || p.entry.src === "local" ? " · 点击编辑" : " · 点击查看"}`
+                                    }（${hhmm(p.beginMin)}–${hhmm(p.endMin)}）${p.entry.manual ? " · 手动添加" : ""}${p.entry.src === "cloud" || p.entry.src === "local" ? " · 点击编辑" : " · 点击查看"}`
                             }
                             onClick={() => onBlockClick(p.entry)}
                             style={{
@@ -1146,6 +1249,8 @@ export function SchedulePage() {
                               top,
                               height,
                               background: p.color,
+                              // 手动补充的课程：虚线白描边——与教务课同一格，但一眼看出是自己填的
+                              border: p.entry.manual ? "1.5px dashed rgba(255,255,255,.92)" : undefined,
                               opacity: p.entry.src === "hw" && p.entry.hwMeta?.submitted ? 0.55 : undefined,
                               borderRadius: 5,
                               padding: compact ? "2px 4px" : "3px 5px",
@@ -1157,6 +1262,17 @@ export function SchedulePage() {
                               cursor: "pointer",
                             }}
                           >
+                            {p.entry.manual ? (
+                              <div
+                                style={{
+                                  // 角标贴右下角（2026-10-13 用户指定：右上留给内容，标签压在块尾）
+                                  position: "absolute", right: 3, bottom: 2, fontSize: 8, lineHeight: 1.35,
+                                  padding: "0 3px", borderRadius: 4, background: "rgba(0,0,0,.26)", color: "#fff",
+                                }}
+                              >
+                                手动
+                              </div>
+                            ) : null}
                             <div style={{ fontSize: compact ? 8.5 : 9.5, fontWeight: 700, lineHeight: 1.3 }}>
                               {p.entry.src === "hw" ? `⏰ ${p.entry.courseName}` : p.entry.courseName}
                             </div>
@@ -1318,32 +1434,149 @@ export function SchedulePage() {
         <div style={maskStyle} onClick={() => { if (!busy) setDraft(null); }}>
           <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
           <div style={{ padding: 16 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>{draft.uid ? "编辑日程" : "新建日程"}</div>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
+            {draft.kind === "course" ? (draft.uid ? "编辑课程" : "添加课程") : draft.uid ? "编辑日程" : "新建日程"}
+          </div>
+          {/* 类型切换：日程 = 单次；课程 = 手动补充课程（按教学周重复，与课表同一套渲染与提醒） */}
+          <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 10 }}>
+            {(["event", "course"] as const).map((k) => (
+              <button
+                key={k}
+                className={draft.kind === k ? "btn btn-primary" : "btn"}
+                style={{ fontSize: 12 }}
+                onClick={() =>
+                  setDraft({ ...draft, kind: k, weeks: k === "course" && draft.weeks.length === 0 ? allTermWeeks : draft.weeks })
+                }
+              >
+                {k === "event" ? "日程" : "课程"}
+              </button>
+            ))}
+            <span style={{ fontSize: 11.5, color: "var(--text-3, #999)" }}>
+              {draft.kind === "course" ? "按教学周重复，与课表同一套" : "单次"}
+            </span>
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <label style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--text-2)" }}>
-              标题
-              <input className="input" style={{ marginTop: 4, width: "100%" }} value={draft.title} placeholder="要做什么…" onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+              {draft.kind === "course" ? "课程名称" : "标题"}
+              <input className="input" style={{ marginTop: 4, width: "100%" }} value={draft.title} placeholder={draft.kind === "course" ? "课表里没排上的课…" : "要做什么…"} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
             </label>
-            <label style={{ fontSize: 12, color: "var(--text-2)" }}>
-              日期
-              <input className="input" type="date" style={{ marginTop: 4, width: "100%" }} value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} />
-            </label>
-            <label style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "flex-end", gap: 6, paddingBottom: 6 }}>
-              <input type="checkbox" checked={draft.allDay} onChange={(e) => setDraft({ ...draft, allDay: e.target.checked })} />
-              全天
-            </label>
-            {!draft.allDay ? (
+            {draft.kind === "course" ? (
               <>
-                <label style={{ fontSize: 12, color: "var(--text-2)" }}>
-                  开始
-                  <input className="input" type="time" style={{ marginTop: 4, width: "100%" }} value={draft.start} onChange={(e) => setDraft({ ...draft, start: e.target.value })} />
+                <label style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--text-2)" }}>
+                  星期
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}>
+                    {DAY_NAMES.map((nm, i) => (
+                      <button
+                        key={nm}
+                        className={draft.weekday === i + 1 ? "btn btn-primary" : "btn"}
+                        style={{ fontSize: 12, padding: "2px 8px" }}
+                        onClick={() => setDraft({ ...draft, weekday: i + 1 })}
+                      >
+                        {nm}
+                      </button>
+                    ))}
+                  </div>
                 </label>
                 <label style={{ fontSize: 12, color: "var(--text-2)" }}>
-                  结束
-                  <input className="input" type="time" style={{ marginTop: 4, width: "100%" }} value={draft.end} onChange={(e) => setDraft({ ...draft, end: e.target.value })} />
+                  起始节次
+                  <select
+                    className="input"
+                    style={{ marginTop: 4, width: "100%" }}
+                    value={draft.startSection}
+                    onChange={(e) => {
+                      const s = Number(e.target.value);
+                      setDraft({ ...draft, startSection: s, endSection: Math.max(s, draft.endSection) });
+                    }}
+                  >
+                    {SECTION_OPTS.map((i) => (
+                      <option key={i} value={i}>{`第 ${i} 节 ${BEGIN_TIME[i] ?? ""}`}</option>
+                    ))}
+                  </select>
+                </label>
+                <label style={{ fontSize: 12, color: "var(--text-2)" }}>
+                  结束节次
+                  <select
+                    className="input"
+                    style={{ marginTop: 4, width: "100%" }}
+                    value={draft.endSection}
+                    onChange={(e) => {
+                      const s = Number(e.target.value);
+                      setDraft({ ...draft, endSection: s, startSection: Math.min(s, draft.startSection) });
+                    }}
+                  >
+                    {SECTION_OPTS.map((i) => (
+                      <option key={i} value={i}>{`第 ${i} 节 ${END_TIME[i] ?? ""}`}</option>
+                    ))}
+                  </select>
+                </label>
+                <div style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--text-3, #999)" }}>
+                  第 {draft.startSection}–{draft.endSection} 节 · {BEGIN_TIME[draft.startSection] ?? ""}–{END_TIME[draft.endSection] ?? ""}
+                  {` · 每${DAY_NAMES[draft.weekday - 1]}`}
+                  {draft.weeks.length && termSem ? `，首场 ${caldav.weekDate(termSem, draft.weeks[0]!, draft.weekday) ?? ""}` : ""}
+                </div>
+                <label style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--text-2)" }}>
+                  教学周{allTermWeeks.length ? `（1–${allTermWeeks.length}，共选 ${draft.weeks.length} 周）` : ""}
+                  {allTermWeeks.length ? (
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}>
+                      {allTermWeeks.map((w) => {
+                        const on = draft.weeks.includes(w);
+                        return (
+                          <button
+                            key={w}
+                            className={on ? "btn btn-primary" : "btn"}
+                            style={{ fontSize: 11, padding: "1px 0", minWidth: 28 }}
+                            onClick={() =>
+                              setDraft({
+                                ...draft,
+                                weeks: on ? draft.weeks.filter((x) => x !== w) : [...draft.weeks, w].sort((a, b) => a - b),
+                              })
+                            }
+                          >
+                            {w}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: 4, fontSize: 11.5, color: "var(--text-3, #999)" }}>
+                      校历未加载，将按每周重复 16 周（加载后可改成具体周次）
+                    </div>
+                  )}
+                  {allTermWeeks.length ? (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6, alignItems: "center" }}>
+                      <button className="btn" style={{ fontSize: 11.5 }} onClick={() => setDraft({ ...draft, weeks: allTermWeeks })}>全部</button>
+                      <button className="btn" style={{ fontSize: 11.5 }} onClick={() => setDraft({ ...draft, weeks: allTermWeeks.filter((w) => w % 2 === 1) })}>单周</button>
+                      <button className="btn" style={{ fontSize: 11.5 }} onClick={() => setDraft({ ...draft, weeks: allTermWeeks.filter((w) => w % 2 === 0) })}>双周</button>
+                      <button className="btn" style={{ fontSize: 11.5 }} onClick={() => setDraft({ ...draft, weeks: [] })}>清空</button>
+                      <span style={{ fontSize: 11.5, color: "var(--text-3, #999)" }}>取消勾选某一周就等于这周不上</span>
+                    </div>
+                  ) : null}
                 </label>
               </>
-            ) : null}
+            ) : (
+              <>
+                <label style={{ fontSize: 12, color: "var(--text-2)" }}>
+                  日期
+                  <input className="input" type="date" style={{ marginTop: 4, width: "100%" }} value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} />
+                </label>
+                <label style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "flex-end", gap: 6, paddingBottom: 6 }}>
+                  <input type="checkbox" checked={draft.allDay} onChange={(e) => setDraft({ ...draft, allDay: e.target.checked })} />
+                  全天
+                </label>
+                {!draft.allDay ? (
+                  <>
+                    <label style={{ fontSize: 12, color: "var(--text-2)" }}>
+                      开始
+                      <input className="input" type="time" style={{ marginTop: 4, width: "100%" }} value={draft.start} onChange={(e) => setDraft({ ...draft, start: e.target.value })} />
+                    </label>
+                    <label style={{ fontSize: 12, color: "var(--text-2)" }}>
+                      结束
+                      <input className="input" type="time" style={{ marginTop: 4, width: "100%" }} value={draft.end} onChange={(e) => setDraft({ ...draft, end: e.target.value })} />
+                    </label>
+                  </>
+                ) : null}
+              </>
+            )}
             <label style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--text-2)" }}>
               地点
               <input className="input" style={{ marginTop: 4, width: "100%" }} value={draft.location} placeholder="可选" onChange={(e) => setDraft({ ...draft, location: e.target.value })} />
@@ -1357,7 +1590,9 @@ export function SchedulePage() {
             <input type="checkbox" checked={draft.toCloud} disabled={!canCloud} onChange={(e) => setDraft({ ...draft, toCloud: e.target.checked })} />
             同步到云日历{canCloud ? "（其他设备 / 系统日历可见）" : "（未配置——设置页开启云同步）"}
           </label>
-          {widgetHere ? (
+          {/* 只给自定义日程：补充课程走课程通道，卡片按课行无条件显示（当天有课就有），
+              这个标记读了也没用——与其留一个勾了不生效的开关，不如课程模式下不显示（2026-10-13 定） */}
+          {widgetHere && draft.kind !== "course" ? (
             <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12, color: "var(--text-2)", margin: "6px 0 2px" }}>
               <input type="checkbox" checked={draft.widget} onChange={(e) => setDraft({ ...draft, widget: e.target.checked })} />
               在桌面小组件显示

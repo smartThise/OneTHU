@@ -34,6 +34,8 @@ export interface AgendaItem {
   note?: string;
   uid?: string; // cloud/local 可编辑
   allDay?: boolean;
+  /** 手动补充的课程（X-ONETHU-SRC=course-manual）：加一枚「手动」标，与教务数据区分 */
+  manual?: boolean;
 }
 const KIND_LABEL: Record<AgendaKind, string> = { course: "课程", exam: "考试", cloud: "云", local: "本" };
 const KIND_COLOR: Record<AgendaKind, string> = { course: "#6d7ff0", exam: "#e5484d", cloud: "#1fa487", local: "#8a8f98" };
@@ -137,6 +139,7 @@ export function ScheduleAgenda({
         items.push({
           kind, startMs: o.start, endMs: o.end, title: o.summary,
           location: o.location, note: o.description, uid: o.uid, allDay: o.allDay,
+          manual: caldav.isManualCourse(o) || undefined,
         });
       }
     }
@@ -223,6 +226,9 @@ export function ScheduleAgenda({
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <span style={{ fontWeight: 600, fontSize: 13.5 }}>{it.title}</span>
                   <span style={{ fontSize: 10, color: "#fff", background: KIND_COLOR[it.kind], borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>{KIND_LABEL[it.kind]}</span>
+                  {it.manual ? (
+                    <span style={{ fontSize: 10, color: "var(--text-2, #555)", border: "1px dashed var(--border, #d9d9d9)", borderRadius: 4, padding: "0 5px", flexShrink: 0 }}>手动</span>
+                  ) : null}
                 </div>
                 {it.location ? <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 1 }}>📍 {it.location}</div> : null}
                 {it.note ? <div style={{ fontSize: 11.5, color: "var(--text-3, #999)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.note}</div> : null}

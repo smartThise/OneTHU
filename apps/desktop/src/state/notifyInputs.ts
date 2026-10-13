@@ -7,6 +7,7 @@
  *      就能在测试里注入假数据源，时机逻辑可断言。
  */
 import { expandEventSet } from "@onethu/core/src/caldav/ics.js";
+import { courseOccurrenceToScheduleEntry, isCourseOccurrence } from "./notifyEventSplit.js";
 import { getCampusSnapshot, getLearnSnapshot } from "./data.js";
 import { getCloudEvents, getLocalEvents } from "./cloudCal.js";
 import { getExtHwSnapshot, toHomework } from "./exthw.js";
@@ -51,20 +52,31 @@ export function collectNotifyInputs(now = Date.now()): {
       .map((h) => ({ id: h.id, title: h.title, deadline: h.deadline, submitted: h.submitted, courseName: h.courseName })),
   ].filter((h) => !ignoredIds.has(h.id));
 
-  return { schedule, events: collectCalendarEvents(now), homework };
+  const { events, courses } = collectCalendarEvents(now);
+  // 手动补充的课程并进课程通道：上课提醒按 classLead、桌面小组件按课行（「HH:MM 课程名」）
+  return { schedule: [...schedule, ...courses], events, homework };
 }
 
 /** 未来 8 天内的自定义日程（本地 + 云同步日历），按 rrule 展开成具体场次。
- *  事件自带的 alarmMinutes 优先于设置里的默认提前量——那是用户对这一场次的显式选择。 */
-function collectCalendarEvents(now: number): PlanEventEntry[] {
+ *  事件自带的 alarmMinutes 优先于设置里的默认提前量——那是用户对这一场次的显式选择。
+ *
+ *  手动补充的课程（X-ONETHU-SRC=course-manual）不进日程通道，改由 collectNotifyInputs
+ *  并进课程通道：它是一门课，不是一条待办日程——课行只在当天出现（与教务课程同口径），
+ *  也不会因为「勾了小组件」而占掉 7 天窗里的日程位。 */
+function collectCalendarEvents(now: number): { events: PlanEventEntry[]; courses: PlanScheduleEntry[] } {
   const horizon = now + 8 * 86_400_000;
   const sources = [...getLocalEvents(), ...getCloudEvents()];
-  if (sources.length === 0) return [];
+  if (sources.length === 0) return { events: [], courses: [] };
   const byUid = new Map(sources.map((e) => [e.uid, e]));
-  const out: PlanEventEntry[] = [];
+  const events: PlanEventEntry[] = [];
+  const courses: PlanScheduleEntry[] = [];
   for (const occ of expandEventSet(sources, now, horizon)) {
     const src = byUid.get(occ.uid);
-    out.push({
+    if (isCourseOccurrence(occ)) {
+      courses.push(courseOccurrenceToScheduleEntry(occ));
+      continue;
+    }
+    events.push({
       // 只给 uid：实例起点由 notifyPlan 的 id 组成（event:<uid>:<start>:<lead>）承担，
       // 同一场次重复展开得到的 id 因此稳定
       uid: occ.uid,
@@ -78,5 +90,5 @@ function collectCalendarEvents(now: number): PlanEventEntry[] {
       inWidget: src?.onethuWidget === true,
     });
   }
-  return out;
+  return { events, courses };
 }
