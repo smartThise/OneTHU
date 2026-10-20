@@ -49,6 +49,8 @@ import { notifyRust } from "../plugins/rust.js";
 import { PLUGIN_PERMISSIONS } from "../plugins/types.js";
 import { collectWidgetSlots } from "../plugins/pluginWidgets.js";
 import { useThemes } from "../state/theme.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -138,7 +140,7 @@ defineSearchRows([
     fallbackNote: "「检查更新」按钮在每个来自仓库的插件卡上；当前列表没有这类卡，已带到「我的插件」视图。",
     root: "我的插件",
     go: () => {
-      requestPluginsFocus({ target: "检查更新", fallbackTarget: "我的插件", note: "「检查更新」按钮在每个来自仓库的插件卡上；当前列表没有这类卡，已带到「我的插件」视图。" });
+      requestPluginsFocus({ target: "检查更新", fallbackTarget: "我的插件", note: i18n("auto.pages.Plugins.p1") });
     },
   },
   { id: "plg-switch-theme", tab: "插件", section: "我的插件", title: "去切换主题", aliases: ["切换主题", "换主题"], desc: "到「外观与布局 → 主题」切换（会高亮那一节）" , breadcrumb: ["插件", "我的插件", "去切换主题"], displayRoot: "插件", go: () => gotoAppearanceTheme() },
@@ -162,7 +164,7 @@ defineSearchRows([
     id: "plg-market-search", tab: "插件", section: "插件市场", title: "插件市场搜索", aliases: ["搜插件", "插件搜索", "市场搜索框"], desc: "在插件市场里按名字/说明搜索" , breadcrumb: ["插件", "插件市场", "插件市场搜索"], displayRoot: "插件",
     go: () => {
       requestPluginsView({ view: "market" });
-      requestPluginsFocus({ target: "插件市场搜索", fallbackTarget: "插件市场", note: "搜索框在插件市场顶部，已带到市场视图。" });
+      requestPluginsFocus({ target: "插件市场搜索", fallbackTarget: "插件市场", note: i18n("auto.pages.Plugins.p2") });
     },
     landOn: { section: "插件市场", note: "搜索框在插件市场顶部；已带到市场视图，直接在顶部输入即可。" },
   },
@@ -170,7 +172,7 @@ defineSearchRows([
     id: "plg-market-cat", tab: "插件", section: "插件市场", title: "插件分类筛选", aliases: ["全部", "主题", "通用", "插件分类"], desc: "插件市场的「全部 / 主题 / 通用」筛选" , breadcrumb: ["插件", "插件市场", "插件分类筛选"], displayRoot: "插件",
     go: () => {
       requestPluginsView({ view: "market" });
-      requestPluginsFocus({ target: "插件分类筛选", fallbackTarget: "插件市场", note: "分类筛选在插件市场列表上方，已带到市场视图。" });
+      requestPluginsFocus({ target: "插件分类筛选", fallbackTarget: "插件市场", note: i18n("auto.pages.Plugins.p3") });
     },
     landOn: { section: "插件市场", note: "分类筛选按钮在插件市场列表上方；已带到市场视图。" },
   },
@@ -263,7 +265,7 @@ export function PluginsPage({ embedded = false }: { embedded?: boolean } = {}): 
         size="md"
         value={view}
         onChange={(v) => setView(v as "mine" | "market")}
-        options={[{ value: "mine", label: "我的插件" }, { value: "market", label: "插件市场" }]}
+        options={[{ value: "mine", label: i18n("auto.pages.Plugins.p4") }, { value: "market", label: i18n("auto.pages.Plugins.p5") }]}
       />
     </div>
   );
@@ -337,7 +339,7 @@ export function PluginsPage({ embedded = false }: { embedded?: boolean } = {}): 
         {/* ① 主标题必须写全名「OneTHU Harness」（用户点名不许用 OH 简称），副标题保留两档说明 */}
         <PageHead
           title="OneTHU Harness"
-          meta={<span>基础设置 / 高级配置</span>}
+          meta={<span>{i18n("auto.pages.Plugins.1")}</span>}
         />
         <LayoutCard>
           <OhSettingsPage advancedPanels={ohAdvancedPanels} />
@@ -352,12 +354,10 @@ export function PluginsPage({ embedded = false }: { embedded?: boolean } = {}): 
         <Inline gap={2} wrap>{viewSwitch}{installBtn}</Inline>
       ) : (
         <PageHead
-          title="插件"
+          title={i18n("auto.pages.Plugins.2")}
           meta={
             <span>
-              经 <code className="plg-code">onethu.*</code> 公共接口扩展 OneTHU——权限门禁、会话自愈、
-              45s 超时由宿主统一承担
-            </span>
+              {i18n("auto.pages.Plugins.3")}<code className="plg-code">onethu.*</code> {i18n("auto.pages.Plugins.4")}</span>
           }
           actions={
             <Inline gap={2} wrap>
@@ -370,10 +370,10 @@ export function PluginsPage({ embedded = false }: { embedded?: boolean } = {}): 
 
       {/* 电表概览条：StatTile 四格（判例 59b3657同款；LED 脉冲让位于语义） */}
       <Grid min="sm">
-        <StatTile label="已安装" value={String(plugins.length).padStart(2, "0")} />
-        <StatTile label="运行中" value={String(liveCount).padStart(2, "0")} hint={liveCount > 0 ? "有模块在跑" : "空闲"} />
-        <StatTile label="可用命令" value={String(cmds.length).padStart(2, "0")} />
-        <StatTile label="内置核心" value={String(coreCount).padStart(2, "0")} />
+        <StatTile label={i18n("auto.pages.Plugins.5")} value={String(plugins.length).padStart(2, "0")} />
+        <StatTile label={i18n("auto.pages.Plugins.6")} value={String(liveCount).padStart(2, "0")} hint={liveCount > 0 ? "有模块在跑" : "空闲"} />
+        <StatTile label={i18n("auto.pages.Plugins.7")} value={String(cmds.length).padStart(2, "0")} />
+        <StatTile label={i18n("auto.pages.Plugins.8")} value={String(coreCount).padStart(2, "0")} />
       </Grid>
 
 
@@ -404,15 +404,13 @@ export function PluginsPage({ embedded = false }: { embedded?: boolean } = {}): 
       {plugins.length === 0 && cat !== "theme" ? (
         <EmptyState
           icon={<IconPlug size="lg" />}
-          title="机架空空如也"
-          hint="安装第一个插件，为 OneTHU 挂上新的能力模块。"
-          action={<Btn variant="solid" tone="brand" onClick={() => setInstOpen(true)}>安装插件</Btn>}
+          title={i18n("auto.pages.Plugins.9")}
+          hint={i18n("auto.pages.Plugins.10")}
+          action={<Btn variant="solid" tone="brand" onClick={() => setInstOpen(true)}>{i18n("auto.pages.Plugins.11")}</Btn>}
         />
       ) : plugins.length === 0 && cat === "theme" ? (
         <Text as="p" slot="subtitle" tone="quiet">
-          还没有启用中的主题插件。换主题在「外观与布局 → 主题」；启用 / 停用走那里的「管理主题」；
-          安装走那里的「安装主题」（会打开插件市场的主题筛选）。
-        </Text>
+          {i18n("auto.pages.Plugins.12")}</Text>
       ) : (
         <Stack gap={2}>
           {plugins.map((p) => (
@@ -582,15 +580,15 @@ function PluginCard({
               <Text slot="subtitle" weight="semibold" nowrap>{m.name}</Text>
               <Text slot="micro" tone="faint" mono>v{m.version}</Text>
               <Tag>{m.kind === "rust" ? "RUST" : "JS"}</Tag>
-              {isThemeEntry(m) ? <Tag tone="brand">主题</Tag> : null}
+              {isThemeEntry(m) ? <Tag tone="brand">{i18n("auto.pages.Plugins.13")}</Tag> : null}
               {widgetSlots.length > 0 ? (
                 <span
                   title={`桌面小组件：把「OneTHU 插件小组件 ${widgetSlots.map((x) => x.slot).join(" / ")}」放到桌面即可看到本插件的内容`}
                 >
-                  <Tag tone="brand">小组件 {widgetSlots.map((x) => x.slot).join("/")}</Tag>
+                  <Tag tone="brand">{i18n("auto.pages.Plugins.14")}{widgetSlots.map((x) => x.slot).join("/")}</Tag>
                 </span>
               ) : null}
-              {rec.embedded ? <span title="Rust 核心已编进 App，无需二进制"><Tag>内置</Tag></span> : null}
+              {rec.embedded ? <span title={i18n("auto.pages.Plugins.15")}><Tag>{i18n("auto.pages.Plugins.16")}</Tag></span> : null}
             </Inline>
             <Inline gap={2} vAlign="center" wrap>
               <Tag tone={active ? "success" : failed ? "warning" : "neutral"}>{stateText}</Tag>
@@ -605,8 +603,8 @@ function PluginCard({
             <IconBtn
               variant="ghost"
               size="sm"
-              label="打开源码仓库"
-              aria-label="打开源码仓库"
+              label={i18n("auto.pages.Plugins.17")}
+              aria-label={i18n("auto.pages.Plugins.17")}
               titleAttr={rec.repo}
               icon={<IconGithub size="sm" />}
               onClick={() => void (async () => {
@@ -625,11 +623,11 @@ function PluginCard({
             onChange={() => void (rec.enabled ? disablePlugin(id) : enablePlugin(id)).catch((e: unknown) => setRunMsg(String(e)))}
           />
           {id === "onethu.harness" ? (
-            <Btn variant="ghost" titleAttr="管理 MCP 服务器" onClick={() => onOpenSheet({ id, mode: "mcp" })}>MCP</Btn>
+            <Btn variant="ghost" titleAttr={i18n("auto.pages.Plugins.18")} onClick={() => onOpenSheet({ id, mode: "mcp" })}>MCP</Btn>
           ) : null}
           {/* 主题类插件：动作行里一处（与检查更新/设置/删除同为纯文字） */}
           {isThemeEntry(m) ? (
-            <Btn variant="ghost" titleAttr="到「外观与布局 → 主题」里切换（会高亮那一节）" onClick={() => gotoAppearanceTheme()}>去切换主题</Btn>
+            <Btn variant="ghost" titleAttr={i18n("auto.pages.Plugins.19")} onClick={() => gotoAppearanceTheme()}>{i18n("auto.pages.Plugins.20")}</Btn>
           ) : null}
           {rec.repo && m.kind !== "rust" && !rec.embedded && !rec.builtin && id !== "onethu.harness" ? (
             <Btn variant="ghost" titleAttr={`从 ${rec.repo} 检查最新版（本体仓库优先，市场兜底）`} disabled={checkBusy || repoCheck.busy} onClick={() => { onCheckUpdate?.(); void checkUpdate().catch(() => undefined); }}>{checkBusy || repoCheck.busy ? "检查中…" : "检查更新"}</Btn>
@@ -641,14 +639,14 @@ function PluginCard({
               }}>{repoCheck.busy ? "更新中…" : `更新至仓库版 v${repoCheck.remote || repoRemote}`}</Btn>
           ) : null}
           {!repoCheck.remote && !repoRemote && marketVersion && compareVersions(marketVersion, m.version) > 0 ? (
-            <Btn variant="ghost" titleAttr={`市场已有 v${marketVersion}`} onClick={() => onGoMarket?.()}>可更新 ↑</Btn>
+            <Btn variant="ghost" titleAttr={`市场已有 v${marketVersion}`} onClick={() => onGoMarket?.()}>{i18n("auto.pages.Plugins.21")}</Btn>
           ) : null}
-          <Btn variant="ghost" onClick={() => onOpenSheet({ id, mode: "settings" })}>设置</Btn>
+          <Btn variant="ghost" onClick={() => onOpenSheet({ id, mode: "settings" })}>{i18n("auto.pages.Plugins.22")}</Btn>
           {m.kind === "rust" ? (
-            <Btn variant="ghost" onClick={() => onOpenSheet({ id, mode: "log" })}>日志</Btn>
+            <Btn variant="ghost" onClick={() => onOpenSheet({ id, mode: "log" })}>{i18n("auto.pages.Plugins.23")}</Btn>
           ) : null}
           {rec.embedded || rec.builtin || m.id === "onethu.harness" ? null : (
-            <Btn variant="solid" tone="error" onClick={() => void uninstallPlugin(id)}>删除</Btn>
+            <Btn variant="solid" tone="error" onClick={() => void uninstallPlugin(id)}>{i18n("auto.pages.Plugins.24")}</Btn>
           )}
         </Inline>
 
@@ -674,8 +672,8 @@ function PluginCard({
           return (
             <Banner
               tone="info"
-              title="📢 插件公告"
-              action={<Btn variant="ghost" size="sm" onClick={ack}>知道了</Btn>}
+              title={i18n("auto.pages.Plugins.25")}
+              action={<Btn variant="ghost" size="sm" onClick={ack}>{i18n("auto.pages.Plugins.26")}</Btn>}
             >
               <Text as="p" slot="micro" tone="quiet">{rec.notice.text.slice(0, 1600)}</Text>
             </Banner>
@@ -722,7 +720,7 @@ function PluginCard({
                     />
                   ) : null}
                   <Inline gap={2} wrap>
-                    <Btn variant="solid" tone="brand" onClick={() => void doRun(c.id)}>执行</Btn>
+                    <Btn variant="solid" tone="brand" onClick={() => void doRun(c.id)}>{i18n("auto.pages.Plugins.27")}</Btn>
                   </Inline>
                   {runMsg ? <Text as="p" slot="micro" mono tone="quiet" nowrap={false}>{runMsg}</Text> : null}
                   {runResult && (runResult.markdown || runResult.items?.length || runResult.kv?.length) ? (
@@ -763,7 +761,7 @@ function PluginSheet({
   const dirtyRef = useRef(false);
   const requestClose = (): void => {
     if (!dirtyRef.current) return onClose();
-    void confirmOk("设置有未保存的修改，关闭将丢失。确定关闭？").then((ok) => {
+    void confirmOk(i18n("auto.pages.Plugins.msg1")).then((ok) => {
       if (ok) onClose();
     });
   };
@@ -779,10 +777,10 @@ function PluginSheet({
       size="md"
       foot={mode === "log" ? (
         <Inline gap={2} wrap>
-          <Text slot="micro" tone="faint">{evtCount} 条事件 · 最多保留 300 条</Text>
+          <Text slot="micro" tone="faint">{evtCount} {i18n("auto.pages.Plugins.28")}</Text>
           <Spacer />
-          <Btn variant="ghost" onClick={() => void notifyRust(id, "interrupt").catch(() => undefined)}>打断运行</Btn>
-          <Btn variant="ghost" onClick={() => clearPluginEvents(id)}>清空</Btn>
+          <Btn variant="ghost" onClick={() => void notifyRust(id, "interrupt").catch(() => undefined)}>{i18n("auto.pages.Plugins.29")}</Btn>
+          <Btn variant="ghost" onClick={() => clearPluginEvents(id)}>{i18n("auto.pages.Plugins.30")}</Btn>
         </Inline>
       ) : undefined}
     >
@@ -805,12 +803,12 @@ function McpSwitchRow(): ReactNode {
   const [on, setOn] = useState(() => mcpServerEnabled());
   return (
     <SettingsRow
-      title="OH MCP 服务器"
+      title={i18n("auto.pages.Plugins.31")}
       sub={on ? "已开启：本机客户端可连 127.0.0.1:8787" : "已关闭：不对外提供本机 MCP"}
       control={
         <Switch
           checked={on}
-          aria-label="OH MCP 服务器开关"
+          aria-label={i18n("auto.pages.Plugins.32")}
           onChange={(v) => {
             setMcpServer(v);
             setOn(v);
@@ -831,10 +829,10 @@ export function McpBody(): ReactNode {
   const edit = async (idx: number): Promise<void> => {
     const cur = list[idx];
     const f = await openFormModal(idx === -1 ? "添加 MCP 服务器" : `编辑 MCP 服务器 · ${cur?.name ?? ""}`, [
-      { key: "name", label: "名称（工具前缀 mcp_<name>_）", required: true, default: cur?.name ?? "" },
-      { key: "command", label: "启动命令", required: true, default: cur?.command ?? "", placeholder: "npx / uvx / /usr/bin/node …" },
-      { key: "args", label: "参数（空格分隔，含引号的项用单引号包裹）", kind: "textarea", default: cur?.args.join(" ") ?? "", placeholder: '-y @modelcontextprotocol/server-filesystem /Users/me/docs' },
-      { key: "env", label: "环境变量（KEY=VALUE，空格分隔多个）", default: Object.entries(cur?.env ?? {}).map(([k, v]) => `${k}=${v}`).join(" ") },
+      { key: "name", label: i18n("auto.pages.Plugins.p6"), required: true, default: cur?.name ?? "" },
+      { key: "command", label: i18n("auto.pages.Plugins.p7"), required: true, default: cur?.command ?? "", placeholder: "npx / uvx / /usr/bin/node …" },
+      { key: "args", label: i18n("auto.pages.Plugins.p8"), kind: "textarea", default: cur?.args.join(" ") ?? "", placeholder: '-y @modelcontextprotocol/server-filesystem /Users/me/docs' },
+      { key: "env", label: i18n("auto.pages.Plugins.p9"), default: Object.entries(cur?.env ?? {}).map(([k, v]) => `${k}=${v}`).join(" ") },
     ]);
     if (!f) return;
     const parseSpaceList = (v: string): string[] =>
@@ -846,7 +844,7 @@ export function McpBody(): ReactNode {
     }
     const entry: McpServerEntry = { name: f.name?.trim() ?? "", command: f.command?.trim() ?? "", args: parseSpaceList(f.args ?? ""), env };
     if (!entry.name) {
-      showToast("MCP 名称不能为空：填个名字再保存。");
+      showToast(i18n("auto.pages.Plugins.msg2"));
       return;
     }
     /* 同名 server → 工具前缀 mcp_<name>_ 撞车：模型侧会出现两个同名函数，调用必错。 */
@@ -871,20 +869,17 @@ export function McpBody(): ReactNode {
       <McpSwitchRow />
       {/* 使用说明（用户点名要"使用说明"）：只写事实 —— 端点、暴露范围、何时生效。 */}
       <Text as="p" slot="micro" tone="faint">
-        开启后，本机其它 MCP 客户端填 <code className="plg-code">http://127.0.0.1:8787/mcp</code>（Streamable-HTTP）即可调用 OneTHU。
-      </Text>
+        {i18n("auto.pages.Plugins.33")}<code className="plg-code">http://127.0.0.1:8787/mcp</code>{i18n("auto.pages.Plugins.34")}</Text>
       <Text as="p" slot="micro" tone="faint">
-        只暴露无需确认的工具（要二次确认的写操作不上墙），仅本机回环、不跨机；改完发一条消息或重开 OH 生效。
-      </Text>
+        {i18n("auto.pages.Plugins.35")}</Text>
       {/* 反向（OH → 外部 MCP）的检索锚点：设置检索/OH ui_navigate 落到「连接外部 MCP 服务器」这一行 */}
       <div data-set-id="row-连接外部-MCP-服务器">
-        <Text as="h4" slot="subtitle" weight="semibold">连接外部 MCP 服务器</Text>
+        <Text as="h4" slot="subtitle" weight="semibold">{i18n("auto.pages.Plugins.36")}</Text>
         <Text as="p" slot="micro" tone="faint">
-          下面是**反向**的：让 OH 去连别人的 MCP 服务器 ——
-        </Text>
+          {i18n("auto.pages.Plugins.37")}</Text>
       </div>
       {list.length === 0 ? (
-        <Text as="p" slot="micro" tone="faint">尚未添加。点「添加 MCP 服务器」开始。</Text>
+        <Text as="p" slot="micro" tone="faint">{i18n("auto.pages.Plugins.38")}</Text>
       ) : (
         <Card flush>
           <List divided>
@@ -896,8 +891,8 @@ export function McpBody(): ReactNode {
                 sub={<code className="plg-code">{sv.command} {sv.args.join(" ")}</code>}
                 trailing={
                   <Inline gap={1}>
-                    <Btn variant="ghost" size="sm" onClick={() => void edit(i)}>编辑</Btn>
-                    <Btn variant="solid" tone="error" size="sm" onClick={() => void del(i)}>删除</Btn>
+                    <Btn variant="ghost" size="sm" onClick={() => void edit(i)}>{i18n("auto.pages.Plugins.39")}</Btn>
+                    <Btn variant="solid" tone="error" size="sm" onClick={() => void del(i)}>{i18n("auto.pages.Plugins.24")}</Btn>
                   </Inline>
                 }
               />
@@ -905,7 +900,7 @@ export function McpBody(): ReactNode {
           </List>
         </Card>
       )}
-      <Btn variant="ghost" onClick={() => void edit(-1)}>＋ 添加 MCP 服务器</Btn>
+      <Btn variant="ghost" onClick={() => void edit(-1)}>{i18n("auto.pages.Plugins.40")}</Btn>
     </Stack>
   );
 }
@@ -946,11 +941,11 @@ export function SettingsBody({
   if (fields.length === 0) {
     return (
       <Stack gap={2} fill>
-        <EmptyState title="该插件没有可配置项" />
+        <EmptyState title={i18n("auto.pages.Plugins.41")} />
         <Inline gap={2} wrap>
           <Text slot="micro" tone="faint">—</Text>
           <Spacer />
-          <Btn variant="ghost" onClick={onClose}>关闭</Btn>
+          <Btn variant="ghost" onClick={onClose}>{i18n("auto.pages.Plugins.42")}</Btn>
         </Inline>
       </Stack>
     );
@@ -960,7 +955,7 @@ export function SettingsBody({
     <Field key={f.key} label={f.label}>
       {f.auto ? (
         /* 自动维护：只读展示实时值（不受草稿影响），避免手改与误覆盖 */
-        <Input readOnly value={liveSettings[f.key] ?? ""} placeholder="（尚未签发）" />
+        <Input readOnly value={liveSettings[f.key] ?? ""} placeholder={i18n("auto.pages.Plugins.43")} />
       ) : f.type === "select" ? (
         <Select value={draft[f.key] ?? ""} onChange={(value) => editDraft((d) => ({ ...d, [f.key]: value }))}>{optionsFor(f, liveSettings).map((o: { value: string; label: string }) => (
             <option key={o.value} value={o.value}>{o.label}</option>
@@ -972,20 +967,20 @@ export function SettingsBody({
       )}
     </Field>
   ));
-  const hintNode = <Text as="p" slot="micro" tone="faint">设置在插件下一轮运行时生效（每轮实时读取）。</Text>;
+  const hintNode = <Text as="p" slot="micro" tone="faint">{i18n("auto.pages.Plugins.44")}</Text>;
   const footNode = (
     <Inline gap={2} wrap>
       {savedAt ? (
         <Inline gap={1}>
-          <Tag tone="success">已保存</Tag>
+          <Tag tone="success">{i18n("auto.pages.Plugins.45")}</Tag>
           <Text slot="micro" tone="faint">{savedAt}</Text>
         </Inline>
       ) : (
-        <Text slot="micro" tone="faint">修改后点「保存」才会生效</Text>
+        <Text slot="micro" tone="faint">{i18n("auto.pages.Plugins.46")}</Text>
       )}
       <Spacer />
-      <Btn variant="ghost" onClick={() => setDraft({ ...rec.settings })}>撤销修改</Btn>
-      <Btn variant="solid" tone="brand" disabled={saving} onClick={save}>保存</Btn>
+      <Btn variant="ghost" onClick={() => setDraft({ ...rec.settings })}>{i18n("auto.pages.Plugins.47")}</Btn>
+      <Btn variant="solid" tone="brand" disabled={saving} onClick={save}>{i18n("auto.pages.Plugins.48")}</Btn>
     </Inline>
   );
   return sheet ? (
@@ -1021,7 +1016,7 @@ export function LogBody({ id }: { id: string }): ReactNode {
       <Surface sunken pad="sm">
         <Stack gap={1} fill>
           {lines.length === 0 ? (
-            <Text as="span" slot="micro" tone="faint" nowrap={false}>— 尚无输出 · 发一次对话或执行一条命令试试 —</Text>
+            <Text as="span" slot="micro" tone="faint" nowrap={false}>{i18n("auto.pages.Plugins.49")}</Text>
           ) : (
             lines.map((e, i) => {
               const isLog = e.kind === "log";
@@ -1130,12 +1125,12 @@ function MarketView({
     return (
       <Stack gap={3}>
         <Inline gap={3} align="start" wrap fill>
-          <Btn variant="ghost" onClick={() => setDetail(null)}>返回</Btn>
+          <Btn variant="ghost" onClick={() => setDetail(null)}>{i18n("auto.pages.Plugins.50")}</Btn>
           <Avatar name={detail.name} src={head || undefined} tone="neutral" />
           <Stack gap={0} fill>
             <Inline gap={2} vAlign="center" wrap>
               <Text slot="title" weight="bold">{detail.name}</Text>
-              {installedMap.has(detail.id) ? <Tag tone="success">已安装</Tag> : null}
+              {installedMap.has(detail.id) ? <Tag tone="success">{i18n("auto.pages.Plugins.5")}</Tag> : null}
               {typeof stars[detail.id] === "number" ? (
                 <Inline gap={1} vAlign="center">
                   <IconStar size="sm" />
@@ -1159,14 +1154,14 @@ function MarketView({
                   } catch {
                     window.open(detail.homepage!, "_blank");
                   }
-                })()}>主页</Btn>
+                })()}>{i18n("auto.pages.Plugins.51")}</Btn>
             ) : null}
             {/* ④ 主题类插件：详情里直接启用/停用（沿用卡片开关语义） */}
             {rec && isThemeEntry(detail) ? (
               <Btn variant="ghost" onClick={() => void (on ? disablePlugin(detail.id) : enablePlugin(detail.id)).catch((e: unknown) => setMsg(String(e)))}>{on ? "停用主题" : "启用主题"}</Btn>
             ) : null}
             {!installedMap.has(detail.id) ? (
-              <Btn variant="solid" tone="brand" disabled={busy} onClick={() => void install(detail)}>安装</Btn>
+              <Btn variant="solid" tone="brand" disabled={busy} onClick={() => void install(detail)}>{i18n("auto.pages.Plugins.52")}</Btn>
             ) : null}
           </Inline>
         </Inline>
@@ -1188,7 +1183,7 @@ function MarketView({
         ) : null}
 
         <Text as="p" slot="micro" tone="faint">
-          仓库：{normalizeRepoUrl(detail.repo)}
+          {i18n("auto.pages.Plugins.53")}{normalizeRepoUrl(detail.repo)}
         </Text>
       </Stack>
     );
@@ -1198,30 +1193,30 @@ function MarketView({
     <Stack gap={2}>
       <Inline gap={2} wrap fill data-set-id="sec-插件市场">
         <Grow>
-          <Input placeholder="搜索插件名称 / 描述 / 标签" value={query} onChange={(value) => setQuery(value)} />
+          <Input placeholder={i18n("auto.pages.Plugins.54")} value={query} onChange={(value) => setQuery(value)} />
         </Grow>
         {/* ④ 排序：与全站同一套分段控件口径 */}
-        <Segment size="sm" value={sortBy} onChange={(v) => setSortBy(v as "stars" | "latest")} options={[{ value: "stars", label: "star" }, { value: "latest", label: "最新" }]} />
+        <Segment size="sm" value={sortBy} onChange={(v) => setSortBy(v as "stars" | "latest")} options={[{ value: "stars", label: "star" }, { value: "latest", label: i18n("auto.pages.Plugins.p10") }]} />
         <Btn variant="outline" disabled={busy} onClick={() => void load(true)}>{busy ? "刷新中…" : "刷新"}</Btn>
       </Inline>
       {/* ④ 市场自己的类别筛选：与「我的插件」同一套分段口径 */}
-      <Segment size="sm" value={cat} onChange={(v) => setCat(v as "all" | "theme" | "general")} options={[{ value: "all", label: "全部" }, { value: "theme", label: "主题" }, { value: "general", label: "通用" }]} />
+      <Segment size="sm" value={cat} onChange={(v) => setCat(v as "all" | "theme" | "general")} options={[{ value: "all", label: i18n("auto.pages.Plugins.p11") }, { value: "theme", label: i18n("auto.pages.Plugins.p12") }, { value: "general", label: i18n("auto.pages.Plugins.p13") }]} />
 
       {!loaded ? (
         msg ? (
-          <Banner tone="error" action={<Btn variant="outline" size="sm" disabled={busy} onClick={() => void load(true)}>重试</Btn>}>
+          <Banner tone="error" action={<Btn variant="outline" size="sm" disabled={busy} onClick={() => void load(true)}>{i18n("auto.pages.Plugins.55")}</Btn>}>
             {msg}
           </Banner>
         ) : busy ? (
           <LoadingBlock rows={3} />
         ) : (
-          <Text as="p" slot="subtitle" tone="quiet">准备中…</Text>
+          <Text as="p" slot="subtitle" tone="quiet">{i18n("auto.pages.Plugins.56")}</Text>
         )
       ) : msg ? (
         <Banner tone={msgTone(msg)}>{msg}</Banner>
       ) : null}
 
-      {loaded && !hits.length ? <EmptyState title="无匹配条目" /> : null}
+      {loaded && !hits.length ? <EmptyState title={i18n("auto.pages.Plugins.57")} /> : null}
 
       {hits.length ? (
         <Grid min="md">
@@ -1251,7 +1246,7 @@ function MarketView({
                       <Inline gap={1} vAlign="center">
                         <IconStar size="sm" />
                         <Text slot="micro" tone="faint">{typeof st === "number" ? String(st) : "—"}</Text>
-                        {installedMap.has(item.id) ? <Tag tone="success">已安装</Tag> : null}
+                        {installedMap.has(item.id) ? <Tag tone="success">{i18n("auto.pages.Plugins.5")}</Tag> : null}
                       </Inline>
                     }
                   />
@@ -1275,7 +1270,7 @@ function MarketView({
                         （实测窄卡片下操作区折成 4 行、其中第 3 行是空行 = 用户说的「挤」）。
                         space-between 零额外 item：折行时只会 2 行，不会出现幽灵空行。 */}
                     <Inline gap={2} wrap justify="between">
-                      <Btn variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setDetail(item); }}>详情</Btn>
+                      <Btn variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setDetail(item); }}>{i18n("auto.pages.Plugins.58")}</Btn>
                       {/* 仓库 = 图标钮（repo 全串走 tooltip / aria-label / 详情页）。
                           原来把 `smartThise/OneTHU-plugin-hello` 当按钮文字：实测这个按钮
                           宽 233~243px，**比整张卡的内容区（176~240px）还宽** → 操作行必然折成
@@ -1303,7 +1298,7 @@ function MarketView({
                         const local = installedMap.get(item.id);
                         if (local && compareVersions(item.version, local) <= 0) {
                           return (
-                            <Btn variant="outline" size="sm" disabled titleAttr={`本地 v${local}，已是最新`}>已安装</Btn>
+                            <Btn variant="outline" size="sm" disabled titleAttr={`本地 v${local}，已是最新`}>{i18n("auto.pages.Plugins.5")}</Btn>
                           );
                         }
                         const updating = !!local;
@@ -1321,10 +1316,8 @@ function MarketView({
       ) : null}
 
       <Text as="p" slot="micro" tone="faint">
-        想上架你的插件？向 OneTHU-Market 仓库提交 Pull Request——流程见
-        {" "}<a href="https://github.com/smartThise/OneTHU-Market" target="_blank" rel="noreferrer">市场仓库</a>
-        与插件开发文档 §7。
-      </Text>
+        {i18n("auto.pages.Plugins.59")}{" "}<a href="https://github.com/smartThise/OneTHU-Market" target="_blank" rel="noreferrer">{i18n("auto.pages.Plugins.60")}</a>
+        {i18n("auto.pages.Plugins.61")}</Text>
     </Stack>
   );
 }
@@ -1384,7 +1377,7 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
         const sel = await open({
           multiple: false,
           directory: false,
-          title: "选择插件压缩包（manifest.json + 二进制 + logo.svg）",
+          title: i18n("auto.pages.Plugins.p14"),
           filters: [{ name: "插件包", extensions: ["zip"] }],
         });
         if (!sel) return;
@@ -1403,7 +1396,7 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
       const sel = await open({
         multiple: false,
         directory: false,
-        title: "选择插件文件夹内的 manifest.json",
+        title: i18n("auto.pages.Plugins.p15"),
         filters: [{ name: "manifest.json", extensions: ["json"] }],
       });
       if (!sel) return; // 用户取消
@@ -1439,10 +1432,10 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
             setMsg(null);
           }}
           options={[
-            { value: "paste", label: "粘贴 JS 模块" },
-            { value: "jsfile", label: "选择 .js 文件" },
-            { value: "rust", label: "Rust 骨干插件" },
-            { value: "github", label: "GitHub 仓库" },
+            { value: "paste", label: i18n("auto.pages.Plugins.p16") },
+            { value: "jsfile", label: i18n("auto.pages.Plugins.p17") },
+            { value: "rust", label: i18n("auto.pages.Plugins.p18") },
+            { value: "github", label: i18n("auto.pages.Plugins.p19") },
           ]}
         />
 
@@ -1456,7 +1449,7 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
               onChange={(value) => setCode(value)}
             />
             <Inline gap={2} wrap>
-              <Text slot="micro" tone="faint">粘贴完整模块代码，安装即激活。</Text>
+              <Text slot="micro" tone="faint">{i18n("auto.pages.Plugins.62")}</Text>
               <Spacer />
               <Btn variant="solid" tone="brand" disabled={busy || !code.trim()} loading={busy} onClick={() => void install(code)}>{busy ? "安装中…" : "安装"}</Btn>
             </Inline>
@@ -1466,8 +1459,7 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
         {tab === "jsfile" ? (
           <Stack gap={2} fill>
             <Btn variant="outline" block icon={<IconFile size="md" />} onClick={() => fileRef.current?.click()}>
-              点击选择 .js / .mjs 插件文件
-            </Btn>
+              {i18n("auto.pages.Plugins.63")}</Btn>
             {/* 裸 file input 仅此一处（触发层换 Btn，读取管线原样）；同 Forum/壁纸库既有模式 */}
             <input
               ref={fileRef}
@@ -1480,7 +1472,7 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
                 e.target.value = "";
               }}
             />
-            <Text as="p" slot="micro" tone="faint">读取文件内容后与「粘贴安装」走同一校验管线</Text>
+            <Text as="p" slot="micro" tone="faint">{i18n("auto.pages.Plugins.64")}</Text>
           </Stack>
         ) : null}
 
@@ -1489,14 +1481,14 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
             <Btn variant="outline" block loading={busy} onClick={() => void installRust()}>
               {busy ? "打开系统对话框…" : "选择 manifest.json（系统文件对话框）"}
             </Btn>
-            <Text as="p" slot="micro" tone="faint">二进制须与 manifest.json 同目录（桌面端 sidecar 形态；Android 内置核心无需安装）</Text>
+            <Text as="p" slot="micro" tone="faint">{i18n("auto.pages.Plugins.65")}</Text>
           </Stack>
         ) : null}
 
         {tab === "github" ? (
           <Stack gap={2} fill>
             <Input
-              placeholder="user/repo 或 https://github.com/user/repo（可 @branch 或 /tree/branch）"
+              placeholder={i18n("auto.pages.Plugins.66")}
               value={repoInput}
               onChange={(value) => setRepoInput(value)}
               onEnter={() => {
@@ -1504,7 +1496,7 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
               }}
             />
             <Inline gap={2} wrap>
-              <Text slot="micro" tone="faint">从仓库根目录拉取 plugin.js（或 index.js / main.js），与粘贴安装同一校验管线。</Text>
+              <Text slot="micro" tone="faint">{i18n("auto.pages.Plugins.67")}</Text>
               <Spacer />
               <Btn variant="solid" tone="brand" disabled={busy || !repoInput.trim()} loading={busy} onClick={() => void installFromRepoText(repoInput).catch((e2: unknown) => setMsg(`安装失败：${String(e2 instanceof Error ? e2.message : e2).slice(0, 200)}`))}>{busy ? "安装中…" : "安装"}</Btn>
             </Inline>
@@ -1515,10 +1507,10 @@ function InstallPanel({ onClose }: { onClose: () => void }): ReactNode {
           {msg ? (
             <Text as="p" slot="subtitle" tone={msgTone(msg) === "error" ? "error" : msgTone(msg) === "success" ? "success" : "default"}>{msg}</Text>
           ) : (
-            <Text as="p" slot="micro" tone="faint">安装即代表信任该代码并授予其声明的权限。</Text>
+            <Text as="p" slot="micro" tone="faint">{i18n("auto.pages.Plugins.68")}</Text>
           )}
           <Spacer />
-          <Btn variant="ghost" onClick={onClose}>完成</Btn>
+          <Btn variant="ghost" onClick={onClose}>{i18n("auto.pages.Plugins.69")}</Btn>
         </Inline>
       </Stack>
     </Card>

@@ -29,6 +29,8 @@ import { enc } from "../../state/atoms.js";
 import { fmtRemindOffset, REMIND_MAX, REMIND_MIN, REMIND_PRESETS, setHwReminder, useHwDefault, useHwReminder } from "../../state/hwRemind.js";
 import { extHwSourceName, isExternalNoticeId } from "../../state/exthw.js";
 import { vaultCatchAttr } from "../../components/vault/vaultDrag.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 /* ---------- 深链学期挂钩 ----------
  * 深链（小OH navigate / 收藏原子）可能带 semesterId：courseId 是学期作用域的，
@@ -323,7 +325,7 @@ export function HwRemindPop({
     if (Number.isFinite(n) && n >= REMIND_MIN && n <= REMIND_MAX) apply(n);
   };
   return (
-    <div className={"hwremind-pop" + (closing ? " is-closing" : "")} role="menu" aria-label="提醒时间">
+    <div className={"hwremind-pop" + (closing ? " is-closing" : "")} role="menu" aria-label={i18n("auto.pages.learn.shared.1")}>
       <div className="hwremind-pop-title">{title}</div>
       <div className="hwremind-grid">
         {REMIND_PRESETS.map((m) => (
@@ -340,12 +342,10 @@ export function HwRemindPop({
           onChange={(e) => setCustom(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && applyCustom()}
         />
-        <Btn variant="outline" disabled={!(Math.round(Number(custom)) >= REMIND_MIN && Math.round(Number(custom)) <= REMIND_MAX)} onClick={applyCustom}>设定
-        </Btn>
+        <Btn variant="outline" disabled={!(Math.round(Number(custom)) >= REMIND_MIN && Math.round(Number(custom)) <= REMIND_MAX)} onClick={applyCustom}>{i18n("auto.pages.learn.shared.2")}</Btn>
         {allowClear && value != null ? (
-          <Btn variant="ghost" titleAttr="清除（恢复跟随全局默认）" onClick={() => apply(null)}>
-            清除
-          </Btn>
+          <Btn variant="ghost" titleAttr={i18n("auto.pages.learn.shared.3")} onClick={() => apply(null)}>
+            {i18n("auto.pages.learn.shared.4")}</Btn>
         ) : null}
       </div>
       {foot ? <div className="hwremind-pop-foot">{foot}</div> : null}
@@ -360,7 +360,7 @@ export function HwRemindButton({ h }: { h: Homework }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="hwremind" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-      <Btn variant="ghost" titleAttr={cur ? `截止前 ${fmtRemindOffset(cur)} 提醒（覆盖全局默认 ${fmtRemindOffset(def)}）` : `自定义提醒（当前跟随全局默认 ${fmtRemindOffset(def)}）`} aria-label="设置作业提醒" onClick={() => setOpen((o) => !o)}><IconBell width={14} height={14} />{cur ? <span className="hwremind-tag">{fmtRemindOffset(cur)}</span> : null}</Btn>
+      <Btn variant="ghost" titleAttr={cur ? `截止前 ${fmtRemindOffset(cur)} 提醒（覆盖全局默认 ${fmtRemindOffset(def)}）` : `自定义提醒（当前跟随全局默认 ${fmtRemindOffset(def)}）`} aria-label={i18n("auto.pages.learn.shared.5")} onClick={() => setOpen((o) => !o)}><IconBell width={14} height={14} />{cur ? <span className="hwremind-tag">{fmtRemindOffset(cur)}</span> : null}</Btn>
       {open ? (
         <HwRemindPop
           value={cur}
@@ -431,13 +431,13 @@ export function HomeworkRow({
     >
       <div className="row-when">
         <b>{fmtWhenParts(h.deadline).date}</b>
-        <span>{fmtWhenParts(h.deadline).time} 截止</span>
+        <span>{fmtWhenParts(h.deadline).time} {i18n("auto.pages.learn.shared.6")}</span>
       </div>
       <div className="row-main">
         <div className="row-title">
           {h.source ? <span className="src-badge" title={h.externalProgress ? `已作答 ${h.externalProgress}` : undefined}>{extHwSourceName(h.source)}</span> : null}
-          {h.kind === "exam" ? <span className="tag-exam" title="考试">考试</span> : null}
-          {h.audited ? <span className="tag-audit" title="旁听课堂">旁听</span> : null}
+          {h.kind === "exam" ? <span className="tag-exam" title={i18n("auto.pages.learn.shared.7")}>{i18n("auto.pages.learn.shared.7")}</span> : null}
+          {h.audited ? <span className="tag-audit" title={i18n("auto.pages.learn.shared.8")}>{i18n("auto.pages.learn.shared.9")}</span> : null}
           {h.title}
         </div>
         <div className="row-sub">{courseName ?? h.courseName ?? "课程"}</div>
@@ -449,12 +449,11 @@ export function HomeworkRow({
       {/* R23（霖需求）：部分作答的外部作业（进行中）在截止 chip 右侧标注题级进度 */}
       {h.externalProgress && !h.submitted ? (
         <span className="chip chip-gray" title={`已完成 ${h.externalProgress} 题`}>
-          已完成 {h.externalProgress} 题
-        </span>
+          {i18n("auto.pages.learn.shared.10")}{h.externalProgress} {i18n("auto.pages.learn.shared.11")}</span>
       ) : null}
       {/* DDL 提醒（作业列表页启用；行点击导航要 stopPropagation）。R10 15.3：外部作业
           的 h.id（ext:source:...）稳定可用，提醒链路只需 deadline/title，一并放开 */}
-      {isIgnored ? <span className="chip chip-gray" title="已忽略：不提醒、不进作业区与日程">已忽略</span> : null}
+      {isIgnored ? <span className="chip chip-gray" title={i18n("auto.pages.learn.shared.12")}>{i18n("auto.pages.learn.shared.13")}</span> : null}
       {/* 忽略/恢复：任何状态（未交/已交/已批）的作业都能忽略，故常驻（不随 remind 开关） */}
       <Btn variant="ghost" titleAttr={isIgnored ? "恢复：重新参与提醒与显示" : "忽略：不再提醒，也不在作业区与日程显示"} onClick={(e) => {
           e.stopPropagation();
@@ -502,7 +501,7 @@ export function NoticeRow({
       </div>
       <div className="row-main">
         <div className="row-title">
-          {n.important ? <span className="flag" title="标记为重要" /> : null}
+          {n.important ? <span className="flag" title={i18n("auto.pages.learn.shared.14")} /> : null}
           {n.title}
         </div>
         <div className="row-sub">
@@ -552,8 +551,7 @@ export function FileRow({ f, courseName, from, style, sem }: RowProps & { f: Cou
         }}
         onKeyDown={(e) => e.stopPropagation()}
       >
-        预览
-      </button>
+        {i18n("auto.pages.learn.shared.15")}</button>
       <CollectStar atom={{ kind: "file", key: enc(f.courseId, f.id, f.title, courseName ?? "", sem ?? "") }} title={f.title} />
       <IconChevron className="row-caret" width={14} height={14} />
     </div>

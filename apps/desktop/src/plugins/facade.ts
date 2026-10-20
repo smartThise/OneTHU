@@ -113,6 +113,8 @@ function wrap<T extends Record<string, unknown>>(obj: T, perms: Set<string>, per
 
 
 import type { WidgetBinding } from "../state/widgetInstances.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 校验插件传来的绑定：目标必须真实存在，否则拒绝（改了配置却指向不存在的东西最糟） */
 async function normalizeBinding(raw: unknown): Promise<WidgetBinding | null> {
@@ -1261,7 +1263,7 @@ export function buildApi(pluginId: string, perms: Set<string>): OnethuApi {
       },
       /* ── 标签页 ── */
       tabList: (): Array<{ id: string; title: string; page: string }> => [
-        { id: "home", title: "首页", page: "homepage" },
+        { id: "home", title: i18n("auto.plugins.facade.p1"), page: "homepage" },
         ...explorerSnapshot().tabs.map((t) => ({ id: t.id, title: t.title, page: String(t.page) })),
       ],
       tabOpen: (page: string): { id: string } => {
@@ -2021,7 +2023,7 @@ async function nethGuard<T>(op: () => Promise<T>): Promise<T> {
     if (now - nethCaptchaNavTs > 10_000) {
       nethCaptchaNavTs = now;
       if (navGo("life", { lifeTab: "network" })) {
-        showToast("校园网需要验证码登录，请输入图中验证码");
+        showToast(i18n("auto.plugins.facade.msg1"));
       }
     }
     throw new Error(

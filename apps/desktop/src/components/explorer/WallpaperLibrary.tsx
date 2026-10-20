@@ -30,6 +30,8 @@ import {
   type WallpSyncResult,
 } from "../../state/wallpsync.js";
 import { showToast } from "../../state/toast.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 /** 单格缩略图（图片直接预览；视频出首帧；内置渐变画色块） */
 function WallThumb({ entry }: { entry: LibraryEntry }): ReactNode {
@@ -64,12 +66,12 @@ function WallCell({ entry, variant }: { entry: LibraryEntry; variant: "panel" | 
           className="wall-chip wall-chip-del"
           onClick={() => removeFromLibrary(entry.id)}
           aria-label={"删除：" + entry.name}
-          title="从库里删除"
+          title={i18n("auto.components.explorer.WallpaperLibrary.1")}
         >
           ✕
         </button>
       ) : null}
-      {fullActive ? <span className="wall-dot" title="当前全屏壁纸" /> : null}
+      {fullActive ? <span className="wall-dot" title={i18n("auto.components.explorer.WallpaperLibrary.2")} /> : null}
       <div className="wall-name">{entry.name}</div>
     </div>
   );
@@ -128,23 +130,18 @@ export function WallpaperLibrary({
       />
       {variant === "picker" ? (
         <div className="wall-picker-head">
-          <b>更换壁纸</b>
-          <Btn variant="ghost" onClick={onClose} aria-label="关闭">
-            关闭
-          </Btn>
+          <b>{i18n("auto.components.explorer.WallpaperLibrary.3")}</b>
+          <Btn variant="ghost" onClick={onClose} aria-label={i18n("auto.components.explorer.WallpaperLibrary.4")}>
+            {i18n("auto.components.explorer.WallpaperLibrary.4")}</Btn>
         </div>
       ) : (
         <div className="wall-lib-ops">
           <Btn variant="outline" onClick={pickUpload}>
-            上传入库…
-          </Btn>
-          <Btn variant="outline" disabled={busy} onClick={() => void runSync(syncWallpaperToCloud)}>同步到云盘
-          </Btn>
-          <Btn variant="outline" disabled={busy} onClick={() => void runSync(restoreWallpaperFromCloud)}>从云盘恢复
-          </Btn>
+            {i18n("auto.components.explorer.WallpaperLibrary.5")}</Btn>
+          <Btn variant="outline" disabled={busy} onClick={() => void runSync(syncWallpaperToCloud)}>{i18n("auto.components.explorer.WallpaperLibrary.6")}</Btn>
+          <Btn variant="outline" disabled={busy} onClick={() => void runSync(restoreWallpaperFromCloud)}>{i18n("auto.components.explorer.WallpaperLibrary.7")}</Btn>
           {doc.global ? (
-            <Btn variant="ghost" onClick={() => setGlobalWallpaper(null)}>清除全屏
-            </Btn>
+            <Btn variant="ghost" onClick={() => setGlobalWallpaper(null)}>{i18n("auto.components.explorer.WallpaperLibrary.8")}</Btn>
           ) : null}
         </div>
       )}
@@ -156,15 +153,13 @@ export function WallpaperLibrary({
       {variant === "panel" ? (
         <>
           <div className="wall-lib-hint">
-            已收 {doc.library.length}/{LIBRARY_MAX} 张；自收录的壁纸右上角有 ✕ 可删，内置渐变不可删
-          </div>
-          <div className="wall-lib-hint">同步含库内图片与视频，恢复会覆盖本机</div>
+            {i18n("auto.components.explorer.WallpaperLibrary.9")}{doc.library.length}/{LIBRARY_MAX} {i18n("auto.components.explorer.WallpaperLibrary.10")}</div>
+          <div className="wall-lib-hint">{i18n("auto.components.explorer.WallpaperLibrary.11")}</div>
         </>
       ) : null}
       {variant === "picker" ? (
         <Btn variant="outline" onClick={pickUpload}>
-          上传图片或视频…
-        </Btn>
+          {i18n("auto.components.explorer.WallpaperLibrary.12")}</Btn>
       ) : null}
     </div>
   );

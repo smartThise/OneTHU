@@ -52,6 +52,8 @@ import type {
   GitAward, GitBranch, GitDiscussion, GitFile, GitIssue, GitJob, GitMergeRequest, GitMergeRequestChanges,
   GitNote, GitPipeline, GitPipelineStatus, GitProjectDetail, GitUser,
 } from "@onethu/info-lib";
+import { t as i18n } from "../i18n/index.js";
+
 
 const PROJECT_URL = "https://git.tsinghua.edu.cn";
 
@@ -168,8 +170,8 @@ function readmeEntry(entries: GitFile[]): GitFile | null {
 /** 行首类型图标：目录 accent、文件 content 色（靠库里的字色工具类） */
 function kindIcon(type: GitFile["type"]): ReactNode {
   return type === "tree"
-    ? <IconFolder size="sm" className="og-text--t-brand" title="目录" />
-    : <IconFile size="sm" title="文件" />;
+    ? <IconFolder size="sm" className="og-text--t-brand" title={i18n("auto.pages.GitLabPage.1")} />
+    : <IconFile size="sm" title={i18n("auto.pages.GitLabPage.2")} />;
 }
 
 /* ══════════ 项目列表 ══════════ */
@@ -201,8 +203,8 @@ function ProjectList({ onOpen }: { onOpen: (id: number) => void }): ReactNode {
   return (
     <Stack gap={2}>
       <PageHead
-        title="清华 GitLab"
-        meta={<>git.tsinghua.edu.cn · 代码托管与协作</>}
+        title={i18n("auto.pages.GitLabPage.3")}
+        meta={<>{i18n("auto.pages.GitLabPage.4")}</>}
         actions={
           <Btn variant="ghost" onClick={() => q.reload()} disabled={q.loading} icon={<IconRefresh size="sm" />}>{q.loading ? "读取中…" : "刷新"}</Btn>
         }
@@ -217,8 +219,8 @@ function ProjectList({ onOpen }: { onOpen: (id: number) => void }): ReactNode {
             setPages(1);
           }}
           options={[
-            { value: "member", label: "我参与的" },
-            { value: "starred", label: "星标" },
+            { value: "member", label: i18n("auto.pages.GitLabPage.p1") },
+            { value: "starred", label: i18n("auto.pages.GitLabPage.p2") },
           ]}
         />
         <Grow>
@@ -226,21 +228,21 @@ function ProjectList({ onOpen }: { onOpen: (id: number) => void }): ReactNode {
             type="search"
             size="md"
             icon={<IconSearch size="sm" />}
-            placeholder="搜索项目（回车）"
-            aria-label="搜索项目"
+            placeholder={i18n("auto.pages.GitLabPage.5")}
+            aria-label={i18n("auto.pages.GitLabPage.6")}
             value={text}
             onChange={(value) => setText(value)}
             onEnter={(value) => { setQuery(value.trim()); setPages(1); }}
           />
         </Grow>
         {query ? (
-          <Btn variant="outline" onClick={() => { setQuery(""); setText(""); setPages(1); }}>退出搜索</Btn>
+          <Btn variant="outline" onClick={() => { setQuery(""); setText(""); setPages(1); }}>{i18n("auto.pages.GitLabPage.7")}</Btn>
         ) : null}
       </Inline>
       {q.loading && !list ? (
         <Card flush><LoadingBlock rows={3} /></Card>
       ) : q.loading ? (
-        <Inline gap={1}><Spinner size="sm" /><Text slot="label" tone="faint">读取项目…</Text></Inline>
+        <Inline gap={1}><Spinner size="sm" /><Text slot="label" tone="faint">{i18n("auto.pages.GitLabPage.8")}</Text></Inline>
       ) : null}
       {q.error ? (
         <Banner tone="error" action={
@@ -248,11 +250,10 @@ function ProjectList({ onOpen }: { onOpen: (id: number) => void }): ReactNode {
               void gitlabResetAuth()
                 .then(() => {
                   q.reload();
-                  showToast("登录状态已重置，正在重试");
+                  showToast(i18n("auto.pages.GitLabPage.msg1"));
                 })
                 .catch((e) => showToast(String(e).slice(0, 120)));
-            }}>重置统一认证并重试
-          </Btn>
+            }}>{i18n("auto.pages.GitLabPage.9")}</Btn>
         }>{q.error}</Banner>
       ) : null}
       {(list?.items ?? []).map((p) => (
@@ -268,13 +269,13 @@ function ProjectList({ onOpen }: { onOpen: (id: number) => void }): ReactNode {
         >
           <Row
             flush
-            leading={<IconGitLab size="lg" title="项目" />}
+            leading={<IconGitLab size="lg" title={i18n("auto.pages.GitLabPage.10")} />}
             title={p.name_with_namespace}
             sub={p.description || undefined}
             meta={
               <>
-                最近活动 {fmtTime(p.last_activity_at)}
-                {p.default_branch ? <> · 默认分支 <Text slot="label" mono>{p.default_branch}</Text></> : null}
+                {i18n("auto.pages.GitLabPage.11")}{fmtTime(p.last_activity_at)}
+                {p.default_branch ? <> {i18n("auto.pages.GitLabPage.12")}<Text slot="label" mono>{p.default_branch}</Text></> : null}
               </>
             }
             trailing={
@@ -293,7 +294,7 @@ function ProjectList({ onOpen }: { onOpen: (id: number) => void }): ReactNode {
         />
       ) : null}
       {list?.hasMore ? (
-        <Btn variant="outline" onClick={() => setPages((n) => n + 1)} disabled={q.loading}>加载更多</Btn>
+        <Btn variant="outline" onClick={() => setPages((n) => n + 1)} disabled={q.loading}>{i18n("auto.pages.GitLabPage.13")}</Btn>
       ) : null}
     </Stack>
   );
@@ -357,11 +358,11 @@ function FileView({ projectId, file, refName, baseUrl, onBack }: {
         onBack={onBack}
         title={<Text slot="body" mono truncate>{file.path}</Text>}
         actions={
-          <Btn variant="outline" onClick={() => openExternal(webUrl)} icon={<IconExternal size="sm" />}>浏览器打开</Btn>
+          <Btn variant="outline" onClick={() => openExternal(webUrl)} icon={<IconExternal size="sm" />}>{i18n("auto.pages.GitLabPage.14")}</Btn>
         }
       />
       {binary ? (
-        <Text as="p" tone="faint">二进制文件不在应用内预览，请用浏览器打开。</Text>
+        <Text as="p" tone="faint">{i18n("auto.pages.GitLabPage.15")}</Text>
       ) : q.loading ? (
         <Card flush><LoadingBlock rows={3} /></Card>
       ) : q.error ? (
@@ -410,7 +411,7 @@ function CodeTab({ projectId, defaultBranch, webUrl }: {
   return (
     <Stack gap={2}>
       <Inline gap={2} wrap>
-        <Select value={ref} onChange={(value) => setRef(value)} aria-label="分支">
+        <Select value={ref} onChange={(value) => setRef(value)} aria-label={i18n("auto.pages.GitLabPage.16")}>
           {(branches.data ?? []).map((b) => (
             <option key={b.name} value={b.name}>{b.name}{b.default ? "（默认）" : ""}</option>
           ))}
@@ -425,17 +426,17 @@ function CodeTab({ projectId, defaultBranch, webUrl }: {
             separator={<IconChevron size="sm" />}
           />
         </Grow>
-        <Btn variant="ghost" onClick={() => tree.reload()} disabled={tree.loading} icon={<IconRefresh size="sm" />}>刷新</Btn>
+        <Btn variant="ghost" onClick={() => tree.reload()} disabled={tree.loading} icon={<IconRefresh size="sm" />}>{i18n("auto.pages.GitLabPage.17")}</Btn>
       </Inline>
       {branches.error ? <Banner tone="error">{branches.error}</Banner> : null}
       {tree.error ? <Banner tone="error">{tree.error}</Banner> : null}
       {tree.loading ? (
-        <Inline gap={1}><Spinner size="sm" /><Text slot="label" tone="faint">读取目录…</Text></Inline>
+        <Inline gap={1}><Spinner size="sm" /><Text slot="label" tone="faint">{i18n("auto.pages.GitLabPage.18")}</Text></Inline>
       ) : null}
       {tree.loading && !entries.length ? (
         <Card flush><LoadingBlock rows={4} /></Card>
       ) : (
-        <Card flush role="listbox" aria-label="仓库文件">
+        <Card flush role="listbox" aria-label={i18n("auto.pages.GitLabPage.19")}>
           <List divided>
             {entries.map((e) => (
               <Row
@@ -458,12 +459,12 @@ function CodeTab({ projectId, defaultBranch, webUrl }: {
             ))}
           </List>
           {!tree.loading && !tree.error && entries.length === 0 ? (
-            <EmptyState title="空目录" />
+            <EmptyState title={i18n("auto.pages.GitLabPage.20")} />
           ) : null}
         </Card>
       )}
       {tree.data?.hasMore ? (
-        <Btn variant="outline" onClick={() => setPages((n) => n + 1)} disabled={tree.loading}>加载更多</Btn>
+        <Btn variant="outline" onClick={() => setPages((n) => n + 1)} disabled={tree.loading}>{i18n("auto.pages.GitLabPage.13")}</Btn>
       ) : null}
       {readme ? (
         <Card flush>
@@ -472,7 +473,7 @@ function CodeTab({ projectId, defaultBranch, webUrl }: {
             <Spacer />
             <Btn variant="outline" size="sm" icon={<IconExternal size="sm" />}
               onClick={() => openExternal(`${webUrl}/-/blob/${encodeURIComponent(ref)}/${readme.path}`)}
-            >浏览器打开</Btn>
+            >{i18n("auto.pages.GitLabPage.14")}</Btn>
           </Inline>
           <Divider />
           {readmeQuery.loading ? (
@@ -607,7 +608,7 @@ function ReactionBar({ kind, projectId, iid, noteId, me }: {
           </Chip>
         ))}
         <IconBtn
-          label="添加回应"
+          label={i18n("auto.pages.GitLabPage.21")}
           variant="outline"
           size="sm"
           icon={<IconPlus size="sm" />}
@@ -622,13 +623,13 @@ function ReactionBar({ kind, projectId, iid, noteId, me }: {
         onClose={() => setPicking(false)}
         anchor={wrapRef.current ?? undefined}
         side="top"
-        label="选择回应"
+        label={i18n("auto.pages.GitLabPage.22")}
       >
         <div style={{ width: "320px", maxWidth: "88vw" }}>
           <Stack gap={2}>
           <Input
             autoFocus
-            placeholder="按名字筛选，或直接输入 GitLab 表情名"
+            placeholder={i18n("auto.pages.GitLabPage.23")}
             value={filter}
             onChange={(value) => setFilter(value)}
             onEnter={() => typeInName()}
@@ -646,19 +647,19 @@ function ReactionBar({ kind, projectId, iid, noteId, me }: {
                   {emoji}
                 </Btn>
               ))}
-              {shown.length === 0 ? <Text slot="micro" tone="faint">没有匹配的表情名</Text> : null}
+              {shown.length === 0 ? <Text slot="micro" tone="faint">{i18n("auto.pages.GitLabPage.24")}</Text> : null}
             </Inline>
           </div>
           <Inline gap={2}>
             <Grow>
               <Input
-                placeholder="任意表情名，如 dart"
+                placeholder={i18n("auto.pages.GitLabPage.25")}
                 value={typed}
                 onChange={(value) => setTyped(value)}
                 onEnter={() => typeInName()}
               />
             </Grow>
-            <Btn variant="outline" onClick={() => typeInName()}>按名字贴</Btn>
+            <Btn variant="outline" onClick={() => typeInName()}>{i18n("auto.pages.GitLabPage.26")}</Btn>
           </Inline>
           </Stack>
         </div>
@@ -685,10 +686,10 @@ function ChangesView({ projectId, iid }: { projectId: number; iid: number }): Re
   if (q.loading) return <LoadingBlock rows={3} />;
   if (q.error) return <Banner tone="error">{q.error}</Banner>;
   const changes = q.data?.changes ?? [];
-  if (changes.length === 0) return <EmptyState title="没有文件变更" />;
+  if (changes.length === 0) return <EmptyState title={i18n("auto.pages.GitLabPage.27")} />;
   return (
     <Stack gap={2}>
-      <Text slot="micro" tone="faint">{changes.length} 个文件变更 · 原文见「浏览器打开」</Text>
+      <Text slot="micro" tone="faint">{changes.length} {i18n("auto.pages.GitLabPage.28")}</Text>
       <Accordion defaultOpenKeys={changes.length ? ["c0"] : []}>
         {changes.map((c, i) => (
           <AccordionItem
@@ -702,7 +703,7 @@ function ChangesView({ projectId, iid }: { projectId: number; iid: number }): Re
             }
           >
             {c.too_large ? (
-              <Text as="p" tone="faint">差异过大，不在应用内展开。</Text>
+              <Text as="p" tone="faint">{i18n("auto.pages.GitLabPage.29")}</Text>
             ) : (
               <div style={{ overflowX: "auto" }}>
                 <Stack gap={0}>
@@ -744,14 +745,14 @@ function NoteEditor({ initial, busy, onSave, onCancel }: {
     <Stack gap={2}>
       <TextArea
         rows={4}
-        placeholder="写评论（支持 Markdown）"
+        placeholder={i18n("auto.pages.GitLabPage.30")}
         value={text}
         autoFocus
         onChange={(value) => setText(value)}
       />
       <Inline gap={2}>
         <Btn variant="solid" tone="brand" size="sm" disabled={busy || text.trim() === ""} onClick={() => onSave(text.trim())}>{busy ? "保存中…" : "保存"}</Btn>
-        <Btn variant="ghost" size="sm" disabled={busy} onClick={onCancel}>取消</Btn>
+        <Btn variant="ghost" size="sm" disabled={busy} onClick={onCancel}>{i18n("auto.pages.GitLabPage.31")}</Btn>
       </Inline>
     </Stack>
   );
@@ -780,7 +781,7 @@ function NoteRow({ note, kind, projectId, iid, discussionId, me, baseUrl, depth,
       await gitlabUpdateDiscussionNote(kind, projectId, iid, discussionId, note.id, body);
       setEditing(false);
       onChanged();
-      showToast("评论已更新");
+      showToast(i18n("auto.pages.GitLabPage.msg2"));
     } catch (e) {
       showToast(String(e instanceof Error ? e.message : e).slice(0, 120));
     } finally {
@@ -790,15 +791,15 @@ function NoteRow({ note, kind, projectId, iid, discussionId, me, baseUrl, depth,
 
   const remove = async (): Promise<void> => {
     const ok = await confirmDanger("删除这条评论？删除后无法恢复。", {
-      title: "即将删除评论，请确认！",
-      confirmText: "确认删除",
+      title: i18n("auto.pages.GitLabPage.p3"),
+      confirmText: i18n("auto.pages.GitLabPage.p4"),
     });
     if (!ok) return;
     setBusy(true);
     try {
       await gitlabDeleteNote(kind, projectId, iid, discussionId, note.id);
       onChanged();
-      showToast("评论已删除");
+      showToast(i18n("auto.pages.GitLabPage.msg3"));
     } catch (e) {
       showToast(String(e instanceof Error ? e.message : e).slice(0, 120));
     } finally {
@@ -834,12 +835,12 @@ function NoteRow({ note, kind, projectId, iid, discussionId, me, baseUrl, depth,
         <Spacer />
         <Inline gap={1}>
           {!mine && authorId ? (
-            <Btn variant="outline" size="sm" disabled={busy} onClick={() => void assign()}>指派给 TA</Btn>
+            <Btn variant="outline" size="sm" disabled={busy} onClick={() => void assign()}>{i18n("auto.pages.GitLabPage.32")}</Btn>
           ) : null}
           {mine ? (
             <>
               <Btn variant="outline" size="sm" disabled={busy} onClick={() => setEditing((e) => !e)}>{editing ? "取消" : "编辑"}</Btn>
-              <Btn variant="outline" size="sm" disabled={busy} onClick={() => void remove()}>删除</Btn>
+              <Btn variant="outline" size="sm" disabled={busy} onClick={() => void remove()}>{i18n("auto.pages.GitLabPage.33")}</Btn>
             </>
           ) : null}
         </Inline>
@@ -909,7 +910,7 @@ function DiscussionThread({ discussion, kind, projectId, iid, me, baseUrl, onCha
       await gitlabReply(kind, projectId, iid, discussion.id, body);
       setReplying(false);
       onChanged();
-      showToast("已回复");
+      showToast(i18n("auto.pages.GitLabPage.msg4"));
     } catch (e) {
       showToast(String(e instanceof Error ? e.message : e).slice(0, 120));
     } finally {
@@ -931,7 +932,7 @@ function DiscussionThread({ discussion, kind, projectId, iid, me, baseUrl, onCha
         {resolvable ? (
           <Btn variant="outline" size="sm" disabled={busy} onClick={() => void resolve(!resolved)}>{resolved ? "重新打开讨论" : "解决讨论"}</Btn>
         ) : null}
-        {resolved ? <Tag tone="success">已解决</Tag> : null}
+        {resolved ? <Tag tone="success">{i18n("auto.pages.GitLabPage.34")}</Tag> : null}
       </Inline>
       {replying ? (
         <>
@@ -961,7 +962,7 @@ function DiscussionList({ kind, projectId, iid, me, baseUrl, onChanged }: {
   return (
     <Stack gap={2}>
       {q.loading && !q.data ? <Card flush><LoadingBlock rows={3} /></Card> : q.loading ? (
-        <Inline gap={1}><Spinner size="sm" /><Text slot="label" tone="faint">读取讨论…</Text></Inline>
+        <Inline gap={1}><Spinner size="sm" /><Text slot="label" tone="faint">{i18n("auto.pages.GitLabPage.35")}</Text></Inline>
       ) : null}
       {q.error ? <Banner tone="error">{q.error}</Banner> : null}
       {threads.map((d) => (
@@ -976,9 +977,9 @@ function DiscussionList({ kind, projectId, iid, me, baseUrl, onChanged }: {
           onChanged={onChanged}
         />
       ))}
-      {!q.loading && !q.error && threads.length === 0 ? <EmptyState title="还没有评论" /> : null}
+      {!q.loading && !q.error && threads.length === 0 ? <EmptyState title={i18n("auto.pages.GitLabPage.36")} /> : null}
       {q.data?.hasMore ? (
-        <Btn variant="outline" onClick={() => setPages((n) => n + 1)} disabled={q.loading}>加载更多讨论</Btn>
+        <Btn variant="outline" onClick={() => setPages((n) => n + 1)} disabled={q.loading}>{i18n("auto.pages.GitLabPage.37")}</Btn>
       ) : null}
     </Stack>
   );
@@ -1035,7 +1036,7 @@ function RequestDetail({ kind, projectId, iid, onBack, onChanged }: {
     try {
       await gitlabMerge(projectId, iid);
       refresh();
-      showToast("已合入");
+      showToast(i18n("auto.pages.GitLabPage.msg5"));
     } catch (e) {
       showToast(String(e instanceof Error ? e.message : e).slice(0, 120));
     } finally {
@@ -1054,8 +1055,8 @@ function RequestDetail({ kind, projectId, iid, onBack, onChanged }: {
             <Inline gap={2} wrap>
               <Text slot="title">{item.title}</Text>
               <ReqStateTag state={item.state} />
-              {mr?.draft ? <Tag tone="neutral">草稿</Tag> : null}
-              {mr?.has_conflicts ? <Tag tone="error">有冲突</Tag> : null}
+              {mr?.draft ? <Tag tone="neutral">{i18n("auto.pages.GitLabPage.38")}</Tag> : null}
+              {mr?.has_conflicts ? <Tag tone="error">{i18n("auto.pages.GitLabPage.39")}</Tag> : null}
             </Inline>
           )
           : <Text slot="title">{`!${iid}`}</Text>}
@@ -1064,7 +1065,7 @@ function RequestDetail({ kind, projectId, iid, onBack, onChanged }: {
             <Inline gap={2} wrap>
               <AuthorAvatar user={item.author} />
               <Text slot="label" tone="quiet">
-                {item.author?.name ?? "未知作者"} 创建于 {fmtTime(item.created_at)}
+                {item.author?.name ?? "未知作者"} {i18n("auto.pages.GitLabPage.40")}{fmtTime(item.created_at)}
               </Text>
               {mr ? (
                 <Text slot="label" tone="faint" mono>{mr.source_branch} → {mr.target_branch}</Text>
@@ -1076,13 +1077,13 @@ function RequestDetail({ kind, projectId, iid, onBack, onChanged }: {
         actions={
           <Inline gap={2} wrap>
             {mr && mr.state === "opened" && (mr.user?.can_merge ?? true) ? (
-              <Btn variant="solid" tone="brand" disabled={busy} onClick={() => void merge()}>合入</Btn>
+              <Btn variant="solid" tone="brand" disabled={busy} onClick={() => void merge()}>{i18n("auto.pages.GitLabPage.41")}</Btn>
             ) : null}
             {item && item.state !== "merged" ? (
               <Btn variant="outline" disabled={busy} onClick={() => void toggleState()}>{closed ? "重新打开" : "关闭"}</Btn>
             ) : null}
             {item ? (
-              <Btn variant="outline" onClick={() => openExternal(item.web_url)} icon={<IconExternal size="sm" />}>浏览器打开</Btn>
+              <Btn variant="outline" onClick={() => openExternal(item.web_url)} icon={<IconExternal size="sm" />}>{i18n("auto.pages.GitLabPage.14")}</Btn>
             ) : null}
           </Inline>
         }
@@ -1101,16 +1102,16 @@ function RequestDetail({ kind, projectId, iid, onBack, onChanged }: {
           </Stack>
           {mr?.head_pipeline ? (
             <Inline gap={2}>
-              <Text slot="label" tone="faint">流水线 #{mr.head_pipeline.id}</Text>
+              <Text slot="label" tone="faint">{i18n("auto.pages.GitLabPage.42")}{mr.head_pipeline.id}</Text>
               <StatusTag status={mr.head_pipeline.status} />
             </Inline>
           ) : null}
           {item.description?.trim() ? (
             <Stack pad={2}><MarkdownBody text={item.description} baseUrl={baseUrl} /></Stack>
-          ) : <Text as="p" tone="faint">（没有描述）</Text>}
+          ) : <Text as="p" tone="faint">{i18n("auto.pages.GitLabPage.43")}</Text>}
           <ReactionBar kind={kind} projectId={projectId} iid={iid} me={me.data?.username ?? ""} />
           {mr ? (
-            <Section title="文件变更">
+            <Section title={i18n("auto.pages.GitLabPage.44")}>
               <ChangesView projectId={projectId} iid={iid} />
             </Section>
           ) : null}
@@ -1124,7 +1125,7 @@ function RequestDetail({ kind, projectId, iid, onBack, onChanged }: {
               onChanged={refresh}
             />
           </Section>
-          <Section title="写评论">
+          <Section title={i18n("auto.pages.GitLabPage.45")}>
             <NoteBox kind={kind} projectId={projectId} iid={iid} onDone={refresh} />
           </Section>
         </>
@@ -1150,7 +1151,7 @@ function NoteBox({ kind, projectId, iid, onDone }: {
       await gitlabAddNote(kind, projectId, iid, body);
       setText("");
       onDone();
-      showToast("评论已发表");
+      showToast(i18n("auto.pages.GitLabPage.msg6"));
     } catch (e) {
       showToast(String(e instanceof Error ? e.message : e).slice(0, 120));
     } finally {
@@ -1161,7 +1162,7 @@ function NoteBox({ kind, projectId, iid, onDone }: {
     <Stack gap={2}>
       <TextArea
         rows={4}
-        placeholder="写评论（支持 Markdown）"
+        placeholder={i18n("auto.pages.GitLabPage.30")}
         value={text}
         onChange={(value) => setText(value)}
       />
@@ -1207,8 +1208,8 @@ function RequestList({ kind, projectId, initialIid = null }: {
 
   const createIssue = async (): Promise<void> => {
     const form = await openFormModal("新建 Issue", [
-      { key: "title", label: "标题", required: true },
-      { key: "description", label: "描述", kind: "textarea", placeholder: "支持 Markdown，可留空" },
+      { key: "title", label: i18n("auto.pages.GitLabPage.p5"), required: true },
+      { key: "description", label: i18n("auto.pages.GitLabPage.p6"), kind: "textarea", placeholder: i18n("auto.pages.GitLabPage.p7") },
     ]);
     if (!form?.title?.trim()) return;
     try {
@@ -1231,23 +1232,23 @@ function RequestList({ kind, projectId, initialIid = null }: {
     }
     const options = branches.map((b) => ({ value: b.name, label: b.name + (b.default ? "（默认）" : "") }));
     if (options.length < 2) {
-      showToast("这个仓库只有一条分支，没有可发起合并的分支对");
+      showToast(i18n("auto.pages.GitLabPage.msg7"));
       return;
     }
     const target = branches.find((b) => b.default)?.name ?? branches[0]!.name;
     const source = branches.find((b) => b.name !== target)!.name;
     const form = await openFormModal("新建合并请求", [
-      { key: "source", label: "源分支", kind: "select", options, default: source, required: true },
-      { key: "target", label: "目标分支", kind: "select", options, default: target, required: true },
-      { key: "title", label: "标题", required: true, placeholder: "缺省与源分支同名" },
-      { key: "description", label: "描述", kind: "textarea", placeholder: "支持 Markdown，可留空" },
+      { key: "source", label: i18n("auto.pages.GitLabPage.p8"), kind: "select", options, default: source, required: true },
+      { key: "target", label: i18n("auto.pages.GitLabPage.p9"), kind: "select", options, default: target, required: true },
+      { key: "title", label: i18n("auto.pages.GitLabPage.p10"), required: true, placeholder: i18n("auto.pages.GitLabPage.p11") },
+      { key: "description", label: i18n("auto.pages.GitLabPage.p12"), kind: "textarea", placeholder: i18n("auto.pages.GitLabPage.p13") },
     ]);
     if (!form) return;
     const sourceBranch = form.source ?? "";
     const targetBranch = form.target ?? "";
     if (!sourceBranch || !targetBranch) return;
     if (sourceBranch === targetBranch) {
-      showToast("源分支与目标分支不能相同");
+      showToast(i18n("auto.pages.GitLabPage.msg8"));
       return;
     }
     try {
@@ -1293,11 +1294,11 @@ function RequestList({ kind, projectId, initialIid = null }: {
             onEnter={(value) => { setQuery(value.trim()); setPages(1); }}
           />
         </Grow>
-        {query ? <Btn variant="outline" onClick={() => { setQuery(""); setText(""); setPages(1); }}>退出搜索</Btn> : null}
-        <Btn variant="outline" onClick={() => void (kind === "issue" ? createIssue() : createMr())} icon={<IconPen size="sm" />}>新建</Btn>
+        {query ? <Btn variant="outline" onClick={() => { setQuery(""); setText(""); setPages(1); }}>{i18n("auto.pages.GitLabPage.7")}</Btn> : null}
+        <Btn variant="outline" onClick={() => void (kind === "issue" ? createIssue() : createMr())} icon={<IconPen size="sm" />}>{i18n("auto.pages.GitLabPage.46")}</Btn>
       </Inline>
       {q.loading && !list ? <Card flush><LoadingBlock rows={4} /></Card> : q.loading ? (
-        <Inline gap={1}><Spinner size="sm" /><Text slot="label" tone="faint">读取列表…</Text></Inline>
+        <Inline gap={1}><Spinner size="sm" /><Text slot="label" tone="faint">{i18n("auto.pages.GitLabPage.47")}</Text></Inline>
       ) : null}
       {q.error ? <Banner tone="error">{q.error}</Banner> : null}
       <Card flush role="listbox" aria-label={kind === "issue" ? "Issue 列表" : "合并请求列表"}>
@@ -1336,7 +1337,7 @@ function RequestList({ kind, projectId, initialIid = null }: {
         ) : null}
       </Card>
       {list?.hasMore ? (
-        <Btn variant="outline" onClick={() => setPages((n) => n + 1)} disabled={q.loading}>加载更多</Btn>
+        <Btn variant="outline" onClick={() => setPages((n) => n + 1)} disabled={q.loading}>{i18n("auto.pages.GitLabPage.13")}</Btn>
       ) : null}
     </Stack>
   );
@@ -1360,7 +1361,7 @@ function PipelineJobs({ projectId, pipeline, onBack }: {
         <OGPageHead
           onBack={() => setOpenJob(null)}
           title={<Text slot="body" mono truncate>{openJob.stage} / {openJob.name}</Text>}
-          actions={<Btn variant="outline" onClick={() => openExternal(openJob.web_url)} icon={<IconExternal size="sm" />}>浏览器打开</Btn>}
+          actions={<Btn variant="outline" onClick={() => openExternal(openJob.web_url)} icon={<IconExternal size="sm" />}>{i18n("auto.pages.GitLabPage.14")}</Btn>}
         />
         {trace.loading ? <Card flush><LoadingBlock rows={3} /></Card> : null}
         {trace.error ? <Banner tone="error">{trace.error}</Banner> : null}
@@ -1385,14 +1386,14 @@ function PipelineJobs({ projectId, pipeline, onBack }: {
           </Inline>
         }
         actions={
-          <Btn variant="ghost" onClick={() => jobs.reload()} disabled={jobs.loading} icon={<IconRefresh size="sm" />}>刷新</Btn>
+          <Btn variant="ghost" onClick={() => jobs.reload()} disabled={jobs.loading} icon={<IconRefresh size="sm" />}>{i18n("auto.pages.GitLabPage.17")}</Btn>
         }
       />
       {jobs.loading && !jobs.data ? <Card flush><LoadingBlock rows={3} /></Card> : jobs.loading ? (
-        <Inline gap={1}><Spinner size="sm" /><Text slot="label" tone="faint">读取作业…</Text></Inline>
+        <Inline gap={1}><Spinner size="sm" /><Text slot="label" tone="faint">{i18n("auto.pages.GitLabPage.48")}</Text></Inline>
       ) : null}
       {jobs.error ? <Banner tone="error">{jobs.error}</Banner> : null}
-      <Card flush role="listbox" aria-label="作业列表">
+      <Card flush role="listbox" aria-label={i18n("auto.pages.GitLabPage.49")}>
         <List divided>
           {(jobs.data ?? []).map((j) => (
             <Row
@@ -1401,7 +1402,7 @@ function PipelineJobs({ projectId, pipeline, onBack }: {
               role="button"
               onClick={() => setOpenJob(j)}
               onKeyDown={(e) => { if (e.key === "Enter") setOpenJob(j); }}
-              leading={<IconTrace size="lg" title="作业" />}
+              leading={<IconTrace size="lg" title={i18n("auto.pages.GitLabPage.50")} />}
               title={j.name}
               meta={<StatusTag status={j.status} />}
               trailing={<>{j.stage}{j.duration ? ` · ${fmtDuration(j.duration)}` : ""}</>}
@@ -1409,7 +1410,7 @@ function PipelineJobs({ projectId, pipeline, onBack }: {
           ))}
         </List>
         {!jobs.loading && !jobs.error && (jobs.data ?? []).length === 0 ? (
-          <EmptyState title="这次流水线没有作业" />
+          <EmptyState title={i18n("auto.pages.GitLabPage.51")} />
         ) : null}
       </Card>
     </Stack>
@@ -1439,21 +1440,21 @@ function PipelineTab({ projectId, defaultBranch }: { projectId: number; defaultB
     <Stack gap={2}>
       <Inline gap={2} wrap>
         <Input
-          aria-label="分支 / 标签筛选"
-          placeholder="分支 / 标签（留空为全部，回车查询）"
+          aria-label={i18n("auto.pages.GitLabPage.52")}
+          placeholder={i18n("auto.pages.GitLabPage.53")}
           value={refText}
           onChange={(value) => setRefText(value)}
           onEnter={(value) => { setRefText(value); const next = value.trim(); if (next !== ref) { setRef(next); setPages(1); } }}
           onFocusChange={(focused) => { if (!focused) commit(); }}
         />
         <Spacer />
-        <Btn variant="ghost" onClick={() => q.reload()} disabled={q.loading} icon={<IconRefresh size="sm" />}>刷新</Btn>
+        <Btn variant="ghost" onClick={() => q.reload()} disabled={q.loading} icon={<IconRefresh size="sm" />}>{i18n("auto.pages.GitLabPage.17")}</Btn>
       </Inline>
       {q.loading && !q.data ? <Card flush><LoadingBlock rows={4} /></Card> : q.loading ? (
-        <Inline gap={1}><Spinner size="sm" /><Text slot="label" tone="faint">读取流水线…</Text></Inline>
+        <Inline gap={1}><Spinner size="sm" /><Text slot="label" tone="faint">{i18n("auto.pages.GitLabPage.54")}</Text></Inline>
       ) : null}
       {q.error ? <Banner tone="error">{q.error}</Banner> : null}
-      <Card flush role="listbox" aria-label="流水线列表">
+      <Card flush role="listbox" aria-label={i18n("auto.pages.GitLabPage.55")}>
         <List divided>
           {(q.data?.items ?? []).map((p) => (
             <Row
@@ -1462,7 +1463,7 @@ function PipelineTab({ projectId, defaultBranch }: { projectId: number; defaultB
               role="button"
               onClick={() => setOpenPipeline(p)}
               onKeyDown={(e) => { if (e.key === "Enter") setOpenPipeline(p); }}
-              leading={<IconTrace size="lg" title="流水线" />}
+              leading={<IconTrace size="lg" title={i18n("auto.pages.GitLabPage.56")} />}
               title={`#${p.id}`}
               meta={<StatusTag status={p.status} />}
               sub={
@@ -1477,11 +1478,11 @@ function PipelineTab({ projectId, defaultBranch }: { projectId: number; defaultB
           ))}
         </List>
         {!q.loading && !q.error && (q.data?.items.length ?? 0) === 0 ? (
-          <EmptyState title="没有流水线记录（该项目可能未启用 CI/CD）" />
+          <EmptyState title={i18n("auto.pages.GitLabPage.57")} />
         ) : null}
       </Card>
       {q.data?.hasMore ? (
-        <Btn variant="outline" onClick={() => setPages((n) => n + 1)} disabled={q.loading}>加载更多</Btn>
+        <Btn variant="outline" onClick={() => setPages((n) => n + 1)} disabled={q.loading}>{i18n("auto.pages.GitLabPage.13")}</Btn>
       ) : null}
     </Stack>
   );
@@ -1500,8 +1501,8 @@ function CodeButton({ project }: { project: GitProjectDetail }): ReactNode {
   const copy = (text: string): void => {
     navigator.clipboard
       .writeText(text)
-      .then(() => showToast("已复制"))
-      .catch(() => showToast("复制失败，请手动选中复制"));
+      .then(() => showToast(i18n("auto.pages.GitLabPage.msg9")))
+      .catch(() => showToast(i18n("auto.pages.GitLabPage.msg10")));
   };
 
   const download = (): void => {
@@ -1518,7 +1519,7 @@ function CodeButton({ project }: { project: GitProjectDetail }): ReactNode {
     <Inline gap={2} key={label}>
       <Text slot="label" tone="faint">{label}</Text>
       <Grow><Text slot="label" mono truncate>{url}</Text></Grow>
-      <Btn variant="outline" size="sm" onClick={() => copy(url)}>复制</Btn>
+      <Btn variant="outline" size="sm" onClick={() => copy(url)}>{i18n("auto.pages.GitLabPage.58")}</Btn>
     </Inline>
   );
 
@@ -1531,7 +1532,7 @@ function CodeButton({ project }: { project: GitProjectDetail }): ReactNode {
         onClose={() => setOpen(false)}
         anchor={wrapRef.current ?? undefined}
         align="center"
-        label="克隆与下载"
+        label={i18n("auto.pages.GitLabPage.59")}
       >
         <Stack gap={2}>
           {project.http_url_to_repo ? cloneRow("克隆（HTTPS）", project.http_url_to_repo) : null}
@@ -1572,7 +1573,7 @@ function ProjectView({ projectId, initialTab, initialIid = null, onBack }: {
   if (detail.error || !project) {
     return (
       <Stack gap={2}>
-        <Banner tone="error" action={<Btn variant="outline" size="sm" onClick={onBack}>返回项目列表</Btn>}>
+        <Banner tone="error" action={<Btn variant="outline" size="sm" onClick={onBack}>{i18n("auto.pages.GitLabPage.60")}</Btn>}>
           {detail.error ?? "项目不存在或无权访问"}
         </Banner>
       </Stack>
@@ -1593,9 +1594,9 @@ function ProjectView({ projectId, initialTab, initialIid = null, onBack }: {
         }
         actions={
           <Inline gap={2} wrap>
-            <Btn variant="ghost" onClick={() => detail.reload()} disabled={detail.loading} icon={<IconRefresh size="sm" />}>刷新</Btn>
+            <Btn variant="ghost" onClick={() => detail.reload()} disabled={detail.loading} icon={<IconRefresh size="sm" />}>{i18n("auto.pages.GitLabPage.17")}</Btn>
             <CodeButton project={project} />
-            <Btn variant="outline" onClick={() => openExternal(project.web_url)} icon={<IconExternal size="sm" />}>浏览器打开</Btn>
+            <Btn variant="outline" onClick={() => openExternal(project.web_url)} icon={<IconExternal size="sm" />}>{i18n("auto.pages.GitLabPage.14")}</Btn>
             <CollectStar
               atom={{ kind: "gitlab-proj", key: enc(project.id, project.name_with_namespace) }}
               title={project.name_with_namespace}
@@ -1612,7 +1613,7 @@ function ProjectView({ projectId, initialTab, initialIid = null, onBack }: {
         />
       </Inline>
       {project.empty_repo ? (
-        <Text as="p" tone="faint">这是一个空仓库（还没有任何提交）。</Text>
+        <Text as="p" tone="faint">{i18n("auto.pages.GitLabPage.61")}</Text>
       ) : (
         <>
           {tab === "code" ? <CodeTab projectId={project.id} defaultBranch={project.default_branch} webUrl={project.web_url} /> : null}

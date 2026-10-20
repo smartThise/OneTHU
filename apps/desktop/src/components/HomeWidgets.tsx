@@ -21,6 +21,8 @@ import { useIgnoredHw } from "../state/hwIgnore.js";
 import { toHomework, useExternalHomework } from "../state/exthw.js";
 import { parseLearnTime, type Homework, type ScheduleEntry } from "@onethu/core";
 import { useCountUp } from "../lib/motion.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 轻路由签名（与 AppState.navigate 一致） */
 export type Nav = (page: Page, params?: LearnNav) => void;
@@ -244,7 +246,7 @@ export function HomeworkRows({
       <Card>
         <Empty
           text="没有未提交的作业，享受今天吧。"
-          action={<Btn variant="ghost" onClick={() => navigate("tasks")}>去待办看看</Btn>}
+          action={<Btn variant="ghost" onClick={() => navigate("tasks")}>{i18n("auto.components.HomeWidgets.1")}</Btn>}
         />
       </Card>
     );
@@ -266,14 +268,14 @@ export function HomeworkRows({
           >
             <div className="row-when">
               <b>{h.deadline.slice(5, 10)}</b>
-              <span>{h.deadline.slice(11, 16)} 截止</span>
+              <span>{h.deadline.slice(11, 16)} {i18n("auto.components.HomeWidgets.2")}</span>
             </div>
             <div className="row-main">
               <div className="row-title">
                 {/* R11 16.1：今日页不再显示来源徽标（雨课堂/TUOJ/Tyche/DSA OJ）——移动端拥挤，
                     来源只在「全部作业」页（shared.tsx HomeworkRow）显示；考试/旁听徽标保留。 */}
-                {h.kind === "exam" ? <span className="tag-exam" title="考试">考试</span> : null}
-                {h.audited ? <span className="tag-audit" title="旁听课堂">旁听</span> : null}
+                {h.kind === "exam" ? <span className="tag-exam" title={i18n("auto.components.HomeWidgets.3")}>{i18n("auto.components.HomeWidgets.3")}</span> : null}
+                {h.audited ? <span className="tag-audit" title={i18n("auto.components.HomeWidgets.4")}>{i18n("auto.components.HomeWidgets.5")}</span> : null}
                 {h.title}
               </div>
               <div className="row-sub">{h.courseName ?? courseName(h.courseId)}</div>
@@ -286,8 +288,7 @@ export function HomeworkRows({
                 右侧标注「已完成 x/y 题」；整卷已交不显示（有 已提交/已批改 表达） */}
             {h.externalProgress && !h.submitted ? (
               <span className="chip chip-gray" title={`已完成 ${h.externalProgress} 题`}>
-                已完成 {h.externalProgress} 题
-              </span>
+                {i18n("auto.components.HomeWidgets.6")}{h.externalProgress} {i18n("auto.components.HomeWidgets.7")}</span>
             ) : null}
             <IconChevron className="row-caret" width={14} height={14} />
           </RowClick>
@@ -311,7 +312,7 @@ export function NoticeRows({
       {items.length === 0 ? (
         <Empty
           text="暂时没有新通知。"
-          action={<Btn variant="ghost" onClick={() => navigate("learn")}>去网络学堂</Btn>}
+          action={<Btn variant="ghost" onClick={() => navigate("learn")}>{i18n("auto.components.HomeWidgets.8")}</Btn>}
         />
       ) : (
         items.slice(0, 3).map((n, i) => (
@@ -368,7 +369,7 @@ export function ClassRows({ events, navigate }: { events: ScheduleEntry[]; navig
       {events.length === 0 ? (
         <Empty
           text="今天没有课。"
-          action={<Btn variant="ghost" onClick={() => navigate("schedule")}>看本周课表</Btn>}
+          action={<Btn variant="ghost" onClick={() => navigate("schedule")}>{i18n("auto.components.HomeWidgets.9")}</Btn>}
         />
       ) : (
         events.map((s, i) => (
@@ -508,16 +509,16 @@ export function TodayOverviewWidget({ size }: { size?: { w: number; h: number } 
           !dataReady
             ? "–"
             : extPending
-              ? <span className="num-pending" title="其他平台作业同步中">{learnOnlyUnsubmitted}<i className="num-dots" /></span>
+              ? <span className="num-pending" title={i18n("auto.components.HomeWidgets.10")}>{learnOnlyUnsubmitted}<i className="num-dots" /></span>
               : unsubmitted.length
         }
-        label="未交作业"
+        label={i18n("auto.components.HomeWidgets.11")}
         dimLabel="未交作业"
         disabled={!dataReady}
         onClick={() => navigate("learn-assignments")}
       />
-      <EntryCard num={dataReady ? dueSoon : "–"} label="三日内截止" dimLabel="三日内截止" disabled={!dataReady} onClick={() => navigate("learn-assignments")} />
-      <EntryCard num={dataReady ? todayEvents.length : "–"} label="今日课程" dimLabel="今日课程" disabled={!dataReady} onClick={() => navigate("schedule")} />
+      <EntryCard num={dataReady ? dueSoon : "–"} label={i18n("auto.components.HomeWidgets.12")} dimLabel="三日内截止" disabled={!dataReady} onClick={() => navigate("learn-assignments")} />
+      <EntryCard num={dataReady ? todayEvents.length : "–"} label={i18n("auto.components.HomeWidgets.13")} dimLabel="今日课程" disabled={!dataReady} onClick={() => navigate("schedule")} />
       </div>
       {tierH >= 2 && dataReady && nearest ? (
         <div className="overview-line">

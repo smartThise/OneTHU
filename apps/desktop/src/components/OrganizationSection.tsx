@@ -14,6 +14,8 @@ import {
   acceptOrgInvite, createOrg, currentOrgEmail, deleteOrg, useOrgs,
 } from "../state/org.js";
 import { confirmOk } from "../lib/confirm.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 defineSearchRows([
   {
@@ -34,9 +36,9 @@ export function OrganizationSection(): ReactNode {
   const create = useCallback(async (): Promise<void> => {
     const email = await currentOrgEmail();
     const f = await openFormModal("新建组织", [
-      { key: "name", label: "组织名称", required: true },
-      { key: "brief", label: "一句话简介（可选）", kind: "textarea" },
-      { key: "joinUrl", label: "加入方式（GitLab 组织 / 云盘资料库链接，可选）" },
+      { key: "name", label: i18n("auto.components.OrganizationSection.p1"), required: true },
+      { key: "brief", label: i18n("auto.components.OrganizationSection.p2"), kind: "textarea" },
+      { key: "joinUrl", label: i18n("auto.components.OrganizationSection.p3") },
     ]);
     if (!f?.name) return;
     const org = createOrg({ name: f.name, brief: f.brief, joinUrl: f.joinUrl, ownerEmail: email });
@@ -46,8 +48,8 @@ export function OrganizationSection(): ReactNode {
 
   const join = useCallback(async (): Promise<void> => {
     const f = await openFormModal("加入组织", [
-      { key: "code", label: "组织邀请口令（ON-…，兼容旧口令）", kind: "textarea", required: true },
-      { key: "name", label: "你在这个组织里的名字", default: "我" },
+      { key: "code", label: i18n("auto.components.OrganizationSection.p4"), kind: "textarea", required: true },
+      { key: "name", label: i18n("auto.components.OrganizationSection.p5"), default: "我" },
     ]);
     if (!f?.code) return;
     const r = await acceptOrgInvite(f.code, f.name || "我");
@@ -55,19 +57,19 @@ export function OrganizationSection(): ReactNode {
       showToast(r.reason ?? "邀请口令无法识别");
       return;
     }
-    showToast("已加入组织");
-    if (r.orgId) openTab("org", { orgId: r.orgId }, { title: "组织" });
+    showToast(i18n("auto.components.OrganizationSection.msg1"));
+    if (r.orgId) openTab("org", { orgId: r.orgId }, { title: i18n("auto.components.OrganizationSection.p6") });
   }, []);
 
   return (
     <Card>
       <div className="name-card">
         <div className="name-card-actions">
-          <Btn variant="solid" tone="brand" size="sm" onClick={() => void create()}>新建组织</Btn>
-          <Btn variant="ghost" size="sm" onClick={() => void join()}>用邀请口令加入</Btn>
+          <Btn variant="solid" tone="brand" size="sm" onClick={() => void create()}>{i18n("auto.components.OrganizationSection.1")}</Btn>
+          <Btn variant="ghost" size="sm" onClick={() => void join()}>{i18n("auto.components.OrganizationSection.2")}</Btn>
         </div>
         {doc.orgs.length === 0 ? (
-          <Text slot="micro" tone="faint">还没有组织。建一个：成员按邮箱加入，资料库共享到邮箱。</Text>
+          <Text slot="micro" tone="faint">{i18n("auto.components.OrganizationSection.3")}</Text>
         ) : (
           <List divided>
             {doc.orgs.map((o) => (
@@ -79,8 +81,8 @@ export function OrganizationSection(): ReactNode {
                 sub={`${o.members.length} 名成员 · ${(o.libraries ?? []).length} 个资料库 · ${(o.gitlabRepos ?? []).length} 个仓库${o.joinUrl ? " · 已设加入方式" : ""}`}
                 trailing={
                   <span className="name-card-actions">
-                    <Btn variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openTab("org", { orgId: o.id }, { title: o.name }); }}>管理组织</Btn>
-                    <Btn variant="ghost" size="sm" tone="error" onClick={(e) => { e.stopPropagation(); void confirmOk(`删除组织「${o.name}」？成员清单会一起删除（云盘资料库与 GitLab 仓库不动）。`).then((ok) => { if (ok) deleteOrg(o.id); }); }}>删除</Btn>
+                    <Btn variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openTab("org", { orgId: o.id }, { title: o.name }); }}>{i18n("auto.components.OrganizationSection.4")}</Btn>
+                    <Btn variant="ghost" size="sm" tone="error" onClick={(e) => { e.stopPropagation(); void confirmOk(`删除组织「${o.name}」？成员清单会一起删除（云盘资料库与 GitLab 仓库不动）。`).then((ok) => { if (ok) deleteOrg(o.id); }); }}>{i18n("auto.components.OrganizationSection.5")}</Btn>
                   </span>
                 }
               />

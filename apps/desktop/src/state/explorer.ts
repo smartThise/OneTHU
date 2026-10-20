@@ -18,9 +18,10 @@ import { experienceMode, isSimpleLike, navigateSimple } from "./experienceMode.j
 import { useSyncExternalStore } from "react";
 import { loadBoard } from "./board.js";
 import { openOnePage } from "./onePage.js";
+import { t } from "../i18n/index.js";
 import type { LearnNav, Page } from "./app.js";
 import { topLevelPage } from "./app.js";
-import { NAV_REGISTRY } from "./navigation.js";
+import { navName, NAV_REGISTRY } from "./navigation.js";
 
 /* ══════════ 类型 ══════════ */
 
@@ -224,49 +225,66 @@ export function findInstanceTab(page: Page, params: LearnNav | null): ExplorerTa
 
 /* ══════════ 标题（静态兜底；完整路径在 state/tabTitles.ts 数据感知解析） ══════════ */
 
-/** 页级静态名（兜底；数据快照未就绪时 TabStrip 至少显示域清晰的标题） */
+/**
+ * 页级静态名：**值是 i18n 键**，统一在 titleOf 里翻译。
+ * 不能在模块级求值（那会把第一次的语言永久冻住，切语言后标签条不刷新）。
+ */
 const PAGE_TITLES: Partial<Record<Page, string>> = {
-  board: "白板",
-  boards: "所有白板",
-  "learn-course": "课程详情",
-  "learn-assignments": "网络学堂 · 全部作业",
-  "learn-notices": "网络学堂 · 全部通知",
-  "learn-files": "网络学堂 · 全部文件",
-  "learn-search": "网络学堂 · 搜索",
-  "learn-semester": "学期切换",
-  "learn-assignment-detail": "作业详情",
-  "learn-notice-detail": "通知详情",
-  "learn-forum-thread": "讨论区话题",
-  "learn-file-detail": "文件详情",
-  "learn-ykt-detail": "雨课堂作业",
-  folder: "OnePage",
-  tasks: "待办",
-  services: "服务",
-  favs: "收藏",
-  xiaoda: "清小搭",
-  org: "组织",
+  board: "page.board",
+  boards: "page.boards",
+  "learn-course": "page.learnCourse",
+  "learn-assignments": "page.learnAssignments",
+  "learn-notices": "page.learnNotices",
+  "learn-files": "page.learnFiles",
+  "learn-search": "page.learnSearch",
+  "learn-semester": "page.learnSemester",
+  "learn-assignment-detail": "page.learnAssignmentDetail",
+  "learn-notice-detail": "page.learnNoticeDetail",
+  "learn-forum-thread": "page.learnForumThread",
+  "learn-file-detail": "page.learnFileDetail",
+  "learn-ykt-detail": "page.learnYktDetail",
+  folder: "page.folder",
+  tasks: "page.tasks",
+  services: "page.services",
+  favs: "page.favs",
+  xiaoda: "page.xiaoda",
+  org: "page.org",
 };
 
 /** 聚合页栏目的中文短名（tab 可深链到具体栏目：信息-新闻，但主题仍是信息） */
 /* 一级页标题 + 子栏目名：与各页面原始栏目 TABS 一致（信息页/生活页/预约页）。
  * 不得自行缩写（此前「体测成绩→体测」「校历→日历」「图书馆座位→图书馆」等缩略已撤回）。 */
-const PAGE_HEADER: Partial<Record<Page, string>> = { info: "信息", life: "生活", reserve: "预约" };
+const PAGE_HEADER: Partial<Record<Page, string>> = { info: "page.info", life: "page.life", reserve: "page.reserve" };
 const TAB_SUFFIX: Record<string, Record<string, string>> = {
-  info: { report: "成绩", fitness: "体测成绩", exams: "考试", evaluation: "教学评估", calendar: "校历", news: "新闻", profile: "个人信息", courseinfo: "课程信息" },
-  life: { dorm: "宿舍", washer: "洗衣机", hygiene: "卫生成绩", card: "校园卡", invoice: "电子发票", payroll: "银行代发", gradincome: "研究生收入", network: "校园网" },
-  reserve: { lib: "图书馆座位", libroom: "研讨间", classroom: "空教室", sports: "体育", kongjian: "公共空间" },
+  info: { report: "sub.info.report", fitness: "sub.info.fitness", exams: "sub.info.exams", evaluation: "sub.info.evaluation", calendar: "sub.info.calendar", news: "sub.info.news", profile: "sub.info.profile", courseinfo: "sub.info.courseinfo" },
+  life: { dorm: "sub.life.dorm", washer: "sub.life.washer", hygiene: "sub.life.hygiene", card: "sub.life.card", invoice: "sub.life.invoice", payroll: "sub.life.payroll", gradincome: "sub.life.gradincome", network: "sub.life.network" },
+  reserve: { lib: "sub.reserve.lib", libroom: "sub.reserve.libroom", classroom: "sub.reserve.classroom", sports: "sub.reserve.sports", kongjian: "sub.reserve.kongjian" },
+};
+
+/** 一级页 → 文案键（与 Layout.NAV 的 labelKey 同语义；标题条与程序坞用同一套名字）。 */
+const NAV_PAGE_KEY: Record<string, string> = {
+  tasks: "nav.tasks", learn: "nav.learn", schedule: "nav.schedule", trace: "nav.trace",
+  contacts: "nav.contacts", mail: "nav.mail", cloud: "nav.cloud", gitlab: "nav.gitlab",
+  thubook: "nav.thubook", xiaoda: "nav.xiaoda", info: "nav.info", life: "nav.life",
+  reserve: "nav.reserve", zhjwxk: "nav.zhjwxk", thos: "nav.thos", otherinfo: "nav.otherinfo",
 };
 
 export function titleOf(page: Page, params?: LearnNav | null, fallback?: string): string {
   if (fallback) return fallback;
-  if (page === "homepage") return "首页";
-  const header = PAGE_HEADER[page];
-  if (header) {
+  if (page === "homepage") return t("page.home");
+  const headerKey = PAGE_HEADER[page];
+  if (headerKey) {
     const suffixes = TAB_SUFFIX[page] ?? {};
-    const key = page === "info" ? params?.infoTab : page === "life" ? params?.lifeTab : params?.reserveTab;
-    return key && suffixes[key] ? `${header} · ${suffixes[key]}` : header;
+    const sub = page === "info" ? params?.infoTab : page === "life" ? params?.lifeTab : params?.reserveTab;
+    const suffixKey = sub ? suffixes[sub] : undefined;
+    return suffixKey ? `${t(headerKey)} · ${t(suffixKey)}` : t(headerKey);
   }
-  return NAV_REGISTRY.find((e) => e.page === page)?.name ?? PAGE_TITLES[page] ?? "页面";
+  const navKey = NAV_PAGE_KEY[page];
+  if (navKey) return t(navKey);
+  const staticKey = PAGE_TITLES[page];
+  if (staticKey) return t(staticKey);
+  const reg = NAV_REGISTRY.find((e) => e.page === page);
+  return reg ? navName(reg) : t("page.unknown");
 }
 
 /* ══════════ hash（由本模块统一写；外部深链 = 开新标签页） ══════════ */

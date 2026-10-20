@@ -18,6 +18,8 @@ import { useApp } from "../../state/context.js";
 import { CollectStar } from "../../components/Collect.js";
 import { enc, noteAtomCache } from "../../state/atoms.js";
 import { getWasherChoice, setWasherChoice } from "../../state/washerPref.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 function logErr(tag: string, err: unknown): void {
   void logLine(
@@ -158,7 +160,7 @@ export function WasherTab({
   return (
     <>
       <SectionHead
-        title="洗衣机"
+        title={i18n("auto.pages.info.WasherTab.1")}
         aside="数据来自三家：捷利 · 海乐生活 · 小兰智慧"
       />
       {gState === "error" ? <ErrorNote text={gError ?? ""} onRetry={() => void loadGroups()} /> : null}
@@ -199,10 +201,10 @@ export function WasherTab({
                 <>
                   <div className="seg-menu-backdrop" onClick={() => setDdOpen(false)} />
                   <div className="filter-dd-panel">
-                    <Input placeholder="搜索楼栋…" value={query} onChange={(value) => setQuery(value)} />
+                    <Input placeholder={i18n("auto.pages.info.WasherTab.2")} value={query} onChange={(value) => setQuery(value)} />
                     <div className="washer-dd-list">
                       {matched.length === 0 ? (
-                        <div className="washer-dd-empty">无匹配楼栋</div>
+                        <div className="washer-dd-empty">{i18n("auto.pages.info.WasherTab.3")}</div>
                       ) : (
                         matched.map((g) => (
                           <div key={g.name}>

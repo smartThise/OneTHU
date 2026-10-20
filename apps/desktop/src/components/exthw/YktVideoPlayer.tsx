@@ -8,6 +8,8 @@ import { Btn } from "@onethu/gui";
  */
 import { useEffect, useRef, useState } from "react";
 import type HlsType from "hls.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 export function YktVideoPlayer({ src, title }: { src: string; title?: string }) {
   const ref = useRef<HTMLVideoElement | null>(null);
@@ -70,8 +72,7 @@ export function YktVideoPlayer({ src, title }: { src: string; title?: string }) 
         <div className="ykt-ans-empty">
           {err}
           <Btn variant="ghost" onClick={copy}>
-            复制直链
-          </Btn>
+            {i18n("auto.components.exthw.YktVideoPlayer.1")}</Btn>
         </div>
       ) : null}
       {/* 失败时保留控件条以便用户重试；成功路径由 hls.js 或浏览器直接驱动 */}

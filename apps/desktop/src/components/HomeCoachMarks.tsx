@@ -10,6 +10,8 @@ import { Btn } from "@onethu/gui";
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { t as i18n } from "../i18n/index.js";
+
 
 const KEY = "onethu.home.coach.v1";
 
@@ -173,12 +175,10 @@ export function HomeCoachMarks(): ReactNode {
       <div style={{ fontSize: "var(--text-sm)", lineHeight: 1.5 }}>{tip.text}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span className="dim" style={{ fontSize: "var(--text-xs)" }}>
-          第 {idx + 1} 条，共 {avail.length} 条
-        </span>
+          {i18n("auto.components.HomeCoachMarks.1")}{idx + 1} {i18n("auto.components.HomeCoachMarks.2")}{avail.length} {i18n("auto.components.HomeCoachMarks.3")}</span>
         <span style={{ flex: 1 }} />
         <Btn variant="ghost" onClick={finish}>
-          不再提示
-        </Btn>
+          {i18n("auto.components.HomeCoachMarks.4")}</Btn>
         <Btn variant="solid" tone="brand" onClick={() => (last ? finish() : setIdx((i) => i + 1))}>{last ? "知道了" : "下一条"}</Btn>
       </div>
     </div>,

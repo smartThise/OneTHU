@@ -31,6 +31,8 @@ import { isAndroidNavigator } from "./androidHost.js";
 import { askOh, type OhAttachment } from "../im/oh.js";
 import { bytesToBase64, splitDataUrl } from "./imageSave.js";
 import { logLine } from "./clients.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 一份待发送的附件 */
 export interface AttachFile {
@@ -208,8 +210,8 @@ export async function pickGallery(opts: PickOptions = {}): Promise<AttachFile | 
 async function pickPathsViaDialog(multiple: boolean): Promise<string[] | null> {
   const { open } = await import("@tauri-apps/plugin-dialog");
   const sel = multiple
-    ? await open({ multiple: true, directory: false, title: "选择文件" })
-    : await open({ multiple: false, directory: false, title: "选择文件" });
+    ? await open({ multiple: true, directory: false, title: i18n("auto.lib.attach.p1") })
+    : await open({ multiple: false, directory: false, title: i18n("auto.lib.attach.p2") });
   if (!sel) return null;
   return Array.isArray(sel) ? sel : [sel];
 }

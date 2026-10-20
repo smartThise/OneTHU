@@ -31,6 +31,8 @@ import { AtomPickerModal, CollectStar } from "../components/Collect.js";
 import { loadTabLayout, saveTabLayout, type TabLayout } from "../lib/tabLayout.js";
 import { confirmOk } from "../lib/confirm.js";
 import { useTabDirection } from "../lib/motion.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const ROOT_TAB = "__root";
 
@@ -47,7 +49,7 @@ export function FolderPage() {
   if (!rootId || !folder) {
     return (
       <>
-        <PageHead title="收藏夹" />
+        <PageHead title={i18n("auto.pages.FolderPage.1")} />
         <Card>
           <Empty text="该收藏夹不存在或已被删除。" />
         </Card>
@@ -98,15 +100,14 @@ export function FolderPage() {
         actions={
           editing ? (
             <>
-              <Btn variant="outline" onClick={() => { setRenameVal(folder.title); setRenaming(true); }}>重命名</Btn>
-              <Btn variant="outline" disabled={orderIdx <= 0} titleAttr="左侧栏顺序上移" onClick={() => favs.moveRoot(rootId, -1)}>上移</Btn>
-              <Btn variant="outline" disabled={orderIdx >= favs.data.order.length - 1} titleAttr="左侧栏顺序下移" onClick={() => favs.moveRoot(rootId, 1)}>下移</Btn>
-              <Btn variant="solid" tone="error" onClick={() => void removeRoot()}>删除收藏夹</Btn>
-              <Btn variant="solid" tone="brand" onClick={() => setEditing(false)}>完成</Btn>
+              <Btn variant="outline" onClick={() => { setRenameVal(folder.title); setRenaming(true); }}>{i18n("auto.pages.FolderPage.2")}</Btn>
+              <Btn variant="outline" disabled={orderIdx <= 0} titleAttr={i18n("auto.pages.FolderPage.3")} onClick={() => favs.moveRoot(rootId, -1)}>{i18n("auto.pages.FolderPage.4")}</Btn>
+              <Btn variant="outline" disabled={orderIdx >= favs.data.order.length - 1} titleAttr={i18n("auto.pages.FolderPage.5")} onClick={() => favs.moveRoot(rootId, 1)}>{i18n("auto.pages.FolderPage.6")}</Btn>
+              <Btn variant="solid" tone="error" onClick={() => void removeRoot()}>{i18n("auto.pages.FolderPage.7")}</Btn>
+              <Btn variant="solid" tone="brand" onClick={() => setEditing(false)}>{i18n("auto.pages.FolderPage.8")}</Btn>
             </>
           ) : (
-            <Btn variant="outline" onClick={() => setEditing(true)}><IconPen width={14} height={14} />编辑
-            </Btn>
+            <Btn variant="outline" onClick={() => setEditing(true)}><IconPen width={14} height={14} />{i18n("auto.pages.FolderPage.9")}</Btn>
           )
         }
       />
@@ -158,14 +159,13 @@ function AtomWidgetButton({ atom }: { atom: AtomRef }): ReactNode {
       type="button"
       className="icon-btn"
       title={on ? "这个收藏项已经在桌面某块小组件上" : "把这个收藏项显示到桌面小组件（详情）"}
-      aria-label="显示到桌面小组件"
+      aria-label={i18n("auto.pages.FolderPage.10")}
       onClick={() => {
         requestWidgetBind({ to: "pick", binding: { kind: "detail", atom: { kind: atom.kind, key: atom.key } } });
         bump((n) => n + 1);
       }}
     >
-      桌
-    </button>
+      {i18n("auto.pages.FolderPage.11")}</button>
   );
 }
 
@@ -245,26 +245,24 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
                   </button>
                 ))}
               </SegmentedOverflow>
-              <Btn variant="ghost" onClick={() => setManageOpen(true)}>管理栏目
-              </Btn>
+              <Btn variant="ghost" onClick={() => setManageOpen(true)}>{i18n("auto.pages.FolderPage.12")}</Btn>
             </div>
           ) : null}
 
           {editing ? (
             <div className="fav-toolbar">
-              <Btn variant="outline" onClick={() => setPickerOpen(true)}>添加收藏项</Btn>
-              <Btn variant="outline" titleAttr="从图标库选择收藏夹图标" onClick={() => setIconOpen(true)}>图标</Btn>
+              <Btn variant="outline" onClick={() => setPickerOpen(true)}>{i18n("auto.pages.FolderPage.13")}</Btn>
+              <Btn variant="outline" titleAttr={i18n("auto.pages.FolderPage.14")} onClick={() => setIconOpen(true)}>{i18n("auto.pages.FolderPage.15")}</Btn>
               <Btn variant="outline" disabled={!canNestUnder(favs.data, folderId)} titleAttr={canNestUnder(favs.data, folderId) ? undefined : "最多 " + FAVS_MAX_DEPTH + " 层收藏夹"} onClick={() => {
                   setNewSub(true);
                   setNewSubName("");
-                }}>新建子收藏夹
-              </Btn>
+                }}>{i18n("auto.pages.FolderPage.16")}</Btn>
               <FolderWidgetButton folderId={folderId} />
               {!isRoot && !renaming ? (
-                <Btn variant="outline" onClick={() => { setRenameVal(f.title); setRenaming(true); }}>重命名</Btn>
+                <Btn variant="outline" onClick={() => { setRenameVal(f.title); setRenaming(true); }}>{i18n("auto.pages.FolderPage.2")}</Btn>
               ) : null}
               {!isRoot ? (
-                <Btn variant="solid" tone="error" onClick={() => void removeSelf()}>删除子收藏夹</Btn>
+                <Btn variant="solid" tone="error" onClick={() => void removeSelf()}>{i18n("auto.pages.FolderPage.17")}</Btn>
               ) : null}
               {renaming ? (
                 <input
@@ -293,12 +291,12 @@ export function FolderView({ folderId, editing, isRoot = false }: { folderId: st
 
           {newSub ? (
             <div className="fav-newsub">
-              <Input autoFocus placeholder="子收藏夹名称…" value={newSubName} onChange={(value) => setNewSubName(value)} onKeyDown={(e) => {
+              <Input autoFocus placeholder={i18n("auto.pages.FolderPage.18")} value={newSubName} onChange={(value) => setNewSubName(value)} onKeyDown={(e) => {
                   if (e.key === "Enter") createSub();
                   if (e.key === "Escape") setNewSub(false);
                 }} />
-              <Btn variant="solid" tone="brand" disabled={!canNestUnder(favs.data, folderId)} onClick={createSub}>创建</Btn>
-              <Btn variant="ghost" onClick={() => setNewSub(false)}>取消</Btn>
+              <Btn variant="solid" tone="brand" disabled={!canNestUnder(favs.data, folderId)} onClick={createSub}>{i18n("auto.pages.FolderPage.19")}</Btn>
+              <Btn variant="ghost" onClick={() => setNewSub(false)}>{i18n("auto.pages.FolderPage.20")}</Btn>
             </div>
           ) : null}
 
@@ -426,16 +424,15 @@ function OneItem({
 
   const tools = (
     <div className="home-card-tools">
-      <IconBtn label="上移" icon={<IconChevron width={13} height={13} style={{ transform: "rotate(-90deg)" }} />} onClick={() => moveAtom(index, -1)} />
-      <IconBtn label="下移" icon={<IconChevron width={13} height={13} style={{ transform: "rotate(90deg)" }} />} onClick={() => moveAtom(index, 1)} />
+      <IconBtn label={i18n("auto.pages.FolderPage.4")} icon={<IconChevron width={13} height={13} style={{ transform: "rotate(-90deg)" }} />} onClick={() => moveAtom(index, -1)} />
+      <IconBtn label={i18n("auto.pages.FolderPage.6")} icon={<IconChevron width={13} height={13} style={{ transform: "rotate(90deg)" }} />} onClick={() => moveAtom(index, 1)} />
       {/* 长卡上的「方」：今日 widget 件没有方卡形态，双形态收藏项（教室）才有 */}
       {!view.widget || view.tileLive ? (
-        <button type="button" className="icon-btn" title="改为方卡" aria-label="改为方卡" onClick={() => favs.setVariant(folderId, index, true)}>
-          方
-        </button>
+        <button type="button" className="icon-btn" title={i18n("auto.pages.FolderPage.21")} aria-label={i18n("auto.pages.FolderPage.21")} onClick={() => favs.setVariant(folderId, index, true)}>
+          {i18n("auto.pages.FolderPage.22")}</button>
       ) : null}
       <AtomWidgetButton atom={it.atom} />
-      <button type="button" className="icon-btn" title="从此收藏夹移除" aria-label="移除" onClick={() => favs.removeAt(folderId, index)}>
+      <button type="button" className="icon-btn" title={i18n("auto.pages.FolderPage.23")} aria-label={i18n("auto.pages.FolderPage.24")} onClick={() => favs.removeAt(folderId, index)}>
         ✕
       </button>
     </div>
@@ -446,7 +443,7 @@ function OneItem({
     return (
       <section className="home-card fav-widget">
         <div className="home-card-head">
-          <button type="button" className="home-card-title" onClick={() => view.open(navigate)} title="打开来源页">
+          <button type="button" className="home-card-title" onClick={() => view.open(navigate)} title={i18n("auto.pages.FolderPage.25")}>
             <h2>{view.title}</h2>
             {view.sub ? <span className="home-card-aside">{view.sub}</span> : null}
           </button>
@@ -479,14 +476,13 @@ function OneItem({
         {editing ? (
           <>
             <div className="home-card-tools">
-              <IconBtn label="上移" icon={<IconChevron width={13} height={13} style={{ transform: "rotate(-90deg)" }} />} onClick={() => moveAtom(index, -1)} />
-              <IconBtn label="下移" icon={<IconChevron width={13} height={13} style={{ transform: "rotate(90deg)" }} />} onClick={() => moveAtom(index, 1)} />
+              <IconBtn label={i18n("auto.pages.FolderPage.4")} icon={<IconChevron width={13} height={13} style={{ transform: "rotate(-90deg)" }} />} onClick={() => moveAtom(index, -1)} />
+              <IconBtn label={i18n("auto.pages.FolderPage.6")} icon={<IconChevron width={13} height={13} style={{ transform: "rotate(90deg)" }} />} onClick={() => moveAtom(index, 1)} />
               {!view.widget || view.tileLive ? (
-                <button type="button" className="icon-btn" title="改为方卡" aria-label="改为方卡" onClick={() => favs.setVariant(folderId, index, true)}>
-                  方
-                </button>
+                <button type="button" className="icon-btn" title={i18n("auto.pages.FolderPage.21")} aria-label={i18n("auto.pages.FolderPage.21")} onClick={() => favs.setVariant(folderId, index, true)}>
+                  {i18n("auto.pages.FolderPage.22")}</button>
               ) : null}
-              <button type="button" className="icon-btn" title="从此收藏夹移除" aria-label="移除" onClick={() => favs.removeAt(folderId, index)}>
+              <button type="button" className="icon-btn" title={i18n("auto.pages.FolderPage.23")} aria-label={i18n("auto.pages.FolderPage.24")} onClick={() => favs.removeAt(folderId, index)}>
                 ✕
               </button>
             </div>
@@ -524,11 +520,10 @@ function TileItem({ folderId, index, editing }: { folderId: string; index: numbe
       {editing ? (
         <div className="fav-tile-tools">
           {view.widget ? (
-            <button type="button" className="icon-btn" title="改为长卡" aria-label="改为长卡" onClick={() => favs.setVariant(folderId, index, false)}>
-              长
-            </button>
+            <button type="button" className="icon-btn" title={i18n("auto.pages.FolderPage.26")} aria-label={i18n("auto.pages.FolderPage.26")} onClick={() => favs.setVariant(folderId, index, false)}>
+              {i18n("auto.pages.FolderPage.27")}</button>
           ) : null}
-          <button type="button" className="icon-btn" title="从此收藏夹移除" aria-label="移除" onClick={() => favs.removeAt(folderId, index)}>
+          <button type="button" className="icon-btn" title={i18n("auto.pages.FolderPage.23")} aria-label={i18n("auto.pages.FolderPage.24")} onClick={() => favs.removeAt(folderId, index)}>
             ✕
           </button>
         </div>
@@ -551,15 +546,15 @@ function IconPickerModal({ current, onPick, onClose }: { current?: string; onPic
   }, [onClose]);
   return createPortal(
     <div className="home-modal-mask" onClick={onClose}>
-      <div className="home-modal" role="dialog" aria-modal="true" aria-label="选择收藏夹图标" onClick={(e) => e.stopPropagation()}>
+      <div className="home-modal" role="dialog" aria-modal="true" aria-label={i18n("auto.pages.FolderPage.28")} onClick={(e) => e.stopPropagation()}>
         <div className="home-modal-head">
-          <h3>收藏夹图标</h3>
-          <Btn variant="ghost" onClick={onClose}>关闭</Btn>
+          <h3>{i18n("auto.pages.FolderPage.29")}</h3>
+          <Btn variant="ghost" onClick={onClose}>{i18n("auto.pages.FolderPage.30")}</Btn>
         </div>
         <div className="home-modal-body">
-          <div className="home-modal-hint">图标应用于左侧栏与收藏夹页头；根收藏夹与子收藏夹都可各选各的。</div>
+          <div className="home-modal-hint">{i18n("auto.pages.FolderPage.31")}</div>
           <div className="icon-grid">
-            <button type="button" className={"icon-cell" + (!current ? " is-active" : "")} title="默认" onClick={() => onPick(undefined)}>
+            <button type="button" className={"icon-cell" + (!current ? " is-active" : "")} title={i18n("auto.pages.FolderPage.32")} onClick={() => onPick(undefined)}>
               <FolderIcon name={undefined} width={18} height={18} />
             </button>
             {Object.entries(FOLDER_ICONS)

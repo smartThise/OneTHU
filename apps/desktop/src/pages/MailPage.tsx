@@ -16,6 +16,8 @@ import { CollectStar } from "../components/Collect.js";
 import { showToast } from "../state/toast.js";
 import { useExitHold, useSegPill } from "../lib/motion.js";
 import { vaultCatchAttr } from "../components/vault/vaultDrag.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 邮件时间：今天 14:05 / 昨天 / 9月5日 / 2025年12月3日 */
 function fmtMailDate(ms: number): string {
@@ -65,7 +67,7 @@ function Row({ h, folder, active, onClick }: { h: MailHead; folder: string; acti
         <span className="mail-row-subject">{h.subject}</span>
       </span>
       <CollectStar atom={{ kind: "mail", key: `${folder}#${h.uid}` }} title={h.subject} />
-      {!h.seen && <span className="mail-dot" aria-label="未读" />}
+      {!h.seen && <span className="mail-dot" aria-label={i18n("auto.pages.MailPage.1")} />}
     </div>
   );
 }
@@ -95,25 +97,21 @@ function Compose({ closing, onClose, onSent }: { closing: boolean; onClose: () =
     <div className={"mail-compose-mask" + (closing ? " is-closing" : "")} onClick={(e) => { if (e.target === e.currentTarget && !sending) onClose(); }}>
       <div className={"mail-compose" + (closing ? " is-closing" : "")}>
         <div className="mail-compose-head">
-          <h2>写信</h2>
-          <Btn variant="ghost" onClick={onClose} disabled={sending}>取消</Btn>
+          <h2>{i18n("auto.pages.MailPage.2")}</h2>
+          <Btn variant="ghost" onClick={onClose} disabled={sending}>{i18n("auto.pages.MailPage.3")}</Btn>
         </div>
         <div className="mail-compose-fields">
           <label>
-            收件人
-            <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="user@mails.tsinghua.edu.cn（多个用逗号分隔）" autoFocus />
+            {i18n("auto.pages.MailPage.4")}<input value={to} onChange={(e) => setTo(e.target.value)} placeholder={i18n("auto.pages.MailPage.5")} autoFocus />
           </label>
           <label>
-            抄送
-            <input value={cc} onChange={(e) => setCc(e.target.value)} placeholder="可选" />
+            {i18n("auto.pages.MailPage.6")}<input value={cc} onChange={(e) => setCc(e.target.value)} placeholder={i18n("auto.pages.MailPage.7")} />
           </label>
           <label>
-            主题
-            <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="邮件主题" />
+            {i18n("auto.pages.MailPage.8")}<input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={i18n("auto.pages.MailPage.9")} />
           </label>
           <label>
-            正文
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={10} placeholder="正文（纯文本）" />
+            {i18n("auto.pages.MailPage.10")}<textarea value={body} onChange={(e) => setBody(e.target.value)} rows={10} placeholder={i18n("auto.pages.MailPage.11")} />
           </label>
         </div>
         {err && <div className="mail-compose-err">{err}</div>}
@@ -161,8 +159,7 @@ a { color: #2f6df6; }
   return (
     <div className="mail-detail">
       <div className="mail-detail-head">
-        <Btn variant="ghost" onClick={onBack}><IconChevron style={{ transform: "rotate(180deg)" }} />返回
-        </Btn>
+        <Btn variant="ghost" onClick={onBack}><IconChevron style={{ transform: "rotate(180deg)" }} />{i18n("auto.pages.MailPage.12")}</Btn>
         {head && (
           <span className="mail-detail-headside">
             <span className="mail-detail-date">{fmtMailDate(head.dateMs)}</span>
@@ -170,8 +167,8 @@ a { color: #2f6df6; }
           </span>
         )}
       </div>
-      {loading && <div className="mail-empty">读取中…</div>}
-      {error && <div className="mail-empty">读取失败：{error}</div>}
+      {loading && <div className="mail-empty">{i18n("auto.pages.MailPage.13")}</div>}
+      {error && <div className="mail-empty">{i18n("auto.pages.MailPage.14")}{error}</div>}
       {body && !loading && (
         <>
           <h2 className="mail-detail-subject">{body.subject}</h2>
@@ -181,7 +178,7 @@ a { color: #2f6df6; }
             </span>
             <span className="mail-detail-meta-main">
               <span className="mail-detail-from">{body.from || "(无发件人)"}</span>
-              {body.to && <span className="mail-detail-to">收件人：{body.to}</span>}
+              {body.to && <span className="mail-detail-to">{i18n("auto.pages.MailPage.15")}{body.to}</span>}
             </span>
           </div>
           {srcDoc ? (
@@ -189,7 +186,7 @@ a { color: #2f6df6; }
               className="mail-detail-html"
               sandbox=""
               srcDoc={srcDoc}
-              title="邮件正文"
+              title={i18n("auto.pages.MailPage.16")}
             />
           ) : (
             <pre className="mail-detail-text">{body.text || "(正文为空)"}</pre>
@@ -239,11 +236,11 @@ export function MailPage(): React.ReactNode {
     return (
       <div className="card mail-guide">
         <IconMail style={{ width: 40, height: 40 }} />
-        <h2>邮箱待配置</h2>
-        <p>邮箱与云日历共用同一个清华邮箱，绑一次两处都能用。</p>
+        <h2>{i18n("auto.pages.MailPage.17")}</h2>
+        <p>{i18n("auto.pages.MailPage.18")}</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Btn variant="solid" tone="brand" onClick={() => setBindOpen(true)}>绑定邮箱</Btn>
-          <Btn variant="outline" onClick={() => navigate("settings")}>去设置</Btn>
+          <Btn variant="solid" tone="brand" onClick={() => setBindOpen(true)}>{i18n("auto.pages.MailPage.19")}</Btn>
+          <Btn variant="outline" onClick={() => navigate("settings")}>{i18n("auto.pages.MailPage.20")}</Btn>
         </div>
         <ConnectGate need="mail" open={bindOpen} onClose={() => setBindOpen(false)} />
       </div>
@@ -254,13 +251,12 @@ export function MailPage(): React.ReactNode {
     <>
       <div className="page-head">
         <div>
-          <h1>邮箱</h1>
-          <div className="page-head-meta">{mail.email} · IMAP/SMTP 直连</div>
+          <h1>{i18n("auto.pages.MailPage.21")}</h1>
+          <div className="page-head-meta">{mail.email} {i18n("auto.pages.MailPage.22")}</div>
         </div>
         <div className="page-head-actions">
           <Btn variant="ghost" onClick={() => void mail.refresh()} disabled={mail.loading}><IconRefresh />{mail.loading ? "同步中…" : "刷新"}</Btn>
-          <Btn variant="outline" onClick={() => setComposing(true)}><IconPen />写信
-          </Btn>
+          <Btn variant="outline" onClick={() => setComposing(true)}><IconPen />{i18n("auto.pages.MailPage.2")}</Btn>
         </div>
       </div>
       <div className="mail-toolbar">
@@ -273,25 +269,25 @@ export function MailPage(): React.ReactNode {
               onClick={() => { setFolder(f.id); setOpenUid(null); setResults(null); setQ(""); }}
             >
               {f.label}
-              {(unreadCounts[f.id] ?? 0) > 0 && <span className="tab-count" title="未读">{unreadCounts[f.id]}</span>}
+              {(unreadCounts[f.id] ?? 0) > 0 && <span className="tab-count" title={i18n("auto.pages.MailPage.1")}>{unreadCounts[f.id]}</span>}
             </button>
           ))}
         </div>
         <span className="mail-toolbar-search">
-          <Input value={q} onChange={(value) => setQ(value)} onKeyDown={(e) => { if (e.key === "Enter" && q.trim()) void doSearch(); }} placeholder="搜索邮件（回车全箱搜）" />
+          <Input value={q} onChange={(value) => setQ(value)} onKeyDown={(e) => { if (e.key === "Enter" && q.trim()) void doSearch(); }} placeholder={i18n("auto.pages.MailPage.23")} />
           {results !== null ? (
-            <Btn variant="ghost" titleAttr="退出搜索" onClick={() => { setResults(null); setQ(""); }}>×</Btn>
+            <Btn variant="ghost" titleAttr={i18n("auto.pages.MailPage.24")} onClick={() => { setResults(null); setQ(""); }}>×</Btn>
           ) : (
-            <Btn variant="ghost" titleAttr="全箱搜索" onClick={() => void doSearch()} disabled={!q.trim() || searching}>{searching ? "…" : "搜"}</Btn>
+            <Btn variant="ghost" titleAttr={i18n("auto.pages.MailPage.25")} onClick={() => void doSearch()} disabled={!q.trim() || searching}>{searching ? "…" : "搜"}</Btn>
           )}
         </span>
         {mail.error && <span className="mail-error">{mail.error}</span>}
       </div>
       <div className={`mail-layout${openUid !== null ? " detail-open" : ""}`}>
         <div className="mail-list">
-          {results === null && mail.loading && mail.heads.length === 0 && <div className="mail-empty">加载中…</div>}
-          {results !== null && results.length === 0 && <div className="mail-empty">没有匹配「{q}」的邮件</div>}
-          {results === null && !mail.loading && mail.heads.length === 0 && <div className="mail-empty">没有邮件</div>}
+          {results === null && mail.loading && mail.heads.length === 0 && <div className="mail-empty">{i18n("auto.pages.MailPage.26")}</div>}
+          {results !== null && results.length === 0 && <div className="mail-empty">{i18n("auto.pages.MailPage.27")}{q}{i18n("auto.pages.MailPage.28")}</div>}
+          {results === null && !mail.loading && mail.heads.length === 0 && <div className="mail-empty">{i18n("auto.pages.MailPage.29")}</div>}
           {(results ?? mail.heads).map((h) => (
             <Row key={h.uid} h={h} folder={folder} active={openUid === h.uid} onClick={() => setOpenUid(h.uid)} />
           ))}
@@ -301,11 +297,11 @@ export function MailPage(): React.ReactNode {
                 {mail.loading ? "加载中…" : `已显示最新 ${mail.heads.length} / 共 ${mail.total} 封`}
               </span>
               {mail.canMore && !mail.loading && (
-                <Btn variant="ghost" onClick={() => void mail.loadMore()}>加载更早</Btn>
+                <Btn variant="ghost" onClick={() => void mail.loadMore()}>{i18n("auto.pages.MailPage.30")}</Btn>
               )}
             </div>
           ) : (
-            <div className="mail-more"><span className="mail-more-meta">搜索结果 {results.length} 封</span></div>
+            <div className="mail-more"><span className="mail-more-meta">{i18n("auto.pages.MailPage.31")}{results.length} {i18n("auto.pages.MailPage.32")}</span></div>
           )}
         </div>
         {openUid !== null ? (
@@ -313,7 +309,7 @@ export function MailPage(): React.ReactNode {
         ) : (
           <div className="mail-detail mail-detail-empty">
             <IconMail style={{ width: 36, height: 36, opacity: 0.4 }} />
-            <span>选择一封邮件阅读</span>
+            <span>{i18n("auto.pages.MailPage.33")}</span>
           </div>
         )}
       </div>

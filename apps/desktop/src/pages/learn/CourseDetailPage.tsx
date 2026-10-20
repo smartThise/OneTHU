@@ -19,6 +19,8 @@ import { BbsPanel } from "./Forum.js";
 import { toExternalNotice, toHomework, useExternalHomework } from "../../state/exthw.js";
 import { mergeCoursesByName, yktKindToCourseTab } from "./courseMerge.js";
 import { YktContentList } from "../../components/exthw/YktContentList.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type Tab = "notices" | "assignments" | "files" | "groups" | "forum";
 
@@ -174,13 +176,12 @@ export function CourseDetailPage() {
         }
         actions={
           <>
-            <BackButton to="learn" label="课程列表" />
+            <BackButton to="learn" label={i18n("auto.pages.learn.CourseDetailPage.1")} />
             <CollectStar
               atom={{ kind: "course", key: enc(course?.id ?? navParams?.courseId ?? "", course?.name ?? "", course?.teacherName ?? "", data?.semester.id ?? "") }}
               title={course?.name}
             />
-            <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />刷新
-            </Btn>
+            <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />{i18n("auto.pages.learn.CourseDetailPage.2")}</Btn>
           </>
         }
       />
@@ -232,7 +233,7 @@ export function CourseDetailPage() {
                 本课程通知栏（外部公告自身的 courseId 是雨课堂课堂 id，退回会缺参）。 */}
             {yktNotices.length > 0 ? (
               <>
-                <SectionHead title="雨课堂公告" />
+                <SectionHead title={i18n("auto.pages.learn.CourseDetailPage.3")} />
                 <Card className="list">
                   {yktNotices.map((c, i) => (
                     <NoticeRow
@@ -306,7 +307,7 @@ export function CourseDetailPage() {
             {/* R29：雨课堂「资料」等并入文件栏（行内就地展开/内置预览） */}
             {yktFiles.length > 0 ? (
               <>
-                <SectionHead title="雨课堂资料" />
+                <SectionHead title={i18n("auto.pages.learn.CourseDetailPage.4")} />
                 <YktContentList items={yktFiles} />
               </>
             ) : null}

@@ -41,6 +41,8 @@ import {
 import { confirmOk } from "../../lib/confirm.js";
 import { openWorkspaceEditor } from "./WorkspaceEditor.js";
 import { openFormModal } from "../../lib/formModal.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 /* ══════════ 抽屉开合 store（palette.ts 同款） ══════════ */
 
@@ -120,7 +122,7 @@ function FavsSection({ onDone }: { onDone: () => void }): ReactNode {
 
   const rename = async (b: Board): Promise<void> => {
     const f = await openFormModal("重命名 OnePage", [
-      { key: "name", label: "名字", required: true, default: b.name },
+      { key: "name", label: i18n("auto.components.explorer.OneGoSheet.p1"), required: true, default: b.name },
     ]);
     if (!f) return;
     renameOnePage(b.id, f.name ?? b.name);
@@ -128,37 +130,37 @@ function FavsSection({ onDone }: { onDone: () => void }): ReactNode {
 
   const rowMenu = (b: Board, x: number, y: number): void => {
     openContextMenu(x, y, [
-      { label: "重命名…", onSelect: () => void rename(b) },
-      { label: "改图标…", onSelect: () => openFolderIconPicker(b.id) },
-      { label: "设为当前 OnePage", onSelect: () => { openOnePage(b.id); showToast(`当前 OnePage：${b.name}`); } },
-      { label: "删除…", danger: true, sepBefore: true, onSelect: () => remove(b) },
+      { label: i18n("auto.components.explorer.OneGoSheet.p2"), onSelect: () => void rename(b) },
+      { label: i18n("auto.components.explorer.OneGoSheet.p3"), onSelect: () => openFolderIconPicker(b.id) },
+      { label: i18n("auto.components.explorer.OneGoSheet.p4"), onSelect: () => { openOnePage(b.id); showToast(`当前 OnePage：${b.name}`); } },
+      { label: i18n("auto.components.explorer.OneGoSheet.p5"), danger: true, sepBefore: true, onSelect: () => remove(b) },
     ]);
   };
 
   return (
-    <section aria-label="我的 OnePage">
+    <section aria-label={i18n("auto.components.explorer.OneGoSheet.1")}>
       <div className="ex-sec-head">
-        <b>我的 OnePage</b>
+        <b>{i18n("auto.components.explorer.OneGoSheet.1")}</b>
       </div>
       {/* 「首页」入口（2026-10-15 用户点名「点击首页回首页」）：系统板不是 OnePage，不能列成一块板，
           但"回首页"这件事必须在这个列表里点得到 —— 它聚焦首页标签（与顶栏 Logo 同一条路）。
           用 GUI 的 Row（可点）而不是自写的裸按钮元素：仓库的裸控件棘轮只许降不许涨（R4）。 */}
       <Row
-        title="首页"
-        sub="时钟 · 一级程序坞 · 自由画布"
+        title={i18n("auto.components.explorer.OneGoSheet.2")}
+        sub={i18n("auto.components.explorer.OneGoSheet.3")}
         onClick={() => {
           focusTab(HOME_TAB_ID);
           onDone();
         }}
       />
       <div className="ex-newrow">
-        <Input placeholder="新 OnePage 名称" value={name} onChange={(value) => setName(value)} onKeyDown={(e) => {
+        <Input placeholder={i18n("auto.components.explorer.OneGoSheet.4")} value={name} onChange={(value) => setName(value)} onKeyDown={(e) => {
             if (e.key === "Enter") create();
           }} />
-        <Btn variant="outline" onClick={create} disabled={!name.trim()}>新建</Btn>
+        <Btn variant="outline" onClick={create} disabled={!name.trim()}>{i18n("auto.components.explorer.OneGoSheet.5")}</Btn>
       </div>
       {boards.length === 0 ? (
-        <div className="ex-empty-hint">还没有 OnePage。新建一块，它就是一张可以随意摆组件的白板。</div>
+        <div className="ex-empty-hint">{i18n("auto.components.explorer.OneGoSheet.6")}</div>
       ) : (
         <div className="ex-row-list">
           {boards.map((b) => (
@@ -182,16 +184,16 @@ function FavsSection({ onDone }: { onDone: () => void }): ReactNode {
         </div>
       )}
       <Row
-        title="所有 OnePage"
-        sub="列表里改名 / 换图标 / 排序 / 删除"
+        title={i18n("auto.components.explorer.OneGoSheet.7")}
+        sub={i18n("auto.components.explorer.OneGoSheet.8")}
         onClick={() => { navigate("boards"); onDone(); }}
       />
       <Row
-        title="暂存箱"
-        sub="先把任意元素收进来，再整理或生成分享口令"
+        title={i18n("auto.components.explorer.OneGoSheet.9")}
+        sub={i18n("auto.components.explorer.OneGoSheet.10")}
         onClick={() => { navigate("vault"); onDone(); }}
       />
-      <div className="ex-hint-line">OnePage 是一张白板：长按组件换位，右下角进编辑与添加。</div>
+      <div className="ex-hint-line">{i18n("auto.components.explorer.OneGoSheet.11")}</div>
     </section>
   );
 }
@@ -221,7 +223,7 @@ function FlowSection({ onDone }: { onDone: () => void }): ReactNode {
         <b>OneFlow</b>
       </div>
       {flows.length === 0 ? (
-        <div className="ex-empty-hint">还没有 OneFlow，去 OH 对话说「创建一个流程」即可。</div>
+        <div className="ex-empty-hint">{i18n("auto.components.explorer.OneGoSheet.12")}</div>
       ) : (
         <div className="ex-row-list">
           {flows.map((f) => (
@@ -242,7 +244,7 @@ function FlowSection({ onDone }: { onDone: () => void }): ReactNode {
                 void confirmOk(`删除 OneFlow「${f.name}」？步骤与运行记录会一起删除。`).then((ok) => {
                   if (ok) { deleteFlow(f.id); showToast(`已删除「${f.name}」`); }
                 });
-              }}>删除</Btn>
+              }}>{i18n("auto.components.explorer.OneGoSheet.13")}</Btn>
             </div>
           ))}
         </div>
@@ -250,7 +252,7 @@ function FlowSection({ onDone }: { onDone: () => void }): ReactNode {
       {themes.length > 0 ? (
         <>
           <div className="ex-sec-head" style={{ marginTop: 10 }}>
-            <b>用户主题</b>
+            <b>{i18n("auto.components.explorer.OneGoSheet.14")}</b>
           </div>
           <div className="ex-row-list">
             {themes.map((t) => (
@@ -265,7 +267,7 @@ function FlowSection({ onDone }: { onDone: () => void }): ReactNode {
                     <span className="ex-row-sub">{activeTheme === t.id ? "生效中（再点恢复默认）" : "点击应用"}</span>
                   </span>
                 </button>
-                <Btn variant="ghost" onClick={() => deleteTheme(t.id)}>删除</Btn>
+                <Btn variant="ghost" onClick={() => deleteTheme(t.id)}>{i18n("auto.components.explorer.OneGoSheet.13")}</Btn>
               </div>
             ))}
           </div>
@@ -282,11 +284,11 @@ function OneGoSearchResults({ q, onDone }: { q: string; onDone: () => void }): R
   const hits = userOnePages().filter((b) => b.name.toLowerCase().includes(q));
   const wsSnap = useSyncExternalStore(subscribeExplorer, explorerSnapshot, explorerSnapshot);
   const wsHits = wsSnap.workspaces.filter((w) => w.name.toLowerCase().includes(q));
-  if (hits.length === 0 && wsHits.length === 0) return <div className="ex-empty-hint">没有匹配的 OnePage 或工作区。</div>;
+  if (hits.length === 0 && wsHits.length === 0) return <div className="ex-empty-hint">{i18n("auto.components.explorer.OneGoSheet.15")}</div>;
   return (
     <>
       {hits.length > 0 ? (
-        <section aria-label="OnePage 搜索结果">
+        <section aria-label={i18n("auto.components.explorer.OneGoSheet.16")}>
           <div className="ex-group-head">
             <span className="ex-group-name">OnePage</span>
             <span className="ex-group-count">{hits.length}</span>
@@ -314,9 +316,9 @@ function OneGoSearchResults({ q, onDone }: { q: string; onDone: () => void }): R
         </section>
       ) : null}
       {wsHits.length > 0 ? (
-        <section aria-label="工作区搜索结果">
+        <section aria-label={i18n("auto.components.explorer.OneGoSheet.17")}>
           <div className="ex-group-head">
-            <span className="ex-group-name">工作区</span>
+            <span className="ex-group-name">{i18n("auto.components.explorer.OneGoSheet.18")}</span>
             <span className="ex-group-count">{wsHits.length}</span>
           </div>
           <div className="ex-row-list">
@@ -324,20 +326,19 @@ function OneGoSearchResults({ q, onDone }: { q: string; onDone: () => void }): R
               <div className="ex-row" key={w.id} data-vault-catch={vaultCatchWorkspace({ id: w.id, name: w.name, count: w.tabs.length })}>
                 <div className="ex-row-main">
                   <span className="ex-row-title">{w.name}</span>
-                  <span className="ex-row-sub">{w.tabs.length} 个标签页</span>
+                  <span className="ex-row-sub">{w.tabs.length} {i18n("auto.components.explorer.OneGoSheet.19")}</span>
                 </div>
                 <div className="ex-row-actions">
-                  <Btn variant="ghost" onClick={() => { openWorkspace(w.id); onDone(); }}>打开</Btn>
-                  <Btn variant="ghost" onClick={() => openWorkspaceEditor(w.id)}>编辑</Btn>
+                  <Btn variant="ghost" onClick={() => { openWorkspace(w.id); onDone(); }}>{i18n("auto.components.explorer.OneGoSheet.20")}</Btn>
+                  <Btn variant="ghost" onClick={() => openWorkspaceEditor(w.id)}>{i18n("auto.components.explorer.OneGoSheet.21")}</Btn>
                   {w.live ? (
-                    <Btn variant="ghost" titleAttr="解散：只退组，标签页保留" onClick={() => dissolveWorkspace(w.id)}>解散</Btn>
+                    <Btn variant="ghost" titleAttr={i18n("auto.components.explorer.OneGoSheet.22")} onClick={() => dissolveWorkspace(w.id)}>{i18n("auto.components.explorer.OneGoSheet.23")}</Btn>
                   ) : null}
-                  <Btn variant="ghost" titleAttr="彻底删除：连同其中的标签页一起关闭" onClick={() =>
+                  <Btn variant="ghost" titleAttr={i18n("auto.components.explorer.OneGoSheet.24")} onClick={() =>
                       void confirmOk(`彻底删除工作区「${w.name}」及其中的标签页？`).then((ok) => {
                         if (ok) closeLiveWorkspace(w.id);
                       })
-                    }>彻底删除
-                  </Btn>
+                    }>{i18n("auto.components.explorer.OneGoSheet.25")}</Btn>
                 </div>
               </div>
             ))}
@@ -369,11 +370,11 @@ function OneGoSheetInner(): ReactNode {
     if (!ws) return;
     const count = explorerSnapshot().tabs.filter((t) => t.workspaceId === wsId).length;
     const items: MenuItem[] = [
-      { label: "打开工作区", onSelect: () => openWorkspace(wsId) },
-      { label: "编辑工作区…", onSelect: () => openWorkspaceEditor(wsId) },
-      { label: "解散工作区（保留标签页）", onSelect: () => dissolveWorkspace(wsId), danger: true, sepBefore: true },
+      { label: i18n("auto.components.explorer.OneGoSheet.p6"), onSelect: () => openWorkspace(wsId) },
+      { label: i18n("auto.components.explorer.OneGoSheet.p7"), onSelect: () => openWorkspaceEditor(wsId) },
+      { label: i18n("auto.components.explorer.OneGoSheet.p8"), onSelect: () => dissolveWorkspace(wsId), danger: true, sepBefore: true },
       {
-        label: "彻底删除（连同标签页）",
+        label: i18n("auto.components.explorer.OneGoSheet.p9"),
         onSelect: () =>
           void confirmOk(`彻底删除工作区「${ws.name}」及其中的 ${count} 个标签页？`).then((ok) => {
             if (ok) closeLiveWorkspace(wsId);
@@ -420,21 +421,21 @@ function OneGoSheetInner(): ReactNode {
         onContextMenu={sheetCtl.onContextMenu}
         onClickCapture={sheetCtl.onClickCapture}
       >
-        {phoneUi ? <PhoneSheetGrip label="拖住改高度（半屏或全屏）" gripProps={sheet.gripProps} /> : null}
+        {phoneUi ? <PhoneSheetGrip label={i18n("auto.components.explorer.OneGoSheet.26")} gripProps={sheet.gripProps} /> : null}
         <header className="ex-sheet-head">
           <b>OneGO!</b>
-          <span className="ex-sec-head-note">组织你的工作</span>
-          <Btn variant="ghost" onClick={requestClose}>完成</Btn>
+          <span className="ex-sec-head-note">{i18n("auto.components.explorer.OneGoSheet.27")}</span>
+          <Btn variant="ghost" onClick={requestClose}>{i18n("auto.components.explorer.OneGoSheet.28")}</Btn>
         </header>
         <div className="ex-seg-row">
-          <div className="segmented ex-seg" role="tablist" aria-label="OneGO! 分段">
-            <button className={seg === "favs" ? "is-active" : ""} role="tab" aria-selected={seg === "favs"} onClick={() => setSeg("favs")}>我的收藏</button>
-            <button className={seg === "ws" ? "is-active" : ""} role="tab" aria-selected={seg === "ws"} onClick={() => setSeg("ws")}>工作区</button>
+          <div className="segmented ex-seg" role="tablist" aria-label={i18n("auto.components.explorer.OneGoSheet.29")}>
+            <button className={seg === "favs" ? "is-active" : ""} role="tab" aria-selected={seg === "favs"} onClick={() => setSeg("favs")}>{i18n("auto.components.explorer.OneGoSheet.30")}</button>
+            <button className={seg === "ws" ? "is-active" : ""} role="tab" aria-selected={seg === "ws"} onClick={() => setSeg("ws")}>{i18n("auto.components.explorer.OneGoSheet.18")}</button>
           </div>
         </div>
         <div className="ex-sheet-body">
           <div className="ex-sheet-search">
-            <Input placeholder="搜索 OnePage / 工作区…" value={query} onChange={(value) => setQuery(value)} />
+            <Input placeholder={i18n("auto.components.explorer.OneGoSheet.31")} value={query} onChange={(value) => setQuery(value)} />
           </div>
           {q ? (
             <OneGoSearchResults q={q} onDone={requestClose} />
@@ -448,8 +449,7 @@ function OneGoSheetInner(): ReactNode {
           )}
         </div>
         <footer className="ex-sheet-foot">
-          <Btn variant="ghost" onClick={() => { focusTab(HOME_TAB_ID); requestClose(); }}>功能目录在首页 ↓
-          </Btn>
+          <Btn variant="ghost" onClick={() => { focusTab(HOME_TAB_ID); requestClose(); }}>{i18n("auto.components.explorer.OneGoSheet.32")}</Btn>
         </footer>
       </aside>
     </>,

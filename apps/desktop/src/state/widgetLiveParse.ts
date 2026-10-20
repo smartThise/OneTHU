@@ -1,3 +1,5 @@
+
+import { t as i18n } from "../i18n/index.js";
 /**
  * 教室占用 / 洗衣机状态的**解读**（纯函数，可直测）。
  *
@@ -150,7 +152,7 @@ export function roomDetail(day: number[], roomName: string, now: number): { rows
   const cur = currentSlot(now);
   if (cur >= 0 && cur < day.length) {
     const [from, to] = SLOT_TIMES[cur]!;
-    rows.push({ text: `现在第 ${cur + 1} 节 ${fmtClock(from)}–${fmtClock(to)}`, sub: "点开看整周占用", size: "sm" });
+    rows.push({ text: `现在第 ${cur + 1} 节 ${fmtClock(from)}–${fmtClock(to)}`, sub: i18n("auto.state.widgetLiveParse.p1"), size: "sm" });
   }
   return { rows, footer: `${roomName ? roomName + " · " : ""}今日占用总览` };
 }

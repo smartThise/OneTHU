@@ -33,6 +33,8 @@ import { EvaluationTab } from "./EvaluationTab.js";
 import { CalendarTab } from "./CalendarTab.js";
 import { CourseInfoTab } from "./CourseInfoTab.js";
 import { useTabDirection } from "../../lib/motion.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 export type InfoTab = "report" | "fitness" | "exams" | "evaluation" | "calendar" | "news" | "profile" | "courseinfo";
 
@@ -113,12 +115,11 @@ export function InfoPage() {
   return (
     <>
       <PageHead
-        title="信息"
+        title={i18n("auto.pages.info.InfoPage.1")}
         actions={
           <>
-            <RootPageStar page="info" title="信息" />
-            <Btn variant="outline" onClick={() => setManageOpen(true)} titleAttr="栏目显隐与排序">管理栏目
-            </Btn>
+            <RootPageStar page="info" title={i18n("auto.pages.info.InfoPage.1")} />
+            <Btn variant="outline" onClick={() => setManageOpen(true)} titleAttr={i18n("auto.pages.info.InfoPage.2")}>{i18n("auto.pages.info.InfoPage.3")}</Btn>
           </>
         }
       />
@@ -139,8 +140,8 @@ export function InfoPage() {
       {effTab === null ? (
         <Empty
           text="所有栏目都被藏起来了。"
-          hint="点下面的按钮可以把它们叫回来。"
-          action={<Btn variant="solid" tone="brand" onClick={() => setManageOpen(true)}>管理栏目</Btn>}
+          hint={i18n("auto.pages.info.InfoPage.4")}
+          action={<Btn variant="solid" tone="brand" onClick={() => setManageOpen(true)}>{i18n("auto.pages.info.InfoPage.3")}</Btn>}
         />
       ) : (
         <>
@@ -158,7 +159,7 @@ export function InfoPage() {
       <TabManageModal
         open={manageOpen}
         onClose={() => setManageOpen(false)}
-        title="管理信息栏目"
+        title={i18n("auto.pages.info.InfoPage.5")}
         tabs={TABS}
         layout={layout}
         onApply={applyLayout}

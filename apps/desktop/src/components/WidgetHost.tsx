@@ -11,6 +11,8 @@ import { atomRefFromKey } from "../state/favorites.js";
 import type { BoardItem } from "../state/boardCore.js";
 import type { WidgetDef, WidgetSize } from "../state/widgetMeta.js";
 import { planForItem } from "../state/widgetRender.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /**
  * 卡体渲染器：第二个参数是**当前档位尺寸**（挡位控制的组件据此切换排版）。
@@ -41,8 +43,8 @@ export function WidgetHost({ item, defs, onOpen, renderers }: WidgetHostProps): 
   if (plan.kind === "empty") {
     return (
       <div className="wg-empty" role="note">
-        <span className="wg-empty-title">该组件已不可用，请从白板移除</span>
-        <span className="wg-empty-hint">它依赖的功能可能已改名或被移除。</span>
+        <span className="wg-empty-title">{i18n("auto.components.WidgetHost.1")}</span>
+        <span className="wg-empty-hint">{i18n("auto.components.WidgetHost.2")}</span>
       </div>
     );
   }
@@ -64,7 +66,7 @@ export function WidgetHost({ item, defs, onOpen, renderers }: WidgetHostProps): 
     if (missing) {
       return (
         <div className="wg-empty" role="note">
-          <span className="wg-empty-title">这条入口已失效，请从白板移除</span>
+          <span className="wg-empty-title">{i18n("auto.components.WidgetHost.3")}</span>
         </div>
       );
     }
@@ -86,13 +88,13 @@ export function WidgetHost({ item, defs, onOpen, renderers }: WidgetHostProps): 
       {custom ? (
         custom(item.spec.kind === "custom" ? item.spec.props : undefined, plan.size) ?? (
           <div className="wg-card-shell">
-            <span className="wg-card-hint">暂无内容</span>
+            <span className="wg-card-hint">{i18n("auto.components.WidgetHost.4")}</span>
           </div>
         )
       ) : (
         <div className="wg-card-shell">
           <span className="wg-card-title">{plan.title}</span>
-          <span className="wg-card-hint">内容由原页面提供</span>
+          <span className="wg-card-hint">{i18n("auto.components.WidgetHost.5")}</span>
         </div>
       )}
     </div>

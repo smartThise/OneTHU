@@ -23,6 +23,8 @@
  * - advanced 高级模式（标准模式不可见；功能完整保留）
  */
 import type { LearnNav, Page } from "./app.js";
+import { t as i18n, tOr } from "../i18n/index.js";
+
 
 /** 服务页分组（§2.2）：学习 / 日程 / 生活 / 预约 / 行政 */
 export type NavCategory = "学习" | "日程" | "生活" | "预约" | "行政" | "插件";
@@ -150,6 +152,34 @@ export function navEntry(id: string): NavEntry | undefined {
   return BY_ID.get(id);
 }
 
+/**
+ * 注册表显示名 / 副标题：优先 i18n（`navreg.<id>.name` / `.note`），缺译文回落表里的中文原值。
+ *
+ * 为什么不在表里直接写 `i18n(...)`：NAV_REGISTRY 是模块级常量，加载时求值会把语言冻住；
+ * 这里保留原值、在渲染期解析，切换语言即可刷新。表同时被搜索/身份逻辑使用，结构不动最安全。
+ */
+export function navName(e: NavEntry): string {
+  return tOr(`navreg.${e.id}.name`, e.name);
+}
+
+export function navNote(e: NavEntry): string | undefined {
+  return e.note ? tOr(`navreg.${e.id}.note`, e.note) : undefined;
+}
+
+/** 目录分组名（byCategory 以中文名作分组标识，显示时才翻译）。 */
+const CATEGORY_KEY: Record<string, string> = {
+  学习: "cat.study",
+  日程: "cat.schedule",
+  生活: "cat.life",
+  预约: "cat.reserve",
+  行政: "cat.admin",
+  插件: "cat.plugins",
+};
+
+export function navCategoryLabel(cat: string): string {
+  return CATEGORY_KEY[cat] ? i18n(CATEGORY_KEY[cat]!) : cat;
+}
+
 /** 按可见性过滤（核心消费：底栏 / 服务页 / 目录 / 高级模式） */
 export function byVisibility(v: NavVisibility): NavEntry[] {
   return NAV_REGISTRY.filter((e) => e.visibility === v);
@@ -176,7 +206,7 @@ export function pluginCatalogEntries(tabs: readonly { pageKey: string; title: st
     visibility: "group",
     page: t.pageKey as Page,
     keywords: ["插件", "功能页", t.title],
-    note: "插件功能页",
+    note: i18n("auto.state.navigation.p1"),
   }));
 }
 
@@ -192,6 +222,7 @@ export function matchNavQuery(q: string): NavEntry[] {
   return NAV_REGISTRY.filter((e) => {
     if (e.visibility === "advanced") return false; // 高级能力不进标准搜索（§4.4）
     if (e.name.toLowerCase().includes(query)) return true;
+    if (navName(e).toLowerCase().includes(query)) return true;
     return e.keywords.some((k) => k.toLowerCase().includes(query));
   });
 }

@@ -8,6 +8,8 @@ import { Btn } from "@onethu/gui";
  * 用 DOM 覆盖层替代，<ConfirmHost/> 挂在应用根部一次即可。
  */
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { t as i18n } from "../i18n/index.js";
+
 
 type Pending = {
   msg: string;
@@ -154,8 +156,8 @@ function PromptHost(): React.ReactNode {
             if (e.key === "Escape") answerPrompt(null);
           }} />
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 14 }}>
-          <Btn variant="outline" onClick={() => answerPrompt(null)}>取消</Btn>
-          <Btn variant="outline" disabled={!val.trim()} onClick={submit}>确定</Btn>
+          <Btn variant="outline" onClick={() => answerPrompt(null)}>{i18n("auto.lib.confirm.1")}</Btn>
+          <Btn variant="outline" disabled={!val.trim()} onClick={submit}>{i18n("auto.lib.confirm.2")}</Btn>
         </div>
       </div>
     </div>
@@ -191,7 +193,7 @@ function ConfirmBody(): React.ReactNode {
           <div style={{ fontSize: 17, fontWeight: 700, color: "var(--og-error)", marginBottom: 8 }}>{cur.title ?? "此操作不可撤销，请确认"}</div>
           <div style={{ fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap", wordBreak: "break-word", color: "var(--og-content-2)" }}>{cur.msg}</div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 18 }}>
-            <Btn variant="outline" onClick={() => answerConfirm(false)}>取消</Btn>
+            <Btn variant="outline" onClick={() => answerConfirm(false)}>{i18n("auto.lib.confirm.1")}</Btn>
             <Btn variant="outline" onClick={() => answerConfirm(true)}>{cur.confirmText ?? "确认执行"}</Btn>
           </div>
         </div>

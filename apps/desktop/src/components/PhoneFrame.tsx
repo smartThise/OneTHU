@@ -12,6 +12,8 @@
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Btn, Select, Text } from "@onethu/gui";
+import { t as i18n } from "../i18n/index.js";
+
 
 interface Device {
   id: string;
@@ -82,33 +84,32 @@ export default function PhoneFrame() {
   return (
     <div className="og-device-studio">
       <div className="og-device-toolbar">
-        <Text weight="semibold">竖屏取景框</Text>
-        <span className="og-device-hint">{vw}×{vh}{land ? "（横屏）" : "（竖屏）"} · 缩放 {Math.round(scale * 100)}%</span>
-        <Select value={devId} onChange={setDevId} aria-label="设备">
+        <Text weight="semibold">{i18n("auto.components.PhoneFrame.1")}</Text>
+        <span className="og-device-hint">{vw}×{vh}{land ? "（横屏）" : "（竖屏）"} {i18n("auto.components.PhoneFrame.2")}{Math.round(scale * 100)}%</span>
+        <Select value={devId} onChange={setDevId} aria-label={i18n("auto.components.PhoneFrame.3")}>
           {DEVICES.map((d) => <option key={d.id} value={d.id}>{d.name} · {d.w}×{d.h}</option>)}
         </Select>
         <Btn variant="outline" size="sm" onClick={() => setLand((v) => !v)}>{land ? "切竖屏" : "切横屏"}</Btn>
-        <Select value={scene} onChange={setScene} aria-label="场景">
+        <Select value={scene} onChange={setScene} aria-label={i18n("auto.components.PhoneFrame.4")}>
           {SCENES.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </Select>
         <Btn variant="outline" size="sm" onClick={() => setFit((v) => !v)}>{fit ? "实际大小" : "适应窗口"}</Btn>
-        <Btn variant="outline" size="sm" onClick={() => setNonce((n) => n + 1)}>重载</Btn>
+        <Btn variant="outline" size="sm" onClick={() => setNonce((n) => n + 1)}>{i18n("auto.components.PhoneFrame.5")}</Btn>
         <span style={{ flex: 1 }} />
         <Text slot="label" tone={bridge === "ok" ? "success" : bridge === "miss" ? "error" : "quiet"}>
-          Tauri 桥：
-          {bridge === "ok" ? "已认领（登录状态与原生网络可用）"
+          {i18n("auto.components.PhoneFrame.6")}{bridge === "ok" ? "已认领（登录状态与原生网络可用）"
             : bridge === "miss" ? "认领失败——会退化成浏览器预览（没有登录态）"
               : bridge === "none" ? "无（在浏览器里跑，本来就没有）"
                 : "检测中…"}
         </Text>
-        <span className="og-device-hint">同源 iframe：壁纸/主题/登录态与应用一致；DPR 与安全区不模拟</span>
-        <Btn variant="outline" size="sm" onClick={() => { window.location.href = window.location.pathname; }}>返回应用</Btn>
+        <span className="og-device-hint">{i18n("auto.components.PhoneFrame.7")}</span>
+        <Btn variant="outline" size="sm" onClick={() => { window.location.href = window.location.pathname; }}>{i18n("auto.components.PhoneFrame.8")}</Btn>
       </div>
       <div ref={wrapRef} className="og-device-stage">
         <div className="og-device-frame" style={{ "--og-device-w": `${vw}px`, "--og-device-h": `${vh}px`, "--og-device-scale": scale } as CSSProperties}>
           <iframe
             key={`${dev.id}-${land}-${scene}-${nonce}`}
-            title="手机视口"
+            title={i18n("auto.components.PhoneFrame.9")}
             src={inner}
             onLoad={(e) => {
               const win = e.currentTarget.contentWindow;

@@ -6,6 +6,7 @@ import { experienceMode, setExperienceMode, type ExperienceMode } from "../state
 import { openTab } from "../state/explorer.js";
 import { OptionalConnections } from "./SimpleSettings.js";
 import { TOUR_CARD_SCOPE, defineOnboardingScopes } from "./OnboardingTourScope.js";
+import { t as i18n } from "../i18n/index.js";
 import { mcpServerEnabled, setMcpServer } from "../state/userext.js";
 
 const KEY="onethu.onboarded.flow4";
@@ -49,25 +50,25 @@ export function OnboardingTour(){
  const finish=()=>{try{localStorage.setItem(KEY,"1");}catch{}setOpen(false);setPractice(false);};
  if(!open)return null;
  defineOnboardingScopes();
- if(practice)return <aside className="tour-resume" role="status"><Text>正在体验：{lesson?.title}</Text><Btn variant="solid" onClick={()=>setPractice(false)}>继续导览</Btn><Btn variant="ghost" onClick={finish}>结束导览</Btn></aside>;
- return <Modal open onClose={finish} closeButton={false} size={step<0?"lg":"md"} className="experience-tour" scope={TOUR_CARD_SCOPE} aria-label="OneTHU 使用导览" foot={<Inline gap={2} wrap>
- <Btn variant="outline" disabled={step<0} onClick={()=>{setStep(s=>s-1);setConnect(false);}}>上一步</Btn><Spacer/>
- <Btn variant="ghost" onClick={finish}>跳过导览</Btn>
+ if(practice)return <aside className="tour-resume" role="status"><Text>{i18n("auto.components.OnboardingTour.1")}{lesson?.title}</Text><Btn variant="solid" onClick={()=>setPractice(false)}>{i18n("auto.components.OnboardingTour.2")}</Btn><Btn variant="ghost" onClick={finish}>{i18n("auto.components.OnboardingTour.3")}</Btn></aside>;
+ return <Modal open onClose={finish} closeButton={false} size={step<0?"lg":"md"} className="experience-tour" scope={TOUR_CARD_SCOPE} aria-label={i18n("auto.components.OnboardingTour.4")} foot={<Inline gap={2} wrap>
+ <Btn variant="outline" disabled={step<0} onClick={()=>{setStep(s=>s-1);setConnect(false);}}>{i18n("auto.components.OnboardingTour.5")}</Btn><Spacer/>
+ <Btn variant="ghost" onClick={finish}>{i18n("auto.components.OnboardingTour.6")}</Btn>
  <Btn variant="solid" onClick={()=>{if(step===-1)setExperienceMode(chosen);if(last)finish();else setStep(s=>s+1);}}>{step===-1?"按此模式开始":last?"开始使用":"下一步"}</Btn>
  </Inline>}>
  <Stack gap={4}>
  <Text slot="micro" tone="faint">{step<0?"欢迎来到 OneTHU":`${chosen==="simple"?"极简":chosen==="practical"?"实用":"完整"}模式 · ${step+1} / ${lessons.length+1}`}</Text>
  <Progress size="sm" value={step<0?0:(step+1)/(lessons.length+1)}/>
- {step<0?<><Text as="h2" slot="title">你想怎样使用 OneTHU？</Text>
- <Text>三种模式随时可换，数据都保留；下面三张卡各自说明能给你什么。</Text>
+ {step<0?<><Text as="h2" slot="title">{i18n("auto.components.OnboardingTour.7")}</Text>
+ <Text>{i18n("auto.components.OnboardingTour.8")}</Text>
  <ExperienceModePicker value={chosen} onChange={setChosen}/>
- <Text tone="faint">以后可以在设置里切换。已有标签、白板、暂存箱与完整模式设置都会原样保留。</Text></>:last?<>
- <Text as="h2" slot="title">需要时，再连接</Text><Text>可选：连雨课堂同步作业，扫码接微信/飞书用 OH。现在跳过也行。</Text>
+ <Text tone="faint">{i18n("auto.components.OnboardingTour.9")}</Text></>:last?<>
+ <Text as="h2" slot="title">{i18n("auto.components.OnboardingTour.10")}</Text><Text>{i18n("auto.components.OnboardingTour.11")}</Text>
  <SettingsList>
   <SettingsRow
-   title="向本机应用开放 OH MCP"
-   sub={mcpOn ? "已开启：本机客户端可连 127.0.0.1:8787" : "默认关闭；开启后本机其他应用可把 OneTHU 当工具调用"}
-   control={<Switch checked={mcpOn} aria-label="OH MCP 服务器开关" onChange={(v)=>{setMcpServer(v);setMcpOn(v);}}/>}
+   title={i18n("tour.mcp.title")}
+   sub={mcpOn ? i18n("tour.mcp.subOn") : i18n("tour.mcp.subOff")}
+   control={<Switch checked={mcpOn} aria-label={i18n("tour.mcp.aria")} onChange={(v)=>{setMcpServer(v);setMcpOn(v);}}/>}
   />
  </SettingsList>
  <Btn variant="outline" onClick={()=>setConnect(!connect)}>{connect?"收起连接选项":"选择扫码连接"}</Btn>{connect?<OptionalConnections/>:null}

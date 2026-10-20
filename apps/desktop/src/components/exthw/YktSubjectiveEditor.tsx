@@ -22,6 +22,8 @@ import { uploadYktInlineImage } from "../../state/exthw.js";
 import { loadYktLatexBundle } from "../../lib/yktKatex.js";
 import { isAndroidNavigator } from "../../lib/androidHost.js";
 import { hardenYktImgs } from "../../lib/yktBody.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 /* ── Quill 定制 blot：img.kfformula（官方公式图）作为一等 embed，编辑中不被误改 ── */
 
@@ -348,7 +350,7 @@ export function YktSubjectiveEditor(props: YktSubjectiveEditorProps) {
       />
       <div className="ykt-editor-foot">
         {uploading > 0 ? (
-          <span className="ykt-editor-uploading">图片上传中…</span>
+          <span className="ykt-editor-uploading">{i18n("auto.components.exthw.YktSubjectiveEditor.1")}</span>
         ) : (
           <Btn variant="outline" disabled={disabled} onClick={() => (isAndroid ? cameraRef.current?.click() : pickRef.current?.click())}>{isAndroid ? "📷 拍照上传" : "📎 从文件上传"}</Btn>
         )}
@@ -358,9 +360,8 @@ export function YktSubjectiveEditor(props: YktSubjectiveEditorProps) {
         <div className="ykt-formula-mask" onClick={() => setFormulaOpen(false)}>
           <div className="ykt-formula-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="ykt-formula-head">
-              <b>插入公式（LaTeX）</b>
-              <Btn variant="outline" onClick={() => setFormulaOpen(false)}>关闭
-              </Btn>
+              <b>{i18n("auto.components.exthw.YktSubjectiveEditor.2")}</b>
+              <Btn variant="outline" onClick={() => setFormulaOpen(false)}>{i18n("auto.components.exthw.YktSubjectiveEditor.3")}</Btn>
             </div>
             <textarea
               className="ykt-formula-tex"
@@ -372,8 +373,7 @@ export function YktSubjectiveEditor(props: YktSubjectiveEditorProps) {
             />
             <label className="ykt-formula-display">
               <input type="checkbox" checked={formulaDisplay} onChange={(e) => setFormulaDisplay(e.target.checked)} />
-              独立成行（display 模式）
-            </label>
+              {i18n("auto.components.exthw.YktSubjectiveEditor.4")}</label>
             <div className="ykt-formula-preview">
               {previewHtml != null ? (
                 <div className="ykt-formula-preview-body" dangerouslySetInnerHTML={{ __html: previewHtml }} />
@@ -383,11 +383,9 @@ export function YktSubjectiveEditor(props: YktSubjectiveEditorProps) {
             </div>
             {latexBundle ? <style>{latexBundle.inlineCss}</style> : null}
             <div className="ykt-formula-actions">
-              <Btn variant="outline" onClick={() => setFormulaOpen(false)}>取消
-              </Btn>
+              <Btn variant="outline" onClick={() => setFormulaOpen(false)}>{i18n("auto.components.exthw.YktSubjectiveEditor.5")}</Btn>
               <Btn variant="solid" tone="brand" disabled={!formulaTex.trim()} onClick={insertFormula}>
-                插入公式
-              </Btn>
+                {i18n("auto.components.exthw.YktSubjectiveEditor.6")}</Btn>
             </div>
           </div>
         </div>

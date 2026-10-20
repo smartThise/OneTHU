@@ -18,6 +18,8 @@ import { refreshLearnDataSilently, startLearnAutoRefresh, stopLearnAutoRefresh }
 /* dev-explorer：标签页宿主 + explorer 导航语义（navigate 的实现转发到 explorer） */
 import { TabHost } from "./components/explorer/TabHost.js";
 import { explorerNavigate, initExplorerHashBridge, openTabFromBootHash } from "./state/explorer.js";
+import { t as i18n, useLocale } from "./i18n/index.js";
+
 
 /** OneGUI 画廊（?onegui-gallery=1）：dev 专用、免登录，用于组件与皮肤验收 */
 const OneGUIGallery = import.meta.env.DEV ? lazy(() => import("./gallery/OneGUIGallery.js").then((m) => ({ default: m.OneGUIGallery }))) : null;
@@ -106,7 +108,7 @@ function Routed() {
       return (
         <div className="login-wrap">
           <BrandLogo size={40} />
-          <div style={{ color: "var(--text-3)", fontSize: "var(--text-sm)", marginTop: 18 }}>正在恢复登录状态…</div>
+          <div style={{ color: "var(--text-3)", fontSize: "var(--text-sm)", marginTop: 18 }}>{i18n("auto.App.1")}</div>
         </div>
       );
     }
@@ -167,6 +169,8 @@ const IS_OVERLAY_WINDOW = typeof window !== "undefined"
   && new URLSearchParams(window.location.search).get("window") === "overlay";
 
 export function App() {
+  /* 语言切换：全量文案里大量是模块级 i18n()（不订阅 store），靠这里让整棵树重渲染一次。 */
+  useLocale();
   return (
     <AppProvider>
       <FavsProvider>

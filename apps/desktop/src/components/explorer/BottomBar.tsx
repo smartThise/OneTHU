@@ -16,6 +16,8 @@ import { OhCapsule } from "./OhCapsule.js";
 import { openOneGoSheet, useOneGoSheetOpen } from "./OneGoSheet.js";
 import { openTabDrawer, useTabDrawerOpen } from "./TabDrawer.js";
 import { useExplorerTabs } from "./TabStrip.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 export function BottomBar(): ReactNode {
   const simple = useIsSimpleLike();
@@ -25,14 +27,14 @@ export function BottomBar(): ReactNode {
   const drawerOpen = useTabDrawerOpen();
   const onegoOpen = useOneGoSheetOpen();
   return (
-    <nav className="ex-bbar" aria-label="工作空间导航">
+    <nav className="ex-bbar" aria-label={i18n("auto.components.explorer.BottomBar.1")}>
       {!simple && <button id="ex-bbar-tabs-btn" className={"ex-bbar-btn" + (drawerOpen ? " is-open" : "")} onClick={openTabDrawer} aria-expanded={drawerOpen} aria-label={`标签页（${count} 个）`}>
         <span className="ex-bbar-icon">
           <IconTabsCards width={20} height={20} />
           {count > 0 ? <i className="ex-bbar-badge" aria-hidden="true">{count > 99 ? "99+" : count}</i> : null}
         </span>
-        <span className="ex-bbar-label">标签页</span>
-        <span className="workbench-wordmark" aria-hidden="true">标签页</span>
+        <span className="ex-bbar-label">{i18n("auto.components.explorer.BottomBar.2")}</span>
+        <span className="workbench-wordmark" aria-hidden="true">{i18n("auto.components.explorer.BottomBar.2")}</span>
       </button>}
       <div className="ex-bbar-center">
         <OhCapsule />

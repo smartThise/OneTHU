@@ -9,6 +9,8 @@ import { Btn, Card, Inline, Segment, Stack, Text } from "@onethu/gui";
 import { getPlugin, subscribe, updatePlugin } from "../plugins/registry.js";
 import { ensureMadModelToken, jwtExpiresAt, madmodelActive } from "../state/madmodel.js";
 import { showToast } from "../state/toast.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const HARNESS_ID = "onethu.harness";
 
@@ -42,7 +44,7 @@ export function OhModelSourceCard(): ReactNode {
     void ensureMadModelToken(true)
       .then(() => {
         force((v) => v + 1);
-        showToast("已重新续签 MadModel 免费额度");
+        showToast(i18n("auto.components.OhModelSourceCard.msg1"));
       })
       .catch((e) => {
         showToast(`续签失败：${e instanceof Error ? e.message : String(e)}（可改用自己的 API）`);
@@ -55,7 +57,7 @@ export function OhModelSourceCard(): ReactNode {
       <Stack gap={3}>
         <Inline gap={2} wrap justify="between">
           <Stack gap={1}>
-            <Text slot="title">小 OH · 模型源</Text>
+            <Text slot="title">{i18n("auto.components.OhModelSourceCard.1")}</Text>
             <Text slot="micro" tone="faint">
               {isMad ? `当前：学校 MadModel 免费档 · ${model}` : `当前：自己的 API · ${model || "未填模型"}`}
             </Text>
@@ -63,15 +65,15 @@ export function OhModelSourceCard(): ReactNode {
           {isMad ? (
             <Btn variant="solid" tone="brand" disabled={busy} onClick={renew}>{busy ? "续签中…" : "一键续签"}</Btn>
           ) : (
-            <Btn variant="ghost" onClick={() => patchHarnessSettings({ provider: "madmodel" })}>改用学校 MadModel</Btn>
+            <Btn variant="ghost" onClick={() => patchHarnessSettings({ provider: "madmodel" })}>{i18n("auto.components.OhModelSourceCard.2")}</Btn>
           )}
         </Inline>
         <Segment
           value={isMad ? "madmodel" : "custom"}
           onChange={(v) => patchHarnessSettings({ provider: v })}
           options={[
-            { value: "madmodel", label: "学校 MadModel（免费）" },
-            { value: "custom", label: "自己的 API" },
+            { value: "madmodel", label: i18n("auto.components.OhModelSourceCard.p1") },
+            { value: "custom", label: i18n("auto.components.OhModelSourceCard.p2") },
           ]}
         />
         <Text slot="micro" tone="faint">

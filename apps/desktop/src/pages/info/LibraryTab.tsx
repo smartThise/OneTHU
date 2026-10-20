@@ -33,6 +33,8 @@ import { fetchImageByUrl, info, logLine, session } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { softRecover } from "../../lib/reload.js";
 import { useApp } from "../../state/context.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 function logErr(tag: string, err: unknown): void {
   void logLine(
@@ -97,7 +99,7 @@ function MapFigure({ img, caption, onRetry }: { img: MapImage; caption: string; 
       <Banner
         tone="error"
         title={`${caption}加载失败：${img.msg}`}
-        action={onRetry ? <Btn variant="outline" size="sm" onClick={onRetry}>重试</Btn> : null}
+        action={onRetry ? <Btn variant="outline" size="sm" onClick={onRetry}>{i18n("auto.pages.info.LibraryTab.1")}</Btn> : null}
       />
     );
   }
@@ -561,7 +563,7 @@ export function LibraryTab({
 
   return (
     <Stack gap={3}>
-      <Section title="图书馆座位" aside="seat.lib.tsinghua.edu.cn · ISeating" />
+      <Section title={i18n("auto.pages.info.LibraryTab.2")} aside="seat.lib.tsinghua.edu.cn · ISeating" />
       {libState === "error" ? (
         <Banner
           tone="error"
@@ -575,8 +577,7 @@ export function LibraryTab({
                 void loadLibs();
               }}
             >
-              重试
-            </Btn>
+              {i18n("auto.pages.info.LibraryTab.1")}</Btn>
           }
         >
           {libError ?? ""}
@@ -588,12 +589,12 @@ export function LibraryTab({
         /* 筛选条收紧（用户点名 2026-10-14）：馆/楼层/区域走自然宽度紧凑成排（星贴各自下拉），
            不再用 Grow 把每格铺满 1/3 窗宽留出大空档；只有日期用 Spacer 推到行尾。 */
         <Inline gap={3} wrap vAlign="end">
-          <Field label="馆">
+          <Field label={i18n("auto.pages.info.LibraryTab.3")}>
               <Inline gap={1} className="ss-row">
                 <SearchSelect
                   value={libId != null ? String(libId) : ""}
                   onChange={(v) => setLibId(Number(v) || null)}
-                  placeholder="选择馆…"
+                  placeholder={i18n("auto.pages.info.LibraryTab.4")}
                   options={(libs ?? []).map((l) => ({
                     value: String(l.id),
                     label: l.zhName + (!l.valid ? "（暂不可约）" : ""),
@@ -608,7 +609,7 @@ export function LibraryTab({
                 ) : null}
               </Inline>
             </Field>
-          <Field label="楼层">
+          <Field label={i18n("auto.pages.info.LibraryTab.5")}>
               <Inline gap={1} className="ss-row">
                 <SearchSelect
                   value={floorId != null ? String(floorId) : ""}
@@ -629,7 +630,7 @@ export function LibraryTab({
                 ) : null}
               </Inline>
             </Field>
-          <Field label="区域">
+          <Field label={i18n("auto.pages.info.LibraryTab.6")}>
               <Inline gap={1} className="ss-row">
                 <SearchSelect
                   value={sectionId != null ? String(sectionId) : ""}
@@ -661,14 +662,14 @@ export function LibraryTab({
               </Inline>
             </Field>
           <Spacer />
-          <Field label="日期">
+          <Field label={i18n("auto.pages.info.LibraryTab.7")}>
             <Select
-              aria-label="日期"
+              aria-label={i18n("auto.pages.info.LibraryTab.7")}
               value={dateChoice}
               onChange={(value) => setDateChoice(value === "1" ? 1 : 0)}
             >
-              <option value={0}>今天</option>
-              <option value={1}>明天</option>
+              <option value={0}>{i18n("auto.pages.info.LibraryTab.8")}</option>
+              <option value={1}>{i18n("auto.pages.info.LibraryTab.9")}</option>
             </Select>
           </Field>
         </Inline>
@@ -676,7 +677,7 @@ export function LibraryTab({
 
       {lib && floor && section ? (
         <Section
-          title="座位"
+          title={i18n("auto.pages.info.LibraryTab.10")}
           aside={`${lib.zhName} · ${floor.zhName} · ${section.zhName} · ${dateChoice === 0 ? "今天" : "明天"}`}
         />
       ) : null}
@@ -713,8 +714,7 @@ export function LibraryTab({
                 else setLibTick((t) => t + 1);
               }}
             >
-              重试
-            </Btn>
+              {i18n("auto.pages.info.LibraryTab.1")}</Btn>
           }
         >
           {seatError ?? ""}
@@ -722,7 +722,7 @@ export function LibraryTab({
       ) : null}
       {seatState === "ready" && seatList.length === 0 ? (
         <Card>
-          <EmptyState title="该区域暂无座位数据。" />
+          <EmptyState title={i18n("auto.pages.info.LibraryTab.11")} />
         </Card>
       ) : null}
       {seatState === "ready" && seatList.length > 0 ? (
@@ -730,16 +730,15 @@ export function LibraryTab({
           <Stack gap={2}>
             {/* 图例：状态=Tag 语义色；电源插座=IconPlug(warning) */}
             <Inline gap={3} vAlign="center" wrap>
-              <Tag tone="success">可约 {usableCount}</Tag>
-              <Tag>已约/不可约 {gridSeats.length - usableCount}</Tag>
+              <Tag tone="success">{i18n("auto.pages.info.LibraryTab.12")}{usableCount}</Tag>
+              <Tag>{i18n("auto.pages.info.LibraryTab.13")}{gridSeats.length - usableCount}</Tag>
               <Inline gap={1} vAlign="center">
-                <IconPlug size="sm" className="og-text--t-warning" title="有电源插座" />
-                <Text slot="label" tone="faint">= 有电源插座</Text>
+                <IconPlug size="sm" className="og-text--t-warning" title={i18n("auto.pages.info.LibraryTab.14")} />
+                <Text slot="label" tone="faint">{i18n("auto.pages.info.LibraryTab.15")}</Text>
               </Inline>
               {seatList.length > SEAT_CAP ? (
                 <Text slot="label" tone="faint">
-                  已显示前 {SEAT_CAP} 个（共 {seatList.length} 个）
-                </Text>
+                  {i18n("auto.pages.info.LibraryTab.16")}{SEAT_CAP} {i18n("auto.pages.info.LibraryTab.17")}{seatList.length} {i18n("auto.pages.info.LibraryTab.18")}</Text>
               ) : null}
             </Inline>
             {/* 座位网格：flex-wrap，窄窗口自动换行不横向溢出 */}
@@ -757,15 +756,15 @@ export function LibraryTab({
         <Card>
           <Stack gap={2}>
             <Inline gap={2} vAlign="baseline" wrap>
-              <Text as="h3" slot="subtitle">预约座位 {pendingSeat.zhName}</Text>
+              <Text as="h3" slot="subtitle">{i18n("auto.pages.info.LibraryTab.19")}{pendingSeat.zhName}</Text>
               <Tag tone="brand">{dateChoice === 0 ? "今天" : "明天"}</Tag>
             </Inline>
             {locTrace ? (
-              <Text slot="label" tone="quiet">位置：{locTrace}</Text>
+              <Text slot="label" tone="quiet">{i18n("auto.pages.info.LibraryTab.20")}{locTrace}</Text>
             ) : null}
-            <Text slot="label" tone="quiet">须在预约开始后 30 分钟内完成签到</Text>
+            <Text slot="label" tone="quiet">{i18n("auto.pages.info.LibraryTab.21")}</Text>
             <Inline gap={2} justify="end">
-              <Btn variant="outline" onClick={() => setPendingSeat(null)}>取消</Btn>
+              <Btn variant="outline" onClick={() => setPendingSeat(null)}>{i18n("auto.pages.info.LibraryTab.22")}</Btn>
               <Btn
                 variant="solid"
                 tone="brand"
@@ -783,7 +782,7 @@ export function LibraryTab({
 
       {action ? <Banner tone={action.ok ? "success" : "error"}>{action.text}</Banner> : null}
 
-      <Section title="我的预约" aside="座位预约记录" />
+      <Section title={i18n("auto.pages.info.LibraryTab.23")} aside="座位预约记录" />
       {recState === "loading" ? <LoadingBlock rows={2} /> : null}
       {recState === "error" ? (
         <Banner
@@ -798,8 +797,7 @@ export function LibraryTab({
                 void loadRecords();
               }}
             >
-              重试
-            </Btn>
+              {i18n("auto.pages.info.LibraryTab.1")}</Btn>
           }
         >
           {recError ?? ""}
@@ -807,7 +805,7 @@ export function LibraryTab({
       ) : null}
       {recState === "ready" && (records ?? []).length === 0 ? (
         <Card>
-          <EmptyState title="暂无预约记录。" />
+          <EmptyState title={i18n("auto.pages.info.LibraryTab.24")} />
         </Card>
       ) : null}
       {recState === "ready" && (records ?? []).length > 0 ? (
@@ -823,7 +821,7 @@ export function LibraryTab({
                   r.delId ? (
                     pendingCancel === (r.delId ?? r.id) ? (
                       <Inline gap={2} vAlign="center">
-                        <Text slot="label" tone="quiet">确认取消该预约？</Text>
+                        <Text slot="label" tone="quiet">{i18n("auto.pages.info.LibraryTab.25")}</Text>
                         <Btn
                           variant="solid"
                           tone="error"
@@ -833,8 +831,7 @@ export function LibraryTab({
                           {busyCancel !== null ? "取消中…" : "确认取消"}
                         </Btn>
                         <Btn variant="outline" disabled={busyCancel !== null} onClick={() => setPendingCancel(null)}>
-                          算了
-                        </Btn>
+                          {i18n("auto.pages.info.LibraryTab.26")}</Btn>
                       </Inline>
                     ) : (
                       <Btn
@@ -842,8 +839,7 @@ export function LibraryTab({
                         disabled={busyCancel !== null}
                         onClick={() => setPendingCancel(r.delId ?? r.id)}
                       >
-                        取消预约
-                      </Btn>
+                        {i18n("auto.pages.info.LibraryTab.27")}</Btn>
                     )
                   ) : null
                 }

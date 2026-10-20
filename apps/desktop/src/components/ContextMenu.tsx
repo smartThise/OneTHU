@@ -37,6 +37,8 @@ import { IconStar } from "./Icons.js";
 import { haptic } from "../lib/haptics.js";
 import { prefersReducedMotion } from "../lib/motion.js";
 import type { AtomRef } from "../state/favorites.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 长按判定口径（与施工图 A3 一致）：按住 500ms 触发；位移超过 10px 即取消 */
 export const LONG_PRESS_MS = 500;
@@ -855,7 +857,7 @@ export function ContextMenuLayer({ children }: { children: ReactNode }): ReactNo
         x,
         y,
         title: el.getAttribute("data-ctx-title") ?? undefined,
-        items: [{ key: "collect", label: "收藏", icon: <IconStar width={14} height={14} />, onSelect: () => setCollect(atom) }],
+        items: [{ key: "collect", label: i18n("auto.components.ContextMenu.p1"), icon: <IconStar width={14} height={14} />, onSelect: () => setCollect(atom) }],
       });
     };
     const ctl = createLongPress((x, y) => {

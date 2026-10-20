@@ -9,6 +9,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import { fileRead, fileWrite, fileDelete, obfuscateSecret, deobfuscateSecret } from "../lib/clients.js";
 import { showToast } from "./toast.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const CFG_FILE = "seafile.cfg";
 /** 旧版（fileWrite 自动补 .json）写成了 seafile.cfg.json.json——读取迁移用 */
@@ -189,7 +191,7 @@ export async function seafileUpload(repoId: string, parentDir: string, localPath
   if (!cfg) throw new Error("云盘未配置");
   await invoke("seafile_upload", { token: cfg.token, repoId, parentDir, localPath, replace });
   await openDir(repoId, parentDir, true);
-  showToast("已上传到云盘");
+  showToast(i18n("auto.state.seafile.msg1"));
 }
 
 export async function seafileShare(repoId: string, path: string, expireDays: number): Promise<string> {

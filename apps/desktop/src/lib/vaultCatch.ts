@@ -4,6 +4,8 @@
  * 页面只负责描述「这是什么、点开落在哪」，打开方式统一在 state/vaultRegistry.ts 里实现。
  */
 import type { VaultCatch } from "../state/vault.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 把 VaultCatch 序列化成 data-vault-catch 属性值 */
 export function vaultCatchAttr(cat: VaultCatch): string {
@@ -58,7 +60,7 @@ export function vaultCatchTab(t: { title: string; page: string; params?: Record<
   return vaultCatchAttr({
     type: "payload",
     title: t.title,
-    sub: "标签页",
+    sub: i18n("auto.lib.vaultCatch.p1"),
     payload: { kind: "tab", page: t.page, params: t.params ?? null },
     source: "标签页",
   });
@@ -92,7 +94,7 @@ export function vaultCatchLearnNotice(n: { courseId?: string; itemId: string; ti
   return vaultCatchAttr({
     type: "payload",
     title: n.title,
-    sub: "课程通知",
+    sub: i18n("auto.lib.vaultCatch.p2"),
     payload: { kind: "learn-notice", courseId: n.courseId, itemId: n.itemId },
     source: "课程",
   });

@@ -9,6 +9,8 @@ import { Card, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
 import { TabEmpty, TabError, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type LoadState = "loading" | "error" | "ready" | "none";
 
@@ -54,7 +56,7 @@ export function HygieneTab() {
 
   return (
     <>
-      <SectionHead title="宿舍卫生成绩" aside="家园网 myhome · 卫生检查成绩单" />
+      <SectionHead title={i18n("auto.pages.info.HygieneTab.1")} aside="家园网 myhome · 卫生检查成绩单" />
       {state === "error" ? (
         <TabError unavailable={unavailable} text={error} onRetry={() => void load()} />
       ) : null}
@@ -71,13 +73,12 @@ export function HygieneTab() {
             <span style={{ fontSize: 13, color: "var(--text-2)" }}>{Math.round(zoom * 100)}%</span>
             <Btn variant="ghost" onClick={() => setZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))} disabled={zoom >= 4}>+
             </Btn>
-            <Btn variant="ghost" onClick={() => setZoom(1)}>重置
-            </Btn>
+            <Btn variant="ghost" onClick={() => setZoom(1)}>{i18n("auto.pages.info.HygieneTab.2")}</Btn>
           </div>
           <Card style={{ overflow: "auto", padding: 12 }}>
             <img
               src={image}
-              alt="宿舍卫生检查成绩单"
+              alt={i18n("auto.pages.info.HygieneTab.3")}
               style={{ width: `${Math.round(zoom * 100)}%`, maxWidth: zoom === 1 ? "100%" : "none", display: "block", borderRadius: 8 }}
             />
           </Card>

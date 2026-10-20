@@ -62,6 +62,8 @@ import { confirmOk } from "../lib/confirm.js";
 import { useNotifyBackend } from "../components/useNotifyBackend.js";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { openLocalPath } from "../lib/localFile.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const DAY_NAMES = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 /** 时间轴的列数：**恒为一周 7 列**（用户 2026-10-18：日程的时间轴完全以周为单位，
@@ -719,7 +721,7 @@ export function SchedulePage() {
         events.push(...r.events);
       }
       if (events.length === 0) {
-        setMsg("没有可导出的日程。");
+        setMsg(i18n("auto.pages.Schedule.msg1"));
         return;
       }
       const { invoke } = await import("@tauri-apps/api/core");
@@ -792,7 +794,7 @@ export function SchedulePage() {
       if (draft.toCloud) await putCloudEvent(ev);
       else await putLocalEvent(ev);
       setDraft(null);
-      setMsg("已保存。");
+      setMsg(i18n("auto.pages.Schedule.msg2"));
     } catch (err) {
       setMsg(`保存失败：${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -807,7 +809,7 @@ export function SchedulePage() {
       if (draft.originalCloud) await deleteCloudEvent(draft.uid);
       else await deleteLocalEvent(draft.uid);
       setDraft(null);
-      setMsg("已删除。");
+      setMsg(i18n("auto.pages.Schedule.msg3"));
     } catch (err) {
       setMsg(`删除失败：${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -900,7 +902,7 @@ export function SchedulePage() {
                     tone={c.src === "cloud" ? "success" : "neutral"}
                     onClick={c.uid ? () => onBlockClick({ courseName: c.label, src: c.src, uid: c.uid }) : undefined}
                   >
-                    全天 · {c.label}
+                    {i18n("auto.pages.Schedule.1")}{c.label}
                   </Chip>
                 ))}
               </div>
@@ -1039,9 +1041,9 @@ export function SchedulePage() {
             variant="solid"
             tone="brand"
             size="sm"
-            aria-label="日程设置"
+            aria-label={i18n("auto.pages.Schedule.2")}
             aria-expanded={panelOpen}
-            titleAttr="周切换 / 筛选 / 同步 / 新建日程"
+            titleAttr={i18n("auto.pages.Schedule.3")}
             onClick={() => setPanelOpen((v) => !v)}
             icon={<IconSchedule width={16} height={16} />}
           />
@@ -1051,12 +1053,12 @@ export function SchedulePage() {
             anchor={dockRef.current}
             side={tier === "expanded" ? "top" : "bottom"}
             align="center"
-            label="日程设置"
+            label={i18n("auto.pages.Schedule.2")}
           >
             <div className="schedule-panel">
               {/* 周导航：时间轴恒以周为单位 */}
               <div className="schedule-panel-block">
-                <Text slot="micro" tone="faint">周切换</Text>
+                <Text slot="micro" tone="faint">{i18n("auto.pages.Schedule.4")}</Text>
                 <div className="schedule-panel-row">
                   <Btn variant="outline" size="sm" titleAttr={mode === "timetable" ? "上一周" : "上个月"} aria-label={mode === "timetable" ? "上一周" : "上个月"} onClick={() => setAnchor(stepAnchor(-1))}>‹</Btn>
                   <Btn
@@ -1064,11 +1066,11 @@ export function SchedulePage() {
                     variant="outline"
                     size="sm"
                     aria-expanded={calOpen}
-                    titleAttr="打开日历，快速跳到任意年月"
+                    titleAttr={i18n("auto.pages.Schedule.5")}
                     onClick={() => setCalOpen((v) => !v)}
                   >{label}</Btn>
                   <Btn variant="outline" size="sm" titleAttr={mode === "timetable" ? "下一周" : "下个月"} aria-label={mode === "timetable" ? "下一周" : "下个月"} onClick={() => setAnchor(stepAnchor(1))}>›</Btn>
-                  <Btn variant="outline" size="sm" onClick={() => { setAnchor(new Date()); setSelected(todayStr); }}>本周</Btn>
+                  <Btn variant="outline" size="sm" onClick={() => { setAnchor(new Date()); setSelected(todayStr); }}>{i18n("auto.pages.Schedule.6")}</Btn>
                 </div>
                 <div className="schedule-panel-row">
                   <Text slot="label" tone="faint">
@@ -1078,11 +1080,11 @@ export function SchedulePage() {
                 {calOpen ? (
                   <div className="schedule-cal">
                     <div className="schedule-cal-head">
-                      <Btn variant="ghost" size="sm" titleAttr="上一年" onClick={() => calShift(-12)}>«</Btn>
-                      <Btn variant="ghost" size="sm" titleAttr="上一月" onClick={() => calShift(-1)}>‹</Btn>
-                      <div className="schedule-cal-title"><Text weight="semibold">{calView.getFullYear()} 年 {calView.getMonth() + 1} 月</Text></div>
-                      <Btn variant="ghost" size="sm" titleAttr="下一月" onClick={() => calShift(1)}>›</Btn>
-                      <Btn variant="ghost" size="sm" titleAttr="下一年" onClick={() => calShift(12)}>»</Btn>
+                      <Btn variant="ghost" size="sm" titleAttr={i18n("auto.pages.Schedule.7")} onClick={() => calShift(-12)}>«</Btn>
+                      <Btn variant="ghost" size="sm" titleAttr={i18n("auto.pages.Schedule.8")} onClick={() => calShift(-1)}>‹</Btn>
+                      <div className="schedule-cal-title"><Text weight="semibold">{calView.getFullYear()} {i18n("auto.pages.Schedule.9")}{calView.getMonth() + 1} {i18n("auto.pages.Schedule.10")}</Text></div>
+                      <Btn variant="ghost" size="sm" titleAttr={i18n("auto.pages.Schedule.11")} onClick={() => calShift(1)}>›</Btn>
+                      <Btn variant="ghost" size="sm" titleAttr={i18n("auto.pages.Schedule.12")} onClick={() => calShift(12)}>»</Btn>
                     </div>
                     <div className="schedule-cal-grid">
                       {DAY_NAMES.map((n) => (
@@ -1115,7 +1117,7 @@ export function SchedulePage() {
 
               {/* 视图：时间轴（周网格）/ 列表（月历 + 所选日清单） */}
               <div className="schedule-panel-block">
-                <Text slot="micro" tone="faint">视图</Text>
+                <Text slot="micro" tone="faint">{i18n("auto.pages.Schedule.13")}</Text>
                 <div className="schedule-panel-row">
                   {([["timetable", "时间轴（周）"], ["agenda", "列表"]] as const).map(([m, lbl]) => (
                     <Chip key={m} size="sm" selected={mode === m} onClick={() => pickMode(m)}>{lbl}</Chip>
@@ -1125,12 +1127,12 @@ export function SchedulePage() {
 
               {/* 筛选：显示时段（只影响画布，不改数据；默认全天） */}
               <div className="schedule-panel-block">
-                <Text slot="micro" tone="faint">显示时段 {hhmmWin(win.from)}–{hhmmWin(win.to)}</Text>
+                <Text slot="micro" tone="faint">{i18n("auto.pages.Schedule.14")}{hhmmWin(win.from)}–{hhmmWin(win.to)}</Text>
                 <div className="schedule-panel-row">
-                  <Select size="sm" aria-label="起始时间" value={win.from} onChange={(v) => setWin({ ...win, from: Number(v) })}>
+                  <Select size="sm" aria-label={i18n("auto.pages.Schedule.15")} value={win.from} onChange={(v) => setWin({ ...win, from: Number(v) })}>
                     {WIN_FROM_OPTS.map((m) => (<option key={m} value={m}>{hhmmWin(m)}</option>))}
                   </Select>
-                  <Select size="sm" aria-label="结束时间" value={win.to} onChange={(v) => setWin({ ...win, to: Number(v) })}>
+                  <Select size="sm" aria-label={i18n("auto.pages.Schedule.16")} value={win.to} onChange={(v) => setWin({ ...win, to: Number(v) })}>
                     {WIN_TO_OPTS.map((m) => (<option key={m} value={m}>{hhmmWin(m)}</option>))}
                   </Select>
                 </div>
@@ -1140,16 +1142,16 @@ export function SchedulePage() {
                       {p.label}
                     </Chip>
                   ))}
-                  <Btn size="sm" variant="outline" onClick={() => setWin(FULL_DAY)}>恢复全天</Btn>
+                  <Btn size="sm" variant="outline" onClick={() => setWin(FULL_DAY)}>{i18n("auto.pages.Schedule.17")}</Btn>
                 </div>
               </div>
 
               {/* 学期 / 周跳转 */}
               {semesters.length > 0 ? (
                 <div className="schedule-panel-block">
-                  <Text slot="micro" tone="faint">跳到教学周</Text>
+                  <Text slot="micro" tone="faint">{i18n("auto.pages.Schedule.18")}</Text>
                   <div className="schedule-panel-row">
-                    <Select size="sm" aria-label="学期" value={Math.min(jumpSemIdx, semesters.length - 1)} onChange={(v) => {
+                    <Select size="sm" aria-label={i18n("auto.pages.Schedule.19")} value={Math.min(jumpSemIdx, semesters.length - 1)} onChange={(v) => {
                       const i = Number(v);
                       setJumpSemIdx(i);
                       setJumpWeek((w) => Math.min(w, semesters[i]?.weekCount ?? w));
@@ -1158,12 +1160,12 @@ export function SchedulePage() {
                         <option key={sm.semesterId || i} value={i}>{sm.semesterName || sm.semesterId || `学期 ${i + 1}`}</option>
                       ))}
                     </Select>
-                    <Select size="sm" aria-label="第几周" value={jumpWeek} onChange={(v) => setJumpWeek(Number(v))}>
+                    <Select size="sm" aria-label={i18n("auto.pages.Schedule.20")} value={jumpWeek} onChange={(v) => setJumpWeek(Number(v))}>
                       {Array.from({ length: jumpSem?.weekCount ?? 20 }, (_, i) => i + 1).map((w) => (
-                        <option key={w} value={w}>第 {w} 周</option>
+                        <option key={w} value={w}>{i18n("auto.pages.Schedule.21")}{w} {i18n("auto.pages.Schedule.22")}</option>
                       ))}
                     </Select>
-                    <Btn size="sm" variant="outline" onClick={goSemWeek}>前往</Btn>
+                    <Btn size="sm" variant="outline" onClick={goSemWeek}>{i18n("auto.pages.Schedule.23")}</Btn>
                   </div>
                 </div>
               ) : null}
@@ -1182,15 +1184,15 @@ export function SchedulePage() {
                     setReloadTick((t) => t + 1);
                     if (!calendar.data) void calendar.reload();
                     else void campus.reload();
-                  }}>刷新</Btn>
+                  }}>{i18n("auto.pages.Schedule.24")}</Btn>
                 </div>
               </div>
 
               {/* 新建 + 收藏本页 */}
               <div className="schedule-panel-row">
-                <Btn variant="solid" tone="brand" size="sm" onClick={() => { setDraft(emptyDraft(defaultDraftDate, simple ? false : canCloud)); setPanelOpen(false); }}>＋ 添加日程</Btn>
+                <Btn variant="solid" tone="brand" size="sm" onClick={() => { setDraft(emptyDraft(defaultDraftDate, simple ? false : canCloud)); setPanelOpen(false); }}>{i18n("auto.pages.Schedule.25")}</Btn>
                 <Spacer />
-                <PageAtomStar atomKey="schedule" title="日程" />
+                <PageAtomStar atomKey="schedule" title={i18n("auto.pages.Schedule.26")} />
               </div>
             </div>
           </Popover>
@@ -1225,27 +1227,27 @@ export function SchedulePage() {
             foot={
               <Inline gap={2} justify="end">
                 {d.clusterItems ? null : isHw ? (
-                  d.homework ? <Btn variant="solid" tone="brand" onClick={() => gotoDetail(d)}>前往</Btn> : null
+                  d.homework ? <Btn variant="solid" tone="brand" onClick={() => gotoDetail(d)}>{i18n("auto.pages.Schedule.23")}</Btn> : null
                 ) : (
                   <>
-                    <Btn variant="solid" tone="brand" onClick={() => gotoDetail(d)}>前往</Btn>
-                    {simple ? null : <Btn variant="outline" disabled={!d.location} titleAttr={d.location ? `寻迹 ${d.location}` : "没有地点，无法寻迹"} onClick={() => gotoDetail(d, true)}>寻迹</Btn>}
+                    <Btn variant="solid" tone="brand" onClick={() => gotoDetail(d)}>{i18n("auto.pages.Schedule.23")}</Btn>
+                    {simple ? null : <Btn variant="outline" disabled={!d.location} titleAttr={d.location ? `寻迹 ${d.location}` : "没有地点，无法寻迹"} onClick={() => gotoDetail(d, true)}>{i18n("auto.pages.Schedule.27")}</Btn>}
                   </>
                 )}
-                <Btn variant="outline" onClick={() => setDetail(null)}>关闭</Btn>
+                <Btn variant="outline" onClick={() => setDetail(null)}>{i18n("auto.pages.Schedule.28")}</Btn>
               </Inline>
             }
           >
             {d.clusterItems ? (
               // 重叠簇详情：列出该时段全部事项
               <Stack gap={2}>
-                <Text slot="label" tone="faint">{d.location} · 此时间段事项较多，已合并显示</Text>
+                <Text slot="label" tone="faint">{d.location} {i18n("auto.pages.Schedule.29")}</Text>
                 <List divided gap={1}>
                   {d.clusterItems.map((m, i) => (
                     <Row
                       key={i}
                       size="sm"
-                      titleAttr="点击查看详情"
+                      titleAttr={i18n("auto.pages.Schedule.30")}
                       onClick={() => setDetail({ ...m })}
                       caret
                       title={m.src === "hw" ? `⏰ ${m.courseName}` : m.courseName}
@@ -1289,7 +1291,7 @@ export function SchedulePage() {
                         ...(timeText ? [{ k: "时间", v: <Text slot="body">{timeText}</Text> }] : []),
                         ...(d.location ? [{ k: "地点", v: <Text slot="body">{d.location}</Text> }] : []),
                         ...(d.teacher ? [{ k: "教师", v: <Text slot="body">{d.teacher}</Text> }] : []),
-                        { k: "来源", v: <Text slot="body">教务系统{d.src === "exam" ? " · 考试" : " · 课程表"}</Text> },
+                        { k: "来源", v: <Text slot="body">{i18n("auto.pages.Schedule.31")}{d.src === "exam" ? " · 考试" : " · 课程表"}</Text> },
                       ]),
                 ]} />
                 {/* 备注：作业给课程名提示，课程给"能否编辑"的说明 */}
@@ -1319,47 +1321,47 @@ export function SchedulePage() {
             foot={
               <Inline gap={2}>
                 <Btn variant="solid" tone="brand" disabled={!sd.title.trim() || busy} onClick={() => void onSaveDraft()}>{busy ? "保存中…" : "保存"}</Btn>
-                <Btn variant="outline" onClick={() => setDraft(null)}>取消</Btn>
+                <Btn variant="outline" onClick={() => setDraft(null)}>{i18n("auto.pages.Schedule.32")}</Btn>
                 <Spacer />
                 {sd.uid ? (
-                  <Btn variant="outline" disabled={busy} onClick={() => void onDeleteDraft()}>删除</Btn>
+                  <Btn variant="outline" disabled={busy} onClick={() => void onDeleteDraft()}>{i18n("auto.pages.Schedule.33")}</Btn>
                 ) : null}
               </Inline>
             }
           >
             <Stack gap={2}>
-              <Field label="标题">
-                <Input value={sd.title} placeholder="要做什么…" onChange={(value) => setDraft({ ...sd, title: value })} />
+              <Field label={i18n("auto.pages.Schedule.34")}>
+                <Input value={sd.title} placeholder={i18n("auto.pages.Schedule.35")} onChange={(value) => setDraft({ ...sd, title: value })} />
               </Field>
               <Inline gap={2} wrap vAlign="end">
                 <Grow>
                   {/* 原生 date/time 控件原样保留（OneGUI Input 的 type 枚举不含 date/time；
                       语义/取值格式 YYYY-MM-DD / HH:MM 零改动，外观走浏览器原生件） */}
-                  <Field label="日期">
-                    <input type="date" style={{ width: "100%" }} value={sd.date} onChange={(e) => setDraft({ ...sd, date: e.target.value })} aria-label="日期" />
+                  <Field label={i18n("auto.pages.Schedule.36")}>
+                    <input type="date" style={{ width: "100%" }} value={sd.date} onChange={(e) => setDraft({ ...sd, date: e.target.value })} aria-label={i18n("auto.pages.Schedule.36")} />
                   </Field>
                 </Grow>
-                <Checkbox checked={sd.allDay} onChange={(v2) => setDraft({ ...sd, allDay: v2 })} label="全天" />
+                <Checkbox checked={sd.allDay} onChange={(v2) => setDraft({ ...sd, allDay: v2 })} label={i18n("auto.pages.Schedule.37")} />
               </Inline>
               {!sd.allDay ? (
                 <Inline gap={2} wrap>
                   <Grow>
-                    <Field label="开始">
-                      <input type="time" style={{ width: "100%" }} value={sd.start} onChange={(e) => setDraft({ ...sd, start: e.target.value })} aria-label="开始时间" />
+                    <Field label={i18n("auto.pages.Schedule.38")}>
+                      <input type="time" style={{ width: "100%" }} value={sd.start} onChange={(e) => setDraft({ ...sd, start: e.target.value })} aria-label={i18n("auto.pages.Schedule.39")} />
                     </Field>
                   </Grow>
                   <Grow>
-                    <Field label="结束">
-                      <input type="time" style={{ width: "100%" }} value={sd.end} onChange={(e) => setDraft({ ...sd, end: e.target.value })} aria-label="结束时间" />
+                    <Field label={i18n("auto.pages.Schedule.40")}>
+                      <input type="time" style={{ width: "100%" }} value={sd.end} onChange={(e) => setDraft({ ...sd, end: e.target.value })} aria-label={i18n("auto.pages.Schedule.16")} />
                     </Field>
                   </Grow>
                 </Inline>
               ) : null}
-              <Field label="地点">
-                <Input value={sd.location} placeholder="可选" onChange={(value) => setDraft({ ...sd, location: value })} />
+              <Field label={i18n("auto.pages.Schedule.41")}>
+                <Input value={sd.location} placeholder={i18n("auto.pages.Schedule.42")} onChange={(value) => setDraft({ ...sd, location: value })} />
               </Field>
-              <Field label="备注">
-                <Input value={sd.note} placeholder="可选" onChange={(value) => setDraft({ ...sd, note: value })} />
+              <Field label={i18n("auto.pages.Schedule.43")}>
+                <Input value={sd.note} placeholder={i18n("auto.pages.Schedule.42")} onChange={(value) => setDraft({ ...sd, note: value })} />
               </Field>
               {simple ? null : (
                 <Checkbox
@@ -1370,7 +1372,7 @@ export function SchedulePage() {
                 />
               )}
               {widgetHere ? (
-                <Checkbox checked={sd.widget} onChange={(v2) => setDraft({ ...sd, widget: v2 })} label="在桌面小组件显示" />
+                <Checkbox checked={sd.widget} onChange={(v2) => setDraft({ ...sd, widget: v2 })} label={i18n("auto.pages.Schedule.44")} />
               ) : null}
             </Stack>
           </Modal>

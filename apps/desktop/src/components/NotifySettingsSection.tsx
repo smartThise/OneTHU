@@ -22,6 +22,8 @@ import { runNotifyDoctor, type DoctorReport } from "../state/notifyDoctor.js";
 import { ensureNotifyRuntime } from "../state/notifySources.js";
 import type { NotifyPlanItem, NotifySettings } from "../state/notifyPlan.js";
 import { Btn, Select as OGSelect, SettingsRow, Switch as OGSwitch, Text } from "@onethu/gui";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 常用提前量（分钟）；0 = 不提醒课程 */
 const CLASS_LEADS: Array<[number, string]> = [
@@ -141,16 +143,16 @@ export function NotifySettingsSection(): ReactNode {
   return (
     <>
       <SettingsRow
-        title="提醒"
-        sub="课程、日程与作业 DDL 推到系统通知，可细调提前量与静默时段。"
-        control={<OGSwitch checked={s.enabled} onChange={(v) => patch({ enabled: v })} aria-label="提醒总开关" />}
+        title={i18n("auto.components.NotifySettingsSection.1")}
+        sub={i18n("auto.components.NotifySettingsSection.2")}
+        control={<OGSwitch checked={s.enabled} onChange={(v) => patch({ enabled: v })} aria-label={i18n("auto.components.NotifySettingsSection.3")} />}
       />
 
       {s.enabled ? (
       <>
       <SettingsRow
-        title="课程与日程提前量"
-        sub="按课表、考试与自定义日程提前提醒。"
+        title={i18n("auto.components.NotifySettingsSection.4")}
+        sub={i18n("auto.components.NotifySettingsSection.5")}
         control={
           <OGSelect
             size="sm"
@@ -162,14 +164,14 @@ export function NotifySettingsSection(): ReactNode {
       />
 
       <SettingsRow
-        title="作业 DDL 提醒"
-        sub="沿用网络学堂的「DDL 提醒」设置；静默时段内会提前到静默开始前发出。"
-        control={<OGSwitch checked={s.ddl} onChange={(v) => patch({ ddl: v })} aria-label="作业 DDL 提醒" />}
+        title={i18n("auto.components.NotifySettingsSection.6")}
+        sub={i18n("auto.components.NotifySettingsSection.7")}
+        control={<OGSwitch checked={s.ddl} onChange={(v) => patch({ ddl: v })} aria-label={i18n("auto.components.NotifySettingsSection.6")} />}
       />
 
       <SettingsRow
-        title="每日早报"
-        sub="当天有课、有日程或有截止时才发。"
+        title={i18n("auto.components.NotifySettingsSection.8")}
+        sub={i18n("auto.components.NotifySettingsSection.9")}
         control={
           <OGSelect
             size="sm"
@@ -182,8 +184,8 @@ export function NotifySettingsSection(): ReactNode {
 
       <div className="setting-row">
         <div>
-          <div className="setting-title">静默时段</div>
-          <div className="setting-desc">该时段内不发送提醒，落在其中的提醒顺延至时段结束。</div>
+          <div className="setting-title">{i18n("auto.components.NotifySettingsSection.10")}</div>
+          <div className="setting-desc">{i18n("auto.components.NotifySettingsSection.11")}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <OGSelect size="sm" value={s.quietFrom} onChange={(v) => patch({ quietFrom: v })} options={QUIET_FROM.map((v) => ({ value: v, label: v }))} />
@@ -196,7 +198,7 @@ export function NotifySettingsSection(): ReactNode {
       ) : null}
 
       <SettingsRow
-        title="通知权限"
+        title={i18n("auto.components.NotifySettingsSection.12")}
         sub={
           status === null
             ? "检测中…"
@@ -207,9 +209,8 @@ export function NotifySettingsSection(): ReactNode {
         control={
           <>
             <Btn variant="outline" size="sm" disabled={busy || status?.backend === "none"} onClick={() => void onTest()}>
-              发送测试通知
-            </Btn>
-            <Btn variant="ghost" size="sm" disabled={busy} titleAttr="逐项检查授权、提醒排程与真实投递" onClick={() => void onDiagnose()}>
+              {i18n("auto.components.NotifySettingsSection.13")}</Btn>
+            <Btn variant="ghost" size="sm" disabled={busy} titleAttr={i18n("auto.components.NotifySettingsSection.14")} onClick={() => void onDiagnose()}>
               {busy ? "检查中…" : "诊断"}
             </Btn>
             {hint.action ? (
@@ -219,7 +220,7 @@ export function NotifySettingsSection(): ReactNode {
                 titleAttr={`打开：${hint.action.label}`}
                 onClick={() => {
                   void openNotifySettings(hint.action!.kind).then((okOpen) => {
-                    if (!okOpen) setMsg("未能打开系统设置，请手动前往本应用的通知设置");
+                    if (!okOpen) setMsg(i18n("auto.components.NotifySettingsSection.msg1"));
                   });
                 }}
               >
@@ -232,16 +233,16 @@ export function NotifySettingsSection(): ReactNode {
 
       {pluginNotifs.length > 0 ? (
       <SettingsRow
-        title="插件通知"
+        title={i18n("auto.components.NotifySettingsSection.15")}
         sub={
           <>
             {pluginNotifs.map((g) => `${g.pluginId}（${g.ids.length} 条）`).join("；")}
-            <Text slot="label" tone="faint">　以上通知由插件自行管理，不受总开关影响。</Text>
+            <Text slot="label" tone="faint">　{i18n("auto.components.NotifySettingsSection.16")}</Text>
           </>
         }
         control={
           <>
-            <Btn variant="ghost" size="sm" onClick={() => void refreshPluginNotifs()}>刷新</Btn>
+            <Btn variant="ghost" size="sm" onClick={() => void refreshPluginNotifs()}>{i18n("auto.components.NotifySettingsSection.17")}</Btn>
             <Btn
               variant="ghost"
               tone="error"
@@ -254,8 +255,7 @@ export function NotifySettingsSection(): ReactNode {
                 });
               }}
             >
-              全部撤销
-            </Btn>
+              {i18n("auto.components.NotifySettingsSection.18")}</Btn>
           </>
         }
       />
@@ -263,7 +263,7 @@ export function NotifySettingsSection(): ReactNode {
 
       {s.enabled ? (
       <SettingsRow
-        title="近期提醒"
+        title={i18n("auto.components.NotifySettingsSection.19")}
         sub={
           plan.length === 0
             ? "近期没有需要提醒的事项。"
@@ -283,8 +283,7 @@ export function NotifySettingsSection(): ReactNode {
               })();
             }}
           >
-            立即应用
-          </Btn>
+            {i18n("auto.components.NotifySettingsSection.20")}</Btn>
         }
       />
       ) : null}
@@ -304,8 +303,7 @@ export function NotifySettingsSection(): ReactNode {
             </div>
           ))}
           <div style={{ fontSize: "var(--text-xs)", color: "var(--text-3)", marginTop: 6 }}>
-            自检会把这段结果贴给我即可定位（含「探针清理」说明自检没有留下垃圾通知）。
-          </div>
+            {i18n("auto.components.NotifySettingsSection.21")}</div>
         </div>
       ) : null}
 

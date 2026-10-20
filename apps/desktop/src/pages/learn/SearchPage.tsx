@@ -15,6 +15,8 @@ import { useLearnData } from "../../state/data.js";
 import { homeworkChip } from "./shared.js";
 import { openHomeworkRow } from "../../lib/homeworkEntry.js";
 import type { CourseFile, CourseInfo, Homework, Notification } from "@onethu/core";
+import { t as i18n } from "../../i18n/index.js";
+
 
 /* ---------- 分词：空白切词 + 中文 2-gram ---------- */
 
@@ -201,7 +203,7 @@ function SearchHomeworkRow({ h, courseName, tokens, score, max, delay }: { h: Ho
     >
       <div className="row-when">
         <b>{h.deadline.slice(5, 10)}</b>
-        <span>{h.deadline.slice(11, 16)} 截止</span>
+        <span>{h.deadline.slice(11, 16)} {i18n("auto.pages.learn.SearchPage.1")}</span>
       </div>
       <div className="row-main">
         <div className="row-title"><Highlight text={h.title} tokens={tokens} /></div>
@@ -235,7 +237,7 @@ function SearchNoticeRow({ n, courseName, tokens, score, max, delay }: { n: Noti
       </div>
       <div className="row-main">
         <div className="row-title">
-          {n.important ? <span className="flag" title="标记为重要" /> : null}
+          {n.important ? <span className="flag" title={i18n("auto.pages.learn.SearchPage.2")} /> : null}
           <Highlight text={n.title} tokens={tokens} />
         </div>
         <div className="row-sub">
@@ -366,12 +368,12 @@ export function SearchPage() {
     <>
       <div className="page-head">
         <div>
-          <h1>搜索</h1>
-          <div className="page-head-meta">搜课程、作业、通知、文件（含正文与附件）</div>
+          <h1>{i18n("auto.pages.learn.SearchPage.3")}</h1>
+          <div className="page-head-meta">{i18n("auto.pages.learn.SearchPage.4")}</div>
         </div>
         <div className="page-head-actions">
-          <PageAtomStar atomKey="learn-search" title="网络学堂搜索" />
-          <Btn variant="ghost" onClick={() => navigate("learn")}>← 返回</Btn>
+          <PageAtomStar atomKey="learn-search" title={i18n("auto.pages.learn.SearchPage.5")} />
+          <Btn variant="ghost" onClick={() => navigate("learn")}>{i18n("auto.pages.learn.SearchPage.6")}</Btn>
         </div>
       </div>
 
@@ -381,11 +383,11 @@ export function SearchPage() {
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="输入关键词，如“实验”“考试”“讲义”…"
-          aria-label="搜索关键词"
+          placeholder={i18n("auto.pages.learn.SearchPage.7")}
+          aria-label={i18n("auto.pages.learn.SearchPage.8")}
         />
         {q ? (
-          <Btn variant="ghost" onClick={() => setQ("")}>清除</Btn>
+          <Btn variant="ghost" onClick={() => setQ("")}>{i18n("auto.pages.learn.SearchPage.9")}</Btn>
         ) : null}
       </div>
 
@@ -399,7 +401,7 @@ export function SearchPage() {
         <>
           {results.courses.length > 0 ? (
             <>
-              <SectionHead title="课程" aside={`${results.courses.length} 门`} />
+              <SectionHead title={i18n("auto.pages.learn.SearchPage.10")} aside={`${results.courses.length} 门`} />
               <Card className="list">
                 {results.courses.map((r, i) => (
                   <SearchCourseRow
@@ -417,7 +419,7 @@ export function SearchPage() {
 
           {results.homework.length > 0 ? (
             <>
-              <SectionHead title="作业" aside={`${results.homework.length} 条`} />
+              <SectionHead title={i18n("auto.pages.learn.SearchPage.11")} aside={`${results.homework.length} 条`} />
               <Card className="list">
                 {results.homework.map((r, i) => (
                   <SearchHomeworkRow
@@ -436,7 +438,7 @@ export function SearchPage() {
 
           {results.notifications.length > 0 ? (
             <>
-              <SectionHead title="通知" aside={`${results.notifications.length} 条`} />
+              <SectionHead title={i18n("auto.pages.learn.SearchPage.12")} aside={`${results.notifications.length} 条`} />
               <Card className="list">
                 {results.notifications.map((r, i) => (
                   <SearchNoticeRow
@@ -455,7 +457,7 @@ export function SearchPage() {
 
           {results.files.length > 0 ? (
             <>
-              <SectionHead title="文件" aside={`${results.files.length} 个`} />
+              <SectionHead title={i18n("auto.pages.learn.SearchPage.13")} aside={`${results.files.length} 个`} />
               <Card className="list">
                 {results.files.map((r, i) => (
                   <SearchFileRow

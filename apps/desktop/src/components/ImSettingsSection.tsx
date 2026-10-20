@@ -26,6 +26,8 @@ import { newBindCode, reportChannelStatus, useChannelStatus } from "../im/regist
 import { openExternal } from "../pages/info/openExternal.js";
 import { syncChannels } from "../im/boot.js";
 import type { ImConfig } from "../im/store.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 function fmtAt(ms: number): string {
   if (!ms) return "—";
@@ -211,13 +213,11 @@ export function ImSettingsSection({ tier = "all" }: { tier?: ImTier } = {}): Rea
         <>
           <div className="setting-row">
             <div>
-              <div className="setting-title">扫码创建应用（推荐，免手工配置）</div>
+              <div className="setting-title">{i18n("auto.components.ImSettingsSection.1")}</div>
               <div className="setting-desc">
-                手机飞书扫码 → 打开页确认创建 → 自动拿回 App ID/Secret 并连接（应用所有者自动绑为主人）。
-                不想扫码时用「高级配置」里的手工填入。
-              </div>
+                {i18n("auto.components.ImSettingsSection.2")}</div>
             </div>
-            <Btn variant="solid" tone="brand" onClick={() => void startFsReg()}>扫码创建</Btn>
+            <Btn variant="solid" tone="brand" onClick={() => void startFsReg()}>{i18n("auto.components.ImSettingsSection.3")}</Btn>
           </div>
 
           {fsReg ? (
@@ -227,16 +227,15 @@ export function ImSettingsSection({ tier = "all" }: { tier?: ImTier } = {}): Rea
                   <QRCodeSVG value={fsReg.qrUrl} size={148} />
                 </div>
                 <div className="setting-desc" style={{ marginTop: 6 }}>{fsNote || "等待扫码…"}</div>
-                <Btn variant="outline" onClick={() => void openExternal(fsReg.qrUrl).catch(() => undefined)}>在本机？直接打开确认页（免扫码）
-                </Btn>
+                <Btn variant="outline" onClick={() => void openExternal(fsReg.qrUrl).catch(() => undefined)}>{i18n("auto.components.ImSettingsSection.4")}</Btn>
               </div>
-              <Btn variant="outline" onClick={() => setFsReg(null)}>取消</Btn>
+              <Btn variant="outline" onClick={() => setFsReg(null)}>{i18n("auto.components.ImSettingsSection.5")}</Btn>
             </div>
           ) : null}
 
           <div className="setting-row">
             <div>
-              <div className="setting-title">绑定主人</div>
+              <div className="setting-title">{i18n("auto.components.ImSettingsSection.6")}</div>
               <div className="setting-desc">
                 {bound
                   ? `已绑定：${bound.slice(0, 12)}…（单主人模型：仅此人消息进入 OH）`
@@ -244,9 +243,9 @@ export function ImSettingsSection({ tier = "all" }: { tier?: ImTier } = {}): Rea
               </div>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <Btn variant="outline" onClick={genBind}>生成绑定码</Btn>
+              <Btn variant="outline" onClick={genBind}>{i18n("auto.components.ImSettingsSection.7")}</Btn>
               {bound ? (
-                <Btn variant="outline" onClick={() => void unbind()}>解除绑定</Btn>
+                <Btn variant="outline" onClick={() => void unbind()}>{i18n("auto.components.ImSettingsSection.8")}</Btn>
               ) : null}
             </div>
           </div>
@@ -254,7 +253,7 @@ export function ImSettingsSection({ tier = "all" }: { tier?: ImTier } = {}): Rea
             <div className="setting-row">
               <div>
                 <div className="setting-title" style={{ fontSize: 22, letterSpacing: 4 }}>{code}</div>
-                <div className="setting-desc">在飞书私聊里发送：/bind {code}</div>
+                <div className="setting-desc">{i18n("auto.components.ImSettingsSection.9")}{code}</div>
               </div>
             </div>
           ) : null}
@@ -262,10 +261,9 @@ export function ImSettingsSection({ tier = "all" }: { tier?: ImTier } = {}): Rea
           {/* 微信（iLink 官方 Bot）：扫码绑定/解绑也放基础档——用户要求两个通道都能直接扫码 */}
           <div className="setting-row">
             <div>
-              <div className="setting-title">微信（iLink 官方 Bot · 扫码即用）</div>
+              <div className="setting-title">{i18n("auto.components.ImSettingsSection.10")}</div>
               <div className="setting-desc">
-                微信扫码授权后即可对话（无需任何 App ID/Secret）：消息经官方 iLink 通道长轮询到达本机，
-                OH 回复原路发回。当前状态：{PHASE_TEXT[wechatStatus.phase] ?? wechatStatus.phase}
+                {i18n("auto.components.ImSettingsSection.11")}{PHASE_TEXT[wechatStatus.phase] ?? wechatStatus.phase}
                 {wechatStatus.note ? `：${wechatStatus.note}` : ""}
                 {cfg?.channels.wechat?.botId ? `（bot ${cfg.channels.wechat.botId.slice(0, 10)}…）` : ""}
               </div>
@@ -276,8 +274,7 @@ export function ImSettingsSection({ tier = "all" }: { tier?: ImTier } = {}): Rea
                 <Btn variant="outline" onClick={() => {
                     wechatLoginCancel();
                     setWxQr(null);
-                  }}>解除绑定
-                </Btn>
+                  }}>{i18n("auto.components.ImSettingsSection.8")}</Btn>
               ) : null}
             </div>
           </div>
@@ -289,10 +286,9 @@ export function ImSettingsSection({ tier = "all" }: { tier?: ImTier } = {}): Rea
                   <QRCodeSVG value={wxQr} size={148} />
                 </div>
                 <div className="setting-desc" style={{ marginTop: 6 }}>
-                  {wxNote || "等待扫码…"}（用微信扫一扫；手机上的 OneTHU 无法自扫，可先用飞书通道）
-                </div>
+                  {wxNote || "等待扫码…"}{i18n("auto.components.ImSettingsSection.12")}</div>
               </div>
-              <Btn variant="outline" onClick={() => setWxQr(null)}>取消</Btn>
+              <Btn variant="outline" onClick={() => setWxQr(null)}>{i18n("auto.components.ImSettingsSection.5")}</Btn>
             </div>
           ) : null}
         </>
@@ -301,10 +297,10 @@ export function ImSettingsSection({ tier = "all" }: { tier?: ImTier } = {}): Rea
       {/* 连接状态：两档都看得到（一条只读状态行，不做两套实现） */}
       <div className="setting-row">
         <div>
-          <div className="setting-title">连接状态</div>
+          <div className="setting-title">{i18n("auto.components.ImSettingsSection.13")}</div>
           <div className="setting-desc">
             {PHASE_TEXT[fs.phase] ?? fs.phase}
-            {fs.note ? `：${fs.note}` : ""}（最近入站 {fmtAt(fs.lastInboundAt)}）
+            {fs.note ? `：${fs.note}` : ""}{i18n("auto.components.ImSettingsSection.14")}{fmtAt(fs.lastInboundAt)}）
           </div>
         </div>
       </div>
@@ -314,31 +310,29 @@ export function ImSettingsSection({ tier = "all" }: { tier?: ImTier } = {}): Rea
         <>
           <div className="setting-row">
             <div>
-              <div className="setting-title">飞书 bot（P0 通道）</div>
+              <div className="setting-title">{i18n("auto.components.ImSettingsSection.15")}</div>
               <div className="setting-desc">
-                桌面 App 常驻时 bot 在线：飞书开放平台自建应用（长连接事件订阅，免公网入口）。
-                收到的消息直达 OH，回复原路发回；附件后续经云盘归档。
-              </div>
+                {i18n("auto.components.ImSettingsSection.16")}</div>
             </div>
-            <Switch on={Boolean(cfg?.enabled.feishu)} onChange={(v) => void toggleEnabled(v)} label="飞书通道开关" />
+            <Switch on={Boolean(cfg?.enabled.feishu)} onChange={(v) => void toggleEnabled(v)} label={i18n("auto.components.ImSettingsSection.17")} />
           </div>
 
           <div className="setting-row">
             <div>
-              <div className="setting-title">应用凭据（手工）</div>
-              <div className="setting-desc">飞书开放平台 → 自建应用 → 凭证与基础信息。仅存本机（密文）。</div>
+              <div className="setting-title">{i18n("auto.components.ImSettingsSection.18")}</div>
+              <div className="setting-desc">{i18n("auto.components.ImSettingsSection.19")}</div>
             </div>
           </div>
           <div className="setting-row">
             <div style={{ flex: 1 }}>
-              <Input placeholder="App ID（cli_ 开头）" value={appId} onChange={(value) => setAppId(value)} />
+              <Input placeholder={i18n("auto.components.ImSettingsSection.20")} value={appId} onChange={(value) => setAppId(value)} />
             </div>
           </div>
           <div className="setting-row">
             <div style={{ flex: 1 }}>
               <Input placeholder="App Secret" type="password" value={appSecret} onChange={(value) => setAppSecret(value)} />
             </div>
-            <Btn variant="solid" tone="brand" onClick={() => void saveCreds()}>保存并连接</Btn>
+            <Btn variant="solid" tone="brand" onClick={() => void saveCreds()}>{i18n("auto.components.ImSettingsSection.21")}</Btn>
           </div>
         </>
       ) : null}

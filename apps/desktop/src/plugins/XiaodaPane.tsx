@@ -15,6 +15,8 @@ import { xiaodaClient, xiaodaEnsureLogin } from "../lib/xiaoda.js";
 import {
   dockInputSnapshot, registerXiaodaSubmit, setDockInputValue, subscribeDockInput,
 } from "./ChatDock.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 平台默认助手（清小搭本体）；小窗不提供换智能体，故只有这一个 */
 const AGENT_ID = "9999";
@@ -148,26 +150,24 @@ export function XiaodaPane({ onNotice }: { onNotice?: (s: string) => void }): Re
           gap: "var(--og-space-3)",
         }}
       >
-      <Banner tone="warning" title="仅供实验与参考">
+      <Banner tone="warning" title={i18n("auto.plugins.XiaodaPane.1")}>
         {DISCLAIMER}
       </Banner>
       {phase === "boot" ? (
         <Inline gap={2}>
           <Spinner size="sm" />
           <Text slot="label" tone="faint">
-            正在准备清小搭…
-          </Text>
+            {i18n("auto.plugins.XiaodaPane.2")}</Text>
         </Inline>
       ) : null}
       {phase === "error" ? (
-        <Banner tone="error" title="清小搭暂时不可用，请稍后重试">
+        <Banner tone="error" title={i18n("auto.plugins.XiaodaPane.3")}>
           {err}
         </Banner>
       ) : null}
       {phase === "ready" && msgs.length === 0 ? (
         <Text slot="label" tone="quiet">
-          在下方胶囊里输入问题、回车即发。这里是新的默认对话，不接续别处的历史。
-        </Text>
+          {i18n("auto.plugins.XiaodaPane.4")}</Text>
       ) : null}
       {msgs.map((m, i) => {
         const isUser = m.role === "user";
@@ -187,8 +187,7 @@ export function XiaodaPane({ onNotice }: { onNotice?: (s: string) => void }): Re
                     <Inline gap={2}>
                       <Spinner size="sm" />
                       <Text slot="label" tone="faint">
-                        正在输入…
-                      </Text>
+                        {i18n("auto.plugins.XiaodaPane.5")}</Text>
                     </Inline>
                   ) : null}
                 </Stack>
@@ -201,18 +200,16 @@ export function XiaodaPane({ onNotice }: { onNotice?: (s: string) => void }): Re
       <div ref={bottomRef} />
       </div>
       {err && phase === "ready" ? (
-        <Banner tone="error" title="发送失败，可再发一次重试">
+        <Banner tone="error" title={i18n("auto.plugins.XiaodaPane.6")}>
           {err}
         </Banner>
       ) : null}
       <Inline gap={2}>
         <Btn variant="solid" size="sm" disabled={phase !== "ready" || sending || !draft.trim()} onClick={() => void send(draft)}>
-          发送
-        </Btn>
+          {i18n("auto.plugins.XiaodaPane.7")}</Btn>
         {sending ? (
           <Btn variant="outline" size="sm" onClick={stop}>
-            停止
-          </Btn>
+            {i18n("auto.plugins.XiaodaPane.8")}</Btn>
         ) : null}
       </Inline>
     </div>

@@ -7,6 +7,8 @@ import { Card, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
 import { TabEmpty, TabError, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type LoadState = "loading" | "error" | "ready";
 /** core getBankPayment → 按月分组（month 形如 "2021年12月"） */
@@ -57,9 +59,9 @@ export function PayrollTab() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>项目</th>
-                    <th>说明</th>
-                    <th className="num">实发</th>
+                    <th>{i18n("auto.pages.info.PayrollTab.1")}</th>
+                    <th>{i18n("auto.pages.info.PayrollTab.2")}</th>
+                    <th className="num">{i18n("auto.pages.info.PayrollTab.3")}</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -6,6 +6,8 @@ import { isTauri } from "../lib/transport.js";
 import { loadRemembered } from "../lib/clients.js";
 import { useApp } from "../state/context.js";
 import { DESENSITIZE_BUILD } from "../lib/privacy.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 export function LoginPage() {
   const { login, status, error } = useApp();
@@ -40,8 +42,7 @@ export function LoginPage() {
 
         {!isTauri ? (
           <div className="browser-hint">
-            浏览器预览无法直连校园网（CORS）。完整功能请运行桌面端：pnpm tauri:dev
-          </div>
+            {i18n("auto.pages.Login.1")}</div>
         ) : null}
         {error ? (
           <div className="login-error" role="alert">
@@ -51,7 +52,7 @@ export function LoginPage() {
 
         <form onSubmit={onSubmit}>
           <div className="field">
-            <label htmlFor="username">学号</label>
+            <label htmlFor="username">{i18n("auto.pages.Login.2")}</label>
             <input
               id="username"
               autoComplete="username"
@@ -61,7 +62,7 @@ export function LoginPage() {
             />
           </div>
           <div className="field">
-            <label htmlFor="password">统一认证密码</label>
+            <label htmlFor="password">{i18n("auto.pages.Login.3")}</label>
             <input
               id="password"
               type="password"
@@ -72,19 +73,16 @@ export function LoginPage() {
           </div>
           <label className="trust-row">
             <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-            记住密码（本机保存，重启后自动登录）
-          </label>
+            {i18n("auto.pages.Login.4")}</label>
           <Btn type="submit" variant="solid" tone="brand" block disabled={busy || !username || !password}>{busy ? "正在登录统一认证…" : "登录"}</Btn>
         </form>
 
         <div className="login-foot">
-          <span>使用清华大学统一身份认证</span>
+          <span>{i18n("auto.pages.Login.5")}</span>
         </div>
         {DESENSITIZE_BUILD ? (
           <p className="login-note">
-            脱敏演示版：登录与正式版完全相同，姓名 / 学号替换为化名与编造学号、成绩为编造成绩；
-            课表、教室、洗衣机等非敏感数据仍是真实数据。
-          </p>
+            {i18n("auto.pages.Login.6")}</p>
         ) : null}
       </div>
     </div>
@@ -142,8 +140,8 @@ export function TwoFactorPage() {
           <div className="login-mark">
             <BrandLogo size={26} />
             <div>
-              <div className="login-title">二次认证</div>
-              <div className="login-sub">选择一种方式验证身份 · {twoFactor.username}</div>
+              <div className="login-title">{i18n("auto.pages.Login.7")}</div>
+              <div className="login-sub">{i18n("auto.pages.Login.8")}{twoFactor.username}</div>
             </div>
           </div>
 
@@ -167,16 +165,14 @@ export function TwoFactorPage() {
                   </span>
                 </label>
               ))}
-              {methods.length === 0 ? <span className="empty" style={{ padding: "8px 0" }}>加载验证方式…</span> : null}
+              {methods.length === 0 ? <span className="empty" style={{ padding: "8px 0" }}>{i18n("auto.pages.Login.9")}</span> : null}
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
             <Btn variant="ghost" onClick={backToLogin}>
-              返回登录
-            </Btn>
-            <Btn type="submit" variant="solid" tone="brand" block disabled={!selected} onClick={() => setStage("code")}>下一步
-            </Btn>
+              {i18n("auto.pages.Login.10")}</Btn>
+            <Btn type="submit" variant="solid" tone="brand" block disabled={!selected} onClick={() => setStage("code")}>{i18n("auto.pages.Login.11")}</Btn>
           </div>
         </div>
       </div>
@@ -201,7 +197,7 @@ export function TwoFactorPage() {
 
         <form onSubmit={onSubmit}>
           <div className="field">
-            <label htmlFor="code">验证码</label>
+            <label htmlFor="code">{i18n("auto.pages.Login.12")}</label>
             <input
               id="code"
               inputMode="numeric"
@@ -212,8 +208,7 @@ export function TwoFactorPage() {
           </div>
           <label className="trust-row">
             <input type="checkbox" checked={trust} onChange={(e) => setTrust(e.target.checked)} />
-            信任此设备，30 天内免二次认证
-          </label>
+            {i18n("auto.pages.Login.13")}</label>
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
             {!isTotp ? (
               <Btn variant="outline" onClick={() => void onSend()} disabled={sending || !selected}>{sending ? "发送中…" : sent ? "重新发送" : "发送验证码"}</Btn>
@@ -223,11 +218,9 @@ export function TwoFactorPage() {
         </form>
 
         <div className="login-foot">
-          <Btn variant="ghost" onClick={() => { setStage("select"); setCode(""); setSent(false); }}>← 更改验证方式
-          </Btn>
+          <Btn variant="ghost" onClick={() => { setStage("select"); setCode(""); setSent(false); }}>{i18n("auto.pages.Login.14")}</Btn>
           <Btn variant="ghost" onClick={backToLogin}>
-            返回登录
-          </Btn>
+            {i18n("auto.pages.Login.10")}</Btn>
         </div>
       </div>
     </div>

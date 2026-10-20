@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react';
 import { openFormModal } from './formModal.js';
 import { pickAndReceiveQr, receivePastedCode } from './contentExchange.js';
 import { showToast } from '../state/toast.js';
+import { t as i18n } from "../i18n/index.js";
+
 
 /**
  * 暂存箱各形态（整页/雷达/抽屉）共用的「收进来」：粘贴口令 + 扫码。
@@ -10,7 +12,7 @@ import { showToast } from '../state/toast.js';
 export function useVaultReceive(): { busy: boolean; paste: () => Promise<void>; scan: () => Promise<void> } {
   const [busy, setBusy] = useState(false);
   const paste = useCallback(async (): Promise<void> => {
-    const f = await openFormModal('接收分享口令', [{ key: 'code', label: '口令（ON-…，兼容旧口令）', kind: 'textarea', required: true }]);
+    const f = await openFormModal('接收分享口令', [{ key: 'code', label: i18n("auto.lib.useVaultReceive.p1"), kind: 'textarea', required: true }]);
     if (!f?.code) return;
     setBusy(true);
     try { showToast(await receivePastedCode(f.code)); }

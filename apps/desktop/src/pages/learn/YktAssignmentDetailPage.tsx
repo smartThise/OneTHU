@@ -64,6 +64,8 @@ import {
   yktSubmitEligibility,
   yktTypeText,
 } from "../../lib/yktDetail.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type LoadState = "loading" | "ok" | "error";
 
@@ -184,7 +186,7 @@ function YktAnswerPanel({ p, classroomId, onSubmitted }: { p: YkProblem; classro
   if (exhausted) {
     return (
       <div className="ykt-ans ykt-answer-panel">
-        <div className="ykt-ans-empty">本题作答次数已用尽</div>
+        <div className="ykt-ans-empty">{i18n("auto.pages.learn.YktAssignmentDetailPage.1")}</div>
       </div>
     );
   }
@@ -200,7 +202,7 @@ function YktAnswerPanel({ p, classroomId, onSubmitted }: { p: YkProblem; classro
       />
       {err ? <div className="ykt-answer-err">{err}</div> : null}
       <div className="ykt-answer-actions">
-        <Btn variant="solid" tone="brand" disabled={busy || uploading > 0 || !hasContent} onClick={() => void doSubmit()} titleAttr="提交后可在剩余次数内重做（覆盖旧答案）">{busy ? "提交中…" : uploading > 0 ? "图片上传中…" : unlimited ? "提交作答" : `提交（剩余 ${remaining} 次）`}</Btn>
+        <Btn variant="solid" tone="brand" disabled={busy || uploading > 0 || !hasContent} onClick={() => void doSubmit()} titleAttr={i18n("auto.pages.learn.YktAssignmentDetailPage.2")}>{busy ? "提交中…" : uploading > 0 ? "图片上传中…" : unlimited ? "提交作答" : `提交（剩余 ${remaining} 次）`}</Btn>
       </div>
     </div>
   );
@@ -222,9 +224,9 @@ function ProblemCard({ p, fontUrl, cookies, answer }: { p: YkProblem; fontUrl?: 
   return (
     <Card className="ykt-problem">
       <div className="ykt-problem-head">
-        <b className="ykt-problem-no">第 {p.index} 题</b>
+        <b className="ykt-problem-no">{i18n("auto.pages.learn.YktAssignmentDetailPage.3")}{p.index} {i18n("auto.pages.learn.YktAssignmentDetailPage.4")}</b>
         <span className="ykt-problem-type">{yktTypeText(p)}</span>
-        {p.score > 0 ? <span className="ykt-problem-score">{yktScoreText(p.score)} 分</span> : null}
+        {p.score > 0 ? <span className="ykt-problem-score">{yktScoreText(p.score)} {i18n("auto.pages.learn.YktAssignmentDetailPage.5")}</span> : null}
         <span className={`chip ${chip.cls} ykt-problem-chip`}>
           <span className="dot" />
           {chip.text}
@@ -234,10 +236,9 @@ function ProblemCard({ p, fontUrl, cookies, answer }: { p: YkProblem; fontUrl?: 
         <div className="ykt-problem-body">
           {p.bodyHtml ? <ProblemBody html={p.bodyHtml} fontUrl={fontUrl} cookies={cookies} title={`第 ${p.index} 题题干`} /> : null}
           {p.externalUrl ? (
-            <Btn variant="outline" onClick={() => void openExternal(p.externalUrl!)}>打开外链题目 ↗
-            </Btn>
+            <Btn variant="outline" onClick={() => void openExternal(p.externalUrl!)}>{i18n("auto.pages.learn.YktAssignmentDetailPage.6")}</Btn>
           ) : (
-            <div className="ykt-ans-empty">外链题目：未取到外链地址，请从雨课堂网页版打开。</div>
+            <div className="ykt-ans-empty">{i18n("auto.pages.learn.YktAssignmentDetailPage.7")}</div>
           )}
           {/* 红线：题型 9 只显示外链跳转，不渲染作答输入/评语区 */}
         </div>
@@ -251,21 +252,21 @@ function ProblemCard({ p, fontUrl, cookies, answer }: { p: YkProblem; fontUrl?: 
           {answer}
           {hasAnswer ? (
             <div className="ykt-ans">
-              <CollapsibleSection label="我的作答">
+              <CollapsibleSection label={i18n("auto.pages.learn.YktAssignmentDetailPage.8")}>
                 {p.myAnswerHtml ? <ProblemBody html={p.myAnswerHtml} fontUrl={fontUrl} cookies={cookies} title={`第 ${p.index} 题我的作答`} /> : null}
-                {attText ? <div className="ykt-ans-att">附件：{attText}</div> : null}
+                {attText ? <div className="ykt-ans-att">{i18n("auto.pages.learn.YktAssignmentDetailPage.9")}{attText}</div> : null}
               </CollapsibleSection>
             </div>
           ) : p.myStatus === "unanswered" ? (
-            <div className="ykt-ans-empty">未作答</div>
+            <div className="ykt-ans-empty">{i18n("auto.pages.learn.YktAssignmentDetailPage.10")}</div>
           ) : (
             /* R24 fix：已交 / 已批但服务端未回传作答正文（实测存在此响应形态）→
                明示「已提交」而非静默空白（此前整块不渲染，用户误以为没交） */
-            <div className="ykt-ans-empty">已提交（服务端未返回作答正文{p.submitTime ? ` · ${p.submitTime}` : ""}）</div>
+            <div className="ykt-ans-empty">{i18n("auto.pages.learn.YktAssignmentDetailPage.11")}{p.submitTime ? ` · ${p.submitTime}` : ""}）</div>
           )}
           {hasRemark ? (
             <div className="ykt-remark">
-              <CollapsibleSection label="老师评语">
+              <CollapsibleSection label={i18n("auto.pages.learn.YktAssignmentDetailPage.12")}>
                 {remarkView.remark ? <YktPlainText text={remarkView.remark} /> : null}
                 {(remarkView.comments ?? []).map((c, i) => (
                   <div className="ykt-remark-item" key={i}>
@@ -333,7 +334,7 @@ export function YktAssignmentDetailPage({ ykt: yktProp, from: fromProp }: { ykt?
   if (!ykt || !leafTypeId || !classroomId) {
     return (
       <>
-        <PageHead title="雨课堂作业" actions={<BackButton to={from} />} />
+        <PageHead title={i18n("auto.pages.learn.YktAssignmentDetailPage.13")} actions={<BackButton to={from} />} />
         <Card>
           <Empty text="这个入口不完整，请从作业列表重新进入。" />
         </Card>
@@ -364,7 +365,7 @@ export function YktAssignmentDetailPage({ ykt: yktProp, from: fromProp }: { ykt?
     const url = ykt.externalUrl;
     if (!url || submitBusy) return;
     const ok = await confirmOk(
-      "将打开雨课堂官方作答页完成提交。\n\n页面内是雨课堂官方提交逻辑（含其自身的截止/次数校验与二次确认），请在其中确认后提交；关闭或返回后本页会自动刷新真实状态。",
+      i18n("auto.pages.learn.YktAssignmentDetailPage.msg1"),
     );
     if (!ok) return;
     setSubmitBusy(true);
@@ -392,8 +393,7 @@ export function YktAssignmentDetailPage({ ykt: yktProp, from: fromProp }: { ykt?
         <Card>
           <ErrorNote text={errMsg} onRetry={() => setTick((t) => t + 1)} />
           <div className="detail-meta" style={{ padding: "0 16px 10px" }}>
-            详情拉取失败不影响列表状态；可用右上角「浏览器打开」走官方页面（R20-A 通道）。
-          </div>
+            {i18n("auto.pages.learn.YktAssignmentDetailPage.14")}</div>
         </Card>
       </>
     );
@@ -412,53 +412,52 @@ export function YktAssignmentDetailPage({ ykt: yktProp, from: fromProp }: { ykt?
             ) : null}
             <span className={`chip ${summary.chip.cls}`}>{summary.chip.text}</span>
             {ykt.kind === "exam" ? (
-              <span className="tag-exam" title="试卷（永不提供提交入口）">考试</span>
+              <span className="tag-exam" title={i18n("auto.pages.learn.YktAssignmentDetailPage.15")}>{i18n("auto.pages.learn.YktAssignmentDetailPage.16")}</span>
             ) : null}
           </div>
           {eligibility.eligible ? (
-            <div className="detail-meta">提交将通过应用内官方作答页完成（雨课堂官方确认 / 拦截原样保留）。</div>
+            <div className="detail-meta">{i18n("auto.pages.learn.YktAssignmentDetailPage.17")}</div>
           ) : null}
         </Card>
 
         <Card className="detail-sec">
-          <div className="detail-sec-head">作业信息</div>
+          <div className="detail-sec-head">{i18n("auto.pages.learn.YktAssignmentDetailPage.18")}</div>
           <div className="kv">
-            <span>截止时间</span>
+            <span>{i18n("auto.pages.learn.YktAssignmentDetailPage.19")}</span>
             <b>{ykt.deadline || "未知"}</b>
           </div>
           {d.lateDeadline ? (
             <div className="kv">
-              <span>补交截止</span>
+              <span>{i18n("auto.pages.learn.YktAssignmentDetailPage.20")}</span>
               <b>{d.lateDeadline}</b>
             </div>
           ) : null}
           <div className="kv">
-            <span>重交上限</span>
+            <span>{i18n("auto.pages.learn.YktAssignmentDetailPage.21")}</span>
             <b>{fmtMaxRetry(d.maxRetry)}</b>
           </div>
           <div className="kv">
-            <span>是否允许迟交</span>
+            <span>{i18n("auto.pages.learn.YktAssignmentDetailPage.22")}</span>
             <b>{d.lateAllowed ? "允许补交" : "不允许补交"}</b>
           </div>
           <div className="kv">
-            <span>作答进度</span>
+            <span>{i18n("auto.pages.learn.YktAssignmentDetailPage.23")}</span>
             <b>
-              {summary.answered}/{summary.total} 题
-            </b>
+              {summary.answered}/{summary.total} {i18n("auto.pages.learn.YktAssignmentDetailPage.4")}</b>
           </div>
           {summary.scoreSum !== undefined ? (
             <div className="kv">
-              <span>我的得分</span>
-              <b>{yktScoreText(summary.scoreSum)}（已批题目合计）</b>
+              <span>{i18n("auto.pages.learn.YktAssignmentDetailPage.24")}</span>
+              <b>{yktScoreText(summary.scoreSum)}{i18n("auto.pages.learn.YktAssignmentDetailPage.25")}</b>
             </div>
           ) : null}
         </Card>
 
         {d.description ? (
           <Card className="detail-sec">
-            <div className="detail-sec-head">作业说明</div>
+            <div className="detail-sec-head">{i18n("auto.pages.learn.YktAssignmentDetailPage.26")}</div>
             <div className="ykt-problem-body">
-              <ProblemBody html={d.description} fontUrl={d.fontUrl} cookies={yktCookie} title="作业说明" />
+              <ProblemBody html={d.description} fontUrl={d.fontUrl} cookies={yktCookie} title={i18n("auto.pages.learn.YktAssignmentDetailPage.26")} />
             </div>
           </Card>
         ) : null}
@@ -500,12 +499,11 @@ export function YktAssignmentDetailPage({ ykt: yktProp, from: fromProp }: { ykt?
               {...(backToCourseId && from === "learn-course" ? { courseId: backToCourseId } : {})}
             />
             {eligibility.eligible && ykt.externalUrl ? (
-              <Btn variant="solid" tone="brand" disabled={submitBusy} onClick={() => void openSubmit()} titleAttr="应用内打开雨课堂官方作答页（官方提交逻辑原样保留）">{submitBusy ? "作答页已打开…" : "作答 / 提交"}</Btn>
+              <Btn variant="solid" tone="brand" disabled={submitBusy} onClick={() => void openSubmit()} titleAttr={i18n("auto.pages.learn.YktAssignmentDetailPage.27")}>{submitBusy ? "作答页已打开…" : "作答 / 提交"}</Btn>
             ) : null}
             {ykt.externalUrl ? (
-              <Btn variant="outline" onClick={openInWeb} titleAttr="在系统浏览器或应用内打开官方页">
-                浏览器打开
-              </Btn>
+              <Btn variant="outline" onClick={openInWeb} titleAttr={i18n("auto.pages.learn.YktAssignmentDetailPage.28")}>
+                {i18n("auto.pages.learn.YktAssignmentDetailPage.29")}</Btn>
             ) : null}
           </>
         }

@@ -35,6 +35,8 @@ import { recordAtomUse } from "../lib/usage.js";
 import { getMailHead } from "./mail.js";
 import { syncCloudCal, syncHwToCloud } from "./cloudCal.js";
 import { showToast } from "./toast.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 图标最小接口（与 homeCards 的 HomeCardIcon 同口径） */
 export type AtomIcon = (p: { width?: number; height?: number; className?: string }) => ReactNode;
@@ -370,7 +372,7 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
       open: (nav) => {
         // 目标 tab 未注册（插件停用/无 tab 形态如 OH）→ 降级提示而非跳空白页
         if (!getPluginTab(target)) {
-          showToast("该插件功能页未启用");
+          showToast(i18n("auto.state.atoms.msg1"));
           return;
         }
         nav(target, undefined);
@@ -462,7 +464,7 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
     const pid = Number(id);
     if (!pid) return null;
     return view({
-      atom: ref, title: name || "GitLab 项目", sub: "GitLab 项目", icon: IconGitLab, group: "GitLab",
+      atom: ref, title: name || "GitLab 项目", sub: i18n("auto.state.atoms.p1"), icon: IconGitLab, group: "GitLab",
       open: (nav) => nav("gitlab", { gitlabProject: pid }),
     });
   }
@@ -514,7 +516,7 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
     const [searchName, name] = dec(key);
     if (!searchName) return null;
     return view({
-      atom: ref, title: name || searchName, sub: "教学楼 · 本周空闲状态", icon: IconSearch, group: "空教室",
+      atom: ref, title: name || searchName, sub: i18n("auto.state.atoms.p2"), icon: IconSearch, group: "空教室",
       open: (nav) => nav("reserve", { reserveTab: "classroom", classroomBuilding: searchName, classroomBuildingName: name }),
     });
   }
@@ -532,7 +534,7 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
     const [uuid, name] = dec(key);
     if (!uuid) return null;
     return view({
-      atom: ref, title: name || "体育场馆", sub: "体育系统 · 场次预约", icon: IconSchedule, group: "体育",
+      atom: ref, title: name || "体育场馆", sub: i18n("auto.state.atoms.p3"), icon: IconSchedule, group: "体育",
       open: (nav) => nav("reserve", { reserveTab: "sports", sportsScene: uuid }),
     });
   }
@@ -540,7 +542,7 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
     const [id, name] = dec(key);
     if (!id) return null;
     return view({
-      atom: ref, title: name || "研讨间", sub: "研讨间 · 时段申请", icon: IconCalendar, group: "研讨间",
+      atom: ref, title: name || "研讨间", sub: i18n("auto.state.atoms.p4"), icon: IconCalendar, group: "研讨间",
       open: (nav) => nav("reserve", { reserveTab: "room", libroomKind: Number(id) || undefined }),
     });
   }
@@ -548,7 +550,7 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
     const [id, name] = dec(key);
     if (!id) return null;
     return view({
-      atom: ref, title: name || "图书馆", sub: "图书馆 · 座位与签到", icon: IconSchedule, group: "图书馆",
+      atom: ref, title: name || "图书馆", sub: i18n("auto.state.atoms.p5"), icon: IconSchedule, group: "图书馆",
       open: (nav) => nav("reserve", { reserveTab: "lib", libraryId: Number(id) || undefined }),
     });
   }
@@ -572,7 +574,7 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
     const [id, name] = dec(key);
     if (!id) return null;
     return view({
-      atom: ref, title: name || id, sub: "公共空间 · 活动预约", icon: IconCalendar, group: "公共空间",
+      atom: ref, title: name || id, sub: i18n("auto.state.atoms.p6"), icon: IconCalendar, group: "公共空间",
       open: (nav) => nav("reserve", { reserveTab: "kongjian", kongjianSpace: id }),
     });
   }
@@ -588,7 +590,7 @@ export function resolveAtom(ref: AtomRef): AtomView | null {
     const [name] = dec(key);
     if (!name) return null;
     return view({
-      atom: ref, title: name, sub: "订阅源 · 新闻动态", icon: IconExternal, group: "新闻",
+      atom: ref, title: name, sub: i18n("auto.state.atoms.p7"), icon: IconExternal, group: "新闻",
       open: (nav) => nav("info", { infoTab: "news", newsSubSource: name }),
     });
   }
@@ -705,18 +707,18 @@ export function searchAtoms(query: string, limit = 24): AtomHit[] {
   const campus = cacheGet<{ courses: Array<{ id: string; name: string; teacherName?: string }>; homework: Array<{ courseId: string; id: string; title: string; submitted: boolean }>; notifications: Array<{ courseId: string; id: string; title: string }>; files: Array<{ courseId: string; id: string; title: string }> }>("campus")?.data;
   if (campus) {
     for (const c of campus.courses ?? []) if (match(c.name, c.teacherName)) push(hit({ atom: { kind: "course", key: enc(c.id, c.name, c.teacherName) }, title: c.name, sub: "课程" + (c.teacherName ? " · " + c.teacherName : ""), icon: IconLearn, group: "网络学堂" }));
-    for (const h of campus.homework ?? []) if (!h.submitted && match(h.title)) push(hit({ atom: { kind: "assignment", key: enc(h.courseId, h.id, h.title) }, title: h.title, sub: "作业", icon: IconPen, group: "网络学堂" }));
-    for (const n of campus.notifications ?? []) if (match(n.title)) push(hit({ atom: { kind: "notice", key: enc(n.courseId, n.id, n.title) }, title: n.title, sub: "课程通知", icon: IconBell, group: "网络学堂" }));
-    for (const f of campus.files ?? []) if (match(f.title)) push(hit({ atom: { kind: "file", key: enc(f.courseId, f.id, f.title) }, title: f.title, sub: "课程文件", icon: IconFile, group: "网络学堂" }));
+    for (const h of campus.homework ?? []) if (!h.submitted && match(h.title)) push(hit({ atom: { kind: "assignment", key: enc(h.courseId, h.id, h.title) }, title: h.title, sub: i18n("auto.state.atoms.p8"), icon: IconPen, group: "网络学堂" }));
+    for (const n of campus.notifications ?? []) if (match(n.title)) push(hit({ atom: { kind: "notice", key: enc(n.courseId, n.id, n.title) }, title: n.title, sub: i18n("auto.state.atoms.p9"), icon: IconBell, group: "网络学堂" }));
+    for (const f of campus.files ?? []) if (match(f.title)) push(hit({ atom: { kind: "file", key: enc(f.courseId, f.id, f.title) }, title: f.title, sub: i18n("auto.state.atoms.p10"), icon: IconFile, group: "网络学堂" }));
   }
   for (const b of dyn.washerGroups ?? []) if (match(b.name, b.gname)) push(hit({ atom: { kind: "washer-b", key: enc(b.id, b.name, b.provider ?? "0", b.gname) }, title: b.name, sub: b.gname, icon: IconRefresh, group: "洗衣机" }));
-  for (const b of dyn.classroomBuildings ?? []) if (match(b.name)) push(hit({ atom: { kind: "classroom-b", key: enc(b.searchName, b.name) }, title: b.name, sub: "教学楼", icon: IconSearch, group: "空教室" }));
-  for (const s of dyn.sportsScenes ?? []) if (match(s.name)) push(hit({ atom: { kind: "sports-v", key: enc(s.uuid, s.name) }, title: s.name, sub: "体育场馆", icon: IconSchedule, group: "体育" }));
+  for (const b of dyn.classroomBuildings ?? []) if (match(b.name)) push(hit({ atom: { kind: "classroom-b", key: enc(b.searchName, b.name) }, title: b.name, sub: i18n("auto.state.atoms.p11"), icon: IconSearch, group: "空教室" }));
+  for (const s of dyn.sportsScenes ?? []) if (match(s.name)) push(hit({ atom: { kind: "sports-v", key: enc(s.uuid, s.name) }, title: s.name, sub: i18n("auto.state.atoms.p12"), icon: IconSchedule, group: "体育" }));
   for (const n of dyn.newsItems ?? []) if (match(n.name, n.source)) push(hit({ atom: { kind: "news", key: enc(n.xxid, n.name, n.source) }, title: n.name, sub: n.source || "校内通知", icon: IconExternal, group: "新闻" }));
-  for (const k of dyn.libroomKinds ?? []) if (match(k.kindName)) push(hit({ atom: { kind: "libroom-k", key: enc(k.kindId, k.kindName) }, title: k.kindName, sub: "研讨间", icon: IconCalendar, group: "研讨间" }));
-  for (const l of dyn.libraries ?? []) if (match(l.name)) push(hit({ atom: { kind: "library", key: enc(l.id, l.name) }, title: l.name, sub: "图书馆", icon: IconSchedule, group: "图书馆" }));
-  for (const s of dyn.newsSources ?? []) if (match(s.name)) push(hit({ atom: { kind: "news-src", key: enc(s.name) }, title: s.name, sub: "订阅源 · 新闻", icon: IconExternal, group: "新闻" }));
-  for (const s of dyn.kjSpaces ?? []) if (match(s.name)) push(hit({ atom: { kind: "kj-space", key: enc(s.id, s.name) }, title: s.name, sub: "公共空间", icon: IconCalendar, group: "公共空间" }));
+  for (const k of dyn.libroomKinds ?? []) if (match(k.kindName)) push(hit({ atom: { kind: "libroom-k", key: enc(k.kindId, k.kindName) }, title: k.kindName, sub: i18n("auto.state.atoms.p13"), icon: IconCalendar, group: "研讨间" }));
+  for (const l of dyn.libraries ?? []) if (match(l.name)) push(hit({ atom: { kind: "library", key: enc(l.id, l.name) }, title: l.name, sub: i18n("auto.state.atoms.p14"), icon: IconSchedule, group: "图书馆" }));
+  for (const s of dyn.newsSources ?? []) if (match(s.name)) push(hit({ atom: { kind: "news-src", key: enc(s.name) }, title: s.name, sub: i18n("auto.state.atoms.p15"), icon: IconExternal, group: "新闻" }));
+  for (const s of dyn.kjSpaces ?? []) if (match(s.name)) push(hit({ atom: { kind: "kj-space", key: enc(s.id, s.name) }, title: s.name, sub: i18n("auto.state.atoms.p16"), icon: IconCalendar, group: "公共空间" }));
   for (const r of dyn.kjRooms ?? []) if (match(r.name, r.spaceName)) push(hit({ atom: { kind: "kj-room", key: enc(r.spaceId, r.spaceName, r.id, r.name) }, title: r.name, sub: (r.spaceName || "") + " · 公共空间", icon: IconCalendar, group: "公共空间" }));
   for (const c of dyn.courseXCourses ?? []) if (match(c.name, c.teacher)) push(hit({ atom: { kind: "courseX-c", key: enc(c.sem, c.id, c.name, c.teacher, "") }, title: c.name, sub: "courseX" + (c.teacher ? " · " + c.teacher : ""), icon: IconInfo, group: "courseX" }));
   for (const b of dyn.bbsBoards ?? []) if (match(b.name, b.courseName)) push(hit({ atom: { kind: "bbs-board", key: enc(b.courseId, b.bqid, b.name, b.courseName ?? "", b.sem ?? "") }, title: b.name, sub: (b.courseName ? b.courseName + " · " : "") + "讨论区板块", icon: IconLearn, group: "网络学堂" }));
@@ -724,11 +726,11 @@ export function searchAtoms(query: string, limit = 24): AtomHit[] {
   for (const a of INFO_APPS) if (match(a.name, a.cat)) push(hit({ atom: { kind: "infoapp", key: enc(a.cat, a.name, a.id) }, title: a.name, sub: a.cat + " · Info 应用", icon: IconExternal, group: "Info 应用" }));
   // 在线服务目录（ThosPage 打开过一次即入缓存）——OH「一句话打开亲友来访」即命中这里
   for (const s of dyn.thosServices ?? []) if (match(s.name, s.department)) push(hit({ atom: { kind: "thos-service", key: enc(s.id, s.name, s.department ?? "") }, title: s.name, sub: (s.department ? s.department + " · " : "") + "在线服务", icon: IconThos, group: "在线服务" }));
-  for (const p of dyn.gitlabProjects ?? []) if (match(p.name)) push(hit({ atom: { kind: "gitlab-proj", key: enc(p.id, p.name) }, title: p.name, sub: "GitLab 项目", icon: IconGitLab, group: "GitLab" }));
+  for (const p of dyn.gitlabProjects ?? []) if (match(p.name)) push(hit({ atom: { kind: "gitlab-proj", key: enc(p.id, p.name) }, title: p.name, sub: i18n("auto.state.atoms.p17"), icon: IconGitLab, group: "GitLab" }));
   for (const i of dyn.gitlabIssues ?? []) if (match(i.title)) push(hit({ atom: { kind: "gitlab-issue", key: enc(i.projectId, i.iid, i.title) }, title: i.title, sub: "GitLab Issue", icon: IconPen, group: "GitLab" }));
-  for (const m of dyn.gitlabMergeRequests ?? []) if (match(m.title)) push(hit({ atom: { kind: "gitlab-mr", key: enc(m.projectId, m.iid, m.title) }, title: m.title, sub: "GitLab 合并请求", icon: IconGitLab, group: "GitLab" }));
+  for (const m of dyn.gitlabMergeRequests ?? []) if (match(m.title)) push(hit({ atom: { kind: "gitlab-mr", key: enc(m.projectId, m.iid, m.title) }, title: m.title, sub: i18n("auto.state.atoms.p18"), icon: IconGitLab, group: "GitLab" }));
   // 收藏夹跳转原子（全部夹：根 + 子，标题命中即出）
-  for (const f of Object.values(loadFavs().folders)) if (match(f.title)) push(hit({ atom: { kind: "folder", key: f.id }, title: f.title, sub: "收藏夹 · 点击直达", icon: IconFolder, group: "我的收藏夹" }));
+  for (const f of Object.values(loadFavs().folders)) if (match(f.title)) push(hit({ atom: { kind: "folder", key: f.id }, title: f.title, sub: i18n("auto.state.atoms.p19"), icon: IconFolder, group: "我的收藏夹" }));
 
   return out.slice(0, limit);
 }

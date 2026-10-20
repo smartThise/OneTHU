@@ -14,6 +14,8 @@ import { isOverlayClosedByUser, overlayHide, setOverlayClosedByUser, overlayShow
 import { hasOverlayPermission, requestOverlayPermission } from "../lib/overlayAndroid.js";
 import { isAndroidNavigator } from "../lib/androidHost.js";
 import { goOhRow } from "./OhSettingsPage.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 
 /* task-19/22：悬浮球设置行注册。
@@ -77,8 +79,8 @@ export function OverlaySettingsSection(): ReactNode {
     return (
       <SettingsList>
         <SettingsRow
-          title="全局悬浮球"
-          sub="当前平台不支持在其他应用上层显示（仅安卓与桌面端可用）"
+          title={i18n("auto.components.OverlaySettingsSection.1")}
+          sub={i18n("auto.components.OverlaySettingsSection.2")}
         />
       </SettingsList>
     );
@@ -89,15 +91,15 @@ export function OverlaySettingsSection(): ReactNode {
       {/* task-22 检索直达：注册表按「开启悬浮球」检索，这里钉标准 id，让这条行无论叫什么都落点唯一 */}
       <SettingsRow
         id="row-开启悬浮球"
-        title="在其他应用上层显示 OH 悬浮球"
+        title={i18n("auto.components.OverlaySettingsSection.3")}
         sub={`单击展开对话，长按说话；在别的应用里也能用，不会把你拉回 OneTHU。${perm === false ? "（需要先授予「显示在其他应用上层」权限）" : ""}`}
-        control={<Switch checked={open} aria-label="在其他应用上层显示 OH 悬浮球" onChange={(v) => void toggle(v)} />}
+        control={<Switch checked={open} aria-label={i18n("auto.components.OverlaySettingsSection.3")} onChange={(v) => void toggle(v)} />}
       />
       {open ? (
         <SettingsRow
-          title="本次关闭悬浮球"
-          sub="关闭后不再自动出现，回到这里（或 OH 对话界面）可重新打开"
-          control={<Btn variant="ghost" size="sm" onClick={() => void toggle(false)}>关闭悬浮球</Btn>}
+          title={i18n("auto.components.OverlaySettingsSection.4")}
+          sub={i18n("auto.components.OverlaySettingsSection.5")}
+          control={<Btn variant="ghost" size="sm" onClick={() => void toggle(false)}>{i18n("auto.components.OverlaySettingsSection.6")}</Btn>}
         />
       ) : null}
     </SettingsList>

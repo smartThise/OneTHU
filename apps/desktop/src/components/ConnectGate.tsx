@@ -18,6 +18,8 @@ import { YktQrPanel, YktWebLoginPanel, saveYuketang } from "./ExtHwLoginModal.js
 import { extHwLogin, refreshExtHw } from "../state/exthw.js";
 import { connectCloudDisk, connectMail } from "../state/accountSetup.js";
 import { showToast } from "../state/toast.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 export type BindNeed = "yuketang" | "tuoj" | "mail" | "cloud";
 
@@ -120,7 +122,7 @@ export function ConnectGate({
       const { readCloudTokenInWebview } = await import("../lib/cloudTokenWebview.js");
       const token = await readCloudTokenInWebview();
       await connectCloudDisk(token);
-      showToast("云盘已连接");
+      showToast(i18n("auto.components.ConnectGate.msg1"));
       onDone?.();
       onClose();
     } catch (e) {
@@ -136,7 +138,7 @@ export function ConnectGate({
     setErr(null);
     try {
       await connectCloudDisk(token);
-      showToast("云盘已连接");
+      showToast(i18n("auto.components.ConnectGate.msg2"));
       onDone?.();
       onClose();
     } catch (e) {
@@ -206,8 +208,7 @@ export function ConnectGate({
       return (
         <div style={{ display: "grid", gap: 10 }}>
           <div className="og-text og-text--label og-text--t-faint">
-            用清华账号登录一次即可，不需要额外输入。
-          </div>
+            {i18n("auto.components.ConnectGate.1")}</div>
           <Btn variant="outline" disabled={busy} onClick={() => void tuojLogin()}>{busy ? "登录中…" : "用清华账号登录"}</Btn>
         </div>
       );
@@ -216,11 +217,9 @@ export function ConnectGate({
       return (
         <div style={{ display: "grid", gap: 10 }}>
           <div className="og-text og-text--label og-text--t-faint">
-            点击后会在 OneTHU 内打开清华云盘页。
-          </div>
+            {i18n("auto.components.ConnectGate.2")}</div>
           <div className="og-text og-text--label og-text--t-faint">
-            登录后读取现有访问口令并保存到本机，不会生成或重置。
-          </div>
+            {i18n("auto.components.ConnectGate.3")}</div>
           {autoMsg ? (
             <div className="og-text og-text--label og-text--t-warning">
               {autoMsg}
@@ -233,11 +232,9 @@ export function ConnectGate({
           {manualOpen ? (
             <>
               <div className="og-text og-text--label og-text--t-faint">
-                云盘网页端个人资料页：已有访问口令可点眼睛显示后复制。
-                没有访问口令时，请手动生成并粘贴到下面（仅存本机）。
-              </div>
+                {i18n("auto.components.ConnectGate.4")}</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <div style={{ flex: 1, minWidth: 180 }}>{<Input placeholder="粘贴云盘访问口令" value={token} onChange={(value) => setToken(value.trim())} />}</div>
+                <div style={{ flex: 1, minWidth: 180 }}>{<Input placeholder={i18n("auto.components.ConnectGate.5")} value={token} onChange={(value) => setToken(value.trim())} />}</div>
                 <Btn variant="outline" disabled={!token || busy} onClick={() => void cloudConnect()}>{busy ? "连接中…" : "连接"}</Btn>
               </div>
             </>
@@ -249,10 +246,9 @@ export function ConnectGate({
     return (
       <div style={{ display: "grid", gap: 10 }}>
         <div className="og-text og-text--label og-text--t-faint">
-          密码不是邮箱登录密码，是「客户端专用密码」：网页版邮箱 → 设置 → 客户端专用密码。
-        </div>
-        <Input placeholder="完整邮箱地址（如 someone@mails.tsinghua.edu.cn）" value={mailAddr} onChange={(value) => setMailAddr(value.trim())} />
-        <Input type="password" placeholder="客户端专用密码" value={mailCode} onChange={(value) => setMailCode(value)} />
+          {i18n("auto.components.ConnectGate.6")}</div>
+        <Input placeholder={i18n("auto.components.ConnectGate.7")} value={mailAddr} onChange={(value) => setMailAddr(value.trim())} />
+        <Input type="password" placeholder={i18n("auto.components.ConnectGate.8")} value={mailCode} onChange={(value) => setMailCode(value)} />
         <Btn variant="outline" disabled={!/.+@.+/.test(mailAddr) || !mailCode || busy} onClick={() => void mailConnect()}>{busy ? "连接中…" : "保存并验证"}</Btn>
       </div>
     );
@@ -262,9 +258,9 @@ export function ConnectGate({
     <div style={maskStyle} onClick={onClose}>
       <div className="connect-gate-panel" style={panelStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
-          <b style={{ fontSize: "var(--text-lg)" }}>连接{LABEL[need]}</b>
+          <b style={{ fontSize: "var(--text-lg)" }}>{i18n("auto.components.ConnectGate.9")}{LABEL[need]}</b>
           <span style={{ flex: 1 }} />
-          <Btn variant="outline" onClick={onClose} aria-label="关闭">
+          <Btn variant="outline" onClick={onClose} aria-label={i18n("auto.components.ConnectGate.10")}>
             ✕
           </Btn>
         </div>

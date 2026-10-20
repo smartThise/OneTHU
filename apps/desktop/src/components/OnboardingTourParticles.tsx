@@ -15,6 +15,8 @@ import { Btn } from "@onethu/gui";
  *  - 导览步卸载即收 rAF；dt 钳位 40ms，页面隐藏恢复时不跳帧。
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { t as i18n } from "../i18n/index.js";
+
 
 type RGB = { r: number; g: number; b: number };
 
@@ -269,10 +271,9 @@ export function TourParticles(): ReactNode {
         ref={canvasRef}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
         role="img"
-        aria-label="粒子汇聚成才的示意动画：四散的微尘凝成一颗，再裂开成工具、流程、组件"
+        aria-label={i18n("auto.components.OnboardingTourParticles.1")}
       />
-      <Btn variant="outline" onClick={() => setReplay((n) => n + 1)}>再来一轮
-      </Btn>
+      <Btn variant="outline" onClick={() => setReplay((n) => n + 1)}>{i18n("auto.components.OnboardingTourParticles.2")}</Btn>
     </div>
   );
 }

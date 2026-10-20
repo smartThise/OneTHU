@@ -335,6 +335,17 @@ html.is-phone .explorer-panel.is-home-canvas::-webkit-scrollbar { display: none;
   transform-origin: 0 0;
 }
 
+/* 吸附参考线（2026-10-19）：拖动/缩放时两个磁贴的边线共线才出现。
+   世界坐标里的 1px 线（随画布缩放），只做视觉提示 —— pointer-events:none 保证
+   它永远不抢手势；z-index 在卡体之上、把手/浮条之下。 */
+.free-guide {
+  position: absolute;
+  z-index: 2;
+  background: var(--accent);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
 /* 缩放控件（OneGUI BtnGroup）：视口左下角，屏幕空间（不随世界层缩放）。
    左下留白是这块画布唯一没被占用的角：右下是 ＋/画笔浮钮列、右上角是画笔色板、顶部是钟与坞。 */
 .board-zoombar {

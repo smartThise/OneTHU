@@ -22,6 +22,8 @@ import { OverlaySettingsSection } from "./OverlaySettingsSection.js";
 import { ImSettingsSection } from "./ImSettingsSection.js";
 import { isAndroidNavigator } from "../lib/androidHost.js";
 import { forceRemint, preflightMadModel, madmodelActive } from "../state/madmodel.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const isAndroid = isAndroidNavigator(typeof navigator !== "undefined" ? navigator : undefined);
 
@@ -121,7 +123,7 @@ function TierSwitch({ tier, onChange }: { tier: "basic" | "advanced"; onChange: 
         background: "var(--md-sys-color-surface-container-lowest)",
       }}
       role="tablist"
-      aria-label="OH 配置档位"
+      aria-label={i18n("auto.components.OhSettingsPage.1")}
     >
       {item("basic", "基础设置")}
       {item("advanced", "高级配置")}
@@ -160,7 +162,7 @@ function MadModelRow(): ReactNode {
   }, [done]);
   return (
     <SettingsRow
-      title="MadModel 免费档"
+      title={i18n("auto.components.OhSettingsPage.2")}
       sub={busy ? "正在续签…" : checking ? "正在检查免费模型连接…" : !madmodelActive() ? "当前使用自费 API；切换模型源后检查免费档。" : warn ? warn : "自动续签已开（到期前约 1 小时、每 10 分钟巡检）。"}
       control={
         <Btn variant="outline" size="sm" disabled={busy} onClick={() => {
@@ -171,8 +173,7 @@ function MadModelRow(): ReactNode {
                 setBusy(false);
                 setDone((v) => !v);
               });
-          }}>一键续签
-        </Btn>
+          }}>{i18n("auto.components.OhSettingsPage.3")}</Btn>
       }
     />
   );
@@ -189,13 +190,11 @@ function OhAdvancedSlot(): ReactNode {
   return (
     <div className="setting-row">
       <div>
-        <div className="setting-title">OH 模型配置 / 花费上限</div>
+        <div className="setting-title">{i18n("auto.components.OhSettingsPage.4")}</div>
         <div className="setting-desc">
-          模型 / 花费上限 / MCP / 日志在插件子页就地配置——插件页 → OneTHU Harness → 高级配置。
-        </div>
+          {i18n("auto.components.OhSettingsPage.5")}</div>
       </div>
-      <Btn variant="outline" onClick={() => goEntry("plugins")}>打开插件设置
-      </Btn>
+      <Btn variant="outline" onClick={() => goEntry("plugins")}>{i18n("auto.components.OhSettingsPage.6")}</Btn>
     </div>
   );
 }
@@ -206,11 +205,9 @@ function KeepAliveRow(): ReactNode {
   return (
     <div className="setting-row">
       <div>
-        <div className="setting-title">后台保活（华为 / 荣耀）</div>
+        <div className="setting-title">{i18n("auto.components.OhSettingsPage.7")}</div>
         <div className="setting-desc">
-          系统设置 → 应用 → 应用启动管理 → OneTHU 设「手动管理」，并允许自启动、关联启动、后台活动；
-          再把 OneTHU 加入电池优化白名单。设置完悬浮球与语音在后台才不会被系统掐掉。
-          {jumped ? "（已跳转系统应用设置页）" : ""}
+          {i18n("auto.components.OhSettingsPage.8")}{jumped ? "（已跳转系统应用设置页）" : ""}
         </div>
       </div>
       {isAndroid ? (
@@ -219,8 +216,7 @@ function KeepAliveRow(): ReactNode {
               .then((m) => m.invoke("open_app_settings"))
               .catch(() => undefined);
             setJumped(true);
-          }}>打开系统设置
-        </Btn>
+          }}>{i18n("auto.components.OhSettingsPage.9")}</Btn>
       ) : null}
     </div>
   );
@@ -248,56 +244,52 @@ export function OhSettingsPage({ advancedPanels }: { advancedPanels?: ReactNode 
 
       {tier === "basic" ? (
         <>
-          <SubHead>语音</SubHead>
+          <SubHead>{i18n("auto.components.OhSettingsPage.10")}</SubHead>
           <VoiceSettingsSection />
 
-          <SubHead>悬浮球</SubHead>
+          <SubHead>{i18n("auto.components.OhSettingsPage.11")}</SubHead>
           <OverlaySettingsSection />
 
-          <SubHead>免费额度</SubHead>
+          <SubHead>{i18n("auto.components.OhSettingsPage.12")}</SubHead>
           <MadModelRow />
 
-          <SubHead>模型与多模态</SubHead>
+          <SubHead>{i18n("auto.components.OhSettingsPage.13")}</SubHead>
           <div className="setting-row">
             <div>
-              <div className="setting-title">OH 模型 / 多模态开关</div>
+              <div className="setting-title">{i18n("auto.components.OhSettingsPage.14")}</div>
               <div className="setting-desc">
-                模型来源、自费 Key、模型名与「多模态（图片输入）」在插件的
-                设置面板里就地配置——插件页 → OneTHU Harness → 高级配置。
-              </div>
+                {i18n("auto.components.OhSettingsPage.15")}</div>
             </div>
-            <Btn variant="outline" onClick={() => goEntry("plugins")}>打开插件设置
-            </Btn>
+            <Btn variant="outline" onClick={() => goEntry("plugins")}>{i18n("auto.components.OhSettingsPage.6")}</Btn>
           </div>
 
           {/* 2026-10-13 压缩内容制（fa54a9c）：给一行机制说明——历史超长不再裸丢。
               这行只是说明，没有可切换项（机制永远开启；预算大小在插件设置里调）。 */}
           <div className="setting-row">
             <div>
-              <div className="setting-title">上下文记忆模式</div>
+              <div className="setting-title">{i18n("auto.components.OhSettingsPage.16")}</div>
               <div className="setting-desc">
-                历史超长自动收成要点清单，重要内容不再丢
-              </div>
+                {i18n("auto.components.OhSettingsPage.17")}</div>
             </div>
           </div>
 
-          <SubHead>IM 基础（扫码绑定 / 解绑）</SubHead>
+          <SubHead>{i18n("auto.components.OhSettingsPage.18")}</SubHead>
           {/* 同一份 ImSettingsSection 的 basic 档：扫码创建应用 + 绑定主人（生成码/解绑）+ 连接状态 */}
           <ImSettingsSection tier="basic" />
 
-          <SubHead>保活</SubHead>
+          <SubHead>{i18n("auto.components.OhSettingsPage.19")}</SubHead>
           <KeepAliveRow />
         </>
       ) : (
         <>
-          <SubHead>IM 通道（进阶）</SubHead>
+          <SubHead>{i18n("auto.components.OhSettingsPage.20")}</SubHead>
           {/* 同一份实现的 advanced 档：通道开关、手工凭据、微信灰置说明 */}
           <ImSettingsSection tier="advanced" />
 
-          <SubHead>免费额度（MadModel）</SubHead>
+          <SubHead>{i18n("auto.components.OhSettingsPage.21")}</SubHead>
           <MadModelRow />
 
-          <SubHead id="sec-模型MCP日志">模型 / MCP / 日志</SubHead>
+          <SubHead id="sec-模型MCP日志">{i18n("auto.components.OhSettingsPage.22")}</SubHead>
           {advancedPanels ?? <OhAdvancedSlot />}
         </>
       )}

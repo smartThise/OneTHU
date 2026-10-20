@@ -20,6 +20,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { tierLabel, sizeKey, type SizeTier, type WidgetDef, type WidgetSize } from "../state/widgetMeta.js";
 import type { WidgetRenderer } from "./WidgetHost.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 一个基准单位在真实白板上的像素高（与 boardCore.TILE_H 一致）。 */
 const UNIT = 88;
@@ -351,16 +353,16 @@ export function WidgetSizeList({
   return (
     <div className="widget-size-picker">
       <div className="widget-size-head">
-        <span className="widget-size-head-title">选择大小</span>
+        <span className="widget-size-head-title">{i18n("auto.components.WidgetSizes.1")}</span>
         <span className="widget-size-head-cur" data-size-current={cur ? sizeKey(cur) : ""}>
-          已选 {cur ? tierLabel(cur) : "—"}
+          {i18n("auto.components.WidgetSizes.2")}{" "}{cur ? tierLabel(cur) : "—"}
         </span>
       </div>
       <div
         className={"widget-size-carousel" + (dragging ? " is-dragging" : "")}
         ref={shellRef}
         role="radiogroup"
-        aria-label="选择大小"
+        aria-label={i18n("auto.components.WidgetSizes.1")}
         data-size-list="1"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

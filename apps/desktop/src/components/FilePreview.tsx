@@ -38,6 +38,8 @@ import type { PptxSlide, ZipEntry, ZipNode } from "../lib/zipTree.js";
 import { parsePptxModel } from "../lib/pptxRender.js";
 import type { PptxModel, PptxPara, PptxShape } from "../lib/pptxRender.js";
 import { ensurePdfRuntimeShims, hasModernPdfRuntime } from "../lib/pdf-runtime.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /* ⚠️ 安卓宿主判定绝不能用裸 UA 正则（R21 修正）：主窗口 UA 被 tauri.conf.json 伪装成
  * Windows Chrome/79（webvpn 票绑定），裸 UA 正则在真机恒 false —— 正是
@@ -189,10 +191,9 @@ class PreviewErrorBoundary extends Component<
         action={<Btn variant="outline" tone="error" size="sm" onClick={() => {
             this.setState({ err: null });
             this.props.onRetry?.();
-          }}>重试
-        </Btn>}
+          }}>{i18n("auto.components.FilePreview.1")}</Btn>}
       >
-        <Text as="div" slot="label" tone="error">这一条预览失败，其他内容不受影响；可换一条，或用上方「打开」查看原文件。</Text>
+        <Text as="div" slot="label" tone="error">{i18n("auto.components.FilePreview.2")}</Text>
         {this.props.note ? (
           <Text as="div" slot="label" tone="faint">{this.props.note}</Text>
         ) : null}
@@ -332,7 +333,7 @@ function PdfPage({
       ) : active ? (
         <canvas ref={canvasRef} style={{ display: "block" }} />
       ) : (
-        <Text slot="micro" tone="faint">第 {no} 页</Text>
+        <Text slot="micro" tone="faint">{i18n("auto.components.FilePreview.3")}{no} {i18n("auto.components.FilePreview.4")}</Text>
       )}
     </div>
   );
@@ -427,7 +428,7 @@ function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy }: { dataUrl: string
           <Text slot="label" tone="error">{err}</Text>
         </div>
         <Inline wrap justify="center" gap={1}>
-          <Btn variant="outline" disabled={pdfBusy} onClick={() => void onOpenExternally()}>系统应用打开</Btn>
+          <Btn variant="outline" disabled={pdfBusy} onClick={() => void onOpenExternally()}>{i18n("auto.components.FilePreview.5")}</Btn>
         </Inline>
       </Stack>
     );
@@ -435,7 +436,7 @@ function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy }: { dataUrl: string
   if (!doc) {
     return (
       <Stack fill justify="center" align="center" pad={7}>
-        <Text slot="label" tone="faint">PDF 解析中…</Text>
+        <Text slot="label" tone="faint">{i18n("auto.components.FilePreview.6")}</Text>
       </Stack>
     );
   }
@@ -450,14 +451,14 @@ function PdfCanvasView({ dataUrl, onOpenExternally, pdfBusy }: { dataUrl: string
       </div>
       <div style={PREVIEW_BAR_STYLE}>
         <Inline wrap justify="center" gap={2}>
-          <Btn variant="outline" disabled={cur <= 1} titleAttr="上一页" onClick={() => jump(cur - 1)}>‹</Btn>
+          <Btn variant="outline" disabled={cur <= 1} titleAttr={i18n("auto.components.FilePreview.7")} onClick={() => jump(cur - 1)}>‹</Btn>
           <Chip size="sm" tone="quiet"><Text as="span" mono slot="label" tone="faint">{cur} / {doc.numPages}</Text></Chip>
-          <Btn variant="outline" disabled={cur >= doc.numPages} titleAttr="下一页" onClick={() => jump(cur + 1)}>›</Btn>
-          <Btn variant="ghost" titleAttr="缩小" disabled={zoom <= 0.5} onClick={() => setZoom((z) => Math.max(0.5, Math.round((z - 0.15) * 100) / 100))}>−</Btn>
+          <Btn variant="outline" disabled={cur >= doc.numPages} titleAttr={i18n("auto.components.FilePreview.8")} onClick={() => jump(cur + 1)}>›</Btn>
+          <Btn variant="ghost" titleAttr={i18n("auto.components.FilePreview.9")} disabled={zoom <= 0.5} onClick={() => setZoom((z) => Math.max(0.5, Math.round((z - 0.15) * 100) / 100))}>−</Btn>
           <Chip size="sm" tone="quiet"><Text as="span" mono slot="label" tone="faint">{Math.round(zoom * 100)}%</Text></Chip>
-          <Btn variant="ghost" titleAttr="放大" disabled={zoom >= 3} onClick={() => setZoom((z) => Math.min(3, Math.round((z + 0.15) * 100) / 100))}>＋</Btn>
-          <Btn variant="ghost" disabled={zoom === 1} onClick={() => setZoom(1)}>适应宽度</Btn>
-          <Btn variant="ghost" disabled={pdfBusy} titleAttr="下载临时文件后调起系统 PDF 应用" onClick={() => void onOpenExternally()}>{pdfBusy ? "调起中…" : "系统应用打开"}</Btn>
+          <Btn variant="ghost" titleAttr={i18n("auto.components.FilePreview.10")} disabled={zoom >= 3} onClick={() => setZoom((z) => Math.min(3, Math.round((z + 0.15) * 100) / 100))}>＋</Btn>
+          <Btn variant="ghost" disabled={zoom === 1} onClick={() => setZoom(1)}>{i18n("auto.components.FilePreview.11")}</Btn>
+          <Btn variant="ghost" disabled={pdfBusy} titleAttr={i18n("auto.components.FilePreview.12")} onClick={() => void onOpenExternally()}>{pdfBusy ? "调起中…" : "系统应用打开"}</Btn>
         </Inline>
       </div>
     </div>
@@ -835,13 +836,13 @@ function ZipTreeView({ zip, notice }: { zip: ZipPayload; notice?: string }) {
 
       {/* 面包屑：根 / 一级目录 / 子目录，可点击回跳（Chip selected 承"当前层"） */}
       <Inline wrap gap={1}>
-        <Chip size="sm" selected={dirPath.length === 0} onClick={() => jump([])}>根</Chip>
+        <Chip size="sm" selected={dirPath.length === 0} onClick={() => jump([])}>{i18n("auto.components.FilePreview.13")}</Chip>
         {dirPath.map((seg, i) => (
           <Chip key={`${i}-${seg}`} size="sm" selected={i === dirPath.length - 1} onClick={() => jump(dirPath.slice(0, i + 1))}>{seg}</Chip>
         ))}
         <Spacer />
         <span style={SHRINK_STYLE}>
-          <Text nowrap slot="micro" tone="faint">当前层 {children.length} 项 · 全部 {root.fileCount} 个文件</Text>
+          <Text nowrap slot="micro" tone="faint">{i18n("auto.components.FilePreview.14")}{children.length} {i18n("auto.components.FilePreview.15")}{root.fileCount} {i18n("auto.components.FilePreview.16")}</Text>
         </span>
       </Inline>
 
@@ -849,7 +850,7 @@ function ZipTreeView({ zip, notice }: { zip: ZipPayload; notice?: string }) {
         /* 单条文本条目的内联预览面板（替代列表展示） */
         <Stack fill gap={2}>
           <Inline gap={2}>
-            <Btn variant="outline" onClick={() => setPreview(null)}>← 返回列表</Btn>
+            <Btn variant="outline" onClick={() => setPreview(null)}>{i18n("auto.components.FilePreview.17")}</Btn>
             <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "var(--og-text-label)" }} title={preview.path}>📄 {preview.path}</span>
             <span style={SHRINK_STYLE}>
               <Text nowrap slot="micro" tone="faint">{fmtBytes(preview.size)}</Text>
@@ -865,8 +866,7 @@ function ZipTreeView({ zip, notice }: { zip: ZipPayload; notice?: string }) {
             <div style={{ overflowY: "auto", minHeight: 0, display: "flex", flexDirection: "column", gap: "var(--og-space-2)" }}>
               {preview.mojibake ? (
                 <Text as="div" slot="label" tone="warning">
-                  条目可能不是 UTF-8 编码（如 GBK），部分字符可能显示为乱码。
-                </Text>
+                  {i18n("auto.components.FilePreview.18")}</Text>
               ) : null}
               <pre style={TEXT_PRE_STYLE}>{preview.text}</pre>
             </div>
@@ -884,7 +884,7 @@ function ZipTreeView({ zip, notice }: { zip: ZipPayload; notice?: string }) {
                     flush
                     leading={<span aria-hidden="true">📁</span>}
                     title={c.name}
-                    trailing={<Text nowrap slot="micro" tone="faint">{c.fileCount} 项 · {fmtBytes(c.size) || "0 B"}</Text>}
+                    trailing={<Text nowrap slot="micro" tone="faint">{c.fileCount} {i18n("auto.components.FilePreview.19")}{fmtBytes(c.size) || "0 B"}</Text>}
                     titleAttr={`进入 ${c.name}`}
                     onClick={() => enter(c.name)}
                   />
@@ -901,7 +901,7 @@ function ZipTreeView({ zip, notice }: { zip: ZipPayload; notice?: string }) {
                   trailing={
                     previewable ? (
                       <Inline gap={2}>
-                        <Text nowrap slot="micro" tone="brand">预览</Text>
+                        <Text nowrap slot="micro" tone="brand">{i18n("auto.components.FilePreview.20")}</Text>
                         <Text nowrap slot="micro" tone="faint">{fmtBytes(c.size) || "0 B"}</Text>
                       </Inline>
                     ) : (
@@ -916,7 +916,7 @@ function ZipTreeView({ zip, notice }: { zip: ZipPayload; notice?: string }) {
           </List>
           {children.length > ZIP_ROW_CAP ? (
             <div style={{ paddingBlock: "var(--og-space-2) var(--og-space-0)" }}>
-              <Text as="div" slot="label" tone="faint">当前层还有 {children.length - ZIP_ROW_CAP} 项未显示，可下载查看完整内容</Text>
+              <Text as="div" slot="label" tone="faint">{i18n("auto.components.FilePreview.21")}{children.length - ZIP_ROW_CAP} {i18n("auto.components.FilePreview.22")}</Text>
             </div>
           ) : null}
           {!children.length ? <Empty text="该目录为空" /> : null}
@@ -941,9 +941,9 @@ function OfficeShell({ zip, children }: { zip: ZipPayload; children: ReactNode }
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       <div style={OFFICE_TABBAR_STYLE}>
         <Inline wrap gap={1}>
-          <Chip size="sm" selected={tab === "doc"} onClick={() => setTab("doc")}>内容预览</Chip>
-          <Chip size="sm" selected={tab === "tree"} onClick={() => setTab("tree")}>内部文件</Chip>
-          <Text slot="micro" tone="faint">本地解析渲染，可切换查看文档内部文件</Text>
+          <Chip size="sm" selected={tab === "doc"} onClick={() => setTab("doc")}>{i18n("auto.components.FilePreview.23")}</Chip>
+          <Chip size="sm" selected={tab === "tree"} onClick={() => setTab("tree")}>{i18n("auto.components.FilePreview.24")}</Chip>
+          <Text slot="micro" tone="faint">{i18n("auto.components.FilePreview.25")}</Text>
         </Inline>
       </div>
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflowY: "auto" }}>
@@ -982,8 +982,7 @@ function XlsxView({ sheets }: { sheets: XlsxSheetView[] }) {
         ))}
       </Inline>
       <Text as="div" slot="micro" tone="faint">
-        工作表「{sheet.name}」共 {sheet.totalRows} 行
-        {sheet.truncatedRows ? `，仅显示前 ${XLSX_ROW_LIMIT} 行` : ""}
+        {i18n("auto.components.FilePreview.26")}{sheet.name}{i18n("auto.components.FilePreview.27")}{sheet.totalRows} {i18n("auto.components.FilePreview.28")}{sheet.truncatedRows ? `，仅显示前 ${XLSX_ROW_LIMIT} 行` : ""}
         {sheet.truncatedCols ? `；列过多，仅显示前 ${XLSX_COL_LIMIT} 列` : ""}
       </Text>
       {sheet.rows.length ? (
@@ -1025,7 +1024,7 @@ function PptxView({ slides }: { slides: PptxSlide[] }) {
     <Stack fill={false} gap={2} pad={3}>
       {slides.map((s) => (
         <div key={s.no} style={PPTX_CARD_STYLE}>
-          <Text as="div" slot="micro" tone="faint">幻灯片 {s.no}</Text>
+          <Text as="div" slot="micro" tone="faint">{i18n("auto.components.FilePreview.29")}{s.no}</Text>
           <div style={{ marginBlock: "var(--og-geo-xs) var(--og-space-1)", wordBreak: "break-word", fontWeight: "var(--og-weight-bold)", fontSize: "var(--og-text-body)" }}>
             {s.title || "（无标题）"}
           </div>
@@ -1038,7 +1037,7 @@ function PptxView({ slides }: { slides: PptxSlide[] }) {
           ) : null}
           {s.notes ? (
             <div style={{ marginBlockStart: "var(--og-space-2)", paddingBlockStart: "var(--og-space-1)", borderTop: "1px dashed var(--og-line-1)" }}>
-              <Text as="div" slot="micro" tone="faint">备注：{s.notes}</Text>
+              <Text as="div" slot="micro" tone="faint">{i18n("auto.components.FilePreview.30")}{s.notes}</Text>
             </div>
           ) : null}
         </div>
@@ -1221,7 +1220,7 @@ function PptxSlidesView({ model }: { model: PptxModel }): React.ReactNode {
         {model.slides.map((sl) => (
           <div key={sl.no} style={{ marginInline: "auto", marginBlock: "0 var(--og-space-3)", width: Math.round(PPTX_LOGICAL_W * k) }}>
             <div style={{ paddingBlock: "var(--og-geo-xs) var(--og-space-0)" }}>
-              <Text as="div" slot="micro" tone="faint">第 {sl.no} 页 / 共 {model.slides.length} 页</Text>
+              <Text as="div" slot="micro" tone="faint">{i18n("auto.components.FilePreview.3")}{sl.no} {i18n("auto.components.FilePreview.31")}{model.slides.length} {i18n("auto.components.FilePreview.4")}</Text>
             </div>
             <div style={{ position: "relative", width: Math.round(PPTX_LOGICAL_W * k), height: Math.round(pageH * k) }}>
               <div
@@ -1235,7 +1234,7 @@ function PptxSlidesView({ model }: { model: PptxModel }): React.ReactNode {
             </div>
             {sl.notes ? (
               <div style={{ paddingBlock: "var(--og-space-1) var(--og-space-0)", paddingInline: "var(--og-geo-xs) var(--og-space-0)", wordBreak: "break-word" }}>
-                <Text as="div" slot="micro" tone="faint">备注：{sl.notes}</Text>
+                <Text as="div" slot="micro" tone="faint">{i18n("auto.components.FilePreview.30")}{sl.notes}</Text>
               </div>
             ) : null}
           </div>
@@ -1244,13 +1243,13 @@ function PptxSlidesView({ model }: { model: PptxModel }): React.ReactNode {
       </div>
       <div style={PREVIEW_BAR_STYLE}>
         <Inline wrap justify="center" gap={2}>
-          <Text slot="micro" tone="faint">连续滚动查看全部页面</Text>
-          <Btn variant="ghost" titleAttr="缩小" disabled={zoom <= 0.5} onClick={() => setZoom((z) => Math.max(0.5, Math.round((z - 0.15) * 100) / 100))}>−</Btn>
+          <Text slot="micro" tone="faint">{i18n("auto.components.FilePreview.32")}</Text>
+          <Btn variant="ghost" titleAttr={i18n("auto.components.FilePreview.9")} disabled={zoom <= 0.5} onClick={() => setZoom((z) => Math.max(0.5, Math.round((z - 0.15) * 100) / 100))}>−</Btn>
           <Chip size="sm" tone="quiet"><Text as="span" mono slot="label" tone="faint">{Math.round(zoom * 100)}%</Text></Chip>
-          <Btn variant="ghost" titleAttr="放大" disabled={zoom >= 3} onClick={() => setZoom((z) => Math.min(3, Math.round((z + 0.15) * 100) / 100))}>＋</Btn>
-          <Btn variant="ghost" disabled={zoom === 1} onClick={() => setZoom(1)}>适应宽度</Btn>
+          <Btn variant="ghost" titleAttr={i18n("auto.components.FilePreview.10")} disabled={zoom >= 3} onClick={() => setZoom((z) => Math.min(3, Math.round((z + 0.15) * 100) / 100))}>＋</Btn>
+          <Btn variant="ghost" disabled={zoom === 1} onClick={() => setZoom(1)}>{i18n("auto.components.FilePreview.11")}</Btn>
           {model.unsupported > 0 ? (
-            <Text slot="micro" tone="faint">{model.unsupported} 个图表/对象未渲染</Text>
+            <Text slot="micro" tone="faint">{model.unsupported} {i18n("auto.components.FilePreview.33")}</Text>
           ) : null}
         </Inline>
       </div>
@@ -1581,9 +1580,8 @@ export function FilePreviewHost() {
           {/* 按钮组整体靠右且不收缩：空间不够时整组换行，✕ 永远在面板内 */}
           <span className="fp-actions" style={{ display: "flex", gap: "var(--og-space-2)", flexShrink: 0, marginLeft: "auto" }}>
             <Btn variant="outline" disabled={dlBusy} onClick={() => void doDownload()}>{dlBusy ? "下载中…" : "下载"}</Btn>
-            <Btn variant="ghost" disabled={dlBusy} titleAttr="这次保存到哪里由你选" onClick={() => void doSaveAs()}>另存为
-            </Btn>
-            <Btn variant="outline" onClick={close} aria-label="关闭预览">✕</Btn>
+            <Btn variant="ghost" disabled={dlBusy} titleAttr={i18n("auto.components.FilePreview.34")} onClick={() => void doSaveAs()}>{i18n("auto.components.FilePreview.35")}</Btn>
+            <Btn variant="outline" onClick={close} aria-label={i18n("auto.components.FilePreview.36")}>✕</Btn>
           </span>
         </div>
 
@@ -1595,14 +1593,13 @@ export function FilePreviewHost() {
               <Empty text={`预览加载失败：${phase.msg}`} />
               {phase.raw ? (
                 <div style={{ maxWidth: 640, textAlign: "center", overflowWrap: "anywhere" }}>
-                  <Text as="div" slot="micro" tone="faint">原生返回：{phase.raw}</Text>
+                  <Text as="div" slot="micro" tone="faint">{i18n("auto.components.FilePreview.37")}{phase.raw}</Text>
                 </div>
               ) : null}
               <Inline gap={2} justify="center">
-                <Btn variant="outline" onClick={retry}>重试</Btn>
+                <Btn variant="outline" onClick={retry}>{i18n("auto.components.FilePreview.1")}</Btn>
                 <Btn variant="outline" disabled={dlBusy} onClick={() => void doDownload()}>{dlBusy ? "下载中…" : "下载查看"}</Btn>
-                <Btn variant="ghost" disabled={dlBusy} onClick={() => void doSaveAs()}>另存为…
-                </Btn>
+                <Btn variant="ghost" disabled={dlBusy} onClick={() => void doSaveAs()}>{i18n("auto.components.FilePreview.38")}</Btn>
               </Inline>
             </Stack>
           ) : null}
@@ -1633,8 +1630,7 @@ export function FilePreviewHost() {
             <Stack pad={3} gap={2}>
               {view.mojibake ? (
                 <Text as="div" slot="label" tone="warning">
-                  文件可能不是 UTF-8 编码（如 GBK），部分字符可能显示为乱码。
-                </Text>
+                  {i18n("auto.components.FilePreview.39")}</Text>
               ) : null}
               <pre style={TEXT_PRE_STYLE}>{view.text}</pre>
             </Stack>
@@ -1677,16 +1673,15 @@ export function FilePreviewHost() {
                 </Text>
               </div>
               <Btn variant="outline" disabled={dlBusy} onClick={() => void doDownload()}>{dlBusy ? "下载中…" : "下载查看"}</Btn>
-              <Btn variant="ghost" disabled={dlBusy} onClick={() => void doSaveAs()}>另存为…
-              </Btn>
+              <Btn variant="ghost" disabled={dlBusy} onClick={() => void doSaveAs()}>{i18n("auto.components.FilePreview.38")}</Btn>
             </Stack>
           ) : null}
           </PreviewErrorBoundary>
         </div>
 
         {expanded ? (
-          <aside className="fp-info" aria-label="附件信息" style={FP_INFO_STYLE}>
-            <Text as="h3" slot="body" weight="semibold">附件信息</Text>
+          <aside className="fp-info" aria-label={i18n("auto.components.FilePreview.40")} style={FP_INFO_STYLE}>
+            <Text as="h3" slot="body" weight="semibold">{i18n("auto.components.FilePreview.40")}</Text>
             <div title={cur?.name || shown.name || "文件预览"} style={{ minWidth: 0 }}>
               <Text as="div" truncate slot="body">
                 {cur?.name || shown.name || "文件预览"}

@@ -16,6 +16,8 @@ import {
   activeVault, removeFromVault, subscribeVault, vaultSnapshot, VAULT_TYPE_LABEL, type VaultItem,
 } from "../../state/vault.js";
 import { openVaultItem } from "../../state/vaultRegistry.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 let sheetOpen = false;
 const listeners = new Set<() => void>();
@@ -90,8 +92,8 @@ export function VaultSheetHost(): ReactNode {
             <small>{box.items.length ? `${box.items.length} 项` : "空的"}</small>
           </span>
           <span className="vault-sheet-tools">
-            <Btn size="sm" variant="ghost" onClick={() => { closeVaultSheet(); navigate("vault"); }}>在标签页打开</Btn>
-            <IconBtn size="sm" label="关闭暂存箱" icon={<IconX width={16} height={16} />} onClick={close} />
+            <Btn size="sm" variant="ghost" onClick={() => { closeVaultSheet(); navigate("vault"); }}>{i18n("auto.components.vault.VaultSheet.1")}</Btn>
+            <IconBtn size="sm" label={i18n("auto.components.vault.VaultSheet.2")} icon={<IconX width={16} height={16} />} onClick={close} />
           </span>
         </header>
         <div className="vault-sheet-body">
@@ -109,7 +111,7 @@ export function VaultSheetHost(): ReactNode {
                       size="sm"
                       variant="ghost"
                       onClick={(e) => { e.stopPropagation(); removeFromVault(box.id, it.id); }}
-                    >移除</Btn>
+                    >{i18n("auto.components.vault.VaultSheet.3")}</Btn>
                   }
                 />
               ))}
@@ -117,15 +119,15 @@ export function VaultSheetHost(): ReactNode {
           ) : (
             <div className="vault-sheet-empty">
               <IconIn width={26} height={26} />
-              <Text slot="label">箱子里还没有东西</Text>
-              <Text slot="micro" tone="faint">长按任意内容，拖到上面的箱子上就收进来了</Text>
+              <Text slot="label">{i18n("auto.components.vault.VaultSheet.4")}</Text>
+              <Text slot="micro" tone="faint">{i18n("auto.components.vault.VaultSheet.5")}</Text>
             </div>
           )}
         </div>
         <footer className="vault-sheet-foot">
           {/* 抽屉也是完整形态：不用绕去整页就能粘贴口令 / 扫码收内容。 */}
           <VaultExchangeActions box={box}/>
-          <Text slot="micro" tone="faint">拖进来只需要按住内容 0.4 秒；发给小OH 就拖到 OH 胶囊上。</Text>
+          <Text slot="micro" tone="faint">{i18n("auto.components.vault.VaultSheet.6")}</Text>
         </footer>
       </section>
     </div>,

@@ -15,6 +15,8 @@ import { BackButton, NoticeRow, semesterText } from "./shared.js";
 import { useLearnNavSemester } from "./shared.js";
 import { noticeHasRead, useNoticeReadVersion } from "../../lib/noticeRead.js";
 import { useExternalNotices } from "../../state/exthw.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type Filter = "all" | "important" | "unread";
 
@@ -60,15 +62,14 @@ export function NoticesPage() {
   return (
     <>
       <PageHead
-        title="课程通知"
+        title={i18n("auto.pages.learn.NoticesPage.1")}
         meta={data ? `${semesterText(data.semester.id)} · 共 ${groups.all.length} 条` : "按发布时间倒序"}
         actions={
           <>
-            <PageAtomStar atomKey="learn-notices" title="全部通知" />
-            <BackButton to="learn" label="课程列表" />
-            <Btn variant="outline" onClick={() => navigate("learn-search", { from: "learn-notices" })}>搜索</Btn>
-            <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />刷新
-            </Btn>
+            <PageAtomStar atomKey="learn-notices" title={i18n("auto.pages.learn.NoticesPage.2")} />
+            <BackButton to="learn" label={i18n("auto.pages.learn.NoticesPage.3")} />
+            <Btn variant="outline" onClick={() => navigate("learn-search", { from: "learn-notices" })}>{i18n("auto.pages.learn.NoticesPage.4")}</Btn>
+            <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />{i18n("auto.pages.learn.NoticesPage.5")}</Btn>
           </>
         }
       />

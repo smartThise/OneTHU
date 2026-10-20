@@ -22,6 +22,8 @@ import { IconX } from "./Icons.js";
 import { TourParticles } from "./OnboardingTourParticles.js";
 import { TOUR_CARD_SCOPE, defineOnboardingScopes } from "./OnboardingTourScope.js";
 import { OnboardingTourV3, TourBullet } from "./OnboardingTourV3.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 defineOnboardingScopes();
 
@@ -145,21 +147,18 @@ export function OnboardingTourMobile(): ReactNode {
       onClose={() => setOpen(false)}
       maskClose={false}
       closeButton={false}
-      aria-label="OneTHU 手机导览"
+      aria-label={i18n("auto.components.OnboardingTourMobile.1")}
       scope={TOUR_CARD_SCOPE}
       foot={
         <Inline gap={2} vAlign="center" wrap>
-          <Btn variant="outline" disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))}>上一步
-          </Btn>
+          <Btn variant="outline" disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))}>{i18n("auto.components.OnboardingTourMobile.2")}</Btn>
           <Spacer />
-          <Btn variant="ghost" titleAttr="完成标记：此后不再自动出现" onClick={closeForever}>
-            不再显示
-          </Btn>
+          <Btn variant="ghost" titleAttr={i18n("auto.components.OnboardingTourMobile.3")} onClick={closeForever}>
+            {i18n("auto.components.OnboardingTourMobile.4")}</Btn>
           {isLast ? (
-            <Btn variant="solid" tone="brand" onClick={closeForever}>开始使用</Btn>
+            <Btn variant="solid" tone="brand" onClick={closeForever}>{i18n("auto.components.OnboardingTourMobile.5")}</Btn>
           ) : (
-            <Btn variant="solid" tone="brand" onClick={() => setStep((s) => Math.min(STEPS - 1, s + 1))}>下一步
-            </Btn>
+            <Btn variant="solid" tone="brand" onClick={() => setStep((s) => Math.min(STEPS - 1, s + 1))}>{i18n("auto.components.OnboardingTourMobile.6")}</Btn>
           )}
         </Inline>
       }
@@ -171,7 +170,7 @@ export function OnboardingTourMobile(): ReactNode {
             <Progress value={(step + 1) / STEPS} size="sm" />
           </div>
           <Spacer />
-          <IconBtn label="关闭本次导览" icon={<IconX width={14} height={14} />} onClick={() => setOpen(false)} />
+          <IconBtn label={i18n("auto.components.OnboardingTourMobile.7")} icon={<IconX width={14} height={14} />} onClick={() => setOpen(false)} />
         </Inline>
 
         {isLast ? <TourParticles /> : null}

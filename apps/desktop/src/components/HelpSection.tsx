@@ -8,9 +8,11 @@ import { Btn, SettingsRow } from "@onethu/gui";
  * 注册表里没有的（比如"改通知"）走设置页签请求，同样不写死栏目序号。
  */
 import type { ReactNode } from "react";
-import { NAV_REGISTRY, type NavEntry } from "../state/navigation.js";
+import { navName, NAV_REGISTRY, type NavEntry } from "../state/navigation.js";
 import { useApp } from "../state/context.js";
 import { requestSettingsTab } from "../state/settingsMode.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const byId = new Map(NAV_REGISTRY.map((e) => [e.id, e]));
 
@@ -65,7 +67,7 @@ export function HelpSection(): ReactNode {
   const { navigate } = useApp();
   return (
     <div style={{ display: "grid", gap: 10 }}>
-      <SettingsRow title="白板、暂存箱与组织怎么用？" sub="按模式查看导览，学习整理白板、暂存内容、分享短口令和 NFC 碰一碰，以及管理组织。" control={<Btn variant="outline" onClick={replayOnboarding}>打开导览</Btn>}/>
+      <SettingsRow title={i18n("auto.components.HelpSection.1")} sub={i18n("auto.components.HelpSection.2")} control={<Btn variant="outline" onClick={replayOnboarding}>{i18n("auto.components.HelpSection.3")}</Btn>}/>
       {TASKS.map((task) => {
         const entries = task.ids
           .map((id) => byId.get(id))
@@ -79,7 +81,7 @@ export function HelpSection(): ReactNode {
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
               {entries.map((e) => (
                 <button key={e.id} className="btn" onClick={() => navigate(e.page, e.params)}>
-                  {e.name}
+                  {navName(e)}
                 </button>
               ))}
               {task.settingsTab ? (

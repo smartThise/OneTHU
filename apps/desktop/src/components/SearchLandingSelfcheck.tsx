@@ -20,6 +20,8 @@ import { allSearchRows, familyOf, goSearchRow, type SearchRow } from "../state/s
 import { searchAll } from "../state/searchAll.js";
 import { showToast } from "../state/toast.js";
 import { IconX } from "./Icons.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 interface LandingRow {
   id: string;
@@ -143,9 +145,9 @@ function SearchLandingSelfcheck(): ReactNode {
     ].join("\n");
     try {
       await navigator.clipboard.writeText(md);
-      showToast("自查报告已复制（Markdown 表）");
+      showToast(i18n("auto.components.SearchLandingSelfcheck.msg1"));
     } catch {
-      showToast("剪贴板不可用——报告已在 console，请自 devtools 复制");
+      showToast(i18n("auto.components.SearchLandingSelfcheck.msg2"));
     }
   };
 
@@ -154,19 +156,18 @@ function SearchLandingSelfcheck(): ReactNode {
     if (!running) return null;
     return (
       <div className="selfcheck-card" role="status" aria-live="polite">
-        检索落点自查中（45 行逐条点击）… 结果会打印在 console 并出现在这张卡里。
-      </div>
+        {i18n("auto.components.SearchLandingSelfcheck.1")}</div>
     );
   }
   const miss = report.rows.filter((x) => x.hit !== "hit" || (!x.domFocus && x.landedOn !== "section-root"));
   return (
-    <div className="selfcheck-card" role="region" aria-label="检索落点自查报告">
+    <div className="selfcheck-card" role="region" aria-label={i18n("auto.components.SearchLandingSelfcheck.2")}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <b>检索落点自查</b>
-        <span style={{ color: "var(--text-3)" }}>hit {report.rows.filter((x) => x.hit === "hit").length}/45 · 分节根 {report.rows.filter((x) => x.landedOn === "section-root").length}</span>
+        <b>{i18n("auto.components.SearchLandingSelfcheck.3")}</b>
+        <span style={{ color: "var(--text-3)" }}>hit {report.rows.filter((x) => x.hit === "hit").length}{i18n("auto.components.SearchLandingSelfcheck.4")}{report.rows.filter((x) => x.landedOn === "section-root").length}</span>
         <span style={{ flex: 1 }} />
-        <Btn variant="solid" tone="brand" onClick={() => void copyReport()}>复制报告</Btn>
-        <Btn variant="ghost" aria-label="关闭" onClick={() => setReport(null)}><IconX width={14} height={14} /></Btn>
+        <Btn variant="solid" tone="brand" onClick={() => void copyReport()}>{i18n("auto.components.SearchLandingSelfcheck.5")}</Btn>
+        <Btn variant="ghost" aria-label={i18n("auto.components.SearchLandingSelfcheck.6")} onClick={() => setReport(null)}><IconX width={14} height={14} /></Btn>
       </div>
       {miss.length ? (
         <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
@@ -177,7 +178,7 @@ function SearchLandingSelfcheck(): ReactNode {
           ))}
         </ul>
       ) : null}
-      <div style={{ marginTop: 6, fontSize: 12, color: "var(--text-3)" }}>逐行原表已打在 console（console.table）；「复制报告」给 Markdown 全表。</div>
+      <div style={{ marginTop: 6, fontSize: 12, color: "var(--text-3)" }}>{i18n("auto.components.SearchLandingSelfcheck.7")}</div>
     </div>
   );
 }

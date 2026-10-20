@@ -21,6 +21,8 @@ import { enc, noteAtomCache } from "../../state/atoms.js";
 import { useApp } from "../../state/context.js";
 import { cacheGet, cacheSet } from "../../state/cache.js";
 import { TabEmpty, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type LoadState = "loading" | "error" | "ready";
 
@@ -229,7 +231,7 @@ export function KongjianTab({ kongjianSpace, kongjianRoom }: { kongjianSpace?: s
 
   return (
     <>
-      <SectionHead title="宿舍公共空间" aside="共享家园网 · 活动空间预约" />
+      <SectionHead title={i18n("auto.pages.info.KongjianTab.1")} aside="共享家园网 · 活动空间预约" />
       {state === "error" ? (
         <ErrorNote
           text={unavailable ? "共享家园网暂不可用，请稍后重试。" : (error ?? "")}
@@ -245,7 +247,7 @@ export function KongjianTab({ kongjianSpace, kongjianRoom }: { kongjianSpace?: s
         <>
           <Card style={{ marginBottom: 12, padding: "12px 14px" }}>
             <div className="field" style={{ marginBottom: 10 }}>
-              <label><Text slot="label" tone="faint">公共空间</Text></label>
+              <label><Text slot="label" tone="faint">{i18n("auto.pages.info.KongjianTab.2")}</Text></label>
               <div className="ss-row" style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <div style={{ flex: "1 1 auto", minWidth: 0 }}>
                   <SearchSelect
@@ -265,14 +267,14 @@ export function KongjianTab({ kongjianSpace, kongjianRoom }: { kongjianSpace?: s
             </div>
             {page.rooms.length > 0 ? (
               <div style={{ marginBottom: 10 }}>
-                <div><Text slot="label" tone="faint">房间</Text></div>
+                <div><Text slot="label" tone="faint">{i18n("auto.pages.info.KongjianTab.3")}</Text></div>
                 <div className="ss-row" style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <div style={{ flex: "1 1 auto", minWidth: 0 }}>
                     <SearchSelect
                       value={roomId || page.selectedRoom || ""}
                       onChange={(v) => pickRoom(v)}
-                      placeholder="全部房间…"
-                      options={[{ value: "", label: "全部房间" }, ...page.rooms.map((r) => ({ value: r.id, label: r.name }))]}
+                      placeholder={i18n("auto.pages.info.KongjianTab.4")}
+                      options={[{ value: "", label: i18n("auto.pages.info.KongjianTab.p1") }, ...page.rooms.map((r) => ({ value: r.id, label: r.name }))]}
                     />
                   </div>
                   {effRoomId ? (
@@ -286,7 +288,7 @@ export function KongjianTab({ kongjianSpace, kongjianRoom }: { kongjianSpace?: s
             ) : null}
             {page.dates.length > 0 ? (
               <div>
-                <div><Text slot="label" tone="faint">日期</Text></div>
+                <div><Text slot="label" tone="faint">{i18n("auto.pages.info.KongjianTab.5")}</Text></div>
                 <Select value={date} onChange={(value) => pickDate(value)}>{page.dates.map((d) => (
                     <option key={d} value={d}>
                       {d}
@@ -301,7 +303,7 @@ export function KongjianTab({ kongjianSpace, kongjianRoom }: { kongjianSpace?: s
 
           {slots.length === 0 && (spaceId || page.selectedRoom) ? (
             <Card style={{ marginBottom: 12 }}>
-              <div className="empty">该房间/日期暂无开放场次。</div>
+              <div className="empty">{i18n("auto.pages.info.KongjianTab.6")}</div>
             </Card>
           ) : null}
           {buckets
@@ -332,17 +334,16 @@ export function KongjianTab({ kongjianSpace, kongjianRoom }: { kongjianSpace?: s
 
           {picked ? (
             <>
-              <SectionHead title="确认预约" aside={`${picked.date} ${picked.time}`} />
+              <SectionHead title={i18n("auto.pages.info.KongjianTab.7")} aside={`${picked.date} ${picked.time}`} />
               <Card style={{ marginBottom: 14, padding: "12px 14px" }}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-                <div style={{ flex: 1, minWidth: 120, height: 32, fontSize: 13 }}>{<Input value={profile.name} onChange={(value) => setProfile({ ...profile, name: value })} placeholder="姓名" />}</div>
-                <div style={{ flex: 1, minWidth: 120, height: 32, fontSize: 13 }}>{<Input value={profile.sid} onChange={(value) => setProfile({ ...profile, sid: value })} placeholder="学号" />}</div>
-                <div style={{ flex: 1, minWidth: 120, height: 32, fontSize: 13 }}>{<Input value={profile.tel} onChange={(value) => setProfile({ ...profile, tel: value })} placeholder="电话" />}</div>
+                <div style={{ flex: 1, minWidth: 120, height: 32, fontSize: 13 }}>{<Input value={profile.name} onChange={(value) => setProfile({ ...profile, name: value })} placeholder={i18n("auto.pages.info.KongjianTab.8")} />}</div>
+                <div style={{ flex: 1, minWidth: 120, height: 32, fontSize: 13 }}>{<Input value={profile.sid} onChange={(value) => setProfile({ ...profile, sid: value })} placeholder={i18n("auto.pages.info.KongjianTab.9")} />}</div>
+                <div style={{ flex: 1, minWidth: 120, height: 32, fontSize: 13 }}>{<Input value={profile.tel} onChange={(value) => setProfile({ ...profile, tel: value })} placeholder={i18n("auto.pages.info.KongjianTab.10")} />}</div>
               </div>
-              <TextArea value={purpose} onChange={(value) => setPurpose(value)} placeholder="用途（选填）" rows={2} />
+              <TextArea value={purpose} onChange={(value) => setPurpose(value)} placeholder={i18n("auto.pages.info.KongjianTab.11")} rows={2} />
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                <Btn variant="outline" onClick={() => setPicked(null)}>取消
-                </Btn>
+                <Btn variant="outline" onClick={() => setPicked(null)}>{i18n("auto.pages.info.KongjianTab.12")}</Btn>
                 <Btn variant="solid" tone="brand" disabled={busy} onClick={() => void submit()}>{busy ? "提交中…" : "确定预约"}</Btn>
               </div>
               </Card>
@@ -355,7 +356,7 @@ export function KongjianTab({ kongjianSpace, kongjianRoom }: { kongjianSpace?: s
             </Card>
           ) : null}
 
-          <SectionHead title="我的预约" aside="公共空间预约记录" />
+          <SectionHead title={i18n("auto.pages.info.KongjianTab.13")} aside="公共空间预约记录" />
           {recState === "loading" && !records ? <SkeletonRows rows={3} /> : null}
           {records && records.length === 0 ? <TabEmpty text="暂无预约记录。" /> : null}
           {records && records.length > 0 ? (
@@ -368,8 +369,7 @@ export function KongjianTab({ kongjianSpace, kongjianRoom }: { kongjianSpace?: s
                 </div>
                 {rec.cancelTarget ? (
                   <div style={{ marginTop: 6, textAlign: "right" }}>
-                    <Btn variant="outline" onClick={() => void cancel(rec)}>取消预约
-                    </Btn>
+                    <Btn variant="outline" onClick={() => void cancel(rec)}>{i18n("auto.pages.info.KongjianTab.14")}</Btn>
                   </div>
                 ) : null}
               </Card>

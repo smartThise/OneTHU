@@ -42,7 +42,9 @@ import { speakReply } from "../lib/tts.js";
 import { useOhSearch, jumpEntry, jumpAtom, jumpSearchRow, jumpSettingsTab, jumpTabPayload } from "../plugins/ohSearch.js";
 import { explorerPrefsSnapshot, useSearchHistory, type SearchJump } from "../state/explorerPrefs.js";
 import { displayBreadcrumb } from "../state/searchRows.js";
-import { OH_ORB_SCOPE } from "./explorer/ohOrbScope.js"; // OH 专属档位登记进 OneGUI 管线（scope: oh.orb，受 OneGUI 调度）
+import { OH_ORB_SCOPE } from "./explorer/ohOrbScope.js";
+import { t as i18n } from "../i18n/index.js";
+ // OH 专属档位登记进 OneGUI 管线（scope: oh.orb，受 OneGUI 调度）
 
 /** 面板窗比视觉块四周多出的留白（与 overlay_win.rs 的 PANEL_SHADOW_PAD 同值）：
  *  那圈留白专门给面板的柔和外阴影，视觉块仍严格落在 14px 边距上。 */
@@ -355,7 +357,7 @@ export const GlobalOrb = memo(function GlobalOrb({ initialMode = "ball" }: { ini
       <div
         role="button"
         data-oh-ball="1"
-        aria-label="OH 悬浮球：单击打开对话，按住可拖动"
+        aria-label={i18n("auto.components.GlobalOrb.1")}
         style={{
           position: "fixed", inset: 0, zIndex: 9999,
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -454,7 +456,7 @@ export const GlobalOrb = memo(function GlobalOrb({ initialMode = "ball" }: { ini
             把手自己的按压被 stopPropagation + 手势桥闸门挡住，不会误触发拖窗。 */}
         <div
           role="separator"
-          aria-label="上下拖动调整悬浮窗高度"
+          aria-label={i18n("auto.components.GlobalOrb.2")}
           onPointerDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -526,18 +528,18 @@ export const GlobalOrb = memo(function GlobalOrb({ initialMode = "ball" }: { ini
           <Segment
             size="sm"
             options={[
-              { value: "search", label: "搜索" },
+              { value: "search", label: i18n("auto.components.GlobalOrb.p1") },
               { value: "oh", label: "OH" },
             ]}
             value={omode}
             onChange={(v) => setOmode(v as "search" | "oh")}
           />
           <div style={{ display: "flex", flex: "none", alignItems: "center", gap: "var(--og-space-1)" }}>
-            <Btn size="sm" variant="outline" tone="quiet" onClick={backToApp}>回到 OneTHU</Btn>
+            <Btn size="sm" variant="outline" tone="quiet" onClick={backToApp}>{i18n("auto.components.GlobalOrb.3")}</Btn>
             <Btn size="sm" variant="outline" tone="quiet" selected={prefs.autoSpeak} onClick={() => setVoicePrefs({ autoSpeak: !prefs.autoSpeak })}>
               {prefs.autoSpeak ? "自动朗读 · 开" : "自动朗读"}
             </Btn>
-            <Btn size="sm" variant="outline" tone="quiet" onClick={collapseToBall}>收起</Btn>
+            <Btn size="sm" variant="outline" tone="quiet" onClick={collapseToBall}>{i18n("auto.components.GlobalOrb.4")}</Btn>
           </div>
         </div>
 
@@ -553,18 +555,18 @@ export const GlobalOrb = memo(function GlobalOrb({ initialMode = "ball" }: { ini
                 size="sm"
                 value={oquery}
                 onChange={setOquery}
-                placeholder="搜功能、作业、文件、设置…"
-                aria-label="搜索"
+                placeholder={i18n("auto.components.GlobalOrb.5")}
+                aria-label={i18n("auto.components.GlobalOrb.6")}
               />
             </div>
             {oquery ? (
-              <Btn size="sm" variant="ghost" tone="quiet" onClick={() => setOquery("")}>清空</Btn>
+              <Btn size="sm" variant="ghost" tone="quiet" onClick={() => setOquery("")}>{i18n("auto.components.GlobalOrb.7")}</Btn>
             ) : null}
           </div>
           {!oquery.trim() ? (
             <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--og-space-2)", overflowY: "auto" }}>
               {ohist.length === 0 ? (
-                <Text slot="label" tone="faint" as="span">还没有搜索记录；搜一次功能或实体就会留在这里</Text>
+                <Text slot="label" tone="faint" as="span">{i18n("auto.components.GlobalOrb.8")}</Text>
               ) : ohist.map((h: SearchJump, i: number) => (
                 <span
                   key={`${h.at}-${i}`}
@@ -582,7 +584,7 @@ export const GlobalOrb = memo(function GlobalOrb({ initialMode = "ball" }: { ini
               ))}
             </div>
           ) : !oresult ? (
-            <Text slot="label" tone="faint" as="p">搜索中…</Text>
+            <Text slot="label" tone="faint" as="p">{i18n("auto.components.GlobalOrb.9")}</Text>
           ) : ototal === 0 ? (
             <Btn
               block
@@ -595,8 +597,7 @@ export const GlobalOrb = memo(function GlobalOrb({ initialMode = "ball" }: { ini
                 if (q) void send(q);
               }}
             >
-              没搜到「{oquery.trim()}」？直接问小 (OH)
-            </Btn>
+              {i18n("auto.components.GlobalOrb.10")}{oquery.trim()}{i18n("auto.components.GlobalOrb.11")}</Btn>
           ) : (
             <div className="ohx-orb-results">
               {oresult.rows.map((x) => (
@@ -616,7 +617,7 @@ export const GlobalOrb = memo(function GlobalOrb({ initialMode = "ball" }: { ini
                   compact
                   title={en.name}
                   sub={en.note ?? en.category}
-                  trailing={<Text slot="micro" tone="faint">功能</Text>}
+                  trailing={<Text slot="micro" tone="faint">{i18n("auto.components.GlobalOrb.12")}</Text>}
                   onClick={() => { jumpEntry(en.id, en.page, en.params ?? null, en.name, oquery.trim()); backToApp(); }}
                 />
               ))}
@@ -627,7 +628,7 @@ export const GlobalOrb = memo(function GlobalOrb({ initialMode = "ball" }: { ini
                   compact
                   title={a.title}
                   sub={(a.group ? a.group + " · " : "") + (a.sub ?? "")}
-                  trailing={<Text slot="micro" tone="faint">页面</Text>}
+                  trailing={<Text slot="micro" tone="faint">{i18n("auto.components.GlobalOrb.13")}</Text>}
                   onClick={() => { jumpAtom(a.kind, a.key, a.title, oquery.trim()); backToApp(); }}
                 />
               ))}
@@ -637,7 +638,7 @@ export const GlobalOrb = memo(function GlobalOrb({ initialMode = "ball" }: { ini
                   size="sm"
                   compact
                   title={"设置 · " + t}
-                  trailing={<Text slot="micro" tone="faint">设置</Text>}
+                  trailing={<Text slot="micro" tone="faint">{i18n("auto.components.GlobalOrb.14")}</Text>}
                   onClick={() => { jumpSettingsTab(t); backToApp(); }}
                 />
               ))}
@@ -702,7 +703,7 @@ export const GlobalOrb = memo(function GlobalOrb({ initialMode = "ball" }: { ini
             value={input}
             onChange={setInput}
             onFocusChange={(on) => { if (on) setTyping(false); }}
-            placeholder="点击输入（可直接用系统听写说话）"
+            placeholder={i18n("auto.components.GlobalOrb.15")}
           />
         </div>
       </form>

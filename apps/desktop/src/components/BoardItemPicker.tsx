@@ -10,6 +10,8 @@ import { Btn } from "@onethu/gui";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useOverlayBack } from "../state/navStack.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 export interface PickerItem {
   /** 稳定键（写进 props 的原始定位信息由调用方决定） */
@@ -75,7 +77,7 @@ export function BoardItemPicker({
         <div className="add-drawer-inner">
           <div className="picker-head">
             <span className="picker-title">{title}</span>
-            <Btn variant="outline" onClick={onClose}>关闭</Btn>
+            <Btn variant="outline" onClick={onClose}>{i18n("auto.components.BoardItemPicker.1")}</Btn>
           </div>
           <input
             className="picker-search"
@@ -86,7 +88,7 @@ export function BoardItemPicker({
           />
           <div className="picker-list">
             {list.length === 0 ? (
-              <div className="wg-card-empty">没有匹配的条目</div>
+              <div className="wg-card-empty">{i18n("auto.components.BoardItemPicker.2")}</div>
             ) : (
               list.map((it) => (
                 <button

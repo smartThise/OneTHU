@@ -23,6 +23,8 @@ import { VenueSportsTab } from "./VenueSportsTab.js";
 import { KongjianTab } from "./KongjianTab.js";
 import { VisitTab } from "./VisitTab.js";
 import { useTabDirection } from "../../lib/motion.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 export type ReserveTab = "library" | "libroom" | "classroom" | "sports" | "kongjian" | "visit" | "more";
 
@@ -80,8 +82,8 @@ export function ReservePage() {
   return (
     <>
      <PageHead
-       title="预约"
-       actions={<RootPageStar page="reserve" title="预约" />}
+       title={i18n("auto.pages.info.ReservePage.1")}
+       actions={<RootPageStar page="reserve" title={i18n("auto.pages.info.ReservePage.1")} />}
      />
       <SegmentedOverflow ariaLabel="预约功能" style={{ marginBottom: 14 }}>
         {TABS.map(({ id, label }) => (

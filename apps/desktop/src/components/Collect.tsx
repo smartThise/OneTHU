@@ -18,6 +18,8 @@ import { addAtomToBoard, addAtomToHome, boardItemCount, createOnePageForAtom, on
 import { pageAtomRef, resolveAtom, searchAtoms, tabAtomKey, type AtomHit } from "../state/atoms.js";
 import { confirmOk } from "../lib/confirm.js";
 import type { AtomRef } from "../state/favorites.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 星标按钮（元素收藏；2026-10-15 起不再直接建板，先问落点：首页 / 已有 OnePage / 新建） */
 export function CollectStar({ atom, title }: { atom: AtomRef; title?: string }) {
@@ -67,24 +69,24 @@ export function OnePageLandingSheet({ atom, name, full, onClose }: { atom: AtomR
     onClose();
   };
   return (
-    <Sheet open onClose={onClose} title="收藏到…">
+    <Sheet open onClose={onClose} title={i18n("auto.components.Collect.1")}>
       <Stack gap={1}>
         <Text slot="micro" tone="faint">{full || name}</Text>
         <Row
-          title="首页"
-          sub="加到首页白板（最常用）"
+          title={i18n("auto.components.Collect.2")}
+          sub={i18n("auto.components.Collect.3")}
           onClick={() => doPick(() => addAtomToHome(key))}
         />
         {boards.map((b) => (
           <Row
             key={b.id}
             title={b.name}
-            sub="已有 OnePage"
+            sub={i18n("auto.components.Collect.4")}
             onClick={() => doPick(() => addAtomToBoard(b.id, key))}
           />
         ))}
         <Row
-          title="新建 OnePage"
+          title={i18n("auto.components.Collect.5")}
           sub={`建一块只含「${name}」的新白板`}
           onClick={() => { createOnePageForAtom(name, key); onClose(); }}
         />
@@ -268,7 +270,7 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
           <span className="collect-row-icon"><IconFolderPlus width={15} height={15} style={{ opacity: 0.5 }} /></span>
           <span className="collect-row-text">
             <span className="collect-row-title">{f.title}</span>
-            <span className="collect-row-sub">{f.items.length} 项</span>
+            <span className="collect-row-sub">{f.items.length} {i18n("auto.components.Collect.6")}</span>
           </span>
         </label>,
       );
@@ -297,15 +299,14 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
 
   return createPortal(
     <div className={"home-modal-mask" + (closing ? " is-closing" : "")} onClick={requestClose}>
-      <div className={"home-modal collect-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label="收藏到收藏夹" onClick={(e) => e.stopPropagation()}>
+      <div className={"home-modal collect-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label={i18n("auto.components.Collect.7")} onClick={(e) => e.stopPropagation()}>
         <div className="home-modal-head">
-          <h3>收藏到…</h3>
-          <Btn variant="ghost" onClick={requestClose}>关闭</Btn>
+          <h3>{i18n("auto.components.Collect.1")}</h3>
+          <Btn variant="ghost" onClick={requestClose}>{i18n("auto.components.Collect.8")}</Btn>
         </div>
         <div className="home-modal-body">
           <div className="home-modal-hint">
-            「{view?.title ?? "收藏项"}」可同时收进多个收藏夹；收藏夹只是跳转入口，原功能始终锚定在默认页面。
-          </div>
+            「{view?.title ?? "收藏项"}{i18n("auto.components.Collect.9")}</div>
           {roots.length === 0 && !creating ? (
             <Empty text="还没有收藏夹——在左侧栏「新建收藏夹」，或点下方直接建一个。" />
           ) : (
@@ -313,16 +314,15 @@ export function CollectModal({ atom, onClose }: { atom: AtomRef; onClose: () => 
           )}
           {creating ? (
             <div className="collect-new">
-              <Input autoFocus placeholder="收藏夹名称…" value={name} onChange={(value) => setName(value)} onKeyDown={(e) => {
+              <Input autoFocus placeholder={i18n("auto.components.Collect.10")} value={name} onChange={(value) => setName(value)} onKeyDown={(e) => {
                   if (e.key === "Enter") createAndAdd();
                   if (e.key === "Escape") setCreating(false);
                 }} />
-              <Btn variant="solid" tone="brand" disabled={!name.trim()} onClick={createAndAdd}>建并收藏</Btn>
-              <Btn variant="ghost" onClick={() => setCreating(false)}>取消</Btn>
+              <Btn variant="solid" tone="brand" disabled={!name.trim()} onClick={createAndAdd}>{i18n("auto.components.Collect.11")}</Btn>
+              <Btn variant="ghost" onClick={() => setCreating(false)}>{i18n("auto.components.Collect.12")}</Btn>
             </div>
           ) : (
-            <Btn variant="outline" onClick={() => setCreating(true)}><IconFolderPlus width={14} height={14} />新建收藏夹
-            </Btn>
+            <Btn variant="outline" onClick={() => setCreating(true)}><IconFolderPlus width={14} height={14} />{i18n("auto.components.Collect.13")}</Btn>
           )}
         </div>
       </div>
@@ -356,10 +356,10 @@ export function AtomPickerModal({ onPick, onClose, title = "添加到收藏夹",
 
   return createPortal(
     <div className={"home-modal-mask" + (closing ? " is-closing" : "")} onClick={requestClose}>
-      <div className={"home-modal collect-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label="搜索并添加收藏项" onClick={(e) => e.stopPropagation()}>
+      <div className={"home-modal collect-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label={i18n("auto.components.Collect.14")} onClick={(e) => e.stopPropagation()}>
         <div className="home-modal-head">
           <h3>{title}</h3>
-          <Btn variant="ghost" onClick={requestClose}>关闭</Btn>
+          <Btn variant="ghost" onClick={requestClose}>{i18n("auto.components.Collect.8")}</Btn>
         </div>
         <div className="home-modal-body">
           <div className="collect-search">
@@ -367,7 +367,7 @@ export function AtomPickerModal({ onPick, onClose, title = "添加到收藏夹",
             <input
               ref={inputRef}
               className="input"
-              placeholder="搜索任意收藏项：页面 / 组件 / 课程 / 作业 / 新闻 / 楼栋 / 场馆…"
+              placeholder={i18n("auto.components.Collect.15")}
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
@@ -375,12 +375,11 @@ export function AtomPickerModal({ onPick, onClose, title = "添加到收藏夹",
           {q.trim() === "" ? (
             <div className="home-modal-hint">
               {hint ? <>{hint}<br /></> : null}
-              支持搜索：全部功能页面与今日组件；本机已见过的实体（课程、作业、文件、通知、新闻、洗衣机楼栋、教学楼、体育场馆、研讨间类型、图书馆）——先打开过对应页面，具体实体才会进入搜索。
-            </div>
+              {i18n("auto.components.Collect.16")}</div>
           ) : results.length === 0 ? (
             <Empty
               text="没有匹配的收藏项——试试更短的关键词，或先去对应页面打开一次。"
-              action={<Btn variant="ghost" onClick={() => setQ("")}>清空关键词</Btn>}
+              action={<Btn variant="ghost" onClick={() => setQ("")}>{i18n("auto.components.Collect.17")}</Btn>}
             />
           ) : (
             results.map((h) => {

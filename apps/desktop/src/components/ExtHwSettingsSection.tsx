@@ -32,6 +32,8 @@ import {
   type ExtHwSourceId,
   type TuojSourceId,
 } from "@onethu/core";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** R15 20.3：OJ 源统一行范式 —— `源名 + 状态徽标 …… 主操作 + 「更多」折叠`。
  *  备选登录方式一律收进 more 折叠；行内只在需要用户动作时出现提示（会话失效 / 自动登录失败）。 */
@@ -449,11 +451,10 @@ export function ExtHwSettingsSection(): ReactNode {
         {ext.errors[source] ? <OGText as="div" slot="label" tone="error">{ext.errors[source]}</OGText> : null}
         {st.kind === "failed" ? (
           <OGText as="div" slot="label" tone="warning">
-            自动登录未成功{st.message ? `（${st.message.slice(0, 160)}）` : ""}——可点「统一认证登录」重试。
-          </OGText>
+            {i18n("auto.components.ExtHwSettingsSection.1")}{st.message ? `（${st.message.slice(0, 160)}）` : ""}{i18n("auto.components.ExtHwSettingsSection.2")}</OGText>
         ) : null}
         {st.kind === "no-courses" ? (
-          <OGText as="div" slot="label" tone="faint">统一认证已通过，未返回课程（可能未注册或未选课）。</OGText>
+          <OGText as="div" slot="label" tone="faint">{i18n("auto.components.ExtHwSettingsSection.3")}</OGText>
         ) : null}
       </>
     );
@@ -466,16 +467,14 @@ export function ExtHwSettingsSection(): ReactNode {
   return (
     <div id="settings-exthw">
       <OGText as="div" slot="label" tone="faint">
-        把各平台作业 DDL 合并到「全部作业」与「今日」；只读拉取（标题 / 课程 / 截止时间），不提交、
-        不抓题目。登录信息在本机加密保存，只用来读取作业。
-      </OGText>
+        {i18n("auto.components.ExtHwSettingsSection.4")}</OGText>
 
       {/* ── R14 19.1 / R15 20.3：雨课堂独立 Card，统一行范式 ── */}
       <SectionHead title={SOURCE_CATEGORY_NAMES.courseware} />
       <Card>
         <div className="exthw-src">
           <div className="exthw-src-head">
-            <OGText weight="semibold">雨课堂</OGText>
+            <OGText weight="semibold">{i18n("auto.components.ExtHwSettingsSection.5")}</OGText>
             <Tag tone={configured.yuketang ? "success" : undefined}>
               {configured.yuketang ? "已登录" : "未登录"}
             </Tag>
@@ -491,15 +490,14 @@ export function ExtHwSettingsSection(): ReactNode {
                   {/* R18 24.2：官方网页登录通道（应用内 WebView，支持扫码 / 短信）
                       R18b 25.3.2：桌面端原生窗口实测白屏卡死 → 隐藏该入口（二维码可用），仅 Android 保留 */}
                   {YKT_WEB_LOGIN_AVAILABLE ? (
-                    <Btn variant="outline" disabled={busy !== null} titleAttr="在应用内打开雨课堂官方登录页，支持扫码或手机号+图形验证码+短信登录" onClick={() => {
+                    <Btn variant="outline" disabled={busy !== null} titleAttr={i18n("auto.components.ExtHwSettingsSection.6")} onClick={() => {
                         setYktQrOpen(false);
                         setYktWebOpen((v) => !v);
                       }}>{yktWebOpen ? "收起网页登录" : "官方网页登录"}</Btn>
                   ) : null}
                 </>
               )}
-              <Btn variant="ghost" disabled titleAttr="雨课堂已启用图形验证码，短信登录暂不可用，请用微信扫码">短信验证码（暂不可用）
-              </Btn>
+              <Btn variant="ghost" disabled titleAttr={i18n("auto.components.ExtHwSettingsSection.7")}>{i18n("auto.components.ExtHwSettingsSection.8")}</Btn>
             </span>
           </div>
           {/* R17 23.2：官方登录页发短信前先取图形验证码（TencentCaptcha/hCaptcha），
@@ -529,19 +527,16 @@ export function ExtHwSettingsSection(): ReactNode {
               </OGText>
               <div style={fieldStyle}>
                 <Btn variant="outline" disabled={busy !== null} onClick={onYktCheckSession}>{busy === "ykt-check" ? "检查中…" : "检查登录状态"}</Btn>
-                <Btn variant="outline" disabled={busy !== null} titleAttr="导出当前登录状态，供其他设备导入（免重复扫码）。文件等同账号绑定，用完请即删。" onClick={onYktExportCookie}>{busy === "ykt-export" ? "导出中…" : "导出登录状态"}</Btn>
-                <Btn variant="outline" disabled={busy !== null} titleAttr="导入其他已登录设备导出的登录状态文件，免扫码直接恢复登录" onClick={onYktImportCookie}>{busy === "ykt-import" ? "导入中…" : "导入登录状态"}</Btn>
+                <Btn variant="outline" disabled={busy !== null} titleAttr={i18n("auto.components.ExtHwSettingsSection.9")} onClick={onYktExportCookie}>{busy === "ykt-export" ? "导出中…" : "导出登录状态"}</Btn>
+                <Btn variant="outline" disabled={busy !== null} titleAttr={i18n("auto.components.ExtHwSettingsSection.10")} onClick={onYktImportCookie}>{busy === "ykt-import" ? "导入中…" : "导入登录状态"}</Btn>
               </div>
               {ext.yktSession.alive === false ? (
                 <OGText as="div" slot="label" tone="error">
-                  会话已失效：作业页将拉不到雨课堂数据。可「一键重登（扫码）」，或在其他已登录设备「导出
-                  Cookie」后在此「导入 Cookie」恢复。
-                  <div style={{ marginTop: 6 }}>
+                  {i18n("auto.components.ExtHwSettingsSection.11")}<div style={{ marginTop: 6 }}>
                     <Btn variant="solid" tone="brand" disabled={busy !== null} onClick={() => {
                         setYktWebOpen(false);
                         setYktQrOpen(true);
-                      }}>一键重登（扫码）
-                    </Btn>
+                      }}>{i18n("auto.components.ExtHwSettingsSection.12")}</Btn>
                   </div>
                 </OGText>
               ) : null}
@@ -581,7 +576,7 @@ export function ExtHwSettingsSection(): ReactNode {
       <Card>
         <AccordionItem
           id="oj"
-          title="OJ 平台登录"
+          title={i18n("auto.components.ExtHwSettingsSection.13")}
           open={ojOpen}
           onToggle={() => setOjOpen((v) => !v)}
           trailing={
@@ -617,16 +612,15 @@ export function ExtHwSettingsSection(): ReactNode {
                 )
               }
               more={
-                <Btn variant="ghost" onClick={() => setTuojPwdOpen((v) => !v)}>{tuojPwdOpen ? "▾" : "▸"}账号密码
-                </Btn>
+                <Btn variant="ghost" onClick={() => setTuojPwdOpen((v) => !v)}>{tuojPwdOpen ? "▾" : "▸"}{i18n("auto.components.ExtHwSettingsSection.14")}</Btn>
               }
               note={tuojNote("tuoj")}
             >
               {tuojPwdOpen ? (
                 <div className="exthw-src-body">
                   <div style={fieldStyle}>
-                    <div style={{ minWidth: 160, flex: 1 }}>{<Input placeholder="用户名" value={tuojUser} onChange={(value) => setTuojUser(value.trim())} />}</div>
-                    <div style={{ minWidth: 160, flex: 1 }}>{<Input type="password" placeholder="密码" value={tuojPwd} onChange={(value) => setTuojPwd(value)} />}</div>
+                    <div style={{ minWidth: 160, flex: 1 }}>{<Input placeholder={i18n("auto.components.ExtHwSettingsSection.15")} value={tuojUser} onChange={(value) => setTuojUser(value.trim())} />}</div>
+                    <div style={{ minWidth: 160, flex: 1 }}>{<Input type="password" placeholder={i18n("auto.components.ExtHwSettingsSection.16")} value={tuojPwd} onChange={(value) => setTuojPwd(value)} />}</div>
                     <Btn variant="outline" disabled={busy !== null || !tuojUser.trim() || !tuojPwd} onClick={() => onTuojPwdLogin("tuoj")}>{busy === "tuoj-pwd-tuoj" ? "登录中…" : "登录"}</Btn>
                   </div>
                 </div>
@@ -652,16 +646,15 @@ export function ExtHwSettingsSection(): ReactNode {
                 )
               }
               more={
-                <Btn variant="ghost" onClick={() => setClassicPwdOpen((v) => !v)}>{classicPwdOpen ? "▾" : "▸"}账号密码
-                </Btn>
+                <Btn variant="ghost" onClick={() => setClassicPwdOpen((v) => !v)}>{classicPwdOpen ? "▾" : "▸"}{i18n("auto.components.ExtHwSettingsSection.14")}</Btn>
               }
               note={tuojNote("tuojClassic")}
             >
               {classicPwdOpen ? (
                 <div className="exthw-src-body">
                   <div style={fieldStyle}>
-                    <div style={{ minWidth: 160, flex: 1 }}>{<Input placeholder="用户名" value={classicUser} onChange={(value) => setClassicUser(value.trim())} />}</div>
-                    <div style={{ minWidth: 160, flex: 1 }}>{<Input type="password" placeholder="密码" value={classicPwd} onChange={(value) => setClassicPwd(value)} />}</div>
+                    <div style={{ minWidth: 160, flex: 1 }}>{<Input placeholder={i18n("auto.components.ExtHwSettingsSection.15")} value={classicUser} onChange={(value) => setClassicUser(value.trim())} />}</div>
+                    <div style={{ minWidth: 160, flex: 1 }}>{<Input type="password" placeholder={i18n("auto.components.ExtHwSettingsSection.16")} value={classicPwd} onChange={(value) => setClassicPwd(value)} />}</div>
                     <Btn variant="outline" disabled={busy !== null || !classicUser.trim() || !classicPwd} onClick={() => onTuojPwdLogin("tuojClassic")}>{busy === "tuoj-pwd-tuojClassic" ? "登录中…" : "登录"}</Btn>
                   </div>
                 </div>
@@ -681,27 +674,26 @@ export function ExtHwSettingsSection(): ReactNode {
               }
               more={
                 configured.tyche ? (
-                  <Btn variant="ghost" onClick={() => setTycheFormOpen((v) => !v)}>{tycheFormOpen ? "▾" : "▸"}重新登录
-                  </Btn>
+                  <Btn variant="ghost" onClick={() => setTycheFormOpen((v) => !v)}>{tycheFormOpen ? "▾" : "▸"}{i18n("auto.components.ExtHwSettingsSection.17")}</Btn>
                 ) : undefined
               }
               note={
                 ext.errors.tyche ? (
                   <OGText as="div" slot="label" tone="error">{ext.errors.tyche}</OGText>
                 ) : tycheRemember && configured.tyche ? (
-                  <OGText as="div" slot="label" tone="faint">已记住密码，登录状态失效时自动重新登录。</OGText>
+                  <OGText as="div" slot="label" tone="faint">{i18n("auto.components.ExtHwSettingsSection.18")}</OGText>
                 ) : undefined
               }
             >
               {tycheFormOpen ? (
                 <div className="exthw-src-body">
                   <div style={fieldStyle}>
-                    <div style={{ minWidth: 160, flex: 1 }}>{<Input placeholder="用户名" value={tycheUser} onChange={(value) => setTycheUser(value.trim())} />}</div>
-                    <div style={{ minWidth: 160, flex: 1 }}>{<Input type="password" placeholder="密码" value={tychePwd} onChange={(value) => setTychePwd(value)} />}</div>
+                    <div style={{ minWidth: 160, flex: 1 }}>{<Input placeholder={i18n("auto.components.ExtHwSettingsSection.15")} value={tycheUser} onChange={(value) => setTycheUser(value.trim())} />}</div>
+                    <div style={{ minWidth: 160, flex: 1 }}>{<Input type="password" placeholder={i18n("auto.components.ExtHwSettingsSection.16")} value={tychePwd} onChange={(value) => setTychePwd(value)} />}</div>
                     <Btn variant="solid" tone="brand" disabled={busy !== null || !tycheUser.trim() || !tychePwd} onClick={onTycheLogin}>{busy === "tyche-login" ? "登录中…" : "登录"}</Btn>
                   </div>
                   {/* R21-A：记住密码 → 会话失效时用存档账密静默自动重登一次（同源 ≥10min、每进程 ≤3 次） */}
-                  <Checkbox checked={tycheRemember} onChange={(v) => setTycheRemember(v)} label="记住密码（登录状态失效后自动登录）" />
+                  <Checkbox checked={tycheRemember} onChange={(v) => setTycheRemember(v)} label={i18n("auto.components.ExtHwSettingsSection.19")} />
                   <OGText as="div" slot="label" tone="faint">
                     {tycheRemember
                       ? "密码以密文存在本机，不上传、不进日志；退出登录即清除。"
@@ -724,8 +716,7 @@ export function ExtHwSettingsSection(): ReactNode {
               }
               more={
                 configured.dsa ? (
-                  <Btn variant="ghost" onClick={() => setDsaFormOpen((v) => !v)}>{dsaFormOpen ? "▾" : "▸"}重新登录
-                  </Btn>
+                  <Btn variant="ghost" onClick={() => setDsaFormOpen((v) => !v)}>{dsaFormOpen ? "▾" : "▸"}{i18n("auto.components.ExtHwSettingsSection.17")}</Btn>
                 ) : undefined
               }
               note={ext.errors.dsa ? <OGText as="div" slot="label" tone="error">{ext.errors.dsa}</OGText> : undefined}
@@ -733,8 +724,8 @@ export function ExtHwSettingsSection(): ReactNode {
               {dsaFormOpen ? (
                 <div className="exthw-src-body">
                   <div style={fieldStyle}>
-                    <div style={{ minWidth: 160, flex: 1 }}>{<Input type="email" placeholder="邮箱" value={dsaUser} onChange={(value) => setDsaUser(value.trim())} />}</div>
-                    <div style={{ minWidth: 160, flex: 1 }}>{<Input type="password" placeholder="密码" value={dsaPwd} onChange={(value) => setDsaPwd(value)} />}</div>
+                    <div style={{ minWidth: 160, flex: 1 }}>{<Input type="email" placeholder={i18n("auto.components.ExtHwSettingsSection.20")} value={dsaUser} onChange={(value) => setDsaUser(value.trim())} />}</div>
+                    <div style={{ minWidth: 160, flex: 1 }}>{<Input type="password" placeholder={i18n("auto.components.ExtHwSettingsSection.16")} value={dsaPwd} onChange={(value) => setDsaPwd(value)} />}</div>
                     <Btn variant="solid" tone="brand" disabled={busy !== null || !dsaUser.trim() || !dsaPwd} onClick={onDsaLogin}>{busy === "dsa-login" ? "登录中…" : "登录"}</Btn>
                   </div>
                 </div>
@@ -748,33 +739,32 @@ export function ExtHwSettingsSection(): ReactNode {
       <div style={{ marginTop: 18 }}>
         <Card>
         <div>
-          <OGText weight="semibold">抓取范围与刷新</OGText>
-          <OGText as="div" slot="label" tone="faint">对所有源生效；已过期的作业仍显示。</OGText>
+          <OGText weight="semibold">{i18n("auto.components.ExtHwSettingsSection.21")}</OGText>
+          <OGText as="div" slot="label" tone="faint">{i18n("auto.components.ExtHwSettingsSection.22")}</OGText>
 
             <div style={{ marginTop: 12, display: "grid", gap: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <OGText weight="medium">只保留未来</OGText>
+                <OGText weight="medium">{i18n("auto.components.ExtHwSettingsSection.23")}</OGText>
                 <Input inputMode="numeric" value={days} onChange={(value) => setDays(value.replace(/[^0-9]/g, ""))} />
-                <OGText slot="label" tone="faint">天（已过期的仍显示）</OGText>
+                <OGText slot="label" tone="faint">{i18n("auto.components.ExtHwSettingsSection.24")}</OGText>
               </div>
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <Btn variant="solid" tone="brand" onClick={onSave}>保存</Btn>
+                <Btn variant="solid" tone="brand" onClick={onSave}>{i18n("auto.components.ExtHwSettingsSection.25")}</Btn>
                 <Btn variant="outline" disabled={busy !== null || ext.state === "loading"} onClick={onRefresh}>{busy === "refresh" || ext.state === "loading" ? "刷新中…" : "立即刷新"}</Btn>
               </div>
 
               {/* 高级：手动粘贴浏览器登录信息（一般用户用不到） */}
               <div>
-                <Btn variant="ghost" onClick={() => setAdvanced((v) => !v)}>{advanced ? "▾" : "▸"}高级：手动粘贴浏览器登录信息
-                </Btn>
+                <Btn variant="ghost" onClick={() => setAdvanced((v) => !v)}>{advanced ? "▾" : "▸"}{i18n("auto.components.ExtHwSettingsSection.26")}</Btn>
                 {advanced ? (
                   <div style={{ display: "grid", gap: 10, marginTop: 8 }}>
-                    <TextArea mono placeholder="雨课堂登录状态" value={yktCookie} onChange={(value) => setYktCookie(value)} />
-                    <TextArea mono placeholder="TUOJ（AI 版）登录状态" value={tuojCookie} onChange={(value) => setTuojCookie(value)} />
-                    <TextArea mono placeholder="TUOJ（经典版）登录状态" value={classicCookie} onChange={(value) => setClassicCookie(value)} />
+                    <TextArea mono placeholder={i18n("auto.components.ExtHwSettingsSection.27")} value={yktCookie} onChange={(value) => setYktCookie(value)} />
+                    <TextArea mono placeholder={i18n("auto.components.ExtHwSettingsSection.28")} value={tuojCookie} onChange={(value) => setTuojCookie(value)} />
+                    <TextArea mono placeholder={i18n("auto.components.ExtHwSettingsSection.29")} value={classicCookie} onChange={(value) => setClassicCookie(value)} />
                     <TextArea mono placeholder="Tyche Cookie（JSESSIONID / username / uid）" value={tycheCookie} onChange={(value) => setTycheCookie(value)} />
                     <TextArea mono placeholder="DSA OJ Cookie（PHPSESSID …）" value={dsaCookie} onChange={(value) => setDsaCookie(value)} />
-                    <OGText as="div" slot="label" tone="faint">粘贴后点击上方「保存」生效。</OGText>
+                    <OGText as="div" slot="label" tone="faint">{i18n("auto.components.ExtHwSettingsSection.30")}</OGText>
                   </div>
                 ) : null}
               </div>
@@ -786,7 +776,7 @@ export function ExtHwSettingsSection(): ReactNode {
                   return (
                     <OGText as="div" key={id}>
                       {label}：{logged ? "已登录" : "未登录"} ·{" "}
-                      {err ? <OGText tone="error">需重新登录</OGText> : `${count} 条`}
+                      {err ? <OGText tone="error">{i18n("auto.components.ExtHwSettingsSection.31")}</OGText> : `${count} 条`}
                     </OGText>
                   );
                 })}

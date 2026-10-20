@@ -13,6 +13,8 @@ import { isAndroidNavigator } from "../lib/androidHost.js";
 import { enc } from "../state/atoms.js";
 import { prefersReducedMotion } from "../lib/motion.js";
 import { normalizeWheelDelta, takeWheelStep } from "../lib/detailSlots.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** DDL 解析：剩余天数 + 色档 + 展示文案（大数字 + 日期两行） */
 export function ddlInfo(deadline: string): { days: number | null; overdue: boolean; big: string; small: string; date: string; cls: string } {
@@ -172,7 +174,7 @@ export function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onP
       <div className="hw-carousel-empty">
         <Empty text="作业都交完了，痛快去玩吧。" />
         <div className="svc-actions">
-          <Btn variant="outline" onClick={() => navigate("learn-assignments")}>查看全部作业</Btn>
+          <Btn variant="outline" onClick={() => navigate("learn-assignments")}>{i18n("auto.components.HomeworkCarousel.1")}</Btn>
         </div>
       </div>
     );
@@ -326,7 +328,7 @@ export function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onP
                 <div className={"hw-card-actions" + (front ? "" : " is-hidden")} onClick={(e) => e.stopPropagation()}>
                   <IconBtn
                     className="hw-card-act"
-                    label="忽略这条作业"
+                    label={i18n("auto.components.HomeworkCarousel.2")}
                     icon={<IconX />}
                     tabIndex={front ? 0 : -1}
                     onClick={async () => {
@@ -339,7 +341,7 @@ export function HwCarousel({ items, courseNameOf, courseLabelOf, semesterId, onP
                   />
                   <HwRemindButton h={h} />
                   {!h.source && semesterId ? (
-                    <CollectStar atom={{ kind: "assignment", key: enc(h.courseId, h.id, h.title, courseNameOf(h.courseId), semesterId) }} title="收藏作业" />
+                    <CollectStar atom={{ kind: "assignment", key: enc(h.courseId, h.id, h.title, courseNameOf(h.courseId), semesterId) }} title={i18n("auto.components.HomeworkCarousel.3")} />
                   ) : null}
                 </div>
               </div>

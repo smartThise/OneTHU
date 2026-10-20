@@ -27,6 +27,8 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom";
 import { saveImageToGallery } from "../lib/imageSave.js";
 import { showToast } from "../state/toast.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 写在 history.state 里的看图标记：返回键靠它认出「弹掉的是看图这一层」 */
 const VIEWER_STATE = "onethu-imgview";
@@ -470,7 +472,7 @@ function Viewer({ shot, onClose }: { shot: Shot; onClose: () => void }): ReactNo
   const save = useCallback((): void => {
     setSaving(true);
     void saveImageToGallery(shot.src, shot.alt)
-      .then(() => showToast("已保存到相册", 3000))
+      .then(() => showToast(i18n("auto.components.ImageViewer.msg1"), 3000))
       .catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : String(e);
         showToast(`保存失败：${msg}`, 9000);
@@ -479,7 +481,7 @@ function Viewer({ shot, onClose }: { shot: Shot; onClose: () => void }): ReactNo
   }, [shot]);
 
   return createPortal(
-    <div className="imgview" ref={rootRef} style={{ zIndex: Z_VIEW }} role="dialog" aria-modal="true" aria-label="查看图片">
+    <div className="imgview" ref={rootRef} style={{ zIndex: Z_VIEW }} role="dialog" aria-modal="true" aria-label={i18n("auto.components.ImageViewer.1")}>
       <div className="imgview-stage" ref={stageRef}>
         <img className="imgview-img" ref={imgRef} src={shot.src} alt="" draggable={false} />
       </div>

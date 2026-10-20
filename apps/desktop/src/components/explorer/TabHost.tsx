@@ -37,6 +37,8 @@ import {
 } from "../../state/wallpaper.js";
 import { WallpaperLibrary } from "./WallpaperLibrary.js";
 import { useNavDirection } from "../../lib/motion.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 /* ══════════ tab 局部路由上下文 ══════════ */
 
@@ -133,14 +135,14 @@ function TabContextMenu({
      「画布化定案」：壁纸只有全屏一档——右键菜单的「本页」三件套已删（2026-10-14）。 */
   const hasGlobal = !!wallpaperSnapshot().global;
   const items: Array<{ label: string; danger?: boolean; act: () => void }> = [
-    { label: "在新标签页打开此页", act: () => duplicateTab(pos.tabId) },
-    { label: "换壁纸 · 从库选…", act: () => onPick() },
+    { label: i18n("auto.components.explorer.TabHost.p1"), act: () => duplicateTab(pos.tabId) },
+    { label: i18n("auto.components.explorer.TabHost.p2"), act: () => onPick() },
     ...BUILTIN_WALLPAPERS.slice(0, 4).map((b) => ({
       label: "全屏壁纸 · " + b.label,
       act: () => setGlobalWallpaper("builtin:" + b.id),
     })),
-    ...(hasGlobal ? [{ label: "清除全屏壁纸", danger: true, act: () => setGlobalWallpaper(null) }] : []),
-    ...(isHome ? [] : [{ label: "关闭标签页", danger: true, act: () => closeTab(pos.tabId) }]),
+    ...(hasGlobal ? [{ label: i18n("auto.components.explorer.TabHost.p3"), danger: true, act: () => setGlobalWallpaper(null) }] : []),
+    ...(isHome ? [] : [{ label: i18n("auto.components.explorer.TabHost.p4"), danger: true, act: () => closeTab(pos.tabId) }]),
   ];
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -252,7 +254,7 @@ export function TabHost(): ReactNode {
   useEffect(() => clearPress, [clearPress]);
 
   const all = useMemo(() => {
-    const home: ExplorerTab = { id: HOME_TAB_ID, kind: "home", page: "homepage", params: null, title: "首页", workspaceId: null, createdAt: 0, lastActiveAt: 0 };
+    const home: ExplorerTab = { id: HOME_TAB_ID, kind: "home", page: "homepage", params: null, title: i18n("auto.components.explorer.TabHost.p5"), workspaceId: null, createdAt: 0, lastActiveAt: 0 };
     return [home, ...st.tabs];
   }, [st.tabs]);
 

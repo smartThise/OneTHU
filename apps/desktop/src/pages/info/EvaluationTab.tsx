@@ -7,6 +7,8 @@ import { Card, SkeletonRows } from "../../components/Layout.js";
 import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
 import { TabEmpty, TabError, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type LoadState = "loading" | "error" | "ready";
 /** core getAssessmentList → [课程名, 是否已评, 表单 URL] 三元组列表 */
@@ -56,7 +58,7 @@ export function EvaluationTab() {
           <Card className="stat-card" style={{ marginBottom: 12 }}>
             <div className="row-main">
               <div className="stat-num">{pending}</div>
-              <div className="stat-label">待评估课程（请在信息门户「教学评估」内填写，本页仅展示进度）</div>
+              <div className="stat-label">{i18n("auto.pages.info.EvaluationTab.1")}</div>
             </div>
           </Card>
           <Card className="list">

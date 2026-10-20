@@ -82,11 +82,11 @@ function VenueNote({ text, onRetry }: { text: string; onRetry?: () => void }) {
   if (!maintain) return <ErrorNote text={text} onRetry={onRetry} />;
   return (
     <div className="card" style={{ textAlign: "center", padding: "18px 12px" }}>
-      <div style={{ fontWeight: 600, marginBottom: 6 }}>场馆系统维护中</div>
+      <div style={{ fontWeight: 600, marginBottom: 6 }}>{i18n("auto.pages.info.VenueSportsTab.1")}</div>
       <div style={{ fontSize: 12, color: "var(--text-3)" }}>
         {inWindow
           ? "每日 01:00 - 02:00 例行维护，窗口结束后自动恢复"
-          : <>非维护时段出现维护提示（异常），{left}s 后自动重试</>}
+          : <>{i18n("auto.pages.info.VenueSportsTab.2")}{left}{i18n("auto.pages.info.VenueSportsTab.3")}</>}
       </div>
     </div>
   );
@@ -97,6 +97,8 @@ import { useApp } from "../../state/context.js";
 import { TabEmpty, logTabErr, tabErrorText } from "./tabStates.js";
 import { openExternal } from "./openExternal.js";
 import { currentThemeIsDark } from "../../state/theme.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 /** 体育系统官方预约页深链（应用内不提交预约，一律引导到此）：
  *  官方 SPA（hash 路由）venueHub 页按场次类别 sysNo 分流，兜底与场地类
@@ -423,9 +425,9 @@ export function VenueSportsTab({
     if (maintain || !authed || !venue) return;
     let dead = false;
     const USE_ENUM = [
-      { key: 1, value: "NORMAL", label: "普通" },
-      { key: 2, value: "SPORT_GROUP", label: "包场" },
-      { key: 4, value: "SPORT_PERSON", label: "散客" },
+      { key: 1, value: "NORMAL", label: i18n("auto.pages.info.VenueSportsTab.p1") },
+      { key: 2, value: "SPORT_GROUP", label: i18n("auto.pages.info.VenueSportsTab.p2") },
+      { key: 4, value: "SPORT_PERSON", label: i18n("auto.pages.info.VenueSportsTab.p3") },
     ];
     const apply = (b: VenueBuilding[], k: VenueDevKind[], r: VenueBuilding[], u: { key: number; value: string; label: string }[]) => {
       if (dead) return;
@@ -599,12 +601,11 @@ export function VenueSportsTab({
   if (maintain) {
     return (
       <>
-        <SectionHead title="体育场馆预约" aside="维护窗口" />
+        <SectionHead title={i18n("auto.pages.info.VenueSportsTab.4")} aside="维护窗口" />
         <Card style={{ marginBottom: 16, padding: "12px 14px" }}>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>场馆系统维护中</div>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>{i18n("auto.pages.info.VenueSportsTab.1")}</div>
           <div style={{ fontSize: 13, opacity: 0.75, lineHeight: 1.7 }}>
-            每日 01:00 - 02:00 例行维护。当前处于维护窗口，场馆查询与预约均不可用；窗口结束后本页自动恢复，无需手动重试。
-          </div>
+            {i18n("auto.pages.info.VenueSportsTab.5")}</div>
         </Card>
       </>
     );
@@ -615,11 +616,10 @@ export function VenueSportsTab({
     const cur = twoFA.methods.find((m) => m.type === twoFAType);
     return (
       <>
-        <SectionHead title="体育场馆预约 · 二次认证" aside="统一身份认证" />
+        <SectionHead title={i18n("auto.pages.info.VenueSportsTab.6")} aside="统一身份认证" />
         <Card style={{ marginBottom: 14 }}>
           <div style={{ lineHeight: 1.7, fontSize: 13, marginBottom: 12 }}>
-            统一身份要求二次认证。选择验证方式并输入验证码，完成后本设备将被信任，之后无需再输。
-          </div>
+            {i18n("auto.pages.info.VenueSportsTab.7")}</div>
           <Select value={twoFAType ?? ""} onChange={(value) => {
               setTwoFAType(value);
               setTwoFASent(false);
@@ -647,11 +647,10 @@ export function VenueSportsTab({
   if (!authed) {
     return (
       <>
-        <SectionHead title="体育场馆预约" aside="体育系统 · 统一身份认证" />
+        <SectionHead title={i18n("auto.pages.info.VenueSportsTab.4")} aside="体育系统 · 统一身份认证" />
         <Card style={{ marginBottom: 14 }}>
           <div style={{ lineHeight: 1.7, fontSize: 13, marginBottom: 12 }}>
-            预约清华体育场馆（气膜馆、综体、游泳馆等 33 个场馆）复用 OneTHU 的统一身份登录，通常无需任何操作。仅当统一会话与本机凭证都不可用时，才需要点下方按钮在弹窗里认证一次。
-          </div>
+            {i18n("auto.pages.info.VenueSportsTab.8")}</div>
           <Btn variant="solid" tone="brand" onClick={() => void doAuth()} disabled={authBusy}>{authBusy ? "登录中…" : "重新登录体育系统"}</Btn>
           {authMsg ? (
             /维护中/.test(authMsg)
@@ -666,7 +665,7 @@ export function VenueSportsTab({
   return (
     <>
       <SectionHead
-        title="场馆与日期"
+        title={i18n("auto.pages.info.VenueSportsTab.9")}
         aside={
           <Btn variant="ghost" onClick={() => void doAuth()} disabled={authBusy}>{authBusy ? "授权中…" : "重新授权"}</Btn>
         }
@@ -683,7 +682,7 @@ export function VenueSportsTab({
                 const x = (scenes ?? []).find((y) => y.uuid === v);
                 if (x) setVenue(x);
               }}
-              placeholder="选择场馆…"
+              placeholder={i18n("auto.pages.info.VenueSportsTab.10")}
               options={(scenes ?? []).map((x) => ({ value: x.uuid, label: x.sceneName }))}
             />
           </div>
@@ -702,14 +701,11 @@ export function VenueSportsTab({
             const d = e.target.value;
             if (d) setDate(d);
           }}
-          aria-label="预约日期"
+          aria-label={i18n("auto.pages.info.VenueSportsTab.11")}
         />
-        <Btn variant="ghost" onClick={() => setDate(todayStr())}>今天
-        </Btn>
-        <Btn variant="ghost" onClick={() => setDate(todayStr(1))}>明天
-        </Btn>
-        <Btn variant="ghost" disabled={sitesState === "loading" || !venue} onClick={() => venue && void loadSites(venue.uuid, date, classEnum === "ROOM" ? room : building, devKind, classEnum, useType)}>刷新
-        </Btn>
+        <Btn variant="ghost" onClick={() => setDate(todayStr())}>{i18n("auto.pages.info.VenueSportsTab.12")}</Btn>
+        <Btn variant="ghost" onClick={() => setDate(todayStr(1))}>{i18n("auto.pages.info.VenueSportsTab.13")}</Btn>
+        <Btn variant="ghost" disabled={sitesState === "loading" || !venue} onClick={() => venue && void loadSites(venue.uuid, date, classEnum === "ROOM" ? room : building, devKind, classEnum, useType)}>{i18n("auto.pages.info.VenueSportsTab.14")}</Btn>
       </div>
 
       <SectionHead title={`场次与场地 · ${venue?.sceneName ?? ""}`} aside={date} />
@@ -721,7 +717,7 @@ export function VenueSportsTab({
             setRoom("");
             setClassEnum("BUILDING");
           }}
-          placeholder="选择场地…"
+          placeholder={i18n("auto.pages.info.VenueSportsTab.15")}
           options={buildings.map((b) => ({ value: b.uuid, label: b.siteName ?? b.uuid }))}
         />
       ) : null}
@@ -729,7 +725,7 @@ export function VenueSportsTab({
         <SearchSelect
           value={devKind}
           onChange={(v) => setDevKind(v)}
-          placeholder="选择设备类型…"
+          placeholder={i18n("auto.pages.info.VenueSportsTab.16")}
           options={devKinds.map((k) => ({ value: k.uuid, label: k.devKindName ?? k.uuid }))}
         />
       ) : null}
@@ -737,7 +733,7 @@ export function VenueSportsTab({
         <SearchSelect
           value={useType}
           onChange={(v) => setUseType(v)}
-          placeholder="选择用途…"
+          placeholder={i18n("auto.pages.info.VenueSportsTab.17")}
           options={useTypes.map((u) => ({ value: u.value, label: u.label }))}
         />
       ) : null}
@@ -748,7 +744,7 @@ export function VenueSportsTab({
             setRoom(v);
             setClassEnum("ROOM");
           }}
-          placeholder="选择房间…"
+          placeholder={i18n("auto.pages.info.VenueSportsTab.18")}
           options={rooms.map((r) => ({ value: r.uuid, label: r.siteName ?? r.uuid }))}
         />
       ) : null}
@@ -765,11 +761,11 @@ export function VenueSportsTab({
       ) : sitesState === "ready" ? (
         <>
           {rows.length > 0 ? (
-            <Select value={timeFilter} onChange={(value) => setTimeFilter(value as "all" | "am" | "pm" | "eve")}><option value="all">全部时段（{rows.length} 场）</option><option value="am">上午（{countIn((h) => h < 12)} 场）</option><option value="pm">下午（{countIn((h) => h >= 12 && h < 17)} 场）</option><option value="eve">晚上（{countIn((h) => h >= 17)} 场）</option></Select>
+            <Select value={timeFilter} onChange={(value) => setTimeFilter(value as "all" | "am" | "pm" | "eve")}><option value="all">{i18n("auto.pages.info.VenueSportsTab.19")}{rows.length} {i18n("auto.pages.info.VenueSportsTab.20")}</option><option value="am">{i18n("auto.pages.info.VenueSportsTab.21")}{countIn((h) => h < 12)} {i18n("auto.pages.info.VenueSportsTab.20")}</option><option value="pm">{i18n("auto.pages.info.VenueSportsTab.22")}{countIn((h) => h >= 12 && h < 17)} {i18n("auto.pages.info.VenueSportsTab.20")}</option><option value="eve">{i18n("auto.pages.info.VenueSportsTab.23")}{countIn((h) => h >= 17)} {i18n("auto.pages.info.VenueSportsTab.20")}</option></Select>
           ) : null}
           {rows.length > 0 && siteBlocks.length === 0 ? (
             <Card style={{ marginBottom: 16 }}>
-              <div className="empty">该时段暂无场次，试试其他时段或「全部时段」。</div>
+              <div className="empty">{i18n("auto.pages.info.VenueSportsTab.24")}</div>
             </Card>
           ) : null}
           {siteBlocks.map(({ site, sessions }) => {
@@ -821,15 +817,15 @@ export function VenueSportsTab({
       {/* 预约卡（选中场次后出现）——应用内不提交，跳官方网页 */}
       {picked && venue ? (
         <>
-          <SectionHead title="预约" aside={`${venue.sceneName} · ${picked.site.siteName}`} />
+          <SectionHead title={i18n("auto.pages.info.VenueSportsTab.25")} aside={`${venue.sceneName} · ${picked.site.siteName}`} />
           <Card style={{ marginBottom: 16, padding: "12px 14px" }}>
             <div style={{ fontSize: 13, lineHeight: 1.8 }}>
-              时间：{fmtVenueDate(picked.session.beginDate) || date} {picked.session.beginTime}-{picked.session.endTime}
+              {i18n("auto.pages.info.VenueSportsTab.26")}{fmtVenueDate(picked.session.beginDate) || date} {picked.session.beginTime}-{picked.session.endTime}
               <br />
-              场地：{picked.site.siteName}
+              {i18n("auto.pages.info.VenueSportsTab.27")}{picked.site.siteName}
               {picked.site.siteLocation?.location ? `（${picked.site.siteLocation.location}）` : ""}
               <br />
-              费用：{yuan(picked.session.userFeeDetails?.chargingUnitPrice)}
+              {i18n("auto.pages.info.VenueSportsTab.28")}{yuan(picked.session.userFeeDetails?.chargingUnitPrice)}
             </div>
             <div
               style={{
@@ -843,17 +839,12 @@ export function VenueSportsTab({
                 borderRadius: 8,
               }}
             >
-              根据清华大学体育部场馆中心 2025 年 12 月 3 日发布的公告 七、12、如有用户通过脚本软件或插件等非正常途径预定场地，一经发现并核实，对该用户封禁预订权限 6 个月，并函告相关院系或单位。OneTHU 仅提供场馆情况查询，请点击按钮前往官网预约；如果不当使用源码进行预约，违反本项目开源准则，后果自负。
-            </div>
+              {i18n("auto.pages.info.VenueSportsTab.29")}</div>
             <Btn variant="solid" tone="brand" onClick={goOfficialBooking}>
-              在应用内打开官方预约页
-            </Btn>
-            <Btn variant="ghost" titleAttr="应用内页面打不开时走系统浏览器（需在浏览器里登录一次）" onClick={() => void openExternal(venueWebUrl(venue!.uuid))}>改用系统浏览器
-            </Btn>
+              {i18n("auto.pages.info.VenueSportsTab.30")}</Btn>
+            <Btn variant="ghost" titleAttr={i18n("auto.pages.info.VenueSportsTab.31")} onClick={() => void openExternal(venueWebUrl(venue!.uuid))}>{i18n("auto.pages.info.VenueSportsTab.32")}</Btn>
             <div style={{ fontSize: 12, opacity: 0.75, marginTop: 8, lineHeight: 1.6 }}>
-              官方页面在 OneTHU 内以自己的窗口打开（安卓为全屏页面），登录态与刚才查询场馆时用的
-              那一份相同，不需要重新登录；预约提交一律由你在官方页面上操作。
-            </div>
+              {i18n("auto.pages.info.VenueSportsTab.33")}</div>
           </Card>
 
         </>
@@ -865,7 +856,7 @@ export function VenueSportsTab({
         </Card>
       ) : null}
 
-      <SectionHead title="我的预约" aside="体育系统预约记录" />
+      <SectionHead title={i18n("auto.pages.info.VenueSportsTab.34")} aside="体育系统预约记录" />
       {recState === "error" ? (
         <VenueNote text={recUnavail ? VENUE_UNAVAILABLE : (recErr ?? "")} onRetry={() => void fetchRecords()} />
       ) : null}
@@ -879,7 +870,7 @@ export function VenueSportsTab({
             const resvUuid = r.resvUuid ?? r.uuid ?? "";
             return (
               <div className="row" key={resvUuid || i} style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}>
-                <span className="chip chip-green">已预约</span>
+                <span className="chip chip-green">{i18n("auto.pages.info.VenueSportsTab.35")}</span>
                 <div className="row-main">
                   <div className="row-title">
                     {r.sceneName ? `${r.sceneName} · ` : ""}

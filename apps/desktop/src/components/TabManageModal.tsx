@@ -9,6 +9,8 @@ import { createPortal } from "react-dom";
 import { useExitPhase } from "../lib/useExitPhase.js";
 import type { TabLayout } from "../lib/tabLayout.js";
 import { useExpanded } from "../state/usePlatformLayout.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "var(--og-scrim)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 };
 const panelStyle: React.CSSProperties = { animation: "m-spring-in var(--dur-3) var(--ease-out) both", width: "100%", maxWidth: 420, maxHeight: "70vh", display: "flex", flexDirection: "column", background: "var(--og-surface-overlay)", color: "var(--og-content-1)", borderRadius: "var(--og-radius-xl)", boxShadow: "var(--og-elev-menu)" };
@@ -89,8 +91,7 @@ export function TabManageModal({
         </div>
         <div style={{ padding: "8px 16px 14px", overflowY: "auto", fontSize: 13, lineHeight: 1.7 }}>
           <div style={{ fontSize: 12, color: "var(--og-content-3)", margin: "6px 0" }}>
-            勾选控制显示；↑↓ 调整顺序（即时生效并保存）。
-          </div>
+            {i18n("auto.components.TabManageModal.1")}</div>
           {rows.map((t, i) => {
             const visible = !layout.hidden.includes(t.id);
             return (
@@ -99,14 +100,14 @@ export function TabManageModal({
                   <input type="checkbox" checked={visible} onChange={() => toggle(t.id)} />
                   {t.label}
                 </label>
-                <Btn variant="outline" disabled={i === 0} onClick={() => move(t.id, -1)} titleAttr="上移">↑</Btn>
-                <Btn variant="outline" disabled={i === rows.length - 1} onClick={() => move(t.id, 1)} titleAttr="下移">↓</Btn>
+                <Btn variant="outline" disabled={i === 0} onClick={() => move(t.id, -1)} titleAttr={i18n("auto.components.TabManageModal.2")}>↑</Btn>
+                <Btn variant="outline" disabled={i === rows.length - 1} onClick={() => move(t.id, 1)} titleAttr={i18n("auto.components.TabManageModal.3")}>↓</Btn>
               </div>
             );
           })}
           <div style={{ display: "flex", gap: 8, marginTop: 12, justifyContent: "flex-end" }}>
-            <Btn variant="outline" onClick={onReset}>恢复默认</Btn>
-            <Btn variant="solid" tone="brand" onClick={requestClose}>完成</Btn>
+            <Btn variant="outline" onClick={onReset}>{i18n("auto.components.TabManageModal.4")}</Btn>
+            <Btn variant="solid" tone="brand" onClick={requestClose}>{i18n("auto.components.TabManageModal.5")}</Btn>
           </div>
         </div>
       </div>

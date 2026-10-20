@@ -9,6 +9,8 @@ import { Btn } from "@onethu/gui";
  */
 import { useMemo, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
+import { t as i18n } from "../i18n/index.js";
+
 
 export type FormField =
   | { key: string; label: string; kind?: "text" | "textarea" | "password"; placeholder?: string; default?: string; required?: boolean }
@@ -76,14 +78,13 @@ export function FormModalHost(): ReactNode {
           </label>
         ))}
         <div className="plg-form-ops">
-          <Btn variant="ghost" onClick={() => close(null)}>取消</Btn>
+          <Btn variant="ghost" onClick={() => close(null)}>{i18n("auto.lib.formModal.1")}</Btn>
           <Btn variant="solid" tone="brand" onClick={() => {
               for (const f of fields) {
                 if (f.required && !String(draft[f.key] ?? "").trim()) return;
               }
               close(draft);
-            }}>提交
-          </Btn>
+            }}>{i18n("auto.lib.formModal.2")}</Btn>
         </div>
       </Stack>
     </Modal>

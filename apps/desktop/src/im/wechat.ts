@@ -16,6 +16,8 @@ import {
   getUpdates, pollQrcodeStatus, sendMessage, type QrcodeStatus, type WeixinMessage,
 } from "./wechatProto.js";
 import type { ChannelAdapter, ChannelId, InboundMessage } from "./types.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const SUSPEND_MS = 60 * 60_000; // -14 风控：暂停 1 小时（官方行为）
 
@@ -142,10 +144,10 @@ export async function wechatLoginStart(): Promise<{ qrcode: string; imgContent: 
 
 /** 轮询扫码状态；confirmed 时保存凭据（密文）并返回 done=true */
 export async function wechatLoginPoll(): Promise<{ status: QrcodeStatus; note: string; done: boolean }> {
-  if (!login) return { status: "expired", note: "未发起登录", done: false };
+  if (!login) return { status: "expired", note: i18n("auto.im.wechat.p1"), done: false };
   if (Date.now() - login.startedAt > LOGIN_TTL_MS) {
     login = null;
-    return { status: "expired", note: "二维码已过期，请重新发起", done: false };
+    return { status: "expired", note: i18n("auto.im.wechat.p2"), done: false };
   }
   const r = await pollQrcodeStatus(login.qrcode, {
     baseUrl: login.baseUrl,
@@ -168,7 +170,7 @@ export async function wechatLoginPoll(): Promise<{ status: QrcodeStatus; note: s
     });
     login = null;
     void logLine(`[IM] 微信扫码登录成功（bot=${r.ilink_bot_id ?? "?"}）`).catch(() => undefined);
-    return { status: "confirmed", note: "登录成功，通道已启用", done: true };
+    return { status: "confirmed", note: i18n("auto.im.wechat.p3"), done: true };
   }
   const notes: Record<string, string> = {
     wait: "等待扫码…",

@@ -23,6 +23,8 @@ import {
   PLATFORM_LABEL, SOURCE_LABEL, type UpdateCheckResult, type UpdateProgress,
 } from "../lib/updater.js";
 import { Btn, Progress, Stack } from "@onethu/gui";
+import { t as i18n } from "../i18n/index.js";
+
 
 type Phase = "idle" | "checking" | "latest" | "available" | "downloading" | "downloaded" | "error";
 
@@ -133,11 +135,10 @@ export function SoftwareUpdateSection({ customManifestUrl }: SoftwareUpdateSecti
       <Stack gap={2}>
       <div>
         <div className="setting-title">
-          软件更新
-          {res?.ok && res.hasUpdate ? <span className="update-badge">有新版本</span> : null}
+          {i18n("auto.components.SoftwareUpdateSection.1")}{res?.ok && res.hasUpdate ? <span className="update-badge">{i18n("auto.components.SoftwareUpdateSection.2")}</span> : null}
         </div>
         <div className="setting-desc">
-          官方源 GitHub Releases · 校内源清华云盘镜像；哪条可达走哪条（当前 v{version} · {PLATFORM_LABEL[plat]}）
+          {i18n("auto.components.SoftwareUpdateSection.3")}{version} · {PLATFORM_LABEL[plat]}）
         </div>
       </div>
 
@@ -150,18 +151,18 @@ export function SoftwareUpdateSection({ customManifestUrl }: SoftwareUpdateSecti
             {phase === "error" ? "重试：下载并安装" : "下载并安装"}
           </Btn>
         ) : null}
-        {showBar ? <Btn variant="ghost" onClick={() => void cancelUpdateDownload()}>取消</Btn> : null}
+        {showBar ? <Btn variant="ghost" onClick={() => void cancelUpdateDownload()}>{i18n("auto.components.SoftwareUpdateSection.4")}</Btn> : null}
         {phase === "downloaded" && localPath ? (
-          <Btn variant="outline" onClick={() => void installDownloaded(localPath)}>再打开一次安装页</Btn>
+          <Btn variant="outline" onClick={() => void installDownloaded(localPath)}>{i18n("auto.components.SoftwareUpdateSection.5")}</Btn>
         ) : null}
         {res?.ok && res.hasUpdate && !dismissed ? (
-          <Btn variant="ghost" onClick={onDismiss}>忽略此版本</Btn>
+          <Btn variant="ghost" onClick={onDismiss}>{i18n("auto.components.SoftwareUpdateSection.6")}</Btn>
         ) : null}
       </div>
 
       {showBar ? (
         <div>
-          <Progress value={Math.max(0, Math.min(100, pct)) / 100} aria-label="下载进度" />
+          <Progress value={Math.max(0, Math.min(100, pct)) / 100} aria-label={i18n("auto.components.SoftwareUpdateSection.7")} />
           <div className="setting-desc">
             {progress?.total
               ? `${Math.round(pct)}%（${formatSize(progress.received)} / ${formatSize(progress.total)}）`
@@ -172,7 +173,7 @@ export function SoftwareUpdateSection({ customManifestUrl }: SoftwareUpdateSecti
       ) : null}
 
       {phase === "latest" && res?.ok ? (
-        <div className="setting-desc">已是最新版本（v{res.current}{checkedAt ? ` · 检查时间 ${checkedAt}` : ""}）</div>
+        <div className="setting-desc">{i18n("auto.components.SoftwareUpdateSection.8")}{res.current}{checkedAt ? ` · 检查时间 ${checkedAt}` : ""}）</div>
       ) : null}
 
       {msg ? <div className="setting-desc" style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{msg}</div> : null}
@@ -193,22 +194,18 @@ export function SoftwareUpdateSection({ customManifestUrl }: SoftwareUpdateSecti
 
       {plat === "android" && phase !== "idle" ? (
         <div className="setting-desc">
-          安卓安装说明：下载完成后由系统安装器接手；首次安装需在系统提示里允许本应用「安装未知应用」
-          （该授权只影响这一次安装，OneTHU 不会静默安装任何东西）。
-        </div>
+          {i18n("auto.components.SoftwareUpdateSection.9")}</div>
       ) : null}
 
       <details>
-        <summary className="setting-desc" style={{ cursor: "pointer" }}>高级：自定义更新源</summary>
+        <summary className="setting-desc" style={{ cursor: "pointer" }}>{i18n("auto.components.SoftwareUpdateSection.10")}</summary>
         <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 200 }}>{<Input placeholder="https://…/latest.json（自建源的清单地址）" value={customUrl} onChange={(value) => setCustomUrl(value)} />}</div>
-          <Btn variant="outline" disabled={busy || !customUrl.trim()} onClick={() => void check()}>用这个源检查
-          </Btn>
-          <Btn variant="outline" disabled={busy || !customUrl} onClick={() => { setCustomUrl(""); }}>恢复官方双源
-          </Btn>
+          <div style={{ flex: 1, minWidth: 200 }}>{<Input placeholder={i18n("auto.components.SoftwareUpdateSection.11")} value={customUrl} onChange={(value) => setCustomUrl(value)} />}</div>
+          <Btn variant="outline" disabled={busy || !customUrl.trim()} onClick={() => void check()}>{i18n("auto.components.SoftwareUpdateSection.12")}</Btn>
+          <Btn variant="outline" disabled={busy || !customUrl} onClick={() => { setCustomUrl(""); }}>{i18n("auto.components.SoftwareUpdateSection.13")}</Btn>
         </div>
         <div className="setting-desc" style={{ marginTop: 4 }}>
-          默认不填即官方双源（{SOURCE_LABEL.github} → {SOURCE_LABEL.cloud}）。
+          {i18n("auto.components.SoftwareUpdateSection.14")}{SOURCE_LABEL.github} → {SOURCE_LABEL.cloud}）。
         </div>
       </details>
     </Stack>    

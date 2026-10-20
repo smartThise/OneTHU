@@ -23,6 +23,8 @@ import { askNotifyPermissionOnce } from "../state/notifyPermissionAsk.js";
 import { IconX } from "./Icons.js";
 import { TourParticles } from "./OnboardingTourParticles.js";
 import { TOUR_CARD_SCOPE, defineOnboardingScopes } from "./OnboardingTourScope.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 defineOnboardingScopes();
 
@@ -135,9 +137,9 @@ function OhEvolutionStep(): ReactNode {
         ))}
       </Inline>
       <Stack gap={1}>
-        <TourBullet>一句话让 OH 建工具、跑流程、画组件、换主题、加手机小组件。</TourBullet>
-        <TourBullet>插件也有两下：给个仓库地址可当场安装。</TourBullet>
-        <TourBullet>本地插件能发布上 GitHub，并向市场提交收录。</TourBullet>
+        <TourBullet>{i18n("auto.components.OnboardingTourV3.1")}</TourBullet>
+        <TourBullet>{i18n("auto.components.OnboardingTourV3.2")}</TourBullet>
+        <TourBullet>{i18n("auto.components.OnboardingTourV3.3")}</TourBullet>
       </Stack>
     </>
   );
@@ -197,7 +199,7 @@ export function OnboardingTourV3(): ReactNode {
     return (
       <div
         role="dialog"
-        aria-label="拖拽演练"
+        aria-label={i18n("auto.components.OnboardingTourV3.4")}
         style={{
           position: "fixed",
           left: 0,
@@ -209,9 +211,8 @@ export function OnboardingTourV3(): ReactNode {
       >
         <Surface overlay radius="2xl" scope={TOUR_CARD_SCOPE} pad="sm">
           <Inline gap={3} vAlign="center">
-            <Text as="span">演练中：把一张标签拖到另一张上，灰框出现就松手</Text>
-            <Btn variant="solid" tone="brand" onClick={() => setPractice(false)}>回到导览
-            </Btn>
+            <Text as="span">{i18n("auto.components.OnboardingTourV3.5")}</Text>
+            <Btn variant="solid" tone="brand" onClick={() => setPractice(false)}>{i18n("auto.components.OnboardingTourV3.6")}</Btn>
           </Inline>
         </Surface>
       </div>
@@ -229,21 +230,18 @@ export function OnboardingTourV3(): ReactNode {
       maskClose={false}
       closeButton={false}
       size="md"
-      aria-label="OneTHU 桌面导览"
+      aria-label={i18n("auto.components.OnboardingTourV3.7")}
       scope={TOUR_CARD_SCOPE}
       foot={
         <Inline gap={2} vAlign="center" wrap>
-          <Btn variant="outline" disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))}>上一步
-          </Btn>
+          <Btn variant="outline" disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))}>{i18n("auto.components.OnboardingTourV3.8")}</Btn>
           <Spacer />
-          <Btn variant="ghost" titleAttr="完成标记：此后不再自动出现" onClick={closeForever}>
-            不再显示
-          </Btn>
+          <Btn variant="ghost" titleAttr={i18n("auto.components.OnboardingTourV3.9")} onClick={closeForever}>
+            {i18n("auto.components.OnboardingTourV3.10")}</Btn>
           {isLast ? (
-            <Btn variant="solid" tone="brand" onClick={closeForever}>开始使用</Btn>
+            <Btn variant="solid" tone="brand" onClick={closeForever}>{i18n("auto.components.OnboardingTourV3.11")}</Btn>
           ) : (
-            <Btn variant="solid" tone="brand" onClick={() => setStep((s) => Math.min(STEPS - 1, s + 1))}>下一步
-            </Btn>
+            <Btn variant="solid" tone="brand" onClick={() => setStep((s) => Math.min(STEPS - 1, s + 1))}>{i18n("auto.components.OnboardingTourV3.12")}</Btn>
           )}
         </Inline>
       }
@@ -255,7 +253,7 @@ export function OnboardingTourV3(): ReactNode {
             <Progress value={(step + 1) / STEPS} size="sm" />
           </div>
           <Spacer />
-          <IconBtn label="关闭本次导览" icon={<IconX width={14} height={14} />} onClick={() => setOpen(false)} />
+          <IconBtn label={i18n("auto.components.OnboardingTourV3.13")} icon={<IconX width={14} height={14} />} onClick={() => setOpen(false)} />
         </Inline>
 
         <Text slot="title" as="h3">{doc.title}</Text>
@@ -271,8 +269,8 @@ export function OnboardingTourV3(): ReactNode {
         {/* ② 真实拖拽演练：进演练模式，卡片让位，交互透传 */}
         {step === 1 ? (
           <Inline gap={3} vAlign="center" wrap>
-            <Btn variant="solid" tone="brand" onClick={() => setPractice(true)}>自己拖一次</Btn>
-            <Text slot="label" tone="faint">卡片让开，你动手；点胶囊回来继续</Text>
+            <Btn variant="solid" tone="brand" onClick={() => setPractice(true)}>{i18n("auto.components.OnboardingTourV3.14")}</Btn>
+            <Text slot="label" tone="faint">{i18n("auto.components.OnboardingTourV3.15")}</Text>
           </Inline>
         ) : null}
 

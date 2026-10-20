@@ -34,6 +34,8 @@ import {
 import { info } from "../../lib/clients.js";
 import { openAlipayDeepLink, openExternal } from "./openExternal.js";
 import { isAndroidNavigator } from "../../lib/androidHost.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 /** 移动端判定（R21：多信号——主窗口 UA 被伪装成 Windows，裸 UA 正则恒 false，
  *  曾让真机上「调起支付宝」通道从不出现）：决定出「调起支付宝」还是纯扫码 UI */
@@ -165,7 +167,7 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
     <div className={"rch-mask" + (closing ? " is-closing" : "")} style={maskStyle} onClick={requestClose}>
       <div className={"rch-panel" + (closing ? " is-closing" : "")} style={panelStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-          <b>校园卡充值</b>
+          <b>{i18n("auto.pages.info.CardTab.1")}</b>
           <span style={{ flex: 1 }} />
           <Btn variant="outline" onClick={requestClose}>✕</Btn>
         </div>
@@ -177,11 +179,10 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
                 <button key={v} className={`btn${amount === String(v) ? " btn-primary" : ""}`} style={{ flex: 1 }} onClick={() => setAmount(String(v))}>¥{v}</button>
               ))}
             </div>
-            <Input inputMode="decimal" placeholder="自定义金额（10 ~ 1000 元）" value={amount} onChange={(value) => setAmount(value)} />
+            <Input inputMode="decimal" placeholder={i18n("auto.pages.info.CardTab.2")} value={amount} onChange={(value) => setAmount(value)} />
             {!valid ? (
               <div style={{ fontSize: 12, color: "var(--red, #c04848)", marginBottom: 8 }}>
-                充值金额需在 10 ~ 1000 元之间（全渠道下限统一 10 元，官方收银台同样起步 10 元）
-              </div>
+                {i18n("auto.pages.info.CardTab.3")}</div>
             ) : null}
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
               {RCH_CHANNELS.map((c) => (
@@ -198,8 +199,7 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
               ))}
             </div>
             {err ? <div style={{ color: "#d33", fontSize: 12, marginBottom: 8 }}>{err}</div> : null}
-            <Btn variant="solid" tone="brand" disabled={!valid || busy} onClick={() => setStep("confirm")}>下一步
-            </Btn>
+            <Btn variant="solid" tone="brand" disabled={!valid || busy} onClick={() => setStep("confirm")}>{i18n("auto.pages.info.CardTab.4")}</Btn>
             {!valid ? <div style={{ fontSize: 11, opacity: 0.55, marginTop: 6 }}>{channel === "bank" ? "银行卡圈存最低 10 元；金额需 1 ~ 1000 元（最多两位小数）" : "金额需为 1 ~ 1000 元（最多两位小数）"}</div> : null}
           </>
         ) : null}
@@ -207,7 +207,7 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
         {step === "confirm" ? (
           <>
             <div style={{ fontSize: 14, lineHeight: 1.8, marginBottom: 10 }}>
-              确认为校园卡充值 <b style={{ color: "var(--accent)" }}>¥{amt.toFixed(2)}</b>（{RCH_CHANNELS.find((c) => c.key === channel)?.label}）？
+              {i18n("auto.pages.info.CardTab.5")}<b style={{ color: "var(--accent)" }}>¥{amt.toFixed(2)}</b>（{RCH_CHANNELS.find((c) => c.key === channel)?.label}）？
               <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
                 {channel === "bank"
                   ? "圈存资金从卡系统绑定的银行卡直接划转，仅限 6:00~20:40。"
@@ -216,7 +216,7 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
             </div>
             {err ? <div style={{ color: "#d33", fontSize: 12, marginBottom: 8 }}>{err}</div> : null}
             <div style={{ display: "flex", gap: 8 }}>
-              <Btn variant="outline" disabled={busy} onClick={() => setStep("form")}>返回</Btn>
+              <Btn variant="outline" disabled={busy} onClick={() => setStep("form")}>{i18n("auto.pages.info.CardTab.6")}</Btn>
               <Btn variant="solid" tone="brand" disabled={busy} onClick={() => void submit()}>{busy ? "下单中…" : "确认"}</Btn>
             </div>
           </>
@@ -229,9 +229,9 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
                 <QRCodeSVG value={webUrl} size={176} level="M" />
               </div>
               <div style={{ fontSize: 13, marginTop: 8 }}>
-                请用<b>{channel === "alipay" ? "支付宝" : "微信"}</b>扫码支付 ¥{amt.toFixed(2)}
+                {i18n("auto.pages.info.CardTab.7")}<b>{channel === "alipay" ? "支付宝" : "微信"}</b>{i18n("auto.pages.info.CardTab.8")}{amt.toFixed(2)}
               </div>
-              <div style={{ fontSize: 11, opacity: 0.55, wordBreak: "break-all", marginTop: 4 }}>到账通常实时，请以校园卡余额为准</div>
+              <div style={{ fontSize: 11, opacity: 0.55, wordBreak: "break-all", marginTop: 4 }}>{i18n("auto.pages.info.CardTab.9")}</div>
             </div>
             {err ? <div style={{ color: "#d33", fontSize: 12, marginBottom: 8 }}>{err}</div> : null}
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -239,14 +239,12 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
                 <Btn variant="solid" tone="brand" onClick={async () => {
                     const ok = await openAlipayDeepLink(webUrl);
                     if (!ok) setErr("未检测到支付宝 App，请用另一台手机扫码支付");
-                  }}>调起支付宝 App 支付
-                </Btn>
+                  }}>{i18n("auto.pages.info.CardTab.10")}</Btn>
               ) : null}
               {webUrl.startsWith("http") ? (
                 <Btn variant="outline" onClick={() => void openExternal(webUrl)}>{channel === "wechat" && isAndroid ? "在浏览器打开（微信支付）" : "在浏览器打开收款页"}</Btn>
               ) : null}
-              <Btn variant="outline" onClick={() => { onPaid(); close(); }}>我已完成支付，刷新余额
-              </Btn>
+              <Btn variant="outline" onClick={() => { onPaid(); close(); }}>{i18n("auto.pages.info.CardTab.11")}</Btn>
             </div>
           </>
         ) : null}
@@ -254,9 +252,8 @@ function RechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: () 
         {step === "bankDone" ? (
           <>
             <div style={{ fontSize: 13, lineHeight: 1.8, marginBottom: 10 }}>
-              圈存请求已提交。资金到账以校园卡<b>余额 / 流水</b>为准；若未到账请稍后在「最近消费」中查看圈存记录。
-            </div>
-            <Btn variant="solid" tone="brand" onClick={requestClose}>好的</Btn>
+              {i18n("auto.pages.info.CardTab.12")}<b>{i18n("auto.pages.info.CardTab.13")}</b>{i18n("auto.pages.info.CardTab.14")}</div>
+            <Btn variant="solid" tone="brand" onClick={requestClose}>{i18n("auto.pages.info.CardTab.15")}</Btn>
           </>
         ) : null}
       </div>
@@ -315,40 +312,40 @@ function BalanceWarnCard({ balance }: { balance: number | null }) {
     <Card className="card-warn">
       <div className="card-warn-head">
         <div>
-          <div className="setting-title">余额预警</div>
-          <div className="setting-desc">余额刷新后低于预警线时发系统通知，恢复后自动撤回。</div>
+          <div className="setting-title">{i18n("auto.pages.info.CardTab.16")}</div>
+          <div className="setting-desc">{i18n("auto.pages.info.CardTab.17")}</div>
         </div>
-        <Switch on={s.enabled} onChange={(v) => patch({ enabled: v })} label="余额预警" />
+        <Switch on={s.enabled} onChange={(v) => patch({ enabled: v })} label={i18n("auto.pages.info.CardTab.16")} />
       </div>
 
       {s.enabled ? (
         <div className="card-warn-body">
           <div className="card-warn-field">
-            <span className="card-warn-label">预警线</span>
+            <span className="card-warn-label">{i18n("auto.pages.info.CardTab.18")}</span>
             <span className="card-warn-ctl">
               <span className="card-warn-prefix">¥</span>
               <input
                 className="input card-warn-num"
                 inputMode="decimal"
-                aria-label="余额预警线（元）"
+                aria-label={i18n("auto.pages.info.CardTab.19")}
                 value={threshold.draft}
                 onChange={(e) => threshold.setDraft(e.target.value)}
                 onBlur={() => threshold.submit(0, CARD_WARN_MAX_THRESHOLD)}
                 onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
               />
             </span>
-            <span className="card-warn-unit">元</span>
+            <span className="card-warn-unit">{i18n("auto.pages.info.CardTab.20")}</span>
           </div>
 
           {/* 冷却只在「定时重复」模式下有意义：开着「不重复提醒」时余额一变就立刻提醒，
               冷却设了也不会生效，故直接置灰并说明原因（避免出现「设了没用」的字段） */}
           <div className={"card-warn-field" + (s.skipUnchanged ? " is-off" : "")}>
-            <span className="card-warn-label">提醒冷却</span>
+            <span className="card-warn-label">{i18n("auto.pages.info.CardTab.21")}</span>
             <span className="card-warn-ctl">
               <input
                 className="input card-warn-num"
                 inputMode="numeric"
-                aria-label="提醒冷却（分钟）"
+                aria-label={i18n("auto.pages.info.CardTab.22")}
                 disabled={s.skipUnchanged}
                 value={cooldown.draft}
                 onChange={(e) => cooldown.setDraft(e.target.value)}
@@ -356,17 +353,17 @@ function BalanceWarnCard({ balance }: { balance: number | null }) {
                 onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
               />
             </span>
-            <span className="card-warn-unit">分钟</span>
+            <span className="card-warn-unit">{i18n("auto.pages.info.CardTab.23")}</span>
           </div>
 
           <div className="card-warn-field">
-            <span className="card-warn-label">不重复提醒</span>
+            <span className="card-warn-label">{i18n("auto.pages.info.CardTab.24")}</span>
             <Switch
               on={s.skipUnchanged}
               onChange={(v) => patch({ skipUnchanged: v })}
-              label="不重复提醒（当余额未变化）"
+              label={i18n("auto.pages.info.CardTab.25")}
             />
-            <span className="card-warn-unit">当余额未变化</span>
+            <span className="card-warn-unit">{i18n("auto.pages.info.CardTab.26")}</span>
           </div>
         </div>
       ) : null}
@@ -405,27 +402,25 @@ export function CardTab({ active = true }: { active?: boolean }) {
                 {state === "loading" && !data ? "–" : `¥${money(data?.info?.balance)}`}
               </div>
               <div className="stat-label">
-                校园卡余额 · {data?.info.userName || "–"}
+                {i18n("auto.pages.info.CardTab.27")}{data?.info.userName || "–"}
                 {data?.info.cardStatus ? ` · ${data.info.cardStatus}` : ""}
               </div>
             </div>
-            <Btn variant="outline" disabled={state === "loading"} titleAttr="重新拉取余额与流水" onClick={() => void reload()}>{state === "loading" ? "刷新中…" : "刷新"}</Btn>
-            <Btn variant="solid" tone="brand" onClick={() => setRchOpen(true)}>充值
-            </Btn>
+            <Btn variant="outline" disabled={state === "loading"} titleAttr={i18n("auto.pages.info.CardTab.28")} onClick={() => void reload()}>{state === "loading" ? "刷新中…" : "刷新"}</Btn>
+            <Btn variant="solid" tone="brand" onClick={() => setRchOpen(true)}>{i18n("auto.pages.info.CardTab.29")}</Btn>
           </div>
           <div className="card-hero-meta">
-            <span>卡号 {data?.info.cardId || "–"}</span>
+            <span>{i18n("auto.pages.info.CardTab.30")}{data?.info.cardId || "–"}</span>
             {/* R21c：数据时间必须可见——此前用户被旧缓存压着 1–6 天却无从察觉 */}
-            {updatedAt ? <span title={new Date(updatedAt).toLocaleString()}>更新于 {fmtAgo(updatedAt)}</span> : null}
+            {updatedAt ? <span title={new Date(updatedAt).toLocaleString()}>{i18n("auto.pages.info.CardTab.31")}{fmtAgo(updatedAt)}</span> : null}
             {data?.info.departmentName ? <span>{data.info.departmentName}</span> : null}
             {data?.info?.maxOneTimeTransactionAmount != null ? (
-              <span>单笔上限 ¥{intText(data.info.maxOneTimeTransactionAmount)}</span>
+              <span>{i18n("auto.pages.info.CardTab.32")}{intText(data.info.maxOneTimeTransactionAmount)}</span>
             ) : null}
             {/* 字段级透明：缺关键字段时明说，而不是让用户以为「卡就是这样」 */}
             {data && (!data.info?.cardId || !data.info?.userName || data.info?.balance == null) ? (
-              <span title="接口/缓存未给出这些字段（可能是新卡未激活，或本地缓存偏旧——可点刷新重取）">
-                · 部分字段缺失
-              </span>
+              <span title={i18n("auto.pages.info.CardTab.33")}>
+                {i18n("auto.pages.info.CardTab.34")}</span>
             ) : null}
           </div>
         </Card>
@@ -435,7 +430,7 @@ export function CardTab({ active = true }: { active?: boolean }) {
           </span>
           <div>
             <div className="stat-num">¥{money(spent)}</div>
-            <div className="stat-label">近 30 天消费</div>
+            <div className="stat-label">{i18n("auto.pages.info.CardTab.35")}</div>
           </div>
         </Card>
         <Card className="stat-card">
@@ -444,7 +439,7 @@ export function CardTab({ active = true }: { active?: boolean }) {
           </span>
           <div>
             <div className="stat-num">{(data?.transactions ?? []).length}</div>
-            <div className="stat-label">流水笔数</div>
+            <div className="stat-label">{i18n("auto.pages.info.CardTab.36")}</div>
           </div>
         </Card>
       </div>
@@ -458,15 +453,14 @@ export function CardTab({ active = true }: { active?: boolean }) {
                 ? `刷新失败，当前显示 ${updatedAt ? fmtAgo(updatedAt) : "上次"}的数据（${refreshError}）`
                 : `数据已超过 6 小时未更新（${updatedAt ? fmtAgo(updatedAt) : "未知时间"}），可能不是最新`}
             </span>
-            <Btn variant="outline" onClick={() => void reload()}>重新拉取
-            </Btn>
+            <Btn variant="outline" onClick={() => void reload()}>{i18n("auto.pages.info.CardTab.37")}</Btn>
           </div>
         </Card>
       ) : null}
 
       <BalanceWarnCard balance={data?.info.balance ?? null} />
 
-      <SectionHead title="最近消费" aside="最近 30 天（数据源：card.tsinghua.edu.cn）" />
+      <SectionHead title={i18n("auto.pages.info.CardTab.38")} aside="最近 30 天（数据源：card.tsinghua.edu.cn）" />
       {state === "loading" && !data ? (
         <SkeletonRows rows={6} />
       ) : (data?.transactions.length ?? 0) === 0 ? (

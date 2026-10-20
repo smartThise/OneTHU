@@ -20,6 +20,8 @@ import { activateTheme, deactivateTheme, removeTheme, restoreBuiltins, useThemes
 import { fetchEntryFromMarket, fetchRegistry, normalizeRepoUrl, type MarketEntry } from "../lib/market.js";
 import { installedPlugins, subscribe, uninstallPlugin } from "../plugins/loader.js";
 import { confirmOk } from "../lib/confirm.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const maskStyle: React.CSSProperties = { animation: "m-fade var(--dur-2) var(--ease-out) both", position: "fixed", inset: 0, background: "var(--og-scrim)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 0 };
 const panelStyle: React.CSSProperties = { animation: "m-sheet-up 260ms var(--md-sys-motion-easing-emphasized-decelerate, ease-out) both", width: "100%", minWidth: 0, overflow: "hidden", maxWidth: "100%", maxHeight: "92dvh", display: "flex", flexDirection: "column", background: "var(--og-fill-overlay)", color: "var(--og-content-1)", borderRadius: "var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-large) 0 0", paddingBottom: "env(safe-area-inset-bottom)", boxShadow: "var(--og-elev-menu)" };
@@ -166,32 +168,32 @@ export function ThemePickerModal({ open, onClose }: { open: boolean; onClose: ()
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border, #eee)", flex: "none" }}>
-          <b>更改主题</b>
+          <b>{i18n("auto.components.ThemePickerModal.1")}</b>
           <span style={{ flex: 1 }} />
           <Btn variant="outline" onClick={requestClose}>✕</Btn>
         </div>
 
         <div style={{ padding: "10px 16px 16px", overflowY: "auto", overflowX: "hidden", flex: 1, minHeight: 0, minWidth: 0 }}>
-          <Input placeholder="搜索主题名称 / 描述 / 标签" value={query} onChange={(value) => setQuery(value)} />
+          <Input placeholder={i18n("auto.components.ThemePickerModal.2")} value={query} onChange={(value) => setQuery(value)} />
           {msg ? <div className="plg-runmsg" style={{ marginTop: 8 }}>{msg}</div> : null}
 
           {secHead(
             "已安装",
-            <Btn variant="ghost" onClick={() => setMsg("已恢复 " + restoreBuiltins() + " 个内置主题")}>恢复内置</Btn>,
+            <Btn variant="ghost" onClick={() => setMsg("已恢复 " + restoreBuiltins() + " 个内置主题")}>{i18n("auto.components.ThemePickerModal.3")}</Btn>,
           )}
-          {installedThemes.length === 0 ? <div className="plg-hint">没有匹配的已安装主题。</div> : null}
+          {installedThemes.length === 0 ? <div className="plg-hint">{i18n("auto.components.ThemePickerModal.4")}</div> : null}
           <div className="theme-choice-grid">
-            {hit(["石墨", "默认"]) ? <ThemeChoice name="石墨 · 默认" description="中性面阶、黑白主要动作与清晰文字层级" selected={!snap.effectiveId || snap.effectiveId === "onethu.theme.ivory"} onSelect={() => deactivateTheme()} themeId="onethu.theme.ivory" /> : null}
+            {hit(["石墨", "默认"]) ? <ThemeChoice name="石墨 · 默认" description={i18n("auto.components.ThemePickerModal.5")} selected={!snap.effectiveId || snap.effectiveId === "onethu.theme.ivory"} onSelect={() => deactivateTheme()} themeId="onethu.theme.ivory" /> : null}
             {installedThemes.filter(t => t.id !== "onethu.theme.ivory").map(t => <ThemeChoice key={t.id} name={t.name} description={t.description} vars={t.vars} selected={snap.effectiveId === t.id} onSelect={() => { activateTheme(t.id); setMsg("已应用「" + t.name + "」"); }} themeId={t.id}
-              extra={ownerOf(t) ? <Btn variant="ghost" onClick={() => void delTheme(t)}>卸载</Btn> : undefined} />)}
+              extra={ownerOf(t) ? <Btn variant="ghost" onClick={() => void delTheme(t)}>{i18n("auto.components.ThemePickerModal.6")}</Btn> : undefined} />)}
           </div>
 
           {secHead(
             "主题市场",
             <Btn variant="ghost" disabled={busy} onClick={() => void load(true)}>{busy ? "刷新中…" : "刷新"}</Btn>,
           )}
-          {!items && busy ? <div className="plg-hint">正在拉取主题市场…</div> : null}
-          {items && !marketHits.length ? <div className="plg-hint">没有匹配的主题。</div> : null}
+          {!items && busy ? <div className="plg-hint">{i18n("auto.components.ThemePickerModal.7")}</div> : null}
+          {items && !marketHits.length ? <div className="plg-hint">{i18n("auto.components.ThemePickerModal.8")}</div> : null}
           <div style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)" }}>
             {marketHits.map((x) => {
               const has = hasInMarket(x);
@@ -200,7 +202,7 @@ export function ThemePickerModal({ open, onClose }: { open: boolean; onClose: ()
                   <div className="market-card-head">
                     <span className="market-card-name">
                       {x.name}
-                      {has ? <span className="market-installed-badge">已安装</span> : null}
+                      {has ? <span className="market-installed-badge">{i18n("auto.components.ThemePickerModal.9")}</span> : null}
                     </span>
                   </div>
                   <div className="market-card-meta">v{x.version}{x.author ? " · " + x.author : ""}</div>
@@ -220,8 +222,7 @@ export function ThemePickerModal({ open, onClose }: { open: boolean; onClose: ()
           </div>
 
           <div className="plg-hint" style={{ marginTop: 10 }}>
-            主题即插件：装完就能在上面直接应用；已安装的社区主题会同时出现在两栏里。
-          </div>
+            {i18n("auto.components.ThemePickerModal.10")}</div>
         </div>
       </div>
     </div>,

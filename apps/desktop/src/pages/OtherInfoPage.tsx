@@ -16,6 +16,8 @@ import { Card, Chip, EmptyState, Grid, IconExternal, IconSearch, Inline, Input, 
 import { CollectStar } from "../components/Collect.js";
 import { INFO_APPS, INFO_APP_CATS, infoAppUrl } from "../lib/infoApps.js";
 import { openExternal } from "./info/openExternal.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 export function OtherInfoPage(): ReactNode {
   const [query, setQuery] = useState("");
@@ -40,14 +42,14 @@ export function OtherInfoPage(): ReactNode {
           type="search"
           size="md"
           icon={<IconSearch size="sm" />}
-          placeholder="搜索应用名 / 分类（如：报销 / 奖学金 / 后勤）"
-          aria-label="搜索 Info 应用"
+          placeholder={i18n("auto.pages.OtherInfoPage.1")}
+          aria-label={i18n("auto.pages.OtherInfoPage.2")}
           value={query}
           onChange={setQuery}
         />
         <Inline gap={2} wrap>
           <Chip selected={cat === "all"} onClick={() => setCat("all")}>
-            全部（{INFO_APPS.length}）
+            {i18n("auto.pages.OtherInfoPage.3")}{INFO_APPS.length}）
           </Chip>
           {INFO_APP_CATS.map((c) => {
             const n = INFO_APPS.filter((a) => a.cat === c).length;
@@ -63,7 +65,7 @@ export function OtherInfoPage(): ReactNode {
 
       {total === 0 ? (
         <Card>
-          <EmptyState title="没有匹配的应用——换个关键词，或切回「全部」分类。" />
+          <EmptyState title={i18n("auto.pages.OtherInfoPage.4")} />
         </Card>
       ) : (
         groups.map((g) => (

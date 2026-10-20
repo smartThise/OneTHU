@@ -65,6 +65,11 @@ ok(/window\.addEventListener\("pointercancel", onUp\)/.test(page) && /window\.re
 ok(/const orig: Rect = \{ x: it\.x, y: it\.y, w: it\.w, h: it\.h \}/.test(page), "拖动基线没有取按下那一刻的矩形（跟手会漂）");
 ok(/if \(it\.pinned && mode === "move"\)/.test(page), "固定的组件仍能拖动（位置锁定失效）");
 
+/* ④b Alt = 临时关闭吸附（2026-10-19）：按住时既不吸、也不画参考线 */
+ok(/const free = ev\.altKey;/.test(page), "Alt 键没有接进拖动管线（按住 Alt 仍会被吸住）");
+ok(/free \? \{ rect: raw, guides: \[\] as SnapGuide\[\] \} : snapMove/.test(page), "移动时 Alt 没有走「不吸附」分支");
+ok(/free\s*\? \{ rect: box, guides: \[\] as SnapGuide\[\] \}\s*: snapResize/.test(page), "缩放时 Alt 没有走「不吸附」分支");
+
 /* ⑤ 监听器卫生：注册了就必须按**同名同 capture** 移除（写错会永久泄漏、接管全应用指针事件） */
 const adds = [...page.matchAll(/addEventListener\("(\w+)", (\w+)(, true)?\)/g)].map((m) => m[2] + "|" + String(!!m[3]));
 const removes = [...page.matchAll(/removeEventListener\("(\w+)", (\w+)(, true)?\)/g)].map((m) => m[2] + "|" + String(!!m[3]));

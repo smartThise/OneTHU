@@ -7,6 +7,8 @@ import { IconCheck, IconRefresh } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { getSelectedSemester, setSelectedSemester, useLearnData, useSemesters } from "../../state/data.js";
 import { BackButton, semesterText } from "./shared.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 export function SemesterSelectionPage() {
   const { navigate } = useApp();
@@ -29,14 +31,13 @@ export function SemesterSelectionPage() {
   return (
     <>
       <PageHead
-        title="切换学期"
+        title={i18n("auto.pages.learn.SemesterSelectionPage.1")}
         
         actions={
           <>
-            <PageAtomStar atomKey="learn-semester" title="学期切换" />
-            <BackButton to="learn" label="课程列表" />
-            <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />刷新
-            </Btn>
+            <PageAtomStar atomKey="learn-semester" title={i18n("auto.pages.learn.SemesterSelectionPage.2")} />
+            <BackButton to="learn" label={i18n("auto.pages.learn.SemesterSelectionPage.3")} />
+            <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />{i18n("auto.pages.learn.SemesterSelectionPage.4")}</Btn>
           </>
         }
       />
@@ -73,11 +74,11 @@ export function SemesterSelectionPage() {
               onKeyDown={(e) => e.key === "Enter" && choose(null)}
             >
               <div className="row-main">
-                <div className="row-title">跟随最新学期{current ? `（${semesterText(current)}）` : ""}</div>
-                <div className="row-sub">默认跟随学校当前学期</div>
+                <div className="row-title">{i18n("auto.pages.learn.SemesterSelectionPage.5")}{current ? `（${semesterText(current)}）` : ""}</div>
+                <div className="row-sub">{i18n("auto.pages.learn.SemesterSelectionPage.6")}</div>
               </div>
               {!getSelectedSemester() ? (
-                <span className="chip chip-blue"><IconCheck width={12} height={12} />当前</span>
+                <span className="chip chip-blue"><IconCheck width={12} height={12} />{i18n("auto.pages.learn.SemesterSelectionPage.7")}</span>
               ) : null}
             </div>
           )}
@@ -103,7 +104,7 @@ function SemesterRow({ id, active, badge, onChoose }: { id: string; active: bool
       </div>
       {badge ? <span className="chip chip-gray">{badge}</span> : null}
       {active ? (
-        <span className="chip chip-blue"><IconCheck width={12} height={12} />正在查看</span>
+        <span className="chip chip-blue"><IconCheck width={12} height={12} />{i18n("auto.pages.learn.SemesterSelectionPage.8")}</span>
       ) : null}
     </div>
   );

@@ -1,5 +1,5 @@
 import {useEffect, useState, useSyncExternalStore} from "react";
-import {NAV_REGISTRY} from "./navigation.js";
+import {navName,NAV_REGISTRY} from "./navigation.js";
 import {explorerSnapshot, openTab, openWorkspace, subscribeExplorer} from "./explorer.js";
 import {openOnePage, userOnePages} from "./onePage.js";
 import type {LearnNav, Page} from "./app.js";
@@ -35,7 +35,7 @@ export const subscribeQuick=(f:()=>void)=>{listeners.add(f);return()=>{listeners
 export function setOneShot(index:number,id:string):void{if(index<0||index>4)return;shot=shot.map((x,i)=>i===index?id:x);try{localStorage.setItem(KEY,JSON.stringify(shot));}catch{}emit();}
 export function moveQuickEntry(id:string,before:string):void{const all=quickEntries().filter(e=>e.kind!=="page").map(e=>e.id);const next=all.filter(x=>x!==id);const at=next.indexOf(before);if(at<0)return;next.splice(at,0,id);order=next;try{localStorage.setItem(ORDER,JSON.stringify(order));}catch{}emit();}
 export function quickEntries():QuickEntry[]{
- const pages=NAV_REGISTRY.map(e=>({id:'page:'+e.id,title:({learn:'学习',reserve:'预约',life:'生活',info:'信息',schedule:'课表'} as Record<string,string>)[e.id]??e.name,kind:'page' as const,page:e.page,params:e.params}));
+ const pages=NAV_REGISTRY.map(e=>({id:'page:'+e.id,title:({learn:'学习',reserve:'预约',life:'生活',info:'信息',schedule:'课表'} as Record<string,string>)[e.id]??navName(e),kind:'page' as const,page:e.page,params:e.params}));
  for(const [id,title] of [["reserve","预约"],["info","信息"]] as const){if(!pages.some(p=>p.id==="page:"+id))pages.push({id:"page:"+id,title,kind:"page",page:id,params:undefined});}
  const saved:QuickEntry[]=[...userOnePages().map(b=>({id:'board:'+b.id,title:b.name,kind:'board' as const,target:b.id})),...explorerSnapshot().workspaces.map(w=>({id:'workspace:'+w.id,title:w.name,kind:'workspace' as const,target:w.id}))];
  saved.sort((a,b)=>(order.indexOf(a.id)<0?1e6:order.indexOf(a.id))-(order.indexOf(b.id)<0?1e6:order.indexOf(b.id)));

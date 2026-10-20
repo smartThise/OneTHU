@@ -1,4 +1,5 @@
 import { BrandLogo } from "./BrandLogo.js";
+import { t } from "../i18n/index.js";
 import { useExperienceMode, useIsSimpleLike, useSimpleRoute } from "../state/experienceMode.js";
 import { SimpleHeader } from "./SimpleExperience.js";
 import { IconBtn, IconUser } from "@onethu/gui";
@@ -76,6 +77,8 @@ import { SettingsOverlay } from "./explorer/SettingsOverlay.js";
 import "../styles/explorer.css";
 import "../styles/explorer-ui.css";
 import "../styles/explorer-home.css";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 开发者面板（仅 dev 构建）：右上角 commit 徽标 + 前端日志/诊断/导出。
  *  正式版里 __ONETHU_DEV__ 折叠为 false → 这句动态 import 被 rollup 删除，
@@ -88,33 +91,41 @@ const SearchLandingSelfcheck = __ONETHU_DEV__ ? lazy(() => import("./SearchLandi
  * 一级功能目录（全库导入的数据源，保持原数组不动）：完整目录现渲染在首页
  * 「功能目录」卡（explorer/HomeTab），侧栏已退役但这份数据仍是唯一事实来源。
  */
-export const NAV: Array<{ page: Page; label: string; icon: (p: object) => ReactNode; activePages?: Page[] }> = [
+export const NAV: Array<{ page: Page; label: string; labelKey?: string; icon: (p: object) => ReactNode; activePages?: Page[] }> = [
   // 「今日」那一格已删（用户 2026-10-15 点名）：它就是首页自己（page id 仍叫 today），
   // 目录里再列一遍等于「首页 → 首页」；而且它是程序坞默认球的第一颗
   //（homeSpheres 的 docked = NAV.slice(0,8)）。删掉后老用户持久化的 "home" 球
   // 会被 sanitize 的 NAV 白名单自动过滤掉，不用写迁移。
-  { page: "tasks", label: "待办", icon: IconPen, activePages: ["tasks", "learn-assignments", "learn-assignment-detail", "learn-ykt-detail"] },
+  { page: "tasks", label: "待办", labelKey: "nav.tasks", icon: IconPen, activePages: ["tasks", "learn-assignments", "learn-assignment-detail", "learn-ykt-detail"] },
   // R30：这一栏现在同时收纳网络学堂与雨课堂的课程，侧栏用中性的「课程」；
   // 「网络学堂」保留为**来源名**（课程卡/作业行上的来源徽标、今日页等处不改）。
-  { page: "learn", label: "课程", icon: IconLearn },
-  { page: "schedule", label: "日程", icon: IconSchedule },
-  { page: "trace", label: "寻迹", icon: IconTrace },
-  { page: "contacts", label: "通讯录", icon: IconMail },
-  { page: "mail", label: "邮箱", icon: IconMail },
-  { page: "cloud", label: "云盘", icon: IconCloud },
-  { page: "gitlab", label: "GitLab", icon: IconGitLab },
-  { page: "thubook", label: "THUBook", icon: IconBook },
+  { page: "learn", label: "课程", labelKey: "nav.learn", icon: IconLearn },
+  { page: "schedule", label: "日程", labelKey: "nav.schedule", icon: IconSchedule },
+  { page: "trace", label: "寻迹", labelKey: "nav.trace", icon: IconTrace },
+  { page: "contacts", label: "通讯录", labelKey: "nav.contacts", icon: IconMail },
+  { page: "mail", label: "邮箱", labelKey: "nav.mail", icon: IconMail },
+  { page: "cloud", label: "云盘", labelKey: "nav.cloud", icon: IconCloud },
+  { page: "gitlab", label: "GitLab", labelKey: "nav.gitlab", icon: IconGitLab },
+  { page: "thubook", label: "THUBook", labelKey: "nav.thubook", icon: IconBook },
   /* 清小搭（2026-10-15 用户点名「加入一级功能区程序坞」）：一级页，排在 thubook 之后——
      前八颗（程序坞默认球 = NAV.slice(0,8)）一颗不动，它作为第九颗出现在坞上；
      它是 homeSpheres 白名单（known）的一员，否则 sanitize 会把持久化的这颗球吃掉。 */
-  { page: "xiaoda", label: "清小搭", icon: IconXiaoda },
-  { page: "info", label: "信息", icon: IconInfo },
-  { page: "life", label: "生活", icon: IconCard },
-  { page: "reserve", label: "预约", icon: IconCalendar },
-  { page: "zhjwxk", label: "选课", icon: IconXk },
-  { page: "thos", label: "在线服务", icon: IconThos },
-  { page: "otherinfo", label: "其他 Info 应用", icon: IconExternal },
+  { page: "xiaoda", label: "清小搭", labelKey: "nav.xiaoda", icon: IconXiaoda },
+  { page: "info", label: "信息", labelKey: "nav.info", icon: IconInfo },
+  { page: "life", label: "生活", labelKey: "nav.life", icon: IconCard },
+  { page: "reserve", label: "预约", labelKey: "nav.reserve", icon: IconCalendar },
+  { page: "zhjwxk", label: "选课", labelKey: "nav.zhjwxk", icon: IconXk },
+  { page: "thos", label: "在线服务", labelKey: "nav.thos", icon: IconThos },
+  { page: "otherinfo", label: "其他 Info 应用", labelKey: "nav.otherinfo", icon: IconExternal },
 ];
+
+/**
+ * 一级功能区的显示名：带 `labelKey` 的条目走 i18n，插件等运行时条目直接用现成 label。
+ * 调用方在渲染期调用，并订阅 `useT()`，切换语言即可原地刷新。
+ */
+export function navLabel(entry: { label: string; labelKey?: string }): string {
+  return entry.labelKey ? t(entry.labelKey) : entry.label;
+}
 
 /** 插件动态 tab（useSyncExternalStore 订阅；PageHead 的 navLabel 消歧也用它） */
 function usePluginNavEntries(): Array<{ page: Page; label: string; icon: (p: object) => ReactNode }> {
@@ -143,8 +154,8 @@ function RailActions({ narrow, onToggleNarrow }: { narrow: boolean; onToggleNarr
   const canDup = activeId !== HOME_TAB_ID;
   return (
     <div className="ex-rail-actions">
-      <IconBtn label="复制当前标签页（独立实例）" icon={<IconCopyTab width={16} height={16} />} onClick={() => duplicateTab(activeId)} disabled={!canDup} />
-      <IconBtn label="我的" icon={<IconUser size="sm" />} onClick={() => openSettings("profile")} />
+      <IconBtn label={i18n("auto.components.Layout.1")} icon={<IconCopyTab width={16} height={16} />} onClick={() => duplicateTab(activeId)} disabled={!canDup} />
+      <IconBtn label={i18n("auto.components.Layout.2")} icon={<IconUser size="sm" />} onClick={() => openSettings("profile")} />
       <button
         className="icon-btn ex-rail-width"
         onClick={onToggleNarrow}
@@ -185,7 +196,7 @@ function TabRail(): ReactNode {
   }, [mode, narrow, phone]);
   if (mode !== "v" || phone) return null;
   return (
-    <aside className="ex-rail" aria-label="标签页">
+    <aside className="ex-rail" aria-label={i18n("auto.components.Layout.3")}>
       <TabStrip />
       <RailActions narrow={narrow} onToggleNarrow={() => setNarrow((v) => !v)} />
     </aside>
@@ -216,18 +227,18 @@ function TopBar(): ReactNode {
       {phone ? (
         /* 手机档（2026-10-16 用户口径）：顶部只留一个**圆形房子钮**回首页——
            横竖都不再有标签条（换标签只走底栏「标签页」抽屉）。此前是 OneTHU monogram 玻璃片。 */
-        <button className="ex-tb-home-mark" onClick={() => focusTab(HOME_TAB_ID)} aria-label="首页" title="首页">
+        <button className="ex-tb-home-mark" onClick={() => focusTab(HOME_TAB_ID)} aria-label={i18n("auto.components.Layout.4")} title={i18n("auto.components.Layout.4")}>
           <IconHome width={19} height={19} />
         </button>
       ) : layout === "h" ? (
-        <IconBtn label="复制当前标签页（独立实例）" icon={<IconCopyTab width={16} height={16} />} onClick={() => duplicateTab(activeId)} disabled={!canDup} />
+        <IconBtn label={i18n("auto.components.Layout.1")} icon={<IconCopyTab width={16} height={16} />} onClick={() => duplicateTab(activeId)} disabled={!canDup} />
       ) : null}
       {phone ? <VaultButton /> : null}
       {layout === "h" && !phone ? <TabStrip /> : null}
       <span className="tb-spring" aria-hidden="true" />
       {/* 页面级操作「···」：白板等页面经 pageChrome 声明的菜单在此展开（无菜单时不渲染） */}
       <ChromeMore />
-      <IconBtn label="我的" icon={<IconUser size="sm" />} onClick={() => openSettings("profile")} />
+      <IconBtn label={i18n("auto.components.Layout.2")} icon={<IconUser size="sm" />} onClick={() => openSettings("profile")} />
     </header>
   );
 }
@@ -588,8 +599,8 @@ export function HardRefreshButton() {
         <button
           className="hard-refresh-fab top-fab"
           style={topStyle}
-          title="回到顶层"
-          aria-label="回到顶层"
+          title={i18n("auto.components.Layout.5")}
+          aria-label={i18n("auto.components.Layout.5")}
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
           <IconArrowUp width={18} height={18} />
@@ -599,8 +610,8 @@ export function HardRefreshButton() {
         ref={fabRef}
         className={"hard-refresh-fab" + (dragging ? " is-dragging" : "")}
         style={fabStyle}
-        title="硬刷新（整页重载）· 按住可拖动位置"
-        aria-label="硬刷新"
+        title={i18n("auto.components.Layout.6")}
+        aria-label={i18n("auto.components.Layout.7")}
         onClick={() => {
           if (skipClick.current) { skipClick.current = false; return; }
           window.location.reload();
@@ -751,9 +762,9 @@ export function LevelBox(): ReactNode {
   const [boxRef, narrow] = useNarrowBox(300);
   /* 窄栏：只渲染图标（title/aria-label 承载全名），**禁止文字换行**；宽栏：文字完整不截断 */
   const cells: Array<{ id: Entry; label: string; icon: ReactNode }> = [
-    { id: "profile", label: "我的名片", icon: <IconUser /> },
-    { id: "settings", label: "设置", icon: <IconSettings /> },
-    { id: "plugins", label: "插件", icon: <IconPlug /> },
+    { id: "profile", label: i18n("auto.components.Layout.p1"), icon: <IconUser /> },
+    { id: "settings", label: i18n("auto.components.Layout.p2"), icon: <IconSettings /> },
+    { id: "plugins", label: i18n("auto.components.Layout.p3"), icon: <IconPlug /> },
     { id: "oh", label: "OneTHU Harness", icon: <HarnessMark size={13} /> },
   ];
   const cell = (c: { id: Entry; label: string; icon: ReactNode }): ReactNode => (
@@ -810,7 +821,7 @@ function ChromeMore() {
     if (import.meta.env.DEV) {
       items.push({
         key: "dev-phone-frame",
-        label: "竖屏取景框（dev）",
+        label: i18n("auto.components.Layout.p4"),
         onSelect: () => { window.location.href = window.location.pathname + "?phone-frame=1"; },
       });
     }
@@ -822,7 +833,7 @@ function ChromeMore() {
       className="topbar-more"
       ref={moreRef}
       onClick={openMenu}
-      aria-label="更多操作"
+      aria-label={i18n("auto.components.Layout.8")}
       aria-haspopup="menu"
     >
       <IconMore width={18} height={18} />
@@ -833,11 +844,17 @@ function ChromeMore() {
 export function SectionHead({
   title,
   aside,
+  group,
 }: {
   title: string;
   aside?: ReactNode;
+  /**
+   * 稳定的分节归属（= 设置页签 key）。设置页按它显隐分节，**不能按标题文字匹配**：
+   * 标题一旦走 i18n，切到英文就再也对不上页签，整页分节会失灵。
+   */
+  group?: string;
 }) {
-  return <OGSection title={title} aside={aside} />;
+  return <OGSection title={title} aside={aside} scope={group ? "settings-group:" + group : undefined} />;
 }
 
 export function Card({
@@ -882,7 +899,7 @@ export function ErrorNote({ text, onRetry }: { text: string; onRetry?: () => voi
     <OGBanner
       tone="error"
       title={<ErrorLine text={text} />}
-      action={onRetry ? <OGBtn variant="ghost" tone="error" size="sm" onClick={onRetry}>重试</OGBtn> : null}
+      action={onRetry ? <OGBtn variant="ghost" tone="error" size="sm" onClick={onRetry}>{i18n("auto.components.Layout.9")}</OGBtn> : null}
     />
   );
 }

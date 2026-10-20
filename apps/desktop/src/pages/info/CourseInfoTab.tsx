@@ -25,6 +25,8 @@ import { enc, noteAtomCache } from "../../state/atoms.js";
 import { useApp } from "../../state/context.js";
 import { universalFetch } from "../../lib/transport.js";
 import { TabEmpty, TabError, logTabErr, tabErrorText } from "./tabStates.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type SearchState = "idle" | "loading" | "error" | "ready";
 
@@ -109,7 +111,7 @@ export function CourseInfoTab() {
               // 已有搜索词时切学期立即重查（与 courseX 网页同款交互）
               if (input.trim()) void runSearch(input, v);
             }}
-            placeholder="选择学期…"
+            placeholder={i18n("auto.pages.info.CourseInfoTab.1")}
             options={semesters.map((s) => ({ value: s.id, label: s.label }))}
           />
         ) : null}
@@ -121,12 +123,11 @@ export function CourseInfoTab() {
             onKeyDown={(e) => {
               if (e.key === "Enter") void runSearch(input);
             }}
-            placeholder="搜索课程名 / 教师姓名（如：微积分 / 冯铃）"
-            aria-label="搜索课程"
+            placeholder={i18n("auto.pages.info.CourseInfoTab.2")}
+            aria-label={i18n("auto.pages.info.CourseInfoTab.3")}
           />
         </div>
-        <Btn variant="outline" disabled={state === "loading"} onClick={() => void runSearch(input)}>搜索
-        </Btn>
+        <Btn variant="outline" disabled={state === "loading"} onClick={() => void runSearch(input)}>{i18n("auto.pages.info.CourseInfoTab.4")}</Btn>
       </div>
 
       {state === "error" ? (
@@ -140,14 +141,14 @@ export function CourseInfoTab() {
           <TabEmpty text="没找到匹配课程：换个关键词，或该课还没被共享。" />
         ) : (
           <>
-            <SectionHead title="搜索结果" aside={`共 ${courses!.length} 条 · 点行查看时间地点`} />
+            <SectionHead title={i18n("auto.pages.info.CourseInfoTab.5")} aside={`共 ${courses!.length} 条 · 点行查看时间地点`} />
             <Card style={{ padding: 0, overflow: "auto" }}>
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>课程</th>
-                    <th>教师</th>
-                    <th>学期</th>
+                    <th>{i18n("auto.pages.info.CourseInfoTab.6")}</th>
+                    <th>{i18n("auto.pages.info.CourseInfoTab.7")}</th>
+                    <th>{i18n("auto.pages.info.CourseInfoTab.8")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -170,7 +171,7 @@ export function CourseInfoTab() {
                         <tr>
                           <td colSpan={3} style={{ background: "rgba(0,0,0,0.02)" }}>
                             {detail.loading ? (
-                              <span style={{ opacity: 0.6 }}>正在加载时间地点…</span>
+                              <span style={{ opacity: 0.6 }}>{i18n("auto.pages.info.CourseInfoTab.9")}</span>
                             ) : detail.error ? (
                               <span style={{ color: "var(--red)" }}>{detail.error}</span>
                             ) : detail.data ? (
@@ -195,18 +196,17 @@ export function CourseInfoTab() {
                                 {detail.data.timeLocation.length > 0 ? (
                                   detail.data.timeLocation.map((t, ti) => (
                                     <div key={ti} style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                                      <span className="chip chip-green">时间地点</span>
+                                      <span className="chip chip-green">{i18n("auto.pages.info.CourseInfoTab.10")}</span>
                                       <span>{t}</span>
                                     </div>
                                   ))
                                 ) : (
                                   <span style={{ opacity: 0.6 }}>
-                                    共享库暂无该课的时间地点——数据覆盖取决于 learnX 等客户端用户的共享参与。
-                                  </span>
+                                    {i18n("auto.pages.info.CourseInfoTab.11")}</span>
                                 )}
                               </div>
                             ) : (
-                              <span style={{ opacity: 0.6 }}>共享库中无此课程详情。</span>
+                              <span style={{ opacity: 0.6 }}>{i18n("auto.pages.info.CourseInfoTab.12")}</span>
                             )}
                           </td>
                         </tr>

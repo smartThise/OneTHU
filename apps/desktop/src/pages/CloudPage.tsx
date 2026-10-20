@@ -38,6 +38,8 @@ import {
   IconFolder, IconFolderPlus, IconRefresh, IconSearch, IconUpload, Inline, Input, List, LoadingBlock,
   Modal, Progress, Row, Select, Spacer, Spinner, Stack, Surface, Tag, Text,
 } from "@onethu/gui";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 字节数 → 人类可读 */
 function fmtSize(b: number): string {
@@ -93,7 +95,7 @@ async function deleteEntry(repo: SeafileRepo, path: string, e: SeafileEntry): Pr
     isDir
       ? `删除文件夹「${e.name}」？\n\n该文件夹及其全部内容将从云盘永久删除，此操作不可撤销。`
       : `删除文件「${e.name}」（${fmtSize(e.size)}）？\n\n此操作不可撤销。`,
-    { title: isDir ? "删除文件夹，请确认！" : "删除文件，请确认！", confirmText: "确认删除" },
+    { title: isDir ? "删除文件夹，请确认！" : "删除文件，请确认！", confirmText: i18n("auto.pages.CloudPage.p1") },
   );
   if (!ok) return false;
   await invoke("seafile_delete", { token: getSeafileToken(), repoId: repo.id, path, kind: e.kind });
@@ -103,8 +105,8 @@ async function deleteEntry(repo: SeafileRepo, path: string, e: SeafileEntry): Pr
 /** 行首类型图标：内容语义走 OG 语义令牌（目录=accent、文件=content-2，靠库里的字色工具类） */
 function kindIcon(kind: SeafileEntry["kind"]): ReactNode {
   return kind === "dir"
-    ? <IconFolder size="sm" className="og-text--t-brand" title="文件夹" />
-    : <IconFile size="sm" title="文件" />;
+    ? <IconFolder size="sm" className="og-text--t-brand" title={i18n("auto.pages.CloudPage.1")} />
+    : <IconFile size="sm" title={i18n("auto.pages.CloudPage.2")} />;
 }
 
 /* ── 移动弹层：库下拉 + 目录树逐层展开 ─────────────────────────── */
@@ -160,20 +162,20 @@ function MoveModal({
       title={`移动「${entry.name}」到…`}
       foot={
         <>
-          <Btn variant="outline" onClick={onClose}>取消</Btn>
+          <Btn variant="outline" onClick={onClose}>{i18n("auto.pages.CloudPage.3")}</Btn>
           <Btn variant="outline" disabled={selfNest || isSamePlace} onClick={() => onDone(repoId, path)}>
-            移动到这里{isSamePlace ? "（已在原位）" : ""}
+            {i18n("auto.pages.CloudPage.4")}{isSamePlace ? "（已在原位）" : ""}
           </Btn>
         </>
       }
     >
       <Stack gap={3}>
-        <Select value={repoId} aria-label="目标资料库" onChange={(value) => { setRepoId(value); setPath("/"); }}>
+        <Select value={repoId} aria-label={i18n("auto.pages.CloudPage.5")} onChange={(value) => { setRepoId(value); setPath("/"); }}>
           {repos.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
         </Select>
         <Breadcrumb
           items={[
-            { label: "根目录", onClick: () => setPath("/") },
+            { label: i18n("auto.pages.CloudPage.p2"), onClick: () => setPath("/") },
             ...crumbs.map((c, i) => ({ label: c, onClick: () => setPath("/" + crumbs.slice(0, i + 1).join("/")) })),
           ]}
           separator={<IconChevron size="sm" />}
@@ -181,7 +183,7 @@ function MoveModal({
         {error && <Text as="p" slot="micro" tone="error">{error}</Text>}
         {/* WKWebView 合成层怪病（v4 实录：DOM 正确、字面样式仍全白）——目标文件夹
             改用原生 select（系统绘制）：选中即进入该层，面包屑点返回上级。 */}
-        <Select value="" aria-label="目标层文件夹" onChange={(value) => {
+        <Select value="" aria-label={i18n("auto.pages.CloudPage.6")} onChange={(value) => {
             const v = value;
             if (v) setPath(`${path === "/" ? "" : path}/${v}`);
           }}>
@@ -194,7 +196,7 @@ function MoveModal({
           </option>
           {dirs.map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
         </Select>
-        {selfNest && <Text as="p" slot="micro" tone="error">不能移动到自身内部的文件夹</Text>}
+        {selfNest && <Text as="p" slot="micro" tone="error">{i18n("auto.pages.CloudPage.7")}</Text>}
       </Stack>
     </Modal>
   );
@@ -329,7 +331,7 @@ export default function CloudPage(): ReactNode {
     const shown = names.slice(0, 6).join("\n") + (names.length > 6 ? `\n… 等共 ${names.length} 项` : "");
     const ok = await confirmDanger(
       `删除以下 ${items.length} 项？\n\n${shown}\n\n所选文件与文件夹（含内容）将从云盘永久删除，此操作不可撤销。`,
-      { title: `删除 ${items.length} 项，请确认！`, confirmText: "确认删除" },
+      { title: `删除 ${items.length} 项，请确认！`, confirmText: i18n("auto.pages.CloudPage.p3") },
     );
     if (!ok) return;
     setBatchBusy(true);
@@ -356,18 +358,18 @@ export default function CloudPage(): ReactNode {
   if (!configured) {
     return (
       <Stack gap={3}>
-        <Text slot="title" as="h2">清华云盘</Text>
+        <Text slot="title" as="h2">{i18n("auto.pages.CloudPage.8")}</Text>
         <div style={{ maxWidth: "520px" }}>
           <Card>
             <Stack gap={2}>
-              <Text as="p">连接后可浏览与下载清华云盘文件。</Text>
-              <Text as="p">首次连接会在应用内打开云盘页面。</Text>
-              <Text as="p">登录后读取现有访问口令，不会自动生成或重置。</Text>
+              <Text as="p">{i18n("auto.pages.CloudPage.9")}</Text>
+              <Text as="p">{i18n("auto.pages.CloudPage.10")}</Text>
+              <Text as="p">{i18n("auto.pages.CloudPage.11")}</Text>
               <Inline gap={2}>
-                <Btn variant="outline" onClick={() => setBindOpen(true)}>连接云盘</Btn>
+                <Btn variant="outline" onClick={() => setBindOpen(true)}>{i18n("auto.pages.CloudPage.12")}</Btn>
               </Inline>
               <ConnectGate need="cloud" open={bindOpen} onClose={() => setBindOpen(false)} />
-              <Text as="p" slot="micro" tone="faint">访问口令仅保存在本机，用于连接清华云盘。</Text>
+              <Text as="p" slot="micro" tone="faint">{i18n("auto.pages.CloudPage.13")}</Text>
             </Stack>
           </Card>
         </div>
@@ -383,7 +385,7 @@ export default function CloudPage(): ReactNode {
     return (
       <Stack gap={2}>
         <Inline gap={2} wrap>
-          <Btn variant="outline" onClick={() => { setRepo(null); setPath("/"); setSearchHits(null); setSearchText(""); exitSel(); }}>← 资料库</Btn>
+          <Btn variant="outline" onClick={() => { setRepo(null); setPath("/"); setSearchHits(null); setSearchText(""); exitSel(); }}>{i18n("auto.pages.CloudPage.14")}</Btn>
           <Grow>
             <Breadcrumb
               items={[
@@ -393,8 +395,8 @@ export default function CloudPage(): ReactNode {
               separator={<IconChevron size="sm" />}
             />
           </Grow>
-          <Btn variant="outline" disabled={batchBusy} icon={<IconFolderPlus size="sm" />} titleAttr="新建文件夹" onClick={async () => {
-              const name = await promptText("新建文件夹", { placeholder: "文件夹名称" });
+          <Btn variant="outline" disabled={batchBusy} icon={<IconFolderPlus size="sm" />} titleAttr={i18n("auto.pages.CloudPage.15")} onClick={async () => {
+              const name = await promptText("新建文件夹", { placeholder: i18n("auto.pages.CloudPage.p4") });
               if (!name) return;
               try {
                 await invoke("seafile_mkdir", { token: getSeafileToken(), repoId: repo.id, path: `${path === "/" ? "" : path}/${name}` });
@@ -403,8 +405,7 @@ export default function CloudPage(): ReactNode {
               } catch (e) {
                 showToast(`创建失败：${String(e).slice(0, 80)}`);
               }
-            }}>新建文件夹
-          </Btn>
+            }}>{i18n("auto.pages.CloudPage.15")}</Btn>
           <Btn variant="outline" disabled={busy || batchBusy} onClick={() => {
               if (selMode) { exitSel(); return; }
               setSearchHits(null);
@@ -420,8 +421,7 @@ export default function CloudPage(): ReactNode {
                 refreshRepos().catch(() => undefined);
                 refreshDir(repo.id, path).catch(() => undefined); // 立刻刷当前目录（缓存失效）
               }
-            }}>上传
-          </Btn>
+            }}>{i18n("auto.pages.CloudPage.16")}</Btn>
         </Inline>
 
         {!selMode && (
@@ -440,17 +440,17 @@ export default function CloudPage(): ReactNode {
               />
             </div>
             {!searching && (searchHits || searchMeta) && (
-              <Btn variant="outline" onClick={() => { searchSeqRef.current++; setSearchHits(null); setSearchMeta(null); setSearchText(""); }}>退出搜索</Btn>
+              <Btn variant="outline" onClick={() => { searchSeqRef.current++; setSearchHits(null); setSearchMeta(null); setSearchText(""); }}>{i18n("auto.pages.CloudPage.17")}</Btn>
             )}
-            {searching && <Tag tone="brand">搜索中…</Tag>}
+            {searching && <Tag tone="brand">{i18n("auto.pages.CloudPage.18")}</Tag>}
           </Inline>
         )}
 
-        {dir.loading && <Text as="p" tone="faint">读取中…</Text>}
+        {dir.loading && <Text as="p" tone="faint">{i18n("auto.pages.CloudPage.19")}</Text>}
         {dir.error && <Text as="p" slot="micro" tone="error">{dir.error}</Text>}
 
         {selMode ? (
-          <Card flush role="listbox" aria-label="批量选择">
+          <Card flush role="listbox" aria-label={i18n("auto.pages.CloudPage.20")}>
             <List divided>
               {entries.map((e) => {
                 const toggle = (): void => setSelSet((s) => { const n = new Set(s); if (n.has(e.name)) n.delete(e.name); else n.add(e.name); return n; });
@@ -469,15 +469,15 @@ export default function CloudPage(): ReactNode {
                 );
               })}
             </List>
-            {entries.length === 0 && !dir.loading && <EmptyState title="空目录" />}
+            {entries.length === 0 && !dir.loading && <EmptyState title={i18n("auto.pages.CloudPage.21")} />}
             <div style={{ position: "sticky", bottom: 0 }}>
               <Surface radius="none">
                 <Inline gap={2} wrap>
                   <Btn variant="outline" onClick={() => setSelSet(allSelected ? new Set() : new Set(entries.map((x) => x.name)))}>{allSelected ? "取消全选" : "全选"}</Btn>
-                  <Text slot="label" tone="faint">已选 {selSet.size} 项</Text>
+                  <Text slot="label" tone="faint">{i18n("auto.pages.CloudPage.22")}{selSet.size} {i18n("auto.pages.CloudPage.23")}</Text>
                   <Spacer />
                   <Btn variant="outline" disabled={!selSet.size || batchBusy} onClick={() => void batchDownload()}>{batchBusy ? "处理中…" : `下载（${selSet.size}）`}</Btn>
-                  <Btn variant="outline" disabled={!selSet.size || batchBusy} onClick={() => void batchDelete()}>删除（{selSet.size}）</Btn>
+                  <Btn variant="outline" disabled={!selSet.size || batchBusy} onClick={() => void batchDelete()}>{i18n("auto.pages.CloudPage.24")}{selSet.size}）</Btn>
                 </Inline>
               </Surface>
             </div>
@@ -491,7 +491,7 @@ export default function CloudPage(): ReactNode {
             {searchMeta && (
               <Inline vAlign="baseline" gap={2} wrap>
                 <Text slot="subtitle">“{searchMeta.q}”</Text>
-                <Text slot="micro" tone="faint">{searchHits.length} 个结果 · {(searchMeta.ms / 1000).toFixed(1)}s</Text>
+                <Text slot="micro" tone="faint">{searchHits.length} {i18n("auto.pages.CloudPage.25")}{(searchMeta.ms / 1000).toFixed(1)}s</Text>
               </Inline>
             )}
             {searchHits.length === 0 && searchMeta ? (
@@ -513,7 +513,7 @@ export default function CloudPage(): ReactNode {
             )}
           </Stack>
         ) : (
-          <Card flush role="listbox" aria-label="云盘文件">
+          <Card flush role="listbox" aria-label={i18n("auto.pages.CloudPage.26")}>
             <List divided>
               {entries.map((e) => (
                 <Row
@@ -535,7 +535,7 @@ export default function CloudPage(): ReactNode {
                   trailing={
                     <>
                       {e.kind === "file" ? fmtSize(e.size) : ""}{e.mtime ? ` · ${fmtMtime(e.mtime)}` : ""}
-                      <Btn size="sm" variant="outline" titleAttr="移动到其他位置" onClick={(ev) => { ev.stopPropagation(); setMoving(e); }}>移动</Btn>
+                      <Btn size="sm" variant="outline" titleAttr={i18n("auto.pages.CloudPage.27")} onClick={(ev) => { ev.stopPropagation(); setMoving(e); }}>{i18n("auto.pages.CloudPage.28")}</Btn>
                       <Btn size="sm" variant="outline" titleAttr={e.kind === "dir" ? "删除文件夹（含全部内容）" : "删除文件"} onClick={(ev) => {
                           ev.stopPropagation();
                           void deleteEntry(repo, `${path === "/" ? "" : path}/${e.name}`, e).then((ok) => {
@@ -543,12 +543,11 @@ export default function CloudPage(): ReactNode {
                             refreshDir(repo.id, path).catch(() => undefined);
                             refreshRepos().catch(() => undefined);
                           }).catch((err) => showToast(`删除失败：${String(err).slice(0, 80)}`));
-                        }}>删除
-                      </Btn>
+                        }}>{i18n("auto.pages.CloudPage.29")}</Btn>
                       {e.kind === "file" && (
                         <>
-                          <Btn size="sm" variant="outline" titleAttr="下载到 Downloads" onClick={(ev) => { ev.stopPropagation(); seafileDownload(repo.id, `${path === "/" ? "" : path}/${e.name}`).catch((err) => showToast(String(err).slice(0, 90))); }}>下载</Btn>
-                          <Btn size="sm" variant="outline" titleAttr="生成分享链接" disabled={sharing === e.name} onClick={(ev) => {
+                          <Btn size="sm" variant="outline" titleAttr={i18n("auto.pages.CloudPage.30")} onClick={(ev) => { ev.stopPropagation(); seafileDownload(repo.id, `${path === "/" ? "" : path}/${e.name}`).catch((err) => showToast(String(err).slice(0, 90))); }}>{i18n("auto.pages.CloudPage.31")}</Btn>
+                          <Btn size="sm" variant="outline" titleAttr={i18n("auto.pages.CloudPage.32")} disabled={sharing === e.name} onClick={(ev) => {
                               ev.stopPropagation();
                               setSharing(e.name);
                               seafileShare(repo.id, `${path === "/" ? "" : path}/${e.name}`, 0)
@@ -567,7 +566,7 @@ export default function CloudPage(): ReactNode {
                 />
               ))}
             </List>
-            {entries.length === 0 && !dir.loading && <EmptyState title="空目录" />}
+            {entries.length === 0 && !dir.loading && <EmptyState title={i18n("auto.pages.CloudPage.21")} />}
           </Card>
         )}
         {moving && (
@@ -589,18 +588,18 @@ export default function CloudPage(): ReactNode {
   return (
     <Stack gap={3}>
       <Inline gap={2} wrap>
-        <Text slot="title" as="h2">清华云盘</Text>
+        <Text slot="title" as="h2">{i18n("auto.pages.CloudPage.8")}</Text>
         {account ? (
           <Text slot="micro" tone="faint">
             {account.name || account.email} · {fmtSize(account.usage)} / {fmtSize(account.total)}
           </Text>
         ) : busy ? (
-          <Text slot="micro" tone="faint">连接中…</Text>
+          <Text slot="micro" tone="faint">{i18n("auto.pages.CloudPage.33")}</Text>
         ) : null}
         <Spacer />
         <Inline gap={2}>
-          <Btn variant="outline" disabled={busy} icon={<IconFolderPlus size="sm" />} titleAttr="新建资料库" onClick={async () => {
-              const name = await promptText("新建资料库", { placeholder: "资料库名称" });
+          <Btn variant="outline" disabled={busy} icon={<IconFolderPlus size="sm" />} titleAttr={i18n("auto.pages.CloudPage.34")} onClick={async () => {
+              const name = await promptText("新建资料库", { placeholder: i18n("auto.pages.CloudPage.p5") });
               if (!name) return;
               try {
                 await invoke("seafile_create_repo", { token: getSeafileToken(), name });
@@ -609,20 +608,18 @@ export default function CloudPage(): ReactNode {
               } catch (e) {
                 showToast(`创建失败：${String(e).slice(0, 80)}`);
               }
-            }}>新建资料库
-          </Btn>
-          <Btn variant="outline" disabled={busy} icon={<IconRefresh size="sm" />} onClick={() => { refreshSeafileAccount().catch(() => undefined); refreshRepos().catch(() => undefined); }}>刷新
-          </Btn>
-          <Text as="span" slot="micro" tone="faint">云盘为必需组件，本版本起不再提供断开入口</Text>
+            }}>{i18n("auto.pages.CloudPage.34")}</Btn>
+          <Btn variant="outline" disabled={busy} icon={<IconRefresh size="sm" />} onClick={() => { refreshSeafileAccount().catch(() => undefined); refreshRepos().catch(() => undefined); }}>{i18n("auto.pages.CloudPage.35")}</Btn>
+          <Text as="span" slot="micro" tone="faint">{i18n("auto.pages.CloudPage.36")}</Text>
         </Inline>
       </Inline>
       {account && (
         <Progress value={account.usage / Math.max(account.total, 1)} size="sm" />
       )}
       {lastError && <Text as="p" slot="micro" tone="error">{lastError}</Text>}
-      {busy && <Text as="p" tone="faint">加载资料库…</Text>}
+      {busy && <Text as="p" tone="faint">{i18n("auto.pages.CloudPage.37")}</Text>}
       {repos.length === 0 && !busy ? (
-        <EmptyState title="没有可见的资料库" />
+        <EmptyState title={i18n("auto.pages.CloudPage.38")} />
       ) : (
         <Grid min="md">
           {repos.map((r) => (
@@ -638,7 +635,7 @@ export default function CloudPage(): ReactNode {
             >
               <Row
                 flush
-                leading={<IconFolder size="lg" className="og-text--t-brand" title="资料库" />}
+                leading={<IconFolder size="lg" className="og-text--t-brand" title={i18n("auto.pages.CloudPage.39")} />}
                 title={r.name}
                 sub={`${fmtSize(r.size)}${r.mtime ? ` · ${fmtMtime(r.mtime)}` : ""}`}
               />

@@ -37,6 +37,8 @@ import {
 import { openExternal } from "./info/openExternal.js";
 import { addToVault } from "../state/vault.js";
 import { orgCardCatch } from "../state/nameCard.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const ROLE_LABEL: Record<OrgRole, string> = { owner: "负责人", member: "成员", guest: "访客" };
 
@@ -79,9 +81,9 @@ function OrgPicker(): ReactNode {
   const create = async (): Promise<void> => {
     const email = await currentOrgEmail();
     const f = await openFormModal("新建组织", [
-      { key: "name", label: "组织名称", required: true },
-      { key: "brief", label: "一句话简介（可选）", kind: "textarea" },
-      { key: "joinUrl", label: "加入方式（GitLab 组织 / 云盘资料库链接，可选）" },
+      { key: "name", label: i18n("auto.pages.Organization.p1"), required: true },
+      { key: "brief", label: i18n("auto.pages.Organization.p2"), kind: "textarea" },
+      { key: "joinUrl", label: i18n("auto.pages.Organization.p3") },
     ]);
     if (!f?.name) return;
     const org = createOrg({ name: f.name, brief: f.brief, joinUrl: f.joinUrl, ownerEmail: email });
@@ -90,8 +92,8 @@ function OrgPicker(): ReactNode {
   };
   const join = async (): Promise<void> => {
     const f = await openFormModal("用邀请口令加入组织", [
-      { key: "code", label: "组织邀请口令（ON-…）", kind: "textarea", required: true },
-      { key: "name", label: "你在组织里的名字", default: "我" },
+      { key: "code", label: i18n("auto.pages.Organization.p4"), kind: "textarea", required: true },
+      { key: "name", label: i18n("auto.pages.Organization.p5"), default: "我" },
     ]);
     if (!f?.code) return;
     const r = await acceptOrgInvite(f.code, f.name || "我");
@@ -99,30 +101,30 @@ function OrgPicker(): ReactNode {
       showToast(r.reason ?? "邀请口令无法识别");
       return;
     }
-    showToast("已加入组织");
-    if (r.orgId) openTab("org", { orgId: r.orgId }, { title: "组织" });
+    showToast(i18n("auto.pages.Organization.msg1"));
+    if (r.orgId) openTab("org", { orgId: r.orgId }, { title: i18n("auto.pages.Organization.p6") });
   };
   return (
     <div className="org-page">
       <PageHead
-        title="组织"
+        title={i18n("auto.pages.Organization.1")}
         meta="成员、资料库与 GitLab 仓库，都落在真实账号上。"
         actions={
           <Inline gap={2} wrap>
-            <Btn variant="solid" tone="brand" onClick={() => void create()}>新建组织</Btn>
-            <Btn variant="outline" onClick={() => void join()}>用邀请口令加入</Btn>
+            <Btn variant="solid" tone="brand" onClick={() => void create()}>{i18n("auto.pages.Organization.2")}</Btn>
+            <Btn variant="outline" onClick={() => void join()}>{i18n("auto.pages.Organization.3")}</Btn>
           </Inline>
         }
       />
       {doc.orgs.length === 0 ? (
         <EmptyState
           icon={<IconIn size="lg" />}
-          title="还没有组织"
-          hint="建一个组织：成员按邮箱加入，资料库共享到邮箱，GitLab 仓库挂到组织上。"
+          title={i18n("auto.pages.Organization.4")}
+          hint={i18n("auto.pages.Organization.5")}
           action={
             <Inline gap={2} wrap>
-              <Btn variant="solid" tone="brand" onClick={() => void create()}>新建组织</Btn>
-              <Btn variant="outline" onClick={() => void join()}>用邀请口令加入</Btn>
+              <Btn variant="solid" tone="brand" onClick={() => void create()}>{i18n("auto.pages.Organization.2")}</Btn>
+              <Btn variant="outline" onClick={() => void join()}>{i18n("auto.pages.Organization.3")}</Btn>
             </Inline>
           }
         />
@@ -134,7 +136,7 @@ function OrgPicker(): ReactNode {
               title={o.name}
               sub={`${o.members.length} 名成员 · ${(o.libraries ?? []).length} 个资料库 · ${(o.gitlabRepos ?? []).length} 个仓库${o.brief ? " · " + o.brief : ""}`}
               onClick={() => openTab("org", { orgId: o.id }, { title: o.name })}
-              trailing={<Btn size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); openTab("org", { orgId: o.id }, { title: o.name }); }}>打开</Btn>}
+              trailing={<Btn size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); openTab("org", { orgId: o.id }, { title: o.name }); }}>{i18n("auto.pages.Organization.6")}</Btn>}
             />
           ))}
         </List>
@@ -187,13 +189,13 @@ function LibraryFiles({ repoId, name }: { repoId: string; name: string }): React
   return (
     <div className="org-files">
       <div className="name-card-actions">
-        <Btn size="sm" variant="ghost" disabled={busy} onClick={() => void load(path)}>刷新</Btn>
-        {path !== "/" ? <Btn size="sm" variant="ghost" onClick={() => void load(path.replace(/\/[^/]+$/, "") || "/")}>上一级</Btn> : null}
+        <Btn size="sm" variant="ghost" disabled={busy} onClick={() => void load(path)}>{i18n("auto.pages.Organization.7")}</Btn>
+        {path !== "/" ? <Btn size="sm" variant="ghost" onClick={() => void load(path.replace(/\/[^/]+$/, "") || "/")}>{i18n("auto.pages.Organization.8")}</Btn> : null}
         <Text slot="micro" tone="faint">「{name}」{path === "/" ? "根目录" : path}</Text>
       </div>
-      {busy && !entries ? <Text slot="micro" tone="faint">正在读取云盘…</Text> : null}
-      {error ? <Text slot="micro" tone="faint">{error}（可在云盘页确认登录后重试）</Text> : null}
-      {entries && entries.length === 0 ? <Text slot="micro" tone="faint">这个资料库还是空的：可以到云盘里上传文件，回来就能预览。</Text> : null}
+      {busy && !entries ? <Text slot="micro" tone="faint">{i18n("auto.pages.Organization.9")}</Text> : null}
+      {error ? <Text slot="micro" tone="faint">{error}{i18n("auto.pages.Organization.10")}</Text> : null}
+      {entries && entries.length === 0 ? <Text slot="micro" tone="faint">{i18n("auto.pages.Organization.11")}</Text> : null}
       {entries && entries.length > 0 ? (
         <List divided>
           {entries.map((entry) => (
@@ -222,8 +224,8 @@ function LibraryFiles({ repoId, name }: { repoId: string; name: string }): React
               {preview?.data.size ? `（约 ${Math.ceil(preview.data.size / 1024)} KB）` : ""}
             </Text>
             <Inline gap={2}>
-              <Btn variant="outline" onClick={() => void seafileDownload(repoId, (path === "/" ? "" : path) + "/" + (preview?.title ?? "")).catch((e) => showToast(`下载失败：${e instanceof Error ? e.message : String(e)}`))}>下载到本机</Btn>
-              <Btn variant="ghost" onClick={() => setPreview(null)}>关闭</Btn>
+              <Btn variant="outline" onClick={() => void seafileDownload(repoId, (path === "/" ? "" : path) + "/" + (preview?.title ?? "")).catch((e) => showToast(`下载失败：${e instanceof Error ? e.message : String(e)}`))}>{i18n("auto.pages.Organization.12")}</Btn>
+              <Btn variant="ghost" onClick={() => setPreview(null)}>{i18n("auto.pages.Organization.13")}</Btn>
             </Inline>
           </Stack>
         )}
@@ -249,8 +251,8 @@ function RepoPreview({ projectId }: { projectId: number }): ReactNode {
     })();
     return () => { alive = false; };
   }, [projectId]);
-  if (error) return <Text slot="micro" tone="faint">{error}（先打开 GitLab 登录后可预览）</Text>;
-  if (!detail) return <Text slot="micro" tone="faint">正在读取仓库…</Text>;
+  if (error) return <Text slot="micro" tone="faint">{error}{i18n("auto.pages.Organization.14")}</Text>;
+  if (!detail) return <Text slot="micro" tone="faint">{i18n("auto.pages.Organization.15")}</Text>;
   const last = detail.last_activity_at ? new Date(detail.last_activity_at).toLocaleString("zh-CN", { hour12: false }) : "未知";
   return (
     <KeyValue
@@ -273,15 +275,15 @@ function OrgMissing(): ReactNode {
   return (
     <div className="org-page">
       <PageHead
-        title="组织"
+        title={i18n("auto.pages.Organization.1")}
         meta="这个组织不在这台设备上了。"
-        actions={<Btn variant="outline" onClick={() => openTab("contacts", { section: "orgs" })}>打开通讯录</Btn>}
+        actions={<Btn variant="outline" onClick={() => openTab("contacts", { section: "orgs" })}>{i18n("auto.pages.Organization.16")}</Btn>}
       />
       <EmptyState
         icon={<IconIn size="lg" />}
-        title="找不到这个组织"
-        hint="可能已经被删除，或换了设备；到通讯录的「我的组织」里重新新建/加入。"
-        action={<Btn variant="solid" tone="brand" onClick={() => openTab("contacts", { section: "orgs" })}>去通讯录「我的组织」</Btn>}
+        title={i18n("auto.pages.Organization.17")}
+        hint={i18n("auto.pages.Organization.18")}
+        action={<Btn variant="solid" tone="brand" onClick={() => openTab("contacts", { section: "orgs" })}>{i18n("auto.pages.Organization.19")}</Btn>}
       />
     </div>
   );
@@ -317,26 +319,26 @@ export function OrganizationPage(): ReactNode {
   /* ── 基本资料 ── */
   const editOrg = async (target: Org): Promise<void> => {
     const f = await openFormModal("编辑组织资料", [
-      { key: "name", label: "组织名称", required: true, default: target.name },
-      { key: "brief", label: "简介", kind: "textarea", default: target.brief },
-      { key: "joinUrl", label: "加入链接（GitLab 组织 / 云盘资料库，可选）", default: target.joinUrl },
+      { key: "name", label: i18n("auto.pages.Organization.p7"), required: true, default: target.name },
+      { key: "brief", label: i18n("auto.pages.Organization.p8"), kind: "textarea", default: target.brief },
+      { key: "joinUrl", label: i18n("auto.pages.Organization.p9"), default: target.joinUrl },
     ]);
     if (!f?.name) return;
     updateOrg(target.id, { name: f.name, brief: f.brief ?? "", joinUrl: f.joinUrl ?? "" });
-    showToast("组织资料已更新");
+    showToast(i18n("auto.pages.Organization.msg2"));
   };
 
   /* ── 邀请 ── */
   const makeInvite = async (target: Org): Promise<void> => {
     const f = await openFormModal("邀请成员", [
-      { key: "label", label: "口令名（如「算法组招新」，可选）", default: target.invite?.label ?? "" },
-      { key: "allowEmail", label: "只允许这个清华云盘邮箱接受（可选）", default: target.invite?.allowEmail ?? "" },
-      { key: "expireDays", label: "有效期（改了会换一条新口令）", kind: "select", options: INVITE_EXPIRES, default: inviteExpireDays(target.invite) },
+      { key: "label", label: i18n("auto.pages.Organization.p10"), default: target.invite?.label ?? "" },
+      { key: "allowEmail", label: i18n("auto.pages.Organization.p11"), default: target.invite?.allowEmail ?? "" },
+      { key: "expireDays", label: i18n("auto.pages.Organization.p12"), kind: "select", options: INVITE_EXPIRES, default: inviteExpireDays(target.invite) },
     ]);
     if (!f) return;
     const email = (f.allowEmail ?? "").trim();
     if (email && !isEmail(email)) {
-      showToast("邮箱格式不对");
+      showToast(i18n("auto.pages.Organization.msg3"));
       return;
     }
     const expireDays = Number(f.expireDays ?? "7") === 0 ? 0 : Number(f.expireDays ?? "7");
@@ -353,13 +355,13 @@ export function OrganizationPage(): ReactNode {
   /* ── 成员 ── */
   const addMember = async (target: Org): Promise<void> => {
     const f = await openFormModal("添加成员", [
-      { key: "email", label: "清华云盘邮箱", required: true, placeholder: "学号@mails.tsinghua.edu.cn" },
-      { key: "name", label: "显示名（留空用邮箱前缀）" },
-      { key: "role", label: "角色", kind: "select", options: [{ value: "member", label: "成员" }, { value: "guest", label: "访客" }, { value: "owner", label: "负责人" }] },
+      { key: "email", label: i18n("auto.pages.Organization.p13"), required: true, placeholder: i18n("auto.pages.Organization.p14") },
+      { key: "name", label: i18n("auto.pages.Organization.p15") },
+      { key: "role", label: i18n("auto.pages.Organization.p16"), kind: "select", options: [{ value: "member", label: i18n("auto.pages.Organization.p17") }, { value: "guest", label: i18n("auto.pages.Organization.p18") }, { value: "owner", label: i18n("auto.pages.Organization.p19") }] },
     ]);
     if (!f?.email) return;
     if (!isEmail(f.email)) {
-      showToast("邮箱格式不对");
+      showToast(i18n("auto.pages.Organization.msg4"));
       return;
     }
     const name = f.name?.trim() || f.email.split("@")[0] || "成员";
@@ -374,8 +376,8 @@ export function OrganizationPage(): ReactNode {
     const m = target.members.find((x) => x.id === memberId);
     if (!m) return;
     const f = await openFormModal("编辑成员", [
-      { key: "name", label: "显示名", default: m.name },
-      { key: "email", label: "清华云盘邮箱", default: m.email, placeholder: "学号@mails.tsinghua.edu.cn" },
+      { key: "name", label: i18n("auto.pages.Organization.p20"), default: m.name },
+      { key: "email", label: i18n("auto.pages.Organization.p21"), default: m.email, placeholder: i18n("auto.pages.Organization.p22") },
     ]);
     if (!f) return;
     const r = updateOrgMember(target.id, memberId, { name: f.name ?? m.name, email: f.email ?? m.email });
@@ -388,11 +390,11 @@ export function OrganizationPage(): ReactNode {
   const createLibrary = async (target: Org): Promise<void> => {
     await ensureSeafileLoaded();
     if (!getSeafileToken()) {
-      showToast("先连接清华云盘再建资料库");
+      showToast(i18n("auto.pages.Organization.msg5"));
       openTab("cloud");
       return;
     }
-    const f = await openFormModal("新建组织资料库", [{ key: "name", label: "资料库名称", default: `${target.name} 资料库`, required: true }]);
+    const f = await openFormModal("新建组织资料库", [{ key: "name", label: i18n("auto.pages.Organization.p23"), default: `${target.name} 资料库`, required: true }]);
     if (!f?.name) return;
     setSharing("create-lib");
     try {
@@ -414,7 +416,7 @@ export function OrganizationPage(): ReactNode {
       return;
     }
     const f = await openFormModal("关联已有资料库", [
-      { key: "repoId", label: "选择资料库", kind: "select", options: repos.map((r) => ({ value: r.id, label: r.name })) },
+      { key: "repoId", label: i18n("auto.pages.Organization.p24"), kind: "select", options: repos.map((r) => ({ value: r.id, label: r.name })) },
     ]);
     if (!f?.repoId) return;
     const hit = repos.find((r) => r.id === f.repoId);
@@ -426,12 +428,12 @@ export function OrganizationPage(): ReactNode {
   const shareLibrary = async (target: Org, repoId: string, name: string): Promise<void> => {
     const targets = target.members.filter((m) => m.email);
     if (!targets.length) {
-      showToast("成员还没有绑定邮箱：先在「成员」里补上邮箱再共享");
+      showToast(i18n("auto.pages.Organization.msg6"));
       return;
     }
     await ensureSeafileLoaded();
     if (!getSeafileToken()) {
-      showToast("先连接清华云盘再共享资料库");
+      showToast(i18n("auto.pages.Organization.msg7"));
       openTab("cloud");
       return;
     }
@@ -582,9 +584,9 @@ export function OrganizationPage(): ReactNode {
       try {
         const g = await syncGitlabMembers(orgId, targets);
         if (g.ok) showToast(`已把 ${g.ok} 位成员加进 GitLab 仓库`);
-        else if (g.skipped.length) showToast("成员邮箱在 GitLab 搜不到：可手动加仓库成员");
+        else if (g.skipped.length) showToast(i18n("auto.pages.Organization.msg8"));
       } catch {
-        showToast("GitLab 未登录：仓库已关联，登录后点「同步权限」");
+        showToast(i18n("auto.pages.Organization.msg9"));
       }
     })();
   };
@@ -594,7 +596,7 @@ export function OrganizationPage(): ReactNode {
     const latest = orgSnapshot().orgs.find((o) => o.id === target.id) ?? target;
     const targets = latest.members.filter((m) => m.email).map((m) => ({ email: m.email, role: m.role }));
     if (!targets.length) {
-      showToast("成员还没有绑定邮箱：先补邮箱再同步");
+      showToast(i18n("auto.pages.Organization.msg10"));
       return;
     }
     setSharing("sync-all");
@@ -612,7 +614,7 @@ export function OrganizationPage(): ReactNode {
   /* ── GitLab ── */
   const linkGitlab = async (target: Org): Promise<void> => {
     const f = await openFormModal("关联 GitLab 仓库", [
-      { key: "path", label: "仓库完整路径", required: true, placeholder: "group/project" },
+      { key: "path", label: i18n("auto.pages.Organization.p25"), required: true, placeholder: "group/project" },
     ]);
     if (!f?.path) return;
     setSharing("gitlab");
@@ -636,14 +638,14 @@ export function OrganizationPage(): ReactNode {
     const latest = orgSnapshot().orgs.find((o) => o.id === target.id) ?? target;
     const group = latest.gitlabGroup;
     const fields = [
-      ...(group ? [] : [{ key: "groupName", label: "GitLab 组织名", default: target.name, required: true } as const]),
+      ...(group ? [] : [{ key: "groupName", label: i18n("auto.pages.Organization.p26"), default: target.name, required: true } as const]),
       { key: "name", label: group ? "新仓库名" : "第一个仓库名", default: gitlabSlug(target.name), required: true } as const,
-      { key: "description", label: "描述（可选）" } as const,
+      { key: "description", label: i18n("auto.pages.Organization.p27") } as const,
       {
         key: "visibility",
-        label: "可见性",
+        label: i18n("auto.pages.Organization.p28"),
         kind: "select" as const,
-        options: [{ value: "private", label: "私有" }, { value: "internal", label: "内部" }, { value: "public", label: "公开" }],
+        options: [{ value: "private", label: i18n("auto.pages.Organization.p29") }, { value: "internal", label: i18n("auto.pages.Organization.p30") }, { value: "public", label: i18n("auto.pages.Organization.p31") }],
       },
     ];
     const f = await openFormModal(group ? "在 GitLab 组织下新建仓库" : "创建 GitLab 组织与仓库", fields);
@@ -681,9 +683,9 @@ export function OrganizationPage(): ReactNode {
   /* ── 项目 / 公告 ── */
   const editProject = async (target: Org, project?: OrgProject): Promise<void> => {
     const f = await openFormModal(project ? "编辑项目" : "新建项目", [
-      { key: "name", label: "项目名称", required: true, default: project?.name },
-      { key: "description", label: "项目说明", kind: "textarea", default: project?.description },
-      { key: "owner", label: "负责人", default: project?.owner },
+      { key: "name", label: i18n("auto.pages.Organization.p32"), required: true, default: project?.name },
+      { key: "description", label: i18n("auto.pages.Organization.p33"), kind: "textarea", default: project?.description },
+      { key: "owner", label: i18n("auto.pages.Organization.p34"), default: project?.owner },
     ]);
     if (!f) return;
     saveOrgProject(target.id, { id: project?.id, name: f.name!, description: f.description ?? "", owner: f.owner ?? "", status: project?.status ?? "planned" });
@@ -691,8 +693,8 @@ export function OrganizationPage(): ReactNode {
 
   const editNotice = async (target: Org, notice?: OrgAnnouncement): Promise<void> => {
     const f = await openFormModal(notice ? "编辑公告" : "发布公告", [
-      { key: "title", label: "公告标题", required: true, default: notice?.title },
-      { key: "body", label: "公告内容", kind: "textarea", required: true, default: notice?.body },
+      { key: "title", label: i18n("auto.pages.Organization.p35"), required: true, default: notice?.title },
+      { key: "body", label: i18n("auto.pages.Organization.p36"), kind: "textarea", required: true, default: notice?.body },
     ]);
     if (!f) return;
     saveOrgAnnouncement(target.id, { id: notice?.id, title: f.title!, body: f.body!, pinned: notice?.pinned ?? false });
@@ -712,9 +714,9 @@ export function OrganizationPage(): ReactNode {
         meta={org.brief || "成员、资料库与 GitLab 仓库都挂在这个组织上。"}
         actions={
           <Inline gap={2} wrap>
-            <Btn variant="solid" tone="brand" onClick={() => void makeInvite(org)}>邀请成员</Btn>
-            <Btn variant="outline" onClick={() => void editOrg(org)}>编辑资料</Btn>
-            <Btn variant="ghost" onClick={() => openTab("contacts", { section: "orgs" })}>全部组织</Btn>
+            <Btn variant="solid" tone="brand" onClick={() => void makeInvite(org)}>{i18n("auto.pages.Organization.20")}</Btn>
+            <Btn variant="outline" onClick={() => void editOrg(org)}>{i18n("auto.pages.Organization.21")}</Btn>
+            <Btn variant="ghost" onClick={() => openTab("contacts", { section: "orgs" })}>{i18n("auto.pages.Organization.22")}</Btn>
           </Inline>
         }
       />
@@ -723,12 +725,12 @@ export function OrganizationPage(): ReactNode {
           value={tab}
           onChange={setTab}
           options={[
-            { value: "overview", label: "概览" },
-            { value: "members", label: "成员" },
-            { value: "libraries", label: "资料库" },
+            { value: "overview", label: i18n("auto.pages.Organization.p37") },
+            { value: "members", label: i18n("auto.pages.Organization.p38") },
+            { value: "libraries", label: i18n("auto.pages.Organization.p39") },
             { value: "gitlab", label: "GitLab" },
-            { value: "projects", label: "项目" },
-            { value: "notices", label: "公告" },
+            { value: "projects", label: i18n("auto.pages.Organization.p40") },
+            { value: "notices", label: i18n("auto.pages.Organization.p41") },
           ]}
         />
       </div>
@@ -736,7 +738,7 @@ export function OrganizationPage(): ReactNode {
       {tab === "overview" ? (
         <Stack gap={5}>
           <Card>
-            <Section title="组织概况" hint="成员邮箱、资料库与仓库都是真实资源" />
+            <Section title={i18n("auto.pages.Organization.23")} hint={i18n("auto.pages.Organization.24")} />
             <KeyValue
               rows={[
                 { k: "成员", v: `${org.members.length} 人（${org.members.filter((m) => m.email).length} 人已绑定邮箱）` },
@@ -748,45 +750,44 @@ export function OrganizationPage(): ReactNode {
               ]}
             />
             <div className="name-card-actions">
-              <Btn variant="outline" onClick={() => void addMember(org)}>添加成员</Btn>
-              <Btn variant="outline" onClick={() => setTab("libraries")}>去建资料库</Btn>
-              <Btn variant="ghost" onClick={() => setTab("gitlab")}>去关联仓库</Btn>
-              <Btn variant="ghost" onClick={() => { const r = addToVault(orgCardCatch(orgIdentityCard(org))); showToast(r.ok ? "组织名片已放进暂存箱" : "暂存箱里已经有这张名片了"); }}>放进暂存箱</Btn>
+              <Btn variant="outline" onClick={() => void addMember(org)}>{i18n("auto.pages.Organization.25")}</Btn>
+              <Btn variant="outline" onClick={() => setTab("libraries")}>{i18n("auto.pages.Organization.26")}</Btn>
+              <Btn variant="ghost" onClick={() => setTab("gitlab")}>{i18n("auto.pages.Organization.27")}</Btn>
+              <Btn variant="ghost" onClick={() => { const r = addToVault(orgCardCatch(orgIdentityCard(org))); showToast(r.ok ? "组织名片已放进暂存箱" : "暂存箱里已经有这张名片了"); }}>{i18n("auto.pages.Organization.28")}</Btn>
             </div>
           </Card>
           {org.invite ? (
             <Card>
-              <Section title="最近邀请口令" hint="口令可起名，也可限定某个云盘邮箱才能接受" />
+              <Section title={i18n("auto.pages.Organization.29")} hint={i18n("auto.pages.Organization.30")} />
               <div className="vault-share">
                 <Text slot="micro" tone="faint">
-                  {org.invite.label ? `「${org.invite.label}」` : "邀请口令"}　接收人：{org.invite.allowEmail ?? "任何人"}　有效期：{expireText(org.invite.expiresAt)}
+                  {org.invite.label ? `「${org.invite.label}」` : "邀请口令"}　{i18n("auto.pages.Organization.31")}{org.invite.allowEmail ?? "任何人"}　{i18n("auto.pages.Organization.32")}{expireText(org.invite.expiresAt)}
                 </Text>
                 <code className="vault-share-code">{org.invite.code}</code>
                 <Inline gap={2} wrap>
-                  <Btn size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(org.invite!.code).then(() => showToast("已复制")).catch(() => showToast("请手动复制"))}>复制口令</Btn>
-                  <Btn size="sm" variant="ghost" onClick={() => setInvite(org.invite!)}>显示二维码</Btn>
-                  <Btn size="sm" variant="ghost" onClick={() => void makeInvite(org)}>改名称 / 接收人 / 有效期</Btn>
+                  <Btn size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(org.invite!.code).then(() => showToast(i18n("auto.pages.Organization.msg11"))).catch(() => showToast(i18n("auto.pages.Organization.msg12")))}>{i18n("auto.pages.Organization.33")}</Btn>
+                  <Btn size="sm" variant="ghost" onClick={() => setInvite(org.invite!)}>{i18n("auto.pages.Organization.34")}</Btn>
+                  <Btn size="sm" variant="ghost" onClick={() => void makeInvite(org)}>{i18n("auto.pages.Organization.35")}</Btn>
                   <Btn
                     size="sm"
                     variant="ghost"
                     tone="error"
-                    onClick={() => void confirmOk("删除这个组织邀请口令？删除后对方将无法再用它加入。").then((ok) => {
+                    onClick={() => void confirmOk(i18n("auto.pages.Organization.msg13")).then((ok) => {
                       if (!ok) return;
                       void revokeOrgInvite(org.id).then((r) => showToast(r.ok ? (r.reason ?? "邀请口令已删除") : r.reason ?? "删除失败：到设置里检查云盘登录后重试"));
                     })}
                   >
-                    删除口令
-                  </Btn>
+                    {i18n("auto.pages.Organization.36")}</Btn>
                 </Inline>
               </div>
             </Card>
           ) : null}
           <Card>
-            <Section title="组织名片" hint="名片由组织资料自动生成，不需要另建" />
+            <Section title={i18n("auto.pages.Organization.37")} hint={i18n("auto.pages.Organization.38")} />
             <IdentityCard card={orgIdentityCard(org)} organization variant="detail" />
           </Card>
           <Card>
-            <Section title="危险操作" hint="只删本机组织记录；云盘资料库与 GitLab 仓库不会被删除" />
+            <Section title={i18n("auto.pages.Organization.39")} hint={i18n("auto.pages.Organization.40")} />
             <Btn
               variant="ghost"
               tone="error"
@@ -796,8 +797,7 @@ export function OrganizationPage(): ReactNode {
                 openTab("contacts", { section: "orgs" });
               })}
             >
-              删除这个组织
-            </Btn>
+              {i18n("auto.pages.Organization.41")}</Btn>
           </Card>
         </Stack>
       ) : null}
@@ -805,20 +805,19 @@ export function OrganizationPage(): ReactNode {
       {tab === "members" ? (
         <Stack gap={4}>
           <Inline gap={2} wrap>
-            <Btn variant="solid" tone="brand" onClick={() => void addMember(org)}>添加成员</Btn>
-            <Btn variant="outline" onClick={() => void makeInvite(org)}>邀请口令</Btn>
+            <Btn variant="solid" tone="brand" onClick={() => void addMember(org)}>{i18n("auto.pages.Organization.25")}</Btn>
+            <Btn variant="outline" onClick={() => void makeInvite(org)}>{i18n("auto.pages.Organization.42")}</Btn>
             <Btn
               variant="ghost"
               disabled={!libraries.length}
               onClick={() => { void (async () => { for (const lib of libraries) await shareLibrary(org, lib.repoId, lib.name); })(); }}
             >
-              把资料库共享给全体成员
-            </Btn>
+              {i18n("auto.pages.Organization.43")}</Btn>
             <Btn variant="outline" disabled={sharing === "sync-all"} onClick={() => void syncAllPermissions(org)}>
               {sharing === "sync-all" ? "同步中…" : "同步云盘与 GitLab 权限"}
             </Btn>
           </Inline>
-          <Text slot="micro" tone="faint">资料库共享按成员的清华云盘邮箱发送；改邮箱后记得重新共享。</Text>
+          <Text slot="micro" tone="faint">{i18n("auto.pages.Organization.44")}</Text>
           <List divided>
             {org.members.map((m) => (
               <Row
@@ -827,13 +826,13 @@ export function OrganizationPage(): ReactNode {
                 sub={m.email || "还没绑定邮箱 · 点「编辑」补上"}
                 trailing={
                   <div className="name-card-actions">
-                    <Select aria-label={`${m.name}的角色`} value={m.role} onChange={(v) => { if (!setOrgMemberRole(org.id, m.id, v as OrgRole)) showToast("至少保留一位组织负责人"); }}>
+                    <Select aria-label={`${m.name}的角色`} value={m.role} onChange={(v) => { if (!setOrgMemberRole(org.id, m.id, v as OrgRole)) showToast(i18n("auto.pages.Organization.msg14")); }}>
                       <option value="owner">{ROLE_LABEL.owner}</option>
                       <option value="member">{ROLE_LABEL.member}</option>
                       <option value="guest">{ROLE_LABEL.guest}</option>
                     </Select>
-                    <Btn size="sm" variant="ghost" onClick={() => void editMember(org, m.id)}>编辑</Btn>
-                    <Btn size="sm" variant="ghost" tone="error" onClick={() => void confirmOk(`移除成员「${m.name}」？`).then((ok) => { if (ok && !removeOrgMember(org.id, m.id)) showToast("至少保留一位组织负责人"); })}>移除</Btn>
+                    <Btn size="sm" variant="ghost" onClick={() => void editMember(org, m.id)}>{i18n("auto.pages.Organization.45")}</Btn>
+                    <Btn size="sm" variant="ghost" tone="error" onClick={() => void confirmOk(`移除成员「${m.name}」？`).then((ok) => { if (ok && !removeOrgMember(org.id, m.id)) showToast(i18n("auto.pages.Organization.msg15")); })}>{i18n("auto.pages.Organization.46")}</Btn>
                   </div>
                 }
               />
@@ -846,20 +845,20 @@ export function OrganizationPage(): ReactNode {
         <Stack gap={4}>
           {!seafile.configured ? (
             <Card>
-              <Text slot="label">还没连接清华云盘</Text>
-              <Text slot="micro" tone="faint">资料库是云盘上的「资料库（repo）」，共享按成员邮箱发送。先把云盘连上。</Text>
-              <div className="name-card-actions"><Btn variant="solid" tone="brand" onClick={() => openTab("cloud")}>去连接云盘</Btn></div>
+              <Text slot="label">{i18n("auto.pages.Organization.47")}</Text>
+              <Text slot="micro" tone="faint">{i18n("auto.pages.Organization.48")}</Text>
+              <div className="name-card-actions"><Btn variant="solid" tone="brand" onClick={() => openTab("cloud")}>{i18n("auto.pages.Organization.49")}</Btn></div>
             </Card>
           ) : null}
           <Inline gap={2} wrap>
-            <Btn variant="solid" tone="brand" disabled={sharing === "create-lib"} onClick={() => void createLibrary(org)}>新建资料库</Btn>
-            <Btn variant="outline" onClick={() => void linkLibrary(org)}>关联已有资料库</Btn>
+            <Btn variant="solid" tone="brand" disabled={sharing === "create-lib"} onClick={() => void createLibrary(org)}>{i18n("auto.pages.Organization.50")}</Btn>
+            <Btn variant="outline" onClick={() => void linkLibrary(org)}>{i18n("auto.pages.Organization.51")}</Btn>
           </Inline>
           {libraries.length === 0 ? (
             <EmptyState
               icon={<IconIn size="lg" />}
-              title="组织还没有资料库"
-              hint="建一个独立的云盘资料库给组织，成员按邮箱获得读写权限——不是组织页里塞几个文件夹。"
+              title={i18n("auto.pages.Organization.52")}
+              hint={i18n("auto.pages.Organization.53")}
             />
           ) : (
             <Stack gap={3}>
@@ -868,14 +867,14 @@ export function OrganizationPage(): ReactNode {
                   <Stack gap={2}>
                     <Text slot="title">{lib.name}</Text>
                     <Text slot="micro" tone="faint">
-                      已共享：{lib.sharedWith?.length ? lib.sharedWith.join("、") : "还没有共享给成员"}
+                      {i18n("auto.pages.Organization.54")}{lib.sharedWith?.length ? lib.sharedWith.join("、") : "还没有共享给成员"}
                     </Text>
                     <div className="name-card-actions">
-                      <Btn size="sm" variant="outline" onClick={() => openTab("cloud", { cloudRepo: lib.repoId })}>打开资料库</Btn>
-                      <Btn size="sm" variant="outline" disabled={sharing === lib.repoId} onClick={() => void shareLibrary(org, lib.repoId, lib.name)}>共享给成员</Btn>
-                      <Btn size="sm" variant="ghost" disabled={sharing === lib.repoId} onClick={() => void copyLibraryLink(lib.repoId, lib.name)}>复制分享链接</Btn>
+                      <Btn size="sm" variant="outline" onClick={() => openTab("cloud", { cloudRepo: lib.repoId })}>{i18n("auto.pages.Organization.55")}</Btn>
+                      <Btn size="sm" variant="outline" disabled={sharing === lib.repoId} onClick={() => void shareLibrary(org, lib.repoId, lib.name)}>{i18n("auto.pages.Organization.56")}</Btn>
+                      <Btn size="sm" variant="ghost" disabled={sharing === lib.repoId} onClick={() => void copyLibraryLink(lib.repoId, lib.name)}>{i18n("auto.pages.Organization.57")}</Btn>
                       <Btn size="sm" variant="ghost" onClick={() => setOpenLib(openLib === lib.repoId ? null : lib.repoId)}>{openLib === lib.repoId ? "收起文件" : "预览文件"}</Btn>
-                      <Btn size="sm" variant="ghost" tone="error" onClick={() => void confirmOk(`解除资料库「${lib.name}」与组织的关联？云盘里的资料库不会被删除。`).then((ok) => { if (ok) { removeOrgLibrary(org.id, lib.repoId); showToast("已解除关联"); } })}>解除关联</Btn>
+                      <Btn size="sm" variant="ghost" tone="error" onClick={() => void confirmOk(`解除资料库「${lib.name}」与组织的关联？云盘里的资料库不会被删除。`).then((ok) => { if (ok) { removeOrgLibrary(org.id, lib.repoId); showToast(i18n("auto.pages.Organization.msg16")); } })}>{i18n("auto.pages.Organization.58")}</Btn>
                     </div>
                     {openLib === lib.repoId ? <LibraryFiles repoId={lib.repoId} name={lib.name} /> : null}
                   </Stack>
@@ -891,27 +890,27 @@ export function OrganizationPage(): ReactNode {
           {org.gitlabGroup ? (
             <Card>
               <Stack gap={2}>
-                <Text slot="title">GitLab 组织 · {org.gitlabGroup.name}</Text>
-                <Text slot="micro" tone="faint">{org.gitlabGroup.path} · 新仓库默认建在这个组织下，成员按邮箱邀请</Text>
+                <Text slot="title">{i18n("auto.pages.Organization.59")}{org.gitlabGroup.name}</Text>
+                <Text slot="micro" tone="faint">{org.gitlabGroup.path} {i18n("auto.pages.Organization.60")}</Text>
                 <div className="name-card-actions">
-                  <Btn size="sm" variant="outline" onClick={() => void openExternal(org.gitlabGroup!.webUrl)}>浏览器打开组织</Btn>
-                  <Btn size="sm" variant="ghost" disabled={sharing === "sync-all"} onClick={() => void syncAllPermissions(org)}>邀请成员进组织</Btn>
+                  <Btn size="sm" variant="outline" onClick={() => void openExternal(org.gitlabGroup!.webUrl)}>{i18n("auto.pages.Organization.61")}</Btn>
+                  <Btn size="sm" variant="ghost" disabled={sharing === "sync-all"} onClick={() => void syncAllPermissions(org)}>{i18n("auto.pages.Organization.62")}</Btn>
                 </div>
               </Stack>
             </Card>
           ) : (
-            <Text slot="micro" tone="faint">还没有 GitLab 组织：新建仓库时会先建组织并邀请成员。</Text>
+            <Text slot="micro" tone="faint">{i18n("auto.pages.Organization.63")}</Text>
           )}
           <Inline gap={2} wrap>
             <Btn variant="solid" tone="brand" disabled={sharing === "gitlab"} onClick={() => void createGitlab(org)}>{org.gitlabGroup ? "在组织下新建仓库" : "建 GitLab 组织与仓库"}</Btn>
-            <Btn variant="outline" disabled={sharing === "gitlab"} onClick={() => void linkGitlab(org)}>关联已有仓库</Btn>
-            <Btn variant="ghost" onClick={() => openTab("gitlab")}>打开 GitLab</Btn>
+            <Btn variant="outline" disabled={sharing === "gitlab"} onClick={() => void linkGitlab(org)}>{i18n("auto.pages.Organization.64")}</Btn>
+            <Btn variant="ghost" onClick={() => openTab("gitlab")}>{i18n("auto.pages.Organization.65")}</Btn>
           </Inline>
           {gitlabRepos.length === 0 ? (
             <EmptyState
               icon={<IconIn size="lg" />}
-              title="组织还没有挂 GitLab 仓库"
-              hint="新建仓库，或填 group/project 关联已有仓库。"
+              title={i18n("auto.pages.Organization.66")}
+              hint={i18n("auto.pages.Organization.67")}
             />
           ) : (
             <Stack gap={3}>
@@ -921,10 +920,10 @@ export function OrganizationPage(): ReactNode {
                     <Text slot="title">{repo.name}</Text>
                     <Text slot="micro" tone="faint">{repo.path}</Text>
                     <div className="name-card-actions">
-                      <Btn size="sm" variant="outline" onClick={() => openTab("gitlab", { gitlabProject: repo.id }, { title: `${org.name} · ${repo.name}` })}>打开仓库</Btn>
+                      <Btn size="sm" variant="outline" onClick={() => openTab("gitlab", { gitlabProject: repo.id }, { title: `${org.name} · ${repo.name}` })}>{i18n("auto.pages.Organization.68")}</Btn>
                       <Btn size="sm" variant="ghost" onClick={() => setOpenRepo(openRepo === repo.id ? null : repo.id)}>{openRepo === repo.id ? "收起详情" : "预览项目"}</Btn>
-                      <Btn size="sm" variant="ghost" onClick={() => void openExternal(repo.webUrl ?? `https://git.tsinghua.edu.cn/${repo.path}`)}>浏览器打开</Btn>
-                      <Btn size="sm" variant="ghost" tone="error" onClick={() => void confirmOk(`解除仓库「${repo.name}」与组织的关联？GitLab 上的仓库不会被删除。`).then((ok) => { if (ok) { unlinkOrgGitlab(org.id, repo.id); showToast("已解除关联"); } })}>解除关联</Btn>
+                      <Btn size="sm" variant="ghost" onClick={() => void openExternal(repo.webUrl ?? `https://git.tsinghua.edu.cn/${repo.path}`)}>{i18n("auto.pages.Organization.69")}</Btn>
+                      <Btn size="sm" variant="ghost" tone="error" onClick={() => void confirmOk(`解除仓库「${repo.name}」与组织的关联？GitLab 上的仓库不会被删除。`).then((ok) => { if (ok) { unlinkOrgGitlab(org.id, repo.id); showToast(i18n("auto.pages.Organization.msg17")); } })}>{i18n("auto.pages.Organization.58")}</Btn>
                     </div>
                     {openRepo === repo.id ? <RepoPreview projectId={repo.id} /> : null}
                   </Stack>
@@ -937,22 +936,22 @@ export function OrganizationPage(): ReactNode {
 
       {tab === "projects" ? (
         <Stack gap={3}>
-          <div><Btn variant="solid" tone="brand" onClick={() => void editProject(org)}>新建项目</Btn></div>
-          {projects.length === 0 ? <Text tone="faint">把组织要做的事建成项目，记录负责人和进度。</Text> : null}
+          <div><Btn variant="solid" tone="brand" onClick={() => void editProject(org)}>{i18n("auto.pages.Organization.70")}</Btn></div>
+          {projects.length === 0 ? <Text tone="faint">{i18n("auto.pages.Organization.71")}</Text> : null}
           {projects.map((p) => (
             <Card key={p.id}>
               <Stack gap={2}>
                 <Text slot="title">{p.name}</Text>
                 <Text>{p.description || "暂无说明"}</Text>
-                <Text slot="micro">负责人：{p.owner || "待分配"}</Text>
+                <Text slot="micro">{i18n("auto.pages.Organization.72")}{p.owner || "待分配"}</Text>
                 <div className="name-card-actions">
                   <Select aria-label={`${p.name}的进度`} value={p.status} onChange={(v) => saveOrgProject(org.id, { ...p, status: v as OrgProject["status"] })}>
-                    <option value="planned">计划中</option>
-                    <option value="active">进行中</option>
-                    <option value="done">已完成</option>
+                    <option value="planned">{i18n("auto.pages.Organization.73")}</option>
+                    <option value="active">{i18n("auto.pages.Organization.74")}</option>
+                    <option value="done">{i18n("auto.pages.Organization.75")}</option>
                   </Select>
-                  <Btn size="sm" variant="ghost" onClick={() => void editProject(org, p)}>编辑</Btn>
-                  <Btn size="sm" variant="ghost" tone="error" onClick={() => void confirmOk(`删除项目「${p.name}」？`).then((ok) => { if (ok) deleteOrgProject(org.id, p.id); })}>删除</Btn>
+                  <Btn size="sm" variant="ghost" onClick={() => void editProject(org, p)}>{i18n("auto.pages.Organization.45")}</Btn>
+                  <Btn size="sm" variant="ghost" tone="error" onClick={() => void confirmOk(`删除项目「${p.name}」？`).then((ok) => { if (ok) deleteOrgProject(org.id, p.id); })}>{i18n("auto.pages.Organization.76")}</Btn>
                 </div>
               </Stack>
             </Card>
@@ -962,8 +961,8 @@ export function OrganizationPage(): ReactNode {
 
       {tab === "notices" ? (
         <Stack gap={3}>
-          <div><Btn variant="solid" tone="brand" onClick={() => void editNotice(org)}>发布公告</Btn></div>
-          {noticeList.length === 0 ? <Text tone="faint">还没有公告。</Text> : null}
+          <div><Btn variant="solid" tone="brand" onClick={() => void editNotice(org)}>{i18n("auto.pages.Organization.77")}</Btn></div>
+          {noticeList.length === 0 ? <Text tone="faint">{i18n("auto.pages.Organization.78")}</Text> : null}
           {noticeList.map((n) => (
             <Card key={n.id}>
               <Stack gap={2}>
@@ -971,8 +970,8 @@ export function OrganizationPage(): ReactNode {
                 <div className="org-notice-body">{n.body}</div>
                 <div className="name-card-actions">
                   <Btn size="sm" variant="ghost" onClick={() => saveOrgAnnouncement(org.id, { ...n, pinned: !n.pinned })}>{n.pinned ? "取消置顶" : "置顶"}</Btn>
-                  <Btn size="sm" variant="ghost" onClick={() => void editNotice(org, n)}>编辑</Btn>
-                  <Btn size="sm" variant="ghost" tone="error" onClick={() => void confirmOk(`删除公告「${n.title}」？`).then((ok) => { if (ok) deleteOrgAnnouncement(org.id, n.id); })}>删除</Btn>
+                  <Btn size="sm" variant="ghost" onClick={() => void editNotice(org, n)}>{i18n("auto.pages.Organization.45")}</Btn>
+                  <Btn size="sm" variant="ghost" tone="error" onClick={() => void confirmOk(`删除公告「${n.title}」？`).then((ok) => { if (ok) deleteOrgAnnouncement(org.id, n.id); })}>{i18n("auto.pages.Organization.76")}</Btn>
                 </div>
               </Stack>
             </Card>
@@ -980,17 +979,17 @@ export function OrganizationPage(): ReactNode {
         </Stack>
       ) : null}
 
-      <Modal open={Boolean(invite)} onClose={() => setInvite(null)} title="组织邀请口令" size="sm">
+      <Modal open={Boolean(invite)} onClose={() => setInvite(null)} title={i18n("auto.pages.Organization.79")} size="sm">
         {invite ? (
           <Stack gap={3}>
             <Text slot="micro" tone="faint">
-              {invite.label ? `「${invite.label}」　` : ""}接收人：{invite.allowEmail ?? "任何人（拿到口令就能接受）"}　有效期：{expireText(org.invite?.expiresAt)}
+              {invite.label ? `「${invite.label}」　` : ""}{i18n("auto.pages.Organization.31")}{invite.allowEmail ?? "任何人（拿到口令就能接受）"}　{i18n("auto.pages.Organization.32")}{expireText(org.invite?.expiresAt)}
             </Text>
             <code className="vault-share-code">{invite.code}</code>
             <div className="vault-qr"><QRCodeSVG value={invite.code} size={180} /></div>
             <Inline gap={2} wrap>
-              <Btn size="sm" variant="solid" tone="brand" onClick={() => void navigator.clipboard.writeText(invite.code).then(() => showToast("已复制")).catch(() => showToast("请手动复制"))}>复制口令</Btn>
-              <Btn size="sm" variant="ghost" onClick={() => setInvite(null)}>收起</Btn>
+              <Btn size="sm" variant="solid" tone="brand" onClick={() => void navigator.clipboard.writeText(invite.code).then(() => showToast(i18n("auto.pages.Organization.msg18"))).catch(() => showToast(i18n("auto.pages.Organization.msg19")))}>{i18n("auto.pages.Organization.33")}</Btn>
+              <Btn size="sm" variant="ghost" onClick={() => setInvite(null)}>{i18n("auto.pages.Organization.80")}</Btn>
             </Inline>
           </Stack>
         ) : null}

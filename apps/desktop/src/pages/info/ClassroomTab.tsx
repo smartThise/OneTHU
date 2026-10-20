@@ -12,6 +12,8 @@ import { useApp } from "../../state/context.js";
 import { CollectStar } from "../../components/Collect.js";
 import { enc, noteAtomCache } from "../../state/atoms.js";
 import { TabEmpty, TabError, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type LoadState = "loading" | "error" | "ready";
 /** core getClassroomList → 教学楼（name=显示名，weekNumber=当前周，searchName=查询参数） */
@@ -55,8 +57,7 @@ function SlotFilterDropdown({ value, onChange }: { value: Set<number>; onChange:
               </label>
             ))}
             {value.size > 0 ? (
-              <Btn variant="ghost" onClick={() => onChange(new Set())}>清空（显示全部）
-              </Btn>
+              <Btn variant="ghost" onClick={() => onChange(new Set())}>{i18n("auto.pages.info.ClassroomTab.1")}</Btn>
             ) : null}
           </div>
         </>
@@ -171,7 +172,7 @@ export function ClassroomTab({
   return (
     <>
       <SectionHead
-        title="教学楼"
+        title={i18n("auto.pages.info.ClassroomTab.2")}
         aside={bState === "ready" ? `${buildings?.length ?? 0} 栋 · 点击查询本周状态` : "教学 Tina · 教室资源"}
       />
       {bState === "error" ? (
@@ -188,7 +189,7 @@ export function ClassroomTab({
             const b = buildings!.find((x) => x.searchName === v);
             if (b) void loadState(b);
           }}
-          placeholder="选择教学楼…"
+          placeholder={i18n("auto.pages.info.ClassroomTab.3")}
           options={buildings!.map((b) => ({ value: b.searchName, label: b.name }))}
         />
       )}
@@ -229,7 +230,7 @@ export function ClassroomTab({
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>教室</th>
+                      <th>{i18n("auto.pages.info.ClassroomTab.4")}</th>
                       {SLOT_LABELS.map((sl) => (
                         <th key={sl} className="num">
                           {sl}

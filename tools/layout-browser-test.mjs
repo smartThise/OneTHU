@@ -81,7 +81,7 @@ try {
     check(Math.abs(firstHomeHeight-await homePanel.evaluate(e=>e.clientHeight))<=2,name+' canvas height settles without observer feedback');
     const homeScroll = await homePanel.evaluate(e=>({h:e.clientHeight,sh:e.scrollHeight}));
     check(homeScroll.sh<=homeScroll.h+2,name+' home has no nested fixed-height vertical viewport');
-    const intro = await page.locator('[data-item-id="home.greeting"]').evaluate(rect);
+    const intro = await page.locator('[data-item-id="home.services"]').evaluate(rect);
     check(intro.y>=0,name+' switching from a scrolled task tab restores home position');
     if(name==='phone')await shot(page,'phone-home');
     await go(page,'search');

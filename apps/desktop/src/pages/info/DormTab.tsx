@@ -17,6 +17,8 @@ import { explainNetworkError, universalFetch } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
 import { softRecover } from "../../lib/reload.js";
 import { cacheGet, cacheSet } from "../../state/cache.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 function logErr(tag: string, err: unknown): void {
   void logLine(
@@ -154,15 +156,14 @@ export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {})
   return (
     <>
       <div data-sec="ele">
-        <SectionHead title="电费" aside="家园网 myhome.tsinghua.edu.cn · 宿舍绑定房间" />
+        <SectionHead title={i18n("auto.pages.info.DormTab.1")} aside="家园网 myhome.tsinghua.edu.cn · 宿舍绑定房间" />
       </div>
       {/* 余额接口不可用说明条（固定展示） */}
       <Card style={{ padding: "12px 16px" }}>
         <span style={{ fontSize: 13, color: "var(--text-dim)" }}>
-          家园网系统暂时无法获取余额接口
-        </span>
+          {i18n("auto.pages.info.DormTab.2")}</span>
       </Card>
-      <SectionHead title="充值记录" aside="Netweb 缴费流水" />
+      <SectionHead title={i18n("auto.pages.info.DormTab.3")} aside="Netweb 缴费流水" />
       {recState === "error" ? (
         <ErrorNote
           text={recError ?? ""}
@@ -199,33 +200,32 @@ export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {})
       )}
 
       <div data-sec="water">
-        <SectionHead title="订水" aside="清华水站 dingshui.bjqzhd.com · 公开数据" />
+        <SectionHead title={i18n("auto.pages.info.DormTab.4")} aside="清华水站 dingshui.bjqzhd.com · 公开数据" />
       </div>
       <Card style={{ padding: 18 }}>
         <div className="field">
-          <label htmlFor="water-id">订水编号（水站用户编号）</label>
+          <label htmlFor="water-id">{i18n("auto.pages.info.DormTab.5")}</label>
           <div style={{ display: "flex", gap: 8 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>{<Input value={waterId} onChange={(value) => setWaterId(value)} placeholder="水站发票/标签上的用户编号" />}</div>
-            <Btn variant="outline" onClick={() => void queryWater()} disabled={waterState === "busy"}>查询
-            </Btn>
+            <div style={{ flex: 1, minWidth: 0 }}>{<Input value={waterId} onChange={(value) => setWaterId(value)} placeholder={i18n("auto.pages.info.DormTab.6")} />}</div>
+            <Btn variant="outline" onClick={() => void queryWater()} disabled={waterState === "busy"}>{i18n("auto.pages.info.DormTab.7")}</Btn>
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0 14px" }}>
           <div className="field">
-            <label htmlFor="water-contact">联系人</label>
+            <label htmlFor="water-contact">{i18n("auto.pages.info.DormTab.8")}</label>
             <Input value={contact} onChange={(value) => setContact(value)} />
           </div>
           <div className="field">
-            <label htmlFor="water-num">订水量（桶）</label>
+            <label htmlFor="water-num">{i18n("auto.pages.info.DormTab.9")}</label>
             <input id="water-num" className="input" type="number" min={1} value={num} onChange={(e) => setNum(e.target.value)} />
           </div>
           <div className="field">
-            <label htmlFor="water-num1">水票数</label>
+            <label htmlFor="water-num1">{i18n("auto.pages.info.DormTab.10")}</label>
             <input id="water-num1" className="input" type="number" min={0} value={num1} onChange={(e) => setNum1(e.target.value)} />
           </div>
         </div>
         <div className="field">
-          <label htmlFor="water-brand">水种</label>
+          <label htmlFor="water-brand">{i18n("auto.pages.info.DormTab.11")}</label>
           <Select id="water-brand" value={brand} onChange={(value) => setBrand(value)}>{Object.entries(WATER_BRANDS).map(([id, name]) => (
               <option key={id} value={id}>
                 {name}
@@ -233,8 +233,8 @@ export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {})
             ))}</Select>
         </div>
         <div className="field">
-          <label htmlFor="water-addr">送达地址（楼栋 + 房间号）</label>
-          <Input value={address} onChange={(value) => setAddress(value)} placeholder="如：紫荆 1 号楼 301A" />
+          <label htmlFor="water-addr">{i18n("auto.pages.info.DormTab.12")}</label>
+          <Input value={address} onChange={(value) => setAddress(value)} placeholder={i18n("auto.pages.info.DormTab.13")} />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Btn variant="solid" tone="brand" onClick={() => void submitWater()} disabled={waterState === "busy"}>{waterState === "busy" ? "提交中…" : "提交订水"}</Btn>

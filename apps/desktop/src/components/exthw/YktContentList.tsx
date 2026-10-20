@@ -12,6 +12,8 @@ import { fetchYktLeafDetail, fetchYktNoticeDetail, getYktCookie } from "../../st
 import { openFilePreview } from "../FilePreview.js";
 import { YktContentBody } from "./YktContentBody.js";
 import { fmtWhenParts } from "../../pages/learn/shared.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 export function YktContentList({ items }: { items: ExternalContent[] }) {
   const [open, setOpen] = useState<{
@@ -102,7 +104,7 @@ export function YktContentList({ items }: { items: ExternalContent[] }) {
               <div className="row-main">
                 <div className="row-title">{c.title}</div>
                 <div className="row-sub">
-                  雨课堂 · {isOpen && open?.state === "loading" ? "正在加载…" : isOpen ? "点击收起" : "点击查看"}
+                  {i18n("auto.components.exthw.YktContentList.1")}{isOpen && open?.state === "loading" ? "正在加载…" : isOpen ? "点击收起" : "点击查看"}
                 </div>
               </div>
               <span className="chip chip-blue">{c.kindText}</span>
@@ -111,7 +113,7 @@ export function YktContentList({ items }: { items: ExternalContent[] }) {
             {isOpen ? (
               <div className="ykt-content-panel">
                 {open?.state === "loading" ? (
-                  <div className="row-sub">正在加载内容…</div>
+                  <div className="row-sub">{i18n("auto.components.exthw.YktContentList.2")}</div>
                 ) : open?.state === "error" ? (
                   <div className="row-sub">{open.error}</div>
                 ) : (

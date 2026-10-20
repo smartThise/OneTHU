@@ -13,6 +13,8 @@ import { PageHead } from "../components/Layout.js";
 import { PageAtomStar } from "../components/Collect.js";
 import { NameCardSection, OrgCardsSection } from "../components/NameCardSection.js";
 import { OrganizationSection } from "../components/OrganizationSection.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 type ContactsTab = "cards" | "orgs";
 
@@ -22,17 +24,17 @@ export function ContactsPage() {
   return (
     <div className="contacts-page">
       <PageHead
-        title="通讯录"
+        title={i18n("auto.pages.Contacts.1")}
         meta="交换一张名片，让联结留在这里。"
-        actions={<PageAtomStar atomKey="contacts" title="通讯录" />}
+        actions={<PageAtomStar atomKey="contacts" title={i18n("auto.pages.Contacts.1")} />}
       />
       <div className="contacts-tabs">
         <Segment
           value={tab}
           onChange={(v) => setTab(v as ContactsTab)}
           options={[
-            { value: "cards", label: "名片夹" },
-            { value: "orgs", label: "我的组织" },
+            { value: "cards", label: i18n("auto.pages.Contacts.p1") },
+            { value: "orgs", label: i18n("auto.pages.Contacts.p2") },
           ]}
         />
       </div>
@@ -43,14 +45,12 @@ export function ContactsPage() {
 
           <div className="contacts-orgs">
             <Text slot="label" tone="faint">
-              成员按邮箱加入，资料库共享到邮箱，GitLab 仓库挂到组织上；组织自带名片。
-            </Text>
+              {i18n("auto.pages.Contacts.2")}</Text>
             <OrganizationSection />
           </div>
           <Inline gap={2} wrap>
             <Btn variant="ghost" onClick={() => setTab("cards")}>
-              回到名片夹
-            </Btn>
+              {i18n("auto.pages.Contacts.3")}</Btn>
           </Inline>
         </Stack>
       )}

@@ -15,7 +15,7 @@
  * （`plugins/facade.ts` 直接读写 `cell.{x,y,w,h}`），所以自由画布上摆过的东西，插件那边看到的
  * 坐标也是对的——两套坐标从此不会各说各话（这正是之前"两套数据不同源"的病根）。
  */
-import { RECT_MIN_H, RECT_MIN_W, SYSTEM_BOARD_ID, appendPx, bringToFrontPx, cellsOf, fitHeightPx, foldPx, mergeLegacyPx, movePx, opacityPx, parseLegacyFreeBoard, pinPx, propsPx, raiseAboveOverlappingPx, removePx, resizePx, systemBoard, toPxItems, type BoardDoc, type BoardItem, type BoardPxItem, type BoardRect, type Orientation, type WidgetSpec } from "./boardCore.js";
+import { RECT_MIN_H, RECT_MIN_W, SYSTEM_BOARD_ID, appendPx, bringToFrontPx, cellsOf, fitHeightPx, foldPx, homeStarterItems, mergeLegacyPx, movePx, opacityPx, parseLegacyFreeBoard, pinPx, propsPx, raiseAboveOverlappingPx, removePx, resizePx, systemBoard, toPxItems, type BoardDoc, type BoardItem, type BoardPxItem, type BoardRect, type Orientation, type WidgetSpec } from "./boardCore.js";
 import { replaceCells } from "./boardEdit.js";
 import { BOARD_KEY, loadBoard, saveBoard } from "./board.js";
 import { notifyBoardsChanged } from "./onePage.js";
@@ -160,6 +160,33 @@ export function commitPx(boardId: string, orientation: Orientation, next: BoardI
   notifyBoardsChanged();
   emit();
   return true;
+}
+
+/**
+ * 恢复默认首页布局（设置 →「恢复默认布局」）。
+ *
+ * 2026-10-19 修：旧实现只清 `lib/homeCards` 的**网格布局键**（LAYOUT_KEY / layoutKey(朝向) /
+ * DEFAULTS_KEY），可首页画布早就只认板文档里的 px 条目（`onethu.board.v1`）——那些键一个都不读，
+ * 于是按钮点了、提示也弹了，画面纹丝不动。这里直接把系统板的两个朝向换回 `homeStarterItems()`。
+ *
+ * 只动系统板（首页）；用户自建的 OnePage 板原样保留。返回恢复后的条目数（设置页可据此反馈）。
+ */
+export function resetHomeBoard(): number {
+  const doc = loadBoard();
+  const seed = homeStarterItems();
+  /* 两个朝向各拿一份独立副本：条目是不可变更新，但共享同一批对象会让后续任何就地改写串场。 */
+  const clone = (): BoardItem[] => seed.map((it) => {
+    const copy: BoardItem = { ...it, cell: { ...it.cell } };
+    if (it.rect) copy.rect = { ...it.rect };
+    return copy;
+  });
+  const boards = doc.boards.map((b) => (b.id === HOME_BOARD_ID
+    ? { ...b, cells: { portrait: clone(), landscape: clone() } }
+    : b));
+  saveBoard({ ...doc, homeLayoutVersion: 2, boards });
+  notifyBoardsChanged();
+  emit();
+  return seed.length;
 }
 
 function editPx(boardId: string, orientation: Orientation, fn: (items: readonly BoardItem[]) => BoardItem[] | null): boolean {

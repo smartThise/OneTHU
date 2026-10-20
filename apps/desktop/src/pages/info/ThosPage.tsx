@@ -26,6 +26,8 @@ import type {
 } from "@onethu/info-lib";
 import { Card, Empty, ErrorNote, PageHead, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { useApp } from "../../state/context.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type Tab = ThosTaskKind | "services";
 
@@ -191,7 +193,7 @@ export function ThosPage() {
         setError(warnings.length ? warnings.join("\n") : undefined);
       }
     } catch {
-      if (alive()) setError("连不上在线服务，登录可能已过期，请重新登录");
+      if (alive()) setError(i18n("auto.pages.info.ThosPage.msg1"));
     } finally {
       if (alive()) setBusy(false);
     }
@@ -269,7 +271,7 @@ export function ThosPage() {
     try {
       localStorage.setItem(favKey(userId), JSON.stringify(next));
     } catch {
-      setError("收藏未保存，请再试一次");
+      setError(i18n("auto.pages.info.ThosPage.msg2"));
     }
   };
 
@@ -336,11 +338,10 @@ export function ThosPage() {
   return (
     <>
       <PageHead
-        title="在线服务"
+        title={i18n("auto.pages.info.ThosPage.1")}
         meta={updated ? `更新于 ${new Date(updated).toLocaleTimeString()}` : undefined}
         actions={
-          <Btn variant="ghost" onClick={() => void load()} disabled={busy}>刷新
-          </Btn>
+          <Btn variant="ghost" onClick={() => void load()} disabled={busy}>{i18n("auto.pages.info.ThosPage.2")}</Btn>
         }
       />
       {demo ? (
@@ -350,17 +351,17 @@ export function ThosPage() {
       ) : null}
       <div className="thos-note">
         <div className="thos-note-row">
-          <span className="thos-note-tag">首次</span>
-          <span>自动填充账号密码登录，随后进入服务大厅，可在大厅里选择业务。</span>
+          <span className="thos-note-tag">{i18n("auto.pages.info.ThosPage.3")}</span>
+          <span>{i18n("auto.pages.info.ThosPage.4")}</span>
         </div>
         <div className="thos-note-row">
-          <span className="thos-note-tag">之后</span>
-          <span>点选服务直接跳转对应页面，不再经过服务大厅。</span>
+          <span className="thos-note-tag">{i18n("auto.pages.info.ThosPage.5")}</span>
+          <span>{i18n("auto.pages.info.ThosPage.6")}</span>
         </div>
       </div>
       <input
         className="thos-search"
-        aria-label="搜索在线服务"
+        aria-label={i18n("auto.pages.info.ThosPage.7")}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={
@@ -372,7 +373,7 @@ export function ThosPage() {
         }
       />
 
-      <div className="thos-tabs" role="tablist" aria-label="在线服务分类">
+      <div className="thos-tabs" role="tablist" aria-label={i18n("auto.pages.info.ThosPage.8")}>
         {PRIMARY.map((kind) => tabBtn(kind, `${KIND_LABEL[kind]} ${counts?.[kind as keyof ThosCounts] ?? "—"}`, tab === kind, () => { setTab(kind); setQuery(""); setOnlyFavorites(false); }))}
         {(["drafts", "unread", "phases"] as ThosTaskKind[]).map((kind) =>
           tabBtn(kind, `${KIND_LABEL[kind]} ${(counts as Record<string, number | undefined> | undefined)?.[kind] ?? "—"}`, tab === kind, () => { setTab(kind); setQuery(""); setOnlyFavorites(false); }),
@@ -385,9 +386,9 @@ export function ThosPage() {
       {error ? <ErrorNote text={error} onRetry={() => void load()} /> : null}
       {busy && !page ? <SkeletonRows rows={4} /> : null}
       {!(tab === "services" && onlyFavorites) && !complete && page ? (
-        <div className="thos-partial">结果可能不完整（分页读取未全部完成）</div>
+        <div className="thos-partial">{i18n("auto.pages.info.ThosPage.9")}</div>
       ) : null}
-      {busy && page ? <div className="thos-partial">刷新中…</div> : null}
+      {busy && page ? <div className="thos-partial">{i18n("auto.pages.info.ThosPage.10")}</div> : null}
 
       {tab === "services" ? (
         <SectionHead title={onlyFavorites ? "常用服务" : "服务目录"} aside={`${serviceRows.length} 项`} />
@@ -454,8 +455,8 @@ export function ThosPage() {
                   <strong>{item.title}</strong>
                   <span className="chip chip-amber">{statusLabel(item.status)}</span>
                   {item.workflowStatus ? <span className="chip">{statusLabel(item.workflowStatus)}</span> : null}
-                  {item.node ? <span className="dim">节点：{item.node}</span> : null}
-                  {item.summary ? <span className="dim">摘要：{item.summary}</span> : null}
+                  {item.node ? <span className="dim">{i18n("auto.pages.info.ThosPage.11")}{item.node}</span> : null}
+                  {item.summary ? <span className="dim">{i18n("auto.pages.info.ThosPage.12")}{item.summary}</span> : null}
                   {item.progress !== undefined ? (
                     <span className="thos-progress" aria-label={`进度 ${item.progress}%`}>
                       <span className="thos-progress-bar">

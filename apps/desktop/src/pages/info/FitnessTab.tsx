@@ -8,6 +8,8 @@ import { Card, SkeletonRows } from "../../components/Layout.js";
 import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
 import { TabEmpty, TabError, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type LoadState = "loading" | "error" | "ready";
 /** core getPhysicalExamResult → [项目, 成绩] 对列表 */
@@ -55,8 +57,8 @@ export function FitnessTab() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>项目</th>
-                <th className="num">成绩</th>
+                <th>{i18n("auto.pages.info.FitnessTab.1")}</th>
+                <th className="num">{i18n("auto.pages.info.FitnessTab.2")}</th>
               </tr>
             </thead>
             <tbody>

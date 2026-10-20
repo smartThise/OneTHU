@@ -7,6 +7,8 @@ import type { ReportRow } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { IconPen, IconRefresh } from "../../components/Icons.js";
 import { useReport } from "../../state/data.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 function weightedAverage(rows: ReportRow[]): number | null {
   let credits = 0;
@@ -77,7 +79,7 @@ export function ReportTab() {
           </span>
           <div>
             <div className="stat-num">{state === "loading" && !data ? "–" : (data?.length ?? 0)}</div>
-            <div className="stat-label">已修课程</div>
+            <div className="stat-label">{i18n("auto.pages.info.ReportTab.1")}</div>
           </div>
         </Card>
         <Card className="stat-card">
@@ -86,7 +88,7 @@ export function ReportTab() {
           </span>
           <div>
             <div className="stat-num">{totalCredits ? totalCredits.toFixed(1) : "–"}</div>
-            <div className="stat-label">总学分</div>
+            <div className="stat-label">{i18n("auto.pages.info.ReportTab.2")}</div>
           </div>
         </Card>
         <Card className="stat-card">
@@ -95,7 +97,7 @@ export function ReportTab() {
           </span>
           <div>
             <div className="stat-num">{overall === null ? "–" : overall.toFixed(3)}</div>
-            <div className="stat-label">全部学年加权</div>
+            <div className="stat-label">{i18n("auto.pages.info.ReportTab.3")}</div>
           </div>
         </Card>
         <Card className="stat-card">
@@ -104,7 +106,7 @@ export function ReportTab() {
           </span>
           <div>
             <div className="stat-num">{latestAvg === null ? "–" : latestAvg.toFixed(3)}</div>
-            <div className="stat-label">最新学期（{groups[0]?.[0] ?? "–"}）</div>
+            <div className="stat-label">{i18n("auto.pages.info.ReportTab.4")}{groups[0]?.[0] ?? "–"}）</div>
           </div>
         </Card>
       </div>
@@ -131,10 +133,10 @@ export function ReportTab() {
                   <table className="data-table">
                     <thead>
                       <tr>
-                        <th>课程</th>
-                        <th className="num">学分</th>
-                        <th className="num">等级</th>
-                        <th className="num">绩点</th>
+                        <th>{i18n("auto.pages.info.ReportTab.5")}</th>
+                        <th className="num">{i18n("auto.pages.info.ReportTab.6")}</th>
+                        <th className="num">{i18n("auto.pages.info.ReportTab.7")}</th>
+                        <th className="num">{i18n("auto.pages.info.ReportTab.8")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -153,15 +155,15 @@ export function ReportTab() {
             );
           })}
 
-          <SectionHead title="学年汇总" aside="按学分加权（不计 P/EXE 等非绩点课程）" />
+          <SectionHead title={i18n("auto.pages.info.ReportTab.9")} aside="按学分加权（不计 P/EXE 等非绩点课程）" />
           <Card style={{ padding: 0, overflow: "hidden" }}>
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>学年</th>
-                  <th className="num">课程</th>
-                  <th className="num">学分</th>
-                  <th className="num">加权平均分</th>
+                  <th>{i18n("auto.pages.info.ReportTab.10")}</th>
+                  <th className="num">{i18n("auto.pages.info.ReportTab.5")}</th>
+                  <th className="num">{i18n("auto.pages.info.ReportTab.6")}</th>
+                  <th className="num">{i18n("auto.pages.info.ReportTab.11")}</th>
                 </tr>
               </thead>
               <tbody>

@@ -10,6 +10,8 @@ import { Card, Empty, PageHead } from "../components/Layout.js";
 import { FolderIcon, IconFolderPlus } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
 import { useFavs } from "../state/favs.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 export function FavsHomePage(): ReactNode {
   const { navigate } = useApp();
@@ -17,7 +19,7 @@ export function FavsHomePage(): ReactNode {
   const ids = favs.data.order;
   return (
     <>
-      <PageHead title="收藏" meta="常用的功能与实体入口，长按任意页面页头星标即可收录" />
+      <PageHead title={i18n("auto.pages.FavsHomePage.1")} meta="常用的功能与实体入口，长按任意页面页头星标即可收录" />
       {ids.length === 0 ? (
         <Card>
           <Empty text="还没有收藏夹。新建一个，把常用的功能收进来。" />
@@ -25,8 +27,7 @@ export function FavsHomePage(): ReactNode {
             <Btn variant="solid" tone="brand" onClick={() => {
                 const id = favs.create("新建收藏夹", null);
                 if (id) navigate("folder", { folderId: id });
-              }}>新建收藏夹
-            </Btn>
+              }}>{i18n("auto.pages.FavsHomePage.2")}</Btn>
           </div>
         </Card>
       ) : (
@@ -55,7 +56,7 @@ export function FavsHomePage(): ReactNode {
             }}
           >
             <span className="svc-row-icon"><IconFolderPlus /></span>
-            <span className="svc-row-main"><span className="svc-row-name">新建收藏夹</span></span>
+            <span className="svc-row-main"><span className="svc-row-name">{i18n("auto.pages.FavsHomePage.2")}</span></span>
           </button>
         </Card>
       )}

@@ -14,6 +14,8 @@ import { ProblemBody } from "./ProblemBody.js";
 import { YktVideoPlayer } from "./YktVideoPlayer.js";
 import { openFilePreview } from "../FilePreview.js";
 import { IconChevron } from "../Icons.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 export interface YktContentBodyProps {
   /** 内容标题（列表标题优先，详情标题兜底） */
@@ -49,11 +51,9 @@ export function YktContentBody(props: YktContentBodyProps) {
   if (fileUrl) {
     return (
       <div className="ykt-content-body">
-        <Btn variant="solid" tone="brand" onClick={() => openFilePreview({ name: title, url: fileUrl })}>用内置预览打开
-        </Btn>
+        <Btn variant="solid" tone="brand" onClick={() => openFilePreview({ name: title, url: fileUrl })}>{i18n("auto.components.exthw.YktContentBody.1")}</Btn>
         <div className="row-sub" style={{ marginTop: 8 }}>
-          文档在应用内预览（可翻页 / 缩放 / 另存），不跳转官方网页。
-        </div>
+          {i18n("auto.components.exthw.YktContentBody.2")}</div>
       </div>
     );
   }
@@ -67,13 +67,11 @@ export function YktContentBody(props: YktContentBodyProps) {
         </div>
         {images.length > 1 ? (
           <div className="ykt-slide-bar">
-            <Btn variant="ghost" disabled={idx <= 0} onClick={() => setPage(idx - 1)}><IconChevron width={14} height={14} style={{ transform: "rotate(180deg)" }} />上一页
-            </Btn>
+            <Btn variant="ghost" disabled={idx <= 0} onClick={() => setPage(idx - 1)}><IconChevron width={14} height={14} style={{ transform: "rotate(180deg)" }} />{i18n("auto.components.exthw.YktContentBody.3")}</Btn>
             <span className="ykt-slide-count">
               {idx + 1} / {images.length}
             </span>
-            <Btn variant="ghost" disabled={idx >= images.length - 1} onClick={() => setPage(idx + 1)}>下一页
-              <IconChevron width={14} height={14} /></Btn>
+            <Btn variant="ghost" disabled={idx >= images.length - 1} onClick={() => setPage(idx + 1)}>{i18n("auto.components.exthw.YktContentBody.4")}<IconChevron width={14} height={14} /></Btn>
           </div>
         ) : null}
       </div>
@@ -91,10 +89,8 @@ export function YktContentBody(props: YktContentBodyProps) {
   return (
     <div className="ykt-content-body">
       <div className="ykt-ans-empty">
-        这条内容没有可直接渲染的正文（可能是直播、讨论或需要互动的类型）。
-        {fallbackUrl ? (
-          <Btn variant="ghost" onClick={() => void navigator.clipboard?.writeText(fallbackUrl).catch(() => undefined)}>复制链接
-          </Btn>
+        {i18n("auto.components.exthw.YktContentBody.5")}{fallbackUrl ? (
+          <Btn variant="ghost" onClick={() => void navigator.clipboard?.writeText(fallbackUrl).catch(() => undefined)}>{i18n("auto.components.exthw.YktContentBody.6")}</Btn>
         ) : null}
       </div>
     </div>

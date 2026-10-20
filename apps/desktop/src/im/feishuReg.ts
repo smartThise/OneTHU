@@ -16,6 +16,8 @@
  * 海外 Lark：poll 返回 user_info.tenant_brand === "lark" 时切到 accounts.larksuite.com。
  */
 import { http } from "../lib/clients.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const FEISHU_ACCOUNTS = "https://accounts.feishu.cn";
 const LARK_ACCOUNTS = "https://accounts.larksuite.com";
@@ -95,7 +97,7 @@ export async function pollFeishuRegistration(
 
   // 海外租户：切 Lark 域重试（下次轮询生效——返回 pending 让调用方继续）
   if (r.user_info?.tenant_brand === "lark" && domain === "feishu") {
-    return { status: "pending", note: "检测到 Lark（海外）租户，正在切换接入点…" };
+    return { status: "pending", note: i18n("auto.im.feishuReg.p1") };
   }
   if (r.client_id && r.client_secret) {
     return {
@@ -103,19 +105,19 @@ export async function pollFeishuRegistration(
       appId: r.client_id,
       appSecret: r.client_secret,
       openId: r.user_info?.open_id,
-      note: "应用创建成功",
+      note: i18n("auto.im.feishuReg.p2"),
     };
   }
   switch (r.error) {
     case undefined:
     case "authorization_pending":
-      return { status: "pending", note: "等待手机确认创建…" };
+      return { status: "pending", note: i18n("auto.im.feishuReg.p3") };
     case "slow_down":
-      return { status: "pending", note: "请求过频，稍后继续…" };
+      return { status: "pending", note: i18n("auto.im.feishuReg.p4") };
     case "access_denied":
-      return { status: "access_denied", note: "你在手机上取消了创建" };
+      return { status: "access_denied", note: i18n("auto.im.feishuReg.p5") };
     case "expired_token":
-      return { status: "expired", note: "二维码已过期，请重新发起" };
+      return { status: "expired", note: i18n("auto.im.feishuReg.p6") };
     default:
       return { status: "error", note: `${r.error}: ${r.error_description ?? "未知原因"}` };
   }

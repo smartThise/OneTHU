@@ -27,6 +27,8 @@
  */
 import { showToast } from "./toast.js";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { t as i18n } from "../i18n/index.js";
+
 
 export interface WallpaperLibItem {
   id: string;
@@ -126,7 +128,7 @@ function commit(next: WallpaperDoc): void {
   } catch {
     saved = false; // 存储满：内存态保留到刷新，但必须让用户知道（尤其刚入库的图）
   }
-  if (!saved) showToast("本机存不下这份壁纸，请删几张库里旧的再试");
+  if (!saved) showToast(i18n("auto.state.wallpaper.msg1"));
   shellCacheKey = ""; // 壳层快照失效（见下方 memo）
   listeners.forEach((f) => f());
 }

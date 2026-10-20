@@ -63,6 +63,8 @@ import { isAndroidNavigator } from "../lib/androidHost.js";
 import { isPhoneNow } from "../state/phoneSheets.js";
 import { openExternal } from "../pages/info/openExternal.js";
 import { vaultCatchAttr } from "../components/vault/vaultDrag.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -759,7 +761,7 @@ const SUGGESTIONS = ["明天图书馆哪有空座？", "这周考试安排", "�
 function DockHero(): ReactNode {
   const settled = useMountPhase();
   return (
-    <div className="dock-hero" style={MAT_HERO} aria-label="你好！我是小OH，有什么能帮你的吗？">
+    <div className="dock-hero" style={MAT_HERO} aria-label={i18n("auto.plugins.ChatDock.1")}>
       {HERO_CHARS.map((line, i) => (
         <div className="dock-hero-line" style={MAT_HERO_LINE} key={i}>
           {line.map((c, j) => (
@@ -805,11 +807,11 @@ function DockBubble({ m, isNew, ttsOk, autoSpeak, speakingText, onSpeak, onRenew
   if (m.role === "assistant" && m.notice === "madmodel-429") {
     return (
       <div className={"dock-msg-assistant dock-notice" + (isNew ? " is-new" : "")} style={mat} role="status">
-        <div className="dock-notice-title">免费额度被限流了（429 · 同时请求过多）</div>
-        <div className="dock-notice-sub">可以一键续签 MadModel 免费额度；也可以改用你自己的 API。</div>
+        <div className="dock-notice-title">{i18n("auto.plugins.ChatDock.2")}</div>
+        <div className="dock-notice-sub">{i18n("auto.plugins.ChatDock.3")}</div>
         <div className="dock-notice-actions">
-          <Btn variant="solid" tone="brand" onClick={onRenewMadModel}>一键续签</Btn>
-          <Btn variant="outline" onClick={onOpenOwnApi}>设置自己的 API</Btn>
+          <Btn variant="solid" tone="brand" onClick={onRenewMadModel}>{i18n("auto.plugins.ChatDock.4")}</Btn>
+          <Btn variant="outline" onClick={onOpenOwnApi}>{i18n("auto.plugins.ChatDock.5")}</Btn>
         </div>
       </div>
     );
@@ -820,8 +822,8 @@ function DockBubble({ m, isNew, ttsOk, autoSpeak, speakingText, onSpeak, onRenew
         className={"dock-msg-assistant" + (isNew ? " is-new" : "")}
         style={{ ...mat, ...(isNew && !settled ? MSG_FROM : null) }}
       >
-        {m.meta?.think ? <ChainBlock label="思考过程" lines={[m.meta.think]} /> : null}
-        {m.meta?.trace?.length ? <ChainBlock label="工具调用" lines={m.meta.trace} /> : null}
+        {m.meta?.think ? <ChainBlock label={i18n("auto.plugins.ChatDock.6")} lines={[m.meta.think]} /> : null}
+        {m.meta?.trace?.length ? <ChainBlock label={i18n("auto.plugins.ChatDock.7")} lines={m.meta.trace} /> : null}
         {/* 正文容器：内层 .dock-msg（padding/字阶/形态常量）+ .dock-md（排印豁免保留段，GlobalOrb 同用） */}
         <div className="dock-msg dock-md" style={matBubbleOhBody(phone)}>
           <Markdown remarkPlugins={[remarkGfm]} components={{ img: MdImage }}>{m.text}</Markdown>
@@ -905,12 +907,12 @@ const DockMsgList = memo(function DockMsgList(p: MsgListProps): ReactNode {
           />
         );
       })}
-      {p.trace.length > 0 ? <ChainBlock label="工具调用" lines={p.trace} defaultOpen /> : null}
+      {p.trace.length > 0 ? <ChainBlock label={i18n("auto.plugins.ChatDock.7")} lines={p.trace} defaultOpen /> : null}
       {p.think ? (
         /* 流式思考链（旧 .dock-think 手写抽屉收编 → OG AccordionItem） */
         <AccordionItem
           id="think"
-          title="思考过程"
+          title={i18n("auto.plugins.ChatDock.6")}
           sub={p.thinkOpen ? "点击收起" : `${p.think.length} 字 · 已折叠`}
           open={p.thinkOpen}
           onToggle={p.onToggleThink}
@@ -942,8 +944,8 @@ const DockMsgList = memo(function DockMsgList(p: MsgListProps): ReactNode {
           tone="warning"
           action={
             <span style={MAT_MSG_OPS}>
-              <Btn variant="solid" tone="brand" size="sm" disabled={p.busy} onClick={() => p.onSend("确认")}>确认执行</Btn>
-              <Btn variant="outline" size="sm" disabled={p.busy} onClick={() => p.onSend("取消")}>取消</Btn>
+              <Btn variant="solid" tone="brand" size="sm" disabled={p.busy} onClick={() => p.onSend("确认")}>{i18n("auto.plugins.ChatDock.8")}</Btn>
+              <Btn variant="outline" size="sm" disabled={p.busy} onClick={() => p.onSend("取消")}>{i18n("auto.plugins.ChatDock.9")}</Btn>
             </span>
           }
         >
@@ -979,10 +981,10 @@ function OhSearchPane({ query, onClose, onAskOh, onNotice }: {
     <div className="ohx-searchpane">
       {!q ? (
         <div className="ohx-history">
-          <div className="ohx-history-head">最近搜索</div>
+          <div className="ohx-history-head">{i18n("auto.plugins.ChatDock.10")}</div>
           <div className="ohx-history-chips">
             {hist.length === 0 ? (
-              <span className="ohx-history-empty">还没有搜索记录；搜一次功能或实体就会留在这里</span>
+              <span className="ohx-history-empty">{i18n("auto.plugins.ChatDock.11")}</span>
             ) : hist.map((h: SearchJump, i: number) => (
               <button
                 key={`${h.at}-${i}`}
@@ -996,12 +998,12 @@ function OhSearchPane({ query, onClose, onAskOh, onNotice }: {
           </div>
         </div>
       ) : !result ? (
-        <div className="ohx-search-status">搜索中…</div>
+        <div className="ohx-search-status">{i18n("auto.plugins.ChatDock.12")}</div>
       ) : total === 0 ? (
         <>
-          <div className="ohx-search-status">没找到「{q}」。换个说法试试，或直接问小 (OH)：</div>
+          <div className="ohx-search-status">{i18n("auto.plugins.ChatDock.13")}{q}{i18n("auto.plugins.ChatDock.14")}</div>
           <button className="ohx-askoh" onClick={() => onAskOh(q)}>
-            没搜到？直接问小 (OH)：「{q.length > 18 ? q.slice(0, 18) + "…" : q}」
+            {i18n("auto.plugins.ChatDock.15")}{q.length > 18 ? q.slice(0, 18) + "…" : q}」
           </button>
         </>
       ) : (
@@ -1010,7 +1012,7 @@ function OhSearchPane({ query, onClose, onAskOh, onNotice }: {
             <button
               key={"row:" + x.row.id}
               className="ohx-hit"
-              data-vault-catch={vaultCatchAttr({ type: "payload", title: x.row.title, sub: "设置项", payload: { routeId: x.row.id }, source: "OH 搜索" })}
+              data-vault-catch={vaultCatchAttr({ type: "payload", title: x.row.title, sub: i18n("auto.plugins.ChatDock.p1"), payload: { routeId: x.row.id }, source: "OH 搜索" })}
               onClick={() => {
                 jumpSearchRow(x.row, q);
                 onClose(); // 设置浮层接棒，小窗收掉
@@ -1018,28 +1020,28 @@ function OhSearchPane({ query, onClose, onAskOh, onNotice }: {
             >
               <span className="ohx-hit-name">{x.row.title}</span>
               <span className="ohx-hit-sub">{displayBreadcrumb(x.row).join(" → ")}</span>
-              <span className="ohx-hit-tag">设置</span>
+              <span className="ohx-hit-tag">{i18n("auto.plugins.ChatDock.16")}</span>
             </button>
           ))}
           {result.entries.map((en) => (
             <button key={"n:" + en.id} className="ohx-hit" data-vault-catch={vaultCatchAttr({ type: "atom", title: en.name, sub: en.note ?? en.category, atom: { kind: "page", key: en.id }, source: "OH 搜索" })} onClick={() => { jumpEntry(en.id, en.page, en.params ?? null, en.name, q); onClose(); }}>
               <span className="ohx-hit-name">{en.name}</span>
               <span className="ohx-hit-sub">{en.note ?? en.category}</span>
-              <span className="ohx-hit-tag">功能</span>
+              <span className="ohx-hit-tag">{i18n("auto.plugins.ChatDock.17")}</span>
             </button>
           ))}
           {result.atoms.map((a) => (
             <button key={"a:" + a.kind + "|" + a.key} className="ohx-hit" data-vault-catch={vaultCatchAttr({ type: "atom", title: a.title, sub: a.sub, atom: { kind: a.kind, key: a.key }, source: "OH 搜索" })} onClick={() => { jumpAtom(a.kind, a.key, a.title, q); onClose(); }}>
               <span className="ohx-hit-name">{a.title}</span>
               <span className="ohx-hit-sub">{(a.group ? a.group + " · " : "") + (a.sub ?? "相关内容")}</span>
-              <span className="ohx-hit-tag">页面</span>
+              <span className="ohx-hit-tag">{i18n("auto.plugins.ChatDock.18")}</span>
             </button>
           ))}
           {result.tabs.map((t) => (
             <button key={"t:" + t} className="ohx-hit" onClick={() => { jumpSettingsTab(t); onClose(); }}>
-              <span className="ohx-hit-name">设置 · {t}</span>
-              <span className="ohx-hit-sub">跳到设置的这一栏</span>
-              <span className="ohx-hit-tag">设置</span>
+              <span className="ohx-hit-name">{i18n("auto.plugins.ChatDock.19")}{t}</span>
+              <span className="ohx-hit-sub">{i18n("auto.plugins.ChatDock.20")}</span>
+              <span className="ohx-hit-tag">{i18n("auto.plugins.ChatDock.16")}</span>
             </button>
           ))}
         </div>
@@ -1472,7 +1474,7 @@ export function ChatDock(): ReactNode {
     void (async () => {
       try {
         await ensureMadModelToken(true);
-        showToast("已重新续签 MadModel 免费额度，稍后重试");
+        showToast(i18n("auto.plugins.ChatDock.msg1"));
       } catch (e) {
         showToast(`续签失败：${e instanceof Error ? e.message : String(e)}（可改用你自己的 API）`);
       }
@@ -2400,7 +2402,7 @@ export function ChatDock(): ReactNode {
           data-og-scope="oh.dock"
           className={"dock-panel" + (capsuleRect ? " ohx-panel-grow" : "") + (capsuleRect?.topdock ? " is-topdock" : "") + (closing ? " is-closing" : "") + (slidIn ? " is-slide" : "")}
           role="dialog"
-          aria-label="OneTHU Harness 对话"
+          aria-label={i18n("auto.plugins.ChatDock.21")}
           style={{
             /* 从胶囊顶边长出来：left/width 量可见胶囊的 rect；bottom 走 explorer-ui 契约变量（行为几何原样）。
                材质/圆角/过场相位合进 panelMat（oh.dock scope 调度，OneGUI 令牌，见文件头常量块）。
@@ -2428,7 +2430,7 @@ export function ChatDock(): ReactNode {
           <div
             className={"dock-handle" + (dragging ? " is-drag" : "")}
             role="separator"
-            aria-label="拖动调整面板高度"
+            aria-label={i18n("auto.plugins.ChatDock.22")}
             onPointerDown={onHandleDown}
             onPointerMove={onHandleMove}
             onPointerUp={onHandleUp}
@@ -2438,13 +2440,13 @@ export function ChatDock(): ReactNode {
           {/* 头部行（OneGUI 收编）：动作钮走 Btn/IconBtn（ghost/outline 语义出外观与 a11y），
               创造模式以 tone=brand + is-on 类点亮（旧 .dock-btn.dock-creative 手写样退役）。 */}
           <div className="dock-head" style={MAT_HEAD}>
-            <span className="dock-title" style={MAT_TITLE} title="小OH"><HarnessMark size={15} /></span>
+            <span className="dock-title" style={MAT_TITLE} title={i18n("auto.plugins.ChatDock.23")}><HarnessMark size={15} /></span>
             {/* dev-explorer：搜索 | OH 二合一开关（同一扇窗两种形态；小窗可拖、气泡不动的口径不变）。
                 OOSE 红线：`?explorer-preview=search-oh` 以 `.dock-panel [role='tab']` 命中第二个 tab
                 收到 OH —— 这组_raw-tablist 结构（explorer-oh.css 契约样式）保持原样。
                  */}
-            <div className="ohx-modeswitch" role="tablist" aria-label="搜索或对话">
-              <Btn size="sm" role="tab" aria-selected={mode === "search"} className={mode === "search" ? "is-active" : ""} onClick={() => setMode("search")}>搜索</Btn>
+            <div className="ohx-modeswitch" role="tablist" aria-label={i18n("auto.plugins.ChatDock.24")}>
+              <Btn size="sm" role="tab" aria-selected={mode === "search"} className={mode === "search" ? "is-active" : ""} onClick={() => setMode("search")}>{i18n("auto.plugins.ChatDock.25")}</Btn>
               <Btn size="sm" role="tab" aria-selected={mode === "oh"} className={mode === "oh" ? "is-active" : ""} onClick={() => { setMode("oh"); requestAnimationFrame(() => stickBottom()); }}>OH</Btn>
               {/* 第三态：清小搭（2026-10-15 用户口径「搜索 / OH / 清小搭 三选一」）。务必追加在 OH 之后：
                   OOSE 预览契约以 `.dock-panel [role='tab']` 的**第二个** tab 命中 OH，顺序不能动。 */}
@@ -2458,8 +2460,7 @@ export function ChatDock(): ReactNode {
                 className={mode === "xiaoda" ? "is-active" : ""}
                 onClick={() => setMode("xiaoda")}
               >
-                清小搭
-              </Btn>}
+                {i18n("auto.plugins.ChatDock.26")}</Btn>}
             </div>
             <div className="dock-ops" style={matOps}>
               {mode === "oh" ? <>
@@ -2468,19 +2469,18 @@ export function ChatDock(): ReactNode {
               {!simple && <Btn
                 variant="ghost" size="sm"
                 tone={creative ? "brand" : "default"}
-                titleAttr="创造模式：开启后小OH更主动动手创建插件、主题、OnePage 与脚本工具"
-                aria-label="创造模式"
+                titleAttr={i18n("auto.plugins.ChatDock.27")}
+                aria-label={i18n("auto.plugins.ChatDock.28")}
                 aria-pressed={creative}
                 className={creative ? "is-on" : undefined}
                 icon={<IconSpark />}
                 onClick={() => setCreative(!creative)}
               >
-                创造模式
-              </Btn>}
-              <IconBtn label="新会话" variant="outline" size="sm" titleAttr="新会话" icon={<IconPlus />} onClick={() => void newSession()} />
-              <IconBtn label="历史会话" variant="outline" size="sm" titleAttr="历史会话" icon={<IconClock />} onClick={() => void openHistory()} />
-              <IconBtn label="导出会话" variant="outline" size="sm" titleAttr="导出当前会话 JSON" icon={<IconDownload />} onClick={() => void exportSession()} />
-              <IconBtn label="导入会话" variant="outline" size="sm" titleAttr="导入会话 JSON" icon={<IconUpload />} onClick={() => fileRef.current?.click()} />
+                {i18n("auto.plugins.ChatDock.28")}</Btn>}
+              <IconBtn label={i18n("auto.plugins.ChatDock.29")} variant="outline" size="sm" titleAttr={i18n("auto.plugins.ChatDock.29")} icon={<IconPlus />} onClick={() => void newSession()} />
+              <IconBtn label={i18n("auto.plugins.ChatDock.30")} variant="outline" size="sm" titleAttr={i18n("auto.plugins.ChatDock.30")} icon={<IconClock />} onClick={() => void openHistory()} />
+              <IconBtn label={i18n("auto.plugins.ChatDock.31")} variant="outline" size="sm" titleAttr={i18n("auto.plugins.ChatDock.32")} icon={<IconDownload />} onClick={() => void exportSession()} />
+              <IconBtn label={i18n("auto.plugins.ChatDock.33")} variant="outline" size="sm" titleAttr={i18n("auto.plugins.ChatDock.34")} icon={<IconUpload />} onClick={() => fileRef.current?.click()} />
               <input
                 ref={fileRef}
                 type="file" accept=".json,application/json"
@@ -2505,7 +2505,7 @@ export function ChatDock(): ReactNode {
                 />
               ) : null}
               </> : null}
-              <IconBtn label="收起" variant="outline" size="sm" titleAttr="收起" icon={<IconX />} onClick={toggle} />
+              <IconBtn label={i18n("auto.plugins.ChatDock.35")} variant="outline" size="sm" titleAttr={i18n("auto.plugins.ChatDock.35")} icon={<IconX />} onClick={toggle} />
             </div>
           </div>
           {notice ? (
@@ -2519,9 +2519,9 @@ export function ChatDock(): ReactNode {
               欢迎页会伪装成「对话被吃」，直接给明确说明卡，搜索模式照常可用 */}
           {mode === "oh" && !pid ? (
             <div className="dock-oh-missing">
-              <b>主对话需要完整桌面环境</b>
-              <p>当前窗口没有 Harness 进程（浏览器预览或插件未加载），对话历史在这里不可用，发送也不会生效。</p>
-              <p>搜索模式不受影响，可正常使用。到桌面端（tauri 桌面版）打开同一入口即可看到主对话。</p>
+              <b>{i18n("auto.plugins.ChatDock.36")}</b>
+              <p>{i18n("auto.plugins.ChatDock.37")}</p>
+              <p>{i18n("auto.plugins.ChatDock.38")}</p>
             </div>
           ) : mode === "xiaoda" ? (
             <XiaodaPane onNotice={setNotice} />
@@ -2577,11 +2577,11 @@ export function ChatDock(): ReactNode {
                行本体直接用 OG Row（标题/元信息/尾钮槽），删除钮 stopPropagation 保序（不再误切会话）。 */
             <div className="dock-history" role="menu" style={matHistorySheet(histSettled)}>
               <div className="dock-history-head" style={MAT_HIST_HEAD}>
-                <b>历史会话</b>
-                <Btn variant="outline" size="sm" onClick={() => setHistory(null)}>关闭</Btn>
+                <b>{i18n("auto.plugins.ChatDock.30")}</b>
+                <Btn variant="outline" size="sm" onClick={() => setHistory(null)}>{i18n("auto.plugins.ChatDock.39")}</Btn>
               </div>
               {history.length === 0 ? (
-                <div className="dock-empty" style={matEmpty}>（无会话）</div>
+                <div className="dock-empty" style={matEmpty}>{i18n("auto.plugins.ChatDock.40")}</div>
               ) : history.map((s, idx) => (
                 idx === 0 ? (
                   /* 1 号主对话永久保留（用户定案）：不提供删除入口 */
@@ -2589,7 +2589,7 @@ export function ChatDock(): ReactNode {
                     key={s.id}
                     title={`① ${s.title || "未命名"}`}
                     sub={`主对话 · ${s.messages} 轮 · ${fmtUsd(s.costUsd)}`}
-                    titleAttr="主对话不可删除"
+                    titleAttr={i18n("auto.plugins.ChatDock.41")}
                     trailing={<Text slot="micro" tone="faint">—</Text>}
                   />
                 ) : (
@@ -2600,7 +2600,7 @@ export function ChatDock(): ReactNode {
                     onClick={() => void switchSession(s.id)}
                     trailing={
                       <IconBtn
-                        label="删除"
+                        label={i18n("auto.plugins.ChatDock.42")}
                         variant="outline"
                         size="sm"
                         icon={<IconX />}

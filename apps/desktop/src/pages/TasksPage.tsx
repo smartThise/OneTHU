@@ -39,6 +39,8 @@ import type { Homework } from "@onethu/core";
 
 export { HwCarousel } from "../components/HomeworkCarousel.js";
 import { HwCarousel, ddlInfo, pendingHomework } from "../components/HomeworkCarousel.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 export function TasksPage(): ReactNode {
   const { navigate } = useApp();
@@ -193,26 +195,25 @@ export function TasksPage(): ReactNode {
   return (
     <>
       <PageHead
-        title="待办"
+        title={i18n("auto.pages.TasksPage.1")}
         meta={data ? semesterText(data.semester.id) : "今天该管的事"}
         actions={
           <>
-            <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />刷新
-            </Btn>
+            <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />{i18n("auto.pages.TasksPage.2")}</Btn>
           </>
         }
       />
 
       {!wide ? (
         <SegmentedOverflow>
-          <button role="tab" aria-selected={tab === "learn"} className={tab === "learn" ? "is-active" : ""} onClick={() => setTab("learn")}>学习</button>
-          <button role="tab" aria-selected={tab === "life"} className={tab === "life" ? "is-active" : ""} onClick={() => setTab("life")}>生活</button>
+          <button role="tab" aria-selected={tab === "learn"} className={tab === "learn" ? "is-active" : ""} onClick={() => setTab("learn")}>{i18n("auto.pages.TasksPage.3")}</button>
+          <button role="tab" aria-selected={tab === "life"} className={tab === "life" ? "is-active" : ""} onClick={() => setTab("life")}>{i18n("auto.pages.TasksPage.4")}</button>
         </SegmentedOverflow>
       ) : null}
 
       <div className={"tasks-body" + (wide ? " is-wide" : "")} onPointerDown={onHDown} onPointerUp={onHUp}>
       <section className={"tasks-pane" + (wide || tab === "learn" ? "" : " is-hidden")}>
-        <div className="tasks-pane-head">学习</div>
+        <div className="tasks-pane-head">{i18n("auto.pages.TasksPage.3")}</div>
         {/* 元素出场（§3.6：「待办页元素错峰出场」此前延后到动效令牌落地）：
             只在这一层用一个 .stagger——筛选行 → 卡片流 → 统计/入口逐项上浮 26ms。
             不在子容器再套一层：父子同时进场会糊成一团，也不给卡片流内的卡加动画
@@ -224,11 +225,11 @@ export function TasksPage(): ReactNode {
               className="hw-filter-select"
               value={courseFilter}
               onChange={(e) => setCourseFilter(e.target.value)}
-              aria-label="按课程筛选作业"
+              aria-label={i18n("auto.pages.TasksPage.5")}
             >
-              <option value="">全部课程（{flowAll.length}）</option>
+              <option value="">{i18n("auto.pages.TasksPage.6")}{flowAll.length}）</option>
               {flowCourses.some((c) => !c.source) ? (
-                <optgroup label="网络学堂">
+                <optgroup label={i18n("auto.pages.TasksPage.7")}>
                   {flowCourses.filter((c) => !c.source).map((c) => (
                     <option key={c.key} value={c.key}>{c.label}（{c.count}）</option>
                   ))}
@@ -243,7 +244,7 @@ export function TasksPage(): ReactNode {
               ))}
             </select>
             {courseFilter ? (
-              <button className="hw-filter-clear" onClick={() => setCourseFilter("")}>清除</button>
+              <button className="hw-filter-clear" onClick={() => setCourseFilter("")}>{i18n("auto.pages.TasksPage.8")}</button>
             ) : null}
           </div>
           {/* 作业卡片流（拖拽实时跟手） */}
@@ -267,16 +268,16 @@ export function TasksPage(): ReactNode {
               {/* 两项计数各自独立成卡（轻拟物：受光面 + 投影 + 内高光，按下内凹） */}
               <button className="task-stat" onClick={() => navigate("learn-assignments")}>
                 <span className="task-stat-num" key={"n" + flow.length}>{flow.length}</span>
-                <span className="task-stat-label">还剩作业</span>
+                <span className="task-stat-label">{i18n("auto.pages.TasksPage.9")}</span>
               </button>
               <button className="task-stat" onClick={() => navigate("learn-assignments")}>
                 <span className="task-stat-num task-stat-urgent" key={"s" + dueSoon}>{dueSoon}</span>
-                <span className="task-stat-label">3 日内截止</span>
+                <span className="task-stat-label">{i18n("auto.pages.TasksPage.10")}</span>
               </button>
             </div>
             <div className="tasks-entries">
-              <button className="task-entry" onClick={() => navigate("learn-assignments")}>全部作业 →</button>
-              <button className="task-entry" onClick={() => navigate("learn")}>进入网络学堂 →</button>
+              <button className="task-entry" onClick={() => navigate("learn-assignments")}>{i18n("auto.pages.TasksPage.11")}</button>
+              <button className="task-entry" onClick={() => navigate("learn")}>{i18n("auto.pages.TasksPage.12")}</button>
             </div>
           </div>
           {/* 课程通知提示条（不再列条目） */}
@@ -285,14 +286,14 @@ export function TasksPage(): ReactNode {
             <span className="notice-strip-text">
               {unread.length > 0 ? (
                 <>
-                  课程通知：<b>{unread.length} 条未读</b>
-                  {hasImportantUnread ? <span className="task-unread-important">重要未读</span> : null}
+                  {i18n("auto.pages.TasksPage.13")}<b>{unread.length} {i18n("auto.pages.TasksPage.14")}</b>
+                  {hasImportantUnread ? <span className="task-unread-important">{i18n("auto.pages.TasksPage.15")}</span> : null}
                 </>
               ) : (
-                <>课程通知：暂无未读</>
+                <>{i18n("auto.pages.TasksPage.16")}</>
               )}
             </span>
-            <button className="task-sec-more" onClick={() => navigate("learn-notices")}>全部通知 →</button>
+            <button className="task-sec-more" onClick={() => navigate("learn-notices")}>{i18n("auto.pages.TasksPage.17")}</button>
           </div>
         </div>
       </section>
@@ -300,7 +301,7 @@ export function TasksPage(): ReactNode {
         {wide && pcSel ? (
           <>
             <div className="tasks-pane-head">
-              <span>作业详情</span>
+              <span>{i18n("auto.pages.TasksPage.18")}</span>
               <span className="tasks-pane-acts">
                 <button className="tasks-pane-close" onClick={() => toggleFull(!pcFull)}>
                   {pcFull ? "收起 ⤡" : "展开 ⤢"}
@@ -312,8 +313,7 @@ export function TasksPage(): ReactNode {
                     setPcSel(null);
                   }}
                 >
-                  返回生活 →
-                </button>
+                  {i18n("auto.pages.TasksPage.19")}</button>
               </span>
             </div>
             {/* 复用现有详情组件（§2.8.2：只改容器渲染，不改数据流与子组件）：
@@ -324,7 +324,7 @@ export function TasksPage(): ReactNode {
               {pcFull ? (
                 <div className="tasks-detail-fullbar">
                   <span className="tasks-detail-fulltitle">{pcSel.title}</span>
-                  <button className="tasks-pane-close" onClick={() => toggleFull(false)}>收起 ⤡</button>
+                  <button className="tasks-pane-close" onClick={() => toggleFull(false)}>{i18n("auto.pages.TasksPage.20")}</button>
                 </div>
               ) : null}
               {pcSlots.map((s) => (
@@ -346,29 +346,29 @@ export function TasksPage(): ReactNode {
           </>
         ) : (
           <>
-        <div className="tasks-pane-head">生活</div>
+        <div className="tasks-pane-head">{i18n("auto.pages.TasksPage.4")}</div>
         <div className="tasks-life tab-anim" data-dir="prev">
           {cardLow ? (
             <Card className="task-card">
               <button className="task-row" onClick={() => navigate("life", { lifeTab: "card" })}>
                 <span className="task-row-main">
-                  <span className="task-row-name">校园卡余额不足</span>
-                  <span className="task-row-sub">当前 ¥{card.data?.info.balance}，建议充值</span>
+                  <span className="task-row-name">{i18n("auto.pages.TasksPage.21")}</span>
+                  <span className="task-row-sub">{i18n("auto.pages.TasksPage.22")}{card.data?.info.balance}{i18n("auto.pages.TasksPage.23")}</span>
                 </span>
-                <span className="task-row-meta">去充值 →</span>
+                <span className="task-row-meta">{i18n("auto.pages.TasksPage.24")}</span>
               </button>
             </Card>
       ) : null}
           <div className="task-sec-head">
-            <span className="task-sec-title">最近新闻</span>
-            <button className="task-sec-more" onClick={() => navigate("info", { infoTab: "news" })}>全部新闻 →</button>
+            <span className="task-sec-title">{i18n("auto.pages.TasksPage.25")}</span>
+            <button className="task-sec-more" onClick={() => navigate("info", { infoTab: "news" })}>{i18n("auto.pages.TasksPage.26")}</button>
           </div>
           {news.state === "ready" && (news.data?.list.length ?? 0) > 0 ? (
             <NewsRows feed={news.data!} navigate={navigate} />
       ) : (
             <Card><Empty text="新闻还在路上，稍后再来看看。" /></Card>
       )}
-          <div className="task-life-note">行政类通知（报到、党团活动等）暂无稳定数据源，接入后补充到这里。</div>
+          <div className="task-life-note">{i18n("auto.pages.TasksPage.27")}</div>
         </div>
           </>
         )}

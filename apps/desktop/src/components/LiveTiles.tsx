@@ -15,6 +15,8 @@ import { useApp } from "../state/context.js";
 import { cacheGet, cacheFetch } from "../state/cache.js";
 import { universalFetch } from "../lib/transport.js";
 import { info } from "../lib/clients.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const splitKey = (key: string): string[] => key.split("~");
 const WASHER_TTL = 60_000;
@@ -212,8 +214,8 @@ export function ClassroomRoomToday({ atomKey }: { atomKey: string }): React.Reac
       alive = false;
     };
   }, [status, searchName, room]);
-  if (loading) return <div className="live-note">今日情况查询中…</div>;
-  if (err) return <div className="live-note">今日情况获取失败，可下拉重进刷新。</div>;
+  if (loading) return <div className="live-note">{i18n("auto.components.LiveTiles.1")}</div>;
+  if (err) return <div className="live-note">{i18n("auto.components.LiveTiles.2")}</div>;
   if (!day) return null;
   const now = new Date();
   const mins = now.getHours() * 60 + now.getMinutes();
@@ -222,8 +224,7 @@ export function ClassroomRoomToday({ atomKey }: { atomKey: string }): React.Reac
   return (
     <div className="live-today">
       <div className="live-today-head">
-        {week ? "第 " + week + " 教学周 · " : ""}周{"日一二三四五六"[now.getDay()]} · 空闲 {freeCnt}/6 节
-      </div>
+        {week ? "第 " + week + " 教学周 · " : ""}{i18n("auto.components.LiveTiles.3")}{"日一二三四五六"[now.getDay()]} {i18n("auto.components.LiveTiles.4")}{freeCnt}{i18n("auto.components.LiveTiles.5")}</div>
       <div className="live-chip-row">
         {SLOT_TIMES.map(([s, e], si) => {
           const free = day[si] === AVAILABLE;

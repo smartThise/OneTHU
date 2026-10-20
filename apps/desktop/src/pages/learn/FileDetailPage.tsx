@@ -14,6 +14,8 @@ import { explainNetworkError } from "../../lib/transport.js";
 import { DownloadOpenButtons } from "../../components/DownloadOpenButtons.js";
 import { openFilePreview } from "../../components/FilePreview.js";
 import { LEARN_FILE_DOWNLOAD } from "@onethu/core";
+import { t as i18n } from "../../i18n/index.js";
+
 
 export function FileDetailPage() {
   useLearnNavSemester();
@@ -50,7 +52,7 @@ export function FileDetailPage() {
   if (!f) {
     return (
       <>
-        <PageHead title="文件详情" actions={<><BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} courseTab="files" /></>} />
+        <PageHead title={i18n("auto.pages.learn.FileDetailPage.1")} actions={<><BackButton to={navParams?.from ?? "learn-files"} courseId={navParams?.courseId} courseTab="files" /></>} />
         {state === "loading" ? (
           <SkeletonRows rows={4} />
         ) : state === "error" ? (
@@ -58,7 +60,7 @@ export function FileDetailPage() {
         ) : (
           <Card><Empty
             text="未找到该文件，可能数据已刷新，请返回列表重试。"
-            action={<Btn variant="ghost" onClick={() => navigate("learn")}>回网络学堂</Btn>}
+            action={<Btn variant="ghost" onClick={() => navigate("learn")}>{i18n("auto.pages.learn.FileDetailPage.2")}</Btn>}
           /></Card>
         )}
       </>
@@ -77,8 +79,7 @@ export function FileDetailPage() {
               atom={{ kind: "file", key: enc(f.courseId, f.id, f.title, course?.name ?? "", data?.semester.id ?? "") }}
               title={f.title}
             />
-            <Btn variant="outline" onClick={() => openFilePreview({ name: learnFileName(f.title || `课件 ${f.id}`, f.fileType), url: LEARN_FILE_DOWNLOAD(f.id) })}>预览
-            </Btn>
+            <Btn variant="outline" onClick={() => openFilePreview({ name: learnFileName(f.title || `课件 ${f.id}`, f.fileType), url: LEARN_FILE_DOWNLOAD(f.id) })}>{i18n("auto.pages.learn.FileDetailPage.3")}</Btn>
             <Btn variant="solid" tone="brand" disabled={downloading} onClick={() => void doDownload()}><IconDownload width={14} height={14} />{downloading ? "下载中…" : "下载"}</Btn>
           </>
         }
@@ -92,11 +93,11 @@ export function FileDetailPage() {
       ) : null}
 
       <Card className="list">
-        <InfoRow label="文件类型" value={f.fileType ? f.fileType.toUpperCase() : "未知"} />
-        <InfoRow label="文件大小" value={f.size ?? "暂无信息"} />
-        <InfoRow label="所属课程" value={course?.name ?? "课程"} />
-        <InfoRow label="上传时间" value={fmtDateTime(f.uploadTime)} />
-        <InfoRow label="说明" value={f.description ?? "暂无说明"} />
+        <InfoRow label={i18n("auto.pages.learn.FileDetailPage.4")} value={f.fileType ? f.fileType.toUpperCase() : "未知"} />
+        <InfoRow label={i18n("auto.pages.learn.FileDetailPage.5")} value={f.size ?? "暂无信息"} />
+        <InfoRow label={i18n("auto.pages.learn.FileDetailPage.6")} value={course?.name ?? "课程"} />
+        <InfoRow label={i18n("auto.pages.learn.FileDetailPage.7")} value={fmtDateTime(f.uploadTime)} />
+        <InfoRow label={i18n("auto.pages.learn.FileDetailPage.8")} value={f.description ?? "暂无说明"} />
       </Card>
     </>
   );

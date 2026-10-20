@@ -11,6 +11,8 @@ import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
 import { openExternal } from "./openExternal.js";
 import { TabEmpty, isServiceUnavailable, logTabErr, tabErrorText, TabError } from "./tabStates.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type Sem = "autumn" | "spring";
 type Lang = "zh" | "en";
@@ -59,22 +61,20 @@ export function CalendarTab() {
 
   return (
     <>
-      <SectionHead title="校历" aside="我的清华 · 教学日历图片版" />
+      <SectionHead title={i18n("auto.pages.info.CalendarTab.1")} aside="我的清华 · 教学日历图片版" />
       {state === "error" ? (
         <TabError unavailable={unavailable} text={error} onRetry={() => void load()} />
       ) : null}
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
-        <Select value={year} onChange={(value) => setYear(Number(value))} aria-label="学年">{years.map((y) => (
+        <Select value={year} onChange={(value) => setYear(Number(value))} aria-label={i18n("auto.pages.info.CalendarTab.2")}>{years.map((y) => (
             <option key={y} value={y}>
-              {y}-{y + 1} 学年
-            </option>
+              {y}-{y + 1} {i18n("auto.pages.info.CalendarTab.2")}</option>
           ))}</Select>
-        <Select value={sem} onChange={(value) => setSem(value as Sem)} aria-label="学期"><option value="autumn">秋季学期</option><option value="spring">春季学期</option></Select>
-        <Select value={lang} onChange={(value) => setLang(value as Lang)} aria-label="语言"><option value="zh">中文</option><option value="en">English</option></Select>
+        <Select value={sem} onChange={(value) => setSem(value as Sem)} aria-label={i18n("auto.pages.info.CalendarTab.3")}><option value="autumn">{i18n("auto.pages.info.CalendarTab.4")}</option><option value="spring">{i18n("auto.pages.info.CalendarTab.5")}</option></Select>
+        <Select value={lang} onChange={(value) => setLang(value as Lang)} aria-label={i18n("auto.pages.info.CalendarTab.6")}><option value="zh">{i18n("auto.pages.info.CalendarTab.7")}</option><option value="en">English</option></Select>
         {src ? (
-          <Btn variant="ghost" onClick={() => void openExternal(src)}>在浏览器打开原图
-          </Btn>
+          <Btn variant="ghost" onClick={() => void openExternal(src)}>{i18n("auto.pages.info.CalendarTab.8")}</Btn>
         ) : null}
       </div>
 
@@ -86,8 +86,7 @@ export function CalendarTab() {
             <span style={{ fontSize: 13, color: "var(--text-2)" }}>{Math.round(zoom * 100)}%</span>
             <Btn variant="ghost" onClick={() => setZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))} disabled={zoom >= 4}>+
             </Btn>
-            <Btn variant="ghost" onClick={() => setZoom(1)}>重置
-            </Btn>
+            <Btn variant="ghost" onClick={() => setZoom(1)}>{i18n("auto.pages.info.CalendarTab.9")}</Btn>
           </div>
           <Card style={{ overflow: "auto", padding: 12 }}>
             <img

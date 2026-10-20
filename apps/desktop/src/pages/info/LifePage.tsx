@@ -30,6 +30,8 @@ import { PayrollTab } from "./PayrollTab.js";
 import { GradIncomeTab } from "./GradIncomeTab.js";
 import { NetworkTab } from "./NetworkTab.js";
 import { useTabDirection } from "../../lib/motion.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 export type LifeTab =
   | "dorm" | "washer" | "hygiene" | "card"
@@ -89,12 +91,11 @@ export function LifePage() {
   return (
     <>
       <PageHead
-        title="生活"
+        title={i18n("auto.pages.info.LifePage.1")}
         actions={
           <>
-            <RootPageStar page="life" title="生活" />
-            <Btn variant="outline" onClick={() => setManageOpen(true)} titleAttr="栏目显隐与排序">管理栏目
-            </Btn>
+            <RootPageStar page="life" title={i18n("auto.pages.info.LifePage.1")} />
+            <Btn variant="outline" onClick={() => setManageOpen(true)} titleAttr={i18n("auto.pages.info.LifePage.2")}>{i18n("auto.pages.info.LifePage.3")}</Btn>
           </>
         }
       />
@@ -131,7 +132,7 @@ export function LifePage() {
       <TabManageModal
         open={manageOpen}
         onClose={() => setManageOpen(false)}
-        title="管理生活栏目"
+        title={i18n("auto.pages.info.LifePage.4")}
         tabs={TABS}
         layout={layout}
         onApply={applyLayout}

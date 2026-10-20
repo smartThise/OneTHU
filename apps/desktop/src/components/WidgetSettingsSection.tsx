@@ -23,6 +23,8 @@ import { requestWidgetBind } from "../state/widgetBindUi.js";
 import { FavAtomPicker } from "./FavAtomPicker.js";
 import { bindingSummary, shapeLabel } from "./WidgetBindModal.js";
 import { useNotifyBackend } from "./useNotifyBackend.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 系统报回的 provider 名（宿主 1×1 / 槽位 2）→ 用户看得懂的尺寸名 */
 function plainShapeName(name: string): string {
@@ -79,11 +81,9 @@ export function WidgetSettingsSection(): ReactNode {
     return (
       <div className="setting-row">
         <div>
-          <div className="setting-title">桌面小组件</div>
+          <div className="setting-title">{i18n("auto.components.WidgetSettingsSection.1")}</div>
           <div className="setting-desc">
-            桌面小组件由 Android 版提供：日程与 DDL、某个收藏项的详情、收藏夹图标组、1×1 快捷方式；
-            当前平台不支持。
-          </div>
+            {i18n("auto.components.WidgetSettingsSection.2")}</div>
         </div>
       </div>
     );
@@ -93,7 +93,7 @@ export function WidgetSettingsSection(): ReactNode {
     <>
       <div className="setting-row">
         <div>
-          <div className="setting-title">桌面上的小组件</div>
+          <div className="setting-title">{i18n("auto.components.WidgetSettingsSection.3")}</div>
           <div className="setting-desc">
             {readFailed
               ? "读取失败；若为刚安装的版本，请完全退出应用后重新打开"
@@ -107,22 +107,21 @@ export function WidgetSettingsSection(): ReactNode {
         <div style={{ display: "flex", gap: 8, flex: "none" }}>
           {/* R21c：ColorOS 等启动器上「绑定完桌面上没有」——直接请求系统放一块，
               绕开各家行为不一致的选择器；不支持时给出明确的手动路径。 */}
-          <Btn variant="outline" titleAttr="调用系统方式直接在桌面放一块标准形态小组件" onClick={() => {
+          <Btn variant="outline" titleAttr={i18n("auto.components.WidgetSettingsSection.4")} onClick={() => {
               void (async () => {
                 const r = await pinWidget();
                 if (r.requested) {
-                  showToast("已请求系统添加到桌面，请查看桌面");
+                  showToast(i18n("auto.components.WidgetSettingsSection.msg1"));
                   void refresh();
                 } else if (r.supported) {
-                  showToast("系统未接受放置请求，请长按桌面 → 小组件 → OneTHU 手动添加", 6000);
+                  showToast(i18n("auto.components.WidgetSettingsSection.msg2"), 6000);
                 } else {
-                  showToast("当前启动器不支持一键添加，请长按桌面 → 小组件 → OneTHU", 6000);
+                  showToast(i18n("auto.components.WidgetSettingsSection.msg3"), 6000);
                 }
               })();
-            }}>放到桌面
-          </Btn>
-          <Btn variant="ghost" onClick={() => void pushNow()}>立即刷新</Btn>
-          <Btn variant="ghost" onClick={() => void refresh()}>重新载入</Btn>
+            }}>{i18n("auto.components.WidgetSettingsSection.5")}</Btn>
+          <Btn variant="ghost" onClick={() => void pushNow()}>{i18n("auto.components.WidgetSettingsSection.6")}</Btn>
+          <Btn variant="ghost" onClick={() => void refresh()}>{i18n("auto.components.WidgetSettingsSection.7")}</Btn>
         </div>
       </div>
 
@@ -130,16 +129,16 @@ export function WidgetSettingsSection(): ReactNode {
       {status ? (
         <div className="setting-row">
           <div>
-            <div className="setting-title">本机可用的小组件尺寸</div>
+            <div className="setting-title">{i18n("auto.components.WidgetSettingsSection.8")}</div>
             <div className="setting-desc">
               {status.providersRegistered.length === 0
                 ? "还没读到任何可用尺寸，请把这一行内容反馈给开发者"
                 : `${status.providersRegistered.length} 种：${status.providersRegistered.map(plainShapeName).join("、")}`}
-              <span style={{ color: "var(--text-3)" }}>　桌面「小组件」列表里能选的就是这些。</span>
+              <span style={{ color: "var(--text-3)" }}>　{i18n("auto.components.WidgetSettingsSection.9")}</span>
               {status.romSignals ? (
                 <>
                   <br />
-                  <span style={{ color: "var(--text-3)" }}>系统判定：{status.rom}（依据 {status.romSignals}）</span>
+                  <span style={{ color: "var(--text-3)" }}>{i18n("auto.components.WidgetSettingsSection.10")}{status.rom}{i18n("auto.components.WidgetSettingsSection.11")}{status.romSignals}）</span>
                 </>
               ) : null}
             </div>
@@ -155,18 +154,17 @@ export function WidgetSettingsSection(): ReactNode {
             <div className="setting-title">{shapeLabel(inst)}</div>
             <div className="setting-desc">
               {bindingSummary(bindingOf(inst.id, map), favs.data)}
-              {inst.bound === false ? <span style={{ color: "var(--text-3)" }}>　尚未选择内容（桌面显示「点一下选择」）</span> : null}
+              {inst.bound === false ? <span style={{ color: "var(--text-3)" }}>　{i18n("auto.components.WidgetSettingsSection.12")}</span> : null}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, flex: "none" }}>
-            <Btn variant="outline" onClick={() => requestWidgetBind({ to: "instance", id: String(inst.id) })}>换内容</Btn>
+            <Btn variant="outline" onClick={() => requestWidgetBind({ to: "instance", id: String(inst.id) })}>{i18n("auto.components.WidgetSettingsSection.13")}</Btn>
             {map.byId[String(inst.id)] ? (
               <Btn variant="ghost" onClick={() => {
                   unbindWidgetInstance(inst.id);
                   setMap(loadWidgetInstances());
                   void pushNow();
-                }}>恢复默认
-              </Btn>
+                }}>{i18n("auto.components.WidgetSettingsSection.14")}</Btn>
             ) : null}
           </div>
         </div>
@@ -175,10 +173,10 @@ export function WidgetSettingsSection(): ReactNode {
 
       <div className="setting-row">
         <div>
-          <div className="setting-title">新小组件的默认内容</div>
+          <div className="setting-title">{i18n("auto.components.WidgetSettingsSection.15")}</div>
           <div className="setting-desc">
-            刚放上桌面、还没选的块用它兜底：{bindingSummary(map.fallback, favs.data)}。
-            <span style={{ color: "var(--text-3)" }}>　添加时系统会自动弹出选择层，通常无需设置。</span>
+            {i18n("auto.components.WidgetSettingsSection.16")}{bindingSummary(map.fallback, favs.data)}。
+            <span style={{ color: "var(--text-3)" }}>　{i18n("auto.components.WidgetSettingsSection.17")}</span>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flex: "none" }}>
@@ -206,8 +204,8 @@ export function WidgetSettingsSection(): ReactNode {
 
       {fallbackPicker ? (
         <FavAtomPicker
-          title="默认内容用哪个收藏项做快捷方式"
-          hint="尚未选择内容时，桌面小组件先显示此项。"
+          title={i18n("auto.components.WidgetSettingsSection.18")}
+          hint={i18n("auto.components.WidgetSettingsSection.19")}
           onPick={(atom) => {
             setFallbackPicker(false);
             setWidgetFallback({ kind: "shortcut", atom });

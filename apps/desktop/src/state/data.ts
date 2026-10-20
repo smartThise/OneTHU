@@ -44,6 +44,8 @@ import { useApp } from "./context.js";
 import { cacheGet, cacheSet, cacheFetch, cacheKeys,
   purgeXkCaches, cacheSeedPreview, isPreviewMode } from "./cache.js";
 import { observeCardBalance } from "./cardWarn.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** info/zhjwxk 页内错误落盘（/tmp/onethu-debug.log），解析不匹配时可一轮定位 */
 export function logPageError(tag: string, err: unknown): void {
@@ -2130,18 +2132,18 @@ export function seedPreviewData(): () => void {
   const campus: CampusData = {
     courses: [course("c1", "高等数学A(1)", "示例老师", "六教 6A101"), course("c2", "大学物理B(1)", "示例老师", "三教 3200")],
     homework: [
-      { id: "h1", courseId: "c1", title: "第一次小作业", content: "", publishTime: ymdOf(-3), deadline: ymdOf(2) + " 23:59", submitted: false, graded: false, url: "" },
-      { id: "h2", courseId: "c2", title: "实验报告一", content: "", publishTime: ymdOf(-5), deadline: ymdOf(4) + " 23:59", submitted: false, graded: false, url: "" },
-      { id: "h3", courseId: "c1", title: "习题册第 2 章", content: "", publishTime: ymdOf(-8), deadline: ymdOf(-1) + " 23:59", submitted: true, graded: false, url: "" },
+      { id: "h1", courseId: "c1", title: i18n("auto.state.data.p1"), content: "", publishTime: ymdOf(-3), deadline: ymdOf(2) + " 23:59", submitted: false, graded: false, url: "" },
+      { id: "h2", courseId: "c2", title: i18n("auto.state.data.p2"), content: "", publishTime: ymdOf(-5), deadline: ymdOf(4) + " 23:59", submitted: false, graded: false, url: "" },
+      { id: "h3", courseId: "c1", title: i18n("auto.state.data.p3"), content: "", publishTime: ymdOf(-8), deadline: ymdOf(-1) + " 23:59", submitted: true, graded: false, url: "" },
     ],
     notifications: [
-      { id: "n1", courseId: "c1", title: "关于期中考试安排的通知", publisher: "示例老师", publishTime: ymdOf(-1), url: "" },
-      { id: "n2", courseId: "c2", title: "实验课调课通知", publisher: "示例老师", publishTime: ymdOf(-3), url: "" },
+      { id: "n1", courseId: "c1", title: i18n("auto.state.data.p4"), publisher: "示例老师", publishTime: ymdOf(-1), url: "" },
+      { id: "n2", courseId: "c2", title: i18n("auto.state.data.p5"), publisher: "示例老师", publishTime: ymdOf(-3), url: "" },
     ],
     files: [
-      { id: "f1", courseId: "c1", title: "第一讲 课件.pdf", uploadTime: ymdOf(-2) + " 10:00", downloadUrl: "", size: "2.3MB" },
-      { id: "f2", courseId: "c2", title: "实验指导书.pdf", uploadTime: ymdOf(-4) + " 09:00", downloadUrl: "", size: "1.1MB" },
-      { id: "f3", courseId: "c1", title: "习题参考答案.pdf", uploadTime: ymdOf(-6) + " 15:00", downloadUrl: "", size: "860KB" },
+      { id: "f1", courseId: "c1", title: i18n("auto.state.data.p6"), uploadTime: ymdOf(-2) + " 10:00", downloadUrl: "", size: "2.3MB" },
+      { id: "f2", courseId: "c2", title: i18n("auto.state.data.p7"), uploadTime: ymdOf(-4) + " 09:00", downloadUrl: "", size: "1.1MB" },
+      { id: "f3", courseId: "c1", title: i18n("auto.state.data.p8"), uploadTime: ymdOf(-6) + " 15:00", downloadUrl: "", size: "860KB" },
     ],
     schedule: [
       { courseName: "高等数学A(1)", dayOfWeek: wd, startSection: 1, endSection: 2, location: "六教 6A101", startTime: hm(8, 0), endTime: hm(9, 35), raw: {} },
@@ -2154,8 +2156,8 @@ export function seedPreviewData(): () => void {
 
   /* 倒计时提醒（deadlines）：日程与提醒卡读它；起止时间要落进「开始前 14 天 ~ 结束前」的窗口里 */
   const deadlines: DeadlineItem[] = [
-    { title: "退课(第一阶段)", begin: ymdOf(-2) + " 08:00", end: ymdOf(7) + " 16:00", url: "" },
-    { title: "本科生选择课程以P/F记载", begin: ymdOf(-1) + " 08:00", end: ymdOf(9) + " 16:00", url: "" },
+    { title: i18n("auto.state.data.p9"), begin: ymdOf(-2) + " 08:00", end: ymdOf(7) + " 16:00", url: "" },
+    { title: i18n("auto.state.data.p10"), begin: ymdOf(-1) + " 08:00", end: ymdOf(9) + " 16:00", url: "" },
   ];
   undo.push(cacheSeedPreview(DEADLINES_KEY, deadlines));
 
@@ -2174,7 +2176,7 @@ export function seedPreviewData(): () => void {
 
   /* 今日预约：座位 + 研讨间各一条（ResvRows 会读 kind/venue/place/start/end） */
   const resv: TodayReservation[] = [
-    { key: "seat-demo-1", kind: "seat", venue: "图书馆 北馆", place: "A-12", start: new Date(d0.getTime() + 3600000), end: null, note: "已签到" },
+    { key: "seat-demo-1", kind: "seat", venue: "图书馆 北馆", place: "A-12", start: new Date(d0.getTime() + 3600000), end: null, note: i18n("auto.state.data.p11") },
     { key: "room-demo-1", kind: "room", venue: "研讨间 4-201", place: "", start: new Date(d0.getTime() + 7200000), end: new Date(d0.getTime() + 10800000), note: "" },
   ];
   undo.push(cacheSeedPreview(TODAYRESV_KEY, resv));

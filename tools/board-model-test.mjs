@@ -233,7 +233,9 @@ const freshDeps = { ...deps, loadLayoutItems: () => null, resolveLayout: () =>
   Array.from({ length: 9 }, (_, i) => ({ id: "starter." + i, col: "main", collapsed: false })) };
 const freshBoard = B.defaultBoardDoc(freshDeps).boards[0];
 const freshRects = freshBoard.cells.portrait.map(x => x.rect);
-ok(freshRects.every(r => r && r.w >= 280 && r.h >= 132), "新板卡片必须有可读尺寸");
+/* 2026-10-19：首屏改成四列瀑布（版心 1104 / 4 列 → 单卡 264 宽），可读下限跟着版式走：
+   240×110 仍能挡住「单格 90×88」那种迁移残渣，又不会把四列布局判死。 */
+ok(freshRects.every(r => r && r.w >= 240 && r.h >= 110), "新板卡片必须有可读尺寸");
 ok(Math.max(...freshRects.map(r => r.x + r.w)) <= 1120, "新首页不得超出版心");
 ok(freshRects.every((a, i) => freshRects.every((b, j) => i === j || a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y)), "新板初始卡片不重叠");
 const preserved = B.defaultBoardDoc({ ...deps, loadLayoutItems: () => PORTRAIT });

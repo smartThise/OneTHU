@@ -14,6 +14,8 @@ import {
   forgetIssuedShare, issuedShareState, issuedShareTitle, issuedSharesSnapshot, markIssuedShareRevoked,
   payloadOfIssuedShare, scopeLabel, subscribeIssuedShares, type IssuedShare,
 } from "../../state/vaultShareLog.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 const STATE_LABEL: Record<string, string> = { active: "有效", revoked: "已撤销", expired: "已过期" };
 
@@ -28,7 +30,7 @@ export function IssuedSharesCard(): ReactNode {
 
   const revoke = async (e: IssuedShare): Promise<void> => {
     if (!e.cloud?.shareToken) {
-      showToast("这条口令没有绑定云盘（旧版本地口令），只能删除记录");
+      showToast(i18n("auto.components.vault.IssuedSharesCard.msg1"));
       return;
     }
     if (!(await confirmOk(`撤销「${e.boxName}」的这条口令？撤销后对方将无法再读取。`))) return;
@@ -37,9 +39,9 @@ export function IssuedSharesCard(): ReactNode {
       const ok = await revokeShare(payloadOfIssuedShare(e));
       if (ok) {
         markIssuedShareRevoked(e.id);
-        showToast("分享已撤销");
+        showToast(i18n("auto.components.vault.IssuedSharesCard.msg2"));
       } else {
-        showToast("撤销未完成：请先连接清华云盘");
+        showToast(i18n("auto.components.vault.IssuedSharesCard.msg3"));
       }
     } catch (err) {
       showToast(`撤销失败：${err instanceof Error ? err.message : String(err)}`);
@@ -51,7 +53,7 @@ export function IssuedSharesCard(): ReactNode {
   /** 改口令名：云盘清单就地更新，口令本身不变。 */
   const rename = async (e: IssuedShare): Promise<void> => {
     const f = await openFormModal("给这条口令起个名字", [
-      { key: "label", label: "口令名（留空 = 用箱子名）", default: e.label ?? "" },
+      { key: "label", label: i18n("auto.components.vault.IssuedSharesCard.p1"), default: e.label ?? "" },
     ]);
     if (!f) return;
     setBusy(e.id);
@@ -68,7 +70,7 @@ export function IssuedSharesCard(): ReactNode {
     const f = await openFormModal("限定接收邮箱", [
       {
         key: "allowEmail",
-        label: "只允许这个清华云盘邮箱接收（留空 = 不限制）",
+        label: i18n("auto.components.vault.IssuedSharesCard.p2"),
         default: e.allowEmail ?? "",
       },
     ]);
@@ -84,19 +86,19 @@ export function IssuedSharesCard(): ReactNode {
   };
 
   const forget = async (e: IssuedShare): Promise<void> => {
-    if (issuedShareState(e) === "active" && !(await confirmOk("这条口令还有效，删除记录后对方仍能读取。确定只删记录？"))) return;
+    if (issuedShareState(e) === "active" && !(await confirmOk(i18n("auto.components.vault.IssuedSharesCard.msg4")))) return;
     forgetIssuedShare(e.id);
-    showToast("记录已删除");
+    showToast(i18n("auto.components.vault.IssuedSharesCard.msg5"));
   };
 
   return (
     <Card>
       <div className="vault-actions">
-        <Text slot="label">已发出的口令</Text>
+        <Text slot="label">{i18n("auto.components.vault.IssuedSharesCard.1")}</Text>
         <Text slot="micro" tone="faint">{log.entries.length ? `共 ${log.entries.length} 条` : "还没有发出过口令"}</Text>
       </div>
       {log.entries.length === 0 ? (
-        <Text slot="micro" tone="faint">生成后这里会留下记录：能取到哪些内容、限定谁接收、何时过期，也能逐条改名或撤销。</Text>
+        <Text slot="micro" tone="faint">{i18n("auto.components.vault.IssuedSharesCard.2")}</Text>
       ) : (
         <List divided>
           {log.entries.map((e) => {
@@ -108,11 +110,11 @@ export function IssuedSharesCard(): ReactNode {
                 sub={`能取到：${scopeLabel(e)}　接收人：${e.allowEmail ?? "任何人"}　生成于 ${timeText(e.issuedAt)}${e.expiresAt ? `　有效期至 ${timeText(e.expiresAt)}` : "　不过期"}`}
                 trailing={
                   <>
-                    <Btn size="sm" variant="ghost" disabled={busy === e.id} onClick={() => void rename(e)}>改名</Btn>
-                    <Btn size="sm" variant="ghost" disabled={busy === e.id || st !== "active"} onClick={() => void restrict(e)}>限定邮箱</Btn>
-                    <Btn size="sm" variant="ghost" onClick={() => void navigator.clipboard.writeText(e.code).then(() => showToast("口令已复制")).catch(() => showToast("请手动复制"))}>复制</Btn>
+                    <Btn size="sm" variant="ghost" disabled={busy === e.id} onClick={() => void rename(e)}>{i18n("auto.components.vault.IssuedSharesCard.3")}</Btn>
+                    <Btn size="sm" variant="ghost" disabled={busy === e.id || st !== "active"} onClick={() => void restrict(e)}>{i18n("auto.components.vault.IssuedSharesCard.4")}</Btn>
+                    <Btn size="sm" variant="ghost" onClick={() => void navigator.clipboard.writeText(e.code).then(() => showToast(i18n("auto.components.vault.IssuedSharesCard.msg6"))).catch(() => showToast(i18n("auto.components.vault.IssuedSharesCard.msg7")))}>{i18n("auto.components.vault.IssuedSharesCard.5")}</Btn>
                     <Btn size="sm" variant="ghost" tone="error" disabled={busy === e.id || st !== "active"} onClick={() => void revoke(e)}>{busy === e.id ? "撤销中…" : "撤销"}</Btn>
-                    <Btn size="sm" variant="ghost" onClick={() => void forget(e)}>删除记录</Btn>
+                    <Btn size="sm" variant="ghost" onClick={() => void forget(e)}>{i18n("auto.components.vault.IssuedSharesCard.6")}</Btn>
                   </>
                 }
               />

@@ -4,6 +4,8 @@ import { fileToBytes, pickFile } from "../lib/attach.js";
 import { showToast } from "../state/toast.js";
 import type { CardCover, PersonalCard } from "../state/nameCard.js";
 import { IdentityCard } from "./IdentityCard.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 卡面压缩上限：dataURL 字符数（约 1.1MB 图），超出逐步降质。 */
 const MAX_CHARS = 1_400_000;
@@ -173,7 +175,7 @@ export function CardCoverEditor({
   const previewCard: PersonalCard = shown ? { ...card, cover: shown } : card;
 
   return (
-    <Modal open={open} onClose={onClose} title="自定义卡面" size="lg">
+    <Modal open={open} onClose={onClose} title={i18n("auto.components.CardCoverEditor.1")} size="lg">
       <Stack gap={4}>
         {draft ? (
           <>
@@ -205,15 +207,15 @@ export function CardCoverEditor({
             >
               <IdentityCard card={previewCard} variant="hero" />
             </div>
-            <Text slot="micro" tone="faint">拖动卡片调整取景位置；字色会按背景亮度自动取黑/白。</Text>
+            <Text slot="micro" tone="faint">{i18n("auto.components.CardCoverEditor.2")}</Text>
             <Inline gap={2} wrap>
-              <Text slot="micro" tone="faint">字色：</Text>
+              <Text slot="micro" tone="faint">{i18n("auto.components.CardCoverEditor.3")}</Text>
               {([["auto", "自动"], ["light", "白字"], ["dark", "黑字"]] as const).map(([v, label]) => (
                 <Btn key={v} size="sm" variant={inkMode === v ? "solid" : "ghost"} tone={inkMode === v ? "brand" : undefined} onClick={() => setInkMode(v)}>{label}</Btn>
               ))}
             </Inline>
             <label className="cover-editor-zoom">
-              <Text slot="micro" tone="faint">缩放 {shown?.zoom.toFixed(2) ?? "1.00"}×</Text>
+              <Text slot="micro" tone="faint">{i18n("auto.components.CardCoverEditor.4")}{shown?.zoom.toFixed(2) ?? "1.00"}×</Text>
               <input
                 type="range"
                 min={1}
@@ -225,18 +227,18 @@ export function CardCoverEditor({
             </label>
             <Inline gap={2} wrap>
               <Btn variant="outline" disabled={busy} onClick={() => void choose()}>{busy ? "处理中…" : "换一张照片"}</Btn>
-              <Btn variant="ghost" tone="error" onClick={() => { onRemove(); onClose(); }}>移除封面</Btn>
-              <Btn variant="ghost" onClick={onClose}>取消</Btn>
-              <Btn variant="solid" tone="brand" onClick={save}>保存卡面</Btn>
+              <Btn variant="ghost" tone="error" onClick={() => { onRemove(); onClose(); }}>{i18n("auto.components.CardCoverEditor.5")}</Btn>
+              <Btn variant="ghost" onClick={onClose}>{i18n("auto.components.CardCoverEditor.6")}</Btn>
+              <Btn variant="solid" tone="brand" onClick={save}>{i18n("auto.components.CardCoverEditor.7")}</Btn>
             </Inline>
           </>
         ) : (
           <Stack gap={3}>
-            <Text slot="micro" tone="faint">选一张照片做卡面：可以拖动取景、缩放，字色会按背景亮度自动变黑/变白。</Text>
+            <Text slot="micro" tone="faint">{i18n("auto.components.CardCoverEditor.8")}</Text>
             <Inline gap={2} wrap>
               <Btn variant="solid" tone="brand" disabled={busy} onClick={() => void choose()}>{busy ? "处理中…" : "选择照片"}</Btn>
-              {card.cover ? <Btn variant="ghost" onClick={() => { onRemove(); onClose(); }}>移除封面</Btn> : null}
-              <Btn variant="ghost" onClick={onClose}>取消</Btn>
+              {card.cover ? <Btn variant="ghost" onClick={() => { onRemove(); onClose(); }}>{i18n("auto.components.CardCoverEditor.5")}</Btn> : null}
+              <Btn variant="ghost" onClick={onClose}>{i18n("auto.components.CardCoverEditor.6")}</Btn>
             </Inline>
           </Stack>
         )}

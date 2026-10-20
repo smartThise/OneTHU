@@ -17,6 +17,8 @@ import { IconFile, IconFolder } from "./Icons.js";
 import { isAndroidNavigator } from "../lib/androidHost.js";
 import { openLocalPath, revealLocalPath } from "../lib/localFile.js";
 import { showToast } from "../state/toast.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 export function DownloadOpenButtons({ path }: { path: string }): ReactNode {
   const [busy, setBusy] = useState<"" | "file" | "dir">("");
@@ -36,12 +38,12 @@ export function DownloadOpenButtons({ path }: { path: string }): ReactNode {
   };
 
   return (
-    <span className="dl-open-btns" role="group" aria-label="打开下载的文件">
-      <Btn variant="ghost" titleAttr="打开文件（系统默认应用）" aria-label="打开文件" disabled={busy !== ""} onClick={(e) => {
+    <span className="dl-open-btns" role="group" aria-label={i18n("auto.components.DownloadOpenButtons.1")}>
+      <Btn variant="ghost" titleAttr={i18n("auto.components.DownloadOpenButtons.2")} aria-label={i18n("auto.components.DownloadOpenButtons.3")} disabled={busy !== ""} onClick={(e) => {
           e.stopPropagation();
           void run("file");
         }}><IconFile width={14} height={14} /></Btn>
-      <Btn variant="ghost" titleAttr="打开目录（定位到文件）" aria-label="打开目录" disabled={busy !== ""} onClick={(e) => {
+      <Btn variant="ghost" titleAttr={i18n("auto.components.DownloadOpenButtons.4")} aria-label={i18n("auto.components.DownloadOpenButtons.5")} disabled={busy !== ""} onClick={(e) => {
           e.stopPropagation();
           void run("dir");
         }}><IconFolder width={14} height={14} /></Btn>

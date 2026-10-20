@@ -10,6 +10,8 @@ import { Card } from "../../components/Layout.js";
 import { IconPen, IconRefresh } from "../../components/Icons.js";
 import { useReport } from "../../state/data.js";
 import { weightedAverage } from "../../lib/grades.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 /** 学期串 → 学年（"2024-2025秋" → "2024-2025"） */
 export function academicYear(semester: string): string {
@@ -92,7 +94,7 @@ export function ReportStatDone(): ReactNode {
     <StatTile
       icon={<IconPen width={17} height={17} />}
       num={s.loading ? "–" : n}
-      label="已修课程"
+      label={i18n("auto.pages.info.reportParts.1")}
       cap={s.loading || !n ? null : "共 " + s.totalCredits.toFixed(1) + " 学分"}
     />
   );
@@ -108,7 +110,7 @@ export function ReportStatCredit(): ReactNode {
       tone="green"
       icon={<IconRefresh width={17} height={17} />}
       num={s.totalCredits ? s.totalCredits.toFixed(1) : "–"}
-      label="总学分"
+      label={i18n("auto.pages.info.reportParts.2")}
       cap={latestSem ? latestSem + " " + latestCredit.toFixed(1) : null}
     />
   );
@@ -122,7 +124,7 @@ export function ReportStatOverall(): ReactNode {
       tone="amber"
       icon={<IconPen width={17} height={17} />}
       num={s.overall === null ? "–" : s.overall.toFixed(3)}
-      label="全部学年加权"
+      label={i18n("auto.pages.info.reportParts.3")}
       cap={s.groups.length ? "共 " + s.groups.length + " 个学期" : null}
     />
   );
@@ -136,7 +138,7 @@ export function ReportStatLatest(): ReactNode {
     <StatTile
       icon={<IconRefresh width={17} height={17} />}
       num={s.latestAvg === null ? "–" : s.latestAvg.toFixed(3)}
-      label="最新学期加权"
+      label={i18n("auto.pages.info.reportParts.4")}
       cap={sem ? sem + " · " + (s.groups[0]?.[1]?.length ?? 0) + " 门" : null}
     />
   );
@@ -152,7 +154,7 @@ export function ReportScoreRows({ limit = 8 }: { limit?: number }): ReactNode {
     rows.push(
       <div className="wg-card-subhead" key={semester}>
         <span>{semester}</span>
-        <span className="wg-card-subhead-side">加权 {list.length ? (weightedAverage(list)?.toFixed(3) ?? "–") : "–"} · {list.length} 门</span>
+        <span className="wg-card-subhead-side">{i18n("auto.pages.info.reportParts.5")}{list.length ? (weightedAverage(list)?.toFixed(3) ?? "–") : "–"} · {list.length} {i18n("auto.pages.info.reportParts.6")}</span>
       </div>,
     );
     for (const r of list) {

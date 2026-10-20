@@ -45,6 +45,8 @@ import { TasksPage } from "../../pages/TasksPage.js";
 import { FavsHomePage } from "../../pages/FavsHomePage.js";
 import { installedPlugins, subscribe } from "../../plugins/loader.js";
 import { getPluginTab, lastTabError, setTabRoot } from "../../plugins/tabs.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 /** 二级页（列表→详情、插件页）：转场走横向滑入，与顶层页签的纵向淡入区分开 */
 export function isSubPage(p: string): boolean {
@@ -86,7 +88,7 @@ function PluginTabHost({ pageKey }: { pageKey: Page }): ReactNode {
       <div className="plg-tab-head">
         <span className="plg-svg-icon" dangerouslySetInnerHTML={{ __html: icon ?? "" }} />
         <b>{tab?.title ?? "插件页"}</b>
-        {tab ? <span className="plg-tab-src">来自插件 {tab.pluginId}</span> : null}
+        {tab ? <span className="plg-tab-src">{i18n("auto.components.explorer.renderPage.1")}{tab.pluginId}</span> : null}
       </div>
       {failed ? <div className="plg-hint">{failed}</div> : null}
       <div ref={ref} className="plg-tab-root" data-pagekey={pageKey} />

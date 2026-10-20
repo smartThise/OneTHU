@@ -13,6 +13,8 @@ import {addToVault,type VaultCatch} from '../../state/vault.js';
 import {showToast} from '../../state/toast.js';
 import {IconFist,IconTriangleDown} from '../Icons.js';
 import {QuickIcon} from './OneShot.js';
+import { t as i18n } from "../../i18n/index.js";
+
 export function quickCatch(e:QuickEntry):VaultCatch{return {type:'payload',title:e.title,sub:e.kind==='board'?'OnePage':'工作区',payload:{kind:'quick-entry',entry:e},source:'OneGO!'};}
 export function OneGoBar(){
  const phone=useIsPhone();const {entries}=useQuickEntries();const saved=entries.filter(e=>e.kind!=='page');
@@ -21,17 +23,17 @@ export function OneGoBar(){
  useEffect(()=>{if(!overflow)return;const f=(e:PointerEvent)=>{if(!(e.target as Element)?.closest('.onego-bookmarks'))setOverflow(false);};const k=(e:KeyboardEvent)=>{if(e.key==='Escape')setOverflow(false);};window.addEventListener('pointerdown',f);window.addEventListener('keydown',k);return()=>{window.removeEventListener('pointerdown',f);window.removeEventListener('keydown',k);};},[overflow]);
  if(phone)return null;
  const menu=(e:QuickEntry,x:number,y:number)=>openContextMenu(x,y,[
-  {label:'打开',onSelect:()=>openQuickEntry(e)},
-  ...(e.kind==='board'?[{label:'重命名…',onSelect:()=>{void openFormModal('重命名 OnePage',[{key:'name',label:'名称',required:true,default:e.title}]).then(f=>{if(f?.name)renameOnePage(e.target!,f.name);});}},{label:'更换图标…',onSelect:()=>openFolderIconPicker(e.target!)},{label:'删除…',danger:true,onSelect:()=>{void confirmOk(`删除 OnePage「${e.title}」？`).then(ok=>{if(ok)removeOnePage(e.target!);});}}]:[{label:'编辑工作区…',onSelect:()=>openWorkspaceEditor(e.target!)}]),
-  {label:'收进暂存箱',onSelect:()=>{const r=addToVault(quickCatch(e));showToast(r.ok?'已收进暂存箱':'暂存箱已有此项');}},
-  {label:'移到最前',onSelect:()=>{if(saved[0])moveQuickEntry(e.id,saved[0].id);}},
+  {label:i18n("auto.components.explorer.OneGoBar.p1"),onSelect:()=>openQuickEntry(e)},
+  ...(e.kind==='board'?[{label:i18n("auto.components.explorer.OneGoBar.p2"),onSelect:()=>{void openFormModal('重命名 OnePage',[{key:'name',label:i18n("auto.components.explorer.OneGoBar.p3"),required:true,default:e.title}]).then(f=>{if(f?.name)renameOnePage(e.target!,f.name);});}},{label:i18n("auto.components.explorer.OneGoBar.p4"),onSelect:()=>openFolderIconPicker(e.target!)},{label:i18n("auto.components.explorer.OneGoBar.p5"),danger:true,onSelect:()=>{void confirmOk(`删除 OnePage「${e.title}」？`).then(ok=>{if(ok)removeOnePage(e.target!);});}}]:[{label:i18n("auto.components.explorer.OneGoBar.p6"),onSelect:()=>openWorkspaceEditor(e.target!)}]),
+  {label:i18n("auto.components.explorer.OneGoBar.p7"),onSelect:()=>{const r=addToVault(quickCatch(e));showToast(r.ok?'已收进暂存箱':'暂存箱已有此项');}},
+  {label:i18n("auto.components.explorer.OneGoBar.p8"),onSelect:()=>{if(saved[0])moveQuickEntry(e.id,saved[0].id);}},
  ]);
  const item=(e:QuickEntry,measuring=false)=><Btn key={e.id} className="onego-bookmark" size="sm" icon={<QuickIcon entry={e}/>} titleAttr={e.title} tabIndex={measuring?-1:0} draggable={!measuring} data-vault-catch={measuring?undefined:JSON.stringify(quickCatch(e))} data-vault-reorder={measuring?undefined:'true'} onClick={()=>{openQuickEntry(e);setOverflow(false);}} onContextMenu={ev=>{ev.preventDefault();menu(e,ev.clientX,ev.clientY);}} onDragStart={ev=>{dragged.current=e.id;ev.dataTransfer.setData('text/onethu-onego',e.id);ev.dataTransfer.effectAllowed='move';}} onDragOver={ev=>{if(dragged.current)ev.preventDefault();}} onDrop={ev=>{ev.preventDefault();if(dragged.current)moveQuickEntry(dragged.current,e.id);dragged.current=null;}} onDragEnd={()=>{dragged.current=null;}}>{e.title}</Btn>;
- return <nav className="onego-bookmarks" aria-label="OneGO! 收藏栏">
+ return <nav className="onego-bookmarks" aria-label={i18n("auto.components.explorer.OneGoBar.1")}>
  <Btn className="onego-manager" variant="solid" size="sm" icon={<IconFist width={16} height={16}/>} onClick={openOneGoSheet}>OneGO!</Btn>
- <div className="onego-bookmark-track" ref={ref}>{saved.slice(0,limit).map(e=>item(e))}{saved.length===0?<span className="onego-bookmark-empty">收藏的 OnePage 和工作区会放在这里</span>:null}</div>
- {saved.length>limit?<IconBtn size="sm" label="更多收藏" aria-expanded={overflow} icon={<IconTriangleDown width={12} height={12}/>} onClick={()=>setOverflow(v=>!v)}/>:null}
+ <div className="onego-bookmark-track" ref={ref}>{saved.slice(0,limit).map(e=>item(e))}{saved.length===0?<span className="onego-bookmark-empty">{i18n("auto.components.explorer.OneGoBar.2")}</span>:null}</div>
+ {saved.length>limit?<IconBtn size="sm" label={i18n("auto.components.explorer.OneGoBar.3")} aria-expanded={overflow} icon={<IconTriangleDown width={12} height={12}/>} onClick={()=>setOverflow(v=>!v)}/>:null}
  <div ref={measure} className="onego-bookmark-measure" aria-hidden="true" inert>{saved.map(e=>item(e,true))}</div>
- {overflow?<div className="onego-bookmark-overflow" aria-label="更多收藏">{saved.slice(limit).map(e=>item(e))}</div>:null}
+ {overflow?<div className="onego-bookmark-overflow" aria-label={i18n("auto.components.explorer.OneGoBar.3")}>{saved.slice(limit).map(e=>item(e))}</div>:null}
  </nav>;
 }

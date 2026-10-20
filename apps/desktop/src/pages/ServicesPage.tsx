@@ -13,11 +13,13 @@ import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Card, Empty, PageHead } from "../components/Layout.js";
 import { IconSearch } from "../components/Icons.js";
 import { pageAtomRef, resolveAtom, type AtomHit } from "../state/atoms.js";
-import { NAV_CATEGORIES, byCategory, type NavEntry } from "../state/navigation.js";
+import { NAV_CATEGORIES, byCategory, navCategoryLabel, navName, navNote, type NavEntry } from "../state/navigation.js";
 import { searchAll } from "../state/searchAll.js";
 import { useApp } from "../state/context.js";
 import { pluginTabsSnapshot, subscribePluginTabs } from "../plugins/tabs.js";
 import { ohAsk } from "../plugins/ChatDock.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 搜索结果里的原子行（页面/实体/门户应用/在线服务），点击走原子 open（自动记使用统计） */
 function AtomResultRow({ hit }: { hit: AtomHit }): ReactNode {
@@ -44,7 +46,7 @@ function ServiceRow({ entry }: { entry: NavEntry }): ReactNode {
     return ref ? resolveAtom(ref) : null;
   })();
   const icon = view?.icon ?? undefined;
-  const sub = entry.note ?? view?.sub;
+  const sub = navNote(entry) ?? view?.sub;
   const open = () => {
     if (view) view.open(navigate);
     else navigate(entry.page, entry.params);
@@ -53,7 +55,7 @@ function ServiceRow({ entry }: { entry: NavEntry }): ReactNode {
     <button className="svc-row" onClick={open}>
       {icon ? <span className="svc-row-icon">{icon({})}</span> : null}
       <span className="svc-row-main">
-        <span className="svc-row-name">{entry.name}</span>
+        <span className="svc-row-name">{navName(entry)}</span>
         {sub ? <span className="svc-row-sub">{sub}</span> : null}
       </span>
     </button>
@@ -79,14 +81,14 @@ export function ServicesPage(): ReactNode {
 
   return (
     <>
-      <PageHead title="服务" meta="按事情找功能 · 搜索全量兜底" />
+      <PageHead title={i18n("auto.pages.ServicesPage.1")} meta="按事情找功能 · 搜索全量兜底" />
       <div className="svc-search">
         <IconSearch width={15} height={15} />
         <input
-          placeholder="搜功能，如：电费 / 洗衣机 / 成绩 / 雨课堂"
+          placeholder={i18n("auto.pages.ServicesPage.2")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          aria-label="搜索功能"
+          aria-label={i18n("auto.pages.ServicesPage.3")}
         />
       </div>
       {query ? (
@@ -96,8 +98,8 @@ export function ServicesPage(): ReactNode {
             <Card className="svc-card">
               <button className="svc-row svc-row-oh" onClick={() => ohAsk(query)}>
                 <span className="svc-row-main">
-                  <span className="svc-row-name">问小 OH：「{query}」</span>
-                  <span className="svc-row-sub">智能助手直接回答，或帮你打开对应功能</span>
+                  <span className="svc-row-name">{i18n("auto.pages.ServicesPage.4")}{query}」</span>
+                  <span className="svc-row-sub">{i18n("auto.pages.ServicesPage.5")}</span>
                 </span>
               </button>
             </Card>
@@ -110,7 +112,7 @@ export function ServicesPage(): ReactNode {
             ) : null}
             {atomHits.length ? (
               <section>
-                <div className="svc-label">相关内容</div>
+                <div className="svc-label">{i18n("auto.pages.ServicesPage.6")}</div>
                 <Card className="svc-card">
                   {atomHits.map((h) => (
                     <AtomResultRow key={h.kind + "|" + h.key} hit={h} />
@@ -128,7 +130,7 @@ export function ServicesPage(): ReactNode {
         <>
           {groups.map((g) => (
             <section key={g.cat}>
-              <div className="svc-label">{g.cat}</div>
+              <div className="svc-label">{navCategoryLabel(g.cat)}</div>
               <Card className="svc-card">
                 {g.entries.map((e) => (
                   <ServiceRow key={e.id} entry={e} />
@@ -138,13 +140,13 @@ export function ServicesPage(): ReactNode {
           ))}
           {pluginTabs.length ? (
             <section>
-              <div className="svc-label">插件功能页</div>
+              <div className="svc-label">{i18n("auto.pages.ServicesPage.7")}</div>
               <Card className="svc-card">
                 {pluginTabs.map((t) => (
                   <button key={t.pageKey} className="svc-row" onClick={() => navigate(t.pageKey as never)}>
                     <span className="svc-row-main">
                       <span className="svc-row-name">{t.title}</span>
-                      <span className="svc-row-sub">来自插件</span>
+                      <span className="svc-row-sub">{i18n("auto.pages.ServicesPage.8")}</span>
                     </span>
                   </button>
                 ))}

@@ -18,6 +18,8 @@ import { useFavs } from "../state/favs.js";
 import { resolveAtom } from "../state/atoms.js";
 import { searchAtoms } from "../state/atoms.js";
 import type { AtomRef } from "../state/favorites.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 interface Hit {
   ref: AtomRef;
@@ -86,7 +88,7 @@ export function FavAtomPicker({ title, hint, onPick, onClose }: {
       <div className={"home-modal collect-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <div className="home-modal-head">
           <h3>{title}</h3>
-          <Btn variant="ghost" onClick={requestClose}>关闭</Btn>
+          <Btn variant="ghost" onClick={requestClose}>{i18n("auto.components.FavAtomPicker.1")}</Btn>
         </div>
         <div className="home-modal-body">
           <div className="collect-search">
@@ -102,8 +104,7 @@ export function FavAtomPicker({ title, hint, onPick, onClose }: {
           {q.trim() === "" ? (
             <div className="home-modal-hint">
               {hint ? <>{hint}<br /></> : null}
-              收藏夹里的收藏项全部列在下面（不需要先打开对应页面）；想找没收藏过的，输入关键词搜。
-            </div>
+              {i18n("auto.components.FavAtomPicker.2")}</div>
           ) : null}
 
           {results.length === 0 ? (

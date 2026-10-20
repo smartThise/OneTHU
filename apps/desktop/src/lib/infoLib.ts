@@ -23,6 +23,8 @@ import { loadRemembered } from "./clients.js";
 import { fileRead, fileWrite, obfuscateSecret, deobfuscateSecret } from "./clients.js";
 import { withPrivacy } from "./privacy.js";
 import { sm2crypto, makeFingerprint, webvpnDecodeUrl, parseCellAnchor, type TwoFactorMethod } from "@onethu/core";
+import { t as i18n } from "../i18n/index.js";
+
 
 let initialized = false;
 
@@ -252,7 +254,7 @@ helper.twoFactorAuthLimitHook = async () => {
   // 却不知原因（群反馈 + MCCF 实例：清掉 6~7 条旧信任记录后立刻能进）。
   void log("2FA 受信设备数达上限（登录继续，本次未信任）");
   const { showToast } = await import("../state/toast.js");
-  showToast("受信设备数已达上限：本次登录不会记住本设备。可到 id.tsinghua.edu.cn 删除旧的「信任浏览器」后重试。");
+  showToast(i18n("auto.lib.infoLib.msg1"));
 };
 
 /* ═══════════════ 登录链 ═══════════════ */

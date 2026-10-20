@@ -1,6 +1,8 @@
 import { Input } from "@onethu/gui";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 可搜索下拉选项。group 相同的相邻选项共享一个分组标题（保序）。 */
 export interface SearchSelectOption {
@@ -108,11 +110,11 @@ export function SearchSelect({
           }}
         >
           {searchable ? (
-            <Input placeholder="搜索…" value={query} onChange={(value) => setQuery(value)} />
+            <Input placeholder={i18n("auto.components.SearchSelect.1")} value={query} onChange={(value) => setQuery(value)} />
           ) : null}
           <div className="search-dd-list" style={{ overflowY: "auto", flex: 1, minHeight: 0 }}>
             {shown.length === 0 ? (
-              <div className="search-dd-empty">无匹配项</div>
+              <div className="search-dd-empty">{i18n("auto.components.SearchSelect.2")}</div>
             ) : (
               groups.map((g, gi) => (
                 <div key={g.name ?? `g${gi}`}>

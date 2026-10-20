@@ -18,6 +18,8 @@ import {
 import { BackButton, HomeworkRow, semesterText } from "./shared.js";
 import { useIgnoredHw } from "../../state/hwIgnore.js";
 import { useLearnNavSemester } from "./shared.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type Filter = "unfinished" | "overdue" | "submitted" | "graded" | "ignored" | "all";
 
@@ -57,29 +59,24 @@ function ExtHwGuide() {
     <>
       <div className="browser-hint ext-hw-hint">
         <span className="ext-hw-hint-text">
-          <div>雨课堂人人可用；OJ 平台（TUOJ、Tyche 等）按个人情况在设置页登录。</div>
+          <div>{i18n("auto.pages.learn.AssignmentsPage.1")}</div>
           <div style={{ opacity: 0.8, marginTop: 2 }}>
-            登录后把各平台作业 DDL 合并到「全部作业」与「今日」。
-          </div>
+            {i18n("auto.pages.learn.AssignmentsPage.2")}</div>
           {/* R11 16.2：TUOJ 自动漫游已过统一认证但未返回课程——条幅提示，不算错误 */}
           {ext.tuojAuto.tuoj.kind === "no-courses" ? (
             <div style={{ opacity: 0.8, marginTop: 2 }}>
-              TUOJ 统一认证已通过，但未返回课程（可能未注册 / 未选课）。
-            </div>
+              {i18n("auto.pages.learn.AssignmentsPage.3")}</div>
           ) : null}
         </span>
-        <Btn variant="solid" tone="brand" onClick={() => setLoginOpen(true)}>登录雨课堂
-        </Btn>
+        <Btn variant="solid" tone="brand" onClick={() => setLoginOpen(true)}>{i18n("auto.pages.learn.AssignmentsPage.4")}</Btn>
         <Btn variant="outline" onClick={() => {
             requestExtHwScroll();
             navigate("settings");
-          }}>去设置
-        </Btn>
+          }}>{i18n("auto.pages.learn.AssignmentsPage.5")}</Btn>
         <Btn variant="ghost" onClick={() => {
             dismissExtHwGuide();
             setDismissed(true);
-          }}>知道了
-        </Btn>
+          }}>{i18n("auto.pages.learn.AssignmentsPage.6")}</Btn>
       </div>
       <ConnectGate need="yuketang" open={loginOpen} onClose={() => setLoginOpen(false)} />
     </>
@@ -117,18 +114,15 @@ function ExtHwSourceErrorNote() {
           ))}
         </span>
         {yktFailed ? (
-          <Btn variant="solid" tone="brand" onClick={() => setYktLoginOpen(true)}>雨课堂扫码重登
-          </Btn>
+          <Btn variant="solid" tone="brand" onClick={() => setYktLoginOpen(true)}>{i18n("auto.pages.learn.AssignmentsPage.7")}</Btn>
         ) : null}
         {rows.some((r) => r.id === "tuoj" || r.id === "tuojClassic") ? (
-          <Btn variant="solid" tone="brand" onClick={() => setTuojLoginOpen(true)}>TUOJ 重新登录
-          </Btn>
+          <Btn variant="solid" tone="brand" onClick={() => setTuojLoginOpen(true)}>{i18n("auto.pages.learn.AssignmentsPage.8")}</Btn>
         ) : null}
         <Btn variant="outline" onClick={() => {
             requestExtHwScroll();
             navigate("settings");
-          }}>去设置重新登录
-        </Btn>
+          }}>{i18n("auto.pages.learn.AssignmentsPage.9")}</Btn>
       </div>
       <ConnectGate need="yuketang" open={yktLoginOpen} onClose={() => setYktLoginOpen(false)} />
       <ConnectGate need="tuoj" open={tuojLoginOpen} onClose={() => setTuojLoginOpen(false)} />
@@ -209,18 +203,16 @@ export function AssignmentsPage() {
   return (
     <>
       <PageHead
-        title="全部作业"
+        title={i18n("auto.pages.learn.AssignmentsPage.10")}
         meta={meta}
         actions={
           <>
-            <PageAtomStar atomKey="learn-assignments" title="全部作业" />
-            <BackButton to="learn" label="课程列表" />
+            <PageAtomStar atomKey="learn-assignments" title={i18n("auto.pages.learn.AssignmentsPage.10")} />
+            <BackButton to="learn" label={i18n("auto.pages.learn.AssignmentsPage.11")} />
             {extCourseId ? (
-              <Btn variant="ghost" onClick={() => navigate("learn-assignments")}>查看全部作业
-              </Btn>
+              <Btn variant="ghost" onClick={() => navigate("learn-assignments")}>{i18n("auto.pages.learn.AssignmentsPage.12")}</Btn>
             ) : null}
-            <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />刷新
-            </Btn>
+            <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />{i18n("auto.pages.learn.AssignmentsPage.13")}</Btn>
           </>
         }
       />
@@ -265,7 +257,7 @@ export function AssignmentsPage() {
           {/* R23：旁听作业单列（不计入上方计数与「全部」总数） */}
           {auditList.length > 0 ? (
             <>
-              <SectionHead title="旁听作业" />
+              <SectionHead title={i18n("auto.pages.learn.AssignmentsPage.14")} />
               <Card className="list">
                 {auditList.map((h, i) => (
                   <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={h.courseName ?? byCourse.get(h.courseId)} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${i * 25}ms` }} />

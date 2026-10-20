@@ -43,6 +43,8 @@ import {
   openBidirectionalShare, sendFriendFile, sendFriendText, useFriendMessages,
 } from "../state/friendChannel.js";
 import { stageFromPicker } from "../lib/fileChannel.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 defineSearchRows([
   {
@@ -146,17 +148,17 @@ function usePersonalActions() {
 
   const edit = useCallback(async (): Promise<void> => {
     const f = await openFormModal("编辑我的名片", [
-      { key: "name", label: "名字", required: true, default: p.name },
-      { key: "website", label: "个人网址", default: p.website },
-      { key: "social", label: "社交媒体", default: p.social },
-      { key: "phone", label: "手机号", default: p.phone },
+      { key: "name", label: i18n("auto.components.NameCardSection.p1"), required: true, default: p.name },
+      { key: "website", label: i18n("auto.components.NameCardSection.p2"), default: p.website },
+      { key: "social", label: i18n("auto.components.NameCardSection.p3"), default: p.social },
+      { key: "phone", label: i18n("auto.components.NameCardSection.p4"), default: p.phone },
       {
         key: "cloudEmail",
-        label: "清华云盘邮箱（已自动识别，可修改）",
-        placeholder: "留空则使用应用自动识别的邮箱",
+        label: i18n("auto.components.NameCardSection.p5"),
+        placeholder: i18n("auto.components.NameCardSection.p6"),
         default: p.cloudEmail || cloudEmail || "",
       },
-      { key: "bio", label: "个人简介（≤120 字，碰一碰要短）", kind: "textarea", default: p.bio },
+      { key: "bio", label: i18n("auto.components.NameCardSection.p7"), kind: "textarea", default: p.bio },
     ]);
     if (f) savePersonalCard(f);
   }, [p, cloudEmail]);
@@ -170,7 +172,7 @@ function usePersonalActions() {
       if (f.size > 200 * 1024) throw new Error("头像请控制在 200KB 以内");
       const bytes = await fileToBytes(f, 200 * 1024);
       savePersonalCard({ avatar: `data:${f.mime};base64,${bytesToBase64(bytes)}` });
-      showToast("头像已更新");
+      showToast(i18n("auto.components.NameCardSection.msg1"));
     } catch (e) {
       showToast(`头像设置失败：${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -180,7 +182,7 @@ function usePersonalActions() {
 
   const toVault = useCallback((): void => {
     const r = addToVault(personalCardCatch());
-    if (r.ok) showToast("名片已放进暂存箱");
+    if (r.ok) showToast(i18n("auto.components.NameCardSection.msg2"));
     else showToast(r.reason === "duplicate" ? "暂存箱里已经有这张名片了" : "暂存箱暂时不可用，稍后再试");
   }, []);
 
@@ -203,21 +205,21 @@ function PersonalCardBlock(): ReactNode {
   const copyCard = async (): Promise<void> => {
     if (copying) return;
     setCopying(true);
-    try { await navigator.clipboard.writeText(await personalShareCode(personal)); showToast("个人名片口令已复制"); }
+    try { await navigator.clipboard.writeText(await personalShareCode(personal)); showToast(i18n("auto.components.NameCardSection.msg3")); }
     catch (e) { showToast(e instanceof Error ? e.message : "复制失败，请重试"); }
     finally { setCopying(false); }
   };
   const saveCover = (cover: CardCover): void => {
     savePersonalCard({ cover });
-    showToast("卡面已保存");
+    showToast(i18n("auto.components.NameCardSection.msg4"));
     /* 云盘备份异步进行：失败只说备份失败，本地卡面不受影响。 */
     void (async () => {
       try {
         const cloud = await uploadCardCover(cover.src);
         savePersonalCard({ cover: { ...cover, cloud } });
-        showToast("卡面已备份到云盘");
+        showToast(i18n("auto.components.NameCardSection.msg5"));
       } catch {
-        showToast("卡面已保存；云盘备份失败：请到云盘页确认登录后重试");
+        showToast(i18n("auto.components.NameCardSection.msg6"));
       }
     })();
   };
@@ -225,7 +227,7 @@ function PersonalCardBlock(): ReactNode {
     const old = personal.cover?.cloud;
     savePersonalCard({ cover: null });
     if (old) void deleteCardCover(old);
-    showToast("已恢复默认纸卡");
+    showToast(i18n("auto.components.NameCardSection.msg7"));
   };
 
   return (
@@ -235,22 +237,19 @@ function PersonalCardBlock(): ReactNode {
         {/* 两排等宽按钮：编辑一排、分享一排；手机端各自两列，桌面端各四列，排版一致不参差 */}
         <div className="identity-panel-actions identity-panel-actions--edit">
           <Btn variant="solid" tone="brand" icon={<IconPen size="sm" />} onClick={() => void edit()}>
-            编辑资料
-          </Btn>
+            {i18n("auto.components.NameCardSection.1")}</Btn>
           <Btn variant="outline" icon={<IconCamera size="sm" />} disabled={busy} onClick={() => void pickAvatar()}>
-            换头像
-          </Btn>
+            {i18n("auto.components.NameCardSection.2")}</Btn>
           <Btn variant="outline" onClick={() => setCoverOpen(true)}>{personal.cover ? "换卡面" : "自定义卡面"}</Btn>
           <Btn variant="ghost" onClick={toVault}>
-            放进暂存箱
-          </Btn>
+            {i18n("auto.components.NameCardSection.3")}</Btn>
         </div>
         <div className="identity-panel-exchange">
           <div className="identity-panel-actions identity-panel-actions--share">
             <Btn variant="outline" disabled={copying || nfc.busy} onClick={() => void copyCard()}>{copying ? "正在生成…" : "复制名片口令"}</Btn>
-            <Btn variant="outline" disabled={receive.busy || nfc.busy} onClick={() => void receive.paste()}>粘贴口令</Btn>
-            <Btn variant="solid" disabled={!nfc.available || nfc.busy || copying} onClick={() => void nfc.send(() => personalNfcCode(personal))}>NFC 分享</Btn>
-            <Btn variant="ghost" disabled={receive.busy || nfc.busy} onClick={() => void receive.scan()}>扫码收名片</Btn>
+            <Btn variant="outline" disabled={receive.busy || nfc.busy} onClick={() => void receive.paste()}>{i18n("auto.components.NameCardSection.4")}</Btn>
+            <Btn variant="solid" disabled={!nfc.available || nfc.busy || copying} onClick={() => void nfc.send(() => personalNfcCode(personal))}>{i18n("auto.components.NameCardSection.5")}</Btn>
+            <Btn variant="ghost" disabled={receive.busy || nfc.busy} onClick={() => void receive.scan()}>{i18n("auto.components.NameCardSection.6")}</Btn>
           </div>
           <Text slot="micro" tone="faint">{nfc.hint}</Text>
         </div>
@@ -264,7 +263,7 @@ function PersonalCardBlock(): ReactNode {
         onRemove={removeCover}
       />
       <Card className="identity-panel-meta">
-        <Section title="名片信息" hint="碰一碰 / 分享口令都用这一张" />
+        <Section title={i18n("auto.components.NameCardSection.7")} hint={i18n("auto.components.NameCardSection.8")} />
         <KeyValue
           rows={[
             { k: "名字", v: personal.name || "未填写" },
@@ -275,8 +274,7 @@ function PersonalCardBlock(): ReactNode {
           ]}
         />
         <Text slot="micro" tone="faint">
-          名片只在你主动分享（放进暂存箱 / 口令 / 碰一碰）时才离开这台设备。
-        </Text>
+          {i18n("auto.components.NameCardSection.9")}</Text>
       </Card>
     </div>
   );
@@ -297,15 +295,15 @@ export function OrgCardsSection(): ReactNode {
     <div className="org-cards">
       <Section
         className="org-cards-head"
-        title="组织名片"
-        hint="与组织资料同步；历史独立名片仍保留"
-        aside={<Btn size="sm" variant="outline" onClick={() => openTab("contacts", { section: "orgs" } as never)}>管理组织</Btn>}
+        title={i18n("auto.components.NameCardSection.10")}
+        hint={i18n("auto.components.NameCardSection.11")}
+        aside={<Btn size="sm" variant="outline" onClick={() => openTab("contacts", { section: "orgs" } as never)}>{i18n("auto.components.NameCardSection.12")}</Btn>}
       />
       {orgs.length === 0 ? (
         <EmptyState
           icon={<IconIn size="lg" />}
-          title="创建组织后，这里会出现它的名片"
-          hint="在通讯录的「我的组织」中创建组织即可。"
+          title={i18n("auto.components.NameCardSection.13")}
+          hint={i18n("auto.components.NameCardSection.14")}
         />
       ) : (
         <div className="contact-deck">
@@ -399,7 +397,7 @@ export function ContactCabinet(): ReactNode {
 
   const sendMessage = useCallback(async (): Promise<void> => {
     if (!channelId) return;
-    const f = await openFormModal("给好友留言", [{ key: "text", label: "留言（同步写进共享云盘）", kind: "textarea", required: true }]);
+    const f = await openFormModal("给好友留言", [{ key: "text", label: i18n("auto.components.NameCardSection.p8"), kind: "textarea", required: true }]);
     if (!f?.text) return;
     const r = await sendFriendText(channelId, f.text);
     showToast(r.ok ? "留言已写入共享云盘" : `留言只留在本机：${r.reason}`);
@@ -470,23 +468,22 @@ export function ContactCabinet(): ReactNode {
           className="contact-search"
           value={query}
           onChange={setQuery}
-          placeholder="搜索好友、组织或简介"
-          aria-label="搜索好友或组织"
+          placeholder={i18n("auto.components.NameCardSection.15")}
+          aria-label={i18n("auto.components.NameCardSection.16")}
         />
         <Inline gap={2} wrap>
           <Segment
             value={filter}
             onChange={(v) => setFilter(v as ContactFilter)}
             options={[
-              { value: "all", label: "全部" },
-              { value: "personal", label: "好友" },
-              { value: "organization", label: "组织" },
+              { value: "all", label: i18n("auto.components.NameCardSection.p9") },
+              { value: "personal", label: i18n("auto.components.NameCardSection.p10") },
+              { value: "organization", label: i18n("auto.components.NameCardSection.p11") },
             ]}
           />
           <Chip icon={<IconStar size="sm" />} selected={onlyStarred} onClick={() => setOnlyStarred((v) => !v)}>
-            星标
-          </Chip>
-          <Btn variant="outline" icon={<IconIn size="sm" />} onClick={() => setRecvOpen(true)}>接收名片</Btn>
+            {i18n("auto.components.NameCardSection.17")}</Chip>
+          <Btn variant="outline" icon={<IconIn size="sm" />} onClick={() => setRecvOpen(true)}>{i18n("auto.components.NameCardSection.18")}</Btn>
         </Inline>
       </div>
 
@@ -495,7 +492,7 @@ export function ContactCabinet(): ReactNode {
           <div className="contact-slot is-mine">
             <Btn
               className="contact-card-pick"
-              aria-label="打开我的名片"
+              aria-label={i18n("auto.components.NameCardSection.19")}
               data-vault-catch={JSON.stringify(personalCardCatch())}
               onClick={() => setSelfOpen(true)}
             >
@@ -544,31 +541,29 @@ export function ContactCabinet(): ReactNode {
           action={
             <Inline gap={2} wrap>
               <Btn variant="solid" tone="brand" icon={<IconIn size="sm" />} onClick={() => setRecvOpen(true)}>
-                接收名片
-              </Btn>
+                {i18n("auto.components.NameCardSection.18")}</Btn>
               {filterActive ? (
                 <Btn variant="ghost" onClick={() => { setQuery(""); setOnlyStarred(false); setFilter("all"); }}>
-                  清空筛选
-                </Btn>
+                  {i18n("auto.components.NameCardSection.20")}</Btn>
               ) : null}
             </Inline>
           }
         />
       ) : null}
 
-      <Modal open={recvOpen} onClose={() => setRecvOpen(false)} title="接收名片" size="sm">
+      <Modal open={recvOpen} onClose={() => setRecvOpen(false)} title={i18n("auto.components.NameCardSection.18")} size="sm">
         <Stack gap={3}>
-          <Text slot="micro" tone="faint">对方给的名片口令粘进来，或识别分享二维码；暂存箱里已有的名片也能一次收进来。</Text>
+          <Text slot="micro" tone="faint">{i18n("auto.components.NameCardSection.21")}</Text>
           <Inline gap={2} wrap>
-            <Btn variant="solid" tone="brand" disabled={receive.busy} onClick={() => { setRecvOpen(false); void receive.paste(); }}>粘贴口令</Btn>
-            <Btn variant="outline" disabled={receive.busy} onClick={() => { setRecvOpen(false); void receive.scan(); }}>识别二维码</Btn>
-            <Btn variant="ghost" onClick={() => { setRecvOpen(false); importContacts(); }}>从暂存箱收</Btn>
+            <Btn variant="solid" tone="brand" disabled={receive.busy} onClick={() => { setRecvOpen(false); void receive.paste(); }}>{i18n("auto.components.NameCardSection.4")}</Btn>
+            <Btn variant="outline" disabled={receive.busy} onClick={() => { setRecvOpen(false); void receive.scan(); }}>{i18n("auto.components.NameCardSection.22")}</Btn>
+            <Btn variant="ghost" onClick={() => { setRecvOpen(false); importContacts(); }}>{i18n("auto.components.NameCardSection.23")}</Btn>
           </Inline>
         </Stack>
       </Modal>
 
       {/* 我的名片大卡 */}
-      <Modal open={selfOpen} onClose={() => setSelfOpen(false)} title="我的名片" className="contact-detail-modal" size="md">
+      <Modal open={selfOpen} onClose={() => setSelfOpen(false)} title={i18n("auto.components.NameCardSection.24")} className="contact-detail-modal" size="md">
         <div className="contact-detail">
           <div className="contact-detail-stage">
             <IdentityCard card={personal} variant="detail" />
@@ -584,17 +579,13 @@ export function ContactCabinet(): ReactNode {
             />
             <Inline gap={2} wrap>
               <Btn size="sm" variant="solid" tone="brand" icon={<IconPen size="sm" />} onClick={() => void edit()}>
-                编辑资料
-              </Btn>
+                {i18n("auto.components.NameCardSection.1")}</Btn>
               <Btn size="sm" variant="outline" icon={<IconCamera size="sm" />} disabled={busy} onClick={() => void pickAvatar()}>
-                换头像
-              </Btn>
+                {i18n("auto.components.NameCardSection.2")}</Btn>
               <Btn size="sm" variant="ghost" icon={<IconIn size="sm" />} onClick={toVault}>
-                放进暂存箱
-              </Btn>
+                {i18n("auto.components.NameCardSection.3")}</Btn>
               <Btn size="sm" variant="ghost" onClick={() => { setSelfOpen(false); goEntry("profile"); }}>
-                在「我的」里管理
-              </Btn>
+                {i18n("auto.components.NameCardSection.25")}</Btn>
             </Inline>
           </Stack>
         </div>
@@ -628,17 +619,15 @@ export function ContactCabinet(): ReactNode {
                   const r = addToVault(contactCatch(shown));
                   showToast(r.ok ? "名片已放进暂存箱" : r.reason === "duplicate" ? "暂存箱里已经有这张名片了" : "暂存箱暂时不可用，稍后再试");
                 }}>
-                  放进暂存箱
-                </Btn>
+                  {i18n("auto.components.NameCardSection.3")}</Btn>
                 {shown.shared?.shareUrl ? (
                   <Btn size="sm" variant="outline" icon={<IconCloud size="sm" />} onClick={() => {
                     void navigator.clipboard.writeText(shown.shared!.shareUrl!).then(
-                      () => showToast("共享链接已复制"),
-                      () => showToast("复制失败，请手动复制"),
+                      () => showToast(i18n("auto.components.NameCardSection.msg8")),
+                      () => showToast(i18n("auto.components.NameCardSection.msg9")),
                     );
                   }}>
-                    复制共享链接
-                  </Btn>
+                    {i18n("auto.components.NameCardSection.26")}</Btn>
                 ) : (
                   <Btn size="sm" variant="outline" icon={<IconCloud size="sm" />} disabled={sharingId === shown.id} onClick={() => void shareCloud(shown.id, shown.name)}>
                     {sharingId === shown.id ? "创建中…" : "共享云盘"}
@@ -646,8 +635,7 @@ export function ContactCabinet(): ReactNode {
                 )}
                 {shown.shared && !shown.shared.sharedWith && (shown.card as { cloudEmail?: string }).cloudEmail ? (
                   <Btn size="sm" variant="ghost" onClick={() => void openBidirectionalShare(shown.id).then((r) => showToast(r.ok ? "已开通双向写入" : `开通失败：${r.reason}`))}>
-                    开通双向
-                  </Btn>
+                    {i18n("auto.components.NameCardSection.27")}</Btn>
                 ) : null}
                 <Btn size="sm" variant="ghost" icon={<IconMail size="sm" />} onClick={() => setChannelId(channelId === shown.id ? null : shown.id)}>
                   {channelId === shown.id ? "收起通道" : "好友通道"}
@@ -655,12 +643,11 @@ export function ContactCabinet(): ReactNode {
                 {shown.kind === "organization" && (shown.card as OrgCard).joinUrl ? (
                   <Btn size="sm" variant="ghost" onClick={() => {
                     void navigator.clipboard.writeText((shown.card as OrgCard).joinUrl).then(
-                      () => showToast("加入方式已复制"),
-                      () => showToast("复制失败，请手动复制"),
+                      () => showToast(i18n("auto.components.NameCardSection.msg10")),
+                      () => showToast(i18n("auto.components.NameCardSection.msg11")),
                     );
                   }}>
-                    复制加入方式
-                  </Btn>
+                    {i18n("auto.components.NameCardSection.28")}</Btn>
                 ) : null}
                 {starButton(shown, false)}
                 <Btn size="sm" variant="ghost" tone="error" icon={<IconTrash size="sm" />} onClick={() => {
@@ -670,20 +657,18 @@ export function ContactCabinet(): ReactNode {
                     closeDetail();
                   });
                 }}>
-                  删除
-                </Btn>
+                  {i18n("auto.components.NameCardSection.29")}</Btn>
               </Inline>
 
               {channelId === shown.id ? (
                 <div className="contact-channel">
                   <Inline justify="between" gap={2}>
-                    <Text slot="label" weight="semibold">好友通道</Text>
-                    <Btn variant="plain" onClick={() => setChannelId(null)}>关闭</Btn>
+                    <Text slot="label" weight="semibold">{i18n("auto.components.NameCardSection.30")}</Text>
+                    <Btn variant="plain" onClick={() => setChannelId(null)}>{i18n("auto.components.NameCardSection.31")}</Btn>
                   </Inline>
                   {channelMessages.length === 0 ? (
                     <Text slot="micro" tone="faint">
-                      还没有留言。留言 / 文件会写进你们的共享云盘；对方通过共享链接查看。
-                    </Text>
+                      {i18n("auto.components.NameCardSection.32")}</Text>
                   ) : (
                     <List divided>
                       {channelMessages.map((m) => (
@@ -698,8 +683,8 @@ export function ContactCabinet(): ReactNode {
                     </List>
                   )}
                   <Inline gap={2} wrap>
-                    <Btn variant="solid" tone="brand" icon={<IconMail size="sm" />} onClick={() => void sendMessage()}>留言</Btn>
-                    <Btn variant="ghost" icon={<IconFile size="sm" />} onClick={() => void sendFile()}>传文件</Btn>
+                    <Btn variant="solid" tone="brand" icon={<IconMail size="sm" />} onClick={() => void sendMessage()}>{i18n("auto.components.NameCardSection.33")}</Btn>
+                    <Btn variant="ghost" icon={<IconFile size="sm" />} onClick={() => void sendFile()}>{i18n("auto.components.NameCardSection.34")}</Btn>
                   </Inline>
                 </div>
               ) : null}

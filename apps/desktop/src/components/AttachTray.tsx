@@ -19,6 +19,8 @@ import { ImageFilterSheet, type FilterResult } from "./ImageFilterSheet.js";
 import { IconCamera, IconImage, IconUpload } from "./Icons.js";
 import { logLine } from "../lib/clients.js";
 import { Chip } from "@onethu/gui";
+import { t as i18n } from "../i18n/index.js";
+
 
 export interface AttachTrayProps {
   /** 宿主接管：拿到附件后自己发送/渲染（不传则走 sendToOh 默认通道） */
@@ -135,7 +137,7 @@ export function AttachTray({ onPicked, allowEdit = true, className, style }: Att
   );
 
   return (
-    <div className={`oh-attach${className ? ` ${className}` : ""}`} style={style} role="group" aria-label="添加附件">
+    <div className={`oh-attach${className ? ` ${className}` : ""}`} style={style} role="group" aria-label={i18n("auto.components.AttachTray.1")}>
       {SOURCES.map((src) => (
         <Chip
           key={src.id}

@@ -12,6 +12,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { isAndroidNavigator, isWindowsNavigator } from "../lib/androidHost.js";
 import { APP_VERSION, BUILD_COMMIT, BUILD_TIME } from "../lib/buildinfo.js";
 import { clearDevLog, devLogEntries, devLogText, type DevLogEntry } from "../lib/devlog.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const HIDE_KEY = "onethu.dev.badge.hidden";
 
@@ -152,29 +154,29 @@ export default function DevPanel() {
             <strong style={{ color: "var(--og-success)" }}>OneTHU dev</strong>
             <span style={{ color: "var(--og-content-3)" }}>v{APP_VERSION}</span>
             <span style={{ flex: "1 1 auto" }} />
-            <Btn variant="outline" size="sm" onClick={hide}>隐藏徽标</Btn>
-            <Btn variant="outline" size="sm" onClick={() => setOpen(false)}>关闭</Btn>
+            <Btn variant="outline" size="sm" onClick={hide}>{i18n("auto.components.DevPanel.1")}</Btn>
+            <Btn variant="outline" size="sm" onClick={() => setOpen(false)}>{i18n("auto.components.DevPanel.2")}</Btn>
             {/* 竖屏取景框：整页换成一块真手机视口（同源 iframe，登录态照旧）。
                 窗口拖窄 ≠ 手机——比例/DPR/安全区都不对，这个入口才是看真机版式的地方。 */}
-            <Btn variant="outline" size="sm" onClick={() => { window.location.href = window.location.pathname + "?phone-frame=1"; }}>竖屏取景框</Btn>
+            <Btn variant="outline" size="sm" onClick={() => { window.location.href = window.location.pathname + "?phone-frame=1"; }}>{i18n("auto.components.DevPanel.3")}</Btn>
           </div>
           <div style={S.row}><span style={S.key}>commit</span><span style={S.val}>{BUILD_COMMIT}</span></div>
-          <div style={S.row}><span style={S.key}>构建时间</span><span style={S.val}>{buildTimeText()}</span></div>
-          <div style={S.row}><span style={S.key}>宿主</span><span style={S.val}>{hostName()}</span></div>
+          <div style={S.row}><span style={S.key}>{i18n("auto.components.DevPanel.4")}</span><span style={S.val}>{buildTimeText()}</span></div>
+          <div style={S.row}><span style={S.key}>{i18n("auto.components.DevPanel.5")}</span><span style={S.val}>{hostName()}</span></div>
           <div style={S.row}>
-            <span style={S.key}>视口</span>
+            <span style={S.key}>{i18n("auto.components.DevPanel.6")}</span>
             <span style={S.val}>{window.innerWidth}x{window.innerHeight} · dpr {window.devicePixelRatio}</span>
           </div>
           <div style={S.bar}>
             <Btn variant="outline" size="sm" disabled={busy} onClick={() => void exportLog()}>{busy ? "导出中…" : "导出运行日志"}</Btn>
-            <Btn variant="outline" size="sm" onClick={() => void copy(devLogText(), "前端日志")}>复制前端日志</Btn>
-            <Btn variant="outline" size="sm" onClick={() => void copy(diagnostics(), "诊断信息")}>复制诊断信息</Btn>
-            <Btn variant="outline" size="sm" onClick={() => { clearDevLog(); setLogs([]); setNote("已清空前端日志缓冲"); }}>清空</Btn>
+            <Btn variant="outline" size="sm" onClick={() => void copy(devLogText(), "前端日志")}>{i18n("auto.components.DevPanel.7")}</Btn>
+            <Btn variant="outline" size="sm" onClick={() => void copy(diagnostics(), "诊断信息")}>{i18n("auto.components.DevPanel.8")}</Btn>
+            <Btn variant="outline" size="sm" onClick={() => { clearDevLog(); setLogs([]); setNote("已清空前端日志缓冲"); }}>{i18n("auto.components.DevPanel.9")}</Btn>
           </div>
           <div style={S.note}>{note}</div>
-          <div style={{ color: "var(--og-content-3)", margin: "6px 0 4px" }}>前端日志（{logs.length} 条，最新在下；已同步进 onethu-debug.log）</div>
+          <div style={{ color: "var(--og-content-3)", margin: "6px 0 4px" }}>{i18n("auto.components.DevPanel.10")}{logs.length} {i18n("auto.components.DevPanel.11")}</div>
           <div style={S.log}>
-            {logs.length === 0 ? <div style={{ color: "var(--og-content-disabled)" }}>（暂无）</div> : null}
+            {logs.length === 0 ? <div style={{ color: "var(--og-content-disabled)" }}>{i18n("auto.components.DevPanel.12")}</div> : null}
             {logs.map((e, i) => (
               <div style={S.line} key={String(e.t) + "-" + i}>
                 <span style={{ color: levelColor(e.level), flex: "0 0 44px" }}>{e.level}</span>

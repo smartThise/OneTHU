@@ -10,6 +10,8 @@ import { downloadLearnUrl } from "./clients.js";
 import { updateVaultItem, type VaultCatch } from "../state/vault.js";
 import { cacheVaultFiles } from "../state/vaultCloud.js";
 import { showToast } from "../state/toast.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const MIME: Record<string, string> = {
   txt: "text/plain", md: "text/markdown", json: "application/json", csv: "text/csv",
@@ -62,8 +64,8 @@ export async function offerScheduleToCalendar(payload: { title?: string; date?: 
   const start = Number(payload.startMs) || (payload.date ? Date.parse(payload.date + "T09:00:00") : Date.now());
   const end = Number(payload.endMs) || start + 3600_000;
   const ok = await confirmChoice("这条日程只存在暂存箱里；要加入「我的日程」吗？", {
-    title: "添加到我的日程？",
-    confirmText: "添加到日程",
+    title: i18n("auto.lib.vaultRemote.p1"),
+    confirmText: i18n("auto.lib.vaultRemote.p2"),
     cancelText: "先留在暂存箱",
   });
   if (!ok) return;
@@ -77,7 +79,7 @@ export async function offerScheduleToCalendar(payload: { title?: string; date?: 
       location: payload.location || undefined,
       onethuSource: "manual",
     } as never);
-    showToast("已添加到我的日程");
+    showToast(i18n("auto.lib.vaultRemote.msg1"));
   } catch (e) {
     showToast(`添加到日程失败：${e instanceof Error ? e.message : String(e)}`);
   }

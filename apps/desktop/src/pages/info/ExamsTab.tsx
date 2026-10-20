@@ -6,6 +6,8 @@ import { useMemo } from "react";
 import type { ExamEntry } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { useExams } from "../../state/data.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -55,7 +57,7 @@ export function ExamsTab() {
   return (
     <>
       <SectionHead
-        title="考试安排"
+        title={i18n("auto.pages.info.ExamsTab.1")}
         aside={state === "ready" && data ? `${data.length} 场 · ${upcoming} 场待考 · 本学年` : "本学年"}
       />
       {state === "error" && !data ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
@@ -80,7 +82,7 @@ export function ExamsTab() {
                   >
                     <div className="row-when">
                       <b>{e.startTime ?? "--:--"}</b>
-                      <span>至 {e.endTime ?? "--:--"}</span>
+                      <span>{i18n("auto.pages.info.ExamsTab.2")}{e.endTime ?? "--:--"}</span>
                     </div>
                     <div className="row-main">
                       <div className="row-title">{e.courseName}</div>

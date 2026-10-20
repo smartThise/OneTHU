@@ -17,19 +17,23 @@ const mode = readFileSync("apps/desktop/src/state/settingsMode.ts", "utf8");
 const layout = readFileSync("apps/desktop/src/components/Layout.tsx", "utf8");
 const plugins = readFileSync("apps/desktop/src/pages/Plugins.tsx", "utf8");
 
-// ① 映射表双向一致（explorer 版结构 2026-10-12 合流更新：分节已是 <SectionHead title="X" /> JSX，
-//    旧 SETTINGS_GROUPS 数组已不存在——按现结构解析，护栏语义不变：TAB_OF 的键必须能命中真实分节标题）
-const sections = [...settings.matchAll(/<SectionHead title="([^"]+)"/g)].map((m) => m[1]);
+// ① 分节 ↔ 页签：每个分节头必须带稳定 group（= 页签 key）。
+//    2026-10-19：标题改走 i18n 后不能再按文字匹配 —— 切英文时 "Help"/"About" 对不上中文表，
+//    整页分节会脱离页签控制（用户实测「切换语言后设置页坏了」）。
+const headAttrs = [...settings.matchAll(/<SectionHead\b([^>]*)\/>/g)].map((m) => m[1]);
+const groups = headAttrs.map((a) => a.match(/group="([^"]+)"/)?.[1] ?? null);
 const tabOfBody = settings.match(/const SETTINGS_TAB_OF[^=]*=\s*\{([\s\S]*?)\n\};/)?.[1] ?? "";
 /* 键可能带空格（如 OneShot 快捷入口）——先试引号键，再退回裸键 */
-const keys = [...tabOfBody.matchAll(/(?:"([^"]+)"|([^\s:,{}"]+)):\s*"/g)].map((m) => m[1] ?? m[2]);
-for (const s of sections) {
-  assert.ok(keys.includes(s), `分节「${s}」不在 SETTINGS_TAB_OF 里：它匹配不到页签，会出现在每个页签下面`);
+const tabPairs = [...tabOfBody.matchAll(/(?:"([^"]+)"|([^\s:,{}"]+))\s*:\s*"([^"]+)"/g)].map((m) => ({ key: m[1] ?? m[2], tab: m[3] }));
+const tabValues = new Set(tabPairs.map((p) => p.tab));
+assert.ok(headAttrs.length >= 15, "没解析到分节头（结构变了？）");
+assert.ok(groups.every(Boolean), "有分节没写 group：切语言后它会脱离页签控制，恒显或恒隐");
+for (const g of groups) {
+  assert.ok(tabValues.has(g), `分节 group="${g}" 不是任何页签：它匹配不到页签，会出现在每个页签下面`);
 }
-/* 运行时按「最长前缀匹配」（Section 的 textContent 可能带 hint），所以键允许是分节标题的前缀 */
-for (const k of keys) {
-  assert.ok(sections.some((x) => x === k || x.startsWith(k)), `SETTINGS_TAB_OF 里的「${k}」没有对应分节（改了标题忘改表？）`);
-}
+/* 运行时确实读稳定标记（而不是标题文字） */
+assert.ok(/settings-group:/.test(settings) && /data-og-scope/.test(settings), "设置页的 groupOf 没有读 data-og-scope 稳定分组");
+assert.ok(/scope=\{group \? "settings-group:" \+ group/.test(layout), "SectionHead 没有把 group 落到 data-og-scope");
 
 // ② 标准模式 ≤7 项
 const order = mode.match(/SETTINGS_TAB_ORDER = \[([^\]]+)\]/)?.[1] ?? "";
@@ -74,6 +78,6 @@ assert.ok(/consumeSettingsSectionRequest/.test(mode) && /consumeSettingsSectionR
   "设置页要消费分节请求（检索行落点要滚动 + 高亮）");
 
 console.log(
-  "设置分层与插件归位：分节↔页签映射 " + sections.length + " 项双向一致 / 标准模式 " + tabOrder.length +
+  "设置分层与插件归位：分节↔页签映射 " + headAttrs.length + " 项（稳定 group） / 标准模式 " + tabOrder.length +
   " 项（≤8） / 高级模式退役无僵尸 ✓ / 插件独立入口 ✓ / 页签与分节请求消费 ✓",
 );

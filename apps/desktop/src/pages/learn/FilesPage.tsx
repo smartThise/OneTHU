@@ -7,6 +7,8 @@ import { IconRefresh } from "../../components/Icons.js";
 import { useLearnData } from "../../state/data.js";
 import { BackButton, FileRow, semesterText } from "./shared.js";
 import { useLearnNavSemester } from "./shared.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 export function FilesPage() {
   useLearnNavSemester();
@@ -26,14 +28,13 @@ export function FilesPage() {
   return (
     <>
       <PageHead
-        title="课程文件"
+        title={i18n("auto.pages.learn.FilesPage.1")}
         meta={data ? `${semesterText(data.semester.id)} · 共 ${data.files.length} 个文件` : "按上传时间倒序"}
         actions={
           <>
-            <PageAtomStar atomKey="learn-files" title="全部课程文件" />
-            <BackButton to="learn" label="课程列表" />
-            <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />刷新
-            </Btn>
+            <PageAtomStar atomKey="learn-files" title={i18n("auto.pages.learn.FilesPage.2")} />
+            <BackButton to="learn" label={i18n("auto.pages.learn.FilesPage.3")} />
+            <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />{i18n("auto.pages.learn.FilesPage.4")}</Btn>
           </>
         }
       />
@@ -42,13 +43,13 @@ export function FilesPage() {
 
       {(data?.courses.length ?? 0) > 1 ? (
         <div className="field" style={{ maxWidth: 260 }}>
-          <label htmlFor="file-course-filter">按课程筛选</label>
+          <label htmlFor="file-course-filter">{i18n("auto.pages.learn.FilesPage.5")}</label>
           <select
             id="file-course-filter"
             value={courseId}
             onChange={(e) => setCourseId(e.target.value)}
           >
-            <option value="">全部课程</option>
+            <option value="">{i18n("auto.pages.learn.FilesPage.6")}</option>
             {(data?.courses ?? []).map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}

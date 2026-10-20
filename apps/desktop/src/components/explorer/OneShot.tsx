@@ -7,6 +7,8 @@ import {FolderIcon, IconSpark} from '../Icons.js';
 import {IconMore} from '../Icons.js';
 import {PracticalFeaturesPanel} from './PracticalFeatures.js';
 import {showToast} from '../../state/toast.js';
+import { t as i18n } from "../../i18n/index.js";
+
 export function QuickIcon({entry}:{entry?:QuickEntry}){const Icon=NAV.find(n=>n.page===entry?.page)?.icon;return Icon?<Icon/>:<FolderIcon name={entry?.kind==='workspace'?'folder':'star'} width={18} height={18}/>;}
 
 /** 课表页「快捷」小按钮的拖动位置（离默认位往上拖了多少 px）；跨会话记住，按设备存。 */
@@ -64,13 +66,13 @@ export function OneShot({scheduleMode=false}:{scheduleMode?:boolean}){
   const slots=mode==="simple"?DEFAULT_ONESHOT:practicalMode?[...practical,MORE_FEATURES_SLOT]:saved;
   const collapsed=scheduleMode&&!scheduleOpen&&!placing;
   const slotNodes=slots.map((id,i)=>{
-    if(practicalMode&&id===MORE_FEATURES_SLOT)return <Btn key={i} className="oneshot-button" icon={<IconMore width={18} height={18}/>} aria-expanded={moreOpen} onClick={()=>setMoreOpen(true)} titleAttr="展开全部功能；也可把常用功能换进左边四个入口">更多功能</Btn>;
+    if(practicalMode&&id===MORE_FEATURES_SLOT)return <Btn key={i} className="oneshot-button" icon={<IconMore width={18} height={18}/>} aria-expanded={moreOpen} onClick={()=>setMoreOpen(true)} titleAttr={i18n("auto.components.explorer.OneShot.1")}>{i18n("auto.components.explorer.OneShot.2")}</Btn>;
     if(placing&&i<4)return <Btn key={i} className="oneshot-button is-place-target" onClick={()=>place(i)} titleAttr={`用「${placing.title}」替换「${entries.find(e=>e.id===id)?.title??"此入口"}」`} aria-label={`入口 ${i+1}：放${placing.title}`}><span className="oneshot-place-badge" aria-hidden="true">{i+1}</span>{entries.find(e=>e.id===id)?.title??"此入口"}</Btn>;
     const e=entries.find(x=>x.id===id);
     return <Btn key={i} className="oneshot-button" icon={<QuickIcon entry={e}/>} onClick={()=>e&&openQuickEntry(e)} disabled={!e} titleAttr={e?.title??'此快捷入口已删除，请在「更多功能」里重新选择'}>{e?.title??'入口已删除'}</Btn>;
   });
   const featuresPanel=practicalMode?<PracticalFeaturesPanel open={moreOpen} onClose={()=>setMoreOpen(false)} slots={practical} onPlace={(f)=>{setMoreOpen(false);setPlacing(f);}}/>:null;
-  const placementBar=placing?<div className="oneshot-placement" role="status"><span>把 <strong>{placing.title}</strong> 放在哪个位置？</span><Btn variant="ghost" size="sm" onClick={()=>setPlacing(null)}>取消</Btn></div>:null;
+  const placementBar=placing?<div className="oneshot-placement" role="status"><span>{i18n("auto.components.explorer.OneShot.3")}<strong>{placing.title}</strong> {i18n("auto.components.explorer.OneShot.4")}</span><Btn variant="ghost" size="sm" onClick={()=>setPlacing(null)}>{i18n("auto.components.explorer.OneShot.5")}</Btn></div>:null;
 
   /* ── 课表页：小按钮可上下拖动（记住位置），点按展开/收起 ── */
   const onTogglePointerDown=(e:ReactPointerEvent<HTMLSpanElement>)=>{
@@ -106,7 +108,7 @@ export function OneShot({scheduleMode=false}:{scheduleMode?:boolean}){
 
   if(scheduleMode)return <nav
     className={"oneshot is-schedule"+(collapsed?" is-collapsed":"")+(placing?" is-placing":"")+(dragging?" is-dragging":"")}
-    aria-label="OneShot 超级快捷"
+    aria-label={i18n("auto.components.explorer.OneShot.6")}
     style={{"--oneshot-drag":`${dragOffset}px`} as CSSProperties}
   >
     {placementBar}
@@ -128,15 +130,15 @@ export function OneShot({scheduleMode=false}:{scheduleMode?:boolean}){
         aria-expanded={!collapsed}
         aria-label={collapsed?"展开快捷入口":"收起快捷入口"}
         titleAttr={collapsed?"快捷入口：点开展开；按住可上下拖动位置":"收起快捷入口；按住可上下拖动位置"}
-      >快捷</Btn>
+      >{i18n("auto.components.explorer.OneShot.7")}</Btn>
     </span>
     {featuresPanel}
   </nav>;
 
-  return <nav className={"oneshot"+(placing?" is-placing":"")} aria-label="OneShot 超级快捷">
+  return <nav className={"oneshot"+(placing?" is-placing":"")} aria-label={i18n("auto.components.explorer.OneShot.6")}>
     {placementBar}
     {slotNodes}
     {featuresPanel}
   </nav>;
 }
-export function OneShotSettings(){const {entries,slots}=useQuickEntries();return <div className="oneshot-settings">{slots.map((id,i)=><SettingsRow key={i} title={`快捷按钮 ${i+1}`} control={<Select aria-label={`OneShot 快捷按钮 ${i+1}`} value={id} onChange={v=>setOneShot(i,v)}>{!entries.some(e=>e.id===id)?<option value={id}>入口已删除</option>:null}{(['page','board','workspace'] as const).map(kind=><optgroup key={kind} label={kind==='page'?'功能与服务':kind==='board'?'OnePage':'工作区'}>{entries.filter(e=>e.kind===kind).map(e=><option key={e.id} value={e.id}>{e.title}</option>)}</optgroup>)}</Select>}/> )}</div>;}
+export function OneShotSettings(){const {entries,slots}=useQuickEntries();return <div className="oneshot-settings">{slots.map((id,i)=><SettingsRow key={i} title={`快捷按钮 ${i+1}`} control={<Select aria-label={`OneShot 快捷按钮 ${i+1}`} value={id} onChange={v=>setOneShot(i,v)}>{!entries.some(e=>e.id===id)?<option value={id}>{i18n("auto.components.explorer.OneShot.8")}</option>:null}{(['page','board','workspace'] as const).map(kind=><optgroup key={kind} label={kind==='page'?'功能与服务':kind==='board'?'OnePage':'工作区'}>{entries.filter(e=>e.kind===kind).map(e=><option key={e.id} value={e.id}>{e.title}</option>)}</optgroup>)}</Select>}/> )}</div>;}

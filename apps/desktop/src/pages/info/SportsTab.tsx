@@ -21,6 +21,8 @@ import { Card, ErrorNote, SectionHead, SkeletonRows } from "../../components/Lay
 import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
 import { TabEmpty, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type LoadState = "idle" | "loading" | "error" | "ready";
 /** core getSportsResources → { count, init, phone, data }（lib SportsResourcesInfo 同源） */
@@ -246,7 +248,7 @@ export function SportsTab() {
 
   return (
     <>
-      <SectionHead title="场馆与日期" aside={res?.count ? `最多可约 ${res.count} 片` : "体育系统 · 网上预约"} />
+      <SectionHead title={i18n("auto.pages.info.SportsTab.1")} aside={res?.count ? `最多可约 ${res.count} 片` : "体育系统 · 网上预约"} />
       <div className="chips" style={{ marginBottom: 10 }}>
         {SPORTS_VENUES.map((v) => (
           <button
@@ -272,10 +274,9 @@ export function SportsTab() {
             setDate(d);
             if (d) void loadResources(venue, d);
           }}
-          aria-label="预约日期"
+          aria-label={i18n("auto.pages.info.SportsTab.2")}
         />
-        <Btn variant="ghost" onClick={() => void loadResources(venue, date)} disabled={resState === "loading"}>刷新
-        </Btn>
+        <Btn variant="ghost" onClick={() => void loadResources(venue, date)} disabled={resState === "loading"}>{i18n("auto.pages.info.SportsTab.3")}</Btn>
       </div>
 
       <SectionHead title={`时段与场地 · ${venue.name}`} aside={closed ? "当前不在开放预约时段" : undefined} />
@@ -294,7 +295,7 @@ export function SportsTab() {
         <>
           {closed ? (
             <Card style={{ marginBottom: 12 }}>
-              <div className="empty">当前不在开放预约时段（开放时间以体育系统为准），以下仅展示现状。</div>
+              <div className="empty">{i18n("auto.pages.info.SportsTab.4")}</div>
             </Card>
           ) : null}
           {sessions.map(([session, fields]) => (
@@ -304,8 +305,8 @@ export function SportsTab() {
                   <thead>
                     <tr>
                       <th>{session}</th>
-                      <th className="num">状态</th>
-                      <th className="num">费用</th>
+                      <th className="num">{i18n("auto.pages.info.SportsTab.5")}</th>
+                      <th className="num">{i18n("auto.pages.info.SportsTab.6")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -343,13 +344,13 @@ export function SportsTab() {
       {/* 预约卡（选中场地后出现） */}
       {picked ? (
         <>
-          <SectionHead title="预约" aside={`${venue.name} · ${date} · ${picked.timeSession} · ${picked.fieldName}`} />
+          <SectionHead title={i18n("auto.pages.info.SportsTab.7")} aside={`${venue.name} · ${date} · ${picked.timeSession} · ${picked.fieldName}`} />
           <Card style={{ marginBottom: 16 }}>
             <div className="field">
-              <label htmlFor="sports-phone">手机号（用于接收预约通知）</label>
+              <label htmlFor="sports-phone">{i18n("auto.pages.info.SportsTab.8")}</label>
               <div style={{ display: "flex", gap: 8 }}>
-                <Input value={phone} onChange={(value) => setPhone(value)} placeholder="11 位手机号" inputMode="numeric" />
-                <Btn variant="ghost" onClick={() => void savePhone()} disabled={phoneBusy || !phoneOk} titleAttr="保存到体育系统，接收短信通知">{phoneBusy ? "保存中…" : "保存"}</Btn>
+                <Input value={phone} onChange={(value) => setPhone(value)} placeholder={i18n("auto.pages.info.SportsTab.9")} inputMode="numeric" />
+                <Btn variant="ghost" onClick={() => void savePhone()} disabled={phoneBusy || !phoneOk} titleAttr={i18n("auto.pages.info.SportsTab.10")}>{phoneBusy ? "保存中…" : "保存"}</Btn>
               </div>
             </div>
             {phoneMsg ? <div style={{ marginTop: -6, marginBottom: 8, fontSize: 12, color: "var(--text-3)" }}>{phoneMsg}</div> : null}
@@ -361,11 +362,10 @@ export function SportsTab() {
       {/* 验证码面板（交互复用 NetworkTab usereg 验证码面板：图可点刷新 + 输入 + 提交） */}
       {captchaOpen && picked ? (
         <Card style={{ marginBottom: 16, padding: 18 }}>
-          <div style={{ fontWeight: 600, marginBottom: 10, fontSize: 14 }}>预约验证码</div>
+          <div style={{ fontWeight: 600, marginBottom: 10, fontSize: 14 }}>{i18n("auto.pages.info.SportsTab.11")}</div>
           <div style={{ fontSize: 13, opacity: 0.75, marginBottom: 14, lineHeight: 1.6 }}>
             {venue.name} · {date} · {picked.timeSession} · {picked.fieldName}
-            {picked.cost ? ` · ¥${picked.cost}` : " · 免费"}；点击右侧图可刷新验证码。
-          </div>
+            {picked.cost ? ` · ¥${picked.cost}` : " · 免费"}{i18n("auto.pages.info.SportsTab.12")}</div>
           <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
             <div
               onClick={() => !captchaLoading && void refreshCaptcha()}
@@ -381,14 +381,14 @@ export function SportsTab() {
                 overflow: "hidden",
                 flexShrink: 0,
               }}
-              title="点击刷新验证码"
+              title={i18n("auto.pages.info.SportsTab.13")}
             >
               {captchaLoading ? (
-                <span style={{ fontSize: 12, opacity: 0.6 }}>加载中…</span>
+                <span style={{ fontSize: 12, opacity: 0.6 }}>{i18n("auto.pages.info.SportsTab.14")}</span>
               ) : captcha ? (
-                <img src={captcha} alt="验证码" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img src={captcha} alt={i18n("auto.pages.info.SportsTab.15")} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
-                <span style={{ fontSize: 12, opacity: 0.6 }}>点击重试</span>
+                <span style={{ fontSize: 12, opacity: 0.6 }}>{i18n("auto.pages.info.SportsTab.16")}</span>
               )}
             </div>
             <input
@@ -397,18 +397,17 @@ export function SportsTab() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") void doBook();
               }}
-              placeholder="验证码"
+              placeholder={i18n("auto.pages.info.SportsTab.15")}
               style={{ width: 130, height: 38, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border, #ccc)", fontSize: 14 }}
             />
             <Btn variant="solid" tone="brand" onClick={() => void doBook()} disabled={booking || !code.trim()}>{booking ? "提交中…" : "确认预约"}</Btn>
-            <Btn variant="ghost" onClick={() => { setCaptchaOpen(false); setCode(""); }}>取消
-            </Btn>
+            <Btn variant="ghost" onClick={() => { setCaptchaOpen(false); setCode(""); }}>{i18n("auto.pages.info.SportsTab.17")}</Btn>
           </div>
           {captchaErr ? <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: "#d33" }}>{captchaErr}</div> : null}
         </Card>
       ) : null}
 
-      <SectionHead title="我的预约" aside="未支付/已支付记录（不接支付流，仅展示状态）" />
+      <SectionHead title={i18n("auto.pages.info.SportsTab.18")} aside="未支付/已支付记录（不接支付流，仅展示状态）" />
       {recState === "error" ? (
         recUnavailable ? (
           <ErrorNote text={SPORTS_UNAVAILABLE} onRetry={() => void fetchRecords()} />

@@ -18,6 +18,8 @@
  */
 import { encodeWidgetTarget } from "./widgetTarget.js";
 import { dismissNotifications, postNotificationNow } from "./notifyBridge.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 export interface CardWarnSettings {
   /** 预警开关：默认关，装完不打扰 */
@@ -143,7 +145,7 @@ export function saveCardWarnState(state: CardWarnState): void {
  *  标题里的品牌名与内容之间留一个空格（通知栏里更易读） */
 export function cardWarnText(balance: number, threshold: number): { title: string; body: string } {
   return {
-    title: "OneTHU 余额预警",
+    title: i18n("auto.state.cardWarn.p1"),
     body: `余额还剩 ¥${balance.toFixed(2)}，已低于设置的 ¥${threshold.toFixed(2)}`,
   };
 }

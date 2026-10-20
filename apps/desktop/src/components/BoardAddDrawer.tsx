@@ -27,6 +27,8 @@ import type { WidgetRenderer } from "./WidgetHost.js";
 import { WidgetPreviewBody, WidgetSizeList, tierAt } from "./WidgetSizes.js";
 import { PreviewDataProvider } from "./PreviewData.js";
 import { haptic } from "../lib/haptics.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const CLOSE_MS = 200;
 /** 下滑关闭阈值：超过抽屉高度的 1/4 或速度够快就关。 */
@@ -420,7 +422,7 @@ export function BoardAddDrawer({
                 <div className="add-detail-preview">
                   <WidgetPreview def={def} renderer={renderers[def.id]} scale={1} />
                 </div>
-                <span className="add-detail-hint">这个组件保留自由调整大小；添加后选中它，拖动角点调整。</span>
+                <span className="add-detail-hint">{i18n("auto.components.BoardAddDrawer.1")}</span>
               </div>
             )}
           </div>
@@ -452,20 +454,20 @@ export function BoardAddDrawer({
       ) : (
         <div className="add-overview">
           <div className="add-overview-head">
-            <span className="add-overview-title">添加组件</span>
-            <Btn variant="outline" onClick={onClose}>关闭</Btn>
+            <span className="add-overview-title">{i18n("auto.components.BoardAddDrawer.2")}</span>
+            <Btn variant="outline" onClick={onClose}>{i18n("auto.components.BoardAddDrawer.3")}</Btn>
           </div>
-          <SearchField value={query} onChange={setQuery} placeholder="搜索组件" aria-label="搜索组件" />
+          <SearchField value={query} onChange={setQuery} placeholder={i18n("auto.components.BoardAddDrawer.4")} aria-label={i18n("auto.components.BoardAddDrawer.4")} />
           <div className="add-scroll" ref={gridRef}>
             {quickDefs.length ? (
               <section className="add-section" data-add-section="quick">
-                <div className="add-section-title">常用</div>
+                <div className="add-section-title">{i18n("auto.components.BoardAddDrawer.5")}</div>
                 <div className="add-grid">{quickDefs.map(renderCard)}</div>
               </section>
             ) : null}
             {shownExtras.length ? (
               <section className="add-section" data-add-section="onepage">
-                <div className="add-section-title">OnePage 与组合</div>
+                <div className="add-section-title">{i18n("auto.components.BoardAddDrawer.6")}</div>
                 <div className="free-add-list">
                   {shownExtras.map((x) => (
                     <Btn key={x.id} variant="ghost" size="sm" className="hs-detail-row" data-widget-option={x.id} titleAttr={x.description} onClick={x.pick}>
@@ -477,11 +479,11 @@ export function BoardAddDrawer({
             ) : null}
             {restDefs.length ? (
               <section className="add-section" data-add-section="all">
-                <div className="add-section-title">全部组件</div>
+                <div className="add-section-title">{i18n("auto.components.BoardAddDrawer.7")}</div>
                 <div className="add-grid">{restDefs.map(renderCard)}</div>
               </section>
             ) : null}
-            {!shownDefs.length && !shownExtras.length ? <div className="hs-op-hint">没有找到组件</div> : null}
+            {!shownDefs.length && !shownExtras.length ? <div className="hs-op-hint">{i18n("auto.components.BoardAddDrawer.8")}</div> : null}
           </div>
         </div>
       )}

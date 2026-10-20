@@ -12,6 +12,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
+/* 文案已走 i18n：中文原文在 zh-CN 词典里，源码里出现的是键。 */
+const zhMessages = read("apps/desktop/src/i18n/locales/zh-CN.ts");
+const keyFor = (s) => {
+  const esc = s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const m = zhMessages.match(new RegExp('"([^"]+)"\\s*:\\s*"' + esc + '"'));
+  return m ? m[1] : null;
+};
+const hasCopy = (src, s) => src.includes(s) || (keyFor(s) ? src.includes(keyFor(s)) : false);
 
 const app = read("apps/desktop/src/App.tsx");
 const tour = read("apps/desktop/src/components/OnboardingTour.tsx");
@@ -44,7 +52,8 @@ for (const t of [
   assert.ok(tour.includes(t), "完整模式缺一课：" + t);
 }
 assert.ok(tour.includes("悬浮球默认关闭，可在 OH 设置里开启。"), "完整模式导览缺少「悬浮球默认关闭、可手动开启」提示");
-assert.ok(tour.includes("向本机应用开放 OH MCP") && tour.includes("setMcpServer") && tour.includes("mcpServerEnabled"), "导览缺少 OH MCP 说明/开关");
+/* 文案已走 i18n：按 key + 行为断言（tour.mcp.* 是稳定契约） */
+assert.ok(tour.includes("tour.mcp.title") && tour.includes("setMcpServer") && tour.includes("mcpServerEnabled"), "导览缺少 OH MCP 说明/开关");
 assert.ok(/syncOverlayPreference/.test(tour) === false, "导览不应负责悬浮球启动同步（由 boot 干）");
 for (const t of ["首页，只关心今天", "五个功能，固定在手边"]) assert.ok(tour.includes(t), "极简模式缺一课：" + t);
 for (const t of ["首页，只关心今天", "更多功能：所有基础功能都在这里", "四个入口，随你安排"]) assert.ok(tour.includes(t), "实用模式缺一课：" + t);
@@ -57,9 +66,9 @@ for (const t of [
 
 /* ---------- ④ 结束/跳过/回退 + 弹层语义 + 演练返回 ---------- */
 assert.ok(/localStorage\.setItem\(KEY,"1"\)/.test(tour), "结束必须写完成标记（否则下次启动又弹）");
-for (const t of ["跳过导览", "上一步", "开始使用", "按此模式开始"]) assert.ok(tour.includes(t), "导览缺少「" + t + "」");
-assert.ok(/<Modal open/.test(tour) && /aria-label="OneTHU 使用导览"/.test(tour), "导览卡走 OneGUI Modal + 可读名");
-assert.ok(/tour-resume/.test(tour) && /继续导览/.test(tour) && /正在体验/.test(tour), "演练态要有「继续导览」返回条");
+for (const t of ["跳过导览", "上一步", "开始使用", "按此模式开始"]) assert.ok(hasCopy(tour, t), "导览缺少「" + t + "」");
+assert.ok(/<Modal open/.test(tour) && /aria-label=\{i18n\("[^"]+"\)\}/.test(tour), "导览卡走 OneGUI Modal + 可读名");
+assert.ok(/tour-resume/.test(tour) && hasCopy(tour, "继续导览") && hasCopy(tour, "正在体验："), "演练态要有「继续导览」返回条");
 
 /* ---------- ⑤ 设置页模式卡片 ---------- */
 assert.ok(/ExperienceModeControl/.test(settings), "设置页要有「使用模式」卡片");

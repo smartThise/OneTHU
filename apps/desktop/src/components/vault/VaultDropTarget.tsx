@@ -22,6 +22,8 @@ import { openVaultSheet } from "./VaultSheet.js";
 import { stageFromFiles } from "../../lib/fileChannel.js";
 import { showToast } from "../../state/toast.js";
 import { installVaultDragSources, subscribeVaultDrag, vaultDragSnapshot } from "./vaultDrag.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 /** 雷达上最多铺几枚条目；再多就用「+N」收口。 */
 const RADAR_SLOTS = 5;
@@ -90,8 +92,8 @@ export function VaultDropTarget(): ReactNode {
       <div className="vault-file-overlay">
         <div className="vault-file-overlay-box">
           <IconIn width={28} height={28} />
-          <span>松手收进「{box.name}」</span>
-          <span className="vault-file-overlay-sub">文件会先算内容指纹，同内容自动去重</span>
+          <span>{i18n("auto.components.vault.VaultDropTarget.1")}{box.name}」</span>
+          <span className="vault-file-overlay-sub">{i18n("auto.components.vault.VaultDropTarget.2")}</span>
         </div>
       </div>,
       document.body,
@@ -213,7 +215,7 @@ export function VaultButton(): ReactNode {
       </div> : null}
       <div className="vault-radar-foot">
         <span className="vault-radar-meta"><span className="vault-radar-hint-line">{items.length ? "点条目直接打开" : "长按任意内容，拖进来"}</span></span>
-        <Btn size="sm" variant="ghost" onClick={openVaultPage}>整理暂存箱</Btn>
+        <Btn size="sm" variant="ghost" onClick={openVaultPage}>{i18n("auto.components.vault.VaultDropTarget.3")}</Btn>
       </div>
     </div>
   ) : null;
@@ -228,7 +230,7 @@ export function VaultButton(): ReactNode {
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-label={`暂存箱，${items.length} 项`}
-          titleAttr="暂存箱 · 点开雷达，长按内容可拖进来"
+          titleAttr={i18n("auto.components.vault.VaultDropTarget.4")}
           onClick={() => setPinned((v) => !v)}
         >
           <IconIn width={20} height={20} />

@@ -80,6 +80,8 @@ import { DownloadOpenButtons } from "../../components/DownloadOpenButtons.js";
 import { RichContent } from "../learn/shared.js";
 import { Highlight, rankNews, readSubs, tokenize, writeSubs } from "./newsSearch.js";
 import { openExternal } from "./openExternal.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 const PAGE_SIZE = 20;
 
@@ -130,7 +132,7 @@ function NewsRow({
       flush
       role="button"
       tabIndex={0}
-      titleAttr="点击查看详情"
+      titleAttr={i18n("auto.pages.info.NewsTab.1")}
       onClick={() => onOpen(n)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -141,7 +143,7 @@ function NewsRow({
       trailing={
         <>
           {showSourceChip && n.source ? <Tag tone="neutral">{n.source}</Tag> : null}
-          {n.url ? <IconExternal size="sm" title="原文链接" /> : null}
+          {n.url ? <IconExternal size="sm" title={i18n("auto.pages.info.NewsTab.2")} /> : null}
           {n.xxid ? (
             <CollectStar atom={{ kind: "news", key: enc(n.xxid, n.name, n.source) }} title={n.name} />
           ) : null}
@@ -152,7 +154,7 @@ function NewsRow({
         <Text slot="body" weight="medium">
           {n.topped ? (
             <>
-              <Tag tone="brand">置顶</Tag>{" "}
+              <Tag tone="brand">{i18n("auto.pages.info.NewsTab.3")}</Tag>{" "}
             </>
           ) : null}
           <Highlight text={n.name} tokens={tokens} />
@@ -549,8 +551,8 @@ export function NewsTab({
   return (
     <Stack gap={3}>
       <Section
-        title="校内新闻"
-        hint="信息门户发布 · 点击在系统浏览器打开"
+        title={i18n("auto.pages.info.NewsTab.4")}
+        hint={i18n("auto.pages.info.NewsTab.5")}
         /* 分页/搜索切换时重挂以重放进场节奏 */
         key={`head-${page}`}
       />
@@ -564,11 +566,11 @@ export function NewsTab({
             icon={<IconSearch size="sm" />}
             value={input}
             onChange={setInput}
-            placeholder="搜索标题 / 正文 / 来源（服务端优先，本地兜底）"
-            aria-label="搜索新闻"
+            placeholder={i18n("auto.pages.info.NewsTab.6")}
+            aria-label={i18n("auto.pages.info.NewsTab.7")}
           />
         </Grow>
-        <Btn variant="outline" onClick={() => setSubsOpen(true)}>订阅管理{subs.length > 0 ? `（${subs.length}）` : ""}
+        <Btn variant="outline" onClick={() => setSubsOpen(true)}>{i18n("auto.pages.info.NewsTab.8")}{subs.length > 0 ? `（${subs.length}）` : ""}
         </Btn>
       </Inline>
 
@@ -582,8 +584,7 @@ export function NewsTab({
             aria-selected={activeSeg === "all"}
             onClick={() => setSeg("all")}
           >
-            全部新闻
-          </Btn>
+            {i18n("auto.pages.info.NewsTab.9")}</Btn>
           <Btn
             size="sm"
             variant={activeSeg === "subs" ? "tonal" : "ghost"}
@@ -591,7 +592,7 @@ export function NewsTab({
             aria-selected={activeSeg === "subs"}
             onClick={() => setSeg("subs")}
           >
-            订阅动态（{subs.length}）
+            {i18n("auto.pages.info.NewsTab.10")}{subs.length}）
           </Btn>
         </SegmentedOverflow>
       ) : null}
@@ -600,13 +601,10 @@ export function NewsTab({
       {activeSeg === "all" ? (
         <Inline gap={2}>
           <Spacer />
-          <Text slot="label" tone="faint" nowrap>第 {page} 页</Text>
-          <Btn variant="outline" disabled={!canPrev || state === "loading" || searching} onClick={() => setPage((p) => Math.max(1, p - 1))}>上一页
-          </Btn>
-          <Btn variant="outline" disabled={!fullPage || state === "loading" || searching} onClick={() => setPage((p) => p + 1)}>下一页
-          </Btn>
-          <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}>刷新
-          </Btn>
+          <Text slot="label" tone="faint" nowrap>{i18n("auto.pages.info.NewsTab.11")}{page} {i18n("auto.pages.info.NewsTab.12")}</Text>
+          <Btn variant="outline" disabled={!canPrev || state === "loading" || searching} onClick={() => setPage((p) => Math.max(1, p - 1))}>{i18n("auto.pages.info.NewsTab.13")}</Btn>
+          <Btn variant="outline" disabled={!fullPage || state === "loading" || searching} onClick={() => setPage((p) => p + 1)}>{i18n("auto.pages.info.NewsTab.14")}</Btn>
+          <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}>{i18n("auto.pages.info.NewsTab.15")}</Btn>
         </Inline>
       ) : null}
 
@@ -654,7 +652,7 @@ export function NewsTab({
       ) : activeSeg === "subs" ? (
         <Fragment key={`sub-feed-${searching ? query : ""}-${subPage}-${subSel}`}>
           <Section
-            title="订阅动态"
+            title={i18n("auto.pages.info.NewsTab.16")}
             hint={
               searching
                 ? `“${query}” 命中 ${subShown.length} 条（${subSel === "all" ? "全部订阅" : `「${subChips.find((c) => c.id === subSel)?.label ?? subSel}」`}内检索）`
@@ -673,8 +671,7 @@ export function NewsTab({
                 selected={subSel === "all"}
                 onClick={() => selectSubChip("all")}
               >
-                全部
-              </Chip>
+                {i18n("auto.pages.info.NewsTab.17")}</Chip>
               {subChips.map((c) => (
                 <Chip
                   key={c.id}
@@ -721,13 +718,10 @@ export function NewsTab({
           {!searching ? (
             <Inline gap={2}>
               <Spacer />
-              <Text slot="label" tone="faint" nowrap>第 {subPage} 页</Text>
-              <Btn variant="outline" disabled={subPage <= 1 || subFeedState === "loading"} onClick={() => setSubPage((p) => Math.max(1, p - 1))}>上一页
-              </Btn>
-              <Btn variant="outline" disabled={!subCanNext || subFeedState === "loading"} onClick={() => setSubPage((p) => p + 1)}>下一页
-              </Btn>
-              <Btn variant="outline" disabled={subFeedState === "loading"} onClick={() => setSubFeedTick((t) => t + 1)}>刷新
-              </Btn>
+              <Text slot="label" tone="faint" nowrap>{i18n("auto.pages.info.NewsTab.11")}{subPage} {i18n("auto.pages.info.NewsTab.12")}</Text>
+              <Btn variant="outline" disabled={subPage <= 1 || subFeedState === "loading"} onClick={() => setSubPage((p) => Math.max(1, p - 1))}>{i18n("auto.pages.info.NewsTab.13")}</Btn>
+              <Btn variant="outline" disabled={!subCanNext || subFeedState === "loading"} onClick={() => setSubPage((p) => p + 1)}>{i18n("auto.pages.info.NewsTab.14")}</Btn>
+              <Btn variant="outline" disabled={subFeedState === "loading"} onClick={() => setSubFeedTick((t) => t + 1)}>{i18n("auto.pages.info.NewsTab.15")}</Btn>
             </Inline>
           ) : null}
         </Fragment>
@@ -771,10 +765,10 @@ export function NewsTab({
             foot={
               <>
                 {detail.item.url ? (
-                  <Btn variant="outline" icon={<IconExternal size="sm" />} onClick={() => void openExternal(detail.item.url!)}><span>在浏览器打开</span>
+                  <Btn variant="outline" icon={<IconExternal size="sm" />} onClick={() => void openExternal(detail.item.url!)}><span>{i18n("auto.pages.info.NewsTab.18")}</span>
                   </Btn>
                 ) : null}
-                <Btn variant="ghost" onClick={() => setDetail(null)}>关闭</Btn>
+                <Btn variant="ghost" onClick={() => setDetail(null)}>{i18n("auto.pages.info.NewsTab.19")}</Btn>
               </>
             }
           >
@@ -800,13 +794,12 @@ export function NewsTab({
                             key={`${i}-${a.url}`}
                             flush
                             size="sm"
-                            data-vault-catch={vaultCatchAttachment({ kind: "news", name: a.name, url: a.url, label: "新闻附件" })}
-                            leading={<IconFile size="sm" title="附件" />}
+                            data-vault-catch={vaultCatchAttachment({ kind: "news", name: a.name, url: a.url, label: i18n("auto.pages.info.NewsTab.p1") })}
+                            leading={<IconFile size="sm" title={i18n("auto.pages.info.NewsTab.20")} />}
                             titleAttr={a.name}
                             trailing={
                               <>
-                                <Btn size="sm" variant="ghost" onClick={() => openFilePreview({ name: a.name, url: a.url })}>预览
-                                </Btn>
+                                <Btn size="sm" variant="ghost" onClick={() => openFilePreview({ name: a.name, url: a.url })}>{i18n("auto.pages.info.NewsTab.21")}</Btn>
                                 <Btn size="sm" variant="ghost" disabled={dlAtt === a.url} icon={<IconDownload size="sm" />} onClick={() => void doDownloadAtt(a.url, a.name)}>
                                   {dlAtt === a.url ? "下载中…" : "下载"}
                                 </Btn>
@@ -838,26 +831,24 @@ export function NewsTab({
             open
             onClose={() => setSubsOpen(false)}
             size="md"
-            title="订阅管理"
+            title={i18n("auto.pages.info.NewsTab.8")}
           >
             <Stack gap={3}>
               <Text slot="micro" tone="faint">
-                订阅条件以信息门户服务端为权威（与 thu-info 同接口、同账号），添加/删除
-                即时写入门户订阅并刷新；本机 localStorage 仅作界面偏好缓存。
-              </Text>
+                {i18n("auto.pages.info.NewsTab.22")}</Text>
               {opErr ? <ErrorNote text={opErr} /> : null}
 
               {/* 我的订阅（服务端权威条件列表） */}
               <Stack gap={2}>
                 <Text slot="label" weight="semibold">
-                  我的订阅{subsServer ? `（${subsServer.length}）` : ""}
+                  {i18n("auto.pages.info.NewsTab.23")}{subsServer ? `（${subsServer.length}）` : ""}
                 </Text>
                 {subsServer === null ? (
                   <Card pad="none">
                     <LoadingBlock rows={2} />
                   </Card>
                 ) : subsServer.length === 0 ? (
-                  <EmptyState title="暂无订阅条件——在下方点选发布单位即可添加。" />
+                  <EmptyState title={i18n("auto.pages.info.NewsTab.24")} />
                 ) : (
                   <Card flush>
                     <List>
@@ -878,7 +869,7 @@ export function NewsTab({
                               size="sm"
                               disabled={opBusy !== null}
                               onClick={() => void removeCondition(c)}
-                              titleAttr="删除该服务端订阅条件"
+                              titleAttr={i18n("auto.pages.info.NewsTab.25")}
                           >
                               {opBusy === c.id ? "删除中…" : "删除"}
                             </Btn>
@@ -893,8 +884,7 @@ export function NewsTab({
               {/* 添加订阅（点选发布单位 → addSubscribeCondition） */}
               <Stack gap={2}>
                 <Text slot="label" weight="semibold">
-                  添加订阅（点选发布单位）
-                </Text>
+                  {i18n("auto.pages.info.NewsTab.26")}</Text>
                 {sourcesErr ? (
                   <ErrorNote text={`可订阅单位列表加载失败：${sourcesErr}`} />
                 ) : null}
@@ -925,7 +915,7 @@ export function NewsTab({
                     })}
                   </Inline>
                 ) : sources && !sourcesErr ? (
-                  <EmptyState title="可订阅单位列表为空。" />
+                  <EmptyState title={i18n("auto.pages.info.NewsTab.27")} />
                 ) : null}
               </Stack>
             </Stack>

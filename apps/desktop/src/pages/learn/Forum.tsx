@@ -22,6 +22,8 @@ import { useLearnNavSemester } from "./shared.js";
 import { openExternal } from "../info/openExternal.js";
 import { RichEditor } from "../../components/RichEditor.jsx";
 import { IconChevron } from "../../components/Icons";
+import { t as i18n } from "../../i18n/index.js";
+
 
 /* ══════════ 列表（课程详情 → 讨论区 tab） ══════════ */
 
@@ -116,7 +118,7 @@ export function BbsPanel({
 
   return (
     <>
-      <PageHead title="讨论区" meta="课程讨论与答疑（实名制）" />
+      <PageHead title={i18n("auto.pages.learn.Forum.1")} meta="课程讨论与答疑（实名制）" />
       <div className="tabstrip">
         {boards.map((b) => (
           <span key={b.bqid} style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
@@ -133,20 +135,17 @@ export function BbsPanel({
           </span>
         ))}
         <button className={tab === "__jh__" ? "is-active" : ""} onClick={() => reset(() => setTab("__jh__"))}>
-          精华
-        </button>
+          {i18n("auto.pages.learn.Forum.2")}</button>
         <button className={tab === "__cy__" ? "is-active" : ""} onClick={() => reset(() => setTab("__cy__"))}>
-          我参与的
-        </button>
+          {i18n("auto.pages.learn.Forum.3")}</button>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
         <span className="row-sub" style={{ fontVariantNumeric: "tabular-nums" }}>
           {total > 0 ? `${total} 条` : ""}
         </span>
         <span style={{ flex: "1 1 auto" }} />
-        <Btn variant="outline" onClick={() => reset(() => undefined)} aria-label="刷新讨论列表"><IconRefresh /></Btn>
-        <Btn variant="outline" onClick={() => setShowNew(true)}>发新话题
-        </Btn>
+        <Btn variant="outline" onClick={() => reset(() => undefined)} aria-label={i18n("auto.pages.learn.Forum.4")}><IconRefresh /></Btn>
+        <Btn variant="outline" onClick={() => setShowNew(true)}>{i18n("auto.pages.learn.Forum.5")}</Btn>
       </div>
       {state === "loading" && threads === null ? (
         <Card>
@@ -326,7 +325,7 @@ export function ForumThreadPage() {
 
   return (
     <>
-      <BackButton to="learn-course" courseId={courseId} courseTab="forum" label="返回课程" />
+      <BackButton to="learn-course" courseId={courseId} courseTab="forum" label={i18n("auto.pages.learn.Forum.6")} />
       {dlHint ? (
         <div className="error-note dl-done-note" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
           <span>{dlHint.text}</span>
@@ -360,7 +359,7 @@ export function ForumThreadPage() {
             <RichContent html={head.html} />
           </Card>
           <div className="nav-label" style={{ margin: "14px 0 8px" }}>
-            回复 · {head.replyCount}
+            {i18n("auto.pages.learn.Forum.7")}{head.replyCount}
           </div>
           {state === "loading" ? (
             <Card>
@@ -377,8 +376,7 @@ export function ForumThreadPage() {
           )}
           {hasMore ? (
             <Card>
-              <Btn variant="outline" onClick={loadMore}>加载更多回复
-              </Btn>
+              <Btn variant="outline" onClick={loadMore}>{i18n("auto.pages.learn.Forum.8")}</Btn>
             </Card>
           ) : null}
           {error && head ? (
@@ -390,12 +388,11 @@ export function ForumThreadPage() {
           <Card>
             {replyTo ? (
               <div className="setting-row" style={{ marginBottom: 8 }}>
-                <div className="row-sub">回复 @{replyTo.author || replyTo.hhid}</div>
-                <Btn variant="outline" onClick={() => setReplyTo(null)}>取消
-                </Btn>
+                <div className="row-sub">{i18n("auto.pages.learn.Forum.9")}{replyTo.author || replyTo.hhid}</div>
+                <Btn variant="outline" onClick={() => setReplyTo(null)}>{i18n("auto.pages.learn.Forum.10")}</Btn>
               </div>
             ) : null}
-            <RichEditor value={draft} onChange={setDraft} placeholder="文明发言（实名制，站点留有日志）…" />
+            <RichEditor value={draft} onChange={setDraft} placeholder={i18n("auto.pages.learn.Forum.11")} />
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
               <label className="btn" style={{ cursor: "pointer" }}>
                 {replyFile ? `📎 ${replyFile.name.slice(0, 18)}` : "📎 附件"}
@@ -406,8 +403,7 @@ export function ForumThreadPage() {
                 />
               </label>
               {replyFile ? (
-                <Btn variant="outline" onClick={() => setReplyFile(null)}>移除附件
-                </Btn>
+                <Btn variant="outline" onClick={() => setReplyFile(null)}>{i18n("auto.pages.learn.Forum.12")}</Btn>
               ) : null}
               <Btn variant="outline" disabled={sending || (!draft.trim() && !replyFile)} onClick={send}>{sending ? "发表中…" : "发表回复"}</Btn>
               {sendMsg ? <span className="row-sub">{sendMsg}</span> : null}
@@ -464,8 +460,7 @@ function PostBlock({
             </div>
           ) : null}
         </div>
-        <Btn variant="outline" onClick={() => onReply({ hhid: post.hhid, author: post.author })}>回复
-        </Btn>
+        <Btn variant="outline" onClick={() => onReply({ hhid: post.hhid, author: post.author })}>{i18n("auto.pages.learn.Forum.13")}</Btn>
       </div>
     </Card>
   );
@@ -530,13 +525,12 @@ function NewThreadDialog({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-          <strong style={{ fontSize: 16 }}>发新话题</strong>
+          <strong style={{ fontSize: 16 }}>{i18n("auto.pages.learn.Forum.5")}</strong>
           <span style={{ flex: "1 1 auto" }} />
           <Btn variant="outline" onClick={onClose}>
-            关闭
-          </Btn>
+            {i18n("auto.pages.learn.Forum.14")}</Btn>
         </div>
-        <div style={{ width: "100%", marginBottom: 10 }}>{<Input placeholder="标题（必填）" value={title} maxLength={100} onChange={(value) => setTitle(value)} />}</div>
+        <div style={{ width: "100%", marginBottom: 10 }}>{<Input placeholder={i18n("auto.pages.learn.Forum.15")} value={title} maxLength={100} onChange={(value) => setTitle(value)} />}</div>
         {boards.length > 1 ? (
           <div className="tabstrip" style={{ marginBottom: 10 }}>
             {boards.map((b) => (
@@ -550,15 +544,14 @@ function NewThreadDialog({
             ))}
           </div>
         ) : null}
-        <RichEditor value={html} onChange={setHtml} placeholder="正文，支持格式与图片…" maxHeight={300} />
+        <RichEditor value={html} onChange={setHtml} placeholder={i18n("auto.pages.learn.Forum.16")} maxHeight={300} />
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
           <label className="btn" style={{ cursor: "pointer" }}>
             {file ? `📎 ${file.name.slice(0, 18)}` : "📎 附件"}
             <input type="file" style={{ display: "none" }} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           </label>
           {file ? (
-            <Btn variant="outline" onClick={() => setFile(null)}>移除附件
-            </Btn>
+            <Btn variant="outline" onClick={() => setFile(null)}>{i18n("auto.pages.learn.Forum.12")}</Btn>
           ) : null}
           <Btn variant="outline" disabled={sending || !title.trim() || !html.trim() || html === "<p><br></p>"} onClick={submit}>{sending ? "发表中…" : "发表"}</Btn>
           {msg ? <span className="row-sub" style={{ wordBreak: "break-all" }}>{msg}</span> : null}

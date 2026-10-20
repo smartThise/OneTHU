@@ -21,6 +21,8 @@ import { isAndroidNavigator } from "../../lib/androidHost.js";
 import { clearNeedFile, isNeedFile, markNeedFile } from "../../state/learnAttachmentReq.js";
 import { parseLearnTime } from "@onethu/core";
 import type { HomeworkPageDetail, LearnAttachment } from "@onethu/core";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type DescState = "idle" | "skip" | "loading" | "ok" | "error";
 
@@ -141,7 +143,7 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
   if (!h) {
     return (
       <>
-        <PageHead title="作业详情" actions={<BackButton to={navParams?.from ?? "learn-assignments"} courseId={navParams?.courseId} courseTab="assignments" />} />
+        <PageHead title={i18n("auto.pages.learn.AssignmentDetailPage.1")} actions={<BackButton to={navParams?.from ?? "learn-assignments"} courseId={navParams?.courseId} courseTab="assignments" />} />
         {state === "loading" ? (
           <SkeletonRows rows={4} />
         ) : state === "error" ? (
@@ -149,7 +151,7 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
         ) : (
           <Card><Empty
             text="未找到该作业，可能数据已刷新，请返回列表重试。"
-            action={<Btn variant="ghost" onClick={() => navigate("learn")}>回网络学堂</Btn>}
+            action={<Btn variant="ghost" onClick={() => navigate("learn")}>{i18n("auto.pages.learn.AssignmentDetailPage.2")}</Btn>}
           /></Card>
         )}
       </>
@@ -171,10 +173,10 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
   // 四类附件（thu-learn-lib parseHomeworkAtUrl 文档序）：作业/答案/我的提交/批改
   const attGroups: Array<{ label: string; a?: LearnAttachment }> = page
     ? [
-        { label: "作业附件", a: page.attachment },
-        { label: "答案附件", a: page.answerAttachment },
-        { label: "我的提交", a: page.submittedAttachment },
-        { label: "批改附件", a: page.gradeAttachment },
+        { label: i18n("auto.pages.learn.AssignmentDetailPage.p1"), a: page.attachment },
+        { label: i18n("auto.pages.learn.AssignmentDetailPage.p2"), a: page.answerAttachment },
+        { label: i18n("auto.pages.learn.AssignmentDetailPage.p3"), a: page.submittedAttachment },
+        { label: i18n("auto.pages.learn.AssignmentDetailPage.p4"), a: page.gradeAttachment },
       ]
     : [];
   const attFound = attGroups.filter((g) => g.a);
@@ -290,8 +292,7 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
               atom={{ kind: "assignment", key: enc(h.courseId, h.id, h.title, course?.name ?? "", data?.semester.id ?? "") }}
               title={h.title}
             />
-            <Btn variant="outline" onClick={() => void openExternal(h.url)} titleAttr="在系统浏览器打开">网页端打开
-            </Btn>
+            <Btn variant="outline" onClick={() => void openExternal(h.url)} titleAttr={i18n("auto.pages.learn.AssignmentDetailPage.3")}>{i18n("auto.pages.learn.AssignmentDetailPage.4")}</Btn>
           </>
         }
       />
@@ -307,15 +308,15 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
           ))}
         </div>
         <div className="detail-meta">
-          发布于 {fmtDateTime(h.publishTime)}
+          {i18n("auto.pages.learn.AssignmentDetailPage.5")}{fmtDateTime(h.publishTime)}
           {h.lateDeadline ? ` · 补交截止 ${fmtDateTime(h.lateDeadline)}` : ""}
         </div>
       </Card>
 
       <Card className="detail-sec">
-        <div className="detail-sec-head">提交情况</div>
+        <div className="detail-sec-head">{i18n("auto.pages.learn.AssignmentDetailPage.6")}</div>
         <div className="kv">
-          <span>状态</span>
+          <span>{i18n("auto.pages.learn.AssignmentDetailPage.7")}</span>
           <b className={h.submitted ? "" : "t-red"}>{h.submitted ? "已提交" : "未提交"}</b>
         </div>
         {h.submitted && h.submitTime ? (
@@ -328,29 +329,29 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
 
       {h.graded ? (
         <Card className="detail-sec">
-          <div className="detail-sec-head">批改情况</div>
-          <div className="kv"><span>成绩</span><b>{gradeLabel(h.grade) || "已批改"}</b></div>
+          <div className="detail-sec-head">{i18n("auto.pages.learn.AssignmentDetailPage.8")}</div>
+          <div className="kv"><span>{i18n("auto.pages.learn.AssignmentDetailPage.9")}</span><b>{gradeLabel(h.grade) || "已批改"}</b></div>
           {h.graderName ? (
-            <div className="kv"><span>批改人</span><b>{h.graderName}</b></div>
+            <div className="kv"><span>{i18n("auto.pages.learn.AssignmentDetailPage.10")}</span><b>{h.graderName}</b></div>
           ) : null}
           {h.gradeTime ? (
-            <div className="kv"><span>批改时间</span><b>{fmtDateTime(h.gradeTime)}</b></div>
+            <div className="kv"><span>{i18n("auto.pages.learn.AssignmentDetailPage.11")}</span><b>{fmtDateTime(h.gradeTime)}</b></div>
           ) : null}
           {h.gradeContent ? (
-            <div className="kv kv-wide"><span>批语</span><b>{h.gradeContent}</b></div>
+            <div className="kv kv-wide"><span>{i18n("auto.pages.learn.AssignmentDetailPage.12")}</span><b>{h.gradeContent}</b></div>
           ) : null}
         </Card>
       ) : null}
 
       {(pageState !== "idle") || attFound.length ? (
         <Card className="detail-sec">
-          <div className="detail-sec-head">附件</div>
-          {pageState === "loading" ? <div className="detail-meta">正在解析附件…</div> : null}
+          <div className="detail-sec-head">{i18n("auto.pages.learn.AssignmentDetailPage.13")}</div>
+          {pageState === "loading" ? <div className="detail-meta">{i18n("auto.pages.learn.AssignmentDetailPage.14")}</div> : null}
           {pageState === "error" ? (
             <div className="kv kv-wide">
-              <span>附件</span>
+              <span>{i18n("auto.pages.learn.AssignmentDetailPage.13")}</span>
               <span className="t-red">{pageError}</span>
-              <Btn variant="ghost" onClick={retryPage}>重试</Btn>
+              <Btn variant="ghost" onClick={retryPage}>{i18n("auto.pages.learn.AssignmentDetailPage.15")}</Btn>
             </div>
           ) : null}
           {(() => {
@@ -360,7 +361,7 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
               return (
                 /* detail-sec 卡片左右 padding 为 0，行距由 .kv 自带——预览块须自带同样的 16px 边距 */
                 <div style={{ padding: "4px 16px 0", marginBottom: 6 }}>
-                  <div className="detail-meta" style={{ fontWeight: 600, marginBottom: 4 }}>我的提交正文</div>
+                  <div className="detail-meta" style={{ fontWeight: 600, marginBottom: 4 }}>{i18n("auto.pages.learn.AssignmentDetailPage.16")}</div>
                   <RichContent html={c} />
                 </div>
               );
@@ -374,8 +375,7 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
               <div className="kv kv-wide" key={label} data-vault-catch={vaultCatchAttachment({ kind: "learn", name: a!.name || `附件 ${key}`, url: a!.downloadUrl, label })}>
                 <span>{label}</span>
                 <b>{a!.name || `附件 ${key}`}{a!.size ? `（${a!.size}）` : ""}</b>
-                <Btn variant="ghost" onClick={() => openFilePreview({ name: a!.name || `附件 ${key}`, url: a!.downloadUrl })}>预览
-                </Btn>
+                <Btn variant="ghost" onClick={() => openFilePreview({ name: a!.name || `附件 ${key}`, url: a!.downloadUrl })}>{i18n("auto.pages.learn.AssignmentDetailPage.17")}</Btn>
                 <Btn variant="ghost" disabled={dlBusy === key} onClick={() => void downloadAtt(a!)}><IconDownload width={14} height={14} />{dlBusy === key ? "下载中…" : "下载"}</Btn>
               </div>
             );
@@ -392,7 +392,7 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
       ) : null}
 
       <Card className="detail-sec">
-        <div className="detail-sec-head">作业说明</div>
+        <div className="detail-sec-head">{i18n("auto.pages.learn.AssignmentDetailPage.18")}</div>
         {descState === "loading" ? (
           <div style={{ padding: "6px 16px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
             <div className="skeleton" style={{ height: 12, width: "78%" }} />
@@ -400,9 +400,9 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
           </div>
         ) : descState === "error" ? (
           <div className="kv kv-wide">
-            <span>说明</span>
+            <span>{i18n("auto.pages.learn.AssignmentDetailPage.19")}</span>
             <span className="t-red">{descError}</span>
-            <Btn variant="ghost" onClick={retryDesc}>重试</Btn>
+            <Btn variant="ghost" onClick={retryDesc}>{i18n("auto.pages.learn.AssignmentDetailPage.15")}</Btn>
           </div>
         ) : (
           <RichContent html={h.content || desc || undefined} fallback="暂无作业说明。" />
@@ -421,7 +421,7 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
             <RichEditor
               value={subContent}
               onChange={(html) => { subTouched.current = true; setSubContent(html); }}
-              placeholder="提交内容（可留空，附件可选）…支持格式与图片"
+              placeholder={i18n("auto.pages.learn.AssignmentDetailPage.20")}
               maxHeight={220}
             />
             {/* 附件区自成一体：选择/清除/自定义名/撤回（独立请求），与提交按钮无关 */}
@@ -447,30 +447,27 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
                       e.target.value = "";
                     }}
                   />
-                  <Btn variant="outline" disabled={subBusy} titleAttr="调起后置相机拍照，拍完与选文件一样先预览再提交" onClick={() => cameraRef.current?.click()}>📷 拍照上传
-                  </Btn>
+                  <Btn variant="outline" disabled={subBusy} titleAttr={i18n("auto.pages.learn.AssignmentDetailPage.21")} onClick={() => cameraRef.current?.click()}>{i18n("auto.pages.learn.AssignmentDetailPage.22")}</Btn>
                 </>
               ) : null}
               {subFile ? (
                 <span style={{ display: "inline-flex", gap: 6, alignItems: "center", color: "var(--accent)" }}>
-                  将上传：{subFile.name}
-                  <Btn variant="ghost" disabled={subBusy} onClick={() => { setSubFile(null); setCustomName(""); if (fileRef.current) fileRef.current.value = ""; }}>清除
-                  </Btn>
+                  {i18n("auto.pages.learn.AssignmentDetailPage.23")}{subFile.name}
+                  <Btn variant="ghost" disabled={subBusy} onClick={() => { setSubFile(null); setCustomName(""); if (fileRef.current) fileRef.current.value = ""; }}>{i18n("auto.pages.learn.AssignmentDetailPage.24")}</Btn>
                 </span>
               ) : null}
               {page?.submittedAttachment ? (
                 <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                  <span style={{ color: "var(--og-content-disabled)" }}>已上传：{page.submittedAttachment.name}</span>
-                  <Btn variant="ghost" disabled={subBusy} titleAttr="直接向网络学堂发撤回请求；必交附件的作业会被拒绝并提示" onClick={() => void doRemove()}>撤回附件
-                  </Btn>
+                  <span style={{ color: "var(--og-content-disabled)" }}>{i18n("auto.pages.learn.AssignmentDetailPage.25")}{page.submittedAttachment.name}</span>
+                  <Btn variant="ghost" disabled={subBusy} titleAttr={i18n("auto.pages.learn.AssignmentDetailPage.26")} onClick={() => void doRemove()}>{i18n("auto.pages.learn.AssignmentDetailPage.27")}</Btn>
                 </span>
               ) : null}
               {page?.submittedAttachment && subFile ? (
-                <span style={{ color: "var(--og-content-disabled)", fontSize: 12 }}>提交后新附件将替换已上传附件</span>
+                <span style={{ color: "var(--og-content-disabled)", fontSize: 12 }}>{i18n("auto.pages.learn.AssignmentDetailPage.28")}</span>
               ) : null}
             </div>
             {needFileHint ? (
-              <div className="exthw-note is-warn">本作业要求必须带附件：请选择文件或拍照上传后再提交。</div>
+              <div className="exthw-note is-warn">{i18n("auto.pages.learn.AssignmentDetailPage.29")}</div>
             ) : null}
             {subFile ? (
               <Input placeholder={`自定义附件名（保留扩展名 ${subFile.name.includes(".") ? subFile.name.slice(subFile.name.lastIndexOf(".")) : ""}，可留空）`} value={customName} onChange={(value) => setCustomName(value.replaceAll(".", ""))} disabled={subBusy} />
@@ -480,10 +477,10 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
               <Btn variant="solid" tone="brand" disabled={subBusy || pastDeadline || (!subFile && richEmpty(subContent))} titleAttr={pastDeadline ? "已过截止时间（mobile 同款禁用提交）" : undefined} onClick={() => void doSubmit()}>{subBusy ? "提交中…" : "提交"}</Btn>
             </div>
             {pastDeadline ? (
-              <div style={{ fontSize: 12, color: "var(--red)" }}>已过截止时间，提交入口已停用（撤回附件仍可用）。</div>
+              <div style={{ fontSize: 12, color: "var(--red)" }}>{i18n("auto.pages.learn.AssignmentDetailPage.30")}</div>
             ) : null}
             {h.submitted && h.submitTime ? (
-              <div style={{ fontSize: 12, color: "var(--og-content-disabled)" }}>上次提交于 {fmtDateTime(h.submitTime)}</div>
+              <div style={{ fontSize: 12, color: "var(--og-content-disabled)" }}>{i18n("auto.pages.learn.AssignmentDetailPage.31")}{fmtDateTime(h.submitTime)}</div>
             ) : null}
             {subMsg ? <div style={{ fontSize: 12, color: subOk ? "var(--green)" : "var(--red)", wordBreak: "break-all" }}>{subMsg}</div> : null}
           </div>

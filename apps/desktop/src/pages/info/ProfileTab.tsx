@@ -9,6 +9,8 @@ import { IconRefresh } from "../../components/Icons.js";
 import { useProfile } from "../../state/data.js";
 import { useApp } from "../../state/context.js";
 import { displayStudentId } from "../../lib/privacy.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 export function ProfileTab() {
   const { user } = useApp();
@@ -26,13 +28,12 @@ export function ProfileTab() {
   return (
     <>
       <SectionHead
-        title="个人信息"
+        title={i18n("auto.pages.info.ProfileTab.1")}
         aside="由信息门户提供"
         /* actions 参数不存在，刷新按钮放下方标题行右缘 */
       />
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
-        <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />刷新
-        </Btn>
+        <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />{i18n("auto.pages.info.ProfileTab.2")}</Btn>
       </div>
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}

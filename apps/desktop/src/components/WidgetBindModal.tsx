@@ -28,6 +28,8 @@ import {
 } from "../state/widgetInstances.js";
 import { clearWidgetBind, useWidgetBindRequest } from "../state/widgetBindUi.js";
 import { useNotifyBackend } from "./useNotifyBackend.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** provider 类名 → 形态标签（原生报回类名，这里给用户看得懂的名字） */
 const SHAPES: Record<string, string> = {
@@ -133,25 +135,23 @@ export function WidgetBindModal(): ReactNode {
     const binding = req.binding;
     return createPortal(
       <div className={"home-modal-mask" + (closing ? " is-closing" : "")} onClick={requestClose}>
-        <div className={"home-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label="放到哪一块小组件" onClick={(e) => e.stopPropagation()}>
+        <div className={"home-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label={i18n("auto.components.WidgetBindModal.1")} onClick={(e) => e.stopPropagation()}>
           <div className="home-modal-head">
-            <h3>放到哪一块小组件？</h3>
-            <Btn variant="ghost" onClick={requestClose}>关闭</Btn>
+            <h3>{i18n("auto.components.WidgetBindModal.2")}</h3>
+            <Btn variant="ghost" onClick={requestClose}>{i18n("auto.components.WidgetBindModal.3")}</Btn>
           </div>
           <div className="home-modal-body">
             <div className="wb-current">
-              要显示：{bindingSummary(binding, favs.data)}
+              {i18n("auto.components.WidgetBindModal.4")}{bindingSummary(binding, favs.data)}
               <br />
-              应用不能替你往桌面添加小组件，只能给已经存在的那些换内容。
-            </div>
+              {i18n("auto.components.WidgetBindModal.5")}</div>
             {readFailed ? (
-              <div className="home-modal-hint">读取桌面上的小组件失败：应用刚更新时请先完全退出再打开一次。</div>
+              <div className="home-modal-hint">{i18n("auto.components.WidgetBindModal.6")}</div>
             ) : null}
-            {instances === null && !readFailed ? <div className="home-modal-hint">正在读取桌面上的小组件…</div> : null}
+            {instances === null && !readFailed ? <div className="home-modal-hint">{i18n("auto.components.WidgetBindModal.7")}</div> : null}
             {instances?.length === 0 ? (
               <div className="home-modal-hint">
-                桌面上还没有 OneTHU 小组件。长按桌面 → 小组件 → 选「OneTHU」，放好一块再回来。
-              </div>
+                {i18n("auto.components.WidgetBindModal.8")}</div>
             ) : null}
             <div className="wb-list">
               {(instances ?? []).map((inst) => (
@@ -160,10 +160,10 @@ export function WidgetBindModal(): ReactNode {
                   <div className="wb-row-main">
                     <div className="wb-row-name">{shapeLabel(inst)}</div>
                     <div className="wb-row-sub">
-                      当前：{bindingSummary(loadWidgetInstances().byId[String(inst.id)] ?? { kind: "today" }, favs.data)}
+                      {i18n("auto.components.WidgetBindModal.9")}{bindingSummary(loadWidgetInstances().byId[String(inst.id)] ?? { kind: "today" }, favs.data)}
                     </div>
                   </div>
-                  <span className="wb-row-shape">点它</span>
+                  <span className="wb-row-shape">{i18n("auto.components.WidgetBindModal.10")}</span>
                 </button>
               ))}
             </div>
@@ -179,17 +179,16 @@ export function WidgetBindModal(): ReactNode {
   const cur = loadWidgetInstances().byId[id] ?? { kind: "today" as const };
   return createPortal(
     <div className={"home-modal-mask" + (closing ? " is-closing" : "")} onClick={requestClose}>
-      <div className={"home-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label="这块小组件显示什么" onClick={(e) => e.stopPropagation()}>
+      <div className={"home-modal" + (closing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label={i18n("auto.components.WidgetBindModal.11")} onClick={(e) => e.stopPropagation()}>
         <div className="home-modal-head">
-          <h3>这块小组件显示什么？</h3>
-          <Btn variant="ghost" onClick={requestClose}>关闭</Btn>
+          <h3>{i18n("auto.components.WidgetBindModal.12")}</h3>
+          <Btn variant="ghost" onClick={requestClose}>{i18n("auto.components.WidgetBindModal.3")}</Btn>
         </div>
         <div className="home-modal-body">
           <div className="wb-current">
-            当前显示：{bindingSummary(cur, favs.data)}
+            {i18n("auto.components.WidgetBindModal.13")}{bindingSummary(cur, favs.data)}
             <br />
-            桌面上可以同时放多块，各显示各的（点卡片即可换）。
-          </div>
+            {i18n("auto.components.WidgetBindModal.14")}</div>
           <div className="wb-kinds">
             {CONTENT_KINDS.map((k) => {
               const Icon = k.icon;
@@ -202,7 +201,7 @@ export function WidgetBindModal(): ReactNode {
                     if (k.kind === "today") bind(id, { kind: "today" });
                     else if (k.kind === "folder") {
                       if (Object.keys(favs.data.folders).length === 0) {
-                        showToast("还没有收藏夹：先在收藏夹页建一个再放上桌面");
+                        showToast(i18n("auto.components.WidgetBindModal.msg1"));
                         return;
                       }
                       setFolderPick(true);
@@ -221,30 +220,29 @@ export function WidgetBindModal(): ReactNode {
             <Btn variant="ghost" onClick={() => {
                 unbindWidgetInstance(id);
                 done("已恢复为「日程与 DDL」");
-              }}>恢复默认（日程与 DDL）
-            </Btn>
+              }}>{i18n("auto.components.WidgetBindModal.15")}</Btn>
           ) : null}
         </div>
       </div>
 
       {folderPick ? (
         <div className={"home-modal-mask" + (pickClosing ? " is-closing" : "")} onClick={requestPickClose}>
-          <div className={"home-modal" + (pickClosing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label="选一个收藏夹" onClick={(e) => e.stopPropagation()}>
+          <div className={"home-modal" + (pickClosing ? " is-closing" : "")} role="dialog" aria-modal="true" aria-label={i18n("auto.components.WidgetBindModal.16")} onClick={(e) => e.stopPropagation()}>
             <div className="home-modal-head">
-              <h3>选一个收藏夹</h3>
-              <Btn variant="ghost" onClick={requestPickClose}>返回</Btn>
+              <h3>{i18n("auto.components.WidgetBindModal.16")}</h3>
+              <Btn variant="ghost" onClick={requestPickClose}>{i18n("auto.components.WidgetBindModal.17")}</Btn>
             </div>
             <div className="home-modal-body">
-              <div className="home-modal-hint">夹里的收藏项会以图标并列显示在这块小组件上（放不下的自动略过）。</div>
+              <div className="home-modal-hint">{i18n("auto.components.WidgetBindModal.18")}</div>
               <div className="wb-list">
                 {Object.values(favs.data.folders).map((f) => (
                   <button key={f.id} className="wb-row" onClick={() => bind(id, { kind: "folder", folderId: f.id })}>
                     <span className="wb-kind-icon"><IconFolder width={17} height={17} /></span>
                     <div className="wb-row-main">
                       <div className="wb-row-name">{f.title}</div>
-                      <div className="wb-row-sub">{f.items.filter((it) => it.t === "a").length} 个收藏项（放不下的自动略过）</div>
+                      <div className="wb-row-sub">{f.items.filter((it) => it.t === "a").length} {i18n("auto.components.WidgetBindModal.19")}</div>
                     </div>
-                    <span className="wb-row-shape">{atomsIn(f)} 个</span>
+                    <span className="wb-row-shape">{atomsIn(f)} {i18n("auto.components.WidgetBindModal.20")}</span>
                   </button>
                 ))}
               </div>

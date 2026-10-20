@@ -29,6 +29,8 @@ import {
   openYuketangWebLogin,
   readYuketangWebCookies,
 } from "../lib/yktWebview.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 与 CardTab 充值弹窗同款遮罩 / 面板（移动端也留出 24px 边距、限高可滚动） */
 /** 退场：内联 animation 覆盖入场（本项目不给内联几何弹层写 CSS 规则） */
@@ -186,29 +188,24 @@ export function YktQrPanel({ onSuccess, onCancel }: { onSuccess: (cookie: string
         )}
         {statusText ? <div style={{ fontSize: 13, marginTop: 8 }}>{statusText}</div> : null}
         {qr && status === "waiting" ? (
-          <div style={{ fontSize: 11, opacity: 0.55, marginTop: 4 }}>二维码约 5 分钟有效，过期自动刷新</div>
+          <div style={{ fontSize: 11, opacity: 0.55, marginTop: 4 }}>{i18n("auto.components.ExtHwLoginModal.1")}</div>
         ) : null}
         {/* R18b 25.3.3：本机扫码会切走 App，MIUI/HyperOS 冻结进程会掐断长轮询导致确认丢失。
             R18c：Android 前台服务保活生效后改为「本机扫码也可用」提示；未生效（非 Android /
             权限被拒）保留「另一台设备」引导。 */}
         {keepAliveOn ? (
           <div style={hintStyle}>
-            已开启<b>扫码保活</b>：本机扫码也可用（切到微信期间请勿清理通知）。
-          </div>
+            {i18n("auto.components.ExtHwLoginModal.2")}<b>{i18n("auto.components.ExtHwLoginModal.3")}</b>{i18n("auto.components.ExtHwLoginModal.4")}</div>
         ) : (
           <div style={hintStyle}>
-            建议用<b>另一台设备</b>（平板 / 电脑微信）扫码，并<b>保持本页在前台</b>；
-            本机扫码会切走 App，可能被系统冻结导致登录失败。
-          </div>
+            {i18n("auto.components.ExtHwLoginModal.5")}<b>{i18n("auto.components.ExtHwLoginModal.6")}</b>{i18n("auto.components.ExtHwLoginModal.7")}<b>{i18n("auto.components.ExtHwLoginModal.8")}</b>{i18n("auto.components.ExtHwLoginModal.9")}</div>
         )}
         {err ? <div style={{ color: "var(--red, #c04848)", fontSize: 12, marginTop: 8 }}>{err}</div> : null}
       </div>
       <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10 }}>
-        <Btn variant="outline" onClick={() => setNonce((n) => n + 1)}>刷新二维码
-        </Btn>
+        <Btn variant="outline" onClick={() => setNonce((n) => n + 1)}>{i18n("auto.components.ExtHwLoginModal.10")}</Btn>
         <Btn variant="ghost" onClick={handleCancel}>
-          取消
-        </Btn>
+          {i18n("auto.components.ExtHwLoginModal.11")}</Btn>
       </div>
     </div>
   );
@@ -299,18 +296,15 @@ export function YktWebLoginPanel({ onSuccess, onCancel }: { onSuccess: (cookie: 
       }}
     >
       <div style={{ fontSize: 13, lineHeight: 1.6 }}>
-        已打开官方登录窗口，请在其中完成<b>微信扫码</b>，或<b>手机号 + 图形验证码 + 短信验证码</b>登录。
-        <br />
-        登录成功后回到本页，点击「我已登录，读取会话」。
-      </div>
+        {i18n("auto.components.ExtHwLoginModal.12")}<b>{i18n("auto.components.ExtHwLoginModal.13")}</b>{i18n("auto.components.ExtHwLoginModal.14")}<b>{i18n("auto.components.ExtHwLoginModal.15")}</b>{i18n("auto.components.ExtHwLoginModal.16")}<br />
+        {i18n("auto.components.ExtHwLoginModal.17")}</div>
       {err ? (
         <div style={{ color: "var(--red, #c04848)", fontSize: 12, marginTop: 8, whiteSpace: "pre-wrap" }}>{err}</div>
       ) : null}
       <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10, flexWrap: "wrap" }}>
         <Btn variant="solid" tone="brand" disabled={phase === "reading"} onClick={read}>{phase === "reading" ? "读取中…" : "我已登录，读取登录信息"}</Btn>
         <Btn variant="ghost" onClick={onCancel}>
-          取消
-        </Btn>
+          {i18n("auto.components.ExtHwLoginModal.11")}</Btn>
       </div>
     </div>
   );
@@ -325,7 +319,7 @@ export function ExtHwLoginModal({ open, onClose }: { open: boolean; onClose: () 
     <div style={closing ? { ...maskStyle, ...maskOut } : maskStyle} onClick={requestClose}>
       <div style={closing ? { ...panelStyle, ...panelOut } : panelStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-          <b>登录雨课堂</b>
+          <b>{i18n("auto.components.ExtHwLoginModal.18")}</b>
           <span style={{ flex: 1 }} />
           <Btn variant="outline" onClick={requestClose}>✕</Btn>
         </div>

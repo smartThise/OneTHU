@@ -19,6 +19,7 @@ import { loadFavs } from "./favorites.js";
 import { getMailHead } from "./mail.js";
 import { seafileRepoName } from "./seafile.js";
 import { loadBoard } from "./board.js";
+import { t } from "../i18n/index.js";
 
 export interface TabTitle {
   /** 短标签（TabStrip 上显示；通常是实体名/末段） */
@@ -70,44 +71,44 @@ export function resolveTabTitle(page: Page, params: LearnNav | null): TabTitle {
     case "learn-course": {
       const name = courseNameOf(params?.courseId);
       return name
-        ? { label: name, full: `网络学堂 › ${name}` }
-        : { label: "课程详情", full: "网络学堂 › 课程详情" };
+        ? { label: name, full: `${t("tab.learn")} › ${name}` }
+        : { label: t("page.learnCourse"), full: `${t("tab.learn")} › ${t("page.learnCourse")}` };
     }
     case "learn-assignment-detail": {
       const hw = snap?.homework.find((h) => h.id === params?.itemId) ?? null;
       const course = courseNameOf(params?.courseId) ?? hw?.courseId ?? null;
       if (hw?.title) {
-        const head = course ? `${course} › 作业` : "网络学堂 › 作业";
+        const head = course ? `${course} › ${t("tab.homework")}` : `${t("tab.learn")} › ${t("tab.homework")}`;
         return { label: hw.title, full: `${head} › ${hw.title}` };
       }
-      return { label: "作业详情", full: course ? `${course} › 作业详情` : "网络学堂 › 作业详情" };
+      return { label: t("page.learnAssignmentDetail"), full: course ? `${course} › ${t("page.learnAssignmentDetail")}` : `${t("tab.learn")} › ${t("page.learnAssignmentDetail")}` };
     }
     case "learn-notice-detail": {
       const ntf = snap?.notifications.find((n) => n.id === params?.itemId) ?? null;
       const course = courseNameOf(params?.courseId);
       if (ntf?.title) {
-        const head = course ? `${course} › 通知` : "网络学堂 › 通知";
+        const head = course ? `${course} › ${t("tab.notice")}` : `${t("tab.learn")} › ${t("tab.notice")}`;
         return { label: ntf.title, full: `${head} › ${ntf.title}` };
       }
-      return { label: "通知详情", full: course ? `${course} › 通知详情` : "网络学堂 › 通知详情" };
+      return { label: t("page.learnNoticeDetail"), full: course ? `${course} › ${t("page.learnNoticeDetail")}` : `${t("tab.learn")} › ${t("page.learnNoticeDetail")}` };
     }
     case "learn-file-detail": {
       const f = snap?.files.find((x) => x.id === params?.itemId) ?? null;
       const course = courseNameOf(params?.courseId);
       if (f?.title) {
-        const head = course ? `${course} › 文件` : "网络学堂 › 文件";
+        const head = course ? `${course} › ${t("tab.file")}` : `${t("tab.learn")} › ${t("tab.file")}`;
         return { label: f.title, full: `${head} › ${f.title}` };
       }
-      return { label: "文件详情", full: course ? `${course} › 文件详情` : "网络学堂 › 文件详情" };
+      return { label: t("page.learnFileDetail"), full: course ? `${course} › ${t("page.learnFileDetail")}` : `${t("tab.learn")} › ${t("page.learnFileDetail")}` };
     }
     case "learn-forum-thread": {
       const course = courseNameOf(params?.courseId);
-      return { label: "讨论区", full: course ? `${course} › 讨论区` : "网络学堂 › 讨论区" };
+      return { label: t("tab.forum"), full: course ? `${course} › ${t("tab.forum")}` : `${t("tab.learn")} › ${t("tab.forum")}` };
     }
     case "learn-ykt-detail": {
       const y = params?.ykt;
-      const name = y?.title ?? "雨课堂作业";
-      const course = y?.courseName ?? "雨课堂";
+      const name = y?.title ?? t("page.learnYktDetail");
+      const course = y?.courseName ?? t("tab.yuketang");
       return { label: name, full: `${course} › ${name}` };
     }
     case "board": {
@@ -131,31 +132,32 @@ export function resolveTabTitle(page: Page, params: LearnNav | null): TabTitle {
     }
     case "mail": {
       const head = params?.mailFolder && params?.mailUid ? getMailHead(params.mailFolder, params.mailUid) : null;
-      const folderLabel = params?.mailFolder === "sent" ? "已发送" : "收件箱";
-      if (head?.subject) return { label: head.subject, full: `邮箱 › ${folderLabel} › ${head.subject}` };
-      return { label: "邮箱", full: `邮箱 › ${folderLabel}` };
+      const folderLabel = params?.mailFolder === "sent" ? t("tab.sent") : t("tab.inbox");
+      if (head?.subject) return { label: head.subject, full: `${t("nav.mail")} › ${folderLabel} › ${head.subject}` };
+      return { label: t("nav.mail"), full: `${t("nav.mail")} › ${folderLabel}` };
     }
     case "cloud": {
       const name = params?.cloudRepo ? seafileRepoName(params.cloudRepo) : null;
       return name
-        ? { label: name, full: `云盘 › ${name}` }
-        : { label: "云盘", full: "云盘" };
+        ? { label: name, full: `${t("nav.cloud")} › ${name}` }
+        : { label: t("nav.cloud"), full: t("nav.cloud") };
     }
     case "learn":
-      return { label: "网络学堂", full: "网络学堂" };
+      return { label: t("tab.learn"), full: t("tab.learn") };
     case "learn-notices":
-      return { label: "全部通知", full: "网络学堂 › 全部通知" };
+      return { label: t("tab.allNotices"), full: `${t("tab.learn")} › ${t("tab.allNotices")}` };
     case "learn-files":
-      return { label: "全部文件", full: "网络学堂 › 全部文件" };
+      return { label: t("tab.allFiles"), full: `${t("tab.learn")} › ${t("tab.allFiles")}` };
     case "learn-assignments":
-      return { label: "全部作业", full: "网络学堂 › 全部作业" };
+      return { label: t("tab.allAssignments"), full: `${t("tab.learn")} › ${t("tab.allAssignments")}` };
     case "learn-search":
-      return { label: "搜索", full: "网络学堂 › 搜索" };
+      return { label: t("tab.search"), full: `${t("tab.learn")} › ${t("tab.search")}` };
     default:
       break;
   }
-  const t = titleOf(page, params);
-  return { label: t, full: t };
+  /* 别叫 `t`：上面会 import i18n 的 t，同名 const 会把整段 switch 里的调用打进 TDZ。 */
+  const title = titleOf(page, params);
+  return { label: title, full: title };
 }
 
 /** 标题刷新节拍：数据快照跨 store，TabStrip 无法逐个订阅——15s tick + explorer

@@ -15,6 +15,8 @@ import {
   subscribePen,
   type PenStroke,
 } from "../state/boardPen.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 画笔画布固定高度（与卡片位置/数量完全无关；卡片再往下拖也不会改变它） */
 export const BOARD_CANVAS_H = 2400;
@@ -162,7 +164,7 @@ export function BoardPenToolbar({
   canUndo: boolean;
 }): ReactNode {
   return (
-    <div className="board-pen-toolbar" role="toolbar" aria-label="画笔">
+    <div className="board-pen-toolbar" role="toolbar" aria-label={i18n("auto.components.BoardPenLayer.1")}>
       {PEN_COLORS.map((c) => (
         <button
           key={c}
@@ -175,11 +177,9 @@ export function BoardPenToolbar({
         />
       ))}
       <button type="button" className="board-pen-act" onClick={onUndo} disabled={!canUndo}>
-        撤销
-      </button>
+        {i18n("auto.components.BoardPenLayer.2")}</button>
       <button type="button" className="board-pen-act" onClick={onClear}>
-        清空
-      </button>
+        {i18n("auto.components.BoardPenLayer.3")}</button>
     </div>
   );
 }

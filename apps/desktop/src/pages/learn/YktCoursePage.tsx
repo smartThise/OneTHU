@@ -31,6 +31,8 @@ import { getYktCourse } from "../../state/yktCourse.js";
 import { openFilePreview } from "../../components/FilePreview.js";
 import { YktContentBody } from "../../components/exthw/YktContentBody.js";
 import { BackButton, HomeworkRow, fmtWhenParts } from "./shared.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 /** 已确认类型的展示顺序（未知类型排在其后，按类型名排序） */
 const KNOWN_TAB_ORDER = ["作业", "试卷", "课件", "投票"];
@@ -197,26 +199,22 @@ export function YktCoursePage() {
         }`}
         actions={
           <>
-            <BackButton to="learn" label="课程列表" />
-            <Btn variant="ghost" onClick={() => navigate("learn-assignments", { extCourseId: courseId, extCourseName: courseName })}>只看作业
-            </Btn>
-            <Btn variant="outline" onClick={() => ext.reload()} disabled={ext.state === "loading"}><IconRefresh width={14} height={14} />刷新
-            </Btn>
+            <BackButton to="learn" label={i18n("auto.pages.learn.YktCoursePage.1")} />
+            <Btn variant="ghost" onClick={() => navigate("learn-assignments", { extCourseId: courseId, extCourseName: courseName })}>{i18n("auto.pages.learn.YktCoursePage.2")}</Btn>
+            <Btn variant="outline" onClick={() => ext.reload()} disabled={ext.state === "loading"}><IconRefresh width={14} height={14} />{i18n("auto.pages.learn.YktCoursePage.3")}</Btn>
           </>
         }
       />
 
       <div className="row-sub" style={{ margin: "0 0 10px" }}>
-        这里列出这门课的全部内容：作业与试卷点开是站内详情，课件、视频、资料直接在应用内预览。
-      </div>
+        {i18n("auto.pages.learn.YktCoursePage.4")}</div>
 
       {ext.errors.yuketang ? <ErrorNote text={ext.errors.yuketang} onRetry={() => ext.reload()} /> : null}
 
       {contents.length > 0 ? (
         <SegmentedOverflow>
           <button role="tab" aria-selected={tab === "all"} className={tab === "all" ? "is-active" : ""} onClick={() => setTab("all")}>
-            全部
-            <span className="tab-count">{contents.length}</span>
+            {i18n("auto.pages.learn.YktCoursePage.5")}<span className="tab-count">{contents.length}</span>
           </button>
           {groups.texts.map((text) => (
             <button
@@ -305,7 +303,7 @@ export function YktCoursePage() {
               {isOpen ? (
                 <div className="ykt-content-panel">
                   {open?.state === "loading" ? (
-                    <div className="row-sub">正在加载内容…</div>
+                    <div className="row-sub">{i18n("auto.pages.learn.YktCoursePage.6")}</div>
                   ) : open?.state === "error" ? (
                     <div className="row-sub">{open.error}</div>
                   ) : (

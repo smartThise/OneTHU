@@ -21,6 +21,8 @@ import { ohAsk } from "../plugins/ChatDock.js";
 import { closePalette, togglePalette, usePaletteOpen } from "../state/palette.js";
 import { useApp } from "../state/context.js";
 import { vaultCatchAttr } from "./vault/vaultDrag.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 快捷键提示要跟当前平台一致：Mac 显示 ⌘K，其它（含 Windows）显示 Ctrl K */
 export function shortcutLabel(): string {
@@ -149,7 +151,7 @@ export function CommandPalette(): ReactNode {
         className="pal"
         role="dialog"
         aria-modal="true"
-        aria-label="搜索功能"
+        aria-label={i18n("auto.components.CommandPalette.1")}
         data-palette=""
         onClick={(e) => e.stopPropagation()}
       >
@@ -160,7 +162,7 @@ export function CommandPalette(): ReactNode {
           <input
             ref={inputRef}
             className="pal-input"
-            placeholder="搜功能 / 页面 / 设置，如：电费 洗衣机 成绩"
+            placeholder={i18n("auto.components.CommandPalette.2")}
             value={q}
             onChange={(e) => {
               setQ(e.target.value);
@@ -179,20 +181,20 @@ export function CommandPalette(): ReactNode {
                 if (row) runRow(row);
               }
             }}
-            aria-label="搜索功能"
+            aria-label={i18n("auto.components.CommandPalette.1")}
           />
           <kbd className="pal-kbd">{shortcutLabel()}</kbd>
         </div>
-        {!query ? <div className="pal-group">常用</div> : null}
+        {!query ? <div className="pal-group">{i18n("auto.components.CommandPalette.3")}</div> : null}
         <div className="pal-list">
           {rows.length === 0 ? (
             <>
-            <div className="pal-empty">没找到。换个说法试试，比如「电费」「成绩」「悬浮球」「多模态」。</div>
+            <div className="pal-empty">{i18n("auto.components.CommandPalette.4")}</div>
             {/* 空态兜底（用户点名）：**真可用**的一条通道——与底部悬浮岛/悬浮球同源走 ohAsk()。
                 先 closePalette() 再调，避免"检索条 + 对话面板"两层浮层叠着。 */}
             <button
               className="pal-ask"
-              title="未登录或应用未就绪时先记下，就绪后第一条消息直接送达"
+              title={i18n("auto.components.CommandPalette.5")}
               onClick={() => {
                 const q = query.trim();
                 closePalette();

@@ -128,9 +128,10 @@ ok(O.renameBoard(d0, "b2", "  ").boards[1].name === "我的板", "空名字不�
 /* ⑩ 收藏夹列表页接线（页面是 .tsx → 静态判定） */
 const listPage = readFileSync("apps/desktop/src/pages/BoardListPage.tsx", "utf8");
 ok(/boardSummary\(doc\)/.test(listPage), "列表页没有用纯逻辑生成摘要（数量/当前项会不可靠）");
-ok(/label: "设为当前 OnePage"/.test(listPage), "长按菜单缺「设为当前 OnePage」");
-ok(/label: "上移"/.test(listPage) && /label: "下移"/.test(listPage), "长按菜单缺上移/下移");
-ok(/label: "删除", danger: true/.test(listPage), "删除项没有走危险色（需求原文要求标红）");
+/* 文案已走 i18n：按 key + 结构断言（key: "current"/"up"/"down"/"remove" 是稳定契约）。 */
+ok(/key: "current", label: i18n\("auto\.pages\.BoardListPage\.p\d+"\)/.test(listPage), "长按菜单缺「设为当前 OnePage」");
+ok(/key: "up", label: i18n\(/.test(listPage) && /key: "down", label: i18n\(/.test(listPage), "长按菜单缺上移/下移");
+ok(/key: "remove", label: i18n\([^)]*\), danger: true/.test(listPage), "删除项没有走危险色（需求原文要求标红）");
 ok(/filter\(\(b\) => b\.kind !== "system"\)/.test(listPage), "系统板没有从 OnePage 列表里排除（会被当成可删白板）");
 ok(/moveBoard\(d, id, "up"\)/.test(listPage) && /moveBoard\(d, id, "down"\)/.test(listPage), "上下移没有走纯逻辑");
 ok(/createBoard\(d,/.test(listPage), "新建 OnePage 没有走纯逻辑");
@@ -167,7 +168,7 @@ ok(packed[2].cell.h === 2 && packed[2].cell.x === 0, "重排不该改动 x/w/h")
 /* 重排不能挂在拟合条件上：旧数据本来就可能带空行（实测拟合早已完成时重排没跑） */
 /* ⑬ 起步模板接线（P2.5）：空板引导 + 菜单里的套用入口 */
 ok(/data-template=\{tpl\.id\}/.test(pageR), "空板没有模板按钮（用户面对空白板无从下手）");
-ok(/key: "apply-tpl", label: "套用模板"/.test(pageR), "右上菜单缺「套用模板」入口");
+ok(/key: "apply-tpl", label: tr\("board\.menu\.templates"\)/.test(pageR), "右上菜单缺「套用模板」入口");
 ok(/BOARD_TEMPLATES\.map/.test(pageR) && /tpl\.description/.test(pageR), "模板选择面板没有列出说明（用户不知道选的是什么）");
 ok(/templateItems\(tpl\)/.test(pageR) && /rectFromCell\(it\.cell\)/.test(pageR), "套用模板没有走纯逻辑 templateItems + px 映射");
 /* ⑭ 白板页必须渲染当前板（写死 systemBoard 会让用户板永远打不开，本轮实测踩过） */
@@ -175,7 +176,7 @@ ok(/const board = activeBoard\(doc\);/.test(pageR), "OnePage 面写死了系统�
 const boardWrapSrc = readFileSync("apps/desktop/src/state/boardCore.ts", "utf8");
 ok(/export function activeBoard/.test(boardWrapSrc) && /doc\.boards\.find\(\(b\) => b\.id === doc\.activeBoardId\)/.test(boardWrapSrc), "缺少「当前板」解析（应优先 activeBoardId，缺了才回落系统板）");
 /* ⑫ 霖 2026-10-11 的操作逻辑改版：正常模式不改布局、尺寸入口收进菜单、编辑态列表占位 */
-ok(/label: "改变大小"/.test(pageR) && /isTierControlled\(def\)/.test(pageR) && /label: "自由调整大小"/.test(pageR), "长按菜单没有按「挡位控制 / 自由控制」分流尺寸入口");
+ok(/label: tr\("board\.menu\.resize"\)/.test(pageR) && /isTierControlled\(def\)/.test(pageR) && /label: tr\("board\.menu\.freeResize"\)/.test(pageR), "长按菜单没有按「挡位控制 / 自由控制」分流尺寸入口");
 ok(/\.\.\.LIST_WIDGET_IDS|LIST_WIDGET_IDS/.test(widgetsSrc) && /isListWidget/.test(widgetsSrc), "缺少列表型组件清单");
 /* ⑮ 霖 2026-10-11 六条现场 bug 的判据（其中三条落在出厂 CSS 与纯函数上） */
 const distCss = (() => {
@@ -216,7 +217,7 @@ ok(/\| "boards"/.test(appPageSrc) && /\| "board"/.test(appPageSrc), "白板两�
 /* 暂存箱：白板卡片的长按菜单必须有「收进暂存箱」（手机 stack 下卡片不能直接拖时的兜底）。 */
 {
   const free = readFileSync("apps/desktop/src/components/FreeBoard.tsx", "utf8");
-  ok(/label: "收进暂存箱"/.test(free) && /addToVault\s*\(/.test(free), "白板卡片长按菜单缺「收进暂存箱」");
+  ok(/label: tr\("board\.menu\.vault"\)/.test(free) && /addToVault\s*\(/.test(free), "白板卡片长按菜单缺「收进暂存箱」");
 }
 /* ㉞ 尺寸档位（霖 2026-10-11 定稿）：取消自由控制、改为逐组件的挡位控制
    ① 纯逻辑：挡位吸附 / 自由夹取 / 显式档位落库；
@@ -250,7 +251,7 @@ ok(/MIN_SCALE/.test(sizesSrc) && /MIN_OPACITY/.test(sizesSrc), "侧卡没有按�
 ok(/animatePos/.test(sizesSrc) && /easeOutCubic|Math\.pow\(1 - t, 3\)/.test(sizesSrc), "卡片流没有逐帧补间（换档会生硬跳变）");
 ok(/.widget-size-carousel/.test(sizesSrc) && /widget-size-dots/.test(sizesSrc) && /data-size-dots=/.test(sizesSrc), "没有卡片流容器或底部点状指示栏");
 ok(!/onScroll=/.test(sizesSrc), "档位列表仍在用滚动位置判定选中（滚到底时最后一个档位会被判成倒数第二档）");
-ok(/已选 /.test(sizesSrc), "没有「已选哪一档」的文字回读");
+ok(/i18n\("auto\.components\.WidgetSizes\.\d+"\)/.test(sizesSrc), "没有「已选哪一档」的文字回读");
 ok(/\.widget-size-carousel \{[^}]*position: relative/.test(cssTier) && /\.widget-size-carousel \{[^}]*touch-action: none/.test(cssTier), "卡片流没有相对定位或没吃掉横向手势（会被浏览器当滚动）");
 ok(/\.widget-size-item \{[^}]*position: absolute/.test(cssTier) && /\.widget-size-item \{[^}]*border: 1px solid var\(--border\)/.test(cssTier) && /\.widget-size-item \{[^}]*border-radius: 16px/.test(cssTier), "档位卡片不是绝对定位的段落卡片（1px 描边 + 16px 圆角）");
 ok(/\.widget-size-item\.is-active \{[^}]*border-color: var\(--accent\)/.test(cssTier), "选中档位没有强调色描边（看不出选中的是哪一档）");

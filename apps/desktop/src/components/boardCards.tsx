@@ -18,6 +18,7 @@ import { Btn } from "@onethu/gui";
  * 新增组件时在此登记即可，白板的 `mergeRenderers` 会优先取这里的实现。
  */
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useT } from "../i18n/index.js";
 import { useCountUp } from "./CountUp.js";
 import { useCard, useProfile, useReport } from "../state/data.js";
 import { useApp } from "../state/context.js";
@@ -66,6 +67,8 @@ import {
   ReportStatLatest,
   ReportStatOverall,
 } from "../pages/info/reportParts.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /* 三张数字卡统一走 StatTile（与信息页四张统计卡同一块骨架、同一套档位排版）：
    1×1 只留数值、2×1 补名称、2×2 再补一行上下文。取数与递增动画不变。 */
@@ -74,7 +77,7 @@ import {
 function MineBalanceCard(): ReactNode {
   const card = useCard(1);
   const text = useCountUp(card.data?.info.balance ?? null, (v) => "¥" + v.toFixed(2));
-  return <StatTile icon={<IconCard width={17} height={17} />} num={text} label="校园卡余额" cap="生活页 · 流水与充值" />;
+  return <StatTile icon={<IconCard width={17} height={17} />} num={text} label={i18n("auto.components.boardCards.1")} cap="生活页 · 流水与充值" />;
 }
 
 /** 已修学分。2×2 补一行已修门数。 */
@@ -89,7 +92,7 @@ function MineCreditCard(): ReactNode {
       tone="green"
       icon={<IconCheck width={17} height={17} />}
       num={text}
-      label="学分"
+      label={i18n("auto.components.boardCards.2")}
       cap="已修学分合计"
       sub={rows.length ? "已修 " + rows.length + " 门" : null}
     />
@@ -128,7 +131,7 @@ function MineStudentCard(): ReactNode {
     <div className="mine-student-tiered">
       <b className="mine-name">{user?.name ?? "未获取"}</b>
       <span className="mine-student-meta">
-        <i className="mine-sid">学号 {studentId || "未获取"}</i>
+        <i className="mine-sid">{i18n("auto.components.boardCards.3")}{studentId || "未获取"}</i>
         <i className="mine-meta-value">{user?.department || "—"}</i>
       </span>
     </div>
@@ -190,13 +193,13 @@ function BalanceStripCard({ size }: { size?: WidgetSize }): ReactNode {
     return (
       <div className="balance-strip is-stacked">
         <button type="button" className="balance-row" onClick={toCard}>
-          <span className="balance-label">校园卡</span>
+          <span className="balance-label">{i18n("auto.components.boardCards.4")}</span>
           <span className="balance-value">{balance}</span>
         </button>
         <span className="balance-hsep" aria-hidden="true" />
         <button type="button" className="balance-row" onClick={toDorm}>
-          <span className="balance-label">宿舍电费</span>
-          <span className="balance-value balance-value-dim">去查询</span>
+          <span className="balance-label">{i18n("auto.components.boardCards.5")}</span>
+          <span className="balance-value balance-value-dim">{i18n("auto.components.boardCards.6")}</span>
         </button>
       </div>
     );
@@ -204,13 +207,13 @@ function BalanceStripCard({ size }: { size?: WidgetSize }): ReactNode {
   return (
     <div className="balance-strip">
       <button type="button" className="balance-cell" onClick={toCard}>
-        <span className="balance-label">校园卡</span>
+        <span className="balance-label">{i18n("auto.components.boardCards.4")}</span>
         <span className="balance-value">{balance}</span>
       </button>
       <span className="balance-sep" aria-hidden="true" />
       <button type="button" className="balance-cell" onClick={toDorm}>
-        <span className="balance-label">宿舍电费</span>
-        <span className="balance-value balance-value-dim">去查询</span>
+        <span className="balance-label">{i18n("auto.components.boardCards.5")}</span>
+        <span className="balance-value balance-value-dim">{i18n("auto.components.boardCards.6")}</span>
       </button>
     </div>
   );
@@ -222,16 +225,17 @@ function BalanceStripCard({ size }: { size?: WidgetSize }): ReactNode {
  * 三档按信息量递增：1×1 → 条数（+名称）；2×1 → 再加最新一条标题；4×2 → 整列表（标题、来源、时间，复用今日页行组件）。
  */
 function NewsCard({ size }: { size?: WidgetSize }): ReactNode {
+  const tr = useT();
   const { navigate } = useApp();
   const news = useSubsNewsFeed();
   const list = news.data?.list ?? [];
-  if (news.state !== "ready" || !list.length) return <div className="wg-card-empty">暂无订阅新闻</div>;
+  if (news.state !== "ready" || !list.length) return <div className="wg-card-empty">{tr("card.empty.news")}</div>;
   if ((size?.w ?? 4) >= 4) return <NewsRows feed={news.data!} navigate={navigate} />;
   const first = list[0];
   return (
     <div className="stat-card stat-tiered stat-cap-2x1">
       <span className="stat-icon"><IconExternal width={17} height={17} /></span>
-      <span className="stat-label">订阅新闻</span>
+      <span className="stat-label">{i18n("auto.components.boardCards.7")}</span>
       <span className="stat-num">{list.length}</span>
       {first ? <span className="stat-cap">{first.name}</span> : null}
     </div>
@@ -244,17 +248,18 @@ function NewsCard({ size }: { size?: WidgetSize }): ReactNode {
  * 三档按信息量递增：1×1 → 条数（+名称）；2×1 → 再加最近一条的时间与场馆；4×2 → 逐条时间与地点（复用今日页的行组件）。
  */
 function ResvCard({ size }: { size?: WidgetSize }): ReactNode {
+  const tr = useT();
   const resv = useTodayReservations();
   const { navigate } = useApp();
   const list = resv.state === "ready" ? resv.list ?? [] : [];
-  if (!list.length) return <div className="wg-card-empty">今天没有预约</div>;
+  if (!list.length) return <div className="wg-card-empty">{tr("card.empty.resv")}</div>;
   if ((size?.w ?? 4) >= 4) return <ResvRows list={list} navigate={navigate} />;
   const first = list[0];
   const where = first ? (first.kind === "room" ? first.place || first.venue : first.venue) : "";
   return (
     <div className="stat-card stat-tiered stat-cap-2x1">
       <span className="stat-icon green"><IconSchedule width={17} height={17} /></span>
-      <span className="stat-label">今日预约</span>
+      <span className="stat-label">{i18n("auto.components.boardCards.8")}</span>
       <span className="stat-num">{list.length}</span>
       {first ? <span className="stat-cap">{hm(first.start) + " · " + where}</span> : null}
     </div>
@@ -277,12 +282,12 @@ function CardEntryCard(): ReactNode {
         type="button"
         className="stat-link stat-tiered"
         onClick={() => navigate("life", { lifeTab: "card" } as never)}
-        aria-label="校园卡余额"
+        aria-label={i18n("auto.components.boardCards.1")}
       >
         <span className="stat-icon amber"><IconCard width={17} height={17} /></span>
-        <span className="stat-label">校园卡余额</span>
+        <span className="stat-label">{i18n("auto.components.boardCards.1")}</span>
         <span className="stat-num">{balance != null ? "¥" + balance.toFixed(2) : "–"}</span>
-        <span className="stat-cap">生活页 · 流水与充值</span>
+        <span className="stat-cap">{i18n("auto.components.boardCards.9")}</span>
       </button>
     </Card>
   );
@@ -296,6 +301,7 @@ function CardEntryCard(): ReactNode {
  *   4×2 → 倒计时 + 时间 + 课程名 + 地点 + 一节进度条。
  */
 function NextClassCard({ size }: { size?: WidgetSize }): ReactNode {
+  const tr = useT();
   const campus = useCampusData();
   const schedule = campus.data?.schedule ?? [];
   const [nowMin, setNowMin] = useState<number>(() => {
@@ -325,8 +331,8 @@ function NextClassCard({ size }: { size?: WidgetSize }): ReactNode {
   }, [schedule, nowMin]);
   const next = useMemo(() => pickNextClass(today, nowMin), [today, nowMin]);
   /* 数据没到 ≠ 没课：加载中给加载态；今天有课但都已结束 ≠ 今天没课（语义分开，别误导） */
-  if (campus.state === "loading" && !campus.data) return <div className="wg-card-empty">课表加载中…</div>;
-  if (!next) return <div className="wg-card-empty">{today.length > 0 ? "今天的课都结束了" : "今天没有课"}</div>;
+  if (campus.state === "loading" && !campus.data) return <div className="wg-card-empty">{tr("card.empty.classesLoading")}</div>;
+  if (!next) return <div className="wg-card-empty">{today.length > 0 ? tr("card.empty.classesDone") : tr("card.empty.classesNone")}</div>;
   const leftText = next.left > 0 ? next.left + " 分钟后" : "进行中";
   const span = Math.max(1, next.en - next.st);
   const pct = Math.max(0, Math.min(100, Math.round(((nowMin - next.st) / span) * 100)));
@@ -353,13 +359,14 @@ function NextClassCard({ size }: { size?: WidgetSize }): ReactNode {
  * 做法就是"原页面的行 + 只截前 N 条"——外观与信息层级完全一致，尺寸适配卡片。
  */
 function LearnFilesCard(): ReactNode {
+  const tr = useT();
   const learn = useLearnData();
   const data = learn.data;
   const files = (data?.files ?? [])
     .slice()
     .sort((a, b) => String(b.uploadTime).localeCompare(String(a.uploadTime)))
     .slice(0, 5);
-  if (!files.length) return <div className="wg-card-empty">暂无课程文件</div>;
+  if (!files.length) return <div className="wg-card-empty">{tr("card.empty.files")}</div>;
   return (
     <div className="wg-card-rows">
       {files.map((file) => (
@@ -379,13 +386,14 @@ function courseNames(courses: { id: string; name: string }[] | undefined): Map<s
  * 与「全部课程文件」同一套做法（原页面的行 + 截前 N 条）。
  */
 function LearnAssignmentsCard(): ReactNode {
+  const tr = useT();
   const data = useLearnData().data;
   const byCourse = courseNames(data?.courses);
   const list = (data?.homework ?? [])
     .slice()
     .sort((a, b) => String(a.deadline).localeCompare(String(b.deadline)))
     .slice(0, 5);
-  if (!list.length) return <div className="wg-card-empty">暂无待办作业</div>;
+  if (!list.length) return <div className="wg-card-empty">{tr("card.empty.homework")}</div>;
   return (
     <div className="wg-card-rows">
       {list.map((h) => (
@@ -403,13 +411,14 @@ function LearnAssignmentsCard(): ReactNode {
 
 /** 「全部通知」的紧凑卡体：复用原页面的 `NoticeRow`，取最新 5 条。 */
 function LearnNoticesCard(): ReactNode {
+  const tr = useT();
   const data = useLearnData().data;
   const byCourse = courseNames(data?.courses);
   const list = (data?.notifications ?? [])
     .slice()
     .sort((a, b) => String(b.publishTime).localeCompare(String(a.publishTime)))
     .slice(0, 5);
-  if (!list.length) return <div className="wg-card-empty">暂无课程通知</div>;
+  if (!list.length) return <div className="wg-card-empty">{tr("card.empty.notices")}</div>;
   return (
     <div className="wg-card-rows">
       {list.map((n) => (
@@ -432,12 +441,13 @@ function LearnNoticesCard(): ReactNode {
  * 于是白板上显示的是这条文件的**真实信息**，而不是一个跳转入口。
  */
 function LearnFileAtomCard({ props }: { props?: Record<string, unknown> }): ReactNode {
+  const tr = useT();
   const data = useLearnData().data;
   const courseId = String(props?.courseId ?? "");
   const itemId = String(props?.itemId ?? "");
   const file = (data?.files ?? []).find((x) => x.courseId === courseId && x.id === itemId);
   if (!file) {
-    return <div className="wg-card-empty">{String(props?.title ?? "该文件已不在本学期数据里")}</div>;
+    return <div className="wg-card-empty">{String(props?.title ?? tr("card.empty.fileGone"))}</div>;
   }
   return (
     <div className="wg-card-rows">
@@ -501,7 +511,7 @@ function NoteCard(props?: Record<string, unknown>): ReactNode {
     <div className="free-note" data-tone={tone}>
       <div className="free-note-strip">
         <span className="free-note-dot" aria-hidden="true" />
-        <span className="free-note-hint">便笺</span>
+        <span className="free-note-hint">{i18n("auto.components.boardCards.10")}</span>
       </div>
       <div className="free-note-text">{text}</div>
     </div>
@@ -514,6 +524,7 @@ function NoteCard(props?: Record<string, unknown>): ReactNode {
    同一份 useCampusData + 外部作业/雨课堂通知，SWR 缓存共享，不重复请求。 */
 
 function HomeworkCard(): ReactNode {
+  const tr = useT();
   const { navigate } = useApp();
   const { data, state } = useLearnData();
   const ext = useExternalHomework();
@@ -525,13 +536,13 @@ function HomeworkCard(): ReactNode {
   const courseName = (courseId: string): string => data?.courses.find((c) => c.id === courseId)?.name ?? "课程";
   return (
     <div className="homework-carousel-widget">
-      {!dataReady ? <div className="wg-card-empty">正在同步待办…</div> : rows.length ? (
+      {!dataReady ? <div className="wg-card-empty">{tr("card.empty.syncing")}</div> : rows.length ? (
         <HwCarousel captureWheel={false} items={rows} courseNameOf={courseName}
           courseLabelOf={h => hwCourseLabel(h, names, extHwSourceName)} semesterId={data?.semester.id} />
       ) : (
-        <div className="homework-clear"><span>✓</span><strong>今天，轻一点。</strong><p>暂时没有待完成的作业</p></div>
+        <div className="homework-clear"><span>✓</span><strong>{i18n("auto.components.boardCards.11")}</strong><p>{i18n("auto.components.boardCards.12")}</p></div>
       )}
-      <Btn variant="ghost" onClick={() => navigate("tasks")}>查看全部待办 →</Btn>
+      <Btn variant="ghost" onClick={() => navigate("tasks")}>{i18n("auto.components.boardCards.13")}</Btn>
     </div>
   );
 }
@@ -590,7 +601,7 @@ export function ClockCard({ size }: { size?: WidgetSize }): ReactNode {
         {hh}:{mm}
         {tall ? <span style={{ fontSize: 14, color: "var(--text-3)", marginLeft: 4 }}>{ss}</span> : null}
       </div>
-      {tall ? <div style={{ fontSize: "var(--text-xs)", color: "var(--text-3)" }}>{weekdayCn(now.getDay())} · {now.getMonth() + 1} 月 {now.getDate()} 日</div> : null}
+      {tall ? <div style={{ fontSize: "var(--text-xs)", color: "var(--text-3)" }}>{weekdayCn(now.getDay())} · {now.getMonth() + 1} {i18n("auto.components.boardCards.14")}{now.getDate()} {i18n("auto.components.boardCards.15")}</div> : null}
     </div>
   );
 }
@@ -610,11 +621,10 @@ export function DateCard({ size }: { size?: WidgetSize }): ReactNode {
   return (
     <div className="env-date" style={{ display: "flex", flexDirection: tall ? "column" : "row", alignItems: tall ? "center" : "baseline", justifyContent: "center", height: "100%", gap: tall ? 4 : 8 }}>
       <div style={{ fontSize: tall ? 30 : 22, fontVariantNumeric: "tabular-nums", fontWeight: 650, color: "var(--text-1)", lineHeight: 1.15 }}>
-        {m} 月 {d} 日
-      </div>
+        {m} {i18n("auto.components.boardCards.14")}{d} {i18n("auto.components.boardCards.15")}</div>
       <div style={{ fontSize: tall ? "var(--text-md)" : "var(--text-sm)", color: "var(--text-3)", display: "flex", alignItems: "center", gap: 8 }}>
         <span>{weekdayCn(now.getDay())}</span>
-        {tall ? <span>{y} 年</span> : null}
+        {tall ? <span>{y} {i18n("auto.components.boardCards.16")}</span> : null}
       </div>
     </div>
   );
@@ -635,8 +645,7 @@ export function WeatherCard({ size }: { size?: WidgetSize }): ReactNode {
       {!w ? (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, height: "100%" }}>
           <span style={{ fontSize: "var(--text-sm)", color: "var(--text-3)" }}>{snap.reason ? "天气拉取失败，可重试" : "天气加载中"}</span>
-          <Btn variant="ghost" onClick={() => void refreshWeather(true)}>重试
-          </Btn>
+          <Btn variant="ghost" onClick={() => void refreshWeather(true)}>{i18n("auto.components.boardCards.17")}</Btn>
         </div>
       ) : (
         <>
@@ -647,9 +656,9 @@ export function WeatherCard({ size }: { size?: WidgetSize }): ReactNode {
             <span style={{ fontSize: "var(--text-sm)", color: "var(--text-2)" }}>{weatherText(w.now.code)}</span>
           </div>
           <div style={{ display: "flex", gap: 8, fontSize: "var(--text-xs)", color: "var(--text-3)", flexWrap: "wrap" }}>
-            <span>体感 {Math.round(w.now.feels)}°</span>
-            <span>湿度 {Math.round(w.now.humidity)}%</span>
-            <span style={{ marginLeft: "auto" as const }} title="点按刷新">
+            <span>{i18n("auto.components.boardCards.18")}{Math.round(w.now.feels)}°</span>
+            <span>{i18n("auto.components.boardCards.19")}{Math.round(w.now.humidity)}%</span>
+            <span style={{ marginLeft: "auto" as const }} title={i18n("auto.components.boardCards.20")}>
               <button
                 type="button"
                 style={{ border: 0, background: "transparent", color: "var(--text-3)", fontSize: "var(--text-xs)", cursor: "pointer", padding: 0 }}

@@ -13,6 +13,8 @@ import { cacheRemoteFileToVault } from "../../lib/vaultRemote.js";
 import { addToVault, type VaultCatch } from "../../state/vault.js";
 import { ohAsk } from "../../plugins/ChatDock.js";
 import { showToast } from "../../state/toast.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 export interface VaultDragState {
   active: boolean;
@@ -111,7 +113,7 @@ function endDrag(commit: boolean, x: number, y: number, cat: VaultCatch | null):
   setDrag({ active: false, hover: false, title: "" });
   if (!commit || !cat) return;
   if (!wasHover) {
-    showToast("没放进暂存箱：拖到「暂存箱」目标上再松手");
+    showToast(i18n("auto.components.vault.vaultDrag.msg1"));
     return;
   }
   if (target?.hasAttribute("data-oh-drop")) {
@@ -128,7 +130,7 @@ function endDrag(commit: boolean, x: number, y: number, cat: VaultCatch | null):
     }
   }
   else if (r.reason === "duplicate") showToast(`暂存箱里已经有「${cat.title}」了`);
-  else showToast("暂存箱暂时不可用：稍后再试");
+  else showToast(i18n("auto.components.vault.vaultDrag.msg2"));
 }
 
 function onUp(e: PointerEvent): void {
@@ -215,7 +217,7 @@ export function installVaultDragSources(): () => void {
         const title = (row.querySelector<HTMLElement>(".og-settings-row-title,.setting-title")?.textContent ?? "").trim();
         if (title) {
           el = row;
-          cat = { type: "payload", title, sub: "设置项", payload: { settingTitle: title }, source: "设置" };
+          cat = { type: "payload", title, sub: i18n("auto.components.vault.vaultDrag.p1"), payload: { settingTitle: title }, source: "设置" };
         }
       }
     }

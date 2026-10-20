@@ -36,6 +36,8 @@ import { openYktSubmitWebview } from "../lib/yktSubmitWebview.js";
 import { confirmOk } from "../lib/confirm.js";
 import { isTauri } from "../lib/transport.js";
 import { ATTACH_SHEET_SCOPE } from "./AttachActionsScope.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 export type AttachActionId = "cloud" | "homework" | "discussion" | "oh";
 
@@ -388,7 +390,7 @@ export function AttachActionsSheet({
   const r = result?.r;
 
   return (
-    <Sheet open onClose={close} title="附件动作" scope={ATTACH_SHEET_SCOPE}>
+    <Sheet open onClose={close} title={i18n("auto.components.AttachActionsSheet.1")} scope={ATTACH_SHEET_SCOPE}>
       <Stack gap={3}>
         {/* ── 文件清单（Row：leading=缩略图 / title=文件名 / meta=大小） ── */}
         <Stack gap={1}>
@@ -419,24 +421,24 @@ export function AttachActionsSheet({
         {/* ── ① 转存云盘 ── */}
         {action === "cloud" ? (
           <Stack gap={3}>
-            {!sfReady ? <Text slot="label" as="div" tone="faint">正在读云盘配置…</Text> : null}
+            {!sfReady ? <Text slot="label" as="div" tone="faint">{i18n("auto.components.AttachActionsSheet.2")}</Text> : null}
             {sfReady && !sf.configured ? (
-              <Banner tone="warning" title="云盘还没连接，请先到「云盘」页连接清华云盘再转存。" />
+              <Banner tone="warning" title={i18n("auto.components.AttachActionsSheet.3")} />
             ) : null}
             <Stack gap={1}>
-              <Text slot="label" tone="faint">资料库（不替你猜库）</Text>
+              <Text slot="label" tone="faint">{i18n("auto.components.AttachActionsSheet.4")}</Text>
               <Select value={repoId} onChange={(value) => setRepoId(value)}>
-                <option value="">— 请选择 —</option>
+                <option value="">{i18n("auto.components.AttachActionsSheet.5")}</option>
                 {sf.repos.map((rp) => (
                   <option key={rp.id} value={rp.id}>{rp.name}</option>
                 ))}
               </Select>
             </Stack>
             <Stack gap={1}>
-              <Text slot="label" tone="faint">目标目录（不存在会自动创建）</Text>
+              <Text slot="label" tone="faint">{i18n("auto.components.AttachActionsSheet.6")}</Text>
               <Inline gap={2}>
                 <Input value={dir} onChange={(value) => { setDir(value); setDirEntries(null); }} />
-                <Btn variant="outline" disabled={!repoId} onClick={() => void browseDir()}>看子目录</Btn>
+                <Btn variant="outline" disabled={!repoId} onClick={() => void browseDir()}>{i18n("auto.components.AttachActionsSheet.7")}</Btn>
               </Inline>
               {dirMsg ? <Text slot="label" as="div" tone="faint">{dirMsg}</Text> : null}
               {dirEntries && dirEntries.length > 0 ? (
@@ -459,10 +461,10 @@ export function AttachActionsSheet({
               ) : null}
             </Stack>
             <Text slot="label" as="div" tone="faint">
-              远端名 = 文件名；同名会被覆盖。{many ? `共 ${files.length} 个文件，按顺序逐个上传。` : ""}
+              {i18n("auto.components.AttachActionsSheet.8")}{many ? `共 ${files.length} 个文件，按顺序逐个上传。` : ""}
             </Text>
             <Inline gap={2} justify="end">
-              <Btn variant="outline" onClick={close}>取消</Btn>
+              <Btn variant="outline" onClick={close}>{i18n("auto.components.AttachActionsSheet.9")}</Btn>
               <Btn variant="solid" tone="brand" disabled={busy || !repoId || !sf.configured} onClick={() => void runCloud()}>{busy ? "上传中…" : "上传到云盘"}</Btn>
             </Inline>
           </Stack>
@@ -474,8 +476,8 @@ export function AttachActionsSheet({
             <Segment
               size="sm"
               options={[
-                { value: "learn", label: "网络学堂" },
-                { value: "ykt", label: "雨课堂" },
+                { value: "learn", label: i18n("auto.components.AttachActionsSheet.p1") },
+                { value: "ykt", label: i18n("auto.components.AttachActionsSheet.p2") },
               ]}
               value={platform}
               onChange={(value) => {
@@ -489,8 +491,7 @@ export function AttachActionsSheet({
 
             {homeworks.length === 0 ? (
               <Text slot="label" as="div" tone="faint">
-                本机还没有课程/作业缓存。
-                <Btn variant="outline" disabled={learnLoading} onClick={() => void loadLearn()}>{learnLoading ? "加载中…" : "加载课程与作业"}</Btn>
+                {i18n("auto.components.AttachActionsSheet.10")}<Btn variant="outline" disabled={learnLoading} onClick={() => void loadLearn()}>{learnLoading ? "加载中…" : "加载课程与作业"}</Btn>
               </Text>
             ) : null}
             {autoPicked ? <Text slot="label" as="div" tone="faint">{autoPicked}</Text> : null}
@@ -498,30 +499,29 @@ export function AttachActionsSheet({
             {platform === "learn" ? (
               <Stack gap={3}>
                 <Stack gap={1}>
-                  <Text slot="label" tone="faint">课程</Text>
+                  <Text slot="label" tone="faint">{i18n("auto.components.AttachActionsSheet.11")}</Text>
                   <Select value={courseId} onChange={(value) => { setCourseId(value); setHwId(""); }}>
-                    <option value="">— 请选择 —</option>
+                    <option value="">{i18n("auto.components.AttachActionsSheet.5")}</option>
                     {courses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </Select>
                 </Stack>
                 <Stack gap={1}>
-                  <Text slot="label" tone="faint">作业（网络学堂在线提交的）</Text>
+                  <Text slot="label" tone="faint">{i18n("auto.components.AttachActionsSheet.12")}</Text>
                   <Select value={hwId} onChange={(value) => setHwId(value)} disabled={!courseId}>
-                    <option value="">— 请选择 —</option>
+                    <option value="">{i18n("auto.components.AttachActionsSheet.5")}</option>
                     {courseHw.map((h) => (
                       <option key={h.id} value={h.id}>{h.title}{h.submitted ? "（已交）" : ""}</option>
                     ))}
                   </Select>
                 </Stack>
                 <Stack gap={1}>
-                  <Text slot="label" tone="faint">正文（可选；留空会清空该作业此前的正文）</Text>
-                  <TextArea value={content} onChange={(value) => setContent(value)} placeholder="一般不填；附件就是全部内容" />
+                  <Text slot="label" tone="faint">{i18n("auto.components.AttachActionsSheet.13")}</Text>
+                  <TextArea value={content} onChange={(value) => setContent(value)} placeholder={i18n("auto.components.AttachActionsSheet.14")} />
                 </Stack>
                 <Text slot="label" as="div" tone="faint">
-                  提交前会再确认一次；提交是**整体覆盖**（正文与附件以本次为准）。
-                </Text>
+                  {i18n("auto.components.AttachActionsSheet.15")}</Text>
                 <Inline gap={2} justify="end">
-                  <Btn variant="outline" onClick={close}>取消</Btn>
+                  <Btn variant="outline" onClick={close}>{i18n("auto.components.AttachActionsSheet.9")}</Btn>
                   <Btn variant="solid" tone="brand" disabled={busy || !selectedLearnHw} onClick={() => void runHomework()}>{busy ? "提交中…" : "提交作业"}</Btn>
                 </Inline>
               </Stack>
@@ -529,32 +529,31 @@ export function AttachActionsSheet({
               <Stack gap={3}>
                 <Banner
                   tone="warning"
-                  title="雨课堂没有附件提交通道：本面板不会替你提交，只会打开官方作答页。的截止/次数校验）。"
+                  title={i18n("auto.components.AttachActionsSheet.16")}
                 />
                 {yktItems.length === 0 ? (
                   <Text slot="label" as="div" tone="faint">
-                    本机还没有雨课堂作业缓存。
-                    <Btn variant="outline" disabled={extLoading} onClick={() => { setExtLoading(true); void refreshExtHw().finally(() => setExtLoading(false)); }}>{extLoading ? "刷新中…" : "刷新雨课堂作业"}</Btn>
+                    {i18n("auto.components.AttachActionsSheet.17")}<Btn variant="outline" disabled={extLoading} onClick={() => { setExtLoading(true); void refreshExtHw().finally(() => setExtLoading(false)); }}>{extLoading ? "刷新中…" : "刷新雨课堂作业"}</Btn>
                   </Text>
                 ) : null}
                 <Stack gap={1}>
-                  <Text slot="label" tone="faint">雨课堂课程</Text>
+                  <Text slot="label" tone="faint">{i18n("auto.components.AttachActionsSheet.18")}</Text>
                   <Select value={yktCourse} onChange={(value) => { setYktCourse(value); setYktLeaf(""); }}>
-                    <option value="">— 请选择 —</option>
+                    <option value="">{i18n("auto.components.AttachActionsSheet.5")}</option>
                     {yktCourses.map((c) => <option key={c} value={c}>{c}</option>)}
                   </Select>
                 </Stack>
                 <Stack gap={1}>
-                  <Text slot="label" tone="faint">雨课堂作业</Text>
+                  <Text slot="label" tone="faint">{i18n("auto.components.AttachActionsSheet.19")}</Text>
                   <Select value={yktLeaf} onChange={(value) => setYktLeaf(value)} disabled={!yktCourse}>
-                    <option value="">— 请选择 —</option>
+                    <option value="">{i18n("auto.components.AttachActionsSheet.5")}</option>
                     {yktRows.map((i) => (
                       <option key={i.id} value={i.id}>{i.title}{i.submitted ? "（已交）" : ""}</option>
                     ))}
                   </Select>
                 </Stack>
                 <Inline gap={2} justify="end">
-                  <Btn variant="outline" onClick={close}>取消</Btn>
+                  <Btn variant="outline" onClick={close}>{i18n("auto.components.AttachActionsSheet.9")}</Btn>
                   <Btn variant="solid" tone="brand" disabled={busy || !selectedYkt} onClick={() => void runHomework()}>{busy ? "处理中…" : "去官方页提交"}</Btn>
                 </Inline>
               </Stack>
@@ -568,8 +567,8 @@ export function AttachActionsSheet({
             <Segment
               size="sm"
               options={[
-                { value: "new", label: "发新话题" },
-                { value: "reply", label: "回复话题" },
+                { value: "new", label: i18n("auto.components.AttachActionsSheet.p3") },
+                { value: "reply", label: i18n("auto.components.AttachActionsSheet.p4") },
               ]}
               value={mode}
               onChange={(value) => {
@@ -578,42 +577,40 @@ export function AttachActionsSheet({
               }}
             />
             <Stack gap={1}>
-              <Text slot="label" tone="faint">课程</Text>
+              <Text slot="label" tone="faint">{i18n("auto.components.AttachActionsSheet.11")}</Text>
               <Select value={courseId} onChange={(value) => { setCourseId(value); setBoardId(""); setHwId(""); }}>
-                <option value="">— 请选择 —</option>
+                <option value="">{i18n("auto.components.AttachActionsSheet.5")}</option>
                 {courses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </Select>
               {courses.length === 0 ? (
                 <Text slot="label" as="div" tone="faint">
-                  本机还没有课程缓存。
-                  <Btn variant="outline" disabled={learnLoading} onClick={() => void loadLearn()}>{learnLoading ? "加载中…" : "加载课程列表"}</Btn>
+                  {i18n("auto.components.AttachActionsSheet.20")}<Btn variant="outline" disabled={learnLoading} onClick={() => void loadLearn()}>{learnLoading ? "加载中…" : "加载课程列表"}</Btn>
                 </Text>
               ) : null}
             </Stack>
             {mode === "new" ? (
               <Stack gap={1}>
-                <Text slot="label" tone="faint">板块</Text>
+                <Text slot="label" tone="faint">{i18n("auto.components.AttachActionsSheet.21")}</Text>
                 <Select value={boardId} onChange={(value) => setBoardId(value)} disabled={!courseId}>
-                  <option value="">— 请选择 —</option>
+                  <option value="">{i18n("auto.components.AttachActionsSheet.5")}</option>
                   {boards.map((b) => <option key={b.bqid} value={b.bqid}>{b.name}</option>)}
                 </Select>
                 {boardsMsg ? <Text slot="label" as="div" tone="faint">{boardsMsg}</Text> : null}
               </Stack>
             ) : (
               <Stack gap={1}>
-                <Text slot="label" tone="faint">话题 id（tltid）</Text>
-                <Input value={threadId} onChange={(value) => setThreadId(value)} placeholder="从讨论区页面复制；也可以直接粘贴话题链接" />
+                <Text slot="label" tone="faint">{i18n("auto.components.AttachActionsSheet.22")}</Text>
+                <Input value={threadId} onChange={(value) => setThreadId(value)} placeholder={i18n("auto.components.AttachActionsSheet.23")} />
               </Stack>
             )}
             <Stack gap={1}>
-              <Text slot="label" tone="faint">正文（纯文本，发出去会自动排版）</Text>
-              <TextArea value={body} onChange={(value) => setBody(value)} placeholder="可以只发附件，正文留空" />
+              <Text slot="label" tone="faint">{i18n("auto.components.AttachActionsSheet.24")}</Text>
+              <TextArea value={body} onChange={(value) => setBody(value)} placeholder={i18n("auto.components.AttachActionsSheet.25")} />
             </Stack>
             <Text slot="label" as="div" tone="faint">
-              附件：{first.name}（{formatSize(first.size)}）· 发布前会再确认一次，发出去全班可见。
-            </Text>
+              {i18n("auto.components.AttachActionsSheet.26")}{first.name}（{formatSize(first.size)}{i18n("auto.components.AttachActionsSheet.27")}</Text>
             <Inline gap={2} justify="end">
-              <Btn variant="outline" onClick={close}>取消</Btn>
+              <Btn variant="outline" onClick={close}>{i18n("auto.components.AttachActionsSheet.9")}</Btn>
               <Btn variant="solid" tone="brand" disabled={busy || !courseId} onClick={() => void runDiscussion()}>{busy ? "发布中…" : "发布"}</Btn>
             </Inline>
           </Stack>
@@ -623,18 +620,15 @@ export function AttachActionsSheet({
         {action === "oh" ? (
           <Stack gap={3}>
             <Text slot="label" as="div" tone="faint">
-              把附件作为**一条完整消息**发给 OH（不弹输入框，直接发）。
-              {files.some((f) => f.mime.startsWith("image/"))
+              {i18n("auto.components.AttachActionsSheet.28")}{files.some((f) => f.mime.startsWith("image/"))
                 ? "图片会随消息带上：开了「多模态」开关时按图像模态直接喂给模型（图片文字都能读）；没开时只发送文字说明与预览。"
                 : "非图片附件只带名称/类型/大小与文本预览。"}
-              开关位置：设置 → 插件 → OneTHU Harness → 多模态。
-            </Text>
+              {i18n("auto.components.AttachActionsSheet.29")}</Text>
             <Text slot="label" as="div" tone="faint">
               {many ? `${files.length} 个附件会一起发；` : ""}
-              图片单条最多 4 张、单张 ≤6MB，超出的会在正文里写明原因（不会静默丢件）。
-            </Text>
+              {i18n("auto.components.AttachActionsSheet.30")}</Text>
             <Inline gap={2} justify="end">
-              <Btn variant="outline" onClick={close}>取消</Btn>
+              <Btn variant="outline" onClick={close}>{i18n("auto.components.AttachActionsSheet.9")}</Btn>
               <Btn variant="solid" tone="brand" disabled={busy} onClick={() => void runOh()}>{busy ? "发送中…" : "发给 OH"}</Btn>
             </Inline>
           </Stack>
@@ -656,7 +650,7 @@ export function AttachActionsSheet({
             ) : null}
             {r.ok ? (
               <div style={{ marginTop: 8 }}>
-                <Btn variant="outline" onClick={close}>完成</Btn>
+                <Btn variant="outline" onClick={close}>{i18n("auto.components.AttachActionsSheet.31")}</Btn>
               </div>
             ) : null}
           </Banner>
@@ -670,8 +664,8 @@ export function AttachActionsSheet({
                 <Text as="div">{confirmMsg}</Text>
               </div>
               <Inline gap={2} justify="end">
-                <Btn variant="outline" onClick={() => answerConfirm(false)}>取消</Btn>
-                <Btn variant="solid" tone="error" onClick={() => answerConfirm(true)}>确认执行</Btn>
+                <Btn variant="outline" onClick={() => answerConfirm(false)}>{i18n("auto.components.AttachActionsSheet.9")}</Btn>
+                <Btn variant="solid" tone="error" onClick={() => answerConfirm(true)}>{i18n("auto.components.AttachActionsSheet.32")}</Btn>
               </Inline>
             </Stack>
           </Surface>

@@ -322,16 +322,56 @@ export function defaultBoardDoc(deps: BoardDeps): BoardDoc {
   return migrateHomeCanvas(doc);
 }
 
+/* ── 首屏起步排版（2026-10-19）──────────────────────────────────────────────
+   四列基准：264 宽 + 16 间距 = 280 一档，整宽 1104（与 services 同口径）。
+
+   版式对着「信息密度优先」的首页截图：顶部一级功能区整条通栏，下面四列各自成
+   短卡片瀑布——左列是窄统计卡，右边三列是等宽的中卡，最后一行四张矮卡收口。
+   所有相邻边界都落在同一条线上（间距统一 16），既好看也是吸附功能的样板。
+
+   id 保持稳定（home.clock / home.services …）：删除记录按 id 记，改动排版不能
+   让用户删掉的卡片复活。 */
+const STARTER_COL = 264;
+const STARTER_GAP = 16;
+const starterCol = (i: number): number => i * (STARTER_COL + STARTER_GAP);
+
 /** Stable IDs and explicit revision make deletion permanent after the one-time migration. */
 export function homeStarterItems(): BoardItem[] {
+  const [c0, c1, c2, c3] = [starterCol(0), starterCol(1), starterCol(2), starterCol(3)];
+  return [
+    /* 顶部整宽：一级功能区（待办 / 课程 / 日程 … 九个入口） */
+    pxBoardItem("home.services", {kind: "custom", id: "services"}, {x: 0, y: 0, w: 1104, h: 176}),
+    /* 第一行：概览 · 时钟 · 日期 · 天气 */
+    pxBoardItem("home.overview", {kind: "custom", id: "today-overview"}, {x: c0, y: 192, w: STARTER_COL, h: 176}),
+    pxBoardItem("home.clock", {kind: "custom", id: "clock"}, {x: c1, y: 192, w: STARTER_COL, h: 200}),
+    pxBoardItem("home.date", {kind: "custom", id: "date"}, {x: c2, y: 192, w: STARTER_COL, h: 200}),
+    pxBoardItem("home.weather", {kind: "custom", id: "weather"}, {x: c3, y: 192, w: STARTER_COL, h: 200}),
+    /* 左列中段：校园卡 + 今日待办（两段短卡把左列填到与右侧大卡同底） */
+    pxBoardItem("home.balanceStrip", {kind: "custom", id: "balance-strip"}, {x: c0, y: 384, w: STARTER_COL, h: 140}),
+    pxBoardItem("home.tasks", {kind: "custom", id: "homework"}, {x: c0, y: 540, w: STARTER_COL, h: 250}),
+    /* 第二行：下一节课 · 今日预约 · 今日课程 */
+    pxBoardItem("home.nextClass", {kind: "custom", id: "next-class"}, {x: c1, y: 408, w: STARTER_COL, h: 250}),
+    pxBoardItem("home.resv", {kind: "custom", id: "resv"}, {x: c2, y: 408, w: STARTER_COL, h: 250}),
+    pxBoardItem("home.classes", {kind: "custom", id: "classes"}, {x: c3, y: 408, w: STARTER_COL, h: 250}),
+    /* 收口行：校园卡余额 · 订阅新闻 · 全部作业（四张矮卡同底） */
+    pxBoardItem("home.balance", {kind: "custom", id: "cardEntry"}, {x: c1, y: 674, w: STARTER_COL, h: 116}),
+    pxBoardItem("home.news", {kind: "custom", id: "news"}, {x: c2, y: 674, w: STARTER_COL, h: 116}),
+    pxBoardItem("home.assignments", {kind: "custom", id: "learn-assignments"}, {x: c3, y: 674, w: STARTER_COL, h: 116}),
+  ];
+}
+
+/**
+ * 2026-10 之前的「头部三件」（时钟 / 问候 / 一级功能区）。
+ *
+ * 只给 migrateHomeCanvas 用：老文档（homeLayoutVersion < 2）当年缺的是这三块固定
+ *  chrome，补回它们才能让老用户的画布跟升级前一致。**不跟着新排版变**——否则老用户
+ * 一升级就多出三张当年并不存在的卡片。
+ */
+function legacyHeadItems(): BoardItem[] {
   return [
     pxBoardItem("home.clock", {kind: "custom", id: "clock"}, {x: 0, y: 0, w: 280, h: 132}),
     pxBoardItem("home.greeting", {kind: "text", text: "把今天，安排好。", variant: "title"}, {x: 304, y: 0, w: 800, h: 132}),
     pxBoardItem("home.services", {kind: "custom", id: "services"}, {x: 0, y: 156, w: 1104, h: 196}),
-    pxBoardItem("home.tasks", {kind: "custom", id: "homework"}, {x: 0, y: 376, w: 540, h: 356}),
-    pxBoardItem("home.classes", {kind: "custom", id: "classes"}, {x: 564, y: 376, w: 540, h: 356}),
-    pxBoardItem("home.news", {kind: "custom", id: "news"}, {x: 0, y: 756, w: 540, h: 248}),
-    pxBoardItem("home.balance", {kind: "custom", id: "cardEntry"}, {x: 564, y: 756, w: 540, h: 248}),
   ];
 }
 
@@ -343,7 +383,7 @@ export function migrateHomeCanvas(doc: BoardDoc): BoardDoc {
     for (const o of Object.keys(cells) as Orientation[]) {
       const items = cells[o] ?? [];
       // Previously chrome was outside the document. Make room without losing any authored cards.
-      const head = homeStarterItems().slice(0, 3).filter(seed => !items.some(it => it.spec.kind === "custom" && seed.spec.kind === "custom" && it.spec.id === seed.spec.id));
+      const head = legacyHeadItems().filter(seed => !items.some(it => it.spec.kind === "custom" && seed.spec.kind === "custom" && it.spec.id === seed.spec.id));
       const shifted = items.map(it => {
         const r = rectOf(it);
         return {...it, rect: {...r, y: r.y + 376}, cell: cellFromRect({...r, y: r.y + 376})};

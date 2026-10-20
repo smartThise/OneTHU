@@ -1,3 +1,5 @@
+
+import { t as i18n } from "../i18n/index.js";
 /**
  * 通知状态 → 用户该看到什么（纯函数，可测）。
  *
@@ -41,14 +43,14 @@ export function notifyHint(s: NotifyStatusInput): NotifyHint {
     return {
       level: "error",
       text: "通知未授权，提醒发不出来。请到系统设置里为本应用打开通知权限。",
-      action: { kind: "app", label: "去系统设置授权" },
+      action: { kind: "app", label: i18n("auto.state.notifyStatus.p1") },
     };
   }
   if (s.backend === "android" && !s.exact) {
     return {
       level: "warn",
       text: "通知已可用；「精确提醒」还没允许，系统可能略有延迟（不影响送达）。可在系统设置的「闹钟与提醒」里允许精确提醒。",
-      action: { kind: "exact-alarm", label: "允许精确提醒" },
+      action: { kind: "exact-alarm", label: i18n("auto.state.notifyStatus.p2") },
     };
   }
   return {

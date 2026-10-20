@@ -26,6 +26,8 @@ import { universalFetch } from "./transport.js";
 import { isAndroidNavigator } from "./androidHost.js";
 import { currentVersion, isNewer } from "./update.js";
 import { logLine } from "./clients.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /* ── 官方地址（写死；改地址=改这里） ── */
 export const GITHUB_MANIFEST_URL = "https://github.com/smartThise/OneTHU/releases/latest/download/latest.json";
@@ -488,7 +490,7 @@ export async function installDownloaded(path: string): Promise<InstallLaunchResu
   try {
     if (key === "android") {
       await invoke("updater_open_installer", { path });
-      return { ok: true, hint: "已拉起系统安装页：首次安装需在系统提示里允许「安装未知应用」，之后按系统页确认即可。" };
+      return { ok: true, hint: i18n("auto.lib.updater.p1") };
     }
     await invoke("onethu_open_path", { path });
     return { ok: true, hint: key === "macos" ? "已用系统默认方式打开：若是 DMG，把应用拖进「应用程序」即完成更新。" : "已用系统默认方式打开安装包。" };

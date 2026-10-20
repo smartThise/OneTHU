@@ -32,6 +32,8 @@ import {
 } from "../../state/exthw.js";
 import { YktContentBody } from "../../components/exthw/YktContentBody.js";
 import type { LearnAttachment } from "@onethu/core";
+import { t as i18n } from "../../i18n/index.js";
+
 
 export function NoticeDetailPage() {
   useLearnNavSemester();
@@ -173,7 +175,7 @@ export function NoticeDetailPage() {
   if (!n) {
     return (
       <>
-        <PageHead title="通知详情" actions={<BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} courseTab="notices" />} />
+        <PageHead title={i18n("auto.pages.learn.NoticeDetailPage.1")} actions={<BackButton to={navParams?.from ?? "learn-notices"} courseId={navParams?.courseId} courseTab="notices" />} />
         {state === "loading" ? (
           <SkeletonRows rows={4} />
         ) : state === "error" ? (
@@ -181,7 +183,7 @@ export function NoticeDetailPage() {
         ) : (
           <Card><Empty
             text="未找到该通知，可能数据已刷新，请返回列表重试。"
-            action={<Btn variant="ghost" onClick={() => navigate(navParams?.from ?? "learn-notices")}>返回列表</Btn>}
+            action={<Btn variant="ghost" onClick={() => navigate(navParams?.from ?? "learn-notices")}>{i18n("auto.pages.learn.NoticeDetailPage.2")}</Btn>}
           /></Card>
         )}
       </>
@@ -209,8 +211,7 @@ export function NoticeDetailPage() {
             />
             {/* 外源公告的官方链接可能缺（源侧没给 id），没有链接就不放一个点了没反应的按钮 */}
             {n.url ? (
-              <Btn variant="outline" onClick={() => void openExternal(n.url)} titleAttr="在系统浏览器打开">网页端打开
-              </Btn>
+              <Btn variant="outline" onClick={() => void openExternal(n.url)} titleAttr={i18n("auto.pages.learn.NoticeDetailPage.3")}>{i18n("auto.pages.learn.NoticeDetailPage.4")}</Btn>
             ) : null}
           </>
         }
@@ -219,40 +220,39 @@ export function NoticeDetailPage() {
       <Card className="detail-head">
         <div className="chips">
           {n.important ? (
-            <span className="chip chip-red"><span className="dot" />重要</span>
+            <span className="chip chip-red"><span className="dot" />{i18n("auto.pages.learn.NoticeDetailPage.5")}</span>
           ) : null}
           {!noticeHasRead(n.hasRead, n.courseId, n.id) ? (
-            <span className="chip chip-blue"><span className="dot" />未读</span>
+            <span className="chip chip-blue"><span className="dot" />{i18n("auto.pages.learn.NoticeDetailPage.6")}</span>
           ) : null}
         </div>
         {n.expireTime ? (
-          <div className="detail-meta">过期时间 {fmtDateTime(n.expireTime)}</div>
+          <div className="detail-meta">{i18n("auto.pages.learn.NoticeDetailPage.7")}{fmtDateTime(n.expireTime)}</div>
         ) : null}
       </Card>
 
       {n.attachmentName || att ? (
         <Card className="detail-sec">
-          <div className="detail-sec-head">附件</div>
-          {attState === "loading" ? <div className="detail-meta">正在解析附件…</div> : null}
+          <div className="detail-sec-head">{i18n("auto.pages.learn.NoticeDetailPage.8")}</div>
+          {attState === "loading" ? <div className="detail-meta">{i18n("auto.pages.learn.NoticeDetailPage.9")}</div> : null}
           {attState === "error" ? (
             <div className="kv kv-wide">
-              <span>附件</span>
+              <span>{i18n("auto.pages.learn.NoticeDetailPage.8")}</span>
               <span className="t-red">{attErr}</span>
-              <Btn variant="ghost" onClick={retryAtt}>重试</Btn>
+              <Btn variant="ghost" onClick={retryAtt}>{i18n("auto.pages.learn.NoticeDetailPage.10")}</Btn>
             </div>
           ) : null}
           {attState === "ok" ? (
             att ? (
-              <div className="kv kv-wide" data-vault-catch={vaultCatchAttachment({ kind: "learn", name: att.name || n.attachmentName || "通知附件", url: att.downloadUrl, label: "通知附件" })}>
+              <div className="kv kv-wide" data-vault-catch={vaultCatchAttachment({ kind: "learn", name: att.name || n.attachmentName || "通知附件", url: att.downloadUrl, label: i18n("auto.pages.learn.NoticeDetailPage.p1") })}>
                 <span>{att.name || n.attachmentName}{att.size ? `（${att.size}）` : ""}</span>
-                <Btn variant="ghost" onClick={() => openFilePreview({ name: att.name || n.attachmentName || "通知附件", url: att.downloadUrl })}>预览
-                </Btn>
+                <Btn variant="ghost" onClick={() => openFilePreview({ name: att.name || n.attachmentName || "通知附件", url: att.downloadUrl })}>{i18n("auto.pages.learn.NoticeDetailPage.11")}</Btn>
                 <Btn variant="ghost" disabled={downloading} onClick={() => void doDownload(att)}><IconDownload width={14} height={14} />{downloading ? "下载中…" : "下载"}</Btn>
               </div>
             ) : (
               <div className="kv kv-wide">
                 <span>{n.attachmentName}</span>
-                <span className="chip chip-gray">网页端下载</span>
+                <span className="chip chip-gray">{i18n("auto.pages.learn.NoticeDetailPage.12")}</span>
               </div>
             )
           ) : null}
@@ -268,11 +268,11 @@ export function NoticeDetailPage() {
       ) : null}
 
       <Card className="detail-sec">
-        <div className="detail-sec-head">正文</div>
+        <div className="detail-sec-head">{i18n("auto.pages.learn.NoticeDetailPage.13")}</div>
         {isExt ? (
           /* R32：雨课堂公告正文就地渲染（图片/字体走既有代理），不做静默空白 */
           !extBody || extBody.state === "loading" ? (
-            <div className="detail-meta">正在加载公告正文…</div>
+            <div className="detail-meta">{i18n("auto.pages.learn.NoticeDetailPage.14")}</div>
           ) : extBody.state === "error" ? (
             <div className="detail-meta t-red">{extBody.error}</div>
           ) : (

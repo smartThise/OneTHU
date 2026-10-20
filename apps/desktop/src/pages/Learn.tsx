@@ -17,6 +17,8 @@ import { setYktCourse } from "../state/yktCourse.js";
 import { mergeCoursesByName } from "./learn/courseMerge.js";
 import { fmtRemindOffset, setHwDefault, useHwDefault } from "../state/hwRemind.js";
 import { HwRemindPop, semesterText } from "./learn/shared.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 全局作业 DDL 提醒卡（用户拍板：先设所有作业共用的节点，想改单个再在作业行改）。
  *  openSignal：原子深链（learn-hwremind）到达时自动弹开设置层。 */
@@ -28,20 +30,20 @@ function HwRemindDefaultCard({ openSignal }: { openSignal?: boolean }) {
   }, [openSignal]);
   return (
     <Card className="stat-card stat-click stat-hwremind">
-      <button className="stat-link" onClick={() => setOpen((o) => !o)} aria-label="作业 DDL 提醒设置">
+      <button className="stat-link" onClick={() => setOpen((o) => !o)} aria-label={i18n("auto.pages.Learn.1")}>
         <span className="stat-icon">
           <IconBell width={17} height={17} />
         </span>
         <span className="stat-text">
           <span className="stat-num">{fmtRemindOffset(def)}</span>
-          <span className="stat-label">DDL 提醒</span>
+          <span className="stat-label">{i18n("auto.pages.Learn.2")}</span>
         </span>
       </button>
       {open ? (
         <HwRemindPop
           value={def}
-          title="所有作业共用：截止前提醒（写入系统日历闹钟，改完即同步）"
-          foot="单个作业想单独改 → 作业行/课程详情页的铃铛（覆盖此默认）"
+          title={i18n("auto.pages.Learn.3")}
+          foot={i18n("auto.pages.Learn.4")}
           onApply={(m) => {
             if (m != null) {
               setHwDefault(m);
@@ -147,57 +149,53 @@ export function LearnPage() {
   return (
     <>
       <PageHead
-        title="课程"
+        title={i18n("auto.pages.Learn.5")}
         meta={data ? `${semesterText(data.semester.id)} · ${data.courses.length} 门课程` : "加载中…"}
         actions={
           <>
-            <PageAtomStar atomKey="learn" title="课程" />
-            <Btn variant="ghost" onClick={() => navigate("learn-search")}><IconSearch width={14} height={14} />搜索
-            </Btn>
-            <Btn variant="ghost" onClick={() => navigate("learn-semester")}><IconCalendar width={14} height={14} />学期
-            </Btn>
-            <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />刷新
-            </Btn>
+            <PageAtomStar atomKey="learn" title={i18n("auto.pages.Learn.5")} />
+            <Btn variant="ghost" onClick={() => navigate("learn-search")}><IconSearch width={14} height={14} />{i18n("auto.pages.Learn.6")}</Btn>
+            <Btn variant="ghost" onClick={() => navigate("learn-semester")}><IconCalendar width={14} height={14} />{i18n("auto.pages.Learn.7")}</Btn>
+            <Btn variant="outline" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />{i18n("auto.pages.Learn.8")}</Btn>
           </>
         }
       />
       <div className="row-sub" style={{ margin: "0 0 10px" }}>
-        雨课堂与 OJ 的作业同步在「设置 → 数据与同步」里配置（登录一次后作业会自动并入「全部作业」）。
-      </div>
+        {i18n("auto.pages.Learn.9")}</div>
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
 
       <div className="stats">
         <Card className="stat-card stat-click" >
-          <button className="stat-link" onClick={() => navigate("learn-assignments")} aria-label="查看全部作业">
+          <button className="stat-link" onClick={() => navigate("learn-assignments")} aria-label={i18n("auto.pages.Learn.10")}>
             <span className="stat-icon red">
               <IconPen width={17} height={17} />
             </span>
             <span className="stat-text">
               <span className="stat-num">{state === "loading" && !data ? "–" : stats.unfinished}</span>
-              <span className="stat-label">未交作业</span>
+              <span className="stat-label">{i18n("auto.pages.Learn.11")}</span>
             </span>
           </button>
         </Card>
         <Card className="stat-card stat-click">
-          <button className="stat-link" onClick={() => navigate("learn-notices")} aria-label="查看全部通知">
+          <button className="stat-link" onClick={() => navigate("learn-notices")} aria-label={i18n("auto.pages.Learn.12")}>
             <span className="stat-icon amber">
               <IconBell width={17} height={17} />
             </span>
             <span className="stat-text">
               <span className="stat-num">{state === "loading" && !data ? "–" : stats.notifications}</span>
-              <span className="stat-label">课程通知</span>
+              <span className="stat-label">{i18n("auto.pages.Learn.13")}</span>
             </span>
           </button>
         </Card>
         <Card className="stat-card stat-click">
-          <button className="stat-link" onClick={() => navigate("learn-files")} aria-label="查看全部文件">
+          <button className="stat-link" onClick={() => navigate("learn-files")} aria-label={i18n("auto.pages.Learn.14")}>
             <span className="stat-icon green">
               <IconFile width={17} height={17} />
             </span>
             <span className="stat-text">
               <span className="stat-num">{state === "loading" && !data ? "–" : stats.files}</span>
-              <span className="stat-label">课程文件</span>
+              <span className="stat-label">{i18n("auto.pages.Learn.15")}</span>
             </span>
           </button>
         </Card>
@@ -216,8 +214,7 @@ export function LearnPage() {
           <Card>
             <Empty text={state === "loading" ? "正在重新加载本学期课程…" : "本学期暂无课程，或数据未就绪。"} />
             <div style={{ display: "flex", justifyContent: "center", paddingBottom: 14 }}>
-              <Btn variant="ghost" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />重新加载
-              </Btn>
+              <Btn variant="ghost" onClick={() => void reload()} disabled={state === "loading"}><IconRefresh width={14} height={14} />{i18n("auto.pages.Learn.16")}</Btn>
             </div>
           </Card>
         )
@@ -259,7 +256,7 @@ export function LearnPage() {
                   ) : null}
                   <div className="course-card-chips">
                     {/* R31：两个来源徽标都是蓝标、且排在最前（先来源，后计数） */}
-                    <span className="chip chip-blue">网络学堂</span>
+                    <span className="chip chip-blue">{i18n("auto.pages.Learn.17")}</span>
                     {ykt ? (
                       <button
                         type="button"
@@ -273,14 +270,13 @@ export function LearnPage() {
                         }}
                         onKeyDown={(e) => e.stopPropagation()}
                       >
-                        雨课堂 ›
-                      </button>
+                        {i18n("auto.pages.Learn.18")}</button>
                     ) : null}
-                    {s.hw > 0 ? <span className="chip chip-red"><span className="dot" />未交 {s.hw}</span> : null}
-                    {s.notices > 0 ? <span className="chip chip-gray">通知 {s.notices}</span> : null}
-                    {s.files > 0 ? <span className="chip chip-gray">文件 {s.files}</span> : null}
+                    {s.hw > 0 ? <span className="chip chip-red"><span className="dot" />{i18n("auto.pages.Learn.19")}{s.hw}</span> : null}
+                    {s.notices > 0 ? <span className="chip chip-gray">{i18n("auto.pages.Learn.20")}{s.notices}</span> : null}
+                    {s.files > 0 ? <span className="chip chip-gray">{i18n("auto.pages.Learn.21")}{s.files}</span> : null}
                     {s.hw === 0 && s.notices === 0 && s.files === 0 ? (
-                      <span className="chip chip-gray">暂无动态</span>
+                      <span className="chip chip-gray">{i18n("auto.pages.Learn.22")}</span>
                     ) : null}
                   </div>
                 </div>
@@ -320,13 +316,13 @@ export function LearnPage() {
                     </div>
                   ) : null}
                   <div className="course-card-chips">
-                    <span className="chip chip-blue">雨课堂</span>
-                    {c.audited ? <span className="chip chip-gray">旁听</span> : null}
-                    {s.hw > 0 ? <span className="chip chip-red"><span className="dot" />未交 {s.hw}</span> : null}
-                    {s.notices > 0 ? <span className="chip chip-gray">通知 {s.notices}</span> : null}
-                    {s.files > 0 ? <span className="chip chip-gray">文件 {s.files}</span> : null}
+                    <span className="chip chip-blue">{i18n("auto.pages.Learn.23")}</span>
+                    {c.audited ? <span className="chip chip-gray">{i18n("auto.pages.Learn.24")}</span> : null}
+                    {s.hw > 0 ? <span className="chip chip-red"><span className="dot" />{i18n("auto.pages.Learn.19")}{s.hw}</span> : null}
+                    {s.notices > 0 ? <span className="chip chip-gray">{i18n("auto.pages.Learn.20")}{s.notices}</span> : null}
+                    {s.files > 0 ? <span className="chip chip-gray">{i18n("auto.pages.Learn.21")}{s.files}</span> : null}
                     {s.hw === 0 && s.notices === 0 && s.files === 0 ? (
-                      <span className="chip chip-gray">暂无动态</span>
+                      <span className="chip chip-gray">{i18n("auto.pages.Learn.22")}</span>
                     ) : null}
                   </div>
                 </div>

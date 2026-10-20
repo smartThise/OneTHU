@@ -11,6 +11,8 @@ import { useCloudCal } from "../state/cloudCal.js";
 import { useApp } from "../state/context.js";
 import { vaultCatchSchedule } from "../lib/vaultCatch.js";
 import { info } from "../lib/clients.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 const TZ = "Asia/Shanghai";
 const DAY_MS = 86_400_000;
@@ -196,11 +198,9 @@ export function ScheduleAgenda({
       {/* 所选日清单 */}
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
         <span style={{ fontWeight: 700, fontSize: 15, color: selected === todayStr ? "var(--accent, #6d7ff0)" : undefined }}>
-          {selD.getMonth() + 1}月{selD.getDate()}日
-        </span>
+          {selD.getMonth() + 1}{i18n("auto.pages.ScheduleAgenda.1")}{selD.getDate()}{i18n("auto.pages.ScheduleAgenda.2")}</span>
         <span style={{ fontSize: 12, color: "var(--text-3, #999)" }}>
-          {selected === todayStr ? "今天 · " : ""}周{WEEK_SHORT[(selD.getDay() + 6) % 7]} · {dayItems.length} 项
-        </span>
+          {selected === todayStr ? "今天 · " : ""}{i18n("auto.pages.ScheduleAgenda.3")}{WEEK_SHORT[(selD.getDay() + 6) % 7]} · {dayItems.length} {i18n("auto.pages.ScheduleAgenda.4")}</span>
       </div>
       {dayItems.length === 0 ? (
         <Card><Empty text="这一天没有日程。点右上「添加日程」新建。" /></Card>

@@ -19,6 +19,8 @@ import {
 } from "../lib/imageFilters.js";
 import { extForMime } from "../lib/attach.js";
 import { IconRefresh } from "./Icons.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 export interface FilterResult {
   /** 处理后的图（dataURL，默认 JPEG q0.88） */
@@ -176,10 +178,10 @@ export function ImageFilterSheet(props: ImageFilterSheetProps): ReactNode {
     >
       <Stack gap={3}>
         <Surface level={2} radius="md" pad="sm" className="ohf-stage">
-          {preview ? <img src={preview} alt="处理后的预览" /> : <Text slot="label" tone="faint">读取中…</Text>}
+          {preview ? <img src={preview} alt={i18n("auto.components.ImageFilterSheet.1")} /> : <Text slot="label" tone="faint">{i18n("auto.components.ImageFilterSheet.2")}</Text>}
         </Surface>
 
-        <div role="group" aria-label="滤镜预设">
+        <div role="group" aria-label={i18n("auto.components.ImageFilterSheet.3")}>
         <Inline gap={2} wrap>
           {thumbs.map((t) => {
             const meta = FILTER_PRESETS.find((f) => f.id === t.id);
@@ -198,13 +200,13 @@ export function ImageFilterSheet(props: ImageFilterSheetProps): ReactNode {
         </div>
 
         <Row
-          leading={<Btn variant="outline" size="sm" onClick={() => setRotate((r) => ROTATIONS[(ROTATIONS.indexOf(r) + 1) % ROTATIONS.length] ?? 0)}>旋转 90°</Btn>}
+          leading={<Btn variant="outline" size="sm" onClick={() => setRotate((r) => ROTATIONS[(ROTATIONS.indexOf(r) + 1) % ROTATIONS.length] ?? 0)}>{i18n("auto.components.ImageFilterSheet.4")}</Btn>}
           title={<Text slot="label" tone="faint">{note}</Text>}
         />
       </Stack>
 
       <Inline gap={2} justify="end" className="ohf-foot">
-        <Btn variant="outline" onClick={onCancel} disabled={busy}>取消</Btn>
+        <Btn variant="outline" onClick={onCancel} disabled={busy}>{i18n("auto.components.ImageFilterSheet.5")}</Btn>
         <Btn variant="solid" tone="brand" onClick={() => void doApply()} disabled={!loaded || busy || !!err}>{busy ? "处理中…" : "应用"}</Btn>
       </Inline>
     </Sheet>,

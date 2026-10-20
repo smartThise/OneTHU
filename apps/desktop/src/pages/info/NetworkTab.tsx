@@ -13,6 +13,8 @@ import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
 import { TabEmpty, logTabErr, isAuthExpired } from "./tabStates.js";
 import type { NetworkDevice } from "@onethu/core";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type LoadState = "loading" | "error" | "ready" | "captcha";
 type NetworkRow = [string, string];
@@ -197,7 +199,7 @@ export function NetworkTab() {
 
   return (
     <>
-      <SectionHead title="校园网" aside="usereg 自服务 · 验证码登录" />
+      <SectionHead title={i18n("auto.pages.info.NetworkTab.1")} aside="usereg 自服务 · 验证码登录" />
       {state === "error" ? (
         needLogin ? (
           <ErrorNote text="校园网未登录（它与统一身份认证是两回事）。可在本页用验证码自助登录。" onRetry={() => void load()} />
@@ -208,11 +210,10 @@ export function NetworkTab() {
 
       {state === "captcha" ? (
         <Card style={{ marginBottom: 20, padding: 18 }}>
-          <div style={{ fontWeight: 600, marginBottom: 10, fontSize: 14 }}>usereg 验证码登录</div>
+          <div style={{ fontWeight: 600, marginBottom: 10, fontSize: 14 }}>{i18n("auto.pages.info.NetworkTab.2")}</div>
           <div style={{ marginBottom: 14, lineHeight: 1.6 }}>
             <Text as="div" slot="label" tone="quiet">
-              密码与 INFO 密码一致；输入右侧图内验证码后登录（与网页端流程相同）。
-            </Text>
+              {i18n("auto.pages.info.NetworkTab.3")}</Text>
           </div>
           <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
             <div
@@ -229,14 +230,14 @@ export function NetworkTab() {
                 overflow: "hidden",
                 flexShrink: 0,
               }}
-              title="点击刷新验证码"
+              title={i18n("auto.pages.info.NetworkTab.4")}
             >
               {captchaLoading ? (
-                <Text slot="label" tone="faint">加载中…</Text>
+                <Text slot="label" tone="faint">{i18n("auto.pages.info.NetworkTab.5")}</Text>
               ) : captcha ? (
-                <img src={captcha} alt="验证码" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img src={captcha} alt={i18n("auto.pages.info.NetworkTab.6")} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
-                <Text slot="label" tone="faint">点击重试</Text>
+                <Text slot="label" tone="faint">{i18n("auto.pages.info.NetworkTab.7")}</Text>
               )}
             </div>
             <input
@@ -245,7 +246,7 @@ export function NetworkTab() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") void doLogin(code.trim());
               }}
-              placeholder="验证码"
+              placeholder={i18n("auto.pages.info.NetworkTab.6")}
               style={{ width: 130, height: 38, padding: "0 10px", borderRadius: 8, border: "1px solid var(--og-line-2)", fontSize: 14 }}
             />
             <Btn variant="outline" onClick={() => void doLogin(code.trim())} disabled={loginBusy || !code.trim()}>{loginBusy ? "登录中…" : "登录 usereg"}</Btn>
@@ -264,8 +265,8 @@ export function NetworkTab() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>项目</th>
-                  <th className="num">信息</th>
+                  <th>{i18n("auto.pages.info.NetworkTab.8")}</th>
+                  <th className="num">{i18n("auto.pages.info.NetworkTab.9")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -281,7 +282,7 @@ export function NetworkTab() {
 
           {devices && devices.length > 0 ? (
             <>
-              <SectionHead title="在线设备" aside={`${devices.length} 台 · 可下线`} />
+              <SectionHead title={i18n("auto.pages.info.NetworkTab.10")} aside={`${devices.length} 台 · 可下线`} />
               <Card style={{ padding: 0, overflow: "hidden" }}>
                 <div className="list">
                   {devices.map((d, i) => (
@@ -296,8 +297,7 @@ export function NetworkTab() {
                         </div>
                       </div>
                       <button className="chip chip-offline" onClick={() => void doLogoutDevice(d)}>
-                        下线
-                      </button>
+                        {i18n("auto.pages.info.NetworkTab.11")}</button>
                     </div>
                   ))}
                 </div>
@@ -305,37 +305,36 @@ export function NetworkTab() {
             </>
           ) : null}
 
-          <SectionHead title="管理" aside="终端连接数 · Tsinghua-Secure 密码" />
+          <SectionHead title={i18n("auto.pages.info.NetworkTab.12")} aside="终端连接数 · Tsinghua-Secure 密码" />
           <Card style={{ padding: 18 }}>
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13 }}>终端连接数（当前 {devCount ?? "–"}）</span>
+              <span style={{ fontSize: 13 }}>{i18n("auto.pages.info.NetworkTab.13")}{devCount ?? "–"}）</span>
               <input
                 value={newCount}
                 onChange={(e) => setNewCount(e.target.value.replace(/[^\d]/g, ""))}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") void doSetCount();
                 }}
-                placeholder="新数量"
+                placeholder={i18n("auto.pages.info.NetworkTab.14")}
                 type="number"
                 min={1}
                 style={{ width: 90, height: 34, padding: "0 10px", borderRadius: 8, border: "1px solid var(--og-line-2)" }}
               />
               <Btn variant="outline" onClick={() => void doSetCount()} disabled={countBusy || !newCount}>{countBusy ? "提交中…" : "修改"}</Btn>
-              <Text slot="label" tone="faint">账号下每个静态 IP 计一个连接数，谨慎修改</Text>
+              <Text slot="label" tone="faint">{i18n("auto.pages.info.NetworkTab.15")}</Text>
             </div>
             {countMsg ? <div style={{ marginTop: 8, fontSize: 13, color: "var(--og-info)" }}>{countMsg}</div> : null}
 
             <div style={{ borderTop: "1px solid var(--og-line-1)", margin: "16px 0", opacity: 0.5 }} />
             {!showPwd ? (
-              <Btn variant="ghost" onClick={() => setShowPwd(true)}>修改 Tsinghua-Secure 密码
-              </Btn>
+              <Btn variant="ghost" onClick={() => setShowPwd(true)}>{i18n("auto.pages.info.NetworkTab.16")}</Btn>
             ) : (
               <div style={{ display: "grid", gap: 12, maxWidth: 420 }}>
                 <input
                   type="password"
                   value={pwd1}
                   onChange={(e) => setPwd1(e.target.value)}
-                  placeholder="新密码"
+                  placeholder={i18n("auto.pages.info.NetworkTab.17")}
                   style={{ height: 38, padding: "0 12px", borderRadius: 8, border: "1px solid var(--og-line-2)" }}
                 />
                 <input
@@ -345,16 +344,14 @@ export function NetworkTab() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") void doChpwd();
                   }}
-                  placeholder="确认新密码"
+                  placeholder={i18n("auto.pages.info.NetworkTab.18")}
                   style={{ height: 38, padding: "0 12px", borderRadius: 8, border: "1px solid var(--og-line-2)" }}
                 />
                 <div style={{ fontSize: 12, opacity: 0.7, lineHeight: 1.6 }}>
-                  8~19 位，字母区分大小写，不能与用户名相同，至少含数字、字母、特殊字符(仅限 !@#$%^*().~)中的两种
-                </div>
+                  {i18n("auto.pages.info.NetworkTab.19")}</div>
                 <div style={{ display: "flex", gap: 10 }}>
                   <Btn variant="outline" onClick={() => void doChpwd()} disabled={pwdBusy || !pwd1}>{pwdBusy ? "提交中…" : "提交"}</Btn>
-                  <Btn variant="ghost" onClick={() => setShowPwd(false)}>取消
-                  </Btn>
+                  <Btn variant="ghost" onClick={() => setShowPwd(false)}>{i18n("auto.pages.info.NetworkTab.20")}</Btn>
                 </div>
               </div>
             )}

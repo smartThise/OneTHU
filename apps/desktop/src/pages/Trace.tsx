@@ -25,6 +25,8 @@ import {
   ensureTraceKey, fmtEta, locationQuery, navOpenUrl, routeEta, searchPoi, wgs84ToGcj02,
   MAP_APPS, TRAVEL_MODES, type MapApp, type Poi, type TravelMode,
 } from "../lib/trace.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /* ───────── 常量 ───────── */
 
@@ -450,22 +452,22 @@ export function TracePage(): React.ReactNode {
   return (
     <>
       <PageHead
-        title="寻迹"
+        title={i18n("auto.pages.Trace.1")}
         meta={`今日 ${todayEvents.length} 个日程 · ${markers?.length ?? "…"} 处地点${unresolved.length > 0 ? ` · ${unresolved.length} 处未识别` : ""}`}
         actions={
           <>
-            <PageAtomStar atomKey="trace" title="寻迹" />
-            <label className="trace-opt" title="常用交通方式（决定标注上的路程时间）">
+            <PageAtomStar atomKey="trace" title={i18n("auto.pages.Trace.1")} />
+            <label className="trace-opt" title={i18n("auto.pages.Trace.2")}>
               <select value={mode} onChange={(e) => setModePersist(e.target.value as TravelMode)}>
                 {TRAVEL_MODES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
               </select>
-              <span>{modeLabel}时间</span>
+              <span>{modeLabel}{i18n("auto.pages.Trace.3")}</span>
             </label>
-            <label className="trace-opt" title="前往时调起的地图应用">
+            <label className="trace-opt" title={i18n("auto.pages.Trace.4")}>
               <select value={mapApp} onChange={(e) => setAppPersist(e.target.value as MapApp)}>
-                {MAP_APPS.map((a) => <option key={a.id} value={a.id}>{a.label}地图</option>)}
+                {MAP_APPS.map((a) => <option key={a.id} value={a.id}>{a.label}{i18n("auto.pages.Trace.5")}</option>)}
               </select>
-              <span>用{appLabel}前往</span>
+              <span>{i18n("auto.pages.Trace.6")}{appLabel}{i18n("auto.pages.Trace.7")}</span>
             </label>
           </>
         }
@@ -473,28 +475,24 @@ export function TracePage(): React.ReactNode {
 
       {keyReady === false ? (
         <div className="trace-note trace-note-err">
-          高德 Web 服务 Key 未配置：POI 定位与路程估算不可用（地图与今日日程仍可查看）。将 apps/desktop/src-tauri/.env.example 复制为同目录 .env，填入 TRACE_AMAP_KEY=&lt;你的key&gt; 后重启应用。
-        </div>
+          {i18n("auto.pages.Trace.8")}</div>
       ) : null}
       {err ? <div className="trace-note trace-note-err">{err}</div> : null}
       {geoDenied ? (
         <div className="trace-note">
-          系统未授予定位权限（可能已被拒绝两次，Android 不会再弹窗）。已改用清华园中心计算 ETA。
-          <Btn variant="outline" onClick={() => void locate()}>再次请求</Btn>
-          <Btn variant="outline" onClick={() => void import("@tauri-apps/api/core").then((m) => m.invoke("open_app_settings").catch(() => undefined))}>去系统设置
-          </Btn>
+          {i18n("auto.pages.Trace.9")}<Btn variant="outline" onClick={() => void locate()}>{i18n("auto.pages.Trace.10")}</Btn>
+          <Btn variant="outline" onClick={() => void import("@tauri-apps/api/core").then((m) => m.invoke("open_app_settings").catch(() => undefined))}>{i18n("auto.pages.Trace.11")}</Btn>
         </div>
       ) : null}
       {origin?.source === "default" ? (
-        <div className="trace-note">未获取到定位（已回退清华园中心），ETA 以此计算。
-          <Btn variant="outline" onClick={() => void locate()}>重试定位</Btn>
+        <div className="trace-note">{i18n("auto.pages.Trace.12")}<Btn variant="outline" onClick={() => void locate()}>{i18n("auto.pages.Trace.13")}</Btn>
         </div>
       ) : null}
       {origin?.source === "saved" ? (
-        <div className="trace-note">使用最近一次定位的位置计算 ETA。<Btn variant="outline" onClick={() => void locate()}>重新定位</Btn></div>
+        <div className="trace-note">{i18n("auto.pages.Trace.14")}<Btn variant="outline" onClick={() => void locate()}>{i18n("auto.pages.Trace.15")}</Btn></div>
       ) : null}
       {unresolved.length > 0 ? (
-        <div className="trace-note" title={unresolved.join("、")}>未在海淀区找到地点：{unresolved.join("、")}</div>
+        <div className="trace-note" title={unresolved.join("、")}>{i18n("auto.pages.Trace.16")}{unresolved.join("、")}</div>
       ) : null}
 
       <div className="trace-map-wrap">
@@ -511,7 +509,7 @@ export function TracePage(): React.ReactNode {
             <div className="trace-card-title">
               <span className="trace-card-dot" style={{ background: URGENCY_COLOR[selected.urgency] }} />
               {selected.poi.name}
-              <button className="trace-card-x" aria-label="关闭" onClick={requestCardClose}>✕</button>
+              <button className="trace-card-x" aria-label={i18n("auto.pages.Trace.17")} onClick={requestCardClose}>✕</button>
             </div>
             <div className="trace-card-sub">
               {selected.poi.address || "清华大学"} · {URGENCY_LABEL[selected.urgency]}
@@ -529,8 +527,7 @@ export function TracePage(): React.ReactNode {
                 );
               })}
             </div>
-            <Btn variant="solid" tone="brand" onClick={() => onGo(selected)}>前往（{appLabel}地图）
-            </Btn>
+            <Btn variant="solid" tone="brand" onClick={() => onGo(selected)}>{i18n("auto.pages.Trace.18")}{appLabel}{i18n("auto.pages.Trace.19")}</Btn>
           </div>
         ) : null}
 

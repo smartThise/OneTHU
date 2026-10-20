@@ -6,6 +6,8 @@ import { Card, PageHead } from "../components/Layout.js";
 import { universalFetch } from "../lib/transport.js";
 import { ErrorLine } from "../components/Details.js";
 import { normalizeThubookPath, parseThubookToc, type ThubookGroup, type ThubookPageLink } from "../lib/thubookToc.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** THUBook（thubook.help，VuePress 2 预渲染静态站）内嵌阅读器。
  *  目录 = 抓各分组页预渲染侧边栏（带汉字标题，sitemap 只有拼音文件名）；
@@ -170,8 +172,8 @@ export default function ThubookPage(): ReactNode {
       <style>{BODY_STYLE}</style>
       <div className="thubook-shell" style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 10, height: "calc(100vh - 150px)" }}>
         <Card className="thubook-toc" style={{ overflowY: "auto", padding: 10 }}>
-          <div style={{ width: "100%", marginBottom: 8, fontSize: 12.5 }}>{<Input placeholder="搜索手册…" value={q} onChange={(value) => setQ(value)} />}</div>
-          {tocLoading ? <div style={{ fontSize: 12, color: "var(--text-3, #999)" }}>目录加载中…</div> : null}
+          <div style={{ width: "100%", marginBottom: 8, fontSize: 12.5 }}>{<Input placeholder={i18n("auto.pages.ThubookPage.1")} value={q} onChange={(value) => setQ(value)} />}</div>
+          {tocLoading ? <div style={{ fontSize: 12, color: "var(--text-3, #999)" }}>{i18n("auto.pages.ThubookPage.2")}</div> : null}
           <div className="thubook-toc-list">
             {visible.pages.map((p) => (
               <button
@@ -196,17 +198,17 @@ export default function ThubookPage(): ReactNode {
                 ))}
               </div>
             ))}
-            {!tocLoading && !visible.pages.length && !visible.groups.length ? <div style={{ fontSize: 12, color: "var(--text-3, #999)" }}>无匹配</div> : null}
+            {!tocLoading && !visible.pages.length && !visible.groups.length ? <div style={{ fontSize: 12, color: "var(--text-3, #999)" }}>{i18n("auto.pages.ThubookPage.3")}</div> : null}
           </div>
         </Card>
         <Card style={{ overflowY: "auto", padding: "16px 22px" }}>
           {err ? (
             <ErrorLine text={err} style={{ fontSize: 13, marginBottom: 10 }} />
           ) : null}
-          {loading ? <div style={{ fontSize: 12.5, color: "var(--text-3, #999)" }}>加载中…</div> : null}
+          {loading ? <div style={{ fontSize: 12.5, color: "var(--text-3, #999)" }}>{i18n("auto.pages.ThubookPage.4")}</div> : null}
           {/* 正文：站点预渲染 HTML 注入（script/icon/svg 已剔除，图片补全域名+限高） */}
           <div className="thubook-body" ref={bodyRef} dangerouslySetInnerHTML={{ __html: page?.html ?? "" }} />
-          {!page && !loading && !err ? <div style={{ fontSize: 13, color: "var(--text-3, #999)" }}>左侧选择一页开始阅读</div> : null}
+          {!page && !loading && !err ? <div style={{ fontSize: 13, color: "var(--text-3, #999)" }}>{i18n("auto.pages.ThubookPage.5")}</div> : null}
         </Card>
       </div>
     </>

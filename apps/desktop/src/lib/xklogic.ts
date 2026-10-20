@@ -81,11 +81,11 @@ function probResult(rem: number, applicants: number): ProbResult {
 export function calcProb(
   cap: number, vol: VolStrings | undefined, flag: XkFlag, zy: number,
 ): ProbResult {
-  if (!vol) return { prob: -1, label: "无数据", percentLabel: "", ratioLabel: "", color: P_GRAY, bg: probBg(P_GRAY) };
+  if (!vol) return { prob: -1, label: i18n("auto.lib.xklogic.p1"), percentLabel: "", ratioLabel: "", color: P_GRAY, bg: probBg(P_GRAY) };
   // vol 行存在但容量 0：墓碑行已在解析层过滤，走到这里=超载真信号，照算不放无数据
   if (flag === "ty") {
     const arr = parseVolStr(vol.volSports || "");
-    if (!arr || arr.counts.length < 3) return { prob: -1, label: "无数据", percentLabel: "", ratioLabel: "", color: P_GRAY, bg: probBg(P_GRAY) };
+    if (!arr || arr.counts.length < 3) return { prob: -1, label: i18n("auto.lib.xklogic.p2"), percentLabel: "", ratioLabel: "", color: P_GRAY, bg: probBg(P_GRAY) };
     let rem = cap;
     for (let i = 0; i < zy - 1; i++) rem -= arr.counts[i] ?? 0;
     return probResult(rem, arr.counts[zy - 1] ?? 0);
@@ -424,6 +424,8 @@ export function canAdjustZy(rows: XkRow[], code: string, seq: string, targetZy: 
 
 /* ── 培养方案覆盖检查（render.js checkPlanCoverage 移植）────── */
 import type { XkPlanItem } from "@onethu/core";
+import { t as i18n } from "../i18n/index.js";
+
 
 export interface PlanCoverageItem extends XkPlanItem {
   covered: boolean;

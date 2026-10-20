@@ -11,6 +11,8 @@
  */
 import type { NativeNotifyStatus } from "./notifyBridge.js";
 import type { NativeWidgetStatus } from "./widgetBridge.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 export interface DoctorStep {
   id: string;
@@ -123,7 +125,7 @@ export async function runNotifyDoctor(deps: NotifyDoctorDeps): Promise<DoctorRep
     const r = await deps.scheduleProbe({
       id: DOCTOR_PROBE_ID,
       at: now + PROBE_LEAD_MS,
-      title: "OneTHU 自检探针",
+      title: i18n("auto.state.notifyDoctor.p1"),
       body: "这条是自检写入的探针，稍后会被撤销。",
     });
     probeScheduled = r.ok;

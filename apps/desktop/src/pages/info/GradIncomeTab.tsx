@@ -9,6 +9,8 @@ import { Card, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
 import { TabEmpty, TabError, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type LoadState = "loading" | "error" | "ready" | "none";
 /** core getGraduateIncome → 发放记录（ym=发放日期中文，afterTax=实发） */
@@ -63,7 +65,7 @@ export function GradIncomeTab() {
 
   return (
     <>
-      <SectionHead title="近 12 个月发放记录" aside="财务系统 · 计税后实发" />
+      <SectionHead title={i18n("auto.pages.info.GradIncomeTab.1")} aside="财务系统 · 计税后实发" />
       {state === "error" ? (
         <TabError unavailable={unavailable} text={error} onRetry={() => void load()} />
       ) : null}
@@ -79,7 +81,7 @@ export function GradIncomeTab() {
           <Card className="stat-card" style={{ marginBottom: 12 }}>
             <div className="row-main">
               <div className="stat-num">¥{total.toFixed(2)}</div>
-              <div className="stat-label">近 12 个月实发合计</div>
+              <div className="stat-label">{i18n("auto.pages.info.GradIncomeTab.2")}</div>
             </div>
           </Card>
           <Card className="list">
@@ -103,7 +105,7 @@ export function GradIncomeTab() {
           </Card>
           <div style={{ marginTop: 12 }}>
             <Card>
-              <div className="empty">仅展示近 12 个月记录；更早记录请在财务系统查询。</div>
+              <div className="empty">{i18n("auto.pages.info.GradIncomeTab.3")}</div>
             </Card>
           </div>
         </>

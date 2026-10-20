@@ -23,6 +23,8 @@
  * （tools/pptx-render-test.mjs）。
  */
 import { extractEntryBytes, type ZipEntry } from "./zipTree.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /* ══════════════ 极简 XML 解析（OOXML 子集，零依赖） ══════════════ */
 
@@ -620,7 +622,7 @@ async function readShapes(node: XmlNode, ctx: SlideCtx, group?: { off: Xfrm; ch:
       const box = readXfrm(child(c, "spPr"));
       if (box) {
         ctx.unsupported.n++;
-        out.push({ ...place(box), kind: "unsupported", label: "嵌入内容" });
+        out.push({ ...place(box), kind: "unsupported", label: i18n("auto.lib.pptxRender.p1") });
       }
     }
   }

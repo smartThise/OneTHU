@@ -28,6 +28,8 @@ import {
   ttsPrepare, ttsSetBackend, ttsStatus, ttsStop, ttsVoices,
   type TtsStatus,
 } from "../lib/tts.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 试听用的固定句子：能同时听出音色与语速差异，又不长到烦人 */
 const PREVIEW_TEXT = "你好，我是 OH。现在用的就是这个音色、这个语速。";
@@ -36,31 +38,31 @@ const PREVIEW_TEXT = "你好，我是 OH。现在用的就是这个音色、这�
 function engineCopy(st: TtsStatus | null, busy: boolean): { title: string; desc: string } {
   if (st === null) {
     return busy
-      ? { title: "正在准备朗读引擎…", desc: "系统引擎首次初始化需要一两秒。" }
-      : { title: "正在读取引擎状态…", desc: "" };
+      ? { title: i18n("auto.components.VoiceSettingsSection.p1"), desc: i18n("auto.components.VoiceSettingsSection.p2") }
+      : { title: i18n("auto.components.VoiceSettingsSection.p3"), desc: "" };
   }
   switch (st.state) {
     case "unsupported":
       return {
-        title: "当前平台不支持语音合成",
-        desc: "语音合成走 Android 系统自带的文字转语音引擎（华为/荣耀小艺、小爱、Google TTS 等），桌面端没有这条通道。",
+        title: i18n("auto.components.VoiceSettingsSection.p4"),
+        desc: i18n("auto.components.VoiceSettingsSection.p5"),
       };
     case "initializing":
-      return { title: "引擎正在初始化…", desc: "稍等一下，初始化完成后试听与朗读才会出声。" };
+      return { title: i18n("auto.components.VoiceSettingsSection.p6"), desc: i18n("auto.components.VoiceSettingsSection.p7") };
     case "ready":
       return {
-        title: "引擎就绪",
+        title: i18n("auto.components.VoiceSettingsSection.p8"),
         desc: (st.engine ? `本机使用的引擎：${st.engine}` : "本机系统引擎可用。") + (st.note ? `（${st.note}）` : ""),
       };
     case "speaking":
-      return { title: "正在朗读", desc: st.engine ? `本机使用的引擎：${st.engine}` : "说完会自动停下。" };
+      return { title: i18n("auto.components.VoiceSettingsSection.p9"), desc: st.engine ? `本机使用的引擎：${st.engine}` : "说完会自动停下。" };
     case "error":
       return {
-        title: "引擎不可用",
+        title: i18n("auto.components.VoiceSettingsSection.p10"),
         desc: `${st.reason ?? "系统没有可用的文字转语音引擎"}。可在系统设置 → 无障碍/语言 → 文字转语音 里安装或启用引擎与中文语音数据，再回来点「重新检查」。`,
       };
     default:
-      return { title: "引擎尚未初始化", desc: "点「重新检查」触发一次初始化。" };
+      return { title: i18n("auto.components.VoiceSettingsSection.p11"), desc: i18n("auto.components.VoiceSettingsSection.p12") };
   }
 }
 
@@ -167,7 +169,7 @@ export function VoiceSettingsSection(): ReactNode {
           <div className="setting-desc">
             {copy.desc}
             {ready && voices.length > 0 ? (
-              <span style={{ color: "var(--text-3)" }}>　可选音色 {voices.length} 个。</span>
+              <span style={{ color: "var(--text-3)" }}>　{i18n("auto.components.VoiceSettingsSection.1")}{voices.length} {i18n("auto.components.VoiceSettingsSection.2")}</span>
             ) : null}
           </div>
         </div>
@@ -177,14 +179,14 @@ export function VoiceSettingsSection(): ReactNode {
       {/* ③ 音色 */}
       <div className="setting-row">
         <div>
-          <div className="setting-title">音色</div>
+          <div className="setting-title">{i18n("auto.components.VoiceSettingsSection.3")}</div>
           <div className="setting-desc">
             {voices.length === 0
               ? "系统引擎没有报出可选的普通话嗓音，用引擎默认音色朗读。"
               : "不同 ROM 自带的嗓音不同（如小艺、小爱、Google 的普通话嗓音）。"}
           </div>
         </div>
-        <Select aria-label="音色" disabled={voices.length === 0 || !usable} value={prefs.voiceName} onChange={(value) => setVoicePrefs({ voiceName: value })}><option value="">引擎默认音色</option>{voices.map((v) => (
+        <Select aria-label={i18n("auto.components.VoiceSettingsSection.3")} disabled={voices.length === 0 || !usable} value={prefs.voiceName} onChange={(value) => setVoicePrefs({ voiceName: value })}><option value="">{i18n("auto.components.VoiceSettingsSection.4")}</option>{voices.map((v) => (
             <option key={v} value={v}>
               {prettyVoiceName(v)}
             </option>
@@ -194,8 +196,8 @@ export function VoiceSettingsSection(): ReactNode {
       {/* ④ 语速 */}
       <div className="setting-row">
         <div>
-          <div className="setting-title">语速</div>
-          <div className="setting-desc">0.5×（慢一半）到 2.0×（快一倍），松手即生效。</div>
+          <div className="setting-title">{i18n("auto.components.VoiceSettingsSection.5")}</div>
+          <div className="setting-desc">{i18n("auto.components.VoiceSettingsSection.6")}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "none" }}>
           <span style={{ fontSize: "var(--text-sm)", color: "var(--text-3)", minWidth: 44, textAlign: "right" }}>
@@ -203,7 +205,7 @@ export function VoiceSettingsSection(): ReactNode {
           </span>
           <input
             type="range"
-            aria-label="语速"
+            aria-label={i18n("auto.components.VoiceSettingsSection.5")}
             min={RATE_MIN}
             max={RATE_MAX}
             step={0.05}
@@ -221,16 +223,15 @@ export function VoiceSettingsSection(): ReactNode {
             onKeyUp={commitSlider}
             onBlur={commitSlider}
           />
-          <Btn variant="ghost" disabled={prefs.rate === 1} onClick={() => setVoicePrefs({ rate: 1 })}>复位
-          </Btn>
+          <Btn variant="ghost" disabled={prefs.rate === 1} onClick={() => setVoicePrefs({ rate: 1 })}>{i18n("auto.components.VoiceSettingsSection.7")}</Btn>
         </div>
       </div>
 
       {/* ⑤ 音高 */}
       <div className="setting-row">
         <div>
-          <div className="setting-title">音高</div>
-          <div className="setting-desc">1.00 是原声；调低更沉稳，调高更清亮。</div>
+          <div className="setting-title">{i18n("auto.components.VoiceSettingsSection.8")}</div>
+          <div className="setting-desc">{i18n("auto.components.VoiceSettingsSection.9")}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "none" }}>
           <span style={{ fontSize: "var(--text-sm)", color: "var(--text-3)", minWidth: 44, textAlign: "right" }}>
@@ -238,7 +239,7 @@ export function VoiceSettingsSection(): ReactNode {
           </span>
           <input
             type="range"
-            aria-label="音高"
+            aria-label={i18n("auto.components.VoiceSettingsSection.8")}
             min={PITCH_MIN}
             max={PITCH_MAX}
             step={0.05}
@@ -256,29 +257,26 @@ export function VoiceSettingsSection(): ReactNode {
             onKeyUp={commitSlider}
             onBlur={commitSlider}
           />
-          <Btn variant="ghost" disabled={prefs.pitch === 1} onClick={() => setVoicePrefs({ pitch: 1 })}>复位
-          </Btn>
+          <Btn variant="ghost" disabled={prefs.pitch === 1} onClick={() => setVoicePrefs({ pitch: 1 })}>{i18n("auto.components.VoiceSettingsSection.7")}</Btn>
         </div>
       </div>
 
       {/* ⑥ 试听 / 停止 */}
       <div className="setting-row">
         <div>
-          <div className="setting-title">试听</div>
+          <div className="setting-title">{i18n("auto.components.VoiceSettingsSection.10")}</div>
           <div className="setting-desc">
-            用当前的音色、语速、音高念一句，确认听着顺耳。
-            <span style={{ color: "var(--text-3)" }}>　试听不看「自动朗读」开关，随时可以点。</span>
+            {i18n("auto.components.VoiceSettingsSection.11")}<span style={{ color: "var(--text-3)" }}>　{i18n("auto.components.VoiceSettingsSection.12")}</span>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flex: "none" }}>
           <Btn variant="outline" disabled={!usable} onClick={() => void preview()}>{speaking ? "停止" : "试听"}</Btn>
-          <Btn variant="ghost" titleAttr="音色、语速、音高全部回到原声，并关闭自动朗读" onClick={() => {
+          <Btn variant="ghost" titleAttr={i18n("auto.components.VoiceSettingsSection.13")} onClick={() => {
               void ttsStop();
               setSpeaking(false);
               resetVoicePrefs();
-              setMsg("已恢复默认（静音 · 原声原速 · 引擎默认音色）");
-            }}>全部恢复默认
-          </Btn>
+              setMsg(i18n("auto.components.VoiceSettingsSection.msg1"));
+            }}>{i18n("auto.components.VoiceSettingsSection.14")}</Btn>
         </div>
       </div>
 

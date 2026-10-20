@@ -9,6 +9,8 @@ import { Card, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { info } from "../../lib/clients.js";
 import { useApp } from "../../state/context.js";
 import { TabEmpty, TabError, isServiceUnavailable, logTabErr, tabErrorText } from "./tabStates.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 type LoadState = "loading" | "error" | "ready";
 /** core getInvoiceList(page) → { data: Invoice[]; count: number }（limit=20） */
@@ -51,7 +53,7 @@ export function InvoiceTab() {
   return (
     <>
       <SectionHead
-        title="电子发票"
+        title={i18n("auto.pages.info.InvoiceTab.1")}
         aside={total > 0 ? `共 ${total} 张 · 第 ${page}/${totalPages} 页` : "财务综合服务 · 发票列表"}
       />
       {state === "error" ? (
@@ -87,13 +89,11 @@ export function InvoiceTab() {
 
       {totalPages > 1 && state === "ready" ? (
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
-          <Btn variant="ghost" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>上一页
-          </Btn>
+          <Btn variant="ghost" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{i18n("auto.pages.info.InvoiceTab.2")}</Btn>
           <span style={{ fontSize: 13, color: "var(--text-2)" }}>
             {page} / {totalPages}
           </span>
-          <Btn variant="ghost" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>下一页
-          </Btn>
+          <Btn variant="ghost" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{i18n("auto.pages.info.InvoiceTab.3")}</Btn>
         </div>
       ) : null}
     </>

@@ -12,6 +12,8 @@ import {
   useExplorerPrefs, setExplorerPrefs, useSearchHistory, clearSearchHistory,
   type CapsuleDefault,
 } from "../state/explorerPrefs.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 export function ExplorerPrefsSection(): ReactNode {
   const prefs = useExplorerPrefs();
@@ -36,22 +38,22 @@ export function ExplorerPrefsSection(): ReactNode {
 
   return (
     <>
-      <Section title="搜索与胶囊" hint="底栏胶囊与悬浮球的二合一入口" />
+      <Section title={i18n("auto.components.ExplorerPrefsSection.1")} hint={i18n("auto.components.ExplorerPrefsSection.2")} />
       <SettingsList>
         <SettingsRow
-          title="点击胶囊默认打开"
-          sub="搜索模式可搜功能/作业/文件并直达；OH 模式直接进对话"
+          title={i18n("auto.components.ExplorerPrefsSection.3")}
+          sub={i18n("auto.components.ExplorerPrefsSection.4")}
           control={
             <Segment
               value={prefs.capsuleTap}
               onChange={(v) => setExplorerPrefs({ capsuleTap: v as CapsuleDefault })}
-              options={[{ value: "search", label: "搜索" }, { value: "oh", label: "OH" }]}
+              options={[{ value: "search", label: i18n("auto.components.ExplorerPrefsSection.p1") }, { value: "oh", label: "OH" }]}
             />
           }
         />
         {/* voiceTarget 已废弃（用户定案）：胶囊/语音只产生文字，送谁由小窗内的搜索|OH 切换决定 */}
         <SettingsRow
-          title="最近搜索记录"
+          title={i18n("auto.components.ExplorerPrefsSection.5")}
           sub={hist.length > 0 ? `保留最近 10 条，当前 ${hist.length} 条` : "暂无记录"}
           control={
             <Btn variant="ghost" size="sm" disabled={hist.length === 0} onClick={onClear}>

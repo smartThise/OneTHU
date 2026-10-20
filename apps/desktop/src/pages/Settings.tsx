@@ -27,6 +27,8 @@ import { showToast } from "../state/toast.js";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { clearRemembered, loadRemembered, session, isTauri } from "../lib/clients.js";
 import { clearHomeLayout } from "../lib/homeCards.js";
+import { resetHomeBoard } from "../state/freeBoard.js";
+import { LOCALES, LOCALE_LABELS, setLocale, useLocale, useT } from "../i18n/index.js";
 import { useFavs } from "../state/favs.js";
 import { activateTheme, deactivateTheme, setDayNightTheme, setFollowSystem, useThemes } from "../state/theme.js";
 import { focusSettingsTarget } from "../components/Layout.js";
@@ -77,6 +79,8 @@ import { buildYktCookieExportJson, parseYktCookieExportJson, SOURCE_CATEGORY_NAM
 import type { ExtHwCreds, ExtHwSourceId, TuojSourceId } from "@onethu/core";
 import { ErrorLine } from "../components/Details.js";
 import { resetActiveOnboarding } from "../state/onboarding.js";
+import { t as i18n } from "../i18n/index.js";
+
 
 /** 按分节标题滚动定位（不改各分节标记本身，避免动到千行 JSX） */
 function jumpToSection(titles: string[]): void {
@@ -215,6 +219,12 @@ export function SettingsPage() {
     /* 分节头 → 页签分组。精确优先；OneGUI 的 .og-section textContent = 标题 + hint，
        按最长已注册前缀兜底；未登记的一律 null。 */
     const groupOf = (head: HTMLElement): string | null => {
+      /* 稳定标记优先：SectionHead 的 group 会落成 data-og-scope="settings-group:<页签>"。
+         i18n 之后标题不再能当键用 —— 切到英文时 "Help"/"About" 对不上中文表，
+         整页分节就再也不受页签控制（用户实测「切语言后设置页坏掉」）。 */
+      const marker = head.getAttribute("data-og-scope") ?? "";
+      if (marker.startsWith("settings-group:")) return marker.slice("settings-group:".length);
+      /* 兜底：没带 group 的老分节/子组件仍按中文标题匹配。 */
       const title = (head.textContent ?? "").trim();
       const prefix = Object.keys(SETTINGS_TAB_OF)
         .filter((k) => title.startsWith(k))
@@ -255,6 +265,9 @@ export function SettingsPage() {
   }, [tab]);
 
   const { user, logout, navigate } = useApp();
+  /* i18n：语言文案统一走 i18n/*.ts；这里订阅语言变化，切换后本页立即重渲染。 */
+  const tr = useT();
+  const locale = useLocale();
   const favs = useFavs();
   const [favMsg, setFavMsg] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -306,16 +319,14 @@ export function SettingsPage() {
   return (
     <div className="workbench-settings">
       <PageHead
-        title="设置"
+        title={i18n("auto.pages.Settings.1")}
         actions={
           <>
             <Btn variant="outline" onClick={() => {
                 resetActiveOnboarding();
                 location.reload();
-              }} titleAttr="重新运行首次使用引导">导览
-            </Btn>
-            <Btn variant="outline" onClick={() => setManageOpen(true)} titleAttr="栏目显隐与排序">管理栏目
-            </Btn>
+              }} titleAttr={i18n("auto.pages.Settings.2")}>{i18n("auto.pages.Settings.3")}</Btn>
+            <Btn variant="outline" onClick={() => setManageOpen(true)} titleAttr={i18n("auto.pages.Settings.4")}>{i18n("auto.pages.Settings.5")}</Btn>
           </>
         }
       />
@@ -326,7 +337,7 @@ export function SettingsPage() {
       {isPhone ? (
         <div className="workbench-settings-phone-nav">
           <Select
-            aria-label="设置栏目"
+            aria-label={i18n("auto.pages.Settings.6")}
             value={tab}
             options={visibleSettingTabs.map((t) => ({ value: t, label: t }))}
             onChange={setTab}
@@ -334,8 +345,8 @@ export function SettingsPage() {
         </div>
       ) : null}
       <div className="workbench-settings-layout">
-      {isPhone ? null : <nav className="workbench-settings-nav" aria-label="设置栏目">
-      <div className="workbench-settings-tabs" role="tablist" aria-label="设置栏目" onKeyDown={event => {
+      {isPhone ? null : <nav className="workbench-settings-nav" aria-label={i18n("auto.pages.Settings.6")}>
+      <div className="workbench-settings-tabs" role="tablist" aria-label={i18n("auto.pages.Settings.6")} onKeyDown={event => {
         if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
         const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("[role=tab]"));
         const index = tabs.indexOf(event.target as HTMLButtonElement);
@@ -362,19 +373,19 @@ export function SettingsPage() {
       </div>
       </nav>}
       <div className="workbench-settings-content" id="workbench-settings-panel" role="tabpanel" aria-label={tab}>
-      <div className="workbench-settings-title"><h2>{tab}</h2><p>按你的习惯，调整 OneTHU。</p></div>
-      <SectionHead title="帮助" />
+      <div className="workbench-settings-title"><h2>{tab}</h2><p>{i18n("auto.pages.Settings.7")}</p></div>
+      <SectionHead title={tr("settings.section.help")} group="帮助" />
       <Card>
         <HelpSection />
       </Card>
 
-      <SectionHead title="关于" />
+      <SectionHead title={tr("settings.section.about")} group="关于" />
       <SoftwareUpdateSection />
       <Card>
         <SettingsRow
           title={<>OneTHU {APP_VERSION_LABEL} “{APP_CODENAME}”</>}
-          sub="清华园随身工具箱 · 开源于 GitHub"
-          control={<Btn variant="outline" size="sm" onClick={() => void openUrl("https://github.com/smartThise/OneTHU")}>GitHub 项目页</Btn>}
+          sub={i18n("auto.pages.Settings.8")}
+          control={<Btn variant="outline" size="sm" onClick={() => void openUrl("https://github.com/smartThise/OneTHU")}>{i18n("auto.pages.Settings.9")}</Btn>}
         />
         {/* 运行日志导出属开发者功能：正式版不显示（真机取证走 adb logcat -s onethu:V，
             或改用开发者构建的右上角面板导出）。要恢复成正式版也显示，去掉这层门控即可。 */}
@@ -384,25 +395,23 @@ export function SettingsPage() {
             「导览」按钮（页头）负责清 flow3 完成标记重新走一轮。 */}
       </Card>
 
-      <SectionHead title="账户" />
+      <SectionHead title={tr("settings.section.account")} group="账号" />
       <Card>
         <SettingsRow
-          title="统一认证"
+          title={i18n("auto.pages.Settings.10")}
           sub={user?.displayName || displayStudentId(user?.username) || "未登录"}
-          control={<Btn variant="outline" size="sm" onClick={() => void logout()}>退出登录</Btn>}
+          control={<Btn variant="outline" size="sm" onClick={() => void logout()}>{i18n("auto.pages.Settings.11")}</Btn>}
         />
       </Card>
 
 
-      <SectionHead title="账号与绑定" />
+      <SectionHead title={tr("settings.section.bindings")} group="账号" />
       <SettingsList>
         <SettingsRow
-          title="清华电子身份（账号密码管理）"
+          title={i18n("auto.pages.Settings.12")}
           sub={
             <>
-              在应用内的窗口打开清华统一身份认证，自动填入账号密码（有图形验证码时需手动输入）。
-              <b>删除已保存的登录信息或修改密码，可能导致 OneTHU 退出登录</b>，需重新登录一次。
-              {eidMsg ? <ErrorLine text={eidMsg} tone="quiet" /> : null}
+              {i18n("auto.pages.Settings.13")}<b>{i18n("auto.pages.Settings.14")}</b>{i18n("auto.pages.Settings.15")}{eidMsg ? <ErrorLine text={eidMsg} tone="quiet" /> : null}
             </>
           }
           control={<Btn variant="outline" size="sm" onClick={() => {
@@ -420,8 +429,7 @@ export function SettingsPage() {
               void invoke("open_eid_window", { username: creds.username, password: creds.password })
                 .then(() => setEidMsg("电子身份窗口已打开，账号密码已自动填入"))
                 .catch(() => void openInBrowser());
-            }}>打开电子身份
-          </Btn>
+            }}>{i18n("auto.pages.Settings.16")}</Btn>
           }
         />
       </SettingsList>
@@ -430,21 +438,18 @@ export function SettingsPage() {
 
 
 
-      <SectionHead title="云同步" />
+      <SectionHead title={tr("settings.section.cloud")} group="数据与同步" />
       <Card>
         <SettingsRow
           title={cloud.configured ? "日程云同步 · 已连接" : "日程云同步（清华邮箱日历）"}
           sub={
             cloud.configured ? (
               <>
-                {cloud.email} · 通过清华邮箱日历（CalDAV）多设备同步日程；在「日程」页查看与编辑。
-                {calMsg ? <ErrorLine text={calMsg} tone="quiet" /> : null}
+                {cloud.email} {i18n("auto.pages.Settings.17")}{calMsg ? <ErrorLine text={calMsg} tone="quiet" /> : null}
               </>
             ) : (
               <>
-                用清华邮箱的日历服务在多台设备间同步日程——OneTHU 里添加的日程会出现在系统日历 / 其他设备（添加同一账号）。
-                授权码获取：网页版邮箱（mails.tsinghua.edu.cn）→ 设置 → 客户端专用密码。
-                {calMsg ? <ErrorLine text={calMsg} tone="quiet" /> : null}
+                {i18n("auto.pages.Settings.18")}{calMsg ? <ErrorLine text={calMsg} tone="quiet" /> : null}
               </>
             )
           }
@@ -453,10 +458,9 @@ export function SettingsPage() {
               <Inline gap={2} wrap>
                 <Btn variant="outline" onClick={() =>
                     void confirmOk(
-                      "在 iPhone / iPad 上查看日程（可选）\n\n手机上没有 OneTHU 也没关系：日程已在你清华邮箱的云端日历里，在 iPhone/iPad 上添加同一邮箱即可看到：\n· 设置 → 日历 → 账户 → 添加账户 → 其他 → CalDAV 账户\n· 服务器地址：https://mails.tsinghua.edu.cn/coremail/dav/users/你的邮箱/\n· 用户名：完整邮箱；密码：客户端专用密码（与本页一致）\n\n本机不需要此设置——用下方「系统日历同步」一键开启即可，应用直接写系统日历。",
+                      i18n("auto.pages.Settings.msg1"),
                     )
-                  }>iPhone 上查看
-                </Btn>
+                  }>{i18n("auto.pages.Settings.19")}</Btn>
                 <Btn variant="outline" disabled={calBusy || cloud.syncing} onClick={() => {
                     setCalBusy(true);
                     setCalMsg(null);
@@ -471,8 +475,7 @@ export function SettingsPage() {
                       setCalPass("");
                       setCalMsg(null);
                     })
-                  }>断开
-                </Btn>
+                  }>{i18n("auto.pages.Settings.20")}</Btn>
               </Inline>
             ) : null
           }
@@ -481,8 +484,8 @@ export function SettingsPage() {
           <div className="og-settings-row" style={{ alignItems: "stretch" }}>
             <span className="og-settings-row-main">
               <Inline gap={2} wrap>
-                <div style={{ minWidth: 200, flex: "1 1 200px" }}><Input placeholder="完整邮箱地址（如 someone@mails.tsinghua.edu.cn）" value={calEmail} onChange={(value) => setCalEmail(value.trim())} /></div>
-                <div style={{ minWidth: 140, flex: "1 1 140px" }}><Input type="password" placeholder="客户端专用密码" value={calPass} onChange={(value) => setCalPass(value)} /></div>
+                <div style={{ minWidth: 200, flex: "1 1 200px" }}><Input placeholder={i18n("auto.pages.Settings.21")} value={calEmail} onChange={(value) => setCalEmail(value.trim())} /></div>
+                <div style={{ minWidth: 140, flex: "1 1 140px" }}><Input type="password" placeholder={i18n("auto.pages.Settings.22")} value={calPass} onChange={(value) => setCalPass(value)} /></div>
                 <Btn variant="solid" tone="brand" disabled={!/.+@.+/.test(calEmail) || !calPass || calBusy} onClick={() => {
                     setCalBusy(true);
                     setCalMsg(null);
@@ -504,14 +507,12 @@ export function SettingsPage() {
               "本平台不支持直写系统日历；可在「日程」页导出 .ics 再导入。"
             ) : syscal.enabled ? (
               <>
-                日历「OneTHU 日程」· 上次同步 {syscal.lastSyncAt ? new Date(syscal.lastSyncAt).toLocaleString() : "—"} · {syscal.lastCount} 条。课表与日程变化后会自动更新（含提前 15 分钟的课程提醒）。
-                {syscal.lastError ? <OGText as="div" slot="label" tone="error">最近一次同步失败：{syscal.lastError}</OGText> : null}
+                {i18n("auto.pages.Settings.23")}{syscal.lastSyncAt ? new Date(syscal.lastSyncAt).toLocaleString() : "—"} · {syscal.lastCount} {i18n("auto.pages.Settings.24")}{syscal.lastError ? <OGText as="div" slot="label" tone="error">{i18n("auto.pages.Settings.25")}{syscal.lastError}</OGText> : null}
                 {sysMsg ? <ErrorLine text={sysMsg} tone="quiet" /> : null}
               </>
             ) : (
               <>
-                把课表与日程写入系统日历里的专属日历「OneTHU 日程」（不影响你已有的日历）。开启后自动保持最新：添加、修改、删除日程或刷新课表都会同步更新，课程与考试带提前 15 分钟提醒。无需配置任何账户，一键开启。
-                {sysMsg ? <ErrorLine text={sysMsg} tone="quiet" /> : null}
+                {i18n("auto.pages.Settings.26")}{sysMsg ? <ErrorLine text={sysMsg} tone="quiet" /> : null}
               </>
             )
           }
@@ -532,11 +533,10 @@ export function SettingsPage() {
                     void disableSystemCalendar()
                       .then(() => setSysMsg("已停止自动同步，已写入的日历与事件保留"))
                       .catch((e: unknown) => setSysMsg(String(e instanceof Error ? e.message : e)));
-                  }}>停止自动同步
-                </Btn>
+                  }}>{i18n("auto.pages.Settings.27")}</Btn>
                 <Btn variant="outline" disabled={sysBusy} onClick={() => {
                     void confirmOk(
-                      "确定删除系统日历里的「OneTHU 日程」日历？\n\n其中由 OneTHU 写入的全部事件将被移除；应用内的日程与云同步不受影响。",
+                      i18n("auto.pages.Settings.msg2"),
                     ).then((yes) => {
                       if (!yes) return;
                       setSysBusy(true);
@@ -545,8 +545,7 @@ export function SettingsPage() {
                         .catch((e: unknown) => setSysMsg(`删除失败：${e instanceof Error ? e.message : String(e)}`))
                         .finally(() => setSysBusy(false));
                     });
-                  }}>清除系统日历
-                </Btn>
+                  }}>{i18n("auto.pages.Settings.28")}</Btn>
               </Inline>
             ) : (
               <Btn variant="solid" tone="brand" disabled={sysBusy || sysSupported === null} onClick={() => {
@@ -561,32 +560,39 @@ export function SettingsPage() {
           }
         />
       </Card>
-      <SectionHead title="外部作业源" />
+      <SectionHead title={tr("settings.section.extHomework")} group="数据与同步" />
       <ExtHwSettingsSection />
 
       <DownloadSettings />
 
-      <SectionHead title="首页布局" />
+      <SectionHead title={tr("settings.section.language")} group="外观与布局" />
       <SettingsList>
         <SettingsRow
-          title="恢复默认首页布局"
-          sub="清除首页卡片的排列、折叠与隐藏记录，回到默认版式。"
-          control={<Btn variant="outline" size="sm" onClick={() => { clearHomeLayout(); setHomeResetAt(Date.now()); }}>{homeResetAt ? "已恢复默认" : "恢复默认布局"}</Btn>}
+          title={tr("settings.language.title")}
+          sub={tr("settings.language.sub")}
+          control={<Select value={locale} onChange={(v) => setLocale(v)}>{LOCALES.map((l) => <option key={l} value={l}>{LOCALE_LABELS[l]}</option>)}</Select>}
         />
       </SettingsList>
 
-      <SectionHead title="工作空间" />
-      <ExplorerPrefsSection />
-
-      <SectionHead title="收藏夹" />
+      <SectionHead title={tr("settings.section.homeLayout")} group="外观与布局" />
       <SettingsList>
         <SettingsRow
-          title="恢复默认收藏夹"
+          title={tr("settings.homeReset.title")}
+          sub={tr("settings.homeReset.sub")}
+          control={<Btn variant="outline" size="sm" onClick={() => { clearHomeLayout(); resetHomeBoard(); setHomeResetAt(Date.now()); }}>{homeResetAt ? tr("settings.homeReset.done") : tr("settings.homeReset.button")}</Btn>}
+        />
+      </SettingsList>
+
+      <SectionHead title={tr("settings.section.workspace")} group="外观与布局" />
+      <ExplorerPrefsSection />
+
+      <SectionHead title={tr("settings.section.favorites")} group="外观与布局" />
+      <SettingsList>
+        <SettingsRow
+          title={i18n("auto.pages.Settings.29")}
           sub={
             <>
-              删除全部用户收藏夹与折叠记录（默认一级入口不受影响，永远在左侧栏）。
-              各功能仍在原来的页面，收藏夹只是跳转入口。
-              {favMsg ? <>　{favMsg}</> : null}
+              {i18n("auto.pages.Settings.30")}{favMsg ? <>　{favMsg}</> : null}
             </>
           }
           control={
@@ -602,18 +608,15 @@ export function SettingsPage() {
                     .writeText(json)
                     .then(() => setFavMsg("收藏夹已复制到剪贴板（" + favs.data.order.length + " 个根收藏夹）"))
                     .catch(() => setFavMsg("复制未成功，请改用下方的导入框核对"));
-                }}>导出（复制 JSON）
-              </Btn>
-              <Btn variant="outline" onClick={() => { setImportOpen((o) => !o); setImportText(""); setFavMsg(null); }}>导入
-              </Btn>
+                }}>{i18n("auto.pages.Settings.31")}</Btn>
+              <Btn variant="outline" onClick={() => { setImportOpen((o) => !o); setImportText(""); setFavMsg(null); }}>{i18n("auto.pages.Settings.32")}</Btn>
               <Btn variant="outline" onClick={() =>
-                  void confirmOk("删除全部用户收藏夹并复位折叠记录？默认一级入口不受影响。").then((ok) => {
+                  void confirmOk(i18n("auto.pages.Settings.msg3")).then((ok) => {
                     if (!ok) return;
                     favs.replaceAll(resetFavs());
                     setFavMsg("已恢复默认。");
                   })
-                }>恢复默认
-              </Btn>
+                }>{i18n("auto.pages.Settings.33")}</Btn>
             </Inline>
           }
         />
@@ -632,42 +635,41 @@ export function SettingsPage() {
                     setImportOpen(false);
                     setImportText("");
                     setFavMsg("已导入 " + parsed.order.length + " 个根收藏夹。");
-                  }}>导入并覆盖
-                </Btn>
-                <Btn variant="ghost" onClick={() => setImportOpen(false)}>取消</Btn>
+                  }}>{i18n("auto.pages.Settings.34")}</Btn>
+                <Btn variant="ghost" onClick={() => setImportOpen(false)}>{i18n("auto.pages.Settings.35")}</Btn>
               </Inline>
             </span>
           </div>
         ) : null}
       </SettingsList>
 
-      <SectionHead title="外观" />
+      <SectionHead title={tr("settings.section.appearance")} group="外观与布局" />
       <SettingsList>
         <AppearanceSection />
       </SettingsList>
       <Card>
         <WallpaperSection />
       </Card>
-      <SectionHead title="OneShot 快捷入口" />
+      <SectionHead title={tr("settings.section.oneshot")} group="外观与布局" />
       <SettingsList>
         <OneShotSettings />
       </SettingsList>
-      <SectionHead title="通知" />
+      <SectionHead title={tr("settings.section.notifications")} group="通知与提醒" />
       <Card>
         <NotifySettingsSection />
       </Card>
-      <SectionHead title="桌面小组件" />
+      <SectionHead title={tr("settings.section.widgets")} group="桌面小组件" />
       <Card>
         <WidgetSettingsSection />
       </Card>
-      <SectionHead title="极客模式" />
+      <SectionHead title={tr("settings.section.geek")} group="桌面小组件" />
       <GeekSection />
       {/* 2026-10-11（用户纠正）：OH **不是设置页的二级**，而是**插件页的二级子页面**
           （基础设置 / 高级配置）——分节与页签都已从这里移除，见 pages/Plugins.tsx 的 OH 入口。 */}
-      <SectionHead title="安全" />
+      <SectionHead title={tr("settings.section.security")} group="账号" />
       <Card>
         <SettingsRow
-          title="记住的密码"
+          title={i18n("auto.pages.Settings.36")}
           sub={hasSaved ? "已在本机保存，重启后自动登录" : "未保存；登录时勾选「记住密码」即可启用"}
           control={
             hasSaved ? (
@@ -681,7 +683,7 @@ export function SettingsPage() {
       <TabManageModal
         open={manageOpen}
         onClose={() => setManageOpen(false)}
-        title="管理设置栏目"
+        title={i18n("auto.pages.Settings.37")}
         tabs={SETTINGS_TAB_ORDER.map((id) => ({ id, label: id }))}
         layout={tabLayout}
         onApply={applyTabLayout}
@@ -698,6 +700,7 @@ export function SettingsPage() {
 type DownloadDirectory = { path: string; isDefault: boolean };
 
 function DownloadSettings() {
+  const tr = useT();
   const [available, setAvailable] = useState(isTauri);
   const [directory, setDirectory] = useState<DownloadDirectory | null>(null);
   const [loading, setLoading] = useState(true);
@@ -745,21 +748,21 @@ function DownloadSettings() {
   if (!available) return null;
   return (
     <>
-      <SectionHead title="下载" />
+      <SectionHead title={tr("settings.section.downloads")} group="下载与存储" />
       <Card>
         <SettingsRow
-          title="下载位置"
+          title={i18n("auto.pages.Settings.38")}
           sub={
             <>
               {loading ? "正在读取…" : directory?.path || "下载位置读取失败，请重新选择文件夹或恢复默认。"}
-              <OGText slot="label" tone="faint">网络学堂附件与云盘文件存到这里；「另存为」可临时换地方。</OGText>
+              <OGText slot="label" tone="faint">{i18n("auto.pages.Settings.39")}</OGText>
               {message ? <OGText slot="label" tone="quiet" as="span">{message}</OGText> : null}
             </>
           }
           control={
             <>
-              <Btn variant="outline" size="sm" disabled={loading || busy} onClick={() => void changeDirectory(false)}>选择文件夹</Btn>
-              <Btn variant="outline" size="sm" disabled={loading || busy || directory?.isDefault} onClick={() => void changeDirectory(true)}>恢复默认</Btn>
+              <Btn variant="outline" size="sm" disabled={loading || busy} onClick={() => void changeDirectory(false)}>{i18n("auto.pages.Settings.40")}</Btn>
+              <Btn variant="outline" size="sm" disabled={loading || busy || directory?.isDefault} onClick={() => void changeDirectory(true)}>{i18n("auto.pages.Settings.33")}</Btn>
             </>
           }
         />
@@ -777,7 +780,7 @@ function DebugLogRow() {
     try {
       const path = await invoke<string>("debug_log_export");
       setWhere(path);
-      showToast("日志已导出到系统下载");
+      showToast(i18n("auto.pages.Settings.msg4"));
     } catch (err) {
       showToast(String(err instanceof Error ? err.message : err).slice(0, 60));
     } finally {
@@ -786,7 +789,7 @@ function DebugLogRow() {
   };
   return (
     <SettingsRow
-      title="运行日志"
+      title={i18n("auto.pages.Settings.41")}
       sub={where ? `已导出：${where}` : "用于问题排查，导出到系统下载"}
       control={<Btn variant="outline" size="sm" disabled={busy} onClick={() => void run()}>{busy ? "导出中…" : "导出日志"}</Btn>}
     />
@@ -801,7 +804,7 @@ function DiagnosticsRow() {
     try {
       const { buildDiagnostics } = await import("../lib/diagnostics.js");
       await navigator.clipboard.writeText(await buildDiagnostics());
-      showToast("诊断摘要已复制，可直接粘贴到反馈里");
+      showToast(i18n("auto.pages.Settings.msg5"));
     } catch (err) {
       showToast(String(err instanceof Error ? err.message : err).slice(0, 60));
     } finally {
@@ -810,8 +813,8 @@ function DiagnosticsRow() {
   };
   return (
     <SettingsRow
-      title="诊断摘要"
-      sub="反馈问题时粘贴这段文字，不含学号等个人信息"
+      title={i18n("auto.pages.Settings.42")}
+      sub={i18n("auto.pages.Settings.43")}
       control={<Btn variant="outline" size="sm" disabled={busy} onClick={() => void run()}>{busy ? "复制中…" : "复制摘要"}</Btn>}
     />
   );
@@ -830,15 +833,15 @@ function WallpaperSection(): ReactNode {
   const sound = useSyncExternalStore(subscribeWallpaper, videoSoundSnapshot, videoSoundSnapshot);
   return (
     <div className="wall-section" data-set-id="row-壁纸">
-      <div className="setting-title">壁纸</div>
-      <div className="setting-desc">全窗共用一张：画在壳层底，面板与栏体透出它。</div>
+      <div className="setting-title">{i18n("auto.pages.Settings.44")}</div>
+      <div className="setting-desc">{i18n("auto.pages.Settings.45")}</div>
       <WallpaperLibrary variant="panel" />
       <div className="wall-sound-row" data-set-id="row-动态壁纸声音">
         <div>
-          <div className="setting-title">动态壁纸声音</div>
-          <div className="setting-desc">默认静音；视频壁纸有声时才需手势放开（浏览器自动播放策略）。</div>
+          <div className="setting-title">{i18n("auto.pages.Settings.46")}</div>
+          <div className="setting-desc">{i18n("auto.pages.Settings.47")}</div>
         </div>
-        <Switch on={sound} onChange={(v) => setVideoSound(v)} label="动态壁纸声音" />
+        <Switch on={sound} onChange={(v) => setVideoSound(v)} label={i18n("auto.pages.Settings.46")} />
       </div>
     </div>
   );
@@ -896,16 +899,16 @@ function AppearanceSection(): ReactNode {
           手机（A1）：手机只能横标签页（竖栏永不出现），这一行整块不渲染。 */}
       {isPhone ? null : (
         <SettingsRow
-          title="标签栏样式"
-          sub="横版：标签在顶部一排；竖版：标签在左侧栏。标签栏上的切换钮可随时改，这里设的是默认值。"
+          title={i18n("auto.pages.Settings.48")}
+          sub={i18n("auto.pages.Settings.49")}
           control={
             <Segment
               size="sm"
               value={tabLayoutDefault}
               onChange={(v) => setTabLayoutDefault(v as "h" | "v")}
               options={[
-                { value: "h", label: "横版" },
-                { value: "v", label: "竖版" },
+                { value: "h", label: i18n("auto.pages.Settings.p1") },
+                { value: "v", label: i18n("auto.pages.Settings.p2") },
               ]}
             />
           }
@@ -913,8 +916,8 @@ function AppearanceSection(): ReactNode {
       )}
       {/* 玻璃程度：全站玻璃面材浓度四档（clear/balanced/rich/deep → data-glass 覆盖块） */}
       <SettingsRow
-        title="玻璃程度"
-        sub="默认档是无玻璃的中性面；其余三档是三种玻璃取向。"
+        title={i18n("auto.pages.Settings.50")}
+        sub={i18n("auto.pages.Settings.51")}
         control={
           <Segment
             size="sm"
@@ -927,10 +930,10 @@ function AppearanceSection(): ReactNode {
       {/* 主题（① 2026-10-11 用户拍板）：这里**只做切换**，且**只列已启用**的主题（未启用插件的不出现）；
           启用/停用在「插件」里，安装主题走右边那个按钮（跳市场 + 自动筛「主题」）。 */}
       <SettingsRow
-        title="主题"
+        title={i18n("auto.pages.Settings.52")}
         sub={
           <>
-            当前：{themes.find((th) => (snap.effectiveId ?? "") === th.id)?.name ?? "默认外观"}
+            {i18n("auto.pages.Settings.53")}{themes.find((th) => (snap.effectiveId ?? "") === th.id)?.name ?? "默认外观"}
             {dyn ? " · 系统取色生效中，换主题后会自动关闭" : ""}
             {"　启用 / 停用主题在「插件」页里。"}
           </>
@@ -938,15 +941,13 @@ function AppearanceSection(): ReactNode {
         control={
           <Inline gap={2}>
             {/* ③ 两个按钮并列、同一套胶囊口径：安装（市场 + 主题筛选）｜管理（主题插件的启用/停用） */}
-            <Btn variant="solid" tone="brand" titleAttr="到插件市场安装主题（自动筛选「主题」类别）" onClick={() => {
+            <Btn variant="solid" tone="brand" titleAttr={i18n("auto.pages.Settings.54")} onClick={() => {
                 requestPluginsView({ view: "market", category: "theme" });
-              }}>安装主题
-            </Btn>
-            <Btn variant="solid" tone="brand" titleAttr="管理主题插件的启用 / 停用（按新规范，启用与否只在这里管）" onClick={() => {
+              }}>{i18n("auto.pages.Settings.55")}</Btn>
+            <Btn variant="solid" tone="brand" titleAttr={i18n("auto.pages.Settings.56")} onClick={() => {
                 /* 启用/停用界面＝插件页「我的插件 + 主题筛选」：那里每张主题卡都有开关语义 */
                 requestPluginsView({ view: "mine", category: "theme" });
-              }}>管理主题
-            </Btn>
+              }}>{i18n("auto.pages.Settings.57")}</Btn>
           </Inline>
         }
       />
@@ -954,35 +955,34 @@ function AppearanceSection(): ReactNode {
           只按新规范过滤掉未启用的主题；排版与 ThemePickerModal 里的板子保持一致。
           2026-10-14：手写选中框（内联边框+底色）→ List/Row 的 selected 状态层 + Tag 胶囊。 */}
       <div className="theme-choice-grid">
-        <ThemeChoice name="石墨 · 默认" description="中性面阶、黑白主要动作与清晰文字层级" selected={!snap.effectiveId || snap.effectiveId === "onethu.theme.ivory"} onSelect={() => deactivateTheme()} themeId="onethu.theme.ivory" />
+        <ThemeChoice name="石墨 · 默认" description={i18n("auto.pages.Settings.58")} selected={!snap.effectiveId || snap.effectiveId === "onethu.theme.ivory"} onSelect={() => deactivateTheme()} themeId="onethu.theme.ivory" />
         {visibleThemeDefs.filter(t => t.id !== "onethu.theme.ivory").map(t => <ThemeChoice key={t.id} name={t.name} description={t.description} vars={t.vars} selected={snap.effectiveId === t.id} onSelect={() => { activateTheme(t.id); showToast("已应用「" + t.name + "」"); }} themeId={t.id} />)}
       </div>
       <SettingsRow
-        title="跟随系统昼夜"
+        title={i18n("auto.pages.Settings.59")}
         sub={
           <>
-            开启后按系统的深色模式自动切换：亮色用「白天主题」，深色用「黑夜主题」。
-            {snap.followSystem ? <>（当前系统：{snap.systemDark ? "深色" : "浅色"}）</> : null}
+            {i18n("auto.pages.Settings.60")}{snap.followSystem ? <>{i18n("auto.pages.Settings.61")}{snap.systemDark ? "深色" : "浅色"}）</> : null}
           </>
         }
-        control={<Switch on={snap.followSystem} onChange={() => setFollowSystem(!snap.followSystem)} label="跟随系统昼夜" />}
+        control={<Switch on={snap.followSystem} onChange={() => setFollowSystem(!snap.followSystem)} label={i18n("auto.pages.Settings.59")} />}
       />
       {snap.followSystem ? (
         <>
-          <SettingsRow title="白天主题" control={<Select value={snap.dayThemeId ?? ""} onChange={(value) => setDayNightTheme(value || null, snap.nightThemeId)} disabled={dyn}>{themes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</Select>} />
-          <SettingsRow title="黑夜主题" control={<Select value={snap.nightThemeId ?? ""} onChange={(value) => setDayNightTheme(snap.dayThemeId, value || null)} disabled={dyn}>{themes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</Select>} />
+          <SettingsRow title={i18n("auto.pages.Settings.62")} control={<Select value={snap.dayThemeId ?? ""} onChange={(value) => setDayNightTheme(value || null, snap.nightThemeId)} disabled={dyn}>{themes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</Select>} />
+          <SettingsRow title={i18n("auto.pages.Settings.63")} control={<Select value={snap.nightThemeId ?? ""} onChange={(value) => setDayNightTheme(snap.dayThemeId, value || null)} disabled={dyn}>{themes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</Select>} />
         </>
       ) : null}
       <SettingsRow
-        title="跟随系统取色"
+        title={i18n("auto.pages.Settings.64")}
         sub={
           dynOk === false ? (
             dyn ? "系统取色暂不可用，已自动改用「清华紫」主题，稍后可在外观里手动更换。" : "当前系统不支持，开启后改用「清华紫」主题。"
           ) : "用壁纸的颜色重新计算全站配色，品牌色与背景色一起变。"
         }
-        control={<Switch on={dyn} onChange={() => void toggleDyn()} label="跟随系统取色" />}
+        control={<Switch on={dyn} onChange={() => void toggleDyn()} label={i18n("auto.pages.Settings.64")} />}
       />
-      {dyn ? <OGText slot="label" tone="faint">生效中：关掉开关即恢复所选主题。</OGText> : null}
+      {dyn ? <OGText slot="label" tone="faint">{i18n("auto.pages.Settings.65")}</OGText> : null}
       <ThemePickerModal open={pickerOpen} onClose={() => setPickerOpen(false)} />
     </Stack>
   );
@@ -1028,7 +1028,7 @@ function GeekSection(): ReactNode {
       /* 存不进就本次有效 */
     }
     setOn(next);
-    if (next) showToast("极客模式已开启：设置里可下载探索浏览器（桌面端专属）");
+    if (next) showToast(i18n("auto.pages.Settings.msg6"));
   };
   const download = async (): Promise<void> => {
     setBusy("dl");
@@ -1061,20 +1061,18 @@ function GeekSection(): ReactNode {
   return (
     <SettingsList>
       <SettingsRow
-        title="极客模式（浏览器探索）"
+        title={i18n("auto.pages.Settings.66")}
         sub={
           <>
-            高级选项，默认关闭；把不在 OneTHU 里的站点功能用登录态爬回来自己做插件。用独立登录态，和自己浏览器互不干扰。
-            <OGText as="div" slot="label" tone="error">
-              风险自负：探索动作可能被站点风控计入本人账号；不喜欢冒险可通过 OH 建议官方收录。
-            </OGText>
+            {i18n("auto.pages.Settings.67")}<OGText as="div" slot="label" tone="error">
+              {i18n("auto.pages.Settings.68")}</OGText>
           </>
         }
-        control={<Switch on={on} onChange={toggle} label="极客模式" />}
+        control={<Switch on={on} onChange={toggle} label={i18n("auto.pages.Settings.69")} />}
       />
       {on ? (
         <SettingsRow
-          title="探索浏览器"
+          title={i18n("auto.pages.Settings.70")}
           sub={
             probe
               ? probe.browsers.length > 0
@@ -1092,14 +1090,14 @@ function GeekSection(): ReactNode {
       ) : null}
       {on ? (
         <SettingsRow
-          title="启动方式"
-          sub="系统浏览器（复用本机 Chrome/Edge）或探索专用浏览器。"
+          title={i18n("auto.pages.Settings.71")}
+          sub={i18n("auto.pages.Settings.72")}
           control={
             <Segment
               size="sm"
               value={mode}
               onChange={(v) => setMode(v as "system" | "playwright")}
-              options={[{ value: "system", label: "系统浏览器" }, { value: "playwright", label: "专用版" }]}
+              options={[{ value: "system", label: i18n("auto.pages.Settings.p3") }, { value: "playwright", label: i18n("auto.pages.Settings.p4") }]}
             />
           }
         />

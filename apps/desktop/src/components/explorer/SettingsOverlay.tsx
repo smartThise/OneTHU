@@ -20,6 +20,8 @@ import { PluginsPage } from "../../pages/Plugins.js";
 import { IconSettings, IconX } from "../Icons.js";
 import { HarnessMark } from "../HarnessMark.js";
 import { IconPlug } from "../Icons.js";
+import { t as i18n } from "../../i18n/index.js";
+
 
 const SEGMENTS: Array<{ id: OverlayEntry; label: string; icon: ReactNode }> = [
   { id: "profile", label: "我的名片", icon: <IconUser size="sm" /> },
@@ -59,10 +61,10 @@ export function SettingsOverlay(): ReactNode {
 
   return createPortal(
     <div className={mask} onClick={requestClose}>
-      <div className={panel} onClick={(e) => e.stopPropagation()} role="dialog" aria-label="我的">
+      <div className={panel} onClick={(e) => e.stopPropagation()} role="dialog" aria-label={i18n("auto.components.explorer.SettingsOverlay.1")}>
         <div className="settings-head">
           <span className="workbench-settings-brand">OneTHU</span>
-          {!simple && <div className="settings-seg" role="tablist" aria-label="设置分段">
+          {!simple && <div className="settings-seg" role="tablist" aria-label={i18n("auto.components.explorer.SettingsOverlay.2")}>
             {SEGMENTS.map((s) => (
               <button
                 key={s.id}
@@ -76,7 +78,7 @@ export function SettingsOverlay(): ReactNode {
               </button>
             ))}
           </div>}
-          <IconBtn label="关闭设置" size="sm" variant="outline" titleAttr="关闭设置（Esc）" icon={<IconX width={14} height={14} />} onClick={requestClose} />
+          <IconBtn label={i18n("auto.components.explorer.SettingsOverlay.3")} size="sm" variant="outline" titleAttr={i18n("auto.components.explorer.SettingsOverlay.4")} icon={<IconX width={14} height={14} />} onClick={requestClose} />
         </div>
         <div className={"explorer-settings-body" + (entry === "settings" ? "" : " workbench-plugin-settings")}>
           {simple ? <SimpleSettings/> : entry === "profile" ? <NameCardSection view="personal" /> : entry === "settings" ? <SettingsPage /> : <PluginsPage />}
