@@ -168,6 +168,16 @@ html:root.is-schedule-page .schedule-workspace > .schedule-stage {
 }
 .schedule-canvas { position: relative; flex: 1 1 auto; min-width: 0; }
 
+/* 表格下面的呼吸区：在滚动内容里追加一段空白，让最末几行能整块滚到悬浮控件之上再点。
+   **不改表体**——它在画布（.schedule-body）之外，也不进 Schedule.tsx 的 availH 计算，
+   所以刻度/块尺寸一个像素都不动；只改变「能滚多少」。 */
+.schedule-canvas-tail { height: calc(var(--og-ctl-h-sm) + var(--og-space-4)); }
+html:root.is-phone .schedule-canvas-tail {
+  /* 手机右下角是一列叠起来的浮件（日历 / 圆钮 / 快捷胶囊）：留出整段浮件带的高度，
+     让最末几行能整块滚到它们上面再点（实测浮件带最高约占到视口底部 225px）。 */
+  height: calc(var(--og-c-schedule-dock-bottom, 0px) + var(--og-ctl-h-sm) * 2 + var(--og-space-6));
+}
+
 /* 列底色 / 网格线 / 当前时刻线 */
 .schedule-col { position: absolute; top: 0; height: 100%; border-left: 1px solid var(--og-line-1); }
 .schedule-col:first-child { border-left: 0; }
@@ -205,10 +215,28 @@ html:root.is-schedule-page .schedule-workspace > .schedule-stage {
 }
 .schedule-block.is-compact { padding: 0 var(--og-space-1); }
 .schedule-block.is-done { background: color-mix(in srgb, var(--og-c-schedule-block) 60%, var(--og-surface-1)); }
+/* 手动补充的课程：与教务课同一格，虚线描边 + 右下角「手动」角标（2026-10-13 用户指定：
+   角标贴右下，右上留给内容）——数据来自事件仓、可编辑，但一眼看出是用户自己填的。 */
+.schedule-block.is-manual { border: 1.5px dashed color-mix(in srgb, var(--og-schedule-block-ink) 92%, transparent); }
+.schedule-block-manual {
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  padding: 0 calc(var(--og-space-1) / 2);
+  border-radius: var(--og-radius-xs);
+  background: var(--og-scrim);
+  color: var(--og-schedule-block-ink);
+  font-size: var(--og-text-micro);
+  line-height: 1.35;
+  pointer-events: none;
+}
+html:root.is-phone .schedule-block-manual { display: none; }
 .schedule-block :is(.schedule-block-title, .schedule-block-sub, .og-text) { color: inherit; }
 .schedule-block-title {
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  /* 行数按块高由页面给（--og-c-schedule-clamp）：矮块 1–2 行，长块一路铺到块底。
+     缺省 3 行 —— 没带变量的复用方（外部快照/旧布局）保持原样。 */
+  -webkit-line-clamp: var(--og-c-schedule-clamp, 3);
   -webkit-box-orient: vertical;
   overflow: hidden;
   font-size: var(--og-text-label);

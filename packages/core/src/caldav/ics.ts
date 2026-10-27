@@ -52,6 +52,12 @@ export interface IcsEvent {
    *  「今天」卡片，行与 DDL 同款（见 apps/desktop/src/state/widgetSnapshot.ts）。
    *  缺省 = 不进（保持既有行为：自定义日程原本不上小组件）。 */
   onethuWidget?: boolean;
+  /** 手动补充课程：选中的教学周（X-ONETHU-WEEKS，形如 1-8,10-16）。
+   *  这是「哪些周上课」的事实源，RRULE/EXDATE 由它派生（见 caldav/courseWeeks.ts）。 */
+  onethuWeeks?: number[];
+  /** 手动补充课程：起止节次（X-ONETHU-PERIOD，形如 3-4）。网格按真实时刻摆放，
+   *  节次只服务表单回填与「第 3-4 节」展示。 */
+  onethuPeriod?: { start: number; end: number };
   lastModified?: number;
   /* ---- 服务端伴随字段（parseIcsWithMeta 注入，非 ICS 内容） ---- */
   href?: string;
@@ -225,6 +231,63 @@ function parseRrule(value: string): IcsRrule | undefined {
 
 const WD = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"]; // getUTCDay 索引
 
+const WEEK_MAX = 99;
+
+/** 周号规范化：去重、升序、只留 1..max（非法值丢弃） */
+export function normalizeWeeks(weeks: readonly number[], max = WEEK_MAX): number[] {
+  const set = new Set<number>();
+  for (const w of weeks) {
+    const n = Math.round(Number(w));
+    if (Number.isFinite(n) && n >= 1 && n <= max) set.add(n);
+  }
+  return [...set].sort((a, b) => a - b);
+}
+
+/** 周号清单解析：吃 "1,3,5-9" / "1 3 5" / 全角逗号与波浪号；坏片段丢弃不报错 */
+export function parseWeekList(value: string, max = WEEK_MAX): number[] {
+  const raw: number[] = [];
+  for (const seg of value.split(/[,，;；\s]+/)) {
+    if (!seg) continue;
+    const range = /^(\d{1,3})\s*[-~–—]\s*(\d{1,3})$/.exec(seg);
+    if (range) {
+      const a = Number(range[1]);
+      const b = Number(range[2]);
+      if (a <= b) for (let i = a; i <= b; i++) raw.push(i);
+      continue;
+    }
+    if (/^\d{1,3}$/.test(seg)) raw.push(Number(seg));
+  }
+  return normalizeWeeks(raw, max);
+}
+
+/** 周号清单序列化：升序 + 连续段压成区间（1-8,10-16）——手写/外部编辑时一眼能读 */
+export function formatWeekList(weeks: readonly number[], max = WEEK_MAX): string {
+  const list = normalizeWeeks(weeks, max);
+  const parts: string[] = [];
+  let i = 0;
+  while (i < list.length) {
+    const from = list[i]!;
+    let to = from;
+    while (i + 1 < list.length && list[i + 1] === to + 1) {
+      i++;
+      to = list[i]!;
+    }
+    parts.push(from === to ? String(from) : `${from}-${to}`);
+    i++;
+  }
+  return parts.join(",");
+}
+
+/** 节次区间解析："3-4" / "3" / "3~4" → {start,end}；坏值或倒序返回 null */
+export function parsePeriod(value: string): { start: number; end: number } | null {
+  const m = /^(\d{1,2})\s*(?:[-~–—]\s*(\d{1,2}))?$/.exec(value.trim());
+  if (!m) return null;
+  const start = Number(m[1]);
+  const end = m[2] ? Number(m[2]) : start;
+  if (start < 1 || end < start) return null;
+  return { start, end };
+}
+
 /** 解析 VCALENDAR 文本 → 事件列表（未知属性忽略，坏事件跳过不炸整体） */
 export function parseIcs(text: string): IcsEvent[] {
   const events: IcsEvent[] = [];
@@ -284,6 +347,8 @@ export function parseIcs(text: string): IcsEvent[] {
       case "CATEGORIES": cur.categories = value.split(",").map((s) => unescapeText(s.trim())).filter(Boolean); break;
       case "X-ONETHU-SRC": cur.onethuSource = value.trim(); break;
       case "X-ONETHU-WIDGET": cur.onethuWidget = /^(1|true)$/i.test(value.trim()); break;
+      case "X-ONETHU-WEEKS": cur.onethuWeeks = parseWeekList(value); break;
+      case "X-ONETHU-PERIOD": { const p = parsePeriod(value); if (p) cur.onethuPeriod = p; break; }
       case "LAST-MODIFIED": { const p = parseDateValue(value, params); if (p) cur.lastModified = p.ms; break; }
       default: break;
     }
@@ -330,6 +395,8 @@ export function serializeEvent(ev: IcsEvent, nowMs = Date.now()): string[] {
   if (ev.categories?.length) lines.push(...prop("CATEGORIES", "", ev.categories.map(escapeText).join(",")));
   if (ev.onethuSource) lines.push(...prop("X-ONETHU-SRC", "", ev.onethuSource));
   if (ev.onethuWidget) lines.push(...prop("X-ONETHU-WIDGET", "", "1"));
+  if (ev.onethuWeeks?.length) lines.push(...prop("X-ONETHU-WEEKS", "", formatWeekList(ev.onethuWeeks)));
+  if (ev.onethuPeriod) lines.push(...prop("X-ONETHU-PERIOD", "", `${ev.onethuPeriod.start}-${ev.onethuPeriod.end}`));
   if (ev.lastModified) lines.push(...prop("LAST-MODIFIED", "", fmtDateTimeUtc(ev.lastModified)));
   if (ev.alarmMinutes && ev.alarmMinutes > 0) {
     lines.push(...prop("BEGIN", "", "VALARM"));
