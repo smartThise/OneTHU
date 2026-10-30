@@ -90,13 +90,18 @@ function YktPlainText({ text }: { text: string }) {
 function CollapsibleSection({
   label,
   children,
+  defaultOpen = true,
 }: {
   label: string;
   children: ReactNode;
+  /** 默认展开与否。口径仍是「不记忆」——每次进入/重挂载按此值重置，不写 localStorage。
+   *  仅当作答面板已就地展示同一份正文时才传 false：面板初始值就是 myAnswerHtml，
+   *  两处同时展开会让同一张图、同一段作答各出现一次（真机反馈「观感差」）。 */
+  defaultOpen?: boolean;
 }) {
   const uiLocale = useUiLocale();
 
-  const [open, setOpen] = useState(true); // 默认展开，不记忆
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <>
       <button
@@ -259,7 +264,13 @@ function ProblemCard({ p, fontUrl, cookies, answer }: { p: YkProblem; fontUrl?: 
           {answer}
           {hasAnswer ? (
             <div className="ykt-ans">
-              <CollapsibleSection label={i18n("pages.learn.yktassignmentdetailpage.3672c846381f")}>
+              {/* key 随作答面板有无切换：提交后 answer 从无到有时重挂载，默认展开值才生效，
+                  否则组件复用会把「展开」状态带进有面板的场景，正文与图片依旧重复。 */}
+              <CollapsibleSection
+                key={answer ? "ans-with-panel" : "ans-solo"}
+                label={i18n("pages.learn.yktassignmentdetailpage.3672c846381f")}
+                defaultOpen={!answer}
+              >
                 {p.myAnswerHtml ? <ProblemBody html={p.myAnswerHtml} fontUrl={fontUrl} cookies={cookies} title={i18n("pages.learn.yktassignmentdetailpage.f53b3eda058b", { index: String(p.index) })} /> : null}
                 {attText ? <div className="ykt-ans-att">{i18nRich("pages.learn.yktassignmentdetailpage.4d28edaaa584", { attText: attText })}</div> : null}
               </CollapsibleSection>

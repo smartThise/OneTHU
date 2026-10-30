@@ -214,24 +214,27 @@ export function YktSubjectiveEditor(props: YktSubjectiveEditorProps) {
       quill.on("text-change", hardenImgs);
 
       // 粘贴：文件/截图直接走上传通道（放行纯文本与富文本）
+      // capture + stopImmediatePropagation 是必须的：Quill 自己的 paste 处理器同样挂在
+      // quill.root 上，stopPropagation 只挡冒泡、挡不住同元素上的其它监听器，于是同一次粘贴
+      // 会既走这里的 files，又走下面 addMatcher 的 html(data:image)，同一张图被上传两次
+      // （真机现象：截图工具复制后正文里出现两张）。这里必须整条阻断。
       quill.root.addEventListener("paste", (ev: ClipboardEvent) => {
         const files = ev.clipboardData?.files;
-        if (files && files.length > 0 && Array.from(files).some((f) => f.type.startsWith("image/"))) {
-          ev.preventDefault();
-          ev.stopPropagation();
-          const range = quill.getSelection(true);
-          void handleFiles(files, range?.index);
-        }
-      });
+        if (!files || files.length === 0 || !Array.from(files).some((f) => f.type.startsWith("image/"))) return;
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        void handleFiles(files, quill.getSelection(true)?.index);
+      }, true);
       // 拖拽：图片文件拦截上传（v1 插入末尾；其余拖拽行为不动）
+      // 与粘贴同理：Quill 的 drop 处理器也挂在 quill.root 上，必须 capture + 立即阻断，
+      // 否则带 text/html 的拖拽同样会二次上传。非图片文件直接放行，不受影响。
       quill.root.addEventListener("drop", (ev: DragEvent) => {
         const files = ev.dataTransfer?.files;
-        if (files && files.length > 0 && Array.from(files).some((f) => f.type.startsWith("image/"))) {
-          ev.preventDefault();
-          ev.stopPropagation();
-          void handleFiles(files);
-        }
-      });
+        if (!files || files.length === 0 || !Array.from(files).some((f) => f.type.startsWith("image/"))) return;
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        void handleFiles(files);
+      }, true);
       // 富文本粘贴里的 data: 图片（截图以 HTML 形态粘贴）→ 剥出上传
       const DeltaCtor = Quill.import("delta") as any;
       quill.clipboard.addMatcher("IMG", (node: Node, delta: any) => {
