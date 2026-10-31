@@ -41,7 +41,8 @@ function routePath(pathname: string): string {
 /** The browser may perform campus business operations, but authentication and
  * ticket redemption belong to the SDK account authority. Call before fetching
  * so rejected responses cannot change its cookie jar under an unchanged epoch.
- * Keep these hosts in PAC scope: removing them would fall back to DIRECT. */
+ * Public identity pages use the ordinary browser's independent login state;
+ * they stay outside the campus PAC and are still rejected by this adapter. */
 export function assertCampusBrowserTarget(target: URL, method = 'GET'): void {
   const host = target.hostname.toLowerCase();
   if (IDENTITY_HOSTS.has(host)) reject();

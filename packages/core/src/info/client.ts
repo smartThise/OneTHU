@@ -34,7 +34,7 @@ import aesjs from "aes-js";
 import { AuthRequiredError, HttpClient } from "../http.js";
 import { ID_PREFIX, parseCasFormHtml } from "../auth/cas.js";
 import { encryptPassword } from "../crypto/sm2.js";
-import { webvpnWrap } from "../crypto/webvpn.js";
+import { webvpnWrap, decodeUrl as decodeWebvpnUrl } from "../crypto/webvpn.js";
 import * as urls from "./urls.js";
 import * as evaluation from "./evaluation.js";
 import * as classroom from "./classroom.js";
@@ -291,6 +291,30 @@ export class InfoClient {
   setRenewers(hooks: { info?: () => Promise<boolean>; card?: () => Promise<boolean> }): void {
     this.#renewInfo = hooks.info ?? null;
     this.#renewCard = hooks.card ?? null;
+  }
+
+  /** Cookie-only SSO for fixed browser services. This deliberately bypasses
+   * the password fallback, even when another client has in-memory credentials. */
+  async resumeBrowserService(service: "selection" | "card"): Promise<boolean> {
+    const entries = {
+      selection: { form: "https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/8172c6fdda6516b4d31be37189ecf88b/1", host: "zhjwxk.cic.tsinghua.edu.cn" },
+      card: { form: "https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/eea30cbedcaf97c69d28b2d92f22a259/0?/userindex", host: "card.tsinghua.edu.cn" },
+    };
+    if (service !== "selection" && service !== "card") throw new Error("CAMPUS_SERVICE_UNSUPPORTED");
+    const entry = entries[service];
+    return this.#roamIdTicket(entry.form, raw => {
+      const physical = new URL(raw, entry.form);
+      const decoded = decodeWebvpnUrl(physical.href);
+      const logical = new URL(decoded ?? physical.href);
+      if (logical.username || logical.password || logical.port || !["http:", "https:"].includes(logical.protocol)) throw new AuthRequiredError();
+      if (logical.hostname === entry.host) {
+        if (service === "selection") logical.protocol = "http:";
+        else if (logical.protocol !== "https:") throw new AuthRequiredError();
+        return decoded ? webvpnWrap(logical.href) : logical.href;
+      }
+      if (!decoded && physical.protocol === "https:" && ["oauth.tsinghua.edu.cn", "webvpn.tsinghua.edu.cn"].includes(physical.hostname)) return physical.href;
+      throw new AuthRequiredError();
+    });
   }
 
   /** ISeating 每次成功操作都会轮换 token（响应 data.hash）——吸收为新缓存值，
@@ -1928,7 +1952,7 @@ export class InfoClient {
 
   /** ① SSO 发票快路径：已认证 id 会话 GET 服务表单 → 302 Location / 成功页锚点取票。
    *  注意只有含 ticket= 的 Location 才是票据兑付地址（其余 Location 消费了也白搭）。 */
-  async #roamIdTicket(formUrl: string): Promise<boolean> {
+  async #roamIdTicket(formUrl: string, normalizeTicket: (url: string) => string = value => value): Promise<boolean> {
     let res: Awaited<ReturnType<HttpClient["request"]>>;
     let viaWrap = false;
     try {
@@ -1948,7 +1972,7 @@ export class InfoClient {
       // it must work without an in-memory password, before the credential fallback.
       if (/checkSingle/.test(html)) {
         const confirmed = await this.#idCheckSingle(viaWrap ? webvpnWrap(formUrl) : formUrl, viaWrap);
-        if (confirmed.ticketUrl) return this.#consumeIdTicketUrl(confirmed.ticketUrl, formUrl);
+        if (confirmed.ticketUrl) return this.#consumeIdTicketUrl(normalizeTicket(confirmed.ticketUrl), formUrl);
         return false;
       }
       // 成功页形态 = 「登录成功。正在重定向到」+ <a href="…ticket=…">（dorm.ts 同判据）
@@ -1957,8 +1981,9 @@ export class InfoClient {
         this.lastDebug = `sso ${formUrl.slice(0, 120)} status=${res.status} → ${html.slice(0, 200).replace(/\s+/g, " ")}`;
       }
     }
+    else await res.body?.cancel();
     if (!ticketUrl) return false;
-    return this.#consumeIdTicketUrl(ticketUrl, formUrl);
+    return this.#consumeIdTicketUrl(normalizeTicket(ticketUrl), formUrl);
   }
 
   /**

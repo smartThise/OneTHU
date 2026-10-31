@@ -5,6 +5,28 @@ import { join } from 'node:path';
 
 const failure = code => Object.assign(new Error(code), { code });
 
+// Page.enable can wait for a popup's renderer to start. Its acknowledgement
+// must not gate Runtime.runIfWaitingForDebugger, or a real target=_blank click
+// can remain paused forever. Install proxy authentication before releasing it.
+export async function initializeGatewayBrowserTarget(send, { sessionId, type }, onPhase = () => {}) {
+  const setup = [];
+  if (['page', 'iframe', 'worker', 'service_worker', 'shared_worker'].includes(type)) {
+    onPhase('Fetch.enable');
+    await send('Fetch.enable', { handleAuthRequests: true }, sessionId);
+    if (type === 'page') setup.push(send('Page.enable', {}, sessionId));
+    setup.push(send('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: true, flatten: true }, sessionId));
+  }
+  // Observe all setup promises immediately, including any early rejection.
+  const enabled = Promise.all(setup);
+  void enabled.catch(() => {});
+  onPhase('Runtime.runIfWaitingForDebugger');
+  await send('Runtime.runIfWaitingForDebugger', {}, sessionId);
+  onPhase('enabling');
+  await enabled;
+  onPhase('ready');
+  return sessionId;
+}
+
 async function findBrowser() {
   const candidates = process.platform === 'darwin' ? [
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -21,7 +43,7 @@ async function findBrowser() {
  * No browser extension, globally listening debug port, OS CA trust or default
  * browser profile is changed. Caller owns this process and its temporary data. */
 export async function openGatewayBrowser({ directory, endpoint, pacUrl, username, password, certificatePem,
-  url, executablePath, headless = false } = {}) {
+  url, executablePath, headless = false, onProtocolEvent } = {}) {
   if (endpoint?.host !== '127.0.0.1' || !Number.isInteger(endpoint?.port) ||
       typeof password !== 'string' || typeof username !== 'string') throw failure('GATEWAY_BROWSER_CONFIG_INVALID');
   const binary = executablePath ?? await findBrowser();
@@ -36,7 +58,7 @@ export async function openGatewayBrowser({ directory, endpoint, pacUrl, username
     '--disable-background-networking', '--disable-component-update', '--disable-sync',
     ...(headless ? ['--headless=new'] : []), 'about:blank'];
   const child = spawn(binary, args, { stdio: ['ignore', 'ignore', 'ignore', 'pipe', 'pipe'], windowsHide: false });
-  const pending = new Map(), targets = new Map();
+  const pending = new Map(), targets = new Map(), targetInfo = new Map(), sessionTargets = new Map();
   let sequence = 0, incoming = Buffer.alloc(0), ended = false;
   let finish;
   const closed = new Promise(resolveClosed => { finish = resolveClosed; });
@@ -55,7 +77,7 @@ export async function openGatewayBrowser({ directory, endpoint, pacUrl, username
     if (ended) return Promise.reject(failure('GATEWAY_BROWSER_CLOSED'));
     const id = ++sequence;
     return new Promise((resolveCommand, reject) => {
-      const timer = setTimeout(() => { pending.delete(id); reject(failure('GATEWAY_BROWSER_TIMEOUT')); }, 15_000);
+      const timer = setTimeout(() => { pending.delete(id); reject(Object.assign(failure('GATEWAY_BROWSER_TIMEOUT'), { method })); }, 15_000);
       timer.unref();
       pending.set(id, { resolve: resolveCommand, reject, timer });
       child.stdio[3].write(`${JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) })}\0`, error => {
@@ -68,18 +90,21 @@ export async function openGatewayBrowser({ directory, endpoint, pacUrl, username
     const { method, params, sessionId } = message;
     if (method === 'Target.attachedToTarget') {
       const id = params.sessionId;
-      const ready = (async () => {
-        if (['page', 'iframe', 'worker', 'service_worker', 'shared_worker'].includes(params.targetInfo.type)) {
-          await send('Fetch.enable', { handleAuthRequests: true }, id);
-          if (params.targetInfo.type === 'page') await send('Page.enable', {}, id);
-          // Child frames/popups inherit the same guarded auth handling.
-          await send('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: true, flatten: true }, id).catch(() => {});
-        }
-        await send('Runtime.runIfWaitingForDebugger', {}, id);
-        return id;
-      })();
+      targetInfo.set(params.targetInfo.targetId, { ...params.targetInfo, setup: 'attaching' });
+      sessionTargets.set(id, params.targetInfo.targetId);
+      const ready = initializeGatewayBrowserTarget(send, { sessionId: id, type: params.targetInfo.type },
+        phase => { targetInfo.get(params.targetInfo.targetId).setup = phase; });
       targets.set(params.targetInfo.targetId, ready);
-      void ready.catch(() => {});
+      void ready.catch(async error => {
+        targetInfo.get(params.targetInfo.targetId).setup = error.method ?? 'failed';
+        // A failed auth setup must not leave an unguarded or forever-paused tab.
+        try {
+          const result = await send('Target.closeTarget', { targetId: params.targetInfo.targetId });
+          if (!result.success) await close();
+        } catch { await close(); }
+      }).catch(() => {});
+    } else if (method === 'Target.targetInfoChanged') {
+      targetInfo.set(params.targetInfo.targetId, { ...targetInfo.get(params.targetInfo.targetId), ...params.targetInfo });
     } else if (method === 'Page.javascriptDialogOpening' && headless) {
       // A headless read-only check cannot answer a site's modal. Decline it;
       // visible user browsers always retain their normal native dialogs.
@@ -106,7 +131,11 @@ export async function openGatewayBrowser({ directory, endpoint, pacUrl, username
         if (!entry) continue;
         pending.delete(message.id); clearTimeout(entry.timer);
         if (message.error) entry.reject(failure('GATEWAY_BROWSER_PROTOCOL_FAILED')); else entry.resolve(message.result);
-      } else void event(message).catch(() => {});
+      } else {
+        const handled = event(message);
+        try { onProtocolEvent?.({ ...message, targetId: sessionTargets.get(message.sessionId) }); } catch {}
+        void handled.catch(() => {});
+      }
     }
   });
 
@@ -136,6 +165,12 @@ export async function openGatewayBrowser({ directory, endpoint, pacUrl, username
     // Opening the browser completes once its guarded page exists. A slow
     // school response or a visible site dialog must not close the new window.
     void send('Page.navigate', { url }, sessionId).catch(() => {});
-    return { closed, close, command: (method, params) => send(method, params, sessionId) };
+    return { closed, close, targetId: target.targetId,
+      targets: () => [...targetInfo.values()].map(info => ({ ...info })),
+      command: async (method, params, targetId = target.targetId) => {
+        const selected = targetId === target.targetId ? sessionId : await targets.get(targetId);
+        if (!selected) throw failure('GATEWAY_BROWSER_TARGET_MISSING');
+        return send(method, params, selected);
+      } };
   } catch (error) { await close(); throw error; }
 }

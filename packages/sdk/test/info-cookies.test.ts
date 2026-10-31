@@ -52,6 +52,20 @@ test('Info bootstrap seeds the native application path with the response epoch a
   assert.equal(jar.getCookies(new URL(webvpnWrap('https://learn.tsinghua.edu.cn/'))).length, 0);
   assert.equal(jar.getCookies(new URL('https://info.tsinghua.edu.cn/')).length, 2);
   assert.equal(jar.getCookies(new URL(infoUrls.INFO_PREFIX + '/')).length, 2);
+  assert(jar.getCookies(new URL(infoUrls.INFO_PREFIX + '/')).every(cookie => cookie.httpOnly === undefined));
+});
+
+test('Info Cookie body can preserve matching response metadata but cannot invent public cookie provenance',async()=>{
+ const jar=new MemoryCookieJar(),physical=new URL(infoUrls.INFO_PREFIX+'/');
+ jar.setRaw(physical,`XSRF-TOKEN=known; Path=${physical.pathname}; Secure`);
+ await mergeInfoCookieBody({jar},'XSRF-TOKEN=known');
+ assert.equal(jar.getCookies(physical).find(cookie=>cookie.name==='XSRF-TOKEN')?.httpOnly,false);
+ assert.equal(jar.getCookies(new URL('https://info.tsinghua.edu.cn/')).find(cookie=>cookie.name==='XSRF-TOKEN')?.httpOnly,undefined);
+ await mergeInfoCookieBody({jar},'XSRF-TOKEN=replaced');
+ assert.equal(jar.getCookies(physical).find(cookie=>cookie.name==='XSRF-TOKEN')?.httpOnly,undefined);
+ jar.setRaw(physical,`XSRF-TOKEN=private; Path=${physical.pathname}; Secure; HttpOnly`);
+ await mergeInfoCookieBody({jar},'XSRF-TOKEN=private');
+ assert.equal(jar.getCookies(physical).find(cookie=>cookie.name==='XSRF-TOKEN')?.httpOnly,true);
 });
 
 test('logout during native cookie seeding cannot write the old response into the JavaScript jar', async () => {

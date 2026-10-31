@@ -2,6 +2,9 @@
  * follows the existing core URL catalog; WebVPN's wire connection stays TLS. */
 export const DEFAULT_UPSTREAM_ORIGINS = Object.freeze({
   'https://zhjw.cic.tsinghua.edu.cn': 'http://zhjw.cic.tsinghua.edu.cn',
+  // The selection SSO advertises HTTPS, but the application serves HTTP only
+  // (also normalized by core/zhjwxk/client.ts before redeeming tickets).
+  'https://zhjwxk.cic.tsinghua.edu.cn': 'http://zhjwxk.cic.tsinghua.edu.cn',
   'https://myhome.tsinghua.edu.cn': 'http://myhome.tsinghua.edu.cn',
   'https://jxgl.cic.tsinghua.edu.cn': 'http://jxgl.cic.tsinghua.edu.cn',
   'https://yhdf.tsinghua.edu.cn': 'http://yhdf.tsinghua.edu.cn',

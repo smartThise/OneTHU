@@ -84,6 +84,28 @@ export async function createNodeSession(options:NodeSessionOptions) {
     }
     await learnPreparation.promise;check();
   }
+  /** Service SSO for browser navigation, using this account's cookies only.
+   * The separate client never receives the in-memory password or renew hooks. */
+  async function ensureCampusService(origin:string):Promise<void>{
+    const expected=epoch(),revision=cookieRevision,owner=session.username;
+    const check=()=>{assertCurrent(expected);if(revision!==cookieRevision||session.username!==owner||session.state!=='ready')throw authError('AUTH_SESSION_CHANGED');};
+    check();if(!owner)throw authError('SCHOOL_SESSION_REQUIRED');
+    if(!['https://cab.lib.tsinghua.edu.cn','https://seat.lib.tsinghua.edu.cn','https://zhjwxk.cic.tsinghua.edu.cn','https://card.tsinghua.edu.cn'].includes(origin))throw authError('CAMPUS_SERVICE_UNSUPPORTED');
+    const candidate=new InfoClient(http);
+    candidate.setIdCredentials(()=>{check();return {username:owner,password:'',fingerprint:device.fingerprint,finger3:device.finger3};});
+    if(origin==='https://cab.lib.tsinghua.edu.cn')await candidate.getLibRoomInfoList(owner,{readOnlyInitialization:true});
+    else if(origin==='https://seat.lib.tsinghua.edu.cn')await candidate.getLibraryList();
+    else {
+      const service=origin==='https://card.tsinghua.edu.cn'?'card':'selection';
+      if(!await candidate.resumeBrowserService(service))throw authError('CAMPUS_SERVICE_SSO_REQUIRED');check();
+      if(service==='card')await candidate.forceEnsure('card');
+      else {
+        const page=await http.text('http://zhjwxk.cic.tsinghua.edu.cn/xklogin.do');check();
+        if(/电子身份服务系统|sm2publicKey|name=["']i_pass["']|checkSingle/.test(page)||!/xkBks|选课/.test(page))throw authError('CAMPUS_SERVICE_SSO_REQUIRED');
+      }
+    }
+    check();await persist();check();
+  }
   async function persist(){
     if(closed)throw authError('AUTH_SESSION_CLOSED');
     await storage.save({version:1,epoch:generation,explicitLogout,device:{...device},session:session.username&&device.account===session.username?{
@@ -229,6 +251,6 @@ export async function createNodeSession(options:NodeSessionOptions) {
     closing=true;for(const service of services)service.close();services.clear();transport.close();clearOutstandingLogin();
     try{await persist();}finally{closed=true;session.reset();helper.password='';try{await storage.close();}finally{activeRuntime=false;}}
   }
-  return{session,http,learn,info,helper,fetch:transport.fetch,createServiceTransport,restore,login,twoFactor,logout,status,persist,close,epoch,assertCurrent,desktopStatus,exportSession,adoptSession,ensureLearnReady,guardGeneration:epoch,dataDir:storage.directory};
+  return{session,http,learn,info,helper,fetch:transport.fetch,createServiceTransport,restore,login,twoFactor,logout,status,persist,close,epoch,assertCurrent,desktopStatus,exportSession,adoptSession,ensureLearnReady,ensureCampusService,guardGeneration:epoch,dataDir:storage.directory};
 }
 export type NodeSession = Awaited<ReturnType<typeof createNodeSession>>;

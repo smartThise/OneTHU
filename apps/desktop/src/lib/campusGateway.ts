@@ -6,9 +6,10 @@ export type CampusGatewayAction = "status" | "start" | "stop" | "setup" | "crede
 export interface CampusGatewayStatus {
   running: boolean;
   endpoint?: { host: string; port: number } | null;
+  systemEndpoint?: { host: string; port: number } | null;
   account?: { account?: string | null; state?: string; authenticated?: boolean; epoch?: number } | null;
   certificate?: { path?: string; fingerprint?: string; ready?: boolean; trusted?: boolean } | null;
-  systemProxy?: { enabled?: boolean; supported?: boolean; recoveryRequired?: boolean } | null;
+  systemProxy?: { enabled?: boolean; supported?: boolean; recoveryRequired?: boolean; coexistence?: boolean; activeServices?: string[] } | null;
   allowedOrigins?: string[];
   pacUrl?: string | null;
   lastError?: unknown;

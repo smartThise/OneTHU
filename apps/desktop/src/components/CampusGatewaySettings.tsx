@@ -18,6 +18,8 @@ function gatewayError(error: unknown): GatewayError {
 function errorText(error: GatewayError): string {
   if (error.copy) return t("gateway.copyError");
   if (error.code === "GATEWAY_EXISTING_PROXY_ENABLED") return t("gateway.existingProxy");
+  if (error.code === "GATEWAY_PROXY_PLAN_CHANGED" || error.code === "GATEWAY_PROXY_SETTINGS_CHANGED") return t("gateway.planChanged");
+  if (error.code === "GATEWAY_AUTHENTICATED_PROXY_UNSUPPORTED") return t("gateway.authenticatedProxy");
   if (error.code === "GATEWAY_PROXY_RESTORE_FAILED") return t("gateway.restoreError");
   if (error.code === "GATEWAY_LOGIN_REQUIRED") return t("gateway.loginRequired");
   return error.code ? t("gateway.errorCode", { code: error.code }) : t("gateway.error");
@@ -125,7 +127,9 @@ export function CampusGatewaySettings() {
   const systemEnabled = status?.systemProxy?.enabled === true;
   const recoveryRequired = status?.systemProxy?.recoveryRequired === true;
   const systemSupported = status?.systemProxy?.supported === true;
-  const endpoint = status?.endpoint ? `${status.endpoint.host}:${status.endpoint.port}` : "";
+  const activeEndpoint = status?.systemEndpoint ?? status?.endpoint;
+  const endpoint = activeEndpoint ? `${activeEndpoint.host}:${activeEndpoint.port}` : "";
+  const manualEndpoint = status?.endpoint ? `${status.endpoint.host}:${status.endpoint.port}` : "";
   const stateText = loading ? t("gateway.checking") : !ready ? t("gateway.installRequired") : !status ? t("gateway.unavailable")
     : running ? t("gateway.running", { endpoint }) : t("gateway.stopped");
 
@@ -142,27 +146,30 @@ export function CampusGatewaySettings() {
     {error ? <p className="campus-gateway-message campus-gateway-error" role="alert">{errorText(error)}</p> : null}
     {notice ? <p className="campus-gateway-message" role="status">{notice === "browser" ? t("gateway.browserOpened") : t("gateway.passwordCopied")}</p> : null}
     {ready && status ? <>
-      <SettingsRow title={t("gateway.browserTitle")} sub={t("gateway.browserDescription")}
-        control={<Btn variant="tonal" disabled={disabled || !running} loading={busy === "open-browser"} onClick={() => void run("open-browser")}>{busy === "open-browser" ? t("gateway.browserOpening") : t("gateway.openBrowser")}</Btn>} />
-      <SettingsRow title={t("gateway.account")} sub={status.account?.account || undefined} value={status.account?.authenticated ? t("gateway.accountReady") : t("gateway.accountPending")} />
-      <SettingsRow title={t("gateway.advanced")} sub={t("gateway.advancedDescription")}
-        control={<Btn variant="ghost" aria-expanded={advanced} onClick={() => { setAdvanced(v => !v); setCredentials(null); }}>{advanced ? t("gateway.collapse") : t("gateway.expand")}</Btn>} />
-      {advanced ? <div className="campus-gateway-advanced">
-        <p className="campus-gateway-message">{t("gateway.authorizationScope")}</p>
+      <div className="campus-gateway-primary">
+        <p className="campus-gateway-message campus-gateway-flow">{t("gateway.systemFlow")}</p>
         <SettingsRow title={t("gateway.certificate")} sub={certificateReady ? status.certificate?.trusted === true ? t("gateway.trusted") : status.certificate?.trusted === false ? t("gateway.untrusted") : t("gateway.trustUnknown") : t("gateway.certificateMissing")}
           control={<Inline gap={2} wrap>
-            {!certificateReady ? <Btn variant="outline" disabled={disabled} loading={busy === "setup"} onClick={() => void run("setup")}>{busy === "setup" ? t("gateway.preparing") : t("gateway.prepare")}</Btn> : <>
-              {status.certificate?.trusted !== true ? <Btn variant="outline" disabled={disabled} loading={busy === "trust"} onClick={() => void run("trust")}>{busy === "trust" ? t("gateway.trusting") : t("gateway.trust")}</Btn> : null}
-              <Btn variant="ghost" disabled={disabled || status.certificate?.trusted === false || systemEnabled || recoveryRequired} loading={busy === "untrust"} onClick={() => void run("untrust")}>{busy === "untrust" ? t("gateway.untrusting") : t("gateway.untrust")}</Btn>
-            </>}
+            {status.certificate?.trusted !== true ? <Btn variant="outline" disabled={disabled || !certificateReady} loading={busy === "trust"} onClick={() => void run("trust")}>{busy === "trust" ? t("gateway.trusting") : t("gateway.trust")}</Btn> : null}
+            {certificateReady ? <Btn variant="ghost" disabled={disabled || status.certificate?.trusted === false || systemEnabled || recoveryRequired} loading={busy === "untrust"} onClick={() => void run("untrust")}>{busy === "untrust" ? t("gateway.untrusting") : t("gateway.untrust")}</Btn> : null}
           </Inline>} />
-        {status.certificate?.fingerprint ? <p className="campus-gateway-message campus-gateway-monospace">{t("gateway.fingerprint", { fingerprint: status.certificate.fingerprint })}</p> : null}
         <SettingsRow title={t("gateway.systemProxy")} sub={recoveryRequired ? t("gateway.recoveryRequired") : !systemSupported ? t("gateway.systemUnsupported") : systemEnabled ? t("gateway.systemEnabled") : t("gateway.systemDescription")}
-          control={!recoveryRequired ? <Btn variant="outline" disabled={disabled || (!systemEnabled && (!systemSupported || !running || status.certificate?.trusted !== true))} loading={busy === "system-enable" || busy === "system-disable"} onClick={() => void run(systemEnabled ? "system-disable" : "system-enable")}>
+          control={!recoveryRequired ? <Btn variant="tonal" disabled={disabled || (!systemEnabled && (!systemSupported || !running || status.certificate?.trusted !== true))} loading={busy === "system-enable" || busy === "system-disable"} onClick={() => void run(systemEnabled ? "system-disable" : "system-enable")}>
             {busy === "system-enable" ? t("gateway.systemEnabling") : busy === "system-disable" ? t("gateway.systemDisabling") : systemEnabled ? t("gateway.systemDisable") : t("gateway.systemEnable")}
           </Btn> : undefined} />
+        {systemEnabled && !recoveryRequired && status.systemProxy?.coexistence && status.systemProxy.activeServices?.length ? <p className="campus-gateway-message" role="status">{t("gateway.coexistence", { services: status.systemProxy.activeServices.join(" · ") })}</p> : null}
+        <p className="campus-gateway-message">{t("gateway.authorizationScope")}</p>
+      </div>
+      <SettingsRow title={t("gateway.account")} sub={status.account?.account || undefined} value={status.account?.authenticated ? t("gateway.accountReady") : t("gateway.accountPending")} />
+      <SettingsRow title={t("gateway.advanced")} sub={t("gateway.advancedDescription")}
+        control={<Btn variant="ghost" aria-expanded={advanced} aria-controls="campus-gateway-advanced" onClick={() => { setAdvanced(v => !v); setCredentials(null); }}>{advanced ? t("gateway.collapse") : t("gateway.expand")}</Btn>} />
+      {advanced ? <div id="campus-gateway-advanced" className="campus-gateway-advanced">
+        <SettingsRow title={t("gateway.browserTitle")} sub={t("gateway.browserDescription")}
+          control={<Btn variant="outline" disabled={disabled || !running} loading={busy === "open-browser"} onClick={() => void run("open-browser")}>{busy === "open-browser" ? t("gateway.browserOpening") : t("gateway.openBrowser")}</Btn>} />
+        <p className="campus-gateway-message">{t("gateway.platformScope")}</p>
+        {status.certificate?.fingerprint ? <p className="campus-gateway-message campus-gateway-monospace">{t("gateway.fingerprint", { fingerprint: status.certificate.fingerprint })}</p> : null}
         {status.allowedOrigins?.length ? <p className="campus-gateway-message campus-gateway-monospace">{t("gateway.origins", { origins: status.allowedOrigins.join(" · ") })}</p> : null}
-        <SettingsRow title={t("gateway.credentials")} sub={t("gateway.credentialsDescription")}
+        <SettingsRow title={t("gateway.credentials")} sub={<>{t("gateway.credentialsDescription")}{manualEndpoint ? <><br /><span className="campus-gateway-monospace">{manualEndpoint}</span></> : null}</>}
           control={<Btn variant="ghost" disabled={disabled || !running} loading={busy === "credentials"} onClick={() => credentials ? setCredentials(null) : void run("credentials")}>{busy === "credentials" ? t("gateway.revealing") : credentials ? t("gateway.hideCredentials") : t("gateway.revealCredentials")}</Btn>} />
         {credentials ? <div className="campus-gateway-credentials">
           <label><span>{t("gateway.proxyUsername")}</span><Input value={credentials.username} readOnly autoComplete="off" /></label>

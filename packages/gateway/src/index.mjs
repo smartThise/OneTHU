@@ -5,13 +5,14 @@ import { Transform } from 'node:stream';
 import {
   GatewayError, normalizeAllowedOrigins, parseProxyTarget, parseConnectAuthority,
   parseTunnelTarget, sanitizeRequestHeaders, sanitizeResponseHeaders,
-  validateFetchMetadata, validateMethod,
+  validateFetchMetadata, validateMethod, campusLandingCategory,
 } from './policy.mjs';
 
 export { GatewayError } from './policy.mjs';
 
 const fail = (code, status = 400) => { throw new GatewayError(code, status); };
 const safeError = error => error instanceof GatewayError ? error : new GatewayError('GATEWAY_UPSTREAM_FAILED', 502);
+const metadataEnum = (value, values) => value === undefined ? 'missing' : values.includes(value) ? value : 'other';
 
 function boundedInteger(value, fallback, maximum) {
   const result = value ?? fallback;
@@ -76,7 +77,9 @@ export function createCampusGateway(options = {}) {
   const origins = normalizeAllowedOrigins(options.allowedOrigins);
   const { session } = options;
   if (!session || !['epoch', 'assertCurrent', 'request'].every(name => typeof session[name] === 'function')) fail('GATEWAY_CONFIG_INVALID');
-  if (typeof options.token !== 'string' || options.token.length < 32 || options.token.length > 1024 || /[^\x21-\x7e]/.test(options.token)) fail('GATEWAY_CONFIG_INVALID');
+  const peerAuthorization = options.authorizeSocket !== undefined;
+  if (peerAuthorization ? typeof options.authorizeSocket !== 'function' || options.token !== undefined
+    : typeof options.token !== 'string' || options.token.length < 32 || options.token.length > 1024 || /[^\x21-\x7e]/.test(options.token)) fail('GATEWAY_CONFIG_INVALID');
   if (options.tls !== undefined && typeof options.tls !== 'function') fail('GATEWAY_CONFIG_INVALID');
   if (session.browserCookies !== undefined && typeof session.browserCookies !== 'function') fail('GATEWAY_CONFIG_INVALID');
   const credentials = Buffer.from(`onethu:${options.token}`, 'utf8');
@@ -87,12 +90,56 @@ export function createCampusGateway(options = {}) {
   const sockets = new Set();
   const controllers = new Set();
   const tunnels = new WeakMap();
+  const peerChecks = new WeakMap();
+  const requestsByHost = new Map();
+  const recentRejections = [];
   let activeRequests = 0;
   let stopped = false;
   let listening;
   let closing;
 
-  function authenticate(req) {
+  function recordRejection(req, target, error) {
+    const code = safeError(error).code;
+    let referrerAllowed = false;
+    try {
+      const referrer = new URL(req.headers.referer);
+      referrerAllowed = !referrer.username && !referrer.password && !referrer.hash && origins.has(referrer.origin);
+    } catch {}
+    // Diagnostics must never retain URLs, arbitrary header values, credentials,
+    // bodies, or account identities. Only parsed allowlisted hosts and enums.
+    recentRejections.push({
+      code: /^GATEWAY_[A-Z_]{1,64}$/.test(code) ? code : 'GATEWAY_UPSTREAM_FAILED',
+      host: target && origins.has(target.origin) ? target.hostname : null,
+      method: metadataEnum(req.method, ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'CONNECT']),
+      fetchSite: metadataEnum(req.headers['sec-fetch-site'], ['same-origin', 'same-site', 'cross-site', 'none']),
+      fetchMode: metadataEnum(req.headers['sec-fetch-mode'], ['cors', 'navigate', 'no-cors', 'same-origin', 'websocket']),
+      fetchDest: metadataEnum(req.headers['sec-fetch-dest'], ['document', 'iframe', 'frame', 'empty', 'script', 'style', 'image', 'font',
+        'worker', 'serviceworker', 'sharedworker', 'audio', 'video', 'manifest', 'report', 'object', 'embed', 'track', 'audioworklet', 'paintworklet', 'xslt', 'webidentity']),
+      fetchUser: metadataEnum(req.headers['sec-fetch-user'], ['?1']),
+      hasOrigin: req.headers.origin !== undefined,
+      originMatchesTarget: !!target && req.headers.origin === target.origin,
+      referrerAllowed,
+      landingCategory: campusLandingCategory(target),
+    });
+    if (recentRejections.length > 8) recentRejections.shift();
+  }
+
+  async function authenticate(req) {
+    if (peerAuthorization) {
+      const socket = req.socket;
+      if (!peerChecks.has(socket)) {
+        const aborter = new AbortController(); controllers.add(aborter);
+        const cancel = () => aborter.abort(new GatewayError('GATEWAY_CANCELLED', 499));
+        socket.once('close', cancel);
+        const timeout = setTimeout(() => aborter.abort(new GatewayError('GATEWAY_PEER_AUTH_TIMEOUT', 403)), 5000);
+        timeout.unref();
+        const check = withSignal(Promise.resolve().then(() => options.authorizeSocket(socket, { signal: aborter.signal })), aborter.signal)
+          .then(allowed => { if (allowed !== true || socket.destroyed) fail('GATEWAY_PEER_AUTH_REQUIRED', 403); })
+          .finally(() => { clearTimeout(timeout); controllers.delete(aborter); socket.off('close', cancel); });
+        peerChecks.set(socket, check);
+      }
+      return peerChecks.get(socket);
+    }
     const value = req.headers['proxy-authorization'];
     const match = typeof value === 'string' && /^Basic ([A-Za-z0-9+/]+={0,2})$/i.exec(value);
     if (!match) fail('GATEWAY_PROXY_AUTH_REQUIRED', 407);
@@ -135,6 +182,7 @@ export function createCampusGateway(options = {}) {
   }
 
   async function handle(req, res, tunnel) {
+    let target;
     let controller;
     let timer;
     let upload;
@@ -149,11 +197,11 @@ export function createCampusGateway(options = {}) {
       // can send a stable timeout response instead of racing socket inactivity.
       req.socket.setTimeout(0);
       if (stopped) fail('GATEWAY_CLOSED', 503);
-      if (!tunnel) authenticate(req);
+      if (!tunnel) await authenticate(req);
       const hasBody = framing(req);
       validateMethod(req.method);
       if (hasBody && ['GET', 'HEAD'].includes(req.method)) fail('GATEWAY_REQUEST_REJECTED');
-      const target = tunnel ? parseTunnelTarget(req.url, req.headers.host, tunnel, origins) : parseProxyTarget(req.url, req.headers.host, origins);
+      target = tunnel ? parseTunnelTarget(req.url, req.headers.host, tunnel, origins) : parseProxyTarget(req.url, req.headers.host, origins);
       // Legacy campus HTTP pages lack browser Fetch Metadata. Redirect safe
       // navigations to an explicitly enabled HTTPS facade before borrowing any
       // account session. Never replay a body or forward an unproven HTTP form.
@@ -163,7 +211,7 @@ export function createCampusGateway(options = {}) {
         res.writeHead(307, { Location: upgraded.href, 'Cache-Control': 'no-store', Connection: 'close', 'Content-Length': '0' }).end();
         return;
       }
-      validateFetchMetadata(req.headers, target, origins);
+      validateFetchMetadata(req.headers, target, origins, { method: req.method, hasBody });
       const epoch = tunnel?.epoch ?? currentEpoch();
       assertEpoch(epoch);
       if (activeRequests >= maxConnections) fail('GATEWAY_BUSY', 503);
@@ -192,13 +240,14 @@ export function createCampusGateway(options = {}) {
       const response = upstreamResponse = await withSignal(Promise.resolve().then(() => { check(); return session.request(target.href, init); }), controller.signal, value => value?.body?.cancel());
       check();
       if (!response || !Number.isInteger(response.status) || response.status < 200 || response.status > 599 || !response.headers || response.body && typeof response.body.getReader !== 'function') fail('GATEWAY_UPSTREAM_INVALID', 502);
+      requestsByHost.set(target.hostname, (requestsByHost.get(target.hostname) ?? 0) + 1);
       const encoding = response.headers.get('content-encoding')?.trim();
       if (encoding && encoding.toLowerCase() !== 'identity' && (response.status === 206 || response.headers.has('content-range'))) fail('GATEWAY_ENCODED_RANGE_UNSUPPORTED', 502);
       const outputHeaders = sanitizeResponseHeaders(response.headers);
       // Learn's own JavaScript reads its non-authentication CSRF cookie. Only
       // the account adapter may project this one explicitly approved value;
       // upstream Set-Cookie and all browser authentication cookies stay hidden.
-      if (target.origin === 'https://learn.tsinghua.edu.cn' && session.browserCookies) {
+      if (['https://learn.tsinghua.edu.cn', 'https://info.tsinghua.edu.cn'].includes(target.origin) && session.browserCookies) {
         const cookies = await withSignal(Promise.resolve().then(() => session.browserCookies(target.href)), controller.signal);
         check();
         if (!Array.isArray(cookies) || cookies.length > 1 || cookies.some(cookie => cookie?.name !== 'XSRF-TOKEN' ||
@@ -226,6 +275,7 @@ export function createCampusGateway(options = {}) {
       }
       startResponse(); res.end();
     } catch (error) {
+      recordRejection(req, target, error);
       controller?.abort(safeError(error));
       respondError(res, error);
     } finally {
@@ -273,6 +323,7 @@ export function createCampusGateway(options = {}) {
     socket.setTimeout(0);
     socket.pause();
     void (async () => {
+      let target;
       let controller;
       let timer;
       let established = false;
@@ -282,9 +333,9 @@ export function createCampusGateway(options = {}) {
       };
       try {
         if (stopped) fail('GATEWAY_CLOSED', 503);
-        authenticate(req);
+        await authenticate(req);
         if (framing(req)) fail('GATEWAY_REQUEST_REJECTED');
-        const target = parseConnectAuthority(req.url, req.headers.host, origins);
+        target = parseConnectAuthority(req.url, req.headers.host, origins);
         // Browsers do not attach page provenance to the CONNECT handshake.
         // Every HTTP request inside this authenticated tunnel is checked below.
         if (req.headers.origin !== undefined || req.headers['sec-fetch-site'] !== undefined) validateFetchMetadata(req.headers, target);
@@ -327,6 +378,7 @@ export function createCampusGateway(options = {}) {
         handshaking.emit('connection', socket);
         socket.resume();
       } catch (error) {
+        recordRejection(req, target, error);
         clearTimeout(timer);
         if (controller) controllers.delete(controller);
         socket.off('close', disconnected);
@@ -352,6 +404,8 @@ export function createCampusGateway(options = {}) {
       const address = server.address();
       return address && typeof address === 'object' ? { host: '127.0.0.1', port: address.port } : null;
     },
+    statistics() { return { requests: [...requestsByHost.values()].reduce((sum, count) => sum + count, 0), hosts: Object.fromEntries(requestsByHost),
+      recentRejections: recentRejections.map(entry => ({ ...entry })) }; },
     close() {
       if (closing) return closing;
       stopped = true;

@@ -35,6 +35,30 @@ test('standalone restoration verifies account with a read-only probe and preserv
   const epoch=sdk.epoch();await sdk.close();assert.throws(()=>sdk.assertCurrent(epoch),{code:'AUTH_SESSION_CLOSED'});
   const raw=await readFile(path.join(dir,'session.json'),'utf8');assert.equal(raw.includes('password'),false);assert.equal(JSON.parse(raw).device.fingerprint,'b'.repeat(32));
 });
+test('browser service preparation uses only existing SSO confirmation and never passwords or account initialization',async t=>{
+ for(const mode of ['confirm','password','uninitialized']){
+  const dir=await temporary(t),school=fakeSchool(),requests:{path:string;method:string;body:string}[]=[];let confirmed=false;
+  const sdk=await createNodeSession({dataDir:dir,fetch:(async(raw:string,init:RequestInit={})=>{
+   const url=new URL(webvpnDecodeUrl(raw)??raw),method=init.method??'GET',body=String(init.body??'');requests.push({path:url.pathname,method,body});
+   if(url.pathname==='/ic-web/auth/userInfo')return Response.json(confirmed?{code:0,data:mode==='uninitialized'?{}:{pid:'12345678',accNo:123}}:{code:300,message:'login required'});
+   if(url.pathname==='/ic-web/auth/address')return Response.json({code:0,data:'https://cab.lib.tsinghua.edu.cn/authcenter/toLoginPage'});
+   if(url.pathname==='/authcenter/toLoginPage')return new Response(null,{status:302,headers:{location:'https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/fixture/0'}});
+   if(url.pathname.includes('/login/form/'))return new Response(mode==='password'?'<form><div id="sm2publicKey">fixture</div><input name="i_pass"></form>':'<form action="/do/off/ui/auth/login/checkSingle"></form>');
+   if(url.pathname.endsWith('/login/checkSingle')){const fields=new URLSearchParams(body);assert.equal(fields.get('fingerPrint'),'b'.repeat(32));assert.equal(fields.get('fingerGenPrint'),'fixture-trust');return new Response(null,{status:302,headers:{location:'https://oauth.tsinghua.edu.cn/fixture-callback?ticket=fixture'}});}
+   if(url.pathname==='/fixture-callback'){confirmed=true;return new Response('ready');}
+   if(url.pathname==='/ic-web/roomDevice/roomInfos')return Response.json({code:0,data:[]});
+   return school.fetch(raw,init);
+  }) as typeof fetch});
+  try{
+   await sdk.restore();sdk.info.resetStaticSessionCaches();sdk.session.injectCredentials('12345678','must-never-replay');
+   if(mode==='confirm')await sdk.ensureCampusService('https://cab.lib.tsinghua.edu.cn');
+   else await assert.rejects(sdk.ensureCampusService('https://cab.lib.tsinghua.edu.cn'));
+   assert.equal(sdk.status().authenticated,true);assert(requests.every(r=>!r.body.includes('must-never-replay')));
+   assert(requests.filter(r=>r.method!=='GET').every(r=>r.path==='/do/off/ui/auth/login/checkSingle'));
+   assert(!requests.some(r=>r.path==='/ic-web/account/update'||r.path.endsWith('/login/check')));
+  }finally{await sdk.close();}
+ }
+});
 test('another account response clears saved cookies and invalidates the previous generation',async t=>{
   const dir=await temporary(t);const sdk=await createNodeSession({dataDir:dir,fetch:fakeSchool({account:'87654321'}).fetch});t.after(()=>sdk.close());const epoch=sdk.epoch();
   await assert.rejects(sdk.restore(),{code:'AUTH_SESSION_CONFLICT'});assert.equal(sdk.status().authenticated,false);assert.equal(sdk.http.jar.serialize(),'[]');assert.throws(()=>sdk.assertCurrent(epoch),{code:'AUTH_SESSION_CHANGED'});await sdk.close();assert.equal(JSON.parse(await readFile(path.join(dir,'session.json'),'utf8')).session,null);

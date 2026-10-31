@@ -16,8 +16,8 @@ async function fixture(t, platform = 'darwin') {
   const ca = await createCertificateAuthority({ directory, allowedHosts: ['learn.tsinghua.edu.cn'] });
   const state = {
     calls: [], installed: false, trusted: false, failMutation: false,
-    services: { 'Wi-Fi': { pac: { url: 'https://previous.example/proxy.pac', enabled: false }, web: group(), secure: group() },
-      USB: { pac: { url: '', enabled: false }, web: group(), secure: group() } },
+    services: { 'Wi-Fi': { pac: { url: 'https://previous.example/proxy.pac', enabled: false }, web: group(), secure: group(), socks: group(), bypass: ['127.0.0.1', 'localhost', '*.local', '<local>'] },
+      USB: { pac: { url: '', enabled: false }, web: group(), secure: group(), socks: group(), bypass: [] } },
     win: { AutoConfigURL: { exists: false, value: null, kind: null }, ProxyEnable: { exists: false, value: null, kind: null } },
     winConfiguration: { autoDetect: false, autoConfigUrl: '', proxy: '' },
   };
@@ -26,17 +26,20 @@ async function fixture(t, platform = 'darwin') {
     if (command.endsWith('networksetup')) {
       const [action, service, value] = args;
       if (action === '-listallnetworkservices') return { stdout: 'An asterisk (*) denotes that a network service is disabled.\nWi-Fi\nUSB\n*Disabled\n' };
-      if (action === '-getsocksfirewallproxy') return { stdout: `Enabled: ${state.socks ? 'Yes' : 'No'}\nServer: \nPort: 0\nAuthenticated Proxy Enabled: 0\n` };
       if (action === '-getproxyautodiscovery') return { stdout: `Auto Proxy Discovery: ${state.discovery ? 'On' : 'Off'}\n` };
       const item = state.services[service];
-      const kind = action.includes('autoproxy') ? 'pac' : action.includes('secureweb') ? 'secure' : 'web';
+      if (action === '-getproxybypassdomains') return { stdout: item.bypass.length ? item.bypass.join('\n') + '\n' : `There aren't any bypass domains set on ${service}.\n` };
+      const kind = action.includes('autoproxy') ? 'pac' : action.includes('socks') ? 'socks' : action.includes('secureweb') ? 'secure' : 'web';
       if (action.startsWith('-get')) {
-        const current = item[kind];
+        const current = kind === 'socks' && state.socks ? { ...item[kind], enabled: true } : item[kind];
         return { stdout: kind === 'pac' ? `URL: ${current.url || '(null)'}\nEnabled: ${current.enabled ? 'Yes' : 'No'}\n` :
           `Enabled: ${current.enabled ? 'Yes' : 'No'}\nServer: ${current.server}\nPort: ${current.port}\nAuthenticated Proxy Enabled: ${current.authenticated}\n` };
       }
-      if (state.failMutation) throw new Error('denied: private output must not escape');
-      if (action === '-setautoproxyurl') item.pac = { url: value, enabled: true };
+      if (state.failMutation || state.failAction === action) throw new Error('denied: private output must not escape');
+      if (action === '-setautoproxyurl') {
+        if (!value) throw new Error('Invalid URL');
+        item.pac = { url: value, enabled: true };
+      }
       else item[kind].enabled = value === 'on';
       return { stdout: '' };
     }
@@ -79,7 +82,7 @@ async function fixture(t, platform = 'darwin') {
 test('construction is inert and mutation always requires explicit confirmation', async t => {
   const f = await fixture(t);
   assert.equal(f.state.calls.length, 0);
-  for (const method of ['trust', 'untrust', 'enableProxy', 'disableProxy']) {
+  for (const method of ['trust', 'untrust', 'prepareProxy', 'enableProxy', 'disableProxy']) {
     assert.throws(() => f.integration[method]({ pacUrl: url }), { code: 'GATEWAY_PLATFORM_CONFIRMATION_REQUIRED' });
   }
   assert.equal(f.state.calls.length, 0);
@@ -88,17 +91,238 @@ test('construction is inert and mutation always requires explicit confirmation',
   assert.equal(status.proxyEnabled, false);
 });
 
-test('macOS snapshots enabled services, restores PAC URL and prior disabled state exactly', async t => {
+test('macOS restores prior PAC enablement and nonempty URLs while retaining inactive generated URLs', async t => {
   const f = await fixture(t);
   const before = clone(f.state.services);
   await f.integration.enableProxy({ confirm: true, pacUrl: url });
   assert.equal(f.state.services['Wi-Fi'].pac.url, url);
   assert.equal(f.state.services.USB.pac.enabled, true);
   assert.equal((await f.integration.status()).proxyEnabled, true);
-  assert.deepEqual(await f.integration.disableProxy({ confirm: true }), { restored: true, conflicts: [], failures: [] });
+  assert.deepEqual(await f.integration.disableProxy({ confirm: true }), { restored: true, conflicts: [], failures: [], retainedInactivePacUrls: ['USB'] });
+  before.USB.pac.url = url;
   assert.deepEqual(f.state.services, before);
   assert.equal(f.state.calls.some(call => call.args.includes('Disabled')), false);
   assert.equal(f.state.calls.some(call => /sudo|osascript/.test(call.command)), false);
+});
+
+function manualProxies(f) {
+  for (const kind of ['web', 'secure', 'socks']) f.state.services['Wi-Fi'][kind] = { enabled: true, server: '127.0.0.1', port: '7897', authenticated: '0' };
+  f.state.services['Wi-Fi'].bypass = ['127.0.0.1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', 'localhost', '*.local', '*.crashlytics.com', '<local>'];
+  f.state.services.USB.socks = { enabled: true, server: 'proxy.example', port: '1080', authenticated: '0' };
+}
+const serviceUrls = { 'Wi-Fi': 'http://127.0.0.1:41827/wifi.pac', USB: 'http://127.0.0.1:41827/usb.pac' };
+
+test('macOS prepares per-service manual proxy and bypass descriptors without writing anything', async t => {
+  const f = await fixture(t);
+  manualProxies(f);
+  const before = clone(f.state.services);
+  const plan = await f.integration.prepareProxy({ confirm: true });
+  assert.equal(plan.version, 1); assert.equal(plan.platform, 'darwin');
+  assert.match(plan.fingerprint, /^[a-f0-9]{64}$/);
+  assert.deepEqual(plan.services, [
+    { name: 'Wi-Fi', fallback: { http: { host: '127.0.0.1', port: 7897 }, https: { host: '127.0.0.1', port: 7897 },
+      socks: { host: '127.0.0.1', port: 7897 }, bypass: before['Wi-Fi'].bypass } },
+    { name: 'USB', fallback: { http: null, https: null, socks: { host: 'proxy.example', port: 1080 }, bypass: [] } },
+  ]);
+  assert.deepEqual(f.state.services, before);
+  assert.equal(f.state.calls.some(call => call.args[0].startsWith('-set')), false);
+  assert.doesNotMatch(JSON.stringify(plan), /password|username|privateKey|certificate|authenticated/);
+  await assert.rejects(readFile(join(f.directory, 'platform-state.json')), { code: 'ENOENT' });
+});
+
+test('macOS composed PAC restores routing settings and retains only an inactive URL when originally blank', async t => {
+  const f = await fixture(t);
+  manualProxies(f);
+  const before = clone(f.state.services);
+  const expectedPlan = await f.integration.prepareProxy({ confirm: true });
+  const result = await f.integration.enableProxy({ confirm: true, expectedPlan, pacUrlsByService: serviceUrls });
+  assert.equal(result.coexistence, true);
+  for (const [name, service] of Object.entries(f.state.services)) {
+    assert.deepEqual(service.pac, { url: serviceUrls[name], enabled: true });
+    for (const kind of ['web', 'secure', 'socks']) assert.equal(service[kind].enabled, false);
+    assert.deepEqual(service.bypass, before[name].bypass);
+  }
+  const changes = f.state.calls.filter(call => call.args[0].startsWith('-set'));
+  for (const name of Object.keys(serviceUrls)) assert.equal(changes.find(call => call.args[1] === name).args[0], '-setautoproxyurl');
+  const status = await f.integration.status();
+  assert.deepEqual(status.activeServices, ['Wi-Fi', 'USB']); assert.equal(status.coexistence, true);
+  assert.deepEqual(status.pacUrlsByService, serviceUrls);
+  assert.equal((await f.integration.disableProxy({ confirm: true })).restored, true);
+  before.USB.pac.url = serviceUrls.USB;
+  assert.deepEqual(f.state.services, before, 'manual metadata and bypass rules restored; formerly blank PAC remains disabled');
+  assert.equal(f.state.calls.some(call => call.args[0] === '-setproxybypassdomains'), false);
+  assert.equal(f.state.calls.some(call => ['-setwebproxy', '-setsecurewebproxy', '-setsocksfirewallproxy'].includes(call.args[0])), false);
+});
+
+test('macOS composed activation rejects changed snapshots and altered fallback plans before mutation', async t => {
+  for (const change of ['port', 'bypass', 'descriptor']) {
+    const f = await fixture(t); manualProxies(f);
+    const expectedPlan = await f.integration.prepareProxy({ confirm: true });
+    if (change === 'port') f.state.services['Wi-Fi'].web.port = '7898';
+    else if (change === 'bypass') f.state.services['Wi-Fi'].bypass.push('changed.example');
+    else expectedPlan.services[0].fallback.http.host = 'changed.example';
+    await assert.rejects(f.integration.enableProxy({ confirm: true, expectedPlan, pacUrlsByService: serviceUrls }), { code: 'GATEWAY_PROXY_PLAN_CHANGED' });
+    assert.equal(f.state.calls.some(call => call.args[0].startsWith('-set')), false);
+    await assert.rejects(readFile(join(f.directory, 'platform-state.json')), { code: 'ENOENT' });
+  }
+});
+
+test('status detects later proxy changes without mutating settings or recovery journal', async t => {
+  const f = await fixture(t); manualProxies(f);
+  const expectedPlan = await f.integration.prepareProxy({ confirm: true });
+  await f.integration.enableProxy({ confirm: true, expectedPlan, pacUrlsByService: serviceUrls });
+  assert.equal((await f.integration.status()).settingsChanged, false);
+  f.state.services['Wi-Fi'].web.enabled = true;
+  f.state.services['Wi-Fi'].secure.enabled = true;
+  f.state.services.USB.pac.url = 'https://later-user.example/proxy.pac';
+  const before = clone(f.state.services);
+  const journal = await readFile(join(f.directory, 'platform-state.json'), 'utf8');
+  const mutations = f.state.calls.filter(call => call.args[0].startsWith('-set')).length;
+  const status = await f.integration.status();
+  assert.equal(status.settingsChanged, true);
+  assert.equal(status.settingsUnreadable, false);
+  assert.deepEqual(status.changedServices, ['Wi-Fi', 'USB']);
+  assert.deepEqual(f.state.services, before);
+  assert.equal(await readFile(join(f.directory, 'platform-state.json'), 'utf8'), journal);
+  assert.equal(f.state.calls.filter(call => call.args[0].startsWith('-set')).length, mutations);
+});
+
+test('status accepts pending journal states and reports unavailable service queries without writing', async t => {
+  const f = await fixture(t);
+  await f.integration.enableProxy({ confirm: true, pacUrl: url });
+  const path = join(f.directory, 'platform-state.json');
+  const saved = JSON.parse(await readFile(path, 'utf8'));
+  const entry = saved.proxy.entries.find(value => value.service === 'Wi-Fi' && value.kind === 'pac');
+  entry.pending = { before: entry.before, after: entry.owned };
+  entry.owned = entry.before;
+  await writeFile(path, JSON.stringify(saved), { mode: 0o600 });
+  assert.equal((await f.integration.status()).settingsChanged, false);
+  assert.equal((await f.integration.status()).restorePending, true);
+  f.state.services['Wi-Fi'].pac = clone(entry.pending.before);
+  assert.equal((await f.integration.status()).settingsChanged, false);
+  const integration = createPlatformIntegration({ ...f.options, run: async (command, args) => {
+    if (command.endsWith('networksetup') && args[0] === '-getautoproxyurl' && args[1] === 'Wi-Fi') throw new Error('service disappeared');
+    return f.options.run(command, args);
+  } });
+  const status = await integration.status();
+  assert.equal(status.settingsChanged, true);
+  assert.equal(status.settingsUnreadable, true);
+  assert.deepEqual(status.changedServices, ['Wi-Fi']);
+  assert.equal(await readFile(path, 'utf8'), JSON.stringify(saved));
+});
+
+test('Windows status detects changed fields and accepts an interrupted registry write', async t => {
+  const f = await fixture(t, 'win32');
+  await f.integration.enableProxy({ confirm: true, pacUrl: url });
+  assert.equal((await f.integration.status()).settingsChanged, false);
+  const path = join(f.directory, 'platform-state.json');
+  const saved = JSON.parse(await readFile(path, 'utf8'));
+  const entry = saved.proxy.entries[0];
+  entry.pending = { before: entry.before, after: entry.owned,
+    intermediate: { ...entry.before, AutoConfigURL: entry.owned.AutoConfigURL } };
+  entry.owned = entry.before;
+  f.state.win = clone(entry.pending.intermediate);
+  await writeFile(path, JSON.stringify(saved), { mode: 0o600 });
+  assert.equal((await f.integration.status()).settingsChanged, false);
+  f.state.win.ProxyEnable = { exists: true, value: 1, kind: 'DWord' };
+  const status = await f.integration.status();
+  assert.equal(status.settingsChanged, true);
+  assert.deepEqual(status.changedServices, ['CurrentUser']);
+});
+
+test('macOS composed activation requires exactly one loopback PAC for each planned service', async t => {
+  const f = await fixture(t); manualProxies(f);
+  const expectedPlan = await f.integration.prepareProxy({ confirm: true });
+  assert.throws(() => f.integration.enableProxy({ confirm: true, pacUrlsByService: serviceUrls }), { code: 'GATEWAY_PROXY_PLAN_INVALID' });
+  for (const pacUrlsByService of [{ 'Wi-Fi': serviceUrls['Wi-Fi'] }, { ...serviceUrls, Unknown: url }]) {
+    await assert.rejects(f.integration.enableProxy({ confirm: true, expectedPlan, pacUrlsByService }), { code: 'GATEWAY_PROXY_PLAN_CHANGED' });
+  }
+  assert.throws(() => f.integration.enableProxy({ confirm: true, expectedPlan, pacUrlsByService: { ...serviceUrls, USB: 'https://external.example/proxy.pac' } }), { code: 'GATEWAY_PAC_URL_INVALID' });
+  assert.equal(f.state.calls.some(call => call.args[0].startsWith('-set')), false);
+});
+
+test('macOS composition still refuses arbitrary PAC, discovery, authenticated or malformed proxies', async t => {
+  for (const condition of ['pac', 'discovery', 'authenticated', 'host']) {
+    const f = await fixture(t); manualProxies(f);
+    if (condition === 'pac') f.state.services.USB.pac.enabled = true;
+    else if (condition === 'discovery') f.state.discovery = true;
+    else if (condition === 'authenticated') f.state.services['Wi-Fi'].web.authenticated = '1';
+    else f.state.services['Wi-Fi'].web.server = 'user:password@proxy.example';
+    await assert.rejects(f.integration.prepareProxy({ confirm: true }), {
+      code: condition === 'authenticated' ? 'GATEWAY_AUTHENTICATED_PROXY_UNSUPPORTED' : condition === 'host' ? 'GATEWAY_PROXY_SETTINGS_UNREADABLE' : 'GATEWAY_EXISTING_PROXY_ENABLED',
+    });
+    assert.equal(f.state.calls.some(call => call.args[0].startsWith('-set')), false);
+  }
+});
+
+test('macOS composed activation stops after a permission denial and retains explicit recovery', async t => {
+  const f = await fixture(t); manualProxies(f);
+  const before = clone(f.state.services);
+  const expectedPlan = await f.integration.prepareProxy({ confirm: true });
+  f.state.failAction = '-setsocksfirewallproxystate';
+  await assert.rejects(f.integration.enableProxy({ confirm: true, expectedPlan, pacUrlsByService: serviceUrls }), { code: 'GATEWAY_SYSTEM_PERMISSION_REQUIRED' });
+  assert.equal(f.state.calls.filter(call => call.args[0].startsWith('-set')).length, 4);
+  assert.equal((await f.integration.status()).restorePending, true);
+  f.state.failAction = undefined;
+  assert.equal((await f.integration.disableProxy({ confirm: true })).restored, true);
+  assert.deepEqual(f.state.services, before);
+  assert.equal((await f.integration.status()).recoveryRequired, false);
+});
+
+test('macOS restore stops on the first permission denial without trying other services', async t => {
+  const f = await fixture(t); manualProxies(f);
+  const expectedPlan = await f.integration.prepareProxy({ confirm: true });
+  await f.integration.enableProxy({ confirm: true, expectedPlan, pacUrlsByService: serviceUrls });
+  const beforeFailure = clone(f.state.services);
+  const mutations = f.state.calls.filter(call => call.args[0].startsWith('-set')).length;
+  f.state.failMutation = true;
+  const result = await f.integration.disableProxy({ confirm: true });
+  assert.deepEqual(result.failures, ['USB/socks']);
+  assert.equal(f.state.calls.filter(call => call.args[0].startsWith('-set')).length, mutations + 1);
+  assert.deepEqual(f.state.services, beforeFailure);
+  assert.equal((await f.integration.status()).restorePending, true);
+  assert.equal(JSON.parse(await readFile(join(f.directory, 'platform-state.json'), 'utf8')).proxy.restorePending, true);
+  f.state.failMutation = false;
+  assert.equal((await f.integration.disableProxy({ confirm: true })).restored, true);
+});
+
+test('already-disabled legacy empty-URL recovery needs no OS write or authorization helper', async t => {
+  const f = await fixture(t);
+  await f.integration.enableProxy({ confirm: true, pacUrl: url });
+  const path = join(f.directory, 'platform-state.json');
+  const saved = JSON.parse(await readFile(path, 'utf8'));
+  const entry = saved.proxy.entries.find(value => value.service === 'USB' && value.kind === 'pac');
+  entry.owned.enabled = false;
+  entry.pending = { before: clone(entry.owned), after: { url: '', enabled: false } };
+  saved.proxy.entries = [entry];
+  f.state.services.USB.pac.enabled = false;
+  await writeFile(path, JSON.stringify(saved), { mode: 0o600 });
+  const mutations = f.state.calls.filter(call => call.args[0].startsWith('-set')).length;
+  assert.equal((await f.integration.status()).restorePending, true);
+  assert.deepEqual(await f.integration.disableProxy({ confirm: true }), { restored: true, conflicts: [], failures: [], retainedInactivePacUrls: ['USB'] });
+  assert.equal(f.state.calls.filter(call => call.args[0].startsWith('-set')).length, mutations);
+  assert.equal(f.state.calls.some(call => /osascript|sudo/.test(call.command)), false);
+  assert.deepEqual(f.state.services.USB.pac, { url, enabled: false });
+  assert.equal((await f.integration.status()).restorePending, false);
+});
+
+test('macOS composed recovery restores a pending SOCKS mutation and preserves later manual user edits', async t => {
+  const f = await fixture(t); manualProxies(f);
+  const before = clone(f.state.services);
+  const expectedPlan = await f.integration.prepareProxy({ confirm: true });
+  await f.integration.enableProxy({ confirm: true, expectedPlan, pacUrlsByService: serviceUrls });
+  const path = join(f.directory, 'platform-state.json');
+  const saved = JSON.parse(await readFile(path, 'utf8'));
+  const socks = saved.proxy.entries.find(entry => entry.service === 'Wi-Fi' && entry.kind === 'socks');
+  socks.pending = { before: socks.before, after: socks.owned }; socks.owned = socks.before;
+  await writeFile(path, JSON.stringify(saved), { mode: 0o600 });
+  f.state.services.USB.socks = { ...f.state.services.USB.socks, server: 'user-change.example' };
+  const result = await createPlatformIntegration(f.options).disableProxy({ confirm: true });
+  assert.deepEqual(result.conflicts, ['USB/socks']); assert.deepEqual(result.failures, []);
+  assert.deepEqual(f.state.services['Wi-Fi'], before['Wi-Fi']);
+  assert.deepEqual(f.state.services.USB.pac, { url: serviceUrls.USB, enabled: false });
+  assert.equal(f.state.services.USB.socks.server, 'user-change.example');
+  assert.equal(f.state.services.USB.socks.enabled, false);
 });
 
 test('macOS refuses existing PAC, HTTP, HTTPS, SOCKS and auto discovery before any mutation', async t => {
@@ -138,7 +362,7 @@ test('a new integration recovers interrupted write-ahead operations and refuses 
   assert.equal(f.state.services['Wi-Fi'].pac.enabled, false);
 });
 
-test('permission denial has safe actionable errors and rolls back untouched state', async t => {
+test('permission denial has safe actionable errors and leaves untouched settings for explicit recovery', async t => {
   const f = await fixture(t);
   const before = clone(f.state.services);
   f.state.failMutation = true;
@@ -148,6 +372,10 @@ test('permission denial has safe actionable errors and rolls back untouched stat
     return true;
   });
   assert.deepEqual(f.state.services, before);
+  assert.equal(f.state.calls.filter(call => call.args[0].startsWith('-set')).length, 1);
+  assert.equal((await f.integration.status()).restorePending, true);
+  f.state.failMutation = false;
+  assert.equal((await f.integration.disableProxy({ confirm: true })).restored, true);
   assert.equal((await f.integration.status()).proxyEnabled, false);
 });
 

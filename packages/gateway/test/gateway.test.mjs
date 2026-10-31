@@ -178,6 +178,149 @@ test('unauthorized HTTP and CONNECT do not call session or certificate provider'
   assert.equal(f.state.certificates.length, 0);
 });
 
+test('a separate peer-authorized listener accepts verified sockets while retaining request provenance', async t => {
+  let checks = 0;
+  const f = await fixture(t, { token: undefined, withTls: true, authorizeSocket: async socket => {
+    checks++; assert.equal(socket.remoteAddress, '127.0.0.1'); return true;
+  } });
+  assert.equal((await proxyRequest(f, { auth: false })).status, 200);
+  assert.equal((await proxyRequest(f, { auth: false, headers: { 'sec-fetch-site': 'cross-site' } })).status, 403);
+  assert.equal((await proxyRequest(f, { auth: false, headers: { 'sec-fetch-site': null } })).status, 403);
+  const tunnel = await connect(f, { auth: false }); assert.equal(tunnel.status, 200); tunnel.socket.destroy();
+  assert.equal(checks, 4); assert.equal(f.state.calls.length, 1);
+});
+
+test('peer authorization fails closed even when a client supplies legacy proxy credentials', async t => {
+  const f = await fixture(t, { token: undefined, withTls: true, authorizeSocket: async () => false });
+  assert.equal((await proxyRequest(f)).status, 403);
+  const tunnel = await connect(f); assert.equal(tunnel.status, 403); tunnel.socket.destroy();
+  assert.equal(f.state.calls.length, 0); assert.equal(f.state.certificates.length, 0);
+  assert.throws(() => createCampusGateway({ allowedOrigins: ['https://learn.tsinghua.edu.cn'], token, authorizeSocket: () => true, session: {} }));
+});
+
+test('custom origin lists cannot route browser identity pages into the shared session or issue identity certificates', async t => {
+  const identities = ['id.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn'];
+  const f = await fixture(t, { withTls: true, token: undefined, authorizeSocket: async () => true,
+    allowedOrigins: [`https://${hostname}`, ...identities.flatMap(host => [`https://${host}`, `http://${host}`])] });
+  for (const host of identities) {
+    for (const scheme of ['http', 'https']) {
+      const result = await proxyRequest(f, { auth: false, url: `${scheme}://${host}/`, headers: { host } });
+      assert.equal(result.status, 401);
+      assert.match(result.body.toString(), /GATEWAY_AUTH_REQUIRED/);
+    }
+    const tunnel = await connect(f, { authority: `${host}:443`, auth: false });
+    assert.equal(tunnel.status, 401);
+    tunnel.socket.destroy();
+  }
+  assert.equal(f.state.calls.length, 0);
+  assert.equal(f.state.certificates.length, 0);
+});
+
+test('rejection diagnostics retain only bounded, redacted provenance categories', async t => {
+  const f = await fixture(t, { token: undefined, authorizeSocket: async () => true });
+  const secret = 'private-student-token-123456789';
+  for (let index = 0; index < 10; index++) {
+    const result = await proxyRequest(f, { auth: false, url: `https://${hostname}/${secret}?token=${secret}`, method: 'POST', body: secret,
+      headers: { 'sec-fetch-site': secret, 'sec-fetch-mode': secret, 'sec-fetch-dest': secret, 'sec-fetch-user': secret,
+        origin: `https://${secret}.example`, referer: `https://${hostname}/private?token=${secret}`, cookie: `student=${secret}`,
+        'x-private-header': secret, authorization: `Bearer ${secret}` } });
+    assert.equal(result.status, 403);
+  }
+  const stats = f.gateway.statistics();
+  assert.equal(stats.recentRejections.length, 8);
+  assert.deepEqual(stats.recentRejections[0], {
+    code: 'GATEWAY_CROSS_SITE_REJECTED', host: hostname, method: 'POST', fetchSite: 'other', fetchMode: 'other', fetchDest: 'other', fetchUser: 'other',
+    hasOrigin: true, originMatchesTarget: false, referrerAllowed: true, landingCategory: 'other',
+  });
+  assert.equal(JSON.stringify(stats).includes(secret), false);
+  assert.equal(JSON.stringify(stats).includes(token), false);
+  assert.equal(f.state.calls.length, 0);
+  stats.recentRejections[0].host = secret;
+  stats.recentRejections.pop();
+  assert.equal(f.gateway.statistics().recentRejections.length, 8);
+  assert.equal(JSON.stringify(f.gateway.statistics()).includes(secret), false);
+});
+
+test('navigation diagnostics describe an Info landing rejection without allowing it', async t => {
+  const f = await fixture(t, { allowedOrigins: ['https://info.tsinghua.edu.cn'] });
+  const result = await proxyRequest(f, { url: 'https://info.tsinghua.edu.cn/?private=query', headers: {
+    host: 'info.tsinghua.edu.cn', 'sec-fetch-site': 'cross-site', 'sec-fetch-mode': 'navigate', 'sec-fetch-dest': 'document',
+    'sec-fetch-user': '?1', origin: 'https://info.tsinghua.edu.cn', referer: 'https://external.example/private',
+  } });
+  assert.equal(result.status, 403);
+  assert.deepEqual(f.gateway.statistics().recentRejections, [{
+    code: 'GATEWAY_CROSS_SITE_REJECTED', host: 'info.tsinghua.edu.cn', method: 'GET', fetchSite: 'cross-site', fetchMode: 'navigate',
+    fetchDest: 'document', fetchUser: '?1', hasOrigin: true, originMatchesTarget: true, referrerAllowed: false, landingCategory: 'info-home',
+  }]);
+  assert.equal(f.state.calls.length, 0);
+});
+
+test('TLS tunnel rejection diagnostics capture missing navigation metadata without request contents', async t => {
+  const f = await fixture(t, { withTls: true });
+  const result = await tlsRequest(f, { path: '/f/wlxt/index/course/student/?private=hidden', headers: { 'sec-fetch-site': null } });
+  assert.equal(result.status, 403);
+  assert.deepEqual(f.gateway.statistics().recentRejections, [{
+    code: 'GATEWAY_PROVENANCE_REQUIRED', host: hostname, method: 'GET', fetchSite: 'missing', fetchMode: 'missing', fetchDest: 'missing', fetchUser: 'missing',
+    hasOrigin: false, originMatchesTarget: false, referrerAllowed: false, landingCategory: 'learn-home',
+  }]);
+});
+
+const landingNavigationHeaders = {
+  'sec-fetch-site': 'cross-site', 'sec-fetch-mode': 'navigate', 'sec-fetch-dest': 'document', 'sec-fetch-user': '?1',
+};
+const infoNewsLanding = 'https://info.tsinghua.edu.cn/f/info/xxfb_fg/xnzx/stu/index';
+
+test('user-activated cross-site navigation accepts only the three explicit empty-query campus landings', async t => {
+  const f = await fixture(t, { allowedOrigins: ['https://info.tsinghua.edu.cn', `https://${hostname}`],
+    token: undefined, authorizeSocket: async () => true });
+  for (const url of ['https://info.tsinghua.edu.cn/', infoNewsLanding, `https://${hostname}/f/wlxt/index/course/student/`]) {
+    for (const method of ['GET', 'HEAD']) {
+      const result = await proxyRequest(f, { auth: false, url, method, headers: { ...landingNavigationHeaders, host: new URL(url).host } });
+      assert.equal(result.status, 200, `${method} ${url}`);
+    }
+  }
+  assert.equal(f.state.calls.length, 6);
+  assert.deepEqual(f.gateway.statistics().recentRejections, []);
+});
+
+test('landing exception cannot authorize forms, query actions, subresources, frames, or unactivated navigation', async t => {
+  const f = await fixture(t, { allowedOrigins: ['https://info.tsinghua.edu.cn', `https://${hostname}`],
+    token: undefined, authorizeSocket: async () => true });
+  const attempts = [
+    { method: 'POST', body: 'action=change' }, { method: 'POST' }, { method: 'DELETE' },
+    { method: 'GET', body: 'action=change', headers: { 'content-length': '13' } },
+    { url: `${infoNewsLanding}?action=change` }, { url: `${infoNewsLanding}?` }, { url: `${infoNewsLanding}#private` },
+    { url: `${infoNewsLanding}/` }, { url: 'https://info.tsinghua.edu.cn/logout' },
+    { url: `https://${hostname}/f/wlxt/index/course/student/course?wlkcid=private` },
+    { headers: { 'sec-fetch-user': null } }, { headers: { 'sec-fetch-user': '?0' } },
+    { headers: { 'sec-fetch-mode': 'cors' } }, { headers: { 'sec-fetch-mode': null } },
+    { headers: { 'sec-fetch-dest': 'iframe' } }, { headers: { 'sec-fetch-dest': 'image' } }, { headers: { 'sec-fetch-dest': null } },
+    { headers: { origin: 'https://external.example' } }, { headers: { origin: 'https://info.tsinghua.edu.cn' } },
+    { headers: { origin: 'null' } }, { headers: { 'sec-fetch-site': null } },
+  ];
+  for (const attempt of attempts) {
+    const url = attempt.url ?? infoNewsLanding;
+    const result = await proxyRequest(f, { ...attempt, auth: false, url,
+      headers: { ...landingNavigationHeaders, host: new URL(url).host, ...attempt.headers } });
+    assert.ok(result.status >= 400, JSON.stringify(attempt));
+  }
+  assert.equal(f.state.calls.length, 0);
+  assert.equal(f.gateway.statistics().recentRejections.at(-1).landingCategory, 'info-news');
+});
+
+test('TLS landing navigation retains socket authentication and preserves the actual request metadata', async t => {
+  const f = await fixture(t, { withTls: true, request: (_url, init) => {
+    assert.equal(init.headers.get('sec-fetch-site'), 'cross-site');
+    assert.equal(init.headers.get('sec-fetch-user'), '?1');
+    return new Response('landing');
+  } });
+  const result = await tlsRequest(f, { path: '/f/wlxt/index/course/student/', headers: landingNavigationHeaders });
+  assert.equal(result.status, 200);
+  const denied = await proxyRequest(f, { auth: false, url: `https://${hostname}/f/wlxt/index/course/student/`, headers: landingNavigationHeaders });
+  assert.equal(denied.status, 407);
+  assert.equal(f.state.calls.length, 1);
+});
+
 test('exact target policy rejects origin form, userinfo, nondefault port, suffix and Host confusion', async t => {
   const f = await fixture(t);
   for (const url of ['/course', `http://user:pass@${hostname}/`, `http://${hostname}:8080/`,

@@ -6,11 +6,11 @@ import { createCampusProxySession } from '../src/node/campusProxy.js';
 import { withSecureCampusOrigins } from '@onethu/gateway/routes';
 
 const origins=['https://learn.tsinghua.edu.cn','https://info.tsinghua.edu.cn','https://id.tsinghua.edu.cn'];
-function fixture(fetch:any,allowed=origins){
+function fixture(fetch:any,allowed=origins,ensureCampusService?: (origin:string)=>Promise<void>){
   let epoch=1,ready=true;
   const assertCurrent=(value:number)=>{if(value!==epoch)throw Object.assign(new Error('AUTH_SESSION_CHANGED'),{code:'AUTH_SESSION_CHANGED'});};
   const transport=createNodeTransport({fetch,epoch:()=>epoch,assertCurrent});
-  const runtime={fetch:transport.fetch,epoch:()=>epoch,assertCurrent,status:()=>({authenticated:ready,state:ready?'ready':'idle',epoch}),http:{jar:transport.jar}};
+  const runtime={fetch:transport.fetch,epoch:()=>epoch,assertCurrent,status:()=>({authenticated:ready,state:ready?'ready':'idle',epoch}),http:{jar:transport.jar},ensureCampusService};
   return {session:createCampusProxySession(runtime as any,allowed),transport,bump(){epoch++;transport.rotate();},logout(){ready=false;epoch++;transport.rotate();}};
 }
 function chunks(bytes:Uint8Array,size=31){let offset=0;return new ReadableStream<Uint8Array>({pull(target){if(offset===bytes.length){target.close();return;}target.enqueue(bytes.subarray(offset,offset+size));offset=Math.min(offset+size,bytes.length);}});}
@@ -33,17 +33,19 @@ test('browser identity changes and ticket exchanges never reach upstream or muta
  assert.equal(calls,0);assert.equal(f.transport.jar.serialize(),before);f.transport.close();
 });
 
-test('browser cookie projection exposes only Learn root non-HttpOnly XSRF token and preserves encoding',()=>{
+test('browser cookie projection exposes only each approved application root non-HttpOnly XSRF token and preserves encoding',()=>{
   const f=fixture(async()=>new Response('unused'));
   const learn=new URL(origins[0]+'/');
   for(const line of ['XSRF-TOKEN=fixture%2Fcsrf%3D; Path=/; Secure','JSESSIONID=authentication-secret; Path=/; Secure; HttpOnly','sid=other-secret; Path=/; Secure','x-csrf=not-approved; Path=/; Secure'])f.transport.jar.setRaw(learn,line);
   f.transport.jar.setRaw(new URL(origins[1]+'/'),'XSRF-TOKEN=other-origin-secret; Path=/; Secure');
   assert.deepEqual(f.session.browserCookies(origins[0]+'/courses'),[{name:'XSRF-TOKEN',value:'fixture%2Fcsrf%3D'}]);
-  assert.deepEqual(f.session.browserCookies(origins[1]+'/'),[]);
+  assert.deepEqual(f.session.browserCookies(origins[1]+'/'),[{name:'XSRF-TOKEN',value:'other-origin-secret'}]);
+  assert.throws(()=>f.session.browserCookies(origins[2]+'/'),{code:'GATEWAY_AUTH_REQUIRED'});
   assert.throws(()=>f.session.browserCookies('https://outside.test/'),{code:'GATEWAY_TARGET_REJECTED'});
   const physical=new URL(webvpnWrap(origins[0]+'/'));
   f.transport.jar.setRaw(new URL('https://webvpn.tsinghua.edu.cn/'),'XSRF-TOKEN=global-must-stay-private; Path=/; Secure');
   f.transport.jar.setRaw(new URL(webvpnWrap(origins[1]+'/')),'XSRF-TOKEN=other-app-secret; Path='+new URL(webvpnWrap(origins[1]+'/')).pathname+'; Secure');
+  assert.deepEqual(f.session.browserCookies(origins[1]+'/'),[{name:'XSRF-TOKEN',value:'other-app-secret'}]);
   assert.deepEqual(f.session.browserCookies(origins[0]+'/'),[{name:'XSRF-TOKEN',value:'fixture%2Fcsrf%3D'}]);
   f.transport.jar.setRaw(physical,'XSRF-TOKEN=physical%2Fcurrent; Path='+physical.pathname+'; Secure');
   assert.deepEqual(f.session.browserCookies(origins[0]+'/'),[{name:'XSRF-TOKEN',value:'physical%2Fcurrent'}]);
@@ -55,6 +57,35 @@ test('browser cookie projection exposes only Learn root non-HttpOnly XSRF token 
   for(const cookie of persisted)delete cookie.httpOnly;f.transport.jar.hydrate(JSON.stringify(persisted));
   assert.deepEqual(f.session.browserCookies(origins[0]+'/'),[],'legacy unknown HttpOnly is not public');
   f.logout();assert.throws(()=>f.session.browserCookies(origins[0]+'/'),{code:'GATEWAY_AUTH_REQUIRED'});f.transport.close();
+});
+
+test('known Learn course HTML supplies its current public nonce before headers without changing the private jar',async()=>{
+ const old='11111111-1111-1111-1111-111111111111',current='22222222-2222-2222-2222-222222222222';
+ const wrapped=webvpnWrap(origins[0]+`/b/wlxt/xt/avatar?_csrf=${current}`);
+ const html=Buffer.concat([Buffer.from(`<html><script>const avatar='${wrapped}';</script>`),Buffer.from([0xd6,0xd0]),Buffer.from('</html>')]);
+ const f=fixture(async()=>new Response(chunks(html,13),{headers:{'content-type':'text/html; charset=gbk'}}));
+ const physical=new URL(webvpnWrap(origins[0]+'/'));f.transport.jar.setRaw(physical,`XSRF-TOKEN=${old}; Path=${physical.pathname}; Secure`);
+ const before=f.transport.jar.serialize(),response=await f.session.request(origins[0]+'/f/wlxt/index/course/student/');
+ assert.deepEqual(f.session.browserCookies(origins[0]+'/'),[{name:'XSRF-TOKEN',value:current}],'header projection must be ready before the body is consumed');
+ assert.deepEqual(Buffer.from(await response.arrayBuffer()),Buffer.from(html.toString('latin1').replace(wrapped,origins[0]+`/b/wlxt/xt/avatar?_csrf=${current}`),'latin1'));assert.equal(f.transport.jar.serialize(),before);
+ await(await f.session.request(origins[0]+'/res/app.js')).text();
+ assert.deepEqual(f.session.browserCookies(origins[0]+'/res/app.js'),[{name:'XSRF-TOKEN',value:current}],'assets cannot restore the stale mirror nonce');
+ f.bump();assert.deepEqual(f.session.browserCookies(origins[0]+'/'),[{name:'XSRF-TOKEN',value:old}],'a new account epoch cannot reuse the prior public nonce');f.transport.close();
+});
+
+test('public Learn nonce extraction rejects arbitrary pages, foreign links, ambiguity and tokens beyond the bounded prefix',async()=>{
+ const old='11111111-1111-1111-1111-111111111111',a='22222222-2222-2222-2222-222222222222',b='33333333-3333-3333-3333-333333333333';
+ for(const [path,html] of [
+  ['/files/uploaded.html',`<a href="/b/wlxt/avatar?_csrf=${a}">x</a>`],
+  ['/f/wlxt/index/course/student/',`<a href="https://outside.test/b/wlxt/avatar?_csrf=${a}">x</a>`],
+  ['/f/wlxt/index/course/student/',`<a href="/b/wlxt/avatar?_csrf=${a}">a</a><a href="/b/kc/other?_csrf=${b}">b</a>`],
+  ['/f/wlxt/index/course/student/','.'.repeat(65536)+`<a href="/b/wlxt/avatar?_csrf=${a}">x</a>`],
+ ]){
+  const f=fixture(async()=>new Response(chunks(Buffer.from(html!),31),{headers:{'content-type':'text/html'}}));
+  f.transport.jar.setRaw(new URL(origins[0]+'/'),`XSRF-TOKEN=${old}; Path=/; Secure`);
+  const response=await f.session.request(origins[0]+path);assert.equal(await response.text(),html);
+  assert.deepEqual(f.session.browserCookies(origins[0]+'/'),[{name:'XSRF-TOKEN',value:old}]);f.transport.close();
+ }
 });
 
 test('adapter uses the authoritative jar and wraps campus hosts while keeping browser identity controls private',async()=>{
@@ -131,7 +162,7 @@ test('secure browser aliases retain HTTP-only upstream routing and inverse-map n
   const home=await f.session.request('https://myhome.tsinghua.edu.cn/');assert.equal(seen[0]!.url,webvpnWrap('http://myhome.tsinghua.edu.cn/'));assert.equal(await home.text(),'<a href="https://myhome.tsinghua.edu.cn/path">home</a>');
   const direct=await f.session.request('https://zhjw.cic.tsinghua.edu.cn/',{headers:{origin:'https://zhjw.cic.tsinghua.edu.cn',referer:'https://zhjw.cic.tsinghua.edu.cn/before'}});
   assert.equal(seen[1]!.url,'http://zhjw.cic.tsinghua.edu.cn/');assert.equal(seen[1]!.headers.get('origin'),'http://zhjw.cic.tsinghua.edu.cn');assert.equal(direct.headers.get('location'),'https://zhjw.cic.tsinghua.edu.cn/next//page/');await direct.text();
-  await(await f.session.request('https://zhjwxk.cic.tsinghua.edu.cn/')).text();assert.equal(seen[2]!.url,webvpnWrap('https://zhjwxk.cic.tsinghua.edu.cn/'),'already-supported HTTPS upstream must remain HTTPS');f.transport.close();
+  await(await f.session.request('https://zhjwxk.cic.tsinghua.edu.cn/')).text();assert.equal(seen[2]!.url,webvpnWrap('http://zhjwxk.cic.tsinghua.edu.cn/'),'selection tickets and pages must use its HTTP-only upstream');f.transport.close();
 });
 
 test('existing-cookie bootstrap retries GET once, seeds only the live application jar and never replays POST',async()=>{
@@ -140,6 +171,40 @@ test('existing-cookie bootstrap retries GET once, seeds only the live applicatio
   const f=fixture(async(url:string,init:RequestInit)=>{calls.push({url,headers:new Headers(init.headers)});if(url.includes('/wengine-vpn/cookie?'))return new Response('JSESSIONID=from-live-session; wengine_vpn_ticket=never-replace');return new Response(calls.length===1?page:'<html>ready</html>',{headers:{'content-type':'text/html; charset=utf-8'}});});
   assert.equal(await(await f.session.request(origins[0]+'/')).text(),'<html>ready</html>');assert.equal(calls.length,3);assert.equal(calls[2]!.headers.get('cookie'),'JSESSIONID=from-live-session');assert(!f.transport.jar.serialize().includes('never-replace'));f.transport.close();
   let attempts=0;const post=fixture(async()=>{attempts++;return new Response(page,{headers:{'content-type':'text/html'}});});await assert.rejects(post.session.request(origins[0]+'/form',{method:'POST',body:'value=1'}),{code:'GATEWAY_AUTH_REQUIRED'});assert.equal(attempts,1);post.transport.close();
+});
+
+test('short application fragments with injected WebVPN variables are not mistaken for cookie bootstrap pages',async()=>{
+ const fragment='<script>var __vpn_hostname_data="fixture";var __vpn_app_hostname_data="fixture";</script><footer>Campus service footer</footer>';
+ let calls=0;const f=fixture(async()=>{calls++;return new Response(fragment,{headers:{'content-type':'text/html'}});});
+ assert.equal(await(await f.session.request(origins[0]+'/footer')).text(),fragment);assert.equal(calls,1);f.transport.close();
+});
+
+test('service SSO GET is prepared by the existing authority once while browser identity requests stay blocked',async()=>{
+ const cab='https://cab.lib.tsinghua.edu.cn';let preparations=0,release!:()=>void;
+ const hold=new Promise<void>(resolve=>{release=resolve;});
+ const f=fixture(async()=>new Response(null,{status:302,headers:{location:'https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/fixture/0'}}),[...origins,cab],async origin=>{assert.equal(origin,cab);preparations++;await hold;});
+ const a=f.session.request(cab+'/authcenter/toLoginPage'),b=f.session.request(cab+'/authcenter/toLoginPage');
+ await new Promise(resolve=>setTimeout(resolve,10));assert.equal(preparations,1);release();
+ for(const result of await Promise.all([a,b])){assert.equal(result.status,302);assert.equal(result.headers.get('location'),cab+'/');}
+ await assert.rejects(f.session.request(cab+'/authcenter/toLoginPage'),{code:'GATEWAY_AUTH_REQUIRED'});assert.equal(preparations,1);
+ await assert.rejects(f.session.request('https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/fixture/0'),{code:'GATEWAY_AUTH_REQUIRED'});
+ const post=await f.session.request(cab+'/business',{method:'POST',body:'value=fixture'});assert.equal(post.status,302);assert.equal(preparations,1);f.transport.close();
+});
+
+test('account changes invalidate a pending browser service preparation',async()=>{
+ const cab='https://cab.lib.tsinghua.edu.cn';let release!:()=>void,entered!:()=>void;
+ const started=new Promise<void>(resolve=>{entered=resolve;}),hold=new Promise<void>(resolve=>{release=resolve;});
+ const f=fixture(async()=>new Response(null,{status:302,headers:{location:'https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/fixture/0'}}),[...origins,cab],async()=>{entered();await hold;});
+ const response=f.session.request(cab+'/authcenter/toLoginPage');await started;f.bump();release();
+ await assert.rejects(response,{code:'GATEWAY_AUTH_REQUIRED'});f.transport.close();
+});
+
+test('card root and selection redirects use only fixed authority preparations and never replay browser POSTs',async()=>{
+ const card='https://card.tsinghua.edu.cn',selection='https://zhjwxk.cic.tsinghua.edu.cn',prepared:string[]=[],upstream:string[]=[];
+ const f=fixture(async(raw:string)=>{upstream.push(raw);return new Response(null,{status:302,headers:{location:'https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/fixture/1'}});},[...origins,card,selection],async origin=>{prepared.push(origin);});
+ const home=await f.session.request(card+'/');assert.equal(home.status,302);assert.equal(home.headers.get('location'),card+'/userindex');assert.deepEqual(upstream,[]);
+ const entry=await f.session.request(selection+'/xklogin.do');assert.equal(entry.headers.get('location'),selection+'/xklogin.do');assert.deepEqual(prepared,[card,selection]);
+ await f.session.request(card+'/business/payment',{method:'POST',body:'fixture'});assert.deepEqual(prepared,[card,selection]);assert.equal(upstream.length,2);f.transport.close();
 });
 
 test('untrusted HTML cannot choose the cookie bootstrap host or steal identity cookies',async()=>{

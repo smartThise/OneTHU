@@ -32,7 +32,12 @@ export async function mergeInfoCookieBody(
       // A native seed can await IPC while logout changes the account. Check
       // again before adding this response to the JavaScript session mirror.
       await options.assertCurrent?.();
-      http.jar.setRaw(target.url, `${pair}; Path=${target.path}; Secure`);
+      const previous = http.jar.getCookies(target.url).find(cookie =>
+        cookie.name === match[1] && cookie.value === match[2] &&
+        cookie.domain === target.url.hostname && cookie.path === target.path);
+      // A Cookie header carries no HttpOnly attributes. Preserve provenance
+      // only for the exact unchanged record; a new value remains unknown.
+      http.jar.setRaw(target.url, `${pair}; Path=${target.path}; Secure`, { httpOnly: previous?.httpOnly ?? null });
     }
     if (match[1] === "XSRF-TOKEN" && match[2]) csrf = match[2];
   }

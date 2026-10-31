@@ -1,5 +1,5 @@
 /** Browser-facing adapter over the one live account transport; owns no jar. */
-import { PUBLIC_DIRECT_HOSTS, webvpnWrap } from '@onethu/core';
+import { PUBLIC_DIRECT_HOSTS, webvpnWrap, webvpnDecodeUrl } from '@onethu/core';
 import { GatewayError, normalizeAllowedOrigins, parseProxyTarget, sanitizeRequestHeaders, validateMethod } from '@onethu/gateway/policy';
 import { DEFAULT_UPSTREAM_ORIGINS } from '@onethu/gateway/routes';
 import type { NodeSession } from './session.js';
@@ -8,8 +8,11 @@ import { assertCampusBrowserTarget } from './campusProxyPolicy.js';
 
 const VPN = 'https://webvpn.tsinghua.edu.cn';
 const MAX_DOWNLOAD = 4 * 1024 ** 3;
+const LEARN='https://learn.tsinghua.edu.cn';
+const LEARN_DOCUMENT=/^\/f\/wlxt\/index\/course\/(?:student|teacher)(?:\/course)?\/?$/;
+const CSRF_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const fail = (code:string, status=403):never => { throw new GatewayError(code,status); };
-type Runtime = Pick<NodeSession,'fetch'|'epoch'|'assertCurrent'|'status'|'http'>;
+type Runtime = Pick<NodeSession,'fetch'|'epoch'|'assertCurrent'|'status'|'http'> & Partial<Pick<NodeSession,'ensureCampusService'>>;
 type GatewayRequest = RequestInit & {duplex?:'half';preserveResponseBytes?:boolean};
 
 function streamFrom(reader:ReadableStreamDefaultReader<Uint8Array>, initial:Uint8Array[], check:()=>void) {
@@ -34,9 +37,38 @@ async function inspectPrefix(response:Response, check:()=>void) {
     while(count<4096&&!done){check();const part=await reader.read();check();done=part.done;if(part.value){chunks.push(part.value);count+=part.value.length;}}
   } catch(error) { await reader.cancel().catch(()=>undefined);throw error; }
   const text=done&&count<4000?Buffer.concat(chunks).toString('utf8'):'';
-  const bootstrap=text.includes('__vpn_hostname_data')&&text.includes('__vpn_app_hostname_data')&&!/电子身份服务系统|用户登陆超时|casLogin|登录成功|j_acegi/i.test(text)?text:'';
+  const visible=text.replace(/<!--[\s\S]*?-->|<script\b[^>]*>[\s\S]*?<\/script\s*>|<style\b[^>]*>[\s\S]*?<\/style\s*>/gi,'');
+  const business=/<(?:a|article|button|div|footer|form|iframe|img|input|main|nav|p|section|span|table|ul)\b/i.test(visible)||!!visible.replace(/<[^>]*>/g,'').trim();
+  const bootstrap=text.includes('__vpn_hostname_data')&&text.includes('__vpn_app_hostname_data')&&!business&&!/电子身份服务系统|用户登陆超时|casLogin|登录成功|j_acegi/i.test(text)?text:'';
   const body=streamFrom(reader,chunks,check);
   return {response:new Response(body,{status:response.status,statusText:response.statusText,headers:response.headers}),bootstrap};
+}
+
+/** The authenticated Learn document can contain a newer public CSRF nonce than
+ * WebVPN's client-side cookie mirror. Read only its bounded prefix before
+ * headers are sent, preserving the original bytes and the remaining stream. */
+async function inspectLearnNonce(response:Response,check:()=>void){
+  if(!response.body)return {response,nonce:undefined};
+  const reader=response.body.getReader(),initial:Uint8Array[]=[],prefix=Buffer.allocUnsafe(64*1024);
+  let size=0;
+  try{
+    while(size<prefix.length){
+      check();const part=await reader.read();check();if(part.done)break;
+      initial.push(part.value);const count=Math.min(part.value.length,prefix.length-size);
+      prefix.set(part.value.subarray(0,count),size);size+=count;
+    }
+    const nonces=new Set<string>(),html=prefix.subarray(0,size).toString('latin1');
+    for(const match of html.matchAll(/(["'])([^"'<>\s]{0,4096}(?:[?&]|&amp;)_csrf=[^"'<>\s]{1,4096})\1/g)){
+      const value=match[2]!.replaceAll('&amp;','&').replaceAll('\\/','/');
+      try{
+        const url=new URL(value,/^\/https?\/[0-9a-f]+\//i.test(value)?VPN:LEARN);
+        const logical=new URL(webvpnDecodeUrl(url.href)??url.href);
+        if(logical.origin!==LEARN||logical.username||logical.password||!/^\/(?:b\/(?:wlxt|kc)\/|f\/wlxt\/index\/course\/)/.test(logical.pathname))continue;
+        for(const nonce of logical.searchParams.getAll('_csrf'))if(CSRF_UUID.test(nonce))nonces.add(nonce);
+      }catch{/* A quoted non-URL value cannot supply a public nonce. */}
+    }
+    return {response:new Response(streamFrom(reader,initial,check),{status:response.status,statusText:response.statusText,headers:response.headers}),nonce:nonces.size===1?[...nonces][0]:undefined};
+  }catch(error){await reader.cancel().catch(()=>undefined);throw error;}
 }
 
 /** Latin-1 is a byte-preserving view, not a charset conversion. Keep only the
@@ -99,6 +131,21 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
     return browserOrigin(url.origin)+url.href.slice(url.origin.length);
   };
   function current(expected:number){runtime.assertCurrent(expected);if(!runtime.status().authenticated)fail('GATEWAY_AUTH_REQUIRED',401);}
+  let learnPublicNonce:{epoch:number;value:string}|undefined;
+  const recovering=new Map<string,{epoch:number;at:number;pending?:Promise<void>}>();
+  async function recoverService(origin:string,expected:number){
+    const prepare=runtime.ensureCampusService;
+    if(!prepare)return fail('GATEWAY_AUTH_REQUIRED',401);
+    const previous=recovering.get(origin);
+    if(previous?.epoch===expected){
+      if(previous.pending){await previous.pending;current(expected);return;}
+      if(Date.now()-previous.at<30_000)fail('GATEWAY_AUTH_REQUIRED',401);
+    }
+    const state:{epoch:number;at:number;pending?:Promise<void>}={epoch:expected,at:Date.now()};
+    const promise=prepare(origin).then(()=>current(expected)).catch(()=>fail('GATEWAY_AUTH_REQUIRED',401));
+    state.pending=promise;recovering.set(origin,state);
+    try{await promise;}finally{state.pending=undefined;}
+  }
   async function bootstrap(target:URL,expected:number,signal?:AbortSignal|null){
     let merged=0;
     // Application HTML is untrusted. Its __vpn_app_hostname_data value must
@@ -129,8 +176,12 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
       const host=(()=>{try{return new URL(input).host;}catch{return fail('GATEWAY_TARGET_REJECTED');}})();
       const target=parseProxyTarget(input,host,origins) as URL;
       const expected=runtime.epoch();current(expected);
-      if(target.origin!=='https://learn.tsinghua.edu.cn')return [];
-      // Learn's own JS reads this anti-CSRF value before issuing requests. It
+      if(!['https://learn.tsinghua.edu.cn','https://info.tsinghua.edu.cn'].includes(target.origin))return [];
+      // This nonce was already public in a known Learn course document. Keep
+      // it for its assets/API responses so a stale private cookie mirror cannot
+      // overwrite the browser's current nonce. No cookie metadata is changed.
+      if(target.origin===LEARN&&learnPublicNonce?.epoch===expected)return [{name:'XSRF-TOKEN',value:learnPublicNonce.value}];
+      // Learn and Info JS read this anti-CSRF value before issuing requests. It
       // is the only browser-visible projection; authentication cookies remain
       // exclusively in the live jar. Unknown legacy HttpOnly metadata is not
       // enough to authorize disclosure, and percent encoding stays unchanged.
@@ -162,8 +213,28 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
         }else headers.delete('referer');}catch{headers.delete('referer');}}
       }
       const request={...init,method,headers,redirect:'manual' as const,preserveResponseBytes:true,maxResponseBytes:MAX_DOWNLOAD};
+      if(['GET','HEAD'].includes(method)&&target.origin==='https://card.tsinghua.edu.cn'&&target.pathname==='/'){
+        await recoverService(target.origin,expected);check();
+        return new Response(null,{status:302,headers:{location:target.origin+'/userindex'}});
+      }
       let response=await runtime.fetch(physical,request);check();
       try {
+        // Only the account authority may redeem service SSO tickets. Browser
+        // identity endpoints stay blocked; an ordinary service GET can ask the
+        // current runtime for one cookie-only preparation, then return home.
+        const serviceHome:Record<string,string>={
+          'https://cab.lib.tsinghua.edu.cn':'/',
+          'https://seat.lib.tsinghua.edu.cn':'/home/web/f_second',
+          'https://zhjwxk.cic.tsinghua.edu.cn':'/xklogin.do',
+          'https://card.tsinghua.edu.cn':'/userindex',
+        };
+        if(['GET','HEAD'].includes(method)&&serviceHome[target.origin]&&[301,302,303,307,308].includes(response.status)&&response.headers.has('location')){
+          const destination=new URL(mapUrl(response.headers.get('location')!,physical));
+          if(['id.tsinghua.edu.cn','oauth.tsinghua.edu.cn'].includes(destination.hostname)){
+            await response.body?.cancel();await recoverService(target.origin,expected);check();
+            response=new Response(null,{status:302,headers:{location:target.origin+serviceHome[target.origin]}});
+          }
+        }
         if(physical.startsWith(VPN+'/')&&/\btext\/html\b/i.test(response.headers.get('content-type')??'')&&response.body){
           const inspected=await inspectPrefix(response,check);response=inspected.response;
           if(inspected.bootstrap){
@@ -174,6 +245,10 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
             const retried=await inspectPrefix(response,check);response=retried.response;
             if(retried.bootstrap)fail('GATEWAY_AUTH_REQUIRED',401);
           }
+        }
+        if(method==='GET'&&target.origin===LEARN&&LEARN_DOCUMENT.test(target.pathname)&&response.status===200&&/\btext\/html\b/i.test(response.headers.get('content-type')??'')&&!response.headers.has('content-range')){
+          const inspected=await inspectLearnNonce(response,check);response=inspected.response;check();
+          if(inspected.nonce)learnPublicNonce={epoch:expected,value:inspected.nonce};
         }
         const output=new Headers(response.headers);
         output.delete('set-cookie');output.delete('set-cookie2');output.delete('x-onethu-final-url');

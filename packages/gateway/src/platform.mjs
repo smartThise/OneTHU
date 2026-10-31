@@ -1,10 +1,11 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { X509Certificate, randomBytes } from 'node:crypto';
+import { X509Certificate, randomBytes, createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { mkdir, lstat, open, rename, unlink } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
+import { isIP } from 'node:net';
 
 const exec = promisify(execFile);
 const queues = new Map();
@@ -12,6 +13,8 @@ const error = (code, message = code) => Object.assign(new Error(message), { code
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const NETWORKSETUP = '/usr/sbin/networksetup';
 const SECURITY = '/usr/bin/security';
+const MAC_READ = { pac: '-getautoproxyurl', web: '-getwebproxy', secure: '-getsecurewebproxy', socks: '-getsocksfirewallproxy' };
+const MAC_STATE = { web: '-setwebproxystate', secure: '-setsecurewebproxystate', socks: '-setsocksfirewallproxystate' };
 
 async function defaultRun(command, args) {
   return exec(command, args, { timeout: 30_000, maxBuffer: 1024 * 1024, windowsHide: true,
@@ -173,10 +176,46 @@ try {
         return value;
       } catch { throw error('GATEWAY_PROXY_SETTINGS_UNREADABLE'); }
     }
-    const option = entry.kind === 'pac' ? '-getautoproxyurl' : entry.kind === 'web' ? '-getwebproxy' : '-getsecurewebproxy';
+    const option = MAC_READ[entry.kind];
+    if (!option) throw error('GATEWAY_PLATFORM_STATE_INVALID');
     const value = fields(await command(NETWORKSETUP, [option, entry.service]));
     if (entry.kind === 'pac') return { url: value.URL === '(null)' ? '' : value.URL ?? '', enabled: value.Enabled === 'Yes' };
     return { enabled: value.Enabled === 'Yes', server: value.Server ?? '', port: value.Port ?? '', authenticated: value['Authenticated Proxy Enabled'] ?? '' };
+  }
+  async function macSnapshot() {
+    const names = (await command(NETWORKSETUP, ['-listallnetworkservices'])).split(/\r?\n/)
+      .filter(value => value && !value.startsWith('*') && !value.startsWith('An asterisk'));
+    if (!names.length || names.length > 64 || new Set(names).size !== names.length || names.some(name => /[\x00-\x1f\x7f]/.test(name))) throw error('GATEWAY_NETWORK_SERVICES_UNAVAILABLE');
+    const services = [];
+    for (const name of names) {
+      const discovery = (await command(NETWORKSETUP, ['-getproxyautodiscovery', name])).trim();
+      if (!/^Auto Proxy Discovery: (On|Off)$/.test(discovery)) throw error('GATEWAY_PROXY_SETTINGS_UNREADABLE');
+      const rawBypass = (await command(NETWORKSETUP, ['-getproxybypassdomains', name])).trim();
+      if (!rawBypass) throw error('GATEWAY_PROXY_SETTINGS_UNREADABLE');
+      const bypass = /^There (?:aren't|are no) (?:any )?bypass domains set on .+\.$/.test(rawBypass) ? [] : rawBypass.split(/\r?\n/).filter(Boolean);
+      if (bypass.length > 256 || bypass.some(value => value.length > 1024 || /[\x00-\x20\x7f]/.test(value))) throw error('GATEWAY_PROXY_SETTINGS_UNREADABLE');
+      const groups = {};
+      for (const kind of ['pac', 'web', 'secure', 'socks']) groups[kind] = await readGroup({ kind, service: name });
+      services.push({ name, discovery: discovery.endsWith(': On'), bypass, groups });
+    }
+    return services;
+  }
+  function macPlan(services) {
+    const endpoint = group => {
+      if (!group.enabled) return null;
+      if (!['0', 'No'].includes(group.authenticated)) throw error('GATEWAY_AUTHENTICATED_PROXY_UNSUPPORTED');
+      const host = group.server.replace(/^\[([0-9a-f:]+)\]$/i, '$1');
+      const port = Number(group.port);
+      if ((!isIP(host) && (!host || host.length > 253 || !host.split('.').every(label => /^[a-z0-9_](?:[a-z0-9_-]{0,61}[a-z0-9_])?$/i.test(label)))) ||
+          !/^\d+$/.test(group.port) || !Number.isInteger(port) || port < 1 || port > 65535) throw error('GATEWAY_PROXY_SETTINGS_UNREADABLE');
+      return { host, port };
+    };
+    const descriptors = services.map(service => {
+      if (service.discovery || service.groups.pac.enabled) throw error('GATEWAY_EXISTING_PROXY_ENABLED');
+      return { name: service.name, fallback: { http: endpoint(service.groups.web), https: endpoint(service.groups.secure),
+        socks: endpoint(service.groups.socks), bypass: [...service.bypass] } };
+    });
+    return { version: 1, platform: 'darwin', fingerprint: createHash('sha256').update(JSON.stringify(services)).digest('hex'), services: descriptors };
   }
   async function windowsProxyPreflight() {
     // The documented API reads the current user's connection configuration,
@@ -248,7 +287,10 @@ Notify-Proxy`, { expected: current, desired }), true);
   async function restore(state) {
     const conflicts = [];
     const failures = [];
+    const retainedInactivePacUrls = [];
     if (!state.proxy) return { restored: true, conflicts, failures };
+    state.proxy.restorePending = true;
+    await save(state);
     for (const entry of [...state.proxy.entries].reverse()) {
       try {
         const current = await readGroup(entry);
@@ -286,9 +328,15 @@ Notify-Proxy`, { expected: current, desired }), true);
         if (!equal(current, entry.before)) {
           if (platform === 'win32') await apply(state, entry, entry.before);
           else if (entry.kind === 'pac') {
-            if (entry.owned.url !== entry.before.url) await apply(state, entry, { url: entry.before.url, enabled: true }, ['-setautoproxyurl', entry.service, entry.before.url]);
+            // networksetup cannot clear an empty original URL. Disable the
+            // PAC and retain its inactive URL; do not escalate or invoke an
+            // authorization helper just to remove unused metadata.
+            if (!entry.before.url && !entry.before.enabled) {
+              if (entry.owned.enabled) await apply(state, entry, { ...entry.owned, enabled: false }, ['-setautoproxystate', entry.service, 'off']);
+              if (entry.owned.url) retainedInactivePacUrls.push(entry.service);
+            } else if (entry.owned.url !== entry.before.url) await apply(state, entry, { url: entry.before.url, enabled: true }, ['-setautoproxyurl', entry.service, entry.before.url]);
             if (entry.owned.enabled !== entry.before.enabled) await apply(state, entry, { ...entry.owned, enabled: entry.before.enabled }, ['-setautoproxystate', entry.service, entry.before.enabled ? 'on' : 'off']);
-          } else await apply(state, entry, entry.before, [entry.kind === 'web' ? '-setwebproxystate' : '-setsecurewebproxystate', entry.service, entry.before.enabled ? 'on' : 'off']);
+          } else await apply(state, entry, entry.before, [MAC_STATE[entry.kind], entry.service, entry.before.enabled ? 'on' : 'off']);
         }
         state.proxy.entries = state.proxy.entries.filter(value => value !== entry);
         await save(state);
@@ -298,21 +346,69 @@ Notify-Proxy`, { expected: current, desired }), true);
           conflicts.push(identifier);
           state.proxy.entries = state.proxy.entries.filter(value => value !== entry);
           await save(state);
-        } else failures.push(identifier);
+        } else {
+          failures.push(identifier);
+          // A denied OS mutation must not trigger more authorization prompts
+          // for other services in the same attempt. Keep the journal for retry.
+          if (cause.code === 'GATEWAY_SYSTEM_PERMISSION_REQUIRED') break;
+        }
       }
     }
     if (!state.proxy.entries.length) { state.proxy = null; await save(state); }
-    return { restored: !failures.length && !conflicts.length, conflicts, failures };
+    return { restored: !failures.length && !conflicts.length, conflicts, failures,
+      ...(retainedInactivePacUrls.length ? { retainedInactivePacUrls } : {}) };
+  }
+
+  async function proxySettingsStatus(proxy) {
+    if (!proxy) return { settingsChanged: false, settingsUnreadable: false, changedServices: [] };
+    const changed = new Set();
+    let unreadable = false;
+    let cursor = 0;
+    const serviceName = entry => platform === 'win32' ? 'CurrentUser' : entry.service;
+    // Bound concurrent OS queries. Status is serialized with our own writes,
+    // while each comparison still detects changes made by another application.
+    await Promise.all(Array.from({ length: Math.min(8, proxy.entries.length) }, async () => {
+      while (cursor < proxy.entries.length) {
+        const entry = proxy.entries[cursor++];
+        try {
+          const current = await readGroup(entry);
+          const expected = entry.pending
+            ? [entry.pending.before, entry.pending.after, ...(entry.pending.intermediate ? [entry.pending.intermediate] : [])]
+            : [entry.owned];
+          if (!expected.some(value => equal(current, value))) changed.add(serviceName(entry));
+        } catch {
+          // An unreadable service must not be reported as an intact owned setup.
+          unreadable = true;
+          changed.add(serviceName(entry));
+        }
+      }
+    }));
+    return { settingsChanged: changed.size > 0, settingsUnreadable: unreadable,
+      changedServices: [...new Set(proxy.entries.map(serviceName))].filter(name => changed.has(name)) };
   }
 
   return Object.freeze({
     async status() {
       if (!supported) return { platform, supported: false, trusted: false, proxyEnabled: false, recoveryRequired: false };
-      const state = await readState();
-      const trust = await trustStatus();
-      return { platform, supported: true, ...trust, trustOwned: state.trustOwned,
-        proxyEnabled: !!state.proxy, recoveryRequired: !!state.proxy, pacUrl: state.proxy?.pacUrl ?? null,
-        certificatePath: caPath, fingerprint };
+      return serialized(async () => {
+        const state = await readState();
+        const trust = await trustStatus();
+        const settings = await proxySettingsStatus(state.proxy);
+        return { platform, supported: true, ...trust, ...settings, trustOwned: state.trustOwned,
+          proxyEnabled: !!state.proxy, recoveryRequired: !!state.proxy, pacUrl: state.proxy?.pacUrl ?? null,
+          restorePending: state.proxy?.restorePending === true || state.proxy?.entries.some(entry => !!entry.pending) === true,
+          pacUrlsByService: state.proxy?.pacUrlsByService ?? null,
+          activeServices: state.proxy?.services ?? [], coexistence: state.proxy?.coexistence === true,
+          certificatePath: caPath, fingerprint };
+      });
+    },
+    prepareProxy(options = {}) {
+      confirm(options);
+      if (platform !== 'darwin') throw error('GATEWAY_PLATFORM_UNSUPPORTED');
+      return serialized(async () => {
+        if ((await readState()).proxy) throw error('GATEWAY_PROXY_RECOVERY_REQUIRED');
+        return macPlan(await macSnapshot());
+      });
     },
     trust(options = {}) {
       confirm(options);
@@ -360,46 +456,62 @@ finally { $store.Close() }`, { hash }), true);
     },
     enableProxy(options = {}) {
       confirm(options);
-      const url = pacUrl(options.pacUrl);
+      const composed = options.pacUrlsByService !== undefined;
+      if (composed && platform !== 'darwin') throw error('GATEWAY_PLATFORM_UNSUPPORTED');
+      if (composed && (options.pacUrl !== undefined || !options.expectedPlan || typeof options.pacUrlsByService !== 'object' ||
+          options.pacUrlsByService === null || Array.isArray(options.pacUrlsByService))) throw error('GATEWAY_PROXY_PLAN_INVALID');
+      const urls = composed ? Object.fromEntries(Object.entries(options.pacUrlsByService).map(([name, value]) => [name, pacUrl(value)])) : null;
+      const url = composed ? null : pacUrl(options.pacUrl);
       return serialized(async () => {
         const state = await readState();
         if (state.proxy) throw error('GATEWAY_PROXY_RECOVERY_REQUIRED');
-        state.proxy = { pacUrl: url, entries: [] };
         const entries = [];
+        let coexistence = false;
         if (platform === 'darwin') {
-          const services = (await command(NETWORKSETUP, ['-listallnetworkservices'])).split(/\r?\n/)
-            .filter(value => value && !value.startsWith('*') && !value.startsWith('An asterisk'));
-          if (!services.length || services.length > 64) throw error('GATEWAY_NETWORK_SERVICES_UNAVAILABLE');
+          const services = await macSnapshot();
+          if (composed) {
+            const plan = macPlan(services);
+            if (!equal(plan, options.expectedPlan) || !equal(Object.keys(urls).sort(), services.map(service => service.name).sort())) throw error('GATEWAY_PROXY_PLAN_CHANGED');
+          }
           for (const service of services) {
-            for (const kind of ['web', 'secure', 'pac']) entries.push({ service, kind });
-            const socks = fields(await command(NETWORKSETUP, ['-getsocksfirewallproxy', service]));
-            const discovery = await command(NETWORKSETUP, ['-getproxyautodiscovery', service]);
-            if (!/^Auto Proxy Discovery: (On|Off)\s*$/.test(discovery.trim())) throw error('GATEWAY_PROXY_SETTINGS_UNREADABLE');
-            if (socks.Enabled === 'Yes' || discovery.includes(': On')) throw error('GATEWAY_EXISTING_PROXY_ENABLED');
+            if (!composed && (service.discovery || Object.values(service.groups).some(group => group.enabled))) throw error('GATEWAY_EXISTING_PROXY_ENABLED');
+            // Install PAC before disabling its preserved fallback proxies. The
+            // reversed journal restores manual proxies before removing PAC.
+            for (const kind of ['pac', 'web', 'secure', 'socks']) {
+              const before = service.groups[kind];
+              entries.push({ service: service.name, kind, before, owned: before });
+              if (kind !== 'pac' && before.enabled) coexistence = true;
+            }
           }
         } else {
           await windowsProxyPreflight();
-          entries.push({ kind: 'windows' });
+          const before = await readGroup({ kind: 'windows' });
+          if (before.ProxyEnable.exists && before.ProxyEnable.value !== 0 || before.AutoConfigURL.exists && !!before.AutoConfigURL.value) throw error('GATEWAY_EXISTING_PROXY_ENABLED');
+          entries.push({ kind: 'windows', before, owned: before });
         }
-        for (const entry of entries) {
-          entry.before = await readGroup(entry); entry.owned = entry.before;
-          if (platform === 'darwin' ? entry.before.enabled :
-              entry.before.ProxyEnable.exists && entry.before.ProxyEnable.value !== 0 ||
-              entry.before.AutoConfigURL.exists && !!entry.before.AutoConfigURL.value) throw error('GATEWAY_EXISTING_PROXY_ENABLED');
-        }
-        state.proxy.entries = entries;
+        const serviceNames = platform === 'darwin' ? [...new Set(entries.map(entry => entry.service))] : ['CurrentUser'];
+        state.proxy = { pacUrl: url, ...(composed ? { pacUrlsByService: urls } : {}), services: serviceNames, coexistence, entries };
         await save(state);
         try {
           for (const entry of entries) {
             if (platform === 'win32') await apply(state, entry, {
               AutoConfigURL: { exists: true, value: url, kind: 'String' }, ProxyEnable: { exists: true, value: 0, kind: 'DWord' },
             });
-            else if (entry.kind === 'pac') await apply(state, entry, { url, enabled: true }, ['-setautoproxyurl', entry.service, url]);
+            else if (entry.kind === 'pac') {
+              const serviceUrl = composed ? urls[entry.service] : url;
+              await apply(state, entry, { url: serviceUrl, enabled: true }, ['-setautoproxyurl', entry.service, serviceUrl]);
+            }
             else if (entry.owned.enabled) await apply(state, entry, { ...entry.owned, enabled: false },
-              [entry.kind === 'web' ? '-setwebproxystate' : '-setsecurewebproxystate', entry.service, 'off']);
+              [MAC_STATE[entry.kind], entry.service, 'off']);
           }
-        } catch (cause) { await restore(state); throw cause; }
-        return { enabled: true, pacUrl: url, services: platform === 'darwin' ? [...new Set(entries.map(entry => entry.service))] : ['CurrentUser'] };
+        } catch (cause) {
+          if (cause.code === 'GATEWAY_SYSTEM_PERMISSION_REQUIRED') {
+            state.proxy.restorePending = true;
+            await save(state);
+          } else await restore(state);
+          throw cause;
+        }
+        return { enabled: true, pacUrl: url, ...(composed ? { pacUrlsByService: urls } : {}), services: serviceNames, coexistence };
       });
     },
     disableProxy(options = {}) { confirm(options); return serialized(async () => restore(await readState())); },

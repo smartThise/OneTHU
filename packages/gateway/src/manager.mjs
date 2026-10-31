@@ -4,16 +4,18 @@ import { constants } from 'node:fs';
 import { mkdir, lstat, open, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createCampusGateway } from './index.mjs';
-import { GatewayError, normalizeAllowedOrigins } from './policy.mjs';
+import { GatewayError, normalizeAllowedOrigins, isCampusIdentityHost } from './policy.mjs';
 import { createCertificateAuthority } from './certificates.mjs';
 import { createPlatformIntegration } from './platform.mjs';
 import { openGatewayBrowser } from './browser.mjs';
 import { withSecureCampusOrigins } from './routes.mjs';
+import { createPacScript } from './pac.mjs';
+import { createMacPeerAuthorizer } from './macPeer.mjs';
+export { createPacScript } from './pac.mjs';
 export { DEFAULT_UPSTREAM_ORIGINS } from './routes.mjs';
 
 export const DEFAULT_ALLOWED_ORIGINS = Object.freeze([
   'https://info.tsinghua.edu.cn', 'https://learn.tsinghua.edu.cn',
-  'https://id.tsinghua.edu.cn', 'https://oauth.tsinghua.edu.cn',
   'https://card.tsinghua.edu.cn', 'http://zhjw.cic.tsinghua.edu.cn',
   'http://zhjwxk.cic.tsinghua.edu.cn', 'https://zhjwxk.cic.tsinghua.edu.cn',
   'http://myhome.tsinghua.edu.cn', 'https://m.myhome.tsinghua.edu.cn',
@@ -51,18 +53,11 @@ async function privateToken(directory) {
   } finally { await file?.close(); }
 }
 
-/** Scoped PAC: an unavailable gateway fails closed for campus URLs. Other
- * traffic goes DIRECT. System activation refuses an existing active proxy. */
-export function createPacScript(origins, endpoint) {
-  const allowed = [...normalizeAllowedOrigins(origins)];
-  if (endpoint.host !== '127.0.0.1' || !Number.isInteger(endpoint.port) || endpoint.port < 1 || endpoint.port > 65535) fail('GATEWAY_CONFIG_INVALID');
-  const hosts = [...new Set(allowed.map(origin => new URL(origin).hostname))];
-  return `function FindProxyForURL(url, host) {\n  var hosts = ${JSON.stringify(hosts)};\n  host = host.toLowerCase();\n  for (var i = 0; i < hosts.length; i++) {\n    if (host === hosts[i]) return "PROXY 127.0.0.1:${endpoint.port}";\n  }\n  return "DIRECT";\n}\n`;
-}
-
-async function servePac(origins, endpoint) {
+/** The loaded PAC gives campus URLs no direct fallback. Other traffic follows
+ * the network service's inherited proxy rules, or DIRECT when none apply. */
+async function servePac(origins, endpoint, fallback) {
   const path = `/campus-${randomBytes(18).toString('hex')}.pac`;
-  const script = createPacScript(origins, endpoint);
+  const script = createPacScript(origins, endpoint, fallback);
   const sockets = new Set();
   const server = http.createServer((req, res) => {
     if (!['GET', 'HEAD'].includes(req.method) || req.url !== path || req.headers.origin ||
@@ -91,13 +86,18 @@ async function servePac(origins, endpoint) {
  */
 export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAULT_ALLOWED_ORIGINS,
   certificateFactory = createCertificateAuthority, platformFactory = createPlatformIntegration,
-  browserFactory = openGatewayBrowser } = {}) {
+  browserFactory = openGatewayBrowser, peerAuthorizerFactory = createMacPeerAuthorizer,
+  hostPlatform = process.platform } = {}) {
   if (typeof dataDir !== 'string' || !dataDir || !session || typeof session.status !== 'function') fail('GATEWAY_CONFIG_INVALID');
-  const origins = [...normalizeAllowedOrigins(withSecureCampusOrigins([...allowedOrigins]))];
+  const origins = [...normalizeAllowedOrigins(withSecureCampusOrigins([...allowedOrigins]))]
+    .filter(origin => !isCampusIdentityHost(new URL(origin).hostname));
+  if (!origins.length) fail('GATEWAY_CONFIG_INVALID');
   const directory = join(resolve(dataDir), 'gateway');
   const certificateDirectory = join(directory, 'certificates');
   const certificatePath = join(certificateDirectory, 'ca.pem');
   let authority, platform, proxy, pac, token, lastError = null;
+  let systemProxy;
+  const systemPacs = new Map();
   const browsers = new Set();
   let queue = Promise.resolve();
   let closed = false;
@@ -128,7 +128,11 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
     return { running: !!proxy, endpoint: proxy?.address() ?? null, account: current,
       certificate: { ...certificate, trusted: system.trusted ?? system.certificate?.trusted },
       systemProxy: { ...system, enabled: system.proxyEnabled ?? system.enabled ?? false,
-        recoveryRequired: !!system.recoveryRequired && (!proxy || !pac || system.pacUrl !== pac.url) },
+        recoveryRequired: !!system.restorePending || !!system.settingsChanged || !!system.recoveryRequired && (system.pacUrlsByService
+          ? !systemProxy || Object.entries(system.pacUrlsByService).some(([name, url]) => systemPacs.get(name)?.url !== url)
+          : !proxy || !pac || system.pacUrl !== pac.url) },
+      systemEndpoint: systemProxy?.address() ?? null,
+      systemTraffic: systemProxy?.statistics() ?? { requests: 0, hosts: {} },
       allowedOrigins: origins, pacUrl: pac?.url ?? null, lastError };
   }
 
@@ -140,7 +144,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
 
   async function stop({ revoke = false } = {}) {
     let restoreError;
-    if (revoke) { await proxy?.close(); proxy = undefined; }
+    if (revoke) { await proxy?.close(); proxy = undefined; await systemProxy?.close(); systemProxy = undefined; }
     try {
       const integration = await existingPlatform();
       const state = await integration.status();
@@ -154,9 +158,13 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
     browsers.clear();
     if (!restoreError || revoke) {
       await proxy?.close(); proxy = undefined;
+      await systemProxy?.close(); systemProxy = undefined;
       // During forced account revocation keep PAC serving a refused local port
       // until the old OS settings are explicitly repaired; never direct-fallback.
-      if (!restoreError) { await pac?.close(); pac = undefined; }
+      if (!restoreError) {
+        await pac?.close(); pac = undefined;
+        await Promise.all([...systemPacs.values()].map(item => item.close())); systemPacs.clear();
+      }
     }
     if (restoreError) throw restoreError;
     if (results.some(result => result.status === 'rejected')) fail('GATEWAY_BROWSER_CLOSE_FAILED');
@@ -173,6 +181,8 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
     else if (action === 'system-disable') {
       const restored = await (await existingPlatform()).disableProxy({ confirm: true });
       if (restored.failures?.length) fail('GATEWAY_PROXY_RESTORE_FAILED');
+      await systemProxy?.close(); systemProxy = undefined;
+      await Promise.all([...systemPacs.values()].map(item => item.close())); systemPacs.clear();
     }
     else if (action === 'untrust') {
       await stop(); await (await existingPlatform()).untrust({ confirm: true });
@@ -193,7 +203,31 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
       } else if (action === 'trust') await platform.trust({ confirm: true });
       else if (action === 'system-enable') {
         if (!proxy || !pac) fail('GATEWAY_NOT_RUNNING');
-        await platform.enableProxy({ confirm: true, pacUrl: pac.url });
+        if (hostPlatform === 'darwin' && typeof platform.prepareProxy === 'function') {
+          const current = await status();
+          if (current.systemProxy.enabled && !current.systemProxy.recoveryRequired) return current;
+          if (current.systemProxy.recoveryRequired) fail('GATEWAY_PROXY_RECOVERY_REQUIRED');
+          if (!current.certificate.trusted) fail('GATEWAY_CERTIFICATE_TRUST_REQUIRED');
+          const plan = await platform.prepareProxy({ confirm: true });
+          const next = createCampusGateway({ allowedOrigins: origins, session, authorizeSocket: peerAuthorizerFactory(),
+            tls: (hostname, options) => authority.issue(hostname, options), upgradeInsecureRequests: true,
+            maxUploadBytes: 1024 * 1024 * 1024, maxDownloadBytes: 4 * 1024 * 1024 * 1024, timeoutMs: 180_000 });
+          try {
+            const endpoint = await next.listen(); systemProxy = next;
+            for (const service of plan.services) systemPacs.set(service.name, await servePac(origins, endpoint, service.fallback));
+            await platform.enableProxy({ confirm: true, expectedPlan: plan,
+              pacUrlsByService: Object.fromEntries([...systemPacs].map(([name, item]) => [name, item.url])) });
+          } catch (error) {
+            // If OS rollback could not finish, retain live PAC/listener so the
+            // still-installed rules do not strand the user's connection.
+            const state = await platform.status().catch(() => ({ recoveryRequired: true }));
+            if (!state.recoveryRequired && !state.proxyEnabled) {
+              await next.close(); systemProxy = undefined;
+              await Promise.all([...systemPacs.values()].map(item => item.close())); systemPacs.clear();
+            }
+            throw error;
+          }
+        } else await platform.enableProxy({ confirm: true, pacUrl: pac.url });
       } else if (action === 'credentials') {
         if (!proxy) fail('GATEWAY_NOT_RUNNING');
         return { username: 'onethu', password: token, endpoint: proxy.address() };
@@ -218,7 +252,11 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
     close() {
       const run = queue.then(async () => {
         try { await stop({ revoke: true }); }
-        finally { closed = true; await proxy?.close(); proxy = undefined; await pac?.close(); pac = undefined; }
+        finally {
+          closed = true; await proxy?.close(); proxy = undefined; await systemProxy?.close(); systemProxy = undefined;
+          await pac?.close(); pac = undefined;
+          await Promise.all([...systemPacs.values()].map(item => item.close())); systemPacs.clear();
+        }
       });
       queue = run.catch(() => {}); return run;
     },

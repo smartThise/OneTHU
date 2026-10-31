@@ -12,6 +12,17 @@ export class GatewayError extends Error {
 const reject = (code = 'GATEWAY_TARGET_REJECTED', status = 403) => { throw new GatewayError(code, status); };
 const HOP_HEADERS = new Set(['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'proxy-connection', 'te', 'trailer', 'transfer-encoding', 'upgrade']);
 const METHOD_NAMES = new Set(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']);
+const IDENTITY_HOSTS = new Set(['id.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn']);
+export const isCampusIdentityHost = hostname => IDENTITY_HOSTS.has(hostname);
+const CAMPUS_LANDINGS = new Map([
+  ['https://info.tsinghua.edu.cn/', 'info-home'],
+  ['https://info.tsinghua.edu.cn/f/info/xxfb_fg/xnzx/stu/index', 'info-news'],
+  ['https://learn.tsinghua.edu.cn/f/wlxt/index/course/student/', 'learn-home'],
+]);
+
+export function campusLandingCategory(target) {
+  return target ? CAMPUS_LANDINGS.get(`${target.origin}${target.pathname}`) ?? 'other' : 'other';
+}
 
 function safeHostname(hostname) {
   if (!hostname || hostname.length > 253 || isIP(hostname) || hostname.startsWith('[') || hostname.endsWith('.') || hostname === 'localhost' || hostname.endsWith('.localhost')) reject();
@@ -42,6 +53,9 @@ export function normalizeAllowedOrigins(origins) {
 }
 
 function allowed(url, origins) {
+  // Browser identity pages use the browser's own session and original network
+  // route. A custom campus allowlist must never borrow the SDK identity jar.
+  if (isCampusIdentityHost(url.hostname)) reject('GATEWAY_AUTH_REQUIRED', 401);
   if (!origins.has(url.origin)) reject();
   return url;
 }
@@ -75,8 +89,14 @@ export function validateMethod(method) {
   if (!METHOD_NAMES.has(method)) reject('GATEWAY_METHOD_REJECTED', 405);
 }
 
-export function validateFetchMetadata(headers, target, origins = new Set([target.origin])) {
+export function validateFetchMetadata(headers, target, origins = new Set([target.origin]), navigation) {
   const site = headers['sec-fetch-site'];
+  // Browser/extension user gestures can mark a top-level entry as cross-site.
+  // Only these verified read-only landing URLs may borrow the session in that
+  // case. Exact href matching excludes even an empty query or fragment marker.
+  if (site === 'cross-site' && origins.has(target.origin) && CAMPUS_LANDINGS.has(target.href) &&
+      ['GET', 'HEAD'].includes(navigation?.method) && navigation?.hasBody === false && headers.origin === undefined &&
+      headers['sec-fetch-mode'] === 'navigate' && headers['sec-fetch-dest'] === 'document' && headers['sec-fetch-user'] === '?1') return;
   // Cached browser proxy credentials are sent even for attacker-triggered
   // requests. Missing provenance must not authorize a borrowed school session.
   if (site === undefined && headers.origin === undefined) reject('GATEWAY_PROVENANCE_REQUIRED');
