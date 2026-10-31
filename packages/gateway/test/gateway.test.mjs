@@ -10,7 +10,7 @@ import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
-import { createCampusGateway } from '../src/index.mjs';
+import { createCampusGateway, GatewayError } from '../src/index.mjs';
 
 const token = 'c'.repeat(64);
 const authorization = 'Basic ' + Buffer.from('onethu:' + token).toString('base64');
@@ -36,12 +36,13 @@ after(() => { if (certDirectory) rmSync(certDirectory, { recursive: true, force:
 
 async function fixture(t, options = {}) {
   const state = { epoch: 1, calls: [], certificates: [] };
-  const { request, withTls, browserCookies, ...settings } = options;
+  const { request, withTls, browserCookies, authorizeTarget, ...settings } = options;
   const gateway = createCampusGateway({
     allowedOrigins: [`http://${hostname}`, `https://${hostname}`], token,
     timeoutMs: 2_000,
     session: {
       ...(browserCookies ? { browserCookies } : {}),
+      ...(authorizeTarget ? { authorizeTarget } : {}),
       epoch: () => state.epoch,
       assertCurrent(expected) {
         if (expected !== state.epoch) throw Object.assign(new Error('private account changed'), { code: 'AUTH_SESSION_CHANGED' });
@@ -83,6 +84,78 @@ async function proxyRequest(f, options = {}) {
   request.end(body);
   return result;
 }
+
+test('dynamic campus membership uses only live authority lookups and retains provenance checks', async t => {
+  const origin = 'https://new-service.tsinghua.edu.cn';
+  const grants = new Set(); const lookups = [];
+  const f = await fixture(t, { authorizeTarget: target => { lookups.push(target); return grants.has(new URL(target).origin); } });
+  const request = (headers = {}) => proxyRequest(f, { url: origin + '/business?value=fixture', headers: { host: 'new-service.tsinghua.edu.cn', 'sec-fetch-site': 'same-origin', ...headers } });
+  assert.equal((await request({ 'x-onethu-grant-origin': origin })).status, 403);
+  assert.equal(f.state.calls.length, 0);
+  grants.add(origin);
+  assert.equal((await request()).status, 200);
+  assert.equal((await request({ 'sec-fetch-site': 'cross-site' })).status, 403);
+  assert.equal((await request({ 'sec-fetch-site': 'same-site', referer: 'https://unregistered.tsinghua.edu.cn/' })).status, 403);
+  grants.add('https://registered.tsinghua.edu.cn');
+  assert.equal((await request({ 'sec-fetch-site': 'same-site', referer: 'https://registered.tsinghua.edu.cn/page' })).status, 200);
+  grants.clear(); f.state.epoch++;
+  assert.equal((await request()).status, 403);
+  assert.equal(f.state.calls.length, 2);
+  assert(lookups.every(value => value === new URL(value).origin + '/'), 'queries never receive request paths or tickets');
+});
+
+test('a dynamic predicate cannot authorize identity, WebVPN, foreign origins or malformed return values', async t => {
+  let answer = () => true, queried = 0;
+  const f = await fixture(t, { authorizeTarget: () => { queried++; return answer(); }, withTls: true });
+  for (const host of ['id.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn', 'webvpn.tsinghua.edu.cn', 'outside.test', 'tsinghua.edu.cn.attacker.test']) {
+    assert.equal((await proxyRequest(f, { url: `https://${host}/`, headers: { host } })).status >= 400, true);
+    const connection = await connect(f, { authority: host + ':443' });
+    assert.equal(connection.status >= 400, true); connection.socket.destroy();
+  }
+  assert.equal(queried, 0); assert.equal(f.state.calls.length, 0); assert.equal(f.state.certificates.length, 0);
+  for (const invalid of [() => 'true', () => 1, () => ({}), () => Promise.resolve(true), () => Promise.reject(new Error('private callback detail'))]) {
+    answer = invalid;
+    assert.equal((await proxyRequest(f, { url: 'https://new-service.tsinghua.edu.cn/', headers: { host: 'new-service.tsinghua.edu.cn' } })).status, 403);
+  }
+});
+
+test('revoking a dynamic grant during upstream work cancels returned private data', async t => {
+  let allowed = true;
+  const f = await fixture(t, { authorizeTarget: () => allowed, request: async () => { allowed = false; return new Response('private after revoke'); } });
+  const result = await proxyRequest(f, { url: 'https://new-service.tsinghua.edu.cn/', headers: { host: 'new-service.tsinghua.edu.cn' } });
+  assert.equal(result.status, 403);
+  assert.equal(result.body.includes('private after revoke'), false);
+});
+
+test('unknown service diagnostics accept only a strict campus destination hostname', async t => {
+  let destinationHost = 'its.tsinghua.edu.cn';
+  let untyped = false;
+  const f = await fixture(t, { request() {
+    const error = untyped ? new Error('untrusted failure') : new GatewayError('GATEWAY_SERVICE_NOT_ENABLED', 403);
+    throw Object.assign(error, { destinationHost });
+  } });
+  const first = await proxyRequest(f);
+  assert.equal(first.status, 403);
+  assert.equal(f.gateway.statistics().recentRejections.at(-1).destinationHost, 'its.tsinghua.edu.cn');
+  assert.deepEqual(JSON.parse(first.body), { error: { code: 'GATEWAY_SERVICE_NOT_ENABLED' } });
+  for (const unsafe of [
+    'https://its.tsinghua.edu.cn/private?ticket=fixture-secret', 'its.tsinghua.edu.cn/private',
+    'its.tsinghua.edu.cn:443', 'its.tsinghua.edu.cn?ticket=fixture-secret', 'its.tsinghua.edu.cn#secret',
+    'user@its.tsinghua.edu.cn', 'outside.test', '127.0.0.1', '[::1]', 'tsinghua.edu.cn',
+    'ITS.tsinghua.edu.cn', 'its.tsinghua.edu.cn.', 'bad..tsinghua.edu.cn', '-bad.tsinghua.edu.cn',
+    'bad_.tsinghua.edu.cn', 'a'.repeat(64) + '.tsinghua.edu.cn',
+    Array(5).fill('a'.repeat(60)).join('.') + '.tsinghua.edu.cn',
+  ]) {
+    destinationHost = unsafe;
+    await proxyRequest(f);
+    assert.equal(Object.hasOwn(f.gateway.statistics().recentRejections.at(-1), 'destinationHost'), false);
+  }
+  untyped = true; destinationHost = 'its.tsinghua.edu.cn';
+  await proxyRequest(f);
+  assert.equal(Object.hasOwn(f.gateway.statistics().recentRejections.at(-1), 'destinationHost'), false);
+  assert.equal(f.gateway.statistics().recentRejections.length, 8);
+  assert.equal(JSON.stringify(f.gateway.statistics()).includes('fixture-secret'), false);
+});
 
 test('legacy HTTP upgrade never borrows a session without browser provenance or replays forms', async t => {
   const f = await fixture(t, { upgradeInsecureRequests: true });
@@ -270,17 +343,25 @@ const landingNavigationHeaders = {
 };
 const infoNewsLanding = 'https://info.tsinghua.edu.cn/f/info/xxfb_fg/xnzx/stu/index';
 
-test('user-activated cross-site navigation accepts only the three explicit empty-query campus landings', async t => {
+test('user-activated cross-site navigation accepts only explicit empty-query campus landings', async t => {
   const f = await fixture(t, { allowedOrigins: ['https://info.tsinghua.edu.cn', `https://${hostname}`],
     token: undefined, authorizeSocket: async () => true });
-  for (const url of ['https://info.tsinghua.edu.cn/', infoNewsLanding, `https://${hostname}/f/wlxt/index/course/student/`]) {
+  const infoLandings=['https://info.tsinghua.edu.cn/',infoNewsLanding,
+    'https://info.tsinghua.edu.cn/f/info/gxfw_fg/common/index',
+    'https://info.tsinghua.edu.cn/f/info/portal_fg/student/yyfwxxindex'];
+  for (const url of [...infoLandings, `https://${hostname}/f/wlxt/index/course/student/`]) {
     for (const method of ['GET', 'HEAD']) {
       const result = await proxyRequest(f, { auth: false, url, method, headers: { ...landingNavigationHeaders, host: new URL(url).host } });
       assert.equal(result.status, 200, `${method} ${url}`);
     }
   }
-  assert.equal(f.state.calls.length, 6);
+  assert.equal(f.state.calls.length, 10);
   assert.deepEqual(f.gateway.statistics().recentRejections, []);
+  for(const landing of infoLandings) {
+    const rejected=await proxyRequest(f,{auth:false,url:landing+'?action=change',headers:{...landingNavigationHeaders,host:'info.tsinghua.edu.cn'}});
+    assert.equal(rejected.status,403);
+  }
+  assert.equal(f.state.calls.length,10);
 });
 
 test('landing exception cannot authorize forms, query actions, subresources, frames, or unactivated navigation', async t => {

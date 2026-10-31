@@ -11,6 +11,7 @@ import { promisify } from 'node:util';
 const algorithm = { name: 'ECDSA', namedCurve: 'P-256', hash: 'SHA-256' };
 const DAY = 86_400_000;
 const creations = new Map();
+const IDENTITY_HOSTS = new Set(['id.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn', 'webvpn.tsinghua.edu.cn']);
 const exec = promisify(execFile);
 const failure = code => Object.assign(new Error(code), { code });
 const serial = () => `01${randomBytes(19).toString('hex')}`;
@@ -143,9 +144,13 @@ function abortable(promise, signal) {
   });
 }
 
-/** Explicitly creates/loads a per-installation CA. Importing this module has no OS or filesystem effects. */
-export async function createCertificateAuthority({ directory, allowedHosts, maxCachedCertificates = 64 } = {}) {
+/** Explicitly creates/loads a per-installation CA. Importing this module has no OS or filesystem effects.
+ * authorizeHost is a synchronous lookup of the current service registry, never
+ * a discovery or network operation. Dynamic authorization is checked on every
+ * issue, including cache hits and completion of asynchronous key generation. */
+export async function createCertificateAuthority({ directory, allowedHosts, authorizeHost, maxCachedCertificates = 64 } = {}) {
   if (typeof directory !== 'string' || !directory || !Array.isArray(allowedHosts) || !allowedHosts.length || allowedHosts.length > 256 ||
+      authorizeHost !== undefined && typeof authorizeHost !== 'function' ||
       !Number.isSafeInteger(maxCachedCertificates) || maxCachedCertificates < 1 || maxCachedCertificates > 256) throw failure('GATEWAY_CERTIFICATE_CONFIG_INVALID');
   const allowed = new Set(allowedHosts.map(hostname));
   const location = resolve(directory);
@@ -158,6 +163,24 @@ export async function createCertificateAuthority({ directory, allowedHosts, maxC
   const identity = await creating;
   const cache = new Map();
   const pending = new Map();
+  function assertAuthorized(host) {
+    hostname(host);
+    if (allowed.has(host)) return;
+    let authorized = false;
+    if (authorizeHost && host.endsWith('.tsinghua.edu.cn') && !IDENTITY_HOSTS.has(host)) {
+      try {
+        const result = authorizeHost(host);
+        authorized = result === true;
+        // Async callbacks cannot authorize issuance. Observe a rejected promise
+        // so a mistaken async lookup cannot create an unhandled rejection.
+        if (result && typeof result.then === 'function') void Promise.resolve(result).catch(() => {});
+      } catch { /* Registry failures never authorize a host or expose details. */ }
+    }
+    if (!authorized) {
+      cache.delete(host);
+      throw failure('GATEWAY_CERTIFICATE_HOST_REJECTED');
+    }
+  }
   async function generate(host) {
     const keys = await webcrypto.subtle.generateKey(algorithm, true, ['sign', 'verify']);
     const expires = Math.min(Date.now() + 7 * DAY, identity.parsed.notAfter.getTime());
@@ -173,6 +196,7 @@ export async function createCertificateAuthority({ directory, allowedHosts, maxC
     }, webcrypto);
     const value = Object.freeze({ key: pem('PRIVATE KEY', await webcrypto.subtle.exportKey('pkcs8', keys.privateKey)),
       cert: `${certificate.toString('pem')}\n${identity.certificatePem}` });
+    assertAuthorized(host);
     cache.set(host, { value, expires });
     while (cache.size > maxCachedCertificates) cache.delete(cache.keys().next().value);
     return value;
@@ -181,7 +205,7 @@ export async function createCertificateAuthority({ directory, allowedHosts, maxC
     certificatePath: identity.certificatePath, certificatePem: identity.certificatePem, fingerprint: identity.fingerprint,
     async issue(host, { signal } = {}) {
       if (signal?.aborted) throw signal.reason ?? new DOMException('Certificate request aborted', 'AbortError');
-      if (!allowed.has(hostname(host))) throw failure('GATEWAY_CERTIFICATE_HOST_REJECTED');
+      assertAuthorized(host);
       const cached = cache.get(host);
       if (cached && cached.expires > Date.now() + 60_000) {
         cache.delete(host); cache.set(host, cached); return cached.value;
@@ -194,7 +218,9 @@ export async function createCertificateAuthority({ directory, allowedHosts, maxC
         pending.set(host, work);
         void work.finally(() => pending.delete(host)).catch(() => {});
       }
-      return abortable(work, signal);
+      const value = await abortable(work, signal);
+      assertAuthorized(host);
+      return value;
     },
     status: () => ({ certificatePath: identity.certificatePath, fingerprint: identity.fingerprint,
       expiresAt: identity.parsed.notAfter.toISOString(), cachedCertificates: cache.size, pendingCertificates: pending.size }),

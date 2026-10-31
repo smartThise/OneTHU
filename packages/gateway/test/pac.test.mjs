@@ -19,11 +19,11 @@ const clash = { host: '127.0.0.1', port: 7897 };
 
 test('identity sites retain the original route even when custom campus origins include them', () => {
   const origins = ['https://learn.tsinghua.edu.cn', 'https://id.tsinghua.edu.cn', 'http://id.tsinghua.edu.cn',
-    'https://oauth.tsinghua.edu.cn', 'http://oauth.tsinghua.edu.cn'];
+    'https://oauth.tsinghua.edu.cn', 'http://oauth.tsinghua.edu.cn', 'https://webvpn.tsinghua.edu.cn'];
   const clashRoute = evaluate({ http: clash, https: clash, socks: clash }, origins);
   const directRoute = evaluate({}, origins);
   const socksRoute = evaluate({ socks: { host: '127.0.0.1', port: 1080 } }, origins);
-  for (const host of ['id.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn']) {
+  for (const host of ['id.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn', 'webvpn.tsinghua.edu.cn']) {
     for (const scheme of ['https', 'http']) {
       const url = `${scheme}://${host}/login?service=private`;
       assert.equal(clashRoute(url), 'PROXY 127.0.0.1:7897');
@@ -41,6 +41,7 @@ test('campus routing preserves a manual Clash fallback for unrelated traffic', (
   assert.equal(route('https://www.google.com/'), 'PROXY 127.0.0.1:7897');
   assert.equal(route('http://example.com/'), 'PROXY 127.0.0.1:7897');
   assert.equal(route('ftp://example.com/'), 'SOCKS5 127.0.0.1:7897');
+  assert.equal(route('https://www.tsinghua.edu.cn/'), 'PROXY 127.0.0.1:7897', 'unknown campus sites retain their original route until broad opaque routing is implemented');
 });
 test('original bypass rules remain direct while campus cannot inherit an overly broad exception', () => {
   const route = evaluate({ http: clash, https: clash, socks: clash, bypass: ['127.0.0.1', '192.168.0.0/16', '169.254/16', '<local>', '*.local', '*.crashlytics.com', '*.tsinghua.edu.cn'] });

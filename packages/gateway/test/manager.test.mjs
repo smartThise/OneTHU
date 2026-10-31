@@ -34,7 +34,7 @@ test('read-only status and shutdown leave pristine profile untouched', async t =
 });
 
 test('managed identity passthrough removes identity hosts from effective routes and certificate policy', async t => {
-  const identities = ['id.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn'];
+  const identities = ['id.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn', 'webvpn.tsinghua.edu.cn'];
   assert.equal(DEFAULT_ALLOWED_ORIGINS.some(origin => identities.includes(new URL(origin).hostname)), false);
   let certificateHosts;
   const { manager } = await fixture(t, { allowedOrigins: ['https://campus.example', ...identities.map(host => `https://${host}`)],
@@ -70,6 +70,37 @@ test('start, scoped PAC, authentication, status redaction, and stop form a compl
   const stopped = await manager.control({ action: 'stop', confirm: true });
   assert.equal(stopped.running, false); assert.equal(state.proxyEnabled, false);
   await assert.rejects(fetch(status.pacUrl));
+});
+
+test('dynamic registered services update status, certificate lookup and fetched PAC without OS mutations', async t => {
+  let epoch = 1; const grants = new Set(); let certificateOptions, platformWrites = 0;
+  const service = 'https://new-service.tsinghua.edu.cn';
+  const session = { epoch: () => epoch, assertCurrent: expected => assert.equal(expected, epoch), status: () => ({ authenticated: true, state: 'ready' }),
+    request: async () => new Response('new service'), authorizeTarget: target => grants.has(new URL(target).origin),
+    allowedOrigins: () => [...grants, 'https://webvpn.tsinghua.edu.cn', 'https://outside.test', 'https://unregistered.tsinghua.edu.cn'] };
+  const { manager, platform } = await fixture(t, { session, allowedOrigins: ['https://learn.tsinghua.edu.cn'],
+    certificateFactory: async options => { certificateOptions = options; return createCertificateAuthority(options); } });
+  platform.enableProxy = async () => { platformWrites++; };
+  const started = await manager.control({ action: 'start', confirm: true });
+  const route = async (url) => {
+    const ctx = vm.createContext({}); vm.runInContext(await (await fetch(started.pacUrl)).text(), ctx);
+    return ctx.FindProxyForURL(url, new URL(url).hostname);
+  };
+  assert.equal(certificateOptions.authorizeHost('new-service.tsinghua.edu.cn'), false);
+  assert.equal(await route(service), 'DIRECT');
+  grants.add(service); grants.add('https://webvpn.tsinghua.edu.cn'); grants.add('https://outside.test');
+  assert.deepEqual((await manager.control({ action: 'status' })).allowedOrigins, ['https://learn.tsinghua.edu.cn', service]);
+  assert.equal(certificateOptions.authorizeHost('new-service.tsinghua.edu.cn'), true);
+  assert.equal(certificateOptions.authorizeHost('webvpn.tsinghua.edu.cn'), false);
+  assert.equal(certificateOptions.authorizeHost('outside.test'), false);
+  assert.equal(await route(service), `PROXY 127.0.0.1:${started.endpoint.port}`);
+  assert.equal(await route('https://www.tsinghua.edu.cn/'), 'DIRECT');
+  assert.equal(await route('https://webvpn.tsinghua.edu.cn/'), 'DIRECT');
+  grants.clear(); epoch++;
+  assert.deepEqual((await manager.control({ action: 'status' })).allowedOrigins, ['https://learn.tsinghua.edu.cn']);
+  assert.equal(certificateOptions.authorizeHost('new-service.tsinghua.edu.cn'), false);
+  assert.equal(await route(service), 'DIRECT');
+  assert.equal(platformWrites, 0);
 });
 
 test('login is required and failed restoration preserves a running endpoint for repair', async t => {

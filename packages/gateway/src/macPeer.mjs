@@ -96,7 +96,7 @@ function limiter(maxConcurrent, maxPending) {
  * profile. Per-request Origin/Fetch Metadata and account checks stay required.
  * Construction is inert; commands are scoped to one listener port, never a PID. */
 export function createMacPeerAuthorizer({ platform = process.platform, uid = process.getuid?.(), run = exec,
-  timeoutMs = 2000, maxBuffer = 128 * 1024, maxConcurrent = 4, maxPending = 32 } = {}) {
+  timeoutMs = 8000, maxBuffer = 128 * 1024, maxConcurrent = 4, maxPending = 32 } = {}) {
   if (typeof run !== 'function' || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 10_000 ||
       !Number.isInteger(maxBuffer) || maxBuffer < 1024 || maxBuffer > 1024 * 1024 ||
       !Number.isInteger(maxConcurrent) || maxConcurrent < 1 || maxConcurrent > 16 ||

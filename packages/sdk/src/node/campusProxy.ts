@@ -5,6 +5,11 @@ import { DEFAULT_UPSTREAM_ORIGINS } from '@onethu/gateway/routes';
 import type { NodeSession } from './session.js';
 import { unwrapWebvpnScripts } from './webvpnScripts.js';
 import { assertCampusBrowserTarget } from './campusProxyPolicy.js';
+import { validateCampusCalendarRead } from './campusCalendar.js';
+import { createCampusServiceTokenLedger } from './campusServiceTokens.js';
+import { isDynamicCampusOrigin } from '@onethu/gateway/policy';
+import type { CampusPortalResult } from '@onethu/core';
+import { createHash } from 'node:crypto';
 
 const VPN = 'https://webvpn.tsinghua.edu.cn';
 const MAX_DOWNLOAD = 4 * 1024 ** 3;
@@ -12,8 +17,9 @@ const LEARN='https://learn.tsinghua.edu.cn';
 const LEARN_DOCUMENT=/^\/f\/wlxt\/index\/course\/(?:student|teacher)(?:\/course)?\/?$/;
 const CSRF_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const fail = (code:string, status=403):never => { throw new GatewayError(code,status); };
-type Runtime = Pick<NodeSession,'fetch'|'epoch'|'assertCurrent'|'status'|'http'> & Partial<Pick<NodeSession,'ensureCampusService'>>;
+type Runtime = Pick<NodeSession,'fetch'|'epoch'|'assertCurrent'|'status'|'http'> & Partial<Pick<NodeSession,'session'|'ensureCampusService'|'resolveCampusPortal'|'fetchCampusDirect'|'loadGatewayState'|'saveGatewayState'>>;
 type GatewayRequest = RequestInit & {duplex?:'half';preserveResponseBytes?:boolean};
+type ServiceGrant = CampusPortalResult & { learned?:boolean };
 
 function streamFrom(reader:ReadableStreamDefaultReader<Uint8Array>, initial:Uint8Array[], check:()=>void) {
   return new ReadableStream<Uint8Array>({
@@ -73,15 +79,22 @@ async function inspectLearnNonce(response:Response,check:()=>void){
 
 /** Latin-1 is a byte-preserving view, not a charset conversion. Keep only the
  * longest possible URL prefix between chunks. Binary/range responses bypass it. */
-function rewriteBytes(body:ReadableStream<Uint8Array>, replacements:Map<string,string>, check:()=>void, html:boolean) {
+function rewriteBytes(body:ReadableStream<Uint8Array>, replacements:Map<string,string>, check:()=>void, html:boolean, calendarRoam=false) {
   const entries=[...replacements].sort(([a],[b])=>b.length-a.length);
+  const escape=(value:string)=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   const urls='(?:'+entries.map(([key])=>key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')(?=[/\\\\?#\\s"\'<>);,]|$)';
   // The gateway's browser runtime would wrap already-logical URLs again. Only
   // remove its exact external script family; application scripts remain intact.
   const injection='<script\\b[^>]{0,2048}\\bsrc\\s*=\\s*["\'](?:https?:)?(?://webvpn\\.tsinghua\\.edu\\.cn)?/wengine-vpn/js/[^"\']{0,2048}["\'][^>]{0,2048}>\\s{0,256}</script\\s*>';
-  const expression=new RegExp(html?injection+'|'+urls:urls,'gi');
+  // Learn's calendar client parses this success response with an exact regex.
+  // WebVPN changes both the root link and its quote style. Restore only the
+  // already-successful anchor on the fixed roaming endpoint, never its result.
+  const calendarRoot=webvpnWrap(LEARN+'/');
+  const calendarAnchor='<a\\s+href\\s*=\\s*(["\'])(?:'+[calendarRoot,calendarRoot.slice(VPN.length),calendarRoot.slice('https:'.length),LEARN+'/','/'].map(escape).join('|')+')\\1>OK ([A-Za-z0-9._@-]{1,128})</a>';
+  const success=calendarRoam?new RegExp(calendarAnchor,'i'):undefined;
+  const expression=new RegExp((calendarRoam?calendarAnchor+'|':'')+(html?injection+'|'+urls:urls),'gi');
   const overlap=Math.max(html?8192:0,...entries.map(([key])=>key.length))+1;
-  const replace=(value:string)=>/^<script/i.test(value)?'':replacements.get(value.toLowerCase())??value;
+  const replace=(value:string)=>{const match=success?.exec(value);return match?"<a href='/'>OK "+match[2]+"</a>":/^<script/i.test(value)?'':replacements.get(value.toLowerCase())??value;};
   const reader=body.getReader();let pending='',finished=false;
   const iterator=(async function*(){
     try {
@@ -107,8 +120,19 @@ function rewriteBytes(body:ReadableStream<Uint8Array>, replacements:Map<string,s
 
 export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonly string[], upstreamOrigins:Readonly<Record<string,string>>=DEFAULT_UPSTREAM_ORIGINS) {
   const origins=normalizeAllowedOrigins([...allowedOrigins]) as Set<string>;
-  const upstreamOrigin=(origin:string)=>upstreamOrigins[origin]??origin;
-  const browserOrigin=(origin:string)=>Object.entries(upstreamOrigins).find(([alias,upstream])=>upstream===origin&&origins.has(alias))?.[0]??origin;
+  const staticOrigins=new Set(origins);
+  const grants=new Map<string,ServiceGrant>();
+  let saveCache=()=>{};
+  const ledger=createCampusServiceTokenLedger(runtime.epoch,Date.now,()=>saveCache());
+  let grantEpoch=runtime.epoch();
+  function refreshGrants(){
+    if(grantEpoch===runtime.epoch())return;
+    for(const origin of grants.keys())if(!staticOrigins.has(origin))origins.delete(origin);
+    grants.clear();grantEpoch=runtime.epoch();
+    saveCache();
+  }
+  const upstreamOrigin=(origin:string)=>grants.get(origin)?.upstreamOrigin??upstreamOrigins[origin]??origin;
+  const browserOrigin=(origin:string)=>[...grants].find(([,value])=>value.upstreamOrigin===origin)?.[0]??Object.entries(upstreamOrigins).find(([alias,upstream])=>upstream===origin&&origins.has(alias))?.[0]??origin;
   const replacements=new Map<string,string>();
   for(const origin of origins){
     const logical=browserOrigin(origin),wrapped=webvpnWrap(upstreamOrigin(origin)).replace(/\/$/,'');
@@ -118,12 +142,71 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
     }
     if(origin!==logical){replacements.set(origin,logical);replacements.set(origin.replaceAll('/','\\/'),logical.replaceAll('/','\\/'));}
   }
+  function grant(result:ServiceGrant,persist=true,learned=false){
+    refreshGrants();
+    if(!isDynamicCampusOrigin(result.origin)||!isDynamicCampusOrigin(result.upstreamOrigin)||
+      new URL(result.url).origin!==result.origin||!['direct','webvpn'].includes(result.transport)||
+      result.origin!==result.upstreamOrigin&&result.origin!==result.upstreamOrigin.replace(/^http:/,'https:')||
+      !grants.has(result.origin)&&grants.size>=256)fail('GATEWAY_SERVICE_TARGET_REJECTED');
+    const previous=grants.get(result.origin);
+    const selected=!learned&&previous?.learned?{...result,upstreamOrigin:previous.upstreamOrigin,transport:previous.transport,learned:true}:{...result,learned:learned||result.learned===true};
+    grants.set(result.origin,{...selected,url:result.origin+'/'});origins.add(result.origin);
+    for(const scheme of ['http:','https:']){
+      const alias=scheme+'//'+new URL(result.origin).hostname;
+      const wrapped=webvpnWrap(alias).replace(/\/$/,'');
+      for(const prefix of [wrapped,wrapped.slice('https:'.length),wrapped.slice(VPN.length)]){
+        replacements.set(prefix,result.origin);replacements.set(prefix.replaceAll('/','\\/'),result.origin.replaceAll('/','\\/'));
+      }
+      if(alias!==result.origin){replacements.set(alias,result.origin);replacements.set(alias.replaceAll('/','\\/'),result.origin.replaceAll('/','\\/'));}
+    }
+    if(result.origin!==selected.upstreamOrigin)replacements.set(selected.upstreamOrigin,result.origin);
+    if(persist)saveCache();
+  }
+  const owner=()=>runtime.session?.username?createHash('sha256').update(runtime.session.username).digest('hex'):'';
+  saveCache=()=>{
+    if(!owner()||!runtime.saveGatewayState)return;
+    runtime.saveGatewayState({version:1,owner:owner(),epoch:runtime.epoch(),routes:[...grants.values()],tokens:ledger.snapshot()});
+  };
+  // Restore only same-owner/same-epoch routing and token hashes from the
+  // authority's private atomic session storage. Callback URLs and raw browser
+  // tokens never enter this cache. Account changes invalidate it immediately.
+  try{
+    const cache=runtime.loadGatewayState?.() as {version?:number;owner?:string;epoch?:number;routes?:ServiceGrant[];tokens?:unknown}|undefined;
+    if(owner()&&cache?.version===1&&cache.owner===owner()&&cache.epoch===runtime.epoch()&&Array.isArray(cache.routes)&&cache.routes.length<=256){
+      for(const route of cache.routes){try{grant(route,false);}catch{/* Invalid optional cache entries cannot grant access. */}}
+      ledger.restore(cache.tokens,origin=>grants.has(origin));
+    }
+  }catch{/* A missing discovery cache never invalidates university login. */}
+  async function portal(selector:string,expected:number):Promise<CampusPortalResult>{
+    const resolve=runtime.resolveCampusPortal;
+    if(!resolve)return fail('GATEWAY_SERVICE_UNSUPPORTED',502);
+    try{const result=await resolve(selector);current(expected);grant(result);return result;}
+    catch(error){
+      current(expected);
+      const code=(error as {code?:string}).code;
+      const failure=new GatewayError(code==='CAMPUS_SERVICE_VERIFICATION_REQUIRED'?'GATEWAY_VERIFICATION_REQUIRED':code==='AUTH_SESSION_CHANGED'?'GATEWAY_SESSION_CHANGED':'GATEWAY_SERVICE_SSO_REQUIRED',401);
+      if(typeof code==='string'&&/^(?:CAMPUS_SERVICE|NETWORK|AUTH)_[A-Z0-9_]{1,64}$/.test(code))Object.assign(failure,{serviceReason:code});
+      throw failure;
+    }
+  }
   const mapUrl=(value:string,physical:string):string=>{
     const url=new URL(value,physical);
     if(url.origin===VPN){
       for(const origin of origins){
         const prefix=webvpnWrap(upstreamOrigin(origin)).replace(/\/$/,'');
         if(url.href===prefix||url.href.startsWith(prefix+'/')||url.href.startsWith(prefix+'?')||url.href.startsWith(prefix+'#'))return browserOrigin(origin)+url.href.slice(prefix.length);
+      }
+      const decoded=webvpnDecodeUrl(url.href);
+      if(decoded){
+        const logical=new URL(decoded),facade=browserOrigin(logical.origin);
+        if(!logical.username&&!logical.password&&!logical.port&&origins.has(facade))return facade+logical.href.slice(logical.origin.length);
+      }
+      const destinationHost=decoded?new URL(decoded).hostname:undefined;
+      if(destinationHost&&!['id.tsinghua.edu.cn','oauth.tsinghua.edu.cn'].includes(destinationHost)){
+        const error=new GatewayError('GATEWAY_SERVICE_UNSUPPORTED',502);
+        // Diagnostic metadata excludes the ticket, query, path and credentials.
+        if(destinationHost.length<=253&&/^[a-z0-9.-]+$/i.test(destinationHost))Object.assign(error,{destinationHost});
+        throw error;
       }
       fail('GATEWAY_AUTH_REQUIRED',401);
     }
@@ -172,6 +255,9 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
     epoch:runtime.epoch,
     assertCurrent:current,
     status:()=>{const value=runtime.status();return {authenticated:value.authenticated,state:value.state,epoch:value.epoch,account:value.account};},
+    allowedOrigins(){refreshGrants();return [...origins];},
+    authorizeTarget(input:string){refreshGrants();try{return runtime.status().authenticated&&grants.has(new URL(input).origin);}catch{return false;}},
+    authorizeBrowserCredential(input:string,name:string,value:string){refreshGrants();try{const origin=new URL(input).origin;return runtime.status().authenticated&&grants.has(origin)&&ledger.permits(origin,name,value);}catch{return false;}},
     browserCookies(input:string){
       const host=(()=>{try{return new URL(input).host;}catch{return fail('GATEWAY_TARGET_REJECTED');}})();
       const target=parseProxyTarget(input,host,origins) as URL;
@@ -190,21 +276,58 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
         cookie.name==='XSRF-TOKEN'&&cookie.domain===physical.hostname&&cookie.path===physical.pathname);
       const token=physicalToken??runtime.http.jar.getCookies(new URL(target.origin+'/')).find(cookie=>
         cookie.name==='XSRF-TOKEN'&&cookie.domain===target.hostname&&cookie.path==='/');
-      if(!token||token.httpOnly!==false||!token.value||token.value.length>4096||!/^[\x21\x23-\x2b\x2d-\x3a\x3c-\x5b\x5d-\x7e]+$/.test(token.value))return [];
+      // Info's own JS reads this specifically named public anti-CSRF UUID.
+      // WebVPN's Cookie body omits its attributes on restoration. Project that
+      // nonce without changing jar metadata; explicit HttpOnly remains private.
+      const restoredInfoNonce=target.origin==='https://info.tsinghua.edu.cn'&&token!==undefined&&token.httpOnly===undefined&&CSRF_UUID.test(token.value);
+      if(!token||token.httpOnly!==false&&!restoredInfoNonce||!token.value||token.value.length>4096||!/^[\x21\x23-\x2b\x2d-\x3a\x3c-\x5b\x5d-\x7e]+$/.test(token.value))return [];
       current(expected);return [{name:'XSRF-TOKEN',value:token.value}];
     },
     async request(input:string,init:GatewayRequest={}) {
+      refreshGrants();
       // Validate before wrapping: the core encoder intentionally ignores ports.
       const host=(()=>{try{return new URL(input).host;}catch{return fail('GATEWAY_TARGET_REJECTED');}})();
       const target=parseProxyTarget(input,host,origins) as URL;
       const upstream=new URL(upstreamOrigin(target.origin)+target.href.slice(target.origin.length));
-      const method=(init.method??'GET').toUpperCase();validateMethod(method);
-      assertCampusBrowserTarget(target,method);
+      const method=(init.method??'GET').toUpperCase();validateMethod(method,target);
       const expected=runtime.epoch();current(expected);
       const check=()=>{current(expected);if(init.signal?.aborted)fail('GATEWAY_CANCELLED',499);};
-      const physical=PUBLIC_DIRECT_HOSTS.has(upstream.hostname)?upstream.href:webvpnWrap(upstream.href);
+      if(target.origin==='https://info.tsinghua.edu.cn'&&target.pathname==='/b/yyfw/vyyfwxx/info/portal_fg/common/onlineAppRedirect'&&['GET','POST'].includes(method)&&target.searchParams.has('yyfwid')){
+        if([...target.searchParams.keys()].some(key=>!['yyfwid','machine','_csrf'].includes(key))||target.searchParams.getAll('yyfwid').length!==1||target.searchParams.has('machine')&&target.searchParams.get('machine')!=='p')return fail('GATEWAY_SERVICE_TARGET_REJECTED');
+        if(init.body!=null){
+          const reader=new Response(init.body).body!.getReader(),parts:Uint8Array[]=[];let size=0;
+          try{while(true){check();const part=await reader.read();check();if(part.done)break;size+=part.value.byteLength;if(size>2048)return fail('GATEWAY_SERVICE_TARGET_REJECTED');parts.push(part.value);}}
+          finally{await reader.cancel().catch(()=>undefined);reader.releaseLock();}
+          const body=new URLSearchParams(Buffer.concat(parts).toString('utf8'));
+          if([...body.keys()].some(key=>key!=='_csrf'))return fail('GATEWAY_AUTH_REQUIRED',401);
+        }
+        const selector=target.searchParams.get('yyfwid')??'';
+        if(!/^[0-9a-f]{32}$/i.test(selector))return fail('GATEWAY_SERVICE_TARGET_REJECTED');
+        const result=await portal(selector,expected);check();
+        return Response.json({result:'success',object:{roamingurl:result.url,isOnline:'no'}},{headers:{'cache-control':'no-store','referrer-policy':'strict-origin'}});
+      }
+      assertCampusBrowserTarget(target,method);
+      if(target.origin==='https://info.tsinghua.edu.cn'&&target.pathname==='/f/info/portal_fg/teacher/roamingToApp'&&['GET','HEAD'].includes(method)){
+        if(method!=='GET'||[...target.searchParams.keys()].some(key=>!['yyfwid','bz'].includes(key))||target.searchParams.getAll('yyfwid').length!==1||target.searchParams.getAll('bz').length>1||target.searchParams.has('bz')&&target.searchParams.get('bz')!=='app')fail('GATEWAY_SERVICE_TARGET_REJECTED');
+        const selector=target.searchParams.get('yyfwid')??'';
+        if(!/^[0-9a-f]{32}$/i.test(selector))fail('GATEWAY_SERVICE_TARGET_REJECTED');
+        const result=await portal(selector,expected);check();
+        return new Response(null,{status:302,headers:{location:result.url,'cache-control':'no-store','referrer-policy':'strict-origin'}});
+      }
+      if(['PROPFIND','REPORT'].includes(method)){
+        init=await validateCampusCalendarRead(target,method,init,check) as GatewayRequest;
+        check();
+      }
+      const direct=grants.get(target.origin)?.transport==='direct';
+      let physical=direct||PUBLIC_DIRECT_HOSTS.has(upstream.hostname)?upstream.href:webvpnWrap(upstream.href);
       const rawHeaders:string[]=[];new Headers(init.headers).forEach((value,key)=>rawHeaders.push(key,value));
-      const headers=sanitizeRequestHeaders(rawHeaders) as Headers;
+      const incoming=new Headers(init.headers);
+      // Preserve application-specific headers as a transparent proxy. A field
+      // called "token" can be an existing business session or a public key;
+      // its semantics belong to that application. Only standard Authorization
+      // enters the gateway's explicit shared-credential witness policy.
+      if(grants.has(target.origin)&&incoming.has('authorization'))ledger.validateHeaders(target.origin,new Headers({authorization:incoming.get('authorization')!}));
+      const headers=sanitizeRequestHeaders(rawHeaders,{allowAuthorization:grants.has(target.origin)&&ledger.permits(target.origin,'authorization',incoming.get('authorization')??'')}) as Headers;
       if(physical!==target.href){
         if(headers.has('origin'))headers.set('origin',new URL(physical).origin);
         if(headers.has('referer')){try{const ref=new URL(headers.get('referer')!);if(origins.has(ref.origin)){
@@ -217,8 +340,48 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
         await recoverService(target.origin,expected);check();
         return new Response(null,{status:302,headers:{location:target.origin+'/userindex'}});
       }
-      let response=await runtime.fetch(physical,request);check();
+      const fetch=direct?runtime.fetchCampusDirect:runtime.fetch;
+      if(!fetch)return fail('GATEWAY_SERVICE_UNSUPPORTED',502);
+      let response=await fetch(physical,request);check();
       try {
+        // Canonical HTTP/HTTPS redirects inside WebVPN can map to the same
+        // browser URL. Resolve only this GET/HEAD transport change here. A
+        // repeated wire route gets one pinned HTTPS attempt, with the same
+        // account jar, instead of an endless browser self-redirect.
+        if(grants.has(target.origin)&&['GET','HEAD'].includes(method)){
+          const seen=new Set([physical]);let triedDirect=direct;
+          for(let attempt=0;attempt<3&&physical.startsWith(VPN+'/')&&[301,302,303,307,308].includes(response.status)&&response.headers.has('location');attempt++){
+            const destination=new URL(response.headers.get('location')!,physical);
+            const decoded=destination.origin===VPN?webvpnDecodeUrl(destination.href):undefined;
+            if(!decoded)break;
+            const logical=new URL(decoded),facade=new URL(logical);facade.protocol='https:';
+            if(logical.hostname!==target.hostname||logical.username||logical.password||logical.port||facade.href!==target.href)break;
+            let next=webvpnWrap(logical.href),directAttempt=false;
+            if(seen.has(next)){
+              if(triedDirect||!runtime.fetchCampusDirect)break;
+              directAttempt=true;triedDirect=true;next=target.href;
+            }
+            await response.body?.cancel();check();
+            const again=directAttempt?runtime.fetchCampusDirect!:runtime.fetch;
+            const nextHeaders=new Headers(request.headers);
+            if(directAttempt){if(nextHeaders.has('origin'))nextHeaders.set('origin',target.origin);if(nextHeaders.has('referer'))nextHeaders.set('referer',incoming.get('referer')??target.origin+'/');}
+            response=await again(next,{...request,headers:nextHeaders});check();physical=next;seen.add(next);
+            grant({url:target.origin+'/',origin:target.origin,upstreamOrigin:directAttempt?target.origin:logical.origin,transport:directAttempt?'direct':'webvpn'},true,true);
+          }
+        }
+        // Legacy applications can redirect their HTTPS SSO callback to the
+        // HTTP service behind WebVPN. Learn the same-host wire scheme from
+        // that authenticated response while retaining HTTPS in the browser.
+        if(grants.has(target.origin)&&[301,302,303,307,308].includes(response.status)&&response.headers.has('location')){
+          const redirected=new URL(response.headers.get('location')!,physical);
+          const decoded=redirected.origin===VPN?webvpnDecodeUrl(redirected.href):undefined;
+          if(decoded){const logical=new URL(decoded);
+            if(logical.protocol==='http:'&&logical.hostname===target.hostname&&!logical.port&&!logical.username&&!logical.password){
+              const facade=new URL(logical);facade.protocol='https:';
+              grant({url:facade.href,origin:target.origin,upstreamOrigin:logical.origin,transport:'webvpn'},true,true);
+            }
+          }
+        }
         // Only the account authority may redeem service SSO tickets. Browser
         // identity endpoints stay blocked; an ordinary service GET can ask the
         // current runtime for one cookie-only preparation, then return home.
@@ -229,7 +392,11 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
           'https://card.tsinghua.edu.cn':'/userindex',
         };
         if(['GET','HEAD'].includes(method)&&serviceHome[target.origin]&&[301,302,303,307,308].includes(response.status)&&response.headers.has('location')){
-          const destination=new URL(mapUrl(response.headers.get('location')!,physical));
+          const redirected=new URL(response.headers.get('location')!,physical);
+          // Classification does not grant browser access to the identity host.
+          // Its wrapped form must be recognized even when identity is excluded
+          // from the shared proxy's allowlist and uses the ordinary browser.
+          const destination=new URL(redirected.origin===VPN?(webvpnDecodeUrl(redirected.href)??redirected.href):redirected.href);
           if(['id.tsinghua.edu.cn','oauth.tsinghua.edu.cn'].includes(destination.hostname)){
             await response.body?.cancel();await recoverService(target.origin,expected);check();
             response=new Response(null,{status:302,headers:{location:target.origin+serviceHome[target.origin]}});
@@ -250,6 +417,7 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
           const inspected=await inspectLearnNonce(response,check);response=inspected.response;check();
           if(inspected.nonce)learnPublicNonce={epoch:expected,value:inspected.nonce};
         }
+        if(grants.has(target.origin))response=ledger.observeResponse(target.origin,response,check);
         const output=new Headers(response.headers);
         output.delete('set-cookie');output.delete('set-cookie2');output.delete('x-onethu-final-url');
         if(output.has('location'))output.set('location',mapUrl(output.get('location')!,physical));
@@ -270,7 +438,7 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
           const html=/\b(?:text\/html|application\/xhtml\+xml)\b/i.test(output.get('content-type')??'');
           const script=/^(?:text|application)\/(?:x-)?(?:java|ecma)script(?:;|$)/i.test(output.get('content-type')??'');
           if(html||script)body=unwrapWebvpnScripts(body,html,check);
-          body=rewriteBytes(body,replacements,check,html);
+          body=rewriteBytes(body,replacements,check,html,html&&method==='GET'&&target.origin===LEARN&&target.pathname==='/roam.php'&&response.status===200);
           for(const header of ['content-length','etag','content-md5','digest','content-digest','repr-digest'])output.delete(header);
         }
         check();return new Response(body,{status:response.status,statusText:response.statusText,headers:output});

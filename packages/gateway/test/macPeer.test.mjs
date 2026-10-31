@@ -71,7 +71,7 @@ test('construction is inert; invocation is bounded, numeric, shell-free and once
   const [command, args, options] = f.calls[0];
   assert.equal(command, '/usr/sbin/lsof');
   assert.deepEqual(args, ['-nP', '-a', '-iTCP@127.0.0.1:45000', '-sTCP:ESTABLISHED', '-F0puftnPT']);
-  assert.ok(options.timeout > 0 && options.timeout <= 2000); assert.equal(options.maxBuffer, 128 * 1024);
+  assert.ok(options.timeout > 0 && options.timeout <= 10_000); assert.equal(options.maxBuffer, 128 * 1024);
   assert.equal(options.killSignal, 'SIGKILL'); assert.equal(options.shell, undefined);
   assert.equal(options.env.LC_ALL, 'C'); assert.equal(options.env.DYLD_INSERT_LIBRARIES, undefined);
 });

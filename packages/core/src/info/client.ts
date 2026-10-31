@@ -43,6 +43,7 @@ import * as finance from "./finance.js";
 import * as hygiene from "./hygiene.js";
 import * as neth from "./neth.js";
 import * as schoolCalendar from "./calendar.js";
+import { resolveCampusPortal, type CampusPortalResult } from "./campusPortal.js";
 import { parseLibrarySession } from "./librarySession.js";
 import { parseCRSchedule } from "./crSchedule.js";
 import { mergeInfoCookieBody } from "./cookies.js";
@@ -291,6 +292,18 @@ export class InfoClient {
   setRenewers(hooks: { info?: () => Promise<boolean>; card?: () => Promise<boolean> }): void {
     this.#renewInfo = hooks.info ?? null;
     this.#renewCard = hooks.card ?? null;
+  }
+
+  /** Official portal discovery using the current cookies and device trust only.
+   * The application selector is resolved by Info; callers cannot supply an SSO
+   * URL, callback, password, or a browser-origin authorization themselves. */
+  async resumeCampusPortal(selector:string,assertCurrent:()=>void,deps:{fetchDirect?:import('../http.js').FetchLike}={}):Promise<CampusPortalResult>{
+    assertCurrent();
+    const credentials=this.#idCredentials?.();
+    if(!credentials?.username)throw new AuthRequiredError();
+    await this.#wengineCookieDance();assertCurrent();
+    const csrf=await this.#csrfToken();assertCurrent();
+    return resolveCampusPortal(this.#http,selector,{csrf,fingerprint:credentials.fingerprint,finger3:credentials.finger3,assertCurrent,fetchDirect:deps.fetchDirect});
   }
 
   /** Cookie-only SSO for fixed browser services. This deliberately bypasses

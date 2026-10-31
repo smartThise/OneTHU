@@ -75,6 +75,80 @@ test('issuance deduplicates concurrent work, bounds LRU cache and supports Abort
   await ca.issue(hosts[2]);
 });
 
+test('dynamic authorization issues one exact campus SAN and rechecks cached membership', async t => {
+  const dynamic = 'service.tsinghua.edu.cn';
+  const registered = new Set([dynamic]);
+  const lookedUp = [];
+  const { ca } = await fixture(t, { authorizeHost(host) { lookedUp.push(host); return registered.has(host); } });
+  const issued = await ca.issue(dynamic);
+  const leaf = new X509Certificate(issued.cert);
+  assert.equal(leaf.subjectAltName, `DNS:${dynamic}`);
+  assert.equal(leaf.checkHost('other.tsinghua.edu.cn'), undefined);
+  assert.equal(leaf.verify(new X509Certificate(ca.certificatePem).publicKey), true);
+  assert.equal(await ca.issue(dynamic), issued);
+  registered.delete(dynamic);
+  await assert.rejects(ca.issue(dynamic), { code: 'GATEWAY_CERTIFICATE_HOST_REJECTED' });
+  assert.equal(ca.status().cachedCertificates, 0);
+  const lookupsBeforeStatic = lookedUp.length;
+  await ca.issue(hosts[0]);
+  assert.equal(lookedUp.length, lookupsBeforeStatic, 'static exact hosts do not depend on registry availability');
+  assert(lookedUp.every(host => host === dynamic));
+});
+
+test('dynamic callback cannot authorize identity hosts, external domains, IPs or noncanonical names', async t => {
+  let lookups = 0;
+  const { ca } = await fixture(t, { allowedHosts: [hosts[0]], authorizeHost() { lookups++; return true; } });
+  for (const host of [
+    'id.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn', 'webvpn.tsinghua.edu.cn',
+    'tsinghua.edu.cn', 'nottsinghua.edu.cn', 'tsinghua.edu.cn.outside.test', 'outside.test',
+    '*.tsinghua.edu.cn', 'service.tsinghua.edu.cn.', 'Service.tsinghua.edu.cn',
+    'service.tsinghua.edu.cn:443', 'user@service.tsinghua.edu.cn', '127.0.0.1', '[::1]', 'localhost',
+  ]) await assert.rejects(ca.issue(host), { code: 'GATEWAY_CERTIFICATE_HOST_REJECTED' }, host);
+  assert.equal(lookups, 0, 'invalid targets never reach the registry');
+  await ca.issue('nested.service.tsinghua.edu.cn');
+  assert(lookups > 0);
+});
+
+test('dynamic lookup requires synchronous strict true and masks callback failures', async t => {
+  let result;
+  const { ca } = await fixture(t, { authorizeHost() { if (result instanceof Error) throw result; return result; } });
+  for (const value of [false, undefined, null, 1, 'true', {}, Promise.resolve(true), new Error('private registry detail')]) {
+    result = value;
+    await assert.rejects(ca.issue('dynamic.tsinghua.edu.cn'), { code: 'GATEWAY_CERTIFICATE_HOST_REJECTED', message: 'GATEWAY_CERTIFICATE_HOST_REJECTED' });
+  }
+  result = Promise.reject(new Error('private asynchronous registry detail'));
+  await assert.rejects(ca.issue('dynamic.tsinghua.edu.cn'), { code: 'GATEWAY_CERTIFICATE_HOST_REJECTED' });
+  assert.equal(ca.status().cachedCertificates, 0);
+  const directory = join(tmpdir(), 'onethu-ca-invalid-callback-unused');
+  await assert.rejects(createCertificateAuthority({ directory, allowedHosts: hosts, authorizeHost: true }), { code: 'GATEWAY_CERTIFICATE_CONFIG_INVALID' });
+});
+
+test('revocation during asynchronous issuance rejects all waiters without caching the certificate', async t => {
+  let active = true;
+  const { ca } = await fixture(t, { authorizeHost: () => active, maxCachedCertificates: 1 });
+  const dynamic = 'pending.tsinghua.edu.cn';
+  const results = Promise.allSettled([ca.issue(dynamic), ca.issue(dynamic)]);
+  active = false;
+  for (const result of await results) {
+    assert.equal(result.status, 'rejected');
+    assert.equal(result.reason.code, 'GATEWAY_CERTIFICATE_HOST_REJECTED');
+  }
+  assert.equal(ca.status().cachedCertificates, 0);
+  assert.equal(ca.status().pendingCertificates, 0);
+  active = true;
+  await ca.issue(dynamic);
+  await ca.issue('second.tsinghua.edu.cn');
+  assert.equal(ca.status().cachedCertificates, 1, 'dynamic hosts share the bounded LRU cache');
+});
+
+test('authorization is checked again before asynchronous issuance returns to its caller', async t => {
+  let lookups = 0;
+  const { ca } = await fixture(t, { authorizeHost: () => ++lookups < 3 });
+  await assert.rejects(ca.issue('revoked.tsinghua.edu.cn'), { code: 'GATEWAY_CERTIFICATE_HOST_REJECTED' });
+  assert.equal(lookups, 3);
+  assert.equal(ca.status().cachedCertificates, 0);
+});
+
 test('concurrent factories share one creation, corrupt or mismatched identity is never replaced', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'onethu-ca-race-'));
   t.after(() => rm(directory, { recursive: true, force: true }));

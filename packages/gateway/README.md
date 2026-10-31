@@ -6,7 +6,7 @@
 
 阶段设计见[实施计划](../../docs/plans/2026-10-31-campus-super-proxy.md)。[共享会话与 Mac dev 验收](../../docs/reviews/2026-10-31-campus-gateway-integration.md)和[首轮协议记录](../../docs/reviews/2026-10-31-campus-gateway-prototype.md)保留为历史证据；其中“未执行系统信任或代理修改”“优先独立浏览器”等描述对应较早阶段，不代表当前系统接入状态。
 
-最新问题、真实恢复、统一认证绕过和逐站业务边界见[系统浏览器验收](../../docs/reviews/2026-10-31-system-browser-gateway.md)。选课、研讨间、校园卡及学校日历目前仍有未通过的业务会话检查。
+最新通用 SSO、Info 转圈、云盘二次验证和后台重启结果见[校园服务验收](../../docs/reviews/2026-10-31-campus-service-coverage.md)。普通 Chrome 已通过云盘、培养方案、ITS、邮箱和体育只读页面验收，MadModel 页面可打开；未提交业务写操作。下文的 11 张 Learn 卡片和停用状态是早期系统接入快照，当前代理保持启用。
 
 ## 当前能力
 
@@ -24,7 +24,7 @@
 
 组合规则按以下顺序处理：
 
-1. 精确匹配的校园域名进入 OneTHU 系统监听器；校园规则没有 `DIRECT` 兜底。
+1. 已登记的校园域名进入共享会话代理。支持原 HTTPS 手动代理或直连的 macOS 网络服务也会分流其余校园 HTTPS：未登记站点透明转发原始 CONNECT，沿原代理/绕过规则访问，保持网站自己的 TLS；不向它附加 SDK Cookie。SOCKS-only 配置暂保留精确登记模式。
 2. 非校园域名匹配原有绕过规则时直连，支持普通主机模式、`<local>` 和 IPv4 CIDR（含 macOS 的缩写形式）。
 3. 其余非校园流量沿用对应协议的原 HTTP / HTTPS 代理，或原 SOCKS 代理；原本没有代理时才直连。
 
@@ -148,9 +148,13 @@ await gateway.control({ action: 'start', confirm: true });
 
 `session.request` 返回单跳 Fetch `Response`，请求体可能是 Node Readable，带 `duplex: 'half'`；应遵守取消和账号 epoch。采用 Fetch 已解压字节语义，优先请求 `Accept-Encoding: identity`，移除失效的长度/编码/摘要。压缩的 206/Content-Range 明确拒绝，避免声明范围与解压字节不符。独立 JavaScript 与 HTML 内联脚本中的已知 `vpn_eval` 包装会在有界字节流中还原，不增加 `eval` 助手、不放宽 CSP。SDK 只在识别到特定 WebVPN Cookie bootstrap 时，对 GET / HEAD 完成引导后重取一次；不会重放 POST 或上传。
 
-浏览器 Cookie、Authorization、认证类 `Set-Cookie` 和内部 `x-onethu-*` 头不会越过会话边界。Learn 与 Info 仅投影页面需要的 `XSRF-TOKEN`：Cookie 来源要求明确标记为非 HttpOnly，优先精确 WebVPN 路径。Learn 已知课程文档可提供比镜像 Cookie 更新的公开 nonce；适配器从最多 64 KiB 前缀中的同源业务链接提取唯一值，按账号 epoch 暂存，避免后续资源写回旧值。固定为 Secure / SameSite=Strict / Path=/，其余 Cookie 保持私有。其他页面内依赖 `document.cookie`、业务 token、未适配跨域 SSO 或 Service Worker 的服务仍须逐站验证。正文 URL 逆向改写不等于完整浏览器兼容。
+浏览器 Cookie、认证类 `Set-Cookie` 和内部 `x-onethu-*` 头由共享会话边界隔离。标准 Authorization 仅在当前账号和目标来源的成功 JSON 中见证后透传，缓存保存令牌哈希；应用专用业务头保留原语义，由原站校验。Learn 与 Info 仅投影页面需要的 `XSRF-TOKEN`，优先精确 WebVPN 路径，显式 HttpOnly 不投影；Info 从 Cookie body 恢复且缺失属性的专用公开防伪 UUID 也可投影，jar 的属性保持原样。Learn 已知课程文档可提供比镜像 Cookie 更新的公开 nonce；适配器从最多 64 KiB 前缀中的同源业务链接提取唯一值，按账号 epoch 暂存，避免后续资源写回旧值。固定为 Secure / SameSite=Strict / Path=/，其余 Cookie 保持私有。其他页面内依赖 `document.cookie`、业务 token、未适配跨域 SSO 或 Service Worker 的服务仍须逐站验证。正文 URL 逆向改写不等于完整浏览器兼容。
 
-旧 native 快照的属性来源仍有迁移限制：新的 SDK/core bootstrap 保留未知 HttpOnly 状态，但旧版 native 导出曾把缺失属性记为 false。现有快照无法反推该 false 是否来自学校响应；当前投影只限 Learn 精确作用域的 `XSRF-TOKEN`，旧 native 记录的属性迁移需单独验证。
+服务由官方 Info 应用 ID 查询和有界 SSO 登记，CONNECT、动态单主机证书和每次请求共用账号作用域的实时登记。`id/oauth/webvpn` 的直接浏览器页面沿原网络路由；业务 SSO 使用后台已有 Cookie 与设备指纹。每个登记的来源和上游协议，以及未过期的令牌哈希，保存到现有私有会话存储并绑定账号摘要及 epoch；callback URL、ticket、令牌原文和未知字段不进入新缓存。原站可继续完成自己的 JWT 交换。
+
+`session.authorizeTarget()` 和 `allowedOrigins()` 只查询后台已验证的登记；`authorizeBrowserCredential()` 只查询标准 Authorization 的来源见证。动态登记不会来自 CONNECT 头、请求 Referer 或网页里的任意链接。`connectPassthrough` 负责未登记校园 TLS 的原代理转发，不调用账号 transport 或 CA。
+
+旧 native 快照的属性来源仍有迁移限制：早期导出曾把缺失 HttpOnly 属性记为 false，已有记录无法完全反推。公开防伪值的窄范围投影不代表允许导出其他 Cookie。
 
 ## 未完成的覆盖
 

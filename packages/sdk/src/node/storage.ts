@@ -6,11 +6,31 @@ import { randomBytes } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { SessionData } from '@onethu/core';
+import { isDynamicCampusOrigin } from '@onethu/gateway/policy';
 const exec = promisify(execFile);
 export function authError(code: string): Error & { code: string } { return Object.assign(new Error(code), { code }); }
 export type DeviceIdentity = { fingerprint: string; account?: string; finger3?: string };
-export type StoredSession = { version: 1; session: SessionData | null; device: DeviceIdentity; epoch?: number; explicitLogout?: boolean };
+export type StoredSession = { version: 1; session: SessionData | null; device: DeviceIdentity; epoch?: number; explicitLogout?: boolean; gatewayState?: unknown };
 const noFollow = constants.O_NOFOLLOW ?? 0;
+function gatewayCache(value:unknown):unknown {
+  const g=value as {version?:unknown;owner?:unknown;epoch?:unknown;routes?:unknown[];tokens?:unknown[]}|undefined;
+  if(!g||g.version!==1||typeof g.owner!=='string'||!/^[a-f0-9]{64}$/.test(g.owner)||!Number.isSafeInteger(g.epoch)||Number(g.epoch)<0||!Array.isArray(g.routes)||g.routes.length>256||!Array.isArray(g.tokens)||g.tokens.length>256)return undefined;
+  const routes=g.routes.flatMap(item=>{
+    const r=item as {origin?:unknown;upstreamOrigin?:unknown;transport?:unknown;learned?:unknown};
+    if(!r||typeof r.origin!=='string'||typeof r.upstreamOrigin!=='string'||!isDynamicCampusOrigin(r.origin)||!isDynamicCampusOrigin(r.upstreamOrigin)||!['direct','webvpn'].includes(String(r.transport))||r.origin!==r.upstreamOrigin&&r.origin!==r.upstreamOrigin.replace(/^http:/,'https:'))return [];
+    return [{origin:r.origin,upstreamOrigin:r.upstreamOrigin,transport:r.transport,url:r.origin+'/',learned:r.learned===true}];
+  });
+  const allowed=new Set(routes.map(r=>r.origin));
+  const tokens=g.tokens.flatMap(item=>{
+    const r=item as {origin?:unknown;tokens?:unknown[]};
+    if(!r||typeof r.origin!=='string'||!allowed.has(r.origin)||!Array.isArray(r.tokens)||r.tokens.length>128)return [];
+    return [{origin:r.origin,tokens:r.tokens.flatMap(item=>{
+      const token=item as {hash?:unknown;expiry?:unknown};
+      return token&&typeof token.hash==='string'&&/^[a-f0-9]{64}$/.test(token.hash)&&Number.isSafeInteger(token.expiry)?[{hash:token.hash,expiry:token.expiry}]:[];
+    })}];
+  });
+  return {version:1,owner:g.owner,epoch:g.epoch,routes,tokens};
+}
 const isMissing = (e: unknown) => (e as NodeJS.ErrnoException)?.code === 'ENOENT';
 async function privateMode(target: string, directory: boolean): Promise<void> {
   if (process.platform !== 'win32') { await chmod(target, directory ? 0o700 : 0o600); return; }
@@ -50,7 +70,7 @@ function validateSession(value: unknown): StoredSession {
   }
   // Copy only known fields. An old or hand-edited file cannot smuggle a password
   // into the next snapshot via object spreading.
-  return { version: 1, epoch: v.epoch ?? 0, explicitLogout: v.explicitLogout === true, device: { fingerprint: v.device.fingerprint, account: v.device.account, finger3: v.device.finger3 }, session: v.session && {
+  return { version: 1, epoch: v.epoch ?? 0, explicitLogout: v.explicitLogout === true, gatewayState:v.session?gatewayCache(v.gatewayState):undefined,device: { fingerprint: v.device.fingerprint, account: v.device.account, finger3: v.device.finger3 }, session: v.session && {
     username: v.session.username, fingerprint: v.device.fingerprint, finger3: v.device.finger3,
     cookiesJson: v.session.cookiesJson, savedAt: v.session.savedAt,
   } };

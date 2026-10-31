@@ -68,7 +68,8 @@ export function createNodeTransport(options: NodeTransportOptions) {
     if (!['http:','https:'].includes(url.protocol) || url.username || url.password) throw authError('NETWORK_URL_REJECTED');
     const local = new AbortController();
     const activeSignal = controller.signal;
-    const stop = () => local.abort();
+    let release = () => {};
+    const stop = () => { local.abort(); release(); };
     activeSignal.addEventListener('abort',stop,{once:true});init.signal?.addEventListener('abort',stop,{once:true});
     if (activeSignal.aborted || init.signal?.aborted) stop();
     const requestOptions=init as RequestInit & {timeoutMs?:number;maxResponseBytes?:number;preserveResponseBytes?:boolean};
@@ -77,6 +78,8 @@ export function createNodeTransport(options: NodeTransportOptions) {
     if(!Number.isSafeInteger(maxBytes)||maxBytes<1||maxBytes>4*1024*1024*1024){activeSignal.removeEventListener('abort',stop);init.signal?.removeEventListener('abort',stop);throw authError('NETWORK_RESPONSE_LIMIT_INVALID');}
     const timeout = setTimeout(stop, Math.min(180_000,Math.max(1,requestedTimeout??options.timeoutMs??45_000)));
     const cleanup = () => { clearTimeout(timeout);activeSignal.removeEventListener('abort',stop);init.signal?.removeEventListener('abort',stop); };
+    release = cleanup;
+    if(local.signal.aborted)cleanup();
     const check=()=>{assert(epoch);if(local.signal.aborted)throw authError(init.signal?.aborted?'NETWORK_ABORTED':'NETWORK_TIMEOUT');};
     let method = (init.method ?? 'GET').toUpperCase(); let body = init.body;
     let vpnChain=logicalUrl(url).origin!==url.origin;

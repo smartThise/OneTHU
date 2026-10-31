@@ -186,6 +186,8 @@ test('desktop handoff verifies identity, preserves trust and does not invalidate
   assert.equal(sdk.status().authenticated,true);assert.equal(sdk.session.fingerprint,'c'.repeat(32));assert.equal(sdk.session.finger3,'shared-device-trust');
   const epoch=sdk.epoch();await sdk.adoptSession({snapshot:handoffSnapshot(),expectedEpoch:epoch,reason:'login'});assert.equal(sdk.epoch(),epoch);
   const exported=sdk.exportSession();assert.equal(exported.snapshot?.username,'12345678');assert.equal(exported.snapshot?.finger3,'shared-device-trust');
+  await sdk.adoptSession({snapshot:{...handoffSnapshot(),finger3:''},expectedEpoch:epoch,reason:'login'});
+  assert.equal(sdk.exportSession().snapshot?.finger3,'shared-device-trust','an empty same-device bridge field cannot erase the existing trust credential');
   assert.equal(school.calls.every(row=>row.method==='GET'),true);
 });
 test('failed candidate probe leaves the old account and cookies unchanged',async t=>{
@@ -194,6 +196,17 @@ test('failed candidate probe leaves the old account and cookies unchanged',async
   await assert.rejects(sdk.adoptSession({snapshot:handoffSnapshot('87654321'),expectedEpoch:sdk.epoch(),reason:'login'},async()=>{stopped=true;}),{code:'AUTH_HANDOFF_UNVERIFIED'});
   assert.equal(stopped,false);assert.equal(sdk.epoch(),before.epoch);assert.equal(sdk.exportSession().snapshot?.cookiesJson,before.snapshot?.cookiesJson);
   await assert.rejects(sdk.adoptSession({snapshot:handoffSnapshot('87654321'),expectedEpoch:sdk.epoch(),reason:'bootstrap'}),{code:'AUTH_SESSION_CONFLICT'});
+});
+
+test('gateway cache survives authority persistence with callback tickets and unknown fields removed',async t=>{
+  const dir=await temporary(t,false),school=fakeSchool();
+  const sdk=await createNodeSession({dataDir:dir,fetch:school.fetch});
+  await sdk.adoptSession({snapshot:handoffSnapshot(),expectedEpoch:sdk.epoch(),reason:'bootstrap'});
+  sdk.saveGatewayState({version:1,owner:'a'.repeat(64),epoch:sdk.epoch(),password:'must-be-removed',routes:[{origin:'https://future.tsinghua.edu.cn',upstreamOrigin:'https://future.tsinghua.edu.cn',transport:'direct',url:'https://future.tsinghua.edu.cn/callback?ticket=must-be-removed'}],tokens:[]});
+  await sdk.close();
+  const stored=await readFile(path.join(dir,'session.json'),'utf8');assert.equal(stored.includes('must-be-removed'),false);
+  const reopened=await createNodeSession({dataDir:dir,fetch:school.fetch});t.after(()=>reopened.close());
+  const cache=reopened.loadGatewayState() as {routes:{url:string}[]};assert.equal(cache.routes[0]!.url,'https://future.tsinghua.edu.cn/');
 });
 test('logout tombstone persists across daemon restart and blocks stale desktop bootstrap',async t=>{
   const dir=await temporary(t,false);const sdk=await createNodeSession({dataDir:dir,fetch:fakeSchool().fetch});t.after(()=>sdk.close());

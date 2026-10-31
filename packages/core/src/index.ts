@@ -62,6 +62,8 @@ export type {
 // 信息门户
 export { InfoClient, isAuthError, ServiceUnavailableError } from "./info/client.js";
 export { mergeInfoCookieBody } from "./info/cookies.js";
+export { isCampusServiceOrigin } from "./info/campusPortal.js";
+export type { CampusPortalResult } from "./info/campusPortal.js";
 export * as infoUrls from "./info/urls.js";
 export type {
   AssessmentForm,

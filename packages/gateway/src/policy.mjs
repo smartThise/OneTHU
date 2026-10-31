@@ -12,11 +12,34 @@ export class GatewayError extends Error {
 const reject = (code = 'GATEWAY_TARGET_REJECTED', status = 403) => { throw new GatewayError(code, status); };
 const HOP_HEADERS = new Set(['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'proxy-connection', 'te', 'trailer', 'transfer-encoding', 'upgrade']);
 const METHOD_NAMES = new Set(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']);
-const IDENTITY_HOSTS = new Set(['id.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn']);
+const IDENTITY_HOSTS = new Set(['id.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn', 'webvpn.tsinghua.edu.cn']);
 export const isCampusIdentityHost = hostname => IDENTITY_HOSTS.has(hostname);
+export function isDynamicCampusOrigin(origin) {
+  if (typeof origin !== 'string') return false;
+  try {
+    const url = cleanUrl(origin);
+    return origin === url.origin && url.hostname.endsWith('.tsinghua.edu.cn') && !isCampusIdentityHost(url.hostname);
+  } catch { return false; }
+}
+
+/** Membership queries never enroll a host. Only the account adapter can grant
+ * a service, after validating its authenticated official portal response. */
+export function originMembership(staticOrigins, authorizeTarget) {
+  return Object.freeze({ has(origin) {
+    if (staticOrigins.has(origin)) return !isCampusIdentityHost(new URL(origin).hostname);
+    if (typeof authorizeTarget !== 'function' || !isDynamicCampusOrigin(origin)) return false;
+    try {
+      const result = authorizeTarget(`${origin}/`);
+      if (result && typeof result.then === 'function') void Promise.resolve(result).catch(() => {});
+      return result === true;
+    } catch { return false; }
+  } });
+}
 const CAMPUS_LANDINGS = new Map([
   ['https://info.tsinghua.edu.cn/', 'info-home'],
   ['https://info.tsinghua.edu.cn/f/info/xxfb_fg/xnzx/stu/index', 'info-news'],
+  ['https://info.tsinghua.edu.cn/f/info/gxfw_fg/common/index', 'info-workbench'],
+  ['https://info.tsinghua.edu.cn/f/info/portal_fg/student/yyfwxxindex', 'info-apps'],
   ['https://learn.tsinghua.edu.cn/f/wlxt/index/course/student/', 'learn-home'],
 ]);
 
@@ -85,8 +108,18 @@ export function parseTunnelTarget(value, host, tunnel, origins) {
   return allowed(url, origins);
 }
 
-export function validateMethod(method) {
-  if (!METHOD_NAMES.has(method)) reject('GATEWAY_METHOD_REJECTED', 405);
+export function isCampusCalendarRead(target, method) {
+  if (!(target instanceof URL) || target.origin !== 'https://learn.tsinghua.edu.cn' || target.username || target.password ||
+      target.href.includes('?') || target.href.includes('#')) return false;
+  // Only the two collection queries actually used by Learn's calendar client.
+  // Body/namespace validation is owned by the authoritative SDK adapter.
+  const id = '[A-Za-z0-9][A-Za-z0-9._@-]{0,127}';
+  return method === 'PROPFIND' && new RegExp(`^/calendars/${id}/$`).test(target.pathname) ||
+    method === 'REPORT' && new RegExp(`^/principals/${id}$`).test(target.pathname);
+}
+
+export function validateMethod(method, target) {
+  if (!METHOD_NAMES.has(method) && !isCampusCalendarRead(target, method)) reject('GATEWAY_METHOD_REJECTED', 405);
 }
 
 export function validateFetchMetadata(headers, target, origins = new Set([target.origin]), navigation) {
@@ -125,12 +158,13 @@ function connectionHeaders(value) {
   return result;
 }
 
-export function sanitizeRequestHeaders(rawHeaders) {
+export function sanitizeRequestHeaders(rawHeaders, { allowAuthorization = false } = {}) {
   const source = new Headers();
   for (let index = 0; index < rawHeaders.length; index += 2) source.append(rawHeaders[index], rawHeaders[index + 1]);
   const remove = connectionHeaders(source.get('connection'));
+  const witnessedBearer = allowAuthorization === true && /^(?:Bearer|Token) [A-Za-z0-9._~+/-]{1,4096}={0,2}$/i.test(source.get('authorization') ?? '');
   for (const name of [...source.keys()]) {
-    if (remove.has(name) || ['host', 'cookie', 'authorization', 'expect'].includes(name) || name.startsWith('proxy-') || name.startsWith('x-onethu-')) source.delete(name);
+    if (remove.has(name) || ['host', 'cookie', 'expect'].includes(name) || name === 'authorization' && !witnessedBearer || name.startsWith('proxy-') || name.startsWith('x-onethu-')) source.delete(name);
   }
   source.set('accept-encoding', 'identity');
   return source;

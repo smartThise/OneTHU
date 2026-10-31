@@ -15,9 +15,21 @@ function fixture(fetch:any,allowed=origins,ensureCampusService?: (origin:string)
 }
 function chunks(bytes:Uint8Array,size=31){let offset=0;return new ReadableStream<Uint8Array>({pull(target){if(offset===bytes.length){target.close();return;}target.enqueue(bytes.subarray(offset,offset+size));offset=Math.min(offset+size,bytes.length);}});}
 
+test('restored Info public CSRF UUID survives missing Cookie-body attributes without exposing explicit HttpOnly cookies',()=>{
+  const f=fixture(async()=>new Response('unused'));
+  const nonce='12345678-1234-1234-1234-123456789abc';
+  f.transport.jar.setRaw(new URL(origins[1]+'/'),`XSRF-TOKEN=${nonce}; Path=/; Secure`,{httpOnly:null});
+  const before=f.transport.jar.serialize();
+  assert.deepEqual(f.session.browserCookies(origins[1]+'/'),[{name:'XSRF-TOKEN',value:nonce}]);
+  assert.equal(f.transport.jar.serialize(),before,'public projection never changes the authority cookie attributes');
+  f.transport.jar.setRaw(new URL(origins[1]+'/'),`XSRF-TOKEN=${nonce}; Path=/; Secure; HttpOnly`);
+  assert.deepEqual(f.session.browserCookies(origins[1]+'/'),[]);f.transport.close();
+});
+
 test('adapter rejects invalid targets before fetching or losing a nondefault port',async()=>{
   let calls=0;const f=fixture(async()=>{calls++;return new Response('no');});
-  for(const target of ['https://outside.test/','https://learn.tsinghua.edu.cn:8443/','https://user:pass@learn.tsinghua.edu.cn/','https://127.0.0.1/','https://webvpn.tsinghua.edu.cn/','https://learn.tsinghua.edu.cn/#fragment'])await assert.rejects(f.session.request(target),{code:'GATEWAY_TARGET_REJECTED'});
+  for(const target of ['https://outside.test/','https://learn.tsinghua.edu.cn:8443/','https://user:pass@learn.tsinghua.edu.cn/','https://127.0.0.1/','https://learn.tsinghua.edu.cn/#fragment'])await assert.rejects(f.session.request(target),{code:'GATEWAY_TARGET_REJECTED'});
+  await assert.rejects(f.session.request('https://webvpn.tsinghua.edu.cn/'),{code:'GATEWAY_AUTH_REQUIRED'});
   assert.equal(calls,0);f.transport.close();
 });
 
@@ -233,4 +245,43 @@ test('logout/epoch change rejects a pending response and an active stream',async
   let release!:(response:Response)=>void;
   const pending=fixture(()=>new Promise<Response>(resolve=>{release=resolve;}));const request=pending.session.request(origins[0]+'/');pending.bump();release(new Response('stale',{headers:{'set-cookie':'old=secret; Path=/'}}));await assert.rejects(request,{code:'AUTH_SESSION_CHANGED'});assert.equal(pending.transport.jar.serialize(),'[]');pending.transport.close();
   const streaming=fixture(async()=>new Response(chunks(new Uint8Array(8192),64),{headers:{'content-type':'application/octet-stream'}}));const response=await streaming.session.request(origins[0]+'/file');const reader=response.body!.getReader();await reader.read();streaming.logout();await assert.rejects(async()=>{while(!(await reader.read()).done){};},{code:'AUTH_SESSION_CHANGED'});streaming.transport.close();
+});
+
+test('Learn calendar roaming restores only the existing success anchor expected by its original client',async()=>{
+ const base=origins[0]!,wrapped=webvpnWrap(base+'/');
+ for(const href of [base+'/',wrapped,wrapped.slice('https://webvpn.tsinghua.edu.cn'.length),'/']){
+  const source=`<script>var __vpn_hostname_data="fixture";var __vpn_app_hostname_data="fixture";</script><a href="${href}">OK fixture-user</a>`;
+  const f=fixture(async()=>new Response(chunks(Buffer.from(source),1),{headers:{'content-type':'text/html'}}));
+  const result=await(await f.session.request(base+'/roam.php?ticket=fixture')).text();
+  assert.equal(result.match(/<a href='\/'>OK (.*?)<\/a>/)?.[1],'fixture-user');
+  assert(result.includes('<script>var __vpn_hostname_data='),'unrelated response bytes stay intact');f.transport.close();
+ }
+ for(const [path,body] of [
+  ['/other',`<a href="${base}/">OK fixture-user</a>`],
+  ['/roam.php',`<a href="https://other.test/">OK fixture-user</a>`],
+  ['/roam.php',`<a href="${base}/">ERROR fixture-user</a>`],
+  ['/roam.php',`<a href="${base}/">OK <b>fixture-user</b></a>`],
+ ]){
+  const f=fixture(async()=>new Response(body,{headers:{'content-type':'text/html'}}));
+  assert.equal(await(await f.session.request(base+path)).text(),body);f.transport.close();
+ }
+});
+
+test('production allowlist excluding identity still prepares direct and wrapped fixed-service redirects once',async()=>{
+ const cab='https://cab.lib.tsinghua.edu.cn',identity='https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/fixture/0?foreign=not-replayed';
+ for(const location of [identity,webvpnWrap(identity)]){
+  let prepared=0;const calls:{url:string;method:string;body:unknown}[]=[];
+  const f=fixture(async(url:string,init:RequestInit)=>{calls.push({url,method:init.method??'GET',body:init.body});return new Response(null,{status:302,headers:{location}});},[origins[0]!,cab],async origin=>{assert.equal(origin,cab);prepared++;});
+  const result=await f.session.request(cab+'/authcenter/toLoginPage?custom=not-replayed');
+  assert.equal(result.headers.get('location'),cab+'/');assert.equal(prepared,1);assert.equal(calls.length,1);assert.equal(calls[0]!.body,undefined);
+  await assert.rejects(f.session.request(cab+'/authcenter/toLoginPage'),{code:'GATEWAY_AUTH_REQUIRED'});assert.equal(prepared,1);
+  if(location===identity)await f.session.request(cab+'/business',{method:'POST',body:'custom=not-replayed'});
+  else await assert.rejects(f.session.request(cab+'/business',{method:'POST',body:'custom=not-replayed'}),{code:'GATEWAY_AUTH_REQUIRED'});
+  assert.equal(prepared,1);assert.equal(calls.length,3);assert.equal(calls[2]!.body,'custom=not-replayed');f.transport.close();
+ }
+});
+
+test('wrapped unknown services are distinguished from expired WebVPN authentication without being fetched',async()=>{
+ let calls=0;const f=fixture(async()=>{calls++;return new Response(null,{status:302,headers:{location:webvpnWrap('https://unsupported.tsinghua.edu.cn/route?ticket=fixture')}});},[origins[0]!]);
+ await assert.rejects(f.session.request(origins[0]+'/'),{code:'GATEWAY_SERVICE_UNSUPPORTED'});assert.equal(calls,1);f.transport.close();
 });

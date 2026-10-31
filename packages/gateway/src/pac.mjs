@@ -29,7 +29,7 @@ function bypassEntry(value) {
 /** Campus hosts never fall back to an unauthenticated direct connection.
  * Non-campus rules reproduce the selected network service's original manual
  * proxy and bypass configuration, without evaluating another app's PAC code. */
-export function createPacScript(origins, endpoint, fallback = {}) {
+export function createPacScript(origins, endpoint, fallback = {}, { campusPassthrough = false } = {}) {
   const allowed = [...normalizeAllowedOrigins(origins)];
   if (endpoint.host !== '127.0.0.1' || !Number.isInteger(endpoint.port) || endpoint.port < 1 || endpoint.port > 65535) invalid();
   // Identity pages retain the user's original proxy/bypass route, including
@@ -47,6 +47,7 @@ export function createPacScript(origins, endpoint, fallback = {}) {
   for (var i = 0; i < hosts.length; i++) {
     if (host === hosts[i]) return "PROXY 127.0.0.1:${endpoint.port}";
   }
+  ${campusPassthrough ? `if (url.substring(0, 6).toLowerCase() === "https:" && /\\.tsinghua\\.edu\\.cn$/.test(host) && host !== "id.tsinghua.edu.cn" && host !== "oauth.tsinghua.edu.cn" && host !== "webvpn.tsinghua.edu.cn") return "PROXY 127.0.0.1:${endpoint.port}";` : ''}
   for (var j = 0; j < bypass.length; j++) {
     var rule = bypass[j];
     if (rule.local && isPlainHostName(host)) return "DIRECT";

@@ -9,6 +9,7 @@ import type { SessionData } from '@onethu/core';
 import { validateDesktopSession } from './storage.js';
 import type { TwoFactorType } from '../auth/flow.js';
 import { probeUniversityIdentity } from './identityProbe.js';
+import { campusDirectFetch } from './campusDirect.js';
 let activeRuntime = false;
 export interface NodeSessionOptions {
   dataDir: string; fetch?: typeof globalThis.fetch; userAgent?: string;
@@ -33,6 +34,7 @@ export async function createNodeSession(options:NodeSessionOptions) {
   const epoch=()=>generation;
   const assertCurrent=(expected:number)=>{if(closed||closing)throw authError('AUTH_SESSION_CLOSED');if(expected!==generation)throw authError('AUTH_SESSION_CHANGED');};
   const transport=createNodeTransport({...options,epoch,assertCurrent});
+  const campusDirect=createNodeTransport({...options,jar:transport.jar,fetch:options.fetch??campusDirectFetch,epoch,assertCurrent});
   // Third-party platform credentials must never enter the shared school jar or
   // its desktop handoff. Each read owns an isolated, equally fenced transport.
   const services=new Set<ReturnType<typeof createNodeTransport>>();
@@ -49,12 +51,13 @@ export async function createNodeSession(options:NodeSessionOptions) {
   const session=new CampusSession({http,learn,info,fetchLike:transport.fetch});
   let device:DeviceIdentity={fingerprint:makeFingerprint()};
   let saved:Awaited<ReturnType<typeof storage.load>>=null;
+  let gatewayState:unknown;
   let lastLoginAttempt=0;
   const warnings=new Set<string>();
   let cookieRevision=0;
   let learnPreparation:{revision:number;promise:Promise<void>}|null=null;
   function invalidateLearn(){cookieRevision++;learnPreparation=null;learn.applyCsrf('');}
-  function rotate(){generation++;for(const service of services)service.close();services.clear();transport.rotate();invalidateLearn();info.resetStaticSessionCaches();}
+  function rotate(){generation++;gatewayState=undefined;for(const service of services)service.close();services.clear();transport.rotate();campusDirect.rotate();invalidateLearn();info.resetStaticSessionCaches();}
   /** Authentication proves the account, while Learn needs its own page CSRF.
    * Prepare it once on demand, without a password path or replaying operations. */
   async function ensureLearnReady():Promise<void>{
@@ -106,18 +109,28 @@ export async function createNodeSession(options:NodeSessionOptions) {
     }
     check();await persist();check();
   }
+  async function resolveCampusPortal(selector:string){
+    const expected=epoch(),revision=cookieRevision,owner=session.username;
+    const check=()=>{assertCurrent(expected);if(revision!==cookieRevision||session.username!==owner||session.state!=='ready')throw authError('AUTH_SESSION_CHANGED');};
+    check();if(!owner)throw authError('SCHOOL_SESSION_REQUIRED');
+    const candidate=new InfoClient(http);
+    candidate.setIdCredentials(()=>{check();return {username:owner,password:'',fingerprint:device.fingerprint,finger3:device.finger3};});
+    const result=await candidate.resumeCampusPortal(selector,check,{fetchDirect:campusDirect.fetch});check();
+    await persist();check();return result;
+  }
   async function persist(){
     if(closed)throw authError('AUTH_SESSION_CLOSED');
-    await storage.save({version:1,epoch:generation,explicitLogout,device:{...device},session:session.username&&device.account===session.username?{
+    await storage.save({version:1,epoch:generation,explicitLogout,device:{...device},gatewayState,session:session.username&&device.account===session.username?{
       username:session.username,fingerprint:device.fingerprint,finger3:device.finger3,
       cookiesJson:http.jar.serialize(),savedAt:Date.now(),
     }:null});
   }
   try {
     saved=await storage.load();
+    gatewayState=saved?.gatewayState;
     if(saved){generation=saved.epoch??0;explicitLogout=saved.explicitLogout===true;device=saved.device;session.fingerprint=device.fingerprint;session.finger3=device.finger3??'';helper.fingerprint=device.fingerprint;helper.fingerGenPrint=device.finger3??'';if(saved.session){session.username=saved.session.username;helper.userId=saved.session.username;http.jar.hydrate(saved.session.cookiesJson);}}
     else {session.fingerprint=device.fingerprint;helper.fingerprint=device.fingerprint;await persist();}
-  }catch(error){transport.close();await storage.close().catch(()=>undefined);activeRuntime=false;throw error;}
+  }catch(error){transport.close();campusDirect.close();await storage.close().catch(()=>undefined);activeRuntime=false;throw error;}
   setPlatformFetch(async(url,init)=>{
     const res=await transport.fetch(url,{method:init.method??'GET',body:init.body,headers:init.headers,...({timeoutMs:init.timeoutMs} as object)});
     const type=res.headers.get('content-type')??'';
@@ -227,7 +240,7 @@ export async function createNodeSession(options:NodeSessionOptions) {
       // stable; read recovery remains bounded and dispatched writes stay final.
       // Same-account renewal keeps the grant epoch and device identity. The
       // new verified cookie jar refreshes services without cancelling tasks.
-      device={account:snapshot.username,fingerprint:snapshot.fingerprint,finger3:snapshot.finger3??(snapshot.fingerprint===device.fingerprint?device.finger3:undefined)};
+      device={account:snapshot.username,fingerprint:snapshot.fingerprint,finger3:snapshot.finger3||(snapshot.fingerprint===device.fingerprint&&device.account===snapshot.username?device.finger3:undefined)};
       session.username=snapshot.username;session.fingerprint=device.fingerprint;session.finger3=device.finger3??'';
       session.injectCredentials(snapshot.username,'');session.state='ready';
       helper.userId=snapshot.username;helper.password='';helper.fingerprint=device.fingerprint;helper.fingerGenPrint=device.finger3??'';
@@ -248,9 +261,9 @@ export async function createNodeSession(options:NodeSessionOptions) {
     // Closing the process cancels requests through the closed/closing guard and
     // transport abort. Persist the account epoch unchanged so an upgrade does
     // not invalidate pending desktop handoff or authorized resident tasks.
-    closing=true;for(const service of services)service.close();services.clear();transport.close();clearOutstandingLogin();
+    closing=true;for(const service of services)service.close();services.clear();transport.close();campusDirect.close();clearOutstandingLogin();
     try{await persist();}finally{closed=true;session.reset();helper.password='';try{await storage.close();}finally{activeRuntime=false;}}
   }
-  return{session,http,learn,info,helper,fetch:transport.fetch,createServiceTransport,restore,login,twoFactor,logout,status,persist,close,epoch,assertCurrent,desktopStatus,exportSession,adoptSession,ensureLearnReady,ensureCampusService,guardGeneration:epoch,dataDir:storage.directory};
+  return{session,http,learn,info,helper,fetch:transport.fetch,fetchCampusDirect:campusDirect.fetch,createServiceTransport,restore,login,twoFactor,logout,status,persist,close,epoch,assertCurrent,desktopStatus,exportSession,adoptSession,ensureLearnReady,ensureCampusService,resolveCampusPortal,loadGatewayState:()=>gatewayState,saveGatewayState(value:unknown){gatewayState=value;void persist().catch(()=>warnings.add('GATEWAY_CACHE_UNAVAILABLE'));},guardGeneration:epoch,dataDir:storage.directory};
 }
 export type NodeSession = Awaited<ReturnType<typeof createNodeSession>>;

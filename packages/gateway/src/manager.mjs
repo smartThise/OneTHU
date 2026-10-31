@@ -4,13 +4,14 @@ import { constants } from 'node:fs';
 import { mkdir, lstat, open, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createCampusGateway } from './index.mjs';
-import { GatewayError, normalizeAllowedOrigins, isCampusIdentityHost } from './policy.mjs';
+import { GatewayError, normalizeAllowedOrigins, isCampusIdentityHost, originMembership } from './policy.mjs';
 import { createCertificateAuthority } from './certificates.mjs';
 import { createPlatformIntegration } from './platform.mjs';
 import { openGatewayBrowser } from './browser.mjs';
 import { withSecureCampusOrigins } from './routes.mjs';
 import { createPacScript } from './pac.mjs';
 import { createMacPeerAuthorizer } from './macPeer.mjs';
+import { createCampusPassthrough } from './passthrough.mjs';
 export { createPacScript } from './pac.mjs';
 export { DEFAULT_UPSTREAM_ORIGINS } from './routes.mjs';
 
@@ -55,15 +56,18 @@ async function privateToken(directory) {
 
 /** The loaded PAC gives campus URLs no direct fallback. Other traffic follows
  * the network service's inherited proxy rules, or DIRECT when none apply. */
-async function servePac(origins, endpoint, fallback) {
+async function servePac(origins, endpoint, fallback, options) {
   const path = `/campus-${randomBytes(18).toString('hex')}.pac`;
-  const script = createPacScript(origins, endpoint, fallback);
+  const scriptNow = () => createPacScript(typeof origins === 'function' ? origins() : origins, endpoint, fallback, options);
+  scriptNow();
   const sockets = new Set();
   const server = http.createServer((req, res) => {
     if (!['GET', 'HEAD'].includes(req.method) || req.url !== path || req.headers.origin ||
         !['127.0.0.1', 'localhost'].includes(String(req.headers.host).split(':')[0])) {
       res.writeHead(404, { 'Cache-Control': 'no-store', Connection: 'close' }).end(); return;
     }
+    let script;
+    try { script = scriptNow(); } catch { res.writeHead(503, { 'Cache-Control': 'no-store', Connection: 'close' }).end(); return; }
     res.writeHead(200, { 'Content-Type': 'application/x-ns-proxy-autoconfig', 'Content-Length': Buffer.byteLength(script),
       'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', Connection: 'close' });
     res.end(req.method === 'HEAD' ? undefined : script);
@@ -92,6 +96,19 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
   const origins = [...normalizeAllowedOrigins(withSecureCampusOrigins([...allowedOrigins]))]
     .filter(origin => !isCampusIdentityHost(new URL(origin).hostname));
   if (!origins.length) fail('GATEWAY_CONFIG_INVALID');
+  const dynamicOrigins = originMembership(new Set(), typeof session.authorizeTarget === 'function' ? target => session.authorizeTarget(target) : undefined);
+  const authorizeDynamic = origin => dynamicOrigins.has(origin);
+  const effectiveOrigins = () => {
+    const all = new Set(origins);
+    let current;
+    try { current = session.allowedOrigins?.(); } catch { return [...all]; }
+    if (current && typeof current.then === 'function') void Promise.resolve(current).catch(() => {});
+    if (Array.isArray(current) && current.length <= 256) for (const origin of current) {
+      if (all.size >= 256) break;
+      if (authorizeDynamic(origin)) all.add(origin);
+    }
+    return [...all];
+  };
   const directory = join(resolve(dataDir), 'gateway');
   const certificateDirectory = join(directory, 'certificates');
   const certificatePath = join(certificateDirectory, 'ca.pem');
@@ -133,12 +150,13 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
           : !proxy || !pac || system.pacUrl !== pac.url) },
       systemEndpoint: systemProxy?.address() ?? null,
       systemTraffic: systemProxy?.statistics() ?? { requests: 0, hosts: {} },
-      allowedOrigins: origins, pacUrl: pac?.url ?? null, lastError };
+      allowedOrigins: effectiveOrigins(), pacUrl: pac?.url ?? null, lastError };
   }
 
   async function setup() {
     token ??= await privateToken(directory);
-    authority ??= await certificateFactory({ directory: certificateDirectory, allowedHosts: [...new Set(origins.map(origin => new URL(origin).hostname))] });
+    authority ??= await certificateFactory({ directory: certificateDirectory, allowedHosts: [...new Set(origins.map(origin => new URL(origin).hostname))],
+      authorizeHost: hostname => authorizeDynamic(`https://${hostname}`) });
     platform ??= platformFactory({ directory, certificatePath: authority.certificatePath, fingerprint: authority.fingerprint });
   }
 
@@ -198,7 +216,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
         await pac?.close(); pac = undefined;
         const next = createCampusGateway({ allowedOrigins: origins, token, session, tls: (hostname, options) => authority.issue(hostname, options), upgradeInsecureRequests: true,
           maxUploadBytes: 1024 * 1024 * 1024, maxDownloadBytes: 4 * 1024 * 1024 * 1024, timeoutMs: 180_000 });
-        try { const endpoint = await next.listen(); pac = await servePac(origins, endpoint); proxy = next; }
+        try { const endpoint = await next.listen(); pac = await servePac(effectiveOrigins, endpoint); proxy = next; }
         catch (error) { await next.close(); throw error; }
       } else if (action === 'trust') await platform.trust({ confirm: true });
       else if (action === 'system-enable') {
@@ -209,12 +227,33 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
           if (current.systemProxy.recoveryRequired) fail('GATEWAY_PROXY_RECOVERY_REQUIRED');
           if (!current.certificate.trusted) fail('GATEWAY_CERTIFICATE_TRUST_REQUIRED');
           const plan = await platform.prepareProxy({ confirm: true });
-          const next = createCampusGateway({ allowedOrigins: origins, session, authorizeSocket: peerAuthorizerFactory(),
-            tls: (hostname, options) => authority.issue(hostname, options), upgradeInsecureRequests: true,
-            maxUploadBytes: 1024 * 1024 * 1024, maxDownloadBytes: 4 * 1024 * 1024 * 1024, timeoutMs: 180_000 });
+          const groups = new Map();
+          const next = { address: () => groups.values().next().value?.address() ?? null,
+            close: () => Promise.all([...groups.values()].map(item => item.close())),
+            statistics() {
+              const result = { requests: 0, hosts: {}, recentRejections: [] };
+              for (const gateway of groups.values()) {
+                const value = gateway.statistics(); result.requests += value.requests;
+                for (const [host, count] of Object.entries(value.hosts)) result.hosts[host] = (result.hosts[host] ?? 0) + count;
+                result.recentRejections.push(...value.recentRejections);
+              }
+              result.recentRejections = result.recentRejections.slice(-8); return result;
+            } };
           try {
-            const endpoint = await next.listen(); systemProxy = next;
-            for (const service of plan.services) systemPacs.set(service.name, await servePac(origins, endpoint, service.fallback));
+            systemProxy = next;
+            for (const service of plan.services) {
+              const key = JSON.stringify(service.fallback);
+              let gateway = groups.get(key);
+              const passthrough = createCampusPassthrough(service.fallback);
+              if (!gateway) {
+                gateway = createCampusGateway({ allowedOrigins: origins, session, authorizeSocket: peerAuthorizerFactory(),
+                  ...(passthrough ? { connectPassthrough: passthrough } : {}),
+                  tls: (hostname, options) => authority.issue(hostname, options), upgradeInsecureRequests: true,
+                  maxUploadBytes: 1024 * 1024 * 1024, maxDownloadBytes: 4 * 1024 * 1024 * 1024, timeoutMs: 180_000 });
+                groups.set(key, gateway); await gateway.listen();
+              }
+              systemPacs.set(service.name, await servePac(effectiveOrigins, gateway.address(), service.fallback, { campusPassthrough: !!passthrough }));
+            }
             await platform.enableProxy({ confirm: true, expectedPlan: plan,
               pacUrlsByService: Object.fromEntries([...systemPacs].map(([name, item]) => [name, item.url])) });
           } catch (error) {
