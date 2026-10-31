@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import net from 'node:net';
-import { createMacPeerAuthorizer, verifyMacPeerOutput } from '../src/macPeer.mjs';
+import { createMacPeerAuthorizer, verifyMacPeerOutput, describeMacPeerOutput } from '../src/macPeer.mjs';
 
 const uid = 501, tuple = '127.0.0.1:45001->127.0.0.1:45000';
 const processRow = (pid = 17, owner = uid) => `p${pid}\0u${owner}\0\n`;
@@ -23,6 +23,7 @@ const deferred = () => { let resolve; const promise = new Promise(done => { reso
 test('machine records bind the client tuple to its own UID, excluding the reverse server row', () => {
   const rows = processRow(10, 0) + fileRow('127.0.0.1:45000->127.0.0.1:45001') + processRow(20, uid) + fileRow();
   assert.equal(verifyMacPeerOutput(rows, tuple, uid), true);
+  assert.deepEqual(describeMacPeerOutput(rows, tuple, uid), { platform: 'darwin', pid: 20, uid });
   assert.throws(() => verifyMacPeerOutput(processRow() + fileRow('127.0.0.1:45000->127.0.0.1:45001'), tuple, uid), { code: 'GATEWAY_PEER_UNVERIFIED' });
 });
 
@@ -68,6 +69,8 @@ test('construction is inert; invocation is bounded, numeric, shell-free and once
   const f = fixture(), peer = socket(); assert.equal(f.calls.length, 0);
   assert.deepEqual(await Promise.all([f.authorize(peer), f.authorize(peer)]), [true, true]);
   assert.equal(await f.authorize(peer), true); assert.equal(f.calls.length, 1);
+  assert.deepEqual(await f.authorize.describe(peer), { platform: 'darwin', pid: 17, uid });
+  assert.equal(f.calls.length, 1);
   const [command, args, options] = f.calls[0];
   assert.equal(command, '/usr/sbin/lsof');
   assert.deepEqual(args, ['-b', '-w', '-nP', '-a', '-iTCP@127.0.0.1:45000', '-sTCP:ESTABLISHED', '-F0puftnPT']);

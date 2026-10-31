@@ -6,6 +6,7 @@ import { mkdir, lstat, open, rename, unlink } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { isIP } from 'node:net';
+import { windowsProxyPlan } from './windowsProxy.mjs';
 
 const exec = promisify(execFile);
 const queues = new Map();
@@ -217,7 +218,7 @@ try {
     });
     return { version: 1, platform: 'darwin', fingerprint: createHash('sha256').update(JSON.stringify(services)).digest('hex'), services: descriptors };
   }
-  async function windowsProxyPreflight() {
+  async function windowsProxyPreflight({ allowManual = false } = {}) {
     // The documented API reads the current user's connection configuration,
     // including WPAD that AutoConfigURL/ProxyEnable alone cannot represent.
     // https://learn.microsoft.com/windows/win32/api/winhttp/nf-winhttp-winhttpgetieproxyconfigforcurrentuser
@@ -248,7 +249,8 @@ try {
   if (-not [OneTHUCurrentProxy]::WinHttpGetIEProxyConfigForCurrentUser([ref]$config)) { throw 'Current user proxy configuration unavailable' }
   $autoConfigUrl = if ($config.AutoConfigUrl -eq [IntPtr]::Zero) { '' } else { [Runtime.InteropServices.Marshal]::PtrToStringUni($config.AutoConfigUrl) }
   $proxy = if ($config.Proxy -eq [IntPtr]::Zero) { '' } else { [Runtime.InteropServices.Marshal]::PtrToStringUni($config.Proxy) }
-  [ordered]@{ autoDetect=($config.AutoDetect -ne 0); autoConfigUrl=$autoConfigUrl; proxy=$proxy } | ConvertTo-Json -Compress
+  $bypass = if ($config.ProxyBypass -eq [IntPtr]::Zero) { '' } else { [Runtime.InteropServices.Marshal]::PtrToStringUni($config.ProxyBypass) }
+  [ordered]@{ autoDetect=($config.AutoDetect -ne 0); autoConfigUrl=$autoConfigUrl; proxy=$proxy; proxyBypass=$bypass } | ConvertTo-Json -Compress
 } finally {
   foreach ($pointer in @($config.AutoConfigUrl, $config.Proxy, $config.ProxyBypass)) {
     if ($pointer -ne [IntPtr]::Zero) { [void][OneTHUCurrentProxy]::GlobalFree($pointer) }
@@ -257,7 +259,8 @@ try {
       config = JSON.parse(output);
       if (typeof config.autoDetect !== 'boolean' || typeof config.autoConfigUrl !== 'string' || typeof config.proxy !== 'string') throw new Error();
     } catch { throw error('GATEWAY_PROXY_SETTINGS_UNREADABLE'); }
-    if (config.autoDetect || config.autoConfigUrl || config.proxy) throw error('GATEWAY_EXISTING_PROXY_ENABLED');
+    if (config.autoDetect || config.autoConfigUrl || !allowManual && config.proxy) throw error('GATEWAY_EXISTING_PROXY_ENABLED');
+    return config;
   }
   async function apply(state, entry, desired, args) {
     const current = await readGroup(entry);
@@ -404,10 +407,10 @@ Notify-Proxy`, { expected: current, desired }), true);
     },
     prepareProxy(options = {}) {
       confirm(options);
-      if (platform !== 'darwin') throw error('GATEWAY_PLATFORM_UNSUPPORTED');
+      if (!['darwin','win32'].includes(platform)) throw error('GATEWAY_PLATFORM_UNSUPPORTED');
       return serialized(async () => {
         if ((await readState()).proxy) throw error('GATEWAY_PROXY_RECOVERY_REQUIRED');
-        return macPlan(await macSnapshot());
+        return platform === 'darwin' ? macPlan(await macSnapshot()) : windowsProxyPlan(await windowsProxyPreflight({allowManual:true}),await readGroup({kind:'windows'}));
       });
     },
     trust(options = {}) {
@@ -457,11 +460,10 @@ finally { $store.Close() }`, { hash }), true);
     enableProxy(options = {}) {
       confirm(options);
       const composed = options.pacUrlsByService !== undefined;
-      if (composed && platform !== 'darwin') throw error('GATEWAY_PLATFORM_UNSUPPORTED');
       if (composed && (options.pacUrl !== undefined || !options.expectedPlan || typeof options.pacUrlsByService !== 'object' ||
           options.pacUrlsByService === null || Array.isArray(options.pacUrlsByService))) throw error('GATEWAY_PROXY_PLAN_INVALID');
       const urls = composed ? Object.fromEntries(Object.entries(options.pacUrlsByService).map(([name, value]) => [name, pacUrl(value)])) : null;
-      const url = composed ? null : pacUrl(options.pacUrl);
+      const url = composed ? platform === 'win32' ? pacUrl(urls.CurrentUser) : null : pacUrl(options.pacUrl);
       return serialized(async () => {
         const state = await readState();
         if (state.proxy) throw error('GATEWAY_PROXY_RECOVERY_REQUIRED');
@@ -484,9 +486,12 @@ finally { $store.Close() }`, { hash }), true);
             }
           }
         } else {
-          await windowsProxyPreflight();
+          const config=await windowsProxyPreflight({allowManual:composed});
           const before = await readGroup({ kind: 'windows' });
-          if (before.ProxyEnable.exists && before.ProxyEnable.value !== 0 || before.AutoConfigURL.exists && !!before.AutoConfigURL.value) throw error('GATEWAY_EXISTING_PROXY_ENABLED');
+          if(composed){
+            if(!equal(windowsProxyPlan(config,before),options.expectedPlan)||!equal(Object.keys(urls),['CurrentUser']))throw error('GATEWAY_PROXY_PLAN_CHANGED');
+            coexistence=!!config.proxy;
+          } else if (before.ProxyEnable.exists && before.ProxyEnable.value !== 0 || before.AutoConfigURL.exists && !!before.AutoConfigURL.value) throw error('GATEWAY_EXISTING_PROXY_ENABLED');
           entries.push({ kind: 'windows', before, owned: before });
         }
         const serviceNames = platform === 'darwin' ? [...new Set(entries.map(entry => entry.service))] : ['CurrentUser'];

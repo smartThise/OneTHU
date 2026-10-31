@@ -428,6 +428,25 @@ test('Windows checks active connection WPAD, PAC and manual proxy configuration 
   }
 });
 
+test('Windows composed activation preserves a current manual proxy and restores its exact managed registry values',async t=>{
+ const f=await fixture(t,'win32');
+ f.state.win.ProxyEnable={exists:true,value:1,kind:'DWord'};
+ f.state.winConfiguration={autoDetect:false,autoConfigUrl:'',proxy:'127.0.0.1:7897',proxyBypass:'localhost;*.local'};
+ const before=clone(f.state.win),plan=await f.integration.prepareProxy({confirm:true});
+ assert.equal(plan.services[0].fallback.https.port,7897);
+ await f.integration.enableProxy({confirm:true,expectedPlan:plan,pacUrlsByService:{CurrentUser:url}});
+ assert.equal(f.state.win.ProxyEnable.value,0);assert.equal(f.state.win.AutoConfigURL.value,url);
+ assert.equal((await f.integration.status()).coexistence,true);
+ await f.integration.disableProxy({confirm:true});assert.deepEqual(f.state.win,before);
+});
+
+test('Windows composed activation rejects a changed manual fallback before writing registry state',async t=>{
+ const f=await fixture(t,'win32'),plan=await f.integration.prepareProxy({confirm:true});
+ f.state.winConfiguration.proxy='127.0.0.1:7897';
+ await assert.rejects(f.integration.enableProxy({confirm:true,expectedPlan:plan,pacUrlsByService:{CurrentUser:url}}),{code:'GATEWAY_PROXY_PLAN_CHANGED'});
+ assert.equal(f.state.calls.some(call=>Buffer.from(call.args.at(-1),'base64').toString('utf16le').includes('ONETHU:write-proxy')),false);
+});
+
 test('Windows refuses missing or unreadable automatic proxy configuration', async t => {
   for (const missing of [true, false]) {
     const f = await fixture(t, 'win32');

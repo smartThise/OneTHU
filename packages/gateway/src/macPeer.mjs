@@ -39,11 +39,11 @@ export function lsofFatalStderr(stderr) {
 /** Strict lsof -F0puftnPT records. UID belongs to a process record; each file
  * must independently identify IPv4/TCP, its complete tuple, and TCP state.
  * Never accept the reverse (server) row or choose one of several matches. */
-export function verifyMacPeerOutput(output, tuple, uid) {
+export function describeMacPeerOutput(output, tuple, uid) {
   if (typeof output !== 'string' || !output || !output.endsWith('\0\n') ||
       !/^127\.0\.0\.1:[1-9][0-9]*->127\.0\.0\.1:[1-9][0-9]*$/.test(tuple) || !networkTuple(tuple) ||
       !Number.isSafeInteger(uid) || uid < 0) fail('GATEWAY_PEER_UNVERIFIED');
-  let processRecord, matches = 0, peerUid;
+  let processRecord, matches = 0, peerUid, peerPid;
   for (const line of output.slice(0, -1).split('\n')) {
     if (!line.endsWith('\0')) fail('GATEWAY_PEER_UNVERIFIED');
     const fields = line.slice(0, -1).split('\0');
@@ -52,7 +52,7 @@ export function verifyMacPeerOutput(output, tuple, uid) {
       if (processRecord && !processRecord.files || fields.length !== 2 ||
           !decimal(fields[0].slice(1), 2147483647) || Number(fields[0].slice(1)) === 0 ||
           !fields[1].startsWith('u') || !decimal(fields[1].slice(1), 4294967294)) fail('GATEWAY_PEER_UNVERIFIED');
-      processRecord = { uid: Number(fields[1].slice(1)), files: 0 };
+      processRecord = { pid: Number(fields[0].slice(1)), uid: Number(fields[1].slice(1)), files: 0 };
       continue;
     }
     if (!processRecord || !fields[0].startsWith('f') || !decimal(fields[0].slice(1), 2147483647)) fail('GATEWAY_PEER_UNVERIFIED');
@@ -68,13 +68,15 @@ export function verifyMacPeerOutput(output, tuple, uid) {
     processRecord.files++;
     if (values.get('n') === tuple) {
       if (values.get('TST') !== 'ESTABLISHED') fail('GATEWAY_PEER_UNVERIFIED');
-      matches++; peerUid = processRecord.uid;
+      matches++; peerUid = processRecord.uid; peerPid = processRecord.pid;
     }
   }
   if (!processRecord?.files || matches !== 1) fail('GATEWAY_PEER_UNVERIFIED');
   if (peerUid !== uid) fail('GATEWAY_PEER_UID_MISMATCH');
-  return true;
+  return Object.freeze({ platform: 'darwin', pid: peerPid, uid: peerUid });
 }
+
+export function verifyMacPeerOutput(output, tuple, uid) { describeMacPeerOutput(output, tuple, uid); return true; }
 
 function abortable(promise, signal) {
   if (signal.aborted) return Promise.reject(signal.reason);
@@ -146,7 +148,7 @@ export function createMacPeerAuthorizer({ platform = process.platform, uid = pro
       if (controller.signal.aborted) throw controller.signal.reason;
       if (tupleOf(socket) !== tuple) fail('GATEWAY_PEER_SOCKET_INVALID');
       if (!result || lsofFatalStderr(result.stderr) || typeof result.stdout !== 'string' || Buffer.byteLength(result.stdout) > maxBuffer) fail('GATEWAY_PEER_UNAVAILABLE', 503);
-      return verifyMacPeerOutput(result.stdout, tuple, uid);
+      return describeMacPeerOutput(result.stdout, tuple, uid);
     } catch (error) {
       if (controller.signal.aborted) throw controller.signal.reason;
       if (error instanceof GatewayError) throw error;
@@ -155,16 +157,20 @@ export function createMacPeerAuthorizer({ platform = process.platform, uid = pro
       clearTimeout(timer); socket.off('close', close); signal?.removeEventListener('abort', abort); release?.();
     }
   }
-  return async function authorizeSocket(socket, { signal } = {}) {
+  async function describe(socket, { signal } = {}) {
     if (platform !== 'darwin') fail('GATEWAY_PEER_UNSUPPORTED', 501);
     if (signal?.aborted) fail('GATEWAY_CANCELLED', 499);
     const tuple = tupleOf(socket);
     let entry = cache.get(socket);
     if (entry && entry.tuple !== tuple) fail('GATEWAY_PEER_SOCKET_INVALID');
     if (!entry) { entry = { tuple, promise: inspect(socket, tuple, signal) }; cache.set(socket, entry); }
-    try { await (signal ? abortable(entry.promise, signal) : entry.promise); }
+    let identity;
+    try { identity = await (signal ? abortable(entry.promise, signal) : entry.promise); }
     catch (error) { if (signal?.aborted) fail('GATEWAY_CANCELLED', 499); throw error; }
     if (tupleOf(socket) !== tuple) fail('GATEWAY_PEER_SOCKET_INVALID');
-    return true;
-  };
+    return identity;
+  }
+  const authorizeSocket = async (socket, options) => { await describe(socket, options); return true; };
+  authorizeSocket.describe = describe;
+  return authorizeSocket;
 }

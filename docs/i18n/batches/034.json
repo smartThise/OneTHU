@@ -1,7 +1,1401 @@
 {
-  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
+  "sourceHash": "be3fd8c88a23dc4acb558acc486d73c0e34027023912c7adc1e35b9861a6e4b5",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "lib.attach.f8f5f153c20d",
+      "source": "大小未知",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attach.ts",
+          "line": 99,
+          "context": "return i18n(\"lib.attach.f8f5f153c20d\");"
+        }
+      ],
+      "translation": "Unknown size",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.00b064455e5c",
+      "source": "已取消（没有提交任何内容）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 386,
+          "context": "fail(i18n(\"lib.attachactions.00b064455e5c\"))"
+        }
+      ],
+      "translation": "Canceled (nothing was submitted)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.010bbf334fe2",
+      "source": "【发新话题 · 网络学堂】\n课程：{value}\n板块：{value2}\n标题：{title}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(ctx.courseName?.trim() || courseId)"
+        },
+        {
+          "name": "value2",
+          "expression": "String(ctx.boardName?.trim() || boardId)"
+        },
+        {
+          "name": "title",
+          "expression": "String(title)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 550,
+          "context": "threadId\n      ? i18n(\"lib.attachactions.942ac1d181f7\", { value: String(ctx.courseName?.trim() || courseId), threadId: String(threadId) })\n      : i18n(\"lib.attachactions.010bbf334fe2\", { value: String(ctx.courseName?.trim() || courseId), value2: String(ctx.boardName?.trim() || boardId), title: String(title) })"
+        }
+      ],
+      "translation": "[New topic · Web Learning]\nCourse: {value}\nSection: {value2}\nTitle: {title}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "lib.attachactions.08afcfb429f3",
+      "source": "{head}\n正文：{value}\n附件：{attachNote}\n\n点「确定」= 立刻发布（全班可见，撤不回来）。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "head",
+          "expression": "String(head)"
+        },
+        {
+          "name": "value",
+          "expression": "String(clip(plain, 80) || i18n(\"lib.attachactions.ed90d3f61ee5\"))"
+        },
+        {
+          "name": "attachNote",
+          "expression": "String(attachNote)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 552,
+          "context": "(ctx.confirm ?? confirmOk)(\n      i18n(\"lib.attachactions.08afcfb429f3\", { head: String(head), value: String(clip(plain, 80) || i18n(\"lib.attachactions.ed90d3f61ee5\")), attachNote: String(attachNote) }),\n    )"
+        }
+      ],
+      "translation": "{head}\nBody: {value}\nAttachments: {attachNote}\n\nTap “OK” = publish immediately (visible to the whole class; it cannot be undone).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.0cf370f0a1db",
+      "source": "去云盘页重新选资料库",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 203,
+          "context": "message: i18n(\"lib.attachactions.0cf370f0a1db\")"
+        }
+      ],
+      "translation": "Pick the library again on the Cloud Drive page",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.0ef92e23f85c",
+      "source": "附件-{value}.{value2}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(Date.now())"
+        },
+        {
+          "name": "value2",
+          "expression": "String(extForMime(mime))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 104,
+          "context": "cleaned || i18n(\"lib.attachactions.0ef92e23f85c\", { value: String(Date.now()), value2: String(extForMime(mime)) })"
+        }
+      ],
+      "translation": "Attachment-{value}.{value2}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.164926abb768",
+      "source": "没有附件可提交",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 456,
+          "context": "fail(i18n(\"lib.attachactions.164926abb768\"))"
+        }
+      ],
+      "translation": "No attachments to submit",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.1c0d77ac8a1b",
+      "source": "打开雨课堂官方作答页，把附件随作答一起提交",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 444,
+          "context": "message: i18n(\"lib.attachactions.1c0d77ac8a1b\")"
+        }
+      ],
+      "translation": "Open the official Rain Classroom answer page and submit the attachment together with your answer",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.21d6cd21cd13",
+      "source": "发新话题要写标题",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 545,
+          "context": "fail(i18n(\"lib.attachactions.21d6cd21cd13\"))"
+        }
+      ],
+      "translation": "A new topic needs a title",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.243d52940d1d",
+      "source": "还没选课程——讨论区挂在课程下，请先选课程。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 523,
+          "context": "needUi(i18n(\"lib.attachactions.243d52940d1d\"), {\n        route: \"learn\",\n        message: i18n(\"lib.attachactions.487842092c28\"),\n      })"
+        }
+      ],
+      "translation": "No course selected yet—— discussions belong to a course; please select a course first.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.272f3e83a699",
+      "source": "提交未成功，请稍后重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 394,
+          "context": "why || i18n(\"lib.attachactions.272f3e83a699\")"
+        }
+      ],
+      "translation": "Submission did not succeed; please try again later",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.360ada853a5e",
+      "source": "【交作业 · 网络学堂】\n课程：{value}\n作业：{title}\n提交附件：{name}（{value2}）\n正文：{value22}{wipeWarn}\n\n点「确定」= 立刻提交，会覆盖这份作业此前的提交（正文与附件以本次为准）。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(ctx.courseName?.trim() || courseId)"
+        },
+        {
+          "name": "title",
+          "expression": "String(title)"
+        },
+        {
+          "name": "name",
+          "expression": "String(name)"
+        },
+        {
+          "name": "value2",
+          "expression": "String(formatSize(f.size))"
+        },
+        {
+          "name": "value22",
+          "expression": "String(clip(content, 60) || i18n(\"lib.attachactions.fa8bc5e925f9\"))"
+        },
+        {
+          "name": "wipeWarn",
+          "expression": "String(wipeWarn)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 384,
+          "context": "(ctx.confirm ?? confirmOk)(\n    i18n(\"lib.attachactions.360ada853a5e\", { value: String(ctx.courseName?.trim() || courseId), title: String(title), name: String(name), value2: String(formatSize(f.size)), value22: String(clip(content, 60) || i18n(\"lib.attachactions.fa8bc5e925f9\")), wipeWarn: String(wipeWarn) }),\n  )"
+        }
+      ],
+      "translation": "[Submit assignment · Web Learning]\nCourse: {value}\nAssignment: {title}\nAttachments: {name} ({value2})\nBody: {value22}{wipeWarn}\n\nTap “OK” = submit immediately; this overwrites any previous submission for this assignment (the body and attachments of this submission become the record).",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "lib.attachactions.3943aae1d441",
+      "source": "【转存云盘】\n资料库：{name}\n目录：{dir}\n文件：\n{head}{more}\n\n点「确定」= 逐个上传到你的清华云盘；同名文件会被覆盖。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name",
+          "expression": "String(target.repo.name)"
+        },
+        {
+          "name": "dir",
+          "expression": "String(target.dir)"
+        },
+        {
+          "name": "head",
+          "expression": "String(head)"
+        },
+        {
+          "name": "more",
+          "expression": "String(more)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 295,
+          "context": "opts.confirm(\n      i18n(\"lib.attachactions.3943aae1d441\", { name: String(target.repo.name), dir: String(target.dir), head: String(head), more: String(more) }),\n    )"
+        }
+      ],
+      "translation": "[Transfer to cloud drive]\nLibrary: {name}\nFolder: {dir}\nFiles:\n{head}{more}\n\nTap “OK” = upload them one by one to your Tsinghua Cloud Drive; files with the same name will be overwritten.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.3c82cc86c9c7",
+      "source": "还没选课程和作业——交作业要明确交到哪一份，请先在面板里选。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 358,
+          "context": "needUi(i18n(\"lib.attachactions.3c82cc86c9c7\"), {\n      route: \"learn-assignments\",\n      message: i18n(\"lib.attachactions.54bfd0b14639\"),\n    })"
+        }
+      ],
+      "translation": "No course and assignment selected yet—— submitting an assignment requires knowing which one to submit to; please pick them in the panel first.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.484d55613910",
+      "source": "无",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 547,
+          "context": "f ? `${safeAttachName(f.name, f.mime)}（${formatSize(f.size)}）` : i18n(\"lib.attachactions.484d55613910\")"
+        }
+      ],
+      "translation": "None",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.487842092c28",
+      "source": "去网络学堂选一门课",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 525,
+          "context": "message: i18n(\"lib.attachactions.487842092c28\")"
+        }
+      ],
+      "translation": "Pick a course in Web Learning",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.4a9fdb24f293",
+      "source": "去云盘页连接清华云盘",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 188,
+          "context": "message: i18n(\"lib.attachactions.4a9fdb24f293\")"
+        }
+      ],
+      "translation": "Connect Tsinghua Cloud Drive on the Cloud Drive page",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.4bc030ed5628",
+      "source": "\n⚠️ 这份作业此前提交里有正文，本次留空会把它清空。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 382,
+          "context": "prevText && !content.trim() ? i18n(\"lib.attachactions.4bc030ed5628\") : \"\""
+        }
+      ],
+      "translation": "\n⚠️ A previous submission for this assignment has a body; leaving it empty this time will clear it.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.50c4b135b1d8",
+      "source": "云盘还没连接：先到「云盘」页连上清华云盘，再回来转存。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 186,
+          "context": "needUi(i18n(\"lib.attachactions.50c4b135b1d8\"), {\n      route: \"cloud\",\n      message: i18n(\"lib.attachactions.4a9fdb24f293\"),\n    })"
+        }
+      ],
+      "translation": "The cloud drive is not connected yet: connect Tsinghua Cloud Drive on the “Cloud Drive” page first, then come back to transfer.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.5323853f8fb7",
+      "source": "去课程的讨论区选一个板块",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 542,
+          "context": "message: i18n(\"lib.attachactions.5323853f8fb7\")"
+        }
+      ],
+      "translation": "Pick a section in the course's discussion area",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.53af5bd6b851",
+      "source": "这份作业的详情页里没有提交表单（可能只需在 OJ 提交、已过提交期，或老师没开在线提交）——请到作业页确认。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 373,
+          "context": "fail(\n      i18n(\"lib.attachactions.53af5bd6b851\"),\n      { ui: detailRoute },\n    )"
+        }
+      ],
+      "translation": "This assignment's detail page has no submission form (it may only accept submissions on the OJ, the submission period may be over, or the instructor may not have enabled online submission)—— please confirm on the assignment page.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.54bfd0b14639",
+      "source": "去「全部作业」里选一份作业",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 360,
+          "context": "message: i18n(\"lib.attachactions.54bfd0b14639\")"
+        }
+      ],
+      "translation": "Pick an assignment in “All assignments”",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.6f5260f46713",
+      "source": "没有附件可上传",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 281,
+          "context": "error: i18n(\"lib.attachactions.6f5260f46713\")"
+        }
+      ],
+      "translation": "No attachments to upload",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.777b5a07612e",
+      "source": "{why}\n另外：这份作业的雨课堂参数不全，请从作业列表重新进入。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "why",
+          "expression": "String(why)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 435,
+          "context": "needUi(i18n(\"lib.attachactions.777b5a07612e\", { why: String(why) }), {\n      route: \"learn-assignments\",\n      message: i18n(\"lib.attachactions.b4537e7f0e93\"),\n    })"
+        }
+      ],
+      "translation": "{why}\nAlso: this assignment's Rain Classroom parameters are incomplete; please re-enter it from the assignment list.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.939a8cb7a566",
+      "source": "发新话题要先选板块（每个板块的可见范围不同，不能替你猜）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 539,
+          "context": "needUi(i18n(\"lib.attachactions.939a8cb7a566\"), {\n        route: \"learn-forum-thread\",\n        params: { courseId },\n        message: i18n(\"lib.attachactions.5323853f8fb7\"),\n      })"
+        }
+      ],
+      "translation": "Creating a new topic requires choosing a section first (each section has a different visibility, so it cannot be guessed for you).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.942ac1d181f7",
+      "source": "【回复讨论区 · 网络学堂】\n课程：{value}\n话题 id：{threadId}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(ctx.courseName?.trim() || courseId)"
+        },
+        {
+          "name": "threadId",
+          "expression": "String(threadId)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 549,
+          "context": "threadId\n      ? i18n(\"lib.attachactions.942ac1d181f7\", { value: String(ctx.courseName?.trim() || courseId), threadId: String(threadId) })\n      : i18n(\"lib.attachactions.010bbf334fe2\", { value: String(ctx.courseName?.trim() || courseId), value2: String(ctx.boardName?.trim() || boardId), title: String(title) })"
+        }
+      ],
+      "translation": "[Reply to discussion · Web Learning]\nCourse: {value}\nThread id: {threadId}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "lib.attachactions.96b904d0165e",
+      "source": "雨课堂没有可用的附件提交通道（官方接口只收已上传的附件条目，本仓库未接附件上传）——「{value}」需要在雨课堂官方作答页里随作答一起提交。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(safeAttachName(f.name, f.mime))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 433,
+          "context": "why =\n    i18n(\"lib.attachactions.96b904d0165e\", { value: String(safeAttachName(f.name, f.mime)) })"
+        }
+      ],
+      "translation": "Rain Classroom has no available attachment submission channel (the official API only accepts already-uploaded attachment entries, and this repository does not implement attachment upload)—— “{value}” must be submitted together with your answer on the official Rain Classroom answer page.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.970f711d8073",
+      "source": "\n　…等共 {length} 个",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(names.length)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 293,
+          "context": "names.length > 5 ? i18n(\"lib.attachactions.970f711d8073\", { length: String(names.length) }) : \"\""
+        }
+      ],
+      "translation": "\n  …and {length} in total",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.a6519d36b6f6",
+      "source": "已取消（没有发布）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 554,
+          "context": "fail(i18n(\"lib.attachactions.a6519d36b6f6\"))"
+        }
+      ],
+      "translation": "Canceled (nothing was published)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.a9248626d3ed",
+      "source": "去这份作业的详情页看一眼",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 366,
+          "context": "message: i18n(\"lib.attachactions.a9248626d3ed\")"
+        }
+      ],
+      "translation": "Take a look at this assignment's detail page",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.ac84cf8affb0",
+      "source": "[附件] 网络学堂提交成功：课程 {courseId} 作业 {assignmentId} 附件 {name}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "courseId",
+          "expression": "String(courseId)"
+        },
+        {
+          "name": "assignmentId",
+          "expression": "String(assignmentId)"
+        },
+        {
+          "name": "name",
+          "expression": "String(name)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 400,
+          "context": "logLine(i18n(\"lib.attachactions.ac84cf8affb0\", { courseId: String(courseId), assignmentId: String(assignmentId), name: String(name) }))"
+        }
+      ],
+      "translation": "[Attachment] Web Learning submission succeeded: course {courseId} assignment {assignmentId} attachment {name}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.b4353b67ac30",
+      "source": "新话题",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 561,
+          "context": "threadId ? i18n(\"lib.attachactions.cf945e21ddef\") : i18n(\"lib.attachactions.b4353b67ac30\")"
+        }
+      ],
+      "translation": "New topic",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.b4537e7f0e93",
+      "source": "去「全部作业」里选这份雨课堂作业",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 437,
+          "context": "message: i18n(\"lib.attachactions.b4537e7f0e93\")"
+        }
+      ],
+      "translation": "Pick this Rain Classroom assignment in “All assignments”",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.c774d4ed2772",
+      "source": "[附件] 转存云盘：库《{name}》{remote}（{value} 字节）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name",
+          "expression": "String(t.repo.name)"
+        },
+        {
+          "name": "remote",
+          "expression": "String(remote)"
+        },
+        {
+          "name": "value",
+          "expression": "String(typeof size === \"number\" ? size : 0)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 240,
+          "context": "logLine(i18n(\"lib.attachactions.c774d4ed2772\", { name: String(t.repo.name), remote: String(remote), value: String(typeof size === \"number\" ? size : 0) }))"
+        }
+      ],
+      "translation": "[Attachment] Transferred to cloud drive: library “{name}” {remote} ({value} bytes)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.cccad01504c8",
+      "source": "当前环境读不到文件内容：请在 OneTHU App 内操作。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 115,
+          "context": "new Error(i18n(\"lib.attachactions.cccad01504c8\"))"
+        }
+      ],
+      "translation": "File content cannot be read in the current environment: please do this inside the OneTHU app.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.cf945e21ddef",
+      "source": "回复",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 561,
+          "context": "threadId ? i18n(\"lib.attachactions.cf945e21ddef\") : i18n(\"lib.attachactions.b4353b67ac30\")"
+        }
+      ],
+      "translation": "Reply",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.d371724d4517",
+      "source": "话题 id 没认出来：请填话题页地址里的 tltid（纯数字），或直接粘贴话题链接。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 531,
+          "context": "fail(i18n(\"lib.attachactions.d371724d4517\"))"
+        }
+      ],
+      "translation": "The thread id was not recognized: fill in the tltid from the topic page URL (digits only), or paste the topic link directly.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.d567c7a50ecb",
+      "source": "【转存云盘】\n资料库：{name}\n目录：{dir}\n文件：{name2}（{value}）\n\n点「确定」= 上传到你的清华云盘；同名文件会被覆盖。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name",
+          "expression": "String(target.repo.name)"
+        },
+        {
+          "name": "dir",
+          "expression": "String(target.dir)"
+        },
+        {
+          "name": "name2",
+          "expression": "String(name)"
+        },
+        {
+          "name": "value",
+          "expression": "String(formatSize(f.size))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 254,
+          "context": "opts.confirm(\n        i18n(\"lib.attachactions.d567c7a50ecb\", { name: String(target.repo.name), dir: String(target.dir), name2: String(name), value: String(formatSize(f.size)) }),\n      )"
+        }
+      ],
+      "translation": "[Transfer to cloud drive]\nLibrary: {name}\nFolder: {dir}\nFile: {name2} ({value})\n\nTap “OK” = upload to your Tsinghua Cloud Drive; files with the same name will be overwritten.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.d8064c81155a",
+      "source": "有 {length} 个文件没传上去：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(failed.length)"
+        },
+        {
+          "name": "value",
+          "expression": "String(failed.map((x) => `${x.name}（${x.error}）`).join(\"；\"))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 316,
+          "context": "error: i18n(\"lib.attachactions.d8064c81155a\", { length: String(failed.length), value: String(failed.map((x) => `${x.name}（${x.error}）`).join(\"；\")) })"
+        }
+      ],
+      "translation": "{length} files failed to upload: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.dbbf7e0385ab",
+      "source": "这个资料库不在当前账号里（可能已被删除或改名）——请重新选一个。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 201,
+          "context": "needUi(i18n(\"lib.attachactions.dbbf7e0385ab\"), {\n      route: \"cloud\",\n      message: i18n(\"lib.attachactions.0cf370f0a1db\"),\n    })"
+        }
+      ],
+      "translation": "This library is not in the current account (it may have been deleted or renamed)—— please pick another one.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.e09351dc86df",
+      "source": "去云盘页选一个资料库",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 195,
+          "context": "message: i18n(\"lib.attachactions.e09351dc86df\")"
+        }
+      ],
+      "translation": "Pick a library on the Cloud Drive page",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.e355f0213283",
+      "source": "还没选云盘资料库——请在面板里选一个（不替你猜库，历史上猜错过）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 193,
+          "context": "needUi(i18n(\"lib.attachactions.e355f0213283\"), {\n      route: \"cloud\",\n      message: i18n(\"lib.attachactions.e09351dc86df\"),\n    })"
+        }
+      ],
+      "translation": "No cloud drive library selected yet—— please pick one in the panel (it is not guessed for you; that has gone wrong before).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.e6316a1550fd",
+      "source": "正文是空的，也没有附件——没什么可发的",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 537,
+          "context": "fail(i18n(\"lib.attachactions.e6316a1550fd\"))"
+        }
+      ],
+      "translation": "The body is empty and there are no attachments—— nothing to send",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.ea383a9552de",
+      "source": "[附件] 讨论区{value}已提交：课程 {courseId} 附件 {attachNote}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(threadId ? i18n(\"lib.attachactions.cf945e21ddef\") : i18n(\"lib.attachactions.b4353b67ac30\"))"
+        },
+        {
+          "name": "courseId",
+          "expression": "String(courseId)"
+        },
+        {
+          "name": "attachNote",
+          "expression": "String(attachNote)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 561,
+          "context": "logLine(i18n(\"lib.attachactions.ea383a9552de\", { value: String(threadId ? i18n(\"lib.attachactions.cf945e21ddef\") : i18n(\"lib.attachactions.b4353b67ac30\")), courseId: String(courseId), attachNote: String(attachNote) }))"
+        }
+      ],
+      "translation": "[Attachment] Discussion{value} submitted: course {courseId} attachments {attachNote}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.ed90d3f61ee5",
+      "source": "（无文字）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 552,
+          "context": "clip(plain, 80) || i18n(\"lib.attachactions.ed90d3f61ee5\")"
+        }
+      ],
+      "translation": "(No text)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.fa8bc5e925f9",
+      "source": "（空）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 384,
+          "context": "clip(content, 60) || i18n(\"lib.attachactions.fa8bc5e925f9\")"
+        }
+      ],
+      "translation": "(Empty)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.attachactions.fa93a9bc462a",
+      "source": "已取消（没有上传）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 256,
+          "context": "fail(i18n(\"lib.attachactions.fa93a9bc462a\"))"
+        },
+        {
+          "file": "apps/desktop/src/lib/attachActions.ts",
+          "line": 297,
+          "context": "error: i18n(\"lib.attachactions.fa93a9bc462a\")"
+        }
+      ],
+      "translation": "Canceled (nothing was uploaded)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.calendardraft.000e00815ce9",
+      "source": "结束日期和时间需要晚于开始时间",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/calendarDraft.ts",
+          "line": 35,
+          "context": "new Error(i18n(\"lib.calendardraft.000e00815ce9\"))"
+        }
+      ],
+      "translation": "The end date and time must be later than the start time",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.calendardraft.5f8b49175a54",
+      "source": "请填写有效的开始时间和结束时间",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/calendarDraft.ts",
+          "line": 21,
+          "context": "new Error(i18n(\"lib.calendardraft.5f8b49175a54\"))"
+        }
+      ],
+      "translation": "Please enter a valid start time and end time",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.calendardraft.781062bdc95c",
+      "source": "日期无效，请重新选择",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/calendarDraft.ts",
+          "line": 15,
+          "context": "new Error(i18n(\"lib.calendardraft.781062bdc95c\"))"
+        }
+      ],
+      "translation": "The date is invalid; please choose again",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.calendardraft.c1388c78407f",
+      "source": "请填写完整的开始日期和结束日期",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/calendarDraft.ts",
+          "line": 11,
+          "context": "new Error(i18n(\"lib.calendardraft.c1388c78407f\"))"
+        }
+      ],
+      "translation": "Please enter both the start date and the end date",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.cardcover.15e1ef41e215",
+      "source": "清华云盘未连接：先到云盘页登录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/cardCover.ts",
+          "line": 28,
+          "context": "new Error(i18n(\"lib.cardcover.15e1ef41e215\"))"
+        }
+      ],
+      "translation": "Tsinghua Cloud Drive is not connected: sign in on the Cloud Drive page first",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.cardcover.63b5c0cc3a81",
+      "source": "卡面图内容为空",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/cardCover.ts",
+          "line": 25,
+          "context": "new Error(i18n(\"lib.cardcover.63b5c0cc3a81\"))"
+        }
+      ],
+      "translation": "The card cover image is empty",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.clients.193d04db6243",
+      "source": "会话已失效，需要重新登录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/clients.ts",
+          "line": 1349,
+          "context": "new Error(i18n(\"lib.clients.193d04db6243\"))"
+        }
+      ],
+      "translation": "The session has expired; sign in again",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.clients.cbad5bdfa19f",
+      "source": "图片响应非图片（mime={mime} bytes={length}）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "mime",
+          "expression": "String(mime)"
+        },
+        {
+          "name": "length",
+          "expression": "String(buf.length)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/clients.ts",
+          "line": 1353,
+          "context": "new Error(i18n(\"lib.clients.cbad5bdfa19f\", { mime: String(mime), length: String(buf.length) }))"
+        }
+      ],
+      "translation": "The image response is not an image (mime={mime} bytes={length})",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.clients.dc300032c143",
+      "source": "图片过大（{length} 字节），请用浏览器打开查看",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(buf.length)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/clients.ts",
+          "line": 1348,
+          "context": "new Error(i18n(\"lib.clients.dc300032c143\", { length: String(buf.length) }))"
+        }
+      ],
+      "translation": "The image is too large ({length} bytes); open it in a browser to view",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.cloudfolder.0507dadfda6a",
+      "source": "清华云盘未连接：先到云盘页粘贴 token",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/cloudFolder.ts",
+          "line": 15,
+          "context": "new Error(i18n(\"lib.cloudfolder.0507dadfda6a\"))"
+        },
+        {
+          "file": "apps/desktop/src/lib/cloudFolder.ts",
+          "line": 31,
+          "context": "new Error(i18n(\"lib.cloudfolder.0507dadfda6a\"))"
+        }
+      ],
+      "translation": "Tsinghua Cloud Drive is not connected: paste the token on the Cloud Drive page first",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.cloudtokenwebview.0359f86c1bb8",
+      "source": "等待云盘页面超时，请确认已登录后重试。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/cloudTokenWebview.ts",
+          "line": 147,
+          "context": "new Error(i18n(\"lib.cloudtokenwebview.0359f86c1bb8\"))"
+        }
+      ],
+      "translation": "Timed out waiting for the cloud drive page; confirm you are signed in and try again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.cloudtokenwebview.172f588670fa",
+      "source": "已取消读取云盘访问口令。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/cloudTokenWebview.ts",
+          "line": 80,
+          "context": "new Error(i18n(\"lib.cloudtokenwebview.172f588670fa\"))"
+        }
+      ],
+      "translation": "Reading the cloud drive access token was canceled.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.cloudtokenwebview.27ac14d14b12",
+      "source": "云盘页面没有返回有效内容，请重试或手动粘贴访问口令。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/cloudTokenWebview.ts",
+          "line": 83,
+          "context": "new Error(i18n(\"lib.cloudtokenwebview.27ac14d14b12\"))"
+        }
+      ],
+      "translation": "The cloud drive page returned no valid content; try again or paste the access token manually.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.cloudtokenwebview.63c8ea2f536a",
+      "source": "应用内云盘登录仅能在 OneTHU 中使用。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/cloudTokenWebview.ts",
+          "line": 41,
+          "context": "new Error(i18n(\"lib.cloudtokenwebview.63c8ea2f536a\"))"
+        }
+      ],
+      "translation": "In-app cloud drive sign-in only works inside OneTHU.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.cloudtokenwebview.cancelled",
+      "source": "已取消读取云盘访问口令。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/cloudTokenWebview.ts",
+          "line": 143,
+          "context": "reason === \"timeout\" ? i18n(\"lib.cloudtokenwebview.pageTimeout\") : i18n(\"lib.cloudtokenwebview.cancelled\")"
+        }
+      ],
+      "translation": "Reading the cloud drive access token was canceled.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.cloudtokenwebview.pageTimeout",
+      "source": "等待云盘页面超时，请确认已登录后重试。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/cloudTokenWebview.ts",
+          "line": 143,
+          "context": "reason === \"timeout\" ? i18n(\"lib.cloudtokenwebview.pageTimeout\") : i18n(\"lib.cloudtokenwebview.cancelled\")"
+        }
+      ],
+      "translation": "Timed out waiting for the cloud drive page; confirm you are signed in and try again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.045720f46a17",
+      "source": "这个口令里没有新内容",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 51,
+          "context": "r.duplicate ? i18n(\"lib.contentexchange.290e61e70691\") : i18n(\"lib.contentexchange.045720f46a17\")"
+        }
+      ],
+      "translation": "This share code contains no new content",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.17fa33d72406",
+      "source": "当前暂存箱",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 47,
+          "context": "vaultTarget === 'new' ? i18n(\"lib.contentexchange.4dc6d8e7a87a\") : i18n(\"lib.contentexchange.17fa33d72406\")"
+        }
+      ],
+      "translation": "Current Stash",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.290e61e70691",
+      "source": "本地已有这张名片（未重复添加）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 51,
+          "context": "r.duplicate ? i18n(\"lib.contentexchange.290e61e70691\") : i18n(\"lib.contentexchange.045720f46a17\")"
+        }
+      ],
+      "translation": "This card already exists locally (not added again)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.2c608891c3c4",
+      "source": "组织已添加到通讯录；成员身份和访问权限由服务器确认。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 70,
+          "context": "return i18n(\"lib.contentexchange.2c608891c3c4\");"
+        }
+      ],
+      "translation": "The organization has been added to Contacts; membership and access permissions are confirmed by the server.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.354191707f33",
+      "source": "暂存箱口令无法导入",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 61,
+          "context": "r.reason || i18n(\"lib.contentexchange.354191707f33\")"
+        }
+      ],
+      "translation": "Stash share codes cannot be imported",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.36987ff12d5e",
+      "source": "已收到 {count} 项内容，已存入新暂存箱",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "count",
+          "expression": "r.imported ?? 0"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 63,
+          "context": "vaultTarget === 'new'\n      ? i18n(\"lib.contentexchange.36987ff12d5e\", { count: r.imported ?? 0 })\n      : i18n(\"lib.contentexchange.9111f2690fbb\", { count: r.imported ?? 0 })"
+        }
+      ],
+      "translation": "Received {count} items, saved into a new Stash",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.39815ac69fb6",
+      "source": "先粘贴收到的口令",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 104,
+          "context": "new Error(i18n(\"lib.contentexchange.39815ac69fb6\"))"
+        }
+      ],
+      "translation": "Paste the received share code first",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.3bdb847af08f",
+      "source": "已收到 {contents}（部分内容本地已有）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "contents",
+          "expression": "new Intl.ListFormat(getLocale(), { style: \"long\", type: \"conjunction\" }).format(parts)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 53,
+          "context": "r.duplicate\n      ? i18n(\"lib.contentexchange.3bdb847af08f\", { contents: new Intl.ListFormat(getLocale(), { style: \"long\", type: \"conjunction\" }).format(parts) })\n      : i18n(\"lib.contentexchange.b3cbed6586bd\", { contents: new Intl.ListFormat(getLocale(), { style: \"long\", type: \"conjunction\" }).format(parts) })"
+        }
+      ],
+      "translation": "Received {contents} (some content already existed locally)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.4dc6d8e7a87a",
+      "source": "新暂存箱",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 47,
+          "context": "vaultTarget === 'new' ? i18n(\"lib.contentexchange.4dc6d8e7a87a\") : i18n(\"lib.contentexchange.17fa33d72406\")"
+        },
+        {
+          "file": "apps/desktop/src/state/vault.ts",
+          "line": 143,
+          "context": "name = i18n(\"lib.contentexchange.4dc6d8e7a87a\")"
+        },
+        {
+          "file": "apps/desktop/src/state/vault.ts",
+          "line": 144,
+          "context": "name.trim() || i18n(\"lib.contentexchange.4dc6d8e7a87a\")"
+        }
+      ],
+      "translation": "New Stash",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.563bc0abe5ef",
+      "source": "当前环境不支持二维码识别",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 93,
+          "context": "new Error(i18n(\"lib.contentexchange.563bc0abe5ef\"))"
+        }
+      ],
+      "translation": "QR code scanning is not supported in the current environment",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.5ccdc18fde7a",
+      "source": "请选择一张二维码图片",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 79,
+          "context": "new Error(i18n(\"lib.contentexchange.5ccdc18fde7a\"))"
+        }
+      ],
+      "translation": "Please choose a QR code image",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "lib.contentexchange.67a52d762038",
       "source": "请先填写名片上的名字",
@@ -105,1221 +1499,6 @@
         }
       ],
       "translation": "This is not a valid OneTHU share code",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.contentexchange.ed909fbcd134",
-      "source": "图片里没有识别到二维码",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/contentExchange.ts",
-          "line": 85,
-          "context": "new Error(i18n(\"lib.contentexchange.ed909fbcd134\"))"
-        }
-      ],
-      "translation": "No QR code was detected in the image",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.contentexchange.f69fb628aaab",
-      "source": "组织邀请无法识别",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/contentExchange.ts",
-          "line": 69,
-          "context": "r.reason || i18n(\"lib.contentexchange.f69fb628aaab\")"
-        }
-      ],
-      "translation": "The organization invitation cannot be recognized",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.contentexchange.fd5394f29856",
-      "source": "个人名片",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/contentExchange.ts",
-          "line": 48,
-          "context": "r.contact ? i18n(\"lib.contentexchange.fd5394f29856\") : ''"
-        }
-      ],
-      "translation": "Personal card",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.datetext.084b42f6e95e",
-      "source": "二",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/dateText.ts",
-          "line": 14
-        }
-      ],
-      "translation": "Tue",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.datetext.51a75f4634df",
-      "source": "一",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/dateText.ts",
-          "line": 14
-        }
-      ],
-      "translation": "Mon",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.datetext.754a9d5828d5",
-      "source": "四",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/dateText.ts",
-          "line": 14
-        }
-      ],
-      "translation": "Thu",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.datetext.85217f7aff77",
-      "source": "日",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/dateText.ts",
-          "line": 14
-        }
-      ],
-      "translation": "Sun",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.datetext.a4c3313deb18",
-      "source": "三",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/dateText.ts",
-          "line": 14
-        }
-      ],
-      "translation": "Wed",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.datetext.a619476ecb90",
-      "source": "{value}月{value2}日 星期{value3}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(d.getMonth() + 1)"
-        },
-        {
-          "name": "value2",
-          "expression": "String(d.getDate())"
-        },
-        {
-          "name": "value3",
-          "expression": "String(WEEKDAYS[d.getDay()])"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/dateText.ts",
-          "line": 18,
-          "context": "return i18n(\"lib.datetext.a619476ecb90\", { value: String(d.getMonth() + 1), value2: String(d.getDate()), value3: String(WEEKDAYS[d.getDay()]) });"
-        }
-      ],
-      "translation": "{value}/{value2} {value3}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.datetext.c9b87f516a38",
-      "source": "五",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/dateText.ts",
-          "line": 14
-        }
-      ],
-      "translation": "Fri",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.datetext.de07b5383874",
-      "source": "六",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/dateText.ts",
-          "line": 14
-        }
-      ],
-      "translation": "Sat",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.filechannel.13db15846e8d",
-      "source": "当前环境没有 WebCrypto，无法计算文件指纹",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/fileChannel.ts",
-          "line": 32,
-          "context": "new Error(i18n(\"lib.filechannel.13db15846e8d\"))"
-        }
-      ],
-      "translation": "There is no WebCrypto in the current environment, so file fingerprints cannot be computed",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.geekbrowser.357cfa691440",
-      "source": "探索浏览器没在运行（先启动）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/geekBrowser.ts",
-          "line": 83,
-          "context": "new Error(i18n(\"lib.geekbrowser.357cfa691440\"))"
-        },
-        {
-          "file": "apps/desktop/src/lib/geekBrowser.ts",
-          "line": 107,
-          "context": "new Error(i18n(\"lib.geekbrowser.357cfa691440\"))"
-        },
-        {
-          "file": "apps/desktop/src/lib/geekBrowser.ts",
-          "line": 114,
-          "context": "new Error(i18n(\"lib.geekbrowser.357cfa691440\"))"
-        },
-        {
-          "file": "apps/desktop/src/lib/geekBrowser.ts",
-          "line": 130,
-          "context": "new Error(i18n(\"lib.geekbrowser.357cfa691440\"))"
-        }
-      ],
-      "translation": "The explorer browser is not running (start it first)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.geekbrowser.3abf469b9446",
-      "source": "没有可用的页面（去探索浏览器里开一个标签页）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/geekBrowser.ts",
-          "line": 41,
-          "context": "new Error(i18n(\"lib.geekbrowser.3abf469b9446\"))"
-        }
-      ],
-      "translation": "No available pages (open a tab in the explorer browser)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.geekbrowser.48ac2b24891e",
-      "source": "{method} 15 秒没回音",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "method",
-          "expression": "String(method)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/geekBrowser.ts",
-          "line": 92,
-          "context": "new Error(i18n(\"lib.geekbrowser.48ac2b24891e\", { method: String(method) }))"
-        }
-      ],
-      "translation": "{method} got no response for 15 seconds",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.geekbrowser.53f7d68f6849",
-      "source": "调试口 {port} 没应答（浏览器可能还在启动，稍等再试）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "port",
-          "expression": "String(port)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/geekBrowser.ts",
-          "line": 38,
-          "context": "new Error(i18n(\"lib.geekbrowser.53f7d68f6849\", { port: String(port) }))"
-        }
-      ],
-      "translation": "The debug port {port} is not responding (the browser may still be starting; wait and try again)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.geekbrowser.659c34a56926",
-      "source": "连不上探索浏览器（调试口在但页面没就绪）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/geekBrowser.ts",
-          "line": 78,
-          "context": "new Error(i18n(\"lib.geekbrowser.659c34a56926\"))"
-        }
-      ],
-      "translation": "Cannot connect to the explorer browser (the debug port is up but no page is ready)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.glasslevel.02180509cf78",
-      "source": "透光",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/glassLevel.ts",
-          "line": 22,
-          "context": "label: i18n(\"lib.glasslevel.02180509cf78\")"
-        }
-      ],
-      "translation": "Translucent",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "lib.glasslevel.2588b5b9bacc",
-      "source": "均衡",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/glassLevel.ts",
-          "line": 21,
-          "context": "label: i18n(\"lib.glasslevel.2588b5b9bacc\")"
-        }
-      ],
-      "translation": "Balanced",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "lib.glasslevel.3ea0f0b117e3",
-      "source": "透彻",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/glassLevel.ts",
-          "line": 23,
-          "context": "label: i18n(\"lib.glasslevel.3ea0f0b117e3\")"
-        }
-      ],
-      "translation": "Clear",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "lib.glasslevel.484d55613910",
-      "source": "无",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/glassLevel.ts",
-          "line": 20,
-          "context": "label: i18n(\"lib.glasslevel.484d55613910\")"
-        }
-      ],
-      "translation": "None",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "lib.homecards.00a42a995295",
-      "source": "预约页 · 自习空闲查询",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 152,
-          "context": "return i18n(\"lib.homecards.00a42a995295\");"
-        }
-      ],
-      "translation": "Reservations page · Study space availability",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.02cb99cb0282",
-      "source": "信息页 · 问卷进度",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 150,
-          "context": "return i18n(\"lib.homecards.02cb99cb0282\");"
-        }
-      ],
-      "translation": "Info page · Survey progress",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.07a0fa11958e",
-      "source": "体育预约",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 154,
-          "context": "return i18n(\"lib.homecards.07a0fa11958e\");"
-        }
-      ],
-      "translation": "Sports reservations",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.0d691812ca83",
-      "source": "校园卡 · 电费",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 112,
-          "context": "return i18n(\"lib.homecards.0d691812ca83\");"
-        }
-      ],
-      "translation": "Campus card · Electricity",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.0e68f2517080",
-      "source": "网络学堂 · 课件与资料",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 132,
-          "context": "return i18n(\"lib.homecards.0e68f2517080\");"
-        }
-      ],
-      "translation": "Web Learning · Courseware and materials",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.0f58fd2a2e0f",
-      "source": "时钟",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 109,
-          "context": "return i18n(\"lib.homecards.0f58fd2a2e0f\");"
-        }
-      ],
-      "translation": "Clock",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.10d6105303f8",
-      "source": "订阅新闻",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 133,
-          "context": "return i18n(\"lib.homecards.10d6105303f8\");"
-        }
-      ],
-      "translation": "Subscribe to news",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.119099ab1bad",
-      "source": "今日课程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 113,
-          "context": "return i18n(\"lib.homecards.119099ab1bad\");"
-        }
-      ],
-      "translation": "Today's classes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.13a9d4b0c392",
-      "source": "网络学堂 · 切换数据学期",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 142,
-          "context": "return i18n(\"lib.homecards.13a9d4b0c392\");"
-        }
-      ],
-      "translation": "Web Learning · Switch data semester",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.14259c8a65a8",
-      "source": "未交作业 · 截止 · 今日课程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 118,
-          "context": "return i18n(\"lib.homecards.14259c8a65a8\");"
-        }
-      ],
-      "translation": "Unsubmitted assignments · Due · Today's classes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.14384c9d60cc",
-      "source": "教学评估",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 150,
-          "context": "return i18n(\"lib.homecards.14384c9d60cc\");"
-        }
-      ],
-      "translation": "Course evaluation",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.14e681cbe318",
-      "source": "网络学堂 · 课程通知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 131,
-          "context": "return i18n(\"lib.homecards.14e681cbe318\");"
-        }
-      ],
-      "translation": "Web Learning · Course notices",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.1599af41d9c3",
-      "source": "课程 / 作业 / 通知 / 文件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 143,
-          "context": "return i18n(\"lib.homecards.1599af41d9c3\");"
-        }
-      ],
-      "translation": "Courses / Assignments / Notices / Files",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.1c1ece1ebe90",
-      "source": "生活页 · 宿舍服务",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 137,
-          "context": "return i18n(\"lib.homecards.1c1ece1ebe90\");"
-        }
-      ],
-      "translation": "Life page · Dorm services",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.211d36ccbe1e",
-      "source": "今日概览",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 118,
-          "context": "return i18n(\"lib.homecards.211d36ccbe1e\");"
-        }
-      ],
-      "translation": "Today at a glance",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.231ff6cd9b63",
-      "source": "学期切换",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 142,
-          "context": "return i18n(\"lib.homecards.231ff6cd9b63\");"
-        }
-      ],
-      "translation": "Switch semester",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.23530d9f428a",
-      "source": "今日待办",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 114,
-          "context": "return i18n(\"lib.homecards.23530d9f428a\");"
-        }
-      ],
-      "translation": "Today's tasks",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.24be2018df29",
-      "source": "银行代发",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 146,
-          "context": "return i18n(\"lib.homecards.24be2018df29\");"
-        }
-      ],
-      "translation": "Bank payroll",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.2e6eca802ef8",
-      "source": "最新新闻",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 125,
-          "context": "return i18n(\"lib.homecards.2e6eca802ef8\");"
-        }
-      ],
-      "translation": "Latest news",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.316da6d69b7d",
-      "source": "体测成绩",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 149,
-          "context": "return i18n(\"lib.homecards.316da6d69b7d\");"
-        }
-      ],
-      "translation": "Fitness test",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.31c17158ebdb",
-      "source": "图书馆座位",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 140,
-          "context": "return i18n(\"lib.homecards.31c17158ebdb\");"
-        }
-      ],
-      "translation": "Library seat",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.33005938adb3",
-      "source": "最近通知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 115,
-          "context": "return i18n(\"lib.homecards.33005938adb3\");"
-        }
-      ],
-      "translation": "Recent notices",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.336dbe5fd82f",
-      "source": "研究生收入",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 147,
-          "context": "return i18n(\"lib.homecards.336dbe5fd82f\");"
-        }
-      ],
-      "translation": "Graduate stipend",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.390251ce8a9d",
-      "source": "生活页 · 设备状态",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 138,
-          "context": "return i18n(\"lib.homecards.390251ce8a9d\");"
-        }
-      ],
-      "translation": "Life page · Device status",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.3b7240a9d253",
-      "source": "预约 · 座位与签到",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 140,
-          "context": "return i18n(\"lib.homecards.3b7240a9d253\");"
-        }
-      ],
-      "translation": "Reservation · Seats and check-in",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.3d39419f4b36",
-      "source": "座位 · 研讨间 · 点击管理",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 124,
-          "context": "return i18n(\"lib.homecards.3d39419f4b36\");"
-        }
-      ],
-      "translation": "Seats · Seminar rooms · Tap to manage",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.3e668eb1a6ae",
-      "source": "预约页 · 宿舍公共空间预约",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 155,
-          "context": "return i18n(\"lib.homecards.3e668eb1a6ae\");"
-        }
-      ],
-      "translation": "Reservations page · Dorm common spaces",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.411769324590",
-      "source": "预约 · 研讨间申请",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 141,
-          "context": "return i18n(\"lib.homecards.411769324590\");"
-        }
-      ],
-      "translation": "Reservation · Seminar room applications",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.41d497d6e07e",
-      "source": "卫生成绩",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 148,
-          "context": "return i18n(\"lib.homecards.41d497d6e07e\");"
-        }
-      ],
-      "translation": "Hygiene score",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.4792ab1440aa",
-      "source": "校历",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 151,
-          "context": "return i18n(\"lib.homecards.4792ab1440aa\");"
-        }
-      ],
-      "translation": "Academic calendar",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.4d947325473f",
-      "source": "天气",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 111,
-          "context": "return i18n(\"lib.homecards.4d947325473f\");"
-        }
-      ],
-      "translation": "Weather",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.4f375a90d354",
-      "source": "宿舍 / 电费 / 订水",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 137,
-          "context": "return i18n(\"lib.homecards.4f375a90d354\");"
-        }
-      ],
-      "translation": "Dorm / Electricity / Water",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.53090df93da8",
-      "source": "生活页 · 财务 · 助研津贴",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 147,
-          "context": "return i18n(\"lib.homecards.53090df93da8\");"
-        }
-      ],
-      "translation": "Life page · Finance · Research assistant stipend",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.5531576bd063",
-      "source": "信息门户 · 考试日程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 135,
-          "context": "return i18n(\"lib.homecards.5531576bd063\");"
-        }
-      ],
-      "translation": "Info portal · Exam schedule",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.5a91ca6f1bdb",
-      "source": "今天最近的一节",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 122,
-          "context": "return i18n(\"lib.homecards.5a91ca6f1bdb\");"
-        }
-      ],
-      "translation": "Your next class today",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.5bdb39b4e305",
-      "source": "点击打开课表",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 113,
-          "context": "return i18n(\"lib.homecards.5bdb39b4e305\");"
-        }
-      ],
-      "translation": "Tap to open timetable",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.62fd8d15cf0a",
-      "source": "网络学堂搜索",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 143,
-          "context": "return i18n(\"lib.homecards.62fd8d15cf0a\");"
-        }
-      ],
-      "translation": "Web Learning search",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.640803d89773",
-      "source": "个人信息",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 136,
-          "context": "return i18n(\"lib.homecards.640803d89773\");"
-        }
-      ],
-      "translation": "Personal info",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.6acfa1db6a62",
-      "source": "洗衣机",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 138,
-          "context": "return i18n(\"lib.homecards.6acfa1db6a62\");"
-        }
-      ],
-      "translation": "Washer",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.70d0c1b33626",
-      "source": "日期",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 110,
-          "context": "return i18n(\"lib.homecards.70d0c1b33626\");"
-        }
-      ],
-      "translation": "Date",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.7ca0b3673bc7",
-      "source": "信息门户 · 订阅动态",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 133,
-          "context": "return i18n(\"lib.homecards.7ca0b3673bc7\");"
-        }
-      ],
-      "translation": "Info portal · Subscriptions",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.838814f1139e",
-      "source": "生活页 · 财务 · 工资到账",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 146,
-          "context": "return i18n(\"lib.homecards.838814f1139e\");"
-        }
-      ],
-      "translation": "Life page · Finance · Salary deposits",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.85a913c6a681",
-      "source": "猜你喜欢",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 116,
-          "context": "return i18n(\"lib.homecards.85a913c6a681\");"
-        }
-      ],
-      "translation": "Recommended for you",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.88df420f8207",
-      "source": "考试安排",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 135,
-          "context": "return i18n(\"lib.homecards.88df420f8207\");"
-        }
-      ],
-      "translation": "Exam schedule",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.8e46dccaa4fb",
-      "source": "生活页 · 账号与流量",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 153,
-          "context": "return i18n(\"lib.homecards.8e46dccaa4fb\");"
-        }
-      ],
-      "translation": "Life page · Account and data",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.92341cf02c56",
-      "source": "电子发票",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 145,
-          "context": "return i18n(\"lib.homecards.92341cf02c56\");"
-        }
-      ],
-      "translation": "Invoices",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.95ce4af97b93",
-      "source": "信息门户 · 历年成绩",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 134,
-          "context": "return i18n(\"lib.homecards.95ce4af97b93\");"
-        }
-      ],
-      "translation": "Info portal · Grade history",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.961b6374e9a5",
-      "source": "信息门户 · 学籍信息",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 136,
-          "context": "return i18n(\"lib.homecards.961b6374e9a5\");"
-        }
-      ],
-      "translation": "Info portal · Enrollment info",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.9e6a260920fb",
-      "source": "今日预约",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 124,
-          "context": "return i18n(\"lib.homecards.9e6a260920fb\");"
-        }
-      ],
-      "translation": "Today's reservations",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.a1cabc0664cf",
-      "source": "全部作业",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 130,
-          "context": "return i18n(\"lib.homecards.a1cabc0664cf\");"
-        }
-      ],
-      "translation": "All assignments",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.a45eee2e0119",
-      "source": "一级功能区",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 108,
-          "context": "return i18n(\"lib.homecards.a45eee2e0119\");"
-        }
-      ],
-      "translation": "Main features",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.a9e8177b10ff",
-      "source": "余额速览",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 112,
-          "context": "return i18n(\"lib.homecards.a9e8177b10ff\");"
-        }
-      ],
-      "translation": "Balance at a glance",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.aefd9d91e6da",
-      "source": "按使用习惯推荐",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 116,
-          "context": "return i18n(\"lib.homecards.aefd9d91e6da\");"
-        }
-      ],
-      "translation": "Recommended by your usage habits",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

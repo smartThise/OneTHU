@@ -2,6 +2,7 @@ import http from 'node:http';
 import tls from 'node:tls';
 import { timingSafeEqual, randomBytes } from 'node:crypto';
 import { Transform } from 'node:stream';
+import { CLIENT_IDENTITY_HOST, CLIENT_BUSINESS_HOSTS, miniProgramRequest, parseClientTarget } from './clientIdentity.mjs';
 import {
   GatewayError, normalizeAllowedOrigins, parseProxyTarget, parseConnectAuthority, parseCampusConnectAuthority,
   parseTunnelTarget, sanitizeRequestHeaders, sanitizeResponseHeaders,
@@ -128,6 +129,7 @@ export function createCampusGateway(options = {}) {
     // Diagnostics must never retain URLs, arbitrary header values, credentials,
     // bodies, or account identities. Only parsed allowlisted hosts and enums.
     recentRejections.push({
+      ...(tunnels.get(req.socket)?.client ? {clientApplication:'wechat'} : {}),
       ...(typeof error?.serviceReason==='string'&&/^(?:CAMPUS_SERVICE|NETWORK|AUTH)_[A-Z0-9_]{1,64}$/.test(error.serviceReason)?{serviceReason:error.serviceReason}:{}),
       code: /^GATEWAY_[A-Z_]{1,64}$/.test(code) ? code : 'GATEWAY_UPSTREAM_FAILED',
       ...(destinationHost ? { destinationHost } : {}),
@@ -229,7 +231,8 @@ export function createCampusGateway(options = {}) {
         res.writeHead(204, { 'Cache-Control': 'no-store', Connection: 'close' }).end();
         return;
       }
-      target = tunnel ? parseTunnelTarget(req.url, req.headers.host, tunnel, origins) : parseProxyTarget(req.url, req.headers.host, origins);
+      target = tunnel?.client ? parseClientTarget(req.url, req.headers.host, tunnel)
+        : tunnel ? parseTunnelTarget(req.url, req.headers.host, tunnel, origins) : parseProxyTarget(req.url, req.headers.host, origins);
       validateMethod(req.method, target);
       // Legacy campus HTTP pages lack browser Fetch Metadata. Redirect safe
       // navigations to an explicitly enabled HTTPS facade before borrowing any
@@ -240,7 +243,18 @@ export function createCampusGateway(options = {}) {
         res.writeHead(307, { Location: upgraded.href, 'Cache-Control': 'no-store', Connection: 'close', 'Content-Length': '0' }).end();
         return;
       }
-      validateFetchMetadata(req.headers, target, origins, { method: req.method, hasBody });
+      let clientRequest = null;
+      if (tunnel?.client) {
+        try { clientRequest = miniProgramRequest(target, req.headers, req.method); }
+        catch (error) {
+          // Other mini programs and manual verification retain their own
+          // identity exchange. They receive none of the OneTHU cookie jar.
+          if (typeof options.clientIdentity.passthrough !== 'function') throw error;
+          clientRequest = {identity:target.hostname===CLIENT_IDENTITY_HOST,unborrowed:true};
+        }
+      }
+      if (!clientRequest) validateFetchMetadata(req.headers, target, origins, { method: req.method, hasBody });
+      if (clientRequest?.identity && !clientRequest.unborrowed && hasBody) fail('GATEWAY_CLIENT_REQUEST_REJECTED', 403);
       const epoch = tunnel?.epoch ?? currentEpoch();
       assertEpoch(epoch);
       if (activeRequests >= maxConnections) fail('GATEWAY_BUSY', 503);
@@ -251,7 +265,7 @@ export function createCampusGateway(options = {}) {
       const check = () => {
         if (controller.signal.aborted) throw controller.signal.reason;
         assertEpoch(epoch);
-        if (!origins.has(target.origin)) fail('GATEWAY_TARGET_REJECTED', 403);
+        if (!clientRequest && !origins.has(target.origin)) fail('GATEWAY_TARGET_REJECTED', 403);
       };
       req.once('aborted', cancel); req.once('error', cancel); res.once('close', disconnected);
       let allowAuthorization = false;
@@ -263,7 +277,8 @@ export function createCampusGateway(options = {}) {
         } catch { /* A failed witness lookup must never forward a credential. */ }
       }
       check();
-      const headers = sanitizeRequestHeaders(req.rawHeaders, { allowAuthorization });
+      const headers = sanitizeRequestHeaders(req.rawHeaders, { allowAuthorization: allowAuthorization || !!clientRequest && !clientRequest.identity });
+      if (clientRequest?.unborrowed && typeof req.headers.cookie === 'string') headers.set('cookie',req.headers.cookie);
       if (hasBody) {
         let sent = 0;
         upload = new Transform({
@@ -279,13 +294,21 @@ export function createCampusGateway(options = {}) {
       check();
       const init = { method: req.method, headers, signal: controller.signal, redirect: 'manual', preserveResponseBytes: true };
       if (upload) { init.body = upload; init.duplex = 'half'; }
-      const response = upstreamResponse = await withSignal(Promise.resolve().then(() => { check(); return session.request(target.href, init); }), controller.signal, value => value?.body?.cancel());
+      const response = upstreamResponse = await withSignal(Promise.resolve().then(() => {
+        check(); return clientRequest?.unborrowed ? options.clientIdentity.passthrough(target.href,init)
+          : clientRequest ? options.clientIdentity.request(target.href, init, clientRequest) : session.request(target.href, init);
+      }), controller.signal, value => value?.body?.cancel());
       check();
       if (!response || !Number.isInteger(response.status) || response.status < 200 || response.status > 599 || !response.headers || response.body && typeof response.body.getReader !== 'function') fail('GATEWAY_UPSTREAM_INVALID', 502);
       requestsByHost.set(target.hostname, (requestsByHost.get(target.hostname) ?? 0) + 1);
       const encoding = response.headers.get('content-encoding')?.trim();
       if (encoding && encoding.toLowerCase() !== 'identity' && (response.status === 206 || response.headers.has('content-range'))) fail('GATEWAY_ENCODED_RANGE_UNSUPPORTED', 502);
       const outputHeaders = sanitizeResponseHeaders(response.headers);
+      if (clientRequest?.unborrowed || clientRequest && options.clientIdentity.isUnborrowed?.(response) === true) {
+        const cookies = response.headers.getSetCookie?.() ?? [];
+        if (cookies.length > 32 || cookies.some(value => /[\r\n\0]/.test(value) || value.length > 8192)) fail('GATEWAY_UPSTREAM_INVALID',502);
+        if (cookies.length) outputHeaders['set-cookie'] = cookies;
+      }
       // Learn's own JavaScript reads its non-authentication CSRF cookie. Only
       // the account adapter may project this one explicitly approved value;
       // upstream Set-Cookie and all browser authentication cookies stay hidden.
@@ -377,8 +400,14 @@ export function createCampusGateway(options = {}) {
         if (stopped) fail('GATEWAY_CLOSED', 503);
         await authenticate(req);
         if (framing(req)) fail('GATEWAY_REQUEST_REJECTED');
-        if(options.connectPassthrough&&!origins.has(`https://${String(req.url).replace(/:443$/,'')}`)){
-          const candidate=parseCampusConnectAuthority(req.url,req.headers.host);
+        const clientHost = String(req.url).replace(/:443$/, '');
+        const clientEligible = options.clientIdentity && peerAuthorization && options.resolveClient && options.tlsClient &&
+          req.url === `${clientHost}:443` && [CLIENT_IDENTITY_HOST, ...CLIENT_BUSINESS_HOSTS].includes(clientHost) &&
+          [clientHost, req.url].includes(req.headers.host);
+        const client = clientEligible ? await options.resolveClient(socket) : null;
+        const identityPassthrough = clientEligible && clientHost === CLIENT_IDENTITY_HOST && !client;
+        if(options.connectPassthrough&&!client&&(!origins.has(`https://${String(req.url).replace(/:443$/,'')}`)||identityPassthrough)){
+          const candidate = identityPassthrough ? new URL(`https://${CLIENT_IDENTITY_HOST}/`) : parseCampusConnectAuthority(req.url,req.headers.host);
           if(!origins.has(candidate.origin)){
             target=candidate;
             controller=new AbortController();controllers.add(controller);
@@ -396,7 +425,7 @@ export function createCampusGateway(options = {}) {
             socket.pipe(upstream);upstream.pipe(socket);socket.resume();return;
           }
         }
-        target = parseConnectAuthority(req.url, req.headers.host, origins);
+        target = client ? new URL(`https://${clientHost}/`) : parseConnectAuthority(req.url, req.headers.host, origins);
         // Browsers do not attach page provenance to the CONNECT handshake.
         // Every HTTP request inside this authenticated tunnel is checked below.
         if (req.headers.origin !== undefined || req.headers['sec-fetch-site'] !== undefined) validateFetchMetadata(req.headers, target);
@@ -406,10 +435,10 @@ export function createCampusGateway(options = {}) {
         socket.once('close', disconnected);
         timer = setTimeout(() => controller.abort(new GatewayError('GATEWAY_TIMEOUT', 504)), Math.min(timeoutMs, 10_000));
         timer.unref();
-        const certificate = await withSignal(Promise.resolve().then(() => options.tls(target.hostname, { signal: controller.signal })), controller.signal);
+        const certificate = await withSignal(Promise.resolve().then(() => (client ? options.tlsClient : options.tls)(target.hostname, { signal: controller.signal })), controller.signal);
         if (controller.signal.aborted || socket.destroyed) throw controller.signal.reason ?? new GatewayError('GATEWAY_CANCELLED', 499);
         assertEpoch(epoch);
-        if (!origins.has(target.origin)) fail('GATEWAY_TARGET_REJECTED', 403);
+        if (!client && !origins.has(target.origin)) fail('GATEWAY_TARGET_REJECTED', 403);
         let context;
         try { context = tls.createSecureContext({ key: certificate?.key, cert: certificate?.cert, minVersion: 'TLSv1.2' }); }
         catch { fail('GATEWAY_TLS_CERTIFICATE_INVALID', 502); }
@@ -430,8 +459,8 @@ export function createCampusGateway(options = {}) {
           secure.setTimeout(timeoutMs, () => secure.destroy());
           try {
             assertEpoch(epoch);
-            if (stopped || controller.signal.aborted || !origins.has(target.origin) || secure.servername && secure.servername.toLowerCase() !== target.hostname || secure.alpnProtocol && secure.alpnProtocol !== 'http/1.1') fail('GATEWAY_TLS_SNI_REJECTED', 403);
-            tunnels.set(secure, { origin: target.origin, hostname: target.hostname, epoch });
+            if (stopped || controller.signal.aborted || !client && !origins.has(target.origin) || secure.servername && secure.servername.toLowerCase() !== target.hostname || secure.alpnProtocol && secure.alpnProtocol !== 'http/1.1') fail('GATEWAY_TLS_SNI_REJECTED', 403);
+            tunnels.set(secure, { origin: target.origin, hostname: target.hostname, epoch, ...(client ? { client } : {}) });
             inner.emit('connection', secure);
           } catch { secure.destroy(); }
         });

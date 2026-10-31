@@ -1,7 +1,1196 @@
 {
-  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
+  "sourceHash": "be3fd8c88a23dc4acb558acc486d73c0e34027023912c7adc1e35b9861a6e4b5",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "lib.homecards.cf05dea41f42",
+      "source": "生活页 · 宿舍卫生检查",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 148,
+          "context": "return i18n(\"lib.homecards.cf05dea41f42\");"
+        }
+      ],
+      "translation": "Life page · Dorm hygiene checks",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.d3a28cd3b434",
+      "source": "下一节课",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 122,
+          "context": "return i18n(\"lib.homecards.d3a28cd3b434\");"
+        }
+      ],
+      "translation": "Next class",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.d4549b05b429",
+      "source": "点击进入生活页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 123,
+          "context": "return i18n(\"lib.homecards.d4549b05b429\");"
+        }
+      ],
+      "translation": "Tap to open the Life page",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.d9087a096dc2",
+      "source": "选课系统 · 已选课程与候补队列",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 129,
+          "context": "return i18n(\"lib.homecards.d9087a096dc2\");"
+        }
+      ],
+      "translation": "Course selection · Selected courses and waitlist",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.dd94488f5269",
+      "source": "校园网",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 153,
+          "context": "return i18n(\"lib.homecards.dd94488f5269\");"
+        }
+      ],
+      "translation": "Campus network",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.e4d40b4d6759",
+      "source": "研讨间",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 141,
+          "context": "return i18n(\"lib.homecards.e4d40b4d6759\");"
+        }
+      ],
+      "translation": "Seminar room",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.e703d13e3468",
+      "source": "生活页 · 财务 · 发票列表",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 145,
+          "context": "return i18n(\"lib.homecards.e703d13e3468\");"
+        }
+      ],
+      "translation": "Life page · Finance · Invoice list",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.e81059e1a712",
+      "source": "公共空间",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 155,
+          "context": "return i18n(\"lib.homecards.e81059e1a712\");"
+        }
+      ],
+      "translation": "Common space",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.ebfa3e62fea6",
+      "source": "点击查看详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 115,
+          "context": "return i18n(\"lib.homecards.ebfa3e62fea6\");"
+        }
+      ],
+      "translation": "Tap to view details",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.ecc11c8afea8",
+      "source": "空教室",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 152,
+          "context": "return i18n(\"lib.homecards.ecc11c8afea8\");"
+        }
+      ],
+      "translation": "Empty classroom",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.ede028d7ec64",
+      "source": "全部成绩",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 134,
+          "context": "return i18n(\"lib.homecards.ede028d7ec64\");"
+        }
+      ],
+      "translation": "All grades",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.ee6388006cb5",
+      "source": "预约页 · 体育场馆时段预约",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 154,
+          "context": "return i18n(\"lib.homecards.ee6388006cb5\");"
+        }
+      ],
+      "translation": "Reservations page · Sports venue time slots",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.fa8fe752727c",
+      "source": "全部课程文件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 132,
+          "context": "return i18n(\"lib.homecards.fa8fe752727c\");"
+        }
+      ],
+      "translation": "All course files",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.fc7c1ff5f380",
+      "source": "信息页 · 学期安排图片",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 151,
+          "context": "return i18n(\"lib.homecards.fc7c1ff5f380\");"
+        }
+      ],
+      "translation": "Info page · Semester schedule images",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.fcb73401e714",
+      "source": "校历 · 学校重要事项",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 119,
+          "context": "return i18n(\"lib.homecards.fcb73401e714\");"
+        }
+      ],
+      "translation": "Academic calendar · Key school events",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.fd17d86dd268",
+      "source": "选课",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 129,
+          "context": "return i18n(\"lib.homecards.fd17d86dd268\");"
+        }
+      ],
+      "translation": "Course selection",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.homecards.fe7dbfcadf51",
+      "source": "生活页 · 余额与流水",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/homeCards.ts",
+          "line": 139,
+          "context": "return i18n(\"lib.homecards.fe7dbfcadf51\");"
+        }
+      ],
+      "translation": "Life page · Balance and transactions",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.hwcourse.60db1afb4022",
+      "source": "课程",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/hwCourse.ts",
+          "line": 37,
+          "context": "courseMap.get(h.courseId) ?? i18n(\"lib.hwcourse.60db1afb4022\")"
+        }
+      ],
+      "translation": "Courses",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagefilters.1073267e70f3",
+      "source": "不做处理",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageFilters.ts",
+          "line": 37,
+          "context": "return i18n(\"lib.imagefilters.1073267e70f3\");"
+        }
+      ],
+      "translation": "No processing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagefilters.18b8640fe01c",
+      "source": "这张图打不开，请重新选择",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageFilters.ts",
+          "line": 405,
+          "context": "new Error(i18n(\"lib.imagefilters.18b8640fe01c\"))"
+        }
+      ],
+      "translation": "This image can't be opened, please choose another one",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagefilters.1a407ccbb6dc",
+      "source": "暖色",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageFilters.ts",
+          "line": 41,
+          "context": "return i18n(\"lib.imagefilters.1a407ccbb6dc\");"
+        }
+      ],
+      "translation": "Warm",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagefilters.47d88357c5ea",
+      "source": "黑白",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageFilters.ts",
+          "line": 39,
+          "context": "return i18n(\"lib.imagefilters.47d88357c5ea\");"
+        }
+      ],
+      "translation": "Black and white",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagefilters.4b1db520af46",
+      "source": "原图",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageFilters.ts",
+          "line": 37,
+          "context": "return i18n(\"lib.imagefilters.4b1db520af46\");"
+        }
+      ],
+      "translation": "Original",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagefilters.6403563723c7",
+      "source": "提亮去阴影",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageFilters.ts",
+          "line": 38,
+          "context": "return i18n(\"lib.imagefilters.6403563723c7\");"
+        }
+      ],
+      "translation": "Brighten and remove shadows",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagefilters.6dfabd848137",
+      "source": "当前环境没有画布，无法处理图片",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageFilters.ts",
+          "line": 88,
+          "context": "new Error(i18n(\"lib.imagefilters.6dfabd848137\"))"
+        },
+        {
+          "file": "apps/desktop/src/lib/imageFilters.ts",
+          "line": 93,
+          "context": "new Error(i18n(\"lib.imagefilters.6dfabd848137\"))"
+        }
+      ],
+      "translation": "No canvas available in this environment, images can't be processed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagefilters.b9c153f4ea21",
+      "source": "字迹更利落",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageFilters.ts",
+          "line": 40,
+          "context": "return i18n(\"lib.imagefilters.b9c153f4ea21\");"
+        }
+      ],
+      "translation": "Sharper handwriting",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagefilters.c2a291b64f6b",
+      "source": "扫描",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageFilters.ts",
+          "line": 38,
+          "context": "return i18n(\"lib.imagefilters.c2a291b64f6b\");"
+        }
+      ],
+      "translation": "Scan",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagefilters.d4040b81cd67",
+      "source": "黑白文档",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageFilters.ts",
+          "line": 39,
+          "context": "return i18n(\"lib.imagefilters.d4040b81cd67\");"
+        }
+      ],
+      "translation": "Black and white document",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagefilters.e0cebe6ab1c6",
+      "source": "偏暖色调",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageFilters.ts",
+          "line": 41,
+          "context": "return i18n(\"lib.imagefilters.e0cebe6ab1c6\");"
+        }
+      ],
+      "translation": "Warm tone",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagefilters.fc538f246da7",
+      "source": "锐化",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageFilters.ts",
+          "line": 40,
+          "context": "return i18n(\"lib.imagefilters.fc538f246da7\");"
+        }
+      ],
+      "translation": "Sharpen",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagesave.23ba2e35420a",
+      "source": "图片内容为空",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageSave.ts",
+          "line": 96,
+          "context": "new Error(i18n(\"lib.imagesave.23ba2e35420a\"))"
+        }
+      ],
+      "translation": "Image content is empty",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagesave.811a20b9c112",
+      "source": "图片过大，无法保存",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageSave.ts",
+          "line": 97,
+          "context": "new Error(i18n(\"lib.imagesave.811a20b9c112\"))"
+        }
+      ],
+      "translation": "Image is too large to save",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.imagesave.e43a97fda804",
+      "source": "图片内容无法解析",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/imageSave.ts",
+          "line": 89,
+          "context": "new Error(i18n(\"lib.imagesave.e43a97fda804\"))"
+        }
+      ],
+      "translation": "Image content can't be parsed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.00544e03d777",
+      "source": "消防电气检测服务合同（示范文本）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 26,
+          "context": "return i18n(\"lib.infoapps.00544e03d777\");"
+        }
+      ],
+      "translation": "Fire and Electrical Inspection Service Contract (Model Text)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.00da08bbf087",
+      "source": "算力平台",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 115,
+          "context": "return i18n(\"lib.infoapps.00da08bbf087\");"
+        }
+      ],
+      "translation": "Computing Platform",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.015a389a2e3c",
+      "source": "信息化意见建议反馈",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 67,
+          "context": "return i18n(\"lib.infoapps.015a389a2e3c\");"
+        }
+      ],
+      "translation": "IT Suggestions and Feedback",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.01b6d48a2de8",
+      "source": "探臻科技评论官网及投稿系统",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 279,
+          "context": "return i18n(\"lib.infoapps.01b6d48a2de8\");"
+        }
+      ],
+      "translation": "Tanzhen Tech Review Website and Submission System",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.024d9c1a9936",
+      "source": "代码托管服务",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 270,
+          "context": "return i18n(\"lib.infoapps.024d9c1a9936\");"
+        }
+      ],
+      "translation": "Code Hosting Service",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.02616aa2c827",
+      "source": "技转系统证号变更",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 163,
+          "context": "return i18n(\"lib.infoapps.02616aa2c827\");"
+        }
+      ],
+      "translation": "Tech Transfer System Certificate Change",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.0494616b11aa",
+      "source": "教室状况查看",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 72,
+          "context": "return i18n(\"lib.infoapps.0494616b11aa\");"
+        }
+      ],
+      "translation": "Classroom Status",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.0593bf29a22b",
+      "source": "计算机时技术服务合同（示范文本）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 31,
+          "context": "return i18n(\"lib.infoapps.0593bf29a22b\");"
+        }
+      ],
+      "translation": "Computer Time Technical Service Contract (Model Text)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.05a643ca852e",
+      "source": "收费标准",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 207,
+          "context": "return i18n(\"lib.infoapps.05a643ca852e\");"
+        }
+      ],
+      "translation": "Fee Schedule",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.05aa5c61d138",
+      "source": "研究报告登记",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 133,
+          "context": "return i18n(\"lib.infoapps.05aa5c61d138\");"
+        }
+      ],
+      "translation": "Research Report Registration",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.0628c3511947",
+      "source": "采购信息公开",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 240,
+          "context": "return i18n(\"lib.infoapps.0628c3511947\");"
+        }
+      ],
+      "translation": "Procurement Information Disclosure",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.091a0ee6913c",
+      "source": "在线协作LaTeX编辑",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 271,
+          "context": "return i18n(\"lib.infoapps.091a0ee6913c\");"
+        }
+      ],
+      "translation": "Collaborative LaTeX Editing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.099ba4162cbc",
+      "source": "办理资信证明业务申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 222,
+          "context": "return i18n(\"lib.infoapps.099ba4162cbc\");"
+        }
+      ],
+      "translation": "Credit Certificate Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.0cbb24405bb6",
+      "source": "国际本科生奖学金",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 105,
+          "context": "return i18n(\"lib.infoapps.0cbb24405bb6\");"
+        }
+      ],
+      "translation": "International Undergraduate Scholarships",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.0cc3f24453f3",
+      "source": "银行账号",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 209,
+          "context": "return i18n(\"lib.infoapps.0cc3f24453f3\");"
+        }
+      ],
+      "translation": "Bank Account",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.0d935bffc3ae",
+      "source": "动火许可证审批",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 47,
+          "context": "return i18n(\"lib.infoapps.0d935bffc3ae\");"
+        }
+      ],
+      "translation": "Hot Work Permit Approval",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.0e17c025e4a3",
+      "source": "校内委托项目",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 188,
+          "context": "return i18n(\"lib.infoapps.0e17c025e4a3\");"
+        }
+      ],
+      "translation": "On-Campus Commissioned Projects",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.0e2a0947e91a",
+      "source": "健康体检查询",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 243,
+          "context": "return i18n(\"lib.infoapps.0e2a0947e91a\");"
+        }
+      ],
+      "translation": "Health Checkup Records",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.0e5395de44b7",
+      "source": "昌平科研基地管理服务网",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 20,
+          "context": "return i18n(\"lib.infoapps.0e5395de44b7\");"
+        }
+      ],
+      "translation": "Changping Research Base Management Portal",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.0f9343650ec6",
+      "source": "项目预算调剂",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 199,
+          "context": "return i18n(\"lib.infoapps.0f9343650ec6\");"
+        }
+      ],
+      "translation": "Project Budget Adjustment",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.1085a59e0a61",
+      "source": "项目投标申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 179,
+          "context": "return i18n(\"lib.infoapps.1085a59e0a61\");"
+        }
+      ],
+      "translation": "Project Bidding Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.116ca2f2f241",
+      "source": "辅导员管理(旧)",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 250,
+          "context": "return i18n(\"lib.infoapps.116ca2f2f241\");"
+        }
+      ],
+      "translation": "Counselor Management (Legacy)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.12d8f0ea729c",
+      "source": "网站开发建设服务合同（示范文本）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 30,
+          "context": "return i18n(\"lib.infoapps.12d8f0ea729c\");"
+        }
+      ],
+      "translation": "Website Development Service Contract (Model Text)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.1391c48308c9",
+      "source": "马杯体育竞赛系统",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 278,
+          "context": "return i18n(\"lib.infoapps.1391c48308c9\");"
+        }
+      ],
+      "translation": "Ma Yuehan Cup Sports Competition System",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.15036d956748",
+      "source": "缓考申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 87,
+          "context": "return i18n(\"lib.infoapps.15036d956748\");"
+        }
+      ],
+      "translation": "Deferred Exam Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.164b31a23e35",
+      "source": "学生就业实习与人才合作类合同审批/备案",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 52,
+          "context": "return i18n(\"lib.infoapps.164b31a23e35\");"
+        }
+      ],
+      "translation": "Student Internship and Talent Cooperation Contract Approval/Filing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.18d2d4835d84",
+      "source": "思政实践课程平台",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 112,
+          "context": "return i18n(\"lib.infoapps.18d2d4835d84\");"
+        }
+      ],
+      "translation": "Ideological and Political Practice Course Platform",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.19b715e8e934",
+      "source": "照片查看",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 73,
+          "context": "return i18n(\"lib.infoapps.19b715e8e934\");"
+        }
+      ],
+      "translation": "Photo Viewer",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.19fd876a1bf3",
+      "source": "校园参观团队预约",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 283,
+          "context": "return i18n(\"lib.infoapps.19fd876a1bf3\");"
+        }
+      ],
+      "translation": "Campus Tour Group Reservation",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.1a9d200bcd54",
+      "source": "知产资助申请/报销",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 156,
+          "context": "return i18n(\"lib.infoapps.1a9d200bcd54\");"
+        }
+      ],
+      "translation": "IP Funding and Reimbursement Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.1c6284c6960f",
+      "source": "国内会议预算申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 219,
+          "context": "return i18n(\"lib.infoapps.1c6284c6960f\");"
+        }
+      ],
+      "translation": "Domestic Conference Budget Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.1c9df32962a6",
+      "source": "小额直采平台",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 235,
+          "context": "return i18n(\"lib.infoapps.1c9df32962a6\");"
+        }
+      ],
+      "translation": "Small-Amount Direct Procurement Platform",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.1dfb4355b1be",
+      "source": "用章申请（投标、合同章等）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 201,
+          "context": "return i18n(\"lib.infoapps.1dfb4355b1be\");"
+        }
+      ],
+      "translation": "Seal Use Application (Bidding, Contract Seals, etc.)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.1e29d5490be2",
+      "source": "横向项目认定",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 182,
+          "context": "return i18n(\"lib.infoapps.1e29d5490be2\");"
+        }
+      ],
+      "translation": "Industry-Sponsored Project Recognition",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.1e5061b14809",
+      "source": "管制类枪支弹药服务类合同审批/备案",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 56,
+          "context": "return i18n(\"lib.infoapps.1e5061b14809\");"
+        }
+      ],
+      "translation": "Controlled Firearms and Ammunition Service Contract Approval/Filing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.1e5e0a9e2484",
+      "source": "国防生在校选拔网上报名",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 251,
+          "context": "return i18n(\"lib.infoapps.1e5e0a9e2484\");"
+        }
+      ],
+      "translation": "National Defense Student On-Campus Selection Registration",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.1f7a45c8d97f",
+      "source": "差旅服务平台",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 213,
+          "context": "return i18n(\"lib.infoapps.1f7a45c8d97f\");"
+        }
+      ],
+      "translation": "Travel Service Platform",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.2191f12585fe",
+      "source": "师生个人数据档案系统",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 263,
+          "context": "return i18n(\"lib.infoapps.2191f12585fe\");"
+        }
+      ],
+      "translation": "Faculty and Student Personal Data Archive System",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.21ae52a85d97",
+      "source": "学生荣誉奖励申请系统",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 126,
+          "context": "return i18n(\"lib.infoapps.21ae52a85d97\");"
+        }
+      ],
+      "translation": "Student Honors and Awards Application System",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.21ec3a2a92fc",
+      "source": "录音转文本及摘要助手",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 292,
+          "context": "return i18n(\"lib.infoapps.21ec3a2a92fc\");"
+        }
+      ],
+      "translation": "Audio Transcription and Summary Assistant",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.234f4b24ef58",
+      "source": "成果鉴定评价",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 130,
+          "context": "return i18n(\"lib.infoapps.234f4b24ef58\");"
+        }
+      ],
+      "translation": "Achievement Appraisal and Evaluation",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "lib.infoapps.237d038fa537",
       "source": "研究生必修社会实践基地类合同审批/备案",
@@ -95,1190 +1284,6 @@
         }
       ],
       "translation": "Counselor Management (New)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.269094de907c",
-      "source": "转化立项",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 168,
-          "context": "return i18n(\"lib.infoapps.269094de907c\");"
-        }
-      ],
-      "translation": "Commercialization Project Initiation",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.26c56964c40f",
-      "source": "纵向项目变更",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 176,
-          "context": "return i18n(\"lib.infoapps.26c56964c40f\");"
-        }
-      ],
-      "translation": "Government-Funded Project Change",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.28f8066eba16",
-      "source": "国际学生在线入学报到(Online enrollment)",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 232,
-          "context": "return i18n(\"lib.infoapps.28f8066eba16\");"
-        }
-      ],
-      "translation": "International Student Online Enrollment",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.292993e8741a",
-      "source": "机构退税",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 143,
-          "context": "return i18n(\"lib.infoapps.292993e8741a\");"
-        }
-      ],
-      "translation": "Organization Tax Refund",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.29cf65755763",
-      "source": "请款函开具",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 197,
-          "context": "return i18n(\"lib.infoapps.29cf65755763\");"
-        }
-      ],
-      "translation": "Payment Request Letter Issuance",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.2a9efe0b1940",
-      "source": "研究生管理规定自测",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 96,
-          "context": "return i18n(\"lib.infoapps.2a9efe0b1940\");"
-        }
-      ],
-      "translation": "Graduate Regulations Self-Assessment",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.2af0c57e9753",
-      "source": "书院/院系内专业确认",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 110,
-          "context": "return i18n(\"lib.infoapps.2af0c57e9753\");"
-        }
-      ],
-      "translation": "Major Confirmation Within College or Department",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.2b4cba90fa59",
-      "source": "酒店住宿服务合同（示范文本）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 32,
-          "context": "return i18n(\"lib.infoapps.2b4cba90fa59\");"
-        }
-      ],
-      "translation": "Hotel Accommodation Service Contract (Model Text)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.2b8c1b13b28f",
-      "source": "电子招投标平台信息借用",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 191,
-          "context": "return i18n(\"lib.infoapps.2b8c1b13b28f\");"
-        }
-      ],
-      "translation": "E-Procurement Platform Information Access",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.2d3dbd8298a7",
-      "source": "财务审批系统",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 214,
-          "context": "return i18n(\"lib.infoapps.2d3dbd8298a7\");"
-        }
-      ],
-      "translation": "Finance Approval System",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.2d6a19246f8f",
-      "source": "论文认领",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 128,
-          "context": "return i18n(\"lib.infoapps.2d6a19246f8f\");"
-        }
-      ],
-      "translation": "Paper Claim",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.2e3250329028",
-      "source": "课表",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 81,
-          "context": "return i18n(\"lib.infoapps.2e3250329028\");"
-        }
-      ],
-      "translation": "Timetable",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.2e737fbf15bc",
-      "source": "市政基础设施和校园环境类合同审批/备案",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 66,
-          "context": "return i18n(\"lib.infoapps.2e737fbf15bc\");"
-        }
-      ],
-      "translation": "Municipal Infrastructure and Campus Environment Contract Approval/Filing",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.302454afa3f8",
-      "source": "共建研究生必修环节社会实践基地协议书（示范文本）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 33,
-          "context": "return i18n(\"lib.infoapps.302454afa3f8\");"
-        }
-      ],
-      "translation": "Joint Graduate Social Practice Base Agreement (Model Text)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.313b134f0149",
-      "source": "资产评估及备案",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 170,
-          "context": "return i18n(\"lib.infoapps.313b134f0149\");"
-        }
-      ],
-      "translation": "Asset Appraisal and Filing",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.33143df95cdd",
-      "source": "申请校外媒体报道",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 71,
-          "context": "return i18n(\"lib.infoapps.33143df95cdd\");"
-        }
-      ],
-      "translation": "Off-Campus Media Coverage Request",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.3338a21e54e2",
-      "source": "工程硕博士培养改革专项试点全日制研究生联合培养协议（示范文本）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 36,
-          "context": "return i18n(\"lib.infoapps.3338a21e54e2\");"
-        }
-      ],
-      "translation": "Engineering Master's and Doctoral Training Reform Pilot Joint Training Agreement (Model Text)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.33464fa68c22",
-      "source": "就业手续办理",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 294,
-          "context": "return i18n(\"lib.infoapps.33464fa68c22\");"
-        }
-      ],
-      "translation": "Employment Procedures",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.335de0697b53",
-      "source": "清华邮箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 258,
-          "context": "return i18n(\"lib.infoapps.335de0697b53\");"
-        }
-      ],
-      "translation": "Tsinghua Email",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.368f0d68fc00",
-      "source": "新闻宣传拍摄许可申请",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 257,
-          "context": "return i18n(\"lib.infoapps.368f0d68fc00\");"
-        }
-      ],
-      "translation": "News Coverage Filming Permit Application",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.36b3a063e555",
-      "source": "学生申诉申请材料提交",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 123,
-          "context": "return i18n(\"lib.infoapps.36b3a063e555\");"
-        }
-      ],
-      "translation": "Student Appeal Material Submission",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.3706de9dda4c",
-      "source": "教室平面图",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 107,
-          "context": "return i18n(\"lib.infoapps.3706de9dda4c\");"
-        }
-      ],
-      "translation": "Classroom Floor Plan",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.3770c9abc2c6",
-      "source": "学生访客（无身份证人员）预约",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 275,
-          "context": "return i18n(\"lib.infoapps.3770c9abc2c6\");"
-        }
-      ],
-      "translation": "Student Guest Reservation (Visitors Without ID Cards)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.38c094e9849a",
-      "source": "项目经费转出",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 200,
-          "context": "return i18n(\"lib.infoapps.38c094e9849a\");"
-        }
-      ],
-      "translation": "Project Fund Transfer Out",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.39068871d8f5",
-      "source": "教学计划完成情况",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 95,
-          "context": "return i18n(\"lib.infoapps.39068871d8f5\");"
-        }
-      ],
-      "translation": "Study Plan Completion Status",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.39c1b177e090",
-      "source": "补开票据",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 194,
-          "context": "return i18n(\"lib.infoapps.39c1b177e090\");"
-        }
-      ],
-      "translation": "Reissue Invoice",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.3a9a0f63d7b0",
-      "source": "文化素质课",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 98,
-          "context": "return i18n(\"lib.infoapps.3a9a0f63d7b0\");"
-        }
-      ],
-      "translation": "General Education Courses",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.3c39c5a202e8",
-      "source": "公派境外修读课程认定",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 109,
-          "context": "return i18n(\"lib.infoapps.3c39c5a202e8\");"
-        }
-      ],
-      "translation": "Government-Sponsored Overseas Course Recognition",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.3c651210d8ee",
-      "source": "自主科研项目阶段检查",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 187,
-          "context": "return i18n(\"lib.infoapps.3c651210d8ee\");"
-        }
-      ],
-      "translation": "Independent Research Project Phase Review",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.3ee8f11116a6",
-      "source": "机构撤销",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 139,
-          "context": "return i18n(\"lib.infoapps.3ee8f11116a6\");"
-        }
-      ],
-      "translation": "Organization Cancellation",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.40479856c973",
-      "source": "离校办理",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 295,
-          "context": "return i18n(\"lib.infoapps.40479856c973\");"
-        }
-      ],
-      "translation": "Departure Clearance",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.42031d0bf99b",
-      "source": "合同签订(成果转化)",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 164,
-          "context": "return i18n(\"lib.infoapps.42031d0bf99b\");"
-        }
-      ],
-      "translation": "Contract Signing (Technology Commercialization)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.4214e661da9a",
-      "source": "电子收费大厅",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 217,
-          "context": "return i18n(\"lib.infoapps.4214e661da9a\");"
-        }
-      ],
-      "translation": "Electronic Payment Hall",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.439dc7ee294c",
-      "source": "招生志愿者申报",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 68,
-          "context": "return i18n(\"lib.infoapps.439dc7ee294c\");"
-        }
-      ],
-      "translation": "Admissions Volunteer Application",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.447e4457e04b",
-      "source": "智慧采购平台",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 234,
-          "context": "return i18n(\"lib.infoapps.447e4457e04b\");"
-        }
-      ],
-      "translation": "Smart Procurement Platform",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.47564b4bb9bb",
-      "source": "国防教育活动合同审批/备案",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 57,
-          "context": "return i18n(\"lib.infoapps.47564b4bb9bb\");"
-        }
-      ],
-      "translation": "National Defense Education Activity Contract Approval/Filing",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.482d5f56642c",
-      "source": "知产合同审批",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 154,
-          "context": "return i18n(\"lib.infoapps.482d5f56642c\");"
-        }
-      ],
-      "translation": "IP Contract Approval",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.487c0c7bc3d3",
-      "source": "技转系统",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 145,
-          "context": "return i18n(\"lib.infoapps.487c0c7bc3d3\");"
-        }
-      ],
-      "translation": "Tech Transfer System",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.4a2743cc8ffd",
-      "source": "借书权限开通",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 277,
-          "context": "return i18n(\"lib.infoapps.4a2743cc8ffd\");"
-        }
-      ],
-      "translation": "Library Borrowing Access Activation",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.4a40235b2e1e",
-      "source": "境外短期研修信息",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 108,
-          "context": "return i18n(\"lib.infoapps.4a40235b2e1e\");"
-        }
-      ],
-      "translation": "Overseas Short-Term Study Info",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.4adcae3bc9bb",
-      "source": "委托印刷服务合同（示范文本）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 39,
-          "context": "return i18n(\"lib.infoapps.4adcae3bc9bb\");"
-        }
-      ],
-      "translation": "Commissioned Printing Service Contract (Model Text)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.4bef09dd610f",
-      "source": "课程替代",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 84,
-          "context": "return i18n(\"lib.infoapps.4bef09dd610f\");"
-        }
-      ],
-      "translation": "Course Substitution",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.4d8b8d32e764",
-      "source": "新生骨干报名系统",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 124,
-          "context": "return i18n(\"lib.infoapps.4d8b8d32e764\");"
-        }
-      ],
-      "translation": "New Student Leader Registration System",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.4ec385888264",
-      "source": "机构支出合同登记",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 140,
-          "context": "return i18n(\"lib.infoapps.4ec385888264\");"
-        }
-      ],
-      "translation": "Organization Expense Contract Registration",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.504c2d62a8ae",
-      "source": "资金结算服务平台",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 216,
-          "context": "return i18n(\"lib.infoapps.504c2d62a8ae\");"
-        }
-      ],
-      "translation": "Fund Settlement Service Platform",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.506541d3fe00",
-      "source": "学生海外学习短期项目申请",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 230,
-          "context": "return i18n(\"lib.infoapps.506541d3fe00\");"
-        }
-      ],
-      "translation": "Student Overseas Short-Term Program Application",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.5186a25d19b9",
-      "source": "电视观看",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 265,
-          "context": "return i18n(\"lib.infoapps.5186a25d19b9\");"
-        }
-      ],
-      "translation": "TV Streaming",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.51e2b7e444aa",
-      "source": "标准申报",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 152,
-          "context": "return i18n(\"lib.infoapps.51e2b7e444aa\");"
-        }
-      ],
-      "translation": "Standards Application",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.52dbd803e511",
-      "source": "入账调整",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 198,
-          "context": "return i18n(\"lib.infoapps.52dbd803e511\");"
-        }
-      ],
-      "translation": "Posting Adjustment",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.53324d5d6371",
-      "source": "领取开户许可证扫描件业务申请",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 223,
-          "context": "return i18n(\"lib.infoapps.53324d5d6371\");"
-        }
-      ],
-      "translation": "Account Opening License Copy Request",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.533b24b64666",
-      "source": "奖学金捐赠协议（示范文本）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 34,
-          "context": "return i18n(\"lib.infoapps.533b24b64666\");"
-        }
-      ],
-      "translation": "Scholarship Donation Agreement (Model Text)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.536d8512ef30",
-      "source": "学生在线参会申请",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 233,
-          "context": "return i18n(\"lib.infoapps.536d8512ef30\");"
-        }
-      ],
-      "translation": "Student Online Conference Attendance Application",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.543903c8bb66",
-      "source": "二学位辅修申请",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 77,
-          "context": "return i18n(\"lib.infoapps.543903c8bb66\");"
-        }
-      ],
-      "translation": "Second Degree and Minor Application",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.55011c510f41",
-      "source": "工程硕博士培养改革专项试点培养合作协议（示范文本）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 35,
-          "context": "return i18n(\"lib.infoapps.55011c510f41\");"
-        }
-      ],
-      "translation": "Engineering Master's and Doctoral Training Reform Pilot Training Cooperation Agreement (Model Text)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.5932649884d8",
-      "source": "票务委托服务协议（示范文本）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 42,
-          "context": "return i18n(\"lib.infoapps.5932649884d8\");"
-        }
-      ],
-      "translation": "Ticketing Agency Service Agreement (Model Text)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.59eb648c7bd2",
-      "source": "演出合同（示范文本）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 43,
-          "context": "return i18n(\"lib.infoapps.59eb648c7bd2\");"
-        }
-      ],
-      "translation": "Performance Contract (Model Text)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.5af4ceccaf07",
-      "source": "外事项目管理系统",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 227,
-          "context": "return i18n(\"lib.infoapps.5af4ceccaf07\");"
-        }
-      ],
-      "translation": "International Affairs Project Management System",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.5daec39993be",
-      "source": "机构经费分拨",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 141,
-          "context": "return i18n(\"lib.infoapps.5daec39993be\");"
-        }
-      ],
-      "translation": "Organization Fund Allocation",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.5e9fe279984f",
-      "source": "专利放弃申请",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 157,
-          "context": "return i18n(\"lib.infoapps.5e9fe279984f\");"
-        }
-      ],
-      "translation": "Patent Waiver Application",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.5eddef8643b3",
-      "source": "在华举办国际会议总结提交",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 228,
-          "context": "return i18n(\"lib.infoapps.5eddef8643b3\");"
-        }
-      ],
-      "translation": "International Conference Held in China Summary Submission",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.5f62e09a2329",
-      "source": "开户许可证/财务报表/纳税证明/社保缴纳证明扫描件申请",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 225,
-          "context": "return i18n(\"lib.infoapps.5f62e09a2329\");"
-        }
-      ],
-      "translation": "Request for Copies of Account Opening License/Financial Statements/Tax Certificate/Social Insurance Certificate",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.5f8150e4c23b",
-      "source": "培养方案及计划",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 93,
-          "context": "return i18n(\"lib.infoapps.5f8150e4c23b\");"
-        }
-      ],
-      "translation": "Study Plan and Curriculum",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.6055ffcd5951",
-      "source": "学校外事系统人员登记",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 229,
-          "context": "return i18n(\"lib.infoapps.6055ffcd5951\");"
-        }
-      ],
-      "translation": "School International Affairs System Personnel Registration",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.60574ce5f6b2",
-      "source": "申请辅修学位",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 79,
-          "context": "return i18n(\"lib.infoapps.60574ce5f6b2\");"
-        }
-      ],
-      "translation": "Minor Degree Application",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.63784016fde7",
-      "source": "招生志愿申请",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 286,
-          "context": "return i18n(\"lib.infoapps.63784016fde7\");"
-        }
-      ],
-      "translation": "Admissions Volunteer Application",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.6495d0d7d2c7",
-      "source": "现金奖励分配",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 172,
-          "context": "return i18n(\"lib.infoapps.6495d0d7d2c7\");"
-        }
-      ],
-      "translation": "Cash Award Distribution",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.65d5a25c247e",
-      "source": "电子资源导航服务",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 280,
-          "context": "return i18n(\"lib.infoapps.65d5a25c247e\");"
-        }
-      ],
-      "translation": "Electronic Resources Navigation",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.66cd2665b8c8",
-      "source": "查询档案去向",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 202,
-          "context": "return i18n(\"lib.infoapps.66cd2665b8c8\");"
-        }
-      ],
-      "translation": "Archive Destination Lookup",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.690b99bc032d",
-      "source": "机构年审登记",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 138,
-          "context": "return i18n(\"lib.infoapps.690b99bc032d\");"
-        }
-      ],
-      "translation": "Organization Annual Review Registration",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.6c7f7cb0d9b6",
-      "source": "会议室预定",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 289,
-          "context": "return i18n(\"lib.infoapps.6c7f7cb0d9b6\");"
-        }
-      ],
-      "translation": "Meeting Room Booking",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.6ce0090ae8a0",
-      "source": "后勤服务机构满意度调查",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 296,
-          "context": "return i18n(\"lib.infoapps.6ce0090ae8a0\");"
-        }
-      ],
-      "translation": "Logistics Service Satisfaction Survey",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.6d066740301b",
-      "source": "机构变更",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 137,
-          "context": "return i18n(\"lib.infoapps.6d066740301b\");"
-        }
-      ],
-      "translation": "Organization Change",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.6f69d35e36df",
-      "source": "互联网接入类合同审批/备案",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 63,
-          "context": "return i18n(\"lib.infoapps.6f69d35e36df\");"
-        }
-      ],
-      "translation": "Internet Access Contract Approval/Filing",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infoapps.704890cd88f1",
-      "source": "机构经费分拨退回",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoApps.ts",
-          "line": 142,
-          "context": "return i18n(\"lib.infoapps.704890cd88f1\");"
-        }
-      ],
-      "translation": "Organization Fund Allocation Refund",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

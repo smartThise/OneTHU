@@ -324,13 +324,13 @@ export class XiaodaClient {
    * 2026-10-15 应用内实测教训：旧实现只认第二条，于是在应用里（第一条）拿不到公钥就抛错，
    * 而票其实已经给了——本次修掉；顺带用 x-onethu-final-url 读 nativeFetch 的跟跳终址。
    */
-  async login(username?: string, password?: string, fingerprint = "", finger3 = ""): Promise<XiaodaUser> {
+  async authorizeTicket(username?: string, password?: string, fingerprint = "", finger3 = ""): Promise<{ticket:string;html:string;url:string;status:number}> {
     const form = await this.req("GET", ITS_LOGIN_SVC);
     const authFlag = /"authenticated"\s*:\s*(true|false)/.exec(form.html)?.[1] ?? "?";
     let ticket = extractTicket(form.html, form.url);
     let last: { html: string; url: string; status: number } = form;
     this.log(
-      `xiaoda login ① 表单 status=${form.status} len=${form.html.length} ticket=${ticket ? "yes" : "no"} auth=${authFlag} url=${form.url.slice(0, 120)}`,
+      `xiaoda login form status=${form.status} len=${form.html.length} ticket=${ticket ? "yes" : "no"} auth=${authFlag}`,
     );
     // ①b id SSO 确认页（<title>Title</title> + action=.../checkSingle + 无 sm2publicKey）：
     //     id 会话活着时不再要密码，只 POST 指纹确认继续（与 info/client.ts #idCheckSingle 同款）。
@@ -338,20 +338,24 @@ export class XiaodaClient {
     if (!ticket && /checkSingle/.test(form.html)) {
       const formAction = /<form[^>]+action=["']([^"']+)["']/i.exec(form.html)?.[1] ?? "";
       const csUrl = formAction ? new URL(formAction, "https://id.tsinghua.edu.cn/").toString() : CAS_CHECK_SINGLE;
+      if (csUrl !== CAS_CHECK_SINGLE) throw new XiaodaLoginError("学校确认页地址异常");
+      const hidden = parseHiddenFields(form.html);
+      for (const name of Object.keys(hidden)) if (/singleLogin|deviceName/i.test(name)) delete hidden[name];
       const cs = await this.req("POST", csUrl, {
         cookies: form.cookies,
         headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
         data: {
-          ...parseHiddenFields(form.html),
+          ...hidden,
           i_rememberme: "on",
           fingerPrint: fingerprint,
           fingerGenPrint: finger3,
+          fingerGenPrint3: finger3,
         },
       });
       last = cs;
       ticket = extractTicket(cs.html, cs.url);
       this.log(
-        `xiaoda login ①b checkSingle 确认 status=${cs.status} ticket=${ticket ? "yes" : "no"} url=${cs.url.slice(0, 120)}`,
+        `xiaoda login confirm status=${cs.status} ticket=${ticket ? "yes" : "no"}`,
       );
     }
     if (!ticket) {
@@ -368,18 +372,23 @@ export class XiaodaClient {
           i_pass: encryptPassword(password, key),
           fingerPrint: fingerprint,
           fingerGenPrint: finger3,
-          fingerGenPrint3: "",
+          fingerGenPrint3: finger3,
           i_captcha: "",
         },
       });
       last = check;
       ticket = extractTicket(check.html, check.url);
-      this.log(`xiaoda login ② POST 校验 status=${check.status} ticket=${ticket ? "yes" : "no"} url=${check.url.slice(0, 120)}`);
+      this.log(`xiaoda login credentials status=${check.status} ticket=${ticket ? "yes" : "no"}`);
       if (!ticket && /二次认证|doubleauth|双因素/i.test(check.html) && !/登录成功|正在重定向/.test(check.html)) {
         throw new XiaodaLoginError("触发了二次认证（受信指纹未生效）；请先在 OneTHU 主登录过一次 2FA 并信任本设备");
       }
     }
     if (!ticket) throw new XiaodaLoginError(`登录未出票：${snippet(last.html)}`);
+    return {ticket,html:last.html,url:last.url,status:last.status};
+  }
+
+  async login(username?: string, password?: string, fingerprint = "", finger3 = ""): Promise<XiaodaUser> {
+    const {ticket}=await this.authorizeTicket(username,password,fingerprint,finger3);
     const ex = await this.req("GET", `${XIAODA_BASE}/api/token/login?ticket=${encodeURIComponent(ticket)}`);
     const j = safeJson(ex.html);
     const data = (j.data ?? {}) as Record<string, unknown>;
@@ -395,7 +404,7 @@ export class XiaodaClient {
       name: typeof data.name === "string" ? data.name : "",
       zjh: typeof data.zjh === "string" ? data.zjh : "",
     };
-    this.log(`xiaoda login ✅ ${this.user.name}（${this.user.zjh}）token ${tok.length} chars`);
+    this.log("xiaoda login successful");
     return this.user;
   }
 

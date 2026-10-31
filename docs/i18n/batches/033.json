@@ -1,7 +1,1278 @@
 {
-  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
+  "sourceHash": "be3fd8c88a23dc4acb558acc486d73c0e34027023912c7adc1e35b9861a6e4b5",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "im.feishureg.f9b4efe03903",
+      "source": "你在手机上取消了创建",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/feishuReg.ts",
+          "line": 117,
+          "context": "note: i18n(\"im.feishureg.f9b4efe03903\")"
+        }
+      ],
+      "translation": "You canceled the creation on your phone",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.feishureg.unknownReason",
+      "source": "未知原因",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/feishuReg.ts",
+          "line": 121,
+          "context": "r.error_description ?? i18n(\"im.feishureg.unknownReason\")"
+        }
+      ],
+      "translation": "Unknown reason",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.imstorage.15b8b711a27d",
+      "source": "当前环境不支持 WebCrypto",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/imStorage.ts",
+          "line": 122,
+          "context": "new Error(i18n(\"im.imstorage.15b8b711a27d\"))"
+        },
+        {
+          "file": "apps/desktop/src/im/imStorage.ts",
+          "line": 136,
+          "context": "new Error(i18n(\"im.imstorage.15b8b711a27d\"))"
+        },
+        {
+          "file": "apps/desktop/src/im/imStorage.ts",
+          "line": 146,
+          "context": "new Error(i18n(\"im.imstorage.15b8b711a27d\"))"
+        }
+      ],
+      "translation": "The current environment does not support WebCrypto",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.mediapipe.734edfaaa263",
+      "source": "云盘未配置：先在应用的「云盘」页连接",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/mediaPipe.ts",
+          "line": 50,
+          "context": "new Error(i18n(\"im.mediapipe.734edfaaa263\"))"
+        }
+      ],
+      "translation": "Cloud drive is not configured: connect it on the app's “Cloud Drive” page first",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.mediapipe.da65b434a10b",
+      "source": "尚未指定资料库（请先回复库序号或库名，我来记住）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/mediaPipe.ts",
+          "line": 163,
+          "context": "new Error(i18n(\"im.mediapipe.da65b434a10b\"))"
+        }
+      ],
+      "translation": "No library has been chosen yet (reply with the library number or name first, and I'll remember it)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.02e3d60f5728",
+      "source": "通道未启用",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 68,
+          "context": "new Error(i18n(\"im.registry.02e3d60f5728\"))"
+        }
+      ],
+      "translation": "Channel not enabled",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.03e93eccef32",
+      "source": "「{kw}」没有命中（搜了最近 20 条会话的标题与内容）。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "kw",
+          "expression": "String(kw)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 338,
+          "context": "hits.length\n          ? i18n(\"im.registry.7b6bcc474a8c\", { kw: String(kw), length: String(hits.length), value: String(hits.join(\"\\n\")) })\n          : i18n(\"im.registry.03e93eccef32\", { kw: String(kw) })"
+        }
+      ],
+      "translation": "“{kw}” matched nothing (searched titles and content of the last 20 conversations).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.0894809f5000",
+      "source": "· /switch N —— 切换到编号 N 的会话",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 190,
+          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
+        }
+      ],
+      "translation": "· /switch N —— switch to conversation number N",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.0e078145fef7",
+      "source": "已忽略，未上传。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 557,
+          "context": "replyTo(msg, i18n(\"im.registry.0e078145fef7\"))"
+        }
+      ],
+      "translation": "Ignored, not uploaded.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.103831bac44b",
+      "source": "先回 /list 看编号，再「/switch 编号」。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 233,
+          "context": "replyTo(msg, i18n(\"im.registry.103831bac44b\"))"
+        }
+      ],
+      "translation": "Reply /list first to see the numbers, then “/switch number”.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.106ec22a4ae9",
+      "source": "连接失败：{value}。也可在电脑端 OneTHU 的「云盘」页再点一次自动连接。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(r.error ?? i18n(\"im.registry.a1a9da9ee6ed\"))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 352,
+          "context": "r.ok\n        ? i18n(\"im.registry.138dbe11a0d8\", { value: String(r.account?.name ? `（${r.account.name}）` : \"\") })\n        : i18n(\"im.registry.106ec22a4ae9\", { value: String(r.error ?? i18n(\"im.registry.a1a9da9ee6ed\")) })"
+        }
+      ],
+      "translation": "Connection failed: {value}. You can also tap auto-connect again on the “Cloud Drive” page of OneTHU on your computer.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.138dbe11a0d8",
+      "source": "✅ 云盘已自动连接{value}——现在可以转存文件了。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(r.account?.name ? `（${r.account.name}）` : \"\")"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 351,
+          "context": "r.ok\n        ? i18n(\"im.registry.138dbe11a0d8\", { value: String(r.account?.name ? `（${r.account.name}）` : \"\") })\n        : i18n(\"im.registry.106ec22a4ae9\", { value: String(r.error ?? i18n(\"im.registry.a1a9da9ee6ed\")) })"
+        }
+      ],
+      "translation": "✅ Cloud drive connected automatically{value}—— you can now transfer files.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.16a558ff8f5c",
+      "source": "还没指定存到哪个资料库。你的资料库：\n{value}\n回复「存 <序号>」选定并存到建议目录（也可回「存到 <库名>」）。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(repos.map((r, i) => `${i + 1}. ${r.name}`).join(\"\\n\"))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 521,
+          "context": "replyTo(\n              msg,\n              i18n(\"im.registry.16a558ff8f5c\", { value: String(repos.map((r, i) => `${i + 1}. ${r.name}`).join(\"\\n\")) }),\n            )"
+        }
+      ],
+      "translation": "No library has been chosen to store files in yet. Your libraries:\n{value}\nReply “存 <number>” to pick one and save into the suggested folder (or reply “存到 <library name>”).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.1995eb67cce4",
+      "source": "会话（最近 10 条，1 号为主对话）：\n{value}\n/detail N 看内容 · /switch N 切换 · /delete N 删除",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(lines.join(\"\\n\"))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 219,
+          "context": "replyTo(msg, i18n(\"im.registry.1995eb67cce4\", { value: String(lines.join(\"\\n\")) }))"
+        }
+      ],
+      "translation": "Conversations (last 10; number 1 is the main one):\n{value}\n/detail N to view content · /switch N to switch · /delete N to delete",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.1a301117fb34",
+      "source": "通道未注册：{id}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "id",
+          "expression": "String(id)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 66,
+          "context": "new Error(i18n(\"im.registry.1a301117fb34\", { id: String(id) }))"
+        }
+      ],
+      "translation": "Channel not registered: {id}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.1d40e0790123",
+      "source": "· /new —— 新建会话并切换",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 189,
+          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
+        }
+      ],
+      "translation": "· /new —— create a new conversation and switch to it",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.1e831ff53d8e",
+      "source": "配置不完整：缺 {missing}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "missing",
+          "expression": "String(probe.missing)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 70,
+          "context": "new Error(i18n(\"im.registry.1e831ff53d8e\", { missing: String(probe.missing) }))"
+        }
+      ],
+      "translation": "Incomplete configuration: missing {missing}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.276f4647be56",
+      "source": "（刚才的文件还在待确认：「存」转存 /「不」忽略 /「存到 <目录>」自定义）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 583,
+          "context": "replyTo(msg, i18n(\"im.registry.276f4647be56\"))"
+        }
+      ],
+      "translation": "(The previous file is still pending confirmation: “存” to transfer / “不” to ignore / “存到 <folder>” for a custom location)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.2a20bd367600",
+      "source": "已开新会话（1 号主对话仍保留，/switch 1 可回）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 225,
+          "context": "r?.ok ? i18n(\"im.registry.2a20bd367600\") : i18n(\"im.registry.76588d6a5d1a\")"
+        }
+      ],
+      "translation": "New conversation started (the main conversation, number 1, is kept; use /switch 1 to go back).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.2f3f2a4125cb",
+      "source": "这台电脑的 OneTHU 未与你绑定：请让机主在 设置 → IM 机器人 生成绑定码，再发送「/bind 码」。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 398,
+          "context": "replyTo(msg, i18n(\"im.registry.2f3f2a4125cb\"))"
+        }
+      ],
+      "translation": "This computer's OneTHU is not bound to you: ask the owner to generate a binding code in Settings → IM bot, then send “/bind code”.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.2fb556ba8785",
+      "source": "还没有会话。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 208,
+          "context": "replyTo(msg, i18n(\"im.registry.2fb556ba8785\"))"
+        }
+      ],
+      "translation": "No conversations yet.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.30627e4f5d7b",
+      "source": "已切换。/detail 1 5-8 可直接看第 5-8 轮。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 237,
+          "context": "r?.ok ? i18n(\"im.registry.30627e4f5d7b\") : i18n(\"im.registry.b34bb467f031\")"
+        }
+      ],
+      "translation": "Switched. /detail 1 5-8 shows rounds 5–8 directly.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.37cddcf59a45",
+      "source": "用法：/detail 编号 [起始轮-结束轮]，如 /detail 2 或 /detail 1 5-8（默认 1-5）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 244,
+          "context": "replyTo(msg, i18n(\"im.registry.37cddcf59a45\"))"
+        }
+      ],
+      "translation": "Usage: /detail number [start round-end round], e.g. /detail 2 or /detail 1 5-8 (defaults to 1-5).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.3857e11aade6",
+      "source": "该会话没有可显示的对话轮。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 267,
+          "context": "replyTo(msg, i18n(\"im.registry.3857e11aade6\"))"
+        }
+      ],
+      "translation": "This conversation has no rounds to show.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.3f720cf75734",
+      "source": "附件处理失败：\n{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(errs.join(\"\\n\"))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 425,
+          "context": "replyTo(msg, i18n(\"im.registry.3f720cf75734\", { value: String(errs.join(\"\\n\")) }))"
+        }
+      ],
+      "translation": "Attachment processing failed:\n{value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.40ff3379e054",
+      "source": "生成分享链接失败：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(e instanceof Error ? e.message : String(e))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 631,
+          "context": "replyTo(msg, i18n(\"im.registry.40ff3379e054\", { value: String(e instanceof Error ? e.message : String(e)) }))"
+        }
+      ],
+      "translation": "Failed to create the share link: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.428b9163a77c",
+      "source": "(无响应)",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 600,
+          "context": "r.answer ?? i18n(\"im.registry.428b9163a77c\")"
+        }
+      ],
+      "translation": "(No response)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.44383fa7e8d3",
+      "source": "《{name}》不是可读文本（二进制/图片等），我读不出文字内容。回「存」转存 /「不」忽略。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name",
+          "expression": "String(s0.name)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 569,
+          "context": "replyTo(\n            msg,\n            i18n(\"im.registry.44383fa7e8d3\", { name: String(s0.name) }),\n          )"
+        }
+      ],
+      "translation": "“{name}” is not readable text (binary/image, etc.), so I can't read its text content. Reply “存” to transfer it / “不” to ignore.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.5215599023ee",
+      "source": "读取失败。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 256,
+          "context": "replyTo(msg, i18n(\"im.registry.5215599023ee\"))"
+        }
+      ],
+      "translation": "Failed to read.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.5f78abafdcbe",
+      "source": "{ans}\n\n（文件仍在待确认：回「存」转存 /「存到 <目录>」/「不」忽略）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "ans",
+          "expression": "String(ans)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 579,
+          "context": "replyTo(msg, i18n(\"im.registry.5f78abafdcbe\", { ans: String(ans) }))"
+        }
+      ],
+      "translation": "{ans}\n\n(The file is still pending confirmation: reply “存” to transfer / “存到 <folder>” / “不” to ignore)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.614102b3fb66",
+      "source": "绑定码不正确，请核对后重发「/bind 码」。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 364,
+          "context": "replyTo(msg, i18n(\"im.registry.614102b3fb66\"))"
+        }
+      ],
+      "translation": "The binding code is incorrect; check it and resend “/bind code”.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.67895eae0abe",
+      "source": "公开分享链接（7 天有效，拿到链接的人都能访问）：\n{link}\n文件：{path}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "link",
+          "expression": "String(link)"
+        },
+        {
+          "name": "path",
+          "expression": "String(ls.path)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 629,
+          "context": "replyTo(msg, i18n(\"im.registry.67895eae0abe\", { link: String(link), path: String(ls.path) }))"
+        }
+      ],
+      "translation": "Public share link (valid for 7 days; anyone with the link can access it):\n{link}\nFile: {path}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.68e326aeaae1",
+      "source": "绑定成功，这台电脑的 OneTHU 现在听你指挥。发送 /status 查看状态。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 371,
+          "context": "replyTo(msg, i18n(\"im.registry.68e326aeaae1\"))"
+        }
+      ],
+      "translation": "Binding successful; OneTHU on this computer now takes your orders. Send /status to check the status.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.68eca2ae3b84",
+      "source": "用法：/delete 编号（先 /list 查看）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 287,
+          "context": "replyTo(msg, i18n(\"im.registry.68eca2ae3b84\"))"
+        }
+      ],
+      "translation": "Usage: /delete number (check /list first).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.6ab73e995f59",
+      "source": "编号不存在（先 /list）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 249,
+          "context": "replyTo(msg, i18n(\"im.registry.6ab73e995f59\"))"
+        }
+      ],
+      "translation": "That number does not exist (use /list first).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.76588d6a5d1a",
+      "source": "新建失败。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 225,
+          "context": "r?.ok ? i18n(\"im.registry.2a20bd367600\") : i18n(\"im.registry.76588d6a5d1a\")"
+        }
+      ],
+      "translation": "Failed to create.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.7844068377fb",
+      "source": "用法：/search 关键词（搜会话标题与内容）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 309,
+          "context": "replyTo(msg, i18n(\"im.registry.7844068377fb\"))"
+        }
+      ],
+      "translation": "Usage: /search keyword (searches conversation titles and content).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.7b6bcc474a8c",
+      "source": "「{kw}」命中 {length} 个会话：\n{value}\n/detail 编号 查看（/list 重取编号）。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "kw",
+          "expression": "String(kw)"
+        },
+        {
+          "name": "length",
+          "expression": "String(hits.length)"
+        },
+        {
+          "name": "value",
+          "expression": "String(hits.join(\"\\n\"))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 337,
+          "context": "hits.length\n          ? i18n(\"im.registry.7b6bcc474a8c\", { kw: String(kw), length: String(hits.length), value: String(hits.join(\"\\n\")) })\n          : i18n(\"im.registry.03e93eccef32\", { kw: String(kw) })"
+        }
+      ],
+      "translation": "“{kw}” matched {length} conversations:\n{value}\nUse /detail number to view (use /list to refresh the numbers).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.7df9b9254e26",
+      "source": "转存完成：\n{value}{tail}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(out.join(\"\\n\"))"
+        },
+        {
+          "name": "tail",
+          "expression": "String(tail)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 552,
+          "context": "replyTo(msg, i18n(\"im.registry.7df9b9254e26\", { value: String(out.join(\"\\n\")), tail: String(tail) }))"
+        }
+      ],
+      "translation": "Transfer complete:\n{value}{tail}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.8282ce4afe46",
+      "source": "(空响应)",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 649,
+          "context": "parts.join(\"\\n\\n\") || i18n(\"im.registry.8282ce4afe46\")"
+        }
+      ],
+      "translation": "(Empty response)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.87b01a60cde1",
+      "source": "云盘还没连接——回「连云盘」我自动获取（或去电脑端云盘页手动配置）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 501,
+          "context": "replyTo(msg, i18n(\"im.registry.87b01a60cde1\"))"
+        }
+      ],
+      "translation": "The cloud drive is not connected yet—— reply “连云盘” and I'll connect it automatically (or configure it manually on the Cloud Drive page on your computer).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.8b9c82d7f5dc",
+      "source": "⚠️ 预约/取消等写操作：出现确认提示后回「确认执行」才执行（省略回复不认，防误触）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 196,
+          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
+        }
+      ],
+      "translation": "⚠️ Write actions like booking/canceling: after a confirmation prompt appears, reply “确认执行” to execute (bare confirmations are not accepted, to prevent accidental execution).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.9fc192e6d22e",
+      "source": "这条是省略回复，IM 里不认（防你手快误触执行）。\n待确认操作：{summary}\n要执行请回「确认执行」；不需要请回「取消」。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "summary",
+          "expression": "String(cur2.summary)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 613,
+          "context": "replyTo(\n          msg,\n          i18n(\"im.registry.9fc192e6d22e\", { summary: String(cur2.summary) }),\n        )"
+        }
+      ],
+      "translation": "That was a bare confirmation, which IM does not accept (to prevent accidental execution).\nPending action: {summary}\nTo execute, reply “确认执行”; to cancel, reply “取消”.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.a1a9da9ee6ed",
+      "source": "未知原因",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 352,
+          "context": "r.error ?? i18n(\"im.registry.a1a9da9ee6ed\")"
+        }
+      ],
+      "translation": "Unknown reason",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.a6317abbaa8b",
+      "source": "· /list —— 列出会话（1=主对话，永久保留不可删；←当前）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 188,
+          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
+        }
+      ],
+      "translation": "· /list —— list conversations (1 = main conversation, kept forever and cannot be deleted; ← current)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.b34bb467f031",
+      "source": "切换失败（编号过期？回 /list 重看）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 237,
+          "context": "r?.ok ? i18n(\"im.registry.30627e4f5d7b\") : i18n(\"im.registry.b34bb467f031\")"
+        }
+      ],
+      "translation": "Switch failed (number expired? Check /list again).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.b769dc31231a",
+      "source": "云盘里没有资料库（先在 cloud.tsinghua.edu.cn 建一个再回「存」）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 509,
+          "context": "replyTo(msg, i18n(\"im.registry.b769dc31231a\"))"
+        }
+      ],
+      "translation": "There are no libraries in the cloud drive (create one on cloud.tsinghua.edu.cn first, then reply “存”).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.c2569c12dd05",
+      "source": "绑定码已过期：请在电脑端重新生成后发送「/bind 码」。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 360,
+          "context": "replyTo(msg, i18n(\"im.registry.c2569c12dd05\"))"
+        }
+      ],
+      "translation": "The binding code has expired: generate a new one on your computer, then send “/bind code”.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.c4b26873708a",
+      "source": "· /delete N —— 删除编号 N 的会话（1 号主对话不可删）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 192,
+          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
+        }
+      ],
+      "translation": "· /delete N —— delete conversation number N (the main conversation 1 cannot be deleted)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.c7900a839486",
+      "source": "· /search 关键词 —— 查找关键词出现在哪些会话（含轮次定位）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 193,
+          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
+        }
+      ],
+      "translation": "· /search keyword —— find which conversations mention a keyword (with round locations)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.d09bfe8fc388",
+      "source": "1 号主对话永久保留，不可删除（用户定案）。想清空就 /switch 1 后 /new 新开。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 291,
+          "context": "replyTo(msg, i18n(\"im.registry.d09bfe8fc388\"))"
+        }
+      ],
+      "translation": "The main conversation 1 is kept forever and cannot be deleted (by design). To start fresh, use /switch 1 and then /new.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.d114e94fa699",
+      "source": "📖 指令清单：",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 184,
+          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
+        }
+      ],
+      "translation": "📖 Command list:",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.db41ffa2dc85",
+      "source": "(已取消)",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 606,
+          "context": "r.answer ?? i18n(\"im.registry.db41ffa2dc85\")"
+        }
+      ],
+      "translation": "(Canceled)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.e64bb18a2933",
+      "source": "📎 发文件/图片给我：自动读取内容、建议云盘目录，回「存」确认转存（默认不出公开链接，回「要链接」再生成）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 195,
+          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
+        }
+      ],
+      "translation": "📎 Send me files/images: I read the content, suggest a cloud drive folder, and you reply “存” to confirm the transfer (no public link by default; reply “要链接” to create one).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.ebb6664ef64f",
+      "source": "[OneTHU] {channel} 通道在线，{bound}。电脑保持开机与 OneTHU 运行，我才会回复。{cloudLine}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "channel",
+          "expression": "String(msg.channel)"
+        },
+        {
+          "name": "bound",
+          "expression": "String(bound)"
+        },
+        {
+          "name": "cloudLine",
+          "expression": "String(cloudLine)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 388,
+          "context": "replyTo(msg, i18n(\"im.registry.ebb6664ef64f\", { channel: String(msg.channel), bound: String(bound), cloudLine: String(cloudLine) }))"
+        }
+      ],
+      "translation": "[OneTHU] {channel} channel is online, {bound}. I only reply while the computer stays on and OneTHU is running.{cloudLine}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.f06e4127fc8b",
+      "source": "删除失败。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 301,
+          "context": "r?.error ?? i18n(\"im.registry.f06e4127fc8b\")"
+        }
+      ],
+      "translation": "Delete failed.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.f8ce08058aa6",
+      "source": "已删除编号 {arg} 的会话。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "arg",
+          "expression": "String(arg)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 299,
+          "context": "replyTo(msg, i18n(\"im.registry.f8ce08058aa6\", { arg: String(arg) }))"
+        }
+      ],
+      "translation": "Deleted conversation number {arg}.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.registry.fe67e76559d3",
+      "source": "· /detail N [x-y] —— 查看编号 N 会话的第 x 到 y 轮（默认 1-5）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/registry.ts",
+          "line": 191,
+          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
+        }
+      ],
+      "translation": "· /detail N [x-y] —— view rounds x through y of conversation number N (defaults to 1-5)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.wechat.4c408d3226a4",
+      "source": "未扫码登录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/wechat.ts",
+          "line": 46,
+          "context": "new Error(i18n(\"im.wechat.4c408d3226a4\"))"
+        }
+      ],
+      "translation": "Not signed in by QR scan",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.wechat.c383c734a8c7",
+      "source": "二维码已过期，请重新发起",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/wechat.ts",
+          "line": 165,
+          "context": "note: i18n(\"im.wechat.c383c734a8c7\")"
+        }
+      ],
+      "translation": "The QR code has expired; please start again",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.wechat.channelLabel",
+      "source": "微信（iLink 官方 Bot）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/wechat.ts",
+          "line": 25,
+          "context": "return i18n(\"im.wechat.channelLabel\");"
+        }
+      ],
+      "translation": "WeChat (official iLink bot)",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "im.wechat.e3fe9d7adf2c",
+      "source": "未发起登录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/wechat.ts",
+          "line": 162,
+          "context": "note: i18n(\"im.wechat.e3fe9d7adf2c\")"
+        }
+      ],
+      "translation": "Sign-in not started",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.wechat.ed04656fa8e1",
+      "source": "登录成功，通道已启用",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/wechat.ts",
+          "line": 188,
+          "context": "note: i18n(\"im.wechat.ed04656fa8e1\")"
+        }
+      ],
+      "translation": "Signed in; channel enabled",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.wechat.f1ffea5c8b09",
+      "source": "微信通道未登录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/wechat.ts",
+          "line": 59,
+          "context": "new Error(i18n(\"im.wechat.f1ffea5c8b09\"))"
+        }
+      ],
+      "translation": "The WeChat channel is not signed in",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.wechat.qr.bound",
+      "source": "该 Bot 已绑定到本机",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/wechat.ts",
+          "line": 196,
+          "context": "binded_redirect: i18n(\"im.wechat.qr.bound\")"
+        }
+      ],
+      "translation": "This bot is already linked to this device.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.wechat.qr.expired",
+      "source": "二维码已过期，请重新发起",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/wechat.ts",
+          "line": 194,
+          "context": "expired: i18n(\"im.wechat.qr.expired\")"
+        }
+      ],
+      "translation": "QR code expired. Start again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.wechat.qr.needVerifyCode",
+      "source": "需要在手机上输入验证码后重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/wechat.ts",
+          "line": 193,
+          "context": "need_verifycode: i18n(\"im.wechat.qr.needVerifyCode\")"
+        }
+      ],
+      "translation": "Enter the verification code on your phone, then retry.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.wechat.qr.redirect",
+      "source": "已扫码（切换接入点）…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/wechat.ts",
+          "line": 197,
+          "context": "scaned_but_redirect: i18n(\"im.wechat.qr.redirect\")"
+        }
+      ],
+      "translation": "Scanned. Switching connection…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.wechat.qr.scaned",
+      "source": "已扫码，请在手机上确认",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/wechat.ts",
+          "line": 192,
+          "context": "scaned: i18n(\"im.wechat.qr.scaned\")"
+        }
+      ],
+      "translation": "Scanned. Confirm on your phone.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.wechat.qr.verifyBlocked",
+      "source": "验证失败次数过多，请重新发起",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/wechat.ts",
+          "line": 195,
+          "context": "verify_code_blocked: i18n(\"im.wechat.qr.verifyBlocked\")"
+        }
+      ],
+      "translation": "Too many failed attempts. Start again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.wechat.qr.wait",
+      "source": "等待扫码…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/wechat.ts",
+          "line": 191,
+          "context": "wait: i18n(\"im.wechat.qr.wait\")"
+        }
+      ],
+      "translation": "Waiting for scan…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.wechat.scanRequired",
+      "source": "未扫码登录（设置页点「扫码登录」）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/wechat.ts",
+          "line": 41,
+          "context": "missing: i18n(\"im.wechat.scanRequired\")"
+        }
+      ],
+      "translation": "Not signed in. Choose Scan to sign in in Settings.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "im.wechat.suspended",
       "source": "微信风控（-14）：暂停 1 小时后自动恢复",
@@ -15,6 +1286,46 @@
         }
       ],
       "translation": "WeChat restriction (-14): paused for 1 hour, then resumes automatically.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "learn.course.unreadFiles",
+      "source": "未读文件 {count}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "count"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/learn/LearnCourseCard.tsx",
+          "line": 73,
+          "context": "{i18n(\"learn.course.unreadFiles\", { count: String(officialUnread!.files) })}"
+        }
+      ],
+      "translation": "{count} unread files",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "learn.course.unreadNotices",
+      "source": "未读通知 {count}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "count"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/learn/LearnCourseCard.tsx",
+          "line": 72,
+          "context": "{i18n(\"learn.course.unreadNotices\", { count: String(officialUnread!.notices) })}"
+        }
+      ],
+      "translation": "{count} unread notices",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     },
@@ -105,1400 +1416,6 @@
         }
       ],
       "translation": "Content unreadable",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attach.f8f5f153c20d",
-      "source": "大小未知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attach.ts",
-          "line": 99,
-          "context": "return i18n(\"lib.attach.f8f5f153c20d\");"
-        }
-      ],
-      "translation": "Unknown size",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.00b064455e5c",
-      "source": "已取消（没有提交任何内容）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 386,
-          "context": "fail(i18n(\"lib.attachactions.00b064455e5c\"))"
-        }
-      ],
-      "translation": "Canceled (nothing was submitted)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.010bbf334fe2",
-      "source": "【发新话题 · 网络学堂】\n课程：{value}\n板块：{value2}\n标题：{title}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(ctx.courseName?.trim() || courseId)"
-        },
-        {
-          "name": "value2",
-          "expression": "String(ctx.boardName?.trim() || boardId)"
-        },
-        {
-          "name": "title",
-          "expression": "String(title)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 550,
-          "context": "threadId\n      ? i18n(\"lib.attachactions.942ac1d181f7\", { value: String(ctx.courseName?.trim() || courseId), threadId: String(threadId) })\n      : i18n(\"lib.attachactions.010bbf334fe2\", { value: String(ctx.courseName?.trim() || courseId), value2: String(ctx.boardName?.trim() || boardId), title: String(title) })"
-        }
-      ],
-      "translation": "[New topic · Web Learning]\nCourse: {value}\nSection: {value2}\nTitle: {title}",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "lib.attachactions.08afcfb429f3",
-      "source": "{head}\n正文：{value}\n附件：{attachNote}\n\n点「确定」= 立刻发布（全班可见，撤不回来）。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "head",
-          "expression": "String(head)"
-        },
-        {
-          "name": "value",
-          "expression": "String(clip(plain, 80) || i18n(\"lib.attachactions.ed90d3f61ee5\"))"
-        },
-        {
-          "name": "attachNote",
-          "expression": "String(attachNote)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 552,
-          "context": "(ctx.confirm ?? confirmOk)(\n      i18n(\"lib.attachactions.08afcfb429f3\", { head: String(head), value: String(clip(plain, 80) || i18n(\"lib.attachactions.ed90d3f61ee5\")), attachNote: String(attachNote) }),\n    )"
-        }
-      ],
-      "translation": "{head}\nBody: {value}\nAttachments: {attachNote}\n\nTap “OK” = publish immediately (visible to the whole class; it cannot be undone).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.0cf370f0a1db",
-      "source": "去云盘页重新选资料库",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 203,
-          "context": "message: i18n(\"lib.attachactions.0cf370f0a1db\")"
-        }
-      ],
-      "translation": "Pick the library again on the Cloud Drive page",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.0ef92e23f85c",
-      "source": "附件-{value}.{value2}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(Date.now())"
-        },
-        {
-          "name": "value2",
-          "expression": "String(extForMime(mime))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 104,
-          "context": "cleaned || i18n(\"lib.attachactions.0ef92e23f85c\", { value: String(Date.now()), value2: String(extForMime(mime)) })"
-        }
-      ],
-      "translation": "Attachment-{value}.{value2}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.164926abb768",
-      "source": "没有附件可提交",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 456,
-          "context": "fail(i18n(\"lib.attachactions.164926abb768\"))"
-        }
-      ],
-      "translation": "No attachments to submit",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.1c0d77ac8a1b",
-      "source": "打开雨课堂官方作答页，把附件随作答一起提交",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 444,
-          "context": "message: i18n(\"lib.attachactions.1c0d77ac8a1b\")"
-        }
-      ],
-      "translation": "Open the official Rain Classroom answer page and submit the attachment together with your answer",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.21d6cd21cd13",
-      "source": "发新话题要写标题",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 545,
-          "context": "fail(i18n(\"lib.attachactions.21d6cd21cd13\"))"
-        }
-      ],
-      "translation": "A new topic needs a title",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.243d52940d1d",
-      "source": "还没选课程——讨论区挂在课程下，请先选课程。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 523,
-          "context": "needUi(i18n(\"lib.attachactions.243d52940d1d\"), {\n        route: \"learn\",\n        message: i18n(\"lib.attachactions.487842092c28\"),\n      })"
-        }
-      ],
-      "translation": "No course selected yet—— discussions belong to a course; please select a course first.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.272f3e83a699",
-      "source": "提交未成功，请稍后重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 394,
-          "context": "why || i18n(\"lib.attachactions.272f3e83a699\")"
-        }
-      ],
-      "translation": "Submission did not succeed; please try again later",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.360ada853a5e",
-      "source": "【交作业 · 网络学堂】\n课程：{value}\n作业：{title}\n提交附件：{name}（{value2}）\n正文：{value22}{wipeWarn}\n\n点「确定」= 立刻提交，会覆盖这份作业此前的提交（正文与附件以本次为准）。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(ctx.courseName?.trim() || courseId)"
-        },
-        {
-          "name": "title",
-          "expression": "String(title)"
-        },
-        {
-          "name": "name",
-          "expression": "String(name)"
-        },
-        {
-          "name": "value2",
-          "expression": "String(formatSize(f.size))"
-        },
-        {
-          "name": "value22",
-          "expression": "String(clip(content, 60) || i18n(\"lib.attachactions.fa8bc5e925f9\"))"
-        },
-        {
-          "name": "wipeWarn",
-          "expression": "String(wipeWarn)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 384,
-          "context": "(ctx.confirm ?? confirmOk)(\n    i18n(\"lib.attachactions.360ada853a5e\", { value: String(ctx.courseName?.trim() || courseId), title: String(title), name: String(name), value2: String(formatSize(f.size)), value22: String(clip(content, 60) || i18n(\"lib.attachactions.fa8bc5e925f9\")), wipeWarn: String(wipeWarn) }),\n  )"
-        }
-      ],
-      "translation": "[Submit assignment · Web Learning]\nCourse: {value}\nAssignment: {title}\nAttachments: {name} ({value2})\nBody: {value22}{wipeWarn}\n\nTap “OK” = submit immediately; this overwrites any previous submission for this assignment (the body and attachments of this submission become the record).",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "lib.attachactions.3943aae1d441",
-      "source": "【转存云盘】\n资料库：{name}\n目录：{dir}\n文件：\n{head}{more}\n\n点「确定」= 逐个上传到你的清华云盘；同名文件会被覆盖。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(target.repo.name)"
-        },
-        {
-          "name": "dir",
-          "expression": "String(target.dir)"
-        },
-        {
-          "name": "head",
-          "expression": "String(head)"
-        },
-        {
-          "name": "more",
-          "expression": "String(more)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 295,
-          "context": "opts.confirm(\n      i18n(\"lib.attachactions.3943aae1d441\", { name: String(target.repo.name), dir: String(target.dir), head: String(head), more: String(more) }),\n    )"
-        }
-      ],
-      "translation": "[Transfer to cloud drive]\nLibrary: {name}\nFolder: {dir}\nFiles:\n{head}{more}\n\nTap “OK” = upload them one by one to your Tsinghua Cloud Drive; files with the same name will be overwritten.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.3c82cc86c9c7",
-      "source": "还没选课程和作业——交作业要明确交到哪一份，请先在面板里选。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 358,
-          "context": "needUi(i18n(\"lib.attachactions.3c82cc86c9c7\"), {\n      route: \"learn-assignments\",\n      message: i18n(\"lib.attachactions.54bfd0b14639\"),\n    })"
-        }
-      ],
-      "translation": "No course and assignment selected yet—— submitting an assignment requires knowing which one to submit to; please pick them in the panel first.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.484d55613910",
-      "source": "无",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 547,
-          "context": "f ? `${safeAttachName(f.name, f.mime)}（${formatSize(f.size)}）` : i18n(\"lib.attachactions.484d55613910\")"
-        }
-      ],
-      "translation": "None",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.487842092c28",
-      "source": "去网络学堂选一门课",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 525,
-          "context": "message: i18n(\"lib.attachactions.487842092c28\")"
-        }
-      ],
-      "translation": "Pick a course in Web Learning",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.4a9fdb24f293",
-      "source": "去云盘页连接清华云盘",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 188,
-          "context": "message: i18n(\"lib.attachactions.4a9fdb24f293\")"
-        }
-      ],
-      "translation": "Connect Tsinghua Cloud Drive on the Cloud Drive page",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.4bc030ed5628",
-      "source": "\n⚠️ 这份作业此前提交里有正文，本次留空会把它清空。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 382,
-          "context": "prevText && !content.trim() ? i18n(\"lib.attachactions.4bc030ed5628\") : \"\""
-        }
-      ],
-      "translation": "\n⚠️ A previous submission for this assignment has a body; leaving it empty this time will clear it.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.50c4b135b1d8",
-      "source": "云盘还没连接：先到「云盘」页连上清华云盘，再回来转存。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 186,
-          "context": "needUi(i18n(\"lib.attachactions.50c4b135b1d8\"), {\n      route: \"cloud\",\n      message: i18n(\"lib.attachactions.4a9fdb24f293\"),\n    })"
-        }
-      ],
-      "translation": "The cloud drive is not connected yet: connect Tsinghua Cloud Drive on the “Cloud Drive” page first, then come back to transfer.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.5323853f8fb7",
-      "source": "去课程的讨论区选一个板块",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 542,
-          "context": "message: i18n(\"lib.attachactions.5323853f8fb7\")"
-        }
-      ],
-      "translation": "Pick a section in the course's discussion area",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.53af5bd6b851",
-      "source": "这份作业的详情页里没有提交表单（可能只需在 OJ 提交、已过提交期，或老师没开在线提交）——请到作业页确认。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 373,
-          "context": "fail(\n      i18n(\"lib.attachactions.53af5bd6b851\"),\n      { ui: detailRoute },\n    )"
-        }
-      ],
-      "translation": "This assignment's detail page has no submission form (it may only accept submissions on the OJ, the submission period may be over, or the instructor may not have enabled online submission)—— please confirm on the assignment page.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.54bfd0b14639",
-      "source": "去「全部作业」里选一份作业",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 360,
-          "context": "message: i18n(\"lib.attachactions.54bfd0b14639\")"
-        }
-      ],
-      "translation": "Pick an assignment in “All assignments”",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.6f5260f46713",
-      "source": "没有附件可上传",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 281,
-          "context": "error: i18n(\"lib.attachactions.6f5260f46713\")"
-        }
-      ],
-      "translation": "No attachments to upload",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.777b5a07612e",
-      "source": "{why}\n另外：这份作业的雨课堂参数不全，请从作业列表重新进入。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "why",
-          "expression": "String(why)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 435,
-          "context": "needUi(i18n(\"lib.attachactions.777b5a07612e\", { why: String(why) }), {\n      route: \"learn-assignments\",\n      message: i18n(\"lib.attachactions.b4537e7f0e93\"),\n    })"
-        }
-      ],
-      "translation": "{why}\nAlso: this assignment's Rain Classroom parameters are incomplete; please re-enter it from the assignment list.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.939a8cb7a566",
-      "source": "发新话题要先选板块（每个板块的可见范围不同，不能替你猜）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 539,
-          "context": "needUi(i18n(\"lib.attachactions.939a8cb7a566\"), {\n        route: \"learn-forum-thread\",\n        params: { courseId },\n        message: i18n(\"lib.attachactions.5323853f8fb7\"),\n      })"
-        }
-      ],
-      "translation": "Creating a new topic requires choosing a section first (each section has a different visibility, so it cannot be guessed for you).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.942ac1d181f7",
-      "source": "【回复讨论区 · 网络学堂】\n课程：{value}\n话题 id：{threadId}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(ctx.courseName?.trim() || courseId)"
-        },
-        {
-          "name": "threadId",
-          "expression": "String(threadId)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 549,
-          "context": "threadId\n      ? i18n(\"lib.attachactions.942ac1d181f7\", { value: String(ctx.courseName?.trim() || courseId), threadId: String(threadId) })\n      : i18n(\"lib.attachactions.010bbf334fe2\", { value: String(ctx.courseName?.trim() || courseId), value2: String(ctx.boardName?.trim() || boardId), title: String(title) })"
-        }
-      ],
-      "translation": "[Reply to discussion · Web Learning]\nCourse: {value}\nThread id: {threadId}",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "lib.attachactions.96b904d0165e",
-      "source": "雨课堂没有可用的附件提交通道（官方接口只收已上传的附件条目，本仓库未接附件上传）——「{value}」需要在雨课堂官方作答页里随作答一起提交。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(safeAttachName(f.name, f.mime))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 433,
-          "context": "why =\n    i18n(\"lib.attachactions.96b904d0165e\", { value: String(safeAttachName(f.name, f.mime)) })"
-        }
-      ],
-      "translation": "Rain Classroom has no available attachment submission channel (the official API only accepts already-uploaded attachment entries, and this repository does not implement attachment upload)—— “{value}” must be submitted together with your answer on the official Rain Classroom answer page.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.970f711d8073",
-      "source": "\n　…等共 {length} 个",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(names.length)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 293,
-          "context": "names.length > 5 ? i18n(\"lib.attachactions.970f711d8073\", { length: String(names.length) }) : \"\""
-        }
-      ],
-      "translation": "\n  …and {length} in total",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.a6519d36b6f6",
-      "source": "已取消（没有发布）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 554,
-          "context": "fail(i18n(\"lib.attachactions.a6519d36b6f6\"))"
-        }
-      ],
-      "translation": "Canceled (nothing was published)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.a9248626d3ed",
-      "source": "去这份作业的详情页看一眼",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 366,
-          "context": "message: i18n(\"lib.attachactions.a9248626d3ed\")"
-        }
-      ],
-      "translation": "Take a look at this assignment's detail page",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.ac84cf8affb0",
-      "source": "[附件] 网络学堂提交成功：课程 {courseId} 作业 {assignmentId} 附件 {name}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "courseId",
-          "expression": "String(courseId)"
-        },
-        {
-          "name": "assignmentId",
-          "expression": "String(assignmentId)"
-        },
-        {
-          "name": "name",
-          "expression": "String(name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 400,
-          "context": "logLine(i18n(\"lib.attachactions.ac84cf8affb0\", { courseId: String(courseId), assignmentId: String(assignmentId), name: String(name) }))"
-        }
-      ],
-      "translation": "[Attachment] Web Learning submission succeeded: course {courseId} assignment {assignmentId} attachment {name}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.b4353b67ac30",
-      "source": "新话题",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 561,
-          "context": "threadId ? i18n(\"lib.attachactions.cf945e21ddef\") : i18n(\"lib.attachactions.b4353b67ac30\")"
-        }
-      ],
-      "translation": "New topic",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.b4537e7f0e93",
-      "source": "去「全部作业」里选这份雨课堂作业",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 437,
-          "context": "message: i18n(\"lib.attachactions.b4537e7f0e93\")"
-        }
-      ],
-      "translation": "Pick this Rain Classroom assignment in “All assignments”",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.c774d4ed2772",
-      "source": "[附件] 转存云盘：库《{name}》{remote}（{value} 字节）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(t.repo.name)"
-        },
-        {
-          "name": "remote",
-          "expression": "String(remote)"
-        },
-        {
-          "name": "value",
-          "expression": "String(typeof size === \"number\" ? size : 0)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 240,
-          "context": "logLine(i18n(\"lib.attachactions.c774d4ed2772\", { name: String(t.repo.name), remote: String(remote), value: String(typeof size === \"number\" ? size : 0) }))"
-        }
-      ],
-      "translation": "[Attachment] Transferred to cloud drive: library “{name}” {remote} ({value} bytes)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.cccad01504c8",
-      "source": "当前环境读不到文件内容：请在 OneTHU App 内操作。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 115,
-          "context": "new Error(i18n(\"lib.attachactions.cccad01504c8\"))"
-        }
-      ],
-      "translation": "File content cannot be read in the current environment: please do this inside the OneTHU app.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.cf945e21ddef",
-      "source": "回复",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 561,
-          "context": "threadId ? i18n(\"lib.attachactions.cf945e21ddef\") : i18n(\"lib.attachactions.b4353b67ac30\")"
-        }
-      ],
-      "translation": "Reply",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.d371724d4517",
-      "source": "话题 id 没认出来：请填话题页地址里的 tltid（纯数字），或直接粘贴话题链接。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 531,
-          "context": "fail(i18n(\"lib.attachactions.d371724d4517\"))"
-        }
-      ],
-      "translation": "The thread id was not recognized: fill in the tltid from the topic page URL (digits only), or paste the topic link directly.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.d567c7a50ecb",
-      "source": "【转存云盘】\n资料库：{name}\n目录：{dir}\n文件：{name2}（{value}）\n\n点「确定」= 上传到你的清华云盘；同名文件会被覆盖。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(target.repo.name)"
-        },
-        {
-          "name": "dir",
-          "expression": "String(target.dir)"
-        },
-        {
-          "name": "name2",
-          "expression": "String(name)"
-        },
-        {
-          "name": "value",
-          "expression": "String(formatSize(f.size))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 254,
-          "context": "opts.confirm(\n        i18n(\"lib.attachactions.d567c7a50ecb\", { name: String(target.repo.name), dir: String(target.dir), name2: String(name), value: String(formatSize(f.size)) }),\n      )"
-        }
-      ],
-      "translation": "[Transfer to cloud drive]\nLibrary: {name}\nFolder: {dir}\nFile: {name2} ({value})\n\nTap “OK” = upload to your Tsinghua Cloud Drive; files with the same name will be overwritten.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.d8064c81155a",
-      "source": "有 {length} 个文件没传上去：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(failed.length)"
-        },
-        {
-          "name": "value",
-          "expression": "String(failed.map((x) => `${x.name}（${x.error}）`).join(\"；\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 316,
-          "context": "error: i18n(\"lib.attachactions.d8064c81155a\", { length: String(failed.length), value: String(failed.map((x) => `${x.name}（${x.error}）`).join(\"；\")) })"
-        }
-      ],
-      "translation": "{length} files failed to upload: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.dbbf7e0385ab",
-      "source": "这个资料库不在当前账号里（可能已被删除或改名）——请重新选一个。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 201,
-          "context": "needUi(i18n(\"lib.attachactions.dbbf7e0385ab\"), {\n      route: \"cloud\",\n      message: i18n(\"lib.attachactions.0cf370f0a1db\"),\n    })"
-        }
-      ],
-      "translation": "This library is not in the current account (it may have been deleted or renamed)—— please pick another one.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.e09351dc86df",
-      "source": "去云盘页选一个资料库",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 195,
-          "context": "message: i18n(\"lib.attachactions.e09351dc86df\")"
-        }
-      ],
-      "translation": "Pick a library on the Cloud Drive page",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.e355f0213283",
-      "source": "还没选云盘资料库——请在面板里选一个（不替你猜库，历史上猜错过）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 193,
-          "context": "needUi(i18n(\"lib.attachactions.e355f0213283\"), {\n      route: \"cloud\",\n      message: i18n(\"lib.attachactions.e09351dc86df\"),\n    })"
-        }
-      ],
-      "translation": "No cloud drive library selected yet—— please pick one in the panel (it is not guessed for you; that has gone wrong before).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.e6316a1550fd",
-      "source": "正文是空的，也没有附件——没什么可发的",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 537,
-          "context": "fail(i18n(\"lib.attachactions.e6316a1550fd\"))"
-        }
-      ],
-      "translation": "The body is empty and there are no attachments—— nothing to send",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.ea383a9552de",
-      "source": "[附件] 讨论区{value}已提交：课程 {courseId} 附件 {attachNote}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(threadId ? i18n(\"lib.attachactions.cf945e21ddef\") : i18n(\"lib.attachactions.b4353b67ac30\"))"
-        },
-        {
-          "name": "courseId",
-          "expression": "String(courseId)"
-        },
-        {
-          "name": "attachNote",
-          "expression": "String(attachNote)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 561,
-          "context": "logLine(i18n(\"lib.attachactions.ea383a9552de\", { value: String(threadId ? i18n(\"lib.attachactions.cf945e21ddef\") : i18n(\"lib.attachactions.b4353b67ac30\")), courseId: String(courseId), attachNote: String(attachNote) }))"
-        }
-      ],
-      "translation": "[Attachment] Discussion{value} submitted: course {courseId} attachments {attachNote}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.ed90d3f61ee5",
-      "source": "（无文字）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 552,
-          "context": "clip(plain, 80) || i18n(\"lib.attachactions.ed90d3f61ee5\")"
-        }
-      ],
-      "translation": "(No text)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.fa8bc5e925f9",
-      "source": "（空）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 384,
-          "context": "clip(content, 60) || i18n(\"lib.attachactions.fa8bc5e925f9\")"
-        }
-      ],
-      "translation": "(Empty)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.attachactions.fa93a9bc462a",
-      "source": "已取消（没有上传）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 256,
-          "context": "fail(i18n(\"lib.attachactions.fa93a9bc462a\"))"
-        },
-        {
-          "file": "apps/desktop/src/lib/attachActions.ts",
-          "line": 297,
-          "context": "error: i18n(\"lib.attachactions.fa93a9bc462a\")"
-        }
-      ],
-      "translation": "Canceled (nothing was uploaded)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.calendardraft.000e00815ce9",
-      "source": "结束日期和时间需要晚于开始时间",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/calendarDraft.ts",
-          "line": 35,
-          "context": "new Error(i18n(\"lib.calendardraft.000e00815ce9\"))"
-        }
-      ],
-      "translation": "The end date and time must be later than the start time",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.calendardraft.5f8b49175a54",
-      "source": "请填写有效的开始时间和结束时间",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/calendarDraft.ts",
-          "line": 21,
-          "context": "new Error(i18n(\"lib.calendardraft.5f8b49175a54\"))"
-        }
-      ],
-      "translation": "Please enter a valid start time and end time",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.calendardraft.781062bdc95c",
-      "source": "日期无效，请重新选择",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/calendarDraft.ts",
-          "line": 15,
-          "context": "new Error(i18n(\"lib.calendardraft.781062bdc95c\"))"
-        }
-      ],
-      "translation": "The date is invalid; please choose again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.calendardraft.c1388c78407f",
-      "source": "请填写完整的开始日期和结束日期",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/calendarDraft.ts",
-          "line": 11,
-          "context": "new Error(i18n(\"lib.calendardraft.c1388c78407f\"))"
-        }
-      ],
-      "translation": "Please enter both the start date and the end date",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.cardcover.15e1ef41e215",
-      "source": "清华云盘未连接：先到云盘页登录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/cardCover.ts",
-          "line": 28,
-          "context": "new Error(i18n(\"lib.cardcover.15e1ef41e215\"))"
-        }
-      ],
-      "translation": "Tsinghua Cloud Drive is not connected: sign in on the Cloud Drive page first",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.cardcover.63b5c0cc3a81",
-      "source": "卡面图内容为空",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/cardCover.ts",
-          "line": 25,
-          "context": "new Error(i18n(\"lib.cardcover.63b5c0cc3a81\"))"
-        }
-      ],
-      "translation": "The card cover image is empty",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.clients.193d04db6243",
-      "source": "会话已失效，需要重新登录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/clients.ts",
-          "line": 1283,
-          "context": "new Error(i18n(\"lib.clients.193d04db6243\"))"
-        }
-      ],
-      "translation": "The session has expired; sign in again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.clients.cbad5bdfa19f",
-      "source": "图片响应非图片（mime={mime} bytes={length}）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "mime",
-          "expression": "String(mime)"
-        },
-        {
-          "name": "length",
-          "expression": "String(buf.length)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/clients.ts",
-          "line": 1287,
-          "context": "new Error(i18n(\"lib.clients.cbad5bdfa19f\", { mime: String(mime), length: String(buf.length) }))"
-        }
-      ],
-      "translation": "The image response is not an image (mime={mime} bytes={length})",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.clients.dc300032c143",
-      "source": "图片过大（{length} 字节），请用浏览器打开查看",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(buf.length)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/clients.ts",
-          "line": 1282,
-          "context": "new Error(i18n(\"lib.clients.dc300032c143\", { length: String(buf.length) }))"
-        }
-      ],
-      "translation": "The image is too large ({length} bytes); open it in a browser to view",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.cloudfolder.0507dadfda6a",
-      "source": "清华云盘未连接：先到云盘页粘贴 token",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/cloudFolder.ts",
-          "line": 15,
-          "context": "new Error(i18n(\"lib.cloudfolder.0507dadfda6a\"))"
-        },
-        {
-          "file": "apps/desktop/src/lib/cloudFolder.ts",
-          "line": 31,
-          "context": "new Error(i18n(\"lib.cloudfolder.0507dadfda6a\"))"
-        }
-      ],
-      "translation": "Tsinghua Cloud Drive is not connected: paste the token on the Cloud Drive page first",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.cloudtokenwebview.0359f86c1bb8",
-      "source": "等待云盘页面超时，请确认已登录后重试。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/cloudTokenWebview.ts",
-          "line": 147,
-          "context": "new Error(i18n(\"lib.cloudtokenwebview.0359f86c1bb8\"))"
-        }
-      ],
-      "translation": "Timed out waiting for the cloud drive page; confirm you are signed in and try again.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.cloudtokenwebview.172f588670fa",
-      "source": "已取消读取云盘访问口令。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/cloudTokenWebview.ts",
-          "line": 80,
-          "context": "new Error(i18n(\"lib.cloudtokenwebview.172f588670fa\"))"
-        }
-      ],
-      "translation": "Reading the cloud drive access token was canceled.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.cloudtokenwebview.27ac14d14b12",
-      "source": "云盘页面没有返回有效内容，请重试或手动粘贴访问口令。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/cloudTokenWebview.ts",
-          "line": 83,
-          "context": "new Error(i18n(\"lib.cloudtokenwebview.27ac14d14b12\"))"
-        }
-      ],
-      "translation": "The cloud drive page returned no valid content; try again or paste the access token manually.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.cloudtokenwebview.63c8ea2f536a",
-      "source": "应用内云盘登录仅能在 OneTHU 中使用。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/cloudTokenWebview.ts",
-          "line": 41,
-          "context": "new Error(i18n(\"lib.cloudtokenwebview.63c8ea2f536a\"))"
-        }
-      ],
-      "translation": "In-app cloud drive sign-in only works inside OneTHU.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.cloudtokenwebview.cancelled",
-      "source": "已取消读取云盘访问口令。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/cloudTokenWebview.ts",
-          "line": 143,
-          "context": "reason === \"timeout\" ? i18n(\"lib.cloudtokenwebview.pageTimeout\") : i18n(\"lib.cloudtokenwebview.cancelled\")"
-        }
-      ],
-      "translation": "Reading the cloud drive access token was canceled.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.cloudtokenwebview.pageTimeout",
-      "source": "等待云盘页面超时，请确认已登录后重试。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/cloudTokenWebview.ts",
-          "line": 143,
-          "context": "reason === \"timeout\" ? i18n(\"lib.cloudtokenwebview.pageTimeout\") : i18n(\"lib.cloudtokenwebview.cancelled\")"
-        }
-      ],
-      "translation": "Timed out waiting for the cloud drive page; confirm you are signed in and try again.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.contentexchange.045720f46a17",
-      "source": "这个口令里没有新内容",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/contentExchange.ts",
-          "line": 51,
-          "context": "r.duplicate ? i18n(\"lib.contentexchange.290e61e70691\") : i18n(\"lib.contentexchange.045720f46a17\")"
-        }
-      ],
-      "translation": "This share code contains no new content",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.contentexchange.17fa33d72406",
-      "source": "当前暂存箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/contentExchange.ts",
-          "line": 47,
-          "context": "vaultTarget === 'new' ? i18n(\"lib.contentexchange.4dc6d8e7a87a\") : i18n(\"lib.contentexchange.17fa33d72406\")"
-        }
-      ],
-      "translation": "Current Stash",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.contentexchange.290e61e70691",
-      "source": "本地已有这张名片（未重复添加）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/contentExchange.ts",
-          "line": 51,
-          "context": "r.duplicate ? i18n(\"lib.contentexchange.290e61e70691\") : i18n(\"lib.contentexchange.045720f46a17\")"
-        }
-      ],
-      "translation": "This card already exists locally (not added again)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.contentexchange.2c608891c3c4",
-      "source": "组织已添加到通讯录；成员身份和访问权限由服务器确认。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/contentExchange.ts",
-          "line": 70,
-          "context": "return i18n(\"lib.contentexchange.2c608891c3c4\");"
-        }
-      ],
-      "translation": "The organization has been added to Contacts; membership and access permissions are confirmed by the server.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.contentexchange.354191707f33",
-      "source": "暂存箱口令无法导入",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/contentExchange.ts",
-          "line": 61,
-          "context": "r.reason || i18n(\"lib.contentexchange.354191707f33\")"
-        }
-      ],
-      "translation": "Stash share codes cannot be imported",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.contentexchange.36987ff12d5e",
-      "source": "已收到 {count} 项内容，已存入新暂存箱",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "count",
-          "expression": "r.imported ?? 0"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/contentExchange.ts",
-          "line": 63,
-          "context": "vaultTarget === 'new'\n      ? i18n(\"lib.contentexchange.36987ff12d5e\", { count: r.imported ?? 0 })\n      : i18n(\"lib.contentexchange.9111f2690fbb\", { count: r.imported ?? 0 })"
-        }
-      ],
-      "translation": "Received {count} items, saved into a new Stash",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.contentexchange.39815ac69fb6",
-      "source": "先粘贴收到的口令",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/contentExchange.ts",
-          "line": 104,
-          "context": "new Error(i18n(\"lib.contentexchange.39815ac69fb6\"))"
-        }
-      ],
-      "translation": "Paste the received share code first",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.contentexchange.3bdb847af08f",
-      "source": "已收到 {contents}（部分内容本地已有）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "contents",
-          "expression": "new Intl.ListFormat(getLocale(), { style: \"long\", type: \"conjunction\" }).format(parts)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/contentExchange.ts",
-          "line": 53,
-          "context": "r.duplicate\n      ? i18n(\"lib.contentexchange.3bdb847af08f\", { contents: new Intl.ListFormat(getLocale(), { style: \"long\", type: \"conjunction\" }).format(parts) })\n      : i18n(\"lib.contentexchange.b3cbed6586bd\", { contents: new Intl.ListFormat(getLocale(), { style: \"long\", type: \"conjunction\" }).format(parts) })"
-        }
-      ],
-      "translation": "Received {contents} (some content already existed locally)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.contentexchange.4dc6d8e7a87a",
-      "source": "新暂存箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/contentExchange.ts",
-          "line": 47,
-          "context": "vaultTarget === 'new' ? i18n(\"lib.contentexchange.4dc6d8e7a87a\") : i18n(\"lib.contentexchange.17fa33d72406\")"
-        },
-        {
-          "file": "apps/desktop/src/state/vault.ts",
-          "line": 143,
-          "context": "name = i18n(\"lib.contentexchange.4dc6d8e7a87a\")"
-        },
-        {
-          "file": "apps/desktop/src/state/vault.ts",
-          "line": 144,
-          "context": "name.trim() || i18n(\"lib.contentexchange.4dc6d8e7a87a\")"
-        }
-      ],
-      "translation": "New Stash",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.contentexchange.563bc0abe5ef",
-      "source": "当前环境不支持二维码识别",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/contentExchange.ts",
-          "line": 93,
-          "context": "new Error(i18n(\"lib.contentexchange.563bc0abe5ef\"))"
-        }
-      ],
-      "translation": "QR code scanning is not supported in the current environment",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.contentexchange.5ccdc18fde7a",
-      "source": "请选择一张二维码图片",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/contentExchange.ts",
-          "line": 79,
-          "context": "new Error(i18n(\"lib.contentexchange.5ccdc18fde7a\"))"
-        }
-      ],
-      "translation": "Please choose a QR code image",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

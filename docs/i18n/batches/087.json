@@ -1,7 +1,1307 @@
 {
-  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
+  "sourceHash": "be3fd8c88a23dc4acb558acc486d73c0e34027023912c7adc1e35b9861a6e4b5",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "state.atoms.bdac834d0ba2",
+      "source": "全部通知",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 227,
+          "context": "return i18n(\"state.atoms.bdac834d0ba2\");"
+        }
+      ],
+      "translation": "All notices",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.c0c6bb8b8618",
+      "source": "校园卡余额",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 311,
+          "context": "return i18n(\"state.atoms.c0c6bb8b8618\");"
+        }
+      ],
+      "translation": "Campus card balance",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.c141273da51a",
+      "source": "全局默认提醒时间 · 同步系统日历",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 231,
+          "context": "return i18n(\"state.atoms.c141273da51a\");"
+        }
+      ],
+      "translation": "Global default reminder time · Sync with system calendar",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.c6460a02e85e",
+      "source": "时钟 · 程序坞 · 自由画布",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 199,
+          "context": "return i18n(\"state.atoms.c6460a02e85e\");"
+        }
+      ],
+      "translation": "Clock · Dock · Free canvas",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.c730a0bada79",
+      "source": "日程与提醒",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 308,
+          "context": "return i18n(\"state.atoms.c730a0bada79\");"
+        }
+      ],
+      "translation": "Schedule and reminders",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.c7811f3d9d70",
+      "source": "图书馆 · 座位与签到",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 553,
+          "context": "sub: i18n(\"state.atoms.c7811f3d9d70\")"
+        }
+      ],
+      "translation": "Library · Seats and check-in",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.c94cd3fab151",
+      "source": " · Info 应用",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 601,
+          "context": "(cat || i18n(\"state.atoms.d4f7864690bb\")) + i18n(\"state.atoms.c94cd3fab151\")"
+        },
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 726,
+          "context": "a.cat + i18n(\"state.atoms.c94cd3fab151\")"
+        }
+      ],
+      "translation": " · Info apps",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.caf1f095b108",
+      "source": "校园卡",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 245,
+          "context": "return i18n(\"state.atoms.caf1f095b108\");"
+        }
+      ],
+      "translation": "Campus card",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.cce40ddbb7b9",
+      "source": "信息页 · 体质测试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 233,
+          "context": "return i18n(\"state.atoms.cce40ddbb7b9\");"
+        }
+      ],
+      "translation": "Info page · Fitness test",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.ce3b386bd714",
+      "source": "楼层",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 561,
+          "context": "fName || i18n(\"state.atoms.ce3b386bd714\")"
+        }
+      ],
+      "translation": "Floors",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.cf05dea41f42",
+      "source": "生活页 · 宿舍卫生检查",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 244,
+          "context": "return i18n(\"state.atoms.cf05dea41f42\");"
+        }
+      ],
+      "translation": "Life page · Dorm hygiene inspection",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.d25aafa6ed3f",
+      "source": "云端共 {total} 个日程（新增 {added}、更新 {updated}、移除 {removed}）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "total",
+          "expression": "String(r.total)"
+        },
+        {
+          "name": "added",
+          "expression": "String(r.added)"
+        },
+        {
+          "name": "updated",
+          "expression": "String(r.updated)"
+        },
+        {
+          "name": "removed",
+          "expression": "String(r.removed)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 176,
+          "context": "return i18n(\"state.atoms.d25aafa6ed3f\", { total: String(r.total), added: String(r.added), updated: String(r.updated), removed: String(r.removed) });"
+        }
+      ],
+      "translation": "{total} schedules in the cloud ({added} added, {updated} updated, {removed} removed)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.d39567b2b9f1",
+      "source": "新闻",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 492,
+          "context": "title || i18n(\"state.atoms.d39567b2b9f1\")"
+        }
+      ],
+      "translation": "News",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.atoms.d4f7864690bb",
+      "source": "Info 应用",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 601,
+          "context": "cat || i18n(\"state.atoms.d4f7864690bb\")"
+        }
+      ],
+      "translation": "Info apps",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.d5a374a5b103",
+      "source": "旧收藏夹（folderId 定位）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 210,
+          "context": "return i18n(\"state.atoms.d5a374a5b103\");"
+        }
+      ],
+      "translation": "Legacy favorites (located by folderId)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.d648ae3059c3",
+      "source": " · 座位区域",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 569,
+          "context": "(libName || \"\") + (fName ? \" · \" + fName : \"\") + i18n(\"state.atoms.d648ae3059c3\")"
+        }
+      ],
+      "translation": " · Seat areas",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.d66273bca391",
+      "source": "收藏夹（改内/改名/删除 → 收藏夹页编辑模式）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 657,
+          "context": "(path.length > 0 ? path.join(\" / \") + \" · \" : \"\") + i18n(\"state.atoms.d66273bca391\")"
+        }
+      ],
+      "translation": "Favorites (move/rename/delete → edit mode on the Favorites page)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.d8e3dfbe5f8a",
+      "source": "门户原始应用导航",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 202,
+          "context": "return i18n(\"state.atoms.d8e3dfbe5f8a\");"
+        }
+      ],
+      "translation": "Original portal app navigation",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.dcd2bf114535",
+      "source": "生活聚合页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 212,
+          "context": "return i18n(\"state.atoms.dcd2bf114535\");"
+        }
+      ],
+      "translation": "Life hub page",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.dd42589239f7",
+      "source": "合并请求",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 478,
+          "context": "isIssue ? \"Issue\" : i18n(\"state.atoms.dd42589239f7\")"
+        },
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 479,
+          "context": "isIssue ? \"Issue\" : i18n(\"state.atoms.dd42589239f7\")"
+        }
+      ],
+      "translation": "Merge requests",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.dd94488f5269",
+      "source": "校园网",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 249,
+          "context": "return i18n(\"state.atoms.dd94488f5269\");"
+        }
+      ],
+      "translation": "Campus network",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.e00b99270be7",
+      "source": "体育场馆",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 537,
+          "context": "name || i18n(\"state.atoms.e00b99270be7\")"
+        },
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 716,
+          "context": "sub: i18n(\"state.atoms.e00b99270be7\")"
+        }
+      ],
+      "translation": "Sports venues",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.e4d40b4d6759",
+      "source": "研讨间",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 251,
+          "context": "return i18n(\"state.atoms.e4d40b4d6759\");"
+        },
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 545,
+          "context": "name || i18n(\"state.atoms.e4d40b4d6759\")"
+        },
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 718,
+          "context": "sub: i18n(\"state.atoms.e4d40b4d6759\")"
+        }
+      ],
+      "translation": "Seminar room",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.e642c7fc3df2",
+      "source": "GitLab 合并请求",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 731,
+          "context": "sub: i18n(\"state.atoms.e642c7fc3df2\")"
+        }
+      ],
+      "translation": "GitLab merge requests",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.e7028601e7da",
+      "source": "信息",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 211,
+          "context": "return i18n(\"state.atoms.e7028601e7da\");"
+        }
+      ],
+      "translation": "Info",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.e703d13e3468",
+      "source": "生活页 · 财务 · 发票列表",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 246,
+          "context": "return i18n(\"state.atoms.e703d13e3468\");"
+        }
+      ],
+      "translation": "Life page · Finance · Invoice list",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.e81059e1a712",
+      "source": "公共空间",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 254,
+          "context": "return i18n(\"state.atoms.e81059e1a712\");"
+        },
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 721,
+          "context": "sub: i18n(\"state.atoms.e81059e1a712\")"
+        }
+      ],
+      "translation": "Public space",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.ec309ab207ef",
+      "source": "服务",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 204,
+          "context": "return i18n(\"state.atoms.ec309ab207ef\");"
+        }
+      ],
+      "translation": "Services",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.ecc11c8afea8",
+      "source": "空教室",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 252,
+          "context": "return i18n(\"state.atoms.ecc11c8afea8\");"
+        }
+      ],
+      "translation": "Empty classroom",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.ed80f9723a5a",
+      "source": "写信",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 217,
+          "context": "return i18n(\"state.atoms.ed80f9723a5a\");"
+        }
+      ],
+      "translation": "Compose",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.ede028d7ec64",
+      "source": "全部成绩",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 232,
+          "context": "return i18n(\"state.atoms.ede028d7ec64\");"
+        }
+      ],
+      "translation": "All grades",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.ee6388006cb5",
+      "source": "预约页 · 体育场馆时段预约",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 253,
+          "context": "return i18n(\"state.atoms.ee6388006cb5\");"
+        }
+      ],
+      "translation": "Reservations page · Sports venue time slot booking",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.f37a13fc55b3",
+      "source": "课程通知",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 711,
+          "context": "sub: i18n(\"state.atoms.f37a13fc55b3\")"
+        }
+      ],
+      "translation": "Course notices",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.f3849df7f168",
+      "source": "同步作业 DDL 到云日历",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 164,
+          "context": "return i18n(\"state.atoms.f3849df7f168\");"
+        }
+      ],
+      "translation": "Sync assignment due dates to the cloud calendar",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.f75562426e77",
+      "source": "云盘",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 218,
+          "context": "return i18n(\"state.atoms.f75562426e77\");"
+        }
+      ],
+      "translation": "Cloud Drive",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.f951111a412f",
+      "source": "清华 GitLab · 项目 · Issue · 合并请求 · 流水线",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 219,
+          "context": "return i18n(\"state.atoms.f951111a412f\");"
+        }
+      ],
+      "translation": "Tsinghua GitLab · Projects · Issues · Merge requests · Pipelines",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.fa8fe752727c",
+      "source": "全部课程文件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 228,
+          "context": "return i18n(\"state.atoms.fa8fe752727c\");"
+        }
+      ],
+      "translation": "All course files",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.fc7c1ff5f380",
+      "source": "信息页 · 学期安排图片",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 236,
+          "context": "return i18n(\"state.atoms.fc7c1ff5f380\");"
+        }
+      ],
+      "translation": "Info page · Semester schedule images",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.fd17d86dd268",
+      "source": "选课",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 220,
+          "context": "return i18n(\"state.atoms.fd17d86dd268\");"
+        }
+      ],
+      "translation": "Course selection",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.fe7dbfcadf51",
+      "source": "生活页 · 余额与流水",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 245,
+          "context": "return i18n(\"state.atoms.fe7dbfcadf51\");"
+        }
+      ],
+      "translation": "Life page · Balance and transactions",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.boardcore.4e6ff6dda14d",
+      "source": "把今天，安排好。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/boardCore.ts",
+          "line": 336,
+          "context": "text: i18n(\"state.boardcore.4e6ff6dda14d\")"
+        }
+      ],
+      "translation": "Get today sorted.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.boardtemplates.0a6fddad6b91",
+      "source": "全部作业、通知与课程文件，适合考试周盯着进度。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/boardTemplates.ts",
+          "line": 51,
+          "context": "return i18n(\"state.boardtemplates.0a6fddad6b91\");"
+        }
+      ],
+      "translation": "All assignments, notices, and course files — great for tracking progress during exam week.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.boardtemplates.2545760589cb",
+      "source": "今日速览",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/boardTemplates.ts",
+          "line": 38,
+          "context": "return i18n(\"state.boardtemplates.2545760589cb\");"
+        }
+      ],
+      "translation": "Today at a glance",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.boardtemplates.2e67474d8dad",
+      "source": "极简",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/boardTemplates.ts",
+          "line": 61,
+          "context": "return i18n(\"state.boardtemplates.2e67474d8dad\");"
+        }
+      ],
+      "translation": "Minimal",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.boardtemplates.353b51755790",
+      "source": "一个标题、一张课表、一条余额，先跑起来再慢慢加。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/boardTemplates.ts",
+          "line": 62,
+          "context": "return i18n(\"state.boardtemplates.353b51755790\");"
+        }
+      ],
+      "translation": "A title, a timetable, and a balance. Start simple, add more later.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.boardtemplates.3d0b47c6e59c",
+      "source": "时钟、问候语、一级功能区与今日四件套。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/boardTemplates.ts",
+          "line": 35,
+          "context": "return i18n(\"state.boardtemplates.3d0b47c6e59c\");"
+        }
+      ],
+      "translation": "Clock, greeting, main features, and today's four essentials.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.boardtemplates.811d02529318",
+      "source": "课表与待办并排，下面接通知、下一节课和余额。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/boardTemplates.ts",
+          "line": 39,
+          "context": "return i18n(\"state.boardtemplates.811d02529318\");"
+        }
+      ],
+      "translation": "Timetable and Tasks side by side, with notices, next class, and balance below.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.boardtemplates.c11531ab33d2",
+      "source": "今天，从容一点。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/boardTemplates.ts",
+          "line": 64,
+          "context": "return i18n(\"state.boardtemplates.c11531ab33d2\");"
+        }
+      ],
+      "translation": "Take today at an easier pace.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.boardtemplates.d5e8c95c5448",
+      "source": "学习为主",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/boardTemplates.ts",
+          "line": 50,
+          "context": "return i18n(\"state.boardtemplates.d5e8c95c5448\");"
+        }
+      ],
+      "translation": "Study first",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.boardtemplates.e8ada398d92a",
+      "source": "默认首页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/boardTemplates.ts",
+          "line": 35,
+          "context": "return i18n(\"state.boardtemplates.e8ada398d92a\");"
+        }
+      ],
+      "translation": "Default Home",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cardwarn.0ca2f1aa431e",
+      "source": "应用未打包运行，系统通知不可用",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 317,
+          "context": "return i18n(\"state.cardwarn.0ca2f1aa431e\");"
+        }
+      ],
+      "translation": "App is running unpackaged; system notifications are unavailable",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cardwarn.304901f669bd",
+      "source": "当前余额 ¥{value}，高于预警线 ¥{value2}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(balance.toFixed(2))"
+        },
+        {
+          "name": "value2",
+          "expression": "String(settings.threshold.toFixed(2))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 336,
+          "context": "return i18n(\"state.cardwarn.304901f669bd\", { value: String(balance.toFixed(2)), value2: String(settings.threshold.toFixed(2)) });"
+        }
+      ],
+      "translation": "Current balance ¥{value} is above the warning threshold ¥{value2}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cardwarn.3770554318c1",
+      "source": "{min} 分钟前",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "min",
+          "expression": "String(min)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 341,
+          "context": "min < 60 ? i18n(\"state.cardwarn.3770554318c1\", { min: String(min) }) : i18n(\"state.cardwarn.690c01945f17\", { value: String(Math.floor(min / 60)) })"
+        }
+      ],
+      "translation": "{min} minutes ago",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cardwarn.3d2f25974036",
+      "source": "投递时刻已过",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 318,
+          "context": "return i18n(\"state.cardwarn.3d2f25974036\");"
+        }
+      ],
+      "translation": "Delivery time has passed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cardwarn.441543d6afc0",
+      "source": "系统通知未授权，请在系统设置里允许本应用通知",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 315,
+          "context": "return i18n(\"state.cardwarn.441543d6afc0\");"
+        }
+      ],
+      "translation": "System notifications are not authorized. Allow notifications for this app in system settings.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cardwarn.690c01945f17",
+      "source": "{value} 小时前",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(Math.floor(min / 60))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 341,
+          "context": "min < 60 ? i18n(\"state.cardwarn.3770554318c1\", { min: String(min) }) : i18n(\"state.cardwarn.690c01945f17\", { value: String(Math.floor(min / 60)) })"
+        }
+      ],
+      "translation": "{value} hours ago",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cardwarn.6c61f7700756",
+      "source": "系统通知不可用",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 323,
+          "context": "key || i18n(\"state.cardwarn.6c61f7700756\")"
+        }
+      ],
+      "translation": "System notifications unavailable",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cardwarn.a2d31fa4bf47",
+      "source": "提醒未送达：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(cardWarnReasonText(state.reason))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 339,
+          "context": "return i18n(\"state.cardwarn.a2d31fa4bf47\", { value: String(cardWarnReasonText(state.reason)) });"
+        }
+      ],
+      "translation": "Reminder not delivered: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cardwarn.ad508635dc98",
+      "source": "OneTHU 余额预警",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 147,
+          "context": "title: i18n(\"state.cardwarn.ad508635dc98\")"
+        }
+      ],
+      "translation": "OneTHU balance alert",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.cardwarn.bf2868f8d201",
+      "source": "当前余额 ¥{value}，已低于预警线",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(balance.toFixed(2))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 344,
+          "context": "return i18n(\"state.cardwarn.bf2868f8d201\", { value: String(balance.toFixed(2)) });"
+        }
+      ],
+      "translation": "Current balance ¥{value} is below the warning threshold",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cardwarn.cc0ee8d6a882",
+      "source": "本平台暂不支持系统通知",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 316,
+          "context": "return i18n(\"state.cardwarn.cc0ee8d6a882\");"
+        }
+      ],
+      "translation": "System notifications are not supported on this platform yet",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cardwarn.de6785d99e02",
+      "source": "刚刚",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 341,
+          "context": "min < 1 ? i18n(\"state.cardwarn.de6785d99e02\") : min < 60 ? i18n(\"state.cardwarn.3770554318c1\", { min: String(min) }) : i18n(\"state.cardwarn.690c01945f17\", { value: String(Math.floor(min / 60)) })"
+        }
+      ],
+      "translation": "Just now",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cardwarn.f5fc812e10d4",
+      "source": "未开启：余额低于预警线时不会提醒",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 334,
+          "context": "return i18n(\"state.cardwarn.f5fc812e10d4\");"
+        }
+      ],
+      "translation": "Not enabled: no alert when the balance drops below the warning threshold",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cardwarn.f817a3ab0c4e",
+      "source": "已提醒{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(ago ? `（${ago}）` : \"\")"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 342,
+          "context": "return i18n(\"state.cardwarn.f817a3ab0c4e\", { value: String(ago ? `（${ago}）` : \"\") });"
+        }
+      ],
+      "translation": "Alerted {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cardwarn.fef9dc03d14d",
+      "source": "余额低于 ¥{value} 时提醒",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(settings.threshold.toFixed(2))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cardWarn.ts",
+          "line": 345,
+          "context": "return i18n(\"state.cardwarn.fef9dc03d14d\", { value: String(settings.threshold.toFixed(2)) });"
+        }
+      ],
+      "translation": "Alert when balance drops below ¥{value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.253f54401fa7",
+      "source": "未配置云同步",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 345,
+          "context": "new Error(i18n(\"state.cloudcal.253f54401fa7\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 360,
+          "context": "new Error(i18n(\"state.cloudcal.253f54401fa7\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 377,
+          "context": "new Error(i18n(\"state.cloudcal.253f54401fa7\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 561,
+          "context": "new Error(i18n(\"state.cloudcal.253f54401fa7\"))"
+        }
+      ],
+      "translation": "Cloud sync not configured",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.33de4f649f2f",
+      "source": "本地日程存档损坏，未覆盖已有日程",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 151,
+          "context": "new Error(i18n(\"state.cloudcal.33de4f649f2f\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 180,
+          "context": "new Error(i18n(\"state.cloudcal.33de4f649f2f\"))"
+        }
+      ],
+      "translation": "The local schedule archive is corrupted; existing schedules were not overwritten",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.5a6208164ba7",
+      "source": "云同步账号已变更，请重试当前操作",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 59,
+          "context": "new Error(i18n(\"state.cloudcal.5a6208164ba7\"))"
+        }
+      ],
+      "translation": "The cloud sync account has changed. Please retry the current operation.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.5b53abc907c9",
+      "source": "邮箱连接配置无法读取，请重新配置",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 128,
+          "context": "new Error(i18n(\"state.cloudcal.5b53abc907c9\"))"
+        }
+      ],
+      "translation": "The mail connection configuration could not be read. Please set it up again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.5e7a239fbc21",
+      "source": "请填写邮箱和授权码",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 276,
+          "context": "new Error(i18n(\"state.cloudcal.5e7a239fbc21\"))"
+        }
+      ],
+      "translation": "Please enter your email and authorization code",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.6600b7092f4c",
+      "source": "重复日程请先导出完整系列，不能只移动单个实例",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 418,
+          "context": "new Error(i18n(\"state.cloudcal.6600b7092f4c\"))"
+        }
+      ],
+      "translation": "For recurring schedules, export the whole series first; a single instance cannot be moved on its own",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.6b8367664e76",
+      "source": "日历存档读取失败，请重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 164,
+          "context": "lastError = i18n(\"state.cloudcal.6b8367664e76\")"
+        },
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 194,
+          "context": "lastError=i18n(\"state.cloudcal.6b8367664e76\")"
+        },
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 468,
+          "context": "String(error).includes(\"APP_DATA_CHANGED\")?i18n(\"calendar.shared.changed\"):i18n(\"state.cloudcal.6b8367664e76\")"
+        }
+      ],
+      "translation": "Failed to read the calendar archive. Please retry.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.6d9090d5290b",
+      "source": "邮箱连接配置损坏，请重新配置",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 126,
+          "context": "new Error(i18n(\"state.cloudcal.6d9090d5290b\"))"
+        }
+      ],
+      "translation": "The mail connection configuration is corrupted. Please set it up again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.72574f41faea",
+      "source": "服务器返回了无效日历，已保留本地镜像",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 324,
+          "context": "new Error(i18n(\"state.cloudcal.72574f41faea\"))"
+        }
+      ],
+      "translation": "The server returned an invalid calendar; the local mirror was kept",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "state.cloudcal.8120a4a0177c",
       "source": "课表含无法识别的场次，未修改云日历",
@@ -10,12 +1310,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 557,
+          "line": 564,
           "context": "new Error(i18n(\"state.cloudcal.8120a4a0177c\"))"
         },
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 624,
+          "line": 631,
           "context": "new Error(i18n(\"state.cloudcal.8120a4a0177c\"))"
         }
       ],
@@ -31,7 +1331,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 356,
+          "line": 363,
           "context": "new Error(i18n(\"state.cloudcal.812d9e62ba2d\"))"
         }
       ],
@@ -47,7 +1347,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 419,
+          "line": 426,
           "context": "new Error(i18n(\"state.cloudcal.892291a664b5\"))"
         }
       ],
@@ -63,7 +1363,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 372,
+          "line": 379,
           "context": "new Error(i18n(\"state.cloudcal.bd5ff99826df\"))"
         }
       ],
@@ -79,7 +1379,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 499,
+          "line": 506,
           "context": "new Error(i18n(\"state.cloudcal.e2f9152c9203\"))"
         }
       ],
@@ -95,1460 +1395,11 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 283,
+          "line": 290,
           "context": "new Error(i18n(\"state.cloudcal.f3f8e2d173eb\"))"
         }
       ],
       "translation": "The cloud sync configuration has changed; the verification result was not applied",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.cloudcal.fc42ba627dce",
-      "source": "日程版本信息缺失，请先同步再删除",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 373,
-          "context": "new Error(i18n(\"state.cloudcal.fc42ba627dce\"))"
-        }
-      ],
-      "translation": "Schedule version info is missing. Sync first before deleting.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.cloudcal.fe20ed20d492",
-      "source": "云日历缓存损坏，未覆盖已有日程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 150,
-          "context": "new Error(i18n(\"state.cloudcal.fe20ed20d492\"))"
-        }
-      ],
-      "translation": "The cloud calendar cache is corrupted; existing schedules were not overwritten",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.cloudexchange.388fc6c63ebe",
-      "source": "分享内容超过支持的大小",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/cloudExchange.ts",
-          "line": 157,
-          "context": "new Error(i18n(\"state.cloudexchange.388fc6c63ebe\"))"
-        }
-      ],
-      "translation": "The shared content exceeds the supported size",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.cloudexchange.46180de6589d",
-      "source": "这份分享不包含可接收的 OneTHU 内容",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/cloudExchange.ts",
-          "line": 178,
-          "context": "new Error(i18n(\"state.cloudexchange.46180de6589d\"))"
-        }
-      ],
-      "translation": "This share contains no OneTHU content that can be received",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.cloudexchange.5dec5b6cd859",
-      "source": "接收邮箱格式不正确",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/cloudExchange.ts",
-          "line": 77,
-          "context": "new Error(i18n(\"state.cloudexchange.5dec5b6cd859\"))"
-        }
-      ],
-      "translation": "The recipient email address is invalid",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.cloudexchange.6e106dfb0757",
-      "source": "云盘没有返回分享链接",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/cloudExchange.ts",
-          "line": 103,
-          "context": "new Error(i18n(\"state.cloudexchange.6e106dfb0757\"))"
-        }
-      ],
-      "translation": "The cloud drive did not return a share link",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.cloudexchange.8e54dc8b5387",
-      "source": "原分享暂时无法读回，请重试或选择重新生成",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/cloudExchange.ts",
-          "line": 95,
-          "context": "new Error(i18n(\"state.cloudexchange.8e54dc8b5387\"))"
-        }
-      ],
-      "translation": "The original share cannot be read back right now. Please retry or choose to regenerate it.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.cloudexchange.b8e6e9ca4525",
-      "source": "分享版本不受支持",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/cloudExchange.ts",
-          "line": 162,
-          "context": "new Error(i18n(\"state.cloudexchange.b8e6e9ca4525\"))"
-        }
-      ],
-      "translation": "Share version not supported",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.cloudexchange.bcd2da321c5e",
-      "source": "原分享更新未完成：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(error instanceof Error?error.message:String(error))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/cloudExchange.ts",
-          "line": 96,
-          "context": "new Error(i18n(\"state.cloudexchange.bcd2da321c5e\", { value: String(error instanceof Error?error.message:String(error)) }))"
-        }
-      ],
-      "translation": "The original share was not fully updated: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.cloudexchange.e1239b54f9b2",
-      "source": "无法读取分享，请检查网络或请对方确认口令未过期/撤销：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(e instanceof Error ? e.message : String(e))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/cloudExchange.ts",
-          "line": 156,
-          "context": "new Error(i18n(\"state.cloudexchange.e1239b54f9b2\", { value: String(e instanceof Error ? e.message : String(e)) }))"
-        }
-      ],
-      "translation": "Could not read the share. Check your network, or ask the sender to confirm the share code has not expired or been revoked: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.cloudexchange.ee7944db0bd9",
-      "source": "旧分享撤销未完成，请重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/cloudExchange.ts",
-          "line": 100,
-          "context": "new Error(i18n(\"state.cloudexchange.ee7944db0bd9\"))"
-        }
-      ],
-      "translation": "Revoking the old share did not finish. Please retry.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.017029db358e",
-      "source": "队列数据已刷新 · {length}门课余量 · {length2}门我的队列",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(Object.keys(qd.map).length)"
-        },
-        {
-          "name": "length2",
-          "expression": "String(candidates.length)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1981,
-          "context": "setToast(i18n(\"state.data.017029db358e\", { length: String(Object.keys(qd.map).length), length2: String(candidates.length) }))"
-        },
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1992,
-          "context": "setToast(i18n(\"state.data.017029db358e\", { length: String(Object.keys(qd.map).length), length2: String(candidates.length) }))"
-        }
-      ],
-      "translation": "Queue data refreshed · Remaining seats for {length} courses · {length2} courses in my queue",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.0f1ade7c641d",
-      "source": "粘贴导出的草稿 JSON",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1848,
-          "context": "globalThis.prompt?.(i18n(\"state.data.0f1ade7c641d\"))"
-        }
-      ],
-      "translation": "Paste exported draft JSON",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.14fa0b5c5261",
-      "source": "{nm} 开学",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "nm",
-          "expression": "String(nm)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2574,
-          "context": "name: i18n(\"state.data.14fa0b5c5261\", { nm: String(nm) })"
-        }
-      ],
-      "translation": "{nm} classes begin",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.1744c58d26ad",
-      "source": "没有已选课程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1826,
-          "context": "setToast(i18n(\"state.data.1744c58d26ad\"))"
-        }
-      ],
-      "translation": "No selected courses",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.1788c736d7b1",
-      "source": "实验指导书.pdf",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2193,
-          "context": "title: i18n(\"state.data.1788c736d7b1\")"
-        }
-      ],
-      "translation": "Lab Manual.pdf",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.data.1ad3aeaef070",
-      "source": "缺少 courses",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1853,
-          "context": "new Error(i18n(\"state.data.1ad3aeaef070\"))"
-        }
-      ],
-      "translation": "Missing courses",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.21c05833ab53",
-      "source": "已签到",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2227,
-          "context": "note: i18n(\"state.data.21c05833ab53\")"
-        }
-      ],
-      "translation": "Checked in",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.2785db8cbe3a",
-      "source": "关于本学期选课安排的通知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2934,
-          "context": "name: i18n(\"state.data.2785db8cbe3a\")"
-        }
-      ],
-      "translation": "Notice on course selection arrangements this semester",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.29a6e56cb5af",
-      "source": "英语读写译(1)",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2142,
-          "context": "name: i18n(\"state.data.29a6e56cb5af\")"
-        }
-      ],
-      "translation": "English Reading, Writing and Translation (1)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.2ac5386c015e",
-      "source": "关于期中考试安排的通知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2188,
-          "context": "title: i18n(\"state.data.2ac5386c015e\")"
-        }
-      ],
-      "translation": "Notice on midterm exam arrangements",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.data.2c990a5b9a06",
-      "source": "{cur}（当前）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "cur",
-          "expression": "String(cur)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2004,
-          "context": "label: i18n(\"state.data.2c990a5b9a06\", { cur: String(cur) })"
-        }
-      ],
-      "translation": "{cur} (current)",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.data.315af7fb0ae9",
-      "source": "已导入 {length} 门课程到暂存区",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(incoming.length)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1858,
-          "context": "setToast(i18n(\"state.data.315af7fb0ae9\", { length: String(incoming.length) }))"
-        }
-      ],
-      "translation": "Imported {length} courses into the staging area",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.329fbface8f2",
-      "source": "草稿「{name}」已导出到剪贴板",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(d.name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1842,
-          "context": "setToast(i18n(\"state.data.329fbface8f2\", { name: String(d.name) }))"
-        }
-      ],
-      "translation": "Draft \"{name}\" exported to clipboard",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.3361c2cc7a9e",
-      "source": "保留 {count} 门（两边的交集，不动）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "count",
-          "expression": "kept"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1882,
-          "context": "[\n      i18n(\"state.data.3361c2cc7a9e\", { count: kept }),\n      toAdd.length ? i18n(\"state.data.9d6825c38899\", { count: toAdd.length, courses: toAdd.map((c) => c.name).join(\"、\") }) : null,\n      toDrop.length ? i18n(\"state.data.661a5ba1d0ca\", { count: toDrop.length, courses: toDrop.map((c) => c.name).join(\"、\") }) : null,\n    ]"
-        }
-      ],
-      "translation": "Keep {count} (intersection of both sides, unchanged)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.35552730badd",
-      "source": "流水明细获取失败，已显示上次拉到的明细",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2402,
-          "context": "transactions === null ? i18n(\"state.data.35552730badd\") : null"
-        }
-      ],
-      "translation": "Failed to fetch transaction details; the last fetched details are shown",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.3759fa0fb1c0",
-      "source": "程序设计基础",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2140,
-          "context": "name: i18n(\"state.data.3759fa0fb1c0\")"
-        }
-      ],
-      "translation": "Fundamentals of Programming",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.38509e346ecf",
-      "source": "退课(第一阶段) 结束",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2234,
-          "context": "name: i18n(\"state.data.38509e346ecf\")"
-        }
-      ],
-      "translation": "Course dropping (Phase 1) ends",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.3efc9adfbfb8",
-      "source": "退课(第一阶段)",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2207,
-          "context": "title: i18n(\"state.data.3efc9adfbfb8\")"
-        }
-      ],
-      "translation": "Course dropping (Phase 1)",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.data.4375e66c768d",
-      "source": "爬取不完整：教务共 {expected} 门，实得 {size} 门，缺 {deficit} 门。建议刷新或待会再来看看",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "expected",
-          "expression": "String(expected)"
-        },
-        {
-          "name": "size",
-          "expression": "String(seen.size)"
-        },
-        {
-          "name": "deficit",
-          "expression": "String(deficit)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1664,
-          "context": "setToast(i18n(\"state.data.4375e66c768d\", { expected: String(expected), size: String(seen.size), deficit: String(deficit) }))"
-        }
-      ],
-      "translation": "Incomplete fetch: the academic system has {expected} courses, {size} were fetched, {deficit} missing. Try refreshing or check back later",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.444c4d808b3a",
-      "source": "示例食堂",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2161,
-          "context": "summary: i18n(\"state.data.444c4d808b3a\")"
-        }
-      ],
-      "translation": "Sample canteen",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.49e6ad399f86",
-      "source": "第一次小作业",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2183,
-          "context": "title: i18n(\"state.data.49e6ad399f86\")"
-        }
-      ],
-      "translation": "First short assignment",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.data.4a297091d7e8",
-      "source": "草稿「{name}」已保存",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1815,
-          "context": "setToast(i18n(\"state.data.4a297091d7e8\", { name: String(name) }))"
-        }
-      ],
-      "translation": "Draft \"{name}\" saved",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.4c24a526b2a0",
-      "source": "已加载 {length} 门（中途中断，可再点继续）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(added.length)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1674,
-          "context": "setToast(i18n(\"state.data.4c24a526b2a0\", { length: String(added.length) }))"
-        }
-      ],
-      "translation": "Loaded {length} (interrupted midway; click continue to resume)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.4f59a9588280",
-      "source": "「{name}」与当前已选完全一致，无需提交",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(d.name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1878,
-          "context": "setToast(i18n(\"state.data.4f59a9588280\", { name: String(d.name) }))"
-        }
-      ],
-      "translation": "\"{name}\" is identical to the current selection; nothing to submit",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.579d5468a97a",
-      "source": "导入失败: {value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(e instanceof Error ? e.message : String(e))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1862,
-          "context": "setToast(i18n(\"state.data.579d5468a97a\", { value: String(e instanceof Error ? e.message : String(e)) }))"
-        }
-      ],
-      "translation": "Import failed: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.58302b53a63d",
-      "source": "导出失败：剪贴板不可用",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1844,
-          "context": "setToast(i18n(\"state.data.58302b53a63d\"))"
-        }
-      ],
-      "translation": "Export failed: clipboard unavailable",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.5a755838cd1f",
-      "source": "爬取不完整：教务共 {locked} 门，实得 {length} 门，缺 {deficit} 门。建议刷新或待会再来看看",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "locked",
-          "expression": "String(locked)"
-        },
-        {
-          "name": "length",
-          "expression": "String(merged.length)"
-        },
-        {
-          "name": "deficit",
-          "expression": "String(deficit)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1597,
-          "context": "setToast(i18n(\"state.data.5a755838cd1f\", { locked: String(locked), length: String(merged.length), deficit: String(deficit) }))"
-        }
-      ],
-      "translation": "Incomplete fetch: the academic system has {locked} courses, {length} were fetched, {deficit} missing. Try refreshing or check back later",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.5b1ff08354a0",
-      "source": "「{name}」（{code}_{value}）\n退选是真实退课操作，立即生效；补退选阶段退掉的名额可能立刻被抢走。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(toDrop[i]!.name)"
-        },
-        {
-          "name": "code",
-          "expression": "String(toDrop[i]!.code)"
-        },
-        {
-          "name": "value",
-          "expression": "String(toDrop[i]!.seq || \"0\")"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1903,
-          "context": "confirmDanger(i18nMsg(\"state.data.5b1ff08354a0\", { name: String(toDrop[i]!.name), code: String(toDrop[i]!.code), value: String(toDrop[i]!.seq || \"0\") }), CONFIRM_DROP_COURSE)"
-        }
-      ],
-      "translation": "\"{name}\" ({code}_{value})\nDropping is a real course-drop action and takes effect immediately; seats freed during the add/drop phase may be taken instantly.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.5e8ccd9c182a",
-      "source": "已取消：{name} 不退选，提交中止（已执行部分不受影响）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(toDrop[i]!.name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1904,
-          "context": "setProgress(i18n(\"state.data.5e8ccd9c182a\", { name: String(toDrop[i]!.name) }))"
-        }
-      ],
-      "translation": "Canceled: {name} was not dropped and the submission stopped (already executed steps are unaffected)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.606fee690bb1",
-      "source": "{startYear}-{endYear} 春",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "startYear",
-          "expression": "y"
-        },
-        {
-          "name": "endYear",
-          "expression": "y + 1"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2015,
-          "context": "s === 2 ? i18n(\"state.data.606fee690bb1\", params) : i18n(\"state.data.99541445f961\", params)"
-        }
-      ],
-      "translation": "{startYear}-{endYear} Spring",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.654c0455ea1b",
-      "source": "暂存区没有课程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1810,
-          "context": "setToast(i18n(\"state.data.654c0455ea1b\"))"
-        }
-      ],
-      "translation": "No courses in the staging area",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.661a5ba1d0ca",
-      "source": "退掉 {count} 门：{courses}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "count",
-          "expression": "toDrop.length"
-        },
-        {
-          "name": "courses",
-          "expression": "toDrop.map((c) => c.name).join(\"、\")"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1884,
-          "context": "toDrop.length ? i18n(\"state.data.661a5ba1d0ca\", { count: toDrop.length, courses: toDrop.map((c) => c.name).join(\"、\") }) : null"
-        }
-      ],
-      "translation": "Dropped {count}: {courses}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.6e0521c2d6bc",
-      "source": "第一讲 课件.pdf",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2192,
-          "context": "title: i18n(\"state.data.6e0521c2d6bc\")"
-        }
-      ],
-      "translation": "Lecture 1 Slides.pdf",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.data.6f0c2bbab1f6",
-      "source": "{startYear}-{endYear} 秋",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "startYear",
-          "expression": "y"
-        },
-        {
-          "name": "endYear",
-          "expression": "y + 1"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2014,
-          "context": "s === 1 ? i18n(\"state.data.6f0c2bbab1f6\", params)\n          : s === 2 ? i18n(\"state.data.606fee690bb1\", params) : i18n(\"state.data.99541445f961\", params)"
-        }
-      ],
-      "translation": "{startYear}-{endYear} Fall",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.6fb901c0f8f4",
-      "source": "习题册第 2 章",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2185,
-          "context": "title: i18n(\"state.data.6fb901c0f8f4\")"
-        }
-      ],
-      "translation": "Workbook Chapter 2",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.data.76d617dd1e96",
-      "source": "习题参考答案.pdf",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2194,
-          "context": "title: i18n(\"state.data.76d617dd1e96\")"
-        }
-      ],
-      "translation": "Exercise Answer Key.pdf",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.data.867cbd70a5b2",
-      "source": "该课程已在暂存区",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1773,
-          "context": "setToast(i18n(\"state.data.867cbd70a5b2\"))"
-        }
-      ],
-      "translation": "This course is already in the staging area",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.88fb2fce716c",
-      "source": "请输入活动名称",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1922,
-          "context": "setToast(i18n(\"state.data.88fb2fce716c\"))"
-        },
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1933,
-          "context": "setToast(i18n(\"state.data.88fb2fce716c\"))"
-        }
-      ],
-      "translation": "Please enter an event name",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.993d797826cc",
-      "source": "已选课程已保存为「{name}」",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1835,
-          "context": "setToast(i18n(\"state.data.993d797826cc\", { name: String(name) }))"
-        }
-      ],
-      "translation": "Selected courses saved as \"{name}\"",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.99541445f961",
-      "source": "{startYear}-{endYear} 夏",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "startYear",
-          "expression": "y"
-        },
-        {
-          "name": "endYear",
-          "expression": "y + 1"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2015,
-          "context": "s === 2 ? i18n(\"state.data.606fee690bb1\", params) : i18n(\"state.data.99541445f961\", params)"
-        }
-      ],
-      "translation": "{startYear}-{endYear} Summer",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.9d6825c38899",
-      "source": "新选 {count} 门：{courses}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "count",
-          "expression": "toAdd.length"
-        },
-        {
-          "name": "courses",
-          "expression": "toAdd.map((c) => c.name).join(\"、\")"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1883,
-          "context": "toAdd.length ? i18n(\"state.data.9d6825c38899\", { count: toAdd.length, courses: toAdd.map((c) => c.name).join(\"、\") }) : null"
-        }
-      ],
-      "translation": "Newly selected {count}: {courses}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.9e6183684b78",
-      "source": "本科生选择课程以P/F记载 结束",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2235,
-          "context": "name: i18n(\"state.data.9e6183684b78\")"
-        }
-      ],
-      "translation": "Undergraduate P/F grading option ends",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.a37778f17c5f",
-      "source": "已取消",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1849,
-          "context": "setToast(i18n(\"state.data.a37778f17c5f\"))"
-        },
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1887,
-          "context": "setToast(i18n(\"state.data.a37778f17c5f\"))"
-        }
-      ],
-      "translation": "Canceled",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.a53fee1c4dbb",
-      "source": "关于开展本学期教学评估的通知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2936,
-          "context": "name: i18n(\"state.data.a53fee1c4dbb\")"
-        }
-      ],
-      "translation": "Notice on conducting teaching evaluations this semester",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.acb8456494a1",
-      "source": "已暂存「{name}」",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(row.name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1776,
-          "context": "setToast(i18n(\"state.data.acb8456494a1\", { name: String(row.name) }))"
-        }
-      ],
-      "translation": "Staged \"{name}\"",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.b5481d51eb1a",
-      "source": "圈存充值",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2162,
-          "context": "summary: i18n(\"state.data.b5481d51eb1a\")"
-        }
-      ],
-      "translation": "Bank card top-up",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.b5a0c9e5f04e",
-      "source": "大学物理B(1)",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2139,
-          "context": "name: i18n(\"state.data.b5a0c9e5f04e\")"
-        }
-      ],
-      "translation": "College Physics B (1)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.c01840b9fd81",
-      "source": "实验课调课通知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2189,
-          "context": "title: i18n(\"state.data.c01840b9fd81\")"
-        }
-      ],
-      "translation": "Notice on lab class rescheduling",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.data.c49ed890d985",
-      "source": "确定提交「{name}」？（差分提交，不会全退重选）\n{lines}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(d.name)"
-        },
-        {
-          "name": "lines",
-          "expression": "String(lines)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1886,
-          "context": "confirmOk(i18nMsg(\"state.data.c49ed890d985\", { name: String(d.name), lines: String(lines) }))"
-        }
-      ],
-      "translation": "Submit \"{name}\"? (Differential submission; will not drop all and reselect.)\n{lines}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.c6f1a8749849",
-      "source": "已加载全部 {size} 门",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "size",
-          "expression": "String(seen.size)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1666,
-          "context": "setToast(i18n(\"state.data.c6f1a8749849\", { size: String(seen.size) }))"
-        }
-      ],
-      "translation": "All {size} loaded",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.c9bb87027880",
-      "source": "实验报告一",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2184,
-          "context": "title: i18n(\"state.data.c9bb87027880\")"
-        }
-      ],
-      "translation": "Lab Report 1",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.data.ce63956984a9",
-      "source": "本科生选择课程以P/F记载",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2208,
-          "context": "title: i18n(\"state.data.ce63956984a9\")"
-        }
-      ],
-      "translation": "Undergraduate P/F grading option",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.data.d4fa4ba858a6",
-      "source": "高等数学A(1)",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2138,
-          "context": "name: i18n(\"state.data.d4fa4ba858a6\")"
-        }
-      ],
-      "translation": "Advanced Mathematics A (1)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.d7b50ed7e7b5",
-      "source": "已添加「{value}」",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(name.trim())"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1929,
-          "context": "setToast(i18n(\"state.data.d7b50ed7e7b5\", { value: String(name.trim()) }))"
-        },
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1940,
-          "context": "setToast(i18n(\"state.data.d7b50ed7e7b5\", { value: String(name.trim()) }))"
-        }
-      ],
-      "translation": "Added \"{value}\"",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.d8141ccb27fe",
-      "source": "退掉 {value}/{length}：{name}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(i + 1)"
-        },
-        {
-          "name": "length",
-          "expression": "String(toDrop.length)"
-        },
-        {
-          "name": "name",
-          "expression": "String(toDrop[i]!.name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1907,
-          "context": "setProgress(i18n(\"state.data.d8141ccb27fe\", { value: String(i + 1), length: String(toDrop.length), name: String(toDrop[i]!.name) }))"
-        }
-      ],
-      "translation": "Dropping {value}/{length}: {name}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.d84b6a7e9fbd",
-      "source": "新选 {value}/{length}：{name}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(i + 1)"
-        },
-        {
-          "name": "length",
-          "expression": "String(toAdd.length)"
-        },
-        {
-          "name": "name",
-          "expression": "String(c.name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1897,
-          "context": "setProgress(i18n(\"state.data.d84b6a7e9fbd\", { value: String(i + 1), length: String(toAdd.length), name: String(c.name) }))"
-        }
-      ],
-      "translation": "Selecting {value}/{length}: {name}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.d92ad0ceef64",
-      "source": "提交出错（已执行部分不回滚）：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(err instanceof Error ? err.message : String(err))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1913,
-          "context": "setToast(i18n(\"state.data.d92ad0ceef64\", { value: String(err instanceof Error ? err.message : String(err)) }))"
-        }
-      ],
-      "translation": "Submission error (already executed steps are not rolled back): {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.e6d7b9ff838f",
-      "source": "已删除「{name}」",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(ev.name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1951,
-          "context": "setToast(i18n(\"state.data.e6d7b9ff838f\", { name: String(ev.name) }))"
-        }
-      ],
-      "translation": "Deleted \"{name}\"",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.e90750f742dd",
-      "source": "「{name}」差分提交完成：新选 {length}、退掉 {length2}、保留 {kept}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(d.name)"
-        },
-        {
-          "name": "length",
-          "expression": "String(toAdd.length)"
-        },
-        {
-          "name": "length2",
-          "expression": "String(toDrop.length)"
-        },
-        {
-          "name": "kept",
-          "expression": "String(kept)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1911,
-          "context": "setToast(i18n(\"state.data.e90750f742dd\", { name: String(d.name), length: String(toAdd.length), length2: String(toDrop.length), kept: String(kept) }))"
-        }
-      ],
-      "translation": "\"{name}\" differential submission complete: {length} newly selected, {length2} dropped, {kept} kept",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.e980f2b04637",
-      "source": "{nm} 结束",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "nm",
-          "expression": "String(nm)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2577,
-          "context": "name: i18n(\"state.data.e980f2b04637\", { nm: String(nm) })"
-        }
-      ],
-      "translation": "{nm} ends",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.f820fbf5072a",
-      "source": "图书馆假期开放时间调整",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2935,
-          "context": "name: i18n(\"state.data.f820fbf5072a\")"
-        }
-      ],
-      "translation": "Adjusted library hours during holidays",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.f830684c231e",
-      "source": "线性代数",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2141,
-          "context": "name: i18n(\"state.data.f830684c231e\")"
-        }
-      ],
-      "translation": "Linear Algebra",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.f9b45f6b66e0",
-      "source": "示例同学",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2201,
-          "context": "name: i18n(\"state.data.f9b45f6b66e0\")"
-        },
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 2241,
-          "context": "name: i18n(\"state.data.f9b45f6b66e0\")"
-        }
-      ],
-      "translation": "Sample student",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

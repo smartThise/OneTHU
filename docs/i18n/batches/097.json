@@ -1,0 +1,1245 @@
+{
+  "sourceHash": "be3fd8c88a23dc4acb558acc486d73c0e34027023912c7adc1e35b9861a6e4b5",
+  "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
+  "messages": [
+    {
+      "key": "state.widgets.c3bc1241bb01",
+      "source": "信息页新闻栏目的数据卡。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 252,
+          "context": "return i18n(\"state.widgets.c3bc1241bb01\");"
+        }
+      ],
+      "translation": "Data card for the news section on the Info page.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.c647b6cc106f",
+      "source": "体测成绩。需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 117,
+          "context": "return i18n(\"state.widgets.c647b6cc106f\");"
+        }
+      ],
+      "translation": "Fitness test results. Requires sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.c732e4d7e380",
+      "source": "黄",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 147,
+          "context": "return i18n(\"state.widgets.c732e4d7e380\");"
+        }
+      ],
+      "translation": "Yellow",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.cb232f86e59b",
+      "source": "课程文件条目",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 358,
+          "context": "return i18n(\"state.widgets.cb232f86e59b\");"
+        }
+      ],
+      "translation": "Course file entry",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.cbc4fafd7657",
+      "source": "考试栏目",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 227,
+          "context": "return i18n(\"state.widgets.cbc4fafd7657\");"
+        }
+      ],
+      "translation": "Exams section",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.cd92acd73a04",
+      "source": "写点什么…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 146,
+          "context": "return i18n(\"state.widgets.cd92acd73a04\");"
+        }
+      ],
+      "translation": "Write something…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.cda323fd4e1d",
+      "source": "信息门户的订阅新闻。需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 102,
+          "context": "return i18n(\"state.widgets.cda323fd4e1d\");"
+        }
+      ],
+      "translation": "Subscribed news from the info portal. Requires sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.d00069a5d3b5",
+      "source": "粉",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 147,
+          "context": "return i18n(\"state.widgets.d00069a5d3b5\");"
+        }
+      ],
+      "translation": "Pink",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.d86fcc64b8e6",
+      "source": "信息页考试安排栏目的数据卡。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 228,
+          "context": "return i18n(\"state.widgets.d86fcc64b8e6\");"
+        }
+      ],
+      "translation": "Data card for the exam schedule section on the Info page.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.d88ab50f7ac1",
+      "source": "来自「我的」页的已修学分，需要登录后才有数。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 196,
+          "context": "return i18n(\"state.widgets.d88ab50f7ac1\");"
+        }
+      ],
+      "translation": "Credits earned from the Me page; shows data only after sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.dc6c9f070ee1",
+      "source": "已修课程",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 308,
+          "context": "return i18n(\"state.widgets.dc6c9f070ee1\");"
+        }
+      ],
+      "translation": "Courses completed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.deb8f7305005",
+      "source": "选课入口与选课时间提示。需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 98,
+          "context": "return i18n(\"state.widgets.deb8f7305005\");"
+        }
+      ],
+      "translation": "Course registration entry with registration period reminders. Requires sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.df6cbf44585a",
+      "source": "你订阅的校内新闻。需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 97,
+          "context": "return i18n(\"state.widgets.df6cbf44585a\");"
+        }
+      ],
+      "translation": "Campus news you subscribed to. Requires sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.dfaad9edebfd",
+      "source": "清华园实时天气与未来三天预报，开放数据半小时一更。不需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 87,
+          "context": "return i18n(\"state.widgets.dfaad9edebfd\");"
+        }
+      ],
+      "translation": "Live campus weather and a three-day forecast, refreshed every half hour from open data. No sign-in needed.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.e4912d152656",
+      "source": "在网络学堂范围内搜索。需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 112,
+          "context": "return i18n(\"state.widgets.e4912d152656\");"
+        }
+      ],
+      "translation": "Search within Web Learning. Requires sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.e842a5dff916",
+      "source": "总学分",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 316,
+          "context": "return i18n(\"state.widgets.e842a5dff916\");"
+        }
+      ],
+      "translation": "Total credits",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.eb21e822e78e",
+      "source": "信息页课程信息栏目的数据卡。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 268,
+          "context": "return i18n(\"state.widgets.eb21e822e78e\");"
+        }
+      ],
+      "translation": "Data card for the course info section on the Info page.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.f42d1c6829c9",
+      "source": "最近一个学期的加权平均分。需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 333,
+          "context": "return i18n(\"state.widgets.f42d1c6829c9\");"
+        }
+      ],
+      "translation": "Weighted average for the most recent term. Requires sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.f4802624f209",
+      "source": "成绩栏目",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 211,
+          "context": "return i18n(\"state.widgets.f4802624f209\");"
+        }
+      ],
+      "translation": "Grades section",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.f48d92cf0b84",
+      "source": "空教室查询。需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 120,
+          "context": "return i18n(\"state.widgets.f48d92cf0b84\");"
+        }
+      ],
+      "translation": "Empty classroom lookup. Requires sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.f9d072c4804c",
+      "source": "学分",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 195,
+          "context": "return i18n(\"state.widgets.f9d072c4804c\");"
+        }
+      ],
+      "translation": "Credits",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.fae0c4931d49",
+      "source": "校园网账号与流量。需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 121,
+          "context": "return i18n(\"state.widgets.fae0c4931d49\");"
+        }
+      ],
+      "translation": "Campus network account and data usage. Requires sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.fb4ffac2dc8d",
+      "source": "今天已经预约的场馆与座位。需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 96,
+          "context": "return i18n(\"state.widgets.fb4ffac2dc8d\");"
+        }
+      ],
+      "translation": "Venues and seats you reserved today. Requires sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.fce8c2b36f6a",
+      "source": "校园卡余额、流水与充值。需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 108,
+          "context": "return i18n(\"state.widgets.fce8c2b36f6a\");"
+        }
+      ],
+      "translation": "Campus card balance, transactions, and top-ups. Requires sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.fd611796f383",
+      "source": "宿舍卫生成绩。需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 116,
+          "context": "return i18n(\"state.widgets.fd611796f383\");"
+        }
+      ],
+      "translation": "Dorm cleanliness scores. Requires sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.after",
+      "source": "切到小 OH 对话；插件与主题在完整模式管理。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 24,
+          "context": "return i18n(\"tour.essentials.after\");"
+        }
+      ],
+      "translation": "Switch to OH to chat. Manage plugins and themes in Full mode.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.before",
+      "source": "点胶囊，输入名称，找到功能与校园内容。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 24,
+          "context": "return i18n(\"tour.essentials.before\");"
+        }
+      ],
+      "translation": "Open the capsule and search for features or campus content.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.chapter",
+      "source": "搜索与 OH",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OnboardingTour.tsx",
+          "line": 30,
+          "context": "return i18n(\"tour.essentials.chapter\");"
+        }
+      ],
+      "translation": "Search & OH",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.lead.compact",
+      "source": "搜索和 OneTHU Harness（小 OH）都保留；插件扩展可在完整模式使用。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 21,
+          "context": "full ? i18n(\"tour.essentials.lead.full\") : i18n(\"tour.essentials.lead.compact\")"
+        }
+      ],
+      "translation": "Search and OneTHU Harness (OH) remain available. Switch to Full mode to use plugin extensions.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.lead.full",
+      "source": "从搜索胶囊找到功能，再用 OneTHU Harness（小 OH）和插件扩展能力。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 21,
+          "context": "full ? i18n(\"tour.essentials.lead.full\") : i18n(\"tour.essentials.lead.compact\")"
+        }
+      ],
+      "translation": "Find features in the search capsule, then do more with OneTHU Harness (OH) and plugins.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.oh.compact",
+      "source": "OH：保留对话与自填 API，也可扫码连接微信、飞书。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 22
+        }
+      ],
+      "translation": "OH: chat with your own API provider, or scan to connect WeChat and Feishu.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.oh.full",
+      "source": "OH：切到小 OH 描述任务，由工具读取实际数据。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 22
+        }
+      ],
+      "translation": "OH: switch to the assistant and describe your task. Tools retrieve actual data.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.openMode",
+      "source": "查看使用模式",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 26,
+          "context": "full ? i18n(\"tour.essentials.openPlugins\") : i18n(\"tour.essentials.openMode\")"
+        }
+      ],
+      "translation": "View modes",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.openOh",
+      "source": "打开小 OH",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 25,
+          "context": "action: i18n(\"tour.essentials.openOh\")"
+        }
+      ],
+      "translation": "Open OH",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.openPlugins",
+      "source": "打开插件页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 26,
+          "context": "full ? i18n(\"tour.essentials.openPlugins\") : i18n(\"tour.essentials.openMode\")"
+        }
+      ],
+      "translation": "Open plugins",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.openSearch",
+      "source": "试试搜索",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 23,
+          "context": "return i18n(\"tour.essentials.openSearch\");"
+        }
+      ],
+      "translation": "Try search",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.plugins.compact",
+      "source": "插件可增加主题和功能；在设置切到完整模式后使用。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 22
+        }
+      ],
+      "translation": "Plugins add themes and features. Switch to Full mode in settings to use them.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.plugins.full",
+      "source": "插件：在「我的」管理扩展、主题与插件功能页。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 22
+        }
+      ],
+      "translation": "Plugins: manage extensions, themes and plugin pages from My.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.search",
+      "source": "搜索：在胶囊输入名称，找当前模式的功能与内容。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 22
+        },
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 22
+        }
+      ],
+      "translation": "Search: type in the capsule to find features and content available in this mode.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.essentials.title",
+      "source": "搜索、OH 与插件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 24,
+          "context": "return i18n(\"tour.essentials.title\");"
+        },
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 20,
+          "context": "return i18n(\"tour.essentials.title\");"
+        }
+      ],
+      "translation": "Search, OH and plugins",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "tour.vault.drag.after",
+      "source": "拖进高亮区域松手，再打开箱子查看内容。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 27,
+          "context": "return i18n(\"tour.vault.drag.after\");"
+        }
+      ],
+      "translation": "Release inside the highlighted area, then open the box to view the item.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.vault.drag.before",
+      "source": "按住示例作业，等待提起，再向暂存箱移动。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 27,
+          "context": "return i18n(\"tour.vault.drag.before\");"
+        }
+      ],
+      "translation": "Hold the example assignment until it lifts, then drag toward the staging box.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.vault.drag.drop",
+      "source": "拖到暂存箱按钮的高亮区域，松手完成收纳。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 41
+        }
+      ],
+      "translation": "Drag into the highlighted area around the staging button and release.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.vault.drag.hold",
+      "source": "长按作业、文件或白板组件，提起后开始移动。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 41
+        }
+      ],
+      "translation": "Hold an assignment, file or whiteboard component, then lift and drag.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.vault.drag.lead",
+      "source": "长按支持拖动的内容，移到暂存箱按钮后松手；先在本机收纳，再按需分享。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 40,
+          "context": "return i18n(\"tour.vault.drag.lead\");"
+        }
+      ],
+      "translation": "Hold a supported item, drag it onto the staging button, then release. Collect locally and share when needed.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.vault.drag.limit",
+      "source": "只有已接入拖动的内容可收纳；远端文件可能需要先缓存。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 41
+        }
+      ],
+      "translation": "Only integrated drag sources are supported. Remote files may need caching first.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.vault.drag.more",
+      "source": "邮件、云盘、GitLab 项目及已接入的设置条目也可收纳。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 41
+        }
+      ],
+      "translation": "Mail, cloud items, GitLab projects and integrated settings entries can also be collected.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.vault.drag.sources",
+      "source": "还支持标签页、工作区、搜索结果、日程与名片。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 41
+        }
+      ],
+      "translation": "Tabs, workspaces, search results, events and cards are also supported.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.vault.drag.title",
+      "source": "暂存箱：长按、拖入、再分享",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 40,
+          "context": "return i18n(\"tour.vault.drag.title\");"
+        }
+      ],
+      "translation": "Staging box: hold, drag and share",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "tour.xiaoda.action",
+      "source": "打开清小搭",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 62,
+          "context": "return i18n(\"tour.xiaoda.action\");"
+        }
+      ],
+      "translation": "Open Qingxiaoda",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.xiaoda.after",
+      "source": "在技能页检查兼容性，再启用给 OH。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 25,
+          "context": "return i18n(\"tour.xiaoda.after\");"
+        }
+      ],
+      "translation": "Check compatibility in Skills, then enable the skill for OH.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.xiaoda.agents",
+      "source": "智能体：按任务选助手，点「找它聊」。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 61
+        }
+      ],
+      "translation": "Agents: choose an assistant for your task and select “Chat with it”.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.xiaoda.before",
+      "source": "从清小搭对话开始，也可选择专用智能体。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 25,
+          "context": "return i18n(\"tour.xiaoda.before\");"
+        }
+      ],
+      "translation": "Start a Qingxiaoda conversation, or choose a specialist agent.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.xiaoda.chapter",
+      "source": "清小搭",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OnboardingTour.tsx",
+          "line": 30,
+          "context": "return i18n(\"tour.xiaoda.chapter\");"
+        }
+      ],
+      "translation": "Qingxiaoda",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.xiaoda.chat",
+      "source": "对话：选择模型提问，历史记录可接着聊。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 61
+        }
+      ],
+      "translation": "Chat: choose a model and ask. Continue earlier conversations from History.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.xiaoda.lead",
+      "source": "在 OneTHU 里使用清小搭、专用智能体，也能把兼容的轻量技能交给 OH。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 60,
+          "context": "return i18n(\"tour.xiaoda.lead\");"
+        }
+      ],
+      "translation": "Chat with Qingxiaoda, choose a specialist agent, and enable compatible lightweight skills for OH, all in OneTHU.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.xiaoda.limits",
+      "source": "需 Python、Node 或外部服务？保存给电脑 Agent。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 61
+        }
+      ],
+      "translation": "Skills needing Python, Node or external services can be saved for an agent on your computer.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.xiaoda.skills",
+      "source": "技能：导入并检查，兼容的轻量技能可启用给 OH。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 61
+        }
+      ],
+      "translation": "Skills: import and check a package, then enable compatible lightweight skills for OH.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "tour.xiaoda.title",
+      "source": "清小搭 in OneTHU",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 25,
+          "context": "return i18n(\"tour.xiaoda.title\");"
+        },
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 60,
+          "context": "return i18n(\"tour.xiaoda.title\");"
+        }
+      ],
+      "translation": "Qingxiaoda in OneTHU",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "update.checkCancelled",
+      "source": "已取消检查，可以重新检查。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SoftwareUpdateSection.tsx",
+          "line": 159,
+          "context": "setMsg(i18nMsg(\"update.checkCancelled\"))"
+        }
+      ],
+      "translation": "Check cancelled. You can try again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "update.checkingSource",
+      "source": "正在检查 {source}…",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "source"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SoftwareUpdateSection.tsx",
+          "line": 254,
+          "context": "phase === \"checking\" ? i18n(\"update.checkingSource\", { source: checkingSource ? SOURCE_LABEL[checkingSource] : \"\" }) : i18n(\"components.softwareupdatesection.7f68ebad19ba\")"
+        },
+        {
+          "file": "apps/desktop/src/components/UpdatePromptHost.tsx",
+          "line": 157,
+          "context": "{t(\"update.checkingSource\", { source: \"\" })}"
+        }
+      ],
+      "translation": "Checking {source}…",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "update.prompt.body",
+      "source": "前往软件更新，查看详情并下载安装。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/UpdatePromptHost.tsx",
+          "line": 141,
+          "context": "{t(\"update.prompt.body\")}"
+        }
+      ],
+      "translation": "Open Software Update to review and install this release.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "update.prompt.day",
+      "source": "1 天后",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SoftwareUpdateSection.tsx",
+          "line": 229,
+          "context": "day: i18n(\"update.prompt.day\")"
+        },
+        {
+          "file": "apps/desktop/src/components/SoftwareUpdateSection.tsx",
+          "line": 270,
+          "context": "label: i18n(\"update.prompt.day\")"
+        },
+        {
+          "file": "apps/desktop/src/components/UpdatePromptHost.tsx",
+          "line": 149,
+          "context": "label: t(\"update.prompt.day\")"
+        }
+      ],
+      "translation": "In 1 day",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "update.prompt.delay",
+      "source": "下次提醒",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SoftwareUpdateSection.tsx",
+          "line": 269,
+          "context": "{i18n(\"update.prompt.delay\")}"
+        },
+        {
+          "file": "apps/desktop/src/components/UpdatePromptHost.tsx",
+          "line": 147,
+          "context": "{t(\"update.prompt.delay\")}"
+        },
+        {
+          "file": "apps/desktop/src/components/UpdatePromptHost.tsx",
+          "line": 148,
+          "context": "{t(\"update.prompt.delay\")}"
+        }
+      ],
+      "translation": "Remind me",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "update.prompt.hour",
+      "source": "1 小时后",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SoftwareUpdateSection.tsx",
+          "line": 229,
+          "context": "hour: i18n(\"update.prompt.hour\")"
+        },
+        {
+          "file": "apps/desktop/src/components/SoftwareUpdateSection.tsx",
+          "line": 270,
+          "context": "label: i18n(\"update.prompt.hour\")"
+        },
+        {
+          "file": "apps/desktop/src/components/UpdatePromptHost.tsx",
+          "line": 149,
+          "context": "label: t(\"update.prompt.hour\")"
+        }
+      ],
+      "translation": "In 1 hour",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "update.prompt.later",
+      "source": "暂时忽略",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SoftwareUpdateSection.tsx",
+          "line": 272,
+          "context": "{i18n(\"update.prompt.later\")}"
+        },
+        {
+          "file": "apps/desktop/src/components/UpdatePromptHost.tsx",
+          "line": 151,
+          "context": "{t(\"update.prompt.later\")}"
+        }
+      ],
+      "translation": "Remind me later",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "update.prompt.open",
+      "source": "前往更新",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/UpdatePromptHost.tsx",
+          "line": 145,
+          "context": "{t(\"update.prompt.open\")}"
+        }
+      ],
+      "translation": "Go to update",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "update.prompt.paused",
+      "source": "已暂缓此版本的提醒，仍可随时下载安装。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SoftwareUpdateSection.tsx",
+          "line": 303,
+          "context": "i18n(\"update.prompt.paused\")}`"
+        }
+      ],
+      "translation": "Reminders for this release are paused. You can still download and install it at any time.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "update.prompt.saved",
+      "source": "已设置提醒：{duration}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "duration"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SoftwareUpdateSection.tsx",
+          "line": 273,
+          "context": "{i18n(\"update.prompt.saved\", { duration: reminderLabels[savedReminder] })}"
+        }
+      ],
+      "translation": "Reminder set: {duration}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "update.prompt.title",
+      "source": "发现新版本",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/UpdatePromptHost.tsx",
+          "line": 138,
+          "context": "{t(\"update.prompt.title\")}"
+        }
+      ],
+      "translation": "Update available",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "update.prompt.version",
+      "source": "OneTHU {version}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "version"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/UpdatePromptHost.tsx",
+          "line": 140,
+          "context": "{t(\"update.prompt.version\", { version: release?.latest ?? \"\" })}"
+        }
+      ],
+      "translation": "OneTHU {version}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "update.prompt.week",
+      "source": "7 天后",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SoftwareUpdateSection.tsx",
+          "line": 229,
+          "context": "week: i18n(\"update.prompt.week\")"
+        },
+        {
+          "file": "apps/desktop/src/components/SoftwareUpdateSection.tsx",
+          "line": 270,
+          "context": "label: i18n(\"update.prompt.week\")"
+        },
+        {
+          "file": "apps/desktop/src/components/UpdatePromptHost.tsx",
+          "line": 149,
+          "context": "label: t(\"update.prompt.week\")"
+        }
+      ],
+      "translation": "In 7 days",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "update.sourceTimeout",
+      "source": "{source} 响应超时",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "source"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 89,
+          "context": "attempt.errorKind === \"source-timeout\"\n    ? i18n(\"update.sourceTimeout\", { source: SOURCE_LABEL[attempt.source] })\n    : attempt.error ?? i18n(\"lib.updater.a1a9da9ee6ed\")"
+        },
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 458,
+          "context": "new UpdateSourceTimeout(i18n(\"update.sourceTimeout\", { source: SOURCE_LABEL[step.source] }))"
+        }
+      ],
+      "translation": "{source} timed out",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    }
+  ]
+}

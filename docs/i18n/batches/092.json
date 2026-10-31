@@ -1,7 +1,1459 @@
 {
-  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
+  "sourceHash": "be3fd8c88a23dc4acb558acc486d73c0e34027023912c7adc1e35b9861a6e4b5",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "state.orgsync.removeMemberLabel",
+      "source": "移除成员",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSync.ts",
+          "line": 224,
+          "context": "target ? i18n(\"state.orgsync.updateMemberLabel\", {username:target.username}) : i18n(\"state.orgsync.removeMemberLabel\")"
+        }
+      ],
+      "translation": "Remove member",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.orgsync.updateMemberLabel",
+      "source": "更新 {username}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "username"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSync.ts",
+          "line": 224,
+          "context": "target ? i18n(\"state.orgsync.updateMemberLabel\", {username:target.username}) : i18n(\"state.orgsync.removeMemberLabel\")"
+        }
+      ],
+      "translation": "Update {username}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.orgsynccore.13447b8f6ab6",
+      "source": "降权回读不符",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 168,
+          "context": "new Error(i18n(\"state.orgsynccore.13447b8f6ab6\"))"
+        }
+      ],
+      "translation": "Permission downgrade readback mismatch",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.15f11e1c75da",
+      "source": "至少保留一位服务器上的组织负责人",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 114,
+          "context": "new Error(i18n(\"state.orgsynccore.15f11e1c75da\"))"
+        }
+      ],
+      "translation": "Keep at least one organization Owner on the server",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.181c794c590b",
+      "source": "组织协作内容损坏",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 41,
+          "context": "new Error(i18n(\"state.orgsynccore.181c794c590b\"))"
+        }
+      ],
+      "translation": "The organization collaboration content is corrupted",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.22d16e7c98ba",
+      "source": "解除关联后仍有共享权限",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 129,
+          "context": "new Error(i18n(\"state.orgsynccore.22d16e7c98ba\"))"
+        }
+      ],
+      "translation": "Shared permissions remain after detaching",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.26e81e5f3e41",
+      "source": "GitLab 仓库 #{id} 必须是本组织群组内的私有仓库，请先迁入该群组并设为私有",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "id",
+          "expression": "String(id)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 97,
+          "context": "new Error(i18n(\"state.orgsynccore.26e81e5f3e41\", { id: String(id) }))"
+        }
+      ],
+      "translation": "GitLab repository #{id} must be a private repository inside this organization's group. Move it into the group and set it to private first.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.34320f02cd8e",
+      "source": "资料库「{name}」的所有者有固有权限，请先转移云盘所有权，再重试成员变更",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name",
+          "expression": "String(lib.name)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 118,
+          "context": "new Error(i18n(\"state.orgsynccore.34320f02cd8e\", { name: String(lib.name) }))"
+        }
+      ],
+      "translation": "The owner of library \"{name}\" has inherent permissions. Transfer the cloud drive ownership first, then retry the member change.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.35d481d1c9b2",
+      "source": "GitLab 仓库 #{id} 存在组织名单外的直接授权，请先在 GitLab 处理",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "id",
+          "expression": "String(id)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 99,
+          "context": "new Error(i18n(\"state.orgsynccore.35d481d1c9b2\", { id: String(id) }))"
+        }
+      ],
+      "translation": "GitLab repository #{id} has direct grants outside the organization roster. Handle it in GitLab first.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.3ecab27b438e",
+      "source": "组织元数据项目不能作为普通仓库关联",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 95,
+          "context": "new Error(i18n(\"state.orgsynccore.3ecab27b438e\"))"
+        }
+      ],
+      "translation": "The organization metadata project cannot be linked as a regular repository",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.4368a8b9ff92",
+      "source": "这不是受支持的 OneTHU 组织协作资料",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 39,
+          "context": "new Error(i18n(\"state.orgsynccore.4368a8b9ff92\"))"
+        }
+      ],
+      "translation": "This is not supported OneTHU organization collaboration content",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.5c00ac7e88bb",
+      "source": "资料库所有者拥有固有写权限，需要先转移所有权才能降为只读",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 181,
+          "context": "new Error(i18n(\"state.orgsynccore.5c00ac7e88bb\"))"
+        }
+      ],
+      "translation": "The library owner has inherent write permission; ownership must be transferred before downgrading to read-only",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.716bc0e42213",
+      "source": "组织配置损坏",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 40,
+          "context": "new Error(i18n(\"state.orgsynccore.716bc0e42213\"))"
+        }
+      ],
+      "translation": "The organization configuration is corrupted",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.75a0431ba7fe",
+      "source": "GitLab 仓库 #{id} 存在其他群组授权，请先在 GitLab 移除",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "id",
+          "expression": "String(id)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 98,
+          "context": "new Error(i18n(\"state.orgsynccore.75a0431ba7fe\", { id: String(id) }))"
+        }
+      ],
+      "translation": "GitLab repository #{id} has grants from other groups. Remove them in GitLab first.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.79361f44af76",
+      "source": "{value} #{id} 的权限回读不符；可能仍有上级组织或其他独立授权，需要负责人处理",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(kind === \"groups\" ? \"GitLab 组织\" : \"GitLab 仓库\")"
+        },
+        {
+          "name": "id",
+          "expression": "String(id)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 85,
+          "context": "new Error(i18n(\"state.orgsynccore.79361f44af76\", { value: String(kind === \"groups\" ? i18n(\"state.orgsynccore.gitlabGroup\") : i18n(\"state.orgsynccore.gitlabProject\")), id: String(id) }))"
+        }
+      ],
+      "translation": "Permission readback mismatch for {value} #{id}; a parent organization or other independent grant may remain. An Owner needs to handle it.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.8e43c3815f47",
+      "source": "请让另一位负责人执行你的移除或降级，以便在权限变更后完成回读与记录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 115,
+          "context": "new Error(i18n(\"state.orgsynccore.8e43c3815f47\"))"
+        }
+      ],
+      "translation": "Have another Owner perform your removal or downgrade so that readback and recording can complete after the permission change",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.9715a0f9152f",
+      "source": "组织资料格式或大小不受支持",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 36,
+          "context": "new Error(i18n(\"state.orgsynccore.9715a0f9152f\"))"
+        }
+      ],
+      "translation": "The organization content format or size is not supported",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.9eb8904e9896",
+      "source": "撤权后仍能查到共享权限",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 149,
+          "context": "new Error(i18n(\"state.orgsynccore.9eb8904e9896\"))"
+        }
+      ],
+      "translation": "Shared permissions are still found after revocation",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.a6f0f050b88e",
+      "source": "授权回读不符",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 185,
+          "context": "new Error(i18n(\"state.orgsynccore.a6f0f050b88e\"))"
+        }
+      ],
+      "translation": "Grant readback mismatch",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.b150bcce1fc7",
+      "source": "缺少项目标识",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 48,
+          "context": "new Error(i18n(\"state.orgsynccore.b150bcce1fc7\"))"
+        }
+      ],
+      "translation": "Missing project identifier",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.conflict",
+      "source": "其他成员刚刚更新了这份资料。你的输入已保留，请刷新后比较并重新保存。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 32,
+          "context": "super(i18n(\"state.orgsynccore.conflict\"))"
+        }
+      ],
+      "translation": "Another member just updated this content. Your input has been kept — refresh, compare, and save again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.d2a3a9ac759a",
+      "source": "此邮箱是资料库所有者，必须先在云盘转移资料库所有权才能撤销访问",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 147,
+          "context": "new Error(i18n(\"state.orgsynccore.d2a3a9ac759a\"))"
+        }
+      ],
+      "translation": "This email is the library owner. The library ownership must be transferred on the cloud drive before access can be revoked.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.detachLibrary",
+      "source": "解除资料库 {name} / {email}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "email"
+        },
+        {
+          "name": "name"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 126,
+          "context": "attempt(i18n(\"state.orgsynccore.detachLibrary\", {name:lib.name,email:binding.email}), async () => {\n      if ((await api.cloudOwner(lib.repoId)).toLowerCase() === binding.email) return; // intrinsic ownership is not an org grant\n      if ((await api.listCloud(lib.repoId)).some(s=>s.email===binding.email)) await api.removeCloud(lib.repoId,binding.email);\n      if ((await api.listCloud(lib.repoId)).some(s=>s.email===binding.email)) throw new Error(i18n(\"state.orgsynccore.22d16e7c98ba\"));\n    })"
+        }
+      ],
+      "translation": "Detach library {name} / {email}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.detachProject",
+      "source": "解除仓库 {name} / {username}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name"
+        },
+        {
+          "name": "username"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 133,
+          "context": "attempt(i18n(\"state.orgsynccore.detachProject\", {name:repo.name,username:binding.username}), async () => {\n      const direct = (await api.members(\"projects\",repo.id,false)).find(m=>m.id===binding.userId);\n      if (direct) await api.removeMember(\"projects\",repo.id,binding.userId);\n      if ((await api.members(\"projects\",repo.id,false)).some(m=>m.id===binding.userId)) throw new Error(i18n(\"state.orgsynccore.f4efde7b447c\"));\n      // Group-inherited access belongs to the group itself, not this resource link.\n    })"
+        }
+      ],
+      "translation": "Detach repository {name} / {username}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.dffb811b78bd",
+      "source": "当前 GitLab 账号不是组织负责人，不能修改成员和共享权限",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 109,
+          "context": "new Error(i18n(\"state.orgsynccore.dffb811b78bd\"))"
+        }
+      ],
+      "translation": "The current GitLab account is not an organization Owner and cannot modify members or sharing permissions",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.f4efde7b447c",
+      "source": "直接授权仍未撤销",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 136,
+          "context": "new Error(i18n(\"state.orgsynccore.f4efde7b447c\"))"
+        }
+      ],
+      "translation": "The direct grant has not been revoked yet",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.gitlabGroup",
+      "source": "GitLab 组织",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 85,
+          "context": "kind === \"groups\" ? i18n(\"state.orgsynccore.gitlabGroup\") : i18n(\"state.orgsynccore.gitlabProject\")"
+        }
+      ],
+      "translation": "GitLab organization",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.gitlabProject",
+      "source": "GitLab 仓库",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 85,
+          "context": "kind === \"groups\" ? i18n(\"state.orgsynccore.gitlabGroup\") : i18n(\"state.orgsynccore.gitlabProject\")"
+        }
+      ],
+      "translation": "GitLab repository",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.grantCloud",
+      "source": "云盘 {name} 授权 {email}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "email"
+        },
+        {
+          "name": "name"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 179,
+          "context": "attempt(i18n(\"state.orgsynccore.grantCloud\", {name:lib.name,email:binding.email}), async () => {\n        if ((await api.cloudOwner(lib.repoId)).toLowerCase() === binding.email) {\n          if (permission !== \"rw\") throw new Error(i18n(\"state.orgsynccore.5c00ac7e88bb\"));\n          return;\n        }\n        if ((await api.listCloud(lib.repoId)).find(s => s.email === binding.email)?.permission !== permission) await api.setCloud(lib.repoId, binding.email, permission);\n        if ((await api.listCloud(lib.repoId)).find(s => s.email === binding.email)?.permission !== permission) throw new Error(i18n(\"state.orgsynccore.a6f0f050b88e\"));\n      })"
+        }
+      ],
+      "translation": "Grant cloud drive {name} to {email}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.libraryMissingEmail",
+      "source": "云盘 {name}：{username} 尚未绑定云盘邮箱",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name"
+        },
+        {
+          "name": "username"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 177,
+          "context": "errors.push(i18n(\"state.orgsynccore.libraryMissingEmail\", {name:lib.name,username:binding.username}))"
+        }
+      ],
+      "translation": "Cloud drive {name}: {username} has no Cloud Drive email bound yet",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.missingEmail",
+      "source": "{username} 尚未绑定云盘邮箱",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "username"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 172,
+          "context": "errors.push(i18n(\"state.orgsynccore.missingEmail\", {username:member.username}))"
+        }
+      ],
+      "translation": "{username} has no Cloud Drive email bound yet",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.reduceCloud",
+      "source": "云盘 {name} 降权 {email}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "email"
+        },
+        {
+          "name": "name"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 164,
+          "context": "attempt(i18n(\"state.orgsynccore.reduceCloud\", {name:lib.name,email:binding.email}), async () => {\n      const existing = (await api.listCloud(lib.repoId)).find(s=>s.email===binding.email);\n      if (existing && existing.permission !== \"r\") {\n        await api.setCloud(lib.repoId,binding.email,\"r\");\n        if ((await api.listCloud(lib.repoId)).find(s=>s.email===binding.email)?.permission !== \"r\") throw new Error(i18n(\"state.orgsynccore.13447b8f6ab6\"));\n      }\n    })"
+        }
+      ],
+      "translation": "Downgrade cloud drive {name} for {email}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.removeMember",
+      "source": "移除组织成员",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 120,
+          "context": "attempt(i18n(\"state.orgsynccore.removeMember\"), () => setGitPermission(api, \"groups\", ref.groupId, intent.removeUserId!, null))"
+        }
+      ],
+      "translation": "Remove organization member",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.revokeCloud",
+      "source": "云盘 {name} 撤销 {email}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "email"
+        },
+        {
+          "name": "name"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 146,
+          "context": "attempt(i18n(\"state.orgsynccore.revokeCloud\", {name:lib.name,email:binding.email}), async () => {\n        if ((await api.cloudOwner(lib.repoId)).toLowerCase() === binding.email) throw new Error(i18n(\"state.orgsynccore.d2a3a9ac759a\"));\n        if ((await api.listCloud(lib.repoId)).some(s => s.email === binding.email)) await api.removeCloud(lib.repoId, binding.email);\n        if ((await api.listCloud(lib.repoId)).some(s => s.email === binding.email)) throw new Error(i18n(\"state.orgsynccore.9eb8904e9896\"));\n      })"
+        }
+      ],
+      "translation": "Revoke cloud drive {name} for {email}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.revokeProject",
+      "source": "GitLab {name} 撤权 / 用户 {userId}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name"
+        },
+        {
+          "name": "userId"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 157,
+          "context": "attempt(i18n(\"state.orgsynccore.revokeProject\", {name:repo.name,userId}), async () => {\n      const actual = (await api.members(\"projects\",repo.id,true)).find(m=>m.id===userId);\n      if (actual && (!member || actual.access_level > Math.min(member.access_level,40))) await setGitPermission(api,\"projects\",repo.id,userId,member ? member.access_level : null);\n    })"
+        }
+      ],
+      "translation": "Revoke GitLab {name} / user {userId}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.updateMember",
+      "source": "更新组织成员",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 121,
+          "context": "attempt(i18n(\"state.orgsynccore.updateMember\"), () => setGitPermission(api, \"groups\", ref.groupId, intent.target!.userId, roleLevel(intent.target!.role)))"
+        }
+      ],
+      "translation": "Update organization member",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.verifyProject",
+      "source": "GitLab {name} / 用户 {userId}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name"
+        },
+        {
+          "name": "userId"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 191,
+          "context": "attempt(i18n(\"state.orgsynccore.verifyProject\", {name:repo.name,userId}), () => setGitPermission(api, \"projects\", repo.id, userId, member ? member.access_level : null))"
+        }
+      ],
+      "translation": "GitLab {name} / user {userId}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.quickaccess.15d208d1b4c9",
+      "source": "生活",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/quickAccess.ts",
+          "line": 39,
+          "context": "life:i18n(\"state.quickaccess.15d208d1b4c9\")"
+        }
+      ],
+      "translation": "Life",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.quickaccess.2118cbc10988",
+      "source": "学习",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/quickAccess.ts",
+          "line": 39,
+          "context": "learn:i18n(\"state.quickaccess.2118cbc10988\")"
+        }
+      ],
+      "translation": "Study",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.quickaccess.2e3250329028",
+      "source": "课表",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/quickAccess.ts",
+          "line": 39,
+          "context": "schedule:i18n(\"state.quickaccess.2e3250329028\")"
+        }
+      ],
+      "translation": "Timetable",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.quickaccess.352cdc807892",
+      "source": "预约",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/quickAccess.ts",
+          "line": 39,
+          "context": "reserve:i18n(\"state.quickaccess.352cdc807892\")"
+        },
+        {
+          "file": "apps/desktop/src/state/quickAccess.ts",
+          "line": 40,
+          "context": "[\"reserve\",i18n(\"state.quickaccess.352cdc807892\")]"
+        }
+      ],
+      "translation": "Reservations",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.quickaccess.e7028601e7da",
+      "source": "信息",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/quickAccess.ts",
+          "line": 39,
+          "context": "info:i18n(\"state.quickaccess.e7028601e7da\")"
+        },
+        {
+          "file": "apps/desktop/src/state/quickAccess.ts",
+          "line": 40,
+          "context": "[\"info\",i18n(\"state.quickaccess.e7028601e7da\")]"
+        }
+      ],
+      "translation": "Info",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.schedulewindow.0b97c851e4a7",
+      "source": "全天",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/scheduleWindow.ts",
+          "line": 25,
+          "context": "return i18n(\"state.schedulewindow.0b97c851e4a7\");"
+        }
+      ],
+      "translation": "All day",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafile.0507dadfda6a",
+      "source": "清华云盘未连接：先到云盘页粘贴 token",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 328,
+          "context": "new Error(i18n(\"state.seafile.0507dadfda6a\"))"
+        }
+      ],
+      "translation": "Tsinghua Cloud Drive is not connected: paste a token on the Cloud Drive page first",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafile.15e1ef41e215",
+      "source": "清华云盘未连接：先到云盘页登录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 248,
+          "context": "new Error(i18n(\"state.seafile.15e1ef41e215\"))"
+        }
+      ],
+      "translation": "Tsinghua Cloud Drive is not connected: sign in on the Cloud Drive page first",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafile.2a15ea48f5c7",
+      "source": "请切换到创建这条分享的云盘账号后再修改或撤销",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 428,
+          "context": "new Error(i18n(\"state.seafile.2a15ea48f5c7\"))"
+        }
+      ],
+      "translation": "Switch to the cloud drive account that created this share before modifying or revoking it",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafile.96e4aa1ffce5",
+      "source": "云盘未配置",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 186,
+          "context": "new Error(i18n(\"state.seafile.96e4aa1ffce5\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 281,
+          "context": "new Error(i18n(\"state.seafile.96e4aa1ffce5\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 289,
+          "context": "new Error(i18n(\"state.seafile.96e4aa1ffce5\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 297,
+          "context": "new Error(i18n(\"state.seafile.96e4aa1ffce5\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 305,
+          "context": "new Error(i18n(\"state.seafile.96e4aa1ffce5\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 353,
+          "context": "new Error(i18n(\"state.seafile.96e4aa1ffce5\"))"
+        }
+      ],
+      "translation": "Cloud drive not configured",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafile.a6e7bedde538",
+      "source": "清华云盘未连接",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 318,
+          "context": "new Error(i18n(\"state.seafile.a6e7bedde538\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 339,
+          "context": "new Error(i18n(\"state.seafile.a6e7bedde538\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 346,
+          "context": "new Error(i18n(\"state.seafile.a6e7bedde538\"))"
+        }
+      ],
+      "translation": "Tsinghua Cloud Drive is not connected",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafile.accountChanged",
+      "source": "云盘账号已变化，请重试。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ConnectGate.tsx",
+          "line": 125,
+          "context": "new Error(i18n(\"state.seafile.accountChanged\"))"
+        },
+        {
+          "file": "apps/desktop/src/lib/cloudFolder.ts",
+          "line": 17,
+          "context": "new Error(i18n(\"state.seafile.accountChanged\"))"
+        },
+        {
+          "file": "apps/desktop/src/memory/sync.ts",
+          "line": 42,
+          "context": "new Error(i18n(\"state.seafile.accountChanged\"))"
+        },
+        {
+          "file": "apps/desktop/src/plugins/facade.ts",
+          "line": 386,
+          "context": "new Error(i18n(\"state.seafile.accountChanged\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/friendInbox.ts",
+          "line": 88,
+          "context": "new Error(t(\"state.seafile.accountChanged\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/friendInbox.ts",
+          "line": 146,
+          "context": "new Error(t(\"state.seafile.accountChanged\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/friendInbox.ts",
+          "line": 231,
+          "context": "new Error(t(\"state.seafile.accountChanged\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/friendInbox.ts",
+          "line": 238,
+          "context": "new Error(t(\"state.seafile.accountChanged\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 44,
+          "context": "new Error(i18n(\"state.seafile.accountChanged\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/seafileAuto.ts",
+          "line": 102,
+          "context": "new Error(i18n(\"state.seafile.accountChanged\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/vaultCloud.ts",
+          "line": 40,
+          "context": "new Error(i18n(\"state.seafile.accountChanged\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/vaultCloud.ts",
+          "line": 117,
+          "context": "new Error(i18n(\"state.seafile.accountChanged\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/wallpsync.ts",
+          "line": 47,
+          "context": "new Error(i18n(\"state.seafile.accountChanged\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/wallpsync.ts",
+          "line": 57,
+          "context": "new Error(i18n(\"state.seafile.accountChanged\"))"
+        }
+      ],
+      "translation": "The cloud drive account has changed. Please try again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafile.deleteOwnerOnly",
+      "source": "只有资料库所有者可以删除整个资料库",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 191,
+          "context": "new Error(i18n(\"state.seafile.deleteOwnerOnly\"))"
+        }
+      ],
+      "translation": "Only the library owner can delete the entire library.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafile.duplicatePersonalLibraries",
+      "source": "发现多个同名且有内容的个人资料库，无法安全选择。请先在云盘确认要使用的资料库。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/ownedCloudRepo.ts",
+          "line": 44,
+          "context": "new Error(i18n(\"state.seafile.duplicatePersonalLibraries\"))"
+        }
+      ],
+      "translation": "Several personal libraries have the same name and contain data. Review them in cloud storage before choosing which one to use.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafile.f206fb3a20d8",
+      "source": "已下载到：{local}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "local",
+          "expression": "String(local)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 283,
+          "context": "showToast(i18nMsg(\"state.seafile.f206fb3a20d8\", { local: String(local) }))"
+        }
+      ],
+      "translation": "Downloaded to: {local}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafile.f423b2f16ab1",
+      "source": "已上传到云盘",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 292,
+          "context": "showToast(i18nMsg(\"state.seafile.f423b2f16ab1\"))"
+        }
+      ],
+      "translation": "Uploaded to the cloud drive",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafile.f6d2148271ab",
+      "source": "请先连接清华云盘",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 404,
+          "context": "new Error(i18n(\"state.seafile.f6d2148271ab\"))"
+        }
+      ],
+      "translation": "Connect Tsinghua Cloud Drive first",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafile.libraryCreationUnconfirmed",
+      "source": "上次建库结果尚未确认，已暂停自动创建，避免重复。请刷新云盘确认，或手动创建所需资料库后重试。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/ownedCloudRepo.ts",
+          "line": 77,
+          "context": "new Error(i18n(\"state.seafile.libraryCreationUnconfirmed\"))"
+        },
+        {
+          "file": "apps/desktop/src/lib/ownedCloudRepo.ts",
+          "line": 89,
+          "context": "new Error(i18n(\"state.seafile.libraryCreationUnconfirmed\"))"
+        }
+      ],
+      "translation": "The previous library creation is still unconfirmed. Automatic creation is paused to prevent duplicates. Refresh cloud storage to check, or create the required library manually, then retry.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafile.nativeRestartRequired",
+      "source": "此资料库缺少可核实的归属信息，已暂停对它自动建库、删除与同步；请先刷新资料库列表。旧版客户端请更新并重启。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/ownedCloudRepo.ts",
+          "line": 56,
+          "context": "new Error(i18n(\"state.seafile.nativeRestartRequired\"))"
+        },
+        {
+          "file": "apps/desktop/src/lib/ownedCloudRepo.ts",
+          "line": 75,
+          "context": "new Error(i18n(\"state.seafile.nativeRestartRequired\"))"
+        },
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 448,
+          "context": "!hasSeafileRepoOwnershipMetadata(repo) ? i18n(\"state.seafile.nativeRestartRequired\") : undefined"
+        },
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 488,
+          "context": "{i18n(\"state.seafile.nativeRestartRequired\")}"
+        },
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 683,
+          "context": "{i18n(\"state.seafile.nativeRestartRequired\")}"
+        },
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 705,
+          "context": "!hasSeafileRepoOwnershipMetadata(r) ? i18n(\"state.seafile.nativeRestartRequired\") : undefined"
+        },
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 190,
+          "context": "new Error(i18n(\"state.seafile.nativeRestartRequired\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/seafile.ts",
+          "line": 197,
+          "context": "new Error(i18n(\"state.seafile.nativeRestartRequired\"))"
+        }
+      ],
+      "translation": "Ownership information for this library is unavailable. Automatic creation, deletion and sync for it are paused. Refresh the library list; update and restart older clients.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafileauto.0b66b052d51d",
+      "source": "profile 页未找到 token（页面形态未知，请在云盘页手动粘贴一次）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafileAuto.ts",
+          "line": 292,
+          "context": "error: i18n(\"state.seafileauto.0b66b052d51d\")"
+        }
+      ],
+      "translation": "Token not found on the profile page (unknown page layout; paste it manually once on the Cloud Drive page)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafileauto.6064f0dbf06e",
+      "source": "统一认证直登后仍未通过：请在设置里重新登录清华账号",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafileAuto.ts",
+          "line": 251,
+          "context": "error: i18n(\"state.seafileauto.6064f0dbf06e\")"
+        }
+      ],
+      "translation": "Still not approved after direct unified authentication sign-in: sign in to your Tsinghua account again in Settings",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafileauto.64be8fcebc0a",
+      "source": "云盘上还没有访问口令：请先在云盘设置页生成一次，或在 OneTHU 里用窗口方式连接",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafileAuto.ts",
+          "line": 149,
+          "context": "CAS_LOGIN_RE.test(r.body) ? i18n(\"state.seafileauto.ab0d7338c8dd\") : i18n(\"state.seafileauto.64be8fcebc0a\")"
+        },
+        {
+          "file": "apps/desktop/src/state/seafileAuto.ts",
+          "line": 156,
+          "context": "error: i18n(\"state.seafileauto.64be8fcebc0a\")"
+        }
+      ],
+      "translation": "No access token on the cloud drive yet: generate one on the cloud drive settings page first, or connect from OneTHU via a browser window",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafileauto.789c9d831ceb",
+      "source": "统一认证直登失败：请在设置里重新登录清华账号",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafileAuto.ts",
+          "line": 142,
+          "context": "error: i18n(\"state.seafileauto.789c9d831ceb\")"
+        },
+        {
+          "file": "apps/desktop/src/state/seafileAuto.ts",
+          "line": 268,
+          "context": "error: i18n(\"state.seafileauto.789c9d831ceb\")"
+        }
+      ],
+      "translation": "Direct unified authentication sign-in failed: sign in to your Tsinghua account again in Settings",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafileauto.ab0d7338c8dd",
+      "source": "统一认证会话已过期：请在设置里重新登录清华账号后再连云盘",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafileAuto.ts",
+          "line": 149,
+          "context": "CAS_LOGIN_RE.test(r.body) ? i18n(\"state.seafileauto.ab0d7338c8dd\") : i18n(\"state.seafileauto.64be8fcebc0a\")"
+        },
+        {
+          "file": "apps/desktop/src/state/seafileAuto.ts",
+          "line": 248,
+          "context": "error: i18n(\"state.seafileauto.ab0d7338c8dd\")"
+        }
+      ],
+      "translation": "The unified authentication session has expired: sign in to your Tsinghua account again in Settings, then connect the cloud drive",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafileauto.b096dd8cc73e",
+      "source": "统一认证会话已过期（内存中没有清华密码）：请在设置里重新登录清华账号",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafileAuto.ts",
+          "line": 254,
+          "context": "error: i18n(\"state.seafileauto.b096dd8cc73e\")"
+        }
+      ],
+      "translation": "The unified authentication session has expired (no Tsinghua password in memory): sign in to your Tsinghua account again in Settings",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafileauto.c82a95d8733d",
+      "source": "需要首次授权：云盘登录走清华 OAuth，请先在浏览器/App 里打开一次 cloud.tsinghua.edu.cn 并点「同意授权」（之后即静默）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafileAuto.ts",
+          "line": 282,
+          "context": "error: i18n(\"state.seafileauto.c82a95d8733d\")"
+        }
+      ],
+      "translation": "First-time authorization required: cloud drive sign-in uses Tsinghua OAuth. Open cloud.tsinghua.edu.cn once in a browser or the app and click \"Agree to authorize\" (afterwards it stays silent)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafileauto.d236f74b57c1",
+      "source": "统一认证确认续用失败：请稍后重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafileAuto.ts",
+          "line": 131,
+          "context": "error: i18n(\"state.seafileauto.d236f74b57c1\")"
+        }
+      ],
+      "translation": "Failed to confirm renewal with unified authentication. Please retry later.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.seafileauto.twoFactorRequired",
+      "source": "清华统一认证要求二次认证：请在 OneTHU 里重新登录清华账号并勾选「信任此设备」，之后云盘会自动连接。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/seafileAuto.ts",
+          "line": 35,
+          "context": "() =>\n  i18n(\"state.seafileauto.twoFactorRequired\")"
+        }
+      ],
+      "translation": "Tsinghua unified authentication requires two-factor authentication: sign in to your Tsinghua account again in OneTHU and check \"Trust this device\"; the cloud drive will then connect automatically.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.sealedshare.09715736b21b",
+      "source": "分享密钥损坏",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/sealedShare.ts",
+          "line": 64,
+          "context": "new Error(i18n(\"state.sealedshare.09715736b21b\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/sealedShare.ts",
+          "line": 67,
+          "context": "new Error(i18n(\"state.sealedshare.09715736b21b\"))"
+        }
+      ],
+      "translation": "The share key is corrupted",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.sealedshare.2405c88b1056",
+      "source": "这是私密分享，请用获授权的邮箱连接清华云盘",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/sealedShare.ts",
+          "line": 54,
+          "context": "new Error(i18n(\"state.sealedshare.2405c88b1056\"))"
+        }
+      ],
+      "translation": "This is a private share. Connect Tsinghua Cloud Drive with the authorized email.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.sealedshare.3244eb7e5a7d",
+      "source": "分享内容格式不正确或过大",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/sealedShare.ts",
+          "line": 73,
+          "context": "new Error(i18n(\"state.sealedshare.3244eb7e5a7d\"))"
+        }
+      ],
+      "translation": "The shared content is malformed or too large",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.sealedshare.48c72cc17f20",
+      "source": "当前云盘账号无权读取这条分享，或分享已被撤销",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/sealedShare.ts",
+          "line": 60,
+          "context": "new Error(i18n(\"state.sealedshare.48c72cc17f20\"))"
+        }
+      ],
+      "translation": "The current cloud drive account has no access to this share, or the share has been revoked",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.sealedshare.627f3e9496d7",
+      "source": "分享内容校验失败，请让发送者重新分享",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/sealedShare.ts",
+          "line": 78,
+          "context": "new Error(i18n(\"state.sealedshare.627f3e9496d7\"))"
+        }
+      ],
+      "translation": "Share content verification failed. Ask the sender to share again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.sealedshare.8246a8d4e7da",
+      "source": "私密分享格式不正确",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/sealedShare.ts",
+          "line": 50,
+          "context": "new Error(i18n(\"state.sealedshare.8246a8d4e7da\"))"
+        }
+      ],
+      "translation": "The private share format is invalid",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.1af23354d905",
+      "source": "系统日历设置文件无效，请恢复备份后重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 120,
+          "context": "new Error(i18n(\"state.systemcal.1af23354d905\"))"
+        }
+      ],
+      "translation": "The system calendar settings file is invalid. Restore from a backup and retry.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.30fb8d6869b0",
+      "source": "校历学期范围无效，已中止同步",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 243,
+          "context": "new Error(i18n(\"state.systemcal.30fb8d6869b0\"))"
+        }
+      ],
+      "translation": "The academic calendar semester range is invalid; sync was aborted",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.3d8856ab74b0",
+      "source": "当前学期作业尚未就绪，请在网络学堂选择当前学期后重试；已有系统日历保持不变",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 246,
+          "context": "new Error(i18n(\"state.systemcal.3d8856ab74b0\"))"
+        }
+      ],
+      "translation": "Assignments for the current semester are not ready yet. Select the current semester in Web Learning and retry; the existing system calendar is unchanged",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "state.systemcal.5a93b270a6f9",
       "source": "当前平台不支持系统日历原生同步",
@@ -100,1306 +1552,6 @@
         }
       ],
       "translation": "External assignment sources are not fully loaded. Refresh Web Learning and retry; the existing system calendar is unchanged",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.ae887c4815af",
-      "source": "校历尚未就绪，请打开日程加载学期后重试；已有系统日历保持不变",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 241,
-          "context": "new Error(i18n(\"state.systemcal.ae887c4815af\"))"
-        }
-      ],
-      "translation": "The academic calendar is not ready yet. Open the Schedule to load the semester and retry; the existing system calendar is unchanged",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.b170ef2db7ca",
-      "source": "系统日历正在同步或移除中",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 411,
-          "context": "new Error(i18n(\"state.systemcal.b170ef2db7ca\"))"
-        }
-      ],
-      "translation": "The system calendar is being synced or removed",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.ce42fc5eaca8",
-      "source": "事件数 {length} 超出上限 {MAX_EVENTS}，已中止系统日历同步",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(events.length)"
-        },
-        {
-          "name": "MAX_EVENTS",
-          "expression": "String(MAX_EVENTS)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 327,
-          "context": "new Error(i18n(\"state.systemcal.ce42fc5eaca8\", { length: String(events.length), MAX_EVENTS: String(MAX_EVENTS) }))"
-        }
-      ],
-      "translation": "The event count {length} exceeds the limit of {MAX_EVENTS}; system calendar sync was aborted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.d2d00f793981",
-      "source": "未获得系统日历权限，请在系统设置中允许 OneTHU 访问日历",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 428,
-          "context": "new Error(i18n(\"state.systemcal.d2d00f793981\"))"
-        }
-      ],
-      "translation": "System calendar permission was not granted. Allow OneTHU to access calendars in system settings.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.fb7404386af9",
-      "source": "正在移除系统日历",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 480,
-          "context": "new Error(i18n(\"state.systemcal.fb7404386af9\"))"
-        }
-      ],
-      "translation": "Removing the system calendar",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.fe90aa1936ae",
-      "source": "同步已停止，已有系统日历保持不变",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 420,
-          "context": "new Error(i18n(\"state.systemcal.fe90aa1936ae\"))"
-        },
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 429,
-          "context": "new Error(i18n(\"state.systemcal.fe90aa1936ae\"))"
-        }
-      ],
-      "translation": "Sync stopped; the existing system calendar is unchanged",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.ff52516e4a39",
-      "source": "课表有 {skipped} 条无法解析的时段，已中止同步",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "skipped",
-          "expression": "String(skipped)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 286,
-          "context": "new Error(i18n(\"state.systemcal.ff52516e4a39\", { skipped: String(skipped) }))"
-        }
-      ],
-      "translation": "The timetable has {skipped} unparseable time slots; sync was aborted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.tabtitles.04671516a9d5",
-      "source": "网络学堂 › 作业详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 84,
-          "context": "course ? i18n(\"state.tabtitles.0fb5334ea170\", { course: String(course) }) : i18n(\"state.tabtitles.04671516a9d5\")"
-        }
-      ],
-      "translation": "Web Learning › Assignment details",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.0c15bb46b442",
-      "source": "网络学堂 › 全部通知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 148,
-          "context": "full: i18n(\"state.tabtitles.0c15bb46b442\")"
-        }
-      ],
-      "translation": "Web Learning › All notices",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.0fb5334ea170",
-      "source": "{course} › 作业详情",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "course",
-          "expression": "String(course)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 84,
-          "context": "course ? i18n(\"state.tabtitles.0fb5334ea170\", { course: String(course) }) : i18n(\"state.tabtitles.04671516a9d5\")"
-        }
-      ],
-      "translation": "{course} › Assignment details",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.14827749c5db",
-      "source": "网络学堂 › 通知详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 93,
-          "context": "course ? i18n(\"state.tabtitles.46034b925dd1\", { course: String(course) }) : i18n(\"state.tabtitles.14827749c5db\")"
-        }
-      ],
-      "translation": "Web Learning › Notice details",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.1bed6f81e9f6",
-      "source": "{course} › 通知",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "course",
-          "expression": "String(course)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 90,
-          "context": "course ? i18n(\"state.tabtitles.1bed6f81e9f6\", { course: String(course) }) : i18n(\"state.tabtitles.b543a6b7ca5d\")"
-        }
-      ],
-      "translation": "{course} › Notices",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.22519a88484f",
-      "source": "课程详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 75,
-          "context": "label: i18n(\"state.tabtitles.22519a88484f\")"
-        }
-      ],
-      "translation": "Course details",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.27b6154b3fd3",
-      "source": "文件详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 102,
-          "context": "label: i18n(\"state.tabtitles.27b6154b3fd3\")"
-        }
-      ],
-      "translation": "File details",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.2ac4206ef92a",
-      "source": "网络学堂 › 搜索",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 154,
-          "context": "full: i18n(\"state.tabtitles.2ac4206ef92a\")"
-        }
-      ],
-      "translation": "Web Learning › Search",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.2d5504d2955c",
-      "source": "{course} › 讨论区",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "course",
-          "expression": "String(course)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 106,
-          "context": "course ? i18n(\"state.tabtitles.2d5504d2955c\", { course: String(course) }) : i18n(\"state.tabtitles.714d843bb743\")"
-        }
-      ],
-      "translation": "{course} › Forum",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.38b9eabcae1b",
-      "source": "雨课堂",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 111,
-          "context": "y?.courseName ?? i18n(\"state.tabtitles.38b9eabcae1b\")"
-        }
-      ],
-      "translation": "Rain Classroom",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.3d03c8dd1593",
-      "source": "云盘 › {name}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 142,
-          "context": "full: i18n(\"state.tabtitles.3d03c8dd1593\", { name: String(name) })"
-        }
-      ],
-      "translation": "Cloud Drive › {name}",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.44ce7ae909bb",
-      "source": "搜索",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 154,
-          "context": "label: i18n(\"state.tabtitles.44ce7ae909bb\")"
-        }
-      ],
-      "translation": "Search",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.457de67c8142",
-      "source": "{course} › 文件",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "course",
-          "expression": "String(course)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 99,
-          "context": "course ? i18n(\"state.tabtitles.457de67c8142\", { course: String(course) }) : i18n(\"state.tabtitles.57c7c46977b9\")"
-        }
-      ],
-      "translation": "{course} › Files",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.46034b925dd1",
-      "source": "{course} › 通知详情",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "course",
-          "expression": "String(course)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 93,
-          "context": "course ? i18n(\"state.tabtitles.46034b925dd1\", { course: String(course) }) : i18n(\"state.tabtitles.14827749c5db\")"
-        }
-      ],
-      "translation": "{course} › Notice details",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.483fe390159f",
-      "source": "通知详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 93,
-          "context": "label: i18n(\"state.tabtitles.483fe390159f\")"
-        }
-      ],
-      "translation": "Notice details",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.55203d69afd6",
-      "source": "网络学堂 › {name}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 74,
-          "context": "full: i18n(\"state.tabtitles.55203d69afd6\", { name: String(name) })"
-        }
-      ],
-      "translation": "Web Learning › {name}",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.57c7c46977b9",
-      "source": "网络学堂 › 文件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 99,
-          "context": "course ? i18n(\"state.tabtitles.457de67c8142\", { course: String(course) }) : i18n(\"state.tabtitles.57c7c46977b9\")"
-        }
-      ],
-      "translation": "Web Learning › Files",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.5caea2aaeece",
-      "source": "网络学堂 › 全部文件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 150,
-          "context": "full: i18n(\"state.tabtitles.5caea2aaeece\")"
-        }
-      ],
-      "translation": "Web Learning › All files",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.60823aaec73b",
-      "source": "已发送",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 135,
-          "context": "params?.mailFolder === \"sent\" ? i18n(\"state.tabtitles.60823aaec73b\") : i18n(\"state.tabtitles.63a5e7b73911\")"
-        }
-      ],
-      "translation": "Sent",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.63a5e7b73911",
-      "source": "收件箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 135,
-          "context": "params?.mailFolder === \"sent\" ? i18n(\"state.tabtitles.60823aaec73b\") : i18n(\"state.tabtitles.63a5e7b73911\")"
-        }
-      ],
-      "translation": "Inbox",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.668cfd9074b0",
-      "source": "网络学堂 › 文件详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 102,
-          "context": "course ? i18n(\"state.tabtitles.c7410c8f179d\", { course: String(course) }) : i18n(\"state.tabtitles.668cfd9074b0\")"
-        }
-      ],
-      "translation": "Web Learning › File details",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.6f1c237908f0",
-      "source": "邮箱 › {folderLabel}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "folderLabel",
-          "expression": "String(folderLabel)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 137,
-          "context": "full: i18n(\"state.tabtitles.6f1c237908f0\", { folderLabel: String(folderLabel) })"
-        }
-      ],
-      "translation": "Mail › {folderLabel}",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.714d843bb743",
-      "source": "网络学堂 › 讨论区",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 106,
-          "context": "course ? i18n(\"state.tabtitles.2d5504d2955c\", { course: String(course) }) : i18n(\"state.tabtitles.714d843bb743\")"
-        }
-      ],
-      "translation": "Web Learning › Forum",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.7292c38a500b",
-      "source": "网络学堂 › 作业",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 81,
-          "context": "course ? i18n(\"state.tabtitles.f12e9b97b5c4\", { course: String(course) }) : i18n(\"state.tabtitles.7292c38a500b\")"
-        }
-      ],
-      "translation": "Web Learning › Assignments",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.73075237fd0f",
-      "source": "邮箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 137,
-          "context": "label: i18n(\"state.tabtitles.73075237fd0f\")"
-        }
-      ],
-      "translation": "Mail",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.859096256da9",
-      "source": "网络学堂 › 全部作业",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 152,
-          "context": "full: i18n(\"state.tabtitles.859096256da9\")"
-        }
-      ],
-      "translation": "Web Learning › All assignments",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.9c92c9d08b05",
-      "source": "讨论区",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 106,
-          "context": "label: i18n(\"state.tabtitles.9c92c9d08b05\")"
-        }
-      ],
-      "translation": "Forum",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.9f4769eefab0",
-      "source": "邮箱 › {folderLabel} › {subject}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "folderLabel",
-          "expression": "String(folderLabel)"
-        },
-        {
-          "name": "subject",
-          "expression": "String(head.subject)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 136,
-          "context": "full: i18n(\"state.tabtitles.9f4769eefab0\", { folderLabel: String(folderLabel), subject: String(head.subject) })"
-        }
-      ],
-      "translation": "Mail › {folderLabel} › {subject}",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.a1cabc0664cf",
-      "source": "全部作业",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 152,
-          "context": "label: i18n(\"state.tabtitles.a1cabc0664cf\")"
-        }
-      ],
-      "translation": "All assignments",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.aa39cac2b409",
-      "source": "网络学堂",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 146,
-          "context": "label: i18n(\"state.tabtitles.aa39cac2b409\")"
-        },
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 146,
-          "context": "full: i18n(\"state.tabtitles.aa39cac2b409\")"
-        }
-      ],
-      "translation": "Web Learning",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.b2c656b0a5a4",
-      "source": "网络学堂 › 课程详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 75,
-          "context": "full: i18n(\"state.tabtitles.b2c656b0a5a4\")"
-        }
-      ],
-      "translation": "Web Learning › Course details",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.b543a6b7ca5d",
-      "source": "网络学堂 › 通知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 90,
-          "context": "course ? i18n(\"state.tabtitles.1bed6f81e9f6\", { course: String(course) }) : i18n(\"state.tabtitles.b543a6b7ca5d\")"
-        }
-      ],
-      "translation": "Web Learning › Notices",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.bdac834d0ba2",
-      "source": "全部通知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 148,
-          "context": "label: i18n(\"state.tabtitles.bdac834d0ba2\")"
-        }
-      ],
-      "translation": "All notices",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.be417b530c04",
-      "source": "全部文件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 150,
-          "context": "label: i18n(\"state.tabtitles.be417b530c04\")"
-        }
-      ],
-      "translation": "All files",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.c7410c8f179d",
-      "source": "{course} › 文件详情",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "course",
-          "expression": "String(course)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 102,
-          "context": "course ? i18n(\"state.tabtitles.c7410c8f179d\", { course: String(course) }) : i18n(\"state.tabtitles.668cfd9074b0\")"
-        }
-      ],
-      "translation": "{course} › File details",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.d4af30a738c7",
-      "source": "作业详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 84,
-          "context": "label: i18n(\"state.tabtitles.d4af30a738c7\")"
-        }
-      ],
-      "translation": "Assignment details",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.f0cd4338679e",
-      "source": "雨课堂作业",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 110,
-          "context": "y?.title ?? i18n(\"state.tabtitles.f0cd4338679e\")"
-        }
-      ],
-      "translation": "Rain Classroom assignment",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.f12e9b97b5c4",
-      "source": "{course} › 作业",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "course",
-          "expression": "String(course)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 81,
-          "context": "course ? i18n(\"state.tabtitles.f12e9b97b5c4\", { course: String(course) }) : i18n(\"state.tabtitles.7292c38a500b\")"
-        }
-      ],
-      "translation": "{course} › Assignments",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.tabtitles.f75562426e77",
-      "source": "云盘",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 143,
-          "context": "label: i18n(\"state.tabtitles.f75562426e77\")"
-        },
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 143,
-          "context": "full: i18n(\"state.tabtitles.f75562426e77\")"
-        }
-      ],
-      "translation": "Cloud Drive",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.theme.07befe8d2563",
-      "source": "OneGUI 默认外观：中性面阶、黑白主要动作与清晰文字层级。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 67,
-          "context": "return i18n(\"state.theme.07befe8d2563\");"
-        }
-      ],
-      "translation": "OneGUI default look: neutral surface steps, black-and-white primary actions, and a clear text hierarchy.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.theme.2d0d99e06fa2",
-      "source": "清华紫强调、淡紫面阶与清晰墨色。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 103,
-          "context": "return i18n(\"state.theme.2d0d99e06fa2\");"
-        }
-      ],
-      "translation": "Tsinghua purple accent, soft lavender surfaces, and clear ink tones.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.theme.49b95f5dd079",
-      "source": "海军蓝强调与冷调浅蓝面阶。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 183,
-          "context": "return i18n(\"state.theme.49b95f5dd079\");"
-        }
-      ],
-      "translation": "Navy accent with cool, light blue surfaces.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.theme.4d63c47d6588",
-      "source": "暖沙",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 161,
-          "context": "return i18n(\"state.theme.4d63c47d6588\");"
-        }
-      ],
-      "translation": "Warm sand",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.theme.4e7abf4896fc",
-      "source": "清华紫",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 100,
-          "context": "return i18n(\"state.theme.4e7abf4896fc\");"
-        }
-      ],
-      "translation": "Tsinghua purple",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.theme.76069b8f9d9f",
-      "source": "青绿强调与清凉的浅绿纸面。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 139,
-          "context": "return i18n(\"state.theme.76069b8f9d9f\");"
-        }
-      ],
-      "translation": "Teal accent with a refreshing light green paper.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.theme.78c3900fe08f",
-      "source": "石墨 · 默认",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 64,
-          "context": "return i18n(\"state.theme.78c3900fe08f\");"
-        }
-      ],
-      "translation": "Graphite · Default",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.theme.7a440ac6411e",
-      "source": "深色工作台与钢蓝强调色，可用于昼夜调度。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 209,
-          "context": "return i18n(\"state.theme.7a440ac6411e\");"
-        }
-      ],
-      "translation": "A dark workbench with a steel blue accent, suitable for day-night switching.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.theme.9a8ab964d522",
-      "source": "主题 id 不能为空",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 681,
-          "context": "new Error(i18n(\"state.theme.9a8ab964d522\"))"
-        }
-      ],
-      "translation": "Theme id cannot be empty",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.theme.c4ef3664d417",
-      "source": "青瓷",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 136,
-          "context": "return i18n(\"state.theme.c4ef3664d417\");"
-        }
-      ],
-      "translation": "Celadon",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.theme.cb163d15eaea",
-      "source": "墨蓝夜航",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 180,
-          "context": "return i18n(\"state.theme.cb163d15eaea\");"
-        }
-      ],
-      "translation": "Midnight blue",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.theme.cfb4093a1ef4",
-      "source": "紫水晶",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 73,
-          "context": "return i18n(\"state.theme.cfb4093a1ef4\");"
-        }
-      ],
-      "translation": "Amethyst",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.theme.e2d5803563ce",
-      "source": "紫罗兰纸面、深紫文字与紫色强调。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 76,
-          "context": "return i18n(\"state.theme.e2d5803563ce\");"
-        }
-      ],
-      "translation": "Violet paper, deep purple text, and a purple accent.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.theme.e4adc0b697bb",
-      "source": "温暖米色纸面、棕色文字与沙金强调。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 164,
-          "context": "return i18n(\"state.theme.e4adc0b697bb\");"
-        }
-      ],
-      "translation": "Warm beige paper, brown text, and a sand gold accent.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.theme.f4d017b4c6b8",
-      "source": "凝夜",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/theme.ts",
-          "line": 205,
-          "context": "return i18n(\"state.theme.f4d017b4c6b8\");"
-        }
-      ],
-      "translation": "Deep night",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.touch.checksum",
-      "source": "口令校验失败（可能复制不完整）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/touch.ts",
-          "line": 66,
-          "context": "reason: i18n(\"state.touch.checksum\")"
-        }
-      ],
-      "translation": "Share code verification failed (it may have been copied incompletely)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.touch.corrupt",
-      "source": "口令内容损坏",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/touch.ts",
-          "line": 65,
-          "context": "reason: i18n(\"state.touch.corrupt\")"
-        }
-      ],
-      "translation": "The share code content is corrupted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.touch.duplicateContact",
-      "source": "名片已在通讯录里（重复接收不会重复添加）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/touch.ts",
-          "line": 146,
-          "context": "reason: i18n(\"state.touch.duplicateContact\")"
-        }
-      ],
-      "translation": "The card is already in Contacts (receiving it again will not add a duplicate)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.touch.empty",
-      "source": "这个碰一碰口令里没有可导入的内容",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/touch.ts",
-          "line": 147,
-          "context": "reason: i18n(\"state.touch.empty\")"
-        }
-      ],
-      "translation": "This Tap to share code contains nothing that can be imported",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.touch.from",
-      "source": "来自 {name}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/touch.ts",
-          "line": 135,
-          "context": "p.from ? i18n(\"state.touch.from\", {name:p.from}) : \"\""
-        }
-      ],
-      "translation": "From {name}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.touch.invalidJson",
-      "source": "口令内容不是合法 JSON",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/touch.ts",
-          "line": 71,
-          "context": "reason: i18n(\"state.touch.invalidJson\")"
-        }
-      ],
-      "translation": "The share code content is not valid JSON",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.touch.invalidPrefix",
-      "source": "不是 OneTHU 碰一碰口令（应以 ONTOUCH1. 开头）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/touch.ts",
-          "line": 63,
-          "context": "reason: i18n(\"state.touch.invalidPrefix\")"
-        }
-      ],
-      "translation": "Not a OneTHU Tap to share code (must start with ONTOUCH1.)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.touch.self",
-      "source": "我",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/org.ts",
-          "line": 163,
-          "context": "input.ownerName ?? i18n(\"state.touch.self\")"
-        },
-        {
-          "file": "apps/desktop/src/state/org.ts",
-          "line": 342,
-          "context": "inviter = i18n(\"state.touch.self\")"
-        },
-        {
-          "file": "apps/desktop/src/state/org.ts",
-          "line": 437,
-          "context": "myName = i18n(\"state.touch.self\")"
-        },
-        {
-          "file": "apps/desktop/src/state/touch.ts",
-          "line": 114,
-          "context": "myName = i18n(\"state.touch.self\")"
-        }
-      ],
-      "translation": "Me",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.touch.unreadable",
-      "source": "口令无法解析",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/touch.ts",
-          "line": 122,
-          "context": "dec.reason ?? i18n(\"state.touch.unreadable\")"
-        }
-      ],
-      "translation": "The share code could not be parsed",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.touch.vaultImportFailed",
-      "source": "暂存箱口令无法导入",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/touch.ts",
-          "line": 131,
-          "context": "r.reason ?? i18n(\"state.touch.vaultImportFailed\")"
-        }
-      ],
-      "translation": "The Stash share code could not be imported",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.touch.version",
-      "source": "口令版本不受支持",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/touch.ts",
-          "line": 69,
-          "context": "reason: i18n(\"state.touch.version\")"
-        }
-      ],
-      "translation": "Share code version not supported",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.userext.1129baf5b637",
-      "source": "第 {step} 步失败：{error}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "step",
-          "expression": "i + 1"
-        },
-        {
-          "name": "error",
-          "expression": "e instanceof Error ? e.message : String(e)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/userext.ts",
-          "line": 356,
-          "context": "error: i18n(\"state.userext.1129baf5b637\", { step: i + 1, error: e instanceof Error ? e.message : String(e) })"
-        }
-      ],
-      "translation": "Step {step} failed: {error}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.userext.13a46616e16f",
-      "source": "未知错误",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/userext.ts",
-          "line": 308,
-          "context": "error ?? i18n(\"state.userext.13a46616e16f\")"
-        }
-      ],
-      "translation": "Unknown error",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

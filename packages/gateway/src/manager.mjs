@@ -11,6 +11,10 @@ import { openGatewayBrowser } from './browser.mjs';
 import { withSecureCampusOrigins } from './routes.mjs';
 import { createPacScript } from './pac.mjs';
 import { createMacPeerAuthorizer } from './macPeer.mjs';
+import { createWindowsPeerAuthorizer } from './windowsPeer.mjs';
+import { createTrustedClientResolver } from './trustedClient.mjs';
+import { CLIENT_IDENTITY_HOST, CLIENT_BUSINESS_HOSTS } from './clientIdentity.mjs';
+import { gatewayCapabilities } from './capabilities.mjs';
 import { createCampusPassthrough } from './passthrough.mjs';
 export { createPacScript } from './pac.mjs';
 export { DEFAULT_UPSTREAM_ORIGINS } from './routes.mjs';
@@ -90,12 +94,13 @@ async function servePac(origins, endpoint, fallback, options) {
  */
 export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAULT_ALLOWED_ORIGINS,
   certificateFactory = createCertificateAuthority, platformFactory = createPlatformIntegration,
-  browserFactory = openGatewayBrowser, peerAuthorizerFactory = createMacPeerAuthorizer,
+  browserFactory = openGatewayBrowser, peerAuthorizerFactory,
   hostPlatform = process.platform } = {}) {
   if (typeof dataDir !== 'string' || !dataDir || !session || typeof session.status !== 'function') fail('GATEWAY_CONFIG_INVALID');
   const origins = [...normalizeAllowedOrigins(withSecureCampusOrigins([...allowedOrigins]))]
     .filter(origin => !isCampusIdentityHost(new URL(origin).hostname));
   if (!origins.length) fail('GATEWAY_CONFIG_INVALID');
+  peerAuthorizerFactory ??= hostPlatform === 'win32' ? createWindowsPeerAuthorizer : createMacPeerAuthorizer;
   const dynamicOrigins = originMembership(new Set(), typeof session.authorizeTarget === 'function' ? target => session.authorizeTarget(target) : undefined);
   const authorizeDynamic = origin => dynamicOrigins.has(origin);
   const effectiveOrigins = () => {
@@ -112,7 +117,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
   const directory = join(resolve(dataDir), 'gateway');
   const certificateDirectory = join(directory, 'certificates');
   const certificatePath = join(certificateDirectory, 'ca.pem');
-  let authority, platform, proxy, pac, token, lastError = null;
+  let authority, clientAuthority, platform, proxy, pac, token, lastError = null;
   let systemProxy;
   const systemPacs = new Map();
   const browsers = new Set();
@@ -150,6 +155,8 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
           : !proxy || !pac || system.pacUrl !== pac.url) },
       systemEndpoint: systemProxy?.address() ?? null,
       systemTraffic: systemProxy?.statistics() ?? { requests: 0, hosts: {} },
+      capabilities: { ...gatewayCapabilities(hostPlatform), trustedMiniPrograms: !!session.clientIdentity && ['darwin','win32'].includes(hostPlatform) },
+      clientRenewals: session.clientIdentity?.desktop?.status?.() ?? [],
       allowedOrigins: effectiveOrigins(), pacUrl: pac?.url ?? null, lastError };
   }
 
@@ -221,7 +228,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
       } else if (action === 'trust') await platform.trust({ confirm: true });
       else if (action === 'system-enable') {
         if (!proxy || !pac) fail('GATEWAY_NOT_RUNNING');
-        if (hostPlatform === 'darwin' && typeof platform.prepareProxy === 'function') {
+        if (['darwin', 'win32'].includes(hostPlatform) && typeof platform.prepareProxy === 'function') {
           const current = await status();
           if (current.systemProxy.enabled && !current.systemProxy.recoveryRequired) return current;
           if (current.systemProxy.recoveryRequired) fail('GATEWAY_PROXY_RECOVERY_REQUIRED');
@@ -245,8 +252,14 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
               const key = JSON.stringify(service.fallback);
               let gateway = groups.get(key);
               const passthrough = createCampusPassthrough(service.fallback);
+              const trustedClients = !!session.clientIdentity && !!passthrough;
               if (!gateway) {
-                gateway = createCampusGateway({ allowedOrigins: origins, session, authorizeSocket: peerAuthorizerFactory(),
+                const authorizeSocket = peerAuthorizerFactory();
+                if (trustedClients) clientAuthority ??= await certificateFactory({ directory: certificateDirectory,
+                  allowedHosts: [CLIENT_IDENTITY_HOST, ...CLIENT_BUSINESS_HOSTS] });
+                gateway = createCampusGateway({ allowedOrigins: origins, session, authorizeSocket,
+                  ...(trustedClients ? { resolveClient: createTrustedClientResolver(authorizeSocket), clientIdentity: session.clientIdentity,
+                    tlsClient: (hostname, options) => clientAuthority.issue(hostname, options) } : {}),
                   ...(passthrough ? { connectPassthrough: passthrough } : {}),
                   tls: (hostname, options) => authority.issue(hostname, options), upgradeInsecureRequests: true,
                   maxUploadBytes: 1024 * 1024 * 1024, maxDownloadBytes: 4 * 1024 * 1024 * 1024, timeoutMs: 180_000 });
@@ -256,7 +269,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
                 // proxies intact rather than routing the whole browser to 503.
                 await gateway.preflight();
               }
-              systemPacs.set(service.name, await servePac(effectiveOrigins, gateway.address(), service.fallback, { campusPassthrough: !!passthrough }));
+              systemPacs.set(service.name, await servePac(effectiveOrigins, gateway.address(), service.fallback, { campusPassthrough: !!passthrough, trustedClients }));
             }
             await platform.enableProxy({ confirm: true, expectedPlan: plan,
               pacUrlsByService: Object.fromEntries([...systemPacs].map(([name, item]) => [name, item.url])) });

@@ -1,7 +1,1202 @@
 {
-  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
+  "sourceHash": "be3fd8c88a23dc4acb558acc486d73c0e34027023912c7adc1e35b9861a6e4b5",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "gateway.prepareClientsDescription",
+      "source": "由当前 OneTHU 窗口检查学校授权；小程序登录时转交学校签发的短时服务票据，密码保留在本机既有登录流程中。微信自身的登录、学校额外验证与小程序实际支持情况需分别确认。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 162,
+          "context": "{t(\"gateway.prepareClientsDescription\")}"
+        }
+      ],
+      "translation": "Check university authorization through this OneTHU window. Mini-program sign-in receives a short-lived, university-issued service ticket; passwords stay in the existing local sign-in flow. WeChat sign-in, additional university verification, and actual mini-program support remain separate checks.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.preparing",
+      "source": "正在准备…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/campus-gateway-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Preparing…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.proxyPassword",
+      "source": "代理密码",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 178,
+          "context": "{t(\"gateway.proxyPassword\")}"
+        }
+      ],
+      "translation": "Proxy password",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.proxyUsername",
+      "source": "代理用户名",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 177,
+          "context": "{t(\"gateway.proxyUsername\")}"
+        }
+      ],
+      "translation": "Proxy username",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.recoveryRequired",
+      "source": "检测到上次尚未恢复的系统代理配置。请点击「恢复原代理设置」；其他应用后来修改的配置不会被覆盖。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 145,
+          "context": "{t(\"gateway.recoveryRequired\")}"
+        },
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 156,
+          "context": "recoveryRequired ? t(\"gateway.recoveryRequired\") : !systemSupported ? t(\"gateway.systemUnsupported\") : systemEnabled ? t(\"gateway.systemEnabled\") : t(\"gateway.systemDescription\")"
+        }
+      ],
+      "translation": "System proxy settings from an earlier session need recovery. Choose “Restore proxy settings”. Later changes made by other apps will not be overwritten.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.refresh",
+      "source": "刷新状态",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 139,
+          "context": "busy === \"status\" ? t(\"gateway.refreshing\") : t(\"gateway.refresh\")"
+        }
+      ],
+      "translation": "Refresh status",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.refreshing",
+      "source": "正在刷新…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 139,
+          "context": "busy === \"status\" ? t(\"gateway.refreshing\") : t(\"gateway.refresh\")"
+        }
+      ],
+      "translation": "Refreshing…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.restoreError",
+      "source": "未能安全恢复原代理设置。请检查系统代理后重试；不会强行覆盖其他应用修改的配置。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 23,
+          "context": "return t(\"gateway.restoreError\");"
+        }
+      ],
+      "translation": "The previous proxy settings could not be safely restored. Check the system proxy and retry. Changes made by other apps will not be overwritten.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.revealCredentials",
+      "source": "显示代理凭据",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 175,
+          "context": "credentials ? t(\"gateway.hideCredentials\") : t(\"gateway.revealCredentials\")"
+        }
+      ],
+      "translation": "Reveal proxy credentials",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.revealing",
+      "source": "正在读取…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 175,
+          "context": "busy === \"credentials\" ? t(\"gateway.revealing\") : credentials ? t(\"gateway.hideCredentials\") : t(\"gateway.revealCredentials\")"
+        }
+      ],
+      "translation": "Retrieving…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.running",
+      "source": "运行中 · {endpoint}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "endpoint"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 134,
+          "context": "running ? t(\"gateway.running\", { endpoint }) : t(\"gateway.stopped\")"
+        }
+      ],
+      "translation": "Running · {endpoint}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.start",
+      "source": "启动代理",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 141,
+          "context": "running ? t(\"gateway.stop\") : t(\"gateway.start\")"
+        }
+      ],
+      "translation": "Start proxy",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.starting",
+      "source": "正在启动…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 141,
+          "context": "busy === \"start\" ? t(\"gateway.starting\") : busy === \"stop\" ? t(\"gateway.stopping\") : running ? t(\"gateway.stop\") : t(\"gateway.start\")"
+        }
+      ],
+      "translation": "Starting…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.stop",
+      "source": "停止代理",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 141,
+          "context": "running ? t(\"gateway.stop\") : t(\"gateway.start\")"
+        }
+      ],
+      "translation": "Stop proxy",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.stopped",
+      "source": "已停止",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 134,
+          "context": "running ? t(\"gateway.running\", { endpoint }) : t(\"gateway.stopped\")"
+        }
+      ],
+      "translation": "Stopped",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.stopping",
+      "source": "正在停止…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 141,
+          "context": "busy === \"stop\" ? t(\"gateway.stopping\") : running ? t(\"gateway.stop\") : t(\"gateway.start\")"
+        }
+      ],
+      "translation": "Stopping…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.systemDescription",
+      "source": "启动代理并信任证书后，点击启用。遵循系统代理设置的浏览器即可访问校园站点；macOS 可保留现有手动代理供其他网站使用。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 156,
+          "context": "systemEnabled ? t(\"gateway.systemEnabled\") : t(\"gateway.systemDescription\")"
+        }
+      ],
+      "translation": "Start the proxy and trust its certificate, then enable it for browsers that follow system proxy settings. On macOS, an existing manual proxy can continue handling other websites.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.systemDisable",
+      "source": "恢复原代理设置",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 143,
+          "context": "busy === \"system-disable\" ? t(\"gateway.systemDisabling\") : t(\"gateway.systemDisable\")"
+        },
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 158,
+          "context": "systemEnabled ? t(\"gateway.systemDisable\") : t(\"gateway.systemEnable\")"
+        }
+      ],
+      "translation": "Restore proxy settings",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.systemDisabling",
+      "source": "正在恢复…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 143,
+          "context": "busy === \"system-disable\" ? t(\"gateway.systemDisabling\") : t(\"gateway.systemDisable\")"
+        },
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 158,
+          "context": "busy === \"system-disable\" ? t(\"gateway.systemDisabling\") : systemEnabled ? t(\"gateway.systemDisable\") : t(\"gateway.systemEnable\")"
+        }
+      ],
+      "translation": "Restoring…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.systemEnable",
+      "source": "启用系统代理",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 158,
+          "context": "systemEnabled ? t(\"gateway.systemDisable\") : t(\"gateway.systemEnable\")"
+        }
+      ],
+      "translation": "Enable system proxy",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.systemEnabled",
+      "source": "已启用，遵循系统代理设置的浏览器可直接使用。停用后恢复原代理设置，再按需撤销证书信任。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 156,
+          "context": "systemEnabled ? t(\"gateway.systemEnabled\") : t(\"gateway.systemDescription\")"
+        }
+      ],
+      "translation": "Enabled for browsers that follow system proxy settings. Disable to restore previous proxy settings, then remove certificate trust if desired.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.systemEnabling",
+      "source": "正在启用…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 158,
+          "context": "busy === \"system-enable\" ? t(\"gateway.systemEnabling\") : busy === \"system-disable\" ? t(\"gateway.systemDisabling\") : systemEnabled ? t(\"gateway.systemDisable\") : t(\"gateway.systemEnable\")"
+        }
+      ],
+      "translation": "Enabling…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.systemFlow",
+      "source": "① 启动代理　② 授权信任证书　③ 启用系统代理；每一步均需主动点击。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 150,
+          "context": "{t(\"gateway.systemFlow\")}"
+        }
+      ],
+      "translation": "1. Start proxy → 2. Trust certificate → 3. Enable system proxy. Each step requires your action.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.systemProxy",
+      "source": "系统校园代理",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 156,
+          "context": "{t(\"gateway.systemProxy\")}"
+        }
+      ],
+      "translation": "Campus system proxy",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.systemUnsupported",
+      "source": "当前系统暂不支持自动接入，可展开下方查看其他接入方式。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 156,
+          "context": "!systemSupported ? t(\"gateway.systemUnsupported\") : systemEnabled ? t(\"gateway.systemEnabled\") : t(\"gateway.systemDescription\")"
+        }
+      ],
+      "translation": "Automatic system integration is unavailable on this platform. Expand the options below for other connection methods.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.title",
+      "source": "校园超级代理",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 121,
+          "context": "{t(\"gateway.title\")}"
+        },
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 137,
+          "context": "{t(\"gateway.title\")}"
+        }
+      ],
+      "translation": "Campus superproxy",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "gateway.trust",
+      "source": "授权信任证书",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 153,
+          "context": "busy === \"trust\" ? t(\"gateway.trusting\") : t(\"gateway.trust\")"
+        }
+      ],
+      "translation": "Trust certificate",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.trusted",
+      "source": "已信任，可启用系统校园代理。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 151,
+          "context": "status.certificate?.trusted === true ? t(\"gateway.trusted\") : status.certificate?.trusted === false ? t(\"gateway.untrusted\") : t(\"gateway.trustUnknown\")"
+        }
+      ],
+      "translation": "Trusted. The campus system proxy can be enabled.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.trusting",
+      "source": "等待系统授权…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 153,
+          "context": "busy === \"trust\" ? t(\"gateway.trusting\") : t(\"gateway.trust\")"
+        }
+      ],
+      "translation": "Waiting for approval…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.trustUnknown",
+      "source": "已准备证书，系统信任状态未确认。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 151,
+          "context": "status.certificate?.trusted === false ? t(\"gateway.untrusted\") : t(\"gateway.trustUnknown\")"
+        }
+      ],
+      "translation": "Certificate prepared. System trust has not been confirmed.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.unavailable",
+      "source": "暂时无法读取代理状态，请刷新重试。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 133,
+          "context": "!status ? t(\"gateway.unavailable\")\n    : running ? t(\"gateway.running\", { endpoint }) : t(\"gateway.stopped\")"
+        }
+      ],
+      "translation": "Proxy status is unavailable. Refresh to retry.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.untrust",
+      "source": "撤销信任",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 154,
+          "context": "busy === \"untrust\" ? t(\"gateway.untrusting\") : t(\"gateway.untrust\")"
+        }
+      ],
+      "translation": "Remove trust",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.untrusted",
+      "source": "尚未信任。请授权信任后再启用系统代理。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 151,
+          "context": "status.certificate?.trusted === false ? t(\"gateway.untrusted\") : t(\"gateway.trustUnknown\")"
+        }
+      ],
+      "translation": "Not yet trusted. Approve certificate trust before enabling the system proxy.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gateway.untrusting",
+      "source": "正在撤销…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CampusGatewaySettings.tsx",
+          "line": 154,
+          "context": "busy === \"untrust\" ? t(\"gateway.untrusting\") : t(\"gateway.untrust\")"
+        }
+      ],
+      "translation": "Removing trust…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.action.back",
+      "source": "返回",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Back",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.action.close",
+      "source": "关闭",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Close",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.action.remove",
+      "source": "移除",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Remove",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.breadcrumb.label",
+      "source": "面包屑",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Breadcrumb",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.code.copied",
+      "source": "已复制",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Copied",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.code.copy",
+      "source": "复制",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Copy",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.navigation.home",
+      "source": "首页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Home",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.number.decrease",
+      "source": "减",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Decrease",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.number.increase",
+      "source": "加",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Increase",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.overlay.actionMenu",
+      "source": "操作菜单",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Actions menu",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.overlay.actions",
+      "source": "操作",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Actions",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.overlay.dialog",
+      "source": "对话框",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Dialog",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.overlay.drawer",
+      "source": "抽屉",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Drawer",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.overlay.panel",
+      "source": "面板",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Panel",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.overlay.popover",
+      "source": "浮层",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Popover",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.pagination.next",
+      "source": "下一页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Next page",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.pagination.previous",
+      "source": "上一页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Previous page",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.range.lower",
+      "source": "下限",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Lower bound",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.range.upper",
+      "source": "上限",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Upper bound",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.search.clear",
+      "source": "清空",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Clear",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.search.placeholder",
+      "source": "搜索",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Search",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.segment.scroll",
+      "source": "滚动选项",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Scroll options",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.status.loading",
+      "source": "加载中",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Loading",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.tabs.all",
+      "source": "全部标签页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "All tabs",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.tabs.close",
+      "source": "关闭标签页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Close tab",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "gui.tabs.label",
+      "source": "标签页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "packages/gui/src/locale.tsx",
+          "line": 1
+        }
+      ],
+      "translation": "Tabs",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.feishu.1b07b50af2fc",
+      "source": "飞书应用信息未配置",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/feishu.ts",
+          "line": 43,
+          "context": "new Error(i18n(\"im.feishu.1b07b50af2fc\"))"
+        },
+        {
+          "file": "apps/desktop/src/im/feishu.ts",
+          "line": 83,
+          "context": "new Error(i18n(\"im.feishu.1b07b50af2fc\"))"
+        }
+      ],
+      "translation": "Feishu app information is not configured",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.feishu.6852f9c70747",
+      "source": "飞书登录失败(code={value})：{value2}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(j.code ?? res.status)"
+        },
+        {
+          "name": "value2",
+          "expression": "String(j.msg ?? \"请检查 App ID / App Secret\")"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/feishu.ts",
+          "line": 51,
+          "context": "new Error(i18n(\"im.feishu.6852f9c70747\", { value: String(j.code ?? res.status), value2: String(j.msg ?? i18n(\"im.feishu.checkAppCredentials\")) }))"
+        }
+      ],
+      "translation": "Feishu sign-in failed (code={value}): {value2}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.feishu.922f42820916",
+      "source": "飞书发送失败(code={value})：{value2}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(j.code ?? res.status)"
+        },
+        {
+          "name": "value2",
+          "expression": "String(j.msg ?? \"未知原因\")"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/feishu.ts",
+          "line": 416,
+          "context": "new Error(i18n(\"im.feishu.922f42820916\", { value: String(j.code ?? res.status), value2: String(j.msg ?? i18n(\"im.feishu.unknownReason\")) }))"
+        }
+      ],
+      "translation": "Feishu send failed (code={value}): {value2}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.feishu.ae1ef2c16037",
+      "source": "飞书长连接建立失败(code={code})：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "code",
+          "expression": "String(j.code)"
+        },
+        {
+          "name": "value",
+          "expression": "String(j.msg ?? \"请检查应用信息与长连接权限\")"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/feishu.ts",
+          "line": 91,
+          "context": "new Error(i18n(\"im.feishu.ae1ef2c16037\", { code: String(j.code), value: String(j.msg ?? i18n(\"im.feishu.checkConnectionPermissions\")) }))"
+        }
+      ],
+      "translation": "Failed to establish the Feishu long connection (code={code}): {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.feishu.cd5f46094a61",
+      "source": "飞书长连接无法建立：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(String((e as Event)?.type ?? e))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/feishu.ts",
+          "line": 138,
+          "context": "new Error(i18n(\"im.feishu.cd5f46094a61\", { value: String(String((e as Event)?.type ?? e)) }))"
+        }
+      ],
+      "translation": "The Feishu long connection cannot be established: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.feishu.channelLabel",
+      "source": "飞书",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/feishu.ts",
+          "line": 100,
+          "context": "return i18n(\"im.feishu.channelLabel\");"
+        }
+      ],
+      "translation": "Feishu",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "im.feishu.checkAppCredentials",
+      "source": "请检查 App ID / App Secret",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/feishu.ts",
+          "line": 51,
+          "context": "j.msg ?? i18n(\"im.feishu.checkAppCredentials\")"
+        }
+      ],
+      "translation": "Check the App ID and App Secret.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.feishu.checkConnectionPermissions",
+      "source": "请检查应用信息与长连接权限",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/feishu.ts",
+          "line": 91,
+          "context": "j.msg ?? i18n(\"im.feishu.checkConnectionPermissions\")"
+        }
+      ],
+      "translation": "Check the app details and long-connection permissions.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.feishu.reconnectDelay",
+      "source": "连接断开，{seconds} 秒后重连",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "seconds"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/feishu.ts",
+          "line": 431,
+          "context": "reportChannelStatus(\"feishu\", \"reconnecting\", i18n(\"im.feishu.reconnectDelay\", { seconds: Math.round(delay / 1000) }))"
+        }
+      ],
+      "translation": "Disconnected. Reconnecting in {seconds} seconds.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.feishu.unknownReason",
+      "source": "未知原因",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/feishu.ts",
+          "line": 416,
+          "context": "j.msg ?? i18n(\"im.feishu.unknownReason\")"
+        }
+      ],
+      "translation": "Unknown reason",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.feishuproto.34a35aa8ee74",
+      "source": "protobuf: varint 越界",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/feishuProto.ts",
+          "line": 84,
+          "context": "new Error(i18n(\"im.feishuproto.34a35aa8ee74\"))"
+        }
+      ],
+      "translation": "protobuf: varint out of range",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "im.feishuproto.566a4335284f",
+      "source": "protobuf: 未知 wire type {wireType}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "wireType",
+          "expression": "String(wireType)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/im/feishuProto.ts",
+          "line": 108,
+          "context": "new Error(i18n(\"im.feishuproto.566a4335284f\", { wireType: String(wireType) }))"
+        }
+      ],
+      "translation": "protobuf: unknown wire type {wireType}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "im.feishuproto.6c3a6e0bd105",
       "source": "protobuf: varint 过长",
@@ -132,1277 +1327,6 @@
         }
       ],
       "translation": "begin did not return a QR code URL: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.feishureg.f9b4efe03903",
-      "source": "你在手机上取消了创建",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/feishuReg.ts",
-          "line": 117,
-          "context": "note: i18n(\"im.feishureg.f9b4efe03903\")"
-        }
-      ],
-      "translation": "You canceled the creation on your phone",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.feishureg.unknownReason",
-      "source": "未知原因",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/feishuReg.ts",
-          "line": 121,
-          "context": "r.error_description ?? i18n(\"im.feishureg.unknownReason\")"
-        }
-      ],
-      "translation": "Unknown reason",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.imstorage.15b8b711a27d",
-      "source": "当前环境不支持 WebCrypto",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/imStorage.ts",
-          "line": 122,
-          "context": "new Error(i18n(\"im.imstorage.15b8b711a27d\"))"
-        },
-        {
-          "file": "apps/desktop/src/im/imStorage.ts",
-          "line": 136,
-          "context": "new Error(i18n(\"im.imstorage.15b8b711a27d\"))"
-        },
-        {
-          "file": "apps/desktop/src/im/imStorage.ts",
-          "line": 146,
-          "context": "new Error(i18n(\"im.imstorage.15b8b711a27d\"))"
-        }
-      ],
-      "translation": "The current environment does not support WebCrypto",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.mediapipe.734edfaaa263",
-      "source": "云盘未配置：先在应用的「云盘」页连接",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/mediaPipe.ts",
-          "line": 50,
-          "context": "new Error(i18n(\"im.mediapipe.734edfaaa263\"))"
-        }
-      ],
-      "translation": "Cloud drive is not configured: connect it on the app's “Cloud Drive” page first",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.mediapipe.da65b434a10b",
-      "source": "尚未指定资料库（请先回复库序号或库名，我来记住）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/mediaPipe.ts",
-          "line": 163,
-          "context": "new Error(i18n(\"im.mediapipe.da65b434a10b\"))"
-        }
-      ],
-      "translation": "No library has been chosen yet (reply with the library number or name first, and I'll remember it)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.02e3d60f5728",
-      "source": "通道未启用",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 68,
-          "context": "new Error(i18n(\"im.registry.02e3d60f5728\"))"
-        }
-      ],
-      "translation": "Channel not enabled",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.03e93eccef32",
-      "source": "「{kw}」没有命中（搜了最近 20 条会话的标题与内容）。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "kw",
-          "expression": "String(kw)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 338,
-          "context": "hits.length\n          ? i18n(\"im.registry.7b6bcc474a8c\", { kw: String(kw), length: String(hits.length), value: String(hits.join(\"\\n\")) })\n          : i18n(\"im.registry.03e93eccef32\", { kw: String(kw) })"
-        }
-      ],
-      "translation": "“{kw}” matched nothing (searched titles and content of the last 20 conversations).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.0894809f5000",
-      "source": "· /switch N —— 切换到编号 N 的会话",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 190,
-          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
-        }
-      ],
-      "translation": "· /switch N —— switch to conversation number N",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.0e078145fef7",
-      "source": "已忽略，未上传。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 557,
-          "context": "replyTo(msg, i18n(\"im.registry.0e078145fef7\"))"
-        }
-      ],
-      "translation": "Ignored, not uploaded.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.103831bac44b",
-      "source": "先回 /list 看编号，再「/switch 编号」。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 233,
-          "context": "replyTo(msg, i18n(\"im.registry.103831bac44b\"))"
-        }
-      ],
-      "translation": "Reply /list first to see the numbers, then “/switch number”.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.106ec22a4ae9",
-      "source": "连接失败：{value}。也可在电脑端 OneTHU 的「云盘」页再点一次自动连接。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(r.error ?? i18n(\"im.registry.a1a9da9ee6ed\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 352,
-          "context": "r.ok\n        ? i18n(\"im.registry.138dbe11a0d8\", { value: String(r.account?.name ? `（${r.account.name}）` : \"\") })\n        : i18n(\"im.registry.106ec22a4ae9\", { value: String(r.error ?? i18n(\"im.registry.a1a9da9ee6ed\")) })"
-        }
-      ],
-      "translation": "Connection failed: {value}. You can also tap auto-connect again on the “Cloud Drive” page of OneTHU on your computer.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.138dbe11a0d8",
-      "source": "✅ 云盘已自动连接{value}——现在可以转存文件了。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(r.account?.name ? `（${r.account.name}）` : \"\")"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 351,
-          "context": "r.ok\n        ? i18n(\"im.registry.138dbe11a0d8\", { value: String(r.account?.name ? `（${r.account.name}）` : \"\") })\n        : i18n(\"im.registry.106ec22a4ae9\", { value: String(r.error ?? i18n(\"im.registry.a1a9da9ee6ed\")) })"
-        }
-      ],
-      "translation": "✅ Cloud drive connected automatically{value}—— you can now transfer files.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.16a558ff8f5c",
-      "source": "还没指定存到哪个资料库。你的资料库：\n{value}\n回复「存 <序号>」选定并存到建议目录（也可回「存到 <库名>」）。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(repos.map((r, i) => `${i + 1}. ${r.name}`).join(\"\\n\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 521,
-          "context": "replyTo(\n              msg,\n              i18n(\"im.registry.16a558ff8f5c\", { value: String(repos.map((r, i) => `${i + 1}. ${r.name}`).join(\"\\n\")) }),\n            )"
-        }
-      ],
-      "translation": "No library has been chosen to store files in yet. Your libraries:\n{value}\nReply “存 <number>” to pick one and save into the suggested folder (or reply “存到 <library name>”).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.1995eb67cce4",
-      "source": "会话（最近 10 条，1 号为主对话）：\n{value}\n/detail N 看内容 · /switch N 切换 · /delete N 删除",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(lines.join(\"\\n\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 219,
-          "context": "replyTo(msg, i18n(\"im.registry.1995eb67cce4\", { value: String(lines.join(\"\\n\")) }))"
-        }
-      ],
-      "translation": "Conversations (last 10; number 1 is the main one):\n{value}\n/detail N to view content · /switch N to switch · /delete N to delete",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.1a301117fb34",
-      "source": "通道未注册：{id}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "id",
-          "expression": "String(id)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 66,
-          "context": "new Error(i18n(\"im.registry.1a301117fb34\", { id: String(id) }))"
-        }
-      ],
-      "translation": "Channel not registered: {id}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.1d40e0790123",
-      "source": "· /new —— 新建会话并切换",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 189,
-          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
-        }
-      ],
-      "translation": "· /new —— create a new conversation and switch to it",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.1e831ff53d8e",
-      "source": "配置不完整：缺 {missing}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "missing",
-          "expression": "String(probe.missing)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 70,
-          "context": "new Error(i18n(\"im.registry.1e831ff53d8e\", { missing: String(probe.missing) }))"
-        }
-      ],
-      "translation": "Incomplete configuration: missing {missing}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.276f4647be56",
-      "source": "（刚才的文件还在待确认：「存」转存 /「不」忽略 /「存到 <目录>」自定义）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 583,
-          "context": "replyTo(msg, i18n(\"im.registry.276f4647be56\"))"
-        }
-      ],
-      "translation": "(The previous file is still pending confirmation: “存” to transfer / “不” to ignore / “存到 <folder>” for a custom location)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.2a20bd367600",
-      "source": "已开新会话（1 号主对话仍保留，/switch 1 可回）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 225,
-          "context": "r?.ok ? i18n(\"im.registry.2a20bd367600\") : i18n(\"im.registry.76588d6a5d1a\")"
-        }
-      ],
-      "translation": "New conversation started (the main conversation, number 1, is kept; use /switch 1 to go back).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.2f3f2a4125cb",
-      "source": "这台电脑的 OneTHU 未与你绑定：请让机主在 设置 → IM 机器人 生成绑定码，再发送「/bind 码」。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 398,
-          "context": "replyTo(msg, i18n(\"im.registry.2f3f2a4125cb\"))"
-        }
-      ],
-      "translation": "This computer's OneTHU is not bound to you: ask the owner to generate a binding code in Settings → IM bot, then send “/bind code”.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.2fb556ba8785",
-      "source": "还没有会话。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 208,
-          "context": "replyTo(msg, i18n(\"im.registry.2fb556ba8785\"))"
-        }
-      ],
-      "translation": "No conversations yet.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.30627e4f5d7b",
-      "source": "已切换。/detail 1 5-8 可直接看第 5-8 轮。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 237,
-          "context": "r?.ok ? i18n(\"im.registry.30627e4f5d7b\") : i18n(\"im.registry.b34bb467f031\")"
-        }
-      ],
-      "translation": "Switched. /detail 1 5-8 shows rounds 5–8 directly.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.37cddcf59a45",
-      "source": "用法：/detail 编号 [起始轮-结束轮]，如 /detail 2 或 /detail 1 5-8（默认 1-5）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 244,
-          "context": "replyTo(msg, i18n(\"im.registry.37cddcf59a45\"))"
-        }
-      ],
-      "translation": "Usage: /detail number [start round-end round], e.g. /detail 2 or /detail 1 5-8 (defaults to 1-5).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.3857e11aade6",
-      "source": "该会话没有可显示的对话轮。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 267,
-          "context": "replyTo(msg, i18n(\"im.registry.3857e11aade6\"))"
-        }
-      ],
-      "translation": "This conversation has no rounds to show.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.3f720cf75734",
-      "source": "附件处理失败：\n{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(errs.join(\"\\n\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 425,
-          "context": "replyTo(msg, i18n(\"im.registry.3f720cf75734\", { value: String(errs.join(\"\\n\")) }))"
-        }
-      ],
-      "translation": "Attachment processing failed:\n{value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.40ff3379e054",
-      "source": "生成分享链接失败：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(e instanceof Error ? e.message : String(e))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 631,
-          "context": "replyTo(msg, i18n(\"im.registry.40ff3379e054\", { value: String(e instanceof Error ? e.message : String(e)) }))"
-        }
-      ],
-      "translation": "Failed to create the share link: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.428b9163a77c",
-      "source": "(无响应)",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 600,
-          "context": "r.answer ?? i18n(\"im.registry.428b9163a77c\")"
-        }
-      ],
-      "translation": "(No response)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.44383fa7e8d3",
-      "source": "《{name}》不是可读文本（二进制/图片等），我读不出文字内容。回「存」转存 /「不」忽略。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(s0.name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 569,
-          "context": "replyTo(\n            msg,\n            i18n(\"im.registry.44383fa7e8d3\", { name: String(s0.name) }),\n          )"
-        }
-      ],
-      "translation": "“{name}” is not readable text (binary/image, etc.), so I can't read its text content. Reply “存” to transfer it / “不” to ignore.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.5215599023ee",
-      "source": "读取失败。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 256,
-          "context": "replyTo(msg, i18n(\"im.registry.5215599023ee\"))"
-        }
-      ],
-      "translation": "Failed to read.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.5f78abafdcbe",
-      "source": "{ans}\n\n（文件仍在待确认：回「存」转存 /「存到 <目录>」/「不」忽略）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "ans",
-          "expression": "String(ans)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 579,
-          "context": "replyTo(msg, i18n(\"im.registry.5f78abafdcbe\", { ans: String(ans) }))"
-        }
-      ],
-      "translation": "{ans}\n\n(The file is still pending confirmation: reply “存” to transfer / “存到 <folder>” / “不” to ignore)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.614102b3fb66",
-      "source": "绑定码不正确，请核对后重发「/bind 码」。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 364,
-          "context": "replyTo(msg, i18n(\"im.registry.614102b3fb66\"))"
-        }
-      ],
-      "translation": "The binding code is incorrect; check it and resend “/bind code”.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.67895eae0abe",
-      "source": "公开分享链接（7 天有效，拿到链接的人都能访问）：\n{link}\n文件：{path}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "link",
-          "expression": "String(link)"
-        },
-        {
-          "name": "path",
-          "expression": "String(ls.path)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 629,
-          "context": "replyTo(msg, i18n(\"im.registry.67895eae0abe\", { link: String(link), path: String(ls.path) }))"
-        }
-      ],
-      "translation": "Public share link (valid for 7 days; anyone with the link can access it):\n{link}\nFile: {path}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.68e326aeaae1",
-      "source": "绑定成功，这台电脑的 OneTHU 现在听你指挥。发送 /status 查看状态。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 371,
-          "context": "replyTo(msg, i18n(\"im.registry.68e326aeaae1\"))"
-        }
-      ],
-      "translation": "Binding successful; OneTHU on this computer now takes your orders. Send /status to check the status.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.68eca2ae3b84",
-      "source": "用法：/delete 编号（先 /list 查看）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 287,
-          "context": "replyTo(msg, i18n(\"im.registry.68eca2ae3b84\"))"
-        }
-      ],
-      "translation": "Usage: /delete number (check /list first).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.6ab73e995f59",
-      "source": "编号不存在（先 /list）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 249,
-          "context": "replyTo(msg, i18n(\"im.registry.6ab73e995f59\"))"
-        }
-      ],
-      "translation": "That number does not exist (use /list first).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.76588d6a5d1a",
-      "source": "新建失败。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 225,
-          "context": "r?.ok ? i18n(\"im.registry.2a20bd367600\") : i18n(\"im.registry.76588d6a5d1a\")"
-        }
-      ],
-      "translation": "Failed to create.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.7844068377fb",
-      "source": "用法：/search 关键词（搜会话标题与内容）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 309,
-          "context": "replyTo(msg, i18n(\"im.registry.7844068377fb\"))"
-        }
-      ],
-      "translation": "Usage: /search keyword (searches conversation titles and content).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.7b6bcc474a8c",
-      "source": "「{kw}」命中 {length} 个会话：\n{value}\n/detail 编号 查看（/list 重取编号）。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "kw",
-          "expression": "String(kw)"
-        },
-        {
-          "name": "length",
-          "expression": "String(hits.length)"
-        },
-        {
-          "name": "value",
-          "expression": "String(hits.join(\"\\n\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 337,
-          "context": "hits.length\n          ? i18n(\"im.registry.7b6bcc474a8c\", { kw: String(kw), length: String(hits.length), value: String(hits.join(\"\\n\")) })\n          : i18n(\"im.registry.03e93eccef32\", { kw: String(kw) })"
-        }
-      ],
-      "translation": "“{kw}” matched {length} conversations:\n{value}\nUse /detail number to view (use /list to refresh the numbers).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.7df9b9254e26",
-      "source": "转存完成：\n{value}{tail}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(out.join(\"\\n\"))"
-        },
-        {
-          "name": "tail",
-          "expression": "String(tail)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 552,
-          "context": "replyTo(msg, i18n(\"im.registry.7df9b9254e26\", { value: String(out.join(\"\\n\")), tail: String(tail) }))"
-        }
-      ],
-      "translation": "Transfer complete:\n{value}{tail}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.8282ce4afe46",
-      "source": "(空响应)",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 649,
-          "context": "parts.join(\"\\n\\n\") || i18n(\"im.registry.8282ce4afe46\")"
-        }
-      ],
-      "translation": "(Empty response)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.87b01a60cde1",
-      "source": "云盘还没连接——回「连云盘」我自动获取（或去电脑端云盘页手动配置）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 501,
-          "context": "replyTo(msg, i18n(\"im.registry.87b01a60cde1\"))"
-        }
-      ],
-      "translation": "The cloud drive is not connected yet—— reply “连云盘” and I'll connect it automatically (or configure it manually on the Cloud Drive page on your computer).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.8b9c82d7f5dc",
-      "source": "⚠️ 预约/取消等写操作：出现确认提示后回「确认执行」才执行（省略回复不认，防误触）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 196,
-          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
-        }
-      ],
-      "translation": "⚠️ Write actions like booking/canceling: after a confirmation prompt appears, reply “确认执行” to execute (bare confirmations are not accepted, to prevent accidental execution).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.9fc192e6d22e",
-      "source": "这条是省略回复，IM 里不认（防你手快误触执行）。\n待确认操作：{summary}\n要执行请回「确认执行」；不需要请回「取消」。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "summary",
-          "expression": "String(cur2.summary)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 613,
-          "context": "replyTo(\n          msg,\n          i18n(\"im.registry.9fc192e6d22e\", { summary: String(cur2.summary) }),\n        )"
-        }
-      ],
-      "translation": "That was a bare confirmation, which IM does not accept (to prevent accidental execution).\nPending action: {summary}\nTo execute, reply “确认执行”; to cancel, reply “取消”.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.a1a9da9ee6ed",
-      "source": "未知原因",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 352,
-          "context": "r.error ?? i18n(\"im.registry.a1a9da9ee6ed\")"
-        }
-      ],
-      "translation": "Unknown reason",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.a6317abbaa8b",
-      "source": "· /list —— 列出会话（1=主对话，永久保留不可删；←当前）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 188,
-          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
-        }
-      ],
-      "translation": "· /list —— list conversations (1 = main conversation, kept forever and cannot be deleted; ← current)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.b34bb467f031",
-      "source": "切换失败（编号过期？回 /list 重看）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 237,
-          "context": "r?.ok ? i18n(\"im.registry.30627e4f5d7b\") : i18n(\"im.registry.b34bb467f031\")"
-        }
-      ],
-      "translation": "Switch failed (number expired? Check /list again).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.b769dc31231a",
-      "source": "云盘里没有资料库（先在 cloud.tsinghua.edu.cn 建一个再回「存」）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 509,
-          "context": "replyTo(msg, i18n(\"im.registry.b769dc31231a\"))"
-        }
-      ],
-      "translation": "There are no libraries in the cloud drive (create one on cloud.tsinghua.edu.cn first, then reply “存”).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.c2569c12dd05",
-      "source": "绑定码已过期：请在电脑端重新生成后发送「/bind 码」。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 360,
-          "context": "replyTo(msg, i18n(\"im.registry.c2569c12dd05\"))"
-        }
-      ],
-      "translation": "The binding code has expired: generate a new one on your computer, then send “/bind code”.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.c4b26873708a",
-      "source": "· /delete N —— 删除编号 N 的会话（1 号主对话不可删）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 192,
-          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
-        }
-      ],
-      "translation": "· /delete N —— delete conversation number N (the main conversation 1 cannot be deleted)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.c7900a839486",
-      "source": "· /search 关键词 —— 查找关键词出现在哪些会话（含轮次定位）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 193,
-          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
-        }
-      ],
-      "translation": "· /search keyword —— find which conversations mention a keyword (with round locations)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.d09bfe8fc388",
-      "source": "1 号主对话永久保留，不可删除（用户定案）。想清空就 /switch 1 后 /new 新开。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 291,
-          "context": "replyTo(msg, i18n(\"im.registry.d09bfe8fc388\"))"
-        }
-      ],
-      "translation": "The main conversation 1 is kept forever and cannot be deleted (by design). To start fresh, use /switch 1 and then /new.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.d114e94fa699",
-      "source": "📖 指令清单：",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 184,
-          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
-        }
-      ],
-      "translation": "📖 Command list:",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.db41ffa2dc85",
-      "source": "(已取消)",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 606,
-          "context": "r.answer ?? i18n(\"im.registry.db41ffa2dc85\")"
-        }
-      ],
-      "translation": "(Canceled)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.e64bb18a2933",
-      "source": "📎 发文件/图片给我：自动读取内容、建议云盘目录，回「存」确认转存（默认不出公开链接，回「要链接」再生成）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 195,
-          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
-        }
-      ],
-      "translation": "📎 Send me files/images: I read the content, suggest a cloud drive folder, and you reply “存” to confirm the transfer (no public link by default; reply “要链接” to create one).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.ebb6664ef64f",
-      "source": "[OneTHU] {channel} 通道在线，{bound}。电脑保持开机与 OneTHU 运行，我才会回复。{cloudLine}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "channel",
-          "expression": "String(msg.channel)"
-        },
-        {
-          "name": "bound",
-          "expression": "String(bound)"
-        },
-        {
-          "name": "cloudLine",
-          "expression": "String(cloudLine)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 388,
-          "context": "replyTo(msg, i18n(\"im.registry.ebb6664ef64f\", { channel: String(msg.channel), bound: String(bound), cloudLine: String(cloudLine) }))"
-        }
-      ],
-      "translation": "[OneTHU] {channel} channel is online, {bound}. I only reply while the computer stays on and OneTHU is running.{cloudLine}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.f06e4127fc8b",
-      "source": "删除失败。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 301,
-          "context": "r?.error ?? i18n(\"im.registry.f06e4127fc8b\")"
-        }
-      ],
-      "translation": "Delete failed.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.f8ce08058aa6",
-      "source": "已删除编号 {arg} 的会话。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "arg",
-          "expression": "String(arg)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 299,
-          "context": "replyTo(msg, i18n(\"im.registry.f8ce08058aa6\", { arg: String(arg) }))"
-        }
-      ],
-      "translation": "Deleted conversation number {arg}.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.fe67e76559d3",
-      "source": "· /detail N [x-y] —— 查看编号 N 会话的第 x 到 y 轮（默认 1-5）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 191,
-          "context": "[\n          i18n(\"im.registry.d114e94fa699\"),\n          \"/list · /new · /switch N · /detail N [x-y] · /delete N · /search 关键词\",\n          \"/bind 码（绑定主人）· /status（通道状态）\",\n          \"\",\n          i18n(\"im.registry.a6317abbaa8b\"),\n          i18n(\"im.registry.1d40e0790123\"),\n          i18n(\"im.registry.0894809f5000\"),\n          i18n(\"im.registry.fe67e76559d3\"),\n          i18n(\"im.registry.c4b26873708a\"),\n          i18n(\"im.registry.c7900a839486\"),\n          \"\",\n          i18n(\"im.registry.e64bb18a2933\"),\n          i18n(\"im.registry.8b9c82d7f5dc\"),\n        ]"
-        }
-      ],
-      "translation": "· /detail N [x-y] —— view rounds x through y of conversation number N (defaults to 1-5)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.wechat.4c408d3226a4",
-      "source": "未扫码登录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/wechat.ts",
-          "line": 46,
-          "context": "new Error(i18n(\"im.wechat.4c408d3226a4\"))"
-        }
-      ],
-      "translation": "Not signed in by QR scan",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.wechat.c383c734a8c7",
-      "source": "二维码已过期，请重新发起",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/wechat.ts",
-          "line": 165,
-          "context": "note: i18n(\"im.wechat.c383c734a8c7\")"
-        }
-      ],
-      "translation": "The QR code has expired; please start again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.wechat.channelLabel",
-      "source": "微信（iLink 官方 Bot）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/wechat.ts",
-          "line": 25,
-          "context": "return i18n(\"im.wechat.channelLabel\");"
-        }
-      ],
-      "translation": "WeChat (official iLink bot)",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "im.wechat.e3fe9d7adf2c",
-      "source": "未发起登录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/wechat.ts",
-          "line": 162,
-          "context": "note: i18n(\"im.wechat.e3fe9d7adf2c\")"
-        }
-      ],
-      "translation": "Sign-in not started",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.wechat.ed04656fa8e1",
-      "source": "登录成功，通道已启用",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/wechat.ts",
-          "line": 188,
-          "context": "note: i18n(\"im.wechat.ed04656fa8e1\")"
-        }
-      ],
-      "translation": "Signed in; channel enabled",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.wechat.f1ffea5c8b09",
-      "source": "微信通道未登录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/wechat.ts",
-          "line": 59,
-          "context": "new Error(i18n(\"im.wechat.f1ffea5c8b09\"))"
-        }
-      ],
-      "translation": "The WeChat channel is not signed in",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.wechat.qr.bound",
-      "source": "该 Bot 已绑定到本机",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/wechat.ts",
-          "line": 196,
-          "context": "binded_redirect: i18n(\"im.wechat.qr.bound\")"
-        }
-      ],
-      "translation": "This bot is already linked to this device.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.wechat.qr.expired",
-      "source": "二维码已过期，请重新发起",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/wechat.ts",
-          "line": 194,
-          "context": "expired: i18n(\"im.wechat.qr.expired\")"
-        }
-      ],
-      "translation": "QR code expired. Start again.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.wechat.qr.needVerifyCode",
-      "source": "需要在手机上输入验证码后重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/wechat.ts",
-          "line": 193,
-          "context": "need_verifycode: i18n(\"im.wechat.qr.needVerifyCode\")"
-        }
-      ],
-      "translation": "Enter the verification code on your phone, then retry.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.wechat.qr.redirect",
-      "source": "已扫码（切换接入点）…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/wechat.ts",
-          "line": 197,
-          "context": "scaned_but_redirect: i18n(\"im.wechat.qr.redirect\")"
-        }
-      ],
-      "translation": "Scanned. Switching connection…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.wechat.qr.scaned",
-      "source": "已扫码，请在手机上确认",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/wechat.ts",
-          "line": 192,
-          "context": "scaned: i18n(\"im.wechat.qr.scaned\")"
-        }
-      ],
-      "translation": "Scanned. Confirm on your phone.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.wechat.qr.verifyBlocked",
-      "source": "验证失败次数过多，请重新发起",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/wechat.ts",
-          "line": 195,
-          "context": "verify_code_blocked: i18n(\"im.wechat.qr.verifyBlocked\")"
-        }
-      ],
-      "translation": "Too many failed attempts. Start again.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.wechat.qr.wait",
-      "source": "等待扫码…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/wechat.ts",
-          "line": 191,
-          "context": "wait: i18n(\"im.wechat.qr.wait\")"
-        }
-      ],
-      "translation": "Waiting for scan…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.wechat.scanRequired",
-      "source": "未扫码登录（设置页点「扫码登录」）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/wechat.ts",
-          "line": 41,
-          "context": "missing: i18n(\"im.wechat.scanRequired\")"
-        }
-      ],
-      "translation": "Not signed in. Choose Scan to sign in in Settings.",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

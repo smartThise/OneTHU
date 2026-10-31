@@ -323,7 +323,7 @@ export class VisitClient {
    * 完整 ITS 登录（受信指纹生效时零二次认证），再换 token。
    * 会话仍活着时 ITS 给的是「确认页」（无 SM2 公钥）——那条路不吃密码。
    */
-  async login(username?: string, password?: string, fingerprint?: string, finger3?: string): Promise<VisitUser | null> {
+  async authorizeTicket(username?: string, password?: string, fingerprint?: string, finger3?: string): Promise<{ticket:string;html:string;url:string;status:number}> {
     let cookies = "";
     const hop = async (method: "GET" | "POST", url: string, body?: string) => {
       let cur = url;
@@ -349,14 +349,19 @@ export class VisitClient {
             continue;
           }
         }
-        return { url: cur, text: await res.text(), status: res.status };
+        const finalUrl=res.headers.get('x-onethu-final-url')??cur;
+        const final=new URL(finalUrl);
+        if(!['https://id.tsinghua.edu.cn','https://visit.tsinghua.edu.cn'].includes(final.origin)||final.username||final.password)throw new VisitLoginError('学校登录跳转地址异常');
+        return { url: final.href, text: await res.text(), status: res.status };
       }
       throw new VisitLoginError("统一身份认证跳转次数过多，请稍后重试");
     };
 
     const form = await hop("GET", ITS_FORM);
+    const initialTicket=extractTicket(form.text,form.url);
+    if(initialTicket)return {ticket:initialTicket,html:form.text,url:form.url,status:form.status};
     const key = /id="sm2publicKey"[^>]*>\s*([0-9a-fA-F]{100,})\s*</.exec(form.text)?.[1] ?? "";
-    let check: { url: string; text: string };
+    let check: { url: string; text: string; status:number };
     if (key) {
       if (!username || !password) {
         throw new VisitLoginError("本机没有记住账号密码：请先在设置里记住密码，或打开官方页面手动登录一次");
@@ -370,7 +375,7 @@ export class VisitClient {
           i_pass: encryptPassword(password, key),
           fingerPrint: fingerprint ?? "",
           fingerGenPrint: finger3 ?? "",
-          fingerGenPrint3: "",
+          fingerGenPrint3: finger3 ?? "",
           i_captcha: "",
         }).toString(),
       );
@@ -379,11 +384,12 @@ export class VisitClient {
       for (const m of form.text.matchAll(/<input[^>]+type="hidden"[^>]*>/gi)) {
         const name = /name="([^"]+)"/i.exec(m[0])?.[1];
         const value = /value="([^"]*)"/i.exec(m[0])?.[1] ?? "";
-        if (name) hidden.set(name, value);
+        if (name && !/singleLogin|deviceName/i.test(name)) hidden.set(name, value);
       }
       hidden.set("i_rememberme", "on");
       hidden.set("fingerPrint", fingerprint ?? "");
       hidden.set("fingerGenPrint", finger3 ?? "");
+      hidden.set("fingerGenPrint3", finger3 ?? "");
       check = await hop("POST", ITS_CHECK_SINGLE, hidden.toString());
     } else {
       throw new VisitLoginError(`统一身份认证页面形态不认识（HTTP ${form.status}），请稍后重试`);
@@ -395,7 +401,11 @@ export class VisitClient {
       }
       throw new VisitLoginError("统一身份认证没有返回漫游票据，请稍后重试");
     }
-    return this.ssoLogin(ticket);
+    return {ticket,html:check.text,url:check.url,status:check.status};
+  }
+
+  async login(username?: string, password?: string, fingerprint?: string, finger3?: string): Promise<VisitUser | null> {
+    return this.ssoLogin((await this.authorizeTicket(username,password,fingerprint,finger3)).ticket);
   }
 
   /* ───────────────────────── 读取 ───────────────────────── */

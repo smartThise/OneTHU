@@ -1,7 +1,7 @@
-import { adoptSharedSession, ensureSharedRuntime, exportNativeSessionCookies, getSharedRuntimeStatus } from "./sharedRuntime.js";
+import { adoptSharedSession, ensureSharedRuntime, exportNativeSessionCookies, getSharedRuntimeStatus, sharedAccountGuard } from "./sharedRuntime.js";
 import { prepareCampusGatewayStart, type GatewayAccountFence } from "./campusGatewayStart.js";
 
-export type CampusGatewayAction = "status" | "start" | "stop" | "setup" | "credentials" | "trust" | "untrust" | "system-enable" | "system-disable" | "open-browser";
+export type CampusGatewayAction = "status" | "start" | "stop" | "setup" | "credentials" | "trust" | "untrust" | "system-enable" | "system-disable" | "open-browser" | "client-prepare";
 
 export interface CampusGatewayStatus {
   running: boolean;
@@ -13,6 +13,7 @@ export interface CampusGatewayStatus {
   allowedOrigins?: string[];
   pacUrl?: string | null;
   lastError?: unknown;
+  capabilities?: {trustedMiniPrograms?:boolean};
 }
 
 export interface CampusGatewayCredentials {
@@ -26,6 +27,7 @@ export async function campusGatewayRequest<T>(action: CampusGatewayAction): Prom
   await ensureSharedRuntime();
   const { invoke } = await import("@tauri-apps/api/core");
   let fence: GatewayAccountFence | undefined;
+  if (action === "client-prepare") fence = await sharedAccountGuard((await import("./clients.js")).session.username);
   if (action === "start") {
     const { session } = await import("./clients.js");
     fence = await prepareCampusGatewayStart({

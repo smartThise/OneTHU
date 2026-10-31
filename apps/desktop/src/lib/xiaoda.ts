@@ -34,6 +34,16 @@ export function xiaodaHasToken(): boolean {
   return readStoredToken() !== null || xiaodaClient.hasToken();
 }
 
+/** One-use official ticket for the private gateway; never redeemed/stored here. */
+export async function xiaodaGatewayTicket() {
+  const {loadRemembered,currentFingerprint,session}=await import('./clients.js');
+  const owner=session.username,fingerprint=await currentFingerprint(),remembered=await loadRemembered();
+  if(!owner||session.state!=='ready'||remembered&&remembered.username!==owner)throw new Error('AUTH_SESSION_CONFLICT');
+  const ticket=await xiaodaClient.authorizeTicket(remembered?.username,remembered?.password,fingerprint,session.finger3??'');
+  if(session.username!==owner||session.state!=='ready'||session.fingerprint!==fingerprint)throw new Error('AUTH_SESSION_CHANGED');
+  return ticket;
+}
+
 /** 确保已登录：有 token 先验活（getUserInfo）；否则用记住的凭据完整登录 */
 export async function xiaodaEnsureLogin(): Promise<XiaodaUser> {
   if (xiaodaClient.hasToken()) {
@@ -48,7 +58,9 @@ export async function xiaodaEnsureLogin(): Promise<XiaodaUser> {
     }
   }
   const { loadRemembered, currentFingerprint, session } = await import("./clients.js");
+  const owner = session.username;
   const remembered = await loadRemembered();
+  if (!owner || remembered && remembered.username !== owner) throw new Error("AUTH_SESSION_CONFLICT");
   const fingerprint = await currentFingerprint();
   // 密码可能没有（未勾选「记住密码」）——先走「已认证 id 会话漫游出票」（不吃密码）；
   // 只有真需要账号密码时（表单带 SM2 公钥）才报「未记住密码」的明确提示。
@@ -58,6 +70,7 @@ export async function xiaodaEnsureLogin(): Promise<XiaodaUser> {
     fingerprint,
     session.finger3 ?? "",
   );
+  if (session.username !== owner || session.state !== "ready") throw new Error("AUTH_SESSION_CHANGED");
   try {
     globalThis.localStorage?.setItem(TOKEN_KEY, xiaodaClient.getToken());
   } catch {

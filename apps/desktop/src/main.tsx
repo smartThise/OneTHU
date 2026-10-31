@@ -158,6 +158,8 @@ void (async () => {
   await privacyReady;
   const { initYuketangRuntimeSync } = await import("./state/yuketangRuntime.js");
   initYuketangRuntimeSync();
+  const { initCampusClientRuntime } = await import("./state/campusClientRuntime.js");
+  initCampusClientRuntime();
   await seedBuiltinHarness();
   await activateInstalledPlugins();
   let ohAllowed = ohAuthorized();

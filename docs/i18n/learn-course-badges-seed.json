@@ -1,0 +1,12 @@
+{
+  "messages": {
+    "learn.course.unreadNotices": {
+      "zh-CN": "未读通知 {count}",
+      "en-US": "{count} unread notices"
+    },
+    "learn.course.unreadFiles": {
+      "zh-CN": "未读文件 {count}",
+      "en-US": "{count} unread files"
+    }
+  }
+}

@@ -1,7 +1,1307 @@
 {
-  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
+  "sourceHash": "be3fd8c88a23dc4acb558acc486d73c0e34027023912c7adc1e35b9861a6e4b5",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "state.systemcal.ae887c4815af",
+      "source": "校历尚未就绪，请打开日程加载学期后重试；已有系统日历保持不变",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 241,
+          "context": "new Error(i18n(\"state.systemcal.ae887c4815af\"))"
+        }
+      ],
+      "translation": "The academic calendar is not ready yet. Open the Schedule to load the semester and retry; the existing system calendar is unchanged",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.b170ef2db7ca",
+      "source": "系统日历正在同步或移除中",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 411,
+          "context": "new Error(i18n(\"state.systemcal.b170ef2db7ca\"))"
+        }
+      ],
+      "translation": "The system calendar is being synced or removed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.ce42fc5eaca8",
+      "source": "事件数 {length} 超出上限 {MAX_EVENTS}，已中止系统日历同步",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(events.length)"
+        },
+        {
+          "name": "MAX_EVENTS",
+          "expression": "String(MAX_EVENTS)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 327,
+          "context": "new Error(i18n(\"state.systemcal.ce42fc5eaca8\", { length: String(events.length), MAX_EVENTS: String(MAX_EVENTS) }))"
+        }
+      ],
+      "translation": "The event count {length} exceeds the limit of {MAX_EVENTS}; system calendar sync was aborted",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.d2d00f793981",
+      "source": "未获得系统日历权限，请在系统设置中允许 OneTHU 访问日历",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 428,
+          "context": "new Error(i18n(\"state.systemcal.d2d00f793981\"))"
+        }
+      ],
+      "translation": "System calendar permission was not granted. Allow OneTHU to access calendars in system settings.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.fb7404386af9",
+      "source": "正在移除系统日历",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 480,
+          "context": "new Error(i18n(\"state.systemcal.fb7404386af9\"))"
+        }
+      ],
+      "translation": "Removing the system calendar",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.fe90aa1936ae",
+      "source": "同步已停止，已有系统日历保持不变",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 420,
+          "context": "new Error(i18n(\"state.systemcal.fe90aa1936ae\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 429,
+          "context": "new Error(i18n(\"state.systemcal.fe90aa1936ae\"))"
+        }
+      ],
+      "translation": "Sync stopped; the existing system calendar is unchanged",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.ff52516e4a39",
+      "source": "课表有 {skipped} 条无法解析的时段，已中止同步",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "skipped",
+          "expression": "String(skipped)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 286,
+          "context": "new Error(i18n(\"state.systemcal.ff52516e4a39\", { skipped: String(skipped) }))"
+        }
+      ],
+      "translation": "The timetable has {skipped} unparseable time slots; sync was aborted",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.tabtitles.04671516a9d5",
+      "source": "网络学堂 › 作业详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 84,
+          "context": "course ? i18n(\"state.tabtitles.0fb5334ea170\", { course: String(course) }) : i18n(\"state.tabtitles.04671516a9d5\")"
+        }
+      ],
+      "translation": "Web Learning › Assignment details",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.0c15bb46b442",
+      "source": "网络学堂 › 全部通知",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 148,
+          "context": "full: i18n(\"state.tabtitles.0c15bb46b442\")"
+        }
+      ],
+      "translation": "Web Learning › All notices",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.0fb5334ea170",
+      "source": "{course} › 作业详情",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "course",
+          "expression": "String(course)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 84,
+          "context": "course ? i18n(\"state.tabtitles.0fb5334ea170\", { course: String(course) }) : i18n(\"state.tabtitles.04671516a9d5\")"
+        }
+      ],
+      "translation": "{course} › Assignment details",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.14827749c5db",
+      "source": "网络学堂 › 通知详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 93,
+          "context": "course ? i18n(\"state.tabtitles.46034b925dd1\", { course: String(course) }) : i18n(\"state.tabtitles.14827749c5db\")"
+        }
+      ],
+      "translation": "Web Learning › Notice details",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.1bed6f81e9f6",
+      "source": "{course} › 通知",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "course",
+          "expression": "String(course)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 90,
+          "context": "course ? i18n(\"state.tabtitles.1bed6f81e9f6\", { course: String(course) }) : i18n(\"state.tabtitles.b543a6b7ca5d\")"
+        }
+      ],
+      "translation": "{course} › Notices",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.22519a88484f",
+      "source": "课程详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 75,
+          "context": "label: i18n(\"state.tabtitles.22519a88484f\")"
+        }
+      ],
+      "translation": "Course details",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.27b6154b3fd3",
+      "source": "文件详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 102,
+          "context": "label: i18n(\"state.tabtitles.27b6154b3fd3\")"
+        }
+      ],
+      "translation": "File details",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.2ac4206ef92a",
+      "source": "网络学堂 › 搜索",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 154,
+          "context": "full: i18n(\"state.tabtitles.2ac4206ef92a\")"
+        }
+      ],
+      "translation": "Web Learning › Search",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.2d5504d2955c",
+      "source": "{course} › 讨论区",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "course",
+          "expression": "String(course)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 106,
+          "context": "course ? i18n(\"state.tabtitles.2d5504d2955c\", { course: String(course) }) : i18n(\"state.tabtitles.714d843bb743\")"
+        }
+      ],
+      "translation": "{course} › Forum",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.38b9eabcae1b",
+      "source": "雨课堂",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 111,
+          "context": "y?.courseName ?? i18n(\"state.tabtitles.38b9eabcae1b\")"
+        }
+      ],
+      "translation": "Rain Classroom",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.3d03c8dd1593",
+      "source": "云盘 › {name}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name",
+          "expression": "String(name)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 142,
+          "context": "full: i18n(\"state.tabtitles.3d03c8dd1593\", { name: String(name) })"
+        }
+      ],
+      "translation": "Cloud Drive › {name}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.44ce7ae909bb",
+      "source": "搜索",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 154,
+          "context": "label: i18n(\"state.tabtitles.44ce7ae909bb\")"
+        }
+      ],
+      "translation": "Search",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.457de67c8142",
+      "source": "{course} › 文件",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "course",
+          "expression": "String(course)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 99,
+          "context": "course ? i18n(\"state.tabtitles.457de67c8142\", { course: String(course) }) : i18n(\"state.tabtitles.57c7c46977b9\")"
+        }
+      ],
+      "translation": "{course} › Files",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.46034b925dd1",
+      "source": "{course} › 通知详情",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "course",
+          "expression": "String(course)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 93,
+          "context": "course ? i18n(\"state.tabtitles.46034b925dd1\", { course: String(course) }) : i18n(\"state.tabtitles.14827749c5db\")"
+        }
+      ],
+      "translation": "{course} › Notice details",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.483fe390159f",
+      "source": "通知详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 93,
+          "context": "label: i18n(\"state.tabtitles.483fe390159f\")"
+        }
+      ],
+      "translation": "Notice details",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.55203d69afd6",
+      "source": "网络学堂 › {name}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name",
+          "expression": "String(name)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 74,
+          "context": "full: i18n(\"state.tabtitles.55203d69afd6\", { name: String(name) })"
+        }
+      ],
+      "translation": "Web Learning › {name}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.57c7c46977b9",
+      "source": "网络学堂 › 文件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 99,
+          "context": "course ? i18n(\"state.tabtitles.457de67c8142\", { course: String(course) }) : i18n(\"state.tabtitles.57c7c46977b9\")"
+        }
+      ],
+      "translation": "Web Learning › Files",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.5caea2aaeece",
+      "source": "网络学堂 › 全部文件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 150,
+          "context": "full: i18n(\"state.tabtitles.5caea2aaeece\")"
+        }
+      ],
+      "translation": "Web Learning › All files",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.60823aaec73b",
+      "source": "已发送",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 135,
+          "context": "params?.mailFolder === \"sent\" ? i18n(\"state.tabtitles.60823aaec73b\") : i18n(\"state.tabtitles.63a5e7b73911\")"
+        }
+      ],
+      "translation": "Sent",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.63a5e7b73911",
+      "source": "收件箱",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 135,
+          "context": "params?.mailFolder === \"sent\" ? i18n(\"state.tabtitles.60823aaec73b\") : i18n(\"state.tabtitles.63a5e7b73911\")"
+        }
+      ],
+      "translation": "Inbox",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.668cfd9074b0",
+      "source": "网络学堂 › 文件详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 102,
+          "context": "course ? i18n(\"state.tabtitles.c7410c8f179d\", { course: String(course) }) : i18n(\"state.tabtitles.668cfd9074b0\")"
+        }
+      ],
+      "translation": "Web Learning › File details",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.6f1c237908f0",
+      "source": "邮箱 › {folderLabel}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "folderLabel",
+          "expression": "String(folderLabel)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 137,
+          "context": "full: i18n(\"state.tabtitles.6f1c237908f0\", { folderLabel: String(folderLabel) })"
+        }
+      ],
+      "translation": "Mail › {folderLabel}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.714d843bb743",
+      "source": "网络学堂 › 讨论区",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 106,
+          "context": "course ? i18n(\"state.tabtitles.2d5504d2955c\", { course: String(course) }) : i18n(\"state.tabtitles.714d843bb743\")"
+        }
+      ],
+      "translation": "Web Learning › Forum",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.7292c38a500b",
+      "source": "网络学堂 › 作业",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 81,
+          "context": "course ? i18n(\"state.tabtitles.f12e9b97b5c4\", { course: String(course) }) : i18n(\"state.tabtitles.7292c38a500b\")"
+        }
+      ],
+      "translation": "Web Learning › Assignments",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.73075237fd0f",
+      "source": "邮箱",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 137,
+          "context": "label: i18n(\"state.tabtitles.73075237fd0f\")"
+        }
+      ],
+      "translation": "Mail",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.859096256da9",
+      "source": "网络学堂 › 全部作业",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 152,
+          "context": "full: i18n(\"state.tabtitles.859096256da9\")"
+        }
+      ],
+      "translation": "Web Learning › All assignments",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.9c92c9d08b05",
+      "source": "讨论区",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 106,
+          "context": "label: i18n(\"state.tabtitles.9c92c9d08b05\")"
+        }
+      ],
+      "translation": "Forum",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.9f4769eefab0",
+      "source": "邮箱 › {folderLabel} › {subject}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "folderLabel",
+          "expression": "String(folderLabel)"
+        },
+        {
+          "name": "subject",
+          "expression": "String(head.subject)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 136,
+          "context": "full: i18n(\"state.tabtitles.9f4769eefab0\", { folderLabel: String(folderLabel), subject: String(head.subject) })"
+        }
+      ],
+      "translation": "Mail › {folderLabel} › {subject}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.a1cabc0664cf",
+      "source": "全部作业",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 152,
+          "context": "label: i18n(\"state.tabtitles.a1cabc0664cf\")"
+        }
+      ],
+      "translation": "All assignments",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.aa39cac2b409",
+      "source": "网络学堂",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 146,
+          "context": "label: i18n(\"state.tabtitles.aa39cac2b409\")"
+        },
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 146,
+          "context": "full: i18n(\"state.tabtitles.aa39cac2b409\")"
+        }
+      ],
+      "translation": "Web Learning",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.b2c656b0a5a4",
+      "source": "网络学堂 › 课程详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 75,
+          "context": "full: i18n(\"state.tabtitles.b2c656b0a5a4\")"
+        }
+      ],
+      "translation": "Web Learning › Course details",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.b543a6b7ca5d",
+      "source": "网络学堂 › 通知",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 90,
+          "context": "course ? i18n(\"state.tabtitles.1bed6f81e9f6\", { course: String(course) }) : i18n(\"state.tabtitles.b543a6b7ca5d\")"
+        }
+      ],
+      "translation": "Web Learning › Notices",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.bdac834d0ba2",
+      "source": "全部通知",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 148,
+          "context": "label: i18n(\"state.tabtitles.bdac834d0ba2\")"
+        }
+      ],
+      "translation": "All notices",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.be417b530c04",
+      "source": "全部文件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 150,
+          "context": "label: i18n(\"state.tabtitles.be417b530c04\")"
+        }
+      ],
+      "translation": "All files",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.c7410c8f179d",
+      "source": "{course} › 文件详情",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "course",
+          "expression": "String(course)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 102,
+          "context": "course ? i18n(\"state.tabtitles.c7410c8f179d\", { course: String(course) }) : i18n(\"state.tabtitles.668cfd9074b0\")"
+        }
+      ],
+      "translation": "{course} › File details",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.d4af30a738c7",
+      "source": "作业详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 84,
+          "context": "label: i18n(\"state.tabtitles.d4af30a738c7\")"
+        }
+      ],
+      "translation": "Assignment details",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.f0cd4338679e",
+      "source": "雨课堂作业",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 110,
+          "context": "y?.title ?? i18n(\"state.tabtitles.f0cd4338679e\")"
+        }
+      ],
+      "translation": "Rain Classroom assignment",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.f12e9b97b5c4",
+      "source": "{course} › 作业",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "course",
+          "expression": "String(course)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 81,
+          "context": "course ? i18n(\"state.tabtitles.f12e9b97b5c4\", { course: String(course) }) : i18n(\"state.tabtitles.7292c38a500b\")"
+        }
+      ],
+      "translation": "{course} › Assignments",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.tabtitles.f75562426e77",
+      "source": "云盘",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 143,
+          "context": "label: i18n(\"state.tabtitles.f75562426e77\")"
+        },
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 143,
+          "context": "full: i18n(\"state.tabtitles.f75562426e77\")"
+        }
+      ],
+      "translation": "Cloud Drive",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.theme.07befe8d2563",
+      "source": "OneGUI 默认外观：中性面阶、黑白主要动作与清晰文字层级。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 67,
+          "context": "return i18n(\"state.theme.07befe8d2563\");"
+        }
+      ],
+      "translation": "OneGUI default look: neutral surface steps, black-and-white primary actions, and a clear text hierarchy.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.theme.2d0d99e06fa2",
+      "source": "清华紫强调、淡紫面阶与清晰墨色。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 103,
+          "context": "return i18n(\"state.theme.2d0d99e06fa2\");"
+        }
+      ],
+      "translation": "Tsinghua purple accent, soft lavender surfaces, and clear ink tones.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.theme.49b95f5dd079",
+      "source": "海军蓝强调与冷调浅蓝面阶。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 183,
+          "context": "return i18n(\"state.theme.49b95f5dd079\");"
+        }
+      ],
+      "translation": "Navy accent with cool, light blue surfaces.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.theme.4d63c47d6588",
+      "source": "暖沙",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 161,
+          "context": "return i18n(\"state.theme.4d63c47d6588\");"
+        }
+      ],
+      "translation": "Warm sand",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.theme.4e7abf4896fc",
+      "source": "清华紫",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 100,
+          "context": "return i18n(\"state.theme.4e7abf4896fc\");"
+        }
+      ],
+      "translation": "Tsinghua purple",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.theme.76069b8f9d9f",
+      "source": "青绿强调与清凉的浅绿纸面。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 139,
+          "context": "return i18n(\"state.theme.76069b8f9d9f\");"
+        }
+      ],
+      "translation": "Teal accent with a refreshing light green paper.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.theme.78c3900fe08f",
+      "source": "石墨 · 默认",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 64,
+          "context": "return i18n(\"state.theme.78c3900fe08f\");"
+        }
+      ],
+      "translation": "Graphite · Default",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.theme.7a440ac6411e",
+      "source": "深色工作台与钢蓝强调色，可用于昼夜调度。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 209,
+          "context": "return i18n(\"state.theme.7a440ac6411e\");"
+        }
+      ],
+      "translation": "A dark workbench with a steel blue accent, suitable for day-night switching.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.theme.9a8ab964d522",
+      "source": "主题 id 不能为空",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 681,
+          "context": "new Error(i18n(\"state.theme.9a8ab964d522\"))"
+        }
+      ],
+      "translation": "Theme id cannot be empty",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.theme.c4ef3664d417",
+      "source": "青瓷",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 136,
+          "context": "return i18n(\"state.theme.c4ef3664d417\");"
+        }
+      ],
+      "translation": "Celadon",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.theme.cb163d15eaea",
+      "source": "墨蓝夜航",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 180,
+          "context": "return i18n(\"state.theme.cb163d15eaea\");"
+        }
+      ],
+      "translation": "Midnight blue",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.theme.cfb4093a1ef4",
+      "source": "紫水晶",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 73,
+          "context": "return i18n(\"state.theme.cfb4093a1ef4\");"
+        }
+      ],
+      "translation": "Amethyst",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.theme.e2d5803563ce",
+      "source": "紫罗兰纸面、深紫文字与紫色强调。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 76,
+          "context": "return i18n(\"state.theme.e2d5803563ce\");"
+        }
+      ],
+      "translation": "Violet paper, deep purple text, and a purple accent.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.theme.e4adc0b697bb",
+      "source": "温暖米色纸面、棕色文字与沙金强调。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 164,
+          "context": "return i18n(\"state.theme.e4adc0b697bb\");"
+        }
+      ],
+      "translation": "Warm beige paper, brown text, and a sand gold accent.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.theme.f4d017b4c6b8",
+      "source": "凝夜",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/theme.ts",
+          "line": 205,
+          "context": "return i18n(\"state.theme.f4d017b4c6b8\");"
+        }
+      ],
+      "translation": "Deep night",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.touch.checksum",
+      "source": "口令校验失败（可能复制不完整）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/touch.ts",
+          "line": 66,
+          "context": "reason: i18n(\"state.touch.checksum\")"
+        }
+      ],
+      "translation": "Share code verification failed (it may have been copied incompletely)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.touch.corrupt",
+      "source": "口令内容损坏",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/touch.ts",
+          "line": 65,
+          "context": "reason: i18n(\"state.touch.corrupt\")"
+        }
+      ],
+      "translation": "The share code content is corrupted",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.touch.duplicateContact",
+      "source": "名片已在通讯录里（重复接收不会重复添加）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/touch.ts",
+          "line": 146,
+          "context": "reason: i18n(\"state.touch.duplicateContact\")"
+        }
+      ],
+      "translation": "The card is already in Contacts (receiving it again will not add a duplicate)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.touch.empty",
+      "source": "这个碰一碰口令里没有可导入的内容",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/touch.ts",
+          "line": 147,
+          "context": "reason: i18n(\"state.touch.empty\")"
+        }
+      ],
+      "translation": "This Tap to share code contains nothing that can be imported",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.touch.from",
+      "source": "来自 {name}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/touch.ts",
+          "line": 135,
+          "context": "p.from ? i18n(\"state.touch.from\", {name:p.from}) : \"\""
+        }
+      ],
+      "translation": "From {name}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.touch.invalidJson",
+      "source": "口令内容不是合法 JSON",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/touch.ts",
+          "line": 71,
+          "context": "reason: i18n(\"state.touch.invalidJson\")"
+        }
+      ],
+      "translation": "The share code content is not valid JSON",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.touch.invalidPrefix",
+      "source": "不是 OneTHU 碰一碰口令（应以 ONTOUCH1. 开头）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/touch.ts",
+          "line": 63,
+          "context": "reason: i18n(\"state.touch.invalidPrefix\")"
+        }
+      ],
+      "translation": "Not a OneTHU Tap to share code (must start with ONTOUCH1.)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.touch.self",
+      "source": "我",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/org.ts",
+          "line": 163,
+          "context": "input.ownerName ?? i18n(\"state.touch.self\")"
+        },
+        {
+          "file": "apps/desktop/src/state/org.ts",
+          "line": 342,
+          "context": "inviter = i18n(\"state.touch.self\")"
+        },
+        {
+          "file": "apps/desktop/src/state/org.ts",
+          "line": 437,
+          "context": "myName = i18n(\"state.touch.self\")"
+        },
+        {
+          "file": "apps/desktop/src/state/touch.ts",
+          "line": 114,
+          "context": "myName = i18n(\"state.touch.self\")"
+        }
+      ],
+      "translation": "Me",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.touch.unreadable",
+      "source": "口令无法解析",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/touch.ts",
+          "line": 122,
+          "context": "dec.reason ?? i18n(\"state.touch.unreadable\")"
+        }
+      ],
+      "translation": "The share code could not be parsed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.touch.vaultImportFailed",
+      "source": "暂存箱口令无法导入",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/touch.ts",
+          "line": 131,
+          "context": "r.reason ?? i18n(\"state.touch.vaultImportFailed\")"
+        }
+      ],
+      "translation": "The Stash share code could not be imported",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.touch.version",
+      "source": "口令版本不受支持",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/touch.ts",
+          "line": 69,
+          "context": "reason: i18n(\"state.touch.version\")"
+        }
+      ],
+      "translation": "Share code version not supported",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.userext.1129baf5b637",
+      "source": "第 {step} 步失败：{error}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "step",
+          "expression": "i + 1"
+        },
+        {
+          "name": "error",
+          "expression": "e instanceof Error ? e.message : String(e)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/userext.ts",
+          "line": 356,
+          "context": "error: i18n(\"state.userext.1129baf5b637\", { step: i + 1, error: e instanceof Error ? e.message : String(e) })"
+        }
+      ],
+      "translation": "Step {step} failed: {error}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.userext.13a46616e16f",
+      "source": "未知错误",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/userext.ts",
+          "line": 308,
+          "context": "error ?? i18n(\"state.userext.13a46616e16f\")"
+        }
+      ],
+      "translation": "Unknown error",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "state.userext.1a687dba3c19",
       "source": "没有这个工具",
@@ -100,1278 +1400,6 @@
         }
       ],
       "translation": "App objects",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vault.206359b4b54d",
-      "source": "白板组件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vault.ts",
-          "line": 82,
-          "context": "return i18n(\"state.vault.206359b4b54d\");"
-        }
-      ],
-      "translation": "Board widgets",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vault.39932f24fe11",
-      "source": "文件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vault.ts",
-          "line": 81,
-          "context": "return i18n(\"state.vault.39932f24fe11\");"
-        }
-      ],
-      "translation": "Files",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vault.5440f7424f28",
-      "source": "数据",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vault.ts",
-          "line": 83,
-          "context": "return i18n(\"state.vault.5440f7424f28\");"
-        }
-      ],
-      "translation": "Data",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vault.defaultName",
-      "source": "我的暂存箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vault.ts",
-          "line": 90,
-          "context": "name = i18n(\"state.vault.defaultName\")"
-        }
-      ],
-      "translation": "My staging box",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.124e692f8b2a",
-      "source": "这条云分享口令没有分享链接",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 167,
-          "context": "new Error(i18n(\"state.vaultcloud.124e692f8b2a\"))"
-        }
-      ],
-      "translation": "This cloud share code has no share link",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.20e701b06a1a",
-      "source": "改变接收范围需要重新生成分享",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 181,
-          "context": "new Error(i18n(\"state.vaultcloud.20e701b06a1a\"))"
-        }
-      ],
-      "translation": "Changing the recipient scope requires regenerating the share",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.21e554dce895",
-      "source": "没有可撤销的分享 token",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 191,
-          "context": "new Error(i18n(\"state.vaultcloud.21e554dce895\"))"
-        }
-      ],
-      "translation": "No share token to revoke",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.33798ae55697",
-      "source": "清华云盘未连接：到云盘页粘贴 token 后再生成云分享口令",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 30,
-          "context": "new Error(i18n(\"state.vaultcloud.33798ae55697\"))"
-        }
-      ],
-      "translation": "Tsinghua Cloud Drive is not connected: paste your token on the Cloud Drive page before creating a share code",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.5ce19f9c3d3c",
-      "source": "分享文件路径无效",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 284,
-          "context": "new Error(i18n(\"state.vaultcloud.5ce19f9c3d3c\"))"
-        }
-      ],
-      "translation": "Invalid shared file path",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.6a07b0abd9b4",
-      "source": "这条分享没有可写的目录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 185,
-          "context": "new Error(i18n(\"state.vaultcloud.6a07b0abd9b4\"))"
-        }
-      ],
-      "translation": "This share has no writable directory",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.8adb5a5068bc",
-      "source": "云盘清单格式不受支持",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 170,
-          "context": "new Error(i18n(\"state.vaultcloud.8adb5a5068bc\"))"
-        }
-      ],
-      "translation": "Unsupported cloud drive manifest format",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.aae73c7a3e65",
-      "source": "文件「{name}」没有可读取的内容，请重新添加",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(f.name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 141,
-          "context": "new Error(i18n(\"state.vaultcloud.aae73c7a3e65\", { name: String(f.name) }))"
-        }
-      ],
-      "translation": "The file \"{name}\" has no readable content. Please add it again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.ac986af5f7b3",
-      "source": "无法分享附件目录：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(String(error))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 64,
-          "context": "new Error(i18n(\"state.vaultcloud.ac986af5f7b3\", { value: String(String(error)) }))"
-        }
-      ],
-      "translation": "Cannot share the attachment directory: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.bd2fb4465b55",
-      "source": "分享文件校验失败",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 287,
-          "context": "new Error(i18n(\"state.vaultcloud.bd2fb4465b55\"))"
-        }
-      ],
-      "translation": "Shared file verification failed",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.c71c20943dfd",
-      "source": "找不到分享的发送方资料库，请在发送设备上撤销",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 194,
-          "context": "new Error(i18n(\"state.vaultcloud.c71c20943dfd\"))"
-        }
-      ],
-      "translation": "The sender's library of this share cannot be found. Please revoke it on the sending device",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.ccd9ad2a2fee",
-      "source": "这条分享缺少云盘定位（repoId）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 177,
-          "context": "new Error(i18n(\"state.vaultcloud.ccd9ad2a2fee\"))"
-        }
-      ],
-      "translation": "This share is missing its cloud drive location (repoId)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.notConnected",
-      "source": "云盘未连接",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 225,
-          "context": "reason: i18n(\"state.vaultcloud.notConnected\")"
-        }
-      ],
-      "translation": "Cloud drive not connected",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultregistry.14947083ab6d",
-      "source": "主题已应用",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultRegistry.ts",
-          "line": 92,
-          "context": "env.toast(i18n(\"state.vaultregistry.14947083ab6d\"))"
-        }
-      ],
-      "translation": "Theme applied",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultregistry.18fb3a6dfa2c",
-      "source": "文字预览暂时无法打开，请重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultRegistry.ts",
-          "line": 37,
-          "context": "env.toast(i18n(\"state.vaultregistry.18fb3a6dfa2c\"))"
-        }
-      ],
-      "translation": "The text preview cannot be opened right now. Please try again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultregistry.191e4869147e",
-      "source": "文件尚未保存，请从来源重新加入",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultRegistry.ts",
-          "line": 49,
-          "context": "new Error(i18n(\"state.vaultregistry.191e4869147e\"))"
-        }
-      ],
-      "translation": "The file has not been saved. Please add it again from its source",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultregistry.24ec304b41bb",
-      "source": "文件引用缺失，请重新添加",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultRegistry.ts",
-          "line": 41,
-          "context": "env.toast(i18n(\"state.vaultregistry.24ec304b41bb\"))"
-        }
-      ],
-      "translation": "The file reference is missing. Please add it again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultregistry.2808a4f9d0f0",
-      "source": "这个对象暂不支持直接打开；可以先留在暂存箱里",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultRegistry.ts",
-          "line": 150,
-          "context": "env.toast(i18n(\"state.vaultregistry.2808a4f9d0f0\"))"
-        }
-      ],
-      "translation": "This item cannot be opened directly yet; you can keep it in the Stash for now",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultregistry.666f4160f861",
-      "source": "壁纸已应用",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultRegistry.ts",
-          "line": 100,
-          "context": "env.toast(i18n(\"state.vaultregistry.666f4160f861\"))"
-        }
-      ],
-      "translation": "Wallpaper applied",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultregistry.75aa9163a82e",
-      "source": "这是你自己的名片，已在「我的名片」里",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultRegistry.ts",
-          "line": 77,
-          "context": "r.reason === \"duplicate\" ? i18n(\"state.vaultregistry.dcd9b29df966\") : i18n(\"state.vaultregistry.75aa9163a82e\")"
-        }
-      ],
-      "translation": "This is your own card; it is already in My card",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultregistry.7b3408d0e018",
-      "source": "附件地址已失效；可到原页面重新下载",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultRegistry.ts",
-          "line": 123,
-          "context": "env.toast(i18n(\"state.vaultregistry.7b3408d0e018\"))"
-        }
-      ],
-      "translation": "The attachment link has expired; you can download it again from the original page",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultregistry.94220dc7197e",
-      "source": "已打开插件页；插件引用保留在暂存箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultRegistry.ts",
-          "line": 83,
-          "context": "env.toast(i18n(\"state.vaultregistry.94220dc7197e\"))"
-        }
-      ],
-      "translation": "The plugin page is open; the plugin reference stays in the Stash",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultregistry.a56851062d27",
-      "source": "这个对象已失效（可能没有权限或已被删除），可移除后重新收录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultRegistry.ts",
-          "line": 24,
-          "context": "env.toast(i18n(\"state.vaultregistry.a56851062d27\"))"
-        }
-      ],
-      "translation": "This item is no longer valid (you may lack access, or it has been deleted). You can remove it and add it again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultregistry.ab9c4ba06c08",
-      "source": "这条设置项在当前版本里找不到了",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultRegistry.ts",
-          "line": 145,
-          "context": "env.toast(i18n(\"state.vaultregistry.ab9c4ba06c08\"))"
-        }
-      ],
-      "translation": "This setting item cannot be found in the current version",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultregistry.c5d06fdd2936",
-      "source": "名片已加入通讯录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultRegistry.ts",
-          "line": 76,
-          "context": "env.toast(i18n(\"state.vaultregistry.c5d06fdd2936\"))"
-        }
-      ],
-      "translation": "The card has been added to Contacts",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultregistry.dcd9b29df966",
-      "source": "通讯录里已经有这张名片了",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultRegistry.ts",
-          "line": 77,
-          "context": "r.reason === \"duplicate\" ? i18n(\"state.vaultregistry.dcd9b29df966\") : i18n(\"state.vaultregistry.75aa9163a82e\")"
-        }
-      ],
-      "translation": "This card is already in Contacts",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultregistry.fe7d0003cf59",
-      "source": "已打开云盘资料库，文件位置见条目说明",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultRegistry.ts",
-          "line": 115,
-          "context": "env.toast(i18n(\"state.vaultregistry.fe7d0003cf59\"))"
-        }
-      ],
-      "translation": "The cloud drive library is open; see the item details for the file location",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.00b9a4acaf92",
-      "source": "口令已过期；请让分享者重新生成",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 147,
-          "context": "reason: i18n(\"state.vaultshare.00b9a4acaf92\")"
-        }
-      ],
-      "translation": "The share code has expired. Ask the sharer to create a new one",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.09cc0bb41763",
-      "source": "口令内容损坏（base64 解码失败）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 179,
-          "context": "reason: i18n(\"state.vaultshare.09cc0bb41763\")"
-        },
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 199,
-          "context": "reason: i18n(\"state.vaultshare.09cc0bb41763\")"
-        }
-      ],
-      "translation": "The share code content is corrupted (base64 decoding failed)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.1677a739e1a4",
-      "source": "这条口令限定给 {recipient} 接收：请先用该邮箱连接清华云盘，再打开这条口令",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "recipient",
-          "expression": "want"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 547,
-          "context": "return i18n(\"state.vaultshare.1677a739e1a4\", { recipient: want });"
-        }
-      ],
-      "translation": "This share code is restricted to {recipient}: connect to Tsinghua Cloud Drive with that email first, then open this share code",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.2fb90783488d",
-      "source": "口令校验失败",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 185,
-          "context": "e instanceof Error ? e.message : i18n(\"state.vaultshare.2fb90783488d\")"
-        }
-      ],
-      "translation": "Share code verification failed",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.388fc6c63ebe",
-      "source": "分享内容超过支持的大小",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 380,
-          "context": "new Error(i18n(\"state.vaultshare.388fc6c63ebe\"))"
-        }
-      ],
-      "translation": "The share content exceeds the supported size",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.561b8b9a8f82",
-      "source": "暂存箱还是空的，先收进一些内容",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 353,
-          "context": "new Error(i18n(\"state.vaultshare.561b8b9a8f82\"))"
-        }
-      ],
-      "translation": "Your Stash is still empty. Add some content first",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.5dec5b6cd859",
-      "source": "接收邮箱格式不正确",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 304,
-          "context": "new Error(i18n(\"state.vaultshare.5dec5b6cd859\"))"
-        }
-      ],
-      "translation": "Invalid recipient email format",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.63205c669579",
-      "source": "口令校验失败（可能被篡改或复制不完整）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 182,
-          "context": "reason: i18n(\"state.vaultshare.63205c669579\")"
-        }
-      ],
-      "translation": "Share code verification failed (it may have been tampered with or copied incompletely)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.65381bdff463",
-      "source": "当前云盘适配器不支持就地更新，请重新生成口令",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 467,
-          "context": "reason: i18n(\"state.vaultshare.65381bdff463\")"
-        }
-      ],
-      "translation": "The current cloud drive adapter does not support in-place updates. Please create a new share code",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.65841f3a49c8",
-      "source": "更新云盘清单失败：{error}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "error",
-          "expression": "e instanceof Error ? e.message : String(e)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 512,
-          "context": "reason: i18n(\"state.vaultshare.65841f3a49c8\", { error: e instanceof Error ? e.message : String(e) })"
-        }
-      ],
-      "translation": "Failed to update the cloud drive manifest: {error}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.6e106dfb0757",
-      "source": "云盘没有返回分享链接",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 317,
-          "context": "new Error(i18n(\"state.vaultshare.6e106dfb0757\"))"
-        }
-      ],
-      "translation": "The cloud drive did not return a share link",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.716036f1e95d",
-      "source": "云盘读取失败：{error}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "error",
-          "expression": "e instanceof Error ? e.message : String(e)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 392,
-          "context": "reason: i18n(\"state.vaultshare.716036f1e95d\", { error: e instanceof Error ? e.message : String(e) })"
-        }
-      ],
-      "translation": "Failed to read from the cloud drive: {error}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.7aa0c43fe053",
-      "source": "口令内容不是合法 JSON",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 205,
-          "context": "reason: i18n(\"state.vaultshare.7aa0c43fe053\")"
-        }
-      ],
-      "translation": "The share code content is not valid JSON",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.857b79bf69f3",
-      "source": "请先连接清华云盘（改口令要更新云盘里的清单）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 466,
-          "context": "reason: i18n(\"state.vaultshare.857b79bf69f3\")"
-        }
-      ],
-      "translation": "Connect to Tsinghua Cloud Drive first (changing the share code requires updating the manifest on the drive)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.989f1cde10a3",
-      "source": "口令校验失败（可能复制不完整）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 201,
-          "context": "reason: i18n(\"state.vaultshare.989f1cde10a3\")"
-        }
-      ],
-      "translation": "Share code verification failed (it may have been copied incompletely)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.9aa4c7ceb155",
-      "source": "找不到这条口令的云盘位置，请在暂存箱里重新生成口令",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 473,
-          "context": "reason: i18n(\"state.vaultshare.9aa4c7ceb155\")"
-        }
-      ],
-      "translation": "The cloud drive location of this share code cannot be found. Please create a new share code from the Stash",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.9ae3c2acf2c1",
-      "source": "口令格式不完整",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 177,
-          "context": "reason: i18n(\"state.vaultshare.9ae3c2acf2c1\")"
-        }
-      ],
-      "translation": "The share code format is incomplete",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.a473c3b43384",
-      "source": "当前没有暂存箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 400,
-          "context": "reason: i18n(\"state.vaultshare.a473c3b43384\")"
-        }
-      ],
-      "translation": "There is no Stash right now",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.ae3ba9170d2f",
-      "source": "口令过大（超过 96KB），不是本应用的正常口径",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 175,
-          "context": "reason: i18n(\"state.vaultshare.ae3ba9170d2f\")"
-        },
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 191,
-          "context": "reason: i18n(\"state.vaultshare.ae3ba9170d2f\")"
-        }
-      ],
-      "translation": "The share code is too large (over 96KB), which is not normal for this app",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.af175fd37c73",
-      "source": "当前环境没有 WebCrypto，无法生成口令摘要",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 122,
-          "context": "new Error(i18n(\"state.vaultshare.af175fd37c73\"))"
-        }
-      ],
-      "translation": "WebCrypto is not available in this environment; cannot generate the share code digest",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.b149e6ae5817",
-      "source": "旧口令已失效，请重新生成分享",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 333,
-          "context": "dec.reason ?? i18n(\"state.vaultshare.b149e6ae5817\")"
-        }
-      ],
-      "translation": "The old share code is no longer valid. Please create a new share",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.b2e333bd5624",
-      "source": "口令版本或结构不受支持",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 146,
-          "context": "reason: i18n(\"state.vaultshare.b2e333bd5624\")"
-        }
-      ],
-      "translation": "The share code version or structure is not supported",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.b37b72a03e7d",
-      "source": "口令清单超过上限（300 项）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 159,
-          "context": "reason: i18n(\"state.vaultshare.b37b72a03e7d\")"
-        }
-      ],
-      "translation": "The share code manifest exceeds the limit (300 items)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.b431db21b7df",
-      "source": "这条是旧版本地口令，内容写在口令里改不了；请重新生成新口令",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 461,
-          "context": "reason: i18n(\"state.vaultshare.b431db21b7df\")"
-        }
-      ],
-      "translation": "This is an old local share code; its content is baked into the code and cannot be changed. Please create a new share code",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.b713d28a9ae7",
-      "source": "升级后的分享不可读取",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 339,
-          "context": "secured.reason??i18n(\"state.vaultshare.b713d28a9ae7\")"
-        }
-      ],
-      "translation": "The upgraded share cannot be read",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.b8aeb1a1f261",
-      "source": "读取云盘清单失败：{error}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "error",
-          "expression": "e instanceof Error ? e.message : String(e)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 487,
-          "context": "reason: i18n(\"state.vaultshare.b8aeb1a1f261\", { error: e instanceof Error ? e.message : String(e) })"
-        }
-      ],
-      "translation": "Failed to read the cloud drive manifest: {error}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.c4591b5b1fe8",
-      "source": "口令无法解析",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 368,
-          "context": "dec.reason ?? i18n(\"state.vaultshare.c4591b5b1fe8\")"
-        },
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 448,
-          "context": "dec.reason ?? i18n(\"state.vaultshare.c4591b5b1fe8\")"
-        }
-      ],
-      "translation": "The share code cannot be parsed",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.c5479cb871fa",
-      "source": "邮箱格式不对，像 学号@mails.tsinghua.edu.cn 这样",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 457,
-          "context": "reason: i18n(\"state.vaultshare.c5479cb871fa\")"
-        }
-      ],
-      "translation": "Invalid email format, like studentID@mails.tsinghua.edu.cn",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.c97b00b652fa",
-      "source": "旧私密分享尚未升级，请重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 337,
-          "context": "upgraded.reason??i18n(\"state.vaultshare.c97b00b652fa\")"
-        }
-      ],
-      "translation": "This legacy private share has not been upgraded yet. Please try again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.cb2fdf85ee42",
-      "source": "更换接收范围未完成，请重试：{error}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "error",
-          "expression": "e instanceof Error?e.message:String(e)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 506,
-          "context": "reason:i18n(\"state.vaultshare.cb2fdf85ee42\", { error: e instanceof Error?e.message:String(e) })"
-        }
-      ],
-      "translation": "Changing the recipient scope was not completed. Please try again: {error}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.ced6988b78e7",
-      "source": "分享里没有可接收的内容",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 385,
-          "context": "checked.reason || i18n(\"state.vaultshare.ced6988b78e7\")"
-        }
-      ],
-      "translation": "There is nothing to receive in this share",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.d2880ea01ca6",
-      "source": "请先连接清华云盘，再分享暂存箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 358,
-          "context": "new Error(i18n(\"state.vaultshare.d2880ea01ca6\"))"
-        }
-      ],
-      "translation": "Connect to Tsinghua Cloud Drive first, then share your Stash",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.dd39d27f2eaf",
-      "source": "这条口令限定给 {recipient} 接收；当前连接的云盘账号是 {currentAccount}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "recipient",
-          "expression": "want"
-        },
-        {
-          "name": "currentAccount",
-          "expression": "mine"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 548,
-          "context": "return i18n(\"state.vaultshare.dd39d27f2eaf\", { recipient: want, currentAccount: mine });"
-        }
-      ],
-      "translation": "This share code is restricted to {recipient}; the currently connected cloud drive account is {currentAccount}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.de371c09cf24",
-      "source": "更换接收范围仍待完成，请重试：{error}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "error",
-          "expression": "e instanceof Error?e.message:String(e)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 445,
-          "context": "reason:i18n(\"state.vaultshare.de371c09cf24\", { error: e instanceof Error?e.message:String(e) })"
-        }
-      ],
-      "translation": "Changing the recipient scope is still pending. Please try again: {error}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.df690d6050a8",
-      "source": "不是 OneTHU 分享口令（应以 ONV1. 开头）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 193,
-          "context": "reason: i18n(\"state.vaultshare.df690d6050a8\")"
-        }
-      ],
-      "translation": "Not a OneTHU share code (it should start with ONV1.)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.e1b89010df35",
-      "source": "请先连接清华云盘，再生成分享口令",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 311,
-          "context": "new Error(i18n(\"state.vaultshare.e1b89010df35\"))"
-        }
-      ],
-      "translation": "Connect to Tsinghua Cloud Drive first, then create a share code",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.ee75d1a72727",
-      "source": "分享缺少读取链接",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 377,
-          "context": "reason: i18n(\"state.vaultshare.ee75d1a72727\")"
-        }
-      ],
-      "translation": "The share is missing a read link",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.f6d2148271ab",
-      "source": "请先连接清华云盘",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 419,
-          "context": "new Error(i18n(\"state.vaultshare.f6d2148271ab\"))"
-        }
-      ],
-      "translation": "Connect to Tsinghua Cloud Drive first",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultshare.fab167848c3e",
-      "source": "云盘未返回新分享链接",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShare.ts",
-          "line": 498,
-          "context": "new Error(i18n(\"state.vaultshare.fab167848c3e\"))"
-        }
-      ],
-      "translation": "The cloud drive did not return a new share link",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultsharelog.7aec0d4e2435",
-      "source": "{count} 项",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "count",
-          "expression": "e.scope.total"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShareLog.ts",
-          "line": 94,
-          "context": "parts ? i18n(\"state.vaultsharelog.f9aa135776f2\", { count: e.scope.total, contents: parts }) : i18n(\"state.vaultsharelog.7aec0d4e2435\", { count: e.scope.total })"
-        }
-      ],
-      "translation": "{count} items",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultsharelog.f9aa135776f2",
-      "source": "{count} 项 · {contents}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "count",
-          "expression": "e.scope.total"
-        },
-        {
-          "name": "contents",
-          "expression": "parts"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultShareLog.ts",
-          "line": 94,
-          "context": "parts ? i18n(\"state.vaultsharelog.f9aa135776f2\", { count: e.scope.total, contents: parts }) : i18n(\"state.vaultsharelog.7aec0d4e2435\", { count: e.scope.total })"
-        }
-      ],
-      "translation": "{count} items · {contents}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.wallpaper.17b2bd6e97e6",
-      "source": "视频超过 12MB，请先剪短再试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/wallpaper.ts",
-          "line": 388,
-          "context": "error: i18n(\"state.wallpaper.17b2bd6e97e6\")"
-        }
-      ],
-      "translation": "The video is over 12MB. Trim it first and try again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.wallpaper.47afb8f5d184",
-      "source": "这张图处理失败，换一张试试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/wallpaper.ts",
-          "line": 425,
-          "context": "error: i18n(\"state.wallpaper.47afb8f5d184\")"
-        },
-        {
-          "file": "apps/desktop/src/state/wallpaper.ts",
-          "line": 442,
-          "context": "error: i18n(\"state.wallpaper.47afb8f5d184\")"
-        },
-        {
-          "file": "apps/desktop/src/state/wallpaper.ts",
-          "line": 449,
-          "context": "error: i18n(\"state.wallpaper.47afb8f5d184\")"
-        }
-      ],
-      "translation": "This image could not be processed. Try another one",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

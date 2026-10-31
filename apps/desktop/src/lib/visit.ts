@@ -43,6 +43,16 @@ export function visitHasSession(): boolean {
   return readStored() !== null || visitClient.hasToken();
 }
 
+/** One-use official ticket, scoped to the registered visitor service. */
+export async function visitGatewayTicket() {
+  const {loadRemembered,currentFingerprint,session}=await import('./clients.js');
+  const owner=session.username,fingerprint=await currentFingerprint(),remembered=await loadRemembered();
+  if(!owner||session.state!=='ready'||remembered&&remembered.username!==owner)throw new Error('AUTH_SESSION_CONFLICT');
+  const ticket=await visitClient.authorizeTicket(remembered?.username,remembered?.password,fingerprint,session.finger3??'');
+  if(session.username!==owner||session.state!=='ready'||session.fingerprint!==fingerprint)throw new Error('AUTH_SESSION_CHANGED');
+  return ticket;
+}
+
 /** 保存登录态（宿主从官方页面回跳里换到之后调用） */
 export function visitSaveSession(s: VisitSessionState): void {
   visitClient.setSession(s);
@@ -73,9 +83,12 @@ export async function visitEnsureLogin(): Promise<VisitUser | null> {
     }
   }
   const { loadRemembered, currentFingerprint, session } = await import("./clients.js");
+  const owner = session.username;
   const remembered = await loadRemembered();
+  if (!owner || remembered && remembered.username !== owner) throw new Error("AUTH_SESSION_CONFLICT");
   const fingerprint = await currentFingerprint();
   const user = await visitClient.login(remembered?.username, remembered?.password, fingerprint, session.finger3 ?? "");
+  if (session.username !== owner || session.state !== "ready") throw new Error("AUTH_SESSION_CHANGED");
   persist();
   return user;
 }

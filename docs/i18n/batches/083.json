@@ -1,7 +1,1235 @@
 {
-  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
+  "sourceHash": "be3fd8c88a23dc4acb558acc486d73c0e34027023912c7adc1e35b9861a6e4b5",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "privacy.review",
+      "source": "查看与修改授权",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/PrivacyNotice.tsx",
+          "line": 31,
+          "context": "{t(\"privacy.review\")}"
+        }
+      ],
+      "translation": "Review permissions",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "privacy.revokeGuide",
+      "source": "如果想要撤销授权，请前往设置重新导览。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 214,
+          "context": "{i18n(\"privacy.revokeGuide\")}"
+        }
+      ],
+      "translation": "To withdraw consent, open Settings and replay the guide.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "privacy.saved",
+      "source": "授权选择已保存",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/PrivacyNotice.tsx",
+          "line": 33,
+          "context": "showToast(t(\"privacy.saved\"))"
+        }
+      ],
+      "translation": "Permission choices saved",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "privacy.saveFailed",
+      "source": "权限选择未能保存，请稍后重试。未保存成功前，不会授予新的权限。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/static-label-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Your permission choices could not be saved. Please try again. No new permissions are granted until saving succeeds.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "privacy.settings",
+      "source": "权限与隐私",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/PrivacyNotice.tsx",
+          "line": 31,
+          "context": "{t(\"privacy.settings\")}"
+        }
+      ],
+      "translation": "Permissions & privacy",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "privacy.step",
+      "source": "第 −1 步 · 使用前请了解",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/static-label-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Step −1 · Before you begin",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "privacy.title",
+      "source": "权限须知与免责声明",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/static-label-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Permissions, privacy & disclaimer",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "privacy.withdraw",
+      "source": "可随时在「我的 → 权限与隐私」或重新打开导览后修改。撤回会停止新请求，不会撤销已完成操作、清除云端文件或删除第三方已收到的数据。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/PrivacyNotice.tsx",
+          "line": 31,
+          "context": "{t(\"privacy.withdraw\")}"
+        }
+      ],
+      "translation": "Change these choices in My → Permissions & privacy or by replaying the guide. Withdrawal stops new requests; it does not undo completed actions, erase cloud files or delete data already received by third parties.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.announcements",
+      "source": "公告",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 37,
+          "context": "announcements:t(\"profile.field.announcements\")"
+        }
+      ],
+      "translation": "Announcements",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.bio",
+      "source": "个人简介",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 35,
+          "context": "bio:t(\"profile.field.bio\")"
+        }
+      ],
+      "translation": "Bio",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.body",
+      "source": "正文",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 37,
+          "context": "body:t(\"profile.field.body\")"
+        }
+      ],
+      "translation": "Content",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.brief",
+      "source": "简介",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 36,
+          "context": "brief:t(\"profile.field.brief\")"
+        }
+      ],
+      "translation": "Summary",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.description",
+      "source": "说明",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 37,
+          "context": "description:t(\"profile.field.description\")"
+        }
+      ],
+      "translation": "Description",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.email",
+      "source": "邮箱",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 36,
+          "context": "email:t(\"profile.field.email\")"
+        }
+      ],
+      "translation": "Email",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.gitlabRepos",
+      "source": "代码仓库",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 38,
+          "context": "gitlabRepos:t(\"profile.field.gitlabRepos\")"
+        }
+      ],
+      "translation": "Repositories",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.image",
+      "source": "图片",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 38,
+          "context": "avatar:t(\"profile.field.image\")"
+        },
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 38,
+          "context": "src:t(\"profile.field.image\")"
+        },
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 38,
+          "context": "cover:t(\"profile.field.image\")"
+        },
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 53,
+          "context": "{t(\"profile.field.image\")}"
+        }
+      ],
+      "translation": "Image",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.libraries",
+      "source": "资料库",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 38,
+          "context": "libraries:t(\"profile.field.libraries\")"
+        }
+      ],
+      "translation": "Libraries",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.members",
+      "source": "成员",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 36,
+          "context": "members:t(\"profile.field.members\")"
+        }
+      ],
+      "translation": "Members",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.name",
+      "source": "姓名 / 名称",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 35,
+          "context": "name:t(\"profile.field.name\")"
+        }
+      ],
+      "translation": "Name",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.note",
+      "source": "备注",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 36,
+          "context": "note:t(\"profile.field.note\")"
+        }
+      ],
+      "translation": "Note",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.owner",
+      "source": "负责人",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 38,
+          "context": "owner:t(\"profile.field.owner\")"
+        }
+      ],
+      "translation": "Owner",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.phone",
+      "source": "手机号",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 35,
+          "context": "phone:t(\"profile.field.phone\")"
+        }
+      ],
+      "translation": "Phone",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.projects",
+      "source": "项目",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 37,
+          "context": "projects:t(\"profile.field.projects\")"
+        }
+      ],
+      "translation": "Projects",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.role",
+      "source": "角色",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 36,
+          "context": "role:t(\"profile.field.role\")"
+        }
+      ],
+      "translation": "Role",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.social",
+      "source": "社交媒体",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 35,
+          "context": "social:t(\"profile.field.social\")"
+        }
+      ],
+      "translation": "Social media",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.status",
+      "source": "状态",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 38,
+          "context": "status:t(\"profile.field.status\")"
+        }
+      ],
+      "translation": "Status",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.field.title",
+      "source": "标题",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 37,
+          "context": "title:t(\"profile.field.title\")"
+        }
+      ],
+      "translation": "Title",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "profile.field.website",
+      "source": "个人网址",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 35,
+          "context": "website:t(\"profile.field.website\")"
+        }
+      ],
+      "translation": "Website",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.role.guest",
+      "source": "访客",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 51,
+          "context": "guest:t(\"profile.role.guest\")"
+        }
+      ],
+      "translation": "Guest",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.role.member",
+      "source": "成员",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 51,
+          "context": "member:t(\"profile.role.member\")"
+        }
+      ],
+      "translation": "Member",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.role.owner",
+      "source": "所有者",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 51,
+          "context": "owner:t(\"profile.role.owner\")"
+        }
+      ],
+      "translation": "Owner",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.status.active",
+      "source": "进行中",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 51,
+          "context": "active:t(\"profile.status.active\")"
+        }
+      ],
+      "translation": "In progress",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.status.done",
+      "source": "已完成",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 51,
+          "context": "done:t(\"profile.status.done\")"
+        }
+      ],
+      "translation": "Done",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.status.planned",
+      "source": "待开始",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 51,
+          "context": "planned:t(\"profile.status.planned\")"
+        }
+      ],
+      "translation": "Planned",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.chooseVersion",
+      "source": "选你想保留的内容",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 85,
+          "context": "{t(\"profile.sync.chooseVersion\")}"
+        }
+      ],
+      "translation": "Choose what to keep",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.combined",
+      "source": "两边合在一起",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/static-label-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Both combined",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.confirmDelete",
+      "source": "确认删除这条记录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 75,
+          "context": "data===null?t(\"profile.sync.confirmDelete\"):personal?(option.kind===\"local\"?t(\"profile.sync.keepCard\"):t(\"profile.sync.useOtherCard\")):(option.kind===\"local\"?t(\"profile.sync.keepVersion\"):t(\"profile.sync.useOtherVersion\"))"
+        }
+      ],
+      "translation": "Delete this record",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.conflict",
+      "source": "有更改需要你确认，其余内容已自动同步",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 32,
+          "context": "conflict:t(\"profile.sync.conflict\")"
+        }
+      ],
+      "translation": "Some changes need your choice. Everything else is synced",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.deleted",
+      "source": "已删除",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 48,
+          "context": "return t(\"profile.sync.deleted\");"
+        }
+      ],
+      "translation": "Deleted",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.deletedHere",
+      "source": "这一边已经删除了它",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 69,
+          "context": "{t(\"profile.sync.deletedHere\")}"
+        }
+      ],
+      "translation": "Deleted on this device",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.field",
+      "source": "冲突字段",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/static-label-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Conflicting field",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.keepCard",
+      "source": "保留这张名片",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 75,
+          "context": "option.kind===\"local\"?t(\"profile.sync.keepCard\"):t(\"profile.sync.useOtherCard\")"
+        }
+      ],
+      "translation": "Keep this card",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.keepLocal",
+      "source": "保留本机",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/static-label-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Keep local",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.keepVersion",
+      "source": "保留这一版",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 75,
+          "context": "option.kind===\"local\"?t(\"profile.sync.keepVersion\"):t(\"profile.sync.useOtherVersion\")"
+        }
+      ],
+      "translation": "Keep this version",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.later",
+      "source": "稍后再说",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/static-label-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Decide later",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.local",
+      "source": "本机内容",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/static-label-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Local version",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.merge",
+      "source": "确认合并",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/static-label-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Confirm merge",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.mergeHelp",
+      "source": "默认自动合并不同字段和列表条目。此处有同一字段的矛盾或删除冲突；手动合并会保留双方条目，同一字段优先本机，删除冲突保留记录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/static-label-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Different fields and list items merge automatically. These items have same-field or deletion conflicts. A manual merge keeps entries from both sides, favors local values for competing fields, and retains edited records when deletion conflicts.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.notSet",
+      "source": "未填写",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 49,
+          "context": "return t(\"profile.sync.notSet\");"
+        }
+      ],
+      "translation": "Not set",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.now",
+      "source": "立即同步",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 82,
+          "context": "{t(\"profile.sync.now\")}"
+        }
+      ],
+      "translation": "Sync now",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.offline",
+      "source": "连接云盘后，自动同步名片、好友与组织索引",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 31,
+          "context": "offline:t(\"profile.sync.offline\")"
+        }
+      ],
+      "translation": "Connect cloud storage to sync your card, contacts and organization index",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.otherDevice",
+      "source": "另一台设备",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 62,
+          "context": "label:t(\"profile.sync.otherDevice\")"
+        }
+      ],
+      "translation": "Other device",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "profile.sync.paused",
+      "source": "资料同步已暂停，请检查云盘连接及 OneTHU-Profile 私有资料库权限",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 32,
+          "context": "paused:t(\"profile.sync.paused\")"
+        }
+      ],
+      "translation": "Profile sync paused. Check the cloud connection and private permissions of OneTHU-Profile",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.pending",
+      "source": "有本地更改，等待同步…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 31,
+          "context": "pending:t(\"profile.sync.pending\")"
+        }
+      ],
+      "translation": "Local changes are waiting to sync…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.personal",
+      "source": "个人名片冲突",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 83,
+          "context": "c.key===\"personal\"?t(\"profile.sync.personal\"):c.local.value?.name??c.remote.value?.name??t(\"profile.sync.record\")"
+        }
+      ],
+      "translation": "Personal card conflict",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.preview",
+      "source": "合并预览",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/static-label-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Merge preview",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.privateValue",
+      "source": "私密字段（不展开显示）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 50,
+          "context": "return t(\"profile.sync.privateValue\");"
+        }
+      ],
+      "translation": "Private field (hidden)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.record",
+      "source": "记录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 42,
+          "context": "fields[trail.split(\".\").at(-1)??\"\"]??t(\"profile.sync.record\")"
+        },
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 54,
+          "context": "v.name??v.title??t(\"profile.sync.record\")"
+        },
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 54,
+          "context": "value.name??value.title??t(\"profile.sync.record\")"
+        },
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 83,
+          "context": "c.local.value?.name??c.remote.value?.name??t(\"profile.sync.record\")"
+        }
+      ],
+      "translation": "Record",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.remote",
+      "source": "云端内容",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/static-label-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Cloud version",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.review",
+      "source": "看一下",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 83,
+          "context": "{t(\"profile.sync.review\")}"
+        }
+      ],
+      "translation": "Review",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.synced",
+      "source": "名片、好友与组织索引已同步",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 32,
+          "context": "synced:t(\"profile.sync.synced\")"
+        }
+      ],
+      "translation": "Your card, contacts and organization index are synced",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.syncing",
+      "source": "正在同步名片、好友与组织索引…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 31,
+          "context": "syncing:t(\"profile.sync.syncing\")"
+        }
+      ],
+      "translation": "Syncing your card, contacts and organization index…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.thisDevice",
+      "source": "这台设备",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 62,
+          "context": "label:t(\"profile.sync.thisDevice\")"
+        }
+      ],
+      "translation": "This device",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "profile.sync.useCombined",
+      "source": "两边都保留",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/static-label-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Keep both",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.useOtherCard",
+      "source": "使用另一张名片",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 75,
+          "context": "option.kind===\"local\"?t(\"profile.sync.keepCard\"):t(\"profile.sync.useOtherCard\")"
+        }
+      ],
+      "translation": "Use the other card",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.useOtherVersion",
+      "source": "使用另一版",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 75,
+          "context": "option.kind===\"local\"?t(\"profile.sync.keepVersion\"):t(\"profile.sync.useOtherVersion\")"
+        }
+      ],
+      "translation": "Use the other version",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.useRemote",
+      "source": "使用云端，丢弃本机变更",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/static-label-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Use cloud, discard local changes",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "profile.sync.visualHelp",
+      "source": "两台设备对同一处做了不同修改。选你想保留的卡片或内容，其他不冲突的修改都会保留。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ProfileSyncStatus.tsx",
+          "line": 86,
+          "context": "{t(\"profile.sync.visualHelp\")}"
+        }
+      ],
+      "translation": "Both devices changed the same thing differently. Choose the card or content you want to keep. Other compatible changes will be kept.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "prompt.input",
+      "source": "输入内容",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/confirm.tsx",
+          "line": 152,
+          "context": "request ? resolveMessage(request.title) : t(\"prompt.input\")"
+        },
+        {
+          "file": "apps/desktop/src/lib/confirm.tsx",
+          "line": 176,
+          "context": "shown ? resolveMessage(shown.title) : t(\"prompt.input\")"
+        }
+      ],
+      "translation": "Enter text",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "schedule.secondary.invalidSemester",
+      "source": "请先刷新校历，再加载二级课表。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoLib.ts",
+          "line": 677,
+          "context": "new Error(i18n(\"schedule.secondary.invalidSemester\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/data.ts",
+          "line": 147,
+          "context": "calendar.error ?? i18n(\"schedule.secondary.invalidSemester\")"
+        }
+      ],
+      "translation": "Refresh the academic calendar before loading secondary courses.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "schedule.secondary.refreshFailed",
+      "source": "二级课表暂未刷新，已显示其他课程。可在日程设置中重试。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 457,
+          "context": "setWinError(i18n(\"schedule.secondary.refreshFailed\"))"
+        },
+        {
+          "file": "apps/desktop/src/pages/ScheduleAgenda.tsx",
+          "line": 114,
+          "context": "setMonthError(i18n(\"schedule.secondary.refreshFailed\"))"
+        }
+      ],
+      "translation": "Secondary courses could not be refreshed. Other courses are shown. Retry in Schedule settings.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "schedule.secondary.unavailable",
+      "source": "二级课表页面暂不可用，请刷新重试。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoLib.ts",
+          "line": 688,
+          "context": "new Error(i18n(\"schedule.secondary.unavailable\"))"
+        },
+        {
+          "file": "apps/desktop/src/lib/infoLib.ts",
+          "line": 691,
+          "context": "new Error(i18n(\"schedule.secondary.unavailable\"))"
+        },
+        {
+          "file": "apps/desktop/src/lib/infoLib.ts",
+          "line": 708,
+          "context": "new Error(i18n(\"schedule.secondary.unavailable\"))"
+        },
+        {
+          "file": "apps/desktop/src/lib/infoLib.ts",
+          "line": 735,
+          "context": "new Error(i18n(\"schedule.secondary.unavailable\"))"
+        }
+      ],
+      "translation": "The secondary timetable page is unavailable. Please refresh and try again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "settings.label.about",
+      "source": "关于",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/runtime-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "About",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "settings.label.account",
+      "source": "账号",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "docs/i18n/runtime-seed.json",
+          "line": 1
+        }
+      ],
+      "translation": "Account",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "settings.label.advanced",
       "source": "高级配置",
@@ -89,1215 +1317,6 @@
         }
       ],
       "translation": "Downloads",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.downloads",
-      "source": "下载与存储",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Downloads & storage",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.favorites",
-      "source": "收藏夹",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Favorites",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.features",
-      "source": "功能",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Features",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.geek",
-      "source": "极客模式",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Geek mode",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.harness",
-      "source": "OneTHU Harness",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "OneTHU Harness",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.help",
-      "source": "帮助",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Help",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.home",
-      "source": "首页布局",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Home layout",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.homework",
-      "source": "外部作业源",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Assignment sources",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.language",
-      "source": "语言",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 370,
-          "context": "{i18n(\"settings.label.language\")}"
-        }
-      ],
-      "translation": "Language",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "settings.label.market",
-      "source": "插件市场",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Plugin marketplace",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.mode",
-      "source": "使用模式",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 366,
-          "context": "{i18n(\"settings.label.mode\")}"
-        }
-      ],
-      "translation": "Experience",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "settings.label.myPlugins",
-      "source": "我的插件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "My plugins",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.notification",
-      "source": "通知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Notifications",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.notifications",
-      "source": "通知与提醒",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Notifications & reminders",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.oneshot",
-      "source": "OneShot 快捷入口",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "OneShot shortcuts",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.plugins",
-      "source": "插件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Plugins",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.route.1a7930272017",
-      "source": "入口",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Entry points",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.route.359213279505",
-      "source": "IM 通道（进阶）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "IM channel (advanced)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.route.3c02623c9a2b",
-      "source": "保活",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Keep-alive",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.route.3f0404bdc67a",
-      "source": "模型 / MCP / 日志",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Models / MCP / logs",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.route.444fd1f85256",
-      "source": "模型与多模态",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Model & multimodal",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.route.487e926379fe",
-      "source": "我的名片",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "My card",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.route.4f0d5e092ff1",
-      "source": "免费额度",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Free quota",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.route.51cc2efa3e8d",
-      "source": "我的组织",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "My organizations",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.route.6d47abc2d3c7",
-      "source": "IM 基础（扫码绑定 / 解绑）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "IM basics (scan to bind/unbind)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.route.72704d8e1e47",
-      "source": "悬浮球",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Floating ball",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.route.89fcbbfdca16",
-      "source": "语音",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Voice",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.security",
-      "source": "安全",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Security",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.settings",
-      "source": "设置",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Settings",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.sync",
-      "source": "数据与同步",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Data & sync",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.theme",
-      "source": "主题",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Theme",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.user",
-      "source": "账户",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Account",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.visual",
-      "source": "外观",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Appearance",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.widgets",
-      "source": "桌面小组件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Desktop widgets",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.label.workspace",
-      "source": "工作空间",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/runtime-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Workspace",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.language.description",
-      "source": "更改界面语言，保留当前页面和未完成的输入。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/LanguageControl.tsx",
-          "line": 22,
-          "context": "{t(\"settings.language.description\")}"
-        }
-      ],
-      "translation": "Change the interface language while keeping your current page and drafts.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.language.title",
-      "source": "语言",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/LanguageControl.tsx",
-          "line": 12,
-          "context": "compact\n    ? `${localeTable(\"zh-CN\")[\"settings.language.title\"]} / ${localeTable(\"en-US\")[\"settings.language.title\"]}`\n    : t(\"settings.language.title\")"
-        }
-      ],
-      "translation": "Language",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "settings.tab.desc.about",
-      "source": "版本更新、诊断信息与开源项目。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Version updates, diagnostics and the open-source project.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.tab.desc.account",
-      "source": "登录、云同步与外部作业源都在这里。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Account, sync and external homework sources.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.tab.desc.appearance",
-      "source": "主题、壁纸、玻璃程度与首页布局。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Theme, wallpaper, glass level and home layout.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.tab.desc.downloads",
-      "source": "下载目录与缓存管理。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Download folder and cache management.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.tab.desc.features",
-      "source": "使用模式、快捷入口、收藏夹与小组件。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Experience mode, quick actions, favorites and widgets.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.tab.desc.help",
-      "source": "操作指南与重新运行新手导览。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Guides and replaying the onboarding tour.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.tab.desc.notifications",
-      "source": "课程、日程与作业提醒的推送方式。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "How course, schedule and homework reminders reach you.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.wallpaper.day",
-      "source": "白天背景",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 799,
-          "context": "{i18n(\"settings.wallpaper.day\")}"
-        }
-      ],
-      "translation": "Day background",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.wallpaper.dayDesc",
-      "source": "系统处于白天时使用；不指定则沿用常驻壁纸。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 800,
-          "context": "{i18n(\"settings.wallpaper.dayDesc\")}"
-        }
-      ],
-      "translation": "Shown while the system is in light mode; falls back to the regular wallpaper.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.wallpaper.inherit",
-      "source": "沿用常驻壁纸",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 680,
-          "context": "label: i18n(\"settings.wallpaper.inherit\")"
-        }
-      ],
-      "translation": "Use the regular wallpaper",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "settings.wallpaper.night",
-      "source": "黑夜背景",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 804,
-          "context": "{i18n(\"settings.wallpaper.night\")}"
-        }
-      ],
-      "translation": "Night background",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "settings.wallpaper.nightDesc",
-      "source": "系统处于黑夜时使用；不指定则沿用常驻壁纸。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 805,
-          "context": "{i18n(\"settings.wallpaper.nightDesc\")}"
-        }
-      ],
-      "translation": "Shown while the system is in dark mode; falls back to the regular wallpaper.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.check",
-      "source": "检查运行环境",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
-          "line": 51,
-          "context": "checked ? t(\"skills.checked\") : t(\"skills.check\")"
-        }
-      ],
-      "translation": "Check runtime",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.checked",
-      "source": "运行环境检查通过",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
-          "line": 51,
-          "context": "checked ? t(\"skills.checked\") : t(\"skills.check\")"
-        }
-      ],
-      "translation": "Runtime check passed",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.compatible",
-      "source": "可用：文字与资料",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
-          "line": 46,
-          "context": "{t(\"skills.compatible\")}"
-        },
-        {
-          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
-          "line": 69,
-          "context": "installed.compatibility === \"text\" ? t(\"skills.compatible\") : t(\"skills.external\")"
-        }
-      ],
-      "translation": "Available: text and references",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.delete",
-      "source": "移除本机技能",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
-          "line": 87,
-          "context": "{t(\"skills.delete\")}"
-        }
-      ],
-      "translation": "Remove from this device",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.disable",
-      "source": "停止给 OH 使用",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
-          "line": 79,
-          "context": "installed.enabled ? t(\"skills.disable\") : t(\"skills.enable\")"
-        }
-      ],
-      "translation": "Disable in OH",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.disabled",
-      "source": "已导入，未启用",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
-          "line": 58,
-          "context": "item.enabled ? t(\"skills.enabled\") : t(\"skills.disabled\")"
-        }
-      ],
-      "translation": "Imported, not enabled",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.empty",
-      "source": "尚未导入技能。在下方广场选择技能，下载并检查。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
-          "line": 56,
-          "context": "{t(\"skills.empty\")}"
-        }
-      ],
-      "translation": "No imported skills yet. Choose a skill from the plaza below to download and inspect.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.enable",
-      "source": "启用给 OH",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
-          "line": 79,
-          "context": "installed.enabled ? t(\"skills.disable\") : t(\"skills.enable\")"
-        }
-      ],
-      "translation": "Enable in OH",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.enableBody",
-      "source": "OH 可按需读取此技能的说明与资料。启用表示允许将这些内容发送给你选择的模型；技能不会获得额外权限。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
-          "line": 72,
-          "context": "{t(\"skills.enableBody\")}"
-        }
-      ],
-      "translation": "OH can read this skill’s instructions and references as needed. Enabling allows those contents to be sent to your chosen model; the skill gains no additional permissions.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.enabled",
-      "source": "OH 已启用",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
-          "line": 58,
-          "context": "item.enabled ? t(\"skills.enabled\") : t(\"skills.disabled\")"
-        }
-      ],
-      "translation": "Enabled in OH",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.busy",
-      "source": "技能库正忙，请稍后重试。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 81,
-          "context": "SKILL_BUSY: t(\"skills.error.busy\")"
-        }
-      ],
-      "translation": "The skill library is busy. Try again shortly.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.code",
-      "source": "代码、输入或输出超过 64 KB 限制。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 77,
-          "context": "SKILL_CODE_TOO_LARGE: t(\"skills.error.code\")"
-        },
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 77,
-          "context": "SKILL_INPUT_TOO_LARGE: t(\"skills.error.code\")"
-        },
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 77,
-          "context": "SKILL_OUTPUT_TOO_LARGE: t(\"skills.error.code\")"
-        }
-      ],
-      "translation": "Code, input or output exceeds the 64 KB limit.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.disabled",
-      "source": "此技能尚未启用给 OH。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 75,
-          "context": "SKILL_NOT_ENABLED: t(\"skills.error.disabled\")"
-        }
-      ],
-      "translation": "This skill is not enabled in OH.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.download",
-      "source": "技能包下载未完成，请稍后重试。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 70,
-          "context": "SKILL_DOWNLOAD_FAILED: t(\"skills.error.download\")"
-        }
-      ],
-      "translation": "The skill package could not be downloaded. Try again later.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.fullMode",
-      "source": "技能仅在完整模式中开放。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 51,
-          "context": "new Error(t(\"skills.error.fullMode\"))"
-        },
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 54,
-          "context": "new Error(t(\"skills.error.fullMode\"))"
-        }
-      ],
-      "translation": "Skills are available in Full mode only.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.generic",
-      "source": "技能操作未能完成，请更新应用后重试。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 82,
-          "context": "SKILL_UNKNOWN_ACTION: t(\"skills.error.generic\")"
-        },
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 84,
-          "context": "/^SKILL_[A-Z_]+$/.test(raw) ? t(\"skills.error.generic\") : raw"
-        }
-      ],
-      "translation": "The skill action could not be completed. Update the app and try again.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.input",
-      "source": "计算输入无效，需要有效的 JSON 数据。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 79,
-          "context": "SKILL_INVALID_INPUT: t(\"skills.error.input\")"
-        }
-      ],
-      "translation": "Invalid computation input. Valid JSON data is required.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.large",
-      "source": "技能包超过轻量环境的大小、文件数量或压缩比例限制。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 71,
-          "context": "SKILL_PACKAGE_TOO_LARGE: t(\"skills.error.large\")"
-        },
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 71,
-          "context": "SKILL_TOO_MANY_FILES: t(\"skills.error.large\")"
-        }
-      ],
-      "translation": "The skill exceeds the lightweight environment’s size, file-count or compression limits.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.login",
-      "source": "请先登录 OneTHU 与清小搭，再重试。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 22,
-          "context": "new Error(t(\"skills.error.login\"))"
-        },
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 28,
-          "context": "new Error(t(\"skills.error.login\"))"
-        },
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 70,
-          "context": "SKILL_LOGIN_REQUIRED: t(\"skills.error.login\")"
-        }
-      ],
-      "translation": "Sign in to OneTHU and Xiaoda, then try again.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.manifest",
-      "source": "技能包需要唯一的 SKILL.md 入口。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 73,
-          "context": "SKILL_MISSING_MANIFEST: t(\"skills.error.manifest\")"
-        },
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 73,
-          "context": "SKILL_AMBIGUOUS_ROOT: t(\"skills.error.manifest\")"
-        }
-      ],
-      "translation": "The package needs a single unambiguous SKILL.md entry.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.notFound",
-      "source": "找不到这个技能或文件，请刷新技能库。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 78,
-          "context": "SKILL_NOT_FOUND: t(\"skills.error.notFound\")"
-        },
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 81,
-          "context": "SKILL_INVALID_ID: t(\"skills.error.notFound\")"
-        }
-      ],
-      "translation": "This skill or file was not found. Refresh the skill library.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.output",
-      "source": "计算没有返回可用的 JSON 结果。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 79,
-          "context": "SKILL_INVALID_OUTPUT: t(\"skills.error.output\")"
-        }
-      ],
-      "translation": "The computation did not return a usable JSON result.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.package",
-      "source": "下载内容不是有效的技能 ZIP 包。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 72,
-          "context": "SKILL_INVALID_ZIP: t(\"skills.error.package\")"
-        },
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 72,
-          "context": "SKILL_INVALID_MANIFEST: t(\"skills.error.package\")"
-        }
-      ],
-      "translation": "The downloaded content is not a valid skill ZIP package.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.path",
-      "source": "技能包含不安全或重复路径，已拒绝导入。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 74,
-          "context": "SKILL_UNSAFE_PATH: t(\"skills.error.path\")"
-        },
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 74,
-          "context": "SKILL_DUPLICATE_PATH: t(\"skills.error.path\")"
-        }
-      ],
-      "translation": "The package contains unsafe or duplicate paths and was rejected.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "skills.error.runtime",
-      "source": "运行环境检查失败，请更新并重启应用。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/skills.ts",
-          "line": 78,
-          "context": "SKILL_RUNTIME_FAILED: t(\"skills.error.runtime\")"
-        },
-        {
-          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
-          "line": 49,
-          "context": "new Error(t(\"skills.error.runtime\"))"
-        }
-      ],
-      "translation": "The runtime check failed. Update and restart the app.",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

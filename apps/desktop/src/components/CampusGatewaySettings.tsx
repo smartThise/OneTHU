@@ -118,7 +118,7 @@ export function CampusGatewaySettings() {
     finally { pending.current = false; if (active.current) setBusy(null); }
   }
 
-  if (!supported) return <SettingsRow id="row-campus-gateway" title={t("gateway.title")} sub={t("gateway.desktopOnly")} />;
+  if (!supported) return <div className="campus-gateway-settings"><SettingsRow id="row-campus-gateway" title={t("gateway.title")} sub={t("gateway.desktopOnly")} /><p className="campus-gateway-message">{t("gateway.platformScope")}</p></div>;
 
   const disabled = loading || !!busy;
   const ready = installation?.available === true;
@@ -159,6 +159,8 @@ export function CampusGatewaySettings() {
           </Btn> : undefined} />
         {systemEnabled && !recoveryRequired && status.systemProxy?.coexistence && status.systemProxy.activeServices?.length ? <p className="campus-gateway-message" role="status">{t("gateway.coexistence", { services: status.systemProxy.activeServices.join(" · ") })}</p> : null}
         <p className="campus-gateway-message">{t("gateway.authorizationScope")}</p>
+        {status.capabilities?.trustedMiniPrograms ? <SettingsRow title={t("gateway.prepareClients")} sub={t("gateway.prepareClientsDescription")}
+          control={<Btn variant="outline" disabled={disabled || !running} loading={busy === "client-prepare"} onClick={() => void run("client-prepare")}>{t("gateway.prepareClients")}</Btn>} /> : null}
       </div>
       <SettingsRow title={t("gateway.account")} sub={status.account?.account || undefined} value={status.account?.authenticated ? t("gateway.accountReady") : t("gateway.accountPending")} />
       <SettingsRow title={t("gateway.advanced")} sub={t("gateway.advancedDescription")}

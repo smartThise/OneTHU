@@ -1,5 +1,5 @@
 {
-  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
+  "sourceHash": "be3fd8c88a23dc4acb558acc486d73c0e34027023912c7adc1e35b9861a6e4b5",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
     {
@@ -1471,7 +1471,7 @@
         },
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 502,
+          "line": 505,
           "context": "error: i18n(\"components.softwareupdatesection.faa2f14dfa0b\", { downloadName: activeUpdateDownload.fileName })"
         }
       ],

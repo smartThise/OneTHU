@@ -1,7 +1,1191 @@
 {
-  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
+  "sourceHash": "be3fd8c88a23dc4acb558acc486d73c0e34027023912c7adc1e35b9861a6e4b5",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "lib.infoapps.c719848fe54e",
+      "source": "物流服务平台",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 218,
+          "context": "return i18n(\"lib.infoapps.c719848fe54e\");"
+        }
+      ],
+      "translation": "Logistics Service Platform",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c7a196f50c05",
+      "source": "网页网站制作、管理信息系统技术开发服务类合同审批/备案",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 64,
+          "context": "return i18n(\"lib.infoapps.c7a196f50c05\");"
+        }
+      ],
+      "translation": "Website Development and MIS Technical Service Contract Approval/Filing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c7ae5d045c9f",
+      "source": "科技奖励申报",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 127,
+          "context": "return i18n(\"lib.infoapps.c7ae5d045c9f\");"
+        }
+      ],
+      "translation": "Science and Technology Award Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c89788e445c3",
+      "source": "安保类（安防）合同审批/备案",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 53,
+          "context": "return i18n(\"lib.infoapps.c89788e445c3\");"
+        }
+      ],
+      "translation": "Security (Surveillance) Contract Approval/Filing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c89f708d904b",
+      "source": "定向生办理在读证明申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 85,
+          "context": "return i18n(\"lib.infoapps.c89f708d904b\");"
+        }
+      ],
+      "translation": "Enrollment Certificate Request for Targeted-Admission Students",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c8e9e630e0eb",
+      "source": "自主科研项目登记",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 185,
+          "context": "return i18n(\"lib.infoapps.c8e9e630e0eb\");"
+        }
+      ],
+      "translation": "Independent Research Project Registration",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.ca9cb1a55d50",
+      "source": "委托设计服务合同（示范文本）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 46,
+          "context": "return i18n(\"lib.infoapps.ca9cb1a55d50\");"
+        }
+      ],
+      "translation": "Commissioned Design Service Contract (Model Text)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.cb40981461f6",
+      "source": "清华大学规章制度检索",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 284,
+          "context": "return i18n(\"lib.infoapps.cb40981461f6\");"
+        }
+      ],
+      "translation": "Tsinghua University Regulations Search",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.cc95621847d1",
+      "source": "文化素质课论文提交",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 102,
+          "context": "return i18n(\"lib.infoapps.cc95621847d1\");"
+        }
+      ],
+      "translation": "General Education Course Paper Submission",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.ccb1f1a8e7ac",
+      "source": "转专业申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 75,
+          "context": "return i18n(\"lib.infoapps.ccb1f1a8e7ac\");"
+        }
+      ],
+      "translation": "Major Transfer Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.cd4368d8a673",
+      "source": "共建大学生社会实践基地服务合同（示范文本）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 28,
+          "context": "return i18n(\"lib.infoapps.cd4368d8a673\");"
+        }
+      ],
+      "translation": "Joint Student Social Practice Base Service Contract (Model Text)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.cf49409d8ee6",
+      "source": "师生办事检索",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 19,
+          "context": "return i18n(\"lib.infoapps.cf49409d8ee6\");"
+        }
+      ],
+      "translation": "Faculty and Student Service Search",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.cf64fcf578e8",
+      "source": "食品类合同审批/备案",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 65,
+          "context": "return i18n(\"lib.infoapps.cf64fcf578e8\");"
+        }
+      ],
+      "translation": "Food Service Contract Approval/Filing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.cfd515d3ad0c",
+      "source": "专利评价",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 160,
+          "context": "return i18n(\"lib.infoapps.cfd515d3ad0c\");"
+        }
+      ],
+      "translation": "Patent Evaluation",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.d04844ec3522",
+      "source": "电子资源校外访问",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 281,
+          "context": "return i18n(\"lib.infoapps.d04844ec3522\");"
+        }
+      ],
+      "translation": "Off-Campus Access to Electronic Resources",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.d0d6b676e300",
+      "source": "安保类（消防）合同审批/备案",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 55,
+          "context": "return i18n(\"lib.infoapps.d0d6b676e300\");"
+        }
+      ],
+      "translation": "Security (Fire Protection) Contract Approval/Filing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.d4159d0297b8",
+      "source": "赞助合同（示范文本）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 40,
+          "context": "return i18n(\"lib.infoapps.d4159d0297b8\");"
+        }
+      ],
+      "translation": "Sponsorship Contract (Model Text)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.d4b4f8b68896",
+      "source": "专利优审",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 159,
+          "context": "return i18n(\"lib.infoapps.d4b4f8b68896\");"
+        }
+      ],
+      "translation": "Patent Expedited Examination",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.d4f9b39d7e9c",
+      "source": "电子教学参考书服务",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 285,
+          "context": "return i18n(\"lib.infoapps.d4f9b39d7e9c\");"
+        }
+      ],
+      "translation": "Electronic Course Reserves Service",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.d565481ef485",
+      "source": "资产评估合同登记",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 169,
+          "context": "return i18n(\"lib.infoapps.d565481ef485\");"
+        }
+      ],
+      "translation": "Asset Appraisal Contract Registration",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.d5f343146421",
+      "source": "在华举办国际会议变更报批",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 24,
+          "context": "return i18n(\"lib.infoapps.d5f343146421\");"
+        }
+      ],
+      "translation": "International Conference Held in China Change Approval",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.d60e27026d70",
+      "source": "科研系统",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 144,
+          "context": "return i18n(\"lib.infoapps.d60e27026d70\");"
+        }
+      ],
+      "translation": "Research Administration System",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.d6d063cf1f4b",
+      "source": "开源软件下载",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 266,
+          "context": "return i18n(\"lib.infoapps.d6d063cf1f4b\");"
+        }
+      ],
+      "translation": "Open Source Software Downloads",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.d88f3d0df971",
+      "source": "学生课程学习反馈",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 90,
+          "context": "return i18n(\"lib.infoapps.d88f3d0df971\");"
+        }
+      ],
+      "translation": "Student Course Learning Feedback",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.d9f544c0a778",
+      "source": "常年法律顾问服务合同（示范文本）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 48,
+          "context": "return i18n(\"lib.infoapps.d9f544c0a778\");"
+        }
+      ],
+      "translation": "Retained Legal Counsel Service Contract (Model Text)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.da9d94543e89",
+      "source": "横向项目结题结账",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 183,
+          "context": "return i18n(\"lib.infoapps.da9d94543e89\");"
+        }
+      ],
+      "translation": "Industry-Sponsored Project Completion and Closure",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.db3186701f95",
+      "source": "奖励资助申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 106,
+          "context": "return i18n(\"lib.infoapps.db3186701f95\");"
+        }
+      ],
+      "translation": "Awards and Financial Aid Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.dbaa6e768494",
+      "source": "住宿服务",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 246,
+          "context": "return i18n(\"lib.infoapps.dbaa6e768494\");"
+        }
+      ],
+      "translation": "Housing Services",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.dbeef2a162c4",
+      "source": "四六级准考证",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 86,
+          "context": "return i18n(\"lib.infoapps.dbeef2a162c4\");"
+        }
+      ],
+      "translation": "CET-4/CET-6 Admission Ticket",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.dc76007ab4ef",
+      "source": "阳光长跑成绩查询",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 111,
+          "context": "return i18n(\"lib.infoapps.dc76007ab4ef\");"
+        }
+      ],
+      "translation": "Sunshine Run Results",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.dd367c7e92ef",
+      "source": "成果发布申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 173,
+          "context": "return i18n(\"lib.infoapps.dd367c7e92ef\");"
+        }
+      ],
+      "translation": "Achievement Release Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.de0384adfc92",
+      "source": "成果披露",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 167,
+          "context": "return i18n(\"lib.infoapps.de0384adfc92\");"
+        }
+      ],
+      "translation": "Achievement Disclosure",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.de277182b052",
+      "source": "党员管理",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 203,
+          "context": "return i18n(\"lib.infoapps.de277182b052\");"
+        }
+      ],
+      "translation": "Party Member Management",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.df7acb38e394",
+      "source": "财务信息综合查询",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 211,
+          "context": "return i18n(\"lib.infoapps.df7acb38e394\");"
+        }
+      ],
+      "translation": "Comprehensive Financial Information Search",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.e041c31d4085",
+      "source": "DeepSeek服务",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 264,
+          "context": "return i18n(\"lib.infoapps.e041c31d4085\");"
+        }
+      ],
+      "translation": "DeepSeek Service",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.e10d51b5bf4c",
+      "source": "因公来访人员临时联网账号申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 268,
+          "context": "return i18n(\"lib.infoapps.e10d51b5bf4c\");"
+        }
+      ],
+      "translation": "Temporary Network Account for Official Visitors",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.e19f1215fee4",
+      "source": "国有资产管理系统",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 241,
+          "context": "return i18n(\"lib.infoapps.e19f1215fee4\");"
+        }
+      ],
+      "translation": "State-Owned Asset Management System",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.e1a9bf6f3c14",
+      "source": "财政资助专利声明",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 161,
+          "context": "return i18n(\"lib.infoapps.e1a9bf6f3c14\");"
+        }
+      ],
+      "translation": "Government-Funded Patent Declaration",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.e60180120750",
+      "source": "网上交费",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 205,
+          "context": "return i18n(\"lib.infoapps.e60180120750\");"
+        }
+      ],
+      "translation": "Online Payment",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.e67ea2b230af",
+      "source": "合同验收(成果转化)",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 165,
+          "context": "return i18n(\"lib.infoapps.e67ea2b230af\");"
+        }
+      ],
+      "translation": "Contract Acceptance (Technology Commercialization)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.e6e6bb3c6de2",
+      "source": "艺术作品登记",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 132,
+          "context": "return i18n(\"lib.infoapps.e6e6bb3c6de2\");"
+        }
+      ],
+      "translation": "Artwork Registration",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.e74c4963cc5e",
+      "source": "调查问卷系统",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 262,
+          "context": "return i18n(\"lib.infoapps.e74c4963cc5e\");"
+        }
+      ],
+      "translation": "Survey System",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.e7c9a5e81629",
+      "source": "在线服务系统",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 18,
+          "context": "return i18n(\"lib.infoapps.e7c9a5e81629\");"
+        }
+      ],
+      "translation": "Online Service System",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.e7cc1c075023",
+      "source": "试剂材料信息管理系统",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 237,
+          "context": "return i18n(\"lib.infoapps.e7cc1c075023\");"
+        }
+      ],
+      "translation": "Reagent and Material Information Management System",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.eb4da47dbfe9",
+      "source": "清华大学融媒体系统",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 287,
+          "context": "return i18n(\"lib.infoapps.eb4da47dbfe9\");"
+        }
+      ],
+      "translation": "Tsinghua University Media System",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.ebda5b7d0824",
+      "source": "安保类（交通）合同审批/备案",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 54,
+          "context": "return i18n(\"lib.infoapps.ebda5b7d0824\");"
+        }
+      ],
+      "translation": "Security (Traffic) Contract Approval/Filing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.ec37ae91e8bf",
+      "source": "国内学生住宿申请及调整",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 69,
+          "context": "return i18n(\"lib.infoapps.ec37ae91e8bf\");"
+        }
+      ],
+      "translation": "Domestic Student Housing Application and Adjustment",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.ec9c49a04979",
+      "source": "学生活动申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 119,
+          "context": "return i18n(\"lib.infoapps.ec9c49a04979\");"
+        }
+      ],
+      "translation": "Student Activity Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.eccab981cd2c",
+      "source": "机构申报",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 136,
+          "context": "return i18n(\"lib.infoapps.eccab981cd2c\");"
+        }
+      ],
+      "translation": "Organization Registration",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.ecec6dec6b5c",
+      "source": "招生出差及报销申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 113,
+          "context": "return i18n(\"lib.infoapps.ecec6dec6b5c\");"
+        }
+      ],
+      "translation": "Admissions Travel and Reimbursement Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.ee301c121fb5",
+      "source": "财务综合服务平台",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 210,
+          "context": "return i18n(\"lib.infoapps.ee301c121fb5\");"
+        }
+      ],
+      "translation": "Comprehensive Finance Service Platform",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.ee3203f6bf85",
+      "source": "文化素质课已听讲座",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 99,
+          "context": "return i18n(\"lib.infoapps.ee3203f6bf85\");"
+        }
+      ],
+      "translation": "General Education Lectures Attended",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.efa201bcf49c",
+      "source": "集体户口服务",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 255,
+          "context": "return i18n(\"lib.infoapps.efa201bcf49c\");"
+        }
+      ],
+      "translation": "Collective Household Registration Services",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.efec75bee1fc",
+      "source": "胜因院22号预约",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 120,
+          "context": "return i18n(\"lib.infoapps.efec75bee1fc\");"
+        }
+      ],
+      "translation": "Shengyin Yuan No. 22 Reservation",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.f00b4592e5d0",
+      "source": "助学金查询",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 206,
+          "context": "return i18n(\"lib.infoapps.f00b4592e5d0\");"
+        }
+      ],
+      "translation": "Financial Aid Lookup",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.f04aef6ee24c",
+      "source": "纵向项目登记",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 175,
+          "context": "return i18n(\"lib.infoapps.f04aef6ee24c\");"
+        }
+      ],
+      "translation": "Government-Funded Project Registration",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.f1b90b3f08f2",
+      "source": "管理信息系统技术开发服务合同（示范文本）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 29,
+          "context": "return i18n(\"lib.infoapps.f1b90b3f08f2\");"
+        }
+      ],
+      "translation": "MIS Development Service Contract (Model Text)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.f255c9dd7ced",
+      "source": "演出类合同审批/备案",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 51,
+          "context": "return i18n(\"lib.infoapps.f255c9dd7ced\");"
+        }
+      ],
+      "translation": "Performance Contract Approval/Filing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.f3e39ed2ef53",
+      "source": "论文认领（老）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 134,
+          "context": "return i18n(\"lib.infoapps.f3e39ed2ef53\");"
+        }
+      ],
+      "translation": "Paper Claim (Legacy)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.f500bd66534a",
+      "source": "英语分级三四级学生免修申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 125,
+          "context": "return i18n(\"lib.infoapps.f500bd66534a\");"
+        }
+      ],
+      "translation": "English Placement Levels 3-4 Exemption Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.f575a006f94b",
+      "source": "校机关服务满意度调查",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 297,
+          "context": "return i18n(\"lib.infoapps.f575a006f94b\");"
+        }
+      ],
+      "translation": "University Administration Satisfaction Survey",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.f66fc156eba4",
+      "source": "培养方案完成情况",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 94,
+          "context": "return i18n(\"lib.infoapps.f66fc156eba4\");"
+        }
+      ],
+      "translation": "Study Plan Completion Status",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.f6e69d684adb",
+      "source": "文化素质课申请查询",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 101,
+          "context": "return i18n(\"lib.infoapps.f6e69d684adb\");"
+        }
+      ],
+      "translation": "General Education Course Application Search",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.f78a23b61ab7",
+      "source": "横向项目变更",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 181,
+          "context": "return i18n(\"lib.infoapps.f78a23b61ab7\");"
+        }
+      ],
+      "translation": "Industry-Sponsored Project Change",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.f9206110d4bb",
+      "source": "毕业生调查问卷",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 92,
+          "context": "return i18n(\"lib.infoapps.f9206110d4bb\");"
+        }
+      ],
+      "translation": "Graduate Survey",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.fa1d7aa7deff",
+      "source": "奖励资助管理系统",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 104,
+          "context": "return i18n(\"lib.infoapps.fa1d7aa7deff\");"
+        }
+      ],
+      "translation": "Awards and Financial Aid Management System",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.fb199e506f1e",
+      "source": "专用标志备案申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 23,
+          "context": "return i18n(\"lib.infoapps.fb199e506f1e\");"
+        }
+      ],
+      "translation": "Special Logo Filing Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.fb6f99449c19",
+      "source": "本科生实践类合同审批/备案",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 59,
+          "context": "return i18n(\"lib.infoapps.fb6f99449c19\");"
+        }
+      ],
+      "translation": "Undergraduate Practice Contract Approval/Filing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.fb838f099c08",
+      "source": "eduroam访客系统",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 273,
+          "context": "return i18n(\"lib.infoapps.fb838f099c08\");"
+        }
+      ],
+      "translation": "eduroam Guest System",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.fc9bf6c5e218",
+      "source": "机构汇款认领",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 135,
+          "context": "return i18n(\"lib.infoapps.fc9bf6c5e218\");"
+        }
+      ],
+      "translation": "Organization Remittance Claim",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.fdaf772576f8",
+      "source": "研究生就业/红色实践基地类合同审批/备案",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 60,
+          "context": "return i18n(\"lib.infoapps.fdaf772576f8\");"
+        }
+      ],
+      "translation": "Graduate Employment/Red Practice Base Contract Approval/Filing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.ff8f6bf4a353",
+      "source": "技术秘密登记",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 153,
+          "context": "return i18n(\"lib.infoapps.ff8f6bf4a353\");"
+        }
+      ],
+      "translation": "Trade Secret Registration",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.ffb509a9002c",
+      "source": "免试推研",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 76,
+          "context": "return i18n(\"lib.infoapps.ffb509a9002c\");"
+        }
+      ],
+      "translation": "Exam-Free Graduate Admission Recommendation",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infolib.22a686a1c34c",
+      "source": "TOTP 验证器",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoLib.ts",
+          "line": 306,
+          "context": "return i18n(\"lib.infolib.22a686a1c34c\");"
+        }
+      ],
+      "translation": "TOTP Authenticator",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "lib.infolib.f3943a7b3681",
       "source": "企业微信",
@@ -100,1180 +1284,6 @@
         }
       ],
       "translation": "No plugin entry found in the repository (tried: {value}). The repository must provide plugin.js at its root (or index.js / main.js, or an entry specified in the manifest).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.5749fe713e6e",
-      "source": "市场名单格式无效（缺 plugins 数组）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 396,
-          "context": "new Error(i18n(\"lib.market.5749fe713e6e\"))"
-        }
-      ],
-      "translation": "Invalid market list format (missing plugins array)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.5903a3de41a1",
-      "source": "市场名单拉取失败：HTTP {status}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "status",
-          "expression": "String(res.status)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 394,
-          "context": "new Error(i18n(\"lib.market.5903a3de41a1\", { status: String(res.status) }))"
-        }
-      ],
-      "translation": "Failed to fetch the market list: HTTP {status}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.6c1f697fcc8f",
-      "source": "owner/repo 含非法字符",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 139,
-          "context": "new Error(i18n(\"lib.market.6c1f697fcc8f\"))"
-        }
-      ],
-      "translation": "owner/repo contains invalid characters",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.90b62e711681",
-      "source": "目前仅支持 GitHub 仓库（github.com）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 117,
-          "context": "new Error(i18n(\"lib.market.90b62e711681\"))"
-        }
-      ],
-      "translation": "Only GitHub repositories are supported (github.com)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.b494102993b9",
-      "source": "无法识别的仓库地址；示例：user/repo 或完整 GitHub URL",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 114,
-          "context": "new Error(i18n(\"lib.market.b494102993b9\"))"
-        }
-      ],
-      "translation": "Unrecognized repository address; example: user/repo or a full GitHub URL",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.bde49d8534fa",
-      "source": "请输入仓库地址，如 user/repo",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 97,
-          "context": "new Error(i18n(\"lib.market.bde49d8534fa\"))"
-        }
-      ],
-      "translation": "Enter a repository address, e.g. user/repo",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.d8323fde8c21",
-      "source": "无法识别的仓库地址；示例：user/repo 或 user/repo@dev",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 106,
-          "context": "new Error(i18n(\"lib.market.d8323fde8c21\"))"
-        }
-      ],
-      "translation": "Unrecognized repository address; example: user/repo or user/repo@dev",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.nfc.e83e7558d05b",
-      "source": "内容太大，无法通过 NFC 完整传送；请复制口令分享，或缩小名片头像后重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/nfc.ts",
-          "line": 31,
-          "context": "new Error(i18n(\"lib.nfc.e83e7558d05b\"))"
-        }
-      ],
-      "translation": "The content is too large to transfer fully over NFC; share it with a share code instead, or shrink the card avatar and try again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardingcards.0e2791c8cc8e",
-      "source": "今日课程、日程提醒、课表",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingCards.ts",
-          "line": 42,
-          "context": "return i18n(\"lib.onboardingcards.0e2791c8cc8e\");"
-        }
-      ],
-      "translation": "Today's classes, schedule reminders, timetable",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardingcards.2118cbc10988",
-      "source": "学习",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingCards.ts",
-          "line": 29,
-          "context": "return i18n(\"lib.onboardingcards.2118cbc10988\");"
-        }
-      ],
-      "translation": "Study",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardingcards.21255f717947",
-      "source": "校园生活",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingCards.ts",
-          "line": 35,
-          "context": "return i18n(\"lib.onboardingcards.21255f717947\");"
-        }
-      ],
-      "translation": "Campus life",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardingcards.39d6f1dbd274",
-      "source": "插件市场、订阅新闻、选课",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingCards.ts",
-          "line": 48,
-          "context": "return i18n(\"lib.onboardingcards.39d6f1dbd274\");"
-        }
-      ],
-      "translation": "Plugin market, news subscriptions, course selection",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardingcards.43f852c7166f",
-      "source": "作业、通知、课程文件、成绩",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingCards.ts",
-          "line": 30,
-          "context": "return i18n(\"lib.onboardingcards.43f852c7166f\");"
-        }
-      ],
-      "translation": "Assignments, notices, course files, grades",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardingcards.5152a3e4e9a5",
-      "source": "日程与课表",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingCards.ts",
-          "line": 41,
-          "context": "return i18n(\"lib.onboardingcards.5152a3e4e9a5\");"
-        }
-      ],
-      "translation": "Schedule and timetable",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardingcards.9246e2578b58",
-      "source": "校园卡、电费、洗衣机、预约",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingCards.ts",
-          "line": 36,
-          "context": "return i18n(\"lib.onboardingcards.9246e2578b58\");"
-        }
-      ],
-      "translation": "Campus card, electricity, washers, reservations",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardingcards.ffe12936b2e7",
-      "source": "插件与更多",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingCards.ts",
-          "line": 47,
-          "context": "return i18n(\"lib.onboardingcards.ffe12936b2e7\");"
-        }
-      ],
-      "translation": "Plugins and more",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.00548ebf0094",
-      "source": "一个短口令，传递一组内容",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 45,
-          "context": "return i18n(\"lib.onboardinglessons.00548ebf0094\");"
-        }
-      ],
-      "translation": "One short share code, one bundle of content",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.017861453458",
-      "source": "⌘/Ctrl+K 唤出搜索，直跳页面或内容。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 75
-        }
-      ],
-      "translation": "Press ⌘/Ctrl+K to open search and jump straight to a page or content.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.046948f474c9",
-      "source": "OneFlow 把一串操作固化成步骤。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 75
-        }
-      ],
-      "translation": "OneFlow turns a chain of actions into fixed steps.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.04e1cf0948a0",
-      "source": "学习看课程与作业；预约找场馆、研讨间与来访报备。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 109
-        }
-      ],
-      "translation": "Study covers courses and assignments; Reservations covers venues, seminar rooms and visitor registration.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.1d136c57be9a",
-      "source": "暂存箱、组织、白板与插件属于完整模式，可在设置切换。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 123
-        }
-      ],
-      "translation": "Stash, Organizations, Board and plugins belong to Full mode; switch in Settings.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.227ccdc30302",
-      "source": "选择替换入口 1 到 4，该功能就固定在底部。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 128
-        }
-      ],
-      "translation": "Pick one of the replaceable slots 1 to 4 and that feature stays pinned at the bottom.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.22953a2b1d3d",
-      "source": "标签页与工作区：多任务不打架",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 69,
-          "context": "return i18n(\"lib.onboardinglessons.22953a2b1d3d\");"
-        }
-      ],
-      "translation": "Tabs and workspaces: multitask without clashes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.22c2c5850280",
-      "source": "悬浮球可在 OH 设置中开启或关闭。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 80
-        }
-      ],
-      "translation": "The floating ball can be turned on or off in OH settings.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.28ba892a80d1",
-      "source": "OH 支持语音、多模态与 IM 接入。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 80
-        }
-      ],
-      "translation": "OH supports voice, multimodal input and IM access.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.2ae24bb56fc5",
-      "source": "插件与 OH：把能力装进来",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 79,
-          "context": "return i18n(\"lib.onboardinglessons.2ae24bb56fc5\");"
-        }
-      ],
-      "translation": "Plugins and OH: bring in more capabilities",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.2d15ea7e97cf",
-      "source": "在 OneGO! 保存工作区，下次一键恢复。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 70
-        }
-      ],
-      "translation": "Save your workspace with OneGO! and restore it in one tap next time.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.2d32fc5fb4ab",
-      "source": "点待办查看详情，点课程进入课程内容。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 104
-        },
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 118
-        }
-      ],
-      "translation": "Tap a task to see details, or tap a course to open its content.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.2ef7a07ed1a6",
-      "source": "首页，只关心今天",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 103,
-          "context": "return i18n(\"lib.onboardinglessons.2ef7a07ed1a6\");"
-        },
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 117,
-          "context": "return i18n(\"lib.onboardinglessons.2ef7a07ed1a6\");"
-        }
-      ],
-      "translation": "Home, focused on today only",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.2f58de82e70b",
-      "source": "组件、一级功能区、标签栏、OneShot 可调。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 85
-        }
-      ],
-      "translation": "Widgets, main features, the tab bar and OneShot are all adjustable.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.32ec402487b2",
-      "source": "学习：作业、通知、文件、成绩、讨论。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 90
-        }
-      ],
-      "translation": "Study: assignments, notices, files, grades and discussions.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.38a50a046992",
-      "source": "切换模式不清数据，设置里可导出。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 95
-        }
-      ],
-      "translation": "Switching modes doesn't clear data, and you can export from Settings.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.3d0109a1f308",
-      "source": "更多功能：所有基础功能都在这里",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 122,
-          "context": "return i18n(\"lib.onboardinglessons.3d0109a1f308\");"
-        }
-      ],
-      "translation": "More features: all the basics live here",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.4766925e81fa",
-      "source": "支持 NFC 的设备可以贴近传递口令，也能用二维码。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 50,
-          "context": "i18n(\"lib.onboardinglessons.4766925e81fa\")}`"
-        }
-      ],
-      "translation": "NFC-capable devices can tap to pass the share code; QR codes work too.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.477ee6905e99",
-      "source": "碰一碰：名片与内容接力",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 50,
-          "context": "return i18n(\"lib.onboardinglessons.477ee6905e99\");"
-        }
-      ],
-      "translation": "Tap to share: pass cards and content along",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.481859b46c3d",
-      "source": "白板与 OnePage：首页由你摆",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 35,
-          "context": "return i18n(\"lib.onboardinglessons.481859b46c3d\");"
-        }
-      ],
-      "translation": "Board and OnePage: the Home you arrange",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.48ad9a755b42",
-      "source": "按需连接日历、分享内容，在其他设备继续。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 94,
-          "context": "return i18n(\"lib.onboardinglessons.48ad9a755b42\");"
-        }
-      ],
-      "translation": "Connect your calendar and share content on demand, then continue on other devices.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.4afe5510ffd6",
-      "source": "第五格「更多功能」展开真实目录，点名称直接打开。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 122,
-          "context": "return i18n(\"lib.onboardinglessons.4afe5510ffd6\");"
-        }
-      ],
-      "translation": "The fifth slot, \"More features\", expands into a real directory; tap a name to open it.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.4f8b0079e9a7",
-      "source": "查看收发入口",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 47,
-          "context": "return i18n(\"lib.onboardinglessons.4f8b0079e9a7\");"
-        }
-      ],
-      "translation": "Open the share entry",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.5179f2bbf334",
-      "source": "今日待办与要上的课程就在首页，所有基础功能仍可用。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 117,
-          "context": "return i18n(\"lib.onboardinglessons.5179f2bbf334\");"
-        }
-      ],
-      "translation": "Today's tasks and your classes are right on Home, and all the basics remain available.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.54b50ff31359",
-      "source": "去看看白板",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 37,
-          "context": "return i18n(\"lib.onboardinglessons.54b50ff31359\");"
-        }
-      ],
-      "translation": "Take a look at the Board",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.579d6942635d",
-      "source": "学习、生活、预约、云盘、GitLab 汇在一起。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 89,
-          "context": "return i18n(\"lib.onboardinglessons.579d6942635d\");"
-        }
-      ],
-      "translation": "Study, life, reservations, cloud drive and GitLab, all in one place.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.59899f30d40e",
-      "source": "打开工作区入口",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 71,
-          "context": "return i18n(\"lib.onboardinglessons.59899f30d40e\");"
-        }
-      ],
-      "translation": "Open the workspace entry",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.5c0e2772ea36",
-      "source": "学习、预约、生活、课表默认在下排，常用功能可以换进去。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 127,
-          "context": "return i18n(\"lib.onboardinglessons.5c0e2772ea36\");"
-        }
-      ],
-      "translation": "Study, Reservations, Life and Timetable sit on the bottom row by default; swap in your favorites.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.5cf01f986896",
-      "source": "生活：校园卡、电费网费、洗衣、场馆。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 90
-        }
-      ],
-      "translation": "Life: campus card, electricity and network fees, laundry, venues.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.5d5e509cc246",
-      "source": "接收内容仍需联网；不支持时改用口令或二维码。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 51
-        }
-      ],
-      "translation": "Receiving still requires network access; if it isn't supported, fall back to a share code or QR code.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.6334522bd244",
-      "source": "改坏可恢复默认布局，不动数据。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 85
-        }
-      ],
-      "translation": "If a layout breaks, you can restore the default without touching your data.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.65019eafede2",
-      "source": "标签栏可横排或竖排，按使用习惯切换。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 70
-        }
-      ],
-      "translation": "The tab bar can be horizontal or vertical; switch to match your habits.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.65909de13b31",
-      "source": "数据与同步：跨设备继续",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 94,
-          "context": "return i18n(\"lib.onboardinglessons.65909de13b31\");"
-        }
-      ],
-      "translation": "Data and sync: continue across devices",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.6670a347d233",
-      "source": "打开暂存箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 42,
-          "context": "return i18n(\"lib.onboardinglessons.6670a347d233\");"
-        }
-      ],
-      "translation": "Open Stash",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.6946e33b26a8",
-      "source": "OneGO!：全局入口与自动化",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 74,
-          "context": "return i18n(\"lib.onboardinglessons.6946e33b26a8\");"
-        }
-      ],
-      "translation": "OneGO!: global launcher and automation",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.6a2d23072180",
-      "source": "两端选 NFC 传送与接收，成功后再分开。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 51
-        }
-      ],
-      "translation": "On both devices choose NFC send and receive, then separate them after it succeeds.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.7177d5881f00",
-      "source": "口令与 NFC 让内容跨设备接力。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 95
-        }
-      ],
-      "translation": "Share codes and NFC pass content from device to device.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.71a055fe9ac4",
-      "source": "自制内容可发布为 OnePage 或组件。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 80
-        }
-      ],
-      "translation": "Your own creations can be published as a OnePage or a widget.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.74b07795cf47",
-      "source": "组织：人、文件、项目一处管",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 55,
-          "context": "return i18n(\"lib.onboardinglessons.74b07795cf47\");"
-        }
-      ],
-      "translation": "Organizations: people, files and projects in one place",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.7a1d19ef38cd",
-      "source": "五个功能，固定在手边",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 108,
-          "context": "return i18n(\"lib.onboardinglessons.7a1d19ef38cd\");"
-        }
-      ],
-      "translation": "Five features, always within reach",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.7afcd8d783a6",
-      "source": "主题、壁纸、密度和入口排布都能改。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 84,
-          "context": "return i18n(\"lib.onboardinglessons.7afcd8d783a6\");"
-        }
-      ],
-      "translation": "Theme, wallpaper, density and entry layout are all changeable.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.80a9c0e2e534",
-      "source": "换过的入口会保留；切换模式不改其他模式的安排。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 128
-        }
-      ],
-      "translation": "Entries you've swapped in are kept; switching modes doesn't affect the other mode's arrangement.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.8201b1567e8a",
-      "source": "已发出口令可改接收范围或撤销；已接收副本保留。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 46
-        }
-      ],
-      "translation": "A share you've issued can be re-scoped or revoked; received copies stay as they are.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.821c17e0cd8b",
-      "source": "先打开收发入口，点「接收」查看设备支持。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 51
-        }
-      ],
-      "translation": "Open the share entry first, then tap \"Receive\" to see what your device supports.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.836d1b485b82",
-      "source": "在组织中管理成员、资料库、项目和公告。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 56
-        }
-      ],
-      "translation": "Manage members, repositories, projects and announcements inside an organization.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.860909859b77",
-      "source": "先确认箱内内容，再生成并复制分享口令。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 46
-        }
-      ],
-      "translation": "Confirm the box contents first, then create and copy the share code.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.91753f91e6a4",
-      "source": "云盘、邮箱、GitLab、寻迹也能直接打开。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 90
-        }
-      ],
-      "translation": "Cloud drive, email, GitLab and Directions can be opened directly too.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.938cf6754eca",
-      "source": "首页是一块自由画布，组件的位置和大小随手调。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 35,
-          "context": "return i18n(\"lib.onboardinglessons.938cf6754eca\");"
-        }
-      ],
-      "translation": "Home is a free canvas; adjust widget position and size as you like.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.9521224b68f9",
-      "source": "装插件扩展组件、主题与 MCP 工具。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 79,
-          "context": "return i18n(\"lib.onboardinglessons.9521224b68f9\");"
-        }
-      ],
-      "translation": "Install plugins to extend widgets, themes and MCP tools.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.96110462ab73",
-      "source": "打开外观设置",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 86,
-          "context": "return i18n(\"lib.onboardinglessons.96110462ab73\");"
-        }
-      ],
-      "translation": "Open appearance settings",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.9697b3ac8ab8",
-      "source": "打开收发入口",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 52,
-          "context": "return i18n(\"lib.onboardinglessons.9697b3ac8ab8\");"
-        }
-      ],
-      "translation": "Open the share entry",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.9d06bd60c326",
-      "source": "插件页安装管理，给 OH 配模型源。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 80
-        }
-      ],
-      "translation": "Install and manage plugins on the Plugins page, and configure model sources for OH.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.a2fc98611a51",
-      "source": "打开就看到今日待办与要上的课程，无需整理页面。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 103,
-          "context": "return i18n(\"lib.onboardinglessons.a2fc98611a51\");"
-        }
-      ],
-      "translation": "Open it and see today's tasks and classes right away, no page arranging needed.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.a497b5391775",
-      "source": "查看数据设置",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 96,
-          "context": "return i18n(\"lib.onboardinglessons.a497b5391775\");"
-        }
-      ],
-      "translation": "Open data settings",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.a5ba218d1130",
-      "source": "随时点左上角「首页」回到今天。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 104
-        },
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 118
-        }
-      ],
-      "translation": "Tap \"Home\" in the top-left corner at any time to return to today.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.a77d0e6c7c2d",
-      "source": "四个入口，随你安排",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 127,
-          "context": "return i18n(\"lib.onboardinglessons.a77d0e6c7c2d\");"
-        }
-      ],
-      "translation": "Four entries, arranged your way",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.a7d4fd864624",
-      "source": "邀请成员时可用口令，并设有效期。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 56
-        }
-      ],
-      "translation": "You can invite members with a share code and set an expiry date.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.abeb15db61bc",
-      "source": "外观与工作台：全都可调",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 84,
-          "context": "return i18n(\"lib.onboardinglessons.abeb15db61bc\");"
-        }
-      ],
-      "translation": "Appearance and workspace: everything is adjustable",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

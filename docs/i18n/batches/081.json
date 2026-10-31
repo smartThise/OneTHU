@@ -1,7 +1,1262 @@
 {
-  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
+  "sourceHash": "be3fd8c88a23dc4acb558acc486d73c0e34027023912c7adc1e35b9861a6e4b5",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "plugins.facade.d9e18ccca62c",
+      "source": "trigger 必须是 {kind:manual} / {kind:cron,everyMinutes} / {kind:event,event}",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/facade.ts",
+          "line": 985,
+          "context": "new Error(i18n(\"plugins.facade.d9e18ccca62c\"))"
+        }
+      ],
+      "translation": "trigger must be {kind:manual} / {kind:cron,everyMinutes} / {kind:event,event}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.facade.e17b179b14d7",
+      "source": "需要一个新名字",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/facade.ts",
+          "line": 1115,
+          "context": "new Error(i18n(\"plugins.facade.e17b179b14d7\"))"
+        }
+      ],
+      "translation": "A new name is required",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.facade.ebf705292119",
+      "source": "校园网需要验证码登录，请输入图中验证码",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/facade.ts",
+          "line": 2080,
+          "context": "showToast(i18n(\"plugins.facade.ebf705292119\"))"
+        }
+      ],
+      "translation": "Campus network requires captcha sign-in; enter the captcha shown in the image",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.facade.ef62cd3182c8",
+      "source": "找不到这块 OnePage（id 不对或已删除）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/facade.ts",
+          "line": 1082,
+          "context": "new Error(i18n(\"plugins.facade.ef62cd3182c8\"))"
+        }
+      ],
+      "translation": "Cannot find this OnePage (wrong id or it has been deleted)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.facade.f4466b045d5f",
+      "source": "没找到这块板或这个组件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/facade.ts",
+          "line": 1176,
+          "context": "new Error(i18n(\"plugins.facade.f4466b045d5f\"))"
+        }
+      ],
+      "translation": "Board or widget not found",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.facade.f6746a5629b0",
+      "source": "日程不存在：{uid}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "uid",
+          "expression": "String(uid)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/facade.ts",
+          "line": 302,
+          "context": "new Error(i18n(\"plugins.facade.f6746a5629b0\", { uid: String(uid) }))"
+        }
+      ],
+      "translation": "Schedule entry not found: {uid}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.facade.f6d1ef56c2ca",
+      "source": "时间得是「2026-10-14 09:00」格式或毫秒数",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/facade.ts",
+          "line": 1410,
+          "context": "new Error(i18n(\"plugins.facade.f6d1ef56c2ca\"))"
+        }
+      ],
+      "translation": "Time must be in \"2026-10-14 09:00\" format or a millisecond timestamp",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.facade.fba49ea39197",
+      "source": "没找到这块板或这个组件（id 对照 ext_onepage_list 的板与组件 id）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/facade.ts",
+          "line": 1162,
+          "context": "new Error(i18n(\"plugins.facade.fba49ea39197\"))"
+        }
+      ],
+      "translation": "Board or widget not found (match ids against the board and widget ids from ext_onepage_list)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.facade.fba969e122d2",
+      "source": "没找到这块 OnePage",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/facade.ts",
+          "line": 1122,
+          "context": "new Error(i18n(\"plugins.facade.fba969e122d2\"))"
+        },
+        {
+          "file": "apps/desktop/src/plugins/facade.ts",
+          "line": 1182,
+          "context": "new Error(i18n(\"plugins.facade.fba969e122d2\"))"
+        }
+      ],
+      "translation": "OnePage not found",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.facade.formFallback",
+      "source": "请填写",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/facade.ts",
+          "line": 915,
+          "context": "title == null ? i18nMsg(\"plugins.facade.formFallback\") : String(title)"
+        }
+      ],
+      "translation": "Please fill in",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "plugins.loader.0c113f1913ec",
+      "source": "多模态（图片输入；仅部分模型支持）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 451,
+          "context": "return i18n(\"plugins.loader.0c113f1913ec\");"
+        }
+      ],
+      "translation": "Multimodal (image input; supported by some models only)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.125e05bb74f0",
+      "source": "内置插件不可卸载——它是 OneTHU 应用的一部分",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 362,
+          "context": "new Error(i18n(\"plugins.loader.125e05bb74f0\"))"
+        }
+      ],
+      "translation": "Built-in plugins cannot be uninstalled — they are part of the OneTHU app",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.155e1866a76a",
+      "source": "服务地址（OpenAI 兼容，以 /v1 结尾）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 439,
+          "context": "return i18n(\"plugins.loader.155e1866a76a\");"
+        }
+      ],
+      "translation": "Service address (OpenAI-compatible, ending with /v1)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.26133491e82f",
+      "source": "命令未注册或插件未启用：{pluginId}:{cmdId}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "pluginId",
+          "expression": "String(pluginId)"
+        },
+        {
+          "name": "cmdId",
+          "expression": "String(cmdId)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 379,
+          "context": "new Error(i18n(\"plugins.loader.26133491e82f\", { pluginId: String(pluginId), cmdId: String(cmdId) }))"
+        }
+      ],
+      "translation": "Command not registered or plugin not enabled: {pluginId}:{cmdId}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.2a4b2f825848",
+      "source": "关闭（更快更省）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 445,
+          "context": "return i18n(\"plugins.loader.2a4b2f825848\");"
+        }
+      ],
+      "translation": "Off (faster and cheaper)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.334583bcaa6f",
+      "source": "开启（打字机式逐字显示）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 457,
+          "context": "return i18n(\"plugins.loader.334583bcaa6f\");"
+        }
+      ],
+      "translation": "On (typewriter-style character-by-character display)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.343ed9a71667",
+      "source": "插件清单非法：须导出 manifest { id, name, version, permissions[] }",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 82,
+          "context": "new Error(i18n(\"plugins.loader.343ed9a71667\"))"
+        }
+      ],
+      "translation": "Invalid plugin manifest: must export manifest { id, name, version, permissions[] }",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.360864e1b0cd",
+      "source": "输出单价（美元，每百万 tokens；自费模式）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 461,
+          "context": "return i18n(\"plugins.loader.360864e1b0cd\");"
+        }
+      ],
+      "translation": "Output price (USD per million tokens; self-paid mode)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.3eed177246c5",
+      "source": "MadModel 免费档通行证（自动维护，勿手改）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 464,
+          "context": "return i18n(\"plugins.loader.3eed177246c5\");"
+        }
+      ],
+      "translation": "MadModel free-tier pass (maintained automatically; do not edit)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.45a9f71f85ee",
+      "source": "插件模块加载失败：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(String(e).slice(0, 160))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 78,
+          "context": "new Error(i18n(\"plugins.loader.45a9f71f85ee\", { value: String(String(e).slice(0, 160)) }))"
+        }
+      ],
+      "translation": "Failed to load plugin module: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.501704641ca5",
+      "source": "自费 API（填好下方 Key 与服务地址后生效）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 435,
+          "context": "return i18n(\"plugins.loader.501704641ca5\");"
+        }
+      ],
+      "translation": "Self-paid API (takes effect once the key and service address below are filled in)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.52ff11b158fd",
+      "source": "默认（自动：填了 Key 走自费，没填走 MadModel）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 436,
+          "context": "return i18n(\"plugins.loader.52ff11b158fd\");"
+        }
+      ],
+      "translation": "Default (automatic: uses the self-paid API when a key is set, MadModel otherwise)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.5567681c1fcb",
+      "source": "大模型驱动的清华校园助手（Rust 骨干·内嵌核心）：对话式查课表/日程/成绩/新闻/空教室/校园卡/电费/校园网，日程云同步（查/建/改/删），图书馆座位与研讨间查询预约（两段式确认），左下角常驻对话面板，实时进度与打断，多会话历史与对话导出，用量与花费控制。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 420,
+          "context": "return i18n(\"plugins.loader.5567681c1fcb\");"
+        }
+      ],
+      "translation": "An LLM-powered Tsinghua campus assistant (Rust backbone with an embedded core): chat to look up your timetable, schedule, grades, news, free classrooms, campus card, electricity bills, and campus network; cloud schedule sync (view/create/edit/delete); library seat and seminar room search and booking (two-step confirmation); a persistent chat panel at the bottom left; real-time progress with interrupt; multi-session history and chat export; usage and spending controls.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.57ebfbd072d4",
+      "source": "关闭（图片只传路径与文字预览）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 452,
+          "context": "return i18n(\"plugins.loader.57ebfbd072d4\");"
+        }
+      ],
+      "translation": "Off (images are sent as paths with a text preview only)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.5a56669687e7",
+      "source": "开启（深想推理；更慢更花）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 446,
+          "context": "return i18n(\"plugins.loader.5a56669687e7\");"
+        }
+      ],
+      "translation": "On (deep reasoning; slower and costlier)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.656626d64486",
+      "source": "MadModel 签发时刻（自动维护，勿手改）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 465,
+          "context": "return i18n(\"plugins.loader.656626d64486\");"
+        }
+      ],
+      "translation": "MadModel issue time (maintained automatically; do not edit)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.66e63df3fb0a",
+      "source": "主题插件须导出 theme: ThemeDef（或另加 default(ctx) 提供命令）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 88,
+          "context": "isTheme\n      ? i18n(\"plugins.loader.66e63df3fb0a\")\n      : i18n(\"plugins.loader.d87b3e6576de\")"
+        }
+      ],
+      "translation": "Theme plugins must export theme: ThemeDef (or additionally a default(ctx) to provide commands)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.6ad329874813",
+      "source": "模型源",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 433,
+          "context": "return i18n(\"plugins.loader.6ad329874813\");"
+        }
+      ],
+      "translation": "Model source",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.6d64fd9fb7c5",
+      "source": "免费档模型（自动同步站点清单；留空用默认）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 440,
+          "context": "return i18n(\"plugins.loader.6d64fd9fb7c5\");"
+        }
+      ],
+      "translation": "Free-tier model (auto-synced from the site's model list; leave empty for the default)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.7c3e3fd1ed4c",
+      "source": "[PLUGIN] 权限未声明：{what} 需要 {perm}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "what",
+          "expression": "String(what)"
+        },
+        {
+          "name": "perm",
+          "expression": "String(perm)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 17,
+          "context": "new Error(i18n(\"plugins.loader.7c3e3fd1ed4c\", { what: String(what), perm: String(perm) }))"
+        }
+      ],
+      "translation": "[PLUGIN] Permission not declared: {what} requires {perm}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.7de097ef7288",
+      "source": "思考模式（开＝想得深、更慢更花）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 444,
+          "context": "return i18n(\"plugins.loader.7de097ef7288\");"
+        }
+      ],
+      "translation": "Thinking mode (on = deeper thinking, slower and costlier)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.82022b3e8d52",
+      "source": "开启（图片按图像模态直接喂给模型）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 453,
+          "context": "return i18n(\"plugins.loader.82022b3e8d52\");"
+        }
+      ],
+      "translation": "On (images are fed to the model directly as an image modality)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.845ea122cff3",
+      "source": "对话历史预算（默认 24000≈2.4 万字；超出自动收成要点）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 455,
+          "context": "return i18n(\"plugins.loader.845ea122cff3\");"
+        }
+      ],
+      "translation": "Chat history budget (default 24000 ≈ 24k characters; older content is automatically condensed into key points when exceeded)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.85a66adff00c",
+      "source": "rust 插件缺少二进制路径",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 194,
+          "context": "new Error(i18n(\"plugins.loader.85a66adff00c\"))"
+        }
+      ],
+      "translation": "Rust plugin is missing a binary path",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.86ebd904019e",
+      "source": "模型（自费模式用；免费档默认 DeepSeek-V4.1-Flash）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 443,
+          "context": "return i18n(\"plugins.loader.86ebd904019e\");"
+        }
+      ],
+      "translation": "Model (for self-paid mode; the free tier defaults to DeepSeek-V4.1-Flash)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.9da85b4807f2",
+      "source": "API Key（自费模式用）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 438,
+          "context": "return i18n(\"plugins.loader.9da85b4807f2\");"
+        }
+      ],
+      "translation": "API key (for self-paid mode)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.b761f4b378ca",
+      "source": "清华 MadModel 免费（校园网/VPN · 自动续期）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 434,
+          "context": "return i18n(\"plugins.loader.b761f4b378ca\");"
+        }
+      ],
+      "translation": "Tsinghua MadModel free (campus network/VPN · auto-renewed)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.c3b7ba70078b",
+      "source": "单次任务最多工具调用步数（默认 16）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 463,
+          "context": "return i18n(\"plugins.loader.c3b7ba70078b\");"
+        }
+      ],
+      "translation": "Max tool-call steps per task (default 16)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.c7689034a299",
+      "source": "逐字显示回答（关＝等整段生成完一次给出）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 456,
+          "context": "return i18n(\"plugins.loader.c7689034a299\");"
+        }
+      ],
+      "translation": "Show replies character by character (off = wait for the full reply and show it at once)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.d87b3e6576de",
+      "source": "插件须导出 default(ctx) 激活函数",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 89,
+          "context": "isTheme\n      ? i18n(\"plugins.loader.66e63df3fb0a\")\n      : i18n(\"plugins.loader.d87b3e6576de\")"
+        }
+      ],
+      "translation": "Plugins must export a default(ctx) activation function",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.e7a25c627c2f",
+      "source": "输入单价（美元，每百万 tokens；自费模式）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 460,
+          "context": "return i18n(\"plugins.loader.e7a25c627c2f\");"
+        }
+      ],
+      "translation": "Input price (USD per million tokens; self-paid mode)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.e8ce81d059b5",
+      "source": "插件不存在：{id}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "id",
+          "expression": "String(id)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 179,
+          "context": "new Error(i18n(\"plugins.loader.e8ce81d059b5\", { id: String(id) }))"
+        }
+      ],
+      "translation": "Plugin not found: {id}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.e9cbdd258b61",
+      "source": "默认（DeepSeek-V4.1-Flash）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 441,
+          "context": "return i18n(\"plugins.loader.e9cbdd258b61\");"
+        }
+      ],
+      "translation": "Default (DeepSeek-V4.1-Flash)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.eb582a7f804c",
+      "source": "自费花费上限（美元；到量自动停止）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 462,
+          "context": "return i18n(\"plugins.loader.eb582a7f804c\");"
+        }
+      ],
+      "translation": "Self-paid spending cap (USD; stops automatically when reached)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.loader.f5c252ff822a",
+      "source": "关闭（整段生成完一次给出）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/loader.ts",
+          "line": 458,
+          "context": "return i18n(\"plugins.loader.f5c252ff822a\");"
+        }
+      ],
+      "translation": "Off (waits for the full reply and shows it at once)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.pluginwidgets.10243e85ea3c",
+      "source": "插件小组件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/pluginWidgets.ts",
+          "line": 135,
+          "context": "def.title ?? def.pluginName ?? i18n(\"plugins.pluginwidgets.10243e85ea3c\")"
+        },
+        {
+          "file": "apps/desktop/src/plugins/pluginWidgets.ts",
+          "line": 135,
+          "context": "String(def.title ?? def.pluginName ?? i18n(\"plugins.pluginwidgets.10243e85ea3c\")).trim() || i18n(\"plugins.pluginwidgets.10243e85ea3c\")"
+        }
+      ],
+      "translation": "Plugin widgets",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "plugins.rust.d10deb8d0c0e",
+      "source": "未知接口：onethu.{ns}.{method}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "ns",
+          "expression": "String(ns)"
+        },
+        {
+          "name": "method",
+          "expression": "String(method)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/rust.ts",
+          "line": 184,
+          "context": "new Error(i18n(\"plugins.rust.d10deb8d0c0e\", { ns: String(ns), method: String(method) }))"
+        }
+      ],
+      "translation": "Unknown interface: onethu.{ns}.{method}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.rust.e8ce81d059b5",
+      "source": "插件不存在：{id}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "id",
+          "expression": "String(id)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/rust.ts",
+          "line": 44,
+          "context": "new Error(i18n(\"plugins.rust.e8ce81d059b5\", { id: String(id) }))"
+        },
+        {
+          "file": "apps/desktop/src/plugins/rust.ts",
+          "line": 61,
+          "context": "new Error(i18n(\"plugins.rust.e8ce81d059b5\", { id: String(id) }))"
+        }
+      ],
+      "translation": "Plugin not found: {id}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.01e0b2699c29",
+      "source": "查询与应用主题、参与昼夜跟随调度（可改变全局外观）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 106,
+          "context": "return i18n(\"plugins.types.01e0b2699c29\");"
+        }
+      ],
+      "translation": "Query and apply themes and join day/night scheduling (can change the global appearance)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.056ff6cc3d7e",
+      "source": "读取日程",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 80,
+          "context": "return i18n(\"plugins.types.056ff6cc3d7e\");"
+        }
+      ],
+      "translation": "Read schedule",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.062675c673b0",
+      "source": "插件私有键值存储（卸载即清除）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 97,
+          "context": "return i18n(\"plugins.types.062675c673b0\");"
+        }
+      ],
+      "translation": "Plugin-private key-value storage (cleared on uninstall)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.08eccad108d6",
+      "source": "读取邮箱",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 82,
+          "context": "return i18n(\"plugins.types.08eccad108d6\");"
+        }
+      ],
+      "translation": "Read email",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.0a267e07b231",
+      "source": "插件未获授权「{permission}」，无法执行：{action}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "permission",
+          "expression": "permission"
+        },
+        {
+          "name": "action",
+          "expression": "what"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 906,
+          "context": "super(i18n(\"plugins.types.0a267e07b231\", { permission: permission, action: what }))"
+        }
+      ],
+      "translation": "The plugin is not authorized for \"{permission}\" and cannot perform: {action}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.0b0aeead7381",
+      "source": "清华 GitLab 项目、仓库文件、Issue、合并请求与流水线（只读）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 88,
+          "context": "return i18n(\"plugins.types.0b0aeead7381\");"
+        }
+      ],
+      "translation": "Tsinghua GitLab projects, repository files, issues, merge requests, and pipelines (read-only)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.0b73861126d5",
+      "source": "向系统通知中心推送通知（三端），内容与时刻由插件决定",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 101,
+          "context": "return i18n(\"plugins.types.0b73861126d5\");"
+        }
+      ],
+      "translation": "Push notifications to the system notification center (all platforms); content and timing are decided by the plugin",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.0dc09ebd6c0e",
+      "source": "读取校园卡",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 90,
+          "context": "return i18n(\"plugins.types.0dc09ebd6c0e\");"
+        }
+      ],
+      "translation": "Read campus card",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.0e3c0e14077d",
+      "source": "新建/追加/改写/归档 OH 记忆（写操作，需确认）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 87,
+          "context": "return i18n(\"plugins.types.0e3c0e14077d\");"
+        }
+      ],
+      "translation": "Create/append/rewrite/archive OH memory (write operation, requires confirmation)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.1004769bdb4e",
+      "source": "预约与取消场馆",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 77,
+          "context": "return i18n(\"plugins.types.1004769bdb4e\");"
+        }
+      ],
+      "translation": "Book and cancel venues",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.112f4f9c033a",
+      "source": "网络学堂发帖",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 75,
+          "context": "return i18n(\"plugins.types.112f4f9c033a\");"
+        }
+      ],
+      "translation": "Post to Web Learning",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.14dceca5d51a",
+      "source": "查询图书馆",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 92,
+          "context": "return i18n(\"plugins.types.14dceca5d51a\");"
+        }
+      ],
+      "translation": "Query the library",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.1a2130a92d14",
+      "source": "调用其他插件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 104,
+          "context": "return i18n(\"plugins.types.1a2130a92d14\");"
+        }
+      ],
+      "translation": "Call other plugins",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.1daf510cf2b5",
+      "source": "读取外部作业源",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 108,
+          "context": "return i18n(\"plugins.types.1daf510cf2b5\");"
+        }
+      ],
+      "translation": "Read external assignment sources",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.1ff6bbfc90da",
+      "source": "选课目录/已选/志愿/社区评价只读查询",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 78,
+          "context": "return i18n(\"plugins.types.1ff6bbfc90da\");"
+        }
+      ],
+      "translation": "Read-only queries of the course selection catalog, selected courses, preferences, and community reviews",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.2601413e9019",
+      "source": "访问任意校内服务",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 105,
+          "context": "return i18n(\"plugins.types.2601413e9019\");"
+        }
+      ],
+      "translation": "Access any on-campus service",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.27922c7aab59",
+      "source": "读取选课数据",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 78,
+          "context": "return i18n(\"plugins.types.27922c7aab59\");"
+        }
+      ],
+      "translation": "Read course selection data",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.27d28e1cb812",
+      "source": "读取校园网账户",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 94,
+          "context": "return i18n(\"plugins.types.27d28e1cb812\");"
+        }
+      ],
+      "translation": "Read campus network account",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.28b0433b1b95",
+      "source": "桌面小组件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 100,
+          "context": "return i18n(\"plugins.types.28b0433b1b95\");"
+        }
+      ],
+      "translation": "Desktop widgets",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.2cc9c0bad3d7",
+      "source": "预约公共空间",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 79,
+          "context": "return i18n(\"plugins.types.2cc9c0bad3d7\");"
+        }
+      ],
+      "translation": "Book common spaces",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.2f907548af0c",
+      "source": "经内置 Harness 调用大模型（清华免费档或你的自费 API）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 107,
+          "context": "return i18n(\"plugins.types.2f907548af0c\");"
+        }
+      ],
+      "translation": "Call LLMs through the built-in Harness (Tsinghua free tier or your self-paid API)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.33a65099fe72",
+      "source": "主题控制",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 106,
+          "context": "return i18n(\"plugins.types.33a65099fe72\");"
+        }
+      ],
+      "translation": "Theme control",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.3821452a894a",
+      "source": "读取 GitLab",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 88,
+          "context": "return i18n(\"plugins.types.3821452a894a\");"
+        }
+      ],
+      "translation": "Read GitLab",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.3c455efb9961",
+      "source": "电费余额/缴费记录/卫生分（只读）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 91,
+          "context": "return i18n(\"plugins.types.3c455efb9961\");"
+        }
+      ],
+      "translation": "Electricity balance/payment records/hygiene score (read-only)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.3fb5a1122255",
+      "source": "宿舍公共空间预约与取消（写操作，需确认）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 79,
+          "context": "return i18n(\"plugins.types.3fb5a1122255\");"
+        }
+      ],
+      "translation": "Book and cancel dorm common spaces (write operation, requires confirmation)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.types.40a17d15ad1e",
+      "source": "触发外部作业源网络刷新",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 109,
+          "context": "return i18n(\"plugins.types.40a17d15ad1e\");"
+        }
+      ],
+      "translation": "Trigger a network refresh of external assignment sources",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "plugins.types.48ad7913a562",
       "source": "GitLab 写操作",
@@ -95,1193 +1350,6 @@
         }
       ],
       "translation": "Book and cancel sports venues (write operation, requires confirmation)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.556c5fcee2ec",
-      "source": "从清华邮箱发信（写操作，需确认）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 83,
-          "context": "return i18n(\"plugins.types.556c5fcee2ec\");"
-        }
-      ],
-      "translation": "Send email from your Tsinghua mailbox (write operation, requires confirmation)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.584c7658f468",
-      "source": "余额与消费流水（只读，不含充值）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 90,
-          "context": "return i18n(\"plugins.types.584c7658f468\");"
-        }
-      ],
-      "translation": "Balance and spending records (read-only, no top-ups)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.5bbe605e0a01",
-      "source": "雨课堂 / TUOJ / Tyche / DSA OJ 的作业快照",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 108,
-          "context": "return i18n(\"plugins.types.5bbe605e0a01\");"
-        }
-      ],
-      "translation": "Rain Classroom courses, assignments, materials and announcements, plus TUOJ / Tyche / DSA OJ assignment snapshots",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.5d78a4c234e1",
-      "source": "预约图书馆",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 93,
-          "context": "return i18n(\"plugins.types.5d78a4c234e1\");"
-        }
-      ],
-      "translation": "Book library resources",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.627dd0f3fd6e",
-      "source": "读取云盘",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 84,
-          "context": "return i18n(\"plugins.types.627dd0f3fd6e\");"
-        }
-      ],
-      "translation": "Read Cloud Drive",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.6dc54a9470ed",
-      "source": "读取体育场馆",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 76,
-          "context": "return i18n(\"plugins.types.6dc54a9470ed\");"
-        }
-      ],
-      "translation": "Read sports venues",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.6f73980048f5",
-      "source": "外部 WebSocket 连接",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 99,
-          "context": "return i18n(\"plugins.types.6f73980048f5\");"
-        }
-      ],
-      "translation": "External WebSocket connections",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.7015255aa19b",
-      "source": "本地存储",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 97,
-          "context": "return i18n(\"plugins.types.7015255aa19b\");"
-        }
-      ],
-      "translation": "Local storage",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.781fead7e82d",
-      "source": "应用内跳转",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 95,
-          "context": "return i18n(\"plugins.types.781fead7e82d\");"
-        }
-      ],
-      "translation": "In-app navigation",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.78a788aeb3ed",
-      "source": "读取宿舍信息",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 91,
-          "context": "return i18n(\"plugins.types.78a788aeb3ed\");"
-        }
-      ],
-      "translation": "Read dorm info",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.7ad8378abec1",
-      "source": "读取记忆",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 86,
-          "context": "return i18n(\"plugins.types.7ad8378abec1\");"
-        }
-      ],
-      "translation": "Read memory",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.92acc8140843",
-      "source": "读取信息门户",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 73,
-          "context": "return i18n(\"plugins.types.92acc8140843\");"
-        }
-      ],
-      "translation": "Read the information portal",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.94d7e3d8ab44",
-      "source": "注入影响整个应用外观的 CSS（安装时重点确认）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 102,
-          "context": "return i18n(\"plugins.types.94d7e3d8ab44\");"
-        }
-      ],
-      "translation": "Inject CSS that affects the whole app's appearance (review carefully at install time)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.9665288d3db6",
-      "source": "检索/读取 OH 长期记忆（个人偏好、课程上下文、任务状态）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 86,
-          "context": "return i18n(\"plugins.types.9665288d3db6\");"
-        }
-      ],
-      "translation": "Search and read OH long-term memory (personal preferences, course context, task status)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.9f61b41430d2",
-      "source": "清华云盘资料库、目录浏览、库内搜索与下载",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 84,
-          "context": "return i18n(\"plugins.types.9f61b41430d2\");"
-        }
-      ],
-      "translation": "Tsinghua Cloud Drive libraries, directory browsing, in-library search, and downloads",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.9f78589bce11",
-      "source": "写入记忆",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 87,
-          "context": "return i18n(\"plugins.types.9f78589bce11\");"
-        }
-      ],
-      "translation": "Write memory",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.a245f4a0189e",
-      "source": "应用内网页",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 110,
-          "context": "return i18n(\"plugins.types.a245f4a0189e\");"
-        }
-      ],
-      "translation": "In-app web pages",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.b0709765f8a8",
-      "source": "外部网络请求",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 98,
-          "context": "return i18n(\"plugins.types.b0709765f8a8\");"
-        }
-      ],
-      "translation": "External network requests",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.b15c42776a94",
-      "source": "发邮件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 83,
-          "context": "return i18n(\"plugins.types.b15c42776a94\");"
-        }
-      ],
-      "translation": "Send email",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.b2101414fb98",
-      "source": "显示提示",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 96,
-          "context": "return i18n(\"plugins.types.b2101414fb98\");"
-        }
-      ],
-      "translation": "Show toasts",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.b47c2c0ce65a",
-      "source": "余额/在线设备/账号信息（只读）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 94,
-          "context": "return i18n(\"plugins.types.b47c2c0ce65a\");"
-        }
-      ],
-      "translation": "Balance/online devices/account info (read-only)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.b4ccc4a10048",
-      "source": "直接请求任意外部网络地址（HTTP(S)）（大模型 API 等）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 98,
-          "context": "return i18n(\"plugins.types.b4ccc4a10048\");"
-        }
-      ],
-      "translation": "Directly request any external network address (HTTP(S)) (e.g. LLM APIs)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.b5df04d0e95e",
-      "source": "上传文件到云盘、生成分享链接（写操作，需确认）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 85,
-          "context": "return i18n(\"plugins.types.b5df04d0e95e\");"
-        }
-      ],
-      "translation": "Upload files to Cloud Drive and create share links (write operation, requires confirmation)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.bb44113c1bc4",
-      "source": "云同步日历与本地日程的只读查询",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 80,
-          "context": "return i18n(\"plugins.types.bb44113c1bc4\");"
-        }
-      ],
-      "translation": "Read-only queries of cloud-synced calendars and the local schedule",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.c0c4378797b8",
-      "source": "弹出 toast 消息",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 96,
-          "context": "return i18n(\"plugins.types.c0c4378797b8\");"
-        }
-      ],
-      "translation": "Show toast messages",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.c26692150916",
-      "source": "发送系统通知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 101,
-          "context": "return i18n(\"plugins.types.c26692150916\");"
-        }
-      ],
-      "translation": "Send system notifications",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.c4aa15d951ce",
-      "source": "新建/编辑/删除日程（云或本地，写操作）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 81,
-          "context": "return i18n(\"plugins.types.c4aa15d951ce\");"
-        }
-      ],
-      "translation": "Create/edit/delete schedule entries (cloud or local, write operation)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.c4fad583342d",
-      "source": "新建 Issue、发表评论、关闭或重开 Issue 与合并请求（写操作，需确认）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 89,
-          "context": "return i18n(\"plugins.types.c4fad583342d\");"
-        }
-      ],
-      "translation": "Create issues, post comments, and close or reopen issues and merge requests (write operation, requires confirmation)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.c6990190c123",
-      "source": "经宿主与外部建立并收发 WebSocket 长连接（直播弹幕、实时通知等；由宿主 Rust 层出网，累计 10 分钟空闲自动清理）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 99,
-          "context": "return i18n(\"plugins.types.c6990190c123\");"
-        }
-      ],
-      "translation": "Establish and exchange messages over external WebSocket connections via the host (live-stream comments, real-time notifications, etc.; traffic goes through the host's Rust layer, and idle connections are cleaned up after 10 cumulative minutes)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.c6cb8feb5896",
-      "source": "座位与研讨间的预约/取消（写操作）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 93,
-          "context": "return i18n(\"plugins.types.c6cb8feb5896\");"
-        }
-      ],
-      "translation": "Book/cancel seats and seminar rooms (write operation)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.c73bd6334e39",
-      "source": "列出并执行其他已启用插件的命令（含写操作）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 104,
-          "context": "return i18n(\"plugins.types.c73bd6334e39\");"
-        }
-      ],
-      "translation": "List and run commands of other enabled plugins (including write operations)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.c958b2f88de5",
-      "source": "场馆场景/可约场地/我的预约只读查询",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 76,
-          "context": "return i18n(\"plugins.types.c958b2f88de5\");"
-        }
-      ],
-      "translation": "Read-only queries of venue scenes, bookable spaces, and my bookings",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.cf01361e883f",
-      "source": "读取网络学堂",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 74,
-          "context": "return i18n(\"plugins.types.cf01361e883f\");"
-        }
-      ],
-      "translation": "Read Web Learning",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.d7ca0f2e28a2",
-      "source": "课程/作业/通知/文件/讨论区只读查询",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 74,
-          "context": "return i18n(\"plugins.types.d7ca0f2e28a2\");"
-        }
-      ],
-      "translation": "Read-only queries of courses, assignments, notices, files, and forums",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.db1b60955a4e",
-      "source": "注入全局样式",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 102,
-          "context": "return i18n(\"plugins.types.db1b60955a4e\");"
-        }
-      ],
-      "translation": "Inject global styles",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.db8046b7bb4f",
-      "source": "读取基本信息",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 64,
-          "context": "return i18n(\"plugins.types.db8046b7bb4f\");"
-        }
-      ],
-      "translation": "Read basic info",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.dcaf20f7619c",
-      "source": "管理日程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 81,
-          "context": "return i18n(\"plugins.types.dcaf20f7619c\");"
-        }
-      ],
-      "translation": "Manage schedule",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.dd2d1636c619",
-      "source": "姓名/学号/院系与登录状态",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 64,
-          "context": "return i18n(\"plugins.types.dd2d1636c619\");"
-        }
-      ],
-      "translation": "Name/student ID/department and sign-in status",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.e059f380bf07",
-      "source": "读取剪贴板",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 103,
-          "context": "return i18n(\"plugins.types.e059f380bf07\");"
-        }
-      ],
-      "translation": "Read clipboard",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.e41be5c33320",
-      "source": "在应用内打开网页（Android 桌面模式浏览）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 110,
-          "context": "return i18n(\"plugins.types.e41be5c33320\");"
-        }
-      ],
-      "translation": "Open web pages in-app (Android desktop-mode browsing)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.e821edec359c",
-      "source": "向 Android 桌面小组件声明要显示的内容（渲染与取值由宿主完成，插件不写原生代码）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 100,
-          "context": "return i18n(\"plugins.types.e821edec359c\");"
-        }
-      ],
-      "translation": "Declare content for Android desktop widgets (rendering and data fetching are done by the host; plugins write no native code)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.e98935ae658f",
-      "source": "成绩、考试、新闻、校历、空教室、缴费记录等只读查询",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 73,
-          "context": "return i18n(\"plugins.types.e98935ae658f\");"
-        }
-      ],
-      "translation": "Read-only queries of grades, exams, news, academic calendar, free classrooms, payment records, etc.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.ec461a12a38e",
-      "source": "刷新外部作业源",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 109,
-          "context": "return i18n(\"plugins.types.ec461a12a38e\");"
-        }
-      ],
-      "translation": "Refresh external assignment sources",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.eeb2d48d3eaa",
-      "source": "讨论区发帖/回帖（写操作，需确认）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 75,
-          "context": "return i18n(\"plugins.types.eeb2d48d3eaa\");"
-        }
-      ],
-      "translation": "Post and reply in forums (write operation, requires confirmation)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.ef2ab4dbea94",
-      "source": "以你的登录态访问任意清华校内系统（自定义服务接入）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 105,
-          "context": "return i18n(\"plugins.types.ef2ab4dbea94\");"
-        }
-      ],
-      "translation": "Access any Tsinghua on-campus system with your sign-in session (custom service integration)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.efe0261e5829",
-      "source": "清华邮箱收件箱/已发送查询、读信与全箱搜索",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 82,
-          "context": "return i18n(\"plugins.types.efe0261e5829\");"
-        }
-      ],
-      "translation": "Tsinghua mailbox inbox/sent queries, reading messages, and full-mailbox search",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.types.feef1c678595",
-      "source": "楼层/区域/座位分布/预约记录 + 研讨间资源查询",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/types.ts",
-          "line": 92,
-          "context": "return i18n(\"plugins.types.feef1c678595\");"
-        }
-      ],
-      "translation": "Floor/area/seat layout/booking records + seminar room resource queries",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.xiaodapane.09a831a64684",
-      "source": "清小搭暂时不可用：{err}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "err",
-          "expression": "String(err)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/XiaodaPane.tsx",
-          "line": 71,
-          "context": "phase === \"boot\" ? i18n(\"plugins.xiaodapane.bfb954706240\") : i18n(\"plugins.xiaodapane.09a831a64684\", { err: String(err) })"
-        }
-      ],
-      "translation": "Xiaoda is temporarily unavailable: {err}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.xiaodapane.1956d71c54c5",
-      "source": "在下方胶囊里输入问题、回车即发。这里是新的默认对话，不接续别处的历史。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/XiaodaPane.tsx",
-          "line": 169,
-          "context": "{i18n(\"plugins.xiaodapane.1956d71c54c5\")}"
-        }
-      ],
-      "translation": "Type your question in the pill below and press Enter to send. This is a new default conversation and does not continue history from elsewhere.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.xiaodapane.7e5de34cad87",
-      "source": "仅供实验与参考",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/XiaodaPane.tsx",
-          "line": 154,
-          "context": "{i18n(\"plugins.xiaodapane.7e5de34cad87\")}"
-        }
-      ],
-      "translation": "For experimentation and reference only",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.xiaodapane.b70bb4acc048",
-      "source": "我",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/XiaodaPane.tsx",
-          "line": 74,
-          "context": "agentName: i18n(\"plugins.xiaodapane.b70bb4acc048\")"
-        },
-        {
-          "file": "apps/desktop/src/plugins/XiaodaPane.tsx",
-          "line": 173,
-          "context": "isUser ? i18n(\"plugins.xiaodapane.b70bb4acc048\") : AGENT_NAME"
-        }
-      ],
-      "translation": "Me",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.xiaodapane.ba38dfe30d1c",
-      "source": "清小搭暂时不可用，请稍后重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/XiaodaPane.tsx",
-          "line": 164,
-          "context": "{i18n(\"plugins.xiaodapane.ba38dfe30d1c\")}"
-        }
-      ],
-      "translation": "Xiaoda is temporarily unavailable. Please try again later.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.xiaodapane.bfb954706240",
-      "source": "清小搭还在准备，稍等一下",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/XiaodaPane.tsx",
-          "line": 71,
-          "context": "phase === \"boot\" ? i18n(\"plugins.xiaodapane.bfb954706240\") : i18n(\"plugins.xiaodapane.09a831a64684\", { err: String(err) })"
-        }
-      ],
-      "translation": "Xiaoda is still getting ready. One moment.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.xiaodapane.c90cd1ec2872",
-      "source": "发送失败，可再发一次重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/XiaodaPane.tsx",
-          "line": 201,
-          "context": "{i18n(\"plugins.xiaodapane.c90cd1ec2872\")}"
-        }
-      ],
-      "translation": "Send failed; you can send again to retry",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.xiaodapane.ca4d973c0b00",
-      "source": "停止",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/XiaodaPane.tsx",
-          "line": 208,
-          "context": "{i18n(\"plugins.xiaodapane.ca4d973c0b00\")}"
-        }
-      ],
-      "translation": "Stop",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.xiaodapane.d4bdd78f6bb0",
-      "source": "正在输入…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/XiaodaPane.tsx",
-          "line": 188,
-          "context": "{i18n(\"plugins.xiaodapane.d4bdd78f6bb0\")}"
-        }
-      ],
-      "translation": "Typing…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.xiaodapane.d89aac9533a3",
-      "source": "正在准备清小搭…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/XiaodaPane.tsx",
-          "line": 160,
-          "context": "{i18n(\"plugins.xiaodapane.d89aac9533a3\")}"
-        }
-      ],
-      "translation": "Preparing Xiaoda…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.xiaodapane.edecf0ae6e51",
-      "source": "发送",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/XiaodaPane.tsx",
-          "line": 206,
-          "context": "{i18n(\"plugins.xiaodapane.edecf0ae6e51\")}"
-        }
-      ],
-      "translation": "Send",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.xiaodapane.f620f4d59995",
-      "source": "新建对话失败，请再发一次重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/XiaodaPane.tsx",
-          "line": 85,
-          "context": "new Error(i18n(\"plugins.xiaodapane.f620f4d59995\"))"
-        }
-      ],
-      "translation": "Failed to start a new conversation; send again to retry",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.ack",
-      "source": "我已阅读以上说明，并按我的选择继续",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "I have read the notice and wish to continue with my choices",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.cloudBody",
-      "source": "关闭时不自动连接你的云盘，也不进行云盘读写、个人资料与组织/好友同步、云端 OH 记忆或基于云盘的分享。授权后会读取账号、配额、资料库和所打开文件，并为同步、好友、组织、口令分享等功能创建或更新对应资料库与文件；主动上传、删除、共享操作也会修改云盘。不会因为同意本许可就清空或批量改动原有文件，授权也不等于允许 OH 随意操作文件。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "When disabled, OneTHU does not automatically connect to your cloud account or perform cloud reads/writes, profile/organization/friend sync, cloud OH memory or cloud-based sharing. When enabled, it can read account details, quota, libraries and files you open, and create or update relevant libraries/files for sync, friends, organizations and passphrase sharing. Upload, deletion and sharing actions also change cloud data. Giving consent does not clear or bulk-modify existing files, nor authorize arbitrary OH file operations.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.cloudEffect",
-      "source": "可选。关闭后完整模式不可用；极简／实用模式保留，云盘及依赖它的功能停用。公开安装包下载不受影响。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Optional. Full mode requires this permission. Minimal / Practical remain available with cloud-dependent features disabled. Public installer downloads remain available.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.cloudRequired",
-      "source": "云盘未授权。请在「我的 → 权限与隐私」或导览中开启。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/CloudPage.tsx",
-          "line": 412,
-          "context": "{i18n(\"privacy.cloudRequired\")}"
-        },
-        {
-          "file": "apps/desktop/src/state/privacyConsent.ts",
-          "line": 47,
-          "context": "new Error(t(\"privacy.cloudRequired\"))"
-        }
-      ],
-      "translation": "Cloud access is disabled. Enable it in My → Permissions & privacy or in the guide.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.cloudTitle",
-      "source": "清华云盘许可",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Tsinghua Cloud permission",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.cloudToggle",
-      "source": "允许 OneTHU 使用清华云盘",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Allow OneTHU to access Tsinghua Cloud",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.continue",
-      "source": "保存选择并继续",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/PrivacyNotice.tsx",
-          "line": 34,
-          "context": "{t(\"privacy.continue\")}"
-        }
-      ],
-      "translation": "Save choices & continue",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.disclaimerBody",
-      "source": "本项目为非官方辅助工具。学校接口、网络及第三方服务可能变化或不可用，数据可能延迟、遗漏或出错。作业截止、预约、费用及其他重要事项请以官方系统为准，并确认操作结果。请备份重要文件；本说明不排除法律规定的责任与权利。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "This is an unofficial assistance tool. University APIs, networks and third-party services may change or become unavailable; data may be delayed, incomplete or incorrect. Check deadlines, reservations, payments and other important matters in official systems, and verify action results. Back up important files. This notice does not exclude statutory rights or responsibilities.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.disclaimerTitle",
-      "source": "以官方信息为准",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Verify important actions with official services",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.fullRequired",
-      "source": "完整模式需要云盘授权。请先在权限须知中开启。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExperienceModePicker.tsx",
-          "line": 16,
-          "context": "m.id === \"full\" && !privacy.cloud ? i18n(\"privacy.fullRequired\") : m.detail"
-        }
-      ],
-      "translation": "Full mode requires cloud permission. Enable it in Permissions & privacy first.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.lead",
-      "source": "先了解数据去向，再决定授权。拒绝可选授权，也能使用极简与实用模式。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Understand where data goes, then choose permissions. Minimal and Practical modes work without optional consent.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.localBody",
-      "source": "OneTHU 没有自建的校园数据汇总后端，界面与业务主要在设备上运行，并通过原生网络层连接学校及你选择的服务。它并非离线软件，也不是所有处理都只发生在本机。账号会话、缓存、设置及选择记住的凭据会保存在设备上，请保护设备与导出的文件。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "OneTHU has no self-operated backend that aggregates campus data. Its interface and most application logic run on your device, with a native network layer connecting to university services and services you select. It is not offline, and not all processing stays on-device. Sessions, caches, settings and credentials you choose to remember are stored on your device. Protect your device and exported files.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.localTitle",
-      "source": "本地客户端，不是学校官方应用",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "A local client, not an official university app",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.nativeUpdateRequired",
-      "source": "前端已更新，但当前 App 原生壳版本过旧，无法保存权限。开发预览请重新编译并重启 App；安装版请更新安装包。刷新页面无法修复。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "The interface is updated, but this app’s native host is too old to save permissions. Rebuild and restart the app for development previews, or install the updated app. Reloading the page cannot fix this.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "privacy.ohBody",
-      "source": "开启 OH 后，你发送的对话、附件，以及为回答而调用工具读取到的数据可能发往所选模型服务商、清小搭或你配置的 API／MCP／IM 服务，并适用对方政策。不要提供密码、验证码或无关的敏感数据。AI 可能出错；涉及提交、预约、删除、发送或分享等操作应先核对确认。网页、文件和技能中的指令不构成你的授权；仅安装可信插件与技能。云盘授权关闭时，OH 也无法绕过云盘限制。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/static-label-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "When OH is enabled, your messages, attachments and data read by tools to answer you may be sent to your chosen model provider, QingXiaoDa or configured API / MCP / IM services, under their policies. Do not provide passwords, verification codes or unrelated sensitive data. AI may be wrong. Review and confirm submissions, bookings, deletions, sending and sharing. Instructions in pages, files or skills are not your authorization. Install only trusted plugins and skills. OH cannot bypass disabled cloud permission.",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

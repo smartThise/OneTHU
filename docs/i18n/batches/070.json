@@ -1,7 +1,1365 @@
 {
-  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
+  "sourceHash": "be3fd8c88a23dc4acb558acc486d73c0e34027023912c7adc1e35b9861a6e4b5",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "pages.plugins.b59008384c66",
+      "source": "更新至仓库版 v{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(repoCheck.remote || repoRemote)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 639,
+          "context": "repoCheck.busy ? i18n(\"pages.plugins.a0bacec44f47\") : i18n(\"pages.plugins.b59008384c66\", { value: String(repoCheck.remote || repoRemote) })"
+        }
+      ],
+      "translation": "Update to repo version v{value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.b5a929dae5ba",
+      "source": "撤销修改",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 966,
+          "context": "{i18n(\"pages.plugins.b5a929dae5ba\")}"
+        }
+      ],
+      "translation": "Revert changes",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.b6b4d7e04dee",
+      "source": " · 主题",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1133,
+          "context": "isThemeEntry(detail) ? i18n(\"pages.plugins.b6b4d7e04dee\") : \"\""
+        }
+      ],
+      "translation": " · Themes",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.b6ef24000dbb",
+      "source": "正在从本体仓库更新到 v{remoteVersion}…",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "remoteVersion",
+          "expression": "String(remoteVersion)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 532,
+          "context": "msg: i18n(\"pages.plugins.b6ef24000dbb\", { remoteVersion: String(remoteVersion) })"
+        }
+      ],
+      "translation": "Updating from the plugin's own repository to v{remoteVersion}…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.b8784c8dd563",
+      "source": "重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1193,
+          "context": "{i18n(\"pages.plugins.b8784c8dd563\")}"
+        }
+      ],
+      "translation": "Retry",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.b8cdc17d21b0",
+      "source": "分类筛选在插件市场列表上方，已带到市场视图。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 172,
+          "context": "note: i18n(\"pages.plugins.b8cdc17d21b0\")"
+        }
+      ],
+      "translation": "Category filters are above the plugin market list; brought you to the market view.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.bd2db6941185",
+      "source": "在浏览器打开仓库：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(normalizeRepoUrl(item.repo))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1269,
+          "context": "{i18n(\"pages.plugins.bd2db6941185\", { value: String(normalizeRepoUrl(item.repo)) })}"
+        }
+      ],
+      "translation": "Open repository in browser: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.be93cf140b54",
+      "source": " 公共接口扩展 OneTHU——权限门禁、会话自愈、 45s 超时由宿主统一承担",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 353,
+          "context": "{i18n(\"pages.plugins.be93cf140b54\")}"
+        }
+      ],
+      "translation": " public APIs extend OneTHU — permission gating, session self-healing, and 45s timeouts are handled by the host",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.c0b3fbff51cc",
+      "source": "完成",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 551,
+          "context": "setRunMsg(i18n(\"pages.plugins.c0b3fbff51cc\"))"
+        },
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1498,
+          "context": "{i18n(\"pages.plugins.c0b3fbff51cc\")}"
+        }
+      ],
+      "translation": "Done",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.c3db55f566f3",
+      "source": "manifest.json 缺 id/name",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1391,
+          "context": "new Error(i18n(\"pages.plugins.c3db55f566f3\"))"
+        }
+      ],
+      "translation": "manifest.json is missing id/name",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.c52661984f93",
+      "source": "添加 MCP 服务器",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 817,
+          "context": "idx === -1 ? i18nMsg(\"pages.plugins.c52661984f93\") : i18nMsg(\"pages.plugins.2def3dbabf90\", { value: String(cur?.name ?? \"\") })"
+        }
+      ],
+      "translation": "Add MCP server",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.c8279d4cc145",
+      "source": "安装即代表信任该代码并授予其声明的权限。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1495,
+          "context": "{i18n(\"pages.plugins.c8279d4cc145\")}"
+        }
+      ],
+      "translation": "Installing means you trust this code and grant the permissions it declares.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.cd21f64a56a4",
+      "source": "「检查更新」按钮在每个来自仓库的插件卡上；当前列表没有这类卡，已带到「我的插件」视图。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 140,
+          "context": "note: i18n(\"pages.plugins.cd21f64a56a4\")"
+        }
+      ],
+      "translation": "The \"Check for updates\" button is on every plugin card that comes from a repository; the current list has no such cards, so brought you to the \"My plugins\" view.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.cf4c259c0592",
+      "source": "user/repo 或 https://github.com/user/repo（可 @branch 或 /tree/branch）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1476,
+          "context": "{i18n(\"pages.plugins.cf4c259c0592\")}"
+        }
+      ],
+      "translation": "user/repo or https://github.com/user/repo (may include @branch or /tree/branch)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.d0cfe8bf3a7e",
+      "source": "从 {repo} 检查最新版（本体仓库优先，市场兜底）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "repo",
+          "expression": "String(rec.repo)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 633,
+          "context": "{i18n(\"pages.plugins.d0cfe8bf3a7e\", { repo: String(rec.repo) })}"
+        }
+      ],
+      "translation": "Check the latest version from {repo} (plugin's own repository first, market as fallback)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.d1d044826a45",
+      "source": "加载失败",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 507,
+          "context": "failed ? i18n(\"pages.plugins.d1d044826a45\") : i18n(\"pages.plugins.a8c3698b5b8c\")"
+        }
+      ],
+      "translation": "Failed to load",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.d261c0fe80e6",
+      "source": "到「外观与布局 → 主题」里切换（会高亮那一节）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 630,
+          "context": "{i18n(\"pages.plugins.d261c0fe80e6\")}"
+        }
+      ],
+      "translation": "Switch in \"Appearance & Layout → Themes\" (that section will be highlighted)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.d268b0d673a5",
+      "source": "失败：仓库里是另一个 id 的插件（可能仓库被复用），请检查来源",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 518,
+          "context": "msg: i18n(\"pages.plugins.d268b0d673a5\")"
+        }
+      ],
+      "translation": "Failed: the repository contains a plugin with a different id (the repo may have been reused); please check the source",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.d2ccc4a2731e",
+      "source": "到「外观与布局 → 主题」切换（会高亮那一节）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 143,
+          "context": "return i18n(\"pages.plugins.d2ccc4a2731e\");"
+        }
+      ],
+      "translation": "Switch in \"Appearance & Layout → Themes\" (that section will be highlighted)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.d41b8d846ae4",
+      "source": "设置在插件下一轮运行时生效（每轮实时读取）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 954,
+          "context": "{i18n(\"pages.plugins.d41b8d846ae4\")}"
+        }
+      ],
+      "translation": "Settings take effect on the plugin's next run (read live each run).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.d6115208d601",
+      "source": "插件市场的「全部 / 主题 / 通用」筛选",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 169,
+          "context": "return i18n(\"pages.plugins.d6115208d601\");"
+        }
+      ],
+      "translation": "The plugin market's \"All / Themes / General\" filter",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.da4d9440dea0",
+      "source": "名称（工具前缀 mcp_<name>_）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 818,
+          "context": "label: i18nMsg(\"pages.plugins.da4d9440dea0\")"
+        }
+      ],
+      "translation": "Name (tool prefix mcp_<name>_)",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "pages.plugins.da83088b9429",
+      "source": "粘贴 JS 模块",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1421,
+          "context": "label: i18n(\"pages.plugins.da83088b9429\")"
+        }
+      ],
+      "translation": "Paste JS module",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "pages.plugins.dae661d17c2d",
+      "source": "空闲",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 367,
+          "context": "liveCount > 0 ? i18n(\"pages.plugins.dedd4ea84562\") : i18n(\"pages.plugins.dae661d17c2d\")"
+        }
+      ],
+      "translation": "Idle",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.dd08ecd97ad1",
+      "source": "从插件本体仓库更新到 v{value}（与安装同一管线，覆盖更新并重新激活）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(repoCheck.remote || repoRemote)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 636,
+          "context": "{i18n(\"pages.plugins.dd08ecd97ad1\", { value: String(repoCheck.remote || repoRemote) })}"
+        }
+      ],
+      "translation": "Update from the plugin's own repository to v{value} (same pipeline as install: overwrite, update, and reactivate)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.de32e20193ad",
+      "source": "知道了",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 676,
+          "context": "{i18n(\"pages.plugins.de32e20193ad\")}"
+        }
+      ],
+      "translation": "Got it",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.dedd4ea84562",
+      "source": "有模块在跑",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 367,
+          "context": "liveCount > 0 ? i18n(\"pages.plugins.dedd4ea84562\") : i18n(\"pages.plugins.dae661d17c2d\")"
+        }
+      ],
+      "translation": "Modules running",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.df3d58c7d84b",
+      "source": "设置",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 644,
+          "context": "{i18n(\"pages.plugins.df3d58c7d84b\")}"
+        },
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 773,
+          "context": "mode === \"settings\" ? i18n(\"pages.plugins.df3d58c7d84b\") : mode === \"mcp\" ? i18n(\"pages.plugins.a203f86cf6a6\") : i18n(\"pages.plugins.fc08fa260979\")"
+        }
+      ],
+      "translation": "Settings",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.df66136c7ca9",
+      "source": "确定=选择 .zip 插件包；取消=选择插件文件夹",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1358,
+          "context": "window.confirm(i18n(\"pages.plugins.df66136c7ca9\"))"
+        }
+      ],
+      "translation": "Confirm = select a .zip plugin package; Cancel = select a plugin folder",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.e0d0ddfcb366",
+      "source": "{evtCount} 条事件 · 最多保留 300 条",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "evtCount",
+          "expression": "evtCount"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 782,
+          "context": "{i18nRich(\"pages.plugins.e0d0ddfcb366\", { evtCount: evtCount })}"
+        }
+      ],
+      "translation": "{evtCount} events · up to 300 kept",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.e39742ef4f8c",
+      "source": "小组件 {value}",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "widgetSlots.map((x) => x.slot).join(\"/\")"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 588,
+          "context": "{i18nRich(\"pages.plugins.e39742ef4f8c\", { value: widgetSlots.map((x) => x.slot).join(\"/\") })}"
+        }
+      ],
+      "translation": "Widget {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.e3c1578696ec",
+      "source": "环境变量（KEY=VALUE，空格分隔多个）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 821,
+          "context": "label: i18nMsg(\"pages.plugins.e3c1578696ec\")"
+        }
+      ],
+      "translation": "Environment variables (KEY=VALUE, space-separated)",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "pages.plugins.e41e77014e1d",
+      "source": "（Streamable-HTTP）即可调用 OneTHU。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 857,
+          "context": "{i18n(\"pages.plugins.e41e77014e1d\")}"
+        }
+      ],
+      "translation": " (Streamable-HTTP) to call OneTHU.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.e601f799d681",
+      "source": "想上架你的插件？向 OneTHU-Market 仓库提交 Pull Request——流程见 ",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1304,
+          "context": "{i18n(\"pages.plugins.e601f799d681\")}"
+        }
+      ],
+      "translation": "Want to list your plugin? Submit a Pull Request to the OneTHU-Market repository — see ",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.e6a68608da0c",
+      "source": "去切换主题",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 143,
+          "context": "return i18n(\"pages.plugins.e6a68608da0c\");"
+        },
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 630,
+          "context": "{i18n(\"pages.plugins.e6a68608da0c\")}"
+        }
+      ],
+      "translation": "Switch theme",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.e806fbbe8ec6",
+      "source": "插件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 351,
+          "context": "{i18n(\"pages.plugins.e806fbbe8ec6\")}"
+        }
+      ],
+      "translation": "Plugins",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.e8f88f51ccb0",
+      "source": "安装",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1152,
+          "context": "{i18n(\"pages.plugins.e8f88f51ccb0\")}"
+        },
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1292,
+          "context": "updating ? i18n(\"pages.plugins.3055a035f0eb\") : i18n(\"pages.plugins.e8f88f51ccb0\")"
+        },
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1440,
+          "context": "busy ? i18n(\"pages.plugins.19658d9fa9aa\") : i18n(\"pages.plugins.e8f88f51ccb0\")"
+        },
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1486,
+          "context": "busy ? i18n(\"pages.plugins.19658d9fa9aa\") : i18n(\"pages.plugins.e8f88f51ccb0\")"
+        }
+      ],
+      "translation": "Install",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.ec80eda36409",
+      "source": "全部 {length}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(listPlugins.length)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 389,
+          "context": "label: i18n(\"pages.plugins.ec80eda36409\", { length: String(listPlugins.length) })"
+        }
+      ],
+      "translation": "All {length}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "pages.plugins.edc3f02843ff",
+      "source": "安装插件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 177,
+          "context": "return i18n(\"pages.plugins.edc3f02843ff\");"
+        },
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 316,
+          "context": "instOpen ? i18n(\"pages.plugins.af8383d6b923\") : i18n(\"pages.plugins.edc3f02843ff\")"
+        },
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 402,
+          "context": "{i18n(\"pages.plugins.edc3f02843ff\")}"
+        }
+      ],
+      "translation": "Install plugin",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.ee3360ed4f76",
+      "source": "暂无命令",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 329,
+          "context": "ohCmds.length > 0 ? ohCmds.map((c) => c.id).join(\" · \") : i18n(\"pages.plugins.ee3360ed4f76\")"
+        }
+      ],
+      "translation": "No commands yet",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.eec62fdf53b6",
+      "source": "与插件开发文档 §7。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1304,
+          "context": "{i18n(\"pages.plugins.eec62fdf53b6\")}"
+        }
+      ],
+      "translation": "§7 of the plugin development docs.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.efcccbda5d2b",
+      "source": "外观与布局",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 102,
+          "context": "requestSettingsTab(i18n(\"pages.plugins.efcccbda5d2b\"))"
+        }
+      ],
+      "translation": "Appearance",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.f1ae34bf6dad",
+      "source": "打开仓库 {repo}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "repo",
+          "expression": "String(item.repo)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1268,
+          "context": "{i18n(\"pages.plugins.f1ae34bf6dad\", { repo: String(item.repo) })}"
+        }
+      ],
+      "translation": "Open repository {repo}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.f4f0ead1116b",
+      "source": "启用",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 622,
+          "context": "rec.enabled ? i18n(\"pages.plugins.4e6fd0e28c55\") : i18n(\"pages.plugins.f4f0ead1116b\")"
+        }
+      ],
+      "translation": "Enable",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.f76ad1b3aaac",
+      "source": "从仓库根目录拉取 plugin.js（或 index.js / main.js），与粘贴安装同一校验管线。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1484,
+          "context": "{i18n(\"pages.plugins.f76ad1b3aaac\")}"
+        }
+      ],
+      "translation": "Fetch plugin.js (or index.js / main.js) from the repository root; same validation pipeline as paste install.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.fa01073a720f",
+      "source": "无匹配条目",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1205,
+          "context": "{i18n(\"pages.plugins.fa01073a720f\")}"
+        }
+      ],
+      "translation": "No matches",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.fa086d830f50",
+      "source": "打断运行",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 784,
+          "context": "{i18n(\"pages.plugins.fa086d830f50\")}"
+        }
+      ],
+      "translation": "Interrupt run",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.fa5cae9e9254",
+      "source": "安装失败：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(String(e instanceof Error ? e.message : e).slice(0, 200))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1080,
+          "context": "text: i18n(\"pages.plugins.fa5cae9e9254\", { value: String(String(e instanceof Error ? e.message : e).slice(0, 200)) })"
+        },
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1331,
+          "context": "text: i18n(\"pages.plugins.fa5cae9e9254\", { value: String(String(e instanceof Error ? e.message : e).slice(0, 200)) })"
+        },
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1404,
+          "context": "text: i18n(\"pages.plugins.fa5cae9e9254\", { value: String(String(e instanceof Error ? e.message : e).slice(0, 200)) })"
+        },
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1480,
+          "context": "text: i18n(\"pages.plugins.fa5cae9e9254\", { value: String(String(e2 instanceof Error ? e2.message : e2).slice(0, 200)) })"
+        },
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 1486,
+          "context": "text: i18n(\"pages.plugins.fa5cae9e9254\", { value: String(String(e2 instanceof Error ? e2.message : e2).slice(0, 200)) })"
+        }
+      ],
+      "translation": "Install failed: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.fb11aa6f2982",
+      "source": "检查中…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 633,
+          "context": "checkBusy || repoCheck.busy ? i18n(\"pages.plugins.fb11aa6f2982\") : i18n(\"pages.plugins.7f68ebad19ba\")"
+        }
+      ],
+      "translation": "Checking…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.fc08fa260979",
+      "source": "运行日志",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 773,
+          "context": "mode === \"mcp\" ? i18n(\"pages.plugins.a203f86cf6a6\") : i18n(\"pages.plugins.fc08fa260979\")"
+        }
+      ],
+      "translation": "Run logs",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.feed82f0b110",
+      "source": "插件分类筛选",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 169,
+          "context": "return i18n(\"pages.plugins.feed82f0b110\");"
+        }
+      ],
+      "translation": "Plugin category filter",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.plugins.ff08afdc6ecc",
+      "source": "安装第一个插件，为 OneTHU 挂上新的能力模块。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Plugins.tsx",
+          "line": 401,
+          "context": "{i18n(\"pages.plugins.ff08afdc6ecc\")}"
+        }
+      ],
+      "translation": "Install your first plugin to add a new capability module to OneTHU.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.07c9a15ad13f",
+      "source": "同步云日历",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1180,
+          "context": "cal.syncing ? i18n(\"pages.schedule.4e2238b74ec7\") : i18n(\"pages.schedule.07c9a15ad13f\")"
+        }
+      ],
+      "translation": "Sync cloud calendar",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.09405e6ef9e6",
+      "source": "已写入系统日历「OneTHU 日程」：{added} 条（清理旧 {removed} 条）；此后日程变化会自动同步。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "added",
+          "expression": "String(r.added)"
+        },
+        {
+          "name": "removed",
+          "expression": "String(r.removed)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 712,
+          "context": "setMsg(i18n(\"pages.schedule.09405e6ef9e6\", { added: String(r.added), removed: String(r.removed) }))"
+        }
+      ],
+      "translation": "Written to the system calendar \"OneTHU Schedule\": {added} added ({removed} old ones cleaned up); schedule changes will sync automatically from now on.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.0b97c851e4a7",
+      "source": "全天",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1354,
+          "context": "{i18n(\"pages.schedule.0b97c851e4a7\")}"
+        }
+      ],
+      "translation": "All day",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.0eaedd12dc70",
+      "source": "起始时间",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1131,
+          "context": "{i18n(\"pages.schedule.0eaedd12dc70\")}"
+        }
+      ],
+      "translation": "Start time",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.0f02af2d5985",
+      "source": "{value} 年 {value2} 月",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(anchor.getFullYear())"
+        },
+        {
+          "name": "value2",
+          "expression": "String(anchor.getMonth() + 1)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 820,
+          "context": "mode === \"timetable\"\n      ? i18n(\"pages.schedule.28ee8c1f603e\", { value: String(weekStart.getMonth() + 1), value2: String(weekStart.getDate()), value3: String(new Date(weekStart.getTime() + 6 * 86_400_000).getDate()) })\n      : i18n(\"pages.schedule.0f02af2d5985\", { value: String(anchor.getFullYear()), value2: String(anchor.getMonth() + 1) })"
+        },
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1084,
+          "context": "{i18nRich(\"pages.schedule.0f02af2d5985\", { value: calView.getFullYear(), value2: calView.getMonth() + 1 })}"
+        }
+      ],
+      "translation": "{value2}/{value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.1258adb63f05",
+      "source": "已导出课表、作业截止时间与日程，系统日历导入窗口应已打开（选择要写入的日历）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 726,
+          "context": "setMsg(i18n(\"pages.schedule.1258adb63f05\"))"
+        }
+      ],
+      "translation": "Exported timetable, assignment deadlines, and events; the system calendar import window should have opened (choose the calendar to write to).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.135b82866399",
+      "source": "{length} 件事",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(members.length)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 202,
+          "context": "courseName: i18n(\"pages.schedule.135b82866399\", { length: String(members.length) })"
+        }
+      ],
+      "translation": "{length} events",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.1536c81c69be",
+      "source": "跳到教学周",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1151,
+          "context": "{i18n(\"pages.schedule.1536c81c69be\")}"
+        }
+      ],
+      "translation": "Jump to teaching week",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.15f929ce6cd4",
+      "source": "寻迹 · {courseName}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "courseName",
+          "expression": "String(d.courseName)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 837,
+          "context": "newTab(\"trace\", { traceTarget: { title: d.courseName, location: d.location ?? \"\", date: d.date, startTime: d.startTime, endTime: d.endTime } }, i18n(\"pages.schedule.15f929ce6cd4\", { courseName: String(d.courseName) }))"
+        }
+      ],
+      "translation": "Directions · {courseName}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "pages.schedule.177a41a28139",
+      "source": "导出失败：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(err instanceof Error ? err.message : String(err))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 728,
+          "context": "setMsg(i18n(\"pages.schedule.177a41a28139\", { value: String(err instanceof Error ? err.message : String(err)) }))"
+        }
+      ],
+      "translation": "Export failed: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.193f229df3d9",
+      "source": "已保存。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 790,
+          "context": "setMsg(i18n(\"pages.schedule.193f229df3d9\"))"
+        }
+      ],
+      "translation": "Saved.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.1c5c06713870",
+      "source": "视图",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1119,
+          "context": "{i18n(\"pages.schedule.1c5c06713870\")}"
+        }
+      ],
+      "translation": "View",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.1e1dc2f018da",
+      "source": " · 课程表",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1299,
+          "context": "d.src === \"exam\" ? i18n(\"pages.schedule.af3a93e86aa6\") : i18n(\"pages.schedule.1e1dc2f018da\")"
+        }
+      ],
+      "translation": " · Timetable",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.22519a88484f",
+      "source": "课程详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1221,
+          "context": "d.src === \"exam\" ? i18n(\"pages.schedule.302f7d04d98f\") : i18n(\"pages.schedule.22519a88484f\")"
+        }
+      ],
+      "translation": "Course details",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.253ac66fb8e1",
+      "source": "地点",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1297,
+          "context": "k: i18n(\"pages.schedule.253ac66fb8e1\")"
+        },
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1370,
+          "context": "{i18n(\"pages.schedule.253ac66fb8e1\")}"
+        }
+      ],
+      "translation": "Location",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.2589da741b80",
+      "source": "显示时段 {value}–{value2}",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "hhmmWin(win.from)"
+        },
+        {
+          "name": "value2",
+          "expression": "hhmmWin(win.to)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1129,
+          "context": "{i18nRich(\"pages.schedule.2589da741b80\", { value: hhmmWin(win.from), value2: hhmmWin(win.to) })}"
+        }
+      ],
+      "translation": "Show periods {value}–{value2}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.28ee8c1f603e",
+      "source": "{value}月{value2}日 – {value3}日",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(weekStart.getMonth() + 1)"
+        },
+        {
+          "name": "value2",
+          "expression": "String(weekStart.getDate())"
+        },
+        {
+          "name": "value3",
+          "expression": "String(new Date(weekStart.getTime() + 6 * 86_400_000).getDate())"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 819,
+          "context": "mode === \"timetable\"\n      ? i18n(\"pages.schedule.28ee8c1f603e\", { value: String(weekStart.getMonth() + 1), value2: String(weekStart.getDate()), value3: String(new Date(weekStart.getTime() + 6 * 86_400_000).getDate()) })\n      : i18n(\"pages.schedule.0f02af2d5985\", { value: String(anchor.getFullYear()), value2: String(anchor.getMonth() + 1) })"
+        }
+      ],
+      "translation": "{value}/{value2} – {value3}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.2961168962be",
+      "source": "周三",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 71
+        }
+      ],
+      "translation": "Wed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.2cd0f3be8738",
+      "source": "取消",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1329,
+          "context": "{i18n(\"pages.schedule.2cd0f3be8738\")}"
+        }
+      ],
+      "translation": "Cancel",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.2f9daa828907",
+      "source": "删除",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1332,
+          "context": "{i18n(\"pages.schedule.2f9daa828907\")}"
+        }
+      ],
+      "translation": "Delete",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.302f7d04d98f",
+      "source": "考试详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1221,
+          "context": "d.src === \"exam\" ? i18n(\"pages.schedule.302f7d04d98f\") : i18n(\"pages.schedule.22519a88484f\")"
+        }
+      ],
+      "translation": "Exam details",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.30fd49298c03",
+      "source": "下一年",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1086,
+          "context": "{i18n(\"pages.schedule.30fd49298c03\")}"
+        }
+      ],
+      "translation": "Next year",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "pages.schedule.310a9aa08211",
       "source": "本周暂无排课与日程",
@@ -10,7 +1368,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 927,
+          "line": 942,
           "context": "winLoading ? i18n(\"pages.schedule.48cbf2cb0bd7\") : i18n(\"pages.schedule.310a9aa08211\")"
         }
       ],
@@ -26,12 +1384,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1057,
+          "line": 1071,
           "context": "mode === \"timetable\" ? i18n(\"pages.schedule.31da7d33b80d\") : i18n(\"pages.schedule.3e0b634699d4\")"
         },
         {
           "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1057,
+          "line": 1071,
           "context": "mode === \"timetable\" ? i18n(\"pages.schedule.31da7d33b80d\") : i18n(\"pages.schedule.3e0b634699d4\")"
         }
       ],
@@ -47,7 +1405,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1225,
+          "line": 1239,
           "context": "d.location ? i18n(\"pages.schedule.741addee8c05\", { location: String(d.location) }) : i18n(\"pages.schedule.32eb57893bcb\")"
         }
       ],
@@ -88,7 +1446,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 985,
+          "line": 998,
           "context": "p.entry.src === \"hw\"\n                            ? i18n(\"pages.schedule.368cc0699764\", { courseName: String(p.entry.courseName), value: String(p.entry.location ?? \"\"), value2: String(hhmm(p.beginMin)), value3: String(hhmm(p.endMin)), value4: String(p.entry.hwMeta?.submitted ? i18n(\"pages.schedule.bc37a6110a07\") : i18n(\"pages.schedule.8032af4a590f\")), value5: String(p.entry.hwMeta?.ext ? p.entry.hwMeta.source ?? i18n(\"pages.schedule.72d71f2db0b4\") : i18n(\"pages.schedule.aa39cac2b409\")) })\n                            : `${p.entry.courseName}${p.entry.teacher ? \" · \" + p.entry.teacher : \"\"}${\n                                p.entry.location ? \" @\" + p.entry.location : \"\"\n                       "
         }
       ],
@@ -113,7 +1471,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1212,
+          "line": 1226,
           "context": "d.startSection ? i18n(\"pages.schedule.3a4fe1c0f0d6\", { startSection: String(d.startSection), value: String(d.endSection ?? d.startSection) }) : \"\""
         }
       ],
@@ -129,1374 +1487,11 @@
       "locations": [
         {
           "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1062,
+          "line": 1076,
           "context": "detected ? i18n(\"pages.schedule.dba0129db99f\", { value: String(detected.sem.semesterName || detected.sem.semesterId), weekNo: String(detected.weekNo) }) : i18n(\"pages.schedule.3c3687e79a53\")"
         }
       ],
       "translation": "Break (outside term)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.3df7a207af75",
-      "source": "这是重复日程，保存和删除会作用于整个系列。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1325,
-          "context": "{i18n(\"pages.schedule.3df7a207af75\")}"
-        }
-      ],
-      "translation": "This is a repeating event; saving and deleting apply to the whole series.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.3e0b634699d4",
-      "source": "下个月",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1057,
-          "context": "mode === \"timetable\" ? i18n(\"pages.schedule.31da7d33b80d\") : i18n(\"pages.schedule.3e0b634699d4\")"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1057,
-          "context": "mode === \"timetable\" ? i18n(\"pages.schedule.31da7d33b80d\") : i18n(\"pages.schedule.3e0b634699d4\")"
-        }
-      ],
-      "translation": "Next month",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.3fd47edce45b",
-      "source": "关闭",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1228,
-          "context": "{i18n(\"pages.schedule.3fd47edce45b\")}"
-        }
-      ],
-      "translation": "Close",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.43cecd06c54d",
-      "source": "上一年",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1068,
-          "context": "{i18n(\"pages.schedule.43cecd06c54d\")}"
-        }
-      ],
-      "translation": "Previous year",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.46005f62ee0e",
-      "source": "时间轴（周）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1107,
-          "context": "[\"timetable\", i18n(\"pages.schedule.46005f62ee0e\")]"
-        }
-      ],
-      "translation": "Timeline (week)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.48cbf2cb0bd7",
-      "source": "正在从教务系统取数…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 927,
-          "context": "winLoading ? i18n(\"pages.schedule.48cbf2cb0bd7\") : i18n(\"pages.schedule.310a9aa08211\")"
-        }
-      ],
-      "translation": "Fetching data from the academic system…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.4d103a2b0e94",
-      "source": "同步失败：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(err instanceof Error ? err.message : String(err))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 685,
-          "context": "setMsg(i18n(\"pages.schedule.4d103a2b0e94\", { value: String(err instanceof Error ? err.message : String(err)) }))"
-        }
-      ],
-      "translation": "Sync failed: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.4de047cb8209",
-      "source": "周切换 / 筛选 / 同步 / 新建日程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1031,
-          "context": "{i18n(\"pages.schedule.4de047cb8209\")}"
-        }
-      ],
-      "translation": "Week switching / filters / sync / new event",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.4e2238b74ec7",
-      "source": "同步中…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1166,
-          "context": "cal.syncing ? i18n(\"pages.schedule.4e2238b74ec7\") : i18n(\"pages.schedule.07c9a15ad13f\")"
-        }
-      ],
-      "translation": "Syncing…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.4f8a1b346d71",
-      "source": "课程与考试来自教务系统数据，不能在此修改；自建日程点击即可编辑。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1292,
-          "context": "isHw\n                    ? i18n(\"pages.schedule.70af7a03daec\", { value: String(simple ? \"\" : i18n(\"pages.schedule.efa33939d466\")) })\n                    : i18n(\"pages.schedule.4f8a1b346d71\")"
-        }
-      ],
-      "translation": "Courses and exams come from the academic system and can't be edited here; tap a self-created event to edit it.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.4f9f7bd42e5d",
-      "source": "云同步未配置（设置页开启）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1160,
-          "context": "canCloud ? `${cal.email} · ${lastSyncText}` : i18n(\"pages.schedule.4f9f7bd42e5d\")"
-        }
-      ],
-      "translation": "Cloud sync not configured (enable it in Settings)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.5090d53a1cce",
-      "source": "新建日程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1309,
-          "context": "sd.uid ? i18n(\"pages.schedule.a3064785f1db\") : i18n(\"pages.schedule.5090d53a1cce\")"
-        }
-      ],
-      "translation": "New event",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.51fdbeb883e5",
-      "source": "上次同步 {value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(new Date(cal.lastSyncAt).toLocaleTimeString(\"zh-CN\", { hour: \"2-digit\", minute: \"2-digit\" }))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 677,
-          "context": "cal.lastSyncAt ? i18n(\"pages.schedule.51fdbeb883e5\", { value: String(new Date(cal.lastSyncAt).toLocaleTimeString(getUiLocale(), { hour: \"2-digit\", minute: \"2-digit\" })) }) : i18n(\"pages.schedule.e6618e00221b\")"
-        }
-      ],
-      "translation": "Last synced {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.537352400c49",
-      "source": "可选",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1357,
-          "context": "{i18n(\"pages.schedule.537352400c49\")}"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1360,
-          "context": "{i18n(\"pages.schedule.537352400c49\")}"
-        }
-      ],
-      "translation": "Optional",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.572388f3b096",
-      "source": "周五",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 70
-        }
-      ],
-      "translation": "Fri",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.58dcda214bad",
-      "source": "上一月",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1069,
-          "context": "{i18n(\"pages.schedule.58dcda214bad\")}"
-        }
-      ],
-      "translation": "Previous month",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.5e6a5170f6ac",
-      "source": "＋ 添加日程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1183,
-          "context": "{i18n(\"pages.schedule.5e6a5170f6ac\")}"
-        }
-      ],
-      "translation": "＋ Add event",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.5e9a401745fa",
-      "source": "本周课程取数失败（日程仍显示）：{winError}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "winError",
-          "expression": "String(winError)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 855,
-          "context": "{i18n(\"pages.schedule.5e9a401745fa\", { winError: String(winError) })}"
-        }
-      ],
-      "translation": "Failed to fetch this week's courses (events still shown): {winError}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.5e9e9ab95a7b",
-      "source": "删除失败：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(err instanceof Error ? err.message : String(err))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 794,
-          "context": "setMsg(i18n(\"pages.schedule.5e9e9ab95a7b\", { value: String(err instanceof Error ? err.message : String(err)) }))"
-        }
-      ],
-      "translation": "Delete failed: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.60458dfb4c14",
-      "source": "寻迹",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1225,
-          "context": "{i18n(\"pages.schedule.60458dfb4c14\")}"
-        }
-      ],
-      "translation": "Directions",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.60db1afb4022",
-      "source": "课程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 841,
-          "context": "newTab(\"learn\", null, i18n(\"pages.schedule.60db1afb4022\"))"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 975,
-          "context": "p.entry.src === \"hw\" ? i18n(\"pages.schedule.9b702fb32d62\") : i18n(\"pages.schedule.60db1afb4022\")"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1269,
-          "context": "k: i18n(\"pages.schedule.60db1afb4022\")"
-        }
-      ],
-      "translation": "Courses",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.62502d2d618b",
-      "source": "{courseName}（{value}–{value2}）：{value3} · 点击展开",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "courseName",
-          "expression": "String(p.entry.courseName)"
-        },
-        {
-          "name": "value",
-          "expression": "String(hhmm(p.beginMin))"
-        },
-        {
-          "name": "value2",
-          "expression": "String(hhmm(p.endMin))"
-        },
-        {
-          "name": "value3",
-          "expression": "String(p.entry.clusterItems?.map((m) => `${m.courseName}${m.location ? \"@\" + m.location : \"\"}`).join(\"；\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 983,
-          "context": "p.entry.src === \"cluster\"\n                          ? i18n(\"pages.schedule.62502d2d618b\", { courseName: String(p.entry.courseName), value: String(hhmm(p.beginMin)), value2: String(hhmm(p.endMin)), value3: String(p.entry.clusterItems?.map((m) => `${m.courseName}${m.location ? \"@\" + m.location : \"\"}`).join(\"；\")) })\n                          : p.entry.src === \"hw\"\n                            ? i18n(\"pages.schedule.368cc0699764\", { courseName: String(p.entry.courseName), value: String(p.entry.location ?? \"\"), value2: String(hhmm(p.beginMin)), value3: String(hhmm(p.endMin)), value4: String(p.entry.hwMeta?.submitted ? i18n(\"pages.schedule.bc37a6110a07\") : i18n(\"pages.schedule.8032af4a590f\")), valu"
-        }
-      ],
-      "translation": "{courseName} ({value}–{value2}): {value3} · tap to expand",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.6320b4a8722a",
-      "source": "状态",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1273,
-          "context": "k: i18n(\"pages.schedule.6320b4a8722a\")"
-        }
-      ],
-      "translation": "Status",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.6861d0375b15",
-      "source": " · 点击查看",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 988,
-          "context": "p.entry.src === \"cloud\" || p.entry.src === \"local\" ? i18n(\"pages.schedule.8fa104ed3b07\") : i18n(\"pages.schedule.6861d0375b15\")"
-        }
-      ],
-      "translation": " · tap to view",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.6a9906c79f26",
-      "source": "开始时间",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1346,
-          "context": "{i18n(\"pages.schedule.6a9906c79f26\")}"
-        }
-      ],
-      "translation": "Start time",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.6d338c4a9155",
-      "source": "作业刷新失败：{error}",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "error",
-          "expression": "learn.error"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1162,
-          "context": "{i18nRich(\"pages.schedule.6d338c4a9155\", { error: learn.error })}"
-        }
-      ],
-      "translation": "Failed to refresh assignments: {error}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.702b1048fceb",
-      "source": "恢复全天",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1130,
-          "context": "{i18n(\"pages.schedule.702b1048fceb\")}"
-        }
-      ],
-      "translation": "Restore all day",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.70af7a03daec",
-      "source": "作业来自网络学堂 / 外部作业源；「前往」会{value}打开这条作业。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(simple ? \"\" : i18n(\"pages.schedule.efa33939d466\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1291,
-          "context": "isHw\n                    ? i18n(\"pages.schedule.70af7a03daec\", { value: String(simple ? \"\" : i18n(\"pages.schedule.efa33939d466\")) })\n                    : i18n(\"pages.schedule.4f8a1b346d71\")"
-        }
-      ],
-      "translation": "Assignments come from Web Learning / external sources; \"Open\" opens this assignment {value}.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.72d71f2db0b4",
-      "source": "外部",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 985,
-          "context": "p.entry.hwMeta.source ?? i18n(\"pages.schedule.72d71f2db0b4\")"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1213,
-          "context": "d.hwMeta.source ?? i18n(\"pages.schedule.72d71f2db0b4\")"
-        }
-      ],
-      "translation": "External",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.741addee8c05",
-      "source": "寻迹 {location}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "location",
-          "expression": "String(d.location)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1225,
-          "context": "d.location ? i18n(\"pages.schedule.741addee8c05\", { location: String(d.location) }) : i18n(\"pages.schedule.32eb57893bcb\")"
-        }
-      ],
-      "translation": "Directions {location}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.7431d8a58c9b",
-      "source": "{location} · 此时间段事项较多，已合并显示",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "location",
-          "expression": "d.location"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1235,
-          "context": "{i18nRich(\"pages.schedule.7431d8a58c9b\", { location: d.location })}"
-        }
-      ],
-      "translation": "{location} · Several items overlap in this time slot, shown merged",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.760506491eef",
-      "source": "开始日期",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1331,
-          "context": "{i18n(\"pages.schedule.760506491eef\")}"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1332,
-          "context": "{i18n(\"pages.schedule.760506491eef\")}"
-        }
-      ],
-      "translation": "Start date",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.77609a0fe15d",
-      "source": "存入系统日历失败：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(err instanceof Error ? err.message : String(err))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 700,
-          "context": "setMsg(i18n(\"pages.schedule.77609a0fe15d\", { value: String(err instanceof Error ? err.message : String(err)) }))"
-        }
-      ],
-      "translation": "Failed to write to the system calendar: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.79a4ef019e9c",
-      "source": "学期",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1139,
-          "context": "{i18n(\"pages.schedule.79a4ef019e9c\")}"
-        }
-      ],
-      "translation": "Term",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.7ab942d11ed6",
-      "source": "已删除。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 792,
-          "context": "setMsg(i18n(\"pages.schedule.7ab942d11ed6\"))"
-        }
-      ],
-      "translation": "Deleted.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.7e335ee498e8",
-      "source": "云同步账号已变更，请重新打开日程后编辑",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 761,
-          "context": "new Error(i18n(\"pages.schedule.7e335ee498e8\"))"
-        }
-      ],
-      "translation": "Cloud sync account changed; reopen the schedule to edit",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.8032af4a590f",
-      "source": "未提交",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 985,
-          "context": "p.entry.hwMeta?.submitted ? i18n(\"pages.schedule.bc37a6110a07\") : i18n(\"pages.schedule.8032af4a590f\")"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1254,
-          "context": "m.hwMeta?.submitted ? i18n(\"pages.schedule.bc37a6110a07\") : i18n(\"pages.schedule.8032af4a590f\")"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1276,
-          "context": "d.hwMeta?.submitted ? i18n(\"pages.schedule.bc37a6110a07\") : i18n(\"pages.schedule.8032af4a590f\")"
-        }
-      ],
-      "translation": "Not submitted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.823ed2175ed0",
-      "source": "{date} {time} 截止",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "date",
-          "expression": "String(ddl.date)"
-        },
-        {
-          "name": "time",
-          "expression": "String(ddl.time)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1210,
-          "context": "ddl ? i18n(\"pages.schedule.823ed2175ed0\", { date: String(ddl.date), time: String(ddl.time) }) : d.date && (d.startTime || d.endTime)\n          ? `${d.date}${d.startTime && d.endTime ? ` ${d.startTime}–${d.endTime}` : \"\"}`\n          : d.startSection ? i18n(\"pages.schedule.3a4fe1c0f0d6\", { startSection: String(d.startSection), value: String(d.endSection ?? d.startSection) }) : \"\""
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1270,
-          "context": "{i18n(\"pages.schedule.823ed2175ed0\", { date: String(ddl.date), time: String(ddl.time) })}"
-        }
-      ],
-      "translation": "Due {date} {time}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.88a5267852f9",
-      "source": "选日期跳到该日期所在的教学周",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1097,
-          "context": "mode === \"timetable\" ? i18n(\"pages.schedule.88a5267852f9\") : i18n(\"pages.schedule.c533aa41c064\")"
-        }
-      ],
-      "translation": "Pick a date to jump to its teaching week",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.895cd52fbbb6",
-      "source": "结束日期",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1336,
-          "context": "sd.allDay ? i18n(\"pages.schedule.ce40d3d5810a\") : i18n(\"pages.schedule.895cd52fbbb6\")"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1337,
-          "context": "{i18n(\"pages.schedule.895cd52fbbb6\")}"
-        }
-      ],
-      "translation": "End date",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.8b6ff498515b",
-      "source": "时间",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1282,
-          "context": "k: i18n(\"pages.schedule.8b6ff498515b\")"
-        }
-      ],
-      "translation": "Time",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.8fa104ed3b07",
-      "source": " · 点击编辑",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 988,
-          "context": "p.entry.src === \"cloud\" || p.entry.src === \"local\" ? i18n(\"pages.schedule.8fa104ed3b07\") : i18n(\"pages.schedule.6861d0375b15\")"
-        }
-      ],
-      "translation": " · tap to edit",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.93cfacc290a0",
-      "source": "同步到云日历{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(canCloud ? i18n(\"pages.schedule.df071eb5a79b\") : i18n(\"pages.schedule.e046ece55b12\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1366,
-          "context": "{i18n(\"pages.schedule.93cfacc290a0\", { value: String(canCloud ? i18n(\"pages.schedule.df071eb5a79b\") : i18n(\"pages.schedule.e046ece55b12\")) })}"
-        }
-      ],
-      "translation": "Sync to cloud calendar{value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.9b702fb32d62",
-      "source": "作业截止",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 975,
-          "context": "p.entry.src === \"hw\" ? i18n(\"pages.schedule.9b702fb32d62\") : i18n(\"pages.schedule.60db1afb4022\")"
-        }
-      ],
-      "translation": "Assignment due",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.a14f23af7016",
-      "source": "日程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1185,
-          "context": "{i18n(\"pages.schedule.a14f23af7016\")}"
-        }
-      ],
-      "translation": "Schedule",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.a3030bf8f16d",
-      "source": "保存",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1314,
-          "context": "busy ? i18n(\"pages.schedule.ff509c9ba052\") : i18n(\"pages.schedule.a3030bf8f16d\")"
-        }
-      ],
-      "translation": "Save",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.a3064785f1db",
-      "source": "编辑日程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1309,
-          "context": "sd.uid ? i18n(\"pages.schedule.a3064785f1db\") : i18n(\"pages.schedule.5090d53a1cce\")"
-        }
-      ],
-      "translation": "Edit event",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.a3299407580e",
-      "source": "保存失败：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(err instanceof Error ? err.message : String(err))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 778,
-          "context": "setMsg(i18n(\"pages.schedule.a3299407580e\", { value: String(err instanceof Error ? err.message : String(err)) }))"
-        }
-      ],
-      "translation": "Save failed: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.a488e93d69cc",
-      "source": "来源",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1271,
-          "context": "k: i18n(\"pages.schedule.a488e93d69cc\")"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1285,
-          "context": "k: i18n(\"pages.schedule.a488e93d69cc\")"
-        }
-      ],
-      "translation": "Source",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.a6654120cbec",
-      "source": "教师",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1284,
-          "context": "k: i18n(\"pages.schedule.a6654120cbec\")"
-        }
-      ],
-      "translation": "Instructor",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.a80ca7344396",
-      "source": "打开日历，快速跳到任意年月",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1054,
-          "context": "{i18n(\"pages.schedule.a80ca7344396\")}"
-        }
-      ],
-      "translation": "Open the calendar to jump to any year and month",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.aa39cac2b409",
-      "source": "网络学堂",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 985,
-          "context": "p.entry.hwMeta?.ext ? p.entry.hwMeta.source ?? i18n(\"pages.schedule.72d71f2db0b4\") : i18n(\"pages.schedule.aa39cac2b409\")"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1213,
-          "context": "d.hwMeta?.ext ? (d.hwMeta.source ?? i18n(\"pages.schedule.72d71f2db0b4\")) : i18n(\"pages.schedule.aa39cac2b409\")"
-        }
-      ],
-      "translation": "Web Learning",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.aa5750053364",
-      "source": "部分外部作业刷新失败，请在作业页检查连接。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1163,
-          "context": "{i18n(\"pages.schedule.aa5750053364\")}"
-        }
-      ],
-      "translation": "Some external assignments failed to refresh; check the connections on the Assignments page.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.ad6d92fd400c",
-      "source": "同步到系统日历",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1169,
-          "context": "sysNative === false ? i18n(\"pages.schedule.exportIcs\") : i18n(\"pages.schedule.ad6d92fd400c\")"
-        }
-      ],
-      "translation": "Sync to system calendar",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.aedd6814ff8c",
-      "source": "列表",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1107,
-          "context": "[\"agenda\", i18n(\"pages.schedule.aedd6814ff8c\")]"
-        }
-      ],
-      "translation": "List",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.aee887434131",
-      "source": "刷新",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1177,
-          "context": "{i18n(\"pages.schedule.aee887434131\")}"
-        }
-      ],
-      "translation": "Refresh",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.af3a93e86aa6",
-      "source": " · 考试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1285,
-          "context": "d.src === \"exam\" ? i18n(\"pages.schedule.af3a93e86aa6\") : i18n(\"pages.schedule.1e1dc2f018da\")"
-        }
-      ],
-      "translation": " · Exams",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.b0e3601510d8",
-      "source": "在桌面小组件显示",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1369,
-          "context": "{i18n(\"pages.schedule.b0e3601510d8\")}"
-        }
-      ],
-      "translation": "Show on the desktop widget",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.b179143d79a6",
-      "source": "云同步账号已变更，请重新打开日程后删除",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 788,
-          "context": "new Error(i18n(\"pages.schedule.b179143d79a6\"))"
-        }
-      ],
-      "translation": "Cloud sync account changed; reopen the schedule to delete",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.b2e93997a40b",
-      "source": "未找到「{courseName}」对应的网络学堂课程，已打开课程页，可在其中查找。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "courseName",
-          "expression": "String(d.courseName)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 840,
-          "context": "setMsg(i18n(\"pages.schedule.b2e93997a40b\", { courseName: String(d.courseName) }))"
-        }
-      ],
-      "translation": "No Web Learning course matches \"{courseName}\"; the courses page is open — you can look for it there.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.b4c6c3eb0bce",
-      "source": "本周",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1058,
-          "context": "{i18n(\"pages.schedule.b4c6c3eb0bce\")}"
-        }
-      ],
-      "translation": "This week",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.bc37a6110a07",
-      "source": "已提交",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 985,
-          "context": "p.entry.hwMeta?.submitted ? i18n(\"pages.schedule.bc37a6110a07\") : i18n(\"pages.schedule.8032af4a590f\")"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1254,
-          "context": "m.hwMeta?.submitted ? i18n(\"pages.schedule.bc37a6110a07\") : i18n(\"pages.schedule.8032af4a590f\")"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1276,
-          "context": "d.hwMeta?.submitted ? i18n(\"pages.schedule.bc37a6110a07\") : i18n(\"pages.schedule.8032af4a590f\")"
-        }
-      ],
-      "translation": "Submitted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.bd2f0b059d14",
-      "source": "要做什么…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1327,
-          "context": "{i18n(\"pages.schedule.bd2f0b059d14\")}"
-        }
-      ],
-      "translation": "What to do…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.be7a93a8502e",
-      "source": "全天 · {label}",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "label",
-          "expression": "c.label"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 891,
-          "context": "{i18nRich(\"pages.schedule.be7a93a8502e\", { label: c.label })}"
-        }
-      ],
-      "translation": "All day · {label}",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "pages.schedule.c0b859346782",
-      "source": "上一周",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1048,
-          "context": "mode === \"timetable\" ? i18n(\"pages.schedule.c0b859346782\") : i18n(\"pages.schedule.f9e727223456\")"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1048,
-          "context": "mode === \"timetable\" ? i18n(\"pages.schedule.c0b859346782\") : i18n(\"pages.schedule.f9e727223456\")"
-        }
-      ],
-      "translation": "Previous week",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.c0eb0fdf8c4e",
-      "source": "下一月",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1071,
-          "context": "{i18n(\"pages.schedule.c0eb0fdf8c4e\")}"
-        }
-      ],
-      "translation": "Next month",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.c1c41b33594e",
-      "source": "教务系统{value}",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "d.src === \"exam\" ? i18n(\"pages.schedule.af3a93e86aa6\") : i18n(\"pages.schedule.1e1dc2f018da\")"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1285,
-          "context": "{i18nRich(\"pages.schedule.c1c41b33594e\", { value: d.src === \"exam\" ? i18n(\"pages.schedule.af3a93e86aa6\") : i18n(\"pages.schedule.1e1dc2f018da\") })}"
-        }
-      ],
-      "translation": "Academic system{value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.c3405f8c7d9d",
-      "source": "标题",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1326,
-          "context": "{i18n(\"pages.schedule.c3405f8c7d9d\")}"
-        }
-      ],
-      "translation": "Title",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.c430f4c12eaa",
-      "source": "周一",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 70
-        }
-      ],
-      "translation": "Mon",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.c533aa41c064",
-      "source": "选日期跳到该日期所在月份",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1097,
-          "context": "mode === \"timetable\" ? i18n(\"pages.schedule.88a5267852f9\") : i18n(\"pages.schedule.c533aa41c064\")"
-        }
-      ],
-      "translation": "Pick a date to jump to its month",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.c728528fbd8f",
-      "source": "作业刷新失败，当前截止时间可能不完整：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(learn.error ?? \"\")"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 861,
-          "context": "{i18n(\"pages.schedule.c728528fbd8f\", { value: String(learn.error ?? \"\") })}"
-        }
-      ],
-      "translation": "Assignment refresh failed; current due dates may be incomplete: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.c7b24e7997e9",
-      "source": "结束",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1350,
-          "context": "{i18n(\"pages.schedule.c7b24e7997e9\")}"
-        }
-      ],
-      "translation": "End",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.c8d7c83a9995",
-      "source": "学期 {value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(i + 1)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1145,
-          "context": "sm.semesterName || sm.semesterId || i18n(\"pages.schedule.c8d7c83a9995\", { value: String(i + 1) })"
-        }
-      ],
-      "translation": "Term {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.ce40d3d5810a",
-      "source": "最后一天",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1336,
-          "context": "sd.allDay ? i18n(\"pages.schedule.ce40d3d5810a\") : i18n(\"pages.schedule.895cd52fbbb6\")"
-        }
-      ],
-      "translation": "Last day",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

@@ -1,8 +1,8 @@
 {
   "messages": {
     "gateway.existingProxy": {
-      "zh-CN": "现有自动代理（PAC/WPAD）暂不支持合并；Windows 也暂不支持与已有手动代理共用。原配置未被覆盖，请检查系统代理设置。",
-      "en-US": "Existing automatic proxy settings (PAC/WPAD) cannot be combined. Coexistence with an existing manual proxy is also unavailable on Windows. Your previous settings were not overwritten."
+      "zh-CN": "现有自动代理（PAC/WPAD）暂不支持合并。原配置已保留，请检查系统代理设置。",
+      "en-US": "Existing automatic proxy settings (PAC/WPAD) cannot be combined yet. Your previous settings are preserved; check the system proxy configuration."
     },
     "gateway.restoreError": {
       "zh-CN": "未能安全恢复原代理设置。请检查系统代理后重试；不会强行覆盖其他应用修改的配置。",
@@ -25,8 +25,8 @@
       "en-US": "Access campus websites in your usual browser using the current OneTHU session. No extension is needed; starting the proxy opens a local listener only."
     },
     "gateway.desktopOnly": {
-      "zh-CN": "此入口目前需要 OneTHU 桌面版与本地运行环境。Android 尚需独立的系统代理或 VPN 接入，且各应用对用户证书的支持不同；网页预览暂不可用。",
-      "en-US": "This entry currently requires the OneTHU desktop app and local runtime. Android needs a separate system proxy or VPN integration, and support for user certificates varies by app. Web previews are not supported."
+      "zh-CN": "手机端校园网关尚未启用。当前监听仅限电脑本机，手机无法通过电脑的 127.0.0.1 接入。",
+      "en-US": "The mobile campus gateway is not enabled yet. The desktop listener is loopback-only; a phone cannot connect to the computer’s 127.0.0.1."
     },
     "gateway.checking": {
       "zh-CN": "正在检查本地运行环境…",
@@ -129,8 +129,8 @@
       "en-US": "Hide"
     },
     "gateway.authorizationScope": {
-      "zh-CN": "macOS 下，校园站点走 OneTHU；其他网站沿用各网络服务原有的手动代理和绕过规则，无原代理时直连。本机证书用于列表内校园站点的 HTTPS 连接。停用时恢复原设置，保留其他应用后来作出的修改。",
-      "en-US": "On macOS, campus sites use OneTHU. Other sites keep each network service’s previous manual proxy and bypass rules, or connect directly if no proxy was configured. The local certificate is used for HTTPS to the listed campus sites. Disabling restores previous settings while preserving later changes made by other apps."
+      "zh-CN": "普通浏览器保留身份站的原连接。受签名验证的微信客户端仅可为清小搭、行在清华的已登记服务借用校园会话；学校要求的二次验证仍需本人完成。停止代理可恢复原网络配置。",
+      "en-US": "Regular browsers retain their original identity-service connection. Signature-verified WeChat clients can borrow the campus session only for registered Qingxiaoda and Xingzai services. Any additional verification required by the university remains yours to complete. Stopping the proxy restores the previous network settings."
     },
     "gateway.certificate": {
       "zh-CN": "本机校园证书",
@@ -269,8 +269,8 @@
       "en-US": "Previous manual proxies are preserved for other websites · Network services: {services}"
     },
     "gateway.platformScope": {
-      "zh-CN": "macOS 支持与无需认证的手动代理共用，暂不合并 PAC/WPAD。Windows 暂不支持已有代理共用，接入时可能需要本机代理凭据。Android 系统接入尚未实现，且 VPN 共存与用户证书支持取决于系统和应用。",
-      "en-US": "macOS supports coexistence with manual proxies that do not require authentication; existing PAC/WPAD settings cannot be combined. Windows does not yet support coexistence with existing proxies and may require local proxy credentials. Android system integration is not implemented; VPN coexistence and user certificate support depend on the system and app."
+      "zh-CN": "macOS 与 Windows 可保留原手动代理及绕过规则；现有 PAC/WPAD 需先由用户处理。Windows 接入范围是当前用户的系统代理，独立网络栈需单独验收。Android 与 iOS 的系统接入尚需原生桥；手机微信的证书信任也需真机确认。Android 同时只能启用一个 VPN，请保留现有 VPN 配置。",
+      "en-US": "macOS and Windows preserve manual proxies and bypass rules; existing PAC/WPAD requires user configuration. Windows integration covers the current user’s system proxy; independent network stacks require separate testing. Android and iOS still require native system bridges and device testing of WeChat certificate trust. Android permits one active VPN per profile; preserve your existing VPN configuration."
     },
     "gateway.planChanged": {
       "zh-CN": "系统代理在准备期间被其他应用修改。请刷新状态后重试；不会覆盖后来的修改。",
@@ -279,6 +279,14 @@
     "gateway.authenticatedProxy": {
       "zh-CN": "现有手动代理需要认证，暂不支持合并。原代理配置未被覆盖。",
       "en-US": "The existing manual proxy requires authentication and cannot be combined yet. Its settings were not overwritten."
+    },
+    "gateway.prepareClients": {
+      "zh-CN": "续接微信校园登录",
+      "en-US": "Refresh campus sign-in for WeChat"
+    },
+    "gateway.prepareClientsDescription": {
+      "zh-CN": "由当前 OneTHU 窗口检查学校授权；小程序登录时转交学校签发的短时服务票据，密码保留在本机既有登录流程中。微信自身的登录、学校额外验证与小程序实际支持情况需分别确认。",
+      "en-US": "Check university authorization through this OneTHU window. Mini-program sign-in receives a short-lived, university-issued service ticket; passwords stay in the existing local sign-in flow. WeChat sign-in, additional university verification, and actual mini-program support remain separate checks."
     }
   }
 }

@@ -9,6 +9,7 @@ import { createNodeSession, type NodeSessionOptions } from './node/session.js';
 import { createManagedGateway, DEFAULT_ALLOWED_ORIGINS } from '@onethu/gateway/manager';
 import { withSecureCampusOrigins } from '@onethu/gateway/routes';
 import { createCampusProxySession } from './node/campusProxy.js';
+import { createClientIdentity } from './node/clientIdentity.js';
 import { createStore } from './store.js';
 import { createLearnService } from './learn.js';
 import { createNodeDownloader } from './download.js';
@@ -61,7 +62,9 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
   let stateQueue:Promise<unknown>=Promise.resolve();
   function exclusive<T>(work:()=>Promise<T>):Promise<T>{const next=stateQueue.catch(()=>undefined).then(work);stateQueue=next;return next;}
   const campusGatewayOrigins=withSecureCampusOrigins(options.campusGatewayOrigins??DEFAULT_ALLOWED_ORIGINS);
-  const campusGatewayOptions={dataDir:runtime.dataDir,allowedOrigins:campusGatewayOrigins,session:createCampusProxySession(runtime,campusGatewayOrigins)};
+  const clientIdentity=createClientIdentity(runtime);
+  const campusGatewayOptions={dataDir:runtime.dataDir,allowedOrigins:campusGatewayOrigins,
+    session:Object.assign(createCampusProxySession(runtime,campusGatewayOrigins),{clientIdentity})};
   const managedCampusGateway=createManagedGateway(campusGatewayOptions);
   // Private local control only: never put proxy credentials or host trust
   // changes into the service registry used by MCP, plugins, IM or agents.
@@ -69,11 +72,16 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
     if(closed||closing)throw new Error('CLI_RUNTIME_CLOSED');
     return exclusive(async()=>{
       if(closed||closing)throw new Error('CLI_RUNTIME_CLOSED');
-      if(input.action==='start'&&(input.expectedAccount!==undefined||input.expectedEpoch!==undefined)){
+      const clientControl=['client-pending','client-complete','client-prepare'].includes(input.action);
+      if(clientControl||input.action==='start'&&(input.expectedAccount!==undefined||input.expectedEpoch!==undefined)){
         const current=runtime.desktopStatus();
         if(!current.session.authenticated||typeof input.expectedAccount!=='string'||!input.expectedAccount||!Number.isSafeInteger(input.expectedEpoch)||input.expectedAccount!==current.username||input.expectedEpoch!==current.epoch){
           throw Object.assign(new Error('GATEWAY_SESSION_CHANGED'),{code:'GATEWAY_SESSION_CHANGED'});
         }
+      }
+      if(clientControl){
+        if(input.confirm!==true)throw Object.assign(new Error('GATEWAY_CONFIRM_REQUIRED'),{code:'GATEWAY_CONFIRM_REQUIRED'});
+        return input.action==='client-pending'?clientIdentity.desktop.pending():input.action==='client-prepare'?clientIdentity.desktop.prepare(input.service??'xiaoda'):clientIdentity.desktop.complete(input);
       }
       return managedCampusGateway.control(input);
     });
@@ -284,6 +292,7 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
       closePromise=(async()=>{
         let failure:unknown;
         // Storage failures must not leave child processes or the profile lock alive.
+        clientIdentity.close();
         const cleanup=[()=>managedCampusGateway.close(),()=>gateway.close(),()=>assistant.close(),()=>taskManager.close(),
           ...[...pluginHosts.values()].map(host=>()=>host.close()),
           ...[...notificationHosts.values()].map(host=>()=>host.close()),()=>store.flush(),()=>runtime.close()];

@@ -1,7 +1,1362 @@
 {
-  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
+  "sourceHash": "be3fd8c88a23dc4acb558acc486d73c0e34027023912c7adc1e35b9861a6e4b5",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "lib.update.c459fb3f09e6",
+      "source": "新版本 {version} 可用：设置 → 关于 查看详情",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "version",
+          "expression": "rel.name"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/update.ts",
+          "line": 102,
+          "context": "onToast(`新版本 ${rel.name} 可用：设置 → 关于 查看详情`)"
+        }
+      ],
+      "translation": "New version {version} available: see \"Settings → About\" for details",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.01e9ed6e0882",
+      "source": "{what} 不可达（403）——官方端点若变更请检查 share-links API（本模块用的是匿名 dirents 接口）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "what",
+          "expression": "String(what)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 248,
+          "context": "return i18n(\"lib.updater.01e9ed6e0882\", { what: String(what) });"
+        }
+      ],
+      "translation": "{what} unreachable (403) — if the official endpoint changed, check the share-links API (this module uses the anonymous dirents endpoint)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.072f4658615f",
+      "source": "{what} 服务端错误（HTTP {status}）——云盘侧暂时不可用，稍后重试",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "what",
+          "expression": "String(what)"
+        },
+        {
+          "name": "status",
+          "expression": "String(status)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 250,
+          "context": "return i18n(\"lib.updater.072f4658615f\", { what: String(what), status: String(status) });"
+        }
+      ],
+      "translation": "{what} server error (HTTP {status}) — the cloud drive side is temporarily unavailable, try again later",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.185680ad27cd",
+      "source": "已用系统默认方式打开：若是 DMG，把应用拖进「应用程序」即完成更新。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 571,
+          "context": "key === \"macos\" ? i18nMsg(\"lib.updater.185680ad27cd\") : i18nMsg(\"lib.updater.95bc488982b2\")"
+        }
+      ],
+      "translation": "Opened with the system default: for a DMG, drag the app into \"Applications\" to finish the update.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.194b24406399",
+      "source": "镜像目录 {path}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "path",
+          "expression": "String(path)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 271,
+          "context": "shareErr(i18n(\"lib.updater.194b24406399\", { path: String(path) }), r.status)"
+        }
+      ],
+      "translation": "Mirror directory {path}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.2985491184cc",
+      "source": "两个更新源都没取到清单：\n{detail}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "detail",
+          "expression": "String(detail)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 103,
+          "context": "attempts?.length\n    ? i18n(\"lib.updater.2985491184cc\", { detail: attempts.map(attempt => `· ${SOURCE_LABEL[attempt.source]}：${updateAttemptError(attempt)}`).join(\"\\n\") })\n    : result.error ?? i18n(\"components.softwareupdatesection.4f6f06254d16\")"
+        },
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 485,
+          "context": "error: i18n(\"lib.updater.2985491184cc\", { detail: String(detail) })"
+        }
+      ],
+      "translation": "Could not fetch the manifest from either update source:\n{detail}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "lib.updater.2d2cad3f99ea",
+      "source": "HTTP 404（Releases 还没挂 latest.json 资产）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 380,
+          "context": "res.status === 404 ? i18n(\"lib.updater.2d2cad3f99ea\") : `HTTP ${res.status}`"
+        }
+      ],
+      "translation": "HTTP 404 (Releases doesn't have the latest.json asset yet)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.2da47c897e30",
+      "source": "已拉起系统安装页：首次安装需在系统提示里允许「安装未知应用」，之后按系统页确认即可。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 571,
+          "context": "key === \"android\" ? i18nMsg(\"lib.updater.2da47c897e30\") : key === \"macos\" ? i18nMsg(\"lib.updater.185680ad27cd\") : i18nMsg(\"lib.updater.95bc488982b2\")"
+        }
+      ],
+      "translation": "System install page opened: for first installation, allow \"Install unknown apps\" when the system prompts, then confirm on the system page.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.2f939477c47e",
+      "source": "安卓",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 153,
+          "context": "return i18n(\"lib.updater.2f939477c47e\");"
+        }
+      ],
+      "translation": "Android",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.361980a5e6ce",
+      "source": "{what} 不存在（404）——镜像上还没有这个文件",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "what",
+          "expression": "String(what)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 249,
+          "context": "return i18n(\"lib.updater.361980a5e6ce\", { what: String(what) });"
+        }
+      ],
+      "translation": "{what} not found (404) — the file isn't on the mirror yet",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.3d383f5a5c29",
+      "source": "清单不是合法 JSON",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 170,
+          "context": "error: i18n(\"lib.updater.3d383f5a5c29\")"
+        }
+      ],
+      "translation": "Manifest is not valid JSON",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.4219a7449e26",
+      "source": "已是最新",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 466,
+          "context": "r.hasUpdate ? i18n(\"lib.updater.daedea385864\") : i18n(\"lib.updater.4219a7449e26\")"
+        }
+      ],
+      "translation": "Already up to date",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.42b98aa3fae8",
+      "source": "没有可安装的本地路径",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 565,
+          "context": "errorMessage = i18nMsg(\"lib.updater.42b98aa3fae8\")"
+        }
+      ],
+      "translation": "No local installable path available",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.4bffec153a88",
+      "source": "{dir}/ 里没有可识别的安装包（期望 OneTHU_<版本>_<arch>.{ext}；目录里现有 {length} 项）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "dir",
+          "expression": "String(dir)"
+        },
+        {
+          "name": "ext",
+          "expression": "String(ext)"
+        },
+        {
+          "name": "length",
+          "expression": "String(dirList.length)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 419,
+          "context": "new Error(i18n(\"lib.updater.4bffec153a88\", { dir: String(dir), ext: String(ext), length: String(dirList.length) }))"
+        }
+      ],
+      "translation": "No recognizable installer package in {dir}/ (expected OneTHU_<version>_<arch>.{ext}; the directory has {length} items)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.71c70711a602",
+      "source": "GitHub Releases（外网）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 45,
+          "context": "return i18n(\"lib.updater.71c70711a602\");"
+        }
+      ],
+      "translation": "GitHub Releases (public internet)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.95bc488982b2",
+      "source": "已用系统默认方式打开安装包。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 571,
+          "context": "key === \"macos\" ? i18nMsg(\"lib.updater.185680ad27cd\") : i18nMsg(\"lib.updater.95bc488982b2\")"
+        }
+      ],
+      "translation": "The installer package was opened with the system default.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.9fa399af02de",
+      "source": "清华云盘（官方镜像 · 校内可达）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 46,
+          "context": "return i18n(\"lib.updater.9fa399af02de\");"
+        }
+      ],
+      "translation": "Tsinghua Cloud Drive (official mirror · reachable on campus)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.a1a9da9ee6ed",
+      "source": "未知原因",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 90,
+          "context": "attempt.error ?? i18n(\"lib.updater.a1a9da9ee6ed\")"
+        },
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 474,
+          "context": "failed.error ?? i18n(\"lib.updater.a1a9da9ee6ed\")"
+        },
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 484,
+          "context": "a.error ?? i18n(\"lib.updater.a1a9da9ee6ed\")"
+        }
+      ],
+      "translation": "Unknown reason",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.ab90d58874ee",
+      "source": "{label} 不可用：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "label",
+          "expression": "String(failed.label)"
+        },
+        {
+          "name": "value",
+          "expression": "String(failed.error ?? i18n(\"lib.updater.a1a9da9ee6ed\"))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 96,
+          "context": "failed\n    ? i18n(\"lib.updater.ab90d58874ee\", { label: SOURCE_LABEL[failed.source], value: updateAttemptError(failed) })\n    : result.fallbackReason ?? \"\""
+        },
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 474,
+          "context": "fallbackReason: i18n(\"lib.updater.ab90d58874ee\", { label: String(failed.label), value: String(failed.error ?? i18n(\"lib.updater.a1a9da9ee6ed\")) })"
+        }
+      ],
+      "translation": "{label} unavailable: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "lib.updater.b331bcbd6083",
+      "source": "清单 v{version} 没有当前平台（{key}）的包",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "version",
+          "expression": "String(m.version)"
+        },
+        {
+          "name": "key",
+          "expression": "String(key)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 386,
+          "context": "new Error(i18n(\"lib.updater.b331bcbd6083\", { version: String(m.version), key: String(key) }))"
+        },
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 446,
+          "context": "new Error(i18n(\"lib.updater.b331bcbd6083\", { version: String(m.version), key: String(key) }))"
+        }
+      ],
+      "translation": "Manifest v{version} has no package for the current platform ({key})",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.bf52642dd8c4",
+      "source": "镜像目录不可达：{value}（校外环境请确认网络；该接口无需登录）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(e instanceof Error ? e.message : String(e))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 269,
+          "context": "new Error(i18n(\"lib.updater.bf52642dd8c4\", { value: String(e instanceof Error ? e.message : String(e)) }))"
+        }
+      ],
+      "translation": "Mirror directory unreachable: {value} (check your network off campus; this endpoint needs no sign-in)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.c57372e35f51",
+      "source": "[更新] 拉起安装页失败：{msg}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "msg",
+          "expression": "String(msg)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 575,
+          "context": "logLine(i18n(\"lib.updater.c57372e35f51\", { msg: String(msg) }))"
+        }
+      ],
+      "translation": "[Update] Failed to open the install page: {msg}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.cfc1ecb75eaf",
+      "source": "镜像目录返回的不是 JSON（{path}）——官方接口形态可能变了",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "path",
+          "expression": "String(path)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 278,
+          "context": "new Error(i18n(\"lib.updater.cfc1ecb75eaf\", { path: String(path) }))"
+        }
+      ],
+      "translation": "Mirror directory returned non-JSON ({path}) — the official API shape may have changed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.d7fb13f125e5",
+      "source": "自定义更新源",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 47,
+          "context": "return i18n(\"lib.updater.d7fb13f125e5\");"
+        }
+      ],
+      "translation": "Custom update source",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.dae2c06aec63",
+      "source": "{what} 失败（HTTP {status}）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "what",
+          "expression": "String(what)"
+        },
+        {
+          "name": "status",
+          "expression": "String(status)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 251,
+          "context": "return i18n(\"lib.updater.dae2c06aec63\", { what: String(what), status: String(status) });"
+        }
+      ],
+      "translation": "{what} failed (HTTP {status})",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.daedea385864",
+      "source": "有新版本",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 466,
+          "context": "r.hasUpdate ? i18n(\"lib.updater.daedea385864\") : i18n(\"lib.updater.4219a7449e26\")"
+        }
+      ],
+      "translation": "New version available",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.ddfe8fdf02cb",
+      "source": "[更新] 检查完成 · 源={value} · v{latest}（当前 v{current}，{value2}）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(SOURCE_LABEL[step.source])"
+        },
+        {
+          "name": "latest",
+          "expression": "String(r.latest)"
+        },
+        {
+          "name": "current",
+          "expression": "String(current)"
+        },
+        {
+          "name": "value2",
+          "expression": "String(r.hasUpdate ? i18n(\"lib.updater.daedea385864\") : i18n(\"lib.updater.4219a7449e26\"))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 466,
+          "context": "logLine(i18n(\"lib.updater.ddfe8fdf02cb\", { value: String(SOURCE_LABEL[step.source]), latest: String(r.latest), current: String(current), value2: String(r.hasUpdate ? i18n(\"lib.updater.daedea385864\") : i18n(\"lib.updater.4219a7449e26\")) }))"
+        }
+      ],
+      "translation": "[Update] Check complete · source={value} · v{latest} (current v{current}, {value2})",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "lib.updater.fa872c6a802a",
+      "source": "镜像文件 {innerPath}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "innerPath",
+          "expression": "String(innerPath)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 299,
+          "context": "shareErr(i18n(\"lib.updater.fa872c6a802a\", { innerPath: String(innerPath) }), r.status)"
+        }
+      ],
+      "translation": "Mirror file {innerPath}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.updater.fab43f07fa2d",
+      "source": "清单缺 version 字段",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/updater.ts",
+          "line": 176,
+          "context": "error: i18n(\"lib.updater.fab43f07fa2d\")"
+        }
+      ],
+      "translation": "Manifest is missing the version field",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.usenfcexchange.0ae6a92e95dc",
+      "source": "传送方开启 NFC 传送，接收方开启 NFC 接收，再将手机背面靠近",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/useNfcExchange.tsx",
+          "line": 37,
+          "context": "!status.enabled ? i18n(\"lib.usenfcexchange.68f717a1ed08\") : i18n(\"lib.usenfcexchange.0ae6a92e95dc\")"
+        }
+      ],
+      "translation": "Sender enables NFC send, receiver enables NFC receive, then bring the phones' backs close together",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.usenfcexchange.113392f6a1c6",
+      "source": "此设备不支持 NFC，可复制口令分享",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/useNfcExchange.tsx",
+          "line": 37,
+          "context": "!status.available ? i18n(\"lib.usenfcexchange.113392f6a1c6\") : !status.enabled ? i18n(\"lib.usenfcexchange.68f717a1ed08\") : i18n(\"lib.usenfcexchange.0ae6a92e95dc\")"
+        }
+      ],
+      "translation": "NFC isn't supported on this device; share with a copied share code instead",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.usenfcexchange.1f80dd1ff89a",
+      "source": "NFC 未开启，请到系统设置中开启后重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/useNfcExchange.tsx",
+          "line": 53,
+          "context": "new Error(i18n(\"lib.usenfcexchange.1f80dd1ff89a\"))"
+        }
+      ],
+      "translation": "NFC is off; turn it on in system settings and try again",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.usenfcexchange.68f717a1ed08",
+      "source": "请先在系统设置开启 NFC，返回后重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/useNfcExchange.tsx",
+          "line": 37,
+          "context": "!status.enabled ? i18n(\"lib.usenfcexchange.68f717a1ed08\") : i18n(\"lib.usenfcexchange.0ae6a92e95dc\")"
+        }
+      ],
+      "translation": "Please enable NFC in system settings first, then come back and try again",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.usenfcexchange.6e17251696e8",
+      "source": "正在等待 NFC 内容，请将手机背面靠近（10 秒内）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/useNfcExchange.tsx",
+          "line": 47,
+          "context": "makeCode ? i18n(\"lib.usenfcexchange.ffc7745f39e3\") : i18n(\"lib.usenfcexchange.6e17251696e8\")"
+        }
+      ],
+      "translation": "Waiting for NFC content; bring the phone's back close within 10 seconds",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.usenfcexchange.7f8924faa4e5",
+      "source": "传送已就绪，请让对方开启 NFC 接收并靠近；这里尚未收到对方确认。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/useNfcExchange.tsx",
+          "line": 59,
+          "context": "message: i18n(\"lib.usenfcexchange.7f8924faa4e5\")"
+        }
+      ],
+      "translation": "Transfer is ready; ask the other side to enable NFC receive and come close. No confirmation received here yet.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.usenfcexchange.810417d87789",
+      "source": "此设备不支持 NFC，请使用复制口令",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/useNfcExchange.tsx",
+          "line": 52,
+          "context": "new Error(i18n(\"lib.usenfcexchange.810417d87789\"))"
+        }
+      ],
+      "translation": "NFC isn't supported on this device; please use a copied share code",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.usenfcexchange.a4fb7d646812",
+      "source": "正在检测 NFC…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/useNfcExchange.tsx",
+          "line": 37,
+          "context": "!status ? i18n(\"lib.usenfcexchange.a4fb7d646812\") : !status.available ? i18n(\"lib.usenfcexchange.113392f6a1c6\") : !status.enabled ? i18n(\"lib.usenfcexchange.68f717a1ed08\") : i18n(\"lib.usenfcexchange.0ae6a92e95dc\")"
+        }
+      ],
+      "translation": "Checking NFC…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.usenfcexchange.ffc7745f39e3",
+      "source": "正在准备要分享的内容…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/useNfcExchange.tsx",
+          "line": 47,
+          "context": "makeCode ? i18n(\"lib.usenfcexchange.ffc7745f39e3\") : i18n(\"lib.usenfcexchange.6e17251696e8\")"
+        }
+      ],
+      "translation": "Preparing the content to share…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.usevaultreceive.2d15367c7b10",
+      "source": "口令（ON-…，兼容旧口令）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/useVaultReceive.ts",
+          "line": 21,
+          "context": "label: i18nMsg(\"lib.usevaultreceive.2d15367c7b10\")"
+        }
+      ],
+      "translation": "Share code (ON-…, legacy codes supported)",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "lib.usevaultreceive.52099bc955e2",
+      "source": "接收分享口令",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/useVaultReceive.ts",
+          "line": 21,
+          "context": "openFormModal(i18nMsg(\"lib.usevaultreceive.52099bc955e2\"), [{ key: 'code', label: i18nMsg(\"lib.usevaultreceive.2d15367c7b10\"), kind: 'textarea', required: true }])"
+        }
+      ],
+      "translation": "Receive share code",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "lib.usevaultreceive.669e25e96db0",
+      "source": "扫码失败，请换一张清晰的二维码图片",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/useVaultReceive.ts",
+          "line": 33,
+          "context": "e instanceof Error ? e.message : i18n(\"lib.usevaultreceive.669e25e96db0\")"
+        }
+      ],
+      "translation": "Scan failed; try a clearer QR code image",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.usevaultreceive.f4fdedae07d4",
+      "source": "接收失败，请重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/useVaultReceive.ts",
+          "line": 25,
+          "context": "e instanceof Error ? e.message : i18n(\"lib.usevaultreceive.f4fdedae07d4\")"
+        }
+      ],
+      "translation": "Receive failed, please try again",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.vaultcatch.8c9b6c3487d6",
+      "source": "工作区 · {count} 个标签",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "count",
+          "expression": "String(w.count)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultCatch.ts",
+          "line": 73,
+          "context": "sub: i18n(\"lib.vaultcatch.8c9b6c3487d6\", { count: String(w.count) })"
+        }
+      ],
+      "translation": "Workspace · {count} tabs",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.vaultcatch.a626aad412b7",
+      "source": "标签页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultCatch.ts",
+          "line": 62,
+          "context": "sub: i18n(\"lib.vaultcatch.a626aad412b7\")"
+        }
+      ],
+      "translation": "Tabs",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.vaultcatch.f37a13fc55b3",
+      "source": "课程通知",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultCatch.ts",
+          "line": 96,
+          "context": "sub: i18n(\"lib.vaultcatch.f37a13fc55b3\")"
+        }
+      ],
+      "translation": "Course notices",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.vaultremote.0e41e88fae37",
+      "source": "已缓存到暂存箱云盘：{title}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "title",
+          "expression": "title"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultRemote.ts",
+          "line": 53,
+          "context": "cached.ok ? i18n(\"lib.vaultremote.0e41e88fae37\", { title: title }) : i18n(\"lib.vaultremote.c2ffc377da9f\", { error: cached.reason ?? i18n(\"lib.vaultremote.7b0fe85cc2ee\") })"
+        }
+      ],
+      "translation": "Cached to Stash cloud drive: {title}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "lib.vaultremote.1af4dc2d2c3a",
+      "source": "这条日程只存在暂存箱里；要加入「我的日程」吗？",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultRemote.ts",
+          "line": 65,
+          "context": "confirmChoice(i18nMsg(\"lib.vaultremote.1af4dc2d2c3a\"), {\n    title: i18nMsg(\"lib.vaultremote.9c896aad088b\"),\n    confirmText: i18nMsg(\"lib.vaultremote.75085b8b6e3c\"),\n    cancelText: i18nMsg(\"lib.vaultremote.7092111f462a\"),\n  })"
+        }
+      ],
+      "translation": "This schedule entry only exists in Stash; add it to \"My Schedule\"?",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "lib.vaultremote.7092111f462a",
+      "source": "先留在暂存箱",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultRemote.ts",
+          "line": 68,
+          "context": "cancelText: i18nMsg(\"lib.vaultremote.7092111f462a\")"
+        }
+      ],
+      "translation": "Keep it in Stash",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.vaultremote.75085b8b6e3c",
+      "source": "添加到日程",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultRemote.ts",
+          "line": 67,
+          "context": "confirmText: i18nMsg(\"lib.vaultremote.75085b8b6e3c\")"
+        }
+      ],
+      "translation": "Add to Schedule",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.vaultremote.759687a48a96",
+      "source": "添加到日程失败：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(e instanceof Error ? e.message : String(e))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultRemote.ts",
+          "line": 83,
+          "context": "showToast(i18nMsg(\"lib.vaultremote.759687a48a96\", { value: String(e instanceof Error ? e.message : String(e)) }))"
+        }
+      ],
+      "translation": "Failed to add to Schedule: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.vaultremote.7b0fe85cc2ee",
+      "source": "稍后重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultRemote.ts",
+          "line": 53,
+          "context": "cached.reason ?? i18n(\"lib.vaultremote.7b0fe85cc2ee\")"
+        }
+      ],
+      "translation": "Retry later",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.vaultremote.9c896aad088b",
+      "source": "添加到我的日程？",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultRemote.ts",
+          "line": 66,
+          "context": "title: i18nMsg(\"lib.vaultremote.9c896aad088b\")"
+        }
+      ],
+      "translation": "Add to My Schedule?",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "lib.vaultremote.af6eec38ad8b",
+      "source": "已添加到我的日程",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultRemote.ts",
+          "line": 81,
+          "context": "showToast(i18nMsg(\"lib.vaultremote.af6eec38ad8b\"))"
+        }
+      ],
+      "translation": "Added to My Schedule",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.vaultremote.b4a5cedce0c2",
+      "source": "已加入暂存箱；缓存失败：{value}（桌面端重试）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(msg.slice(0, 60))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultRemote.ts",
+          "line": 56,
+          "context": "showToast(i18nMsg(\"lib.vaultremote.b4a5cedce0c2\", { value: String(msg.slice(0, 60)) }))"
+        }
+      ],
+      "translation": "Added to Stash; caching failed: {value} (retry on desktop)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.vaultremote.b97fee010675",
+      "source": "没有拿到文件地址",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultRemote.ts",
+          "line": 42,
+          "context": "new Error(i18n(\"lib.vaultremote.b97fee010675\"))"
+        }
+      ],
+      "translation": "No file URL was returned",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.vaultremote.c2ffc377da9f",
+      "source": "已缓存到暂存箱；云盘备份失败：{error}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "error",
+          "expression": "cached.reason ?? i18n(\"lib.vaultremote.7b0fe85cc2ee\")"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultRemote.ts",
+          "line": 53,
+          "context": "cached.ok ? i18n(\"lib.vaultremote.0e41e88fae37\", { title: title }) : i18n(\"lib.vaultremote.c2ffc377da9f\", { error: cached.reason ?? i18n(\"lib.vaultremote.7b0fe85cc2ee\") })"
+        }
+      ],
+      "translation": "Cached to Stash; cloud drive backup failed: {error}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "lib.vaultremote.ffccb4633b09",
+      "source": "{byteLength} B · 已缓存",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "byteLength",
+          "expression": "String(bytes.byteLength)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/vaultRemote.ts",
+          "line": 50,
+          "context": "sub: i18n(\"lib.vaultremote.ffccb4633b09\", { byteLength: String(bytes.byteLength) })"
+        }
+      ],
+      "translation": "{byteLength} B · Cached",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.venue.62fb79046777",
+      "source": "验证码错误或已过期",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/venue.ts",
+          "line": 348,
+          "context": "json.msg ?? i18n(\"lib.venue.62fb79046777\")"
+        }
+      ],
+      "translation": "Verification code is wrong or expired",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.venue.7f658db5a72c",
+      "source": "本机无记住的统一身份凭证",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/venue.ts",
+          "line": 165,
+          "context": "new VenueAuthRequiredError(i18n(\"lib.venue.7f658db5a72c\"))"
+        }
+      ],
+      "translation": "No remembered unified identity credentials on this device",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.venue.85e08a6d9846",
+      "source": "CAS 链尾不是登录表单",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/venue.ts",
+          "line": 247,
+          "context": "new VenueAuthRequiredError(i18n(\"lib.venue.85e08a6d9846\"))"
+        }
+      ],
+      "translation": "The CAS chain doesn't end at a login form",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.venue.93692dc0f921",
+      "source": "二次认证接口返回异常",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/venue.ts",
+          "line": 346,
+          "context": "new VenueApiError(i18n(\"lib.venue.93692dc0f921\"), \"2FA\")"
+        }
+      ],
+      "translation": "Second-factor authentication endpoint returned an error",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.venue.9ae22ae4d71c",
+      "source": "该账号需要二次认证",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/venue.ts",
+          "line": 37,
+          "context": "super(i18n(\"lib.venue.9ae22ae4d71c\"))"
+        }
+      ],
+      "translation": "This account requires second-factor authentication",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.venue.cb8fdb80eef2",
+      "source": "二次认证未返回跳转地址",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/venue.ts",
+          "line": 350,
+          "context": "new VenueApiError(i18n(\"lib.venue.cb8fdb80eef2\"), \"2FA\")"
+        }
+      ],
+      "translation": "Second-factor authentication didn't return a redirect URL",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xkai.424cb0668f46",
+      "source": "AI 返回为空",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xkai.ts",
+          "line": 40,
+          "context": "new Error(i18n(\"lib.xkai.424cb0668f46\"))"
+        }
+      ],
+      "translation": "AI returned an empty response",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xkai.ae5755213df2",
+      "source": "AI 接口 {status}: {value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "status",
+          "expression": "String(res.status)"
+        },
+        {
+          "name": "value",
+          "expression": "String(t.slice(0, 160))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xkai.ts",
+          "line": 36,
+          "context": "new Error(i18n(\"lib.xkai.ae5755213df2\", { status: String(res.status), value: String(t.slice(0, 160)) }))"
+        }
+      ],
+      "translation": "AI API {status}: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xkai.cf3dc6fdc4c8",
+      "source": "请先在 AI 配置里填写 API Base URL 和模型名称",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xkai.ts",
+          "line": 20,
+          "context": "new Error(i18n(\"lib.xkai.cf3dc6fdc4c8\"))"
+        }
+      ],
+      "translation": "Fill in the API Base URL and model name in AI settings first",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xkai.f2b841973f26",
+      "source": "AI 输出里没有 JSON 数组",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xkai.ts",
+          "line": 47,
+          "context": "new Error(i18n(\"lib.xkai.f2b841973f26\"))"
+        }
+      ],
+      "translation": "No JSON array found in the AI output",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.1eb8d1843c31",
+      "source": "9-10节",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 15
+        }
+      ],
+      "translation": "Periods 9-10",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.2961168962be",
+      "source": "周三",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 14
+        }
+      ],
+      "translation": "Wed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.2b7a88e2d1e1",
+      "source": "(第二外国语替代)",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 519,
+          "context": "coveredBy = i18n(\"lib.xklogic.2b7a88e2d1e1\")"
+        }
+      ],
+      "translation": "(Second foreign language substitute)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.4aa68593661e",
+      "source": "限选",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 63,
+          "context": "return i18n(\"lib.xklogic.4aa68593661e\");"
+        }
+      ],
+      "translation": "Restricted elective",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.4df6a2625554",
+      "source": "3-4节",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 15
+        }
+      ],
+      "translation": "Periods 3-4",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.572388f3b096",
+      "source": "周五",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 14
+        }
+      ],
+      "translation": "Fri",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.5def9905e85f",
+      "source": "必修",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 63,
+          "context": "return i18n(\"lib.xklogic.5def9905e85f\");"
+        }
+      ],
+      "translation": "Required",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "lib.xklogic.5e35c673a5a7",
       "source": "5-6节",
@@ -105,1338 +1460,6 @@
       "translation": "(English reading & writing / listening & speaking)",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.xklogic.c430f4c12eaa",
-      "source": "周一",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/xklogic.ts",
-          "line": 14
-        }
-      ],
-      "translation": "Mon",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.xklogic.d1378a68e620",
-      "source": "周二",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/xklogic.ts",
-          "line": 14
-        }
-      ],
-      "translation": "Tue",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.xklogic.d78be007f184",
-      "source": "(英语进阶读写)",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/xklogic.ts",
-          "line": 518,
-          "context": "coveredBy = i18n(\"lib.xklogic.d78be007f184\")"
-        }
-      ],
-      "translation": "(Advanced English reading & writing)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.xklogic.dfdf3e83c0bd",
-      "source": "1-2节",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/xklogic.ts",
-          "line": 15
-        }
-      ],
-      "translation": "Periods 1-2",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.xklogic.e7e4b83f7714",
-      "source": "11-12节",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/xklogic.ts",
-          "line": 15
-        }
-      ],
-      "translation": "Periods 11-12",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.xklogic.e9d3b01a5a00",
-      "source": "周四",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/xklogic.ts",
-          "line": 14
-        }
-      ],
-      "translation": "Thu",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.xklogic.ee239f394329",
-      "source": "周日",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/xklogic.ts",
-          "line": 14
-        }
-      ],
-      "translation": "Sun",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.xklogic.ef7be5be3c13",
-      "source": "体育",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/xklogic.ts",
-          "line": 63,
-          "context": "return i18n(\"lib.xklogic.ef7be5be3c13\");"
-        }
-      ],
-      "translation": "Sports",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.xklogic.f9aa11dbb15c",
-      "source": "周六",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/xklogic.ts",
-          "line": 14
-        }
-      ],
-      "translation": "Sat",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktassets.29516ecba0fc",
-      "source": "图片代理响应非图片（mime={value} bytes={value2}）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(out?.mime ?? \"空\")"
-        },
-        {
-          "name": "value2",
-          "expression": "String(out?.data?.length ?? 0)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktAssets.ts",
-          "line": 146,
-          "context": "new Error(i18n(\"lib.yktassets.29516ecba0fc\", { value: String(out?.mime ?? \"空\"), value2: String(out?.data?.length ?? 0) }))"
-        }
-      ],
-      "translation": "Image proxy response is not an image (mime={value} bytes={value2})",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktassets.5950a346694f",
-      "source": "非 Tauri 环境无图片代理通道",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktAssets.ts",
-          "line": 139,
-          "context": "new Error(i18n(\"lib.yktassets.5950a346694f\"))"
-        }
-      ],
-      "translation": "No image proxy channel outside the Tauri environment",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktbody.d24c10d37db0",
-      "source": "图片",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktBody.ts",
-          "line": 320,
-          "context": "return i18n(\"lib.yktbody.d24c10d37db0\");"
-        },
-        {
-          "file": "apps/desktop/src/lib/yktBody.ts",
-          "line": 334,
-          "context": "return i18n(\"lib.yktbody.d24c10d37db0\");"
-        }
-      ],
-      "translation": "Image",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktbody.e4eb68f7fdd0",
-      "source": "{name}（图片加载失败）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "\"__YKT_IMAGE_NAME__\""
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktBody.ts",
-          "line": 713,
-          "context": "failedImage: i18n(\"lib.yktbody.e4eb68f7fdd0\", { name: \"__YKT_IMAGE_NAME__\" })"
-        }
-      ],
-      "translation": "{name} (image failed to load)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktdetail.3865ba32b6b5",
-      "source": "已交未批",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktDetail.ts",
-          "line": 82,
-          "context": "text: i18n(\"lib.yktdetail.3865ba32b6b5\")"
-        },
-        {
-          "file": "apps/desktop/src/lib/yktDetail.ts",
-          "line": 122,
-          "context": "text: i18n(\"lib.yktdetail.3865ba32b6b5\")"
-        }
-      ],
-      "translation": "Submitted, not graded",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktdetail.41bb47e4b848",
-      "source": "无题目",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktDetail.ts",
-          "line": 113,
-          "context": "text: i18n(\"lib.yktdetail.41bb47e4b848\")"
-        }
-      ],
-      "translation": "No title",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktdetail.8032af4a590f",
-      "source": "未提交",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktDetail.ts",
-          "line": 121,
-          "context": "text: i18n(\"lib.yktdetail.8032af4a590f\")"
-        }
-      ],
-      "translation": "Not submitted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktdetail.9b2367542d68",
-      "source": "已批 {value} 分",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(yktScoreText(p.myScore))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktDetail.ts",
-          "line": 79,
-          "context": "text: i18n(\"lib.yktdetail.9b2367542d68\", { value: String(yktScoreText(p.myScore)) })"
-        }
-      ],
-      "translation": "Graded {value} points",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktdetail.b5f241af1539",
-      "source": "未作答",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktDetail.ts",
-          "line": 83,
-          "context": "text: i18n(\"lib.yktdetail.b5f241af1539\")"
-        },
-        {
-          "file": "apps/desktop/src/lib/yktDetail.ts",
-          "line": 114,
-          "context": "text: i18n(\"lib.yktdetail.b5f241af1539\")"
-        }
-      ],
-      "translation": "Not answered",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktdetail.d42baf1647c8",
-      "source": "已批改",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktDetail.ts",
-          "line": 80,
-          "context": "text: i18n(\"lib.yktdetail.d42baf1647c8\")"
-        },
-        {
-          "file": "apps/desktop/src/lib/yktDetail.ts",
-          "line": 115,
-          "context": "text: i18n(\"lib.yktdetail.d42baf1647c8\")"
-        }
-      ],
-      "translation": "Graded",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktdetail.ef020c5a8603",
-      "source": "已批 {graded}/{total} 题",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "graded",
-          "expression": "String(graded)"
-        },
-        {
-          "name": "total",
-          "expression": "String(total)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktDetail.ts",
-          "line": 116,
-          "context": "text: i18n(\"lib.yktdetail.ef020c5a8603\", { graded: String(graded), total: String(total) })"
-        }
-      ],
-      "translation": "{graded}/{total} questions graded",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktimageprep.982e69733466",
-      "source": "图片编码失败",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktImagePrep.ts",
-          "line": 65,
-          "context": "new Error(i18n(\"lib.yktimageprep.982e69733466\"))"
-        }
-      ],
-      "translation": "Image encoding failed",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktimageprep.9acbcc843b8f",
-      "source": "canvas 不可用",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktImagePrep.ts",
-          "line": 57,
-          "context": "new Error(i18n(\"lib.yktimageprep.9acbcc843b8f\"))"
-        }
-      ],
-      "translation": "Canvas unavailable",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktsubmitwebview.00598e3b8d46",
-      "source": "应用内作答需在 OneTHU App 内使用（浏览器预览不可用）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktSubmitWebview.ts",
-          "line": 25,
-          "context": "new Error(i18n(\"lib.yktsubmitwebview.00598e3b8d46\"))"
-        }
-      ],
-      "translation": "In-app answering requires the OneTHU App (not available in browser preview).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktsubmitwebview.feded33a22ee",
-      "source": "官方作答页地址非法（仅允许 http(s)）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktSubmitWebview.ts",
-          "line": 26,
-          "context": "new Error(i18n(\"lib.yktsubmitwebview.feded33a22ee\"))"
-        }
-      ],
-      "translation": "The official answer page URL is invalid (only http(s) is allowed).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktwebview.4aa36272b60e",
-      "source": "尚未检测到雨课堂登录会话（请先在窗口内完成扫码或短信登录）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktWebview.ts",
-          "line": 89,
-          "context": "new Error(i18n(\"lib.yktwebview.4aa36272b60e\"))"
-        }
-      ],
-      "translation": "No Rain Classroom login session detected yet (please complete QR code or SMS sign-in in the window first).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktwebview.745473448800",
-      "source": "读取失败。请在电脑浏览器登录 pro.yuketang.cn 后，用下方「高级：手动粘贴 Cookie」粘贴会话（浏览器 F12 → Application → Cookies）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktWebview.ts",
-          "line": 22,
-          "context": "() => i18n(\"lib.yktwebview.745473448800\")"
-        }
-      ],
-      "translation": "Sign-in failed. Please sign in to pro.yuketang.cn in a desktop browser, then paste the session using \"Advanced: Paste cookie manually\" below (browser F12 → Application → Cookies).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.yktwebview.9df0abd7d05e",
-      "source": "官方网页登录需在 OneTHU App 内使用（浏览器预览不可用）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/yktWebview.ts",
-          "line": 54,
-          "context": "new Error(i18n(\"lib.yktwebview.9df0abd7d05e\"))"
-        },
-        {
-          "file": "apps/desktop/src/lib/yktWebview.ts",
-          "line": 86,
-          "context": "new Error(i18n(\"lib.yktwebview.9df0abd7d05e\"))"
-        }
-      ],
-      "translation": "The official web sign-in must be used inside the OneTHU app (browser preview is unavailable).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.ziptree.2c7d571eccc7",
-      "source": "ZIP 局部文件头损坏，无法解压该条目",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/zipTree.ts",
-          "line": 91,
-          "context": "new Error(i18n(\"lib.ziptree.2c7d571eccc7\"))"
-        }
-      ],
-      "translation": "The ZIP local file header is corrupted; this entry cannot be extracted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.ziptree.310739c83167",
-      "source": "不支持的压缩算法（method={method}），请下载查看",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "method",
-          "expression": "String(entry.method)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/zipTree.ts",
-          "line": 105,
-          "context": "new Error(i18n(\"lib.ziptree.310739c83167\", { method: String(entry.method) }))"
-        }
-      ],
-      "translation": "Unsupported compression method (method={method}); please download to view",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.ziptree.465bf7f89508",
-      "source": "压缩包内未找到 ppt/slides/slideN.xml（可能不是 .pptx）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/zipTree.ts",
-          "line": 230,
-          "context": "new Error(i18n(\"lib.ziptree.465bf7f89508\"))"
-        }
-      ],
-      "translation": "ppt/slides/slideN.xml not found in the archive (it may not be a .pptx)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.ziptree.732ef6430c80",
-      "source": "ZIP 数据越界，文件可能损坏",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/zipTree.ts",
-          "line": 97,
-          "context": "new Error(i18n(\"lib.ziptree.732ef6430c80\"))"
-        }
-      ],
-      "translation": "ZIP data is out of bounds; the file may be corrupted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.ziptree.802ee7801233",
-      "source": "未找到 ZIP 目录结尾（EOCD），文件可能损坏",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/zipTree.ts",
-          "line": 47,
-          "context": "new Error(i18n(\"lib.ziptree.802ee7801233\"))"
-        }
-      ],
-      "translation": "ZIP end of central directory (EOCD) not found; the file may be corrupted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.ziptree.8bcdc7156f9f",
-      "source": "暂不支持 ZIP64 格式，请下载查看",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/zipTree.ts",
-          "line": 50,
-          "context": "new Error(i18n(\"lib.ziptree.8bcdc7156f9f\"))"
-        }
-      ],
-      "translation": "ZIP64 format is not supported yet; please download to view",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.ziptree.8ec67ebd5d24",
-      "source": "解压后内容超过预览大小限制",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/zipTree.ts",
-          "line": 88,
-          "context": "new Error(i18n(\"lib.ziptree.8ec67ebd5d24\"))"
-        },
-        {
-          "file": "apps/desktop/src/lib/zipTree.ts",
-          "line": 102,
-          "context": "new Error(i18n(\"lib.ziptree.8ec67ebd5d24\"))"
-        },
-        {
-          "file": "apps/desktop/src/lib/zipTree.ts",
-          "line": 112,
-          "context": "new Error(i18n(\"lib.ziptree.8ec67ebd5d24\"))"
-        }
-      ],
-      "translation": "Extracted content exceeds the preview size limit",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.ziptree.97befa4e485c",
-      "source": "当前环境不支持解压（缺 DecompressionStream），请下载查看",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/zipTree.ts",
-          "line": 107,
-          "context": "new Error(i18n(\"lib.ziptree.97befa4e485c\"))"
-        }
-      ],
-      "translation": "Extraction is not supported in this environment (DecompressionStream missing); please download to view",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.ziptree.c63d5a292e55",
-      "source": "该条目是目录，无法解压",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/zipTree.ts",
-          "line": 87,
-          "context": "new Error(i18n(\"lib.ziptree.c63d5a292e55\"))"
-        }
-      ],
-      "translation": "This entry is a directory and cannot be extracted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.ziptree.d9346a6de600",
-      "source": "ZIP 目录为空或解析失败",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/zipTree.ts",
-          "line": 76,
-          "context": "new Error(i18n(\"lib.ziptree.d9346a6de600\"))"
-        }
-      ],
-      "translation": "ZIP directory is empty or failed to parse",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "library.session.expired",
-      "source": "图书馆登录状态已失效，请重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/libraryErrorText.ts",
-          "line": 13,
-          "context": "return t(\"library.session.expired\");"
-        }
-      ],
-      "translation": "Your library session has expired. Please try again.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "library.session.recoveryFailed",
-      "source": "图书馆登录状态未能恢复，请先重试；若仍失败，请在设置中重新登录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/libraryErrorText.ts",
-          "line": 7,
-          "context": "return t(\"library.session.recoveryFailed\");"
-        }
-      ],
-      "translation": "Your library session could not be restored. Try again; if it still fails, sign in again in Settings.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "library.session.unavailable",
-      "source": "暂时无法连接图书馆账号，请重试；若仍失败，请在设置中重新登录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/libraryErrorText.ts",
-          "line": 10,
-          "context": "return t(\"library.session.unavailable\");"
-        }
-      ],
-      "translation": "Your library account could not be connected. Try again; if it still fails, sign in again in Settings.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "login.error.changeMethod",
-      "source": "当前验证码已绑定原验证方式。请返回登录页重新登录，再选择其他方式。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 34,
-          "context": "return t(\"login.error.changeMethod\");"
-        }
-      ],
-      "translation": "The current code is tied to the original verification method. Return to sign-in and choose another method in a new verification session.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "login.error.confirmationLoop",
-      "source": "统一认证反复要求确认设备，本次登录已停止。请稍等后重试；也可到 id.tsinghua.edu.cn 检查信任设备。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 41,
-          "context": "return t(\"login.error.confirmationLoop\");"
-        }
-      ],
-      "translation": "University authentication repeatedly requested device confirmation, so this sign-in was stopped. Wait before retrying, or check trusted devices at id.tsinghua.edu.cn.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "login.error.cooldown",
-      "source": "刚刚已尝试登录，请等待 {seconds} 秒后再试。刷新不会缩短等待时间。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "seconds"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 24,
-          "context": "return t(\"login.error.cooldown\", { seconds });"
-        }
-      ],
-      "translation": "A sign-in was just attempted. Wait {seconds} seconds before trying again. Refreshing will not shorten the wait.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "login.error.gatewayUnavailable",
-      "source": "学校登录或 WebVPN 暂时未返回可用页面。请稍后重试，避免连续刷新。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 37,
-          "context": "return t(\"login.error.gatewayUnavailable\");"
-        }
-      ],
-      "translation": "University sign-in or WebVPN is temporarily returning an unavailable page. Please wait before retrying and avoid repeated refreshes.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "login.error.inProgress",
-      "source": "已有登录正在进行，请完成验证，或返回登录页后再试。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 26,
-          "context": "return t(\"login.error.inProgress\");"
-        }
-      ],
-      "translation": "A sign-in is already in progress. Complete verification, or go back to the sign-in page to start again.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "login.error.invalidForm",
-      "source": "统一认证返回了无法安全处理的登录表单，已停止提交。请稍后重试；若仍失败，请复制诊断摘要。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 40,
-          "context": "return t(\"login.error.invalidForm\");"
-        }
-      ],
-      "translation": "University authentication returned a sign-in form that cannot be processed safely. Submission was stopped. Try again later; if it persists, copy the diagnostic summary.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "login.error.prepareFailed",
-      "source": "统一认证没有返回可用的登录表单。请稍等后重试；若仍失败，请复制诊断摘要协助排查。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 42,
-          "context": "return t(\"login.error.prepareFailed\");"
-        },
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 45,
-          "context": "return t(\"login.error.prepareFailed\");"
-        }
-      ],
-      "translation": "University authentication did not return a usable sign-in form. Wait before retrying; if it persists, copy the diagnostic summary for troubleshooting.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "login.error.restartVerification",
-      "source": "本次验证流程已结束，请重新发送验证码，或返回登录页重新验证。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 33,
-          "context": "return t(\"login.error.restartVerification\");"
-        }
-      ],
-      "translation": "This verification session has ended. Request a new code, or return to the sign-in page to verify again.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "login.error.restricted",
-      "source": "服务器暂时限制了请求，请稍等后再试，避免连续登录或刷新。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 35,
-          "context": "return t(\"login.error.restricted\");"
-        },
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 39,
-          "context": "return t(\"login.error.restricted\");"
-        }
-      ],
-      "translation": "The server is temporarily limiting requests. Wait before retrying, and avoid repeated sign-ins or refreshes.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "login.error.sessionChanged",
-      "source": "登录状态已变化，请重试当前操作。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 28,
-          "context": "return t(\"login.error.sessionChanged\");"
-        },
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 32,
-          "context": "return t(\"login.error.sessionChanged\");"
-        }
-      ],
-      "translation": "Your sign-in state has changed. Please retry this action.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "login.error.sessionConflict",
-      "source": "本机登录记录不一致，请重新登录。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 31,
-          "context": "return t(\"login.error.sessionConflict\");"
-        }
-      ],
-      "translation": "The sign-in records on this device do not match. Please sign in again.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "login.error.trustLimit",
-      "source": "统一认证提示信任设备数量已达上限。请到 id.tsinghua.edu.cn 管理旧的信任设备，再返回登录；验证时也可以不勾选「信任此设备」。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 38,
-          "context": "return t(\"login.error.trustLimit\");"
-        }
-      ],
-      "translation": "University authentication reports that the trusted device limit has been reached. Manage old trusted devices at id.tsinghua.edu.cn, then sign in again. You can also leave “Trust this device” unchecked during verification.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "memory.format.22ac782381ea",
-      "source": "连续 15+ 位数字（疑似证件号/卡号）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/memory/format.ts",
-          "line": 252,
-          "context": "return i18n(\"memory.format.22ac782381ea\");"
-        }
-      ],
-      "translation": "15+ consecutive digits (likely an ID or card number)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "memory.format.6b1a70ac9eb1",
-      "source": "疑似 GitHub Token",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/memory/format.ts",
-          "line": 250,
-          "context": "return i18n(\"memory.format.6b1a70ac9eb1\");"
-        }
-      ],
-      "translation": "Likely a GitHub token",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "memory.format.7ba456c0f242",
-      "source": "疑似 LLM API Key（sk-…）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/memory/format.ts",
-          "line": 249,
-          "context": "return i18n(\"memory.format.7ba456c0f242\");"
-        }
-      ],
-      "translation": "Likely an LLM API key (sk-…)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "memory.format.9ba2145bd66a",
-      "source": "疑似 HTTP Bearer Token",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/memory/format.ts",
-          "line": 251,
-          "context": "return i18n(\"memory.format.9ba2145bd66a\");"
-        }
-      ],
-      "translation": "Likely an HTTP bearer token",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "memory.format.ce72f2106e4f",
-      "source": "疑似明文密码",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/memory/format.ts",
-          "line": 254,
-          "context": "return i18n(\"memory.format.ce72f2106e4f\");"
-        }
-      ],
-      "translation": "Likely a plaintext password",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "memory.format.d79be29d7fb5",
-      "source": "疑似验证码",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/memory/format.ts",
-          "line": 253,
-          "context": "return i18n(\"memory.format.d79be29d7fb5\");"
-        }
-      ],
-      "translation": "Likely a verification code",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "memory.operations.6383fb8dcdcc",
-      "source": "记忆写入被拦截：{bad}——凭据类内容不允许进入长期记忆",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "bad",
-          "expression": "String(bad)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/memory/operations.ts",
-          "line": 67,
-          "context": "new Error(i18n(\"memory.operations.6383fb8dcdcc\", { bad: String(bad) }))"
-        }
-      ],
-      "translation": "Memory write blocked: {bad} — credential-like content is not allowed into long-term memory",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "memory.operations.ccc5a5900f02",
-      "source": "未找到待替换文本（{value}…）——请先 memory_read 核对原文",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(find.slice(0, 30))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/memory/operations.ts",
-          "line": 174,
-          "context": "new Error(i18n(\"memory.operations.ccc5a5900f02\", { value: String(find.slice(0, 30)) }))"
-        }
-      ],
-      "translation": "Text to replace not found ({value}…) — use memory_read to check the original first",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "memory.operations.e613fe77a194",
-      "source": "已存在同名记忆「{title}」（{permalink}）——用 memory_append 追加观察",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "title",
-          "expression": "String(input.title)"
-        },
-        {
-          "name": "permalink",
-          "expression": "String(existing.permalink)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/memory/operations.ts",
-          "line": 130,
-          "context": "new Error(i18n(\"memory.operations.e613fe77a194\", { title: String(input.title), permalink: String(existing.permalink) }))"
-        }
-      ],
-      "translation": "A memory titled \"{title}\" already exists ({permalink}) — use memory_append to add observations",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "memory.operations.f564f74f2806",
-      "source": "未找到记忆：{permalink}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "permalink",
-          "expression": "String(permalink)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/memory/operations.ts",
-          "line": 79,
-          "context": "new Error(i18n(\"memory.operations.f564f74f2806\", { permalink: String(permalink) }))"
-        },
-        {
-          "file": "apps/desktop/src/memory/operations.ts",
-          "line": 160,
-          "context": "new Error(i18n(\"memory.operations.f564f74f2806\", { permalink: String(permalink) }))"
-        },
-        {
-          "file": "apps/desktop/src/memory/operations.ts",
-          "line": 173,
-          "context": "new Error(i18n(\"memory.operations.f564f74f2806\", { permalink: String(permalink) }))"
-        },
-        {
-          "file": "apps/desktop/src/memory/operations.ts",
-          "line": 184,
-          "context": "new Error(i18n(\"memory.operations.f564f74f2806\", { permalink: String(permalink) }))"
-        }
-      ],
-      "translation": "Memory not found: {permalink}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "mobile.layout.bottom",
-      "source": "底部快捷入口",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/MobileLayoutChoice.tsx",
-          "line": 17,
-          "context": "layout === \"bottom\" ? t(\"mobile.layout.bottom\") : t(\"mobile.layout.side\")"
-        }
-      ],
-      "translation": "Bottom shortcuts",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "mobile.layout.bottomHint",
-      "source": "五个入口横向排列，单手快速切换。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/MobileLayoutChoice.tsx",
-          "line": 18,
-          "context": "layout === \"bottom\" ? t(\"mobile.layout.bottomHint\") : t(\"mobile.layout.sideHint\")"
-        }
-      ],
-      "translation": "Five shortcuts across the bottom for quick switching.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "mobile.layout.hint",
-      "source": "用你顺手的方式打开常用功能。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/MobileLayoutChoice.tsx",
-          "line": 13,
-          "context": "{t(\"mobile.layout.hint\")}"
-        }
-      ],
-      "translation": "Choose how you reach your favorite features.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "mobile.layout.later",
-      "source": "可在设置中更改，各模式分别记住选择。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/MobileLayoutChoice.tsx",
-          "line": 21,
-          "context": "{t(\"mobile.layout.later\")}"
-        }
-      ],
-      "translation": "Change this in Settings. Each mode remembers its own choice.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "mobile.layout.side",
-      "source": "弹出式侧边导航",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/MobileLayoutChoice.tsx",
-          "line": 17,
-          "context": "layout === \"bottom\" ? t(\"mobile.layout.bottom\") : t(\"mobile.layout.side\")"
-        }
-      ],
-      "translation": "Pop-out navigation",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "mobile.layout.sideHint",
-      "source": "点击左上角按钮，展开纵向功能列表。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/MobileLayoutChoice.tsx",
-          "line": 18,
-          "context": "layout === \"bottom\" ? t(\"mobile.layout.bottomHint\") : t(\"mobile.layout.sideHint\")"
-        }
-      ],
-      "translation": "Open a vertical feature list from the top-left button.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "mobile.layout.title",
-      "source": "选择手机布局",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/MobileLayoutChoice.tsx",
-          "line": 11,
-          "context": "{t(\"mobile.layout.title\")}"
-        },
-        {
-          "file": "apps/desktop/src/components/MobileLayoutChoice.tsx",
-          "line": 12,
-          "context": "{t(\"mobile.layout.title\")}"
-        },
-        {
-          "file": "apps/desktop/src/components/OnboardingTour.tsx",
-          "line": 109,
-          "context": "layoutStep?i18n(\"mobile.layout.title\"):intro?i18n(\"components.onboardingtour.ccc045ffd9b7\"):extra?i18n(\"components.onboardingtour.a8ab98831f5c\"):`${modeName} · ${Math.min(step+1,lessons.length)} / ${lessons.length}`"
-        },
-        {
-          "file": "apps/desktop/src/components/OnboardingTour.tsx",
-          "line": 137,
-          "context": "layoutStep?i18n(\"mobile.layout.title\"):intro?i18n(\"components.onboardingtour.fa24c12c5962\"):last?i18n(\"components.onboardingtour.1ad7fe0f57e3\"):lesson!.title"
-        }
-      ],
-      "translation": "Choose your phone layout",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "mobile.nav.fullHint",
-      "source": "「{name}」在完整版中使用，请在设置中切换模式。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/MobileFeatureNavigation.tsx",
-          "line": 34,
-          "context": "showToast(t(\"mobile.nav.fullHint\", { name: entry.label }))"
-        }
-      ],
-      "translation": "Use {name} in Full mode. Switch modes in Settings.",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "mobile.nav.fullOnly",
-      "source": "完整版",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/MobileFeatureNavigation.tsx",
-          "line": 50,
-          "context": "{t(\"mobile.nav.fullOnly\")}"
-        }
-      ],
-      "translation": "Full mode",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "mobile.nav.open",
-      "source": "打开功能导航",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/MobileFeatureNavigation.tsx",
-          "line": 40,
-          "context": "{t(\"mobile.nav.open\")}"
-        }
-      ],
-      "translation": "Open feature navigation",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "mobile.nav.plugins",
-      "source": "插件功能页",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/MobileFeatureNavigation.tsx",
-          "line": 53,
-          "context": "{t(\"mobile.nav.plugins\")}"
-        }
-      ],
-      "translation": "Plugin pages",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "mobile.nav.title",
-      "source": "一级功能区",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/MobileFeatureNavigation.tsx",
-          "line": 41,
-          "context": "{t(\"mobile.nav.title\")}"
-        },
-        {
-          "file": "apps/desktop/src/components/MobileFeatureNavigation.tsx",
-          "line": 41,
-          "context": "{t(\"mobile.nav.title\")}"
-        },
-        {
-          "file": "apps/desktop/src/components/MobileFeatureNavigation.tsx",
-          "line": 42,
-          "context": "{t(\"mobile.nav.title\")}"
-        }
-      ],
-      "translation": "Main features",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
     }
   ]
 }
