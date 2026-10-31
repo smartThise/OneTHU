@@ -31,7 +31,7 @@ import {
   sanitizeDocColor,
   type YktDocTheme,
 } from "../../lib/yktBody.js";
-import { stripInlineColors } from "../../lib/htmlTheme.js";
+import { stripInlineBackgrounds, stripInlineColors } from "../../lib/htmlTheme.js";
 import { fetchYktImageAsDataUrl, loadYktFont } from "../../lib/yktAssets.js";
 import { loadYktLatexBundle, type YktLatexBundle } from "../../lib/yktKatex.js";
 import { openExternal } from "../../pages/info/openExternal.js";
@@ -174,14 +174,18 @@ export function ProblemBody({ html, fontUrl, cookies, title = i18n("components.e
   /** 用当前入参 + 已加载的渲染器/字体 + **当下实时主题**重建文档（初建与强刷共用） */
   const rebuild = useCallback(
     (fontDataUrl: string | undefined) => {
+      const theme = readYktDocTheme(wrapRef.current);
       setDoc(
         buildYktProblemDoc({
           html,
           fontDataUrl,
           render: bundleRef.current?.render,
           extraCss: bundleRef.current?.inlineCss,
-          theme: readYktDocTheme(wrapRef.current),
+          theme,
           stripColors: stripInlineColors,
+          // 玻璃材质档：官方正文里的行内实底（白底纸块）会让公式背后出现实心白板，
+          // 只在画布能透出玻璃时剥掉；实色纸面主题不剥（底本来就是纸色）。
+          stripBackgrounds: theme.flush === true ? stripInlineBackgrounds : undefined,
         }),
       );
       setHeight(YKT_FRAME_MIN_H);

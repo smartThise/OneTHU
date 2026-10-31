@@ -3,14 +3,20 @@ import { t as i18n, msg as i18nMsg, resolveMessage, type UiText } from "../i18n/
  * 应用更新——清单获取 / 版本比较 / 下载编排 / 拉起安装页。
  *
  * ## 数据源：**官方双源，写死，不让用户配置**（2026-10-12 用户拍板）
- * 1. **主源 = GitHub Releases**：`.../releases/latest/download/latest.json`（外网可达时首选）；
- * 2. **备用 / 校内源 = 清华云盘官方镜像**：`https://cloud.tsinghua.edu.cn/d/56f78a2a0b144a6ab737/`
+ * 1. **GitHub Releases**：`.../releases/latest/download/latest.json`（外网源）；
+ * 2. **清华云盘官方镜像**：`https://cloud.tsinghua.edu.cn/d/56f78a2a0b144a6ab737/`
  *    （公开分享，**无需登录、无需选库**）。先试 `/latest.json`（发布方放了就用，带 sha256/说明），
  *    没有就**按实测目录形态直接解析**：`/Android/OneTHU_<版本>_<arch>.apk`、
  *    `/macOS/OneTHU_<版本>_<arch>.dmg`、`/Windows/OneTHU_<版本>_<arch>-setup.exe`。
- * 第一条可用即用；失败自动换下一条，并在结果里**注明走了哪条 + 为什么换**。
+ * 失败或超时自动用另一侧，并在结果里**注明实际走了哪条 + 为什么换**。
  *
  * 用户要用自己的私源时才展开「高级：自定义更新源」（一个清单 URL）——默认收起。
+ *
+ * ## 双源优先级（2026-10-28 用户拍板）
+ * 两侧**并行查询**（各自保留 source timeout / AbortSignal / attempts 语义），拿到结果后比较 latest：
+ * 1. **两侧版本号相同 → 清华云盘**（校内直连更稳，下载不再绕外网）；
+ * 2. **GitHub 严格更新（版本号更高）才用 GitHub**；
+ * 3. 云盘版本更高 → 云盘；**一侧失败用另一侧**，两侧都失败才报错并列出两条原因。
  *
  * 清单形状（GitHub 资产 / 云盘 latest.json 同款；`url` 可写相对名，前端按源解析成绝对地址）：
  * `{ "version": "0.10.1", "minVersion": "0.9.0", "url": "OneTHU_0.10.1_aarch64.dmg",
@@ -27,6 +33,7 @@ import { universalFetch, nativeSessionEpoch, assertNativeSessionEpoch } from "./
 import { isAndroidNavigator } from "./androidHost.js";
 import { currentVersion, isNewer } from "./update.js";
 import { logLine } from "./clients.js";
+import { normalizeDownloadThreads } from "./downloadPrefs.js";
 
 /* ── 官方地址（写死；改地址=改这里） ── */
 export const GITHUB_MANIFEST_URL = "https://github.com/smartThise/OneTHU/releases/latest/download/latest.json";
@@ -112,7 +119,7 @@ export interface UpdateCheckResult {
   /** 实际用了哪条源 */
   source?: UpdateSource;
   sourceLabel?: string;
-  /** 主源失败改走备用时的原因（UI 注明「外网不可达，已用校内镜像」用） */
+  /** 采用一侧时另一侧失败/超时的原因（UI 注明「另一源不可达，已用当前源」用） */
   fallbackReason?: string;
   attempts?: UpdateAttempt[];
   latest?: string;
@@ -223,7 +230,13 @@ export function fileNameFor(asset: CloudAsset, version: string): string {
 
 interface RawResp { status: number; text: string }
 
-async function httpNativeGet(url: string, headers: Record<string, string> = {}, hop = 0, requestEpoch?: number): Promise<RawResp> {
+/** 取消后立刻停止后续分享接口请求（invoke 本身不可中止，但不再发新请求）。 */
+function throwIfCancelled(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new DOMException("Cancelled", "AbortError");
+}
+
+async function httpNativeGet(url: string, headers: Record<string, string> = {}, hop = 0, requestEpoch?: number, signal?: AbortSignal): Promise<RawResp> {
+  throwIfCancelled(signal);
   const epoch = requestEpoch ?? await nativeSessionEpoch();
   const out = await invoke<{
     status: number; status_text: string; headers: Record<string, string>; body: string; body_b64?: string | null; url: string;
@@ -231,11 +244,12 @@ async function httpNativeGet(url: string, headers: Record<string, string> = {}, 
     epoch,
     input: { url, method: "GET", headers: { Accept: "*/*", ...headers }, body: null, body_b64: null, timeout_ms: 10_000 },
   });
+  throwIfCancelled(signal);
   await assertNativeSessionEpoch(epoch);
   const loc = Object.entries(out.headers ?? {}).find(([k]) => k.toLowerCase() === "location")?.[1];
   if (out.status >= 300 && out.status < 400 && loc && hop < 3) {
     const next = loc.startsWith("http") ? loc : new URL(loc, url).toString();
-    return httpNativeGet(next, headers, hop + 1, epoch);
+    return httpNativeGet(next, headers, hop + 1, epoch, signal);
   }
   const text = out.body_b64
     ? new TextDecoder("utf-8").decode(Uint8Array.from(atob(out.body_b64), (c) => c.charCodeAt(0)))
@@ -260,12 +274,13 @@ interface ShareDirent {
 }
 
 /** 分享目录列表（公开 API，实测 `GET /api/v2.1/share-links/<token>/dirents/?path=/` 返回 dirent_list） */
-async function shareDirents(path: string): Promise<ShareDirent[]> {
+async function shareDirents(path: string, signal?: AbortSignal): Promise<ShareDirent[]> {
   const url = `${CLOUD_SHARE_BASE}/api/v2.1/share-links/${CLOUD_SHARE_TOKEN}/dirents/?path=${encodeURIComponent(path)}`;
   let r: RawResp;
   try {
-    r = await httpNativeGet(url, { Accept: "application/json" });
+    r = await httpNativeGet(url, { Accept: "application/json" }, 0, undefined, signal);
   } catch (e) {
+    throwIfCancelled(signal);
     throw new Error(i18n("lib.updater.bf52642dd8c4", { value: String(e instanceof Error ? e.message : String(e)) }));
   }
   if (r.status !== 200) throw new Error(shareErr(i18n("lib.updater.194b24406399", { path: String(path) }), r.status));
@@ -294,8 +309,9 @@ export function shareDownloadUrl(innerPath: string): string {
 }
 
 /** 分享内文件内容（小文件：清单） */
-async function shareFileText(innerPath: string): Promise<string> {
-  const r = await httpNativeGet(shareDownloadUrl(innerPath));
+async function shareFileText(innerPath: string, signal?: AbortSignal): Promise<string> {
+  throwIfCancelled(signal);
+  const r = await httpNativeGet(shareDownloadUrl(innerPath), {}, 0, undefined, signal);
   if (r.status !== 200) throw new Error(shareErr(i18n("lib.updater.fa872c6a802a", { innerPath: String(innerPath) }), r.status));
   return r.text;
 }
@@ -351,7 +367,7 @@ export function synthFromDir(
   return { manifest, asset };
 }
 
-/* ═══════════ 检查（双源自动切换） ═══════════ */
+/* ═══════════ 检查（双源并行 + 优先级选源） ═══════════ */
 
 type Resolved = Omit<UpdateCheckResult, "ok" | "error" | "current" | "attempts" | "source" | "sourceLabel" | "fallbackReason">;
 
@@ -371,10 +387,12 @@ function finish(m: CloudUpdateManifest, key: PlatformKey, asset: CloudAsset, abs
   };
 }
 
-async function fromGitHub(key: PlatformKey): Promise<Resolved> {
+async function fromGitHub(key: PlatformKey, signal?: AbortSignal): Promise<Resolved> {
+  throwIfCancelled(signal);
   const res = await universalFetch(GITHUB_MANIFEST_URL, {
     method: "GET",
     headers: { Accept: "application/json, text/plain, */*", "User-Agent": "OneTHU-UpdateCheck" },
+    ...(signal ? { signal } : {}),
   });
   if (!res.ok) {
     throw new Error(res.status === 404 ? i18n("lib.updater.2d2cad3f99ea") : `HTTP ${res.status}`);
@@ -388,11 +406,13 @@ async function fromGitHub(key: PlatformKey): Promise<Resolved> {
     /^https?:/i.test(rel) ? rel : GITHUB_ASSET_BASE + encodeURIComponent(rel.split("/").pop() ?? rel));
 }
 
-async function fromCloud(key: PlatformKey): Promise<Resolved> {
+async function fromCloud(key: PlatformKey, signal?: AbortSignal): Promise<Resolved> {
   const dir = CLOUD_PLATFORM_DIR[key];
   // 两个目录列表都要：根目录放 latest.json 时也要能发现；平台目录用来解析安装包
-  const rootList = await shareDirents("/");
-  const dirList = await shareDirents(`${dir}/`);
+  const rootList = await shareDirents("/", signal);
+  throwIfCancelled(signal);
+  const dirList = await shareDirents(`${dir}/`, signal);
+  throwIfCancelled(signal);
   const hasManifest = (list: ShareDirent[], name: string): boolean => list.some((d) => !d.is_dir && d.file_name === name);
   // ① 发布方若放了清单（根目录或平台目录），优先用它（带 sha256 / 更新说明）
   const candidates = [
@@ -401,14 +421,17 @@ async function fromCloud(key: PlatformKey): Promise<Resolved> {
   ];
   for (const cand of candidates) {
     try {
-      const text = await shareFileText(cand);
+      throwIfCancelled(signal);
+      const text = await shareFileText(cand, signal);
       const parsed = parseManifest(text);
       if (!parsed.ok) continue;
       const m = parsed.manifest;
       const asset = pickAsset(m, key);
       if (!asset) continue;
       return finish(m, key, asset, (rel) => (/^https?:/i.test(rel) ? rel : shareDownloadUrl(rel)));
-    } catch {
+    } catch (error) {
+      // 取消不是「清单读不到」：继续走目录解析会掩盖取消语义。
+      if (signal?.aborted) throw error;
       /* 清单读不到 → 走目录解析（镜像当前的真实形态就是只有安装包） */
     }
   }
@@ -421,8 +444,80 @@ async function fromCloud(key: PlatformKey): Promise<Resolved> {
   return finish(synth.manifest, key, synth.asset, (rel) => shareDownloadUrl(rel));
 }
 
+interface SourcePlan {
+  source: UpdateSource;
+  run: () => Promise<Resolved>;
+}
+
+/** 单个源的超时：GitHub 快、云盘接口多一次目录列举，给得更宽。覆盖值对所有源生效。 */
+function sourceTimeoutMs(source: UpdateSource, override?: number): number {
+  return override ?? (source === "github" ? 8_000 : 15_000);
+}
+
 /**
- * 检查更新：主源 GitHub → 备用云盘镜像，自动切换。**不下载、不安装**。
+ * 单源竞速：把「源的网络请求」与「应用侧超时 / 用户取消」赛跑。
+ * 超时用结构化 errorKind 标记（UI 可重新本地化）；取消统一抛 AbortError。
+ */
+function guardSource(step: SourcePlan, opts: { signal?: AbortSignal; sourceTimeoutMs?: number }): Promise<Resolved> {
+  return new Promise<Resolved>((resolve, reject) => {
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onAbort = (): void => finish(() => reject(new DOMException("Cancelled", "AbortError")));
+    const finish = (action: () => void): void => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      opts.signal?.removeEventListener("abort", onAbort);
+      action();
+    };
+    timer = setTimeout(
+      () => finish(() => reject(new UpdateSourceTimeout(i18n("update.sourceTimeout", { source: SOURCE_LABEL[step.source] })))),
+      sourceTimeoutMs(step.source, opts.sourceTimeoutMs),
+    );
+    opts.signal?.addEventListener("abort", onAbort, { once: true });
+    step.run().then(value => finish(() => resolve(value)), error => finish(() => reject(error)));
+  });
+}
+
+/**
+ * 双源都成功时的选源规则（导出供测试/诊断复用）：
+ * - 只有 GitHub 成功 → GitHub；只有云盘成功 → 云盘；
+ * - 两侧版本号相同 → **云盘**（校内直连更稳，下载不绕外网）；
+ * - GitHub 严格更新（版本号更高）→ GitHub；
+ * - 云盘版本更高 → 云盘。
+ * 返回 null 表示没有任何可用结果。
+ */
+export function selectUpdateSource(candidates: Array<{ source: UpdateSource; latest?: string }>): UpdateSource | null {
+  if (candidates.length === 0) return null;
+  const github = candidates.find(candidate => candidate.source === "github");
+  const cloud = candidates.find(candidate => candidate.source === "cloud");
+  if (github && !cloud) return "github";
+  if (!github && cloud) return "cloud";
+  if (!github || !cloud) return candidates[0]!.source;
+  // 两侧都成功：只有拿得到版本号且 GitHub 严格更高才选 GitHub，其余（含同版本）都走云盘。
+  return github.latest && cloud.latest && isNewer(github.latest, cloud.latest) ? "github" : "cloud";
+}
+
+interface SettledSource {
+  source: UpdateSource;
+  resolved: Resolved | null;
+  error: unknown;
+}
+
+function attemptFor(settled: SettledSource): UpdateAttempt {
+  if (settled.resolved) return { source: settled.source, label: SOURCE_LABEL[settled.source], ok: true };
+  const error = settled.error;
+  return {
+    source: settled.source,
+    label: SOURCE_LABEL[settled.source],
+    ok: false,
+    error: error instanceof Error ? error.message : String(error),
+    ...(error instanceof UpdateSourceTimeout ? { errorKind: "source-timeout" as const } : {}),
+  };
+}
+
+/**
+ * 检查更新：**并行**查询 GitHub 与云盘，按优先级选源。**不下载、不安装**。
  * `customManifestUrl` 非空时只走自定义源（「高级」里用户自己填的）。
  */
 export async function checkForUpdate(opts: {
@@ -433,56 +528,64 @@ export async function checkForUpdate(opts: {
 } = {}): Promise<UpdateCheckResult> {
   const current = currentVersion();
   const key = platformKey();
-  const attempts: UpdateAttempt[] = [];
   const custom = (opts.customManifestUrl ?? "").trim();
-  const plan: Array<{ source: UpdateSource; run: () => Promise<Resolved> }> = custom
-    ? [{ source: "custom", run: async () => {
-        const res = await universalFetch(custom, { method: "GET", headers: { Accept: "application/json, text/plain, */*" } });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const parsed = parseManifest(await res.text());
-        if (!parsed.ok) throw new Error(parsed.error);
-        const m = parsed.manifest;
-        const asset = pickAsset(m, key);
-        if (!asset) throw new Error(i18n("lib.updater.b331bcbd6083", { version: String(m.version), key: String(key) }));
-        return finish(m, key, asset, (rel) => (/^https?:/i.test(rel) ? rel : rel));
-      } }]
-    : [{ source: "github", run: () => fromGitHub(key) }, { source: "cloud", run: () => fromCloud(key) }];
+  const plan: SourcePlan[] = custom
+    ? [{
+        source: "custom",
+        run: async () => {
+          throwIfCancelled(opts.signal);
+          const res = await universalFetch(custom, { method: "GET", headers: { Accept: "application/json, text/plain, */*" }, ...(opts.signal ? { signal: opts.signal } : {}) });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const parsed = parseManifest(await res.text());
+          if (!parsed.ok) throw new Error(parsed.error);
+          const m = parsed.manifest;
+          const asset = pickAsset(m, key);
+          if (!asset) throw new Error(i18n("lib.updater.b331bcbd6083", { version: String(m.version), key: String(key) }));
+          return finish(m, key, asset, (rel) => (/^https?:/i.test(rel) ? rel : rel));
+        },
+      }]
+    : [
+        { source: "github", run: () => fromGitHub(key, opts.signal) },
+        { source: "cloud", run: () => fromCloud(key, opts.signal) },
+      ];
 
-  for (const step of plan) {
-    if (opts.signal?.aborted) throw new DOMException("Cancelled", "AbortError");
-    opts.onSource?.(step.source);
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let abort: (() => void) | undefined;
-    try {
-      const limit = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new UpdateSourceTimeout(i18n("update.sourceTimeout", { source: SOURCE_LABEL[step.source] }))), opts.sourceTimeoutMs ?? (step.source === "github" ? 8_000 : 15_000));
-        abort = () => reject(new DOMException("Cancelled", "AbortError"));
-        opts.signal?.addEventListener("abort", abort, { once: true });
-      });
-      const r = await Promise.race([step.run(), limit]);
-      if (opts.signal?.aborted) throw new DOMException("Cancelled", "AbortError");
-      attempts.push({ source: step.source, label: SOURCE_LABEL[step.source], ok: true });
-      const failed = attempts.find((a) => !a.ok);
-      void logLine(i18n("lib.updater.ddfe8fdf02cb", { value: String(SOURCE_LABEL[step.source]), latest: String(r.latest), current: String(current), value2: String(r.hasUpdate ? i18n("lib.updater.daedea385864") : i18n("lib.updater.4219a7449e26")) })).catch(
-        () => undefined,
-      );
-      return {
-        ok: true, current, ...r,
-        source: step.source,
-        sourceLabel: SOURCE_LABEL[step.source],
-        attempts,
-        ...(failed ? { fallbackReason: i18n("lib.updater.ab90d58874ee", { label: String(failed.label), value: String(failed.error ?? i18n("lib.updater.a1a9da9ee6ed")) }) } : {}),
-      };
-    } catch (e) {
-      if (opts.signal?.aborted) throw new DOMException("Cancelled", "AbortError");
-      attempts.push({ source: step.source, label: SOURCE_LABEL[step.source], ok: false, error: e instanceof Error ? e.message : String(e), ...(e instanceof UpdateSourceTimeout ? { errorKind: "source-timeout" as const } : {}) });
-    } finally {
-      if (timer) clearTimeout(timer);
-      if (abort) opts.signal?.removeEventListener("abort", abort);
-    }
+  if (opts.signal?.aborted) throw new DOMException("Cancelled", "AbortError");
+  // 两侧同时开查：先按计划顺序报告一次「开始查谁」，选源确定后再报告最终源，
+  // 让「正在检查 X…」的 UI 在两个源都查完后落到真正被采用的那一侧。
+  for (const step of plan) opts.onSource?.(step.source);
+  const outcomes = await Promise.all(
+    plan.map(step => guardSource(step, opts).then(
+      (resolved): SettledSource => ({ source: step.source, resolved, error: null }),
+      (error): SettledSource => ({ source: step.source, resolved: null, error }),
+    )),
+  );
+  if (opts.signal?.aborted) throw new DOMException("Cancelled", "AbortError");
+
+  const attempts = outcomes.map(attemptFor);
+  const succeeded = outcomes.flatMap(outcome => (outcome.resolved ? [{ source: outcome.source, resolved: outcome.resolved }] : []));
+  if (succeeded.length === 0) {
+    const detail = attempts.map((attempt) => `· ${attempt.label}：${attempt.error ?? i18n("lib.updater.a1a9da9ee6ed")}`).join("\n");
+    return { ok: false, current, attempts, error: i18n("lib.updater.2985491184cc", { detail: String(detail) }) };
   }
-  const detail = attempts.map((a) => `· ${a.label}：${a.error ?? i18n("lib.updater.a1a9da9ee6ed")}`).join("\n");
-  return { ok: false, current, attempts, error: i18n("lib.updater.2985491184cc", { detail: String(detail) }) };
+  const selectedSource = selectUpdateSource(succeeded.map(item => ({ source: item.source, latest: item.resolved.latest })))!;
+  const chosen = succeeded.find(item => item.source === selectedSource) ?? succeeded[0]!;
+  opts.onSource?.(selectedSource);
+  const failed = attempts.find((attempt) => !attempt.ok);
+  void logLine(i18n("lib.updater.ddfe8fdf02cb", {
+    value: String(SOURCE_LABEL[selectedSource]),
+    latest: String(chosen.resolved.latest),
+    current: String(current),
+    value2: String(chosen.resolved.hasUpdate ? i18n("lib.updater.daedea385864") : i18n("lib.updater.4219a7449e26")),
+  })).catch(() => undefined);
+  return {
+    ok: true,
+    current,
+    ...chosen.resolved,
+    source: selectedSource,
+    sourceLabel: SOURCE_LABEL[selectedSource],
+    attempts,
+    ...(failed ? { fallbackReason: i18n("lib.updater.ab90d58874ee", { label: String(failed.label), value: String(updateAttemptError(failed)) }) } : {}),
+  };
 }
 
 /* ═══════════ 下载 / 取消 / 拉起安装页 ═══════════ */
@@ -498,6 +601,8 @@ export async function downloadUpdate(opts: {
   fileName: string;
   expectSize?: number;
   expectSha256?: string;
+  /** 分段并发数（1..16，缺省 8）。原生侧探测到服务器不支持 Range 时会自动回落单流。 */
+  threads?: number;
   onProgress?: (p: UpdateProgress) => void;
   signal?: AbortSignal;
 }): Promise<{ ok: boolean; path?: string; dir?: string; size?: number; sha256?: string; verified?: boolean; error?: string; cancelled?: boolean }> {
@@ -528,6 +633,8 @@ export async function downloadUpdate(opts: {
       fileName: opts.fileName,
       expectSize: opts.expectSize ?? null,
       expectSha256: opts.expectSha256 ?? null,
+      // 归一化在共享模块里做（设置页写入的也是同一套合法值）；原生侧仍会再夹紧一次。
+      threads: normalizeDownloadThreads(opts.threads),
     });
     if (opts.signal?.aborted) return { ok: false, cancelled: true };
     return { ok: true, path: r.path, dir: r.dir, size: r.size, sha256: r.sha256, verified: r.verified };

@@ -4,9 +4,9 @@ import { t as i18n, rich as i18nRich, useLocale as useUiLocale } from "../i18n/i
 /**
  * 「软件更新」分区（设置 → 关于，2026-10-12 合并版）。
  *
- * 一节、一个按钮、**双源自动切换**（用户不需要选库/选源）：
- *   主源 GitHub Releases（`releases/latest/download/latest.json`，外网）→
- *   备用 清华云盘官方镜像分享链接（校内可达）→ 结果卡里注明**实际走了哪条**。
+ * 一节、一个按钮、**双源并行查询 + 优先级选源**（用户不需要选库/选源）：
+ *   GitHub Releases 与 清华云盘官方镜像分享链接同时查；同版本优先校内云盘，
+ *   GitHub 严格更新才用 GitHub；一侧失败自动用另一侧。结果卡里注明**实际走了哪条**。
  *
  * 流程：检查更新 →（有新版）「下载并安装」→ 用户确认 → 分段下载（进度可见、可取消、
  * sha256 校验）→ **自动拉起系统安装页**（桌面=系统默认方式打开 DMG/EXE；安卓=系统安装器
@@ -19,6 +19,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { formatSize } from "../lib/attach.js";
 import { confirmOk } from "../lib/confirm.js";
 import { currentVersion, isDismissed } from "../lib/update.js";
+import { readDownloadThreads } from "../lib/downloadPrefs.js";
 import { consumeUpdateReview, snoozeUpdate, type UpdateSnooze } from "../lib/updateReminder.js";
 import {
   checkForUpdate, downloadUpdate, installDownloaded, platformKey,
@@ -184,6 +185,8 @@ export function SoftwareUpdateSection({ customManifestUrl, initialResult, autoCh
       fileName: r.downloadName,
       expectSize: asset?.size,
       expectSha256: asset?.sha256,
+      // 设置 → 下载 里的线程数（默认 8）；原生侧会在服务器不支持 Range 时自动回落单流。
+      threads: readDownloadThreads(),
       signal: controller.signal,
       onProgress: value => { if (current()) setProgress(value); },
     });

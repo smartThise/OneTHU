@@ -18,7 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
 import type { CardTransaction } from "@onethu/core";
-import { Card, Empty, ErrorNote, SectionHead, SkeletonRows, Switch } from "../../components/Layout.js";
+import { Card, Empty, ErrorNote, SectionHead, SkeletonRows, Switch, ListWindow } from "../../components/Layout.js";
 import { IconCard } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useCard } from "../../state/data.js";
@@ -465,7 +465,7 @@ export function CardTab({ active = true }: { active?: boolean }) {
           <Empty text={i18n("pages.info.cardtab.e8adeabba93d")} />
         </Card>
       ) : (
-        <Card className="list">
+        <ListWindow>
           {data!.transactions.map((t, i) => (
             <div className="row" key={t.id || i} style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}>
               <div className="row-when">
@@ -486,7 +486,7 @@ export function CardTab({ active = true }: { active?: boolean }) {
               </div>
             </div>
           ))}
-        </Card>
+        </ListWindow>
       )}
 
       <RechargeDialog open={rchOpen} onClose={() => setRchOpen(false)} onPaid={() => void reload()} />

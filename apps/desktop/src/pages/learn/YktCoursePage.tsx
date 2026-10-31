@@ -269,7 +269,7 @@ export function YktCoursePage() {
                   h={hw}
                   courseName={courseName}
                   from="learn-ykt-course"
-                  style={{ animationDelay: `${i * 20}ms` }}
+                  style={{ animationDelay: `${Math.min(i, 12) * 20}ms` }}
                 />
               );
             }
@@ -289,7 +289,7 @@ export function YktCoursePage() {
               <Fragment key={c.id}>
               <div
                 className="row row-click"
-                style={{ animationDelay: `${i * 20}ms` }}
+                style={{ animationDelay: `${Math.min(i, 12) * 20}ms` }}
                 role="button"
                 tabIndex={0}
                 onClick={toggle}

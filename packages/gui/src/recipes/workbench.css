@@ -535,6 +535,20 @@ html:root .oh-settings .workbench-settings-content .og-inline { flex-wrap: wrap;
 html:root[data-og-skin="glass"] :is(.ex-sheet, .og-modal-panel, .board-viewport-tools) { background: var(--og-fill-overlay); backdrop-filter: var(--og-overlay-blur); -webkit-backdrop-filter: var(--og-overlay-blur); }
 html:root[data-og-skin="glass"] :is(.free-item:not(.is-note), .card, .home-card) { background: var(--og-fill-surface); backdrop-filter: var(--og-surface-blur); -webkit-backdrop-filter: var(--og-surface-blur); }
 html:root[data-og-skin="glass"] .free-item :is(.card, .home-card, .wg-card) { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
+/* 长列表卡片（课程文件/通知等）高度可达上万像素；对整块卡片做 backdrop-filter 会请求
+   一张超出 GPU 最大纹理尺寸的离屏层，滚动时出现整块黑区、文字消失和严重卡顿。
+   超过 40 行的卡片只保留半透明填充，不再做背景模糊（视觉仍是玻璃面，但没有超大纹理）。 */
+html:root[data-og-skin="glass"] :is(.card, .og-card):not(.learn-file-list):not(.learn-assignment-list):not(.list-window):has(> .row:nth-child(41)) {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+/* 同一批超长卡片不再做整块圆角裁剪/大阴影：height 可到 2 万像素，border-radius +
+   overflow:hidden 会生成超过 GPU 最大纹理的遮罩层，滚动时下半块直接黑掉。 */
+html:root :is(.card, .og-card):not(.learn-file-list):not(.learn-assignment-list):not(.list-window):has(> .row:nth-child(41)) {
+  overflow: visible;
+  border-radius: 0;
+  box-shadow: none;
+}
 /* 便笺纸跟随玻璃材质：默认仍是实色纸（黄/粉/蓝/绿），玻璃皮肤下变成同档透光的有色玻璃。
    便笺文字/图标仍由 textContrast 引擎按实际合成底色取字色，浅色纸与深色纸都读得清。 */
 html:root[data-og-skin="glass"] .free-item.is-note {

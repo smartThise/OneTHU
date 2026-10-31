@@ -1608,6 +1608,14 @@ async fn http_native_in_session(input: HttpInput, client: reqwest::Client, sessi
     })
 }
 
+/// 彻底退出 OneTHU（含悬浮球/悬浮窗进程）。关闭主窗口只隐藏到托盘/悬浮球时，
+/// 用户需要一个明确的进程退出入口；`AppHandle::exit` 会让 Tauri 事件循环结束，
+/// 不是只关当前 WebView。
+#[tauri::command]
+fn app_exit(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
 /// 原生 cookie 仓清空（换新匿名身份）。2026-09-17 实录：登录风暴后 id 服务器
 /// 按会话 cookie 封锁设备（同 IP 的无 cookie 客户端正常）——被封锁时唯一解法。
 #[tauri::command]
@@ -4545,6 +4553,7 @@ let builder = tauri::Builder::default();
             ws_bridge::ws_recv,
             ws_bridge::ws_close,
             ws_bridge::ws_close_owner,
+            app_exit,
             http_native_clear_cookies,
             http_native_clear_cookies_domain,
             thos_open_portal,

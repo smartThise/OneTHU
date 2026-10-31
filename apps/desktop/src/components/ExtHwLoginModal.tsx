@@ -53,19 +53,34 @@ const YKT_CHANNELS: Array<{ key: YktChannel; label: string; hint: string; disabl
   { key: "sms", get label() { return i18n("components.exthwloginmodal.fe5af3dd75ff"); }, get hint() { return YKT_SMS_DISABLED_NOTE(); }, disabled: true },
 ];
 
+/** 雨课堂登录落地凭据：cookie 必需；userId/auth 为扫码响应里的网页换票凭据（可选）。 */
+export interface YktLoginCredential {
+  cookie: string;
+  userId?: string;
+  auth?: string;
+}
+
 /** 合并写入雨课堂凭据（保留 TUOJ/Tyche 等既有配置）后刷新 */
 /** 供 ConnectGate（§4.3）复用：扫码/网页登录拿到 cookie 后的落地（保存 + 刷新 + 心跳） */
-export async function saveYuketang(cookie: string): Promise<void> {
+export async function saveYuketang(credential: YktLoginCredential | string): Promise<void> {
   const c = await ensureExtHwCredsLoaded();
+  const cookie = typeof credential === "string" ? credential : credential.cookie;
+  const userId = typeof credential === "string" ? undefined : credential.userId;
+  const auth = typeof credential === "string" ? undefined : credential.auth;
   await saveExtHwCreds({
     ...c,
-    yuketang: { ...(c.yuketang ?? {}), cookie },
+    yuketang: {
+      ...(c.yuketang ?? {}),
+      cookie,
+      ...(userId ? { userId } : {}),
+      ...(auth ? { auth } : {}),
+    },
   });
   void refreshExtHw();
 }
 
 /** 雨课堂扫码登录面板（微信 / 雨豆APP）——与设置页共用同一实现 */
-export function YktQrPanel({ onSuccess, onCancel }: { onSuccess: (cookie: string) => void; onCancel: () => void }) {
+export function YktQrPanel({ onSuccess, onCancel }: { onSuccess: (credential: YktLoginCredential) => void; onCancel: () => void }) {
   const uiLocale = useUiLocale();
 
   const [qr, setQr] = useState<{ qrContent: string; expireAt: number } | null>(null);
@@ -117,7 +132,11 @@ export function YktQrPanel({ onSuccess, onCancel }: { onSuccess: (cookie: string
         if (id !== runId.current || r.aborted) return;
         keepAlive.stop(); // 成功 / 报错收口（成功时立刻停，不等卸载）
         if (r.done && r.cookie) {
-          onSuccessRef.current(r.cookie);
+          onSuccessRef.current({
+            cookie: r.cookie,
+            ...(r.userId ? { userId: r.userId } : {}),
+            ...(r.auth ? { auth: r.auth } : {}),
+          });
           return;
         }
         setStatus("error");
@@ -361,8 +380,8 @@ export function ExtHwLoginModal({ open, onClose }: { open: boolean; onClose: () 
         ) : (
           <YktQrPanel
             onCancel={requestClose}
-            onSuccess={(cookie) => {
-              void saveYuketang(cookie).then(onClose);
+            onSuccess={(credential) => {
+              void saveYuketang(credential).then(onClose);
             }}
           />
         )}

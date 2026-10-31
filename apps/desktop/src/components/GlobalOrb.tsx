@@ -26,6 +26,7 @@ import {
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Btn, Chip, Input, Row, Segment, Text, scopeProps } from "@onethu/gui";
+import { invoke } from "@tauri-apps/api/core";
 import {
   onOverlayEvent, overlayHide, overlayPushUi, overlaySetMode, setOverlayClosedByUser,
   type OverlayMode,
@@ -540,6 +541,16 @@ export const GlobalOrb = memo(function GlobalOrb({ initialMode = "ball" }: { ini
           />
           <div style={{ display: "flex", flex: "none", alignItems: "center", gap: "var(--og-space-1)" }}>
             <Btn size="sm" variant="outline" tone="quiet" onClick={backToApp}>{i18n("components.globalorb.f60ae5f5abad")}</Btn>
+            <Btn
+              size="sm"
+              variant="outline"
+              tone="error"
+              titleAttr={i18n("components.globalorb.7f2c4a91d0e6")}
+              onClick={() => {
+                // 悬浮球是独立 WebView；只关窗会留下进程，必须走 AppHandle::exit。
+                void invoke("app_exit").catch(() => window.close());
+              }}
+            >{i18n("components.globalorb.7f2c4a91d0e6")}</Btn>
             <Btn size="sm" variant="outline" tone="quiet" selected={prefs.autoSpeak} onClick={() => setVoicePrefs({ autoSpeak: !prefs.autoSpeak })}>
               {prefs.autoSpeak ? i18n("components.globalorb.2cf01f9ef0c9") : i18n("components.globalorb.213b81f4850f")}
             </Btn>

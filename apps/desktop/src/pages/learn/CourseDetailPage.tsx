@@ -6,7 +6,7 @@ import { Btn } from "@onethu/gui";
  *  已批改条目直接显示成绩（HomeworkRow showGrade，thu-app learnHome「已批改 (分数)」语义）。 */
 import { useEffect, useMemo, useState } from "react";
 import type { LearnGroup } from "@onethu/core";
-import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { SegmentedOverflow, Card, Empty, ErrorNote, ListWindow, PageHead, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { CollectStar } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
 import { IconRefresh } from "../../components/Icons.js";
@@ -228,11 +228,11 @@ export function CourseDetailPage() {
         ) : (
           <>
             {notices.length > 0 ? (
-              <Card className="list">
+              <ListWindow>
                 {notices.map((n, i) => (
-                  <NoticeRow key={n.id} n={n} sem={data?.semester.id} from="learn-course" style={{ animationDelay: `${i * 25}ms` }} />
+                  <NoticeRow key={n.id} n={n} sem={data?.semester.id} from="learn-course" style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }} />
                 ))}
-              </Card>
+              </ListWindow>
             ) : null}
             {/* R29 + R32：雨课堂公告并入本栏，且与网络学堂通知**同款行、同一打开方式**
                 （点击进同一个站内通知详情页）。navCourseId 传本课程 id：详情页「返回」要回到
@@ -240,7 +240,7 @@ export function CourseDetailPage() {
             {yktNotices.length > 0 ? (
               <>
                 <SectionHead title={i18n("pages.learn.coursedetailpage.79cccc91b765")} />
-                <Card className="list">
+                <ListWindow>
                   {yktNotices.map((c, i) => (
                     <NoticeRow
                       key={c.id}
@@ -248,10 +248,10 @@ export function CourseDetailPage() {
                       sem={data?.semester.id}
                       from="learn-course"
                       navCourseId={courseId}
-                      style={{ animationDelay: `${i * 25}ms` }}
+                      style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}
                     />
                   ))}
-                </Card>
+                </ListWindow>
               </>
             ) : null}
           </>
@@ -279,7 +279,7 @@ export function CourseDetailPage() {
             {hwList.length === 0 ? (
               <Card><Empty text={hwFilter === "ignored" ? i18n("pages.learn.coursedetailpage.052544849717") : i18n("pages.learn.coursedetailpage.4fc6f287e4e5")} /></Card>
             ) : (
-              <Card className="list">
+              <ListWindow>
                 {hwList.map((h, i) => (
                   <HomeworkRow
                     key={h.id}
@@ -292,10 +292,10 @@ export function CourseDetailPage() {
                     {...(h.source ? { fromCourseId: courseId } : {})}
                     showGrade
                     remind
-                    style={{ animationDelay: `${i * 25}ms` }}
+                    style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}
                   />
                 ))}
-              </Card>
+              </ListWindow>
             )}
           </>
         )
@@ -305,11 +305,11 @@ export function CourseDetailPage() {
         ) : (
           <>
             {files.length > 0 ? (
-              <Card className="list">
+              <ListWindow>
                 {files.map((f, i) => (
-                  <FileRow key={f.id} f={f} sem={data?.semester.id} from="learn-course" style={{ animationDelay: `${i * 25}ms` }} />
+                  <FileRow key={f.id} f={f} sem={data?.semester.id} from="learn-course" style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }} />
                 ))}
-              </Card>
+              </ListWindow>
             ) : null}
             {/* R29：雨课堂「资料」等并入文件栏（行内就地展开/内置预览） */}
             {yktFiles.length > 0 ? (
@@ -336,7 +336,7 @@ export function CourseDetailPage() {
             <Empty text={i18n("pages.learn.coursedetailpage.7fe1716b6c26")} />
           </Card>
         ) : (
-          <Card className="list">
+          <ListWindow>
             {groups.map((g, i) => {
               const meta = [
                 g.members.length > 0 ? i18n("pages.learn.coursedetailpage.2012dba9a5c5", { length: String(g.members.length) }) : "",
@@ -347,7 +347,7 @@ export function CourseDetailPage() {
                 .filter(Boolean)
                 .join(" · ");
               return (
-                <div className="row" key={`${g.id}-${i}`} style={{ animationDelay: `${i * 25}ms` }}>
+                <div className="row" key={`${g.id}-${i}`} style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}>
                   <div className="row-main">
                     <div className="row-title">{g.name}</div>
                     {g.members.length > 0 ? (
@@ -365,7 +365,7 @@ export function CourseDetailPage() {
                 </div>
               );
             })}
-          </Card>
+          </ListWindow>
         )
       ) : (
         <BbsPanel

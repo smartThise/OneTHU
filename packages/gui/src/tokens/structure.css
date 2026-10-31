@@ -69,6 +69,7 @@
   --og-ctl-pad-x-sm: 10px;
   --og-ctl-pad-x-md: 14px;
   --og-ctl-pad-x-lg: 18px;
+  --og-ctl-editor-min-h: 88px;
 
   /* ── 行与容器 ── */
   --og-row-h: 44px;
@@ -77,6 +78,21 @@
   --og-section-gap: var(--og-space-5);
   --og-page-max: 1160px;
   --og-page-pad-x: var(--og-space-7);
+
+  /* ── 学习页固定视口列表：顶部 chrome 扣减量与最小高度 ──
+     列表滚动收进卡片内部，高度按视口计算，避免超长列表超过合成层纹理上限。 */
+  --og-learn-list-offset: 376px;
+  --og-learn-list-offset-rail: 332px;
+  --og-learn-list-offset-filter: 460px;
+  --og-learn-list-offset-filter-rail: 412px;
+  --og-learn-list-offset-phone: 390px;
+  --og-learn-list-min-h: 260px;
+  --og-learn-list-min-h-phone: 240px;
+  --og-learn-assignment-offset: 494px;
+  --og-learn-assignment-offset-rail: 450px;
+  --og-learn-assignment-offset-phone: 508px;
+  --og-learn-assignment-min-h: 260px;
+  --og-learn-assignment-min-h-phone: 240px;
 
   /* ── 精细几何：组件内部的光学微调（不是布局网格 —— 布局一律用 --og-space-*） ── */
   --og-geo-hairline: 1px;

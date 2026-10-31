@@ -514,5 +514,17 @@ console.log("[13] R20-A：外部作业链接打开通道分流（pickExtHwOpenCh
   );
 }
 
+console.log("[14] 扫码成功响应携带 UserID/Auth（后续免扫码换票凭据）");
+{
+  const fetchLike = async () =>
+    new Response(JSON.stringify({ code: 0, data: { UserID: 10086, Auth: "AUTH-ROUND-1" } }), {
+      headers: { "x-onethu-set-cookie": JSON.stringify(["sessionid=SESS-1; Path=/"]) },
+    });
+  const r = await yuketangQrPoll(fetchLike, "tok", { timeoutMs: 500 });
+  ok(r.done === true && /sessionid=SESS-1/.test(r.cookie ?? ""), "Cookie 仍正常解析");
+  ok(r.userId === "10086", "UserID 被带出（数字转字符串）", String(r.userId));
+  ok(r.auth === "AUTH-ROUND-1", "Auth 被带出", String(r.auth));
+}
+
 console.log(failed === 0 ? "\n全部通过 ✅" : `\n${failed} 项失败 ❌`);
 process.exit(failed === 0 ? 0 : 1);

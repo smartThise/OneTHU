@@ -39,20 +39,16 @@ function productionFunction(path, name) {
 await check("concurrent learning recovery shares its result before applying throttle", async () => {
   let release;
   const barrier = new Promise(resolve => { release = resolve; });
-  let probes = 0, roams = 0, resumes = 0;
-  const loadInfoLib = async () => ({
-    libEnsureSession: async () => { probes++; await barrier; return true; },
-    libRoamLearn: async () => { roams++; return true; },
-  });
-  const learn = { resume: async () => { resumes++; return true; } };
+  let ensured = 0;
+  const ensureLearnSession = async () => { ensured++; await barrier; return true; };
   const code = productionFunction("apps/desktop/src/state/data.ts", "relearnRoamOnce");
   const js = ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  const recover = new Function("loadInfoLib", "learn", `let roamInflight=null,lastRelearnAt=0;${js};return relearnRoamOnce;`)(loadInfoLib, learn);
+  const recover = new Function("ensureLearnSession", `let roamInflight=null,lastRelearnAt=0;${js};return relearnRoamOnce;`)(ensureLearnSession);
   const first = recover(), second = recover();
   assert.equal(first, second);
   release();
   assert.deepEqual(await Promise.all([first, second]), [true, true]);
-  assert.deepEqual([probes, roams, resumes], [1, 1, 1]);
+  assert.equal(ensured, 1);
   assert.equal(await recover(), false);
 });
 await check("2FA and trusted login share bounded learning-session preparation", async () => {

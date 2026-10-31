@@ -10,7 +10,7 @@ import { Btn } from "@onethu/gui";
  */
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { WEEKDAYS } from "../lib/dateText.js";
-import { Card, Empty, ErrorNote, SkeletonRows } from "../components/Layout.js";
+import { Card, Empty, ErrorNote, ListWindow, SkeletonRows } from "../components/Layout.js";
 import { IconCard, IconChevron } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
 import type { LearnNav, Page } from "../state/app.js";
@@ -404,28 +404,26 @@ export function ClassRows({ events, navigate, emptyText }: { events: ScheduleEnt
 }
 
 /** 订阅新闻卡体（订阅来源优先，回退最新；点击行直达该条新闻详情） */
-export function NewsRows({ feed, navigate }: { feed: TodayFeedT; navigate: Nav }) {
+export function NewsRows({ feed, navigate, windowed = false }: { feed: TodayFeedT; navigate: Nav; windowed?: boolean }) {
   const uiLocale = useUiLocale();
 
-  return (
-    <Card className="list">
-      {feed.list.map((n, i) => (
-        <RowClick
-          key={n.xxid || i}
-          style={{ animationDelay: i * 35 + "ms" }}
-          onClick={() => navigate("info", { infoNewsId: n.xxid })}
-        >
-          <div className="tl-time">{n.date ? n.date.slice(5, 10) : "—"}</div>
-          <div className="tl-bar" style={{ background: "var(--border-strong)" }} />
-          <div className="tl-main">
-            <div className="tl-title" style={{ whiteSpace: "normal" }}>{n.name}</div>
-            <div className="tl-sub">{n.source || i18n("components.homewidgets.6699d0be5ff8")}</div>
-          </div>
-          <IconChevron className="row-caret" width={14} height={14} />
-        </RowClick>
-      ))}
-    </Card>
-  );
+  const rows = feed.list.map((n, i) => (
+    <RowClick
+      key={n.xxid || i}
+      style={{ animationDelay: i * 35 + "ms" }}
+      onClick={() => navigate("info", { infoNewsId: n.xxid })}
+    >
+      <div className="tl-time">{n.date ? n.date.slice(5, 10) : "—"}</div>
+      <div className="tl-bar" style={{ background: "var(--border-strong)" }} />
+      <div className="tl-main">
+        <div className="tl-title" style={{ whiteSpace: "normal" }}>{n.name}</div>
+        <div className="tl-sub">{n.source || i18n("components.homewidgets.6699d0be5ff8")}</div>
+      </div>
+      <IconChevron className="row-caret" width={14} height={14} />
+    </RowClick>
+  ));
+  // 待办页右侧新闻：列表卡固定在可用高度内滚动；首页小组件仍保留自然高度。
+  return windowed ? <ListWindow reserve={28}>{rows}</ListWindow> : <Card className="list">{rows}</Card>;
 }
 
 /** 校园卡余额卡体（快捷入口；未加载完成前置灰不可点） */

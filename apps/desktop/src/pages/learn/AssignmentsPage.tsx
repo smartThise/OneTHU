@@ -248,28 +248,40 @@ export function AssignmentsPage() {
         <SkeletonRows rows={6} />
       ) : state === "error" && !data ? null : (
         <>
-          {list.length === 0 ? (
-            auditList.length === 0 ? (
-              <Card><Empty text={filter === "unfinished" ? i18n("pages.learn.assignmentspage.4ea07768437b") : filter === "overdue" ? i18n("pages.learn.assignmentspage.f67f9df18e46") : filter === "ignored" ? i18n("pages.learn.assignmentspage.174b6eabff32") : i18n("pages.learn.assignmentspage.5c018f6106a3")} /></Card>
-            ) : null
+          {list.length === 0 && auditList.length === 0 ? (
+            <Card>
+              <Empty
+                text={
+                  filter === "unfinished"
+                    ? i18n("pages.learn.assignmentspage.4ea07768437b")
+                    : filter === "overdue"
+                      ? i18n("pages.learn.assignmentspage.f67f9df18e46")
+                      : filter === "ignored"
+                        ? i18n("pages.learn.assignmentspage.174b6eabff32")
+                        : i18n("pages.learn.assignmentspage.5c018f6106a3")
+                }
+              />
+            </Card>
           ) : (
-            <Card className="list">
-              {list.map((h, i) => (
-                <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={courseDisplayName(byCourse.get(h.courseId)) ?? h.courseName} identityCourseName={byCourse.get(h.courseId)?.name ?? h.courseName} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${i * 25}ms` }} />
-              ))}
+            <Card className="list learn-assignment-list">
+              {/* 固定高度内滚动：行数再多也只为可视窗口生成模糊/圆角层，避免超长
+                  卡片触发 GPU 纹理上限而丢掉玻璃模糊、深色字色忽黑忽白。 */}
+              <div className="learn-assignment-scroll" data-tx="keep">
+                {list.map((h, i) => (
+                  <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={courseDisplayName(byCourse.get(h.courseId)) ?? h.courseName} identityCourseName={byCourse.get(h.courseId)?.name ?? h.courseName} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }} />
+                ))}
+                {/* R23：旁听作业单列（不计入上方计数与「全部」总数） */}
+                {auditList.length > 0 ? (
+                  <div className="learn-assignment-audit">
+                    <SectionHead title={i18n("pages.learn.assignmentspage.fb24bf947275")} />
+                    {auditList.map((h, i) => (
+                      <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={courseDisplayName(byCourse.get(h.courseId)) ?? h.courseName} identityCourseName={byCourse.get(h.courseId)?.name ?? h.courseName} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }} />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </Card>
           )}
-          {/* R23：旁听作业单列（不计入上方计数与「全部」总数） */}
-          {auditList.length > 0 ? (
-            <>
-              <SectionHead title={i18n("pages.learn.assignmentspage.fb24bf947275")} />
-              <Card className="list">
-                {auditList.map((h, i) => (
-                  <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={courseDisplayName(byCourse.get(h.courseId)) ?? h.courseName} identityCourseName={byCourse.get(h.courseId)?.name ?? h.courseName} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${i * 25}ms` }} />
-                ))}
-              </Card>
-            </>
-          ) : null}
         </>
       )}
     </>

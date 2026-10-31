@@ -14,6 +14,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { isAndroidNavigator, isWindowsNavigator } from "../lib/androidHost.js";
 import { APP_VERSION, BUILD_COMMIT, BUILD_TIME } from "../lib/buildinfo.js";
 import { clearDevLog, devLogEntries, devLogText, type DevLogEntry } from "../lib/devlog.js";
+import { DEV_AUTH_TARGETS, expireDevAuth, type DevAuthId } from "../lib/devAuth.js";
 
 const HIDE_KEY = "onethu.dev.badge.hidden";
 
@@ -79,6 +80,8 @@ export default function DevPanel() {
   const [logs, setLogs] = useState<DevLogEntry[]>([]);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  /** 正在执行的 dev 失效目标；空 = 空闲。与日志导出 busy 分开，避免相互禁用。 */
+  const [authBusy, setAuthBusy] = useState<DevAuthId | null>(null);
 
   useEffect(() => {
     try {
@@ -145,6 +148,19 @@ export default function DevPanel() {
 
   if (hidden) return null;
 
+  const runAuthExpiry = async (id: DevAuthId): Promise<void> => {
+    setAuthBusy(id);
+    setNote("");
+    try {
+      setNote(await expireDevAuth(id));
+      setLogs(devLogEntries());
+    } catch (err) {
+      setNote(String(err instanceof Error ? err.message : err).slice(0, 240));
+    } finally {
+      setAuthBusy(null);
+    }
+  };
+
   return (
     <>
       <Btn className="og-dev-badge" size="sm" variant="outline" onClick={() => setOpen(!open)} titleAttr={i18n("components.devpanel.3ae6ad22bb00") + buildTimeText()}>
@@ -176,6 +192,22 @@ export default function DevPanel() {
             <Btn variant="outline" size="sm" onClick={() => { clearDevLog(); setLogs([]); setNote(i18n("components.devpanel.236f6cb7e77e")); }}>{i18n("components.devpanel.1ef3de06b32e")}</Btn>
           </div>
           <div style={S.note}>{note}</div>
+          <div className="og-dev-auth-title">Auth expiry tests · invalidate then run normal auto-relogin</div>
+          <div style={S.bar}>
+            {DEV_AUTH_TARGETS.map((target) => (
+              <Btn
+                key={target.id}
+                variant="outline"
+                size="sm"
+                disabled={authBusy !== null}
+                titleAttr={target.hint}
+                onClick={() => void runAuthExpiry(target.id)}
+              >
+                {authBusy === target.id ? "…" : target.label}
+              </Btn>
+            ))}
+          </div>
+          {authBusy ? <div style={S.note}>Running {authBusy}… (result in note/log)</div> : null}
           <div style={{ color: "var(--og-content-3)", margin: "6px 0 4px" }}>{i18nRich("components.devpanel.954ac65f7b6e", { length: logs.length })}</div>
           <div style={S.log}>
             {logs.length === 0 ? <div style={{ color: "var(--og-content-disabled)" }}>{i18n("components.devpanel.3eb1a705053a")}</div> : null}

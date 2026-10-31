@@ -64,10 +64,14 @@ export function FilesPage() {
       ) : state === "error" && !data ? null : files.length === 0 ? (
         <Card><Empty text={courseId ? i18n("pages.learn.filespage.6b0161276931") : i18n("pages.learn.filespage.0dcb4c625d8b")} /></Card>
       ) : (
-        <Card className="list">
-          {files.map((f, i) => (
-            <FileRow key={`${f.courseId}-${f.id}`} f={f} courseName={courseDisplayName(byCourse.get(f.courseId))} identityCourseName={byCourse.get(f.courseId)?.name} sem={data?.semester.id} from="learn-files" style={{ animationDelay: `${i * 25}ms` }} />
-          ))}
+        <Card className={`list learn-file-list${(data?.courses.length ?? 0) > 1 ? " has-filter" : ""}`}>
+          {/* 固定高度窗口：滚动发生在卡片内部，卡片本身始终一屏内。
+              玻璃模糊/圆角留在卡片上，不再为 2 万像素长的内容生成超大离屏层。 */}
+          <div className="learn-file-scroll">
+            {files.map((f, i) => (
+              <FileRow key={`${f.courseId}-${f.id}`} f={f} courseName={courseDisplayName(byCourse.get(f.courseId))} identityCourseName={byCourse.get(f.courseId)?.name} sem={data?.semester.id} from="learn-files" style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }} />
+            ))}
+          </div>
         </Card>
       )}
     </>

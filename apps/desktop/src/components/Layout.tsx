@@ -915,6 +915,74 @@ export function Card({
   return style ? <div style={style}>{card}</div> : card;
 }
 
+
+/**
+ * 固定视口列表：卡片高度 = 当前页面从卡片顶部到内容区底部的可用高度。
+ * 用实测而不是每页抄一组 `100dvh - Npx`：页头、筛选行、banner、标签栏高度
+ * 变化时列表仍恰好铺满一屏，页面本身不滚。滚动发生在卡片内部，
+ * 长列表不会生成超大合成层，玻璃模糊/圆角/字色在首帧就是最终状态。
+ */
+export function ListWindow({
+  children,
+  className = "",
+  reserve = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  /** 列表下方仍需可见的兄弟内容（如待办页脚注）预留高度 */
+  reserve?: number;
+}) {
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const [height, setHeight] = useState<number>();
+
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const update = (): void => {
+      // 页头入场是 transform；测量瞬间临时停掉，避免把 -5px 位移算进可用高度。
+      const header = host.closest<HTMLElement>(".page-anim")?.querySelector<HTMLElement>(".page-head-host");
+      const headerAnimation = header?.style.animation;
+      if (header) header.style.animation = "none";
+      const top = host.getBoundingClientRect().top;
+      if (header) header.style.animation = headerAnimation ?? "";
+      const content = host.closest<HTMLElement>(".explorer-content");
+      const pad = content ? Number.parseFloat(getComputedStyle(content).paddingBottom) || 0 : 0;
+      // 底栏是浮在内容之上的固定层：不能只减 content padding，否则列表最后几行
+      // 会压在「学习/预约/生活/信息/课表」快捷按钮下面。取实际底栏高度。
+      // 底部快捷按钮是 .oneshot（.ex-bbar 是顶部工作台栏，不能拿来算底部）。
+      const bottomLayers = [".oneshot", ".ex-bbar"]
+        .map((sel) => document.querySelector<HTMLElement>(sel)?.getBoundingClientRect())
+        .filter((r): r is DOMRect => r !== undefined && r.height > 0 && r.bottom > window.innerHeight * 0.5);
+      const barInset = bottomLayers.reduce((max, r) => Math.max(max, window.innerHeight - r.top), 0);
+      const safe = Math.max(pad, barInset + 12);
+      // 卡片 1px 边框 + 宿主滚动条余量；至少留 220px，极端小窗仍可用。
+      const next = Math.max(120, Math.round(window.innerHeight - top - safe - reserve - 4));
+      setHeight((prev) => (prev === next ? prev : next));
+    };
+    update();
+    const raf = requestAnimationFrame(update);
+    const ro = new ResizeObserver(update);
+    ro.observe(host);
+    if (host.parentElement) ro.observe(host.parentElement);
+    window.addEventListener("resize", update);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [reserve]);
+
+  return (
+    <div ref={hostRef} className={`list-window-host ${className}`.trim()}>
+      <Card className="list list-window">
+        <div className="list-window-scroll" data-tx="keep" style={height ? { height } : undefined}>
+          {children}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 /* 空状态：text 必填，icon/hint/action 可选（B5b）。
    旧调用 <Empty text="..." /> 一字不改仍然成立；需要更完整的空状态时再加图标与副文案。 */
 export function Empty({

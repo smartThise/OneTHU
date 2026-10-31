@@ -651,6 +651,11 @@ html.has-reveal :is(.list, .setting-group) > *[data-reveal-in],
 html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[data-reveal-in] {
   animation: m-reveal-in var(--dur-3) var(--ease-out) backwards;
 }
+/* 长列表超出 stagger 配额的行：立即显示，不再排队动画（motion.ts 的 STAGGER_MAX 同源）。 */
+html.has-reveal :is(.list, .setting-group) > *[data-reveal-in="instant"],
+html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[data-reveal-in="instant"] {
+  animation: none;
+}
 @keyframes m-reveal-in {
   from { transform: translate3d(-14px, 0, 0); }
   to { transform: none; }

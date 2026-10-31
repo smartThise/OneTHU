@@ -54,7 +54,9 @@ try {
    const surfaces={card:await material(selected),filter:await material(scope.locator('.hw-filter-select')),notice:await material(scope.locator('.notice-strip'))};
    if(label==='tablet')surfaces.header=await material(scope.locator('.tasks-detail-slot:not(.is-hidden) .og-pagehead'));
    samples.push({label,mode,surfaces});
-   for(const [name,s] of Object.entries(surfaces))check(s.blur.includes('blur(')&&s.bg!=='rgba(0, 0, 0, 0)'&&!s.bg.endsWith('/ 1)'),`${label} ${mode} ${name} uses translucent material`);
+   // Cards may use the shared lens filter (url(#og-lens-*), blur inside SVG) instead of a raw blur().
+   const hasBlur = blur => blur.includes('blur(') || /url\(["']?#og-lens-/.test(blur);
+   for(const [name,s] of Object.entries(surfaces))check(hasBlur(s.blur)&&s.bg!=='rgba(0, 0, 0, 0)'&&!s.bg.endsWith('/ 1)'),`${label} ${mode} ${name} uses translucent material`);
    check(surfaces.card.ancestors.length===0,`${label} ${mode} carousel samples wallpaper without a masked backdrop root`);
    check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${label} ${mode} fits viewport width`);
    const probe=await selected.locator('.hw-card-title').evaluate(e=>window.__txProbe(e));

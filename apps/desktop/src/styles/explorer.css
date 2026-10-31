@@ -235,7 +235,7 @@ html:root.is-phone .hard-refresh-fab:not(.top-fab) {
    会随文档滚走、文档滚动后底部露出 body 白底。当年 fixed 被困的 transform 祖先链
    （.shell 直挂，外层 body/html/#root 均无 transform/filter）现已不存在。 */
 .shell-wallpaper { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-.shell-wallpaper-img { position: absolute; inset: 0; background-size: cover; background-position: center; background-repeat: no-repeat;  background-attachment: fixed; }
+.shell-wallpaper-img { position: absolute; inset: 0; background-size: cover; background-position: center; background-repeat: no-repeat;  }
 .wall-video-layer { position: absolute; inset: 0; overflow: hidden; }
 .wall-video-layer video { width: 100%; height: 100%; object-fit: cover; }
 .wall-video-veil { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.2); }

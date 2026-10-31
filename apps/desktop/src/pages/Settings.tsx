@@ -76,6 +76,7 @@ import {
 import { buildYktCookieExportJson, parseYktCookieExportJson, SOURCE_CATEGORY_NAMES, SOURCE_NAMES } from "@onethu/core";
 import type { ExtHwCreds, ExtHwSourceId, TuojSourceId } from "@onethu/core";
 import { ErrorLine } from "../components/Details.js";
+import { downloadThreadChoices, readDownloadThreads, writeDownloadThreads } from "../lib/downloadPrefs.js";
 import { resetActiveOnboarding } from "../state/onboarding.js";
 
 /** Stable route metadata controls visibility; translated DOM text never selects a tab.
@@ -521,6 +522,9 @@ function DownloadSettings() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  /* 多线程下载线程数：设备本地偏好，更新下载时由 SoftwareUpdateSection 读取并传给原生侧；
+     后续附件/云盘下载可复用同一个 readDownloadThreads()。 */
+  const [threads, setThreads] = useState<number>(() => readDownloadThreads());
 
   useEffect(() => {
     if (!available) return;
@@ -579,6 +583,20 @@ function DownloadSettings() {
               <Btn variant="outline" size="sm" disabled={loading || busy} onClick={() => void changeDirectory(false)}>{i18n("pages.settings.0d6fad8138e7")}</Btn>
               <Btn variant="outline" size="sm" disabled={loading || busy || directory?.isDefault} onClick={() => void changeDirectory(true)}>{i18n("pages.settings.ba2e93e73037")}</Btn>
             </>
+          }
+        />
+      </Card>
+      <Card>
+        <SettingsRow
+          title={i18n("pages.settings.f28df1344b6a")}
+          sub={i18n("pages.settings.93bf833076bf")}
+          control={
+            <Select
+              value={String(threads)}
+              aria-label={i18n("pages.settings.f28df1344b6a")}
+              onChange={(value) => setThreads(writeDownloadThreads(value))}
+              options={downloadThreadChoices().map((count) => ({ value: String(count), label: i18n("pages.settings.803fd2fd23f1", { value: String(count) }) }))}
+            />
           }
         />
       </Card>

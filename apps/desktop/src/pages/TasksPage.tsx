@@ -320,7 +320,7 @@ export function TasksPage(): ReactNode {
             <button className="task-sec-more" onClick={() => navigate("info", { infoTab: "news" })}>{i18n("pages.taskspage.b457a3c1c9a1")}</button>
           </div>
           {news.state === "ready" && (news.data?.list.length ?? 0) > 0 ? (
-            <NewsRows feed={news.data!} navigate={navigate} />
+            <NewsRows feed={news.data!} navigate={navigate} windowed />
       ) : (
             <Card><Empty text={i18n("pages.taskspage.4706dde1fb19")} /></Card>
       )}

@@ -83,6 +83,9 @@ async function setup(browser, width, scale = 1, opts = {}) {
     bundle.notifications = [{id:"fixture-notice",courseId:"fixture-0",title:"测试通知",publishTime:"2026-10-20 08:00",publisher:"示例教师"}];
     bundle.files = [{id:"fixture-file",courseId:"fixture-0",title:"测试课件",uploadTime:"2026-10-20 08:00",size:128}];
     const ext = await import(window.__learnFixtureSources.exthw);
+    // 启动时 hook 可能已发起一次外部作业刷新；等它落定再写夹具，避免被晚到的
+    // 空结果覆盖（否则雨课堂课程合并/单列断言会随机只剩网络学堂课程）。
+    await ext.refreshExtHw().catch(() => undefined);
     const snapshot = ext.getExtHwSnapshot();
     snapshot.state = "ready";
     snapshot.items = [];

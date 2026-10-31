@@ -553,3 +553,54 @@ html:root .explorer-content :is(.page-head h1, .og-pagehead-topic h1, .row-title
 /* Clock material belongs to the enclosing .free-item, just like other widgets
    (§8.5). Its body stays transparent even with wallpaper; textContrast still
    samples the wallpaper plus that single material surface for readable text. */
+
+/* ── 宿主：固定视口列表 / 离屏滤镜 / 行内动作 / 编辑器墨色 ─────────────
+   这些是旧页面结构在 Shell 里的修补，不再写进被棘轮计数的旧样式表。 */
+html:root .list-window-host { min-width: 0; }
+html:root .list-window { overflow: visible; }
+html:root .list-window-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border-radius: inherit;
+}
+html:root body .explorer-shell > .explorer-content:has(.list-window) { padding-bottom: 0 !important; }
+
+/* 玻璃滤镜的 0×0 SVG defs 留在文档流会占一行，锚到离屏层。 */
+html:root body > svg[width="0"][height="0"] {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* 深色模式页面底墨（容器级继承；避免同一页出现多套墨色）。 */
+html:root[data-scheme="dark"] :is(.page-anim, .og-card, .card, .list, .row, .row-main) {
+  color: var(--og-content-1);
+}
+html:root[data-scheme="dark"] :is(.row-title, .tl-title, .page-head h1, .og-pagehead-topic h1) {
+  color: var(--og-content-1);
+}
+
+/* 行内 ghost / 预览动作跟随主题墨色，不参与壁纸取墨。 */
+html:root .row .btn-ghost { color: inherit; }
+html:root .row .btn-ghost:hover { color: inherit; }
+html:root .row .row-preview {
+  background: var(--og-surface-2);
+  color: var(--og-content-1);
+}
+html:root .row .row-preview:hover {
+  background: var(--og-surface-3);
+  color: var(--og-content-1);
+}
+
+/* Quill 编辑器不能再用浏览器默认墨色。 */
+html:root .rich-editor .ql-editor {
+  min-height: var(--og-ctl-editor-min-h);
+  color: var(--og-content-1);
+}
+html:root .rich-editor .ql-editor.ql-blank::before { color: var(--og-content-3); font-style: normal; }
+
+/* 开发者面板：auth 失效测试的说明行。 */
+html:root .og-dev-auth-title { color: var(--og-content-3); margin: 6px 0 4px; }

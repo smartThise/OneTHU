@@ -2712,7 +2712,6 @@ html.is-phone .stats:not(.stats-hero) .stat-num { white-space: nowrap; }
   min-height: 88px;
   font-size: 14px;
 }
-.rich-editor .ql-editor { min-height: 88px; }
 .rich-editor .ql-snow .ql-stroke { stroke: var(--text-2, #666); }
 .rich-editor .ql-snow .ql-fill { fill: var(--text-2, #666); }
 .rich-editor .ql-snow.ql-toolbar button:hover .ql-stroke { stroke: var(--accent, #1392f1); }

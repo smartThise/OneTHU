@@ -23,7 +23,7 @@ import type {
   TuojSourceId,
 } from "./types.js";
 import { SOURCE_CATEGORIES, SOURCE_NAMES } from "./types.js";
-import { createYuketangSource } from "./yuketang.js";
+import { createYuketangSource, isYktSessionError } from "./yuketang.js";
 import { BASE as TUOJ_BASE, CLASSIC_BASE as TUOJ_CLASSIC_BASE, createTuojSource, isTuojSessionError } from "./tuoj.js";
 import { createTycheSource, isTycheSessionError } from "./tyche.js";
 import { createDsaSource } from "./dsa.js";
@@ -124,6 +124,10 @@ export interface RefreshExternalHomeworkDeps {
    *  保留原错误。与 TUOJ 重漫游共用同一套进程级频控（同源 ≥10min / 每进程 ≤3 次，
    *  tyche 独立计数）与 in-flight 去重。缺省时不做任何自动重登，行为同旧版。 */
   reloginTyche?: () => Promise<boolean>;
+  /** 雨课堂会话失效（YktSessionError）时的免扫码换票钩子（desktop 注入：用扫码保存的
+   *  UserID/Auth 调 /pc/web_login）。返回 true = 新 Cookie/Auth 已写回凭据，随后自动重拉
+   *  该源一次；false / 抛出 = 保留原错误并回退扫码。共用同一套进程级频控与 in-flight 去重。 */
+  reloginYuketang?: () => Promise<boolean>;
 }
 
 /* ── R19 27.1 / R21-A：会话失效自动重登的进程级频控与并发去重 ──
@@ -147,17 +151,18 @@ export const TYCHE_SESSION_RETRY_MAX_PER_PROCESS = SESSION_RETRY_MAX_PER_PROCESS
  *  让用户知道系统已自动尝试过重新登录，而非首次失败） */
 const SESSION_RELOGIN_FAILED_PREFIX = "已尝试自动重新登录，仍失败：";
 
-/** 支持会话失效自动重登的源：TUOJ 两源（重漫游）+ tyche（账密重登，R21-A） */
-type SessionRetrySourceId = TuojSourceId | "tyche";
+/** 支持会话失效自动重登的源：TUOJ 两源 + tyche + 雨课堂 */
+type SessionRetrySourceId = TuojSourceId | "tyche" | "yuketang";
 
 function isSessionRetrySource(id: ExtHwSourceId): id is SessionRetrySourceId {
-  return isTuojFamily(id) || id === "tyche";
+  return isTuojFamily(id) || id === "tyche" || id === "yuketang";
 }
 
 const sessionRetryState: Record<SessionRetrySourceId, { count: number; lastAt: number }> = {
   tuoj: { count: 0, lastAt: 0 },
   tuojClassic: { count: 0, lastAt: 0 },
   tyche: { count: 0, lastAt: 0 },
+  yuketang: { count: 0, lastAt: 0 },
 };
 /** 同一源并发会话失效共享一次自动重登（in-flight Promise 去重；R19 27.1 / R21-A） */
 const sessionInflight: Partial<Record<SessionRetrySourceId, Promise<boolean>>> = {};
@@ -181,6 +186,12 @@ export function resetTycheSessionRetryState(): void {
   delete sessionInflight.tyche;
 }
 
+/** 清空雨课堂进程级换票频控 / 去重状态（仅离线测试用；应用内无需调用） */
+export function resetYuketangSessionRetryState(): void {
+  sessionRetryState.yuketang = { count: 0, lastAt: 0 };
+  delete sessionInflight.yuketang;
+}
+
 export interface RefreshExternalHomeworkResult {
   items: ExternalHomework[];
   /** 各源透出的课程列表（当前只有雨课堂提供；OJ 平台无课程概念，恒为空）。
@@ -198,6 +209,8 @@ export interface RefreshExternalHomeworkResult {
   reroutedSources: TuojSourceId[];
   /** R21-A：是否因 Tyche 会话失效触发过静默自动重登并重拉成功（诊断/测试用） */
   reloginTyche: boolean;
+  /** 是否因雨课堂会话失效触发过免扫码换票并重拉成功（诊断/测试用） */
+  reloginYuketang: boolean;
 }
 
 /** 各源并发拉取（allSettled，单源失败隔离）；TUOJ 系 401/403 → 强制重漫游一次并重试该源，
@@ -218,19 +231,26 @@ export async function refreshExternalHomework(
 
   const reroutedSources: TuojSourceId[] = [];
   let reloginTycheOk = false;
+  let reloginYuketangOk = false;
   /** 本轮发起（或共享）过自动重登的源——最终仍失败时用于加文案前缀 */
   const rerouteAttempted = new Set<ExtHwSourceId>();
 
-  /** 按源解析重登钩子：TUOJ 系走 rerouteTuoj，tyche 走 reloginTyche（R21-A）；未注入 = null */
+  /** 按源解析重登钩子：TUOJ 系走 rerouteTuoj，tyche/雨课堂走专用钩子；未注入 = null */
   const hookFor = (sid: SessionRetrySourceId): (() => Promise<boolean>) | null => {
     if (sid === "tyche") return deps.reloginTyche ? () => deps.reloginTyche!() : null;
+    if (sid === "yuketang") return deps.reloginYuketang ? () => deps.reloginYuketang!() : null;
     return deps.rerouteTuoj ? () => deps.rerouteTuoj!(sid) : null;
   };
-  /** 该源被拒的原因是否「会话失效」（TUOJ=TuojSessionError；tyche=TycheSessionError） */
+  /** 该源被拒的原因是否「会话失效」（TUOJ=TuojSessionError；tyche=TycheSessionError；
+   *  雨课堂=YktSessionError） */
   const isSessionErrorFor = (sid: SessionRetrySourceId, reason: unknown): boolean =>
-    sid === "tyche" ? isTycheSessionError(reason) : isTuojSessionError(reason);
+    sid === "tyche"
+      ? isTycheSessionError(reason)
+      : sid === "yuketang"
+        ? isYktSessionError(reason)
+        : isTuojSessionError(reason);
 
-  if (deps.rerouteTuoj || deps.reloginTyche) {
+  if (deps.rerouteTuoj || deps.reloginTyche || deps.reloginYuketang) {
     for (let i = 0; i < sources.length; i++) {
       const src = sources[i];
       if (!src || !isSessionRetrySource(src.id)) continue;
@@ -265,6 +285,7 @@ export async function refreshExternalHomework(
       }
       if (!ok) continue;
       if (sid === "tyche") reloginTycheOk = true;
+      else if (sid === "yuketang") reloginYuketangOk = true;
       else reroutedSources.push(sid);
       const retry = createExternalSources({
         creds: deps.getCreds(),
@@ -322,6 +343,7 @@ export async function refreshExternalHomework(
     reroutedTuoj: reroutedSources.length > 0,
     reroutedSources,
     reloginTyche: reloginTycheOk,
+    reloginYuketang: reloginYuketangOk,
   };
 }
 
@@ -353,8 +375,8 @@ export type {
   YktInlineImageUploadOptions,
 } from "./yuketang.js";
 /* R21-B：雨课堂会话失效归一 / 健康检查结果 / Cookie 轮换与导出导入（多设备迁移缓解） */
-export { createYuketangSource, yktStudentLeafUrl, YktSessionError, isYktSessionError, mergeYktCookiePairs, buildYktCookieExportJson, parseYktCookieExportJson, YKT_COOKIE_EXPORT_KIND } from "./yuketang.js";
-export type { YktSessionHealth, YuketangSourceHooks, YktCookieExport } from "./yuketang.js";
+export { createYuketangSource, yktStudentLeafUrl, renewYuketangSession, YktSessionError, isYktSessionError, mergeYktCookiePairs, buildYktCookieExportJson, parseYktCookieExportJson, YKT_COOKIE_EXPORT_KIND } from "./yuketang.js";
+export type { YktSessionHealth, YktRenewResult, YktCred, YuketangSourceHooks, YktCookieExport } from "./yuketang.js";
 export { tuojRoam, TuojCasError, extractTicketAnchor, isCasLoginPage, isTuojNoCoursesError } from "./tuojCas.js";
 export type { TuojRoamResult, TuojRoamDeps } from "./tuojCas.js";
 export { TuojSessionError, isTuojSessionError, CLASSIC_BASE as TUOJ_CLASSIC_BASE } from "./tuoj.js";

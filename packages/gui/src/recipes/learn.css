@@ -23,6 +23,89 @@
   padding-bottom: var(--og-space-4);
 }
 
+/* 课程文件：固定高度的内滚动窗口。
+   以前整张卡片随 320 行长到 2 万像素，玻璃卡片的 backdrop-filter / 圆角遮罩会超过
+   GPU 纹理上限，滚动时下半屏黑掉、文字消失。把滚动收进卡片内部，卡片高度始终在
+   一屏内，既保留玻璃模糊/圆角/阴影，也避免超长合成层。 */
+html:root .learn-file-list {
+  /* 高度按「视口 - 顶部内容/页面头部/底栏预留」算，直接铺到底栏；页面内容区不再
+     重复预留一份底部 100px（.explorer-panel 已预留），所以不会外层滚动，也不留空。 */
+  height: calc(100dvh - var(--og-learn-list-offset));
+  min-height: var(--og-learn-list-min-h);
+  /* 裁剪交给内层滚动容器：卡片本身 overflow:hidden 时，Chromium 对「滚动子层 + 圆角
+     裁剪」会出现半屏行文字/按钮不绘制的 BUG；overflow:visible 后内层自己裁。 */
+  overflow: visible;
+}
+/* 横版顶部标签、竖版左侧栏的内容区顶部起点不同；直接铺到底栏。 */
+html:root.tabs-vertical .learn-file-list {
+  height: calc(100dvh - var(--og-learn-list-offset-rail));
+}
+/* 有课程筛选行时，卡片顶部多一行控件；相应扣掉高度，页面仍不滚。 */
+html:root .learn-file-list.has-filter {
+  height: calc(100dvh - var(--og-learn-list-offset-filter));
+}
+html:root.tabs-vertical .learn-file-list.has-filter {
+  height: calc(100dvh - var(--og-learn-list-offset-filter-rail));
+}
+/* 内容区已经有 .explorer-panel 的底栏留白；移除 workbench 再加的一份 100px，
+   否则列表只能长到半屏，底部空一大截。用 body 提高优先级覆盖 workbench。 */
+html:root body .explorer-shell > .explorer-content:has(.learn-file-list) {
+  padding-bottom: 0 !important;
+}
+
+html:root .learn-file-scroll {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border-radius: inherit;
+}
+html:root.is-phone .learn-file-list {
+  height: calc(100dvh - var(--og-learn-list-offset-phone));
+  min-height: var(--og-learn-list-min-h-phone);
+}
+
+/* 全部作业：和课程文件同款固定视口。作业 tab 的列表此前直接铺开，行数超过 40 后
+   触发 workbench.css 的长列表降级（去模糊/去圆角），不同筛选 tab 因而出现
+   「有的玻璃有的没有、深色字色不一致」。滚动收进卡片内部后，卡片高度恒在一屏内，
+   模糊/圆角/字色在所有 tab 保持同一套。 */
+html:root .learn-assignment-list {
+  height: calc(100dvh - var(--og-learn-assignment-offset));
+  min-height: var(--og-learn-list-min-h);
+  overflow: visible;
+  color: var(--og-content-1);
+}
+html:root.tabs-vertical .learn-assignment-list {
+  height: calc(100dvh - var(--og-learn-assignment-offset-rail));
+}
+html:root.is-phone .learn-assignment-list {
+  height: calc(100dvh - var(--og-learn-assignment-offset-phone));
+  min-height: var(--og-learn-list-min-h-phone);
+}
+html:root .learn-assignment-scroll {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border-radius: inherit;
+}
+html:root .learn-assignment-list .row {
+  color: var(--og-content-1);
+}
+html:root .learn-assignment-audit .section-head {
+  margin: var(--og-space-3) var(--og-space-4) var(--og-space-2);
+}
+html:root body .explorer-shell > .explorer-content:has(.learn-assignment-list) {
+  padding-bottom: 0 !important;
+}
+html:root[data-og-skin="glass"] .learn-assignment-list {
+  background: var(--og-fill-surface);
+  backdrop-filter: var(--og-surface-blur);
+  -webkit-backdrop-filter: var(--og-surface-blur);
+}
+
 .learn-course-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--og-grid-min-xl)), 1fr));

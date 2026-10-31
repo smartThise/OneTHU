@@ -564,7 +564,8 @@ export function FileRow({ f, courseName, identityCourseName, from, style, sem }:
       </div>
       {f.fileType ? <span className="chip chip-gray">{f.fileType.toUpperCase()}</span> : null}
       <button
-        className="btn btn-ghost"
+        className="btn btn-ghost row-preview"
+        data-tx="keep"
         style={{ flexShrink: 0, padding: "0 8px", fontSize: 12 }}
         onClick={(e) => {
           e.stopPropagation(); // 不触发行进详情

@@ -86,6 +86,17 @@ export function useExitPhase(active: boolean, ms = 200): { mounted: boolean; clo
 export const REVEAL_SELECTOR =
   ":is(.list, .setting-group) > *, .row-click, .mail-row, .news-row, .setting-row, .cloud-row";
 
+const LONG_LIST_THRESHOLD = 40;
+
+/** 父容器直接子元素超过阈值 = 长列表：不做逐项滚动揭示。
+ *  课程文件可达数百行，逐项动画没有阅读收益，却会在快速滚动时排队上百个动画、
+ *  反复重建合成层（用户实拍滚动卡顿/黑块）。长列表直接标记 instant 常显；
+ *  短列表仍保留首屏铺开感。 */
+function isLongListMember(el: HTMLElement): boolean {
+  const parent = el.parentElement;
+  return !!parent && parent.children.length > LONG_LIST_THRESHOLD;
+}
+
 export function installScrollReveal(): void {
   if (typeof document === "undefined" || typeof IntersectionObserver === "undefined" || typeof MutationObserver === "undefined") return;
   if (prefersReducedMotion()) return;
@@ -103,13 +114,22 @@ export function installScrollReveal(): void {
           delete el.dataset.revealIn;
           continue;
         }
+        if (isLongListMember(el)) {
+          el.dataset.revealIn = "instant";
+          continue;
+        }
         batch.push(el);
       }
       batch.sort((a, b) => a.offsetTop - b.offsetTop || a.offsetLeft - b.offsetLeft);
       // 方阵网格按「行」递延：同一行的卡片同时出现，行与行自上而下依次展开——读作"铺开"
       // 的流程感，而不是从左上往右下斜扫（霖反馈）。列表项各占一行，等价于逐项递延。
-      // 不封顶：封顶会让后面的卡片拿同一延迟、第一波播完齐刷刷出现（霖实测）。
+      // ⚠️ 长列表必须封顶：一次 IO 回调可能带进几十/上百行（快速滚动、滚动条跳转、
+      // 课程文件大列表），不封顶时第 100 行延迟 3s、第 1000 行 30s，且 `backwards` 让
+      // 这些行在延迟期间保持 opacity:0 → 用户看到「文字消失」；同时排队上百个动画，
+      // 滚动时合成层反复重绘 → 全局卡顿/闪白。前 12 项做依次展开，其余行立即显示
+      // （不再排队动画），既保留首屏铺开感，也不让长列表把主线程拖死。
       const rows = new Map<Element, Map<number, number>>();
+      const STAGGER_MAX = 12;
       let li = 0;
       for (const el of batch) {
         const grid = el.closest(".app-grid, .thos-grid");
@@ -127,6 +147,11 @@ export function installScrollReveal(): void {
         } else {
           slot = li++;
         }
+        if (slot >= STAGGER_MAX) {
+          el.style.animationDelay = "";
+          el.dataset.revealIn = "instant";
+          continue;
+        }
         el.style.animationDelay = `${slot * (grid ? 9 : 30)}ms`;
         // ⚠️ 用 data 属性、不用 class：React 重渲染会整体重写 className（行选中高亮等），
         // classList 手加的类会被抹掉，元素当场回到藏身态隐身（霖实测：点中的邮件行直接消失）
@@ -140,6 +165,11 @@ export function installScrollReveal(): void {
     document.querySelectorAll<HTMLElement>(REVEAL_SELECTOR).forEach((el) => {
       if (el.dataset.reveal === "1") return;
       el.dataset.reveal = "1";
+      // 长列表不挂逐项观察：行挂载即常显，避免数百个 opacity 动画和滚动时文字消失。
+      if (isLongListMember(el)) {
+        el.dataset.revealIn = "instant";
+        return;
+      }
       io.observe(el);
     });
   };

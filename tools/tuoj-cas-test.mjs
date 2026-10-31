@@ -256,7 +256,8 @@ console.log("\n⑤ checkSingle 三形态（mock http，离线）");
 }
 
 {
-  // ② 确认 POST 无 finger3 → 取不到票据 → ensureOk=true 的文案分支
+  // ② 直登已兑付服务票据（ensureOk=true）：CAS 表单仍回登录页也不能据此失败，
+  // 以课程列表验收（2026-10-30 真机：consumeServiceTicket 成功后 CAS 必然回登录页）
   const formHits = { n: 0 };
   const http = makeMockHttp([
     { match: (u) => u.endsWith("/api/user/oauth/info"), body: OAUTH_INFO },
@@ -266,24 +267,16 @@ console.log("\n⑤ checkSingle 三形态（mock http，离线）");
       finalUrl: CAS_FORM,
     },
     { match: (u, m) => u === CHECK_SINGLE_ACTION && m === "POST", body: "<html><body>确认失败，无票据</body></html>" },
+    { match: (u) => u.endsWith("/api/course/list"), body: COURSE_LIST },
   ]);
   const info = new InfoClient(http);
   info.setIdCredentials(() => ({ username: "2026000000", password: "pw", fingerprint: "fp" })); // 无 finger3
-  try {
-    await tuojRoam(http, {
-      ensureIdSession: async () => true,
-      hasIdCredentials: () => info.hasIdCredentials(),
-      confirmIdCheckSingle: (u) => info.confirmIdCheckSingle(u),
-    });
-    check("②确认失败应抛错", false);
-  } catch (e) {
-    check("②抛 TuojCasError", e instanceof TuojCasError, e?.constructor?.name);
-    check(
-      "②文案：直连会话已建立但 CAS 校验未通过",
-      e instanceof TuojCasError && e.message.includes("直连会话已建立但 CAS 校验未通过"),
-      e?.message,
-    );
-  }
+  const r = await tuojRoam(http, {
+    ensureIdSession: async () => true,
+    hasIdCredentials: () => info.hasIdCredentials(),
+    confirmIdCheckSingle: (u) => info.confirmIdCheckSingle(u),
+  });
+  check("②ensureOk 后即使 CAS 回登录页，也按课程列表验收成功", r.courseCount === 1, `courseCount=${r.courseCount}`);
 }
 
 {

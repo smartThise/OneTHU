@@ -279,6 +279,7 @@ console.log("[13] 滚动揭示：进入视口才滑入，且不与挂载逐项�
   ok(/html\.has-reveal[\s\S]{0,420}?animation: none/.test(css), "揭示命中态不挂动画（避免与挂载进场叠加）");
   ok(!/html\.has-reveal[\s\S]{0,420}?opacity:\s*0/.test(css), "揭示不再用 opacity:0 藏身（玻璃卡片会丢背景模糊、字色采样落到中间态）");
   ok(/\[data-reveal-in\][\s\S]{0,220}?animation: m-reveal-in/.test(css), "data-reveal-in 才播 m-reveal-in");
+  ok(/\[data-reveal-in="instant"\][\s\S]{0,80}?animation: none/.test(css), "长列表超配额的行直接显示（instant 不排队动画）");
   ok(/delete el\.dataset\.revealIn/.test(motion), "揭示标记用 data 属性（React 重写 className 抹不掉）");
   ok(/slot \* \(grid \? 9 : 30\)/.test(motion), "递延不封顶（网格按行 9ms / 列表逐项 30ms）");
   ok(/seen\.set\(top, seen\.size\)/.test(motion) && /batch\.sort\(\(a, b\) => a\.offsetTop - b\.offsetTop/.test(motion), "网格按行分组：同行同时、自上而下展开（不斜扫）");
