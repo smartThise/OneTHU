@@ -14,6 +14,9 @@ export function createCampusPassthrough(fallback = {}) {
   });
   const cidrs=(fallback.bypass??[]).filter(value=>value.includes('/'));
   return async (target, { signal } = {}) => {
+    // Registered tunnels are always :443; campus passthrough may carry another
+    // port (URL objects normalize :443 away, so absent means default).
+    const port = Number(target.port) || 443;
     let bypass=matches(target.hostname);
     if(!bypass&&cidrs.length){
       const addresses=await lookup(target.hostname,{all:true}).catch(()=>[]);
@@ -31,7 +34,7 @@ export function createCampusPassthrough(fallback = {}) {
     const proxy = bypass ? null : fallback.https;
     if (proxy) {
       const request = http.request({ hostname: proxy.host, port: proxy.port, method: 'CONNECT',
-        path: `${target.hostname}:443`, headers: { Host: `${target.hostname}:443` }, signal, timeout: 10000 });
+        path: `${target.hostname}:${port}`, headers: { Host: `${target.hostname}:${port}` }, signal, timeout: 10000 });
       request.once('error', fail); request.once('timeout', () => request.destroy());
       request.once('connect', (response, socket, head) => {
         if (response.statusCode !== 200) { socket.destroy(); fail(); return; }
@@ -41,7 +44,7 @@ export function createCampusPassthrough(fallback = {}) {
       });
       request.end();
     } else {
-      const socket = net.connect({ host: target.hostname, port: 443, signal });
+      const socket = net.connect({ host: target.hostname, port, signal });
       socket.setTimeout(10000, () => socket.destroy());
       socket.once('error', fail); socket.once('connect', () => { socket.setTimeout(0); settled = true; resolve(socket); });
     }

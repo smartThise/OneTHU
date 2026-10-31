@@ -158,3 +158,13 @@ test('real macOS loopback peer has current UID and the reverse server row is not
   assert.equal(await authorize(peer), true); assert.equal(await authorize(peer), true);
   await assert.rejects(createMacPeerAuthorizer({ uid: process.getuid() + 1 })(peer), { code: 'GATEWAY_PEER_UID_MISMATCH' });
 });
+
+test('lsof filesystem warnings on stderr stay tolerable while other stderr stays fatal', async () => {
+  const { lsofFatalStderr } = await import('../src/macPeer.mjs');
+  const webdavWarning = 'lsof: WARNING: can\'t stat() webdav file system /Volumes/dav.example\n      Output information may be incomplete.\n      assuming "dev=36000002" from mount table\n';
+  assert.equal(lsofFatalStderr(webdavWarning), false);
+  assert.equal(lsofFatalStderr(''), false);
+  assert.equal(lsofFatalStderr(undefined), true);
+  assert.equal(lsofFatalStderr('lsof: some real error\n'), true);
+  assert.equal(lsofFatalStderr('lsof: WARNING: partial\nfatal message\n'), true);
+});

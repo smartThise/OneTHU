@@ -19,6 +19,23 @@ function tupleOf(socket) {
   return `127.0.0.1:${socket.remotePort}->127.0.0.1:${socket.localPort}`;
 }
 
+/** lsof exits 0 while warning about unstatable mounted filesystems (for example
+ * a WebDAV volume); the kernel TCP table it reports is unaffected, and missing
+ * entries still fail verification instead of authorizing an unproven peer.
+ * Only a "lsof: WARNING:" block with its indented continuation lines is
+ * tolerable; any other stderr content stays fatal. */
+export function lsofFatalStderr(stderr) {
+  if (typeof stderr !== 'string') return true;
+  let inWarning = false;
+  for (const line of stderr.split('\n')) {
+    if (line.startsWith('lsof: WARNING:')) { inWarning = true; continue; }
+    if (inWarning && (line === '' || /^\s/.test(line))) { inWarning = line !== ''; continue; }
+    inWarning = false;
+    if (line.trim()) return true;
+  }
+  return false;
+}
+
 /** Strict lsof -F0puftnPT records. UID belongs to a process record; each file
  * must independently identify IPv4/TCP, its complete tuple, and TCP state.
  * Never accept the reverse (server) row or choose one of several matches. */
@@ -124,7 +141,7 @@ export function createMacPeerAuthorizer({ platform = process.platform, uid = pro
       }), controller.signal);
       if (controller.signal.aborted) throw controller.signal.reason;
       if (tupleOf(socket) !== tuple) fail('GATEWAY_PEER_SOCKET_INVALID');
-      if (!result || result.stderr?.trim() || typeof result.stdout !== 'string' || Buffer.byteLength(result.stdout) > maxBuffer) fail('GATEWAY_PEER_UNAVAILABLE', 503);
+      if (!result || lsofFatalStderr(result.stderr) || typeof result.stdout !== 'string' || Buffer.byteLength(result.stdout) > maxBuffer) fail('GATEWAY_PEER_UNAVAILABLE', 503);
       return verifyMacPeerOutput(result.stdout, tuple, uid);
     } catch (error) {
       if (controller.signal.aborted) throw controller.signal.reason;

@@ -101,6 +101,26 @@ export function parseConnectAuthority(value, host, origins) {
   return url;
 }
 
+/** Campus CONNECT authorities handed to transparent passthrough may carry a
+ * non-443 port: the campus PAC routes every *.tsinghua.edu.cn HTTPS URL to the
+ * listener regardless of port, and native campus clients legitimately use
+ * services such as the traffic map on 8443. cleanUrl() forbids ports, so this
+ * parser validates the authority directly. Identity hosts stay excluded and
+ * membership never enrolls a host; passthrough keeps opaque end-to-end TLS. */
+export function parseCampusConnectAuthority(value, host) {
+  const match = typeof value === 'string' ? /^([A-Za-z0-9.-]+):([0-9]{1,5})$/.exec(value) : null;
+  if (!match) reject();
+  const port = Number(match[2]);
+  if (port < 1 || port > 65535) reject();
+  const hostname = match[1].toLowerCase();
+  if (isCampusIdentityHost(hostname)) reject('GATEWAY_AUTH_REQUIRED', 401);
+  if (!hostname.endsWith('.tsinghua.edu.cn') || hostname.length === '.tsinghua.edu.cn'.length) reject();
+  safeHostname(hostname);
+  const header = typeof host === 'string' ? host.toLowerCase() : '';
+  if (header !== value.toLowerCase() && header !== hostname) reject('GATEWAY_HOST_REJECTED');
+  return { hostname, port, origin: port === 443 ? `https://${hostname}` : `https://${hostname}:${port}` };
+}
+
 export function parseTunnelTarget(value, host, tunnel, origins) {
   if (typeof value !== 'string' || !value || /[\x00-\x20\x7f\\]/.test(value) || value.includes('#') || value.startsWith('//')) reject();
   const url = value.startsWith('/') ? cleanUrl(`${tunnel.origin}${value}`) : cleanUrl(value);

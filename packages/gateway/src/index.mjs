@@ -3,9 +3,9 @@ import tls from 'node:tls';
 import { timingSafeEqual } from 'node:crypto';
 import { Transform } from 'node:stream';
 import {
-  GatewayError, normalizeAllowedOrigins, parseProxyTarget, parseConnectAuthority,
+  GatewayError, normalizeAllowedOrigins, parseProxyTarget, parseConnectAuthority, parseCampusConnectAuthority,
   parseTunnelTarget, sanitizeRequestHeaders, sanitizeResponseHeaders,
-  validateFetchMetadata, validateMethod, campusLandingCategory, originMembership, isDynamicCampusOrigin,
+  validateFetchMetadata, validateMethod, campusLandingCategory, originMembership,
 } from './policy.mjs';
 
 export { GatewayError } from './policy.mjs';
@@ -370,7 +370,7 @@ export function createCampusGateway(options = {}) {
         await authenticate(req);
         if (framing(req)) fail('GATEWAY_REQUEST_REJECTED');
         if(options.connectPassthrough&&!origins.has(`https://${String(req.url).replace(/:443$/,'')}`)){
-          const candidate=parseConnectAuthority(req.url,req.headers.host,{has:isDynamicCampusOrigin});
+          const candidate=parseCampusConnectAuthority(req.url,req.headers.host);
           if(!origins.has(candidate.origin)){
             target=candidate;
             controller=new AbortController();controllers.add(controller);
