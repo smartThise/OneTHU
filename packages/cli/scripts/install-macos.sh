@@ -9,8 +9,8 @@ for candidate in "$install_dir/node" "$HOME/.local/share/onethu-cli/node" "$pack
   if [[ -x "$candidate" ]]; then node_bin="$candidate"; break; fi
 done
 if [[ -z "$node_bin" ]]; then node_bin="$(command -v node || true)"; fi
-if [[ -z "$node_bin" ]] || ! "$node_bin" -e 'const [a,b,c]=process.versions.node.split(".").map(Number);process.exit(a>20||(a===20&&(b>18||(b===18&&c>=1)))?0:1)'; then
-  echo 'Install Node.js 20.18.1 or newer, then run this script again.' >&2
+if [[ -z "$node_bin" ]] || ! "$node_bin" -e 'const [a,b,c]=process.versions.node.split(".").map(Number);process.exit((a===20&&b>=19)||(a===22&&b>=12)||a>22?0:1)'; then
+  echo 'Install Node.js 20.19.x or 22.12+ (Node.js 22 LTS recommended), then run this script again.' >&2
   exit 1
 fi
 if [[ ! -f "$package_dir/dist/sdk/index.mjs" ]]; then
@@ -62,7 +62,7 @@ for candidate in "$install_dir/node" "$HOME/.local/share/onethu-cli/node"; do
   if [[ -x "$candidate" ]]; then node_bin="$candidate"; break; fi
 done
 if [[ -z "$node_bin" ]]; then node_bin="$(command -v node || true)"; fi
-if [[ -z "$node_bin" ]]; then echo 'Install Node.js 20.18.1 or newer, or open OneTHU Desktop once to install its runtime.' >&2; exit 1; fi
+if [[ -z "$node_bin" ]]; then echo 'Install Node.js 20.19.x or 22.12+ (Node.js 22 LTS recommended), or open OneTHU Desktop once to install its runtime.' >&2; exit 1; fi
 exec "$node_bin" "$install_dir/bin/onethu.mjs" "$@"
 LAUNCHER
 } > "$bin_dir/onethu"

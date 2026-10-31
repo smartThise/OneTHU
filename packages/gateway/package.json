@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Isolated loopback campus HTTP gateway protocol prototype",
-  "engines": { "node": ">=20.18.1" },
-  "exports": { ".": "./src/index.mjs", "./policy": "./src/policy.mjs" },
-  "scripts": { "test": "node --test test/*.test.mjs" }
+  "description": "Account-authoritative local campus browser gateway",
+  "engines": { "node": "^20.19.0 || >=22.12.0" },
+  "exports": { ".": "./src/index.mjs", "./policy": "./src/policy.mjs", "./manager": "./src/manager.mjs", "./routes": "./src/routes.mjs" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "dependencies": { "@peculiar/x509": "^3.1.0", "reflect-metadata": "^0.2.2" }
 }

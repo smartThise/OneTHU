@@ -233,6 +233,49 @@ test('internal OH services and tasks remain available with external CLI access d
  assert.throws(()=>runtime.desktop.call({...fence,operation:'tasks.list'}),/OH_AUTHORIZATION_REQUIRED/);
 });
 
+test('campus gateway start fences its current owner inside the account mutation queue',async t=>{
+ const {runtime}=await setup(t);await runtime.auth.restore();
+ const current=runtime.desktop.status(),fence={expectedAccount:current.username!,expectedEpoch:current.epoch};
+ for(const guard of [{...fence,expectedAccount:'different-account'},{...fence,expectedEpoch:fence.expectedEpoch+1},{expectedAccount:fence.expectedAccount},{expectedEpoch:fence.expectedEpoch}]){
+  await assert.rejects(runtime.campusGateway.control({action:'start',confirm:true,...guard}),{code:'GATEWAY_SESSION_CHANGED'});
+  assert.equal((await runtime.campusGateway.control({action:'status'})).running,false);
+ }
+ assert.equal((await runtime.campusGateway.control({action:'start',confirm:true,...fence})).running,true);
+ const logout=runtime.auth.logout();
+ const staleStart=runtime.campusGateway.control({action:'start',confirm:true,...fence});
+ await logout;await assert.rejects(staleStart,{code:'GATEWAY_SESSION_CHANGED'});
+ assert.equal((await runtime.campusGateway.control({action:'status'})).running,false);
+});
+
+test('campus gateway survives execution policy changes but closes on logout and retirement',async t=>{
+ const {runtime}=await setup(t);await runtime.auth.restore();
+ const initial=runtime.desktop.exportSession(),snapshot=initial.snapshot;
+ const fence={expectedAccount:initial.username,expectedEpoch:initial.epoch};
+ const started=await runtime.campusGateway.control({action:'start',confirm:true});
+ assert.equal(started.running,true);assert.equal(started.systemProxy.enabled,false);
+ for(const change of [
+  ()=>runtime.setEnabled(false,{confirm:true}),
+  ()=>runtime.setAutomatic(true,{confirm:true}),
+  ()=>runtime.desktop.policy({...fence,enabled:false,automatic:false,appEnabled:false}),
+ ]){
+  await change();
+  const current=await runtime.campusGateway.control({action:'status'});
+  assert.equal(current.running,true);assert.deepEqual(current.endpoint,started.endpoint);assert.equal(current.pacUrl,started.pacUrl);
+  const pac=await fetch(current.pacUrl);assert.equal(pac.status,200);await pac.text();
+ }
+ await assert.rejects(runtime.call({operation:'cal.agenda',args:[]}),/CLI_DISABLED/);
+ await runtime.auth.logout();
+ assert.equal((await runtime.campusGateway.control({action:'status'})).running,false);
+ await assert.rejects(fetch(started.pacUrl));
+ await runtime.desktop.adoptSession({snapshot,expectedEpoch:runtime.desktop.status().epoch,reason:'login'});
+ const restarted=await runtime.campusGateway.control({action:'start',confirm:true});
+ assert.equal(restarted.running,true);
+ const adopted=runtime.desktop.status();
+ await runtime.desktop.retire({expectedAccount:adopted.username,expectedEpoch:adopted.epoch});
+ assert.equal((await runtime.campusGateway.control({action:'status'})).running,false);
+ await assert.rejects(fetch(restarted.pacUrl));
+});
+
 test('uninstall retires the sole scheduler and reinstallation adopts edits without duplicate tasks',async t=>{
  const {runtime,dir}=await setup(t);await runtime.auth.restore();const status=runtime.desktop.status();
  const fence={expectedAccount:status.username,expectedEpoch:status.epoch};

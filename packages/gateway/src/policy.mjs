@@ -75,12 +75,19 @@ export function validateMethod(method) {
   if (!METHOD_NAMES.has(method)) reject('GATEWAY_METHOD_REJECTED', 405);
 }
 
-export function validateFetchMetadata(headers, target) {
+export function validateFetchMetadata(headers, target, origins = new Set([target.origin])) {
   const site = headers['sec-fetch-site'];
   // Cached browser proxy credentials are sent even for attacker-triggered
   // requests. Missing provenance must not authorize a borrowed school session.
   if (site === undefined && headers.origin === undefined) reject('GATEWAY_PROVENANCE_REQUIRED');
   if (site !== undefined && (!['same-origin', 'same-site', 'none'].includes(site))) reject('GATEWAY_CROSS_SITE_REJECTED');
+  // Sibling campus subdomains share a site but are not all authorized callers.
+  // A GET subresource has no Origin, so require an allowlisted Referer here.
+  if (site === 'same-site' && headers.origin === undefined) {
+    let referrer;
+    try { referrer = cleanUrl(headers.referer); } catch { reject('GATEWAY_PROVENANCE_REQUIRED'); }
+    if (!origins.has(referrer.origin)) reject('GATEWAY_CROSS_SITE_REJECTED');
+  }
   const origin = headers.origin;
   if (origin !== undefined) {
     let url;

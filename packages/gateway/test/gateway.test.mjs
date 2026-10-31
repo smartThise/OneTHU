@@ -36,11 +36,12 @@ after(() => { if (certDirectory) rmSync(certDirectory, { recursive: true, force:
 
 async function fixture(t, options = {}) {
   const state = { epoch: 1, calls: [], certificates: [] };
-  const { request, withTls, ...settings } = options;
+  const { request, withTls, browserCookies, ...settings } = options;
   const gateway = createCampusGateway({
     allowedOrigins: [`http://${hostname}`, `https://${hostname}`], token,
     timeoutMs: 2_000,
     session: {
+      ...(browserCookies ? { browserCookies } : {}),
       epoch: () => state.epoch,
       assertCurrent(expected) {
         if (expected !== state.epoch) throw Object.assign(new Error('private account changed'), { code: 'AUTH_SESSION_CHANGED' });
@@ -82,6 +83,28 @@ async function proxyRequest(f, options = {}) {
   request.end(body);
   return result;
 }
+
+test('legacy HTTP upgrade never borrows a session without browser provenance or replays forms', async t => {
+  const f = await fixture(t, { upgradeInsecureRequests: true });
+  const result = await proxyRequest(f, { headers: { 'sec-fetch-site': null } });
+  assert.equal(result.status, 307);
+  assert.equal(result.headers.location, `https://${hostname}/course`);
+  assert.equal(f.state.calls.length, 0);
+  const post = await proxyRequest(f, { method: 'POST', headers: { 'sec-fetch-site': null, 'content-length': '3' }, body: 'abc' });
+  assert.equal(post.status, 403);
+  assert.equal(f.state.calls.length, 0);
+});
+
+test('an unapproved same-site sibling cannot borrow cached proxy authentication', async t => {
+  const f = await fixture(t);
+  for (const referer of [null, 'https://unapproved.tsinghua.edu.cn/page']) {
+    const denied = await proxyRequest(f, { headers: { 'sec-fetch-site': 'same-site', referer } });
+    assert.equal(denied.status, 403);
+  }
+  assert.equal(f.state.calls.length, 0);
+  const allowed = await proxyRequest(f, { headers: { 'sec-fetch-site': 'same-site', referer: `https://${hostname}/page` } });
+  assert.equal(allowed.status, 200);
+});
 
 async function connect(f, { authority = `${hostname}:443`, auth = true } = {}) {
   const socket = net.connect(f.address.port, f.address.host);
@@ -191,6 +214,25 @@ test('HTTPS uses an authenticated CONNECT and a certificate trusted only by this
   assert.equal(r.body.toString(), 'campus fixture');
   assert.deepEqual(f.state.certificates, [hostname]);
   assert.equal(f.state.calls[0].url, `https://${hostname}/course`);
+});
+
+test('only an explicitly projected Learn CSRF cookie reaches the browser', async t => {
+  let projections = 0;
+  const f = await fixture(t, { withTls: true, browserCookies: url => {
+    projections++; assert.equal(new URL(url).origin, 'https://learn.tsinghua.edu.cn');
+    return [{ name: 'XSRF-TOKEN', value: 'csrf-fixture%2Btoken' }];
+  }, request: () => new Response('fixture', { headers: { 'Set-Cookie': 'JSESSIONID=must-stay-private; Path=/' } }) });
+  const secure = await tlsRequest(f);
+  assert.equal(secure.status, 200);
+  assert.equal(String(secure.headers['set-cookie']), 'XSRF-TOKEN=csrf-fixture%2Btoken; Path=/; Secure; SameSite=Strict');
+  const plain = await proxyRequest(f);
+  assert.equal(plain.headers['set-cookie'], undefined); assert.equal(projections, 1);
+  const expired = await fixture(t, { withTls: true, browserCookies: () => [] });
+  assert.equal(String((await tlsRequest(expired)).headers['set-cookie']), 'XSRF-TOKEN=; Path=/; Secure; SameSite=Strict; Max-Age=0');
+  for (const cookie of [{ name: 'JSESSIONID', value: 'private' }, { name: 'XSRF-TOKEN', value: 'bad; Domain=evil.example' }]) {
+    const denied = await fixture(t, { withTls: true, browserCookies: () => [cookie] });
+    assert.equal((await tlsRequest(denied)).status, 502);
+  }
 });
 
 test('CONNECT without TLS support reports unsupported rather than claiming shared login', async t => {

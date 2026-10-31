@@ -6,7 +6,7 @@ import { loadSdk, StandaloneClient, sdkError } from "./standalone.mjs";
 import { connectDaemon, daemonCommand } from "./daemon.mjs";
 import { login } from "./login.mjs";
 
-export const HELP = `OneTHU CLI · independent campus assistant (Node.js 20.18.1+)
+export const HELP = `OneTHU CLI · independent campus assistant (Node.js 20.19+ in 20.x, or 22.12+)
 
 Usage:
   onethu auth login [--username ID] [--trust-device]
@@ -15,6 +15,8 @@ Usage:
   onethu config enabled on|off --confirm
   onethu daemon start|stop|status|serve
   onethu daemon install|uninstall --confirm
+  onethu gateway status
+  onethu gateway start|stop|setup|credentials|trust|untrust|system-enable|system-disable|open-browser --confirm
   onethu status
   onethu commands [namespace]
   onethu schema <namespace.method>
@@ -50,6 +52,8 @@ Approved daemon tasks continue after the graphical app or terminal closes.
 MCP uses the same registry; automatic mutation authorization is configured locally.
 An explicit --desktop or --endpoint uses the existing graphical app instead.
 School authentication may require interactive two-factor verification.
+Gateway control connects only to the existing daemon and never opens another account runtime.
+Gateway credentials, CA trust and system proxy changes require explicit --confirm.
 learn export only writes with --confirm; incomplete exports return exit code 5.
 Service calls are bounded to 150 seconds; mutations are never retried automatically.
 
@@ -126,8 +130,8 @@ function operations(result) {
 export async function run(argv, { env = process.env, stdin = process.stdin, stdout = process.stdout, stderr = process.stderr } = {}) {
   let client;
   try {
-    const [major,minor,patch] = process.versions.node.split(".").map(Number);
-    if (major < 20 || major === 20 && (minor < 18 || minor === 18 && patch < 1)) throw new CliError("NODE_VERSION", "OneTHU CLI requires Node.js 20.18.1 or newer.", 2);
+    const [major,minor] = process.versions.node.split(".").map(Number);
+    if (major < 20 || major === 20 && minor < 19 || major === 21 || major === 22 && minor < 12) throw new CliError("NODE_VERSION", "OneTHU CLI requires Node.js 20.19+ in 20.x, or 22.12+.", 2);
     const { options, positional } = parse(argv, env);
     options.timeout=parseTimeout(options.timeout);
     if (options.help || !positional.length && !options.version) { stdout.write(HELP); return 0; }
@@ -147,6 +151,17 @@ export async function run(argv, { env = process.env, stdin = process.stdin, stdo
       const result=await daemonCommand(rest[0],options,{stdout,stderr});
       if(typeof result!=="number")stdout.write(JSON.stringify(result,null,2)+"\n");
       return typeof result==="number"?result:0;
+    }
+    if (command === "gateway") {
+      const actions=['status','start','stop','setup','credentials','trust','untrust','system-enable','system-disable','open-browser'];
+      if(rest.length!==1||!actions.includes(rest[0]))throw new CliError('INVALID_ARGUMENT','Choose a gateway action listed in --help.',2);
+      if(options.desktop||options.endpoint||options.args!==undefined||options.argsFile!==undefined)throw new CliError('INVALID_ARGUMENT','Gateway uses the existing private daemon; --desktop, --endpoint and --args are not supported.',2);
+      if(rest[0]!=='status'&&!options.confirm)throw new CliError('CONFIRMATION_REQUIRED','Gateway changes and credential disclosure require --confirm.',2);
+      const sdk=await loadSdk();
+      client=await connectDaemon(options.dataDir??sdk.defaultDataDir(),options.timeout);
+      if(!client)throw new CliError('DAEMON_REQUIRED','Start OneTHU or run onethu daemon start, then retry gateway control.',2);
+      const result=await client.call('gateway.control',{action:rest[0],...(options.confirm?{confirm:true}:{})});
+      stdout.write(JSON.stringify(result,null,2)+'\n');return 0;
     }
     const isCall = command === "call" || !["status", "commands", "schema", "mcp"].includes(command);
     if (!isCall && (options.args !== undefined || options.argsFile !== undefined || options.confirm)) {

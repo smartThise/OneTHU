@@ -1,0 +1,14 @@
+.campus-gateway-settings { min-width: 0; container-type: inline-size; }
+.campus-gateway-settings .og-settings-row-control { max-width: 100%; }
+.campus-gateway-message { margin: 0; padding: var(--og-space-2) var(--og-space-4); color: var(--og-content-2); font-size: var(--og-text-label); line-height: 1.6; overflow-wrap: anywhere; }
+.campus-gateway-error { color: var(--og-error); }
+.campus-gateway-monospace { font-family: var(--og-font-mono); }
+.campus-gateway-advanced { border-top: 1px solid var(--og-line-1); }
+.campus-gateway-credentials { display: flex; flex-wrap: wrap; align-items: end; gap: var(--og-space-3); padding: var(--og-space-3) var(--og-space-4); }
+.campus-gateway-credentials label { display: grid; gap: var(--og-space-2); flex: 1 1 220px; min-width: 0; font-size: var(--og-text-label); }
+.campus-gateway-credentials input { width: 100%; font-family: var(--og-font-mono); }
+@container (max-width: 600px) {
+  .campus-gateway-settings .og-settings-row { flex-wrap: wrap; }
+  .campus-gateway-settings .og-settings-row-main { flex-basis: 100%; }
+  .campus-gateway-settings .og-settings-row-control { margin-inline-start: 0; }
+}

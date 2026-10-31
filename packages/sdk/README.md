@@ -4,7 +4,7 @@
 
 OneTHU 的独立 Node.js 运行时。命令行、MCP、插件和个人助手共用学校会话、服务接口、授权边界及调度器。运行 SDK 无需启动桌面 App。
 
-需要 **Node.js 20.18.1 或更新版本**。公开类型已通过 TypeScript 5.9 的严格 NodeNext 检查。本仓库当前提供本地构建的 `.tgz`，尚未发布到 npm。
+需要 **Node.js 20.19.x 或 22.12+（推荐 Node.js 22 LTS）**。公开类型已通过 TypeScript 5.9 的严格 NodeNext 检查。本仓库当前提供本地构建的 `.tgz`，尚未发布到 npm。
 
 ## 构建与安装
 

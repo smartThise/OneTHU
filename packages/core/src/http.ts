@@ -19,13 +19,14 @@ export interface CookieRecord {
   expiresAt?: number;
   hostOnly: boolean;
   secure: boolean;
+  httpOnly?: boolean;
 }
 
 export interface CookieJar {
   getCookies(url: URL): CookieRecord[];
   setFromResponse(physicalUrl: URL, response: Response): void;
   /** 直接注入一条原始 Set-Cookie 字符串（demo Cookie 字符串灌入用） */
-  setRaw(physicalUrl: URL, setCookieLine: string): void;
+  setRaw(physicalUrl: URL, setCookieLine: string, metadata?: { httpOnly?: boolean | null }): void;
   serialize(): string;
   hydrate(json: string): void;
   clear(domainSuffix?: string): void;
@@ -40,7 +41,7 @@ function parseSetCookieLine(line: string, requestHost: string): CookieRecord | n
   const value = line.slice(eq + 1, firstSemi).trim();
   if (!name) return null;
 
-  const rec: CookieRecord = { name, value, domain: requestHost, path: "/", hostOnly: true, secure: false };
+  const rec: CookieRecord = { name, value, domain: requestHost, path: "/", hostOnly: true, secure: false, httpOnly: false };
   for (const attr of line.slice(firstSemi + 1).split(";")) {
     const raw = attr.trim();
     const eq = raw.indexOf("=");
@@ -60,6 +61,8 @@ function parseSetCookieLine(line: string, requestHost: string): CookieRecord | n
       if (!Number.isNaN(s)) rec.expiresAt = s <= 0 ? 0 : Date.now() + s * 1000;
     } else if (key === "secure") {
       rec.secure = true;
+    } else if (key === "httponly") {
+      rec.httpOnly = true;
     }
   }
   return rec;
@@ -124,9 +127,15 @@ export class MemoryCookieJar implements CookieJar {
     return false;
   }
 
-  setRaw(physicalUrl: URL, setCookieLine: string): void {
+  setRaw(physicalUrl: URL, setCookieLine: string, metadata?: { httpOnly?: boolean | null }): void {
     const rec = parseSetCookieLine(setCookieLine, physicalUrl.hostname.toLowerCase());
-    if (rec) this.#map.set(this.#key(rec), rec);
+    if (rec) {
+      // Synthetic name=value imports do not carry Set-Cookie attributes. Their
+      // missing HttpOnly provenance must not authorize browser disclosure.
+      if (metadata?.httpOnly === null) delete rec.httpOnly;
+      else if (metadata?.httpOnly !== undefined) rec.httpOnly = metadata.httpOnly;
+      this.#map.set(this.#key(rec), rec);
+    }
   }
 
   setFromResponse(physicalUrl: URL, response: Response): void {
@@ -563,7 +572,7 @@ export class HttpClient {
               const epochHeader = res?.headers.get("x-onethu-cookie-epoch");
               const epoch = epochHeader == null ? undefined : Number(epochHeader);
               await this.nativeSeedHook?.(d.url, t, d.path, epoch);
-              this.jar.setRaw(new URL(d.url), `${t}; Path=${d.path}`);
+              this.jar.setRaw(new URL(d.url), `${t}; Path=${d.path}`, { httpOnly: null });
               merged++;
             } catch (error) {
               if ((error as { code?: string })?.code === "AUTH_SESSION_CHANGED") throw error;

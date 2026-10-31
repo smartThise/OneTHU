@@ -6,6 +6,9 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { load } from 'cheerio';
 import { webvpnWrap } from '@onethu/core';
 import { createNodeSession, type NodeSessionOptions } from './node/session.js';
+import { createManagedGateway, DEFAULT_ALLOWED_ORIGINS } from '@onethu/gateway/manager';
+import { withSecureCampusOrigins } from '@onethu/gateway/routes';
+import { createCampusProxySession } from './node/campusProxy.js';
 import { createStore } from './store.js';
 import { createLearnService } from './learn.js';
 import { createNodeDownloader } from './download.js';
@@ -44,7 +47,7 @@ const digest = (s:string) => createHash('sha256').update(s).digest('hex');
 
 /** One independently owned account runtime; the GUI, CLI, MCP and IM adapters
  * compose this service rather than maintaining separate implementations. */
-export async function createOneThu(options: Partial<NodeSessionOptions> & {dataDir?:string} = {}) {
+export async function createOneThu(options: Partial<NodeSessionOptions> & {dataDir?:string;campusGatewayOrigins?:string[]} = {}) {
   const runtime = await createNodeSession({...options,dataDir:options.dataDir ?? defaultDataDir()});
   try {
   const store = createStore(runtime.dataDir), contexts = new AsyncLocalStorage<CallContext>();
@@ -57,6 +60,24 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
   const writes = new Set<string>(), controllers=new Set<AbortController>();
   let stateQueue:Promise<unknown>=Promise.resolve();
   function exclusive<T>(work:()=>Promise<T>):Promise<T>{const next=stateQueue.catch(()=>undefined).then(work);stateQueue=next;return next;}
+  const campusGatewayOrigins=withSecureCampusOrigins(options.campusGatewayOrigins??DEFAULT_ALLOWED_ORIGINS);
+  const campusGatewayOptions={dataDir:runtime.dataDir,allowedOrigins:campusGatewayOrigins,session:createCampusProxySession(runtime,campusGatewayOrigins)};
+  const managedCampusGateway=createManagedGateway(campusGatewayOptions);
+  // Private local control only: never put proxy credentials or host trust
+  // changes into the service registry used by MCP, plugins, IM or agents.
+  const campusGateway={control(input:Parameters<typeof managedCampusGateway.control>[0]&{expectedAccount?:string;expectedEpoch?:number}){
+    if(closed||closing)throw new Error('CLI_RUNTIME_CLOSED');
+    return exclusive(async()=>{
+      if(closed||closing)throw new Error('CLI_RUNTIME_CLOSED');
+      if(input.action==='start'&&(input.expectedAccount!==undefined||input.expectedEpoch!==undefined)){
+        const current=runtime.desktopStatus();
+        if(!current.session.authenticated||typeof input.expectedAccount!=='string'||!input.expectedAccount||!Number.isSafeInteger(input.expectedEpoch)||input.expectedAccount!==current.username||input.expectedEpoch!==current.epoch){
+          throw Object.assign(new Error('GATEWAY_SESSION_CHANGED'),{code:'GATEWAY_SESSION_CHANGED'});
+        }
+      }
+      return managedCampusGateway.control(input);
+    });
+  }};
   let dataQueue:Promise<unknown>=Promise.resolve();
   function dataExclusive<T>(work:()=>Promise<T>):Promise<T>{const next=dataQueue.catch(()=>undefined).then(work);dataQueue=next;return next;}
   const requireContext = () => {const ctx=contexts.getStore();if(!ctx)throw new Error('CLI_CONTEXT_REQUIRED');return ctx;};
@@ -211,11 +232,19 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
   controls('im.stop','Stop IM reception and cancel its active requests',tuple([string],0),([channel])=>gateway.stop(channel),true,true);
   controls('im.remove','Permanently remove an IM binding and its reception configuration',tuple([string]),([channel])=>gateway.remove(channel,{confirm:true}),true,true);
   async function resumeResident(){if(!retiring&&(enabled||appEnabled)&&resident&&runtime.session.state==='ready'){taskManager.start();if(enabled)await gateway.start();}}
-  async function stopResident(){policyEpoch++;for(const controller of controllers)controller.abort();await gateway.stop();await taskManager.stop();}
+  async function stopResident({keepCampusGateway=false}:{keepCampusGateway?:boolean}={}){
+    policyEpoch++;for(const controller of controllers)controller.abort();
+    // An OS proxy restoration failure remains visible in gateway status, but
+    // must never prevent logout/account replacement from revoking the session.
+    if(!keepCampusGateway)await managedCampusGateway.control({action:'stop',confirm:true,revoke:true}).catch(()=>undefined);
+    await gateway.stop();await taskManager.stop();
+  }
   const policy=()=>({enabled,appEnabled,automatic,configured,confirmationMode:confirmationMode(automatic)});
   async function setPolicy(input:{enabled:boolean;automatic:boolean;appEnabled?:boolean}){
     if(closed||closing)throw new Error('CLI_RUNTIME_CLOSED');
-    await stopResident();
+    // External CLI/OH execution policy is independent of the explicit campus
+    // browser authorization. Account lifecycle still revokes both below.
+    await stopResident({keepCampusGateway:true});
     // Revocation takes effect even if persistence fails; enabling takes effect
     // only after the complete device-local policy has reached disk.
     if(!input.enabled)enabled=false;if(!input.automatic)automatic=false;if(!input.appEnabled)appEnabled=false;
@@ -233,7 +262,7 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
     };
   }
   return {
-    desktop,dataDir:runtime.dataDir,auth:{status:runtime.status,restore:runtime.restore,
+    desktop,campusGateway,dataDir:runtime.dataDir,auth:{status:runtime.status,restore:runtime.restore,
       async login(input:Parameters<typeof runtime.login>[0]){return exclusive(async()=>{await stopResident();const result=await runtime.login(input);if(result.state==='ready')await resumeResident();return result;});},
       twoFactor:{...runtime.twoFactor,async verify(...args:Parameters<typeof runtime.twoFactor.verify>){const result=await runtime.twoFactor.verify(...args);if(result.state==='ready')await resumeResident();return result;}},
       async logout(){return exclusive(async()=>{await stopResident();return runtime.logout();});}},
@@ -255,7 +284,7 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
       closePromise=(async()=>{
         let failure:unknown;
         // Storage failures must not leave child processes or the profile lock alive.
-        const cleanup=[()=>gateway.close(),()=>assistant.close(),()=>taskManager.close(),
+        const cleanup=[()=>managedCampusGateway.close(),()=>gateway.close(),()=>assistant.close(),()=>taskManager.close(),
           ...[...pluginHosts.values()].map(host=>()=>host.close()),
           ...[...notificationHosts.values()].map(host=>()=>host.close()),()=>store.flush(),()=>runtime.close()];
         for(const finish of cleanup)try{await finish();}catch(error){failure??=error;}

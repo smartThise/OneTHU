@@ -1,4 +1,5 @@
 import { CliServerSettings } from "../components/CliServerSettings.js";
+import { CampusGatewaySettings } from "../components/CampusGatewaySettings.js";
 import { getLocale as getUiLocale } from "../i18n/index.js";
 import { t as i18n, rich as i18nRich, msg as i18nMsg, useLocale as useUiLocale } from "../i18n/index.js";
 /**
@@ -800,7 +801,7 @@ function PluginSheet({
  *  开 = harness 在 127.0.0.1:8787 起本机 MCP server（POST /mcp，Streamable-HTTP），
  *  别的 agent / 脚本 / 编辑器插件能直接调 OneTHU 的接口；关 = 连接一律 403。
  *  跟着 MCP 面板走：高级档就地渲染与 Sheet 形态共用这一份实现，不复制第二处。 */
-function McpSwitchRow(): ReactNode { return <CliServerSettings/>; }
+function McpSwitchRow(): ReactNode { return <><CliServerSettings/><CampusGatewaySettings/></>; }
 
 /** MCP 服务器管理：逐条增删改（表单弹窗），存宿主侧结构化存储，OH 启动对话时经 settings 注入 */
 export function McpBody(): ReactNode {

@@ -1,0 +1,264 @@
+{
+  "messages": {
+    "gateway.existingProxy": {
+      "zh-CN": "检测到已有代理（如 Clash）。请使用校园浏览器，或先自行关闭原系统代理再启用。",
+      "en-US": "An existing proxy (such as Clash) is enabled. Use the campus browser, or turn off the existing system proxy yourself before enabling this one."
+    },
+    "gateway.restoreError": {
+      "zh-CN": "未能安全恢复原代理设置。请检查系统代理后重试；不会强行覆盖其他应用修改的配置。",
+      "en-US": "The previous proxy settings could not be safely restored. Check the system proxy and retry. Changes made by other apps will not be overwritten."
+    },
+    "gateway.loginRequired": {
+      "zh-CN": "请先在 OneTHU 登录校园账号，再启动代理。",
+      "en-US": "Sign in to your campus account in OneTHU before starting the proxy."
+    },
+    "gateway.recoveryRequired": {
+      "zh-CN": "检测到上次尚未恢复的系统代理配置。请点击「恢复原代理设置」；其他应用后来修改的配置不会被覆盖。",
+      "en-US": "System proxy settings from an earlier session need recovery. Choose “Restore proxy settings”. Later changes made by other apps will not be overwritten."
+    },
+    "gateway.title": {
+      "zh-CN": "校园超级代理",
+      "en-US": "Campus superproxy"
+    },
+    "gateway.description": {
+      "zh-CN": "让外部浏览器通过本机代理访问校园网站，共用 OneTHU 当前登录会话。启动后只在本机监听。",
+      "en-US": "Use the current OneTHU session to access campus websites in an external browser. Starting the proxy opens a local listener only."
+    },
+    "gateway.desktopOnly": {
+      "zh-CN": "此功能需要 OneTHU 桌面版与本地运行环境；手机端和网页预览暂不可用。",
+      "en-US": "Requires the OneTHU desktop app and local runtime. Mobile devices and web previews are not supported yet."
+    },
+    "gateway.checking": {
+      "zh-CN": "正在检查本地运行环境…",
+      "en-US": "Checking the local runtime…"
+    },
+    "gateway.installRequired": {
+      "zh-CN": "请先在上方安装或更新 OneTHU CLI 运行环境，无需打开「外部客户端访问」开关。",
+      "en-US": "Install or update the OneTHU CLI runtime above. External client access can remain off."
+    },
+    "gateway.unavailable": {
+      "zh-CN": "暂时无法读取代理状态，请刷新重试。",
+      "en-US": "Proxy status is unavailable. Refresh to retry."
+    },
+    "gateway.running": {
+      "zh-CN": "运行中 · {endpoint}",
+      "en-US": "Running · {endpoint}"
+    },
+    "gateway.stopped": {
+      "zh-CN": "已停止",
+      "en-US": "Stopped"
+    },
+    "gateway.refresh": {
+      "zh-CN": "刷新状态",
+      "en-US": "Refresh status"
+    },
+    "gateway.refreshing": {
+      "zh-CN": "正在刷新…",
+      "en-US": "Refreshing…"
+    },
+    "gateway.start": {
+      "zh-CN": "启动代理",
+      "en-US": "Start proxy"
+    },
+    "gateway.starting": {
+      "zh-CN": "正在启动…",
+      "en-US": "Starting…"
+    },
+    "gateway.stop": {
+      "zh-CN": "停止代理",
+      "en-US": "Stop proxy"
+    },
+    "gateway.stopping": {
+      "zh-CN": "正在停止…",
+      "en-US": "Stopping…"
+    },
+    "gateway.error": {
+      "zh-CN": "操作未完成，请刷新状态后重试。",
+      "en-US": "The action could not be completed. Refresh the status and try again."
+    },
+    "gateway.errorCode": {
+      "zh-CN": "操作未完成（{code}），请刷新状态后重试。",
+      "en-US": "The action could not be completed ({code}). Refresh the status and try again."
+    },
+    "gateway.browserTitle": {
+      "zh-CN": "校园浏览器",
+      "en-US": "Campus browser"
+    },
+    "gateway.browserDescription": {
+      "zh-CN": "启动代理后，打开独立的 Chrome 窗口。无需扩展或系统证书授权，不影响日常浏览器配置。",
+      "en-US": "After starting the proxy, open a separate Chrome window. No extension or system certificate approval is required; your usual browser profile is kept separate."
+    },
+    "gateway.openBrowser": {
+      "zh-CN": "打开校园浏览器",
+      "en-US": "Open campus browser"
+    },
+    "gateway.browserOpening": {
+      "zh-CN": "正在打开…",
+      "en-US": "Opening…"
+    },
+    "gateway.browserOpened": {
+      "zh-CN": "已发起打开校园浏览器，请在新窗口中访问校园网站。",
+      "en-US": "Campus browser launch requested. Use the new window to visit campus websites."
+    },
+    "gateway.account": {
+      "zh-CN": "共用登录会话",
+      "en-US": "Shared session"
+    },
+    "gateway.accountReady": {
+      "zh-CN": "已登录",
+      "en-US": "Signed in"
+    },
+    "gateway.accountPending": {
+      "zh-CN": "请检查 OneTHU 登录状态",
+      "en-US": "Check your OneTHU sign-in status"
+    },
+    "gateway.advanced": {
+      "zh-CN": "系统代理与手动接入",
+      "en-US": "System proxy and manual setup"
+    },
+    "gateway.advancedDescription": {
+      "zh-CN": "在其他应用中使用代理时，查看证书、系统代理和本机连接凭据。",
+      "en-US": "Manage certificate trust, system proxy settings and local credentials for other apps."
+    },
+    "gateway.expand": {
+      "zh-CN": "展开",
+      "en-US": "Show"
+    },
+    "gateway.collapse": {
+      "zh-CN": "收起",
+      "en-US": "Hide"
+    },
+    "gateway.authorizationScope": {
+      "zh-CN": "系统接入需先授权信任本机证书，再启用校园代理；macOS 可能要求系统确认。代理仅处理列表内的校园站点，并为这些站点的 HTTPS 连接使用本机证书；其他网站直连。可随时停用并撤销信任。",
+      "en-US": "To use the system proxy, first approve trust for this local certificate, then enable the campus proxy. macOS may request confirmation. Only the listed campus sites use the proxy and its certificate for HTTPS; other sites connect directly. You can disable it and remove trust at any time."
+    },
+    "gateway.certificate": {
+      "zh-CN": "本机校园证书",
+      "en-US": "Local campus certificate"
+    },
+    "gateway.certificateMissing": {
+      "zh-CN": "尚未准备证书。准备证书不会自动安装或信任。",
+      "en-US": "Certificate not prepared. Preparing it does not install or trust it."
+    },
+    "gateway.trusted": {
+      "zh-CN": "已信任，可启用系统校园代理。",
+      "en-US": "Trusted. The campus system proxy can be enabled."
+    },
+    "gateway.untrusted": {
+      "zh-CN": "尚未信任；仅校园浏览器可直接使用。",
+      "en-US": "Not trusted by the system. The campus browser can still use it."
+    },
+    "gateway.trustUnknown": {
+      "zh-CN": "已准备证书，系统信任状态未确认。",
+      "en-US": "Certificate prepared. System trust has not been confirmed."
+    },
+    "gateway.prepare": {
+      "zh-CN": "准备证书",
+      "en-US": "Prepare certificate"
+    },
+    "gateway.preparing": {
+      "zh-CN": "正在准备…",
+      "en-US": "Preparing…"
+    },
+    "gateway.trust": {
+      "zh-CN": "授权信任证书",
+      "en-US": "Trust certificate"
+    },
+    "gateway.trusting": {
+      "zh-CN": "等待系统授权…",
+      "en-US": "Waiting for approval…"
+    },
+    "gateway.untrust": {
+      "zh-CN": "撤销信任",
+      "en-US": "Remove trust"
+    },
+    "gateway.untrusting": {
+      "zh-CN": "正在撤销…",
+      "en-US": "Removing trust…"
+    },
+    "gateway.fingerprint": {
+      "zh-CN": "证书指纹：{fingerprint}",
+      "en-US": "Certificate fingerprint: {fingerprint}"
+    },
+    "gateway.systemProxy": {
+      "zh-CN": "系统校园代理",
+      "en-US": "Campus system proxy"
+    },
+    "gateway.systemUnsupported": {
+      "zh-CN": "当前系统暂不支持自动设置，请使用校园浏览器。",
+      "en-US": "Automatic system setup is not available on this platform. Use the campus browser."
+    },
+    "gateway.systemEnabled": {
+      "zh-CN": "已启用。停用后恢复原有代理设置，再按需撤销证书信任。",
+      "en-US": "Enabled. Disable it to restore the previous proxy settings, then remove certificate trust if desired."
+    },
+    "gateway.systemDescription": {
+      "zh-CN": "先启动代理并信任证书，再启用。只接管已列出的校园站点。",
+      "en-US": "Start the proxy and trust the certificate before enabling. Only the listed campus sites use this proxy."
+    },
+    "gateway.systemEnable": {
+      "zh-CN": "启用系统代理",
+      "en-US": "Enable system proxy"
+    },
+    "gateway.systemEnabling": {
+      "zh-CN": "正在启用…",
+      "en-US": "Enabling…"
+    },
+    "gateway.systemDisable": {
+      "zh-CN": "恢复原代理设置",
+      "en-US": "Restore proxy settings"
+    },
+    "gateway.systemDisabling": {
+      "zh-CN": "正在恢复…",
+      "en-US": "Restoring…"
+    },
+    "gateway.origins": {
+      "zh-CN": "代理范围：{origins}",
+      "en-US": "Proxy scope: {origins}"
+    },
+    "gateway.credentials": {
+      "zh-CN": "本机代理凭据",
+      "en-US": "Local proxy credentials"
+    },
+    "gateway.credentialsDescription": {
+      "zh-CN": "用于手动配置其他应用，不是校园账号密码。仅主动显示时读取，60 秒后自动隐藏。",
+      "en-US": "For manually configuring other apps. These are not your campus account credentials. They are retrieved only when you choose to reveal them and hidden after 60 seconds."
+    },
+    "gateway.revealCredentials": {
+      "zh-CN": "显示代理凭据",
+      "en-US": "Reveal proxy credentials"
+    },
+    "gateway.revealing": {
+      "zh-CN": "正在读取…",
+      "en-US": "Retrieving…"
+    },
+    "gateway.hideCredentials": {
+      "zh-CN": "隐藏凭据",
+      "en-US": "Hide credentials"
+    },
+    "gateway.proxyUsername": {
+      "zh-CN": "代理用户名",
+      "en-US": "Proxy username"
+    },
+    "gateway.proxyPassword": {
+      "zh-CN": "代理密码",
+      "en-US": "Proxy password"
+    },
+    "gateway.copyPassword": {
+      "zh-CN": "复制代理密码",
+      "en-US": "Copy proxy password"
+    },
+    "gateway.copying": {
+      "zh-CN": "正在复制…",
+      "en-US": "Copying…"
+    },
+    "gateway.passwordCopied": {
+      "zh-CN": "代理密码已复制到剪贴板。",
+      "en-US": "Proxy password copied to the clipboard."
+    },
+    "gateway.copyError": {
+      "zh-CN": "无法复制，请从已显示的代理密码框中手动复制。",
+      "en-US": "Could not copy. Copy manually from the revealed proxy password field."
+    }
+  }
+}

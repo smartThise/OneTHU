@@ -78,6 +78,7 @@ export function createCampusGateway(options = {}) {
   if (!session || !['epoch', 'assertCurrent', 'request'].every(name => typeof session[name] === 'function')) fail('GATEWAY_CONFIG_INVALID');
   if (typeof options.token !== 'string' || options.token.length < 32 || options.token.length > 1024 || /[^\x21-\x7e]/.test(options.token)) fail('GATEWAY_CONFIG_INVALID');
   if (options.tls !== undefined && typeof options.tls !== 'function') fail('GATEWAY_CONFIG_INVALID');
+  if (session.browserCookies !== undefined && typeof session.browserCookies !== 'function') fail('GATEWAY_CONFIG_INVALID');
   const credentials = Buffer.from(`onethu:${options.token}`, 'utf8');
   const timeoutMs = boundedInteger(options.timeoutMs, 30_000, 180_000);
   const maxUploadBytes = boundedInteger(options.maxUploadBytes, 8 * 1024 * 1024, 1024 * 1024 * 1024);
@@ -153,7 +154,16 @@ export function createCampusGateway(options = {}) {
       validateMethod(req.method);
       if (hasBody && ['GET', 'HEAD'].includes(req.method)) fail('GATEWAY_REQUEST_REJECTED');
       const target = tunnel ? parseTunnelTarget(req.url, req.headers.host, tunnel, origins) : parseProxyTarget(req.url, req.headers.host, origins);
-      validateFetchMetadata(req.headers, target);
+      // Legacy campus HTTP pages lack browser Fetch Metadata. Redirect safe
+      // navigations to an explicitly enabled HTTPS facade before borrowing any
+      // account session. Never replay a body or forward an unproven HTTP form.
+      if (!tunnel && target.protocol === 'http:' && options.upgradeInsecureRequests === true &&
+          ['GET', 'HEAD'].includes(req.method) && !hasBody && origins.has(`https://${target.host}`)) {
+        const upgraded = new URL(target.href); upgraded.protocol = 'https:';
+        res.writeHead(307, { Location: upgraded.href, 'Cache-Control': 'no-store', Connection: 'close', 'Content-Length': '0' }).end();
+        return;
+      }
+      validateFetchMetadata(req.headers, target, origins);
       const epoch = tunnel?.epoch ?? currentEpoch();
       assertEpoch(epoch);
       if (activeRequests >= maxConnections) fail('GATEWAY_BUSY', 503);
@@ -185,6 +195,18 @@ export function createCampusGateway(options = {}) {
       const encoding = response.headers.get('content-encoding')?.trim();
       if (encoding && encoding.toLowerCase() !== 'identity' && (response.status === 206 || response.headers.has('content-range'))) fail('GATEWAY_ENCODED_RANGE_UNSUPPORTED', 502);
       const outputHeaders = sanitizeResponseHeaders(response.headers);
+      // Learn's own JavaScript reads its non-authentication CSRF cookie. Only
+      // the account adapter may project this one explicitly approved value;
+      // upstream Set-Cookie and all browser authentication cookies stay hidden.
+      if (target.origin === 'https://learn.tsinghua.edu.cn' && session.browserCookies) {
+        const cookies = await withSignal(Promise.resolve().then(() => session.browserCookies(target.href)), controller.signal);
+        check();
+        if (!Array.isArray(cookies) || cookies.length > 1 || cookies.some(cookie => cookie?.name !== 'XSRF-TOKEN' ||
+          typeof cookie.value !== 'string' || !/^[\x21\x23-\x2b\x2d-\x3a\x3c-\x5b\x5d-\x7e]{1,4096}$/.test(cookie.value))) fail('GATEWAY_BROWSER_COOKIE_REJECTED', 502);
+        outputHeaders['set-cookie'] = cookies.length
+          ? `XSRF-TOKEN=${cookies[0].value}; Path=/; Secure; SameSite=Strict`
+          : 'XSRF-TOKEN=; Path=/; Secure; SameSite=Strict; Max-Age=0';
+      }
       reader = response.body?.getReader();
       if (reader) controller.signal.addEventListener('abort', () => { void reader.cancel().catch(() => {}); }, { once: true });
       const startResponse = () => { check(); if (!res.headersSent) res.writeHead(response.status, outputHeaders); };

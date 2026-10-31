@@ -34,6 +34,7 @@ const METHODS: &[&str] = &[
     "desktop.retire",
     "desktop.unretire",
     "desktop.cloudSync",
+    "gateway.control",
 ];
 
 #[derive(Deserialize)]

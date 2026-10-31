@@ -29,6 +29,10 @@ test('resident daemon works without GUI, guards loopback credentials and closes 
   const emptySession=await client.call('desktop.exportSession');
   assert.equal(emptySession.snapshot,null);
   const ops=await client.call('service/list');assert.equal(ops.mode,'standalone');assert(ops.operations.some(x=>x.name==='tasks.create'));
+  const gateway=await client.call('gateway.control',{action:'status'});
+  assert.equal(gateway.running,false);assert.equal(gateway.endpoint,null);
+  assert(!JSON.stringify(gateway).includes('password'));
+  await assert.rejects(client.call('gateway.control',{action:'setup'}),{code:'GATEWAY_CONFIRM_REQUIRED'});
   const url=`http://127.0.0.1:${record.port}/cli/v1`,body=JSON.stringify({jsonrpc:'2.0',id:1,method:'daemon.status'});
   for(const [token,origin] of [['é'.repeat(64),undefined],['0'.repeat(64),undefined],[record.token,'https://example.invalid']]){
     const response=await fetch(url,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json',...(origin?{Origin:origin}:{})},body});
@@ -41,10 +45,13 @@ test('resident daemon works without GUI, guards loopback credentials and closes 
   assert.equal(privateViaMcp.error.code,-32601);
   const privateRain=JSON.parse((await client.post('/mcp',{jsonrpc:'2.0',id:7,method:'desktop.yuketangSync',params:{credential:{cookie:'private-fixture'}}})).text);
   assert.equal(privateRain.error.code,-32601);
+  const privateGateway=JSON.parse((await client.post('/mcp',{jsonrpc:'2.0',id:8,method:'gateway.control',params:{action:'credentials',confirm:true}})).text);
+  assert.equal(privateGateway.error.code,-32601);
   const toolPrivate=JSON.parse((await client.post('/mcp',{jsonrpc:'2.0',id:6,method:'tools/call',params:{name:'onethu_call',arguments:{operation:'desktop.exportSession',args:[],confirm:true}}})).text);
   assert.equal(toolPrivate.result.isError,true);
   assert.match(JSON.stringify(toolPrivate),/UNKNOWN_OPERATION/);
   assert(!ops.operations.some(op=>op.name.startsWith('desktop.')),'private identity transfer never appears in public registry');
+  assert(!ops.operations.some(op=>op.name.startsWith('gateway.')),'private proxy control never appears in public registry');
   await assert.rejects(client.call('desktop.constructor'),/DAEMON UNKNOWN METHOD/);
   await client.call('policy.set',{enabled:true,confirm:true});
   assert.equal((await client.call('service/list')).confirmationMode,'automatic');

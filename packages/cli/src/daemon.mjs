@@ -82,6 +82,11 @@ export async function serve(options,{stdout=process.stdout,stderr=process.stderr
       else if(message.method==='service/call')result=await runtime.call(p,{source:'local',signal:controller.signal});
       else if(message.method==='daemon.status')result={running:!stopping,pid:process.pid,version:sdk.VERSION,desktopProtocolVersion:runtime.desktop?DESKTOP_PROTOCOL_VERSION:0,runtimeId,restoring,session:runtime.auth.status()};
       else if(message.method==='daemon.stop'){result={stopping:true};setTimeout(()=>void stop(),50);}
+      else if(message.method==='gateway.control'){
+        if(!runtime.campusGateway)throw code('GATEWAY_RUNTIME_UPDATE_REQUIRED');
+        if(controller.signal.aborted)throw code('DAEMON_REQUEST_CANCELLED');
+        result=await runtime.campusGateway.control(p);
+      }
       else if(message.method.startsWith('desktop.')){
         // Snapshot reads and explicit account control must remain available
         // while an optional startup network probe is pending. Epoch fencing in

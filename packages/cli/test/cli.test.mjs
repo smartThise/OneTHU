@@ -2,13 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
 import { spawn } from "node:child_process";
-import { mkdtemp, writeFile, rm, readFile } from "node:fs/promises";
+import { mkdtemp, writeFile, rm, readFile, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import { once } from "node:events";
 import { LocalClient, parseEndpoint } from "../src/client.mjs";
+import { run } from '../src/cli.mjs';
 
 const entry = fileURLToPath(new URL("../bin/onethu.mjs", import.meta.url));
 const pkg = fileURLToPath(new URL("..", import.meta.url));
@@ -66,6 +67,34 @@ test("help and version work offline", async () => {
   assert.equal(help.code, 0); assert.equal(help.stderr, ""); assert.match(help.stdout, /shared account\/tasks/);
   const version = await cli(["--version"]);
   assert.equal(version.code, 0); assert.equal(version.stdout, JSON.parse(await readFile(join(pkg, "package.json"), "utf8")).version + "\n");
+});
+
+test('Node version guard matches the bundled gateway engine requirement',async()=>{
+  const descriptor=Object.getOwnPropertyDescriptor(process.versions,'node');
+  try {
+    for(const [version,accepted] of [['18.20.0',false],['20.18.1',false],['20.19.0',true],['20.20.0',true],['21.7.0',false],['22.11.0',false],['22.12.0',true],['24.0.0',true]]){
+      Object.defineProperty(process.versions,'node',{...descriptor,value:version});
+      let stdout='',stderr='';const code=await run(['--help'],{env:{},stdout:{write:value=>{stdout+=value;}},stderr:{write:value=>{stderr+=value;}}});
+      assert.equal(code,accepted?0:2,version);if(accepted)assert.match(stdout,/22\.12/);else assert.equal(JSON.parse(stderr).error.code,'NODE_VERSION');
+    }
+  } finally { Object.defineProperty(process.versions,'node',descriptor); }
+});
+
+test('gateway control requires an existing daemon and never creates an account profile',async t=>{
+  const dir=await mkdtemp(join(tmpdir(),'onethu-gateway-cli-'));
+  t.after(()=>rm(dir,{recursive:true,force:true}));
+  const profile=join(dir,'unopened-profile');
+  error(await cli(['gateway','status','--data-dir',profile]),'DAEMON_REQUIRED',2);
+  await assert.rejects(stat(profile),{code:'ENOENT'});
+  error(await cli(['gateway','credentials','--data-dir',profile]),'CONFIRMATION_REQUIRED',2);
+  error(await cli(['gateway','start','--data-dir',profile]),'CONFIRMATION_REQUIRED',2);
+  error(await cli(['gateway','unknown','--confirm','--data-dir',profile]),'INVALID_ARGUMENT',2);
+});
+
+test('gateway rejects public desktop endpoint routing before sending control',async t=>{
+  const local=await server(t,(_request,response,body)=>rpc(response,body.id,{}));
+  error(await cli(['gateway','status'],local),'INVALID_ARGUMENT',2);
+  assert.equal(local.calls.length,0);
 });
 
 test("status reports app session, without upgrading needs-login to healthy", async (t) => {

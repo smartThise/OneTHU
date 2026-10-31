@@ -2,7 +2,7 @@
 
 [English](README.en.md) · [架构与能力边界](../../docs/onethu-cli.md)
 
-OneTHU CLI 是可独立运行的校园事务助手。命令行负责查询、预约和资料整理，常驻进程负责定时检查、下载与通知，MCP 供其他智能体调用。要求 Node.js 20.18.1 或更新版本，目标平台为 macOS 和 Windows。关闭桌面后，独立进程可以继续工作。
+OneTHU CLI 是可独立运行的校园事务助手。命令行负责查询、预约和资料整理，常驻进程负责定时检查、下载与通知，MCP 供其他智能体调用。要求 Node.js 20.19.x 或 22.12+（推荐 Node.js 22 LTS），目标平台为 macOS 和 Windows。关闭桌面后，独立进程可以继续工作。
 
 0.11.4 提供独立 CLI 下载；macOS、Windows 桌面安装包内置相同运行时。Android 不包含 Node 常驻后台。
 

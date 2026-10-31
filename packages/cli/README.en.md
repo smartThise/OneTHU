@@ -2,7 +2,7 @@
 
 [简体中文](README.md) · [Architecture and capability boundaries](../../docs/en/onethu-cli.md)
 
-OneTHU CLI is an independently running assistant for campus tasks. The command line handles queries, bookings and course archives; a resident process handles scheduled checks, downloads and notifications. MCP makes these services available to other agents. It requires **Node.js 20.18.1 or later** and targets macOS and Windows. The independent process can continue working after the desktop app closes.
+OneTHU CLI is an independently running assistant for campus tasks. The command line handles queries, bookings and course archives; a resident process handles scheduled checks, downloads and notifications. MCP makes these services available to other agents. It requires **Node.js 20.19.x or 22.12+ (Node.js 22 LTS recommended)** and targets macOS and Windows. The independent process can continue working after the desktop app closes.
 
 Version 0.11.4 provides a standalone CLI download and bundles the same runtime with the macOS and Windows apps. Android does not include a resident Node backend.
 

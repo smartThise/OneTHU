@@ -4,7 +4,7 @@
 
 An independent Node.js runtime for OneTHU. CLI, MCP, plugins and assistant hosts share university sessions, services, authorization checks and scheduling. The desktop application does not need to be running.
 
-Requires **Node.js 20.18.1+**. Public declarations pass strict NodeNext checks with TypeScript 5.9. This repository currently distributes locally built `.tgz` archives; this package has not been published to npm.
+Requires **Node.js 20.19.x or 22.12+**. Public declarations pass strict NodeNext checks with TypeScript 5.9. This repository currently distributes locally built `.tgz` archives; this package has not been published to npm.
 
 ## Build and install
 

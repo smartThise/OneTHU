@@ -11,9 +11,9 @@ foreach ($Candidate in @((Join-Path $InstallDir 'node.exe'), (Join-Path $env:LOC
     if (Test-Path -LiteralPath $Candidate -PathType Leaf) { $NodePath = $Candidate; break }
 }
 if (-not $NodePath) { $NodeCommand = Get-Command node -ErrorAction SilentlyContinue; if ($NodeCommand) { $NodePath = $NodeCommand.Source } }
-if (-not $NodePath) { throw 'Install Node.js 20.18.1 or newer, then run this script again.' }
-& $NodePath -e 'const [a,b,c]=process.versions.node.split(".").map(Number);process.exit(a>20||(a===20&&(b>18||(b===18&&c>=1)))?0:1)'
-if ($LASTEXITCODE -ne 0) { throw 'OneTHU CLI requires Node.js 20.18.1 or newer.' }
+if (-not $NodePath) { throw 'Install Node.js 20.19.x or 22.12+ (Node.js 22 LTS recommended), then run this script again.' }
+& $NodePath -e 'const [a,b,c]=process.versions.node.split(".").map(Number);process.exit((a===20&&b>=19)||(a===22&&b>=12)||a>22?0:1)'
+if ($LASTEXITCODE -ne 0) { throw 'OneTHU CLI requires Node.js 20.19.x or 22.12+ (Node.js 22 LTS recommended).' }
 if (-not (Test-Path (Join-Path $PackageDir 'dist/sdk/index.mjs') -PathType Leaf)) { throw 'Missing runtime bundle. From the source checkout run: pnpm --filter @onethu/cli build' }
 New-Item -ItemType Directory -Force -Path $InstallDir, $BinDir | Out-Null
 $ReuseRuntime = (Test-Path (Join-Path $InstallDir 'node.exe')) -and (Test-Path (Join-Path $InstallDir 'runtime.json')) -and (Test-Path (Join-Path $InstallDir 'bin/onethu.mjs')) -and (Test-Path (Join-Path $InstallDir 'dist/sdk/index.mjs'))
