@@ -1,0 +1,10 @@
+{
+  "name": "@onethu/gateway",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated loopback campus HTTP gateway protocol prototype",
+  "engines": { "node": ">=20.18.1" },
+  "exports": { ".": "./src/index.mjs", "./policy": "./src/policy.mjs" },
+  "scripts": { "test": "node --test test/*.test.mjs" }
+}

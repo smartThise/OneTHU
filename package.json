@@ -30,7 +30,8 @@
     "test:cli": "node tools/cli-catalog.mjs --check && pnpm --filter @onethu/cli test && node tools/cli-service-boundary-test.mjs && node tools/cli-reservation-guard-test.mjs && node tools/plugin-window-ownership-test.mjs && node --import ./tools/ts-resolve-register.mjs tools/cli-mutation-guard-test.mjs && node tools/cli-learn-service-test.mjs && node --import ./tools/ts-resolve-register.mjs tools/learn-resource-enumeration-test.mjs && node --import ./tools/ts-resolve-register.mjs tools/cli-tasks-integration-test.mjs",
     "build:cli": "pnpm --filter @onethu/cli build",
     "build:sdk": "pnpm --filter @onethu/sdk build",
-    "test:sdk": "pnpm --filter @onethu/sdk build && pnpm --filter @onethu/sdk test"
+    "test:sdk": "pnpm --filter @onethu/sdk build && pnpm --filter @onethu/sdk test",
+    "test:gateway": "node --test --test-timeout=15000 packages/gateway/test/*.test.mjs"
   },
   "devDependencies": {
     "@material/material-color-utilities": "^0.4.0",
