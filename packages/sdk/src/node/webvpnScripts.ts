@@ -80,6 +80,32 @@ function inlineJavaScript(tag:string) {
   return type===''||type==='module'||/^(?:text|application)\/(?:x-)?(?:java|ecma)script(?:\s*;|$)/.test(type);
 }
 
+/** WebVPN also wraps inline event handlers. Match the complete observed
+ * envelope only within a parsed attribute; quoted application text is inert. */
+function eventAttributes(tag:string) {
+  const start=/^<[a-z][a-z0-9:-]*/i.exec(tag)?.[0].length;
+  if(!start)return tag;
+  const prefix='var vpn_return;eval(vpn_rewrite_js((function () { ';
+  const suffix=/ \}\)\.toString\(\)\.slice\(14,[ \t]*-2\),[ \t]*2\)\);return vpn_return;$/;
+  const attributes=tag.slice(start,-1).replace(/([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g,(whole:string,name:string,double:string|undefined,single:string|undefined)=>{
+    let value=double??single;
+    if(value===undefined)return whole;
+    const handler=/^on[a-z][a-z0-9:_-]*$/i.test(name),url=name.toLowerCase()==='href'&&/^javascript:/i.test(value);
+    if(!handler&&!url)return whole;
+    const scheme=url?value.slice(0,11):'';
+    let source=value.slice(scheme.length),changed=false;
+    for(let depth=0;source.startsWith(prefix);depth++){
+      const end=suffix.exec(source);
+      if(!end||depth===MAX_ENVELOPES)break;
+      source=source.slice(prefix.length,end.index);changed=true;
+    }
+    if(!changed)return whole;
+    const quote=double!==undefined?'"':"'",opening=whole.indexOf(quote,whole.indexOf('=')+1);
+    return whole.slice(0,opening+1)+scheme+source+quote;
+  });
+  return tag.slice(0,start)+attributes+'>';
+}
+
 /** A small HTML raw-text tokenizer: quoted attributes and comments cannot open
  * scripts, and a script's JS strings never become a second script boundary. */
 function htmlScripts() {
@@ -122,7 +148,7 @@ function htmlScripts() {
       if(!/^<[A-Za-z!/?]/.test(pending)){output.push('<');pending=pending.slice(1);continue;}
       const end=tagEnd(pending);
       if(end<0){if(pending.length>65536)fail('GATEWAY_HTML_TAG_TOO_LARGE');if(final){output.push(pending);pending='';}break;}
-      const tag=pending.slice(0,end);pending=pending.slice(end);output.push(tag);
+      const tag=pending.slice(0,end);pending=pending.slice(end);output.push(eventAttributes(tag));
       const name=/^<([a-z][a-z0-9:-]*)(?=[\s/>])/i.exec(tag)?.[1]?.toLowerCase();
       if(name==='script'){state='script';rawTag='script';rewrite=inlineJavaScript(tag);}
       else if(name&&['style','textarea','title','xmp','iframe','noembed','noframes'].includes(name)){state='raw';rawTag=name;rewrite=false;}

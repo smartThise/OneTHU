@@ -22,7 +22,7 @@
  * 响应编码：桌面端 Tauri 传输层（reqwest charset）已把 GBK 自动转码为 UTF-8；
  * 字节路径的解码语义见 crypto/decryptResponse.ts（demo 的 decryptResponse 移植）。
  */
-import { AuthRequiredError, HttpClient } from "../http.js";
+import { AuthRequiredError, HttpClient, type CookieRecord } from "../http.js";
 import { gbkPercentEncode } from "./gbk-table.js";
 import { searchXkCoursesByTab } from "./xk-tab.js";
 import { deptCodeOf, normSeq, parsePagerInfo, parseVolRows, parseVolSportsRows, parseVolStr, type XkVolRow } from "./xk-vol.js";
@@ -30,18 +30,19 @@ import { parseCasFormHtml } from "../auth/cas.js";
 import { decodeUrl, webvpnWrap } from "../crypto/webvpn.js";
 import { ID_PREFIX } from "../auth/cas.js";
 import { encryptPassword } from "../crypto/sm2.js";
-import { isXkCourseTable, isXkEnglishSessionError, xkColumnIndex, xkHeaderCells, xkRejectionMessage } from "./html-language.js";
+import { isXkCourseTable, isXkEnglishSessionError, isXkIdentityPage, isXkConfirmationPage, isXkSessionError, xkColumnIndex, xkHeaderCells, xkRejectionMessage } from "./html-language.js";
 
 const ZHJWXK = "http://zhjwxk.cic.tsinghua.edu.cn";
 
+/** A selection failure cannot revoke other campus service sessions. */
+function xkAuthRequired(message?: string): AuthRequiredError {
+  return Object.assign(new AuthRequiredError(message, { broadcast: false }), { code: "XK_AUTH_REQUIRED" });
+}
+
 /** 调试钩子（桌面端接 /tmp/onethu-debug.log）：zhjwxk 页面抓取现场 */
 let zhjwxkDebug: ((line: string) => void) | null = null;
-/** 原生 cookie 仓清空钩子（desktop 注入 http_native_clear_cookies；rust 仓与
- *  TS jar 双轨，只清 TS jar 时 rust 仍按旧 cookie 认出上下文——死结清不动的根因） */
-let nativeCookieClearHook: (() => Promise<void>) | null = null;
-export function setZhjwxkNativeClear(fn: () => Promise<void>): void {
-  nativeCookieClearHook = fn;
-}
+/** @deprecated Selection recovery preserves the shared identity jar. */
+export function setZhjwxkNativeClear(_fn: () => Promise<void>): void {}
 /** 死结重登钩子（desktop 注入）：id 是单点登录，选课自清仓直登会踢掉 lib 的
  *  id 会话、lib 自愈重登又踢回——无限互踢（17:51 双死结、01:43 隔夜 info
  *  全死实录）。死结时改借 lib 的权威重登，id 会话单一来源。 */
@@ -51,6 +52,12 @@ export function setZhjwxkReloginHook(fn: () => Promise<boolean>): void {
 }
 export function setZhjwxkDebug(fn: (line: string) => void): void {
   zhjwxkDebug = fn;
+}
+
+/** Callback tickets and personal page bodies never enter diagnostic logs. */
+function safeXkDebugUrl(value: string): string {
+  try { const url = new URL(decodeUrl(value) ?? value, ID_PREFIX); return url.origin + url.pathname.replace(/[0-9a-f]{32,}/gi, ":id"); }
+  catch { return "invalid-url"; }
 }
 
 /** 会话：HttpClient（共享 jar）+ 原始凭据（id-bounce 表单重登用） */
@@ -66,6 +73,9 @@ export interface ZhjwxkSession {
   /** 受信设备三段指纹（demoLogin 免 2FA 用；缺省时隔离通道可能被要求 2FA */
   /** 可更新：desktop 侧 verify 签发后动态刷新（单例值拷贝会定死旧空值） */
   finger3?: string;
+  /** Successful service establishment can publish cookies to the same-account
+   * resident authority. No password is passed to this hook. */
+  readonly onSessionReady?: (state: { identityRenewed: boolean; cookies: CookieRecord[] }) => Promise<void>;
 }
 
 /** 已选课程（demo /api/courses 的 courses 项，字段一一对应） */
@@ -177,7 +187,7 @@ async function ensure(
   semesterOverride?: string,
 ): Promise<{ entry: ZhjwxkEntry; semester: string }> {
   if (Date.now() < xkFailCooldownUntil) {
-    throw new AuthRequiredError("选课会话恢复冷却中，请稍候重试");
+    throw xkAuthRequired("选课会话恢复冷却中，请稍候重试");
   }
   const hit = entryCache.get(s);
   if (hit && Date.now() - hit.at < ENTRY_TTL_MS) {
@@ -202,19 +212,20 @@ async function ensure(
   // 重放一次 xklogin 即真正进入选课 SSO。直连模式落地即真页面，第二跳自然跳过。
   let html = "";
   let semester: string | null = null;
+  let identityRenewed = false;
   for (let attempt = 1; attempt <= 2; attempt++) {
-  html = await http.text(ZHJWXK + "/xklogin.do");
+  html = await http.text(ZHJWXK + "/xklogin.do", {}, { validateStatus: true });
 
   // xklogin 的 SSO 不是普通 302：链会 302 到 id 电子身份的动态 auth-request 表单页
   //（JS 锚点跟跳），HTTP 客户端到不了 —— 参照 thu-info-lib roam("id")：解析该表单
   //（公钥+隐藏字段），SM2 加密账密 POST /check，成功后跟锚点回 xk 落地会话。
-  if (html.includes("电子身份服务系统") || html.includes("do/off/ui/auth/login")) {
+  if (isXkIdentityPage(html)) {
     // id 半会话的 checkSingle 中间页（info 客户端 #idCheckSingle 同款第三形态，
     // 2026-09-13 凌晨实锤：xklogin 弹回间歇拿到 id="logined" 自检页，无 SM2 公钥
     // → 解析炸「无法从登录页获取 SM2 公钥」→ 选课整模块红条。浏览器靠 JS 自动
     // POST 它；手动兑付：POST checkSingle → 跟 302/锚点票据 → 重走 xklogin 落地。
     let csRounds = 0;
-    while (/checkSingle/.test(html) && csRounds < 2) {
+    while (isXkConfirmationPage(html) && csRounds < 2) {
       csRounds += 1;
       // 2026-09-13 桶一致修复：去掉 direct:true——webvpn 模式下表单链在 webvpn 桶
       // 建立会话，POST 却送直连桶 cookie（空/脏）→ id 不认识 → gb2312 错误页。
@@ -230,8 +241,9 @@ async function ensure(
       const loc = res.headers.get("location") ?? "";
       const pageHtml = await res.text().catch(() => "");
       const target = res.status >= 300 && res.status < 400 && loc ? loc : (/href="([^"]*ticket=[^"]*)"/i.exec(pageHtml)?.[1] ?? "");
-      zhjwxkDebug?.(`[XK-CHECKSINGLE] st=${res.status} loc=${loc.slice(0, 80)} target=${target.slice(0, 90)}`);
+      zhjwxkDebug?.(`[XK-CHECKSINGLE] st=${res.status} hasLocation=${loc ? 1 : 0} hasTarget=${target ? 1 : 0}`);
       if (!target) break;   // 无票据可兑付：走表单链
+      identityRenewed = true;
       let tgt = target.startsWith("http") ? target : new URL(target, ID_PREFIX).toString();
       // 协议改写（check 块同款教训）：zhjwxk 是 http 应用，https 锚点原样兑付
       // 会让 /https/ 包装代理到 443 →「访问内容不存在」票据白烧 → 误判死结 →
@@ -244,15 +256,12 @@ async function ensure(
           tgt = webvpnWrap(dec.replace("https://zhjwxk.cic.tsinghua.edu.cn", ZHJWXK));
         }
       }
-      zhjwxkDebug?.(`[XK-CHECKSINGLE] 兑付=${tgt.slice(0, 110)}`);
-      await http.text(tgt).catch(() => {});   // 兑付票据（失败不阻断：回落表单链）
-      html = await http.text(ZHJWXK + "/xklogin.do");
-      if (/checkSingle/.test(html)) {
-        // 确认+兑付一轮后仍 checkSingle = id 会话卡死在"待确认"态（pending 票
-        // 永不消费，桌面 2026-09-17 实录）。唯一出路：清两 jar 的 id/oauth 会话
-        // 强制回到全新登录表单，走账密直登重置会话（直登带受信 finger3，不触发
-        // 2FA——传空指纹才是 2FA 根因）。
-        // 死结重登：优先借 lib 权威（单点登录互踢根治）；无钩子退回自清仓
+      zhjwxkDebug?.(`[XK-CHECKSINGLE] 兑付=${safeXkDebugUrl(tgt)}`);
+      const confirmedPage = await http.text(tgt).catch(() => "");
+      html = /p_xnxq=[\d-]+/.test(confirmedPage) ? confirmedPage : await http.text(ZHJWXK + "/xklogin.do");
+      if (isXkConfirmationPage(html)) {
+        // One bounded attempt belongs to the shared authority. A local service
+        // failure cannot clear ID/OAuth cookies or rebuild other app sessions.
         if (xkReloginHook) {
           zhjwxkDebug?.("[XK-CHECKSINGLE] 确认死结 → 借 lib 权威重登（防互踢）");
           let ok = false;
@@ -262,51 +271,15 @@ async function ensure(
             zhjwxkDebug?.(`[XK-CHECKSINGLE] lib 重登后重入 len=${html.length} checkSingle=${/checkSingle/.test(html) ? 1 : 0}`);
             continue;   // 带 csRounds 计数继续 while 循环
           }
-          zhjwxkDebug?.("[XK-CHECKSINGLE] lib 重登失败 → 回退自清仓");
+          zhjwxkDebug?.("[XK-CHECKSINGLE] 共享认证未恢复，保留现有会话");
         }
-        zhjwxkDebug?.("[XK-CHECKSINGLE] 确认死结 → 清 id/oauth 会话走账密直登");
-        // 清仓前抢救健康域票据（webvpn/learn）：rust clear 是全清，全清会让
-        // webvpn 票陪葬 → 日程/各页集体无票爆掉，逐页自愈转圈才恢复（2026-09-18
-        // 实录）。死结只在 id/oauth 域——健康票救回、只重建死域。
-        // 全量快照抢救：id/oauth 外全部保命。原按 webvpn/learn 根 URL 捞会漏掉
-        // path 限定的 wengine app-host 票（Path=/http/<hash>/ 不是根路径前缀，
-        // getCookies(根) 捞不到）→ 清后包装请求无票 → 引导壳（「教务返回异常页」，
-        // 强制刷新实录）
-        const rescue: Array<[string, string]> = [];
-        try {
-          const snap = JSON.parse(s.http.jar.serialize() || "[]") as Array<{ domain?: string; path?: string; name?: string; value?: string }>;
-          for (const c of snap) {
-            if (!c.domain || !c.name || !c.value) continue;
-            if (/id\.tsinghua|oauth\.tsinghua/.test(c.domain)) continue; // 死域不救
-            const physical = `https://${c.domain.replace(/^\./, "")}${c.path || "/"}`;
-            rescue.push([physical, `${c.name}=${c.value}`]);
-          }
-        } catch { /* 快照失败退回旧粒度 */ }
-        if (rescue.length === 0) {
-          for (const dom of ["https://webvpn.tsinghua.edu.cn/", "https://learn.tsinghua.edu.cn/"]) {
-            try {
-              for (const c of s.http.jar.getCookies(new URL(dom))) {
-                rescue.push([dom, `${c.name}=${c.value}`]);
-              }
-            } catch { /* 忽略 */ }
-          }
-        }
-        try { await nativeCookieClearHook?.(); } catch { /* 钩子未注入/失败不阻断 */ }
-        for (const u of ["https://id.tsinghua.edu.cn/", "https://oauth.tsinghua.edu.cn/"]) {
-          try { s.http.jar.clear(new URL(u).hostname); http.jar.clear(new URL(u).hostname); } catch { /* 域无 cookie */ }
-        }
-        // Domain-only clearing already preserves healthy native cookies. Keep
-        // the TS mirror without replaying an unversioned snapshot into native.
-        for (const [dom, pair] of rescue) {
-          try { s.http.jar.setRaw(new URL(dom), `${pair}; Path=/`); } catch { /* 忽略 */ }
-        }
-        zhjwxkDebug?.(`[XK-CHECKSINGLE] 健康票抢救 ${rescue.length} 条完成`);
-        // 正确的登录表单 URL（cas.ts CAS_LOGIN_FORM，带 form hash；/index 是
-        // 不存在的路径 → Tomcat 500 Error report → parseCasFormHtml 假报结构变更）
-        html = await s.http.text(ID_PREFIX + "/do/off/ui/auth/login/form/bb5df85216504820be7bba2b0ae1535b/0");
-        zhjwxkDebug?.(`[XK-REFRESH] ${/sm2publicKey/.test(html) ? "全新表单✓" : "仍异常"} len=${html.length}`);
+        throw xkAuthRequired("选课系统身份确认失败，请重新登录后重试");
       }
     }
+    // Confirmation may already have landed on the application. Only a real
+    // credential form may use the same account's current in-memory password.
+    if (isXkIdentityPage(html)) {
+    if (!s.username || !s.password || !s.fingerprint) throw xkAuthRequired();
     const form = parseCasFormHtml(html, true);
     const enc = encryptPassword(s.password, form.publicKey);
     // bounce 表单页是 id 直连落地 → 直连字段集（id 校验读 i_pass，cas.ts 直连同款）
@@ -325,17 +298,20 @@ async function ensure(
       fingerGenPrint3: s.finger3 ?? "",
       i_captcha: "",
     });
+    body.delete("singleLogin");
+    body.delete("deviceName");
     // 同上桶一致修复：check 跟随传输模式（原 direct:true 在 webvpn 模式送空桶
     // cookie → gb2312 错误页五连败实锤）
     const checkHtml = await http.text("https://id.tsinghua.edu.cn/do/off/ui/auth/login/check", {
       method: "POST",
       body,
       headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-    });
+    }, { validateStatus: true });
     if (!checkHtml.includes("登录成功")) {
-      zhjwxkDebug?.(`[XK-BOUNCE] 未成功 全页=${checkHtml.slice(0, 1500).replace(/\s+/g, " ")}`);
-      throw new AuthRequiredError("选课系统身份确认失败，请重新登录后重试");
+      zhjwxkDebug?.(`[XK-BOUNCE] 未成功 len=${checkHtml.length} identity=${isXkIdentityPage(checkHtml) ? 1 : 0}`);
+      throw xkAuthRequired("选课系统身份确认失败，请重新登录后重试");
     }
+    identityRenewed = true;
     // 锚点必须选 zhjwxk 的：id 成功页会罗列全部 pending 票锚点（learn/oauth 的
     // 过期票排前面），抓第一个 = 烧在别的服务的死票上 → 两次重试全废 → 报错
     // （15:58 实录：第1次 learn 票落 id 页、第2次 oauth 票落门户页，隔离通道
@@ -357,18 +333,19 @@ async function ensure(
           target = webvpnWrap(dec.replace("https://zhjwxk.cic.tsinghua.edu.cn", ZHJWXK));
         }
       }
-      zhjwxkDebug?.(`[XK-ANCHOR] 兑付=${target.slice(0, 130)}`);
+      zhjwxkDebug?.(`[XK-ANCHOR] 兑付=${safeXkDebugUrl(target)}`);
       const landed = await http.text(target).catch(() => "");
-      zhjwxkDebug?.(`[XK-ANCHOR] 落地 len=${landed.length} 页首=${landed.slice(0, 200).replace(/\s+/g, " ")}`);
+      zhjwxkDebug?.(`[XK-ANCHOR] 落地 len=${landed.length}`);
       // 关键：兑付后不得重打 xklogin.do——那是登录入口，重打会重开 auth 流程弹回
       // id 表单（10:22 实证：兑付已落地真页面，重打又弹回去）。会话已在 jar，直接用。
       html = landed || html;
+    }
     }
   }
 
   semester = /p_xnxq=([\d-]+)/.exec(html)?.[1] ?? null;
   zhjwxkDebug?.(
-    `[XK-ENTRY] 第${attempt}次 len=${html.length} 有p_xnxq=${semester ? 1 : 0} 页首=${html.slice(0, 400).replace(/\s+/g, " ")}`,
+    `[XK-ENTRY] 第${attempt}次 len=${html.length} 有p_xnxq=${semester ? 1 : 0}`,
   );
   // 落地页必须带 p_xnxq（真选课页特征）。「假成功」实证（15:03）：/check 登录成功
   // 但兑付落在电子身份页/webvpn门户页——缓存这种毒 entry 会让合流窗口内所有请求
@@ -398,9 +375,9 @@ async function ensure(
           t = webvpnWrap(dec.replace("https://zhjwxk.cic.tsinghua.edu.cn", ZHJWXK));
         }
       }
-      zhjwxkDebug?.(`[XK-HOP] 中转兑付=${t.slice(0, 130)}`);
+      zhjwxkDebug?.(`[XK-HOP] 中转兑付=${safeXkDebugUrl(t)}`);
       const landed = await http.text(t).catch(() => "");
-      zhjwxkDebug?.(`[XK-HOP] 落地 len=${landed.length} 页首=${landed.slice(0, 150).replace(/\s+/g, " ")}`);
+      zhjwxkDebug?.(`[XK-HOP] 落地 len=${landed.length}`);
       if (landed) html = landed;
     }
   }
@@ -410,7 +387,7 @@ async function ensure(
     continue;
   }
   xkFailCooldownUntil = Date.now() + 3000;
-  throw new AuthRequiredError("选课系统登录未落地，请重新登录后重试");
+  throw xkAuthRequired("选课系统登录未落地，请重新登录后重试");
   }
   const entry: ZhjwxkEntry = { semester, at: Date.now() };
   lastXkReloginAt = Date.now();
@@ -425,6 +402,7 @@ async function ensure(
     const body = await probe?.text().catch(() => "");
     zhjwxkDebug?.(`[XK-WARMUP] 票接口 len=${body?.length ?? 0} 票=${/ticket|wrdvpn/i.test(body ?? "") ? "✓" : "?"}`);
   } catch { /* 预热失败不阻断（后续 isXkDeadHtml 兜底） */ }
+  await s.onSessionReady?.({ identityRenewed, cookies: JSON.parse(xkHttp(s).jar.serialize()) as CookieRecord[] });
   entryCache.set(s, entry);
   return entry;
   })().catch((e) => {
@@ -450,19 +428,11 @@ async function ensure(
  *  中转页（特征 电子身份服务系统/do/off/ui/auth/login）——原判据漏掉它，
  *  SSO 中转页被当数据解析 → 「教务返回异常页」卡。补上即走既有静默重登。 */
 function isXkDeadHtml(html: string): boolean {
-  return html.includes("accessDenied")
-    || isXkEnglishSessionError(html)
-    || html.includes("用户登陆超时或访问内容不存在。请重试")
-    || html.includes("电子身份服务系统")
-    || html.includes("do/off/ui/auth/login")
-    // WebVPN app-host 引导壳（webvpn 会话死亡，请求没到教务）——2026-09-03
-    // 实录：标题综合教务系统 + __vpn_hostname_data/__vpn_app_hostname_data
-    || html.includes("__vpn_app_hostname_data")
-    || html.includes("__vpn_hostname_data");
+  return isXkSessionError(html);
 }
 
 async function proxyZhjwxkApi(s: ZhjwxkSession, entry: ZhjwxkEntry, zhjwxkPath: string): Promise<string> {
-  const html = await xkHttp(s).text(ZHJWXK + zhjwxkPath);
+  const html = await xkHttp(s).text(ZHJWXK + zhjwxkPath, {}, { validateStatus: true });
   if (!isXkDeadHtml(html)) {
     entry.at = Date.now();
     return html;
@@ -474,7 +444,7 @@ async function proxyZhjwxkApi(s: ZhjwxkSession, entry: ZhjwxkEntry, zhjwxkPath: 
   // 无条件护栏曾把这条救回路挡死（16:48 失败后无人再试）。3s 失败冷却挡风暴。
   if (entryCache.get(s) && Date.now() - lastXkReloginAt > 60_000) entryCache.delete(s);
   await ensure(s);
-  const retried = await xkHttp(s).text(ZHJWXK + zhjwxkPath);
+  const retried = await xkHttp(s).text(ZHJWXK + zhjwxkPath, {}, { validateStatus: true });
   entry.at = Date.now();
   return retried;
 }
@@ -483,7 +453,7 @@ async function proxyZhjwxkApi(s: ZhjwxkSession, entry: ZhjwxkEntry, zhjwxkPath: 
 function assertNotDenied(s: ZhjwxkSession, html: string): void {
   if (isXkDeadHtml(html)) {
     entryCache.delete(s); // 作废过期会话，重试时从新 demoCookies 重建
-    throw new AuthRequiredError("选课系统会话已过期，请退出后重新登录");
+    throw xkAuthRequired("选课系统会话已过期，请退出后重新登录");
   }
 }
 
@@ -692,16 +662,8 @@ export async function getQueueStatus(
   if (rows.length === 0) {
     // 官网有队列但应用为空时的定位线索：页面到底长什么样（行类分布/页首形态）
     zhjwxkDebug?.(
-      `[XK-QUEUE] 零行诊断 sem=${semester} len=${html.length} trr1=${(html.match(/trr1/g) ?? []).length} trr2=${(html.match(/trr2/g) ?? []).length} tr总数=${(html.match(/<tr[^>]*>/g) ?? []).length} 页首=${html.slice(0, 300).replace(/\s+/g, " ")}`,
+      `[XK-QUEUE] 零行诊断 sem=${semester} len=${html.length} trr1=${(html.match(/trr1/g) ?? []).length} trr2=${(html.match(/trr2/g) ?? []).length} tr总数=${(html.match(/<tr[^>]*>/g) ?? []).length}`,
     );
-    // 「提示信息」类拦截页很小（实测 1492B），正文全文打印——拦截原因直接写在正文里
-    const text = html
-      .replace(/<script[\s\S]*?<\/script>/gi, " ")
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    zhjwxkDebug?.(`[XK-QUEUE] 拦截页全文(${text.length})=${text.slice(0, 700)}`);
   }
   return rows;
 }
@@ -1047,7 +1009,7 @@ async function pagedFetch<T>(
     const n = put(opts.parse(html));
     if (n === 0) {
       zhjwxkDebug?.(
-        `[XK-PAGE] page=${page} 解析 0 行 body(${html.length})=${html.slice(0, 1600).replace(/\s+/g, " ")}`,
+        `[XK-PAGE] page=${page} 解析 0 行 len=${html.length}`,
       );
     }
     return n;
@@ -1155,19 +1117,6 @@ export async function searchXkCourses(
   if (opts.gradAvail) parts.push("p_yjskyl_ig=0");
   const html = await proxyZhjwxkApi(s, entry, `/xkBks.vxkBksJxjhBs.do?${parts.join("&")}&_t=${Date.now()}`);
   assertNotDenied(s, html);
-  // 结构取证（教师空格悬案）：首个 trr2 行前后 2600 字 dump——DOM 直系子格取
-  // 出的教师格为空而插件能出名字，需原始结构定分晓
-  if (zhjwxkDebug) {
-    const rowsHtml: string[] = [];
-    const rowRe = /class="trr2"/g;
-    let rm: RegExpExecArray | null;
-    while ((rm = rowRe.exec(html)) !== null && rowsHtml.length < 3) {
-      rowsHtml.push(html.slice(rm.index, rm.index + 700).replace(/\s+/g, " "));
-    }
-    const hRow = /<tr[^>]*class="trr1"[^>]*>([\s\S]*?)<\/tr>/.exec(html)?.[1] ?? "";
-    const heads = [...hRow.matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/g)].map((t) => (t[1] ?? "").replace(/<[^>]*>/g, "").trim()).join("|");
-    zhjwxkDebug?.(`[SEARCH-ROW] heads=${heads} rows=${JSON.stringify(rowsHtml)}`);
-  }
   const rows = parseXkCatalogPage(html);
   const pager = parsePagerInfo(html);
   const totalPages = pager.pages || undefined;
@@ -1755,12 +1704,7 @@ export async function getXkPlan(s: ZhjwxkSession, opts: { semester: string }): P
     const group = cells.find((c) => c.length > 2 && !["必修", "限选", "任选"].includes(c) && !/^\d/.test(c) && !c.includes("学年") && c !== name);
     if (name) out.push({ semester: `${sem} ${season}`.trim(), code: code!, name: name!.replace(/\s+/g, ""), attr: attr ?? "", credits: parseFloat(credit ?? "") || 0, group: group ?? "" });
   }
-  zhjwxkDebug?.(`[XK-PLAN] len=${page.length} kcTable=${page.includes("kcTable") ? 1 : 0} 行=${out.length} 页首=${page.slice(0, 200).replace(/\s+/g, " ")}`);
-  if (!out.length) {
-    // 0 行现场：页面仅 16K，整页倾倒（压平换行）——split 修复后仍 0 行
-    //（15:48 实证），只有看到真实数据行才能定案
-    zhjwxkDebug?.(`[XK-PLAN-FULL] ${page.replace(/\s+/g, " ")}`);
-  }
+  zhjwxkDebug?.(`[XK-PLAN] len=${page.length} kcTable=${page.includes("kcTable") ? 1 : 0} 行=${out.length}`);
   return out;
 }
 

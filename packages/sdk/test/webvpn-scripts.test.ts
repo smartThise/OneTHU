@@ -66,3 +66,16 @@ test('large standalone wrapped scripts stream before the source is completely pr
  const first=await reader.read();assert.equal(first.done,false);assert(produced<count);
  let bytes=first.value!.length;while(true){const part=await reader.read();if(part.done)break;bytes+=part.value.length;}assert.equal(bytes,count*chunk.length);
 });
+
+test('HTML event and javascript-link envelopes restore their original handlers across chunk boundaries',async()=>{
+ const wrap=(source:string)=>'var vpn_return;eval(vpn_rewrite_js((function () { '+source+' }).toString().slice(14, -2), 2));return vpn_return;';
+ const handler='showhidediv(); return false;',wrapped=wrap(handler);
+ const source='<a onclick="'+wrapped+'" href="javascript:'+wrap('openMenu()')+'">query</a><input ONCHANGE=\''+wrap('choose(&quot;fixture&quot;)')+'\'>';
+ const expected='<a onclick="'+handler+'" href="javascript:openMenu()">query</a><input ONCHANGE=\'choose(&quot;fixture&quot;)\'>';
+ for(const size of [1,13,65536])assert.equal((await transform(Buffer.from(source),true,size)).toString(),expected);
+ const inert='<div title=\'onclick="'+wrapped+'"\'></div><!-- <a onclick="'+wrapped+'"> --><script type="application/json">'+JSON.stringify(wrapped)+'</script><textarea><a onclick="'+wrapped+'"></textarea>';
+ assert.equal((await transform(Buffer.from(inert),true,1)).toString(),inert);
+ for(const text of [wrapped.replace('slice(14','slice(13'),wrapped.replace('2));return','3));return'),'applicationText('+JSON.stringify(wrapped)+')']){
+  const html='<a onclick=\''+text+'\'>same</a>';assert.equal((await transform(Buffer.from(html),true,3)).toString(),html);
+ }
+});

@@ -33,7 +33,8 @@ import {
 xkParseDebug.onOddTeacher = (code, seq, teacher, rawRow) => {
   logPageError(`TEACHER-ODD ${code}_${seq}`, new Error(`teacher="${teacher}" rawRow=${rawRow}`));
 };
-import { http, info, learn, logLine, session } from "../lib/clients.js";
+import { http, info, learn, logLine, session, publishSelectionSession } from "../lib/clients.js";
+import { createXkSessionProvider } from "../lib/xkSession.js";
 // lib 管线（2026-09-17 挪移）：日程/用户信息直取上游 thu-info-lib——旧 InfoClient
 // 的手搓会话管理（探活/漫游/票信任链）整体退役，登录态由 lib + Rust 原生仓负责。
 import { helper as infoHelper } from "../lib/infoLib.js";
@@ -718,19 +719,9 @@ function lsSet(key: string, value: unknown): void {
 }
 
 /** 选课会话单例（WeakMap 缓存键必须稳定；凭据来自 CampusSession 内部字段） */
-let xkSessionSingleton: ZhjwxkSession | null = null;
-function xkSession(): ZhjwxkSession {
-  if (!xkSessionSingleton) {
-    const c = session.xkCredentials;
-    // 隔离通道（2026-09-13）：选课专用 HttpClient+自管 jar，webvpn 多域 cookie
-    // 需求锁死在本模块内，不污染全局会话桶（seedJar 拆条事故定案）
-    xkSessionSingleton = { http, username: c.username, password: c.password, fingerprint: c.fingerprint, isoFetch: nativeFetch as unknown as typeof universalFetch, finger3: session.finger3 };
-  }
-  // finger3 动态取最新：单例在旧登录时创建、值拷贝定死——verify 后落盘的新
-  // finger3 传不进选课（15:53 落盘 len=32 而 15:54 选课 f3=0 实录）
-  xkSessionSingleton.finger3 = session.finger3 || xkSessionSingleton.finger3;
-  return xkSessionSingleton;
-}
+const xkSession=createXkSessionProvider({http,isoFetch:nativeFetch as unknown as typeof universalFetch,
+  identity:()=>({...session.xkCredentials,finger3:session.finger3||undefined}),
+  onSessionReady:publishSelectionSession});
 
 /** 学期串缓存（12h）：学期串只在换学期时变；命中省一次 ensure/解析往返 */
 const XK_SEM_KEY = "xk:semester";

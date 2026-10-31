@@ -10,6 +10,7 @@ import { validateDesktopSession } from './storage.js';
 import type { TwoFactorType } from '../auth/flow.js';
 import { probeUniversityIdentity } from './identityProbe.js';
 import { campusDirectFetch } from './campusDirect.js';
+import { mergeSelectionCookies, mergeUniversityCookies } from '@onethu/core';
 let activeRuntime = false;
 export interface NodeSessionOptions {
   dataDir: string; fetch?: typeof globalThis.fetch; userAgent?: string;
@@ -115,8 +116,10 @@ export async function createNodeSession(options:NodeSessionOptions) {
     check();if(!owner)throw authError('SCHOOL_SESSION_REQUIRED');
     const candidate=new InfoClient(http);
     candidate.setIdCredentials(()=>{check();return {username:owner,password:'',fingerprint:device.fingerprint,finger3:device.finger3};});
-    const result=await candidate.resumeCampusPortal(selector,check,{fetchDirect:campusDirect.fetch});check();
-    await persist();check();return result;
+    try{
+      const result=await candidate.resumeCampusPortal(selector,check,{fetchDirect:campusDirect.fetch});check();
+      await persist();check();return result;
+    }catch(error){check();if((error as {code?:string}).code==='CAMPUS_SERVICE_PORTAL_HTTP_302')warnings.add('CAMPUS_INFO_SESSION_REQUIRED');throw error;}
   }
   async function persist(){
     if(closed)throw authError('AUTH_SESSION_CLOSED');
@@ -212,11 +215,16 @@ export async function createNodeSession(options:NodeSessionOptions) {
     }:null;
     return {...desktopStatus(),snapshot};
   }
-  async function adoptSession(input:{snapshot:SessionData;expectedEpoch:number;reason:'bootstrap'|'login'},beforeReplace?:()=>Promise<void>){
+  async function adoptSession(input:{snapshot:SessionData;expectedEpoch:number;reason:'bootstrap'|'login';service?:{name:'selection'|'university';identityRenewed:boolean}},beforeReplace?:()=>Promise<void>){
     if(!input||!Number.isSafeInteger(input.expectedEpoch)||!['bootstrap','login'].includes(input.reason))throw authError('AUTH_HANDOFF_INVALID');
     assertCurrent(input.expectedEpoch);
     if(flow.status().pending)throw authError('AUTH_LOGIN_IN_PROGRESS');
     const snapshot=validateDesktopSession(input.snapshot);
+    if(input.service!==undefined&&(!input.service||input.reason!=='login'||!['selection','university'].includes(input.service.name)||typeof input.service.identityRenewed!=='boolean'||Object.keys(input.service).some(key=>!['name','identityRenewed'].includes(key))))throw authError('AUTH_HANDOFF_INVALID');
+    const serviceOnly=input.service!==undefined;
+    let serviceRevision=cookieRevision;
+    const checkService=()=>{assertCurrent(input.expectedEpoch);if(cookieRevision!==serviceRevision)throw authError('AUTH_SESSION_CHANGED');if(explicitLogout||!(input.service?.name==='university'?['ready','idle'].includes(session.state):session.state==='ready')||session.username!==snapshot.username||device.fingerprint!==snapshot.fingerprint)throw authError('AUTH_SESSION_CONFLICT');};
+    if(serviceOnly)checkService();
     if(input.reason==='bootstrap'){
       if(explicitLogout)throw authError('AUTH_HANDOFF_LOGGED_OUT');
       if(session.username&&session.username!==snapshot.username)throw authError('AUTH_SESSION_CONFLICT');
@@ -232,6 +240,18 @@ export async function createNodeSession(options:NodeSessionOptions) {
         throw error;
       }
       if(identity!==snapshot.username)throw authError('AUTH_HANDOFF_UNVERIFIED');
+      if(serviceOnly){
+        checkService();
+        const university=input.service!.name==='university';
+        const merged=university?mergeUniversityCookies(JSON.parse(http.jar.serialize()),JSON.parse(candidate.jar.serialize())):mergeSelectionCookies(JSON.parse(http.jar.serialize()),JSON.parse(candidate.jar.serialize()),input.service!.identityRenewed);
+        if(merged.changed||university){
+          transport.rotate();campusDirect.rotate();cookieRevision++;learnPreparation=null;
+          serviceRevision=cookieRevision;
+          http.jar.hydrate(JSON.stringify(merged.cookies));await persist();checkService();
+        }
+        if(university){session.state='ready';warnings.delete('CAMPUS_INFO_SESSION_REQUIRED');}
+        return desktopStatus();
+      }
       const changed=session.username!==snapshot.username||session.state!=='ready';
       if(changed){await beforeReplace?.();assertCurrent(input.expectedEpoch);rotate();}
       else {transport.rotate();invalidateLearn();}
@@ -264,6 +284,6 @@ export async function createNodeSession(options:NodeSessionOptions) {
     closing=true;for(const service of services)service.close();services.clear();transport.close();campusDirect.close();clearOutstandingLogin();
     try{await persist();}finally{closed=true;session.reset();helper.password='';try{await storage.close();}finally{activeRuntime=false;}}
   }
-  return{session,http,learn,info,helper,fetch:transport.fetch,fetchCampusDirect:campusDirect.fetch,createServiceTransport,restore,login,twoFactor,logout,status,persist,close,epoch,assertCurrent,desktopStatus,exportSession,adoptSession,ensureLearnReady,ensureCampusService,resolveCampusPortal,loadGatewayState:()=>gatewayState,saveGatewayState(value:unknown){gatewayState=value;void persist().catch(()=>warnings.add('GATEWAY_CACHE_UNAVAILABLE'));},guardGeneration:epoch,dataDir:storage.directory};
+  return{session,http,learn,info,helper,fetch:transport.fetch,fetchCampusDirect:campusDirect.fetch,createServiceTransport,restore,login,twoFactor,logout,status,persist,close,epoch,assertCurrent,desktopStatus,exportSession,adoptSession,ensureLearnReady,ensureCampusService,resolveCampusPortal,noteInfoSessionRequired(){if(session.username&&!explicitLogout)warnings.add('CAMPUS_INFO_SESSION_REQUIRED');},loadGatewayState:()=>gatewayState,saveGatewayState(value:unknown){gatewayState=value;void persist().catch(()=>warnings.add('GATEWAY_CACHE_UNAVAILABLE'));},guardGeneration:epoch,dataDir:storage.directory};
 }
 export type NodeSession = Awaited<ReturnType<typeof createNodeSession>>;

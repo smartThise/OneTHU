@@ -1,6 +1,7 @@
 import { HttpClient, type FetchLike } from '../http.js';
 import { decodeUrl, webvpnWrap } from '../crypto/webvpn.js';
 import { ROAMING_URL } from './urls.js';
+import { isXkSessionError } from '../zhjwxk/html-language.js';
 
 const INFO='https://info.tsinghua.edu.cn',ID='https://id.tsinghua.edu.cn',VPN='https://webvpn.tsinghua.edu.cn';
 const IDENTITY=new Set(['id.tsinghua.edu.cn','oauth.tsinghua.edu.cn']);
@@ -83,6 +84,18 @@ export async function resolveCampusPortal(http:HttpClient,selector:string,contex
     let destination:unknown;try{destination=(JSON.parse(await bounded(response,check)) as {object?:{roamingurl?:unknown}}).object?.roamingurl;}catch(error){check();throw error instanceof SyntaxError?Object.assign(new Error('CAMPUS_SERVICE_SSO_REQUIRED'),{code:'CAMPUS_SERVICE_SSO_REQUIRED'}):error;}
     if(typeof destination!=='string'||!destination)reject('CAMPUS_SERVICE_ENTRY_MISSING');
     let current=route(destination,new URL(ROAMING_URL()));
+    // The legacy selection login endpoint starts CAS even while its business
+    // session is usable. First reuse the read-only home of this already
+    // authenticated Info destination; an unavailable home falls through to SSO.
+    // No arbitrary caller URL or independently discovered host is accepted.
+    if(current.logical.hostname==='zhjwxk.cic.tsinghua.edu.cn'&&!ticket(current.logical)){
+      const home=route(webvpnWrap('http://zhjwxk.cic.tsinghua.edu.cn/xkBks.vxkBksXkbBs.do?m=main'));
+      const probe=await fetchRoute(home);
+      if(probe.ok){
+        const html=await bounded(probe,check);
+        if(!isXkSessionError(html)&&/(?:xk\/top\.html|xkBks\.|p_xnxq)/i.test(html))return result(home,false);
+      }else await probe.body?.cancel();
+    }
     let serviceOrigin:string|undefined,identitySeen=false,confirmed=false;
     const visited=new Set<string>();
     for(let hop=0;hop<8;hop++){

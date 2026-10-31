@@ -13,6 +13,7 @@ export * as sm2crypto from "./crypto/sm2.js";
 export { decryptResponse } from "./crypto/decryptResponse.js";
 
 // 授权
+export { mergeSelectionCookies, mergeUniversityCookies } from "./auth/serviceCookies.js";
 export { MemoryCredentialStore, LocalStorageCredentialStore, makeFingerprint } from "./auth/store.js";
 export type { CredentialStore, SessionData } from "./auth/store.js";
 export {

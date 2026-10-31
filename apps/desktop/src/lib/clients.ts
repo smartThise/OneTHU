@@ -14,13 +14,15 @@ import {
   webvpnWrap,
   normalizeWebvpnUrl,
   PUBLIC_DIRECT_HOSTS,
+  mergeSelectionCookies,
+  type CookieRecord,
   type CredentialStore,
   type SessionData,
   type TwoFactorMethod,
 } from "@onethu/core";
 import { universalFetch, nativeFetch, nativeSeedCookies, nativeCookieClear, isTauri, setHopCookieProvider, setHopLogger, setHopUrlWrapper } from "./transport.js";
 import { loginCooldownLeftMs } from "./loginGate.js";
-import { setWebvpnLog, setZhjwxkDebug, setZhjwxkNativeClear, setZhjwxkReloginHook } from "@onethu/core";
+import { setWebvpnLog, setZhjwxkDebug, setZhjwxkReloginHook } from "@onethu/core";
 import { redactNetworkLog } from "./networkLog.js";
 import { loginFailureDiagnostic } from "./loginErrors.js";
 import { probeLearnSession } from "./learnRecovery.js";
@@ -183,12 +185,11 @@ void (async () => {
 })();
 
 setZhjwxkDebug((line) => void logLine(line));
-setZhjwxkNativeClear(nativeCookieClear);
-// 死结重登借 lib 权威：id 单点登录互踢根治（选课清仓直登曾踢死新闻/日程/info）
-// hook 内懒加载——顶层 await 在生产构建 target（es2020）不可用，且懒加载无时序问题
+// Selection can ask the shared authority to probe/restore itself once. A
+// healthy global session is retained rather than force-relogged for this app.
 setZhjwxkReloginHook(async () => {
-  const { libForceRelogin } = await import("./infoLib.js");
-  return libForceRelogin();
+  const { libEnsureSession } = await import("./infoLib.js");
+  return libEnsureSession();
 });
 setWebvpnLog((line) => void logLine(line));
 
@@ -659,6 +660,44 @@ export function retrySharedSessionHandoff(): Promise<SharedSessionSnapshot | nul
   void pending.then(clear, () => { sharedHandoffRetryAfter = Date.now() + 30_000; clear(); });
   return pending;
 }
+
+const nativeServicePublications=new Map<string,Promise<void>>();
+let universityPublicationRetryAt=0;
+/** A live, same-owner native export can renew only the declared cookie scopes.
+ * Disk cookie snapshots and passwords are never used by this bridge. */
+function publishNativeServiceSession(service:{name:'selection'|'university';identityRenewed:boolean},serviceCookies?:CookieRecord[]):Promise<void>{
+  if(!usesSharedRuntime()||session.state!=="ready"||!session.username)return Promise.resolve();
+  const generation=resumeGeneration,owner=session.username,fingerprint=session.fingerprint;
+  const key=[service.name,service.identityRenewed,owner,fingerprint,generation].join('\n');
+  const existing=nativeServicePublications.get(key);if(existing)return existing;
+  const check=()=>{if(generation!==resumeGeneration||session.username!==owner||session.fingerprint!==fingerprint||session.state!=="ready")throw new Error('AUTH_SESSION_CHANGED');};
+  const request=(async()=>{
+    const shared=await exportSharedSession();check();
+    if(!shared.capabilities?.includes('service-session-merge-v1'))return;
+    if(shared.tombstone||shared.session.twoFactor?.pending||shared.username!==owner||shared.snapshot?.fingerprint!==fingerprint||sharedSessionEpoch!==null&&shared.epoch!==sharedSessionEpoch)throw new Error('CLI_SHARED_SESSION_CHANGED');
+    const local=await loadConsistentSessionSnapshot();check();
+    if(local?.username!==owner||local.fingerprint!==fingerprint)throw new Error('AUTH_SESSION_CONFLICT');
+    const native=await exportNativeSessionCookies();check();
+    // Selection owns an isolated JS jar. Its completed transaction takes
+    // precedence over older native copies of those same service families.
+    const cookies=service.name==='selection'&&serviceCookies
+      ?mergeSelectionCookies(native.cookies,serviceCookies,service.identityRenewed).cookies:native.cookies;
+    await adoptSharedSession({...shared.snapshot,cookiesJson:JSON.stringify(cookies),savedAt:Date.now()},shared.epoch,'login',service);check();
+    if(service.name==='university')universityPublicationRetryAt=0;
+    await logLine(`Native service handback complete (${service.name})`).catch(()=>undefined);
+  })().catch(async error=>{
+    if(service.name==='university')universityPublicationRetryAt=Date.now()+30_000;
+    if(/AUTH_SESSION_CHANGED|CLI_SHARED_SESSION_CHANGED|AUTH_SESSION_CONFLICT/.test(String(error)))throw error;
+    const reason=String(error).match(/\b(?:AUTH|CLI|DAEMON)_[A-Z_]{1,64}\b/)?.[0]??'unavailable';
+    await logLine(`Native service handback pending (${service.name}, ${reason}); live application session retained`).catch(()=>undefined);
+  });
+  nativeServicePublications.set(key,request);
+  const clear=()=>{if(nativeServicePublications.get(key)===request)nativeServicePublications.delete(key);};
+  void request.then(clear,clear);return request;
+}
+export const publishSelectionSession=(state:{identityRenewed:boolean;cookies:CookieRecord[]})=>publishNativeServiceSession({name:'selection',identityRenewed:state.identityRenewed},state.cookies);
+export const publishUniversitySession=()=>publishNativeServiceSession({name:'university',identityRenewed:true});
+
 async function adoptSuccessfulDesktopLogin(): Promise<void> {
   if (!usesSharedRuntime()) return;
   try {
@@ -880,6 +919,26 @@ async function performResumeSession(): Promise<boolean> {
       }
       if (generation !== resumeGeneration) return false;
       saved = shared.snapshot;
+      if(saved&&!shared.tombstone&&!shared.session.twoFactor?.pending&&shared.capabilities?.includes('service-session-merge-v1')){
+        const local=await loadConsistentSessionSnapshot();
+        if(generation!==resumeGeneration)return false;
+        if(local?.username===saved.username&&local.fingerprint===saved.fingerprint){
+          const native=await exportNativeSessionCookies();
+          if(generation!==resumeGeneration)return false;
+          if(native.cookies.length){
+            try{
+              // The running app may have renewed after the resident snapshot.
+              // Prove its live jar before any resident import can replace it.
+              shared=await adoptSharedSession({...saved,cookiesJson:JSON.stringify(native.cookies),savedAt:Date.now()},shared.epoch,'login',{name:'university',identityRenewed:true});
+              if(generation!==resumeGeneration)return false;
+              saved=shared.snapshot;
+            }catch(error){
+              if(/AUTH_SESSION_CHANGED|AUTH_SESSION_CONFLICT|CLI_SHARED_SESSION_CHANGED/.test(String(error)))throw error;
+              // A rejected native candidate never mutates either existing jar.
+            }
+          }
+        }
+      }
       if (saved && shared.session.state !== "ready") {
         // A nonblocking export is a durable snapshot, not a completed identity
         // proof. Keep the existing native jar only for a matching local owner;
@@ -1160,6 +1219,13 @@ export async function refreshSharedSession(onChanging?: () => void): Promise<Boo
     }
   }
   const shared = await getSharedRuntimeStatus();
+  if(!requiresHydration&&session.state==='ready'&&session.username===shared.username&&sharedSessionEpoch===shared.epoch&&!shared.tombstone&&!shared.session.twoFactor?.pending&&shared.capabilities?.includes('service-session-merge-v1')&&
+     (shared.session.state==='idle'||shared.session.warnings?.includes('CAMPUS_INFO_SESSION_REQUIRED'))){
+    if(Date.now()>=universityPublicationRetryAt)await publishUniversitySession();
+    // Keep the running GUI's live jar; an unverified resident snapshot cannot
+    // replace it simply because its cached account status changed.
+    return null;
+  }
   if (!requiresHydration && sharedSessionEpoch !== null && sharedSessionEpoch === shared.epoch && sharedSessionState === sharedSessionStateKey(shared)) return null;
   if (!requiresHydration && session.state === "ready" && sharedSessionEpoch === shared.epoch && session.username === shared.username && shared.session.state === "ready") {
     // An idle -> ready startup probe at the same epoch does not represent a

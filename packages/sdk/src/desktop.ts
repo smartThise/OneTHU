@@ -30,7 +30,7 @@ export function createDesktopBridge(ports:{
     runtime.assertCurrent(input.expectedEpoch);
     if((runtime.session.username||null)!==input.expectedAccount)throw new Error('CLI_ACCOUNT_CHANGED');
   }
-  function status(){return {protocolVersion:1 as const,...runtime.desktopStatus(),policy:ports.policy()};}
+  function status(){return {protocolVersion:1 as const,...runtime.desktopStatus(),policy:ports.policy(),capabilities:['service-session-merge-v1']};}
   return {
     status,
     cloudSync(input:DesktopFence & {config:{email:string;token:string}|null}){return ports.dataExclusive(async()=>{
@@ -56,6 +56,7 @@ export function createDesktopBridge(ports:{
       return syncDesktopYuketang(ports.store,input.expectedAccount,input,()=>{fence(input);if(!ports.policy().enabled&&!ports.policy().appEnabled)throw new Error('CLI_DISABLED');});
     });},
     adoptSession(input:Parameters<NodeSession['adoptSession']>[0]){return ports.exclusive(async()=>{
+      if(input?.service){const wasReady=runtime.status().authenticated;await runtime.adoptSession(input);if(!wasReady&&runtime.status().authenticated)await ports.resume();return status();}
       await runtime.adoptSession(input,ports.stop);await ports.resume();return status();
     });},
     logout(input:DesktopFence){return ports.exclusive(async()=>{fence(input);await ports.stop();fence(input);await runtime.logout();return status();});},

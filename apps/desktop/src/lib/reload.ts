@@ -18,12 +18,15 @@
 let lastAttempt = 0;
 let recoverInflight: Promise<boolean> | null = null;
 export function softRecover(scope: string): Promise<boolean> {
+  // Selection owns a bounded service SSO attempt. Its local failures must not
+  // restart WebVPN or invalidate the resident host's unrelated sessions.
+  if (scope.startsWith('xk')) return Promise.resolve(false);
   const now = Date.now();
   if (recoverInflight) return recoverInflight;
   if (now - lastAttempt < 20_000) return Promise.resolve(false);
   recoverInflight = (async () => {
     try {
-      const { persist, logLine, session } = await import("./clients.js");
+      const { persist, logLine, session, publishUniversitySession } = await import("./clients.js");
       const t0 = Date.now();
       // lib 单管线：会话守卫（探活→死则内存凭据完整重登，受信凭据免 2FA）
       const { libEnsureSession } = await import("./infoLib.js");
@@ -31,6 +34,7 @@ export function softRecover(scope: string): Promise<boolean> {
       if (ok) {
         session.state = "ready";
         await persist().catch(() => undefined);   // 重建后的快照落盘，重启直接续
+        await publishUniversitySession();
       }
       await logLine(`SOFT-RECOVER[${scope}] ${ok ? "ok" : "fail"} (${Date.now() - t0}ms)`).catch(() => undefined);
       lastAttempt = Date.now();

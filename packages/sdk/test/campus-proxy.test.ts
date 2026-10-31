@@ -15,6 +15,13 @@ function fixture(fetch:any,allowed=origins,ensureCampusService?: (origin:string)
 }
 function chunks(bytes:Uint8Array,size=31){let offset=0;return new ReadableStream<Uint8Array>({pull(target){if(offset===bytes.length){target.close();return;}target.enqueue(bytes.subarray(offset,offset+size));offset=Math.min(offset+size,bytes.length);}});}
 
+test('legacy JSP JavaScript MIME still removes the WebVPN envelope and preserves charset',async()=>{
+ const f=fixture(async()=>new Response('vpn_eval((function(){\nfunction validate(){return true;}\n}\n).toString().slice(12, -2),"");',{headers:{'content-type':'javascript/x-javascript; charset=GBK'}}));
+ const response=await f.session.request(origins[1]+'/scripts/validator.jsp?vpn-7');
+ assert.equal(response.headers.get('content-type'),'application/javascript; charset=GBK');
+ assert.equal(await response.text(),'function validate(){return true;}');f.transport.close();
+});
+
 test('restored Info public CSRF UUID survives missing Cookie-body attributes without exposing explicit HttpOnly cookies',()=>{
   const f=fixture(async()=>new Response('unused'));
   const nonce='12345678-1234-1234-1234-123456789abc';

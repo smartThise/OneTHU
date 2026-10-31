@@ -9,6 +9,33 @@ const form='https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/001122334455667
 const context={csrf:'fixture-csrf',fingerprint:'existing-device',finger3:'existing-trust',assertCurrent(){}};
 const redirect=(location:string)=>new Response(null,{status:302,headers:{location}});
 
+test('an existing selection business session is reused without starting another CAS transaction',async()=>{
+ const calls:string[]=[];
+ const http={request:async(url:string)=>{
+  calls.push(url);
+  if(url.toLowerCase().includes('onlineappredirect'))return Response.json({object:{roamingurl:'http://zhjwxk.cic.tsinghua.edu.cn/xklogin.do?UIDisplayLanguage=zh_CN'}});
+  assert.equal(url,webvpnWrap('http://zhjwxk.cic.tsinghua.edu.cn/xkBks.vxkBksXkbBs.do?m=main'));
+  return new Response('<script>var __vpn_hostname_data="fixture";var __vpn_app_hostname_data="fixture";</script><iframe src="/xk/top.html"></iframe>');
+ }} as unknown as HttpClient;
+ const result=await resolveCampusPortal(http,selector,context);
+ assert.equal(result.url,'https://zhjwxk.cic.tsinghua.edu.cn/xkBks.vxkBksXkbBs.do?m=main');
+ assert.equal(result.upstreamOrigin,'http://zhjwxk.cic.tsinghua.edu.cn');assert.equal(calls.length,2);
+ assert(calls.every(url=>!url.includes('/auth/login/')));
+});
+
+test('an expired selection business page falls through to the bounded identity flow',async()=>{
+ const calls:string[]=[];
+ const http={request:async(url:string)=>{
+  calls.push(url);
+  if(url.toLowerCase().includes('onlineappredirect'))return Response.json({object:{roamingurl:'http://zhjwxk.cic.tsinghua.edu.cn/xklogin.do'}});
+  if(url.includes('vxkBksXkbBs'))return new Response('<p>用户登陆超时或访问内容不存在。</p>');
+  if(url===webvpnWrap('http://zhjwxk.cic.tsinghua.edu.cn/xklogin.do'))return redirect(form);
+  return new Response('<input name="i_pass">');
+ }} as unknown as HttpClient;
+ await assert.rejects(resolveCampusPortal(http,selector,context),/IDENTITY_REQUIRED/);
+ assert.equal(calls.length,4);
+});
+
 test('official Info OAuth inforoam exchanges the existing portal ticket without entering a separate browser login',async()=>{
  const calls:string[]=[];
  const http={request:async(url:string,init:RequestInit={})=>{

@@ -53,6 +53,30 @@ export function isXkEnglishSessionError(html: string): boolean {
   return /\b(?:session (?:has )?expired|session (?:has )?timed out|login timed out|please (?:log|sign) in again|access denied)\b/i.test(xkVisibleMessage(html));
 }
 
+/** WebVPN injects its variables into authenticated pages as well as guides.
+ * Classify rendered authentication/error markup before interpreting its loader. */
+export function isXkIdentityPage(html: string): boolean {
+  const markup = html.replace(/<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, "");
+  return /<(?:input|div|span)\b[^>]*(?:name\s*=\s*["']i_pass["']|id\s*=\s*["']sm2publicKey["'])|<form\b[^>]*action\s*=\s*["'][^"']*\/do\/off\/ui\/auth\/login\/|<title\b[^>]*>[^<]*电子身份服务系统/i.test(markup);
+}
+
+export function isXkConfirmationPage(html: string): boolean {
+  const markup=html.replace(/<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '');
+  return /<form\b[^>]*action\s*=\s*["'][^"']*\/do\/off\/ui\/auth\/login\/checkSingle(?:[?"'#])/i.test(markup);
+}
+
+export function isXkSessionError(html: string): boolean {
+  const markup = html.replace(/<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, "");
+  const visible = xkVisibleMessage(markup);
+  if (/accessDenied|用户登陆超时或访问内容不存在/i.test(visible) || isXkEnglishSessionError(markup)) return true;
+  if (isXkIdentityPage(markup)) return true;
+  const business = /<(?:form|input|textarea|table|iframe|frame|frameset)\b/i.test(markup)
+    || /<a\b[^>]*href=["'][^"']*(?:xkBks\.|jhBks\.|js\.vjs)/i.test(markup)
+    || /\b(?:var|let|const)\s+gridData\d*\s*=\s*\[/i.test(html);
+  if (!business && /<(?:a|meta)\b[^>]*(?:href|content)=["'][^"']*\/do\/off\/ui\/auth\/login\//i.test(markup)) return true;
+  return !business && html.length < 4000 && html.includes('__vpn_hostname_data') && html.includes('__vpn_app_hostname_data');
+}
+
 /** Deliberately no success-by-absence: unknown English responses need read-back. */
 export function xkRejectionMessage(html: string): string | null {
   const message = xkVisibleMessage(html);

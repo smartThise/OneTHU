@@ -428,10 +428,12 @@ export class HttpClient {
   /** 真·wengine 引导页（interstitial）：vars 齐全 + 页面极短 + 无任何业务/登录文案。
    *  注意 wengine 会把 __vpn_* JS 注入所有被代理页面，长页面带 vars ≠ 引导页。 */
   wengineInterstitial(page: string): boolean {
+    const markup = page.replace(/<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, "");
     return (
       page.length < 4000 &&
       page.includes("__vpn_hostname_data") &&
       page.includes("__vpn_app_hostname_data") &&
+      !/<(?:a|form|input|textarea|table|iframe|frame|frameset)\b/i.test(markup) &&
       !/电子身份服务系统|用户登陆超时|casLogin|登录成功|j_acegi/i.test(page)
     );
   }

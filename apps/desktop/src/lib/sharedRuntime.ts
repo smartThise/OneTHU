@@ -8,10 +8,11 @@ export interface SharedRuntimeStatus {
   protocolVersion: 1;
   username: string | null;
   epoch: number;
-  session: { state: string; username?: string; authenticated?: boolean; twoFactor?: { pending?: boolean } };
+  session: { state: string; username?: string; authenticated?: boolean; twoFactor?: { pending?: boolean };warnings?:string[] };
   policy: { enabled: boolean; appEnabled?: boolean; automatic: boolean; confirmationMode?: string; configured?: boolean };
   bootstrapAllowed?: boolean;
   tombstone?: boolean;
+  capabilities?: string[];
 }
 export interface SharedSessionSnapshot extends SharedRuntimeStatus { snapshot: SessionData | null }
 export interface NativeSessionCookie extends CookieRecord { httpOnly?: boolean }
@@ -140,8 +141,8 @@ export async function sharedRuntimeRequest<T>(method: string, params: Record<str
 }
 export async function getSharedRuntimeStatus(): Promise<SharedRuntimeStatus> { return observe(await sharedRuntimeRequest<SharedRuntimeStatus>("status")); }
 export async function exportSharedSession(): Promise<SharedSessionSnapshot> { return observe(await sharedRuntimeRequest<SharedSessionSnapshot>("exportSession")); }
-export async function adoptSharedSession(snapshot: SessionData, expectedEpoch: number, reason: "bootstrap" | "login"): Promise<SharedSessionSnapshot> {
-  observe(await sharedRuntimeRequest<SharedRuntimeStatus>("adoptSession", { snapshot, expectedEpoch, reason }));
+export async function adoptSharedSession(snapshot: SessionData, expectedEpoch: number, reason: "bootstrap" | "login", service?: {name:'selection'|'university';identityRenewed:boolean}): Promise<SharedSessionSnapshot> {
+  observe(await sharedRuntimeRequest<SharedRuntimeStatus>("adoptSession", { snapshot, expectedEpoch, reason, ...(service?{service}:{}) }));
   return exportSharedSession();
 }
 export async function logoutSharedSession(expectedAccount: string | null, expectedEpoch: number): Promise<void> {

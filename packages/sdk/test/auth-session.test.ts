@@ -110,6 +110,52 @@ const gatewayHandoffSnapshot=(username='12345678')=>{
   }]);
   return snapshot;
 };
+
+test('a verified native service handback preserves the live account, trust and unrelated business cookies',async t=>{
+ const dir=await temporary(t),school=fakeSchool(),sdk=await createNodeSession({dataDir:dir,fetch:school.fetch});t.after(()=>sdk.close());
+ await sdk.restore();
+ sdk.http.jar.setRaw(new URL('https://cloud.tsinghua.edu.cn/'),'cloud=current; Path=/');
+ const before=sdk.exportSession(),snapshot={...before.snapshot!,finger3:'must-not-replace-trust'};
+ snapshot.cookiesJson=JSON.stringify([...JSON.parse(snapshot.cookiesJson),
+  {name:'JSESSIONID',value:'renewed-selection',domain:'zhjwxk.cic.tsinghua.edu.cn',path:'/',secure:false,hostOnly:true},
+  {name:'cloud',value:'stale-native',domain:'cloud.tsinghua.edu.cn',path:'/',secure:true,hostOnly:true}]);
+ await sdk.adoptSession({snapshot,expectedEpoch:sdk.epoch(),reason:'login',service:{name:'selection',identityRenewed:false}},async()=>{throw new Error('service handback must not stop the account');});
+ assert.equal(sdk.status().authenticated,true);assert.equal(sdk.epoch(),before.epoch);assert.equal(sdk.session.finger3,'fixture-trust');
+ assert.equal(sdk.http.jar.getCookies(new URL('https://cloud.tsinghua.edu.cn/')).find(c=>c.name==='cloud')?.value,'current');
+ assert.equal(sdk.http.jar.getCookies(new URL('http://zhjwxk.cic.tsinghua.edu.cn/')).find(c=>c.name==='JSESSIONID')?.value,'renewed-selection');
+ assert(school.calls.every(c=>c.method==='GET'));
+});
+
+test('service-only handback cannot bootstrap, change owners/devices or widen cookie scopes',async t=>{
+ const dir=await temporary(t),school=fakeSchool(),sdk=await createNodeSession({dataDir:dir,fetch:school.fetch});t.after(()=>sdk.close());await sdk.restore();
+ const before=sdk.exportSession(),snapshot=before.snapshot!;
+ for(const input of [
+  {snapshot:{...snapshot,username:'87654321'},reason:'login'},
+  {snapshot:{...snapshot,fingerprint:'e'.repeat(32)},reason:'login'},
+ ])await assert.rejects(sdk.adoptSession({...input,expectedEpoch:sdk.epoch(),service:{name:'selection',identityRenewed:true}} as any),{code:'AUTH_SESSION_CONFLICT'});
+ await assert.rejects(sdk.adoptSession({snapshot,reason:'bootstrap',expectedEpoch:sdk.epoch(),service:{name:'selection',identityRenewed:false}}),{code:'AUTH_HANDOFF_INVALID'});
+ await assert.rejects(sdk.adoptSession({snapshot,reason:'login',expectedEpoch:sdk.epoch(),service:{name:'any-site',identityRenewed:false}} as any),{code:'AUTH_HANDOFF_INVALID'});
+ assert.equal(sdk.exportSession().snapshot?.cookiesJson,before.snapshot?.cookiesJson);
+});
+
+test('a verified live GUI university session restores an expired resident without passwords or unrelated cookie replacement',async t=>{
+ const dir=await temporary(t),school=fakeSchool();let expired=false;
+ const sdk=await createNodeSession({dataDir:dir,fetch:(async(raw:string,init:RequestInit={})=>{
+  const url=new URL(webvpnDecodeUrl(raw)??raw);
+  if(expired&&url.pathname.endsWith('/grjbxx')&&!new Headers(init.headers).get('cookie')?.includes('fresh-info'))return Response.json({status:401});
+  return school.fetch(raw,init);
+ }) as typeof fetch});t.after(()=>sdk.close());await sdk.restore();
+ sdk.http.jar.setRaw(new URL('https://cloud.tsinghua.edu.cn/'),'cloud=current; Path=/');
+ const epoch=sdk.epoch(),snapshot=sdk.exportSession().snapshot!;
+ expired=true;sdk.session.state='idle';assert.equal((await sdk.restore()).state,'idle');sdk.noteInfoSessionRequired();
+ snapshot.cookiesJson=JSON.stringify([...JSON.parse(snapshot.cookiesJson),{name:'info',value:'fresh-info',domain:'info.tsinghua.edu.cn',path:'/',secure:true,hostOnly:true},
+  {name:'cloud',value:'stale-native',domain:'cloud.tsinghua.edu.cn',path:'/',secure:true,hostOnly:true}]);
+ await sdk.adoptSession({snapshot,expectedEpoch:epoch,reason:'login',service:{name:'university',identityRenewed:true}});
+ assert.equal(sdk.status().authenticated,true);assert.equal(sdk.epoch(),epoch);assert(!sdk.status().warnings.includes('CAMPUS_INFO_SESSION_REQUIRED'));
+ assert.equal(sdk.http.jar.getCookies(new URL('https://cloud.tsinghua.edu.cn/')).find(c=>c.name==='cloud')?.value,'current');
+ assert(school.calls.every(c=>c.method==='GET'));
+ await sdk.logout();await assert.rejects(sdk.adoptSession({snapshot,expectedEpoch:sdk.epoch(),reason:'login',service:{name:'university',identityRenewed:true}}),{code:'AUTH_SESSION_CONFLICT'});
+});
 function coldInfoSchool(options:{account?:string;alwaysEmpty?:boolean}={}){
   const paths:string[]=[];let warm=false;
   return{paths,fetch:(async(input:string,init:RequestInit={})=>{

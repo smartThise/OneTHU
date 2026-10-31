@@ -17,7 +17,7 @@ const LEARN='https://learn.tsinghua.edu.cn';
 const LEARN_DOCUMENT=/^\/f\/wlxt\/index\/course\/(?:student|teacher)(?:\/course)?\/?$/;
 const CSRF_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const fail = (code:string, status=403):never => { throw new GatewayError(code,status); };
-type Runtime = Pick<NodeSession,'fetch'|'epoch'|'assertCurrent'|'status'|'http'> & Partial<Pick<NodeSession,'session'|'ensureCampusService'|'resolveCampusPortal'|'fetchCampusDirect'|'loadGatewayState'|'saveGatewayState'>>;
+type Runtime = Pick<NodeSession,'fetch'|'epoch'|'assertCurrent'|'status'|'http'> & Partial<Pick<NodeSession,'session'|'ensureCampusService'|'resolveCampusPortal'|'fetchCampusDirect'|'loadGatewayState'|'saveGatewayState'|'noteInfoSessionRequired'>>;
 type GatewayRequest = RequestInit & {duplex?:'half';preserveResponseBytes?:boolean};
 type ServiceGrant = CampusPortalResult & { learned?:boolean };
 
@@ -418,6 +418,11 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
           if(inspected.nonce)learnPublicNonce={epoch:expected,value:inspected.nonce};
         }
         if(grants.has(target.origin))response=ledger.observeResponse(target.origin,response,check);
+        if(target.origin==='https://info.tsinghua.edu.cn'&&[301,302,303,307,308].includes(response.status)&&response.headers.has('location')){
+          const next=new URL(response.headers.get('location')!,physical);
+          const logical=new URL(next.origin===VPN?(webvpnDecodeUrl(next.href)??next.href):next.href);
+          if(['id.tsinghua.edu.cn','oauth.tsinghua.edu.cn'].includes(logical.hostname)||logical.origin===VPN&&/^\/(?:login(?:\/|$)|$)/.test(logical.pathname)){runtime.noteInfoSessionRequired?.();fail('GATEWAY_IDENTITY_SESSION_REQUIRED',401);}
+        }
         const output=new Headers(response.headers);
         output.delete('set-cookie');output.delete('set-cookie2');output.delete('x-onethu-final-url');
         if(output.has('location'))output.set('location',mapUrl(output.get('location')!,physical));
@@ -432,11 +437,14 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
           output.set(name,value.replaceAll(VPN,target.origin));
         }
         if(physical!==target.href&&output.get('access-control-allow-origin')===VPN)output.set('access-control-allow-origin',target.origin);
-        const textual=/^(?:text\/(?:html|css|javascript)|application\/(?:javascript|x-javascript|json|xml|xhtml\+xml))(?:;|$)/i.test(output.get('content-type')??'');
+        const textual=/^(?:text\/(?:html|css|javascript)|application\/(?:javascript|x-javascript|json|xml|xhtml\+xml)|javascript\/x-javascript)(?:;|$)/i.test(output.get('content-type')??'');
+        // Legacy JSP scripts use this nonstandard MIME. Preserve any charset
+        // while exposing the restored JavaScript with a browser-supported type.
+        if(/^javascript\/x-javascript(?:;|$)/i.test(output.get('content-type')??''))output.set('content-type',output.get('content-type')!.replace(/^javascript\/x-javascript/i,'application/javascript'));
         let body:ReadableStream<Uint8Array>|null=response.body;
         if(textual&&body&&response.status!==206&&!output.has('content-range')){
           const html=/\b(?:text\/html|application\/xhtml\+xml)\b/i.test(output.get('content-type')??'');
-          const script=/^(?:text|application)\/(?:x-)?(?:java|ecma)script(?:;|$)/i.test(output.get('content-type')??'');
+          const script=/^(?:(?:text|application)\/(?:x-)?(?:java|ecma)script|javascript\/x-javascript)(?:;|$)/i.test(output.get('content-type')??'');
           if(html||script)body=unwrapWebvpnScripts(body,html,check);
           body=rewriteBytes(body,replacements,check,html,html&&method==='GET'&&target.origin===LEARN&&target.pathname==='/roam.php'&&response.status===200);
           for(const header of ['content-length','etag','content-md5','digest','content-digest','repr-digest'])output.delete(header);
