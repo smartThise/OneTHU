@@ -343,6 +343,18 @@ const landingNavigationHeaders = {
 };
 const infoNewsLanding = 'https://info.tsinghua.edu.cn/f/info/xxfb_fg/xnzx/stu/index';
 
+test('identity expiry offers a bilingual document recovery page while APIs retain a private JSON error',async t=>{
+ const f=await fixture(t,{request(){throw new GatewayError('GATEWAY_IDENTITY_SESSION_REQUIRED',401);}});
+ const result=await proxyRequest(f,{headers:{'sec-fetch-mode':'navigate','sec-fetch-dest':'document',accept:'text/html'}});
+ assert.equal(result.status,401);assert.match(result.headers['content-type'],/text\/html/);
+ assert.match(result.body.toString(),/请更新学校登录/);assert.match(result.body.toString(),/University sign-in needed/);
+ assert.match(result.body.toString(),/href=""/);assert.match(result.headers['content-security-policy'],/default-src 'none'/);
+ assert.equal(result.headers['cache-control'],'no-store');
+ const api=await proxyRequest(f,{headers:{'sec-fetch-mode':'cors','sec-fetch-dest':'empty',accept:'application/json'}});
+ assert.equal(api.status,401);assert.match(api.headers['content-type'],/application\/json/);
+ assert.deepEqual(JSON.parse(api.body.toString()),{error:{code:'GATEWAY_IDENTITY_SESSION_REQUIRED'}});
+});
+
 test('user-activated cross-site navigation accepts only explicit empty-query campus landings', async t => {
   const f = await fixture(t, { allowedOrigins: ['https://info.tsinghua.edu.cn', `https://${hostname}`],
     token: undefined, authorizeSocket: async () => true });

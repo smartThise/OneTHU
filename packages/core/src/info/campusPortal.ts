@@ -90,7 +90,17 @@ export async function resolveCampusPortal(http:HttpClient,selector:string,contex
       const identity=IDENTITY.has(current.logical.hostname);
       if(identity)identitySeen=true;
       else if(current.logical.origin!==INFO){
-        if(identitySeen&&serviceOrigin&&current.logical.origin!==serviceOrigin)reject('CAMPUS_SERVICE_CALLBACK_REJECTED');
+        if(identitySeen&&serviceOrigin&&current.logical.origin!==serviceOrigin){
+          const entry=new URL(serviceOrigin);
+          // Some legacy HTTP services advertise an HTTPS CAS callback although
+          // their application only exists on the original HTTP wire route.
+          // Retain the exact host learned before identity authentication; this
+          // cannot authorize another host or downgrade an HTTPS service.
+          if(entry.protocol!=='http:'||current.logical.protocol!=='https:'||entry.hostname!==current.logical.hostname)reject('CAMPUS_SERVICE_CALLBACK_REJECTED');
+          current.logical.protocol='http:';
+          current.physical=new URL(webvpnWrap(current.logical.href));
+          current.transport='webvpn';
+        }
         serviceOrigin=current.logical.origin;
         if(ticket(current.logical))return result(current,!!context.fetchDirect);
       }

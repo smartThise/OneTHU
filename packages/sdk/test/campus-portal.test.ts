@@ -58,6 +58,35 @@ test('external targets and a different service callback cannot borrow identity',
  await assert.rejects(resolveCampusPortal(http,selector,context),/CALLBACK_REJECTED/);assert.equal(calls,3);
 });
 
+test('legacy HTTP service callbacks retain their discovered wire scheme and HTTPS browser address',async()=>{
+ for(const wrapped of [false,true]){
+  const origin='http://legacy-callback.cic.tsinghua.edu.cn';
+  const callback='https://legacy-callback.cic.tsinghua.edu.cn/j_acegi_cas_security_check?ticket=fixture';
+  const calls:string[]=[];
+  const http={request:async(url:string)=>{
+   calls.push(url);
+   if(url.toLowerCase().includes('onlineappredirect'))return Response.json({object:{roamingurl:webvpnWrap(origin+'/login')}});
+   if(url===webvpnWrap(origin+'/login'))return redirect(form);
+   if(url===form)return redirect(wrapped?webvpnWrap(callback):callback);
+   throw new Error('the callback must be redeemed only once by its service');
+  }} as unknown as HttpClient;
+  const result=await resolveCampusPortal(http,selector,context);
+  assert.equal(result.url,callback);
+  assert.equal(result.origin,'https://legacy-callback.cic.tsinghua.edu.cn');
+  assert.equal(result.upstreamOrigin,origin);assert.equal(result.transport,'webvpn');
+  assert.equal(calls.length,3);
+ }
+});
+
+test('an HTTPS service cannot change to an HTTP callback after identity authentication',async()=>{
+ const http={request:async(url:string)=>{
+  if(url.toLowerCase().includes('onlineappredirect'))return Response.json({object:{roamingurl:'https://secure-callback.tsinghua.edu.cn/'}});
+  if(url===webvpnWrap('https://secure-callback.tsinghua.edu.cn/'))return redirect(form);
+  return redirect('http://secure-callback.tsinghua.edu.cn/callback?ticket=fixture');
+ }} as unknown as HttpClient;
+ await assert.rejects(resolveCampusPortal(http,selector,context),/CALLBACK_REJECTED/);
+});
+
 test('an actual second-factor response stops immediately without code delivery or another login',async()=>{
  for(const afterConfirm of [false,true]){
   const posts:string[]=[];

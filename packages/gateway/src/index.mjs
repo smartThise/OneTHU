@@ -32,10 +32,19 @@ function errorPayload(error) {
   return { safe, body, headers };
 }
 
-function respondError(res, error) {
+function respondError(res, error, req) {
   if (res.destroyed || res.writableEnded) return;
   if (res.headersSent) { res.destroy(); return; }
   const { safe, body, headers } = errorPayload(error);
+  if (safe.code === 'GATEWAY_IDENTITY_SESSION_REQUIRED' && ['GET','HEAD'].includes(req?.method) &&
+      req.headers['sec-fetch-mode'] === 'navigate' && req.headers['sec-fetch-dest'] === 'document' &&
+      /\btext\/html\b/i.test(req.headers.accept ?? '')) {
+    const html = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>更新学校登录 · University sign-in</title><style>html{color-scheme:light dark;font:16px/1.7 system-ui,sans-serif;background:light-dark(#f7f7f5,#171717);color:light-dark(#222,#eee)}body{max-width:36rem;margin:12vh auto;padding:24px}h1{font-size:1.6rem;line-height:1.4}p{opacity:.8}.actions{display:flex;gap:16px;flex-wrap:wrap;margin-top:28px}a{color:inherit;text-underline-offset:5px}.retry{background:light-dark(#222,#eee);color:light-dark(#fff,#171717);padding:10px 20px;border-radius:24px;text-decoration:none}small{display:block;margin-top:32px;opacity:.55}</style><body><h1>请更新学校登录<br><span lang="en">University sign-in needed</span></h1><p>学校的统一认证返回了登录表单。请在 OneTHU 更新学校登录，再回到此页重试。</p><p lang="en">The university identity service returned a sign-in form. Refresh your university sign-in in OneTHU, then retry this page.</p><div class="actions"><a class="retry" href="">重新尝试 · Retry</a><a href="https://info.tsinghua.edu.cn/f/info/gxfw_fg/common/index">返回 Info · Back to Info</a></div><small>GATEWAY_IDENTITY_SESSION_REQUIRED</small></body></html>';
+    res.writeHead(safe.status,{...headers,'Content-Type':'text/html; charset=utf-8','Content-Length':Buffer.byteLength(html),
+      'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+      'Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'}).end(req.method==='HEAD'?undefined:html);
+    return;
+  }
   res.writeHead(safe.status, headers).end(body);
 }
 
@@ -302,7 +311,7 @@ export function createCampusGateway(options = {}) {
     } catch (error) {
       recordRejection(req, target, error);
       controller?.abort(safeError(error));
-      respondError(res, error);
+      respondError(res, error, req);
     } finally {
       clearTimeout(timer);
       req.off('aborted', cancel); req.off('error', cancel); res.off('close', disconnected);

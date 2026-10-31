@@ -184,7 +184,7 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
     catch(error){
       current(expected);
       const code=(error as {code?:string}).code;
-      const failure=new GatewayError(code==='CAMPUS_SERVICE_VERIFICATION_REQUIRED'?'GATEWAY_VERIFICATION_REQUIRED':code==='AUTH_SESSION_CHANGED'?'GATEWAY_SESSION_CHANGED':'GATEWAY_SERVICE_SSO_REQUIRED',401);
+      const failure=new GatewayError(code==='CAMPUS_SERVICE_VERIFICATION_REQUIRED'?'GATEWAY_VERIFICATION_REQUIRED':code==='CAMPUS_SERVICE_IDENTITY_REQUIRED'?'GATEWAY_IDENTITY_SESSION_REQUIRED':code==='AUTH_SESSION_CHANGED'?'GATEWAY_SESSION_CHANGED':'GATEWAY_SERVICE_SSO_REQUIRED',401);
       if(typeof code==='string'&&/^(?:CAMPUS_SERVICE|NETWORK|AUTH)_[A-Z0-9_]{1,64}$/.test(code))Object.assign(failure,{serviceReason:code});
       throw failure;
     }

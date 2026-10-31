@@ -93,3 +93,12 @@ test('the official synchronous POST selector joins the same broker without accep
  assert.equal(result.status,200);const body=await result.json();assert.equal(body.result,'success');assert.equal(new URL(body.object.roamingurl).origin,origin);assert.equal(calls,1);
  await assert.rejects(proxy.request(entry,{method:'POST',body:'ticket=foreign'}),{code:'GATEWAY_AUTH_REQUIRED'});assert.equal(calls,1);
 });
+
+test('an identity login form has its own recovery code and does not revoke the ready account',async()=>{
+ const jar=new MemoryCookieJar();jar.setRaw(new URL('https://info.tsinghua.edu.cn/'),'fixture=preserved; Path=/');
+ const proxy=createCampusProxySession({epoch:()=>1,assertCurrent(){},status:()=>({authenticated:true}),http:{jar},fetch:async()=>new Response('still-ready'),
+  resolveCampusPortal:async()=>{throw Object.assign(new Error('private page contents must not escape'),{code:'CAMPUS_SERVICE_IDENTITY_REQUIRED'});}} as any,['https://info.tsinghua.edu.cn']);
+ await assert.rejects(proxy.request('https://info.tsinghua.edu.cn/f/info/portal_fg/teacher/roamingToApp?yyfwid=00112233445566778899aabbccddeeff'),{code:'GATEWAY_IDENTITY_SESSION_REQUIRED'});
+ assert.equal(jar.getCookies(new URL('https://info.tsinghua.edu.cn/'))[0]?.value,'preserved');
+ assert.equal(await(await proxy.request('https://info.tsinghua.edu.cn/')).text(),'still-ready');
+});
