@@ -510,8 +510,9 @@ html:root .contact-star.is-selected .og-icon { fill: currentColor; }
   animation: og-contact-card-in var(--og-dur-3) var(--og-ease-spring) both;
 }
 @keyframes og-contact-card-in {
-  from { opacity: 0; transform: translateY(var(--og-space-3)) rotate(-1.4deg) scale(0.96); }
-  to { opacity: 1; transform: none; }
+  /* 名片是材质面：入场只动 transform，避免 opacity 让背景模糊在动画期间失效。 */
+  from { transform: translateY(var(--og-space-3)) rotate(-1.4deg) scale(0.96); }
+  to { transform: none; }
 }
 
 .contact-channel {

@@ -144,8 +144,9 @@
    这里只管形态：底部中心为变换原点，入场 scaleY(0.5)+上浮 8px → 展平，160ms；
    关闭反向缩回胶囊（is-closing 通道）；语音滑入（is-slide）同样走 grow，不叠加旧动画。 */
 @keyframes ohx-grow {
-  from { opacity: 0; transform: scaleY(0.5) translateY(8px); }
-  to { opacity: 1; transform: none; }
+  /* OH 面板是玻璃面：只做 scale，不做 opacity（否则 backdrop-filter 入场期间失效）。 */
+  from { transform: scaleY(0.5) translateY(8px); }
+  to { transform: none; }
 }
 @keyframes ohx-shrink {
   from { opacity: 1; transform: none; }
@@ -181,8 +182,8 @@
   animation: ohx-shrink-top var(--dur-2, 0.2s) ease both;
 }
 @keyframes ohx-grow-top {
-  from { opacity: 0; transform: scaleY(0.5) translateY(-8px); }
-  to { opacity: 1; transform: none; }
+  from { transform: scaleY(0.5) translateY(-8px); }
+  to { transform: none; }
 }
 @keyframes ohx-shrink-top {
   from { opacity: 1; transform: none; }

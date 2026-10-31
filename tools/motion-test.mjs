@@ -103,7 +103,20 @@ console.log("[4] 最容易踩的坑：入场动画必须 backwards（both 会锁
   const bothLines = css.split("\n").filter((l) => /both;/.test(l));
   ok(bothLines.every((l) => /m-toast-out|m-check-draw|m-sheet-down|m-fade-out|m-spring-out/.test(l)), `both 只留给"必须保留终帧"的退出动画（${bothLines.length} 处）`);
   const backwards = (css.match(/backwards;/g) ?? []).length;
-  ok(backwards >= 15, `入场动画全部 backwards（${backwards} 处）`);
+  ok(backwards >= 12, `入场动画保留 backwards（${backwards} 处）`);
+  // 材质安全纪律（2026-10-31）：「入场必须动 opacity」是旧约定，现在必须反过来——
+  // opacity 会在祖先建立 backdrop root，玻璃卡片/面板的背景模糊在动画期间失效；
+  // 对比度引擎也会采到半透明中间态，把字色定格成反色。入场只动 transform。
+  const eases = ["m-rise", "m-grid-in", "m-spring-in", "m-page-in", "m-page-in-back", "m-slide-right", "m-slide-left", "m-reveal-in", "m-expand-in", "m-tab-in", "m-tab-in-back"];
+  const opacityEntrances = eases.filter((name) => {
+    const m = new RegExp(`@keyframes\\s+${name}\\s*\\{([\\s\\S]*?)\\n\\}`).exec(css);
+    return !!m && /(^|[;{\\s])opacity\\s*:/.test(m[1]);
+  });
+  ok(opacityEntrances.length === 0, `材质安全：入场 keyframes 不改 opacity（违规：${opacityEntrances.join(",") || "无"}）`);
+  ok(/\.page-anim,[\s\S]{0,240}?\.content,[\s\S]{0,140}?\.tab-anim[\s\S]{0,200}?animation: none/.test(css),
+    "页面/页签容器禁用入场动画（祖先 opacity/transform 会破坏整页材质）");
+  ok(!/html\.has-reveal[^{]*\{[^}]*opacity:\s*0/.test(css), "滚动揭示不再用 opacity 藏身（避免材质模糊消失）");
+  ok(/html\.has-reveal[\s\S]{0,260}?\[data-reveal-in\][\s\S]{0,120}?animation: m-reveal-in/.test(css), "揭示只触发纯位移动画");
 }
 
 console.log("[5] 无障碍：尊重系统「减弱动态效果」");
@@ -122,9 +135,9 @@ console.log("[5] 无障碍：尊重系统「减弱动态效果」");
 console.log("[6] 分级开关与按压纪律：重效果只在桌面，整行按压不改尺寸");
 {
   ok(/@media \(hover: hover\) and \(pointer: fine\)/.test(css), "悬浮抬起/模糊只在桌面指针设备");
-  const blur = css.slice(css.indexOf("backdrop-filter"), css.indexOf("backdrop-filter") + 200);
-  ok(/@media \(hover: hover\)/.test(css.slice(Math.max(0, css.indexOf("backdrop-filter") - 260), css.indexOf("backdrop-filter"))), "模糊被桌面媒体查询包住");
-  ok(blur.length > 0, "模糊确实存在（桌面纵深）");
+  // 只看媒体查询之后的声明块（注释里也会出现 backdrop-filter 字样，不能按首次出现定位）
+  const hoverMedia = css.slice(css.indexOf("@media (hover: hover)"));
+  ok(/backdrop-filter:/.test(hoverMedia), "模糊被桌面媒体查询包住（桌面纵深）");
   // 按压纪律（涟漪已整体移除，见 §17 回归断言）
   ok(/\.btn:active,[\s\S]{0,160}?scale\(0\.965\)/.test(css), "紧凑控件按压回弹（缩放）");
   ok(/\.row-click:active,[\s\S]{0,220}?background: var\(--hover\)/.test(css), "整行/整卡按压只压暗底色");
@@ -140,9 +153,10 @@ console.log("[7] 无限动画白名单：不许页面一直在动");
 
 console.log("[8] 页面转场：只走 CSS 进场（快照转场已因整页残影移除，禁止回归）");
 {
-  ok(/\.page-anim\s*\{/.test(css), "转场容器 .page-anim 存在");
-  ok(/data-dir="back"/.test(css) && /data-level="sub"/.test(css), "方向与层级两档曲线");
-  ok(/page-anim/.test(tabHost) && /key=\{t\.page\}/.test(tabHost), "key=page 让容器重新挂载并播一次进场");
+  ok(/\.page-anim,/.test(css), "转场容器 .page-anim 存在");
+  ok(/\.page-anim,[\s\S]{0,260}?animation: none/.test(css), "页面容器不入场（材质祖先必须静止）");
+  ok(/data-level="sub"/.test(css) && /m-page-head-in/.test(css), "二级页只给页头纯位移入场");
+  ok(/page-anim/.test(tabHost) && /key=\{t\.page\}/.test(tabHost), "key=page 让容器重新挂载（仅用于切页状态）");
   // 回归护栏（霖实测 2026-09-22）：整页快照交叉淡入会让旧页在新页下层残留 → 每次切换都闪
   ok(!/startViewTransition/.test(app + appState + motion), "导航不再调用 View Transitions（整页快照会残影）");
   ok(!/view-transition/.test(css), "CSS 里没有 ::view-transition 快照规则");
@@ -194,12 +208,13 @@ console.log("[11] 弹层风格统一：遮罩淡入 + 面板弹簧（内联样�
   for (const f of files) {
     const t = src(f);
     const inline = /m-fade var\(--dur-2\)/.test(t) && /m-spring-in var\(--dur-3\)/.test(t);
-    /* 类名驱动（rch-mask/rch-panel）也算接上，但必须真的在 CSS 里定义动画 */
+    /* 类名驱动（rch-mask/rch-panel）也算接上：遮罩不做 opacity 动画（避免面板模糊失效），
+       面板保留 transform 弹簧。 */
     const classBased = /rch-mask/.test(t) && /rch-panel/.test(t)
-      && /\.rch-mask\s*\{[^}]*animation:\s*m-fade/.test(globalCss)
+      && /\.rch-mask\s*\{[^}]*animation:\s*none/.test(globalCss)
       && /\.rch-panel\s*\{[^}]*animation:\s*m-spring-in/.test(globalCss);
     const oneGuiModal = /<Modal\b/.test(t); /* OneGUI Modal 的遮罩/面板动效在库内单源 */
-    ok(inline || classBased || oneGuiModal, `${f.split("/").pop()} 遮罩+面板都接了动效`);
+    ok(inline || classBased || oneGuiModal, `${f.split("/").pop()} 遮罩不做透明度动画、面板保留弹簧`);
   }
 }
 
@@ -261,9 +276,9 @@ console.log("[13] 滚动揭示：进入视口才滑入，且不与挂载逐项�
   const reveal = motion.slice(motion.indexOf("export function installScrollReveal"));
   ok(/if \(prefersReducedMotion\(\)\) return;/.test(reveal), "减弱动态时早退，不挂 has-reveal（元素保持可见）");
   ok(/documentElement\.classList\.add\("has-reveal"\)/.test(motion), "has-reveal 挂在 <html> 上");
-  ok(/html\.has-reveal[\s\S]{0,400}?opacity: 0;\s*animation: none;/.test(css), "命中元素先置藏身态 + animation: none（压掉挂载进场）");
-  ok(/\[data-reveal-in\][\s\S]{0,220}?animation: m-reveal-in/.test(css), "data-reveal-in 才播 m-reveal-in（两条规则必须同时存在）");
-  ok(/\[data-reveal-in\][\s\S]{0,200}?opacity: 1/.test(css), "已揭示态显式 opacity: 1（否则动画播完回落藏身态集体隐身）");
+  ok(/html\.has-reveal[\s\S]{0,420}?animation: none/.test(css), "揭示命中态不挂动画（避免与挂载进场叠加）");
+  ok(!/html\.has-reveal[\s\S]{0,420}?opacity:\s*0/.test(css), "揭示不再用 opacity:0 藏身（玻璃卡片会丢背景模糊、字色采样落到中间态）");
+  ok(/\[data-reveal-in\][\s\S]{0,220}?animation: m-reveal-in/.test(css), "data-reveal-in 才播 m-reveal-in");
   ok(/delete el\.dataset\.revealIn/.test(motion), "揭示标记用 data 属性（React 重写 className 抹不掉）");
   ok(/slot \* \(grid \? 9 : 30\)/.test(motion), "递延不封顶（网格按行 9ms / 列表逐项 30ms）");
   ok(/seen\.set\(top, seen\.size\)/.test(motion) && /batch\.sort\(\(a, b\) => a\.offsetTop - b\.offsetTop/.test(motion), "网格按行分组：同行同时、自上而下展开（不斜扫）");
@@ -335,14 +350,14 @@ console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵�
   ok(!/0\.22, 1, 0\.36, 1/.test(motion), "旧的 easeOutQuint 回程已移除（起步过快，峰值处速度突跳）");
   ok(!/bar\.animate\(sizes/.test(motion) && /bar\.animate\(frames, \{ duration: total \}\)/.test(motion), "位置与长度同属一条动画（拆成两条会各走各的：主线程卡住时条按自身长度探出去）");
   ok(/translateY\(\$\{\(ta \+ tb\) \/ 2 - BAR \/ 2\}px\) scaleY\(/.test(motion) && !/bar\.style\.height/.test(motion), "位置与长度都用 transform 表达（合成器一条曲线，没有主线程的 height）");
-  ok(/@keyframes m-grid-in/.test(css) && /m-grid-in var\(--dur-2\) var\(--ease-out\) backwards/.test(css), "网格入场用小幅 m-grid-in（6px 上浮 + 0.99 缩放）");
+  ok(/@keyframes m-grid-in/.test(css) && !/m-grid-in var\(--dur-2\)/.test(css), "网格卡片不再用 m-grid-in 挂载进场（材质容器必须静止）");
   ok(/\.nav-item\.is-active::before\s*\{\s*\n\s*display: none;/.test(css), "每项自己的 ::before 强调条退位（避免双条）");
   ok(/\.mail-layout:not\(\.detail-open\) \.mail-detail/.test(css) && /\.mail-layout\.detail-open \.mail-list/.test(css), "邮箱窄屏：列表/详情 transform 推入推出（不再 display 硬切）");
   ok(/export function useExitHold/.test(motion), "useExitHold 收在 lib/motion.ts（弹层退场相位 + 内容保持）");
   ok(/\.plg-mask\.is-closing/.test(css) && /\.plg-sheet\.is-closing/.test(css), "插件 Sheet 遮罩/面板有退场动画");
   ok(/sheetHold/.test(src("pages/Plugins.tsx")), "插件页 Sheet 接了退场相位");
   ok(/<Modal\b/.test(src("pages/MailPage.tsx")) && /open=\{open\}/.test(src("pages/MailPage.tsx")) && !/composeHold/.test(src("pages/MailPage.tsx")), "写信弹层由 OneGUI Modal 统一退场相位");
-  ok(/html\.has-reveal :is\(\.app-grid, \.thos-grid\) > \* \{/.test(css) && /html\.has-reveal :is\(\.app-grid, \.thos-grid\) > \*\[data-reveal-in\]/.test(css), "方阵网格纳入滚动揭示（可见才入场，视口外不再错过动画）");
+  ok(/html\.has-reveal :is\(\.app-grid, \.thos-grid\) > \* \{[\s\S]{0,100}?animation: none/.test(css), "方阵网格卡片含材质，不参与滚动揭示（避免 opacity 破坏模糊）");
 
   console.log("\n[20] 日程：弹层退场 + 整周连续切换");
   const sched = src("pages/Schedule.tsx");

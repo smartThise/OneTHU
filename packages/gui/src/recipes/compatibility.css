@@ -537,6 +537,19 @@ html:root .stat-card:active::after {
   html:root .stat-card:hover::after { opacity: 1; }
 }
 
+/* 宿主结构墨色统一：页面内容、卡片、列表和行默认继承 OneGUI 的语义主墨。
+   旧页面里存在未显式声明颜色的文本（浏览器默认黑、旧 MD 变量、第三方编辑器），
+   暗色主题下会残留黑字；运行时对比度引擎又会把这些元素逐个改色，于是同一页出现
+   黑/灰/白多套墨色。容器级继承让「没有自己颜色」的文本一次到位，引擎只在真正
+   贴在壁纸上的少数字符上工作。组件自身的语义色（错误红、强调色）不受影响。 */
+html:root .explorer-content { color: var(--og-content-1); }
+html:root .explorer-content :is(.og-card, .card, .list, .row, .row-main, .og-pagehead, .page-anim) {
+  color: var(--og-content-1);
+}
+html:root .explorer-content :is(.page-head h1, .og-pagehead-topic h1, .row-title, .tl-title) {
+  color: var(--og-content-1);
+}
+
 /* Clock material belongs to the enclosing .free-item, just like other widgets
    (§8.5). Its body stays transparent even with wallpaper; textContrast still
    samples the wallpaper plus that single material surface for readable text. */

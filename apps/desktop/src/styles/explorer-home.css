@@ -146,7 +146,8 @@ html.is-phone .explorer-panel.is-home-canvas::-webkit-scrollbar { display: none;
   justify-content: center;
   animation: hs-fade 120ms ease;
 }
-@keyframes hs-fade { from { opacity: 0; } to { opacity: 1; } }
+/* 菜单/更多面板是玻璃面：入场只做轻微 scale，不用 opacity。 */
+@keyframes hs-fade { from { transform: scale(0.98); } to { transform: none; } }
 .hs-more {
   position: relative;
   width: min(460px, calc(100vw - 40px));

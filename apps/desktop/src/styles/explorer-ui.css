@@ -168,7 +168,7 @@
   position: fixed;
   inset: 0;
   z-index: 1290;
-  animation: m-fade var(--dur-2, 0.2s) var(--ease-out, ease) both;
+  animation: none; /* 遮罩是玻璃面板祖先：opacity 动画会让面板模糊失效 */
 }
 .ex-sheet-mask.is-closing { animation: m-fade-out var(--dur-2, 0.2s) ease both; }
 .ex-sheet {
@@ -433,7 +433,7 @@
 
 /* ── ⑥ 桌面顶置形态（≥841px expanded）：从底栏触发柱下方弹下，手机仍是底部抽屉 ── */
 @keyframes ex-slide-down {
-  from { opacity: 0; transform: translateY(-6px); }
+  from { transform: translateY(-6px); }
 }
 .ex-sheet.ex-pop {
   bottom: auto;
@@ -873,8 +873,9 @@ html.is-phone .sched-cal button { min-height: 40px; }
    两套菜单（标签页 ContextMenu / TabHost）此前分别是淡入或无动画；统一给「以按点为原点」
    的展开：160ms ease-out，scale .92 → 1 + fade。transform-origin 由组件按按点写内联。 */
 @keyframes ex-ctxmenu-bloom {
-  from { opacity: 0; transform: scale(0.92); }
-  to { opacity: 1; transform: none; }
+  /* 菜单是玻璃面：只做 scale，不做 opacity（否则 backdrop-filter 入场期间失效）。 */
+  from { transform: scale(0.92); }
+  to { transform: none; }
 }
 .ex-ctxmenu,
 .explorer-ctxmenu {

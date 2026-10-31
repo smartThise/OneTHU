@@ -82,8 +82,9 @@ export function useExitPhase(active: boolean, ms = 200): { mounted: boolean; clo
  * 可重播：离开视口就撤掉标记（回到藏身态）且不注销观察，所以每次进入视野都会播一次，
  * 往上滚回去与往下滚新出现的行为一致。
  */
+/** 只揭示不带材质的行/列表：玻璃卡片的容器不能有 opacity 动画（会丢背景模糊）。 */
 export const REVEAL_SELECTOR =
-  ":is(.list, .stats, .today-grid, .market-grid, .icon-grid, .setting-group, .app-grid, .thos-grid) > *, .row-click, .mail-row, .news-row, .setting-row, .cloud-row";
+  ":is(.list, .setting-group) > *, .row-click, .mail-row, .news-row, .setting-row, .cloud-row";
 
 export function installScrollReveal(): void {
   if (typeof document === "undefined" || typeof IntersectionObserver === "undefined" || typeof MutationObserver === "undefined") return;

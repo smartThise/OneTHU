@@ -116,9 +116,11 @@
   animation: page-in 200ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
+/* 旧页面入场只动 transform：opacity 会打断子元素 backdrop-filter（玻璃卡/弹层）
+   并让对比度引擎采到半透明中间态。新页面动画统一由 motion.css / OneGUI 接管。 */
 @keyframes page-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
+  from { transform: translateY(6px); }
+  to { transform: none; }
 }
 
 .page-head {
@@ -182,8 +184,8 @@
 .row:last-child { border-radius: 0 0 var(--r-lg) var(--r-lg); }
 
 @keyframes row-in {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: none; }
+  from { transform: translateY(3px); }
+  to { transform: none; }
 }
 
 .row:hover { background: var(--hover); }
@@ -3279,7 +3281,8 @@ html.is-phone .oh-attach-btn { padding: 0 10px; }
 /* 校园卡充值弹窗（内联样式组件）：入场/退场都走 class。
    坑：内联 style 里带 animation 时，class 的退场动画会被内联 animation 压掉（动画优先于内联），
    所以入场也必须搬到 class 上，退场才能生效。 */
-.rch-mask { animation: m-fade var(--dur-2) var(--ease-out) both; }
+/* 遮罩是面板祖先，不做 opacity 动画（否则面板模糊在入场期间失效）。 */
+.rch-mask { animation: none; }
 .rch-panel { animation: m-spring-in var(--dur-3) var(--ease-out) both; }
 .rch-mask.is-closing { animation: m-fade-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both; }
 .rch-panel.is-closing { animation: m-pop-out var(--dur-2) var(--md-sys-motion-easing-emphasized-accelerate) both; }
