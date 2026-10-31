@@ -134,7 +134,11 @@ export function createMacPeerAuthorizer({ platform = process.platform, uid = pro
       release = await acquire(controller.signal);
       if (controller.signal.aborted) throw controller.signal.reason;
       if (tupleOf(socket) !== tuple) fail('GATEWAY_PEER_SOCKET_INVALID');
-      const args = ['-nP', '-a', `-iTCP@127.0.0.1:${socket.localPort}`, '-sTCP:ESTABLISHED', '-F0puftnPT'];
+      // Socket attribution needs the kernel TCP table, never stat/readlink of
+      // mounted volumes. A stalled WebDAV/NFS mount must not stall every new
+      // campus connection. -w suppresses -b's expected filesystem warnings;
+      // command failures and incomplete/ambiguous TCP records still fail closed.
+      const args = ['-b', '-w', '-nP', '-a', `-iTCP@127.0.0.1:${socket.localPort}`, '-sTCP:ESTABLISHED', '-F0puftnPT'];
       const result = await abortable(run('/usr/sbin/lsof', args, {
         encoding: 'utf8', timeout: Math.max(1, deadline - Date.now()), maxBuffer, killSignal: 'SIGKILL', signal: controller.signal,
         env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin', LC_ALL: 'C', LANG: 'C' },

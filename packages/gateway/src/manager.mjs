@@ -251,6 +251,10 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
                   tls: (hostname, options) => authority.issue(hostname, options), upgradeInsecureRequests: true,
                   maxUploadBytes: 1024 * 1024 * 1024, maxDownloadBytes: 4 * 1024 * 1024 * 1024, timeoutMs: 180_000 });
                 groups.set(key, gateway); await gateway.listen();
+                // Verify the deployed peer path before any network service is
+                // changed. Filesystem/permission failures leave original
+                // proxies intact rather than routing the whole browser to 503.
+                await gateway.preflight();
               }
               systemPacs.set(service.name, await servePac(effectiveOrigins, gateway.address(), service.fallback, { campusPassthrough: !!passthrough }));
             }

@@ -1,6 +1,6 @@
 import http from 'node:http';
 import tls from 'node:tls';
-import { timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual, randomBytes } from 'node:crypto';
 import { Transform } from 'node:stream';
 import {
   GatewayError, normalizeAllowedOrigins, parseProxyTarget, parseConnectAuthority, parseCampusConnectAuthority,
@@ -110,6 +110,7 @@ export function createCampusGateway(options = {}) {
   const peerChecks = new WeakMap();
   const requestsByHost = new Map();
   const recentRejections = [];
+  const preflightUrl = 'http://onethu-preflight.invalid/' + randomBytes(24).toString('hex');
   let activeRequests = 0;
   let stopped = false;
   let listening;
@@ -221,6 +222,13 @@ export function createCampusGateway(options = {}) {
       if (!tunnel) await authenticate(req);
       const hasBody = framing(req);
       if (hasBody && ['GET', 'HEAD'].includes(req.method)) fail('GATEWAY_REQUEST_REJECTED');
+      // An in-process activation probe exercises the actual peer-authenticated
+      // listener before PAC is installed. It exposes no account or upstream
+      // data and still requires normal socket authentication.
+      if (!tunnel && req.method === 'GET' && !hasBody && req.url === preflightUrl && req.headers.host === 'onethu-preflight.invalid') {
+        res.writeHead(204, { 'Cache-Control': 'no-store', Connection: 'close' }).end();
+        return;
+      }
       target = tunnel ? parseTunnelTarget(req.url, req.headers.host, tunnel, origins) : parseProxyTarget(req.url, req.headers.host, origins);
       validateMethod(req.method, target);
       // Legacy campus HTTP pages lack browser Fetch Metadata. Redirect safe
@@ -457,6 +465,27 @@ export function createCampusGateway(options = {}) {
     address() {
       const address = server.address();
       return address && typeof address === 'object' ? { host: '127.0.0.1', port: address.port } : null;
+    },
+    async preflight() {
+      if (!peerAuthorization || stopped || !listening) fail('GATEWAY_PREFLIGHT_UNAVAILABLE', 503);
+      const endpoint = await listening;
+      await new Promise((resolve, reject) => {
+        const request = http.request({ hostname: endpoint.host, port: endpoint.port, method: 'GET', path: preflightUrl,
+          headers: { Host: 'onethu-preflight.invalid' }, agent: false, timeout: 10000 }, response => {
+          const parts = []; let size = 0;
+          response.on('data', chunk => { size += chunk.length; if (size <= 2048) parts.push(chunk); });
+          response.on('error', () => reject(new GatewayError('GATEWAY_PREFLIGHT_FAILED', 503)));
+          response.on('end', () => {
+            if (response.statusCode === 204) return resolve();
+            let code;
+            try { if (size <= 2048) code = JSON.parse(Buffer.concat(parts).toString('utf8')).error?.code; } catch {}
+            reject(new GatewayError(typeof code === 'string' && /^GATEWAY_[A-Z_]{1,64}$/.test(code) ? code : 'GATEWAY_PREFLIGHT_FAILED', 503));
+          });
+        });
+        request.once('error', error => reject(error instanceof GatewayError ? error : new GatewayError('GATEWAY_PREFLIGHT_FAILED', 503)));
+        request.once('timeout', () => request.destroy(new GatewayError('GATEWAY_PREFLIGHT_TIMEOUT', 503)));
+        request.end();
+      });
     },
     statistics() { return { requests: [...requestsByHost.values()].reduce((sum, count) => sum + count, 0), hosts: Object.fromEntries(requestsByHost),
       recentRejections: recentRejections.map(entry => ({ ...entry })) }; },

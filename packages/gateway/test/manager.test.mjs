@@ -7,6 +7,7 @@ import http from 'node:http';
 import vm from 'node:vm';
 import { createManagedGateway, createPacScript, DEFAULT_ALLOWED_ORIGINS } from '../src/manager.mjs';
 import { createCertificateAuthority } from '../src/certificates.mjs';
+import { GatewayError } from '../src/index.mjs';
 
 async function fixture(t, options = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'onethu-manager-'));
@@ -178,4 +179,24 @@ test('account revocation closes proxy and test browser even when OS recovery fai
   assert.equal((await fetch(started.pacUrl)).status, 200);
   platform.disableProxy = restore;
   await manager.control({ action: 'system-disable', confirm: true });
+});
+
+test('peer preflight failure leaves original network settings untouched and activation can be retried', async t => {
+  let healthy = false, checks = 0, writes = 0;
+  const f = await fixture(t, { hostPlatform: 'darwin', peerAuthorizerFactory: () => async () => {
+    checks++; if (!healthy) throw new GatewayError('GATEWAY_PEER_UNAVAILABLE', 503); return true;
+  } });
+  f.platform.prepareProxy = async () => ({ version: 1, fingerprint: 'fixture', services: [{ name: 'Wi-Fi', fallback: {} }] });
+  f.platform.enableProxy = async ({ pacUrlsByService }) => {
+    writes++; f.state.proxyEnabled = true; f.state.recoveryRequired = true; f.state.pacUrlsByService = pacUrlsByService;
+  };
+  await f.manager.control({ action: 'start', confirm: true }); f.state.trusted = true;
+  await assert.rejects(f.manager.control({ action: 'system-enable', confirm: true }), { code: 'GATEWAY_PEER_UNAVAILABLE' });
+  assert.equal(checks, 1); assert.equal(writes, 0); assert.equal(f.state.proxyEnabled, false);
+  const failed = await f.manager.control({ action: 'status' });
+  assert.equal(failed.systemEndpoint, null); assert.equal(failed.systemProxy.recoveryRequired, false);
+  healthy = true;
+  const enabled = await f.manager.control({ action: 'system-enable', confirm: true });
+  assert.equal(checks, 2); assert.equal(writes, 1); assert.equal(enabled.systemProxy.enabled, true);
+  assert.equal(enabled.systemTraffic.requests, 0, 'preflight never forwards a school request');
 });
