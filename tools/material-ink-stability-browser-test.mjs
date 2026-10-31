@@ -140,6 +140,33 @@ await page.screenshot({ path: `${out}/modal-mid.png` });
 await page.evaluate(() => { const btn = [...document.querySelectorAll(".og-panel button")].find((b) => b.textContent?.includes("取消")); btn?.click(); });
 await page.waitForTimeout(300);
 
+// ── 4b. 顶部搜索/OH 面板：整块磨砂，不被折射管线释放成裸半透明面 ──
+await page.locator(".ohx-capsule").click();
+await page.locator(".dock-panel").waitFor();
+await page.waitForTimeout(900);
+const dock = await page.evaluate(() => {
+  const panel = document.querySelector(".dock-panel");
+  if (!panel) return null;
+  const cs = getComputedStyle(panel);
+  const chain = [];
+  for (let node = panel; node && node !== document.documentElement; node = node.parentElement) {
+    const s = getComputedStyle(node);
+    chain.push({ opacity: Number(s.opacity), filter: s.filter });
+  }
+  return {
+    bg: cs.backgroundColor,
+    blur: cs.backdropFilter,
+    opacity: Number(cs.opacity),
+    chain,
+  };
+});
+check(dock && /blur\(|url\(["']?#og-lens-/.test(dock.blur ?? ""), "搜索/OH 面板保持背景模糊（大面板释放折射后恢复静态 blur）");
+check(dock && !dock.bg.endsWith("/ 1)") && dock.bg !== "rgba(0, 0, 0, 0)", "搜索/OH 面板是半透明材质");
+check(dock && dock.opacity === 1 && dock.chain.every((a) => a.opacity === 1 && a.filter === "none"), "搜索/OH 面板及祖先无透明度合成组");
+await page.screenshot({ path: `${out}/search-panel.png` });
+await page.locator(".ohx-capsule").click();
+await page.waitForTimeout(300);
+
 // ── 5. 主题切换：过渡结束后不再有第二轮跳色 ────────────────────────
 await page.evaluate(async () => { (await import(window.__src.theme)).activateTheme("onethu.theme.night"); });
 await page.waitForTimeout(1500);

@@ -121,6 +121,55 @@ html:root[data-og-skin="glass"] .learn-assignment-list {
   flex-direction: column;
   min-width: 0;
   height: 100%;
+  position: relative;
+}
+
+/* 整卡 hover：状态层铺满卡片（含底部标签行），不再只跟着上半部的打开按钮。
+   用独立 ::after 叠色，卡面填充/模糊/圆角保持不变；内容抬到状态层之上，
+   底部标签按钮自己的 hover 仍照常生效。 */
+/* 待办筛选：OneGUI Select 在旧 .hw-filter 行里的尺寸（壳 30px，避免旧 34px 特例）。
+   Trace 的胶囊开关同理：壳去掉自己的面/线，只留文字与箭头。 */
+html:root .tasks-body .hw-filter-select .og-input {
+  --og-c-input-h: var(--og-ctl-h-sm);
+  border-radius: var(--og-radius-md);
+}
+html:root .trace-opt .og-select { width: auto; }
+html:root .trace-opt .og-input {
+  --og-c-input-h: var(--og-ctl-h-sm);
+  padding: 0;
+  border: 0;
+  background: none;
+}
+html:root .trace-opt .og-select-value {
+  color: var(--og-accent);
+  font-size: var(--og-text-label);
+  font-weight: var(--og-weight-semibold);
+}
+html:root .trace-opt .og-select-caret { right: 0; color: var(--og-accent); }
+
+html:root .learn-course-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: var(--og-hover);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--og-dur-2) var(--og-ease-standard);
+}
+html:root .learn-course-card > * {
+  position: relative;
+  z-index: 1;
+}
+@media (hover: hover) and (pointer: fine) {
+  html:root .learn-course-card:hover::after { opacity: 1; }
+}
+/* 打开按钮是整卡的主命中区：hover 由卡片状态层统一表达，按钮自己不再叠第二层底色。 */
+html:root .learn-course-open.og-btn,
+html:root .learn-course-open.og-btn:hover,
+html:root .learn-course-open.og-btn:active {
+  background: transparent;
 }
 
 .learn-course-main {

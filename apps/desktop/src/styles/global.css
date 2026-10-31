@@ -4815,12 +4815,8 @@ section > .svc-label { margin-top: 14px; }
 .tasks-body.is-wide .tasks-learn { max-width: none; margin: 0; }
 /* 作业流上方的「按课程检索」下拉 */
 .hw-filter { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-.hw-filter-select {
-  flex: 1; min-width: 0; height: 34px; padding: 0 10px;
-  border: 1px solid var(--border); border-radius: 10px; background: var(--md-sys-color-surface-container-lowest); color: var(--text-1);
-  font: inherit; font-size: 13px; cursor: pointer;
-}
-.hw-filter-select:hover { border-color: var(--accent-border); }
+/* OneGUI Select 的宿主盒：材质/边框/高度由 .og-input 壳统一，这里只管占位。 */
+.hw-filter-select { flex: 1; min-width: 0; width: auto; max-width: none; }
 .hw-filter-clear {
   flex: none; height: 34px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px;
   background: var(--md-sys-color-surface-container-lowest); color: var(--text-2); font: inherit; font-size: 12px; cursor: pointer;

@@ -99,7 +99,7 @@ try {
     card.appendChild(cardBody);
     stage.appendChild(card);
 
-    // 两条渲染路径：对照（不剥行内底 = 用户看到白块的旧行为）/ 生产（flush 时剥）
+    // 两条渲染路径：对照（不剥行内底 = 用户看到白块的旧行为）/ 生产（所有皮肤都剥）
     const makeFrame = (id, strip) => {
       const holder = document.createElement("div");
       holder.className = "ykt-problem-body";
@@ -114,7 +114,7 @@ try {
         extraCss: bundle.inlineCss,
         theme,
         stripColors: ht.stripInlineColors,
-        stripBackgrounds: strip && theme.flush === true ? ht.stripInlineBackgrounds : undefined,
+        stripBackgrounds: strip ? ht.stripInlineBackgrounds : undefined,
       });
       const frame = document.createElement("iframe");
       frame.id = id;
@@ -125,7 +125,7 @@ try {
       return { theme, doc, frame };
     };
     const control = makeFrame("ykt-control", false); // 旧路径：保留官方行内白底
-    const fixed = makeFrame("ykt-fixed", true); // 生产路径：玻璃档剥背景
+    const fixed = makeFrame("ykt-fixed", true); // 生产路径：所有皮肤剥背景
 
     // 公式对话框的 LaTeX 阅读面（唯一会整块压住公式的容器）
     const dialog = document.createElement("div");
@@ -172,6 +172,16 @@ try {
       });
     const controlInspect = await inspect(control.doc);
     const fixedInspect = await inspect(fixed.doc);
+    // 非玻璃/深色皮肤：同一份来源 HTML，走"所有皮肤都剥背景"的生产口径。
+    const neutralDoc = yb.buildYktProblemDoc({
+      html: fixture,
+      render: bundle.render,
+      extraCss: bundle.inlineCss,
+      theme: { ...fixed.theme, flush: false, bg: "#1b1b1f", text: "#e8ebf2" },
+      stripColors: ht.stripInlineColors,
+      stripBackgrounds: ht.stripInlineBackgrounds,
+    });
+    const neutralInspect = await inspect(neutralDoc);
 
     const previewGlassBg = getComputedStyle(preview).backgroundColor;
     const cardBg = getComputedStyle(card).backgroundColor;
@@ -203,6 +213,7 @@ try {
       fixedRect: rect("ykt-fixed"),
       controlInspect,
       fixedInspect,
+      neutralInspect,
       fixedDocHasAmpNbsp: fixed.doc.includes("&amp;nbsp;"),
       fixedDocHasOpaqueWhite: /background(-color)?\s*:\s*(#fff|#ffffff|rgb\(\s*255\s*,\s*255\s*,\s*255\s*\))/i.test(
         fixed.doc.slice(fixed.doc.indexOf("<body>"), fixed.doc.indexOf("<script>")),
@@ -231,6 +242,9 @@ try {
   check(result.controlInspect.tableCell !== "rgba(0, 0, 0, 0)", "② 对照：表格 bgcolor 白底仍在（已复现）");
   check(result.fixedInspect.tableCell === "rgba(0, 0, 0, 0)", `② 生产路径剥掉表格白底（实际 ${result.fixedInspect.tableCell}）`);
   check(!result.fixedDocHasOpaqueWhite, "② 生产文档正文不再含不透明白色背景声明");
+  check(result.neutralInspect.firstSpan === "rgba(0, 0, 0, 0)" && result.neutralInspect.tableCell === "rgba(0, 0, 0, 0)",
+    "② 非玻璃/深色皮肤同样剥掉白底（公式块跟随页面材质）");
+  check(result.neutralInspect.body !== "rgb(255, 255, 255)", `② 非玻璃皮肤画布不再刷白（实际 ${result.neutralInspect.body}，透出页面材质）`);
 
   // ── ② 白底：真实 iframe 叠在玻璃上的像素证据（对照有白块 / 生产无白块） ──
   const shot = async (rect) => {

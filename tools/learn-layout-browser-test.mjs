@@ -169,6 +169,26 @@ for (const [engine, kind, options] of engines) {
           });
           check(alphaOf(hoverState.bg) === 1 && Math.abs(hoverState.afterOpacity - 1) < 1e-6 && hoverState.afterContent !== "none",
             `${engine}/${width}: hovering a stat card keeps its opaque surface and lights the state layer`);
+          // Bug 4：课程卡 hover 必须覆盖整卡（含底部标签行），不能只亮上半部的打开按钮。
+          const courseCard = page.locator(".learn-course-card").first();
+          await courseCard.locator(".learn-course-footer").hover();
+          await page.waitForTimeout(240);
+          const cardHover = await courseCard.evaluate((el) => {
+            const after = getComputedStyle(el, "::after");
+            const open = el.querySelector(".learn-course-open");
+            const rect = el.getBoundingClientRect();
+            const footer = el.querySelector(".learn-course-footer")?.getBoundingClientRect();
+            return {
+              afterOpacity: Number(after.opacity),
+              afterContent: after.content,
+              openBg: open ? getComputedStyle(open).backgroundColor : null,
+              coversFooter: !!footer && footer.bottom <= rect.bottom + 0.5 && footer.top >= rect.top,
+            };
+          });
+          check(Math.abs(cardHover.afterOpacity - 1) < 1e-6 && cardHover.afterContent !== "none" && cardHover.coversFooter,
+            `${engine}/${width}: hovering the footer lights the whole course card`);
+          check(cardHover.openBg === "rgba(0, 0, 0, 0)", `${engine}/${width}: course open button does not paint a second hover layer`);
+          if (width === 1280) await page.screenshot({ path: `${out}/course-card-hover.png` });
           await page.mouse.move(0, 0);
         }
         // Bug 3（只在 1280 档做一次）：玻璃皮肤下搜索框外壳必须半透明 + 背景模糊；

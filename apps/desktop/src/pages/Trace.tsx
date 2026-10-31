@@ -1,5 +1,5 @@
 import { t as i18n, rich as i18nRich, useLocale as useUiLocale } from "../i18n/index.js";
-import { Btn } from "@onethu/gui";
+import { Btn, Select } from "@onethu/gui";
 /**
  * 寻迹：今日日程的地图投送。
  * - 数据：今日课程/考试（教务）+ 云日历 + 本地日程（同一合并口径，与日程页一致）
@@ -459,15 +459,15 @@ export function TracePage(): React.ReactNode {
           <>
             <PageAtomStar atomKey="trace" title={i18n("pages.trace.60458dfb4c14")} />
             <label className="trace-opt" title={i18n("pages.trace.0806c400fd4e")}>
-              <select value={mode} onChange={(e) => setModePersist(e.target.value as TravelMode)}>
+              <Select value={mode} onChange={(value) => setModePersist(value as TravelMode)} aria-label={i18n("pages.trace.0806c400fd4e")}>
                 {TRAVEL_MODES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-              </select>
+              </Select>
               <span>{i18nRich("pages.trace.b346ef69dee9", { modeLabel: modeLabel })}</span>
             </label>
             <label className="trace-opt" title={i18n("pages.trace.92bd3ef7fe0e")}>
-              <select value={mapApp} onChange={(e) => setAppPersist(e.target.value as MapApp)}>
+              <Select value={mapApp} onChange={(value) => setAppPersist(value as MapApp)} aria-label={i18n("pages.trace.92bd3ef7fe0e")}>
                 {MAP_APPS.map((a) => <option key={a.id} value={a.id}>{i18nRich("pages.trace.e1be450ce158", { label: a.label })}</option>)}
-              </select>
+              </Select>
               <span>{i18nRich("pages.trace.d407c45a6be7", { appLabel: appLabel })}</span>
             </label>
           </>

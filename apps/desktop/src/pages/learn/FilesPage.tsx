@@ -1,6 +1,6 @@
 import { courseDisplayName, courseSearchNames } from "../../lib/learnLanguage.js";
 import { t as i18n, useLocale as useUiLocale } from "../../i18n/index.js";
-import { Btn } from "@onethu/gui";
+import { Btn, Select } from "@onethu/gui";
 /** 全部课程文件（learnX Files）：按上传时间倒序，可按课程筛选 */
 import { useMemo, useState } from "react";
 import { PageAtomStar } from "../..//components/Collect.js";
@@ -46,16 +46,16 @@ export function FilesPage() {
       {(data?.courses.length ?? 0) > 1 ? (
         <div className="field" style={{ maxWidth: 260 }}>
           <label htmlFor="file-course-filter">{i18n("pages.learn.filespage.54fc6c3ebb09")}</label>
-          <select
+          <Select
             id="file-course-filter"
             value={courseId}
-            onChange={(e) => setCourseId(e.target.value)}
+            onChange={setCourseId}
           >
             <option value="">{i18n("pages.learn.filespage.dc62910bd1d2")}</option>
             {(data?.courses ?? []).map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
-          </select>
+          </Select>
         </div>
       ) : null}
 

@@ -183,9 +183,10 @@ export function ProblemBody({ html, fontUrl, cookies, title = i18n("components.e
           extraCss: bundleRef.current?.inlineCss,
           theme,
           stripColors: stripInlineColors,
-          // 玻璃材质档：官方正文里的行内实底（白底纸块）会让公式背后出现实心白板，
-          // 只在画布能透出玻璃时剥掉；实色纸面主题不剥（底本来就是纸色）。
-          stripBackgrounds: theme.flush === true ? stripInlineBackgrounds : undefined,
+          // 官方正文里的行内实底（白底纸块、表格 bgcolor）会与页面材质脱节：浅色纸面
+          // 下是一块白板，深色/玻璃下更刺眼。所有皮肤与明暗模式统一剥掉，底色跟随
+          // 卡片材质；正文文字色仍按 stripColors 单独处理。
+          stripBackgrounds: stripInlineBackgrounds,
         }),
       );
       setHeight(YKT_FRAME_MIN_H);

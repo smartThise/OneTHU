@@ -87,6 +87,11 @@ type Lens = {
   signature?: string;
   /** Index in the host's selector match order, for a stable budget. */
   order: number;
+  /** 元素原本的内联 backdrop-filter（许多浮层把材质写在 inline style 里）。
+   *  lens 因面积/预算/降级释放时必须还原它，而不是删掉整个材质——否则大面板会变成
+   *  「半透明但没有模糊」的裸面（用户实测：搜索/OH 面板打开后模糊丢失）。 */
+  inlineBackdrop?: string;
+  inlineWebkitBackdrop?: string;
 };
 
 let nextLens = 0;
@@ -199,8 +204,10 @@ export function installGlassRefraction(selector: string, root: HTMLElement = doc
     lens.filter?.remove();
     lens.filter = undefined;
     lens.signature = undefined;
-    lens.el.style.removeProperty("backdrop-filter");
-    lens.el.style.removeProperty("-webkit-backdrop-filter");
+    if (lens.inlineBackdrop) lens.el.style.setProperty("backdrop-filter", lens.inlineBackdrop);
+    else lens.el.style.removeProperty("backdrop-filter");
+    if (lens.inlineWebkitBackdrop) lens.el.style.setProperty("-webkit-backdrop-filter", lens.inlineWebkitBackdrop);
+    else lens.el.style.removeProperty("-webkit-backdrop-filter");
     lens.el.removeAttribute("data-og-refraction");
   }
 
@@ -362,7 +369,13 @@ export function installGlassRefraction(selector: string, root: HTMLElement = doc
       const add = (el: Element): void => {
         if (!(el instanceof HTMLElement) || lenses.has(el)) return;
         if (lenses.size >= REFRACTION_LIMITS.candidates) return;
-        const lens: Lens = { el, visible: false, order: group * 10_000 + nextLens++ };
+        const lens: Lens = {
+          el,
+          visible: false,
+          order: group * 10_000 + nextLens++,
+          inlineBackdrop: el.style.getPropertyValue("backdrop-filter"),
+          inlineWebkitBackdrop: el.style.getPropertyValue("-webkit-backdrop-filter"),
+        };
         lenses.set(el, lens);
         io.observe(el);
         resize.observe(el);

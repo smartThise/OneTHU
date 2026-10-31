@@ -470,7 +470,7 @@ console.log("\n[9] 字面 nbsp 归一 / 玻璃档剥行内背景（公式白底�
   const readSrc = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
   const comp = readSrc("../apps/desktop/src/components/exthw/ProblemBody.tsx");
   ok(comp.includes("stripInlineBackgrounds"), "ProblemBody：引入 stripInlineBackgrounds");
-  ok(comp.includes("stripBackgrounds: theme.flush === true ? stripInlineBackgrounds : undefined"), "ProblemBody：仅玻璃档（flush）注入剥背景（实色纸面主题不剥）");
+  ok(comp.includes("stripBackgrounds: stripInlineBackgrounds,"), "ProblemBody：所有皮肤/明暗模式都剥行内背景（底色跟随页面材质）");
   const themeSrc = readSrc("../apps/desktop/src/lib/htmlTheme.ts");
   ok(themeSrc.includes("export function stripInlineBackgrounds"), "htmlTheme：stripInlineBackgrounds 实现导出");
   ok(themeSrc.includes('removeProperty("background-color")') && themeSrc.includes('removeAttribute("bgcolor")'), "stripInlineBackgrounds：背景声明与 bgcolor 呈现属性都剥");
