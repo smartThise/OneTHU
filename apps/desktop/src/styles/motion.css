@@ -281,13 +281,15 @@
 .row-click:active,
 .nav-item:active,
 .entry:active,
-.stat-card:active,
 .tab:active,
 .plg-tab:active,
 .setting-row:active {
   background: var(--hover);
   transition-duration: 70ms;
 }
+
+/* 统计卡（.stat-card）是带材质的面，悬停状态层由 OneGUI 宿主配方绘制，
+   不在这里用 background 替换——见 packages/gui/src/recipes/compatibility.css。 */
 
 /* 图标钮里的 svg 跟着缩一点，手感更"实体" */
 .icon-btn svg,
@@ -357,7 +359,8 @@ select {
   .btn:active {
     transform: scale(0.965);
   }
-  /* 数字卡片：只把边框与底色点亮一点，不位移 */
+  /* 数字卡片：只点亮阴影，不位移；卡面填充不变，悬停状态层由 OneGUI 宿主配方
+     （compatibility.css 的 .stat-card::after）绘制。 */
   .stat-card {
     transition:
       background-color var(--dur-2) var(--ease-out),
@@ -365,7 +368,6 @@ select {
       box-shadow var(--dur-2) var(--ease-out);
   }
   .stat-card:hover {
-    background: var(--hover);
     box-shadow: var(--shadow-1);
   }
   /* 卡片：不位移，只把边框"点亮"，避免整页在动 */

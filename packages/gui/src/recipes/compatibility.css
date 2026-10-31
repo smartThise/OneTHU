@@ -514,6 +514,29 @@ html:root .ex-ctxmenu-item:hover { background: var(--og-hover); }
 html:root .ex-ctxmenu-item.is-danger { color: var(--og-error); }
 html:root .ohx-capsule:focus-within { box-shadow: var(--og-ring); border-color: var(--og-line-3); }
 
+/* 统计卡（.stat-card：网络学堂四个入口、信息页数字卡等）是**带材质的面**：
+   中性皮肤是实底，玻璃皮肤是半透明 + 背景模糊。悬停/按压不能用 background 直接
+   换成半透明状态色（那会把卡片整块变透明、透出页面），状态层单独画在 ::after 上，
+   卡面填充、边框、模糊与圆角全程不动。规则放在宿主配方里，旧样式表只留棘轮。 */
+html:root .stat-card { position: relative; }
+html:root .stat-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--og-hover);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--og-dur-2) var(--og-ease-standard);
+}
+html:root .stat-card:active::after {
+  opacity: 1;
+  background: var(--og-press);
+}
+@media (hover: hover) and (pointer: fine) {
+  html:root .stat-card:hover::after { opacity: 1; }
+}
+
 /* Clock material belongs to the enclosing .free-item, just like other widgets
    (§8.5). Its body stays transparent even with wallpaper; textContrast still
    samples the wallpaper plus that single material surface for readable text. */

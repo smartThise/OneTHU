@@ -24,6 +24,7 @@ const ok = (cond, label) => {
 
 const src = (p) => readFileSync(new URL(`../apps/desktop/src/${p}`, import.meta.url), "utf8");
 const css = src("styles/motion.css");
+const compatCss = readFileSync(new URL("../packages/gui/src/recipes/compatibility.css", import.meta.url), "utf8");
 const globalCss = src("styles/global.css");
 const main = src("main.tsx");
 const motion = src("lib/motion.ts");
@@ -154,7 +155,9 @@ console.log("[9] hover 策略：只让「点进去会跳转」的大卡位移");
   const hoverBlock = css.slice(css.indexOf("@media (hover: hover)"), css.indexOf("/* ---------- 6."));
   ok(/\.entry:hover\s*\{[\s\S]{0,120}?translate3d\(0, -2px, 0\)/.test(hoverBlock), "入口大卡 hover 上浮");
   ok(!/\.stat-card:hover\s*\{[\s\S]{0,160}?transform/.test(hoverBlock), "数字卡片 hover 不位移（只点亮边框/底色）");
-  ok(/\.stat-card:hover\s*\{[\s\S]{0,120}?background: var\(--hover\)/.test(hoverBlock), "数字卡片 hover 改为底色反馈");
+  ok(/html:root \.stat-card::after\s*\{[\s\S]{0,260}?background: var\(--og-hover\)[\s\S]{0,120}?pointer-events: none/.test(compatCss), "数字卡片 hover 用独立状态层叠色（不替换卡面填充）");
+  ok(!/\.stat-card:hover\s*\{[\s\S]{0,120}?background: var\(--hover\)/.test(hoverBlock), "数字卡片 hover 不把实底/玻璃面替换成透明状态色");
+  ok(/\.stat-card:hover::after\s*\{[\s\S]{0,80}?opacity: 1/.test(compatCss), "数字卡片 hover 才点亮状态层");
   ok(!/\.row-click:hover\s*\{[\s\S]{0,120}?transform/.test(hoverBlock), "列表行 hover 不做横向位移（鼠标横扫会抖）");
 }
 
@@ -301,8 +304,8 @@ console.log("[17] 分段条滑动块 / 横幅 / 无涟漪回归");
   ok(/\.seg-pill\.is-ready\s*\{[\s\S]{0,60}?opacity: 1/.test(css), "is-ready 才显形（首帧不滑入）");
   ok(/\.segmented:has\(\.seg-pill\.is-ready\) button\.is-active\s*\{[\s\S]{0,90}?background: transparent/.test(css), "块就位后才撤按钮自带底色（量不到时保留底色）");
   ok(/export function useSegPill/.test(motion), "测量逻辑收在 lib/motion.ts");
-  const sites = [layout, src("pages/MailPage.tsx")];
-  ok(sites.every((t) => /className="seg-pill"/.test(t)), "两处 .segmented 都渲染了滑动块（SegmentedOverflow / 邮箱）");
+  ok(/className="seg-pill"/.test(layout), "SegmentedOverflow 统一渲染滑动块");
+  ok(/<SegmentedOverflow/.test(src("pages/MailPage.tsx")) && !/className="seg-pill"/.test(src("pages/MailPage.tsx")), "邮箱 tab 复用统一分段条（不再自建滑动块）");
   ok(/\.browser-hint\s*\{[\s\S]{0,90}?animation: m-rise/.test(css), "引导横幅出现不突变");
   ok(/installRipple/.test(main) && /export function installRipple/.test(src("components/Ripple.tsx")), "按钮涟漪由 Ripple.tsx 安装");
   ok(!/installRipple/.test(motion), "涟漪不在动效层偷偷安装");

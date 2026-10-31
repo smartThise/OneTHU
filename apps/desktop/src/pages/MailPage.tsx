@@ -11,10 +11,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../state/context.js";
 import { MAIL_FOLDERS, useMail, useMailCounts, useMailBody, sendMail, mailSearch, type MailHead } from "../state/mail.js";
 import { ConnectGate } from "../components/ConnectGate.js";
+import { SegmentedOverflow } from "../components/Layout.js";
 import { IconMail, IconRefresh, IconPen, IconChevron } from "../components/Icons.js";
 import { CollectStar } from "../components/Collect.js";
 import { showToast } from "../state/toast.js";
-import { useSegPill } from "../lib/motion.js";
 import { vaultCatchAttr } from "../components/vault/vaultDrag.js";
 
 /** 邮件时间：今天 14:05 / 昨天 / 9月5日 / 2025年12月3日 */
@@ -240,7 +240,6 @@ export function MailPage(): React.ReactNode {
   };
   const [bindOpen, setBindOpen] = useState(false); // §4.3：未配置时在原地绑，不必先去设置
   const unreadCounts = useMailCounts();
-  const [segRef, pillRef] = useSegPill();
 
   // 原子深链：写信 / 邮件实体（先弹层再落位，双触发幂等）
   useEffect(() => {
@@ -311,11 +310,12 @@ export function MailPage(): React.ReactNode {
         </div>
       </div>
       <div className="mail-toolbar">
-        <div className="segmented" ref={segRef}>
-          <span className="seg-pill" ref={pillRef} aria-hidden="true" />
+        <SegmentedOverflow ariaLabel={i18n("pages.mailpage.73075237fd0f")}>
           {MAIL_FOLDERS.map((f) => (
             <button
               key={f.id}
+              role="tab"
+              aria-selected={folder === f.id}
               className={folder === f.id ? "is-active" : ""}
               onClick={() => { setFolder(f.id); setOpenUid(null); clearSearch(); }}
             >
@@ -323,7 +323,7 @@ export function MailPage(): React.ReactNode {
               {(unreadCounts[f.id] ?? 0) > 0 && <span className="tab-count" title={i18n("pages.mailpage.4d0680f9efae")}>{unreadCounts[f.id]}</span>}
             </button>
           ))}
-        </div>
+        </SegmentedOverflow>
         <span className="mail-toolbar-search">
           <Input value={q} onChange={(value) => setQ(value)} onKeyDown={(e) => { if (e.key === "Enter" && q.trim()) void doSearch(); }} placeholder={i18n("pages.mailpage.3d4a72366c0e")} />
           {results !== null || searching ? (

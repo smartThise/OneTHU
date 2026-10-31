@@ -30,7 +30,16 @@ assert.ok(widths.length > 0, "At least one viewport width must be selected");
 let count = 0;
 const results = [];
 const check = (value, label) => { assert.ok(value, label); count++; };
-async function setup(browser, width, scale = 1) {
+/** CSS 颜色 → alpha（rgb() 视作 1；rgba()/color(srgb … / a) 取末尾 alpha）。 */
+const alphaOf = (value) => {
+  if (!value) return 0;
+  const slash = /\/\s*([\d.]+)\s*\)/.exec(value);
+  if (slash) return Number(slash[1]);
+  const rgba = /rgba\([^)]*,\s*([\d.]+)\s*\)/.exec(value);
+  if (rgba) return Number(rgba[1]);
+  return 1;
+};
+async function setup(browser, width, scale = 1, opts = {}) {
   const page = await browser.newPage({ viewport:{width, height:900}, deviceScaleFactor:scale, hasTouch:width < 600 });
   page.setDefaultTimeout(12000);
   await page.routeWebSocket(/(?:127\.0\.0\.1|localhost):5180/, () => {});
@@ -38,11 +47,15 @@ async function setup(browser, width, scale = 1) {
     const url = new URL(route.request().url());
     return ["127.0.0.1", "localhost"].includes(url.hostname) ? route.continue() : route.abort();
   });
-  await page.addInitScript(() => {
+  await page.addInitScript((o) => {
     localStorage.setItem("onethu.onboarded.phone", "1");
+    localStorage.setItem("onethu.onboarded.flow3", "1");
+    localStorage.setItem("onethu.onboarded.flow4", "1");
+    localStorage.setItem("onethu.privacy.v1", JSON.stringify({ acknowledged: true, cloud: true, oh: true }));
     localStorage.setItem("onethu.experience.v1", "full");
     localStorage.setItem("onethu.overlay.closed", "1");
-  });
+    if (o.rail) localStorage.setItem("explorer.tabLayout.current", "v");
+  }, opts);
   await page.goto(base + "/?explorer-preview=onboarding");
   await page.locator(".explorer-shell").waitFor();
   await page.evaluate(async () => {
@@ -88,8 +101,11 @@ async function setup(browser, width, scale = 1) {
   });
   return page;
 }
+async function openTabViaStore(page, tab) {
+  await page.evaluate(async (name) => { (await import(window.__learnFixtureSources.explorer)).openTab(name); }, tab);
+}
 async function returnToLearn(page) {
-  await page.evaluate(async () => { (await import(window.__learnFixtureSources.explorer)).openTab("learn"); });
+  await openTabViaStore(page, "learn");
   await page.locator(".learn-course-list:visible").waitFor();
 }
 for (const [engine, kind, options] of engines) {
@@ -111,8 +127,19 @@ for (const [engine, kind, options] of engines) {
             overflow:document.documentElement.scrollWidth>innerWidth+1,
           };
         });
-        if (width >= 840) check(geometry.content.w >= width - 40, `${engine}/${width}: course content occupies the available window`);
+        if (width >= 840) check(geometry.content.w <= 1160 + 1, `${engine}/${width}: course content respects the shared reading boundary`);
         check(!geometry.overflow && geometry.clipping.length === 0, `${engine}/${width}: long title, teachers and locations remain readable`);
+        // 主页与子页面必须同宽：此前 learn 页单独把 .explorer-content 拉成 width:100%，
+        // 竖版标签栏下还多出横向滚动条（用户实测）。用实际子页面做同宽对照。
+        await openTabViaStore(page, "learn-assignments");
+        await page.locator('.explorer-panel[data-tab-page="learn-assignments"]:visible').waitFor();
+        const subContent = await page.locator(".explorer-content").evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          return { x: Math.round(r.x * 10) / 10, w: Math.round(r.width * 10) / 10 };
+        });
+        check(Math.abs(subContent.x - geometry.content.x) < 1 && Math.abs(subContent.w - geometry.content.w) < 1,
+          `${engine}/${width}: learn content boundary matches its subpages`);
+        await returnToLearn(page);
         const byRow = new Map();
         for (const card of geometry.cards) {
           const key = Math.round(card.y);
@@ -126,6 +153,63 @@ for (const [engine, kind, options] of engines) {
         }
         check(await cards.locator("button button").count() === 0, `${engine}/${width}: independent actions are never nested buttons`);
         check(await cards.locator(".chip, .chip-blue, .course-card-btn").count() === 0, `${engine}/${width}: retired styles are absent`);
+        // Bug 1：统计卡是带材质的面，hover 只能叠状态层，不能把 background 换成半透明色
+        // （否则中性皮肤下整张卡透出页面 —— 用户实测「网络学堂四个入口 hover 变透明」）。
+        if (width >= 840) {
+          const statCard = page.locator(".learn-page > .stats > .stat-card").first();
+          await statCard.hover();
+          await page.waitForTimeout(240);
+          const hoverState = await statCard.evaluate((el) => {
+            const cs = getComputedStyle(el);
+            const after = getComputedStyle(el, "::after");
+            return { bg: cs.backgroundColor, afterOpacity: Number(after.opacity), afterContent: after.content };
+          });
+          check(alphaOf(hoverState.bg) === 1 && Math.abs(hoverState.afterOpacity - 1) < 1e-6 && hoverState.afterContent !== "none",
+            `${engine}/${width}: hovering a stat card keeps its opaque surface and lights the state layer`);
+          await page.mouse.move(0, 0);
+        }
+        // Bug 3（只在 1280 档做一次）：玻璃皮肤下搜索框外壳必须半透明 + 背景模糊；
+        // 中性皮肤保持实底、无模糊（玻璃/非玻璃都要可验证）。
+        if (width === 1280) {
+          await page.evaluate(async () => {
+            const path = "/src/lib/glassLevel.ts";
+            const url = performance.getEntriesByType("resource").filter((e) => new URL(e.name).pathname === path).at(-1)?.name ?? path;
+            (await import(url)).setGlassLevel("clear");
+          });
+          await page.waitForFunction(() => document.documentElement.dataset.ogSkin === "glass");
+          await page.waitForTimeout(320);
+          const capsule = await page.evaluate(() => {
+            const el = document.querySelector(".ohx-capsule");
+            if (!el) return null;
+            const cs = getComputedStyle(el);
+            return { bg: cs.backgroundColor, blur: cs.backdropFilter };
+          });
+          check(capsule && alphaOf(capsule.bg) > 0 && alphaOf(capsule.bg) < 1 && /blur\(/.test(capsule.blur),
+            `${engine}/${width}: glass top search capsule is a translucent material with blur`);
+          await openTabViaStore(page, "learn-search");
+          await page.locator(".search-box").waitFor();
+          await page.waitForTimeout(260);
+          const searchBox = await page.locator(".search-box").evaluate((el) => {
+            const cs = getComputedStyle(el);
+            return { bg: cs.backgroundColor, blur: cs.backdropFilter };
+          });
+          check(alphaOf(searchBox.bg) > 0 && alphaOf(searchBox.bg) < 1 && /blur\(/.test(searchBox.blur),
+            `${engine}/${width}: glass page search box is a translucent material with blur`);
+          await page.evaluate(async () => {
+            const path = "/src/lib/glassLevel.ts";
+            const url = performance.getEntriesByType("resource").filter((e) => new URL(e.name).pathname === path).at(-1)?.name ?? path;
+            (await import(url)).setGlassLevel("balanced");
+          });
+          await page.waitForFunction(() => document.documentElement.dataset.ogSkin === "neutral");
+          await page.waitForTimeout(320);
+          const neutralBox = await page.locator(".search-box").evaluate((el) => {
+            const cs = getComputedStyle(el);
+            return { bg: cs.backgroundColor, blur: cs.backdropFilter };
+          });
+          check(alphaOf(neutralBox.bg) === 1 && neutralBox.blur === "none",
+            `${engine}/${width}: neutral skin keeps the page search box opaque without blur`);
+          await returnToLearn(page);
+        }
         if (width < 600) {
           const statsRows = await page.locator(".learn-page > .stats").evaluate((el) => {
             const rows = new Map();
@@ -204,6 +288,28 @@ for (const [engine, kind, options] of engines) {
             }
           }
         }
+      } finally { await page.close(); }
+    }
+    // 竖版标签栏：learn 内容区不能让 width:100% 叠加左栏偏移，否则底部多出横向滚动条。
+    {
+      const page = await setup(browser, 1280, 1, { rail: true });
+      try {
+        const measure = () => page.evaluate(() => {
+          const el = document.querySelector(".explorer-content");
+          const r = el.getBoundingClientRect();
+          return {
+            x: Math.round(r.x * 10) / 10,
+            w: Math.round(r.width * 10) / 10,
+            overflow: document.documentElement.scrollWidth > innerWidth + 1,
+            vertical: document.documentElement.classList.contains("tabs-vertical"),
+          };
+        });
+        const learn = await measure();
+        check(learn.vertical && !learn.overflow, `${engine}/rail: learn page adds no horizontal scrollbar beside the rail`);
+        await openTabViaStore(page, "learn-assignments");
+        await page.locator('.explorer-panel[data-tab-page="learn-assignments"]:visible').waitFor();
+        const sub = await measure();
+        check(Math.abs(learn.x - sub.x) < 1 && Math.abs(learn.w - sub.w) < 1, `${engine}/rail: learn content boundary matches its subpages`);
       } finally { await page.close(); }
     }
   } finally { await browser.close(); }

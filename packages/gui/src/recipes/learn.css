@@ -1,9 +1,9 @@
 /* Learning course overview: one grid and one card composition for both sources.
    Card, action, tag and focus visuals remain owned by OneGUI primitives. */
-html:root .explorer-content[data-active-page="learn"] {
-  width: 100%;
-  max-width: none;
-}
+/* 网络学堂主页与它的子页面（作业 / 通知 / 文件 / 搜索）共用同一条内容边界：
+   `.explorer-content` 的宽度与上限由壳层统一给出。页面级不要再改写 width /
+   max-width——宽屏会顶到两侧，竖版标签栏下 width:100% 再叠加左栏偏移还会多出
+   一条横向滚动条（用户实测）。 */
 
 .learn-page {
   width: 100%;

@@ -3635,10 +3635,12 @@ html.is-phone .trace-map-wrap { height: calc(100dvh - 178px); min-height: 320px;
 .mail-guide p { font-size: var(--text-sm); line-height: 1.7; max-width: 340px; margin: 0; }
 .mail-guide svg { color: var(--text-3); }
 
-/* 工具栏：segmented + 搜索同一行（窄栏自动折行）；未读徽标 = 实心强调色 */
+/* 工具栏：文件夹 tab 与搜索同一行（窄栏自动折行）。
+   tab 用全站统一的 SegmentedOverflow（.seg-ov > .segmented），不再自己画一套
+   “浅灰选中”的分段条；未读徽标沿用全局 .tab-count 的语义配色。 */
 .mail-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.mail-toolbar > .seg-ov { flex: 1 1 320px; min-width: 0; max-width: 520px; }
 .mail-toolbar .segmented { margin-bottom: 0; flex: none; }
-.mail-toolbar .tab-count { background: var(--accent); color: #fff; }
 .mail-toolbar-search { display: inline-flex; align-items: center; gap: 6px; flex: 1 1 180px; min-width: 0; max-width: min(420px, 100%); }
 html.is-phone .mail-toolbar-search { max-width: 320px; }
 .mail-toolbar-search .input { flex: 1; min-width: 0; }

@@ -28,6 +28,31 @@ html:root[data-og-skin="glass"] :is(.segmented, .seg-track) {
   -webkit-backdrop-filter: var(--og-reading-blur);
 }
 
+/* 页面搜索框（.search-box：网络学堂搜索、信息-课程信息、新闻搜索等）：
+   这是搜索输入的外壳，不是原生 input 本体。玻璃皮肤下旧 MD 面阶会把它画成一条
+   与周围玻璃脱节的实心/半透明条（用户口径「透明而没有模糊效果」）；外壳改吃
+   阅读面材质 + 背景模糊，内部 input 仍透明，原生控件本身保持实底。 */
+html:root[data-og-skin="glass"] .search-box {
+  background: var(--og-fill-reading);
+  border-color: var(--og-line-2);
+  color: var(--og-content-2);
+  backdrop-filter: var(--og-reading-blur);
+  -webkit-backdrop-filter: var(--og-reading-blur);
+}
+html:root[data-og-skin="glass"] .search-box:focus-within {
+  background: var(--og-fill-overlay);
+  border-color: var(--og-accent);
+  box-shadow: var(--og-material-shadow);
+  backdrop-filter: var(--og-overlay-blur);
+  -webkit-backdrop-filter: var(--og-overlay-blur);
+}
+html:root[data-og-skin="glass"] .search-box input {
+  color: var(--og-content-1);
+}
+html:root[data-og-skin="glass"] .search-box input::placeholder {
+  color: var(--og-content-3);
+}
+
 /* 行动按钮（“查看全部作业”“全部作业 →”“进入网络学堂 →”等）：
    玻璃下要有一层白色材质，而不是实心白板 + 硬描边。
    描边交给材质 rim（--og-material-shadow），保留 1px 透明边框占位避免布局跳动。 */

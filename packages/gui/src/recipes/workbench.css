@@ -25,6 +25,20 @@ html:root .ex-bbar-center .ohx-capsule {
   padding-inline: var(--og-space-4);
 }
 html:root .ex-bbar-center .ohx-capsule:hover { border-color: var(--og-line-2); }
+/* 顶部搜索胶囊是搜索输入的外壳：玻璃皮肤下必须和周围的玻璃栏处于同一条材质轴，
+   否则就是浮在磨砂栏上的一块实心白贴纸（用户口径「透明而没有模糊效果」）。
+   外壳吃阅读面填充 + 背景模糊；内部 input / 占位文字仍透明，靠 --og-content-* 保证对比。 */
+html:root[data-og-skin="glass"] .ex-bbar-center .ohx-capsule {
+  background: var(--og-fill-reading);
+  border-color: var(--og-line-2);
+  box-shadow: var(--og-material-shadow);
+  backdrop-filter: var(--og-reading-blur);
+  -webkit-backdrop-filter: var(--og-reading-blur);
+}
+html:root[data-og-skin="glass"] .ex-bbar-center .ohx-capsule:is(:hover, .is-hold, .is-open) {
+  background: var(--og-fill-overlay);
+  border-color: var(--og-accent);
+}
 html:root .ex-bbar-btn { min-height: var(--og-ctl-h-lg); }
 html:root #ex-bbar-onego-btn { background: var(--og-action); color: var(--og-action-on); border-radius: var(--og-radius-control); padding-inline: var(--og-space-5); }
 html:root #ex-bbar-onego-btn:hover { background: var(--og-action-hover); }
@@ -534,7 +548,7 @@ html:root[data-og-skin="glass"] .free-item.is-note .free-note { background: tran
 
 html:root[data-og-skin="glass"] .has-shell-wallpaper :is(.explorer-panel, .explorer-content) { background: transparent; }
 @media (prefers-reduced-transparency: reduce) {
-  html:root[data-og-skin="glass"] { --og-fill-surface: var(--og-surface-1); --og-fill-overlay: var(--og-surface-overlay); --og-surface-blur: none; --og-overlay-blur: none; --og-note-opacity: 100%; --og-note-blur: none; }
+  html:root[data-og-skin="glass"] { --og-fill-surface: var(--og-surface-1); --og-fill-overlay: var(--og-surface-overlay); --og-fill-reading: var(--og-surface-2); --og-surface-blur: none; --og-overlay-blur: none; --og-reading-blur: none; --og-note-opacity: 100%; --og-note-blur: none; }
 }
 
 /* Home components use the same persisted geometry as every other board item. */
