@@ -15,6 +15,7 @@ import { createWindowsPeerAuthorizer } from './windowsPeer.mjs';
 import { createTrustedClientResolver } from './trustedClient.mjs';
 import { CLIENT_IDENTITY_HOST, CLIENT_BUSINESS_HOSTS } from './clientIdentity.mjs';
 import { gatewayCapabilities } from './capabilities.mjs';
+import {readEndpointHints,writeEndpointHints} from './endpointHints.mjs';
 import { createCampusPassthrough } from './passthrough.mjs';
 export { createPacScript } from './pac.mjs';
 export { DEFAULT_UPSTREAM_ORIGINS } from './routes.mjs';
@@ -61,7 +62,7 @@ async function privateToken(directory) {
 /** The loaded PAC gives campus URLs no direct fallback. Other traffic follows
  * the network service's inherited proxy rules, or DIRECT when none apply. */
 async function servePac(origins, endpoint, fallback, options) {
-  const path = `/campus-${randomBytes(18).toString('hex')}.pac`;
+  const path = options?.listener?.pacPath ?? `/campus-${randomBytes(18).toString('hex')}.pac`;
   const scriptNow = () => createPacScript(typeof origins === 'function' ? origins() : origins, endpoint, fallback, options);
   scriptNow();
   const sockets = new Set();
@@ -78,9 +79,9 @@ async function servePac(origins, endpoint, fallback, options) {
   });
   server.headersTimeout = 5000; server.requestTimeout = 5000; server.maxHeadersCount = 20;
   server.on('connection', socket => { sockets.add(socket); socket.on('close', () => sockets.delete(socket)); socket.setTimeout(5000, () => socket.destroy()); });
-  await new Promise((resolveListen, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolveListen); });
+  await new Promise((resolveListen, reject) => { server.once('error', reject); server.listen(options?.listener?.pacPort??0, '127.0.0.1', resolveListen); });
   const address = server.address();
-  return { url: `http://127.0.0.1:${address.port}${path}`, close: () => new Promise(resolveClose => {
+  return { url: `http://127.0.0.1:${address.port}${path}`,hint:{pacPort:address.port,pacPath:path}, close: () => new Promise(resolveClose => {
     for (const socket of sockets) socket.destroy(); server.close(resolveClose);
   }) };
 }
@@ -117,7 +118,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
   const directory = join(resolve(dataDir), 'gateway');
   const certificateDirectory = join(directory, 'certificates');
   const certificatePath = join(certificateDirectory, 'ca.pem');
-  let authority, clientAuthority, platform, proxy, pac, token, lastError = null;
+  let authority, clientAuthority, platform, proxy, pac, token, endpointHints, lastError = null;
   let systemProxy;
   const systemPacs = new Map();
   const browsers = new Set();
@@ -162,6 +163,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
 
   async function setup() {
     token ??= await privateToken(directory);
+    endpointHints ??= await readEndpointHints(directory);
     authority ??= await certificateFactory({ directory: certificateDirectory, allowedHosts: [...new Set(origins.map(origin => new URL(origin).hostname))],
       authorizeHost: hostname => authorizeDynamic(`https://${hostname}`) });
     platform ??= platformFactory({ directory, certificatePath: authority.certificatePath, fingerprint: authority.fingerprint });
@@ -223,8 +225,10 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
         await pac?.close(); pac = undefined;
         const next = createCampusGateway({ allowedOrigins: origins, token, session, tls: (hostname, options) => authority.issue(hostname, options), upgradeInsecureRequests: true,
           maxUploadBytes: 1024 * 1024 * 1024, maxDownloadBytes: 4 * 1024 * 1024 * 1024, timeoutMs: 180_000 });
-        try { const endpoint = await next.listen(); pac = await servePac(effectiveOrigins, endpoint); proxy = next; }
-        catch (error) { await next.close(); throw error; }
+        try { const endpoint = await next.listen({port:endpointHints.manual?.proxyPort??0});
+          pac = await servePac(effectiveOrigins, endpoint,undefined,{listener:endpointHints.manual});
+          endpointHints.manual={proxyPort:endpoint.port,...pac.hint};await writeEndpointHints(directory,endpointHints);proxy = next; }
+        catch (error) { await next.close();await pac?.close();pac=undefined;throw error; }
       } else if (action === 'trust') await platform.trust({ confirm: true });
       else if (action === 'system-enable') {
         if (!proxy || !pac) fail('GATEWAY_NOT_RUNNING');
@@ -235,21 +239,27 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
           if (!current.certificate.trusted) fail('GATEWAY_CERTIFICATE_TRUST_REQUIRED');
           const plan = await platform.prepareProxy({ confirm: true });
           const groups = new Map();
+          const usedPorts=new Set(),nextHints={};
           const next = { address: () => groups.values().next().value?.address() ?? null,
             close: () => Promise.all([...groups.values()].map(item => item.close())),
             statistics() {
-              const result = { requests: 0, hosts: {}, recentRejections: [] };
+              const result = { requests: 0, hosts: {}, recentRejections: [], clientDiagnostics:{verifiedConnections:0,otherConnections:0,tlsFailures:0,sharedRequests:0,independentRequests:0,recentRequests:[]} };
               for (const gateway of groups.values()) {
                 const value = gateway.statistics(); result.requests += value.requests;
                 for (const [host, count] of Object.entries(value.hosts)) result.hosts[host] = (result.hosts[host] ?? 0) + count;
                 result.recentRejections.push(...value.recentRejections);
+                const client=value.clientDiagnostics;
+                if(client){for(const key of ['verifiedConnections','otherConnections','tlsFailures','sharedRequests','independentRequests'])result.clientDiagnostics[key]+=client[key];
+                  result.clientDiagnostics.recentRequests.push(...client.recentRequests);}
               }
-              result.recentRejections = result.recentRejections.slice(-8); return result;
+              result.recentRejections = result.recentRejections.slice(-8);
+              result.clientDiagnostics.recentRequests.sort((a,b)=>a.at-b.at);result.clientDiagnostics.recentRequests=result.clientDiagnostics.recentRequests.slice(-16);return result;
             } };
           try {
             systemProxy = next;
             for (const service of plan.services) {
               const key = JSON.stringify(service.fallback);
+              const hint=Object.hasOwn(endpointHints.services,service.name)?endpointHints.services[service.name]:undefined;
               let gateway = groups.get(key);
               const passthrough = createCampusPassthrough(service.fallback);
               const trustedClients = !!session.clientIdentity && !!passthrough;
@@ -263,14 +273,17 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
                   ...(passthrough ? { connectPassthrough: passthrough } : {}),
                   tls: (hostname, options) => authority.issue(hostname, options), upgradeInsecureRequests: true,
                   maxUploadBytes: 1024 * 1024 * 1024, maxDownloadBytes: 4 * 1024 * 1024 * 1024, timeoutMs: 180_000 });
-                groups.set(key, gateway); await gateway.listen();
+                groups.set(key, gateway);
+                await gateway.listen({port:hint&&!usedPorts.has(hint.proxyPort)?hint.proxyPort:0});usedPorts.add(gateway.address().port);
                 // Verify the deployed peer path before any network service is
                 // changed. Filesystem/permission failures leave original
                 // proxies intact rather than routing the whole browser to 503.
                 await gateway.preflight();
               }
-              systemPacs.set(service.name, await servePac(effectiveOrigins, gateway.address(), service.fallback, { campusPassthrough: !!passthrough, trustedClients }));
+              const servicePac=await servePac(effectiveOrigins, gateway.address(), service.fallback, { campusPassthrough: !!passthrough, trustedClients,listener:hint });
+              systemPacs.set(service.name,servicePac);Object.defineProperty(nextHints,service.name,{value:{proxyPort:gateway.address().port,...servicePac.hint},enumerable:true});
             }
+            endpointHints.services=nextHints;await writeEndpointHints(directory,endpointHints);
             await platform.enableProxy({ confirm: true, expectedPlan: plan,
               pacUrlsByService: Object.fromEntries([...systemPacs].map(([name, item]) => [name, item.url])) });
           } catch (error) {

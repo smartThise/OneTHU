@@ -21,7 +21,7 @@ async function fixture(t, options = {}) {
   const manager = createManagedGateway({ dataDir: dir, allowedOrigins: ['https://campus.example', 'http://campus.example'], session,
     platformFactory: () => platform, ...options });
   t.after(async () => { await manager.close(); await rm(dir, { recursive: true, force: true }); });
-  return { manager, dir, platform, state, logout: () => { authenticated = false; } };
+  return { manager, dir, platform, state, session, logout: () => { authenticated = false; } };
 }
 
 test('read-only status and shutdown leave pristine profile untouched', async t => {
@@ -71,6 +71,32 @@ test('start, scoped PAC, authentication, status redaction, and stop form a compl
   const stopped = await manager.control({ action: 'stop', confirm: true });
   assert.equal(stopped.running, false); assert.equal(state.proxyEnabled, false);
   await assert.rejects(fetch(status.pacUrl));
+});
+
+test('restarting a managed proxy reuses its manual endpoint and exact cached PAC URL',async t=>{
+ const f=await fixture(t);const first=await f.manager.control({action:'start',confirm:true});
+ await f.manager.control({action:'stop',confirm:true});
+ const second=await f.manager.control({action:'start',confirm:true});
+ assert.deepEqual(second.endpoint,first.endpoint);assert.equal(second.pacUrl,first.pacUrl);
+ assert.equal((await fetch(first.pacUrl)).status,200);
+});
+
+test('a new manager preserves system listener ports and exact PAC URLs across daemon replacement',async t=>{
+ const peerAuthorizerFactory=()=>async()=>true;
+ const f=await fixture(t,{peerAuthorizerFactory,hostPlatform:'darwin'});
+ const plan={version:1,fingerprint:'fixture',services:[{name:'Wi-Fi',fallback:{}},{name:'Ethernet',fallback:{https:{host:'127.0.0.1',port:7897}}}]};
+ f.platform.prepareProxy=async()=>plan;
+ f.platform.enableProxy=async({pacUrlsByService})=>{f.state.proxyEnabled=true;f.state.recoveryRequired=true;f.state.pacUrlsByService=pacUrlsByService;};
+ f.state.trusted=true;await f.manager.control({action:'start',confirm:true});
+ const first=await f.manager.control({action:'system-enable',confirm:true}),urls={...first.systemProxy.pacUrlsByService};
+ const scripts=await Promise.all(Object.values(urls).map(async url=>[url,await(await fetch(url)).text()]));
+ await f.manager.close();
+ const next=createManagedGateway({dataDir:f.dir,allowedOrigins:['https://campus.example','http://campus.example'],session:f.session,platformFactory:()=>f.platform,peerAuthorizerFactory,hostPlatform:'darwin'});
+ try{
+  await next.control({action:'start',confirm:true});const second=await next.control({action:'system-enable',confirm:true});
+  assert.deepEqual(second.systemEndpoint,first.systemEndpoint);assert.deepEqual(second.systemProxy.pacUrlsByService,urls);
+  for(const [url,script]of scripts)assert.equal(await(await fetch(url)).text(),script);
+ }finally{await next.close();}
 });
 
 test('dynamic registered services update status, certificate lookup and fetched PAC without OS mutations', async t => {

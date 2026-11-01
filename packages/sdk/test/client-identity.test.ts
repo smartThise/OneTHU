@@ -63,3 +63,10 @@ test('GUI ticket relay rejects another service callback and keeps the claimed re
  assert.equal(f.identity.desktop.status()[0].state,'renewing');f.identity.desktop.complete({id:row.id,ok:true,official});
  assert.equal(JSON.stringify(f.identity.desktop.status()).includes(official.ticket),false);f.identity.close();
 });
+
+test('a registered uppercase ITS form forwards its requested entry mode to the GUI without changing service scope',async()=>{
+ const f=fixture(async()=>new Response('<input name="i_pass">'));
+ const result=f.identity.request(url.replace('d982b795884e882abfa8ff3167aeb03e','D982B795884E882ABFA8FF3167AEB03E').replace('/0?','/1?'),{method:'GET'},{service:'xiaoda',identity:true});
+ await new Promise(resolve=>setImmediate(resolve));const row=f.identity.desktop.pending()!;assert.equal(row.entryMode,1);
+ f.identity.desktop.complete({id:row.id,ok:true,official});assert.match(await(await result).text(),/official-fixture-ticket/);f.identity.close();
+});

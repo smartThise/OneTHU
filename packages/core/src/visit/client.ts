@@ -323,7 +323,8 @@ export class VisitClient {
    * 完整 ITS 登录（受信指纹生效时零二次认证），再换 token。
    * 会话仍活着时 ITS 给的是「确认页」（无 SM2 公钥）——那条路不吃密码。
    */
-  async authorizeTicket(username?: string, password?: string, fingerprint?: string, finger3?: string): Promise<{ticket:string;html:string;url:string;status:number}> {
+  async authorizeTicket(username?: string, password?: string, fingerprint?: string, finger3?: string,entryMode:0|1|'default'=0): Promise<{ticket:string;html:string;url:string;status:number}> {
+    if(entryMode!==0&&entryMode!==1&&entryMode!=='default')throw new VisitLoginError('Invalid identity entry mode');
     let cookies = "";
     const hop = async (method: "GET" | "POST", url: string, body?: string) => {
       let cur = url;
@@ -357,7 +358,7 @@ export class VisitClient {
       throw new VisitLoginError("统一身份认证跳转次数过多，请稍后重试");
     };
 
-    const form = await hop("GET", ITS_FORM);
+    const form = await hop("GET", entryMode===0?ITS_FORM:entryMode==='default'?ITS_FORM.replace('/0?','?'):ITS_FORM.replace('/0?','/1?'));
     const initialTicket=extractTicket(form.text,form.url);
     if(initialTicket)return {ticket:initialTicket,html:form.text,url:form.url,status:form.status};
     const key = /id="sm2publicKey"[^>]*>\s*([0-9a-fA-F]{100,})\s*</.exec(form.text)?.[1] ?? "";

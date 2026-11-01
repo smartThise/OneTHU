@@ -35,11 +35,11 @@ export function xiaodaHasToken(): boolean {
 }
 
 /** One-use official ticket for the private gateway; never redeemed/stored here. */
-export async function xiaodaGatewayTicket() {
+export async function xiaodaGatewayTicket(entryMode:0|1|'default'=0) {
   const {loadRemembered,currentFingerprint,session}=await import('./clients.js');
   const owner=session.username,fingerprint=await currentFingerprint(),remembered=await loadRemembered();
   if(!owner||session.state!=='ready'||remembered&&remembered.username!==owner)throw new Error('AUTH_SESSION_CONFLICT');
-  const ticket=await xiaodaClient.authorizeTicket(remembered?.username,remembered?.password,fingerprint,session.finger3??'');
+  const ticket=await xiaodaClient.authorizeTicket(remembered?.username,remembered?.password,fingerprint,session.finger3??'',entryMode);
   if(session.username!==owner||session.state!=='ready'||session.fingerprint!==fingerprint)throw new Error('AUTH_SESSION_CHANGED');
   return ticket;
 }

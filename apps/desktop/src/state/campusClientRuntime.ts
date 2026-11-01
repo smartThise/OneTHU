@@ -18,13 +18,14 @@ export function initCampusClientRuntime(){
         available=status.capabilities?.trustedMiniPrograms===true;checkedAt=Date.now();
       }
       if(!available)return;
-      const row=await call<{id:string;service:'xiaoda'|'visit'}|null>('client-pending');
+      const row=await call<{id:string;service:'xiaoda'|'visit';entryMode?:0|1|'default'}|null>('client-pending');
       if(!row)return;
       let ok=false,official:unknown;
       try{
         if(session.username!==guard.expectedAccount||session.state!=='ready')return;
-        if(row.service==='xiaoda')official=await (await import('../lib/xiaoda.js')).xiaodaGatewayTicket();
-        else if(row.service==='visit')official=await (await import('../lib/visit.js')).visitGatewayTicket();
+        if(row.entryMode!==undefined&&row.entryMode!==0&&row.entryMode!==1&&row.entryMode!=='default')return;
+        if(row.service==='xiaoda')official=await (await import('../lib/xiaoda.js')).xiaodaGatewayTicket(row.entryMode??0);
+        else if(row.service==='visit')official=await (await import('../lib/visit.js')).visitGatewayTicket(row.entryMode??0);
         else return;
         ok=session.username===guard.expectedAccount&&session.state==='ready';
       }finally{await call('client-complete',{id:row.id,ok,...(ok?{official}:{})});}

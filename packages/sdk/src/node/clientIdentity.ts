@@ -33,18 +33,19 @@ function officialResponse(official:Official,service:Service){
 
 export function createClientIdentity(runtime:Runtime, {unborrowedFetch=campusDirectFetch}: {unborrowedFetch?:typeof globalThis.fetch} = {}) {
   const unborrowedResponses=new WeakSet<Response>();
-  type Pending = {id:string;service:Service;epoch:number;owner:string;expires:number;claimed:boolean;finish:(official:Official|null)=>void;promise:Promise<Official|null>};
+  type Pending = {id:string;service:Service;entryMode:0|1|'default';epoch:number;owner:string;expires:number;claimed:boolean;finish:(official:Official|null)=>void;promise:Promise<Official|null>};
   const pending = new Map<Service,Pending>(), retryAt = new Map<string,number>();
   const results=new Map<Service,{epoch:number;owner:string;state:'renewed'|'sign-in-required';updatedAt:number}>();
   function fence(epoch:number,owner:string) {runtime.assertCurrent(epoch);if(!owner||runtime.session.username!==owner||!runtime.status().authenticated)fail('GATEWAY_SESSION_CHANGED');}
   function prune(){for(const [service,row] of pending)if(Date.now()>row.expires||row.epoch!==runtime.epoch()||row.owner!==runtime.session.username){pending.delete(service);row.finish(null);}}
-  function renew(service:Service,epoch:number,owner:string,signal?:AbortSignal) {
-    prune();fence(epoch,owner);const key=`${epoch}:${service}`;
+  function renew(service:Service,epoch:number,owner:string,signal?:AbortSignal,entryMode:0|1|'default'=0) {
+    prune();fence(epoch,owner);const key=`${epoch}:${service}:${entryMode}`;
     if((retryAt.get(key)??0)>Date.now())return Promise.resolve(null);
     let row=pending.get(service);
+    if(row&&row.entryMode!==entryMode)return Promise.resolve(null);
     if(!row){
       let finish!:(official:Official|null)=>void;const promise=new Promise<Official|null>(resolve=>{finish=resolve;});
-      row={id:randomBytes(24).toString('hex'),service,epoch,owner,expires:Date.now()+18000,claimed:false,finish,promise};
+      row={id:randomBytes(24).toString('hex'),service,entryMode,epoch,owner,expires:Date.now()+18000,claimed:false,finish,promise};
       pending.set(service,row);const current=row;
       const timer=setTimeout(()=>{if(pending.get(service)===current){pending.delete(service);retryAt.set(key,Date.now()+60000);current.finish(null);}},18000);timer.unref();
       void promise.finally(()=>clearTimeout(timer));
@@ -67,13 +68,13 @@ export function createClientIdentity(runtime:Runtime, {unborrowedFetch=campusDir
       const epoch=runtime.epoch(),owner=runtime.session.username;fence(epoch,owner);
       void renew(service,epoch,owner).catch(()=>undefined);return {queued:pending.has(service)};
     },
-    pending(){prune();const row=[...pending.values()].find(row=>!row.claimed);if(!row)return null;row.claimed=true;return {id:row.id,service:row.service};},
+    pending(){prune();const row=[...pending.values()].find(row=>!row.claimed);if(!row)return null;row.claimed=true;return {id:row.id,service:row.service,entryMode:row.entryMode};},
     complete(input:{id:string;ok:boolean;official?:Official}){
       prune();if(!input||typeof input.id!=='string'||typeof input.ok!=='boolean')throw new Error('CLI_BRIDGE_INVALID');
       const row=[...pending.values()].find(row=>row.id===input.id&&row.claimed);if(!row)return {accepted:false};
       fence(row.epoch,row.owner);
       const official=input.ok?validateOfficial(input.official,row.service):null;
-      pending.delete(row.service);retryAt.set(`${row.epoch}:${row.service}`,Date.now()+(input.ok?5000:60000));
+      pending.delete(row.service);retryAt.set(`${row.epoch}:${row.service}:${row.entryMode}`,Date.now()+(input.ok?5000:60000));
       results.set(row.service,{epoch:row.epoch,owner:row.owner,state:input.ok?'renewed':'sign-in-required',updatedAt:Date.now()});row.finish(official);return {accepted:true};
     },
   };
@@ -85,7 +86,10 @@ export function createClientIdentity(runtime:Runtime, {unborrowedFetch=campusDir
       check();const response=await runtime.fetchCampusDirect(url,{...init,redirect:'manual'});check();return response;
     }
     const serviceId=context.service==='xiaoda'?'d982b795884e882abfa8ff3167aeb03e':'04655f71b042b9d2d8d10cd566bd9c39';
-    if(target.origin!=='https://id.tsinghua.edu.cn'||target.pathname!==`/do/off/ui/auth/login/form/${serviceId}/0`||!['GET','HEAD'].includes(init.method??'GET')||init.body)fail('GATEWAY_CLIENT_REQUEST_REJECTED');
+    const formPath=/^\/do\/off\/ui\/auth\/login\/form\/([0-9a-fA-F]{30,32})(?:\/([01]))?\/?$/.exec(target.pathname);
+    if(!formPath)throw new GatewayError('GATEWAY_CLIENT_REQUEST_REJECTED',403);
+    if(target.origin!=='https://id.tsinghua.edu.cn'||formPath[1]!.toLowerCase()!==serviceId||!['GET','HEAD'].includes(init.method??'GET')||init.body)fail('GATEWAY_CLIENT_REQUEST_REJECTED');
+    const entryMode=formPath[2]===undefined?'default':Number(formPath[2]) as 0|1;
     // Request only this registered service. Redirects stay visible to the
     // official client, which exchanges the school's real ticket itself.
     const get=async()=>{check();const response=await runtime.fetchCampusDirect(url,{method:'GET',signal:init.signal,redirect:'manual'});check();return response;};
@@ -93,7 +97,7 @@ export function createClientIdentity(runtime:Runtime, {unborrowedFetch=campusDir
     if(response.status===200){
       let html=await response.text();check();if(html.length>256*1024)fail('GATEWAY_UPSTREAM_INVALID');
       if(/sm2publicKey|i_pass\b/i.test(html)){
-        const official=await renew(context.service,epoch,owner,init.signal??undefined);check();
+        const official=await renew(context.service,epoch,owner,init.signal??undefined,entryMode);check();
         if(!official)return passthrough(url,init);
         return officialResponse(official,context.service);
       }

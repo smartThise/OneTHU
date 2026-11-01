@@ -2,7 +2,7 @@ import http from 'node:http';
 import tls from 'node:tls';
 import { timingSafeEqual, randomBytes } from 'node:crypto';
 import { Transform } from 'node:stream';
-import { CLIENT_IDENTITY_HOST, CLIENT_BUSINESS_HOSTS, miniProgramRequest, parseClientTarget } from './clientIdentity.mjs';
+import { CLIENT_IDENTITY_HOST, CLIENT_BUSINESS_HOSTS, createMiniNavigationGrants, parseClientTarget, describeMiniRequest } from './clientIdentity.mjs';
 import {
   GatewayError, normalizeAllowedOrigins, parseProxyTarget, parseConnectAuthority, parseCampusConnectAuthority,
   parseTunnelTarget, sanitizeRequestHeaders, sanitizeResponseHeaders,
@@ -111,6 +111,15 @@ export function createCampusGateway(options = {}) {
   const peerChecks = new WeakMap();
   const requestsByHost = new Map();
   const recentRejections = [];
+  const clientDiagnostics = { verifiedConnections:0, otherConnections:0, tlsFailures:0, sharedRequests:0, independentRequests:0, recentRequests:[] };
+  const miniNavigationGrants = createMiniNavigationGrants();
+  const clientPeers=new Map();let clientPeerSequence=0;
+  function clientPeerTag(client){
+    if(!Number.isSafeInteger(client?.pid)||client.pid<1)return 'unavailable';
+    const key=client.platform+':'+client.pid;
+    if(!clientPeers.has(key)){clientPeers.set(key,'client-'+(++clientPeerSequence));if(clientPeers.size>64)clientPeers.delete(clientPeers.keys().next().value);}
+    return clientPeers.get(key);
+  }
   const preflightUrl = 'http://onethu-preflight.invalid/' + randomBytes(24).toString('hex');
   let activeRequests = 0;
   let stopped = false;
@@ -177,7 +186,7 @@ export function createCampusGateway(options = {}) {
       const name = req.rawHeaders[index].toLowerCase();
       counts.set(name, (counts.get(name) ?? 0) + 1);
     }
-    if (req.rawHeaders.length > 200 || ['host', 'proxy-authorization', 'content-length', 'transfer-encoding', 'origin', 'sec-fetch-site'].some(name => (counts.get(name) ?? 0) > 1)) fail('GATEWAY_REQUEST_REJECTED');
+    if (req.rawHeaders.length > 200 || ['host', 'proxy-authorization', 'content-length', 'transfer-encoding', 'origin', 'referer', 'sec-fetch-site','sec-fetch-mode','sec-fetch-dest','sec-fetch-user'].some(name => (counts.get(name) ?? 0) > 1)) fail('GATEWAY_REQUEST_REJECTED');
     if (counts.get('host') !== 1) fail('GATEWAY_HOST_REJECTED');
     if (req.headers.expect !== undefined) fail('GATEWAY_EXPECTATION_REJECTED', 417);
     if (req.headers.upgrade !== undefined || req.headers.trailer !== undefined) fail('GATEWAY_UPGRADE_REJECTED', 501);
@@ -214,6 +223,7 @@ export function createCampusGateway(options = {}) {
     let upstreamResponse;
     let completed = false;
     let counted = false;
+    let clientDiagnostic;
     const cancel = () => controller?.abort(new GatewayError('GATEWAY_CANCELLED', 499));
     const disconnected = () => { if (!res.writableFinished) cancel(); };
     try {
@@ -245,7 +255,7 @@ export function createCampusGateway(options = {}) {
       }
       let clientRequest = null;
       if (tunnel?.client) {
-        try { clientRequest = miniProgramRequest(target, req.headers, req.method); }
+        try { assertEpoch(tunnel.epoch);clientRequest = miniNavigationGrants.authorize(target, req.headers, req.method, tunnel.client,tunnel.epoch,{hasBody}); }
         catch (error) {
           // Other mini programs and manual verification retain their own
           // identity exchange. They receive none of the OneTHU cookie jar.
@@ -255,6 +265,13 @@ export function createCampusGateway(options = {}) {
       }
       if (!clientRequest) validateFetchMetadata(req.headers, target, origins, { method: req.method, hasBody });
       if (clientRequest?.identity && !clientRequest.unborrowed && hasBody) fail('GATEWAY_CLIENT_REQUEST_REJECTED', 403);
+      if (clientRequest) {
+        const route = clientRequest.unborrowed ? 'independent' : 'shared';
+        clientDiagnostics[route === 'shared' ? 'sharedRequests' : 'independentRequests']++;
+        clientDiagnostic = { ...describeMiniRequest(target,req.headers), route, peer:clientPeerTag(tunnel.client), navigationHandoff:clientRequest.navigationHandoff===true, at:Date.now(), status:null };
+        clientDiagnostics.recentRequests.push(clientDiagnostic);
+        if (clientDiagnostics.recentRequests.length > 16) clientDiagnostics.recentRequests.shift();
+      }
       const epoch = tunnel?.epoch ?? currentEpoch();
       assertEpoch(epoch);
       if (activeRequests >= maxConnections) fail('GATEWAY_BUSY', 503);
@@ -301,6 +318,7 @@ export function createCampusGateway(options = {}) {
       check();
       if (!response || !Number.isInteger(response.status) || response.status < 200 || response.status > 599 || !response.headers || response.body && typeof response.body.getReader !== 'function') fail('GATEWAY_UPSTREAM_INVALID', 502);
       requestsByHost.set(target.hostname, (requestsByHost.get(target.hostname) ?? 0) + 1);
+      if (clientDiagnostic) clientDiagnostic.status = response.status;
       const encoding = response.headers.get('content-encoding')?.trim();
       if (encoding && encoding.toLowerCase() !== 'identity' && (response.status === 206 || response.headers.has('content-range'))) fail('GATEWAY_ENCODED_RANGE_UNSUPPORTED', 502);
       const outputHeaders = sanitizeResponseHeaders(response.headers);
@@ -405,6 +423,7 @@ export function createCampusGateway(options = {}) {
           req.url === `${clientHost}:443` && [CLIENT_IDENTITY_HOST, ...CLIENT_BUSINESS_HOSTS].includes(clientHost) &&
           [clientHost, req.url].includes(req.headers.host);
         const client = clientEligible ? await options.resolveClient(socket) : null;
+        if (clientEligible) clientDiagnostics[client ? 'verifiedConnections' : 'otherConnections']++;
         const identityPassthrough = clientEligible && clientHost === CLIENT_IDENTITY_HOST && !client;
         if(options.connectPassthrough&&!client&&(!origins.has(`https://${String(req.url).replace(/:443$/,'')}`)||identityPassthrough)){
           const candidate = identityPassthrough ? new URL(`https://${CLIENT_IDENTITY_HOST}/`) : parseCampusConnectAuthority(req.url,req.headers.host);
@@ -451,7 +470,7 @@ export function createCampusGateway(options = {}) {
             else callback(null, context);
           },
         });
-        handshaking.on('tlsClientError', () => socket.destroy());
+        handshaking.on('tlsClientError', () => { if (client) clientDiagnostics.tlsFailures++; socket.destroy(); });
         controller.signal.addEventListener('abort', () => socket.destroy(), { once: true });
         handshaking.once('secureConnection', secure => {
           clearTimeout(timer); controllers.delete(controller); socket.off('close', disconnected);
@@ -517,7 +536,8 @@ export function createCampusGateway(options = {}) {
       });
     },
     statistics() { return { requests: [...requestsByHost.values()].reduce((sum, count) => sum + count, 0), hosts: Object.fromEntries(requestsByHost),
-      recentRejections: recentRejections.map(entry => ({ ...entry })) }; },
+      recentRejections: recentRejections.map(entry => ({ ...entry })),
+      clientDiagnostics:{...clientDiagnostics,recentRequests:clientDiagnostics.recentRequests.map(entry=>({...entry}))} }; },
     close() {
       if (closing) return closing;
       stopped = true;

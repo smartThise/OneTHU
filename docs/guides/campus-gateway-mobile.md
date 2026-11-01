@@ -6,7 +6,7 @@
 
 | 平台 | 当前实现 | 验收状态 |
 | --- | --- | --- |
-| macOS | 原浏览器系统 PAC、本机 TCP UID 归因、微信签名验证、两项已登记的小程序服务桥、原代理比较恢复 | 浏览器、学校接口与 WebDAV 实测；小程序登录待微信恢复登录后验收 |
+| macOS | 原浏览器系统 PAC、本机 TCP UID 归因、微信签名验证、两项已登记的小程序服务桥、原代理比较恢复 | 浏览器、学校接口与 WebDAV 实测；清小搭用户确认进入业务页；临时来访报备继续核实 |
 | Windows | CurrentUser 系统 PAC、精确 TCP 客户端 SID、Authenticode 腾讯签名检查、手动代理与绕过规则合成、写前校验和恢复 | 自动化模拟验证；尚无本次 Windows 真机结果 |
 | Android | 设置显示明确的能力与 VPN 限制 | 系统代理/VPN 原生桥尚未实现，不能接管手机微信 |
 | iOS/iPadOS | 设置显示明确的能力边界 | 原生桥与系统授权尚未实现，不能接管手机微信 |
@@ -25,7 +25,7 @@
 
 ## 与其他代理共存
 
-- Mac 按网络服务保存原 HTTP、HTTPS、SOCKS 和 bypass，再生成各自的校园 PAC。
+- Mac 按网络服务保存原 HTTP、HTTPS、SOCKS 和 bypass，再生成各自的校园 PAC。后台重启保留本机监听端口和 PAC URL，避免宿主继续使用旧端口；端口冲突会停止启用并保留原网络设置。
 - Windows 通过 `WinHttpGetIEProxyConfigForCurrentUser` 读取当前用户的活动连接配置。支持单一手动代理和按协议区分的手动代理，并保留绕过规则；启用前再次核对计划指纹。
 - 已有 PAC / WPAD 不能安全地当成静态手动代理合并，当前会明确拒绝启用并保留原设置。
 - 需要上游代理用户名/密码的配置尚未接入。不会收集或更换其他代理软件的订阅、节点或凭据。
@@ -59,6 +59,6 @@ Android / iOS：先完成原生桥再验收。覆盖 Wi-Fi / 蜂窝、已有 VPN
 
 ## English
 
-macOS has a working browser/system-proxy path and a restricted signed-WeChat bridge. Windows now has a CurrentUser PAC, exact TCP/SID attribution, Tencent signature checks, and manual-proxy/bypass preservation; physical Windows acceptance is still required. The registered mini-program flows are Qingxiaoda and Xingzai's visitor service. Other Xingzai web services retain their existing authentication paths and have not all been accepted.
+macOS has a working browser/system-proxy path and a restricted signed-WeChat bridge. Windows now has a CurrentUser PAC, exact TCP/SID attribution, Tencent signature checks, and manual-proxy/bypass preservation; physical Windows acceptance is still required. The registered mini-program flows are Qingxiaoda and Xingzai's visitor service. Qingxiaoda has user-confirmed business-page acceptance on Mac; Xingzai visitor sign-in still requires acceptance. Other Xingzai web services retain their existing authentication paths and have not all been accepted.
 
 Android and iOS system gateways are not implemented. Desktop listeners remain loopback-only. Android needs a complete native VPN/transport implementation and conflicts with another active VPN; iOS needs a supported system integration and the relevant approvals. Target-app certificate trust must be tested on the actual device. No LAN listener, credential broadcast, or certificate-validation bypass is provided.

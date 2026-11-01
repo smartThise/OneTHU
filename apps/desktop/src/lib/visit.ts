@@ -44,11 +44,11 @@ export function visitHasSession(): boolean {
 }
 
 /** One-use official ticket, scoped to the registered visitor service. */
-export async function visitGatewayTicket() {
+export async function visitGatewayTicket(entryMode:0|1|'default'=0) {
   const {loadRemembered,currentFingerprint,session}=await import('./clients.js');
   const owner=session.username,fingerprint=await currentFingerprint(),remembered=await loadRemembered();
   if(!owner||session.state!=='ready'||remembered&&remembered.username!==owner)throw new Error('AUTH_SESSION_CONFLICT');
-  const ticket=await visitClient.authorizeTicket(remembered?.username,remembered?.password,fingerprint,session.finger3??'');
+  const ticket=await visitClient.authorizeTicket(remembered?.username,remembered?.password,fingerprint,session.finger3??'',entryMode);
   if(session.username!==owner||session.state!=='ready'||session.fingerprint!==fingerprint)throw new Error('AUTH_SESSION_CHANGED');
   return ticket;
 }

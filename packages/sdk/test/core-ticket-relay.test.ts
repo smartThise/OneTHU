@@ -10,3 +10,13 @@ test('visitor authorization preserves a native-followed official ticket URL and 
  let calls=0;const client=new VisitClient({fetch:async()=>{calls++;return new Response('<html>official callback shell</html>',{headers:{'x-onethu-final-url':'https://visit.tsinghua.edu.cn/visitor/mobile/sso?ticket='+ticket}});}});
  const result=await client.authorizeTicket();assert.equal(result.ticket,ticket);assert.equal(calls,1);assert.equal(client.hasToken(),false);
 });
+
+test('a requested ITS entry mode is preserved when obtaining a visitor ticket',async()=>{
+ const client=new VisitClient({fetch:async input=>{assert.match(String(input),/\/1\?/);return new Response('<a href="https://visit.tsinghua.edu.cn/visitor/mobile/sso?ticket='+ticket+'">Continue</a>');}});
+ assert.equal((await client.authorizeTicket(undefined,undefined,undefined,undefined,1)).ticket,ticket);
+});
+
+test('an omitted official entry mode remains omitted rather than being rewritten to another authentication policy',async()=>{
+ const client=new VisitClient({fetch:async input=>{assert.match(String(input),/\/04655f71b042b9d2d8d10cd566bd9c39\?/);return new Response('<a href="https://visit.tsinghua.edu.cn/visitor/mobile/sso?ticket='+ticket+'">Continue</a>');}});
+ assert.equal((await client.authorizeTicket(undefined,undefined,undefined,undefined,'default')).ticket,ticket);
+});

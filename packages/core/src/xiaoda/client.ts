@@ -324,8 +324,9 @@ export class XiaodaClient {
    * 2026-10-15 应用内实测教训：旧实现只认第二条，于是在应用里（第一条）拿不到公钥就抛错，
    * 而票其实已经给了——本次修掉；顺带用 x-onethu-final-url 读 nativeFetch 的跟跳终址。
    */
-  async authorizeTicket(username?: string, password?: string, fingerprint = "", finger3 = ""): Promise<{ticket:string;html:string;url:string;status:number}> {
-    const form = await this.req("GET", ITS_LOGIN_SVC);
+  async authorizeTicket(username?: string, password?: string, fingerprint = "", finger3 = "",entryMode:0|1|'default'=0): Promise<{ticket:string;html:string;url:string;status:number}> {
+    if(entryMode!==0&&entryMode!==1&&entryMode!=='default')throw new XiaodaLoginError('Invalid identity entry mode');
+    const form = await this.req("GET", entryMode===0?ITS_LOGIN_SVC:entryMode==='default'?ITS_LOGIN_SVC.replace('/0?','?'):ITS_LOGIN_SVC.replace('/0?','/1?'));
     const authFlag = /"authenticated"\s*:\s*(true|false)/.exec(form.html)?.[1] ?? "?";
     let ticket = extractTicket(form.html, form.url);
     let last: { html: string; url: string; status: number } = form;
