@@ -170,14 +170,15 @@
   /* ── 焦点环：键盘可达性标识，跨皮肤恒定 ── */
   --og-ring-width: 2px;
 
-  /* ── 动效：三档时长 + 四条曲线（进场 decelerate / 离场 accelerate / 常规 / 弹性） ── */
-  --og-dur-1: 100ms;
-  --og-dur-2: 160ms;
-  --og-dur-3: 220ms;
+  /* ── 动效：四档时长 + 四条曲线（唯一来源；应用 --dur-* / MD3 原语只能别名到这里） ── */
+  --og-dur-1: 140ms;
+  --og-dur-2: 200ms;
+  --og-dur-3: 300ms;
+  --og-dur-4: 500ms;
   --og-ease-standard: cubic-bezier(0.2, 0, 0, 1);
-  --og-ease-decelerate: cubic-bezier(0, 0, 0, 1);
-  --og-ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
-  --og-ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --og-ease-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --og-ease-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --og-ease-spring: cubic-bezier(0.34, 1.34, 0.5, 1);
 
   /* ── 层级：一处定义，不许 locally 拍数字 ──
      浮层段从 60 提到 **11000+（2026-10-14 z 横切**）：换血期旧壳 chrome 仍占
@@ -282,6 +283,7 @@
   --og-dur-1: 1ms;
   --og-dur-2: 1ms;
   --og-dur-3: 1ms;
+  --og-dur-4: 1ms;
   --og-ease-spring: linear;
 }
 
@@ -290,6 +292,7 @@
     --og-dur-1: 1ms;
     --og-dur-2: 1ms;
     --og-dur-3: 1ms;
+    --og-dur-4: 1ms;
     --og-ease-spring: linear;
   }
 }

@@ -53,24 +53,27 @@ console.log("[2] 令牌：时长/缓动/位移都有名字，不在组件里散�
   }
   /* 时长令牌可能引用 MD3 变量：解析到最终 ms，不能只看字面数字 */
   const globalCss = src("styles/global.css");
+  const guiTokens = readFileSync("packages/gui/src/tokens/structure.css", "utf8");
   const varTable = new Map();
-  for (const m of [...(globalCss + css).matchAll(/--([\w-]+):\s*([^;]+);/g)]) varTable.set("--" + m[1], m[2].trim());
-  const resolveMs = (raw) => {
+  for (const m of [...(globalCss + css + guiTokens).matchAll(/--([\w-]+):\s*([^;]+);/g)]) { const key = "--" + m[1]; if (!varTable.has(key)) varTable.set(key, m[2].trim()); }
+  const resolveRaw = (raw) => {
     let v = raw.trim();
-    const ref = /^var\((--[\w-]+)\)/.exec(v);
-    if (ref) v = varTable.get(ref[1]) ?? "";
+    for (let i = 0; i < 8; i++) {
+      const ref = /^var\((--[\w-]+)\)/.exec(v);
+      if (!ref) break;
+      v = (varTable.get(ref[1]) ?? "").trim();
+    }
+    return v;
+  };
+  const resolveMs = (raw) => {
+    const v = resolveRaw(raw);
     const hit = /^(\d+)ms/.exec(v);
     return hit ? Number(hit[1]) : NaN;
   };
   const durs = [...css.matchAll(/--dur-\d:\s*([^;]+);/g)].map((m) => resolveMs(m[1]));
   ok(durs.length === 4 && durs.every((d) => d > 0 && d <= 600), `四档时长都在 1..600ms（实际 ${durs.join("/")}）`);
   ok(durs[0] < durs[1] && durs[1] < durs[2] && durs[2] < durs[3], "时长分级递增（微反馈 < 常规 < 容器 < 大场景）");
-  const resolveVar = (raw) => {
-    let v = raw.trim();
-    const ref = /^var\((--[\w-]+)\)/.exec(v);
-    if (ref) v = varTable.get(ref[1]) ?? "";
-    return v.trim();
-  };
+  const resolveVar = (raw) => resolveRaw(raw);
   const eases = [...css.matchAll(/--ease-[a-z-]+:\s*([^;]+);/g)]
     .map((m) => resolveVar(m[1]))
     .filter((v) => /^cubic-bezier\(([^)]+)\)$/.test(v))
