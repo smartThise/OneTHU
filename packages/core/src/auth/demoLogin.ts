@@ -1,3 +1,4 @@
+import { formatTrustDeviceName } from "./deviceName.js";
 /**
  * demoLogin —— webvpn-poc/server.js 登录流程的逐行移植（钦定蓝本，不要"优化"）。
  *
@@ -534,11 +535,12 @@ export async function demoTrustDevice(
   fetchLike: FetchLike,
   s: DemoSession,
   fingerprint: string,
+  deviceName = "",
 ): Promise<string> {
   const { json, text } = await doubleAuthPost(
     fetchLike,
     s,
-    { fingerprint, deviceName: "OneTHU", radioVal: "是", singleLogin: "" },
+    { fingerprint, deviceName: formatTrustDeviceName(deviceName), radioVal: "是", singleLogin: "" },
     SAVE_FINGER_URL,
   ).catch(() => ({ json: undefined, text: "request-failed" }) as const);
   s.debug = "SAVE_FINGER " + (json ? String(json.result) + " " + String(json.msg ?? "") : text.slice(0, 120));

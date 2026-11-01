@@ -257,3 +257,4 @@ export type {
 // 二级课表格子 id 解析（a{session}_{day}，口径与 info app parseScript 一致）
 export { parseCellAnchor } from "./zhjwxk/anchor.js";
 export { createYuketangQueries, type YuketangQueryPorts } from "./exthw/query.js";
+export { formatTrustDeviceName } from "./auth/deviceName.js";

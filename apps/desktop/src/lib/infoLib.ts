@@ -1,4 +1,5 @@
 import { t as i18n, msg as i18nMsg } from "../i18n/index.js";
+import { trustDeviceName } from "./deviceName.js";
 /**
  * thu-info-lib 平台接线层（dev2 管线移植 2026-09-16）。
  *
@@ -355,7 +356,7 @@ helper.twoFactorAuthHook = () =>
   });
 
 helper.trustFingerprintHook = async () => pendingTrust;
-helper.trustFingerprintNameHook = async () => "OneTHU";
+helper.trustFingerprintNameHook = () => trustDeviceName(helper.fingerprint);
 helper.twoFactorAuthLimitHook = async () => {
   // info app 在该钩子里提醒用户清理；我们此前只写日志 → 测试者只看到「一直校验中」
   // 却不知原因（群反馈 + MCCF 实例：清掉 6~7 条旧信任记录后立刻能进）。
@@ -457,7 +458,7 @@ export async function libEnsureTrustFingerprint(fingerprint: string): Promise<st
     const res = await nativeFetch(SAVE_FINGER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ fingerprint, deviceName: "OneTHU", radioVal: "是" }).toString(),
+      body: new URLSearchParams({ fingerprint, deviceName: await trustDeviceName(fingerprint), radioVal: "是" }).toString(),
     });
     const j = JSON.parse(await res.text()) as { result?: string; msg?: string; object?: unknown };
     void log(`SAVE_FINGER resp=${j?.result ?? "?"} ${String(j?.msg ?? "").slice(0, 60)}`);
@@ -491,7 +492,7 @@ async function performLibLogin(username: string, password: string, fingerprint: 
   (helper as unknown as { trustFingerprintHook?: () => Promise<boolean> }).trustFingerprintHook =
     async () => pendingTrust;
   (helper as unknown as { trustFingerprintNameHook?: () => Promise<string> }).trustFingerprintNameHook =
-    async () => "OneTHU";
+    () => trustDeviceName(helper.fingerprint);
   void log("AUTH-PHASE handshake-start");
   const { p, methodsPromise } = startLoginRaw(username, password);
   const settled = await Promise.race([

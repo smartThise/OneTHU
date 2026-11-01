@@ -5,6 +5,7 @@ import { setPlatformFetch, setPlatformClearCookies, uFetch } from '@onethu/info-
 import { createNodeTransport } from './transport.js';
 import { authError, openSessionStorage, type DeviceIdentity } from './storage.js';
 import { createAuthFlow } from '../auth/flow.js';
+import { trustDeviceName } from './deviceName.js';
 import type { SessionData } from '@onethu/core';
 import { validateDesktopSession } from './storage.js';
 import type { TwoFactorType } from '../auth/flow.js';
@@ -155,7 +156,7 @@ export async function createNodeSession(options:NodeSessionOptions) {
     if(identity!==session.username){rotate();http.jar.clear();session.reset();session.username='';helper.userId='';helper.password='';await persist();throw authError('AUTH_SESSION_CONFLICT');}
     return true;
   }
-  const flow=createAuthFlow({helper,
+  const flow=createAuthFlow({helper,trustDeviceName,
     async prepare(username,password){
       rotate();explicitLogout=false;
       if(device.account!==username){http.jar.clear();device={fingerprint:device.fingerprint,account:username};session.finger3='';helper.fingerGenPrint='';}

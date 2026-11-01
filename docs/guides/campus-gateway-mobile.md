@@ -57,8 +57,18 @@ Windows：无原代理、Clash 手动代理、PAC/WPAD 已启用、另一用户�
 
 Android / iOS：先完成原生桥再验收。覆盖 Wi-Fi / 蜂窝、已有 VPN、切网、后台存活、锁屏、CA 不被目标应用信任、学校二次验证、退出学校账号与撤销设备。
 
+## OneTHU 的 2FA 设备名称
+
+未来通过 OneTHU 登记的学校受信设备统一命名为 `OneTHU（设备名）`。Mac 使用系统电脑名称，Windows 使用计算机名，Android 优先使用系统设备名称，取不到时使用机型。独立 CLI 与桌面端使用同一格式和桌面系统名称来源。
+
+这是展示标签，继续使用本安装现有的指纹和信任令牌。读取名称不会发起登录、保存信任设备或重命名学校端的历史记录。名称过滤控制字符和双向文本控制符，并限制长度。较旧的原生壳缺少名称命令时，前端以平台加现有指纹短后缀区分设备；不会为命名重新生成指纹。
+
+本轮只完成源码、类型/原生编译检查；现有已安装壳和后台没有替换。完整系统名称读取随下一次构建安装生效。
+
 ## English
 
 macOS has a working browser/system-proxy path and a restricted signed-WeChat bridge. Windows now has a CurrentUser PAC, exact TCP/SID attribution, Tencent signature checks, and manual-proxy/bypass preservation; physical Windows acceptance is still required. The registered mini-program flows are Qingxiaoda and Xingzai's visitor service. Both Qingxiaoda and Xingzai visitor sign-in have user-confirmed business-page acceptance on Mac. Other Xingzai web services retain their existing authentication paths and have not all been accepted.
 
 Android and iOS system gateways are not implemented. Desktop listeners remain loopback-only. Android needs a complete native VPN/transport implementation and conflicts with another active VPN; iOS needs a supported system integration and the relevant approvals. Target-app certificate trust must be tested on the actual device. No LAN listener, credential broadcast, or certificate-validation bypass is provided.
+
+Future OneTHU trusted-device registrations use `OneTHU（device name）`. The name is a display label only: fingerprints and existing trust tokens are retained, and historical school-side records are not renamed automatically. Native name lookup requires the next app build; no installed app or gateway was replaced for this change.

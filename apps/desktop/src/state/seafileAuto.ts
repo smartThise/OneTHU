@@ -1,4 +1,5 @@
 import { t as i18n } from "../i18n/index.js";
+import { trustDeviceName } from "../lib/deviceName.js";
 /**
  * 云盘自动连接（爬 profile 页的 Web API Token，自动填充，无需手动粘贴）。
  *
@@ -197,7 +198,8 @@ export async function cloud2FASubmit(
     const { verify2FACode, trustDevice } = await import("@onethu/core");
     await verify2FACode(http, type, code);
     const { currentFingerprint } = await import("../lib/clients.js");
-    void trustDevice(http, await currentFingerprint(), "OneTHU").catch(() => undefined);
+    const fingerprint = await currentFingerprint();
+    void trustDevice(http, fingerprint, await trustDeviceName(fingerprint)).catch(() => undefined);
     void logLine("[SEAFILE-AUTO] 二次认证通过 → 已信任本机，重跑云盘自动连接").catch(() => undefined);
   }
   return autoConnectSeafile();

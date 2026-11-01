@@ -4,6 +4,7 @@ mod cli_download;
 mod cli_daemon;
 mod cli_package;
 mod cli_session;
+mod device_name;
 
 use serde::{Deserialize, Serialize};
 
@@ -4557,7 +4558,7 @@ let builder = tauri::Builder::default();
             im_media::im_fetch_media,
             im_media::im_peek_text,
             im_media::im_stat_file,
-            im_media::im_write_text_file,http_request,http_native,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,os_is_android,plugin_dir_remove,state_read,state_write,state_delete,dynamic_color,
+            im_media::im_write_text_file,http_request,http_native,download_file,fetch_binary,save_text_file,plugin_dir_install_rust,builtin_sidecar_install,plugin_dir_import_zip,plugin_logo_data,os_is_android,device_name::device_display_name,plugin_dir_remove,state_read,state_write,state_delete,dynamic_color,
             open_external,onethu_open_path,nfc_available,nfc_read_tag,nfc_share_text,onethu_reveal_path,open_eid_window,open_ykt_window,read_ykt_cookies,close_ykt_window,start_qr_keep_alive,stop_qr_keep_alive,widget_push,widget_clear,widget_take_target,widget_status,widget_instances,widget_pin,ui_apply_insets,save_image_to_gallery,ui_set_bar_theme,ui_haptic_tick,notify_backend,notify_open_settings,notify_permission,notify_schedule,notify_cancel,notify_pending,notify_test,notify_take_target,notify_post,notify_dismiss,open_web_modal,open_app_settings,open_ykt_submit_window,open_sports_window,open_cloud_token_window,cloud_webvpn_profile,venue_sso_set,venue_open_portal,
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,
             cli_download::cli_download_learn_resource, cli_download::cli_access_sync, cli_download::cli_download_cancel,

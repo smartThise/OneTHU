@@ -265,6 +265,16 @@ private const val DARK_INJECT_JS = """
 )
 class OnethuMobilePlugin(private val activity: Activity) : Plugin(activity) {
 
+    /** Display name only. No Bluetooth permission, serial number or Android ID. */
+    @Command
+    fun deviceDisplayName(invoke: Invoke) {
+        val configured = try {
+            Settings.Global.getString(activity.contentResolver, "device_name")?.trim().orEmpty()
+        } catch (_: Exception) { "" }
+        val name = configured.ifBlank { Build.MODEL?.trim().orEmpty() }.ifBlank { "Android" }
+        invoke.resolve(JSObject().put("name", name))
+    }
+
     /** 沙盒文件 → 系统「下载」；回传 { name }（转存成功后的显示名） */
     @Command
     fun saveDownload(invoke: Invoke) {

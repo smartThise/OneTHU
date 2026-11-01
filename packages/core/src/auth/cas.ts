@@ -1,3 +1,4 @@
+import { formatTrustDeviceName } from "./deviceName.js";
 /**
  * 统一身份认证（CAS）—— 与早期 demo（webvpn-poc/server.js、thu_agent.py）验证过的链路一致：
  * 表单页抓 SM2 公钥 + 隐藏字段 → POST 登录（i_pass + sm2pass 双写）→
@@ -356,11 +357,11 @@ export async function verify2FACode(
 }
 
 /** 2FA：信任当前设备（指纹已随会话保存） */
-export async function trustDevice(http: HttpClient, fingerprint: string, deviceName = "OneTHU"): Promise<void> {
+export async function trustDevice(http: HttpClient, fingerprint: string, deviceName = ""): Promise<void> {
   try {
     const body = new URLSearchParams({
       fingerprint,
-      deviceName,
+      deviceName: formatTrustDeviceName(deviceName),
       radioVal: "是",
     });
     await http.text(SAVE_FINGER_URL, { method: "POST", body, direct: true });

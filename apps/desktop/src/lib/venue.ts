@@ -9,6 +9,7 @@ import { t as i18n } from "../i18n/index.js";
 import { DOUBLE_AUTH_URL, list2FAMethods, trustDevice, VenueApiError, VenueAuthRequiredError, VenueClient, venueTokenExpiresAt, type VenueScene, type TwoFactorMethod } from "@onethu/core";
 import { isTauri, nativeFetch } from "./transport.js";
 import { logLine } from "./clients.js";
+import { trustDeviceName } from "./deviceName.js";
 
 const TOKEN_KEY = "onethu.venueToken";
 
@@ -362,7 +363,8 @@ export async function venueSubmit2FA(type: string, code: string): Promise<boolea
   }
   if (!token) token = await venueClient.ssoLogin(); // TGT 已刷新，重走换票链兜底
   setVenueToken(token);
-  void trustDevice(http, await currentFingerprint()).catch(() => undefined); // 信任设备，下次免 2FA
+  const fingerprint = await currentFingerprint();
+  void trustDevice(http, fingerprint, await trustDeviceName(fingerprint)).catch(() => undefined);
   await logLine("[VENUE-SSO] 二次认证完成，体育 token 到手");
   return true;
 }
