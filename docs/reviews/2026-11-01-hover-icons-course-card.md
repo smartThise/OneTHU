@@ -74,3 +74,27 @@
 **网络学堂入场动画恢复**：上一版滚动揭示只覆盖 `.row-click` 等行，课程卡 `.learn-course-card` 没有入场。现在把课程卡纳入揭示选择器（网格按行 9ms），Learn 课程卡恢复 `m-reveal-in`；列表/卡片都在第一帧就进入入场首帧，不再先静止再跳回。
 
 回归：`course-source-tabs-browser-test` 18 项（含等宽、`seg-pill` 过渡、逐项延迟）；`learn-layout-browser-test` 225 项（含课程卡入场）；`motion-test` 152 项（含标题左→右关键帧）。
+
+## 8. Learn 二级页尾部滚动余量（2026-11-01 晚补）
+
+**根因**：固定列表已经按底栏高度算好自身高度（底边停在快捷栏上沿），但 `.explorer-panel` 还带一份 `--og-shortcut-clearance` 底栏 padding（100px）。面板总高 = 列表底边 + padding，页面因此多出约 22px 可滚动余量，右侧出现纵向滚动条；列表本身没有滚出视口。
+
+**修复**：页内存在 `.list-window-host` 时，把面板底栏 padding 置 0（列表已经让过底栏）；没有固定列表的空态页面仍保留原 padding。桌面/手机分别覆盖，避免与 OneGUI 工作台配方打架。
+
+回归：`list-window-layout-test` 新增 `documentElement.scrollHeight <= innerHeight` 断言；notice/course/tasks 三类固定列表页均无页面级滚动余量。
+
+## 9. 洗衣机设备名称（2026-11-01 晚补）
+
+设备编号 → 名称映射（用户提供）：
+
+| 前缀 | 名称 |
+|---|---|
+| `he` | 波轮洗衣机 |
+| `hr` | 滚筒洗衣机 |
+| `wm` | 洗鞋机 |
+| `dr` | 烘干机 |
+| `hs` / 纯数字 | 含义未解，保持原编号 |
+
+实现：`WasherTab.tsx` 的 `washerDisplayName` 只改**显示标题**；收藏/深链/AtomRef 的 `deviceKey` 仍是原始 `name`，保证已有收藏不失效。映射到类型名称后不再重复显示泛化的 `type`；`hs`/数字继续显示编号及原副标题。
+
+回归：`washer-name-test` 浏览器动态导入函数，覆盖大小写、带分隔符、`hs`/纯数字/空值。

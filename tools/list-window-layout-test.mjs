@@ -66,6 +66,9 @@ try {
     assert.ok(r.scrollHeight >= r.clientHeight, `${name}: rows live in scroll viewport`);
     assert.notEqual(r.rowColor, "rgb(0, 0, 0)", `${name}: rows are not black in dark mode`);
     assert.ok(r.winBottom <= r.bottomBarTop + 1, `${name}: list ends above quick-action bar (${r.winBottom} > ${r.bottomBarTop})`);
+    const docHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+    const viewHeight = await page.evaluate(() => innerHeight);
+    assert.ok(docHeight <= viewHeight + 1, `${name}: fixed list leaves no page scroll remainder (${docHeight} > ${viewHeight})`);
     if (name !== "tasks") assert.equal(r.headerAnimation, "m-page-head-in", `${name}: secondary page header entrance restored`);
   }
   console.log("list-window-layout-test: notices/course/tasks lists fixed + dark ink + secondary animation ✓");

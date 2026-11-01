@@ -105,7 +105,17 @@ async function setup(browser, width, scale = 1, opts = {}) {
   return page;
 }
 async function openTabViaStore(page, tab) {
-  await page.evaluate(async (name) => { (await import(window.__learnFixtureSources.explorer)).openTab(name); }, tab);
+  // Chromium/Playwright 偶发把 evaluate 的 promise GC 掉（Resulting promise was garbage collected）；
+  // 这是测试桥的抖动，不是应用错误，重试一次即可，避免整轮 225 项被一个偶发打断。
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await page.evaluate(async (name) => { (await import(window.__learnFixtureSources.explorer)).openTab(name); }, tab);
+      return;
+    } catch (err) {
+      if (!String(err instanceof Error ? err.message : err).includes("garbage collected") || attempt === 2) throw err;
+      await page.waitForTimeout(250);
+    }
+  }
 }
 async function returnToLearn(page) {
   await openTabViaStore(page, "learn");

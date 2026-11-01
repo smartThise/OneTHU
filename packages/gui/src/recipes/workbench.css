@@ -903,6 +903,10 @@ html:root.is-phone .settings-seg .settings-seg-item { flex:1 1 0; min-width:0; j
 /* Content pages scroll clear of the fixed shortcut dock (desktop + phone). */
 html:root:not(.is-phone) .explorer-panel { padding-bottom:var(--og-shortcut-clearance); }
 html:root.is-phone .explorer-panel { padding-bottom:var(--og-mobile-content-clearance); }
+/* 页内有固定 ListWindow 时列表自身已让出底栏，面板不再叠一层底栏 padding，
+   否则页面尾部多出 ~20px 可滚动余量（Learn 二级页右侧滚动条）。 */
+html:root:not(.is-phone) .explorer-panel:has(.list-window-host),
+html:root.is-phone .explorer-panel:has(.list-window-host) { padding-bottom: 0; }
 
 /* Feedback 2026-10-18: keep navigation geometry stable in both rail widths. */
 html:root.tabs-vertical { --og-active-rail-width: var(--og-rail-full-width); }
