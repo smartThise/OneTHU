@@ -1,38 +1,123 @@
-# Architecture (0.11)
+# OneTHU system architecture
 
 [中文](../architecture.md) · English
 
-The `dev3` source is authoritative. [Historical records](documentation-catalog.md) describe earlier decisions and are not evidence that a feature shipped.
+Source baseline: branch `web`, commit `7c2e9612`, 2026-11-01. The declared product version is 0.11.4-fix-3. Branch implementations, the running dev backend and published installers have separate build and acceptance checkpoints. Release notes and artifact manifests determine what a particular installer contains.
 
-```text
-React pages / three experience shells / OH capsule
-    ├── OneGUI components, tokens, themes and motion
-    ├── Explorer state, whiteboards, atoms, staging box and organizations
-    ├── Permission facade → host APIs and campus clients
-    └── Tauri IPC → Rust networking, credentials, files and bounded skill runtime
-                         └── OneTHU Harness (Rust submodule)
+## System purpose
+
+OneTHU combines campus service clients, a personal workbench and agent execution interfaces. React owns interaction and workspaces; campus clients interpret school endpoints and pages; the independent SDK supplies account-aware execution and scheduling; CLI and MCP expose operations to other programs. Gateway applies an authorized school session to supported browsers and clients. OneGUI provides their visual and interaction foundations.
+
+Accounts and services primarily interact between the device and school systems. Cloud storage, GitLab, mail, calendars, models and IM supply their own remote services. Local-client deployment therefore still has explicit data disclosures and authorizations. Campus capabilities depend on school permissions, session validity and availability.
+
+## Reading map
+
+| Reference | Topics |
+| --- | --- |
+| [Prototype and data](architecture/prototype-and-data.md) | Modes, tabs, boards, atoms, staging, ownership and synchronization |
+| [SDK and service runtime](architecture/sdk-and-api.md) | Client libraries, authentication, registration, schemas and commit guards |
+| [CLI, agents and scheduling](architecture/cli-and-agents.md) | Daemon, MCP, Harness, IM and persistent authorization |
+| [Gateway](architecture/gateway.md) | Proxy topology, SSO, WeChat ticket bridge, platform support and recovery |
+| [OneGUI](architecture/onegui.md) | Tokens, style pipeline, materials, layout, gestures and localization |
+| [API reference](api-reference.md) | Interface selection, examples, protocols and compatibility |
+
+## Layers and deployment
+
+```mermaid
+flowchart TB
+  GUI[React and OneGUI] --> APP[Application services and plugin facade]
+  OH[OH / Harness] --> APP
+  APP --> NATIVE[Tauri native bridge]
+  APP --> CLIENT[core / info-lib clients]
+  APP --> HANDOFF[Private desktop adapter]
+  CLI[Independent CLI / MCP] --> DAEMON[Optional local daemon]
+  DAEMON --> SDK[SDK and operation registry]
+  HANDOFF --> SDK
+  SDK --> CLIENT
+  SDK --> TASK[Tasks / notifications / IM / assistant]
+  SDK --> GW[Gateway]
+  BROWSER[Browsers / verified WeChat] --> GW
+  CLIENT --> SCHOOL[School and configured services]
+  NATIVE --> SCHOOL
+  GW --> SCHOOL
 ```
 
-`apps/desktop` serves desktop and Android. A browser preview lacks some native capabilities. `packages/core` implements campus clients; `packages/gui` owns the visual and interaction system.
+With the optional CLI component installed, the desktop app and default CLI can connect to the same profile's daemon. Android and desktops without that component use application-owned services and scheduling adapters. Portable logic and policy are shared; processes, transports and lifecycles belong to each host. Vite alone provides a frontend preview, while native networking, files, sessions and background execution require their hosts.
 
-## Identity and shared data
+OH application services require agent-service consent. External CLI/MCP access has its own switch. Mobile OH can use application services without installing desktop Node. Contacts, staging and some workspace features depend on GUI state; the independent SDK advertises only its registered operations.
 
-Campus clients reuse university sessions when possible. Cloud storage, GitLab, mail, calendars and model services may need separate configuration or authorization. Expired sessions and second-factor challenges are not generic retryable failures: preserve the challenge context and avoid new fingerprints, repeated verification and unbounded replays. An excessive number of trusted factors is an account-side condition.
+## Source ownership
 
-Shared service state feeds lists, schedules and home widgets. Mode switching changes visibility without deleting full-mode configuration. Assignment deadlines belong in all modes and should use the same available assignment data. Application-owned errors are localized at render time; external service details can remain in their original language.
+| Location | Responsibility | Interface |
+| --- | --- | --- |
+| `apps/desktop/src` | React, modes, domain state, application services, plugin facade | TypeScript / React / invoke |
+| `apps/desktop/src-tauri` | Native networking, files, installers, windows, notifications, mobile bridges | Private IPC / native plugins |
+| `packages/core` | HTTP/Cookies, campus clients, parsing, models, auth helpers | Transport-injected library |
+| `packages/info-lib` | Existing university login, roaming and 2FA hooks | InfoHelper / platform transport |
+| `packages/sdk` | Node runtime, registry, policy, tasks, model and IM adapters | `createOneThu` / schemas / ports |
+| `packages/cli` | Commands, daemon management, MCP and export | JSON / local JSON-RPC / stdio |
+| `packages/gateway` | HTTP/CONNECT, TLS facade, PAC, peer attribution, recovery | Private controls / loopback listeners |
+| `packages/gui` | OneGUI tokens, components and recipes | React / CSS / StyleDirector |
+| `packages/ui` | Still-loaded legacy token compatibility | Migration to OneGUI recipes |
+| `plugins/OneTHU-Harness` | Rust OH loop and host calls | Desktop sidecar / Android embedding |
 
-## Extensions and execution
+`core` is a business-client library. The independent SDK adds runtime ownership and execution policy. Repository packages, plugin namespaces and CLI operation names describe different contracts.
 
-`types.ts` defines the plugin surface and `facade.ts` injects host APIs and checks permissions. The [generated API reference](api-surface.md) currently lists 36 namespaces and 255 method entries; these are a source snapshot, not a permanent compatibility guarantee. Hiding a UI control is not a security boundary.
+## Implemented choices and costs
 
-OH communicates with its Harness submodule and authorized host tools. Minimal and practical modes retain search, your own API configuration and WeChat/Feishu links. Full plugin and advanced-tool access follows mode and permission policy. Xiaoda, its skill plaza and the local QuickJS runtime have separate trust and execution boundaries; see [OH and Xiaoda](oh-and-xiaoda.md).
+| Choice | Purpose | Maintenance cost |
+| --- | --- | --- |
+| Application services with optional CLI | Mobile/basic users keep direct services; advanced users gain residency | Strict document/task handoff between hosts; see the [ADR](../adr/2026-10-29-optional-cli-services.md) |
+| Transport-injected campus clients | Shared parsing/models with Rust, Node and WebVPN | Cookie, redirect and cancellation semantics must agree |
+| Plugin types and operation schemas | Separate GUI interaction from programmable services | Generators/adapters must maintain mappings; discover actual capabilities |
+| Device-local session gateway | Authorized identity stays local while browsers reuse it | CA trust, provenance, recovery and platform acceptance |
+| Central semantic visual system | Composable themes, materials and states | Gradual legacy migration and real-viewport acceptance |
 
-## Staging and synchronization
+## A course-resource request
 
-A drag session distinguishes clicks, long-press pickup, free movement and a committed drop. Only explicitly integrated sources can be staged; see the [support list](sharing-and-organizations.md). Short sharing codes require online retrieval. NFC is currently unreliable; prefer short codes.
+```mermaid
+sequenceDiagram
+  participant U as GUI or CLI
+  participant R as Service router
+  participant A as Account authority
+  participant L as Learn client
+  participant S as School
+  U->>R: Operation and positional args
+  R->>R: Schema, source, permissions, deadline
+  R->>A: Check owner, epoch and session
+  A->>L: Prepare business page and CSRF
+  L->>S: Existing-session request
+  S-->>L: Page or endpoint response
+  L-->>R: Structured resources
+  R->>A: Recheck before commit and return
+  R-->>U: Public fields and completeness
+```
 
-Cards, friends, organizations and files depend on confirmed account ownership and remote synchronization. Merge compatible changes automatically and require a choice for genuinely incompatible conflicts. Ownership failures must not create duplicate empty libraries. Organization permissions must agree across remote state, UI checks and operation results. Two-account live acceptance remains distinct from fixture tests.
+Authenticated identity, a usable business session and page CSRF are adjacent states. A login link or WebVPN guide is not a course response. Downloads resolve account-bound resource references; authenticated URLs remain inside the service layer.
 
-## Operational limits
+## Ownership and revocation
 
-Vite development hot reload is separate from updates to an installed production app. The current product does not promise dynamic native-code or production-patch delivery. Platform differences, campus outages and model quotas must remain visible. See [privacy and troubleshooting](privacy-and-troubleshooting.md) and [public capture provenance](screenshots.md).
+School sessions belong to a device account runtime; Explorer and Board own view instances and layouts. Versioned account documents own shared calendars/configuration. Each call captures account/policy generation, cancellation and deadline. A single task manager owns active scheduling. Gateway separately owns its system-setting snapshot.
+
+GUI, Rust and Node can hold physical mirrors. Account identity, epoch, Cookie revision and document versions govern handoff; mirrors can update with a short delay. Installing/uninstalling CLI transfers documents and task ownership before activating the destination. A temporary backend failure must remain diagnosable and must not create a second scheduler or erase a valid native session.
+
+## Extensions and lifecycle
+
+Plugin permissions and platform checks combine with operation schemas, mutation flags and local-configuration restrictions. Trusted adapters assign the source for model, MCP, plugin and IM calls. Final-write guards recheck account, authorization, cancellation and time. Already submitted remote effects require reconciliation.
+
+Trusted-device labels use `OneTHU（device name）`; labels are independent of installation fingerprints. Name lookup does not register trust or rename historical school records. Native OS-name lookup is implemented in source and ships with a subsequent native build.
+
+Production updates use installers and artifact/channel verification. Vite HMR serves development. Native code, optional CLI runtimes and plugins have separate platform, version and digest validation.
+
+## Acceptance boundaries
+
+| Capability | Evidence |
+| --- | --- |
+| Mac system gateway, Info/Learn, original-proxy coexistence | Live requests and restoration checks |
+| Mac WeChat Qingxiaoda and visitor reporting | User-confirmed business pages and official ticket renewal |
+| Windows gateway | CurrentUser/PAC, SID/signature code and fixtures; physical acceptance pending |
+| Android/iOS device-wide gateway | Native transport bridge pending |
+| Other Xingzai H5 services | Accepted separately by service |
+| Full organization collaboration across two accounts | Tracked separately from single-device fixtures |
+
+See the [live WeChat review](../reviews/2026-11-01-trusted-client-campus-gateway.md) and [platform guide](../guides/campus-gateway-mobile.md), maintained with detailed Chinese evidence. These checkpoints describe 2026-11-01; later changes require matching build and device evidence.

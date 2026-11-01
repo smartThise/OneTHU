@@ -61,7 +61,7 @@ The images below are captured from the application with fictional fixtures, with
 | Cards and organizations | Full-mode cards, friends, members/permissions, files, projects and announcements; see the docs for account ownership, synchronization and live two-account verification boundaries. |
 | OH / OneTHU Harness | Full mode can use authorized tools and plugins. Compact modes retain your own API and WeChat/Feishu links. Model-service authorization and quotas are separate. |
 | Xiaoda and skills | Models, agents and a skill plaza. Pure synchronous JavaScript uses bounded QuickJS; export heavier environments to an external desktop agent. Not every skill can run on a phone. |
-| Plugins | JS, desktop Rust sidecars and Android embedded delivery. The generated API lists 36 namespaces and 255 method entries, subject to permissions and platform support. |
+| Plugins | JS, desktop Rust sidecars and Android embedded delivery. The generated API lists 41 namespaces and 297 method entries, subject to permissions and platform support. |
 
 ## Hold, lift, keep
 

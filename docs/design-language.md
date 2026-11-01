@@ -4,6 +4,8 @@
 
 石墨是默认主题。视觉真源为 `packages/gui` 的令牌、组件与 recipes，设计说明见 [OneGUI 包说明](../packages/gui/README.md)。旧 MD3/各业务页局部样式不能作为新界面的第二套标准。
 
+完整技术分层见 [OneGUI 架构](architecture/onegui.md)，覆盖实际令牌入口、兼容层、主题注入、玻璃预算、拖动和滚动边界。
+
 ## 组件与主题
 
 优先使用 OneGUI 的 Button、Input、Segment、Modal、Sheet、列表和反馈组件。主题通过统一注入控制表面、内容色、选中态与语义色。选中态不能只靠低对比背景区分；深浅主题和 Windows/Android 字体回退都要检查。

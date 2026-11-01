@@ -4,6 +4,8 @@
 
 Updated: 2026-10-29. This document describes app services and the optional CLI in 0.11.4-fix-2.
 
+See [CLI/agent architecture](architecture/cli-and-agents.md), [SDK](architecture/sdk-and-api.md), and [Gateway](architecture/gateway.md) for execution and ownership.
+
 ## Optional CLI in 0.11.4-fix-2
 
 OH uses authorized app services directly on phones and desktops, including with external CLI access switched off. The external CLI/MCP access switch and automatic-execution approval are separate controls.

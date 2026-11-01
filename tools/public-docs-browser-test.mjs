@@ -3,7 +3,8 @@ import {chromium} from 'playwright';
 import {mkdirSync,writeFileSync,readFileSync} from 'node:fs';
 const out='/Volumes/OneTHUBuild/artifacts/public-site-0.11/docs-browser';mkdirSync(out,{recursive:true});
 const browser=await chromium.launch({executablePath:process.env.CHROME_BIN??'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
-const expected=JSON.parse(readFileSync('docs/contributors.json','utf8'));const checks=[],errors=[];let passed=false;
+const expected=JSON.parse(readFileSync('docs/contributors.json','utf8'));
+const expectedApi=JSON.parse(readFileSync('docs/api-surface.json','utf8'));const checks=[],errors=[];let passed=false;
 const check=(value,label)=>{assert.ok(value,label);checks.push(label);console.log('✓ '+label);};
 try{
  for(const width of [1280,390]){
@@ -15,7 +16,7 @@ try{
   await page.screenshot({path:out+'/english-'+width+'.png'});
   check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),width+': English documentation fits viewport');
   await page.goto('https://onethu.github.io/docs/en/sharing-and-organizations/');const replay=page.locator('.md-content img').first();await replay.scrollIntoViewIfNeeded();await replay.evaluate(image=>image.decode());check((await replay.getAttribute('src')).includes('/en-US/'),width+': English guide uses the separately recorded English animation');
-  await page.goto('https://onethu.github.io/docs/en/api-surface/');check(await page.locator('.md-typeset table tbody tr').count()===255,width+': English API contains every generated method');
+  await page.goto('https://onethu.github.io/docs/en/api-surface/');check(await page.locator('.md-typeset table tbody tr').count()===expectedApi.methods,width+': English API contains every generated method');
   await page.goto('https://onethu.github.io/docs/en/contributors/');check(await page.locator('.md-typeset table tbody tr').count()===expected.contributors.length,width+': contributor directory complete');
   await page.goto('https://onethu.github.io/docs/sharing-and-organizations/');await page.locator('.md-content img').first().scrollIntoViewIfNeeded();check(await page.locator('.md-content img').first().evaluate(image=>image.complete&&image.naturalWidth>0),width+': staging animation asset loads');
   await context.close();

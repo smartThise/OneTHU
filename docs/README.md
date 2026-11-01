@@ -1,6 +1,6 @@
 # OneTHU 文档
 
-> 最后更新：2026-10-29 13:33
+> 最后更新：2026-11-01
 
 
 [0.11.4-fix-3 更新说明](release-0.11.4-fix-3.md) · [CLI 与常驻后台](onethu-cli.md)
@@ -27,10 +27,15 @@
 - [开发者中心](developers.md)
 - [开发者构建与 Android 图标校验](dev-build.md)
 - [贡献者](contributors.md)
-- [系统架构](architecture.md)
+- [系统架构与技术总览](architecture.md)
+- [原型与数据模型](architecture/prototype-and-data.md)
+- [SDK 与服务运行时](architecture/sdk-and-api.md)
+- [CLI、智能体与调度架构](architecture/cli-and-agents.md)
+- [Gateway 架构](architecture/gateway.md)
+- [OneGUI 架构](architecture/onegui.md)
 - [插件开发](plugin-development.md)
 - [OneTHU CLI 与 MCP](onethu-cli.md)
-- [API](api-surface.md)
+- [API 参考与协议](api-reference.md) · [生成签名清单](api-surface.md)
 - [OneGUI](design-language.md)
 - [模拟素材来源](screenshots.md)
 - [全部文档与历史状态](documentation-catalog.md)

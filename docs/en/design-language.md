@@ -13,3 +13,5 @@ Use shared content gutters for every route, including navigation from whiteboard
 Guide animation uses actual UI captures and recordings with fictional data. Physical devices have depth and natural transitions. Portrait stages give single-device demos most of the available area; NFC can show paired devices. Pause videos and frame scheduling offscreen, in the background and with reduced motion. Motion must not replace feedback or obscure primary content.
 
 The detailed [motion specification](../动效设计规范.md), [token map](../tokens-map.md) and [widget sizes](../白板组件尺寸档清单.md) are engineering references currently maintained in Chinese.
+
+The [OneGUI architecture](architecture/onegui.md) covers token ownership, compatibility, theme injection, material budgets, gestures and scrolling.

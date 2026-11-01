@@ -4,6 +4,8 @@
 
 更新：2026-10-29。本文描述 0.11.4-fix-2 的应用服务与可选 CLI。
 
+运行机制见 [CLI、智能体与调度架构](architecture/cli-and-agents.md)、[SDK](architecture/sdk-and-api.md) 和 [Gateway](architecture/gateway.md)。
+
 ## 产品分层
 
 **OneTHU CLI** 是面向人和其他 agent 的终端入口，**OneTHU SDK** 是可嵌入的运行时，**MCP** 是其中一种工具协议。常驻进程持续运行已批准的任务和 IM 通道。桌面应用提供可视化管理，并复用相同的学校客户端、网络学堂资源服务、任务引擎和执行策略。

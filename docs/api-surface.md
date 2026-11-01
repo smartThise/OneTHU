@@ -4,7 +4,7 @@
 
 > 此表由 `node tools/docs-api-surface.mjs` 从 `OnethuApi` 声明生成。
 
-当前声明包含 **36 个命名空间、255 个方法入口**，含嵌套调用入口。语义、示例与权限模型见 [API 参考](api-reference.md) 和 [插件开发指南](plugin-development.md)。权限列只列出门面中可直接识别的字面量校验；其余方法须结合门面上下文核对，不代表免授权。
+当前声明包含 **41 个命名空间、297 个方法入口**，含嵌套调用入口。语义、示例与权限模型见 [API 参考](api-reference.md) 和 [插件开发指南](plugin-development.md)。权限列只列出门面中可直接识别的字面量校验；其余方法须结合门面上下文核对，不代表免授权。
 
 接口声明是类型契约；平台能力、当前模式、登录状态和服务端权限仍可能限制实际调用。声明中的复合参数与返回类型按原样保留。
 
@@ -20,6 +20,61 @@
 | 调用 | 权限 | 声明 |
 |---|---|---|
 | `user.info` | 见门面实现 | `info(): Promise<import("@onethu/core").BasicUserInfo>;` |
+
+## contacts
+
+| 调用 | 权限 | 声明 |
+|---|---|---|
+| `contacts.list` | 见门面实现 | `list(query?: string, kind?: "personal" &#124; "organization" &#124; "all"): Promise<unknown>;` |
+| `contacts.get` | 见门面实现 | `get(id: string): Promise<unknown>;` |
+
+## organizations
+
+| 调用 | 权限 | 声明 |
+|---|---|---|
+| `organizations.list` | 见门面实现 | `list(query?: string): Promise<unknown>;` |
+| `organizations.get` | 见门面实现 | `get(id: string): Promise<unknown>;` |
+| `organizations.create` | 见门面实现 | `create(name: string, brief?: string): Promise<unknown>;` |
+| `organizations.update` | 见门面实现 | `update(id: string, patch: { name?: string; brief?: string }): Promise<unknown>;` |
+| `organizations.saveProject` | 见门面实现 | `saveProject(id: string, name: string, description: string, status: "planned" &#124; "active" &#124; "done", owner: string, projectId?: string): Promise<unknown>;` |
+| `organizations.removeProject` | 见门面实现 | `removeProject(id: string, projectId: string): Promise<unknown>;` |
+| `organizations.saveAnnouncement` | 见门面实现 | `saveAnnouncement(id: string, title: string, body: string, pinned?: boolean, announcementId?: string): Promise<unknown>;` |
+| `organizations.removeAnnouncement` | 见门面实现 | `removeAnnouncement(id: string, announcementId: string): Promise<unknown>;` |
+
+## xiaoda
+
+| 调用 | 权限 | 声明 |
+|---|---|---|
+| `xiaoda.status` | 见门面实现 | `status(): Promise<unknown>;` |
+| `xiaoda.agents` | 见门面实现 | `agents(): Promise<unknown>;` |
+| `xiaoda.models` | 见门面实现 | `models(): Promise<unknown>;` |
+| `xiaoda.balance` | 见门面实现 | `balance(): Promise<unknown>;` |
+| `xiaoda.conversations` | 见门面实现 | `conversations(page?: number): Promise<unknown>;` |
+| `xiaoda.conversation` | 见门面实现 | `conversation(id: string): Promise<unknown>;` |
+| `xiaoda.skills` | 见门面实现 | `skills(query?: string, page?: number): Promise<unknown>;` |
+| `xiaoda.skill` | 见门面实现 | `skill(id: string): Promise<unknown>;` |
+| `xiaoda.installed` | 见门面实现 | `installed(): Promise<unknown>;` |
+| `xiaoda.importSkill` | 见门面实现 | `importSkill(id: string): Promise<unknown>;` |
+| `xiaoda.enableSkill` | 见门面实现 | `enableSkill(id: string, enabled: boolean): Promise<unknown>;` |
+| `xiaoda.removeSkill` | 见门面实现 | `removeSkill(id: string): Promise<unknown>;` |
+| `xiaoda.ask` | 见门面实现 | `ask(agentId: string, question: string): Promise<unknown>;` |
+
+## vault
+
+| 调用 | 权限 | 声明 |
+|---|---|---|
+| `vault.list` | 见门面实现 | `list(): Promise<unknown>;` |
+| `vault.items` | 见门面实现 | `items(id: string): Promise<unknown>;` |
+| `vault.item` | 见门面实现 | `item(id: string, itemId: string): Promise<unknown>;` |
+| `vault.readText` | 见门面实现 | `readText(id: string, itemId: string, offset?: number, maxChars?: number): Promise<unknown>;` |
+| `vault.create` | 见门面实现 | `create(name: string): Promise<unknown>;` |
+| `vault.rename` | 见门面实现 | `rename(id: string, name: string): Promise<unknown>;` |
+| `vault.addText` | 见门面实现 | `addText(id: string, title: string, text: string): Promise<unknown>;` |
+| `vault.addAtom` | 见门面实现 | `addAtom(id: string, kind: string, key: string): Promise<unknown>;` |
+| `vault.addFile` | 见门面实现 | `addFile(id: string, repoId: string, path: string): Promise<unknown>;` |
+| `vault.removeItem` | 见门面实现 | `removeItem(id: string, itemId: string): Promise<unknown>;` |
+| `vault.share` | 见门面实现 | `share(id: string): Promise<unknown>;` |
+| `vault.importCode` | 见门面实现 | `importCode(code: string): Promise<unknown>;` |
 
 ## info
 
@@ -435,6 +490,18 @@
 | `theme.schedule` | 见门面实现 | `schedule(): Promise<{ followSystem: boolean; dayThemeId: string &#124; null; nightThemeId: string &#124; null; systemDark: boolean }>;` |
 | `theme.setFollowSystem` | 见门面实现 | `setFollowSystem(on: boolean): Promise<void>;` |
 | `theme.setDayNight` | 见门面实现 | `setDayNight(dayId: string &#124; null, nightId: string &#124; null): Promise<void>;` |
+
+## yuketang
+
+| 调用 | 权限 | 声明 |
+|---|---|---|
+| `yuketang.status` | `exthw:read` | `status(): Promise<unknown>;` |
+| `yuketang.courses` | `exthw:read` | `courses(): Promise<unknown>;` |
+| `yuketang.contents` | `exthw:read` | `contents(classroomId?: string): Promise<unknown>;` |
+| `yuketang.homework` | `exthw:read` | `homework(classroomId?: string, days?: number): Promise<unknown>;` |
+| `yuketang.homeworkDetail` | `exthw:read` | `homeworkDetail(classroomId: string, leafTypeId: string): Promise<unknown>;` |
+| `yuketang.leafDetail` | `exthw:read` | `leafDetail(classroomId: string, leafId: string): Promise<unknown>;` |
+| `yuketang.noticeDetail` | `exthw:read` | `noticeDetail(classroomId: string, noticeIds: string[]): Promise<unknown>;` |
 
 ## exthw
 

@@ -2,7 +2,7 @@
 
 **One GUI to rule them all.** OneTHU 的**唯一** UI 来源：令牌、风格管线、组件、页面模式、护栏。
 
-数据层已经由 `@onethu/core`（OneTHU SDK）统一：任何校园服务都从同一条会话管线取数。
+校园客户端位于 `@onethu/core`，独立服务运行时位于 `@onethu/sdk`；宿主通过账号、传输与服务适配接入。详见[系统架构](../../docs/architecture.md)与[OneGUI 架构](../../docs/architecture/onegui.md)。
 这个包做同一件事，只是对象换成**外观**：任何界面都从同一条风格管线取样式。
 
 ```
