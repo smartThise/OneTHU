@@ -1,12 +1,12 @@
 import { labelForId } from "../../i18n/staticLabels.js";
 import { courseDisplayName, courseSearchNames } from "../../lib/learnLanguage.js";
 import { t as i18n, useLocale as useUiLocale } from "../../i18n/index.js";
-import { Btn } from "@onethu/gui";
+import { Tabs, Btn } from "@onethu/gui";
 /** 全部作业（learnX Assignments）：按状态分组（进行中/已逾期/已交/已批改），组内按截止时间排序 */
 import { useMemo, useState } from "react";
 import { parseLearnTime, SOURCE_NAMES } from "@onethu/core";
 import { PageAtomStar } from "../..//components/Collect.js";
-import { SegmentedOverflow, Card, Empty, ErrorNote, ListWindow, PageHead, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { Card, Empty, ErrorNote, ListWindow, PageHead, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
@@ -196,7 +196,7 @@ export function AssignmentsPage() {
   }, [uiLocale, auditAll, filter]);
 
   const list = groups[filter];
-  // R10 15.4：页头只留学期文本；各分组计数已并入 SegmentedOverflow 各 tab（含「全部」），
+  // R10 15.4：页头只留学期文本；各分组计数已并入 Tabs 各 tab（含「全部」），
   // 「外部 N」删除（已融入各组、无信息量）
   // 从网络学堂页的雨课堂课程卡片进来时，页头改为说明「正在看哪门课」。
   const meta = extCourseId
@@ -229,20 +229,13 @@ export function AssignmentsPage() {
       {/* R19 27.1：TUOJ 自动重漫游仍失败的静默条幅（含「去设置重新登录」手动入口） */}
       <ExtHwSourceErrorNote />
 
-      <SegmentedOverflow>
-        {FILTERS.map(({ key, label }) => (
-          <button
-            key={key}
-            role="tab"
-            aria-selected={filter === key}
-            className={filter === key ? "is-active" : ""}
-            onClick={() => setFilter(key)}
-          >
-            {label}
-            <span className="tab-count">{groups[key].length}</span>
-          </button>
-        ))}
-      </SegmentedOverflow>
+      <Tabs
+        variant="segmented"
+        block
+        value={filter}
+        onChange={(key) => setFilter(key as Filter)}
+        items={FILTERS.map(({ key, label }) => ({ id: key, label, badge: groups[key].length }))}
+      />
 
       {state === "loading" && !data ? (
         <SkeletonRows rows={6} />
