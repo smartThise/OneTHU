@@ -52,7 +52,7 @@
 }
 .ohx-search-status {
   color: var(--text-3);
-  font-size: 13px;
+  font-size: 12px;
   padding: 14px 2px;
 }
 
@@ -120,7 +120,7 @@
   border: 1px dashed var(--accent-border, var(--accent));
   color: var(--accent);
   background: var(--accent-soft, transparent);
-  font-size: 13px;
+  font-size: 12px;
   padding: 10px 12px;
   border-radius: 10px;
   cursor: pointer;
@@ -200,7 +200,7 @@
   border-radius: 12px;
   background: var(--md-sys-color-surface-container-lowest, var(--surface));
   color: var(--text-2);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.7;
   text-align: left;
 }

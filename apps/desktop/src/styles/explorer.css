@@ -126,7 +126,7 @@ html:root.is-phone .hard-refresh-fab:not(.top-fab) {
 }
 .settings-seg { position: absolute; left: 50%; transform: translateX(-50%); }
 .settings-close { margin-left: auto; position: relative; } /* 绝对居中后压轴仍贴右 */
-.settings-title { font-size: 15px; }
+.settings-title { font-size: 14px; }
 .settings-seg {
   max-width: 100%;
   overflow-x: auto;
