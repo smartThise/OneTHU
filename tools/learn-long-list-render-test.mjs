@@ -62,10 +62,10 @@ await page.evaluate(async () => {
   await new Promise((resolve) => setTimeout(resolve, 1500));
 });
 // Jump to the bottom: this is the path that used to hand one IO batch many rows.
-await page.evaluate(() => document.querySelectorAll(".learn-file-scroll .row")[319]?.scrollIntoView({ block: "center" }));
+await page.evaluate(() => document.querySelectorAll(".learn-file-window .list-window-scroll .row")[319]?.scrollIntoView({ block: "center" }));
 await page.waitForTimeout(1200);
 const result = await page.evaluate(() => {
-  const rows = [...document.querySelectorAll(".learn-file-scroll .row")].filter((el) => {
+  const rows = [...document.querySelectorAll(".learn-file-window .list-window-scroll .row")].filter((el) => {
     const r = el.getBoundingClientRect();
     return r.bottom > 0 && r.top < innerHeight && r.height > 0;
   });
@@ -79,17 +79,17 @@ const result = await page.evaluate(() => {
       reveal: el.dataset.revealIn,
     };
   });
-  const longCard = document.querySelector(".learn-file-list");
+  const longCard = document.querySelector(".learn-file-window .list-window");
   const cardStyle = longCard ? getComputedStyle(longCard) : null;
   return {
-    total: document.querySelectorAll(".learn-file-scroll .row").length,
+    total: document.querySelectorAll(".learn-file-window .list-window-scroll .row").length,
     visible: reports.length,
     hidden: reports.filter((r) => r.opacity < 0.99).slice(0, 6),
     longDelay: reports.filter((r) => parseFloat(r.delay) > 0.5).length,
     running: rows.filter((el) => el.getAnimations().some((a) => a.playState === "running")).length,
     docOverflow: document.documentElement.scrollHeight - innerHeight,
     previewInk: (() => {
-      const b = document.querySelector(".learn-file-scroll .btn-ghost");
+      const b = document.querySelector(".learn-file-window .list-window-scroll .btn-ghost");
       const c = getComputedStyle(b);
       return { color: c.color, inline: b.style.color, bg: c.backgroundColor, tx: b.dataset.tx };
     })(),

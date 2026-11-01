@@ -4,7 +4,7 @@ import { Btn, Select } from "@onethu/gui";
 /** 全部课程文件（learnX Files）：按上传时间倒序，可按课程筛选 */
 import { useMemo, useState } from "react";
 import { PageAtomStar } from "../..//components/Collect.js";
-import { Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
+import { Card, Empty, ErrorNote, ListWindow, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useLearnData } from "../../state/data.js";
 import { BackButton, FileRow, semesterText } from "./shared.js";
@@ -64,15 +64,12 @@ export function FilesPage() {
       ) : state === "error" && !data ? null : files.length === 0 ? (
         <Card><Empty text={courseId ? i18n("pages.learn.filespage.6b0161276931") : i18n("pages.learn.filespage.0dcb4c625d8b")} /></Card>
       ) : (
-        <Card className={`list learn-file-list${(data?.courses.length ?? 0) > 1 ? " has-filter" : ""}`}>
-          {/* 固定高度窗口：滚动发生在卡片内部，卡片本身始终一屏内。
-              玻璃模糊/圆角留在卡片上，不再为 2 万像素长的内容生成超大离屏层。 */}
-          <div className="learn-file-scroll">
-            {files.map((f, i) => (
-              <FileRow key={`${f.courseId}-${f.id}`} f={f} courseName={courseDisplayName(byCourse.get(f.courseId))} identityCourseName={byCourse.get(f.courseId)?.name} sem={data?.semester.id} from="learn-files" style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }} />
-            ))}
-          </div>
-        </Card>
+        <ListWindow className="learn-file-window">
+          {/* 固定视口窗口：高度由 ListWindow 按底栏实测，滚动发生在卡片内部。 */}
+          {files.map((f, i) => (
+            <FileRow key={`${f.courseId}-${f.id}`} f={f} courseName={courseDisplayName(byCourse.get(f.courseId))} identityCourseName={byCourse.get(f.courseId)?.name} sem={data?.semester.id} from="learn-files" style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }} />
+          ))}
+        </ListWindow>
       )}
     </>
   );

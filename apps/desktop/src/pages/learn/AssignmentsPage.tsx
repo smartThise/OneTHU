@@ -6,7 +6,7 @@ import { Btn } from "@onethu/gui";
 import { useMemo, useState } from "react";
 import { parseLearnTime, SOURCE_NAMES } from "@onethu/core";
 import { PageAtomStar } from "../..//components/Collect.js";
-import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { SegmentedOverflow, Card, Empty, ErrorNote, ListWindow, PageHead, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
@@ -263,10 +263,9 @@ export function AssignmentsPage() {
               />
             </Card>
           ) : (
-            <Card className="list learn-assignment-list">
-              {/* 固定高度内滚动：行数再多也只为可视窗口生成模糊/圆角层，避免超长
-                  卡片触发 GPU 纹理上限而丢掉玻璃模糊、深色字色忽黑忽白。 */}
-              <div className="learn-assignment-scroll" data-tx="keep">
+            <ListWindow className="learn-assignment-window">
+              {/* 固定视口内滚动：高度由 ListWindow 按底栏实测，不再依赖硬编码 offset
+                  （旧 offset 在宽屏留出大片空白）。 */}
                 {list.map((h, i) => (
                   <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={courseDisplayName(byCourse.get(h.courseId)) ?? h.courseName} identityCourseName={byCourse.get(h.courseId)?.name ?? h.courseName} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }} />
                 ))}
@@ -279,8 +278,7 @@ export function AssignmentsPage() {
                     ))}
                   </div>
                 ) : null}
-              </div>
-            </Card>
+            </ListWindow>
           )}
         </>
       )}

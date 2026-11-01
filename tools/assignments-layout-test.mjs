@@ -55,7 +55,7 @@ try {
     await new Promise((r) => setTimeout(r, 1200));
   });
 
-  await page.locator(".learn-assignment-list").waitFor({ state: "visible", timeout: 10_000 });
+  await page.locator(".learn-assignment-window").waitFor({ state: "visible", timeout: 10_000 });
   const pane = page.locator('[data-tab-page="learn-assignments"]:visible');
   const tabs = (await pane.count()) ? pane.locator('[role="tab"]') : page.locator('[role="tab"]');
   // 0 unfinished, 2 submitted, 3 graded, 5 all — populated in the fixture.
@@ -65,8 +65,8 @@ try {
     await tabs.nth(index).click();
     await page.waitForTimeout(300);
     const measured = await page.evaluate(() => {
-      const card = document.querySelector(".learn-assignment-list");
-      const scroll = document.querySelector(".learn-assignment-scroll");
+      const card = document.querySelector(".learn-assignment-window .list-window");
+      const scroll = document.querySelector(".learn-assignment-window .list-window-scroll");
       const row = scroll?.querySelector(".row");
       if (!card || !scroll || !row) throw new Error("assignment card + inner scroller + row missing");
       const cs = getComputedStyle(card);
@@ -78,6 +78,8 @@ try {
         blur: cs.backdropFilter,
         rowColor: getComputedStyle(row).color,
         docOverflow: document.documentElement.scrollHeight - innerHeight,
+        bottom: card.getBoundingClientRect().bottom,
+        barTop: document.querySelector(".oneshot")?.getBoundingClientRect().top ?? innerHeight,
       };
     });
     assert.ok(measured.cardHeight > 300 && measured.cardHeight < 950, `fixed card height (${measured.cardHeight})`);
@@ -85,6 +87,7 @@ try {
     assert.ok(measured.blur !== "none", "glass blur remains on every populated tab");
     assert.ok(measured.radius !== "0px", "card radius remains on every populated tab");
     assert.ok(measured.docOverflow <= 1, `no page-level overflow (${measured.docOverflow})`);
+    assert.ok(measured.bottom <= measured.barTop + 1 && measured.bottom >= measured.barTop - 20, `list fills to bottom bar (${measured.bottom} vs ${measured.barTop})`);
     styles.push({ index, ...measured });
   }
   assert.equal(new Set(styles.map((s) => s.rowColor)).size, 1, "dark-mode row text color is identical across tabs");
@@ -93,7 +96,7 @@ try {
   await page.evaluate(() => document.documentElement.classList.add("tabs-vertical"));
   await page.waitForTimeout(500);
   const vertical = await page.evaluate(() => {
-    const card = document.querySelector(".learn-assignment-list");
+    const card = document.querySelector(".learn-assignment-window .list-window");
     return {
       cardHeight: card?.getBoundingClientRect().height ?? 0,
       docOverflow: document.documentElement.scrollHeight - innerHeight,

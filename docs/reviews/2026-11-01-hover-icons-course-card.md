@@ -98,3 +98,16 @@
 实现：`WasherTab.tsx` 的 `washerDisplayName` 只改**显示标题**；收藏/深链/AtomRef 的 `deviceKey` 仍是原始 `name`，保证已有收藏不失效。映射到类型名称后不再重复显示泛化的 `type`；`hs`/数字继续显示编号及原副标题。
 
 回归：`washer-name-test` 浏览器动态导入函数，覆盖大小写、带分隔符、`hs`/纯数字/空值。
+
+## 10. 全部作业 / 课程文件也改用 ListWindow（2026-11-01 晚补）
+
+上一轮只把课程详情/通知换成动态 `ListWindow`；「全部作业」「课程文件」仍是硬编码
+`height: calc(100dvh - var(--og-learn-...-offset))`。宽屏下旧 offset 偏大，列表底边停在
+快捷栏上方一大截，卡片下方留出明显空白（用户截图）。
+
+两页统一改用 `ListWindow`：高度按当前页头/筛选条/底栏实测，列表底边贴住底栏预留区；
+滚动仍发生在卡片内部，玻璃模糊/圆角/字色不变。旧的 `.learn-assignment-list`、
+`.learn-assignment-scroll`、`.learn-file-list`、`.learn-file-scroll` 规则删除。
+
+回归：`assignments-layout-test` 增加列表底边与底栏距离断言；`learn-long-list-render-test`
+改用 `.learn-file-window .list-window-scroll`，320 行、无隐藏行/无长延迟继续通过。
