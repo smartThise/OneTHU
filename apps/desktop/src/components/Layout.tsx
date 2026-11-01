@@ -926,16 +926,20 @@ export function ListWindow({
   children,
   className = "",
   reserve = 0,
+  fill = false,
 }: {
   children: ReactNode;
   className?: string;
   /** 列表下方仍需可见的兄弟内容（如待办页脚注）预留高度 */
   reserve?: number;
+  /** 由父级 flex/grid 给出确定高度时启用：不再按视口测量，卡片撑满父级并在内部滚动。 */
+  fill?: boolean;
 }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const [height, setHeight] = useState<number>();
 
   useLayoutEffect(() => {
+    if (fill) return;
     const host = hostRef.current;
     if (!host) return;
     const update = (): void => {
@@ -943,7 +947,19 @@ export function ListWindow({
       const header = host.closest<HTMLElement>(".page-anim")?.querySelector<HTMLElement>(".page-head-host");
       const headerAnimation = header?.style.animation;
       if (header) header.style.animation = "none";
-      const top = host.getBoundingClientRect().top;
+      const rect = host.getBoundingClientRect();
+      // 页面可能带着上一次滚动位置挂载（课程卡在页面下方 → 详情页首帧不在顶部）。
+      // 直接用 viewport top 会把「已经滚掉的距离」当成可用高度，列表于是撑到内容全高。
+      // 这里把位置换算成滚动容器内的文档偏移，滚动多少都不影响测量。
+      let scroller: HTMLElement | null = null;
+      for (let p = host.parentElement; p && p !== document.body; p = p.parentElement) {
+        const oy = getComputedStyle(p).overflowY;
+        if ((oy === "auto" || oy === "scroll") && p.clientHeight < p.scrollHeight) { scroller = p; break; }
+      }
+      const scRect = scroller?.getBoundingClientRect();
+      const scrollTop = scroller?.scrollTop ?? (window.scrollY || document.documentElement.scrollTop || 0);
+      const top = rect.top - (scRect?.top ?? 0) + scrollTop;
+      const viewportH = scroller?.clientHeight ?? window.innerHeight;
       if (header) header.style.animation = headerAnimation ?? "";
       const content = host.closest<HTMLElement>(".explorer-content");
       const pad = content ? Number.parseFloat(getComputedStyle(content).paddingBottom) || 0 : 0;
@@ -955,27 +971,31 @@ export function ListWindow({
         .filter((r): r is DOMRect => r !== undefined && r.height > 0 && r.bottom > window.innerHeight * 0.5);
       const barInset = bottomLayers.reduce((max, r) => Math.max(max, window.innerHeight - r.top), 0);
       const safe = Math.max(pad, barInset + 12);
-      // 卡片 1px 边框 + 宿主滚动条余量；至少留 220px，极端小窗仍可用。
-      const next = Math.max(120, Math.round(window.innerHeight - top - safe - reserve - 4));
+      // 卡片 1px 边框 + 宿主滚动条余量；至少留 120px，极端小窗仍可用。
+      const next = Math.max(120, Math.round(viewportH - top - safe - reserve - 4));
       setHeight((prev) => (prev === next ? prev : next));
     };
     update();
     const raf = requestAnimationFrame(update);
+    // 字体/异步页头/筛选条落定后再量两次；首次挂载若在布局完成前测，会留下过高的列表。
+    const timers = [120, 360].map((ms) => window.setTimeout(update, ms));
     const ro = new ResizeObserver(update);
     ro.observe(host);
     if (host.parentElement) ro.observe(host.parentElement);
+    void document.fonts?.ready.then(update).catch(() => undefined);
     window.addEventListener("resize", update);
     return () => {
       cancelAnimationFrame(raf);
+      timers.forEach((timer) => window.clearTimeout(timer));
       ro.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, [reserve]);
+  }, [reserve, fill]);
 
   return (
-    <div ref={hostRef} className={`list-window-host ${className}`.trim()}>
+    <div ref={hostRef} className={`list-window-host ${fill ? "is-fill" : ""} ${className}`.trim()}>
       <Card className="list list-window">
-        <div className="list-window-scroll" data-tx="keep" style={height ? { height } : undefined}>
+        <div className="list-window-scroll" data-tx="keep" style={!fill && height ? { height } : undefined}>
           {children}
         </div>
       </Card>

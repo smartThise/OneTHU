@@ -247,6 +247,13 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* 直接写在 children 里的图标会被 Btn 包进 label（inline 排版）。裸 <svg> 没有
+   .og-icon 的基线修正，默认 baseline 会让图形中心比中文高约 2px（用户实拍
+   「图标比旁边文字高一小截」）。label 内的图标统一压回正文几何中线。 */
+.og-btn-label > svg,
+.og-btn-label > .og-icon {
+  vertical-align: -0.14em;
+}
 
 /* ── IconBtn：正方形、无文字、圆形或圆角两档（复用同一套色料与状态层） ── */
 .og-iconbtn {

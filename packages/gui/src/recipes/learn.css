@@ -153,6 +153,8 @@ html:root .learn-course-card::after {
   inset: 0;
   z-index: 0;
   border-radius: inherit;
+  /* squircle 不随 border-radius 继承：不写这行状态层在圆角处会退回圆弧、看起来小一圈。 */
+  corner-shape: inherit;
   background: var(--og-hover);
   opacity: 0;
   pointer-events: none;
@@ -170,6 +172,10 @@ html:root .learn-course-open.og-btn,
 html:root .learn-course-open.og-btn:hover,
 html:root .learn-course-open.og-btn:active {
   background: transparent;
+  /* Btn 的 hover/press 画在 ::after 状态层上；只清本体 background 会留下第二层叠色
+     （用户实拍：卡片上半部比下半部深）。把按钮状态层色料也置空，整卡只留一层 hover。 */
+  --og-c-btn-hover: transparent;
+  --og-c-btn-press: transparent;
 }
 
 .learn-course-main {

@@ -7,7 +7,7 @@ import { t as i18n, rich as i18nRich, useLocale as useUiLocale } from "../../i18
  */
 import { Fragment, useCallback, useState } from "react";
 import type { ExternalContent, YkLeafDetail, YkNoticeDetail } from "@onethu/core";
-import { Card } from "../Layout.js";
+import { ListWindow } from "../Layout.js";
 import { IconChevron } from "../Icons.js";
 import { fetchYktLeafDetail, fetchYktNoticeDetail, getYktCookie } from "../../state/exthw.js";
 import { openExternalHomework } from "../../lib/extHwBrowse.js";
@@ -86,7 +86,7 @@ export function YktContentList({ items }: { items: ExternalContent[] }) {
   );
 
   return (
-    <Card className="list">
+    <ListWindow>
       {items.map((c, i) => {
         const isOpen = open?.id === c.id;
         const detail =
@@ -137,6 +137,6 @@ export function YktContentList({ items }: { items: ExternalContent[] }) {
           </Fragment>
         );
       })}
-    </Card>
+    </ListWindow>
   );
 }

@@ -174,6 +174,7 @@ for (const [engine, kind, options] of engines) {
           await courseCard.locator(".learn-course-footer").hover();
           await page.waitForTimeout(240);
           const cardHover = await courseCard.evaluate((el) => {
+            const cs = getComputedStyle(el);
             const after = getComputedStyle(el, "::after");
             const open = el.querySelector(".learn-course-open");
             const rect = el.getBoundingClientRect();
@@ -181,13 +182,19 @@ for (const [engine, kind, options] of engines) {
             return {
               afterOpacity: Number(after.opacity),
               afterContent: after.content,
+              cardCorner: cs.cornerShape,
+              afterCorner: after.cornerShape,
               openBg: open ? getComputedStyle(open).backgroundColor : null,
+              openAfterBg: open ? getComputedStyle(open, "::after").backgroundColor : null,
               coversFooter: !!footer && footer.bottom <= rect.bottom + 0.5 && footer.top >= rect.top,
             };
           });
           check(Math.abs(cardHover.afterOpacity - 1) < 1e-6 && cardHover.afterContent !== "none" && cardHover.coversFooter,
             `${engine}/${width}: hovering the footer lights the whole course card`);
-          check(cardHover.openBg === "rgba(0, 0, 0, 0)", `${engine}/${width}: course open button does not paint a second hover layer`);
+          check(cardHover.openBg === "rgba(0, 0, 0, 0)" && alphaOf(cardHover.openAfterBg) === 0,
+            `${engine}/${width}: course open button does not paint a second hover layer`);
+          check(cardHover.afterCorner === cardHover.cardCorner,
+            `${engine}/${width}: course hover state layer inherits the card corner shape`);
           if (width === 1280) await page.screenshot({ path: `${out}/course-card-hover.png` });
           await page.mouse.move(0, 0);
         }

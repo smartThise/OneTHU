@@ -524,6 +524,7 @@ html:root .stat-card::after {
   position: absolute;
   inset: 0;
   border-radius: inherit;
+  corner-shape: inherit;
   background: var(--og-hover);
   opacity: 0;
   pointer-events: none;
@@ -604,3 +605,41 @@ html:root .rich-editor .ql-editor.ql-blank::before { color: var(--og-content-3);
 
 /* 开发者面板：auth 失效测试的说明行。 */
 html:root .og-dev-auth-title { color: var(--og-content-3); margin: 6px 0 4px; }
+
+/* ── 校园卡两栏（≥1024）：左侧余额/统计/预警，右侧最近消费 ──────────────
+   右栏列表与左栏同高，滚动收进卡片内部；窄屏继续上下堆叠并走视口测量。 */
+html:root .list-window-host.is-fill {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  /* 由 grid 行高（= 左栏高度）决定最终高度：自身不参与 intrinsic 高度计算，
+     否则 60 行流水会把整行撑到 3900px。 */
+  height: 0;
+  min-height: 0;
+}
+html:root .list-window-host.is-fill .list-window {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+html:root .list-window-host.is-fill .list-window-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+@media (min-width: 1024px) {
+  html:root .card-two-col {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: var(--og-space-5);
+  }
+  html:root .card-col-main,
+  html:root .card-col-side { min-width: 0; }
+  html:root .card-col-side {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+}

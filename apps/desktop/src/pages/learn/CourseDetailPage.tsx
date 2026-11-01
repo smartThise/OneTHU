@@ -1,12 +1,12 @@
 import { courseDisplayName } from "../../lib/learnLanguage.js";
 import { t as i18n, useLocale as useUiLocale } from "../../i18n/index.js";
-import { Btn } from "@onethu/gui";
+import { Btn, Tabs } from "@onethu/gui";
 /** 课程详情（learnX CourseDetail）：头部课程信息 + 通知/作业/文件/分组/讨论区 tab 列表。
  *  作业 tab 带状态筛选 chips（未提交/已提交/已批改/全部，AssignmentsPage 同款 segmented），
  *  已批改条目直接显示成绩（HomeworkRow showGrade，thu-app learnHome「已批改 (分数)」语义）。 */
 import { useEffect, useMemo, useState } from "react";
 import type { LearnGroup } from "@onethu/core";
-import { SegmentedOverflow, Card, Empty, ErrorNote, ListWindow, PageHead, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { SegmentedOverflow, Card, Empty, ErrorNote, ListWindow, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { CollectStar } from "../../components/Collect.js";
 import { enc } from "../../state/atoms.js";
 import { IconRefresh } from "../../components/Icons.js";
@@ -109,6 +109,14 @@ export function CourseDetailPage() {
   const yktNotices = useMemo(() => yktContents.filter((c) => yktKindToCourseTab(c.kind) === "notices"), [uiLocale, yktContents]);
   /** 其余内容（资料/课件/视频/投票/未知）→ 文件栏（雨课堂没有独立"资料库"页签时最自然的落点） */
   const yktFiles = useMemo(() => yktContents.filter((c) => yktKindToCourseTab(c.kind) === "files"), [uiLocale, yktContents]);
+  /** 课程通知/文件里的双来源用子 tab 切换（用户 2026-11-01）：两侧都有内容才出 tab。 */
+  type Source = "learn" | "ykt";
+  const [noticeSource, setNoticeSource] = useState<Source>("learn");
+  const [fileSource, setFileSource] = useState<Source>("learn");
+  useEffect(() => {
+    setNoticeSource("learn");
+    setFileSource("learn");
+  }, [courseId]);
   /** 本课程作业全集（网络学堂 + 雨课堂），筛选/计数都基于它 */
   const hwAll = useMemo(() => [...homework, ...yktHw], [uiLocale, homework, yktHw]);
   const ignored = useIgnoredHw(); // R21c：忽略状态（课程页也要过滤 + 自己的忽略栏）
@@ -133,6 +141,8 @@ export function CourseDetailPage() {
       .sort((a, b) => b.uploadTime.localeCompare(a.uploadTime)),
     [uiLocale, data, courseId],
   );
+  const effectiveNoticeSource: Source = notices.length === 0 ? "ykt" : yktNotices.length === 0 ? "learn" : noticeSource;
+  const effectiveFileSource: Source = files.length === 0 ? "ykt" : yktFiles.length === 0 ? "learn" : fileSource;
 
   useEffect(() => {
     if (tab !== "groups" || !courseId) return;
@@ -227,33 +237,39 @@ export function CourseDetailPage() {
           <Card><Empty text={i18n("pages.learn.coursedetailpage.b3731a435fb0")} /></Card>
         ) : (
           <>
-            {notices.length > 0 ? (
+            {notices.length > 0 && yktNotices.length > 0 ? (
+              <Tabs
+                variant="pill"
+                value={effectiveNoticeSource}
+                onChange={(value) => setNoticeSource(value as Source)}
+                items={[
+                  { id: "learn", label: i18n("enum.label.aa39cac2b409"), badge: notices.length },
+                  { id: "ykt", label: i18n("components.attachactionssheet.38b9eabcae1b"), badge: yktNotices.length },
+                ]}
+              />
+            ) : null}
+            {effectiveNoticeSource === "ykt" && yktNotices.length > 0 ? (
+              <ListWindow>
+                {yktNotices.map((c, i) => (
+                  <NoticeRow
+                    key={c.id}
+                    n={toExternalNotice(c)}
+                    sem={data?.semester.id}
+                    from="learn-course"
+                    navCourseId={courseId}
+                    style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}
+                  />
+                ))}
+              </ListWindow>
+            ) : notices.length > 0 ? (
               <ListWindow>
                 {notices.map((n, i) => (
                   <NoticeRow key={n.id} n={n} sem={data?.semester.id} from="learn-course" style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }} />
                 ))}
               </ListWindow>
-            ) : null}
-            {/* R29 + R32：雨课堂公告并入本栏，且与网络学堂通知**同款行、同一打开方式**
-                （点击进同一个站内通知详情页）。navCourseId 传本课程 id：详情页「返回」要回到
-                本课程通知栏（外部公告自身的 courseId 是雨课堂课堂 id，退回会缺参）。 */}
-            {yktNotices.length > 0 ? (
-              <>
-                <SectionHead title={i18n("pages.learn.coursedetailpage.79cccc91b765")} />
-                <ListWindow>
-                  {yktNotices.map((c, i) => (
-                    <NoticeRow
-                      key={c.id}
-                      n={toExternalNotice(c)}
-                      sem={data?.semester.id}
-                      from="learn-course"
-                      navCourseId={courseId}
-                      style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}
-                    />
-                  ))}
-                </ListWindow>
-              </>
-            ) : null}
+            ) : (
+              <Card><Empty text={i18n("pages.learn.coursedetailpage.b3731a435fb0")} /></Card>
+            )}
           </>
         )
       ) : tab === "assignments" ? (
@@ -304,20 +320,28 @@ export function CourseDetailPage() {
           <Card><Empty text={i18n("pages.learn.coursedetailpage.dc9cd1730d43")} /></Card>
         ) : (
           <>
-            {files.length > 0 ? (
+            {files.length > 0 && yktFiles.length > 0 ? (
+              <Tabs
+                variant="pill"
+                value={effectiveFileSource}
+                onChange={(value) => setFileSource(value as Source)}
+                items={[
+                  { id: "learn", label: i18n("enum.label.aa39cac2b409"), badge: files.length },
+                  { id: "ykt", label: i18n("components.attachactionssheet.38b9eabcae1b"), badge: yktFiles.length },
+                ]}
+              />
+            ) : null}
+            {effectiveFileSource === "ykt" && yktFiles.length > 0 ? (
+              <YktContentList items={yktFiles} />
+            ) : files.length > 0 ? (
               <ListWindow>
                 {files.map((f, i) => (
                   <FileRow key={f.id} f={f} sem={data?.semester.id} from="learn-course" style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }} />
                 ))}
               </ListWindow>
-            ) : null}
-            {/* R29：雨课堂「资料」等并入文件栏（行内就地展开/内置预览） */}
-            {yktFiles.length > 0 ? (
-              <>
-                <SectionHead title={i18n("pages.learn.coursedetailpage.cc67d302a7ef")} />
-                <YktContentList items={yktFiles} />
-              </>
-            ) : null}
+            ) : (
+              <Card><Empty text={i18n("pages.learn.coursedetailpage.dc9cd1730d43")} /></Card>
+            )}
           </>
         )
       ) : tab === "groups" ? (

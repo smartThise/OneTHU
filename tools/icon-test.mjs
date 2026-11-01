@@ -68,6 +68,16 @@ for (const file of walk(SRC)) {
   ok(!/strokeWidth=\{?["']?2["']?\}?/.test(src), rel + " 出现 strokeWidth=2（图标一律走 Icons.tsx 的 1.6/1.4）");
 }
 
+/* 4 按钮 label 里直接放的裸 svg 必须与文字同一条几何中线 */
+{
+  const buttonCss = readFileSync(new URL("../packages/gui/src/styles/button.css", import.meta.url), "utf8");
+  ok(/\.og-btn-label > svg[\s\S]{0,120}?vertical-align:\s*-0\.14em/.test(buttonCss),
+    "按钮 label 内的裸 svg 有基线修正（图标中心不高于文字）");
+  const chipCss = readFileSync(new URL("../packages/gui/src/styles/chip.css", import.meta.url), "utf8");
+  ok(/:where\(svg\)[\s\S]{0,80}?vertical-align:\s*-0\.14em/.test(chipCss),
+    "全站裸 svg 有统一基线（inline 图标中心不高于文字）");
+}
+
 console.log(
   fails.length
     ? "图标护栏不通过：\n" + fails.map((f) => "  ✗ " + f).join("\n")
