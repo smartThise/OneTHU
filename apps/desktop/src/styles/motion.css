@@ -442,12 +442,12 @@ select {
 .tab-anim[data-dir="prev"] {
   animation: none;
 }
-/* 二级页保留一点"换页"感：只动页头块，不碰页面材质与卡片。 */
-.page-anim[data-level="sub"] > .page-head-host {
+/* 页头入场只做横向位移（左→右），不碰页面材质与卡片；主/二级页统一。 */
+.page-anim > .page-head-host {
   animation: m-page-head-in var(--dur-3) var(--ease-ios) backwards;
 }
 @keyframes m-page-head-in {
-  from { transform: translate3d(0, -5px, 0); }
+  from { transform: translate3d(-14px, 0, 0); }
   to { transform: none; }
 }
 
@@ -644,16 +644,19 @@ html.theme-anim .row {
    半透明中间态采样，定格出反色字。行/设置组本身不带材质，位移不影响父卡片模糊。
    已揭示态用 data 属性标记：React 重渲染会整体重写 className，data 属性安全。 */
 html.has-reveal :is(.list, .setting-group) > *,
-html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row) {
+html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row),
+html.has-reveal .learn-course-card {
   animation: none;
 }
 html.has-reveal :is(.list, .setting-group) > *[data-reveal-in],
-html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[data-reveal-in] {
+html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[data-reveal-in],
+html.has-reveal .learn-course-card[data-reveal-in] {
   animation: m-reveal-in var(--dur-3) var(--ease-out) backwards;
 }
 /* 长列表超出 stagger 配额的行：立即显示，不再排队动画（motion.ts 的 STAGGER_MAX 同源）。 */
 html.has-reveal :is(.list, .setting-group) > *[data-reveal-in="instant"],
-html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[data-reveal-in="instant"] {
+html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[data-reveal-in="instant"],
+html.has-reveal .learn-course-card[data-reveal-in="instant"] {
   animation: none;
 }
 @keyframes m-reveal-in {

@@ -121,6 +121,8 @@ for (const [engine, kind, options] of engines) {
         const list = page.locator(".learn-course-list:visible");
         const cards = list.locator(".learn-course-card");
         check(await cards.count() === 10, `${engine}/${width}: merged course appears once and unmatched classroom remains`);
+        // 课程卡入场是横向位移；等 400ms 落定后再量几何，避免把入场首帧当成溢出。
+        await page.waitForTimeout(700);
         const geometry = await list.evaluate((el) => {
           const box = e => { const r=e.getBoundingClientRect(); return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom}; };
           return {
@@ -155,6 +157,8 @@ for (const [engine, kind, options] of engines) {
           if (width >= 840 && row.length > 1) check(row.every(c=>c.w >= 280), `${engine}/${width}: readable desktop columns`);
         }
         check(await cards.locator("button button").count() === 0, `${engine}/${width}: independent actions are never nested buttons`);
+        const cardAnim = await cards.first().evaluate((el) => ({ rv: el.dataset.revealIn, anim: getComputedStyle(el).animationName }));
+        check(Boolean(cardAnim.rv) && /m-reveal-in/.test(cardAnim.anim), `${engine}/${width}: 网络学堂课程卡恢复入场动画（${cardAnim.anim}）`);
         check(await cards.locator(".chip, .chip-blue, .course-card-btn").count() === 0, `${engine}/${width}: retired styles are absent`);
         // Bug 1：统计卡是带材质的面，hover 只能叠状态层，不能把 background 换成半透明色
         // （否则中性皮肤下整张卡透出页面 —— 用户实测「网络学堂四个入口 hover 变透明」）。

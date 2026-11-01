@@ -84,7 +84,7 @@ export function useExitPhase(active: boolean, ms = 200): { mounted: boolean; clo
  */
 /** 只揭示不带材质的行/列表：玻璃卡片的容器不能有 opacity 动画（会丢背景模糊）。 */
 export const REVEAL_SELECTOR =
-  ":is(.list, .setting-group) > *, .row-click, .mail-row, .news-row, .setting-row, .cloud-row";
+  ":is(.list, .setting-group) > *, .row-click, .mail-row, .news-row, .setting-row, .cloud-row, .learn-course-card";
 
 const LONG_LIST_THRESHOLD = 40;
 
@@ -164,13 +164,27 @@ export function installScrollReveal(): void {
   /** 首屏已经在视口内的项必须在第一帧之前拿到 data-reveal-in：
    *  MutationObserver 在 paint 前跑，若等 100ms 防抖再标记，用户会先看到静止列表，
    *  随后整列突然跳到 -14px 再滑回来（霖 2026-11-01 现场「抽搐一下」）。 */
-  let initialSlot = 0;
   const markVisibleNow = (el: HTMLElement): boolean => {
     const rect = el.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return false;
     if (rect.bottom <= 0 || rect.top >= window.innerHeight * 0.92) return false;
-    const grid = el.closest(".app-grid, .thos-grid");
-    el.style.animationDelay = `${Math.min(initialSlot++, 12) * (grid ? 9 : 30)}ms`;
+    const grid = el.closest(".app-grid, .thos-grid, .learn-course-list");
+    // 延迟按「同一父级里的第几个」算，而不是全局计数器：否则先扫描到别的列表后，
+    // 后挂载的列表所有项都拿到 12×30=360ms，看起来是整列同时平移。网格按行分组。
+    let slot = 0;
+    const parent = el.parentElement;
+    if (grid) {
+      const top = Math.round(el.offsetTop);
+      const seen = new Set<number>();
+      for (const child of parent?.children ?? []) {
+        const childTop = Math.round((child as HTMLElement).offsetTop);
+        if (childTop < top) seen.add(childTop);
+      }
+      slot = seen.size;
+    } else if (parent) {
+      slot = Math.max(0, [...parent.children].indexOf(el));
+    }
+    el.style.animationDelay = `${Math.min(slot, 12) * (grid ? 9 : 30)}ms`;
     el.dataset.revealIn = "1";
     return true;
   };

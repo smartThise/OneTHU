@@ -1,10 +1,10 @@
 import { courseDisplayName } from "../../lib/learnLanguage.js";
 import { t as i18n, useLocale as useUiLocale } from "../../i18n/index.js";
-import { Btn, Tabs } from "@onethu/gui";
+import { Btn } from "@onethu/gui";
 /** 课程详情（learnX CourseDetail）：头部课程信息 + 通知/作业/文件/分组/讨论区 tab 列表。
  *  作业 tab 带状态筛选 chips（未提交/已提交/已批改/全部，AssignmentsPage 同款 segmented），
  *  已批改条目直接显示成绩（HomeworkRow showGrade，thu-app learnHome「已批改 (分数)」语义）。 */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { LearnGroup } from "@onethu/core";
 import { SegmentedOverflow, Card, Empty, ErrorNote, ListWindow, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { CollectStar } from "../../components/Collect.js";
@@ -31,6 +31,35 @@ const TABS: Array<{ key: Tab; label: string }> = [
   { key: "groups", get label() { return i18n("pages.learn.coursedetailpage.399ee6934772"); } },
   { key: "forum", get label() { return i18n("pages.learn.coursedetailpage.9c92c9d08b05"); } },
 ];
+
+/** 课程页各级 tab 的唯一渲染器：全部走同一个 SegmentedOverflow（滑动胶囊 + 溢出滚动），
+ *  一级 tab、作业状态筛选、通知/文件的网络学堂/雨课堂子 tab 因此同宽同形同动画。
+ *  裸 <button> 只在这里出现一次，避免各调用点各写一套。 */
+interface CourseTabItem { key: string; label: ReactNode; count?: number }
+
+function CourseTabRow({ items, value, onChange, ariaLabel }: {
+  items: CourseTabItem[];
+  value: string;
+  onChange: (key: string) => void;
+  ariaLabel?: string;
+}) {
+  return (
+    <SegmentedOverflow ariaLabel={ariaLabel}>
+      {items.map(({ key, label, count }) => (
+        <button
+          key={key}
+          role="tab"
+          aria-selected={value === key}
+          className={value === key ? "is-active" : ""}
+          onClick={() => onChange(key)}
+        >
+          {label}
+          {count !== undefined ? <span className="tab-count">{count}</span> : null}
+        </button>
+      ))}
+    </SegmentedOverflow>
+  );
+}
 
 /** 作业状态筛选（AssignmentsPage 同款口径：未提交 / 已提交未批改 / 已批改 / 全部） */
 type HwFilter = "unfinished" | "submitted" | "graded" | "ignored" | "all";
@@ -212,23 +241,11 @@ export function CourseDetailPage() {
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
 
-      <SegmentedOverflow>
-        {TABS.map(({ key, label }) => {
-          const n = counts[key];
-          return (
-            <button
-              key={key}
-              role="tab"
-              aria-selected={tab === key}
-              className={tab === key ? "is-active" : ""}
-              onClick={() => setTab(key)}
-            >
-              {label}
-              {n !== undefined ? <span className="tab-count">{n}</span> : null}
-            </button>
-          );
-        })}
-      </SegmentedOverflow>
+      <CourseTabRow
+        value={tab}
+        onChange={(key) => setTab(key as Tab)}
+        items={TABS.map(({ key, label }) => ({ key, label, count: counts[key] }))}
+      />
 
       {state === "loading" && !data ? (
         <SkeletonRows rows={5} />
@@ -238,13 +255,12 @@ export function CourseDetailPage() {
         ) : (
           <>
             {notices.length > 0 && yktNotices.length > 0 ? (
-              <Tabs
-                className="segmented course-source-tabs"
+              <CourseTabRow
                 value={effectiveNoticeSource}
-                onChange={(value) => setNoticeSource(value as Source)}
+                onChange={(key) => setNoticeSource(key as Source)}
                 items={[
-                  { id: "learn", label: <>{i18n("enum.label.aa39cac2b409")}<span className="tab-count">{notices.length}</span></> },
-                  { id: "ykt", label: <>{i18n("components.attachactionssheet.38b9eabcae1b")}<span className="tab-count">{yktNotices.length}</span></> },
+                  { key: "learn", label: i18n("enum.label.aa39cac2b409"), count: notices.length },
+                  { key: "ykt", label: i18n("components.attachactionssheet.38b9eabcae1b"), count: yktNotices.length },
                 ]}
               />
             ) : null}
@@ -278,20 +294,12 @@ export function CourseDetailPage() {
         ) : (
           <>
             {/* 状态筛选 chips：AssignmentsPage 同款 segmented（含各组计数） */}
-            <SegmentedOverflow ariaLabel={i18n("pages.learn.coursedetailpage.5d2c51e297aa")}>
-              {HW_FILTERS.map(({ key, label }) => (
-                <button
-                  key={key}
-                  role="tab"
-                  aria-selected={hwFilter === key}
-                  className={hwFilter === key ? "is-active" : ""}
-                  onClick={() => setHwFilter(key)}
-                >
-                  {label}
-                  <span className="tab-count">{hwGroups[key].length}</span>
-                </button>
-              ))}
-            </SegmentedOverflow>
+            <CourseTabRow
+              ariaLabel={i18n("pages.learn.coursedetailpage.5d2c51e297aa")}
+              value={hwFilter}
+              onChange={(key) => setHwFilter(key as HwFilter)}
+              items={HW_FILTERS.map(({ key, label }) => ({ key, label, count: hwGroups[key].length }))}
+            />
             {hwList.length === 0 ? (
               <Card><Empty text={hwFilter === "ignored" ? i18n("pages.learn.coursedetailpage.052544849717") : i18n("pages.learn.coursedetailpage.4fc6f287e4e5")} /></Card>
             ) : (
@@ -321,13 +329,12 @@ export function CourseDetailPage() {
         ) : (
           <>
             {files.length > 0 && yktFiles.length > 0 ? (
-              <Tabs
-                className="segmented course-source-tabs"
+              <CourseTabRow
                 value={effectiveFileSource}
-                onChange={(value) => setFileSource(value as Source)}
+                onChange={(key) => setFileSource(key as Source)}
                 items={[
-                  { id: "learn", label: <>{i18n("enum.label.aa39cac2b409")}<span className="tab-count">{files.length}</span></> },
-                  { id: "ykt", label: <>{i18n("components.attachactionssheet.38b9eabcae1b")}<span className="tab-count">{yktFiles.length}</span></> },
+                  { key: "learn", label: i18n("enum.label.aa39cac2b409"), count: files.length },
+                  { key: "ykt", label: i18n("components.attachactionssheet.38b9eabcae1b"), count: yktFiles.length },
                 ]}
               />
             ) : null}

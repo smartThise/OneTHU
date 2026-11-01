@@ -34,7 +34,7 @@
 
 ## 验证
 
-- `course-source-tabs-browser-test`：14 项（子 tab、默认网络、标题只播一次、行首帧标记、子 tab 与主 tab 样式一致、雨课堂/文件固定视口）。
+- `course-source-tabs-browser-test`：18 项（子 tab、默认网络、标题只播一次、行首帧标记、等宽/滑动胶囊、逐项延迟、雨课堂/文件固定视口）。
 - `card-two-col-browser-test`：7 项（等宽、同高、内部滚动、窄屏堆叠、无横向溢出）。
 - `learn-layout-browser-test`：219 项（含 hover 角形、无双层、整卡覆盖）。
 - `list-window-layout-test`、`assignments-layout-test`、`material-ink-stability`、`select-control`、`glass-optics` 继续通过。
@@ -61,4 +61,16 @@
 
 **双来源 tab 样式**：子 tab 不再用 OneGUI 默认下划线/胶囊，复用主 tab 的 `.segmented` 胶囊槽（`Tabs` 只提供 tablist/键盘语义 + `className="segmented course-source-tabs"`）；主动项深色胶囊、计数样式与主 tab 完全一致。
 
-回归：`course-source-tabs-browser-test` 增至 14 项（标题只播一次/切 tab 不重播、首帧 reveal 标记、子 tab 与主 tab 样式逐属性相等）；`motion-test` 151 项。
+回归：`course-source-tabs-browser-test` 增至 18 项（标题只播一次/切 tab 不重播、首帧 reveal 标记、等宽/滑动胶囊、逐项延迟）；`motion-test` 152 项。
+
+## 7. 二级 tab 统一、列表逐项时间差、标题横移（2026-11-01 傍晚补）
+
+**二级 tab**：上一版用 OneGUI `Tabs`，虽然视觉接近但仍不是同一套结构，没有 `seg-pill` 滑动块，宽度也不是整行。现在把课程页一级 tab、作业状态筛选、通知/文件双来源 tab 全部收进同一个 `CourseTabRow`（内部就是 `SegmentedOverflow` + `.segmented` + `seg-pill`），所以三者同宽（1080/1080）、同形、同一个滑动胶囊过渡，裸 `<button>` 也只保留这一处。
+
+**列表逐项时间差**：reveal 的初始延迟原来用全局计数器，先扫描过别的页面后，后挂载列表的每一项都拿到 12×30ms，看起来整列同时平移。改为按同一父级内的索引算延迟（网格按行分组：同行同时、行间 9ms；列表逐项 30ms），首屏行 0/30/60… 依次进入。
+
+**页标题方向**：`m-page-head-in` 从 `translate3d(0,-5px,0)` 改为 `translate3d(-14px,0,0)`，左→右入场；主页面与二级页统一。
+
+**网络学堂入场动画恢复**：上一版滚动揭示只覆盖 `.row-click` 等行，课程卡 `.learn-course-card` 没有入场。现在把课程卡纳入揭示选择器（网格按行 9ms），Learn 课程卡恢复 `m-reveal-in`；列表/卡片都在第一帧就进入入场首帧，不再先静止再跳回。
+
+回归：`course-source-tabs-browser-test` 18 项（含等宽、`seg-pill` 过渡、逐项延迟）；`learn-layout-browser-test` 225 项（含课程卡入场）；`motion-test` 152 项（含标题左→右关键帧）。

@@ -94,6 +94,8 @@ const notice = await readList();
 check(notice.win && notice.height > 300 && notice.height < 900, "默认通知列表首开即为固定视口，不再铺满全页");
 check(notice.scrollHeight > notice.client && notice.rows === 60, "通知行在固定视口内滚动");
 check(notice.bottom <= notice.barTop + 1, "通知列表止于底部快捷栏上方");
+const delays = await page.evaluate(() => [...document.querySelectorAll(".page-anim .list-window-scroll .row")].slice(0, 6).map((row) => row.style.animationDelay));
+check(new Set(delays).size > 1, `列表项入场有逐项时间差（${delays.join(" / ")}）`);
 await networkTabs().last().isVisible();
 check(await networkTabs().last().getAttribute("aria-selected") === "true", "默认选中网络学堂");
 
@@ -115,13 +117,36 @@ const tabStyles = await page.evaluate(() => {
     const cs = getComputedStyle(el);
     return { height: cs.height, radius: cs.borderRadius, bg: cs.backgroundColor, color: cs.color, fontSize: cs.fontSize, weight: cs.fontWeight };
   };
-  const sub = document.querySelector(".course-source-tabs .og-tab.is-active");
-  const main = document.querySelector(".page-anim > .segmented button.is-active");
-  return { sub: pick(sub), main: pick(main) };
+  const rows = [...document.querySelectorAll(".page-anim .segmented")];
+  const subRow = rows.at(-1);
+  const mainRow = rows[0];
+  const sub = subRow?.querySelector("button.is-active");
+  const main = mainRow?.querySelector("button.is-active");
+  return {
+    sub: pick(sub), main: pick(main),
+    subWidth: subRow?.getBoundingClientRect().width ?? 0,
+    mainWidth: mainRow?.getBoundingClientRect().width ?? 0,
+    pill: Boolean(subRow?.querySelector(".seg-pill")),
+    subPillTransform: subRow?.querySelector(".seg-pill") ? getComputedStyle(subRow.querySelector(".seg-pill")).transform : null,
+  };
 });
 check(tabStyles.sub && tabStyles.main && JSON.stringify(tabStyles.sub) === JSON.stringify(tabStyles.main), "通知/文件子 tab 与主 tab 样式完全一致");
+check(Math.abs(tabStyles.subWidth - tabStyles.mainWidth) <= 1, `子 tab 与主 tab 等宽（${tabStyles.subWidth} / ${tabStyles.mainWidth}）`);
+check(tabStyles.pill, "子 tab 有滑动胶囊状态层");
+const pillBefore = await page.evaluate(() => {
+  const rows = [...document.querySelectorAll(".page-anim .segmented")];
+  const pill = rows.at(-1)?.querySelector(".seg-pill");
+  return pill ? getComputedStyle(pill).transform : null;
+});
 await sourceTabs().last().click();
-await page.waitForTimeout(500);
+await page.waitForTimeout(160);
+const pillAfter = await page.evaluate(() => {
+  const rows = [...document.querySelectorAll(".page-anim .segmented")];
+  const pill = rows.at(-1)?.querySelector(".seg-pill");
+  return pill ? getComputedStyle(pill).transform : null;
+});
+check(pillBefore && pillAfter && pillBefore !== pillAfter, "子 tab 滑动胶囊有位置过渡动画");
+await page.waitForTimeout(340);
 const yktNotice = await readList();
 check(yktNotice.rows === 15 && yktNotice.win, "切到雨课堂后只显示雨课堂通知，仍是固定视口");
 await page.screenshot({ path: `${out}/notices-ykt.png` });
