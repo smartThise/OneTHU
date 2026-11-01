@@ -430,3 +430,43 @@
 .og-segment-scroll[data-overflow] { display: block; }
 .og-segment-scroll > span { position: absolute; top: 0; bottom: 0; border-radius: inherit; background: var(--og-content-3); cursor: grab; }
 .og-segment-scroll:active > span { cursor: grabbing; background: var(--og-content-1); }
+
+/* ── 段式页签：页面级 tab 的统一外观（与宿主既有胶囊槽同源） ─────────── */
+.og-tabs--block { width: 100%; }
+.og-tabs--segmented {
+  gap: var(--og-geo-xs);
+  padding: var(--og-geo-xs);
+  border: 1px solid var(--og-segment-line);
+  border-radius: var(--og-radius-control);
+  background: var(--og-segment-track);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.og-tabs--segmented::-webkit-scrollbar { display: none; }
+.og-tabs--segmented .og-tab {
+  z-index: 1;
+  flex: 1 0 auto;
+  justify-content: center;
+  height: var(--og-ctl-h-sm);
+  padding: 0 var(--og-space-3);
+  border-radius: var(--og-radius-sm);
+  color: var(--og-content-2);
+  font-size: var(--og-text-label);
+}
+.og-tabs--segmented .og-tab.is-active { color: var(--og-segment-active-ink); }
+.og-tabs--segmented .og-tabs-indicator {
+  top: var(--og-geo-xs);
+  bottom: var(--og-geo-xs);
+  z-index: 0;
+  height: auto;
+  border-radius: var(--og-radius-sm);
+  background: var(--og-segment-active);
+}
+.og-tabs--segmented .og-tab-badge {
+  background: var(--og-surface-3);
+  color: var(--og-content-2);
+}
+.og-tabs--segmented .og-tab.is-active .og-tab-badge {
+  background: var(--og-accent-soft);
+  color: var(--og-accent);
+}

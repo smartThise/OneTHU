@@ -1,6 +1,6 @@
 import { courseDisplayName } from "../../lib/learnLanguage.js";
 import { t as i18n, useLocale as useUiLocale } from "../../i18n/index.js";
-import { Btn } from "@onethu/gui";
+import { Btn, Tabs } from "@onethu/gui";
 /** 课程详情（learnX CourseDetail）：头部课程信息 + 通知/作业/文件/分组/讨论区 tab 列表。
  *  作业 tab 带状态筛选 chips（未提交/已提交/已批改/全部，AssignmentsPage 同款 segmented），
  *  已批改条目直接显示成绩（HomeworkRow showGrade，thu-app learnHome「已批改 (分数)」语义）。 */
@@ -32,9 +32,8 @@ const TABS: Array<{ key: Tab; label: string }> = [
   { key: "forum", get label() { return i18n("pages.learn.coursedetailpage.9c92c9d08b05"); } },
 ];
 
-/** 课程页各级 tab 的唯一渲染器：全部走同一个 SegmentedOverflow（滑动胶囊 + 溢出滚动），
- *  一级 tab、作业状态筛选、通知/文件的网络学堂/雨课堂子 tab 因此同宽同形同动画。
- *  裸 <button> 只在这里出现一次，避免各调用点各写一套。 */
+/** 课程页各级 tab 的唯一渲染器：统一用 OneGUI Tabs 的 segmented 变体（整行等分、
+ * 滑动指示器、tablist/键盘语义），不再在页面里拼裸 button。 */
 interface CourseTabItem { key: string; label: ReactNode; count?: number }
 
 function CourseTabRow({ items, value, onChange, ariaLabel }: {
@@ -44,20 +43,14 @@ function CourseTabRow({ items, value, onChange, ariaLabel }: {
   ariaLabel?: string;
 }) {
   return (
-    <SegmentedOverflow ariaLabel={ariaLabel}>
-      {items.map(({ key, label, count }) => (
-        <button
-          key={key}
-          role="tab"
-          aria-selected={value === key}
-          className={value === key ? "is-active" : ""}
-          onClick={() => onChange(key)}
-        >
-          {label}
-          {count !== undefined ? <span className="tab-count">{count}</span> : null}
-        </button>
-      ))}
-    </SegmentedOverflow>
+    <Tabs
+      variant="segmented"
+      block
+      ariaLabel={ariaLabel}
+      value={value}
+      onChange={onChange}
+      items={items.map(({ key, label, count }) => ({ id: key, label, badge: count }))}
+    />
   );
 }
 

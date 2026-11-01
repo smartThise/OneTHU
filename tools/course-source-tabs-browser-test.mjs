@@ -117,7 +117,7 @@ const tabStyles = await page.evaluate(() => {
     const cs = getComputedStyle(el);
     return { height: cs.height, radius: cs.borderRadius, bg: cs.backgroundColor, color: cs.color, fontSize: cs.fontSize, weight: cs.fontWeight };
   };
-  const rows = [...document.querySelectorAll(".page-anim .segmented")];
+  const rows = [...document.querySelectorAll(".page-anim .og-tabs--segmented")];
   const subRow = rows.at(-1);
   const mainRow = rows[0];
   const sub = subRow?.querySelector("button.is-active");
@@ -126,24 +126,24 @@ const tabStyles = await page.evaluate(() => {
     sub: pick(sub), main: pick(main),
     subWidth: subRow?.getBoundingClientRect().width ?? 0,
     mainWidth: mainRow?.getBoundingClientRect().width ?? 0,
-    pill: Boolean(subRow?.querySelector(".seg-pill")),
-    subPillTransform: subRow?.querySelector(".seg-pill") ? getComputedStyle(subRow.querySelector(".seg-pill")).transform : null,
+    pill: Boolean(subRow?.querySelector(".og-tabs-indicator")),
+    subPillTransform: subRow?.querySelector(".og-tabs-indicator") ? getComputedStyle(subRow.querySelector(".og-tabs-indicator")).left : null,
   };
 });
 check(tabStyles.sub && tabStyles.main && JSON.stringify(tabStyles.sub) === JSON.stringify(tabStyles.main), "通知/文件子 tab 与主 tab 样式完全一致");
 check(Math.abs(tabStyles.subWidth - tabStyles.mainWidth) <= 1, `子 tab 与主 tab 等宽（${tabStyles.subWidth} / ${tabStyles.mainWidth}）`);
 check(tabStyles.pill, "子 tab 有滑动胶囊状态层");
 const pillBefore = await page.evaluate(() => {
-  const rows = [...document.querySelectorAll(".page-anim .segmented")];
-  const pill = rows.at(-1)?.querySelector(".seg-pill");
-  return pill ? getComputedStyle(pill).transform : null;
+  const rows = [...document.querySelectorAll(".page-anim .og-tabs--segmented")];
+  const pill = rows.at(-1)?.querySelector(".og-tabs-indicator");
+  return pill ? getComputedStyle(pill).left + "|" + getComputedStyle(pill).width : null;
 });
 await sourceTabs().last().click();
 await page.waitForTimeout(160);
 const pillAfter = await page.evaluate(() => {
-  const rows = [...document.querySelectorAll(".page-anim .segmented")];
-  const pill = rows.at(-1)?.querySelector(".seg-pill");
-  return pill ? getComputedStyle(pill).transform : null;
+  const rows = [...document.querySelectorAll(".page-anim .og-tabs--segmented")];
+  const pill = rows.at(-1)?.querySelector(".og-tabs-indicator");
+  return pill ? getComputedStyle(pill).left + "|" + getComputedStyle(pill).width : null;
 });
 check(pillBefore && pillAfter && pillBefore !== pillAfter, "子 tab 滑动胶囊有位置过渡动画");
 await page.waitForTimeout(340);

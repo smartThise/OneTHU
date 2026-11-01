@@ -188,8 +188,14 @@ export interface TabsProps {
   items: TabItem[];
   value: string;
   onChange: (id: string) => void;
-  variant?: "line" | "pill" | "soft";
+  variant?: "line" | "pill" | "soft" | "segmented";
   sticky?: boolean;
+  /** 整行等分（页面级页签）；不传时由内容宽度决定 */
+  block?: boolean;
+  /** 无可见标题时的 tablist 无障碍名称 */
+  ariaLabel?: string;
+  /** 仅允许几何/布局透传；外观仍由变体与令牌决定 */
+  style?: React.CSSProperties;
   scope?: string;
   className?: string;
 }
@@ -280,7 +286,7 @@ function useIndicator(indicatorRef: React.RefObject<HTMLElement | null>, activeE
   }, [apply]);
 }
 
-export function Tabs({ items, value, onChange, variant = "line", sticky, scope, className }: TabsProps): ReactNode {
+export function Tabs({ items, value, onChange, variant = "line", sticky, block, ariaLabel, style, scope, className }: TabsProps): ReactNode {
   const [activeEl, setActiveEl] = useState<HTMLElement | null>(null);
   const indicatorRef = useRef<HTMLSpanElement | null>(null);
   useIndicator(indicatorRef, activeEl, [value, items.length]);
@@ -294,8 +300,10 @@ export function Tabs({ items, value, onChange, variant = "line", sticky, scope, 
   return (
     <div
       {...scopeProps(scope)}
-      className={cx("og-tabs", variant !== "line" ? `og-tabs--${variant}` : "", sticky ? "og-tabs--sticky" : "", className)}
+      className={cx("og-tabs", variant !== "line" ? `og-tabs--${variant}` : "", block ? "og-tabs--block" : "", sticky ? "og-tabs--sticky" : "", className)}
+      style={style}
       role="tablist"
+      aria-label={ariaLabel}
     >
       {items.map((item, i) => (
         <button
