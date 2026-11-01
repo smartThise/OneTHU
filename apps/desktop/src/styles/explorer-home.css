@@ -442,7 +442,7 @@ html.is-phone .explorer-panel.is-home-canvas::-webkit-scrollbar { display: none;
   background: transparent;
   color: var(--text-1);
   font-size: var(--text-md);
-  padding: 8px 10px;
+  padding: 8px 8px;
   outline: none;
 }
 
