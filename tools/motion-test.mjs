@@ -284,7 +284,8 @@ console.log("[13] 滚动揭示：进入视口才滑入，且不与挂载逐项�
   ok(/slot \* \(grid \? 9 : 30\)/.test(motion), "递延不封顶（网格按行 9ms / 列表逐项 30ms）");
   ok(/seen\.set\(top, seen\.size\)/.test(motion) && /batch\.sort\(\(a, b\) => a\.offsetTop - b\.offsetTop/.test(motion), "网格按行分组：同行同时、自上而下展开（不斜扫）");
   ok(!/io\.unobserve/.test(motion), "不注销观察（离开视口撤 .is-in，再进视野重播）");
-  ok(/new MutationObserver/.test(motion) && /\}, 100\);/.test(motion), "动态内容由 MutationObserver 纳入（100ms 防抖）");
+  ok(/new MutationObserver\(scheduleScan\)/.test(motion) && /queueMicrotask/.test(motion), "动态内容由 MutationObserver 在 paint 前纳入（microtask 合并，不再 100ms 防抖）");
+  ok(/markVisibleNow/.test(motion) && /innerHeight \* 0\.92/.test(motion), "首屏可见项在 paint 前同步打 reveal 标记（不再先静止再跳回左侧）");
 }
 
 console.log("[14] 页签方向：内容按页签的左右关系滑入，不是一律同一侧");

@@ -943,10 +943,8 @@ export function ListWindow({
     const host = hostRef.current;
     if (!host) return;
     const update = (): void => {
-      // 页头入场是 transform；测量瞬间临时停掉，避免把 -5px 位移算进可用高度。
-      const header = host.closest<HTMLElement>(".page-anim")?.querySelector<HTMLElement>(".page-head-host");
-      const headerAnimation = header?.style.animation;
-      if (header) header.style.animation = "none";
+      // 页头入场是 header 自己的 transform，不影响列表宿主的布局位置；不要为了测量
+      // 去改写 header.style.animation——恢复 animation 会让标题入场从头重播。
       const rect = host.getBoundingClientRect();
       // 页面可能带着上一次滚动位置挂载（课程卡在页面下方 → 详情页首帧不在顶部）。
       // 直接用 viewport top 会把「已经滚掉的距离」当成可用高度，列表于是撑到内容全高。
@@ -960,7 +958,6 @@ export function ListWindow({
       const scrollTop = scroller?.scrollTop ?? (window.scrollY || document.documentElement.scrollTop || 0);
       const top = rect.top - (scRect?.top ?? 0) + scrollTop;
       const viewportH = scroller?.clientHeight ?? window.innerHeight;
-      if (header) header.style.animation = headerAnimation ?? "";
       const content = host.closest<HTMLElement>(".explorer-content");
       const pad = content ? Number.parseFloat(getComputedStyle(content).paddingBottom) || 0 : 0;
       // 底栏是浮在内容之上的固定层：不能只减 content padding，否则列表最后几行

@@ -239,12 +239,12 @@ export function CourseDetailPage() {
           <>
             {notices.length > 0 && yktNotices.length > 0 ? (
               <Tabs
-                variant="pill"
+                className="segmented course-source-tabs"
                 value={effectiveNoticeSource}
                 onChange={(value) => setNoticeSource(value as Source)}
                 items={[
-                  { id: "learn", label: i18n("enum.label.aa39cac2b409"), badge: notices.length },
-                  { id: "ykt", label: i18n("components.attachactionssheet.38b9eabcae1b"), badge: yktNotices.length },
+                  { id: "learn", label: <>{i18n("enum.label.aa39cac2b409")}<span className="tab-count">{notices.length}</span></> },
+                  { id: "ykt", label: <>{i18n("components.attachactionssheet.38b9eabcae1b")}<span className="tab-count">{yktNotices.length}</span></> },
                 ]}
               />
             ) : null}
@@ -322,12 +322,12 @@ export function CourseDetailPage() {
           <>
             {files.length > 0 && yktFiles.length > 0 ? (
               <Tabs
-                variant="pill"
+                className="segmented course-source-tabs"
                 value={effectiveFileSource}
                 onChange={(value) => setFileSource(value as Source)}
                 items={[
-                  { id: "learn", label: i18n("enum.label.aa39cac2b409"), badge: files.length },
-                  { id: "ykt", label: i18n("components.attachactionssheet.38b9eabcae1b"), badge: yktFiles.length },
+                  { id: "learn", label: <>{i18n("enum.label.aa39cac2b409")}<span className="tab-count">{files.length}</span></> },
+                  { id: "ykt", label: <>{i18n("components.attachactionssheet.38b9eabcae1b")}<span className="tab-count">{yktFiles.length}</span></> },
                 ]}
               />
             ) : null}

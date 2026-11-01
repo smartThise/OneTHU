@@ -161,6 +161,20 @@ export function installScrollReveal(): void {
     { rootMargin: "0px 0px -8% 0px", threshold: 0 },
   );
 
+  /** 首屏已经在视口内的项必须在第一帧之前拿到 data-reveal-in：
+   *  MutationObserver 在 paint 前跑，若等 100ms 防抖再标记，用户会先看到静止列表，
+   *  随后整列突然跳到 -14px 再滑回来（霖 2026-11-01 现场「抽搐一下」）。 */
+  let initialSlot = 0;
+  const markVisibleNow = (el: HTMLElement): boolean => {
+    const rect = el.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return false;
+    if (rect.bottom <= 0 || rect.top >= window.innerHeight * 0.92) return false;
+    const grid = el.closest(".app-grid, .thos-grid");
+    el.style.animationDelay = `${Math.min(initialSlot++, 12) * (grid ? 9 : 30)}ms`;
+    el.dataset.revealIn = "1";
+    return true;
+  };
+
   const scan = () => {
     document.querySelectorAll<HTMLElement>(REVEAL_SELECTOR).forEach((el) => {
       if (el.dataset.reveal === "1") return;
@@ -170,20 +184,25 @@ export function installScrollReveal(): void {
         el.dataset.revealIn = "instant";
         return;
       }
+      // 首屏可见项同步标记（paint 前），IO 只负责后续滚动进入视口的项。
+      if (markVisibleNow(el)) return;
       io.observe(el);
     });
   };
   scan();
 
-  // 动态内容（翻页 / 筛选 / 新数据）也要纳入；100ms 防抖，避免频繁重排时反复全量查询
-  let timer = 0;
-  new MutationObserver(() => {
-    if (timer) return;
-    timer = window.setTimeout(() => {
-      timer = 0;
+  // 动态内容（翻页 / 筛选 / 新数据）也要纳入；MutationObserver 回调本身就在 paint 前，
+  // 直接 scan 才能让新行从第一帧就处于入场首帧，不再「先静止出现再跳回左侧」。
+  let scanning = false;
+  const scheduleScan = (): void => {
+    if (scanning) return;
+    scanning = true;
+    queueMicrotask(() => {
+      scanning = false;
       scan();
-    }, 100);
-  }).observe(document.body, { childList: true, subtree: true });
+    });
+  };
+  new MutationObserver(scheduleScan).observe(document.body, { childList: true, subtree: true });
 }
 
 /**

@@ -46,6 +46,26 @@ const courseName = await page.evaluate(async () => {
     ...Array.from({ length: 20 }, (_, i) => ({ id: `yf${i}`, source: "yuketang", courseId: "ykt1", kind: "file", kindText: "资料", title: `雨课堂资料 ${i}`, deadline: null, leafId: "l1" })),
     ...Array.from({ length: 15 }, (_, i) => ({ id: `yn${i}`, source: "yuketang", courseId: "ykt1", kind: "announcement", kindText: "公告", title: `雨课堂公告 ${i}`, deadline: null })),
   ];
+  window.__headAnims = 0;
+  document.addEventListener("animationstart", (e) => {
+    if (e.target instanceof HTMLElement && e.target.classList.contains("page-head-host")) window.__headAnims++;
+  }, true);
+  // 记录行第一次出现在 DOM 后的第一帧是否已经带有 reveal 标记（标记晚到 = 先静止再跳回左侧）
+  window.__revealFirstFrame = [];
+  const seenRows = new WeakSet();
+  const track = () => {
+    for (const row of document.querySelectorAll(".list-window-scroll .row")) {
+      if (seenRows.has(row)) continue;
+      seenRows.add(row);
+      const el = row;
+      requestAnimationFrame(() => {
+        const rect = el.getBoundingClientRect();
+        if (rect.bottom > 0 && rect.top < innerHeight) window.__revealFirstFrame.push({ marked: Boolean(el.dataset.revealIn), top: Math.round(rect.top), text: el.textContent.slice(0, 8) });
+      });
+    }
+    requestAnimationFrame(track);
+  };
+  requestAnimationFrame(track);
   (await import(path("/src/state/explorer.ts"))).openTab("learn-course", { courseId: course.id });
   return course.name;
 });
@@ -76,6 +96,30 @@ check(notice.scrollHeight > notice.client && notice.rows === 60, "通知行在�
 check(notice.bottom <= notice.barTop + 1, "通知列表止于底部快捷栏上方");
 await networkTabs().last().isVisible();
 check(await networkTabs().last().getAttribute("aria-selected") === "true", "默认选中网络学堂");
+
+// 标题入场只播一次；切主 tab 不再重播
+check(await page.evaluate(() => window.__headAnims) === 1, "进入课程页标题入场只播一次");
+await page.getByRole("tab", { name: /^文件/ }).first().click();
+await page.waitForTimeout(400);
+await page.getByRole("tab", { name: /^通知/ }).first().click();
+await page.waitForTimeout(400);
+check(await page.evaluate(() => window.__headAnims) === 1, "切换主 tab 不再重播标题入场");
+
+// 行在出现的第一帧就已经带 reveal 标记，不会先静止再跳回左侧
+const revealEarly = await page.evaluate(() => window.__revealFirstFrame); check(revealEarly.length > 0 && revealEarly.filter((r) => r.top < 700).every((r) => r.marked), `首屏行第一帧即进入 reveal 动画（${revealEarly.length} 行）`);
+
+// 双来源 tab 与主 tab 同一套胶囊样式
+const tabStyles = await page.evaluate(() => {
+  const pick = (el) => {
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    return { height: cs.height, radius: cs.borderRadius, bg: cs.backgroundColor, color: cs.color, fontSize: cs.fontSize, weight: cs.fontWeight };
+  };
+  const sub = document.querySelector(".course-source-tabs .og-tab.is-active");
+  const main = document.querySelector(".page-anim > .segmented button.is-active");
+  return { sub: pick(sub), main: pick(main) };
+});
+check(tabStyles.sub && tabStyles.main && JSON.stringify(tabStyles.sub) === JSON.stringify(tabStyles.main), "通知/文件子 tab 与主 tab 样式完全一致");
 await sourceTabs().last().click();
 await page.waitForTimeout(500);
 const yktNotice = await readList();

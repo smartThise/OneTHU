@@ -34,7 +34,7 @@
 
 ## 验证
 
-- `course-source-tabs-browser-test`：10 项（子 tab、默认网络、雨课堂/文件固定视口、底部快捷栏不遮挡）。
+- `course-source-tabs-browser-test`：14 项（子 tab、默认网络、标题只播一次、行首帧标记、子 tab 与主 tab 样式一致、雨课堂/文件固定视口）。
 - `card-two-col-browser-test`：7 项（等宽、同高、内部滚动、窄屏堆叠、无横向溢出）。
 - `learn-layout-browser-test`：219 项（含 hover 角形、无双层、整卡覆盖）。
 - `list-window-layout-test`、`assignments-layout-test`、`material-ink-stability`、`select-control`、`glass-optics` 继续通过。
@@ -52,3 +52,13 @@
 - 双来源 tab 仅当两侧都有内容时出现；没有任何一侧时沿用原空态。
 - 校园卡两栏阈值为 1024px；更窄窗口维持堆叠。
 - 列表高度仍依赖运行时布局测量；本轮补了滚动偏移与延迟重测，但极端自定义主题/字号下的观感仍以真机为准。
+
+## 6. 课程详情入场动画与双来源 tab 样式（2026-11-01 下午补）
+
+**标题重复入场**：`ListWindow` 测量时为避开页头入场 transform，临时把 `header.style.animation` 设为 `none` 再恢复；恢复 `animation` 会让 CSS 动画从头重播。每次测量（首挂载 + rAF + 120/360ms + ResizeObserver）都会重播，正好 3 次；切 tab 重测又 1~n 次。页头 transform 不影响列表宿主的布局位置，已删除这段写入/恢复，标题只在进入页面时播一次。
+
+**列表项抽搐**：滚动揭示由 `MutationObserver` 以 100ms 防抖扫描，新行先以静止状态绘制出来，100ms 后才打 `data-reveal-in` 并从左侧 -14px 开始播 `m-reveal-in`，观感就是“先出现、再消失、再从左边进来”。现在 MutationObserver 用 microtask 合并、在 paint 前同步标记首屏可见行；IO 只负责后续滚入视口的行。
+
+**双来源 tab 样式**：子 tab 不再用 OneGUI 默认下划线/胶囊，复用主 tab 的 `.segmented` 胶囊槽（`Tabs` 只提供 tablist/键盘语义 + `className="segmented course-source-tabs"`）；主动项深色胶囊、计数样式与主 tab 完全一致。
+
+回归：`course-source-tabs-browser-test` 增至 14 项（标题只播一次/切 tab 不重播、首帧 reveal 标记、子 tab 与主 tab 样式逐属性相等）；`motion-test` 151 项。

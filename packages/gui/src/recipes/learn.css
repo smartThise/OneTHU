@@ -127,6 +127,30 @@ html:root[data-og-skin="glass"] .learn-assignment-list {
 /* 整卡 hover：状态层铺满卡片（含底部标签行），不再只跟着上半部的打开按钮。
    用独立 ::after 叠色，卡面填充/模糊/圆角保持不变；内容抬到状态层之上，
    底部标签按钮自己的 hover 仍照常生效。 */
+/* 课程详情双来源子 tab：沿用主 tab 的 .segmented 胶囊槽，不再用 OneGUI 默认下划线。
+   Tabs 只提供 tablist/键盘语义，视觉由 .segmented 与下面几条对齐。 */
+html:root .course-source-tabs {
+  display: inline-flex;
+  gap: var(--og-geo-xs);
+  width: max-content;
+  max-width: 100%;
+  overflow: visible;
+  vertical-align: middle;
+  margin-bottom: var(--og-space-4);
+}
+html:root .course-source-tabs .og-tabs-indicator { display: none; }
+html:root .course-source-tabs .og-tab {
+  height: var(--og-ctl-h-sm);
+  padding: 0 var(--og-space-3);
+  border-radius: var(--og-radius-full);
+  font-size: var(--og-text-label);
+}
+html:root .course-source-tabs .og-tab > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--og-space-2);
+}
+
 /* 待办筛选：OneGUI Select 在旧 .hw-filter 行里的尺寸（壳 30px，避免旧 34px 特例）。
    Trace 的胶囊开关同理：壳去掉自己的面/线，只留文字与箭头。 */
 html:root .tasks-body .hw-filter-select .og-input {
