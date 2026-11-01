@@ -86,7 +86,7 @@ export function createClientIdentity(runtime:Runtime, {unborrowedFetch=campusDir
       check();const response=await runtime.fetchCampusDirect(url,{...init,redirect:'manual'});check();return response;
     }
     const serviceId=context.service==='xiaoda'?'d982b795884e882abfa8ff3167aeb03e':'04655f71b042b9d2d8d10cd566bd9c39';
-    const formPath=/^\/do\/off\/ui\/auth\/login\/form\/([0-9a-fA-F]{30,32})(?:\/([01]))?\/?$/.exec(target.pathname);
+    const formPath=/^\/do\/off\/ui\/auth\/login\/form\/{1,2}([0-9a-fA-F]{30,32})(?:\/([01]))?\/?$/.exec(target.pathname);
     if(!formPath)throw new GatewayError('GATEWAY_CLIENT_REQUEST_REJECTED',403);
     if(target.origin!=='https://id.tsinghua.edu.cn'||formPath[1]!.toLowerCase()!==serviceId||!['GET','HEAD'].includes(init.method??'GET')||init.body)fail('GATEWAY_CLIENT_REQUEST_REJECTED');
     const entryMode=formPath[2]===undefined?'default':Number(formPath[2]) as 0|1;

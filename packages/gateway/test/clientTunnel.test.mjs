@@ -58,4 +58,11 @@ test('identity TLS stays opaque for browsers while signed-client requests requir
  assert.equal(borrowed,3);assert.equal(gateway.statistics().clientDiagnostics.recentRequests.at(-1).navigationHandoff,true);
  assert.match(await connect(endpoint,ca.certificatePem,path,undefined,'own-client=fixture',{headers:navigation}),/own-client-flow/);
  assert.equal(borrowed,3);
+ for(let i=0;i<18;i++)await connect(endpoint,ca.certificatePem,'/static/fixture.js',undefined,'own-client=fixture');
+ const retained=gateway.statistics().clientDiagnostics;
+ assert.equal(retained.recentRequests.every(entry=>entry.formLayout==='other'),true);
+ assert.equal(retained.identityRequests.some(entry=>entry.service==='xiaoda'&&entry.route==='shared'),true);
+ assert.equal(retained.identityRequests.length<=8,true);
+ retained.identityRequests[0].host='mutated';
+ assert.equal(gateway.statistics().clientDiagnostics.identityRequests[0].host,'id.tsinghua.edu.cn');
 });

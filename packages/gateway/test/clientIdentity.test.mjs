@@ -64,6 +64,17 @@ test('registered ITS aliases preserve mode and normalize only the known hexadeci
  assert.equal(miniProgramRequest(new URL(omitted),{referer:'https://visit.tsinghua.edu.cn/visitor/mobile/login'}).entryMode,'default');
  assert.equal(miniProgramRequest(new URL('https://visit.tsinghua.edu.cn/visitor/mobile/sso?ticket=fixture'),{referer:alias}).service,'visit');
 });
+
+test('the official visitor login double slash retains its exact registered service and mode',()=>{
+ const doubled=visit.replace('/form/','/form//');
+ const source={referer:'https://visit.tsinghua.edu.cn/visitor/mobile/login','sec-fetch-site':'same-site','sec-fetch-mode':'navigate','sec-fetch-dest':'document'};
+ const request=miniProgramRequest(new URL(doubled),source);
+ assert.equal(request.service,'visit');assert.equal(request.entryMode,0);assert.equal(request.identity,true);
+ assert.equal(describeMiniRequest(new URL(doubled),source).formLayout,'recognized');
+ assert.equal(miniProgramRequest(new URL('https://visit.tsinghua.edu.cn/visitor/mobile/sso?ticket=fixture'),{referer:doubled}).service,'visit');
+ for(const target of [doubled.replace('/form//','/form///'),doubled.replace('04655','04656'),doubled.replace('/0?','/2?')])assert.throws(()=>miniProgramRequest(new URL(target),source));
+ assert.throws(()=>miniProgramRequest(new URL(doubled),{referer:'https://evil.example/'}));
+});
 test('TLS authority cannot be changed by tunneled Host or an absolute-form request',()=>{
  const tunnel={origin:'https://id.tsinghua.edu.cn'};
  assert.equal(parseClientTarget('/do/off/', 'id.tsinghua.edu.cn',tunnel).origin,tunnel.origin);
@@ -85,4 +96,15 @@ test('mini-program diagnostics classify rejected layouts without retaining ident
  assert.equal(diagnostic.service,'xiaoda');assert.equal(diagnostic.callbackEncoded,true);assert.equal(diagnostic.callback,'xiaoda');
  assert.equal(diagnostic.referrerApp,'xiaoda');assert.equal(diagnostic.referrerLayout,'other');
  const serialized=JSON.stringify(diagnostic);for(const secret of ['fixture-secret','wxc607b8a0063e7426','d982b795884e882abfa8ff3167aeb03e','/login.html'])assert.equal(serialized.includes(secret),false);
+});
+
+test('rejected identity form diagnostics expose shape but never arbitrary IDs or query contents',()=>{
+ const target=new URL(visit.replace('04655f71b042b9d2d8d10cd566bd9c39','unknown-private-service').replace('/0?','/2?'));
+ const diagnostic=describeMiniRequest(target,{});
+ assert.equal(diagnostic.formLayout,'unrecognized-form');assert.equal(diagnostic.formService,'other');
+ assert.equal(diagnostic.formServiceLength,23);assert.equal(diagnostic.formMode,'other');
+ assert.equal(JSON.stringify(diagnostic).includes('unknown-private-service'),false);
+ const encoded=describeMiniRequest(new URL(visit.replace('04655','%304655')),{});
+ assert.equal(encoded.formService,'visit');assert.equal(encoded.formServiceEncoded,true);
+ assert.throws(()=>miniProgramRequest(new URL(visit.replace('04655','%304655')),x));
 });

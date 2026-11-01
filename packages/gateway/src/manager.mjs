@@ -243,17 +243,19 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
           const next = { address: () => groups.values().next().value?.address() ?? null,
             close: () => Promise.all([...groups.values()].map(item => item.close())),
             statistics() {
-              const result = { requests: 0, hosts: {}, recentRejections: [], clientDiagnostics:{verifiedConnections:0,otherConnections:0,tlsFailures:0,sharedRequests:0,independentRequests:0,recentRequests:[]} };
+              const result = { requests: 0, hosts: {}, recentRejections: [], clientDiagnostics:{verifiedConnections:0,otherConnections:0,tlsFailures:0,sharedRequests:0,independentRequests:0,recentRequests:[],identityRequests:[]} };
               for (const gateway of groups.values()) {
                 const value = gateway.statistics(); result.requests += value.requests;
                 for (const [host, count] of Object.entries(value.hosts)) result.hosts[host] = (result.hosts[host] ?? 0) + count;
                 result.recentRejections.push(...value.recentRejections);
                 const client=value.clientDiagnostics;
                 if(client){for(const key of ['verifiedConnections','otherConnections','tlsFailures','sharedRequests','independentRequests'])result.clientDiagnostics[key]+=client[key];
-                  result.clientDiagnostics.recentRequests.push(...client.recentRequests);}
+                  result.clientDiagnostics.recentRequests.push(...client.recentRequests);
+                  result.clientDiagnostics.identityRequests.push(...client.identityRequests);}
               }
               result.recentRejections = result.recentRejections.slice(-8);
-              result.clientDiagnostics.recentRequests.sort((a,b)=>a.at-b.at);result.clientDiagnostics.recentRequests=result.clientDiagnostics.recentRequests.slice(-16);return result;
+              result.clientDiagnostics.recentRequests.sort((a,b)=>a.at-b.at);result.clientDiagnostics.recentRequests=result.clientDiagnostics.recentRequests.slice(-16);
+              result.clientDiagnostics.identityRequests.sort((a,b)=>a.at-b.at);result.clientDiagnostics.identityRequests=result.clientDiagnostics.identityRequests.slice(-8);return result;
             } };
           try {
             systemProxy = next;

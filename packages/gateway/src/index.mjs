@@ -111,7 +111,7 @@ export function createCampusGateway(options = {}) {
   const peerChecks = new WeakMap();
   const requestsByHost = new Map();
   const recentRejections = [];
-  const clientDiagnostics = { verifiedConnections:0, otherConnections:0, tlsFailures:0, sharedRequests:0, independentRequests:0, recentRequests:[] };
+  const clientDiagnostics = { verifiedConnections:0, otherConnections:0, tlsFailures:0, sharedRequests:0, independentRequests:0, recentRequests:[], identityRequests:[] };
   const miniNavigationGrants = createMiniNavigationGrants();
   const clientPeers=new Map();let clientPeerSequence=0;
   function clientPeerTag(client){
@@ -271,6 +271,10 @@ export function createCampusGateway(options = {}) {
         clientDiagnostic = { ...describeMiniRequest(target,req.headers), route, peer:clientPeerTag(tunnel.client), navigationHandoff:clientRequest.navigationHandoff===true, at:Date.now(), status:null };
         clientDiagnostics.recentRequests.push(clientDiagnostic);
         if (clientDiagnostics.recentRequests.length > 16) clientDiagnostics.recentRequests.shift();
+        if(target.hostname===CLIENT_IDENTITY_HOST&&target.pathname.startsWith('/do/')){
+          clientDiagnostics.identityRequests.push(clientDiagnostic);
+          if(clientDiagnostics.identityRequests.length>8)clientDiagnostics.identityRequests.shift();
+        }
       }
       const epoch = tunnel?.epoch ?? currentEpoch();
       assertEpoch(epoch);
@@ -537,7 +541,7 @@ export function createCampusGateway(options = {}) {
     },
     statistics() { return { requests: [...requestsByHost.values()].reduce((sum, count) => sum + count, 0), hosts: Object.fromEntries(requestsByHost),
       recentRejections: recentRejections.map(entry => ({ ...entry })),
-      clientDiagnostics:{...clientDiagnostics,recentRequests:clientDiagnostics.recentRequests.map(entry=>({...entry}))} }; },
+      clientDiagnostics:{...clientDiagnostics,recentRequests:clientDiagnostics.recentRequests.map(entry=>({...entry})),identityRequests:clientDiagnostics.identityRequests.map(entry=>({...entry}))} }; },
     close() {
       if (closing) return closing;
       stopped = true;

@@ -14,7 +14,11 @@ export function describeMiniRequest(target, headers) {
   try { ref = new URL(headers.referer); } catch {}
   const native = ref && /^\/(wx[0-9a-f]{16})(?:\/|$)/.exec(ref.pathname);
   const app = native ? MINI_PROGRAMS[native[1]] ?? 'other' : 'none';
-  const form = /^\/do\/off\/ui\/auth\/login\/form\/([0-9a-fA-F]{30,32})(?:\/([0-9]{1,2}))?(\/?)$/.exec(target.pathname);
+  const form = /^\/do\/off\/ui\/auth\/login\/form\/{1,2}([0-9a-fA-F]{30,32})(?:\/([0-9]{1,2}))?(\/?)$/.exec(target.pathname);
+  // Classify rejected form layouts without retaining an unknown service ID.
+  const shape = /^\/do\/off\/ui\/auth\/login\/form\/{1,2}([^/]+)(?:\/([^/]*))?\/?$/.exec(target.pathname);
+  let decodedService = shape?.[1];
+  try { if(decodedService)decodedService=decodeURIComponent(decodedService); } catch {}
   let callback = target.search.slice(1), encoded = false;
   try { const decoded = decodeURIComponent(callback); encoded = decoded !== callback; callback = decoded; } catch {}
   return {
@@ -25,6 +29,11 @@ export function describeMiniRequest(target, headers) {
     entryMode: form ? form[2]===undefined?'default':['0','1'].includes(form[2]) ? form[2] : 'other' : 'none',
     serviceCase:form ? form[1]===form[1].toLowerCase()?'lower':'mixed-or-upper':'none',
     trailingSlash: !!form?.[3],
+    formLayout: form ? 'recognized' : shape ? 'unrecognized-form' : target.pathname.startsWith('/do/off/ui/auth/login/') ? 'other-login' : 'other',
+    formService: decodedService ? services[decodedService.toLowerCase()] ?? 'other' : 'none',
+    formServiceLength: shape ? shape[1].length<=128 ? shape[1].length : 'over-128' : 0,
+    formServiceEncoded: !!shape && shape[1]!==decodedService,
+    formMode: shape ? shape[2]===undefined?'default':['0','1'].includes(shape[2])?shape[2]:'other' : 'none',
     callback: callback === '' ? 'none' : callback === '/login.html' ? 'xiaoda' : callback === '/visitor/mobile/sso' ? 'visit' : 'other',
     callbackEncoded: encoded,
     referrer: !ref ? 'missing-or-invalid' : ref.hostname === 'servicewechat.com' ? 'servicewechat'
@@ -48,11 +57,11 @@ export function miniProgramRequest(target, headers, method = 'GET') {
   const native = ref.hostname === 'servicewechat.com' && /^\/(wx[0-9a-f]{16})\/(?:\d+|devtools)\/page-frame\.html$/.exec(ref.pathname);
   const app = native ? MINI_PROGRAMS[native[1]] : null;
   const visitWeb = ref.origin === 'https://visit.tsinghua.edu.cn';
-  const refForm=/^\/do\/off\/ui\/auth\/login\/form\/([0-9a-fA-F]{30,32})(?:\/[01])?\/?$/.exec(ref.pathname);
+  const refForm=/^\/do\/off\/ui\/auth\/login\/form\/{1,2}([0-9a-fA-F]{30,32})(?:\/[01])?\/?$/.exec(ref.pathname);
   const refService=refForm?services[refForm[1].toLowerCase()]:null;
   if (headers['sec-fetch-site'] === 'cross-site' && !app) fail();
   if (target.hostname === CLIENT_IDENTITY_HOST) {
-    const match = /^\/do\/off\/ui\/auth\/login\/form\/([0-9a-fA-F]{30,32})(?:\/([01]))?\/?$/.exec(target.pathname);
+    const match = /^\/do\/off\/ui\/auth\/login\/form\/{1,2}([0-9a-fA-F]{30,32})(?:\/([01]))?\/?$/.exec(target.pathname);
     const service = match && services[match[1].toLowerCase()];
     if (!['GET', 'HEAD'].includes(method) || !service || !(service === 'xiaoda' && app === 'xiaoda' || service === 'visit' && (app === 'xingzai' || visitWeb))) fail();
     const callback = target.search;

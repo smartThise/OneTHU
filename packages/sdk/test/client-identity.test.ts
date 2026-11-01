@@ -70,3 +70,15 @@ test('a registered uppercase ITS form forwards its requested entry mode to the G
  await new Promise(resolve=>setImmediate(resolve));const row=f.identity.desktop.pending()!;assert.equal(row.entryMode,1);
  f.identity.desktop.complete({id:row.id,ok:true,official});assert.match(await(await result).text(),/official-fixture-ticket/);f.identity.close();
 });
+
+test('official visitor double-slash entry borrows only its own official ticket',async()=>{
+ const f=fixture(async()=>new Response('<input name="i_pass">'));
+ const target='https://id.tsinghua.edu.cn/do/off/ui/auth/login/form//04655f71b042b9d2d8d10cd566bd9c39/0?/visitor/mobile/sso';
+ const result=f.identity.request(target,{method:'GET'},{service:'visit',identity:true});
+ await new Promise(resolve=>setImmediate(resolve));const row=f.identity.desktop.pending();assert.equal(row?.service,'visit');assert.equal(row?.entryMode,0);
+ const visitOfficial={...official,html:'<a href="https://visit.tsinghua.edu.cn/visitor/mobile/sso?ticket='+official.ticket+'">Continue</a>'};
+ f.identity.desktop.complete({id:row.id,ok:true,official:visitOfficial});
+ const response=await result;assert.match(response.headers.get('refresh'),/visit\.tsinghua\.edu\.cn\/visitor\/mobile\/sso\?ticket=/);
+ await assert.rejects(f.identity.request(target.replace('/form//','/form///'),{method:'GET'},{service:'visit',identity:true}),{code:'GATEWAY_CLIENT_REQUEST_REJECTED'});
+ f.identity.close();
+});
