@@ -47,7 +47,7 @@
   --og-refraction-scale: 64px;
 }
 [data-og-skin="glass"][data-og-skin-level="rich"] {
-  --og-refraction-blur: 8px;
+  --og-refraction-blur: 4px;
   --og-reading-opacity: 76%;
   --og-material-overlay-opacity: 74%;
   --og-blur-1: 20px;
