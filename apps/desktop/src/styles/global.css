@@ -5913,18 +5913,17 @@ html.is-sheet-open, html.is-sheet-open body { overflow: hidden; }
   --glass-border: rgba(30, 33, 45, 0.12);
   --glass-shadow: 0 10px 30px rgba(30, 33, 45, 0.1);
   --glass-menu-fill: rgba(246, 247, 249, 0.44);
-  /* 液态玻璃 = 折射（url(#dsh-liquid-refract)，仅 Chromium 生效）+ 模糊（全引擎回退）。
-     WebKit/Gecko 忽略 url() 项，只剩模糊，玻璃质感仍在。 */
-  --glass-refract: url(#dsh-liquid-refract);
-  --glass-menu-blur: var(--glass-refract) blur(22px) saturate(160%);
+  /* 毛玻璃只负责 blur/saturate；边缘折射由 OneGUI 的可开关 lens 单独叠加，
+     关闭折射不会影响这层毛玻璃。旧 url(#dsh-liquid-refract) 已退役。 */
+  --glass-menu-blur: blur(22px) saturate(160%);
   --glass-fill: rgba(255, 255, 255, 0.22);
   --glass-fill-regular: rgba(255, 255, 255, 0.22);
   --glass-tint: rgba(255, 255, 255, 0.4);
-  --glass-chip-blur: var(--glass-refract) blur(20px) saturate(155%);
-  --glass-panel-blur: var(--glass-refract) blur(20px) saturate(155%);
+  --glass-chip-blur: blur(20px) saturate(155%);
+  --glass-panel-blur: blur(20px) saturate(155%);
   /* 背景模糊档（唯一来源；字面 blur(Npx) 只允许出现在这里） */
   --glass-scrim-blur: blur(3px);
-  --glass-card-blur: var(--glass-refract) blur(20px) saturate(155%);
+  --glass-card-blur: blur(20px) saturate(155%);
   --lg-blur-clear: blur(22px) saturate(160%);
   --lg-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --lg-rim-hover: inset 0 1.5px 0 rgba(255, 255, 255, 0.75), inset 0 -1px 0 color-mix(in srgb, var(--md-sys-color-on-surface) 14%, transparent);

@@ -15,6 +15,7 @@ import {
 import { useExplorerState, allTabs } from "../state/explorer.js";
 import { WallpaperLibrary } from "../components/explorer/WallpaperLibrary.js";
 import { getGlassLevel, glassLevels, setGlassLevel, subscribeGlassLevel, type GlassLevel } from "../lib/glassLevel.js";
+import { getOpticalRefraction, setOpticalRefraction, subscribeOpticalRefraction } from "../lib/opticalRefraction.js";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useIsPhone } from "../state/phoneSheets.js";
 import { MobileLayoutChoice } from "../components/MobileLayoutChoice.js";
@@ -111,6 +112,7 @@ defineSearchRows([
   { id: "set-wallpaper-sound", tab: "外观", section: "外观", get title() { return i18n("pages.settings.b34bc798190c"); }, aliases: ["视频壁纸声音", "壁纸静音"], get desc() { return i18n("pages.settings.4e66e6c598d5"); } , breadcrumb: ["设置", "外观", "外观", "动态壁纸声音"] },
   { id: "set-tabbar-style", tab: "外观", section: "外观", get title() { return i18n("pages.settings.1d08854948f4"); }, aliases: ["标签栏", "竖栏", "横栏", "标签栏默认"], get desc() { return i18n("pages.settings.a6514da1828c"); } , breadcrumb: ["设置", "外观", "外观", "标签栏样式"] },
   { id: "set-glass-level", tab: "外观", section: "外观", get title() { return i18n("pages.settings.865d7ae4c9e6"); }, aliases: ["玻璃", "材质", "毛玻璃", "透明", "透彻", "玻璃质感"], get desc() { return i18n("pages.settings.c85fea7bf89f"); } , breadcrumb: ["设置", "外观", "外观", "玻璃程度"] },
+  { id: "set-glass-refraction", tab: "外观", section: "外观", get title() { return i18n("pages.settings.24aca43c3753"); }, aliases: ["折射", "光学折射", "玻璃性能", "边缘折射", "GPU"], get desc() { return i18n("pages.settings.fbc2a8b1d265"); } , breadcrumb: ["设置", "外观", "外观", "光学折射"] },
   { id: "set-dyn-color", tab: "外观", section: "外观", get title() { return i18n("pages.settings.3d5af6644ab2"); }, aliases: ["动态取色", "壁纸取色", "系统取色", "动态颜色"], get desc() { return i18n("pages.settings.3c23082caeac"); } , breadcrumb: ["设置", "外观", "外观", "跟随系统取色"] },
   { id: "set-capsule-tap", tab: "功能", section: "工作空间", get title() { return i18n("pages.settings.464f0207d4ff"); }, aliases: ["胶囊", "胶囊默认动作", "搜索与胶囊", "底栏胶囊"], get desc() { return i18n("pages.settings.1354e42a5f65"); } , breadcrumb: ["设置", "功能", "工作空间", "点击胶囊默认打开"] },
   { id: "set-search-history", tab: "功能", section: "工作空间", get title() { return i18n("pages.settings.461301d93770"); }, aliases: ["搜索历史", "清空搜索记录"], get desc() { return i18n("pages.settings.b953890db0b9"); } , breadcrumb: ["设置", "功能", "工作空间", "最近搜索记录"] },
@@ -691,6 +693,7 @@ function AppearanceSection(): ReactNode {
 
   const snap = useThemes();
   const glass = useSyncExternalStore(subscribeGlassLevel, getGlassLevel, getGlassLevel);
+  const opticalRefraction = useSyncExternalStore(subscribeOpticalRefraction, getOpticalRefraction, getOpticalRefraction);
   /* 跟随系统昼夜：白天/黑夜各自可指定一张背景（空 = 沿用常驻壁纸）。 */
   const wallSlots = useSyncExternalStore(subscribeWallpaper, () => `${wallpaperDay() ?? ""}|${wallpaperNight() ?? ""}`);
   const [wallDay = "", wallNight = ""] = wallSlots.split("|");
@@ -772,6 +775,21 @@ function AppearanceSection(): ReactNode {
             value={glass}
             onChange={(v) => setGlassLevel(v as GlassLevel)}
             options={glassLevels().map((g) => ({ value: g.id, label: g.label }))}
+          />
+        }
+      />
+      {/* 光学折射：与毛玻璃材质分离。只在三种玻璃档可用；关闭后只保留 blur/saturate。 */}
+      <SettingsRow id="row-set-glass-refraction"
+        title={i18n("pages.settings.24aca43c3753")}
+        sub={glass === "balanced"
+          ? i18n("pages.settings.26773d0dd656")
+          : i18n("pages.settings.fbc2a8b1d265")}
+        control={
+          <Switch
+            on={glass !== "balanced" && opticalRefraction}
+            onChange={(v) => setOpticalRefraction(v)}
+            disabled={glass === "balanced"}
+            label={i18n("pages.settings.24aca43c3753")}
           />
         }
       />

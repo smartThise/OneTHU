@@ -29,14 +29,22 @@
    嵌套面比外层低一档圆角：同一张卡里 24px 外角 + 24px 内角会让内件"过圆"，
    阶梯取值既不引入新刻度，也让同心关系可读。--r-* 修饰符在其后，可显式覆盖。 */
 .og-surface--l0 { --og-c-surface-fill: var(--og-card-fill); }
-.og-surface--l1 { --og-c-surface-fill: var(--og-surface-2); --og-c-surface-line: transparent; --og-c-surface-radius: var(--og-radius-lg); }
-.og-surface--l2 { --og-c-surface-fill: var(--og-surface-3); --og-c-surface-line: transparent; --og-c-surface-radius: var(--og-radius-lg); }
-.og-surface--l3 { --og-c-surface-fill: var(--og-surface-4); --og-c-surface-line: transparent; --og-c-surface-radius: var(--og-radius-lg); }
+.og-surface--l1 { --og-c-surface-fill: var(--og-surface-2); --og-c-surface-line: transparent; --og-c-surface-radius: var(--og-radius-lg); --og-c-surface-blur: none; }
+.og-surface--l2 { --og-c-surface-fill: var(--og-surface-3); --og-c-surface-line: transparent; --og-c-surface-radius: var(--og-radius-lg); --og-c-surface-blur: none; }
+.og-surface--l3 { --og-c-surface-fill: var(--og-surface-4); --og-c-surface-line: transparent; --og-c-surface-radius: var(--og-radius-lg); --og-c-surface-blur: none; }
 
 /* 井：向下凹的块（代码块、输入区、空态底座） */
 .og-surface--sunken {
   --og-c-surface-fill: var(--og-surface-3);
   --og-c-surface-line: transparent;
+  --og-c-surface-blur: none;
+}
+
+/* 嵌套面不再重复模糊：外层卡片已经把背景模糊过一次，内层只需要半透明面
+   + rim；否则每张卡里的 section 都会再开一张 backdrop 纹理。浮层豁免，
+   因为它需要在父级之上单独采样。 */
+.og-surface .og-surface:not(.og-surface--overlay) {
+  --og-c-surface-blur: none;
 }
 
 /* 浮层：菜单/弹窗专用面（更实、更高） */
@@ -46,6 +54,12 @@
   --og-c-surface-tint: var(--og-overlay-tint);
   --og-c-surface-blur: var(--og-overlay-blur);
   --og-c-surface-elev: var(--og-elev-menu);
+}
+
+/* 浮层嵌套在卡片里时保留自己的 overlay 模糊；它是独立采样层，不属于
+   “卡内嵌套面”的性能豁免。 */
+.og-surface .og-surface.og-surface--overlay {
+  --og-c-surface-blur: var(--og-overlay-blur);
 }
 
 .og-surface--plain {

@@ -194,6 +194,7 @@ export function installGlassRefraction(selector: string, root: HTMLElement = doc
   let stopped = false;
 
   const active = (): boolean => root.dataset.ogSkin === "glass"
+    && root.dataset.ogOptics !== "off"
     && root.dataset.ogMotion !== "reduced"
     && !document.hidden
     && !reducedMotion.matches
@@ -406,7 +407,7 @@ export function installGlassRefraction(selector: string, root: HTMLElement = doc
   const axes = new MutationObserver(schedule);
   axes.observe(root, {
     attributes: true,
-    attributeFilter: ["data-og-skin", "data-og-skin-level", "data-og-scheme", "data-og-motion", "data-og-density"],
+    attributeFilter: ["data-og-skin", "data-og-skin-level", "data-og-scheme", "data-og-motion", "data-og-density", "data-og-optics"],
   });
   for (const query of media) query.addEventListener("change", schedule);
   document.addEventListener("visibilitychange", schedule);

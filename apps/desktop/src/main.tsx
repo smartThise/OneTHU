@@ -47,10 +47,12 @@ import { lazy, Suspense } from "react";
 import { activateInstalledPlugins, seedBuiltinHarness, refreshHarnessConsent } from "./plugins/loader.js";
 import "@onethu/ui/tokens.css";
 import { installAuthWatchdog, installKeepalive } from "./lib/reload.js";
+import { initOpticalRefraction } from "./lib/opticalRefraction.js";
 
 // 风格管线（六轴）挂载：皮肤/明暗/密度/动效/强调色/平台一处解析、一处落盘。
 // 平台判定复用 state/platform.ts 的唯一断点（禁止组件各自 matchMedia）。
 // 密度随平台走：桌面 compact（与旧版刻度对齐——2026-10-14「卡片/按钮太大」）、手机 touch。
+initOpticalRefraction();
 installOneGUI({
   platform: () => (isPhoneViewport() ? "mobile" : platformOf(window.innerWidth) === "expanded" ? "desktop" : "mobile"),
   densityByPlatform: { desktop: "compact", mobile: "touch" },

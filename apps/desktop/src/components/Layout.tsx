@@ -1044,14 +1044,16 @@ export function Switch({
   on,
   onChange,
   label,
+  disabled = false,
 }: {
   on: boolean;
   onChange: (v: boolean) => void;
   label: string;
+  disabled?: boolean;
 }) {
   const uiLocale = useUiLocale();
 
-  return <OGSwitch checked={on} onChange={() => onChange(!on)} aria-label={label} />;
+  return <OGSwitch checked={on} onChange={() => onChange(!on)} disabled={disabled} aria-label={label} />;
 }
 
 /* 保留未用引用防 tree-shake 误报：这些图标被 NAV 数据表引用 */
