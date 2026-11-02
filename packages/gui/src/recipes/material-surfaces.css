@@ -126,3 +126,17 @@ html:root[data-og-skin="glass"] .ykt-formula-preview-body .katex-display,
 html:root[data-og-skin="glass"] .ykt-formula-preview-body .katex-html {
   background: transparent;
 }
+
+/* 卡内控件不再各自开 backdrop：外层 .og-surface 已经模糊过壁纸，段轨/搜索框/
+   outline 按钮只需要半透明填充 + rim。这样一页少掉多次小面积 backdrop 纹理，
+   静止观感保持一致；顶页面级（不在卡内）的控件仍保留自己的材质。 */
+html:root[data-og-skin="glass"] .og-surface :is(
+  .segmented,
+  .seg-track,
+  .search-box,
+  .og-btn--outline,
+  .task-entry
+) {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}

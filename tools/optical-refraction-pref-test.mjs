@@ -13,6 +13,7 @@ const main = read("apps/desktop/src/main.tsx");
 const settings = read("apps/desktop/src/pages/Settings.tsx");
 const pipeline = read("packages/gui/src/pipeline/refraction.ts");
 const card = read("packages/gui/src/styles/card.css");
+const material = read("packages/gui/src/recipes/material-surfaces.css");
 const globalCss = read("apps/desktop/src/styles/global.css");
 const html = read("apps/desktop/index.html");
 
@@ -27,6 +28,7 @@ assert.match(settings, /disabled=\{glass === "balanced"\}/, "无玻璃档禁用�
 assert.match(settings, /setOpticalRefraction/, "设置页接线开关");
 assert.match(card, /\.og-surface \.og-surface:not\(\.og-surface--overlay\)[\s\S]{0,100}--og-c-surface-blur: none/, "嵌套面取消重复 backdrop");
 assert.match(card, /\.og-surface--l1[^{]*\{[^}]*--og-c-surface-blur: none/, "l1 面取消 backdrop");
+assert.match(material, /\.og-surface :is\([\s\S]{0,200}backdrop-filter: none/, "卡内控件取消重复 backdrop");
 assert.doesNotMatch(globalCss, /--glass-refract\s*:/, "毛玻璃令牌不再包含折射");
 assert.doesNotMatch(html, /dsh-liquid-refract/, "旧静态折射滤镜已退役");
 console.log("光学折射开关 + 嵌套玻璃面护栏：通过");
