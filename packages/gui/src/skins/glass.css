@@ -35,24 +35,27 @@
   --og-refraction-scale: 44px;
 }
 [data-og-skin="glass"][data-og-skin-level="clear"] {
-  --og-reading-opacity: 58%;
-  --og-material-overlay-opacity: 60%;
-  --og-blur-1: 22px;
+  --og-material-opacity: 24%;
+  --og-reading-opacity: 44%;
+  --og-material-overlay-opacity: 58%;
+  --og-blur-1: 6px;
   --og-saturate: 160%;
   --og-refraction-edge: 32px;
   --og-refraction-scale: 48px;
 }
 [data-og-skin="glass"][data-og-skin-level="rich"] {
-  --og-reading-opacity: 76%;
-  --og-material-overlay-opacity: 74%;
-  --og-blur-1: 20px;
+  --og-material-opacity: 52%;
+  --og-reading-opacity: 68%;
+  --og-material-overlay-opacity: 72%;
+  --og-blur-1: 14px;
   --og-refraction-edge: 28px;
   --og-refraction-scale: 44px;
 }
 [data-og-skin="glass"][data-og-skin-level="deep"] {
-  --og-reading-opacity: 84%;
-  --og-material-overlay-opacity: 82%;
-  --og-blur-1: 20px;
+  --og-material-opacity: 80%;
+  --og-reading-opacity: 86%;
+  --og-material-overlay-opacity: 86%;
+  --og-blur-1: 24px;
   --og-refraction-edge: 24px;
   --og-refraction-scale: 40px;
 }
@@ -64,14 +67,14 @@
   --og-reading-opacity: 54%;
 }
 [data-og-skin="glass"][data-og-skin-level="clear"][data-og-scheme="dark"] {
-  --og-material-opacity: 20%;
-  --og-reading-opacity: 46%;
+  --og-material-opacity: 14%;
+  --og-reading-opacity: 36%;
 }
 [data-og-skin="glass"][data-og-skin-level="rich"][data-og-scheme="dark"] {
-  --og-material-opacity: 28%;
-  --og-reading-opacity: 60%;
+  --og-material-opacity: 26%;
+  --og-reading-opacity: 54%;
 }
 [data-og-skin="glass"][data-og-skin-level="deep"][data-og-scheme="dark"] {
-  --og-material-opacity: 34%;
-  --og-reading-opacity: 68%;
+  --og-material-opacity: 40%;
+  --og-reading-opacity: 74%;
 }

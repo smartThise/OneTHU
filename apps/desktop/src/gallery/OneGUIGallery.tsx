@@ -146,7 +146,7 @@ function CatalogExtra(): ReactNode {
           <Banner tone="error" title="同步失败" onDismiss={() => undefined}>网络不可达。</Banner>
           <SettingsList title="外观">
             <SettingsRow icon={<IconSettings />} title="跟随系统明暗" control={<Switch checked={on} onChange={setOn} />} />
-            <SettingsRow icon={<IconRefresh />} title="玻璃浓淡" sub="只在玻璃皮肤下生效" value="均衡" caret onClick={() => undefined} />
+            <SettingsRow icon={<IconRefresh />} title="玻璃浓淡" sub="只在玻璃皮肤下生效" value="磨砂" caret onClick={() => undefined} />
             <SettingsRow icon={<IconLearn />} title="网络学堂自动刷新" control={<Switch checked={false} onChange={() => undefined} />} />
           </SettingsList>
         </Stack>
