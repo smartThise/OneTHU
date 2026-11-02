@@ -12,7 +12,7 @@
 |---|---|---|
 | 前端开关 | 不设 `ONETHU_DEV` | `ONETHU_DEV=1` |
 | 右上角 | 无 | `dev · <commit>` 徽标，工作区有未提交改动时带 `-dirty` |
-| 开发者面板 | 不进包 | commit / 构建时间 / 宿主 / 视口 / 前端日志 / 导出与复制 |
+| 开发者面板 | 不进包 | commit / 构建时间 / 宿主 / 视口 / FPS 开关 / 前端日志 / 导出与复制 |
 | 前端日志 | 只进 webview 控制台 | 同时写入 Rust 日志链 `onethu-debug.log`，真机可导出 |
 | 设置页「运行日志」行 | 隐藏 | 显示 |
 | Android 包名 | `app.onethu.desktop` | `app.onethu.desktop.dev` |
@@ -80,6 +80,11 @@ Android 变体：`tools/patch-android-dev.py` 幂等改写 `app/build.gradle.kts
 
 日志桥：`apps/desktop/src/lib/devlog.ts` 采用有界环形缓冲（300 条上限、单行 400 字符截断、
 1.2 秒批量、单次最多 20 行、连续 3 次失败熔断），经既有 Rust 命令 `log_debug` 写入日志文件；
+
+FPS 面板：dev 面板按钮开启后，左上角固定显示 `FPS / avg / 1% low`。采样用
+`requestAnimationFrame`，current 取帧间隔 EMA，avg/1% low 取最近 300 帧（约 5 秒）滚动窗口；
+1% low = 1000 / 最慢 1% 帧间隔均值。开关写入 `onethu.dev.fps.visible`，关闭面板或隐藏徽标即停止采样。
+该项只存在于 dev chunk，正式版不加载。
 自身行与 `log_debug` 相关行不回灌，避免递归。
 
 ## 4. 守卫

@@ -8,7 +8,7 @@ import { t as i18n, rich as i18nRich, useLocale as useUiLocale } from "../i18n/i
  * define 折叠后是 null，那句动态 import 一并被 rollup 删除（守卫 + 构建后 grep dist 双重把关）。
  * 样式全部内联：dev 代码不往正式版的 CSS 里留任何选择器。
  */
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Btn } from "@onethu/gui";
 import { invoke } from "@tauri-apps/api/core";
 import { isAndroidNavigator, isWindowsNavigator } from "../lib/androidHost.js";
@@ -17,6 +17,44 @@ import { clearDevLog, devLogEntries, devLogText, type DevLogEntry } from "../lib
 import { DEV_AUTH_TARGETS, expireDevAuth, type DevAuthId } from "../lib/devAuth.js";
 
 const HIDE_KEY = "onethu.dev.badge.hidden";
+const FPS_KEY = "onethu.dev.fps.visible";
+const FPS_WINDOW = 300; // ~5s at 60Hz：平均/1% low 的滚动窗口
+
+interface FpsStats { fps: number; avg: number; low: number }
+
+/** 轻量 rAF 采样：current 用 EMA，avg/1% low 用最近 300 帧；面板隐藏即停。 */
+function useFpsMeter(enabled: boolean): FpsStats | null {
+  const [stats, setStats] = useState<FpsStats | null>(null);
+  useEffect(() => {
+    if (!enabled) { setStats(null); return; }
+    let raf = 0;
+    let last = performance.now();
+    let lastPublish = last;
+    let ema = 0;
+    const frames: number[] = [];
+    const tick = (now: number): void => {
+      const dt = now - last;
+      last = now;
+      if (dt > 0 && dt < 250) {
+        frames.push(dt);
+        if (frames.length > FPS_WINDOW) frames.shift();
+        ema = ema ? ema * 0.9 + dt * 0.1 : dt;
+        if (now - lastPublish >= 250 && frames.length > 0) {
+          const sorted = [...frames].sort((a, b) => a - b);
+          const worstCount = Math.max(1, Math.ceil(sorted.length * 0.01));
+          const worst = sorted.slice(-worstCount).reduce((a, b) => a + b, 0) / worstCount;
+          const avg = frames.reduce((a, b) => a + b, 0) / frames.length;
+          setStats({ fps: 1000 / ema, avg: 1000 / avg, low: 1000 / worst });
+          lastPublish = now;
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [enabled]);
+  return stats;
+}
 
 const S: Record<string, CSSProperties> = {
   badge: {
@@ -51,6 +89,14 @@ const S: Record<string, CSSProperties> = {
   },
   line: { display: "flex", gap: 6 },
   note: { color: "var(--og-warning)", marginTop: 6, minHeight: 16 },
+  fps: {
+    position: "fixed", top: 6, left: 8, zIndex: 9002,
+    padding: "2px 8px", borderRadius: 999,
+    background: "var(--og-fill-overlay)", color: "var(--og-content-1)",
+    border: "1px solid var(--og-line-2)",
+    font: "11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+    whiteSpace: "nowrap", pointerEvents: "none", backdropFilter: "blur(4px)",
+  },
 };
 
 function hostName(): string {
@@ -82,10 +128,13 @@ export default function DevPanel() {
   const [busy, setBusy] = useState(false);
   /** 正在执行的 dev 失效目标；空 = 空闲。与日志导出 busy 分开，避免相互禁用。 */
   const [authBusy, setAuthBusy] = useState<DevAuthId | null>(null);
+  const [fpsOn, setFpsOn] = useState(false);
+  const fps = useFpsMeter(fpsOn);
 
   useEffect(() => {
     try {
       setHidden(window.localStorage.getItem(HIDE_KEY) === "1");
+      setFpsOn(window.localStorage.getItem(FPS_KEY) === "1");
     } catch {
       /* 隐私模式等场景下 localStorage 不可用 */
     }
@@ -99,6 +148,14 @@ export default function DevPanel() {
     const id = window.setInterval(tick, 800);
     return () => window.clearInterval(id);
   }, [open]);
+
+  const toggleFps = (): void => {
+    setFpsOn((on) => {
+      const next = !on;
+      try { window.localStorage.setItem(FPS_KEY, next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
+  };
 
   const hide = (): void => {
     setOpen(false);
@@ -163,6 +220,11 @@ export default function DevPanel() {
 
   return (
     <>
+      {fpsOn && fps ? (
+        <div style={S.fps} title="dev FPS meter">
+          FPS {fps.fps.toFixed(1)} · avg {fps.avg.toFixed(1)} · 1% low {fps.low.toFixed(1)}
+        </div>
+      ) : null}
       <Btn className="og-dev-badge" size="sm" variant="outline" onClick={() => setOpen(!open)} titleAttr={i18n("components.devpanel.3ae6ad22bb00") + buildTimeText()}>
         dev · {BUILD_COMMIT}
       </Btn>
@@ -186,6 +248,7 @@ export default function DevPanel() {
             <span style={S.val}>{window.innerWidth}x{window.innerHeight} · dpr {window.devicePixelRatio}</span>
           </div>
           <div style={S.bar}>
+            <Btn variant={fpsOn ? "solid" : "outline"} size="sm" onClick={toggleFps}>{fpsOn ? i18n("components.devpanel.9853da9ed740") : i18n("components.devpanel.496da9d7eedf")}</Btn>
             <Btn variant="outline" size="sm" disabled={busy} onClick={() => void exportLog()}>{busy ? i18n("components.devpanel.dce6e572314e") : i18n("components.devpanel.24eacefddcaf")}</Btn>
             <Btn variant="outline" size="sm" onClick={() => void copy(devLogText(), i18n("components.devpanel.45eb3fe0c084"))}>{i18n("components.devpanel.ab87bb2473af")}</Btn>
             <Btn variant="outline" size="sm" onClick={() => void copy(diagnostics(), i18n("components.devpanel.9167ee8b67db"))}>{i18n("components.devpanel.bbce140b7682")}</Btn>
