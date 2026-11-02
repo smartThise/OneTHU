@@ -63,7 +63,7 @@ installOneGUI({
     ".ohx-capsule", ".ex-bbar", ".dock-panel",
     ".free-item", ".home-card", ".hw-card",
     /* 页面级：玻璃卡/页头也应有边缘折射；大面积滚动容器由 pipeline 的面积预算淘汰。 */
-    ".og-pagehead", ".og-surface",
+    ".learn-course-card", ".og-pagehead", ".og-surface",
     ".og-panel", ".og-float", ".ex-sheet", ".settings-panel", ".theme-pick-panel",
     ".board-viewport-tools", ".workbench-board-head", ".notice-strip", ".onego-bookmarks",
   ].join(", "),
