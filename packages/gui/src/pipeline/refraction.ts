@@ -132,7 +132,7 @@ function svgNode<K extends keyof SVGElementTagNameMap>(name: K, attrs: Record<st
  * superellipse edge normals. The field is full-surface: 128 = no displacement,
  * edge band bends inward and fades to neutral at the band's inner edge. The
  * camera reads this as one continuous lens, not a separate rim/body composite. */
-function buildField(width: number, height: number, radius: number, edge: number): { field: string; mask: string } {
+function buildField(width: number, height: number, radius: number, edge: number): string {
   const ratio = Math.min(1, REFRACTION_LIMITS.mapSide / Math.max(width, height));
   const w = Math.max(2, Math.ceil(width * ratio));
   const h = Math.max(2, Math.ceil(height * ratio));
@@ -140,9 +140,8 @@ function buildField(width: number, height: number, radius: number, edge: number)
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return { field: "", mask: "" };
+  if (!ctx) return "";
   const field = ctx.createImageData(w, h);
-  const mask = ctx.createImageData(w, h);
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const [distance, nx, ny] = glassEdge((x + 0.5) * width / w, (y + 0.5) * height / h, width, height, radius);
@@ -156,20 +155,10 @@ function buildField(width: number, height: number, radius: number, edge: number)
       field.data[i + 1] = Math.round(127.5 * (1 - ny * bend));
       field.data[i + 2] = 128;
       field.data[i + 3] = 255;
-      // Soft edge band: 1 at the rim, 0 in the body. The band gets its own,
-      // much lower blur so the body matches the skin's original blur radius
-      // while the rim still shows real refraction.
-      const alpha = t < 1 ? Math.round(255 * (1 - t) ** 1.5) : 0;
-      mask.data[i] = 255;
-      mask.data[i + 1] = 255;
-      mask.data[i + 2] = 255;
-      mask.data[i + 3] = alpha;
     }
   }
   ctx.putImageData(field, 0, 0);
-  const fieldUrl = canvas.toDataURL();
-  ctx.putImageData(mask, 0, 0);
-  return { field: fieldUrl, mask: canvas.toDataURL() };
+  return canvas.toDataURL();
 }
 
 /** Install once from the host's style lifecycle. Returns a teardown that restores
@@ -258,53 +247,44 @@ export function installGlassRefraction(selector: string, root: HTMLElement = doc
     const base = radii[0] ?? 0;
     if (radii.some(value => Math.abs(value - base) > 0.5)) return null;
     const radius = Math.min(base, width / 2, height / 2);
-    const blur = Math.max(0, parseFloat(style.getPropertyValue("--og-refraction-blur"))
-      || parseFloat(style.getPropertyValue("--og-blur-1")) || 0);
+    /* 整块均匀模糊：直接用元素所在档位的原始 blur；不经过会在根节点
+       提前解析的中间变量，保证嵌在测试/局部容器里也能正确继承。 */
+    const blur = Math.max(0, parseFloat(style.getPropertyValue("--og-blur-1")) || 0);
     const saturate = Math.max(0, (parseFloat(style.getPropertyValue("--og-saturate")) || 100) / 100);
     const edge = Math.min(
       Math.max(parseFloat(style.getPropertyValue("--og-refraction-edge")) || 10, 4),
       Math.min(width, height) / 2,
     );
     const scale = Math.min(Math.max(parseFloat(style.getPropertyValue("--og-refraction-scale")) || 12, 0), 96);
-    const edgeBlur = Math.max(0.5, parseFloat(style.getPropertyValue("--og-refraction-edge-blur")) || 4);
     if (!scale) return null;
-    return [width, height, Math.round(radius * 10) / 10, blur, saturate, edge, scale, edgeBlur].join(":");
+    return [width, height, Math.round(radius * 10) / 10, blur, saturate, edge, scale].join(":");
   }
 
   function apply(lens: Lens, signature: string): void {
-    const [width = 0, height = 0, radius = 0, blur = 0, saturate = 1, edge = 1, scale = 0, edgeBlur = 4] =
+    const [width = 0, height = 0, radius = 0, blur = 0, saturate = 1, edge = 1, scale = 0] =
       signature.split(":").map(Number);
     if (!width || !height) return;
-    const { field, mask } = buildField(width, height, radius, edge);
-    if (!field || !mask) return;
+    const field = buildField(width, height, radius, edge);
+    if (!field) return;
     lens.filter?.remove();
     const id = `og-lens-${++nextLens}`;
     const filter = svgNode("filter", {
       id, x: "-10%", y: "-10%", width: "120%", height: "120%",
       "color-interpolation-filters": "sRGB", "primitiveUnits": "userSpaceOnUse",
     });
-    /* 主体用档位原始 blur（与普通毛玻璃一致）；边缘带单独用更低的 blur，
-       先位移再通过软 mask 叠回主体。这样整卡模糊与均衡/透光/透彻匹配，
-       同时边缘仍能看到折射，而不是一道锐利描边。 */
+    /* 整块均匀模糊：全表面同一 stdDeviation，边缘不额外降模糊。
+       位移只改变采样位置，不改变模糊半径。 */
     filter.append(
       svgNode("feGaussianBlur", { in: "SourceGraphic", stdDeviation: String(blur), result: "frost" }),
-      svgNode("feGaussianBlur", { in: "SourceGraphic", stdDeviation: String(edgeBlur), result: "rimFrost" }),
       svgNode("feImage", {
         href: field, x: "0", y: "0", width: String(width), height: String(height),
         "data-map": mapSize(width, height), preserveAspectRatio: "none", result: "normals",
       }),
       svgNode("feDisplacementMap", {
-        in: "rimFrost", in2: "normals", scale: String(scale),
+        in: "frost", in2: "normals", scale: String(scale),
         xChannelSelector: "R", yChannelSelector: "G", result: "bent",
       }),
-      svgNode("feImage", {
-        href: mask, x: "0", y: "0", width: String(width), height: String(height),
-        "data-map": mapSize(width, height), preserveAspectRatio: "none", result: "edgeMask",
-      }),
-      svgNode("feComposite", { in: "bent", in2: "edgeMask", operator: "in", result: "rim" }),
-      svgNode("feComposite", { in: "frost", in2: "edgeMask", operator: "out", result: "body" }),
-      svgNode("feComposite", { in: "rim", in2: "body", operator: "over", result: "joined" }),
-      svgNode("feColorMatrix", { in: "joined", type: "saturate", values: String(saturate) }),
+      svgNode("feColorMatrix", { in: "bent", type: "saturate", values: String(saturate) }),
     );
     defs.append(filter);
     lens.filter = filter;

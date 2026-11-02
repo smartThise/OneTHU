@@ -28,10 +28,6 @@
   --og-surface-blur: blur(var(--og-blur-1)) saturate(var(--og-saturate));
   --og-overlay-blur: blur(var(--og-blur-1)) saturate(var(--og-saturate));
   --og-reading-blur: var(--og-surface-blur);
-  /* 折射 lens 主体沿用档位原始 blur，保证和普通毛玻璃一致；
-     只有边缘带用 --og-refraction-edge-blur 的低模糊来做可见的光学折射。 */
-  --og-refraction-blur: var(--og-blur-1);
-  --og-refraction-edge-blur: 5px;
   --og-chip-blur: none;
   --og-material-rim: color-mix(in srgb, var(--og-contrast-ink-light) 48%, transparent);
   --og-material-shadow: var(--og-elev-2), inset 0 1px 0 var(--og-material-rim);
@@ -39,8 +35,6 @@
   --og-refraction-scale: 44px;
 }
 [data-og-skin="glass"][data-og-skin-level="clear"] {
-  --og-refraction-blur: var(--og-blur-1);
-  --og-refraction-edge-blur: 6px;
   --og-reading-opacity: 58%;
   --og-material-overlay-opacity: 60%;
   --og-blur-1: 22px;
@@ -49,8 +43,6 @@
   --og-refraction-scale: 48px;
 }
 [data-og-skin="glass"][data-og-skin-level="rich"] {
-  --og-refraction-blur: var(--og-blur-1);
-  --og-refraction-edge-blur: 5px;
   --og-reading-opacity: 76%;
   --og-material-overlay-opacity: 74%;
   --og-blur-1: 20px;
@@ -58,8 +50,6 @@
   --og-refraction-scale: 44px;
 }
 [data-og-skin="glass"][data-og-skin-level="deep"] {
-  --og-refraction-blur: var(--og-blur-1);
-  --og-refraction-edge-blur: 4px;
   --og-reading-opacity: 84%;
   --og-material-overlay-opacity: 82%;
   --og-blur-1: 20px;
