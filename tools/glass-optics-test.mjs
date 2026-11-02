@@ -404,7 +404,7 @@ try {
   });
   samples.push({ optics });
   check(optics.count > 0, "edge refraction is installed on at least one visible surface");
-  check(optics.count <= 4, "optics budget: at most 4 simultaneous lenses (" + optics.count + ")");
+  check(optics.count <= 8, "optics budget: at most 8 simultaneous lenses (" + optics.count + ")");
   check(optics.surfaces.every(surface => surface.filter.includes("url(")), "each lens replaces the material with a real SVG filter");
   check(optics.filters.length > 0 && optics.filters.every(filter => filter.displacement), "each filter contains feDisplacementMap (real displacement)");
   check(optics.filters.every(filter => filter.maps.every(map => map.width <= 256 && map.height <= 256)),

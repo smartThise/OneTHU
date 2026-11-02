@@ -441,6 +441,8 @@
   background: var(--og-segment-track);
   overflow-x: auto;
   scrollbar-width: none;
+  /* 分段轨与下方内容留出一档间距；此前统一 Tabs 后页签紧贴首块内容。 */
+  margin-block-end: var(--og-space-3);
 }
 .og-tabs--segmented::-webkit-scrollbar { display: none; }
 .og-tabs--segmented .og-tab {
@@ -449,7 +451,8 @@
   justify-content: center;
   height: var(--og-ctl-h-sm);
   padding: 0 var(--og-space-3);
-  border-radius: var(--og-radius-sm);
+  /* 与外轨同心：外圆角 − 内边距 − 描边，避免内胶囊在拐角处露出不规则缝隙。 */
+  border-radius: calc(var(--og-radius-control) - var(--og-geo-xs) - 1px);
   color: var(--og-content-2);
   font-size: var(--og-text-label);
 }
@@ -459,7 +462,7 @@
   bottom: var(--og-geo-xs);
   z-index: 0;
   height: auto;
-  border-radius: var(--og-radius-sm);
+  border-radius: calc(var(--og-radius-control) - var(--og-geo-xs) - 1px);
   background: var(--og-segment-active);
 }
 .og-tabs--segmented .og-tab-badge {

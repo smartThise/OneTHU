@@ -229,7 +229,7 @@ function useIndicator(indicatorRef: React.RefObject<HTMLElement | null>, activeE
     /* 首现/从隐藏回归（当前宽 0）：瞬移落位不吃过渡；换选值：吃 left/width 滑动 */
     const jump = !settledRef.current || ind.offsetWidth === 0;
     const setGeom = (): void => {
-      ind.style.left = `${rect.left - hostRect.left + host.scrollLeft}px`;
+      ind.style.left = `${rect.left - hostRect.left - host.clientLeft + host.scrollLeft}px`;
       ind.style.width = `${rect.width}px`;
     };
     if (jump) {

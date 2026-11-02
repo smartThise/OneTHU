@@ -128,11 +128,22 @@ const tabStyles = await page.evaluate(() => {
     mainWidth: mainRow?.getBoundingClientRect().width ?? 0,
     pill: Boolean(subRow?.querySelector(".og-tabs-indicator")),
     subPillTransform: subRow?.querySelector(".og-tabs-indicator") ? getComputedStyle(subRow.querySelector(".og-tabs-indicator")).left : null,
+    shellRadius: subRow ? getComputedStyle(subRow).borderRadius : null,
+    innerRadius: sub ? getComputedStyle(sub).borderRadius : null,
+    marginBottom: subRow ? getComputedStyle(subRow).marginBlockEnd : null,
+    indicatorX: subRow?.querySelector(".og-tabs-indicator")?.getBoundingClientRect().x ?? null,
+    activeX: sub?.getBoundingClientRect().x ?? null,
   };
 });
 check(tabStyles.sub && tabStyles.main && JSON.stringify(tabStyles.sub) === JSON.stringify(tabStyles.main), "通知/文件子 tab 与主 tab 样式完全一致");
 check(Math.abs(tabStyles.subWidth - tabStyles.mainWidth) <= 1, `子 tab 与主 tab 等宽（${tabStyles.subWidth} / ${tabStyles.mainWidth}）`);
 check(tabStyles.pill, "子 tab 有滑动胶囊状态层");
+check(parseFloat(tabStyles.shellRadius) - parseFloat(tabStyles.innerRadius) === 3,
+  `分段轨与外胶囊同心（外 ${tabStyles.shellRadius} / 内 ${tabStyles.innerRadius}）`);
+check(parseFloat(tabStyles.marginBottom) >= 8,
+  `分段轨与下方内容有间距（${tabStyles.marginBottom}）`);
+check(Math.abs(tabStyles.indicatorX - tabStyles.activeX) < 0.5,
+  `胶囊指示器与激活项左缘对齐（${tabStyles.indicatorX} / ${tabStyles.activeX}）`);
 const pillBefore = await page.evaluate(() => {
   const rows = [...document.querySelectorAll(".page-anim .og-tabs--segmented")];
   const pill = rows.at(-1)?.querySelector(".og-tabs-indicator");
