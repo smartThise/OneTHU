@@ -5855,7 +5855,7 @@ const locale = {
     "pages.settings.f9ee669dc9d6": "Export (copy JSON)",
     "pages.settings.fa0124c14866": "Section visibility & ordering",
     "pages.settings.fa7ee5600601": "Favorites copied to clipboard (",
-    "pages.settings.fbc2a8b1d265": "Affects edge refraction only; frosted blur remains when off. Enabling adds GPU compositing cost, most noticeable on page changes and large glass surfaces.",
+    "pages.settings.fbc2a8b1d265": "Off by default. Affects edge refraction only; frosted blur remains when off. Enabling adds GPU compositing cost, most noticeable on page changes and large glass surfaces.",
     "pages.settings.fc08fa260979": "Run logs",
     "pages.settings.fc89857ef917": "Starting…",
     "pages.taskspage.06389c978872": "What to handle today",

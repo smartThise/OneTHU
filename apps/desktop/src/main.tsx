@@ -61,9 +61,11 @@ installOneGUI({
      这里给的是结构选择器，不是外观；材质与颜色仍由皮肤令牌决定。 */
   refractionSelector: [
     ".ohx-capsule", ".ex-bbar", ".dock-panel",
+    ".free-item", ".home-card", ".hw-card",
+    /* 页面级：玻璃卡/页头也应有边缘折射；大面积滚动容器由 pipeline 的面积预算淘汰。 */
+    ".og-pagehead", ".og-surface",
     ".og-panel", ".og-float", ".ex-sheet", ".settings-panel", ".theme-pick-panel",
-    ".free-item", ".home-card", ".hw-card", ".board-viewport-tools",
-    ".workbench-board-head", ".notice-strip", ".onego-bookmarks",
+    ".board-viewport-tools", ".workbench-board-head", ".notice-strip", ".onego-bookmarks",
   ].join(", "),
 });
 // 旧通道（主题明暗 / 玻璃档位）→ OneGUI 轴；用户现有选择立刻在 OneGUI 上生效

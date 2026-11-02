@@ -128,10 +128,11 @@ function svgNode<K extends keyof SVGElementTagNameMap>(name: K, attrs: Record<st
   return el;
 }
 
-/** Neutral displacement field (R = x axis, G = y axis) and an edge-only alpha
- * mask, both computed from the same superellipse so the lens meets the rim
- * without a seam. Resolution is capped independently of DPR and area. */
-function buildMaps(width: number, height: number, radius: number, edge: number): [string, string] {
+/** Neutral displacement field (R = x axis, G = y axis) computed from the
+ * superellipse edge normals. The field is full-surface: 128 = no displacement,
+ * edge band bends inward and fades to neutral at the band's inner edge. The
+ * camera reads this as one continuous lens, not a separate rim/body composite. */
+function buildField(width: number, height: number, radius: number, edge: number): string {
   const ratio = Math.min(1, REFRACTION_LIMITS.mapSide / Math.max(width, height));
   const w = Math.max(2, Math.ceil(width * ratio));
   const h = Math.max(2, Math.ceil(height * ratio));
@@ -139,16 +140,14 @@ function buildMaps(width: number, height: number, radius: number, edge: number):
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return ["", ""];
+  if (!ctx) return "";
   const field = ctx.createImageData(w, h);
-  const mask = ctx.createImageData(w, h);
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const [distance, nx, ny] = glassEdge((x + 0.5) * width / w, (y + 0.5) * height / h, width, height, radius);
       const t = Math.min(1, Math.max(0, distance / edge));
       // Strongest bend at the physical edge, fading to zero at the band's inner edge.
       const bend = t < 1 ? (1 - t) ** 2 : 0;
-      const smooth = t * t * (3 - 2 * t);
       const i = (y * w + x) * 4;
       // Sampling opposite to the outward normal pulls the backdrop inward, so the
       // rim never reads transparent where the filter cannot see beyond the box.
@@ -156,14 +155,10 @@ function buildMaps(width: number, height: number, radius: number, edge: number):
       field.data[i + 1] = Math.round(127.5 * (1 - ny * bend));
       field.data[i + 2] = 128;
       field.data[i + 3] = 255;
-      mask.data[i] = mask.data[i + 1] = mask.data[i + 2] = 255;
-      mask.data[i + 3] = Math.round(255 * (1 - smooth));
     }
   }
   ctx.putImageData(field, 0, 0);
-  const displacement = canvas.toDataURL();
-  ctx.putImageData(mask, 0, 0);
-  return [displacement, canvas.toDataURL()];
+  return canvas.toDataURL();
 }
 
 /** Install once from the host's style lifecycle. Returns a teardown that restores
@@ -252,13 +247,14 @@ export function installGlassRefraction(selector: string, root: HTMLElement = doc
     const base = radii[0] ?? 0;
     if (radii.some(value => Math.abs(value - base) > 0.5)) return null;
     const radius = Math.min(base, width / 2, height / 2);
-    const blur = Math.max(0, parseFloat(style.getPropertyValue("--og-blur-1")) || 0);
+    const blur = Math.max(0, parseFloat(style.getPropertyValue("--og-refraction-blur"))
+      || parseFloat(style.getPropertyValue("--og-blur-1")) || 0);
     const saturate = Math.max(0, (parseFloat(style.getPropertyValue("--og-saturate")) || 100) / 100);
     const edge = Math.min(
       Math.max(parseFloat(style.getPropertyValue("--og-refraction-edge")) || 10, 4),
       Math.min(width, height) / 2,
     );
-    const scale = Math.min(Math.max(parseFloat(style.getPropertyValue("--og-refraction-scale")) || 12, 0), 32);
+    const scale = Math.min(Math.max(parseFloat(style.getPropertyValue("--og-refraction-scale")) || 12, 0), 96);
     if (!scale) return null;
     return [width, height, Math.round(radius * 10) / 10, blur, saturate, edge, scale].join(":");
   }
@@ -267,14 +263,17 @@ export function installGlassRefraction(selector: string, root: HTMLElement = doc
     const [width = 0, height = 0, radius = 0, blur = 0, saturate = 1, edge = 1, scale = 0] =
       signature.split(":").map(Number);
     if (!width || !height) return;
-    const [field, mask] = buildMaps(width, height, radius, edge);
-    if (!field || !mask) return;
+    const field = buildField(width, height, radius, edge);
+    if (!field) return;
     lens.filter?.remove();
     const id = `og-lens-${++nextLens}`;
     const filter = svgNode("filter", {
       id, x: "-10%", y: "-10%", width: "120%", height: "120%",
       "color-interpolation-filters": "sRGB", "primitiveUnits": "userSpaceOnUse",
     });
+    /* 参考 CodePen MYwrMNy 的单滤镜结构：整面先 blur，再用一张全表面位移图
+       做透镜弯曲，最后 saturate。不要拆成“边缘锐利 + 中心模糊”两层——
+       那会在边缘出现一道锐利折射带，看起来像描边而不是液态玻璃。 */
     filter.append(
       svgNode("feGaussianBlur", { in: "SourceGraphic", stdDeviation: String(blur), result: "frost" }),
       svgNode("feImage", {
@@ -282,19 +281,10 @@ export function installGlassRefraction(selector: string, root: HTMLElement = doc
         "data-map": mapSize(width, height), preserveAspectRatio: "none", result: "normals",
       }),
       svgNode("feDisplacementMap", {
-        in: "SourceGraphic", in2: "normals", scale: String(scale),
+        in: "frost", in2: "normals", scale: String(scale),
         xChannelSelector: "R", yChannelSelector: "G", result: "bent",
       }),
-      svgNode("feImage", {
-        href: mask, x: "0", y: "0", width: String(width), height: String(height),
-        "data-map": mapSize(width, height), preserveAspectRatio: "none", result: "edgeMap",
-      }),
-      svgNode("feComposite", { in: "bent", in2: "edgeMap", operator: "in", result: "rim" }),
-      svgNode("feComposite", { in: "frost", in2: "edgeMap", operator: "out", result: "body" }),
-      svgNode("feComposite", {
-        in: "rim", in2: "body", operator: "arithmetic", k1: "0", k2: "1", k3: "1", k4: "0", result: "joined",
-      }),
-      svgNode("feColorMatrix", { in: "joined", type: "saturate", values: String(saturate) }),
+      svgNode("feColorMatrix", { in: "bent", type: "saturate", values: String(saturate) }),
     );
     defs.append(filter);
     lens.filter = filter;
@@ -311,6 +301,10 @@ export function installGlassRefraction(selector: string, root: HTMLElement = doc
     for (let parent = el.parentElement; parent && parent !== root; parent = parent.parentElement) {
       const style = getComputedStyle(parent);
       if (style.backdropFilter !== "none" || style.filter !== "none" || Number(style.opacity) < 1) return false;
+    }
+    /* 卡内 .og-surface 不再重复模糊，也绝不抢 lens；只有顶层卡片/overlay 才采样。 */
+    if (el.matches(".og-surface") && !el.matches(".og-surface--overlay")) {
+      if (el.parentElement?.closest(".og-surface")) return false;
     }
     return true;
   }

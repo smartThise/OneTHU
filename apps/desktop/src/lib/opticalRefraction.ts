@@ -1,19 +1,20 @@
 /** 光学边缘折射开关（与毛玻璃材质分离）。
  *
  * 玻璃模式（clear/deep/rich）下才有意义；balanced 是无玻璃中性面，开关禁用。
- * 关闭时只释放 OneGUI 的折射 lens，backdrop 的普通 blur/saturate 毛玻璃保留。
+ * 默认关闭（高成本可选）；关闭时只释放 OneGUI 的折射 lens，
+ * backdrop 的普通 blur/saturate 毛玻璃保留。
  */
 const KEY = "onethu.glass.refraction";
 
 function normalize(v: string | null): boolean {
-  return v !== "0"; // 默认开启，保持既有视觉
+  return v === "1"; // 默认关闭；光学折射是可选的高成本效果
 }
 
 export function getOpticalRefraction(): boolean {
   try {
     return normalize(localStorage.getItem(KEY));
   } catch {
-    return true;
+    return false;
   }
 }
 

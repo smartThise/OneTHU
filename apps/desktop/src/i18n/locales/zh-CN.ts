@@ -5855,7 +5855,7 @@ const locale = {
     "pages.settings.f9ee669dc9d6": "导出（复制 JSON）",
     "pages.settings.fa0124c14866": "栏目显隐与排序",
     "pages.settings.fa7ee5600601": "收藏夹已复制到剪贴板（",
-    "pages.settings.fbc2a8b1d265": "只影响边缘折射，关闭后保留毛玻璃模糊。开启会增加 GPU 合成开销，页面切换和大面积玻璃时更明显。",
+    "pages.settings.fbc2a8b1d265": "默认关闭；只影响边缘折射，关闭后保留毛玻璃模糊。开启会增加 GPU 合成开销，页面切换和大面积玻璃时更明显。",
     "pages.settings.fc08fa260979": "运行日志",
     "pages.settings.fc89857ef917": "启动中…",
     "pages.taskspage.06389c978872": "今天该管的事",

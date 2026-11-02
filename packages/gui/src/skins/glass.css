@@ -28,36 +28,39 @@
   --og-surface-blur: blur(var(--og-blur-1)) saturate(var(--og-saturate));
   --og-overlay-blur: blur(var(--og-blur-1)) saturate(var(--og-saturate));
   --og-reading-blur: var(--og-surface-blur);
+  /* 折射 lens 单独用更低的模糊：整面仍虚化，但保留足以看出边缘位移的细节。
+     普通毛玻璃在折射关闭时仍走 --og-blur-1（20–22px）。 */
+  --og-refraction-blur: 3px;
   --og-chip-blur: none;
   --og-material-rim: color-mix(in srgb, var(--og-contrast-ink-light) 48%, transparent);
   --og-material-shadow: var(--og-elev-2), inset 0 1px 0 var(--og-material-rim);
-  --og-refraction-edge: 10px;
-  --og-refraction-scale: 12px;
+  --og-refraction-edge: 28px;
+  --og-refraction-scale: 56px;
 }
 [data-og-skin="glass"][data-og-skin-level="clear"] {
-  --og-material-opacity: 36%;
+  --og-refraction-blur: 4px;
   --og-reading-opacity: 58%;
   --og-material-overlay-opacity: 60%;
   --og-blur-1: 22px;
   --og-saturate: 160%;
-  --og-refraction-edge: 12px;
-  --og-refraction-scale: 14px;
+  --og-refraction-edge: 32px;
+  --og-refraction-scale: 64px;
 }
 [data-og-skin="glass"][data-og-skin-level="rich"] {
-  --og-material-opacity: 60%;
+  --og-refraction-blur: 8px;
   --og-reading-opacity: 76%;
   --og-material-overlay-opacity: 74%;
   --og-blur-1: 20px;
-  --og-refraction-edge: 9px;
-  --og-refraction-scale: 11px;
+  --og-refraction-edge: 28px;
+  --og-refraction-scale: 56px;
 }
 [data-og-skin="glass"][data-og-skin-level="deep"] {
-  --og-material-opacity: 74%;
+  --og-refraction-blur: 2px;
   --og-reading-opacity: 84%;
   --og-material-overlay-opacity: 82%;
   --og-blur-1: 20px;
-  --og-refraction-edge: 8px;
-  --og-refraction-scale: 10px;
+  --og-refraction-edge: 24px;
+  --og-refraction-scale: 48px;
 }
 /* 2026-10-24 用户点名：深色模式玻璃的黑色遮罩不够深 → 暗档整体上抬一档。
    亮壁纸/亮图片壁纸下尤其明显（14% 的暗面混在亮底上几乎消失），抬到 20% 起步，

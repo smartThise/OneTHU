@@ -123,6 +123,7 @@ const alphaOf = (color) => {
 
 async function setMaterial(page, level) {
   await call(page, "/src/lib/glassLevel.ts", "setGlassLevel", [level]);
+  await call(page, "/src/lib/opticalRefraction.ts", "setOpticalRefraction", [true]);
   await page.evaluate(() => document.documentElement.dataset.scheme);
 }
 
@@ -136,6 +137,7 @@ async function refractionFixture(page) {
     const hit = entries.findLast(name => new URL(name, location.href).pathname.endsWith("pipeline/refraction.ts"));
     if (!hit) return null;
     const module = await import(new URL(hit, location.href).href);
+    document.documentElement.dataset.ogOptics = "on";
     const host = document.createElement("div");
     host.id = "og-optics-bench";
     host.style.cssText = "position:fixed;left:24px;bottom:24px;width:260px;height:150px;z-index:9000;"
