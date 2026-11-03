@@ -164,7 +164,13 @@ try{
  await p.screenshot({path:out+'/practical-library-phone-'+width+'.png'});
  const fits=await p.getByRole('dialog',{name:'更多功能'}).evaluate(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.bottom<=innerHeight&&r.top>=0;});check(fits,width+' 手机功能目录完整位于屏幕内');
  await p.keyboard.press('Escape');await p.waitForTimeout(300);
- await p.getByRole('button',{name:'设置',exact:true}).click();check(await p.locator('.simple-settings').count()===1,width+' 实用模式设置同样精简');await p.getByRole('button',{name:'关闭设置',exact:true}).click();await p.waitForTimeout(300);
+ await p.getByRole('button',{name:'设置',exact:true}).click();
+ check(await p.locator('.practical-settings').count()===1,width+' 实用模式设置走完整模式同款结构（不是简洁单页）');
+ check(await p.locator('.practical-settings .workbench-settings-tabs [role=tab]').count()===7,width+' 实用模式设置七个页签齐全');
+ check(await p.locator('[data-settings-section="外部作业源"],[data-settings-section="通知"],[data-settings-section="桌面小组件"]').count()===3,width+' 实用模式补齐了作业源/通知/小组件');
+ check(await p.locator('[data-settings-section="极客模式"],[data-settings-section="首页布局"],[data-settings-section="收藏夹"]').count()===0,width+' 完整模式独有分节不进实用模式');
+ await p.getByRole('button',{name:'关闭设置',exact:true}).click();await p.waitForTimeout(300);
+
  await call(p,'/src/components/OnboardingTour.tsx','replayOnboarding');await advanceOnboardingLanguage(p);await p.getByRole('dialog',{name:'OneTHU 使用导览'}).waitFor();await p.waitForTimeout(300);await p.screenshot({path:out+'/mode-picker-phone-'+width+'.png'});await p.unrouteAll({behavior:"ignoreErrors"});await p.request.dispose();await p.close();}
  check(errors.length===0,'无新增浏览器错误 '+JSON.stringify(errors));passed=true;
 }catch(error){errors.push(String(error));console.error(error);console.error("Browser errors:",errors);throw error;}finally{try{await closeTestBrowser(browser);}catch(error){passed=false;errors.push(String(error));throw error;}finally{writeFileSync(out+'/report.json',JSON.stringify({passed,checks,errors},null,2));}}

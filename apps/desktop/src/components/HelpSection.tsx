@@ -62,13 +62,15 @@ const TASKS: Array<{ title: string; desc: string; ids: string[]; settingsTab?: s
   },
 ];
 
-export function HelpSection(): ReactNode {
+/** 实用模式的设置页复用同一份帮助，只摘掉第一条「白板、暂存箱与组织怎么用？」——
+ *  这三样在实用模式里本来就不出现，留着只会把人带去完整模式的导览。 */
+export function HelpSection({ compact = false }: { compact?: boolean } = {}): ReactNode {
   const uiLocale = useUiLocale();
 
   const { navigate } = useApp();
   return (
     <div style={{ display: "grid", gap: 10 }}>
-      <SettingsRow title={i18n("components.helpsection.5dadf7093a8f")} sub={`${i18n("components.helpsection.e4699249f613")} ${i18n("nfc.unstableNotice")}`} control={<Btn variant="outline" onClick={replayOnboarding}>{i18n("components.helpsection.eea78fdb74ce")}</Btn>}/>
+      {compact ? null : <SettingsRow title={i18n("components.helpsection.5dadf7093a8f")} sub={`${i18n("components.helpsection.e4699249f613")} ${i18n("nfc.unstableNotice")}`} control={<Btn variant="outline" onClick={replayOnboarding}>{i18n("components.helpsection.eea78fdb74ce")}</Btn>}/>}
       {TASKS.map((task) => {
         const entries = task.ids
           .map((id) => byId.get(id))

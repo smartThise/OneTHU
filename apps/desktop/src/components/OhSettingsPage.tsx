@@ -22,6 +22,7 @@ import { VoiceSettingsSection } from "./VoiceSettingsSection.js";
 import { OverlaySettingsSection } from "./OverlaySettingsSection.js";
 import { ImSettingsSection } from "./ImSettingsSection.js";
 import { isAndroidNavigator } from "../lib/androidHost.js";
+import { experienceMode, isSimpleLike } from "../state/experienceMode.js";
 import { forceRemint, preflightMadModel, madmodelActive } from "../state/madmodel.js";
 
 const isAndroid = isAndroidNavigator(typeof navigator !== "undefined" ? navigator : undefined);
@@ -211,6 +212,13 @@ export function OhSettingsPage({ advancedPanels }: { advancedPanels?: ReactNode 
   const tierLabel = (id: "basic" | "advanced"): string =>
     id === "basic" ? i18n("components.ohsettingspage.692873ddd8f4") : i18n("components.ohsettingspage.36a045ebcc6d");
 
+  /** 模型/多模态的「去设置」：完整模式去插件页里改；极简与实用模式没有插件页
+   *  （compactPageAllowed 挡住 plugins），模型表单本来就渲染在本页高级档，直接切档即可。 */
+  const openModelConfig = (): void => {
+    if (isSimpleLike(experienceMode())) setTier("advanced");
+    else goEntry("plugins");
+  };
+
   return (
     <div className="workbench-settings oh-settings">
       <div className="workbench-settings-layout">
@@ -246,9 +254,11 @@ export function OhSettingsPage({ advancedPanels }: { advancedPanels?: ReactNode 
           <div data-set-id="row-oh-multimodal" className="setting-row">
             <div>
               <div className="setting-title">{i18n("components.ohsettingspage.898487493b0d")}</div>
-              <div className="setting-desc">{i18n("components.ohsettingspage.066c7402ec5f")}</div>
+              <div className="setting-desc">{isSimpleLike(experienceMode())
+                ? i18n("components.ohsettingspage.compactModelHint")
+                : i18n("components.ohsettingspage.066c7402ec5f")}</div>
             </div>
-            <Btn variant="outline" onClick={() => goEntry("plugins")}>{i18n("components.ohsettingspage.cccadd30d14d")}</Btn>
+            <Btn variant="outline" onClick={openModelConfig}>{i18n("components.ohsettingspage.cccadd30d14d")}</Btn>
           </div>
 
           {/* 2026-10-13 压缩内容制（fa54a9c）：给一行机制说明——历史超长不再裸丢。

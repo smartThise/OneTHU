@@ -200,6 +200,34 @@ function schedulePluginsFocus(spec: PluginsFocusSpec | null): void {
   window.setTimeout(step, 180);
 }
 
+/** OH 高级配置里「就地渲染」的那一段：权限与命令概要 + 模型表单 + MCP + 日志。
+ *
+ *  为什么会单独成一个组件：它原来长在 PluginsPage 里（OH 是插件页的二级子页），
+ *  现在实用模式的设置也有 Harness 一段，两处必须是同一份实现——否则模型/MCP 表单就有了
+ *  两份真相。`id` 默认就是 OH 自己；将来别的插件要复用同款面板也能直接传 id。 */
+export function OhAdvancedPanels({ id = "onethu.harness" }: { id?: string } = {}): ReactNode {
+  const allPlugins = useSyncExternalStore(subscribe, installedPlugins);
+  const cmds = useSyncExternalStore(subscribeCommands, commandsSnapshot);
+  const rec = allPlugins.find((p) => p.manifest.id === id);
+  const ownCmds = cmds.filter((c) => c.pluginId === id);
+  const perms = (rec?.manifest.permissions ?? []) as string[];
+  const dirtyRef = useRef(false);
+
+  /* 不写 fill：这段内容挂在设置页的内容滚动区里（普通块流），fill 的 height:100%
+     会把 Stack 锁成 100% 高，flex 子项被压缩 → 行与行、字段与字段互相压字。 */
+  return (
+    <Stack gap={3}>
+      {/* 权限胶囊 + 命令清单：原来长在插件页的 OH 卡片上，现在**就地**放高级配置（卡片区已不许出现 OH） */}
+      <SettingsRow title={i18n("pages.plugins.88a430296fa3", { length: String(perms.length) })} sub={perms.length > 0 ? perms.map((p) => PLUGIN_PERMISSIONS.find((x) => x.id === p)?.label ?? p).join(" · ") : i18n("pages.plugins.8db1cbd053a9")} />
+      <SettingsRow title={i18n("pages.plugins.4f45939871ad", { length: String(ownCmds.length) })} sub={ownCmds.length > 0 ? ownCmds.map((c) => c.id).join(" · ") : i18n("pages.plugins.ee3360ed4f76")} />
+      {/* Harness 的模型表单按设置页的行式排布（sheet：单列字段栈），不用插件弹层的 Grid —— 后者会把 5 个字段挤成一行、标签互相压字。 */}
+      {rec ? <SettingsBody id={id} rec={rec} onClose={() => undefined} dirtyRef={dirtyRef} sheet /> : null}
+      <McpBody />
+      <LogBody id={id} />
+    </Stack>
+  );
+}
+
 export function PluginsPage({ embedded = false }: { embedded?: boolean } = {}): ReactNode {
   const uiLocale = useUiLocale();
 
@@ -276,8 +304,6 @@ export function PluginsPage({ embedded = false }: { embedded?: boolean } = {}): 
      高亮、页面、子页三者同一个来源，不存在"颜色/状态对不上"的可能。 */
   const entry = useEntry();
   const ohOpen = entry === "oh";
-  /** OH 内联设置面板的「草稿有改动」标记（就地渲染时不再弹确认窗，标记仅为兼容其 props） */
-  const ohDirtyRef = useRef(false);
 
   /* ⑤ 记住筛选状态（会话内）：离开插件页再回来不丢 */
   useEffect(() => {
@@ -315,23 +341,9 @@ export function PluginsPage({ embedded = false }: { embedded?: boolean } = {}): 
       {instOpen ? i18n("pages.plugins.af8383d6b923") : i18n("pages.plugins.edc3f02843ff")}
     </Btn>
   );
-  /* ② OH 的模型/MCP/日志**就地**渲染在子页高级配置里（复用同一批面板实现，不跳 sheet、不复制） */
-  const ohRec = allPlugins.find((p) => p.manifest.id === "onethu.harness");
-  const ohCmds = cmds.filter((c) => c.pluginId === "onethu.harness");
-  const ohPerms = (ohRec?.manifest.permissions ?? []) as string[];
-  const ohAdvancedPanels = (
-    /* 不写 fill：这段内容挂在设置页的内容滚动区里（普通块流），fill 的 height:100%
-       会把 Stack 锁成 100% 高，flex 子项被压缩 → 行与行、字段与字段互相压字。 */
-    <Stack gap={3}>
-      {/* ② 权限胶囊 + 命令清单：原来长在插件页的 OH 卡片上，现在**就地**放高级配置（卡片区已不许出现 OH） */}
-      <SettingsRow title={i18n("pages.plugins.88a430296fa3", { length: String(ohPerms.length) })} sub={ohPerms.length > 0 ? ohPerms.map((p) => PLUGIN_PERMISSIONS.find((x) => x.id === p)?.label ?? p).join(" · ") : i18n("pages.plugins.8db1cbd053a9")} />
-      <SettingsRow title={i18n("pages.plugins.4f45939871ad", { length: String(ohCmds.length) })} sub={ohCmds.length > 0 ? ohCmds.map((c) => c.id).join(" · ") : i18n("pages.plugins.ee3360ed4f76")} />
-      {/* Harness 的模型表单按设置页的行式排布（sheet：单列字段栈），不用插件弹层的 Grid —— 后者会把 5 个字段挤成一行、标签互相压字。 */}
-      {ohRec ? <SettingsBody id="onethu.harness" rec={ohRec} onClose={() => undefined} dirtyRef={ohDirtyRef} sheet /> : null}
-      <McpBody />
-      <LogBody id="onethu.harness" />
-    </Stack>
-  );
+  /* ② OH 的模型/MCP/日志**就地**渲染在子页高级配置里（复用同一批面板实现，不跳 sheet、不复制）。
+     面板本体见 OhAdvancedPanels：实用模式的设置页也渲染同一个组件。 */
+  const ohAdvancedPanels = <OhAdvancedPanels />;
 
   if (ohOpen) {
     return (
