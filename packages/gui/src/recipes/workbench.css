@@ -954,6 +954,38 @@ html:root .simple-home section > .og-card { border-radius:var(--og-radius-xl); b
 html:root .explorer-shell.is-simple .ex-bbar-center .ohx-capsule { border:1px solid var(--og-line-2); background:var(--og-surface-1); border-radius:var(--og-radius-full); }
 html:root .explorer-shell.is-simple .ex-bbar { border:0; }
 html:root .explorer-shell.is-simple .oneshot-button { box-shadow:var(--og-elev-1); }
+
+/* ── 简单壳（极简/实用）的玻璃档与字色（2026-10-28 用户点名）──────────────
+   两个旧问题都出在「简单壳自己写死了一层」：
+   ① 栏体：928/929 行的 `is-simple > …` 用 --og-canvas 铺不透光底，压过了上面那段玻璃配方
+      → 换玻璃档只有完整模式在变。这里按同一套令牌补回，普通档不落属性、仍是中性面。
+   ② 字色：壁纸亮度档会把反色锁以内联样式挂在 .explorer-shell 上，简单壳的标题靠继承拿到
+      深色字，于是「夜主题 + 亮壁纸」时大字仍是黑的。字色只跟主题令牌走，明暗冲突交给
+      内容层的反差纱（见 explorer.css 的「字色始终由当前主题 token 提供」）。 */
+html:root[data-og-skin="glass"] .explorer-shell.is-simple > .simple-header,
+html:root[data-og-skin="glass"] .explorer-shell.is-simple > .ex-bbar {
+  background:var(--og-fill-surface);
+  backdrop-filter:var(--og-surface-blur);
+  -webkit-backdrop-filter:var(--og-surface-blur);
+}
+html:root .explorer-shell.is-simple > .simple-header,
+html:root .explorer-shell.is-simple > .ex-bbar { color:var(--og-content-1); }
+html:root .explorer-shell.is-simple .simple-home,
+html:root .explorer-shell.is-simple .simple-section-head h2 { color:var(--og-content-1); }
+html:root .explorer-shell.is-simple .simple-section-head > span,
+html:root .explorer-shell.is-simple .simple-section-head p,
+html:root .explorer-shell.is-simple .simple-header-date,
+html:root .explorer-shell.is-simple .simple-home-label { color:var(--og-content-3); }
+
+/* 实用模式的设置浮层跟其它玻璃面一致：面板透明、标题栏与内容列吃玻璃配方。
+   只认 .is-practical；选择器形状与上面那条「三栏实心」保持一致并更高一级，
+   否则内容列仍会被 `--og-surface-1` 的实心底压回去。完整模式的面板不受影响。 */
+html:root[data-og-skin="glass"] .settings-panel.is-practical .settings-head,
+html:root[data-og-skin="glass"] .settings-panel.is-desktop.is-practical:has(> .explorer-settings-body:not(.workbench-plugin-settings)) .workbench-settings-content {
+  background:var(--og-fill-surface);
+  backdrop-filter:var(--og-surface-blur);
+  -webkit-backdrop-filter:var(--og-surface-blur);
+}
 .oneshot-placement { position:absolute; bottom:calc(100% + var(--og-space-3)); left:0; right:0; display:flex; align-items:center; justify-content:space-between; gap:var(--og-space-3); padding:var(--og-space-3) var(--og-space-4); background:var(--og-surface-overlay); color:var(--og-content-1); border:1px solid var(--og-line-2); border-radius:var(--og-radius-card); box-shadow:var(--og-elev-2); pointer-events:auto; }
 html:root .oneshot-place-badge { top:calc(var(--og-space-2) * -1); right:calc(var(--og-space-1) * -1); min-width:var(--og-space-5); height:var(--og-space-5); padding:0 var(--og-space-1); border-radius:var(--og-radius-full); background:var(--og-action); color:var(--og-action-on); font-size:var(--og-text-micro); line-height:var(--og-space-5); }
 /* Service library has its own bounded content scroller; the search and categories stay usable. */
