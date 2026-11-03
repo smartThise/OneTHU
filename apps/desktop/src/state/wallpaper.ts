@@ -13,10 +13,12 @@ import { msg as i18nMsg, t as i18n } from "../i18n/index.js";
  * 各自为政的纱/文字分支全部移除，详见 TabHost/explorer.css）。旧档里的 tabs 键不再保有
  * 渲染出口：global 为空时把一张（优先 home）提升为全屏档，绝不丢用户壁纸。
  *
- * ref 形态（三选一）："builtin:<id>"（内置渐变）| "data:image/…"（压缩后的图片）| "data:video/…"（视频）。
- * 应用壁纸时存**具体 ref**而不是 "lib:<id>" 间接层：库里删掉某张后，已应用的壁纸不失效；
- * 代价是同图在「库」与「应用处」各存一份 dataURL（压缩后百 KB 级，库上限 12 张内可控）。
- * 图片写入前经 canvas 压到 ≤1600px 宽、JPEG 0.82；视频读为 dataURL，上限 12MB（见 VIDEO_MAX_BYTES）。
+ * ref 形态（三选一）："builtin:<id>"（内置渐变）| "local:<路径>"（存进本机盘的原图/视频）| "data:<mime>;base64,…"（兜底内联）。
+ * 应用壁纸时存**具体 ref**而不是 "lib:<id>" 间接层：库里删掉某张后，已应用的壁纸不失效。
+ * 图片**本地不重编码**（2026-10-28 用户定案）：JPEG/PNG/WebP/GIF 的原文件字节直接落盘，透明与
+ * 动画都原样保留，显示时由壳层按窗口尺寸缩放；只有写不进磁盘或格式不能原样保存时才回落到
+ * canvas 压缩（≤1600px、JPEG 0.82）并内联 dataURL。压缩只发生在云端备份那一路，见 lib/cloudWallpaperImage.ts。
+ * 视频读为 dataURL 或落盘，上限 12MB（见 VIDEO_MAX_BYTES）。
  *
  * 亮度自适应：图片壁纸首次被用到时 canvas 采样平均亮度（只算一次，按 ref 缓存），
  * 纱的深浅随亮度走（亮壁纸→深纱、暗壁纸→几乎无纱），并经 shellWallpaperSnapshot 把
@@ -55,6 +57,15 @@ const SOUND_KEY = "onethu.wallpaper.videosound";
 export const LIBRARY_MAX = 12;
 /** 视频壁纸单文件上限（字节）：超限拒绝入库/应用 */
 export const VIDEO_MAX_BYTES = 12 * 1024 * 1024;
+/** 图片壁纸单文件上限（字节）：原图不重编码，但拒绝病态大文件 */
+export const IMAGE_MAX_BYTES = 32 * 1024 * 1024;
+/** 能原样落盘的图片格式：扩展名决定 asset 协议按后缀判 MIME；其余格式仍走 canvas 转 JPEG */
+const ORIGINAL_IMAGE_EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
 
 /** Uint8Array → base64（分块防 call stack 爆；FileReader 的替代，避免多读一遍） */
 function toB64(u8: Uint8Array): string {
@@ -255,7 +266,7 @@ function sampleLuma(ref: string): Promise<number> {
 
 /** 确保某 ref 的亮度已入缓存（幂等；算完发一次变更让订阅方重画纱与属性） */
 export function ensureWallpaperLum(ref: string): void {
-  if ((!ref.startsWith("data:image/") && !/^local:.+\.(jpe?g|png|webp)$/i.test(ref)) || lumCache.has(ref) || lumPending.has(ref)) return;
+  if ((!ref.startsWith("data:image/") && !/^local:.+\.(jpe?g|png|webp|gif)$/i.test(ref)) || lumCache.has(ref) || lumPending.has(ref)) return;
   lumPending.add(ref);
   void sampleLuma(ref).then((v) => {
     lumPending.delete(ref);
@@ -411,6 +422,23 @@ export async function importWallpaperFile(file: File): Promise<ImportResult> {
     }
   }
   if (!file.type.startsWith("image/")) return Promise.resolve({ ref: null, error: i18n("state.wallpaper.b7f2922f045c") });
+  /* 本地不重编码（2026-10-28 用户定案）：能原样落盘的格式直接存原始字节，屏幕上再按窗口缩放。
+     PNG 的透明、GIF 的动画都因此保住（旧实现会把它们压成一张静态 JPEG，透明区域变黑）。 */
+  if (file.size > IMAGE_MAX_BYTES) return Promise.resolve({ ref: null, error: i18n("state.wallpaper.533a664403cd") });
+  const originalExt = ORIGINAL_IMAGE_EXT[file.type];
+  if (originalExt) {
+    try {
+      /* 先验一次能不能解码，再落盘：坏图不该进壁纸库，也不该占一份磁盘 */
+      const probe = await createImageBitmap(file);
+      probe.close?.();
+      const b64 = toB64(new Uint8Array(await file.arrayBuffer()));
+      const { invoke } = await import("@tauri-apps/api/core");
+      const path = await invoke<string>("wallpaper_save", { name: `wp-${Date.now()}.${originalExt}`, dataBase64: b64 });
+      return { ref: `local:${path}`, error: null };
+    } catch {
+      /* 浏览器预览（无 Tauri）、写盘失败或解码失败 → 回落到下面的 canvas 压缩 */
+    }
+  }
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);

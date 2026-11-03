@@ -10,8 +10,10 @@ export interface WallpaperArchive {
   library: WallpaperLibItem[];
   assets: Record<string, string>;
 }
-export const WALLPAPER_MEDIA_MAX_BYTES = 12 * 1024 * 1024;
-export const WALLPAPER_ARCHIVE_MAX_BYTES = 24 * 1024 * 1024;
+export const WALLPAPER_MEDIA_MAX_BYTES = 16 * 1024 * 1024;
+/* 额度（2026-10-28 上调）：本地改存原图后，备份这一路才压（见 lib/cloudWallpaperImage.ts）。
+   单张 16 MiB 容得下 4K JPEG 0.9（约 2–4 MB）与 12 MB 内的视频；整包 64 MiB 给 12 张留余量。 */
+export const WALLPAPER_ARCHIVE_MAX_BYTES = 64 * 1024 * 1024;
 const LIBRARY_MAX = 12;
 const BUILTIN = /^builtin:(aurora|dusk|matcha|ink)$/;
 const MIME_EXT: Record<string, string> = {
@@ -44,7 +46,14 @@ function library(value: unknown): WallpaperLibItem[] {
   });
 }
 
-export async function exportWallpaperArchive(doc: WallpaperDoc, readLocal: (path: string) => Promise<string>): Promise<WallpaperArchive> {
+/** 备份图片的可选重编码：只在上传云盘时用，本地与还原后的文件都保持原样。
+ *  注入而非内联，是因为存档模块要在无 DOM 的环境里也能跑（见 tools/wallpaper-sync-test.mjs）。 */
+export interface WallpaperArchiveOptions {
+  /** 返回 null 表示不压，沿用原始字节 */
+  shrink?: (b64: string, mime: string) => Promise<{ b64: string; mime: string } | null>;
+}
+
+export async function exportWallpaperArchive(doc: WallpaperDoc, readLocal: (path: string) => Promise<string>, options: WallpaperArchiveOptions = {}): Promise<WallpaperArchive> {
   const assets: Record<string, string> = {};
   const refs = new Map<string, string>();
   const rows = library(doc.library);
@@ -58,7 +67,16 @@ export async function exportWallpaperArchive(doc: WallpaperDoc, readLocal: (path
       const extension = ref.slice(ref.lastIndexOf(".") + 1).toLowerCase();
       const mime = extension === "jpeg" ? "image/jpeg" : EXT_MIME[extension];
       if (!mime) return invalid();
-      value = `data:${mime};base64,${await readLocal(ref.slice(6))}`;
+      let b64 = await readLocal(ref.slice(6));
+      let outMime = mime;
+      if (options.shrink && mime.startsWith("image/")) {
+        const shrunk = await options.shrink(b64, mime);
+        if (shrunk && MIME_EXT[shrunk.mime]) {
+          b64 = shrunk.b64;
+          outMime = shrunk.mime;
+        }
+      }
+      value = `data:${outMime};base64,${b64}`;
     }
     media(value);
     budget += value.length;

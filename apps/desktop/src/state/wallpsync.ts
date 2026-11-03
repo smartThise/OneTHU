@@ -15,6 +15,7 @@ import { t as i18n } from "../i18n/index.js";
  */
 import { invoke } from "@tauri-apps/api/core";
 import { ensureOwnedCloudRepo, findOwnedCloudRepo } from "../lib/ownedCloudRepo.js";
+import { shrinkWallpaperForCloud } from "../lib/cloudWallpaperImage.js";
 import { ensureSeafileLoaded, getSeafileToken, getSeafileCredentialVersion, type SeafileEntry } from "./seafile.js";
 import { replaceWallpaperDoc, wallpaperSnapshot } from "./wallpaper.js";
 import { exportWallpaperArchive, importWallpaperArchive, WALLPAPER_ARCHIVE_MAX_BYTES } from "./wallpArchive.js";
@@ -63,7 +64,7 @@ function errorMessage(error: unknown, fallback: "state.wallpsync.uploadFailed" |
   if (error instanceof SyntaxError) return i18n("state.wallpsync.invalidArchive");
   const raw = shortErr(error);
   if (/wallpaper-legacy-local-archive/.test(raw)) return i18n("state.wallpsync.legacyLocalArchive");
-  if (/wallpaper-archive-too-large|文件过大|壁纸文件超过|wallpaper_archive_too_large/.test(raw)) return i18n("state.wallpsync.archiveTooLarge");
+  if (/wallpaper-archive-too-large|文件过大|壁纸文件超过|wallpaper_archive_too_large/.test(raw)) return i18n("state.wallpsync.ab4ead4cd60b");
   if (/wallpaper-invalid-archive/.test(raw)) return i18n("state.wallpsync.invalidArchive");
   if (/HTTP\s*403\b|permission.*(?:denied|access)|forbidden/i.test(raw)) return i18n("state.wallpsync.permissionDenied");
   return fallback === "state.wallpsync.uploadFailed"
@@ -87,7 +88,7 @@ export async function syncWallpaperToCloud(): Promise<WallpSyncResult> {
     const archive = await exportWallpaperArchive(wallpaperSnapshot(), async path => {
       assertCurrent();
       return invoke<string>("wallpaper_read", { path });
-    });
+    }, { shrink: shrinkWallpaperForCloud });
     assertCurrent();
     const json = JSON.stringify(archive);
     if (new TextEncoder().encode(json).length > WALLPAPER_ARCHIVE_MAX_BYTES) throw new Error("wallpaper-archive-too-large");
