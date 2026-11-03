@@ -1,7 +1,231 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "state.widgets.b4eed2ab1ac0",
+      "source": "网络学堂的全部作业（含外部作业源）。需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 99,
+          "context": "return i18n(\"state.widgets.b4eed2ab1ac0\");"
+        }
+      ],
+      "translation": "All Web Learning assignments (including external sources). Requires sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.b60bd0a94034",
+      "source": "本地时间，每秒走字；大一号的档位会带上日期与星期。不需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 85,
+          "context": "return i18n(\"state.widgets.b60bd0a94034\");"
+        }
+      ],
+      "translation": "Local time, ticking every second; larger sizes also show the date and weekday. No sign-in needed.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.b7ab08dc01be",
+      "source": "体测栏目",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 219,
+          "context": "return i18n(\"state.widgets.b7ab08dc01be\");"
+        }
+      ],
+      "translation": "Fitness test section",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.ba55d27d82e9",
+      "source": "今天的日期与星期；宽档位会带上年份。不需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 86,
+          "context": "return i18n(\"state.widgets.ba55d27d82e9\");"
+        }
+      ],
+      "translation": "Today's date and weekday; wide sizes also show the year. No sign-in needed.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.c0c6bb8b8618",
+      "source": "校园卡余额",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 187,
+          "context": "return i18n(\"state.widgets.c0c6bb8b8618\");"
+        }
+      ],
+      "translation": "Campus card balance",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.c230feb89e2b",
+      "source": "校历栏目",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 243,
+          "context": "return i18n(\"state.widgets.c230feb89e2b\");"
+        }
+      ],
+      "translation": "Academic calendar section",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.c3bc1241bb01",
+      "source": "信息页新闻栏目的数据卡。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 252,
+          "context": "return i18n(\"state.widgets.c3bc1241bb01\");"
+        }
+      ],
+      "translation": "Data card for the news section on the Info page.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.c647b6cc106f",
+      "source": "体测成绩。需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 117,
+          "context": "return i18n(\"state.widgets.c647b6cc106f\");"
+        }
+      ],
+      "translation": "Fitness test results. Requires sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.c732e4d7e380",
+      "source": "黄",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 147,
+          "context": "return i18n(\"state.widgets.c732e4d7e380\");"
+        }
+      ],
+      "translation": "Yellow",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.cb232f86e59b",
+      "source": "课程文件条目",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 358,
+          "context": "return i18n(\"state.widgets.cb232f86e59b\");"
+        }
+      ],
+      "translation": "Course file entry",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.cbc4fafd7657",
+      "source": "考试栏目",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 227,
+          "context": "return i18n(\"state.widgets.cbc4fafd7657\");"
+        }
+      ],
+      "translation": "Exams section",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.cd92acd73a04",
+      "source": "写点什么…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 146,
+          "context": "return i18n(\"state.widgets.cd92acd73a04\");"
+        }
+      ],
+      "translation": "Write something…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.cda323fd4e1d",
+      "source": "信息门户的订阅新闻。需要登录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 102,
+          "context": "return i18n(\"state.widgets.cda323fd4e1d\");"
+        }
+      ],
+      "translation": "Subscribed news from the info portal. Requires sign-in.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgets.d00069a5d3b5",
+      "source": "粉",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgets.ts",
+          "line": 147,
+          "context": "return i18n(\"state.widgets.d00069a5d3b5\");"
+        }
+      ],
+      "translation": "Pink",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "state.widgets.d86fcc64b8e6",
       "source": "信息页考试安排栏目的数据卡。",
@@ -1100,12 +1324,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 86,
+          "line": 89,
           "context": "attempt.errorKind === \"source-timeout\"\n    ? i18n(\"update.sourceTimeout\", { source: SOURCE_LABEL[attempt.source] })\n    : attempt.error ?? i18n(\"lib.updater.a1a9da9ee6ed\")"
         },
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 449,
+          "line": 455,
           "context": "new UpdateSourceTimeout(i18n(\"update.sourceTimeout\", { source: SOURCE_LABEL[step.source] }))"
         }
       ],

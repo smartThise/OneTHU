@@ -1,7 +1,230 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "lib.onboardinglessons.b0e75e43d9da",
+      "source": "打开组织",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 57,
+          "context": "return i18n(\"lib.onboardinglessons.b0e75e43d9da\");"
+        }
+      ],
+      "translation": "Open Organizations",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.onboardinglessons.b262a001f2d3",
+      "source": "看看插件页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 81,
+          "context": "return i18n(\"lib.onboardinglessons.b262a001f2d3\");"
+        }
+      ],
+      "translation": "Visit the Plugins page",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.onboardinglessons.b53e0caf08d4",
+      "source": "看看今天",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 105,
+          "context": "return i18n(\"lib.onboardinglessons.b53e0caf08d4\");"
+        },
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 119,
+          "context": "return i18n(\"lib.onboardinglessons.b53e0caf08d4\");"
+        }
+      ],
+      "translation": "See today",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.onboardinglessons.b54256466693",
+      "source": "成员身份与访问权限由服务器确认。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 56
+        }
+      ],
+      "translation": "Membership identity and access permissions are confirmed by the server.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.onboardinglessons.b63a952e8a2d",
+      "source": "按学习、日程、生活、预约等目录寻找，也可以搜索。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 123
+        }
+      ],
+      "translation": "Browse the directory by Study, Schedule, Life, Reservations and more, or just search.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.onboardinglessons.bab05287556d",
+      "source": "展开更多功能",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 124,
+          "context": "return i18n(\"lib.onboardinglessons.bab05287556d\");"
+        }
+      ],
+      "translation": "Expand more features",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.onboardinglessons.bb1ddb4acdff",
+      "source": "点顶栏＋或搜索开新标签，拖动可换序。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 70
+        }
+      ],
+      "translation": "Tap the + in the top bar or search to open a new tab; drag to reorder.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.onboardinglessons.befddfd12f6f",
+      "source": "OH 搜索胶囊始终可用；自己的 API 在设置里填写。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 118
+        }
+      ],
+      "translation": "The OH search capsule is always available; fill in your own API in Settings.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.onboardinglessons.c0def71d3a4b",
+      "source": "OH 搜索胶囊始终可用；可在设置里填自己的 API。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 109
+        }
+      ],
+      "translation": "The OH search capsule is always available; you can enter your own API in Settings.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.onboardinglessons.cb18708acfd3",
+      "source": "可按需触发：手动、定时或事件。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 75
+        }
+      ],
+      "translation": "Trigger on demand: manually, on a schedule, or by event.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.onboardinglessons.d202897590a6",
+      "source": "生成短口令后发送，对方联网接收这组内容。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 45,
+          "context": "return i18n(\"lib.onboardinglessons.d202897590a6\");"
+        }
+      ],
+      "translation": "Create a short share code and send it; the other side receives the bundle once online.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.onboardinglessons.d66e6fe01e59",
+      "source": "看看底部五入口",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 110,
+          "context": "return i18n(\"lib.onboardinglessons.d66e6fe01e59\");"
+        }
+      ],
+      "translation": "See the five bottom entries",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.onboardinglessons.d6dc9c00faa7",
+      "source": "调整常用入口",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 129,
+          "context": "return i18n(\"lib.onboardinglessons.d6dc9c00faa7\");"
+        }
+      ],
+      "translation": "Adjust your frequent entries",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.onboardinglessons.d79d92647cba",
+      "source": "去学习页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/onboardingLessons.ts",
+          "line": 91,
+          "context": "return i18n(\"lib.onboardinglessons.d79d92647cba\");"
+        }
+      ],
+      "translation": "Go to the Study page",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "lib.onboardinglessons.da33da7edc5c",
       "source": "创建组织即绑定组织名片，成员按权限协作。",
@@ -964,7 +1187,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 456,
+          "line": 468,
           "context": "new Error(i18n(\"lib.transport.53480e72e233\", { maxHops: String(maxHops), value: networkLogUrl(currentUrl) }))"
         }
       ],
@@ -985,7 +1208,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 233,
+          "line": 244,
           "context": "new Error(i18n(\"lib.transport.81870141c552\", { value: networkLogUrl(url) }))"
         }
       ],
@@ -1001,7 +1224,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 527,
+          "line": 540,
           "context": "return i18n(\"lib.transport.browserCors\");"
         }
       ],
@@ -1065,7 +1288,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 511,
+          "line": 524,
           "context": "return i18n(\"lib.transport.fileTooLarge\", {size:mb(big[1]!),limit:mb(big[2]!)});"
         }
       ],
@@ -1081,7 +1304,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 505,
+          "line": 517,
           "context": "return i18n(\"lib.transport.noReason\");"
         }
       ],
@@ -1097,7 +1320,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 517,
+          "line": 530,
           "context": "advice = i18n(\"lib.transport.reloginAdvice\")"
         }
       ],
@@ -1117,269 +1340,11 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 524,
+          "line": 537,
           "context": "return i18n(\"lib.transport.serverRejected\", {error:raw});"
         }
       ],
       "translation": "{error}: the server rejected this request (login session expired, or no permission for this file)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.transport.timeoutAdvice",
-      "source": "网络超时：请确认校园网 / WebVPN 可达。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/transport.ts",
-          "line": 530,
-          "context": "return i18n(\"lib.transport.timeoutAdvice\");"
-        }
-      ],
-      "translation": "Network timed out: check that campus network / WebVPN is reachable.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.tts.305378ddd2b8",
-      "source": "链接",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/tts.ts",
-          "line": 246,
-          "context": "() => i18n(\"lib.tts.305378ddd2b8\")"
-        }
-      ],
-      "translation": "Link",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.tts.56b01b7faa9d",
-      "source": " （代码略） ",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/tts.ts",
-          "line": 242,
-          "context": "() => i18n(\"lib.tts.56b01b7faa9d\")"
-        }
-      ],
-      "translation": " (code omitted) ",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.tts.9138d2ecd64e",
-      "source": "引擎默认音色",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/tts.ts",
-          "line": 266,
-          "context": "return i18n(\"lib.tts.9138d2ecd64e\");"
-        }
-      ],
-      "translation": "Engine default voice",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.tts.98f963cb664a",
-      "source": "空文本",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/tts.ts",
-          "line": 151,
-          "context": "new Error(i18n(\"lib.tts.98f963cb664a\"))"
-        }
-      ],
-      "translation": "Empty text",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.tts.c031b065a3a3",
-      "source": "……（内容较长，剩下的看屏幕吧）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/tts.ts",
-          "line": 258,
-          "context": "(cut > max * 0.5 ? head.slice(0, cut + 1) : head) + i18n(\"lib.tts.c031b065a3a3\")"
-        }
-      ],
-      "translation": "… (the content is long; read the rest on screen)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.update.c459fb3f09e6",
-      "source": "新版本 {version} 可用：设置 → 关于 查看详情",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "version",
-          "expression": "rel.name"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/update.ts",
-          "line": 102,
-          "context": "onToast(`新版本 ${rel.name} 可用：设置 → 关于 查看详情`)"
-        }
-      ],
-      "translation": "New version {version} available: see \"Settings → About\" for details",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.updater.01e9ed6e0882",
-      "source": "{what} 不可达（403）——官方端点若变更请检查 share-links API（本模块用的是匿名 dirents 接口）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "what",
-          "expression": "String(what)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/updater.ts",
-          "line": 239,
-          "context": "return i18n(\"lib.updater.01e9ed6e0882\", { what: String(what) });"
-        }
-      ],
-      "translation": "{what} unreachable (403) — if the official endpoint changed, check the share-links API (this module uses the anonymous dirents endpoint)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.updater.072f4658615f",
-      "source": "{what} 服务端错误（HTTP {status}）——云盘侧暂时不可用，稍后重试",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "what",
-          "expression": "String(what)"
-        },
-        {
-          "name": "status",
-          "expression": "String(status)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/updater.ts",
-          "line": 241,
-          "context": "return i18n(\"lib.updater.072f4658615f\", { what: String(what), status: String(status) });"
-        }
-      ],
-      "translation": "{what} server error (HTTP {status}) — the cloud drive side is temporarily unavailable, try again later",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.updater.185680ad27cd",
-      "source": "已用系统默认方式打开：若是 DMG，把应用拖进「应用程序」即完成更新。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/updater.ts",
-          "line": 562,
-          "context": "key === \"macos\" ? i18nMsg(\"lib.updater.185680ad27cd\") : i18nMsg(\"lib.updater.95bc488982b2\")"
-        }
-      ],
-      "translation": "Opened with the system default: for a DMG, drag the app into \"Applications\" to finish the update.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.updater.194b24406399",
-      "source": "镜像目录 {path}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "path",
-          "expression": "String(path)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/updater.ts",
-          "line": 262,
-          "context": "shareErr(i18n(\"lib.updater.194b24406399\", { path: String(path) }), r.status)"
-        }
-      ],
-      "translation": "Mirror directory {path}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.updater.2985491184cc",
-      "source": "两个更新源都没取到清单：\n{detail}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "detail",
-          "expression": "String(detail)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/updater.ts",
-          "line": 100,
-          "context": "attempts?.length\n    ? i18n(\"lib.updater.2985491184cc\", { detail: attempts.map(attempt => `· ${SOURCE_LABEL[attempt.source]}：${updateAttemptError(attempt)}`).join(\"\\n\") })\n    : result.error ?? i18n(\"components.softwareupdatesection.4f6f06254d16\")"
-        },
-        {
-          "file": "apps/desktop/src/lib/updater.ts",
-          "line": 476,
-          "context": "error: i18n(\"lib.updater.2985491184cc\", { detail: String(detail) })"
-        }
-      ],
-      "translation": "Could not fetch the manifest from either update source:\n{detail}",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "lib.updater.2d2cad3f99ea",
-      "source": "HTTP 404（Releases 还没挂 latest.json 资产）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/updater.ts",
-          "line": 371,
-          "context": "res.status === 404 ? i18n(\"lib.updater.2d2cad3f99ea\") : `HTTP ${res.status}`"
-        }
-      ],
-      "translation": "HTTP 404 (Releases doesn't have the latest.json asset yet)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.updater.2da47c897e30",
-      "source": "已拉起系统安装页：首次安装需在系统提示里允许「安装未知应用」，之后按系统页确认即可。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/updater.ts",
-          "line": 562,
-          "context": "key === \"android\" ? i18nMsg(\"lib.updater.2da47c897e30\") : key === \"macos\" ? i18nMsg(\"lib.updater.185680ad27cd\") : i18nMsg(\"lib.updater.95bc488982b2\")"
-        }
-      ],
-      "translation": "System install page opened: for first installation, allow \"Install unknown apps\" when the system prompts, then confirm on the system page.",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

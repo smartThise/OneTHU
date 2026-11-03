@@ -1,6 +1,6 @@
 /** Start the packaged Node/CLI in a fresh private profile, never a real account. */
 import assert from 'node:assert/strict';
-import {spawn} from 'node:child_process';
+import {spawn,execFileSync} from 'node:child_process';
 import {once} from 'node:events';
 import {mkdtemp,mkdir,readFile,writeFile,chmod,rm,open} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -24,6 +24,15 @@ try {
   }
   await writeFile(path.join(runtime,'runtime.json'),JSON.stringify(manifest));
   const node=path.join(runtime,process.platform==='win32'?'node.exe':'node');
+  if(manifest.files.onethu){
+    await chmod(path.join(runtime,'onethu'),0o755);
+    const output=process.platform==='win32'
+      ?execFileSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',path.join(runtime,'onethu.ps1'),'--version'],{encoding:'utf8'})
+      :execFileSync(path.join(runtime,'onethu'),['--version'],{encoding:'utf8'});
+    assert.equal(output.trim(),manifest.version,'standalone launcher extracts and verifies its own Node runtime');
+    assert.equal(hash(await readFile(node)),manifest.nodeSha256);
+  }
+
   const nodeBytes=gunzipSync(await readFile(path.join(runtime,'node.gz')));
   assert.equal(hash(nodeBytes),manifest.nodeSha256);await writeFile(node,nodeBytes);await chmod(node,0o755);
   log=await open(path.join(profile,'startup.log'),'w',0o600);

@@ -1699,6 +1699,62 @@
     "permissions.xiaodaChat.desc": {
       "zh-CN": "经确认向选定的清小搭智能体发送问题，并建立独立会话。",
       "en-US": "Send an approved question to a selected Qingxiaoda agent and create a separate conversation."
+    },
+    "cli.package.title": {
+      "zh-CN": "可选组件 · OneTHU CLI",
+      "en-US": "Optional component · OneTHU CLI"
+    },
+    "cli.package.description": {
+      "zh-CN": "为终端、其他 Agent 和关闭应用后的常驻任务安装命令行环境。OH 在应用内可直接使用学校服务，无需安装 CLI。",
+      "en-US": "Install the command-line environment for terminals, other agents, and tasks that continue after the app closes. OH can use campus services inside the app without installing the CLI."
+    },
+    "cli.package.installed": {
+      "zh-CN": "已安装 {version}。卸载保留账号、任务和数据。",
+      "en-US": "Installed: {version}. Uninstalling keeps accounts, tasks, and data."
+    },
+    "cli.package.upgrade": {
+      "zh-CN": "检测到旧版 CLI，更新后可恢复常驻任务。账号、任务和数据均已保留。",
+      "en-US": "A previous CLI installation was found. Update it to resume resident tasks. Accounts, tasks, and data are retained."
+    },
+    "cli.package.install": {
+      "zh-CN": "安装 CLI",
+      "en-US": "Install CLI"
+    },
+    "cli.package.update": {
+      "zh-CN": "更新 CLI",
+      "en-US": "Update CLI"
+    },
+    "cli.package.uninstall": {
+      "zh-CN": "卸载 CLI",
+      "en-US": "Uninstall CLI"
+    },
+    "cli.package.installing": {
+      "zh-CN": "正在下载、核验并安装 CLI…",
+      "en-US": "Downloading, verifying, and installing the CLI…"
+    },
+    "cli.package.removing": {
+      "zh-CN": "正在保存日程并停止常驻任务…",
+      "en-US": "Saving calendar data and stopping resident tasks…"
+    },
+    "cli.package.error": {
+      "zh-CN": "CLI 操作未完成，请重试；应用内 OH 与学校服务仍可使用。",
+      "en-US": "The CLI operation could not finish. Please retry. In-app OH and campus services remain available."
+    },
+    "cli.package.mobile": {
+      "zh-CN": "OH 可直接访问已授权的应用服务和数据。手机任务在应用运行期间执行。",
+      "en-US": "OH can directly access authorized app services and data. Mobile tasks run while the app is open."
+    },
+    "cli.package.external": {
+      "zh-CN": "允许外部 CLI / MCP 访问",
+      "en-US": "Allow external CLI / MCP access"
+    },
+    "calendar.shared.changed": {
+      "zh-CN": "日程已在其他入口更新，请刷新后重试。",
+      "en-US": "The calendar changed in another client. Refresh and try again."
+    },
+    "cli.package.repair": {
+      "zh-CN": "重新安装",
+      "en-US": "Reinstall"
     }
   }
 }

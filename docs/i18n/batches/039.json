@@ -1,7 +1,241 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "lib.infolib.f3943a7b3681",
+      "source": "企业微信",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoLib.ts",
+          "line": 304,
+          "context": "return i18n(\"lib.infolib.f3943a7b3681\");"
+        }
+      ],
+      "translation": "WeChat Work",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infolib.f87602bd9134",
+      "source": "手机短信",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoLib.ts",
+          "line": 305,
+          "context": "return i18n(\"lib.infolib.f87602bd9134\");"
+        }
+      ],
+      "translation": "SMS",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infolib.fd1c426ab1aa",
+      "source": "受信设备数已达上限：本次登录不会记住本设备。可到 id.tsinghua.edu.cn 删除旧的「信任浏览器」后重试。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoLib.ts",
+          "line": 364,
+          "context": "showToast(i18nMsg(\"lib.infolib.fd1c426ab1aa\"), 8000, { center: true })"
+        }
+      ],
+      "translation": "Trusted device limit reached: this device won't be remembered after this sign-in. You can delete an old \"Trusted Browser\" at id.tsinghua.edu.cn and try again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.market.124d3a9ddf47",
+      "source": "仓库里的插件缺 manifest/version 字段",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/market.ts",
+          "line": 306,
+          "context": "new Error(i18n(\"lib.market.124d3a9ddf47\"))"
+        }
+      ],
+      "translation": "A plugin in the repository is missing the manifest/version field",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.market.2240fbc106e2",
+      "source": "缺少 owner/repo；示例：https://github.com/user/repo",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/market.ts",
+          "line": 121,
+          "context": "new Error(i18n(\"lib.market.2240fbc106e2\"))"
+        }
+      ],
+      "translation": "Missing owner/repo; example: https://github.com/user/repo",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.market.4101aa0579ae",
+      "source": "仓库中未找到插件入口（尝试：{value}）。仓库需在根目录提供 plugin.js（或 index.js / main.js，或清单指定 entry）。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(tried.join(\"、\"))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/market.ts",
+          "line": 231,
+          "context": "new Error(\n    i18n(\"lib.market.4101aa0579ae\", { value: String(tried.join(\"、\")) }),\n  )"
+        }
+      ],
+      "translation": "No plugin entry found in the repository (tried: {value}). The repository must provide plugin.js at its root (or index.js / main.js, or an entry specified in the manifest).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.market.5749fe713e6e",
+      "source": "市场名单格式无效（缺 plugins 数组）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/market.ts",
+          "line": 396,
+          "context": "new Error(i18n(\"lib.market.5749fe713e6e\"))"
+        }
+      ],
+      "translation": "Invalid market list format (missing plugins array)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.market.5903a3de41a1",
+      "source": "市场名单拉取失败：HTTP {status}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "status",
+          "expression": "String(res.status)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/market.ts",
+          "line": 394,
+          "context": "new Error(i18n(\"lib.market.5903a3de41a1\", { status: String(res.status) }))"
+        }
+      ],
+      "translation": "Failed to fetch the market list: HTTP {status}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.market.6c1f697fcc8f",
+      "source": "owner/repo 含非法字符",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/market.ts",
+          "line": 139,
+          "context": "new Error(i18n(\"lib.market.6c1f697fcc8f\"))"
+        }
+      ],
+      "translation": "owner/repo contains invalid characters",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.market.90b62e711681",
+      "source": "目前仅支持 GitHub 仓库（github.com）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/market.ts",
+          "line": 117,
+          "context": "new Error(i18n(\"lib.market.90b62e711681\"))"
+        }
+      ],
+      "translation": "Only GitHub repositories are supported (github.com)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.market.b494102993b9",
+      "source": "无法识别的仓库地址；示例：user/repo 或完整 GitHub URL",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/market.ts",
+          "line": 114,
+          "context": "new Error(i18n(\"lib.market.b494102993b9\"))"
+        }
+      ],
+      "translation": "Unrecognized repository address; example: user/repo or a full GitHub URL",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.market.bde49d8534fa",
+      "source": "请输入仓库地址，如 user/repo",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/market.ts",
+          "line": 97,
+          "context": "new Error(i18n(\"lib.market.bde49d8534fa\"))"
+        }
+      ],
+      "translation": "Enter a repository address, e.g. user/repo",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.market.d8323fde8c21",
+      "source": "无法识别的仓库地址；示例：user/repo 或 user/repo@dev",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/market.ts",
+          "line": 106,
+          "context": "new Error(i18n(\"lib.market.d8323fde8c21\"))"
+        }
+      ],
+      "translation": "Unrecognized repository address; example: user/repo or user/repo@dev",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.nfc.e83e7558d05b",
+      "source": "内容太大，无法通过 NFC 完整传送；请复制口令分享，或缩小名片头像后重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/nfc.ts",
+          "line": 31,
+          "context": "new Error(i18n(\"lib.nfc.e83e7558d05b\"))"
+        }
+      ],
+      "translation": "The content is too large to transfer fully over NFC; share it with a share code instead, or shrink the card avatar and try again",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "lib.onboardingcards.0e2791c8cc8e",
       "source": "今日课程、日程提醒、课表",
@@ -1040,229 +1274,6 @@
         }
       ],
       "translation": "Appearance and workspace: everything is adjustable",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.b0e75e43d9da",
-      "source": "打开组织",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 57,
-          "context": "return i18n(\"lib.onboardinglessons.b0e75e43d9da\");"
-        }
-      ],
-      "translation": "Open Organizations",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.b262a001f2d3",
-      "source": "看看插件页",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 81,
-          "context": "return i18n(\"lib.onboardinglessons.b262a001f2d3\");"
-        }
-      ],
-      "translation": "Visit the Plugins page",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.b53e0caf08d4",
-      "source": "看看今天",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 105,
-          "context": "return i18n(\"lib.onboardinglessons.b53e0caf08d4\");"
-        },
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 119,
-          "context": "return i18n(\"lib.onboardinglessons.b53e0caf08d4\");"
-        }
-      ],
-      "translation": "See today",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.b54256466693",
-      "source": "成员身份与访问权限由服务器确认。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 56
-        }
-      ],
-      "translation": "Membership identity and access permissions are confirmed by the server.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.b63a952e8a2d",
-      "source": "按学习、日程、生活、预约等目录寻找，也可以搜索。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 123
-        }
-      ],
-      "translation": "Browse the directory by Study, Schedule, Life, Reservations and more, or just search.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.bab05287556d",
-      "source": "展开更多功能",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 124,
-          "context": "return i18n(\"lib.onboardinglessons.bab05287556d\");"
-        }
-      ],
-      "translation": "Expand more features",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.bb1ddb4acdff",
-      "source": "点顶栏＋或搜索开新标签，拖动可换序。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 70
-        }
-      ],
-      "translation": "Tap the + in the top bar or search to open a new tab; drag to reorder.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.befddfd12f6f",
-      "source": "OH 搜索胶囊始终可用；自己的 API 在设置里填写。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 118
-        }
-      ],
-      "translation": "The OH search capsule is always available; fill in your own API in Settings.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.c0def71d3a4b",
-      "source": "OH 搜索胶囊始终可用；可在设置里填自己的 API。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 109
-        }
-      ],
-      "translation": "The OH search capsule is always available; you can enter your own API in Settings.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.cb18708acfd3",
-      "source": "可按需触发：手动、定时或事件。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 75
-        }
-      ],
-      "translation": "Trigger on demand: manually, on a schedule, or by event.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.d202897590a6",
-      "source": "生成短口令后发送，对方联网接收这组内容。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 45,
-          "context": "return i18n(\"lib.onboardinglessons.d202897590a6\");"
-        }
-      ],
-      "translation": "Create a short share code and send it; the other side receives the bundle once online.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.d66e6fe01e59",
-      "source": "看看底部五入口",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 110,
-          "context": "return i18n(\"lib.onboardinglessons.d66e6fe01e59\");"
-        }
-      ],
-      "translation": "See the five bottom entries",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.d6dc9c00faa7",
-      "source": "调整常用入口",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 129,
-          "context": "return i18n(\"lib.onboardinglessons.d6dc9c00faa7\");"
-        }
-      ],
-      "translation": "Adjust your frequent entries",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.onboardinglessons.d79d92647cba",
-      "source": "去学习页",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/onboardingLessons.ts",
-          "line": 91,
-          "context": "return i18n(\"lib.onboardinglessons.d79d92647cba\");"
-        }
-      ],
-      "translation": "Go to the Study page",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

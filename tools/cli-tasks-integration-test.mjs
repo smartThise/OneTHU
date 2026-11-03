@@ -39,7 +39,7 @@ function fixture() {
   const taskModuleImports = { '@onethu/sdk/tasks': { ...engine, createTaskManager: ports => engine.createTaskManager({ ...ports, clock: { now: () => Date.now(), setTimeout: () => 1, clearTimeout() {} } }) },
     '../lib/clients.js': clients, '../lib/transport.js': transport, './userext.js': userext, './privacyConsent.js': privacy,
     '../plugins/windowOwner.js': { requirePluginRuntimeOwner() {} }, '../im/taskNotifications.js': taskNotifications,
-    '../lib/sharedRuntime.js': { usesSharedRuntime: () => false }, '../im/sharedTaskNotifications.js': { syncSharedTaskNotifications: async () => ({}) } };
+    '../lib/sharedRuntime.js': { usesSharedRuntime: () => false, initCliInstallation:async()=>{}, appTaskRuntimeSafe:()=>true }, '../im/sharedTaskNotifications.js': { syncSharedTaskNotifications: async () => ({}) } };
   const windowGlobal = {};
   let tasks = moduleAt('apps/desktop/src/state/cliTasks.ts', taskModuleImports, { globalThis: windowGlobal });
   const tuple = items => ({ type: 'array', items, minItems: items.length, maxItems: items.length });
@@ -53,11 +53,11 @@ function fixture() {
     await downloadHook?.(signal); await check(); if (signal?.aborted) throw Error('TASK_CANCELLED'); downloads.push(args); return { ok: true };
   } };
   const serviceImports = { './catalog.json': catalog, './validation.js': validation, './publicResult.js': projection, '@onethu/sdk/tasks': engine, '@onethu/sdk/policy': policy,
-    '../lib/sharedRuntime.js': { usesSharedRuntime: () => false }, '../state/cliTasks.js': tasks, '../lib/cliLearn.js': learnModule, '../lib/clients.js': clients, '../lib/transport.js': transport,
+    '../lib/sharedRuntime.js': { usesSharedRuntime: () => false, initCliInstallation:async()=>{}, appTaskRuntimeSafe:()=>true }, '../state/cliTasks.js': tasks, '../lib/cliLearn.js': learnModule, '../lib/clients.js': clients, '../lib/transport.js': transport,
     '../lib/venue.js': {}, '../state/userext.js': userext, '../state/privacyConsent.js': privacy,
     '../i18n/index.js': { t: key => key }, '../lib/confirm.js': { confirmChoice: async () => { prompts++; await confirmHook?.(); return confirmAnswer; } } };
   const api = { session: { status: () => session.state } };
-  const createService = () => moduleAt('apps/desktop/src/cli/service.ts', { ...serviceImports, '../state/cliTasks.js': tasks }, { navigator: { platform: 'test' } }).createCliService(api, new Set(['learn:read']), { create: () => api, mutations: new Set() });
+  const createService = () => moduleAt('apps/desktop/src/cli/service.ts', { ...serviceImports, '../state/cliTasks.js': tasks }, { navigator: { platform: 'test' } }).createCliService(api, new Set(['learn:read']), { create: () => api, mutations: new Set(), internal:true });
   let service = createService();
   return { get service() { return service; }, get tasks() { return tasks; }, session, config, files, saves, downloads, notifications,
     promptCount: () => prompts, setConfirm(value) { confirmAnswer = value; }, setAutomatic(value) { automatic = value; changed(); },
@@ -101,7 +101,10 @@ await test('OH built-in task route retains local continuing-scope approval', asy
   await assert.rejects(f.tasks.desktopTaskCall({ operation: 'tasks.resume', args: [task.id], confirm: true }), /CONFIRMATION_CANCELLED/);
   assert.equal((await f.tasks.desktopTaskCall({ operation: 'tasks.get', args: [task.id] })).enabled, false);
   f.setEnabled(false);
-  await assert.rejects(f.tasks.desktopTaskCall({ operation: 'tasks.list', args: [] }), /CLI_DISABLED/);
+  assert.equal((await f.tasks.desktopTaskCall({ operation:'tasks.list',args:[] })).length,1);
+  f.setConfirm(true);
+  await f.tasks.desktopTaskCall({operation:'tasks.resume',args:[task.id],confirm:true});
+  await f.tasks.desktopTaskCall({operation:'tasks.run',args:[task.id]});
   await f.close();
 });
 await test('pause bypasses global write gate and prevents delayed download publication', async () => {

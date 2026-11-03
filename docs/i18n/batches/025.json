@@ -1,7 +1,231 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.tourillustration.c3d0e8d4b506",
+      "source": "选好的模式，随时可以在设置里调整。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 38,
+          "context": "return i18n(\"components.tourillustration.c3d0e8d4b506\");"
+        }
+      ],
+      "translation": "The mode you chose can be adjusted anytime in Settings.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.tourillustration.c6331cafc401",
+      "source": "课表就在手边；首页和 OH 搜索始终可用。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 32,
+          "context": "return i18n(\"components.tourillustration.c6331cafc401\");"
+        }
+      ],
+      "translation": "The timetable is always at hand; Home and OH search stay available.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.tourillustration.c89246ea218f",
+      "source": "极简模式",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 35,
+          "context": "return i18n(\"components.tourillustration.c89246ea218f\");"
+        }
+      ],
+      "translation": "Minimal mode",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.tourillustration.d8aa9757d2b3",
+      "source": "实用模式",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 36,
+          "context": "return i18n(\"components.tourillustration.d8aa9757d2b3\");"
+        }
+      ],
+      "translation": "Practical mode",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.tourillustration.d924d8e8fe20",
+      "source": "换台设备，继续使用",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 46,
+          "context": "return i18n(\"components.tourillustration.d924d8e8fe20\");"
+        }
+      ],
+      "translation": "Switch devices and keep going",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.tourillustration.d9c8475ca6a6",
+      "source": "生成的短口令连接这一组内容。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 28,
+          "context": "return i18n(\"components.tourillustration.d9c8475ca6a6\");"
+        }
+      ],
+      "translation": "The generated short share code links to this set of content.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.tourillustration.dd52e4b6a630",
+      "source": "更多功能按目录打开，常用四格可以替换。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 36,
+          "context": "return i18n(\"components.tourillustration.dd52e4b6a630\");"
+        }
+      ],
+      "translation": "More features open by category, and the four frequently used slots can be replaced.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.tourillustration.e431c37e9bdc",
+      "source": "这些能力在同一处，按需要选择。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 157,
+          "context": "after:i18n(\"components.tourillustration.e431c37e9bdc\")"
+        }
+      ],
+      "translation": "These capabilities live in one place; choose as needed.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.tourillustration.e8332f3f0437",
+      "source": "今日待办、课程和五个固定入口。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 35,
+          "context": "return i18n(\"components.tourillustration.e8332f3f0437\");"
+        }
+      ],
+      "translation": "Today’s tasks, classes, and five fixed entry points.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.tourillustration.eb0c326b60ae",
+      "source": "已暂停",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 162,
+          "context": "paused?i18n(\"components.tourillustration.eb0c326b60ae\"):i18n(\"components.tourillustration.3272fe53c0f6\")"
+        }
+      ],
+      "translation": "Paused",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.tourillustration.ee40e75e813e",
+      "source": "白板上的组件可以移动、调整大小。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 26,
+          "context": "return i18n(\"components.tourillustration.ee40e75e813e\");"
+        }
+      ],
+      "translation": "Widgets on the board can be moved and resized.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.tourillustration.f4ad88248fc0",
+      "source": "按目录找服务，点名称就能进入。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 33,
+          "context": "return i18n(\"components.tourillustration.f4ad88248fc0\");"
+        }
+      ],
+      "translation": "Find services by category; tap a name to enter.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.tourillustration.f65def27f883",
+      "source": "成员、资料、项目和公告，围绕同一个组织。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 30,
+          "context": "return i18n(\"components.tourillustration.f65def27f883\");"
+        }
+      ],
+      "translation": "Members, libraries, projects, and announcements, all around the same organization.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.tourillustration.fa060d19d9cd",
+      "source": "校园服务，一处进入",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/TourIllustration.tsx",
+          "line": 45,
+          "context": "return i18n(\"components.tourillustration.fa060d19d9cd\");"
+        }
+      ],
+      "translation": "Campus services, one entry point",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "components.tourillustration.fd962d16dac1",
       "source": "碰一碰",
@@ -1100,271 +1324,6 @@
         }
       ],
       "translation": "This legacy share code has no cloud drive share; you can only delete the record.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.issuedsharescard.b52e35824750",
-      "source": "撤销分享",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/IssuedSharesCard.tsx",
-          "line": 129,
-          "context": "label: i18n(\"components.vault.issuedsharescard.b52e35824750\")"
-        }
-      ],
-      "translation": "Revoke share",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.vault.issuedsharescard.b73971671bd8",
-      "source": "{value}月{value2}日 {value3}:{value4}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(d.getMonth() + 1)"
-        },
-        {
-          "name": "value2",
-          "expression": "String(d.getDate())"
-        },
-        {
-          "name": "value3",
-          "expression": "String(String(d.getHours()).padStart(2, \"0\"))"
-        },
-        {
-          "name": "value4",
-          "expression": "String(String(d.getMinutes()).padStart(2, \"0\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/IssuedSharesCard.tsx",
-          "line": 21,
-          "context": "return i18n(\"components.vault.issuedsharescard.b73971671bd8\", { value: String(d.getMonth() + 1), value2: String(d.getDate()), value3: String(String(d.getHours()).padStart(2, \"0\")), value4: String(String(d.getMinutes()).padStart(2, \"0\")) });"
-        }
-      ],
-      "translation": "{value}/{value2} at {value3}:{value4}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.issuedsharescard.bdb38862008b",
-      "source": "其他箱子发出的分享，可以在「全部口令」中查看。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/IssuedSharesCard.tsx",
-          "line": 121,
-          "context": "!allEntries && log.entries.length ? i18n(\"components.vault.issuedsharescard.bdb38862008b\") : i18n(\"components.vault.issuedsharescard.4aa0b6ffacf1\")"
-        }
-      ],
-      "translation": "Shares issued from other boxes can be viewed in “All share codes”.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.issuedsharescard.cc7232862b97",
-      "source": "所有箱子",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/IssuedSharesCard.tsx",
-          "line": 99,
-          "context": "allEntries ? i18n(\"components.vault.issuedsharescard.cc7232862b97\") : i18n(\"components.vault.issuedsharescard.6d2ce5e21b2a\")"
-        }
-      ],
-      "translation": "All boxes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.issuedsharescard.cd10024a604e",
-      "source": "口令：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(issuedShareTitle(entry))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/IssuedSharesCard.tsx",
-          "line": 104,
-          "context": "{i18n(\"components.vault.issuedsharescard.cd10024a604e\", { value: String(issuedShareTitle(entry)) })}"
-        }
-      ],
-      "translation": "Share code: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.vault.issuedsharescard.d32f69ae73d3",
-      "source": "正在撤销…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/IssuedSharesCard.tsx",
-          "line": 17,
-          "context": "return i18n(\"components.vault.issuedsharescard.d32f69ae73d3\");"
-        }
-      ],
-      "translation": "Revoking…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.issuedsharescard.d96fa2056906",
-      "source": "撤销「{value}」？对方将无法再次读取，已经接收的副本会保留。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(issuedShareTitle(entry))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/IssuedSharesCard.tsx",
-          "line": 58,
-          "context": "confirmOk(i18nMsg(\"components.vault.issuedsharescard.d96fa2056906\", { value: String(issuedShareTitle(entry)) }))"
-        }
-      ],
-      "translation": "Revoke “{value}”? The recipient will no longer be able to read it, but copies already received will be kept.",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.vault.issuedsharescard.d9cb809600c7",
-      "source": " · 箱子已删除",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/IssuedSharesCard.tsx",
-          "line": 109,
-          "context": "vaults.boxes.some(box=>box.id===entry.boxId) ? \"\" : i18n(\"components.vault.issuedsharescard.d9cb809600c7\")"
-        }
-      ],
-      "translation": " · Box deleted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.issuedsharescard.dd6c08640a66",
-      "source": "口令名称",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/IssuedSharesCard.tsx",
-          "line": 63,
-          "context": "openFormModal(i18nMsg(\"components.vault.issuedsharescard.dd6c08640a66\"), [{ key: \"label\", label: i18nMsg(\"components.vault.issuedsharescard.7aefa357c175\"), default: entry.label ?? \"\" }])"
-        }
-      ],
-      "translation": "Share code name",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.vault.issuedsharescard.ddc1d8107144",
-      "source": "口令已复制",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/IssuedSharesCard.tsx",
-          "line": 86,
-          "context": "code === entry.code ? i18nMsg(\"components.vault.issuedsharescard.ddc1d8107144\") : i18nMsg(\"components.vault.issuedsharescard.f7b132a0b0ed\")"
-        }
-      ],
-      "translation": "Share code copied",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.issuedsharescard.ed74c111755f",
-      "source": "{value} 到期",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(timeText(entry.expiresAt))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/IssuedSharesCard.tsx",
-          "line": 111,
-          "context": "entry.expiresAt ? i18n(\"components.vault.issuedsharescard.ed74c111755f\", { value: String(timeText(entry.expiresAt)) }) : i18n(\"components.vault.issuedsharescard.8de1bb55709d\")"
-        }
-      ],
-      "translation": "Expires {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.issuedsharescard.f2cf9101bb2d",
-      "source": "删除记录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/IssuedSharesCard.tsx",
-          "line": 130,
-          "context": "label: i18n(\"components.vault.issuedsharescard.f2cf9101bb2d\")"
-        }
-      ],
-      "translation": "Delete record",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.vault.issuedsharescard.f76d8f310254",
-      "source": "来自「{boxName}」{value}",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "boxName",
-          "expression": "entry.boxName"
-        },
-        {
-          "name": "value",
-          "expression": "vaults.boxes.some(box=>box.id===entry.boxId) ? \"\" : i18n(\"components.vault.issuedsharescard.d9cb809600c7\")"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/IssuedSharesCard.tsx",
-          "line": 109,
-          "context": "{i18nRich(\"components.vault.issuedsharescard.f76d8f310254\", { boxName: entry.boxName, value: vaults.boxes.some(box=>box.id===entry.boxId) ? \"\" : i18n(\"components.vault.issuedsharescard.d9cb809600c7\") })}"
-        }
-      ],
-      "translation": "From “{boxName}”, {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.issuedsharescard.f7b132a0b0ed",
-      "source": "私密分享已升级，新口令已复制",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/IssuedSharesCard.tsx",
-          "line": 86,
-          "context": "code === entry.code ? i18nMsg(\"components.vault.issuedsharescard.ddc1d8107144\") : i18nMsg(\"components.vault.issuedsharescard.f7b132a0b0ed\")"
-        }
-      ],
-      "translation": "Private share upgraded; the new share code has been copied",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

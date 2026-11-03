@@ -32,7 +32,7 @@ function fixture(patch = {}, handler = () => response(200, { success: true })) {
   const rec = { settings: {
     provider: "madmodel", madmodelToken: token(), madmodelAt: String(now),
     madmodelBase: "", madmodelCookie: "", madmodelReachable: "1",
-    madmodelReachableAt: String(now), madmodelVerifiedAt: String(now - 1234), ...patch,
+    madmodelReachableAt: String(now), madmodelVerifiedAt: String(now - 11 * 60_000), ...patch,
   } };
   const calls = [];
   const writes = [];
@@ -92,6 +92,12 @@ async function test(name, run) {
   passed++;
   console.log(`✓ ${name}`);
 }
+
+await test("recent verified key does not wait for a route probe or early renewal",async()=>{
+ const f=fixture({madmodelVerifiedAt:String(epoch-1000)});
+ assert.equal(await f.api.preflightMadModel(),null);
+ assert.equal(f.calls.filter(call=>call.url.endsWith("/auth-login")).length,0);
+});
 
 for (const status of [403, 429, 500, 503]) {
   await test(`HTTP ${status} does not invalidate or remint a fresh token`, async () => {
@@ -155,7 +161,8 @@ for (const invalid of [401, 200]) {
     const results = await Promise.all(Array.from({ length: 8 }, () => f.api.preflightMadModel()));
     assert.ok(results.every((value) => typeof value === "string"));
     assert.equal(f.calls.length, 2);
-    assert.equal(f.rec.settings.madmodelFailStreak, "1");
+    for(let n=0;n<40&&!f.rec.settings.madmodelFailStreak;n++)await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(f.rec.settings.madmodelFailStreak, "1");
     assert.equal(f.relogins(), 0);
     await f.api.preflightMadModel();
     assert.equal(f.calls.length, 2, "invalid token must not bypass renewal backoff");
@@ -185,6 +192,7 @@ await test("early renewal failure preserves still-valid service and applies back
     ? response(200, { success: true }) : response(503, {}));
   assert.equal(await f.api.preflightMadModel(), null);
   assert.equal(f.rec.settings.madmodelToken, token(0.5));
+  for(let n=0;n<40&&!f.rec.settings.madmodelFailStreak;n++)await new Promise(resolve=>setImmediate(resolve));
   assert.equal(f.rec.settings.madmodelFailStreak, "1");
   await f.api.preflightMadModel();
   assert.equal(f.calls.length, 2);
@@ -333,6 +341,7 @@ await test("unrecognized SSO page does not trigger credential relogin", async ()
     ? response(200, { success: false }) : response(200, "<html>Temporary gateway error</html>"));
   await assert.rejects(f.api.ensureMadModelToken(), /未能续签/);
   assert.equal(f.relogins(), 0);
+  for(let n=0;n<40&&!f.rec.settings.madmodelFailStreak;n++)await new Promise(resolve=>setImmediate(resolve));
   assert.equal(f.rec.settings.madmodelFailStreak, "1");
 });
 

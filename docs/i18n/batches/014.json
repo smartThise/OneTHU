@@ -1,7 +1,236 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.freeboard.7e8f29dd96a4",
+      "source": "白板工具",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 1193,
+          "context": "{i18n(\"components.freeboard.7e8f29dd96a4\")}"
+        }
+      ],
+      "translation": "Board tools",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.freeboard.80f8fbcfa011",
+      "source": "放大",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 1210,
+          "context": "{i18n(\"components.freeboard.80f8fbcfa011\")}"
+        }
+      ],
+      "translation": "Zoom in",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.freeboard.837940c33698",
+      "source": "减高",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 1138,
+          "context": "{i18n(\"components.freeboard.837940c33698\")}"
+        }
+      ],
+      "translation": "Shorter",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.freeboard.83d2e3f15c71",
+      "source": "直接拖动卡片摆放，选中后拉角点调整大小；底部工具栏可调整画布比例",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 980,
+          "context": "!canEdit ? i18n(\"components.freeboard.editingHint\") : i18n(\"components.freeboard.83d2e3f15c71\")"
+        }
+      ],
+      "translation": "Drag cards directly to arrange them; select one, then drag a corner to resize. The bottom toolbar adjusts the canvas scale",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.freeboard.84a07f292f1f",
+      "source": "折叠",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 1145,
+          "context": "it.folded ? i18n(\"components.freeboard.00bd3960fea8\") : i18n(\"components.freeboard.84a07f292f1f\")"
+        },
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 1149,
+          "context": "it.folded ? i18n(\"components.freeboard.2de119793cb4\") : i18n(\"components.freeboard.84a07f292f1f\")"
+        }
+      ],
+      "translation": "Collapse",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.freeboard.84d2b65c5548",
+      "source": "OnePage 面板：拖住改高度（半屏或全屏）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 1508,
+          "context": "{i18n(\"components.freeboard.84d2b65c5548\")}"
+        }
+      ],
+      "translation": "OnePage panel: drag to change height (half screen or full screen)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.freeboard.8d6ca2d1e48b",
+      "source": "已折叠（浮条里可展开）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 1091,
+          "context": "{i18n(\"components.freeboard.8d6ca2d1e48b\")}"
+        }
+      ],
+      "translation": "Collapsed (expand from the floating bar)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.freeboard.8e1c845f3d61",
+      "source": "还没有工作区（标签右键可把标签编入工作区）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 1273,
+          "context": "{i18n(\"components.freeboard.8e1c845f3d61\")}"
+        }
+      ],
+      "translation": "No workspaces yet (right-click a tab to add it to a workspace)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.freeboard.910046f3ea83",
+      "source": "暂存箱里已经有这个组件了",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 773,
+          "context": "r.reason === \"duplicate\" ? i18n(\"components.freeboard.910046f3ea83\") : i18n(\"components.freeboard.57ce97c584ca\")"
+        }
+      ],
+      "translation": "This widget is already in the Stash",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.freeboard.979a332955c8",
+      "source": "详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 776,
+          "context": "label: i18n(\"components.freeboard.979a332955c8\")"
+        }
+      ],
+      "translation": "Details",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "components.freeboard.97dcf4348652",
+      "source": "添加组件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 983,
+          "context": "label: i18n(\"components.freeboard.97dcf4348652\")"
+        }
+      ],
+      "translation": "Add widget",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "components.freeboard.9818eabd5c89",
+      "source": "圆形 logo 网格：收纳一级入口、OnePage 与工作区",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 1313,
+          "context": "description: i18n(\"components.freeboard.9818eabd5c89\")"
+        }
+      ],
+      "translation": "Grid of circular logos: holds main feature entries, OnePages, and workspaces",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.freeboard.996f7b2c0f27",
+      "source": "恢复适合当前窗口的 100%",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 1209,
+          "context": "{i18n(\"components.freeboard.996f7b2c0f27\")}"
+        }
+      ],
+      "translation": "Reset to 100% for this window",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.freeboard.9a3bd2de70be",
+      "source": "这块白板还是空的。可以从模板开始，或从「＋」添加一个组件。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FreeBoard.tsx",
+          "line": 1007,
+          "context": "{i18n(\"components.freeboard.9a3bd2de70be\")}"
+        }
+      ],
+      "translation": "This board is still empty. Start from a template, or add a widget from \"＋\".",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "components.freeboard.a1714f5783d4",
       "source": "这条入口已失效，可从右键菜单移除",
@@ -10,7 +239,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 953,
+          "line": 958,
           "context": "say(i18n(\"components.freeboard.a1714f5783d4\"))"
         }
       ],
@@ -31,7 +260,7 @@
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1228,
+          "line": 1233,
           "context": "{i18n(\"components.freeboard.a450a21ac723\")}"
         }
       ],
@@ -47,7 +276,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 750,
+          "line": 755,
           "context": "label: i18n(\"components.freeboard.d003f87ed602\")"
         }
       ],
@@ -63,7 +292,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 743,
+          "line": 748,
           "context": "picked ? i18n(\"components.freeboard.d13523826411\") : i18n(\"components.freeboard.153d487fec51\")"
         }
       ],
@@ -79,12 +308,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 755,
+          "line": 760,
           "context": "item.pinned ? i18n(\"components.freeboard.20590a6a7b9a\") : i18n(\"components.freeboard.d4b3f49cd2e4\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1151,
+          "line": 1156,
           "context": "it.pinned ? i18n(\"components.freeboard.70fba17fffb7\") : i18n(\"components.freeboard.d4b3f49cd2e4\")"
         }
       ],
@@ -100,7 +329,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1332,
+          "line": 1337,
           "context": "say(i18n(\"components.freeboard.daaec6369d42\"))"
         }
       ],
@@ -116,7 +345,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1490,
+          "line": 1495,
           "context": "{i18n(\"components.freeboard.dbb6d640ea9f\")}"
         }
       ],
@@ -164,7 +393,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1126,
+          "line": 1131,
           "context": "dir < 0 ? i18n(\"components.freeboard.f853a70b1204\") : i18n(\"components.freeboard.e75e8b4e5c97\")"
         }
       ],
@@ -180,7 +409,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1366,
+          "line": 1371,
           "context": "say(i18n(\"components.freeboard.e8f9281f866e\"))"
         }
       ],
@@ -196,12 +425,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 975,
+          "line": 980,
           "context": "!canEdit ? i18n(\"components.freeboard.editingHint\") : i18n(\"components.freeboard.83d2e3f15c71\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 993,
+          "line": 998,
           "context": "!canEdit ? i18n(\"components.freeboard.editingHint\") : stack ? i18n(\"components.freeboard.2880a75c7f5f\") : i18n(\"components.freeboard.5b80d5358a4b\")"
         }
       ],
@@ -217,7 +446,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1319,
+          "line": 1324,
           "context": "description: i18n(\"components.freeboard.eef4bb73e8a0\")"
         }
       ],
@@ -233,7 +462,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1147,
+          "line": 1152,
           "context": "{i18n(\"components.freeboard.f7b6fbf1f2f6\")}"
         }
       ],
@@ -249,7 +478,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1126,
+          "line": 1131,
           "context": "dir < 0 ? i18n(\"components.freeboard.f853a70b1204\") : i18n(\"components.freeboard.e75e8b4e5c97\")"
         }
       ],
@@ -265,12 +494,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 981,
+          "line": 986,
           "context": "phoneCanvas ? i18n(\"components.freeboard.593f0f466b3e\") : i18n(\"components.freeboard.f87eebfdca60\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1194,
+          "line": 1199,
           "context": "phoneCanvas ? i18n(\"components.freeboard.593f0f466b3e\") : i18n(\"components.freeboard.f87eebfdca60\")"
         }
       ],
@@ -286,7 +515,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 771,
+          "line": 776,
           "context": "def ? def.description : i18n(\"components.freeboard.fa35f4f53dd5\")"
         }
       ],
@@ -302,7 +531,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1351,
+          "line": 1356,
           "context": "i18n(\"components.freeboard.fcbe33148f3a\") + size.w"
         }
       ],
@@ -318,12 +547,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1135,
+          "line": 1140,
           "context": "{i18n(\"components.freeboard.fe067a88a36d\")}"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1135,
+          "line": 1140,
           "context": "{i18n(\"components.freeboard.fe067a88a36d\")}"
         }
       ],
@@ -339,7 +568,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1163,
+          "line": 1168,
           "context": "i18n(\"components.freeboard.ff84465bf83c\") + h"
         }
       ],
@@ -355,7 +584,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1189,
+          "line": 1194,
           "context": "phoneEditing ? i18n(\"components.freeboard.finishEdit\") : i18n(\"components.freeboard.startEdit\")"
         }
       ],
@@ -371,7 +600,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1189,
+          "line": 1194,
           "context": "phoneEditing ? i18n(\"components.freeboard.finishEdit\") : i18n(\"components.freeboard.startEdit\")"
         }
       ],
@@ -1161,239 +1390,6 @@
         }
       ],
       "translation": "Assignments from Web Learning, Rain Classroom, and OJ are all aggregated in the assignments area; Rain Classroom needs a one-time QR scan to link.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.helpsection.eea78fdb74ce",
-      "source": "打开导览",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/HelpSection.tsx",
-          "line": 71,
-          "context": "{i18n(\"components.helpsection.eea78fdb74ce\")}"
-        }
-      ],
-      "translation": "Open the tour",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.helpsection.f96e2a787c76",
-      "source": "我要预约图书馆座位、研讨间、体育",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/HelpSection.tsx",
-          "line": 36,
-          "context": "return i18n(\"components.helpsection.f96e2a787c76\");"
-        }
-      ],
-      "translation": "I want to book library seats, study rooms, and sports venues",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.helpsection.faf8fc496688",
-      "source": "这些都在设置里，下面直接带你到对应的栏目。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/HelpSection.tsx",
-          "line": 52,
-          "context": "return i18n(\"components.helpsection.faf8fc496688\");"
-        }
-      ],
-      "translation": "These are all in Settings; the buttons below take you straight to the right section.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.homecoachmarks.3f1467fc681a",
-      "source": "一级功能坞在这里；找不到的功能都在「服务」页，也能直接搜。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/HomeCoachMarks.tsx",
-          "line": 25,
-          "context": "return i18n(\"components.homecoachmarks.3f1467fc681a\");"
-        }
-      ],
-      "translation": "The main features dock is here. Anything you can't find is on the \"Services\" page, or search directly.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.homecoachmarks.626caf19ebdb",
-      "source": "第 {value} 条，共 {length} 条",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "idx + 1"
-        },
-        {
-          "name": "length",
-          "expression": "avail.length"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/HomeCoachMarks.tsx",
-          "line": 178,
-          "context": "{i18nRich(\"components.homecoachmarks.626caf19ebdb\", { value: idx + 1, length: avail.length })}"
-        }
-      ],
-      "translation": "{value} of {length}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.homecoachmarks.a54a0add5447",
-      "source": "不再提示",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/HomeCoachMarks.tsx",
-          "line": 180,
-          "context": "{i18n(\"components.homecoachmarks.a54a0add5447\")}"
-        }
-      ],
-      "translation": "Don't show again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.homecoachmarks.a698c6f322d5",
-      "source": "直接拖动卡片摆放，选中后拉角点调整大小；底部工具栏可随时添加与缩放。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/HomeCoachMarks.tsx",
-          "line": 23,
-          "context": "return i18n(\"components.homecoachmarks.a698c6f322d5\");"
-        }
-      ],
-      "translation": "Drag cards directly to arrange them; select one, then drag a corner to resize. The bottom toolbar lets you add and zoom anytime.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.homecoachmarks.de32e20193ad",
-      "source": "知道了",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/HomeCoachMarks.tsx",
-          "line": 181,
-          "context": "last ? i18n(\"components.homecoachmarks.de32e20193ad\") : i18n(\"components.homecoachmarks.df119e585ece\")"
-        }
-      ],
-      "translation": "Got it",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.homecoachmarks.df119e585ece",
-      "source": "下一条",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/HomeCoachMarks.tsx",
-          "line": 181,
-          "context": "last ? i18n(\"components.homecoachmarks.de32e20193ad\") : i18n(\"components.homecoachmarks.df119e585ece\")"
-        }
-      ],
-      "translation": "Next",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.homecoachmarks.fe031a3ba2eb",
-      "source": "从这儿添加组件：内置组件、你的收藏、其它 OnePage 都在这。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/HomeCoachMarks.tsx",
-          "line": 24,
-          "context": "return i18n(\"components.homecoachmarks.fe031a3ba2eb\");"
-        }
-      ],
-      "translation": "Add widgets from here: built-in widgets, your favorites, and other OnePages are all here.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.homewidgets.00c13966da7b",
-      "source": "暂时没有新通知。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/HomeWidgets.tsx",
-          "line": 322,
-          "context": "{i18n(\"components.homewidgets.00c13966da7b\")}"
-        }
-      ],
-      "translation": "No new notifications for now.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.homewidgets.0631b8517ea4",
-      "source": "座位 ",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/HomeWidgets.tsx",
-          "line": 360,
-          "context": "i18n(\"components.homewidgets.0631b8517ea4\") + r.place"
-        }
-      ],
-      "translation": "Seat ",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.homewidgets.0ba4abe941a2",
-      "source": "今天没有课。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/HomeWidgets.tsx",
-          "line": 383,
-          "context": "{i18n(\"components.homewidgets.0ba4abe941a2\")}"
-        }
-      ],
-      "translation": "No classes today.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.homewidgets.106e2c9d79fd",
-      "source": "今天截止",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/HomeWidgets.tsx",
-          "line": 60,
-          "context": "text: i18n(\"components.homewidgets.106e2c9d79fd\")"
-        }
-      ],
-      "translation": "Due today",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

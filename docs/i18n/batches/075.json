@@ -1,7 +1,250 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "pages.xiaoda.xiaodapage.115f8a99ff8d",
+      "source": "直接输入问题即可；换智能体请到「智能体」页挑一个",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 340,
+          "context": "{i18n(\"pages.xiaoda.xiaodapage.115f8a99ff8d\")}"
+        }
+      ],
+      "translation": "Just type your question; to switch agents, pick one on the \"Agents\" page",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.xiaoda.xiaodapage.1587a76a2d84",
+      "source": "（空对话）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 482,
+          "context": "(c.query.split(\"\\n\")[0] ?? \"\").slice(0, 40) || i18n(\"pages.xiaoda.xiaodapage.1587a76a2d84\")"
+        }
+      ],
+      "translation": "(empty conversation)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.xiaoda.xiaodapage.21fbaf3a4f57",
+      "source": "说点什么吧",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 340,
+          "context": "{i18n(\"pages.xiaoda.xiaodapage.21fbaf3a4f57\")}"
+        }
+      ],
+      "translation": "Say something",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.xiaoda.xiaodapage.2df7697dbb61",
+      "source": "智能体",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 74,
+          "context": "id === DEFAULT_AGENT_ID ? DEFAULT_AGENT_NAME() : i18n(\"pages.xiaoda.xiaodapage.2df7697dbb61\")"
+        },
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 137,
+          "context": "label: i18n(\"pages.xiaoda.xiaodapage.2df7697dbb61\")"
+        }
+      ],
+      "translation": "Agents",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.xiaoda.xiaodapage.34d33c5a7a08",
+      "source": "深度研究",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 484,
+          "context": "c.isDeepResearch ? i18n(\"pages.xiaoda.xiaodapage.34d33c5a7a08\") : undefined"
+        }
+      ],
+      "translation": "Deep research",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.xiaoda.xiaodapage.350d0be1b4e7",
+      "source": "登录失败，请点下方重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 146,
+          "context": "{i18n(\"pages.xiaoda.xiaodapage.350d0be1b4e7\")}"
+        }
+      ],
+      "translation": "Sign-in failed. Tap Retry below.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.xiaoda.xiaodapage.47392b6dbaa8",
+      "source": "还没有对话记录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 470,
+          "context": "{i18n(\"pages.xiaoda.xiaodapage.47392b6dbaa8\")}"
+        }
+      ],
+      "translation": "No conversation history yet",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.xiaoda.xiaodapage.4927a53bcc88",
+      "source": "加载中…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 495,
+          "context": "loadingMore ? i18n(\"pages.xiaoda.xiaodapage.4927a53bcc88\") : i18n(\"pages.xiaoda.xiaodapage.af90a08fec8e\")"
+        },
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 658,
+          "context": "loadingMore ? i18n(\"pages.xiaoda.xiaodapage.4927a53bcc88\") : i18n(\"pages.xiaoda.xiaodapage.af90a08fec8e\")"
+        }
+      ],
+      "translation": "Loading…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.xiaoda.xiaodapage.49d451178263",
+      "source": "它也无法调度 OH 功能；本页是 OneTHU 的接入界面。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 43,
+          "context": "() => i18n(\"pages.xiaoda.xiaodapage.49d451178263\")"
+        }
+      ],
+      "translation": "It also cannot dispatch OH features; this page is OneTHU's integration interface.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.xiaoda.xiaodapage.4c279d27ac1e",
+      "source": "对话一旦开始就不能再换智能体；要换请先点「新对话」。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 407,
+          "context": "{i18n(\"pages.xiaoda.xiaodapage.4c279d27ac1e\")}"
+        }
+      ],
+      "translation": "The agent cannot be changed once a conversation starts; tap \"New conversation\" first to switch.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.xiaoda.xiaodapage.515559957fd3",
+      "source": "分类",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 617,
+          "context": "{i18n(\"pages.xiaoda.xiaodapage.515559957fd3\")}"
+        }
+      ],
+      "translation": "Category",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.xiaoda.xiaodapage.56fb269924d9",
+      "source": "技能加载失败，请点重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 630,
+          "context": "{i18n(\"pages.xiaoda.xiaodapage.56fb269924d9\")}"
+        }
+      ],
+      "translation": "Failed to load skills. Tap Retry.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.xiaoda.xiaodapage.5aa03810e659",
+      "source": "{value} 次下载 · {value2}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(s.downloadCount ?? 0)"
+        },
+        {
+          "name": "value2",
+          "expression": "String(s.authorName ?? \"\")"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 651,
+          "context": "{i18n(\"pages.xiaoda.xiaodapage.5aa03810e659\", { value: String(s.downloadCount ?? 0), value2: String(s.authorName ?? \"\") })}"
+        }
+      ],
+      "translation": "{value} downloads · {value2}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.xiaoda.xiaodapage.5d44af892c1b",
+      "source": "继续对话",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
+          "line": 327,
+          "context": "active ? i18n(\"pages.xiaoda.xiaodapage.5d44af892c1b\") : i18n(\"pages.xiaoda.xiaodapage.ea4b29f58f87\")"
+        }
+      ],
+      "translation": "Continue conversation",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "pages.xiaoda.xiaodapage.5e2031c13ffa",
       "source": "接着聊",
@@ -1234,267 +1477,6 @@
         }
       ],
       "translation": "Event name",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.zhjwxk.courses.312e77e57076",
-      "source": "研院余量: 不限",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
-          "line": 789,
-          "context": "{i18n(\"pages.zhjwxk.courses.312e77e57076\")}"
-        }
-      ],
-      "translation": "Grad school openings: Any",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.zhjwxk.courses.31ba5905672b",
-      "source": " 提供 · 仅限非商业用途",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
-          "line": 317,
-          "context": "{i18n(\"pages.zhjwxk.courses.31ba5905672b\")}"
-        }
-      ],
-      "translation": " provided · Non-commercial use only",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.zhjwxk.courses.33fabd4ae4d8",
-      "source": "例如：社团例会",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
-          "line": 1438,
-          "context": "{i18n(\"pages.zhjwxk.courses.33fabd4ae4d8\")}"
-        }
-      ],
-      "translation": "e.g., Club meeting",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.zhjwxk.courses.3808d3b1f577",
-      "source": "社区评价: 不限",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
-          "line": 781,
-          "context": "{i18n(\"pages.zhjwxk.courses.3808d3b1f577\")}"
-        }
-      ],
-      "translation": "Community reviews: Any",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.zhjwxk.courses.3a94b84beb0c",
-      "source": "点评数据来自 ",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
-          "line": 317,
-          "context": "{i18n(\"pages.zhjwxk.courses.3a94b84beb0c\")}"
-        }
-      ],
-      "translation": "Review data from ",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.zhjwxk.courses.3c3926abccf0",
-      "source": "{g} ({length}门)",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "g",
-          "expression": "String(g)"
-        },
-        {
-          "name": "length",
-          "expression": "String(items.length)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
-          "line": 1158,
-          "context": "{i18n(\"pages.zhjwxk.courses.3c3926abccf0\", { g: String(g), length: String(items.length) })}"
-        }
-      ],
-      "translation": "{g} ({length} courses)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.zhjwxk.courses.3c48d4b889f5",
-      "source": "{length}门课 · {cr}学分{value}",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "courses.length"
-        },
-        {
-          "name": "cr",
-          "expression": "cr"
-        },
-        {
-          "name": "value",
-          "expression": "wb.manualEvents.length ? i18n(\"pages.zhjwxk.courses.5dbc7a39b365\", { length: String(wb.manualEvents.length) }) : \"\""
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
-          "line": 1431,
-          "context": "{i18nRich(\"pages.zhjwxk.courses.3c48d4b889f5\", { length: courses.length, cr: cr, value: wb.manualEvents.length ? i18n(\"pages.zhjwxk.courses.5dbc7a39b365\", { length: String(wb.manualEvents.length) }) : \"\" })}"
-        }
-      ],
-      "translation": "{length} courses · {cr} credits{value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.zhjwxk.courses.3cd7d874f722",
-      "source": "点击查看{value}的选课通知",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "o === \"北大研\" ? i18n(\"pages.zhjwxk.courses.44a94cb2b71a\") : i18n(\"pages.zhjwxk.courses.06ac33331166\")"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
-          "line": 1092,
-          "context": "{i18nRich(\"pages.zhjwxk.courses.3cd7d874f722\", { value: o === \"北大研\" ? i18n(\"pages.zhjwxk.courses.44a94cb2b71a\") : i18n(\"pages.zhjwxk.courses.06ac33331166\") })}"
-        }
-      ],
-      "translation": "Tap to view the {value} course selection notice",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.zhjwxk.courses.3cf587997516",
-      "source": "社区评分 高→低",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
-          "line": 782,
-          "context": "{i18n(\"pages.zhjwxk.courses.3cf587997516\")}"
-        }
-      ],
-      "translation": "Community rating: high → low",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.zhjwxk.courses.4380e27691cb",
-      "source": "{v}学分",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "v",
-          "expression": "String(v)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
-          "line": 776,
-          "context": "v === \"5+\" ? i18n(\"pages.zhjwxk.courses.44843497379a\") : i18n(\"pages.zhjwxk.courses.4380e27691cb\", { v: String(v) })"
-        }
-      ],
-      "translation": "{v} credits",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.zhjwxk.courses.44843497379a",
-      "source": "5+学分",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
-          "line": 776,
-          "context": "v === \"5+\" ? i18n(\"pages.zhjwxk.courses.44843497379a\") : i18n(\"pages.zhjwxk.courses.4380e27691cb\", { v: String(v) })"
-        }
-      ],
-      "translation": "5+ credits",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.zhjwxk.courses.44a94cb2b71a",
-      "source": "北京大学面向我校研究生开放课程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
-          "line": 1092,
-          "context": "o === \"北大研\" ? i18n(\"pages.zhjwxk.courses.44a94cb2b71a\") : i18n(\"pages.zhjwxk.courses.06ac33331166\")"
-        }
-      ],
-      "translation": "Peking University courses open to our graduate students",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.zhjwxk.courses.4583bde5e031",
-      "source": "{o}课程时间无法自动获取",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "o",
-          "expression": "o"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
-          "line": 1090,
-          "context": "{i18nRich(\"pages.zhjwxk.courses.4583bde5e031\", { o: labelForId(o) })}"
-        }
-      ],
-      "translation": "{o} course times could not be fetched automatically",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "pages.zhjwxk.courses.4927a53bcc88",
-      "source": "加载中…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
-          "line": 808,
-          "context": "busy ? i18n(\"pages.zhjwxk.courses.4927a53bcc88\") : i18n(\"pages.zhjwxk.courses.d56768244576\")"
-        }
-      ],
-      "translation": "Loading…",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

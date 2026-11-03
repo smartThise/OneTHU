@@ -1,7 +1,241 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "enum.label.ef94275bd96f",
+      "source": "实验设备",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/i18n/staticLabels.ts",
+          "line": 25,
+          "context": "return t(\"enum.label.ef94275bd96f\");"
+        }
+      ],
+      "translation": "Lab equipment",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "enum.label.f2260568b289",
+      "source": "成绩评定标准",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/i18n/staticLabels.ts",
+          "line": 48,
+          "context": "return t(\"enum.label.f2260568b289\");"
+        }
+      ],
+      "translation": "Grading criteria",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "enum.label.f24ccb00a8ab",
+      "source": "参考书",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/i18n/staticLabels.ts",
+          "line": 49,
+          "context": "return t(\"enum.label.f24ccb00a8ab\");"
+        }
+      ],
+      "translation": "References",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "enum.label.fc0c0d12a458",
+      "source": "总学时数",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/i18n/staticLabels.ts",
+          "line": 36,
+          "context": "return t(\"enum.label.fc0c0d12a458\");"
+        }
+      ],
+      "translation": "Total class hours",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "enum.label.ojPlatforms",
+      "source": "OJ 平台",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/i18n/staticLabels.ts",
+          "line": 9,
+          "context": "return t(\"enum.label.ojPlatforms\");"
+        }
+      ],
+      "translation": "OJ platforms",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "enum.label.tuojAI",
+      "source": "TUOJ（AI 版）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/i18n/staticLabels.ts",
+          "line": 7,
+          "context": "return t(\"enum.label.tuojAI\");"
+        }
+      ],
+      "translation": "TUOJ (AI edition)",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "enum.label.tuojClassic",
+      "source": "TUOJ（经典版）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/i18n/staticLabels.ts",
+          "line": 8,
+          "context": "return t(\"enum.label.tuojClassic\");"
+        }
+      ],
+      "translation": "TUOJ (classic edition)",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "friends.accept",
+      "source": "接入通道",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FriendInvitations.tsx",
+          "line": 122,
+          "context": "conflictingFriendChannel(invite) ? t(\"friends.switchChannel\") : t(\"friends.accept\")"
+        }
+      ],
+      "translation": "Join channel",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "friends.accountUnknown",
+      "source": "云盘未返回账号邮箱，请重新连接。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/friendInbox.ts",
+          "line": 93,
+          "context": "new Error(t(\"friends.accountUnknown\"))"
+        }
+      ],
+      "translation": "Cloud did not return your account email. Please reconnect.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "friends.alreadyConnected",
+      "source": "你和这位好友已有通道，请从现有名片进入，避免建立重复通道。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/friendInbox.ts",
+          "line": 308,
+          "context": "new Error(t(\"friends.alreadyConnected\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/friendInbox.ts",
+          "line": 316,
+          "context": "new Error(t(\"friends.alreadyConnected\"))"
+        }
+      ],
+      "translation": "You already have a channel with this friend. Open their existing card to avoid duplicate channels.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "friends.awaitingPeer",
+      "source": "已邀请，等待对方接入",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NameCardSection.tsx",
+          "line": 643,
+          "context": "shown.shared?.invitationPublishedAt ? i18n(\"friends.awaitingPeer\")\n                    : shown.shared ? i18n(\"friends.legacyChannel\") : i18n(\"components.namecardsection.90b310149a74\")"
+        }
+      ],
+      "translation": "Invited · awaiting acceptance",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "friends.checking",
+      "source": "检查中…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FriendInvitations.tsx",
+          "line": 107,
+          "context": "inbox.busy ? t(\"friends.checking\") : t(\"friends.checkInvites\")"
+        }
+      ],
+      "translation": "Checking…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "friends.checkInvites",
+      "source": "检查邀请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FriendInvitations.tsx",
+          "line": 107,
+          "context": "inbox.busy ? t(\"friends.checking\") : t(\"friends.checkInvites\")"
+        }
+      ],
+      "translation": "Check invitations",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "friends.connectCloud",
+      "source": "连接清华云盘后即可检查好友邀请。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FriendInvitations.tsx",
+          "line": 110,
+          "context": "configured ? t(\"friends.inboxHint\") : t(\"friends.connectCloud\")"
+        },
+        {
+          "file": "apps/desktop/src/state/friendInbox.ts",
+          "line": 85,
+          "context": "new Error(t(\"friends.connectCloud\"))"
+        }
+      ],
+      "translation": "Connect Tsinghua Cloud to check friend invitations.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "friends.connected",
       "source": "已连接",
@@ -1198,245 +1432,6 @@
         }
       ],
       "translation": "protobuf: unknown wire type {wireType}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.feishuproto.6c3a6e0bd105",
-      "source": "protobuf: varint 过长",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/feishuProto.ts",
-          "line": 89,
-          "context": "new Error(i18n(\"im.feishuproto.6c3a6e0bd105\"))"
-        }
-      ],
-      "translation": "protobuf: varint too long",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.feishuproto.df3efc2fd559",
-      "source": "protobuf: bytes 越界",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/feishuProto.ts",
-          "line": 96,
-          "context": "new Error(i18n(\"im.feishuproto.df3efc2fd559\"))"
-        }
-      ],
-      "translation": "protobuf: bytes out of range",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.feishureg.3e58ad192505",
-      "source": "请求过频，稍后继续…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/feishuReg.ts",
-          "line": 115,
-          "context": "note: i18n(\"im.feishureg.3e58ad192505\")"
-        }
-      ],
-      "translation": "Requests are too frequent; continuing later…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.feishureg.7e5f803b7990",
-      "source": "应用创建成功",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/feishuReg.ts",
-          "line": 107,
-          "context": "note: i18n(\"im.feishureg.7e5f803b7990\")"
-        }
-      ],
-      "translation": "App created successfully",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.feishureg.b8a04f9752fe",
-      "source": "等待手机确认创建…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/feishuReg.ts",
-          "line": 113,
-          "context": "note: i18n(\"im.feishureg.b8a04f9752fe\")"
-        }
-      ],
-      "translation": "Waiting for confirmation on your phone…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.feishureg.c383c734a8c7",
-      "source": "二维码已过期，请重新发起",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/feishuReg.ts",
-          "line": 119,
-          "context": "note: i18n(\"im.feishureg.c383c734a8c7\")"
-        }
-      ],
-      "translation": "The QR code has expired; please start again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.feishureg.d170f4a5cb1e",
-      "source": "检测到 Lark（海外）租户，正在切换接入点…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/feishuReg.ts",
-          "line": 99,
-          "context": "note: i18n(\"im.feishureg.d170f4a5cb1e\")"
-        }
-      ],
-      "translation": "Lark (international) tenant detected; switching endpoint…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.feishureg.e5de60029f1b",
-      "source": "begin 未返回二维码地址：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(JSON.stringify(r).slice(0, 160))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/feishuReg.ts",
-          "line": 61,
-          "context": "new Error(i18n(\"im.feishureg.e5de60029f1b\", { value: String(JSON.stringify(r).slice(0, 160)) }))"
-        }
-      ],
-      "translation": "begin did not return a QR code URL: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.feishureg.f9b4efe03903",
-      "source": "你在手机上取消了创建",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/feishuReg.ts",
-          "line": 117,
-          "context": "note: i18n(\"im.feishureg.f9b4efe03903\")"
-        }
-      ],
-      "translation": "You canceled the creation on your phone",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.feishureg.unknownReason",
-      "source": "未知原因",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/feishuReg.ts",
-          "line": 121,
-          "context": "r.error_description ?? i18n(\"im.feishureg.unknownReason\")"
-        }
-      ],
-      "translation": "Unknown reason",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.imstorage.15b8b711a27d",
-      "source": "当前环境不支持 WebCrypto",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/imStorage.ts",
-          "line": 122,
-          "context": "new Error(i18n(\"im.imstorage.15b8b711a27d\"))"
-        },
-        {
-          "file": "apps/desktop/src/im/imStorage.ts",
-          "line": 136,
-          "context": "new Error(i18n(\"im.imstorage.15b8b711a27d\"))"
-        },
-        {
-          "file": "apps/desktop/src/im/imStorage.ts",
-          "line": 146,
-          "context": "new Error(i18n(\"im.imstorage.15b8b711a27d\"))"
-        }
-      ],
-      "translation": "The current environment does not support WebCrypto",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.mediapipe.734edfaaa263",
-      "source": "云盘未配置：先在应用的「云盘」页连接",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/mediaPipe.ts",
-          "line": 50,
-          "context": "new Error(i18n(\"im.mediapipe.734edfaaa263\"))"
-        }
-      ],
-      "translation": "Cloud drive is not configured: connect it on the app's “Cloud Drive” page first",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.mediapipe.da65b434a10b",
-      "source": "尚未指定资料库（请先回复库序号或库名，我来记住）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/mediaPipe.ts",
-          "line": 163,
-          "context": "new Error(i18n(\"im.mediapipe.da65b434a10b\"))"
-        }
-      ],
-      "translation": "No library has been chosen yet (reply with the library number or name first, and I'll remember it)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "im.registry.02e3d60f5728",
-      "source": "通道未启用",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/im/registry.ts",
-          "line": 68,
-          "context": "new Error(i18n(\"im.registry.02e3d60f5728\"))"
-        }
-      ],
-      "translation": "Channel not enabled",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

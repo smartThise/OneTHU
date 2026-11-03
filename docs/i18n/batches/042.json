@@ -1,7 +1,233 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "lib.xklogic.5e35c673a5a7",
+      "source": "5-6节",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 15
+        }
+      ],
+      "translation": "Periods 5-6",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.749cef85dc5e",
+      "source": "7-8节",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 15
+        }
+      ],
+      "translation": "Periods 7-8",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.8a480b042260",
+      "source": "(已有体育课)",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 514,
+          "context": "coveredBy = i18n(\"lib.xklogic.8a480b042260\")"
+        },
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 515,
+          "context": "coveredBy = i18n(\"lib.xklogic.8a480b042260\")"
+        }
+      ],
+      "translation": "(PE course already present)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.a0e7e080aa5e",
+      "source": "任选",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 63,
+          "context": "return i18n(\"lib.xklogic.a0e7e080aa5e\");"
+        }
+      ],
+      "translation": "Free elective",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.ab9ba6d10394",
+      "source": "无数据",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 86,
+          "context": "label: i18n(\"lib.xklogic.ab9ba6d10394\")"
+        },
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 90,
+          "context": "label: i18n(\"lib.xklogic.ab9ba6d10394\")"
+        }
+      ],
+      "translation": "No data",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "lib.xklogic.bf81401ed39e",
+      "source": "(英语阅读写作/听说交流)",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 522,
+          "context": "coveredBy = i18n(\"lib.xklogic.bf81401ed39e\")"
+        }
+      ],
+      "translation": "(English reading & writing / listening & speaking)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.c430f4c12eaa",
+      "source": "周一",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 14
+        }
+      ],
+      "translation": "Mon",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.d1378a68e620",
+      "source": "周二",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 14
+        }
+      ],
+      "translation": "Tue",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.d78be007f184",
+      "source": "(英语进阶读写)",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 518,
+          "context": "coveredBy = i18n(\"lib.xklogic.d78be007f184\")"
+        }
+      ],
+      "translation": "(Advanced English reading & writing)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.dfdf3e83c0bd",
+      "source": "1-2节",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 15
+        }
+      ],
+      "translation": "Periods 1-2",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.e7e4b83f7714",
+      "source": "11-12节",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 15
+        }
+      ],
+      "translation": "Periods 11-12",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.e9d3b01a5a00",
+      "source": "周四",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 14
+        }
+      ],
+      "translation": "Thu",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.ee239f394329",
+      "source": "周日",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 14
+        }
+      ],
+      "translation": "Sun",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.xklogic.ef7be5be3c13",
+      "source": "体育",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/xklogic.ts",
+          "line": 63,
+          "context": "return i18n(\"lib.xklogic.ef7be5be3c13\");"
+        }
+      ],
+      "translation": "Sports",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "lib.xklogic.f9aa11dbb15c",
       "source": "周六",
@@ -589,7 +815,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 33,
+          "line": 34,
           "context": "return t(\"login.error.changeMethod\");"
         }
       ],
@@ -605,7 +831,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 40,
+          "line": 41,
           "context": "return t(\"login.error.confirmationLoop\");"
         }
       ],
@@ -641,7 +867,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 36,
+          "line": 37,
           "context": "return t(\"login.error.gatewayUnavailable\");"
         }
       ],
@@ -673,7 +899,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 39,
+          "line": 40,
           "context": "return t(\"login.error.invalidForm\");"
         }
       ],
@@ -689,12 +915,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 41,
+          "line": 42,
           "context": "return t(\"login.error.prepareFailed\");"
         },
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 44,
+          "line": 45,
           "context": "return t(\"login.error.prepareFailed\");"
         }
       ],
@@ -710,7 +936,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 32,
+          "line": 33,
           "context": "return t(\"login.error.restartVerification\");"
         }
       ],
@@ -726,12 +952,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 34,
+          "line": 35,
           "context": "return t(\"login.error.restricted\");"
         },
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 38,
+          "line": 39,
           "context": "return t(\"login.error.restricted\");"
         }
       ],
@@ -752,7 +978,7 @@
         },
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 31,
+          "line": 32,
           "context": "return t(\"login.error.sessionChanged\");"
         }
       ],
@@ -768,7 +994,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 30,
+          "line": 31,
           "context": "return t(\"login.error.sessionConflict\");"
         }
       ],
@@ -784,7 +1010,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 37,
+          "line": 38,
           "context": "return t(\"login.error.trustLimit\");"
         }
       ],
@@ -1211,262 +1437,6 @@
       "translation": "Main features",
       "status": "prefilled-review",
       "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "native.widget.choose",
-      "source": "点一下选择",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/native-widget-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Tap to choose",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "native.widget.chooseContent",
-      "source": "点一下选择显示内容",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/native-widget-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Tap to choose what to show",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "native.widget.classes.few",
-      "source": "{count} 节课",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "count"
-        }
-      ],
-      "locations": [
-        {
-          "file": "docs/i18n/native-widget-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "{count} classes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "native.widget.classes.many",
-      "source": "{count} 节课",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "count"
-        }
-      ],
-      "locations": [
-        {
-          "file": "docs/i18n/native-widget-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "{count} classes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "native.widget.classes.one",
-      "source": "{count} 节课",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "count"
-        }
-      ],
-      "locations": [
-        {
-          "file": "docs/i18n/native-widget-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "{count} class",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "native.widget.classes.other",
-      "source": "{count} 节课",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "count"
-        }
-      ],
-      "locations": [
-        {
-          "file": "docs/i18n/native-widget-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "{count} classes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "native.widget.classes.two",
-      "source": "{count} 节课",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "count"
-        }
-      ],
-      "locations": [
-        {
-          "file": "docs/i18n/native-widget-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "{count} classes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "native.widget.classes.zero",
-      "source": "{count} 节课",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "count"
-        }
-      ],
-      "locations": [
-        {
-          "file": "docs/i18n/native-widget-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "{count} classes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "native.widget.classRow",
-      "source": "{time} {title}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "time"
-        },
-        {
-          "name": "title"
-        }
-      ],
-      "locations": [
-        {
-          "file": "docs/i18n/native-widget-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "{time} {title}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "native.widget.completed",
-      "source": "今天的课已上完",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/native-widget-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "All of today's classes are done",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "native.widget.course",
-      "source": "课程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "docs/i18n/native-widget-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "Course",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "native.widget.date",
-      "source": "{month}/{day}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "day"
-        },
-        {
-          "name": "month"
-        }
-      ],
-      "locations": [
-        {
-          "file": "docs/i18n/native-widget-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "{month}/{day}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "native.widget.days.few",
-      "source": "还有 {count} 天",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "count"
-        }
-      ],
-      "locations": [
-        {
-          "file": "docs/i18n/native-widget-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "{count} days left",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "native.widget.days.many",
-      "source": "还有 {count} 天",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "count"
-        }
-      ],
-      "locations": [
-        {
-          "file": "docs/i18n/native-widget-seed.json",
-          "line": 1
-        }
-      ],
-      "translation": "{count} days left",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
     }
   ]
 }

@@ -1,7 +1,236 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.widgetsettingssection.a73b70af248d",
+      "source": "桌面上的小组件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/WidgetSettingsSection.tsx",
+          "line": 96,
+          "context": "{i18n(\"components.widgetsettingssection.a73b70af248d\")}"
+        }
+      ],
+      "translation": "Widgets on the home screen",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.widgetsettingssection.ac32b4f647b8",
+      "source": "调用系统方式直接在桌面放一块标准形态小组件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/WidgetSettingsSection.tsx",
+          "line": 110,
+          "context": "{i18n(\"components.widgetsettingssection.ac32b4f647b8\")}"
+        }
+      ],
+      "translation": "Place a standard-form widget on the home screen directly via the system method",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.widgetsettingssection.ae0f6a0341d8",
+      "source": "小组件槽位",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/WidgetSettingsSection.tsx",
+          "line": 38,
+          "context": "return i18n(\"components.widgetsettingssection.ae0f6a0341d8\");"
+        }
+      ],
+      "translation": "Widget slots",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.widgetsettingssection.b016c8cdb0fd",
+      "source": "快捷方式…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/WidgetSettingsSection.tsx",
+          "line": 195,
+          "context": "k === \"today\" ? i18n(\"components.widgetsettingssection.17a0e39c6089\") : i18n(\"components.widgetsettingssection.b016c8cdb0fd\")"
+        }
+      ],
+      "translation": "Shortcuts…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.widgetsettingssection.b85432068f08",
+      "source": "　添加时系统会自动弹出选择层，通常无需设置。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/WidgetSettingsSection.tsx",
+          "line": 177,
+          "context": "{i18n(\"components.widgetsettingssection.b85432068f08\")}"
+        }
+      ],
+      "translation": "  The system automatically shows the selection sheet when adding; usually no setup needed.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.widgetsettingssection.ba2e93e73037",
+      "source": "恢复默认",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/WidgetSettingsSection.tsx",
+          "line": 167,
+          "context": "{i18n(\"components.widgetsettingssection.ba2e93e73037\")}"
+        }
+      ],
+      "translation": "Restore default",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.widgetsettingssection.cf91efc66059",
+      "source": "本机可用的小组件尺寸",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/WidgetSettingsSection.tsx",
+          "line": 132,
+          "context": "{i18n(\"components.widgetsettingssection.cf91efc66059\")}"
+        }
+      ],
+      "translation": "Widget sizes available on this device",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.widgetsettingssection.d1b082232f2a",
+      "source": "放到桌面",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/WidgetSettingsSection.tsx",
+          "line": 122,
+          "context": "{i18n(\"components.widgetsettingssection.d1b082232f2a\")}"
+        }
+      ],
+      "translation": "Place on home screen",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.widgetsettingssection.d1eb26fb94e9",
+      "source": "尚未选择内容时，桌面小组件先显示此项。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/WidgetSettingsSection.tsx",
+          "line": 206,
+          "context": "{i18n(\"components.widgetsettingssection.d1eb26fb94e9\")}"
+        }
+      ],
+      "translation": "Until content is selected, desktop widgets show this item first.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.widgetsettingssection.d6a437ad7912",
+      "source": "读取失败；若为刚安装的版本，请完全退出应用后重新打开",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/WidgetSettingsSection.tsx",
+          "line": 99,
+          "context": "readFailed\n              ? i18n(\"components.widgetsettingssection.d6a437ad7912\")\n              : instances === null\n                ? i18n(\"components.widgetsettingssection.86b6d0d63062\")\n                : instances.length === 0\n                  ? i18n(\"components.widgetsettingssection.021377fb5c78\")\n                  : i18n(\"components.widgetsettingssection.dea5a08f19a0\", { length: String(instances.length) })"
+        }
+      ],
+      "translation": "Read failed; if this is a freshly installed version, quit the app completely and reopen it",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.widgetsettingssection.da34afed35d2",
+      "source": "系统未接受放置请求，请长按桌面 → 小组件 → OneTHU 手动添加",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/WidgetSettingsSection.tsx",
+          "line": 117,
+          "context": "showToast(i18nMsg(\"components.widgetsettingssection.da34afed35d2\"), 6000)"
+        }
+      ],
+      "translation": "The system did not accept the placement request; long-press the home screen → Widgets → OneTHU to add it manually",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.widgetsettingssection.ddfbdc2f2337",
+      "source": "换内容",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/WidgetSettingsSection.tsx",
+          "line": 161,
+          "context": "{i18n(\"components.widgetsettingssection.ddfbdc2f2337\")}"
+        }
+      ],
+      "translation": "Change content",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.widgetsettingssection.dea5a08f19a0",
+      "source": "共 {length} 块，每块各显示各的（点「换内容」改这一块）。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(instances.length)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/WidgetSettingsSection.tsx",
+          "line": 104,
+          "context": "instances.length === 0\n                  ? i18n(\"components.widgetsettingssection.021377fb5c78\")\n                  : i18n(\"components.widgetsettingssection.dea5a08f19a0\", { length: String(instances.length) })"
+        }
+      ],
+      "translation": "{length} widgets in total, each showing its own content (tap “Change content” to change this one).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.widgetsettingssection.e4f9bcd60944",
+      "source": "新小组件的默认内容",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/WidgetSettingsSection.tsx",
+          "line": 176,
+          "context": "{i18n(\"components.widgetsettingssection.e4f9bcd60944\")}"
+        }
+      ],
+      "translation": "Default content for new widgets",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "components.widgetsettingssection.f607db600fe1",
       "source": "已请求系统添加到桌面，请查看桌面",
@@ -1081,240 +1310,6 @@
       "translation": "Sports",
       "status": "prefilled-review",
       "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "enum.label.ef94275bd96f",
-      "source": "实验设备",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/i18n/staticLabels.ts",
-          "line": 25,
-          "context": "return t(\"enum.label.ef94275bd96f\");"
-        }
-      ],
-      "translation": "Lab equipment",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "enum.label.f2260568b289",
-      "source": "成绩评定标准",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/i18n/staticLabels.ts",
-          "line": 48,
-          "context": "return t(\"enum.label.f2260568b289\");"
-        }
-      ],
-      "translation": "Grading criteria",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "enum.label.f24ccb00a8ab",
-      "source": "参考书",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/i18n/staticLabels.ts",
-          "line": 49,
-          "context": "return t(\"enum.label.f24ccb00a8ab\");"
-        }
-      ],
-      "translation": "References",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "enum.label.fc0c0d12a458",
-      "source": "总学时数",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/i18n/staticLabels.ts",
-          "line": 36,
-          "context": "return t(\"enum.label.fc0c0d12a458\");"
-        }
-      ],
-      "translation": "Total class hours",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "enum.label.ojPlatforms",
-      "source": "OJ 平台",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/i18n/staticLabels.ts",
-          "line": 9,
-          "context": "return t(\"enum.label.ojPlatforms\");"
-        }
-      ],
-      "translation": "OJ platforms",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "enum.label.tuojAI",
-      "source": "TUOJ（AI 版）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/i18n/staticLabels.ts",
-          "line": 7,
-          "context": "return t(\"enum.label.tuojAI\");"
-        }
-      ],
-      "translation": "TUOJ (AI edition)",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "enum.label.tuojClassic",
-      "source": "TUOJ（经典版）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/i18n/staticLabels.ts",
-          "line": 8,
-          "context": "return t(\"enum.label.tuojClassic\");"
-        }
-      ],
-      "translation": "TUOJ (classic edition)",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "friends.accept",
-      "source": "接入通道",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FriendInvitations.tsx",
-          "line": 122,
-          "context": "conflictingFriendChannel(invite) ? t(\"friends.switchChannel\") : t(\"friends.accept\")"
-        }
-      ],
-      "translation": "Join channel",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "friends.accountUnknown",
-      "source": "云盘未返回账号邮箱，请重新连接。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/friendInbox.ts",
-          "line": 93,
-          "context": "new Error(t(\"friends.accountUnknown\"))"
-        }
-      ],
-      "translation": "Cloud did not return your account email. Please reconnect.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "friends.alreadyConnected",
-      "source": "你和这位好友已有通道，请从现有名片进入，避免建立重复通道。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/friendInbox.ts",
-          "line": 308,
-          "context": "new Error(t(\"friends.alreadyConnected\"))"
-        },
-        {
-          "file": "apps/desktop/src/state/friendInbox.ts",
-          "line": 316,
-          "context": "new Error(t(\"friends.alreadyConnected\"))"
-        }
-      ],
-      "translation": "You already have a channel with this friend. Open their existing card to avoid duplicate channels.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "friends.awaitingPeer",
-      "source": "已邀请，等待对方接入",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 643,
-          "context": "shown.shared?.invitationPublishedAt ? i18n(\"friends.awaitingPeer\")\n                    : shown.shared ? i18n(\"friends.legacyChannel\") : i18n(\"components.namecardsection.90b310149a74\")"
-        }
-      ],
-      "translation": "Invited · awaiting acceptance",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "friends.checking",
-      "source": "检查中…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FriendInvitations.tsx",
-          "line": 107,
-          "context": "inbox.busy ? t(\"friends.checking\") : t(\"friends.checkInvites\")"
-        }
-      ],
-      "translation": "Checking…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "friends.checkInvites",
-      "source": "检查邀请",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FriendInvitations.tsx",
-          "line": 107,
-          "context": "inbox.busy ? t(\"friends.checking\") : t(\"friends.checkInvites\")"
-        }
-      ],
-      "translation": "Check invitations",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "friends.connectCloud",
-      "source": "连接清华云盘后即可检查好友邀请。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FriendInvitations.tsx",
-          "line": 110,
-          "context": "configured ? t(\"friends.inboxHint\") : t(\"friends.connectCloud\")"
-        },
-        {
-          "file": "apps/desktop/src/state/friendInbox.ts",
-          "line": 85,
-          "context": "new Error(t(\"friends.connectCloud\"))"
-        }
-      ],
-      "translation": "Connect Tsinghua Cloud to check friend invitations.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
     }
   ]
 }

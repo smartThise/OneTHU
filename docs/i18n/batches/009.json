@@ -1,7 +1,236 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.explorer.tabdrawer.ba2af719b503",
+      "source": "{value}小时前",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(Math.floor(d / 3_600_000))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/TabDrawer.tsx",
+          "line": 613,
+          "context": "return i18n(\"components.explorer.tabdrawer.ba2af719b503\", { value: String(Math.floor(d / 3_600_000)) });"
+        }
+      ],
+      "translation": "{value} hours ago",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.tabdrawer.c0b3fbff51cc",
+      "source": "完成",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/TabDrawer.tsx",
+          "line": 973,
+          "context": "{i18n(\"components.explorer.tabdrawer.c0b3fbff51cc\")}"
+        }
+      ],
+      "translation": "Done",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.tabdrawer.c6a451fd4a5b",
+      "source": "聚焦此标签页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/TabDrawer.tsx",
+          "line": 885,
+          "context": "label: i18n(\"components.explorer.tabdrawer.c6a451fd4a5b\")"
+        }
+      ],
+      "translation": "Focus this tab",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "components.explorer.tabdrawer.c6d80849d9f5",
+      "source": "编辑工作区…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/TabDrawer.tsx",
+          "line": 904,
+          "context": "label: i18n(\"components.explorer.tabdrawer.c6d80849d9f5\")"
+        }
+      ],
+      "translation": "Edit workspace…",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "components.explorer.tabdrawer.c771248e511f",
+      "source": "打开",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/TabDrawer.tsx",
+          "line": 777,
+          "context": "{i18n(\"components.explorer.tabdrawer.c771248e511f\")}"
+        }
+      ],
+      "translation": "Open",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.tabdrawer.d12be229eea4",
+      "source": "暂无成员标签",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/TabDrawer.tsx",
+          "line": 773,
+          "context": "count > 0 ? i18n(\"components.explorer.tabdrawer.96163ffaeeac\", { count: String(count), preview: String(preview), value: String(count > 4 ? \"…\" : \"\") }) : i18n(\"components.explorer.tabdrawer.d12be229eea4\")"
+        }
+      ],
+      "translation": "No member tabs yet",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.tabdrawer.d37482ed02e3",
+      "source": "搜索已打开的标签页…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/TabDrawer.tsx",
+          "line": 986,
+          "context": "{i18n(\"components.explorer.tabdrawer.d37482ed02e3\")}"
+        }
+      ],
+      "translation": "Search open tabs…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.tabdrawer.d4b82994b06a",
+      "source": "彻底删除：连同其中的标签页一起关闭",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/TabDrawer.tsx",
+          "line": 782,
+          "context": "{i18n(\"components.explorer.tabdrawer.d4b82994b06a\")}"
+        }
+      ],
+      "translation": "Delete permanently: closes the workspace together with its tabs",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.tabdrawer.d6ecf973bad0",
+      "source": "移入工作区",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/TabDrawer.tsx",
+          "line": 824,
+          "context": "{i18n(\"components.explorer.tabdrawer.d6ecf973bad0\")}"
+        }
+      ],
+      "translation": "Move into workspace",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.tabdrawer.dc04bd26995b",
+      "source": "解散：只退组，标签页保留",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/TabDrawer.tsx",
+          "line": 780,
+          "context": "{i18n(\"components.explorer.tabdrawer.dc04bd26995b\")}"
+        }
+      ],
+      "translation": "Disband: removes only the grouping; tabs are kept",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.tabdrawer.de6785d99e02",
+      "source": "刚刚",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/TabDrawer.tsx",
+          "line": 611,
+          "context": "return i18n(\"components.explorer.tabdrawer.de6785d99e02\");"
+        }
+      ],
+      "translation": "Just now",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.tabdrawer.e5d7d964c0e2",
+      "source": "关闭本标签页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/TabDrawer.tsx",
+          "line": 887,
+          "context": "label: i18n(\"components.explorer.tabdrawer.e5d7d964c0e2\")"
+        }
+      ],
+      "translation": "Close this tab",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "components.explorer.tabdrawer.e75e8b4e5c97",
+      "source": "下移",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/TabDrawer.tsx",
+          "line": 826,
+          "context": "{i18n(\"components.explorer.tabdrawer.e75e8b4e5c97\")}"
+        }
+      ],
+      "translation": "Move down",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.tabdrawer.e86ea3f280d9",
+      "source": "未分组",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/TabDrawer.tsx",
+          "line": 1005,
+          "context": "{i18n(\"components.explorer.tabdrawer.e86ea3f280d9\")}"
+        }
+      ],
+      "translation": "Ungrouped",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "components.explorer.tabdrawer.e9a95effb2f5",
       "source": "彻底删除（连同标签页）",
@@ -1146,250 +1375,6 @@
         }
       ],
       "translation": "Color ",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.explorer.workspaceeditor.5d8f0c9f8493",
-      "source": "暂无标签页",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
-          "line": 120,
-          "context": "{i18n(\"components.explorer.workspaceeditor.5d8f0c9f8493\")}"
-        }
-      ],
-      "translation": "No tabs",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.explorer.workspaceeditor.7a593e8801f2",
-      "source": "可加入的标签页",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
-          "line": 137,
-          "context": "{i18n(\"components.explorer.workspaceeditor.7a593e8801f2\")}"
-        }
-      ],
-      "translation": "Tabs you can add",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.explorer.workspaceeditor.8777428f135c",
-      "source": "编辑工作区",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
-          "line": 82,
-          "context": "{i18n(\"components.explorer.workspaceeditor.8777428f135c\")}"
-        },
-        {
-          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
-          "line": 85,
-          "context": "{i18n(\"components.explorer.workspaceeditor.8777428f135c\")}"
-        }
-      ],
-      "translation": "Edit workspace",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.explorer.workspaceeditor.95861c4b5cd6",
-      "source": "移出",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
-          "line": 125,
-          "context": "{i18n(\"components.explorer.workspaceeditor.95861c4b5cd6\")}"
-        },
-        {
-          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
-          "line": 131,
-          "context": "{i18n(\"components.explorer.workspaceeditor.95861c4b5cd6\")}"
-        }
-      ],
-      "translation": "Remove",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.explorer.workspaceeditor.95d820310c3e",
-      "source": "成员（{memberCount}）",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "memberCount",
-          "expression": "memberCount"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
-          "line": 119,
-          "context": "{i18nRich(\"components.explorer.workspaceeditor.95d820310c3e\", { memberCount: memberCount })}"
-        }
-      ],
-      "translation": "Members ({memberCount})",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.explorer.workspaceeditor.a3030bf8f16d",
-      "source": "保存",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
-          "line": 153,
-          "context": "{i18n(\"components.explorer.workspaceeditor.a3030bf8f16d\")}"
-        }
-      ],
-      "translation": "Save",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.explorer.workspaceeditor.b2a947fe366c",
-      "source": "工作区名字",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
-          "line": 86,
-          "context": "{i18n(\"components.explorer.workspaceeditor.b2a947fe366c\")}"
-        }
-      ],
-      "translation": "Workspace name",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.explorerprefssection.26b3d168dbfe",
-      "source": "保留最近 10 条，当前 {length} 条",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(hist.length)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExplorerPrefsSection.tsx",
-          "line": 58,
-          "context": "hist.length > 0 ? i18n(\"components.explorerprefssection.26b3d168dbfe\", { length: String(hist.length) }) : i18n(\"components.explorerprefssection.46ca86da52b3\")"
-        }
-      ],
-      "translation": "Keeps the last 10 entries; currently {length}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.explorerprefssection.2c2a533ac8e4",
-      "source": "底栏胶囊与悬浮球的二合一入口",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExplorerPrefsSection.tsx",
-          "line": 42,
-          "context": "{i18n(\"components.explorerprefssection.2c2a533ac8e4\")}"
-        }
-      ],
-      "translation": "A combined entry that merges the bottom-bar capsule and the floating ball",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.explorerprefssection.44ce7ae909bb",
-      "source": "搜索",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExplorerPrefsSection.tsx",
-          "line": 51,
-          "context": "label: i18n(\"components.explorerprefssection.44ce7ae909bb\")"
-        }
-      ],
-      "translation": "Search",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.explorerprefssection.461301d93770",
-      "source": "最近搜索记录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExplorerPrefsSection.tsx",
-          "line": 57,
-          "context": "{i18n(\"components.explorerprefssection.461301d93770\")}"
-        }
-      ],
-      "translation": "Recent searches",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.explorerprefssection.464f0207d4ff",
-      "source": "点击胶囊默认打开",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExplorerPrefsSection.tsx",
-          "line": 45,
-          "context": "{i18n(\"components.explorerprefssection.464f0207d4ff\")}"
-        }
-      ],
-      "translation": "Opens by default when the capsule is clicked",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.explorerprefssection.46ca86da52b3",
-      "source": "暂无记录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExplorerPrefsSection.tsx",
-          "line": 58,
-          "context": "hist.length > 0 ? i18n(\"components.explorerprefssection.26b3d168dbfe\", { length: String(hist.length) }) : i18n(\"components.explorerprefssection.46ca86da52b3\")"
-        }
-      ],
-      "translation": "No records yet",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.explorerprefssection.48875ae74158",
-      "source": "搜索模式可搜功能/作业/文件并直达；OH 模式直接进对话",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExplorerPrefsSection.tsx",
-          "line": 46,
-          "context": "{i18n(\"components.explorerprefssection.48875ae74158\")}"
-        }
-      ],
-      "translation": "Search mode finds features, assignments, and files and jumps straight to them; OH mode goes directly into the chat",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

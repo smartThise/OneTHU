@@ -10,7 +10,8 @@ import { fileURLToPath } from "node:url";
 
 // Runtime packaging is independent of the platform-specific AppleDouble sweep.
 // The child explicitly skips Android/iOS so desktop Node never enters an APK.
-execFileSync(process.execPath, [fileURLToPath(new URL('./build-cli-runtime.mjs', import.meta.url))], { stdio: 'inherit' });
+// CLI is an explicit standalone package; ordinary builds/dev do not bundle Node.
+if (process.env.ONETHU_BUILD_CLI_PACKAGE === '1') execFileSync(process.execPath, [fileURLToPath(new URL('./build-cli-runtime.mjs', import.meta.url))], { stdio: 'inherit' });
 
 if (process.platform !== "darwin") process.exit(0);
 // tauri beforeCommand 的 cwd = apps/desktop（前端目录）；手动也可能在 src-tauri 跑——两处都试

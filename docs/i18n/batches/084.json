@@ -1,7 +1,259 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "skills.error.script",
+      "source": "脚本未能完成：可能需要此环境没有的功能，或超出内存、堆栈与输出限制。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/skills.ts",
+          "line": 76,
+          "context": "SKILL_SCRIPT_FAILED: t(\"skills.error.script\")"
+        }
+      ],
+      "translation": "The script could not finish. It may need unavailable capabilities or exceed memory, stack or output limits.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "skills.error.text",
+      "source": "此文件不是可读取的 UTF-8 文本。请导出后用本地程序打开。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/skills.ts",
+          "line": 80,
+          "context": "SKILL_TEXT_ONLY: t(\"skills.error.text\")"
+        }
+      ],
+      "translation": "This is not readable UTF-8 text. Export it and open it with a local application.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "skills.error.textSize",
+      "source": "文本超过单次读取的 256 KB 限制，请导出后阅读。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/skills.ts",
+          "line": 80,
+          "context": "SKILL_TEXT_TOO_LARGE: t(\"skills.error.textSize\")"
+        }
+      ],
+      "translation": "The text exceeds the 256 KB reading limit. Export it to read locally.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "skills.error.time",
+      "source": "计算超过 2 秒，已停止。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/skills.ts",
+          "line": 76,
+          "context": "SKILL_TIME_LIMIT: t(\"skills.error.time\")"
+        }
+      ],
+      "translation": "Computation stopped after exceeding 2 seconds.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "skills.export",
+      "source": "保存给电脑 Agent",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
+          "line": 84,
+          "context": "{t(\"skills.export\")}"
+        }
+      ],
+      "translation": "Save for a desktop agent",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "skills.exported",
+      "source": "已保存：{path}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "path"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
+          "line": 83,
+          "context": "setNotice(t(\"skills.exported\", { path }))"
+        }
+      ],
+      "translation": "Saved to: {path}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "skills.exportHelp",
+      "source": "电脑：选择文件夹并保存完整技能目录。手机：保存 ZIP 到下载位置，传到电脑后解压。自行让 Agent 接入，不会自动安装依赖。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
+          "line": 89,
+          "context": "{t(\"skills.exportHelp\")}"
+        }
+      ],
+      "translation": "Desktop: choose a folder for the complete skill directory. Mobile: save a ZIP to Downloads, then transfer and unpack it on your computer. Connect it to your agent yourself; dependencies are not installed automatically.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "skills.external",
+      "source": "需电脑 Agent",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
+          "line": 58,
+          "context": "item.compatibility === \"external-agent\" ? t(\"skills.external\") : item.enabled ? t(\"skills.enabled\") : t(\"skills.disabled\")"
+        },
+        {
+          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
+          "line": 69,
+          "context": "installed.compatibility === \"text\" ? t(\"skills.compatible\") : t(\"skills.external\")"
+        }
+      ],
+      "translation": "Requires a desktop agent",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "skills.externalBody",
+      "source": "需要 Python、Node、安装依赖或外部服务的技能，当前不能在 OH 运行。可保存完整技能文件，交给电脑上的 Agent 使用。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/skills.ts",
+          "line": 75,
+          "context": "SKILL_EXTERNAL_AGENT_REQUIRED: t(\"skills.externalBody\")"
+        },
+        {
+          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
+          "line": 54,
+          "context": "{t(\"skills.externalBody\")}"
+        },
+        {
+          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
+          "line": 73,
+          "context": "{t(\"skills.externalBody\")}"
+        }
+      ],
+      "translation": "Skills requiring Python, Node, package installation or external services cannot run in OH. Save the complete files for an agent on your computer.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "skills.failed",
+      "source": "技能操作未完成",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
+          "line": 55,
+          "context": "{t(\"skills.failed\")}"
+        },
+        {
+          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
+          "line": 65,
+          "context": "{t(\"skills.failed\")}"
+        }
+      ],
+      "translation": "Skill action could not be completed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "skills.fileCount",
+      "source": "{count} 个文件",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "count"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
+          "line": 70,
+          "context": "{t(\"skills.fileCount\", { count: installed.files.length })}"
+        }
+      ],
+      "translation": "{count} files",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "skills.import",
+      "source": "下载并检查",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
+          "line": 94,
+          "context": "busy ? t(\"skills.importing\") : t(\"skills.import\")"
+        }
+      ],
+      "translation": "Download and inspect",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "skills.importBody",
+      "source": "先下载完整技能包并检查内容，不执行脚本。下载上限 8 MB，解压后上限 32 MB。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
+          "line": 92,
+          "context": "{t(\"skills.importBody\")}"
+        }
+      ],
+      "translation": "Download and inspect the complete package first. No scripts are executed. Limit: 8 MB download, 32 MB unpacked.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "skills.importing",
+      "source": "正在下载并检查…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/xiaoda/SkillLibrary.tsx",
+          "line": 94,
+          "context": "busy ? t(\"skills.importing\") : t(\"skills.import\")"
+        }
+      ],
+      "translation": "Downloading and inspecting…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "skills.javascript",
       "source": "轻量 JavaScript 计算",
@@ -1111,230 +1363,6 @@
       "translation": "Reservations · Seats & check-in",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.3dcd26a9ba45",
-      "source": "时间地点见课程详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 667,
-          "context": "tls.length > 0 ? tls.join(\"；\") : i18n(\"state.atoms.3dcd26a9ba45\")"
-        }
-      ],
-      "translation": "See course details for time and location",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.3df7b5791ab9",
-      "source": "作业 DDL 提醒",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 231,
-          "context": "return i18n(\"state.atoms.3df7b5791ab9\");"
-        }
-      ],
-      "translation": "Assignment deadline reminders",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.3e668eb1a6ae",
-      "source": "预约页 · 宿舍公共空间预约",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 254,
-          "context": "return i18n(\"state.atoms.3e668eb1a6ae\");"
-        }
-      ],
-      "translation": "Reservations · Dorm common space bookings",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.3fb35cdc3085",
-      "source": "预约页 · 亲友来访报备与我的报备",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 256,
-          "context": "return i18n(\"state.atoms.3fb35cdc3085\");"
-        }
-      ],
-      "translation": "Reservations · Visitor registration and my registrations",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.411769324590",
-      "source": "预约 · 研讨间申请",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 251,
-          "context": "return i18n(\"state.atoms.411769324590\");"
-        }
-      ],
-      "translation": "Reservations · Seminar room applications",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.41d497d6e07e",
-      "source": "卫生成绩",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 244,
-          "context": "return i18n(\"state.atoms.41d497d6e07e\");"
-        }
-      ],
-      "translation": "Hygiene score",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.452f594e3f7c",
-      "source": "预约聚合页",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 213,
-          "context": "return i18n(\"state.atoms.452f594e3f7c\");"
-        }
-      ],
-      "translation": "Reservations hub",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.4792ab1440aa",
-      "source": "校历",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 236,
-          "context": "return i18n(\"state.atoms.4792ab1440aa\");"
-        }
-      ],
-      "translation": "Academic calendar",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.499fc8e68d81",
-      "source": "座位 · 研讨间",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 312,
-          "context": "return i18n(\"state.atoms.499fc8e68d81\");"
-        }
-      ],
-      "translation": "Seats · Seminar rooms",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.4b6ded8a7f18",
-      "source": "通知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 438,
-          "context": "t: i18n(\"state.atoms.4b6ded8a7f18\")"
-        }
-      ],
-      "translation": "Notices",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.4c30e45ecab2",
-      "source": "收件箱 · 已发送 · 读信 · 全箱搜索",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 216,
-          "context": "return i18n(\"state.atoms.4c30e45ecab2\");"
-        }
-      ],
-      "translation": "Inbox · Sent · Read mail · Search all mailboxes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.4d8a9ed9bf01",
-      "source": "按开始时间排序",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 313,
-          "context": "return i18n(\"state.atoms.4d8a9ed9bf01\");"
-        }
-      ],
-      "translation": "Sort by start time",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.4df0d6b1cd95",
-      "source": "生活页 · 水站订水",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 242,
-          "context": "return i18n(\"state.atoms.4df0d6b1cd95\");"
-        }
-      ],
-      "translation": "Life page · Water station ordering",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.4e2ebf869a50",
-      "source": "（已失效的插件收藏项）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 368,
-          "context": "meta?.title ?? i18n(\"state.atoms.4e2ebf869a50\")"
-        }
-      ],
-      "translation": "(Inactive plugin favorite)",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
     }
   ]
 }

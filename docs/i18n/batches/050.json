@@ -1,7 +1,258 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "pages.info.evaluationtab.63ec4a3ba307",
+      "source": "暂无评估问卷（当前不在评估期，或本学期无需评估课程）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/EvaluationTab.tsx",
+          "line": 56,
+          "context": "{i18n(\"pages.info.evaluationtab.63ec4a3ba307\")}"
+        }
+      ],
+      "translation": "No evaluation questionnaires (the evaluation period has not started, or no courses require evaluation this semester).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.evaluationtab.64363cae324a",
+      "source": "已评估",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/EvaluationTab.tsx",
+          "line": 69,
+          "context": "r[1] ? i18n(\"pages.info.evaluationtab.64363cae324a\") : i18n(\"pages.info.evaluationtab.f91dbaf513a7\")"
+        }
+      ],
+      "translation": "Evaluated",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.evaluationtab.f91dbaf513a7",
+      "source": "待评估",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/EvaluationTab.tsx",
+          "line": 69,
+          "context": "r[1] ? i18n(\"pages.info.evaluationtab.64363cae324a\") : i18n(\"pages.info.evaluationtab.f91dbaf513a7\")"
+        }
+      ],
+      "translation": "To evaluate",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.examstab.084b42f6e95e",
+      "source": "二",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/ExamsTab.tsx",
+          "line": 12
+        }
+      ],
+      "translation": "Tue",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.examstab.0e5071b93d57",
+      "source": "{month}月{day}日 {value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "month",
+          "expression": "String(month)"
+        },
+        {
+          "name": "day",
+          "expression": "String(day)"
+        },
+        {
+          "name": "value",
+          "expression": "String(weekdayOf(date))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/ExamsTab.tsx",
+          "line": 35,
+          "context": "return i18n(\"pages.info.examstab.0e5071b93d57\", { month: String(month), day: String(day), value: String(weekdayOf(date)) });"
+        }
+      ],
+      "translation": "{month}/{day} {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.examstab.3cdc60a174f2",
+      "source": "本学年",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/ExamsTab.tsx",
+          "line": 63,
+          "context": "state === \"ready\" && data ? i18n(\"pages.info.examstab.9dec2ce0d8fc\", { length: String(data.length), upcoming: String(upcoming) }) : i18n(\"pages.info.examstab.3cdc60a174f2\")"
+        }
+      ],
+      "translation": "This academic year",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.examstab.51a75f4634df",
+      "source": "一",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/ExamsTab.tsx",
+          "line": 12
+        }
+      ],
+      "translation": "Mon",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.examstab.754a9d5828d5",
+      "source": "四",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/ExamsTab.tsx",
+          "line": 12
+        }
+      ],
+      "translation": "Thu",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.examstab.7736a85c89ff",
+      "source": "至 {value}",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "e.endTime ?? \"--:--\""
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/ExamsTab.tsx",
+          "line": 87,
+          "context": "{i18nRich(\"pages.info.examstab.7736a85c89ff\", { value: e.endTime ?? \"--:--\" })}"
+        }
+      ],
+      "translation": "to {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.examstab.85217f7aff77",
+      "source": "日",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/ExamsTab.tsx",
+          "line": 12
+        }
+      ],
+      "translation": "Sun",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.examstab.88df420f8207",
+      "source": "考试安排",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/ExamsTab.tsx",
+          "line": 62,
+          "context": "{i18n(\"pages.info.examstab.88df420f8207\")}"
+        }
+      ],
+      "translation": "Exam schedule",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.examstab.9491e7091592",
+      "source": "周{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(WEEKDAYS[d.getDay()])"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/ExamsTab.tsx",
+          "line": 16,
+          "context": "Number.isNaN(d.getTime()) ? \"\" : i18n(\"pages.info.examstab.9491e7091592\", { value: String(WEEKDAYS[d.getDay()]) })"
+        }
+      ],
+      "translation": "Week {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.examstab.9dec2ce0d8fc",
+      "source": "{length} 场 · {upcoming} 场待考 · 本学年",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(data.length)"
+        },
+        {
+          "name": "upcoming",
+          "expression": "String(upcoming)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/ExamsTab.tsx",
+          "line": 63,
+          "context": "state === \"ready\" && data ? i18n(\"pages.info.examstab.9dec2ce0d8fc\", { length: String(data.length), upcoming: String(upcoming) }) : i18n(\"pages.info.examstab.3cdc60a174f2\")"
+        }
+      ],
+      "translation": "{length} exams · {upcoming} upcoming · this academic year",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.examstab.a4c3313deb18",
+      "source": "三",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/ExamsTab.tsx",
+          "line": 12
+        }
+      ],
+      "translation": "Wed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "pages.info.examstab.aa9435b82109",
       "source": "{days} 天后",
@@ -1130,240 +1381,6 @@
         }
       ],
       "translation": "Cancellation failed: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.kongjiantab.9e9bead81498",
-      "source": "活动",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 60,
-          "context": "useState(i18n(\"pages.info.kongjiantab.9e9bead81498\"))"
-        }
-      ],
-      "translation": "Activity",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.kongjiantab.a0624ace1039",
-      "source": "未获取到公共空间列表（可能未开放或登录态失效）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 244,
-          "context": "{i18n(\"pages.info.kongjiantab.a0624ace1039\")}"
-        }
-      ],
-      "translation": "Public space list unavailable (may be closed or your session has expired).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.kongjiantab.a4c0233f1d6c",
-      "source": "不可约",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 328,
-          "context": "slot.state || i18n(\"pages.info.kongjiantab.a4c0233f1d6c\")"
-        }
-      ],
-      "translation": "Not bookable",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.kongjiantab.a9b1124b3461",
-      "source": "晚上",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 230,
-          "context": "[i18n(\"pages.info.kongjiantab.a9b1124b3461\"), slots.filter((x) => Number(String(x.time).split(\":\")[0]) >= 17)]"
-        }
-      ],
-      "translation": "Evening",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.kongjiantab.af81dcf37aa8",
-      "source": "下午",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 229,
-          "context": "[i18n(\"pages.info.kongjiantab.af81dcf37aa8\"), slots.filter((x) => { const h = Number(String(x.time).split(\":\")[0]); return h >= 12 && h < 17; })]"
-        }
-      ],
-      "translation": "Afternoon",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.kongjiantab.bc37a6110a07",
-      "source": "已提交",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 198,
-          "context": "picked.state || i18n(\"pages.info.kongjiantab.bc37a6110a07\")"
-        }
-      ],
-      "translation": "Submitted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.kongjiantab.bf8b5d378f01",
-      "source": "电话",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 343,
-          "context": "{i18n(\"pages.info.kongjiantab.bf8b5d378f01\")}"
-        }
-      ],
-      "translation": "Phone",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.kongjiantab.c3b180cc0d49",
-      "source": "暂无预约记录。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 362,
-          "context": "{i18n(\"pages.info.kongjiantab.c3b180cc0d49\")}"
-        }
-      ],
-      "translation": "No reservations yet.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.kongjiantab.c4d678ef6e37",
-      "source": "学号",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 342,
-          "context": "{i18n(\"pages.info.kongjiantab.c4d678ef6e37\")}"
-        }
-      ],
-      "translation": "Student ID",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.kongjiantab.d1d50368fefe",
-      "source": "可约",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 328,
-          "context": "bookable ? i18n(\"pages.info.kongjiantab.d1d50368fefe\") : slot.state || i18n(\"pages.info.kongjiantab.a4c0233f1d6c\")"
-        }
-      ],
-      "translation": "Bookable",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.kongjiantab.da32887460b5",
-      "source": "确定预约",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 348,
-          "context": "busy ? i18n(\"pages.info.kongjiantab.18931020ad52\") : i18n(\"pages.info.kongjiantab.da32887460b5\")"
-        }
-      ],
-      "translation": "Confirm reservation",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.kongjiantab.e81059e1a712",
-      "source": "公共空间",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 251,
-          "context": "{i18n(\"pages.info.kongjiantab.e81059e1a712\")}"
-        },
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 264,
-          "context": "spaces.find((sp) => sp.id === spaceId)?.name ?? i18n(\"pages.info.kongjiantab.e81059e1a712\")"
-        }
-      ],
-      "translation": "Public space",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.kongjiantab.f68b28f7f2a2",
-      "source": "宿舍公共空间",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 235,
-          "context": "{i18n(\"pages.info.kongjiantab.f68b28f7f2a2\")}"
-        }
-      ],
-      "translation": "Dorm public space",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.kongjiantab.fe4a11b61bf6",
-      "source": "提交失败：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(err instanceof Error ? err.message : String(err))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/KongjianTab.tsx",
-          "line": 202,
-          "context": "setNotice(i18n(\"pages.info.kongjiantab.fe4a11b61bf6\", { value: String(err instanceof Error ? err.message : String(err)) }))"
-        }
-      ],
-      "translation": "Submission failed: {value}",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

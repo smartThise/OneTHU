@@ -8,7 +8,7 @@ let started = false, busy: Promise<void> | undefined, completed = "", pending = 
 export function syncYuketangRuntime(): Promise<void> {
   if (busy) { pending = true; return busy; }
   const run = async () => {
-    if (!usesSharedRuntime() || !ohAuthorized() || !mcpServerEnabled() || session.state !== "ready" || !session.username) return;
+    if (!usesSharedRuntime() || !ohAuthorized() || session.state !== "ready" || !session.username) return;
     const owner = session.username;
     await ensureExtHwCredsLoaded(); bindLegacyYuketangOwner();
     if (yuketangCredentialOwner() && yuketangCredentialOwner() !== owner) return;
@@ -18,7 +18,7 @@ export function syncYuketangRuntime(): Promise<void> {
     const signature = JSON.stringify([owner, status?.epoch, credential]);
     if (signature === completed) return;
     const guard = await sharedAccountGuard(owner);
-    if (session.username !== owner || !ohAuthorized() || !mcpServerEnabled()) return;
+    if (session.username !== owner || !ohAuthorized()) return;
     if ((getExtHwCreds().yuketang?.cookie || null) !== (credential?.cookie || null)) { pending = true; return; }
     const result = await sharedRuntimeRequest<{ status: string }>("yuketangSync", { ...guard, credential });
     // A separately configured CLI session is preserved. Queries through the GUI
@@ -29,8 +29,9 @@ export function syncYuketangRuntime(): Promise<void> {
   return busy;
 }
 export function initYuketangRuntimeSync() {
-  if (started || !usesSharedRuntime()) return;
+  if (started) return;
   started = true;
+  window.addEventListener("onethu-cli-installation",()=>void syncYuketangRuntime().catch(()=>undefined));
   const schedule = () => { void syncYuketangRuntime().catch(() => undefined); };
   subscribeExtHw(schedule); subscribePrivacy(schedule); subscribeUserExt(schedule);
   subscribeSharedRuntime((next, previous) => { if (!previous || next.epoch !== previous.epoch || next.username !== previous.username) completed = ""; schedule(); });

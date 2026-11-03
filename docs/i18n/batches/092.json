@@ -1,7 +1,255 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "state.systemcal.5a93b270a6f9",
+      "source": "当前平台不支持系统日历原生同步",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 490,
+          "context": "new Error(i18n(\"state.systemcal.5a93b270a6f9\"))"
+        }
+      ],
+      "translation": "Native system calendar sync is not supported on this platform",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.746a9d1e0b2c",
+      "source": "日程包含无效起止时间，已中止同步",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 319,
+          "context": "new Error(i18n(\"state.systemcal.746a9d1e0b2c\"))"
+        }
+      ],
+      "translation": "The schedule contains invalid start or end times; sync was aborted",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.854aca2c0e1f",
+      "source": "当前平台不支持系统日历原生同步，可导出日历文件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 418,
+          "context": "new Error(i18n(\"state.systemcal.854aca2c0e1f\"))"
+        }
+      ],
+      "translation": "Native system calendar sync is not supported on this platform; you can export a calendar file instead",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.89e7b1c563d7",
+      "source": "整学期拉取失败，保留完整缓存 {length} 条",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(hit.data.entries.length)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 227,
+          "context": "new Error(i18n(\"state.systemcal.89e7b1c563d7\", { length: String(hit.data.entries.length) }))"
+        }
+      ],
+      "translation": "Full-semester fetch failed; keeping the complete cache of {length} entries",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.8b3f14077824",
+      "source": "整学期数据不完整，保留系统日历已有内容",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 230,
+          "context": "new Error(i18n(\"state.systemcal.8b3f14077824\"))"
+        }
+      ],
+      "translation": "Full-semester data is incomplete; the existing system calendar content is kept",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.ab1abc96899c",
+      "source": "外部作业源尚未完整加载，请刷新网络学堂后重试；已有系统日历保持不变",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 249,
+          "context": "new Error(i18n(\"state.systemcal.ab1abc96899c\"))"
+        }
+      ],
+      "translation": "External assignment sources are not fully loaded. Refresh Web Learning and retry; the existing system calendar is unchanged",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.ae887c4815af",
+      "source": "校历尚未就绪，请打开日程加载学期后重试；已有系统日历保持不变",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 241,
+          "context": "new Error(i18n(\"state.systemcal.ae887c4815af\"))"
+        }
+      ],
+      "translation": "The academic calendar is not ready yet. Open the Schedule to load the semester and retry; the existing system calendar is unchanged",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.b170ef2db7ca",
+      "source": "系统日历正在同步或移除中",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 411,
+          "context": "new Error(i18n(\"state.systemcal.b170ef2db7ca\"))"
+        }
+      ],
+      "translation": "The system calendar is being synced or removed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.ce42fc5eaca8",
+      "source": "事件数 {length} 超出上限 {MAX_EVENTS}，已中止系统日历同步",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(events.length)"
+        },
+        {
+          "name": "MAX_EVENTS",
+          "expression": "String(MAX_EVENTS)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 327,
+          "context": "new Error(i18n(\"state.systemcal.ce42fc5eaca8\", { length: String(events.length), MAX_EVENTS: String(MAX_EVENTS) }))"
+        }
+      ],
+      "translation": "The event count {length} exceeds the limit of {MAX_EVENTS}; system calendar sync was aborted",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.d2d00f793981",
+      "source": "未获得系统日历权限，请在系统设置中允许 OneTHU 访问日历",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 428,
+          "context": "new Error(i18n(\"state.systemcal.d2d00f793981\"))"
+        }
+      ],
+      "translation": "System calendar permission was not granted. Allow OneTHU to access calendars in system settings.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.fb7404386af9",
+      "source": "正在移除系统日历",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 480,
+          "context": "new Error(i18n(\"state.systemcal.fb7404386af9\"))"
+        }
+      ],
+      "translation": "Removing the system calendar",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.fe90aa1936ae",
+      "source": "同步已停止，已有系统日历保持不变",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 420,
+          "context": "new Error(i18n(\"state.systemcal.fe90aa1936ae\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 429,
+          "context": "new Error(i18n(\"state.systemcal.fe90aa1936ae\"))"
+        }
+      ],
+      "translation": "Sync stopped; the existing system calendar is unchanged",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.systemcal.ff52516e4a39",
+      "source": "课表有 {skipped} 条无法解析的时段，已中止同步",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "skipped",
+          "expression": "String(skipped)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/systemCal.ts",
+          "line": 286,
+          "context": "new Error(i18n(\"state.systemcal.ff52516e4a39\", { skipped: String(skipped) }))"
+        }
+      ],
+      "translation": "The timetable has {skipped} unparseable time slots; sync was aborted",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.tabtitles.04671516a9d5",
+      "source": "网络学堂 › 作业详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/tabTitles.ts",
+          "line": 84,
+          "context": "course ? i18n(\"state.tabtitles.0fb5334ea170\", { course: String(course) }) : i18n(\"state.tabtitles.04671516a9d5\")"
+        }
+      ],
+      "translation": "Web Learning › Assignment details",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
     {
       "key": "state.tabtitles.0c15bb46b442",
       "source": "网络学堂 › 全部通知",
@@ -1152,235 +1400,6 @@
         }
       ],
       "translation": "Unknown error",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.userext.1a687dba3c19",
-      "source": "没有这个工具",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/userext.ts",
-          "line": 364,
-          "context": "error: i18n(\"state.userext.1a687dba3c19\")"
-        }
-      ],
-      "translation": "No such tool",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.userext.30c5627d3abc",
-      "source": "没有这个 OneFlow",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/userext.ts",
-          "line": 371,
-          "context": "error: i18n(\"state.userext.30c5627d3abc\")"
-        }
-      ],
-      "translation": "No such OneFlow",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.userext.4614c2ea297e",
-      "source": "第 {step} 步失败：from 只能配对象参数（数组参数按位置展开，无法按名注入）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "step",
-          "expression": "i + 1"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/userext.ts",
-          "line": 351,
-          "context": "error: i18n(\"state.userext.4614c2ea297e\", { step: i + 1 })"
-        }
-      ],
-      "translation": "Step {step} failed: from can only map object parameters (array parameters are spread by position and cannot be injected by name)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.userext.ec5c92fecc0a",
-      "source": "执行器还没就绪（等插件加载完成再试）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/userext.ts",
-          "line": 385,
-          "context": "error: i18n(\"state.userext.ec5c92fecc0a\")"
-        }
-      ],
-      "translation": "The executor is not ready yet (wait for plugins to finish loading and try again)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vault.14b69bd6eeb0",
-      "source": "文字",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vault.ts",
-          "line": 80,
-          "context": "return i18n(\"state.vault.14b69bd6eeb0\");"
-        }
-      ],
-      "translation": "Text",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vault.1fd167c6ae13",
-      "source": "应用对象",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vault.ts",
-          "line": 79,
-          "context": "return i18n(\"state.vault.1fd167c6ae13\");"
-        }
-      ],
-      "translation": "App objects",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vault.206359b4b54d",
-      "source": "白板组件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vault.ts",
-          "line": 82,
-          "context": "return i18n(\"state.vault.206359b4b54d\");"
-        }
-      ],
-      "translation": "Board widgets",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vault.39932f24fe11",
-      "source": "文件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vault.ts",
-          "line": 81,
-          "context": "return i18n(\"state.vault.39932f24fe11\");"
-        }
-      ],
-      "translation": "Files",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vault.5440f7424f28",
-      "source": "数据",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vault.ts",
-          "line": 83,
-          "context": "return i18n(\"state.vault.5440f7424f28\");"
-        }
-      ],
-      "translation": "Data",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vault.defaultName",
-      "source": "我的暂存箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vault.ts",
-          "line": 90,
-          "context": "name = i18n(\"state.vault.defaultName\")"
-        }
-      ],
-      "translation": "My staging box",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.124e692f8b2a",
-      "source": "这条云分享口令没有分享链接",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 164,
-          "context": "new Error(i18n(\"state.vaultcloud.124e692f8b2a\"))"
-        }
-      ],
-      "translation": "This cloud share code has no share link",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.20e701b06a1a",
-      "source": "改变接收范围需要重新生成分享",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 178,
-          "context": "new Error(i18n(\"state.vaultcloud.20e701b06a1a\"))"
-        }
-      ],
-      "translation": "Changing the recipient scope requires regenerating the share",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.21e554dce895",
-      "source": "没有可撤销的分享 token",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 188,
-          "context": "new Error(i18n(\"state.vaultcloud.21e554dce895\"))"
-        }
-      ],
-      "translation": "No share token to revoke",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.vaultcloud.33798ae55697",
-      "source": "清华云盘未连接：到云盘页粘贴 token 后再生成云分享口令",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 30,
-          "context": "new Error(i18n(\"state.vaultcloud.33798ae55697\"))"
-        }
-      ],
-      "translation": "Tsinghua Cloud Drive is not connected: paste your token on the Cloud Drive page before creating a share code",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

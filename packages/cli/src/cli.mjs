@@ -154,8 +154,20 @@ export async function run(argv, { env = process.env, stdin = process.stdin, stdo
     }
     if(options.desktop||options.endpoint)client=new LocalClient(options);
     else {
-      const sdk=await loadSdk();const dataDir=options.dataDir??sdk.defaultDataDir();
-      client=await connectDaemon(dataDir,options.timeout)??new StandaloneClient(await sdk.createOneThu({dataDir}),options);
+      // A running GUI is the service owner for app-only data as well. Explicit
+      // isolated profiles/auth/config always keep their independent selection.
+      if (!options.dataDir && !['auth','config'].includes(command)) {
+        const desktop = new LocalClient({...options,timeout:1500});
+        try {
+          const info=await desktop.call('service/list');
+          const requested=command==='call'||command==='schema'?rest[0]:isCall?`${command}.${rest[0]}`:null;
+          if(info?.session?.status==='ready'&&(!requested||info.operations?.some(op=>op.name===requested)))client=new LocalClient(options);
+        }
+        catch(error) { if(!['CONNECTION_FAILED','LOCAL_SERVICE_DISABLED','TIMEOUT'].includes(error?.code)) throw error; }
+      }
+      if(!client){const sdk=await loadSdk();const dataDir=options.dataDir??sdk.defaultDataDir();
+        client=await connectDaemon(dataDir,options.timeout)??new StandaloneClient(await sdk.createOneThu({dataDir}),options);}
+
     }
     if(command==="auth"||command==="config"){
       if(!client.runtime)throw new CliError("INVALID_ARGUMENT","Use the app for desktop account and policy settings.",2);

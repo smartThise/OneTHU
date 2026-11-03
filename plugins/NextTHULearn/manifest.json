@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "OneTHU NextTHULearn",
+  "version": "0.2.1",
+  "description": "以 OneTHU 石墨风格浏览网络学堂。",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://learn.tsinghua.edu.cn/f/*"
+      ],
+      "js": [
+        "extension/content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "nextthulearn@onethu.app",
+      "strict_min_version": "115.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    }
+  },
+  "homepage_url": "https://github.com/smartThise/NextTHULearn",
+  "icons": {
+    "32": "icons/32.png",
+    "64": "icons/64.png",
+    "128": "icons/128.png"
+  }
+}

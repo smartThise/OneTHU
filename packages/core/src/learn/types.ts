@@ -25,6 +25,8 @@ export interface CourseInfo {
   teacherName: string;
   timeAndLocation: string[];
   url: string;
+  /** Official homepage counters; undefined means the endpoint did not supply a value. */
+  summary?: { unreadNotices?: number; unreadFiles?: number; pendingHomework?: number; answeredQuestions?: number; pendingQuestionnaires?: number; participatedThreads?: number; startedThreads?: number };
 }
 
 export interface Homework {

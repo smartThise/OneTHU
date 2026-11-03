@@ -1,7 +1,235 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.onboardingtourv3.f8d9c42c331f",
+      "source": "自己拖一次",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OnboardingTourV3.tsx",
+          "line": 245,
+          "context": "{i18n(\"components.onboardingtourv3.f8d9c42c331f\")}"
+        }
+      ],
+      "translation": "Try the drag yourself",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.onboardingtourv3.fd73c2773154",
+      "source": " 步，共 ",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OnboardingTourV3.tsx",
+          "line": 225,
+          "context": "i18n(\"components.onboardingtourv3.9552fe3bd366\") + (step + 1) + i18n(\"components.onboardingtourv3.fd73c2773154\")"
+        }
+      ],
+      "translation": " of ",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.onboardingtourv3.fded5e53272d",
+      "source": "新建即得白板页，与首页同一套手势，摆什么都行。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OnboardingTourV3.tsx",
+          "line": 86
+        }
+      ],
+      "translation": "A new tab is a board page with the same gestures as Home; put anything on it.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.organizationsection.096678f835a7",
+      "source": "已加入组织",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OrganizationSection.tsx",
+          "line": 63,
+          "context": "showToast(i18nMsg(\"components.organizationsection.096678f835a7\"))"
+        }
+      ],
+      "translation": "Joined organizations",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.organizationsection.10f106e00d20",
+      "source": "组织邀请口令",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OrganizationSection.tsx",
+          "line": 27,
+          "context": "return i18n(\"components.organizationsection.10f106e00d20\");"
+        }
+      ],
+      "translation": "Organization invite share code",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.organizationsection.1a428fa57dd7",
+      "source": "用邀请口令加入",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OrganizationSection.tsx",
+          "line": 72,
+          "context": "{i18n(\"components.organizationsection.1a428fa57dd7\")}"
+        }
+      ],
+      "translation": "Join with an invite share code",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.organizationsection.1d3b05b3fd2d",
+      "source": "还没有组织。建一个：成员按邮箱加入，资料库共享到邮箱。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OrganizationSection.tsx",
+          "line": 75,
+          "context": "{i18n(\"components.organizationsection.1d3b05b3fd2d\")}"
+        }
+      ],
+      "translation": "No organizations yet. Create one: members join by email, and the library is shared by email.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.organizationsection.276c9bcadb27",
+      "source": "组织邀请口令（ON-…，兼容旧口令）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OrganizationSection.tsx",
+          "line": 54,
+          "context": "label: i18nMsg(\"components.organizationsection.276c9bcadb27\")"
+        }
+      ],
+      "translation": "Organization invite share code (ON-…, older codes still supported)",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "components.organizationsection.2f9daa828907",
+      "source": "删除",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OrganizationSection.tsx",
+          "line": 88,
+          "context": "{i18n(\"components.organizationsection.2f9daa828907\")}"
+        }
+      ],
+      "translation": "Delete",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.organizationsection.3f38e493103b",
+      "source": "组织名称",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OrganizationSection.tsx",
+          "line": 42,
+          "context": "label: i18nMsg(\"components.organizationsection.3f38e493103b\")"
+        }
+      ],
+      "translation": "Organization name",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "components.organizationsection.40c6a5e5d509",
+      "source": "删除组织「{name}」？成员清单会一起删除（云盘资料库与 GitLab 仓库不动）。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name",
+          "expression": "String(o.name)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OrganizationSection.tsx",
+          "line": 88,
+          "context": "confirmOk(i18nMsg(\"components.organizationsection.40c6a5e5d509\", { name: String(o.name) }))"
+        }
+      ],
+      "translation": "Delete organization “{name}”? The member list will be deleted too (the drive library and GitLab repositories are untouched).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.organizationsection.4dd6695c0a10",
+      "source": "管理组织",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OrganizationSection.tsx",
+          "line": 87,
+          "context": "{i18n(\"components.organizationsection.4dd6695c0a10\")}"
+        }
+      ],
+      "translation": "Manage organizations",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.organizationsection.51cc2efa3e8d",
+      "source": "我的组织",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OrganizationSection.tsx",
+          "line": 21,
+          "context": "return i18n(\"components.organizationsection.51cc2efa3e8d\");"
+        }
+      ],
+      "translation": "My organizations",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.organizationsection.6d690d15464a",
+      "source": "生成/接受组织邀请口令（可限定接收邮箱）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/OrganizationSection.tsx",
+          "line": 28,
+          "context": "return i18n(\"components.organizationsection.6d690d15464a\");"
+        }
+      ],
+      "translation": "Create/accept organization invite share codes (with optional recipient email restriction)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "components.organizationsection.786e9c3ff0d0",
       "source": "你在这个组织里的名字",
@@ -1128,249 +1356,6 @@
         }
       ],
       "translation": "Clipboard unavailable — the report is in the console; copy it from devtools",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.searchlandingselfcheck.8d0704658339",
-      "source": "首匹配",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SearchLandingSelfcheck.tsx",
-          "line": 52,
-          "context": "(tag || \"btn\") + i18n(\"components.searchlandingselfcheck.8d0704658339\")"
-        }
-      ],
-      "translation": "First match",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.searchlandingselfcheck.9da1918cdc89",
-      "source": "复制报告",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SearchLandingSelfcheck.tsx",
-          "line": 169,
-          "context": "{i18n(\"components.searchlandingselfcheck.9da1918cdc89\")}"
-        }
-      ],
-      "translation": "Copy report",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.searchlandingselfcheck.a41bc68312fb",
-      "source": "检索落点自查报告",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SearchLandingSelfcheck.tsx",
-          "line": 164,
-          "context": "{i18n(\"components.searchlandingselfcheck.a41bc68312fb\")}"
-        }
-      ],
-      "translation": "Search-landing self-check report",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.searchlandingselfcheck.c01cf39f0cb1",
-      "source": "落点失焦（.row-focus 不见）：{note}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "note",
-          "expression": "String(note)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SearchLandingSelfcheck.tsx",
-          "line": 114,
-          "context": "domFocus || landedOn === \"section-root\"\n          ? [note, bc.length ? bc.join(\"→\") : \"\"].filter(Boolean).join(\" ·\")\n          : i18n(\"components.searchlandingselfcheck.c01cf39f0cb1\", { note: String(note) })"
-        }
-      ],
-      "translation": "Landing lost focus (.row-focus missing): {note}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.searchlandingselfcheck.e255143f7db4",
-      "source": "逐行原表已打在 console（console.table）；「复制报告」给 Markdown 全表。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SearchLandingSelfcheck.tsx",
-          "line": 181,
-          "context": "{i18n(\"components.searchlandingselfcheck.e255143f7db4\")}"
-        }
-      ],
-      "translation": "The row-by-row raw table is printed to the console (console.table); “Copy report” gives the full Markdown table.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.searchlandingselfcheck.f544d6d22616",
-      "source": "hit {length}/45 · 分节根 {length2}",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "report.rows.filter((x) => x.hit === \"hit\").length"
-        },
-        {
-          "name": "length2",
-          "expression": "report.rows.filter((x) => x.landedOn === \"section-root\").length"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SearchLandingSelfcheck.tsx",
-          "line": 167,
-          "context": "{i18nRich(\"components.searchlandingselfcheck.f544d6d22616\", { length: report.rows.filter((x) => x.hit === \"hit\").length, length2: report.rows.filter((x) => x.landedOn === \"section-root\").length })}"
-        }
-      ],
-      "translation": "hit {length}/45 · section roots {length2}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.searchselect.336cba9a9241",
-      "source": "无匹配项",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SearchSelect.tsx",
-          "line": 118,
-          "context": "{i18n(\"components.searchselect.336cba9a9241\")}"
-        }
-      ],
-      "translation": "No matches",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.searchselect.4242d6b50c86",
-      "source": "请选择…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SearchSelect.tsx",
-          "line": 30,
-          "context": "placeholder = i18n(\"components.searchselect.4242d6b50c86\")"
-        }
-      ],
-      "translation": "Select…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.searchselect.a249f60ce7e8",
-      "source": "搜索…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SearchSelect.tsx",
-          "line": 114,
-          "context": "{i18n(\"components.searchselect.a249f60ce7e8\")}"
-        }
-      ],
-      "translation": "Search…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.simpleexperience.119099ab1bad",
-      "source": "今日课程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SimpleExperience.tsx",
-          "line": 40,
-          "context": "{i18n(\"components.simpleexperience.119099ab1bad\")}"
-        }
-      ],
-      "translation": "Today’s classes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.simpleexperience.1db098f84eb2",
-      "source": "02 / 课程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SimpleExperience.tsx",
-          "line": 40,
-          "context": "{i18n(\"components.simpleexperience.1db098f84eb2\")}"
-        }
-      ],
-      "translation": "02 / Classes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.simpleexperience.203c08e0d44a",
-      "source": "首页",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SimpleExperience.tsx",
-          "line": 33,
-          "context": "{i18n(\"components.simpleexperience.203c08e0d44a\")}"
-        },
-        {
-          "file": "apps/desktop/src/components/SimpleExperience.tsx",
-          "line": 33,
-          "context": "{i18n(\"components.simpleexperience.203c08e0d44a\")}"
-        }
-      ],
-      "translation": "Home",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.simpleexperience.23530d9f428a",
-      "source": "今日待办",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SimpleExperience.tsx",
-          "line": 40,
-          "context": "{i18n(\"components.simpleexperience.23530d9f428a\")}"
-        }
-      ],
-      "translation": "Today’s tasks",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.simpleexperience.a77ab9efa020",
-      "source": "模式只改变显示。标签、白板和各模式的快捷入口都会保留。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SimpleExperience.tsx",
-          "line": 27,
-          "context": "{i18n(\"components.simpleexperience.a77ab9efa020\")}"
-        }
-      ],
-      "translation": "The mode only changes the display. Tabs, boards, and each mode’s shortcuts are all kept.",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

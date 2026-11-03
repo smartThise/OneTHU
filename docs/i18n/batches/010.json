@@ -1,7 +1,251 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.explorer.workspaceeditor.5d8f0c9f8493",
+      "source": "暂无标签页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
+          "line": 120,
+          "context": "{i18n(\"components.explorer.workspaceeditor.5d8f0c9f8493\")}"
+        }
+      ],
+      "translation": "No tabs",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.workspaceeditor.7a593e8801f2",
+      "source": "可加入的标签页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
+          "line": 137,
+          "context": "{i18n(\"components.explorer.workspaceeditor.7a593e8801f2\")}"
+        }
+      ],
+      "translation": "Tabs you can add",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.workspaceeditor.8777428f135c",
+      "source": "编辑工作区",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
+          "line": 82,
+          "context": "{i18n(\"components.explorer.workspaceeditor.8777428f135c\")}"
+        },
+        {
+          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
+          "line": 85,
+          "context": "{i18n(\"components.explorer.workspaceeditor.8777428f135c\")}"
+        }
+      ],
+      "translation": "Edit workspace",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.workspaceeditor.95861c4b5cd6",
+      "source": "移出",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
+          "line": 125,
+          "context": "{i18n(\"components.explorer.workspaceeditor.95861c4b5cd6\")}"
+        },
+        {
+          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
+          "line": 131,
+          "context": "{i18n(\"components.explorer.workspaceeditor.95861c4b5cd6\")}"
+        }
+      ],
+      "translation": "Remove",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.workspaceeditor.95d820310c3e",
+      "source": "成员（{memberCount}）",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "memberCount",
+          "expression": "memberCount"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
+          "line": 119,
+          "context": "{i18nRich(\"components.explorer.workspaceeditor.95d820310c3e\", { memberCount: memberCount })}"
+        }
+      ],
+      "translation": "Members ({memberCount})",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.workspaceeditor.a3030bf8f16d",
+      "source": "保存",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
+          "line": 153,
+          "context": "{i18n(\"components.explorer.workspaceeditor.a3030bf8f16d\")}"
+        }
+      ],
+      "translation": "Save",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorer.workspaceeditor.b2a947fe366c",
+      "source": "工作区名字",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/explorer/WorkspaceEditor.tsx",
+          "line": 86,
+          "context": "{i18n(\"components.explorer.workspaceeditor.b2a947fe366c\")}"
+        }
+      ],
+      "translation": "Workspace name",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorerprefssection.26b3d168dbfe",
+      "source": "保留最近 10 条，当前 {length} 条",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(hist.length)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ExplorerPrefsSection.tsx",
+          "line": 58,
+          "context": "hist.length > 0 ? i18n(\"components.explorerprefssection.26b3d168dbfe\", { length: String(hist.length) }) : i18n(\"components.explorerprefssection.46ca86da52b3\")"
+        }
+      ],
+      "translation": "Keeps the last 10 entries; currently {length}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorerprefssection.2c2a533ac8e4",
+      "source": "底栏胶囊与悬浮球的二合一入口",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ExplorerPrefsSection.tsx",
+          "line": 42,
+          "context": "{i18n(\"components.explorerprefssection.2c2a533ac8e4\")}"
+        }
+      ],
+      "translation": "A combined entry that merges the bottom-bar capsule and the floating ball",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorerprefssection.44ce7ae909bb",
+      "source": "搜索",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ExplorerPrefsSection.tsx",
+          "line": 51,
+          "context": "label: i18n(\"components.explorerprefssection.44ce7ae909bb\")"
+        }
+      ],
+      "translation": "Search",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "components.explorerprefssection.461301d93770",
+      "source": "最近搜索记录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ExplorerPrefsSection.tsx",
+          "line": 57,
+          "context": "{i18n(\"components.explorerprefssection.461301d93770\")}"
+        }
+      ],
+      "translation": "Recent searches",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorerprefssection.464f0207d4ff",
+      "source": "点击胶囊默认打开",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ExplorerPrefsSection.tsx",
+          "line": 45,
+          "context": "{i18n(\"components.explorerprefssection.464f0207d4ff\")}"
+        }
+      ],
+      "translation": "Opens by default when the capsule is clicked",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorerprefssection.46ca86da52b3",
+      "source": "暂无记录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ExplorerPrefsSection.tsx",
+          "line": 58,
+          "context": "hist.length > 0 ? i18n(\"components.explorerprefssection.26b3d168dbfe\", { length: String(hist.length) }) : i18n(\"components.explorerprefssection.46ca86da52b3\")"
+        }
+      ],
+      "translation": "No records yet",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.explorerprefssection.48875ae74158",
+      "source": "搜索模式可搜功能/作业/文件并直达；OH 模式直接进对话",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/ExplorerPrefsSection.tsx",
+          "line": 46,
+          "context": "{i18n(\"components.explorerprefssection.48875ae74158\")}"
+        }
+      ],
+      "translation": "Search mode finds features, assignments, and files and jumps straight to them; OH mode goes directly into the chat",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "components.explorerprefssection.563b252befe6",
       "source": "再点一次确认清空",
@@ -278,6 +522,11 @@
       "kind": "text",
       "parameters": [],
       "locations": [
+        {
+          "file": "apps/desktop/src/components/HomeWidgets.tsx",
+          "line": 688,
+          "context": "error ?? i18n(\"components.exthw.yktcontentlist.dc91444c4449\")"
+        },
         {
           "file": "apps/desktop/src/components/exthw/YktContentList.tsx",
           "line": 81,
@@ -1104,245 +1353,6 @@
         }
       ],
       "translation": "; Scanning on this device switches away from the app and may freeze it, causing sign-in to fail.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.exthwloginmodal.e84563c59584",
-      "source": "登录成功后回到本页，点击「我已登录，读取会话」。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExtHwLoginModal.tsx",
-          "line": 298,
-          "context": "{i18n(\"components.exthwloginmodal.e84563c59584\")}"
-        }
-      ],
-      "translation": "After signing in, return to this page and click \"I'm signed in — read session\".",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.exthwloginmodal.eb13f4204eea",
-      "source": "请用微信或雨豆APP 扫描二维码",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExtHwLoginModal.tsx",
-          "line": 146,
-          "context": "status === \"error\"\n          ? null\n          : i18n(\"components.exthwloginmodal.eb13f4204eea\")"
-        }
-      ],
-      "translation": "Please scan the QR code with WeChat or the Yudou app",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.exthwloginmodal.f28740ebbaec",
-      "source": "打开微信或雨豆APP 扫描二维码",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExtHwLoginModal.tsx",
-          "line": 47,
-          "context": "return i18n(\"components.exthwloginmodal.f28740ebbaec\");"
-        }
-      ],
-      "translation": "Open WeChat or the Yudou app and scan the QR code",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.exthwloginmodal.fe5af3dd75ff",
-      "source": "手机验证码",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExtHwLoginModal.tsx",
-          "line": 53,
-          "context": "return i18n(\"components.exthwloginmodal.fe5af3dd75ff\");"
-        }
-      ],
-      "translation": "Phone verification code",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.exthwsettingssection.0046b5364303",
-      "source": "{value} 已通过清华统一认证登录，已保存。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(SOURCE_NAMES[source])"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExtHwSettingsSection.tsx",
-          "line": 324,
-          "context": "notify(\"oj\", i18n(\"components.exthwsettingssection.0046b5364303\", { value: String(labelForId(SOURCE_NAMES[source])) }))"
-        }
-      ],
-      "translation": "{value} signed in via Tsinghua Unified Authentication and saved.",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.exthwsettingssection.04bc193e4244",
-      "source": "在应用内打开雨课堂官方登录页，支持扫码或手机号+图形验证码+短信登录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExtHwSettingsSection.tsx",
-          "line": 496,
-          "context": "{i18n(\"components.exthwsettingssection.04bc193e4244\")}"
-        }
-      ],
-      "translation": "Opens the official Rain Classroom sign-in page inside the app, supporting QR scan or phone number + captcha + SMS sign-in",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.exthwsettingssection.07a0f114d30b",
-      "source": "OJ 平台登录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExtHwSettingsSection.tsx",
-          "line": 581,
-          "context": "{i18n(\"components.exthwsettingssection.07a0f114d30b\")}"
-        }
-      ],
-      "translation": "OJ platform sign-in",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.exthwsettingssection.0a01eee1cd37",
-      "source": "已登录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExtHwSettingsSection.tsx",
-          "line": 482,
-          "context": "configured.yuketang ? i18n(\"components.exthwsettingssection.0a01eee1cd37\") : i18n(\"components.exthwsettingssection.c1f658373079\")"
-        },
-        {
-          "file": "apps/desktop/src/components/ExtHwSettingsSection.tsx",
-          "line": 780,
-          "context": "logged ? i18n(\"components.exthwsettingssection.0a01eee1cd37\") : i18n(\"components.exthwsettingssection.c1f658373079\")"
-        }
-      ],
-      "translation": "Signed in",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.exthwsettingssection.0a5f3151f8a9",
-      "source": "官方网页登录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExtHwSettingsSection.tsx",
-          "line": 499,
-          "context": "yktWebOpen ? i18n(\"components.exthwsettingssection.f3553abadd4a\") : i18n(\"components.exthwsettingssection.0a5f3151f8a9\")"
-        }
-      ],
-      "translation": "Sign in on the official website",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.exthwsettingssection.0cfeab7fbfd6",
-      "source": "刷新完成。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExtHwSettingsSection.tsx",
-          "line": 223,
-          "context": "notify(\"range\", i18n(\"components.exthwsettingssection.0cfeab7fbfd6\"))"
-        }
-      ],
-      "translation": "Refresh complete.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.exthwsettingssection.103d97629702",
-      "source": "导入登录状态",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExtHwSettingsSection.tsx",
-          "line": 534,
-          "context": "busy === \"ykt-import\" ? i18n(\"components.exthwsettingssection.2f58b6eddc08\") : i18n(\"components.exthwsettingssection.103d97629702\")"
-        }
-      ],
-      "translation": "Import sign-in state",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.exthwsettingssection.11968ab19a8b",
-      "source": "导出登录状态",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExtHwSettingsSection.tsx",
-          "line": 533,
-          "context": "busy === \"ykt-export\" ? i18n(\"components.exthwsettingssection.dce6e572314e\") : i18n(\"components.exthwsettingssection.11968ab19a8b\")"
-        }
-      ],
-      "translation": "Export sign-in state",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.exthwsettingssection.130123e01753",
-      "source": "立即刷新",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExtHwSettingsSection.tsx",
-          "line": 756,
-          "context": "busy === \"refresh\" || ext.state === \"loading\" ? i18n(\"components.exthwsettingssection.7f3c8312816f\") : i18n(\"components.exthwsettingssection.130123e01753\")"
-        }
-      ],
-      "translation": "Refresh now",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.exthwsettingssection.164c7afc6158",
-      "source": "账号密码",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ExtHwSettingsSection.tsx",
-          "line": 606,
-          "context": "tuojVia === \"password\"\n                    ? i18n(\"components.exthwsettingssection.164c7afc6158\")\n                    : undefined"
-        },
-        {
-          "file": "apps/desktop/src/components/ExtHwSettingsSection.tsx",
-          "line": 640,
-          "context": "classicVia === \"password\"\n                    ? i18n(\"components.exthwsettingssection.164c7afc6158\")\n                    : undefined"
-        }
-      ],
-      "translation": "Username and password",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

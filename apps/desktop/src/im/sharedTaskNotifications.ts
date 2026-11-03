@@ -21,7 +21,7 @@ export async function rememberSharedWechatContext(recipient: string, contextToke
   await syncSharedTaskNotifications();
 }
 export function syncSharedTaskNotifications(): Promise<SharedNotificationSync | undefined> {
-  if (!usesSharedRuntime() || session.state !== "ready" || !mcpServerEnabled() || !ohAuthorized()) return Promise.resolve(undefined);
+  if (!usesSharedRuntime() || session.state !== "ready" || !ohAuthorized()) return Promise.resolve(undefined);
   const owner = session.username;
   const next = tail.catch(() => undefined).then(async () => {
     const guard = await sharedAccountGuard(owner), cfg = await loadImConfig();

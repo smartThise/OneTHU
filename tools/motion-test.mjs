@@ -341,12 +341,13 @@ console.log("[19] 侧栏指示条 / 邮箱推入 / 二级弹层退场 / 方阵�
   ok(/<Modal\b/.test(src("pages/MailPage.tsx")) && /open=\{open\}/.test(src("pages/MailPage.tsx")) && !/composeHold/.test(src("pages/MailPage.tsx")), "写信弹层由 OneGUI Modal 统一退场相位");
   ok(/html\.has-reveal :is\(\.app-grid, \.thos-grid\) > \* \{/.test(css) && /html\.has-reveal :is\(\.app-grid, \.thos-grid\) > \*\[data-reveal-in\]/.test(css), "方阵网格纳入滚动揭示（可见才入场，视口外不再错过动画）");
 
-  console.log("\n[20] 日程：弹层退场 + 课表块入场");
+  console.log("\n[20] 日程：弹层退场 + 整周连续切换");
   const sched = src("pages/Schedule.tsx");
   ok(/<Modal\b/.test(sched) && !/const\s+\w+\s*=\s*useExitHold\(/.test(sched), "日程详情/编辑弹层由 OneGUI Modal 统一退场相位");
   const scheduleRecipe = readFileSync("packages/gui/src/recipes/schedule.css", "utf8");
-  ok(/animation: schedule-block-in var\(--og-dur-3\) var\(--og-ease-spring\) backwards/.test(scheduleRecipe) && /animation-delay: var\(--og-c-schedule-delay/.test(scheduleRecipe) && /blockRows\.get/.test(sched), "课表块按行（时间带）上浮入场：OneGUI配方承载动效，同排同时、时间自上而下");
-  ok(/visiblePlaced\.map\(\(p, i\) =>/.test(sched) && /new Set\(visiblePlaced\.map/.test(sched), "行号由起始时刻去重排序得出（不是数组序号，避免按列扫）");
-  ok(/ymdOf\(weekStart\)/.test(sched) && /key=\{/.test(sched), "块 key 带周戳：切周整批重播入场");
+  const weekNavigation = src("lib/weekSwipe.ts");
+  ok(/className="schedule-week"/.test(sched) && /weekNavigation.current\?\.commit/.test(sched) && !/animation: schedule-block-in/.test(scheduleRecipe), "课表整周连续切换，取消逐块重播与错峰等待");
+  ok(/snapshot.setAttribute\("aria-hidden", "true"\)/.test(weekNavigation) && /animation.finished/.test(weekNavigation) && /prefers-reduced-motion: reduce/.test(weekNavigation), "旧周退场层不可交互，完成后回收，尊重减弱动态效果");
+  ok(/ymdOf\(weekStart\)/.test(sched) && /key=\{/.test(sched), "块 key 保留周归属，切换时由整周容器承载动效");
 }
 console.log(`\n动效护栏：${pass} 断言全部通过（只动 transform/opacity + 令牌化 + 减弱动态降级 + 不锁死 hover + 不越权覆盖）`);

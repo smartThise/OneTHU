@@ -1,6 +1,6 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
-  "count": 7665,
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
+  "count": 7679,
   "messages": [
     {
       "key": "app.08566a4b57a3",
@@ -41,7 +41,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1199,
+          "line": 1204,
           "context": "{i18n(\"board.edit.restore\")}"
         }
       ]
@@ -54,7 +54,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 928,
+          "line": 933,
           "context": "boardId === HOME_BOARD_ID ? i18n(\"board.edit.restoreHomeConfirm\") : i18n(\"board.edit.restoreBoardConfirm\")"
         }
       ]
@@ -67,7 +67,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 931,
+          "line": 936,
           "context": "say(i18n(\"board.edit.restored\"))"
         }
       ]
@@ -80,7 +80,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 928,
+          "line": 933,
           "context": "boardId === HOME_BOARD_ID ? i18n(\"board.edit.restoreHomeConfirm\") : i18n(\"board.edit.restoreBoardConfirm\")"
         }
       ]
@@ -93,7 +93,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1198,
+          "line": 1203,
           "context": "{i18n(\"board.edit.undo\")}"
         }
       ]
@@ -106,8 +106,26 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 924,
+          "line": 929,
           "context": "say(i18n(\"board.edit.undone\"))"
+        }
+      ]
+    },
+    {
+      "key": "calendar.shared.changed",
+      "source": "日程已在其他入口更新，请刷新后重试。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 24,
+          "context": "new Error(i18n(\"calendar.shared.changed\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 461,
+          "context": "String(error).includes(\"APP_DATA_CHANGED\")?i18n(\"calendar.shared.changed\"):i18n(\"state.cloudcal.6b8367664e76\")"
         }
       ]
     },
@@ -119,7 +137,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 24,
+          "line": 42,
           "context": "automatic ? t(\"cli.auto.enabled\") : t(\"cli.auto.description\")"
         }
       ]
@@ -132,7 +150,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 24,
+          "line": 42,
           "context": "automatic ? t(\"cli.auto.enabled\") : t(\"cli.auto.description\")"
         }
       ]
@@ -145,12 +163,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 23,
+          "line": 41,
           "context": "{t(\"cli.auto.title\")}"
         },
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 25,
+          "line": 43,
           "context": "{t(\"cli.auto.title\")}"
         }
       ]
@@ -163,7 +181,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/cli/service.ts",
-          "line": 132,
+          "line": 130,
           "context": "confirmText: t(\"cli.confirm.execute\")"
         }
       ]
@@ -176,8 +194,186 @@
       "locations": [
         {
           "file": "apps/desktop/src/cli/service.ts",
-          "line": 132,
+          "line": 130,
           "context": "title: t(\"cli.confirm.title\")"
+        }
+      ]
+    },
+    {
+      "key": "cli.package.description",
+      "source": "为终端、其他 Agent 和关闭应用后的常驻任务安装命令行环境。OH 在应用内可直接使用学校服务，无需安装 CLI。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 32,
+          "context": "installation?.installed?t(\"cli.package.upgrade\"):t(\"cli.package.description\")"
+        }
+      ]
+    },
+    {
+      "key": "cli.package.error",
+      "source": "CLI 操作未完成，请重试；应用内 OH 与学校服务仍可使用。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 19,
+          "context": "setError(t(\"cli.package.error\"))"
+        },
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 23,
+          "context": "t(\"cli.package.error\")+(code?` · ${code}`:\"\")"
+        }
+      ]
+    },
+    {
+      "key": "cli.package.external",
+      "source": "允许外部 CLI / MCP 访问",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 37,
+          "context": "{t(\"cli.package.external\")}"
+        }
+      ]
+    },
+    {
+      "key": "cli.package.install",
+      "source": "安装 CLI",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 35,
+          "context": "installation?.installed?t(\"cli.package.update\"):t(\"cli.package.install\")"
+        }
+      ]
+    },
+    {
+      "key": "cli.package.installed",
+      "source": "已安装 {version}。卸载保留账号、任务和数据。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "version"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 32,
+          "context": "installation?.available?t(\"cli.package.installed\",{version:installation.version??\"\"}):installation?.installed?t(\"cli.package.upgrade\"):t(\"cli.package.description\")"
+        }
+      ]
+    },
+    {
+      "key": "cli.package.installing",
+      "source": "正在下载、核验并安装 CLI…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 32,
+          "context": "busy===\"install\"?t(\"cli.package.installing\"):t(\"cli.package.removing\")"
+        }
+      ]
+    },
+    {
+      "key": "cli.package.mobile",
+      "source": "OH 可直接访问已授权的应用服务和数据。手机任务在应用运行期间执行。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 36,
+          "context": "{t(\"cli.package.mobile\")}"
+        }
+      ]
+    },
+    {
+      "key": "cli.package.removing",
+      "source": "正在保存日程并停止常驻任务…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 32,
+          "context": "busy===\"install\"?t(\"cli.package.installing\"):t(\"cli.package.removing\")"
+        }
+      ]
+    },
+    {
+      "key": "cli.package.repair",
+      "source": "重新安装",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 35,
+          "context": "installation?.available?t(\"cli.package.repair\"):installation?.installed?t(\"cli.package.update\"):t(\"cli.package.install\")"
+        }
+      ]
+    },
+    {
+      "key": "cli.package.title",
+      "source": "可选组件 · OneTHU CLI",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 31,
+          "context": "{t(\"cli.package.title\")}"
+        }
+      ]
+    },
+    {
+      "key": "cli.package.uninstall",
+      "source": "卸载 CLI",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 34,
+          "context": "{t(\"cli.package.uninstall\")}"
+        }
+      ]
+    },
+    {
+      "key": "cli.package.update",
+      "source": "更新 CLI",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 35,
+          "context": "installation?.installed?t(\"cli.package.update\"):t(\"cli.package.install\")"
+        }
+      ]
+    },
+    {
+      "key": "cli.package.upgrade",
+      "source": "检测到旧版 CLI，更新后可恢复常驻任务。账号、任务和数据均已保留。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 32,
+          "context": "installation?.installed?t(\"cli.package.upgrade\"):t(\"cli.package.description\")"
         }
       ]
     },
@@ -189,7 +385,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 16,
+          "line": 27,
           "context": "!state.authorized ? t(\"cli.server.authorization\")\n    : state.phase === \"syncing\" ? t(\"cli.server.syncing\") : state.reachableNow ? state.background ? t(\"cli.server.background\") : t(\"cli.server.ready\", { endpoint: state.cliEndpoint ?? \"http://127.0.0.1:8787/cli/v1\" })\n    : state.errorCode === \"listener-unavailable\" ? t(\"cli.server.portBusy\") : state.errorCode === \"listener-not-started\" ? t(\"cli.server.desktopOnly\") : state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         }
       ]
@@ -202,7 +398,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 17,
+          "line": 28,
           "context": "state.background ? t(\"cli.server.background\") : t(\"cli.server.ready\", { endpoint: state.cliEndpoint ?? \"http://127.0.0.1:8787/cli/v1\" })"
         }
       ]
@@ -215,7 +411,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 18,
+          "line": 29,
           "context": "state.errorCode === \"listener-not-started\" ? t(\"cli.server.desktopOnly\") : state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         }
       ]
@@ -228,12 +424,17 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 18,
+          "line": 29,
           "context": "state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         },
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
           "line": 29,
+          "context": "return t(\"cli.server.error\");"
+        },
+        {
+          "file": "apps/desktop/src/lib/loginErrors.ts",
+          "line": 30,
           "context": "return t(\"cli.server.error\");"
         }
       ]
@@ -246,7 +447,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 16,
+          "line": 27,
           "context": "state.handoffPending ? t(\"cli.server.handoffPending\") : !state.requested ? t(\"cli.server.off\") : !state.authorized ? t(\"cli.server.authorization\")\n    : state.phase === \"syncing\" ? t(\"cli.server.syncing\") : state.reachableNow ? state.background ? t(\"cli.server.background\") : t(\"cli.server.ready\", { endpoint: state.cliEndpoint ?? \"http://127.0.0.1:8787/cli/v1\" })\n    : state.errorCode === \"listener-unavailable\" ? t(\"cli.server.portBusy\") : state.errorCode === \"listener-not-started\" ? t(\"cli.server.desktopOnly\") : state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         }
       ]
@@ -259,7 +460,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 16,
+          "line": 27,
           "context": "!state.requested ? t(\"cli.server.off\") : !state.authorized ? t(\"cli.server.authorization\")\n    : state.phase === \"syncing\" ? t(\"cli.server.syncing\") : state.reachableNow ? state.background ? t(\"cli.server.background\") : t(\"cli.server.ready\", { endpoint: state.cliEndpoint ?? \"http://127.0.0.1:8787/cli/v1\" })\n    : state.errorCode === \"listener-unavailable\" ? t(\"cli.server.portBusy\") : state.errorCode === \"listener-not-started\" ? t(\"cli.server.desktopOnly\") : state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         }
       ]
@@ -272,7 +473,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 18,
+          "line": 29,
           "context": "state.errorCode === \"listener-unavailable\" ? t(\"cli.server.portBusy\") : state.errorCode === \"listener-not-started\" ? t(\"cli.server.desktopOnly\") : state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         }
       ]
@@ -289,7 +490,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 17,
+          "line": 28,
           "context": "state.background ? t(\"cli.server.background\") : t(\"cli.server.ready\", { endpoint: state.cliEndpoint ?? \"http://127.0.0.1:8787/cli/v1\" })"
         }
       ]
@@ -302,7 +503,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 20,
+          "line": 38,
           "context": "{t(\"cli.server.retry\")}"
         }
       ]
@@ -315,7 +516,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 18,
+          "line": 29,
           "context": "state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         }
       ]
@@ -328,7 +529,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 17,
+          "line": 28,
           "context": "state.phase === \"syncing\" ? t(\"cli.server.syncing\") : state.reachableNow ? state.background ? t(\"cli.server.background\") : t(\"cli.server.ready\", { endpoint: state.cliEndpoint ?? \"http://127.0.0.1:8787/cli/v1\" })\n    : state.errorCode === \"listener-unavailable\" ? t(\"cli.server.portBusy\") : state.errorCode === \"listener-not-started\" ? t(\"cli.server.desktopOnly\") : state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         }
       ]
@@ -921,7 +1122,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/cli/service.ts",
-          "line": 132,
+          "line": 130,
           "context": "cancelText: t(\"common.cancel\")"
         },
         {
@@ -2702,7 +2903,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 692,
+          "line": 672,
           "context": "{i18n(\"components.boardcards.2d8dbb13bbab\")}"
         }
       ]
@@ -2751,7 +2952,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 656,
+          "line": 636,
           "context": "{i18nRich(\"components.boardcards.39e3a897845c\", { y: y })}"
         }
       ]
@@ -2816,7 +3017,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 639,
+          "line": 619,
           "context": "i18n(\"components.boardcards.5c553ec3f6db\") + c"
         }
       ]
@@ -2925,7 +3126,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 632,
+          "line": 612,
           "context": "{i18nRich(\"components.boardcards.6bb63f66bb86\", { value: weekdayCn(now.getDay()), value2: now.getMonth() + 1, value3: now.getDate() })}"
         }
       ]
@@ -2938,7 +3139,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 678,
+          "line": 658,
           "context": "snap.reason ? i18n(\"components.boardcards.dfaa7ebc48d1\") : i18n(\"components.boardcards.7cdec8c79c4c\")"
         }
       ]
@@ -3034,7 +3235,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 679,
+          "line": 659,
           "context": "{i18n(\"components.boardcards.b8784c8dd563\")}"
         }
       ]
@@ -3056,7 +3257,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 653,
+          "line": 633,
           "context": "{i18nRich(\"components.boardcards.baafc6242af5\", { m: m, d: d })}"
         }
       ]
@@ -3203,7 +3404,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 678,
+          "line": 658,
           "context": "snap.reason ? i18n(\"components.boardcards.dfaa7ebc48d1\") : i18n(\"components.boardcards.7cdec8c79c4c\")"
         }
       ]
@@ -3239,7 +3440,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 690,
+          "line": 670,
           "context": "{i18nRich(\"components.boardcards.e515eff89f07\", { value: Math.round(w.now.feels) })}"
         }
       ]
@@ -3257,7 +3458,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 691,
+          "line": 671,
           "context": "{i18nRich(\"components.boardcards.f11e888a9be4\", { value: Math.round(w.now.humidity) })}"
         }
       ]
@@ -10701,6 +10902,11 @@
       "parameters": [],
       "locations": [
         {
+          "file": "apps/desktop/src/components/HomeWidgets.tsx",
+          "line": 688,
+          "context": "error ?? i18n(\"components.exthw.yktcontentlist.dc91444c4449\")"
+        },
+        {
           "file": "apps/desktop/src/components/exthw/YktContentList.tsx",
           "line": 81,
           "context": "e instanceof Error ? e.message : i18n(\"components.exthw.yktcontentlist.dc91444c4449\")"
@@ -14451,7 +14657,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1140,
+          "line": 1145,
           "context": "it.folded ? i18n(\"components.freeboard.00bd3960fea8\") : i18n(\"components.freeboard.84a07f292f1f\")"
         }
       ]
@@ -14464,7 +14670,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1230,
+          "line": 1235,
           "context": "{i18n(\"components.freeboard.03aadf165657\")}"
         }
       ]
@@ -14477,7 +14683,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 753,
+          "line": 758,
           "context": "label: i18n(\"components.freeboard.051836569928\")"
         }
       ]
@@ -14490,7 +14696,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1206,
+          "line": 1211,
           "context": "{i18n(\"components.freeboard.05731b92ad31\")}"
         }
       ]
@@ -14503,7 +14709,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 983,
+          "line": 988,
           "context": "penOn ? i18n(\"components.freeboard.084cfc0311c3\") : i18n(\"components.freeboard.2a95e1939b68\")"
         }
       ]
@@ -14516,7 +14722,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1247,
+          "line": 1252,
           "context": "{i18n(\"components.freeboard.0a5eea295bf2\")}"
         }
       ]
@@ -14529,7 +14735,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 986,
+          "line": 991,
           "context": "label: i18n(\"components.freeboard.0f591af87c35\")"
         }
       ]
@@ -14542,7 +14748,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 748,
+          "line": 753,
           "context": "label: i18n(\"components.freeboard.12e0be622c36\")"
         }
       ]
@@ -14555,7 +14761,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 743,
+          "line": 748,
           "context": "picked ? i18n(\"components.freeboard.d13523826411\") : i18n(\"components.freeboard.153d487fec51\")"
         }
       ]
@@ -14568,7 +14774,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 756,
+          "line": 761,
           "context": "label: i18n(\"components.freeboard.173f88d28ebf\")"
         }
       ]
@@ -14581,7 +14787,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 759,
+          "line": 764,
           "context": "label: i18n(\"components.freeboard.17eac802d3f7\")"
         }
       ]
@@ -14594,7 +14800,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 992,
+          "line": 997,
           "context": "{i18n(\"components.freeboard.203c08e0d44a\")}"
         }
       ]
@@ -14607,12 +14813,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 755,
+          "line": 760,
           "context": "item.pinned ? i18n(\"components.freeboard.20590a6a7b9a\") : i18n(\"components.freeboard.d4b3f49cd2e4\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1151,
+          "line": 1156,
           "context": "it.pinned ? i18n(\"components.freeboard.20590a6a7b9a\") : i18n(\"components.freeboard.7230466e3998\")"
         }
       ]
@@ -14625,7 +14831,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 763,
+          "line": 768,
           "context": "plan.title || def?.title || i18n(\"components.freeboard.206359b4b54d\")"
         }
       ]
@@ -14651,7 +14857,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1132,
+          "line": 1137,
           "context": "{i18n(\"components.freeboard.22b32f301474\")}"
         }
       ]
@@ -14664,7 +14870,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 993,
+          "line": 998,
           "context": "stack ? i18n(\"components.freeboard.2880a75c7f5f\") : i18n(\"components.freeboard.5b80d5358a4b\")"
         }
       ]
@@ -14677,7 +14883,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1203,
+          "line": 1208,
           "context": "{i18n(\"components.freeboard.290f68030501\")}"
         }
       ]
@@ -14690,7 +14896,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 983,
+          "line": 988,
           "context": "penOn ? i18n(\"components.freeboard.084cfc0311c3\") : i18n(\"components.freeboard.2a95e1939b68\")"
         }
       ]
@@ -14703,7 +14909,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1144,
+          "line": 1149,
           "context": "it.folded ? i18n(\"components.freeboard.2de119793cb4\") : i18n(\"components.freeboard.84a07f292f1f\")"
         }
       ]
@@ -14716,12 +14922,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 772,
+          "line": 777,
           "context": "label: i18n(\"components.freeboard.2f9daa828907\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1152,
+          "line": 1157,
           "context": "{i18n(\"components.freeboard.2f9daa828907\")}"
         }
       ]
@@ -14734,7 +14940,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1136,
+          "line": 1141,
           "context": "{i18n(\"components.freeboard.3389965d46d4\")}"
         }
       ]
@@ -14752,7 +14958,7 @@
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1266,
+          "line": 1271,
           "context": "{i18n(\"components.freeboard.37979829426b\")}"
         }
       ]
@@ -14778,7 +14984,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1096,
+          "line": 1101,
           "context": "isNote ? i18n(\"components.freeboard.3a83db6cc546\") : i18n(\"components.freeboard.53684bb9137a\")"
         }
       ]
@@ -14791,7 +14997,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1231,
+          "line": 1236,
           "context": "{i18n(\"components.freeboard.3fd47edce45b\")}"
         }
       ]
@@ -14804,7 +15010,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 917,
+          "line": 922,
           "context": "i18n(\"components.freeboard.46090fa0d5a2\") + tpl.name"
         }
       ]
@@ -14830,7 +15036,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 768,
+          "line": 773,
           "context": "r.ok ? i18n(\"components.freeboard.4cfe5f20b9dd\") : r.reason === \"duplicate\" ? i18n(\"components.freeboard.910046f3ea83\") : i18n(\"components.freeboard.57ce97c584ca\")"
         }
       ]
@@ -14843,7 +15049,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1096,
+          "line": 1101,
           "context": "isNote ? i18n(\"components.freeboard.3a83db6cc546\") : i18n(\"components.freeboard.53684bb9137a\")"
         }
       ]
@@ -14856,7 +15062,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 768,
+          "line": 773,
           "context": "r.reason === \"duplicate\" ? i18n(\"components.freeboard.910046f3ea83\") : i18n(\"components.freeboard.57ce97c584ca\")"
         }
       ]
@@ -14869,7 +15075,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1340,
+          "line": 1345,
           "context": "i18n(\"components.freeboard.591cb2edcb7e\") + d.title"
         }
       ]
@@ -14882,12 +15088,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 981,
+          "line": 986,
           "context": "phoneCanvas ? i18n(\"components.freeboard.593f0f466b3e\") : i18n(\"components.freeboard.f87eebfdca60\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1194,
+          "line": 1199,
           "context": "phoneCanvas ? i18n(\"components.freeboard.593f0f466b3e\") : i18n(\"components.freeboard.f87eebfdca60\")"
         }
       ]
@@ -14913,7 +15119,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 993,
+          "line": 998,
           "context": "stack ? i18n(\"components.freeboard.2880a75c7f5f\") : i18n(\"components.freeboard.5b80d5358a4b\")"
         }
       ]
@@ -14926,7 +15132,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 996,
+          "line": 1001,
           "context": "{i18n(\"components.freeboard.62b95daecb7f\")}"
         }
       ]
@@ -14939,7 +15145,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1088,
+          "line": 1093,
           "context": "{i18n(\"components.freeboard.6374c187518d\")}"
         }
       ]
@@ -14952,7 +15158,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1133,
+          "line": 1138,
           "context": "{i18n(\"components.freeboard.68303cbc8d03\")}"
         }
       ]
@@ -14965,7 +15171,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1132,
+          "line": 1137,
           "context": "{i18n(\"components.freeboard.6cedd5ab1aa9\")}"
         }
       ]
@@ -14978,7 +15184,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1151,
+          "line": 1156,
           "context": "it.pinned ? i18n(\"components.freeboard.70fba17fffb7\") : i18n(\"components.freeboard.d4b3f49cd2e4\")"
         }
       ]
@@ -14991,7 +15197,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1151,
+          "line": 1156,
           "context": "it.pinned ? i18n(\"components.freeboard.20590a6a7b9a\") : i18n(\"components.freeboard.7230466e3998\")"
         }
       ]
@@ -15004,12 +15210,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 979,
+          "line": 984,
           "context": "label: i18n(\"components.freeboard.765be150d6cb\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1288,
+          "line": 1293,
           "context": "{i18n(\"components.freeboard.765be150d6cb\")}"
         }
       ]
@@ -15035,7 +15241,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1191,
+          "line": 1196,
           "context": "{i18n(\"components.freeboard.783d638053ea\")}"
         }
       ]
@@ -15061,12 +15267,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1307,
+          "line": 1312,
           "context": "title: i18n(\"components.freeboard.7c7802d8adae\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1311,
+          "line": 1316,
           "context": "title: i18n(\"components.freeboard.7c7802d8adae\")"
         }
       ]
@@ -15079,7 +15285,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1188,
+          "line": 1193,
           "context": "{i18n(\"components.freeboard.7e8f29dd96a4\")}"
         }
       ]
@@ -15092,7 +15298,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1205,
+          "line": 1210,
           "context": "{i18n(\"components.freeboard.80f8fbcfa011\")}"
         }
       ]
@@ -15105,7 +15311,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1133,
+          "line": 1138,
           "context": "{i18n(\"components.freeboard.837940c33698\")}"
         }
       ]
@@ -15118,7 +15324,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 975,
+          "line": 980,
           "context": "!canEdit ? i18n(\"components.freeboard.editingHint\") : i18n(\"components.freeboard.83d2e3f15c71\")"
         }
       ]
@@ -15131,12 +15337,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1140,
+          "line": 1145,
           "context": "it.folded ? i18n(\"components.freeboard.00bd3960fea8\") : i18n(\"components.freeboard.84a07f292f1f\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1144,
+          "line": 1149,
           "context": "it.folded ? i18n(\"components.freeboard.2de119793cb4\") : i18n(\"components.freeboard.84a07f292f1f\")"
         }
       ]
@@ -15149,7 +15355,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1503,
+          "line": 1508,
           "context": "{i18n(\"components.freeboard.84d2b65c5548\")}"
         }
       ]
@@ -15162,7 +15368,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1086,
+          "line": 1091,
           "context": "{i18n(\"components.freeboard.8d6ca2d1e48b\")}"
         }
       ]
@@ -15175,7 +15381,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1268,
+          "line": 1273,
           "context": "{i18n(\"components.freeboard.8e1c845f3d61\")}"
         }
       ]
@@ -15188,7 +15394,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 768,
+          "line": 773,
           "context": "r.reason === \"duplicate\" ? i18n(\"components.freeboard.910046f3ea83\") : i18n(\"components.freeboard.57ce97c584ca\")"
         }
       ]
@@ -15201,7 +15407,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 771,
+          "line": 776,
           "context": "label: i18n(\"components.freeboard.979a332955c8\")"
         }
       ]
@@ -15214,7 +15420,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 978,
+          "line": 983,
           "context": "label: i18n(\"components.freeboard.97dcf4348652\")"
         }
       ]
@@ -15227,7 +15433,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1308,
+          "line": 1313,
           "context": "description: i18n(\"components.freeboard.9818eabd5c89\")"
         }
       ]
@@ -15240,7 +15446,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1204,
+          "line": 1209,
           "context": "{i18n(\"components.freeboard.996f7b2c0f27\")}"
         }
       ]
@@ -15253,7 +15459,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1002,
+          "line": 1007,
           "context": "{i18n(\"components.freeboard.9a3bd2de70be\")}"
         }
       ]
@@ -15266,7 +15472,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 953,
+          "line": 958,
           "context": "say(i18n(\"components.freeboard.a1714f5783d4\"))"
         }
       ]
@@ -15284,7 +15490,7 @@
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1228,
+          "line": 1233,
           "context": "{i18n(\"components.freeboard.a450a21ac723\")}"
         }
       ]
@@ -15297,7 +15503,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 750,
+          "line": 755,
           "context": "label: i18n(\"components.freeboard.d003f87ed602\")"
         }
       ]
@@ -15310,7 +15516,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 743,
+          "line": 748,
           "context": "picked ? i18n(\"components.freeboard.d13523826411\") : i18n(\"components.freeboard.153d487fec51\")"
         }
       ]
@@ -15323,12 +15529,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 755,
+          "line": 760,
           "context": "item.pinned ? i18n(\"components.freeboard.20590a6a7b9a\") : i18n(\"components.freeboard.d4b3f49cd2e4\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1151,
+          "line": 1156,
           "context": "it.pinned ? i18n(\"components.freeboard.70fba17fffb7\") : i18n(\"components.freeboard.d4b3f49cd2e4\")"
         }
       ]
@@ -15341,7 +15547,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1332,
+          "line": 1337,
           "context": "say(i18n(\"components.freeboard.daaec6369d42\"))"
         }
       ]
@@ -15354,7 +15560,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1490,
+          "line": 1495,
           "context": "{i18n(\"components.freeboard.dbb6d640ea9f\")}"
         }
       ]
@@ -15393,7 +15599,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1126,
+          "line": 1131,
           "context": "dir < 0 ? i18n(\"components.freeboard.f853a70b1204\") : i18n(\"components.freeboard.e75e8b4e5c97\")"
         }
       ]
@@ -15406,7 +15612,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1366,
+          "line": 1371,
           "context": "say(i18n(\"components.freeboard.e8f9281f866e\"))"
         }
       ]
@@ -15419,12 +15625,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 975,
+          "line": 980,
           "context": "!canEdit ? i18n(\"components.freeboard.editingHint\") : i18n(\"components.freeboard.83d2e3f15c71\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 993,
+          "line": 998,
           "context": "!canEdit ? i18n(\"components.freeboard.editingHint\") : stack ? i18n(\"components.freeboard.2880a75c7f5f\") : i18n(\"components.freeboard.5b80d5358a4b\")"
         }
       ]
@@ -15437,7 +15643,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1319,
+          "line": 1324,
           "context": "description: i18n(\"components.freeboard.eef4bb73e8a0\")"
         }
       ]
@@ -15450,7 +15656,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1147,
+          "line": 1152,
           "context": "{i18n(\"components.freeboard.f7b6fbf1f2f6\")}"
         }
       ]
@@ -15463,7 +15669,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1126,
+          "line": 1131,
           "context": "dir < 0 ? i18n(\"components.freeboard.f853a70b1204\") : i18n(\"components.freeboard.e75e8b4e5c97\")"
         }
       ]
@@ -15476,12 +15682,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 981,
+          "line": 986,
           "context": "phoneCanvas ? i18n(\"components.freeboard.593f0f466b3e\") : i18n(\"components.freeboard.f87eebfdca60\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1194,
+          "line": 1199,
           "context": "phoneCanvas ? i18n(\"components.freeboard.593f0f466b3e\") : i18n(\"components.freeboard.f87eebfdca60\")"
         }
       ]
@@ -15494,7 +15700,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 771,
+          "line": 776,
           "context": "def ? def.description : i18n(\"components.freeboard.fa35f4f53dd5\")"
         }
       ]
@@ -15507,7 +15713,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1351,
+          "line": 1356,
           "context": "i18n(\"components.freeboard.fcbe33148f3a\") + size.w"
         }
       ]
@@ -15520,12 +15726,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1135,
+          "line": 1140,
           "context": "{i18n(\"components.freeboard.fe067a88a36d\")}"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1135,
+          "line": 1140,
           "context": "{i18n(\"components.freeboard.fe067a88a36d\")}"
         }
       ]
@@ -15538,7 +15744,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1163,
+          "line": 1168,
           "context": "i18n(\"components.freeboard.ff84465bf83c\") + h"
         }
       ]
@@ -15551,7 +15757,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1189,
+          "line": 1194,
           "context": "phoneEditing ? i18n(\"components.freeboard.finishEdit\") : i18n(\"components.freeboard.startEdit\")"
         }
       ]
@@ -15564,7 +15770,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1189,
+          "line": 1194,
           "context": "phoneEditing ? i18n(\"components.freeboard.finishEdit\") : i18n(\"components.freeboard.startEdit\")"
         }
       ]
@@ -16396,7 +16602,7 @@
         {
           "file": "apps/desktop/src/components/HomeWidgets.tsx",
           "line": 383,
-          "context": "{i18n(\"components.homewidgets.0ba4abe941a2\")}"
+          "context": "emptyText ?? i18n(\"components.homewidgets.0ba4abe941a2\")"
         }
       ]
     },
@@ -18941,6 +19147,11 @@
       "kind": "text",
       "parameters": [],
       "locations": [
+        {
+          "file": "apps/desktop/src/components/HomeWidgets.tsx",
+          "line": 690,
+          "context": "upcoming && hadClasses ? i18n(\"components.livetiles.d1adf68fb7c1\") : undefined"
+        },
         {
           "file": "apps/desktop/src/components/LiveTiles.tsx",
           "line": 172,
@@ -25493,6 +25704,11 @@
       "parameters": [],
       "locations": [
         {
+          "file": "apps/desktop/src/components/OhModelSourceCard.tsx",
+          "line": 18,
+          "context": "showToast(i18nMsg(\"components.simplesettings.1fa9a1f5453b\"))"
+        },
+        {
           "file": "apps/desktop/src/components/SimpleSettings.tsx",
           "line": 52,
           "context": "showToast(i18nMsg(\"components.simplesettings.1fa9a1f5453b\"))"
@@ -26018,7 +26234,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 101,
+          "line": 104,
           "context": "result.error ?? i18n(\"components.softwareupdatesection.4f6f06254d16\")"
         }
       ]
@@ -26447,7 +26663,7 @@
         },
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 496,
+          "line": 502,
           "context": "error: i18n(\"components.softwareupdatesection.faa2f14dfa0b\", { downloadName: activeUpdateDownload.fileName })"
         }
       ]
@@ -36597,7 +36813,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 506,
+          "line": 518,
+          "context": "return i18n(\"learn.responseUnexpected\");"
+        },
+        {
+          "file": "apps/desktop/src/lib/transport.ts",
+          "line": 519,
           "context": "return i18n(\"learn.responseUnexpected\");"
         }
       ]
@@ -37527,7 +37748,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/clients.ts",
-          "line": 1192,
+          "line": 1283,
           "context": "new Error(i18n(\"lib.clients.193d04db6243\"))"
         }
       ]
@@ -37549,7 +37770,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/clients.ts",
-          "line": 1196,
+          "line": 1287,
           "context": "new Error(i18n(\"lib.clients.cbad5bdfa19f\", { mime: String(mime), length: String(buf.length) }))"
         }
       ]
@@ -37567,7 +37788,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/clients.ts",
-          "line": 1191,
+          "line": 1282,
           "context": "new Error(i18n(\"lib.clients.dc300032c143\", { length: String(buf.length) }))"
         }
       ]
@@ -45084,7 +45305,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 456,
+          "line": 468,
           "context": "new Error(i18n(\"lib.transport.53480e72e233\", { maxHops: String(maxHops), value: networkLogUrl(currentUrl) }))"
         }
       ]
@@ -45102,7 +45323,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 233,
+          "line": 244,
           "context": "new Error(i18n(\"lib.transport.81870141c552\", { value: networkLogUrl(url) }))"
         }
       ]
@@ -45115,7 +45336,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 527,
+          "line": 540,
           "context": "return i18n(\"lib.transport.browserCors\");"
         }
       ]
@@ -45170,7 +45391,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 511,
+          "line": 524,
           "context": "return i18n(\"lib.transport.fileTooLarge\", {size:mb(big[1]!),limit:mb(big[2]!)});"
         }
       ]
@@ -45183,7 +45404,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 505,
+          "line": 517,
           "context": "return i18n(\"lib.transport.noReason\");"
         }
       ]
@@ -45196,7 +45417,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 517,
+          "line": 530,
           "context": "advice = i18n(\"lib.transport.reloginAdvice\")"
         }
       ]
@@ -45213,7 +45434,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 524,
+          "line": 537,
           "context": "return i18n(\"lib.transport.serverRejected\", {error:raw});"
         }
       ]
@@ -45226,7 +45447,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/transport.ts",
-          "line": 530,
+          "line": 543,
           "context": "return i18n(\"lib.transport.timeoutAdvice\");"
         }
       ]
@@ -45327,7 +45548,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 239,
+          "line": 245,
           "context": "return i18n(\"lib.updater.01e9ed6e0882\", { what: String(what) });"
         }
       ]
@@ -45349,7 +45570,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 241,
+          "line": 247,
           "context": "return i18n(\"lib.updater.072f4658615f\", { what: String(what), status: String(status) });"
         }
       ]
@@ -45362,7 +45583,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 562,
+          "line": 568,
           "context": "key === \"macos\" ? i18nMsg(\"lib.updater.185680ad27cd\") : i18nMsg(\"lib.updater.95bc488982b2\")"
         }
       ]
@@ -45380,7 +45601,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 262,
+          "line": 268,
           "context": "shareErr(i18n(\"lib.updater.194b24406399\", { path: String(path) }), r.status)"
         }
       ]
@@ -45398,12 +45619,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 100,
+          "line": 103,
           "context": "attempts?.length\n    ? i18n(\"lib.updater.2985491184cc\", { detail: attempts.map(attempt => `· ${SOURCE_LABEL[attempt.source]}：${updateAttemptError(attempt)}`).join(\"\\n\") })\n    : result.error ?? i18n(\"components.softwareupdatesection.4f6f06254d16\")"
         },
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 476,
+          "line": 482,
           "context": "error: i18n(\"lib.updater.2985491184cc\", { detail: String(detail) })"
         }
       ]
@@ -45416,7 +45637,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 371,
+          "line": 377,
           "context": "res.status === 404 ? i18n(\"lib.updater.2d2cad3f99ea\") : `HTTP ${res.status}`"
         }
       ]
@@ -45429,7 +45650,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 562,
+          "line": 568,
           "context": "key === \"android\" ? i18nMsg(\"lib.updater.2da47c897e30\") : key === \"macos\" ? i18nMsg(\"lib.updater.185680ad27cd\") : i18nMsg(\"lib.updater.95bc488982b2\")"
         }
       ]
@@ -45442,7 +45663,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 150,
+          "line": 153,
           "context": "return i18n(\"lib.updater.2f939477c47e\");"
         }
       ]
@@ -45460,7 +45681,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 240,
+          "line": 246,
           "context": "return i18n(\"lib.updater.361980a5e6ce\", { what: String(what) });"
         }
       ]
@@ -45473,7 +45694,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 167,
+          "line": 170,
           "context": "error: i18n(\"lib.updater.3d383f5a5c29\")"
         }
       ]
@@ -45486,7 +45707,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 457,
+          "line": 463,
           "context": "r.hasUpdate ? i18n(\"lib.updater.daedea385864\") : i18n(\"lib.updater.4219a7449e26\")"
         }
       ]
@@ -45499,7 +45720,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 556,
+          "line": 562,
           "context": "errorMessage = i18nMsg(\"lib.updater.42b98aa3fae8\")"
         }
       ]
@@ -45525,7 +45746,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 410,
+          "line": 416,
           "context": "new Error(i18n(\"lib.updater.4bffec153a88\", { dir: String(dir), ext: String(ext), length: String(dirList.length) }))"
         }
       ]
@@ -45551,7 +45772,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 562,
+          "line": 568,
           "context": "key === \"macos\" ? i18nMsg(\"lib.updater.185680ad27cd\") : i18nMsg(\"lib.updater.95bc488982b2\")"
         }
       ]
@@ -45577,17 +45798,17 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 87,
+          "line": 90,
           "context": "attempt.error ?? i18n(\"lib.updater.a1a9da9ee6ed\")"
         },
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 465,
+          "line": 471,
           "context": "failed.error ?? i18n(\"lib.updater.a1a9da9ee6ed\")"
         },
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 475,
+          "line": 481,
           "context": "a.error ?? i18n(\"lib.updater.a1a9da9ee6ed\")"
         }
       ]
@@ -45609,12 +45830,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 93,
+          "line": 96,
           "context": "failed\n    ? i18n(\"lib.updater.ab90d58874ee\", { label: SOURCE_LABEL[failed.source], value: updateAttemptError(failed) })\n    : result.fallbackReason ?? \"\""
         },
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 465,
+          "line": 471,
           "context": "fallbackReason: i18n(\"lib.updater.ab90d58874ee\", { label: String(failed.label), value: String(failed.error ?? i18n(\"lib.updater.a1a9da9ee6ed\")) })"
         }
       ]
@@ -45636,12 +45857,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 377,
+          "line": 383,
           "context": "new Error(i18n(\"lib.updater.b331bcbd6083\", { version: String(m.version), key: String(key) }))"
         },
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 437,
+          "line": 443,
           "context": "new Error(i18n(\"lib.updater.b331bcbd6083\", { version: String(m.version), key: String(key) }))"
         }
       ]
@@ -45659,7 +45880,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 260,
+          "line": 266,
           "context": "new Error(i18n(\"lib.updater.bf52642dd8c4\", { value: String(e instanceof Error ? e.message : String(e)) }))"
         }
       ]
@@ -45677,7 +45898,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 566,
+          "line": 572,
           "context": "logLine(i18n(\"lib.updater.c57372e35f51\", { msg: String(msg) }))"
         }
       ]
@@ -45695,7 +45916,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 269,
+          "line": 275,
           "context": "new Error(i18n(\"lib.updater.cfc1ecb75eaf\", { path: String(path) }))"
         }
       ]
@@ -45730,7 +45951,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 242,
+          "line": 248,
           "context": "return i18n(\"lib.updater.dae2c06aec63\", { what: String(what), status: String(status) });"
         }
       ]
@@ -45743,7 +45964,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 457,
+          "line": 463,
           "context": "r.hasUpdate ? i18n(\"lib.updater.daedea385864\") : i18n(\"lib.updater.4219a7449e26\")"
         }
       ]
@@ -45773,7 +45994,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 457,
+          "line": 463,
           "context": "logLine(i18n(\"lib.updater.ddfe8fdf02cb\", { value: String(SOURCE_LABEL[step.source]), latest: String(r.latest), current: String(current), value2: String(r.hasUpdate ? i18n(\"lib.updater.daedea385864\") : i18n(\"lib.updater.4219a7449e26\")) }))"
         }
       ]
@@ -45791,7 +46012,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 290,
+          "line": 296,
           "context": "shareErr(i18n(\"lib.updater.fa872c6a802a\", { innerPath: String(innerPath) }), r.status)"
         }
       ]
@@ -45804,7 +46025,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 171,
+          "line": 176,
           "context": "error: i18n(\"lib.updater.fab43f07fa2d\")"
         }
       ]
@@ -47104,7 +47325,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 33,
+          "line": 34,
           "context": "return t(\"login.error.changeMethod\");"
         }
       ]
@@ -47117,7 +47338,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 40,
+          "line": 41,
           "context": "return t(\"login.error.confirmationLoop\");"
         }
       ]
@@ -47147,7 +47368,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 36,
+          "line": 37,
           "context": "return t(\"login.error.gatewayUnavailable\");"
         }
       ]
@@ -47173,7 +47394,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 39,
+          "line": 40,
           "context": "return t(\"login.error.invalidForm\");"
         }
       ]
@@ -47186,12 +47407,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 41,
+          "line": 42,
           "context": "return t(\"login.error.prepareFailed\");"
         },
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 44,
+          "line": 45,
           "context": "return t(\"login.error.prepareFailed\");"
         }
       ]
@@ -47204,7 +47425,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 32,
+          "line": 33,
           "context": "return t(\"login.error.restartVerification\");"
         }
       ]
@@ -47217,12 +47438,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 34,
+          "line": 35,
           "context": "return t(\"login.error.restricted\");"
         },
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 38,
+          "line": 39,
           "context": "return t(\"login.error.restricted\");"
         }
       ]
@@ -47240,7 +47461,7 @@
         },
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 31,
+          "line": 32,
           "context": "return t(\"login.error.sessionChanged\");"
         }
       ]
@@ -47253,7 +47474,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 30,
+          "line": 31,
           "context": "return t(\"login.error.sessionConflict\");"
         }
       ]
@@ -47266,7 +47487,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
-          "line": 37,
+          "line": 38,
           "context": "return t(\"login.error.trustLimit\");"
         }
       ]
@@ -94641,6 +94862,11 @@
           "file": "apps/desktop/src/lib/infoLib.ts",
           "line": 677,
           "context": "new Error(i18n(\"schedule.secondary.invalidSemester\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/data.ts",
+          "line": 146,
+          "context": "calendar.error ?? i18n(\"schedule.secondary.invalidSemester\")"
         }
       ]
     },
@@ -99011,22 +99237,22 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 312,
+          "line": 338,
           "context": "new Error(i18n(\"state.cloudcal.253f54401fa7\"))"
         },
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 327,
+          "line": 353,
           "context": "new Error(i18n(\"state.cloudcal.253f54401fa7\"))"
         },
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 344,
+          "line": 370,
           "context": "new Error(i18n(\"state.cloudcal.253f54401fa7\"))"
         },
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 524,
+          "line": 554,
           "context": "new Error(i18n(\"state.cloudcal.253f54401fa7\"))"
         }
       ]
@@ -99039,7 +99265,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 147,
+          "line": 151,
+          "context": "new Error(i18n(\"state.cloudcal.33de4f649f2f\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 180,
           "context": "new Error(i18n(\"state.cloudcal.33de4f649f2f\"))"
         }
       ]
@@ -99052,7 +99283,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 55,
+          "line": 59,
           "context": "new Error(i18n(\"state.cloudcal.5a6208164ba7\"))"
         }
       ]
@@ -99065,7 +99296,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 124,
+          "line": 128,
           "context": "new Error(i18n(\"state.cloudcal.5b53abc907c9\"))"
         }
       ]
@@ -99078,7 +99309,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 243,
+          "line": 269,
           "context": "new Error(i18n(\"state.cloudcal.5e7a239fbc21\"))"
         }
       ]
@@ -99091,7 +99322,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 385,
+          "line": 411,
           "context": "new Error(i18n(\"state.cloudcal.6600b7092f4c\"))"
         }
       ]
@@ -99104,8 +99335,13 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 160,
+          "line": 164,
           "context": "lastError = i18n(\"state.cloudcal.6b8367664e76\")"
+        },
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 461,
+          "context": "String(error).includes(\"APP_DATA_CHANGED\")?i18n(\"calendar.shared.changed\"):i18n(\"state.cloudcal.6b8367664e76\")"
         }
       ]
     },
@@ -99117,7 +99353,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 122,
+          "line": 126,
           "context": "new Error(i18n(\"state.cloudcal.6d9090d5290b\"))"
         }
       ]
@@ -99130,7 +99366,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 291,
+          "line": 317,
           "context": "new Error(i18n(\"state.cloudcal.72574f41faea\"))"
         }
       ]
@@ -99143,12 +99379,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 527,
+          "line": 557,
           "context": "new Error(i18n(\"state.cloudcal.8120a4a0177c\"))"
         },
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 594,
+          "line": 624,
           "context": "new Error(i18n(\"state.cloudcal.8120a4a0177c\"))"
         }
       ]
@@ -99161,7 +99397,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 330,
+          "line": 356,
           "context": "new Error(i18n(\"state.cloudcal.812d9e62ba2d\"))"
         }
       ]
@@ -99174,7 +99410,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 393,
+          "line": 419,
           "context": "new Error(i18n(\"state.cloudcal.892291a664b5\"))"
         }
       ]
@@ -99187,7 +99423,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 346,
+          "line": 372,
           "context": "new Error(i18n(\"state.cloudcal.bd5ff99826df\"))"
         }
       ]
@@ -99200,7 +99436,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 469,
+          "line": 499,
           "context": "new Error(i18n(\"state.cloudcal.e2f9152c9203\"))"
         }
       ]
@@ -99213,7 +99449,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 257,
+          "line": 283,
           "context": "new Error(i18n(\"state.cloudcal.f3f8e2d173eb\"))"
         }
       ]
@@ -99226,7 +99462,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 347,
+          "line": 373,
           "context": "new Error(i18n(\"state.cloudcal.fc42ba627dce\"))"
         }
       ]
@@ -99239,7 +99475,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/cloudCal.ts",
-          "line": 146,
+          "line": 150,
           "context": "new Error(i18n(\"state.cloudcal.fe20ed20d492\"))"
         }
       ]
@@ -99388,12 +99624,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1963,
+          "line": 1981,
           "context": "setToast(i18n(\"state.data.017029db358e\", { length: String(Object.keys(qd.map).length), length2: String(candidates.length) }))"
         },
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1974,
+          "line": 1992,
           "context": "setToast(i18n(\"state.data.017029db358e\", { length: String(Object.keys(qd.map).length), length2: String(candidates.length) }))"
         }
       ]
@@ -99406,7 +99642,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1830,
+          "line": 1848,
           "context": "globalThis.prompt?.(i18n(\"state.data.0f1ade7c641d\"))"
         }
       ]
@@ -99424,7 +99660,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2556,
+          "line": 2574,
           "context": "name: i18n(\"state.data.14fa0b5c5261\", { nm: String(nm) })"
         }
       ]
@@ -99437,7 +99673,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1808,
+          "line": 1826,
           "context": "setToast(i18n(\"state.data.1744c58d26ad\"))"
         }
       ]
@@ -99450,7 +99686,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2175,
+          "line": 2193,
           "context": "title: i18n(\"state.data.1788c736d7b1\")"
         }
       ]
@@ -99463,7 +99699,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1835,
+          "line": 1853,
           "context": "new Error(i18n(\"state.data.1ad3aeaef070\"))"
         }
       ]
@@ -99476,7 +99712,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2209,
+          "line": 2227,
           "context": "note: i18n(\"state.data.21c05833ab53\")"
         }
       ]
@@ -99489,7 +99725,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2916,
+          "line": 2934,
           "context": "name: i18n(\"state.data.2785db8cbe3a\")"
         }
       ]
@@ -99502,7 +99738,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2124,
+          "line": 2142,
           "context": "name: i18n(\"state.data.29a6e56cb5af\")"
         }
       ]
@@ -99515,7 +99751,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2170,
+          "line": 2188,
           "context": "title: i18n(\"state.data.2ac5386c015e\")"
         }
       ]
@@ -99533,7 +99769,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1986,
+          "line": 2004,
           "context": "label: i18n(\"state.data.2c990a5b9a06\", { cur: String(cur) })"
         }
       ]
@@ -99551,7 +99787,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1840,
+          "line": 1858,
           "context": "setToast(i18n(\"state.data.315af7fb0ae9\", { length: String(incoming.length) }))"
         }
       ]
@@ -99569,7 +99805,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1824,
+          "line": 1842,
           "context": "setToast(i18n(\"state.data.329fbface8f2\", { name: String(d.name) }))"
         }
       ]
@@ -99587,7 +99823,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1864,
+          "line": 1882,
           "context": "[\n      i18n(\"state.data.3361c2cc7a9e\", { count: kept }),\n      toAdd.length ? i18n(\"state.data.9d6825c38899\", { count: toAdd.length, courses: toAdd.map((c) => c.name).join(\"、\") }) : null,\n      toDrop.length ? i18n(\"state.data.661a5ba1d0ca\", { count: toDrop.length, courses: toDrop.map((c) => c.name).join(\"、\") }) : null,\n    ]"
         }
       ]
@@ -99600,7 +99836,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2384,
+          "line": 2402,
           "context": "transactions === null ? i18n(\"state.data.35552730badd\") : null"
         }
       ]
@@ -99613,7 +99849,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2122,
+          "line": 2140,
           "context": "name: i18n(\"state.data.3759fa0fb1c0\")"
         }
       ]
@@ -99626,7 +99862,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2216,
+          "line": 2234,
           "context": "name: i18n(\"state.data.38509e346ecf\")"
         }
       ]
@@ -99639,7 +99875,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2189,
+          "line": 2207,
           "context": "title: i18n(\"state.data.3efc9adfbfb8\")"
         }
       ]
@@ -99665,7 +99901,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1646,
+          "line": 1664,
           "context": "setToast(i18n(\"state.data.4375e66c768d\", { expected: String(expected), size: String(seen.size), deficit: String(deficit) }))"
         }
       ]
@@ -99678,7 +99914,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2143,
+          "line": 2161,
           "context": "summary: i18n(\"state.data.444c4d808b3a\")"
         }
       ]
@@ -99691,7 +99927,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2165,
+          "line": 2183,
           "context": "title: i18n(\"state.data.49e6ad399f86\")"
         }
       ]
@@ -99709,7 +99945,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1797,
+          "line": 1815,
           "context": "setToast(i18n(\"state.data.4a297091d7e8\", { name: String(name) }))"
         }
       ]
@@ -99727,7 +99963,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1656,
+          "line": 1674,
           "context": "setToast(i18n(\"state.data.4c24a526b2a0\", { length: String(added.length) }))"
         }
       ]
@@ -99745,7 +99981,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1860,
+          "line": 1878,
           "context": "setToast(i18n(\"state.data.4f59a9588280\", { name: String(d.name) }))"
         }
       ]
@@ -99763,7 +99999,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1844,
+          "line": 1862,
           "context": "setToast(i18n(\"state.data.579d5468a97a\", { value: String(e instanceof Error ? e.message : String(e)) }))"
         }
       ]
@@ -99776,7 +100012,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1826,
+          "line": 1844,
           "context": "setToast(i18n(\"state.data.58302b53a63d\"))"
         }
       ]
@@ -99802,7 +100038,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1579,
+          "line": 1597,
           "context": "setToast(i18n(\"state.data.5a755838cd1f\", { locked: String(locked), length: String(merged.length), deficit: String(deficit) }))"
         }
       ]
@@ -99828,7 +100064,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1885,
+          "line": 1903,
           "context": "confirmDanger(i18nMsg(\"state.data.5b1ff08354a0\", { name: String(toDrop[i]!.name), code: String(toDrop[i]!.code), value: String(toDrop[i]!.seq || \"0\") }), CONFIRM_DROP_COURSE)"
         }
       ]
@@ -99846,7 +100082,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1886,
+          "line": 1904,
           "context": "setProgress(i18n(\"state.data.5e8ccd9c182a\", { name: String(toDrop[i]!.name) }))"
         }
       ]
@@ -99868,7 +100104,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1997,
+          "line": 2015,
           "context": "s === 2 ? i18n(\"state.data.606fee690bb1\", params) : i18n(\"state.data.99541445f961\", params)"
         }
       ]
@@ -99881,7 +100117,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1792,
+          "line": 1810,
           "context": "setToast(i18n(\"state.data.654c0455ea1b\"))"
         }
       ]
@@ -99903,7 +100139,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1866,
+          "line": 1884,
           "context": "toDrop.length ? i18n(\"state.data.661a5ba1d0ca\", { count: toDrop.length, courses: toDrop.map((c) => c.name).join(\"、\") }) : null"
         }
       ]
@@ -99916,7 +100152,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2174,
+          "line": 2192,
           "context": "title: i18n(\"state.data.6e0521c2d6bc\")"
         }
       ]
@@ -99938,7 +100174,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1996,
+          "line": 2014,
           "context": "s === 1 ? i18n(\"state.data.6f0c2bbab1f6\", params)\n          : s === 2 ? i18n(\"state.data.606fee690bb1\", params) : i18n(\"state.data.99541445f961\", params)"
         }
       ]
@@ -99951,7 +100187,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2167,
+          "line": 2185,
           "context": "title: i18n(\"state.data.6fb901c0f8f4\")"
         }
       ]
@@ -99964,7 +100200,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2176,
+          "line": 2194,
           "context": "title: i18n(\"state.data.76d617dd1e96\")"
         }
       ]
@@ -99977,7 +100213,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1755,
+          "line": 1773,
           "context": "setToast(i18n(\"state.data.867cbd70a5b2\"))"
         }
       ]
@@ -99990,12 +100226,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1904,
+          "line": 1922,
           "context": "setToast(i18n(\"state.data.88fb2fce716c\"))"
         },
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1915,
+          "line": 1933,
           "context": "setToast(i18n(\"state.data.88fb2fce716c\"))"
         }
       ]
@@ -100013,7 +100249,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1817,
+          "line": 1835,
           "context": "setToast(i18n(\"state.data.993d797826cc\", { name: String(name) }))"
         }
       ]
@@ -100035,7 +100271,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1997,
+          "line": 2015,
           "context": "s === 2 ? i18n(\"state.data.606fee690bb1\", params) : i18n(\"state.data.99541445f961\", params)"
         }
       ]
@@ -100057,7 +100293,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1865,
+          "line": 1883,
           "context": "toAdd.length ? i18n(\"state.data.9d6825c38899\", { count: toAdd.length, courses: toAdd.map((c) => c.name).join(\"、\") }) : null"
         }
       ]
@@ -100070,7 +100306,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2217,
+          "line": 2235,
           "context": "name: i18n(\"state.data.9e6183684b78\")"
         }
       ]
@@ -100083,12 +100319,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1831,
+          "line": 1849,
           "context": "setToast(i18n(\"state.data.a37778f17c5f\"))"
         },
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1869,
+          "line": 1887,
           "context": "setToast(i18n(\"state.data.a37778f17c5f\"))"
         }
       ]
@@ -100101,7 +100337,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2918,
+          "line": 2936,
           "context": "name: i18n(\"state.data.a53fee1c4dbb\")"
         }
       ]
@@ -100119,7 +100355,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1758,
+          "line": 1776,
           "context": "setToast(i18n(\"state.data.acb8456494a1\", { name: String(row.name) }))"
         }
       ]
@@ -100132,7 +100368,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2144,
+          "line": 2162,
           "context": "summary: i18n(\"state.data.b5481d51eb1a\")"
         }
       ]
@@ -100145,7 +100381,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2121,
+          "line": 2139,
           "context": "name: i18n(\"state.data.b5a0c9e5f04e\")"
         }
       ]
@@ -100158,7 +100394,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2171,
+          "line": 2189,
           "context": "title: i18n(\"state.data.c01840b9fd81\")"
         }
       ]
@@ -100180,7 +100416,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1868,
+          "line": 1886,
           "context": "confirmOk(i18nMsg(\"state.data.c49ed890d985\", { name: String(d.name), lines: String(lines) }))"
         }
       ]
@@ -100198,7 +100434,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1648,
+          "line": 1666,
           "context": "setToast(i18n(\"state.data.c6f1a8749849\", { size: String(seen.size) }))"
         }
       ]
@@ -100211,7 +100447,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2166,
+          "line": 2184,
           "context": "title: i18n(\"state.data.c9bb87027880\")"
         }
       ]
@@ -100224,7 +100460,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2190,
+          "line": 2208,
           "context": "title: i18n(\"state.data.ce63956984a9\")"
         }
       ]
@@ -100237,7 +100473,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2120,
+          "line": 2138,
           "context": "name: i18n(\"state.data.d4fa4ba858a6\")"
         }
       ]
@@ -100255,12 +100491,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1911,
+          "line": 1929,
           "context": "setToast(i18n(\"state.data.d7b50ed7e7b5\", { value: String(name.trim()) }))"
         },
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1922,
+          "line": 1940,
           "context": "setToast(i18n(\"state.data.d7b50ed7e7b5\", { value: String(name.trim()) }))"
         }
       ]
@@ -100286,7 +100522,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1889,
+          "line": 1907,
           "context": "setProgress(i18n(\"state.data.d8141ccb27fe\", { value: String(i + 1), length: String(toDrop.length), name: String(toDrop[i]!.name) }))"
         }
       ]
@@ -100312,7 +100548,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1879,
+          "line": 1897,
           "context": "setProgress(i18n(\"state.data.d84b6a7e9fbd\", { value: String(i + 1), length: String(toAdd.length), name: String(c.name) }))"
         }
       ]
@@ -100330,7 +100566,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1895,
+          "line": 1913,
           "context": "setToast(i18n(\"state.data.d92ad0ceef64\", { value: String(err instanceof Error ? err.message : String(err)) }))"
         }
       ]
@@ -100348,7 +100584,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1933,
+          "line": 1951,
           "context": "setToast(i18n(\"state.data.e6d7b9ff838f\", { name: String(ev.name) }))"
         }
       ]
@@ -100378,7 +100614,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1893,
+          "line": 1911,
           "context": "setToast(i18n(\"state.data.e90750f742dd\", { name: String(d.name), length: String(toAdd.length), length2: String(toDrop.length), kept: String(kept) }))"
         }
       ]
@@ -100396,7 +100632,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2559,
+          "line": 2577,
           "context": "name: i18n(\"state.data.e980f2b04637\", { nm: String(nm) })"
         }
       ]
@@ -100409,7 +100645,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2917,
+          "line": 2935,
           "context": "name: i18n(\"state.data.f820fbf5072a\")"
         }
       ]
@@ -100422,7 +100658,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2123,
+          "line": 2141,
           "context": "name: i18n(\"state.data.f830684c231e\")"
         }
       ]
@@ -100435,12 +100671,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2183,
+          "line": 2201,
           "context": "name: i18n(\"state.data.f9b45f6b66e0\")"
         },
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2223,
+          "line": 2241,
           "context": "name: i18n(\"state.data.f9b45f6b66e0\")"
         }
       ]
@@ -100453,7 +100689,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1978,
+          "line": 1996,
           "context": "setToast(i18n(\"state.data.fc8f70858d9c\"))"
         }
       ]
@@ -101342,7 +101578,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/madmodel.ts",
-          "line": 332,
+          "line": 338,
           "context": "new Error(\n      i18n(\"state.madmodel.03964a43d8ea\"),\n    )"
         }
       ]
@@ -101355,7 +101591,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/madmodel.ts",
-          "line": 634,
+          "line": 652,
           "context": "freeTierHint(i18n(\"state.madmodel.0e0df04b7d65\"))"
         }
       ]
@@ -101368,7 +101604,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/madmodel.ts",
-          "line": 631,
+          "line": 649,
           "context": "freeTierHint(i18n(\"state.madmodel.302ca473236a\"))"
         }
       ]
@@ -101386,12 +101622,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/madmodel.ts",
-          "line": 343,
+          "line": 349,
           "context": "new TemporaryMadModelError(i18n(\"state.madmodel.6aa588205779\", { status: String(res.status) }), retryAt(res))"
         },
         {
           "file": "apps/desktop/src/state/madmodel.ts",
-          "line": 410,
+          "line": 416,
           "context": "new TemporaryMadModelError(i18n(\"state.madmodel.6aa588205779\", { status: String(landing.status) }), retryAt(landing))"
         }
       ]
@@ -101409,17 +101645,17 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/madmodel.ts",
-          "line": 381,
+          "line": 387,
           "context": "new TemporaryMadModelError(i18n(\"state.madmodel.795ecc37977c\", { status: String(cookie.status) }), retryAt(cookie))"
         },
         {
           "file": "apps/desktop/src/state/madmodel.ts",
-          "line": 393,
+          "line": 399,
           "context": "new TemporaryMadModelError(i18n(\"state.madmodel.795ecc37977c\", { status: String(roam.status) }), retryAt(roam))"
         },
         {
           "file": "apps/desktop/src/state/madmodel.ts",
-          "line": 427,
+          "line": 433,
           "context": "new TemporaryMadModelError(i18n(\"state.madmodel.795ecc37977c\", { status: String(res.status) }), retryAt(res))"
         }
       ]
@@ -101437,7 +101673,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/madmodel.ts",
-          "line": 646,
+          "line": 664,
           "context": "return i18n(\"state.madmodel.93c04445723a\", { reason: why });"
         }
       ]
@@ -101455,7 +101691,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/madmodel.ts",
-          "line": 260,
+          "line": 266,
           "context": "new Error(i18n(\"state.madmodel.a3642b461fee\", { value: String(Math.max(1, Math.ceil((nextAt - Date.now()) / 60_000))) }))"
         }
       ]
@@ -101468,7 +101704,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/madmodel.ts",
-          "line": 638,
+          "line": 656,
           "context": "e instanceof Error ? e.message : i18n(\"state.madmodel.c04cfb0974f5\")"
         }
       ]
@@ -101481,7 +101717,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/madmodel.ts",
-          "line": 625,
+          "line": 640,
           "context": "freeTierHint(i18n(\"state.madmodel.cc4b425932b8\"))"
         }
       ]
@@ -104706,7 +104942,7 @@
         },
         {
           "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 114,
+          "line": 117,
           "context": "new Error(i18n(\"state.seafile.accountChanged\"))"
         },
         {
@@ -106415,7 +106651,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 164,
+          "line": 167,
           "context": "new Error(i18n(\"state.vaultcloud.124e692f8b2a\"))"
         }
       ]
@@ -106428,7 +106664,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 178,
+          "line": 181,
           "context": "new Error(i18n(\"state.vaultcloud.20e701b06a1a\"))"
         }
       ]
@@ -106441,7 +106677,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 188,
+          "line": 191,
           "context": "new Error(i18n(\"state.vaultcloud.21e554dce895\"))"
         }
       ]
@@ -106467,7 +106703,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 281,
+          "line": 284,
           "context": "new Error(i18n(\"state.vaultcloud.5ce19f9c3d3c\"))"
         }
       ]
@@ -106480,7 +106716,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 182,
+          "line": 185,
           "context": "new Error(i18n(\"state.vaultcloud.6a07b0abd9b4\"))"
         }
       ]
@@ -106493,7 +106729,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 167,
+          "line": 170,
           "context": "new Error(i18n(\"state.vaultcloud.8adb5a5068bc\"))"
         }
       ]
@@ -106511,7 +106747,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 138,
+          "line": 141,
           "context": "new Error(i18n(\"state.vaultcloud.aae73c7a3e65\", { name: String(f.name) }))"
         }
       ]
@@ -106542,7 +106778,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 284,
+          "line": 287,
           "context": "new Error(i18n(\"state.vaultcloud.bd2fb4465b55\"))"
         }
       ]
@@ -106555,7 +106791,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 191,
+          "line": 194,
           "context": "new Error(i18n(\"state.vaultcloud.c71c20943dfd\"))"
         }
       ]
@@ -106568,7 +106804,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 174,
+          "line": 177,
           "context": "new Error(i18n(\"state.vaultcloud.ccd9ad2a2fee\"))"
         }
       ]
@@ -106581,7 +106817,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 222,
+          "line": 225,
           "context": "reason: i18n(\"state.vaultcloud.notConnected\")"
         }
       ]
@@ -110815,12 +111051,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 86,
+          "line": 89,
           "context": "attempt.errorKind === \"source-timeout\"\n    ? i18n(\"update.sourceTimeout\", { source: SOURCE_LABEL[attempt.source] })\n    : attempt.error ?? i18n(\"lib.updater.a1a9da9ee6ed\")"
         },
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 449,
+          "line": 455,
           "context": "new UpdateSourceTimeout(i18n(\"update.sourceTimeout\", { source: SOURCE_LABEL[step.source] }))"
         }
       ]

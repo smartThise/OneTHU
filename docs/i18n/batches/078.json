@@ -1,7 +1,310 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "pages.zhjwxk.courses.f09113c77540",
+      "source": "我的排队 第{myPos}名 / 共{queueTotal}人",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "myPos",
+          "expression": "String(r.cand.myPos)"
+        },
+        {
+          "name": "queueTotal",
+          "expression": "String(r.cand.queueTotal)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 1013,
+          "context": "r.cand.myPos ? i18n(\"pages.zhjwxk.courses.f09113c77540\", { myPos: String(r.cand.myPos), queueTotal: String(r.cand.queueTotal) }) : i18n(\"pages.zhjwxk.courses.90c4b556f895\")"
+        }
+      ],
+      "translation": "My queue position: #{myPos} / {queueTotal} in total",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.zhjwxk.courses.f31a1706ec82",
+      "source": "草稿名称（如：方案A）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 1538,
+          "context": "{i18n(\"pages.zhjwxk.courses.f31a1706ec82\")}"
+        }
+      ],
+      "translation": "Draft name (e.g., Plan A)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.zhjwxk.courses.f3477d357ef2",
+      "source": "时间未定 / 无法解析（{length} 门，不在上方时间轴中）",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "undet.length"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 1405,
+          "context": "{i18nRich(\"pages.zhjwxk.courses.f3477d357ef2\", { length: undet.length })}"
+        }
+      ],
+      "translation": "Time TBD / unparsable ({length} courses, not shown on the timeline above)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.zhjwxk.courses.f391fe0280a5",
+      "source": "培养方案进度： {coveredN}/{length}门 · {coveredCr}/{totalCr}学分",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "coveredN",
+          "expression": "coveredN"
+        },
+        {
+          "name": "length",
+          "expression": "coverage.length"
+        },
+        {
+          "name": "coveredCr",
+          "expression": "coveredCr"
+        },
+        {
+          "name": "totalCr",
+          "expression": "totalCr"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 871,
+          "context": "{i18nRich(\"pages.zhjwxk.courses.f391fe0280a5\", { coveredN: coveredN, length: coverage.length, coveredCr: coveredCr, totalCr: totalCr })}"
+        }
+      ],
+      "translation": "Degree plan progress: {coveredN}/{length} courses · {coveredCr}/{totalCr} credits",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.zhjwxk.courses.f723ce33054e",
+      "source": "（共 {searchTotalRows} 门）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "searchTotalRows",
+          "expression": "String(wb.searchTotalRows)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 808,
+          "context": "wb.searchTotalRows > 0 ? i18n(\"pages.zhjwxk.courses.f723ce33054e\", { searchTotalRows: String(wb.searchTotalRows) }) : \"\""
+        }
+      ],
+      "translation": "({searchTotalRows} courses in total)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.zhjwxk.courses.f7486a1ba60e",
+      "source": "{lbl} · {credits}学分{value} ✕",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "lbl",
+          "expression": "u.lbl"
+        },
+        {
+          "name": "credits",
+          "expression": "u.credits"
+        },
+        {
+          "name": "value",
+          "expression": "u.zy ? i18n(\"pages.zhjwxk.courses.4a640209de60\", { zy: String(u.zy) }) : \"\""
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 1409,
+          "context": "{i18nRich(\"pages.zhjwxk.courses.f7486a1ba60e\", { lbl: u.lbl, credits: u.credits, value: u.zy ? i18n(\"pages.zhjwxk.courses.4a640209de60\", { zy: String(u.zy) }) : \"\" })}"
+        }
+      ],
+      "translation": "{lbl} · {credits} credits{value} ✕",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.zhjwxk.courses.f791593c30e2",
+      "source": "/{cr}学分",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "cr",
+          "expression": "String(cr)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 1160,
+          "context": "{i18n(\"pages.zhjwxk.courses.f791593c30e2\", { cr: String(cr) })}"
+        }
+      ],
+      "translation": "/{cr} credits",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.zhjwxk.courses.f9aa11dbb15c",
+      "source": "周六",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 1358,
+          "context": "[i18n(\"pages.zhjwxk.courses.c430f4c12eaa\"), i18n(\"pages.zhjwxk.courses.d1378a68e620\"), i18n(\"pages.zhjwxk.courses.2961168962be\"), i18n(\"pages.zhjwxk.courses.e9d3b01a5a00\"), i18n(\"pages.zhjwxk.courses.572388f3b096\"), i18n(\"pages.zhjwxk.courses.f9aa11dbb15c\"), i18n(\"pages.zhjwxk.courses.ee239f394329\")]"
+        },
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 1420,
+          "context": "[i18n(\"pages.zhjwxk.courses.c430f4c12eaa\"),i18n(\"pages.zhjwxk.courses.d1378a68e620\"),i18n(\"pages.zhjwxk.courses.2961168962be\"),i18n(\"pages.zhjwxk.courses.e9d3b01a5a00\"),i18n(\"pages.zhjwxk.courses.572388f3b096\"),i18n(\"pages.zhjwxk.courses.f9aa11dbb15c\"),i18n(\"pages.zhjwxk.courses.ee239f394329\")]"
+        },
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 1441,
+          "context": "[i18n(\"pages.zhjwxk.courses.c430f4c12eaa\"),i18n(\"pages.zhjwxk.courses.d1378a68e620\"),i18n(\"pages.zhjwxk.courses.2961168962be\"),i18n(\"pages.zhjwxk.courses.e9d3b01a5a00\"),i18n(\"pages.zhjwxk.courses.572388f3b096\"),i18n(\"pages.zhjwxk.courses.f9aa11dbb15c\"),i18n(\"pages.zhjwxk.courses.ee239f394329\")]"
+        }
+      ],
+      "translation": "Sat",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.zhjwxk.courses.fa33afcd5d0c",
+      "source": "候选：",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 1254,
+          "context": "c.cand ? i18n(\"pages.zhjwxk.courses.fa33afcd5d0c\") : \"\""
+        }
+      ],
+      "translation": "Candidates:",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.zhjwxk.courses.fab993c6ff6f",
+      "source": "余{qRemaining}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "qRemaining",
+          "expression": "String(qd.qRemaining)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 1223,
+          "context": "label: i18n(\"pages.zhjwxk.courses.fab993c6ff6f\", { qRemaining: String(qd.qRemaining) })"
+        }
+      ],
+      "translation": "{qRemaining} left",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "pages.zhjwxk.courses.fd17d86dd268",
+      "source": "选课",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 434,
+          "context": "{i18n(\"pages.zhjwxk.courses.fd17d86dd268\")}"
+        },
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 443,
+          "context": "{i18n(\"pages.zhjwxk.courses.fd17d86dd268\")}"
+        },
+        {
+          "file": "apps/desktop/src/pages/zhjwxk/Courses.tsx",
+          "line": 1123,
+          "context": "state === \"full\" ? i18n(\"pages.zhjwxk.courses.2e486022e4f8\") : i18n(\"pages.zhjwxk.courses.fd17d86dd268\")"
+        }
+      ],
+      "translation": "Course selection",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "permissions.contacts.desc",
+      "source": "查询保存的好友及名片信息，不读取微信或系统通讯录。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 65,
+          "context": "return i18n(\"permissions.contacts.desc\");"
+        }
+      ],
+      "translation": "Read saved OneTHU friends and cards. Does not access WeChat or system contacts.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "permissions.contacts.label",
+      "source": "OneTHU 通讯录（只读）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 65,
+          "context": "return i18n(\"permissions.contacts.label\");"
+        }
+      ],
+      "translation": "OneTHU contacts (read only)",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "permissions.org.desc",
+      "source": "查询组织成员、项目、公告和关联资源；远程组织核验当前成员权限。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/types.ts",
+          "line": 66,
+          "context": "return i18n(\"permissions.org.desc\");"
+        }
+      ],
+      "translation": "Read members, projects, announcements and linked resources; verify live membership for remote organizations.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "permissions.org.label",
       "source": "OneTHU 组织（只读）",
@@ -1135,240 +1438,6 @@
         }
       ],
       "translation": "Attachments processed{value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.chatdock.6e4445df6957",
-      "source": "导出失败",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/ChatDock.tsx",
-          "line": 1825,
-          "context": "r?.error ?? i18n(\"plugins.chatdock.6e4445df6957\")"
-        }
-      ],
-      "translation": "Export failed",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.chatdock.6f57749ffaa9",
-      "source": "搜索或对话",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/ChatDock.tsx",
-          "line": 2434,
-          "context": "{i18n(\"plugins.chatdock.6f57749ffaa9\")}"
-        }
-      ],
-      "translation": "Search or chat",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.chatdock.723588bf300c",
-      "source": "重试这条消息",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/ChatDock.tsx",
-          "line": 831,
-          "context": "{i18n(\"plugins.chatdock.723588bf300c\")}"
-        }
-      ],
-      "translation": "Retry this message",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.chatdock.76773f6ea0ce",
-      "source": "自动朗读已开启（点击改静音；长按进语音合成设置）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/ChatDock.tsx",
-          "line": 2481,
-          "context": "prefs.autoSpeak ? i18n(\"plugins.chatdock.76773f6ea0ce\") : i18n(\"plugins.chatdock.1dfa6c369f2c\")"
-        }
-      ],
-      "translation": "Auto-read is on (tap to mute; long-press for text-to-speech settings)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.chatdock.7742ad93c98a",
-      "source": "新建会话失败",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/ChatDock.tsx",
-          "line": 1756,
-          "context": "r?.error ?? i18n(\"plugins.chatdock.7742ad93c98a\")"
-        }
-      ],
-      "translation": "Failed to create a session",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.chatdock.7855f5a8df25",
-      "source": "设置 · {t}",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "t",
-          "expression": "t"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/ChatDock.tsx",
-          "line": 1061,
-          "context": "{i18nRich(\"plugins.chatdock.7855f5a8df25\", { t: t })}"
-        }
-      ],
-      "translation": "Settings · {t}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.chatdock.7b376795bbca",
-      "source": "已取消导出",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/ChatDock.tsx",
-          "line": 1835,
-          "context": "path ? i18n(\"plugins.chatdock.fe0342f05ca5\", { path: String(path) }) : i18n(\"plugins.chatdock.7b376795bbca\")"
-        }
-      ],
-      "translation": "Export cancelled",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.chatdock.8282ce4afe46",
-      "source": "(空响应)",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/ChatDock.tsx",
-          "line": 1451,
-          "context": "typeof r?.answer === \"string\" ? r.answer : i18n(\"plugins.chatdock.8282ce4afe46\")"
-        }
-      ],
-      "translation": "(empty response)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.chatdock.84bca22bedb3",
-      "source": "服务暂时限制了请求，请稍后重试。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/ChatDock.tsx",
-          "line": 826,
-          "context": "{i18n(\"plugins.chatdock.84bca22bedb3\")}"
-        }
-      ],
-      "translation": "The service is temporarily limiting requests. Please try again later.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.chatdock.878d364bd67d",
-      "source": "［附件］{summary}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "summary",
-          "expression": "String(summary)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/ChatDock.tsx",
-          "line": 2150,
-          "context": "text: i18n(\"plugins.chatdock.878d364bd67d\", { summary: String(summary) })"
-        }
-      ],
-      "translation": "[Attachment] {summary}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.chatdock.8a25b8a6fdfa",
-      "source": "小OH 正在回答，稍后再长按说",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/ChatDock.tsx",
-          "line": 2108,
-          "context": "showVoiceFail(i18n(\"plugins.chatdock.8a25b8a6fdfa\"))"
-        }
-      ],
-      "translation": "Xiao OH is answering; long-press to speak again later",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.chatdock.9ac692674bef",
-      "source": "插件已停止",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/ChatDock.tsx",
-          "line": 1392,
-          "context": "hardStop(i18n(\"plugins.chatdock.9ac692674bef\"))"
-        }
-      ],
-      "translation": "Plugin stopped",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.chatdock.a37778f17c5f",
-      "source": "已取消",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/ChatDock.tsx",
-          "line": 2093,
-          "context": "showVoiceFail(i18n(\"plugins.chatdock.a37778f17c5f\"))"
-        }
-      ],
-      "translation": "Cancelled",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.chatdock.a59732772a1e",
-      "source": "语音设置：插件 → OneTHU Harness → 基础设置",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/ChatDock.tsx",
-          "line": 2133,
-          "context": "setNotice(i18n(\"plugins.chatdock.a59732772a1e\"))"
-        }
-      ],
-      "translation": "Voice settings: Plugins → OneTHU Harness → Basic settings",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

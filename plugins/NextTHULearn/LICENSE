@@ -1,0 +1,53 @@
+MIT License
+
+Copyright (c) 2026 OneTHU contributors (smartThise / gjl25)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+附加使用限制（Additional Terms）
+================================================================================
+
+上述 MIT 许可**附有以下限制**。行使本许可授予的任何权利，即以接受本限制为前提。
+
+1. 严禁商业用途。
+   不得将本项目（含源代码、衍生作品、编译产物）用于任何商业目的，包括但不限于：
+   出售、出租、以本项目提供付费服务、将其集成进商业产品或需要付费才能使用的服务、
+   以本项目换取经济收益（含接受与清华大学有关的机构对以本项目为交付物的项目的资助）。
+
+2. 严禁用于对清华大学信息服务的攻击性访问。
+   不得将本项目用于对清华大学各类信息系统（信息门户、网络学堂、选课系统、体育场馆
+   预约、图书馆、校园卡、邮箱等）的攻击性、滥用性或破坏性访问，包括但不限于：
+   - 编写或运行抢课、占座、自动预约提交（体育场馆、图书馆座位、研讨间、公共空间等）
+     一类插件、脚本或衍生功能；
+   - 高频、批量、并发轰炸式请求，或任何规避校方风控、限流、验证码与身份校验的行为；
+   - 探测、扫描、越权访问校方系统，或对校方服务造成可用性影响；
+   - 以本项目为工具代他人实施上述行为。
+
+3. 违反即终止授权。
+   违反上述任一条，本许可授予的权利**立即自动终止**，使用者须停止使用并删除全部副本。
+   由此产生的一切后果（含校方处分与法律责任）由使用者自行承担。
+
+关于第三方：本项目随包或参考使用的第三方组件适用其**自带许可**，不受本附加限制的
+扩张或缩减；尤其 `packages/info-lib`（thu-info-app / thu-info-lib）受上游 BSL 1.1 与
+THU Info 团队的**非商业用途**授权约束（截止 2036-12-31），LearnX 移植部分受其附加例外
+条件约束。详见 [LICENSES/THIRD-PARTY.md](./LICENSES/THIRD-PARTY.md)。
+
+本项目为非官方的个人效率工具，与清华大学无关；所有数据均来自学校公开系统的网页接口，
+仅供个人学习与日常使用。

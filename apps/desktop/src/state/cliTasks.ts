@@ -1,12 +1,12 @@
 /** Desktop is a client of the resident runtime; Android owns its in-app manager. */
 import { createTaskManager, invokeTaskOperation, taskOperations, type TaskManager, type TaskState, type TaskGrant, type TaskOperation } from "@onethu/sdk/tasks";
-import { fileRead, fileWrite, session } from "../lib/clients.js";
+import { fileRead, fileWrite, fileDelete, session } from "../lib/clients.js";
 import { nativeSessionEpoch } from "../lib/transport.js";
 import { mcpServerEnabled, subscribeUserExt } from "./userext.js";
 import { ohAuthorized, subscribePrivacy } from "./privacyConsent.js";
 import { requirePluginRuntimeOwner } from "../plugins/windowOwner.js";
 import { listTaskChannels as localTaskChannels, sendTaskNotification, readTaskInbox as localTaskInbox, normalizeTaskChannels as normalizeLocalChannels } from "../im/taskNotifications.js";
-import { callSharedOperation, sharedAccountGuard, sharedRuntimeRequest, usesSharedRuntime } from "../lib/sharedRuntime.js";
+import { isCliTransferBusy, initCliInstallation, appTaskRuntimeSafe, callSharedOperation, sharedAccountGuard, sharedRuntimeRequest, usesSharedRuntime } from "../lib/sharedRuntime.js";
 import { syncSharedTaskNotifications } from "../im/sharedTaskNotifications.js";
 export async function listTaskChannels() {
   if (!usesSharedRuntime()) return localTaskChannels();
@@ -48,7 +48,7 @@ interface Runtime {
 const key = Symbol.for("onethu.cli.tasks.runtime.v1");
 const globals = globalThis as typeof globalThis & { [key]?: Runtime };
 const runtime = globals[key] ??= { consentTail: Promise.resolve(), listeners: new Set(), subscribed: false };
-const enabled = () => mcpServerEnabled() && ohAuthorized();
+const enabled = () => ohAuthorized();
 export const subscribeDesktopTasks = (fn: () => void) => { runtime.listeners.add(fn); return () => { runtime.listeners.delete(fn); }; };
 function changed() { for (const fn of runtime.listeners) fn(); }
 export function bindDesktopTasks(binding: DesktopTaskBinding): void {
@@ -74,6 +74,8 @@ export function bindDesktopTasks(binding: DesktopTaskBinding): void {
 }
 async function getManager(): Promise<TaskManager> {
   requirePluginRuntimeOwner();
+  await initCliInstallation();
+  if(!appTaskRuntimeSafe())throw new Error("CLI_DAEMON_SHUTDOWN_PENDING");
   if (usesSharedRuntime()) throw new Error("TASK_MANAGER_OWNED_BY_DAEMON");
   if (!runtime.binding) throw new Error("TASK_RUNTIME_NOT_READY");
   return runtime.manager ??= createTaskManager({
@@ -100,12 +102,25 @@ async function getManager(): Promise<TaskManager> {
       return runtime.binding.dispatch({ operation, args }, confirmationGrant, signal);
     },
     notify: sendTaskNotification,
+  }).then(async manager=>{
+    const saved=await fileRead("cli-retired-state-v1",{strict:true});
+    if(saved){
+      const retired=JSON.parse(saved);
+      if(retired.owner===session.username&&retired.state){
+        const available=new Set((await localTaskChannels()).filter(channel=>channel.available).map(channel=>channel.id));
+        for(const task of retired.state.tasks){if(task.owner===session.username&&(task.scope.channels??[]).some((channel:string)=>!available.has(retired.channelMap[channel]??channel)))task.enabled=false;}
+        const imported=await manager.importState("resident-cli-retirement",retired.state,retired.channelMap,{replaceOwner:true});
+        if(imported.conflicts.length)reportPreparationError(new Error("TASK_MIGRATION_CONFLICT"));
+        else await fileDelete("cli-retired-state-v1",{strict:true});
+      }
+    }return manager;
   });
 }
 /** The callback is supplied by the service after local approval. It is never
  * accepted from the CLI/MCP JSON. Grant-creating controls are serialized while
  * pause/remove/run remain independent, so a running job cannot block revocation. */
 export async function runDesktopTaskControl(operation: string, args: unknown[], approval: () => Promise<void>, expectedSharedEpoch?: number): Promise<unknown> {
+  if(isCliTransferBusy?.())throw new Error("CLI_TRANSFER_BUSY");
   if (usesSharedRuntime()) {
     await runtime.retiringManager;
     await approval();
@@ -149,6 +164,7 @@ export async function prepareDesktopTaskRuntime(): Promise<void> {
   await runtime.retiringManager;
   const guard = await sharedAccountGuard(session.username);
   await syncSharedTaskNotifications();
+  await (await import("./sharedCloudConfig.js")).syncSharedCloudConfig();
   await migrateDesktopTasks(guard);
   (await import("./cliRuntime.js")).clearCliRuntimeError();
   changed();
@@ -160,8 +176,9 @@ async function migrateDesktopTasks(guard: { expectedAccount: string; expectedEpo
     const markers: Record<string, number> = markerRaw ? JSON.parse(markerRaw) : {};
     if (markers[guard.expectedAccount]) return;
     const raw = await fileRead("cli-tasks-v1", { strict: true });
-    if (!raw) return;
-    const state = JSON.parse(raw) as TaskState;
+    const retiredRaw=await fileRead("cli-retired-state-v1",{strict:true});
+    const retired=retiredRaw?JSON.parse(retiredRaw):null;
+    const state:TaskState=retired?.owner===guard.expectedAccount&&retired.state?retired.state:raw?JSON.parse(raw):{version:1,tasks:[]};
     const notifications = await syncSharedTaskNotifications();
     const result = await sharedRuntimeRequest<{ conflicts: Array<{ id: string; reason: string }> }>("migrateTasks", {
       origin: "desktop-v1", state, channelMap: notifications?.channelMap ?? {}, ...guard,
@@ -171,6 +188,7 @@ async function migrateDesktopTasks(guard: { expectedAccount: string; expectedEpo
     // durably accepted the IDs/history/ledgers; its own receipt is idempotent.
     markers[guard.expectedAccount] = Date.now();
     await fileWrite("cli-tasks-daemon-migration-v1", JSON.stringify(markers), { strict: true });
+    if(retired?.owner===guard.expectedAccount)await fileDelete("cli-retired-state-v1",{strict:true});
   })();
   migration = job;
   try { await job; } finally { if (migration === job) migration = undefined; }
@@ -179,4 +197,20 @@ export function desktopTaskCall(input: DesktopTaskInput): Promise<unknown> {
   requirePluginRuntimeOwner();
   if (!runtime.binding) return Promise.reject(new Error("TASK_RUNTIME_NOT_READY"));
   return runtime.binding.call(input);
+}
+
+export async function saveResidentTasksBeforeUninstall(){
+ const guard=await sharedAccountGuard(session.username);
+ const retired=await sharedRuntimeRequest("retire",guard);
+ await fileWrite("cli-retired-state-v1",JSON.stringify(retired),{strict:true});
+ const markers=JSON.parse(await fileRead("cli-tasks-daemon-migration-v1",{strict:true})??"{}");
+ delete markers[session.username];
+ await fileWrite("cli-tasks-daemon-migration-v1",JSON.stringify(markers),{strict:true});
+}
+if(typeof window!=="undefined")window.addEventListener("onethu-cli-installation",()=>{
+ if(runtime.binding)bindDesktopTasks(runtime.binding);
+});
+
+export async function pauseAppTasksForInstall(){
+ if(!usesSharedRuntime()&&runtime.manager)await(await runtime.manager).stop();
 }

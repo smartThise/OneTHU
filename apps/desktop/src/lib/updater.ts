@@ -23,7 +23,7 @@ import { t as i18n, msg as i18nMsg, resolveMessage, type UiText } from "../i18n/
  * - 失败一律结构化返回 + 人话原因（不抛给 UI）。
  */
 import { invoke } from "@tauri-apps/api/core";
-import { universalFetch } from "./transport.js";
+import { universalFetch, nativeSessionEpoch, assertNativeSessionEpoch } from "./transport.js";
 import { isAndroidNavigator } from "./androidHost.js";
 import { currentVersion, isNewer } from "./update.js";
 import { logLine } from "./clients.js";
@@ -223,16 +223,19 @@ export function fileNameFor(asset: CloudAsset, version: string): string {
 
 interface RawResp { status: number; text: string }
 
-async function httpNativeGet(url: string, headers: Record<string, string> = {}, hop = 0): Promise<RawResp> {
+async function httpNativeGet(url: string, headers: Record<string, string> = {}, hop = 0, requestEpoch?: number): Promise<RawResp> {
+  const epoch = requestEpoch ?? await nativeSessionEpoch();
   const out = await invoke<{
     status: number; status_text: string; headers: Record<string, string>; body: string; body_b64?: string | null; url: string;
   }>("http_native", {
+    epoch,
     input: { url, method: "GET", headers: { Accept: "*/*", ...headers }, body: null, body_b64: null, timeout_ms: 10_000 },
   });
+  await assertNativeSessionEpoch(epoch);
   const loc = Object.entries(out.headers ?? {}).find(([k]) => k.toLowerCase() === "location")?.[1];
   if (out.status >= 300 && out.status < 400 && loc && hop < 3) {
     const next = loc.startsWith("http") ? loc : new URL(loc, url).toString();
-    return httpNativeGet(next, headers, hop + 1);
+    return httpNativeGet(next, headers, hop + 1, epoch);
   }
   const text = out.body_b64
     ? new TextDecoder("utf-8").decode(Uint8Array.from(atob(out.body_b64), (c) => c.charCodeAt(0)))

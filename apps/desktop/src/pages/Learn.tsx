@@ -237,6 +237,7 @@ export function LearnPage() {
                 schedule={c.timeAndLocation.join(" · ")}
                 source="learn"
                 stats={s}
+                officialUnread={{ notices: c.summary?.unreadNotices, files: c.summary?.unreadFiles }}
                 aside={<CollectStar atom={{ kind: "course", key: enc(c.id, c.name, c.teacherName) }} title={courseDisplayName(c)} />}
                 onOpen={() => navigate("learn-course", { courseId: c.id })}
                 onOpenSection={(courseTab) => navigate("learn-course", { courseId: c.id, courseTab })}

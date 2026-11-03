@@ -11,7 +11,7 @@ import { configureAutostart } from './service.mjs';
 const accessName='daemon-access.json';
 const code=(name)=>new CliError(name,name.replace(/_/g,' '),3);
 export const DESKTOP_PROTOCOL_VERSION = 1;
-const desktopMethods = new Set(['status','exportSession','adoptSession','logout','policy','migrateTasks','call','notificationsSync','yuketangSync']);
+const desktopMethods = new Set(['status','exportSession','adoptSession','logout','policy','migrateTasks','call','notificationsSync','yuketangSync','dataRead','dataWrite','dataBootstrap','retire','unretire','cloudSync']);
 const MAX_DESKTOP_REQUEST_BYTES = 8 * 1024 * 1024;
 async function runtimeIdentity() {
   try {

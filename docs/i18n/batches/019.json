@@ -1,7 +1,241 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.notifysettingssection.711abc74c394",
+      "source": "测试通知已发送；未收到请检查系统通知设置",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NotifySettingsSection.tsx",
+          "line": 108,
+          "context": "sent ? i18n(\"components.notifysettingssection.711abc74c394\") : i18n(\"components.notifysettingssection.4a6d7abd964b\", { value: String(st.granted ? i18n(\"components.notifysettingssection.44f704a819d7\") : i18n(\"components.notifysettingssection.e8b6b0ba7d86\")) })"
+        }
+      ],
+      "translation": "Test notification sent; if you don’t receive it, check the system notification settings",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.notifysettingssection.75d999ba8224",
+      "source": "按课表、考试与自定义日程提前提醒。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NotifySettingsSection.tsx",
+          "line": 156,
+          "context": "{i18n(\"components.notifysettingssection.75d999ba8224\")}"
+        }
+      ],
+      "translation": "Reminds you ahead of timetable classes, exams, and custom schedule items.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.notifysettingssection.76bc5a31c67a",
+      "source": "已撤销 {length} 条插件通知",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(all.length)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NotifySettingsSection.tsx",
+          "line": 253,
+          "context": "setMsg(i18n(\"components.notifysettingssection.76bc5a31c67a\", { length: String(all.length) }))"
+        }
+      ],
+      "translation": "Revoked {length} plugin notifications",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.notifysettingssection.78c085c9614b",
+      "source": "打开：{label}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "label",
+          "expression": "String(hint.action.label)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NotifySettingsSection.tsx",
+          "line": 220,
+          "context": "{i18n(\"components.notifysettingssection.78c085c9614b\", { label: String(hint.action.label) })}"
+        }
+      ],
+      "translation": "Open: {label}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "components.notifysettingssection.7c9860a87f42",
+      "source": "插件通知",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NotifySettingsSection.tsx",
+          "line": 236,
+          "context": "{i18n(\"components.notifysettingssection.7c9860a87f42\")}"
+        }
+      ],
+      "translation": "Plugin notifications",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.notifysettingssection.8749b8afaa46",
+      "source": "静默时段",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NotifySettingsSection.tsx",
+          "line": 188,
+          "context": "{i18n(\"components.notifysettingssection.8749b8afaa46\")}"
+        }
+      ],
+      "translation": "Quiet hours",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.notifysettingssection.8f29b3132ccf",
+      "source": "提醒",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NotifySettingsSection.tsx",
+          "line": 147,
+          "context": "{i18n(\"components.notifysettingssection.8f29b3132ccf\")}"
+        }
+      ],
+      "translation": "Reminders",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.notifysettingssection.96ded56015c2",
+      "source": "该时段内不发送提醒，落在其中的提醒顺延至时段结束。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NotifySettingsSection.tsx",
+          "line": 189,
+          "context": "{i18n(\"components.notifysettingssection.96ded56015c2\")}"
+        }
+      ],
+      "translation": "No reminders are sent during this period; reminders falling inside it are postponed until it ends.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.notifysettingssection.98790a2b6ade",
+      "source": "提醒总开关",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NotifySettingsSection.tsx",
+          "line": 149,
+          "context": "{i18n(\"components.notifysettingssection.98790a2b6ade\")}"
+        }
+      ],
+      "translation": "Reminders master switch",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.notifysettingssection.aee887434131",
+      "source": "刷新",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NotifySettingsSection.tsx",
+          "line": 245,
+          "context": "{i18n(\"components.notifysettingssection.aee887434131\")}"
+        }
+      ],
+      "translation": "Refresh",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.notifysettingssection.bfd7f2d9791f",
+      "source": "自检会把这段结果贴给我即可定位（含「探针清理」说明自检没有留下垃圾通知）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NotifySettingsSection.tsx",
+          "line": 303,
+          "context": "{i18n(\"components.notifysettingssection.bfd7f2d9791f\")}"
+        }
+      ],
+      "translation": "Just paste this self-check result to me to pinpoint the issue (“probe cleanup” means the self-check left no stray notifications).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.notifysettingssection.c159d4097131",
+      "source": "通知权限",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NotifySettingsSection.tsx",
+          "line": 202,
+          "context": "{i18n(\"components.notifysettingssection.c159d4097131\")}"
+        }
+      ],
+      "translation": "Notification permission",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.notifysettingssection.d5f5a7a01073",
+      "source": "今天",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NotifySettingsSection.tsx",
+          "line": 53,
+          "context": "sameDay ? i18n(\"components.notifysettingssection.d5f5a7a01073\") : `${d.getMonth() + 1}/${d.getDate()}`"
+        }
+      ],
+      "translation": "Today",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.notifysettingssection.dcf38337ab96",
+      "source": "近期提醒",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/NotifySettingsSection.tsx",
+          "line": 265,
+          "context": "{i18n(\"components.notifysettingssection.dcf38337ab96\")}"
+        }
+      ],
+      "translation": "Upcoming reminders",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "components.notifysettingssection.e402488b7e96",
       "source": "　以上通知由插件自行管理，不受总开关影响。",
@@ -1134,235 +1368,6 @@
         }
       ],
       "translation": "Change later in Settings.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.onboardinglanguage.label",
-      "source": "界面语言",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/OnboardingLanguageStep.tsx",
-          "line": 11,
-          "context": "label: msg(\"components.onboardinglanguage.label\")"
-        }
-      ],
-      "translation": "Interface language",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.onboardinglanguage.lead",
-      "source": "接下来的导览与界面将使用你选择的语言。之后也可以在设置中更改。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/OnboardingLanguageStep.tsx",
-          "line": 9,
-          "context": "lead: msg(\"components.onboardinglanguage.lead\")"
-        }
-      ],
-      "translation": "The guide and interface will use your chosen language. You can change it later in Settings.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.onboardinglanguage.step",
-      "source": "第 0 步",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/OnboardingLanguageStep.tsx",
-          "line": 12,
-          "context": "step: msg(\"components.onboardinglanguage.step\")"
-        }
-      ],
-      "translation": "Step 0",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.onboardinglanguage.title",
-      "source": "你想使用哪种语言？",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/OnboardingLanguageStep.tsx",
-          "line": 8,
-          "context": "title: msg(\"components.onboardinglanguage.title\")"
-        }
-      ],
-      "translation": "Which language would you like to use?",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.onboardingpracticereturn.12fd8c16961e",
-      "source": "继续导览",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/OnboardingPracticeReturn.tsx",
-          "line": 26,
-          "context": "{i18n(\"components.onboardingpracticereturn.12fd8c16961e\")}"
-        }
-      ],
-      "translation": "Continue tour",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.onboardingpracticereturn.28a8dedd4ed0",
-      "source": "返回使用导览",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/OnboardingPracticeReturn.tsx",
-          "line": 24,
-          "context": "{i18n(\"components.onboardingpracticereturn.28a8dedd4ed0\")}"
-        }
-      ],
-      "translation": "Back to the tour",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.onboardingpracticereturn.bdb8ec437a18",
-      "source": "结束导览",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/OnboardingPracticeReturn.tsx",
-          "line": 27,
-          "context": "{i18n(\"components.onboardingpracticereturn.bdb8ec437a18\")}"
-        }
-      ],
-      "translation": "End tour",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.onboardingpracticereturn.da5089b7b6da",
-      "source": "正在体验",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/OnboardingPracticeReturn.tsx",
-          "line": 25,
-          "context": "{i18n(\"components.onboardingpracticereturn.da5089b7b6da\")}"
-        }
-      ],
-      "translation": "Exploring",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.onboardingtour.069d9b73883f",
-      "source": "导览章节",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/OnboardingTour.tsx",
-          "line": 110,
-          "context": "{i18n(\"components.onboardingtour.069d9b73883f\")}"
-        }
-      ],
-      "translation": "Tour chapters",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.onboardingtour.0e633d7479ee",
-      "source": "跳到：准备完成",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/OnboardingTour.tsx",
-          "line": 112,
-          "context": "{i18n(\"components.onboardingtour.0e633d7479ee\")}"
-        }
-      ],
-      "translation": "Jump to: Setup complete",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.onboardingtour.19f469fec604",
-      "source": "继续探索：{title}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "title",
-          "expression": "String(item.title)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/OnboardingTour.tsx",
-          "line": 126,
-          "context": "{i18n(\"components.onboardingtour.19f469fec604\", { title: String(item.title) })}"
-        }
-      ],
-      "translation": "Keep exploring: {title}",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.onboardingtour.1ad7fe0f57e3",
-      "source": "导览完成，可选择连接服务",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/OnboardingTour.tsx",
-          "line": 137,
-          "context": "last?i18n(\"components.onboardingtour.1ad7fe0f57e3\"):lesson!.title"
-        }
-      ],
-      "translation": "Tour complete; you can connect services now",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.onboardingtour.1b47dc7fdca4",
-      "source": "这些功能，等需要时再了解。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/OnboardingTour.tsx",
-          "line": 126,
-          "context": "{i18n(\"components.onboardingtour.1b47dc7fdca4\")}"
-        }
-      ],
-      "translation": "Learn about these features later, when you need them.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.onboardingtour.20fe3342156f",
-      "source": "先选一种，随时可以换。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/OnboardingTour.tsx",
-          "line": 118,
-          "context": "{i18n(\"components.onboardingtour.20fe3342156f\")}"
-        }
-      ],
-      "translation": "Pick one first; you can switch anytime.",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

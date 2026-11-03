@@ -55,6 +55,6 @@ export interface TaskManager {
   pause(id: string): Promise<TaskRecord>; resume(id: string, options?: { rebind?: boolean }): Promise<TaskRecord>;
   remove(id: string): Promise<void>; run(id: string): Promise<TaskRun>; history(id: string): Promise<TaskRun[]>;
   /** Trusted host migration; excluded from the public operation catalog. */
-  importState(origin:string,state:TaskState,channelMap?:Record<string,string>):Promise<TaskMigrationResult>;
+  importState(origin:string,state:TaskState,channelMap?:Record<string,string>,options?:{replaceOwner?:boolean}):Promise<TaskMigrationResult>;
   tick(): Promise<void>; start(): void; stop(): Promise<void>; close(): Promise<void>;
 }

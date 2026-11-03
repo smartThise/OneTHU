@@ -1,7 +1,279 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.filepreview.92dd605fd2e1",
+      "source": "预览加载失败：{msg}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "msg",
+          "expression": "String(phase.msg)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 1593,
+          "context": "{i18n(\"components.filepreview.92dd605fd2e1\", { msg: String(phase.msg) })}"
+        }
+      ],
+      "translation": "Preview failed to load: {msg}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.filepreview.935b2f7ab1b8",
+      "source": "{fileCount} 项 · {value}",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "fileCount",
+          "expression": "c.fileCount"
+        },
+        {
+          "name": "value",
+          "expression": "fmtBytes(c.size) || \"0 B\""
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 878,
+          "context": "{i18nRich(\"components.filepreview.935b2f7ab1b8\", { fileCount: c.fileCount, value: fmtBytes(c.size) || \"0 B\" })}"
+        }
+      ],
+      "translation": "{fileCount} items · {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.filepreview.944af91cbe70",
+      "source": "旧版 .doc 不支持应用内预览，请下载查看（另存为 .docx 可预览）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 505,
+          "context": "return i18n(\"components.filepreview.944af91cbe70\");"
+        }
+      ],
+      "translation": "Legacy .doc files are not previewable in the app. Download to view (save as .docx to preview)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.filepreview.984543357da4",
+      "source": "正在解压该条目…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 851,
+          "context": "{i18n(\"components.filepreview.984543357da4\")}"
+        }
+      ],
+      "translation": "Extracting this entry…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.filepreview.a43e55b6cb05",
+      "source": "Word 文档",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 724,
+          "context": "return i18n(\"components.filepreview.a43e55b6cb05\");"
+        }
+      ],
+      "translation": "Word document",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.filepreview.a460d9626d86",
+      "source": "文件可能不是 UTF-8 编码（如 GBK），部分字符可能显示为乱码。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 1632,
+          "context": "{i18n(\"components.filepreview.a460d9626d86\")}"
+        }
+      ],
+      "translation": "The file may not be UTF-8 encoded (e.g. GBK); some characters may appear garbled.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.filepreview.a8bc71f002a9",
+      "source": "旧版 .et 不支持应用内预览，请下载查看（另存为 .xlsx 可预览）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 509,
+          "context": "return i18n(\"components.filepreview.a8bc71f002a9\");"
+        }
+      ],
+      "translation": "Legacy .et files are not previewable in the app. Download to view (save as .xlsx to preview)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.filepreview.ac11eac9162f",
+      "source": "适应宽度",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 464,
+          "context": "{i18n(\"components.filepreview.ac11eac9162f\")}"
+        },
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 1248,
+          "context": "{i18n(\"components.filepreview.ac11eac9162f\")}"
+        }
+      ],
+      "translation": "Fit width",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.filepreview.acaec8a6eb85",
+      "source": "第 {no} 页渲染失败：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "no",
+          "expression": "String(no)"
+        },
+        {
+          "name": "value",
+          "expression": "String(e instanceof Error ? e.message : String(e))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 296,
+          "context": "i18n(\"components.filepreview.acaec8a6eb85\", { no: String(no), value: String(e instanceof Error ? e.message : String(e)) }).slice"
+        }
+      ],
+      "translation": "Failed to render page {no}: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.filepreview.adc54a4f33bc",
+      "source": "未解析到幻灯片内容",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 1006,
+          "context": "{i18n(\"components.filepreview.adc54a4f33bc\")}"
+        },
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 1194,
+          "context": "{i18n(\"components.filepreview.adc54a4f33bc\")}"
+        }
+      ],
+      "translation": "No slide content could be parsed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.filepreview.b8784c8dd563",
+      "source": "重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 194,
+          "context": "{i18n(\"components.filepreview.b8784c8dd563\")}"
+        },
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 1600,
+          "context": "{i18n(\"components.filepreview.b8784c8dd563\")}"
+        }
+      ],
+      "translation": "Retry",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.filepreview.ba40014ff496",
+      "source": "类型",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 1691,
+          "context": "k: i18n(\"components.filepreview.ba40014ff496\")"
+        }
+      ],
+      "translation": "Type",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.filepreview.bacf178278cb",
+      "source": "Office 预览失败（{value}），已回退为内部文件列表，可下载查看",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(errMsg(err))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 1456,
+          "context": "notice: i18n(\"components.filepreview.bacf178278cb\", { value: String(errMsg(err)) })"
+        }
+      ],
+      "translation": "Office preview failed ({value}); fell back to the internal file list. Download to view",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.filepreview.bca6b65eac1a",
+      "source": "无法内联预览：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(preview.err ?? i18n(\"components.filepreview.dcc94ae0dfce\"))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/FilePreview.tsx",
+          "line": 854,
+          "context": "{i18n(\"components.filepreview.bca6b65eac1a\", { value: String(preview.err ?? i18n(\"components.filepreview.dcc94ae0dfce\")) })}"
+        }
+      ],
+      "translation": "Cannot preview inline: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "components.filepreview.bcc2333dc631",
       "source": "下载中…",
@@ -380,7 +652,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1140,
+          "line": 1145,
           "context": "it.folded ? i18n(\"components.freeboard.00bd3960fea8\") : i18n(\"components.freeboard.84a07f292f1f\")"
         }
       ],
@@ -396,7 +668,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1230,
+          "line": 1235,
           "context": "{i18n(\"components.freeboard.03aadf165657\")}"
         }
       ],
@@ -412,7 +684,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 753,
+          "line": 758,
           "context": "label: i18n(\"components.freeboard.051836569928\")"
         }
       ],
@@ -428,7 +700,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1206,
+          "line": 1211,
           "context": "{i18n(\"components.freeboard.05731b92ad31\")}"
         }
       ],
@@ -444,7 +716,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 983,
+          "line": 988,
           "context": "penOn ? i18n(\"components.freeboard.084cfc0311c3\") : i18n(\"components.freeboard.2a95e1939b68\")"
         }
       ],
@@ -460,7 +732,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1247,
+          "line": 1252,
           "context": "{i18n(\"components.freeboard.0a5eea295bf2\")}"
         }
       ],
@@ -476,7 +748,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 986,
+          "line": 991,
           "context": "label: i18n(\"components.freeboard.0f591af87c35\")"
         }
       ],
@@ -492,7 +764,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 748,
+          "line": 753,
           "context": "label: i18n(\"components.freeboard.12e0be622c36\")"
         }
       ],
@@ -508,7 +780,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 743,
+          "line": 748,
           "context": "picked ? i18n(\"components.freeboard.d13523826411\") : i18n(\"components.freeboard.153d487fec51\")"
         }
       ],
@@ -524,7 +796,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 756,
+          "line": 761,
           "context": "label: i18n(\"components.freeboard.173f88d28ebf\")"
         }
       ],
@@ -540,7 +812,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 759,
+          "line": 764,
           "context": "label: i18n(\"components.freeboard.17eac802d3f7\")"
         }
       ],
@@ -556,7 +828,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 992,
+          "line": 997,
           "context": "{i18n(\"components.freeboard.203c08e0d44a\")}"
         }
       ],
@@ -572,12 +844,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 755,
+          "line": 760,
           "context": "item.pinned ? i18n(\"components.freeboard.20590a6a7b9a\") : i18n(\"components.freeboard.d4b3f49cd2e4\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1151,
+          "line": 1156,
           "context": "it.pinned ? i18n(\"components.freeboard.20590a6a7b9a\") : i18n(\"components.freeboard.7230466e3998\")"
         }
       ],
@@ -593,7 +865,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 763,
+          "line": 768,
           "context": "plan.title || def?.title || i18n(\"components.freeboard.206359b4b54d\")"
         }
       ],
@@ -625,7 +897,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1132,
+          "line": 1137,
           "context": "{i18n(\"components.freeboard.22b32f301474\")}"
         }
       ],
@@ -641,7 +913,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 993,
+          "line": 998,
           "context": "stack ? i18n(\"components.freeboard.2880a75c7f5f\") : i18n(\"components.freeboard.5b80d5358a4b\")"
         }
       ],
@@ -657,7 +929,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1203,
+          "line": 1208,
           "context": "{i18n(\"components.freeboard.290f68030501\")}"
         }
       ],
@@ -673,7 +945,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 983,
+          "line": 988,
           "context": "penOn ? i18n(\"components.freeboard.084cfc0311c3\") : i18n(\"components.freeboard.2a95e1939b68\")"
         }
       ],
@@ -689,7 +961,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1144,
+          "line": 1149,
           "context": "it.folded ? i18n(\"components.freeboard.2de119793cb4\") : i18n(\"components.freeboard.84a07f292f1f\")"
         }
       ],
@@ -705,12 +977,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 772,
+          "line": 777,
           "context": "label: i18n(\"components.freeboard.2f9daa828907\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1152,
+          "line": 1157,
           "context": "{i18n(\"components.freeboard.2f9daa828907\")}"
         }
       ],
@@ -726,7 +998,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1136,
+          "line": 1141,
           "context": "{i18n(\"components.freeboard.3389965d46d4\")}"
         }
       ],
@@ -747,7 +1019,7 @@
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1266,
+          "line": 1271,
           "context": "{i18n(\"components.freeboard.37979829426b\")}"
         }
       ],
@@ -779,7 +1051,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1096,
+          "line": 1101,
           "context": "isNote ? i18n(\"components.freeboard.3a83db6cc546\") : i18n(\"components.freeboard.53684bb9137a\")"
         }
       ],
@@ -795,7 +1067,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1231,
+          "line": 1236,
           "context": "{i18n(\"components.freeboard.3fd47edce45b\")}"
         }
       ],
@@ -811,7 +1083,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 917,
+          "line": 922,
           "context": "i18n(\"components.freeboard.46090fa0d5a2\") + tpl.name"
         }
       ],
@@ -843,7 +1115,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 768,
+          "line": 773,
           "context": "r.ok ? i18n(\"components.freeboard.4cfe5f20b9dd\") : r.reason === \"duplicate\" ? i18n(\"components.freeboard.910046f3ea83\") : i18n(\"components.freeboard.57ce97c584ca\")"
         }
       ],
@@ -859,7 +1131,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1096,
+          "line": 1101,
           "context": "isNote ? i18n(\"components.freeboard.3a83db6cc546\") : i18n(\"components.freeboard.53684bb9137a\")"
         }
       ],
@@ -875,7 +1147,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 768,
+          "line": 773,
           "context": "r.reason === \"duplicate\" ? i18n(\"components.freeboard.910046f3ea83\") : i18n(\"components.freeboard.57ce97c584ca\")"
         }
       ],
@@ -891,7 +1163,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1340,
+          "line": 1345,
           "context": "i18n(\"components.freeboard.591cb2edcb7e\") + d.title"
         }
       ],
@@ -907,12 +1179,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 981,
+          "line": 986,
           "context": "phoneCanvas ? i18n(\"components.freeboard.593f0f466b3e\") : i18n(\"components.freeboard.f87eebfdca60\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1194,
+          "line": 1199,
           "context": "phoneCanvas ? i18n(\"components.freeboard.593f0f466b3e\") : i18n(\"components.freeboard.f87eebfdca60\")"
         }
       ],
@@ -944,7 +1216,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 993,
+          "line": 998,
           "context": "stack ? i18n(\"components.freeboard.2880a75c7f5f\") : i18n(\"components.freeboard.5b80d5358a4b\")"
         }
       ],
@@ -960,7 +1232,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 996,
+          "line": 1001,
           "context": "{i18n(\"components.freeboard.62b95daecb7f\")}"
         }
       ],
@@ -976,7 +1248,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1088,
+          "line": 1093,
           "context": "{i18n(\"components.freeboard.6374c187518d\")}"
         }
       ],
@@ -992,7 +1264,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1133,
+          "line": 1138,
           "context": "{i18n(\"components.freeboard.68303cbc8d03\")}"
         }
       ],
@@ -1008,7 +1280,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1132,
+          "line": 1137,
           "context": "{i18n(\"components.freeboard.6cedd5ab1aa9\")}"
         }
       ],
@@ -1024,7 +1296,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1151,
+          "line": 1156,
           "context": "it.pinned ? i18n(\"components.freeboard.70fba17fffb7\") : i18n(\"components.freeboard.d4b3f49cd2e4\")"
         }
       ],
@@ -1040,7 +1312,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1151,
+          "line": 1156,
           "context": "it.pinned ? i18n(\"components.freeboard.20590a6a7b9a\") : i18n(\"components.freeboard.7230466e3998\")"
         }
       ],
@@ -1056,12 +1328,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 979,
+          "line": 984,
           "context": "label: i18n(\"components.freeboard.765be150d6cb\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1288,
+          "line": 1293,
           "context": "{i18n(\"components.freeboard.765be150d6cb\")}"
         }
       ],
@@ -1093,7 +1365,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1191,
+          "line": 1196,
           "context": "{i18n(\"components.freeboard.783d638053ea\")}"
         }
       ],
@@ -1125,247 +1397,18 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1307,
+          "line": 1312,
           "context": "title: i18n(\"components.freeboard.7c7802d8adae\")"
         },
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1311,
+          "line": 1316,
           "context": "title: i18n(\"components.freeboard.7c7802d8adae\")"
         }
       ],
       "translation": "Folder",
       "status": "prefilled-review",
       "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.freeboard.7e8f29dd96a4",
-      "source": "白板工具",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1188,
-          "context": "{i18n(\"components.freeboard.7e8f29dd96a4\")}"
-        }
-      ],
-      "translation": "Board tools",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.freeboard.80f8fbcfa011",
-      "source": "放大",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1205,
-          "context": "{i18n(\"components.freeboard.80f8fbcfa011\")}"
-        }
-      ],
-      "translation": "Zoom in",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.freeboard.837940c33698",
-      "source": "减高",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1133,
-          "context": "{i18n(\"components.freeboard.837940c33698\")}"
-        }
-      ],
-      "translation": "Shorter",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.freeboard.83d2e3f15c71",
-      "source": "直接拖动卡片摆放，选中后拉角点调整大小；底部工具栏可调整画布比例",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 975,
-          "context": "!canEdit ? i18n(\"components.freeboard.editingHint\") : i18n(\"components.freeboard.83d2e3f15c71\")"
-        }
-      ],
-      "translation": "Drag cards directly to arrange them; select one, then drag a corner to resize. The bottom toolbar adjusts the canvas scale",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.freeboard.84a07f292f1f",
-      "source": "折叠",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1140,
-          "context": "it.folded ? i18n(\"components.freeboard.00bd3960fea8\") : i18n(\"components.freeboard.84a07f292f1f\")"
-        },
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1144,
-          "context": "it.folded ? i18n(\"components.freeboard.2de119793cb4\") : i18n(\"components.freeboard.84a07f292f1f\")"
-        }
-      ],
-      "translation": "Collapse",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.freeboard.84d2b65c5548",
-      "source": "OnePage 面板：拖住改高度（半屏或全屏）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1503,
-          "context": "{i18n(\"components.freeboard.84d2b65c5548\")}"
-        }
-      ],
-      "translation": "OnePage panel: drag to change height (half screen or full screen)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.freeboard.8d6ca2d1e48b",
-      "source": "已折叠（浮条里可展开）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1086,
-          "context": "{i18n(\"components.freeboard.8d6ca2d1e48b\")}"
-        }
-      ],
-      "translation": "Collapsed (expand from the floating bar)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.freeboard.8e1c845f3d61",
-      "source": "还没有工作区（标签右键可把标签编入工作区）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1268,
-          "context": "{i18n(\"components.freeboard.8e1c845f3d61\")}"
-        }
-      ],
-      "translation": "No workspaces yet (right-click a tab to add it to a workspace)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.freeboard.910046f3ea83",
-      "source": "暂存箱里已经有这个组件了",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 768,
-          "context": "r.reason === \"duplicate\" ? i18n(\"components.freeboard.910046f3ea83\") : i18n(\"components.freeboard.57ce97c584ca\")"
-        }
-      ],
-      "translation": "This widget is already in the Stash",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.freeboard.979a332955c8",
-      "source": "详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 771,
-          "context": "label: i18n(\"components.freeboard.979a332955c8\")"
-        }
-      ],
-      "translation": "Details",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.freeboard.97dcf4348652",
-      "source": "添加组件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 978,
-          "context": "label: i18n(\"components.freeboard.97dcf4348652\")"
-        }
-      ],
-      "translation": "Add widget",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.freeboard.9818eabd5c89",
-      "source": "圆形 logo 网格：收纳一级入口、OnePage 与工作区",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1308,
-          "context": "description: i18n(\"components.freeboard.9818eabd5c89\")"
-        }
-      ],
-      "translation": "Grid of circular logos: holds main feature entries, OnePages, and workspaces",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.freeboard.996f7b2c0f27",
-      "source": "恢复适合当前窗口的 100%",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1204,
-          "context": "{i18n(\"components.freeboard.996f7b2c0f27\")}"
-        }
-      ],
-      "translation": "Reset to 100% for this window",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.freeboard.9a3bd2de70be",
-      "source": "这块白板还是空的。可以从模板开始，或从「＋」添加一个组件。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1002,
-          "context": "{i18n(\"components.freeboard.9a3bd2de70be\")}"
-        }
-      ],
-      "translation": "This board is still empty. Start from a template, or add a widget from \"＋\".",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
     }
   ]
 }

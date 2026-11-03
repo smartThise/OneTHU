@@ -1,7 +1,9 @@
 # OneTHU 文档
 
+> 最后更新：2026-10-29 13:33
 
-[0.11.4 更新说明](release-0.11.4.md) · [CLI 与常驻后台](onethu-cli.md)
+
+[0.11.4-fix-3 更新说明](release-0.11.4-fix-3.md) · [CLI 与常驻后台](onethu-cli.md)
 中文 · [English](en/index.md)
 
 本目录按 0.11 的实际模式与能力组织。旧研究与计划保留在全量清单中，不与现行使用说明混排。

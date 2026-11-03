@@ -1,6 +1,6 @@
 {
   "name": "@onethu/sdk",
-  "version": "0.11.4-fix-1",
+  "version": "0.11.4-fix-3",
   "description": "Independent OneTHU runtime and embeddable campus service SDK",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE",

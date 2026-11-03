@@ -1,7 +1,251 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "pages.info.networktab.50b5b1d2abef",
+      "source": "姓名",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/NetworkTab.tsx",
+          "line": 79,
+          "context": "[i18n(\"pages.info.networktab.50b5b1d2abef\"), a.realName || \"–\"]"
+        }
+      ],
+      "translation": "Name",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.networktab.515e9c7cf7b2",
+      "source": "新密码",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/NetworkTab.tsx",
+          "line": 336,
+          "context": "{i18n(\"pages.info.networktab.515e9c7cf7b2\")}"
+        }
+      ],
+      "translation": "New password",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.networktab.6320b4a8722a",
+      "source": "状态",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/NetworkTab.tsx",
+          "line": 80,
+          "context": "[i18n(\"pages.info.networktab.6320b4a8722a\"), a.status || \"–\"]"
+        }
+      ],
+      "translation": "Status",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.networktab.63d5dc2e839a",
+      "source": "登录 {loggedAt}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "loggedAt",
+          "expression": "String(d.loggedAt)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/NetworkTab.tsx",
+          "line": 296,
+          "context": "d.loggedAt ? i18n(\"pages.info.networktab.63d5dc2e839a\", { loggedAt: String(d.loggedAt) }) : \"\""
+        }
+      ],
+      "translation": "Signed in at {loggedAt}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.networktab.66265029155c",
+      "source": "{length} 台 · 可下线",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(devices.length)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/NetworkTab.tsx",
+          "line": 285,
+          "context": "{i18n(\"pages.info.networktab.66265029155c\", { length: String(devices.length) })}"
+        }
+      ],
+      "translation": "{length} devices · Can go offline",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.networktab.6baa450e31c0",
+      "source": "点击刷新验证码",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/NetworkTab.tsx",
+          "line": 233,
+          "context": "{i18n(\"pages.info.networktab.6baa450e31c0\")}"
+        }
+      ],
+      "translation": "Tap to refresh the captcha",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.networktab.6d9f04d2e157",
+      "source": "账号下每个静态 IP 计一个连接数，谨慎修改",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/NetworkTab.tsx",
+          "line": 323,
+          "context": "{i18n(\"pages.info.networktab.6d9f04d2e157\")}"
+        }
+      ],
+      "translation": "Each static IP under your account counts as one connection. Change with caution",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.networktab.6de4ef1bdc04",
+      "source": "已改为 {n}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "n",
+          "expression": "String(n)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/NetworkTab.tsx",
+          "line": 153,
+          "context": "setCountMsg(i18n(\"pages.info.networktab.6de4ef1bdc04\", { n: String(n) }))"
+        }
+      ],
+      "translation": "Changed to {n}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.networktab.6fde05a916c6",
+      "source": "确认新密码",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/NetworkTab.tsx",
+          "line": 346,
+          "context": "{i18n(\"pages.info.networktab.6fde05a916c6\")}"
+        }
+      ],
+      "translation": "Confirm new password",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.networktab.71534747219b",
+      "source": "终端连接数（当前 {value}）",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "devCount ?? \"–\""
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/NetworkTab.tsx",
+          "line": 310,
+          "context": "{i18nRich(\"pages.info.networktab.71534747219b\", { value: devCount ?? \"–\" })}"
+        }
+      ],
+      "translation": "Terminal connections (currently {value})",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.networktab.79f326be4409",
+      "source": "项目",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/NetworkTab.tsx",
+          "line": 268,
+          "context": "{i18n(\"pages.info.networktab.79f326be4409\")}"
+        }
+      ],
+      "translation": "Item",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.networktab.8494fa9c8467",
+      "source": "密码与 INFO 密码一致；输入右侧图内验证码后登录（与网页端流程相同）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/NetworkTab.tsx",
+          "line": 216,
+          "context": "{i18n(\"pages.info.networktab.8494fa9c8467\")}"
+        }
+      ],
+      "translation": "The password is the same as your INFO password; enter the captcha shown on the right to sign in (same flow as the web portal).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.networktab.963ead08d78d",
+      "source": "用户组",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/NetworkTab.tsx",
+          "line": 81,
+          "context": "[i18n(\"pages.info.networktab.963ead08d78d\"), a.userGroup || \"–\"]"
+        }
+      ],
+      "translation": "User group",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.info.networktab.965fb250e5fd",
+      "source": "点击重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/info/NetworkTab.tsx",
+          "line": 240,
+          "context": "{i18n(\"pages.info.networktab.965fb250e5fd\")}"
+        }
+      ],
+      "translation": "Tap to retry",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "pages.info.networktab.9bc45ac6f5f0",
       "source": "修改 Tsinghua-Secure 密码",
@@ -1184,260 +1428,6 @@
         }
       ],
       "translation": "No subscription conditions yet — tap publishing units below to add some.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.newstab.9eb3f2fa22ec",
-      "source": "新闻附件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 830,
-          "context": "label: i18n(\"pages.info.newstab.9eb3f2fa22ec\")"
-        }
-      ],
-      "translation": "News attachments",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "pages.info.newstab.abf7eab39ae9",
-      "source": "新闻详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 797,
-          "context": "detail.item.name || detail.data?.title || i18n(\"pages.info.newstab.abf7eab39ae9\")"
-        }
-      ],
-      "translation": "News details",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "pages.info.newstab.acac3da6c629",
-      "source": "第 {page} 页",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "page",
-          "expression": "page"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 638,
-          "context": "{i18nRich(\"pages.info.newstab.acac3da6c629\", { page: page })}"
-        }
-      ],
-      "translation": "Page {page}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.newstab.aee887434131",
-      "source": "刷新",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 641,
-          "context": "{i18n(\"pages.info.newstab.aee887434131\")}"
-        },
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 757,
-          "context": "{i18n(\"pages.info.newstab.aee887434131\")}"
-        }
-      ],
-      "translation": "Refresh",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.newstab.b5a18d43cada",
-      "source": "校内",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 165,
-          "context": "n.source || i18n(\"pages.info.newstab.b5a18d43cada\")"
-        }
-      ],
-      "translation": "On campus",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.newstab.bcc2333dc631",
-      "source": "下载中…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 837,
-          "context": "dlAtt === a.url ? i18n(\"pages.info.newstab.bcc2333dc631\") : i18n(\"pages.info.newstab.4673a2306165\")"
-        }
-      ],
-      "translation": "Downloading…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.newstab.c10e686a2131",
-      "source": "附件（{length}）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(detail.data.attachments.length)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 823,
-          "context": "{i18n(\"pages.info.newstab.c10e686a2131\", { length: String(detail.data.attachments.length) })}"
-        }
-      ],
-      "translation": "Attachments ({length})",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.newstab.c23d1354916d",
-      "source": "本页没有更多新闻了。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 771,
-          "context": "page > 1 ? i18n(\"pages.info.newstab.c23d1354916d\") : i18n(\"pages.info.newstab.21ac3d54fe13\")"
-        }
-      ],
-      "translation": "No more news on this page.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.newstab.c7225dbf105e",
-      "source": "附件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 831,
-          "context": "{i18n(\"pages.info.newstab.c7225dbf105e\")}"
-        }
-      ],
-      "translation": "Attachments",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.newstab.c744c961f0ab",
-      "source": "在浏览器打开",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 801,
-          "context": "{i18n(\"pages.info.newstab.c744c961f0ab\")}"
-        }
-      ],
-      "translation": "Open in browser",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.newstab.c98f5ee16d10",
-      "source": "关键词：{keyword}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "keyword",
-          "expression": "String(c.keyword)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 894,
-          "context": "c.keyword ? i18n(\"pages.info.newstab.c98f5ee16d10\", { keyword: String(c.keyword) }) : \"\""
-        }
-      ],
-      "translation": "Keywords: {keyword}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.newstab.c9b9ae7a6144",
-      "source": "上一页",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 639,
-          "context": "{i18n(\"pages.info.newstab.c9b9ae7a6144\")}"
-        },
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 755,
-          "context": "{i18n(\"pages.info.newstab.c9b9ae7a6144\")}"
-        }
-      ],
-      "translation": "Previous page",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.newstab.cb6f03cf2a75",
-      "source": "搜索：{query}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "query",
-          "expression": "String(query)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 648,
-          "context": "{i18n(\"pages.info.newstab.cb6f03cf2a75\", { query: String(query) })}"
-        }
-      ],
-      "translation": "Search: {query}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.newstab.e3e8e974ffdc",
-      "source": "原文链接",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/NewsTab.tsx",
-          "line": 148,
-          "context": "{i18n(\"pages.info.newstab.e3e8e974ffdc\")}"
-        }
-      ],
-      "translation": "Original article link",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

@@ -1,7 +1,241 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "pages.learn.coursedetailpage.c9bb70bcaaa3",
+      "source": "已忽略",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/learn/CourseDetailPage.tsx",
+          "line": 43,
+          "context": "return i18n(\"pages.learn.coursedetailpage.c9bb70bcaaa3\");"
+        }
+      ],
+      "translation": "Ignored",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.learn.coursedetailpage.cc67d302a7ef",
+      "source": "雨课堂资料",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/learn/CourseDetailPage.tsx",
+          "line": 317,
+          "context": "{i18n(\"pages.learn.coursedetailpage.cc67d302a7ef\")}"
+        }
+      ],
+      "translation": "Rain Classroom materials",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.learn.coursedetailpage.d41346cbeb96",
+      "source": "{topicCount} 个话题",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "topicCount",
+          "expression": "String(g.topicCount)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/learn/CourseDetailPage.tsx",
+          "line": 345,
+          "context": "g.topicCount !== undefined ? i18n(\"pages.learn.coursedetailpage.d41346cbeb96\", { topicCount: String(g.topicCount) }) : \"\""
+        }
+      ],
+      "translation": "{topicCount} topics",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.learn.coursedetailpage.d42baf1647c8",
+      "source": "已批改",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/learn/CourseDetailPage.tsx",
+          "line": 41,
+          "context": "return i18n(\"pages.learn.coursedetailpage.d42baf1647c8\");"
+        }
+      ],
+      "translation": "Graded",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.learn.coursedetailpage.dc9cd1730d43",
+      "source": "本课程暂无文件。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/learn/CourseDetailPage.tsx",
+          "line": 304,
+          "context": "{i18n(\"pages.learn.coursedetailpage.dc9cd1730d43\")}"
+        }
+      ],
+      "translation": "No files in this course.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.learn.coursedetailpage.e5da2c107242",
+      "source": "课程列表",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/learn/CourseDetailPage.tsx",
+          "line": 185,
+          "context": "{i18n(\"pages.learn.coursedetailpage.e5da2c107242\")}"
+        }
+      ],
+      "translation": "Course list",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.learn.coursedetailpage.f25c0dd68e3b",
+      "source": "分组没有加载出来，请刷新后重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/learn/CourseDetailPage.tsx",
+          "line": 328,
+          "context": "groupsError || i18n(\"pages.learn.coursedetailpage.f25c0dd68e3b\")"
+        }
+      ],
+      "translation": "Groups failed to load, please refresh and try again",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.learn.d4b1b25d27b2",
+      "source": "查看全部作业",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Learn.tsx",
+          "line": 174,
+          "context": "{i18n(\"pages.learn.d4b1b25d27b2\")}"
+        }
+      ],
+      "translation": "View all assignments",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.learn.f37a13fc55b3",
+      "source": "课程通知",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Learn.tsx",
+          "line": 191,
+          "context": "{i18n(\"pages.learn.f37a13fc55b3\")}"
+        }
+      ],
+      "translation": "Course notices",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.learn.filedetailpage.0e74e85582ac",
+      "source": "未找到该文件，可能数据已刷新，请返回列表重试。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/learn/FileDetailPage.tsx",
+          "line": 64,
+          "context": "{i18n(\"pages.learn.filedetailpage.0e74e85582ac\")}"
+        }
+      ],
+      "translation": "File not found. The data may have refreshed; go back to the list and try again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.learn.filedetailpage.13d61fea9f17",
+      "source": "预览",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/learn/FileDetailPage.tsx",
+          "line": 84,
+          "context": "{i18n(\"pages.learn.filedetailpage.13d61fea9f17\")}"
+        }
+      ],
+      "translation": "Preview",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.learn.filedetailpage.262312ea18e9",
+      "source": "所属课程",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/learn/FileDetailPage.tsx",
+          "line": 100,
+          "context": "{i18n(\"pages.learn.filedetailpage.262312ea18e9\")}"
+        }
+      ],
+      "translation": "Course",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.learn.filedetailpage.27b6154b3fd3",
+      "source": "文件详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/learn/FileDetailPage.tsx",
+          "line": 57,
+          "context": "{i18n(\"pages.learn.filedetailpage.27b6154b3fd3\")}"
+        }
+      ],
+      "translation": "File details",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.learn.filedetailpage.2d2ab24375ce",
+      "source": "已下载到：{path}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "path",
+          "expression": "String(path)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/learn/FileDetailPage.tsx",
+          "line": 46,
+          "context": "text: i18n(\"pages.learn.filedetailpage.2d2ab24375ce\", { path: String(path) })"
+        }
+      ],
+      "translation": "Downloaded to: {path}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "pages.learn.filedetailpage.2f3a2301c3d3",
       "source": "课件 {id}",
@@ -1210,258 +1444,6 @@
         }
       ],
       "translation": "Files {files}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.learn.learncoursecard.dea60e85a8f1",
-      "source": "未交 {hw}",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "hw",
-          "expression": "stats.hw"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/learn/LearnCourseCard.tsx",
-          "line": 77,
-          "context": "{i18nRich(\"pages.learn.learncoursecard.dea60e85a8f1\", { hw: stats.hw })}"
-        }
-      ],
-      "translation": "Unsubmitted {hw}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.learn.learncoursecard.f8308b0b2728",
-      "source": "旁听",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/learn/LearnCourseCard.tsx",
-          "line": 68,
-          "context": "{i18n(\"pages.learn.learncoursecard.f8308b0b2728\")}"
-        }
-      ],
-      "translation": "Audited",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.learn.noticedetailpage.03025a45ae40",
-      "source": "暂无通知正文。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/learn/NoticeDetailPage.tsx",
-          "line": 290,
-          "context": "{i18n(\"pages.learn.noticedetailpage.03025a45ae40\")}"
-        }
-      ],
-      "translation": "No notice body yet.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.learn.noticedetailpage.0b1f80e0a761",
-      "source": "这条公告没有取到可用的内容标识，暂时无法显示正文（已记录到运行日志）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/learn/NoticeDetailPage.tsx",
-          "line": 99,
-          "context": "error: i18n(\"pages.learn.noticedetailpage.0b1f80e0a761\")"
-        }
-      ],
-      "translation": "No usable content identifier was retrieved for this notice, so the body cannot be displayed for now (this has been logged).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.learn.noticedetailpage.13d61fea9f17",
-      "source": "预览",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/learn/NoticeDetailPage.tsx",
-          "line": 251,
-          "context": "{i18n(\"pages.learn.noticedetailpage.13d61fea9f17\")}"
-        }
-      ],
-      "translation": "Preview",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.learn.noticedetailpage.14d6bc26a4f0",
-      "source": "未找到该通知，可能数据已刷新，请返回列表重试。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/learn/NoticeDetailPage.tsx",
-          "line": 187,
-          "context": "{i18n(\"pages.learn.noticedetailpage.14d6bc26a4f0\")}"
-        }
-      ],
-      "translation": "Notice not found. The data may have refreshed; go back to the list and try again.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.learn.noticedetailpage.16f19a676cae",
-      "source": "网页端打开",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/learn/NoticeDetailPage.tsx",
-          "line": 216,
-          "context": "{i18n(\"pages.learn.noticedetailpage.16f19a676cae\")}"
-        }
-      ],
-      "translation": "Open on web",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.learn.noticedetailpage.18bb69cac446",
-      "source": "{value} · {publisher} 发布于 {publishedAt}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(course?.name ?? i18n(\"pages.learn.noticedetailpage.60db1afb4022\"))"
-        },
-        {
-          "name": "publisher",
-          "expression": "String(n.publisher)"
-        },
-        {
-          "name": "publishedAt",
-          "expression": "String(publishedAt)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/learn/NoticeDetailPage.tsx",
-          "line": 200,
-          "context": "isExt\n    ? i18n(\"pages.learn.noticedetailpage.7182c4b99b54\", { value: String(courseDisplayName(course) ?? extCourseName ?? i18n(\"pages.learn.noticedetailpage.261255a76c11\")), value2: String(publishedAt ? i18n(\"pages.learn.noticedetailpage.81b4e2f43a29\", { publishedAt: String(publishedAt) }) : \"\") })\n    : i18n(\"pages.learn.noticedetailpage.18bb69cac446\", { value: String(courseDisplayName(course) ?? i18n(\"pages.learn.noticedetailpage.60db1afb4022\")), publisher: String(n.publisher), publishedAt: String(publishedAt) })"
-        }
-      ],
-      "translation": "{value} · {publisher} published {publishedAt}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.learn.noticedetailpage.23f691e9bb15",
-      "source": "过期时间 {value}",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "fmtDateTime(n.expireTime)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/learn/NoticeDetailPage.tsx",
-          "line": 232,
-          "context": "{i18nRich(\"pages.learn.noticedetailpage.23f691e9bb15\", { value: fmtDateTime(n.expireTime) })}"
-        }
-      ],
-      "translation": "Expires {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.learn.noticedetailpage.261255a76c11",
-      "source": "雨课堂课程",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/learn/NoticeDetailPage.tsx",
-          "line": 199,
-          "context": "courseDisplayName(course) ?? extCourseName ?? i18n(\"pages.learn.noticedetailpage.261255a76c11\")"
-        }
-      ],
-      "translation": "Rain Classroom course",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.learn.noticedetailpage.2d2ab24375ce",
-      "source": "已下载到：{path}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "path",
-          "expression": "String(path)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/learn/NoticeDetailPage.tsx",
-          "line": 164,
-          "context": "text: i18n(\"pages.learn.noticedetailpage.2d2ab24375ce\", { path: String(path) })"
-        }
-      ],
-      "translation": "Downloaded to: {path}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.learn.noticedetailpage.39d0d9a70496",
-      "source": "正在解析附件…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/learn/NoticeDetailPage.tsx",
-          "line": 239,
-          "context": "{i18n(\"pages.learn.noticedetailpage.39d0d9a70496\")}"
-        }
-      ],
-      "translation": "Parsing attachments…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.learn.noticedetailpage.41c25a38d92f",
-      "source": "公告加载失败，请稍后重试。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/learn/NoticeDetailPage.tsx",
-          "line": 128,
-          "context": "err instanceof Error ? err.message : i18n(\"pages.learn.noticedetailpage.41c25a38d92f\")"
-        }
-      ],
-      "translation": "Failed to load the notice. Please try again later.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.learn.noticedetailpage.4673a2306165",
-      "source": "下载",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/learn/NoticeDetailPage.tsx",
-          "line": 252,
-          "context": "downloading ? i18n(\"pages.learn.noticedetailpage.bcc2333dc631\") : i18n(\"pages.learn.noticedetailpage.4673a2306165\")"
-        }
-      ],
-      "translation": "Download",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

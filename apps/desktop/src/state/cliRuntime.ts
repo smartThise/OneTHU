@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 import { mcpServerEnabled, cliAutoExecuteEnabled, subscribeUserExt, setMcpServer, setCliAutoExecute } from "./userext.js";
 import { confirmationMode, type ConfirmationMode } from "@onethu/sdk/policy";
 import { ohAuthorized, subscribePrivacy, initPrivacyConsent } from "./privacyConsent.js";
-import { getSharedRuntimeStatus, sharedRuntimeSnapshot, subscribeSharedRuntime, updateSharedPolicy, usesSharedRuntime, type SharedRuntimeStatus } from "../lib/sharedRuntime.js";
+import { initCliInstallation, getSharedRuntimeStatus, sharedRuntimeSnapshot, subscribeSharedRuntime, updateSharedPolicy, usesSharedRuntime, type SharedRuntimeStatus } from "../lib/sharedRuntime.js";
 
 export interface CliRuntimeStatus {
   requested: boolean; authorized: boolean; enabled: boolean; listening: boolean;
@@ -27,6 +27,8 @@ let policyIntent: PolicyIntent | undefined;
 let policyRunning: Promise<void> | undefined;
 let nativeRevision = 0;
 let invalidationVersion = 0, acknowledgedInvalidationVersion = 0;
+// Native downloads belong to the authorized in-app service. External CLI
+// requests are additionally gated by createCliService and the listener policy.
 async function syncNativeAccess(enabled: boolean, invalidate = false) {
   // Wall time keeps revisions ordered across HMR/page reload; the local counter
   // distinguishes changes in one millisecond. Capture before the async import.
@@ -59,6 +61,7 @@ export async function syncCliRuntime(): Promise<void> {
   // Native consent starts denied while its saved value is loading. Hydration
   // must complete before that temporary value can revoke the resident policy.
   await initPrivacyConsent();
+  await initCliInstallation();
   if (usesSharedRuntime() && handoffPending) {
     try { await (await import("../lib/clients.js")).retrySharedSessionHandoff(); }
     catch {
@@ -72,13 +75,17 @@ export async function syncCliRuntime(): Promise<void> {
   const mode = confirmationMode(cliAutoExecuteEnabled());
   const policyChanged = mode !== status.confirmationMode;
   publish({ ...status, requested, authorized, confirmationMode: mode, enabled: false, reachableNow: false, phase: active ? "syncing" : "stopped", errorCode: undefined });
-  const nativeSync = syncNativeAccess(active && requested && authorized, policyChanged);
+  const nativeSync = syncNativeAccess(active && authorized, policyChanged);
   if (!active) { await nativeSync.catch(() => undefined); return; }
   try {
     await nativeSync;
     if (usesSharedRuntime()) {
+      // The GUI's reviewed service adapter remains available to terminal clients
+      // for contacts, organizations, vault, and other app-owned capabilities.
+      const {callRust}=await import("../plugins/rust.js");
+      await callRust("onethu.harness","mcp_sync",{},8000);
       let shared = await getSharedRuntimeStatus();
-      if (!policyHydrated && shared.policy.configured === false) {
+      if (!policyHydrated && (shared.policy.configured === false || shared.policy.appEnabled !== authorized)) {
         // Existing same-device consent survives the one-time host migration.
         shared = await updateSharedPolicy(requested && authorized, cliAutoExecuteEnabled());
       } else if (!authorized && shared.policy.enabled) {
@@ -87,7 +94,7 @@ export async function syncCliRuntime(): Promise<void> {
       policyHydrated = true;
       if (current !== revision || policyIntent) return;
       applySharedPolicy(shared);
-      await syncNativeAccess(active && shared.policy.enabled && authorized);
+      await syncNativeAccess(active && authorized);
       await (await import("./cliTasks.js")).prepareDesktopTaskRuntime();
       if (current !== revision) return;
       publishShared(shared);
@@ -139,7 +146,7 @@ function flushPolicyIntent(): Promise<void> {
         if (policyIntent?.revision !== intent.revision) continue;
         policyIntent = undefined;
         applySharedPolicy(shared);
-        await syncNativeAccess(active && shared.policy.enabled && ohAuthorized());
+        await syncNativeAccess(active && ohAuthorized());
         await (await import("./cliTasks.js")).prepareDesktopTaskRuntime();
         if (!policyIntent && active) publishShared(shared);
       } catch (error) {
@@ -166,7 +173,7 @@ function changed() {
     ++revision;
     policyIntent = { ...desired, revision: ++policyRevision, expectedAccount: shared.username, expectedEpoch: shared.epoch };
     publish({ ...status, requested: desired.requested, authorized: desired.authorized, confirmationMode: confirmationMode(desired.automatic), enabled: false, reachableNow: false, phase: "syncing", errorCode: undefined });
-    void syncNativeAccess(active && desired.requested && desired.authorized, true).catch(() => undefined);
+    void syncNativeAccess(active && desired.authorized, true).catch(() => undefined);
     void flushPolicyIntent();
     return;
   }
@@ -174,3 +181,5 @@ function changed() {
 }
 subscribeUserExt(changed);
 subscribePrivacy(changed);
+
+if (typeof window !== "undefined") window.addEventListener("onethu-cli-installation", () => { policyHydrated = false; void syncCliRuntime(); });

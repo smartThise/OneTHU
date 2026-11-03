@@ -1,7 +1,236 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.layout.b1abb3dc2271",
+      "source": "清小搭",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/Layout.tsx",
+          "line": 114,
+          "context": "return i18n(\"components.layout.b1abb3dc2271\");"
+        }
+      ],
+      "translation": "Xiaoda",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.layout.b5c07fc4f827",
+      "source": "侧栏：窄（悬停展开）→ 切换为完整",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/Layout.tsx",
+          "line": 159,
+          "context": "narrow ? i18n(\"components.layout.b5c07fc4f827\") : i18n(\"components.layout.0be1eb29d29d\")"
+        }
+      ],
+      "translation": "Sidebar: narrow (expands on hover) → switch to full",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.layout.b8784c8dd563",
+      "source": "重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/Layout.tsx",
+          "line": 943,
+          "context": "{i18n(\"components.layout.b8784c8dd563\")}"
+        }
+      ],
+      "translation": "Retry",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.layout.df3d58c7d84b",
+      "source": "设置",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/Layout.tsx",
+          "line": 801,
+          "context": "label: i18n(\"components.layout.df3d58c7d84b\")"
+        }
+      ],
+      "translation": "Settings",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "components.layout.e7028601e7da",
+      "source": "信息",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/Layout.tsx",
+          "line": 115,
+          "context": "return i18n(\"components.layout.e7028601e7da\");"
+        }
+      ],
+      "translation": "Info",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.layout.e806fbbe8ec6",
+      "source": "插件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/Layout.tsx",
+          "line": 802,
+          "context": "label: i18n(\"components.layout.e806fbbe8ec6\")"
+        }
+      ],
+      "translation": "Plugins",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "components.layout.f75562426e77",
+      "source": "云盘",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/Layout.tsx",
+          "line": 108,
+          "context": "return i18n(\"components.layout.f75562426e77\");"
+        }
+      ],
+      "translation": "Cloud",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.layout.f9e31e1d63d5",
+      "source": "硬刷新",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/Layout.tsx",
+          "line": 648,
+          "context": "{i18n(\"components.layout.f9e31e1d63d5\")}"
+        }
+      ],
+      "translation": "Hard refresh",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.layout.fb32cf481c29",
+      "source": "复制当前标签页（独立实例）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/Layout.tsx",
+          "line": 153,
+          "context": "{i18n(\"components.layout.fb32cf481c29\")}"
+        },
+        {
+          "file": "apps/desktop/src/components/Layout.tsx",
+          "line": 235,
+          "context": "{i18n(\"components.layout.fb32cf481c29\")}"
+        }
+      ],
+      "translation": "Duplicate this tab (independent instance)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.layout.fd17d86dd268",
+      "source": "选课",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/Layout.tsx",
+          "line": 118,
+          "context": "return i18n(\"components.layout.fd17d86dd268\");"
+        }
+      ],
+      "translation": "Course selection",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.livetiles.0fea828373b2",
+      "source": " · 空闲",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/LiveTiles.tsx",
+          "line": 242,
+          "context": "free ? i18n(\"components.livetiles.0fea828373b2\") : i18n(\"components.livetiles.89a5bb504b96\")"
+        }
+      ],
+      "translation": " · Free",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.livetiles.1a1df0978d14",
+      "source": "状态查询中…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/LiveTiles.tsx",
+          "line": 58,
+          "context": "loading ? i18n(\"components.livetiles.1a1df0978d14\") : (live as Live).text"
+        }
+      ],
+      "translation": "Checking status…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.livetiles.1f6921b97987",
+      "source": "未找到该设备",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/LiveTiles.tsx",
+          "line": 93,
+          "context": "text: i18n(\"components.livetiles.1f6921b97987\")"
+        }
+      ],
+      "translation": "Device not found",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.livetiles.23f4f0e21d61",
+      "source": " 节",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/LiveTiles.tsx",
+          "line": 250,
+          "context": "i18n(\"components.livetiles.6fd6014dd2cc\") + (cur + 1) + i18n(\"components.livetiles.23f4f0e21d61\")"
+        }
+      ],
+      "translation": " periods",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "components.livetiles.3b5c96c7ffbd",
       "source": "{value}{value2} · 空闲 {freeCnt}/6 节",
@@ -292,6 +521,11 @@
       "kind": "text",
       "parameters": [],
       "locations": [
+        {
+          "file": "apps/desktop/src/components/HomeWidgets.tsx",
+          "line": 690,
+          "context": "upcoming && hadClasses ? i18n(\"components.livetiles.d1adf68fb7c1\") : undefined"
+        },
         {
           "file": "apps/desktop/src/components/LiveTiles.tsx",
           "line": 172,
@@ -1174,285 +1408,6 @@
       "translation": "Mobile number",
       "status": "prefilled-review",
       "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.namecardsection.70c95a778953",
-      "source": "NFC 分享",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 252,
-          "context": "{i18n(\"components.namecardsection.70c95a778953\")}"
-        }
-      ],
-      "translation": "NFC sharing",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.namecardsection.70d929b3b1f6",
-      "source": "星标：",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 474,
-          "context": "starred.has(c.id) ? i18n(\"components.namecardsection.a619ae87fda9\") : i18n(\"components.namecardsection.70d929b3b1f6\")"
-        }
-      ],
-      "translation": "Starred:",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.namecardsection.728a0cd5f147",
-      "source": "头像、网址、社交、手机号、简介",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 54,
-          "context": "return i18n(\"components.namecardsection.728a0cd5f147\");"
-        }
-      ],
-      "translation": "Avatar, website, social, mobile number, bio",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.namecardsection.79d504ee7bef",
-      "source": "共享云盘",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 642,
-          "context": "k: i18n(\"components.namecardsection.79d504ee7bef\")"
-        }
-      ],
-      "translation": "Shared cloud drive",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.namecardsection.7a456447d1df",
-      "source": "留空则使用应用自动识别的邮箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 160,
-          "context": "placeholder: i18nMsg(\"components.namecardsection.7a456447d1df\")"
-        }
-      ],
-      "translation": "Leave blank to use the email auto-detected by the app",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.namecardsection.7f05190592e5",
-      "source": "未填写",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 270,
-          "context": "personal.name || i18n(\"components.namecardsection.7f05190592e5\")"
-        },
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 271,
-          "context": "personal.website || i18n(\"components.namecardsection.7f05190592e5\")"
-        },
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 272,
-          "context": "personal.social || i18n(\"components.namecardsection.7f05190592e5\")"
-        },
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 273,
-          "context": "personal.phone || i18n(\"components.namecardsection.7f05190592e5\")"
-        },
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 606,
-          "context": "personal.name || i18n(\"components.namecardsection.7f05190592e5\")"
-        },
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 607,
-          "context": "personal.bio || i18n(\"components.namecardsection.7f05190592e5\")"
-        },
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 608,
-          "context": "[personal.website, personal.social, personal.phone].filter(Boolean).join(\" · \") || i18n(\"components.namecardsection.7f05190592e5\")"
-        },
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 639,
-          "context": "shown.note || i18n(\"components.namecardsection.7f05190592e5\")"
-        },
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 641,
-          "context": "contactLink(shown) || i18n(\"components.namecardsection.7f05190592e5\")"
-        }
-      ],
-      "translation": "Not filled in",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.namecardsection.80e5b5076b66",
-      "source": "名片只在你主动分享（放进暂存箱 / 口令 / 碰一碰）时才离开这台设备。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 277,
-          "context": "{i18n(\"components.namecardsection.80e5b5076b66\")}"
-        }
-      ],
-      "translation": "Your card only leaves this device when you share it yourself (to Stash / share code / Tap to share).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.namecardsection.8131eafd0239",
-      "source": "简介",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 607,
-          "context": "k: i18n(\"components.namecardsection.8131eafd0239\")"
-        },
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 640,
-          "context": "k: i18n(\"components.namecardsection.8131eafd0239\")"
-        }
-      ],
-      "translation": "Bio",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.namecardsection.86ee28991b99",
-      "source": "复制失败，请重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 213,
-          "context": "e instanceof Error ? e.message : i18nMsg(\"components.namecardsection.86ee28991b99\")"
-        }
-      ],
-      "translation": "Copy failed, please try again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.namecardsection.8791b9f80795",
-      "source": "卡面已保存",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 218,
-          "context": "showToast(i18nMsg(\"components.namecardsection.8791b9f80795\"))"
-        }
-      ],
-      "translation": "Card design saved",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.namecardsection.87e6ed03c487",
-      "source": "编辑我的名片",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 152,
-          "context": "openFormModal(i18nMsg(\"components.namecardsection.87e6ed03c487\"), [\n      { key: \"name\", label: i18nMsg(\"components.namecardsection.6773310492a9\"), required: true, default: p.name },\n      { key: \"website\", label: i18nMsg(\"components.namecardsection.22530f991560\"), default: p.website },\n      { key: \"social\", label: i18nMsg(\"components.namecardsection.ed7ece7d61a0\"), default: p.social },\n      { key: \"phone\", label: i18nMsg(\"components.namecardsection.6f52cc94db65\"), default: p.phone },\n      {\n        key: \"cloudEmail\",\n        label: i18nMsg(\"components.namecardsection.cf09399631a7\"),\n        placeholder: i18nMsg(\"components.namecardsection.7a456447d1df\"),\n        default: p.cloudEmail || "
-        }
-      ],
-      "translation": "Edit my card",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.namecardsection.8af2bc38c6a7",
-      "source": "换卡面",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 245,
-          "context": "personal.cover ? i18n(\"components.namecardsection.8af2bc38c6a7\") : i18n(\"components.namecardsection.bc6b27e11f11\")"
-        }
-      ],
-      "translation": "Change card design",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.namecardsection.8e5ba1de0a5c",
-      "source": "放进暂存箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 246,
-          "context": "{i18n(\"components.namecardsection.8e5ba1de0a5c\")}"
-        },
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 615,
-          "context": "{i18n(\"components.namecardsection.8e5ba1de0a5c\")}"
-        },
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 651,
-          "context": "{i18n(\"components.namecardsection.8e5ba1de0a5c\")}"
-        }
-      ],
-      "translation": "Add to Stash",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.namecardsection.90b310149a74",
-      "source": "未创建",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/NameCardSection.tsx",
-          "line": 644,
-          "context": "shown.shared ? i18n(\"friends.legacyChannel\") : i18n(\"components.namecardsection.90b310149a74\")"
-        }
-      ],
-      "translation": "Not created",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
     }
   ]
 }

@@ -1,7 +1,231 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "lib.infoapps.bf576b9ae81e",
+      "source": "交费信息",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 208,
+          "context": "return i18n(\"lib.infoapps.bf576b9ae81e\");"
+        }
+      ],
+      "translation": "Payment Information",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c0f0de15f63a",
+      "source": "支出合同登记",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 189,
+          "context": "return i18n(\"lib.infoapps.c0f0de15f63a\");"
+        }
+      ],
+      "translation": "Expense Contract Registration",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c1f6ab2ea0b3",
+      "source": "横向项目签订",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 180,
+          "context": "return i18n(\"lib.infoapps.c1f6ab2ea0b3\");"
+        }
+      ],
+      "translation": "Industry-Sponsored Project Contract Signing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c3e68f2dfb85",
+      "source": "重要会议活动及场地申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 252,
+          "context": "return i18n(\"lib.infoapps.c3e68f2dfb85\");"
+        }
+      ],
+      "translation": "Major Conference, Event and Venue Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c47c7b9c7649",
+      "source": "冲红票据",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 193,
+          "context": "return i18n(\"lib.infoapps.c47c7b9c7649\");"
+        }
+      ],
+      "translation": "Invoice Reversal",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c67ee5d9e61b",
+      "source": "本科生军训申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 256,
+          "context": "return i18n(\"lib.infoapps.c67ee5d9e61b\");"
+        }
+      ],
+      "translation": "Undergraduate Military Training Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c719848fe54e",
+      "source": "物流服务平台",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 218,
+          "context": "return i18n(\"lib.infoapps.c719848fe54e\");"
+        }
+      ],
+      "translation": "Logistics Service Platform",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c7a196f50c05",
+      "source": "网页网站制作、管理信息系统技术开发服务类合同审批/备案",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 64,
+          "context": "return i18n(\"lib.infoapps.c7a196f50c05\");"
+        }
+      ],
+      "translation": "Website Development and MIS Technical Service Contract Approval/Filing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c7ae5d045c9f",
+      "source": "科技奖励申报",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 127,
+          "context": "return i18n(\"lib.infoapps.c7ae5d045c9f\");"
+        }
+      ],
+      "translation": "Science and Technology Award Application",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c89788e445c3",
+      "source": "安保类（安防）合同审批/备案",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 53,
+          "context": "return i18n(\"lib.infoapps.c89788e445c3\");"
+        }
+      ],
+      "translation": "Security (Surveillance) Contract Approval/Filing",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c89f708d904b",
+      "source": "定向生办理在读证明申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 85,
+          "context": "return i18n(\"lib.infoapps.c89f708d904b\");"
+        }
+      ],
+      "translation": "Enrollment Certificate Request for Targeted-Admission Students",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.c8e9e630e0eb",
+      "source": "自主科研项目登记",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 185,
+          "context": "return i18n(\"lib.infoapps.c8e9e630e0eb\");"
+        }
+      ],
+      "translation": "Independent Research Project Registration",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.ca9cb1a55d50",
+      "source": "委托设计服务合同（示范文本）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 46,
+          "context": "return i18n(\"lib.infoapps.ca9cb1a55d50\");"
+        }
+      ],
+      "translation": "Commissioned Design Service Contract (Model Text)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.infoapps.cb40981461f6",
+      "source": "清华大学规章制度检索",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/infoApps.ts",
+          "line": 284,
+          "context": "return i18n(\"lib.infoapps.cb40981461f6\");"
+        }
+      ],
+      "translation": "Tsinghua University Regulations Search",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "lib.infoapps.cc95621847d1",
       "source": "文化素质课论文提交",
@@ -1055,240 +1279,6 @@
         }
       ],
       "translation": "TOTP Authenticator",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infolib.f3943a7b3681",
-      "source": "企业微信",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoLib.ts",
-          "line": 304,
-          "context": "return i18n(\"lib.infolib.f3943a7b3681\");"
-        }
-      ],
-      "translation": "WeChat Work",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infolib.f87602bd9134",
-      "source": "手机短信",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoLib.ts",
-          "line": 305,
-          "context": "return i18n(\"lib.infolib.f87602bd9134\");"
-        }
-      ],
-      "translation": "SMS",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.infolib.fd1c426ab1aa",
-      "source": "受信设备数已达上限：本次登录不会记住本设备。可到 id.tsinghua.edu.cn 删除旧的「信任浏览器」后重试。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/infoLib.ts",
-          "line": 364,
-          "context": "showToast(i18nMsg(\"lib.infolib.fd1c426ab1aa\"), 8000, { center: true })"
-        }
-      ],
-      "translation": "Trusted device limit reached: this device won't be remembered after this sign-in. You can delete an old \"Trusted Browser\" at id.tsinghua.edu.cn and try again.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.124d3a9ddf47",
-      "source": "仓库里的插件缺 manifest/version 字段",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 306,
-          "context": "new Error(i18n(\"lib.market.124d3a9ddf47\"))"
-        }
-      ],
-      "translation": "A plugin in the repository is missing the manifest/version field",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.2240fbc106e2",
-      "source": "缺少 owner/repo；示例：https://github.com/user/repo",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 121,
-          "context": "new Error(i18n(\"lib.market.2240fbc106e2\"))"
-        }
-      ],
-      "translation": "Missing owner/repo; example: https://github.com/user/repo",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.4101aa0579ae",
-      "source": "仓库中未找到插件入口（尝试：{value}）。仓库需在根目录提供 plugin.js（或 index.js / main.js，或清单指定 entry）。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(tried.join(\"、\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 231,
-          "context": "new Error(\n    i18n(\"lib.market.4101aa0579ae\", { value: String(tried.join(\"、\")) }),\n  )"
-        }
-      ],
-      "translation": "No plugin entry found in the repository (tried: {value}). The repository must provide plugin.js at its root (or index.js / main.js, or an entry specified in the manifest).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.5749fe713e6e",
-      "source": "市场名单格式无效（缺 plugins 数组）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 396,
-          "context": "new Error(i18n(\"lib.market.5749fe713e6e\"))"
-        }
-      ],
-      "translation": "Invalid market list format (missing plugins array)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.5903a3de41a1",
-      "source": "市场名单拉取失败：HTTP {status}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "status",
-          "expression": "String(res.status)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 394,
-          "context": "new Error(i18n(\"lib.market.5903a3de41a1\", { status: String(res.status) }))"
-        }
-      ],
-      "translation": "Failed to fetch the market list: HTTP {status}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.6c1f697fcc8f",
-      "source": "owner/repo 含非法字符",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 139,
-          "context": "new Error(i18n(\"lib.market.6c1f697fcc8f\"))"
-        }
-      ],
-      "translation": "owner/repo contains invalid characters",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.90b62e711681",
-      "source": "目前仅支持 GitHub 仓库（github.com）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 117,
-          "context": "new Error(i18n(\"lib.market.90b62e711681\"))"
-        }
-      ],
-      "translation": "Only GitHub repositories are supported (github.com)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.b494102993b9",
-      "source": "无法识别的仓库地址；示例：user/repo 或完整 GitHub URL",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 114,
-          "context": "new Error(i18n(\"lib.market.b494102993b9\"))"
-        }
-      ],
-      "translation": "Unrecognized repository address; example: user/repo or a full GitHub URL",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.bde49d8534fa",
-      "source": "请输入仓库地址，如 user/repo",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 97,
-          "context": "new Error(i18n(\"lib.market.bde49d8534fa\"))"
-        }
-      ],
-      "translation": "Enter a repository address, e.g. user/repo",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.market.d8323fde8c21",
-      "source": "无法识别的仓库地址；示例：user/repo 或 user/repo@dev",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/market.ts",
-          "line": 106,
-          "context": "new Error(i18n(\"lib.market.d8323fde8c21\"))"
-        }
-      ],
-      "translation": "Unrecognized repository address; example: user/repo or user/repo@dev",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.nfc.e83e7558d05b",
-      "source": "内容太大，无法通过 NFC 完整传送；请复制口令分享，或缩小名片头像后重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/nfc.ts",
-          "line": 31,
-          "context": "new Error(i18n(\"lib.nfc.e83e7558d05b\"))"
-        }
-      ],
-      "translation": "The content is too large to transfer fully over NFC; share it with a share code instead, or shrink the card avatar and try again",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

@@ -2,7 +2,7 @@
 
 <img src="docs/logo-banner.png" alt="One above THU — One THUer should have OneTHU" width="640">
 
-**0.11.4-fix-1 · Revolution**
+**0.11.4-fix-3 · Revolution**
 
 [中文](README.md) · [English](README.en.md)
 
@@ -14,13 +14,23 @@ Your campus. In one place.
 
 OneTHU is an unofficial Tsinghua campus application for macOS, Windows and Android. Version 0.11 unifies interaction with OneGUI while keeping themes, wallpapers and layouts customizable, with minimal, practical and full experience modes. Search and the OH capsule are available in all three. Full mode adds free whiteboards, staging and sharing, organizations, plugins, OneTHU Harness and Xiaoda.
 
-## 0.11.4-fix-1 repair
+## OneTHU and browser extensions
 
-Repairs Windows sign-in and resident startup, primary and secondary home courses, tablet settings scrolling and phone card heights. Existing 0.11.4 features are retained across all three platforms. [Release notes](docs/en/release-0.11.4-fix-1.md).
+| Project | Use it for | Get it |
+|---|---|---|
+| [OneTHU](https://github.com/smartThise/OneTHU) | The macOS, Windows and Android campus app: study, schedules, campus services and optional external platforms. | [Download the app](https://github.com/smartThise/OneTHU/releases/latest) |
+| [NextTHUxk](https://github.com/smartThise/NextTHUxk) | Course search, timetable previews, draft plans and AI-assisted planning on the registration website. | [Install the registration extension](https://github.com/smartThise/NextTHUxk/releases/latest) |
+| [NextTHULearn](https://github.com/smartThise/NextTHULearn) | An automatic OneTHU-style workspace on the university learning website. | [Install the learning extension](https://github.com/smartThise/NextTHULearn/releases/latest) |
 
-## 0.11.4 update
+Each project works independently. Browser extensions use the relevant university website session and do not require the OneTHU app.
 
-Adds a standalone OneTHU CLI and SDK, with a resident desktop backend sharing sign-in and tasks. OH gains Rain Classroom, contacts, organizations, Xiaoda skills and staging-box tools. This release also fixes notice attachment filenames, cloud reconnection and IM session isolation, and includes glass and interface improvements. Available for macOS, Windows and Android. See the [release notes](docs/en/release-0.11.4.md).
+## Release updates
+
+| Release | Main changes |
+|---|---|
+| [0.11.4-fix-3 · Current](docs/en/release-0.11.4-fix-3.md) | Repairs retained-data upgrade sign-in paths and update-mirror requests while preserving local authentication and 2FA. |
+| [0.11.4-fix-1](docs/en/release-0.11.4-fix-1.md) | Repairs Windows sign-in and resident startup, home courses, tablet settings scrolling and phone card heights. |
+| [0.11.4](docs/en/release-0.11.4.md) | Standalone CLI, SDK and resident backend; OH integration with Rain Classroom, contacts, organizations, Xiaoda and staging, plus attachment naming and session isolation repairs. |
 
 ## Real interface. Fictional data.
 
@@ -91,7 +101,7 @@ A browser preview is not the native host. Native builds need Rust and Tauri plat
 
 ## Credits and license
 
-Thanks to [THU Info](https://github.com/thu-info-community/thu-info-app)、[learnX](https://github.com/robertying/learnX)、[thu-learn-lib](https://github.com/Harry-Chen/thu-learn-lib)、NextTHUxk、thu-tok-auto、yuketang-helper-auto and all contributors.
+Thanks to [THU Info](https://github.com/thu-info-community/thu-info-app)、[learnX](https://github.com/robertying/learnX)、[thu-learn-lib](https://github.com/Harry-Chen/thu-learn-lib)、[NextTHUxk](https://github.com/smartThise/NextTHUxk)、[NextTHULearn](https://github.com/smartThise/NextTHULearn)、thu-tok-auto、yuketang-helper-auto and all contributors.
 
 Project-owned code uses MIT with additional non-commercial and no-attack restrictions; it is not an unrestricted MIT license. THU Info authorization, LearnX exceptions and other third-party terms apply separately.
 

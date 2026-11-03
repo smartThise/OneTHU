@@ -8,10 +8,11 @@ function moduleAt(path, imports, env = {}) {
   const source = readFileSync(new URL(path, root), 'utf8');
   const code = ts.transpileModule(source, { fileName: path, compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   const exports = {};
-  new Function('exports', 'require', ...Object.keys(env), code)(exports, name => { if (!(name in imports)) throw Error(`Unexpected ${path} import ${name}`); return imports[name]; }, ...Object.values(env));
+  new Function('exports', 'require', ...Object.keys(env), code+(path==='apps/desktop/src/lib/sharedRuntime.ts'?'\ninstallation={installed:true,available:true,expectedVersion:"fixture"};':''))(exports, name => { if (!(name in imports)) throw Error(`Unexpected ${path} import ${name}`); return imports[name]; }, ...Object.values(env));
   return exports;
 }
 function functionAt(path, name, env) {
+  env={initCliInstallation:async()=>{},...env};
   const text = readFileSync(new URL(path, root), 'utf8');
   const ast = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true);
   const node = ast.statements.find(item => ts.isFunctionDeclaration(item) && item.name?.text === name);
@@ -22,7 +23,7 @@ function functionAt(path, name, env) {
 let passed = 0;
 async function test(name, fn) { await fn(); passed++; console.log(`PASS ${name}`); }
 function bridgeFixture() {
-  let status = { protocolVersion: 1, username: null, epoch: 1, session: { state: 'idle' }, policy: { enabled: true, automatic: false, configured: true }, bootstrapAllowed: true };
+  let status = { protocolVersion: 1, username: null, epoch: 1, session: { state: 'idle' }, policy: { enabled: true, appEnabled:true, automatic: false, configured: true }, bootstrapAllowed: true };
   let snapshot = null;
   const calls = [], changes = [];
   const bridge = moduleAt('apps/desktop/src/lib/sharedRuntime.ts', {
@@ -199,7 +200,7 @@ await test('inbox and channels render the resident store through existing UI con
 function runtimeFixture(options = {}) {
   let requested = true, automatic = false, authorized = options.authorized ?? true;
   const subscribers = new Set(), remoteListeners = new Set(), updates = [];
-  let remote = { protocolVersion: 1, username: 'account-a', epoch: 1, session: { state: 'ready' }, policy: { enabled: true, automatic: false, configured: true } };
+  let remote = { protocolVersion: 1, username: 'account-a', epoch: 1, session: { state: 'ready' }, policy: { enabled: true, appEnabled:true, automatic: false, configured: true } };
   let hold = null, handoffRetries = 0;
   const changed = () => { for (const fn of subscribers) fn(); };
   const subscribe = fn => { subscribers.add(fn); return () => subscribers.delete(fn); };
@@ -209,10 +210,11 @@ function runtimeFixture(options = {}) {
       setMcpServer(value) { requested = value; changed(); }, setCliAutoExecute(value) { automatic = value; changed(); } },
     './privacyConsent.js': { ohAuthorized: () => authorized, subscribePrivacy: subscribe,
       initPrivacyConsent: async () => { if (options.initialize) authorized = await options.initialize(); } },
+    '../plugins/rust.js': {callRust:async()=>({supported:true})},
     './cliTasks.js': { prepareDesktopTaskRuntime: async () => {} },
     '../lib/clients.js': { retrySharedSessionHandoff: async () => { handoffRetries++; runtime.setCliHandoffPending(false); } },
     '@tauri-apps/api/core': { invoke: async () => {} },
-    '../lib/sharedRuntime.js': { usesSharedRuntime: () => true, getSharedRuntimeStatus: async () => remote, sharedRuntimeSnapshot: () => remote,
+    '../lib/sharedRuntime.js': { usesSharedRuntime: () => true, initCliInstallation:async()=>{}, getSharedRuntimeStatus: async () => remote, sharedRuntimeSnapshot: () => remote,
       subscribeSharedRuntime(fn) { remoteListeners.add(fn); },
       async updateSharedPolicy(enabled, auto, expected) {
         if (expected && (expected.expectedAccount !== remote.username || expected.expectedEpoch !== remote.epoch)) throw Error('CLI_SHARED_SESSION_CHANGED');

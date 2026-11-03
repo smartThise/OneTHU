@@ -31,6 +31,7 @@ html:root.is-schedule-page .explorer-shell {
 }
 html:root.is-schedule-page .explorer-shell > .explorer-content {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
@@ -99,16 +100,37 @@ html:root.is-schedule-page .schedule-workspace > .schedule-stage {
   position: relative;
   flex: 1 1 0;
   min-height: 0;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   overscroll-behavior: contain;
+  touch-action: pan-y pinch-zoom;
   /* 全幅：没有卡片描边/圆角，课表就是这一页本身 */
   border: 0;
   border-radius: 0;
   background: var(--og-surface-1);
-  /* 到边到角：画布高度 = clientHeight − 表头（见 Schedule.tsx 的 availH），
-     整周正好铺满、不滚动；浮件浮在上面，不再从课表里"挖"一条空带。 */
+  /* The header keeps its intrinsic height; the week body fills the remaining flex track. */
   padding-bottom: var(--og-c-schedule-bottom-reserve, 0);
 }
+.schedule-week {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--og-surface-1);
+}
+.schedule-week-snapshot {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.schedule-timeline:is(.is-week-swiping, .is-week-transitioning) > .schedule-week {
+  will-change: transform;
+}
+.schedule-timeline.is-week-transitioning > .schedule-week { pointer-events: none; }
+.schedule-timeline.is-week-swiping { user-select: none; -webkit-user-select: none; }
 /* 列表视图（保留项）：同样吃满事件区，自己滚动 */
 .schedule-scroll {
   flex: 1 1 0;
@@ -121,6 +143,7 @@ html:root.is-schedule-page .schedule-workspace > .schedule-stage {
 }
 
 .schedule-day-head {
+  flex: none;
   position: sticky;
   top: 0;
   z-index: var(--og-z-header);
@@ -130,6 +153,7 @@ html:root.is-schedule-page .schedule-workspace > .schedule-stage {
 }
 .schedule-day-head,
 .schedule-body { display: flex; }
+.schedule-body { flex: 1 1 0; min-height: 0; overflow: hidden; }
 .schedule-head-gutter,
 .schedule-gutter { flex: none; width: var(--og-space-8); }
 .schedule-day-strip { display: flex; flex: 1 1 auto; min-width: 0; }
@@ -204,9 +228,7 @@ html:root.is-phone .schedule-canvas-tail {
   color: var(--og-schedule-block-ink);
   box-shadow: var(--og-elev-1);
   cursor: pointer;
-  /* 入场：错峰延迟由页面按"时间行"给（--og-c-schedule-delay），只动 transform/opacity */
-  animation: schedule-block-in var(--og-dur-3) var(--og-ease-spring) backwards;
-  animation-delay: var(--og-c-schedule-delay, 0ms);
+  /* Week navigation animates the whole layer; individual blocks retain their positions. */
   transition: transform var(--og-dur-1) var(--og-ease-standard), box-shadow var(--og-dur-1) var(--og-ease-standard);
 }
 .schedule-block:hover {
@@ -318,10 +340,6 @@ html:root.is-phone .schedule-floats { left: var(--og-space-2); bottom: calc(var(
 .schedule-native-field { width: 100%; }
 
 /* ── 6. 动效：只动 transform / opacity；减弱动态效果整段不播（含错峰延迟） ── */
-@keyframes schedule-block-in {
-  from { opacity: 0; transform: translate3d(0, var(--og-space-2), 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
 @media (prefers-reduced-motion: reduce) {
   .schedule-block { animation: none; }
   .schedule-block:hover { transform: none; }

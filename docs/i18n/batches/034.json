@@ -1,7 +1,236 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "lib.contentexchange.67a52d762038",
+      "source": "请先填写名片上的名字",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 15,
+          "context": "new Error(i18n(\"lib.contentexchange.67a52d762038\"))"
+        }
+      ],
+      "translation": "Please fill in the name on your card first",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.9111f2690fbb",
+      "source": "已导入 {count} 项，替换为当前暂存箱",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "count",
+          "expression": "r.imported ?? 0"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 64,
+          "context": "vaultTarget === 'new'\n      ? i18n(\"lib.contentexchange.36987ff12d5e\", { count: r.imported ?? 0 })\n      : i18n(\"lib.contentexchange.9111f2690fbb\", { count: r.imported ?? 0 })"
+        }
+      ],
+      "translation": "Imported {count} items, replacing the current Stash",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.97ca5653783f",
+      "source": "碰一碰口令无法导入",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 45,
+          "context": "r.reason || i18n(\"lib.contentexchange.97ca5653783f\")"
+        }
+      ],
+      "translation": "Tap-to-share codes cannot be imported",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.b3cbed6586bd",
+      "source": "已收到 {contents}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "contents",
+          "expression": "new Intl.ListFormat(getLocale(), { style: \"long\", type: \"conjunction\" }).format(parts)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 54,
+          "context": "r.duplicate\n      ? i18n(\"lib.contentexchange.3bdb847af08f\", { contents: new Intl.ListFormat(getLocale(), { style: \"long\", type: \"conjunction\" }).format(parts) })\n      : i18n(\"lib.contentexchange.b3cbed6586bd\", { contents: new Intl.ListFormat(getLocale(), { style: \"long\", type: \"conjunction\" }).format(parts) })"
+        }
+      ],
+      "translation": "Received {contents}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.b8fde21bc2ca",
+      "source": "组织邀请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 49,
+          "context": "r.org ? i18n(\"lib.contentexchange.b8fde21bc2ca\") : ''"
+        }
+      ],
+      "translation": "Organization invitation",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.d1957be29bf9",
+      "source": "这不是有效的 OneTHU 分享口令",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 72,
+          "context": "new Error(i18n(\"lib.contentexchange.d1957be29bf9\"))"
+        }
+      ],
+      "translation": "This is not a valid OneTHU share code",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.ed909fbcd134",
+      "source": "图片里没有识别到二维码",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 85,
+          "context": "new Error(i18n(\"lib.contentexchange.ed909fbcd134\"))"
+        }
+      ],
+      "translation": "No QR code was detected in the image",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.f69fb628aaab",
+      "source": "组织邀请无法识别",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 69,
+          "context": "r.reason || i18n(\"lib.contentexchange.f69fb628aaab\")"
+        }
+      ],
+      "translation": "The organization invitation cannot be recognized",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.contentexchange.fd5394f29856",
+      "source": "个人名片",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/contentExchange.ts",
+          "line": 48,
+          "context": "r.contact ? i18n(\"lib.contentexchange.fd5394f29856\") : ''"
+        }
+      ],
+      "translation": "Personal card",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.datetext.084b42f6e95e",
+      "source": "二",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/dateText.ts",
+          "line": 14
+        }
+      ],
+      "translation": "Tue",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.datetext.51a75f4634df",
+      "source": "一",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/dateText.ts",
+          "line": 14
+        }
+      ],
+      "translation": "Mon",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.datetext.754a9d5828d5",
+      "source": "四",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/dateText.ts",
+          "line": 14
+        }
+      ],
+      "translation": "Thu",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.datetext.85217f7aff77",
+      "source": "日",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/dateText.ts",
+          "line": 14
+        }
+      ],
+      "translation": "Sun",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "lib.datetext.a4c3313deb18",
+      "source": "三",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/lib/dateText.ts",
+          "line": 14
+        }
+      ],
+      "translation": "Wed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "lib.datetext.a619476ecb90",
       "source": "{value}月{value2}日 星期{value3}",
@@ -1091,230 +1320,6 @@
         }
       ],
       "translation": "Recommended by your usage habits",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.b3ed0c353c77",
-      "source": "网络学堂 · 作业列表",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 130,
-          "context": "return i18n(\"lib.homecards.b3ed0c353c77\");"
-        }
-      ],
-      "translation": "Web Learning · Assignment list",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.bdac834d0ba2",
-      "source": "全部通知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 131,
-          "context": "return i18n(\"lib.homecards.bdac834d0ba2\");"
-        }
-      ],
-      "translation": "All notices",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.c0c6bb8b8618",
-      "source": "校园卡余额",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 123,
-          "context": "return i18n(\"lib.homecards.c0c6bb8b8618\");"
-        }
-      ],
-      "translation": "Campus card balance",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.c730a0bada79",
-      "source": "日程与提醒",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 119,
-          "context": "return i18n(\"lib.homecards.c730a0bada79\");"
-        }
-      ],
-      "translation": "Schedule and reminders",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.caf1f095b108",
-      "source": "校园卡",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 139,
-          "context": "return i18n(\"lib.homecards.caf1f095b108\");"
-        }
-      ],
-      "translation": "Campus card",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.cce40ddbb7b9",
-      "source": "信息页 · 体质测试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 149,
-          "context": "return i18n(\"lib.homecards.cce40ddbb7b9\");"
-        }
-      ],
-      "translation": "Info page · Fitness test",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.cf05dea41f42",
-      "source": "生活页 · 宿舍卫生检查",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 148,
-          "context": "return i18n(\"lib.homecards.cf05dea41f42\");"
-        }
-      ],
-      "translation": "Life page · Dorm hygiene checks",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.d3a28cd3b434",
-      "source": "下一节课",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 122,
-          "context": "return i18n(\"lib.homecards.d3a28cd3b434\");"
-        }
-      ],
-      "translation": "Next class",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.d4549b05b429",
-      "source": "点击进入生活页",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 123,
-          "context": "return i18n(\"lib.homecards.d4549b05b429\");"
-        }
-      ],
-      "translation": "Tap to open the Life page",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.d9087a096dc2",
-      "source": "选课系统 · 已选课程与候补队列",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 129,
-          "context": "return i18n(\"lib.homecards.d9087a096dc2\");"
-        }
-      ],
-      "translation": "Course selection · Selected courses and waitlist",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.dd94488f5269",
-      "source": "校园网",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 153,
-          "context": "return i18n(\"lib.homecards.dd94488f5269\");"
-        }
-      ],
-      "translation": "Campus network",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.e4d40b4d6759",
-      "source": "研讨间",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 141,
-          "context": "return i18n(\"lib.homecards.e4d40b4d6759\");"
-        }
-      ],
-      "translation": "Seminar room",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.e703d13e3468",
-      "source": "生活页 · 财务 · 发票列表",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 145,
-          "context": "return i18n(\"lib.homecards.e703d13e3468\");"
-        }
-      ],
-      "translation": "Life page · Finance · Invoice list",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "lib.homecards.e81059e1a712",
-      "source": "公共空间",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/homeCards.ts",
-          "line": 155,
-          "context": "return i18n(\"lib.homecards.e81059e1a712\");"
-        }
-      ],
-      "translation": "Common space",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

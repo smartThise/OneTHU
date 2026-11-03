@@ -17,9 +17,13 @@ import { fileRead as readStateFile, fileWrite as writeStateFile, fileDelete as d
 import { getCalendarSnapshot } from "./data.js";
 import type { HwRemindState } from "./hwRemind.js";
 
-const fileRead = (name: string): Promise<string | null> => readStateFile(name, { strict: true });
-const fileWrite = (name: string, content: string): Promise<void> => writeStateFile(name, content, { strict: true });
-const fileDelete = (name: string): Promise<void> => deleteStateFile(name, { strict: true });
+import { readCalendarDocument as fileRead, writeCalendarDocument } from "./sharedCalendar.js";
+import { usesSharedRuntime } from "../lib/sharedRuntime.js";
+const fileWrite = async (name:string,content:string) => {
+  try { await writeCalendarDocument(name,content); }
+  catch(error) { if(String(error).includes("CLI_TRANSFER_BUSY"))throw new Error(i18n("cli.package.removing")); if(String(error).includes("APP_DATA_CHANGED")){loaded=false;credentialsLoaded=false;throw new Error(i18n("calendar.shared.changed"));} throw error; }
+};
+const fileDelete = (name:string) => writeCalendarDocument(name,null);
 
 const CFG_FILE = "caldav.cfg";
 const CACHE_FILE = "caldav.cache";
@@ -134,7 +138,7 @@ export async function ensureCloudCalCredentialsLoaded(): Promise<void> {
 
 /** 日历内容独立恢复，失败时不影响已经可用的邮箱凭据。 */
 async function ensureLoaded(): Promise<void> {
-  if (loaded) return;
+  if (loaded) { await refreshSharedCalendar(); return; }
   if (loadPromise) return loadPromise;
   loadPromise = (async () => {
     await ensureCloudCalCredentialsLoaded();
@@ -160,6 +164,35 @@ async function ensureLoaded(): Promise<void> {
   catch (error) { lastError = i18n("state.cloudcal.6b8367664e76"); emit(); throw error; }
   finally { loadPromise = null; }
 }
+
+let sharedRefresh: Promise<void> | undefined;
+/** Read the canonical account records after terminal writes and app resume. */
+async function refreshSharedCalendar(): Promise<void> {
+  if (!usesSharedRuntime() || !loaded) return;
+  return sharedRefresh ??= enqueue(async () => {
+    const epoch=accountEpoch;
+    const [configRaw,localRaw,cacheRaw]=await Promise.all([fileRead(CFG_FILE),fileRead(LOCAL_FILE),fileRead(CACHE_FILE)]);
+    assertAccount(epoch);
+    const stored=configRaw?JSON.parse(configRaw):null;
+    const nextCfg=stored?{email:stored.email,authCode:deobfuscateSecret(stored.secret,stored.email)}:null;
+    const nextLocal=localRaw?JSON.parse(localRaw).events:[];
+    const cache=cacheRaw?JSON.parse(cacheRaw):null;
+    if(!Array.isArray(nextLocal))throw new Error(i18n("state.cloudcal.33de4f649f2f"));
+    const configChanged=JSON.stringify(nextCfg)!==JSON.stringify(cfg);
+    const nextCloud=nextCfg&&cache?.email&&accountKey(cache.email)===accountKey(nextCfg.email)?cache.events:[];
+    const changed=configChanged||JSON.stringify(nextLocal)!==JSON.stringify(localEvents)||JSON.stringify(nextCloud)!==JSON.stringify(cloudEvents);
+    cfg=nextCfg;localEvents=nextLocal;cloudEvents=nextCloud;lastSyncAt=cache?.savedAt??0;
+    mirrorReady=!cfg||lastSyncAt>0;
+    if(configChanged)emitConfig();if(changed){emit();emitChange();}
+  }).finally(()=>{sharedRefresh=undefined;});
+}
+
+if(typeof window!=="undefined")window.addEventListener("onethu-cli-installation",()=>{
+  accountEpoch++;loaded=false;credentialsLoaded=false;
+  void Promise.allSettled([loadPromise,credentialsPromise,operationTail]).then(()=>{
+    loaded=false;credentialsLoaded=false;return ensureLoaded();
+  }).catch(()=>{lastError=i18n("state.cloudcal.6b8367664e76");emit();});
+});
 
 /** 仅配置生命周期通知，邮箱等凭据消费者不再订阅日程内容。 */
 export function onCloudCalConfigChange(fn: () => void): () => void {
@@ -432,9 +465,13 @@ export function useCloudCal(): CloudCalState {
         error: lastError,
       });
     listeners.add(update);
+    const refresh=()=>{if(document.visibilityState!=="hidden")void refreshSharedCalendar().catch(error=>{lastError=String(error).includes("APP_DATA_CHANGED")?i18n("calendar.shared.changed"):i18n("state.cloudcal.6b8367664e76");emit();});};
+    const timer=setInterval(refresh,5000);
+    window.addEventListener("focus",refresh);
+    window.addEventListener("onethu-cli-installation",refresh);
     update();
     return () => {
-      listeners.delete(update);
+      listeners.delete(update);clearInterval(timer);window.removeEventListener("focus",refresh);window.removeEventListener("onethu-cli-installation",refresh);
     };
   }, []);
   return snapshot;

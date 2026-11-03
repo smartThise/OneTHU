@@ -2,6 +2,7 @@
 
 mod cli_download;
 mod cli_daemon;
+mod cli_package;
 mod cli_session;
 
 use serde::{Deserialize, Serialize};
@@ -4561,6 +4562,7 @@ let builder = tauri::Builder::default();
             plugins::plugin_spawn,plugins::plugin_call,plugins::plugin_notify,plugins::plugin_rpc_reply,plugins::plugin_kill,
             cli_download::cli_download_learn_resource, cli_download::cli_access_sync, cli_download::cli_download_cancel,
             cli_daemon::cli_daemon_ensure, cli_daemon::cli_daemon_request,
+            cli_package::cli_package_status, cli_package::cli_package_prepare, cli_package::cli_package_install, cli_package::cli_package_uninstall,
             cli_session::cli_session_cookies_export, cli_session::cli_session_cookies_import,
             harness_embed::harness_start,harness_embed::harness_bridge_take,harness_embed::harness_call,harness_embed::harness_notify,harness_embed::harness_rpc_reply,harness_embed::harness_stop])
         .build(tauri::generate_context!())

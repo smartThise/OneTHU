@@ -56,8 +56,8 @@ export function createCliService(api: OnethuApi, permissions: Set<string>, guard
   const service = {
     list() {
       authorize();
-      return { name: guarded.internal ? "OneTHU app services" : "OneTHU CLI", version: "1", session: { status: api.session.status() },
-        tasksRequireCli: true,
+      return { name: guarded.internal ? "OneTHU app services" : "OneTHU CLI", version: "1", session: { status: api.session.status(), username: api.session.username() },
+        tasksRequireCli: false,
         platform: navigator.platform, operations: operations.map(publicOperation),
         confirmationMode: confirmationMode(cliAutoExecuteEnabled()),
         confirmation: cliAutoExecuteEnabled()
@@ -75,7 +75,6 @@ export function createCliService(api: OnethuApi, permissions: Set<string>, guard
       const startedAt = Date.now();
       const deadline = Math.min(input.deadlineUnixMs ?? startedAt + 110_000, startedAt + 150_000);
       const op = byName.get(input.operation);
-      if (guarded.internal && input.operation.startsWith("tasks.")) authorized();
       const taskControl = taskOperations.find(item => item.name === input.operation);
       if (!op) throw new Error("UNKNOWN_OPERATION: Use commands to list supported operations.");
       if ((op.run || taskControl) && !permissions.has("learn:read")) throw new Error("PERMISSION_REQUIRED: learn:read");
@@ -89,8 +88,7 @@ export function createCliService(api: OnethuApi, permissions: Set<string>, guard
       const sharedGuard = usesSharedRuntime() && op.name.startsWith("tasks.") ? await sharedAccountGuard(owner) : undefined;
       const check = async () => {
         authorize();
-        if (guarded.internal && input.operation.startsWith("tasks.")) authorized();
-        if (task) {
+          if (task) {
           if (!liveGrants.has(task.grant) || task.signal.aborted) throw new Error("TASK_CANCELLED");
           await task.grant.assertAllowed(op.name, args);
         }
@@ -190,14 +188,14 @@ export function createCliService(api: OnethuApi, permissions: Set<string>, guard
       } catch (error) { throw publicError(error); }
       finally { if (serializedWrite) writeBusy = false; }
   }
-  bindDesktopTasks({
+  if (guarded.internal) bindDesktopTasks({
     call: input => service.call(input),
     dispatch(input, grant, signal) { liveGrants.add(grant); return call(input, { grant, signal }); },
     resolveOperation(name) {
       const op = byName.get(name);
-      // Scheduled operations are limited to the audited learning reads and one
-      // resource download; generic plugin/UI actions never receive a task grant.
-      return op && name.startsWith("learn.") && (!op.mutation || name === "learn.download")
+      // Read-only app services share the same account/permission guard as OH.
+      // Recurring mutations remain limited to the reviewed download path.
+      return op && !/^(tasks|plugins|notifications|im|agent|auth|config)\./.test(name) && (!op.mutation || name === "learn.download")
         ? { mutation: !!op.mutation, validate: args => validate(args, op.parameters) } : undefined;
     },
   });

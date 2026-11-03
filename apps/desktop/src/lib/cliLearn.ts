@@ -8,7 +8,6 @@ export type { CliLearnOperation } from "@onethu/sdk/learn";
 const service = createLearnService({
   learn, http, session, sessionUrl,
   authorize() {
-    if (!mcpServerEnabled()) throw new Error("CLI_DISABLED");
     if (!ohAuthorized()) throw new Error("OH_AUTHORIZATION_REQUIRED");
   },
   epoch: nativeSessionEpoch,

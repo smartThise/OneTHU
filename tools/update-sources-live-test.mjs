@@ -14,11 +14,12 @@ const comparisonCode=comparisonAst.statements.filter(n=>ts.isFunctionDeclaration
 const {isNewer}=await import('data:text/javascript;base64,'+Buffer.from(ts.transpileModule(comparisonCode,{compilerOptions:{module:ts.ModuleKind.ES2022}}).outputText).toString('base64'));
 globalThis.__liveUpdater={
  i18n:key=>key, currentVersion:()=> '0.10.0',isNewer,logLine:async()=>{},isAndroidNavigator:()=>platform==='android',
+ nativeSessionEpoch:async()=>17,assertNativeSessionEpoch:async epoch=>assert.equal(epoch,17),
  universalFetch:async(url,options)=>{if(offlineGitHub)throw Error('deliberately unavailable GitHub');return fetch(url,{...options,signal:AbortSignal.timeout(30000)});},
- invoke:async(command,{input})=>{assert.equal(command,'http_native','Only read-only HTTP IPC is permitted');assert.equal(input.method,'GET');const r=await fetch(input.url,{redirect:'manual',signal:AbortSignal.timeout(30000)});return {status:r.status,headers:Object.fromEntries(r.headers),body:await r.text()};},
+ invoke:async(command,{input,epoch})=>{assert.equal(epoch,17,'native epoch must be supplied');assert.equal(command,'http_native','Only read-only HTTP IPC is permitted');assert.equal(input.method,'GET');const r=await fetch(input.url,{redirect:'manual',signal:AbortSignal.timeout(30000)});return {status:r.status,headers:Object.fromEntries(r.headers),body:await r.text()};},
 };
 const compiled=ts.transpileModule(code+'\nexport {fromCloud,fromGitHub};',{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
-const prelude='const {i18n,currentVersion,isNewer,logLine,isAndroidNavigator,universalFetch,invoke}=globalThis.__liveUpdater;\n';
+const prelude='const {i18n,currentVersion,isNewer,logLine,isAndroidNavigator,universalFetch,invoke,nativeSessionEpoch,assertNativeSessionEpoch}=globalThis.__liveUpdater;\n';
 const updater=await import(`data:text/javascript;base64,${Buffer.from(prelude+compiled).toString('base64')}`);
 for(platform of ['macos','windows','android']){
  Object.defineProperty(globalThis,'navigator',{value:{platform:platform==='macos'?'MacIntel':'Win32',userAgent:platform==='android'?'Android':'',},configurable:true});

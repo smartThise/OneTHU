@@ -1,8 +1,10 @@
+> 最后更新：2026-10-29
+
 <div align="center">
 
 <img src="docs/logo-banner.png" alt="One above THU — One THUer should have OneTHU" width="640">
 
-**0.11.4-fix-1 · Revolution**
+**0.11.4-fix-3 · Revolution**
 
 [中文](README.md) · [English](README.en.md)
 
@@ -14,13 +16,23 @@
 
 OneTHU 是非官方的清华校园应用，覆盖 macOS、Windows 与 Android。0.11 使用 OneGUI 统一交互，主题、壁纸与布局均可调整，提供极简、实用、完整三种模式；搜索与 OH 胶囊贯穿三种模式，完整模式进一步开放自由白板、暂存分享、组织、插件、OneTHU Harness 与清小搭。
 
-## 0.11.4-fix-1 修复
+## OneTHU 与浏览器插件
 
-修复 Windows 登录与后台启动、首页一级和二级课程、平板设置滚动及手机卡片高度。保留 0.11.4 的现有功能，三端同步更新。 [更新说明](docs/release-0.11.4-fix-1.md)。
+| 项目 | 使用场景 | 获取 |
+|---|---|---|
+| [OneTHU](https://github.com/smartThise/OneTHU) | macOS、Windows、Android 校园应用；学习、日程、校园服务与按需接入的外部平台。 | [下载应用](https://github.com/smartThise/OneTHU/releases/latest) |
+| [NextTHUxk](https://github.com/smartThise/NextTHUxk) | 在教务选课网页使用课程搜索、课表预览、暂存方案与 AI 排课。 | [安装选课插件](https://github.com/smartThise/NextTHUxk/releases/latest) |
+| [NextTHULearn](https://github.com/smartThise/NextTHULearn) | 进入网络学堂网页，自动启用 OneTHU 风格的学习工作台。 | [安装学堂插件](https://github.com/smartThise/NextTHULearn/releases/latest) |
 
-## 0.11.4 更新
+三个项目可以独立使用。浏览器扩展沿用对应学校网站的登录态，不要求先安装 OneTHU。
 
-加入独立 OneTHU CLI、SDK 与桌面常驻后台，共享登录和任务；OH 接入雨课堂、好友、组织、清小搭技能和暂存箱。修复通知附件命名、云盘自动连接与 IM 会话隔离，合入玻璃与界面优化。macOS、Windows 与 Android 同步更新，详见 [更新说明](docs/release-0.11.4.md)。
+## 版本更新
+
+| 版本 | 主要变化 |
+|---|---|
+| [0.11.4-fix-3 · 当前版本](docs/release-0.11.4-fix-3.md) | 修复保留数据升级后的登录路径与更新镜像请求，保护本机认证和二次验证流程。 |
+| [0.11.4-fix-1](docs/release-0.11.4-fix-1.md) | Windows 登录与后台启动、首页课程、平板设置滚动及手机卡片高度修复。 |
+| [0.11.4](docs/release-0.11.4.md) | 独立 CLI、SDK 与桌面常驻后台，OH 接入雨课堂、好友、组织、清小搭和暂存箱，修复附件命名与会话隔离。 |
 
 ## 真实界面，模拟数据
 
@@ -91,7 +103,7 @@ pnpm dev
 
 ## 致谢与许可
 
-感谢 [THU Info](https://github.com/thu-info-community/thu-info-app)、[learnX](https://github.com/robertying/learnX)、[thu-learn-lib](https://github.com/Harry-Chen/thu-learn-lib)、NextTHUxk、thu-tok-auto、yuketang-helper-auto 及所有贡献者。
+感谢 [THU Info](https://github.com/thu-info-community/thu-info-app)、[learnX](https://github.com/robertying/learnX)、[thu-learn-lib](https://github.com/Harry-Chen/thu-learn-lib)、[NextTHUxk](https://github.com/smartThise/NextTHUxk)、[NextTHULearn](https://github.com/smartThise/NextTHULearn)、thu-tok-auto、yuketang-helper-auto 及所有贡献者。
 
 自有代码采用 MIT 并附加非商业、禁止攻击清华信息服务等限制，不应视为无附加条件的 MIT。THU Info 授权、LearnX 例外和其他第三方条款分别适用。
 

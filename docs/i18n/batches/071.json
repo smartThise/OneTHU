@@ -1,7 +1,252 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "pages.schedule.ce708f891fc3",
+      "source": "第 {w} 周",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "w",
+          "expression": "w"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1150,
+          "context": "{i18nRich(\"pages.schedule.ce708f891fc3\", { w: w })}"
+        }
+      ],
+      "translation": "Week {w}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.d1378a68e620",
+      "source": "周二",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 70
+        }
+      ],
+      "translation": "Tue",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.d2bb025a2e51",
+      "source": "开始",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1345,
+          "context": "{i18n(\"pages.schedule.d2bb025a2e51\")}"
+        }
+      ],
+      "translation": "Start",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.d44e9b3d3b31",
+      "source": "名称",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1266,
+          "context": "k: i18n(\"pages.schedule.d44e9b3d3b31\")"
+        }
+      ],
+      "translation": "Name",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.daede9881787",
+      "source": "备注",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1359,
+          "context": "{i18n(\"pages.schedule.daede9881787\")}"
+        }
+      ],
+      "translation": "Notes",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.dba0129db99f",
+      "source": "{value} · 第 {weekNo} 周",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(detected.sem.semesterName || detected.sem.semesterId)"
+        },
+        {
+          "name": "weekNo",
+          "expression": "String(detected.weekNo)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1062,
+          "context": "detected ? i18n(\"pages.schedule.dba0129db99f\", { value: String(detected.sem.semesterName || detected.sem.semesterId), weekNo: String(detected.weekNo) }) : i18n(\"pages.schedule.3c3687e79a53\")"
+        }
+      ],
+      "translation": "{value} · Week {weekNo}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.dd5376aed47e",
+      "source": "日程设置",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1029,
+          "context": "{i18n(\"pages.schedule.dd5376aed47e\")}"
+        },
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1041,
+          "context": "{i18n(\"pages.schedule.dd5376aed47e\")}"
+        }
+      ],
+      "translation": "Schedule settings",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.df071eb5a79b",
+      "source": "（其他设备 / 系统日历可见）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1366,
+          "context": "canCloud ? i18n(\"pages.schedule.df071eb5a79b\") : i18n(\"pages.schedule.e046ece55b12\")"
+        }
+      ],
+      "translation": "(visible on other devices / system calendar)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.e017292c528c",
+      "source": "校历加载失败（学期检测/跳转不可用）：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(calendar.error ?? \"\")"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 858,
+          "context": "{i18n(\"pages.schedule.e017292c528c\", { value: String(calendar.error ?? \"\") })}"
+        }
+      ],
+      "translation": "Failed to load the academic calendar (term detection / jump unavailable): {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.e046ece55b12",
+      "source": "（未配置——设置页开启云同步）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1366,
+          "context": "canCloud ? i18n(\"pages.schedule.df071eb5a79b\") : i18n(\"pages.schedule.e046ece55b12\")"
+        }
+      ],
+      "translation": "(not configured — enable cloud sync in Settings)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.e6618e00221b",
+      "source": "未同步过",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 677,
+          "context": "cal.lastSyncAt ? i18n(\"pages.schedule.51fdbeb883e5\", { value: String(new Date(cal.lastSyncAt).toLocaleTimeString(getUiLocale(), { hour: \"2-digit\", minute: \"2-digit\" })) }) : i18n(\"pages.schedule.e6618e00221b\")"
+        }
+      ],
+      "translation": "Never synced",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.e9d3b01a5a00",
+      "source": "周四",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 70
+        }
+      ],
+      "translation": "Thu",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.ebfa3e62fea6",
+      "source": "点击查看详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1241,
+          "context": "{i18n(\"pages.schedule.ebfa3e62fea6\")}"
+        }
+      ],
+      "translation": "Tap for details",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.ee239f394329",
+      "source": "周日",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 70
+        }
+      ],
+      "translation": "Sun",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "pages.schedule.efa33939d466",
       "source": "在新标签页",
@@ -1151,254 +1396,6 @@
         }
       ],
       "translation": "Appearance options: theme, tab bar, glass level, color picking, and more",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.settings.1d08854948f4",
-      "source": "标签栏样式",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 111,
-          "context": "return i18n(\"pages.settings.1d08854948f4\");"
-        },
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 732,
-          "context": "{i18n(\"pages.settings.1d08854948f4\")}"
-        }
-      ],
-      "translation": "Tab bar style",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.settings.1d360021dfc2",
-      "source": "将首页组件、排列和缩放恢复为默认版式，其他 OnePage 保留。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 359,
-          "context": "{i18n(\"pages.settings.1d360021dfc2\")}"
-        }
-      ],
-      "translation": "Restore Home widgets, arrangement, and scaling to the default layout; other OnePages are kept.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.settings.1d6e1d3ecceb",
-      "source": "开启后按系统的深色模式自动切换：亮色用「白天主题」，深色用「黑夜主题」。{value}",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "snap.followSystem ? <>{i18nRich(\"pages.settings.f5d889222af1\", { value: snap.systemDark ? i18n(\"pages.settings.a6b75d068032\") : i18n(\"pages.settings.aa0819dfc4d8\") })}</> : null"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 790,
-          "context": "{i18nRich(\"pages.settings.1d6e1d3ecceb\", { value: snap.followSystem ? <>{i18nRich(\"pages.settings.f5d889222af1\", { value: snap.systemDark ? i18n(\"pages.settings.a6b75d068032\") : i18n(\"pages.settings.aa0819dfc4d8\") })}</> : null })}"
-        }
-      ],
-      "translation": "When enabled, switches automatically with the system dark mode: light theme/background in light mode, dark theme/background in dark mode. {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.settings.1e4072e67ba7",
-      "source": "本机可用浏览器 {length} 个；playwright 版{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(probe.browsers.length)"
-        },
-        {
-          "name": "value",
-          "expression": "String(probe.playwrightReady ? i18n(\"pages.settings.e2f12da7faa6\") : i18n(\"pages.settings.dccec95b65e1\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 913,
-          "context": "probe.browsers.length > 0\n                ? i18n(\"pages.settings.1e4072e67ba7\", { length: String(probe.browsers.length), value: String(probe.playwrightReady ? i18n(\"pages.settings.e2f12da7faa6\") : i18n(\"pages.settings.dccec95b65e1\")) })\n                : i18n(\"pages.settings.4d85ccc9814b\")"
-        }
-      ],
-      "translation": "{length} browsers available on this machine; playwright version{value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.settings.1eacd04cef79",
-      "source": "白天主题",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 796,
-          "context": "{i18n(\"pages.settings.1eacd04cef79\")}"
-        }
-      ],
-      "translation": "Light theme",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.settings.1f0f8de12177",
-      "source": " 个根收藏夹。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 436,
-          "context": "i18n(\"pages.settings.2a9010137d7b\") + parsed.order.length + i18n(\"pages.settings.1f0f8de12177\")"
-        }
-      ],
-      "translation": " root favorites.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.settings.1fa08e82bab2",
-      "source": "全窗共用一张：画在壳层底，面板与栏体透出它。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 658,
-          "context": "{i18n(\"pages.settings.1fa08e82bab2\")}"
-        }
-      ],
-      "translation": "One for the whole window: drawn on the shell background, with panels and bars showing it through.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.settings.1ffc3a676204",
-      "source": "当前登录状态与退出",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 127,
-          "context": "return i18n(\"pages.settings.1ffc3a676204\");"
-        }
-      ],
-      "translation": "Current sign-in status and sign out",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.settings.212735f5be92",
-      "source": "已导出：{where}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "where",
-          "expression": "String(where)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 610,
-          "context": "where ? i18n(\"pages.settings.212735f5be92\", { where: String(where) }) : i18n(\"pages.settings.ce93302dab64\")"
-        }
-      ],
-      "translation": "Exported: {where}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.settings.2457458b07b5",
-      "source": "　启用 / 停用主题在「插件」页里。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 765,
-          "context": "value3: i18n(\"pages.settings.2457458b07b5\")"
-        }
-      ],
-      "translation": " Enable / disable themes on the \"Plugins\" page.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.settings.2579560d6e3d",
-      "source": " · 系统取色生效中，换主题后会自动关闭",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 765,
-          "context": "dyn ? i18n(\"pages.settings.2579560d6e3d\") : \"\""
-        }
-      ],
-      "translation": " · System color picking active; turns off automatically after switching themes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.settings.25bd968a4ec3",
-      "source": "当前系统不支持，开启后改用「清华紫」主题。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 814,
-          "context": "dyn ? i18n(\"pages.settings.dfb8c7f65098\") : i18n(\"pages.settings.25bd968a4ec3\")"
-        }
-      ],
-      "translation": "Not supported by the current system; the \"Tsinghua Purple\" theme will be used after enabling.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.settings.28b0433b1b95",
-      "source": "桌面小组件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 469,
-          "context": "{i18n(\"pages.settings.28b0433b1b95\")}"
-        }
-      ],
-      "translation": "Desktop widgets",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.settings.2a9010137d7b",
-      "source": "已导入 ",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Settings.tsx",
-          "line": 436,
-          "context": "i18n(\"pages.settings.2a9010137d7b\") + parsed.order.length"
-        }
-      ],
-      "translation": "Imported ",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

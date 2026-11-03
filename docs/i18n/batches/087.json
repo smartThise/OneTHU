@@ -1,7 +1,236 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "state.cloudcal.8120a4a0177c",
+      "source": "课表含无法识别的场次，未修改云日历",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 557,
+          "context": "new Error(i18n(\"state.cloudcal.8120a4a0177c\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 624,
+          "context": "new Error(i18n(\"state.cloudcal.8120a4a0177c\"))"
+        }
+      ],
+      "translation": "The timetable contains unrecognized sessions; the cloud calendar was not modified",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.812d9e62ba2d",
+      "source": "日程版本信息缺失，请先同步再编辑",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 356,
+          "context": "new Error(i18n(\"state.cloudcal.812d9e62ba2d\"))"
+        }
+      ],
+      "translation": "Schedule version info is missing. Sync first before editing.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.892291a664b5",
+      "source": "新位置已保存，原位置清理失败，两侧日程均保留；请同步后再清理重复项",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 419,
+          "context": "new Error(i18n(\"state.cloudcal.892291a664b5\"))"
+        }
+      ],
+      "translation": "The new location was saved, but cleaning up the original location failed and both schedules are kept. Sync first, then clean up the duplicates.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.bd5ff99826df",
+      "source": "未找到日程，请先同步后再删除",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 372,
+          "context": "new Error(i18n(\"state.cloudcal.bd5ff99826df\"))"
+        }
+      ],
+      "translation": "Schedule not found. Sync first, then delete.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.e2f9152c9203",
+      "source": "学期信息无效",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 499,
+          "context": "new Error(i18n(\"state.cloudcal.e2f9152c9203\"))"
+        }
+      ],
+      "translation": "Invalid semester info",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.f3f8e2d173eb",
+      "source": "云同步配置已变更，本次验证结果未应用",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 283,
+          "context": "new Error(i18n(\"state.cloudcal.f3f8e2d173eb\"))"
+        }
+      ],
+      "translation": "The cloud sync configuration has changed; the verification result was not applied",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.fc42ba627dce",
+      "source": "日程版本信息缺失，请先同步再删除",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 373,
+          "context": "new Error(i18n(\"state.cloudcal.fc42ba627dce\"))"
+        }
+      ],
+      "translation": "Schedule version info is missing. Sync first before deleting.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudcal.fe20ed20d492",
+      "source": "云日历缓存损坏，未覆盖已有日程",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 150,
+          "context": "new Error(i18n(\"state.cloudcal.fe20ed20d492\"))"
+        }
+      ],
+      "translation": "The cloud calendar cache is corrupted; existing schedules were not overwritten",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudexchange.388fc6c63ebe",
+      "source": "分享内容超过支持的大小",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudExchange.ts",
+          "line": 157,
+          "context": "new Error(i18n(\"state.cloudexchange.388fc6c63ebe\"))"
+        }
+      ],
+      "translation": "The shared content exceeds the supported size",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudexchange.46180de6589d",
+      "source": "这份分享不包含可接收的 OneTHU 内容",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudExchange.ts",
+          "line": 178,
+          "context": "new Error(i18n(\"state.cloudexchange.46180de6589d\"))"
+        }
+      ],
+      "translation": "This share contains no OneTHU content that can be received",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudexchange.5dec5b6cd859",
+      "source": "接收邮箱格式不正确",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudExchange.ts",
+          "line": 77,
+          "context": "new Error(i18n(\"state.cloudexchange.5dec5b6cd859\"))"
+        }
+      ],
+      "translation": "The recipient email address is invalid",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudexchange.6e106dfb0757",
+      "source": "云盘没有返回分享链接",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudExchange.ts",
+          "line": 103,
+          "context": "new Error(i18n(\"state.cloudexchange.6e106dfb0757\"))"
+        }
+      ],
+      "translation": "The cloud drive did not return a share link",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudexchange.8e54dc8b5387",
+      "source": "原分享暂时无法读回，请重试或选择重新生成",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudExchange.ts",
+          "line": 95,
+          "context": "new Error(i18n(\"state.cloudexchange.8e54dc8b5387\"))"
+        }
+      ],
+      "translation": "The original share cannot be read back right now. Please retry or choose to regenerate it.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.cloudexchange.b8e6e9ca4525",
+      "source": "分享版本不受支持",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudExchange.ts",
+          "line": 162,
+          "context": "new Error(i18n(\"state.cloudexchange.b8e6e9ca4525\"))"
+        }
+      ],
+      "translation": "Share version not supported",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "state.cloudexchange.bcd2da321c5e",
       "source": "原分享更新未完成：{value}",
@@ -77,12 +306,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1963,
+          "line": 1981,
           "context": "setToast(i18n(\"state.data.017029db358e\", { length: String(Object.keys(qd.map).length), length2: String(candidates.length) }))"
         },
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1974,
+          "line": 1992,
           "context": "setToast(i18n(\"state.data.017029db358e\", { length: String(Object.keys(qd.map).length), length2: String(candidates.length) }))"
         }
       ],
@@ -98,7 +327,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1830,
+          "line": 1848,
           "context": "globalThis.prompt?.(i18n(\"state.data.0f1ade7c641d\"))"
         }
       ],
@@ -119,7 +348,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2556,
+          "line": 2574,
           "context": "name: i18n(\"state.data.14fa0b5c5261\", { nm: String(nm) })"
         }
       ],
@@ -135,7 +364,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1808,
+          "line": 1826,
           "context": "setToast(i18n(\"state.data.1744c58d26ad\"))"
         }
       ],
@@ -151,7 +380,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2175,
+          "line": 2193,
           "context": "title: i18n(\"state.data.1788c736d7b1\")"
         }
       ],
@@ -167,7 +396,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1835,
+          "line": 1853,
           "context": "new Error(i18n(\"state.data.1ad3aeaef070\"))"
         }
       ],
@@ -183,7 +412,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2209,
+          "line": 2227,
           "context": "note: i18n(\"state.data.21c05833ab53\")"
         }
       ],
@@ -199,7 +428,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2916,
+          "line": 2934,
           "context": "name: i18n(\"state.data.2785db8cbe3a\")"
         }
       ],
@@ -215,7 +444,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2124,
+          "line": 2142,
           "context": "name: i18n(\"state.data.29a6e56cb5af\")"
         }
       ],
@@ -231,7 +460,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2170,
+          "line": 2188,
           "context": "title: i18n(\"state.data.2ac5386c015e\")"
         }
       ],
@@ -252,7 +481,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1986,
+          "line": 2004,
           "context": "label: i18n(\"state.data.2c990a5b9a06\", { cur: String(cur) })"
         }
       ],
@@ -273,7 +502,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1840,
+          "line": 1858,
           "context": "setToast(i18n(\"state.data.315af7fb0ae9\", { length: String(incoming.length) }))"
         }
       ],
@@ -294,7 +523,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1824,
+          "line": 1842,
           "context": "setToast(i18n(\"state.data.329fbface8f2\", { name: String(d.name) }))"
         }
       ],
@@ -315,7 +544,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1864,
+          "line": 1882,
           "context": "[\n      i18n(\"state.data.3361c2cc7a9e\", { count: kept }),\n      toAdd.length ? i18n(\"state.data.9d6825c38899\", { count: toAdd.length, courses: toAdd.map((c) => c.name).join(\"、\") }) : null,\n      toDrop.length ? i18n(\"state.data.661a5ba1d0ca\", { count: toDrop.length, courses: toDrop.map((c) => c.name).join(\"、\") }) : null,\n    ]"
         }
       ],
@@ -331,7 +560,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2384,
+          "line": 2402,
           "context": "transactions === null ? i18n(\"state.data.35552730badd\") : null"
         }
       ],
@@ -347,7 +576,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2122,
+          "line": 2140,
           "context": "name: i18n(\"state.data.3759fa0fb1c0\")"
         }
       ],
@@ -363,7 +592,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2216,
+          "line": 2234,
           "context": "name: i18n(\"state.data.38509e346ecf\")"
         }
       ],
@@ -379,7 +608,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2189,
+          "line": 2207,
           "context": "title: i18n(\"state.data.3efc9adfbfb8\")"
         }
       ],
@@ -408,7 +637,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1646,
+          "line": 1664,
           "context": "setToast(i18n(\"state.data.4375e66c768d\", { expected: String(expected), size: String(seen.size), deficit: String(deficit) }))"
         }
       ],
@@ -424,7 +653,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2143,
+          "line": 2161,
           "context": "summary: i18n(\"state.data.444c4d808b3a\")"
         }
       ],
@@ -440,7 +669,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2165,
+          "line": 2183,
           "context": "title: i18n(\"state.data.49e6ad399f86\")"
         }
       ],
@@ -461,7 +690,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1797,
+          "line": 1815,
           "context": "setToast(i18n(\"state.data.4a297091d7e8\", { name: String(name) }))"
         }
       ],
@@ -482,7 +711,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1656,
+          "line": 1674,
           "context": "setToast(i18n(\"state.data.4c24a526b2a0\", { length: String(added.length) }))"
         }
       ],
@@ -503,7 +732,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1860,
+          "line": 1878,
           "context": "setToast(i18n(\"state.data.4f59a9588280\", { name: String(d.name) }))"
         }
       ],
@@ -524,7 +753,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1844,
+          "line": 1862,
           "context": "setToast(i18n(\"state.data.579d5468a97a\", { value: String(e instanceof Error ? e.message : String(e)) }))"
         }
       ],
@@ -540,7 +769,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1826,
+          "line": 1844,
           "context": "setToast(i18n(\"state.data.58302b53a63d\"))"
         }
       ],
@@ -569,7 +798,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1579,
+          "line": 1597,
           "context": "setToast(i18n(\"state.data.5a755838cd1f\", { locked: String(locked), length: String(merged.length), deficit: String(deficit) }))"
         }
       ],
@@ -598,7 +827,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1885,
+          "line": 1903,
           "context": "confirmDanger(i18nMsg(\"state.data.5b1ff08354a0\", { name: String(toDrop[i]!.name), code: String(toDrop[i]!.code), value: String(toDrop[i]!.seq || \"0\") }), CONFIRM_DROP_COURSE)"
         }
       ],
@@ -619,7 +848,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1886,
+          "line": 1904,
           "context": "setProgress(i18n(\"state.data.5e8ccd9c182a\", { name: String(toDrop[i]!.name) }))"
         }
       ],
@@ -644,7 +873,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1997,
+          "line": 2015,
           "context": "s === 2 ? i18n(\"state.data.606fee690bb1\", params) : i18n(\"state.data.99541445f961\", params)"
         }
       ],
@@ -660,7 +889,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1792,
+          "line": 1810,
           "context": "setToast(i18n(\"state.data.654c0455ea1b\"))"
         }
       ],
@@ -685,7 +914,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1866,
+          "line": 1884,
           "context": "toDrop.length ? i18n(\"state.data.661a5ba1d0ca\", { count: toDrop.length, courses: toDrop.map((c) => c.name).join(\"、\") }) : null"
         }
       ],
@@ -701,7 +930,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2174,
+          "line": 2192,
           "context": "title: i18n(\"state.data.6e0521c2d6bc\")"
         }
       ],
@@ -726,7 +955,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1996,
+          "line": 2014,
           "context": "s === 1 ? i18n(\"state.data.6f0c2bbab1f6\", params)\n          : s === 2 ? i18n(\"state.data.606fee690bb1\", params) : i18n(\"state.data.99541445f961\", params)"
         }
       ],
@@ -742,7 +971,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2167,
+          "line": 2185,
           "context": "title: i18n(\"state.data.6fb901c0f8f4\")"
         }
       ],
@@ -758,7 +987,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2176,
+          "line": 2194,
           "context": "title: i18n(\"state.data.76d617dd1e96\")"
         }
       ],
@@ -774,7 +1003,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1755,
+          "line": 1773,
           "context": "setToast(i18n(\"state.data.867cbd70a5b2\"))"
         }
       ],
@@ -790,12 +1019,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1904,
+          "line": 1922,
           "context": "setToast(i18n(\"state.data.88fb2fce716c\"))"
         },
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1915,
+          "line": 1933,
           "context": "setToast(i18n(\"state.data.88fb2fce716c\"))"
         }
       ],
@@ -816,7 +1045,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1817,
+          "line": 1835,
           "context": "setToast(i18n(\"state.data.993d797826cc\", { name: String(name) }))"
         }
       ],
@@ -841,7 +1070,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1997,
+          "line": 2015,
           "context": "s === 2 ? i18n(\"state.data.606fee690bb1\", params) : i18n(\"state.data.99541445f961\", params)"
         }
       ],
@@ -866,7 +1095,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1865,
+          "line": 1883,
           "context": "toAdd.length ? i18n(\"state.data.9d6825c38899\", { count: toAdd.length, courses: toAdd.map((c) => c.name).join(\"、\") }) : null"
         }
       ],
@@ -882,7 +1111,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2217,
+          "line": 2235,
           "context": "name: i18n(\"state.data.9e6183684b78\")"
         }
       ],
@@ -898,12 +1127,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1831,
+          "line": 1849,
           "context": "setToast(i18n(\"state.data.a37778f17c5f\"))"
         },
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1869,
+          "line": 1887,
           "context": "setToast(i18n(\"state.data.a37778f17c5f\"))"
         }
       ],
@@ -919,7 +1148,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2918,
+          "line": 2936,
           "context": "name: i18n(\"state.data.a53fee1c4dbb\")"
         }
       ],
@@ -940,7 +1169,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1758,
+          "line": 1776,
           "context": "setToast(i18n(\"state.data.acb8456494a1\", { name: String(row.name) }))"
         }
       ],
@@ -956,7 +1185,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2144,
+          "line": 2162,
           "context": "summary: i18n(\"state.data.b5481d51eb1a\")"
         }
       ],
@@ -972,7 +1201,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2121,
+          "line": 2139,
           "context": "name: i18n(\"state.data.b5a0c9e5f04e\")"
         }
       ],
@@ -988,7 +1217,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2171,
+          "line": 2189,
           "context": "title: i18n(\"state.data.c01840b9fd81\")"
         }
       ],
@@ -1013,7 +1242,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1868,
+          "line": 1886,
           "context": "confirmOk(i18nMsg(\"state.data.c49ed890d985\", { name: String(d.name), lines: String(lines) }))"
         }
       ],
@@ -1034,7 +1263,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1648,
+          "line": 1666,
           "context": "setToast(i18n(\"state.data.c6f1a8749849\", { size: String(seen.size) }))"
         }
       ],
@@ -1050,7 +1279,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2166,
+          "line": 2184,
           "context": "title: i18n(\"state.data.c9bb87027880\")"
         }
       ],
@@ -1066,7 +1295,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2190,
+          "line": 2208,
           "context": "title: i18n(\"state.data.ce63956984a9\")"
         }
       ],
@@ -1082,7 +1311,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2120,
+          "line": 2138,
           "context": "name: i18n(\"state.data.d4fa4ba858a6\")"
         }
       ],
@@ -1103,12 +1332,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1911,
+          "line": 1929,
           "context": "setToast(i18n(\"state.data.d7b50ed7e7b5\", { value: String(name.trim()) }))"
         },
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1922,
+          "line": 1940,
           "context": "setToast(i18n(\"state.data.d7b50ed7e7b5\", { value: String(name.trim()) }))"
         }
       ],
@@ -1137,7 +1366,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1889,
+          "line": 1907,
           "context": "setProgress(i18n(\"state.data.d8141ccb27fe\", { value: String(i + 1), length: String(toDrop.length), name: String(toDrop[i]!.name) }))"
         }
       ],
@@ -1166,7 +1395,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1879,
+          "line": 1897,
           "context": "setProgress(i18n(\"state.data.d84b6a7e9fbd\", { value: String(i + 1), length: String(toAdd.length), name: String(c.name) }))"
         }
       ],
@@ -1187,7 +1416,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1895,
+          "line": 1913,
           "context": "setToast(i18n(\"state.data.d92ad0ceef64\", { value: String(err instanceof Error ? err.message : String(err)) }))"
         }
       ],
@@ -1208,7 +1437,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1933,
+          "line": 1951,
           "context": "setToast(i18n(\"state.data.e6d7b9ff838f\", { name: String(ev.name) }))"
         }
       ],
@@ -1241,7 +1470,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 1893,
+          "line": 1911,
           "context": "setToast(i18n(\"state.data.e90750f742dd\", { name: String(d.name), length: String(toAdd.length), length2: String(toDrop.length), kept: String(kept) }))"
         }
       ],
@@ -1262,7 +1491,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2559,
+          "line": 2577,
           "context": "name: i18n(\"state.data.e980f2b04637\", { nm: String(nm) })"
         }
       ],
@@ -1278,7 +1507,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2917,
+          "line": 2935,
           "context": "name: i18n(\"state.data.f820fbf5072a\")"
         }
       ],
@@ -1294,7 +1523,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2123,
+          "line": 2141,
           "context": "name: i18n(\"state.data.f830684c231e\")"
         }
       ],
@@ -1310,250 +1539,16 @@
       "locations": [
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2183,
+          "line": 2201,
           "context": "name: i18n(\"state.data.f9b45f6b66e0\")"
         },
         {
           "file": "apps/desktop/src/state/data.ts",
-          "line": 2223,
+          "line": 2241,
           "context": "name: i18n(\"state.data.f9b45f6b66e0\")"
         }
       ],
       "translation": "Sample student",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.data.fc8f70858d9c",
-      "source": "课余量排队人数获取失败，可稍后重试（登录状态已自动重建）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/data.ts",
-          "line": 1978,
-          "context": "setToast(i18n(\"state.data.fc8f70858d9c\"))"
-        }
-      ],
-      "translation": "Failed to fetch remaining seats and queue counts; you can retry later (your session was rebuilt automatically)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.explorer.14384c9d60cc",
-      "source": "教学评估",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 256,
-          "context": "return i18n(\"state.explorer.14384c9d60cc\");"
-        }
-      ],
-      "translation": "Teaching evaluation",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.explorer.15d208d1b4c9",
-      "source": "生活",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 254,
-          "context": "return i18n(\"state.explorer.15d208d1b4c9\");"
-        }
-      ],
-      "translation": "Life",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.explorer.203c08e0d44a",
-      "source": "首页",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 175,
-          "context": "return i18n(\"state.explorer.203c08e0d44a\");"
-        },
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 263,
-          "context": "return i18n(\"state.explorer.203c08e0d44a\");"
-        }
-      ],
-      "translation": "Home",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.explorer.22519a88484f",
-      "source": "课程详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 232,
-          "context": "return i18n(\"state.explorer.22519a88484f\");"
-        }
-      ],
-      "translation": "Course details",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.explorer.231ff6cd9b63",
-      "source": "学期切换",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 237,
-          "context": "return i18n(\"state.explorer.231ff6cd9b63\");"
-        }
-      ],
-      "translation": "Switch semester",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.explorer.24be2018df29",
-      "source": "银行代发",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 257,
-          "context": "return i18n(\"state.explorer.24be2018df29\");"
-        }
-      ],
-      "translation": "Payroll",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.explorer.27b6154b3fd3",
-      "source": "文件详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 241,
-          "context": "return i18n(\"state.explorer.27b6154b3fd3\");"
-        }
-      ],
-      "translation": "File details",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.explorer.2d3197fccc89",
-      "source": "网络学堂 · 搜索",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 236,
-          "context": "return i18n(\"state.explorer.2d3197fccc89\");"
-        }
-      ],
-      "translation": "Web Learning · Search",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.explorer.316da6d69b7d",
-      "source": "体测成绩",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 256,
-          "context": "return i18n(\"state.explorer.316da6d69b7d\");"
-        }
-      ],
-      "translation": "Fitness test results",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.explorer.31c17158ebdb",
-      "source": "图书馆座位",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 258,
-          "context": "return i18n(\"state.explorer.31c17158ebdb\");"
-        }
-      ],
-      "translation": "Library seats",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.explorer.336dbe5fd82f",
-      "source": "研究生收入",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 257,
-          "context": "return i18n(\"state.explorer.336dbe5fd82f\");"
-        }
-      ],
-      "translation": "Graduate stipend",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.explorer.352cdc807892",
-      "source": "预约",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 254,
-          "context": "return i18n(\"state.explorer.352cdc807892\");"
-        }
-      ],
-      "translation": "Reservations",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.explorer.37979829426b",
-      "source": "工作区",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 582,
-          "context": "name.trim() || i18n(\"state.explorer.37979829426b\")"
-        },
-        {
-          "file": "apps/desktop/src/state/explorer.ts",
-          "line": 596,
-          "context": "opts.name.trim() || i18n(\"state.explorer.37979829426b\")"
-        }
-      ],
-      "translation": "Workspace",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

@@ -1,7 +1,295 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "state.notifydoctor.58f371818c4f",
+      "source": "已发出测试通知——若没看到，检查系统「勿扰」或通知分组",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 153,
+          "context": "sent ? i18n(\"state.notifydoctor.58f371818c4f\") : i18n(\"state.notifydoctor.3edfd112e604\")"
+        }
+      ],
+      "translation": "Test notification sent — if you don't see it, check the system Do Not Disturb setting or notification grouping",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.notifydoctor.5e0a3ee20f6b",
+      "source": "可自选尺寸{k}={t}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "k",
+          "expression": "String(k)"
+        },
+        {
+          "name": "t",
+          "expression": "String(t)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 101,
+          "context": "([k, t]) => i18n(\"state.notifydoctor.5e0a3ee20f6b\", { k: String(k), t: String(t) })"
+        }
+      ],
+      "translation": "Optional sizes {k}={t}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.notifydoctor.60d7f4ea2680",
+      "source": "槽位{k}:{v}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "k",
+          "expression": "String(k)"
+        },
+        {
+          "name": "v",
+          "expression": "String(v)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 99,
+          "context": "([k, v]) => i18n(\"state.notifydoctor.60d7f4ea2680\", { k: String(k), v: String(v) })"
+        }
+      ],
+      "translation": "Slot {k}: {v}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.notifydoctor.6726f815e5dd",
+      "source": "（{warned} 项提示）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "warned",
+          "expression": "String(warned)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 63,
+          "context": "warned ? i18n(\"state.notifydoctor.6726f815e5dd\", { warned: String(warned) }) : \"\""
+        }
+      ],
+      "translation": "({warned} warnings)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.notifydoctor.6dfd9883ec6d",
+      "source": "通知授权",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 78,
+          "context": "push(\"permission\", i18n(\"state.notifydoctor.6dfd9883ec6d\"), \"fail\", i18n(\"state.notifydoctor.d9540c4fcc17\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 81,
+          "context": "push(\"permission\", i18n(\"state.notifydoctor.6dfd9883ec6d\"), \"ok\", i18n(\"state.notifydoctor.521e65ffc7d0\"))"
+        }
+      ],
+      "translation": "Notification permission",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.notifydoctor.76e3238d6fee",
+      "source": "系统读到 {length} 个小组件尺寸（{value}）",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(ws.providersRegistered.length)"
+        },
+        {
+          "name": "value",
+          "expression": "String(ws.providersRegistered.join(\"、\"))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 105,
+          "context": "ws.providersRegistered.length === 0\n          ? i18n(\"state.notifydoctor.f8cd5feb5360\")\n          : i18n(\"state.notifydoctor.76e3238d6fee\", { length: String(ws.providersRegistered.length), value: String(ws.providersRegistered.join(\"、\")) })"
+        }
+      ],
+      "translation": "The system read {length} widget sizes ({value})",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.notifydoctor.7941c9adf8cc",
+      "source": "自检失败：{failed} 项不通过{value}——见下方第一处「不通过」",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "failed",
+          "expression": "String(failed)"
+        },
+        {
+          "name": "value",
+          "expression": "String(warned ? i18n(\"state.notifydoctor.91e36d30a350\", { warned: String(warned) }) : \"\")"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 64,
+          "context": "ok\n      ? i18n(\"state.notifydoctor.c273c2086a0d\", { length: String(steps.length), value: String(warned ? i18n(\"state.notifydoctor.6726f815e5dd\", { warned: String(warned) }) : \"\") })\n      : i18n(\"state.notifydoctor.7941c9adf8cc\", { failed: String(failed), value: String(warned ? i18n(\"state.notifydoctor.91e36d30a350\", { warned: String(warned) }) : \"\") })"
+        }
+      ],
+      "translation": "Self-check failed: {failed} items did not pass{value} — see the first \"not passed\" below",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.notifydoctor.89f5f5eed848",
+      "source": "精确提醒",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 87,
+          "context": "push(\n      \"exact\",\n      i18n(\"state.notifydoctor.89f5f5eed848\"),\n      st.exact ? \"ok\" : \"warn\",\n      st.exact ? i18n(\"state.notifydoctor.cafc3774b86b\") : i18n(\"state.notifydoctor.c8b5af17e6d2\"),\n    )"
+        }
+      ],
+      "translation": "Exact alarms",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.notifydoctor.91e36d30a350",
+      "source": "、{warned} 项提示",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "warned",
+          "expression": "String(warned)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 64,
+          "context": "warned ? i18n(\"state.notifydoctor.91e36d30a350\", { warned: String(warned) }) : \"\""
+        }
+      ],
+      "translation": ", {warned} warnings",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.notifydoctor.962a6e0b8f61",
+      "source": "桌面已放 {placed} 个（宿主 {hostPlaced}）{slotInfo}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "placed",
+          "expression": "String(placed)"
+        },
+        {
+          "name": "hostPlaced",
+          "expression": "String(ws.hostPlaced)"
+        },
+        {
+          "name": "slotInfo",
+          "expression": "String(slotInfo)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 114,
+          "context": "placed > 0 ? i18n(\"state.notifydoctor.962a6e0b8f61\", { placed: String(placed), hostPlaced: String(ws.hostPlaced), slotInfo: String(slotInfo) }) : i18n(\"state.notifydoctor.f088b81ae9c7\")"
+        }
+      ],
+      "translation": "{placed} placed on the desktop ({hostPlaced} in the host){slotInfo}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.notifydoctor.a14a16f450ae",
+      "source": "投递测试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 153,
+          "context": "push(\"deliver\", i18n(\"state.notifydoctor.a14a16f450ae\"), sent ? \"ok\" : \"fail\", sent ? i18n(\"state.notifydoctor.58f371818c4f\") : i18n(\"state.notifydoctor.3edfd112e604\"))"
+        }
+      ],
+      "translation": "Delivery test",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.notifydoctor.a1a9da9ee6ed",
+      "source": "未知原因",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 132,
+          "context": "r.reason ?? i18n(\"state.notifydoctor.a1a9da9ee6ed\")"
+        }
+      ],
+      "translation": "Unknown reason",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.notifydoctor.a7320eda2464",
+      "source": "（当前无插件占用槽位）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 115,
+          "context": "titles || i18n(\"state.notifydoctor.a7320eda2464\")"
+        }
+      ],
+      "translation": "(No plugin is using a slot currently)",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.notifydoctor.ad16c86b6da1",
+      "source": "已撤销探针",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/notifyDoctor.ts",
+          "line": 148,
+          "context": "probeScheduled ? i18n(\"state.notifydoctor.ad16c86b6da1\") : i18n(\"state.notifydoctor.0c9fc2c91156\")"
+        }
+      ],
+      "translation": "Probes revoked",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "state.notifydoctor.b1a8b45ace8b",
       "source": "探针清理",
@@ -1089,244 +1377,6 @@
         }
       ],
       "translation": "Enter the exact GitLab username and Tsinghua Cloud Drive email",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.orgsync.f9a3b8011053",
-      "source": "找不到组织",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/orgSync.ts",
-          "line": 17,
-          "context": "new Error(i18n(\"state.orgsync.f9a3b8011053\"))"
-        }
-      ],
-      "translation": "Organization not found",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.orgsync.fa0fdd1e567b",
-      "source": "找不到可用的 GitLab 用户名，请让对方在 GitLab 个人资料中确认",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/orgSync.ts",
-          "line": 196,
-          "context": "new Error(i18n(\"state.orgsync.fa0fdd1e567b\"))"
-        }
-      ],
-      "translation": "No usable GitLab username was found. Ask the other person to confirm it in their GitLab profile.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.orgsync.fb99a121e507",
-      "source": "同步关联资源权限",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/orgSync.ts",
-          "line": 254,
-          "context": "label:i18n(\"state.orgsync.fb99a121e507\")"
-        }
-      ],
-      "translation": "Sync linked resource permissions",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.orgsync.fc4f3897fb63",
-      "source": "组织资料必须位于对应 GitLab 私有群组的私有项目内",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/orgSync.ts",
-          "line": 36,
-          "context": "new Error(i18n(\"state.orgsync.fc4f3897fb63\"))"
-        }
-      ],
-      "translation": "Organization content must be in a private project inside the corresponding private GitLab group",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.orgsync.ownerOnly",
-      "source": "只有服务器上的组织负责人可以执行此操作",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/orgSync.ts",
-          "line": 89,
-          "context": "access >= 50 ? i18n(\"state.orgsync.ownerOnly\") : i18n(\"state.orgsync.cannotEdit\")"
-        }
-      ],
-      "translation": "Only organization Owners on the server can perform this action",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.orgsync.permissionsUnverified",
-      "source": "关联资源权限尚未核对，请负责人完成权限核对",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/orgSync.ts",
-          "line": 55,
-          "context": "config.permissionsVerified !== 1 ? i18n(\"state.orgsync.permissionsUnverified\") : undefined"
-        }
-      ],
-      "translation": "Linked resource permissions have not been verified yet. Ask an Owner to complete permission verification.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.orgsync.removeMemberLabel",
-      "source": "移除成员",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/orgSync.ts",
-          "line": 224,
-          "context": "target ? i18n(\"state.orgsync.updateMemberLabel\", {username:target.username}) : i18n(\"state.orgsync.removeMemberLabel\")"
-        }
-      ],
-      "translation": "Remove member",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.orgsync.updateMemberLabel",
-      "source": "更新 {username}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "username"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/orgSync.ts",
-          "line": 224,
-          "context": "target ? i18n(\"state.orgsync.updateMemberLabel\", {username:target.username}) : i18n(\"state.orgsync.removeMemberLabel\")"
-        }
-      ],
-      "translation": "Update {username}",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.orgsynccore.13447b8f6ab6",
-      "source": "降权回读不符",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/orgSyncCore.ts",
-          "line": 168,
-          "context": "new Error(i18n(\"state.orgsynccore.13447b8f6ab6\"))"
-        }
-      ],
-      "translation": "Permission downgrade readback mismatch",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.orgsynccore.15f11e1c75da",
-      "source": "至少保留一位服务器上的组织负责人",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/orgSyncCore.ts",
-          "line": 114,
-          "context": "new Error(i18n(\"state.orgsynccore.15f11e1c75da\"))"
-        }
-      ],
-      "translation": "Keep at least one organization Owner on the server",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.orgsynccore.181c794c590b",
-      "source": "组织协作内容损坏",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/orgSyncCore.ts",
-          "line": 41,
-          "context": "new Error(i18n(\"state.orgsynccore.181c794c590b\"))"
-        }
-      ],
-      "translation": "The organization collaboration content is corrupted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.orgsynccore.22d16e7c98ba",
-      "source": "解除关联后仍有共享权限",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/orgSyncCore.ts",
-          "line": 129,
-          "context": "new Error(i18n(\"state.orgsynccore.22d16e7c98ba\"))"
-        }
-      ],
-      "translation": "Shared permissions remain after detaching",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.orgsynccore.26e81e5f3e41",
-      "source": "GitLab 仓库 #{id} 必须是本组织群组内的私有仓库，请先迁入该群组并设为私有",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "id",
-          "expression": "String(id)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/orgSyncCore.ts",
-          "line": 97,
-          "context": "new Error(i18n(\"state.orgsynccore.26e81e5f3e41\", { id: String(id) }))"
-        }
-      ],
-      "translation": "GitLab repository #{id} must be a private repository inside this organization's group. Move it into the group and set it to private first.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.orgsynccore.34320f02cd8e",
-      "source": "资料库「{name}」的所有者有固有权限，请先转移云盘所有权，再重试成员变更",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(lib.name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/orgSyncCore.ts",
-          "line": 118,
-          "context": "new Error(i18n(\"state.orgsynccore.34320f02cd8e\", { name: String(lib.name) }))"
-        }
-      ],
-      "translation": "The owner of library \"{name}\" has inherent permissions. Transfer the cloud drive ownership first, then retry the member change.",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

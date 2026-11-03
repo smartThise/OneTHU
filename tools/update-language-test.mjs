@@ -9,11 +9,12 @@ const ast=ts.createSourceFile('updater.ts',source,ts.ScriptTarget.Latest,true);
 const code=ast.statements.filter(node=>!ts.isImportDeclaration(node)).map(node=>node.getText(ast)).join('\n');
 let installerCalls=0;
 globalThis.__updateLocaleFixture={i18n,i18nMsg,resolveMessage,currentVersion:()=> '0.11.2',isNewer:(a,b)=>a!==b,isAndroidNavigator:()=>true,logLine:async()=>{},
+ nativeSessionEpoch:async()=>17,assertNativeSessionEpoch:async epoch=>assert.equal(epoch,17),
  universalFetch:async()=>new Promise(()=>{}),
- invoke:async command=>{if(command==='http_native')return new Promise(()=>{});assert.equal(command,'updater_open_installer');installerCalls++;},
+ invoke:async(command,args)=>{if(command==='http_native'){assert.equal(args.epoch,17);return new Promise(()=>{});}assert.equal(command,'updater_open_installer');installerCalls++;},
 };
 const js=ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
-const updater=await import('data:text/javascript;base64,'+Buffer.from('const {i18n,i18nMsg,resolveMessage,currentVersion,isNewer,isAndroidNavigator,logLine,universalFetch,invoke}=globalThis.__updateLocaleFixture;\n'+js).toString('base64'));
+const updater=await import('data:text/javascript;base64,'+Buffer.from('const {i18n,i18nMsg,resolveMessage,currentVersion,isNewer,isAndroidNavigator,logLine,universalFetch,invoke,nativeSessionEpoch,assertNativeSessionEpoch}=globalThis.__updateLocaleFixture;\n'+js).toString('base64'));
 const uiSource=readFileSync('apps/desktop/src/components/SoftwareUpdateSection.tsx','utf8');
 const uiAst=ts.createSourceFile('SoftwareUpdateSection.tsx',uiSource,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
 const noticeFn=uiAst.statements.find(node=>ts.isFunctionDeclaration(node)&&node.name?.text==='resolveUpdateNotice');

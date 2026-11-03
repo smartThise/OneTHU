@@ -1,7 +1,251 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.boardpenlayer.05731b92ad31",
+      "source": "画笔",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/BoardPenLayer.tsx",
+          "line": 170,
+          "context": "{i18n(\"components.boardpenlayer.05731b92ad31\")}"
+        }
+      ],
+      "translation": "Pen",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.boardpenlayer.1ef3de06b32e",
+      "source": "清空",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/BoardPenLayer.tsx",
+          "line": 183,
+          "context": "{i18n(\"components.boardpenlayer.1ef3de06b32e\")}"
+        }
+      ],
+      "translation": "Clear",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.boardpenlayer.82804abae46b",
+      "source": "画笔颜色 ",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/BoardPenLayer.tsx",
+          "line": 178,
+          "context": "i18n(\"components.boardpenlayer.82804abae46b\") + c"
+        }
+      ],
+      "translation": "Pen color ",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.boardpenlayer.926a50b98ece",
+      "source": "撤销",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/BoardPenLayer.tsx",
+          "line": 182,
+          "context": "{i18n(\"components.boardpenlayer.926a50b98ece\")}"
+        }
+      ],
+      "translation": "Undo",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.calendarsyncsettings.10fe7d28b16b",
+      "source": "停止自动同步",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
+          "line": 125,
+          "context": "{i18n(\"components.calendarsyncsettings.10fe7d28b16b\")}"
+        }
+      ],
+      "translation": "Stop auto sync",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.calendarsyncsettings.1b6ad181ca5c",
+      "source": "断开失败：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(e instanceof Error ? e.message : String(e))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
+          "line": 70,
+          "context": "setCalMsg(i18n(\"components.calendarsyncsettings.1b6ad181ca5c\", { value: String(e instanceof Error ? e.message : String(e)) }))"
+        }
+      ],
+      "translation": "Failed to disconnect: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.calendarsyncsettings.1c3ab23e0178",
+      "source": "日历连接或同步未完成：{error}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "error",
+          "expression": "String(cloud.error)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
+          "line": 76,
+          "context": "{i18n(\"components.calendarsyncsettings.1c3ab23e0178\", { error: String(cloud.error) })}"
+        }
+      ],
+      "translation": "Calendar connection or sync did not finish: {error}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.calendarsyncsettings.288e461f287f",
+      "source": "已停止自动同步，已写入的日历与事件保留",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
+          "line": 123,
+          "context": "setSysMsg(i18n(\"components.calendarsyncsettings.288e461f287f\"))"
+        }
+      ],
+      "translation": "Auto sync stopped. Calendars and events already written are kept.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.calendarsyncsettings.2cea6bae6985",
+      "source": "已删除系统日历「OneTHU 日程」。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
+          "line": 133,
+          "context": "setSysMsg(i18n(\"components.calendarsyncsettings.2cea6bae6985\"))"
+        }
+      ],
+      "translation": "The \"OneTHU Schedule\" system calendar has been deleted.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.calendarsyncsettings.31c1468a6ea3",
+      "source": "保存并验证",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
+          "line": 90,
+          "context": "calBusy ? i18n(\"components.calendarsyncsettings.ee9ebe523d42\") : i18n(\"components.calendarsyncsettings.31c1468a6ea3\")"
+        }
+      ],
+      "translation": "Save and verify",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.calendarsyncsettings.32b84144958b",
+      "source": "系统日历「OneTHU 日程」已写入，此后自动保持最新",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
+          "line": 144,
+          "context": "setSysMsg(i18n(\"components.calendarsyncsettings.32b84144958b\"))"
+        }
+      ],
+      "translation": "The \"OneTHU Schedule\" system calendar has been written and will be kept up to date automatically",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.calendarsyncsettings.35001df10d62",
+      "source": "最近一次同步失败：{lastError}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "lastError",
+          "expression": "String(syscal.lastError)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
+          "line": 103,
+          "context": "{i18n(\"components.calendarsyncsettings.35001df10d62\", { lastError: String(syscal.lastError) })}"
+        }
+      ],
+      "translation": "Last sync failed: {lastError}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.calendarsyncsettings.353bd3ca6478",
+      "source": "iPhone 上查看",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
+          "line": 56,
+          "context": "{i18n(\"components.calendarsyncsettings.353bd3ca6478\")}"
+        }
+      ],
+      "translation": "View on iPhone",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.calendarsyncsettings.36e7a43a1c67",
+      "source": "立即同步",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
+          "line": 64,
+          "context": "calBusy || cloud.syncing ? i18n(\"components.calendarsyncsettings.4e2238b74ec7\") : i18n(\"components.calendarsyncsettings.36e7a43a1c67\")"
+        },
+        {
+          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
+          "line": 120,
+          "context": "sysBusy || syscal.syncing ? i18n(\"components.calendarsyncsettings.4e2238b74ec7\") : i18n(\"components.calendarsyncsettings.36e7a43a1c67\")"
+        }
+      ],
+      "translation": "Sync now",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "components.calendarsyncsettings.375bd11476d2",
       "source": "开启并同步",
@@ -1218,240 +1462,6 @@
       "translation": "Add to folder",
       "status": "prefilled-review",
       "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.collect.825750d712cc",
-      "source": "取消星标",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/Collect.tsx",
-          "line": 175,
-          "context": "lit ? i18n(\"components.collect.825750d712cc\") : i18n(\"components.collect.009a73342eab\")"
-        }
-      ],
-      "translation": "Remove star",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.collect.82ae0981093e",
-      "source": "一星：把当前页面收藏成 OnePage",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/Collect.tsx",
-          "line": 177,
-          "context": "lit ? i18n(\"components.collect.cb013b74bfc3\") : i18n(\"components.collect.82ae0981093e\")"
-        }
-      ],
-      "translation": "One star: save the current page as a OnePage",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.collect.8b9db911f1d9",
-      "source": "新建 OnePage",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/Collect.tsx",
-          "line": 93,
-          "context": "{i18n(\"components.collect.8b9db911f1d9\")}"
-        }
-      ],
-      "translation": "New OnePage",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.collect.8d2693309aed",
-      "source": "收藏夹名称…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/Collect.tsx",
-          "line": 328,
-          "context": "{i18n(\"components.collect.8d2693309aed\")}"
-        }
-      ],
-      "translation": "Folder name…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.collect.a0adbab10e0a",
-      "source": "已收藏 · 点击取消",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/Collect.tsx",
-          "line": 40,
-          "context": "lit ? i18n(\"components.collect.a0adbab10e0a\") : i18n(\"components.collect.0293d5e40498\")"
-        }
-      ],
-      "translation": "Saved · tap to remove",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.collect.a6cc61b5dea6",
-      "source": "已收藏，点击取消",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/Collect.tsx",
-          "line": 39,
-          "context": "lit ? i18n(\"components.collect.a6cc61b5dea6\") : i18n(\"components.collect.3b5439064adf\")"
-        }
-      ],
-      "translation": "Saved, tap to remove",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.collect.ab7ad5551d3c",
-      "source": "还没有收藏夹——在左侧栏「新建收藏夹」，或点下方直接建一个。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/Collect.tsx",
-          "line": 322,
-          "context": "{i18n(\"components.collect.ab7ad5551d3c\")}"
-        }
-      ],
-      "translation": "No folders yet — use \"New folder\" in the left sidebar, or tap below to create one.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.collect.cb013b74bfc3",
-      "source": "取消星标：删除该 OnePage",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/Collect.tsx",
-          "line": 177,
-          "context": "lit ? i18n(\"components.collect.cb013b74bfc3\") : i18n(\"components.collect.82ae0981093e\")"
-        }
-      ],
-      "translation": "Remove star: deletes this OnePage",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.collect.d549d18c3da5",
-      "source": "已有 OnePage",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/Collect.tsx",
-          "line": 88,
-          "context": "{i18n(\"components.collect.d549d18c3da5\")}"
-        }
-      ],
-      "translation": "Existing OnePages",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.collect.d72f03fc2d80",
-      "source": "「{value}」可同时收进多个收藏夹；收藏夹只是跳转入口，原功能始终锚定在默认页面。",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "view?.title ?? i18n(\"components.collect.21558137d9ce\")"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/Collect.tsx",
-          "line": 320,
-          "context": "{i18nRich(\"components.collect.d72f03fc2d80\", { value: view?.title ?? i18n(\"components.collect.21558137d9ce\") })}"
-        }
-      ],
-      "translation": "\"{value}\" can be saved into multiple folders; folders are just jump entries and the original feature always stays anchored on its default page.",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.collect.d73a6ca3de8c",
-      "source": "这块板上已经有它了",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/Collect.tsx",
-          "line": 70,
-          "context": "r.reason === \"duplicate\" ? i18n(\"components.collect.d73a6ca3de8c\") : i18n(\"components.collect.2435ae5dae6e\")"
-        }
-      ],
-      "translation": "It is already on this board",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.collect.db7e4035e164",
-      "source": "{value}支持搜索：全部功能页面与今日组件；本机已见过的实体（课程、作业、文件、通知、新闻、洗衣机楼栋、教学楼、体育场馆、研讨间类型、图书馆）——先打开过对应页面，具体实体才会进入搜索。",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "hint ? <>{hint}<br /></> : null"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/Collect.tsx",
-          "line": 389,
-          "context": "{i18nRich(\"components.collect.db7e4035e164\", { value: hint ? <>{hint}<br /></> : null })}"
-        }
-      ],
-      "translation": "{value}Search covers: all feature pages and today's widgets; entities seen on this device (courses, assignments, files, notices, news, laundry buildings, teaching buildings, sports venues, seminar room types, library) — an entity enters search only after you have opened its page once.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.collect.dff310bf02e7",
-      "source": "加到首页白板（最常用）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/Collect.tsx",
-          "line": 81,
-          "context": "{i18n(\"components.collect.dff310bf02e7\")}"
-        }
-      ],
-      "translation": "Add to Home board (most used)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.collect.eda81c807737",
-      "source": "没有匹配的收藏项——试试更短的关键词，或先去对应页面打开一次。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/Collect.tsx",
-          "line": 392,
-          "context": "{i18n(\"components.collect.eda81c807737\")}"
-        }
-      ],
-      "translation": "No matching saved items — try a shorter keyword, or open the relevant page once first.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
     }
   ]
 }

@@ -1,7 +1,240 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.attachactionssheet.e90e91bacf59",
+      "source": "话题 id（tltid）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
+          "line": 597,
+          "context": "{i18n(\"components.attachactionssheet.e90e91bacf59\")}"
+        }
+      ],
+      "translation": "Topic ID (tltid)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.attachactionssheet.e9b24be2fd7b",
+      "source": "资料库（不替你猜库）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
+          "line": 430,
+          "context": "{i18n(\"components.attachactionssheet.e9b24be2fd7b\")}"
+        }
+      ],
+      "translation": "Library (no library will be guessed for you)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.attachactionssheet.ea9d483cc8f5",
+      "source": "作业详情页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
+          "line": 72,
+          "context": "return i18n(\"components.attachactionssheet.ea9d483cc8f5\");"
+        }
+      ],
+      "translation": "Assignment detail page",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.attachactionssheet.ed4280dd94a7",
+      "source": "附件：{name}（{value}）· 发布前会再确认一次，发出去全班可见。",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "name",
+          "expression": "first.name"
+        },
+        {
+          "name": "value",
+          "expression": "formatSize(first.size)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
+          "line": 605,
+          "context": "{i18nRich(\"components.attachactionssheet.ed4280dd94a7\", { name: first.name, value: formatSize(first.size) })}"
+        }
+      ],
+      "translation": "Attachment: {name} ({value}) · You will confirm once more before posting; once posted, the whole class can see it.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.attachactionssheet.f05f4f3ff349",
+      "source": "去「全部作业」里选",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
+          "line": 290,
+          "context": "message: i18n(\"components.attachactionssheet.f05f4f3ff349\")"
+        }
+      ],
+      "translation": "Pick one in \"All assignments\"",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.attachactionssheet.f0cd4338679e",
+      "source": "雨课堂作业",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
+          "line": 543,
+          "context": "{i18n(\"components.attachactionssheet.f0cd4338679e\")}"
+        }
+      ],
+      "translation": "Rain Classroom assignment",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.attachactionssheet.f25f21290de1",
+      "source": "雨课堂没有附件提交通道：本面板不会替你提交，只会打开官方作答页。的截止/次数校验）。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
+          "line": 529,
+          "context": "{i18n(\"components.attachactionssheet.f25f21290de1\")}"
+        }
+      ],
+      "translation": "Rain Classroom has no attachment submission channel: this panel will not submit for you, it only opens the official answer page (with its deadline/attempt checks).",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.attachactionssheet.f28461bb49c8",
+      "source": "已完成",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
+          "line": 631,
+          "context": "r.path ? i18n(\"components.attachactionssheet.22c0ce22d91d\", { path: String(r.path) }) : i18n(\"components.attachactionssheet.f28461bb49c8\")"
+        }
+      ],
+      "translation": "Completed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.attachactionssheet.fdef3f8a92ec",
+      "source": "去官方页提交",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
+          "line": 553,
+          "context": "busy ? i18n(\"components.attachactionssheet.d3d21191f32e\") : i18n(\"components.attachactionssheet.fdef3f8a92ec\")"
+        }
+      ],
+      "translation": "Submit on the official page",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.attachactionssheet.fe8d3d70ab66",
+      "source": "图片会随消息带上：开了「多模态」开关时按图像模态直接喂给模型（图片文字都能读）；没开时只发送文字说明与预览。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
+          "line": 617,
+          "context": "files.some((f) => f.mime.startsWith(\"image/\"))\n                ? i18n(\"components.attachactionssheet.fe8d3d70ab66\")\n                : i18n(\"components.attachactionssheet.10bc60b1fba1\")"
+        }
+      ],
+      "translation": "Images are sent along with the message: with the \"Multimodal\" switch on, they are fed to the model directly as image content (both image and text can be read); when off, only a text description and preview are sent.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.attachtray.10d48a747e83",
+      "source": "已交给 OH",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/AttachTray.tsx",
+          "line": 103,
+          "context": "onPicked ? \"\" : i18n(\"components.attachtray.10d48a747e83\")"
+        }
+      ],
+      "translation": "Handed to OH",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.attachtray.350e5e3d21b9",
+      "source": "从相册选图片",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/AttachTray.tsx",
+          "line": 38,
+          "context": "return i18n(\"components.attachtray.350e5e3d21b9\");"
+        }
+      ],
+      "translation": "Pick images from album",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.attachtray.38793c1c1c23",
+      "source": "相册",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/AttachTray.tsx",
+          "line": 38,
+          "context": "return i18n(\"components.attachtray.38793c1c1c23\");"
+        }
+      ],
+      "translation": "Album",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.attachtray.67d676d9a46e",
+      "source": "打开中…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/AttachTray.tsx",
+          "line": 150,
+          "context": "busy === src.id ? i18n(\"components.attachtray.67d676d9a46e\") : src.label"
+        }
+      ],
+      "translation": "Opening…",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
     {
       "key": "components.attachtray.6e3a10ade7c7",
       "source": "拍照",
@@ -424,7 +657,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 692,
+          "line": 672,
           "context": "{i18n(\"components.boardcards.2d8dbb13bbab\")}"
         }
       ],
@@ -482,7 +715,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 656,
+          "line": 636,
           "context": "{i18nRich(\"components.boardcards.39e3a897845c\", { y: y })}"
         }
       ],
@@ -562,7 +795,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 639,
+          "line": 619,
           "context": "i18n(\"components.boardcards.5c553ec3f6db\") + c"
         }
       ],
@@ -692,7 +925,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 632,
+          "line": 612,
           "context": "{i18nRich(\"components.boardcards.6bb63f66bb86\", { value: weekdayCn(now.getDay()), value2: now.getMonth() + 1, value3: now.getDate() })}"
         }
       ],
@@ -708,7 +941,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 678,
+          "line": 658,
           "context": "snap.reason ? i18n(\"components.boardcards.dfaa7ebc48d1\") : i18n(\"components.boardcards.7cdec8c79c4c\")"
         }
       ],
@@ -825,7 +1058,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 679,
+          "line": 659,
           "context": "{i18n(\"components.boardcards.b8784c8dd563\")}"
         }
       ],
@@ -850,7 +1083,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 653,
+          "line": 633,
           "context": "{i18nRich(\"components.boardcards.baafc6242af5\", { m: m, d: d })}"
         }
       ],
@@ -1024,7 +1257,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 678,
+          "line": 658,
           "context": "snap.reason ? i18n(\"components.boardcards.dfaa7ebc48d1\") : i18n(\"components.boardcards.7cdec8c79c4c\")"
         }
       ],
@@ -1066,7 +1299,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 690,
+          "line": 670,
           "context": "{i18nRich(\"components.boardcards.e515eff89f07\", { value: Math.round(w.now.feels) })}"
         }
       ],
@@ -1087,7 +1320,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/boardCards.tsx",
-          "line": 691,
+          "line": 671,
           "context": "{i18nRich(\"components.boardcards.f11e888a9be4\", { value: Math.round(w.now.humidity) })}"
         }
       ],
@@ -1172,250 +1405,6 @@
         }
       ],
       "translation": "Search…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.boardpenlayer.05731b92ad31",
-      "source": "画笔",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/BoardPenLayer.tsx",
-          "line": 170,
-          "context": "{i18n(\"components.boardpenlayer.05731b92ad31\")}"
-        }
-      ],
-      "translation": "Pen",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.boardpenlayer.1ef3de06b32e",
-      "source": "清空",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/BoardPenLayer.tsx",
-          "line": 183,
-          "context": "{i18n(\"components.boardpenlayer.1ef3de06b32e\")}"
-        }
-      ],
-      "translation": "Clear",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.boardpenlayer.82804abae46b",
-      "source": "画笔颜色 ",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/BoardPenLayer.tsx",
-          "line": 178,
-          "context": "i18n(\"components.boardpenlayer.82804abae46b\") + c"
-        }
-      ],
-      "translation": "Pen color ",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.boardpenlayer.926a50b98ece",
-      "source": "撤销",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/BoardPenLayer.tsx",
-          "line": 182,
-          "context": "{i18n(\"components.boardpenlayer.926a50b98ece\")}"
-        }
-      ],
-      "translation": "Undo",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.calendarsyncsettings.10fe7d28b16b",
-      "source": "停止自动同步",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
-          "line": 125,
-          "context": "{i18n(\"components.calendarsyncsettings.10fe7d28b16b\")}"
-        }
-      ],
-      "translation": "Stop auto sync",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.calendarsyncsettings.1b6ad181ca5c",
-      "source": "断开失败：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(e instanceof Error ? e.message : String(e))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
-          "line": 70,
-          "context": "setCalMsg(i18n(\"components.calendarsyncsettings.1b6ad181ca5c\", { value: String(e instanceof Error ? e.message : String(e)) }))"
-        }
-      ],
-      "translation": "Failed to disconnect: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.calendarsyncsettings.1c3ab23e0178",
-      "source": "日历连接或同步未完成：{error}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "error",
-          "expression": "String(cloud.error)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
-          "line": 76,
-          "context": "{i18n(\"components.calendarsyncsettings.1c3ab23e0178\", { error: String(cloud.error) })}"
-        }
-      ],
-      "translation": "Calendar connection or sync did not finish: {error}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.calendarsyncsettings.288e461f287f",
-      "source": "已停止自动同步，已写入的日历与事件保留",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
-          "line": 123,
-          "context": "setSysMsg(i18n(\"components.calendarsyncsettings.288e461f287f\"))"
-        }
-      ],
-      "translation": "Auto sync stopped. Calendars and events already written are kept.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.calendarsyncsettings.2cea6bae6985",
-      "source": "已删除系统日历「OneTHU 日程」。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
-          "line": 133,
-          "context": "setSysMsg(i18n(\"components.calendarsyncsettings.2cea6bae6985\"))"
-        }
-      ],
-      "translation": "The \"OneTHU Schedule\" system calendar has been deleted.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.calendarsyncsettings.31c1468a6ea3",
-      "source": "保存并验证",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
-          "line": 90,
-          "context": "calBusy ? i18n(\"components.calendarsyncsettings.ee9ebe523d42\") : i18n(\"components.calendarsyncsettings.31c1468a6ea3\")"
-        }
-      ],
-      "translation": "Save and verify",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.calendarsyncsettings.32b84144958b",
-      "source": "系统日历「OneTHU 日程」已写入，此后自动保持最新",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
-          "line": 144,
-          "context": "setSysMsg(i18n(\"components.calendarsyncsettings.32b84144958b\"))"
-        }
-      ],
-      "translation": "The \"OneTHU Schedule\" system calendar has been written and will be kept up to date automatically",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.calendarsyncsettings.35001df10d62",
-      "source": "最近一次同步失败：{lastError}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "lastError",
-          "expression": "String(syscal.lastError)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
-          "line": 103,
-          "context": "{i18n(\"components.calendarsyncsettings.35001df10d62\", { lastError: String(syscal.lastError) })}"
-        }
-      ],
-      "translation": "Last sync failed: {lastError}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.calendarsyncsettings.353bd3ca6478",
-      "source": "iPhone 上查看",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
-          "line": 56,
-          "context": "{i18n(\"components.calendarsyncsettings.353bd3ca6478\")}"
-        }
-      ],
-      "translation": "View on iPhone",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.calendarsyncsettings.36e7a43a1c67",
-      "source": "立即同步",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
-          "line": 64,
-          "context": "calBusy || cloud.syncing ? i18n(\"components.calendarsyncsettings.4e2238b74ec7\") : i18n(\"components.calendarsyncsettings.36e7a43a1c67\")"
-        },
-        {
-          "file": "apps/desktop/src/components/CalendarSyncSettings.tsx",
-          "line": 120,
-          "context": "sysBusy || syscal.syncing ? i18n(\"components.calendarsyncsettings.4e2238b74ec7\") : i18n(\"components.calendarsyncsettings.36e7a43a1c67\")"
-        }
-      ],
-      "translation": "Sync now",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

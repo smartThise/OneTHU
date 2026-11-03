@@ -1,7 +1,280 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "pages.cloudpage.d3d21191f32e",
+      "source": "处理中…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 541,
+          "context": "batchBusy ? i18n(\"pages.cloudpage.d3d21191f32e\") : i18n(\"pages.cloudpage.14909c3a7b16\", { size: String(selSet.size) })"
+        }
+      ],
+      "translation": "Processing…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.cloudpage.d7b6a5ec5201",
+      "source": "新建资料库",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 664,
+          "context": "{i18n(\"pages.cloudpage.d7b6a5ec5201\")}"
+        },
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 665,
+          "context": "promptText(i18nMsg(\"pages.cloudpage.d7b6a5ec5201\"), { placeholder: i18nMsg(\"pages.cloudpage.08008fa506a0\") })"
+        },
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 674,
+          "context": "{i18n(\"pages.cloudpage.d7b6a5ec5201\")}"
+        }
+      ],
+      "translation": "New library",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.cloudpage.db7deecb6f3f",
+      "source": "当前层没有子文件夹——可直接点「移动到这里」",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 197,
+          "context": "dirs.length\n                ? i18n(\"pages.cloudpage.b59fece6e715\", { length: String(dirs.length) })\n                : i18n(\"pages.cloudpage.db7deecb6f3f\")"
+        }
+      ],
+      "translation": "No subfolders at this level — you can tap \"Move here\" directly",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.cloudpage.dc342d1bfbd2",
+      "source": "没有匹配「{q}」的文件",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "q",
+          "expression": "String(searchMeta.q)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 560,
+          "context": "{i18n(\"pages.cloudpage.dc342d1bfbd2\", { q: String(searchMeta.q) })}"
+        }
+      ],
+      "translation": "No files match \"{q}\"",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.cloudpage.dcd9bc5583f5",
+      "source": "删除以下 {length} 项？\n\n{shown}\n\n所选文件与文件夹（含内容）将从云盘永久删除，此操作不可撤销。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(items.length)"
+        },
+        {
+          "name": "shown",
+          "expression": "String(shown)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 387,
+          "context": "confirmDanger(\n      i18nMsg(\"pages.cloudpage.dcd9bc5583f5\", { length: String(items.length), shown: String(shown) }),\n      { title: i18nMsg(\"pages.cloudpage.8c74b8fa706e\", { length: String(items.length) }), confirmText: i18nMsg(\"pages.cloudpage.a3ea3c17b401\") },\n    )"
+        }
+      ],
+      "translation": "Delete the following {length} items?\n\n{shown}\n\nThe selected files and folders (including contents) will be permanently deleted from the cloud drive. This action cannot be undone.",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "pages.cloudpage.deleteLibrary",
+      "source": "删除资料库",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 281,
+          "context": "title: i18nMsg(\"pages.cloudpage.deleteLibrary\")"
+        },
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 281,
+          "context": "confirmText: i18nMsg(\"pages.cloudpage.deleteLibrary\")"
+        },
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 449,
+          "context": "{i18n(\"pages.cloudpage.deleteLibrary\")}"
+        }
+      ],
+      "translation": "Delete library",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "pages.cloudpage.deleteLibraryConfirm",
+      "source": "确定删除资料库「{name}」及其中的全部文件吗？这会删除云端资料库，所有共享给好友或组织成员的访问也会失效。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 280,
+          "context": "linked.length\n          ? i18nMsg(\"pages.cloudpage.deleteLibraryOrgConfirm\", {name: target.name, organizations: linked.map((org) => org.name).join(\"、\")})\n          : i18nMsg(\"pages.cloudpage.deleteLibraryConfirm\", {name: target.name})"
+        }
+      ],
+      "translation": "Delete the library “{name}” and all its files? This deletes the cloud library and removes access for every friend or organization member it was shared with.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.cloudpage.deleteLibraryNamed",
+      "source": "删除资料库「{name}」",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 704,
+          "context": "{i18n(\"pages.cloudpage.deleteLibraryNamed\", {name: r.name})}"
+        }
+      ],
+      "translation": "Delete library “{name}”",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.cloudpage.deleteLibraryOrgConfirm",
+      "source": "「{name}」已关联组织：{organizations}。删除的是整个云端资料库及其中的全部文件，不只是移除组织中的关联；所有成员会失去访问。确定删除吗？",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name"
+        },
+        {
+          "name": "organizations"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 279,
+          "context": "linked.length\n          ? i18nMsg(\"pages.cloudpage.deleteLibraryOrgConfirm\", {name: target.name, organizations: linked.map((org) => org.name).join(\"、\")})\n          : i18nMsg(\"pages.cloudpage.deleteLibraryConfirm\", {name: target.name})"
+        }
+      ],
+      "translation": "“{name}” is linked to these organizations: {organizations}. This deletes the entire cloud library and all its files, not just its organization links. All members will lose access. Delete it?",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.cloudpage.ecb80d06607e",
+      "source": "（文件夹）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 384,
+          "context": "x.kind === \"dir\" ? i18n(\"pages.cloudpage.ecb80d06607e\") : \"\""
+        }
+      ],
+      "translation": "(folder)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.cloudpage.ee9ebe523d42",
+      "source": "连接中…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 660,
+          "context": "{i18n(\"pages.cloudpage.ee9ebe523d42\")}"
+        }
+      ],
+      "translation": "Connecting…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.cloudpage.f2f02049468d",
+      "source": "已上传",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 481,
+          "context": "r[0] ?? i18n(\"pages.cloudpage.f2f02049468d\")"
+        }
+      ],
+      "translation": "Uploaded",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.cloudpage.f369bd636d02",
+      "source": "加载资料库…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 684,
+          "context": "{i18n(\"pages.cloudpage.f369bd636d02\")}"
+        }
+      ],
+      "translation": "Loading libraries…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.cloudpage.f4d4bae588c4",
+      "source": "取消全选",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/CloudPage.tsx",
+          "line": 538,
+          "context": "allSelected ? i18n(\"pages.cloudpage.f4d4bae588c4\") : i18n(\"pages.cloudpage.3a5040b68abf\")"
+        }
+      ],
+      "translation": "Deselect all",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "pages.cloudpage.f72a6bc6a957",
       "source": "移动到其他位置",
@@ -1149,273 +1422,6 @@
         }
       ],
       "translation": " folder levels",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.folderpage.de0b42d48b30",
-      "source": "上桌面",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/FolderPage.tsx",
-          "line": 150,
-          "context": "on ? i18n(\"pages.folderpage.4f9c7d13e1bc\") : i18n(\"pages.folderpage.de0b42d48b30\")"
-        }
-      ],
-      "translation": "Add to home screen",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.folderpage.e3c22b9870e1",
-      "source": "栏目显隐与排序点右上「管理栏目」。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/FolderPage.tsx",
-          "line": 293,
-          "context": "isRoot ? i18n(\"pages.folderpage.86620776ee32\") : i18n(\"pages.folderpage.e3c22b9870e1\")"
-        }
-      ],
-      "translation": "Show, hide, or reorder sections via \"Manage sections\" in the top right.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.folderpage.e6f0a1fa5326",
-      "source": "左侧栏顺序上移",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/FolderPage.tsx",
-          "line": 105,
-          "context": "{i18n(\"pages.folderpage.e6f0a1fa5326\")}"
-        }
-      ],
-      "translation": "Move up in sidebar order",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.folderpage.e75e8b4e5c97",
-      "source": "下移",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/FolderPage.tsx",
-          "line": 106,
-          "context": "{i18n(\"pages.folderpage.e75e8b4e5c97\")}"
-        },
-        {
-          "file": "apps/desktop/src/pages/FolderPage.tsx",
-          "line": 438,
-          "context": "{i18n(\"pages.folderpage.e75e8b4e5c97\")}"
-        },
-        {
-          "file": "apps/desktop/src/pages/FolderPage.tsx",
-          "line": 489,
-          "context": "{i18n(\"pages.folderpage.e75e8b4e5c97\")}"
-        }
-      ],
-      "translation": "Move down",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.folderpage.e9075f60449d",
-      "source": "子收藏夹名称…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/FolderPage.tsx",
-          "line": 300,
-          "context": "{i18n(\"pages.folderpage.e9075f60449d\")}"
-        }
-      ],
-      "translation": "Sub-folder name…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.folderpage.f853a70b1204",
-      "source": "上移",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/FolderPage.tsx",
-          "line": 105,
-          "context": "{i18n(\"pages.folderpage.f853a70b1204\")}"
-        },
-        {
-          "file": "apps/desktop/src/pages/FolderPage.tsx",
-          "line": 437,
-          "context": "{i18n(\"pages.folderpage.f853a70b1204\")}"
-        },
-        {
-          "file": "apps/desktop/src/pages/FolderPage.tsx",
-          "line": 488,
-          "context": "{i18n(\"pages.folderpage.f853a70b1204\")}"
-        }
-      ],
-      "translation": "Move up",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.gitlabpage.0006d696d8e1",
-      "source": "新增",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/GitLabPage.tsx",
-          "line": 717,
-          "context": "c.new_file ? i18n(\"pages.gitlabpage.0006d696d8e1\") : c.deleted_file ? i18n(\"pages.gitlabpage.2f9daa828907\") : c.renamed_file ? i18n(\"pages.gitlabpage.83c37e8a4a5f\") : i18n(\"pages.gitlabpage.37090f456516\")"
-        }
-      ],
-      "translation": "Added",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.gitlabpage.04d2bbae5e67",
-      "source": "点击回应",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/GitLabPage.tsx",
-          "line": 618,
-          "context": "c.mine !== null ? i18n(\"pages.gitlabpage.8d26329d7f0b\") : i18n(\"pages.gitlabpage.04d2bbae5e67\")"
-        }
-      ],
-      "translation": "Tap to react",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.gitlabpage.051836569928",
-      "source": "编辑",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/GitLabPage.tsx",
-          "line": 862,
-          "context": "editing ? i18n(\"pages.gitlabpage.2cd0f3be8738\") : i18n(\"pages.gitlabpage.051836569928\")"
-        }
-      ],
-      "translation": "Edit",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.gitlabpage.05c20e7c2695",
-      "source": "指派：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(assignees.length ? assignees.map((a) => a.name).join(\"、\") : i18n(\"pages.gitlabpage.484d55613910\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/GitLabPage.tsx",
-          "line": 1124,
-          "context": "{i18n(\"pages.gitlabpage.05c20e7c2695\", { value: String(assignees.length ? assignees.map((a) => a.name).join(\"、\") : i18n(\"pages.gitlabpage.484d55613910\")) })}"
-        }
-      ],
-      "translation": "Assigned: {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.gitlabpage.0601c8f04bd8",
-      "source": "失败，可点重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/GitLabPage.tsx",
-          "line": 104,
-          "context": "return i18n(\"pages.gitlabpage.0601c8f04bd8\");"
-        }
-      ],
-      "translation": "Failed; tap to retry",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.gitlabpage.09ccc8d4588e",
-      "source": "关闭{value} !{iid}？",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(kind === \"issue\" ? \" Issue\" : i18n(\"pages.gitlabpage.dd42589239f7\"))"
-        },
-        {
-          "name": "iid",
-          "expression": "String(iid)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/GitLabPage.tsx",
-          "line": 1043,
-          "context": "reopen\n      ? i18nMsg(\"pages.gitlabpage.fcd5cc7382e7\", { value: String(kind === \"issue\" ? \" Issue\" : i18n(\"pages.gitlabpage.dd42589239f7\")), iid: String(iid) })\n      : i18nMsg(\"pages.gitlabpage.09ccc8d4588e\", { value: String(kind === \"issue\" ? \" Issue\" : i18n(\"pages.gitlabpage.dd42589239f7\")), iid: String(iid) })"
-        }
-      ],
-      "translation": "Close {value} !{iid}?",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.gitlabpage.0ab1c6be09b5",
-      "source": "最近活动 {value}{value2}",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "fmtTime(p.last_activity_at)"
-        },
-        {
-          "name": "value2",
-          "expression": "p.default_branch ? <>{i18n(\"pages.gitlabpage.da9042ae73fe\")}<Text slot=\"label\" mono>{p.default_branch}</Text></> : null"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/GitLabPage.tsx",
-          "line": 281,
-          "context": "{i18nRich(\"pages.gitlabpage.0ab1c6be09b5\", { value: fmtTime(p.last_activity_at), value2: p.default_branch ? <>{i18n(\"pages.gitlabpage.da9042ae73fe\")}<Text slot=\"label\" mono>{p.default_branch}</Text></> : null })}"
-        }
-      ],
-      "translation": "Recent activity {value}{value2}",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "pages.gitlabpage.0bfca7bdd220",
-      "source": "发表评论",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/GitLabPage.tsx",
-          "line": 1196,
-          "context": "busy ? i18n(\"pages.gitlabpage.364970d8168c\") : i18n(\"pages.gitlabpage.0bfca7bdd220\")"
-        }
-      ],
-      "translation": "Post comment",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

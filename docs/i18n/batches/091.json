@@ -1,7 +1,245 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "state.orgsync.f9a3b8011053",
+      "source": "找不到组织",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSync.ts",
+          "line": 17,
+          "context": "new Error(i18n(\"state.orgsync.f9a3b8011053\"))"
+        }
+      ],
+      "translation": "Organization not found",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsync.fa0fdd1e567b",
+      "source": "找不到可用的 GitLab 用户名，请让对方在 GitLab 个人资料中确认",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSync.ts",
+          "line": 196,
+          "context": "new Error(i18n(\"state.orgsync.fa0fdd1e567b\"))"
+        }
+      ],
+      "translation": "No usable GitLab username was found. Ask the other person to confirm it in their GitLab profile.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsync.fb99a121e507",
+      "source": "同步关联资源权限",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSync.ts",
+          "line": 254,
+          "context": "label:i18n(\"state.orgsync.fb99a121e507\")"
+        }
+      ],
+      "translation": "Sync linked resource permissions",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.orgsync.fc4f3897fb63",
+      "source": "组织资料必须位于对应 GitLab 私有群组的私有项目内",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSync.ts",
+          "line": 36,
+          "context": "new Error(i18n(\"state.orgsync.fc4f3897fb63\"))"
+        }
+      ],
+      "translation": "Organization content must be in a private project inside the corresponding private GitLab group",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsync.ownerOnly",
+      "source": "只有服务器上的组织负责人可以执行此操作",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSync.ts",
+          "line": 89,
+          "context": "access >= 50 ? i18n(\"state.orgsync.ownerOnly\") : i18n(\"state.orgsync.cannotEdit\")"
+        }
+      ],
+      "translation": "Only organization Owners on the server can perform this action",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsync.permissionsUnverified",
+      "source": "关联资源权限尚未核对，请负责人完成权限核对",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSync.ts",
+          "line": 55,
+          "context": "config.permissionsVerified !== 1 ? i18n(\"state.orgsync.permissionsUnverified\") : undefined"
+        }
+      ],
+      "translation": "Linked resource permissions have not been verified yet. Ask an Owner to complete permission verification.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsync.removeMemberLabel",
+      "source": "移除成员",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSync.ts",
+          "line": 224,
+          "context": "target ? i18n(\"state.orgsync.updateMemberLabel\", {username:target.username}) : i18n(\"state.orgsync.removeMemberLabel\")"
+        }
+      ],
+      "translation": "Remove member",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.orgsync.updateMemberLabel",
+      "source": "更新 {username}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "username"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSync.ts",
+          "line": 224,
+          "context": "target ? i18n(\"state.orgsync.updateMemberLabel\", {username:target.username}) : i18n(\"state.orgsync.removeMemberLabel\")"
+        }
+      ],
+      "translation": "Update {username}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.orgsynccore.13447b8f6ab6",
+      "source": "降权回读不符",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 168,
+          "context": "new Error(i18n(\"state.orgsynccore.13447b8f6ab6\"))"
+        }
+      ],
+      "translation": "Permission downgrade readback mismatch",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.15f11e1c75da",
+      "source": "至少保留一位服务器上的组织负责人",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 114,
+          "context": "new Error(i18n(\"state.orgsynccore.15f11e1c75da\"))"
+        }
+      ],
+      "translation": "Keep at least one organization Owner on the server",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.181c794c590b",
+      "source": "组织协作内容损坏",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 41,
+          "context": "new Error(i18n(\"state.orgsynccore.181c794c590b\"))"
+        }
+      ],
+      "translation": "The organization collaboration content is corrupted",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.22d16e7c98ba",
+      "source": "解除关联后仍有共享权限",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 129,
+          "context": "new Error(i18n(\"state.orgsynccore.22d16e7c98ba\"))"
+        }
+      ],
+      "translation": "Shared permissions remain after detaching",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.26e81e5f3e41",
+      "source": "GitLab 仓库 #{id} 必须是本组织群组内的私有仓库，请先迁入该群组并设为私有",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "id",
+          "expression": "String(id)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 97,
+          "context": "new Error(i18n(\"state.orgsynccore.26e81e5f3e41\", { id: String(id) }))"
+        }
+      ],
+      "translation": "GitLab repository #{id} must be a private repository inside this organization's group. Move it into the group and set it to private first.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.orgsynccore.34320f02cd8e",
+      "source": "资料库「{name}」的所有者有固有权限，请先转移云盘所有权，再重试成员变更",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name",
+          "expression": "String(lib.name)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/orgSyncCore.ts",
+          "line": 118,
+          "context": "new Error(i18n(\"state.orgsynccore.34320f02cd8e\", { name: String(lib.name) }))"
+        }
+      ],
+      "translation": "The owner of library \"{name}\" has inherent permissions. Transfer the cloud drive ownership first, then retry the member change.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "state.orgsynccore.35d481d1c9b2",
       "source": "GitLab 仓库 #{id} 存在组织名单外的直接授权，请先在 GitLab 处理",
@@ -829,7 +1067,7 @@
         },
         {
           "file": "apps/desktop/src/state/vaultCloud.ts",
-          "line": 114,
+          "line": 117,
           "context": "new Error(i18n(\"state.seafile.accountChanged\"))"
         },
         {
@@ -1311,254 +1549,6 @@
       "translation": "Assignments for the current semester are not ready yet. Select the current semester in Web Learning and retry; the existing system calendar is unchanged",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.5a93b270a6f9",
-      "source": "当前平台不支持系统日历原生同步",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 490,
-          "context": "new Error(i18n(\"state.systemcal.5a93b270a6f9\"))"
-        }
-      ],
-      "translation": "Native system calendar sync is not supported on this platform",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.746a9d1e0b2c",
-      "source": "日程包含无效起止时间，已中止同步",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 319,
-          "context": "new Error(i18n(\"state.systemcal.746a9d1e0b2c\"))"
-        }
-      ],
-      "translation": "The schedule contains invalid start or end times; sync was aborted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.854aca2c0e1f",
-      "source": "当前平台不支持系统日历原生同步，可导出日历文件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 418,
-          "context": "new Error(i18n(\"state.systemcal.854aca2c0e1f\"))"
-        }
-      ],
-      "translation": "Native system calendar sync is not supported on this platform; you can export a calendar file instead",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.89e7b1c563d7",
-      "source": "整学期拉取失败，保留完整缓存 {length} 条",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(hit.data.entries.length)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 227,
-          "context": "new Error(i18n(\"state.systemcal.89e7b1c563d7\", { length: String(hit.data.entries.length) }))"
-        }
-      ],
-      "translation": "Full-semester fetch failed; keeping the complete cache of {length} entries",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.8b3f14077824",
-      "source": "整学期数据不完整，保留系统日历已有内容",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 230,
-          "context": "new Error(i18n(\"state.systemcal.8b3f14077824\"))"
-        }
-      ],
-      "translation": "Full-semester data is incomplete; the existing system calendar content is kept",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.ab1abc96899c",
-      "source": "外部作业源尚未完整加载，请刷新网络学堂后重试；已有系统日历保持不变",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 249,
-          "context": "new Error(i18n(\"state.systemcal.ab1abc96899c\"))"
-        }
-      ],
-      "translation": "External assignment sources are not fully loaded. Refresh Web Learning and retry; the existing system calendar is unchanged",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.ae887c4815af",
-      "source": "校历尚未就绪，请打开日程加载学期后重试；已有系统日历保持不变",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 241,
-          "context": "new Error(i18n(\"state.systemcal.ae887c4815af\"))"
-        }
-      ],
-      "translation": "The academic calendar is not ready yet. Open the Schedule to load the semester and retry; the existing system calendar is unchanged",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.b170ef2db7ca",
-      "source": "系统日历正在同步或移除中",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 411,
-          "context": "new Error(i18n(\"state.systemcal.b170ef2db7ca\"))"
-        }
-      ],
-      "translation": "The system calendar is being synced or removed",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.ce42fc5eaca8",
-      "source": "事件数 {length} 超出上限 {MAX_EVENTS}，已中止系统日历同步",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(events.length)"
-        },
-        {
-          "name": "MAX_EVENTS",
-          "expression": "String(MAX_EVENTS)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 327,
-          "context": "new Error(i18n(\"state.systemcal.ce42fc5eaca8\", { length: String(events.length), MAX_EVENTS: String(MAX_EVENTS) }))"
-        }
-      ],
-      "translation": "The event count {length} exceeds the limit of {MAX_EVENTS}; system calendar sync was aborted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.d2d00f793981",
-      "source": "未获得系统日历权限，请在系统设置中允许 OneTHU 访问日历",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 428,
-          "context": "new Error(i18n(\"state.systemcal.d2d00f793981\"))"
-        }
-      ],
-      "translation": "System calendar permission was not granted. Allow OneTHU to access calendars in system settings.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.fb7404386af9",
-      "source": "正在移除系统日历",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 480,
-          "context": "new Error(i18n(\"state.systemcal.fb7404386af9\"))"
-        }
-      ],
-      "translation": "Removing the system calendar",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.fe90aa1936ae",
-      "source": "同步已停止，已有系统日历保持不变",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 420,
-          "context": "new Error(i18n(\"state.systemcal.fe90aa1936ae\"))"
-        },
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 429,
-          "context": "new Error(i18n(\"state.systemcal.fe90aa1936ae\"))"
-        }
-      ],
-      "translation": "Sync stopped; the existing system calendar is unchanged",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.systemcal.ff52516e4a39",
-      "source": "课表有 {skipped} 条无法解析的时段，已中止同步",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "skipped",
-          "expression": "String(skipped)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/systemCal.ts",
-          "line": 286,
-          "context": "new Error(i18n(\"state.systemcal.ff52516e4a39\", { skipped: String(skipped) }))"
-        }
-      ],
-      "translation": "The timetable has {skipped} unparseable time slots; sync was aborted",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.tabtitles.04671516a9d5",
-      "source": "网络学堂 › 作业详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/tabTitles.ts",
-          "line": 84,
-          "context": "course ? i18n(\"state.tabtitles.0fb5334ea170\", { course: String(course) }) : i18n(\"state.tabtitles.04671516a9d5\")"
-        }
-      ],
-      "translation": "Web Learning › Assignment details",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
     }
   ]
 }

@@ -2,31 +2,27 @@
 
 [简体中文](../onethu-cli.md) · [Installation and full command examples](../../packages/cli/README.en.md) · [SDK embedding API](../../packages/sdk/README.en.md)
 
-Updated: 2026-10-26. This document describes the independent CLI and bundled desktop runtime in 0.11.4.
+Updated: 2026-10-29. This document describes app services and the optional CLI in 0.11.4-fix-2.
+
+## Optional CLI in 0.11.4-fix-2
+
+OH uses authorized app services directly on phones and desktops, including with external CLI access switched off. The external CLI/MCP access switch and automatic-execution approval are separate controls.
+
+Desktop installers now contain the app and Harness. Node and the CLI are an optional download, available at the end of full-mode onboarding and in My → OH / OneTHU Harness → OneTHU CLI. The installer verifies the release version, platform, asset checksum and individual runtime files. It can use GitHub or the existing Tsinghua Cloud mirror. Uninstall saves the calendar, session and tasks, retires the only resident scheduler, and removes runtime files while keeping the account profile and history. Without the component, tasks run while the app is open; with it, approved jobs can continue after closing the app.
+
+Terminal users can download the platform-specific `OneTHU-CLI_VERSION_darwin_arm64.zip` or `OneTHU-CLI_VERSION_win32_x64.zip`, verify SHA-256, and extract it. Run `./onethu --version` on macOS or `.\onethu.cmd --version` on Windows. The launcher includes and verifies Node. Build it from source with `node apps/desktop/scripts/package-cli.mjs`; normal app builds skip it.
+
+The default CLI prefers the running app's actual service catalog, including app-owned contacts, organizations and the vault. When the app is closed it uses the account's resident host. `--desktop` explicitly chooses the GUI adapter; `--data-dir` explicitly chooses an isolated profile. Complex GUI operations still need the app.
+
+Local calendar events and mailbox credentials use the same account records in the GUI and SDK. Changes are visible in both directions. Refreshing or focusing the app reads new records. First migration merges different event IDs, concurrent writes use revision checks, and reinstall merges edits made while the component was absent. Conflicting edits to the same event are reported without replacing the source data.
+
+Authorized cloud and Rain Classroom connections are passed through the private main-window bridge, never through model results. An independently configured CLI account or credential is preserved and reported as a conflict. Standalone plugin, model-provider and inbound IM configuration remain host-specific; existing OH/IM reception keeps a single owner.
 
 ## Product layers
 
 **OneTHU CLI** is the terminal entry point for people and other agents. **OneTHU SDK** is the embeddable runtime, and **MCP** is one of its tool protocols. The resident process runs approved tasks and IM channels continuously while the host is available. The desktop app supplies visual management and shares university clients, the Web Learning resource service, the task engine and execution policy.
 
-```mermaid
-flowchart TD
-  CLI[OneTHU CLI] --> Daemon[Local resident daemon]
-  MCP[stdio MCP / other agents] --> Daemon
-  IM[Bound WeChat / Feishu private chat] --> Assistant[Budgeted model tool loop]
-  Assistant --> Daemon
-  GUI[OneTHU desktop and OH] --> Native[Private main-window bridge]
-  Native --> Daemon
-  Daemon --> Session[Shared session and device policy]
-  Daemon --> Tasks[Single persistent task engine]
-  Tasks --> Node[SDK service runtime]
-  Session --> Node
-  Node --> Shared[Shared university clients]
-  Shared --> Core[core / info-lib university protocols]
-  Core --> School[University services]
-  Tasks --> Delivery[Local inbox / IM notifications and delivery ledger]
-```
-
-The desktop, OH and default CLI connect to one local daemon and share its session, device policy, tasks and run history. Desktop packages include Node and the background program; first startup transfers existing session and task records, and approved tasks continue after the app closes. GUI service clients remain in the desktop. A private main-window bridge and durable session epochs prevent stale windows from restoring a logged-out account. `--desktop` selects graphical services; an explicit `--data-dir` creates an isolated profile.
+The app owns OH services. A running app exposes its reviewed catalog to authorized terminal clients; an installed resident host owns tasks when the app closes. Session transfer is private and account/epoch-fenced. CLI installation is optional, as described above.
 
 Migration preserves task IDs, history, and download/notification deduplication records. An unconfirmed recipient or conflicting task ID leaves the original record intact and displays a pending-transfer warning; tasks already in the background remain manageable. A failed session handoff preserves the existing desktop snapshot for retry. Completion of CLI two-factor verification is observed even within the same epoch. Switching accounts or signing out cancels the previous account's active tasks.
 
@@ -41,7 +37,7 @@ Before calling an operation, use `onethu commands` and `onethu schema OPERATION`
 | Campus information | Timetables, grades, exams, news, academic calendar, empty classrooms, course selection/evaluation, card/network/dorm queries | Uses existing university endpoints and pagination |
 | Libraries, discussion rooms and spaces | Resources, booking records, approved bookings and cancellations | Initial email binding for discussion rooms requires the official interface; queries do not initialize it automatically |
 | Sports venues | Venues, time slots, records, cancellations and official booking links | Actual booking retains the official interactive flow |
-| Mail and calendars | Independent IMAP/SMTP/CalDAV configuration, read-only mail queries, approved sending/calendar changes, local calendar | Requires a mail-client authorization code; calendar updates use ETags; moves between local and cloud calendars need separate handling |
+| Mail and calendars | Shared IMAP/SMTP/CalDAV configuration, read-only mail queries, approved sending/calendar changes, local calendar | Requires a mail-client authorization code; calendar updates use ETags; moves between local and cloud calendars need separate handling |
 | Cloud storage | Explicit configuration, connection state, libraries/directories, search and sharing | Desktop credentials are not inherited; general upload/download is not yet exposed through CLI |
 | GitLab | Projects, files, issues, comments, merge requests, pipelines and approved writes | Unknown write outcomes are not automatically replayed |
 | Other services | External assignment snapshots/refresh, service-catalog search, visit-report forms/local drafts, account-local Markdown memory reads | Final visit-report submission retains the official interface; OH cloud memory needs explicit migration or separate integration |

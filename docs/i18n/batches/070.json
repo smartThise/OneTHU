@@ -1,7 +1,280 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "pages.schedule.310a9aa08211",
+      "source": "本周暂无排课与日程",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 927,
+          "context": "winLoading ? i18n(\"pages.schedule.48cbf2cb0bd7\") : i18n(\"pages.schedule.310a9aa08211\")"
+        }
+      ],
+      "translation": "No classes or events this week",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.31da7d33b80d",
+      "source": "下一周",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1057,
+          "context": "mode === \"timetable\" ? i18n(\"pages.schedule.31da7d33b80d\") : i18n(\"pages.schedule.3e0b634699d4\")"
+        },
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1057,
+          "context": "mode === \"timetable\" ? i18n(\"pages.schedule.31da7d33b80d\") : i18n(\"pages.schedule.3e0b634699d4\")"
+        }
+      ],
+      "translation": "Next week",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.32eb57893bcb",
+      "source": "没有地点，无法寻迹",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1225,
+          "context": "d.location ? i18n(\"pages.schedule.741addee8c05\", { location: String(d.location) }) : i18n(\"pages.schedule.32eb57893bcb\")"
+        }
+      ],
+      "translation": "No location, can't get directions",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.368cc0699764",
+      "source": "{courseName}（{value}）DDL {value2}–{value3} · {value4} · {value5} · 点击查看",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "courseName",
+          "expression": "String(p.entry.courseName)"
+        },
+        {
+          "name": "value",
+          "expression": "String(p.entry.location ?? \"\")"
+        },
+        {
+          "name": "value2",
+          "expression": "String(hhmm(p.beginMin))"
+        },
+        {
+          "name": "value3",
+          "expression": "String(hhmm(p.endMin))"
+        },
+        {
+          "name": "value4",
+          "expression": "String(p.entry.hwMeta?.submitted ? i18n(\"pages.schedule.bc37a6110a07\") : i18n(\"pages.schedule.8032af4a590f\"))"
+        },
+        {
+          "name": "value5",
+          "expression": "String(p.entry.hwMeta?.ext ? p.entry.hwMeta.source ?? i18n(\"pages.schedule.72d71f2db0b4\") : i18n(\"pages.schedule.aa39cac2b409\"))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 985,
+          "context": "p.entry.src === \"hw\"\n                            ? i18n(\"pages.schedule.368cc0699764\", { courseName: String(p.entry.courseName), value: String(p.entry.location ?? \"\"), value2: String(hhmm(p.beginMin)), value3: String(hhmm(p.endMin)), value4: String(p.entry.hwMeta?.submitted ? i18n(\"pages.schedule.bc37a6110a07\") : i18n(\"pages.schedule.8032af4a590f\")), value5: String(p.entry.hwMeta?.ext ? p.entry.hwMeta.source ?? i18n(\"pages.schedule.72d71f2db0b4\") : i18n(\"pages.schedule.aa39cac2b409\")) })\n                            : `${p.entry.courseName}${p.entry.teacher ? \" · \" + p.entry.teacher : \"\"}${\n                                p.entry.location ? \" @\" + p.entry.location : \"\"\n                       "
+        }
+      ],
+      "translation": "{courseName} ({value}) DDL {value2}–{value3} · {value4} · {value5} · tap to view",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.3a4fe1c0f0d6",
+      "source": "第 {startSection}–{value} 节",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "startSection",
+          "expression": "String(d.startSection)"
+        },
+        {
+          "name": "value",
+          "expression": "String(d.endSection ?? d.startSection)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1212,
+          "context": "d.startSection ? i18n(\"pages.schedule.3a4fe1c0f0d6\", { startSection: String(d.startSection), value: String(d.endSection ?? d.startSection) }) : \"\""
+        }
+      ],
+      "translation": "Periods {startSection}–{value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.3c3687e79a53",
+      "source": "假期（学期外）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1062,
+          "context": "detected ? i18n(\"pages.schedule.dba0129db99f\", { value: String(detected.sem.semesterName || detected.sem.semesterId), weekNo: String(detected.weekNo) }) : i18n(\"pages.schedule.3c3687e79a53\")"
+        }
+      ],
+      "translation": "Break (outside term)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.3df7a207af75",
+      "source": "这是重复日程，保存和删除会作用于整个系列。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1325,
+          "context": "{i18n(\"pages.schedule.3df7a207af75\")}"
+        }
+      ],
+      "translation": "This is a repeating event; saving and deleting apply to the whole series.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.3e0b634699d4",
+      "source": "下个月",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1057,
+          "context": "mode === \"timetable\" ? i18n(\"pages.schedule.31da7d33b80d\") : i18n(\"pages.schedule.3e0b634699d4\")"
+        },
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1057,
+          "context": "mode === \"timetable\" ? i18n(\"pages.schedule.31da7d33b80d\") : i18n(\"pages.schedule.3e0b634699d4\")"
+        }
+      ],
+      "translation": "Next month",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.3fd47edce45b",
+      "source": "关闭",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1228,
+          "context": "{i18n(\"pages.schedule.3fd47edce45b\")}"
+        }
+      ],
+      "translation": "Close",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.43cecd06c54d",
+      "source": "上一年",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1068,
+          "context": "{i18n(\"pages.schedule.43cecd06c54d\")}"
+        }
+      ],
+      "translation": "Previous year",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.46005f62ee0e",
+      "source": "时间轴（周）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1107,
+          "context": "[\"timetable\", i18n(\"pages.schedule.46005f62ee0e\")]"
+        }
+      ],
+      "translation": "Timeline (week)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.48cbf2cb0bd7",
+      "source": "正在从教务系统取数…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 927,
+          "context": "winLoading ? i18n(\"pages.schedule.48cbf2cb0bd7\") : i18n(\"pages.schedule.310a9aa08211\")"
+        }
+      ],
+      "translation": "Fetching data from the academic system…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.4d103a2b0e94",
+      "source": "同步失败：{value}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(err instanceof Error ? err.message : String(err))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 685,
+          "context": "setMsg(i18n(\"pages.schedule.4d103a2b0e94\", { value: String(err instanceof Error ? err.message : String(err)) }))"
+        }
+      ],
+      "translation": "Sync failed: {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.schedule.4de047cb8209",
+      "source": "周切换 / 筛选 / 同步 / 新建日程",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/Schedule.tsx",
+          "line": 1031,
+          "context": "{i18n(\"pages.schedule.4de047cb8209\")}"
+        }
+      ],
+      "translation": "Week switching / filters / sync / new event",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "pages.schedule.4e2238b74ec7",
       "source": "同步中…",
@@ -1224,251 +1497,6 @@
         }
       ],
       "translation": "Last day",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.ce708f891fc3",
-      "source": "第 {w} 周",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "w",
-          "expression": "w"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1150,
-          "context": "{i18nRich(\"pages.schedule.ce708f891fc3\", { w: w })}"
-        }
-      ],
-      "translation": "Week {w}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.d1378a68e620",
-      "source": "周二",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 70
-        }
-      ],
-      "translation": "Tue",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.d2bb025a2e51",
-      "source": "开始",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1345,
-          "context": "{i18n(\"pages.schedule.d2bb025a2e51\")}"
-        }
-      ],
-      "translation": "Start",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.d44e9b3d3b31",
-      "source": "名称",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1266,
-          "context": "k: i18n(\"pages.schedule.d44e9b3d3b31\")"
-        }
-      ],
-      "translation": "Name",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.daede9881787",
-      "source": "备注",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1359,
-          "context": "{i18n(\"pages.schedule.daede9881787\")}"
-        }
-      ],
-      "translation": "Notes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.dba0129db99f",
-      "source": "{value} · 第 {weekNo} 周",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(detected.sem.semesterName || detected.sem.semesterId)"
-        },
-        {
-          "name": "weekNo",
-          "expression": "String(detected.weekNo)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1062,
-          "context": "detected ? i18n(\"pages.schedule.dba0129db99f\", { value: String(detected.sem.semesterName || detected.sem.semesterId), weekNo: String(detected.weekNo) }) : i18n(\"pages.schedule.3c3687e79a53\")"
-        }
-      ],
-      "translation": "{value} · Week {weekNo}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.dd5376aed47e",
-      "source": "日程设置",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1029,
-          "context": "{i18n(\"pages.schedule.dd5376aed47e\")}"
-        },
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1041,
-          "context": "{i18n(\"pages.schedule.dd5376aed47e\")}"
-        }
-      ],
-      "translation": "Schedule settings",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.df071eb5a79b",
-      "source": "（其他设备 / 系统日历可见）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1366,
-          "context": "canCloud ? i18n(\"pages.schedule.df071eb5a79b\") : i18n(\"pages.schedule.e046ece55b12\")"
-        }
-      ],
-      "translation": "(visible on other devices / system calendar)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.e017292c528c",
-      "source": "校历加载失败（学期检测/跳转不可用）：{value}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(calendar.error ?? \"\")"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 858,
-          "context": "{i18n(\"pages.schedule.e017292c528c\", { value: String(calendar.error ?? \"\") })}"
-        }
-      ],
-      "translation": "Failed to load the academic calendar (term detection / jump unavailable): {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.e046ece55b12",
-      "source": "（未配置——设置页开启云同步）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1366,
-          "context": "canCloud ? i18n(\"pages.schedule.df071eb5a79b\") : i18n(\"pages.schedule.e046ece55b12\")"
-        }
-      ],
-      "translation": "(not configured — enable cloud sync in Settings)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.e6618e00221b",
-      "source": "未同步过",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 677,
-          "context": "cal.lastSyncAt ? i18n(\"pages.schedule.51fdbeb883e5\", { value: String(new Date(cal.lastSyncAt).toLocaleTimeString(getUiLocale(), { hour: \"2-digit\", minute: \"2-digit\" })) }) : i18n(\"pages.schedule.e6618e00221b\")"
-        }
-      ],
-      "translation": "Never synced",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.e9d3b01a5a00",
-      "source": "周四",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 70
-        }
-      ],
-      "translation": "Thu",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.ebfa3e62fea6",
-      "source": "点击查看详情",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 1241,
-          "context": "{i18n(\"pages.schedule.ebfa3e62fea6\")}"
-        }
-      ],
-      "translation": "Tap for details",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.schedule.ee239f394329",
-      "source": "周日",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/Schedule.tsx",
-          "line": 70
-        }
-      ],
-      "translation": "Sun",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

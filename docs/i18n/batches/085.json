@@ -1,7 +1,231 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "state.atoms.3dcd26a9ba45",
+      "source": "时间地点见课程详情",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 667,
+          "context": "tls.length > 0 ? tls.join(\"；\") : i18n(\"state.atoms.3dcd26a9ba45\")"
+        }
+      ],
+      "translation": "See course details for time and location",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.3df7b5791ab9",
+      "source": "作业 DDL 提醒",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 231,
+          "context": "return i18n(\"state.atoms.3df7b5791ab9\");"
+        }
+      ],
+      "translation": "Assignment deadline reminders",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.3e668eb1a6ae",
+      "source": "预约页 · 宿舍公共空间预约",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 254,
+          "context": "return i18n(\"state.atoms.3e668eb1a6ae\");"
+        }
+      ],
+      "translation": "Reservations · Dorm common space bookings",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.3fb35cdc3085",
+      "source": "预约页 · 亲友来访报备与我的报备",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 256,
+          "context": "return i18n(\"state.atoms.3fb35cdc3085\");"
+        }
+      ],
+      "translation": "Reservations · Visitor registration and my registrations",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.411769324590",
+      "source": "预约 · 研讨间申请",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 251,
+          "context": "return i18n(\"state.atoms.411769324590\");"
+        }
+      ],
+      "translation": "Reservations · Seminar room applications",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.41d497d6e07e",
+      "source": "卫生成绩",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 244,
+          "context": "return i18n(\"state.atoms.41d497d6e07e\");"
+        }
+      ],
+      "translation": "Hygiene score",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.452f594e3f7c",
+      "source": "预约聚合页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 213,
+          "context": "return i18n(\"state.atoms.452f594e3f7c\");"
+        }
+      ],
+      "translation": "Reservations hub",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.4792ab1440aa",
+      "source": "校历",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 236,
+          "context": "return i18n(\"state.atoms.4792ab1440aa\");"
+        }
+      ],
+      "translation": "Academic calendar",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.499fc8e68d81",
+      "source": "座位 · 研讨间",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 312,
+          "context": "return i18n(\"state.atoms.499fc8e68d81\");"
+        }
+      ],
+      "translation": "Seats · Seminar rooms",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.4b6ded8a7f18",
+      "source": "通知",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 438,
+          "context": "t: i18n(\"state.atoms.4b6ded8a7f18\")"
+        }
+      ],
+      "translation": "Notices",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.4c30e45ecab2",
+      "source": "收件箱 · 已发送 · 读信 · 全箱搜索",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 216,
+          "context": "return i18n(\"state.atoms.4c30e45ecab2\");"
+        }
+      ],
+      "translation": "Inbox · Sent · Read mail · Search all mailboxes",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.4d8a9ed9bf01",
+      "source": "按开始时间排序",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 313,
+          "context": "return i18n(\"state.atoms.4d8a9ed9bf01\");"
+        }
+      ],
+      "translation": "Sort by start time",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.4df0d6b1cd95",
+      "source": "生活页 · 水站订水",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 242,
+          "context": "return i18n(\"state.atoms.4df0d6b1cd95\");"
+        }
+      ],
+      "translation": "Life page · Water station ordering",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.atoms.4e2ebf869a50",
+      "source": "（已失效的插件收藏项）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/atoms.tsx",
+          "line": 368,
+          "context": "meta?.title ?? i18n(\"state.atoms.4e2ebf869a50\")"
+        }
+      ],
+      "translation": "(Inactive plugin favorite)",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
     {
       "key": "state.atoms.4ebe692f5dbb",
       "source": "其他 Info 应用",
@@ -1104,245 +1328,6 @@
         }
       ],
       "translation": "Current board (use navigate board + boardId for a specific board)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.b22b34bd6f57",
-      "source": "订阅源 · 新闻",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 720,
-          "context": "sub: i18n(\"state.atoms.b22b34bd6f57\")"
-        }
-      ],
-      "translation": "Feeds · News",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.b3ed0c353c77",
-      "source": "网络学堂 · 作业列表",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 226,
-          "context": "return i18n(\"state.atoms.b3ed0c353c77\");"
-        }
-      ],
-      "translation": "Web Learning · Assignment list",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.b80e3dfb7fba",
-      "source": "讨论区板块",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 450,
-          "context": "name || i18n(\"state.atoms.b80e3dfb7fba\")"
-        },
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 450,
-          "context": "(courseName ? courseName + \" · \" : \"\") + i18n(\"state.atoms.b80e3dfb7fba\")"
-        },
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 724,
-          "context": "(b.courseName ? b.courseName + \" · \" : \"\") + i18n(\"state.atoms.b80e3dfb7fba\")"
-        }
-      ],
-      "translation": "Forum boards",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.b9d8c8f7b02f",
-      "source": "全量扫描云端日程变化（etag 对账）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 172,
-          "context": "return i18n(\"state.atoms.b9d8c8f7b02f\");"
-        }
-      ],
-      "translation": "Full scan of cloud schedule changes (etag reconciliation)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.bb7b63b39fd4",
-      "source": "本学期课程总览",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 225,
-          "context": "return i18n(\"state.atoms.bb7b63b39fd4\");"
-        }
-      ],
-      "translation": "This semester's course overview",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.bb8c939d0fcd",
-      "source": "订水",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 242,
-          "context": "return i18n(\"state.atoms.bb8c939d0fcd\");"
-        }
-      ],
-      "translation": "Order water",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.bdac834d0ba2",
-      "source": "全部通知",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 227,
-          "context": "return i18n(\"state.atoms.bdac834d0ba2\");"
-        }
-      ],
-      "translation": "All notices",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.c0c6bb8b8618",
-      "source": "校园卡余额",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 311,
-          "context": "return i18n(\"state.atoms.c0c6bb8b8618\");"
-        }
-      ],
-      "translation": "Campus card balance",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.c141273da51a",
-      "source": "全局默认提醒时间 · 同步系统日历",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 231,
-          "context": "return i18n(\"state.atoms.c141273da51a\");"
-        }
-      ],
-      "translation": "Global default reminder time · Sync with system calendar",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.c6460a02e85e",
-      "source": "时钟 · 程序坞 · 自由画布",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 199,
-          "context": "return i18n(\"state.atoms.c6460a02e85e\");"
-        }
-      ],
-      "translation": "Clock · Dock · Free canvas",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.c730a0bada79",
-      "source": "日程与提醒",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 308,
-          "context": "return i18n(\"state.atoms.c730a0bada79\");"
-        }
-      ],
-      "translation": "Schedule and reminders",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.c7811f3d9d70",
-      "source": "图书馆 · 座位与签到",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 553,
-          "context": "sub: i18n(\"state.atoms.c7811f3d9d70\")"
-        }
-      ],
-      "translation": "Library · Seats and check-in",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.c94cd3fab151",
-      "source": " · Info 应用",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 601,
-          "context": "(cat || i18n(\"state.atoms.d4f7864690bb\")) + i18n(\"state.atoms.c94cd3fab151\")"
-        },
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 726,
-          "context": "a.cat + i18n(\"state.atoms.c94cd3fab151\")"
-        }
-      ],
-      "translation": " · Info apps",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.atoms.caf1f095b108",
-      "source": "校园卡",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/atoms.tsx",
-          "line": 245,
-          "context": "return i18n(\"state.atoms.caf1f095b108\");"
-        }
-      ],
-      "translation": "Campus card",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

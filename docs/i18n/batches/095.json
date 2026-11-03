@@ -1,7 +1,296 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "state.widgetliveparse.746a6f8de6fe",
+      "source": "现在第 {value} 节 {value2}–{value3}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(cur + 1)"
+        },
+        {
+          "name": "value2",
+          "expression": "String(fmtClock(from))"
+        },
+        {
+          "name": "value3",
+          "expression": "String(fmtClock(to))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 154,
+          "context": "text: i18n(\"state.widgetliveparse.746a6f8de6fe\", { value: String(cur + 1), value2: String(fmtClock(from)), value3: String(fmtClock(to)) })"
+        }
+      ],
+      "translation": "Now in period {value} {value2}–{value3}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgetliveparse.752d4d896d52",
+      "source": "今日空闲：第 {value} 节",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(freeSlots.join(\"、\"))"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 150,
+          "context": "freeSlots.length ? i18n(\"state.widgetliveparse.752d4d896d52\", { value: String(freeSlots.join(\"、\")) }) : i18n(\"state.widgetliveparse.1de2a5caa8a2\")"
+        }
+      ],
+      "translation": "Free today: period {value}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgetliveparse.8a60db5caa68",
+      "source": "使用中 · 剩 {eta} 分钟",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "eta",
+          "expression": "String(device.eta)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 100,
+          "context": "device.eta && device.eta > 0 ? i18n(\"state.widgetliveparse.8a60db5caa68\", { eta: String(device.eta) }) : i18n(\"state.widgetliveparse.fa48e8938940\")"
+        }
+      ],
+      "translation": "In use · {eta} minutes left",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgetliveparse.8f1e1ec64048",
+      "source": "{value}空闲 {n} / {length} 间",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(cur >= 0 ? \"本节\" : \"下一节\")"
+        },
+        {
+          "name": "n",
+          "expression": "String(n)"
+        },
+        {
+          "name": "length",
+          "expression": "String(rooms.length)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 169,
+          "context": "text: i18n(\"state.widgetliveparse.8f1e1ec64048\", { value: String(cur >= 0 ? i18n(\"state.widgetliveparse.eacbe16713ec\") : i18n(\"state.widgetliveparse.426f5597e4bf\")), n: String(n), length: String(rooms.length) })"
+        }
+      ],
+      "translation": "{value}: {n} / {length} rooms free",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgetliveparse.93e474c68ed5",
+      "source": "状态未知",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 101,
+          "context": "working\n      ? (device.eta && device.eta > 0 ? i18n(\"state.widgetliveparse.8a60db5caa68\", { eta: String(device.eta) }) : i18n(\"state.widgetliveparse.fa48e8938940\"))\n      : i18n(\"state.widgetliveparse.93e474c68ed5\")"
+        }
+      ],
+      "translation": "Status unknown",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgetliveparse.b26d62348141",
+      "source": "点开看整周占用",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 154,
+          "context": "sub: i18n(\"state.widgetliveparse.b26d62348141\")"
+        }
+      ],
+      "translation": "Tap to see the whole week's occupancy",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgetliveparse.c0aa76aebce6",
+      "source": "占用",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 76,
+          "context": "free(cur) ? i18n(\"state.widgetliveparse.dae661d17c2d\") : i18n(\"state.widgetliveparse.c0aa76aebce6\")"
+        },
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 79,
+          "context": "free(next) ? i18n(\"state.widgetliveparse.dae661d17c2d\") : i18n(\"state.widgetliveparse.c0aa76aebce6\")"
+        }
+      ],
+      "translation": "Occupied",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgetliveparse.c28bedfada8f",
+      "source": "{floor} 空闲 {n} 台",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "floor",
+          "expression": "String(floor)"
+        },
+        {
+          "name": "n",
+          "expression": "String(n)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 132,
+          "context": "text: i18n(\"state.widgetliveparse.c28bedfada8f\", { floor: String(floor), n: String(n) })"
+        }
+      ],
+      "translation": "{floor}: {n} machines free",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgetliveparse.d1adf68fb7c1",
+      "source": "今日课程已结束",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 78,
+          "context": "return i18n(\"state.widgetliveparse.d1adf68fb7c1\");"
+        }
+      ],
+      "translation": "Today's classes are over",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgetliveparse.d3214224f7e7",
+      "source": "{buildingName}楼 · 实时占用",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "buildingName",
+          "expression": "String(buildingName)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 177,
+          "context": "footer: i18n(\"state.widgetliveparse.d3214224f7e7\", { buildingName: String(buildingName) })"
+        }
+      ],
+      "translation": "Building {buildingName} · Live occupancy",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgetliveparse.dae661d17c2d",
+      "source": "空闲",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 76,
+          "context": "free(cur) ? i18n(\"state.widgetliveparse.dae661d17c2d\") : i18n(\"state.widgetliveparse.c0aa76aebce6\")"
+        },
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 79,
+          "context": "free(next) ? i18n(\"state.widgetliveparse.dae661d17c2d\") : i18n(\"state.widgetliveparse.c0aa76aebce6\")"
+        },
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 98,
+          "context": "idleState\n    ? i18n(\"state.widgetliveparse.dae661d17c2d\")\n    : working\n      ? (device.eta && device.eta > 0 ? i18n(\"state.widgetliveparse.8a60db5caa68\", { eta: String(device.eta) }) : i18n(\"state.widgetliveparse.fa48e8938940\"))\n      : i18n(\"state.widgetliveparse.93e474c68ed5\")"
+        }
+      ],
+      "translation": "Free",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgetliveparse.eacbe16713ec",
+      "source": "本节",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 169,
+          "context": "cur >= 0 ? i18n(\"state.widgetliveparse.eacbe16713ec\") : i18n(\"state.widgetliveparse.426f5597e4bf\")"
+        }
+      ],
+      "translation": "This period",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgetliveparse.fa48e8938940",
+      "source": "使用中",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgetLiveParse.ts",
+          "line": 100,
+          "context": "device.eta && device.eta > 0 ? i18n(\"state.widgetliveparse.8a60db5caa68\", { eta: String(device.eta) }) : i18n(\"state.widgetliveparse.fa48e8938940\")"
+        }
+      ],
+      "translation": "In use",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.widgetmeta.10ed14b80e18",
+      "source": "一段标题文字，用来给自己的白板分区。不需要任何上下文。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/widgetMeta.ts",
+          "line": 66,
+          "context": "return i18n(\"state.widgetmeta.10ed14b80e18\");"
+        }
+      ],
+      "translation": "A piece of title text for organizing your own Board. Needs no context.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "state.widgetmeta.14b69bd6eeb0",
       "source": "文字",
@@ -1065,230 +1354,6 @@
         }
       ],
       "translation": "Dorm electricity, water orders, and related payments. Requires sign-in.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.widgets.b4eed2ab1ac0",
-      "source": "网络学堂的全部作业（含外部作业源）。需要登录。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/widgets.ts",
-          "line": 99,
-          "context": "return i18n(\"state.widgets.b4eed2ab1ac0\");"
-        }
-      ],
-      "translation": "All Web Learning assignments (including external sources). Requires sign-in.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.widgets.b60bd0a94034",
-      "source": "本地时间，每秒走字；大一号的档位会带上日期与星期。不需要登录。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/widgets.ts",
-          "line": 85,
-          "context": "return i18n(\"state.widgets.b60bd0a94034\");"
-        }
-      ],
-      "translation": "Local time, ticking every second; larger sizes also show the date and weekday. No sign-in needed.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.widgets.b7ab08dc01be",
-      "source": "体测栏目",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/widgets.ts",
-          "line": 219,
-          "context": "return i18n(\"state.widgets.b7ab08dc01be\");"
-        }
-      ],
-      "translation": "Fitness test section",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.widgets.ba55d27d82e9",
-      "source": "今天的日期与星期；宽档位会带上年份。不需要登录。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/widgets.ts",
-          "line": 86,
-          "context": "return i18n(\"state.widgets.ba55d27d82e9\");"
-        }
-      ],
-      "translation": "Today's date and weekday; wide sizes also show the year. No sign-in needed.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.widgets.c0c6bb8b8618",
-      "source": "校园卡余额",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/widgets.ts",
-          "line": 187,
-          "context": "return i18n(\"state.widgets.c0c6bb8b8618\");"
-        }
-      ],
-      "translation": "Campus card balance",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.widgets.c230feb89e2b",
-      "source": "校历栏目",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/widgets.ts",
-          "line": 243,
-          "context": "return i18n(\"state.widgets.c230feb89e2b\");"
-        }
-      ],
-      "translation": "Academic calendar section",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.widgets.c3bc1241bb01",
-      "source": "信息页新闻栏目的数据卡。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/widgets.ts",
-          "line": 252,
-          "context": "return i18n(\"state.widgets.c3bc1241bb01\");"
-        }
-      ],
-      "translation": "Data card for the news section on the Info page.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.widgets.c647b6cc106f",
-      "source": "体测成绩。需要登录。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/widgets.ts",
-          "line": 117,
-          "context": "return i18n(\"state.widgets.c647b6cc106f\");"
-        }
-      ],
-      "translation": "Fitness test results. Requires sign-in.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.widgets.c732e4d7e380",
-      "source": "黄",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/widgets.ts",
-          "line": 147,
-          "context": "return i18n(\"state.widgets.c732e4d7e380\");"
-        }
-      ],
-      "translation": "Yellow",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.widgets.cb232f86e59b",
-      "source": "课程文件条目",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/widgets.ts",
-          "line": 358,
-          "context": "return i18n(\"state.widgets.cb232f86e59b\");"
-        }
-      ],
-      "translation": "Course file entry",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.widgets.cbc4fafd7657",
-      "source": "考试栏目",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/widgets.ts",
-          "line": 227,
-          "context": "return i18n(\"state.widgets.cbc4fafd7657\");"
-        }
-      ],
-      "translation": "Exams section",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.widgets.cd92acd73a04",
-      "source": "写点什么…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/widgets.ts",
-          "line": 146,
-          "context": "return i18n(\"state.widgets.cd92acd73a04\");"
-        }
-      ],
-      "translation": "Write something…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.widgets.cda323fd4e1d",
-      "source": "信息门户的订阅新闻。需要登录。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/widgets.ts",
-          "line": 102,
-          "context": "return i18n(\"state.widgets.cda323fd4e1d\");"
-        }
-      ],
-      "translation": "Subscribed news from the info portal. Requires sign-in.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.widgets.d00069a5d3b5",
-      "source": "粉",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/widgets.ts",
-          "line": 147,
-          "context": "return i18n(\"state.widgets.d00069a5d3b5\");"
-        }
-      ],
-      "translation": "Pink",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

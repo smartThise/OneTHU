@@ -47,7 +47,7 @@ async function loadInbox(): Promise<TaskInboxItem[]> {
 }
 export async function readTaskInbox(): Promise<TaskInboxItem[]> {
   const owner = session.username;
-  if (!owner || session.state !== "ready" || !ohAuthorized() || !mcpServerEnabled()) throw new Error("TASK_ACCOUNT_REQUIRED");
+  if (!owner || session.state !== "ready" || !ohAuthorized()) throw new Error("TASK_ACCOUNT_REQUIRED");
   const inbox = await loadInbox();
   if (session.username !== owner || session.state !== "ready") throw new Error("TASK_ACCOUNT_CHANGED");
   return inbox.filter(item => item.owner === owner).map(item => ({ ...item }));
@@ -55,7 +55,7 @@ export async function readTaskInbox(): Promise<TaskInboxItem[]> {
 export async function sendTaskNotification(channel: string, text: string, idempotencyKey: string, { confirmationGrant: grant, signal }: { confirmationGrant: TaskGrant; signal: AbortSignal }): Promise<void> {
   const check = async () => {
     if (signal.aborted) throw new Error("TASK_CANCELLED");
-    if (!mcpServerEnabled() || !ohAuthorized()) throw new Error("CLI_DISABLED");
+    if (!ohAuthorized()) throw new Error("CLI_DISABLED");
     await grant.assertActive();
     if (!grant.channels.includes(channel)) throw new Error("TASK_CHANNEL_OUTSIDE_GRANT");
     if (signal.aborted || session.username !== grant.owner) throw new Error("TASK_ACCOUNT_CHANGED");

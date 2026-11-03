@@ -16,7 +16,7 @@ use tauri::Manager;
 const PROTOCOL: u64 = 1;
 const MAX_REQUEST: usize = 8 * 1024 * 1024;
 const MAX_RESPONSE: usize = 16 * 1024 * 1024;
-static ENSURE: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+pub(crate) static ENSURE: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 const METHODS: &[&str] = &[
     "desktop.status",
@@ -28,20 +28,26 @@ const METHODS: &[&str] = &[
     "desktop.call",
     "desktop.notificationsSync",
     "desktop.yuketangSync",
+    "desktop.dataRead",
+    "desktop.dataWrite",
+    "desktop.dataBootstrap",
+    "desktop.retire",
+    "desktop.unretire",
+    "desktop.cloudSync",
 ];
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Access {
+pub(crate) struct Access {
     port: u16,
     token: String,
-    pid: u32,
+    pub(crate) pid: u32,
 }
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct Manifest {
+pub(crate) struct Manifest {
     protocol_version: u64,
-    version: String,
+    pub(crate) version: String,
     platform: String,
     arch: String,
     node_version: String,
@@ -59,7 +65,7 @@ fn is_hash(value: &str) -> bool {
             .bytes()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
-fn main_only(label: &str) -> Result<(), String> {
+pub(crate) fn main_only(label: &str) -> Result<(), String> {
     if label == "main" {
         Ok(())
     } else {
@@ -139,7 +145,7 @@ fn read_json(path: &Path, limit: u64, private: bool) -> Result<Value, String> {
     }
     serde_json::from_slice(&bytes).map_err(|_| "CLI_DAEMON_INVALID_FILE".into())
 }
-fn read_access(profile: &Path) -> Result<Option<Access>, String> {
+pub(crate) fn read_access(profile: &Path) -> Result<Option<Access>, String> {
     reject_link(profile)?;
     #[cfg(unix)]
     if let Ok(meta) = fs::symlink_metadata(profile) {
@@ -166,7 +172,7 @@ fn read_access(profile: &Path) -> Result<Option<Access>, String> {
     Ok(Some(access))
 }
 
-fn profile_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn profile_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     #[cfg(target_os = "windows")]
     {
         app.path()
@@ -189,7 +195,7 @@ fn profile_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
             .map_err(|_| "CLI_DAEMON_PROFILE_UNAVAILABLE".into())
     }
 }
-fn install_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn install_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     #[cfg(windows)]
     {
         app.path()
@@ -205,7 +211,7 @@ fn install_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
             .map_err(|_| "CLI_DAEMON_INSTALL_UNAVAILABLE".into())
     }
 }
-fn manifest(dir: &Path) -> Result<Manifest, String> {
+pub(crate) fn manifest(dir: &Path) -> Result<Manifest, String> {
     reject_link(dir)?;
     let m: Manifest =
         serde_json::from_value(read_json(&dir.join("runtime.json"), 1024 * 1024, false)?)
@@ -248,26 +254,13 @@ fn manifest(dir: &Path) -> Result<Manifest, String> {
     Ok(m)
 }
 fn resource_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    // The dev wrapper lives in ~/Library/Caches; compile-time project location
-    // remains the authoritative dev resource directory.
-    #[cfg(debug_assertions)]
-    {
-        let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/cli-runtime");
-        if dev.is_dir() {
-            manifest(&dev)?;
-            return Ok(dev);
-        }
-    }
-    let dir = app
-        .path()
-        .resource_dir()
-        .map_err(|_| "CLI_DAEMON_RUNTIME_UNAVAILABLE")?
-        .join("cli-runtime");
-    manifest(&dir)?;
+    let dir = install_dir(app)?;
+    let installed = manifest(&dir).map_err(|_| "CLI_PACKAGE_NOT_INSTALLED")?;
+    if installed.version != app.package_info().version.to_string() { return Err("CLI_PACKAGE_UPDATE_REQUIRED".into()); }
     Ok(dir)
 }
 
-async fn rpc(
+pub(crate) async fn rpc(
     access: &Access,
     method: &str,
     params: Value,
@@ -344,7 +337,7 @@ fn compatible(status: &Value) -> bool {
     status.get("running").and_then(Value::as_bool) == Some(true)
         && status.get("desktopProtocolVersion").and_then(Value::as_u64) == Some(PROTOCOL)
 }
-fn process_alive(pid: u32) -> bool {
+pub(crate) fn process_alive(pid: u32) -> bool {
     #[cfg(unix)]
     {
         unsafe {
@@ -410,7 +403,7 @@ fn later_version(status: &Value, bundled: &Manifest) -> bool {
     }
 }
 
-fn private_directory(dir: &Path) -> Result<(), String> {
+pub(crate) fn private_directory(dir: &Path) -> Result<(), String> {
     reject_link(dir)?;
     fs::create_dir_all(dir).map_err(|_| "CLI_DAEMON_INSTALL_UNAVAILABLE")?;
     #[cfg(unix)]
@@ -421,7 +414,7 @@ fn private_directory(dir: &Path) -> Result<(), String> {
     }
     Ok(())
 }
-fn install_runtime(source: &Path, target: &Path, m: &Manifest) -> Result<(), String> {
+pub(crate) fn install_runtime(source: &Path, target: &Path, m: &Manifest) -> Result<(), String> {
     let parent = target.parent().ok_or("CLI_DAEMON_INSTALL_UNAVAILABLE")?;
     // Check every existing component under the user's trusted home/AppData.
     for ancestor in parent.ancestors().take_while(|p| p.parent().is_some()) {
@@ -519,10 +512,14 @@ fn startup_error(profile: &Path) -> String {
     )
 }
 fn spawn_daemon(dir: &Path, profile: &Path, runtime: &Manifest) -> Result<Arc<AtomicBool>, String> {
+    // GUI data can survive uninstall while the separately located CLI profile
+    // is absent. Prepare it before opening any startup log or child process.
+    private_directory(profile)?;
     // The child owns this private file handle after the App exits. A parent pipe
     // would break a resident process's stderr when its GUI host is closed.
     let log_path = profile.join("daemon-startup.log");
-    crate::native_security::private_atomic_write(&log_path, b"")?;
+    crate::native_security::private_atomic_write(&log_path, b"")
+        .map_err(|_| "CLI_DAEMON_INSTALL_UNAVAILABLE")?;
     let log = OpenOptions::new()
         .append(true)
         .open(&log_path)
@@ -596,6 +593,13 @@ pub async fn cli_daemon_ensure(
         // os error 3），整条「确保守护进程」链路随之打回。登录流程在联网之前就要读共享
         // 运行时状态，于是新机器上的表现是「装好之后一直登不上」。这里先建目录。
         private_directory(&profile)?;
+        // A separately downloaded CLI already using the standard account
+        // profile is a valid host too; no duplicate managed install is needed.
+        if let Some(access)=read_access(&profile)? {
+            if let Ok(status)=rpc(&access,"daemon.status",Value::Null,Duration::from_secs(2)).await {
+                if compatible(&status)&&status.get("version").and_then(Value::as_str)==Some(&app.package_info().version.to_string()) {return Ok(public_status(&status));}
+            }
+        }
         let source = resource_dir(&app)?;
         let bundled = manifest(&source)?;
         let target = install_dir(&app)?;
@@ -690,6 +694,11 @@ pub async fn cli_daemon_request(
 ) -> Result<Value, String> {
     main_only(window.label())?;
     allow_method(&method)?;
+    if method=="desktop.cloudSync" && params.as_ref().is_some_and(|value| !value.get("config").is_none_or(Value::is_null)) {
+        crate::privacy_consent::require_cloud()?;crate::privacy_consent::require_oh()?;
+    }
+    if method=="desktop.yuketangSync" && params.as_ref().is_some_and(|value| !value.get("credential").is_none_or(Value::is_null)) {crate::privacy_consent::require_oh()?;}
+
     #[cfg(any(target_os = "android", target_os = "ios"))]
     {
         let _ = (app, params);

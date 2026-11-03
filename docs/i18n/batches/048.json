@@ -1,7 +1,249 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "pages.gitlabpage.dff9e5a876ae",
+      "source": "星标",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/GitLabPage.tsx",
+          "line": 228,
+          "context": "label: i18n(\"pages.gitlabpage.dff9e5a876ae\")"
+        }
+      ],
+      "translation": "Starred",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "pages.gitlabpage.e2510f29b40f",
+      "source": "没有匹配的 Issue",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/GitLabPage.tsx",
+          "line": 1364,
+          "context": "kind === \"issue\" ? i18n(\"pages.gitlabpage.e2510f29b40f\") : i18n(\"pages.gitlabpage.8c7e7bb7c80f\")"
+        }
+      ],
+      "translation": "No matching issues",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.gitlabpage.e54829187e33",
+      "source": "评论已更新",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/GitLabPage.tsx",
+          "line": 804,
+          "context": "showToast(i18nMsg(\"pages.gitlabpage.e54829187e33\"))"
+        }
+      ],
+      "translation": "Comment updated",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.gitlabpage.e5a3e02f4392",
+      "source": "差异过大，不在应用内展开。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/GitLabPage.tsx",
+          "line": 722,
+          "context": "{i18n(\"pages.gitlabpage.e5a3e02f4392\")}"
+        }
+      ],
+      "translation": "The diff is too large and is not expanded in the app.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.gitlabpage.e62ef48711b0",
+      "source": "分支 / 标签筛选",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/GitLabPage.tsx",
+          "line": 1475,
+          "context": "{i18n(\"pages.gitlabpage.e62ef48711b0\")}"
+        }
+      ],
+      "translation": "Branch / tag filter",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.gitlabpage.e6f04ffbaa42",
+      "source": "代码",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/GitLabPage.tsx",
+          "line": 1596,
+          "context": "[\"code\", i18n(\"pages.gitlabpage.e6f04ffbaa42\"), \"\"]"
+        }
+      ],
+      "translation": "Code",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.gitlabpage.e9dde8dd52ad",
+      "source": "即将删除评论，请确认！",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/GitLabPage.tsx",
+          "line": 814,
+          "context": "title: i18nMsg(\"pages.gitlabpage.e9dde8dd52ad\")"
+        }
+      ],
+      "translation": "About to delete this comment. Please confirm!",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "pages.gitlabpage.eab2925bb2ba",
+      "source": "分支 / 标签（留空为全部，回车查询）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/GitLabPage.tsx",
+          "line": 1476,
+          "context": "{i18n(\"pages.gitlabpage.eab2925bb2ba\")}"
+        }
+      ],
+      "translation": "Branch / tag (leave empty for all; press Enter to query)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.gitlabpage.f33691c66ffb",
+      "source": "读取作业…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/GitLabPage.tsx",
+          "line": 1423,
+          "context": "{i18n(\"pages.gitlabpage.f33691c66ffb\")}"
+        }
+      ],
+      "translation": "Loading jobs…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.gitlabpage.f3d0ff87958d",
+      "source": "目标分支",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/GitLabPage.tsx",
+          "line": 1270,
+          "context": "label: i18nMsg(\"pages.gitlabpage.f3d0ff87958d\")"
+        }
+      ],
+      "translation": "Target branch",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "pages.gitlabpage.f6bd30d9b881",
+      "source": "{value} 分 {value2} 秒",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(Math.floor(sec / 60))"
+        },
+        {
+          "name": "value2",
+          "expression": "String(sec % 60)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/GitLabPage.tsx",
+          "line": 151,
+          "context": "return i18n(\"pages.gitlabpage.f6bd30d9b881\", { value: String(Math.floor(sec / 60)), value2: String(sec % 60) });"
+        }
+      ],
+      "translation": "{value} min {value2}s",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.gitlabpage.fcd5cc7382e7",
+      "source": "重新打开{value} !{iid}？",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "String(kind === \"issue\" ? \" Issue\" : i18n(\"pages.gitlabpage.dd42589239f7\"))"
+        },
+        {
+          "name": "iid",
+          "expression": "String(iid)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/GitLabPage.tsx",
+          "line": 1042,
+          "context": "reopen\n      ? i18nMsg(\"pages.gitlabpage.fcd5cc7382e7\", { value: String(kind === \"issue\" ? \" Issue\" : i18n(\"pages.gitlabpage.dd42589239f7\")), iid: String(iid) })\n      : i18nMsg(\"pages.gitlabpage.09ccc8d4588e\", { value: String(kind === \"issue\" ? \" Issue\" : i18n(\"pages.gitlabpage.dd42589239f7\")), iid: String(iid) })"
+        }
+      ],
+      "translation": "Reopen {value} !{iid}?",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.gitlabpage.fe25f0c4ade6",
+      "source": "没有匹配的表情名",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/GitLabPage.tsx",
+          "line": 664,
+          "context": "{i18n(\"pages.gitlabpage.fe25f0c4ade6\")}"
+        }
+      ],
+      "translation": "No matching emoji name",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.gitlabpage.ff509c9ba052",
+      "source": "保存中…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/GitLabPage.tsx",
+          "line": 772,
+          "context": "busy ? i18n(\"pages.gitlabpage.ff509c9ba052\") : i18n(\"pages.gitlabpage.a3030bf8f16d\")"
+        }
+      ],
+      "translation": "Saving…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "pages.info.calendartab.32618426e9ce",
       "source": "春季学期",
@@ -1135,245 +1377,6 @@
         }
       ],
       "translation": "Placing order…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.cardtab.bc9202e87177",
-      "source": "提醒冷却",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 342,
-          "context": "{i18n(\"pages.info.cardtab.bc9202e87177\")}"
-        }
-      ],
-      "translation": "Reminder cooldown",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.cardtab.bd29d329c11f",
-      "source": "银行卡圈存",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 93,
-          "context": "return i18n(\"pages.info.cardtab.bd29d329c11f\");"
-        }
-      ],
-      "translation": "Bank-card deposit",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.cardtab.bd957bc497aa",
-      "source": "分钟",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 355,
-          "context": "{i18n(\"pages.info.cardtab.bd957bc497aa\")}"
-        }
-      ],
-      "translation": "minutes",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.cardtab.bf806b71ea83",
-      "source": "为准；若未到账请稍后在「最近消费」中查看圈存记录。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 252,
-          "context": "{i18n(\"pages.info.cardtab.bf806b71ea83\")}"
-        }
-      ],
-      "translation": " balance; if the funds have not arrived, check the deposit record under \"Recent transactions\" later.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.cardtab.d262a8a8360c",
-      "source": "{value} 天前",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(Math.floor(h / 24))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 51,
-          "context": "return i18n(\"pages.info.cardtab.d262a8a8360c\", { value: String(Math.floor(h / 24)) });"
-        }
-      ],
-      "translation": "{value} days ago",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.cardtab.d4507373a0ce",
-      "source": "在浏览器打开收款页",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 243,
-          "context": "channel === \"wechat\" && isAndroid ? i18n(\"pages.info.cardtab.4c6443bdcde7\") : i18n(\"pages.info.cardtab.d4507373a0ce\")"
-        }
-      ],
-      "translation": "Open the payment page in a browser",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.cardtab.db0a5f3fe6c3",
-      "source": "余额预警",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 314,
-          "context": "{i18n(\"pages.info.cardtab.db0a5f3fe6c3\")}"
-        },
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 317,
-          "context": "{i18n(\"pages.info.cardtab.db0a5f3fe6c3\")}"
-        }
-      ],
-      "translation": "Balance alert",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.cardtab.de6785d99e02",
-      "source": "刚刚",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 47,
-          "context": "return i18n(\"pages.info.cardtab.de6785d99e02\");"
-        }
-      ],
-      "translation": "Just now",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.cardtab.de7d16d37942",
-      "source": "充值金额需在 10 ~ 1000 元之间（全渠道下限统一 10 元，官方收银台同样起步 10 元）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 186,
-          "context": "{i18n(\"pages.info.cardtab.de7d16d37942\")}"
-        }
-      ],
-      "translation": "The top-up amount must be between 10 and 1000 CNY (all channels share the 10 CNY minimum; the official cashier also starts at 10 CNY)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.cardtab.e22e82c70130",
-      "source": "更新于 {value}",
-      "kind": "rich",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "fmtAgo(updatedAt)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 413,
-          "context": "{i18nRich(\"pages.info.cardtab.e22e82c70130\", { value: fmtAgo(updatedAt) })}"
-        }
-      ],
-      "translation": "Updated {value}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.cardtab.e84d5394f0a6",
-      "source": "余额 / 流水",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 252,
-          "context": "{i18n(\"pages.info.cardtab.e84d5394f0a6\")}"
-        }
-      ],
-      "translation": "Balance / transactions",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.cardtab.e8adeabba93d",
-      "source": "近 30 天没有消费记录。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 465,
-          "context": "{i18n(\"pages.info.cardtab.e8adeabba93d\")}"
-        }
-      ],
-      "translation": "No transactions in the last 30 days.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.cardtab.eb095f18e602",
-      "source": "流水笔数",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 439,
-          "context": "{i18n(\"pages.info.cardtab.eb095f18e602\")}"
-        }
-      ],
-      "translation": "Transaction count",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.info.cardtab.ef4019825558",
-      "source": "银行卡圈存最低 10 元；金额需 1 ~ 1000 元（最多两位小数）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/info/CardTab.tsx",
-          "line": 204,
-          "context": "channel === \"bank\" ? i18n(\"pages.info.cardtab.ef4019825558\") : i18n(\"pages.info.cardtab.648616c62275\")"
-        }
-      ],
-      "translation": "Bank-card deposits start at 10 CNY; the amount must be 1–1000 CNY (at most two decimal places)",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

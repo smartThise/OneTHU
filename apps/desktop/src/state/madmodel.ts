@@ -123,6 +123,12 @@ function currentTokenUsable(): boolean {
   return exp === null ? !madmodelDue() : exp > Date.now();
 }
 
+function tokenHasRequestBudget(): boolean {
+  const token=String(getPlugin(HARNESS_ID)?.settings?.madmodelToken??"");
+  const expiry=jwtExpiresAt(token);
+  return currentTokenUsable()&&(expiry===null||expiry-Date.now()>10*60_000);
+}
+
 /** 只认站点的 JSON 响应，HTTP 200 登录页/代理页不算连通。 */
 async function isSiteResponse(res: Response): Promise<boolean> {
   if (res.status !== 200) return false;
@@ -610,6 +616,15 @@ export function preflightMadModel(): Promise<string | null> {
 
 async function runPreflight(): Promise<string | null> {
   void ensureModels().catch(() => undefined);
+  const cached=getPlugin(HARNESS_ID)?.settings??{};
+  const cachedToken=String(cached.madmodelToken??""),cachedBase=String(cached.madmodelBase??"");
+  const knownInvalid=validation?.token===cachedToken&&validation.base===cachedBase&&validation.verdict==="invalid";
+  if(madmodelActive()&&tokenHasRequestBudget()&&!knownInvalid&&Date.now()-Number(cached.madmodelVerifiedAt??0)<VERIFY_TTL_MS){
+    syncRouteCookie();
+    void refreshMadModelRoute().catch(()=>undefined);
+    if(madmodelDue())void ensureMadModelToken().catch(()=>undefined);
+    return null;
+  }
   const revision = routeRevision;
   await refreshMadModelRoute();
   if (revision !== routeRevision) await refreshMadModelRoute();
@@ -623,18 +638,21 @@ async function runPreflight(): Promise<string | null> {
     if (String(getPlugin(HARNESS_ID)?.settings?.madmodelToken ?? "") !== tok || !madmodelActive()) return null;
     // 临时故障不是续签信号；保留旧凭证/成功时间，由本次聊天报告真实网络状态。
     if (verdict === "temporary") return currentTokenUsable() ? null : freeTierHint(i18n("state.madmodel.cc4b425932b8"));
-    if (verdict === "valid" && !madmodelDue()) return null;
+    if (verdict === "valid" && tokenHasRequestBudget()) {
+      // Like DSH, refresh ahead of expiry without blocking a usable chat key.
+      if (madmodelDue()) void ensureMadModelToken().catch(() => undefined);
+      return null;
+    }
   }
   const nextAt = Number(getPlugin(HARNESS_ID)?.settings?.madmodelNextAttemptAt ?? 0);
-  const canReuseCurrent = (): boolean =>
-    verdict === "valid" && String(getPlugin(HARNESS_ID)?.settings?.madmodelToken ?? "") === tok && currentTokenUsable();
-  if (Date.now() < nextAt) return canReuseCurrent() ? null : freeTierHint(i18n("state.madmodel.302ca473236a"));
+  const canReuseCurrent=()=>verdict==="valid"&&String(getPlugin(HARNESS_ID)?.settings?.madmodelToken??"")===tok&&currentTokenUsable();
+  if (Date.now() < nextAt) return canReuseCurrent()?null:freeTierHint(i18n("state.madmodel.302ca473236a"));
   try {
     await ensureMadModelToken();
     return currentTokenUsable() ? null : freeTierHint(i18n("state.madmodel.0e0df04b7d65"));
   } catch (e) {
     // 临近过期的提前续签失败，不应使尚有效的凭证立即停止工作。
-    if (canReuseCurrent()) return null;
+    if(canReuseCurrent())return null;
     const why = e instanceof Error ? e.message : i18n("state.madmodel.c04cfb0974f5");
     void logLine(`[MADMODEL] 续期未完成：${e instanceof TemporaryMadModelError ? "临时服务故障" : "未取得新凭证"}`).catch(() => undefined);
     return freeTierHint(why);

@@ -32,7 +32,7 @@ export { createNotificationService } from './notifications/index.mjs';
 export { createImGateway } from './im/index.mjs';
 export { createAssistant } from './assistant/index.mjs';
 export type { ServiceOperation, OperationContext } from './services/types.js';
-export const VERSION = '0.11.4-fix-1';
+export const VERSION = '0.11.4-fix-3';
 export function defaultDataDir() {
   return path.join(process.platform === 'win32' ? (process.env.LOCALAPPDATA || path.join(os.homedir(),'AppData','Local')) : process.platform === 'darwin' ? path.join(os.homedir(),'Library','Application Support') : (process.env.XDG_DATA_HOME || path.join(os.homedir(),'.local','share')), 'OneTHU CLI');
 }
@@ -50,11 +50,15 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
   const store = createStore(runtime.dataDir), contexts = new AsyncLocalStorage<CallContext>();
   const savedPolicy = await store.read<{automatic:boolean;enabled?:boolean;configured?:boolean}|null>('execution-policy',null);
   const initial=savedPolicy??{automatic:false,enabled:true,configured:false};
+  let appEnabled=(savedPolicy as any)?.appEnabled===true;
   let enabled=initial.enabled!==false, configured=savedPolicy!==null&&initial.configured!==false, automatic = initial.automatic === true, policyEpoch = 0, closed = false, closing = false, resident = false;
   let closePromise:Promise<void>|undefined;
+  let retiring=await store.read<boolean>("desktop-retired",false);
   const writes = new Set<string>(), controllers=new Set<AbortController>();
   let stateQueue:Promise<unknown>=Promise.resolve();
   function exclusive<T>(work:()=>Promise<T>):Promise<T>{const next=stateQueue.catch(()=>undefined).then(work);stateQueue=next;return next;}
+  let dataQueue:Promise<unknown>=Promise.resolve();
+  function dataExclusive<T>(work:()=>Promise<T>):Promise<T>{const next=dataQueue.catch(()=>undefined).then(work);dataQueue=next;return next;}
   const requireContext = () => {const ctx=contexts.getStore();if(!ctx)throw new Error('CLI_CONTEXT_REQUIRED');return ctx;};
   const check = () => requireContext().beforeWrite();
   const resources = new Map<string,Map<string,any>>();
@@ -101,7 +105,7 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
   }
   let taskManager:Awaited<ReturnType<typeof createTaskManager>>;
   const liveGrants=new WeakSet<TaskGrant>();
-  async function call(input:CallRequest,opts:CallOptions = {},grant?:TaskGrant):Promise<any> {
+  async function call(input:CallRequest,opts:CallOptions = {},grant?:TaskGrant, internal=false):Promise<any> {
     validate(input,{type:'object',required:['operation'],properties:{operation:string,args:{type:'array',maxItems:16},confirm:{type:'boolean'},deadlineUnixMs:{type:'integer',minimum:1}},additionalProperties:false});
     const op=operations.get(input.operation);if(!op)throw new Error('UNKNOWN_OPERATION');
     const args=structuredClone(input.args??[]);validate(args,op.parameters);
@@ -120,7 +124,8 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
     const approved=!op.mutation||automatic||(source==='local'&&input.confirm===true)||!!grant&&liveGrants.has(grant);
     const stillCurrent=()=>{
       if(closed||closing)throw new Error('CLI_RUNTIME_CLOSED');
-      if(!enabled&&op.authenticated!==false)throw new Error('CLI_DISABLED');
+      if(retiring)throw new Error('CLI_RUNTIME_RETIRING');
+      if(!(internal?appEnabled:enabled)&&op.authenticated!==false)throw new Error('CLI_DISABLED');
       if(policyEpoch!==revision||runtime.session.username!==owner)throw new Error('CLI_SESSION_CHANGED');
       if(controller.signal.aborted||Date.now()>=deadline)throw new Error('CLI_DEADLINE_OR_CANCELLED');
       runtime.assertCurrent(epoch);
@@ -141,7 +146,7 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
       if(op.mutation){writes.add(op.name);acquired=true;}
       const result=await contexts.run({source,approved,permissions:opts.permissions,beforeWrite,signal:controller.signal,deadline},async()=>{
         if(op.name.startsWith('learn.')){await runtime.ensureLearnReady();await beforeWrite();}
-        return op.run(args,{beforeWrite,signal:controller.signal,deadline});
+        return /^(cal|caldav|cloud)\./.test(op.name) ? dataExclusive(async()=>op.run(args,{beforeWrite,signal:controller.signal,deadline})) : op.run(args,{beforeWrite,signal:controller.signal,deadline});
       });
       await beforeWrite();return publicResult(result??null);
     }catch(error){throw publicError(error);}
@@ -152,7 +157,7 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
     getOwner:()=>runtime.session.state==='ready'?{id:runtime.session.username,epoch:runtime.epoch()}:null,
     authorizeGrant:async()=>{const ctx=contexts.getStore();if(!ctx?.approved||ctx.source==='task'||ctx.source==='plugin')return false;await ctx.beforeWrite();return true;},
     resolveOperation:name=>{const op=operations.get(name);return op&&!op.localOnly&&!/^(tasks|plugins|notifications|im|agent|auth|config)\./.test(name)?{mutation:!!op.mutation,validate:args=>validate(args,op.parameters)}:undefined;},
-    dispatch:async(operation,args,{confirmationGrant,signal})=>{liveGrants.add(confirmationGrant);return call({operation,args},{signal},confirmationGrant);},
+    dispatch:async(operation,args,{confirmationGrant,signal})=>{liveGrants.add(confirmationGrant);return call({operation,args},{signal},confirmationGrant,appEnabled);},
     notify:async(channel,text,idempotencyKey,{confirmationGrant,signal})=>{
       await confirmationGrant.assertActive();if(!confirmationGrant.channels.includes(channel))throw new Error('TASK_CHANNEL_OUTSIDE_GRANT');
       const result=await (await notifications()).sendTask(channel,{text,idempotencyKey},{confirm:true,signal,beforeWrite:()=>confirmationGrant.assertActive()});
@@ -205,21 +210,22 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
   controls('im.start','Start configured IM reception',tuple([string],0),([channel])=>gateway.start(channel),true,true);
   controls('im.stop','Stop IM reception and cancel its active requests',tuple([string],0),([channel])=>gateway.stop(channel),true,true);
   controls('im.remove','Permanently remove an IM binding and its reception configuration',tuple([string]),([channel])=>gateway.remove(channel,{confirm:true}),true,true);
-  async function resumeResident(){if(enabled&&resident&&runtime.session.state==='ready'){taskManager.start();await gateway.start();}}
+  async function resumeResident(){if(!retiring&&(enabled||appEnabled)&&resident&&runtime.session.state==='ready'){taskManager.start();if(enabled)await gateway.start();}}
   async function stopResident(){policyEpoch++;for(const controller of controllers)controller.abort();await gateway.stop();await taskManager.stop();}
-  const policy=()=>({enabled,automatic,configured,confirmationMode:confirmationMode(automatic)});
-  async function setPolicy(input:{enabled:boolean;automatic:boolean}){
+  const policy=()=>({enabled,appEnabled,automatic,configured,confirmationMode:confirmationMode(automatic)});
+  async function setPolicy(input:{enabled:boolean;automatic:boolean;appEnabled?:boolean}){
     if(closed||closing)throw new Error('CLI_RUNTIME_CLOSED');
     await stopResident();
     // Revocation takes effect even if persistence fails; enabling takes effect
     // only after the complete device-local policy has reached disk.
-    if(!input.enabled)enabled=false;if(!input.automatic)automatic=false;
+    if(!input.enabled)enabled=false;if(!input.automatic)automatic=false;if(!input.appEnabled)appEnabled=false;
     await store.write('execution-policy',{...input,configured:true});
-    enabled=input.enabled;automatic=input.automatic;configured=true;
+    enabled=input.enabled;appEnabled=input.appEnabled??false;automatic=input.automatic;configured=true;
     await resumeResident();return policy();
   }
-  const desktop=createDesktopBridge({runtime,tasks:taskManager,policy,setPolicy,stop:stopResident,resume:resumeResident,exclusive,store,
-    call:(input,beforeWrite,signal)=>call(input,{source:'local',beforeWrite,signal}),notifications});
+  const desktop=createDesktopBridge({runtime,tasks:taskManager,policy,setPolicy,stop:stopResident,resume:resumeResident,exclusive,dataExclusive,store,
+    retire:async()=>{retiring=true;await stopResident();await store.write("desktop-retired",true);},unretire:async()=>{await store.write("desktop-retired",false);retiring=false;await resumeResident();},
+    call:(input,beforeWrite,signal)=>call(input,{source:'local',beforeWrite,signal},undefined,true),notifications});
   function list(source:CallSource='local') {
     return {name:'OneTHU CLI',version:VERSION,platform:process.platform,mode:'standalone',session:runtime.status(),enabled,confirmationMode:confirmationMode(automatic),
       operations:[...operations.values()].filter(op=>source==='local'||!op.localOnly).map(({run,...op})=>({...op,mutation:!!op.mutation})),
@@ -235,12 +241,12 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
     async setEnabled(value:boolean,opts:{confirm?:boolean}={}) {
       if(opts.confirm!==true||typeof value!=='boolean')throw new Error('CLI_LOCAL_APPROVAL_REQUIRED');
       if(closed||closing)throw new Error('CLI_RUNTIME_CLOSED');
-      return exclusive(()=>setPolicy({enabled:value,automatic}));
+      return exclusive(async()=>{if(value){await store.write("desktop-retired",false);retiring=false;}return setPolicy({enabled:value,automatic,appEnabled});});
     },
     async setAutomatic(value:boolean,opts:{confirm?:boolean}={}) {
       if(opts.confirm!==true||typeof value!=='boolean')throw new Error('CLI_LOCAL_APPROVAL_REQUIRED');
       if(closed||closing)throw new Error('CLI_RUNTIME_CLOSED');
-      return exclusive(async()=>{await setPolicy({enabled,automatic:value});return {confirmationMode:confirmationMode(automatic)};});
+      return exclusive(async()=>{await setPolicy({enabled,automatic:value,appEnabled});return {confirmationMode:confirmationMode(automatic)};});
     },
     async start(){resident=true;await runtime.restore();await resumeResident();},
     async close(){

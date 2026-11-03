@@ -51,7 +51,7 @@ The login prompt hides your password, then lets you select a university verifica
 
 Default data directories are `~/Library/Application Support/OneTHU CLI` on macOS and `%LOCALAPPDATA%\OneTHU CLI` on Windows. Other platforms use `$XDG_DATA_HOME/OneTHU CLI`, falling back to `~/.local/share/OneTHU CLI`. Use `--data-dir ABS_PATH` or `ONETHU_DATA_DIR` to select an isolated directory.
 
-One resident runtime owns each data directory. The desktop app, OH and the default CLI share its session, device identity, execution policy, tasks and history. Signing in through either interface makes the same account available to the other. The desktop loads its bundled background runtime; approved tasks continue after the app closes. Use `--desktop` for services requiring the graphical app, or an explicit `--data-dir` for an isolated profile.
+One resident runtime owns each data directory. The desktop app, OH and the default CLI share its session, device identity, execution policy, tasks and history. Signing in through either interface makes the same account available to the other. The desktop can install the optional background component; approved tasks then continue after the app closes. OH in-app services work independently of external CLI access. Use `--desktop` for services requiring the graphical app, or an explicit `--data-dir` for an isolated profile.
 
 Use `commands` for the current capability catalog and `schema` for argument definitions. Both `--args` and UTF-8 `--args-file` accept positional **JSON arrays**. Argument files are especially useful on Windows. Successful JSON goes to stdout; safe errors go to stderr. Queries do not call a model. Service calls have a 150-second upper bound; `--timeout MS` can shorten the client budget. Its default is 120000 ms, with an accepted range of 1–600000 ms; a larger value does not lift the service limit. `ONETHU_TIMEOUT_MS` sets the same client option.
 
@@ -126,7 +126,7 @@ onethu daemon install --confirm
 onethu daemon uninstall --confirm
 ```
 
-Desktop packages for macOS and Windows include Node and the resident program. First startup transfers the existing session and task records to it; installing only the CLI still requires Node.js. macOS uses a user LaunchAgent; Windows uses a scheduled task for the current user. Checks cannot run while the computer is asleep, shut down or offline. Use `onethu daemon serve` for foreground troubleshooting. `stop` stops the current process; `uninstall` separately removes its autostart registration.
+Desktop app packages omit Node/CLI. The optional platform ZIP includes Node; first connection transfers existing session, calendar and task records. Source/npm entry points need an installed Node.js runtime. macOS uses a user LaunchAgent; Windows uses a scheduled task for the current user. Checks cannot run while the computer is asleep, shut down or offline. Use `onethu daemon serve` for foreground troubleshooting. `stop` stops the current process; `uninstall` separately removes its autostart registration.
 
 On macOS, running `daemon install --confirm` again can update this CLI/profile's existing autostart entry and select the bundled Node. Running tasks continue; the new launch path applies at the next operating-system login, as indicated by `reloadRequired` in the result.
 
@@ -257,3 +257,8 @@ Fixtures cover login/2FA, stable device fingerprints, real CLI subprocesses, tas
 Mail, CalDAV, cloud storage and external assignments use independent configuration. `memory.*` only reads Markdown from the independent account directory; desktop data is not copied implicitly. Canvas operations and tab navigation remain GUI features. Final campus-visit form submission and actual sports bookings retain official interactive flows. Scheduled tasks currently have no quiet hours or dedicated deduplicated session-expiry notifications; failures appear in task history.
 
 The [project license](LICENSE) contains additional terms. Dependency notices ship in `dist/sdk/THIRD_PARTY_NOTICES.txt`.
+
+
+## Optional platform package (0.11.4-fix-2)
+
+Desktop app installers omit Node and CLI resources. Install or uninstall the optional component from full-mode onboarding or OH settings. The platform ZIP includes a verified Node runtime: extract it and run `./onethu` on macOS or `.\onethu.cmd` on Windows. Source/npm entry points still need Node. OH in the app works without CLI installation or external CLI access. The default terminal client prefers the running app catalog, then the resident account host. Calendar events and mailbox configuration share account records; uninstall preserves profile data and transfers jobs back to the app.

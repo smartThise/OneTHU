@@ -90,6 +90,10 @@ jobs:
       - name: Check SDK runtime
         timeout-minutes: 6
         run: pnpm --filter @onethu/sdk exec node --import tsx --test --test-timeout=60000 test/*.test.*
+      - name: Check native CLI profile startup and updater IPC
+        run: |
+          node tools/native-cli-startup-test.mjs
+          node tools/updater-native-epoch-test.mjs
       - name: Check Windows WebView threading
         run: node tools/windows-webview-threading-test.mjs
       - name: Check desktop window ownership
@@ -126,6 +130,10 @@ jobs:
           node --import ./tools/ts-resolve-register.mjs tools/update-language-test.mjs
           node tools/update-check-lifecycle-test.mjs
           node --import ./tools/ts-resolve-register.mjs tools/news-language-test.mjs
+      - name: Check schedule navigation and viewport policy
+        run: |
+          node tools/schedule-week-swipe-test.mjs
+          node tools/pc-layout-test.mjs
       - name: Check mobile interaction state
         run: |
           node --import ./tools/ts-resolve-register.mjs tools/mobile-layout-test.mjs
@@ -144,7 +152,11 @@ jobs:
           SCCACHE_GHA_ENABLED: "true"
           TAURI_SIGNING_PRIVATE_KEY: ""
           TRACE_AMAP_KEY: ${{ secrets.TRACE_AMAP_KEY }}
-      - name: Verify bundled resident runtime
+      - name: Verify thin application package
+        run: node tools/cli-optional-package-test.mjs
+      - name: Build optional CLI package
+        run: node apps/desktop/scripts/package-cli.mjs
+      - name: Verify optional resident runtime
         timeout-minutes: 2
         run: node tools/bundled-cli-startup-test.mjs
       - name: Record frozen source
@@ -155,6 +167,8 @@ jobs:
           name: onethu-${{ matrix.os }}
           path: |
             release-source.json
+            output/cli-package/*.zip
+            output/cli-package/*.sha256
             apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
             apps/desktop/src-tauri/target/release/onethu.exe
             apps/desktop/src-tauri/target/**/*.dmg

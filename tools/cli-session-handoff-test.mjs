@@ -11,6 +11,7 @@ const mergeNode=sharedAst.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name
 const mergeCode=ts.transpileModule(mergeNode.getText(sharedAst).replace(/^export\s+/,''),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
 const mergeSameAccountServiceCookies=new Function(mergeCode+';return mergeSameAccountServiceCookies;')();
 function functionsAt(path, names, env, imports = {}, setup = '', result = `{${names.join(',')}}`) {
+  env={initCliInstallation:async()=>{},...env};
   const ast = ts.createSourceFile(path, source(path), ts.ScriptTarget.Latest, true);
   const selected = names.map(name => {
     const fn = ast.statements.find(item => ts.isFunctionDeclaration(item) && item.name?.text === name);
@@ -84,7 +85,7 @@ function resumeFixture(importFails, { sharedState = "ready", local = null, block
     ...policy,
     usesSharedRuntime: () => true, finishPendingSharedLogout: async () => {}, readPendingSharedHandoff: async () => null,
     loadConsistentSessionSnapshot: async()=>local, mergeSameAccountServiceCookies,
-    exportSharedSession: async () => {if(startupFailure)throw Error('CLI_DAEMON_START_FAILED');return { username: 'account-a', epoch: 2, session: { state: sharedState }, snapshot: saved };},
+    exportSharedSession: async () => {if(startupFailure)throw Error(typeof startupFailure==='string'?startupFailure:'CLI_DAEMON_START_FAILED');return { username: 'account-a', epoch: 2, session: { state: sharedState }, snapshot: saved };},
     exportNativeSessionCookies: async () => ({ ...native }),
     importNativeSessionCookies: async (cookies, revision) => {
       assert.equal(revision, native.revision); events.push('import-native');
@@ -128,6 +129,21 @@ await test('a failed background startup still restores the GUI owned native scho
   const f=resumeFixture(false,{startupFailure:true,local:snapshot});
   assert.equal(await f.performResumeSession(),true);assert.equal(f.session.state,'ready');
   assert.equal(f.events.includes('import-native'),false);assert.equal(f.native.cookies[0].value,cookie.value);
+});
+await test('CLI profile write failures preserve native GUI login and keep identity conflicts blocked',async()=>{
+  const f=resumeFixture(false,{startupFailure:'CLI_DAEMON_INSTALL_UNAVAILABLE',local:snapshot});
+  assert.equal(await f.performResumeSession(),true);assert.equal(f.session.state,'ready');assert.equal(f.events.includes('import-native'),false);
+  for(const code of ['CLI_DAEMON_UNSAFE_PATH','CLI_DAEMON_RUNTIME_CHECKSUM_FAILED','CLI_SHARED_SESSION_CHANGED','AUTH_HANDOFF_UNVERIFIED'])assert.equal(policy.isSharedRuntimeUnavailable(code),false,code);
+});
+await test('explicit school login reaches 2FA even when the optional CLI profile is unavailable',async()=>{
+  const events=[],session={state:'idle',username:'',finger3:''};
+  const api=functionsAt('apps/desktop/src/lib/clients.ts',['performLogin'],{
+    ...policy,usesSharedRuntime:()=>true,finishPendingSharedLogout:async()=>{},
+    getSharedRuntimeStatus:async()=>{throw Error('CLI_DAEMON_INSTALL_UNAVAILABLE')},
+    logLine:async()=>{},currentFingerprint:async()=> 'retained-device',session,
+  },{'./infoLib.js':{assertLoginAccount(){},helper:{},setLibFinger3(){},libLogin:async()=>{events.push('school-login');return {state:'need-2fa',methods:[{type:'sms'}],debugHtml:''}}}},'let loginSharedEpoch=1,loginSharedAccount=null,pendingSecret=null;');
+  const result=await api.performLogin('account-a','synthetic-only',{remember:true});
+  assert.equal(result.state,'need-2fa');assert.equal(session.state,'need-2fa');assert.equal(session.username,'account-a');assert.deepEqual(events,['school-login']);
 });
 await test('deferred login binds only to the same account or a fresh non-logged-out daemon',async()=>{
   for(const shared of [

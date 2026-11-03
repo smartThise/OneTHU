@@ -25,7 +25,7 @@ import { redactNetworkLog } from "./networkLog.js";
 import { loginFailureDiagnostic } from "./loginErrors.js";
 import { probeLearnSession } from "./learnRecovery.js";
 import { withPrivacy } from "./privacy.js";
-import { adoptSharedSession, exportSharedSession, exportNativeSessionCookies, importNativeSessionCookies, mergeSameAccountServiceCookies, getSharedRuntimeStatus, logoutSharedSession, updateSharedPolicy, usesSharedRuntime, type SharedRuntimeStatus, type SharedSessionSnapshot } from "./sharedRuntime.js";
+import { initCliInstallation, adoptSharedSession, exportSharedSession, exportNativeSessionCookies, importNativeSessionCookies, mergeSameAccountServiceCookies, getSharedRuntimeStatus, logoutSharedSession, updateSharedPolicy, usesSharedRuntime, type SharedRuntimeStatus, type SharedSessionSnapshot } from "./sharedRuntime.js";
 import { canBindDeferredLogin, isSharedRuntimeUnavailable } from "./sharedAuthPolicy.js";
 
 export type { TwoFactorMethod };
@@ -387,6 +387,7 @@ async function performLogin(
   password: string,
   opts: { remember?: boolean } = {},
 ): Promise<{ state: "ready" } | { state: "need-2fa"; methods: TwoFactorMethod[]; debugHtml: string }> {
+  await initCliInstallation();
   // Capture before credential submission. A CLI logout/account switch during
   // the school login must win over the result of this older attempt.
   if (usesSharedRuntime()) {
@@ -624,6 +625,32 @@ async function performSharedSessionHandoff(): Promise<SharedSessionSnapshot | nu
   sharedHandoffRetryAfter = 0;
   return adopted;
 }
+/** Transfer the current account jar before removing its optional resident host. */
+export async function detachInstalledCli(): Promise<void> {
+  if(!usesSharedRuntime()||session.state!=="ready")return;
+  const owner=session.username;
+  const shared=await exportSharedSession();
+  if(shared.username!==owner||!shared.snapshot)throw new Error("CLI_SHARED_SESSION_CHANGED");
+  const native=await exportNativeSessionCookies();
+  const cookies=mergeSameAccountServiceCookies(JSON.parse(shared.snapshot.cookiesJson),native.cookies,owner,owner);
+  if(session.username!==owner)throw new Error("CLI_SHARED_SESSION_CHANGED");
+  await importNativeSessionCookies(cookies,native.revision);
+  const snapshot={...shared.snapshot,cookiesJson:JSON.stringify(cookies),savedAt:Date.now()};
+  http.jar.hydrate(snapshot.cookiesJson);learnHttp.jar.hydrate(snapshot.cookiesJson);
+  await saveSessionSnapshot(snapshot);
+}
+/** Explicit package installation binds to the existing native school account. */
+export async function connectInstalledCli(): Promise<void> {
+  if (!usesSharedRuntime() || session.state !== "ready" || !session.username) return;
+  const shared = await getSharedRuntimeStatus();
+  if (shared.username && shared.username !== session.username) throw new Error("CLI_SHARED_SESSION_CHANGED");
+  await stageSharedHandoff(currentSessionSnapshot(), {username:shared.username,epoch:shared.epoch}, shared.bootstrapAllowed ? "bootstrap" : "login");
+  await retrySharedSessionHandoff();
+  const policy = await import("../state/userext.js");
+  const consent = await import("../state/privacyConsent.js");
+  await updateSharedPolicy(policy.mcpServerEnabled() && consent.ohAuthorized(), policy.cliAutoExecuteEnabled());
+  await prepareSharedTasksAfterLogin();
+}
 export function retrySharedSessionHandoff(): Promise<SharedSessionSnapshot | null> {
   if (sharedHandoffRequest) return sharedHandoffRequest;
   const pending = performSharedSessionHandoff();
@@ -689,6 +716,7 @@ let fingerprintRequest: Promise<string> | null = null;
 export function currentFingerprint(): Promise<string> {
   if (fingerprintRequest) return fingerprintRequest;
   fingerprintRequest = (async () => {
+    await initCliInstallation();
     if (usesSharedRuntime()) {
       try {
         const shared = await exportSharedSession();
@@ -811,6 +839,7 @@ async function loadConsistentSessionSnapshot(): Promise<SessionData | null> {
 }
 
 async function performResumeSession(): Promise<boolean> {
+  await initCliInstallation();
   const generation = resumeGeneration;
   resumeSnapshotUsername = null;
   void logLine("PROBE resume-entry").catch(() => undefined);

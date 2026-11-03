@@ -1,7 +1,236 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.vault.vaultexchangeactions.a5ffbae552f7",
+      "source": "复制未完成，请长按或选中上方口令手动复制。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultExchangeActions.tsx",
+          "line": 98,
+          "context": "new Error(i18n(\"components.vault.vaultexchangeactions.a5ffbae552f7\"))"
+        }
+      ],
+      "translation": "Copy was not completed; long-press or select the share code above to copy it manually.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultexchangeactions.a840e8381cf3",
+      "source": "分享内容",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultExchangeActions.tsx",
+          "line": 111,
+          "context": "view === \"send\" ? i18n(\"components.vault.vaultexchangeactions.a840e8381cf3\") : i18n(\"components.vault.vaultexchangeactions.3580f829b532\")"
+        }
+      ],
+      "translation": "Share content",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultexchangeactions.aae2b6b66901",
+      "source": "这个组织已不在列表中，请重新选择。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultExchangeActions.tsx",
+          "line": 66,
+          "context": "new Error(i18n(\"components.vault.vaultexchangeactions.aae2b6b66901\"))"
+        }
+      ],
+      "translation": "This organization is no longer in the list; please choose again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultexchangeactions.ad0b66c6915d",
+      "source": "剪贴板里还没有口令，请复制后再试。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultExchangeActions.tsx",
+          "line": 90,
+          "context": "new Error(i18n(\"components.vault.vaultexchangeactions.ad0b66c6915d\"))"
+        }
+      ],
+      "translation": "There is no share code in the clipboard yet; copy one and try again.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultexchangeactions.b1bd19b13336",
+      "source": "组织名片",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultExchangeActions.tsx",
+          "line": 141,
+          "context": "{i18n(\"components.vault.vaultexchangeactions.b1bd19b13336\")}"
+        }
+      ],
+      "translation": "Organization card",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultexchangeactions.b22a92ecd85c",
+      "source": "继续接收",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultExchangeActions.tsx",
+          "line": 151,
+          "context": "{i18n(\"components.vault.vaultexchangeactions.b22a92ecd85c\")}"
+        }
+      ],
+      "translation": "Continue receiving",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultexchangeactions.b52e35824750",
+      "source": "撤销分享",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultExchangeActions.tsx",
+          "line": 127,
+          "context": "{i18n(\"components.vault.vaultexchangeactions.b52e35824750\")}"
+        }
+      ],
+      "translation": "Revoke share",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultexchangeactions.bd3dfaa014dc",
+      "source": "名片随组合口令发送；箱内内容与组织仍按各自权限读取。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultExchangeActions.tsx",
+          "line": 122,
+          "context": "combination ? i18n(\"components.vault.vaultexchangeactions.bd3dfaa014dc\") : payload?.allowEmail ? i18n(\"components.vault.vaultexchangeactions.90af63ce1115\", { allowEmail: String(payload.allowEmail) }) : i18n(\"components.vault.vaultexchangeactions.c8176173ee4c\")"
+        }
+      ],
+      "translation": "The card is sent with the combined share code; box contents and the organization are still read under their own permissions.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultexchangeactions.c0b3fbff51cc",
+      "source": "完成",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultExchangeActions.tsx",
+          "line": 150,
+          "context": "{i18n(\"components.vault.vaultexchangeactions.c0b3fbff51cc\")}"
+        }
+      ],
+      "translation": "Done",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultexchangeactions.c4070317e698",
+      "source": "{length} 项内容 · 生成时保存一份快照",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(target.items.length)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultExchangeActions.tsx",
+          "line": 134,
+          "context": "target.items.length ? i18n(\"components.vault.vaultexchangeactions.c4070317e698\", { length: String(target.items.length) }) : i18n(\"components.vault.vaultexchangeactions.74acec2e689a\")"
+        }
+      ],
+      "translation": "{length} items · A snapshot is saved when created",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultexchangeactions.c8176173ee4c",
+      "source": "持有这条口令的人可以接收，请只发给希望分享的人。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultExchangeActions.tsx",
+          "line": 122,
+          "context": "payload?.allowEmail ? i18n(\"components.vault.vaultexchangeactions.90af63ce1115\", { allowEmail: String(payload.allowEmail) }) : i18n(\"components.vault.vaultexchangeactions.c8176173ee4c\")"
+        }
+      ],
+      "translation": "Anyone holding this share code can receive it; only send it to people you want to share with.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultexchangeactions.cfe420a86519",
+      "source": "粘贴剪贴板",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultExchangeActions.tsx",
+          "line": 158,
+          "context": "{i18n(\"components.vault.vaultexchangeactions.cfe420a86519\")}"
+        }
+      ],
+      "translation": "Paste from clipboard",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultexchangeactions.d351c99d90dc",
+      "source": "个人名片还没有姓名，请先在「我的」中填写。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultExchangeActions.tsx",
+          "line": 65,
+          "context": "new Error(i18n(\"components.vault.vaultexchangeactions.d351c99d90dc\"))"
+        }
+      ],
+      "translation": "Your personal card has no name yet; please fill it in under “Me” first.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultexchangeactions.d8af406df93e",
+      "source": "箱子会另存为新暂存箱，原来的内容继续保留。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultExchangeActions.tsx",
+          "line": 153,
+          "context": "{i18n(\"components.vault.vaultexchangeactions.d8af406df93e\")}"
+        }
+      ],
+      "translation": "The box will be saved as a new Stash; the original content is kept.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "components.vault.vaultexchangeactions.ddc1d8107144",
       "source": "口令已复制",
@@ -1090,245 +1319,6 @@
         }
       ],
       "translation": "Stash",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.vaultsheet.81e4bd9720a0",
-      "source": "入口位置",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/VaultSheet.tsx",
-          "line": 34,
-          "context": "{i18n(\"components.vault.vaultsheet.81e4bd9720a0\")}"
-        }
-      ],
-      "translation": "Entry position",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.vaulttextpreview.29636e43fdb4",
-      "source": "复制文字",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/VaultTextPreview.tsx",
-          "line": 28,
-          "context": "{i18n(\"components.vault.vaulttextpreview.29636e43fdb4\")}"
-        }
-      ],
-      "translation": "Copy text",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.vaulttextpreview.654ba67673c8",
-      "source": "复制失败，可直接选中正文手动复制",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/VaultTextPreview.tsx",
-          "line": 27,
-          "context": "showToast(i18nMsg(\"components.vault.vaulttextpreview.654ba67673c8\"))"
-        }
-      ],
-      "translation": "Copy failed; you can select the text and copy it manually",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.vaulttextpreview.cd78767c92e6",
-      "source": "文字已复制",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/VaultTextPreview.tsx",
-          "line": 27,
-          "context": "showToast(i18nMsg(\"components.vault.vaulttextpreview.cd78767c92e6\"))"
-        }
-      ],
-      "translation": "Text copied",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.vaultworkspace.017799558da2",
-      "source": "没有找到相关内容",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
-          "line": 123,
-          "context": "term ? i18n(\"components.vault.vaultworkspace.017799558da2\") : i18n(\"components.vault.vaultworkspace.2a6304d5346d\")"
-        }
-      ],
-      "translation": "No matching content found",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.vaultworkspace.01c3348965f5",
-      "source": "新建暂存箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
-          "line": 74,
-          "context": "openFormModal(i18nMsg(\"components.vault.vaultworkspace.01c3348965f5\"), [{ key: \"name\", label: i18nMsg(\"components.vault.vaultworkspace.c95ed9f3eec2\"), required: true, default: i18n(\"components.vault.vaultworkspace.4dc6d8e7a87a\") }])"
-        },
-        {
-          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
-          "line": 109,
-          "context": "{i18n(\"components.vault.vaultworkspace.01c3348965f5\")}"
-        },
-        {
-          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
-          "line": 114,
-          "context": "{i18n(\"components.vault.vaultworkspace.01c3348965f5\")}"
-        }
-      ],
-      "translation": "New Stash",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.vault.vaultworkspace.04393fb8fdca",
-      "source": "原暂存箱已删除，请重新添加文件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
-          "line": 66,
-          "context": "new Error(i18n(\"components.vault.vaultworkspace.04393fb8fdca\"))"
-        }
-      ],
-      "translation": "The original Stash has been deleted; please add the files again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.vaultworkspace.04d78aa54101",
-      "source": "暂存项操作菜单",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
-          "line": 129,
-          "context": "{i18n(\"components.vault.vaultworkspace.04d78aa54101\")}"
-        }
-      ],
-      "translation": "Stash item action menu",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.vaultworkspace.0d0cbac2eee5",
-      "source": "重命名",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
-          "line": 82,
-          "context": "label: i18n(\"components.vault.vaultworkspace.0d0cbac2eee5\")"
-        }
-      ],
-      "translation": "Rename",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.vault.vaultworkspace.105a1b5daf4b",
-      "source": "{length} 项内容，随时取用",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(box.items.length)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
-          "line": 115,
-          "context": "box.items.length ? i18n(\"components.vault.vaultworkspace.105a1b5daf4b\", { length: String(box.items.length) }) : i18n(\"components.vault.vaultworkspace.61924286426a\")"
-        }
-      ],
-      "translation": "{length} items, ready whenever you need them",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.vaultworkspace.124b06b7f26a",
-      "source": "长按收纳 · 拖到 OH 胶囊交给小OH",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
-          "line": 126,
-          "context": "{i18n(\"components.vault.vaultworkspace.124b06b7f26a\")}"
-        }
-      ],
-      "translation": "Press and hold to stash · Drag onto the OH capsule to hand it to OH",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.vaultworkspace.13a5f3ed956e",
-      "source": "目标暂存箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
-          "line": 95,
-          "context": "label: i18nMsg(\"components.vault.vaultworkspace.13a5f3ed956e\")"
-        }
-      ],
-      "translation": "Target Stash",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.vault.vaultworkspace.17fa33d72406",
-      "source": "当前暂存箱",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
-          "line": 115,
-          "context": "{i18n(\"components.vault.vaultworkspace.17fa33d72406\")}"
-        }
-      ],
-      "translation": "Current Stash",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.vault.vaultworkspace.1cb589a18057",
-      "source": "目标暂存箱已不存在，请重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
-          "line": 99,
-          "context": "showToast(i18nMsg(\"components.vault.vaultworkspace.1cb589a18057\"))"
-        }
-      ],
-      "translation": "The target Stash no longer exists; please try again",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

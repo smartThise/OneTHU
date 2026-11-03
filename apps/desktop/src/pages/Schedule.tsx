@@ -59,7 +59,7 @@ import {
 import { info } from "../lib/clients.js";
 import { toHomework, useExternalHomework } from "../state/exthw.js";
 import { useApp } from "../state/context.js";
-import { usePlatformLayout } from "../state/usePlatformLayout.js";
+import { usePlatformLayout, useTouchInteraction } from "../state/usePlatformLayout.js";
 import { courseColor, SRC_COLOR } from "../lib/courseColor.js";
 import { useNotifyBackend } from "../components/useNotifyBackend.js";
 import { openLocalPath } from "../lib/localFile.js";
@@ -67,6 +67,7 @@ import { scheduleHomework, type ScheduleHomework } from "../lib/scheduleHomework
 import { calendarDraftRange } from "../lib/calendarDraft.js";
 import { confirmDanger } from "../lib/confirm.js";
 import { appendSecondarySchedule } from "../lib/scheduleSecondary.js";
+import { installWeekSwipe, type WeekNavigation } from "../lib/weekSwipe.js";
 
 const DAY_NAMES = i18nList(["pages.schedule.c430f4c12eaa","pages.schedule.d1378a68e620","pages.schedule.2961168962be","pages.schedule.e9d3b01a5a00","pages.schedule.572388f3b096","pages.schedule.f9aa11dbb15c","pages.schedule.ee239f394329"]);
 /** 时间轴的列数：**恒为一周 7 列**（用户 2026-10-18：日程的时间轴完全以周为单位，
@@ -84,12 +85,11 @@ const WIN_TO_OPTS = Array.from({ length: 24 }, (_, i) => (i + 1) * 60);
 
 /** 显示区间（分钟）：**可被用户设置覆盖**（state/scheduleWindow.ts）。
  *  比例不是常量：整周课表要**整屏铺满**，所以每渲染帧按可用高度算出 px/分钟
- *  （see fitAxis）。y() 每次调用读当前值，因此所有调用点自动跟随。 */
+ *  （see fitAxis）。块和网格线使用百分比几何，随 flex 画布填满可用高度。 */
 let AXIS_BEGIN = 0;
 let AXIS_END = 24 * 60;
 /** 每 1 分钟折几像素：fitAxis 按可用高度与显示区间计算，保证一屏放下一整天 */
 let PX_PER_MIN = 0.52;
-const y = (min: number) => (min - AXIS_BEGIN) * PX_PER_MIN;
 /** "HH:MM" → 距 0:00 分钟（非法/缺省返回 null） */
 const hmToMin = (t?: string): number | null => {
   const m = /^(\d{1,2}):(\d{2})/.exec(t ?? "");
@@ -426,7 +426,7 @@ function buildDraftEvent(
 export function SchedulePage() {
   const uiLocale = useUiLocale();
 
-  // 展示时段（用户可选；默认全天）。放在最前：下面所有 y()/刻度都依赖它
+  // 展示时段（用户可选；默认全天）。放在最前：下面的坐标轴与刻度都依赖它
   const [win, setWin] = useScheduleWindow();
   // Reuse any campus snapshot as fallback; do not start a second full-campus
   // crawl alongside the shared Learn request just to render this page.
@@ -455,6 +455,7 @@ export function SchedulePage() {
   /** 视图模式：时间轴（周网格 24h）/ 列表（月历+所选日清单）。
    *  时间轴在任何端都是"一周"（7 列），手机不降级成单日页。 */
   const tier = usePlatformLayout();
+  const touchInteraction = useTouchInteraction();
   const [mode, setMode] = useState<"timetable" | "agenda">("timetable");
   const modeTouched = useRef(false);
   const pickMode = (m: "timetable" | "agenda"): void => {
@@ -497,13 +498,7 @@ export function SchedulePage() {
   }, [uiLocale, mode, anchor, weekStart]);
 
   /* ---------- 时间轴数据：日期窗取数（不再依赖学期内） ---------- */
-  const windowKey = `${ymdOf(viewWindow[0])}_${ymdOf(viewWindow[1])}`;
-  /** 窗口课表。首屏先吃持久缓存（schedwin 是落过盘的）——以前从 null 起，
-   *  每次进页都要等网络回来才出教务课，表现为「进去先空一下，只剩自定义日程/补课/DDL」
-   *  （2026-10-26 手机实测）。缓存只在本窗口有值时采用，切周没有缓存就沿用旧行等网络。 */
-  const [windowRows, setWindowRows] = useState<ScheduleEntry[] | null>(
-    () => cacheGet<ScheduleEntry[]>(`schedwin:${windowKey}`)?.data ?? null,
-  );
+  const [windowResult, setWindowResult] = useState<{ key: string; rows: ScheduleEntry[] } | null>(null);
   const [winLoading, setWinLoading] = useState(false);
   const [winError, setWinError] = useState<string | null>(null);
   /** 弹层退场相位由 OneGUI Modal/Popover 的 Shell 附带（进退场+遮罩+Esc+滚动锁全部库承担），
@@ -512,11 +507,9 @@ export function SchedulePage() {
    *  后教务/漫游会话重建需几秒，softRecover 的一次原地重取不够——静默自愈,
    *  红条不再吓人（2026-09-19 快速往返实录） */
   const winRetryRef = useRef<{ key: string; count: number }>({ key: "", count: 0 });
-  /** 切周/切月：先把该窗口的持久缓存放上去（有缓存才能瞬间出课），再让下面的网络请求覆盖。 */
-  useEffect(() => {
-    const cached = cacheGet<ScheduleEntry[]>(`schedwin:${windowKey}`)?.data;
-    if (cached) setWindowRows(cached);
-  }, [windowKey]);
+  const windowKey = `${ymdOf(viewWindow[0])}_${ymdOf(viewWindow[1])}`;
+  // A destination week uses its own cache immediately; previous-week rows stay in the exit layer.
+  const windowRows = windowResult?.key === windowKey ? windowResult.rows : cacheGet<ScheduleEntry[]>(`schedwin:${windowKey}`)?.data ?? null;
   useEffect(() => {
     if (mode !== "timetable") return; // 列表自取月窗
     let alive = true;
@@ -544,7 +537,7 @@ export function SchedulePage() {
           // 落持久缓存：系统日历 SWR 兜底的数据源（用户实锤「看得到课表但
           // 同步报会话失效」——页内 state 对兜底不可见）；重启后也活着
           cacheSet(`schedwin:${windowKey}`, rows, true);
-          if (alive) setWindowRows(rows);
+          if (alive) setWindowResult({ key: windowKey, rows });
         });
     grab()
       .catch(async (err) => {
@@ -566,7 +559,7 @@ export function SchedulePage() {
         }
         if (alive) {
           if (scheduleAutoRetry()) return;
-          setWindowRows([]);
+          setWindowResult({ key: windowKey, rows: [] });
           setWinError(err instanceof Error ? err.message : String(err));
         }
       })
@@ -701,24 +694,15 @@ export function SchedulePage() {
   AXIS_BEGIN = axis.from;
   AXIS_END = axis.to;
   PX_PER_MIN = axis.pmm;
-  /** 画布高度：正好填满可用高度（不滚动、不留白） */
-  const canvasH = Math.max(1, Math.floor((axis.to - axis.from) * axis.pmm));
+  // Percentage geometry follows the flex container immediately, including resizes and hidden-tab restoration.
+  const yPercent = (minute: number): number => (minute - axis.from) / (axis.to - axis.from) * 100;
 
   const placed = useMemo(() => layout(entries), [uiLocale, entries, axis.from, axis.to]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* 落在展示时段内的块 + 它们的「行号」。placed 是按天（列）再按时间排的，直接用数组序号
-     会变成竖直按列扫；入场应该按行（同一时间带跨天同时出现）、时间从早到晚自上而下。
-     行号 = 该块起始时刻在所有不同起始时刻里的序号。 */
   const visiblePlaced = useMemo(
-    () => placed.filter((p) => p.endMin > AXIS_BEGIN && p.beginMin < AXIS_END),
-    [uiLocale, placed, axis.from, axis.to], // eslint-disable-line react-hooks/exhaustive-deps
+    () => placed.filter((p) => p.endMin > axis.from && p.beginMin < axis.to),
+    [uiLocale, placed, axis.from, axis.to],
   );
-  const blockRows = useMemo(() => {
-    const keys = Array.from(new Set(visiblePlaced.map((p) => Math.max(p.beginMin, AXIS_BEGIN)))).sort((a, b) => a - b);
-    const m = new Map<number, number>();
-    keys.forEach((k, i) => m.set(k, i));
-    return m;
-  }, [uiLocale, visiblePlaced]);
 
   /** 所选周 7 个日期（时间轴表头） */
   const dayDates = useMemo(() => {
@@ -764,6 +748,26 @@ export function SchedulePage() {
   /** 窗口步进：时间轴 ±周，列表 ±月 */
   const stepAnchor = (dir: 1 | -1): Date =>
     clampAnchor(mode === "timetable" ? new Date(anchor.getTime() + dir * 7 * 86_400_000) : new Date(anchor.getFullYear(), anchor.getMonth() + dir, 15));
+  const anchorRef = useRef(anchor);
+  anchorRef.current = anchor;
+  const weekNavigation = useRef<WeekNavigation | null>(null);
+  useLayoutEffect(() => {
+    if (mode !== "timetable" || !scrollRef.current) return;
+    const navigation = installWeekSwipe(scrollRef.current, (dir) => {
+      const current = anchorRef.current;
+      const next = clampAnchor(new Date(current.getFullYear(), current.getMonth(), current.getDate() + dir * 7));
+      if (ymdOf(mondayOf(current)) === ymdOf(mondayOf(next))) return false;
+      anchorRef.current = next;
+      setAnchor(next);
+    }, !touchInteraction);
+    weekNavigation.current = navigation;
+    return () => { navigation.dispose(); weekNavigation.current = null; };
+  }, [mode, touchInteraction]);
+  useLayoutEffect(() => { weekNavigation.current?.commit(); }, [windowKey]);
+  const moveAnchor = (dir: -1 | 1): void => {
+    if (mode === "timetable" && weekNavigation.current) weekNavigation.current.step(dir, touchInteraction ? "x" : "y");
+    else setAnchor(stepAnchor(dir));
+  };
   const [jumpSemIdx, setJumpSemIdx] = useState(0);
   const [jumpWeek, setJumpWeek] = useState(1);
   const jumpSem = semesters[Math.min(jumpSemIdx, Math.max(semesters.length - 1, 0))] ?? null;
@@ -1029,6 +1033,7 @@ export function SchedulePage() {
             ) : null}
 
             <div className="schedule-timeline" ref={scrollRef}>
+            <div className="schedule-week">
             {/* 表头：**一周 7 列**（吸顶）；今天整列高亮 */}
             <div className="schedule-day-head" ref={headRef}>
               <div className="schedule-head-gutter" />
@@ -1044,17 +1049,17 @@ export function SchedulePage() {
 
             <div className="schedule-body">
               {/* 时间刻度列（跟随显示时段） */}
-              <div className="schedule-gutter" style={{ height: canvasH }}>
+              <div className="schedule-gutter">
                 {/* 极矮视口（手机横屏）一行只有十几像素：刻度隔一小时标一次，避免叠字 */}
                 {halfHours.filter((m) => m % (60 * (axis.pmm * 60 < 26 ? 2 : 1)) === 0).map((m) => (
-                  <div key={m} className="schedule-gutter-label" style={{ top: Math.max(0, Math.min(y(m) - 6, canvasH - 16)) }}>
+                  <div key={m} className="schedule-gutter-label" style={{ top: `clamp(0px, calc(${yPercent(m)}% - 6px), calc(100% - 16px))` }}>
                     {hhmm(m)}
                   </div>
                 ))}
               </div>
 
               {/* 画布 */}
-              <div className="schedule-canvas" style={{ height: canvasH }}>
+              <div className="schedule-canvas">
                 {/* 空周提示（网格照常渲染，提示浮于其上不挡交互） */}
                 {entries.length === 0 ? (
                   <div className="schedule-empty">
@@ -1073,7 +1078,7 @@ export function SchedulePage() {
                 ))}
                 {/* 半小时横线：整点略深 */}
                 {halfHours.map((m) => (
-                  <div key={`gl-${m}`} className={"schedule-grid-line" + (m % 60 === 0 ? " is-hour" : "")} style={{ top: y(m) }} />
+                  <div key={`gl-${m}`} className={"schedule-grid-line" + (m % 60 === 0 ? " is-hour" : "")} style={{ top: `${yPercent(m)}%` }} />
                 ))}
                 {/* 当前时刻红线（当前周）：线走 --og-error 状态令牌；圆点 = Badge dot */}
                 {inCurrentWeek
@@ -1083,7 +1088,7 @@ export function SchedulePage() {
                       return (
                         <div
                           className="schedule-now"
-                          style={{ left: `${(todayIdx * 100) / WEEK_COLUMNS}%`, width: `${100 / WEEK_COLUMNS}%`, top: y(nm) }}
+                          style={{ left: `${(todayIdx * 100) / WEEK_COLUMNS}%`, width: `${100 / WEEK_COLUMNS}%`, top: `${yPercent(nm)}%` }}
                         >
                           <div className="schedule-now-dot"><Badge dot standalone tone="error" /></div>
                         </div>
@@ -1098,7 +1103,7 @@ export function SchedulePage() {
                   // 跨区间的事件按边界裁切（区间外不画，避免负 top 溢出画布）
                   const drawBegin = Math.max(p.beginMin, AXIS_BEGIN);
                   const drawEnd = Math.min(p.endMin, AXIS_END);
-                  const top = y(drawBegin) + 1;
+                  const top = `calc(${yPercent(drawBegin)}% + 1px)`;
                   const height = Math.max((drawEnd - drawBegin) * PX_PER_MIN - 3, 16);
                   const compact = height < 34;
                   const showLocation = !compact && !!p.entry.location;
@@ -1112,8 +1117,6 @@ export function SchedulePage() {
                     1,
                     Math.min(40, Math.floor((innerH + 0.25) / Math.max(blockMetrics.lh, 1))),
                   );
-                  // 入场错峰：按「行」（时间带）递延——同一时刻跨天的块同时出现，从早到晚自上而下
-                  const delay = Math.min(blockRows.get(Math.max(p.beginMin, AXIS_BEGIN)) ?? 0, 16) * 13;
                   return (
                     <div
                       key={`b-${ymdOf(weekStart)}-${i}`}
@@ -1139,10 +1142,10 @@ export function SchedulePage() {
                         left: `calc(${leftPct}% + 2px)`,
                         width: `calc(${widthPct}% - 4px)`,
                         top,
-                        height,
+                        height: `max(16px, calc(${(drawEnd - drawBegin) / (axis.to - axis.from) * 100}% - 3px))`,
+                        maxHeight: `calc(100% - ${top})`,
                         // 数据色（一课一色）经 CSS 变量交给 schedule.css，TSX 不再写字面色
                         "--og-c-schedule-block": p.color,
-                        "--og-c-schedule-delay": `${delay}ms`,
                         // 标题行数按块高给（见 titleLines），长日程不再被固定 3 行截断
                         "--og-c-schedule-clamp": String(titleLines),
                       } as React.CSSProperties}
@@ -1169,6 +1172,7 @@ export function SchedulePage() {
             {/* 表格下方的呼吸区：只给滚动余量，让最末几行能滚到右下浮件之上再点。
                 在 .schedule-body 之外，不参与 availH → 表体尺寸不变。 */}
             <div className="schedule-canvas-tail" aria-hidden="true" />
+            </div>
             </div>
           </>
         )}
@@ -1198,7 +1202,7 @@ export function SchedulePage() {
               <div className="schedule-panel-block">
                 <Text slot="micro" tone="faint">{i18n("pages.schedule.f041b6d0cdd4")}</Text>
                 <div className="schedule-panel-row">
-                  <Btn variant="outline" size="sm" titleAttr={mode === "timetable" ? i18n("pages.schedule.c0b859346782") : i18n("pages.schedule.f9e727223456")} aria-label={mode === "timetable" ? i18n("pages.schedule.c0b859346782") : i18n("pages.schedule.f9e727223456")} onClick={() => setAnchor(stepAnchor(-1))}>‹</Btn>
+                  <Btn variant="outline" size="sm" titleAttr={mode === "timetable" ? i18n("pages.schedule.c0b859346782") : i18n("pages.schedule.f9e727223456")} aria-label={mode === "timetable" ? i18n("pages.schedule.c0b859346782") : i18n("pages.schedule.f9e727223456")} onClick={() => moveAnchor(-1)}>‹</Btn>
                   <Btn
                     className="schedule-panel-grow schedule-panel-label"
                     variant="outline"
@@ -1207,7 +1211,7 @@ export function SchedulePage() {
                     titleAttr={i18n("pages.schedule.a80ca7344396")}
                     onClick={() => setCalOpen((v) => !v)}
                   >{label}</Btn>
-                  <Btn variant="outline" size="sm" titleAttr={mode === "timetable" ? i18n("pages.schedule.31da7d33b80d") : i18n("pages.schedule.3e0b634699d4")} aria-label={mode === "timetable" ? i18n("pages.schedule.31da7d33b80d") : i18n("pages.schedule.3e0b634699d4")} onClick={() => setAnchor(stepAnchor(1))}>›</Btn>
+                  <Btn variant="outline" size="sm" titleAttr={mode === "timetable" ? i18n("pages.schedule.31da7d33b80d") : i18n("pages.schedule.3e0b634699d4")} aria-label={mode === "timetable" ? i18n("pages.schedule.31da7d33b80d") : i18n("pages.schedule.3e0b634699d4")} onClick={() => moveAnchor(1)}>›</Btn>
                   <Btn variant="outline" size="sm" onClick={() => { setAnchor(new Date()); setSelected(todayStr); }}>{i18n("pages.schedule.b4c6c3eb0bce")}</Btn>
                 </div>
                 <div className="schedule-panel-row">

@@ -11,6 +11,7 @@ export interface LearnCourseCardProps {
   schedule?: string;
   source: "learn" | "yuketang";
   stats: { hw: number; notices: number; files: number };
+  officialUnread?: { notices?: number; files?: number };
   audited?: boolean;
   aside?: ReactNode;
   onOpen: () => void;
@@ -21,7 +22,7 @@ export interface LearnCourseCardProps {
 /** Both sources share one card. Independent actions are siblings of the main
  * course button, so click, Enter and Space never open two different pages. */
 export function LearnCourseCard({
-  courseId, title, details, schedule, source, stats, audited, aside, onOpen, onOpenSection, yktEntry,
+  courseId, title, details, schedule, source, stats, officialUnread, audited, aside, onOpen, onOpenSection, yktEntry,
 }: LearnCourseCardProps): ReactNode {
   const uiLocale = useUiLocale();
 
@@ -68,6 +69,8 @@ export function LearnCourseCard({
           {audited ? <Tag>{i18n("pages.learn.learncoursecard.f8308b0b2728")}</Tag> : null}
         </div>
         <div className="learn-course-counts">
+          {(officialUnread?.notices ?? 0) > 0 ? <Tag tone="info">{i18n("learn.course.unreadNotices", { count: String(officialUnread!.notices) })}</Tag> : null}
+          {(officialUnread?.files ?? 0) > 0 ? <Tag tone="info">{i18n("learn.course.unreadFiles", { count: String(officialUnread!.files) })}</Tag> : null}
           <Btn
             variant="tonal"
             tone={stats.hw > 0 ? "error" : "default"}

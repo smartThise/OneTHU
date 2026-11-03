@@ -270,7 +270,7 @@ export async function createTaskManager(ports: TaskManagerPorts): Promise<TaskMa
       return launch(task, current);
     },
     async history(id) { return copy((await owned(id)).history); },
-    async importState(origin, input, channelMap = {}) {
+    async importState(origin, input, channelMap = {}, options = {}) {
       const current = await owner(); text(origin,"migrationOrigin");
       if (!input || input.version !== 1 || !Array.isArray(input.tasks) || input.tasks.length > MAX_TASKS || JSON.stringify(input).length > MAX_STATE_BYTES) throw new Error("TASK_STATE_INVALID");
       if (!channelMap || Array.isArray(channelMap) || Object.keys(channelMap).length > 50) throw new Error("TASK_CHANNEL_MAPPING_INVALID");
@@ -305,6 +305,13 @@ export async function createTaskManager(ports: TaskManagerPorts): Promise<TaskMa
         candidates.push(task);
       }
       if (!same(await ports.getOwner(),current)) throw new Error("TASK_ACCOUNT_CHANGED");
+      // Only the private host handoff calls replaceOwner, after retiring the
+      // previous scheduler. Model/CLI operation JSON cannot select this mode.
+      if(options.replaceOwner){
+        if(started||active.size)throw new Error("TASK_HANDOFF_REQUIRES_STOP");
+        for(const task of tasks.values())if(task.owner===current.id)tasks.delete(task.id);
+        migrations=migrations.filter(entry=>entry.owner!==current.id);
+      }
       const previous=migrations.find(entry=>entry.origin===origin&&entry.owner===current.id), ids=new Set(previous?.ids??[]);
       const result:TaskMigrationResult={imported:[],skipped:[],conflicts:[],ignored:input.tasks.length-candidates.length};
       const additions:StoredTask[]=[];

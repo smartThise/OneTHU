@@ -130,12 +130,13 @@ test('private desktop bridge shares account, tasks, policy and cancellation with
   const status=runtime.desktop.status(),fence={expectedAccount:status.username,expectedEpoch:status.epoch};
   assert.equal(status.protocolVersion,1);assert.equal(status.policy.configured,false);
   assert.equal(runtime.list('mcp').operations.some((row:any)=>row.name.startsWith('desktop.')),false);
+  await runtime.desktop.policy({...fence,enabled:true,automatic:false,appEnabled:true});
   const created=await runtime.desktop.call({...fence,operation:'tasks.create',confirm:true,args:[{name:'Shared',schedule:{kind:'interval',everyMinutes:30},template:{kind:'operation',operation:'cal.agenda',args:[],channels:['inbox']}}]});
   const fromCli=await runtime.call({operation:'tasks.list'});assert.equal(fromCli[0].id,created.id);
   assert.throws(()=>runtime.desktop.call({...fence,expectedAccount:'87654321',operation:'tasks.list'}),/CLI_ACCOUNT_CHANGED/);
   const aborted=new AbortController();aborted.abort();await assert.rejects(runtime.desktop.call({...fence,operation:'tasks.list'},{signal:aborted.signal}),/CLI_DEADLINE_OR_CANCELLED/);
   await runtime.desktop.policy({...fence,enabled:false,automatic:false});
-  assert.throws(()=>runtime.desktop.call({...fence,operation:'tasks.list'}),/CLI_DISABLED/);
+  assert.throws(()=>runtime.desktop.call({...fence,operation:'tasks.list'}),/OH_AUTHORIZATION_REQUIRED/);
   await assert.rejects(runtime.call({operation:'tasks.run',args:[created.id],confirm:true}),/CLI_DISABLED/);
   await runtime.desktop.policy({...fence,enabled:true,automatic:true});assert.equal(runtime.desktop.status().policy.configured,true);
   assert.equal((await runtime.call({operation:'tasks.list'}))[0].id,created.id);
@@ -216,4 +217,41 @@ test('actual CLI Learn routes prepare the handed-off session once before reads a
   await assert.rejects(runtime.call(post),/CONFIRMATION_REQUIRED/);assert.equal(pages,1);assert.equal(writes,0);
   await assert.rejects(runtime.call({...post,confirm:true}),/NETWORK_REQUEST_FAILED/);
   assert.equal(pages,2);assert.equal(writes,1);assert.equal(runtime.desktop.status().session.authenticated,true);
+});
+
+
+test('internal OH services and tasks remain available with external CLI access disabled',async t=>{
+ const {runtime}=await setup(t);await runtime.auth.restore();const status=runtime.desktop.status();
+ const fence={expectedAccount:status.username,expectedEpoch:status.epoch};
+ await runtime.desktop.policy({...fence,enabled:false,automatic:false,appEnabled:true});
+ await assert.rejects(runtime.call({operation:'cal.agenda',args:[]}),/CLI_DISABLED/);
+ const created=await runtime.desktop.call({...fence,operation:'cal.add',args:['OH event','2026-10-25','08:00','09:00',{local:true}],confirm:true});
+ assert.equal(created.where,'local');
+ assert.equal((await runtime.desktop.call({...fence,operation:'cal.agenda',args:['2026-10-25','2026-10-25']})).length,1);
+ assert.deepEqual(await runtime.desktop.call({...fence,operation:'tasks.list',args:[]}),[]);
+ await runtime.desktop.policy({...fence,enabled:false,automatic:false,appEnabled:false});
+ assert.throws(()=>runtime.desktop.call({...fence,operation:'tasks.list'}),/OH_AUTHORIZATION_REQUIRED/);
+});
+
+test('uninstall retires the sole scheduler and reinstallation adopts edits without duplicate tasks',async t=>{
+ const {runtime,dir}=await setup(t);await runtime.auth.restore();const status=runtime.desktop.status();
+ const fence={expectedAccount:status.username,expectedEpoch:status.epoch};
+ await runtime.desktop.policy({...fence,enabled:true,automatic:false,appEnabled:true});
+ const created=await runtime.desktop.call({...fence,operation:'tasks.create',confirm:true,args:[{name:'Resident task',schedule:{kind:'interval',everyMinutes:30},template:{kind:'operation',operation:'cal.agenda',args:[],channels:['inbox']}}]});
+ const transferred=await runtime.desktop.retire(fence);assert.equal(transferred.state.tasks.length,1);
+ await assert.rejects(runtime.call({operation:'tasks.list'}),/CLI_RUNTIME_RETIRING/);
+ assert.equal(JSON.parse(await (await import('node:fs/promises')).readFile(path.join(dir,'desktop-retired.json'),'utf8')),true);
+ transferred.state.tasks[0].name='Edited in app';
+ const result=await runtime.desktop.migrateTasks({...fence,origin:'app-return',state:transferred.state,channelMap:{}});
+ assert.deepEqual(result.conflicts,[]);
+ const tasks=await runtime.call({operation:'tasks.list'});assert.equal(tasks.length,1);assert.equal(tasks[0].id,created.id);assert.equal(tasks[0].name,'Edited in app');
+});
+
+
+test('an empty task profile can be retired and reinstalled without remaining locked',async t=>{
+ const {runtime}=await setup(t);await runtime.auth.restore();const status=runtime.desktop.status();const fence={expectedAccount:status.username,expectedEpoch:status.epoch};
+ await runtime.desktop.policy({...fence,enabled:true,automatic:false,appEnabled:true});
+ const retired=await runtime.desktop.retire(fence);assert.deepEqual(retired.state.tasks,[]);
+ await runtime.desktop.migrateTasks({...fence,origin:'empty-reinstall',state:retired.state,channelMap:{}});
+ assert.deepEqual(await runtime.call({operation:'tasks.list'}),[]);
 });

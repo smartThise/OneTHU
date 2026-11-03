@@ -955,9 +955,14 @@ export class LearnClient {
           name: decodeText(c.kcm) || decodeText(c.zywkcm),
           englishName: decodeText(c.ywkcm),
           courseNumber: str(c.kch),
-          courseIndex: Number(c.kxh ?? 0),
+          courseIndex: Number(c.kxhnumber ?? c.kxh ?? 0),
           teacherName: decodeText(c.jsm),
-          timeAndLocation: [],
+          timeAndLocation: decodeText(c.sjddb) ? [decodeText(c.sjddb)] : [],
+          summary: Object.fromEntries(Object.entries({
+            unreadNotices: c.xggs, unreadFiles: c.xkjs, pendingHomework: c.wjzys,
+            answeredQuestions: c.yhddys, pendingQuestionnaires: c.xwjs,
+            participatedThreads: c.cytls, startedThreads: c.fqtls,
+          }).flatMap(([key, value]) => (typeof value === "number" || typeof value === "string") && String(value).trim() !== "" && Number.isSafeInteger(Number(value)) && Number(value) >= 0 ? [[key, Number(value)]] : [])),
           url: urls.LEARN_COURSE_PAGE(id),
         };
       });

@@ -9,7 +9,7 @@ export interface SharedRuntimeStatus {
   username: string | null;
   epoch: number;
   session: { state: string; username?: string; authenticated?: boolean; twoFactor?: { pending?: boolean } };
-  policy: { enabled: boolean; automatic: boolean; confirmationMode?: string; configured?: boolean };
+  policy: { enabled: boolean; appEnabled?: boolean; automatic: boolean; confirmationMode?: string; configured?: boolean };
   bootstrapAllowed?: boolean;
   tombstone?: boolean;
 }
@@ -51,7 +51,52 @@ export async function importNativeSessionCookies(cookies: NativeSessionCookie[],
   const result = await invoke<{ revision: number }>("cli_session_cookies_import", { cookies: [...native.values()], expectedRevision });
   return result.revision;
 }
-export const usesSharedRuntime = () => isTauri && !isAndroidNavigator(typeof navigator === "undefined" ? undefined : navigator);
+export const desktopCliSupported = () => isTauri && !isAndroidNavigator(typeof navigator === "undefined" ? undefined : navigator);
+export interface CliInstallation { installed: boolean; available: boolean; version?: string; expectedVersion: string }
+let installation: CliInstallation | null = null;
+let installationReady: Promise<void> | undefined;
+let retirementBlocked = false;
+export const appTaskRuntimeSafe = () => !retirementBlocked;
+export const usesSharedRuntime = () => desktopCliSupported() && installation?.available === true;
+export const cliInstallationSnapshot = () => installation;
+export async function initCliInstallation(): Promise<void> {
+  if (!desktopCliSupported()) return;
+  return installationReady ??= import("@tauri-apps/api/core").then(async ({ invoke }) => {
+    installation = await invoke<CliInstallation>("cli_package_prepare"); retirementBlocked = false;
+  }).catch(() => { installationReady = undefined; retirementBlocked = true; });
+}
+export async function refreshCliInstallation(): Promise<CliInstallation | null> {
+  if (!desktopCliSupported()) return null;
+  const { invoke } = await import("@tauri-apps/api/core");
+  installation = await invoke<CliInstallation>("cli_package_status");
+  return installation;
+}
+let transferBusy=false;
+export const isCliTransferBusy=()=>transferBusy;
+export async function changeCliInstallation(action: "install" | "uninstall"): Promise<void> {
+  if (!desktopCliSupported()) throw new Error("CLI_DAEMON_DESKTOP_REQUIRED");
+  const { invoke } = await import("@tauri-apps/api/core");
+  if(transferBusy)throw new Error("CLI_TRANSFER_BUSY");
+  transferBusy=true;let retired=false;
+  try {
+    if(action==="install")await (await import("../state/cliTasks.js")).pauseAppTasksForInstall();
+    if (action === "uninstall" && usesSharedRuntime()) {
+      retired=true;await (await import("../state/cliTasks.js")).saveResidentTasksBeforeUninstall();
+      await (await import("../state/sharedCalendar.js")).exportCalendarToApp();
+      await (await import("./clients.js")).detachInstalledCli();
+    }
+    await invoke(`cli_package_${action}`);
+    ensuring = undefined;
+    await refreshCliInstallation();retirementBlocked=false;
+    if (action === "install") await (await import("./clients.js")).connectInstalledCli();
+  }catch(error){
+    if(retired&&usesSharedRuntime()){
+      try{const guard=await sharedAccountGuard((await import("./clients.js")).session.username);await sharedRuntimeRequest("unretire",guard);}catch{/* Retained profile is recoverable on the next explicit retry. */}
+    }
+    throw error;
+  }finally{transferBusy=false;window.dispatchEvent(new Event("onethu-cli-installation"));}
+}
+
 let ensuring: Promise<void> | undefined;
 let current: SharedRuntimeStatus | null = null;
 const listeners = new Set<(status: SharedRuntimeStatus, previous: SharedRuntimeStatus | null) => void>();
@@ -105,7 +150,7 @@ export async function logoutSharedSession(expectedAccount: string | null, expect
 export async function updateSharedPolicy(enabled: boolean, automatic: boolean, expected?: { expectedAccount: string | null; expectedEpoch: number }): Promise<SharedRuntimeStatus> {
   const status = await getSharedRuntimeStatus();
   if (expected && (status.username !== expected.expectedAccount || status.epoch !== expected.expectedEpoch)) throw new Error("CLI_SHARED_SESSION_CHANGED");
-  return observe(await sharedRuntimeRequest<SharedRuntimeStatus>("policy", { enabled, automatic,
+  return observe(await sharedRuntimeRequest<SharedRuntimeStatus>("policy", { enabled, automatic, appEnabled: (await import("../state/privacyConsent.js")).ohAuthorized(),
     expectedAccount: status.username, expectedEpoch: status.epoch }));
 }
 export async function sharedAccountGuard(username: string): Promise<{ expectedAccount: string; expectedEpoch: number }> {

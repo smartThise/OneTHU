@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import { LearnClient } from '../../../packages/core/src/learn/client.js';
+import type { HttpClient } from '../../../packages/core/src/http.js';
+const learn=new LearnClient({text:async()=>JSON.stringify({resultList:[{wlkcid:'x',kcm:'课程',kxhnumber:2,sjddb:'周三 教学楼',xggs:0,xkjs:3,wjzys:4},{wlkcid:'y',xggs:null,xkjs:'',wjzys:'unknown'}]})} as unknown as HttpClient);
+learn.applyCsrf('fixture');
+const rows=await learn.getCourseList('2026-2027-1');
+assert.equal(rows[0].courseIndex,2);assert.deepEqual(rows[0].timeAndLocation,['周三 教学楼']);
+assert.deepEqual(rows[0].summary,{unreadNotices:0,unreadFiles:3,pendingHomework:4});
+assert.deepEqual(rows[1].summary,{});
+console.log('official counters, course index and schedule preserved; missing counters remain unknown');
+const {deadlineInfo}=await import('../src/deadline.js');
+const now=new Date(2026,9,29,12).getTime();
+assert.equal(deadlineInfo('2026-10-29 11:00',false,now).tone,'urgent');
+assert.equal(deadlineInfo('2026-10-29 18:00',false,now).tone,'soon');
+assert.equal(deadlineInfo('2026-10-31 12:00',false,now).tone,'upcoming');
+assert.equal(deadlineInfo('2026-10-29 11:00',true,now).tone,'neutral');
+assert.equal(deadlineInfo('invalid',false,now).label,'');
+console.log('deadline colors preserve submitted and unknown states');

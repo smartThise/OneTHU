@@ -1,7 +1,246 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.vault.vaultsheet.81e4bd9720a0",
+      "source": "入口位置",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultSheet.tsx",
+          "line": 34,
+          "context": "{i18n(\"components.vault.vaultsheet.81e4bd9720a0\")}"
+        }
+      ],
+      "translation": "Entry position",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaulttextpreview.29636e43fdb4",
+      "source": "复制文字",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultTextPreview.tsx",
+          "line": 28,
+          "context": "{i18n(\"components.vault.vaulttextpreview.29636e43fdb4\")}"
+        }
+      ],
+      "translation": "Copy text",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaulttextpreview.654ba67673c8",
+      "source": "复制失败，可直接选中正文手动复制",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultTextPreview.tsx",
+          "line": 27,
+          "context": "showToast(i18nMsg(\"components.vault.vaulttextpreview.654ba67673c8\"))"
+        }
+      ],
+      "translation": "Copy failed; you can select the text and copy it manually",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaulttextpreview.cd78767c92e6",
+      "source": "文字已复制",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultTextPreview.tsx",
+          "line": 27,
+          "context": "showToast(i18nMsg(\"components.vault.vaulttextpreview.cd78767c92e6\"))"
+        }
+      ],
+      "translation": "Text copied",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultworkspace.017799558da2",
+      "source": "没有找到相关内容",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
+          "line": 123,
+          "context": "term ? i18n(\"components.vault.vaultworkspace.017799558da2\") : i18n(\"components.vault.vaultworkspace.2a6304d5346d\")"
+        }
+      ],
+      "translation": "No matching content found",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultworkspace.01c3348965f5",
+      "source": "新建暂存箱",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
+          "line": 74,
+          "context": "openFormModal(i18nMsg(\"components.vault.vaultworkspace.01c3348965f5\"), [{ key: \"name\", label: i18nMsg(\"components.vault.vaultworkspace.c95ed9f3eec2\"), required: true, default: i18n(\"components.vault.vaultworkspace.4dc6d8e7a87a\") }])"
+        },
+        {
+          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
+          "line": 109,
+          "context": "{i18n(\"components.vault.vaultworkspace.01c3348965f5\")}"
+        },
+        {
+          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
+          "line": 114,
+          "context": "{i18n(\"components.vault.vaultworkspace.01c3348965f5\")}"
+        }
+      ],
+      "translation": "New Stash",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "components.vault.vaultworkspace.04393fb8fdca",
+      "source": "原暂存箱已删除，请重新添加文件",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
+          "line": 66,
+          "context": "new Error(i18n(\"components.vault.vaultworkspace.04393fb8fdca\"))"
+        }
+      ],
+      "translation": "The original Stash has been deleted; please add the files again",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultworkspace.04d78aa54101",
+      "source": "暂存项操作菜单",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
+          "line": 129,
+          "context": "{i18n(\"components.vault.vaultworkspace.04d78aa54101\")}"
+        }
+      ],
+      "translation": "Stash item action menu",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultworkspace.0d0cbac2eee5",
+      "source": "重命名",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
+          "line": 82,
+          "context": "label: i18n(\"components.vault.vaultworkspace.0d0cbac2eee5\")"
+        }
+      ],
+      "translation": "Rename",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "components.vault.vaultworkspace.105a1b5daf4b",
+      "source": "{length} 项内容，随时取用",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "String(box.items.length)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
+          "line": 115,
+          "context": "box.items.length ? i18n(\"components.vault.vaultworkspace.105a1b5daf4b\", { length: String(box.items.length) }) : i18n(\"components.vault.vaultworkspace.61924286426a\")"
+        }
+      ],
+      "translation": "{length} items, ready whenever you need them",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultworkspace.124b06b7f26a",
+      "source": "长按收纳 · 拖到 OH 胶囊交给小OH",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
+          "line": 126,
+          "context": "{i18n(\"components.vault.vaultworkspace.124b06b7f26a\")}"
+        }
+      ],
+      "translation": "Press and hold to stash · Drag onto the OH capsule to hand it to OH",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultworkspace.13a5f3ed956e",
+      "source": "目标暂存箱",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
+          "line": 95,
+          "context": "label: i18nMsg(\"components.vault.vaultworkspace.13a5f3ed956e\")"
+        }
+      ],
+      "translation": "Target Stash",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "components.vault.vaultworkspace.17fa33d72406",
+      "source": "当前暂存箱",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
+          "line": 115,
+          "context": "{i18n(\"components.vault.vaultworkspace.17fa33d72406\")}"
+        }
+      ],
+      "translation": "Current Stash",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.vault.vaultworkspace.1cb589a18057",
+      "source": "目标暂存箱已不存在，请重试",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/vault/VaultWorkspace.tsx",
+          "line": 99,
+          "context": "showToast(i18nMsg(\"components.vault.vaultworkspace.1cb589a18057\"))"
+        }
+      ],
+      "translation": "The target Stash no longer exists; please try again",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "components.vault.vaultworkspace.21b57ecf4c6a",
       "source": "长按内容后拖到箱子；电脑也可以直接拖入文件。",
@@ -1158,240 +1397,6 @@
         }
       ],
       "translation": "Pitch",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.voicesettingssection.9138d2ecd64e",
-      "source": "引擎默认音色",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 190,
-          "context": "{i18n(\"components.voicesettingssection.9138d2ecd64e\")}"
-        }
-      ],
-      "translation": "Engine default voice",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.voicesettingssection.95ac0ce3b08b",
-      "source": "复位",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 227,
-          "context": "{i18n(\"components.voicesettingssection.95ac0ce3b08b\")}"
-        },
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 261,
-          "context": "{i18n(\"components.voicesettingssection.95ac0ce3b08b\")}"
-        }
-      ],
-      "translation": "Reset",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.voicesettingssection.993d7857beb9",
-      "source": "引擎正在初始化…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 50,
-          "context": "title: i18n(\"components.voicesettingssection.993d7857beb9\")"
-        }
-      ],
-      "translation": "Initializing engine…",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.voicesettingssection.99f2b52319a6",
-      "source": "当前平台不支持语音合成",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 46,
-          "context": "title: i18n(\"components.voicesettingssection.99f2b52319a6\")"
-        }
-      ],
-      "translation": "Speech synthesis is not supported on this platform",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.voicesettingssection.a1849a34d66f",
-      "source": "0.5×（慢一半）到 2.0×（快一倍），松手即生效。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 201,
-          "context": "{i18n(\"components.voicesettingssection.a1849a34d66f\")}"
-        }
-      ],
-      "translation": "From 0.5× (half speed) to 2.0× (double speed); it takes effect as soon as you release.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.voicesettingssection.a26073d57821",
-      "source": "系统引擎报出的可选嗓音",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 72,
-          "context": "return i18n(\"components.voicesettingssection.a26073d57821\");"
-        }
-      ],
-      "translation": "Selectable voices reported by the system engine",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.voicesettingssection.a930fa97ad36",
-      "source": "朗读出错（{reason}）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "reason",
-          "expression": "String(reason)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 125,
-          "context": "setMsg(i18n(\"components.voicesettingssection.a930fa97ad36\", { reason: String(reason) }))"
-        }
-      ],
-      "translation": "Reading failed ({reason})",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.voicesettingssection.bd3bac24c982",
-      "source": "本机系统引擎可用。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 54,
-          "context": "st.engine ? i18n(\"components.voicesettingssection.8f463b50e0cb\", { engine: String(st.engine) }) : i18n(\"components.voicesettingssection.bd3bac24c982\")"
-        }
-      ],
-      "translation": "The system engine on this device is available.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.voicesettingssection.bd80a69f212e",
-      "source": "朗读快慢",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 73,
-          "context": "return i18n(\"components.voicesettingssection.bd80a69f212e\");"
-        }
-      ],
-      "translation": "Reading speed",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.voicesettingssection.c25fb86b1e96",
-      "source": "重新检查",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 177,
-          "context": "busy ? i18n(\"components.voicesettingssection.fb11aa6f2982\") : i18n(\"components.voicesettingssection.c25fb86b1e96\")"
-        }
-      ],
-      "translation": "Recheck",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.voicesettingssection.c4b08459fe2e",
-      "source": "已恢复默认（静音 · 原声原速 · 引擎默认音色）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 278,
-          "context": "setMsg(i18n(\"components.voicesettingssection.c4b08459fe2e\"))"
-        }
-      ],
-      "translation": "Defaults restored (silent · original speed · engine default voice)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.voicesettingssection.c6d7dc8d5c1d",
-      "source": "1.00 是原声；调低更沉稳，调高更清亮。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 235,
-          "context": "{i18n(\"components.voicesettingssection.c6d7dc8d5c1d\")}"
-        }
-      ],
-      "translation": "1.00 is the original voice; lower sounds deeper, higher sounds brighter.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.voicesettingssection.ca4d973c0b00",
-      "source": "停止",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 273,
-          "context": "speaking ? i18n(\"components.voicesettingssection.ca4d973c0b00\") : i18n(\"components.voicesettingssection.7f0a0fda741c\")"
-        }
-      ],
-      "translation": "Stop",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.voicesettingssection.cbe095bfb926",
-      "source": "　试听不看「自动朗读」开关，随时可以点。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/VoiceSettingsSection.tsx",
-          "line": 269,
-          "context": "{i18n(\"components.voicesettingssection.cbe095bfb926\")}"
-        }
-      ],
-      "translation": "  Preview ignores the “Auto-read” switch and can be tapped anytime.",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

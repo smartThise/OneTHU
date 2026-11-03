@@ -14,7 +14,7 @@ if(action==='handoff'){
   ])};
   const adopted=await client.call('desktop.adoptSession',{snapshot,expectedEpoch:empty.epoch,reason:'bootstrap'});
   const guard={expectedAccount:adopted.username,expectedEpoch:adopted.epoch};
-  await client.call('desktop.policy',{...guard,enabled:true,automatic:false});
+  await client.call('desktop.policy',{...guard,enabled:true,appEnabled:true,automatic:false});
   const runAt=Date.now()+1200;
   const task=await client.call('desktop.call',{...guard,operation:'tasks.create',confirm:true,args:[{
     name:'Synthetic background school identity check',schedule:{kind:'once',runAt:new Date(runAt).toISOString()},

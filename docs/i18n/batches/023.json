@@ -1,7 +1,250 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.searchlandingselfcheck.8d0704658339",
+      "source": "首匹配",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SearchLandingSelfcheck.tsx",
+          "line": 52,
+          "context": "(tag || \"btn\") + i18n(\"components.searchlandingselfcheck.8d0704658339\")"
+        }
+      ],
+      "translation": "First match",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.searchlandingselfcheck.9da1918cdc89",
+      "source": "复制报告",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SearchLandingSelfcheck.tsx",
+          "line": 169,
+          "context": "{i18n(\"components.searchlandingselfcheck.9da1918cdc89\")}"
+        }
+      ],
+      "translation": "Copy report",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.searchlandingselfcheck.a41bc68312fb",
+      "source": "检索落点自查报告",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SearchLandingSelfcheck.tsx",
+          "line": 164,
+          "context": "{i18n(\"components.searchlandingselfcheck.a41bc68312fb\")}"
+        }
+      ],
+      "translation": "Search-landing self-check report",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.searchlandingselfcheck.c01cf39f0cb1",
+      "source": "落点失焦（.row-focus 不见）：{note}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "note",
+          "expression": "String(note)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SearchLandingSelfcheck.tsx",
+          "line": 114,
+          "context": "domFocus || landedOn === \"section-root\"\n          ? [note, bc.length ? bc.join(\"→\") : \"\"].filter(Boolean).join(\" ·\")\n          : i18n(\"components.searchlandingselfcheck.c01cf39f0cb1\", { note: String(note) })"
+        }
+      ],
+      "translation": "Landing lost focus (.row-focus missing): {note}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.searchlandingselfcheck.e255143f7db4",
+      "source": "逐行原表已打在 console（console.table）；「复制报告」给 Markdown 全表。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SearchLandingSelfcheck.tsx",
+          "line": 181,
+          "context": "{i18n(\"components.searchlandingselfcheck.e255143f7db4\")}"
+        }
+      ],
+      "translation": "The row-by-row raw table is printed to the console (console.table); “Copy report” gives the full Markdown table.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.searchlandingselfcheck.f544d6d22616",
+      "source": "hit {length}/45 · 分节根 {length2}",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "report.rows.filter((x) => x.hit === \"hit\").length"
+        },
+        {
+          "name": "length2",
+          "expression": "report.rows.filter((x) => x.landedOn === \"section-root\").length"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SearchLandingSelfcheck.tsx",
+          "line": 167,
+          "context": "{i18nRich(\"components.searchlandingselfcheck.f544d6d22616\", { length: report.rows.filter((x) => x.hit === \"hit\").length, length2: report.rows.filter((x) => x.landedOn === \"section-root\").length })}"
+        }
+      ],
+      "translation": "hit {length}/45 · section roots {length2}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.searchselect.336cba9a9241",
+      "source": "无匹配项",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SearchSelect.tsx",
+          "line": 118,
+          "context": "{i18n(\"components.searchselect.336cba9a9241\")}"
+        }
+      ],
+      "translation": "No matches",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.searchselect.4242d6b50c86",
+      "source": "请选择…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SearchSelect.tsx",
+          "line": 30,
+          "context": "placeholder = i18n(\"components.searchselect.4242d6b50c86\")"
+        }
+      ],
+      "translation": "Select…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.searchselect.a249f60ce7e8",
+      "source": "搜索…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SearchSelect.tsx",
+          "line": 114,
+          "context": "{i18n(\"components.searchselect.a249f60ce7e8\")}"
+        }
+      ],
+      "translation": "Search…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.simpleexperience.119099ab1bad",
+      "source": "今日课程",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SimpleExperience.tsx",
+          "line": 40,
+          "context": "{i18n(\"components.simpleexperience.119099ab1bad\")}"
+        }
+      ],
+      "translation": "Today’s classes",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.simpleexperience.1db098f84eb2",
+      "source": "02 / 课程",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SimpleExperience.tsx",
+          "line": 40,
+          "context": "{i18n(\"components.simpleexperience.1db098f84eb2\")}"
+        }
+      ],
+      "translation": "02 / Classes",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.simpleexperience.203c08e0d44a",
+      "source": "首页",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SimpleExperience.tsx",
+          "line": 33,
+          "context": "{i18n(\"components.simpleexperience.203c08e0d44a\")}"
+        },
+        {
+          "file": "apps/desktop/src/components/SimpleExperience.tsx",
+          "line": 33,
+          "context": "{i18n(\"components.simpleexperience.203c08e0d44a\")}"
+        }
+      ],
+      "translation": "Home",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.simpleexperience.23530d9f428a",
+      "source": "今日待办",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SimpleExperience.tsx",
+          "line": 40,
+          "context": "{i18n(\"components.simpleexperience.23530d9f428a\")}"
+        }
+      ],
+      "translation": "Today’s tasks",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.simpleexperience.a77ab9efa020",
+      "source": "模式只改变显示。标签、白板和各模式的快捷入口都会保留。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/SimpleExperience.tsx",
+          "line": 27,
+          "context": "{i18n(\"components.simpleexperience.a77ab9efa020\")}"
+        }
+      ],
+      "translation": "The mode only changes the display. Tabs, boards, and each mode’s shortcuts are all kept.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "components.simpleexperience.afd4b783536b",
       "source": "收起",
@@ -88,6 +331,11 @@
       "kind": "text",
       "parameters": [],
       "locations": [
+        {
+          "file": "apps/desktop/src/components/OhModelSourceCard.tsx",
+          "line": 18,
+          "context": "showToast(i18nMsg(\"components.simplesettings.1fa9a1f5453b\"))"
+        },
         {
           "file": "apps/desktop/src/components/SimpleSettings.tsx",
           "line": 52,
@@ -719,7 +967,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 101,
+          "line": 104,
           "context": "result.error ?? i18n(\"components.softwareupdatesection.4f6f06254d16\")"
         }
       ],
@@ -1223,249 +1471,11 @@
         },
         {
           "file": "apps/desktop/src/lib/updater.ts",
-          "line": 496,
+          "line": 502,
           "context": "error: i18n(\"components.softwareupdatesection.faa2f14dfa0b\", { downloadName: activeUpdateDownload.fileName })"
         }
       ],
       "translation": "Downloading {downloadName}…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.softwareupdatesection.fad86bf65f72",
-      "source": "下载进度",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SoftwareUpdateSection.tsx",
-          "line": 278,
-          "context": "{i18n(\"components.softwareupdatesection.fad86bf65f72\")}"
-        }
-      ],
-      "translation": "Download progress",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.softwareupdatesection.fe8283074c76",
-      "source": "已下载到 {path}，但拉起安装页失败：{value}（可手动打开该文件）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "path",
-          "expression": "String(d.path)"
-        },
-        {
-          "name": "value",
-          "expression": "String(inst.error ?? i18n(\"components.softwareupdatesection.a1a9da9ee6ed\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/SoftwareUpdateSection.tsx",
-          "line": 207,
-          "context": "setErr(i18nMsg(\"components.softwareupdatesection.fe8283074c76\", { path: String(d.path), value: \"\" }), { value: inst.errorMessage ?? inst.error ?? i18nMsg(\"components.softwareupdatesection.a1a9da9ee6ed\") })"
-        }
-      ],
-      "translation": "Downloaded to {path}, but opening the installer page failed: {value} (you can open the file manually)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.tabmanagemodal.b36ae796d429",
-      "source": "勾选控制显示；↑↓ 调整顺序（即时生效并保存）。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/TabManageModal.tsx",
-          "line": 94,
-          "context": "{i18n(\"components.tabmanagemodal.b36ae796d429\")}"
-        }
-      ],
-      "translation": "Checkboxes control visibility; ↑↓ reorder (applied instantly and saved).",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.tabmanagemodal.ba2e93e73037",
-      "source": "恢复默认",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/TabManageModal.tsx",
-          "line": 109,
-          "context": "{i18n(\"components.tabmanagemodal.ba2e93e73037\")}"
-        }
-      ],
-      "translation": "Restore defaults",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.tabmanagemodal.c0b3fbff51cc",
-      "source": "完成",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/TabManageModal.tsx",
-          "line": 110,
-          "context": "{i18n(\"components.tabmanagemodal.c0b3fbff51cc\")}"
-        }
-      ],
-      "translation": "Done",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.tabmanagemodal.e75e8b4e5c97",
-      "source": "下移",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/TabManageModal.tsx",
-          "line": 104,
-          "context": "{i18n(\"components.tabmanagemodal.e75e8b4e5c97\")}"
-        }
-      ],
-      "translation": "Move down",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.tabmanagemodal.f853a70b1204",
-      "source": "上移",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/TabManageModal.tsx",
-          "line": 103,
-          "context": "{i18n(\"components.tabmanagemodal.f853a70b1204\")}"
-        }
-      ],
-      "translation": "Move up",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.themepickermodal.0580fcee37e0",
-      "source": "删除失败：",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ThemePickerModal.tsx",
-          "line": 137,
-          "context": "i18n(\"components.themepickermodal.0580fcee37e0\") + String(e).slice(0, 100)"
-        }
-      ],
-      "translation": "Delete failed:",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.themepickermodal.06bc14b60f35",
-      "source": "卸载",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ThemePickerModal.tsx",
-          "line": 193,
-          "context": "{i18n(\"components.themepickermodal.06bc14b60f35\")}"
-        }
-      ],
-      "translation": "Uninstall",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.themepickermodal.093197238318",
-      "source": "删除主题「",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ThemePickerModal.tsx",
-          "line": 131,
-          "context": "i18n(\"components.themepickermodal.093197238318\") + t.name"
-        }
-      ],
-      "translation": "Delete theme “",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.themepickermodal.0ad01e8954e9",
-      "source": "正在拉取主题市场…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ThemePickerModal.tsx",
-          "line": 200,
-          "context": "{i18n(\"components.themepickermodal.0ad01e8954e9\")}"
-        }
-      ],
-      "translation": "Fetching the theme marketplace…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.themepickermodal.14f80dfb3d98",
-      "source": "已删除「",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ThemePickerModal.tsx",
-          "line": 128,
-          "context": "i18n(\"components.themepickermodal.14f80dfb3d98\") + t.name"
-        },
-        {
-          "file": "apps/desktop/src/components/ThemePickerModal.tsx",
-          "line": 135,
-          "context": "i18n(\"components.themepickermodal.14f80dfb3d98\") + t.name"
-        }
-      ],
-      "translation": "Deleted “",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.themepickermodal.1cdf519489b5",
-      "source": "没有匹配的已安装主题。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ThemePickerModal.tsx",
-          "line": 189,
-          "context": "{i18n(\"components.themepickermodal.1cdf519489b5\")}"
-        }
-      ],
-      "translation": "No matching installed themes.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.themepickermodal.316fe39d4c6f",
-      "source": "安装失败：",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ThemePickerModal.tsx",
-          "line": 150,
-          "context": "i18n(\"components.themepickermodal.316fe39d4c6f\") + String(e instanceof Error ? e.message : e).slice(0, 160)"
-        }
-      ],
-      "translation": "Install failed:",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

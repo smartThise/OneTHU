@@ -1,0 +1,106 @@
+name: android-unsigned
+# Build without a signing key. Official releases are signed and verified locally.
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Frozen application source commit or tag
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ONETHU_MOBILE_BUILD: "1"
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          submodules: recursive
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+          key: android-arm64
+      - name: Install native build tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg libclang-dev
+          sdkmanager "ndk;27.1.12297006" "platforms;android-36" "build-tools;36.0.0"
+          ndk="$ANDROID_HOME/ndk/27.1.12297006"
+          tc="$ndk/toolchains/llvm/prebuilt/linux-x86_64"
+          echo "NDK_HOME=$ndk" >> "$GITHUB_ENV"
+          echo "CC_aarch64_linux_android=$tc/bin/aarch64-linux-android24-clang" >> "$GITHUB_ENV"
+          echo "AR_aarch64_linux_android=$tc/bin/llvm-ar" >> "$GITHUB_ENV"
+          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$tc/bin/aarch64-linux-android24-clang" >> "$GITHUB_ENV"
+          echo "BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android=--sysroot=$tc/sysroot -I$tc/sysroot/usr/include/aarch64-linux-android" >> "$GITHUB_ENV"
+      - name: Install workspace dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @onethu/info-lib build
+      - name: Generate Android project and sync canonical logo
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          project = Path('apps/desktop/src-tauri/gen/android')
+          assert project.is_symlink(), 'Expected the committed local Android project link'
+          project.unlink()
+          PY
+          pnpm --filter @onethu/desktop exec tauri android init --ci
+          python3 tools/android-icons.py apps/desktop/src-tauri/gen/android --repo .
+      - name: Build unsigned arm64 APK
+        run: pnpm --filter @onethu/desktop exec tauri android build --ci --apk --target aarch64
+        env:
+          TRACE_AMAP_KEY: ${{ secrets.TRACE_AMAP_KEY }}
+      - name: Verify package and record frozen inputs
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, os, shutil, subprocess, zipfile
+          root = Path('.').resolve()
+          out = root / 'output/android-unsigned'
+          out.mkdir(parents=True)
+          apks = list((root / 'apps/desktop/src-tauri/gen/android/app/build/outputs/apk').rglob('*release-unsigned.apk'))
+          assert len(apks) == 1, [str(p) for p in apks]
+          apk = out / 'OneTHU-arm64-unsigned.apk'
+          shutil.copy2(apks[0], apk)
+          subprocess.run(['python3', 'tools/android-icons.py', '--verify-apk', str(apk), '--aapt2', os.environ['ANDROID_HOME'] + '/build-tools/36.0.0/aapt2'], check=True)
+          dist = root / 'apps/desktop/dist'
+          shutil.copytree(dist, out / 'frontend')
+          source = subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip()
+          conf = json.loads((root / 'apps/desktop/src-tauri/tauri.conf.json').read_text())
+          with zipfile.ZipFile(apk) as z:
+              native = z.read('lib/arm64-v8a/libonethu_lib.so')
+              assert b'/assets/DevPanel-' not in native
+          proof = {'source': source, 'version': conf['version'], 'versionCode': conf['bundle']['android']['versionCode'], 'sha256': hashlib.sha256(apk.read_bytes()).hexdigest(), 'signed': False, 'frontendFiles': {str(p.relative_to(dist)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(dist.rglob('*')) if p.is_file()}}
+          (out / 'release-source.json').write_text(json.dumps(proof, indent=2) + '\n')
+          print(json.dumps({k:v for k,v in proof.items() if k != 'frontendFiles'}, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: onethu-android-unsigned
+          path: output/android-unsigned/
+          retention-days: 14

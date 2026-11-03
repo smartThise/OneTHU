@@ -1,7 +1,246 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "pages.taskspage.06389c978872",
+      "source": "今天该管的事",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 166,
+          "context": "data ? semesterText(data.semester.id) : i18n(\"pages.taskspage.06389c978872\")"
+        }
+      ],
+      "translation": "What to handle today",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.taskspage.091a3375f53e",
+      "source": "返回生活 →",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 278,
+          "context": "{i18n(\"pages.taskspage.091a3375f53e\")}"
+        }
+      ],
+      "translation": "Back to Life →",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.taskspage.0d261d034491",
+      "source": "全部通知 →",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 262,
+          "context": "{i18n(\"pages.taskspage.0d261d034491\")}"
+        }
+      ],
+      "translation": "All notifications →",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.taskspage.1281738c7a2b",
+      "source": "按课程筛选作业",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 195,
+          "context": "{i18n(\"pages.taskspage.1281738c7a2b\")}"
+        }
+      ],
+      "translation": "Filter assignments by course",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.taskspage.13239e085f0a",
+      "source": "去充值 →",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 314,
+          "context": "{i18n(\"pages.taskspage.13239e085f0a\")}"
+        }
+      ],
+      "translation": "Top up →",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.taskspage.1522cf51a469",
+      "source": "全部作业 →",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 246,
+          "context": "{i18n(\"pages.taskspage.1522cf51a469\")}"
+        }
+      ],
+      "translation": "All assignments →",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.taskspage.15d208d1b4c9",
+      "source": "生活",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 177,
+          "context": "{i18n(\"pages.taskspage.15d208d1b4c9\")}"
+        },
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 305,
+          "context": "{i18n(\"pages.taskspage.15d208d1b4c9\")}"
+        }
+      ],
+      "translation": "Life",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.taskspage.2118cbc10988",
+      "source": "学习",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 176,
+          "context": "{i18n(\"pages.taskspage.2118cbc10988\")}"
+        },
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 183,
+          "context": "{i18n(\"pages.taskspage.2118cbc10988\")}"
+        }
+      ],
+      "translation": "Study",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.taskspage.2ebabbe9e7d7",
+      "source": "课程通知：",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 255,
+          "context": "{i18n(\"pages.taskspage.2ebabbe9e7d7\")}"
+        }
+      ],
+      "translation": "Course notifications:",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.taskspage.2f7e202b64d3",
+      "source": "3 日内截止",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 242,
+          "context": "{i18n(\"pages.taskspage.2f7e202b64d3\")}"
+        }
+      ],
+      "translation": "Due within 3 days",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.taskspage.4706dde1fb19",
+      "source": "新闻还在路上，稍后再来看看。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 325,
+          "context": "{i18n(\"pages.taskspage.4706dde1fb19\")}"
+        }
+      ],
+      "translation": "News is on the way — check back a little later.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.taskspage.52fdbbaeda4c",
+      "source": "待办",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 165,
+          "context": "{i18n(\"pages.taskspage.52fdbbaeda4c\")}"
+        }
+      ],
+      "translation": "Tasks",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.taskspage.60db1afb4022",
+      "source": "课程",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 68,
+          "context": "courseMap.get(id) ?? i18n(\"pages.taskspage.60db1afb4022\")"
+        }
+      ],
+      "translation": "Courses",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "pages.taskspage.625aecb7d77b",
+      "source": "{length} 条未读",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "length",
+          "expression": "unread.length"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/pages/TasksPage.tsx",
+          "line": 255,
+          "context": "{i18nRich(\"pages.taskspage.625aecb7d77b\", { length: unread.length })}"
+        }
+      ],
+      "translation": "{length} unread",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "pages.taskspage.6f3b6788c68c",
       "source": "正在取作业…",
@@ -1143,249 +1382,6 @@
         }
       ],
       "translation": "Contributors",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.xiaoda.xiaodapage.115f8a99ff8d",
-      "source": "直接输入问题即可；换智能体请到「智能体」页挑一个",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 340,
-          "context": "{i18n(\"pages.xiaoda.xiaodapage.115f8a99ff8d\")}"
-        }
-      ],
-      "translation": "Just type your question; to switch agents, pick one on the \"Agents\" page",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.xiaoda.xiaodapage.1587a76a2d84",
-      "source": "（空对话）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 482,
-          "context": "(c.query.split(\"\\n\")[0] ?? \"\").slice(0, 40) || i18n(\"pages.xiaoda.xiaodapage.1587a76a2d84\")"
-        }
-      ],
-      "translation": "(empty conversation)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.xiaoda.xiaodapage.21fbaf3a4f57",
-      "source": "说点什么吧",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 340,
-          "context": "{i18n(\"pages.xiaoda.xiaodapage.21fbaf3a4f57\")}"
-        }
-      ],
-      "translation": "Say something",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.xiaoda.xiaodapage.2df7697dbb61",
-      "source": "智能体",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 74,
-          "context": "id === DEFAULT_AGENT_ID ? DEFAULT_AGENT_NAME() : i18n(\"pages.xiaoda.xiaodapage.2df7697dbb61\")"
-        },
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 137,
-          "context": "label: i18n(\"pages.xiaoda.xiaodapage.2df7697dbb61\")"
-        }
-      ],
-      "translation": "Agents",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.xiaoda.xiaodapage.34d33c5a7a08",
-      "source": "深度研究",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 484,
-          "context": "c.isDeepResearch ? i18n(\"pages.xiaoda.xiaodapage.34d33c5a7a08\") : undefined"
-        }
-      ],
-      "translation": "Deep research",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.xiaoda.xiaodapage.350d0be1b4e7",
-      "source": "登录失败，请点下方重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 146,
-          "context": "{i18n(\"pages.xiaoda.xiaodapage.350d0be1b4e7\")}"
-        }
-      ],
-      "translation": "Sign-in failed. Tap Retry below.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.xiaoda.xiaodapage.47392b6dbaa8",
-      "source": "还没有对话记录",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 470,
-          "context": "{i18n(\"pages.xiaoda.xiaodapage.47392b6dbaa8\")}"
-        }
-      ],
-      "translation": "No conversation history yet",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.xiaoda.xiaodapage.4927a53bcc88",
-      "source": "加载中…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 495,
-          "context": "loadingMore ? i18n(\"pages.xiaoda.xiaodapage.4927a53bcc88\") : i18n(\"pages.xiaoda.xiaodapage.af90a08fec8e\")"
-        },
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 658,
-          "context": "loadingMore ? i18n(\"pages.xiaoda.xiaodapage.4927a53bcc88\") : i18n(\"pages.xiaoda.xiaodapage.af90a08fec8e\")"
-        }
-      ],
-      "translation": "Loading…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.xiaoda.xiaodapage.49d451178263",
-      "source": "它也无法调度 OH 功能；本页是 OneTHU 的接入界面。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 43,
-          "context": "() => i18n(\"pages.xiaoda.xiaodapage.49d451178263\")"
-        }
-      ],
-      "translation": "It also cannot dispatch OH features; this page is OneTHU's integration interface.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.xiaoda.xiaodapage.4c279d27ac1e",
-      "source": "对话一旦开始就不能再换智能体；要换请先点「新对话」。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 407,
-          "context": "{i18n(\"pages.xiaoda.xiaodapage.4c279d27ac1e\")}"
-        }
-      ],
-      "translation": "The agent cannot be changed once a conversation starts; tap \"New conversation\" first to switch.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.xiaoda.xiaodapage.515559957fd3",
-      "source": "分类",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 617,
-          "context": "{i18n(\"pages.xiaoda.xiaodapage.515559957fd3\")}"
-        }
-      ],
-      "translation": "Category",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.xiaoda.xiaodapage.56fb269924d9",
-      "source": "技能加载失败，请点重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 630,
-          "context": "{i18n(\"pages.xiaoda.xiaodapage.56fb269924d9\")}"
-        }
-      ],
-      "translation": "Failed to load skills. Tap Retry.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.xiaoda.xiaodapage.5aa03810e659",
-      "source": "{value} 次下载 · {value2}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "value",
-          "expression": "String(s.downloadCount ?? 0)"
-        },
-        {
-          "name": "value2",
-          "expression": "String(s.authorName ?? \"\")"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 651,
-          "context": "{i18n(\"pages.xiaoda.xiaodapage.5aa03810e659\", { value: String(s.downloadCount ?? 0), value2: String(s.authorName ?? \"\") })}"
-        }
-      ],
-      "translation": "{value} downloads · {value2}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "pages.xiaoda.xiaodapage.5d44af892c1b",
-      "source": "继续对话",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/pages/xiaoda/XiaodaPage.tsx",
-          "line": 327,
-          "context": "active ? i18n(\"pages.xiaoda.xiaodapage.5d44af892c1b\") : i18n(\"pages.xiaoda.xiaodapage.ea4b29f58f87\")"
-        }
-      ],
-      "translation": "Continue conversation",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

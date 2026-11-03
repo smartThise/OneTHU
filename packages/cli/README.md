@@ -51,7 +51,7 @@ onethu auth logout --confirm
 
 默认数据目录为 macOS 的 `~/Library/Application Support/OneTHU CLI`、Windows 的 `%LOCALAPPDATA%\OneTHU CLI`；其他平台使用 `$XDG_DATA_HOME/OneTHU CLI`，默认 `~/.local/share/OneTHU CLI`。可以通过 `--data-dir ABS_PATH` 或 `ONETHU_DATA_DIR` 选择隔离目录。
 
-每个目录由一个运行时持有。桌面、OH 与默认 CLI 连接同一个本机后台，共享登录、设备指纹、执行策略、任务和历史；在任一入口登录后，另一入口即可使用。桌面启动会加载随包提供的后台，关闭窗口后已批准任务继续执行。`--desktop` 用于需要桌面界面的服务；显式 `--data-dir` 才创建隔离环境。
+每个目录由一个运行时持有。桌面、OH 与默认 CLI 连接同一个本机后台，共享登录、设备指纹、执行策略、任务和历史；在任一入口登录后，另一入口即可使用。0.11.4-fix-2 起后台为可选安装项，完整版导览与设置可安装/卸载。OH 在应用内直接使用服务，外部 CLI 开关独立控制外部访问。安装后关闭窗口，已批准任务仍可继续执行。`--desktop` 用于需要桌面界面的服务；显式 `--data-dir` 才创建隔离环境。
 
 实际能力以 `commands` 为准，参数以 `schema` 为准。`--args` 和 UTF-8 `--args-file` 都是位置参数 **JSON 数组**，Windows 建议使用参数文件。成功 JSON 写 stdout，安全错误写 stderr；查询不调用模型。服务调用上限 150 秒，`--timeout MS` 可以缩短客户端预算。
 
@@ -124,7 +124,7 @@ onethu daemon install --confirm
 onethu daemon uninstall --confirm
 ```
 
-桌面 macOS/Windows 随包提供 Node 与后台程序，首次加载会将已有会话和任务移交后台；单独安装 CLI 时仍需 Node.js。macOS 使用 LaunchAgent，Windows 使用当前用户计划任务。睡眠、关机或离线期间不能检查。前台排障用 `onethu daemon serve`；`stop` 停止当前进程，自启动项由 `uninstall` 单独移除。
+桌面默认包移出 Node/CLI，设置可安装包含 Node 的独立平台 ZIP。终端用户解压 ZIP 后使用 `./onethu` 或 `.\onethu.cmd`，启动器核验并加载自带 Node。源码/npm 入口需要已有 Node.js。首次接入移交现有会话、日程/邮箱和任务，卸载保留账号与数据。macOS 使用 LaunchAgent，Windows 使用当前用户计划任务。睡眠、关机或离线期间不能检查。前台排障用 `onethu daemon serve`；`stop` 停止当前进程，自启动项由 `uninstall` 单独移除。
 
 macOS 再次运行 `daemon install --confirm` 可更新本 CLI/profile 的旧自启动项，优先使用桌面附带的 Node。更新会保留正在执行的任务，新启动路径在下次系统登录时生效；命令结果会显示 `reloadRequired`。
 

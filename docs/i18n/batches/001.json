@@ -1,5 +1,5 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
     {
@@ -47,7 +47,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1199,
+          "line": 1204,
           "context": "{i18n(\"board.edit.restore\")}"
         }
       ],
@@ -63,7 +63,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 928,
+          "line": 933,
           "context": "boardId === HOME_BOARD_ID ? i18n(\"board.edit.restoreHomeConfirm\") : i18n(\"board.edit.restoreBoardConfirm\")"
         }
       ],
@@ -79,7 +79,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 931,
+          "line": 936,
           "context": "say(i18n(\"board.edit.restored\"))"
         }
       ],
@@ -95,7 +95,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 928,
+          "line": 933,
           "context": "boardId === HOME_BOARD_ID ? i18n(\"board.edit.restoreHomeConfirm\") : i18n(\"board.edit.restoreBoardConfirm\")"
         }
       ],
@@ -111,7 +111,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 1198,
+          "line": 1203,
           "context": "{i18n(\"board.edit.undo\")}"
         }
       ],
@@ -127,11 +127,32 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/FreeBoard.tsx",
-          "line": 924,
+          "line": 929,
           "context": "say(i18n(\"board.edit.undone\"))"
         }
       ],
       "translation": "Last change undone",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "calendar.shared.changed",
+      "source": "日程已在其他入口更新，请刷新后重试。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 24,
+          "context": "new Error(i18n(\"calendar.shared.changed\"))"
+        },
+        {
+          "file": "apps/desktop/src/state/cloudCal.ts",
+          "line": 461,
+          "context": "String(error).includes(\"APP_DATA_CHANGED\")?i18n(\"calendar.shared.changed\"):i18n(\"state.cloudcal.6b8367664e76\")"
+        }
+      ],
+      "translation": "The calendar changed in another client. Refresh and try again.",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     },
@@ -143,7 +164,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 24,
+          "line": 42,
           "context": "automatic ? t(\"cli.auto.enabled\") : t(\"cli.auto.description\")"
         }
       ],
@@ -159,7 +180,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 24,
+          "line": 42,
           "context": "automatic ? t(\"cli.auto.enabled\") : t(\"cli.auto.description\")"
         }
       ],
@@ -175,12 +196,12 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 23,
+          "line": 41,
           "context": "{t(\"cli.auto.title\")}"
         },
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 25,
+          "line": 43,
           "context": "{t(\"cli.auto.title\")}"
         }
       ],
@@ -196,7 +217,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/cli/service.ts",
-          "line": 132,
+          "line": 130,
           "context": "confirmText: t(\"cli.confirm.execute\")"
         }
       ],
@@ -212,13 +233,230 @@
       "locations": [
         {
           "file": "apps/desktop/src/cli/service.ts",
-          "line": 132,
+          "line": 130,
           "context": "title: t(\"cli.confirm.title\")"
         }
       ],
       "translation": "OneTHU CLI request",
       "status": "prefilled-review",
       "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "cli.package.description",
+      "source": "为终端、其他 Agent 和关闭应用后的常驻任务安装命令行环境。OH 在应用内可直接使用学校服务，无需安装 CLI。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 32,
+          "context": "installation?.installed?t(\"cli.package.upgrade\"):t(\"cli.package.description\")"
+        }
+      ],
+      "translation": "Install the command-line environment for terminals, other agents, and tasks that continue after the app closes. OH can use campus services inside the app without installing the CLI.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "cli.package.error",
+      "source": "CLI 操作未完成，请重试；应用内 OH 与学校服务仍可使用。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 19,
+          "context": "setError(t(\"cli.package.error\"))"
+        },
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 23,
+          "context": "t(\"cli.package.error\")+(code?` · ${code}`:\"\")"
+        }
+      ],
+      "translation": "The CLI operation could not finish. Please retry. In-app OH and campus services remain available.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "cli.package.external",
+      "source": "允许外部 CLI / MCP 访问",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 37,
+          "context": "{t(\"cli.package.external\")}"
+        }
+      ],
+      "translation": "Allow external CLI / MCP access",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "cli.package.install",
+      "source": "安装 CLI",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 35,
+          "context": "installation?.installed?t(\"cli.package.update\"):t(\"cli.package.install\")"
+        }
+      ],
+      "translation": "Install CLI",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "cli.package.installed",
+      "source": "已安装 {version}。卸载保留账号、任务和数据。",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "version"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 32,
+          "context": "installation?.available?t(\"cli.package.installed\",{version:installation.version??\"\"}):installation?.installed?t(\"cli.package.upgrade\"):t(\"cli.package.description\")"
+        }
+      ],
+      "translation": "Installed: {version}. Uninstalling keeps accounts, tasks, and data.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "cli.package.installing",
+      "source": "正在下载、核验并安装 CLI…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 32,
+          "context": "busy===\"install\"?t(\"cli.package.installing\"):t(\"cli.package.removing\")"
+        }
+      ],
+      "translation": "Downloading, verifying, and installing the CLI…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "cli.package.mobile",
+      "source": "OH 可直接访问已授权的应用服务和数据。手机任务在应用运行期间执行。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 36,
+          "context": "{t(\"cli.package.mobile\")}"
+        }
+      ],
+      "translation": "OH can directly access authorized app services and data. Mobile tasks run while the app is open.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "cli.package.removing",
+      "source": "正在保存日程并停止常驻任务…",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 32,
+          "context": "busy===\"install\"?t(\"cli.package.installing\"):t(\"cli.package.removing\")"
+        }
+      ],
+      "translation": "Saving calendar data and stopping resident tasks…",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "cli.package.repair",
+      "source": "重新安装",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 35,
+          "context": "installation?.available?t(\"cli.package.repair\"):installation?.installed?t(\"cli.package.update\"):t(\"cli.package.install\")"
+        }
+      ],
+      "translation": "Reinstall",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "cli.package.title",
+      "source": "可选组件 · OneTHU CLI",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 31,
+          "context": "{t(\"cli.package.title\")}"
+        }
+      ],
+      "translation": "Optional component · OneTHU CLI",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "cli.package.uninstall",
+      "source": "卸载 CLI",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 34,
+          "context": "{t(\"cli.package.uninstall\")}"
+        }
+      ],
+      "translation": "Uninstall CLI",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "cli.package.update",
+      "source": "更新 CLI",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 35,
+          "context": "installation?.installed?t(\"cli.package.update\"):t(\"cli.package.install\")"
+        }
+      ],
+      "translation": "Update CLI",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "cli.package.upgrade",
+      "source": "检测到旧版 CLI，更新后可恢复常驻任务。账号、任务和数据均已保留。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/CliServerSettings.tsx",
+          "line": 32,
+          "context": "installation?.installed?t(\"cli.package.upgrade\"):t(\"cli.package.description\")"
+        }
+      ],
+      "translation": "A previous CLI installation was found. Update it to resume resident tasks. Accounts, tasks, and data are retained.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
     },
     {
       "key": "cli.server.authorization",
@@ -228,7 +466,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 16,
+          "line": 27,
           "context": "!state.authorized ? t(\"cli.server.authorization\")\n    : state.phase === \"syncing\" ? t(\"cli.server.syncing\") : state.reachableNow ? state.background ? t(\"cli.server.background\") : t(\"cli.server.ready\", { endpoint: state.cliEndpoint ?? \"http://127.0.0.1:8787/cli/v1\" })\n    : state.errorCode === \"listener-unavailable\" ? t(\"cli.server.portBusy\") : state.errorCode === \"listener-not-started\" ? t(\"cli.server.desktopOnly\") : state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         }
       ],
@@ -244,7 +482,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 17,
+          "line": 28,
           "context": "state.background ? t(\"cli.server.background\") : t(\"cli.server.ready\", { endpoint: state.cliEndpoint ?? \"http://127.0.0.1:8787/cli/v1\" })"
         }
       ],
@@ -260,7 +498,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 18,
+          "line": 29,
           "context": "state.errorCode === \"listener-not-started\" ? t(\"cli.server.desktopOnly\") : state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         }
       ],
@@ -276,12 +514,17 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 18,
+          "line": 29,
           "context": "state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         },
         {
           "file": "apps/desktop/src/lib/loginErrors.ts",
           "line": 29,
+          "context": "return t(\"cli.server.error\");"
+        },
+        {
+          "file": "apps/desktop/src/lib/loginErrors.ts",
+          "line": 30,
           "context": "return t(\"cli.server.error\");"
         }
       ],
@@ -297,7 +540,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 16,
+          "line": 27,
           "context": "state.handoffPending ? t(\"cli.server.handoffPending\") : !state.requested ? t(\"cli.server.off\") : !state.authorized ? t(\"cli.server.authorization\")\n    : state.phase === \"syncing\" ? t(\"cli.server.syncing\") : state.reachableNow ? state.background ? t(\"cli.server.background\") : t(\"cli.server.ready\", { endpoint: state.cliEndpoint ?? \"http://127.0.0.1:8787/cli/v1\" })\n    : state.errorCode === \"listener-unavailable\" ? t(\"cli.server.portBusy\") : state.errorCode === \"listener-not-started\" ? t(\"cli.server.desktopOnly\") : state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         }
       ],
@@ -313,7 +556,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 16,
+          "line": 27,
           "context": "!state.requested ? t(\"cli.server.off\") : !state.authorized ? t(\"cli.server.authorization\")\n    : state.phase === \"syncing\" ? t(\"cli.server.syncing\") : state.reachableNow ? state.background ? t(\"cli.server.background\") : t(\"cli.server.ready\", { endpoint: state.cliEndpoint ?? \"http://127.0.0.1:8787/cli/v1\" })\n    : state.errorCode === \"listener-unavailable\" ? t(\"cli.server.portBusy\") : state.errorCode === \"listener-not-started\" ? t(\"cli.server.desktopOnly\") : state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         }
       ],
@@ -329,7 +572,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 18,
+          "line": 29,
           "context": "state.errorCode === \"listener-unavailable\" ? t(\"cli.server.portBusy\") : state.errorCode === \"listener-not-started\" ? t(\"cli.server.desktopOnly\") : state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         }
       ],
@@ -349,7 +592,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 17,
+          "line": 28,
           "context": "state.background ? t(\"cli.server.background\") : t(\"cli.server.ready\", { endpoint: state.cliEndpoint ?? \"http://127.0.0.1:8787/cli/v1\" })"
         }
       ],
@@ -365,7 +608,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 20,
+          "line": 38,
           "context": "{t(\"cli.server.retry\")}"
         }
       ],
@@ -381,7 +624,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 18,
+          "line": 29,
           "context": "state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         }
       ],
@@ -397,7 +640,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/components/CliServerSettings.tsx",
-          "line": 17,
+          "line": 28,
           "context": "state.phase === \"syncing\" ? t(\"cli.server.syncing\") : state.reachableNow ? state.background ? t(\"cli.server.background\") : t(\"cli.server.ready\", { endpoint: state.cliEndpoint ?? \"http://127.0.0.1:8787/cli/v1\" })\n    : state.errorCode === \"listener-unavailable\" ? t(\"cli.server.portBusy\") : state.errorCode === \"listener-not-started\" ? t(\"cli.server.desktopOnly\") : state.phase === \"stopped\" ? t(\"cli.server.stopped\") : t(\"cli.server.error\")"
         }
       ],
@@ -1113,7 +1356,7 @@
       "locations": [
         {
           "file": "apps/desktop/src/cli/service.ts",
-          "line": 132,
+          "line": 130,
           "context": "cancelText: t(\"common.cancel\")"
         },
         {
@@ -1159,254 +1402,6 @@
         }
       ],
       "translation": "Confirm",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "common.submit",
-      "source": "提交",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/lib/formModal.tsx",
-          "line": 95,
-          "context": "{t(\"common.submit\")}"
-        }
-      ],
-      "translation": "Submit",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.attachactionssheet.007ce8838800",
-      "source": "可以只发附件，正文留空",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
-          "line": 603,
-          "context": "{i18n(\"components.attachactionssheet.007ce8838800\")}"
-        }
-      ],
-      "translation": "You can send only attachments and leave the message body empty",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.attachactionssheet.030e4abf599f",
-      "source": "先选一份雨课堂作业",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
-          "line": 290,
-          "context": "error: i18n(\"components.attachactionssheet.030e4abf599f\")"
-        }
-      ],
-      "translation": "Select a Rain Classroom assignment first",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.attachactionssheet.0b66cb2a0fa0",
-      "source": "没做成",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
-          "line": 631,
-          "context": "r.needUi ? i18n(\"components.attachactionssheet.7289cd6b6032\") : i18n(\"components.attachactionssheet.0b66cb2a0fa0\")"
-        }
-      ],
-      "translation": "It did not go through",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.attachactionssheet.0ba343b633e5",
-      "source": "雨课堂未登录：请先在 设置 → 外部作业源 登录雨课堂",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
-          "line": 373,
-          "context": "error: i18n(\"components.attachactionssheet.0ba343b633e5\")"
-        }
-      ],
-      "translation": "Rain Classroom is not signed in: sign in at Settings → External assignment sources first",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.attachactionssheet.0e7ecc965121",
-      "source": "附件：{name}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "name",
-          "expression": "String(first.name)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
-          "line": 245,
-          "context": "first ? i18n(\"components.attachactionssheet.0e7ecc965121\", { name: String(first.name) }) : \"\""
-        }
-      ],
-      "translation": "Attachment: {name}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.attachactionssheet.0ef934448482",
-      "source": "（已交）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
-          "line": 511,
-          "context": "h.submitted ? i18n(\"components.attachactionssheet.0ef934448482\") : \"\""
-        },
-        {
-          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
-          "line": 547,
-          "context": "i.submitted ? i18n(\"components.attachactionssheet.0ef934448482\") : \"\""
-        }
-      ],
-      "translation": "(submitted)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.attachactionssheet.0fdc1d53ffcf",
-      "source": "{message}（位置：{where}）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "message",
-          "expression": "String(ui.message)"
-        },
-        {
-          "name": "where",
-          "expression": "String(where)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
-          "line": 83,
-          "context": "where ? i18n(\"components.attachactionssheet.0fdc1d53ffcf\", { message: String(ui.message), where: String(where) }) : ui.message"
-        }
-      ],
-      "translation": "{message} (location: {where})",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.attachactionssheet.10bc60b1fba1",
-      "source": "非图片附件只带名称/类型/大小与文本预览。",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
-          "line": 618,
-          "context": "files.some((f) => f.mime.startsWith(\"image/\"))\n                ? i18n(\"components.attachactionssheet.fe8d3d70ab66\")\n                : i18n(\"components.attachactionssheet.10bc60b1fba1\")"
-        }
-      ],
-      "translation": "Non-image attachments only carry name/type/size and a text preview.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.attachactionssheet.143dcff5aa23",
-      "source": "共 {length} 个文件，按顺序逐个上传。",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(files.length)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
-          "line": 464,
-          "context": "many ? i18n(\"components.attachactionssheet.143dcff5aa23\", { length: String(files.length) }) : \"\""
-        }
-      ],
-      "translation": "{length} files in total, uploaded one by one in order.",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.attachactionssheet.181f6d1a0555",
-      "source": "正在拉板块…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
-          "line": 252,
-          "context": "setBoardsMsg(i18n(\"components.attachactionssheet.181f6d1a0555\"))"
-        }
-      ],
-      "translation": "Loading discussion boards…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.attachactionssheet.18931020ad52",
-      "source": "提交中…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
-          "line": 522,
-          "context": "busy ? i18n(\"components.attachactionssheet.18931020ad52\") : i18n(\"components.attachactionssheet.dfb054a0aec6\")"
-        }
-      ],
-      "translation": "Submitting…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.attachactionssheet.1a3431e8551a",
-      "source": "发新话题",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
-          "line": 566,
-          "context": "label: i18n(\"components.attachactionssheet.1a3431e8551a\")"
-        }
-      ],
-      "translation": "New topic",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.attachactionssheet.1ac7f24b587b",
-      "source": "附件动作",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/AttachActionsSheet.tsx",
-          "line": 394,
-          "context": "{i18n(\"components.attachactionssheet.1ac7f24b587b\")}"
-        }
-      ],
-      "translation": "Attachment actions",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

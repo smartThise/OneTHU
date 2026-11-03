@@ -47,6 +47,7 @@ function identityHarness({ initial = null, backup = null, failSave = false, fail
   const noNetwork = () => { networkCalls++; throw new Error("Unexpected network call in offline identity recovery"); };
   const dependencies = {
     store, session,
+    initCliInstallation: async () => {},
     usesSharedRuntime: () => false,
     probeLearnSession: async () => { networkCalls++; const ready=await probe();return {ready,csrf:ready?"fixture-csrf":null,page:"fixture",diagnostic:"fixture"}; },
     makeFingerprint: () => `stable-device-${++created}`,

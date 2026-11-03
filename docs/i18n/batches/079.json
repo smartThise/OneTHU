@@ -1,7 +1,241 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "plugins.chatdock.6e4445df6957",
+      "source": "导出失败",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/ChatDock.tsx",
+          "line": 1825,
+          "context": "r?.error ?? i18n(\"plugins.chatdock.6e4445df6957\")"
+        }
+      ],
+      "translation": "Export failed",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.chatdock.6f57749ffaa9",
+      "source": "搜索或对话",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/ChatDock.tsx",
+          "line": 2434,
+          "context": "{i18n(\"plugins.chatdock.6f57749ffaa9\")}"
+        }
+      ],
+      "translation": "Search or chat",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.chatdock.723588bf300c",
+      "source": "重试这条消息",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/ChatDock.tsx",
+          "line": 831,
+          "context": "{i18n(\"plugins.chatdock.723588bf300c\")}"
+        }
+      ],
+      "translation": "Retry this message",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.chatdock.76773f6ea0ce",
+      "source": "自动朗读已开启（点击改静音；长按进语音合成设置）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/ChatDock.tsx",
+          "line": 2481,
+          "context": "prefs.autoSpeak ? i18n(\"plugins.chatdock.76773f6ea0ce\") : i18n(\"plugins.chatdock.1dfa6c369f2c\")"
+        }
+      ],
+      "translation": "Auto-read is on (tap to mute; long-press for text-to-speech settings)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.chatdock.7742ad93c98a",
+      "source": "新建会话失败",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/ChatDock.tsx",
+          "line": 1756,
+          "context": "r?.error ?? i18n(\"plugins.chatdock.7742ad93c98a\")"
+        }
+      ],
+      "translation": "Failed to create a session",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.chatdock.7855f5a8df25",
+      "source": "设置 · {t}",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "t",
+          "expression": "t"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/ChatDock.tsx",
+          "line": 1061,
+          "context": "{i18nRich(\"plugins.chatdock.7855f5a8df25\", { t: t })}"
+        }
+      ],
+      "translation": "Settings · {t}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.chatdock.7b376795bbca",
+      "source": "已取消导出",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/ChatDock.tsx",
+          "line": 1835,
+          "context": "path ? i18n(\"plugins.chatdock.fe0342f05ca5\", { path: String(path) }) : i18n(\"plugins.chatdock.7b376795bbca\")"
+        }
+      ],
+      "translation": "Export cancelled",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.chatdock.8282ce4afe46",
+      "source": "(空响应)",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/ChatDock.tsx",
+          "line": 1451,
+          "context": "typeof r?.answer === \"string\" ? r.answer : i18n(\"plugins.chatdock.8282ce4afe46\")"
+        }
+      ],
+      "translation": "(empty response)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.chatdock.84bca22bedb3",
+      "source": "服务暂时限制了请求，请稍后重试。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/ChatDock.tsx",
+          "line": 826,
+          "context": "{i18n(\"plugins.chatdock.84bca22bedb3\")}"
+        }
+      ],
+      "translation": "The service is temporarily limiting requests. Please try again later.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.chatdock.878d364bd67d",
+      "source": "［附件］{summary}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "summary",
+          "expression": "String(summary)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/ChatDock.tsx",
+          "line": 2150,
+          "context": "text: i18n(\"plugins.chatdock.878d364bd67d\", { summary: String(summary) })"
+        }
+      ],
+      "translation": "[Attachment] {summary}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.chatdock.8a25b8a6fdfa",
+      "source": "小OH 正在回答，稍后再长按说",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/ChatDock.tsx",
+          "line": 2108,
+          "context": "showVoiceFail(i18n(\"plugins.chatdock.8a25b8a6fdfa\"))"
+        }
+      ],
+      "translation": "Xiao OH is answering; long-press to speak again later",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.chatdock.9ac692674bef",
+      "source": "插件已停止",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/ChatDock.tsx",
+          "line": 1392,
+          "context": "hardStop(i18n(\"plugins.chatdock.9ac692674bef\"))"
+        }
+      ],
+      "translation": "Plugin stopped",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.chatdock.a37778f17c5f",
+      "source": "已取消",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/ChatDock.tsx",
+          "line": 2093,
+          "context": "showVoiceFail(i18n(\"plugins.chatdock.a37778f17c5f\"))"
+        }
+      ],
+      "translation": "Cancelled",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "plugins.chatdock.a59732772a1e",
+      "source": "语音设置：插件 → OneTHU Harness → 基础设置",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/plugins/ChatDock.tsx",
+          "line": 2133,
+          "context": "setNotice(i18n(\"plugins.chatdock.a59732772a1e\"))"
+        }
+      ],
+      "translation": "Voice settings: Plugins → OneTHU Harness → Basic settings",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "plugins.chatdock.a5e282527a63",
       "source": "松开取消",
@@ -1191,235 +1425,6 @@
         }
       ],
       "translation": "notify.send requires a title",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.facade.c50a68203b6c",
-      "source": "详情页无可解析卡片（页面结构变更?）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/facade.ts",
-          "line": 646,
-          "context": "error: i18n(\"plugins.facade.c50a68203b6c\")"
-        }
-      ],
-      "translation": "No parsable cards on the detail page (page structure changed?)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.facade.cb7be7f22ff6",
-      "source": "结束时间早于开始时间",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/facade.ts",
-          "line": 1415,
-          "context": "new Error(i18n(\"plugins.facade.cb7be7f22ff6\"))"
-        }
-      ],
-      "translation": "End time is earlier than start time",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.facade.d0deef545297",
-      "source": "仓库地址不认识（支持 user/repo、user/repo@dev、完整 URL）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/facade.ts",
-          "line": 1454,
-          "context": "new Error(i18n(\"plugins.facade.d0deef545297\"))"
-        }
-      ],
-      "translation": "Unrecognized repository address (supported: user/repo, user/repo@dev, full URL)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.facade.d12b86e33757",
-      "source": "getTabRoot 仅限本插件注册的 tab",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/facade.ts",
-          "line": 932,
-          "context": "new Error(i18n(\"plugins.facade.d12b86e33757\"))"
-        }
-      ],
-      "translation": "getTabRoot only applies to tabs registered by this plugin",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.facade.d669b31a853f",
-      "source": "云盘未配置：请先在应用的「云盘」页连接（Seafile API Token）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/facade.ts",
-          "line": 369,
-          "context": "new Error(i18n(\"plugins.facade.d669b31a853f\"))"
-        }
-      ],
-      "translation": "Cloud Drive not configured: connect on the app's \"Cloud Drive\" page first (Seafile API Token)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.facade.d9ce17418be4",
-      "source": "校园网需要验证码登录：已自动打开校园网页面并展示验证码，请让用户在验证码面板输入图中字符完成登录，登录成功后重试本查询",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/facade.ts",
-          "line": 2084,
-          "context": "new Error(\n      i18n(\"plugins.facade.d9ce17418be4\"),\n    )"
-        }
-      ],
-      "translation": "Campus network requires captcha sign-in: the campus network page has been opened automatically with the captcha shown. Ask the user to enter the characters in the image on the captcha panel to complete sign-in, then retry this query",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.facade.d9e18ccca62c",
-      "source": "trigger 必须是 {kind:manual} / {kind:cron,everyMinutes} / {kind:event,event}",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/facade.ts",
-          "line": 985,
-          "context": "new Error(i18n(\"plugins.facade.d9e18ccca62c\"))"
-        }
-      ],
-      "translation": "trigger must be {kind:manual} / {kind:cron,everyMinutes} / {kind:event,event}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.facade.e17b179b14d7",
-      "source": "需要一个新名字",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/facade.ts",
-          "line": 1115,
-          "context": "new Error(i18n(\"plugins.facade.e17b179b14d7\"))"
-        }
-      ],
-      "translation": "A new name is required",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.facade.ebf705292119",
-      "source": "校园网需要验证码登录，请输入图中验证码",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/facade.ts",
-          "line": 2080,
-          "context": "showToast(i18n(\"plugins.facade.ebf705292119\"))"
-        }
-      ],
-      "translation": "Campus network requires captcha sign-in; enter the captcha shown in the image",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.facade.ef62cd3182c8",
-      "source": "找不到这块 OnePage（id 不对或已删除）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/facade.ts",
-          "line": 1082,
-          "context": "new Error(i18n(\"plugins.facade.ef62cd3182c8\"))"
-        }
-      ],
-      "translation": "Cannot find this OnePage (wrong id or it has been deleted)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.facade.f4466b045d5f",
-      "source": "没找到这块板或这个组件",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/facade.ts",
-          "line": 1176,
-          "context": "new Error(i18n(\"plugins.facade.f4466b045d5f\"))"
-        }
-      ],
-      "translation": "Board or widget not found",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.facade.f6746a5629b0",
-      "source": "日程不存在：{uid}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "uid",
-          "expression": "String(uid)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/facade.ts",
-          "line": 302,
-          "context": "new Error(i18n(\"plugins.facade.f6746a5629b0\", { uid: String(uid) }))"
-        }
-      ],
-      "translation": "Schedule entry not found: {uid}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.facade.f6d1ef56c2ca",
-      "source": "时间得是「2026-10-14 09:00」格式或毫秒数",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/facade.ts",
-          "line": 1410,
-          "context": "new Error(i18n(\"plugins.facade.f6d1ef56c2ca\"))"
-        }
-      ],
-      "translation": "Time must be in \"2026-10-14 09:00\" format or a millisecond timestamp",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "plugins.facade.fba49ea39197",
-      "source": "没找到这块板或这个组件（id 对照 ext_onepage_list 的板与组件 id）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/plugins/facade.ts",
-          "line": 1162,
-          "context": "new Error(i18n(\"plugins.facade.fba49ea39197\"))"
-        }
-      ],
-      "translation": "Board or widget not found (match ids against the board and widget ids from ext_onepage_list)",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

@@ -1,7 +1,240 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "components.helpsection.eea78fdb74ce",
+      "source": "打开导览",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/HelpSection.tsx",
+          "line": 71,
+          "context": "{i18n(\"components.helpsection.eea78fdb74ce\")}"
+        }
+      ],
+      "translation": "Open the tour",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.helpsection.f96e2a787c76",
+      "source": "我要预约图书馆座位、研讨间、体育",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/HelpSection.tsx",
+          "line": 36,
+          "context": "return i18n(\"components.helpsection.f96e2a787c76\");"
+        }
+      ],
+      "translation": "I want to book library seats, study rooms, and sports venues",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.helpsection.faf8fc496688",
+      "source": "这些都在设置里，下面直接带你到对应的栏目。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/HelpSection.tsx",
+          "line": 52,
+          "context": "return i18n(\"components.helpsection.faf8fc496688\");"
+        }
+      ],
+      "translation": "These are all in Settings; the buttons below take you straight to the right section.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.homecoachmarks.3f1467fc681a",
+      "source": "一级功能坞在这里；找不到的功能都在「服务」页，也能直接搜。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/HomeCoachMarks.tsx",
+          "line": 25,
+          "context": "return i18n(\"components.homecoachmarks.3f1467fc681a\");"
+        }
+      ],
+      "translation": "The main features dock is here. Anything you can't find is on the \"Services\" page, or search directly.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.homecoachmarks.626caf19ebdb",
+      "source": "第 {value} 条，共 {length} 条",
+      "kind": "rich",
+      "parameters": [
+        {
+          "name": "value",
+          "expression": "idx + 1"
+        },
+        {
+          "name": "length",
+          "expression": "avail.length"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/HomeCoachMarks.tsx",
+          "line": 178,
+          "context": "{i18nRich(\"components.homecoachmarks.626caf19ebdb\", { value: idx + 1, length: avail.length })}"
+        }
+      ],
+      "translation": "{value} of {length}",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.homecoachmarks.a54a0add5447",
+      "source": "不再提示",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/HomeCoachMarks.tsx",
+          "line": 180,
+          "context": "{i18n(\"components.homecoachmarks.a54a0add5447\")}"
+        }
+      ],
+      "translation": "Don't show again",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.homecoachmarks.a698c6f322d5",
+      "source": "直接拖动卡片摆放，选中后拉角点调整大小；底部工具栏可随时添加与缩放。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/HomeCoachMarks.tsx",
+          "line": 23,
+          "context": "return i18n(\"components.homecoachmarks.a698c6f322d5\");"
+        }
+      ],
+      "translation": "Drag cards directly to arrange them; select one, then drag a corner to resize. The bottom toolbar lets you add and zoom anytime.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.homecoachmarks.de32e20193ad",
+      "source": "知道了",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/HomeCoachMarks.tsx",
+          "line": 181,
+          "context": "last ? i18n(\"components.homecoachmarks.de32e20193ad\") : i18n(\"components.homecoachmarks.df119e585ece\")"
+        }
+      ],
+      "translation": "Got it",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.homecoachmarks.df119e585ece",
+      "source": "下一条",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/HomeCoachMarks.tsx",
+          "line": 181,
+          "context": "last ? i18n(\"components.homecoachmarks.de32e20193ad\") : i18n(\"components.homecoachmarks.df119e585ece\")"
+        }
+      ],
+      "translation": "Next",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.homecoachmarks.fe031a3ba2eb",
+      "source": "从这儿添加组件：内置组件、你的收藏、其它 OnePage 都在这。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/HomeCoachMarks.tsx",
+          "line": 24,
+          "context": "return i18n(\"components.homecoachmarks.fe031a3ba2eb\");"
+        }
+      ],
+      "translation": "Add widgets from here: built-in widgets, your favorites, and other OnePages are all here.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.homewidgets.00c13966da7b",
+      "source": "暂时没有新通知。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/HomeWidgets.tsx",
+          "line": 322,
+          "context": "{i18n(\"components.homewidgets.00c13966da7b\")}"
+        }
+      ],
+      "translation": "No new notifications for now.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.homewidgets.0631b8517ea4",
+      "source": "座位 ",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/HomeWidgets.tsx",
+          "line": 360,
+          "context": "i18n(\"components.homewidgets.0631b8517ea4\") + r.place"
+        }
+      ],
+      "translation": "Seat ",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.homewidgets.0ba4abe941a2",
+      "source": "今天没有课。",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/HomeWidgets.tsx",
+          "line": 383,
+          "context": "emptyText ?? i18n(\"components.homewidgets.0ba4abe941a2\")"
+        }
+      ],
+      "translation": "No classes today.",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "components.homewidgets.106e2c9d79fd",
+      "source": "今天截止",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/components/HomeWidgets.tsx",
+          "line": 60,
+          "context": "text: i18n(\"components.homewidgets.106e2c9d79fd\")"
+        }
+      ],
+      "translation": "Due today",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "components.homewidgets.1156e9912bf8",
       "source": "没有未提交的作业，享受今天吧。",
@@ -1130,235 +1363,6 @@
         }
       ],
       "translation": "Cancel",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.imagefiltersheet.2e603f5665a4",
-      "source": "处理后的预览",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ImageFilterSheet.tsx",
-          "line": 182,
-          "context": "{i18n(\"components.imagefiltersheet.2e603f5665a4\")}"
-        }
-      ],
-      "translation": "Processed preview",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.imagefiltersheet.346ff60e6c7c",
-      "source": "读取中…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ImageFilterSheet.tsx",
-          "line": 182,
-          "context": "{i18n(\"components.imagefiltersheet.346ff60e6c7c\")}"
-        }
-      ],
-      "translation": "Reading…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.imagefiltersheet.5217984b59e5",
-      "source": "正在生成，请稍候…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ImageFilterSheet.tsx",
-          "line": 166,
-          "context": "busy\n        ? i18n(\"components.imagefiltersheet.5217984b59e5\")\n        : `${info?.hint ?? \"\"}${rotate ? i18n(\"components.imagefiltersheet.fc1f2c7428d8\", { rotate: String(rotate) }) : \"\"}${dirty ? \"\" : i18n(\"components.imagefiltersheet.e6a608674c0f\")}`"
-        }
-      ],
-      "translation": "Generating, please wait…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.imagefiltersheet.63c73c4730f4",
-      "source": "应用",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ImageFilterSheet.tsx",
-          "line": 211,
-          "context": "busy ? i18n(\"components.imagefiltersheet.d3d21191f32e\") : i18n(\"components.imagefiltersheet.63c73c4730f4\")"
-        }
-      ],
-      "translation": "Apply",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.imagefiltersheet.90a4851cb62d",
-      "source": "这一步没做完，请重试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ImageFilterSheet.tsx",
-          "line": 54,
-          "context": "e instanceof Error && e.message ? e.message : i18n(\"components.imagefiltersheet.90a4851cb62d\")"
-        }
-      ],
-      "translation": "This step didn't finish. Please try again",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.imagefiltersheet.9393fa8872d2",
-      "source": "编辑图片",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ImageFilterSheet.tsx",
-          "line": 69,
-          "context": "title = i18n(\"components.imagefiltersheet.9393fa8872d2\")"
-        }
-      ],
-      "translation": "Edit image",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "components.imagefiltersheet.d24c10d37db0",
-      "source": "图片",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ImageFilterSheet.tsx",
-          "line": 58,
-          "context": "base || i18n(\"components.imagefiltersheet.d24c10d37db0\")"
-        }
-      ],
-      "translation": "Image",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.imagefiltersheet.d3d21191f32e",
-      "source": "处理中…",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ImageFilterSheet.tsx",
-          "line": 211,
-          "context": "busy ? i18n(\"components.imagefiltersheet.d3d21191f32e\") : i18n(\"components.imagefiltersheet.63c73c4730f4\")"
-        }
-      ],
-      "translation": "Processing…",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.imagefiltersheet.e4fe3a04ff89",
-      "source": "滤镜预设",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ImageFilterSheet.tsx",
-          "line": 185,
-          "context": "{i18n(\"components.imagefiltersheet.e4fe3a04ff89\")}"
-        }
-      ],
-      "translation": "Filter presets",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.imagefiltersheet.e6a608674c0f",
-      "source": " · 未改动",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ImageFilterSheet.tsx",
-          "line": 167,
-          "context": "dirty ? \"\" : i18n(\"components.imagefiltersheet.e6a608674c0f\")"
-        }
-      ],
-      "translation": " · Unchanged",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.imagefiltersheet.fc1f2c7428d8",
-      "source": " · 已旋转 {rotate}°",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "rotate",
-          "expression": "String(rotate)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ImageFilterSheet.tsx",
-          "line": 167,
-          "context": "rotate ? i18n(\"components.imagefiltersheet.fc1f2c7428d8\", { rotate: String(rotate) }) : \"\""
-        }
-      ],
-      "translation": " · Rotated {rotate}°",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.imageviewer.850de13a01d9",
-      "source": "保存图片",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ImageViewer.tsx",
-          "line": 456,
-          "context": "saving ? i18n(\"components.imageviewer.a1a1720d3eb5\") : i18n(\"components.imageviewer.850de13a01d9\")"
-        }
-      ],
-      "translation": "Save image",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.imageviewer.8a4c192efb6b",
-      "source": "已保存到相册",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ImageViewer.tsx",
-          "line": 439,
-          "context": "showToast(i18nMsg(\"components.imageviewer.8a4c192efb6b\"), 3000)"
-        }
-      ],
-      "translation": "Saved to Photos",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "components.imageviewer.a1a1720d3eb5",
-      "source": "保存中",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/components/ImageViewer.tsx",
-          "line": 456,
-          "context": "saving ? i18n(\"components.imageviewer.a1a1720d3eb5\") : i18n(\"components.imageviewer.850de13a01d9\")"
-        }
-      ],
-      "translation": "Saving",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }

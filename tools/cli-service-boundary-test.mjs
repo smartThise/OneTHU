@@ -122,12 +122,12 @@ await test('internal OH reads do not require an external CLI listener; revocatio
   assert.ok(f.service.list().operations.some(op => op.name === 'contacts.list'));
   await f.service.call({ operation: 'contacts.list' });
   assert.equal(f.calls[0].operation, 'contacts.list');
-  await assert.rejects(f.service.call({ operation: 'tasks.list' }), /CLI_DISABLED/);
+  await f.service.call({ operation: 'tasks.list' });
   await assert.rejects(f.service.call({ operation: 'xiaoda.enableSkill', args: ['skill', true] }), /CONFIRMATION_REQUIRED/);
   const pending = f.service.call({ operation: 'xiaoda.enableSkill', args: ['skill', true], confirm: true });
   await flush(); assert.ok(f.confirm.__pending());
   f.confirm.answerConfirm(false); await assert.rejects(pending, /CONFIRMATION_CANCELLED/);
-  assert.equal(f.calls.length, 1);
+  assert.equal(f.calls.length, 2);
   f.setAuthorized(false); assert.throws(() => f.service.list(), /OH_AUTHORIZATION_REQUIRED/);
   await assert.rejects(f.service.call({ operation: 'contacts.list' }), /OH_AUTHORIZATION_REQUIRED/);
 });
@@ -286,13 +286,14 @@ await test('desktop settings expose an explicit localized automatic switch and k
     const ui = moduleAt('apps/desktop/src/components/CliServerSettings.tsx', { './CliTasksSettings.js': { CliTasksSettings: () => null }, './CliTasksSettings.css': {},
       '@onethu/gui': { Btn: 'Btn', Inline: 'Inline', SettingsRow: 'SettingsRow', Switch: 'Switch' },
       'react/jsx-runtime': { Fragment: 'Fragment', jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) },
-      react: { useEffect() {}, useSyncExternalStore: (_subscribe, get) => get() },
+      '../lib/sharedRuntime.js': { refreshCliInstallation: async()=>null }, '../lib/transport.js': {isTauri:false},
+      react: { useState: value=>[value,()=>{}], useEffect() {}, useSyncExternalStore: (_subscribe, get) => get() },
       '../i18n/index.js': { useLocale() {}, t: key => locale.messages[key] ?? key },
       '../state/userext.js': { ...f.userext, setCliAutoExecute: value => f.setAutomatic(value), setMcpServer() {} },
       '../state/cliRuntime.js': { useCliRuntime: () => snapshot, syncCliRuntime: async () => {} },
       '../lib/androidHost.js': { isAndroidNavigator: () => android },
     });
-    return ui.CliServerSettings().props.children[1];
+    return ui.CliServerSettings().props.children[2];
   };
   let row = render(); assert.equal(row.props.title, 'Allow automatic CLI / MCP execution');
   assert.match(row.props.sub, /bookings, cancellations, email sending and data changes/);
@@ -456,7 +457,7 @@ await test('public errors strip authentication URLs and raw authentication pages
 await test('runtime status ignores a stale enable reply after user disables the service', async () => {
   const f = fixture(); const first = deferred(); const invokes = [], rpcs = [];
   const runtime = moduleAt('apps/desktop/src/state/cliRuntime.ts', {
-    '../lib/sharedRuntime.js': { usesSharedRuntime: () => false, subscribeSharedRuntime() {} },
+    '../lib/sharedRuntime.js': { usesSharedRuntime: () => false, initCliInstallation: async()=>{}, subscribeSharedRuntime() {} },
     '@onethu/sdk/policy': policy,
     react: {}, './userext.js': f.userext, './privacyConsent.js': f.privacy,
     '@tauri-apps/api/core': { invoke: async (method, params) => { invokes.push({ method, params }); } },
@@ -467,14 +468,14 @@ await test('runtime status ignores a stale enable reply after user disables the 
   first.resolve({ supported: true, enabled: true, listening: true, reachableNow: true }); await flush();
   assert.equal(runtime.cliRuntimeSnapshot().enabled, false);
   assert.equal(runtime.cliRuntimeSnapshot().reachableNow, false);
-  assert.equal(invokes.at(-1).params.enabled, false);
+  assert.equal(invokes.at(-1).params.enabled, true, 'native OH download capability remains authorized while external CLI is off');
   assert.ok(invokes[1].params.revision > invokes[0].params.revision);
 });
 await test('policy revocation invalidates native writes even when a newer reconnect overtakes it', async () => {
   const f = fixture({ automatic: true }), held = deferred(), invokes = [];
   let hold = false;
   const runtime = moduleAt('apps/desktop/src/state/cliRuntime.ts', {
-    '../lib/sharedRuntime.js': { usesSharedRuntime: () => false, subscribeSharedRuntime() {} },
+    '../lib/sharedRuntime.js': { usesSharedRuntime: () => false, initCliInstallation: async()=>{}, subscribeSharedRuntime() {} },
     '@onethu/sdk/policy': policy, react: {}, './userext.js': f.userext, './privacyConsent.js': f.privacy,
     '@tauri-apps/api/core': { invoke: async (method, params) => { invokes.push({ method, params }); if (hold) { hold = false; await held.promise; } } },
     '../plugins/rust.js': { callRust: async () => ({ supported: true, enabled: true, listening: true, reachableNow: true }) },
@@ -544,7 +545,7 @@ await test('task grant creation needs local approval; pause and run are independ
   assert.deepEqual(f.calls.map(c => c.operation), ['tasks.pause', 'tasks.run', 'tasks.create']);
 });
 await test('task grants are private references and retain scope/epoch checks', async () => {
-  const f = fixture();
+  const f = fixture({internal:true,requested:false});
   await assert.rejects(f.service.call({ operation: 'cal.remove', args: ['x'], confirmationGrant: {} }), /Unknown argument|INVALID_ARGUMENT/);
   const controller = new AbortController(); let valid = true, checks = 0;
   const grant = { async assertAllowed(operation, args) { checks++; if (!valid) throw Error('TASK_CANCELLED'); if (operation !== 'learn.courses' || args.length) throw Error('TASK_OPERATION_OUTSIDE_GRANT'); } };

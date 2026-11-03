@@ -1,7 +1,241 @@
 {
-  "sourceHash": "826d1edae740868ce616ac8b71aa7aead819fca707b324969bc4b63140acd4db",
+  "sourceHash": "1bd951c3ab28c8c55546628c5d5fb8afa3bf61a66681350e546ce0cb012234c3",
   "targetFile": "apps/desktop/src/i18n/locales/en-US.ts",
   "messages": [
+    {
+      "key": "state.namecard.e769cfbccd53",
+      "source": "组织名片 · {name}",
+      "kind": "text",
+      "parameters": [
+        {
+          "name": "name",
+          "expression": "String(org.name)"
+        }
+      ],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/nameCard.ts",
+          "line": 278,
+          "context": "title: i18n(\"state.namecard.e769cfbccd53\", { name: String(org.name) })"
+        }
+      ],
+      "translation": "Organization card · {name}",
+      "status": "prefilled-review",
+      "limitHint": "Keep concise; button/card label may wrap."
+    },
+    {
+      "key": "state.navigation.06657c279571",
+      "source": "通讯录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/navigation.ts",
+          "line": 80,
+          "context": "return i18n(\"state.navigation.06657c279571\");"
+        }
+      ],
+      "translation": "Contacts",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.navigation.07a0fa11958e",
+      "source": "体育预约",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/navigation.ts",
+          "line": 122,
+          "context": "return i18n(\"state.navigation.07a0fa11958e\");"
+        }
+      ],
+      "translation": "Sports reservations",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.navigation.082bbf74eb0f",
+      "source": "查看余额与收支记录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/navigation.ts",
+          "line": 108,
+          "context": "return i18n(\"state.navigation.082bbf74eb0f\");"
+        }
+      ],
+      "translation": "View balance and transaction records",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.navigation.10532ed2578b",
+      "source": "查看考试时间与考场",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/navigation.ts",
+          "line": 93,
+          "context": "return i18n(\"state.navigation.10532ed2578b\");"
+        }
+      ],
+      "translation": "View exam times and exam rooms",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.navigation.14384c9d60cc",
+      "source": "教学评估",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/navigation.ts",
+          "line": 94,
+          "context": "return i18n(\"state.navigation.14384c9d60cc\");"
+        }
+      ],
+      "translation": "Teaching evaluation",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.navigation.15d208d1b4c9",
+      "source": "生活",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/navigation.ts",
+          "line": 102,
+          "context": "return i18n(\"state.navigation.15d208d1b4c9\");"
+        }
+      ],
+      "translation": "Life",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.navigation.1760b98532ec",
+      "source": "在线服务",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/navigation.ts",
+          "line": 133,
+          "context": "return i18n(\"state.navigation.1760b98532ec\");"
+        }
+      ],
+      "translation": "Online services",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.navigation.1bba779cd16c",
+      "source": "JS / Rust / Android 内嵌三类插件，市场一键安装（2026-10-09 起一级入口）",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/navigation.ts",
+          "line": 141,
+          "context": "return i18n(\"state.navigation.1bba779cd16c\");"
+        }
+      ],
+      "translation": "Three built-in plugin types: JS, Rust, and Android; one-click install from the marketplace (a main entry since 2026-10-09)",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.navigation.21e7aec68918",
+      "source": "填写课程评价与教学问卷",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/navigation.ts",
+          "line": 94,
+          "context": "return i18n(\"state.navigation.21e7aec68918\");"
+        }
+      ],
+      "translation": "Fill in course evaluations and teaching surveys",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.navigation.231ff6cd9b63",
+      "source": "学期切换",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/navigation.ts",
+          "line": 88,
+          "context": "return i18n(\"state.navigation.231ff6cd9b63\");"
+        }
+      ],
+      "translation": "Switch semester",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.navigation.241e209e86bb",
+      "source": "生活服务总览",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/navigation.ts",
+          "line": 102,
+          "context": "return i18n(\"state.navigation.241e209e86bb\");"
+        }
+      ],
+      "translation": "Overview of life services",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.navigation.24be2018df29",
+      "source": "银行代发",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/navigation.ts",
+          "line": 115,
+          "context": "return i18n(\"state.navigation.24be2018df29\");"
+        }
+      ],
+      "translation": "Payroll",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
+    {
+      "key": "state.navigation.2c9595063af1",
+      "source": "查看个人到账与发放记录",
+      "kind": "text",
+      "parameters": [],
+      "locations": [
+        {
+          "file": "apps/desktop/src/state/navigation.ts",
+          "line": 115,
+          "context": "return i18n(\"state.navigation.2c9595063af1\");"
+        },
+        {
+          "file": "apps/desktop/src/state/navigation.ts",
+          "line": 116,
+          "context": "return i18n(\"state.navigation.2c9595063af1\");"
+        }
+      ],
+      "translation": "View your deposits and payout records",
+      "status": "prefilled-review",
+      "limitHint": "Preserve meaning; do not truncate."
+    },
     {
       "key": "state.navigation.2e3250329028",
       "source": "课表",
@@ -1075,294 +1309,6 @@
         }
       ],
       "translation": "Authorized",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.notifydoctor.58f371818c4f",
-      "source": "已发出测试通知——若没看到，检查系统「勿扰」或通知分组",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 153,
-          "context": "sent ? i18n(\"state.notifydoctor.58f371818c4f\") : i18n(\"state.notifydoctor.3edfd112e604\")"
-        }
-      ],
-      "translation": "Test notification sent — if you don't see it, check the system Do Not Disturb setting or notification grouping",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.notifydoctor.5e0a3ee20f6b",
-      "source": "可自选尺寸{k}={t}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "k",
-          "expression": "String(k)"
-        },
-        {
-          "name": "t",
-          "expression": "String(t)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 101,
-          "context": "([k, t]) => i18n(\"state.notifydoctor.5e0a3ee20f6b\", { k: String(k), t: String(t) })"
-        }
-      ],
-      "translation": "Optional sizes {k}={t}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.notifydoctor.60d7f4ea2680",
-      "source": "槽位{k}:{v}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "k",
-          "expression": "String(k)"
-        },
-        {
-          "name": "v",
-          "expression": "String(v)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 99,
-          "context": "([k, v]) => i18n(\"state.notifydoctor.60d7f4ea2680\", { k: String(k), v: String(v) })"
-        }
-      ],
-      "translation": "Slot {k}: {v}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.notifydoctor.6726f815e5dd",
-      "source": "（{warned} 项提示）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "warned",
-          "expression": "String(warned)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 63,
-          "context": "warned ? i18n(\"state.notifydoctor.6726f815e5dd\", { warned: String(warned) }) : \"\""
-        }
-      ],
-      "translation": "({warned} warnings)",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.notifydoctor.6dfd9883ec6d",
-      "source": "通知授权",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 78,
-          "context": "push(\"permission\", i18n(\"state.notifydoctor.6dfd9883ec6d\"), \"fail\", i18n(\"state.notifydoctor.d9540c4fcc17\"))"
-        },
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 81,
-          "context": "push(\"permission\", i18n(\"state.notifydoctor.6dfd9883ec6d\"), \"ok\", i18n(\"state.notifydoctor.521e65ffc7d0\"))"
-        }
-      ],
-      "translation": "Notification permission",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.notifydoctor.76e3238d6fee",
-      "source": "系统读到 {length} 个小组件尺寸（{value}）",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "length",
-          "expression": "String(ws.providersRegistered.length)"
-        },
-        {
-          "name": "value",
-          "expression": "String(ws.providersRegistered.join(\"、\"))"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 105,
-          "context": "ws.providersRegistered.length === 0\n          ? i18n(\"state.notifydoctor.f8cd5feb5360\")\n          : i18n(\"state.notifydoctor.76e3238d6fee\", { length: String(ws.providersRegistered.length), value: String(ws.providersRegistered.join(\"、\")) })"
-        }
-      ],
-      "translation": "The system read {length} widget sizes ({value})",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.notifydoctor.7941c9adf8cc",
-      "source": "自检失败：{failed} 项不通过{value}——见下方第一处「不通过」",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "failed",
-          "expression": "String(failed)"
-        },
-        {
-          "name": "value",
-          "expression": "String(warned ? i18n(\"state.notifydoctor.91e36d30a350\", { warned: String(warned) }) : \"\")"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 64,
-          "context": "ok\n      ? i18n(\"state.notifydoctor.c273c2086a0d\", { length: String(steps.length), value: String(warned ? i18n(\"state.notifydoctor.6726f815e5dd\", { warned: String(warned) }) : \"\") })\n      : i18n(\"state.notifydoctor.7941c9adf8cc\", { failed: String(failed), value: String(warned ? i18n(\"state.notifydoctor.91e36d30a350\", { warned: String(warned) }) : \"\") })"
-        }
-      ],
-      "translation": "Self-check failed: {failed} items did not pass{value} — see the first \"not passed\" below",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.notifydoctor.89f5f5eed848",
-      "source": "精确提醒",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 87,
-          "context": "push(\n      \"exact\",\n      i18n(\"state.notifydoctor.89f5f5eed848\"),\n      st.exact ? \"ok\" : \"warn\",\n      st.exact ? i18n(\"state.notifydoctor.cafc3774b86b\") : i18n(\"state.notifydoctor.c8b5af17e6d2\"),\n    )"
-        }
-      ],
-      "translation": "Exact alarms",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.notifydoctor.91e36d30a350",
-      "source": "、{warned} 项提示",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "warned",
-          "expression": "String(warned)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 64,
-          "context": "warned ? i18n(\"state.notifydoctor.91e36d30a350\", { warned: String(warned) }) : \"\""
-        }
-      ],
-      "translation": ", {warned} warnings",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.notifydoctor.962a6e0b8f61",
-      "source": "桌面已放 {placed} 个（宿主 {hostPlaced}）{slotInfo}",
-      "kind": "text",
-      "parameters": [
-        {
-          "name": "placed",
-          "expression": "String(placed)"
-        },
-        {
-          "name": "hostPlaced",
-          "expression": "String(ws.hostPlaced)"
-        },
-        {
-          "name": "slotInfo",
-          "expression": "String(slotInfo)"
-        }
-      ],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 114,
-          "context": "placed > 0 ? i18n(\"state.notifydoctor.962a6e0b8f61\", { placed: String(placed), hostPlaced: String(ws.hostPlaced), slotInfo: String(slotInfo) }) : i18n(\"state.notifydoctor.f088b81ae9c7\")"
-        }
-      ],
-      "translation": "{placed} placed on the desktop ({hostPlaced} in the host){slotInfo}",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.notifydoctor.a14a16f450ae",
-      "source": "投递测试",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 153,
-          "context": "push(\"deliver\", i18n(\"state.notifydoctor.a14a16f450ae\"), sent ? \"ok\" : \"fail\", sent ? i18n(\"state.notifydoctor.58f371818c4f\") : i18n(\"state.notifydoctor.3edfd112e604\"))"
-        }
-      ],
-      "translation": "Delivery test",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.notifydoctor.a1a9da9ee6ed",
-      "source": "未知原因",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 132,
-          "context": "r.reason ?? i18n(\"state.notifydoctor.a1a9da9ee6ed\")"
-        }
-      ],
-      "translation": "Unknown reason",
-      "status": "prefilled-review",
-      "limitHint": "Preserve meaning; do not truncate."
-    },
-    {
-      "key": "state.notifydoctor.a7320eda2464",
-      "source": "（当前无插件占用槽位）",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 115,
-          "context": "titles || i18n(\"state.notifydoctor.a7320eda2464\")"
-        }
-      ],
-      "translation": "(No plugin is using a slot currently)",
-      "status": "prefilled-review",
-      "limitHint": "Keep concise; button/card label may wrap."
-    },
-    {
-      "key": "state.notifydoctor.ad16c86b6da1",
-      "source": "已撤销探针",
-      "kind": "text",
-      "parameters": [],
-      "locations": [
-        {
-          "file": "apps/desktop/src/state/notifyDoctor.ts",
-          "line": 148,
-          "context": "probeScheduled ? i18n(\"state.notifydoctor.ad16c86b6da1\") : i18n(\"state.notifydoctor.0c9fc2c91156\")"
-        }
-      ],
-      "translation": "Probes revoked",
       "status": "prefilled-review",
       "limitHint": "Preserve meaning; do not truncate."
     }
