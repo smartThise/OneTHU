@@ -16,6 +16,7 @@ import {
   subscribeWallpaper,
   videoSoundSnapshot,
 } from "../../state/wallpaper.js";
+import { preblurWallpaper } from "../../lib/preblur.js";
 
 export function WallpaperVideoBox({
   src,
@@ -49,6 +50,34 @@ export function ShellWallpaperLayer(): ReactNode {
   const wp = useSyncExternalStore(subscribeWallpaper, shellWallpaperSnapshot, shellWallpaperSnapshot);
   const sound = useSyncExternalStore(subscribeWallpaper, videoSoundSnapshot, videoSoundSnapshot);
   const anchor = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const root = document.documentElement;
+    const vars = ["--og-prebblur-deep", "--og-prebblur-rich", "--og-prebblur-clear"] as const;
+    let cancelled = false;
+    let timer = 0;
+    const clear = (): void => {
+      root.removeAttribute("data-og-prebblur");
+      for (const key of vars) root.style.removeProperty(key);
+    };
+    if (!wp || wp.kind !== "image") {
+      clear();
+      return clear;
+    }
+    timer = window.setTimeout(() => {
+      void preblurWallpaper(wp.ref).then((set) => {
+        if (cancelled) return;
+        root.style.setProperty("--og-prebblur-deep", `url("${set.deep}")`);
+        root.style.setProperty("--og-prebblur-rich", `url("${set.rich}")`);
+        root.style.setProperty("--og-prebblur-clear", `url("${set.clear}")`);
+        root.setAttribute("data-og-prebblur", "on");
+      }).catch(clear);
+    }, 120);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      clear();
+    };
+  }, [wp]);
   useEffect(() => {
     const shell = anchor.current?.parentElement;
     if (!shell) return;

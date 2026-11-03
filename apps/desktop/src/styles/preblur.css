@@ -1,0 +1,57 @@
+/* Page-level glass reads one precomputed blurred wallpaper instead of each
+   .og-surface running its own live backdrop-filter. Settings / OH search /
+   vault / topbar / tabbar stay on live blur (see the override block below). */
+
+html[data-og-prebblur="on"][data-og-skin="glass"] { --og-prebblur-image: var(--og-prebblur-rich); }
+html[data-og-prebblur="on"][data-og-skin="glass"][data-og-skin-level="deep"] { --og-prebblur-image: var(--og-prebblur-deep); }
+html[data-og-prebblur="on"][data-og-skin="glass"][data-og-skin-level="clear"] { --og-prebblur-image: var(--og-prebblur-clear); }
+
+html[data-og-prebblur="on"][data-og-skin="glass"] :is(
+  .og-surface:not(.og-surface--plain):not(.og-surface--overlay):not(.og-surface--l1):not(.og-surface--l2):not(.og-surface--l3):not(.og-surface--sunken),
+  .og-pagehead,
+  .free-item:not(.is-note):not([data-widget="text"]),
+  .workbench-board-head
+) {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background-image:
+    linear-gradient(
+      var(--og-c-surface-fill, var(--og-card-fill, var(--og-fill-surface))),
+      var(--og-c-surface-fill, var(--og-card-fill, var(--og-fill-surface)))
+    ),
+    var(--og-prebblur-image);
+  background-size: cover, cover;
+  background-position: center, center;
+  background-attachment: fixed, fixed;
+  background-repeat: no-repeat, no-repeat;
+}
+
+/* Live materials that float over changing content must keep sampling the real
+   backdrop: settings, OH search, vault, sheets/panels. Topbar/tabbar are not
+   .og-surface and keep their own backdrop rules untouched. */
+html[data-og-prebblur="on"][data-og-skin="glass"] :is(
+  .settings-panel,
+  .workbench-settings,
+  .ohx-searchpane,
+  .ohx-capsule,
+  .vault-page,
+  .vault-manager,
+  .vault-sheet,
+  .vault-workspace,
+  .ex-sheet,
+  .theme-pick-panel,
+  .og-panel,
+  .og-float
+) :is(.og-surface, .og-pagehead) {
+  backdrop-filter: var(--og-c-surface-blur, var(--og-overlay-blur)) !important;
+  -webkit-backdrop-filter: var(--og-c-surface-blur, var(--og-overlay-blur)) !important;
+  background-image: var(--og-c-surface-tint, none) !important;
+  background-attachment: scroll !important;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  html[data-og-prebblur="on"][data-og-skin="glass"] :is(.og-surface, .og-pagehead) {
+    background-image: none;
+    backdrop-filter: none;
+  }
+}
