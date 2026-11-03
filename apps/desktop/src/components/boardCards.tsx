@@ -59,6 +59,8 @@ import { ZhjwxkCoursesPage } from "../pages/zhjwxk/Courses.js";
 import { useCampusData, useLearnData, useTodayReservations } from "../state/data.js";
 import { AgendaWidget, TodayClassesWidget, ClassRows, HomeworkRows, NewsRows, NoticeRows, ResvRows, SECTION_OF, TodayOverviewWidget, hm, useSubsNewsFeed } from "./HomeWidgets.js";
 import { minText, pickNextClass, ymd } from "./HomeWidgets.js";
+import { useManualCourseRows } from "../state/manualCourseRows.js";
+import { mergeCourseRows } from "../lib/manualCourses.js";
 import { FileRow, HomeworkRow, NoticeRow } from "../pages/learn/shared.js";
 import {
   ReportScoreRows,
@@ -318,7 +320,12 @@ function NextClassCard({ size }: { size?: WidgetSize }): ReactNode {
   const uiLocale = useUiLocale();
 
   const campus = useCampusData();
-  const schedule = campus.data?.schedule ?? [];
+  /* 「下一节课」和首页「今日课程」同一份口径：教务课 + 手动补充的课（后者住在事件仓） */
+  const manual = useManualCourseRows(ymd(new Date()));
+  const schedule = useMemo(
+    () => mergeCourseRows(campus.data?.schedule ?? [], manual),
+    [uiLocale, campus.data?.schedule, manual],
+  );
   const [nowMin, setNowMin] = useState<number>(() => {
     const d = new Date();
     return d.getHours() * 60 + d.getMinutes();
