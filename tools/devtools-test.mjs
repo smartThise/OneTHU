@@ -36,6 +36,7 @@ const MAIN = "apps/desktop/src/main.tsx";
 const SETTINGS = "apps/desktop/src/pages/Settings.tsx";
 const PANEL = "apps/desktop/src/components/DevPanel.tsx";
 const DEVLOG = "apps/desktop/src/lib/devlog.ts";
+const UPDATER = "apps/desktop/src/lib/updater.ts";
 const BUILDINFO = "apps/desktop/src/lib/buildinfo.ts";
 const GLOBALS = "apps/desktop/src/globals.d.ts";
 const BUILD_DEV = "apps/desktop/scripts/build-dev.mjs";
@@ -86,6 +87,10 @@ has(panel, "requestAnimationFrame", "FPS 用 rAF 采样");
 has(panel, "1% low", "FPS 面板显示 1% low");
 has(panel, "avg", "FPS 面板显示 avg");
 has(panel, "toggleFps", "dev 菜单有 FPS 开关");
+has(panel, "probeUpdateSources", "dev 菜单可探测更新源");
+has(panel, "testUpdateSources", "dev 更新源测试按钮接线");
+has(panel, "UpdateSourceProbe", "dev 更新源结果类型");
+has(read(UPDATER), "export async function probeUpdateSources", "updater 暴露逐源探测函数");
 lacks(panel, '.css"', "面板样式内联，不引样式表");
 has(read(SETTINGS), "{__ONETHU_DEV__ ? <DebugLogRow /> : null}", "设置页运行日志行 dev-only");
 
