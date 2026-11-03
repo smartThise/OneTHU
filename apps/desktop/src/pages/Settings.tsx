@@ -88,8 +88,8 @@ function SettingsGroup({ tab, active, section, children }: {
   </section>;
 }
 
-/** 页签图标：与页签语义一一对应；左导航与页签管理都用同一份。 */
-const SETTINGS_TAB_ICONS: Record<string, ReactNode> = {
+/** 页签图标：与页签语义一一对应；左导航与页签管理都用同一份。实用模式的设置页也复用这一份。 */
+export const SETTINGS_TAB_ICONS: Record<string, ReactNode> = {
   账号: <IconUser />,
   通知: <IconBell />,
   功能: <IconWrench />,
@@ -134,6 +134,88 @@ defineSearchRows([
   { id: "set-dl-dir", tab: "下载", section: "下载", get title() { return i18n("pages.settings.807f19bf853b"); }, aliases: ["缓存", "存储占用", "清理"], get desc() { return i18n("pages.settings.2cc0a2c950df"); } , breadcrumb: ["设置", "下载", "下载", "下载目录 / 缓存清理"], landOn: { section: "下载", get note() { return i18n("pages.settings.08a2cb9cf64f"); } } },
   { id: "set-help", tab: "帮助", section: "帮助", get title() { return i18n("pages.settings.a57cfcb8428d"); }, aliases: ["教程", "导览"], get desc() { return i18n("pages.settings.2e7fa452ef24"); } , breadcrumb: ["设置", "帮助", "帮助", "帮助"] },
 ]);
+
+/** 账户：当前登录状态与退出登录。完整模式与实用模式的设置页共用这一行。 */
+export function AccountRow(): ReactNode {
+  const { user, logout } = useApp();
+  return (
+    <SettingsRow
+      title={i18n("pages.settings.99e398c6de5c")}
+      sub={user?.displayName || displayStudentId(user?.username) || i18n("pages.settings.c1f658373079")}
+      control={<Btn variant="outline" size="sm" onClick={() => void logout()}>{i18n("pages.settings.3ab8cc15939f")}</Btn>}
+    />
+  );
+}
+
+/** 账号与绑定：在应用内窗口打开清华统一身份认证并自动填入账号密码（有验证码时手动输）。 */
+export function EidBindingRow(): ReactNode {
+  const [eidMsg, setEidMsg] = useState<string | null>(null);
+  return (
+    <SettingsRow
+      title={i18n("pages.settings.c38372ef73d3")}
+      sub={
+        <>{i18n("pages.settings.05b2d326099e")}<b>{i18n("pages.settings.79a6fb7736ce")}</b>{i18nRich("pages.settings.c820e3820a04", { value: eidMsg ? <ErrorLine text={eidMsg} tone="quiet" /> : null })}</>
+      }
+      control={<Btn variant="outline" size="sm" onClick={() => {
+          const creds = session.getIdCredentials();
+          if (!creds) {
+            void openUrl("https://id.tsinghua.edu.cn/do/outoflogin/login/mainUi/login")
+              .then(() => setEidMsg(i18n("pages.settings.3dc0bb7cf271")))
+              .catch((e: unknown) => setEidMsg(i18n("pages.settings.f2e2b5ad5926", { value: String(e instanceof Error ? e.message : String(e)) })));
+            return;
+          }
+          const openInBrowser = () =>
+            openUrl("https://id.tsinghua.edu.cn/do/outoflogin/login/mainUi/login")
+              .then(() => setEidMsg(i18n("pages.settings.7b994af5120a")))
+              .catch((e: unknown) => setEidMsg(i18n("pages.settings.f2e2b5ad5926", { value: String(e instanceof Error ? e.message : String(e)) })));
+          void invoke("open_eid_window", { username: creds.username, password: creds.password })
+            .then(() => setEidMsg(i18n("pages.settings.56a9e30d6963")))
+            .catch(() => void openInBrowser());
+        }}>{i18n("pages.settings.50efca8dcb36")}</Btn>
+      }
+    />
+  );
+}
+
+/** 安全 ·「记住的密码」：本机保存的登录密码，可清除。 */
+export function SavedPasswordRow(): ReactNode {
+  const [hasSaved, setHasSaved] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  useEffect(() => {
+    void loadRemembered().then((r) => setHasSaved(!!r));
+  }, []);
+  const onClear = async () => {
+    setClearing(true);
+    try {
+      await clearRemembered();
+      setHasSaved(false);
+    } finally {
+      setClearing(false);
+    }
+  };
+  return (
+    <SettingsRow id="row-set-saved-pwd"
+      title={i18n("pages.settings.b7d8cb31eeb8")}
+      sub={hasSaved ? i18n("pages.settings.f5f631c6c63e") : i18n("pages.settings.92094cd0c4c7")}
+      control={
+        hasSaved ? (
+          <Btn variant="outline" size="sm" disabled={clearing} onClick={() => void onClear()}>{clearing ? i18n("pages.settings.cd23a528a4cd") : i18n("pages.settings.bce2377283c2")}</Btn>
+        ) : null
+      }
+    />
+  );
+}
+
+/** 关于 · 版本与开源入口。 */
+export function AppVersionRow(): ReactNode {
+  return (
+    <SettingsRow
+      title={<>OneTHU {APP_VERSION_LABEL} “{APP_CODENAME}”</>}
+      sub={i18n("pages.settings.05662029b925")}
+      control={<Btn variant="outline" size="sm" onClick={() => void openUrl("https://github.com/smartThise/OneTHU")}>{i18n("pages.settings.8502353c15ac")}</Btn>}
+    />
+  );
+}
 
 export function SettingsPage() {
   const uiLocale = useUiLocale();
@@ -184,35 +266,19 @@ export function SettingsPage() {
     row.scrollLeft += a.left - r.left - (r.width - a.width) / 2;
   }, [tab]);
 
-  const { user, logout, navigate } = useApp();
+  const { navigate } = useApp();
   const favs = useFavs();
   const [favMsg, setFavMsg] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
-  const [hasSaved, setHasSaved] = useState(false);
-  const [clearing, setClearing] = useState(false);
   // 首页布局恢复：点击后短暂显示「已恢复默认」，到点回位
   const [homeResetAt, setHomeResetAt] = useState(0);
-  const [eidMsg, setEidMsg] = useState<string | null>(null);
-  useEffect(() => {
-    void loadRemembered().then((r) => setHasSaved(!!r));
-  }, []);
 
   useEffect(() => {
     if (!homeResetAt) return;
     const t = setTimeout(() => setHomeResetAt(0), 2400);
     return () => clearTimeout(t);
   }, [homeResetAt]);
-
-  const onClear = async () => {
-    setClearing(true);
-    try {
-      await clearRemembered();
-      setHasSaved(false);
-    } finally {
-      setClearing(false);
-    }
-  };
 
   const isPhone = useIsPhone();
   const visibleSettingTabs = settingsTabLayout.order.filter((t) => SETTINGS_TAB_ORDER.includes(t) && !tabLayout.hidden.includes(t));
@@ -274,11 +340,7 @@ export function SettingsPage() {
       <SectionHead id="row-set-about" title={i18n("pages.settings.52d25a9e30ba")} />
       <div data-set-id="row-set-update"><SoftwareUpdateSection /></div>
       <Card>
-        <SettingsRow
-          title={<>OneTHU {APP_VERSION_LABEL} “{APP_CODENAME}”</>}
-          sub={i18n("pages.settings.05662029b925")}
-          control={<Btn variant="outline" size="sm" onClick={() => void openUrl("https://github.com/smartThise/OneTHU")}>{i18n("pages.settings.8502353c15ac")}</Btn>}
-        />
+        <AppVersionRow />
         {/* 运行日志导出属开发者功能：正式版不显示（真机取证走 adb logcat -s onethu:V，
             或改用开发者构建的右上角面板导出）。要恢复成正式版也显示，去掉这层门控即可。 */}
         {__ONETHU_DEV__ ? <DebugLogRow /> : null}
@@ -296,11 +358,7 @@ export function SettingsPage() {
       <SettingsGroup tab="账号" active={tab} section="账户">
       <SectionHead id="row-set-account-row" title={i18n("pages.settings.061246bd31e0")} />
       <Card>
-        <SettingsRow
-          title={i18n("pages.settings.99e398c6de5c")}
-          sub={user?.displayName || displayStudentId(user?.username) || i18n("pages.settings.c1f658373079")}
-          control={<Btn variant="outline" size="sm" onClick={() => void logout()}>{i18n("pages.settings.3ab8cc15939f")}</Btn>}
-        />
+        <AccountRow />
       </Card>
 
 
@@ -308,29 +366,7 @@ export function SettingsPage() {
       <SettingsGroup tab="账号" active={tab} section="账号与绑定">
       <SectionHead id="row-set-account" title={i18n("pages.settings.07812d003706")} />
       <SettingsList>
-        <SettingsRow
-          title={i18n("pages.settings.c38372ef73d3")}
-          sub={
-            <>{i18n("pages.settings.05b2d326099e")}<b>{i18n("pages.settings.79a6fb7736ce")}</b>{i18nRich("pages.settings.c820e3820a04", { value: eidMsg ? <ErrorLine text={eidMsg} tone="quiet" /> : null })}</>
-          }
-          control={<Btn variant="outline" size="sm" onClick={() => {
-              const creds = session.getIdCredentials();
-              if (!creds) {
-                void openUrl("https://id.tsinghua.edu.cn/do/outoflogin/login/mainUi/login")
-                  .then(() => setEidMsg(i18n("pages.settings.3dc0bb7cf271")))
-                  .catch((e: unknown) => setEidMsg(i18n("pages.settings.f2e2b5ad5926", { value: String(e instanceof Error ? e.message : String(e)) })));
-                return;
-              }
-              const openInBrowser = () =>
-                openUrl("https://id.tsinghua.edu.cn/do/outoflogin/login/mainUi/login")
-                  .then(() => setEidMsg(i18n("pages.settings.7b994af5120a")))
-                  .catch((e: unknown) => setEidMsg(i18n("pages.settings.f2e2b5ad5926", { value: String(e instanceof Error ? e.message : String(e)) })));
-              void invoke("open_eid_window", { username: creds.username, password: creds.password })
-                .then(() => setEidMsg(i18n("pages.settings.56a9e30d6963")))
-                .catch(() => void openInBrowser());
-            }}>{i18n("pages.settings.50efca8dcb36")}</Btn>
-          }
-        />
+        <EidBindingRow />
       </SettingsList>
 
 
@@ -481,15 +517,7 @@ export function SettingsPage() {
       <PrivacySettings/>
       <SectionHead id="row-set-security" title={i18n("pages.settings.afb63a620bdc")} />
       <Card>
-        <SettingsRow id="row-set-saved-pwd"
-          title={i18n("pages.settings.b7d8cb31eeb8")}
-          sub={hasSaved ? i18n("pages.settings.f5f631c6c63e") : i18n("pages.settings.92094cd0c4c7")}
-          control={
-            hasSaved ? (
-              <Btn variant="outline" size="sm" disabled={clearing} onClick={() => void onClear()}>{clearing ? i18n("pages.settings.cd23a528a4cd") : i18n("pages.settings.bce2377283c2")}</Btn>
-            ) : null
-          }
-        />
+        <SavedPasswordRow />
       </Card>
       </SettingsGroup>
       </div>
@@ -513,7 +541,7 @@ export function SettingsPage() {
  * 这里只做「读当前值 / 让用户改」，真正的落盘判断在原生侧（downloads.rs / 插件）。 */
 type DownloadDirectory = { path: string; isDefault: boolean };
 
-function DownloadSettings() {
+export function DownloadSettings() {
   const uiLocale = useUiLocale();
 
   const [available, setAvailable] = useState(isTauri);
@@ -614,7 +642,7 @@ function DebugLogRow() {
 }
 
 /* ── 诊断摘要（2026-09-23）：反馈问题时一键复制，用户不必交出运行日志 ── */
-function DiagnosticsRow() {
+export function DiagnosticsRow() {
   const uiLocale = useUiLocale();
 
   const [busy, setBusy] = useState(false);
@@ -648,7 +676,7 @@ function DiagnosticsRow() {
    卡体 = 库面板（WallpaperLibrary panel）+ 动态壁纸声音开关：
    库网格（内置渐变 + 自收录）、点图=设为全屏、上传入库、删除、云盘同步/恢复
    （wallpsync）；「本页」档已随功能删除，壁纸只画在壳层、全窗共用。 */
-function WallpaperSection(): ReactNode {
+export function WallpaperSection(): ReactNode {
   const uiLocale = useUiLocale();
 
   const sound = useSyncExternalStore(subscribeWallpaper, videoSoundSnapshot, videoSoundSnapshot);
@@ -668,7 +696,9 @@ function WallpaperSection(): ReactNode {
   );
 }
 
-function AppearanceSection(): ReactNode {
+/** 外观：主题、玻璃、取色、昼夜跟随。完整模式与实用模式的设置页共用这一份实现；
+ *  实用模式（practical）没有标签页，所以「标签栏默认样式」那一行不渲染。 */
+export function AppearanceSection({ practical = false }: { practical?: boolean } = {}): ReactNode {
   const uiLocale = useUiLocale();
 
   const snap = useThemes();
@@ -726,8 +756,8 @@ function AppearanceSection(): ReactNode {
   return (
     <Stack gap={4}>
       {/* 标签栏默认样式：横版（顶部一排）｜竖版（左侧栏）；标签栏上的切换钮可随时改，这里定的是默认值。
-          手机（A1）：手机只能横标签页（竖栏永不出现），这一行整块不渲染。 */}
-      {isPhone ? null : (
+          手机（A1）：手机只能横标签页（竖栏永不出现），这一行整块不渲染。实用模式没有标签页，同样不渲染。 */}
+      {isPhone || practical ? null : (
         <SettingsRow id="row-set-tabbar-style"
           title={i18n("pages.settings.1d08854948f4")}
           sub={i18n("pages.settings.a614894c6a8c")}

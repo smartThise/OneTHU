@@ -1,7 +1,10 @@
 import { useOverlayBack } from "../../state/navStack.js";
 import { t as i18n, useLocale as useUiLocale } from "../../i18n/index.js";
 import { SimpleSettings } from "../SimpleSettings.js";
-import { useIsSimpleLike } from "../../state/experienceMode.js";
+import { PracticalSettings } from "../../pages/PracticalSettings.js";
+import { OhSettingsPage } from "../OhSettingsPage.js";
+import { OhAdvancedPanels } from "../../pages/Plugins.js";
+import { useExperienceMode, useIsSimpleLike } from "../../state/experienceMode.js";
 import { IconBtn, IconUser } from "@onethu/gui";
 /**
  * 设置浮层（dev-explorer）：个人设置 / 插件 / OneTHU Harness 三段合一。
@@ -34,7 +37,14 @@ export function SettingsOverlay(): ReactNode {
   const uiLocale = useUiLocale();
 
   const simple = useIsSimpleLike();
+  /* 实用模式（2026-10-28 用户要求）：设置里只有「个人设置」与「Harness」两段——
+     个人设置照搬完整模式的结构，Harness 完全复用同一个页面。名片与插件页属完整模式内容，
+     不在这两段里，所以 old 的 profile/plugins 入口一律落到个人设置。 */
+  const practical = useExperienceMode() === "practical";
   const entry = useOverlayEntry(); // null = 关闭
+  const shownEntry: OverlayEntry = practical ? (entry === "oh" ? "oh" : "settings") : (entry ?? "settings");
+  const segments = practical ? SEGMENTS.filter((s) => s.id === "settings" || s.id === "oh") : SEGMENTS;
+  const showSegments = practical || !simple;
   const expanded = useExpanded();
   /** 退场动画（TabManageModal 同款：先播淡出再卸载） */
   const [closing, requestClose] = useExitPhase(closeSettings, entry !== null);
@@ -107,21 +117,22 @@ export function SettingsOverlay(): ReactNode {
   if (entry === null) return null;
 
   const mask = "settings-mask" + (closing ? " is-closing" : "");
-  const panel = "settings-panel" + (expanded ? " is-desktop" : "") + (closing ? " is-closing" : "");
+  /* .is-practical 只给实用模式的浮层：玻璃档的配方按这个类生效，完整模式的面板照旧实心。 */
+  const panel = "settings-panel" + (expanded ? " is-desktop" : "") + (practical ? " is-practical" : "") + (closing ? " is-closing" : "");
 
   return createPortal(
     <div className={mask} ref={maskRef} onClick={requestClose}>
       <div className={panel} ref={panelRef} onClick={(e) => e.stopPropagation()} role="dialog" aria-label={i18n("components.explorer.settingsoverlay.7f1d9dd04cd1")}>
         <div className="settings-head">
           <span className="workbench-settings-brand">OneTHU</span>
-          {!simple && <div className="settings-seg" role="tablist" aria-label={i18n("components.explorer.settingsoverlay.b31841ccaf3d")}>
-            {SEGMENTS.map((s) => (
+          {showSegments && <div className="settings-seg" role="tablist" aria-label={i18n("components.explorer.settingsoverlay.b31841ccaf3d")}>
+            {segments.map((s) => (
               <button
                 key={s.id}
-                className={"settings-seg-item" + (entry === s.id ? " is-active" : "")}
+                className={"settings-seg-item" + (shownEntry === s.id ? " is-active" : "")}
                 onClick={() => openSettings(s.id)}
                 title={s.label}
-                aria-current={entry === s.id ? "true" : undefined}
+                aria-current={shownEntry === s.id ? "true" : undefined}
               >
                 {s.icon}
                 <span>{s.label}</span>
@@ -130,8 +141,16 @@ export function SettingsOverlay(): ReactNode {
           </div>}
           <IconBtn label={i18n("components.explorer.settingsoverlay.77b17fc4a52a")} size="sm" variant="outline" titleAttr={i18n("components.explorer.settingsoverlay.51f560817509")} icon={<IconX width={14} height={14} />} onClick={requestClose} />
         </div>
-        <div className={"explorer-settings-body" + (simple || entry === "profile" || entry === "plugins" ? " workbench-plugin-settings" : "") + (simple ? " workbench-simple-settings" : "")}>
-          {simple ? <SimpleSettings/> : entry === "profile" ? <NameCardSection view="personal" /> : entry === "settings" ? <SettingsPage /> : <PluginsPage />}
+        {/* 三栏几何由 CSS 按「body 不是 .workbench-plugin-settings」选择：实用模式的个人设置与
+            Harness 都走三段式（左导航 + 右内容各自滚动），所以这段不给它加插件页的内衬类。 */}
+        <div className={"explorer-settings-body" + (practical ? "" : simple || entry === "profile" || entry === "plugins" ? " workbench-plugin-settings" : "") + (simple && !practical ? " workbench-simple-settings" : "")}>
+          {practical
+            ? shownEntry === "oh" ? <OhSettingsPage advancedPanels={<OhAdvancedPanels />} /> : <PracticalSettings />
+            : simple
+              ? <SimpleSettings />
+              : entry === "profile" ? <NameCardSection view="personal" />
+                : entry === "settings" ? <SettingsPage />
+                  : <PluginsPage />}
         </div>
       </div>
     </div>,

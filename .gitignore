@@ -66,3 +66,7 @@ tmp/
 # Local release installers, verification evidence and generated screenshots.
 output/
 packages/cli/artifacts/
+
+# 只在本机用的运维笔记（写给自家 Agent 的操作手册，里面有真实课程 ID、作业文件名这类
+# 个人痕迹），不随仓库发布；换机器按需自行携带。
+docs/private/

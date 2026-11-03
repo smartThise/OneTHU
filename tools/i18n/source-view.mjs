@@ -4,9 +4,12 @@
  * No source or dictionary code is evaluated; behavioral tests still run real modules.
  */
 import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import {readDataFile} from "./dictionary.mjs";
-const messages=readDataFile(new URL("../../apps/desktop/src/i18n/locales/zh-CN.ts",import.meta.url).pathname).messages;
+/* Windows 上 new URL(...).pathname 给出的是 "/D:/..."，fs 会把它当相对路径拼成 "D:\D:\..."。
+   统一走 fileURLToPath：两个平台都得到可直接打开的本机路径。 */
+const messages=readDataFile(fileURLToPath(new URL("../../apps/desktop/src/i18n/locales/zh-CN.ts",import.meta.url))).messages;
 export function localizedSource(source,file="source.tsx"){
   if(typeof source!=="string"||!source.includes("i18n/"))return source;
   const ast=ts.createSourceFile(String(file),source,99,true),edits=[],bindings=new Set();

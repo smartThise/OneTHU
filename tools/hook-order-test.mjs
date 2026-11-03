@@ -16,9 +16,11 @@
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
-const SRC_ROOT = new URL("../apps/desktop/src", import.meta.url).pathname;
+/* Windows 上 pathname 是 "/D:/..."，join 之后变成 "D:\D:\..."；fileURLToPath 两个平台都对。 */
+const SRC_ROOT = fileURLToPath(new URL("../apps/desktop/src", import.meta.url));
 const HOOK_RE = /^use[A-Z0-9]/;
 
 /** 收集「非嵌套函数」范围内、顶层语句里的 return / Hook 调用 */

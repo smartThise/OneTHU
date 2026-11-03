@@ -114,12 +114,14 @@ jobs:
         run: |
           node tools/secondary-schedule-test.mjs
           node --import ./tools/ts-resolve-register.mjs tools/secondary-anchor-test.mjs
+          node --import ./tools/ts-resolve-register.mjs tools/manual-courses-test.mjs
           node tools/system-calendar-state-test.mjs
       - name: Check learning sessions and portable wallpaper archives
         run: |
           node --import ./tools/ts-resolve-register.mjs tools/http-wengine-bootstrap-test.mjs
           node --import ./tools/ts-resolve-register.mjs tools/learn-response-recovery-test.mjs
           node tools/wallpaper-sync-test.mjs
+          node tools/wallpaper-quality-test.mjs
           node tools/personal-cloud-target-state-test.mjs
       - name: Check update reminders and news language
         run: |

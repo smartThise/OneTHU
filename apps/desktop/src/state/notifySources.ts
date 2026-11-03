@@ -23,6 +23,7 @@ import { atomDetail } from "./widgetDetail.js";
 import { liveDetail, warmLiveData } from "./widgetLive.js";
 import { fetchWidgetInstances } from "./widgetBridge.js";
 import { collectNotifyInputs } from "./notifyInputs.js";
+import { subscribeWidgetSchedule } from "./widgetSchedule.js";
 import { cacheGet } from "./cache.js";
 import { createNotifyRuntime, type NotifyRuntime } from "./notifyRuntime.js";
 import { createWidgetRuntime, type WidgetRuntime } from "./widgetRuntime.js";
@@ -42,6 +43,7 @@ export function subscribeNotifySources(fn: () => void): () => void {
     subscribePluginWidgets(fn),
     onCloudCalChange(fn),
     subscribeWidgetInstances(fn),     // 改「某一块小组件显示什么」要立刻重推
+    subscribeWidgetSchedule(fn),      // 网络学堂掉线时的课表兜底刷新完，也要立刻重推
   ];
   return () => {
     for (const u of unsubs) u();

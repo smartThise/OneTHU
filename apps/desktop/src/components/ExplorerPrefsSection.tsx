@@ -14,7 +14,7 @@ import {
   type CapsuleDefault,
 } from "../state/explorerPrefs.js";
 
-export function ExplorerPrefsSection(): ReactNode {
+export function ExplorerPrefsSection({ hideCapsule = false }: { hideCapsule?: boolean } = {}): ReactNode {
   const uiLocale = useUiLocale();
 
   const prefs = useExplorerPrefs();
@@ -39,9 +39,13 @@ export function ExplorerPrefsSection(): ReactNode {
 
   return (
     <>
-      <Section title={i18n("components.explorerprefssection.faa18ef93208")} hint={i18n("components.explorerprefssection.2c2a533ac8e4")} />
+      {/* 小标题只对完整模式有用（那里第一次出现「搜索与胶囊」这个概念）；实用模式只剩搜索记录一行，
+          页面上已经有「工作空间」分节标题，再来一个「搜索与胶囊」会指向一个不存在的控件。 */}
+      {hideCapsule ? null : <Section title={i18n("components.explorerprefssection.faa18ef93208")} hint={i18n("components.explorerprefssection.2c2a533ac8e4")} />}
       <SettingsList>
-        <SettingsRow id="row-set-capsule-tap"
+        {/* 「点击胶囊默认打开」只对完整模式的 OneShot 胶囊有意义：实用模式没有胶囊设置这一层，
+            但最近搜索记录与搜索本身仍然存在，所以只摘这一行，不整节删掉。 */}
+        {hideCapsule ? null : <SettingsRow id="row-set-capsule-tap"
           title={i18n("components.explorerprefssection.464f0207d4ff")}
           sub={i18n("components.explorerprefssection.48875ae74158")}
           control={
@@ -51,7 +55,7 @@ export function ExplorerPrefsSection(): ReactNode {
               options={[{ value: "search", label: i18n("components.explorerprefssection.44ce7ae909bb") }, { value: "oh", label: "OH" }]}
             />
           }
-        />
+        />}
         {/* voiceTarget 已废弃（用户定案）：胶囊/语音只产生文字，送谁由小窗内的搜索|OH 切换决定 */}
         <SettingsRow id="row-set-search-history"
           title={i18n("components.explorerprefssection.461301d93770")}

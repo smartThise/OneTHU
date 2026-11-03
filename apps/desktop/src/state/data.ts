@@ -94,10 +94,23 @@ async function loadReal(): Promise<CampusData> {
     Promise.all(ids.slice(0, 8).map((id) => learn.getFileList(id).catch(() => [])))
       .then((rs) => rs.flat())
       .catch(() => [] as CourseFile[]),
+    // 教务课表：走 core InfoClient 的窗口接口 —— 与日程页、系统日历同一条链路。
+    // 原先这里用 info-lib 的整学期接口 `infoHelper.getSchedule(undefined)`，本机实测
+    // 返回 404（PAGE-ERR CAMPUS-SCHED「Unexpected response status code: 404 (index)」），
+    // 被 catch 吞成空数组：CampusData.schedule 恒为 []，于是首页「今日课程」永远
+    // 「今天没有课」、桌面小组件没有课，而且日志里一个字都不留（2026-10-26 手机实测）。
+    // 二级课表（实验课）并入需要学期 firstDay：优先吃已落盘的校历缓存，冷启动才回落网络；
+    // 合并二级失败只丢二级，绝不连带把一级课表变成 []。
     (async () => {
-      const calendar = cacheGet<CalendarData>("calendar")?.data ?? await cacheFetch("calendar", () => learn.getCalendarData());
-      return appendSecondarySchedule(await info.getSchedule(from, to), calendar.firstDay, from, to);
-    })().catch(() => [] as ScheduleEntry[]),
+      const cached = cacheGet<CalendarData>("calendar")?.data ?? null;
+      const calendar = cached?.firstDay ? cached : await cacheFetch("calendar", () => learn.getCalendarData()).catch(() => cached);
+      const primary = await info.getSchedule(from, to);
+      if (!calendar?.firstDay) return primary;
+      return appendSecondarySchedule(primary, calendar.firstDay, from, to).catch(() => primary);
+    })().catch((err) => {
+      logPageError("CAMPUS-SCHED", err);
+      return [] as ScheduleEntry[];
+    }),
     infoHelper.getUserInfo()
       .then((u: { fullName: string; emailName: string }) => ({
         name: u.fullName,
@@ -107,7 +120,7 @@ async function loadReal(): Promise<CampusData> {
       .catch(() => null),
   ]);
   stage("并行四路抓取完");
-  void logLine(`LR-STAGE 完成 hw=${homework.length} ntf=${notifications.length} files=${files.length}`).catch(() => undefined);
+  void logLine(`LR-STAGE 完成 hw=${homework.length} ntf=${notifications.length} files=${files.length} 课表=${schedule.length}`).catch(() => undefined);
   return { courses, homework, notifications, files, schedule, user };
 }
 

@@ -588,6 +588,11 @@ pub async fn cli_daemon_ensure(
     {
         let _guard = ENSURE.lock().await;
         let profile = profile_dir(&app)?;
+        // 首次运行时这个目录还不存在；下面 spawn 要先往 profile 里写 daemon-startup.log，
+        // 目录缺失会让那次写入以 ENOENT 失败（Windows 上就是「系统找不到指定的路径」
+        // os error 3），整条「确保守护进程」链路随之打回。登录流程在联网之前就要读共享
+        // 运行时状态，于是新机器上的表现是「装好之后一直登不上」。这里先建目录。
+        private_directory(&profile)?;
         // A separately downloaded CLI already using the standard account
         // profile is a valid host too; no duplicate managed install is needed.
         if let Some(access)=read_access(&profile)? {

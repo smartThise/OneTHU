@@ -12,8 +12,9 @@
  * 跑法：node tools/contrast-guard.mjs      # 通过 exit 0，否则 exit 1
  * ══════════════════════════════════════════════════════════════════════════ */
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
-const ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
+const ROOT = fileURLToPath(new URL("..", import.meta.url)).replace(/[\\/]$/, "");
 const ENGINE = readFileSync(`${ROOT}/apps/desktop/src/lib/textContrast.ts`, "utf8");
 const CSS = readFileSync(`${ROOT}/apps/desktop/src/styles/explorer.css`, "utf8");
 const WORKBENCH = readFileSync(`${ROOT}/packages/gui/src/recipes/workbench.css`, "utf8");

@@ -40,7 +40,7 @@ function fixture(options = {}) {
   };
   const localStorage={getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)};
   const cloud={ensureSeafileLoaded:async()=>{},getSeafileToken:()=>state.token,getSeafileCredentialVersion:()=>state.version};
-  const imports={'@tauri-apps/api/core':{invoke},'../i18n/index.js':{t:(k,v)=>k+(v?' '+Object.values(v).join(' '):'')},'./seafile.js':cloud,'./wallpArchive.js':archive,'./wallpaper.js':{wallpaperSnapshot:()=>state.doc,replaceWallpaperDoc:d=>{state.doc=d;state.applied=true;return true;}}};
+  const imports={'@tauri-apps/api/core':{invoke},'../i18n/index.js':{t:(k,v)=>k+(v?' '+Object.values(v).join(' '):'')},'./seafile.js':cloud,'./wallpArchive.js':archive,'./wallpaper.js':{wallpaperSnapshot:()=>state.doc,replaceWallpaperDoc:d=>{state.doc=d;state.applied=true;return true;}},'../lib/cloudWallpaperImage.js':{shrinkWallpaperForCloud:async()=>null}};
   imports['../lib/ownedCloudRepo.js']=load(repoCode,imports,{localStorage});
   const api=load(syncCode,imports,{localStorage});
   return {state,calls,api};
@@ -113,16 +113,17 @@ await test('credential change during local export prevents any cloud writes',asy
   const f=fixture({doc:doc('local:/original/wallpapers/photo.png'),hook:async(cmd,args,state)=>{if(cmd==='wallpaper_read')state.version++;}});assert.equal((await f.api.syncWallpaperToCloud()).ok,false);assert.equal(f.calls.some(c=>c.command==='seafile_upload_wallpaper'||c.command==='seafile_create_repo'),false);
 });
 await test('oversize archive metadata stops before download and preserves local state',async()=>{
-  const f=fixture();f.state.directories['/壁纸'][0].size=24*1024*1024+1;
-  const result=await f.api.restoreWallpaperFromCloud();assert.equal(result.ok,false);assert.match(result.msg,/archiveTooLarge/);assert.equal(f.calls.some(c=>c.command==='seafile_read_bytes'),false);assert.equal(f.state.applied,undefined);
+  const f=fixture();f.state.directories['/壁纸'][0].size=64*1024*1024+1;
+  const result=await f.api.restoreWallpaperFromCloud();assert.equal(result.ok,false);assert.match(result.msg,/ab4ead4cd60b/);assert.equal(f.calls.some(c=>c.command==='seafile_read_bytes'),false);assert.equal(f.state.applied,undefined);
 });
 await test('running export budget rejects too much media before serialization or cloud writes',async()=>{
-  const b64='A'.repeat(8*1024*1024);const refs=['one','two','three'].map(id=>'local:/device/wallpapers/'+id+'.png');
+  const b64='A'.repeat(8*1024*1024);
+  const refs=Array.from({length:9},(_,index)=>'local:/device/wallpapers/'+index+'.png');
   await assert.rejects(archive.exportWallpaperArchive({v:2,global:refs[0],library:refs.map((ref,index)=>({...row(ref),id:String(index)}))},async()=>b64),/archive-too-large/);
 });
 await test('native oversized media gets a localized size hint before any cloud mutation',async()=>{
-  const f=fixture({doc:doc('local:/original/wallpapers/photo.png'),failure:{command:'wallpaper_read',message:'壁纸文件超过 12 MiB'}});
-  const result=await f.api.syncWallpaperToCloud();assert.equal(result.ok,false);assert.equal(result.msg,'state.wallpsync.archiveTooLarge');assert.equal(f.calls.some(c=>c.command==='seafile_upload_wallpaper'||c.command==='seafile_create_repo'),false);
+  const f=fixture({doc:doc('local:/original/wallpapers/photo.png'),failure:{command:'wallpaper_read',message:'壁纸文件超过 16 MiB'}});
+  const result=await f.api.syncWallpaperToCloud();assert.equal(result.ok,false);assert.equal(result.msg,'state.wallpsync.ab4ead4cd60b');assert.equal(f.calls.some(c=>c.command==='seafile_upload_wallpaper'||c.command==='seafile_create_repo'),false);
 });
 await test('wallpaper upload creates no temporary file',async()=>{
   const f=fixture();assert.equal((await f.api.syncWallpaperToCloud()).ok,true);assert.equal(f.calls.some(c=>c.command==='write_temp_file'),false);
@@ -158,8 +159,12 @@ await test('old archives default new slots while invalid day/night refs stop bef
     assert.equal(writes,0);
   }
 });
-await test('day/night media count towards the same archive size budget',async()=>{
+await test('day/night media share the same budget and each asset is counted once',async()=>{
   const b64='A'.repeat(8*1024*1024);
-  await assert.rejects(archive.exportWallpaperArchive({v:3,global:'local:/one.png',day:'local:/two.png',night:'local:/three.png',library:[]},async()=>b64),/archive-too-large/);
+  const ok=await archive.exportWallpaperArchive({v:3,global:'local:/one.png',day:'local:/two.png',night:'local:/three.png',library:[]},async()=>b64);
+  assert.equal(Object.keys(ok.assets).length,3);
+  assert.ok(JSON.stringify(ok).length < 64*1024*1024);
+  const refs=Array.from({length:9},(_,index)=>'local:/d/'+index+'.png');
+  await assert.rejects(archive.exportWallpaperArchive({v:3,global:refs[0],day:refs[1],night:refs[2],library:refs.map((ref,index)=>({...row(ref),id:String(index)}))},async()=>b64),/archive-too-large/);
 });
 console.log(`Wallpaper sync: ${count} checks passed`);

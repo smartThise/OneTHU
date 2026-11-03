@@ -15,6 +15,8 @@ import { IconCard, IconChevron } from "../components/Icons.js";
 import { useApp } from "../state/context.js";
 import type { LearnNav, Page } from "../state/app.js";
 import { useCampusData, useCard, useTodayCourseData, useTodayCalendar, useTodayDeadlines, useTodayNewsFeed, useTodayReservations } from "../state/data.js";
+import { useManualCourseRows } from "../state/manualCourseRows.js";
+import { isManualCourseRow, mergeCourseRows } from "../lib/manualCourses.js";
 import { readSubs } from "../pages/info/newsSearch.js";
 import { openExternal } from "../pages/info/openExternal.js";
 import { openHomeworkRow } from "../lib/homeworkEntry.js";
@@ -393,6 +395,8 @@ export function ClassRows({ events, navigate, emptyText }: { events: ScheduleEnt
               <div className="tl-sub">
                 {s.location}
                 {s.teacher ? " · " + s.teacher : ""}
+                {/* 手动补充的课与教务数据区分：与课表页的「手动」角标同一口径 */}
+                {isManualCourseRow(s) ? (s.location || s.teacher ? " · " : "") + i18n("components.homewidgets.962f41ef825b") : ""}
               </div>
             </div>
             <IconChevron className="row-caret" width={14} height={14} />
@@ -504,16 +508,18 @@ export function TodayOverviewWidget({ size }: { size?: { w: number; h: number } 
   );
   const wd = now.getDay() === 0 ? 7 : now.getDay();
   const today = ymd(now);
+  /* 与「今日课程」同一份口径：教务课 + 手动补充的课，计数才和下面那张卡对得上 */
+  const manual = useManualCourseRows(today);
   const todayEvents = useMemo(
     () =>
-      (data?.schedule ?? [])
+      mergeCourseRows(data?.schedule ?? [], manual)
         .filter((s) => (s.date ? s.date === today : s.dayOfWeek === wd))
         .sort((a, b) => {
           const ta = a.startTime ?? SECTION_OF[a.startSection ?? 1] ?? "99:99";
           const tb = b.startTime ?? SECTION_OF[b.startSection ?? 1] ?? "99:99";
           return ta.localeCompare(tb);
         }),
-    [uiLocale, data, today, wd],
+    [uiLocale, data, manual, today, wd],
   );
   /* 档位越高，多铺一层信息：4×1 只给三项计数；4×2 再给最近一条截止；4×4 再把今天前几节课铺开。
      三层都来自同一批已算好的数据，不额外取数。 */
@@ -672,9 +678,13 @@ export function TodayClassesWidget({ upcoming = false }: { upcoming?: boolean } 
   }, []);
   const wd = now.getDay() === 0 ? 7 : now.getDay();
   const today = ymd(now);
+  /* 手动补充的课程不在教务接口里（它们住在事件仓）：并进来才和课表页同一份「今天的课」。
+     合并放在取数之后而不是缓存之内——刚补的课要立刻出现，缓存里存的是教务那份。 */
+  const manual = useManualCourseRows(today);
+  const all = useMemo(() => mergeCourseRows(data ?? [], manual), [uiLocale, data, manual]);
   const events = useMemo<ScheduleEntry[]>(
     () =>
-      (data ?? [])
+      all
         .filter((s) => (s.date ? s.date === today : s.dayOfWeek === wd))
         .filter(s => !upcoming || (hhmmMin(s.endTime ?? "") ?? ((sectionStartMin(s.endSection ?? s.startSection ?? 1) ?? 0) + 45)) > now.getHours()*60+now.getMinutes())
         .sort((a, b) => {
@@ -682,11 +692,11 @@ export function TodayClassesWidget({ upcoming = false }: { upcoming?: boolean } 
           const tb = b.startTime ?? SECTION_OF[b.startSection ?? 1] ?? "99:99";
           return ta.localeCompare(tb);
         }),
-    [uiLocale, data, today, wd, upcoming, now.getHours(), now.getMinutes()],
+    [uiLocale, all, today, wd, upcoming, now.getHours(), now.getMinutes()],
   );
-  if (!data?.length && state === "loading") return <SkeletonRows rows={3} />;
-  if (!data?.length && state === "error") return <ErrorNote text={error ?? i18n("components.exthw.yktcontentlist.dc91444c4449")} onRetry={() => void reload()} />;
-  const hadClasses = (data ?? []).some(s => s.date ? s.date === today : s.dayOfWeek === wd);
+  if (!all.length && state === "loading") return <SkeletonRows rows={3} />;
+  if (!all.length && state === "error") return <ErrorNote text={error ?? i18n("components.exthw.yktcontentlist.dc91444c4449")} onRetry={() => void reload()} />;
+  const hadClasses = all.some(s => s.date ? s.date === today : s.dayOfWeek === wd);
   return <ClassRows events={events} navigate={navigate} emptyText={upcoming && hadClasses ? i18n("components.livetiles.d1adf68fb7c1") : undefined} />;
 }
 

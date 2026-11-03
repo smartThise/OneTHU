@@ -2553,10 +2553,16 @@
           "markdownDescription": "Denies the sync command without any pre-configured scope."
         },
         {
-          "description": "OneTHU Android 系统桥：\n查询系统桥可用性（下载转存 / intent 深链由主 crate 内部调用，不经 IPC）。\n\n#### This default permission set includes:\n\n- `allow-mobile-supported`",
+          "description": "OneTHU Android 系统桥：\n查询系统桥可用性（下载转存 / intent 深链由主 crate 内部调用，不经 IPC）。\n\n#### This default permission set includes:\n\n- `allow-mobile-supported`\n- `allow-mobile-exit`",
           "type": "string",
           "const": "onethu-mobile:default",
-          "markdownDescription": "OneTHU Android 系统桥：\n查询系统桥可用性（下载转存 / intent 深链由主 crate 内部调用，不经 IPC）。\n\n#### This default permission set includes:\n\n- `allow-mobile-supported`"
+          "markdownDescription": "OneTHU Android 系统桥：\n查询系统桥可用性（下载转存 / intent 深链由主 crate 内部调用，不经 IPC）。\n\n#### This default permission set includes:\n\n- `allow-mobile-supported`\n- `allow-mobile-exit`"
+        },
+        {
+          "description": "Enables the mobile_exit command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-mobile:allow-mobile-exit",
+          "markdownDescription": "Enables the mobile_exit command without any pre-configured scope."
         },
         {
           "description": "Enables the mobile_supported command without any pre-configured scope.",
@@ -2565,16 +2571,178 @@
           "markdownDescription": "Enables the mobile_supported command without any pre-configured scope."
         },
         {
+          "description": "Denies the mobile_exit command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-mobile:deny-mobile-exit",
+          "markdownDescription": "Denies the mobile_exit command without any pre-configured scope."
+        },
+        {
           "description": "Denies the mobile_supported command without any pre-configured scope.",
           "type": "string",
           "const": "onethu-mobile:deny-mobile-supported",
           "markdownDescription": "Denies the mobile_supported command without any pre-configured scope."
         },
         {
-          "description": "允许使用灵动岛语音输入：\n查询支持平台、开始/轮询/停止原生语音识别（需麦克风权限）。\n\n#### This default permission set includes:\n\n- `allow-speech-supported`\n- `allow-speech-start`\n- `allow-speech-poll`\n- `allow-speech-stop`",
+          "description": "允许使用全局悬浮球（Android 系统级悬浮层）：\n查询支持与授权状态、拉起悬浮层授权页、显示/本次关闭悬浮球、切换形态\n（球 / 语音条 / 半屏面板）、收取手势事件、推送界面状态。\n\n#### This default permission set includes:\n\n- `allow-overlay-supported`\n- `allow-overlay-has-permission`\n- `allow-overlay-request-permission`\n- `allow-overlay-show`\n- `allow-overlay-hide`\n- `allow-overlay-set-mode`\n- `allow-overlay-poll-event`\n- `allow-overlay-ack-events`\n- `allow-overlay-push-ui`\n- `allow-overlay-pick-attach`\n- `allow-overlay-open-settings`\n- `allow-overlay-status`",
+          "type": "string",
+          "const": "onethu-overlay:default",
+          "markdownDescription": "允许使用全局悬浮球（Android 系统级悬浮层）：\n查询支持与授权状态、拉起悬浮层授权页、显示/本次关闭悬浮球、切换形态\n（球 / 语音条 / 半屏面板）、收取手势事件、推送界面状态。\n\n#### This default permission set includes:\n\n- `allow-overlay-supported`\n- `allow-overlay-has-permission`\n- `allow-overlay-request-permission`\n- `allow-overlay-show`\n- `allow-overlay-hide`\n- `allow-overlay-set-mode`\n- `allow-overlay-poll-event`\n- `allow-overlay-ack-events`\n- `allow-overlay-push-ui`\n- `allow-overlay-pick-attach`\n- `allow-overlay-open-settings`\n- `allow-overlay-status`"
+        },
+        {
+          "description": "Enables the overlay_ack_events command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:allow-overlay-ack-events",
+          "markdownDescription": "Enables the overlay_ack_events command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the overlay_has_permission command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:allow-overlay-has-permission",
+          "markdownDescription": "Enables the overlay_has_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the overlay_hide command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:allow-overlay-hide",
+          "markdownDescription": "Enables the overlay_hide command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the overlay_open_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:allow-overlay-open-settings",
+          "markdownDescription": "Enables the overlay_open_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the overlay_pick_attach command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:allow-overlay-pick-attach",
+          "markdownDescription": "Enables the overlay_pick_attach command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the overlay_poll_event command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:allow-overlay-poll-event",
+          "markdownDescription": "Enables the overlay_poll_event command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the overlay_push_ui command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:allow-overlay-push-ui",
+          "markdownDescription": "Enables the overlay_push_ui command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the overlay_request_permission command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:allow-overlay-request-permission",
+          "markdownDescription": "Enables the overlay_request_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the overlay_set_mode command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:allow-overlay-set-mode",
+          "markdownDescription": "Enables the overlay_set_mode command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the overlay_show command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:allow-overlay-show",
+          "markdownDescription": "Enables the overlay_show command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the overlay_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:allow-overlay-status",
+          "markdownDescription": "Enables the overlay_status command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the overlay_supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:allow-overlay-supported",
+          "markdownDescription": "Enables the overlay_supported command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the overlay_ack_events command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:deny-overlay-ack-events",
+          "markdownDescription": "Denies the overlay_ack_events command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the overlay_has_permission command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:deny-overlay-has-permission",
+          "markdownDescription": "Denies the overlay_has_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the overlay_hide command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:deny-overlay-hide",
+          "markdownDescription": "Denies the overlay_hide command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the overlay_open_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:deny-overlay-open-settings",
+          "markdownDescription": "Denies the overlay_open_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the overlay_pick_attach command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:deny-overlay-pick-attach",
+          "markdownDescription": "Denies the overlay_pick_attach command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the overlay_poll_event command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:deny-overlay-poll-event",
+          "markdownDescription": "Denies the overlay_poll_event command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the overlay_push_ui command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:deny-overlay-push-ui",
+          "markdownDescription": "Denies the overlay_push_ui command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the overlay_request_permission command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:deny-overlay-request-permission",
+          "markdownDescription": "Denies the overlay_request_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the overlay_set_mode command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:deny-overlay-set-mode",
+          "markdownDescription": "Denies the overlay_set_mode command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the overlay_show command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:deny-overlay-show",
+          "markdownDescription": "Denies the overlay_show command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the overlay_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:deny-overlay-status",
+          "markdownDescription": "Denies the overlay_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the overlay_supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-overlay:deny-overlay-supported",
+          "markdownDescription": "Denies the overlay_supported command without any pre-configured scope."
+        },
+        {
+          "description": "允许使用灵动岛语音输入：\n查询支持平台、开始/轮询/停止原生语音识别、读取输入电平（需麦克风权限）。\n\n#### This default permission set includes:\n\n- `allow-speech-supported`\n- `allow-speech-start`\n- `allow-speech-poll`\n- `allow-speech-stop`\n- `allow-speech-level`",
           "type": "string",
           "const": "onethu-speech:default",
-          "markdownDescription": "允许使用灵动岛语音输入：\n查询支持平台、开始/轮询/停止原生语音识别（需麦克风权限）。\n\n#### This default permission set includes:\n\n- `allow-speech-supported`\n- `allow-speech-start`\n- `allow-speech-poll`\n- `allow-speech-stop`"
+          "markdownDescription": "允许使用灵动岛语音输入：\n查询支持平台、开始/轮询/停止原生语音识别、读取输入电平（需麦克风权限）。\n\n#### This default permission set includes:\n\n- `allow-speech-supported`\n- `allow-speech-start`\n- `allow-speech-poll`\n- `allow-speech-stop`\n- `allow-speech-level`"
+        },
+        {
+          "description": "Enables the speech_level command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-speech:allow-speech-level",
+          "markdownDescription": "Enables the speech_level command without any pre-configured scope."
         },
         {
           "description": "Enables the speech_poll command without any pre-configured scope.",
@@ -2601,6 +2769,12 @@
           "markdownDescription": "Enables the speech_supported command without any pre-configured scope."
         },
         {
+          "description": "Denies the speech_level command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-speech:deny-speech-level",
+          "markdownDescription": "Denies the speech_level command without any pre-configured scope."
+        },
+        {
           "description": "Denies the speech_poll command without any pre-configured scope.",
           "type": "string",
           "const": "onethu-speech:deny-speech-poll",
@@ -2623,6 +2797,96 @@
           "type": "string",
           "const": "onethu-speech:deny-speech-supported",
           "markdownDescription": "Denies the speech_supported command without any pre-configured scope."
+        },
+        {
+          "description": "允许使用语音合成（TTS）：\n查询支持与引擎状态、初始化引擎、朗读/停止、读取中文音色列表、切换后端。\n（不需要额外运行时权限；Android 11+ 的 TTS 引擎可见性由 AndroidManifest 的 queries 声明）\n\n#### This default permission set includes:\n\n- `allow-tts-supported`\n- `allow-tts-prepare`\n- `allow-tts-speak`\n- `allow-tts-stop`\n- `allow-tts-status`\n- `allow-tts-voices`\n- `allow-tts-set-backend`",
+          "type": "string",
+          "const": "onethu-tts:default",
+          "markdownDescription": "允许使用语音合成（TTS）：\n查询支持与引擎状态、初始化引擎、朗读/停止、读取中文音色列表、切换后端。\n（不需要额外运行时权限；Android 11+ 的 TTS 引擎可见性由 AndroidManifest 的 queries 声明）\n\n#### This default permission set includes:\n\n- `allow-tts-supported`\n- `allow-tts-prepare`\n- `allow-tts-speak`\n- `allow-tts-stop`\n- `allow-tts-status`\n- `allow-tts-voices`\n- `allow-tts-set-backend`"
+        },
+        {
+          "description": "Enables the tts_prepare command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-tts:allow-tts-prepare",
+          "markdownDescription": "Enables the tts_prepare command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_set_backend command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-tts:allow-tts-set-backend",
+          "markdownDescription": "Enables the tts_set_backend command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_speak command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-tts:allow-tts-speak",
+          "markdownDescription": "Enables the tts_speak command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-tts:allow-tts-status",
+          "markdownDescription": "Enables the tts_status command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_stop command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-tts:allow-tts-stop",
+          "markdownDescription": "Enables the tts_stop command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-tts:allow-tts-supported",
+          "markdownDescription": "Enables the tts_supported command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the tts_voices command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-tts:allow-tts-voices",
+          "markdownDescription": "Enables the tts_voices command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_prepare command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-tts:deny-tts-prepare",
+          "markdownDescription": "Denies the tts_prepare command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_set_backend command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-tts:deny-tts-set-backend",
+          "markdownDescription": "Denies the tts_set_backend command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_speak command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-tts:deny-tts-speak",
+          "markdownDescription": "Denies the tts_speak command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-tts:deny-tts-status",
+          "markdownDescription": "Denies the tts_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_stop command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-tts:deny-tts-stop",
+          "markdownDescription": "Denies the tts_stop command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_supported command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-tts:deny-tts-supported",
+          "markdownDescription": "Denies the tts_supported command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the tts_voices command without any pre-configured scope.",
+          "type": "string",
+          "const": "onethu-tts:deny-tts-voices",
+          "markdownDescription": "Denies the tts_voices command without any pre-configured scope."
         },
         {
           "description": "This permission set allows opening `mailto:`, `tel:`, `https://` and `http://` urls using their default application\nas well as reveal file in directories using default file explorer\n#### This default permission set includes:\n\n- `allow-open-url`\n- `allow-reveal-item-in-dir`\n- `allow-default-urls`",
