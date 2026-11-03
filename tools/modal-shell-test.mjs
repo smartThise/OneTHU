@@ -71,7 +71,7 @@ ok(block(".btn::after,").includes(".wb-row::after"), "共享状态层应包含 .
 ok(!/\.wb-kind:hover[^{]*\{[^}]*border-color/.test(CSS), ".wb-kind hover 不该再改描边");
 
 /* [5] 退场：整族必须有退场动画（缺了弹层会"啪"地消失） */
-ok(/\.og-scrim\.is-closing \{\s*animation: og-fade-out[^}]*accelerate/.test(GUI_OVERLAY) && GUI_BASE.includes("@keyframes og-fade-out"), "遮罩退场动画缺失（OneGUI）");
+ok(/\.og-scrim\.is-closing \{\s*animation: og-scrim-out[^}]*accelerate/.test(GUI_OVERLAY) && GUI_BASE.includes("@keyframes og-scrim-out"), "遮罩退场动画缺失（OneGUI）");
 ok(/\.og-panel\.is-closing \{\s*animation: og-pop-out[^}]*accelerate/.test(GUI_OVERLAY) && GUI_BASE.includes("@keyframes og-pop-out"), "面板退场动画缺失（桌面缩小淡出，OneGUI）");
 ok(/\.og-sheet--bottom\.is-closing \{\s*animation: og-sheet-down/.test(GUI_OVERLAY) && GUI_OVERLAY.includes("@keyframes og-sheet-down"), "手机底部表退场应往下滑（OneGUI）");
 ok(CSS.includes(".home-modal-mask.is-closing"), "旧首页弹层遮罩退场动画缺失");
@@ -100,14 +100,11 @@ ok(!CARD.includes("maskStyle: React.CSSProperties = { animation:"), "退场动�
 /* [9] 退场 JS 延时必须与 CSS 退场时长同源：CSS 走 var(--dur-2)，JS 写死会截尾 */
 {
   const MOTION = readFileSync("apps/desktop/src/styles/motion.css", "utf8");
-  let ms = null;
-  for (const f of ["packages/ui/src/tokens.css", "apps/desktop/src/styles/motion.css"]) {
-    const t = readFileSync(f, "utf8");
-    const m = /--md-sys-motion-duration-short-4:\s*(\d+)ms/.exec(t);
-    if (m) { ms = Number(m[1]); break; }
-  }
+  const GUI_TOKENS = readFileSync("packages/gui/src/tokens/structure.css", "utf8");
+  const m = /--og-dur-2:\s*(\d+)ms/.exec(GUI_TOKENS);
+  const ms = m ? Number(m[1]) : null;
   ok(MOTION.includes("--dur-2: var(--md-sys-motion-duration-short-4)"), "--dur-2 应指向 short-4");
-  ok(ms !== null && CARD.includes("onClose(), " + ms + ")"), "校园卡充值的退场延时应与 --dur-2（short-4）一致");
+  ok(ms === 200 && CARD.includes("onClose(), " + ms + ")"), "校园卡充值的退场延时应与 --dur-2（OneGUI 200ms）一致");
 }
 
 /* [10] B3c：退场相位共用 hook —— 组件不再各写一遍 closing/setTimeout */

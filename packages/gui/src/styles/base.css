@@ -119,14 +119,28 @@ body {
   to { opacity: 0; }
 }
 
+/* 浮层面板/玻璃面板的进退场只动 transform：opacity 会在面板自身或遮罩祖先上
+   建立 backdrop root，入场期间 backdrop-filter 失效（模糊在动画结束时才出现）。
+   遮罩的明暗过渡改用 background-color 关键帧（见 overlay.css）。 */
 @keyframes og-pop-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
-  to { opacity: 1; transform: none; }
+  from { transform: translateY(8px) scale(0.98); }
+  to { transform: none; }
 }
 
 @keyframes og-pop-out {
-  from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translateY(6px) scale(0.99); }
+  from { transform: none; }
+  to { transform: translateY(6px) scale(0.99); }
+}
+
+/* 遮罩只动画背景色：不产生 backdrop root，子面板的模糊全程有效。 */
+@keyframes og-scrim-in {
+  from { background-color: transparent; }
+  to { background-color: var(--og-scrim); }
+}
+
+@keyframes og-scrim-out {
+  from { background-color: var(--og-scrim); }
+  to { background-color: transparent; }
 }
 
 @keyframes og-spin {

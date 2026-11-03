@@ -2,6 +2,10 @@
  * OneGUI · 图标 / 胶囊 / 标签 / 角标 / 分隔线 / 加载指示
  * ══════════════════════════════════════════════════════════════════════════ */
 
+/* 全站裸 <svg>（Icons.tsx 的图标没有类名）与文字同处 inline 排版时的基线：
+   default baseline 会让图形中心高于中文约 2px；:where 保持零特异性，组件可覆盖。 */
+:where(svg) { vertical-align: -0.14em; }
+
 .og-icon {
   display: inline-block;
   flex: 0 0 auto;

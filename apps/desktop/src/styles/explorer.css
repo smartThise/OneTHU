@@ -39,7 +39,7 @@
   align-items: center;
   gap: 8px;
   min-height: var(--explorer-top-h, 46px);
-  padding: 0 10px;
+  padding: 0 8px;
   /* 材质 = global.css「壳层玻璃收口」那一处；此处只兜底一份，避免像本轮这样被删空 */
   transition: box-shadow var(--dur-2, 0.2s) var(--ease-out, ease);
 }
@@ -120,13 +120,13 @@ html:root.is-phone .hard-refresh-fab:not(.top-fab) {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 8px 12px;
   flex: none;
 }
 .settings-seg { position: absolute; left: 50%; transform: translateX(-50%); }
 .settings-close { margin-left: auto; position: relative; } /* 绝对居中后压轴仍贴右 */
-.settings-title { font-size: 15px; }
+.settings-title { font-size: 14px; }
 .settings-seg {
   max-width: 100%;
   overflow-x: auto;
@@ -139,9 +139,9 @@ html:root.is-phone .hard-refresh-fab:not(.top-fab) {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   height: 28px;
-  padding: 0 11px;
+  padding: 0 12px;
   white-space: nowrap;
   cursor: pointer;
   transition: border-color var(--dur-2) ease, color var(--dur-2) ease, background var(--dur-2) ease;
@@ -152,7 +152,7 @@ html:root.is-phone .hard-refresh-fab:not(.top-fab) {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-.explorer-settings-body { padding: 14px 16px 24px; }
+.explorer-settings-body { padding: 16px 16px 24px; }
 .explorer-settings-body.workbench-simple-settings { overflow-y: auto; min-height: 0; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 .workbench-simple-settings > .simple-settings { padding: var(--og-space-4); padding-bottom: calc(var(--og-space-6) + var(--og-safe-bottom, 0px)); }
 /* 用户截屏「挤挤挤」防御：浮层里的插件卡动作行/状态行不许逐字竖排 */
@@ -169,7 +169,7 @@ html:root.is-phone .hard-refresh-fab:not(.top-fab) {
   border: 0;
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.15);
   border-radius: 6px;
-  padding: 4px 9px;
+  padding: 4px 8px;
   font-size: var(--text-xs, 12px);
   white-space: nowrap;
   max-width: min(60vw, 520px);
@@ -235,7 +235,7 @@ html:root.is-phone .hard-refresh-fab:not(.top-fab) {
    会随文档滚走、文档滚动后底部露出 body 白底。当年 fixed 被困的 transform 祖先链
    （.shell 直挂，外层 body/html/#root 均无 transform/filter）现已不存在。 */
 .shell-wallpaper { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-.shell-wallpaper-img { position: absolute; inset: 0; background-size: cover; background-position: center; background-repeat: no-repeat;  background-attachment: fixed; }
+.shell-wallpaper-img { position: absolute; inset: 0; background-size: cover; background-position: center; background-repeat: no-repeat;  }
 .wall-video-layer { position: absolute; inset: 0; overflow: hidden; }
 .wall-video-layer video { width: 100%; height: 100%; object-fit: cover; }
 .wall-video-veil { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.2); }

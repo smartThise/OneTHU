@@ -82,8 +82,20 @@ export function useExitPhase(active: boolean, ms = 200): { mounted: boolean; clo
  * 可重播：离开视口就撤掉标记（回到藏身态）且不注销观察，所以每次进入视野都会播一次，
  * 往上滚回去与往下滚新出现的行为一致。
  */
+/** 只揭示不带材质的行/列表：玻璃卡片的容器不能有 opacity 动画（会丢背景模糊）。 */
 export const REVEAL_SELECTOR =
-  ":is(.list, .stats, .today-grid, .market-grid, .icon-grid, .setting-group, .app-grid, .thos-grid) > *, .row-click, .mail-row, .news-row, .setting-row, .cloud-row";
+  ":is(.list, .setting-group) > *, .row-click, .mail-row, .news-row, .setting-row, .cloud-row, .learn-course-card";
+
+const LONG_LIST_THRESHOLD = 40;
+
+/** 父容器直接子元素超过阈值 = 长列表：不做逐项滚动揭示。
+ *  课程文件可达数百行，逐项动画没有阅读收益，却会在快速滚动时排队上百个动画、
+ *  反复重建合成层（用户实拍滚动卡顿/黑块）。长列表直接标记 instant 常显；
+ *  短列表仍保留首屏铺开感。 */
+function isLongListMember(el: HTMLElement): boolean {
+  const parent = el.parentElement;
+  return !!parent && parent.children.length > LONG_LIST_THRESHOLD;
+}
 
 export function installScrollReveal(): void {
   if (typeof document === "undefined" || typeof IntersectionObserver === "undefined" || typeof MutationObserver === "undefined") return;
@@ -102,13 +114,22 @@ export function installScrollReveal(): void {
           delete el.dataset.revealIn;
           continue;
         }
+        if (isLongListMember(el)) {
+          el.dataset.revealIn = "instant";
+          continue;
+        }
         batch.push(el);
       }
       batch.sort((a, b) => a.offsetTop - b.offsetTop || a.offsetLeft - b.offsetLeft);
       // 方阵网格按「行」递延：同一行的卡片同时出现，行与行自上而下依次展开——读作"铺开"
       // 的流程感，而不是从左上往右下斜扫（霖反馈）。列表项各占一行，等价于逐项递延。
-      // 不封顶：封顶会让后面的卡片拿同一延迟、第一波播完齐刷刷出现（霖实测）。
+      // ⚠️ 长列表必须封顶：一次 IO 回调可能带进几十/上百行（快速滚动、滚动条跳转、
+      // 课程文件大列表），不封顶时第 100 行延迟 3s、第 1000 行 30s，且 `backwards` 让
+      // 这些行在延迟期间保持 opacity:0 → 用户看到「文字消失」；同时排队上百个动画，
+      // 滚动时合成层反复重绘 → 全局卡顿/闪白。前 12 项做依次展开，其余行立即显示
+      // （不再排队动画），既保留首屏铺开感，也不让长列表把主线程拖死。
       const rows = new Map<Element, Map<number, number>>();
+      const STAGGER_MAX = 12;
       let li = 0;
       for (const el of batch) {
         const grid = el.closest(".app-grid, .thos-grid");
@@ -126,6 +147,11 @@ export function installScrollReveal(): void {
         } else {
           slot = li++;
         }
+        if (slot >= STAGGER_MAX) {
+          el.style.animationDelay = "";
+          el.dataset.revealIn = "instant";
+          continue;
+        }
         el.style.animationDelay = `${slot * (grid ? 9 : 30)}ms`;
         // ⚠️ 用 data 属性、不用 class：React 重渲染会整体重写 className（行选中高亮等），
         // classList 手加的类会被抹掉，元素当场回到藏身态隐身（霖实测：点中的邮件行直接消失）
@@ -135,24 +161,62 @@ export function installScrollReveal(): void {
     { rootMargin: "0px 0px -8% 0px", threshold: 0 },
   );
 
+  /** 首屏已经在视口内的项必须在第一帧之前拿到 data-reveal-in：
+   *  MutationObserver 在 paint 前跑，若等 100ms 防抖再标记，用户会先看到静止列表，
+   *  随后整列突然跳到 -14px 再滑回来（霖 2026-11-01 现场「抽搐一下」）。 */
+  const markVisibleNow = (el: HTMLElement): boolean => {
+    const rect = el.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return false;
+    if (rect.bottom <= 0 || rect.top >= window.innerHeight * 0.92) return false;
+    const grid = el.closest(".app-grid, .thos-grid, .learn-course-list");
+    // 延迟按「同一父级里的第几个」算，而不是全局计数器：否则先扫描到别的列表后，
+    // 后挂载的列表所有项都拿到 12×30=360ms，看起来是整列同时平移。网格按行分组。
+    let slot = 0;
+    const parent = el.parentElement;
+    if (grid) {
+      const top = Math.round(el.offsetTop);
+      const seen = new Set<number>();
+      for (const child of parent?.children ?? []) {
+        const childTop = Math.round((child as HTMLElement).offsetTop);
+        if (childTop < top) seen.add(childTop);
+      }
+      slot = seen.size;
+    } else if (parent) {
+      slot = Math.max(0, [...parent.children].indexOf(el));
+    }
+    el.style.animationDelay = `${Math.min(slot, 12) * (grid ? 9 : 30)}ms`;
+    el.dataset.revealIn = "1";
+    return true;
+  };
+
   const scan = () => {
     document.querySelectorAll<HTMLElement>(REVEAL_SELECTOR).forEach((el) => {
       if (el.dataset.reveal === "1") return;
       el.dataset.reveal = "1";
+      // 长列表不挂逐项观察：行挂载即常显，避免数百个 opacity 动画和滚动时文字消失。
+      if (isLongListMember(el)) {
+        el.dataset.revealIn = "instant";
+        return;
+      }
+      // 首屏可见项同步标记（paint 前），IO 只负责后续滚动进入视口的项。
+      if (markVisibleNow(el)) return;
       io.observe(el);
     });
   };
   scan();
 
-  // 动态内容（翻页 / 筛选 / 新数据）也要纳入；100ms 防抖，避免频繁重排时反复全量查询
-  let timer = 0;
-  new MutationObserver(() => {
-    if (timer) return;
-    timer = window.setTimeout(() => {
-      timer = 0;
+  // 动态内容（翻页 / 筛选 / 新数据）也要纳入；MutationObserver 回调本身就在 paint 前，
+  // 直接 scan 才能让新行从第一帧就处于入场首帧，不再「先静止出现再跳回左侧」。
+  let scanning = false;
+  const scheduleScan = (): void => {
+    if (scanning) return;
+    scanning = true;
+    queueMicrotask(() => {
+      scanning = false;
       scan();
-    }, 100);
-  }).observe(document.body, { childList: true, subtree: true });
+    });
+  };
+  new MutationObserver(scheduleScan).observe(document.body, { childList: true, subtree: true });
 }
 
 /**

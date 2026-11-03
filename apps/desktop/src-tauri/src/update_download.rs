@@ -1,18 +1,42 @@
 //! Bounded, cancellable installer transport. A hash is integrity, not publisher authentication.
+//!
+//! ## 多线程分段下载（2026-10-28）
+//! 1. 先发一个 `Range: bytes=0-0` 探测请求：
+//!    - **206 + Content-Range** → 服务器支持分段，读总大小后按线程数切段并发下载；
+//!    - **200 + Accept-Ranges 缺失/忽略 Range** → 服务器不支持分段，**自动回落单流**，
+//!      并直接复用这次探测响应（不额外再请求）；
+//!    - 206 但 Content-Range 缺总大小 / 段数算出来只有 1 → 也回落单流（重新发一次整包 GET）。
+//! 2. 每个分片写自己的临时文件（`download.part.<n>`），全部到齐后**按序合并**成
+//!    `download.part` 并同时算 SHA-256；大小、哈希、原子 rename、CompletedDownloads 校验
+//!    全部沿用单流路径的红线，取消/超限/失败只清理本次暂存目录。
+//! 3. `threads == 1` 时完全不发探测请求，保持旧单流行为。
 use sha2::{Digest, Sha256};
 use std::{
     future::Future,
     io::{Read, Write},
     path::{Path, PathBuf},
+    pin::Pin,
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
         Arc, Mutex,
     },
+    task::Poll,
     time::Duration,
 };
 
 pub const MAX_DOWNLOAD: u64 = 1024 * 1024 * 1024;
+pub const DEFAULT_THREADS: u32 = 8;
+pub const MAX_THREADS: u32 = 16;
+/// 分片小于这个体积时并发的收益抵不过探测/合并开销，直接单流。
+const MIN_SEGMENT: u64 = 64 * 1024;
 static NEXT_DOWNLOAD: AtomicU64 = AtomicU64::new(0);
+
+/// 线程数归一化：None → 默认 8；越界夹到 1..=16（前端与原生两侧都做，越界不会出错）。
+pub fn normalize_threads(threads: Option<u32>) -> usize {
+    threads
+        .map(|value| value.clamp(1, MAX_THREADS))
+        .unwrap_or(DEFAULT_THREADS) as usize
+}
 
 #[derive(Default)]
 pub struct DownloadGate(Mutex<Option<Arc<AtomicBool>>>);
@@ -148,6 +172,7 @@ fn safe_name(name: &str) -> Result<&str, String> {
         || name == "."
         || name == ".."
         || name.eq_ignore_ascii_case("download.part")
+        || name.starts_with("download.part.")
         || name
             .chars()
             .any(|c| c.is_control() || "/\\:<>\"|?*".contains(c))
@@ -199,18 +224,303 @@ fn client(test_http: bool) -> Result<reqwest::Client, String> {
         .map_err(|_| "无法初始化更新下载连接".into())
 }
 
+/// `Content-Range: bytes <start>-<end>/<total|*>` → (start, end, total?)；格式不符返回 None。
+fn parse_content_range(
+    value: Option<&reqwest::header::HeaderValue>,
+) -> Option<(u64, u64, Option<u64>)> {
+    let text = value?.to_str().ok()?.trim();
+    let rest = text.strip_prefix("bytes ")?;
+    let (range, total) = rest.split_once('/')?;
+    let (start, end) = range.split_once('-')?;
+    let start: u64 = start.trim().parse().ok()?;
+    let end: u64 = end.trim().parse().ok()?;
+    if end < start {
+        return None;
+    }
+    let total = if total.trim() == "*" {
+        None
+    } else {
+        Some(total.trim().parse().ok()?)
+    };
+    Some((start, end, total))
+}
+
+async fn fetch(
+    client: &reqwest::Client,
+    address: &url::Url,
+    range: Option<(u64, u64)>,
+    permit: &DownloadPermit<'_>,
+) -> Result<reqwest::Response, String> {
+    let mut request = client
+        .get(address.clone())
+        .header("Accept-Encoding", "identity");
+    if let Some((start, end)) = range {
+        request = request.header("Range", format!("bytes={start}-{end}"));
+    }
+    permit
+        .wait(request.send())
+        .await?
+        .map_err(|e| format!("连接更新源失败：{}", e.without_url()))
+}
+
+fn raw_encoding(response: &reqwest::Response) -> Result<(), String> {
+    if response
+        .headers()
+        .get("content-encoding")
+        .is_some_and(|value| value != "identity")
+    {
+        return Err("更新源返回了非原始安装包编码，已拒绝".into());
+    }
+    Ok(())
+}
+
+/// 单流：把整包响应流式写进 `download.part` 并算哈希，返回 (字节数, sha256)。
+async fn stream_single(
+    response: reqwest::Response,
+    part_path: &Path,
+    expected_size: Option<u64>,
+    permit: &DownloadPermit<'_>,
+    progress: &(impl Fn(&str, u64, u64, &Path) + Sync),
+    final_path: &Path,
+) -> Result<(u64, String), String> {
+    if response.status() != reqwest::StatusCode::OK {
+        return Err(format!("更新源拒绝完整下载：HTTP {}", response.status()));
+    }
+    raw_encoding(&response)?;
+    let length = response.content_length();
+    if length.is_some_and(|n| n > MAX_DOWNLOAD) {
+        return Err("更新包超过 1 GiB 限制".into());
+    }
+    if let (Some(expected), Some(actual)) = (expected_size, length) {
+        if expected != actual {
+            return Err(format!(
+                "更新包大小不符：清单 {expected} 字节，响应 {actual} 字节"
+            ));
+        }
+    }
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(part_path)
+        .map_err(|e| format!("创建临时文件失败：{e}"))?;
+    let mut hasher = Sha256::new();
+    let mut received = 0u64;
+    let total = expected_size.or(length).unwrap_or(0);
+    progress("download", received, total, final_path);
+    let mut body = response;
+    while let Some(chunk) = permit
+        .wait(body.chunk())
+        .await?
+        .map_err(|e| format!("下载中断：{}", e.without_url()))?
+    {
+        received = received
+            .checked_add(chunk.len() as u64)
+            .ok_or("下载大小溢出")?;
+        if received > expected_size.unwrap_or(MAX_DOWNLOAD).min(MAX_DOWNLOAD) {
+            return Err("更新包超过预期大小，已丢弃".into());
+        }
+        file.write_all(&chunk)
+            .map_err(|e| format!("写入更新包失败：{e}"))?;
+        hasher.update(&chunk);
+        progress("download", received, total, final_path);
+    }
+    permit.check()?;
+    if received == 0 || expected_size.or(length).is_some_and(|n| n != received) {
+        return Err("更新包为空或下载不完整，已丢弃".into());
+    }
+    file.flush()
+        .and_then(|_| file.sync_all())
+        .map_err(|e| format!("更新包落盘失败：{e}"))?;
+    drop(file);
+    permit.check()?;
+    Ok((received, format!("{:x}", hasher.finalize())))
+}
+
+/// 单个分片：Range GET → 校验 206/Content-Range/长度 → 写自己的临时文件。
+#[allow(clippy::too_many_arguments)]
+async fn download_segment(
+    client: &reqwest::Client,
+    address: &url::Url,
+    start: u64,
+    end: u64,
+    path: &Path,
+    total: u64,
+    received: &AtomicU64,
+    permit: &DownloadPermit<'_>,
+    progress: &(impl Fn(&str, u64, u64, &Path) + Sync),
+    final_path: &Path,
+) -> Result<(), String> {
+    let response = fetch(client, address, Some((start, end)), permit).await?;
+    if response.status() != reqwest::StatusCode::PARTIAL_CONTENT {
+        return Err(format!("更新源拒绝分段下载：HTTP {}", response.status()));
+    }
+    raw_encoding(&response)?;
+    let expected_len = end - start + 1;
+    if let Some(length) = response.content_length() {
+        if length != expected_len {
+            return Err("更新源分段长度不符，已丢弃".into());
+        }
+    }
+    match parse_content_range(response.headers().get("content-range")) {
+        Some((actual_start, actual_end, Some(actual_total)))
+            if actual_start == start && actual_end == end && actual_total == total => {}
+        Some(_) => return Err("更新源分段范围不符，已丢弃".into()),
+        None => return Err("更新源缺少分段范围信息，已丢弃".into()),
+    }
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .map_err(|e| format!("创建分片临时文件失败：{e}"))?;
+    let mut body = response;
+    let mut written = 0u64;
+    while let Some(chunk) = permit
+        .wait(body.chunk())
+        .await?
+        .map_err(|e| format!("分段下载中断：{}", e.without_url()))?
+    {
+        written = written
+            .checked_add(chunk.len() as u64)
+            .ok_or("下载大小溢出")?;
+        if written > expected_len {
+            return Err("更新源分段超出预期大小，已丢弃".into());
+        }
+        file.write_all(&chunk)
+            .map_err(|e| format!("写入更新包失败：{e}"))?;
+        let done = received.fetch_add(chunk.len() as u64, Ordering::Relaxed) + chunk.len() as u64;
+        progress("download", done.min(total), total, final_path);
+    }
+    file.flush()
+        .and_then(|_| file.sync_all())
+        .map_err(|e| format!("更新包落盘失败：{e}"))?;
+    if written != expected_len {
+        return Err("更新包分段不完整，已丢弃".into());
+    }
+    Ok(())
+}
+
+/// 同时在当前任务里轮询多个 future，全部完成后按原顺序返回。
+/// （不 spawn：分片 future 借用 permit / 进度回调，且 ≤16 个，顺序轮询足够。）
+async fn join_all<T>(mut futures: Vec<Pin<Box<dyn Future<Output = T> + Send + '_>>>) -> Vec<T> {
+    let mut slots: Vec<Option<T>> = (0..futures.len()).map(|_| None).collect();
+    std::future::poll_fn(|cx| {
+        let mut waiting = false;
+        for (index, future) in futures.iter_mut().enumerate() {
+            if slots[index].is_some() {
+                continue;
+            }
+            match future.as_mut().poll(cx) {
+                Poll::Ready(value) => slots[index] = Some(value),
+                Poll::Pending => waiting = true,
+            }
+        }
+        if waiting {
+            Poll::Pending
+        } else {
+            Poll::Ready(())
+        }
+    })
+    .await;
+    slots
+        .into_iter()
+        .map(|slot| slot.expect("joined future"))
+        .collect()
+}
+
+/// 按顺序合并分片 → `download.part`，同时算整包 SHA-256；成功后删掉分片。
+fn merge_segments(
+    shards: &[PathBuf],
+    part_path: &Path,
+    expected_total: u64,
+    permit: &DownloadPermit<'_>,
+) -> Result<String, String> {
+    let mut output = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(part_path)
+        .map_err(|e| format!("创建临时文件失败：{e}"))?;
+    let mut hasher = Sha256::new();
+    let mut buffer = vec![0u8; 64 * 1024];
+    let mut merged = 0u64;
+    for shard in shards {
+        permit.check()?;
+        let mut input =
+            std::fs::File::open(shard).map_err(|e| format!("读取更新包分片失败：{e}"))?;
+        loop {
+            let n = input
+                .read(&mut buffer)
+                .map_err(|e| format!("读取更新包分片失败：{e}"))?;
+            if n == 0 {
+                break;
+            }
+            merged = merged.checked_add(n as u64).ok_or("下载大小溢出")?;
+            if merged > expected_total {
+                return Err("更新包分段合并后超出预期大小，已丢弃".into());
+            }
+            hasher.update(&buffer[..n]);
+            output
+                .write_all(&buffer[..n])
+                .map_err(|e| format!("写入更新包失败：{e}"))?;
+        }
+        let _ = std::fs::remove_file(shard);
+    }
+    permit.check()?;
+    if merged != expected_total {
+        return Err("更新包分段合并后大小不符，已丢弃".into());
+    }
+    output
+        .flush()
+        .and_then(|_| output.sync_all())
+        .map_err(|e| format!("更新包落盘失败：{e}"))?;
+    drop(output);
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
+/// 提交：校验哈希后把 `download.part` 原子 rename 成最终文件，并保留暂存目录。
+fn commit(
+    staging: &mut Staging,
+    part_path: &Path,
+    final_path: &Path,
+    received: u64,
+    digest: String,
+    expected_hash: Option<&String>,
+) -> Result<Downloaded, String> {
+    if expected_hash.is_some_and(|expected| expected != &digest) {
+        return Err("更新包 SHA-256 校验不通过，已丢弃".into());
+    }
+    std::fs::rename(part_path, final_path).map_err(|e| format!("更新包提交失败：{e}"))?;
+    staging.keep = true;
+    Ok(Downloaded {
+        path: final_path.to_path_buf(),
+        size: received,
+        sha256: digest,
+        verified: expected_hash.is_some(),
+    })
+}
+
 /// The loopback switch is private to offline unit tests; production always passes false.
+#[allow(clippy::too_many_arguments)]
 pub async fn download(
     root: &Path,
     url: &str,
     name: &str,
     size: Option<u64>,
     hash: Option<&str>,
+    threads: Option<u32>,
     permit: &DownloadPermit<'_>,
-    progress: impl Fn(&str, u64, u64, &Path),
+    progress: impl Fn(&str, u64, u64, &Path) + Send + Sync,
 ) -> Result<Downloaded, String> {
-    download_inner(root, url, name, size, hash, permit, progress, false).await
+    // 下载完成后统一补一帧 done：分段与单流都只在内部报 download 进度，
+    // UI 的完成态依赖这一帧（旧单流路径在 rename 后直接 progress("done")）。
+    let downloaded = download_inner(
+        root, url, name, size, hash, permit, &progress, false, threads,
+    )
+    .await?;
+    progress("done", downloaded.size, downloaded.size, &downloaded.path);
+    Ok(downloaded)
 }
+
+#[allow(clippy::too_many_arguments)]
 async fn download_inner(
     root: &Path,
     url: &str,
@@ -218,8 +528,9 @@ async fn download_inner(
     size: Option<u64>,
     hash: Option<&str>,
     permit: &DownloadPermit<'_>,
-    progress: impl Fn(&str, u64, u64, &Path),
+    progress: impl Fn(&str, u64, u64, &Path) + Send + Sync,
     test_http: bool,
+    threads: Option<u32>,
 ) -> Result<Downloaded, String> {
     let name = safe_name(name)?;
     let hash = expected_hash(hash)?;
@@ -242,84 +553,142 @@ async fn download_inner(
     let mut staging = Staging { dir, keep: false };
     let final_path = staging.dir.join(name);
     let part_path = staging.dir.join("download.part");
+    let threads = normalize_threads(threads);
     progress("probe", 0, size.unwrap_or(0), &final_path);
-    let mut response = permit
-        .wait(
-            client(test_http)?
-                .get(address)
-                .header("Accept-Encoding", "identity")
-                .send(),
-        )
-        .await?
-        .map_err(|e| format!("连接更新源失败：{}", e.without_url()))?;
-    if response.status() != reqwest::StatusCode::OK {
-        return Err(format!("更新源拒绝完整下载：HTTP {}", response.status()));
+    let client = client(test_http)?;
+
+    // ① 单线程：不探测，直接整包 GET（保持旧行为，也少一次请求）。
+    if threads <= 1 {
+        let response = fetch(&client, &address, None, permit).await?;
+        let (received, digest) =
+            stream_single(response, &part_path, size, permit, &progress, &final_path).await?;
+        return commit(
+            &mut staging,
+            &part_path,
+            &final_path,
+            received,
+            digest,
+            hash.as_ref(),
+        );
     }
-    if response
-        .headers()
-        .get("content-encoding")
-        .is_some_and(|value| value != "identity")
-    {
-        return Err("更新源返回了非原始安装包编码，已拒绝".into());
+
+    // ② 多线程：先探测服务器是否真的支持 Range。
+    let probe = fetch(&client, &address, Some((0, 0)), permit).await?;
+    let probe_status = probe.status();
+    if probe_status == reqwest::StatusCode::OK {
+        // 服务器忽略 Range、直接回了整包：复用这次响应走单流。
+        let (received, digest) =
+            stream_single(probe, &part_path, size, permit, &progress, &final_path).await?;
+        return commit(
+            &mut staging,
+            &part_path,
+            &final_path,
+            received,
+            digest,
+            hash.as_ref(),
+        );
     }
-    let length = response.content_length();
-    if length.is_some_and(|n| n > MAX_DOWNLOAD) {
+    if probe_status != reqwest::StatusCode::PARTIAL_CONTENT {
+        return Err(format!("更新源拒绝完整下载：HTTP {probe_status}"));
+    }
+    let total = match parse_content_range(probe.headers().get("content-range")) {
+        Some((0, _, Some(total))) if total > 0 => total,
+        _ => {
+            // 206 但给不出总大小：无法切段，回落单流（重新请求整包）。
+            drop(probe);
+            let response = fetch(&client, &address, None, permit).await?;
+            let (received, digest) =
+                stream_single(response, &part_path, size, permit, &progress, &final_path).await?;
+            return commit(
+                &mut staging,
+                &part_path,
+                &final_path,
+                received,
+                digest,
+                hash.as_ref(),
+            );
+        }
+    };
+    if total > MAX_DOWNLOAD {
         return Err("更新包超过 1 GiB 限制".into());
     }
-    if let (Some(expected), Some(actual)) = (size, length) {
-        if expected != actual {
+    if let Some(expected) = size {
+        if expected != total {
             return Err(format!(
-                "更新包大小不符：清单 {expected} 字节，响应 {actual} 字节"
+                "更新包大小不符：清单 {expected} 字节，响应 {total} 字节"
             ));
         }
     }
-    let mut file = std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&part_path)
-        .map_err(|e| format!("创建临时文件失败：{e}"))?;
-    let mut hasher = Sha256::new();
-    let mut received = 0u64;
-    let total = size.or(length).unwrap_or(0);
-    progress("download", received, total, &final_path);
-    while let Some(chunk) = permit
-        .wait(response.chunk())
-        .await?
-        .map_err(|e| format!("下载中断：{}", e.without_url()))?
-    {
-        received = received
-            .checked_add(chunk.len() as u64)
-            .ok_or("下载大小溢出")?;
-        if received > size.unwrap_or(MAX_DOWNLOAD).min(MAX_DOWNLOAD) {
-            return Err("更新包超过预期大小，已丢弃".into());
-        }
-        file.write_all(&chunk)
-            .map_err(|e| format!("写入更新包失败：{e}"))?;
-        hasher.update(&chunk);
-        progress("download", received, total, &final_path);
+    drop(probe);
+    // 包太小或线程数超过可用分片数时，分片数按 64 KiB 一段收紧；只有 1 段就回落单流。
+    let by_size = (total / MIN_SEGMENT).max(1);
+    let segments = ((threads as u64).min(by_size)).max(1) as usize;
+    if segments <= 1 {
+        let response = fetch(&client, &address, None, permit).await?;
+        let (received, digest) =
+            stream_single(response, &part_path, size, permit, &progress, &final_path).await?;
+        return commit(
+            &mut staging,
+            &part_path,
+            &final_path,
+            received,
+            digest,
+            hash.as_ref(),
+        );
+    }
+
+    // ③ 分段并发：每个分片写自己的临时文件，进度按累计字节上报。
+    let received = AtomicU64::new(0);
+    let segment_count = segments as u64;
+    // 显式取共享引用再 move 进 future：async move 只会复制这些 &T，不会把 client/address 搬走。
+    let client_ref = &client;
+    let address_ref = &address;
+    let received_ref = &received;
+    let progress_ref = &progress;
+    let final_ref = &final_path;
+    let mut futures: Vec<Pin<Box<dyn Future<Output = Result<PathBuf, String>> + Send + '_>>> =
+        Vec::with_capacity(segments);
+    for index in 0..segments {
+        let start = total * index as u64 / segment_count;
+        let end = total * (index as u64 + 1) / segment_count - 1;
+        let shard = staging.dir.join(format!("download.part.{index}"));
+        futures.push(Box::pin(async move {
+            download_segment(
+                client_ref,
+                address_ref,
+                start,
+                end,
+                &shard,
+                total,
+                received_ref,
+                permit,
+                progress_ref,
+                final_ref,
+            )
+            .await?;
+            Ok(shard)
+        }));
+    }
+    let joined = join_all(futures).await;
+    let mut shards: Vec<PathBuf> = Vec::with_capacity(segments);
+    for result in joined {
+        shards.push(result?);
     }
     permit.check()?;
-    if received == 0 || size.or(length).is_some_and(|n| n != received) {
-        return Err("更新包为空或下载不完整，已丢弃".into());
+    let digest = merge_segments(&shards, &part_path, total, permit)?;
+    let received = received.load(Ordering::Relaxed);
+    if received != total {
+        return Err("更新包下载不完整，已丢弃".into());
     }
-    let digest = format!("{:x}", hasher.finalize());
-    if hash.as_ref().is_some_and(|expected| expected != &digest) {
-        return Err("更新包 SHA-256 校验不通过，已丢弃".into());
-    }
-    file.flush()
-        .and_then(|_| file.sync_all())
-        .map_err(|e| format!("更新包落盘失败：{e}"))?;
-    drop(file);
-    permit.check()?;
-    std::fs::rename(&part_path, &final_path).map_err(|e| format!("更新包提交失败：{e}"))?;
-    staging.keep = true;
-    progress("done", received, received, &final_path);
-    Ok(Downloaded {
-        path: final_path,
-        size: received,
-        sha256: digest,
-        verified: hash.is_some(),
-    })
+    progress("download", total, total, &final_path);
+    commit(
+        &mut staging,
+        &part_path,
+        &final_path,
+        received,
+        digest,
+        hash.as_ref(),
+    )
 }
 
 pub fn installer_path(root: &Path, path: &Path) -> Result<PathBuf, String> {
@@ -331,9 +700,9 @@ pub fn installer_path(root: &Path, path: &Path) -> Result<PathBuf, String> {
         .map_err(|_| "安装包不存在，请重新下载")?;
     if !resolved.starts_with(&root)
         || !resolved.is_file()
-        || resolved
-            .file_name()
-            .is_none_or(|name| name == "download.part")
+        || resolved.file_name().is_none_or(|name| {
+            name == "download.part" || name.to_string_lossy().starts_with("download.part.")
+        })
     {
         return Err("仅能打开已完成下载的更新安装包".into());
     }

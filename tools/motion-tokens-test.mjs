@@ -38,10 +38,20 @@ const PRIMITIVES = [
 for (const p of PRIMITIVES) if (!src.includes(p)) fails.push("缺少 MD3 动效原语 " + p);
 
 /* 2. 兼容层必须指向原语（--dur-1 例外：按压反馈保留原值） */
-for (const name of ["--dur-2", "--dur-3", "--dur-4", "--ease-out", "--ease-in-out", "--ease-ios"]) {
+for (const name of ["--dur-2", "--dur-3", "--dur-4", "--ease-out", "--ease-in-out"]) {
   const m = src.match(new RegExp(name.replace(/[-]/g, "\\-") + "\\s*:\\s*([^;]+);"));
   if (!m) { fails.push("兼容层缺少 " + name); continue; }
   if (!m[1].includes("var(--md-sys-motion-")) fails.push(name + " 没有接到 MD3 原语：" + m[1].trim());
+}
+/* ease-ios 直接引用 OneGUI 的唯一来源；不需要再绕一层 MD3 别名。 */
+{
+  const m = src.match(/--ease-ios:\s*([^;]+);/);
+  if (!m || !m[1].includes("var(--og-ease-")) fails.push("--ease-ios 没有接到 OneGUI 缓动令牌");
+}
+/* MD3 原语本身也必须指向 OneGUI，不能留下第二套数值。 */
+for (const name of ["--md-sys-motion-easing-emphasized-decelerate", "--md-sys-motion-easing-emphasized-accelerate", "--md-sys-motion-duration-short-4"]) {
+  const m = src.match(new RegExp(name + ":\\s*([^;]+);"));
+  if (!m || !m[1].includes("var(--og-")) fails.push(name + " 没有指向 OneGUI 令牌：" + (m ? m[1].trim() : "missing"));
 }
 
 /* 3. 退场必须用 accelerate（不能用进场曲线，也不能写死贝塞尔） */

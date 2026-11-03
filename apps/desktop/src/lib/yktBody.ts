@@ -114,11 +114,49 @@ function mapNodes(html: string, mapText: (t: string) => string, mapTag: (t: stri
   return out;
 }
 
+/* ────────────────────────── HTML 实体：非断空格 ────────────────────────── */
+
+/**
+ * HTML 非断空格（`&nbsp;`，及数字实体 160 / xa0 两种写法）归一。用户 2026-10-28 反馈
+ * 「题目里出现大量字面 nbsp」的根因在**多一层转义**上：
+ *
+ *  - 雨课堂 UEditor 正文会把连续空格写成 `&nbsp;`；若这层 HTML 又被存/转义了一次，
+ *    字符串里就是 `&amp;nbsp;`。原样拼进 srcdoc 时浏览器只解一层 → 题目正文里出现
+ *    字面「&nbsp;」文本（用户看到的就是 nbsp）。
+ *  - 同一段实体若落在 `$…$` / `\[…\]` / `img.kfformula[data-latex]` 里，KaTeX 会把
+ *    `&` 当对齐符直接抛 parse error → 整条公式退回原始 TeX（正文里又是一片 nbsp）。
+ *
+ * 归一规则：`&(amp;)*nbsp;` / `&#0*160;` / `&#x0*a0;` 一律当作 NBSP。
+ *  - `mode="html"`（文本节点）：输出 NBSP 字符（U+00A0）——浏览器渲染为空格，且保留
+ *    「不折叠、不断行」语义（UEditor 用 nbsp 表达连写空格/填空下划线，换成普通空格会被
+ *    HTML 空白折叠毁排版）；
+ *  - `mode="tex"`（喂 KaTeX 的 TeX）：输出普通空格——TeX 里 NBSP 与空格等价，普通
+ *    空格对 KaTeX 命令串最稳。
+ * 大小写、缺分号形态（`&nbsp`）不处理：缺分号由浏览器 legacy 规则兜底，本管线不猜。
+ */
+export function normalizeNbspEntities(s: string, mode: "html" | "tex" = "html"): string {
+  if (!(s ?? "").length) return s;
+  const replace = mode === "tex" ? " " : "\u00a0";
+  return s.replace(/&(?:amp;)*(?:nbsp|#0*160|#x0*a0);/gi, replace);
+}
+
+/** 仅在文本节点里归一 NBSP（不碰标签/属性——属性里的实体不影响可见文本） */
+export function normalizeNbspInHtml(html: string): string {
+  if (!/&(?:amp;)*(?:nbsp|#0*160|#x0*a0);/i.test(html)) return html;
+  return mapNodes(
+    html,
+    (t) => normalizeNbspEntities(t, "html"),
+    (t) => t,
+  );
+}
+
 /* ────────────────────────── LaTeX $…$ / $$…$$ ────────────────────────── */
 
-/** 解基本 HTML 实体（喂给 LaTeX 前还原真字符；&amp; 必须最后替换） */
+/** 解基本 HTML 实体（喂给 LaTeX 前还原真字符；&amp; 必须最后替换）。
+ *  NBSP 先归一到普通空格：否则 `$a&nbsp;b$` 里的 `&` 会让 KaTeX 抛 parse error，
+ *  整条公式退回原始 TeX（题干里的「nbsp」乱象另一条来源）。 */
 export function decodeBasicEntities(s: string): string {
-  return s
+  return normalizeNbspEntities(s, "tex")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
@@ -465,6 +503,16 @@ export interface YktDocBuildOptions {
    * 直引测试）。不传 = 不剥（亮底无需）。
    */
   stripColors?: (html: string) => string;
+  /**
+   * 剥行内背景填充（玻璃材质档用）：来源是宿主 components/exthw/ProblemBody 注入的
+   * lib/htmlTheme.stripInlineBackgrounds（DOMParser，不进本模块依赖）。
+   *
+   * 为什么需要：题干 HTML 常带 UEditor/Word 粘贴留下的行内白底（style 里的
+   * background 声明、表格 bgcolor 属性），实色纸面主题下看不见（底也是纸色），**玻璃主题**里就是一块
+   * 实心白板——公式周围最扎眼（用户 2026-10-28：「部分 LaTeX 背景变成实心白色」）。
+   * 只剥背景、保留文字色；不传 = 不剥（实色纸面主题行为不变）。
+   */
+  stripBackgrounds?: (html: string) => string;
 }
 
 /** 沙箱文档配色（R20-B3 fix ②）：由组件层读当前主题令牌注入，纯数据便于直测 */
@@ -672,7 +720,9 @@ export function convertKfformulaToTex(html: string): string {
   return html.replace(/<img\b[^>]*\bclass="[^"]*\bkfformula\b[^"]*"[^>]*>/gi, (tag) => {
     const raw = /\bdata-latex="([^"]*)"/i.exec(tag)?.[1];
     if (raw === undefined) return tag;
-    const tex = unescapeAttr(raw).trim();
+    // data-latex 里的 `&nbsp;`（含二次编码 `&amp;nbsp;`）必须归一到空格再进 TeX：
+    // 否则 `&` 会让 KaTeX 抛 parse error，整条公式退回原始 `$…$` 文本。
+    const tex = normalizeNbspEntities(unescapeAttr(raw), "tex").trim();
     if (!tex) return "";
     const display = /\bdata-display="([^"]*)"/i.exec(tag)?.[1] ?? "inline";
     return display === "block" ? `\n$$${tex}$$\n` : `$${tex}$`;
@@ -685,9 +735,16 @@ export function buildYktProblemDoc(opts: YktDocBuildOptions): string {
   // R20-C2：kfformula 公式先转 TeX 文本再 sanitize（sanitize 会剥 data-* 属性丢公式）
   let body = convertKfformulaToTex(opts.html ?? "");
   body = sanitizeForInlineDoc(body);
+  // 2026-10-28 用户反馈「题干出现大量字面 nbsp」：把 `&nbsp;` 与数字实体的多层转义
+  // （`&amp;nbsp;`）在文本节点里归一，浏览器不再显示字面 “&nbsp;”。必须放在 LaTeX
+  // 渲染之前——公式段里的实体也要在喂 KaTeX 前还原（decodeBasicEntities 同口径）。
+  body = normalizeNbspInHtml(body);
   // 暗底主题：先剥掉官方正文里写死的颜色（上游 1861e4e 引入、与 THUBook 同源），
   // 由主题档样式接管配色——按解析出的底色亮度判定（isDarkBgColor），非明暗二元
   if (opts.theme && yktDocIsDark(opts.theme) && opts.stripColors) body = opts.stripColors(body);
+  // 玻璃材质档：剥官方正文行内实底（白底纸块），让玻璃从公式/表格背后透出来。
+  // 放在 LaTeX 渲染之前：只处理来源 HTML，保留 KaTeX 自身语义（如 \colorbox）。
+  if (opts.stripBackgrounds) body = opts.stripBackgrounds(body);
   const hasEnc = needsEncryptedFont(body);
   let fontFace = "";
   if (hasEnc && opts.fontDataUrl) {

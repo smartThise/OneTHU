@@ -5,7 +5,8 @@
    五条纪律（写新动效前先读）：
    1) 只动 transform / opacity（合成器线程，安卓 WebView 也稳）；
       颜色/阴影/边框色可以过渡，但**不要**在 keyframes 里动 width/height/top/left。
-   2) 时长分级：--dur-1 微反馈 140ms｜--dur-2 常规 220ms｜--dur-3 容器 340ms｜--dur-4 大场景 520ms。
+   2) 时长分级：唯一来源 OneGUI --og-dur-1 140ms｜--og-dur-2 200ms｜--og-dur-3 300ms｜--og-dur-4 500ms；
+      宿主 --dur-* 只是别名，不要再写第二套数值。
    3) 缓动统一走令牌：出场 easeOutQuint、弹层轻弹簧、页面 iOS 曲线。
    4) prefers-reduced-motion 全量降级（见 §2）。
    5) 重效果（模糊/视差）只在桌面（hover:hover + pointer:fine）开，手机不做。
@@ -14,35 +15,30 @@
 /* ---------- 1. 动效令牌 ---------- */
 
 :root {
-  /* ---- MD3 曲线与时长档（§3.6）----
-     进场一律用 decelerate（起步快、尾巴长），退场一律用 accelerate（起步慢、收得快）——
-     这是"穿门进、穿门出"的物理隐喻，也是 MD3 区分进出场的唯一依据。 */
-  --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
-  --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
-  --md-sys-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
-  --md-sys-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
-  --md-sys-motion-easing-standard-decelerate: cubic-bezier(0, 0, 0, 1);
-  --md-sys-motion-easing-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
-  --md-sys-motion-duration-short-2: 100ms;
-  --md-sys-motion-duration-short-4: 200ms;
-  --md-sys-motion-duration-medium-2: 300ms;
-  --md-sys-motion-duration-medium-4: 400ms;
-  --md-sys-motion-duration-long-2: 500ms;
+  /* ---- 动效单一来源 ----
+     OneGUI 的 --og-dur-* / --og-ease-* 是唯一真源；下面这些 MD3 原语与 --dur-*/--ease-*
+     只是历史调用方的别名，不再各自维护数值。--dur-4 是 OneGUI 的 long 场景档（500ms）。 */
+  --md-sys-motion-easing-emphasized: var(--og-ease-standard);
+  --md-sys-motion-easing-emphasized-decelerate: var(--og-ease-decelerate);
+  --md-sys-motion-easing-emphasized-accelerate: var(--og-ease-accelerate);
+  --md-sys-motion-easing-standard: var(--og-ease-standard);
+  --md-sys-motion-easing-standard-decelerate: var(--og-ease-decelerate);
+  --md-sys-motion-easing-standard-accelerate: var(--og-ease-accelerate);
+  --md-sys-motion-duration-short-2: var(--og-dur-1);
+  --md-sys-motion-duration-short-4: var(--og-dur-2);
+  --md-sys-motion-duration-medium-2: var(--og-dur-3);
+  --md-sys-motion-duration-medium-4: var(--og-dur-4);
+  --md-sys-motion-duration-long-2: var(--og-dur-4);
 
-  /* Compat：既有档位接到 MD3 原语上（组件不用改，全应用一次到位）。
-     dur-1 保留原值——按压反馈要"立刻"，MD3 的 100/200 档在这太钝。 */
-  --dur-1: 140ms; /* 按压 / hover */
-  --dur-2: var(--md-sys-motion-duration-short-4);  /* 淡入 / 状态切换：220 → 200 */
-  --dur-3: var(--md-sys-motion-duration-medium-2); /* 容器 / 页面：340 → 300（standard） */
-  --dur-4: var(--md-sys-motion-duration-long-2);   /* 首次进入 / 大场景：520 → 500（emphasized） */
-
-  /* 出场曲线（进场用）：起步快、尾巴长——MD3 emphasized-decelerate */
+  /* 兼容层：既有调用方不用改，最终都解析到 OneGUI 令牌。 */
+  --dur-1: var(--og-dur-1);
+  --dur-2: var(--md-sys-motion-duration-short-4);
+  --dur-3: var(--md-sys-motion-duration-medium-2);
+  --dur-4: var(--md-sys-motion-duration-long-2);
   --ease-out: var(--md-sys-motion-easing-emphasized-decelerate);
   --ease-in-out: var(--md-sys-motion-easing-standard);
-  /* 轻弹簧：MD3 没有弹簧，这是本项目的品牌抖动（只给"被点/被弹出来"的元素，过头量≈3%） */
-  --ease-spring: cubic-bezier(0.34, 1.34, 0.5, 1);
-  /* 页面/大容器转场：MD3 emphasized */
-  --ease-ios: var(--md-sys-motion-easing-emphasized);
+  --ease-spring: var(--og-ease-spring);
+  --ease-ios: var(--og-ease-standard);
 
   /* 位移基准：小距离才有"贵"的感觉 */
   --rise-1: 4px;
@@ -71,22 +67,18 @@
    配合按行递延：同排同时出现、行与行自上而下展开。 */
 @keyframes m-grid-in {
   from {
-    opacity: 0;
     transform: translate3d(0, 6px, 0) scale(0.99);
   }
   to {
-    opacity: 1;
     transform: none;
   }
 }
 
 @keyframes m-rise {
   from {
-    opacity: 0;
     transform: translate3d(0, var(--rise-2), 0);
   }
   to {
-    opacity: 1;
     transform: none;
   }
 }
@@ -113,15 +105,12 @@
 
 @keyframes m-spring-in {
   0% {
-    opacity: 0;
     transform: scale(0.92) translate3d(0, 10px, 0);
   }
   60% {
-    opacity: 1;
     transform: scale(1.012) translate3d(0, -1px, 0);
   }
   100% {
-    opacity: 1;
     transform: none;
   }
 }
@@ -148,22 +137,18 @@
 
 @keyframes m-slide-right {
   from {
-    opacity: 0;
     transform: translate3d(18px, 0, 0);
   }
   to {
-    opacity: 1;
     transform: none;
   }
 }
 
 @keyframes m-slide-left {
   from {
-    opacity: 0;
     transform: translate3d(-18px, 0, 0);
   }
   to {
-    opacity: 1;
     transform: none;
   }
 }
@@ -191,11 +176,9 @@
 /* 页面转场（唯一路径：CSS 进场；快照转场已因整页残影移除，见 §7 说明） */
 @keyframes m-page-in {
   from {
-    opacity: 0;
     transform: translate3d(0, 10px, 0) scale(0.995);
   }
   to {
-    opacity: 1;
     transform: none;
   }
 }
@@ -281,13 +264,15 @@
 .row-click:active,
 .nav-item:active,
 .entry:active,
-.stat-card:active,
 .tab:active,
 .plg-tab:active,
 .setting-row:active {
   background: var(--hover);
   transition-duration: 70ms;
 }
+
+/* 统计卡（.stat-card）是带材质的面，悬停状态层由 OneGUI 宿主配方绘制，
+   不在这里用 background 替换——见 packages/gui/src/recipes/compatibility.css。 */
 
 /* 图标钮里的 svg 跟着缩一点，手感更"实体" */
 .icon-btn svg,
@@ -357,7 +342,8 @@ select {
   .btn:active {
     transform: scale(0.965);
   }
-  /* 数字卡片：只把边框与底色点亮一点，不位移 */
+  /* 数字卡片：只点亮阴影，不位移；卡面填充不变，悬停状态层由 OneGUI 宿主配方
+     （compatibility.css 的 .stat-card::after）绘制。 */
   .stat-card {
     transition:
       background-color var(--dur-2) var(--ease-out),
@@ -365,7 +351,6 @@ select {
       box-shadow var(--dur-2) var(--ease-out);
   }
   .stat-card:hover {
-    background: var(--hover);
     box-shadow: var(--shadow-1);
   }
   /* 卡片：不位移，只把边框"点亮"，避免整页在动 */
@@ -428,43 +413,38 @@ select {
 :is(.list, .stagger, .stats, .today-grid, .market-grid, .icon-grid) > :nth-child(14) {
   animation-delay: calc(var(--stagger) * 13);
 }
+/* 材质容器不做逐项进场：.stats / 各网格 / .stagger 里是玻璃卡片，父级或自身的
+   opacity 动画会建立 backdrop root，入场期间背景模糊整体失效（用户实测）。
+   列表行（.list > *）不含材质，保留逐项位移。 */
+:is(.stagger, .stats, .today-grid, .market-grid, .icon-grid) > * {
+  animation: none;
+}
 /* 显式给了 --i 的（长列表）优先，且不再叠加 nth-child 延迟 */
-.list > [style*="--i"],
-.stagger > [style*="--i"] {
+.list > [style*="--i"] {
   animation-delay: calc(var(--stagger) * var(--i, 0));
 }
 
 /* ---------- 7. 页面转场 ---------- */
 
-/* 顶层页签切换：keyed 容器重新挂载 → 播放一次转场 */
-.page-anim {
-  animation: m-page-in var(--dur-3) var(--ease-ios) backwards;
-  /* 刻意不写 will-change: transform —— 它会**常驻**为 fixed 后代建立包含块，
-     把页内浮钮（.board-fab-col / .free-fab-col 的 position: fixed）困在页面上，
-     于是浮钮随内容漂移（验证员实测浮钮 Δy≈296 与内容 Δ285 同步，而同屏真 fixed 的刷新钮不动）。
-     动画自身的 transform 已足够触发合成，且动画结束即失效，不会长期改变包含块。 */
+/* 页面/页签容器是材质的祖先：这里禁止任何 opacity/transform 入场动画。
+   原因：opacity / filter 会在祖先建立 backdrop root，整页玻璃卡片的背景模糊在动画
+   期间失效；祖先 opacity <1 还会让对比度引擎采样到中间态背景，把字色定格成反色。
+   入场反馈只给页头文字做纯位移（不带动画 opacity，见 m-page-head-in）。 */
+.page-anim,
+.page-anim[data-dir="back"],
+.page-anim[data-level="sub"],
+.content,
+.tab-anim,
+.tab-anim[data-dir="prev"] {
+  animation: none;
 }
-.page-anim[data-dir="back"] {
-  animation-name: m-page-in-back;
+/* 页头入场只做横向位移（左→右），不碰页面材质与卡片；主/二级页统一。 */
+.page-anim > .page-head-host {
+  animation: m-page-head-in var(--dur-3) var(--ease-ios) backwards;
 }
-@keyframes m-page-in-back {
-  from {
-    opacity: 0;
-    transform: translate3d(-10px, 0, 0) scale(0.995);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-/* 次级页面（列表 → 详情）：横向滑入，带一点纵深 */
-.page-anim[data-level="sub"] {
-  animation: m-slide-right var(--dur-3) var(--ease-ios) backwards;
-}
-
-/* 应用启动时 .content 的首屏揭示（覆盖 global.css 的 page-in 时长/曲线） */
-.content {
-  animation: m-page-in var(--dur-4) var(--ease-ios) backwards;
+@keyframes m-page-head-in {
+  from { transform: translate3d(-14px, 0, 0); }
+  to { transform: none; }
 }
 
 /* 页面转场：只有 CSS 一条路。
@@ -472,11 +452,12 @@ select {
    新页下层以半透明残留（两张整页截图叠加），观感是"旧页面在下面闪一下"，每次切换都闪。
    快照转场适合"列表卡 → 详情页"这类有共享元素的场景，不适合整页替换。 */
 
-/* ---------- 8. 弹层：遮罩淡入 + 卡片弹簧 ---------- */
-
+/* ---------- 8. 弹层：遮罩直接到位 + 卡片弹簧 ----------
+   遮罩是弹层卡片的祖先：对它做 opacity 淡入会让子卡片的 backdrop-filter 在
+   入场期间失效（模糊突然出现）。遮罩不做 opacity 动画，弹簧只做 transform。 */
 .plg-form-overlay,
 .confirm-mask {
-  animation: m-fade var(--dur-2) var(--ease-out) backwards;
+  animation: none;
 }
 .plg-form-modal,
 .confirm-card {
@@ -643,32 +624,40 @@ html.theme-anim .row {
 /* ---------- 16. 页签衔接、滚动揭示、横幅、可展开、退场相位 ---------- */
 
 @keyframes m-tab-in {
-  from { opacity: 0; transform: translate3d(16px, 0, 0); }
-  to { opacity: 1; transform: none; }
+  from { transform: translate3d(16px, 0, 0); }
+  to { transform: none; }
 }
 @keyframes m-tab-in-back {
-  from { opacity: 0; transform: translate3d(-16px, 0, 0); }
-  to { opacity: 1; transform: none; }
+  from { transform: translate3d(-16px, 0, 0); }
+  to { transform: none; }
 }
 
 /* 滚动揭示：进入视口才滑入。JS 在 <html> 上挂 has-reveal（关闭 JS / 减弱动态时不挂，
    元素保持可见）。这里必须 animation: none 压掉挂载逐项进场——两条动画叠加会在动画
    结束后回落到基态 opacity: 0，元素会消失。 */
-html.has-reveal :is(.list, .stats, .today-grid, .market-grid, .icon-grid, .setting-group) > *,
-html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row) {
-  opacity: 0;
+/* 滚动揭示只做纯位移（不写 opacity）。旧实现先 opacity:0 再淡入：玻璃卡片在
+   opacity<1 的瞬间会建立 backdrop root，背景模糊整体消失；对比度引擎也会在
+   半透明中间态采样，定格出反色字。行/设置组本身不带材质，位移不影响父卡片模糊。
+   已揭示态用 data 属性标记：React 重渲染会整体重写 className，data 属性安全。 */
+html.has-reveal :is(.list, .setting-group) > *,
+html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row),
+html.has-reveal .learn-course-card {
   animation: none;
 }
-/* 已揭示态用 data 属性标记：React 重渲染会整体重写 className（行选中高亮等交互类），
-   classList 手加的 class 会被抹掉，元素当场隐身；data 属性 React 不管理，安全。 */
-html.has-reveal :is(.list, .stats, .today-grid, .market-grid, .icon-grid, .setting-group) > *[data-reveal-in],
-html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[data-reveal-in] {
-  opacity: 1;
+html.has-reveal :is(.list, .setting-group) > *[data-reveal-in],
+html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[data-reveal-in],
+html.has-reveal .learn-course-card[data-reveal-in] {
   animation: m-reveal-in var(--dur-3) var(--ease-out) backwards;
 }
+/* 长列表超出 stagger 配额的行：立即显示，不再排队动画（motion.ts 的 STAGGER_MAX 同源）。 */
+html.has-reveal :is(.list, .setting-group) > *[data-reveal-in="instant"],
+html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[data-reveal-in="instant"],
+html.has-reveal .learn-course-card[data-reveal-in="instant"] {
+  animation: none;
+}
 @keyframes m-reveal-in {
-  from { opacity: 0; transform: translate3d(-14px, 0, 0); }
-  to { opacity: 1; transform: none; }
+  from { transform: translate3d(-14px, 0, 0); }
+  to { transform: none; }
 }
 
 /* 引导横幅 / 提示条：出现时不再突变 */
@@ -683,8 +672,8 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[
   animation: m-expand-in var(--dur-2) var(--ease-out) backwards;
 }
 @keyframes m-expand-in {
-  from { opacity: 0; transform: translate3d(0, -6px, 0); }
-  to { opacity: 1; transform: none; }
+  from { transform: translate3d(0, -6px, 0); }
+  to { transform: none; }
 }
 
 /* 退场相位：纯 CSS 无法延迟卸载，配合 lib/motion.ts 的 useExitPhase（closing=true 时挂 .is-closing） */
@@ -835,15 +824,10 @@ html.has-reveal :is(.row-click, .mail-row, .news-row, .setting-row, .cloud-row)[
 /* 方阵网格（其他 Info 服务 .app-grid / 在线服务 .thos-grid）：可见才入场——
    纳入滚动揭示，滚到哪弹到哪（此前 nth-child 首屏一次播完，视口外的卡片直接错过动画）。
    弹簧 pop（过冲约 3%）与列表的侧滑区分；间隔由揭示器统一给（30ms 步进）。 */
+/* 服务/工具网格卡片带材质：不做滚动揭示（同上，避免 opacity 破坏模糊）。 */
 html.has-reveal :is(.app-grid, .thos-grid) > * {
-  opacity: 0;
-  animation: none;
-}
-html.has-reveal :is(.app-grid, .thos-grid) > *[data-reveal-in] {
-  /* ⚠️ opacity: 1 必须显式写——藏身态是 opacity:0，backwards 播完回落到基态，
-     不写这条整批卡片会在动画结束后集体隐身（霖实测） */
   opacity: 1;
-  animation: m-grid-in var(--dur-2) var(--ease-out) backwards;
+  animation: none;
 }
 /* ---------- MD3 涟漪（§3.5 B1） ----------
    只动画 transform / opacity（§3.10）；宿主负责 position: relative，

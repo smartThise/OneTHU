@@ -31,33 +31,33 @@
   --og-chip-blur: none;
   --og-material-rim: color-mix(in srgb, var(--og-contrast-ink-light) 48%, transparent);
   --og-material-shadow: var(--og-elev-2), inset 0 1px 0 var(--og-material-rim);
-  --og-refraction-edge: 10px;
-  --og-refraction-scale: 12px;
+  --og-refraction-edge: 28px;
+  --og-refraction-scale: 44px;
 }
 [data-og-skin="glass"][data-og-skin-level="clear"] {
-  --og-material-opacity: 36%;
-  --og-reading-opacity: 58%;
-  --og-material-overlay-opacity: 60%;
-  --og-blur-1: 22px;
+  --og-material-opacity: 24%;
+  --og-reading-opacity: 44%;
+  --og-material-overlay-opacity: 58%;
+  --og-blur-1: 6px;
   --og-saturate: 160%;
-  --og-refraction-edge: 12px;
-  --og-refraction-scale: 14px;
+  --og-refraction-edge: 32px;
+  --og-refraction-scale: 48px;
 }
 [data-og-skin="glass"][data-og-skin-level="rich"] {
-  --og-material-opacity: 60%;
-  --og-reading-opacity: 76%;
-  --og-material-overlay-opacity: 74%;
-  --og-blur-1: 20px;
-  --og-refraction-edge: 9px;
-  --og-refraction-scale: 11px;
+  --og-material-opacity: 52%;
+  --og-reading-opacity: 68%;
+  --og-material-overlay-opacity: 72%;
+  --og-blur-1: 14px;
+  --og-refraction-edge: 28px;
+  --og-refraction-scale: 44px;
 }
 [data-og-skin="glass"][data-og-skin-level="deep"] {
-  --og-material-opacity: 74%;
-  --og-reading-opacity: 84%;
-  --og-material-overlay-opacity: 82%;
-  --og-blur-1: 20px;
-  --og-refraction-edge: 8px;
-  --og-refraction-scale: 10px;
+  --og-material-opacity: 80%;
+  --og-reading-opacity: 86%;
+  --og-material-overlay-opacity: 86%;
+  --og-blur-1: 24px;
+  --og-refraction-edge: 24px;
+  --og-refraction-scale: 40px;
 }
 /* 2026-10-24 用户点名：深色模式玻璃的黑色遮罩不够深 → 暗档整体上抬一档。
    亮壁纸/亮图片壁纸下尤其明显（14% 的暗面混在亮底上几乎消失），抬到 20% 起步，
@@ -67,14 +67,14 @@
   --og-reading-opacity: 54%;
 }
 [data-og-skin="glass"][data-og-skin-level="clear"][data-og-scheme="dark"] {
-  --og-material-opacity: 20%;
-  --og-reading-opacity: 46%;
+  --og-material-opacity: 14%;
+  --og-reading-opacity: 36%;
 }
 [data-og-skin="glass"][data-og-skin-level="rich"][data-og-scheme="dark"] {
-  --og-material-opacity: 28%;
-  --og-reading-opacity: 60%;
+  --og-material-opacity: 26%;
+  --og-reading-opacity: 54%;
 }
 [data-og-skin="glass"][data-og-skin-level="deep"][data-og-scheme="dark"] {
-  --og-material-opacity: 34%;
-  --og-reading-opacity: 68%;
+  --og-material-opacity: 40%;
+  --og-reading-opacity: 74%;
 }

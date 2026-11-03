@@ -1,6 +1,6 @@
 import { courseDisplayName, courseSearchNames } from "../../lib/learnLanguage.js";
 import { t as i18n, useLocale as useUiLocale } from "../../i18n/index.js";
-import { Btn } from "@onethu/gui";
+import { Tabs, Btn } from "@onethu/gui";
 /**
  * 全部课程通知（learnX Notices）：按发布时间倒序，可筛重要/未读。
  *
@@ -9,7 +9,7 @@ import { Btn } from "@onethu/gui";
  */
 import { useMemo, useState } from "react";
 import { PageAtomStar } from "../..//components/Collect.js";
-import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SkeletonRows } from "../../components/Layout.js";
+import { Card, Empty, ErrorNote, ListWindow, PageHead, SkeletonRows } from "../../components/Layout.js";
 import { useApp } from "../../state/context.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useLearnData } from "../../state/data.js";
@@ -78,27 +78,20 @@ export function NoticesPage() {
 
       {state === "error" ? <ErrorNote text={error ?? ""} onRetry={() => void reload()} /> : null}
 
-      <SegmentedOverflow>
-        {FILTERS.map(({ key, label }) => (
-          <button
-            key={key}
-            role="tab"
-            aria-selected={filter === key}
-            className={filter === key ? "is-active" : ""}
-            onClick={() => setFilter(key)}
-          >
-            {label}
-            <span className="tab-count">{groups[key].length}</span>
-          </button>
-        ))}
-      </SegmentedOverflow>
+      <Tabs
+        variant="segmented"
+        block
+        value={filter}
+        onChange={(key) => setFilter(key as Filter)}
+        items={FILTERS.map(({ key, label }) => ({ id: key, label, badge: groups[key].length }))}
+      />
 
       {state === "loading" && !data ? (
         <SkeletonRows rows={6} />
       ) : state === "error" && !data ? null : list.length === 0 ? (
         <Card><Empty text={filter === "all" ? i18n("pages.learn.noticespage.6e378c022f21") : i18n("pages.learn.noticespage.ea0294759b72")} /></Card>
       ) : (
-        <Card className="list">
+        <ListWindow>
           {/* R32：两来源同一行组件、同一打开方式（都进站内详情页） */}
           {list.map((n, i) => (
             <NoticeRow
@@ -107,10 +100,10 @@ export function NoticesPage() {
               courseName={courseDisplayName(byCourse.get(n.courseId))} identityCourseName={byCourse.get(n.courseId)?.name}
               sem={data?.semester.id}
               from="learn-notices"
-              style={{ animationDelay: `${i * 25}ms` }}
+              style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}
             />
           ))}
-        </Card>
+        </ListWindow>
       )}
     </>
   );

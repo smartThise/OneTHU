@@ -252,6 +252,122 @@ textarea.og-input-el {
   color: var(--og-content-3);
 }
 
+/* ── 自绘下拉弹层：桌面锚定浮层 / 手机底部面板 ─────────────────────────
+   原生 select 的弹层由系统绘制，深色与玻璃皮肤无法跟随 OneGUI；这里由组件
+   portal 出 role=listbox，面/线/阴影/模糊全部走浮层令牌。 */
+.og-select-trigger {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.og-select-trigger:disabled { cursor: not-allowed; }
+.og-select-trigger:focus { outline: none; }
+.og-select-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.og-select-value.is-placeholder { color: var(--og-content-3); }
+
+.og-select-pop {
+  position: fixed;
+  z-index: var(--og-z-menu);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--og-space-1);
+  border: 1px solid var(--og-line-1);
+  border-radius: var(--og-radius-lg);
+  background: var(--og-fill-overlay);
+  background-image: var(--og-overlay-tint);
+  box-shadow: var(--og-elev-menu);
+  color: var(--og-content-1);
+  backdrop-filter: var(--og-overlay-blur);
+  -webkit-backdrop-filter: var(--og-overlay-blur);
+  animation: og-pop-in var(--og-dur-2) var(--og-ease-decelerate) both;
+}
+.og-select-group {
+  padding: var(--og-space-2) var(--og-space-3) var(--og-space-1);
+  color: var(--og-content-3);
+  font-size: var(--og-text-micro);
+  line-height: var(--og-text-micro-lh);
+}
+.og-select-opt {
+  display: flex;
+  align-items: center;
+  gap: var(--og-space-2);
+  width: 100%;
+  min-height: var(--og-ctl-h-sm);
+  padding: var(--og-space-1) var(--og-space-2);
+  border: 0;
+  border-radius: var(--og-radius-md);
+  background: transparent;
+  color: var(--og-content-1);
+  font: inherit;
+  font-size: var(--og-text-body);
+  text-align: start;
+  cursor: pointer;
+}
+.og-select-opt:hover,
+.og-select-opt.is-active { background: var(--og-hover); }
+.og-select-opt[aria-selected="true"] { background: var(--og-selected); font-weight: var(--og-weight-medium); }
+.og-select-opt:disabled { color: var(--og-content-disabled); pointer-events: none; }
+.og-select-opt-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.og-select-opt-check { flex: none; color: var(--og-accent); font-size: var(--og-text-label); }
+
+.og-select-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--og-z-modal);
+  background: var(--og-scrim);
+  animation: og-scrim-in var(--og-dur-2) var(--og-ease-decelerate) both;
+}
+.og-select-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--og-z-modal);
+  display: flex;
+  flex-direction: column;
+  max-height: 72dvh;
+  padding: var(--og-space-2) var(--og-space-3) calc(var(--og-space-3) + var(--og-safe-bottom));
+  border-top: 1px solid var(--og-line-1);
+  border-radius: var(--og-radius-2xl) var(--og-radius-2xl) 0 0;
+  background: var(--og-fill-overlay);
+  background-image: var(--og-overlay-tint);
+  box-shadow: var(--og-elev-menu);
+  color: var(--og-content-1);
+  backdrop-filter: var(--og-overlay-blur);
+  -webkit-backdrop-filter: var(--og-overlay-blur);
+  animation: og-sheet-up var(--og-dur-3) var(--og-ease-decelerate) both;
+}
+.og-select-sheet-handle {
+  flex: none;
+  width: var(--og-ctl-h-sm);
+  height: var(--og-space-1);
+  margin: 0 auto var(--og-space-2);
+  border-radius: var(--og-radius-full);
+  background: var(--og-line-3);
+}
+.og-select-sheet-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* ── 勾选/单选 ── */
 .og-check {
   display: inline-flex;

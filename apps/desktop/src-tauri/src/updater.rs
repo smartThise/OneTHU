@@ -16,7 +16,9 @@
 //! （`/data/data/<pkg>/files`）会让 `getUriForFile` 抛 IllegalArgumentException：
 //! 安装包"下载成功但装不上"。故固定落 `cache_dir()/updates/`。
 //!
-//! 下载使用 reqwest Response::chunk（无需 stream feature），单次 GET 避免分段拼接不同资源。
+//! 下载使用 reqwest Response::chunk（无需 stream feature）。2026-10-28 起支持多线程分段：
+//! `update_download.rs` 先探测 Range/206/content-length，服务器不支持时自动回落单流；
+//! 分片并发写临时文件后合并，取消/超限/哈希/原子 rename/CompletedDownloads 校验全部保留。
 //! 每次下载独立取消票；只允许一个在途请求；错误、取消或未来被丢弃均清理自己的暂存目录。
 //! SHA-256 只证明与清单一致，不等同发行者签名。本模块不实现前端资源热更新。
 
@@ -36,6 +38,7 @@ pub async fn updater_download(
     file_name: String,
     expect_size: Option<u64>,
     expect_sha256: Option<String>,
+    threads: Option<u32>,
 ) -> Result<serde_json::Value, String> {
     let permit = DOWNLOADS.begin()?;
     let dir = app
@@ -43,7 +46,8 @@ pub async fn updater_download(
         .cache_dir()
         .map_err(|e| format!("无法定位缓存目录：{e}"))?
         .join("updates");
-    let result = download::download(&dir, &url, &file_name, expect_size, expect_sha256.as_deref(), &permit,
+    // 前端传 1..=16；缺省 8，越界在原生侧再夹紧一次，不会因为脏参数失败。
+    let result = download::download(&dir, &url, &file_name, expect_size, expect_sha256.as_deref(), threads, &permit,
         |phase, received, total, path| {
             let percent = if total > 0 { (received as f64 * 100.0 / total as f64).min(100.0) } else { -1.0 };
             let _ = app.emit(UPDATER_EVENT, json!({ "phase": phase, "received": received, "total": total, "percent": percent, "path": path.to_string_lossy() }));

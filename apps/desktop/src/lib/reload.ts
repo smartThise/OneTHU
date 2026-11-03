@@ -11,6 +11,8 @@
  * 「无凭据可用」时的最后落点（此时用户本来就要重新登录）。
  */
 
+import { emitAuthRecovered } from "./authRecovery.js";
+
 /** scope 级原地恢复：softRelogin（WebVPN 全链透明重建，CampusSession 内单飞，
  *  并发弹回只跑一条链）。20s 节流窗口内返回 false——窗口内复用 true 会造出
  *  「恢复→重试→仍 auth 错→再恢复(true)→再重试」的紧循环；返回 false 让调用方
@@ -31,6 +33,9 @@ export function softRecover(scope: string): Promise<boolean> {
       if (ok) {
         session.state = "ready";
         await persist().catch(() => undefined);   // 重建后的快照落盘，重启直接续
+        // 已经恢复的页面（error 状态）需要知道“可以重试了”，否则只能等用户手刷。
+        emitAuthRecovered(scope);
+        if (scope !== "global") emitAuthRecovered("global");
       }
       await logLine(`SOFT-RECOVER[${scope}] ${ok ? "ok" : "fail"} (${Date.now() - t0}ms)`).catch(() => undefined);
       lastAttempt = Date.now();
@@ -43,6 +48,31 @@ export function softRecover(scope: string): Promise<boolean> {
     }
   })();
   return recoverInflight;
+}
+
+/**
+ * learn 专属探活 + 按需重建。
+ *
+ * 这是本轮修复的核心：info 门户活着不代表 learn 会话活着；`libEnsureSession()`
+ * 只探 info，10 分钟 keepalive 因此永远看不见 learn 的独立过期。`learn.ensureSession()`
+ * 会真实取一次课程页，失败再走 LearnClient 的 id 漫游/宿主恢复链（内部已单飞）。
+ * 成功后广播事件，让已经停在 error 的课程文件/作业/通知页自动重试。
+ */
+export async function ensureLearnSession(): Promise<boolean> {
+  try {
+    const { learn, session } = await import("./clients.js");
+    // 登录/2FA/已登出阶段不插后台探针：startLogin 与 2FA 自己持有会话门；
+    // 这里只维护“已经 ready 的正常使用期”的 learn 会话。
+    if (session.state !== "ready") return false;
+    const ok = await learn.ensureSession();
+    if (ok) {
+      emitAuthRecovered("learn");
+      emitAuthRecovered("global");
+    }
+    return ok;
+  } catch {
+    return false;
+  }
 }
 
 /** 全局失登看门狗：core 任何模块抛 AuthRequiredError → 静默 softRelogin。
@@ -65,6 +95,8 @@ export function installAuthWatchdog(): void {
 /** 会话保活：10 分钟轻探针（wrapped info 落地页），死 → softRelogin。
  *  过期前续、死亡即刻重建——用户下一次点击永远踩在活会话上（THU Info
  *  「永不掉线」的另一半；光靠死了再救仍会有一时半会的长加载）。 */
+let lastLearnWakeProbe = 0;
+let wakeProbeInstalled = false;
 export function installKeepalive(): void {
   setInterval(() => {
     void (async () => {
@@ -78,6 +110,11 @@ export function installKeepalive(): void {
           await persist().catch(() => undefined);
         }
       } catch { /* 静默：保活失败不影响前台 */ }
+      // learn 是独立会话：info 活不代表 learn 活。只探 info 的旧 keepalive
+      // 会让“课程列表/文件/作业只有它过期”长期无人发现，直到用户点开页面。
+      try {
+        await ensureLearnSession();
+      } catch { /* 静默：learn 恢复失败不阻断其他保活 */ }
       // GitLab 域巡检（2026-10-14「经常丢登录态」治理）：`_gitlab_session` 是
       // git.tsinghua.edu.cn 的独立短命票，上一段只覆盖 webvpn/id 侧——长闲置后
       // 下一次点进 GitLab 必撞 401 并触发整条漫游换票舞。随同一节拍顺手把 git 域
@@ -89,4 +126,20 @@ export function installKeepalive(): void {
       } catch { /* 静默：巡检失败不影响前台 */ }
     })();
   }, 10 * 60_000);
+
+  // 睡眠/切后台回来时定时器可能被节流甚至跳过；聚焦/重新可见时补一次 learn
+  // 探针（1 分钟节流，避免窗口来回切导致请求风暴）。
+  if (!wakeProbeInstalled && typeof window !== "undefined" && typeof document !== "undefined") {
+    wakeProbeInstalled = true;
+    const probeOnWake = () => {
+      const now = Date.now();
+      if (now - lastLearnWakeProbe < 60_000) return;
+      lastLearnWakeProbe = now;
+      void ensureLearnSession();
+    };
+    window.addEventListener("focus", probeOnWake);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") probeOnWake();
+    });
+  }
 }

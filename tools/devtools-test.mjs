@@ -80,6 +80,12 @@ has(panel, "BUILD_COMMIT", "徽标显示编译时 commit");
 has(panel, "dev · ", "徽标文案 dev · <commit>");
 has(panel, '"debug_log_export"', "面板可导出运行日志");
 has(panel, 'position: "fixed"', "徽标固定在窗口角落");
+has(panel, "FPS_KEY", "FPS 开关持久化键存在");
+has(panel, "useFpsMeter", "FPS 采样 hook 存在");
+has(panel, "requestAnimationFrame", "FPS 用 rAF 采样");
+has(panel, "1% low", "FPS 面板显示 1% low");
+has(panel, "avg", "FPS 面板显示 avg");
+has(panel, "toggleFps", "dev 菜单有 FPS 开关");
 lacks(panel, '.css"', "面板样式内联，不引样式表");
 has(read(SETTINGS), "{__ONETHU_DEV__ ? <DebugLogRow /> : null}", "设置页运行日志行 dev-only");
 

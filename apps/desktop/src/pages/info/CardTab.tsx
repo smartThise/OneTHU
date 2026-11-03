@@ -18,7 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
 import type { CardTransaction } from "@onethu/core";
-import { Card, Empty, ErrorNote, SectionHead, SkeletonRows, Switch } from "../../components/Layout.js";
+import { Card, Empty, ErrorNote, SectionHead, SkeletonRows, Switch, ListWindow } from "../../components/Layout.js";
 import { IconCard } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useCard } from "../../state/data.js";
@@ -374,11 +374,25 @@ function BalanceWarnCard({ balance }: { balance: number | null }) {
 
 /* --------------------------------- 主组件 --------------------------------- */
 
+/** ≥1024 走左右两栏（用户口径）；窄屏保持上下堆叠与原视口测量。 */
+function useWideCardLayout(): boolean {
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.("(min-width: 1024px)").matches);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const sync = (): void => setWide(mq.matches);
+    mq.addEventListener?.("change", sync);
+    return () => mq.removeEventListener?.("change", sync);
+  }, []);
+  return wide;
+}
+
 export function CardTab({ active = true }: { active?: boolean }) {
   const uiLocale = useUiLocale();
 
   const { data, state, error, reload, updatedAt, refreshError } = useCard(30);
   const [rchOpen, setRchOpen] = useState(false);
+  const wide = useWideCardLayout();
   // 切回本栏时若上次报错（如会话过期）则自动重试一次，不再让用户手动点刷新
   useEffect(() => { if (active && state === "error") void reload(); }, [active]);
 
@@ -392,6 +406,8 @@ export function CardTab({ active = true }: { active?: boolean }) {
 
   return (
     <>
+      <div className="card-two-col">
+      <div className="card-col-main">
       <div className="stats stats-hero">
         <Card className="card-hero">
           <div className="card-hero-main">
@@ -456,6 +472,8 @@ export function CardTab({ active = true }: { active?: boolean }) {
       ) : null}
 
       <BalanceWarnCard balance={data?.info.balance ?? null} />
+      </div>
+      <div className="card-col-side">
 
       <SectionHead title={i18n("pages.info.cardtab.0be1be30c585")} aside={i18n("pages.info.cardtab.25275633ae3c")} />
       {state === "loading" && !data ? (
@@ -465,7 +483,7 @@ export function CardTab({ active = true }: { active?: boolean }) {
           <Empty text={i18n("pages.info.cardtab.e8adeabba93d")} />
         </Card>
       ) : (
-        <Card className="list">
+        <ListWindow fill={wide}>
           {data!.transactions.map((t, i) => (
             <div className="row" key={t.id || i} style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}>
               <div className="row-when">
@@ -486,8 +504,11 @@ export function CardTab({ active = true }: { active?: boolean }) {
               </div>
             </div>
           ))}
-        </Card>
+        </ListWindow>
       )}
+
+      </div>
+      </div>
 
       <RechargeDialog open={rchOpen} onClose={() => setRchOpen(false)} onPaid={() => void reload()} />
     </>

@@ -25,12 +25,15 @@ try {
       }
       if (url.pathname === '/src/state/cloudCal.ts') {
         const response = await route.fetch();
-        return route.fulfill({ response, body: (await response.text()) + '\nloaded=true;cfg={email:"a@example.invalid",authCode:"fixture-a"};window.__mailConfig=(next)=>{cfg=next;emitConfig();emit();};\n' });
+        return route.fulfill({ response, body: (await response.text()) + '\nloaded=true;credentialsLoaded=true;mirrorReady=true;cfg={email:"a@example.invalid",authCode:"fixture-a"};window.__mailConfig=(next)=>{cfg=next;emitConfig();emit();};\n' });
       }
       return route.continue();
     });
     await page.addInitScript(() => {
       localStorage.setItem('onethu.onboarded.phone', '1');
+      localStorage.setItem('onethu.onboarded.flow3', '1');
+      localStorage.setItem('onethu.onboarded.flow4', '1');
+      localStorage.setItem('onethu.privacy.v1', JSON.stringify({ acknowledged: true, cloud: true, oh: true }));
       localStorage.setItem('onethu.experience.v1', 'full');
       localStorage.setItem('onethu.overlay.closed', '1');
       window.__mailPending = [];
@@ -108,6 +111,42 @@ try {
     check(await compose.count() === 0, `${width}: portal compose can be cancelled without toolbar interception`);
     check(await root.getByRole('button', { name: '写信', exact: true }).evaluate(el => document.activeElement === el), `${width}: closing compose restores focus to its actual launcher`);
     await page.screenshot({ path: `${out}/mail-${width}.png` });
+    // Bug 4：文件夹 tab 必须复用全站统一的 SegmentedOverflow（深色选中胶囊 + 段轨），
+    // 不能继续自建一套「浅灰选中」的分段条。用实际的信息页 tab 做同款对照。
+    const mailTabs = await root.evaluate((el) => {
+      const ov = el.querySelector('.mail-toolbar .seg-ov');
+      const track = ov?.querySelector('.segmented.seg-track');
+      const buttons = [...(track?.querySelectorAll('button[role="tab"]') ?? [])];
+      const active = track?.querySelector('button.is-active');
+      const cs = active ? getComputedStyle(active) : null;
+      return {
+        hasOverflow: !!ov,
+        hasTrack: !!track,
+        roles: buttons.map((b) => b.getAttribute('role')),
+        selected: buttons.map((b) => b.getAttribute('aria-selected')),
+        activeStyle: cs ? { bg: cs.backgroundColor, color: cs.color, radius: cs.borderRadius, h: cs.height, pad: cs.paddingInline } : null,
+      };
+    });
+    check(mailTabs.hasOverflow && mailTabs.hasTrack && mailTabs.roles.length === 2 && mailTabs.roles.every((r) => r === 'tab'),
+      `${width}: mail folder tabs reuse the shared SegmentedOverflow structure`);
+    check(mailTabs.selected.filter((v) => v === 'true').length === 1, `${width}: exactly one folder tab is marked selected`);
+    await page.evaluate(async () => {
+      const path = '/src/state/explorer.ts';
+      const url = performance.getEntriesByType('resource').filter((e) => new URL(e.name).pathname === path).at(-1)?.name ?? path;
+      (await import(url)).openTab('info');
+    });
+    const infoActive = await page.locator('[data-tab-page="info"]:visible .segmented button.is-active').evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { bg: cs.backgroundColor, color: cs.color, radius: cs.borderRadius, h: cs.height, pad: cs.paddingInline };
+    });
+    check(JSON.stringify(mailTabs.activeStyle) === JSON.stringify(infoActive),
+      `${width}: mail folder tab active style matches the app-wide tab bar`);
+    await page.evaluate(async () => {
+      const path = '/src/state/explorer.ts';
+      const url = performance.getEntriesByType('resource').filter((e) => new URL(e.name).pathname === path).at(-1)?.name ?? path;
+      (await import(url)).openTab('mail');
+    });
+    await page.locator('[data-tab-page="mail"]:visible .mail-row').first().waitFor();
     await page.evaluate(() => { window.__mailListFailure = true; window.__mailConfig({ email: 'c@example.invalid', authCode: 'fixture-c' }); });
     await root.getByText('示例连接失败', { exact: true }).waitFor();
     check(await root.getByText('没有邮件', { exact: true }).count() === 0, `${width}: connection failure is not falsely empty`);

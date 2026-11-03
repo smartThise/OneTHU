@@ -15,6 +15,7 @@ import {
 import { useExplorerState, allTabs } from "../state/explorer.js";
 import { WallpaperLibrary } from "../components/explorer/WallpaperLibrary.js";
 import { getGlassLevel, glassLevels, setGlassLevel, subscribeGlassLevel, type GlassLevel } from "../lib/glassLevel.js";
+import { getOpticalRefraction, setOpticalRefraction, subscribeOpticalRefraction } from "../lib/opticalRefraction.js";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useIsPhone } from "../state/phoneSheets.js";
 import { MobileLayoutChoice } from "../components/MobileLayoutChoice.js";
@@ -76,6 +77,7 @@ import {
 import { buildYktCookieExportJson, parseYktCookieExportJson, SOURCE_CATEGORY_NAMES, SOURCE_NAMES } from "@onethu/core";
 import type { ExtHwCreds, ExtHwSourceId, TuojSourceId } from "@onethu/core";
 import { ErrorLine } from "../components/Details.js";
+import { downloadThreadChoices, readDownloadThreads, writeDownloadThreads } from "../lib/downloadPrefs.js";
 import { resetActiveOnboarding } from "../state/onboarding.js";
 
 /** Stable route metadata controls visibility; translated DOM text never selects a tab.
@@ -109,7 +111,8 @@ defineSearchRows([
   { id: "set-wallpaper", tab: "外观", section: "外观", get title() { return i18n("pages.settings.bbaa9f06378b"); }, aliases: ["墙纸", "背景", "背景图", "动态壁纸", "上传壁纸", "壁纸库"], get desc() { return i18n("pages.settings.46ec3a81bd34"); } , breadcrumb: ["设置", "外观", "外观", "壁纸"] },
   { id: "set-wallpaper-sound", tab: "外观", section: "外观", get title() { return i18n("pages.settings.b34bc798190c"); }, aliases: ["视频壁纸声音", "壁纸静音"], get desc() { return i18n("pages.settings.4e66e6c598d5"); } , breadcrumb: ["设置", "外观", "外观", "动态壁纸声音"] },
   { id: "set-tabbar-style", tab: "外观", section: "外观", get title() { return i18n("pages.settings.1d08854948f4"); }, aliases: ["标签栏", "竖栏", "横栏", "标签栏默认"], get desc() { return i18n("pages.settings.a6514da1828c"); } , breadcrumb: ["设置", "外观", "外观", "标签栏样式"] },
-  { id: "set-glass-level", tab: "外观", section: "外观", get title() { return i18n("pages.settings.865d7ae4c9e6"); }, aliases: ["玻璃", "材质", "毛玻璃", "透明", "透彻", "玻璃质感"], get desc() { return i18n("pages.settings.c85fea7bf89f"); } , breadcrumb: ["设置", "外观", "外观", "玻璃程度"] },
+  { id: "set-glass-level", tab: "外观", section: "外观", get title() { return i18n("pages.settings.865d7ae4c9e6"); }, aliases: ["玻璃", "材质", "毛玻璃", "实心", "磨砂", "雾面", "玻璃质感"], get desc() { return i18n("pages.settings.c85fea7bf89f"); } , breadcrumb: ["设置", "外观", "外观", "玻璃程度"] },
+  { id: "set-glass-refraction", tab: "外观", section: "外观", get title() { return i18n("pages.settings.24aca43c3753"); }, aliases: ["折射", "光学折射", "玻璃性能", "边缘折射", "GPU"], get desc() { return i18n("pages.settings.fbc2a8b1d265"); } , breadcrumb: ["设置", "外观", "外观", "光学折射"] },
   { id: "set-dyn-color", tab: "外观", section: "外观", get title() { return i18n("pages.settings.3d5af6644ab2"); }, aliases: ["动态取色", "壁纸取色", "系统取色", "动态颜色"], get desc() { return i18n("pages.settings.3c23082caeac"); } , breadcrumb: ["设置", "外观", "外观", "跟随系统取色"] },
   { id: "set-capsule-tap", tab: "功能", section: "工作空间", get title() { return i18n("pages.settings.464f0207d4ff"); }, aliases: ["胶囊", "胶囊默认动作", "搜索与胶囊", "底栏胶囊"], get desc() { return i18n("pages.settings.1354e42a5f65"); } , breadcrumb: ["设置", "功能", "工作空间", "点击胶囊默认打开"] },
   { id: "set-search-history", tab: "功能", section: "工作空间", get title() { return i18n("pages.settings.461301d93770"); }, aliases: ["搜索历史", "清空搜索记录"], get desc() { return i18n("pages.settings.b953890db0b9"); } , breadcrumb: ["设置", "功能", "工作空间", "最近搜索记录"] },
@@ -521,6 +524,9 @@ function DownloadSettings() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  /* 多线程下载线程数：设备本地偏好，更新下载时由 SoftwareUpdateSection 读取并传给原生侧；
+     后续附件/云盘下载可复用同一个 readDownloadThreads()。 */
+  const [threads, setThreads] = useState<number>(() => readDownloadThreads());
 
   useEffect(() => {
     if (!available) return;
@@ -579,6 +585,20 @@ function DownloadSettings() {
               <Btn variant="outline" size="sm" disabled={loading || busy} onClick={() => void changeDirectory(false)}>{i18n("pages.settings.0d6fad8138e7")}</Btn>
               <Btn variant="outline" size="sm" disabled={loading || busy || directory?.isDefault} onClick={() => void changeDirectory(true)}>{i18n("pages.settings.ba2e93e73037")}</Btn>
             </>
+          }
+        />
+      </Card>
+      <Card>
+        <SettingsRow
+          title={i18n("pages.settings.f28df1344b6a")}
+          sub={i18n("pages.settings.93bf833076bf")}
+          control={
+            <Select
+              value={String(threads)}
+              aria-label={i18n("pages.settings.f28df1344b6a")}
+              onChange={(value) => setThreads(writeDownloadThreads(value))}
+              options={downloadThreadChoices().map((count) => ({ value: String(count), label: i18n("pages.settings.803fd2fd23f1", { value: String(count) }) }))}
+            />
           }
         />
       </Card>
@@ -673,6 +693,7 @@ function AppearanceSection(): ReactNode {
 
   const snap = useThemes();
   const glass = useSyncExternalStore(subscribeGlassLevel, getGlassLevel, getGlassLevel);
+  const opticalRefraction = useSyncExternalStore(subscribeOpticalRefraction, getOpticalRefraction, getOpticalRefraction);
   /* 跟随系统昼夜：白天/黑夜各自可指定一张背景（空 = 沿用常驻壁纸）。 */
   const wallSlots = useSyncExternalStore(subscribeWallpaper, () => `${wallpaperDay() ?? ""}|${wallpaperNight() ?? ""}`);
   const [wallDay = "", wallNight = ""] = wallSlots.split("|");
@@ -754,6 +775,21 @@ function AppearanceSection(): ReactNode {
             value={glass}
             onChange={(v) => setGlassLevel(v as GlassLevel)}
             options={glassLevels().map((g) => ({ value: g.id, label: g.label }))}
+          />
+        }
+      />
+      {/* 光学折射：与毛玻璃材质分离。只在三种玻璃档可用；关闭后只保留 blur/saturate。 */}
+      <SettingsRow id="row-set-glass-refraction"
+        title={i18n("pages.settings.24aca43c3753")}
+        sub={glass === "balanced"
+          ? i18n("pages.settings.26773d0dd656")
+          : i18n("pages.settings.fbc2a8b1d265")}
+        control={
+          <Switch
+            on={glass !== "balanced" && opticalRefraction}
+            onChange={(v) => setOpticalRefraction(v)}
+            disabled={glass === "balanced"}
+            label={i18n("pages.settings.24aca43c3753")}
           />
         }
       />

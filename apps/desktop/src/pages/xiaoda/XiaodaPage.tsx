@@ -129,6 +129,8 @@ export function XiaodaPage(): ReactNode {
       }
       tabs={
         <Tabs
+          variant="segmented"
+          block
           value={tab}
           onChange={(v) => setTab(v as Tab)}
           items={[

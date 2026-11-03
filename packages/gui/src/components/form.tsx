@@ -5,7 +5,8 @@ import { useOneGUILocale } from "../locale.js";
  * 页面永远拿不到改这些的能力 —— 想特殊就登记 scope，或者要求加一个正经变体。
  * UX 与旧实现保持一致：回车提交、Esc 清空搜索、拖拽用 pointer capture、方向键调值。
  */
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Children, Fragment, isValidElement, useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { cx, one, scopeProps, type OGSize, type OneBase } from "./kit.js";
 
 /* ── 字段包装 ─────────────────────────────────────────────────────────── */
@@ -267,12 +268,20 @@ export function NumberField({ value, defaultValue, onChange, min, max, step = 1,
   );
 }
 
-/* ── Select ──────────────────────────────────────────────────────────── */
+/* ── Select ────────────────────────────────────────────────────────────
+ * 自绘单选下拉：原生 <select> 的弹层由浏览器/系统绘制，深色与玻璃皮肤下无法跟随
+ * OneGUI 材质（用户实测：设置页线程数下拉是白底黑字的系统菜单）。这里用
+ * button[role=combobox] + portal listbox 取代原生弹层：
+ *   · 桌面：贴着控件展开的浮层（超出视口自动翻到上方）；
+ *   · 手机：底部选择面板；
+ *   · 键盘：上下/Home/End/Enter/Space/Esc/首字跳选；
+ *   · 鼠标/触摸：点外关闭，选中回焦触发器。
+ * children 仍兼容 <option> / <optgroup>，现有调用方无需改写。 */
 
-export interface SelectOption { value: string; label: string; disabled?: boolean }
+export interface SelectOption { value: string; label: ReactNode; disabled?: boolean }
 
 export interface SelectProps extends OneBase {
-  /** 原生 select 接受 number，这里也接受（内部转字符串；onChange 一律回 string） */
+  /** 兼容原生 select 的 number；onChange 一律回 string */
   value?: string | number;
   defaultValue?: string | number;
   onChange?: (value: string) => void;
@@ -283,26 +292,249 @@ export interface SelectProps extends OneBase {
   disabled?: boolean;
   invalid?: boolean;
   "aria-label"?: string;
+  "aria-labelledby"?: string;
 }
 
-export function Select({ value, defaultValue, onChange, options, children, placeholder, size = "md", disabled, invalid, scope, className, ...aria }: SelectProps): ReactNode {
+interface SelectEntry { value: string; label: ReactNode; disabled?: boolean; group?: ReactNode }
+
+/** 从 <option>/<optgroup> 子节点读出扁平选项；分组标签随第一项携带。 */
+function flattenSelectChildren(children: ReactNode): SelectEntry[] {
+  const out: SelectEntry[] = [];
+  const text = (node: ReactNode): string => {
+    if (typeof node === "string" || typeof node === "number") return String(node);
+    if (Array.isArray(node)) return node.map(text).join("");
+    return "";
+  };
+  const visit = (nodes: ReactNode, group?: ReactNode): void => {
+    Children.forEach(nodes, (node) => {
+      if (!isValidElement(node)) return;
+      const props = node.props as Record<string, unknown>;
+      if (node.type === Fragment) { visit(props.children as ReactNode, group); return; }
+      if (node.type === "optgroup") { visit(props.children as ReactNode, props.label as ReactNode); return; }
+      if (node.type !== "option") return;
+      const label = props.children as ReactNode;
+      const value = props.value !== undefined ? String(props.value) : text(label);
+      out.push({ value, label: label ?? value, disabled: Boolean(props.disabled), group });
+    });
+  };
+  visit(children);
+  return out;
+}
+
+export function Select({
+  id, value, defaultValue, onChange, options, children, placeholder, size = "md",
+  disabled, invalid, scope, className, ...aria
+}: SelectProps): ReactNode {
+  const autoId = useId();
+  const triggerId = id ?? `og-select-${autoId}`;
+  const listId = `${triggerId}-list`;
+  const entries: SelectEntry[] = options ? options.map((o) => ({ value: o.value, label: o.label, disabled: o.disabled })) : flattenSelectChildren(children);
+  const [inner, setInner] = useState<string>(() => {
+    if (defaultValue !== undefined) return String(defaultValue);
+    return entries.find((e) => !e.disabled)?.value ?? "";
+  });
+  const current = value !== undefined ? String(value) : inner;
+  const selected = entries.find((e) => e.value === current) ?? null;
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const [phone, setPhone] = useState<boolean>(() => typeof window !== "undefined" && !!window.matchMedia?.("(max-width: 839.98px)").matches);
+  const [pos, setPos] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const popRef = useRef<HTMLDivElement | null>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const close = useCallback((focus = false): void => {
+    setOpen(false);
+    setPos(null);
+    if (focus) triggerRef.current?.focus();
+  }, []);
+
+  const choose = useCallback((entry: SelectEntry): void => {
+    if (entry.disabled) return;
+    if (value === undefined) setInner(entry.value);
+    onChange?.(entry.value);
+    close(true);
+  }, [close, onChange, value]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(max-width: 839.98px)");
+    const sync = (): void => setPhone(mq.matches);
+    mq.addEventListener?.("change", sync);
+    return () => mq.removeEventListener?.("change", sync);
+  }, []);
+
+  /* 桌面浮层位置：以触发器矩形为准，空间不足时翻到上方；宽度至少与控件同宽。 */
+  useLayoutEffect(() => {
+    if (!open || phone || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const width = Math.min(Math.max(rect.width, 168), window.innerWidth - 16);
+    const below = window.innerHeight - rect.bottom - 8;
+    const above = rect.top - 8;
+    const maxHeight = Math.min(320, Math.max(120, Math.max(below, above)));
+    const flip = below < 160 && above > below;
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+    setPos({ left, top: flip ? Math.max(8, rect.top - maxHeight - 6) : rect.bottom + 6, width, maxHeight });
+  }, [open, phone, entries.length]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent): void => {
+      const target = e.target as Node | null;
+      if (target && (triggerRef.current?.contains(target) || popRef.current?.contains(target))) return;
+      close();
+    };
+    const onResize = (): void => close();
+    const onScroll = (e: Event): void => {
+      if (e.target instanceof Node && popRef.current?.contains(e.target)) return;
+      close();
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    window.addEventListener("resize", onResize);
+    document.addEventListener("scroll", onScroll, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("resize", onResize);
+      document.removeEventListener("scroll", onScroll, true);
+    };
+  }, [open, close]);
+
+  useEffect(() => {
+    if (!open) return;
+    optionRefs.current[active]?.scrollIntoView({ block: "nearest" });
+  }, [open, active]);
+
+  const openList = (): void => {
+    if (disabled) return;
+    if (open) { close(true); return; }
+    const selectedIndex = entries.findIndex((e) => e.value === current);
+    setActive(selectedIndex >= 0 ? selectedIndex : 0);
+    setOpen(true);
+  };
+
+  const onTriggerKey = (e: React.KeyboardEvent<HTMLButtonElement>): void => {
+    if (e.key === "Escape") {
+      if (open) { e.preventDefault(); close(true); }
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!open) { openList(); return; }
+      const dir = e.key === "ArrowDown" ? 1 : -1;
+      setActive((i) => {
+        let next = i;
+        for (let step = 0; step < entries.length; step++) {
+          next = (next + dir + entries.length) % entries.length;
+          if (!entries[next]?.disabled) break;
+        }
+        return next;
+      });
+      return;
+    }
+    if (e.key === "Home" || e.key === "End") {
+      if (!open) return;
+      e.preventDefault();
+      setActive(e.key === "Home" ? 0 : entries.length - 1);
+      return;
+    }
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (!open) { openList(); return; }
+      const entry = entries[active];
+      if (entry) choose(entry);
+      return;
+    }
+    if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const char = e.key.toLowerCase();
+      const idx = entries.findIndex((entry) => {
+        const raw = typeof entry.label === "string" || typeof entry.label === "number" ? String(entry.label) : "";
+        return raw.toLowerCase().startsWith(char);
+      });
+      if (idx >= 0) { e.preventDefault(); if (!open) setOpen(true); setActive(idx); }
+    }
+  };
+
+  const optionsList = (): ReactNode => {
+    let group: ReactNode | undefined;
+    return entries.map((entry, i) => {
+      const header = entry.group !== undefined && entry.group !== group ? entry.group : null;
+      group = entry.group;
+      return (
+        <Fragment key={`${entry.value}-${i}`}>
+          {header ? <div className="og-select-group" role="presentation">{header}</div> : null}
+          <button
+            type="button"
+            ref={(node) => { optionRefs.current[i] = node; }}
+            id={`${listId}-${i}`}
+            role="option"
+            aria-selected={entry.value === current}
+            aria-disabled={entry.disabled || undefined}
+            tabIndex={-1}
+            className={cx("og-select-opt", i === active && "is-active")}
+            disabled={entry.disabled}
+            onPointerDown={(event) => event.preventDefault()}
+            onClick={() => choose(entry)}
+          >
+            <span className="og-select-opt-label">{entry.label}</span>
+            {entry.value === current ? <span className="og-select-opt-check" aria-hidden="true">✓</span> : null}
+          </button>
+        </Fragment>
+      );
+    });
+  };
+
   return (
-    <div {...scopeProps(scope)} className={cx(one("select").size(size).toString(), className)}>
-      <Shell size={size} invalid={invalid} disabled={disabled} focused={false}>
-        <select
-          className="og-input-el og-select-el"
-          value={value === undefined ? undefined : String(value)}
-          defaultValue={defaultValue === undefined ? undefined : String(defaultValue)}
+    <div {...scopeProps(scope)} className={cx("og-select", className)}>
+      <Shell size={size} invalid={invalid} disabled={disabled} focused={open}>
+        <button
+          ref={triggerRef}
+          type="button"
+          id={triggerId}
+          className="og-select-trigger"
           disabled={disabled}
-          aria-invalid={invalid || undefined}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={open ? listId : undefined}
+          aria-activedescendant={open ? `${listId}-${active}` : undefined}
           aria-label={aria["aria-label"]}
-          onChange={(e) => onChange?.(e.target.value)}
+          aria-labelledby={aria["aria-labelledby"]}
+          aria-invalid={invalid || undefined}
+          onClick={openList}
+          onKeyDown={onTriggerKey}
         >
-          {placeholder ? <option value="" disabled>{placeholder}</option> : null}
-          {options ? options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>) : children}
-        </select>
+          <span className={cx("og-select-value", !selected && "is-placeholder")}>
+            {selected ? selected.label : placeholder ?? ""}
+          </span>
+        </button>
         <svg className="og-icon og-icon--sm og-select-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
       </Shell>
+      {open && !phone && pos && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              ref={popRef}
+              id={listId}
+              className="og-select-pop"
+              role="listbox"
+              aria-labelledby={triggerId}
+              style={{ left: pos.left, top: pos.top, width: pos.width, maxHeight: pos.maxHeight }}
+            >
+              {optionsList()}
+            </div>,
+            document.body,
+          )
+        : null}
+      {open && phone && typeof document !== "undefined"
+        ? createPortal(
+            <>
+              <div className="og-select-backdrop" onPointerDown={() => close()} />
+              <div ref={popRef} id={listId} className="og-select-sheet" role="listbox" aria-labelledby={triggerId}>
+                <div className="og-select-sheet-handle" aria-hidden="true" />
+                <div className="og-select-sheet-list">{optionsList()}</div>
+              </div>
+            </>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

@@ -31,6 +31,9 @@
  *   web_login / web_logout / app-web-pre-info / app-web-login / send_sms_login_code /
  *   verify_pwd_login 六个；bundle 里的 heartbeat 是课堂视频心跳，与会话无关）。
  *   sessionid 由 Django 服务端管理，客户端无从「续命」→ 保活=周期性轻量已授权请求。
+ * - 2026-10 补充：`/pc/web_login` 虽不是 refresh 端点，但官方网页会用扫码下发的
+ *   UserID/Auth 调它重建网页会话（见 login.js）；`renewYuketangSession()` 复用该
+ *   换票路径实现免扫码续登，Auth 被撤销时才回退扫码。
  * - 失效特征归一 `YktSessionError`（isYktSessionError 判定）：HTTP 401/403、
  *   errcode=401000、v3 系 code=50000 UNAUTHENTICATED、非 JSON（跳登录壳）四种；
  *   其余错误（网络断 / 5xx / 字段异常）不误判为会话失效。
@@ -63,9 +66,12 @@ const BASE = "https://pro.yuketang.cn";
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36";
 
-interface YktCred {
+/** 雨课堂凭据；`userId/auth` 是扫码确认时下发的网页换票凭据（可选，旧导入 Cookie 无）。 */
+export interface YktCred {
   cookie: string;
   uvId?: string;
+  userId?: string;
+  auth?: string;
 }
 
 /* ── R21-B：会话失效归一 + 健康检查 + Cookie 轮换回写 / 导出导入 ── */
@@ -191,6 +197,12 @@ const COOKIE_MERGE_ALLOW = new Set([
  */
 function yktCaptureSetCookies(res: Response): Map<string, string> {
   const raws: string[] = [];
+  // 标准 set-cookie 通道兜底：原生响应同时会 append 该头；部分运行时自定义头
+  // 在 invoke 边界被丢弃时，仍能从标准头拿到新 sessionid。
+  const standard = res.headers.get("set-cookie");
+  if (standard) {
+    for (const line of standard.split(/,(?=\s*[^;,=]+\s*=)/)) raws.push(line);
+  }
   for (const key of ["x-onethu-set-cookie", "x-onethu-set-cookie-hops"]) {
     const raw = res.headers.get(key);
     if (!raw) continue;
@@ -246,6 +258,137 @@ export function mergeYktCookiePairs(cookie: string, pairs: Map<string, string>):
   }
   if (!changed) return cookie;
   return order.map((k) => `${k}=${vals.get(k)}`).join("; ");
+}
+
+/** /pc/web_login 换票结果。userId/auth 可能在响应里轮换，调用方应覆盖保存。 */
+export interface YktRenewResult {
+  cookie: string;
+  userId?: string;
+  auth?: string;
+}
+
+/** 从响应 JSON 的 data 里取宽松字段（官方网页用 UserID/Auth，部分接口用 snake_case）。 */
+function pickYktRenewField(data: Record<string, unknown> | null, camel: string, snake: string): string | undefined {
+  const v = data?.[camel] ?? data?.[snake];
+  if (typeof v === "string" && v.trim()) return v.trim();
+  if (typeof v === "number" && Number.isFinite(v)) return String(v);
+  return undefined;
+}
+
+/**
+ * 用扫码时保存的 UserID/Auth 调官方 `/pc/web_login` 换一个新的网页会话 Cookie。
+ *
+ * 官方网页登录在同一次扫码后还会做第二步（login.js：app-web-login 返回
+ * UserID/Auth → POST /pc/web_login → 存 localStorage）。雨课堂没有独立 refresh
+ * 端点，但 Auth 可以重复换票；会话失效时调用本函数即可免扫码续上。
+ *
+ * 失败（Auth 撤销 / 改密 / 风控 / 响应无 Cookie）抛普通 Error，由调用方回退扫码。
+ * **绝不**记录 auth 或 Cookie。
+ */
+export async function renewYuketangSession(cred: YktCred, fetchLike: FetchLike): Promise<YktRenewResult> {
+  const userId = (cred.userId ?? "").trim();
+  const auth = (cred.auth ?? "").trim();
+  if (!userId || !auth) {
+    throw new Error("雨课堂缺少网页换票凭据（UserID/Auth），请扫码一次以启用免扫码续期");
+  }
+  let baseCookie = authCookie(cred);
+  let csrf = /(?:^|;\s*)csrftoken=([^;]*)/.exec(baseCookie)?.[1] ?? "";
+  // 扫码凭据通常只有 sessionid（日志实测无 csrftoken）。官方网页在 /web 首屏拿
+  // csrftoken 后再 POST；这里补一次轻量 GET，避免换票被 CSRF 拦截成 200 HTML。
+  if (!csrf) {
+    try {
+      const pre = await fetchLike(`${BASE}/web`, {
+        method: "GET",
+        headers: { "User-Agent": UA, Cookie: baseCookie, Accept: "text/html,application/xhtml+xml" },
+      });
+      const prePairs = yktCaptureSetCookies(pre);
+      if (prePairs.size > 0) baseCookie = mergeYktCookiePairs(baseCookie, prePairs);
+      csrf = /(?:^|;\s*)csrftoken=([^;]*)/.exec(baseCookie)?.[1] ?? "";
+    } catch {
+      /* 预取失败不阻断：仍按官方空 CSRF 形态尝试一次 */
+    }
+  }
+  // 官方登录页的 post 会带 X-CSRFToken（值取自 csrftoken cookie）；Django 换票端点
+  // 同样要求 unsafe method 的双提交。
+  // 2026-10-30 实测：form-urlencoded 请求返回 200 HTML，且 Set-Cookie 的 sessionid 为空；
+  // 官方网页是 jQuery form、第三方脚本是 JSON——两种编码都试，只有真正拿到非空
+  // sessionid 才算成功；失败分支保留最后一次诊断。
+  const attempts = [
+    {
+      name: "form",
+      contentType: "application/x-www-form-urlencoded; charset=UTF-8",
+      body: new URLSearchParams({ UserID: userId, Auth: auth }).toString(),
+    },
+    {
+      name: "json",
+      contentType: "application/json; charset=UTF-8",
+      body: JSON.stringify({ UserID: userId, Auth: auth }),
+    },
+  ] as const;
+  let lastDiag = "";
+  for (const attempt of attempts) {
+    const res = await fetchLike(`${BASE}/pc/web_login`, {
+      method: "POST",
+      headers: {
+        // YKT 会话是显式 Cookie 串，原生 jar 里没有；浏览器由 Cookie 自动携带。
+        Cookie: baseCookie,
+        "Content-Type": attempt.contentType,
+        "User-Agent": UA,
+        Accept: "application/json, text/javascript, */*; q=0.01",
+        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRFToken": csrf,
+        Origin: BASE,
+        Referer: `${BASE}/web`,
+        "x-client": "web",
+        xtbz: "ykt",
+        "Xt-Agent": "h5",
+      },
+      body: attempt.body,
+    });
+    const text = await res.text();
+    let json: Record<string, unknown> | null = null;
+    try {
+      json = JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      json = null;
+    }
+    const ok =
+      json?.["success"] === true ||
+      json?.["success"] === 1 ||
+      json?.["code"] === 0 ||
+      json?.["result"] === "success";
+    const pairs = yktCaptureSetCookies(res);
+    // 服务端可能把新会话放在响应体；官方浏览器依赖 Set-Cookie，这里做兼容兜底。
+    const data = (json?.["data"] ?? null) as Record<string, unknown> | null;
+    if (!pairs.get("sessionid") && typeof data?.["sessionid"] === "string" && data["sessionid"].trim()) {
+      pairs.set("sessionid", data["sessionid"].trim());
+    }
+    const hasSession = Boolean(pairs.get("sessionid"));
+    // 实测 /pc/web_login 可能返回 200 text/html 但响应头带新 sessionid；不能因 body 非 JSON
+    // 就判失败。真正有效性由调用方随后 checkSession 验证。
+    if (res.ok && hasSession && (json === null || ok)) {
+      const cookie = mergeYktCookiePairs(baseCookie, pairs);
+      if (/(?:^|;\s*)sessionid=[^\s;]+/.test(cookie)) {
+        const nextUserId = pickYktRenewField(data, "UserID", "user_id");
+        const nextAuth = pickYktRenewField(data, "Auth", "auth");
+        return {
+          cookie,
+          ...(nextUserId ? { userId: nextUserId } : {}),
+          ...(nextAuth ? { auth: nextAuth } : {}),
+        };
+      }
+    }
+    // 空 sessionid / 失败响应里可能带新的 csrftoken；下一轮编码继续用。
+    if (pairs.size > 0) baseCookie = mergeYktCookiePairs(baseCookie, pairs);
+    csrf = /(?:^|;\s*)csrftoken=([^;]*)/.exec(baseCookie)?.[1] ?? csrf;
+    const msg = typeof json?.["msg"] === "string" && json["msg"] ? json["msg"] : `HTTP ${res.status}`;
+    const headers = [...res.headers.keys()].sort().join(",") || "(none)";
+    const captured = [...pairs.keys()].join(",") || "(none)";
+    lastDiag = json
+      ? `${attempt.name}: keys=${Object.keys(json).slice(0, 8).join(",")}; headers=${headers}; captured=${captured}`
+      : `${attempt.name}: ct=${(res.headers.get("content-type") ?? "?").split(";")[0]} len=${text.length}; headers=${headers}; captured=${captured}`;
+  }
+  throw new Error(`雨课堂网页会话续期失败：${lastDiag}`);
 }
 
 /** R21-B：会话健康检查结果。alive=null 表示「未知」（网络断等，不谎报失效） */
@@ -2140,10 +2283,16 @@ export interface YktCookieExport {
   cookie: string;
   uvId?: string;
   phone?: string;
+  /** 扫码换票凭据：有则导出后另一台设备也能免扫码续期；旧文件没有也兼容。 */
+  userId?: string;
+  auth?: string;
 }
 
 /** 构建导出 JSON 文本。cookie 必须含 sessionid=（否则拒绝导出，防止导出无用文件）。 */
-export function buildYktCookieExportJson(cred: { cookie: string; uvId?: string; phone?: string }, now = new Date()): string {
+export function buildYktCookieExportJson(
+  cred: { cookie: string; uvId?: string; phone?: string; userId?: string; auth?: string },
+  now = new Date(),
+): string {
   const cookie = (cred.cookie ?? "").trim();
   if (!/(?:^|;\s*)sessionid=[^\s;]+/.test(cookie)) {
     throw new Error("雨课堂 Cookie 缺少 sessionid，不像有效会话——请先登录再导出");
@@ -2152,17 +2301,25 @@ export function buildYktCookieExportJson(cred: { cookie: string; uvId?: string; 
     kind: YKT_COOKIE_EXPORT_KIND,
     version: 1,
     sensitive: true,
-    warn: "本文件含雨课堂完整登录会话，等同账号凭据：仅供本人多设备迁移使用，勿放同步盘/群聊/仓库，导入后请删除。",
+    warn: "本文件含雨课堂完整登录会话与免扫码换票凭据，等同账号凭据：仅供本人多设备迁移使用，勿放同步盘/群聊/仓库，导入后请删除。",
     exportedAt: now.toISOString(),
     cookie,
     ...(cred.uvId?.trim() ? { uvId: cred.uvId.trim() } : {}),
     ...(cred.phone?.trim() ? { phone: cred.phone.trim() } : {}),
+    ...(cred.userId?.trim() ? { userId: cred.userId.trim() } : {}),
+    ...(cred.auth?.trim() ? { auth: cred.auth.trim() } : {}),
   };
   return JSON.stringify(out, null, 2);
 }
 
 /** 解析并校验导出文件文本 → 可直接存进凭据的会话。任何不符都抛带原因的错误。 */
-export function parseYktCookieExportJson(text: string): { cookie: string; uvId?: string; phone?: string } {
+export function parseYktCookieExportJson(text: string): {
+  cookie: string;
+  uvId?: string;
+  phone?: string;
+  userId?: string;
+  auth?: string;
+} {
   let j: unknown;
   try {
     j = JSON.parse(text);
@@ -2182,5 +2339,13 @@ export function parseYktCookieExportJson(text: string): { cookie: string; uvId?:
   }
   const uvId = typeof o["uvId"] === "string" && o["uvId"].trim() ? o["uvId"].trim() : undefined;
   const phone = typeof o["phone"] === "string" && o["phone"].trim() ? o["phone"].trim() : undefined;
-  return { cookie, ...(uvId ? { uvId } : {}), ...(phone ? { phone } : {}) };
+  const userId = typeof o["userId"] === "string" && o["userId"].trim() ? o["userId"].trim() : undefined;
+  const auth = typeof o["auth"] === "string" && o["auth"].trim() ? o["auth"].trim() : undefined;
+  return {
+    cookie,
+    ...(uvId ? { uvId } : {}),
+    ...(phone ? { phone } : {}),
+    ...(userId ? { userId } : {}),
+    ...(auth ? { auth } : {}),
+  };
 }

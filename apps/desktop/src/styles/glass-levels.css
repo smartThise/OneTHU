@@ -1,6 +1,6 @@
 /* 玻璃程度档（设置→外观四档，<html data-glass>）。
    原值逐条搬自 global.css 的六个覆盖块（零视觉漂移）；此后直接编辑本文件。
-   均衡档 = 基座（无属性），不在此文件。 */
+   实心档 = 基座（无属性），不在此文件。 */
 html[data-glass="clear"] {
   --surface: rgba(255, 255, 255, 0.30);
   --surface-2: rgba(255, 255, 255, 0.30);
@@ -10,9 +10,9 @@ html[data-glass="clear"] {
   --glass-fill-regular: rgba(255, 255, 255, 0.30);
   --glass-tint: rgba(255, 255, 255, 0.26);
   --glass-menu-fill: rgba(246, 247, 249, 0.30);
-  --glass-menu-blur: var(--glass-refract) blur(22px) saturate(160%);
-  --glass-chip-blur: var(--glass-refract) blur(20px) saturate(155%);
-  --glass-panel-blur: var(--glass-refract) blur(20px) saturate(155%);
+  --glass-menu-blur: blur(22px) saturate(160%);
+  --glass-chip-blur: blur(20px) saturate(155%);
+  --glass-panel-blur: blur(20px) saturate(155%);
   --lg-blur-clear: blur(22px) saturate(160%);
   --glass-card-fill: rgba(255, 255, 255, 0.30);
   --glass-card-fill-2: rgba(255, 255, 255, 0.30);

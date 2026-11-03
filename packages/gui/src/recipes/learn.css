@@ -1,9 +1,9 @@
 /* Learning course overview: one grid and one card composition for both sources.
    Card, action, tag and focus visuals remain owned by OneGUI primitives. */
-html:root .explorer-content[data-active-page="learn"] {
-  width: 100%;
-  max-width: none;
-}
+/* 网络学堂主页与它的子页面（作业 / 通知 / 文件 / 搜索）共用同一条内容边界：
+   `.explorer-content` 的宽度与上限由壳层统一给出。页面级不要再改写 width /
+   max-width——宽屏会顶到两侧，竖版标签栏下 width:100% 再叠加左栏偏移还会多出
+   一条横向滚动条（用户实测）。 */
 
 .learn-page {
   width: 100%;
@@ -23,6 +23,15 @@ html:root .explorer-content[data-active-page="learn"] {
   padding-bottom: var(--og-space-4);
 }
 
+/* 课程文件：固定高度的内滚动窗口。
+   以前整张卡片随 320 行长到 2 万像素，玻璃卡片的 backdrop-filter / 圆角遮罩会超过
+   GPU 纹理上限，滚动时下半屏黑掉、文字消失。把滚动收进卡片内部，卡片高度始终在
+   一屏内，既保留玻璃模糊/圆角/阴影，也避免超长合成层。 */
+/* 全部作业：与课程文件共用 ListWindow 固定视口；旁听分组的小标题留出内边距。 */
+html:root .learn-assignment-audit .section-head {
+  margin: var(--og-space-3) var(--og-space-4) var(--og-space-2);
+}
+
 .learn-course-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--og-grid-min-xl)), 1fr));
@@ -38,6 +47,61 @@ html:root .explorer-content[data-active-page="learn"] {
   flex-direction: column;
   min-width: 0;
   height: 100%;
+  position: relative;
+}
+
+/* 整卡 hover：状态层铺满卡片（含底部标签行），不再只跟着上半部的打开按钮。
+   用独立 ::after 叠色，卡面填充/模糊/圆角保持不变；内容抬到状态层之上，
+   底部标签按钮自己的 hover 仍照常生效。 */
+/* 待办筛选：OneGUI Select 在旧 .hw-filter 行里的尺寸（壳 30px，避免旧 34px 特例）。
+   Trace 的胶囊开关同理：壳去掉自己的面/线，只留文字与箭头。 */
+html:root .tasks-body .hw-filter-select .og-input {
+  --og-c-input-h: var(--og-ctl-h-sm);
+  border-radius: var(--og-radius-md);
+}
+html:root .trace-opt .og-select { width: auto; }
+html:root .trace-opt .og-input {
+  --og-c-input-h: var(--og-ctl-h-sm);
+  padding: 0;
+  border: 0;
+  background: none;
+}
+html:root .trace-opt .og-select-value {
+  color: var(--og-accent);
+  font-size: var(--og-text-label);
+  font-weight: var(--og-weight-semibold);
+}
+html:root .trace-opt .og-select-caret { right: 0; color: var(--og-accent); }
+
+html:root .learn-course-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  /* squircle 不随 border-radius 继承：不写这行状态层在圆角处会退回圆弧、看起来小一圈。 */
+  corner-shape: inherit;
+  background: var(--og-hover);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--og-dur-2) var(--og-ease-standard);
+}
+html:root .learn-course-card > * {
+  position: relative;
+  z-index: 1;
+}
+@media (hover: hover) and (pointer: fine) {
+  html:root .learn-course-card:hover::after { opacity: 1; }
+}
+/* 打开按钮是整卡的主命中区：hover 由卡片状态层统一表达，按钮自己不再叠第二层底色。 */
+html:root .learn-course-open.og-btn,
+html:root .learn-course-open.og-btn:hover,
+html:root .learn-course-open.og-btn:active {
+  background: transparent;
+  /* Btn 的 hover/press 画在 ::after 状态层上；只清本体 background 会留下第二层叠色
+     （用户实拍：卡片上半部比下半部深）。把按钮状态层色料也置空，整卡只留一层 hover。 */
+  --og-c-btn-hover: transparent;
+  --og-c-btn-press: transparent;
 }
 
 .learn-course-main {

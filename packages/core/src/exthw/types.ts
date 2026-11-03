@@ -176,8 +176,10 @@ export interface RegisteredHomeworkSource extends HomeworkSource {
 
 /** 凭据（由 desktop 层从 localStorage 读出后注入；core 不碰存储） */
 export interface ExtHwCreds {
-  /** 登录后拼好的会话 Cookie；`phone` 仅用于设置页回填 */
-  yuketang?: { cookie: string; uvId?: string; phone?: string };
+  /** 登录后拼好的会话 Cookie；`phone` 仅用于设置页回填。
+   *  `userId`/`auth`：扫码确认时服务端随响应下发的网页换票凭据（官方 /pc/web_login 使用）。
+   *  仅新增扫码登录会写入；手工导入 Cookie 的旧用户没有这两个字段，仍按旧逻辑提示重登。 */
+  yuketang?: { cookie: string; uvId?: string; phone?: string; userId?: string; auth?: string };
   /** 登录后拼好的会话 Cookie；`username` 仅用于设置页回填。
    *  `via`: "cas" = 清华统一认证漫游（会话在 HttpClient 的 jar 里，cookie 可空）；
    *         "password" = TUOJ 账号密码登录。 */

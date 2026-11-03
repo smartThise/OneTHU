@@ -28,6 +28,7 @@ import {
   SOURCE_NAMES,
   TUOJ_CLASSIC_BASE,
   createYuketangSource,
+  renewYuketangSession,
   dsaLogin,
   tuojLogin,
   tuojRoam,
@@ -321,7 +322,7 @@ export const extHwLogin = {
   tuojCas: async (source: TuojSourceId = "tuoj"): Promise<{ cookie: string }> => {
     const r = await tuojRoam(http, {
       base: source === "tuojClassic" ? TUOJ_CLASSIC_BASE : undefined,
-      ensureIdSession: (u) => info.ensureDirectIdLogin(u),
+      ensureIdSession: (u) => info.ensureDirectIdLogin(u, { consumeServiceTicket: true }),
       hasIdCredentials: () => info.hasIdCredentials(),
       confirmIdCheckSingle: (u) => info.confirmIdCheckSingle(u),
     });
@@ -464,13 +465,24 @@ async function maybeAutoTuojCas(
   if (opts.relaxThrottle && tuojAutoSuppressed[source]) return false;
   if (!opts.relaxThrottle && tuojAutoThrottled(source)) return false;
   setTuojAuto(source, { kind: "running" });
+  // 启动时序实测：TUOJ 自动登录曾在 SOFT-RELOGIN 完成前 225ms 启动，CAS 看到
+  // 尚未落罐的 id 会话 → 反复回登录表单。先等一次统一认证探活/重登收口，再走 CAS。
+  try {
+    const { libEnsureSession } = await import("../lib/infoLib.js");
+    await libEnsureSession();
+  } catch {
+    /* 探活失败仍尝试 CAS；失败由下方状态机记录 */
+  }
+  void logLine(`TUOJ-AUTO start source=${source}`).catch(() => undefined);
   try {
     const r = await extHwLogin.tuojCas(source);
     await saveTuojCasCreds(source, r.cookie);
     setTuojAuto(source, { kind: "ok", at: Date.now() });
+    void logLine(`TUOJ-AUTO ok source=${source} cookie=${r.cookie ? "yes" : "no"}`).catch(() => undefined);
     return true;
   } catch (e) {
     // 失败分支绝不弹错：只记录状态，设置页据此展示手动入口
+    void logLine(`TUOJ-AUTO fail source=${source}: ${e instanceof Error ? e.message.slice(0, 300) : String(e).slice(0, 300)}`).catch(() => undefined);
     if (isTuojNoCoursesError(e)) {
       setTuojAuto(source, { kind: "no-courses", at: Date.now() });
     } else {
@@ -608,7 +620,9 @@ export async function removeExtHwCreds(source: ExtHwSourceId): Promise<void> {
  * ② 服务端若在响应里轮换 Cookie（Set-Cookie 白名单字段）→ 合并后用 AES-GCM 信封
  *   存回凭据（侦查未见轮换证据，属兜底）；
  * ③ 健康检查结果（含失效原因）供设置页「检查会话」与失效引导（一键重登/导入）展示。
- * 全程静默 + log_debug；**绝不**打印 Cookie 内容。 */
+ * 2026-10 补充：扫码保存 UserID/Auth 后，心跳/外部作业刷新发现失效会先调
+ * `/pc/web_login` 免扫码换票；Auth 被撤销才回退扫码。
+ * 全程静默 + log_debug；**绝不**打印 Cookie / Auth 内容。 */
 
 /** 心跳周期：6h（霖反馈会话约 24h 失效——6h 足够密；实验结论待 docs 三十节回填） */
 export const YKT_HEARTBEAT_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -637,8 +651,57 @@ async function saveYktCookieRefresh(cookie: string, expectedCookie: string, expe
   const prev = cur.yuketang;
   if (prev?.cookie !== expectedCookie || yuketangCredentialOwner() !== expectedOwner
     || (expectedOwner && session.username !== expectedOwner)) return;
-  await saveExtHwCreds({ ...cur, yuketang: { cookie, ...(prev?.uvId ? { uvId: prev.uvId } : {}), ...(prev?.phone ? { phone: prev.phone } : {}) } });
+  await saveExtHwCreds({ ...cur, yuketang: { ...prev, cookie } });
   void logLine("R21-B 雨课堂会话：服务端轮换 Cookie，已合并存回凭据（AES-GCM）");
+}
+
+let yktRenewInflight: Promise<boolean> | null = null;
+
+/**
+ * 用扫码时保存的 UserID/Auth 免扫码换票（官方 /pc/web_login 同款）。
+ *
+ * 会话失效时由心跳 / 外部作业刷新链调用；成功后把新 Cookie 与可能轮换的
+ * UserID/Auth 一起 AES-GCM 存回，并广播快照。失败保留旧凭据，由 UI 回退扫码。
+ * 单飞：心跳与数据请求同时撞上失效时只换一次，避免并发换票互相覆盖。
+ */
+export function renewYuketangSessionFromStored(): Promise<boolean> {
+  if (yktRenewInflight) return yktRenewInflight;
+  yktRenewInflight = (async (): Promise<boolean> => {
+    await ensureExtHwCredsLoaded().catch(() => undefined);
+    const cred = getExtHwCreds().yuketang;
+    if (!cred?.cookie?.trim() || !cred.userId || !cred.auth) {
+      void logLine("YKT-RENEW skip：没有扫码换票凭据（需扫码一次启用）").catch(() => undefined);
+      return false;
+    }
+    const owner = yuketangCredentialOwner();
+    try {
+      const next = await renewYuketangSession(cred, universalFetch);
+      const cur = getExtHwCreds();
+      // 换票期间用户重新扫码 / 切换账号：丢弃旧结果，不用旧 Auth 覆盖新会话。
+      if (cur.yuketang?.cookie !== cred.cookie) return false;
+      if (yuketangCredentialOwner() !== owner) return false;
+      if (owner && session.username !== owner) return false;
+      await saveExtHwCreds({
+        ...cur,
+        yuketang: {
+          ...cur.yuketang,
+          cookie: next.cookie,
+          ...(next.userId ? { userId: next.userId } : {}),
+          ...(next.auth ? { auth: next.auth } : {}),
+        },
+      });
+      yktSession = { alive: true, checkedAt: Date.now(), userName: yktSession.userName };
+      rebuild();
+      void logLine("YKT-RENEW ok：已用 UserID/Auth 换新会话").catch(() => undefined);
+      return true;
+    } catch (e) {
+      void logLine(`YKT-RENEW fail：${e instanceof Error ? e.message.slice(0, 400) : String(e).slice(0, 400)}`).catch(() => undefined);
+      return false;
+    }
+  })().finally(() => {
+    yktRenewInflight = null;
+  });
+  return yktRenewInflight;
 }
 
 /**
@@ -653,12 +716,26 @@ export async function runYktSessionCheck(): Promise<YktSessionState | null> {
   yktHbBusy = true;
   try {
     const owner = yuketangCredentialOwner();
-    const src = createYuketangSource(cred, universalFetch, getExtHwCreds().days ?? 30, {
-      onCookieRefresh: (c) => {
-        void saveYktCookieRefresh(c, cred.cookie, owner);
-      },
-    });
-    const h = await src.checkSession();
+    let activeCred = cred;
+    const makeSource = () =>
+      createYuketangSource(activeCred, universalFetch, getExtHwCreds().days ?? 30, {
+        onCookieRefresh: (c) => {
+          void saveYktCookieRefresh(c, activeCred.cookie, owner);
+        },
+      });
+    let src = makeSource();
+    let h = await src.checkSession();
+    if (h.alive === false) {
+      // 雨课堂会话约 24h 过期；有扫码保存的 UserID/Auth 时先免扫码换票，再复查一次。
+      // 换票失败（Auth 被撤销/改密/风控）才保持失效，由 UI 提示扫码。
+      const renewed = await renewYuketangSessionFromStored();
+      const fresh = getExtHwCreds().yuketang;
+      if (renewed && fresh?.cookie) {
+        activeCred = fresh;
+        src = makeSource();
+        h = await src.checkSession();
+      }
+    }
     yktSession = { alive: h.alive, reason: h.reason, userName: h.userName, checkedAt: h.checkedAt };
     if (h.alive === true) {
       void logLine(`R21-B 雨课堂心跳：会话有效${h.userName ? `（${h.userName}）` : ""}`);
@@ -819,6 +896,7 @@ export function refreshExtHw(): Promise<void> {
       http,
       rerouteTuoj: (source) => maybeAutoTuojCas(source, { force: true, relaxThrottle: true }),
       reloginTyche: () => maybeAutoTycheRelogin(),
+      reloginYuketang: () => renewYuketangSessionFromStored(),
     }), "exthw");
     items = next.items;
     courses = next.courses;

@@ -64,10 +64,8 @@ let wallKind: "none" | "css" | "image" | "video" = "none";
 let wallKey = "";
 let started = false;
 let visIO: IntersectionObserver | null = null;
-let scanScheduled = 0;
 const pendingRoots: HTMLElement[] = [];
 let reapplyScheduled = 0;
-let reapplySettledScheduled = 0;
 let videoSig = "";
 let videoReady = false;
 let driftTicks = 0;
@@ -330,6 +328,46 @@ function inViewport(rect: DOMRect): boolean {
   return rect.bottom > -120 && rect.top < window.innerHeight + 120 && rect.width >= 2 && rect.height >= 2;
 }
 
+/** 采样必须发生在「最终合成态」：祖先 opacity < 1 / filter / 混合模式都会改变背景栈。
+    入场动画、遮罩淡入、页面转场期间祖先 opacity 在中间态，此时定格会把字色锁成反色
+    （用户实测「文字颜色突变」）。不稳定就延后重试，绝不在中间态写锁。 */
+function hasTransientAncestor(el: HTMLElement): boolean {
+  for (let node: HTMLElement | null = el; node && node !== document.documentElement; node = node.parentElement) {
+    const cs = getComputedStyle(node);
+    if (Number(cs.opacity) < 0.999 || cs.filter !== "none" || cs.mixBlendMode !== "normal") return true;
+  }
+  return false;
+}
+
+/** 主题切换期间 CSS 正在做颜色/背景过渡（html.theme-anim），令牌与合成色都在动；
+    这时取色必然取到中间值，延后到过渡结束再定格。 */
+function samplingDelayed(): boolean {
+  return document.documentElement.classList.contains("theme-anim");
+}
+
+function retryAfterStable(el: HTMLElement, mode: Mode, delay = 420): void {
+  if (el.dataset.txRetry === "1") return;
+  // 永久半透明（如禁用态/设计上压暗的子树）不应该无限重排。最多试 3 次。
+  const attempts = Number(el.dataset.txRetryCount ?? "0");
+  if (attempts >= 3) return;
+  el.dataset.txRetryCount = String(attempts + 1);
+  el.dataset.txRetry = "1";
+  window.setTimeout(() => {
+    if (!el.isConnected) return;
+    delete el.dataset.txRetry;
+    settleTarget(el, mode === "env" ? "env" : "first");
+  }, delay);
+}
+
+/** 环境重取（主题/玻璃档/壁纸）时墨色走一次过渡：直接跳色会被读成「文字颜色突变」。
+    首帧定格不能过渡——那会让首帧先画令牌色再淡入引擎色。 */
+function transitionInk(el: HTMLElement): void {
+  el.style.setProperty("transition", "color var(--og-dur-2) var(--og-ease-standard)");
+  window.setTimeout(() => {
+    if (el.isConnected) el.style.removeProperty("transition");
+  }, 260);
+}
+
 /**
  * 定格一个文本宿主。
  *  mode = first：生命周期只进一次（进视口那一刻）
@@ -340,12 +378,14 @@ function settle(el: HTMLElement, mode: Mode = "first"): void {
   if (mode === "first" && settled.has(el)) return;
   seen.add(el);
   try {
-    if (el.closest('[data-tx="keep"]')) { clearLock(el); return; }
+    if (el.closest('[data-tx="keep"]')) { clearLock(el, mode === "env"); return; }
     if (!hasOwnText(el)) return;
     const rect = el.getBoundingClientRect();
     if (!inViewport(rect)) return;
     const cs = getComputedStyle(el);
     if (cs.visibility === "hidden" || cs.display === "none") return;
+    if (samplingDelayed() || hasTransientAncestor(el)) { retryAfterStable(el, mode); return; }
+    delete el.dataset.txRetryCount;
     const cur = colorRgb(cs.color);
     if (!cur) return;
     const bg = compositeLum(el);
@@ -356,6 +396,7 @@ function settle(el: HTMLElement, mode: Mode = "first"): void {
     // 旧实现用 bg < 0.5 当分界是错的——0.5 是 sRGB 中灰，不是白字/黑字等对比的交叉点（交叉点 L≈0.179）。
     const white = contrast(1, bg), black = contrast(0, bg);
     const ink = white >= black ? WANT_DARK : WANT_LIGHT;
+    if (mode === "env") transitionInk(el);
     el.style.setProperty("color", ink);
     el.dataset.tx = "lock";
     settled.add(el);
@@ -398,11 +439,14 @@ function settleIcon(el: HTMLElement, mode: Mode = "first"): void {
     if (rect.bottom < -120 || rect.top > window.innerHeight + 120) return;
     const cs = getComputedStyle(el);
     if (cs.visibility === "hidden" || cs.display === "none") return;
+    if (samplingDelayed() || hasTransientAncestor(el)) { retryAfterStable(el, mode); return; }
+    delete el.dataset.txRetryCount;
     const cur = colorRgb(cs.color);
     if (!cur) return;
     /* 先对齐同控件文字的墨色：文字若已按卡片底取色，图标不能自己另算一套。 */
     const sibling = siblingTextInk(el);
     if (sibling && sibling !== cs.color) {
+      if (mode === "env") transitionInk(el);
       el.style.setProperty("color", sibling);
       el.dataset.txi = "lock";
       settled.add(el);
@@ -417,6 +461,7 @@ function settleIcon(el: HTMLElement, mode: Mode = "first"): void {
     const curIsWhite = curLum > 0.5;
     const readable = contrast(curLum, bg) >= MIN_CONTRAST;
     if (readable && (!nearExtreme || wantIsWhite === curIsWhite)) { settled.add(el); return; }
+    if (mode === "env") transitionInk(el);
     el.style.setProperty("color", wantIsWhite ? WANT_DARK : WANT_LIGHT);
     el.dataset.txi = "lock";
     settled.add(el);
@@ -454,8 +499,9 @@ function isSettledTarget(el: HTMLElement): boolean {
   return hasOwnText(el) || isIconHost(el);
 }
 
-function clearLock(el: HTMLElement): void {
+function clearLock(el: HTMLElement, animate = false): void {
   if (el.dataset.tx === "lock" || el.dataset.txi === "lock") {
+    if (animate) transitionInk(el);
     el.style.removeProperty("color");
     delete el.dataset.tx;
     delete el.dataset.txi;
@@ -491,7 +537,7 @@ function settleAll(): void {
       if (!seen.has(el) && !inViewport(el.getBoundingClientRect())) continue;
       seen.add(el);
       visIO?.observe(el);     // 登记过就得挂上观察：否则永远进不了 visible，视频漂移那一路看不见它
-      clearLock(el);
+      clearLock(el, true);
       list.push(el);
     }
   }
@@ -555,20 +601,20 @@ function startIO(): void {
  *  OneGUI 的调色板是随后注入的样式表：只取一次会在旧调色板下定格出反向字色
  *  （深色主题里留下黑字）。80ms 后再兜一次，确保读到落定后的令牌与壁纸底色。 */
 function reapplyAll(): void {
-  if (reapplyScheduled) return;
-  reapplyScheduled = window.setTimeout(() => {
+  // 多次环境变更（theme → OneGUI skin → 壁纸）合并成一次重取：分两轮会先锁一种墨、
+  // 再清锁换另一种墨，用户看到的就是「文字颜色突变」。
+  if (reapplyScheduled) { window.clearTimeout(reapplyScheduled); reapplyScheduled = 0; }
+  const run = (): void => {
     reapplyScheduled = 0;
+    // 主题切换有 420ms 的颜色过渡：此刻清锁再重取会取到中间色。
+    // 等过渡（含 OneGUI 随后注入的调色板）完全落定后一次取完。
+    if (samplingDelayed()) { reapplyAll(); return; }
     rebuildWall(true);
     // 视频帧还没解码出来时不急：driftTick 下一拍会拿到真帧并补一次
     settleAll();
     scanNew();
-    if (reapplySettledScheduled) window.clearTimeout(reapplySettledScheduled);
-    reapplySettledScheduled = window.setTimeout(() => {
-      reapplySettledScheduled = 0;
-      rebuildWall(true);
-      settleAll();
-    }, 260);
-  }, 80);
+  };
+  reapplyScheduled = window.setTimeout(run, samplingDelayed() ? 560 : 180);
 }
 
 /** 视频壁纸：画面在动，静态近似必然过期 → 低频重采真实帧，只修已经看不清的字 */
@@ -609,12 +655,12 @@ export function installTextContrast(): void {
         else if (n.nodeType === 3 && n.parentElement) pendingRoots.push(n.parentElement);
       }
     }
-    if (!pendingRoots.length || scanScheduled) return;
-    scanScheduled = window.setTimeout(() => {
-      scanScheduled = 0;
-      const roots = pendingRoots.splice(0, pendingRoots.length);
-      scanNew(roots);
-    }, 350);
+    if (!pendingRoots.length) return;
+    // 同步扫描（MutationObserver 回调发生在渲染之前）：等定时器/rAF 再扫会让首帧
+    // 先画出令牌色、下一帧才被引擎改色——用户看到的就是「文字颜色突变」。
+    // 同步写入的内联色直接进入首次绘制；NODE_BUDGET 兜住大页面的一次性开销。
+    const roots = pendingRoots.splice(0, pendingRoots.length);
+    scanNew(roots);
   });
   mo.observe(document.documentElement, {
     childList: true,

@@ -83,6 +83,10 @@ export interface YktQrPollResult {
   done: boolean;
   /** 成功后拼好的会话 Cookie 串（浏览器预览可能缺失） */
   cookie?: string;
+  /** 服务端下发的网页换票凭据：用于以后免扫码调用 /pc/web_login。
+   *  旧账号的官方 app-web-login 可能只给 cookie；此时保持 undefined，仍可正常使用。 */
+  userId?: string;
+  auth?: string;
   /** 失败 / 未完成原因（中文） */
   message?: string;
   /** 因调用方 AbortSignal 主动取消 */
@@ -175,8 +179,21 @@ export async function yuketangQrPoll(
     }
     const code = json?.["code"];
     const msg = typeof json?.["msg"] === "string" && json["msg"] ? json["msg"] : undefined;
+    // 官方网页登录在扫码确认后还会用 data.UserID + data.Auth 调 /pc/web_login 换网页会话；
+    // 只存 cookie 会让会话过期后永远回到扫码。这里把服务端下发的换票凭据一并带出。
+    const data = (json?.["data"] ?? null) as Record<string, unknown> | null;
+    const rawUserId = data?.["UserID"] ?? data?.["user_id"];
+    const rawAuth = data?.["Auth"] ?? data?.["auth"];
+    const userId =
+      typeof rawUserId === "string" || typeof rawUserId === "number" ? String(rawUserId) : undefined;
+    const auth = typeof rawAuth === "string" && rawAuth.trim() ? rawAuth.trim() : undefined;
     if (pairs.size > 0 && (code === undefined || code === 0)) {
-      return { done: true, cookie: yuketangBuildCookie(pairs) };
+      return {
+        done: true,
+        cookie: yuketangBuildCookie(pairs),
+        ...(userId ? { userId } : {}),
+        ...(auth ? { auth } : {}),
+      };
     }
     if (code === 0) {
       // 服务端已确认登录，但传输层未透出 Set-Cookie（浏览器预览的必然结果）

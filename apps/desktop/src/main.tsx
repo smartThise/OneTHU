@@ -47,10 +47,12 @@ import { lazy, Suspense } from "react";
 import { activateInstalledPlugins, seedBuiltinHarness, refreshHarnessConsent } from "./plugins/loader.js";
 import "@onethu/ui/tokens.css";
 import { installAuthWatchdog, installKeepalive } from "./lib/reload.js";
+import { initOpticalRefraction } from "./lib/opticalRefraction.js";
 
 // 风格管线（六轴）挂载：皮肤/明暗/密度/动效/强调色/平台一处解析、一处落盘。
 // 平台判定复用 state/platform.ts 的唯一断点（禁止组件各自 matchMedia）。
 // 密度随平台走：桌面 compact（与旧版刻度对齐——2026-10-14「卡片/按钮太大」）、手机 touch。
+initOpticalRefraction();
 installOneGUI({
   platform: () => (isPhoneViewport() ? "mobile" : platformOf(window.innerWidth) === "expanded" ? "desktop" : "mobile"),
   densityByPlatform: { desktop: "compact", mobile: "touch" },
@@ -59,9 +61,11 @@ installOneGUI({
      这里给的是结构选择器，不是外观；材质与颜色仍由皮肤令牌决定。 */
   refractionSelector: [
     ".ohx-capsule", ".ex-bbar", ".dock-panel",
+    ".free-item", ".home-card", ".hw-card",
+    /* 页面级：玻璃卡/页头也应有边缘折射；大面积滚动容器由 pipeline 的面积预算淘汰。 */
+    ".learn-course-card", ".og-pagehead", ".og-surface",
     ".og-panel", ".og-float", ".ex-sheet", ".settings-panel", ".theme-pick-panel",
-    ".free-item", ".home-card", ".hw-card", ".board-viewport-tools",
-    ".workbench-board-head", ".notice-strip", ".onego-bookmarks",
+    ".board-viewport-tools", ".workbench-board-head", ".notice-strip", ".onego-bookmarks",
   ].join(", "),
 });
 // 旧通道（主题明暗 / 玻璃档位）→ OneGUI 轴；用户现有选择立刻在 OneGUI 上生效

@@ -1,5 +1,5 @@
 import { t as i18n, rich as i18nRich, useLocale as useUiLocale } from "../i18n/index.js";
-import { Btn } from "@onethu/gui";
+import { Btn, Select } from "@onethu/gui";
 /**
  * 待办聚合页 v2.1（UI/UX 改造 §2.2，按用户《待办页施工方案》+ 实机反馈迭代）。
  *
@@ -188,10 +188,10 @@ export function TasksPage(): ReactNode {
         <div className="tasks-learn stagger">
           {/* 按课程检索：作业流上方，避免在几十条作业里翻找某一科 */}
           <div className="hw-filter">
-            <select
+            <Select
               className="hw-filter-select"
               value={courseFilter}
-              onChange={(e) => setCourseFilter(e.target.value)}
+              onChange={setCourseFilter}
               aria-label={i18n("pages.taskspage.1281738c7a2b")}
             >
               <option value="">{i18nRich("pages.taskspage.d9a72ce83c42", { length: flowAll.length })}</option>
@@ -209,7 +209,7 @@ export function TasksPage(): ReactNode {
                   ))}
                 </optgroup>
               ))}
-            </select>
+            </Select>
             {courseFilter ? (
               <button className="hw-filter-clear" onClick={() => setCourseFilter("")}>{i18n("pages.taskspage.bce2377283c2")}</button>
             ) : null}
@@ -320,7 +320,7 @@ export function TasksPage(): ReactNode {
             <button className="task-sec-more" onClick={() => navigate("info", { infoTab: "news" })}>{i18n("pages.taskspage.b457a3c1c9a1")}</button>
           </div>
           {news.state === "ready" && (news.data?.list.length ?? 0) > 0 ? (
-            <NewsRows feed={news.data!} navigate={navigate} />
+            <NewsRows feed={news.data!} navigate={navigate} windowed />
       ) : (
             <Card><Empty text={i18n("pages.taskspage.4706dde1fb19")} /></Card>
       )}

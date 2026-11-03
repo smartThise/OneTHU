@@ -1,12 +1,12 @@
 import { labelForId } from "../../i18n/staticLabels.js";
 import { courseDisplayName, courseSearchNames } from "../../lib/learnLanguage.js";
 import { t as i18n, useLocale as useUiLocale } from "../../i18n/index.js";
-import { Btn } from "@onethu/gui";
+import { Tabs, Btn } from "@onethu/gui";
 /** 全部作业（learnX Assignments）：按状态分组（进行中/已逾期/已交/已批改），组内按截止时间排序 */
 import { useMemo, useState } from "react";
 import { parseLearnTime, SOURCE_NAMES } from "@onethu/core";
 import { PageAtomStar } from "../..//components/Collect.js";
-import { SegmentedOverflow, Card, Empty, ErrorNote, PageHead, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { Card, Empty, ErrorNote, ListWindow, PageHead, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { IconRefresh } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
@@ -196,7 +196,7 @@ export function AssignmentsPage() {
   }, [uiLocale, auditAll, filter]);
 
   const list = groups[filter];
-  // R10 15.4：页头只留学期文本；各分组计数已并入 SegmentedOverflow 各 tab（含「全部」），
+  // R10 15.4：页头只留学期文本；各分组计数已并入 Tabs 各 tab（含「全部」），
   // 「外部 N」删除（已融入各组、无信息量）
   // 从网络学堂页的雨课堂课程卡片进来时，页头改为说明「正在看哪门课」。
   const meta = extCourseId
@@ -229,47 +229,50 @@ export function AssignmentsPage() {
       {/* R19 27.1：TUOJ 自动重漫游仍失败的静默条幅（含「去设置重新登录」手动入口） */}
       <ExtHwSourceErrorNote />
 
-      <SegmentedOverflow>
-        {FILTERS.map(({ key, label }) => (
-          <button
-            key={key}
-            role="tab"
-            aria-selected={filter === key}
-            className={filter === key ? "is-active" : ""}
-            onClick={() => setFilter(key)}
-          >
-            {label}
-            <span className="tab-count">{groups[key].length}</span>
-          </button>
-        ))}
-      </SegmentedOverflow>
+      <Tabs
+        variant="segmented"
+        block
+        value={filter}
+        onChange={(key) => setFilter(key as Filter)}
+        items={FILTERS.map(({ key, label }) => ({ id: key, label, badge: groups[key].length }))}
+      />
 
       {state === "loading" && !data ? (
         <SkeletonRows rows={6} />
       ) : state === "error" && !data ? null : (
         <>
-          {list.length === 0 ? (
-            auditList.length === 0 ? (
-              <Card><Empty text={filter === "unfinished" ? i18n("pages.learn.assignmentspage.4ea07768437b") : filter === "overdue" ? i18n("pages.learn.assignmentspage.f67f9df18e46") : filter === "ignored" ? i18n("pages.learn.assignmentspage.174b6eabff32") : i18n("pages.learn.assignmentspage.5c018f6106a3")} /></Card>
-            ) : null
-          ) : (
-            <Card className="list">
-              {list.map((h, i) => (
-                <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={courseDisplayName(byCourse.get(h.courseId)) ?? h.courseName} identityCourseName={byCourse.get(h.courseId)?.name ?? h.courseName} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${i * 25}ms` }} />
-              ))}
+          {list.length === 0 && auditList.length === 0 ? (
+            <Card>
+              <Empty
+                text={
+                  filter === "unfinished"
+                    ? i18n("pages.learn.assignmentspage.4ea07768437b")
+                    : filter === "overdue"
+                      ? i18n("pages.learn.assignmentspage.f67f9df18e46")
+                      : filter === "ignored"
+                        ? i18n("pages.learn.assignmentspage.174b6eabff32")
+                        : i18n("pages.learn.assignmentspage.5c018f6106a3")
+                }
+              />
             </Card>
-          )}
-          {/* R23：旁听作业单列（不计入上方计数与「全部」总数） */}
-          {auditList.length > 0 ? (
-            <>
-              <SectionHead title={i18n("pages.learn.assignmentspage.fb24bf947275")} />
-              <Card className="list">
-                {auditList.map((h, i) => (
-                  <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={courseDisplayName(byCourse.get(h.courseId)) ?? h.courseName} identityCourseName={byCourse.get(h.courseId)?.name ?? h.courseName} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${i * 25}ms` }} />
+          ) : (
+            <ListWindow className="learn-assignment-window">
+              {/* 固定视口内滚动：高度由 ListWindow 按底栏实测，不再依赖硬编码 offset
+                  （旧 offset 在宽屏留出大片空白）。 */}
+                {list.map((h, i) => (
+                  <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={courseDisplayName(byCourse.get(h.courseId)) ?? h.courseName} identityCourseName={byCourse.get(h.courseId)?.name ?? h.courseName} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }} />
                 ))}
-              </Card>
-            </>
-          ) : null}
+                {/* R23：旁听作业单列（不计入上方计数与「全部」总数） */}
+                {auditList.length > 0 ? (
+                  <div className="learn-assignment-audit">
+                    <SectionHead title={i18n("pages.learn.assignmentspage.fb24bf947275")} />
+                    {auditList.map((h, i) => (
+                      <HomeworkRow key={`${h.courseId}-${h.id}`} h={h} courseName={courseDisplayName(byCourse.get(h.courseId)) ?? h.courseName} identityCourseName={byCourse.get(h.courseId)?.name ?? h.courseName} sem={data?.semester.id} from="learn-assignments" remind style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }} />
+                    ))}
+                  </div>
+                ) : null}
+            </ListWindow>
+          )}
         </>
       )}
     </>

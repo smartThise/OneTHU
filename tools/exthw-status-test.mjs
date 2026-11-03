@@ -1816,11 +1816,12 @@ console.log("\n[雨课堂 R21-B 会话/保活/导出导入]");
 
   // ⑦ 编排层：yuketang 失效只进 errors（无自动重登路径，不加前缀、不触发 Tyche 重登）
   if (canResolveTs) {
-    const { refreshExternalHomework, resetTycheSessionRetryState, resetTuojSessionRetryState } = await import(
+    const { refreshExternalHomework, resetTycheSessionRetryState, resetTuojSessionRetryState, resetYuketangSessionRetryState } = await import(
       "../packages/core/src/exthw/index.ts"
     );
     resetTycheSessionRetryState();
     resetTuojSessionRetryState();
+    resetYuketangSessionRetryState();
     const creds = { yuketang: { cookie: "sessionid=dead", uvId: "2598" } };
     const r = await refreshExternalHomework({
       getCreds: () => creds,
@@ -1830,6 +1831,29 @@ console.log("\n[雨课堂 R21-B 会话/保活/导出导入]");
     ok(!r.errors.yuketang.includes("已尝试自动重新登录"), "⑦无静默重登路径 → 不加自动重登前缀");
     eq(r.reloginTyche, false, "⑦不误触发 Tyche 自动重登");
     eq(r.items.length, 0, "⑦yuketang 单源失效时 items 为空");
+
+    // ⑦b 注入换票钩子：失效 → 钩子写回新 Cookie → 自动重拉一次
+    resetYuketangSessionRetryState();
+    let renewed = false;
+    const liveCreds = { yuketang: { cookie: "sessionid=dead", uvId: "2598" } };
+    const retry = await refreshExternalHomework({
+      getCreds: () => liveCreds,
+      fetchLike: async () => {
+        if (!renewed) {
+          return new Response(JSON.stringify({ errcode: 401000, errmsg: "Session not exists" }), { status: 401 });
+        }
+        return new Response(JSON.stringify({ data: { list: [] } }), { status: 200 });
+      },
+      reloginYuketang: async () => {
+        renewed = true;
+        liveCreds.yuketang.cookie = "sessionid=alive";
+        return true;
+      },
+    });
+    eq(renewed, true, "⑦b 失效触发免扫码换票钩子");
+    eq(retry.reloginYuketang, true, "⑦b 换票成功标记 reloginYuketang");
+    eq(retry.errors.yuketang, undefined, "⑦b 换票后重拉成功，不保留旧错误");
+    eq(retry.items.length, 0, "⑦b 重拉成功但空课程列表");
   }
 }
 

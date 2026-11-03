@@ -20,13 +20,13 @@
 .ohx-modeswitch {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px;
+  gap: 4px;
+  padding: 4px;
   margin-left: 8px;
 }
 .ohx-modeswitch button {
   line-height: 1;
-  padding: 5px 12px;
+  padding: 4px 12px;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -37,7 +37,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 10px 14px 8px;
+  padding: 8px 16px 8px;
   gap: 8px;
 }
 
@@ -52,8 +52,8 @@
 }
 .ohx-search-status {
   color: var(--text-3);
-  font-size: 13px;
-  padding: 14px 2px;
+  font-size: 12px;
+  padding: 16px 4px;
 }
 
 /* 最近搜索（横向 chips） */
@@ -61,17 +61,17 @@
 .ohx-history-head {
   font-size: 12px;
   color: var(--text-3);
-  margin: 2px 2px 6px;
+  margin: 4px 4px 8px;
 }
 .ohx-history-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 .ohx-history-empty { font-size: 12px; color: var(--text-3); opacity: 0.75; }
 .ohx-chip {
   line-height: 1;
-  padding: 6px 11px;
+  padding: 8px 12px;
   cursor: pointer;
   max-width: 200px;
   overflow: hidden;
@@ -91,10 +91,10 @@
 .ohx-hit {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   text-align: left;
-  padding: 9px 6px;
+  padding: 8px 8px;
   cursor: pointer;
 }
 .ohx-hit-name {
@@ -111,7 +111,7 @@
 }
 .ohx-hit-tag {
   flex: none;
-  padding: 2px 7px;
+  padding: 4px 8px;
 }
 
 /* 零命中 → 问小 (OH)（丝滑切换开关的那一下） */
@@ -120,8 +120,8 @@
   border: 1px dashed var(--accent-border, var(--accent));
   color: var(--accent);
   background: var(--accent-soft, transparent);
-  font-size: 13px;
-  padding: 10px 12px;
+  font-size: 12px;
+  padding: 8px 12px;
   border-radius: 10px;
   cursor: pointer;
   text-align: center;
@@ -136,7 +136,7 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 /* ── dev-explorer 二轮：面板从胶囊顶边「长出来」 ──
@@ -144,8 +144,9 @@
    这里只管形态：底部中心为变换原点，入场 scaleY(0.5)+上浮 8px → 展平，160ms；
    关闭反向缩回胶囊（is-closing 通道）；语音滑入（is-slide）同样走 grow，不叠加旧动画。 */
 @keyframes ohx-grow {
-  from { opacity: 0; transform: scaleY(0.5) translateY(8px); }
-  to { opacity: 1; transform: none; }
+  /* OH 面板是玻璃面：只做 scale，不做 opacity（否则 backdrop-filter 入场期间失效）。 */
+  from { transform: scaleY(0.5) translateY(8px); }
+  to { transform: none; }
 }
 @keyframes ohx-shrink {
   from { opacity: 1; transform: none; }
@@ -181,29 +182,29 @@
   animation: ohx-shrink-top var(--dur-2, 0.2s) ease both;
 }
 @keyframes ohx-grow-top {
-  from { opacity: 0; transform: scaleY(0.5) translateY(-8px); }
-  to { opacity: 1; transform: none; }
+  from { transform: scaleY(0.5) translateY(-8px); }
+  to { transform: none; }
 }
 @keyframes ohx-shrink-top {
   from { opacity: 1; transform: none; }
   to { opacity: 0; transform: scaleY(0.5) translateY(-8px); }
 }
 /* 顶置形态：把手挪到面板底部（拖拽公式 startH − dy 语义不变：上拖=变高=面板向下伸展） */
-.dock-panel.is-topdock .dock-handle { order: 10; margin: 2px 0 0; }
+.dock-panel.is-topdock .dock-handle { order: 10; margin: 4px 0 0; }
 
 /* ── pid 未就绪（浏览器预览/Harness 未加载）的 OH 模式说明卡 ── */
 .dock-oh-missing {
   margin: auto 18px;
-  padding: 18px 20px;
+  padding: 16px 20px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--md-sys-color-surface-container-lowest, var(--surface));
   color: var(--text-2);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.7;
   text-align: left;
 }
-.dock-oh-missing b { display: block; margin-bottom: 6px; color: var(--text-1); font-size: 14px; }
+.dock-oh-missing b { display: block; margin-bottom: 8px; color: var(--text-1); font-size: 14px; }
 .dock-oh-missing p { margin: 4px 0; }
 
 /* 胶囊内常驻一星：贴右缘，搜索展开时不渲染（OhCapsule 控制）——

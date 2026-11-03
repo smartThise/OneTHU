@@ -28,6 +28,31 @@ html:root[data-og-skin="glass"] :is(.segmented, .seg-track) {
   -webkit-backdrop-filter: var(--og-reading-blur);
 }
 
+/* 页面搜索框（.search-box：网络学堂搜索、信息-课程信息、新闻搜索等）：
+   这是搜索输入的外壳，不是原生 input 本体。玻璃皮肤下旧 MD 面阶会把它画成一条
+   与周围玻璃脱节的实心/半透明条（用户口径「透明而没有模糊效果」）；外壳改吃
+   阅读面材质 + 背景模糊，内部 input 仍透明，原生控件本身保持实底。 */
+html:root[data-og-skin="glass"] .search-box {
+  background: var(--og-fill-reading);
+  border-color: var(--og-line-2);
+  color: var(--og-content-2);
+  backdrop-filter: var(--og-reading-blur);
+  -webkit-backdrop-filter: var(--og-reading-blur);
+}
+html:root[data-og-skin="glass"] .search-box:focus-within {
+  background: var(--og-fill-overlay);
+  border-color: var(--og-accent);
+  box-shadow: var(--og-material-shadow);
+  backdrop-filter: var(--og-overlay-blur);
+  -webkit-backdrop-filter: var(--og-overlay-blur);
+}
+html:root[data-og-skin="glass"] .search-box input {
+  color: var(--og-content-1);
+}
+html:root[data-og-skin="glass"] .search-box input::placeholder {
+  color: var(--og-content-3);
+}
+
 /* 行动按钮（“查看全部作业”“全部作业 →”“进入网络学堂 →”等）：
    玻璃下要有一层白色材质，而不是实心白板 + 硬描边。
    描边交给材质 rim（--og-material-shadow），保留 1px 透明边框占位避免布局跳动。 */
@@ -40,6 +65,12 @@ html:root[data-og-skin="glass"] :is(.og-btn--outline, .task-entry) {
 }
 
 
+/* 两种皮肤共用同一盒模型：表格行高不随玻璃档变化。 */
+html:root .data-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
 /* 数据表（信息页成绩/体测/教室/课程/网络/工资、体育等所有 .data-table）：
    表格源结构是 <Card overflow:hidden><table>，单元格都是直角矩形，放在超椭圆卡片里
    会"割角"。玻璃皮肤下统一拆成行块：
@@ -48,8 +79,10 @@ html:root[data-og-skin="glass"] :is(.og-btn--outline, .task-entry) {
    - 悬停整行填充同样带圆角。
    OneGUI 的材质改动对所有旧页面生效，不要求页面逐个换组件/加类名。 */
 html:root[data-og-skin="glass"] .data-table {
+  /* 不改变表格几何：border-spacing 会让玻璃皮肤下的每行比中性皮肤矮/高几像素，
+     同一页面切档就出现布局跳动。行块视觉靠 td 背景与圆角，不靠额外行距。 */
   border-collapse: separate;
-  border-spacing: 0 var(--og-geo-xs);
+  border-spacing: 0;
 }
 html:root[data-og-skin="glass"] .data-table thead th {
   background: transparent;
@@ -58,7 +91,8 @@ html:root[data-og-skin="glass"] .data-table thead th {
   -webkit-backdrop-filter: none;
 }
 html:root[data-og-skin="glass"] .data-table tbody td {
-  border-bottom: 0;
+  /* 保留 1px 透明边框占位，和中性皮肤的盒模型完全一致。 */
+  border-bottom: 1px solid transparent;
   background: color-mix(in srgb, var(--og-surface-1) 20%, transparent);
 }
 html:root[data-og-skin="glass"] .data-table tbody tr:hover td {
@@ -74,3 +108,35 @@ html:root[data-og-skin="glass"] .data-table tbody td:last-child {
 }
 
 /* 非玻璃皮肤保持原状：这里只在玻璃皮肤下接管，实色主题的对比关系不受影响。 */
+
+/* 雨课堂答题页 · 公式对话框内的 LaTeX 预览面（.ykt-formula-preview）：
+   旧样式用不透明别名 `--bg-soft`（≠ `--surface-*` 的玻璃覆盖块）画底，玻璃皮肤下就是
+   一块实心白板——公式预览正好整块压在上面（用户 2026-10-28「部分 LaTeX 背景变成
+   实心白色」）。按本文件既有口径改成阅读面材质：同一份模糊 + 半透明填充，LaTeX 本身
+   （.katex / .katex-display）保持透明、不再叠第二层底。 */
+html:root[data-og-skin="glass"] .ykt-formula-preview {
+  background: var(--og-fill-reading);
+  border-color: var(--og-line-2);
+  backdrop-filter: var(--og-reading-blur);
+  -webkit-backdrop-filter: var(--og-reading-blur);
+}
+html:root[data-og-skin="glass"] .ykt-formula-preview-body,
+html:root[data-og-skin="glass"] .ykt-formula-preview-body .katex,
+html:root[data-og-skin="glass"] .ykt-formula-preview-body .katex-display,
+html:root[data-og-skin="glass"] .ykt-formula-preview-body .katex-html {
+  background: transparent;
+}
+
+/* 卡内控件不再各自开 backdrop：外层 .og-surface 已经模糊过壁纸，段轨/搜索框/
+   outline 按钮只需要半透明填充 + rim。这样一页少掉多次小面积 backdrop 纹理，
+   静止观感保持一致；顶页面级（不在卡内）的控件仍保留自己的材质。 */
+html:root[data-og-skin="glass"] .og-surface :is(
+  .segmented,
+  .seg-track,
+  .search-box,
+  .og-btn--outline,
+  .task-entry
+) {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}

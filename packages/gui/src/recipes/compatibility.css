@@ -514,6 +514,132 @@ html:root .ex-ctxmenu-item:hover { background: var(--og-hover); }
 html:root .ex-ctxmenu-item.is-danger { color: var(--og-error); }
 html:root .ohx-capsule:focus-within { box-shadow: var(--og-ring); border-color: var(--og-line-3); }
 
+/* 统计卡（.stat-card：网络学堂四个入口、信息页数字卡等）是**带材质的面**：
+   中性皮肤是实底，玻璃皮肤是半透明 + 背景模糊。悬停/按压不能用 background 直接
+   换成半透明状态色（那会把卡片整块变透明、透出页面），状态层单独画在 ::after 上，
+   卡面填充、边框、模糊与圆角全程不动。规则放在宿主配方里，旧样式表只留棘轮。 */
+html:root .stat-card { position: relative; }
+html:root .stat-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  corner-shape: inherit;
+  background: var(--og-hover);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--og-dur-2) var(--og-ease-standard);
+}
+html:root .stat-card:active::after {
+  opacity: 1;
+  background: var(--og-press);
+}
+@media (hover: hover) and (pointer: fine) {
+  html:root .stat-card:hover::after { opacity: 1; }
+}
+
+/* 宿主结构墨色统一：页面内容、卡片、列表和行默认继承 OneGUI 的语义主墨。
+   旧页面里存在未显式声明颜色的文本（浏览器默认黑、旧 MD 变量、第三方编辑器），
+   暗色主题下会残留黑字；运行时对比度引擎又会把这些元素逐个改色，于是同一页出现
+   黑/灰/白多套墨色。容器级继承让「没有自己颜色」的文本一次到位，引擎只在真正
+   贴在壁纸上的少数字符上工作。组件自身的语义色（错误红、强调色）不受影响。 */
+html:root .explorer-content { color: var(--og-content-1); }
+html:root .explorer-content :is(.og-card, .card, .list, .row, .row-main, .og-pagehead, .page-anim) {
+  color: var(--og-content-1);
+}
+html:root .explorer-content :is(.page-head h1, .og-pagehead-topic h1, .row-title, .tl-title) {
+  color: var(--og-content-1);
+}
+
 /* Clock material belongs to the enclosing .free-item, just like other widgets
    (§8.5). Its body stays transparent even with wallpaper; textContrast still
    samples the wallpaper plus that single material surface for readable text. */
+
+/* ── 宿主：固定视口列表 / 离屏滤镜 / 行内动作 / 编辑器墨色 ─────────────
+   这些是旧页面结构在 Shell 里的修补，不再写进被棘轮计数的旧样式表。 */
+html:root .list-window-host { min-width: 0; }
+html:root .list-window { overflow: visible; }
+html:root .list-window-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border-radius: inherit;
+}
+html:root body .explorer-shell > .explorer-content:has(.list-window) { padding-bottom: 0 !important; }
+
+/* 玻璃滤镜的 0×0 SVG defs 留在文档流会占一行，锚到离屏层。 */
+html:root body > svg[width="0"][height="0"] {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* 深色模式页面底墨（容器级继承；避免同一页出现多套墨色）。 */
+html:root[data-scheme="dark"] :is(.page-anim, .og-card, .card, .list, .row, .row-main) {
+  color: var(--og-content-1);
+}
+html:root[data-scheme="dark"] :is(.row-title, .tl-title, .page-head h1, .og-pagehead-topic h1) {
+  color: var(--og-content-1);
+}
+
+/* 行内 ghost / 预览动作跟随主题墨色，不参与壁纸取墨。 */
+html:root .row .btn-ghost { color: inherit; }
+html:root .row .btn-ghost:hover { color: inherit; }
+html:root .row .row-preview {
+  background: var(--og-surface-2);
+  color: var(--og-content-1);
+}
+html:root .row .row-preview:hover {
+  background: var(--og-surface-3);
+  color: var(--og-content-1);
+}
+
+/* Quill 编辑器不能再用浏览器默认墨色。 */
+html:root .rich-editor .ql-editor {
+  min-height: var(--og-ctl-editor-min-h);
+  color: var(--og-content-1);
+}
+html:root .rich-editor .ql-editor.ql-blank::before { color: var(--og-content-3); font-style: normal; }
+
+/* 开发者面板：auth 失效测试的说明行。 */
+html:root .og-dev-auth-title { color: var(--og-content-3); margin: 6px 0 4px; }
+
+/* ── 校园卡两栏（≥1024）：左侧余额/统计/预警，右侧最近消费 ──────────────
+   右栏列表与左栏同高，滚动收进卡片内部；窄屏继续上下堆叠并走视口测量。 */
+html:root .list-window-host.is-fill {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  /* 由 grid 行高（= 左栏高度）决定最终高度：自身不参与 intrinsic 高度计算，
+     否则 60 行流水会把整行撑到 3900px。 */
+  height: 0;
+  min-height: 0;
+}
+html:root .list-window-host.is-fill .list-window {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+html:root .list-window-host.is-fill .list-window-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+@media (min-width: 1024px) {
+  html:root .card-two-col {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: var(--og-space-5);
+  }
+  html:root .card-col-main,
+  html:root .card-col-side { min-width: 0; }
+  html:root .card-col-side {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+}

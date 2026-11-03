@@ -36,7 +36,7 @@ export function SimpleHost(){
 
  const outer=useApp(), route=useSimpleRoute();
  const value=useMemo(()=>({...outer,page:route.page,navParams:route.params,navigate:(page:typeof route.page,params?:NonNullable<typeof route.params>)=>{if(page==="settings"||page==="plugins")openSettings("settings");else navigateSimple(page,params);}}),[uiLocale, outer, route]);
- return <Ctx.Provider value={value}><div className="explorer-panel simple-panel" data-simple-page={route.page}><div className="page-anim" key={route.page} data-page={route.page}>
+ return <Ctx.Provider value={value}><div className="explorer-panel simple-panel" data-simple-page={route.page}><div className="page-anim" key={route.page} data-page={route.page} data-tx="keep">
  {route.page==="homepage"?<div className="simple-home"><section><header className="simple-section-head"><span>{i18n("components.simpleexperience.be835793d3f3")}</span><h2>{i18n("components.simpleexperience.23530d9f428a")}</h2></header><HomeworkWidget/></section><section><header className="simple-section-head"><span>{i18n("components.simpleexperience.1db098f84eb2")}</span><h2>{i18n("components.simpleexperience.119099ab1bad")}</h2></header><TodayClassesWidget upcoming/></section></div>:renderPage(route.page)}
  </div></div></Ctx.Provider>;
 }

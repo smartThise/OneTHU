@@ -123,6 +123,7 @@ const alphaOf = (color) => {
 
 async function setMaterial(page, level) {
   await call(page, "/src/lib/glassLevel.ts", "setGlassLevel", [level]);
+  await call(page, "/src/lib/opticalRefraction.ts", "setOpticalRefraction", [true]);
   await page.evaluate(() => document.documentElement.dataset.scheme);
 }
 
@@ -136,6 +137,7 @@ async function refractionFixture(page) {
     const hit = entries.findLast(name => new URL(name, location.href).pathname.endsWith("pipeline/refraction.ts"));
     if (!hit) return null;
     const module = await import(new URL(hit, location.href).href);
+    document.documentElement.dataset.ogOptics = "on";
     const host = document.createElement("div");
     host.id = "og-optics-bench";
     host.style.cssText = "position:fixed;left:24px;bottom:24px;width:260px;height:150px;z-index:9000;"
@@ -339,8 +341,8 @@ try {
   samples.push({ light });
   check(light.skin === "glass", "clear level maps onto the glass skin");
   check(light.reading.includes("color-mix("), "reading surfaces resolve to a translucent material, not an opaque plate");
-  check(alphaOf(light.readingFill) >= 0.55, "clear light reading floor ≥ 55% (" + alphaOf(light.readingFill).toFixed(2) + ")");
-  check(alphaOf(light.cardFill) >= 0.34, "clear light surface floor ≥ 34% (" + alphaOf(light.cardFill).toFixed(2) + ")");
+  check(alphaOf(light.readingFill) >= 0.40, "glass light reading floor ≥ 40% (" + alphaOf(light.readingFill).toFixed(2) + ")");
+  check(alphaOf(light.cardFill) >= 0.22, "glass light surface floor ≥ 22% (" + alphaOf(light.cardFill).toFixed(2) + ")");
   check(light.readingBlur.includes("blur("), "reading surfaces keep the surface blur");
   const toolbar = await page.evaluate(() => {
     const el = document.querySelector(".board-viewport-tools");
@@ -368,8 +370,8 @@ try {
     };
   });
   samples.push({ dark });
-  check(alphaOf(dark.cardFill) >= 0.18, "clear dark surface floor ≥ 18% after the dark-veil revision (" + alphaOf(dark.cardFill).toFixed(2) + ")");
-  check(alphaOf(dark.readingFill) >= 0.42, "clear dark reading floor ≥ 42% after the dark-veil revision (" + alphaOf(dark.readingFill).toFixed(2) + ")");
+  check(alphaOf(dark.cardFill) >= 0.12, "glass dark surface floor ≥ 12% (" + alphaOf(dark.cardFill).toFixed(2) + ")");
+  check(alphaOf(dark.readingFill) >= 0.34, "glass dark reading floor ≥ 34% (" + alphaOf(dark.readingFill).toFixed(2) + ")");
   await page.evaluate(() => { document.documentElement.dataset.scheme = "light"; });
   await page.waitForTimeout(500);
 
@@ -402,7 +404,7 @@ try {
   });
   samples.push({ optics });
   check(optics.count > 0, "edge refraction is installed on at least one visible surface");
-  check(optics.count <= 4, "optics budget: at most 4 simultaneous lenses (" + optics.count + ")");
+  check(optics.count <= 8, "optics budget: at most 8 simultaneous lenses (" + optics.count + ")");
   check(optics.surfaces.every(surface => surface.filter.includes("url(")), "each lens replaces the material with a real SVG filter");
   check(optics.filters.length > 0 && optics.filters.every(filter => filter.displacement), "each filter contains feDisplacementMap (real displacement)");
   check(optics.filters.every(filter => filter.maps.every(map => map.width <= 256 && map.height <= 256)),

@@ -560,6 +560,24 @@ export class LearnClient {
     return this.silentRelogin();
   }
 
+  /** 主动探活 + 按需重建，供宿主 keepalive / 聚焦唤醒使用。
+   *
+   *  不能只 `if (this.#csrf) return true`：`_csrf` 是上一次页面里抓到的值，
+   *  服务端会话过期后它仍在内存里。这里每次都真实取一次课程页；取不到再走
+   *  `#recoverSession`（含宿主 id 漫游与并发单飞）。失败只返回 false，不抛错，
+   *  避免后台探针把网络异常升级成页面错误。
+   */
+  async ensureSession(): Promise<boolean> {
+    try {
+      const token = await this.#establishSession();
+      if (!token) return false;
+      this.#csrf = token;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   /** 账密供应（clients.ts 注入，本模块不持密码） */
   credentialProvider: (() => {
     username: string;

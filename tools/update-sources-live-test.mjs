@@ -27,6 +27,10 @@ for(platform of ['macos','windows','android']){
  for(const result of [github,cloud]){assert.equal(result.latest,expectedVersion);assert.equal(result.hasUpdate,true);assert.equal(result.hashAvailable,true);assert.match(result.asset.sha256,/^[a-f0-9]{64}$/);}
  assert.equal(cloud.asset.sha256,github.asset.sha256);assert.equal(cloud.downloadName,github.downloadName);
  assert.ok(cloud.downloadUrl.includes(encodeURIComponent(cloud.asset.url)));
+ const both=await updater.checkForUpdate({});
+ assert.equal(both.ok,true);assert.equal(both.source,'cloud','equal live versions prefer the Tsinghua cloud mirror');
+ assert.equal(both.attempts.length,2);assert.ok(both.attempts.every(attempt=>attempt.ok));
+ assert.equal(both.latest,expectedVersion);
  offlineGitHub=true;const fallback=await updater.checkForUpdate({});offlineGitHub=false;
  assert.equal(fallback.ok,true);assert.equal(fallback.source,'cloud');assert.equal(fallback.latest,expectedVersion);assert.equal(fallback.hashAvailable,true);assert.equal(fallback.attempts.length,2);
  console.log(`✓ ${platform}: real GitHub/cloud manifests, matching SHA256, GitHub failure falls back to cloud`);

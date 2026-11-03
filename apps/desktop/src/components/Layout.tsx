@@ -915,6 +915,91 @@ export function Card({
   return style ? <div style={style}>{card}</div> : card;
 }
 
+
+/**
+ * 固定视口列表：卡片高度 = 当前页面从卡片顶部到内容区底部的可用高度。
+ * 用实测而不是每页抄一组 `100dvh - Npx`：页头、筛选行、banner、标签栏高度
+ * 变化时列表仍恰好铺满一屏，页面本身不滚。滚动发生在卡片内部，
+ * 长列表不会生成超大合成层，玻璃模糊/圆角/字色在首帧就是最终状态。
+ */
+export function ListWindow({
+  children,
+  className = "",
+  reserve = 0,
+  fill = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  /** 列表下方仍需可见的兄弟内容（如待办页脚注）预留高度 */
+  reserve?: number;
+  /** 由父级 flex/grid 给出确定高度时启用：不再按视口测量，卡片撑满父级并在内部滚动。 */
+  fill?: boolean;
+}) {
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const [height, setHeight] = useState<number>();
+
+  useLayoutEffect(() => {
+    if (fill) return;
+    const host = hostRef.current;
+    if (!host) return;
+    const update = (): void => {
+      // 页头入场是 header 自己的 transform，不影响列表宿主的布局位置；不要为了测量
+      // 去改写 header.style.animation——恢复 animation 会让标题入场从头重播。
+      const rect = host.getBoundingClientRect();
+      // 页面可能带着上一次滚动位置挂载（课程卡在页面下方 → 详情页首帧不在顶部）。
+      // 直接用 viewport top 会把「已经滚掉的距离」当成可用高度，列表于是撑到内容全高。
+      // 这里把位置换算成滚动容器内的文档偏移，滚动多少都不影响测量。
+      let scroller: HTMLElement | null = null;
+      for (let p = host.parentElement; p && p !== document.body; p = p.parentElement) {
+        const oy = getComputedStyle(p).overflowY;
+        if ((oy === "auto" || oy === "scroll") && p.clientHeight < p.scrollHeight) { scroller = p; break; }
+      }
+      const scRect = scroller?.getBoundingClientRect();
+      const scrollTop = scroller?.scrollTop ?? (window.scrollY || document.documentElement.scrollTop || 0);
+      const top = rect.top - (scRect?.top ?? 0) + scrollTop;
+      const viewportH = scroller?.clientHeight ?? window.innerHeight;
+      const content = host.closest<HTMLElement>(".explorer-content");
+      const pad = content ? Number.parseFloat(getComputedStyle(content).paddingBottom) || 0 : 0;
+      // 底栏是浮在内容之上的固定层：不能只减 content padding，否则列表最后几行
+      // 会压在「学习/预约/生活/信息/课表」快捷按钮下面。取实际底栏高度。
+      // 底部快捷按钮是 .oneshot（.ex-bbar 是顶部工作台栏，不能拿来算底部）。
+      const bottomLayers = [".oneshot", ".ex-bbar"]
+        .map((sel) => document.querySelector<HTMLElement>(sel)?.getBoundingClientRect())
+        .filter((r): r is DOMRect => r !== undefined && r.height > 0 && r.bottom > window.innerHeight * 0.5);
+      const barInset = bottomLayers.reduce((max, r) => Math.max(max, window.innerHeight - r.top), 0);
+      const safe = Math.max(pad, barInset + 12);
+      // 卡片 1px 边框 + 宿主滚动条余量；至少留 120px，极端小窗仍可用。
+      const next = Math.max(120, Math.round(viewportH - top - safe - reserve - 4));
+      setHeight((prev) => (prev === next ? prev : next));
+    };
+    update();
+    const raf = requestAnimationFrame(update);
+    // 字体/异步页头/筛选条落定后再量两次；首次挂载若在布局完成前测，会留下过高的列表。
+    const timers = [120, 360].map((ms) => window.setTimeout(update, ms));
+    const ro = new ResizeObserver(update);
+    ro.observe(host);
+    if (host.parentElement) ro.observe(host.parentElement);
+    void document.fonts?.ready.then(update).catch(() => undefined);
+    window.addEventListener("resize", update);
+    return () => {
+      cancelAnimationFrame(raf);
+      timers.forEach((timer) => window.clearTimeout(timer));
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [reserve, fill]);
+
+  return (
+    <div ref={hostRef} className={`list-window-host ${fill ? "is-fill" : ""} ${className}`.trim()}>
+      <Card className="list list-window">
+        <div className="list-window-scroll" data-tx="keep" style={!fill && height ? { height } : undefined}>
+          {children}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 /* 空状态：text 必填，icon/hint/action 可选（B5b）。
    旧调用 <Empty text="..." /> 一字不改仍然成立；需要更完整的空状态时再加图标与副文案。 */
 export function Empty({
@@ -959,14 +1044,16 @@ export function Switch({
   on,
   onChange,
   label,
+  disabled = false,
 }: {
   on: boolean;
   onChange: (v: boolean) => void;
   label: string;
+  disabled?: boolean;
 }) {
   const uiLocale = useUiLocale();
 
-  return <OGSwitch checked={on} onChange={() => onChange(!on)} aria-label={label} />;
+  return <OGSwitch checked={on} onChange={() => onChange(!on)} disabled={disabled} aria-label={label} />;
 }
 
 /* 保留未用引用防 tree-shake 误报：这些图标被 NAV 数据表引用 */

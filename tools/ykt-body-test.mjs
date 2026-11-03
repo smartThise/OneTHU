@@ -409,5 +409,73 @@ console.log("\n[8] 主题配色：yktDocCss / sanitizeDocColor / buildYktProblem
   ok(!yb.yktDocIsDark(yb.DEFAULT_YKT_DOC_THEME), "默认浅色定稿仍是亮档");
 }
 
+/* ───────────────── [9] 字面 nbsp + 玻璃档公式白底（2026-10-28 用户反馈） ───────────────── */
+console.log("\n[9] 字面 nbsp 归一 / 玻璃档剥行内背景（公式白底）");
+{
+  // —— ① nbsp 实体归一：单层 / 二次编码 / 三层编码 / 数字实体 / 大小写 ——
+  eq(yb.normalizeNbspEntities("a&nbsp;b"), "a\u00a0b", "单层 &nbsp; → NBSP 字符（渲染即空格）");
+  eq(yb.normalizeNbspEntities("a&amp;nbsp;b"), "a\u00a0b", "二次编码 &amp;nbsp; → NBSP（用户看到的字面 nbsp 根因）");
+  eq(yb.normalizeNbspEntities("a&amp;amp;nbsp;b"), "a\u00a0b", "三层编码同归一");
+  eq(yb.normalizeNbspEntities("a&#160;b&#xA0;c"), "a\u00a0b\u00a0c", "数字实体 &#160; / &#xA0;");
+  eq(yb.normalizeNbspEntities("&NBSP;"), "\u00a0", "实体名大小写不敏感");
+  eq(yb.normalizeNbspEntities("a&amp;nbsp;b", "tex"), "a b", "TeX 档 → 普通空格（KaTeX 最稳）");
+  eq(yb.decodeBasicEntities("a&amp;nbsp;b"), "a b", "decodeBasicEntities 同口径（& 不再让公式抛 parse error）");
+  eq(yb.normalizeNbspInHtml('<p title="&amp;nbsp;">a&amp;nbsp;b</p>'), '<p title="&amp;nbsp;">a\u00a0b</p>', "文本节点归一，属性不动");
+
+  // —— ② 构造雨课堂题干 fixture（真实形态：UEditor &nbsp; / 二次编码 / 公式内实体 / kfformula） ——
+  const render = await yk.loadYktLatexRender();
+  ok(render !== null, "真实 vendor KaTeX 可用（fixture 走真渲染）");
+  const fixture = [
+    "<p>1．下列说法正确的是（&nbsp;&nbsp;&nbsp;）</p>",
+    "<p>2．二次编码文本：甲&amp;nbsp;乙 与 丙&amp;amp;nbsp;丁</p>",
+    "<p>3．公式含实体：$f(x)=x^2&nbsp;(x&gt;0)$ 与 $a&amp;nbsp;b$</p>",
+    "<p>4．显示公式：\\[\\frac{a}{b}&nbsp;+&nbsp;c\\]</p>",
+    '<img class="kfformula" data-latex="a&nbsp;b" data-display="inline">',
+    '<img class="kfformula" data-latex="x&amp;nbsp;y" data-display="block">',
+  ].join("");
+  const doc = yb.buildYktProblemDoc({ html: fixture, render, extraCss: ".KATEXMARK{y:1}" });
+  const docBody = doc.slice(doc.indexOf("<body>") + 6, doc.indexOf("<script>"));
+  ok(!docBody.includes("&amp;nbsp;"), "文档正文不残留二次编码实体（&amp;nbsp;）");
+  ok((docBody.match(/class="katex"/g) ?? []).length >= 4, "公式内的 nbsp（单层/二次编码/kfformula data-latex）全部真渲染（不再回退原始 $…$）");
+  ok(!docBody.includes("\\frac{a}{b}"), "显示公式没有被回退成 TeX 源码");
+  // 模拟浏览器可见文本：解实体 → 剥标签 → 既无字面 nbsp、也无回退的 $ 公式
+  const visible = docBody
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;|&#160;|&#xa0;/gi, "\u00a0")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+  ok(!/nbsp/i.test(visible), "浏览器可见文本不含字面 nbsp（含 “&nbsp;”/“nbsp” 两种形态）");
+  ok(!visible.includes("$") && !visible.includes("\\frac"), "浏览器可见文本不残留未渲染的公式定界/源码");
+  ok(visible.includes("甲\u00a0乙"), "二次编码的 NBSP 语义保留为空格（非折叠成普通空格以外的破坏）");
+
+  // —— ③ 玻璃档（flush）剥行内背景：注入式，Node 无 DOMParser → 替身验证「何时/如何接线」 ——
+  const whiteHtml = '<p style="background:#fff;color:#c00">公式 $x$</p><table bgcolor="#ffffff"><tr><td style="background-color:rgb(255,255,255)">值</td></tr></table>';
+  const docPaper = yb.buildYktProblemDoc({ html: whiteHtml, render });
+  ok(docPaper.includes("background:#fff") && docPaper.includes('bgcolor="#ffffff"'), "实色纸面档：不剥行内背景（原始行内底保留，行为不变）");
+  const calls = [];
+  const docGlass = yb.buildYktProblemDoc({
+    html: whiteHtml,
+    render,
+    stripBackgrounds: (h) => {
+      calls.push(h);
+      return h.replace(/\s*style="[^"]*"/g, "").replace(/\s*bgcolor="[^"]*"/g, "");
+    },
+  });
+  ok(!docGlass.includes("background:#fff") && !docGlass.includes("bgcolor"), "玻璃档：注入 stripBackgrounds → 行内实底剥掉（公式背后不再有实心白块）");
+  ok(docGlass.includes('class="katex"') && docGlass.includes("公式"), "剥背景不影响公式渲染与正文");
+  ok(calls.length === 1 && !calls[0].includes('class="katex"'), "stripBackgrounds 在 KaTeX 渲染**之前**跑（只处理来源 HTML，保留 \\colorbox 等 KaTeX 语义背景）");
+
+  // —— ④ 接线静态审计：ProblemBody 只在 flush（玻璃档）注入；htmlTheme 导出实现 ——
+  const readSrc = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
+  const comp = readSrc("../apps/desktop/src/components/exthw/ProblemBody.tsx");
+  ok(comp.includes("stripInlineBackgrounds"), "ProblemBody：引入 stripInlineBackgrounds");
+  ok(comp.includes("stripBackgrounds: stripInlineBackgrounds,"), "ProblemBody：所有皮肤/明暗模式都剥行内背景（底色跟随页面材质）");
+  const themeSrc = readSrc("../apps/desktop/src/lib/htmlTheme.ts");
+  ok(themeSrc.includes("export function stripInlineBackgrounds"), "htmlTheme：stripInlineBackgrounds 实现导出");
+  ok(themeSrc.includes('removeProperty("background-color")') && themeSrc.includes('removeAttribute("bgcolor")'), "stripInlineBackgrounds：背景声明与 bgcolor 呈现属性都剥");
+  ok(themeSrc.includes("export function stripInlineColors"), "stripInlineColors 保留（暗底路径行为不变）");
+}
+
 console.log(`\n═══ R20-B3 题干内联渲染单测：${pass} 通过 / ${fail} 失败 ═══`);
 if (fail > 0) process.exit(1);

@@ -30,7 +30,16 @@ assert.ok(widths.length > 0, "At least one viewport width must be selected");
 let count = 0;
 const results = [];
 const check = (value, label) => { assert.ok(value, label); count++; };
-async function setup(browser, width, scale = 1) {
+/** CSS 颜色 → alpha（rgb() 视作 1；rgba()/color(srgb … / a) 取末尾 alpha）。 */
+const alphaOf = (value) => {
+  if (!value) return 0;
+  const slash = /\/\s*([\d.]+)\s*\)/.exec(value);
+  if (slash) return Number(slash[1]);
+  const rgba = /rgba\([^)]*,\s*([\d.]+)\s*\)/.exec(value);
+  if (rgba) return Number(rgba[1]);
+  return 1;
+};
+async function setup(browser, width, scale = 1, opts = {}) {
   const page = await browser.newPage({ viewport:{width, height:900}, deviceScaleFactor:scale, hasTouch:width < 600 });
   page.setDefaultTimeout(12000);
   await page.routeWebSocket(/(?:127\.0\.0\.1|localhost):5180/, () => {});
@@ -38,11 +47,15 @@ async function setup(browser, width, scale = 1) {
     const url = new URL(route.request().url());
     return ["127.0.0.1", "localhost"].includes(url.hostname) ? route.continue() : route.abort();
   });
-  await page.addInitScript(() => {
+  await page.addInitScript((o) => {
     localStorage.setItem("onethu.onboarded.phone", "1");
+    localStorage.setItem("onethu.onboarded.flow3", "1");
+    localStorage.setItem("onethu.onboarded.flow4", "1");
+    localStorage.setItem("onethu.privacy.v1", JSON.stringify({ acknowledged: true, cloud: true, oh: true }));
     localStorage.setItem("onethu.experience.v1", "full");
     localStorage.setItem("onethu.overlay.closed", "1");
-  });
+    if (o.rail) localStorage.setItem("explorer.tabLayout.current", "v");
+  }, opts);
   await page.goto(base + "/?explorer-preview=onboarding");
   await page.locator(".explorer-shell").waitFor();
   await page.evaluate(async () => {
@@ -70,6 +83,9 @@ async function setup(browser, width, scale = 1) {
     bundle.notifications = [{id:"fixture-notice",courseId:"fixture-0",title:"测试通知",publishTime:"2026-10-20 08:00",publisher:"示例教师"}];
     bundle.files = [{id:"fixture-file",courseId:"fixture-0",title:"测试课件",uploadTime:"2026-10-20 08:00",size:128}];
     const ext = await import(window.__learnFixtureSources.exthw);
+    // 启动时 hook 可能已发起一次外部作业刷新；等它落定再写夹具，避免被晚到的
+    // 空结果覆盖（否则雨课堂课程合并/单列断言会随机只剩网络学堂课程）。
+    await ext.refreshExtHw().catch(() => undefined);
     const snapshot = ext.getExtHwSnapshot();
     snapshot.state = "ready";
     snapshot.items = [];
@@ -88,8 +104,21 @@ async function setup(browser, width, scale = 1) {
   });
   return page;
 }
+async function openTabViaStore(page, tab) {
+  // Chromium/Playwright 偶发把 evaluate 的 promise GC 掉（Resulting promise was garbage collected）；
+  // 这是测试桥的抖动，不是应用错误，重试一次即可，避免整轮 225 项被一个偶发打断。
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await page.evaluate(async (name) => { (await import(window.__learnFixtureSources.explorer)).openTab(name); }, tab);
+      return;
+    } catch (err) {
+      if (!String(err instanceof Error ? err.message : err).includes("garbage collected") || attempt === 2) throw err;
+      await page.waitForTimeout(250);
+    }
+  }
+}
 async function returnToLearn(page) {
-  await page.evaluate(async () => { (await import(window.__learnFixtureSources.explorer)).openTab("learn"); });
+  await openTabViaStore(page, "learn");
   await page.locator(".learn-course-list:visible").waitFor();
 }
 for (const [engine, kind, options] of engines) {
@@ -102,6 +131,8 @@ for (const [engine, kind, options] of engines) {
         const list = page.locator(".learn-course-list:visible");
         const cards = list.locator(".learn-course-card");
         check(await cards.count() === 10, `${engine}/${width}: merged course appears once and unmatched classroom remains`);
+        // 课程卡入场是横向位移；等 400ms 落定后再量几何，避免把入场首帧当成溢出。
+        await page.waitForTimeout(700);
         const geometry = await list.evaluate((el) => {
           const box = e => { const r=e.getBoundingClientRect(); return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom}; };
           return {
@@ -111,8 +142,19 @@ for (const [engine, kind, options] of engines) {
             overflow:document.documentElement.scrollWidth>innerWidth+1,
           };
         });
-        if (width >= 840) check(geometry.content.w >= width - 40, `${engine}/${width}: course content occupies the available window`);
+        if (width >= 840) check(geometry.content.w <= 1160 + 1, `${engine}/${width}: course content respects the shared reading boundary`);
         check(!geometry.overflow && geometry.clipping.length === 0, `${engine}/${width}: long title, teachers and locations remain readable`);
+        // 主页与子页面必须同宽：此前 learn 页单独把 .explorer-content 拉成 width:100%，
+        // 竖版标签栏下还多出横向滚动条（用户实测）。用实际子页面做同宽对照。
+        await openTabViaStore(page, "learn-assignments");
+        await page.locator('.explorer-panel[data-tab-page="learn-assignments"]:visible').waitFor();
+        const subContent = await page.locator(".explorer-content").evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          return { x: Math.round(r.x * 10) / 10, w: Math.round(r.width * 10) / 10 };
+        });
+        check(Math.abs(subContent.x - geometry.content.x) < 1 && Math.abs(subContent.w - geometry.content.w) < 1,
+          `${engine}/${width}: learn content boundary matches its subpages`);
+        await returnToLearn(page);
         const byRow = new Map();
         for (const card of geometry.cards) {
           const key = Math.round(card.y);
@@ -125,7 +167,93 @@ for (const [engine, kind, options] of engines) {
           if (width >= 840 && row.length > 1) check(row.every(c=>c.w >= 280), `${engine}/${width}: readable desktop columns`);
         }
         check(await cards.locator("button button").count() === 0, `${engine}/${width}: independent actions are never nested buttons`);
+        const cardAnim = await cards.first().evaluate((el) => ({ rv: el.dataset.revealIn, anim: getComputedStyle(el).animationName }));
+        check(Boolean(cardAnim.rv) && /m-reveal-in/.test(cardAnim.anim), `${engine}/${width}: 网络学堂课程卡恢复入场动画（${cardAnim.anim}）`);
         check(await cards.locator(".chip, .chip-blue, .course-card-btn").count() === 0, `${engine}/${width}: retired styles are absent`);
+        // Bug 1：统计卡是带材质的面，hover 只能叠状态层，不能把 background 换成半透明色
+        // （否则中性皮肤下整张卡透出页面 —— 用户实测「网络学堂四个入口 hover 变透明」）。
+        if (width >= 840) {
+          const statCard = page.locator(".learn-page > .stats > .stat-card").first();
+          await statCard.hover();
+          await page.waitForTimeout(240);
+          const hoverState = await statCard.evaluate((el) => {
+            const cs = getComputedStyle(el);
+            const after = getComputedStyle(el, "::after");
+            return { bg: cs.backgroundColor, afterOpacity: Number(after.opacity), afterContent: after.content };
+          });
+          check(alphaOf(hoverState.bg) === 1 && Math.abs(hoverState.afterOpacity - 1) < 1e-6 && hoverState.afterContent !== "none",
+            `${engine}/${width}: hovering a stat card keeps its opaque surface and lights the state layer`);
+          // Bug 4：课程卡 hover 必须覆盖整卡（含底部标签行），不能只亮上半部的打开按钮。
+          const courseCard = page.locator(".learn-course-card").first();
+          await courseCard.locator(".learn-course-footer").hover();
+          await page.waitForTimeout(240);
+          const cardHover = await courseCard.evaluate((el) => {
+            const cs = getComputedStyle(el);
+            const after = getComputedStyle(el, "::after");
+            const open = el.querySelector(".learn-course-open");
+            const rect = el.getBoundingClientRect();
+            const footer = el.querySelector(".learn-course-footer")?.getBoundingClientRect();
+            return {
+              afterOpacity: Number(after.opacity),
+              afterContent: after.content,
+              cardCorner: cs.cornerShape,
+              afterCorner: after.cornerShape,
+              openBg: open ? getComputedStyle(open).backgroundColor : null,
+              openAfterBg: open ? getComputedStyle(open, "::after").backgroundColor : null,
+              coversFooter: !!footer && footer.bottom <= rect.bottom + 0.5 && footer.top >= rect.top,
+            };
+          });
+          check(Math.abs(cardHover.afterOpacity - 1) < 1e-6 && cardHover.afterContent !== "none" && cardHover.coversFooter,
+            `${engine}/${width}: hovering the footer lights the whole course card`);
+          check(cardHover.openBg === "rgba(0, 0, 0, 0)" && alphaOf(cardHover.openAfterBg) === 0,
+            `${engine}/${width}: course open button does not paint a second hover layer`);
+          check(cardHover.afterCorner === cardHover.cardCorner,
+            `${engine}/${width}: course hover state layer inherits the card corner shape`);
+          if (width === 1280) await page.screenshot({ path: `${out}/course-card-hover.png` });
+          await page.mouse.move(0, 0);
+        }
+        // Bug 3（只在 1280 档做一次）：玻璃皮肤下搜索框外壳必须半透明 + 背景模糊；
+        // 中性皮肤保持实底、无模糊（玻璃/非玻璃都要可验证）。
+        if (width === 1280) {
+          await page.evaluate(async () => {
+            const path = "/src/lib/glassLevel.ts";
+            const url = performance.getEntriesByType("resource").filter((e) => new URL(e.name).pathname === path).at(-1)?.name ?? path;
+            (await import(url)).setGlassLevel("clear");
+          });
+          await page.waitForFunction(() => document.documentElement.dataset.ogSkin === "glass");
+          await page.waitForTimeout(320);
+          const capsule = await page.evaluate(() => {
+            const el = document.querySelector(".ohx-capsule");
+            if (!el) return null;
+            const cs = getComputedStyle(el);
+            return { bg: cs.backgroundColor, blur: cs.backdropFilter };
+          });
+          check(capsule && alphaOf(capsule.bg) > 0 && alphaOf(capsule.bg) < 1 && /blur\(/.test(capsule.blur),
+            `${engine}/${width}: glass top search capsule is a translucent material with blur`);
+          await openTabViaStore(page, "learn-search");
+          await page.locator(".search-box").waitFor();
+          await page.waitForTimeout(260);
+          const searchBox = await page.locator(".search-box").evaluate((el) => {
+            const cs = getComputedStyle(el);
+            return { bg: cs.backgroundColor, blur: cs.backdropFilter };
+          });
+          check(alphaOf(searchBox.bg) > 0 && alphaOf(searchBox.bg) < 1 && /blur\(/.test(searchBox.blur),
+            `${engine}/${width}: glass page search box is a translucent material with blur`);
+          await page.evaluate(async () => {
+            const path = "/src/lib/glassLevel.ts";
+            const url = performance.getEntriesByType("resource").filter((e) => new URL(e.name).pathname === path).at(-1)?.name ?? path;
+            (await import(url)).setGlassLevel("balanced");
+          });
+          await page.waitForFunction(() => document.documentElement.dataset.ogSkin === "neutral");
+          await page.waitForTimeout(320);
+          const neutralBox = await page.locator(".search-box").evaluate((el) => {
+            const cs = getComputedStyle(el);
+            return { bg: cs.backgroundColor, blur: cs.backdropFilter };
+          });
+          check(alphaOf(neutralBox.bg) === 1 && neutralBox.blur === "none",
+            `${engine}/${width}: neutral skin keeps the page search box opaque without blur`);
+          await returnToLearn(page);
+        }
         if (width < 600) {
           const statsRows = await page.locator(".learn-page > .stats").evaluate((el) => {
             const rows = new Map();
@@ -204,6 +332,28 @@ for (const [engine, kind, options] of engines) {
             }
           }
         }
+      } finally { await page.close(); }
+    }
+    // 竖版标签栏：learn 内容区不能让 width:100% 叠加左栏偏移，否则底部多出横向滚动条。
+    {
+      const page = await setup(browser, 1280, 1, { rail: true });
+      try {
+        const measure = () => page.evaluate(() => {
+          const el = document.querySelector(".explorer-content");
+          const r = el.getBoundingClientRect();
+          return {
+            x: Math.round(r.x * 10) / 10,
+            w: Math.round(r.width * 10) / 10,
+            overflow: document.documentElement.scrollWidth > innerWidth + 1,
+            vertical: document.documentElement.classList.contains("tabs-vertical"),
+          };
+        });
+        const learn = await measure();
+        check(learn.vertical && !learn.overflow, `${engine}/rail: learn page adds no horizontal scrollbar beside the rail`);
+        await openTabViaStore(page, "learn-assignments");
+        await page.locator('.explorer-panel[data-tab-page="learn-assignments"]:visible').waitFor();
+        const sub = await measure();
+        check(Math.abs(learn.x - sub.x) < 1 && Math.abs(learn.w - sub.w) < 1, `${engine}/rail: learn content boundary matches its subpages`);
       } finally { await page.close(); }
     }
   } finally { await browser.close(); }

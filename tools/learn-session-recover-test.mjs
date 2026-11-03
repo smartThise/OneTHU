@@ -110,4 +110,30 @@ function makeHttp(state, coursePage = ALIVE_PAGE) {
   assert.equal(hooked, 1, `[5] 并发只允许重建一次，实际 ${hooked} 次`);
 }
 
-console.log("learn-session-recover-test: 全部断言通过（自证 + 多形态凭据 + 重建成功/失败 + 并发去重）");
+/* [6] 宿主 keepalive 的主动探活入口：活不重建、死则重建一次、失败只返回 false */
+{
+  const alive = { alive: true };
+  const c = new LearnClient(makeHttp(alive));
+  let hooked = 0;
+  c.reloginHook = async () => (hooked++, true);
+  assert.equal(await c.ensureSession(), true, "[6] 会话活着时 ensureSession 应为 true");
+  assert.equal(hooked, 0, "[6] 会话活着时不得触发重建");
+
+  const dead = { alive: false };
+  const c2 = new LearnClient(makeHttp(dead));
+  let hooked2 = 0;
+  c2.reloginHook = async () => {
+    hooked2++;
+    dead.alive = true;
+    return true;
+  };
+  assert.equal(await c2.ensureSession(), true, "[6] 死会话重建成功后 ensureSession 应为 true");
+  assert.equal(hooked2, 1, "[6] 死会话只允许重建一次");
+
+  const dead2 = { alive: false };
+  const c3 = new LearnClient(makeHttp(dead2));
+  c3.reloginHook = async () => false;
+  assert.equal(await c3.ensureSession(), false, "[6] 重建失败时 ensureSession 只返回 false，不抛错");
+}
+
+console.log("learn-session-recover-test: 全部断言通过（自证 + 多形态凭据 + 重建成功/失败 + 并发去重 + keepalive 探活）");

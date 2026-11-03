@@ -20,6 +20,7 @@ import {
   consumeExtHwScrollRequest,
   ensureExtHwCredsLoaded,
   extHwLogin,
+  getExtHwCreds,
   refreshExtHw,
   removeExtHwCreds,
   runYktSessionCheck,
@@ -179,6 +180,8 @@ export function ExtHwSettingsSection(): ReactNode {
   const credsWith = (
     o: {
       ykt?: string;
+      yktUserId?: string;
+      yktAuth?: string;
       tuoj?: string;
       tuojVia?: "cas" | "password";
       classic?: string;
@@ -193,8 +196,19 @@ export function ExtHwSettingsSection(): ReactNode {
     const cj = (o.classic ?? classicCookie).trim();
     const tc = (o.tyche ?? tycheCookie).trim();
     const ds = (o.dsa ?? dsaCookie).trim();
+    // 扫描登录返回的 UserID/Auth 要随 Cookie 一起保存；手工改 Cookie 时沿用已保存的换票凭据。
+    const existingYkt = getExtHwCreds().yuketang;
+    const yktUserId = o.yktUserId ?? existingYkt?.userId;
+    const yktAuth = o.yktAuth ?? existingYkt?.auth;
     return {
-      yuketang: yk ? { cookie: yk, phone: yktPhone.trim() || undefined } : undefined,
+      yuketang: yk
+        ? {
+            cookie: yk,
+            phone: yktPhone.trim() || undefined,
+            ...(yktUserId ? { userId: yktUserId } : {}),
+            ...(yktAuth ? { auth: yktAuth } : {}),
+          }
+        : undefined,
       tuoj: tj ? { cookie: tj, username: tuojUser.trim() || undefined, via: o.tuojVia ?? tuojVia } : undefined,
       tuojClassic: cj
         ? { cookie: cj, username: classicUser.trim() || undefined, via: o.classicVia ?? classicVia }
@@ -291,6 +305,8 @@ export function ExtHwSettingsSection(): ReactNode {
           cookie: parsed.cookie,
           uvId: parsed.uvId ?? cur.yuketang?.uvId,
           phone: parsed.phone ?? cur.yuketang?.phone,
+          ...(parsed.userId ? { userId: parsed.userId } : {}),
+          ...(parsed.auth ? { auth: parsed.auth } : {}),
         },
       });
       setYktCookie(parsed.cookie);
@@ -547,10 +563,12 @@ export function ExtHwSettingsSection(): ReactNode {
           {yktQrOpen ? (
             <YktQrPanel
               onCancel={() => setYktQrOpen(false)}
-              onSuccess={(cookie) => {
-                setYktCookie(cookie);
+              onSuccess={(credential) => {
+                setYktCookie(credential.cookie);
                 setYktQrOpen(false);
-                void saveExtHwCreds(credsWith({ ykt: cookie })).then(() => {
+                void saveExtHwCreds(
+                  credsWith({ ykt: credential.cookie, yktUserId: credential.userId, yktAuth: credential.auth }),
+                ).then(() => {
                   notify("yuketang", i18n("components.exthwsettingssection.a61cd4faa5ed"));
                   void refreshExtHw();
                 });

@@ -10,7 +10,7 @@ import { Btn } from "@onethu/gui";
 import { useMemo, useState } from "react";
 import { PageAtomStar } from "../..//components/Collect.js";
 import type { ReactNode } from "react";
-import { Card, Empty, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { Card, Empty, ListWindow, SectionHead, SkeletonRows } from "../../components/Layout.js";
 import { IconChevron, IconSearch } from "../../components/Icons.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
@@ -412,7 +412,7 @@ export function SearchPage() {
       ) : results.courses.length + results.homework.length + results.notifications.length + results.files.length === 0 ? (
         <Card><Empty text={i18n("pages.learn.searchpage.60fdae9866fc", { value: String(q.trim()) })} /></Card>
       ) : (
-        <>
+        <ListWindow>
           {results.courses.length > 0 ? (
             <>
               <SectionHead title={i18n("pages.learn.searchpage.60db1afb4022")} aside={i18n("pages.learn.searchpage.3c4f5c2c4407", { length: String(results.courses.length) })} />
@@ -424,7 +424,7 @@ export function SearchPage() {
                     tokens={tokens}
                     score={r.score}
                     max={results.maxScore}
-                    delay={i * 25}
+                    delay={Math.min(i, 12) * 25}
                   />
                 ))}
               </Card>
@@ -443,7 +443,7 @@ export function SearchPage() {
                     tokens={tokens}
                     score={r.score}
                     max={results.maxScore}
-                    delay={i * 25}
+                    delay={Math.min(i, 12) * 25}
                   />
                 ))}
               </Card>
@@ -462,7 +462,7 @@ export function SearchPage() {
                     tokens={tokens}
                     score={r.score}
                     max={results.maxScore}
-                    delay={i * 25}
+                    delay={Math.min(i, 12) * 25}
                   />
                 ))}
               </Card>
@@ -481,13 +481,13 @@ export function SearchPage() {
                     tokens={tokens}
                     score={r.score}
                     max={results.maxScore}
-                    delay={i * 25}
+                    delay={Math.min(i, 12) * 25}
                   />
                 ))}
               </Card>
             </>
           ) : null}
-        </>
+        </ListWindow>
       )}
     </>
   );

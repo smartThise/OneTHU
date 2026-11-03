@@ -31,7 +31,7 @@ import {
   sanitizeDocColor,
   type YktDocTheme,
 } from "../../lib/yktBody.js";
-import { stripInlineColors } from "../../lib/htmlTheme.js";
+import { stripInlineBackgrounds, stripInlineColors } from "../../lib/htmlTheme.js";
 import { fetchYktImageAsDataUrl, loadYktFont } from "../../lib/yktAssets.js";
 import { loadYktLatexBundle, type YktLatexBundle } from "../../lib/yktKatex.js";
 import { openExternal } from "../../pages/info/openExternal.js";
@@ -174,14 +174,19 @@ export function ProblemBody({ html, fontUrl, cookies, title = i18n("components.e
   /** 用当前入参 + 已加载的渲染器/字体 + **当下实时主题**重建文档（初建与强刷共用） */
   const rebuild = useCallback(
     (fontDataUrl: string | undefined) => {
+      const theme = readYktDocTheme(wrapRef.current);
       setDoc(
         buildYktProblemDoc({
           html,
           fontDataUrl,
           render: bundleRef.current?.render,
           extraCss: bundleRef.current?.inlineCss,
-          theme: readYktDocTheme(wrapRef.current),
+          theme,
           stripColors: stripInlineColors,
+          // 官方正文里的行内实底（白底纸块、表格 bgcolor）会与页面材质脱节：浅色纸面
+          // 下是一块白板，深色/玻璃下更刺眼。所有皮肤与明暗模式统一剥掉，底色跟随
+          // 卡片材质；正文文字色仍按 stripColors 单独处理。
+          stripBackgrounds: stripInlineBackgrounds,
         }),
       );
       setHeight(YKT_FRAME_MIN_H);

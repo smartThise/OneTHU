@@ -29,6 +29,23 @@ function logErr(tag: string, err: unknown): void {
 type LoadState = "loading" | "error" | "ready";
 type DeviceState = "idle" | "loading" | "error" | "ready";
 
+/** 设备编号 → 设备名称（用户 2026-11-01 提供）：he 波轮 / hr 滚筒 / wm 洗鞋机 / dr 烘干机；
+ *  hs 与纯数字编号含义未解，保持原编号显示。设备稳定身份（收藏/deep-link）仍用原 name。 */
+const WASHER_NAME_PREFIXES: Array<[RegExp, () => string]> = [
+  [/^he/i, () => i18n("pages.info.washertab.9fe9fba680f9")],
+  [/^hr/i, () => i18n("pages.info.washertab.74f4be674518")],
+  [/^wm/i, () => i18n("pages.info.washertab.e74dc4afd0bb")],
+  [/^dr/i, () => i18n("pages.info.washertab.972ddf82a152")],
+];
+
+export function washerDisplayName(name: string): string | null {
+  const raw = name.trim();
+  for (const [pattern, label] of WASHER_NAME_PREFIXES) {
+    if (pattern.test(raw)) return label();
+  }
+  return null;
+}
+
 /** 设备视觉（状态点 + 徽标 + 文案）：空闲绿 / 运行中琥珀 / 待机离线灰 / 故障红。
  *  待机与离线不能都算「故障」——前者随时可用、后者是网络掉线，含义完全不同。 */
 function deviceVisual(w: WasherDevice): { dot: string; chip: string; text: string } {
@@ -263,10 +280,11 @@ export function WasherTab({
                     const v = deviceVisual(w);
                     // Persisted AtomRef/deep-link identities must survive locale changes.
                     const deviceKey = w.name || w.location || w.type || "设备";
-                    const title = w.name || w.location || w.type || i18n("pages.info.washertab.e1506406a5bd");
+                    const mapped = washerDisplayName(w.name);
+                    const title = mapped ?? (w.name || w.location || w.type || i18n("pages.info.washertab.e1506406a5bd"));
                     const sub = [
                       w.location && w.location !== title ? w.location : "",
-                      w.type,
+                      mapped ? "" : w.type,
                       w.updateTime ? i18n("pages.info.washertab.14f31582e7ec", { updateTime: String(w.updateTime) }) : "",
                     ]
                       .filter(Boolean)

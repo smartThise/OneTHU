@@ -188,6 +188,7 @@ const JSON_HEADERS = { Accept: "application/json, text/plain, */*" } as const;
  */
 export async function tuojRoam(http: HttpClient, deps: TuojRoamDeps = {}): Promise<TuojRoamResult> {
   const base = deps.base ?? TUOJ_BASE;
+  http.debug?.(`[TUOJ-CAS] start base=${base}`);
   // ① 问 TUOJ 要 CAS 漫游入口
   const infoRes = await http.request(`${base}/api/user/oauth/info`, {
     direct: true,
@@ -214,6 +215,10 @@ export async function tuojRoam(http: HttpClient, deps: TuojRoamDeps = {}): Promi
   const formRes = await http.request(tsinghua.url);
   let body = await formRes.text();
   let finalUrl = http.lastFinalUrl || formRes.url || tsinghua.url;
+  http.debug?.(
+    `[TUOJ-CAS] form status=${formRes.status} final=${finalUrl.slice(0, 160)} ` +
+    `feats=${[isCasLoginPage(body) ? "cas-login" : "", isCheckSinglePage(body) ? "checkSingle" : "", /ticket=/.test(body) ? "ticket" : ""].filter(Boolean).join("+") || "none"} len=${body.length}`,
+  );
   let casDiag = "";
   let ensureTried = false;
   let ensureOk = false;
@@ -276,7 +281,9 @@ export async function tuojRoam(http: HttpClient, deps: TuojRoamDeps = {}): Promi
       }
     }
 
-    if (!confirmOk && isCasInterstitial(body, finalUrl)) {
+    // 账密直登若已兑付服务票据（desktop 注入 consumeServiceTicket:true），TUOJ 会话
+    // 已在 jar 里；此时再取 CAS 表单会返回登录页，不能据此判失败，应以课程列表验收。
+    if (!confirmOk && !ensureOk && isCasInterstitial(body, finalUrl)) {
       // 方案 B（兜底）：可操作文案——按 ensureOk / 有无凭据 / 2FA 分支（R10 15.1-2，R17 23.3）
       throw new TuojCasError(
         tuojCasFailMessage({
@@ -316,6 +323,11 @@ export async function tuojRoam(http: HttpClient, deps: TuojRoamDeps = {}): Promi
     list = null;
   }
   if (!list || !Array.isArray(list.courses)) {
+    let cookieNames = "";
+    try {
+      cookieNames = http.jar.getCookies(new URL(`${base}/api/course/list`)).map((c) => c.name).join(",");
+    } catch { /* 诊断尽力而为 */ }
+    http.debug?.(`[TUOJ-CAS] courses status=${listRes.status} final=${finalUrl.slice(0, 160)} tuojCookies=${cookieNames || "(none)"} body=${listBody.slice(0, 160).replace(/\s+/g, " ")}`);
     throw new TuojCasError(
       listRes.status === 401 || listRes.status === 403
         ? `TUOJ：统一认证漫游后仍未取得会话（HTTP ${listRes.status}）`

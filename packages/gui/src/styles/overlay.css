@@ -31,11 +31,11 @@
   padding: var(--og-space-6);
   background: var(--og-scrim);
   overscroll-behavior: contain;
-  animation: og-fade-in var(--og-dur-2) var(--og-ease-decelerate) both;
+  animation: og-scrim-in var(--og-dur-2) var(--og-ease-decelerate) both;
 }
 
 .og-scrim.is-closing {
-  animation: og-fade-out var(--og-dur-2) var(--og-ease-accelerate) both;
+  animation: og-scrim-out var(--og-dur-2) var(--og-ease-accelerate) both;
   pointer-events: none;
 }
 

@@ -344,7 +344,7 @@ export function TabHost(): ReactNode {
             onPointerCancel={clearPress}
           >
             {/* 页内导航时重挂这一层（保留 .page-anim 转场）；切标签页不动这一层 */}
-            <div className="page-anim" key={t.page} data-page={t.page} data-dir={active ? navDir : undefined} data-level={isSubPage(t.page) ? "sub" : undefined}>
+            <div className="page-anim" key={t.page} data-page={t.page} data-tx="keep" data-dir={active ? navDir : undefined} data-level={isSubPage(t.page) ? "sub" : undefined}>
               <TabScope tab={t}>
                 {t.kind === "home" ? (
                   <HomeTab />

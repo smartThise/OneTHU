@@ -38,7 +38,8 @@ import { http, info, learn, logLine, session } from "../lib/clients.js";
 // 的手搓会话管理（探活/漫游/票信任链）整体退役，登录态由 lib + Rust 原生仓负责。
 import { helper as infoHelper } from "../lib/infoLib.js";
 import { explainNetworkError } from "../lib/transport.js";
-import { softRecover } from "../lib/reload.js";
+import { softRecover, ensureLearnSession } from "../lib/reload.js";
+import { subscribeAuthRecovered } from "../lib/authRecovery.js";
 import { appendSecondarySchedule } from "../lib/scheduleSecondary.js";
 import { buildRows, buildSlotIndex, canAdjustZy as canAdjustZyFn, levelTypesOf, parseTimeSlots, type SlotItem, type XkRow, type XkKnote, applyKnote, rememberKnote, isSportsCourse } from "../lib/xklogic.js";
 import type { XkPlanItem } from "@onethu/core";
@@ -278,15 +279,11 @@ function relearnRoamOnce(): Promise<boolean> {
   if (Date.now() - lastRelearnAt < 20_000) return Promise.resolve(false);
   if (!roamInflight) {
     lastRelearnAt = Date.now();
-    roamInflight = import("../lib/infoLib.js")
-      .then(async (m) => {
-        const ok = await m.libEnsureSession();
-        if (!ok) return false;
-        // 主会话活了 ≠ learn 会话活了：先 roam("id", learn 表单) 建 learn 会话
-        // （card/info 同款 id-漫游，2026-09-17 定案；/f/login 路径全部作废）
-        await m.libRoamLearn().catch(() => false);
-        return await learn.resume().catch(() => false);
-      })
+    // 统一走 LearnClient 的 ensureSession：真实探活 → 失败时 id 漫游/宿主恢复
+    // （内部 #recoverSession 单飞），不再在这里手搓 libEnsureSession+libRoamLearn+
+    // learn.resume 三条链；旧写法会和 LearnClient 自己的 #withRelogin 恢复重复跑，
+    // 并发消费 CAS 票。恢复成功由 ensureLearnSession 广播事件，error 页面自动重试。
+    roamInflight = ensureLearnSession()
       .catch(() => false)
       .finally(() => {
         roamInflight = null;
@@ -497,6 +494,8 @@ export function useLearnData() {
   const [data, setData] = useState<LearnBundle | null>(() => preview ? cacheGet<LearnBundle>("learn")?.data ?? null : cache?.data ?? null);
   const [state, setState] = useState<DataState>((preview ? cacheGet<LearnBundle>("learn") : cache?.data) ? "ready" : "loading");
   const [error, setError] = useState<string | null>(null);
+  /** 认证恢复事件的自动重试节流：learn/global 常成对广播，避免同一次恢复打两枪。 */
+  const recoveryRetryAt = useRef(0);
 
   const load = useCallback(async () => {
     if (preview) return;
@@ -567,6 +566,21 @@ export function useLearnData() {
     /* 预览模式（抽屉里的组件预览）跳过：这条 hook 是「挂载即拉」，不跳过就会现爬数据 */
     if (status === "ready" && !preview && !isPreviewMode()) void load();
   }, [status, load]);
+
+  // 认证恢复后自动重试：keepalive/其他页面把 learn 会话修好时，当前页面可能还停在
+  // error（此前只有手动刷新才会重新请求）。这里只在 error 态响应 learn/global 事件，
+  // 并做 5s 节流，避免同一次恢复的 learn+global 双广播打两枪。
+  useEffect(() => {
+    if (preview) return;
+    return subscribeAuthRecovered((scope) => {
+      if (scope !== "learn" && scope !== "global") return;
+      if (state !== "error") return;
+      const now = Date.now();
+      if (now - recoveryRetryAt.current < 5_000) return;
+      recoveryRetryAt.current = now;
+      void load();
+    });
+  }, [preview, state, load]);
 
   // 后台静默刷新（learnX 式）换缓存时，挂载中的页面实时跟进
   useEffect(
