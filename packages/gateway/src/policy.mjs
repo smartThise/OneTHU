@@ -42,9 +42,17 @@ const CAMPUS_LANDINGS = new Map([
   ['https://info.tsinghua.edu.cn/f/info/portal_fg/student/yyfwxxindex', 'info-apps'],
   ['https://learn.tsinghua.edu.cn/f/wlxt/index/course/student/', 'learn-home'],
 ]);
+const cloudFolderShare = target => target?.origin === 'https://cloud.tsinghua.edu.cn' && /^\/d\/[a-f0-9]{20}\/$/.test(target.pathname);
+
+function isCampusNavigationLanding(target) {
+  // Folder-share IDs select a read-only landing page, never an API/action URL.
+  // Comparing href also rejects empty query/fragment markers that URL.search
+  // and URL.hash would otherwise normalize to an empty string.
+  return CAMPUS_LANDINGS.has(target.href) || cloudFolderShare(target) && target.href === `${target.origin}${target.pathname}`;
+}
 
 export function campusLandingCategory(target) {
-  return target ? CAMPUS_LANDINGS.get(`${target.origin}${target.pathname}`) ?? 'other' : 'other';
+  return target ? CAMPUS_LANDINGS.get(`${target.origin}${target.pathname}`) ?? (cloudFolderShare(target) ? 'cloud-folder-share' : 'other') : 'other';
 }
 
 function safeHostname(hostname) {
@@ -144,10 +152,10 @@ export function validateMethod(method, target) {
 
 export function validateFetchMetadata(headers, target, origins = new Set([target.origin]), navigation) {
   const site = headers['sec-fetch-site'];
-  // Browser/extension user gestures can mark a top-level entry as cross-site.
+  // A user gesture may arrive from another campus subdomain or another site.
   // Only these verified read-only landing URLs may borrow the session in that
   // case. Exact href matching excludes even an empty query or fragment marker.
-  if (site === 'cross-site' && origins.has(target.origin) && CAMPUS_LANDINGS.has(target.href) &&
+  if (['same-site', 'cross-site'].includes(site) && origins.has(target.origin) && isCampusNavigationLanding(target) &&
       ['GET', 'HEAD'].includes(navigation?.method) && navigation?.hasBody === false && headers.origin === undefined &&
       headers['sec-fetch-mode'] === 'navigate' && headers['sec-fetch-dest'] === 'document' && headers['sec-fetch-user'] === '?1') return;
   // Cached browser proxy credentials are sent even for attacker-triggered

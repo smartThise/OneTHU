@@ -401,6 +401,64 @@ test('landing exception cannot authorize forms, query actions, subresources, fra
   assert.equal(f.gateway.statistics().recentRejections.at(-1).landingCategory, 'info-news');
 });
 
+const cloudFolderShareLanding = 'https://cloud.tsinghua.edu.cn/d/0123456789abcdef0123/';
+
+test('user-activated cloud folder shares accept sibling-campus and external navigation', async t => {
+  const f = await fixture(t, { allowedOrigins: ['https://cloud.tsinghua.edu.cn'],
+    token: undefined, authorizeSocket: async () => true });
+  for (const site of ['same-site', 'cross-site']) for (const method of ['GET', 'HEAD']) {
+    const result = await proxyRequest(f, { auth: false, url: cloudFolderShareLanding, method,
+      headers: { ...landingNavigationHeaders, host: 'cloud.tsinghua.edu.cn', 'sec-fetch-site': site,
+        referer: site === 'same-site' ? 'https://dsa.cs.tsinghua.edu.cn/course/' : 'https://external.example/course/' } });
+    assert.equal(result.status, 200, `${site} ${method}`);
+    assert.equal(f.state.calls.at(-1).url, cloudFolderShareLanding);
+    assert.equal(f.state.calls.at(-1).init.headers.get('sec-fetch-site'), site);
+  }
+  assert.equal(f.state.calls.length, 4);
+  assert.deepEqual(f.gateway.statistics().recentRejections, []);
+});
+
+test('cloud share navigation retains origin, gesture, target, body and peer restrictions', async t => {
+  const f = await fixture(t, { allowedOrigins: ['https://cloud.tsinghua.edu.cn'],
+    token: undefined, authorizeSocket: async () => true });
+  const attempts = [
+    { method: 'POST' }, { method: 'DELETE' },
+    { method: 'GET', body: 'action=change', headers: { 'content-length': '13' } },
+    { url: cloudFolderShareLanding + '?' }, { url: cloudFolderShareLanding + '?action=delete' },
+    { url: cloudFolderShareLanding + '#file' }, { url: cloudFolderShareLanding + 'delete/' },
+    { url: cloudFolderShareLanding.replace('/d/', '/api2/') },
+    { url: cloudFolderShareLanding.replace('/0123456789abcdef0123/', '/0123456789abcdef012/') },
+    { headers: { 'sec-fetch-user': null } }, { headers: { 'sec-fetch-user': '?0' } },
+    { headers: { 'sec-fetch-mode': 'cors' } }, { headers: { 'sec-fetch-dest': 'iframe' } },
+    { headers: { 'sec-fetch-dest': 'image' } },
+    { headers: { origin: 'https://external.example' } },
+  ];
+  for (const site of ['same-site', 'cross-site']) for (const attempt of attempts) {
+    const result = await proxyRequest(f, { ...attempt, auth: false, url: attempt.url ?? cloudFolderShareLanding,
+      headers: { ...landingNavigationHeaders, host: 'cloud.tsinghua.edu.cn', 'sec-fetch-site': site,
+        referer: 'https://dsa.cs.tsinghua.edu.cn/course/', ...attempt.headers } });
+    assert.ok(result.status >= 400, `${site} ${JSON.stringify(attempt)}`);
+  }
+  assert.equal((await proxyRequest(f, { auth: false, url: cloudFolderShareLanding,
+    headers: { ...landingNavigationHeaders, host: 'cloud.tsinghua.edu.cn', origin: 'https://cloud.tsinghua.edu.cn' } })).status, 403);
+  assert.equal(f.state.calls.length, 0);
+  assert.equal(f.gateway.statistics().recentRejections.at(-1).landingCategory, 'cloud-folder-share');
+  const authenticated = await fixture(t, { allowedOrigins: ['https://cloud.tsinghua.edu.cn'] });
+  assert.equal((await proxyRequest(authenticated, { auth: false, url: cloudFolderShareLanding,
+    headers: { ...landingNavigationHeaders, host: 'cloud.tsinghua.edu.cn' } })).status, 407);
+  assert.equal(authenticated.state.calls.length, 0);
+});
+
+test('a same-site user gesture uses the same exact landing rules as a cross-site gesture', async t => {
+  const f = await fixture(t, { allowedOrigins: ['https://info.tsinghua.edu.cn'],
+    token: undefined, authorizeSocket: async () => true });
+  const headers = { ...landingNavigationHeaders, host: 'info.tsinghua.edu.cn', 'sec-fetch-site': 'same-site',
+    referer: 'https://dsa.cs.tsinghua.edu.cn/course/' };
+  assert.equal((await proxyRequest(f, { auth: false, url: infoNewsLanding, headers })).status, 200);
+  assert.equal((await proxyRequest(f, { auth: false, url: infoNewsLanding + '?action=change', headers })).status, 403);
+  assert.equal(f.state.calls.length, 1);
+});
+
 test('TLS landing navigation retains socket authentication and preserves the actual request metadata', async t => {
   const f = await fixture(t, { withTls: true, request: (_url, init) => {
     assert.equal(init.headers.get('sec-fetch-site'), 'cross-site');
