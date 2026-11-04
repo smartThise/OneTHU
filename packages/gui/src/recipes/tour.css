@@ -59,7 +59,7 @@ html:root .is-onboarding .is-selected .experience-mode-preview { transform:persp
 .is-onboarding .experience-mode-copy strong { font-size:var(--og-text-body); }
 .is-onboarding .experience-mode-tag,.is-onboarding .experience-mode-copy small { display:none; }
 .is-onboarding .experience-mode-copy > span:not(.experience-mode-tag) { font-size:var(--og-text-label); }
-html:root .is-onboarding .is-selected .experience-mode-check { background:var(--og-action); color:var(--og-action-on); }
+html:root .is-onboarding .is-selected .experience-mode-check { background:var(--og-accent); color:var(--og-accent-on); }
 
 /* Temporary return control sits above the bottom dock; it does not cover the reading area. */
 .tour-resume { position:fixed; bottom:calc(var(--og-workbench-header-h) + var(--og-space-9) + var(--og-space-5) + var(--og-safe-bottom, 0px)); right:var(--og-space-5); display:flex; align-items:center; gap:var(--og-space-3); max-width:calc(100vw - var(--og-space-6)); padding:var(--og-space-3); border:1px solid var(--og-line-2); border-radius:var(--og-radius-xl); background:var(--og-surface-overlay); color:var(--og-content-1); box-shadow:var(--og-elev-3); z-index:var(--og-z-modal); }

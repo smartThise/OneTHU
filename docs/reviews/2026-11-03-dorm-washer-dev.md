@@ -38,6 +38,17 @@
 - **家园网**：DormTab 遇到 `AuthRequiredError` 先调用新增的 `recoverCampusSession("dorm")`（无 20s 冷却：lib 主会话 → `forceEnsure("dorm")`），再回退原 `softRecover`；余额和充值记录都走这条链路。
 - 保留 core 内部单飞、2.5s 会话稳定窗与原有冷却兜底，避免并发重登烧票据。
 
+## 5. 主题色接入交互控件
+
+- 根因：按钮强填充、分段指示器、底部快捷胶囊、暂存箱胶囊、宿主 primary 按钮都读 `--og-action`；该 token 一直固定为中性黑/白，主题 accent 只写入 `--og-accent`，所以换主题后这些控件不变色。
+- 将交互控件改用 `--og-accent / --og-accent-strong / --og-accent-on`：
+  - OneGUI `.og-btn` 强填充与 brand tone；
+  - 分段 Tabs 激活指示器；
+  - `.oneshot-button`、`#ex-bbar-onego-btn`、`.vault-box-button`、暂存箱计数徽标；
+  - 宿主 `.btn-primary`、联系人/引导选中控件。
+- `--og-action` 保留给非交互暗色 chrome（设备边框、兑换卡、拖拽提示），不随主题漂移。
+- 实测把 accent 设为红色后，solid 按钮/底部胶囊背景与前景立即跟随；`--og-action` 仍为中性色。
+
 ## 验证
 
 - `dorm-balance-test` ✓（余额接线、缓存、旧错误文案移除）
