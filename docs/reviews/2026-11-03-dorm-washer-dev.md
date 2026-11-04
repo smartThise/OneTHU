@@ -97,6 +97,7 @@
 - **`$ … $` 内侧空白**：不再一律拒绝；内容通过 `looksLikeMath` 判定后渲染，`$5 与 $6` 仍保留原文。
 - **`\( … \)`**：支持内侧空白；同时归一 `&#92;` 数字实体与双反斜杠形态，避免定界符在扫描前被跳过。
 - **`\( … \)` 只出现在文档时**：KaTeX 加载条件不再只判 `$`，同时识别 `\(`/`\[`、`&#36;`/`&#92;` 实体与双反斜杠形态；否则渲染器根本不加载，整页公式只能显示原文。
+- **公式跨 `<br>`/HTML 标签**：雨课堂 UEditor 会把 `\[` 公式里的换行拆成 `<br>`/`<div>`，定界符落在不同文本节点，按节点扫描永远配不上；增加跨标签预处理，剥掉公式体内标签后交给 KaTeX。
 - **玻璃下大白底**：`ProblemBody` 在 `data-og-skin="glass"` 或 `data-glass` 时强制 iframe 画布透明（不复制祖先纸面色）；文档 CSS 对 `html,body` 都写 `background:transparent!important`（只写 body 时 Chromium srcdoc 画布仍会刷白），并观察 `data-og-skin / data-og-skin-level / data-glass` 变化重建文档。
 - `yktDocCss` 的 flush 文档继续不补不透明暗纸面，玻璃只在父层出现一次。
 

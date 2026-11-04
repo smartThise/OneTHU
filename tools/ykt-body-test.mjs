@@ -116,6 +116,16 @@ console.log("\n[1] LaTeX 定界扫描与逐段降级");
     "<p>[I:x+y]</p>",
     "数字实体形态的 \\(…\\) 也识别",
   );
+  eq(
+    yb.renderLatexInHtml("<p>\\[<br> x^2 <br>\\]</p>", fake),
+    "<p>[D:x^2]</p>",
+    "跨 <br>/标签的 \\[…\\] 仍能配对渲染",
+  );
+  eq(
+    yb.renderLatexInHtml("<p>\\(<div> a+b </div>\\)</p>", fake),
+    "<p>[I:a+b]</p>",
+    "跨标签的 \\(…\\) 仍能配对渲染",
+  );
   eq(yb.renderLatexInHtml("<p>证：$$\\frac{a}{b}$$ 完</p>", fake), "<p>证：[D:\\frac{a}{b}] 完</p>", "显示 $$…$$ 走 displayMode");
 
   // 防误伤：价格语义不开渲染；内侧空白不闭合

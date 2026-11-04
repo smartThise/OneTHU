@@ -294,6 +294,25 @@ function renderTextSegment(seg: string, render: LatexRender): string {
   return out;
 }
 
+/** 雨课堂 UEditor 会把 `\[` 公式里的换行/段落变成 HTML 标签（<br>、<div>），
+ *  定界符因此落在不同文本节点里，按节点扫描永远配不上对。这里先做一轮
+ *  “跨标签”扫描：把公式体里的标签剥掉、实体解码，再交给 KaTeX；失败保留原 HTML。 */
+function renderSpanningTex(html: string, render: LatexRender): string {
+  const texBody = (raw: string): string =>
+    decodeBasicEntities(raw.replace(/<br\s*\/?\s*>/gi, " ").replace(/<[^>]*>/g, " ")).trim();
+  html = html.replace(/\\\[([\s\S]*?)\\\]/g, (whole, body: string) => {
+    const tex = texBody(body);
+    if (!tex) return whole;
+    return safeRender(render, tex, true) ?? whole;
+  });
+  html = html.replace(/\\\(([\s\S]*?)\\\)/g, (whole, body: string) => {
+    const tex = texBody(body);
+    if (!tex) return whole;
+    return safeRender(render, tex, false) ?? whole;
+  });
+  return html;
+}
+
 /** 全文 LaTeX 替换（只动文本节点，不碰标签与属性）；render 缺省恒 null = 纯原文直通 */
 export function renderLatexInHtml(html: string, render: LatexRender): string {
   // 定界符可能以数字实体/双反斜杠形态存在于源 HTML；先归一，否则下面的
@@ -303,6 +322,7 @@ export function renderLatexInHtml(html: string, render: LatexRender): string {
     .replace(/&#0*92;|&#x0*5c;/gi, "\\")
     .replace(/\\\\(?=[()])/g, "\\");
   if (!html.includes("$") && !html.includes("\\[") && !html.includes("\\(")) return html;
+  html = renderSpanningTex(html, render);
   return mapNodes(html, (t) => renderTextSegment(t, render), (t) => t);
 }
 
