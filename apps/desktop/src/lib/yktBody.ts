@@ -668,7 +668,7 @@ export function yktDocCss(t: YktDocTheme = DEFAULT_YKT_DOC_THEME): string {
     // flush 时钉 light：Chromium 在 dark color-scheme 下会铺一层不透明暗画布底，
     // 玻璃就透不出来了；透明画布 + 父层材质才是"只叠一次"的唯一形态。
     dark && !flush ? "html{color-scheme:dark}" : "",
-    flush ? "html{color-scheme:light}" : "",
+    flush ? "html{color-scheme:light}html,body{background:transparent!important}" : "",
     "p{margin:0 0 8px}p:last-child{margin-bottom:0}",
     "img{max-width:100%;height:auto;border-radius:4px}",
     `table{border-collapse:collapse;max-width:100%}th,td{border:1px solid ${t.border};padding:4px 8px;font-size:12px}`,

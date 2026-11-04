@@ -147,7 +147,7 @@ export function readYktDocTheme(container: Element | null): YktDocTheme {
      祖先此刻若正好是白色面，srcdoc 会被写成白底；之后主题/皮肤切换才重建。
      用户实测「新开雨课堂作业一片白，切实心+主题后才消失」就是这条首帧竞态。
      玻璃下 iframe 一律透明，只让父层材质出现一次。 */
-  const glass = document.documentElement.dataset.ogSkin === "glass";
+  const glass = document.documentElement.dataset.ogSkin === "glass" || !!document.documentElement.dataset.glass;
   const flush = glass || effective.flush;
   return {
     text: sanitizeDocColor(probeColor(container, "var(--text-1, #222)"), DEFAULT_YKT_DOC_THEME.text),
@@ -206,8 +206,11 @@ export function ProblemBody({ html, fontUrl, cookies, title = i18n("components.e
     fontRetried.current = false; // 新一轮构建重置强刷额度（每份文档允许一次 force 重取）
     const fu = fontUrl; // 局部别名：闭包内窄化（fontUrl?: string）
     void (async () => {
+      /* 不能只判断 $：雨课堂大量公式只用 \( … \) / \[ … \]，
+         以及实体/双反斜杠形态；漏判会让渲染器根本不加载，全部退回原文。 */
+      const needsLatex = /[$]|\\[()\[\]]|&#0*36;|&#x0*24;|&#0*92;|&#x0*5c;/.test(html);
       const [bundle, font] = await Promise.all([
-        html.includes("$") ? loadYktLatexBundle() : Promise.resolve(null),
+        needsLatex ? loadYktLatexBundle() : Promise.resolve(null),
         fu && needsEncryptedFont(html) ? loadYktFont(fu, { cookies }) : Promise.resolve(null),
       ]);
       if (seq !== buildSeq.current) return; // 期间入参已变，丢弃
