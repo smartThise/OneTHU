@@ -221,7 +221,15 @@ html:root.is-phone .ex-bbar-center .ohx-capsule:not(.is-open):not(.is-hold) {
   padding-inline: var(--og-space-2);
 }
 html:root.is-phone .ex-bbar-center .ohx-capsule .ohx-slot { display: none; }
+html:root.is-phone .ex-bbar-center .ohx-capsule:not(.is-open):not(.is-hold) .ohx-mark-wrap {
+  position: absolute;
+  left: var(--og-space-3);
+  margin: 0;
+}
 html:root.is-phone .ex-bbar-center .ohx-capsule:not(.is-open):not(.is-hold) .harness-mark { margin-left: 0; }
+html:root.is-phone .ex-bbar-center .ohx-capsule:not(.is-open):not(.is-hold) .ohx-capsule-ph {
+  max-width: calc(100% - var(--og-space-10));
+}
 html:root.is-phone .ex-bbar-center .ohx-capsule .ohx-capsule-ph {
   flex: 0 1 auto !important;
   margin-right: 0 !important;

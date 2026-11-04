@@ -50,6 +50,13 @@
 - 实测把 accent 设为红色后，solid 按钮/底部胶囊背景与前景立即跟随；`--og-action` 仍为中性色。
 - 同时修复全字符对比度引擎：它会把“无/磨砂/雾面”下采样偏亮的 accent 胶囊判成亮底并锁黑字，到玻璃档采样变暗才恢复白字。现在 `.oneshot-button`、`#ex-bbar-onego-btn`、`.vault-box-button`、`.btn-primary`、`.og-btn--solid`、分段 Tabs 等 accent 填充控件不再被自动置墨，前景固定走 `--og-accent-on`。
 
+## 6. 待办页/手机胶囊显示修复
+
+- 手机端 OH 搜索胶囊：常态把 `(OH)` 图标改为绝对定位，占位文字单独居中；不再被图标的 `margin-left:auto` 推成左对齐。
+- 待办页统计卡（还剩作业 / 3 日内截止）与入口按钮：补 `--og-fill-surface` 纯色材质层，保留原 blur，不再只有透明渐变。
+- 待办页移除“学习 / 生活”两个静态小标题（仅保留宽屏右栏详情的动态标题），整体内容上移，未读通知条不再被挤到 OneShot 下方。
+- 课程筛选下拉：补 `--og-radius-control` 圆角、主题材质底色与背景模糊，内部 `.og-input` 透明，和周围玻璃一致。
+
 ## 验证
 
 - `dorm-balance-test` ✓（余额接线、缓存、旧错误文案移除）

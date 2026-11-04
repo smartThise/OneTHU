@@ -6322,3 +6322,27 @@ html.is-sheet-open, html.is-sheet-open body { overflow: hidden; }
   border: 0;
   box-shadow: none;
 }
+
+/* 待办页收口（2026-11-04）：
+   - 学习/生活两个静态小标题已从 JSX 移除，内容整体上移，未读条不再被顶到 OneShot 下；
+   - 统计卡/入口按钮在“扫描补课 B”里只拿到透明渐变+blur，需补一层主题材质色，
+     否则就是纯背景模糊、和周围玻璃卡不一致；
+   - 课程下拉外层曾被 .og-select 拉成直角；这里补圆角/材质/模糊，内部壳透明。 */
+html:root .task-stat,
+html:root .task-entry {
+  background-color: var(--og-fill-surface);
+}
+html:root .hw-filter-select {
+  border-radius: var(--og-radius-control);
+  overflow: hidden;
+  background: var(--og-fill-surface);
+  border: 1px solid var(--og-line-1);
+  backdrop-filter: var(--og-surface-blur, var(--og-chip-blur, blur(10px)));
+  -webkit-backdrop-filter: var(--og-surface-blur, var(--og-chip-blur, blur(10px)));
+}
+html:root .hw-filter-select .og-input,
+html:root .hw-filter-select .og-select-trigger {
+  border-radius: inherit;
+  background: transparent;
+  border-color: transparent;
+}
