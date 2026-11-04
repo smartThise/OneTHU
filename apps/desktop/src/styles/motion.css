@@ -293,10 +293,20 @@ select {
     box-shadow var(--dur-2) var(--ease-out);
 }
 
-/* 焦点环：淡入而不是"啪"地出现 */
+/* 焦点环：淡入而不是"啪"地出现。只在键盘导航时出现；鼠标点击/程序化 focus
+   不应给胶囊、卡片、弹窗套一圈主题色外描边（2026-11-04 用户反馈）。 */
 :focus-visible {
   outline: none;
   animation: m-focus-ring var(--dur-2) var(--ease-out) backwards;
+}
+html[data-input="pointer"] :focus-visible {
+  animation: none;
+}
+/* 指针模态下不显示任何聚焦环：宿主旧样式用 box-shadow/--og-ring 画环，
+   只关 keyframes 不够（用户实测 OH 胶囊/作业卡/设置弹窗仍有主题色外圈）。 */
+html[data-input="pointer"] :is(:focus-visible, :focus-within) {
+  outline: none !important;
+  box-shadow: none !important;
 }
 @keyframes m-focus-ring {
   from {

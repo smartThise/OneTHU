@@ -67,6 +67,15 @@
 - 换壁纸时，若正在使用壁纸源，自动重新取色并注入；关闭开关或切换主题仍按原有快照恢复逻辑。
 - 设置搜索别名保留“动态取色 / 壁纸取色 / 系统取色 / 智能取色”。
 
+## 8. 修复主题色聚焦外圈
+
+- 根因：全局 `:focus-visible` 动画和宿主 `.task-stat:focus-visible`、`.ohx-capsule:focus-within` 等
+  都直接画 `--og-ring`；WebView2 在鼠标点击/程序化 focus 时也会命中 `:focus-visible`，
+  于是 OH 搜索、作业卡、设置弹窗被套上主题色外圈。
+- 新增输入模态跟踪（`pointer` / `keyboard`）：指针模态下关闭焦点动画并清掉 focus 外圈；
+  键盘导航仍保留主题色焦点环。
+- 覆盖 `:focus-within`，避免胶囊内部输入/设置弹窗只在外层漏一圈。
+
 ## 验证
 
 - `dorm-balance-test` ✓（余额接线、缓存、旧错误文案移除）
