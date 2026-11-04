@@ -223,6 +223,10 @@ assert.match(settingsSrc, /取色来源|Color source/, "来源标题已接线");
 assert.match(settingsSrc, /OneTHU 壁纸|dee4d1526978/, "来源选项包含 OneTHU 壁纸");
 assert.match(src, /neutralizeOutlines/, "动态取色必须把结构描边中性化");
 assert.match(src, /--md-sys-color-outline-variant/, "结构描边中性化覆盖 variant");
+assert.match(src, /roles\.dark, "rgba\(0, 0, 0, 0\)"/, "暗色结构描边降亮");
+const wallpaperPaletteSrc = readFileSync("apps/desktop/src/lib/wallpaperPalette.ts", "utf8");
+assert.match(wallpaperPaletteSrc, /primaryFamily\["800"\] = primary600/, "壁纸源暗色主色用 tone 600");
+assert.match(wallpaperPaletteSrc, /secondaryFamily\["800"\] = secondary600/, "壁纸源暗色次色用 tone 600");
 
 console.log(
   "动态取色护栏：映射 " + (Object.keys(light).length + Object.keys(dark).length) +

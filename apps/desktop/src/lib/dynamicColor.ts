@@ -123,7 +123,11 @@ const render = (roles: DynamicRoles): string => {
 function neutralizeOutlines(roles: DynamicRoles): void {
   const pairs: Array<[Record<string, string>, string, string, string, string]> = [
     [roles.light, "#7a7a7a", "rgba(0, 0, 0, 0.10)", "rgba(0, 0, 0, 0.05)", "rgba(0, 0, 0, 0.18)"],
-    [roles.dark, "#9a9a9a", "rgba(255, 255, 255, 0.14)", "rgba(255, 255, 255, 0.07)", "rgba(255, 255, 255, 0.22)"],
+    /* 暗色不能沿用亮色描边的实色明度：深底上 #9a9a9a 会变成一圈突兀的白边。
+       改用低透明度白叠色，和默认暗色 line 角色同一数量级。 */
+    /* 暗色下结构描边直接透明：智能取色的深色界面靠面阶/阴影分层，
+       保留任何白线都会被解读为“主题色外描边”。 */
+    [roles.dark, "rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"],
   ];
   for (const [bag, outline, variant, soft, strong] of pairs) {
     bag["--md-sys-color-outline"] = outline;
@@ -172,8 +176,10 @@ export const isDynamicEnabled = readPref;
 export async function enableDynamicColor(source: DynamicSource = readSource()): Promise<void> {
   writeSource(source);
   let palette = source === "wallpaper" ? await fetchWallpaperPalette() : await fetchSystemPalette();
-  /* 壁纸没有可用彩色（纯灰/解码失败/没壁纸）时退回系统取色；系统也没有才降级主题。 */
-  if (source === "wallpaper" && !paletteUsable(palette)) palette = await fetchSystemPalette();
+  if (source === "wallpaper" && !paletteUsable(palette)) {
+    /* 壁纸没有可用彩色（纯灰/解码失败/没壁纸）时退回系统取色；系统也没有才降级主题。 */
+    palette = await fetchSystemPalette();
+  }
   const usable = paletteUsable(palette);
   const plan = dynamicPlan(usable, readPref(), activeThemeId());
   if (plan.restore.action === "set") writeRestore({ activeId: plan.restore.activeId });

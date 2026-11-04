@@ -90,9 +90,17 @@ export function paletteFromSeeds(seeds: WallpaperSeeds): DynamicPalette {
     s: 0.06,
     l: Math.max(0.38, Math.min(0.58, neutral.l)),
   };
+  const primaryFamily = family(primary);
+  const secondaryFamily = family(secondary);
+  /* 暗色档使用 tone 600 而不是 M3 默认的 800：壁纸源的 800 在深底上接近白，
+     会变成“白字/白按钮”；600 仍保留壁纸色相，只是亮度压下来一档。 */
+  const primary600 = primaryFamily["600"];
+  const secondary600 = secondaryFamily["600"];
+  if (primary600) primaryFamily["800"] = primary600;
+  if (secondary600) secondaryFamily["800"] = secondary600;
   return {
-    primary: family(primary),
-    secondary: family(secondary),
+    primary: primaryFamily,
+    secondary: secondaryFamily,
     neutral: family(neutralSeed),
     neutralVariant: family({ ...neutralSeed, s: 0.09 }),
   };
