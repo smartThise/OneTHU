@@ -157,6 +157,7 @@ export function normalizeNbspInHtml(html: string): string {
  *  整条公式退回原始 TeX（题干里的「nbsp」乱象另一条来源）。 */
 export function decodeBasicEntities(s: string): string {
   return normalizeNbspEntities(s, "tex")
+    .replace(/&#0*92;|&#x0*5c;/gi, "\\")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
@@ -180,7 +181,25 @@ function safeRender(render: LatexRender, tex: string, displayMode: boolean): str
  *  - 雨课堂部分题目用 `\[ … \]` 包裹独立公式块（用户 2026-10-25 反馈），此前只认 $，
  *    于是整段 TeX 原样当正文显示；两套定界都走同一渲染器；
  *  - 渲染失败 / 未配对：定界符按字面保留，从下一字符继续（绝不吃内容）。 */
+/** $ … $ 内侧带空白时，只有内容像数学才放行；避免把「$5 与 $6」当公式。 */
+function looksLikeMath(s: string): boolean {
+  const t = s.trim();
+  if (!t || /[\u4e00-\u9fff]/.test(t)) return false;
+  if (/[\\^_{}]/.test(t)) return true;            // \alpha、x^{2}、a_b
+  if (/[=+<>\-*/]/.test(t)) return true;            // 1+2、a=b
+  if (/^-?\d+(?:\.\d+)?$/.test(t)) return true;    // 纯数字
+  if (/^[a-zA-Z]$/.test(t)) return true;             // 单个变量
+  if (/^[\(\[\],.\d\s]+$/.test(t)) return true;  // 坐标/元组
+  return false;
+}
+
 function renderTextSegment(seg: string, render: LatexRender): string {
+  // 部分编辑器会把定界符存成 HTML 数字实体或双反斜杠（`&#92;(x&#92;)`、`\\(x\\)`）。
+  // 先归一这些“看起来像 \(...\)”的形态，再做定界扫描；否则整段公式永远命中不了。
+  seg = seg
+    .replace(/&#0*36;|&#x0*24;/gi, "$")
+    .replace(/&#0*92;|&#x0*5c;/gi, "\\")
+    .replace(/\\\\(?=[()])/g, "\\");
   if (!seg.includes("$") && !seg.includes("\\[") && !seg.includes("\\(")) return seg;
   let out = "";
   let i = 0;
@@ -237,8 +256,11 @@ function renderTextSegment(seg: string, render: LatexRender): string {
         }
       }
     }
-    // 行内 $…$：只认最近的 $ 作为闭合候选（不合法则本 $ 按字面，后续另起扫描）
-    if (seg.charCodeAt(start + 1) !== 32 /* 空白开界不放行 */) {
+    // 行内 $…$：最近 $ 为闭合候选；允许 `$ … $` 的内侧空白（用户实测雨课堂
+    // 大量公式写成 `$ \alpha ... $`），但只有内容像数学才放行，避免把
+    // 「价格 $5 与 $6」误判成一条公式。不合法则本 $ 按字面，后续另起扫描。
+    {
+      const leadSpace = /\s/.test(seg.charAt(start + 1));
       let closed = -1;
       for (let j = start + 1; j < len; j++) {
         const c = seg.charCodeAt(j);
@@ -248,7 +270,10 @@ function renderTextSegment(seg: string, render: LatexRender): string {
         }
         if (c === 36 /* $ */) {
           if (j === start + 1) break; // 空段（$$ 已试过）
-          if (seg.charCodeAt(j - 1) === 32) break; // 关界内侧空白 → 不算
+          const inner = seg.slice(start + 1, j);
+          if (!inner.trim()) break;
+          const boundarySpace = leadSpace || /\s$/.test(inner);
+          if (boundarySpace && !looksLikeMath(inner)) break;
           closed = j;
           break;
         }
@@ -271,6 +296,12 @@ function renderTextSegment(seg: string, render: LatexRender): string {
 
 /** 全文 LaTeX 替换（只动文本节点，不碰标签与属性）；render 缺省恒 null = 纯原文直通 */
 export function renderLatexInHtml(html: string, render: LatexRender): string {
+  // 定界符可能以数字实体/双反斜杠形态存在于源 HTML；先归一，否则下面的
+  // “没有定界符就直接返回”会在扫描前把整段公式跳过。
+  html = html
+    .replace(/&#0*36;|&#x0*24;/gi, "$")
+    .replace(/&#0*92;|&#x0*5c;/gi, "\\")
+    .replace(/\\\\(?=[()])/g, "\\");
   if (!html.includes("$") && !html.includes("\\[") && !html.includes("\\(")) return html;
   return mapNodes(html, (t) => renderTextSegment(t, render), (t) => t);
 }

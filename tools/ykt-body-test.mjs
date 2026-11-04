@@ -96,11 +96,31 @@ console.log("\n[1] LaTeX 定界扫描与逐段降级");
     "<p>已知 [I:x^2] 求解</p>",
     "行内 $…$ 渲染，标签不动",
   );
+  eq(
+    yb.renderLatexInHtml("<p>已知 $ \\alpha_1 + \\beta_2 $ 求解</p>", fake),
+    "<p>已知 [I:\\alpha_1 + \\beta_2] 求解</p>",
+    "行内 $ … $ 内侧空白也渲染（LaTeX 内容）",
+  );
+  eq(
+    yb.renderLatexInHtml("<p>价格 $5 与 $6 元</p>", fake),
+    "<p>价格 $5 与 $6 元</p>",
+    "带空白的价格区间不误判成公式",
+  );
+  eq(
+    yb.renderLatexInHtml("<p>行内 \\( x+y \\) 完</p>", fake),
+    "<p>行内 [I:x+y] 完</p>",
+    "\\( … \\) 内侧空白也渲染",
+  );
+  eq(
+    yb.renderLatexInHtml("<p>&#92;(x+y&#92;)</p>", fake),
+    "<p>[I:x+y]</p>",
+    "数字实体形态的 \\(…\\) 也识别",
+  );
   eq(yb.renderLatexInHtml("<p>证：$$\\frac{a}{b}$$ 完</p>", fake), "<p>证：[D:\\frac{a}{b}] 完</p>", "显示 $$…$$ 走 displayMode");
 
   // 防误伤：价格语义不开渲染；内侧空白不闭合
   eq(yb.renderLatexInHtml("<p>价格 $5 与 $6 不等</p>", fake), "<p>价格 $5 与 $6 不等</p>", "「$5 与 $6」不误判（关界内侧空白）");
-  eq(yb.renderLatexInHtml("<p>值 $ x $ 元</p>", fake), "<p>值 $ x $ 元</p>", "开界内侧空白不渲染");
+  eq(yb.renderLatexInHtml("<p>值 $ x $ 元</p>", fake), "<p>值 [I:x] 元</p>", "开界内侧空白但内容是数学 → 渲染");
   // 转义 \$ 不闭合
   eq(yb.renderLatexInHtml("<p>成本 \\$5 与 \\$6</p>", fake), "<p>成本 \\$5 与 \\$6</p>", "\\$ 转义不配对");
   // 未配对 $$ 全字面
@@ -339,6 +359,8 @@ console.log("\n[7] 接线静态审计（详情页 / ProblemBody / yktAssets 漏�
   ok(comp.includes("clampDocHeight") && comp.includes("YKT_FRAME_MIN_H"), "ProblemBody：高度钳制");
   ok(comp.includes("ev.source !== frameRef.current?.contentWindow"), "ProblemBody：postMessage 只认自己的 iframe");
   ok(comp.includes("ykt:font-fail") && comp.includes("fontRetried"), "ProblemBody：字体校验失败强刷仅一次（防打转）");
+  ok(comp.includes('dataset.ogSkin === "glass"'), "ProblemBody：玻璃皮肤首帧强制透明画布");
+  ok(comp.includes('bg: glass ? "transparent"'), "ProblemBody：玻璃下不复制祖先纸面底色");
   ok(comp.includes("openExternal"), "ProblemBody：文档内链接走系统外开");
 
   const assets = readSrc("../apps/desktop/src/lib/yktAssets.ts");
