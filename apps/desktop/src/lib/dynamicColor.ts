@@ -11,6 +11,7 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { rolesFromPalette, type DynamicPalette, type DynamicRoles } from "./dynamicRoles.js";
+import { fetchWallpaperPalette } from "./wallpaperPalette.js";
 import { dynamicPlan, paletteUsable } from "./dynamicPlan.js";
 import {
   activateTheme,
@@ -20,14 +21,33 @@ import {
   hasTheme,
   reapplyActiveTheme,
 } from "../state/theme.js";
+import { subscribeWallpaper, wallpaperSnapshot } from "../state/wallpaper.js";
 
 const PREF_KEY = "onethu.dynamicColor";
+/** 智能取色来源：system = 系统 Material You；wallpaper = OneTHU 当前壁纸。 */
+export type DynamicSource = "system" | "wallpaper";
+const SOURCE_KEY = "onethu.dynamicColor.source";
 /** 开启取色时被顶掉的外观状态，关掉时还给用户。
  *  存 JSON：必须能表达"用户当时没选主题（基础令牌）"，不能与"没记过快照"混为一谈。 */
 const RESTORE_KEY = "onethu.dynamicColor.restore";
 const STYLE_ID = "onethu-dynamic-color";
 /** 取色不可用时的降级主题（§3.4 降级链：系统取色 → 清华紫） */
 export const DYNAMIC_FALLBACK_THEME = "onethu.theme.tsinghua";
+
+const readSource = (): DynamicSource => {
+  try {
+    return localStorage.getItem(SOURCE_KEY) === "wallpaper" ? "wallpaper" : "system";
+  } catch {
+    return "system";
+  }
+};
+const writeSource = (source: DynamicSource): void => {
+  try {
+    localStorage.setItem(SOURCE_KEY, source);
+  } catch {
+    /* 隐私模式：本次会话仍按已有选择运行 */
+  }
+};
 
 const readPref = (): boolean => {
   try {
@@ -67,6 +87,14 @@ const writeRestore = (snap: RestoreSnapshot | null): void => {
     /* 同上 */
   }
 };
+
+export const dynamicSource = readSource;
+
+/** 切换取色来源；若智能取色正开着，立即按新来源重算。 */
+export function setDynamicSource(source: DynamicSource): void {
+  writeSource(source);
+  if (isDynamicEnabled()) void enableDynamicColor(source);
+}
 
 /** 读系统调色板：任何失败（桌面没有这条命令、旧机型、插件异常）都当作"不可用" */
 export async function fetchSystemPalette(): Promise<DynamicPalette | null> {
@@ -124,8 +152,11 @@ const syncScheme = (): void => {
 export const isDynamicEnabled = readPref;
 
 /** 打开开关。取到调色板就注入角色；取不到就降级到「清华紫」主题。两种情况下开关都是"开"。*/
-export async function enableDynamicColor(): Promise<void> {
-  const palette = await fetchSystemPalette();
+export async function enableDynamicColor(source: DynamicSource = readSource()): Promise<void> {
+  writeSource(source);
+  let palette = source === "wallpaper" ? await fetchWallpaperPalette() : await fetchSystemPalette();
+  /* 壁纸没有可用彩色（纯灰/解码失败/没壁纸）时退回系统取色；系统也没有才降级主题。 */
+  if (source === "wallpaper" && !paletteUsable(palette)) palette = await fetchSystemPalette();
   const usable = paletteUsable(palette);
   const plan = dynamicPlan(usable, readPref(), activeThemeId());
   if (plan.restore.action === "set") writeRestore({ activeId: plan.restore.activeId });
@@ -172,11 +203,22 @@ export function initDynamicColor(): void {
 
 /** 系统亮暗变化时重注入（只改 colorScheme；亮暗两套角色已在同一份样式里） */
 export function watchDynamicColor(): () => void {
-  if (typeof matchMedia !== "function") return () => undefined;
-  const mq = matchMedia("(prefers-color-scheme: dark)");
-  const onChange = (): void => {
-    if (document.documentElement.dataset.dynamic === "on") syncScheme();
-  };
-  mq.addEventListener("change", onChange);
-  return () => mq.removeEventListener("change", onChange);
+  const offs: Array<() => void> = [];
+  let lastWallpaper = wallpaperSnapshot()?.global ?? null;
+  if (typeof matchMedia === "function") {
+    const mq = matchMedia("(prefers-color-scheme: dark)");
+    const onChange = (): void => {
+      if (document.documentElement.dataset.dynamic === "on") syncScheme();
+    };
+    mq.addEventListener("change", onChange);
+    offs.push(() => mq.removeEventListener("change", onChange));
+  }
+  /* 壁纸取色源：换壁纸后重算；同一 ref 的亮度/主题更新不重复取像素。 */
+  offs.push(subscribeWallpaper(() => {
+    const next = wallpaperSnapshot()?.global ?? null;
+    if (next === lastWallpaper) return;
+    lastWallpaper = next;
+    if (isDynamicEnabled() && readSource() === "wallpaper") void enableDynamicColor("wallpaper");
+  }));
+  return () => { for (const off of offs) off(); };
 }
