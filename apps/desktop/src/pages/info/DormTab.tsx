@@ -16,7 +16,7 @@ import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../compone
 import { info, logLine } from "../../lib/clients.js";
 import { explainNetworkError, universalFetch } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
-import { softRecover } from "../../lib/reload.js";
+import { recoverCampusSession, softRecover } from "../../lib/reload.js";
 import { cacheGet, cacheSet } from "../../state/cache.js";
 
 function logErr(tag: string, err: unknown): void {
@@ -70,6 +70,7 @@ export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {})
       setBalanceState("ready");
     } catch (err) {
       logErr("ELE-BALANCE", err);
+      if (isAuthError(err) && (await recoverCampusSession("dorm"))) return loadBalance();
       if (isAuthError(err) && (await softRecover("dorm"))) return loadBalance();
       if (isAuthError(err) && balanceRecover.current < 1) {
         balanceRecover.current += 1;
@@ -114,6 +115,7 @@ export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {})
       logErr("ELE-RECORD", err);
       // 登录态丢失：不闪红，静默强制重建家园网会话后自动重载一次；仍失败才亮 ErrorNote
       // 登录态丢失：softRelogin 透明全链重建 → 原地重拉
+      if (isAuthError(err) && (await recoverCampusSession("dorm"))) return loadRecords();
       if (isAuthError(err) && (await softRecover("dorm"))) return loadRecords();
       // softRecover 失败/节流 → 落回数据级恢复兜底
       if (isAuthError(err) && elecRecover.current < 1) {
