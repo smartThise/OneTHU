@@ -76,6 +76,15 @@
   键盘导航仍保留主题色焦点环。
 - 覆盖 `:focus-within`，避免胶囊内部输入/设置弹窗只在外层漏一圈。
 
+## 9. 修复智能取色引入的主题色描边
+
+- 根因：`rolesFromPalette` 把 `outline` 映射到带壁纸色相的 neutralVariant；OneGUI 的
+  `line-2/line-3` 又取自 `--md-sys-color-outline`，于是智能取色开启后设置面板、卡片等结构描边被染成壁纸色。
+- 在动态取色注入前把结构描边强制中性灰：
+  - outline 亮色 `#7a7a7a` / 暗色 `#9a9a9a`；
+  - outline-variant / soft / strong 改为中性透明度叠色。
+- 强调色仍只用于按钮、胶囊、选中态；不再进入边框/分隔线。
+
 ## 验证
 
 - `dorm-balance-test` ✓（余额接线、缓存、旧错误文案移除）

@@ -117,9 +117,26 @@ const render = (roles: DynamicRoles): string => {
   );
 };
 
+/** 结构描边固定中性：智能取色的 palette 会把 outline 染成壁纸色，
+ *  结果设置面板/卡片出现一圈“主题色外描边”。强调色用于按钮和选中态，
+ *  边框/分隔线必须是中性灰，避免整页被描边包住。 */
+function neutralizeOutlines(roles: DynamicRoles): void {
+  const pairs: Array<[Record<string, string>, string, string, string, string]> = [
+    [roles.light, "#7a7a7a", "rgba(0, 0, 0, 0.10)", "rgba(0, 0, 0, 0.05)", "rgba(0, 0, 0, 0.18)"],
+    [roles.dark, "#9a9a9a", "rgba(255, 255, 255, 0.14)", "rgba(255, 255, 255, 0.07)", "rgba(255, 255, 255, 0.22)"],
+  ];
+  for (const [bag, outline, variant, soft, strong] of pairs) {
+    bag["--md-sys-color-outline"] = outline;
+    bag["--md-sys-color-outline-variant"] = variant;
+    bag["--md-sys-color-outline-soft"] = soft;
+    bag["--md-sys-color-outline-strong"] = strong;
+  }
+}
+
 /** 把映射结果注入文档并打开开关（纯 DOM，可重复调用=切主题后重注入） */
 export function applyDynamicColor(palette: DynamicPalette): void {
   const roles = rolesFromPalette(palette);
+  neutralizeOutlines(roles);
   let el = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
   if (!el) {
     el = document.createElement("style");

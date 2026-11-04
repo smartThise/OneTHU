@@ -36,6 +36,8 @@ const result = await page.evaluate(async () => {
   const root = getComputedStyle(document.documentElement);
   const btn = document.querySelector(".oneshot-button");
   return {
+    outline: root.getPropertyValue("--md-sys-color-outline").trim(),
+    line2: root.getPropertyValue("--og-line-2").trim(),
     dynamic: document.documentElement.dataset.dynamic,
     source: localStorage.getItem("onethu.dynamicColor.source"),
     enabled: localStorage.getItem("onethu.dynamicColor"),
@@ -48,6 +50,15 @@ check(result.source === "wallpaper", "来源持久化为 wallpaper");
 check(result.enabled === "1", "智能取色偏好持久化");
 check(/^rgb/.test(result.accent), "从壁纸生成强调色：" + result.accent);
 check(result.btnBg === result.accent.replace(/\s+/g, " "), "按钮跟随壁纸强调色");
+const neutral = (hex) => {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  return Math.max(r, g, b) - Math.min(r, g, b) <= 2;
+};
+check(neutral(result.outline), "动态 outline 保持中性灰：" + result.outline);
+check(neutral(result.line2), "结构描边 line-2 保持中性灰：" + result.line2);
 const changed = await page.evaluate(async () => {
   const path = (p) => performance.getEntriesByType("resource").map((e) => e.name).find((u) => new URL(u).pathname === p) ?? p;
   const wall = await import(path("/src/state/wallpaper.ts"));

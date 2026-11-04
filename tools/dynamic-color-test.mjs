@@ -221,6 +221,8 @@ assert.match(src, /source === "wallpaper" \? await fetchWallpaperPalette\(\)/, "
 assert.match(settingsSrc, /row-set-dyn-source/, "设置页只在开启后显示来源切换");
 assert.match(settingsSrc, /取色来源|Color source/, "来源标题已接线");
 assert.match(settingsSrc, /OneTHU 壁纸|dee4d1526978/, "来源选项包含 OneTHU 壁纸");
+assert.match(src, /neutralizeOutlines/, "动态取色必须把结构描边中性化");
+assert.match(src, /--md-sys-color-outline-variant/, "结构描边中性化覆盖 variant");
 
 console.log(
   "动态取色护栏：映射 " + (Object.keys(light).length + Object.keys(dark).length) +
