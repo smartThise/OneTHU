@@ -487,7 +487,7 @@ function inkIconsWith(el: HTMLElement, ink: string): void {
 function settleTarget(el: HTMLElement, mode: Mode): void {
   // These controls own an atomic foreground/background pair for each state.
   // Locking an inactive label's ink would override its selected state's CSS.
-  if (el.closest(".og-segment, .segmented, .og-tabs, .ex-tab, .og-btn--solid, .btn-primary")) {
+  if (el.closest(".og-segment, .segmented, .og-tabs, .ex-tab, .og-btn--solid, .btn-primary, .oneshot-button, #ex-bbar-onego-btn, .vault-box-button, .vault-box-label")) {
     clearLock(el);
     return;
   }

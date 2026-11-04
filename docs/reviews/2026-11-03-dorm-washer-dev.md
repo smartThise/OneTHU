@@ -48,6 +48,7 @@
   - 宿主 `.btn-primary`、联系人/引导选中控件。
 - `--og-action` 保留给非交互暗色 chrome（设备边框、兑换卡、拖拽提示），不随主题漂移。
 - 实测把 accent 设为红色后，solid 按钮/底部胶囊背景与前景立即跟随；`--og-action` 仍为中性色。
+- 同时修复全字符对比度引擎：它会把“无/磨砂/雾面”下采样偏亮的 accent 胶囊判成亮底并锁黑字，到玻璃档采样变暗才恢复白字。现在 `.oneshot-button`、`#ex-bbar-onego-btn`、`.vault-box-button`、`.btn-primary`、`.og-btn--solid`、分段 Tabs 等 accent 填充控件不再被自动置墨，前景固定走 `--og-accent-on`。
 
 ## 验证
 
