@@ -1048,6 +1048,7 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
             const plan = planForItem(viewOf(it), defs);
             const isSel = canEdit && selected === it.id;
             const isNote = it.spec.kind === "custom" && it.spec.id === "note";
+            const isClock = it.spec.kind === "custom" && it.spec.id === "clock";
             const isText = it.spec.kind === "text";
             const editingNow = canEdit && editingId === it.id && (isNote || isText);
             return (
@@ -1063,7 +1064,11 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
                 data-fitted={it.fitted ? "1" : undefined}
                 data-folded={it.folded ? "1" : undefined}
                 className={"free-item" + (isNote ? " is-note" : "") + (isSel ? " is-selected" : "") + (penOn ? " is-penlocked" : "") + (live && live.id === it.id ? " is-live" : "") + (it.pinned ? " is-pinned" : "")}
-                style={{ left: r.x, top: r.y, width: r.w, height: r.h, opacity: it.opacity ?? 1 }}
+                style={{
+                  left: r.x, top: r.y, width: r.w, height: r.h, opacity: it.opacity ?? 1,
+                  /* 时钟是“文字”不是“卡片”：内联兜底，避免任何主题/玻璃规则再给它铺底。 */
+                  ...(isClock ? { background: "transparent", border: "none", boxShadow: "none", backdropFilter: "none", WebkitBackdropFilter: "none" } : {}),
+                }}
                 onPointerDown={(e) => {
                   if (!canEditRef.current || penOn || editingNow) return;
                   const target = e.target as HTMLElement;
