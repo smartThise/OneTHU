@@ -40,7 +40,7 @@ import {
   type FreeItem,
 } from "../state/freeBoard.js";
 import { ATOM_TEMPLATE_IDS, allWidgetDefs } from "../state/widgets.js";
-import { defForSpec, isTierControlled, type WidgetDef, type WidgetSize } from "../state/widgetMeta.js";
+import { defForSpec, type WidgetDef, type WidgetSize } from "../state/widgetMeta.js";
 import { planForItem } from "../state/widgetRender.js";
 import { BOARD_TEMPLATES, templateItems, type BoardTemplate } from "../state/boardTemplates.js";
 import { WidgetHost, type WidgetRenderer } from "./WidgetHost.js";
@@ -348,7 +348,9 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
      存在 onethu.boardview.v1（视图不是文档，见 state/boardView.ts 的口径）。 */
   const phoneUi = useIsPhone();
   const touchInteraction = useTouchInteraction();
-  const explicitEdit = phoneUi || touchInteraction;
+  /* PC 首页也走「先点编辑再动」：正常态只阅读，进入编辑态才允许拖动/缩放/增删。
+     OnePage / 其他白板保持原来的桌面直接摆放。 */
+  const explicitEdit = phoneUi || touchInteraction || boardId === HOME_BOARD_ID;
   /** Physical phone rotation stays independent of the keyboard's reduced viewport. */
   const landscapeNow = (): boolean => {
     if (typeof window === "undefined") return false;
@@ -416,6 +418,8 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
   const [penColor, setPenColor] = useState<string>(PEN_COLORS[0]);
   /** 就地编辑中的条目（便笺 / 文字组件）。 */
   const [editingId, setEditingId] = useState<string | null>(null);
+  /** 卡片显示风格选择（时钟 / 今日课程等）；值为条目 id。 */
+  const [styleFor, setStyleFor] = useState<string | null>(null);
   const [folderPicker, setFolderPicker] = useState<{ itemId: string } | null>(null);
   /** 右键空白记住的落点：与「＋」共用同一个组件选择器，只有落点不同。 */
   const [addAt, setAddAt] = useState<{ x: number; y: number } | null>(null);
@@ -747,14 +751,12 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
       const picked = !!item.spec.props && Object.keys(item.spec.props).length > 0;
       list.push({ key: "pick", label: picked ? i18n("components.freeboard.d13523826411") : i18n("components.freeboard.153d487fec51"), onSelect: () => setPickFor(item.id) });
     }
-    /* 尺寸入口分两路：挡位控制 → 复用添加抽屉选档位；自由控制 → 选中出把手。 */
-    if (def && isTierControlled(def)) {
-      const defId = def.id;
-      list.push({ key: "resize", label: i18n("components.freeboard.12e0be622c36"), onSelect: () => { setSelected(null); setResizeFor({ id: item.id, defId, size: plan.size }); } });
-    } else {
-      list.push({ key: "resize", label: i18n("components.freeboard.d003f87ed602"), onSelect: () => setSelected(item.id) });
-    }
-    if (def && def.editableProps && def.editableProps.length) {
+    /* 无级画布：所有组件统一出四边/角把手，不再走固定档位抽屉。 */
+    list.push({ key: "resize", label: i18n("components.freeboard.d003f87ed602"), onSelect: () => setSelected(item.id) });
+    const displayProp = def?.editableProps?.find((p) => p.key === "display");
+    if (displayProp) {
+      list.push({ key: "style", label: displayProp.label, onSelect: () => setStyleFor(item.id) });
+    } else if (def && def.editableProps && def.editableProps.length) {
       list.push({ key: "edit", label: i18n("components.freeboard.051836569928"), onSelect: () => setEditingId(item.id) });
     }
     list.push({ key: "pin", label: item.pinned ? i18n("components.freeboard.20590a6a7b9a") : i18n("components.freeboard.d4b3f49cd2e4"), onSelect: () => ops.pin(item.id) });
@@ -963,6 +965,9 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
   };
 
   const pickItem = pickFor ? itemsRef.current.find((x) => x.id === pickFor) : undefined;
+  const styleItem = styleFor ? items.find((x) => x.id === styleFor) : undefined;
+  const styleDef = styleItem ? defs.find((d) => d.id === (styleItem.spec.kind === "custom" ? "custom:" + styleItem.spec.id : "")) ?? defForSpec(styleItem.spec, defs) : null;
+  const styleProp = styleDef?.editableProps?.find((p) => p.key === "display");
   const resizeDef = useMemo(
     () => (resizeFor ? defs.find((d) => d.id === resizeFor.defId) ?? null : null),
     [uiLocale, resizeFor, defs],
@@ -991,14 +996,11 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
             { key: "all-boards", label: i18n("components.freeboard.0f591af87c35"), onSelect: () => navigate("boards") },
           ]}
         />
-      ) : (
+      ) : boardId === HOME_BOARD_ID ? null : (
         <div className="workbench-board-head">
           <div>
             <h2>{i18n("components.freeboard.203c08e0d44a")}</h2>
             <span>{!canEdit ? i18n("components.freeboard.editingHint") : stack ? i18n("components.freeboard.2880a75c7f5f") : i18n("components.freeboard.5b80d5358a4b")}</span>
-          </div>
-          <div className="workbench-board-actions">
-            {canEdit ? <Btn variant="ghost" onClick={() => setTplOpen(true)}>{i18n("components.freeboard.62b95daecb7f")}</Btn> : null}
           </div>
         </div>
       )}
@@ -1194,6 +1196,7 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
           {explicitEdit ? <Btn size="sm" variant={phoneEditing ? "solid" : "tonal"} icon={<IconPen width={16} height={16}/>} data-coach="home-edit" aria-pressed={phoneEditing} onClick={() => setPhoneEditScope(phoneEditing ? null : phoneEditKey)}>{(phoneEditing ? i18n("components.freeboard.finishEdit") : i18n("components.freeboard.startEdit"))}</Btn> : null}
           {canEdit ? <>
           <Btn size="sm" data-coach="home-add" icon={<IconPlus />} onClick={() => { setAddAt(null); setAddOpen(true); }}>{i18n("components.freeboard.783d638053ea")}</Btn>
+          {boardId === HOME_BOARD_ID ? <Btn size="sm" variant="ghost" onClick={() => setTplOpen(true)}>{i18n("components.freeboard.62b95daecb7f")}</Btn> : null}
           {phonePortrait && orientation === "portrait" ? (
             <Btn variant="outline" size="sm" aria-pressed={phoneCanvas} onClick={togglePhoneCanvas}>
               {phoneCanvas ? i18n("components.freeboard.593f0f466b3e") : i18n("components.freeboard.f87eebfdca60")}
@@ -1297,6 +1300,23 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
           onSelect: () => applyTemplate(tpl),
         }))}
         onClose={() => setTplOpen(false)}
+      />
+
+      {/* 显示风格：时钟的杂志/简约、今日课程的单节大字/列表 */}
+      <ActionSheet
+        open={!!styleItem && !!styleProp}
+        title={styleProp?.label ?? ""}
+        items={(styleProp?.options ?? []).map((opt) => ({
+          id: opt.value,
+          label: opt.label,
+          onSelect: () => {
+            if (!styleItem) return;
+            const props = styleItem.spec.kind === "custom" ? { ...styleItem.spec.props, display: opt.value } : { display: opt.value };
+            ops.props(styleItem.id, props);
+            setStyleFor(null);
+          },
+        }))}
+        onClose={() => setStyleFor(null)}
       />
 
       {/* 添加组件抽屉：常驻渲染（自己管退场动画）；「改变大小」复用同一个抽屉（自动选中当前档位） */}

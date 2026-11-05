@@ -6346,3 +6346,90 @@ html:root .hw-filter-select .og-select-trigger {
   background: transparent;
   border-color: transparent;
 }
+
+/* ── 首页时钟：无卡片背景，像标题一样直接落在白板上 ── */
+html:root .free-item[data-widget="clock"] {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  container-type: inline-size;
+}
+html:root .free-item[data-widget="clock"] > :first-child { padding: 0; overflow: visible; }
+html:root .free-item[data-widget="clock"] .wg-card { background: transparent; padding: 0; overflow: visible; }
+html:root .free-item[data-widget="clock"] .chrome-clock {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  text-align: left;
+}
+html:root .free-item[data-widget="clock"] .chrome-clock.is-minimal { align-items: center; text-align: center; gap: 2px; }
+html:root .free-item[data-widget="clock"] .chrome-clock.is-magazine { align-items: flex-start; gap: 2px; }
+html:root .free-item[data-widget="clock"] .chrome-clock-time {
+  font-family: var(--og-font-ui);
+  font-size: clamp(28px, 14cqw, 64px);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  color: var(--og-content-1);
+}
+html:root .free-item[data-widget="clock"] .chrome-clock-date {
+  font-family: var(--og-font-ui);
+  font-size: clamp(11px, 3cqw, 15px);
+  color: var(--og-content-2);
+  margin: 0;
+}
+html:root .free-item[data-widget="clock"] .is-magazine .chrome-clock-time {
+  font-family: Merriweather, Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  font-size: clamp(32px, 17cqw, 78px);
+  letter-spacing: -0.055em;
+}
+html:root .free-item[data-widget="clock"] .is-magazine .chrome-clock-date {
+  font-family: "Songti SC", "Noto Serif CJK SC", "SimSun", serif;
+  font-size: clamp(12px, 3.4cqw, 17px);
+  color: var(--og-content-2);
+}
+
+/* ── 今日课程「单节大字」：不按固定档位裁信息，按卡片实际大小排版 ── */
+html:root .free-item[data-widget="next-class"],
+html:root .free-item[data-widget="classes"] { container-type: inline-size; }
+html:root .free-item[data-widget="next-class"] > :first-child,
+html:root .free-item[data-widget="classes"] > :first-child { padding: 12px 14px; }
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus {
+  height: 100%;
+  justify-content: center;
+  gap: clamp(4px, 1.5cqw, 10px);
+}
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-head {
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-left {
+  font-size: clamp(11px, 3cqw, 15px);
+  color: var(--og-content-2);
+}
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-time {
+  font-size: clamp(11px, 3cqw, 15px);
+  color: var(--og-content-2);
+  font-variant-numeric: tabular-nums;
+}
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-name {
+  font-size: clamp(22px, 8.5cqw, 42px);
+  line-height: 1.12;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-where {
+  font-size: clamp(11px, 3cqw, 15px);
+  color: var(--og-content-2);
+}
+/* 自由画布的“单节大字”不再沿用旧档位的隐藏规则。 */
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-time,
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-name,
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-where,
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-bar { display: block; }

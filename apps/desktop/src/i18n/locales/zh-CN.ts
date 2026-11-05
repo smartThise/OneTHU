@@ -7709,7 +7709,12 @@ const locale = {
     "update.prompt.title": "发现新版本",
     "update.prompt.version": "OneTHU {version}",
     "update.prompt.week": "7 天后",
-    "update.sourceTimeout": "{source} 响应超时"
+    "update.sourceTimeout": "{source} 响应超时",
+    "state.widgetstyle.3d2ba1c5d50f": "显示样式",
+    "state.widgetstyle.25122e5ed17d": "杂志风",
+    "state.widgetstyle.a2df8b92e83a": "简约风",
+    "state.widgetstyle.babb44caf563": "单节大字",
+    "state.widgetstyle.b82fb59d35f2": "今日课程列表",
   }
 } satisfies LocaleDef;
 export default locale;

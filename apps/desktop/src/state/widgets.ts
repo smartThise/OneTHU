@@ -7,7 +7,7 @@ import { t as i18n } from "../i18n/index.js";
  * 昂贵档口径（霖 2026-10-09 定）：本轮先复用现有卡壳，卡片本体抽取留到后续批次。
  */
 import { HOME_CARD_META, type HomeCardDef } from "../lib/homeCards.js";
-import { BOARD_UNITS, PRESET_WIDGETS, type SizeRange, type SizeTier, type WidgetDef } from "./widgetMeta.js";
+import { BOARD_UNITS, PRESET_WIDGETS, type PropSpec, type SizeRange, type SizeTier, type WidgetDef } from "./widgetMeta.js";
 
 /** 主栏卡默认 3 单位宽、侧栏卡 1 单位宽：与今日页现状的两栏比例一致。 */
 function defaultWidth(def: HomeCardDef): number {
@@ -149,6 +149,24 @@ export const NOTE_WIDGET: WidgetDef = {
 };
 
 /** 卡片的组件目录条目：spec 用 custom + 卡片 id（与今日页白板文档同构）。 */
+/** 无级画布下，卡片不再按尺寸档位换排版；改为用户可选的显示风格。 */
+function displayProp(options: Array<[string, string]>): PropSpec {
+  return {
+    key: "display",
+    get label() { return i18n("state.widgetstyle.3d2ba1c5d50f"); },
+    kind: "select",
+    options: options.map(([value, label]) => ({ value, label })),
+  };
+}
+
+function editablePropsFor(id: string): PropSpec[] | undefined {
+  if (id === "clock") return [displayProp([["magazine", i18n("state.widgetstyle.25122e5ed17d")], ["minimal", i18n("state.widgetstyle.a2df8b92e83a")]])];
+  if (id === "classes" || id === "next-class") {
+    return [displayProp([["focus", i18n("state.widgetstyle.babb44caf563")], ["list", i18n("state.widgetstyle.b82fb59d35f2")]])];
+  }
+  return undefined;
+}
+
 export function cardWidgetDefs(): WidgetDef[] {
   return HOME_CARD_META.map((def) => {
     const id = String(def.id);
@@ -164,6 +182,7 @@ export function cardWidgetDefs(): WidgetDef[] {
       sizeRange: rangeFor(def),
       sizeControl: free ? "free" : "tiers",
       sizeTiers: free ? undefined : plan.tiers,
+      ...(editablePropsFor(id) ? { editableProps: editablePropsFor(id) } : {}),
     } satisfies WidgetDef;
   });
 }

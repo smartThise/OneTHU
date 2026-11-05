@@ -23,9 +23,9 @@ import { Btn, SearchField } from "@onethu/gui";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useOverlayBack } from "../state/navStack.js";
-import { sizeTiersOf, tierIndexOf, type WidgetDef, type WidgetSize } from "../state/widgetMeta.js";
+import { type WidgetDef, type WidgetSize } from "../state/widgetMeta.js";
 import type { WidgetRenderer } from "./WidgetHost.js";
-import { WidgetPreviewBody, WidgetSizeList, tierAt } from "./WidgetSizes.js";
+import { WidgetPreviewBody } from "./WidgetSizes.js";
 import { PreviewDataProvider } from "./PreviewData.js";
 import { haptic } from "../lib/haptics.js";
 
@@ -96,8 +96,6 @@ export function BoardAddDrawer({
   const [expanded, setExpanded] = useState<string | null>(null);
   /** 组件搜索（右键空白与「＋」共用本抽屉，一视同仁）。 */
   const [query, setQuery] = useState("");
-  /** 展开态选中的档位下标（滑动或点选都会更新）。 */
-  const [tierIndex, setTierIndex] = useState(0);
   const [dragY, setDragY] = useState(0);
   /** 抽屉拉开到高位（拖过一半高度）后保持；再往下拖可以收回半高或关掉。 */
   const [tall, setTall] = useState(false);
@@ -132,9 +130,7 @@ export function BoardAddDrawer({
   useEffect(() => {
     if (!open) return;
     if (mode === "resize" && targetId) {
-      const def = defs.find((d) => d.id === targetId);
       setExpanded(targetId);
-      setTierIndex(def ? tierIndexOf(def, { w: targetW, h: targetH }) : 0);
       return;
     }
     setExpanded(null);
@@ -273,8 +269,8 @@ export function BoardAddDrawer({
   if (!shown) return null;
 
   const def = expanded ? defs.find((d) => d.id === expanded) ?? null : null;
-  const tiers = def ? sizeTiersOf(def) : [];
-  const chosen = tierAt(tiers, tierIndex);
+  /* 自由画布：不再提供固定尺寸档位；添加时用组件默认尺寸，之后拖把手自由缩放。 */
+  const chosen = def?.defaultSize ?? { w: 2, h: 1 };
   /* 目录组件与特殊组件同一套搜索：标题 / id / 说明都能命中。 */
   const q = query.trim().toLowerCase();
   const matches = (s: string): boolean => !q || s.toLowerCase().includes(q);
@@ -335,7 +331,6 @@ export function BoardAddDrawer({
         const name = card.querySelector(".add-card-name");
         const box = card.querySelector(".add-preview-box");
         if (name && box) flyRef.current = { name: name.getBoundingClientRect(), box: box.getBoundingClientRect() };
-        setTierIndex(tierIndexOf(d, d.defaultSize));
         setExpanded(d.id);
       }}
     >
@@ -386,22 +381,12 @@ export function BoardAddDrawer({
             <span className="add-detail-desc">{def.description}</span>
           </div>
           <div className="add-detail-body" ref={boxRef}>
-            {tiers.length ? (
-              <WidgetSizeList
-                def={def}
-                tiers={tiers}
-                index={tierIndex}
-                renderer={renderers[def.id]}
-                onSelect={setTierIndex}
-              />
-            ) : (
-              <div className="add-detail-free">
-                <div className="add-detail-preview">
-                  <WidgetPreview def={def} renderer={renderers[def.id]} scale={1} />
-                </div>
-                <span className="add-detail-hint">{i18n("components.boardadddrawer.f558fcad438d")}</span>
+            <div className="add-detail-free">
+              <div className="add-detail-preview">
+                <WidgetPreview def={def} renderer={renderers[def.id]} scale={1} />
               </div>
-            )}
+              <span className="add-detail-hint">{i18n("components.boardadddrawer.f558fcad438d")}</span>
+            </div>
           </div>
           <button
             type="button"

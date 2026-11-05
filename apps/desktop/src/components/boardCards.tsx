@@ -314,7 +314,7 @@ function CardEntryCard(): ReactNode {
  *   1×1 → 只给倒计时（"23 分钟后" / "进行中"）；2×1 → 倒计时 + 课程名；
  *   4×2 → 倒计时 + 时间 + 课程名 + 地点 + 一节进度条。
  */
-function NextClassCard({ size }: { size?: WidgetSize }): ReactNode {
+function NextClassCard({ size, display = "focus" }: { size?: WidgetSize; display?: string }): ReactNode {
   const uiLocale = useUiLocale();
 
   const campus = useCampusData();
@@ -345,6 +345,7 @@ function NextClassCard({ size }: { size?: WidgetSize }): ReactNode {
       });
   }, [uiLocale, schedule, nowMin]);
   const next = useMemo(() => pickNextClass(today, nowMin), [uiLocale, today, nowMin]);
+  if (display === "list") return <TodayClassesWidget />;
   /* 数据没到 ≠ 没课：加载中给加载态；今天有课但都已结束 ≠ 今天没课（语义分开，别误导） */
   if (campus.state === "loading" && !campus.data) return <div className="wg-card-empty">{i18n("components.boardcards.3fdd06e0d301")}</div>;
   if (!next) return <div className="wg-card-empty">{today.length > 0 ? i18n("components.boardcards.44a03dfd58ea") : i18n("components.boardcards.cfb9b8b7e028")}</div>;
@@ -352,7 +353,7 @@ function NextClassCard({ size }: { size?: WidgetSize }): ReactNode {
   const span = Math.max(1, next.en - next.st);
   const pct = Math.max(0, Math.min(100, Math.round(((nowMin - next.st) / span) * 100)));
   return (
-    <div className="next-class-tiered">
+    <div className={"next-class-tiered" + (display === "focus" ? " is-focus" : "")}>
       <div className="next-class-head">
         <span className="next-class-left">{leftText}</span>
         <span className="next-class-time">{minText(next.st) + "–" + minText(next.en)}</span>
@@ -569,8 +570,8 @@ function HomeworkCard(): ReactNode {
   );
 }
 
-function ClassesCard(): ReactNode {
-  return <TodayClassesWidget />;
+function ClassesCard({ display = "list" }: { display?: string }): ReactNode {
+  return display === "focus" ? <NextClassCard display="focus" /> : <TodayClassesWidget />;
 }
 
 function NoticesCard(): ReactNode {
@@ -719,16 +720,16 @@ export const BOARD_CARD_RENDERERS: Record<string, CardRenderer> = {
   [cardRendererKey("note")]: (props) => <NoteCard {...(props ?? {})} />,
   /* 今日四件套：自足取数（不再依赖 TodayPage 挂载发布的活渲染器） */
   [cardRendererKey("homework")]: () => <HomeworkCard />,
-  [cardRendererKey("classes")]: () => <ClassesCard />,
+  [cardRendererKey("classes")]: (props) => <ClassesCard display={typeof props?.display === "string" ? props.display : undefined} />,
   [cardRendererKey("notices")]: () => <NoticesCard />,
-  [cardRendererKey("clock")]: () => <HomeClockWidget />,
+  [cardRendererKey("clock")]: (props) => <HomeClockWidget display={typeof props?.display === "string" ? props.display : undefined} />,
   [cardRendererKey("services")]: () => <HomeServicesWidget />,
   [cardRendererKey("date")]: (_props, size) => <DateCard size={size} />,
   [cardRendererKey("weather")]: (_props, size) => <WeatherCard size={size} />,
   /* 余额速览：自足实现 + 两档排版（4×1 并排 / 4×2 上下两行）。 */
   [cardRendererKey("balance-strip")]: (_props, size) => <BalanceStripCard size={size} />,
   /* 下一节课：自足实现 + 三档排版（1×1 倒计时 / 2×1 加课程名 / 4×2 加时间、地点与进度）。 */
-  [cardRendererKey("next-class")]: (_props, size) => <NextClassCard size={size} />,
+  [cardRendererKey("next-class")]: (props, size) => <NextClassCard size={size} display={typeof props?.display === "string" ? props.display : undefined} />,
   /* 校园卡余额卡片：自足实现 + 三档排版（复用统计卡的五个槽位）。 */
   [cardRendererKey("cardEntry")]: () => <CardEntryCard />,
   /* 今日预约：自足实现 + 三档排版（1×1 条数 / 2×1 加最近一条 / 4×2 逐条）。 */

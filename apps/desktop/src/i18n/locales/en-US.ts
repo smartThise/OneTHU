@@ -7709,7 +7709,12 @@ const locale = {
     "update.prompt.title": "Update available",
     "update.prompt.version": "OneTHU {version}",
     "update.prompt.week": "In 7 days",
-    "update.sourceTimeout": "{source} timed out"
+    "update.sourceTimeout": "{source} timed out",
+    "state.widgetstyle.3d2ba1c5d50f": "Display style",
+    "state.widgetstyle.25122e5ed17d": "Editorial",
+    "state.widgetstyle.a2df8b92e83a": "Minimal",
+    "state.widgetstyle.babb44caf563": "Next class, large",
+    "state.widgetstyle.b82fb59d35f2": "Today's classes",
   }
 } satisfies LocaleDef;
 export default locale;

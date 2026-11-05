@@ -15,14 +15,16 @@ import { IconChevron, IconMore, IconPlus, IconX } from "../Icons.js";
 
 type Entry = NonNullable<ReturnType<typeof sphereEntry>>;
 
-export function HomeClockWidget(): ReactNode {
+export function HomeClockWidget({ display = "minimal" }: { display?: string } = {}): ReactNode {
   const uiLocale = useUiLocale();
 
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
-  return <div className="chrome-clock" aria-label={i18n("components.explorer.homespheres.8bc0ff588cb7")}>
-    <div className="chrome-clock-date">{fmtMonthDayWeek(now)}</div>
-    <div className="chrome-clock-time">{String(now.getHours()).padStart(2, "0")}<span className="chrome-clock-colon">:</span>{String(now.getMinutes()).padStart(2, "0")}</div>
+  const magazine = display === "magazine";
+  const time = <div className="chrome-clock-time">{String(now.getHours()).padStart(2, "0")}<span className="chrome-clock-colon">:</span>{String(now.getMinutes()).padStart(2, "0")}</div>;
+  const date = <div className="chrome-clock-date">{fmtMonthDayWeek(now)}</div>;
+  return <div className={"chrome-clock " + (magazine ? "is-magazine" : "is-minimal")} data-clock-style={magazine ? "magazine" : "minimal"} aria-label={i18n("components.explorer.homespheres.8bc0ff588cb7")}>
+    {magazine ? <>{time}{date}</> : <>{date}{time}</>}
   </div>;
 }
 
