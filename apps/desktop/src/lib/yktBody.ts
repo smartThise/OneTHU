@@ -300,6 +300,18 @@ function renderTextSegment(seg: string, render: LatexRender): string {
 function renderSpanningTex(html: string, render: LatexRender): string {
   const texBody = (raw: string): string =>
     decodeBasicEntities(raw.replace(/<br\s*\/?\s*>/gi, " ").replace(/<[^>]*>/g, " ")).trim();
+  // `$…$` 也可能被 UEditor 插入 <span>（例如 text-wrap-mode），同样跨节点配对。
+  // 先把标签整体 stash，避免属性里的 `$t$` 被当成公式；配对完成后原样还原。
+  const tags: string[] = [];
+  const stash = html.replace(/<[^>]*>/g, (tag) => `\u0001${tags.push(tag) - 1}\u0001`);
+  const stashed = stash.replace(/(?<!\$)\$(?!\$)([\s\S]*?)\$(?!\$)/g, (whole, body: string) => {
+    const inner = texBody(body.replace(/\u0001\d+\u0001/g, " "));
+    if (!inner) return whole;
+    /* 跨标签扫描最容易误吃价格区间；这里始终要求公式形态，不只看边界空白。 */
+    if (!looksLikeMath(inner)) return whole;
+    return safeRender(render, inner, false) ?? whole;
+  });
+  html = stashed.replace(/\u0001(\d+)\u0001/g, (_, n: string) => tags[Number(n)] ?? "");
   html = html.replace(/\\\[([\s\S]*?)\\\]/g, (whole, body: string) => {
     const tex = texBody(body);
     if (!tex) return whole;

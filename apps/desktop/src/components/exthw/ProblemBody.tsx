@@ -142,18 +142,15 @@ export function resolveEffectiveBg(el: Element | null): { bg: string; flush: boo
  *  主题可插拔（暗色不止一个、浅色可能是米白），所以只信运行时 computed 值，
  *  绝不假设「明/暗」二元。 */
 export function readYktDocTheme(container: Element | null): YktDocTheme {
-  const effective = resolveEffectiveBg(container);
-  /* 玻璃皮肤下永远不复制纸面底色：首帧容器可能还没拿到半透明材质，
+  /* 题干永远让父层卡片提供底色：首帧容器可能还没拿到半透明材质，
      祖先此刻若正好是白色面，srcdoc 会被写成白底；之后主题/皮肤切换才重建。
      用户实测「新开雨课堂作业一片白，切实心+主题后才消失」就是这条首帧竞态。
-     玻璃下 iframe 一律透明，只让父层材质出现一次。 */
-  const glass = document.documentElement.dataset.ogSkin === "glass" || !!document.documentElement.dataset.glass;
-  const flush = glass || effective.flush;
+     iframe 自身一律透明，只让父层材质出现一次。 */
   return {
     text: sanitizeDocColor(probeColor(container, "var(--text-1, #222)"), DEFAULT_YKT_DOC_THEME.text),
     textSoft: sanitizeDocColor(probeColor(container, "var(--text-2, #666)"), DEFAULT_YKT_DOC_THEME.textSoft),
-    bg: glass ? "transparent" : sanitizeDocColor(effective.bg, DEFAULT_YKT_DOC_THEME.bg),
-    ...(flush ? { flush: true } : {}),
+    bg: "transparent",
+    flush: true,
     border: sanitizeDocColor(probeColor(container, "var(--border, #ddd)"), DEFAULT_YKT_DOC_THEME.border),
     link: sanitizeDocColor(probeColor(container, "var(--accent, #1a73e8)"), DEFAULT_YKT_DOC_THEME.link),
     fallbackBg: sanitizeDocColor(probeColor(container, "var(--surface-3, #fafafa)"), DEFAULT_YKT_DOC_THEME.fallbackBg),

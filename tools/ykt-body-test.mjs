@@ -122,6 +122,11 @@ console.log("\n[1] LaTeX 定界扫描与逐段降级");
     "跨 <br>/标签的 \\[…\\] 仍能配对渲染",
   );
   eq(
+    yb.renderLatexInHtml("<p>$<span>\\alpha_1</span>$</p>", fake),
+    "<p>[I:\\alpha_1]</p>",
+    "跨 <span> 的 $…$ 也能配对渲染",
+  );
+  eq(
     yb.renderLatexInHtml("<p>\\(<div> a+b </div>\\)</p>", fake),
     "<p>[I:a+b]</p>",
     "跨标签的 \\(…\\) 仍能配对渲染",
@@ -369,8 +374,7 @@ console.log("\n[7] 接线静态审计（详情页 / ProblemBody / yktAssets 漏�
   ok(comp.includes("clampDocHeight") && comp.includes("YKT_FRAME_MIN_H"), "ProblemBody：高度钳制");
   ok(comp.includes("ev.source !== frameRef.current?.contentWindow"), "ProblemBody：postMessage 只认自己的 iframe");
   ok(comp.includes("ykt:font-fail") && comp.includes("fontRetried"), "ProblemBody：字体校验失败强刷仅一次（防打转）");
-  ok(comp.includes('dataset.ogSkin === "glass"'), "ProblemBody：玻璃皮肤首帧强制透明画布");
-  ok(comp.includes('bg: glass ? "transparent"'), "ProblemBody：玻璃下不复制祖先纸面底色");
+  ok(comp.includes("bg: \"transparent\"") && comp.includes("flush: true"), "ProblemBody：题干 iframe 始终透明，不复制祖先纸面底色");
   ok(comp.includes("needsLatex") && comp.includes("loadYktLatexBundle"), "ProblemBody：\\(…\\) / 实体定界符也会加载 KaTeX");
   ok(comp.includes("openExternal"), "ProblemBody：文档内链接走系统外开");
 
