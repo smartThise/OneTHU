@@ -834,11 +834,14 @@ export function buildYktProblemDoc(opts: YktDocBuildOptions): string {
   }).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
   const script = YKT_DOC_SCRIPT_TEMPLATE.split("__YKT_FONT__").join(YKT_FONT_FAMILY)
     .split("__YKT_UI__").join(ui);
+  const flush = opts.theme?.flush === true;
+  const htmlAttrs = flush ? ' style="background:transparent;color-scheme:normal"' : "";
+  const bodyAttrs = flush ? ' style="background:transparent"' : "";
   return (
-    '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+    `<!DOCTYPE html><html${htmlAttrs}><head><meta charset="utf-8">` +
     '<meta name="referrer" content="no-referrer">' +
     `<base href="${YKT_DOC_BASE}">` +
-    `<style>${css}${extra}${fontFace}</style></head><body>${body}` +
+    `<style>${css}${extra}${fontFace}</style></head><body${bodyAttrs}>${body}` +
     `<script>${script}</script></body></html>`
   );
 }

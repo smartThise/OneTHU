@@ -299,7 +299,7 @@ export function ProblemBody({ html, fontUrl, cookies, title = i18n("components.e
         sandbox="allow-scripts"
         srcDoc={doc}
         loading="lazy"
-        style={{ width: "100%", height, border: 0, display: "block", background: "transparent" }}
+        style={{ width: "100%", height, border: 0, display: "block", background: "transparent", colorScheme: "normal" }}
       />
     </div>
   );

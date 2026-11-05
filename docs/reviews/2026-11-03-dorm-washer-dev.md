@@ -99,7 +99,7 @@
 - **`\( … \)` 只出现在文档时**：KaTeX 加载条件不再只判 `$`，同时识别 `\(`/`\[`、`&#36;`/`&#92;` 实体与双反斜杠形态；否则渲染器根本不加载，整页公式只能显示原文。
 - **公式跨 `<br>`/HTML 标签 / `<span>`**：雨课堂 UEditor 会把 `\[` 公式里的换行拆成 `<br>`/`<div>`，还会在 `$…$` 公式内插入 `<span style="text-wrap-mode">`；定界符和公式体因此落在不同文本节点，按节点扫描永远配不上。增加跨标签预处理（保护属性后再配对），剥掉公式体内标签后交给 KaTeX。
 - **题干 iframe 始终透明**：不再信任首帧祖先底色/皮肤属性，`ProblemBody` 一律 `bg: transparent, flush: true`；父层卡片负责材质，彻底消除“新开作业白底、切实心+主题才消失”。
-- **白底真正的根因**：`color-scheme:light` 会让 WebView 按 light 画一层白 canvas；即使 `html/body` 都是 transparent 也会露白。flush 文档改为 `color-scheme:normal`，iframe 才真正透出父层卡片材质。
+- **白底真正的根因**：`color-scheme:light` 会让 WebView 按 light 画一层白 canvas；即使 `html/body` 都是 transparent 也会露白。flush 文档改为 `color-scheme:normal`，并对 `<html>/<body>/iframe` 都写内联透明属性，避免暗色父级/上下文再被 UA 画布覆盖。
 - **玻璃下大白底**：`ProblemBody` 在 `data-og-skin="glass"` 或 `data-glass` 时强制 iframe 画布透明（不复制祖先纸面色）；文档 CSS 对 `html,body` 都写 `background:transparent!important`（只写 body 时 Chromium srcdoc 画布仍会刷白），并观察 `data-og-skin / data-og-skin-level / data-glass` 变化重建文档。
 - `yktDocCss` 的 flush 文档继续不补不透明暗纸面，玻璃只在父层出现一次。
 
