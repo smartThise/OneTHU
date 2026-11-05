@@ -103,6 +103,11 @@
 - **玻璃下大白底**：`ProblemBody` 在 `data-og-skin="glass"` 或 `data-glass` 时强制 iframe 画布透明（不复制祖先纸面色）；文档 CSS 对 `html,body` 都写 `background:transparent!important`（只写 body 时 Chromium srcdoc 画布仍会刷白），并观察 `data-og-skin / data-og-skin-level / data-glass` 变化重建文档。
 - `yktDocCss` 的 flush 文档继续不补不透明暗纸面，玻璃只在父层出现一次。
 
+## 12. 修复浅色主题左上角「标签页」白字
+
+- `#ex-bbar-tabs-btn` 被 `textContrast` 按壁纸亮度锁成了白墨，浅色主题下左上角的 wordmark 仍是白色。
+- 该入口是 chrome，不是正文：加 `data-tx="keep"` 禁止对比度引擎改写，并让非打开态的 wordmark / 图标使用 `--og-content-1`。
+
 ## 验证
 
 - `dorm-balance-test` ✓（余额接线、缓存、旧错误文案移除）

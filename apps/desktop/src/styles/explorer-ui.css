@@ -136,6 +136,12 @@
 .ex-bbar-btn:last-child { justify-self: end; }
 .ex-bbar-icon { position: relative; display: inline-flex; }
 .ex-bbar-label { line-height: 1; }
+/* 标签页入口是 chrome，不是压在壁纸上的正文：字体/图标跟随主题墨色，
+   不能被 textContrast 按壁纸亮度锁成白色（浅色主题下左上角「标签页」白字）。 */
+html:root #ex-bbar-tabs-btn:not(.is-open) .workbench-wordmark,
+html:root #ex-bbar-tabs-btn:not(.is-open) .ex-bbar-icon {
+  color: var(--og-content-1) !important;
+}
 .ex-bbar-badge {
   position: absolute;
   top: -6px;
