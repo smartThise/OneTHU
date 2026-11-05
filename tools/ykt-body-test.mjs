@@ -446,6 +446,7 @@ console.log("\n[8] 主题配色：yktDocCss / sanitizeDocColor / buildYktProblem
   ok(!yb.yktDocIsDark(yb.DEFAULT_YKT_DOC_THEME), "默认浅色定稿仍是亮档");
   const cssFlush = yb.yktDocCss({ ...dark, flush: true });
   ok(cssFlush.includes("html,body{background:transparent!important}"), "glass flush：html/body 都透明（srcdoc 画布不刷白）");
+  ok(cssFlush.includes("color-scheme:normal") && !cssFlush.includes("color-scheme:light"), "glass flush：color-scheme normal，避免 WebView 按 light 画白 canvas");
 }
 
 /* ───────────────── [9] 字面 nbsp + 玻璃档公式白底（2026-10-28 用户反馈） ───────────────── */

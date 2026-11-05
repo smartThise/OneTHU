@@ -697,10 +697,10 @@ export function yktDocCss(t: YktDocTheme = DEFAULT_YKT_DOC_THEME): string {
     `body{font:14px/1.65 ${YKT_DOC_FONT_STACK};`,
     `color:${text};background:${bg};overflow:hidden;word-break:break-word;-webkit-text-size-adjust:100%}`,
     // color-scheme 跟档：画布默认色 / 滚动条 / 表单控件随暗底（画布兜底第二道）。
-    // flush 时钉 light：Chromium 在 dark color-scheme 下会铺一层不透明暗画布底，
-    // 玻璃就透不出来了；透明画布 + 父层材质才是"只叠一次"的唯一形态。
+    // flush 时不能钉 light：Chromium 会按 color-scheme 给 iframe canvas 画白底，
+    // 即使 html/body 都是 transparent 也会暴露白画布。normal 才是真正透明画布。
     dark && !flush ? "html{color-scheme:dark}" : "",
-    flush ? "html{color-scheme:light}html,body{background:transparent!important}" : "",
+    flush ? "html{color-scheme:normal}html,body{background:transparent!important}" : "",
     "p{margin:0 0 8px}p:last-child{margin-bottom:0}",
     "img{max-width:100%;height:auto;border-radius:4px}",
     `table{border-collapse:collapse;max-width:100%}th,td{border:1px solid ${t.border};padding:4px 8px;font-size:12px}`,

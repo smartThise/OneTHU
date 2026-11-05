@@ -4078,10 +4078,6 @@ html.is-phone .mail-toolbar-search { max-width: 320px; }
 
 /* 单题卡（detail-sec 同款左右 0 padding，内容块自带 16px 边距） */
 .ykt-problem { padding: 4px 0 8px; margin-bottom: var(--gap-3); }
-/* 非实心档：题干卡是整页最大的面，80% 白底会像一块白板；降到 38% 让壁纸透出来。 */
-html:root[data-og-skin="glass"] .ykt-problem {
-  --og-c-surface-fill: color-mix(in srgb, var(--og-surface-1) 38%, transparent);
-}
 .ykt-problem:last-child { margin-bottom: 0; }
 .ykt-problem-head {
   display: flex;
