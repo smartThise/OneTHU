@@ -401,6 +401,18 @@ export const REPORT_ELEMENT_WIDGETS: readonly WidgetDef[] = [
     defaultSize: { w: 4, h: 4 },
     sizeRange: { minW: 2, minH: 2, maxW: BOARD_UNITS, maxH: 8 },
   },
+  {
+    id: "custom:folder",
+    spec: { kind: "custom", id: "folder", props: { entries: [] } },
+    get title() { return i18n("components.freeboard.7c7802d8adae"); },
+    get description() { return i18n("components.freeboard.9818eabd5c89"); },
+    defaultSize: { w: 2, h: 2 },
+    sizeRange: { minW: 1, minH: 1, maxW: BOARD_UNITS, maxH: 6 },
+    styles: [
+      style("grid", i18n("state.widgetstyle.64936d2cd2f0"), { display: "grid" }),
+      style("list", i18n("state.widgetstyle.aedd6814ff8c"), { display: "list" }),
+    ],
+  },
 ];
 
 /**

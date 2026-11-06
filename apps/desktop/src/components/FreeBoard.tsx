@@ -1353,17 +1353,6 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
         mode={resizeFor ? "resize" : "add"}
         target={resizeFor ? { defId: resizeFor.defId, size: resizeFor.size } : null}
         extras={[
-          {
-            id: "extra-folder",
-            title: i18n("components.freeboard.7c7802d8adae"),
-            description: i18n("components.freeboard.9818eabd5c89"),
-            pick: () => {
-              const at = dropAt();
-              ops.add({ kind: "custom", id: "folder", props: { title: i18n("components.freeboard.7c7802d8adae"), entries: [] } }, at.x, at.y, 180, 180);
-              setAddOpen(false);
-              setAddAt(null);
-            },
-          },
           ...loadBoard().boards.filter((b) => b.kind !== "system").map((b) => ({
             id: "extra-onepage-" + b.id,
             title: b.name,
