@@ -146,9 +146,10 @@ export function readYktDocTheme(container: Element | null): YktDocTheme {
      祖先此刻若正好是白色面，srcdoc 会被写成白底；之后主题/皮肤切换才重建。
      用户实测「新开雨课堂作业一片白，切实心+主题后才消失」就是这条首帧竞态。
      iframe 自身一律透明，只让父层材质出现一次。 */
+  const schemeDark = document.documentElement.dataset.scheme === "dark";
   return {
-    text: sanitizeDocColor(probeColor(container, "var(--text-1, #222)"), DEFAULT_YKT_DOC_THEME.text),
-    textSoft: sanitizeDocColor(probeColor(container, "var(--text-2, #666)"), DEFAULT_YKT_DOC_THEME.textSoft),
+    text: schemeDark ? "#e8ebf2" : sanitizeDocColor(probeColor(container, "var(--text-1, #222)"), DEFAULT_YKT_DOC_THEME.text),
+    textSoft: schemeDark ? "#aab1bd" : sanitizeDocColor(probeColor(container, "var(--text-2, #666)"), DEFAULT_YKT_DOC_THEME.textSoft),
     bg: "transparent",
     flush: true,
     border: sanitizeDocColor(probeColor(container, "var(--border, #ddd)"), DEFAULT_YKT_DOC_THEME.border),

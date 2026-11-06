@@ -45,6 +45,7 @@ import { planForItem } from "../state/widgetRender.js";
 import { BOARD_TEMPLATES, templateItems, type BoardTemplate } from "../state/boardTemplates.js";
 import { WidgetHost, type WidgetRenderer } from "./WidgetHost.js";
 import { BoardAddDrawer } from "./BoardAddDrawer.js";
+import { WidgetStylePicker } from "./WidgetStylePicker.js";
 import { BoardItemPicker, type PickerItem } from "./BoardItemPicker.js";
 import { BOARD_CARD_RENDERERS } from "./boardCards.js";
 import { cardRendererKey, liveRenderers, subscribeLiveCards } from "../state/liveCards.js";
@@ -1317,31 +1318,18 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
         onClose={() => setTplOpen(false)}
       />
 
-      {/* 显示风格：时钟的杂志/简约、今日课程的单节大字/列表 */}
-      <ActionSheet
+      <WidgetStylePicker
         open={!!styleItem && (styleChoices.length > 0 || !!styleProp)}
-        title={styleChoices.length ? i18n("state.widgetstyle.3d2ba1c5d50f") : styleProp?.label ?? ""}
-        items={styleChoices.length
-          ? styleChoices.map((choice) => ({
-            id: choice.id,
-            label: choice.label,
-            onSelect: () => {
-              if (!styleItem) return;
-              const base = styleItem.spec.kind === "custom" ? styleItem.spec.props ?? {} : {};
-              ops.props(styleItem.id, { ...base, ...choice.props });
-              setStyleFor(null);
-            },
-          }))
-          : (styleProp?.options ?? []).map((opt) => ({
-            id: opt.value,
-            label: opt.label,
-            onSelect: () => {
-              if (!styleItem) return;
-              const base = styleItem.spec.kind === "custom" ? styleItem.spec.props ?? {} : {};
-              ops.props(styleItem.id, { ...base, display: opt.value });
-              setStyleFor(null);
-            },
-          }))}
+        def={styleDef}
+        styles={styleChoices}
+        value={styleItem?.spec.kind === "custom" ? styleItem.spec.props : undefined}
+        renderer={styleItem && styleDef ? renderers[styleDef.id] : undefined}
+        onPick={(choice) => {
+          if (!styleItem) return;
+          const base = styleItem.spec.kind === "custom" ? styleItem.spec.props ?? {} : {};
+          ops.props(styleItem.id, { ...base, ...choice.props });
+          setStyleFor(null);
+        }}
         onClose={() => setStyleFor(null)}
       />
 

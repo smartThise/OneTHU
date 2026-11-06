@@ -383,6 +383,7 @@ export function BoardAddDrawer({
         /* 展开态：标题在左上角、简介在其下、档位列表居中、底部一个「添加」/「修改大小」。 */
         <div className="add-detail" data-add-detail={def.id} ref={detailRef}>
           <div className="add-detail-head" ref={headRef}>
+            {mode === "add" ? <button type="button" className="add-detail-back" onClick={collapse} aria-label={i18n("components.freeboard.3fd47edce45b")}>←</button> : null}
             <span className="add-detail-kicker">{mode === "resize" ? i18n("components.boardadddrawer.12e0be622c36") : i18n("components.boardadddrawer.97dcf4348652")}</span>
             <span className="add-detail-name">{def.title}</span>
             <span className="add-detail-desc">{def.description}</span>

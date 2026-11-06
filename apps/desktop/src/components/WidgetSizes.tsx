@@ -422,24 +422,39 @@ export function WidgetStyleList({
 }): ReactNode {
   const uiLocale = useUiLocale();
 
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const box = scrollRef.current;
+    const card = box?.querySelector<HTMLElement>(".widget-style-card.is-selected");
+    if (!box || !card) return;
+    const target = card.offsetLeft - (box.clientWidth - card.offsetWidth) / 2;
+    box.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
+  }, [index]);
+  const step = (dir: number): void => {
+    onSelect(Math.max(0, Math.min(styles.length - 1, index + dir)));
+  };
   return (
-    <div className="widget-style-scroll" role="listbox" aria-label={i18n("state.widgetstyle.3d2ba1c5d50f")}>
-      {styles.map((style, i) => (
-        <button
-          key={style.id}
-          type="button"
-          role="option"
-          aria-selected={i === index}
-          className={"widget-style-card" + (i === index ? " is-selected" : "")}
-          data-style-option={style.id}
-          onClick={() => onSelect(i)}
-        >
-          <span className="widget-style-preview">
-            <WidgetPreviewBody def={def} renderer={renderer} tier={def.defaultSize} props={style.props} />
-          </span>
-          <span className="widget-style-name">{style.label}</span>
-        </button>
-      ))}
+    <div className="widget-style-wrap">
+      <button type="button" className="widget-style-nav is-prev" aria-label="上一页" disabled={index <= 0} onClick={() => step(-1)}>‹</button>
+      <div className="widget-style-scroll" ref={scrollRef} role="listbox" aria-label={i18n("state.widgetstyle.3d2ba1c5d50f")}>
+        {styles.map((style, i) => (
+          <button
+            key={style.id}
+            type="button"
+            role="option"
+            aria-selected={i === index}
+            className={"widget-style-card" + (i === index ? " is-selected" : "")}
+            data-style-option={style.id}
+            onClick={() => onSelect(i)}
+          >
+            <span className="widget-style-preview">
+              <WidgetPreviewBody def={def} renderer={renderer} tier={def.defaultSize} props={style.props} />
+            </span>
+            <span className="widget-style-name">{style.label}</span>
+          </button>
+        ))}
+      </div>
+      <button type="button" className="widget-style-nav is-next" aria-label="下一页" disabled={index >= styles.length - 1} onClick={() => step(1)}>›</button>
     </div>
   );
 }

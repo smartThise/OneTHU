@@ -706,6 +706,8 @@ export function yktDocCss(t: YktDocTheme = DEFAULT_YKT_DOC_THEME): string {
     `table{border-collapse:collapse;max-width:100%}th,td{border:1px solid ${t.border};padding:4px 8px;font-size:12px}`,
     "pre{white-space:pre-wrap;overflow-wrap:anywhere}",
     `a{color:${t.link};text-decoration:underline}`,
+    /* KaTeX 产物里有自己的 span；正文已按主题取色，公式必须继承，不能保留源站黑色。 */
+    ".katex,.katex *{color:inherit!important}",
     // 暗底再兜一层（上游 1861e4e 引入）：漏剥的官方/KaTeX 行内色压不过主题配色
     dark ? "body,body *{color:inherit!important;background-color:transparent!important}" : "",
     // 回退栈必须与 body 同栈（YKT_DOC_FONT_STACK）：字体加载失败/未覆盖的字符 ≈ 普通正文观感

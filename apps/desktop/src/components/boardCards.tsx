@@ -719,6 +719,14 @@ export const BOARD_CARD_RENDERERS: Record<string, CardRenderer> = {
   ...ENTRY_REAL,
   /* 时钟/日期/天气：自足（本地时间 + open-meteo），自由尺寸随格加信息层。 */
   [cardRendererKey("note")]: (props) => <NoteCard {...(props ?? {})} />,
+  /* 文件夹的添加/样式预览：白板实际条目不经过这里，只给素材抽屉一个真实网格样子。 */
+  [cardRendererKey("folder")]: () => (
+    <div className="add-preview-sample">
+      <span className="add-preview-sample-title">＋</span>
+      <span className="add-preview-sample-row" />
+      <span className="add-preview-sample-row is-short" />
+    </div>
+  ),
   /* 今日四件套：自足取数（不再依赖 TodayPage 挂载发布的活渲染器） */
   [cardRendererKey("homework")]: (props) => <HomeworkCard density={typeof props?.density === "string" ? props.density : undefined} />,
   [cardRendererKey("classes")]: (props) => <ClassesCard display={typeof props?.display === "string" ? props.display : undefined} />,

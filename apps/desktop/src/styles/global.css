@@ -6505,3 +6505,47 @@ html:root .home-services-widget.is-rows .hs-dock-row { grid-row: 3; grid-templat
 html:root .free-folder.is-list .free-folder-grid { display: flex; flex-direction: column; gap: 4px; }
 html:root .free-folder.is-list .free-folder-cell { flex-direction: row; justify-content: flex-start; gap: 10px; padding: 6px 8px; border-radius: var(--og-radius-md); }
 html:root .free-folder.is-list .free-folder-ball { width: 28px; height: 28px; }
+
+/* 添加/样式选择：横向可切换卡流 + 返回 */
+.widget-style-wrap { position: relative; display: flex; align-items: center; min-width: 0; }
+.widget-style-wrap .widget-style-scroll { flex: 1 1 auto; min-width: 0; }
+.widget-style-nav {
+  flex: 0 0 28px; width: 28px; height: 56px; border: 0; border-radius: var(--og-radius-md);
+  background: var(--og-fill-surface); color: var(--og-content-2); font-size: 24px; line-height: 1;
+}
+.widget-style-nav:disabled { opacity: .25; }
+.add-detail-head { position: relative; }
+.add-detail-back {
+  border: 0; background: transparent; color: var(--og-content-2);
+  font-size: var(--og-text-body); padding: 0 0 var(--og-space-1); cursor: pointer;
+}
+.widget-style-preview .chrome-clock.is-serif .chrome-clock-time { font-family: Merriweather, Georgia, "Times New Roman", serif !important; }
+.widget-style-preview .chrome-clock.is-serif .chrome-clock-date { font-family: "Songti SC", "Noto Serif CJK SC", "SimSun", serif !important; }
+.widget-style-preview .chrome-clock.is-center { align-items: center; text-align: center; }
+.widget-style-preview .chrome-clock.is-left { align-items: flex-start; text-align: left; }
+
+/* 样式选择层：右键「显示样式」 */
+.style-picker-mask { position: fixed; inset: 0; z-index: calc(var(--og-z-modal) - 1); background: var(--og-scrim); opacity: .28; }
+.style-picker {
+  position: fixed; left: 50%; bottom: calc(var(--og-space-4) + var(--og-safe-bottom)); transform: translateX(-50%);
+  z-index: var(--og-z-modal); width: min(760px, calc(100vw - 32px));
+  padding: 16px 18px 14px; border: 1px solid var(--og-line-1); border-radius: var(--og-radius-xl);
+  background: var(--og-fill-overlay); color: var(--og-content-1); box-shadow: var(--og-elev-menu);
+  backdrop-filter: var(--og-overlay-blur); -webkit-backdrop-filter: var(--og-overlay-blur);
+}
+.style-picker-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.style-picker-back { border: 0; background: transparent; color: var(--og-content-2); padding: 0; cursor: pointer; }
+.style-picker-kicker { font-size: var(--og-text-micro); color: var(--og-content-3); }
+.style-picker-title { font-size: var(--og-text-title); font-weight: 650; }
+.style-picker-confirm {
+  margin-left: auto; border: 0; border-radius: var(--og-radius-control); padding: 8px 16px;
+  background: var(--og-accent); color: var(--og-accent-on); font-weight: 600; cursor: pointer;
+}
+.style-picker .widget-style-scroll { padding-left: 0; padding-right: 0; }
+@media (max-width: 720px) {
+  .style-picker { width: calc(100vw - 16px); padding: 12px; }
+}
+
+/* 添加组件总览：按屏幕宽度自适应列数，不再固定两列拉长 */
+.add-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.add-grid .add-card { min-width: 0; }

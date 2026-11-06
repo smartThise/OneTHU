@@ -1,7 +1,7 @@
 import { t as i18n, rich as i18nRich, msg as i18nMsg, useLocale as useUiLocale } from "../i18n/index.js";
 import { LanguageControl } from "../components/LanguageControl.js";
 import { ExperienceModeControl } from "../components/SimpleExperience.js";
-import { Btn, IconBell, IconBook, IconDownload, IconHelpCircle, IconPalette, IconSun, IconWrench, IconUser, Inline, Input, List, Row, Segment, Select, SettingsList, SettingsRow, Stack, Tag, Text as OGText, TextArea } from "@onethu/gui";
+import { Btn, IconBell, IconBook, IconDownload, IconHelpCircle, IconPalette, IconSun, IconWrench, IconUser, Inline, Input, List, Row, Segment, Select, SettingsList, SettingsRow, Slider, Stack, Tag, Text as OGText, TextArea } from "@onethu/gui";
 import { defineSearchRows } from "../state/searchRows.js";
 import {
   subscribeWallpaper,
@@ -11,6 +11,8 @@ import {
   setWallpaperSlot,
   wallpaperDay,
   wallpaperNight,
+  wallpaperVeilSnapshot,
+  setWallpaperVeil,
 } from "../state/wallpaper.js";
 import { useExplorerState, allTabs } from "../state/explorer.js";
 import { WallpaperLibrary } from "../components/explorer/WallpaperLibrary.js";
@@ -675,11 +677,30 @@ function WallpaperSection(): ReactNode {
   const uiLocale = useUiLocale();
 
   const sound = useSyncExternalStore(subscribeWallpaper, videoSoundSnapshot, videoSoundSnapshot);
+  const veil = useSyncExternalStore(subscribeWallpaper, wallpaperVeilSnapshot, wallpaperVeilSnapshot);
   return (
     <div className="wall-section" data-set-id="row-set-wallpaper">
       <div className="setting-title">{i18n("pages.settings.bbaa9f06378b")}</div>
       <div className="setting-desc">{i18n("pages.settings.1fa08e82bab2")}</div>
       <WallpaperLibrary variant="panel" />
+      <div className="wall-sound-row" data-set-id="row-set-wallpaper-veil">
+        <div>
+          <div className="setting-title">{i18n("settings.wallpaper.veil")}</div>
+          <div className="setting-desc">{i18n("settings.wallpaper.veilDesc")}</div>
+        </div>
+        <div style={{ width: 220, maxWidth: "42vw" }}>
+          <Slider
+            value={Math.round(veil * 100)}
+            min={0}
+            max={60}
+            step={1}
+            showValue
+            format={(v) => v + "%"}
+            onChange={(v) => setWallpaperVeil(v / 100)}
+            aria-label={i18n("settings.wallpaper.veilValue")}
+          />
+        </div>
+      </div>
       <div className="wall-sound-row" data-set-id="row-set-wallpaper-sound">
         <div>
           <div className="setting-title">{i18n("pages.settings.b34bc798190c")}</div>
