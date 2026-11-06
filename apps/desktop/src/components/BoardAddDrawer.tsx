@@ -25,7 +25,7 @@ import { createPortal } from "react-dom";
 import { useOverlayBack } from "../state/navStack.js";
 import { type WidgetDef, type WidgetSize } from "../state/widgetMeta.js";
 import type { WidgetRenderer } from "./WidgetHost.js";
-import { WidgetPreviewBody } from "./WidgetSizes.js";
+import { WidgetPreviewBody, WidgetStyleList } from "./WidgetSizes.js";
 import { PreviewDataProvider } from "./PreviewData.js";
 import { haptic } from "../lib/haptics.js";
 
@@ -85,7 +85,7 @@ export function BoardAddDrawer({
   mode?: "add" | "resize";
   /** resize 模式的目标：组件目录 id 与它当前的尺寸（据此自动选中档位）。 */
   target?: { defId: string; size: WidgetSize } | null;
-  onAdd: (def: WidgetDef, size: WidgetSize) => void;
+  onAdd: (def: WidgetDef, size: WidgetSize, props?: Record<string, unknown>) => void;
   onResize?: (def: WidgetDef, size: WidgetSize) => void;
   onClose: () => void;
 }): ReactNode {
@@ -97,6 +97,8 @@ export function BoardAddDrawer({
   /** 组件搜索（右键空白与「＋」共用本抽屉，一视同仁）。 */
   const [query, setQuery] = useState("");
   const [dragY, setDragY] = useState(0);
+  /** 展开态的样式下标（有 styles 的组件才用）。 */
+  const [styleIndex, setStyleIndex] = useState(0);
   /** 抽屉拉开到高位（拖过一半高度）后保持；再往下拖可以收回半高或关掉。 */
   const [tall, setTall] = useState(false);
   const dragRef = useRef<{ y: number; h: number; dy: number } | null>(null);
@@ -131,9 +133,11 @@ export function BoardAddDrawer({
     if (!open) return;
     if (mode === "resize" && targetId) {
       setExpanded(targetId);
+      setStyleIndex(0);
       return;
     }
     setExpanded(null);
+    setStyleIndex(0);
     setQuery("");
   }, [open, mode, targetId, targetW, targetH, defs]);
 
@@ -271,6 +275,8 @@ export function BoardAddDrawer({
   const def = expanded ? defs.find((d) => d.id === expanded) ?? null : null;
   /* 自由画布：不再提供固定尺寸档位；添加时用组件默认尺寸，之后拖把手自由缩放。 */
   const chosen = def?.defaultSize ?? { w: 2, h: 1 };
+  const styles = def?.styles ?? [];
+  const chosenStyle = styles[styleIndex] ?? styles[0];
   /* 目录组件与特殊组件同一套搜索：标题 / id / 说明都能命中。 */
   const q = query.trim().toLowerCase();
   const matches = (s: string): boolean => !q || s.toLowerCase().includes(q);
@@ -288,7 +294,7 @@ export function BoardAddDrawer({
        separately. Mouse/keyboard feedback stays with the global click delegate. */
     if (fromPointer) haptic("tick");
     if (mode === "resize") onResize?.(def, chosen);
-    else onAdd(def, chosen);
+    else onAdd(def, chosen, chosenStyle?.props);
   };
 
   const onHandleDown = (e: React.PointerEvent): void => {
@@ -331,6 +337,7 @@ export function BoardAddDrawer({
         const name = card.querySelector(".add-card-name");
         const box = card.querySelector(".add-preview-box");
         if (name && box) flyRef.current = { name: name.getBoundingClientRect(), box: box.getBoundingClientRect() };
+        setStyleIndex(0);
         setExpanded(d.id);
       }}
     >
@@ -381,12 +388,22 @@ export function BoardAddDrawer({
             <span className="add-detail-desc">{def.description}</span>
           </div>
           <div className="add-detail-body" ref={boxRef}>
-            <div className="add-detail-free">
-              <div className="add-detail-preview">
-                <WidgetPreview def={def} renderer={renderers[def.id]} scale={1} />
+            {styles.length ? (
+              <WidgetStyleList
+                def={def}
+                styles={styles}
+                index={styleIndex}
+                renderer={renderers[def.id]}
+                onSelect={setStyleIndex}
+              />
+            ) : (
+              <div className="add-detail-free">
+                <div className="add-detail-preview">
+                  <WidgetPreview def={def} renderer={renderers[def.id]} scale={1} />
+                </div>
+                <span className="add-detail-hint">{i18n("components.boardadddrawer.f558fcad438d")}</span>
               </div>
-              <span className="add-detail-hint">{i18n("components.boardadddrawer.f558fcad438d")}</span>
-            </div>
+            )}
           </div>
           <button
             type="button"

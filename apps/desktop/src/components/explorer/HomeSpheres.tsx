@@ -20,11 +20,18 @@ export function HomeClockWidget({ display = "minimal" }: { display?: string } = 
 
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
-  const magazine = display === "magazine";
+  /* 兼容旧 magazine/minimal；新样式用 serif|sans + left|center 的四个组合。 */
+  const serif = display === "magazine" || display === "serif" || display.startsWith("serif");
+  const centered = display === "minimal" || display.endsWith("center");
+  const styleId = display === "magazine" ? "serif-left" : display === "minimal" ? "sans-center" : display;
   const time = <div className="chrome-clock-time">{String(now.getHours()).padStart(2, "0")}<span className="chrome-clock-colon">:</span>{String(now.getMinutes()).padStart(2, "0")}</div>;
   const date = <div className="chrome-clock-date">{fmtMonthDayWeek(now)}</div>;
-  return <div className={"chrome-clock " + (magazine ? "is-magazine" : "is-minimal")} data-clock-style={magazine ? "magazine" : "minimal"} aria-label={i18n("components.explorer.homespheres.8bc0ff588cb7")}>
-    {magazine ? <>{time}{date}</> : <>{date}{time}</>}
+  return <div
+    className={"chrome-clock " + (serif ? "is-serif" : "is-sans") + (centered ? " is-center" : " is-left")}
+    data-clock-style={styleId}
+    aria-label={i18n("components.explorer.homespheres.8bc0ff588cb7")}
+  >
+    {centered ? <>{date}{time}</> : <>{time}{date}</>}
   </div>;
 }
 
@@ -38,7 +45,7 @@ function ServiceEntry({ entry, onNavigate }: { entry: Entry; onNavigate: () => v
   </Btn>;
 }
 
-export function HomeServicesWidget(): ReactNode {
+export function HomeServicesWidget({ display = "grid" }: { display?: string }): ReactNode {
   const uiLocale = useUiLocale();
 
   const doc = useSyncExternalStore(subscribeSpheres, spheresSnapshot, spheresSnapshot);
@@ -56,7 +63,7 @@ export function HomeServicesWidget(): ReactNode {
   ].filter(group => group.entries.length > 0);
 
   return <>
-      <div className="home-services-widget" style={{ opacity: doc.dockOpacity }}>
+      <div className={"home-services-widget is-" + display} style={{ opacity: doc.dockOpacity }}>
         <div className="workbench-section-label">{i18n("components.explorer.homespheres.a45eee2e0119")}</div>
         <div className="hs-dock-row" data-coach="home-dock">
           {docked.map(entry => <ServiceEntry key={entry.page} entry={entry} onNavigate={() => go(entry)} />)}

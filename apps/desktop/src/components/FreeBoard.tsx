@@ -222,7 +222,7 @@ function ItemBody({ item, defs, renderers, onOpen, onFolderAdd, onProps }: {
       return "?";
     };
     return (
-      <div className="free-folder">
+      <div className={"free-folder" + (spec.props?.display === "list" ? " is-list" : "")}>
         <div className="free-folder-grid">
           {entries.map((en, i) => (
             <button
@@ -753,9 +753,12 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
     }
     /* 无级画布：所有组件统一出四边/角把手，不再走固定档位抽屉。 */
     list.push({ key: "resize", label: i18n("components.freeboard.d003f87ed602"), onSelect: () => setSelected(item.id) });
+    if (item.spec.kind === "custom" && item.spec.id === "folder") {
+      list.push({ key: "style", label: i18n("state.widgetstyle.3d2ba1c5d50f"), onSelect: () => setStyleFor(item.id) });
+    }
     const displayProp = def?.editableProps?.find((p) => p.key === "display");
-    if (displayProp) {
-      list.push({ key: "style", label: displayProp.label, onSelect: () => setStyleFor(item.id) });
+    if (displayProp || def?.styles?.length) {
+      list.push({ key: "style", label: displayProp?.label ?? i18n("state.widgetstyle.3d2ba1c5d50f"), onSelect: () => setStyleFor(item.id) });
     } else if (def && def.editableProps && def.editableProps.length) {
       list.push({ key: "edit", label: i18n("components.freeboard.051836569928"), onSelect: () => setEditingId(item.id) });
     }
@@ -968,6 +971,13 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
   const styleItem = styleFor ? items.find((x) => x.id === styleFor) : undefined;
   const styleDef = styleItem ? defs.find((d) => d.id === (styleItem.spec.kind === "custom" ? "custom:" + styleItem.spec.id : "")) ?? defForSpec(styleItem.spec, defs) : null;
   const styleProp = styleDef?.editableProps?.find((p) => p.key === "display");
+  const folderStyles = styleItem?.spec.kind === "custom" && styleItem.spec.id === "folder"
+    ? [
+      { id: "grid", label: i18n("state.widgetstyle.64936d2cd2f0"), props: { display: "grid" } },
+      { id: "list", label: i18n("state.widgetstyle.aedd6814ff8c"), props: { display: "list" } },
+    ]
+    : [];
+  const styleChoices = styleDef?.styles ?? folderStyles;
   const resizeDef = useMemo(
     () => (resizeFor ? defs.find((d) => d.id === resizeFor.defId) ?? null : null),
     [uiLocale, resizeFor, defs],
@@ -1309,18 +1319,29 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
 
       {/* 显示风格：时钟的杂志/简约、今日课程的单节大字/列表 */}
       <ActionSheet
-        open={!!styleItem && !!styleProp}
-        title={styleProp?.label ?? ""}
-        items={(styleProp?.options ?? []).map((opt) => ({
-          id: opt.value,
-          label: opt.label,
-          onSelect: () => {
-            if (!styleItem) return;
-            const props = styleItem.spec.kind === "custom" ? { ...styleItem.spec.props, display: opt.value } : { display: opt.value };
-            ops.props(styleItem.id, props);
-            setStyleFor(null);
-          },
-        }))}
+        open={!!styleItem && (styleChoices.length > 0 || !!styleProp)}
+        title={styleChoices.length ? i18n("state.widgetstyle.3d2ba1c5d50f") : styleProp?.label ?? ""}
+        items={styleChoices.length
+          ? styleChoices.map((choice) => ({
+            id: choice.id,
+            label: choice.label,
+            onSelect: () => {
+              if (!styleItem) return;
+              const base = styleItem.spec.kind === "custom" ? styleItem.spec.props ?? {} : {};
+              ops.props(styleItem.id, { ...base, ...choice.props });
+              setStyleFor(null);
+            },
+          }))
+          : (styleProp?.options ?? []).map((opt) => ({
+            id: opt.value,
+            label: opt.label,
+            onSelect: () => {
+              if (!styleItem) return;
+              const base = styleItem.spec.kind === "custom" ? styleItem.spec.props ?? {} : {};
+              ops.props(styleItem.id, { ...base, display: opt.value });
+              setStyleFor(null);
+            },
+          }))}
         onClose={() => setStyleFor(null)}
       />
 
@@ -1355,16 +1376,16 @@ export function FreeBoard({ boardId = HOME_BOARD_ID, orientation = HOME_ORIENTAT
             },
           })),
         ]}
-        onAdd={(d, size) => {
+        onAdd={(d, size, styleProps) => {
           const at = dropAt();
-          const key = JSON.stringify(d.spec);
-          if (itemsRef.current.some((it) => JSON.stringify(it.spec) === key)) {
+          const key = JSON.stringify({ spec: d.spec, props: styleProps ?? null });
+          if (itemsRef.current.some((it) => JSON.stringify({ spec: it.spec, props: it.spec.kind === "custom" ? it.spec.props ?? null : null }) === key)) {
             say(i18n("components.freeboard.daaec6369d42"));
             return;
           }
           const px = pxSizeOf(size);
           const spec = d.spec.kind === "custom"
-            ? { kind: "custom" as const, id: d.spec.id, props: d.spec.props }
+            ? { kind: "custom" as const, id: d.spec.id, props: { ...d.spec.props, ...styleProps } }
             : JSON.parse(JSON.stringify(d.spec));
           ops.add(spec, at.x, at.y, px.w, px.h);
           say(i18n("components.freeboard.591cb2edcb7e") + d.title + " " + size.w + "×" + size.h);

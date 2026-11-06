@@ -7715,6 +7715,20 @@ const locale = {
     "state.widgetstyle.a2df8b92e83a": "简约风",
     "state.widgetstyle.babb44caf563": "单节大字",
     "state.widgetstyle.b82fb59d35f2": "今日课程列表",
+    "state.widgetstyle.b3193a241955": "衬线 · 左对齐",
+    "state.widgetstyle.21572052fa55": "衬线 · 居中",
+    "state.widgetstyle.f294e2c97e0d": "黑体 · 左对齐",
+    "state.widgetstyle.900520c39f8a": "黑体 · 居中",
+    "state.widgetstyle.f4f2cf392c2a": "上下排版",
+    "state.widgetstyle.ca566dc8b903": "横向排版",
+    "state.widgetstyle.8ee09f5f1f38": "简约",
+    "state.widgetstyle.ca3634c751ef": "详细",
+    "state.widgetstyle.74d6f84ae58d": "并排",
+    "state.widgetstyle.8284260058dd": "上下",
+    "state.widgetstyle.521479cd0b2a": "舒适",
+    "state.widgetstyle.5d63d587b0b0": "紧凑",
+    "state.widgetstyle.64936d2cd2f0": "图标网格",
+    "state.widgetstyle.aedd6814ff8c": "列表",
   }
 } satisfies LocaleDef;
 export default locale;

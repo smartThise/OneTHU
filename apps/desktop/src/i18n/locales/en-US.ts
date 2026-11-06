@@ -7715,6 +7715,20 @@ const locale = {
     "state.widgetstyle.a2df8b92e83a": "Minimal",
     "state.widgetstyle.babb44caf563": "Next class, large",
     "state.widgetstyle.b82fb59d35f2": "Today's classes",
+    "state.widgetstyle.b3193a241955": "Serif · left",
+    "state.widgetstyle.21572052fa55": "Serif · center",
+    "state.widgetstyle.f294e2c97e0d": "Sans · left",
+    "state.widgetstyle.900520c39f8a": "Sans · center",
+    "state.widgetstyle.f4f2cf392c2a": "Stacked",
+    "state.widgetstyle.ca566dc8b903": "Inline",
+    "state.widgetstyle.8ee09f5f1f38": "Minimal",
+    "state.widgetstyle.ca3634c751ef": "Detailed",
+    "state.widgetstyle.74d6f84ae58d": "Side by side",
+    "state.widgetstyle.8284260058dd": "Stacked",
+    "state.widgetstyle.521479cd0b2a": "Comfortable",
+    "state.widgetstyle.5d63d587b0b0": "Compact",
+    "state.widgetstyle.64936d2cd2f0": "Icon grid",
+    "state.widgetstyle.aedd6814ff8c": "List",
   }
 } satisfies LocaleDef;
 export default locale;

@@ -19,7 +19,7 @@ import { t as i18n, rich as i18nRich, useLocale as useUiLocale } from "../i18n/i
  * 占格比例，再整体缩放到卡片里显示。渲染器拿到第二个参数（档位尺寸）即可切换排版。
  */
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { tierLabel, sizeKey, type SizeTier, type WidgetDef, type WidgetSize } from "../state/widgetMeta.js";
+import { tierLabel, sizeKey, type SizeTier, type WidgetDef, type WidgetSize, type WidgetStyle } from "../state/widgetMeta.js";
 import type { WidgetRenderer } from "./WidgetHost.js";
 
 /** 一个基准单位在真实白板上的像素高（与 boardCore.TILE_H 一致）。 */
@@ -94,14 +94,16 @@ export function WidgetPreviewBody({
   def,
   renderer,
   tier,
+  props,
 }: {
   def: WidgetDef;
   renderer?: WidgetRenderer;
   tier: SizeTier;
+  props?: Record<string, unknown>;
 }): ReactNode {
   const uiLocale = useUiLocale();
 
-  const out = renderer ? renderer(undefined, tier) : <SampleSkeleton def={def} />;
+  const out = renderer ? renderer(props, tier) : <SampleSkeleton def={def} />;
   return def.spec.kind === "card" || def.spec.kind === "custom" ? <div className="wg-card">{out}</div> : out;
 }
 
@@ -399,4 +401,45 @@ export function WidgetSizeList({
 export function tierAt(tiers: readonly SizeTier[], index: number): WidgetSize {
   const t = tiers[Math.max(0, Math.min(index, tiers.length - 1))];
   return t ? { w: t.w, h: t.h } : { w: 1, h: 1 };
+}
+
+/**
+ * 横向「样式」卡片流：添加组件时复用尺寸菜单的位置和手势语汇。
+ * 每张卡直接用该样式的 props 渲染真实卡体，滑到哪张就添加哪种样式。
+ */
+export function WidgetStyleList({
+  def,
+  styles,
+  index,
+  renderer,
+  onSelect,
+}: {
+  def: WidgetDef;
+  styles: readonly WidgetStyle[];
+  index: number;
+  renderer?: WidgetRenderer;
+  onSelect: (index: number) => void;
+}): ReactNode {
+  const uiLocale = useUiLocale();
+
+  return (
+    <div className="widget-style-scroll" role="listbox" aria-label={i18n("state.widgetstyle.3d2ba1c5d50f")}>
+      {styles.map((style, i) => (
+        <button
+          key={style.id}
+          type="button"
+          role="option"
+          aria-selected={i === index}
+          className={"widget-style-card" + (i === index ? " is-selected" : "")}
+          data-style-option={style.id}
+          onClick={() => onSelect(i)}
+        >
+          <span className="widget-style-preview">
+            <WidgetPreviewBody def={def} renderer={renderer} tier={def.defaultSize} props={style.props} />
+          </span>
+          <span className="widget-style-name">{style.label}</span>
+        </button>
+      ))}
+    </div>
+  );
 }
