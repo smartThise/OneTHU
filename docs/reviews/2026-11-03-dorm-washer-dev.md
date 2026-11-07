@@ -134,6 +134,11 @@
 - 雨课堂 iframe 暗色强制亮墨，KaTeX 产物 `color:inherit`；同时把 `data-scheme` / `data-dynamic` 纳入 iframe 重建观察，切昼夜时公式会按新主题重排，不再残留黑色。
 - 添加组件网格按宽度 `auto-fill minmax(170px,1fr)`，不再固定两列拉成长条。
 
+## 16. 深色雨课堂与网络学堂重试
+
+- 雨课堂黑字根因：暗色净化规则写成 `body,body * { color: inherit !important }`，body 自身被强制继承 `<html>` 初始黑色，覆盖了主题写入的亮墨。改为只重置 `body *`，body 保留主题色；公式 KaTeX 继续继承。
+- 网络学堂「重试」原来只是 `useLearnData.reload()`，不跑会话恢复；长闲置后 learn 会话单独过期就会反复失败。重试现在先 `recoverCampusSession("learn")`（主会话探活→id 漫游），失败再 `softRecover("learn")`，然后重走数据；AuthRequired 兜底也补了 softRecover。
+
 ## 验证
 
 - `dorm-balance-test` ✓（余额接线、缓存、旧错误文案移除）

@@ -6549,3 +6549,6 @@ html:root .free-folder.is-list .free-folder-ball { width: 28px; height: 28px; }
 /* 添加组件总览：按屏幕宽度自适应列数，不再固定两列拉长 */
 .add-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
 .add-grid .add-card { min-width: 0; }
+
+/* 样式选择层内的轮播需要确定高度；否则百分比高度在 auto 容器里会塌成 0。 */
+.style-picker .widget-size-picker { height: 260px; }

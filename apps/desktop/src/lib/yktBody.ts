@@ -709,7 +709,10 @@ export function yktDocCss(t: YktDocTheme = DEFAULT_YKT_DOC_THEME): string {
     /* KaTeX 产物里有自己的 span；正文已按主题取色，公式必须继承，不能保留源站黑色。 */
     ".katex,.katex *{color:inherit!important}",
     // 暗底再兜一层（上游 1861e4e 引入）：漏剥的官方/KaTeX 行内色压不过主题配色
-    dark ? "body,body *{color:inherit!important;background-color:transparent!important}" : "",
+    /* 只重置正文子元素：body 自身已由上面的主题规则写成亮墨。
+       这里若把 body 也设为 inherit，它继承的是 <html> 的初始黑色——正是
+       “自动取色深色模式下雨课堂文字/公式永远黑色”的根因。 */
+    dark ? "body *{color:inherit!important;background-color:transparent!important}" : "",
     // 回退栈必须与 body 同栈（YKT_DOC_FONT_STACK）：字体加载失败/未覆盖的字符 ≈ 普通正文观感
     `.${YKT_ENCRYPTED_FONT_CLASS}{font-family:"${YKT_FONT_FAMILY}",${YKT_DOC_FONT_STACK}}`,
     `.ykt-img-fallback{display:flex;align-items:center;gap:6px;padding:10px 12px;margin:4px 0;border:1px dashed ${t.border};border-radius:6px;color:${t.textSoft};font-size:12px;background:${t.fallbackBg};overflow-wrap:anywhere}`,

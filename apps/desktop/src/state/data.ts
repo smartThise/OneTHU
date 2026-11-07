@@ -38,7 +38,7 @@ import { http, info, learn, logLine, session } from "../lib/clients.js";
 // 的手搓会话管理（探活/漫游/票信任链）整体退役，登录态由 lib + Rust 原生仓负责。
 import { helper as infoHelper } from "../lib/infoLib.js";
 import { explainNetworkError } from "../lib/transport.js";
-import { softRecover, ensureLearnSession } from "../lib/reload.js";
+import { softRecover, ensureLearnSession, recoverCampusSession } from "../lib/reload.js";
 import { subscribeAuthRecovered } from "../lib/authRecovery.js";
 import { appendSecondarySchedule } from "../lib/scheduleSecondary.js";
 import { buildRows, buildSlotIndex, canAdjustZy as canAdjustZyFn, levelTypesOf, parseTimeSlots, type SlotItem, type XkRow, type XkKnote, applyKnote, rememberKnote, isSportsCourse } from "../lib/xklogic.js";
@@ -554,6 +554,12 @@ export function useLearnData() {
           await load(); // 递归一次：缓存已清，重走数据链；再失败走下一轮分支
           return;
         }
+        // id 漫游失败并不代表主会话死了：lib 主会话可能还能用内存凭据重登。
+        // 以前这里没有 softRecover 兜底，Retry 会反复撞同一堵墙。
+        if (await softRecover("learn")) {
+          await load();
+          return;
+        }
         // Keep the authenticated shell while the learning service is unavailable.
       }
       logPageError("LEARN", err);
@@ -598,7 +604,16 @@ export function useLearnData() {
     [preview],
   );
 
-  return { data, state, error, reload: load };
+  /** 页面「重试」不能只是再读一次缓存：先显式跑主会话 → learn 漫游恢复链，
+      再重走数据。长闲置后 learn 会话单独过期时，这是唯一能让按钮真正生效的路径。 */
+  const retry = useCallback(async () => {
+    if (preview) return;
+    const ok = await recoverCampusSession("learn").catch(() => false);
+    if (!ok) await softRecover("learn").catch(() => false);
+    await load();
+  }, [preview, load]);
+
+  return { data, state, error, reload: retry };
 }
 
 /* ============ 学期列表（learnX SemesterSelection） ============ */
