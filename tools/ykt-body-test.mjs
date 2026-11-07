@@ -96,11 +96,46 @@ console.log("\n[1] LaTeX 定界扫描与逐段降级");
     "<p>已知 [I:x^2] 求解</p>",
     "行内 $…$ 渲染，标签不动",
   );
+  eq(
+    yb.renderLatexInHtml("<p>已知 $ \\alpha_1 + \\beta_2 $ 求解</p>", fake),
+    "<p>已知 [I:\\alpha_1 + \\beta_2] 求解</p>",
+    "行内 $ … $ 内侧空白也渲染（LaTeX 内容）",
+  );
+  eq(
+    yb.renderLatexInHtml("<p>价格 $5 与 $6 元</p>", fake),
+    "<p>价格 $5 与 $6 元</p>",
+    "带空白的价格区间不误判成公式",
+  );
+  eq(
+    yb.renderLatexInHtml("<p>行内 \\( x+y \\) 完</p>", fake),
+    "<p>行内 [I:x+y] 完</p>",
+    "\\( … \\) 内侧空白也渲染",
+  );
+  eq(
+    yb.renderLatexInHtml("<p>&#92;(x+y&#92;)</p>", fake),
+    "<p>[I:x+y]</p>",
+    "数字实体形态的 \\(…\\) 也识别",
+  );
+  eq(
+    yb.renderLatexInHtml("<p>\\[<br> x^2 <br>\\]</p>", fake),
+    "<p>[D:x^2]</p>",
+    "跨 <br>/标签的 \\[…\\] 仍能配对渲染",
+  );
+  eq(
+    yb.renderLatexInHtml("<p>$<span>\\alpha_1</span>$</p>", fake),
+    "<p>[I:\\alpha_1]</p>",
+    "跨 <span> 的 $…$ 也能配对渲染",
+  );
+  eq(
+    yb.renderLatexInHtml("<p>\\(<div> a+b </div>\\)</p>", fake),
+    "<p>[I:a+b]</p>",
+    "跨标签的 \\(…\\) 仍能配对渲染",
+  );
   eq(yb.renderLatexInHtml("<p>证：$$\\frac{a}{b}$$ 完</p>", fake), "<p>证：[D:\\frac{a}{b}] 完</p>", "显示 $$…$$ 走 displayMode");
 
   // 防误伤：价格语义不开渲染；内侧空白不闭合
   eq(yb.renderLatexInHtml("<p>价格 $5 与 $6 不等</p>", fake), "<p>价格 $5 与 $6 不等</p>", "「$5 与 $6」不误判（关界内侧空白）");
-  eq(yb.renderLatexInHtml("<p>值 $ x $ 元</p>", fake), "<p>值 $ x $ 元</p>", "开界内侧空白不渲染");
+  eq(yb.renderLatexInHtml("<p>值 $ x $ 元</p>", fake), "<p>值 [I:x] 元</p>", "开界内侧空白但内容是数学 → 渲染");
   // 转义 \$ 不闭合
   eq(yb.renderLatexInHtml("<p>成本 \\$5 与 \\$6</p>", fake), "<p>成本 \\$5 与 \\$6</p>", "\\$ 转义不配对");
   // 未配对 $$ 全字面
@@ -339,6 +374,8 @@ console.log("\n[7] 接线静态审计（详情页 / ProblemBody / yktAssets 漏�
   ok(comp.includes("clampDocHeight") && comp.includes("YKT_FRAME_MIN_H"), "ProblemBody：高度钳制");
   ok(comp.includes("ev.source !== frameRef.current?.contentWindow"), "ProblemBody：postMessage 只认自己的 iframe");
   ok(comp.includes("ykt:font-fail") && comp.includes("fontRetried"), "ProblemBody：字体校验失败强刷仅一次（防打转）");
+  ok(comp.includes("bg: \"transparent\"") && comp.includes("flush: true"), "ProblemBody：题干 iframe 始终透明，不复制祖先纸面底色");
+  ok(comp.includes("needsLatex") && comp.includes("loadYktLatexBundle"), "ProblemBody：\\(…\\) / 实体定界符也会加载 KaTeX");
   ok(comp.includes("openExternal"), "ProblemBody：文档内链接走系统外开");
 
   const assets = readSrc("../apps/desktop/src/lib/yktAssets.ts");
@@ -407,6 +444,9 @@ console.log("\n[8] 主题配色：yktDocCss / sanitizeDocColor / buildYktProblem
   const cssClamp = yb.yktDocCss(darkBgDarkText);
   ok(cssClamp.includes("color:#e8ebf2"), "暗底 + 暗文字 → 亮墨兜底（暗底上不可见字比白底更伤）");
   ok(!yb.yktDocIsDark(yb.DEFAULT_YKT_DOC_THEME), "默认浅色定稿仍是亮档");
+  const cssFlush = yb.yktDocCss({ ...dark, flush: true });
+  ok(cssFlush.includes("html,body{background:transparent!important}"), "glass flush：html/body 都透明（srcdoc 画布不刷白）");
+  ok(cssFlush.includes("color-scheme:normal") && !cssFlush.includes("color-scheme:light"), "glass flush：color-scheme normal，避免 WebView 按 light 画白 canvas");
 }
 
 /* ───────────────── [9] 字面 nbsp + 玻璃档公式白底（2026-10-28 用户反馈） ───────────────── */

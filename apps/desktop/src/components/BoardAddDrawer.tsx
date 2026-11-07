@@ -23,9 +23,9 @@ import { Btn, SearchField } from "@onethu/gui";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useOverlayBack } from "../state/navStack.js";
-import { sizeTiersOf, tierIndexOf, type WidgetDef, type WidgetSize } from "../state/widgetMeta.js";
+import { type WidgetDef, type WidgetSize } from "../state/widgetMeta.js";
 import type { WidgetRenderer } from "./WidgetHost.js";
-import { WidgetPreviewBody, WidgetSizeList, tierAt } from "./WidgetSizes.js";
+import { WidgetPreviewBody, WidgetStyleList } from "./WidgetSizes.js";
 import { PreviewDataProvider } from "./PreviewData.js";
 import { haptic } from "../lib/haptics.js";
 
@@ -85,7 +85,7 @@ export function BoardAddDrawer({
   mode?: "add" | "resize";
   /** resize 模式的目标：组件目录 id 与它当前的尺寸（据此自动选中档位）。 */
   target?: { defId: string; size: WidgetSize } | null;
-  onAdd: (def: WidgetDef, size: WidgetSize) => void;
+  onAdd: (def: WidgetDef, size: WidgetSize, props?: Record<string, unknown>) => void;
   onResize?: (def: WidgetDef, size: WidgetSize) => void;
   onClose: () => void;
 }): ReactNode {
@@ -96,9 +96,9 @@ export function BoardAddDrawer({
   const [expanded, setExpanded] = useState<string | null>(null);
   /** 组件搜索（右键空白与「＋」共用本抽屉，一视同仁）。 */
   const [query, setQuery] = useState("");
-  /** 展开态选中的档位下标（滑动或点选都会更新）。 */
-  const [tierIndex, setTierIndex] = useState(0);
   const [dragY, setDragY] = useState(0);
+  /** 展开态的样式下标（有 styles 的组件才用）。 */
+  const [styleIndex, setStyleIndex] = useState(0);
   /** 抽屉拉开到高位（拖过一半高度）后保持；再往下拖可以收回半高或关掉。 */
   const [tall, setTall] = useState(false);
   const dragRef = useRef<{ y: number; h: number; dy: number } | null>(null);
@@ -132,12 +132,12 @@ export function BoardAddDrawer({
   useEffect(() => {
     if (!open) return;
     if (mode === "resize" && targetId) {
-      const def = defs.find((d) => d.id === targetId);
       setExpanded(targetId);
-      setTierIndex(def ? tierIndexOf(def, { w: targetW, h: targetH }) : 0);
+      setStyleIndex(0);
       return;
     }
     setExpanded(null);
+    setStyleIndex(0);
     setQuery("");
   }, [open, mode, targetId, targetW, targetH, defs]);
 
@@ -273,8 +273,10 @@ export function BoardAddDrawer({
   if (!shown) return null;
 
   const def = expanded ? defs.find((d) => d.id === expanded) ?? null : null;
-  const tiers = def ? sizeTiersOf(def) : [];
-  const chosen = tierAt(tiers, tierIndex);
+  /* 自由画布：不再提供固定尺寸档位；添加时用组件默认尺寸，之后拖把手自由缩放。 */
+  const chosen = def?.defaultSize ?? { w: 2, h: 1 };
+  const styles = def?.styles ?? [];
+  const chosenStyle = styles[styleIndex] ?? styles[0];
   /* 目录组件与特殊组件同一套搜索：标题 / id / 说明都能命中。 */
   const q = query.trim().toLowerCase();
   const matches = (s: string): boolean => !q || s.toLowerCase().includes(q);
@@ -292,7 +294,7 @@ export function BoardAddDrawer({
        separately. Mouse/keyboard feedback stays with the global click delegate. */
     if (fromPointer) haptic("tick");
     if (mode === "resize") onResize?.(def, chosen);
-    else onAdd(def, chosen);
+    else onAdd(def, chosen, chosenStyle?.props);
   };
 
   const onHandleDown = (e: React.PointerEvent): void => {
@@ -335,7 +337,7 @@ export function BoardAddDrawer({
         const name = card.querySelector(".add-card-name");
         const box = card.querySelector(".add-preview-box");
         if (name && box) flyRef.current = { name: name.getBoundingClientRect(), box: box.getBoundingClientRect() };
-        setTierIndex(tierIndexOf(d, d.defaultSize));
+        setStyleIndex(0);
         setExpanded(d.id);
       }}
     >
@@ -381,18 +383,19 @@ export function BoardAddDrawer({
         /* 展开态：标题在左上角、简介在其下、档位列表居中、底部一个「添加」/「修改大小」。 */
         <div className="add-detail" data-add-detail={def.id} ref={detailRef}>
           <div className="add-detail-head" ref={headRef}>
+            {mode === "add" ? <button type="button" className="add-detail-back" onClick={collapse} aria-label={i18n("components.freeboard.3fd47edce45b")}>←</button> : null}
             <span className="add-detail-kicker">{mode === "resize" ? i18n("components.boardadddrawer.12e0be622c36") : i18n("components.boardadddrawer.97dcf4348652")}</span>
             <span className="add-detail-name">{def.title}</span>
             <span className="add-detail-desc">{def.description}</span>
           </div>
           <div className="add-detail-body" ref={boxRef}>
-            {tiers.length ? (
-              <WidgetSizeList
+            {styles.length ? (
+              <WidgetStyleList
                 def={def}
-                tiers={tiers}
-                index={tierIndex}
+                styles={styles}
+                index={styleIndex}
                 renderer={renderers[def.id]}
-                onSelect={setTierIndex}
+                onSelect={setStyleIndex}
               />
             ) : (
               <div className="add-detail-free">

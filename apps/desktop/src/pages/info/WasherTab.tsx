@@ -46,6 +46,61 @@ export function washerDisplayName(name: string): string | null {
   return null;
 }
 
+type WasherKind = "top" | "front" | "shoe" | "dryer" | "other";
+
+/** 设备类型 → 图标；优先看设备名前缀（he/hr/wm/dr），再看 type 中文。 */
+function washerKind(w: WasherDevice): WasherKind {
+  const name = w.name.trim();
+  const raw = name + " " + w.type;
+  if (/洗鞋|shoe/i.test(raw) || /^wm/i.test(name)) return "shoe";
+  if (/烘干|dryer/i.test(raw) || /^dr/i.test(name)) return "dryer";
+  if (/滚筒|front/i.test(raw) || /^hr/i.test(name)) return "front";
+  if (/波轮|top/i.test(raw) || /^he/i.test(name)) return "top";
+  return "other";
+}
+
+/** 线框图标：波轮俯视 / 滚筒侧视 / 鞋 / 热气。 */
+function WasherTypeIcon({ kind }: { kind: WasherKind }) {
+  if (kind === "front") return (
+    <svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <rect x="7.5" y="3.5" width="17" height="25" rx="3.5" />
+      <circle cx="16" cy="17" r="7" />
+      <circle cx="16" cy="17" r="3.6" />
+      <path d="M11 28.5h10" strokeLinecap="round" />
+    </svg>
+  );
+  if (kind === "shoe") return (
+    <svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <path d="M4.5 23.5c0-3.2 2.2-5.3 5.4-5.3 1.9 0 3.2 1 4.3 2.2l2.9 3.1 5.4 1.4c3.1.8 4.9 2 4.9 4.1H4.5v-5.5Z" strokeLinejoin="round" />
+      <path d="M9.8 18.2v-3.4c0-1.2 1-2.2 2.2-2.2h2.1" strokeLinecap="round" />
+      <path d="M13.5 19.8l2.4 1.8" strokeLinecap="round" />
+    </svg>
+  );
+  if (kind === "dryer") return (
+    <svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <rect x="5.5" y="3.5" width="21" height="25" rx="3.5" />
+      <circle cx="16" cy="17.5" r="6.2" />
+      <path d="M9.5 9c1.8-1.7 3.7-1.7 5.5 0s3.7 1.7 5.5 0 3.7-1.7 4 0" strokeLinecap="round" />
+      <path d="M12 28.5h8" strokeLinecap="round" />
+    </svg>
+  );
+  if (kind === "top") return (
+    <svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <rect x="5.5" y="4.5" width="21" height="23" rx="4" />
+      <circle cx="16" cy="16" r="8" />
+      <circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none" />
+      <path d="M16 8.5c2.7 0 4.8 1.8 5 4.3-1.2-1.2-2.7-1.8-4.2-1.6M23.2 19.4c-1 2.5-3.2 4.1-5.8 4.1-1.5 0-2.9-.5-4-1.4M9 21.2c-.6-1.2-.9-2.5-.8-4 .2-2.4 1.8-4.4 4-5.2" strokeLinecap="round" />
+    </svg>
+  );
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <rect x="5.5" y="4.5" width="21" height="23" rx="4" />
+      <circle cx="16" cy="16" r="8" />
+      <circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 /** 设备视觉（状态点 + 徽标 + 文案）：空闲绿 / 运行中琥珀 / 待机离线灰 / 故障红。
  *  待机与离线不能都算「故障」——前者随时可用、后者是网络掉线，含义完全不同。 */
 function deviceVisual(w: WasherDevice): { dot: string; chip: string; text: string } {
@@ -291,7 +346,10 @@ export function WasherTab({
                       .join(" · ");
                     return (
                       <Card className={`washer-card ${v.dot}`} key={`${w.name}-${i}`}>
-                        <span className="washer-dot" aria-hidden />
+                        <span className="washer-type-icon" aria-hidden="true">
+                          <WasherTypeIcon kind={washerKind(w)} />
+                          <span className="washer-dot" />
+                        </span>
                         <div className="washer-main" data-dev={deviceKey}>
                           <div className="washer-name">{title}</div>
                           {sub ? <div className="washer-sub">{sub}</div> : null}

@@ -15,6 +15,7 @@ import {
   shellWallpaperSnapshot,
   subscribeWallpaper,
   videoSoundSnapshot,
+  wallpaperVeilSnapshot,
 } from "../../state/wallpaper.js";
 
 export function WallpaperVideoBox({
@@ -38,7 +39,6 @@ export function WallpaperVideoBox({
   return (
     <div className="wall-video-layer" aria-hidden="true">
       <video ref={ref} src={displayRef(src)} autoPlay muted={!sound} loop playsInline />
-      <div className="wall-video-veil" />
     </div>
   );
 }
@@ -48,6 +48,7 @@ export function ShellWallpaperLayer(): ReactNode {
 
   const wp = useSyncExternalStore(subscribeWallpaper, shellWallpaperSnapshot, shellWallpaperSnapshot);
   const sound = useSyncExternalStore(subscribeWallpaper, videoSoundSnapshot, videoSoundSnapshot);
+  const veil = useSyncExternalStore(subscribeWallpaper, wallpaperVeilSnapshot, wallpaperVeilSnapshot);
   const anchor = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const shell = anchor.current?.parentElement;
@@ -68,6 +69,7 @@ export function ShellWallpaperLayer(): ReactNode {
       {wp && wp.kind !== "video" ? (
         <div className="shell-wallpaper-img" style={{ backgroundImage: wp.backgroundImage ?? undefined }} />
       ) : null}
+      {wp ? <div className="shell-wallpaper-veil" style={{ opacity: veil }} /> : null}
     </div>
   );
 }

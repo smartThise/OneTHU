@@ -15,6 +15,7 @@ import { isAndroidNavigator, isWindowsNavigator } from "../lib/androidHost.js";
 import { APP_VERSION, BUILD_COMMIT, BUILD_TIME } from "../lib/buildinfo.js";
 import { clearDevLog, devLogEntries, devLogText, type DevLogEntry } from "../lib/devlog.js";
 import { DEV_AUTH_TARGETS, expireDevAuth, type DevAuthId } from "../lib/devAuth.js";
+import { probeUpdateSources, type UpdateSourceProbe } from "../lib/updater.js";
 
 const HIDE_KEY = "onethu.dev.badge.hidden";
 const FPS_KEY = "onethu.dev.fps.visible";
@@ -129,6 +130,8 @@ export default function DevPanel() {
   /** 正在执行的 dev 失效目标；空 = 空闲。与日志导出 busy 分开，避免相互禁用。 */
   const [authBusy, setAuthBusy] = useState<DevAuthId | null>(null);
   const [fpsOn, setFpsOn] = useState(false);
+  const [probes, setProbes] = useState<UpdateSourceProbe[] | null>(null);
+  const [probeBusy, setProbeBusy] = useState(false);
   const fps = useFpsMeter(fpsOn);
 
   useEffect(() => {
@@ -155,6 +158,18 @@ export default function DevPanel() {
       try { window.localStorage.setItem(FPS_KEY, next ? "1" : "0"); } catch { /* ignore */ }
       return next;
     });
+  };
+
+  const testUpdateSources = async (): Promise<void> => {
+    setProbeBusy(true);
+    setNote("");
+    try {
+      setProbes(await probeUpdateSources());
+    } catch (err) {
+      setNote(String(err instanceof Error ? err.message : err).slice(0, 240));
+    } finally {
+      setProbeBusy(false);
+    }
   };
 
   const hide = (): void => {
@@ -249,12 +264,28 @@ export default function DevPanel() {
           </div>
           <div style={S.bar}>
             <Btn variant={fpsOn ? "solid" : "outline"} size="sm" onClick={toggleFps}>{fpsOn ? i18n("components.devpanel.9853da9ed740") : i18n("components.devpanel.496da9d7eedf")}</Btn>
+            <Btn variant="outline" size="sm" disabled={probeBusy} onClick={() => void testUpdateSources()}>{probeBusy ? i18n("components.devpanel.f5f40ce9e09e") : i18n("components.devpanel.a8b75811f1e9")}</Btn>
             <Btn variant="outline" size="sm" disabled={busy} onClick={() => void exportLog()}>{busy ? i18n("components.devpanel.dce6e572314e") : i18n("components.devpanel.24eacefddcaf")}</Btn>
             <Btn variant="outline" size="sm" onClick={() => void copy(devLogText(), i18n("components.devpanel.45eb3fe0c084"))}>{i18n("components.devpanel.ab87bb2473af")}</Btn>
             <Btn variant="outline" size="sm" onClick={() => void copy(diagnostics(), i18n("components.devpanel.9167ee8b67db"))}>{i18n("components.devpanel.bbce140b7682")}</Btn>
             <Btn variant="outline" size="sm" onClick={() => { clearDevLog(); setLogs([]); setNote(i18n("components.devpanel.236f6cb7e77e")); }}>{i18n("components.devpanel.1ef3de06b32e")}</Btn>
           </div>
           <div style={S.note}>{note}</div>
+          {probes ? (
+            <div style={{ margin: "8px 0" }}>
+              <div style={{ color: "var(--og-content-3)", marginBottom: 3 }}>{i18n("components.devpanel.391b3f62a82a")}</div>
+              {probes.map((p) => (
+                <div style={S.row} key={p.source}>
+                  <span style={S.key}>{p.label}</span>
+                  <span style={{ ...S.val, color: p.ok ? "var(--og-success)" : "var(--og-error)" }}>
+                    {p.ok
+                      ? "v" + String(p.latest ?? "?") + (p.hasUpdate ? " · update" : " · latest") + " · " + String(p.ms) + "ms"
+                      : String(p.error) + " · " + String(p.ms) + "ms"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <div className="og-dev-auth-title">Auth expiry tests · invalidate then run normal auto-relogin</div>
           <div style={S.bar}>
             {DEV_AUTH_TARGETS.map((target) => (

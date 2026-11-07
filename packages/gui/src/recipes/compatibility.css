@@ -444,13 +444,13 @@ html:root :is(.input, .field input, .field select, .field textarea):not(.og-inpu
 }
 html:root :is(.input, .field input, .field select, .field textarea):not(.og-input-el):focus-visible { border-color: var(--og-line-3); box-shadow: var(--og-ring); }
 html:root .btn-primary {
-  background: var(--og-action);
+  background: var(--og-accent);
   background-image: none;
-  color: var(--og-action-on);
+  color: var(--og-accent-on);
   border-color: transparent;
   box-shadow: none;
 }
-html:root .btn-primary:hover { background: var(--og-action-hover); }
+html:root .btn-primary:hover { background: var(--og-accent-strong); }
 @media (hover: none) {
   html:root :is(.free-item, .hs-dock-row, .ex-sheet) { backdrop-filter: none; -webkit-backdrop-filter: none; }
 }

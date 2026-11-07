@@ -16,7 +16,7 @@ import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../compone
 import { info, logLine } from "../../lib/clients.js";
 import { explainNetworkError, universalFetch } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
-import { softRecover } from "../../lib/reload.js";
+import { recoverCampusSession, softRecover } from "../../lib/reload.js";
 import { cacheGet, cacheSet } from "../../state/cache.js";
 
 function logErr(tag: string, err: unknown): void {
@@ -40,6 +40,7 @@ const STATUS_CHIP: Record<string, string> = {
 };
 
 const ELEC_KEY = "dorm:elec.v2";
+const ELEC_BALANCE_KEY = "dorm:elec.balance.v1";
 const ELEC_TTL = 5 * 60 * 1000;
 
 export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {}) {
@@ -47,9 +48,51 @@ export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {})
 
   const { status } = useApp();
 
-  /* ---------------- 充值记录（家园网会话 + SWR 缓存） ----------------
-   * 2026-09-05：余额接口（ELE_REMAINDER）在家园网侧长期不可用——页面顶部
-   * 固定说明条告知用户，本页只保留充值记录；不再请求余额。 */
+  /* ---------------- 电费余额（家园网 ELE_REMAINDER） ----------------
+   * 2026-11-03：用户确认余额页可用（统一认证登录家园网后），恢复请求；
+   * 旧注释“接口长期不可用”已过时。余额与充值记录各自缓存/恢复。 */
+  const [remainder, setRemainder] = useState<EleRemainder | null>(() => cacheGet<EleRemainder>(ELEC_BALANCE_KEY)?.data ?? null);
+  const [balanceState, setBalanceState] = useState<LoadState>(() => (cacheGet<EleRemainder>(ELEC_BALANCE_KEY) ? "ready" : "loading"));
+  const [balanceError, setBalanceError] = useState<string | null>(null);
+  const balanceRecover = useRef(0);
+
+  const loadBalance = useCallback(async (silent = false) => {
+    if (status !== "ready") return;
+    if (!silent) {
+      setBalanceState("loading");
+      setBalanceError(null);
+    }
+    try {
+      const next = await info.getEleRemainder();
+      cacheSet(ELEC_BALANCE_KEY, next);
+      balanceRecover.current = 0;
+      setRemainder(next);
+      setBalanceState("ready");
+    } catch (err) {
+      logErr("ELE-BALANCE", err);
+      if (isAuthError(err) && (await recoverCampusSession("dorm"))) return loadBalance();
+      if (isAuthError(err) && (await softRecover("dorm"))) return loadBalance();
+      if (isAuthError(err) && balanceRecover.current < 1) {
+        balanceRecover.current += 1;
+        await info.forceEnsure("dorm").catch((renewErr: unknown) => {
+          logErr("ELEC-BALANCE-RENEW", renewErr);
+        });
+        return loadBalance();
+      }
+      if (silent && remainder !== null) return;
+      setBalanceState("error");
+      setBalanceError(explainNetworkError(err));
+    }
+  }, [status, remainder]);
+
+  useEffect(() => {
+    if (status !== "ready") return;
+    const cached = cacheGet<EleRemainder>(ELEC_BALANCE_KEY);
+    if (!cached) void loadBalance(false);
+    else if (Date.now() - cached.at > ELEC_TTL) void loadBalance(true);
+  }, [status, loadBalance]);
+
+  /* ---------------- 充值记录（家园网会话 + SWR 缓存） ---------------- */
   const [records, setRecords] = useState<ElePayRecord[] | null>(() => cacheGet<ElePayRecord[]>(ELEC_KEY)?.data ?? null);
   const [recState, setRecState] = useState<LoadState>(() => (cacheGet<ElePayRecord[]>(ELEC_KEY) ? "ready" : "loading"));
   const [recError, setRecError] = useState<string | null>(null);
@@ -72,6 +115,7 @@ export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {})
       logErr("ELE-RECORD", err);
       // 登录态丢失：不闪红，静默强制重建家园网会话后自动重载一次；仍失败才亮 ErrorNote
       // 登录态丢失：softRelogin 透明全链重建 → 原地重拉
+      if (isAuthError(err) && (await recoverCampusSession("dorm"))) return loadRecords();
       if (isAuthError(err) && (await softRecover("dorm"))) return loadRecords();
       // softRecover 失败/节流 → 落回数据级恢复兜底
       if (isAuthError(err) && elecRecover.current < 1) {
@@ -159,10 +203,38 @@ export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {})
       <div data-sec="ele">
         <SectionHead title={i18n("pages.info.dormtab.ab8cff9a597a")} aside={i18n("pages.info.dormtab.a0d22c766730")} />
       </div>
-      {/* 余额接口不可用说明条（固定展示） */}
-      <Card style={{ padding: "12px 16px" }}>
-        <span style={{ fontSize: 13, color: "var(--text-dim)" }}>{i18n("pages.info.dormtab.c70f03b85ab5")}</span>
-      </Card>
+      {balanceState === "error" ? (
+        <ErrorNote
+          text={balanceError ?? ""}
+          onRetry={() => {
+            balanceRecover.current = 0;
+            void loadBalance();
+          }}
+        />
+      ) : balanceState === "loading" && remainder === null ? (
+        <SkeletonRows rows={1} />
+      ) : remainder ? (
+        <Card className="elec-balance-card">
+          <div className="row">
+            <div className="row-main">
+              <div className="row-title">{i18n("pages.info.dormtab.90f23f891fd1")}</div>
+              <div className="row-sub">
+                {remainder.updateTime
+                  ? i18n("pages.info.dormtab.6f97390b28f3", { time: String(remainder.updateTime) })
+                  : i18n("pages.info.dormtab.a0d22c766730")}
+              </div>
+            </div>
+            <div className="row-amount">
+              <b>{Number.isFinite(remainder.remainder) ? remainder.remainder.toFixed(2) : "–"}</b>
+              <span className="elec-unit">{i18n("pages.info.dormtab.e24a9725df82")}</span>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <Card>
+          <Empty text={i18n("pages.info.dormtab.5a62d9779585")} />
+        </Card>
+      )}
       <SectionHead title={i18n("pages.info.dormtab.3da69f3bb5a2")} aside={i18n("pages.info.dormtab.337269e5b07c")} />
       {recState === "error" ? (
         <ErrorNote

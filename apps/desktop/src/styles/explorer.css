@@ -457,3 +457,14 @@ html.is-phone .hard-refresh-fab.top-fab {
   --md-sys-color-on-surface: #f2f4f8;
   --md-sys-color-on-surface-variant: rgba(242, 244, 248, 0.8);
 }
+
+/* 壁纸遮罩：浅色永远白纱、深色永远黑纱；浓度由 state/wallpaper 的用户偏好控制。 */
+.shell-wallpaper-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: #fff;
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+html[data-scheme="dark"] .shell-wallpaper-veil { background: #000; }
