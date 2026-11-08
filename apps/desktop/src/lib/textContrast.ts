@@ -35,7 +35,7 @@
  *     在 4000 节点之后 → 整块没人管。改成按 MutationObserver 的 addedNodes 扫对应子树。
  */
 import { renderedColor } from "./textContrastColor.js";
-import { builtinCss, displayRef, subscribeWallpaper, wallpaperSnapshot } from "../state/wallpaper.js";
+import { builtinCss, displayRef, subscribeWallpaper, wallpaperSnapshot, wallpaperVeilSnapshot } from "../state/wallpaper.js";
 
 /** Canvas APIs need a resolved color; CSS roles remain the single palette source. */
 function renderColor(role: string): string {
@@ -288,18 +288,11 @@ function parseLayers(el: HTMLElement): Array<{ a: number; rgb: Rgb }> {
 /** 元素背后的真实颜色 → 相对亮度（sRGB 逐层合成，最后转亮度） */
 function compositeLum(el: HTMLElement): number {
   let c = wallRgb(el.getBoundingClientRect());
-  const shell = document.querySelector(".explorer-shell") as HTMLElement | null;
-  const mode = shell?.dataset.wallpaperLum;
-  /* 反差纱（explorer.css）是**全屏** fixed 层，只在「主题 vs 壁纸」明暗相反时出现：
-     亮主题 + 暗壁纸 → 白 34%；暗主题 + 亮壁纸 → 黑 36%；
-     暗主题 + 暗壁纸、亮主题 + 亮壁纸 → 无纱。
-     旧实现只按壁纸明暗单轴判（暗壁纸永远叠白 34%、亮壁纸永远叠黑 36%），
-     于是暗主题 + 暗壁纸也被糊上一层白纱——用户看到的「暗色主题下背景遮罩是白色」。
-     引擎必须与 CSS 的 scheme 条件同口径，否则采到的底又会与真实底不一致。 */
+  /* 壁纸遮罩是**全屏** fixed 层：浅色主题永远白纱、深色主题永远黑纱，
+     浓度由用户在 设置→外观 调（state/wallpaper.veil）。引擎必须按同一模型合成，
+     否则会再次出现「深色壁纸无遮罩 → 白字被判断为已达标」的可读性回归。 */
   const schemeIsDark = document.documentElement.dataset.scheme === "dark";
-  const veil = schemeIsDark
-    ? (mode === "light" ? 0.36 : 0)
-    : (mode === "dark" ? 0.34 : 0);
+  const veil = wallpaperVeilSnapshot();
   if (veil) c = mixRgb(c, schemeIsDark ? [0, 0, 0] : [255, 255, 255], veil);
   const layers = parseLayers(el);
   // parseLayers 是「由内向外」收集的；合成必须「由外向内」才等价于真实叠放顺序
@@ -487,7 +480,7 @@ function inkIconsWith(el: HTMLElement, ink: string): void {
 function settleTarget(el: HTMLElement, mode: Mode): void {
   // These controls own an atomic foreground/background pair for each state.
   // Locking an inactive label's ink would override its selected state's CSS.
-  if (el.closest(".og-segment, .segmented, .og-tabs, .ex-tab, .og-btn--solid, .btn-primary")) {
+  if (el.closest(".og-segment, .segmented, .og-tabs, .ex-tab, .og-btn--solid, .btn-primary, .oneshot-button, #ex-bbar-onego-btn, .vault-box-button, .vault-box-label")) {
     clearLock(el);
     return;
   }

@@ -122,6 +122,10 @@ export const MYHOME_PREFIX = "http://myhome.tsinghua.edu.cn";
 /** 电费余额（dorm.ts ELE_REMAINDER_URL；未登录时页面含 net_Default_LoginCtrl1_txtUserName） */
 export const ELE_REMAINDER = () => `${MYHOME_PREFIX}/Netweb_List/Netweb_Home_electricity_Detail.aspx`;
 
+/** 用户 2026-11-03 提供的浏览器直达路径（部分家园网入口使用 web_Netweb_List）。
+ *  作为首路径解析为空时的兼容回退，不改变既有主路径。 */
+export const ELE_REMAINDER_WEB = () => `${MYHOME_PREFIX}/web_Netweb_List/Netweb_Home_electricity_Detail.aspx`;
+
 /** 电费缴费记录（dorm.ts ELE_PAY_RECORD_URL；.myTable 表，首末行为表头/合计） */
 export const ELE_PAY_RECORD = () => `${MYHOME_PREFIX}/Netweb_List/netweb_ele_pay_record.aspx`;
 

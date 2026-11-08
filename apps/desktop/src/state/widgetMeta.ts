@@ -25,6 +25,14 @@ export interface SizeTier { w: number; h: number }
  */
 export type SizeControl = "free" | "tiers";
 
+/** 组件的显示样式预设：添加抽屉横向卡片 / 右键「显示样式」共用。 */
+export interface WidgetStyle {
+  id: string;
+  label: string;
+  /** 合并进 BoardItem.spec.props 的样式参数。 */
+  props?: Record<string, unknown>;
+}
+
 /** 可在「编辑」抽屉里调整的属性。表单由 kind 决定，值存进 BoardItem.props。 */
 export interface PropSpec {
   key: string;
@@ -48,6 +56,8 @@ export interface WidgetDef {
   sizeRange: SizeRange;
   /** 有值才在长按菜单里出现「编辑」（需求原文：如果有的话）。 */
   editableProps?: PropSpec[];
+  /** 可选显示样式；有值即显示「显示样式」入口和添加抽屉样式卡。 */
+  styles?: readonly WidgetStyle[];
   /**
    * 大小控制方式。缺省按 sizeTiers 判定：有档位清单 = 挡位控制，没有 = 自由控制。
    * 分割线 / 文字 / 入口按钮 / 列表登记为 `"free"`；其余组件登记为 `"tiers"` 并给出 sizeTiers。

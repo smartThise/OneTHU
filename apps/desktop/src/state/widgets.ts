@@ -7,7 +7,7 @@ import { t as i18n } from "../i18n/index.js";
  * 昂贵档口径（霖 2026-10-09 定）：本轮先复用现有卡壳，卡片本体抽取留到后续批次。
  */
 import { HOME_CARD_META, type HomeCardDef } from "../lib/homeCards.js";
-import { BOARD_UNITS, PRESET_WIDGETS, type SizeRange, type SizeTier, type WidgetDef } from "./widgetMeta.js";
+import { BOARD_UNITS, PRESET_WIDGETS, type PropSpec, type SizeRange, type SizeTier, type WidgetDef, type WidgetStyle } from "./widgetMeta.js";
 
 /** 主栏卡默认 3 单位宽、侧栏卡 1 单位宽：与今日页现状的两栏比例一致。 */
 function defaultWidth(def: HomeCardDef): number {
@@ -149,6 +149,63 @@ export const NOTE_WIDGET: WidgetDef = {
 };
 
 /** 卡片的组件目录条目：spec 用 custom + 卡片 id（与今日页白板文档同构）。 */
+/** 无级画布下，卡片不再按尺寸档位换排版；改为用户可选的显示风格。 */
+function displayProp(options: Array<[string, string]>): PropSpec {
+  return {
+    key: "display",
+    get label() { return i18n("state.widgetstyle.3d2ba1c5d50f"); },
+    kind: "select",
+    options: options.map(([value, label]) => ({ value, label })),
+  };
+}
+
+function style(id: string, label: string, props: Record<string, unknown>): WidgetStyle {
+  return { id, label, props };
+}
+
+/** 各组件可选的显示样式。 */
+function stylesFor(id: string): WidgetStyle[] | undefined {
+  if (id === "clock") return [
+    style("serif-left", i18n("state.widgetstyle.b3193a241955"), { display: "serif-left" }),
+    style("serif-center", i18n("state.widgetstyle.21572052fa55"), { display: "serif-center" }),
+    style("sans-left", i18n("state.widgetstyle.f294e2c97e0d"), { display: "sans-left" }),
+    style("sans-center", i18n("state.widgetstyle.900520c39f8a"), { display: "sans-center" }),
+  ];
+  if (id === "date") return [
+    style("stack", i18n("state.widgetstyle.f4f2cf392c2a"), { display: "stack" }),
+    style("inline", i18n("state.widgetstyle.ca566dc8b903"), { display: "inline" }),
+  ];
+  if (id === "weather") return [
+    style("minimal", i18n("state.widgetstyle.8ee09f5f1f38"), { display: "minimal" }),
+    style("detail", i18n("state.widgetstyle.ca3634c751ef"), { display: "detail" }),
+  ];
+  if (id === "balance-strip") return [
+    style("inline", i18n("state.widgetstyle.74d6f84ae58d"), { display: "inline" }),
+    style("stacked", i18n("state.widgetstyle.8284260058dd"), { display: "stacked" }),
+  ];
+  if (id === "homework" || id === "notices") return [
+    style("comfortable", i18n("state.widgetstyle.521479cd0b2a"), { density: "comfortable" }),
+    style("compact", i18n("state.widgetstyle.5d63d587b0b0"), { density: "compact" }),
+  ];
+  if (id === "services") return [
+    style("grid", i18n("state.widgetstyle.64936d2cd2f0"), { display: "grid" }),
+    style("rows", i18n("state.widgetstyle.aedd6814ff8c"), { display: "rows" }),
+  ];
+  if (id === "classes" || id === "next-class") return [
+    style("focus", i18n("state.widgetstyle.babb44caf563"), { display: "focus" }),
+    style("list", i18n("state.widgetstyle.b82fb59d35f2"), { display: "list" }),
+  ];
+  return undefined;
+}
+
+function editablePropsFor(id: string): PropSpec[] | undefined {
+  if (id === "clock") return [displayProp([["magazine", i18n("state.widgetstyle.25122e5ed17d")], ["minimal", i18n("state.widgetstyle.a2df8b92e83a")]])];
+  if (id === "classes" || id === "next-class") {
+    return [displayProp([["focus", i18n("state.widgetstyle.babb44caf563")], ["list", i18n("state.widgetstyle.b82fb59d35f2")]])];
+  }
+  return undefined;
+}
+
 export function cardWidgetDefs(): WidgetDef[] {
   return HOME_CARD_META.map((def) => {
     const id = String(def.id);
@@ -164,6 +221,8 @@ export function cardWidgetDefs(): WidgetDef[] {
       sizeRange: rangeFor(def),
       sizeControl: free ? "free" : "tiers",
       sizeTiers: free ? undefined : plan.tiers,
+      ...(stylesFor(id) ? { styles: stylesFor(id) } : {}),
+      ...(editablePropsFor(id) ? { editableProps: editablePropsFor(id) } : {}),
     } satisfies WidgetDef;
   });
 }
@@ -341,6 +400,18 @@ export const REPORT_ELEMENT_WIDGETS: readonly WidgetDef[] = [
     get description() { return i18n("state.widgets.4b3ef1e5eefa"); },
     defaultSize: { w: 4, h: 4 },
     sizeRange: { minW: 2, minH: 2, maxW: BOARD_UNITS, maxH: 8 },
+  },
+  {
+    id: "custom:folder",
+    spec: { kind: "custom", id: "folder", props: { entries: [] } },
+    get title() { return i18n("components.freeboard.7c7802d8adae"); },
+    get description() { return i18n("components.freeboard.9818eabd5c89"); },
+    defaultSize: { w: 2, h: 2 },
+    sizeRange: { minW: 1, minH: 1, maxW: BOARD_UNITS, maxH: 6 },
+    styles: [
+      style("grid", i18n("state.widgetstyle.64936d2cd2f0"), { display: "grid" }),
+      style("list", i18n("state.widgetstyle.aedd6814ff8c"), { display: "list" }),
+    ],
   },
 ];
 

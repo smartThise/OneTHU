@@ -31,17 +31,19 @@
   --og-ring: 0 0 0 var(--og-ring-width) color-mix(in srgb, var(--og-focus-color) 26%, transparent);
   --og-scrim: var(--og-ref-light-scrim);
 
-  /* Stable action pair: primary/send/confirm never inherit a wallpaper color. */
+  /* Stable action pair: non-interactive dark chrome (device bezel, exchange
+     card) uses this. Interactive buttons/capsules use --og-accent directly so
+     they follow the selected theme. */
+  --og-accent: var(--og-ref-neutral-950);
+  --og-accent-strong: var(--og-ref-neutral-800);
+  --og-accent-soft: var(--og-ref-neutral-100);
+  --og-accent-soft-line: var(--og-line-2);
+  --og-accent-on: var(--og-ref-neutral-0);
+  --og-accent-quiet: var(--og-content-1);
+  --og-accent-inverse: var(--og-content-inverse);
   --og-action: var(--og-ref-neutral-950);
   --og-action-hover: var(--og-ref-neutral-800);
   --og-action-on: var(--og-ref-neutral-0);
-  --og-accent: var(--og-action);
-  --og-accent-strong: var(--og-action-hover);
-  --og-accent-soft: var(--og-ref-neutral-100);
-  --og-accent-soft-line: var(--og-line-2);
-  --og-accent-on: var(--og-action-on);
-  --og-accent-quiet: var(--og-content-1);
-  --og-accent-inverse: var(--og-content-inverse);
 
   /* Product roles. Components and the host recipe share these exact names. */
   --og-canvas: var(--og-surface-0);
@@ -70,8 +72,8 @@
   --og-menu-fill: var(--og-surface-overlay);
   --og-segment-track: var(--og-surface-4);
   --og-segment-line: var(--og-line-2);
-  --og-segment-active: var(--og-action);
-  --og-segment-active-ink: var(--og-action-on);
+  --og-segment-active: var(--og-accent);
+  --og-segment-active-ink: var(--og-accent-on);
   --og-note-yellow: var(--og-ref-paper-yellow);
   --og-note-pink: var(--og-ref-paper-pink);
   --og-note-blue: var(--og-ref-paper-blue);
@@ -129,8 +131,8 @@
 [data-og-scheme="dark"] {
   --og-segment-track: var(--og-surface-4);
   --og-segment-line: var(--og-line-2);
-  --og-segment-active: var(--og-action);
-  --og-segment-active-ink: var(--og-action-on);
+  --og-segment-active: var(--og-accent);
+  --og-segment-active-ink: var(--og-accent-on);
   --og-surface-0: var(--og-ref-neutral-950);
   --og-surface-1: var(--og-ref-neutral-900);
   --og-surface-2: var(--og-ref-dark-surface-2);
@@ -149,15 +151,15 @@
   --og-line-3: var(--og-ref-dark-line-3);
   --og-focus-color: var(--og-content-2);
   --og-scrim: var(--og-ref-dark-scrim);
+  --og-accent: var(--og-ref-dark-action);
+  --og-accent-strong: var(--og-ref-dark-action-hover);
+  --og-accent-soft: var(--og-surface-4);
+  --og-accent-soft-line: var(--og-line-2);
+  --og-accent-on: var(--og-ref-neutral-950);
+  --og-accent-quiet: var(--og-content-1);
   --og-action: var(--og-ref-dark-action);
   --og-action-hover: var(--og-ref-dark-action-hover);
   --og-action-on: var(--og-ref-neutral-950);
-  --og-accent: var(--og-action);
-  --og-accent-strong: var(--og-action-hover);
-  --og-accent-soft: var(--og-surface-4);
-  --og-accent-soft-line: var(--og-line-2);
-  --og-accent-on: var(--og-action-on);
-  --og-accent-quiet: var(--og-content-1);
   --og-content-on-accent: var(--og-ref-ink-0);
   --og-schedule-block-ink: var(--og-ref-neutral-0);
   --og-chrome: var(--og-ref-dark-chrome);

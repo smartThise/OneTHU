@@ -991,6 +991,38 @@ function OhSearchPane({ query, onClose, onAskOh, onNotice }: {
   const compact = useIsSimpleLike();
   const hist = compact ? history.filter(h => compactPageAllowed(h.page) && h.page !== "settings") : history;
   const q = query.trim();
+  const paneRef = useRef<HTMLDivElement | null>(null);
+
+  /* ↑/↓ 在结果间聚焦，Enter 打开当前项。输入框在胶囊里（组件外），所以用
+     window capture 监听；只在有结果时接管方向键，不抢用户文本编辑。 */
+  useEffect(() => {
+    if (!q || !result || total === 0) return;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Enter") return;
+      const hits = Array.from(paneRef.current?.querySelectorAll<HTMLElement>("[data-ohx-hit]") ?? []);
+      if (!hits.length) return;
+      const current = hits.indexOf(document.activeElement as HTMLElement);
+      if (e.key === "Enter") {
+        if (current >= 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          hits[current]?.click();
+        }
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      const dir = e.key === "ArrowUp" ? -1 : 1;
+      const next = current < 0
+        ? (dir > 0 ? 0 : hits.length - 1)
+        : (current + dir + hits.length) % hits.length;
+      hits[next]?.focus();
+      hits[next]?.scrollIntoView({ block: "nearest" });
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [q, result, total]);
 
   const jumpTab = (page: Parameters<typeof jumpTabPayload>[0], params: Parameters<typeof jumpTabPayload>[1], title: string): void => {
     jumpTabPayload(page, params, title, q);
@@ -999,7 +1031,7 @@ function OhSearchPane({ query, onClose, onAskOh, onNotice }: {
 
   /* dev-explorer 二轮：搜索框已上移进胶囊（ohx-input 是唯一输入口），这里只渲染结果与记录 */
   return (
-    <div className="ohx-searchpane">
+    <div className="ohx-searchpane" ref={paneRef}>
       {!q ? (
         <div className="ohx-history">
           <div className="ohx-history-head">{i18n("plugins.chatdock.3b5ac9baaaae")}</div>
@@ -1030,7 +1062,7 @@ function OhSearchPane({ query, onClose, onAskOh, onNotice }: {
           {result.rows.map((x) => (
             <button
               key={"row:" + x.row.id}
-              className="ohx-hit"
+              className="ohx-hit" data-ohx-hit="1"
               data-vault-catch={vaultCatchAttr({ type: "payload", title: x.row.title, sub: i18n("plugins.chatdock.44bc7ccc3677"), payload: { routeId: x.row.id }, source: "OH 搜索" })}
               onClick={() => {
                 jumpSearchRow(x.row, q);
@@ -1043,21 +1075,21 @@ function OhSearchPane({ query, onClose, onAskOh, onNotice }: {
             </button>
           ))}
           {result.entries.map((en) => (
-            <button key={"n:" + en.id} className="ohx-hit" data-vault-catch={vaultCatchAttr({ type: "atom", title: en.name, sub: en.note ?? en.category, atom: { kind: "page", key: en.id }, source: "OH 搜索" })} onClick={() => { jumpEntry(en.id, en.page, en.params ?? null, en.name, q); onClose(); }}>
+            <button key={"n:" + en.id} className="ohx-hit" data-ohx-hit="1" data-vault-catch={vaultCatchAttr({ type: "atom", title: en.name, sub: en.note ?? en.category, atom: { kind: "page", key: en.id }, source: "OH 搜索" })} onClick={() => { jumpEntry(en.id, en.page, en.params ?? null, en.name, q); onClose(); }}>
               <span className="ohx-hit-name">{en.name}</span>
               <span className="ohx-hit-sub">{en.note ?? labelForId(en.category)}</span>
               <span className="ohx-hit-tag">{i18n("plugins.chatdock.25f5ce57a190")}</span>
             </button>
           ))}
           {result.atoms.map((a) => (
-            <button key={"a:" + a.kind + "|" + a.key} className="ohx-hit" data-vault-catch={vaultCatchAttr({ type: "atom", title: a.title, sub: a.sub, atom: { kind: a.kind, key: a.key }, source: "OH 搜索" })} onClick={() => { jumpAtom(a.kind, a.key, a.title, q); onClose(); }}>
+            <button key={"a:" + a.kind + "|" + a.key} className="ohx-hit" data-ohx-hit="1" data-vault-catch={vaultCatchAttr({ type: "atom", title: a.title, sub: a.sub, atom: { kind: a.kind, key: a.key }, source: "OH 搜索" })} onClick={() => { jumpAtom(a.kind, a.key, a.title, q); onClose(); }}>
               <span className="ohx-hit-name">{a.title}</span>
               <span className="ohx-hit-sub">{(a.group ? labelForId(a.group) + " · " : "") + (a.sub ?? i18n("plugins.chatdock.3c1917e1c662"))}</span>
               <span className="ohx-hit-tag">{i18n("plugins.chatdock.452c7b10d57a")}</span>
             </button>
           ))}
           {result.tabs.map((t) => (
-            <button key={"t:" + t} className="ohx-hit" onClick={() => { jumpSettingsTab(t); onClose(); }}>
+            <button key={"t:" + t} className="ohx-hit" data-ohx-hit="1" onClick={() => { jumpSettingsTab(t); onClose(); }}>
               <span className="ohx-hit-name">{i18nRich("plugins.chatdock.7855f5a8df25", { t: t })}</span>
               <span className="ohx-hit-sub">{i18n("plugins.chatdock.e205315fe020")}</span>
               <span className="ohx-hit-tag">{i18n("plugins.chatdock.df3d58c7d84b")}</span>

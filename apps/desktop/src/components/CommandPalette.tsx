@@ -20,6 +20,7 @@ import { requestSettingsTab } from "../state/settingsMode.js";
 import { displayBreadcrumb, familyOf, goSearchRow, type SearchRow } from "../state/searchRows.js";
 import { showToast } from "../state/toast.js";
 import { ohAsk } from "../plugins/ChatDock.js";
+import { requestOhPanel } from "../plugins/ohControl.js";
 import { closePalette, togglePalette, usePaletteOpen } from "../state/palette.js";
 import { useApp } from "../state/context.js";
 import { vaultCatchAttr } from "./vault/vaultDrag.js";
@@ -63,7 +64,10 @@ export function CommandPalette(): ReactNode {
     const onKey = (e: KeyboardEvent): void => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        togglePalette();
+        /* Ctrl+K 统一落到 OH 搜索：旧的 CommandPalette 不再抢这个快捷键。
+           侧栏按钮仍保留旧面板作为浏览入口。 */
+        closePalette();
+        requestOhPanel("search");
         return;
       }
       if (e.key === "Escape" && open) closePalette();

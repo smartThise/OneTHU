@@ -1713,22 +1713,33 @@ export class InfoClient {
    */
   async getEleRemainder(): Promise<EleRemainder> {
     return this.#withRenew(async () => {
-      const html = await this.#dormPage(
+      const parse = (html: string): { remainderText: string; updateTime: string } => ({
+        remainderText: /Netweb_Home_electricity_DetailCtrl1_lblele[^>]*>([^<]*)</.exec(html)?.[1]?.trim() ?? "",
+        updateTime: /Netweb_Home_electricity_DetailCtrl1_lbltime[^>]*>([^<]*)</.exec(html)?.[1]?.trim() ?? "",
+      });
+      let html = await this.#dormPage(
         () => this.#http.text(urls.ELE_REMAINDER(), this.#campusInit()),
         (p) => /net_Default_LoginCtrl1_txtUserName/i.test(p),
         "电费余额",
       );
-      const remainderText =
-        /Netweb_Home_electricity_DetailCtrl1_lblele[^>]*>([^<]*)</.exec(html)?.[1]?.trim() ?? "";
-      if (remainderText === "") {
+      let parsed = parse(html);
+      if (parsed.remainderText === "") {
+        // 部分账号/入口的余额页只在 web_Netweb_List 路由返回真实 label；
+        // 保留既有主路径，解析为空时再走用户实测的直达路径。
+        html = await this.#dormPage(
+          () => this.#http.text(urls.ELE_REMAINDER_WEB(), this.#campusInit()),
+          (p) => /net_Default_LoginCtrl1_txtUserName/i.test(p),
+          "电费余额(web)",
+        );
+        parsed = parse(html);
+      }
+      if (parsed.remainderText === "") {
         throw new Error(
           `电费余额解析为空（body首段: ${html.slice(0, 200).replace(/\s+/g, " ")} | 现场: ${String(this.#http.lastDebug ?? "").slice(0, 160)}）`,
         );
       }
-      const remainder = Number(remainderText);
-      const updateTime =
-        /Netweb_Home_electricity_DetailCtrl1_lbltime[^>]*>([^<]*)</.exec(html)?.[1]?.trim() ?? "";
-      return { remainder, updateTime };
+      const remainder = Number(parsed.remainderText);
+      return { remainder, updateTime: parsed.updateTime };
     });
   }
 

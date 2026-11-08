@@ -180,7 +180,6 @@ export function TasksPage(): ReactNode {
 
       <div className={"tasks-body" + (wide ? " is-wide" : "")} onPointerDown={onHDown} onPointerUp={onHUp}>
       <section className={"tasks-pane" + (wide || tab === "learn" ? "" : " is-hidden")}>
-        <div className="tasks-pane-head">{i18n("pages.taskspage.2118cbc10988")}</div>
         {/* 元素出场（§3.6：「待办页元素错峰出场」此前延后到动效令牌落地）：
             只在这一层用一个 .stagger——筛选行 → 卡片流 → 统计/入口逐项上浮 26ms。
             不在子容器再套一层：父子同时进场会糊成一团，也不给卡片流内的卡加动画
@@ -302,7 +301,6 @@ export function TasksPage(): ReactNode {
           </>
         ) : (
           <>
-        <div className="tasks-pane-head">{i18n("pages.taskspage.15d208d1b4c9")}</div>
         <div className="tasks-life tab-anim" data-dir="prev">
           {cardLow ? (
             <Card className="task-card">

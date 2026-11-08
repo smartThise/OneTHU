@@ -75,6 +75,24 @@ export async function ensureLearnSession(): Promise<boolean> {
   }
 }
 
+/** 页面显式重试用的无冷却恢复：lib 主会话 → 对应业务会话。
+ *  softRecover 有 20s 全局冷却（防连锤），但页面在 AuthRequired 后需要立即补救；
+ *  这里绕过冷却，但仍复用 core 的单飞/幂等链。 */
+export async function recoverCampusSession(scope: "learn" | "dorm"): Promise<boolean> {
+  try {
+    const { libEnsureSession, libRoamLearn } = await import("./infoLib.js");
+    if (!(await libEnsureSession())) return false;
+    if (scope === "learn") return await ensureLearnSession();
+    const { info } = await import("./clients.js");
+    await info.forceEnsure("dorm");
+    emitAuthRecovered("dorm");
+    emitAuthRecovered("global");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** 全局失登看门狗：core 任何模块抛 AuthRequiredError → 静默 softRelogin。
  *  （旧版在这里触发整页重载——AuthRequiredError 构造即广播，成功自愈的
  *  调用方也会被 150ms 后的 reload 腰斩；新版只重建会话，scope 级重试由

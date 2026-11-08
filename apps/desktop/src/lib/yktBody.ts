@@ -157,6 +157,7 @@ export function normalizeNbspInHtml(html: string): string {
  *  整条公式退回原始 TeX（题干里的「nbsp」乱象另一条来源）。 */
 export function decodeBasicEntities(s: string): string {
   return normalizeNbspEntities(s, "tex")
+    .replace(/&#0*92;|&#x0*5c;/gi, "\\")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
@@ -180,7 +181,25 @@ function safeRender(render: LatexRender, tex: string, displayMode: boolean): str
  *  - 雨课堂部分题目用 `\[ … \]` 包裹独立公式块（用户 2026-10-25 反馈），此前只认 $，
  *    于是整段 TeX 原样当正文显示；两套定界都走同一渲染器；
  *  - 渲染失败 / 未配对：定界符按字面保留，从下一字符继续（绝不吃内容）。 */
+/** $ … $ 内侧带空白时，只有内容像数学才放行；避免把「$5 与 $6」当公式。 */
+function looksLikeMath(s: string): boolean {
+  const t = s.trim();
+  if (!t || /[\u4e00-\u9fff]/.test(t)) return false;
+  if (/[\\^_{}]/.test(t)) return true;            // \alpha、x^{2}、a_b
+  if (/[=+<>\-*/]/.test(t)) return true;            // 1+2、a=b
+  if (/^-?\d+(?:\.\d+)?$/.test(t)) return true;    // 纯数字
+  if (/^[a-zA-Z]$/.test(t)) return true;             // 单个变量
+  if (/^[\(\[\],.\d\s]+$/.test(t)) return true;  // 坐标/元组
+  return false;
+}
+
 function renderTextSegment(seg: string, render: LatexRender): string {
+  // 部分编辑器会把定界符存成 HTML 数字实体或双反斜杠（`&#92;(x&#92;)`、`\\(x\\)`）。
+  // 先归一这些“看起来像 \(...\)”的形态，再做定界扫描；否则整段公式永远命中不了。
+  seg = seg
+    .replace(/&#0*36;|&#x0*24;/gi, "$")
+    .replace(/&#0*92;|&#x0*5c;/gi, "\\")
+    .replace(/\\\\(?=[()])/g, "\\");
   if (!seg.includes("$") && !seg.includes("\\[") && !seg.includes("\\(")) return seg;
   let out = "";
   let i = 0;
@@ -237,8 +256,11 @@ function renderTextSegment(seg: string, render: LatexRender): string {
         }
       }
     }
-    // 行内 $…$：只认最近的 $ 作为闭合候选（不合法则本 $ 按字面，后续另起扫描）
-    if (seg.charCodeAt(start + 1) !== 32 /* 空白开界不放行 */) {
+    // 行内 $…$：最近 $ 为闭合候选；允许 `$ … $` 的内侧空白（用户实测雨课堂
+    // 大量公式写成 `$ \alpha ... $`），但只有内容像数学才放行，避免把
+    // 「价格 $5 与 $6」误判成一条公式。不合法则本 $ 按字面，后续另起扫描。
+    {
+      const leadSpace = /\s/.test(seg.charAt(start + 1));
       let closed = -1;
       for (let j = start + 1; j < len; j++) {
         const c = seg.charCodeAt(j);
@@ -248,7 +270,10 @@ function renderTextSegment(seg: string, render: LatexRender): string {
         }
         if (c === 36 /* $ */) {
           if (j === start + 1) break; // 空段（$$ 已试过）
-          if (seg.charCodeAt(j - 1) === 32) break; // 关界内侧空白 → 不算
+          const inner = seg.slice(start + 1, j);
+          if (!inner.trim()) break;
+          const boundarySpace = leadSpace || /\s$/.test(inner);
+          if (boundarySpace && !looksLikeMath(inner)) break;
           closed = j;
           break;
         }
@@ -269,9 +294,47 @@ function renderTextSegment(seg: string, render: LatexRender): string {
   return out;
 }
 
+/** 雨课堂 UEditor 会把 `\[` 公式里的换行/段落变成 HTML 标签（<br>、<div>），
+ *  定界符因此落在不同文本节点里，按节点扫描永远配不上对。这里先做一轮
+ *  “跨标签”扫描：把公式体里的标签剥掉、实体解码，再交给 KaTeX；失败保留原 HTML。 */
+function renderSpanningTex(html: string, render: LatexRender): string {
+  const texBody = (raw: string): string =>
+    decodeBasicEntities(raw.replace(/<br\s*\/?\s*>/gi, " ").replace(/<[^>]*>/g, " ")).trim();
+  // `$…$` 也可能被 UEditor 插入 <span>（例如 text-wrap-mode），同样跨节点配对。
+  // 先把标签整体 stash，避免属性里的 `$t$` 被当成公式；配对完成后原样还原。
+  const tags: string[] = [];
+  const stash = html.replace(/<[^>]*>/g, (tag) => `\u0001${tags.push(tag) - 1}\u0001`);
+  const stashed = stash.replace(/(?<!\$)\$(?!\$)([\s\S]*?)\$(?!\$)/g, (whole, body: string) => {
+    const inner = texBody(body.replace(/\u0001\d+\u0001/g, " "));
+    if (!inner) return whole;
+    /* 跨标签扫描最容易误吃价格区间；这里始终要求公式形态，不只看边界空白。 */
+    if (!looksLikeMath(inner)) return whole;
+    return safeRender(render, inner, false) ?? whole;
+  });
+  html = stashed.replace(/\u0001(\d+)\u0001/g, (_, n: string) => tags[Number(n)] ?? "");
+  html = html.replace(/\\\[([\s\S]*?)\\\]/g, (whole, body: string) => {
+    const tex = texBody(body);
+    if (!tex) return whole;
+    return safeRender(render, tex, true) ?? whole;
+  });
+  html = html.replace(/\\\(([\s\S]*?)\\\)/g, (whole, body: string) => {
+    const tex = texBody(body);
+    if (!tex) return whole;
+    return safeRender(render, tex, false) ?? whole;
+  });
+  return html;
+}
+
 /** 全文 LaTeX 替换（只动文本节点，不碰标签与属性）；render 缺省恒 null = 纯原文直通 */
 export function renderLatexInHtml(html: string, render: LatexRender): string {
+  // 定界符可能以数字实体/双反斜杠形态存在于源 HTML；先归一，否则下面的
+  // “没有定界符就直接返回”会在扫描前把整段公式跳过。
+  html = html
+    .replace(/&#0*36;|&#x0*24;/gi, "$")
+    .replace(/&#0*92;|&#x0*5c;/gi, "\\")
+    .replace(/\\\\(?=[()])/g, "\\");
   if (!html.includes("$") && !html.includes("\\[") && !html.includes("\\(")) return html;
+  html = renderSpanningTex(html, render);
   return mapNodes(html, (t) => renderTextSegment(t, render), (t) => t);
 }
 
@@ -634,17 +697,22 @@ export function yktDocCss(t: YktDocTheme = DEFAULT_YKT_DOC_THEME): string {
     `body{font:14px/1.65 ${YKT_DOC_FONT_STACK};`,
     `color:${text};background:${bg};overflow:hidden;word-break:break-word;-webkit-text-size-adjust:100%}`,
     // color-scheme 跟档：画布默认色 / 滚动条 / 表单控件随暗底（画布兜底第二道）。
-    // flush 时钉 light：Chromium 在 dark color-scheme 下会铺一层不透明暗画布底，
-    // 玻璃就透不出来了；透明画布 + 父层材质才是"只叠一次"的唯一形态。
+    // flush 时不能钉 light：Chromium 会按 color-scheme 给 iframe canvas 画白底，
+    // 即使 html/body 都是 transparent 也会暴露白画布。normal 才是真正透明画布。
     dark && !flush ? "html{color-scheme:dark}" : "",
-    flush ? "html{color-scheme:light}" : "",
+    flush ? "html{color-scheme:normal}html,body{background:transparent!important}" : "",
     "p{margin:0 0 8px}p:last-child{margin-bottom:0}",
     "img{max-width:100%;height:auto;border-radius:4px}",
     `table{border-collapse:collapse;max-width:100%}th,td{border:1px solid ${t.border};padding:4px 8px;font-size:12px}`,
     "pre{white-space:pre-wrap;overflow-wrap:anywhere}",
     `a{color:${t.link};text-decoration:underline}`,
+    /* KaTeX 产物里有自己的 span；正文已按主题取色，公式必须继承，不能保留源站黑色。 */
+    ".katex,.katex *{color:inherit!important}",
     // 暗底再兜一层（上游 1861e4e 引入）：漏剥的官方/KaTeX 行内色压不过主题配色
-    dark ? "body,body *{color:inherit!important;background-color:transparent!important}" : "",
+    /* 只重置正文子元素：body 自身已由上面的主题规则写成亮墨。
+       这里若把 body 也设为 inherit，它继承的是 <html> 的初始黑色——正是
+       “自动取色深色模式下雨课堂文字/公式永远黑色”的根因。 */
+    dark ? "body *{color:inherit!important;background-color:transparent!important}" : "",
     // 回退栈必须与 body 同栈（YKT_DOC_FONT_STACK）：字体加载失败/未覆盖的字符 ≈ 普通正文观感
     `.${YKT_ENCRYPTED_FONT_CLASS}{font-family:"${YKT_FONT_FAMILY}",${YKT_DOC_FONT_STACK}}`,
     `.ykt-img-fallback{display:flex;align-items:center;gap:6px;padding:10px 12px;margin:4px 0;border:1px dashed ${t.border};border-radius:6px;color:${t.textSoft};font-size:12px;background:${t.fallbackBg};overflow-wrap:anywhere}`,
@@ -771,11 +839,14 @@ export function buildYktProblemDoc(opts: YktDocBuildOptions): string {
   }).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
   const script = YKT_DOC_SCRIPT_TEMPLATE.split("__YKT_FONT__").join(YKT_FONT_FAMILY)
     .split("__YKT_UI__").join(ui);
+  const flush = opts.theme?.flush === true;
+  const htmlAttrs = flush ? ' style="background:transparent;color-scheme:normal"' : "";
+  const bodyAttrs = flush ? ' style="background:transparent"' : "";
   return (
-    '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+    `<!DOCTYPE html><html${htmlAttrs}><head><meta charset="utf-8">` +
     '<meta name="referrer" content="no-referrer">' +
     `<base href="${YKT_DOC_BASE}">` +
-    `<style>${css}${extra}${fontFace}</style></head><body>${body}` +
+    `<style>${css}${extra}${fontFace}</style></head><body${bodyAttrs}>${body}` +
     `<script>${script}</script></body></html>`
   );
 }

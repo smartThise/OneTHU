@@ -588,6 +588,46 @@ export async function checkForUpdate(opts: {
   };
 }
 
+/** Dev diagnostics: probe every official source independently. Unlike
+ * checkForUpdate this does not select/fallback — the caller sees each row. */
+export interface UpdateSourceProbe {
+  source: UpdateSource;
+  label: string;
+  ok: boolean;
+  latest?: string;
+  hasUpdate?: boolean;
+  error?: string;
+  ms: number;
+}
+
+export async function probeUpdateSources(opts: { signal?: AbortSignal; sourceTimeoutMs?: number } = {}): Promise<UpdateSourceProbe[]> {
+  const key = platformKey();
+  const plan: SourcePlan[] = [
+    { source: "github", run: () => fromGitHub(key, opts.signal) },
+    { source: "cloud", run: () => fromCloud(key, opts.signal) },
+  ];
+  const started = Date.now();
+  const settled = await Promise.all(plan.map(async (step): Promise<UpdateSourceProbe> => {
+    const at = Date.now();
+    try {
+      const result = await guardSource(step, opts);
+      return { source: step.source, label: SOURCE_LABEL[step.source], ok: true, latest: result.latest, hasUpdate: result.hasUpdate, ms: Date.now() - at };
+    } catch (error) {
+      return {
+        source: step.source,
+        label: SOURCE_LABEL[step.source],
+        ok: false,
+        error: error instanceof UpdateSourceTimeout
+          ? i18n("update.sourceTimeout", { source: SOURCE_LABEL[step.source] })
+          : error instanceof Error ? error.message : String(error),
+        ms: Date.now() - at,
+      };
+    }
+  }));
+  void started;
+  return settled;
+}
+
 /* ═══════════ 下载 / 取消 / 拉起安装页 ═══════════ */
 
 /**

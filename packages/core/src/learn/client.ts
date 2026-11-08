@@ -1072,6 +1072,10 @@ export class LearnClient {
   ): Promise<{ ok: boolean; msg?: string }> {
     try {
       return await this.#withRelogin(async () => {
+      // 提交是写操作，不能拿旧 _csrf 直接打：先真实探活一次课程页。
+      // 会话过期时 ensureSession 会走 #recoverSession（id 漫游/宿主恢复），
+      // 避免把登录页/网关错误页当成服务器错误返回。
+      if (!(await this.ensureSession())) throw new SessionExpiredError();
       const fd = new FormData();
       fd.append("xszyid", studentHomeworkId);
       fd.append("zynr", opts.content ?? "");
