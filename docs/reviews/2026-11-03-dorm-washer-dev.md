@@ -139,6 +139,12 @@
 - 雨课堂黑字根因：暗色净化规则写成 `body,body * { color: inherit !important }`，body 自身被强制继承 `<html>` 初始黑色，覆盖了主题写入的亮墨。改为只重置 `body *`，body 保留主题色；公式 KaTeX 继续继承。
 - 网络学堂「重试」原来只是 `useLearnData.reload()`，不跑会话恢复；长闲置后 learn 会话单独过期就会反复失败。重试现在先 `recoverCampusSession("learn")`（主会话探活→id 漫游），失败再 `softRecover("learn")`，然后重走数据；AuthRequired 兜底也补了 softRecover。
 
+## 17. OH 搜索、Ctrl+K 与键盘导航
+
+- `searchAll` 把插件动态 tab（`plugin:<id>:<tab>`）转成 NavEntry 一起匹配，插件新增页面不再从 OH/服务页搜索里消失。
+- `Ctrl+K` 不再打开旧 CommandPalette，统一 `requestOhPanel("search")` 落到 OH 搜索。
+- OH 搜索结果支持 ↑/↓ 在 `[data-ohx-hit]` 间移动焦点，Enter 打开当前项；焦点环与滚动跟随。
+
 ## 验证
 
 - `dorm-balance-test` ✓（余额接线、缓存、旧错误文案移除）

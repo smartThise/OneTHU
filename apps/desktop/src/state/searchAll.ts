@@ -7,7 +7,8 @@ import { compactPageAllowed, experienceMode, isSimpleLike } from "./experienceMo
  * 这里只做组合；匹配实现仍在 navigation.ts（matchNavQuery）与 atoms.tsx（searchAtoms）。
  */
 import { searchAtoms, type AtomHit } from "./atoms.js";
-import { matchNavQuery, type NavEntry } from "./navigation.js";
+import { matchNavQuery, pluginCatalogEntries, type NavEntry } from "./navigation.js";
+import { pluginTabsSnapshot } from "../plugins/tabs.js";
 import { SETTINGS_TAB_ORDER } from "./settingsMode.js";
 import { matchSearchRows, type SearchRow } from "./searchRows.js";
 
@@ -27,7 +28,13 @@ export function searchAll(q: string, limit = 14): SearchAllResult {
   /* ③ 行级命中排在最前：搜「音色」第一跳就是那一行，而不是先蹦出 OH 大页 */
   const rows = query ? matchSearchRows(query, 8) : [];
   const rowKeys = new Set(rows.map((x) => x.row.title));
-  const entries = matchNavQuery(query);
+  /* 插件页（plugin:<id>:<tab>）不在静态 NAV_REGISTRY 里；只搜注册表会漏掉
+     所有插件新增页面。把动态 tab 转成同构 NavEntry 后一起匹配。 */
+  const pluginEntries = pluginCatalogEntries(pluginTabsSnapshot()).filter((e) => {
+    const needle = query.toLowerCase();
+    return e.name.toLowerCase().includes(needle) || e.keywords.some((k) => k.toLowerCase().includes(needle));
+  });
+  const entries = [...matchNavQuery(query), ...pluginEntries];
   // 与导航命中去重：页面/组件原子已在注册表里的不再重复出
   const navIds = new Set(entries.map((e) => e.id));
   const atoms = searchAtoms(query, limit).filter(
