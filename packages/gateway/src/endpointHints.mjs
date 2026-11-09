@@ -10,6 +10,10 @@ export function validateEndpointHints(value){
   if(!value||value.version!==1||!value.services||typeof value.services!=='object'||Array.isArray(value.services)||Object.keys(value.services).length>64)fail();
   const validate=hint=>{if(!hint||!port(hint.proxyPort)||!port(hint.pacPort)||hint.proxyPort===hint.pacPort||typeof hint.pacPath!=='string'||!/^\/campus-[a-f0-9]{36}\.pac$/.test(hint.pacPath))fail();};
   if(value.manual!==undefined)validate(value.manual);
+  if(value.managementPort!==undefined&&!port(value.managementPort))fail();
+  if(value.bypassHosts!==undefined&&(!Array.isArray(value.bypassHosts)||value.bypassHosts.length>256||
+    value.bypassHosts.some(host=>typeof host!=='string'||host.length>253||!host.includes('.')||
+      !host.split('.').every(label=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)))))fail();
   for(const [name,hint]of Object.entries(value.services)){if(!name||name.length>256||/[\x00-\x1f\x7f]/.test(name))fail();validate(hint);}
   return value;
 }

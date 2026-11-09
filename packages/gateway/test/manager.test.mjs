@@ -4,6 +4,7 @@ import { mkdtemp, rm, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import http from 'node:http';
+import net from 'node:net';
 import vm from 'node:vm';
 import { createManagedGateway, createPacScript, DEFAULT_ALLOWED_ORIGINS } from '../src/manager.mjs';
 import { createCertificateAuthority } from '../src/certificates.mjs';
@@ -79,6 +80,92 @@ test('restarting a managed proxy reuses its manual endpoint and exact cached PAC
  const second=await f.manager.control({action:'start',confirm:true});
  assert.deepEqual(second.endpoint,first.endpoint);assert.equal(second.pacUrl,first.pacUrl);
  assert.equal((await fetch(first.pacUrl)).status,200);
+});
+
+test('the local console toggles a whole site, preserves the original proxy and persists across restart',async t=>{
+ const host='git.tsinghua.edu.cn';
+ const fallback=http.createServer();
+ let tunneledHost,peerAllowed=true;
+ fallback.on('connect',(req,socket)=>{
+  tunneledHost=req.url;
+  socket.end('HTTP/1.1 200 Connection Established\r\n\r\nopaque fixture');
+ });
+ await new Promise(resolve=>fallback.listen(0,'127.0.0.1',resolve));
+ t.after(()=>fallback.close());
+ const originalPort=fallback.address().port;
+ const f=await fixture(t,{hostPlatform:'darwin',peerAuthorizerFactory:()=>async()=>peerAllowed,
+  allowedOrigins:['https://'+host,'http://'+host,'https://learn.tsinghua.edu.cn']});
+ const originalProxy={host:'127.0.0.1',port:originalPort};
+ f.platform.prepareProxy=async()=>({services:[{name:'Ethernet',fallback:{https:originalProxy,http:originalProxy}}]});
+ f.platform.enableProxy=async({pacUrlsByService})=>Object.assign(f.state,{proxyEnabled:true,pacUrlsByService});
+ f.state.trusted=true;
+ const started=await f.manager.control({action:'start',confirm:true});
+ const enabled=await f.manager.control({action:'system-enable',confirm:true});
+ const management=new URL(started.managementUrl), api=new URL('/api/sites',management);
+ const patch=(body,origin=management.origin)=>fetch(api,{
+  method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body),
+ });
+ assert.equal((await fetch(management)).status,200);
+ assert.equal((await fetch(api,{headers:{'sec-fetch-site':'cross-site'}})).status,403);
+ const navigation=await new Promise((resolve,reject)=>{
+  http.get(management,{headers:{'sec-fetch-site':'cross-site','sec-fetch-mode':'navigate','sec-fetch-dest':'document'}},response=>{
+   response.resume(); resolve(response.statusCode);
+  }).on('error',reject);
+ });
+ assert.equal(navigation,200);
+ assert.equal((await patch({host,enabled:false},'https://outside.test')).status,403);
+ assert.equal((await patch({host:'outside.test',enabled:false})).status,400);
+ assert.equal((await patch({host:'id.tsinghua.edu.cn',enabled:false})).status,400);
+ peerAllowed=false;
+ assert.equal((await patch({host,enabled:false})).status,403);
+ peerAllowed=true;
+ assert.deepEqual((await (await fetch(api)).json()).sites,[{host,enabled:true},{host:'learn.tsinghua.edu.cn',enabled:true}]);
+ const result=await patch({host,enabled:false});
+ assert.equal(result.status,200);
+ assert.equal((await result.json()).sites[0].enabled,false);
+ const systemPac=enabled.systemProxy.pacUrlsByService.Ethernet;
+ async function route(pac,scheme,hostname){
+  const ctx=vm.createContext({});
+  vm.runInContext(await(await fetch(pac)).text(),ctx);
+  return ctx.FindProxyForURL(scheme+'://'+hostname+'/',hostname);
+ }
+ assert.equal(await route(systemPac,'https',host),'PROXY 127.0.0.1:'+enabled.systemEndpoint.port);
+ assert.equal(await route(started.pacUrl,'http',host),'PROXY 127.0.0.1:'+started.endpoint.port);
+ assert.equal(await route(systemPac,'https','learn.tsinghua.edu.cn'),'PROXY 127.0.0.1:'+enabled.systemEndpoint.port);
+ const sysContext=vm.createContext({});
+ vm.runInContext(await(await fetch(systemPac)).text(),sysContext);
+ assert.equal(sysContext.FindProxyForURL(management.href,management.hostname),'DIRECT');
+ assert.equal(await route(systemPac,'http','127.0.0.1'),'PROXY 127.0.0.1:'+originalPort);
+ // A browser with an old PAC can still CONNECT to the old listener. Its new
+ // tunnel must be opaque and reach the inherited proxy, with no campus cookies.
+ const tunnel=await new Promise((resolve,reject)=>{
+  const socket=net.connect(enabled.systemEndpoint.port,'127.0.0.1');
+  let data='';
+  socket.setTimeout(4000,()=>socket.destroy(new Error('fixture timeout')));
+  socket.on('connect',()=>socket.write('CONNECT '+host+':443 HTTP/1.1\r\nHost: '+host+':443\r\n\r\n'));
+  socket.on('data',chunk=>data+=chunk);
+  socket.on('end',()=>resolve(data));
+  socket.on('error',reject);
+ });
+ assert.equal(tunneledHost,host+':443');
+ assert.match(tunnel,/^HTTP\/1.1 200 Connection Established\r\n\r\nopaque fixture$/);
+ await f.manager.control({action:'stop',confirm:true});
+ assert.equal((await fetch(api)).status,200,'the console stays usable while the gateway is stopped');
+ const resumed=await f.manager.control({action:'start',confirm:true});
+ assert.equal(resumed.managementUrl,started.managementUrl);
+ await f.manager.close();
+ await assert.rejects(fetch(management));
+ const restarted=createManagedGateway({dataDir:f.dir,session:f.session,hostPlatform:'darwin',
+  peerAuthorizerFactory:()=>async()=>true,platformFactory:()=>f.platform,
+  allowedOrigins:['https://'+host,'http://'+host,'https://learn.tsinghua.edu.cn']});
+ try {
+  const state=await restarted.control({action:'start',confirm:true});
+  assert.equal(state.managementUrl,started.managementUrl);
+  assert.deepEqual(state.allowedOrigins,['https://learn.tsinghua.edu.cn']);
+  assert.equal(await route(state.pacUrl,'https',host),'PROXY 127.0.0.1:'+state.endpoint.port);
+  assert.equal((await patch({host,enabled:true})).status,200);
+  assert.equal(await route(state.pacUrl,'https',host),'PROXY 127.0.0.1:'+state.endpoint.port);
+ } finally { await restarted.close(); }
 });
 
 test('a new manager preserves system listener ports and exact PAC URLs across daemon replacement',async t=>{

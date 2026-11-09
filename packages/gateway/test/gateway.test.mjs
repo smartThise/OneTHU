@@ -241,6 +241,23 @@ test('HTTP proxy forwards one request with manual redirects and removes credenti
   assert.equal(f.state.calls.length, 1);
 });
 
+test('a route change reconnects old read-only tunnels instead of committing a gateway error document',async t=>{
+ for(const method of ['GET','HEAD','POST']){
+  let bypassed=false;
+  const f=await fixture(t,{withTls:true,isBypassed:()=>bypassed,request(){
+   bypassed=true;
+   return new Response('late shared response',{headers:{'content-type':'text/html'}});
+  }});
+  const result=tlsRequest(f,{method});
+  if(method==='POST'){
+   const response=await result;
+   assert.equal(response.status,403);
+   assert.match(response.body.toString(),/GATEWAY_SITE_BYPASSED/);
+  }else await assert.rejects(result,error=>error.code==='ECONNRESET');
+  assert.equal(f.state.calls.length,1);
+ }
+});
+
 test('unauthorized HTTP and CONNECT do not call session or certificate provider', async t => {
   const f = await fixture(t, { withTls: true });
   assert.equal((await proxyRequest(f, { auth: false })).status, 407);
@@ -343,6 +360,20 @@ const landingNavigationHeaders = {
 };
 const infoNewsLanding = 'https://info.tsinghua.edu.cn/f/info/xxfb_fg/xnzx/stu/index';
 
+test('official Info sign-in and Learn role redirects are safe top-level entries',async t=>{
+ const f=await fixture(t,{allowedOrigins:['https://info.tsinghua.edu.cn','https://learn.tsinghua.edu.cn'],
+  token:undefined,authorizeSocket:async()=>true});
+ const entries=['https://info.tsinghua.edu.cn/f/login','https://learn.tsinghua.edu.cn/f/redirectByStuOrTeacher',
+  'https://learn.tsinghua.edu.cn/f/wlxt/index/course/teacher/','https://learn.tsinghua.edu.cn/f/wlxt/index/course/student'];
+ for(const url of entries){
+  const headers={...landingNavigationHeaders,host:new URL(url).host};
+  assert.equal((await proxyRequest(f,{auth:false,url,headers})).status,200);
+  assert.equal((await proxyRequest(f,{auth:false,url:url+'?action=logout',headers})).status,403);
+  assert.equal((await proxyRequest(f,{auth:false,url,method:'POST',body:'action=login',headers})).status,403);
+ }
+ assert.equal(f.state.calls.length,entries.length);
+});
+
 test('identity expiry offers a bilingual document recovery page while APIs retain a private JSON error',async t=>{
  const f=await fixture(t,{request(){throw new GatewayError('GATEWAY_IDENTITY_SESSION_REQUIRED',401);}});
  const result=await proxyRequest(f,{headers:{'sec-fetch-mode':'navigate','sec-fetch-dest':'document',accept:'text/html'}});
@@ -374,6 +405,63 @@ test('user-activated cross-site navigation accepts only explicit empty-query cam
     assert.equal(rejected.status,403);
   }
   assert.equal(f.state.calls.length,10);
+});
+
+test('an already authorized service root permits ordinary cross-site navigation, while actions stay blocked',async t=>{
+ const host='madmodel.cs.tsinghua.edu.cn';
+ const f=await fixture(t,{allowedOrigins:['https://'+host],token:undefined,authorizeSocket:async()=>true});
+ const headers={...landingNavigationHeaders,host};
+ assert.equal((await proxyRequest(f,{auth:false,url:'https://'+host+'/',headers})).status,200);
+ for(const path of ['/?action=change','/model-api/auth-login','/authLogin?ticket=unknown']){
+  assert.equal((await proxyRequest(f,{auth:false,url:'https://'+host+path,headers})).status,403);
+ }
+ assert.equal(f.state.calls.length,1);
+});
+
+test('library search entry preserves its query and permits subsequent same-origin search requests',async t=>{
+ const origin='https://discover.lib.tsinghua.edu.cn';
+ const url=origin+'/entrance/searchEntrance/sortList?query=any,contains,%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84&tab=default_tab&search_scope=default_scope&vid=86THU';
+ const bodies=[];
+ const f=await fixture(t,{allowedOrigins:[origin],token:undefined,authorizeSocket:async()=>true,
+  request:async(_url,init)=>{ if(init.body)bodies.push(await new Response(init.body).text()); return new Response('campus fixture'); }});
+ const entryHeaders={...landingNavigationHeaders,host:'discover.lib.tsinghua.edu.cn'};
+ assert.equal((await proxyRequest(f,{auth:false,url,headers:entryHeaders})).status,200);
+ assert.equal(f.state.calls[0].url,url);
+ const body='search='+encodeURIComponent('any,contains,数据结构')+'&offset=0&pageSize=10';
+ const api=origin+'/tsinghuasearch/primo/listData';
+ assert.equal((await proxyRequest(f,{auth:false,url:api,method:'POST',body,headers:{
+  host:'discover.lib.tsinghua.edu.cn','sec-fetch-site':'same-origin','sec-fetch-mode':'cors','sec-fetch-dest':'empty',
+  origin,referer:url,'content-type':'application/x-www-form-urlencoded',PrimoAuthorization:'Bearer fixture',
+ }})).status,200);
+ assert.equal(f.state.calls[1].url,api);
+ assert.equal(f.state.calls[1].init.headers.get('PrimoAuthorization'),'Bearer fixture');
+ assert.deepEqual(bodies,[body]);
+ assert.equal((await proxyRequest(f,{auth:false,url:api,method:'POST',body,headers:entryHeaders})).status,403);
+ assert.equal((await proxyRequest(f,{auth:false,url:url+'&redirect=https://evil.test/',headers:entryHeaders})).status,403);
+ assert.equal(f.state.calls.length,2);
+});
+
+test('official library empty search form becomes GET without forwarding a cross-origin POST',async t=>{
+ const origin='https://discover.lib.tsinghua.edu.cn';
+ const library='https://lib.tsinghua.edu.cn';
+ const url=origin+'/entrance/searchEntrance/sortList?query=any,contains,algorithms&tab=default_tab&search_scope=default_scope&vid=86THU';
+ const f=await fixture(t,{allowedOrigins:[origin,library],token:undefined,authorizeSocket:async()=>true});
+ const headers={...landingNavigationHeaders,host:'discover.lib.tsinghua.edu.cn','sec-fetch-site':'same-site',
+  origin:library,referer:library+'/','content-type':'application/x-www-form-urlencoded','content-length':'0'};
+ const result=await proxyRequest(f,{auth:false,url,method:'POST',headers});
+ assert.equal(result.status,303);
+ assert.equal(result.headers.location,url);
+ assert.equal(result.headers['cache-control'],'no-store');
+ assert.equal(f.state.calls.length,0);
+ for (const modified of [
+  {origin:'https://evil.test'}, {referer:'https://evil.test/'}, {'sec-fetch-user':null},
+  {'sec-fetch-site':'cross-site'}, {'sec-fetch-dest':'iframe'}, {'content-type':'application/json'},
+ ]) assert.equal((await proxyRequest(f,{auth:false,url,method:'POST',headers:{...headers,...modified}})).status,403);
+ assert.equal((await proxyRequest(f,{auth:false,url,method:'POST',body:'action=change',headers:{...headers,'content-length':'13'}})).status,403);
+ assert.equal((await proxyRequest(f,{auth:false,url:url+'&action=delete',method:'POST',headers})).status,403);
+ assert.equal(f.state.calls.length,0);
+ assert.equal((await proxyRequest(f,{auth:false,url,headers:{...landingNavigationHeaders,host:'discover.lib.tsinghua.edu.cn'}})).status,200);
+ assert.equal(f.state.calls.length,1);
 });
 
 test('landing exception cannot authorize forms, query actions, subresources, frames, or unactivated navigation', async t => {
@@ -527,6 +615,21 @@ test('only an explicitly projected Learn CSRF cookie reaches the browser', async
     const denied = await fixture(t, { withTls: true, browserCookies: () => [cookie] });
     assert.equal((await tlsRequest(denied)).status, 502);
   }
+});
+
+test('authorized Info archive responses project only the approved CSRF cookie',async t=>{
+ const origin='https://info2021.tsinghua.edu.cn';
+ let projections=0;
+ const f=await fixture(t,{allowedOrigins:[origin],browserCookies:url=>{
+  projections++;assert.equal(new URL(url).origin,origin);
+  return [{name:'XSRF-TOKEN',value:'22222222-2222-2222-2222-222222222222'}];
+ },request:()=>new Response('<html>fixture</html>',{headers:{'content-type':'text/html','set-cookie':'JSESSIONID=private; Path=/; Secure'}})});
+ const result=await proxyRequest(f,{url:origin+'/f/info/xxfb_fg/bmxx/departmentalView',headers:{host:'info2021.tsinghua.edu.cn','sec-fetch-site':'same-origin'}});
+ assert.equal(result.status,200);
+ assert.equal(projections,1);
+ assert.equal(String(result.headers['set-cookie']),'XSRF-TOKEN=22222222-2222-2222-2222-222222222222; Path=/; Secure; SameSite=Strict');
+ const other=await fixture(t,{allowedOrigins:['https://other.tsinghua.edu.cn'],browserCookies:()=>{throw Error('unexpected projection');}});
+ assert.equal((await proxyRequest(other,{url:'https://other.tsinghua.edu.cn/',headers:{host:'other.tsinghua.edu.cn','sec-fetch-site':'same-origin'}})).headers['set-cookie'],undefined);
 });
 
 test('CONNECT without TLS support reports unsupported rather than claiming shared login', async t => {

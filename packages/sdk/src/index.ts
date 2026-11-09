@@ -4,10 +4,10 @@ import { mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { load } from 'cheerio';
-import { webvpnWrap } from '@onethu/core';
+import { AuthRequiredError, webvpnWrap } from '@onethu/core';
 import { createNodeSession, type NodeSessionOptions } from './node/session.js';
 import { createManagedGateway, DEFAULT_ALLOWED_ORIGINS } from '@onethu/gateway/manager';
-import { withSecureCampusOrigins } from '@onethu/gateway/routes';
+import { GITLAB_ORIGIN, withSecureCampusOrigins } from '@onethu/gateway/routes';
 import { createCampusProxySession } from './node/campusProxy.js';
 import { createClientIdentity } from './node/clientIdentity.js';
 import { createStore } from './store.js';
@@ -64,7 +64,19 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
   const campusGatewayOrigins=withSecureCampusOrigins(options.campusGatewayOrigins??DEFAULT_ALLOWED_ORIGINS);
   const clientIdentity=createClientIdentity(runtime);
   const campusGatewayOptions={dataDir:runtime.dataDir,allowedOrigins:campusGatewayOrigins,
-    session:Object.assign(createCampusProxySession(runtime,campusGatewayOrigins),{clientIdentity})};
+    session:Object.assign(createCampusProxySession({...runtime,requestXiaodaTicket:clientIdentity.renewXiaoda,requestMadmodelTicket:clientIdentity.renewMadmodel,requestStuCallback:clientIdentity.renewStu,requestCabCallback:clientIdentity.renewCab,requestDiscoverCallback:clientIdentity.renewDiscover,requestMyhomeCallback:clientIdentity.renewMyhome,requestSeatCallback:clientIdentity.renewSeat,requestThesisCallback:clientIdentity.renewThesis,async ensureCampusService(origin:string,signal?:AbortSignal){
+      if(origin===GITLAB_ORIGIN)return runtime.renewGitlabSession(clientIdentity.renewGitlab);
+      try { await runtime.ensureCampusService(origin,signal); }
+      catch(error){
+        signal?.throwIfAborted();
+        const authenticationFailed=error instanceof AuthRequiredError||(error as {code?:string}).code==='CAMPUS_SERVICE_SSO_REQUIRED';
+        if(origin!=='https://zhjwxk.cic.tsinghua.edu.cn'||!authenticationFailed)throw error;
+        if(!await clientIdentity.renewSelection(signal))throw error;
+        // The GUI publishes only its verified selection cookie scopes through
+        // the existing same-account service-session merge. Read them back.
+        await runtime.ensureCampusService(origin,signal);
+      }
+    }},campusGatewayOrigins),{clientIdentity})};
   const managedCampusGateway=createManagedGateway(campusGatewayOptions);
   // Private local control only: never put proxy credentials or host trust
   // changes into the service registry used by MCP, plugins, IM or agents.

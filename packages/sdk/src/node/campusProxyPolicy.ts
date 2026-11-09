@@ -1,7 +1,8 @@
 import { GatewayError } from '@onethu/gateway/policy';
+import { GITLAB_ORIGIN } from '@onethu/gateway/routes';
 
 const reject = (): never => { throw new GatewayError('GATEWAY_AUTH_REQUIRED', 401); };
-const IDENTITY_HOSTS = new Set(['id.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn']);
+const IDENTITY_HOSTS = new Set(['id.tsinghua.edu.cn', 'idp.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn']);
 const LEARN_AUTH_ACTIONS = new Set([
   'j_spring_security_check', 'j_spring_security_logout', 'j_spring_security_thauth_roaming_entry',
 ]);
@@ -50,11 +51,31 @@ export function assertCampusBrowserTarget(target: URL, method = 'GET'): void {
   const segments = path.split('/');
   if (host === 'learn.tsinghua.edu.cn') {
     // core/auth/cas.ts LEARN_LOGOUT/LEARN_ROAM and Learn's credential form.
-    if (path === '/f/login' || path.startsWith('/f/login/') || segments.some(segment => LEARN_AUTH_ACTIONS.has(segment))) reject();
+    if (path === '/f/login' || path.startsWith('/f/login/') || path === '/f/redirectbystuorteacher'
+      || segments.some(segment => LEARN_AUTH_ACTIONS.has(segment))) reject();
   } else if (host === 'info.tsinghua.edu.cn') {
+    if (path === '/f/login' || path.startsWith('/f/login/')) reject();
     // The same portal endpoint also handles ordinary yyfwid navigation.
     if ((path === INFO_ROAM || path.startsWith(INFO_ROAM + '/')) &&
         (!['GET', 'HEAD'].includes(method.toUpperCase()) || [...target.searchParams.keys()].some(name => routingText(name) === 'ticket'))) reject();
+  } else if (target.origin === GITLAB_ORIGIN) {
+    if (/^\/users\/(?:auth|sign_in|sign_out|sign_up|password|confirmation|unlock)(?:\/|$)/.test(path)) reject();
+  } else if (host === 'stu.cs.tsinghua.edu.cn') {
+    if (path === '/api/user/tsinghua-auth-callback' || path.startsWith('/api/user/tsinghua-auth-callback/')) reject();
+  } else if (host === 'cab.lib.tsinghua.edu.cn') {
+    if (path.startsWith('/authcenter/doauth/') || path === '/ic-web/auth/token') reject();
+  } else if (host === 'discover.lib.tsinghua.edu.cn') {
+    if (path.startsWith('/samlsp/') || path === '/samlsp') reject();
+  } else if (host === 'myhome.tsinghua.edu.cn') {
+    if (path==='/' && [...target.searchParams.keys()].some(key=>routingText(key)==='ticket')) reject();
+  } else if (host === 'seat.lib.tsinghua.edu.cn') {
+    if(path==='/api/id_tsinghua_callback')reject();
+  } else if (host === 'www.xiaoda.tsinghua.edu.cn') {
+    // Only the exact, separately validated website handoff may reach these
+    // endpoints. Encoded, slash and servlet aliases cannot skip its witness.
+    if(['/login','/login.html','/api/token/login'].some(route=>path===route||path.startsWith(route+'/')))reject();
+  } else if (host === 'newetds.lib.tsinghua.edu.cn') {
+    if(['/qh/thesis/tologin','/qh/thesis/tsinghua/login'].some(route=>path===route||path.startsWith(route+'/')))reject();
   } else if (host === 'zhjwxk.cic.tsinghua.edu.cn' && segments.includes('j_acegi_formlogin_xsxk.do')) {
     // info-lib/constants/strings.ts CR_LOGIN_SUBMIT_URL.
     reject();

@@ -143,6 +143,7 @@ export {
   getSelectedCourses,
   getQueueStatus,
   resolveZhjwxkSemester,
+  syncZhjwxkSession,
   searchXkCourses,
   type XkSearchResult,
   semesterFromDate,

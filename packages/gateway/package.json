@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Account-authoritative local campus browser gateway",
   "engines": { "node": "^20.19.0 || >=22.12.0" },
-  "exports": { ".": "./src/index.mjs", "./policy": "./src/policy.mjs", "./manager": "./src/manager.mjs", "./routes": "./src/routes.mjs" },
+  "exports": { ".": "./src/index.mjs", "./policy": "./src/policy.mjs", "./manager": "./src/manager.mjs", "./routes": "./src/routes.mjs", "./stu-auth": "./src/stuAuth.mjs", "./cab-auth": "./src/cabAuth.mjs", "./discover-auth": "./src/discoverAuth.mjs", "./myhome-auth": "./src/myhomeAuth.mjs", "./seat-auth": "./src/seatAuth.mjs", "./xiaoda-auth": "./src/xiaodaAuth.mjs", "./thesis-auth": "./src/thesisAuth.mjs" },
   "scripts": { "test": "node --test test/*.test.mjs" },
   "dependencies": { "@peculiar/x509": "^3.1.0", "reflect-metadata": "^0.2.2" }
 }

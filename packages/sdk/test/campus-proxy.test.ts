@@ -3,17 +3,132 @@ import assert from 'node:assert/strict';
 import { webvpnWrap } from '@onethu/core';
 import { createNodeTransport } from '../src/node/transport.js';
 import { createCampusProxySession } from '../src/node/campusProxy.js';
-import { withSecureCampusOrigins } from '@onethu/gateway/routes';
+import { GITLAB_ORIGIN, withSecureCampusOrigins } from '@onethu/gateway/routes';
 
 const origins=['https://learn.tsinghua.edu.cn','https://info.tsinghua.edu.cn','https://id.tsinghua.edu.cn'];
-function fixture(fetch:any,allowed=origins,ensureCampusService?: (origin:string)=>Promise<void>){
+function fixture(fetch:any,allowed=origins,ensureCampusService?: (origin:string)=>Promise<void>,upstreamOrigins?:Readonly<Record<string,string>>){
   let epoch=1,ready=true;
   const assertCurrent=(value:number)=>{if(value!==epoch)throw Object.assign(new Error('AUTH_SESSION_CHANGED'),{code:'AUTH_SESSION_CHANGED'});};
   const transport=createNodeTransport({fetch,epoch:()=>epoch,assertCurrent});
-  const runtime={fetch:transport.fetch,epoch:()=>epoch,assertCurrent,status:()=>({authenticated:ready,state:ready?'ready':'idle',epoch}),http:{jar:transport.jar},ensureCampusService};
-  return {session:createCampusProxySession(runtime as any,allowed),transport,bump(){epoch++;transport.rotate();},logout(){ready=false;epoch++;transport.rotate();}};
+  const runtime={fetch:transport.fetch,fetchCampusDirect:transport.fetch,epoch:()=>epoch,assertCurrent,status:()=>({authenticated:ready,state:ready?'ready':'idle',epoch}),http:{jar:transport.jar},ensureCampusService};
+  return {session:createCampusProxySession(runtime as any,allowed,upstreamOrigins),transport,bump(){epoch++;transport.rotate();},logout(){ready=false;epoch++;transport.rotate();}};
 }
 function chunks(bytes:Uint8Array,size=31){let offset=0;return new ReadableStream<Uint8Array>({pull(target){if(offset===bytes.length){target.close();return;}target.enqueue(bytes.subarray(offset,offset+size));offset=Math.min(offset+size,bytes.length);}});}
+
+test('official Info and Learn entry links reuse the live account and preserve the school role redirect',async t=>{
+ let fetches=0;
+ const infoEntry=origins[1]+'/f/login',learnEntry=origins[0]+'/f/redirectByStuOrTeacher';
+ for(const role of ['student','teacher']){
+  const home=origins[0]+'/f/wlxt/index/course/'+role+'/';
+  const f=fixture(async(url:string)=>{
+   fetches++;assert.equal(url,webvpnWrap(learnEntry));
+   return new Response(null,{status:302,headers:{location:webvpnWrap(home)}});
+  });
+  t.after(()=>f.transport.close());
+  for(const method of ['GET','HEAD']){
+   const info=await f.session.request(infoEntry,{method});
+   assert.equal(info.status,302);
+   assert.equal(info.headers.get('location'),origins[1]+'/f/info/gxfw_fg/common/index');
+   const learn=await f.session.request(learnEntry,{method});
+   assert.equal(learn.status,302);assert.equal(learn.headers.get('location'),home);
+  }
+  for(const url of [infoEntry,learnEntry]){
+   await assert.rejects(f.session.request(url,{method:'POST',body:'i_pass=must-not-send'}),{code:'GATEWAY_AUTH_REQUIRED'});
+   await assert.rejects(f.session.request(url+'?target=elsewhere'),{code:'GATEWAY_AUTH_REQUIRED'});
+   await assert.rejects(f.session.request(url.replace('/f/','/f/%2f')),{code:'GATEWAY_AUTH_REQUIRED'});
+  }
+ }
+ assert.equal(fetches,4);
+ for(const location of ['https://id.tsinghua.edu.cn/login','https://outside.test/','https://learn.tsinghua.edu.cn/f/j_spring_security_logout']){
+  const f=fixture(async()=>new Response(null,{status:302,headers:{location}}));t.after(()=>f.transport.close());
+  await assert.rejects(f.session.request(learnEntry),{code:'GATEWAY_IDENTITY_SESSION_REQUIRED'});
+ }
+});
+
+test('a direct service keeps a browser token obtained while bypassed isolated from the shared account',async t=>{
+ const site='https://madmodel.cs.tsinghua.edu.cn',token='browser-owned-token-12345678';
+ const transport=createNodeTransport({fetch:async()=>{throw new Error('shared transport must stay unused');},epoch:()=>1,assertCurrent(){}});
+ t.after(()=>transport.close());
+ transport.jar.setRaw(new URL(site),'sid=shared-cookie; Path=/; Secure; HttpOnly');
+ let requests=0;
+ const runtime:any={
+  epoch:()=>1,assertCurrent(){},status:()=>({authenticated:true}),http:{jar:transport.jar},fetch:transport.fetch,
+  resolveCampusPortal:async()=>({url:site+'/',origin:site,upstreamOrigin:site,transport:'direct'}),
+  fetchWithoutSession:async(url:string,init:RequestInit)=>{
+   requests++;assert.equal(url,site+'/model-api/auth-login');
+   const headers=new Headers(init.headers);
+   assert.equal(headers.get('authorization'),'Bearer '+token);
+   assert.equal(headers.has('cookie'),false);
+   return Response.json({success:true},{headers:{'set-cookie':'sid=browser-response; Path=/'}});
+  },
+ };
+ const proxy=createCampusProxySession(runtime,origins);
+ await proxy.request(origins[1]+'/b/yyfw/vyyfwxx/info/portal_fg/common/onlineAppRedirect?yyfwid=00112233445566778899aabbccddeeff');
+ const target=site+'/model-api/auth-login',before=transport.jar.serialize();
+ assert.equal(proxy.authorizeIndependentBrowserCredential(target,'authorization','Bearer '+token),true);
+ assert.equal(proxy.authorizeIndependentBrowserCredential('https://outside.test/','authorization','Bearer '+token),false);
+ const response=await proxy.requestIndependent(target,{headers:{authorization:'Bearer '+token,cookie:'must-be-removed'}});
+ assert.equal((await response.json()).success,true);
+ assert.equal(transport.jar.serialize(),before);
+ assert.equal(proxy.authorizeBrowserCredential(target,'authorization','Bearer '+token),false);
+ assert.equal(requests,1);
+});
+
+test('reopening MadModel obtains an official ticket once and prepares another after a route toggle',async t=>{
+ const site='https://madmodel.cs.tsinghua.edu.cn';
+ let issued=0,requests=0;
+ const transport=createNodeTransport({fetch:async()=>{requests++;return new Response('official application');},epoch:()=>1,assertCurrent(){}});
+ t.after(()=>transport.close());
+ const runtime:any={
+  epoch:()=>1,assertCurrent(){},status:()=>({authenticated:true}),http:{jar:transport.jar},fetch:transport.fetch,fetchCampusDirect:transport.fetch,
+  resolveCampusPortal:async()=>{throw new Error('unavailable portal');},
+  requestMadmodelTicket:async()=>{issued++;return 'official-ticket-123456';},
+ };
+ const proxy=createCampusProxySession(runtime,[site]);
+ const init={headers:{'sec-fetch-dest':'document'}};
+ const first=await proxy.request(site+'/',init);
+ assert.match(await first.text(),/http-equiv="refresh"/);
+ assert.equal(issued,1);assert.equal(requests,0);
+ assert.equal(await (await proxy.request(site+'/',init)).text(),'official application');
+ proxy.prepareBrowserSite('madmodel.cs.tsinghua.edu.cn');
+ assert.match(await (await proxy.request(site+'/',init)).text(),/authLogin\?ticket=official-ticket-123456/);
+ assert.equal(issued,2);
+});
+
+test('GitLab only renews document navigation, then retries the original URL without exposing the ticket',async t=>{
+ const project=GITLAB_ORIGIN+'/team/project/-/issues?state=opened';
+ const calls:string[]=[];
+ let renewals=0;
+ const f=fixture(async(url:string,init:RequestInit)=>{
+  calls.push(url);
+  const cookie=new Headers(init.headers).get('cookie');
+  return cookie==='_gitlab_session=fresh-ticket'
+   ? new Response('project',{headers:{'set-cookie':'_gitlab_session=fresh-ticket; Secure; HttpOnly; Path=/'}})
+   : new Response(null,{status:302,headers:{location:'/users/sign_in'}});
+ },[GITLAB_ORIGIN],async origin=>{
+  assert.equal(origin,GITLAB_ORIGIN);renewals++;
+  f.transport.jar.setRaw(new URL(origin),'_gitlab_session=fresh-ticket; Secure; HttpOnly; Path=/');
+ });
+ t.after(()=>f.transport.close());
+ for(const [target,init] of [
+  [project,{method:'POST',body:'operation'}],
+  [GITLAB_ORIGIN+'/api/v4/user',{headers:{'sec-fetch-dest':'document'}}],
+  [project,{headers:{'sec-fetch-dest':'empty'}}],
+ ] as const){
+  await assert.rejects(f.session.request(target,init),{code:'GATEWAY_IDENTITY_SESSION_REQUIRED'});
+ }
+ assert.equal(renewals,0);
+ for(const path of ['/users/auth/thuid/callback','/users/%73ign_out','/users/sign_in']){
+  await assert.rejects(f.session.request(GITLAB_ORIGIN+path),{code:'GATEWAY_AUTH_REQUIRED'});
+ }
+ assert.equal(calls.length,3);
+ const response=await f.session.request(project,{headers:{'sec-fetch-dest':'document'}});
+ assert.equal(await response.text(),'project');
+ assert.equal(response.headers.has('set-cookie'),false);
+ assert.deepEqual(f.session.browserCookies(project),[]);
+ assert.deepEqual(calls.slice(3),[project,project]);
+ assert.equal(renewals,1);
+});
 
 test('legacy JSP JavaScript MIME still removes the WebVPN envelope and preserves charset',async()=>{
  const f=fixture(async()=>new Response('vpn_eval((function(){\nfunction validate(){return true;}\n}\n).toString().slice(12, -2),"");',{headers:{'content-type':'javascript/x-javascript; charset=GBK'}}));
@@ -31,6 +146,134 @@ test('restored Info public CSRF UUID survives missing Cookie-body attributes wit
   assert.equal(f.transport.jar.serialize(),before,'public projection never changes the authority cookie attributes');
   f.transport.jar.setRaw(new URL(origins[1]+'/'),`XSRF-TOKEN=${nonce}; Path=/; Secure; HttpOnly`);
   assert.deepEqual(f.session.browserCookies(origins[1]+'/'),[]);f.transport.close();
+});
+
+test('Info archive documents prepare their public nonce before HTML, cached HTML and the first script',async t=>{
+ const origin='https://info2021.tsinghua.edu.cn',path='/f/info/xxfb_fg/xnzx/template/detail?xxid=00112233445566778899aabbccddeeff';
+ const old='11111111-1111-1111-1111-111111111111',fresh='22222222-2222-2222-2222-222222222222';
+ for(const status of [200,304])for(const metadata of [{ 'sec-fetch-dest':'document' },{accept:'text/html'}]){
+  let mirrored=0;
+  const f=fixture(async(url:string,init:RequestInit)=>{
+   if(url.includes('/wengine-vpn/cookie?')){
+    mirrored++;assert.equal(new URL(url).searchParams.get('host'),'info2021.tsinghua.edu.cn');
+    return new Response('XSRF-TOKEN='+fresh+'; currentRequestUrl=fixture');
+   }
+   if(url.includes('/jquery.js'))assert(new Headers(init.headers).get('cookie')?.includes('XSRF-TOKEN='+fresh));
+   return new Response(status===304?null:'<html>'+'.'.repeat(5000)+'<script src="/jquery.js"></script></html>',{status,headers:status===200?{'content-type':'text/html'}:{}});
+  },[origin]);t.after(()=>f.transport.close());
+  const physical=new URL(webvpnWrap(origin+'/'));
+  f.transport.jar.setRaw(physical,'XSRF-TOKEN='+old+'; Path='+physical.pathname+'; Secure');
+  const response=await f.session.request(origin+path,{headers:metadata});
+  assert.equal(mirrored,1);
+  assert.deepEqual(f.session.browserCookies(origin+path),[{name:'XSRF-TOKEN',value:fresh}]);
+  assert.equal(f.transport.jar.getCookies(physical).find(cookie=>cookie.name==='XSRF-TOKEN')?.value,fresh);
+  await response.text();
+  await(await f.session.request(origin+'/jquery.js',{headers:{'sec-fetch-dest':'script'}})).text();
+  assert.equal(mirrored,1,'assets reuse the prepared nonce without another mirror request');
+ }
+});
+
+test('Info archive preparation preserves root and path-specific HttpOnly across logical and physical scopes',async t=>{
+ const origin='https://info2021.tsinghua.edu.cn',path='/f/info/xxfb_fg/bmxx/departmentalView?code=fixture';
+ const nonce='22222222-2222-2222-2222-222222222222';
+ for(const scope of [origin+'/',origin+'/f/info',webvpnWrap(origin+'/'),webvpnWrap(origin+'/f/info'),webvpnWrap('http://info2021.tsinghua.edu.cn/f/info')]){
+  const f=fixture(async(url:string)=>url.includes('/wengine-vpn/cookie?')
+   ?new Response('XSRF-TOKEN='+nonce+'; JSESSIONID=fixture-private; currentRequestUrl=fixture')
+   :new Response('<html>'+'.'.repeat(5000)+'</html>',{headers:{'content-type':'text/html'}}),[origin]);t.after(()=>f.transport.close());
+  const target=new URL(scope);
+  f.transport.jar.setRaw(target,'XSRF-TOKEN='+nonce+'; Path='+target.pathname+'; Secure; HttpOnly');
+  await(await f.session.request(origin+path,{headers:{'sec-fetch-dest':'document'}})).text();
+  assert.deepEqual(f.session.browserCookies(origin+path),[]);
+  assert(f.transport.jar.getCookies(new URL(origin+'/')).find(cookie=>cookie.name==='XSRF-TOKEN')?.httpOnly);
+ }
+});
+
+test('Info archive HTTPS facades publish the renewed HTTP upstream nonce before a first script',async t=>{
+ const origin='https://info2021.tsinghua.edu.cn',upstream='http://info2021.tsinghua.edu.cn';
+ const old='11111111-1111-1111-1111-111111111111',fresh='22222222-2222-2222-2222-222222222222';
+ const f=fixture(async(url:string,init:RequestInit)=>{
+  if(url.includes('/wengine-vpn/cookie?')){
+   assert.equal(new URL(url).searchParams.get('scheme'),'http');
+   return new Response('XSRF-TOKEN='+fresh+'; currentRequestUrl=fixture');
+  }
+  if(url.includes('/jquery.js')){
+   const cookie=new Headers(init.headers).get('cookie')??'';
+   assert(cookie.includes('XSRF-TOKEN='+fresh));assert(!cookie.includes(old));
+  }
+  return new Response('<html>'+'.'.repeat(5000)+'</html>',{headers:{'content-type':'text/html'}});
+ },[origin],undefined,{[origin]:upstream});t.after(()=>f.transport.close());
+ for(const scheme of [origin,upstream]){
+  const physical=new URL(webvpnWrap(scheme+'/'));
+  f.transport.jar.setRaw(physical,'XSRF-TOKEN='+old+'; Path='+physical.pathname+'; Secure');
+ }
+ await(await f.session.request(origin+'/f/info/xxfb_fg/xnzx/template/more',{headers:{'sec-fetch-dest':'document'}})).text();
+ assert.deepEqual(f.session.browserCookies(origin+'/f/info/xxfb_fg/xnzx/template/more'),[{name:'XSRF-TOKEN',value:fresh}]);
+ await(await f.session.request(origin+'/jquery.js',{headers:{'sec-fetch-dest':'script'}})).text();
+});
+
+test('Info archive cookie preparation is restricted to approved document requests',async t=>{
+ const archive='https://info2021.tsinghua.edu.cn',path='/f/info/xxfb_fg/bmxx/departmentalView';
+ for(const [origin,requested,method,headers,status] of [
+  [archive,'/other','GET',{'sec-fetch-dest':'document'},200],
+  [archive,'/f/redirectLoginUrl','GET',{'sec-fetch-dest':'document'},200],
+  [archive,'/b/info/xxfb_fg/xnzx/template/detail','GET',{'sec-fetch-dest':'document'},200],
+  [archive,path,'GET',{'sec-fetch-dest':'script'},200],
+  [archive,path,'GET',{'sec-fetch-dest':'iframe'},200],
+  [archive,path,'GET',{},200],
+  [archive,path,'POST',{'sec-fetch-dest':'document'},200],
+  [archive,path,'GET',{'sec-fetch-dest':'document'},403],
+  ['https://info.tsinghua.edu.cn',path,'GET',{'sec-fetch-dest':'document'},200],
+  ['https://other.tsinghua.edu.cn',path,'GET',{'sec-fetch-dest':'document'},200],
+ ] as const){
+  let mirrored=0;
+  const f=fixture(async(url:string)=>{if(url.includes('/wengine-vpn/cookie?'))mirrored++;return new Response('<html>fixture</html>',{status,headers:{'content-type':'text/html'}});},[origin]);t.after(()=>f.transport.close());
+  await(await f.session.request(origin+requested,{method,headers})).text();
+  assert.equal(mirrored,0);
+ }
+});
+
+test('account changes during the Info archive mirror cannot publish its nonce',async t=>{
+ const origin='https://info2021.tsinghua.edu.cn';
+ let release!:(response:Response)=>void,started!:()=>void;
+ const pending=new Promise<void>(resolve=>{started=resolve;});
+ const f=fixture(async(url:string)=>{
+  if(url.includes('/wengine-vpn/cookie?')){started();return new Promise<Response>(resolve=>{release=resolve;});}
+  return new Response('<html>'+'.'.repeat(5000)+'</html>',{headers:{'content-type':'text/html'}});
+ },[origin]);t.after(()=>f.transport.close());
+ const request=f.session.request(origin+'/f/info/xxfb_fg/bmxx/departmentalView',{headers:{'sec-fetch-dest':'document'}});
+ await pending;f.bump();release(new Response('XSRF-TOKEN=22222222-2222-2222-2222-222222222222'));
+ await assert.rejects(request,{code:'AUTH_SESSION_CHANGED'});
+ assert.equal(f.transport.jar.getCookies(new URL(origin+'/')).some(cookie=>cookie.name==='XSRF-TOKEN'),false);
+});
+
+test('cancellation or account change while reading a cookie mirror cannot commit its body',async()=>{
+ const origin='https://info2021.tsinghua.edu.cn';
+ for(const change of ['cancel','account']){
+  const jar=new Map();
+  let epoch=1,release!:()=>void,started!:()=>void;
+  const ready=new Promise<void>(resolve=>{started=resolve;});
+  const finish=new Promise<void>(resolve=>{release=resolve;});
+  const controller=new AbortController();
+  const runtime={epoch:()=>epoch,status:()=>({authenticated:true}),assertCurrent(value:number){if(value!==epoch)throw Object.assign(new Error('changed'),{code:'AUTH_SESSION_CHANGED'});},
+   http:{jar:{getCookies(){return [];},setRaw(url:URL,pair:string){jar.set(url.href,pair);}}},
+   async fetch(url:string){
+    if(url.includes('/wengine-vpn/cookie?')){
+     let first=true;
+     return new Response(new ReadableStream({async pull(stream){
+      if(first){first=false;stream.enqueue(new TextEncoder().encode('XSRF-TOKEN='));started();return;}
+      await finish;stream.enqueue(new TextEncoder().encode('22222222-2222-2222-2222-222222222222'));stream.close();
+     }}));
+    }
+    return new Response('<html>'+'.'.repeat(5000)+'</html>',{headers:{'content-type':'text/html'}});
+   }};
+  const proxy=createCampusProxySession(runtime as any,[origin]);
+  const request=proxy.request(origin+'/f/info/xxfb_fg/bmxx/departmentalView',{signal:controller.signal,headers:{'sec-fetch-dest':'document'}});
+  await ready;
+  if(change==='cancel')controller.abort();else epoch++;
+  release();
+  await assert.rejects(request,{code:change==='cancel'?'GATEWAY_CANCELLED':'AUTH_SESSION_CHANGED'});
+  assert.equal(jar.size,0);
+ }
 });
 
 test('adapter rejects invalid targets before fetching or losing a nondefault port',async()=>{
@@ -202,10 +445,10 @@ test('service SSO GET is prepared by the existing authority once while browser i
  const cab='https://cab.lib.tsinghua.edu.cn';let preparations=0,release!:()=>void;
  const hold=new Promise<void>(resolve=>{release=resolve;});
  const f=fixture(async()=>new Response(null,{status:302,headers:{location:'https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/fixture/0'}}),[...origins,cab],async origin=>{assert.equal(origin,cab);preparations++;await hold;});
- const a=f.session.request(cab+'/authcenter/toLoginPage'),b=f.session.request(cab+'/authcenter/toLoginPage');
+ const a=f.session.request(cab+'/'),b=f.session.request(cab+'/');
  await new Promise(resolve=>setTimeout(resolve,10));assert.equal(preparations,1);release();
  for(const result of await Promise.all([a,b])){assert.equal(result.status,302);assert.equal(result.headers.get('location'),cab+'/');}
- await assert.rejects(f.session.request(cab+'/authcenter/toLoginPage'),{code:'GATEWAY_AUTH_REQUIRED'});assert.equal(preparations,1);
+ await assert.rejects(f.session.request(cab+'/'),{code:'GATEWAY_AUTH_REQUIRED'});assert.equal(preparations,1);
  await assert.rejects(f.session.request('https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/fixture/0'),{code:'GATEWAY_AUTH_REQUIRED'});
  const post=await f.session.request(cab+'/business',{method:'POST',body:'value=fixture'});assert.equal(post.status,302);assert.equal(preparations,1);f.transport.close();
 });
@@ -214,7 +457,7 @@ test('account changes invalidate a pending browser service preparation',async()=
  const cab='https://cab.lib.tsinghua.edu.cn';let release!:()=>void,entered!:()=>void;
  const started=new Promise<void>(resolve=>{entered=resolve;}),hold=new Promise<void>(resolve=>{release=resolve;});
  const f=fixture(async()=>new Response(null,{status:302,headers:{location:'https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/fixture/0'}}),[...origins,cab],async()=>{entered();await hold;});
- const response=f.session.request(cab+'/authcenter/toLoginPage');await started;f.bump();release();
+ const response=f.session.request(cab+'/');await started;f.bump();release();
  await assert.rejects(response,{code:'GATEWAY_AUTH_REQUIRED'});f.transport.close();
 });
 
@@ -222,7 +465,7 @@ test('card root and selection redirects use only fixed authority preparations an
  const card='https://card.tsinghua.edu.cn',selection='https://zhjwxk.cic.tsinghua.edu.cn',prepared:string[]=[],upstream:string[]=[];
  const f=fixture(async(raw:string)=>{upstream.push(raw);return new Response(null,{status:302,headers:{location:'https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/fixture/1'}});},[...origins,card,selection],async origin=>{prepared.push(origin);});
  const home=await f.session.request(card+'/');assert.equal(home.status,302);assert.equal(home.headers.get('location'),card+'/userindex');assert.deepEqual(upstream,[]);
- const entry=await f.session.request(selection+'/xklogin.do');assert.equal(entry.headers.get('location'),selection+'/xklogin.do');assert.deepEqual(prepared,[card,selection]);
+ const entry=await f.session.request(selection+'/xklogin.do');assert.equal(entry.headers.get('location'),selection+'/xkBks.vxkBksXkbBs.do?m=main');assert.deepEqual(prepared,[card,selection]);
  await f.session.request(card+'/business/payment',{method:'POST',body:'fixture'});assert.deepEqual(prepared,[card,selection]);assert.equal(upstream.length,2);f.transport.close();
 });
 
@@ -279,9 +522,9 @@ test('production allowlist excluding identity still prepares direct and wrapped 
  for(const location of [identity,webvpnWrap(identity)]){
   let prepared=0;const calls:{url:string;method:string;body:unknown}[]=[];
   const f=fixture(async(url:string,init:RequestInit)=>{calls.push({url,method:init.method??'GET',body:init.body});return new Response(null,{status:302,headers:{location}});},[origins[0]!,cab],async origin=>{assert.equal(origin,cab);prepared++;});
-  const result=await f.session.request(cab+'/authcenter/toLoginPage?custom=not-replayed');
+  const result=await f.session.request(cab+'/business-entry?custom=not-replayed');
   assert.equal(result.headers.get('location'),cab+'/');assert.equal(prepared,1);assert.equal(calls.length,1);assert.equal(calls[0]!.body,undefined);
-  await assert.rejects(f.session.request(cab+'/authcenter/toLoginPage'),{code:'GATEWAY_AUTH_REQUIRED'});assert.equal(prepared,1);
+  await assert.rejects(f.session.request(cab+'/'),{code:'GATEWAY_AUTH_REQUIRED'});assert.equal(prepared,1);
   if(location===identity)await f.session.request(cab+'/business',{method:'POST',body:'custom=not-replayed'});
   else await assert.rejects(f.session.request(cab+'/business',{method:'POST',body:'custom=not-replayed'}),{code:'GATEWAY_AUTH_REQUIRED'});
   assert.equal(prepared,1);assert.equal(calls.length,3);assert.equal(calls[2]!.body,'custom=not-replayed');f.transport.close();
@@ -291,4 +534,90 @@ test('production allowlist excluding identity still prepares direct and wrapped 
 test('wrapped unknown services are distinguished from expired WebVPN authentication without being fetched',async()=>{
  let calls=0;const f=fixture(async()=>{calls++;return new Response(null,{status:302,headers:{location:webvpnWrap('https://unsupported.tsinghua.edu.cn/route?ticket=fixture')}});},[origins[0]!]);
  await assert.rejects(f.session.request(origins[0]+'/'),{code:'GATEWAY_SERVICE_UNSUPPORTED'});assert.equal(calls,1);f.transport.close();
+});
+
+test('official Info route redirects discover campus services and preserve their upstream transport',async t=>{
+ const info='https://info.tsinghua.edu.cn';
+ for(const destination of ['https://career.tsinghua.edu.cn/info/1031/5378.htm','https://lib.tsinghua.edu.cn/','http://legacy.tsinghua.edu.cn/news?id=2']){
+  const id=destination.includes('lib.')?'routea0e943cd14c74d9b9a5416859c9ffd54':'ece02eecada569b9cae68be99461c98d';
+  const entry=info+'/f/info/route?id='+id;const target=new URL(destination);const facade=new URL(destination);facade.protocol='https:';
+  const calls:string[]=[];
+  const f=fixture(async(url:string)=>{
+   calls.push(url);
+   if(url===webvpnWrap(entry))return new Response(null,{status:302,headers:{location:webvpnWrap(destination)}});
+   assert.equal(url,webvpnWrap(destination));return new Response('real campus page');
+  });t.after(()=>f.transport.close());
+  const response=await f.session.request(entry,{headers:{'sec-fetch-dest':'document'}});
+  assert.equal(response.status,200);assert.match(await response.text(),/http-equiv="refresh"/);
+  assert.equal(response.headers.get('referrer-policy'),'strict-origin');
+  assert.equal(f.session.authorizeTarget(facade.origin+'/'),true);
+  assert.equal(await (await f.session.request(facade.href)).text(),'real campus page');
+  assert.deepEqual(calls,[webvpnWrap(entry),webvpnWrap(destination)]);
+  f.bump();assert.equal(f.session.authorizeTarget(facade.origin+'/'),false);
+ }
+});
+
+test('official Info news IDs preserve the article destination across campus hosts',async t=>{
+ const info='https://info.tsinghua.edu.cn';
+ const article=info+'/f/info/xxfb_fg/xnzx/template/detail?xxid=00112233445566778899aabbccddeeff';
+ const destination='https://info2021.tsinghua.edu.cn/f/info/xxfb_fg/bmxx/departmentalView?code=fixture-article';
+ const calls:string[]=[];
+ const f=fixture(async(url:string)=>{
+  calls.push(url);
+  if(url===webvpnWrap(article))return new Response(null,{status:302,headers:{location:webvpnWrap(destination)}});
+  assert.equal(url,webvpnWrap(destination));
+  return new Response('<title>Fixture article</title>');
+ },[info]);t.after(()=>f.transport.close());
+ for(let attempt=0;attempt<2;attempt++){
+  const response=await f.session.request(article,{headers:{'sec-fetch-dest':'document'}});
+  assert.equal(response.status,200);
+  assert((await response.text()).includes(destination));
+  assert.equal(f.session.authorizeTarget('https://info2021.tsinghua.edu.cn/'),true);
+  assert.match(await(await f.session.request(destination)).text(),/Fixture article/);
+ }
+ assert.deepEqual(calls,[webvpnWrap(article),webvpnWrap(destination),webvpnWrap(article),webvpnWrap(destination)]);
+ f.bump();assert.equal(f.session.authorizeTarget('https://info2021.tsinghua.edu.cn/'),false);
+});
+
+test('Info news discovery rejects forged selectors and cannot grant identity or outside hosts',async t=>{
+ const info='https://info.tsinghua.edu.cn';
+ const article=info+'/f/info/xxfb_fg/xnzx/template/detail?xxid=00112233445566778899aabbccddeeff';
+ for(const source of [article+'&xxid=duplicate',article+'&url=https://other.test/',article+'&ticket=untrusted',article+'#fragment',article.replace('xxid=0011','xxid=bad-')]){
+  const f=fixture(async()=>new Response(null,{status:302,headers:{location:webvpnWrap('https://info2021.tsinghua.edu.cn/article')}}),[info]);t.after(()=>f.transport.close());
+  await assert.rejects(f.session.request(source),{code:source.includes('#')?'GATEWAY_TARGET_REJECTED':'GATEWAY_SERVICE_UNSUPPORTED'});
+  assert.equal(f.session.authorizeTarget('https://info2021.tsinghua.edu.cn/'),false);
+ }
+ for(const destination of ['https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/fixture/0','https://oauth.tsinghua.edu.cn/thu-oauth/auth','https://outside.test/article']){
+  let calls=0;
+  const f=fixture(async()=>{calls++;return new Response(null,{status:302,headers:{location:webvpnWrap(destination)}});},[info]);t.after(()=>f.transport.close());
+  await assert.rejects(f.session.request(article),{code:destination.includes('outside.test')?'GATEWAY_SERVICE_UNSUPPORTED':'GATEWAY_IDENTITY_SESSION_REQUIRED'});
+  assert.equal(calls,1);
+  assert.equal(f.session.authorizeTarget(new URL(destination).origin),false);
+ }
+});
+
+test('ordinary Info pages, extra route inputs and identity destinations cannot grant a campus origin',async t=>{
+ const info='https://info.tsinghua.edu.cn',entry=info+'/f/info/route?id=ece02eecada569b9cae68be99461c98d';
+ for(const path of [entry+'&url=external',info+'/f/info/other?id=ece02eecada569b9cae68be99461c98d',entry.replace('ece02eec','invalid-')]){
+  const f=fixture(async()=>new Response(null,{status:302,headers:{location:webvpnWrap('https://unknown.tsinghua.edu.cn/news')}}));t.after(()=>f.transport.close());
+  await assert.rejects(f.session.request(path),{code:'GATEWAY_SERVICE_UNSUPPORTED'});
+  assert.equal(f.session.authorizeTarget('https://unknown.tsinghua.edu.cn/'),false);
+ }
+ for(const destination of ['https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/00112233445566778899aabbccddeeff/0','https://oauth.tsinghua.edu.cn/thu-oauth/auth']){
+  const f=fixture(async()=>new Response(null,{status:302,headers:{location:destination}}));t.after(()=>f.transport.close());
+  await assert.rejects(f.session.request(entry),{code:'GATEWAY_IDENTITY_SESSION_REQUIRED'});
+  assert.equal(f.session.authorizeTarget(destination),false);
+ }
+});
+
+test('static campus origins rewrite legacy HTTP WebVPN links without changing the service transport',async t=>{
+ const lib='https://lib.tsinghua.edu.cn',seat='https://seat.lib.tsinghua.edu.cn';
+ const old=webvpnWrap('http://seat.lib.tsinghua.edu.cn/home/web/f_second');
+ const paths=[old,old.slice('https:'.length),old.slice('https://webvpn.tsinghua.edu.cn'.length)];
+ const source=paths.map(url=>'<a href="'+url+'">Seat</a>').join('')+'<script>const route="'+old.replaceAll('/','\\/')+'";</script>';
+ const f=fixture(async()=>new Response(source,{headers:{'content-type':'text/html'}}),[lib,seat]);t.after(()=>f.transport.close());
+ const result=await (await f.session.request(lib+'/')).text();
+ assert.equal(result.includes('webvpn.tsinghua.edu.cn'),false);
+ assert.equal((result.match(/https:\/\/seat\.lib\.tsinghua\.edu\.cn\/home\/web\/f_second/g)??[]).length,3);
+ assert(result.includes((seat+'/home/web/f_second').replaceAll('/','\\/')));
 });

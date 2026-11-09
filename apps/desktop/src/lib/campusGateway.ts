@@ -11,6 +11,7 @@ export interface CampusGatewayStatus {
   certificate?: { path?: string; fingerprint?: string; ready?: boolean; trusted?: boolean } | null;
   systemProxy?: { enabled?: boolean; supported?: boolean; recoveryRequired?: boolean; coexistence?: boolean; activeServices?: string[] } | null;
   allowedOrigins?: string[];
+  managementUrl?: string | null;
   pacUrl?: string | null;
   lastError?: unknown;
   capabilities?: {trustedMiniPrograms?:boolean};

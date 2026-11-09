@@ -1,4 +1,10 @@
 import { isIP } from 'node:net';
+import { GITLAB_ORIGIN } from './routes.mjs';
+import { parseStuAuthEntry } from './stuAuth.mjs';
+import { parseCabAuthEntry } from './cabAuth.mjs';
+import { parseDiscoverLogin } from './discoverAuth.mjs';
+import { parseXiaodaLogin } from './xiaodaAuth.mjs';
+import { parseThesisLogin, THESIS_ORIGIN } from './thesisAuth.mjs';
 
 export class GatewayError extends Error {
   constructor(code, status = 400) {
@@ -12,7 +18,7 @@ export class GatewayError extends Error {
 const reject = (code = 'GATEWAY_TARGET_REJECTED', status = 403) => { throw new GatewayError(code, status); };
 const HOP_HEADERS = new Set(['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'proxy-connection', 'te', 'trailer', 'transfer-encoding', 'upgrade']);
 const METHOD_NAMES = new Set(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']);
-const IDENTITY_HOSTS = new Set(['id.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn', 'webvpn.tsinghua.edu.cn']);
+const IDENTITY_HOSTS = new Set(['id.tsinghua.edu.cn', 'idp.tsinghua.edu.cn', 'oauth.tsinghua.edu.cn', 'webvpn.tsinghua.edu.cn']);
 export const isCampusIdentityHost = hostname => IDENTITY_HOSTS.has(hostname);
 export function isDynamicCampusOrigin(origin) {
   if (typeof origin !== 'string') return false;
@@ -37,22 +43,111 @@ export function originMembership(staticOrigins, authorizeTarget) {
 }
 const CAMPUS_LANDINGS = new Map([
   ['https://info.tsinghua.edu.cn/', 'info-home'],
+  ['https://info.tsinghua.edu.cn/f/login', 'info-entry'],
   ['https://info.tsinghua.edu.cn/f/info/xxfb_fg/xnzx/stu/index', 'info-news'],
   ['https://info.tsinghua.edu.cn/f/info/gxfw_fg/common/index', 'info-workbench'],
   ['https://info.tsinghua.edu.cn/f/info/portal_fg/student/yyfwxxindex', 'info-apps'],
   ['https://learn.tsinghua.edu.cn/f/wlxt/index/course/student/', 'learn-home'],
+  ['https://learn.tsinghua.edu.cn/f/wlxt/index/course/student', 'learn-home'],
+  ['https://learn.tsinghua.edu.cn/f/wlxt/index/course/teacher/', 'learn-home'],
+  ['https://learn.tsinghua.edu.cn/f/wlxt/index/course/teacher', 'learn-home'],
+  ['https://learn.tsinghua.edu.cn/f/redirectByStuOrTeacher', 'learn-entry'],
+  ['https://seat.lib.tsinghua.edu.cn/home/web/f_second', 'library-seat'],
+  ['https://myhome.tsinghua.edu.cn/web_netweb_user/noLogin.aspx', 'myhome-login'],
+  [THESIS_ORIGIN + '/home/qh/index', 'thesis-home'],
+  [THESIS_ORIGIN + '/qh/qhSearch/QbIndex', 'thesis-search'],
+  [GITLAB_ORIGIN + '/', 'gitlab-home'],
 ]);
 const cloudFolderShare = target => target?.origin === 'https://cloud.tsinghua.edu.cn' && /^\/d\/[a-f0-9]{20}\/$/.test(target.pathname);
+
+/** Official Info route IDs select a saved destination, never a caller URL. */
+export function isInfoRouteLanding(target) {
+  const id=target?.searchParams.get('id');
+  return target?.origin==='https://info.tsinghua.edu.cn' && target.pathname==='/f/info/route'
+    && typeof id==='string' && /^(?:route)?[a-f0-9]{32}$/i.test(id)
+    && target.href===target.origin+target.pathname+'?id='+id;
+}
+
+/** @param {URL} target */
+export function isInfoNewsLanding(target) {
+  const id = target?.searchParams.get('xxid');
+  return target?.origin === 'https://info.tsinghua.edu.cn'
+    && target.pathname === '/f/info/xxfb_fg/xnzx/template/detail'
+    && typeof id === 'string' && /^[a-f0-9]{32}$/i.test(id)
+    && target.href === target.origin + target.pathname + '?xxid=' + id;
+}
+
+function isInfoApplicationLanding(target) {
+  if (target?.origin !== 'https://info.tsinghua.edu.cn'
+    || target.pathname !== '/f/info/portal_fg/teacher/roamingToApp' || target.hash) return false;
+  const params = target.searchParams;
+  return params.getAll('yyfwid').length === 1 && /^[a-f0-9]{32}$/i.test(params.get('yyfwid') ?? '')
+    && params.getAll('bz').length <= 1 && (!params.has('bz') || params.get('bz') === 'app')
+    && [...params.keys()].every(key => key === 'yyfwid' || key === 'bz');
+}
+
+const myhomeNotice = target => target?.origin==='https://myhome.tsinghua.edu.cn'
+  && target.pathname==='/Netweb_List/News_notice_Detail.aspx'
+  && /^\?code=[0-9]{1,12}$/.test(target.search) && !target.hash;
+const libraryWorkspace = target => target?.origin==='https://discover.lib.tsinghua.edu.cn'
+  && /^\/entrance(?:\/[A-Za-z0-9_-]+)*\/?$/.test(target.pathname)
+  && !target.search && !target.hash;
+
+const LIBRARY_SEARCH_FIELDS = new Set([
+  'query', 'tab', 'search_scope', 'vid', 'lang', 'offset', 'sortBy',
+  'qInclude', 'multiFacets', 'pcAvailability', 'value', 'mode', 'pfilter',
+  'detailMark', 'isOpenDialog', 'dispinfo',
+]);
+function librarySearch(target) {
+  if (target?.origin !== 'https://discover.lib.tsinghua.edu.cn'
+    || !/^\/entrance\/searchEntrance\/(?:sortList|classificationList)$/.test(target.pathname)
+    || target.href.length > 8192 || target.hash || /%(?![a-f0-9]{2})/i.test(target.search)) return false;
+  const counts = new Map();
+  let count = 0;
+  for (const [key, value] of target.searchParams) {
+    const occurrences = (counts.get(key) ?? 0) + 1;
+    // Advanced search repeats query/pfilter for its separate search clauses.
+    if (!LIBRARY_SEARCH_FIELDS.has(key) || ++count > 32
+      || occurrences > (key === 'query' || key === 'pfilter' ? 16 : 1)
+      || value.length > 4096 || /[\x00-\x1f\x7f\\\ufffd]/.test(value)) return false;
+    if (['tab', 'search_scope', 'vid', 'sortBy', 'pcAvailability'].includes(key)
+      && !/^[A-Za-z0-9_.:-]{1,128}$/.test(value)) return false;
+    if (key === 'offset' && !/^(?:0|[1-9][0-9]{0,6})$/.test(value)) return false;
+    if (key === 'lang' && !/^[a-z]{2}(?:[_-][A-Za-z]{2,4})?$/.test(value)) return false;
+    if (['detailMark', 'isOpenDialog'].includes(key) && !['true', 'false'].includes(value)) return false;
+    if (key === 'mode' && !['basic', 'advanced'].includes(value)) return false;
+    counts.set(key, occurrences);
+  }
+  return count > 0;
+}
+
+/** The library homepage submits an empty POST to its public search URL.
+ * Canonicalize only this official form to a GET; never replay its body or
+ * forward a cross-origin POST with the shared account. */
+export function isLibrarySearchFormNavigation(headers, target, origins, navigation) {
+  if (!librarySearch(target) || !origins.has(target.origin) || !origins.has('https://lib.tsinghua.edu.cn')
+    || navigation?.method !== 'POST' || navigation?.hasBody !== false
+    || headers['sec-fetch-site'] !== 'same-site' || headers['sec-fetch-mode'] !== 'navigate'
+    || headers['sec-fetch-dest'] !== 'document' || headers['sec-fetch-user'] !== '?1'
+    || headers.origin !== 'https://lib.tsinghua.edu.cn'
+    || !/^application\/x-www-form-urlencoded(?:\s*;\s*charset=utf-8)?$/i.test(headers['content-type'] ?? '')) return false;
+  try { return cleanUrl(headers.referer).origin === headers.origin; } catch { return false; }
+}
 
 function isCampusNavigationLanding(target) {
   // Folder-share IDs select a read-only landing page, never an API/action URL.
   // Comparing href also rejects empty query/fragment markers that URL.search
   // and URL.hash would otherwise normalize to an empty string.
-  return CAMPUS_LANDINGS.has(target.href) || cloudFolderShare(target) && target.href === `${target.origin}${target.pathname}`;
+  return target.href === target.origin + '/' || CAMPUS_LANDINGS.has(target.href)
+    || cloudFolderShare(target) && target.href === `${target.origin}${target.pathname}`
+    || isInfoRouteLanding(target) || isInfoNewsLanding(target) || isInfoApplicationLanding(target) || myhomeNotice(target) || libraryWorkspace(target) || librarySearch(target)
+    || parseStuAuthEntry(target.href) !== null || parseCabAuthEntry(target.href) !== null || parseDiscoverLogin(target.href) !== null
+    || parseXiaodaLogin(target.href) !== null || parseThesisLogin(target.href) !== null;
 }
 
 export function campusLandingCategory(target) {
-  return target ? CAMPUS_LANDINGS.get(`${target.origin}${target.pathname}`) ?? (cloudFolderShare(target) ? 'cloud-folder-share' : 'other') : 'other';
+  return target ? CAMPUS_LANDINGS.get(`${target.origin}${target.pathname}`)
+    ?? (cloudFolderShare(target) ? 'cloud-folder-share' : isInfoRouteLanding(target) ? 'info-route' : isInfoNewsLanding(target) ? 'info-news-detail' : myhomeNotice(target) ? 'myhome-notice' : librarySearch(target) ? 'library-search' : 'other') : 'other';
 }
 
 function safeHostname(hostname) {
@@ -152,6 +247,7 @@ export function validateMethod(method, target) {
 
 export function validateFetchMetadata(headers, target, origins = new Set([target.origin]), navigation) {
   const site = headers['sec-fetch-site'];
+  if (isLibrarySearchFormNavigation(headers, target, origins, navigation)) return;
   // A user gesture may arrive from another campus subdomain or another site.
   // Only these verified read-only landing URLs may borrow the session in that
   // case. Exact href matching excludes even an empty query or fragment marker.

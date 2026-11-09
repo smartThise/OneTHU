@@ -18,7 +18,6 @@ import {
   Select,
   Spacer,
   Stack,
-  StatTile,
   Surface,
   Tag,
   Text,
@@ -27,9 +26,9 @@ import {
   Banner,
 } from "@onethu/gui";
 /**
- * 选课工作台 —— nextthuxk v1.4.9 布局复刻（单屏两栏）：
- * 左栏 = 搜索/筛选chips/筛选selects/课程列表；右栏 = 学分统计·课表预览·暂存草稿·候补·AI。
- * UI 用 OneGUI（Btn/Input/Select/Card/Row/Chip/Tag/Banner/Modal/Text/Inline/Stack/Progress/StatTile）。
+ * 选课工作台：课程查找与计划管理并排，窄屏切换同一组面板。
+ * 搜索和常用筛选常驻，高级筛选、公告与补充详情按需展开。
+ * UI 用 OneGUI（Btn/Input/Select/Card/Row/Chip/Tag/Banner/Modal/Text/Inline/Stack/Progress）。
  */
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import { PageAtomStar } from "../..//components/Collect.js";
@@ -398,7 +397,7 @@ export function ZhjwxkCoursesPage() {
         return { pct: Math.min(78, Math.max(22, v.pct)), collapsed: v.collapsed };
       }
     } catch { /* ignore */ }
-    return { pct: 50, collapsed: "none" };
+    return { pct: 66, collapsed: "none" };
   });
   const splitRef = useRef(split);
   splitRef.current = split;
@@ -429,7 +428,7 @@ export function ZhjwxkCoursesPage() {
   };
 
   return (
-    <>
+    <div className="xk-workbench">
       <PageHead
         title={i18n("pages.zhjwxk.courses.fd17d86dd268")}
         meta={[
@@ -441,9 +440,9 @@ export function ZhjwxkCoursesPage() {
         actions={
           <>
             <PageAtomStar atomKey="zhjwxk" title={i18n("pages.zhjwxk.courses.fd17d86dd268")} />
-            <Select value={wb.semester ?? ""} onChange={(value) => void wb.setSemesterOverride(value)}>{(wb.semesterOptions ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</Select>
-            {wb.phase ? <Btn variant="outline" onClick={() => void wb.refreshQueue()} disabled={wb.queueState === "loading"}>{i18n("pages.zhjwxk.courses.65fb020bd6ee")}</Btn> : null}
-            <Btn variant="outline" onClick={() => void wb.refresh()} disabled={wb.coreState === "loading"}><IconRefresh width={14} height={14} />{i18n("pages.zhjwxk.courses.0468ee76ee3d")}</Btn>
+            <Select size="sm" value={wb.semester ?? ""} onChange={(value) => void wb.setSemesterOverride(value)}>{(wb.semesterOptions ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</Select>
+            {wb.phase ? <Btn variant="outline" size="sm" onClick={() => void wb.refreshQueue()} disabled={wb.queueState === "loading"}>{i18n("pages.zhjwxk.courses.65fb020bd6ee")}</Btn> : null}
+            <Btn variant="outline" size="sm" onClick={() => void wb.refresh()} disabled={wb.coreState === "loading"}><IconRefresh width={14} height={14} />{i18n("pages.zhjwxk.courses.0468ee76ee3d")}</Btn>
           </>
         }
       />
@@ -453,13 +452,23 @@ export function ZhjwxkCoursesPage() {
       ) : null}
       {wb.progress ? <Banner tone="warning">{wb.progress}</Banner> : null}
 
+      {/* ── 竖屏：双页签（课程查找 / 选课管理），跳转关系由 jump 联动 ── */}
+      <div className="xk-mobile-tabs">
+        <SegmentedOverflow ariaLabel={i18n("pages.zhjwxk.courses.7594fdb2ae0d")}>
+          {([["find", i18n("pages.zhjwxk.courses.c518420d2110")], ["manage", i18n("pages.zhjwxk.courses.7e37a0b0d351")]] as const).map(([k, label]) => (
+            <Btn key={k} size="sm" variant={mTab === k ? "tonal" : "ghost"} role="tab" aria-selected={mTab === k} onClick={() => setMTab(k)}>
+              {label}
+            </Btn>
+          ))}
+        </SegmentedOverflow>
+      </div>
+
       {/* ── 桌面：双栏（左查找 / 右管理+AI）── */}
-      <div className="xk-two-col" ref={colRef} style={{ display: "flex", gap: 6, alignItems: "stretch", flexWrap: "nowrap", width: "100%", maxWidth: "100%", overflow: "hidden", userSelect: "none" }}>
+      <div className="xk-two-col" ref={colRef} data-mobile-panel={mTab}>
         {/* 塌缩用 display:none 藏身（绝不卸载）：筛选/搜索/滚动状态全保留 */}
         <div
           className="xk-left"
           style={{
-            maxHeight: "calc(100vh - 150px)",
             display: split.collapsed === "left" ? "none" : undefined,
             flex: split.collapsed === "right" ? "1 1 0%" : "0 0 auto",
             width: split.collapsed === "right" ? "auto" : `calc(${split.pct}% - 3px)`,
@@ -489,45 +498,22 @@ export function ZhjwxkCoursesPage() {
         <div
           className="xk-right"
           style={{
-            maxHeight: "calc(100vh - 150px)",
             display: split.collapsed === "right" ? "none" : "flex",
-            flexDirection: "column",
-            gap: 10,
             flex: split.collapsed === "left" ? "1 1 0%" : "1 1 0%",
             minWidth: 0,
             maxWidth: "none",
           }}
         >
-          <PlanSection wb={wb} />
           <PreviewSection wb={wb} />
           <StageSection wb={wb} />
           <QueueSection wb={wb} />
+          <PlanSection wb={wb} />
         </div>
-      </div>
-
-      {/* ── 竖屏：双页签（课程查找 / 选课管理），跳转关系由 jump 联动 ── */}
-      <div className="xk-mobile-tabs">
-        <SegmentedOverflow ariaLabel={i18n("pages.zhjwxk.courses.7594fdb2ae0d")}>
-          {([["find", i18n("pages.zhjwxk.courses.c518420d2110")], ["manage", i18n("pages.zhjwxk.courses.7e37a0b0d351")]] as const).map(([k, label]) => (
-            <Btn key={k} size="sm" variant={mTab === k ? "tonal" : "ghost"} role="tab" aria-selected={mTab === k} onClick={() => setMTab(k)}>
-              {label}
-            </Btn>
-          ))}
-        </SegmentedOverflow>
-        {mTab === "find" ? <CourseListPanel wb={wb} jump={jump} jumpSeq={jumpSeq} /> : null}
-        {mTab === "manage" ? (
-          <Stack gap={2}>
-            <PlanSection wb={wb} />
-            <PreviewSection wb={wb} />
-            <StageSection wb={wb} />
-            <QueueSection wb={wb} />
-          </Stack>
-        ) : null}
       </div>
 
       <DetailModal wb={wb} code={detailCode} tid={detailTid} onClose={() => setDetailCode(null)} />
       <ReviewsModal code={reviewCode?.code ?? null} seq={reviewCode?.seq ?? ""} name={reviewCode?.name ?? ""} teacher={reviewCode?.teacher ?? ""} onClose={() => setReviewCode(null)} />
-    </>
+    </div>
   );
 }
 
@@ -549,6 +535,7 @@ function CourseListPanel({ wb, jump, jumpSeq }: { wb: ReturnType<typeof useXkWor
   const [xknote, setXknote] = useState("");
   const [reviewsF, setReviewsF] = useState("");
   const [sortBy, setSortBy] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [picks, setPicks] = useState<Record<string, { flag: XkFlag; zy: number }>>({});
   const [highlight, setHighlight] = useState("");
   const { navigate } = useApp();
@@ -741,6 +728,7 @@ function CourseListPanel({ wb, jump, jumpSeq }: { wb: ReturnType<typeof useXkWor
 
   const busy = wb.searchState === "loading" || wb.searchState === "loadingMore";
   const pageLoaded = !searchMode || !wb.searchIncomplete || curPage * 20 <= listRows.length;
+  const extraFilters = [conflictF, credits, day, period, reviewsF, sortBy, tongshi, feature, grade, bksrem, yjsrem, xknote].filter(Boolean).length;
   const goJump = () => {
     const n = parseInt(goPage, 10);
     if (!Number.isFinite(n) || n < 1) return;
@@ -750,48 +738,48 @@ function CourseListPanel({ wb, jump, jumpSeq }: { wb: ReturnType<typeof useXkWor
   };
 
   return (
-    <>
-      {/* 吸顶通告：geometry（sticky/top/z）走内联，材质走 OG Banner */}
-      <div style={{ position: "sticky", top: 0, zIndex: 8 }}>
-        <Banner tone="warning">{i18n("pages.zhjwxk.courses.930f9dfb61f1")}<b>{i18n("pages.zhjwxk.courses.02e289f65f4d")}</b>{i18n("pages.zhjwxk.courses.69a6f2c141f6")}<Inline gap={1} wrap>
+    <div className="xk-course-list">
+      <div className="xk-course-tools">
+        <details className="xk-notice">
+          <summary>{i18n("pages.zhjwxk.courses.noticeTitle")}</summary>
+          <Banner tone="warning">{i18n("pages.zhjwxk.courses.930f9dfb61f1")}<b>{i18n("pages.zhjwxk.courses.02e289f65f4d")}</b>{i18n("pages.zhjwxk.courses.69a6f2c141f6")}<Inline gap={1} wrap>
             <Btn variant="outline" size="sm" onClick={() => navigate("info", { infoNewsQuery: "北京大学 北京外国语大学" })}>{i18n("pages.zhjwxk.courses.2702f7fc3c8a")}</Btn>
             <Btn variant="outline" size="sm" onClick={() => navigate("info", { infoNewsQuery: "北京大学 研究生" })}>{i18n("pages.zhjwxk.courses.a7d043c48d9b")}</Btn>
-          </Inline>
-        </Banner>
-      </div>
-      <Stack gap={2}>
+          </Inline></Banner>
+        </details>
         <OGCard pad="sm">
           <Stack gap={2}>
-            <Inline gap={2}>
-              <Grow>{<Input placeholder={i18n("pages.zhjwxk.courses.2da0f8388f67")} value={query} onChange={(value) => setQuery(value)} />}</Grow>
-              {query ? <Btn variant="outline" onClick={() => setQuery("")}>×</Btn> : null}
+            <Inline gap={2} className="xk-search-row">
+              <Grow>{<Input size="sm" placeholder={i18n("pages.zhjwxk.courses.2da0f8388f67")} value={query} onChange={(value) => setQuery(value)} />}</Grow>
+              {query ? <Btn variant="outline" size="sm" onClick={() => setQuery("")}>×</Btn> : null}
+              <Btn variant={filtersOpen ? "tonal" : "outline"} size="sm" aria-expanded={filtersOpen} onClick={() => setFiltersOpen((v) => !v)}>{i18n("pages.zhjwxk.courses.moreFilters")}{extraFilters ? ` · ${extraFilters}` : ""}</Btn>
             </Inline>
-            <Inline gap={2} wrap>
+            <Inline gap={2} className="xk-category-tabs">
               {([["all", i18n("pages.zhjwxk.courses.5c55a67935af")], ["available", i18n("pages.zhjwxk.courses.537352400c49")], ["selected", i18n("pages.zhjwxk.courses.7ecf1cde6486")], ["required", i18n("pages.zhjwxk.courses.5def9905e85f")], ["elective", i18n("pages.zhjwxk.courses.4aa68593661e")], ["sports", i18n("pages.zhjwxk.courses.ef7be5be3c13")], ["queue", i18n("pages.zhjwxk.courses.b584dd846f9a")], ["plan", i18n("pages.zhjwxk.courses.59f317cfa0db")]] as const).map(([k, label]) => (
                 <Chip key={k} size="sm" selected={chip === k} onClick={() => setChip(k)}>{label}</Chip>
               ))}
             </Inline>
-            <Inline gap={2} wrap>
+            <div className="xk-filter-details" hidden={!filtersOpen}>
+            <div className="xk-filter-grid">
               <Grow><Select size="sm" value={conflictF} onChange={setConflictF}><option value="">{i18n("pages.zhjwxk.courses.51da637dced9")}</option><option value="noconflict">{i18n("pages.zhjwxk.courses.5261eed6794b")}</option><option value="conflict">{i18n("pages.zhjwxk.courses.ea29940ac15a")}</option></Select></Grow>
               <Grow><Select size="sm" value={credits} onChange={setCredits}><option value="">{i18n("pages.zhjwxk.courses.14a8f4b49e16")}</option>{["1", "2", "3", "4", "5+"].map((v) => <option key={v} value={v}>{v === "5+" ? i18n("pages.zhjwxk.courses.44843497379a") : i18n("pages.zhjwxk.courses.4380e27691cb", { v: String(v) })}</option>)}</Select></Grow>
               <Grow><Select size="sm" value={day} onChange={setDay}><option value="">{i18n("pages.zhjwxk.courses.610b3a3bb0aa")}</option>{[1, 2, 3, 4, 5, 6, 7].map((d) => <option key={d} value={d}>{dayName(d)}</option>)}</Select></Grow>
               <Grow><Select size="sm" value={period} onChange={setPeriod}><option value="">{i18n("pages.zhjwxk.courses.6d77fe629c45")}</option>{SLOT_NAMES.map((n, i) => <option key={i} value={i + 1}>{i18nRich("pages.zhjwxk.courses.873290bd40ad", { value: i + 1 })}</option>)}</Select></Grow>
-            </Inline>
-            <Inline gap={2} wrap>
               <Grow><Select size="sm" value={reviewsF} onChange={setReviewsF}><option value="">{i18n("pages.zhjwxk.courses.3808d3b1f577")}</option><option value="has">{i18n("pages.zhjwxk.courses.9ab2a2d8455a")}</option><option value="cnt5">{i18n("pages.zhjwxk.courses.6adf7277bdd2")}</option><option value="r45">{i18n("pages.zhjwxk.courses.62fe195d6158")}</option><option value="r40">★≥4.0</option><option value="low">{i18n("pages.zhjwxk.courses.8a0c890e2957")}</option></Select></Grow>
               <Grow><Select size="sm" value={sortBy} onChange={setSortBy}><option value="">{i18n("pages.zhjwxk.courses.71b1a0997a52")}</option><option value="rate_desc">{i18n("pages.zhjwxk.courses.3cf587997516")}</option><option value="rate_asc">{i18n("pages.zhjwxk.courses.9eefcbca074f")}</option><option value="cnt_desc">{i18n("pages.zhjwxk.courses.ba401db1483e")}</option>{/* 【教评#31冻结】教评排序选项 <option value="xk_desc">官方教评 高→低</option><option value="xk_asc">官方教评 低→高</option> */}</Select></Grow>
-            </Inline>
-            <Inline gap={2} wrap>
               <Grow><Select size="sm" value={tongshi} onChange={setTongshi}><option value="">{i18n("pages.zhjwxk.courses.a0876e50b428")}</option>{TS_GROUPS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select></Grow>
               <Grow><Select size="sm" value={feature} onChange={setFeature}><option value="">{i18n("pages.zhjwxk.courses.c799be2fc953")}</option>{FEATURES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select></Grow>
               <Grow><Select size="sm" value={grade} onChange={setGrade}><option value="">{i18n("pages.zhjwxk.courses.d826fde21582")}</option>{["2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019"].map((g) => <option key={g} value={g}>{i18nRich("pages.zhjwxk.courses.cf2dd5254476", { g: g })}</option>)}</Select></Grow>
               <Grow><Select size="sm" value={bksrem} onChange={setBksrem}><option value="">{i18n("pages.zhjwxk.courses.ae4b6316156e")}</option><option value="1">{i18n("pages.zhjwxk.courses.07ee656ca409")}</option></Select></Grow>
               <Grow><Select size="sm" value={yjsrem} onChange={setYjsrem}><option value="">{i18n("pages.zhjwxk.courses.312e77e57076")}</option><option value="1">{i18n("pages.zhjwxk.courses.e66200d4cbbd")}</option></Select></Grow>
-            </Inline>
-            <Input placeholder={i18n("pages.zhjwxk.courses.b17cb44f0c38")} value={xknote} onChange={(value) => setXknote(value)} />
+              </div>
+              <Input size="sm" placeholder={i18n("pages.zhjwxk.courses.b17cb44f0c38")} value={xknote} onChange={(value) => setXknote(value)} />
+            </div>
           </Stack>
         </OGCard>
-
+      </div>
+      <div className="xk-course-results">
+      <Stack gap={2}>
         {chip === "plan" ? <PlanView wb={wb} query={query} onSearchCode={(code) => jumpTo(code, "all")} /> : wb.searchState === "idle" || wb.searchState === "loading" ? (
           <Card><SkeletonRows rows={6} /><Empty text={i18n("pages.zhjwxk.courses.ac86b7d1284b")} /></Card>
         ) : wb.searchState === "error" && rows.length === 0 ? (
@@ -813,21 +801,24 @@ function CourseListPanel({ wb, jump, jumpSeq }: { wb: ReturnType<typeof useXkWor
                 <Empty text={i18n("pages.zhjwxk.courses.7bce208862bb")} />
               ) : null}
             </Card>
-            <Inline gap={3} justify="center" wrap>
+            <Inline gap={2} justify="center" wrap className="xk-pagination">
               <Btn variant="outline" size="sm" disabled={busy || (searchMode ? curPage <= 1 : wb.searchPage <= 1)} onClick={() => (searchMode ? setUiPage(curPage - 1) : void wb.gotoPage(wb.searchPage - 1))}>{i18n("pages.zhjwxk.courses.c9b9ae7a6144")}</Btn>
               <Text slot="label" tone="faint">{i18nRich("pages.zhjwxk.courses.096a7bc0a88d", { curPage: curPage, totalPages: totalPages, value: searchMode && !wb.searchIncomplete ? i18n("pages.zhjwxk.courses.1d58af91498f", { length: String(listRows.length) }) : "" })}</Text>
               <Btn variant="outline" size="sm" disabled={busy || (searchMode ? curPage >= totalPages : !wb.searchHasMore && !(wb.searchTotalPages > wb.searchPage))} onClick={() => {
                   if (searchMode) setUiPage(curPage + 1);
                   else void wb.gotoPage(wb.searchPage + 1);
                 }}>{i18n("pages.zhjwxk.courses.8a8542f69648")}</Btn>
-              <Text slot="label" tone="faint">{i18n("pages.zhjwxk.courses.83954f3e3c76")}</Text>
-              <Input size="sm" value={goPage} onChange={(value) => setGoPage(value.replace(/[^0-9]/g, ""))} onKeyDown={(e) => e.key === "Enter" && goJump()} />
-              <Btn variant="outline" size="sm" disabled={busy || !goPage} onClick={goJump}>GO</Btn>
+              <Inline gap={1} className="xk-page-jump-group">
+                <Text slot="label" tone="faint" nowrap>{i18n("pages.zhjwxk.courses.83954f3e3c76")}</Text>
+                <Input size="sm" className="xk-page-jump" inputMode="numeric" value={goPage} onChange={(value) => setGoPage(value.replace(/[^0-9]/g, ""))} onKeyDown={(e) => e.key === "Enter" && goJump()} />
+                <Btn variant="outline" size="sm" disabled={busy || !goPage} onClick={goJump}>GO</Btn>
+              </Inline>
             </Inline>
           </>
         )}
       </Stack>
-    </>
+      </div>
+    </div>
   );
 }
 
@@ -934,7 +925,7 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
   const showInlineProb = state === "selected" || state === "candidate"; // 可用行操作行已有概率 chip，不双显
 
   return (
-    <div className="row" data-xk-row={r.key} style={{ animationDelay: `${Math.min(i, 20) * 20}ms`, ...(highlight ? { outline: "2px solid var(--accent)" } : {}) }}>
+    <div className="row xk-course-row" data-xk-row={r.key} style={{ animationDelay: `${Math.min(i, 20) * 20}ms`, ...(highlight ? { outline: "2px solid var(--accent)" } : {}) }}>
       <div className="row-when">
         <Text as="b" weight="bold" tone={wb.phase && q ? (q.qRemaining > 0 ? "success" : q.qQueue > 0 ? "warning" : "error") : heatTone(applied, cap)}>
           {wb.phase ? (q?.qRemaining ?? r.c.remaining) : r.c.remaining}
@@ -947,12 +938,11 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             {(() => { const o = originOf(r.c.code); return o
               ? <Tag tone={ORIGIN_TONE[o]}>{labelForId(o)}</Tag>
               : null; })()}
-            {r.name}
+            <span className="xk-course-name">{r.name}</span>
+      <Chip size="sm" tone={r.selected ? "success" : r.isCandidate ? "warning" : state === "full" ? "error" : "neutral"}>
+        {r.selected ? i18n("pages.zhjwxk.courses.aa21e6887117", { value: String(r.zy ? i18n("pages.zhjwxk.courses.2ea763bbee3e", { zy: String(r.zy) }) : "") }) : r.isCandidate ? (r.cand?.myPos ? i18n("pages.zhjwxk.courses.4d4f91afcd66", { myPos: String(r.cand.myPos) }) : i18n("pages.zhjwxk.courses.64af28c77281")) : state === "full" ? i18n("pages.zhjwxk.courses.0ba6b11d9de0") : r.available ? i18n("pages.zhjwxk.courses.537352400c49") : i18n("pages.zhjwxk.courses.0ba6b11d9de0")}
+      </Chip>
 
-            {r.teacherId ? <Btn variant="outline" size="sm" onClick={() => openDetail(r.c.code, r.teacherId)}>{i18n("pages.zhjwxk.courses.8131eafd0239")}</Btn> : null}
-            {tbBadge(r) ? (
-              <Btn variant="outline" size="sm" onClick={() => openReviews({ code: r.c.code, seq: r.c.seq, name: r.name, teacher: r.teacher })}>{tbBadge(r)}</Btn>
-            ) : null}
             {/* 【教评#31冻结】行内教评徽章（整块注释保留，教务修好解开；外观改走 OG Tag/tone）
              {(() => {
                const m = xkPick(wb.ratings[r.c.code], r.teacher);
@@ -969,14 +959,39 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
           </div>
           {/* 元数据分属性表述（用户实锤「一堆灰字挤在一起看不清」）：课号班次=等宽
               chip；教师=加粗主色正文；时间=accent chip；学分=中性小字；院系=弱化尾注 */}
-          <Inline gap={1} wrap>
-            <Chip size="sm"><Text mono slot="micro">{r.c.code}{r.c.seq && r.c.seq !== "0" ? i18n("pages.zhjwxk.courses.6503ee4eb9dd", { seq: String(r.c.seq) }) : ""}</Text></Chip>
+          <Inline gap={1} wrap className="xk-course-meta">
             {/* 纯数字教师=教务多教师格解析未明（取证中，见 xkParseDebug）——隐藏不误导 */}
-            {r.teacher && !/^\d{1,3}$/.test(r.teacher) ? <Text as="b" weight="semibold">{r.teacher}</Text> : null}
+            {r.teacher && !/^\d{1,3}$/.test(r.teacher) ? <Text as="b" weight="semibold" nowrap>{r.teacher}</Text> : null}
             {r.time ? <Chip size="sm" tone="brand">{r.time}</Chip> : null}
-            {r.credits ? <Text slot="label" tone="quiet">{i18nRich("pages.zhjwxk.courses.2cb6ebd1ab1f", { credits: r.credits })}</Text> : null}
-            {r.c.department ? <Text slot="label" tone="faint">{r.c.department}</Text> : null}
+            {r.credits ? <Text slot="label" tone="quiet" nowrap>{i18nRich("pages.zhjwxk.courses.2cb6ebd1ab1f", { credits: r.credits })}</Text> : null}
           </Inline>
+          {(() => { const o = originOf(r.c.code); if (!o) return null;
+            if (clockRangesOf(r.c.note, r.time).length > 0) return null; // 时间已解析上时间轴，不废话
+            return (
+            <Inline gap={2} vAlign="start">
+              <Text slot="label" tone="warning">{i18nRich("pages.zhjwxk.courses.4583bde5e031", { o: labelForId(o) })}</Text>
+              <Grow>
+                <Btn variant="outline" size="sm" onClick={() => navigate("info", { infoNewsQuery: o === "北大研" ? "北京大学 研究生" : "北京大学 北京外国语大学" })}>{i18nRich("pages.zhjwxk.courses.3cd7d874f722", { value: o === "北大研" ? i18n("pages.zhjwxk.courses.44a94cb2b71a") : i18n("pages.zhjwxk.courses.06ac33331166") })}</Btn>
+              </Grow>
+            </Inline>
+            ); })()}
+          {confs.length ? (
+            <div className="row-sub" style={{ whiteSpace: "normal" }}>
+              <Text slot="label" tone="error">{i18nRich("pages.zhjwxk.courses.06f610639057", { value: confs.slice(0, 3).map((c) => `${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.b}`).join(" · ") })}</Text>
+            </div>
+          ) : null}
+          <div className="xk-course-content">
+            <Stack gap={1} className="xk-course-description">
+                <Inline gap={2} wrap>
+            {r.teacherId ? <Btn variant="outline" size="sm" onClick={() => openDetail(r.c.code, r.teacherId)}>{i18n("pages.zhjwxk.courses.8131eafd0239")}</Btn> : null}
+            {tbBadge(r) ? (
+              <Btn variant="outline" size="sm" onClick={() => openReviews({ code: r.c.code, seq: r.c.seq, name: r.name, teacher: r.teacher })}>{tbBadge(r)}</Btn>
+            ) : null}
+                </Inline>
+                <Inline gap={2} wrap>
+            <Chip size="sm"><Text mono slot="micro">{r.c.code}{r.c.seq && r.c.seq !== "0" ? i18n("pages.zhjwxk.courses.6503ee4eb9dd", { seq: String(r.c.seq) }) : ""}</Text></Chip>
+            {r.c.department ? <Text slot="label" tone="faint">{r.c.department}</Text> : null}
+                </Inline>
           {/* 课程特色标签行（NextTHUxk nx-tag 同款）：独立成行、一段一标签、
               flexWrap 换行——挂标题行内会被 nowrap+overflow 裁出 CSS 省略号
               （用户实锤：复制是全文、看到的是「文化素质…」） */}
@@ -1001,14 +1016,16 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
             ) : null;
           })()}
           {r.c.note ? (
-            <Surface sunken radius="sm">
+            <div className="xk-course-note">
               <Text>
                 <Text as="b" slot="label" tone="brand" weight="bold">{i18n("pages.zhjwxk.courses.6ad41e5d286b")}</Text>
                 {"　"}
                 {r.c.note}
               </Text>
-            </Surface>
+            </div>
           ) : null}
+            </Stack>
+            <Stack gap={1} className="xk-course-statistics">
           {wb.phase ? (
             r.cand ? <div className="row-sub" style={{ whiteSpace: "normal" }}>{r.cand.myPos ? i18n("pages.zhjwxk.courses.f09113c77540", { myPos: String(r.cand.myPos), queueTotal: String(r.cand.queueTotal) }) : i18n("pages.zhjwxk.courses.90c4b556f895")}</div> : null
           ) : r.vol ? (
@@ -1083,21 +1100,9 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
               </Inline>
             ))}
           </Stack> : null}
-          {(() => { const o = originOf(r.c.code); if (!o) return null;
-            if (clockRangesOf(r.c.note, r.time).length > 0) return null; // 时间已解析上时间轴，不废话
-            return (
-            <Inline gap={2} vAlign="start">
-              <Text slot="label" tone="warning">{i18nRich("pages.zhjwxk.courses.4583bde5e031", { o: labelForId(o) })}</Text>
-              <Grow>
-                <Btn variant="outline" size="sm" onClick={() => navigate("info", { infoNewsQuery: o === "北大研" ? "北京大学 研究生" : "北京大学 北京外国语大学" })}>{i18nRich("pages.zhjwxk.courses.3cd7d874f722", { value: o === "北大研" ? i18n("pages.zhjwxk.courses.44a94cb2b71a") : i18n("pages.zhjwxk.courses.06ac33331166") })}</Btn>
-              </Grow>
-            </Inline>
-            ); })()}
-          {confs.length ? (
-            <div className="row-sub" style={{ whiteSpace: "normal" }}>
-              <Text slot="label" tone="error">{i18nRich("pages.zhjwxk.courses.06f610639057", { value: confs.slice(0, 3).map((c) => `${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.b}`).join(" · ") })}</Text>
-            </div>
-          ) : null}
+            </Stack>
+          </div>
+            <div className="xk-course-controls">
           {state === "selected" ? (
             <Inline gap={1} wrap>
               {r.zy ? <Text slot="label" tone="faint">{i18nRich("pages.zhjwxk.courses.6dfa4700bf10", { value: FLAG_LABELS[r.flag], zy: r.zy })}</Text> : null}
@@ -1124,11 +1129,10 @@ function PickCard({ wb, r, i, picks, setPicks, highlight }: {
               <Btn variant="outline" size="sm" disabled={inStage} onClick={() => wb.addToStage(r, pick.flag, pick.zy)}>{inStage ? i18n("pages.zhjwxk.courses.847d376afd41") : i18n("pages.zhjwxk.courses.e57b6dbedea3")}</Btn>
             </Inline>
           )}
+          </div>
         </Stack>
       </div>
-      <Chip size="sm" tone={r.selected ? "success" : r.isCandidate ? "warning" : state === "full" ? "error" : "neutral"}>
-        {r.selected ? i18n("pages.zhjwxk.courses.aa21e6887117", { value: String(r.zy ? i18n("pages.zhjwxk.courses.2ea763bbee3e", { zy: String(r.zy) }) : "") }) : r.isCandidate ? (r.cand?.myPos ? i18n("pages.zhjwxk.courses.4d4f91afcd66", { myPos: String(r.cand.myPos) }) : i18n("pages.zhjwxk.courses.64af28c77281")) : state === "full" ? i18n("pages.zhjwxk.courses.0ba6b11d9de0") : r.available ? i18n("pages.zhjwxk.courses.537352400c49") : i18n("pages.zhjwxk.courses.0ba6b11d9de0")}
-      </Chip>
+
     </div>
   );
 }
@@ -1149,20 +1153,22 @@ function PlanSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
   const totalCr = coverage.reduce((s, c) => s + c.credits, 0);
   const coveredCr = coverage.filter((c) => c.covered).reduce((s, c) => s + c.credits, 0);
   return (
-    <Sec title={i18n("pages.zhjwxk.courses.c97657457226")}>
-      <Stack gap={0}>
+    <OGCard pad="sm">
+      <details className="xk-plan-summary">
+        <summary><Text slot="label" weight="bold">{i18n("pages.zhjwxk.courses.c97657457226")}</Text><Text slot="micro" tone="faint">{i18nRich("pages.zhjwxk.courses.5c1672e6a3bf", { length: coverage.length, coveredCr, totalCr })}</Text></summary>
+        <List gap={0}>
         {[...groups.entries()].map(([g, items]) => {
           const cr = items.reduce((a, c) => a + c.credits, 0);
           const cov = items.filter((c) => c.covered).reduce((a, c) => a + c.credits, 0);
           return (
-            <StatTile key={g} label={i18n("pages.zhjwxk.courses.3c3926abccf0", { g: String(g), length: String(items.length) })}
-              value={<Text slot="title" tone={cov >= cr ? "success" : "brand"} weight="bold">{cov}</Text>}
-              unit={i18n("pages.zhjwxk.courses.f791593c30e2", { cr: String(cr) })} onClick={() => { planGroupClick?.(g); }} />
+            <Row key={g} size="sm" title={i18n("pages.zhjwxk.courses.3c3926abccf0", { g: String(g), length: String(items.length) })}
+              trailing={<Text slot="label" tone={cov >= cr ? "success" : "brand"}>{cov}/{cr}</Text>}
+              onClick={() => { planGroupClick?.(g); }} />
           );
         })}
-      </Stack>
-      <Text slot="label" tone="faint">{i18nRich("pages.zhjwxk.courses.5c1672e6a3bf", { length: coverage.length, coveredCr: coveredCr, totalCr: totalCr })}</Text>
-    </Sec>
+        </List>
+      </details>
+    </OGCard>
   );
 }
 let planGroupClick: ((g: string) => void) | null = null;
@@ -1534,6 +1540,8 @@ function StageSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
         </List>
       )}
       {conflicts.length ? <Text slot="label" tone="error">{i18nRich("pages.zhjwxk.courses.06f610639057", { value: conflicts.slice(0, 5).map((c) => `${dayName(c.day)} ${SLOT_NAMES[c.slot - 1]} ${c.a}/${c.b}`).join(" · ") })}</Text> : null}
+      <details className="xk-stage-actions" open={wb.stageCart.length > 0 || wb.savedDrafts.length > 0 || undefined}>
+        <summary>{i18n("pages.zhjwxk.courses.draftActions")}</summary>
       <Inline gap={1} wrap>
         <Grow><Input size="sm" placeholder={i18n("pages.zhjwxk.courses.f31a1706ec82")} value={draftName} onChange={(value) => setDraftName(value)} /></Grow>
         <Btn variant="outline" size="sm" onClick={() => { if (draftName.trim()) { wb.saveDraft(draftName.trim()); setDraftName(""); } }}>{i18n("pages.zhjwxk.courses.5329e3f0ee46")}</Btn>
@@ -1551,6 +1559,7 @@ function StageSection({ wb }: { wb: ReturnType<typeof useXkWorkbench> }) {
           </Inline>
         </Stack>
       ) : null}
+      </details>
       <Stack gap={1}>
         {wb.savedDrafts.map((d, idx) => (
           <OGCard key={idx} pad="sm">

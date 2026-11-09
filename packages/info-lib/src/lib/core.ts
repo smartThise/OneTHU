@@ -649,7 +649,10 @@ export const roam = async (helper: InfoHelper, policy: RoamingPolicy, payload: s
             }
             throw new LoginError(`GitLab 授权未完成（落到 ${auth.finalUrl}，HTTP ${auth.status}）`);
         }
-        let response = await uFetch(ID_LOGIN_URL, {
+        if (!helper.userId || !helper.password) {
+            throw new IdAuthError("The university session requires sign-in.");
+        }
+        const response = await uFetch(ID_LOGIN_URL, {
             i_user: helper.userId,
             i_pass: SM2_MAGIC_NUMBER + sm2.doEncrypt(helper.password, sm2PublicKey),
             fingerPrint: helper.fingerprint,

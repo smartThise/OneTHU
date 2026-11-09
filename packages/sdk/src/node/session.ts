@@ -12,6 +12,8 @@ import type { TwoFactorType } from '../auth/flow.js';
 import { probeUniversityIdentity } from './identityProbe.js';
 import { campusDirectFetch } from './campusDirect.js';
 import { mergeSelectionCookies, mergeUniversityCookies } from '@onethu/core';
+import { GITLAB_ORIGIN } from '@onethu/gateway/routes';
+import { isXkSessionError } from '../../../core/src/zhjwxk/html-language.js';
 let activeRuntime = false;
 export interface NodeSessionOptions {
   dataDir: string; fetch?: typeof globalThis.fetch; userAgent?: string;
@@ -36,7 +38,8 @@ export async function createNodeSession(options:NodeSessionOptions) {
   const epoch=()=>generation;
   const assertCurrent=(expected:number)=>{if(closed||closing)throw authError('AUTH_SESSION_CLOSED');if(expected!==generation)throw authError('AUTH_SESSION_CHANGED');};
   const transport=createNodeTransport({...options,epoch,assertCurrent});
-  const campusDirect=createNodeTransport({...options,jar:transport.jar,fetch:options.fetch??campusDirectFetch,epoch,assertCurrent});
+  const fetchWithoutSession=options.fetch??campusDirectFetch;
+  const campusDirect=createNodeTransport({...options,jar:transport.jar,fetch:fetchWithoutSession,epoch,assertCurrent});
   // Third-party platform credentials must never enter the shared school jar or
   // its desktop handoff. Each read owns an isolated, equally fenced transport.
   const services=new Set<ReturnType<typeof createNodeTransport>>();
@@ -91,25 +94,64 @@ export async function createNodeSession(options:NodeSessionOptions) {
   }
   /** Service SSO for browser navigation, using this account's cookies only.
    * The separate client never receives the in-memory password or renew hooks. */
-  async function ensureCampusService(origin:string):Promise<void>{
+  async function ensureCampusService(origin:string,signal?:AbortSignal):Promise<void>{
     const expected=epoch(),revision=cookieRevision,owner=session.username;
-    const check=()=>{assertCurrent(expected);if(revision!==cookieRevision||session.username!==owner||session.state!=='ready')throw authError('AUTH_SESSION_CHANGED');};
+    const check=()=>{assertCurrent(expected);signal?.throwIfAborted();if(revision!==cookieRevision||session.username!==owner||session.state!=='ready')throw authError('AUTH_SESSION_CHANGED');};
     check();if(!owner)throw authError('SCHOOL_SESSION_REQUIRED');
     if(!['https://cab.lib.tsinghua.edu.cn','https://seat.lib.tsinghua.edu.cn','https://zhjwxk.cic.tsinghua.edu.cn','https://card.tsinghua.edu.cn'].includes(origin))throw authError('CAMPUS_SERVICE_UNSUPPORTED');
     const candidate=new InfoClient(http);
     candidate.setIdCredentials(()=>{check();return {username:owner,password:'',fingerprint:device.fingerprint,finger3:device.finger3};});
     if(origin==='https://cab.lib.tsinghua.edu.cn')await candidate.getLibRoomInfoList(owner,{readOnlyInitialization:true});
     else if(origin==='https://seat.lib.tsinghua.edu.cn')await candidate.getLibraryList();
-    else {
-      const service=origin==='https://card.tsinghua.edu.cn'?'card':'selection';
-      if(!await candidate.resumeBrowserService(service))throw authError('CAMPUS_SERVICE_SSO_REQUIRED');check();
-      if(service==='card')await candidate.forceEnsure('card');
-      else {
-        const page=await http.text('http://zhjwxk.cic.tsinghua.edu.cn/xklogin.do');check();
-        if(/电子身份服务系统|sm2publicKey|name=["']i_pass["']|checkSingle/.test(page)||!/xkBks|选课/.test(page))throw authError('CAMPUS_SERVICE_SSO_REQUIRED');
+    else if(origin==='https://zhjwxk.cic.tsinghua.edu.cn'){
+      // The business session can outlive the ID session. Check it before SSO,
+      // and use the same home after redemption instead of restarting xklogin.
+      const selectionReady=async()=>{
+        const page=await http.text('http://zhjwxk.cic.tsinghua.edu.cn/xkBks.vxkBksXkbBs.do?m=main',{signal});check();
+        return !isXkSessionError(page)&&/(?:xk\/top\.html|xkBks\.|p_xnxq)/i.test(page);
+      };
+      const ready=await selectionReady().catch(()=>{check();return false;});
+      if(!ready){
+        if(!await candidate.resumeBrowserService('selection'))throw authError('CAMPUS_SERVICE_SSO_REQUIRED');check();
+        if(!await selectionReady())throw authError('CAMPUS_SERVICE_SSO_REQUIRED');
       }
+    }else{
+      if(!await candidate.resumeBrowserService('card'))throw authError('CAMPUS_SERVICE_SSO_REQUIRED');check();
+      await candidate.forceEnsure('card');
     }
     check();await persist();check();
+  }
+  async function renewGitlabSession(borrow:()=>Promise<string|null>){
+    const expected=epoch(),revision=cookieRevision,owner=session.username;
+    const check=()=>{
+      assertCurrent(expected);
+      if(revision!==cookieRevision||!owner||session.username!==owner||session.state!=='ready')throw authError('AUTH_SESSION_CHANGED');
+    };
+    check();
+    const value=await borrow();check();
+    if(!value)throw authError('CAMPUS_SERVICE_SSO_REQUIRED');
+    const origin=new URL(GITLAB_ORIGIN);
+    const name='_gitlab_session';
+    const setCookie=(ticket:string)=>name+'='+ticket+'; Path=/; Secure; HttpOnly';
+    // The desktop hands back only the GitLab cookie. Verify it in isolation
+    // before it can affect the authoritative account or any other service.
+    const candidate=createNodeTransport({...options,fetch:options.fetch??campusDirectFetch,epoch,assertCurrent});
+    try{
+      candidate.jar.setRaw(origin,setCookie(value));
+      const response=await candidate.fetch(new URL('/api/v4/user',origin).href,{
+        redirect:'manual',timeoutMs:6000,maxResponseBytes:65536,
+      } as RequestInit);
+      check();
+      if(response.status!==200||!/^application\/json\b/i.test(response.headers.get('content-type')??'')){
+        await response.body?.cancel();
+        throw authError('CAMPUS_SERVICE_SSO_REQUIRED');
+      }
+      const account=await response.json();check();
+      const ticket=candidate.jar.getCookies(origin).find(cookie=>cookie.name===name&&cookie.domain===origin.hostname&&cookie.path==='/');
+      if(!Number.isSafeInteger(account?.id)||account.id<=0||!ticket?.value)throw authError('CAMPUS_SERVICE_SSO_REQUIRED');
+      http.jar.setRaw(origin,setCookie(ticket.value));
+      await persist();check();
+    }finally{candidate.close();}
   }
   async function resolveCampusPortal(selector:string){
     const expected=epoch(),revision=cookieRevision,owner=session.username;
@@ -285,6 +327,6 @@ export async function createNodeSession(options:NodeSessionOptions) {
     closing=true;for(const service of services)service.close();services.clear();transport.close();campusDirect.close();clearOutstandingLogin();
     try{await persist();}finally{closed=true;session.reset();helper.password='';try{await storage.close();}finally{activeRuntime=false;}}
   }
-  return{session,http,learn,info,helper,fetch:transport.fetch,fetchCampusDirect:campusDirect.fetch,createServiceTransport,restore,login,twoFactor,logout,status,persist,close,epoch,assertCurrent,desktopStatus,exportSession,adoptSession,ensureLearnReady,ensureCampusService,resolveCampusPortal,noteInfoSessionRequired(){if(session.username&&!explicitLogout)warnings.add('CAMPUS_INFO_SESSION_REQUIRED');},loadGatewayState:()=>gatewayState,saveGatewayState(value:unknown){gatewayState=value;void persist().catch(()=>warnings.add('GATEWAY_CACHE_UNAVAILABLE'));},guardGeneration:epoch,dataDir:storage.directory};
+  return{session,http,learn,info,helper,fetch:transport.fetch,fetchCampusDirect:campusDirect.fetch,fetchWithoutSession,createServiceTransport,restore,login,twoFactor,logout,status,persist,close,epoch,assertCurrent,desktopStatus,exportSession,adoptSession,ensureLearnReady,ensureCampusService,renewGitlabSession,resolveCampusPortal,noteInfoSessionRequired(){if(session.username&&!explicitLogout)warnings.add('CAMPUS_INFO_SESSION_REQUIRED');},loadGatewayState:()=>gatewayState,saveGatewayState(value:unknown){gatewayState=value;void persist().catch(()=>warnings.add('GATEWAY_CACHE_UNAVAILABLE'));},guardGeneration:epoch,dataDir:storage.directory};
 }
 export type NodeSession = Awaited<ReturnType<typeof createNodeSession>>;

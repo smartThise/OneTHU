@@ -19,7 +19,7 @@ import {
     getBankPaymentParellize,
     getMadModelToken,
 } from "./lib/basics";
-import {clearOutstandingLogin, forgetDevice, login, logout, roam} from "./lib/core";
+import {clearOutstandingLogin, forgetDevice, idLoginResponse, login, logout, roam} from "./lib/core";
 import {getDormScore, getElePayRecord, getEleRechargePayCode, getEleRemainder, resetDormPassword} from "./lib/dorm";
 import {
     LibBookRecord,
@@ -1270,7 +1270,7 @@ export class InfoHelper {
     };
 }
 
-export {roam, clearOutstandingLogin};
+export {roam, clearOutstandingLogin, idLoginResponse};
 /** 静默重登（info app 同源）：取用户信息比对 ryh 判活，死则用 helper 上的凭据重登 */
 export {verifyAndReLogin} from "./lib/core";
 export {hasOutstandingLogin, getOutstandingLoginIdentity} from "./lib/core";

@@ -665,15 +665,19 @@ const nativeServicePublications=new Map<string,Promise<void>>();
 let universityPublicationRetryAt=0;
 /** A live, same-owner native export can renew only the declared cookie scopes.
  * Disk cookie snapshots and passwords are never used by this bridge. */
-function publishNativeServiceSession(service:{name:'selection'|'university';identityRenewed:boolean},serviceCookies?:CookieRecord[]):Promise<void>{
-  if(!usesSharedRuntime()||session.state!=="ready"||!session.username)return Promise.resolve();
+function publishNativeServiceSession(service:{name:'selection'|'university';identityRenewed:boolean},serviceCookies?:CookieRecord[],required=false):Promise<void>{
+  if(!usesSharedRuntime())return required?Promise.reject(new Error('CLI_SHARED_SESSION_UNAVAILABLE')):Promise.resolve();
+  if(session.state!=="ready"||!session.username)return required?Promise.reject(new Error('AUTH_SESSION_CHANGED')):Promise.resolve();
   const generation=resumeGeneration,owner=session.username,fingerprint=session.fingerprint;
-  const key=[service.name,service.identityRenewed,owner,fingerprint,generation].join('\n');
+  const key=[service.name,service.identityRenewed,owner,fingerprint,generation,required].join('\n');
   const existing=nativeServicePublications.get(key);if(existing)return existing;
   const check=()=>{if(generation!==resumeGeneration||session.username!==owner||session.fingerprint!==fingerprint||session.state!=="ready")throw new Error('AUTH_SESSION_CHANGED');};
   const request=(async()=>{
     const shared=await exportSharedSession();check();
-    if(!shared.capabilities?.includes('service-session-merge-v1'))return;
+    if(!shared.capabilities?.includes('service-session-merge-v1')){
+      if(required)throw new Error('CLI_RUNTIME_UPDATE_REQUIRED');
+      return;
+    }
     if(shared.tombstone||shared.session.twoFactor?.pending||shared.username!==owner||shared.snapshot?.fingerprint!==fingerprint||sharedSessionEpoch!==null&&shared.epoch!==sharedSessionEpoch)throw new Error('CLI_SHARED_SESSION_CHANGED');
     const local=await loadConsistentSessionSnapshot();check();
     if(local?.username!==owner||local.fingerprint!==fingerprint)throw new Error('AUTH_SESSION_CONFLICT');
@@ -687,7 +691,7 @@ function publishNativeServiceSession(service:{name:'selection'|'university';iden
     await logLine(`Native service handback complete (${service.name})`).catch(()=>undefined);
   })().catch(async error=>{
     if(service.name==='university')universityPublicationRetryAt=Date.now()+30_000;
-    if(/AUTH_SESSION_CHANGED|CLI_SHARED_SESSION_CHANGED|AUTH_SESSION_CONFLICT/.test(String(error)))throw error;
+    if(required||/AUTH_SESSION_CHANGED|CLI_SHARED_SESSION_CHANGED|AUTH_SESSION_CONFLICT/.test(String(error)))throw error;
     const reason=String(error).match(/\b(?:AUTH|CLI|DAEMON)_[A-Z_]{1,64}\b/)?.[0]??'unavailable';
     await logLine(`Native service handback pending (${service.name}, ${reason}); live application session retained`).catch(()=>undefined);
   });
@@ -696,6 +700,7 @@ function publishNativeServiceSession(service:{name:'selection'|'university';iden
   void request.then(clear,clear);return request;
 }
 export const publishSelectionSession=(state:{identityRenewed:boolean;cookies:CookieRecord[]})=>publishNativeServiceSession({name:'selection',identityRenewed:state.identityRenewed},state.cookies);
+export const publishSelectionSessionForGateway=(state:{identityRenewed:boolean;cookies:CookieRecord[]})=>publishNativeServiceSession({name:'selection',identityRenewed:state.identityRenewed},state.cookies,true);
 export const publishUniversitySession=()=>publishNativeServiceSession({name:'university',identityRenewed:true});
 
 async function adoptSuccessfulDesktopLogin(): Promise<void> {

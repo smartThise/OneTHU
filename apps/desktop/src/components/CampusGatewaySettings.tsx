@@ -3,6 +3,7 @@ import { Btn, Inline, Input, SettingsRow } from "@onethu/gui";
 import { t, useLocale } from "../i18n/index.js";
 import { campusGatewayRequest, type CampusGatewayAction, type CampusGatewayCredentials, type CampusGatewayStatus } from "../lib/campusGateway.js";
 import { desktopCliSupported, refreshCliInstallation, type CliInstallation } from "../lib/sharedRuntime.js";
+import { openExternal } from "../pages/info/openExternal.js";
 import "./CampusGatewaySettings.css";
 
 type GatewayError = { code?: string; copy?: boolean };
@@ -130,6 +131,7 @@ export function CampusGatewaySettings() {
   const activeEndpoint = status?.systemEndpoint ?? status?.endpoint;
   const endpoint = activeEndpoint ? `${activeEndpoint.host}:${activeEndpoint.port}` : "";
   const manualEndpoint = status?.endpoint ? `${status.endpoint.host}:${status.endpoint.port}` : "";
+  const managementUrl = /^http:\/\/127\.0\.0\.1:\d{1,5}\/$/.test(status?.managementUrl ?? "") ? status?.managementUrl : null;
   const stateText = loading ? t("gateway.checking") : !ready ? t("gateway.installRequired") : !status ? t("gateway.unavailable")
     : running ? t("gateway.running", { endpoint }) : t("gateway.stopped");
 
@@ -158,6 +160,8 @@ export function CampusGatewaySettings() {
             {busy === "system-enable" ? t("gateway.systemEnabling") : busy === "system-disable" ? t("gateway.systemDisabling") : systemEnabled ? t("gateway.systemDisable") : t("gateway.systemEnable")}
           </Btn> : undefined} />
         {systemEnabled && !recoveryRequired && status.systemProxy?.coexistence && status.systemProxy.activeServices?.length ? <p className="campus-gateway-message" role="status">{t("gateway.coexistence", { services: status.systemProxy.activeServices.join(" · ") })}</p> : null}
+        {managementUrl ? <SettingsRow title={t("gateway.siteRouting")} sub={<code className="campus-gateway-monospace">{managementUrl}</code>}
+          control={<Btn variant="outline" onClick={() => void openExternal(managementUrl)}>{t("gateway.openSiteRouting")}</Btn>} /> : null}
         <p className="campus-gateway-message">{t("gateway.authorizationScope")}</p>
         {status.capabilities?.trustedMiniPrograms ? <SettingsRow title={t("gateway.prepareClients")} sub={t("gateway.prepareClientsDescription")}
           control={<Btn variant="outline" disabled={disabled || !running} loading={busy === "client-prepare"} onClick={() => void run("client-prepare")}>{t("gateway.prepareClients")}</Btn>} /> : null}

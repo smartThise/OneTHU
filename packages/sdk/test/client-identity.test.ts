@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createClientIdentity} from '../src/node/clientIdentity.js';
+import {THESIS_IDENTITY_URL, THESIS_ORIGIN} from '@onethu/gateway/thesis-auth';
 const url='https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/d982b795884e882abfa8ff3167aeb03e/0?/login.html';
 const official={ticket:'official-fixture-ticket-0001',html:'<a href="https://www.xiaoda.tsinghua.edu.cn/login.html?ticket=official-fixture-ticket-0001">Continue</a>',url:'https://id.tsinghua.edu.cn/do/off/ui/auth/login/check',status:200};
 function fixture(fetch:any){
@@ -64,6 +65,36 @@ test('GUI ticket relay rejects another service callback and keeps the claimed re
  assert.equal(JSON.stringify(f.identity.desktop.status()).includes(official.ticket),false);f.identity.close();
 });
 
+test('GitLab shares one private renewal and rejects a malformed or stale cookie completion',async()=>{
+ const f=fixture(async()=>{throw new Error('unexpected network');});
+ const first=f.identity.renewGitlab(),second=f.identity.renewGitlab();
+ const row=f.identity.desktop.pending()!;
+ assert.equal(row.service,'gitlab');assert.equal(f.identity.desktop.pending(),null);
+ assert.throws(()=>f.identity.desktop.complete({id:row.id,ok:true,gitlabCookie:'token; Domain=other'}),/CLI_BRIDGE_INVALID/);
+ f.rotate();
+ assert.equal(f.identity.desktop.complete({id:row.id,ok:true,gitlabCookie:'obsolete-ticket'}).accepted,false);
+ await Promise.all([assert.rejects(first),assert.rejects(second)]);
+ const current=f.identity.renewGitlab(),next=f.identity.desktop.pending()!;
+ assert.equal(f.identity.desktop.complete({id:next.id,ok:true,gitlabCookie:'fresh-ticket'}).accepted,true);
+ assert.equal(await current,'fresh-ticket');
+ assert.equal(JSON.stringify(f.identity.desktop.status()).includes('fresh-ticket'),false);
+ f.identity.close();
+});
+
+test('successive MadModel reopenings request fresh one-use tickets without a successful-renewal lockout',async()=>{
+ const f=fixture(async()=>{throw new Error('unexpected network');});
+ for(const suffix of ['first','second']){
+  const renewal=f.identity.renewMadmodel(),row=f.identity.desktop.pending()!;
+  assert.equal(row.service,'madmodel');
+  assert.throws(()=>f.identity.desktop.complete({id:row.id,ok:true,madmodelTicket:'bad\nvalue'}),/CLI_BRIDGE_INVALID/);
+  const ticket='school-issued-ticket-'+suffix;
+  f.identity.desktop.complete({id:row.id,ok:true,madmodelTicket:ticket});
+  assert.equal(await renewal,ticket);
+  assert.equal(JSON.stringify(f.identity.desktop.status()).includes(ticket),false);
+ }
+ f.identity.close();
+});
+
 test('a registered uppercase ITS form forwards its requested entry mode to the GUI without changing service scope',async()=>{
  const f=fixture(async()=>new Response('<input name="i_pass">'));
  const result=f.identity.request(url.replace('d982b795884e882abfa8ff3167aeb03e','D982B795884E882ABFA8FF3167AEB03E').replace('/0?','/1?'),{method:'GET'},{service:'xiaoda',identity:true});
@@ -81,4 +112,171 @@ test('official visitor double-slash entry borrows only its own official ticket',
  const response=await result;assert.match(response.headers.get('refresh'),/visit\.tsinghua\.edu\.cn\/visitor\/mobile\/sso\?ticket=/);
  await assert.rejects(f.identity.request(target.replace('/form//','/form///'),{method:'GET'},{service:'visit',identity:true}),{code:'GATEWAY_CLIENT_REQUEST_REJECTED'});
  f.identity.close();
+});
+
+test('Qingxiaoda website tickets are distinct from each other and a pending mini-program ticket',async()=>{
+ const f=fixture(async()=>new Response('<input id="sm2publicKey">'));
+ try {
+  const mini=f.identity.request(url,{method:'GET'},{service:'xiaoda',identity:true});
+  await new Promise(resolve=>setImmediate(resolve));
+  const miniRow=f.identity.desktop.pending()!;
+  const first=f.identity.renewXiaoda(),second=f.identity.renewXiaoda();
+  const firstRow=f.identity.desktop.pending()!,secondRow=f.identity.desktop.pending()!;
+  assert.equal(firstRow.service,'xiaoda');assert.equal(secondRow.service,'xiaoda');
+  assert.equal(new Set([miniRow.id,firstRow.id,secondRow.id]).size,3);
+  const result=(ticket:string)=>({...official,ticket,html:'<a href="https://www.xiaoda.tsinghua.edu.cn/login.html?ticket='+ticket+'">Continue</a>'});
+  const a=result('website-ticket-first-0001'),b=result('website-ticket-second-0002');
+  f.identity.desktop.complete({id:secondRow.id,ok:true,official:b});
+  f.identity.desktop.complete({id:firstRow.id,ok:true,official:a});
+  f.identity.desktop.complete({id:miniRow.id,ok:true,official});
+  assert.equal(await first,a.ticket);assert.equal(await second,b.ticket);
+  assert.match(await(await mini).text(),new RegExp(official.ticket));
+  const third=f.identity.renewXiaoda(),thirdRow=f.identity.desktop.pending()!;
+  assert.notEqual(thirdRow.id,firstRow.id);
+  f.identity.desktop.complete({id:thirdRow.id,ok:true,official:result('website-ticket-third-0003')});
+  assert.equal(await third,'website-ticket-third-0003');
+ } finally {f.identity.close();}
+});
+
+test('Qingxiaoda website renewal validates the official receipt and revokes a cancelled or stale delivery',async()=>{
+ const f=fixture(async()=>new Response('unused'));
+ try {
+  const result=f.identity.renewXiaoda(),row=f.identity.desktop.pending()!;
+  assert.throws(()=>f.identity.desktop.complete({id:row.id,ok:true,official:{...official,html:'<a href="https://evil.example/?ticket='+official.ticket+'">bad</a>'}}),/CLI_BRIDGE_INVALID/);
+  f.identity.desktop.complete({id:row.id,ok:true,official});assert.equal(await result,official.ticket);
+  assert.equal(f.identity.desktop.complete({id:row.id,ok:true,official}).accepted,false);
+  const controller=new AbortController(),cancelled=f.identity.renewXiaoda(controller.signal),cancelledRow=f.identity.desktop.pending()!;
+  controller.abort();await assert.rejects(cancelled,{code:'GATEWAY_CANCELLED'});
+  assert.equal(f.identity.desktop.complete({id:cancelledRow.id,ok:true,official}).accepted,false);
+  const stale=f.identity.renewXiaoda(),oldRow=f.identity.desktop.pending()!;f.rotate();
+  assert.equal(f.identity.desktop.complete({id:oldRow.id,ok:true,official}).accepted,false);await assert.rejects(stale);
+  assert.equal(JSON.stringify(f.identity.desktop.status()).includes(official.ticket),false);
+ } finally {f.identity.close();}
+});
+
+test('selection renewal coalesces and requires a claimed boolean acknowledgement',async()=>{
+ const f=fixture(async()=>{throw new Error('Selection acknowledgement cannot send a school request');});
+ try{
+  let finished=false;
+  const first=f.identity.renewSelection().then(value=>{finished=true;return value;});
+  const second=f.identity.renewSelection();
+  assert.deepEqual(f.identity.desktop.complete({id:'unclaimed',ok:true,selectionReady:true}),{accepted:false});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(finished,false);
+  const row=f.identity.desktop.pending()!;
+  assert.equal(row.service,'selection');
+  assert.equal(f.identity.desktop.pending(),null);
+  for(const value of [undefined,false,'true',1]){
+   assert.throws(()=>f.identity.desktop.complete({id:row.id,ok:true,selectionReady:value} as any),/CLI_BRIDGE_INVALID/);
+  }
+  assert.equal(f.identity.desktop.complete({id:row.id,ok:true,selectionReady:true,official,gitlabCookie:'must-not-return'}).accepted,true);
+  assert.deepEqual(await Promise.all([first,second]),[true,true]);
+  assert.equal(f.identity.desktop.complete({id:row.id,ok:true,selectionReady:true}).accepted,false);
+  const status=JSON.stringify(f.identity.desktop.status());
+  assert.equal(status.includes(official.ticket),false);
+  assert.equal(status.includes('must-not-return'),false);
+ }finally{f.identity.close();}
+});
+
+test('selection renewal revokes stale acknowledgements and cancels only the affected waiter',async()=>{
+ const f=fixture(async()=>new Response('unused'));
+ try{
+  const stale=f.identity.renewSelection();
+  const staleRejection=assert.rejects(stale);
+  const oldRow=f.identity.desktop.pending()!;
+  f.rotate();
+  assert.equal(f.identity.desktop.complete({id:oldRow.id,ok:true,selectionReady:true}).accepted,false);
+  await staleRejection;
+
+  const controller=new AbortController();
+  const cancelled=f.identity.renewSelection(controller.signal);
+  const cancelledRejection=assert.rejects(cancelled,{code:'GATEWAY_CANCELLED'});
+  const remaining=f.identity.renewSelection();
+  const row=f.identity.desktop.pending()!;
+  controller.abort();
+  await cancelledRejection;
+  assert.equal(f.identity.desktop.complete({id:row.id,ok:true,selectionReady:true}).accepted,true);
+  assert.equal(await remaining,true);
+ }finally{f.identity.close();}
+});
+
+test('a failed selection acknowledgement returns false without credentials or a successful result',async()=>{
+ const f=fixture(async()=>new Response('unused'));
+ try{
+  const pending=f.identity.renewSelection();
+  const row=f.identity.desktop.pending()!;
+  f.identity.desktop.complete({id:row.id,ok:false});
+  assert.equal(await pending,false);
+  assert.equal(f.identity.desktop.status().find(item=>item.service==='selection')?.state,'sign-in-required');
+ }finally{f.identity.close();}
+});
+
+test('selection requests cancelled before dispatch leave no native recovery queued',async()=>{
+ const f=fixture(async()=>new Response('unused'));
+ try{
+  const alreadyCancelled=new AbortController();alreadyCancelled.abort();
+  await assert.rejects(f.identity.renewSelection(alreadyCancelled.signal),{code:'GATEWAY_CANCELLED'});
+  assert.equal(f.identity.desktop.pending(),null);
+  const firstController=new AbortController(),secondController=new AbortController();
+  const first=f.identity.renewSelection(firstController.signal),second=f.identity.renewSelection(secondController.signal);
+  const rejected=Promise.all([
+   assert.rejects(first,{code:'GATEWAY_CANCELLED'}),
+   assert.rejects(second,{code:'GATEWAY_CANCELLED'}),
+  ]);
+  firstController.abort();secondController.abort();await rejected;
+  assert.equal(f.identity.desktop.pending(),null);
+ }finally{f.identity.close();}
+});
+
+test('thesis renewals have independent single-use receipts and retain the fixed identity target',async()=>{
+ const f=fixture(async()=>{throw new Error('Thesis renewal must be handled by the native account broker');});
+ try{
+  const first=f.identity.renewThesis(),second=f.identity.renewThesis();
+  const firstRow=f.identity.desktop.pending()!,secondRow=f.identity.desktop.pending()!;
+  assert.equal(firstRow.service,'thesis');assert.equal(secondRow.service,'thesis');
+  assert.equal(firstRow.identityUrl,THESIS_IDENTITY_URL);assert.equal(secondRow.identityUrl,THESIS_IDENTITY_URL);
+  assert.notEqual(firstRow.id,secondRow.id);
+  const a=THESIS_ORIGIN+'/qh/thesis/tsinghua/Login?ticket=first-official-ticket';
+  const b=THESIS_ORIGIN+'/qh/thesis/tsinghua/Login?ticket=second-official-ticket';
+  assert.equal(f.identity.desktop.complete({id:secondRow.id,ok:true,thesisCallback:b}).accepted,true);
+  assert.equal(f.identity.desktop.complete({id:firstRow.id,ok:true,thesisCallback:a}).accepted,true);
+  assert.equal(await first,a);assert.equal(await second,b);
+  assert.equal(f.identity.desktop.complete({id:firstRow.id,ok:true,thesisCallback:a}).accepted,false);
+  assert.equal(JSON.stringify(f.identity.desktop.status()).includes('official-ticket'),false);
+ }finally{f.identity.close();}
+});
+
+test('thesis rejects wrong-service and altered callbacks before accepting its valid receipt',async()=>{
+ const f=fixture(async()=>new Response('unused'));
+ try{
+  const result=f.identity.renewThesis(),row=f.identity.desktop.pending()!;
+  const callback=THESIS_ORIGIN+'/qh/thesis/tsinghua/Login?ticket=official-thesis-ticket';
+  for(const invalid of [
+   'https://evil.example/qh/thesis/tsinghua/Login?ticket=official-thesis-ticket',
+   'https://cab.lib.tsinghua.edu.cn/authcenter/doAuth/0123456789abcdef0123456789abcdef?ticket=official-thesis-ticket',
+   callback.replace('/tsinghua/Login','/tsinghua/Other'),callback+'&ticket=second',
+   callback+'&beforepage=https%3A%2F%2Fevil.example',callback.replace('https:','http:'),
+  ])assert.throws(()=>f.identity.desktop.complete({id:row.id,ok:true,thesisCallback:invalid}),/CLI_BRIDGE_INVALID/);
+  assert.equal(f.identity.desktop.status().find(item=>item.service==='thesis')?.state,'renewing');
+  assert.equal(f.identity.desktop.complete({id:row.id,ok:true,thesisCallback:callback}).accepted,true);
+  assert.equal(await result,callback);
+ }finally{f.identity.close();}
+});
+
+test('thesis cancellation and account changes revoke late callback deliveries',async()=>{
+ const f=fixture(async()=>new Response('unused'));
+ const callback=THESIS_ORIGIN+'/qh/thesis/tsinghua/Login?ticket=official-thesis-ticket';
+ try{
+  const alreadyCancelled=new AbortController();alreadyCancelled.abort();
+  await assert.rejects(f.identity.renewThesis(alreadyCancelled.signal),{code:'GATEWAY_CANCELLED'});
+  assert.equal(f.identity.desktop.pending(),null);
+  const controller=new AbortController(),cancelled=f.identity.renewThesis(controller.signal);
+  const cancelledRejection=assert.rejects(cancelled,{code:'GATEWAY_CANCELLED'});
+  const row=f.identity.desktop.pending()!;controller.abort();await cancelledRejection;
+  assert.equal(f.identity.desktop.complete({id:row.id,ok:true,thesisCallback:callback}).accepted,false);
+  const stale=f.identity.renewThesis(),staleRejection=assert.rejects(stale),oldRow=f.identity.desktop.pending()!;
+  f.rotate();
+  assert.equal(f.identity.desktop.complete({id:oldRow.id,ok:true,thesisCallback:callback}).accepted,false);
+  await staleRejection;
+ }finally{f.identity.close();}
 });

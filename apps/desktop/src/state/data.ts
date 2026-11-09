@@ -20,6 +20,7 @@ import {
   getXkQueueData,
   isAuthError,
   resolveZhjwxkSemester,
+  syncZhjwxkSession,
   searchXkCourses,
   semesterFromDate,
   submitXkCourse,
@@ -33,7 +34,7 @@ import {
 xkParseDebug.onOddTeacher = (code, seq, teacher, rawRow) => {
   logPageError(`TEACHER-ODD ${code}_${seq}`, new Error(`teacher="${teacher}" rawRow=${rawRow}`));
 };
-import { http, info, learn, logLine, session, publishSelectionSession } from "../lib/clients.js";
+import { http, info, learn, logLine, session, publishSelectionSession, publishSelectionSessionForGateway } from "../lib/clients.js";
 import { createXkSessionProvider } from "../lib/xkSession.js";
 // lib 管线（2026-09-17 挪移）：日程/用户信息直取上游 thu-info-lib——旧 InfoClient
 // 的手搓会话管理（探活/漫游/票信任链）整体退役，登录态由 lib + Rust 原生仓负责。
@@ -723,6 +724,11 @@ const xkSession=createXkSessionProvider({http,isoFetch:nativeFetch as unknown as
   identity:()=>({...session.xkCredentials,finger3:session.finger3||undefined}),
   onSessionReady:publishSelectionSession});
 
+/** The gateway reuses the same account-owned selection channel as this page. */
+export async function prepareSelectionGatewaySession(): Promise<void> {
+  await syncZhjwxkSession(xkSession(), publishSelectionSessionForGateway);
+}
+
 /** 学期串缓存（12h）：学期串只在换学期时变；命中省一次 ensure/解析往返 */
 const XK_SEM_KEY = "xk:semester";
 const XK_SEM_TTL = 12 * 60 * 60 * 1000;
@@ -1058,7 +1064,7 @@ export function useXkWorkbench(): XkWorkbench {
   const volDataRef = useRef<Record<string, XkVolRow>>({}); // volMap 镜像（回调内判定缺行用）
   const volInflightRef = useRef(false);
   const volPoolRef = useRef<XkVolPoolRow[]>([]); // 最近一次补拉池（检查点 force 重拉用）
-  const volPendingRef = useRef(false); // inflight 期间的触发不丢，收尾补跑
+  const volPendingRef = useRef<{ pool: XkVolPoolRow[]; force: boolean } | null>(null);
   const refreshVolRef = useRef<(pool: XkVolPoolRow[], force?: boolean) => Promise<void>>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -1131,11 +1137,18 @@ export function useXkWorkbench(): XkWorkbench {
       if (isAuthError(err) && authRound === 0) {
         logPageError("XK-CORE-AUTH", err);
         if (await softRecover("xk-core")) continue;   // 重建成功 → 重试整组
+        setCoreState("error");
+        setError(explainNetworkError(err));
         return [];
       }
       // 失登不再整页重载（重载=app 重启回首页目录，搜索/培养方案状态全丢——2026-09-03 实录
       // 「课表跳转过一会又刷成首页」）。会话每次调用自动重建（60s 热缓存），SWR 保旧/错误条兜底。
-      if (isAuthError(err)) { logPageError("XK-CORE-AUTH", err); return []; }
+      if (isAuthError(err)) {
+        logPageError("XK-CORE-AUTH", err);
+        setCoreState("error");
+        setError(explainNetworkError(err));
+        return [];
+      }
       if (coreSeededRef.current) return []; // 秒渲旧值在屏：保旧不闪红（SWR），重试/下轮再验证
       logPageError("ZHJWXK", err);
       setCoreState("error");
@@ -1308,46 +1321,67 @@ export function useXkWorkbench(): XkWorkbench {
   const refreshVol = useCallback(
     async (poolRows: XkVolPoolRow[], force = false): Promise<void> => {
       if (phase) return;
+      const pool = (poolRows.length || !force ? poolRows : volPoolRef.current).filter((r) => r.code);
+      if (!pool.length) return;
       if (volInflightRef.current) {
-        volPendingRef.current = true; // 渲染行又变了：收尾后补跑一轮（doneMap 去重，代价≈0）
+        const pending = volPendingRef.current;
+        const merged = new Map<string, XkVolPoolRow>();
+        for (const row of [...volPoolRef.current, ...(pending?.pool ?? []), ...pool]) {
+          const key = `${row.code}_${row.seq || "0"}`;
+          const previous = merged.get(key);
+          merged.set(key, previous?.department && !row.department ? previous : row);
+        }
+        volPendingRef.current = { pool: [...merged.values()], force: force || !!pending?.force };
         return;
       }
+      volPoolRef.current = pool;
+      const depts = new Set<string>();
+      for (const row of pool) {
+        const code = deptCodeOf(row.department ?? "");
+        if (code && (force || !volDeptsRef.current[code] && !volRetriedRef.current[`d:${code}`])) depts.add(code);
+      }
+      const hasSports = pool.some((row) => isSportsCourse({ department: row.department }))
+        && (force || !volDeptsRef.current.ty && !volRetriedRef.current["s:ty"]);
+      const needsMissingRows = pool.some((row) => {
+        if (matchVolRow(volDataRef.current, row.code, row.seq)) return false;
+        const code = deptCodeOf(row.department ?? "");
+        return !volRetriedRef.current[`k:${row.code}`] || !!code && !volRetriedRef.current[`d:${code}`];
+      });
+      // Merging volunteer rows rerenders both lists. A completed pool must be
+      // inert, including its state and timestamp, when that render requests it again.
+      if (!force && !depts.size && !hasSports && !needsMissingRows) return;
       volInflightRef.current = true;
       setVolState("loading");
       try {
-        const pool = poolRows.filter((r) => r.code);
-        if (pool.length) volPoolRef.current = pool; // 空池不覆盖（检查点重拉要真池）
         const sess = xkSession();
         const sem = semester ?? undefined;
         // ① 院系定向（只拉渲染行涉及的院系）
-        const depts = new Set<string>();
-        for (const r of pool) {
-          const dc = deptCodeOf(r.department ?? "");
-          if (dc && (force || !volDeptsRef.current[dc])) depts.add(dc);
-        }
-        const hasSports = pool.some((r) => isSportsCourse({ department: r.department }));
         const merge = (rows: Record<string, XkVolRow>): void => {
+          if (!Object.entries(rows).some(([key, row]) => volDataRef.current[key] !== row)) return;
           volDataRef.current = { ...volDataRef.current, ...rows };
           setVolMap((prev) => ({ ...prev, ...rows })); // 流式：每院系到手即上屏
         };
-        let got = await fetchXkVolunteerByDept(sess, {
-          semester: sem,
-          depts: [...depts],
-          hasSports,
-          doneMap: volDeptsRef.current,
-          force,
-          onRows: merge,
-        });
-        volDataRef.current = { ...volDataRef.current, ...got };
-        setVolMap((prev) => ({ ...prev, ...got }));
+        if (hasSports) volRetriedRef.current["s:ty"] = 1;
+        if (depts.size || hasSports) {
+          const got = await fetchXkVolunteerByDept(sess, {
+            semester: sem,
+            depts: [...depts],
+            hasSports,
+            doneMap: volDeptsRef.current,
+            force,
+            onRows: merge,
+          });
+          merge(got);
+        }
         // ② 缺行院系 force 重拉（错页/过滤器丢失自愈；done 已标但行仍缺也要排——
         // 自愈就住在这里，newDepts 为空时它才更要跑，用户十九报 3a 场景）
-        const missing = pool.filter((r) => !matchVolRow(volDataRef.current, r.code, r.seq));
+        const missing = pool.filter((r) => !matchVolRow(volDataRef.current, r.code, r.seq)
+          || force && !deptCodeOf(r.department ?? "") && !isSportsCourse({ department: r.department }));
         if (missing.length) {
           const mdepts = new Set<string>();
           for (const r of missing) {
             const dc = deptCodeOf(r.department ?? "");
-            if (dc && !volRetriedRef.current[`d:${dc}`]) {
+            if (dc && (force || !volRetriedRef.current[`d:${dc}`])) {
               volRetriedRef.current[`d:${dc}`] = 1;
               mdepts.add(dc);
             }
@@ -1360,21 +1394,19 @@ export function useXkWorkbench(): XkWorkbench {
               doneMap: volDeptsRef.current,
               force: true,
             });
-            got = { ...got, ...extra };
-            volDataRef.current = { ...volDataRef.current, ...extra };
-            setVolMap((prev) => ({ ...prev, ...extra }));
+            merge(extra);
           }
           // ③ 分院视图缺行（用户二十报：070 缺心智探秘）→ 逐课 p_kch 定向查询
+          const queriedCodes = new Set<string>();
           for (const r of missing) {
-            if (matchVolRow(volDataRef.current, r.code, r.seq)) continue;
-            if (volRetriedRef.current[`k:${r.code}`]) continue;
+            if (matchVolRow(volDataRef.current, r.code, r.seq) && !(force && !deptCodeOf(r.department ?? ""))) continue;
+            if (queriedCodes.has(r.code) || !force && volRetriedRef.current[`k:${r.code}`]) continue;
+            queriedCodes.add(r.code);
             volRetriedRef.current[`k:${r.code}`] = 1;
             try {
               const m2 = await fetchXkVolCourse(sess, { semester: sem, code: r.code });
               if (Object.keys(m2).length) {
-                got = { ...got, ...m2 };
-                volDataRef.current = { ...volDataRef.current, ...m2 };
-                setVolMap((prev) => ({ ...prev, ...m2 }));
+                merge(m2);
               }
             } catch {
               /* 定向查询失败容忍 */
@@ -1388,8 +1420,9 @@ export function useXkWorkbench(): XkWorkbench {
       } finally {
         volInflightRef.current = false;
         if (volPendingRef.current) {
-          volPendingRef.current = false;
-          void refreshVolRef.current?.(volPoolRef.current); // 补跑用最近池
+          const pending = volPendingRef.current;
+          volPendingRef.current = null;
+          void refreshVolRef.current?.(pending.pool, pending.force);
         }
       }
     },

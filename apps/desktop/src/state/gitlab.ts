@@ -13,7 +13,7 @@ import { helper, libHydrateCredentials, libLoginPending, restoreGitlabSession } 
 import { explainNetworkError, nativeCookieClear, nativeFetch } from "../lib/transport.js";
 import { loginCooldownLeftMs } from "../lib/loginGate.js";
 import { roam } from "@onethu/info-lib";
-import { http } from "../lib/clients.js";
+import { http, session } from "../lib/clients.js";
 import type {
   GitAward,
   GitBranch,
@@ -84,14 +84,12 @@ async function gitlabProbe(): Promise<"alive" | "dead" | "unknown"> {
  * 票死 → 静默漫游换票（复用统一认证凭据 / finger3）→ 回探确认。返回 false = 没
  * 换好（无凭据 / 冷却期 / 探针不确定 / 换票失败），调用方照常走原路，不新增错误态。
  */
-export function gitlabEnsureSession(): Promise<boolean> {
+export function gitlabEnsureSession({forceProbe=false}: {forceProbe?:boolean} = {}): Promise<boolean> {
   if (ensureInflight) return ensureInflight;
   ensureInflight = (async () => {
     try {
       await restoreGitlabSession();
-      await libHydrateCredentials();
-      if (!helper.userId || !helper.password) return false;
-      if (Date.now() - probeAliveAt < PROBE_OK_TTL_MS) return true;
+      if (!forceProbe && Date.now() - probeAliveAt < PROBE_OK_TTL_MS) return true;
       const verdict = await gitlabProbe();
       if (verdict === "alive") {
         probeAliveAt = Date.now();
@@ -99,10 +97,13 @@ export function gitlabEnsureSession(): Promise<boolean> {
       }
       if (verdict !== "dead") return false;
       // 并发竞态：排在我们前面的链刚换好新票（探针期间手机时间近似）→ 直接续用
-      if (Date.now() - probeAliveAt < PROBE_OK_TTL_MS) return true;
+      if (!forceProbe && Date.now() - probeAliveAt < PROBE_OK_TTL_MS) return true;
       if (Date.now() - lastAutoRoamAt < AUTO_ROAM_COOLDOWN_MS) return false;
       // 不与正在进行的 2FA 登录链 / 主链重登抢道（都动 id/oauth 域，混跑必互踩）
       if (libLoginPending() || loginCooldownLeftMs() > 0) return false;
+      const owner = session.username;
+      await libHydrateCredentials();
+      if (!owner || session.username !== owner || helper.userId && helper.userId !== owner || libLoginPending()) return false;
       lastAutoRoamAt = Date.now();
       await roam(helper, "gitlab", "");
       const ok = (await gitlabProbe()) === "alive";

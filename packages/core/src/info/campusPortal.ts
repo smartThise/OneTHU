@@ -4,7 +4,7 @@ import { ROAMING_URL } from './urls.js';
 import { isXkSessionError } from '../zhjwxk/html-language.js';
 
 const INFO='https://info.tsinghua.edu.cn',ID='https://id.tsinghua.edu.cn',VPN='https://webvpn.tsinghua.edu.cn';
-const IDENTITY=new Set(['id.tsinghua.edu.cn','oauth.tsinghua.edu.cn']);
+const IDENTITY=new Set(['id.tsinghua.edu.cn','idp.tsinghua.edu.cn','oauth.tsinghua.edu.cn']);
 const LIMIT=128*1024;
 export interface CampusPortalResult { url:string;origin:string;upstreamOrigin:string;transport:'direct'|'webvpn' }
 export interface CampusPortalContext { csrf:string;fingerprint:string;finger3?:string;assertCurrent:()=>void;fetchDirect?:FetchLike }
@@ -28,6 +28,7 @@ function route(value:string,base?:URL):Route{
   const logical=new URL(decoded??physical.href);
   if(logical.username||logical.password||logical.port||logical.hash)reject('CAMPUS_SERVICE_TARGET_REJECTED');
   if(IDENTITY.has(logical.hostname)){
+    if(logical.hostname==='idp.tsinghua.edu.cn')reject('CAMPUS_SERVICE_IDENTITY_ROUTE_UNSUPPORTED');
     if(logical.protocol!=='https:')reject('CAMPUS_SERVICE_TARGET_REJECTED');
     if(logical.hostname==='id.tsinghua.edu.cn'&&!/^\/do\/off\/ui\/auth\/login\/form\/[0-9a-f]{32}\/[01]$/i.test(logical.pathname))reject('CAMPUS_SERVICE_IDENTITY_ROUTE_UNSUPPORTED');
     // The authenticated portal also uses /thu-oauth/inforoam (including cloud).

@@ -1755,6 +1755,18 @@
     "cli.package.repair": {
       "zh-CN": "重新安装",
       "en-US": "Reinstall"
+    },
+    "pages.zhjwxk.courses.noticeTitle": {
+      "zh-CN": "跨校课程选课说明",
+      "en-US": "Cross-university course guidance"
+    },
+    "pages.zhjwxk.courses.moreFilters": {
+      "zh-CN": "更多筛选",
+      "en-US": "More filters"
+    },
+    "pages.zhjwxk.courses.draftActions": {
+      "zh-CN": "暂存与草稿操作",
+      "en-US": "Staging and draft actions"
     }
   }
 }

@@ -8,7 +8,10 @@ import { GatewayError, normalizeAllowedOrigins, isCampusIdentityHost, originMemb
 import { createCertificateAuthority } from './certificates.mjs';
 import { createPlatformIntegration } from './platform.mjs';
 import { openGatewayBrowser } from './browser.mjs';
-import { withSecureCampusOrigins } from './routes.mjs';
+import { GITLAB_ORIGIN, withSecureCampusOrigins } from './routes.mjs';
+import { STU_ORIGIN } from './stuAuth.mjs';
+import { DISCOVER_ORIGIN } from './discoverAuth.mjs';
+import { THESIS_ORIGIN } from './thesisAuth.mjs';
 import { createPacScript } from './pac.mjs';
 import { createMacPeerAuthorizer } from './macPeer.mjs';
 import { createWindowsPeerAuthorizer } from './windowsPeer.mjs';
@@ -17,6 +20,7 @@ import { CLIENT_IDENTITY_HOST, CLIENT_BUSINESS_HOSTS } from './clientIdentity.mj
 import { gatewayCapabilities } from './capabilities.mjs';
 import {readEndpointHints,writeEndpointHints} from './endpointHints.mjs';
 import { createCampusPassthrough } from './passthrough.mjs';
+import { serveManagement } from './management.mjs';
 export { createPacScript } from './pac.mjs';
 export { DEFAULT_UPSTREAM_ORIGINS } from './routes.mjs';
 
@@ -29,6 +33,7 @@ export const DEFAULT_ALLOWED_ORIGINS = Object.freeze([
   'https://dzpj.tsinghua.edu.cn', 'https://usereg.tsinghua.edu.cn',
   'https://app.cs.tsinghua.edu.cn', 'http://jxgl.cic.tsinghua.edu.cn',
   'http://yhdf.tsinghua.edu.cn', 'http://zzjl.graduate.tsinghua.edu.cn',
+  GITLAB_ORIGIN, STU_ORIGIN, 'https://lib.tsinghua.edu.cn', DISCOVER_ORIGIN, THESIS_ORIGIN, 'https://www.xiaoda.tsinghua.edu.cn',
 ]);
 
 const fail = (code, status = 400) => { throw new GatewayError(code, status); };
@@ -63,7 +68,9 @@ async function privateToken(directory) {
  * the network service's inherited proxy rules, or DIRECT when none apply. */
 async function servePac(origins, endpoint, fallback, options) {
   const path = options?.listener?.pacPath ?? `/campus-${randomBytes(18).toString('hex')}.pac`;
-  const scriptNow = () => createPacScript(typeof origins === 'function' ? origins() : origins, endpoint, fallback, options);
+  const scriptNow = () => createPacScript(origins(), endpoint, fallback, {
+    ...options, managementPort: options.managementPort(),
+  });
   scriptNow();
   const sockets = new Set();
   const server = http.createServer((req, res) => {
@@ -118,12 +125,39 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
   const directory = join(resolve(dataDir), 'gateway');
   const certificateDirectory = join(directory, 'certificates');
   const certificatePath = join(certificateDirectory, 'ca.pem');
-  let authority, clientAuthority, platform, proxy, pac, token, endpointHints, lastError = null;
+  let authority, clientAuthority, platform, proxy, pac, management, token, endpointHints, lastError = null;
   let systemProxy;
   const systemPacs = new Map();
   const browsers = new Set();
   let queue = Promise.resolve();
   let closed = false;
+  const bypassHosts = () => endpointHints?.bypassHosts ?? [];
+  const managementPort = () => management?.port;
+  const isBypassed = host => bypassHosts().includes(host);
+
+  function getSites() {
+    const hosts = new Set(effectiveOrigins().map(origin => new URL(origin).hostname));
+    return { sites: [...hosts].map(host => ({ host, enabled: !isBypassed(host) })) };
+  }
+
+  function changeSite(host, enabled, stillOpen) {
+    const run = queue.then(async () => {
+      if (closed || !management || !stillOpen()) fail('GATEWAY_NOT_RUNNING', 503);
+      if (!getSites().sites.some(site => site.host === host)) fail('GATEWAY_TARGET_REJECTED');
+      if (isBypassed(host) === !enabled) return;
+      const next = new Set(bypassHosts());
+      if (enabled) next.delete(host);
+      else next.add(host);
+      const updated = { ...endpointHints, bypassHosts: [...next].sort() };
+      await writeEndpointHints(directory, updated);
+      endpointHints = updated;
+      if (enabled) session.prepareBrowserSite?.(host);
+      proxy?.disconnectSite(host);
+      systemProxy?.disconnectSite(host);
+    });
+    queue = run.catch(() => {});
+    return run;
+  }
 
   async function existingPlatform() {
     if (platform) return platform;
@@ -158,7 +192,8 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
       systemTraffic: systemProxy?.statistics() ?? { requests: 0, hosts: {} },
       capabilities: { ...gatewayCapabilities(hostPlatform), trustedMiniPrograms: !!session.clientIdentity && ['darwin','win32'].includes(hostPlatform) },
       clientRenewals: session.clientIdentity?.desktop?.status?.() ?? [],
-      allowedOrigins: effectiveOrigins(), pacUrl: pac?.url ?? null, lastError };
+      allowedOrigins: effectiveOrigins().filter(origin => !isBypassed(new URL(origin).hostname)),
+      managementUrl: management?.url ?? null, pacUrl: pac?.url ?? null, lastError };
   }
 
   async function setup() {
@@ -224,10 +259,18 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
         if (state.proxyEnabled || state.recoveryRequired) fail('GATEWAY_PROXY_RECOVERY_REQUIRED');
         await pac?.close(); pac = undefined;
         const next = createCampusGateway({ allowedOrigins: origins, token, session, tls: (hostname, options) => authority.issue(hostname, options), upgradeInsecureRequests: true,
+          isBypassed, connectBypass: createCampusPassthrough(),
           maxUploadBytes: 1024 * 1024 * 1024, maxDownloadBytes: 4 * 1024 * 1024 * 1024, timeoutMs: 180_000 });
         try { const endpoint = await next.listen({port:endpointHints.manual?.proxyPort??0});
-          pac = await servePac(effectiveOrigins, endpoint,undefined,{listener:endpointHints.manual});
-          endpointHints.manual={proxyPort:endpoint.port,...pac.hint};await writeEndpointHints(directory,endpointHints);proxy = next; }
+          pac = await servePac(effectiveOrigins, endpoint,undefined,{listener:endpointHints.manual,bypassHosts,managementPort});
+          const controls = { authorizePeer: ['darwin','win32'].includes(hostPlatform) ? peerAuthorizerFactory() : undefined, getSites, changeSite };
+          management ??= await serveManagement({ ...controls, port: endpointHints.managementPort }).catch(error => {
+            if (error.code !== 'EADDRINUSE') throw error;
+            return serveManagement(controls);
+          });
+          endpointHints.manual={proxyPort:endpoint.port,...pac.hint};
+          endpointHints.managementPort=management.port;
+          await writeEndpointHints(directory,endpointHints);proxy = next; }
         catch (error) { await next.close();await pac?.close();pac=undefined;throw error; }
       } else if (action === 'trust') await platform.trust({ confirm: true });
       else if (action === 'system-enable') {
@@ -242,6 +285,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
           const usedPorts=new Set(),nextHints={};
           const next = { address: () => groups.values().next().value?.address() ?? null,
             close: () => Promise.all([...groups.values()].map(item => item.close())),
+            disconnectSite: host => { for (const gateway of groups.values()) gateway.disconnectSite(host); },
             statistics() {
               const result = { requests: 0, hosts: {}, recentRejections: [], clientDiagnostics:{verifiedConnections:0,otherConnections:0,tlsFailures:0,sharedRequests:0,independentRequests:0,recentRequests:[],identityRequests:[]} };
               for (const gateway of groups.values()) {
@@ -270,6 +314,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
                 if (trustedClients) clientAuthority ??= await certificateFactory({ directory: certificateDirectory,
                   allowedHosts: [CLIENT_IDENTITY_HOST, ...CLIENT_BUSINESS_HOSTS] });
                 gateway = createCampusGateway({ allowedOrigins: origins, session, authorizeSocket,
+                  isBypassed, connectBypass: passthrough,
                   ...(trustedClients ? { resolveClient: createTrustedClientResolver(authorizeSocket), clientIdentity: session.clientIdentity,
                     tlsClient: (hostname, options) => clientAuthority.issue(hostname, options) } : {}),
                   ...(passthrough ? { connectPassthrough: passthrough } : {}),
@@ -282,7 +327,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
                 // proxies intact rather than routing the whole browser to 503.
                 await gateway.preflight();
               }
-              const servicePac=await servePac(effectiveOrigins, gateway.address(), service.fallback, { campusPassthrough: !!passthrough, trustedClients,listener:hint });
+              const servicePac=await servePac(effectiveOrigins, gateway.address(), service.fallback, { campusPassthrough: !!passthrough, trustedClients,listener:hint,bypassHosts,managementPort });
               systemPacs.set(service.name,servicePac);Object.defineProperty(nextHints,service.name,{value:{proxyPort:gateway.address().port,...servicePac.hint},enumerable:true});
             }
             endpointHints.services=nextHints;await writeEndpointHints(directory,endpointHints);
@@ -325,6 +370,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
         try { await stop({ revoke: true }); }
         finally {
           closed = true; await proxy?.close(); proxy = undefined; await systemProxy?.close(); systemProxy = undefined;
+          await management?.close(); management = undefined;
           await pac?.close(); pac = undefined;
           await Promise.all([...systemPacs.values()].map(item => item.close())); systemPacs.clear();
         }

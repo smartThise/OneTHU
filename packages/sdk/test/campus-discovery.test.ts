@@ -3,6 +3,36 @@ import assert from 'node:assert/strict';
 import { MemoryCookieJar, webvpnWrap } from '@onethu/core';
 import { createCampusProxySession } from '../src/node/campusProxy.js';
 
+test('official WebVPN service tickets override a public direct-host default and retain their route after reload',async()=>{
+ const info='https://info.tsinghua.edu.cn';
+ const origin='https://zhjw.cic.tsinghua.edu.cn';
+ const callback=origin+'/tyjx.tyjx_kw_xscjb.do?m=queryXsCjAll&ticket=fixture-ticket';
+ const seen:{url:string;referer:string|null}[]=[];
+ let cache:unknown;
+ const runtime={epoch:()=>1,assertCurrent(){},status:()=>({authenticated:true}),session:{username:'fixture-owner'},
+  http:{jar:new MemoryCookieJar()},loadGatewayState:()=>cache,saveGatewayState(value:unknown){cache=value;},
+  resolveCampusPortal:async()=>({url:callback,origin,upstreamOrigin:'http://zhjw.cic.tsinghua.edu.cn',transport:'webvpn' as const}),
+  fetch:async(url:string,init:RequestInit)=>{seen.push({url,referer:new Headers(init.headers).get('referer')});return new Response('running results');},
+  fetchCampusDirect:async()=>{throw new Error('A WebVPN ticket cannot be redeemed on the direct route');},
+ };
+ const origins=[info,origin,'http://zhjw.cic.tsinghua.edu.cn'];
+ const proxy=createCampusProxySession(runtime as any,origins);
+ await proxy.request(info+'/f/info/portal_fg/teacher/roamingToApp?yyfwid=02380C5D6E263477772F7AA7018A51AF');
+ assert.equal(await(await proxy.request(callback,{headers:{referer:origin+'/home'}})).text(),'running results');
+ assert.deepEqual(seen[0],{url:webvpnWrap(callback.replace('https:','http:')),referer:webvpnWrap('http://zhjw.cic.tsinghua.edu.cn/home')});
+ const restored=createCampusProxySession(runtime as any,origins);
+ await(await restored.request(origin+'/tyjx.tyjx_kw_xscjb.do?m=queryXsCjAll')).text();
+ assert.equal(seen[1]!.url,webvpnWrap('http://zhjw.cic.tsinghua.edu.cn/tyjx.tyjx_kw_xscjb.do?m=queryXsCjAll'));
+ const document=await restored.request(info+'/f/info/portal_fg/teacher/roamingToApp?yyfwid=02380C5D6E263477772F7AA7018A51AF',{
+  headers:{'sec-fetch-dest':'document','sec-fetch-site':'cross-site'},
+ });
+ assert.equal(document.status,200);
+ assert.match(document.headers.get('content-security-policy')??'',/default-src 'none'/);
+ const html=await document.text();
+ assert.match(html,/http-equiv="refresh"/);
+ assert.ok(html.includes(callback.replaceAll('&','&amp;')));
+});
+
 test('official portal discovery grants a new service, carries its minted token and revokes it on account switch',async()=>{
  const origin='https://not-in-source.tsinghua.edu.cn';
  const token='eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmaXh0dXJlIn0.fixtureSignature123';

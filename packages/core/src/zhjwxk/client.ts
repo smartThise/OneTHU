@@ -151,6 +151,10 @@ async function isoHttp(s: ZhjwxkSession): Promise<HttpClient | null> {
   const http = new HttpClient({ fetch: s.isoFetch, jar });
   http.withWebVPN(s.http.viaWebVPN);
   http.webVPNEncoder = s.http.webVPNEncoder;
+  // Native transports ignore a JS Cookie header. Bootstrap cookies must reach
+  // their native jar before HttpClient replays the application request.
+  http.nativeSeedHook = s.http.nativeSeedHook;
+  http.debug = s.http.debug;
   isoClientCache.set(s, { http, at: Date.now() });
   return http;
 }
@@ -210,10 +214,11 @@ async function ensure(
   // 实际是「webvpn 重登录」——登录成功后兑付锚点落在 webvpn 门户页而非选课页
   //（probe 实证：落地「清华大学WebVPN - 资源站点」）。此时新 webvpn 会话已在 jar，
   // 重放一次 xklogin 即真正进入选课 SSO。直连模式落地即真页面，第二跳自然跳过。
-  let html = "";
-  let semester: string | null = null;
+  let html = await http.text(ZHJWXK + "/xkBks.vxkBksXkbBs.do?m=main", {}, { validateStatus: true });
+  let semester = /p_xnxq=([\d-]+)/.exec(html)?.[1] ?? null;
+  const businessReady = !isXkSessionError(html) && /xk\/top\.html|xkBks\.|p_xnxq/.test(html);
   let identityRenewed = false;
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  for (let attempt = 1; !businessReady && attempt <= 2; attempt++) {
   html = await http.text(ZHJWXK + "/xklogin.do", {}, { validateStatus: true });
 
   // xklogin 的 SSO 不是普通 302：链会 302 到 id 电子身份的动态 auth-request 表单页
@@ -395,7 +400,7 @@ async function ensure(
   // 里没有 zhjwxk 票——全局会话从没访问过 zhjwxk；双 GET 仍壳实证壳靠 JS
   // 无头拿不到票）。改走 wengine 的票获取接口（libEnsureSession 同款探针），
   // nativeFetch 底座自动把签发的票种进 rust 权威仓，后续包装请求带上票。
-  try {
+  if (!businessReady) try {
     const probe = await s.isoFetch?.(
       "https://webvpn.tsinghua.edu.cn/wengine-vpn/cookie?method=get&host=zhjwxk.cic.tsinghua.edu.cn&scheme=http&path=/",
     );
@@ -475,6 +480,23 @@ export async function fetchZhjwxkPage(s: ZhjwxkSession, path: string): Promise<s
   }
   assertNotDenied(s, html);
   return html;
+}
+
+/** Publish the verified selection jar even when its session entry was cached. */
+export async function syncZhjwxkSession(
+  s: ZhjwxkSession,
+  onSessionReady: ZhjwxkSession["onSessionReady"] = s.onSessionReady,
+): Promise<void> {
+  const html = await fetchZhjwxkPage(s, "/xkBks.vxkBksXkbBs.do?m=main");
+  if (isXkSessionError(html) || !/xk\/top\.html|xkBks\.|p_xnxq/.test(html)) {
+    throw xkAuthRequired("选课业务页面尚未确认登录，请稍后重试");
+  }
+  // A newly established session already publishes identityRenewed=true in
+  // ensure(). Re-publishing this service scope cannot replace identity state.
+  await onSessionReady?.({
+    identityRenewed: false,
+    cookies: JSON.parse(xkHttp(s).jar.serialize()) as CookieRecord[],
+  });
 }
 
 /* ── 解析（demo 正则逐行照抄）────────────────────────────────── */

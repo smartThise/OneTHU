@@ -2,11 +2,12 @@ import http from 'node:http';
 import tls from 'node:tls';
 import { timingSafeEqual, randomBytes } from 'node:crypto';
 import { Transform } from 'node:stream';
+import { forwardOriginalHttp } from './originalHttp.mjs';
 import { CLIENT_IDENTITY_HOST, CLIENT_BUSINESS_HOSTS, createMiniNavigationGrants, parseClientTarget, describeMiniRequest } from './clientIdentity.mjs';
 import {
   GatewayError, normalizeAllowedOrigins, parseProxyTarget, parseConnectAuthority, parseCampusConnectAuthority,
   parseTunnelTarget, sanitizeRequestHeaders, sanitizeResponseHeaders,
-  validateFetchMetadata, validateMethod, campusLandingCategory, originMembership,
+  validateFetchMetadata, validateMethod, campusLandingCategory, originMembership, isLibrarySearchFormNavigation,
 } from './policy.mjs';
 
 export { GatewayError } from './policy.mjs';
@@ -106,6 +107,7 @@ export function createCampusGateway(options = {}) {
   const maxDownloadBytes = boundedInteger(options.maxDownloadBytes, 64 * 1024 * 1024, 4 * 1024 * 1024 * 1024);
   const maxConnections = boundedInteger(options.maxConnections, 32, 1024);
   const sockets = new Set();
+  const tunnelHosts = new Map();
   const controllers = new Set();
   const tunnels = new WeakMap();
   const peerChecks = new WeakMap();
@@ -243,6 +245,20 @@ export function createCampusGateway(options = {}) {
       }
       target = tunnel?.client ? parseClientTarget(req.url, req.headers.host, tunnel)
         : tunnel ? parseTunnelTarget(req.url, req.headers.host, tunnel, origins) : parseProxyTarget(req.url, req.headers.host, origins);
+      if (options.isBypassed?.(target.hostname)) {
+        if (tunnel || target.protocol !== 'http:' || !options.connectBypass) fail('GATEWAY_SITE_BYPASSED', 403);
+        if (activeRequests >= maxConnections) fail('GATEWAY_BUSY', 503);
+        activeRequests++; counted = true;
+        controller = new AbortController(); controllers.add(controller);
+        timer = setTimeout(() => controller.abort(new GatewayError('GATEWAY_TIMEOUT', 504)), timeoutMs);
+        timer.unref();
+        req.once('aborted', cancel); req.once('error', cancel); res.once('close', disconnected);
+        tunnelHosts.set(req.socket, target.hostname);
+        await forwardOriginalHttp(req, res, target, {
+          connect: options.connectBypass, signal: controller.signal, maxUploadBytes, maxDownloadBytes,
+        });
+        return;
+      }
       validateMethod(req.method, target);
       // Legacy campus HTTP pages lack browser Fetch Metadata. Redirect safe
       // navigations to an explicitly enabled HTTPS facade before borrowing any
@@ -278,6 +294,10 @@ export function createCampusGateway(options = {}) {
       }
       const epoch = tunnel?.epoch ?? currentEpoch();
       assertEpoch(epoch);
+      if (!clientRequest && isLibrarySearchFormNavigation(req.headers, target, origins, { method: req.method, hasBody })) {
+        res.writeHead(303, { Location: target.href, 'Cache-Control': 'no-store', Connection: 'close', 'Content-Length': '0' }).end();
+        return;
+      }
       if (activeRequests >= maxConnections) fail('GATEWAY_BUSY', 503);
       activeRequests++; counted = true;
       controller = new AbortController(); controllers.add(controller);
@@ -285,20 +305,25 @@ export function createCampusGateway(options = {}) {
       timer.unref();
       const check = () => {
         if (controller.signal.aborted) throw controller.signal.reason;
+        if (options.isBypassed?.(target.hostname)) fail('GATEWAY_SITE_BYPASSED', 403);
         assertEpoch(epoch);
         if (!clientRequest && !origins.has(target.origin)) fail('GATEWAY_TARGET_REJECTED', 403);
       };
       req.once('aborted', cancel); req.once('error', cancel); res.once('close', disconnected);
       let allowAuthorization = false;
+      let independentCredential = false;
       if (req.headers.authorization !== undefined && session.authorizeBrowserCredential) {
         try {
           const decision = session.authorizeBrowserCredential(target.href, 'authorization', req.headers.authorization);
           if (decision && typeof decision.then === 'function') void Promise.resolve(decision).catch(() => {});
           allowAuthorization = decision === true;
+          if (!allowAuthorization && session.authorizeIndependentBrowserCredential) {
+            independentCredential = session.authorizeIndependentBrowserCredential(target.href, 'authorization', req.headers.authorization) === true;
+          }
         } catch { /* A failed witness lookup must never forward a credential. */ }
       }
       check();
-      const headers = sanitizeRequestHeaders(req.rawHeaders, { allowAuthorization: allowAuthorization || !!clientRequest && !clientRequest.identity });
+      const headers = sanitizeRequestHeaders(req.rawHeaders, { allowAuthorization: allowAuthorization || independentCredential || !!clientRequest && !clientRequest.identity });
       if (clientRequest?.unborrowed && typeof req.headers.cookie === 'string') headers.set('cookie',req.headers.cookie);
       if (hasBody) {
         let sent = 0;
@@ -317,7 +342,8 @@ export function createCampusGateway(options = {}) {
       if (upload) { init.body = upload; init.duplex = 'half'; }
       const response = upstreamResponse = await withSignal(Promise.resolve().then(() => {
         check(); return clientRequest?.unborrowed ? options.clientIdentity.passthrough(target.href,init)
-          : clientRequest ? options.clientIdentity.request(target.href, init, clientRequest) : session.request(target.href, init);
+          : clientRequest ? options.clientIdentity.request(target.href, init, clientRequest)
+          : independentCredential ? session.requestIndependent(target.href, init) : session.request(target.href, init);
       }), controller.signal, value => value?.body?.cancel());
       check();
       if (!response || !Number.isInteger(response.status) || response.status < 200 || response.status > 599 || !response.headers || response.body && typeof response.body.getReader !== 'function') fail('GATEWAY_UPSTREAM_INVALID', 502);
@@ -334,7 +360,7 @@ export function createCampusGateway(options = {}) {
       // Learn's own JavaScript reads its non-authentication CSRF cookie. Only
       // the account adapter may project this one explicitly approved value;
       // upstream Set-Cookie and all browser authentication cookies stay hidden.
-      if (['https://learn.tsinghua.edu.cn', 'https://info.tsinghua.edu.cn'].includes(target.origin) && session.browserCookies) {
+      if (['https://learn.tsinghua.edu.cn', 'https://info.tsinghua.edu.cn', 'https://info2021.tsinghua.edu.cn'].includes(target.origin) && session.browserCookies) {
         const cookies = await withSignal(Promise.resolve().then(() => session.browserCookies(target.href)), controller.signal);
         check();
         if (!Array.isArray(cookies) || cookies.length > 1 || cookies.some(cookie => cookie?.name !== 'XSRF-TOKEN' ||
@@ -364,6 +390,12 @@ export function createCampusGateway(options = {}) {
     } catch (error) {
       recordRejection(req, target, error);
       controller?.abort(safeError(error));
+      if (tunnel && error?.code === 'GATEWAY_SITE_BYPASSED' && ['GET','HEAD'].includes(req.method) && !res.headersSent) {
+        // A route changed while this old tunnel was in flight. Reconnect a
+        // read-only browser navigation instead of committing an error page.
+        req.socket.destroy();
+        return;
+      }
       respondError(res, error, req);
     } finally {
       clearTimeout(timer);
@@ -403,7 +435,7 @@ export function createCampusGateway(options = {}) {
     sockets.add(socket);
     socket.on('error', () => {});
     socket.setTimeout(timeoutMs, () => socket.destroy());
-    socket.once('close', () => sockets.delete(socket));
+    socket.once('close', () => { sockets.delete(socket); tunnelHosts.delete(socket); });
   });
 
   server.on('connect', (req, socket, head) => {
@@ -423,20 +455,26 @@ export function createCampusGateway(options = {}) {
         await authenticate(req);
         if (framing(req)) fail('GATEWAY_REQUEST_REJECTED');
         const clientHost = String(req.url).replace(/:443$/, '');
-        const clientEligible = options.clientIdentity && peerAuthorization && options.resolveClient && options.tlsClient &&
+        const bypassed = options.isBypassed?.(String(req.url).replace(/:\d+$/, '').toLowerCase()) === true;
+        const clientEligible = !bypassed && options.clientIdentity && peerAuthorization && options.resolveClient && options.tlsClient &&
           req.url === `${clientHost}:443` && [CLIENT_IDENTITY_HOST, ...CLIENT_BUSINESS_HOSTS].includes(clientHost) &&
           [clientHost, req.url].includes(req.headers.host);
         const client = clientEligible ? await options.resolveClient(socket) : null;
         if (clientEligible) clientDiagnostics[client ? 'verifiedConnections' : 'otherConnections']++;
-        const identityPassthrough = clientEligible && clientHost === CLIENT_IDENTITY_HOST && !client;
-        if(options.connectPassthrough&&!client&&(!origins.has(`https://${String(req.url).replace(/:443$/,'')}`)||identityPassthrough)){
-          const candidate = identityPassthrough ? new URL(`https://${CLIENT_IDENTITY_HOST}/`) : parseCampusConnectAuthority(req.url,req.headers.host);
-          if(!origins.has(candidate.origin)){
+        const identityPassthrough = !client && (clientEligible && clientHost===CLIENT_IDENTITY_HOST
+          || clientHost==='idp.tsinghua.edu.cn' && req.url===`${clientHost}:443` && [clientHost,req.url].includes(req.headers.host));
+        const connectOpaque = bypassed ? options.connectBypass : options.connectPassthrough;
+        if(connectOpaque&&!client&&(bypassed||!origins.has(`https://${clientHost}`)||identityPassthrough)){
+          const candidate = identityPassthrough ? new URL(`https://${clientHost}/`)
+            : bypassed && /:443$/.test(req.url) && origins.has(`https://${clientHost.toLowerCase()}`)
+              ? parseConnectAuthority(req.url,req.headers.host,origins) : parseCampusConnectAuthority(req.url,req.headers.host);
+          if(bypassed||!origins.has(candidate.origin)){
             target=candidate;
+            tunnelHosts.set(socket,target.hostname);
             controller=new AbortController();controllers.add(controller);
             socket.once('close',disconnected);
             timer=setTimeout(()=>controller.abort(new GatewayError('GATEWAY_TIMEOUT',504)),10000);timer.unref();
-            const upstream=await withSignal(options.connectPassthrough(target,{signal:controller.signal}),controller.signal,s=>s.destroy());
+            const upstream=await withSignal(connectOpaque(target,{signal:controller.signal}),controller.signal,s=>s.destroy());
             if(socket.destroyed||controller.signal.aborted){upstream.destroy();throw controller.signal.reason;}
             clearTimeout(timer);
             socket.write('HTTP/1.1 200 Connection Established\r\n\r\n');established=true;
@@ -449,6 +487,8 @@ export function createCampusGateway(options = {}) {
           }
         }
         target = client ? new URL(`https://${clientHost}/`) : parseConnectAuthority(req.url, req.headers.host, origins);
+        tunnelHosts.set(socket,target.hostname);
+        if (options.isBypassed?.(target.hostname)) fail('GATEWAY_SITE_BYPASSED', 403);
         // Browsers do not attach page provenance to the CONNECT handshake.
         // Every HTTP request inside this authenticated tunnel is checked below.
         if (req.headers.origin !== undefined || req.headers['sec-fetch-site'] !== undefined) validateFetchMetadata(req.headers, target);
@@ -482,7 +522,7 @@ export function createCampusGateway(options = {}) {
           secure.setTimeout(timeoutMs, () => secure.destroy());
           try {
             assertEpoch(epoch);
-            if (stopped || controller.signal.aborted || !client && !origins.has(target.origin) || secure.servername && secure.servername.toLowerCase() !== target.hostname || secure.alpnProtocol && secure.alpnProtocol !== 'http/1.1') fail('GATEWAY_TLS_SNI_REJECTED', 403);
+            if (stopped || controller.signal.aborted || options.isBypassed?.(target.hostname) || !client && !origins.has(target.origin) || secure.servername && secure.servername.toLowerCase() !== target.hostname || secure.alpnProtocol && secure.alpnProtocol !== 'http/1.1') fail('GATEWAY_TLS_SNI_REJECTED', 403);
             tunnels.set(secure, { origin: target.origin, hostname: target.hostname, epoch, ...(client ? { client } : {}) });
             inner.emit('connection', secure);
           } catch { secure.destroy(); }
@@ -496,7 +536,7 @@ export function createCampusGateway(options = {}) {
         clearTimeout(timer);
         if (controller) controllers.delete(controller);
         socket.off('close', disconnected);
-        if (established) socket.destroy();
+        if (established || error?.code === 'GATEWAY_SITE_BYPASSED') socket.destroy();
         else socketError(socket, error);
       }
     })();
@@ -517,6 +557,9 @@ export function createCampusGateway(options = {}) {
     address() {
       const address = server.address();
       return address && typeof address === 'object' ? { host: '127.0.0.1', port: address.port } : null;
+    },
+    disconnectSite(hostname) {
+      for (const [socket, host] of tunnelHosts) if (host === hostname) socket.destroy();
     },
     async preflight() {
       if (!peerAuthorization || stopped || !listening) fail('GATEWAY_PREFLIGHT_UNAVAILABLE', 503);

@@ -59,6 +59,79 @@ test('browser service preparation uses only existing SSO confirmation and never 
   }finally{await sdk.close();}
  }
 });
+test('selection ticket redemption probes its business home without restarting CAS',async t=>{
+ const cases=[
+  {html:'<iframe src="/xk/top.html"></iframe>',ready:true},
+  {html:'<script>var __vpn_hostname_data="fixture";var __vpn_app_hostname_data="fixture";var p_xnxq="2026-2027-1";</script><frameset><frame src="xk/top.html"></frameset>',ready:true},
+  {html:'<p>用户登陆超时或访问内容不存在。</p><a href="xkBks.invalid.do">选课</a>',ready:false},
+  {html:'<p>Your session has expired. Please sign in again.</p><a href="xkBks.invalid.do">Selection</a>',ready:false},
+  {html:'<form action="/do/off/ui/auth/login/checkSingle"><input name="xkBks.fixture"></form>',ready:false},
+  {html:'<p>选课</p>',ready:false},
+ ];
+ for(const entry of cases){
+  const dir=await temporary(t),school=fakeSchool();
+  let homeReads=0;
+  const requests:{path:string;method:string;body:string;search:string}[]=[];
+  const sdk=await createNodeSession({dataDir:dir,fetch:(async(raw:string,init:RequestInit={})=>{
+   const url=new URL(webvpnDecodeUrl(raw)??raw);
+   requests.push({path:url.pathname,method:init.method??'GET',body:String(init.body??''),search:url.search});
+   if(url.pathname.includes('/login/form/'))return new Response(null,{status:302,headers:{location:'https://zhjwxk.cic.tsinghua.edu.cn/j_acegi_formlogin_xsxk.do?ticket=fixture'}});
+   if(url.pathname==='/lb-auth/lbredirect')return new Response('ticket redeemed');
+   if(url.pathname==='/xkBks.vxkBksXkbBs.do')return new Response(++homeReads===1?'<p>Session expired</p>':entry.html);
+   if(url.pathname==='/xklogin.do')throw new Error('The login entry must not be used as a session probe');
+   return school.fetch(raw,init);
+  }) as typeof fetch});
+  try{
+   await sdk.restore();
+   if(entry.ready)await sdk.ensureCampusService('https://zhjwxk.cic.tsinghua.edu.cn');
+   else await assert.rejects(sdk.ensureCampusService('https://zhjwxk.cic.tsinghua.edu.cn'),{code:'CAMPUS_SERVICE_SSO_REQUIRED'});
+   assert.equal(sdk.status().authenticated,true);
+   assert.equal(requests.filter(r=>r.path==='/xklogin.do').length,0);
+   const home=requests.filter(r=>r.path==='/xkBks.vxkBksXkbBs.do');
+   assert.equal(home.length,2);assert(home.every(r=>r.method==='GET'&&r.search==='?m=main'));
+   assert.equal(requests.filter(r=>r.path.includes('/login/form/')).length,1);
+   assert(requests.every(r=>r.method==='GET'&&!r.body));
+  }finally{await sdk.close();}
+ }
+});
+test('a valid selection business session survives an expired ID session without requesting authentication',async t=>{
+ const dir=await temporary(t),school=fakeSchool(),requests:string[]=[];
+ const sdk=await createNodeSession({dataDir:dir,fetch:(async(raw:string,init:RequestInit={})=>{
+  const url=new URL(webvpnDecodeUrl(raw)??raw);requests.push(url.pathname);
+  if(url.hostname==='id.tsinghua.edu.cn')throw new Error('The expired ID session must not be consulted');
+  if(url.pathname==='/xklogin.do')throw new Error('Do not restart an active selection session');
+  if(url.pathname==='/xkBks.vxkBksXkbBs.do')return new Response('<iframe src="/xk/top.html"></iframe>');
+  return school.fetch(raw,init);
+ }) as typeof fetch});
+ try{
+  await sdk.restore();requests.length=0;
+  await sdk.ensureCampusService('https://zhjwxk.cic.tsinghua.edu.cn');
+  assert.deepEqual(requests,['/xkBks.vxkBksXkbBs.do']);
+  assert.equal(sdk.status().authenticated,true);
+ }finally{await sdk.close();}
+});
+test('GitLab renewal verifies a scoped cookie in isolation before changing the live jar',async t=>{
+  const dir=await temporary(t),school=fakeSchool();
+  const gitlab=new URL('https://git.tsinghua.edu.cn/');
+  const sdk=await createNodeSession({dataDir:dir,fetch:(async(raw:string,init:RequestInit={})=>{
+    if(raw!==new URL('/api/v4/user',gitlab).href)return school.fetch(raw,init);
+    const cookie=new Headers(init.headers).get('cookie');
+    assert.equal(init.redirect,'manual');
+    if(cookie!=='_gitlab_session=fresh')return new Response('expired',{status:401,headers:{'set-cookie':'probe=discard; Path=/; Secure'}});
+    return Response.json({id:42},{headers:{'set-cookie':'_gitlab_session=rotated; Path=/; Secure; HttpOnly'}});
+  }) as typeof fetch});
+  t.after(()=>sdk.close());
+  await sdk.restore();
+  sdk.http.jar.setRaw(gitlab,'_gitlab_session=previous; Path=/; Secure; HttpOnly');
+  const before=sdk.http.jar.serialize();
+  await assert.rejects(sdk.renewGitlabSession(async()=> 'expired'),{code:'CAMPUS_SERVICE_SSO_REQUIRED'});
+  assert.equal(sdk.http.jar.serialize(),before);
+  await sdk.renewGitlabSession(async()=> 'fresh');
+  assert.deepEqual(sdk.http.jar.getCookies(gitlab).map(({name,value,httpOnly})=>({name,value,httpOnly})),
+    [{name:'_gitlab_session',value:'rotated',httpOnly:true}]);
+  assert.match(sdk.http.jar.serialize(),/fixture-cookie/);
+  assert.equal(sdk.status().authenticated,true);
+});
 test('another account response clears saved cookies and invalidates the previous generation',async t=>{
   const dir=await temporary(t);const sdk=await createNodeSession({dataDir:dir,fetch:fakeSchool({account:'87654321'}).fetch});t.after(()=>sdk.close());const epoch=sdk.epoch();
   await assert.rejects(sdk.restore(),{code:'AUTH_SESSION_CONFLICT'});assert.equal(sdk.status().authenticated,false);assert.equal(sdk.http.jar.serialize(),'[]');assert.throws(()=>sdk.assertCurrent(epoch),{code:'AUTH_SESSION_CHANGED'});await sdk.close();assert.equal(JSON.parse(await readFile(path.join(dir,'session.json'),'utf8')).session,null);

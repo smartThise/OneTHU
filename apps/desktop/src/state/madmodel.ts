@@ -281,7 +281,7 @@ async function acquireMadModelToken(force: boolean): Promise<string> {
     await assertMintContext(context);
     // ID 的跨应用 SSO 与 info 门户会话分别建立。门户仍可发票时，不能让
     // “SSO 是登录页 → 学习会话健康 → 重试同一个 SSO”成为永远失败的循环。
-    let portalTicket = sso.ticket ? null : await fetchPortalTicket(context);
+    let portalTicket = sso.ticket ? null : await fetchPortalTicket(() => assertMintContext(context));
     await assertMintContext(context);
     if (!sso.ticket && !portalTicket && sso.noSession) {
       // SSO 会话守卫（2026-10-10）：复用 lib 静默重登（记住密码 + 受信指纹 → 免 2FA，
@@ -296,7 +296,7 @@ async function acquireMadModelToken(force: boolean): Promise<string> {
       await assertMintContext(context);
       void logLine(`[MADMODEL] 门户会话守卫：${relogged ? "会话可用，重试门户取票" : "会话未恢复"}`).catch(() => undefined);
       if (relogged) {
-        portalTicket = await fetchPortalTicket(context);
+        portalTicket = await fetchPortalTicket(() => assertMintContext(context));
         await assertMintContext(context);
         if (!portalTicket) sso = await fetchSsoTicket();
         await assertMintContext(context);
@@ -379,28 +379,28 @@ function ticketFrom(value: string): string | null {
 /** 只用已有门户会话取票；不调用模型，也不提交用户名/密码或登记信任设备。
  * 与 DSH ticketFromTunnel 同源：门户发出的 /authLogin 入口需要先落地一次。
  * URL 必须严格属于 MadModel，门户异常 HTML/空结果不能算续签成功。 */
-async function fetchPortalTicket(context: MintContext): Promise<string | null> {
+async function fetchPortalTicket(assertCurrent: () => Promise<void>): Promise<string | null> {
   try {
     const cookie = await http.request(INFO_COOKIE, { redirect: "follow" });
-    await assertMintContext(context);
+    await assertCurrent();
     if (cookie.status === 429 || cookie.status >= 500) {
       throw new TemporaryMadModelError(i18n("state.madmodel.795ecc37977c", { status: String(cookie.status) }), retryAt(cookie));
     }
     if (cookie.status !== 200) return null;
     const cookieText = await cookie.text();
-    await assertMintContext(context);
+    await assertCurrent();
     const rawCsrf = /(?:^|[;\s])XSRF-TOKEN=([^;\s]+)/.exec(cookieText)?.[1];
     if (!rawCsrf) return null;
     let csrf = rawCsrf;
     try { csrf = decodeURIComponent(rawCsrf); } catch { /* 保留服务端原值 */ }
     const roam = await http.request(`${INFO_ROAM}?${new URLSearchParams({ yyfwid: MADMODEL_ROAM_ID, _csrf: csrf, machine: "p" })}`, { redirect: "follow" });
-    await assertMintContext(context);
+    await assertCurrent();
     if (roam.status === 429 || roam.status >= 500) {
       throw new TemporaryMadModelError(i18n("state.madmodel.795ecc37977c", { status: String(roam.status) }), retryAt(roam));
     }
     if (roam.status !== 200) return null;
     const body = await roam.json().catch(() => null) as { object?: { roamingurl?: unknown } } | null;
-    await assertMintContext(context);
+    await assertCurrent();
     if (typeof body?.object?.roamingurl !== "string") return null;
     const rawTarget = body.object.roamingurl.replace(/&amp;/gi, "&");
     const target = new URL(webvpnDecodeUrl(rawTarget) || rawTarget);
@@ -411,7 +411,7 @@ async function fetchPortalTicket(context: MintContext): Promise<string | null> {
     const base = String(getPlugin(HARNESS_ID)?.settings?.madmodelBase ?? "");
     try {
       const landing = await http.request(base ? webvpnWrap(target.href) : target.href, { redirect: "follow", direct: !base });
-      await assertMintContext(context);
+      await assertCurrent();
       if (landing.status === 429 || landing.status >= 500) {
         throw new TemporaryMadModelError(i18n("state.madmodel.6aa588205779", { status: String(landing.status) }), retryAt(landing));
       }
@@ -425,6 +425,53 @@ async function fetchPortalTicket(context: MintContext): Promise<string | null> {
     void logLine("[MADMODEL] info 门户漫游暂未取得票据").catch(() => undefined);
     return null;
   }
+}
+
+/** Return a real, unredeemed school ticket for the same-account browser. */
+export async function madmodelGatewayTicket(): Promise<string | null> {
+  const epoch = await nativeSessionEpoch();
+  const owner = session.username;
+  const check = async () => {
+    await assertNativeSessionEpoch(epoch);
+    if (!owner || session.username !== owner || session.state !== "ready") throw new MadModelSessionChangedError();
+  };
+  await check();
+  const portalTicket = await fetchPortalTicket(check);
+  await check();
+  if (portalTicket) return portalTicket;
+  const result = await fetchSsoTicket();
+  await check();
+  if (result.ticket || !result.noSession) return result.ticket;
+  const { libEnsureSession, libLoginPending, libHydrateCredentials, helper } = await import("../lib/infoLib.js");
+  if (libLoginPending()) return null;
+  const restored = await libEnsureSession();
+  await check();
+  if (!restored) return null;
+  const renewed = await fetchPortalTicket(check);
+  await check();
+  if (renewed) return renewed;
+  const retry = await fetchSsoTicket();
+  await check();
+  if (retry.ticket || !retry.noSession || libLoginPending()) return retry.ticket;
+  await libHydrateCredentials();
+  await check();
+  if (helper.userId !== owner || !helper.password) return null;
+  const entry = await http.request(SSO_FORM, { redirect: "follow" });
+  const html = await entry.text();
+  await check();
+  const { InfoHelper, idLoginResponse } = await import("@onethu/info-lib");
+  const serviceHelper = new InfoHelper();
+  serviceHelper.userId = owner;
+  serviceHelper.password = helper.password;
+  serviceHelper.fingerprint = session.fingerprint;
+  serviceHelper.fingerGenPrint = session.finger3;
+  serviceHelper.trustBrowser = false;
+  serviceHelper.singleSignOn = false;
+  try {
+    const response = await idLoginResponse(serviceHelper, html, "https://id.tsinghua.edu.cn/do/off/ui/auth/login/check", "i_user");
+    await check();
+    return ticketFrom(response);
+  } finally { serviceHelper.password = ""; }
 }
 
 async function fetchSsoTicket(): Promise<TicketResult> {

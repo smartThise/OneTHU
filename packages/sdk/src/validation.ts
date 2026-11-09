@@ -1,4 +1,10 @@
 export type Schema = Record<string, any>;
+export { STU_ORIGIN, parseStuAuthEntry, validStuCallback, normalizeStuCallback } from '@onethu/gateway/stu-auth';
+export { CAB_ORIGIN, parseCabAuthEntry, parseCabIdentity, normalizeCabCallback } from '@onethu/gateway/cab-auth';
+export { DISCOVER_ORIGIN, DISCOVER_IDENTITY_URL, parseDiscoverLogin, normalizeDiscoverCallback } from '@onethu/gateway/discover-auth';
+export { MYHOME_ORIGIN, MYHOME_IDENTITY_URL, normalizeMyhomeCallback } from '@onethu/gateway/myhome-auth';
+export { SEAT_ORIGIN, SEAT_IDENTITY_URL, normalizeSeatCallback } from '@onethu/gateway/seat-auth';
+export { THESIS_ORIGIN, THESIS_IDENTITY_URL, parseThesisLogin, normalizeThesisCallback } from '@onethu/gateway/thesis-auth';
 
 /** Deliberately small JSON Schema subset shared by generated tuples and learn operations. */
 export function validate(value: unknown, schema: Schema, path = "args", depth = 0): void {

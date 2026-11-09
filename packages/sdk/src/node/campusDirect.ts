@@ -1,8 +1,10 @@
 /** Pinned, certificate-verified HTTPS for official portal-discovered services. */
 import https from 'node:https';
+import type { IncomingMessage } from 'node:http';
 import { lookup } from 'node:dns/promises';
-import { Readable } from 'node:stream';
+import { Readable, pipeline } from 'node:stream';
 import { isIP } from 'node:net';
+import { createGunzip, createInflate, createBrotliDecompress } from 'node:zlib';
 import { authError } from './storage.js';
 
 export function isCampusDirectAddress(address: string): boolean {
@@ -16,6 +18,34 @@ export function isCampusDirectAddress(address: string): boolean {
   }
   if (isIP(address) !== 6) return false;
   return /^2[0-9a-f]{3}:/i.test(address); // Global unicast only; rejects mapped IPv4.
+}
+
+/** Match Fetch's decoded-body contract even when an upstream ignores identity.
+ * Keep its original headers so the gateway can remove encoded entity metadata. */
+export function campusDirectResponse(incoming: IncomingMessage, method = 'GET'): Response {
+  const headers = new Headers();
+  for (let index = 0; index < incoming.rawHeaders.length; index += 2) headers.append(incoming.rawHeaders[index]!, incoming.rawHeaders[index + 1]!);
+  const status = incoming.statusCode ?? 502;
+  if (method.toUpperCase() === 'HEAD' || [204, 205, 304].includes(status)) {
+    incoming.resume();
+    return new Response(null, { status, statusText: incoming.statusMessage, headers });
+  }
+  const encodings = (headers.get('content-encoding') ?? '').split(',').map(value => value.trim().toLowerCase()).filter(value => value && value !== 'identity');
+  const decoders = encodings.reverse().map(encoding => {
+    if (encoding === 'gzip' || encoding === 'x-gzip') return createGunzip();
+    if (encoding === 'deflate' || encoding === 'x-deflate') return createInflate();
+    if (encoding === 'br') return createBrotliDecompress();
+    throw authError('CAMPUS_SERVICE_ENCODING_UNSUPPORTED');
+  });
+  if (decoders.length) {
+    // pipeline propagates source/decoder errors and cancellation in both
+    // directions. The Web stream exposes those errors to the caller.
+    pipeline([incoming, ...decoders], () => {});
+  }
+  const body = decoders.at(-1) ?? incoming;
+  return new Response(Readable.toWeb(body) as ReadableStream<Uint8Array>, {
+    status, statusText: incoming.statusMessage, headers,
+  });
 }
 
 export const campusDirectFetch: typeof globalThis.fetch = async (input, init = {}) => {
@@ -41,14 +71,8 @@ export const campusDirectFetch: typeof globalThis.fetch = async (input, init = {
   const response = new Promise<Response>((resolve, reject) => {
     request.once('error', () => reject(authError('CAMPUS_SERVICE_NETWORK_FAILED')));
     request.once('response', incoming => {
-      const result = new Headers();
-      for (let index = 0; index < incoming.rawHeaders.length; index += 2) result.append(incoming.rawHeaders[index]!, incoming.rawHeaders[index + 1]!);
-      const status = incoming.statusCode ?? 502;
-      const empty = init.method === 'HEAD' || [204, 205, 304].includes(status);
-      if (empty) incoming.resume();
-      resolve(new Response(empty ? null : Readable.toWeb(incoming) as ReadableStream<Uint8Array>, {
-        status, statusText: incoming.statusMessage, headers: result,
-      }));
+      try { resolve(campusDirectResponse(incoming, init.method)); }
+      catch (error) { incoming.destroy(); reject(error); }
     });
   });
   if (init.body != null) {

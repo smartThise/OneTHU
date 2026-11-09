@@ -80,6 +80,43 @@ function inlineJavaScript(tag:string) {
   return type===''||type==='module'||/^(?:text|application)\/(?:x-)?(?:java|ecma)script(?:\s*;|$)/.test(type);
 }
 
+const vpnConfigurationTypes:Record<string,string>={
+  __vpn_hostname_data:'string',
+  __vpn_protocol_data:'string',
+  __vpn_protocol_host:'string',
+  __vpn_app_hostname_data:'string',
+  __vpn_app_protocol_data:'string',
+  __vpn_app_port_data:'string',
+  __vpn_js_file:'string',
+  __vpn_worker_mode:'number',
+  __vpn_fast_mode:'number',
+  __vpn_host_crypt:'boolean',
+  __vpn_host_crypt_key:'string',
+  __vpn_host_crypt_iv:'string',
+  __vpn_hsts:'boolean',
+  __vpn_hsts_sub_domains:'boolean',
+};
+
+/** The removed WebVPN runtime owns this exact standalone configuration block.
+ * Parse only its observed literal declarations; application code stays intact. */
+function standaloneWebvpnConfiguration(source:string) {
+  if(source.length>8192)return false;
+  const declaration=/[ \t\r\n]*var[ \t\r\n]+(__vpn_[a-z_]+)[ \t\r\n]*=[ \t\r\n]*("[^"\\\x00-\x1f]*"|true|false|0|[1-9][0-9]*)[ \t\r\n]*;[ \t\r\n]*/y;
+  const values=new Map<string,string|number|boolean>();
+  while(declaration.lastIndex<source.length){
+    const match=declaration.exec(source);
+    if(!match)return false;
+    const name=match[1]!,value=JSON.parse(match[2]!) as string|number|boolean;
+    if(!Object.hasOwn(vpnConfigurationTypes,name)||values.has(name)||typeof value!==vpnConfigurationTypes[name])return false;
+    values.set(name,value);
+  }
+  return values.size===14
+    &&values.get('__vpn_hostname_data')==='webvpn.tsinghua.edu.cn'
+    &&values.get('__vpn_protocol_data')==='https'
+    &&values.get('__vpn_protocol_host')==='https://webvpn.tsinghua.edu.cn'
+    &&/^\/wengine-vpn\/js\/main\.js(?:\?ver=[A-Za-z0-9._-]+)?$/.test(String(values.get('__vpn_js_file')));
+}
+
 /** WebVPN also wraps inline event handlers. Match the complete observed
  * envelope only within a parsed attribute; quoted application text is inert. */
 function eventAttributes(tag:string) {
@@ -106,13 +143,48 @@ function eventAttributes(tag:string) {
   return tag.slice(0,start)+attributes+'>';
 }
 
+/** Large ASP.NET form state and inline images are inert attribute data. Find
+ * only an unfinished quoted value/src after skipping complete attributes, so
+ * markup-looking text inside another attribute cannot enter this path. */
+function largeDataAttribute(tag:string) {
+  const opening=/^<(input|img)(?=[\s/>])/i.exec(tag);
+  if(!opening)return;
+  const name=opening[1]!.toLowerCase();
+  let index=opening[0].length;
+  while(index<tag.length){
+    while(/\s/.test(tag[index]??''))index++;
+    const start=index;
+    while(index<tag.length&&!/[\s=/>"'<]/.test(tag[index]!))index++;
+    if(index===start)return;
+    const attribute=tag.slice(start,index).toLowerCase();
+    while(/\s/.test(tag[index]??''))index++;
+    if(tag[index]!=='=')continue;
+    index++;while(/\s/.test(tag[index]??''))index++;
+    const quote=tag[index];
+    if(quote==='"'||quote==="'"){
+      const value=index+1,end=tag.indexOf(quote,value);
+      if(end>=0){index=end+1;continue;}
+      if(name==='input'&&attribute==='value'||name==='img'&&attribute==='src')return {opening:opening[0],start,quote};
+      return;
+    }
+    while(index<tag.length&&!/[\s>]/.test(tag[index]!))index++;
+  }
+}
+
 /** A small HTML raw-text tokenizer: quoted attributes and comments cannot open
  * scripts, and a script's JS strings never become a second script boundary. */
 function htmlScripts() {
-  let pending='',state:'text'|'comment'|'script'|'raw'|'plaintext'='text',rawTag='',rewrite=false;
+  let pending='',state:'text'|'comment'|'script'|'raw'|'plaintext'|'attribute'='text',rawTag='',rewrite=false;
+  let attributeQuote='',continuedTag='';
   return (part:string,final=false):string[]=>{
     pending+=part;const output:string[]=[];
     while(pending){
+      if(state==='attribute'){
+        const end=pending.indexOf(attributeQuote);
+        if(end<0){output.push(pending);pending='';break;}
+        output.push(pending.slice(0,end+1));
+        pending=continuedTag+pending.slice(end+1);state='text';continue;
+      }
       if(state==='plaintext'){output.push(pending);pending='';break;}
       if(state==='comment'){
         const end=pending.indexOf('-->');
@@ -128,7 +200,8 @@ function htmlScripts() {
           else {
             if(state==='script'&&match.index>MAX_SCRIPT)fail('GATEWAY_INLINE_SCRIPT_TOO_LARGE');
             const source=pending.slice(0,match.index);
-            output.push(rewrite?unwrap(source):source,pending.slice(match.index,end));
+            const restored=rewrite?unwrap(source):source;
+            output.push(rewrite&&standaloneWebvpnConfiguration(restored)?'':restored,pending.slice(match.index,end));
             pending=pending.slice(end);state='text';continue;
           }
         }
@@ -147,8 +220,18 @@ function htmlScripts() {
       if(pending.startsWith('<!--')){output.push('<!--');pending=pending.slice(4);state='comment';continue;}
       if(!/^<[A-Za-z!/?]/.test(pending)){output.push('<');pending=pending.slice(1);continue;}
       const end=tagEnd(pending);
-      if(end<0){if(pending.length>65536)fail('GATEWAY_HTML_TAG_TOO_LARGE');if(final){output.push(pending);pending='';}break;}
-      const tag=pending.slice(0,end);pending=pending.slice(end);output.push(eventAttributes(tag));
+      if(end<0){
+        if(pending.length>65536){
+          const data=largeDataAttribute(pending);
+          if(!data)return fail('GATEWAY_HTML_TAG_TOO_LARGE');
+          const prefix=eventAttributes(pending.slice(0,data.start)+'>').slice(0,-1);
+          output.push(prefix.slice(continuedTag.length),pending.slice(data.start));
+          continuedTag=data.opening;attributeQuote=data.quote;state='attribute';pending='';break;
+        }
+        if(final){output.push(pending.slice(continuedTag.length));pending='';continuedTag='';}break;
+      }
+      const tag=pending.slice(0,end);pending=pending.slice(end);
+      output.push(eventAttributes(tag).slice(continuedTag.length));continuedTag='';
       const name=/^<([a-z][a-z0-9:-]*)(?=[\s/>])/i.exec(tag)?.[1]?.toLowerCase();
       if(name==='script'){state='script';rawTag='script';rewrite=inlineJavaScript(tag);}
       else if(name&&['style','textarea','title','xmp','iframe','noembed','noframes'].includes(name)){state='raw';rawTag=name;rewrite=false;}

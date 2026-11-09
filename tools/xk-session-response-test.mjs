@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { HttpClient, AuthRequiredError, onAuthRequired } from '../packages/core/src/http.ts';
 import { webvpnWrap, decodeUrl } from '../packages/core/src/crypto/webvpn.ts';
-import { getSelectedCourses, getXkSelectedFull, setZhjwxkNativeClear, setZhjwxkReloginHook } from '../packages/core/src/zhjwxk/client.ts';
+import { getSelectedCourses, getXkSelectedFull, syncZhjwxkSession, setZhjwxkNativeClear, setZhjwxkReloginHook } from '../packages/core/src/zhjwxk/client.ts';
 import { isXkSessionError } from '../packages/core/src/zhjwxk/html-language.ts';
 import { softRecover } from '../apps/desktop/src/lib/reload.ts';
 import { sm2 } from 'sm-crypto';
@@ -29,7 +29,7 @@ test('short and long authenticated WebVPN tables load without cookie dances, re-
   for(const load of [getSelectedCourses,getXkSelectedFull]){
    const f=fixture(content),courses=await load(f.session);
    assert.equal(courses.length,1);assert.equal(courses[0].name,'Fixture Course');
-   assert.equal(f.calls.length,2);assert(f.calls.every(x=>x.method==='GET'));
+   assert.equal(f.calls.length,3);assert(f.calls.every(x=>x.method==='GET'));
    assert.equal(f.calls.filter(x=>x.url.includes('/xklogin.do')).length,1);
    assert(!f.calls.some(x=>x.url.includes('/wengine-vpn/cookie')));
   }
@@ -37,13 +37,60 @@ test('short and long authenticated WebVPN tables load without cookie dances, re-
 });
 
 test('an authenticated empty table remains an empty result rather than a failed login',async()=>{
- const f=fixture(empty);assert.deepEqual(await getXkSelectedFull(f.session),[]);assert.equal(f.calls.length,2);
+ const f=fixture(empty);assert.deepEqual(await getXkSelectedFull(f.session),[]);assert.equal(f.calls.length,3);
 });
 
 test('only a successfully established selection entry publishes a credential-free service handback',async()=>{
  const f=fixture(selected),events=[];f.session.onSessionReady=async state=>{events.push(state);};
  await getXkSelectedFull(f.session);await getXkSelectedFull(f.session);
  assert.equal(events.length,1);assert.equal(events[0].identityRenewed,false);assert(Array.isArray(events[0].cookies));
+});
+
+test('gateway sync republishes a cached selection session from its verified isolated jar',async()=>{
+ const f=fixture(selected),events=[],calls=[];
+ const home=injection+'<iframe src="/xk/top.html"></iframe>';
+ f.session.http.jar.setRaw(new URL('http://zhjwxk.cic.tsinghua.edu.cn/'),'JSESSIONID=old-native; Path=/');
+ f.session.isoFetch=async(url)=>{
+  const path=new URL(decodeUrl(url)||url).pathname;calls.push(path);
+  return new Response(path==='/xklogin.do'?entry:path==='/xkBks.vxkBksXkbBs.do'?home:selected,
+   {headers:{'set-cookie':'JSESSIONID=verified-selection; Path=/'}});
+ };
+ f.session.onSessionReady=async state=>{events.push(state);};
+ await getXkSelectedFull(f.session);
+ const loginCalls=calls.filter(path=>path==='/xklogin.do').length;
+ events.length=0;
+ await syncZhjwxkSession(f.session);
+ assert.equal(calls.filter(path=>path==='/xklogin.do').length,loginCalls);
+ assert.equal(events.length,1);
+ assert.equal(events[0].identityRenewed,false);
+ assert(events[0].cookies.some(cookie=>cookie.value==='verified-selection'));
+ assert(!events[0].cookies.some(cookie=>cookie.value==='old-native'));
+});
+
+test('gateway sync rejects an unrecognized business page before publishing a cached session',async()=>{
+ const f=fixture('<p>Temporary maintenance</p>'),events=[];
+ f.session.onSessionReady=async state=>{events.push(state);};
+ await getXkSelectedFull(f.session);
+ events.length=0;
+ await assert.rejects(syncZhjwxkSession(f.session),{code:'XK_AUTH_REQUIRED'});
+ assert.deepEqual(events,[]);
+});
+
+test('gateway sync awaits its required publisher and propagates publication failure',async()=>{
+ const f=fixture(entry),events=[];
+ f.session.onSessionReady=async state=>{events.push(state);};
+ await getXkSelectedFull(f.session);
+ events.length=0;
+ const failure=new Error('CLI_SHARED_SESSION_UNAVAILABLE');
+ let published=false;
+ await assert.rejects(syncZhjwxkSession(f.session,async state=>{
+  assert.equal(state.identityRenewed,false);
+  await Promise.resolve();
+  published=true;
+  throw failure;
+ }),error=>error===failure);
+ assert.equal(published,true);
+ assert.deepEqual(events,[]);
 });
 
 test('actual identity forms, timeout pages and bootstrap shells still require recovery',async()=>{
@@ -82,7 +129,7 @@ test('unused login strings and injected scripts do not invalidate plans or grid-
 test('HTTP 500 remains a service failure and is never presented as an expired account or empty course list',async()=>{
  const f=fixture(injection+'<h1>HTTP Status 500</h1>',500);
  await assert.rejects(getXkSelectedFull(f.session),error=>error.message==='HTTP 500'&&!(error instanceof AuthRequiredError));
- assert.equal(f.calls.length,2);assert(f.calls.every(x=>x.method==='GET'));
+ assert.equal(f.calls.length,1);assert(f.calls.every(x=>x.method==='GET'));
 });
 
 test('selection credential recovery strips inherited single-login flags and uses the current device',async()=>{

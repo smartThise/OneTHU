@@ -1,3 +1,5 @@
+export const GITLAB_ORIGIN = 'https://git.tsinghua.edu.cn';
+
 /** HTTPS browser origins for legacy campus applications. The upstream scheme
  * follows the existing core URL catalog; WebVPN's wire connection stays TLS. */
 export const DEFAULT_UPSTREAM_ORIGINS = Object.freeze({
