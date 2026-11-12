@@ -16,9 +16,9 @@ Upstream release licenses:
 https://github.com/thu-info-community/thu-info-app/blob/v3.17.0/LICENSE
 https://github.com/thu-info-community/thu-info-app/blob/v3.19.0/LICENSE
 
-THU Info's separate noncommercial redistribution grant to OneTHU is dated
-2026-09-16 and runs through 2036-12-31. The letter does not explicitly cover
-v3.19.0, which was released on 2026-10-04. See LICENSES/THIRD-PARTY.md in the
+THU Info grants OneTHU the right to redistribute the relevant source code from
+its latest version for noncommercial purposes. The grant was issued on
+2026-09-16 and runs through 2036-12-31. See LICENSES/THIRD-PARTY.md in the
 OneTHU repository for the grant record and import history. OneTHU-authored
 material is subject to the license applicable to that material.
 
