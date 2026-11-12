@@ -105,6 +105,6 @@ pnpm dev
 
 感谢 [THU Info](https://github.com/thu-info-community/thu-info-app)、[learnX](https://github.com/robertying/learnX)、[thu-learn-lib](https://github.com/Harry-Chen/thu-learn-lib)、[NextTHUxk](https://github.com/smartThise/NextTHUxk)、[NextTHULearn](https://github.com/smartThise/NextTHULearn)、thu-tok-auto、yuketang-helper-auto 及所有贡献者。
 
-自有代码采用 MIT 并附加非商业、禁止攻击清华信息服务等限制，不应视为无附加条件的 MIT。THU Info 授权、LearnX 例外和其他第三方条款分别适用。
+OneTHU 在有权授权的代码上采用自定义非商业许可，保留对清华大学信息服务的使用限制。公开发布复用这些代码或其改编的项目时，须在 README、NOTICE 或其他公众可查阅的位置简短注明 OneTHU 及实际用到的上游项目。THU Info 授权、LearnX 例外和其他第三方条款分别适用。
 
 [完整许可](LICENSE) · [第三方许可与授权](LICENSES/THIRD-PARTY.md)

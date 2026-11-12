@@ -103,6 +103,6 @@ A browser preview is not the native host. Native builds need Rust and Tauri plat
 
 Thanks to [THU Info](https://github.com/thu-info-community/thu-info-app)、[learnX](https://github.com/robertying/learnX)、[thu-learn-lib](https://github.com/Harry-Chen/thu-learn-lib)、[NextTHUxk](https://github.com/smartThise/NextTHUxk)、[NextTHULearn](https://github.com/smartThise/NextTHULearn)、thu-tok-auto、yuketang-helper-auto and all contributors.
 
-Project-owned code uses MIT with additional non-commercial and no-attack restrictions; it is not an unrestricted MIT license. THU Info authorization, LearnX exceptions and other third-party terms apply separately.
+OneTHU uses a custom noncommercial license for code it is authorized to license, with restrictions on the use of Tsinghua University information services. When publicly releasing a project that reuses or adapts this code, briefly credit OneTHU and the upstream projects whose code you actually reuse in your README, NOTICE or another publicly accessible location. THU Info authorization, LearnX exceptions and other third-party terms apply separately.
 
 [Full license](LICENSE) · [Third-party licenses and authorization](LICENSES/THIRD-PARTY.md)

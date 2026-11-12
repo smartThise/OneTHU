@@ -1,7 +1,7 @@
 {
   "name": "@onethu/info-lib",
   "version": "3.6.4-mit.1",
-  "description": "The JavaScript library that provides a program-friendly interface to Tsinghua web portal (thu-info-community, MIT boundary snapshot 06dc3cf0 + OneTHU 平台适配)",
+  "description": "OneTHU adaptation of thu-info-lib based on v3.17.0 with selected v3.19.0 sign-in code. See LICENSE for upstream terms.",
   "main": "dist/index.js",
   "files": [
     "dist/**/*",
@@ -23,7 +23,7 @@
       "email": "qhd19@mails.tsinghua.edu.cn"
     }
   ],
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
     "url": "https://github.com/thu-info-community/thu-info-app.git"

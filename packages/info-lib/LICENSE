@@ -1,19 +1,33 @@
+THU Info source provenance and licensing
+
+This package uses THU Info v3.17.0 as its upstream baseline and incorporates
+parts of the v3.19.0 sign-in implementation. The upstream material from these
+releases is licensed under the Business Source License 1.1.
+
+Business Source License 1.1: https://mariadb.com/bsl11/
+Licensor: UNIDY2002
+Licensed Work: THU Info APP
+Additional Use Grant in the upstream release licenses: None
+Change Date: Four years from first release for the specific version
+Change License: MIT (https://opensource.org/license/mit/)
+Change License copyright notice: Copyright 2020-present UNIDY2002
+
+Upstream release licenses:
+https://github.com/thu-info-community/thu-info-app/blob/v3.17.0/LICENSE
+https://github.com/thu-info-community/thu-info-app/blob/v3.19.0/LICENSE
+
+THU Info's separate noncommercial redistribution grant to OneTHU is dated
+2026-09-16 and runs through 2036-12-31. The letter does not explicitly cover
+v3.19.0, which was released on 2026-10-04. See LICENSES/THIRD-PARTY.md in the
+OneTHU repository for the grant record and import history. OneTHU-authored
+material is subject to the license applicable to that material.
+
+MIT notice for material retained from the historical upstream snapshot 06dc3cf0
+and material previously licensed under the same terms.
+
 MIT License
 
 Copyright (c) 2023-2024 UNIDY2002 & thu-info-community contributors
-
-This vendored copy is derived from the thu-info-app monorepo
-(packages/thu-info-lib) at commit 06dc3cf0 (2024-07-10 14:53 +0800),
-the last snapshot under the MIT license before the upstream project
-switched to the Business Source License 1.1 (33fd0a86, 2024-07-10
-15:07 +0800). All code added in this repository on top of that
-snapshot (platform transport injection, SM2 password port, etc.) is
-OneTHU-authored and published under the same MIT license.
-
-Post-BSL upstream commits are NOT incorporated by copy; missing
-capabilities discovered after the boundary are implemented
-independently in this repository or sourced from OneTHU's own
-pre-existing modules.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
