@@ -2,9 +2,8 @@
 
 本文件说明 OneTHU 使用的**第三方代码与接口结论来源**项目及其许可条件。
 
-本仓库自有代码以 **MIT** 许可开源并**附两条限制**（严禁商业用途；严禁用于对清华大学信息服务的
-攻击性访问，如抢课 / 自动预约提交一类插件与脚本），全文见根目录 [LICENSE](../LICENSE)。
-**以下第三方许可不受该附加限制的扩张或缩减**，各自按其自带条款执行。
+OneTHU 在有权授权的代码上采用[自定义非商业许可](../LICENSE)，保留对清华大学信息服务的使用限制。
+公开复用时须简短注明 OneTHU 及实际用到的上游项目。第三方代码依各自条款使用。
 
 原则：**本项目中使用的开源项目均适用其自带许可证**；下面逐项写明「用了什么、依据什么许可」。
 凡涉及「接口结论来源」的项目（未直接取用代码、仅依据其公开实现与实测记录得出结论），
@@ -15,23 +14,28 @@
 ## 1. thu-info-app / thu-info-lib（`packages/info-lib`）
 
 - 上游：<https://github.com/thu-info-community/thu-info-app>（`packages/thu-info-lib`）
-- 上游许可：**MIT**（≤ `06dc3cf0`）→ **Business Source License 1.1**（其后各版本，
-  Change Date 为该版本首发满四年，Change License: MIT）
+- 上游许可：[历史快照 `06dc3cf0`](https://github.com/thu-info-community/thu-info-app/tree/06dc3cf0) 为 MIT。
+  [v3.17.0](https://github.com/thu-info-community/thu-info-app/blob/v3.17.0/LICENSE) 和
+  [v3.19.0](https://github.com/thu-info-community/thu-info-app/blob/v3.19.0/LICENSE) 为 **Business Source License 1.1**。
+  两版的公开许可均无额外使用授权，各自在首发满四年后转为 MIT。
 - **分发授权**：THU Info 团队（孙迅，`UNIDY2002@outlook.com`）于 **2026-09-16** 邮件授权
   OneTHU 在**非商业用途**下使用 THU Info 相关最新源代码进行**二次分发**，
   **授权截止 2036-12-31**。邮件原文存档于本目录
   [`AUTHOR-GRANT-THU-INFO-2026-09-16.eml`](./AUTHOR-GRANT-THU-INFO-2026-09-16.eml)，随仓库保管。
   > 授权原文（节选）：「我代表 THU Info 团队授权您的 OneTHU 在非商业用途的情况下使用
   > THU Info 相关最新源代码进行二次分发，授权截止日期：2036 年 12 月 31 日。」
-- Vendored 基线：上游 3.17.0（2026-09-16，Release 3.17.0）
+- 入库来源：提交 `0c10a34a` 换基到上游 [v3.17.0](https://github.com/thu-info-community/thu-info-app/releases/tag/v3.17.0)（2026-09-15 发布）。
+  提交 `04687f6b` 从上游 [v3.19.0](https://github.com/thu-info-community/thu-info-app/releases/tag/v3.19.0)（2026-10-04 发布）
+  移植登录逻辑，涉及 `src/lib/core.ts` 和 `src/index.ts`。
 - OneTHU 适配层（自有代码，源码中标注 `OneTHU 适配`）：
   - `src/utils/network.ts`：platformFetch 注入——Rust 原生传输（reqwest cookie 仓 +
     原生重定向跟随，语义对齐上游 RN/okhttp）
   - `src/lib/core.ts`：剔除 OpenHarmony `rtn-network-utils` require 块（vite 无法静态解析）
   - `src/lib/cr.ts`：联合类型闭包收窄修复
 
-**边界**：授权仅覆盖非商业用途。若将 OneTHU（或其衍生版本）用于商业用途，或超出
-2036-12-31，须另行取得上游许可；上游 BSL 1.1 的条款优先于本文件描述。
+**v3.19.0 授权核对。** 邮件中的「相关最新源代码」未列出版本，也未明确写入后续发布版本。
+v3.19.0 发布晚于授权邮件，现有记录不足以确认该特别授权涵盖这部分移植。v3.19.0 的公开 BSL 1.1
+条款适用，包含复制、修改、再分发和非生产使用的授权。OneTHU 的特别授权以原文为准。
 
 ## 2. LearnX（<https://github.com/robertying/learnX>）
 

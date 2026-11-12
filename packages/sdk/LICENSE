@@ -1,53 +1,66 @@
-MIT License
+OneTHU Noncommercial License
+OneTHU 非商业许可
 
 Copyright (c) 2026 OneTHU contributors (smartThise / gjl25)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+中文
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+本许可适用于 OneTHU 项目有权依本条款授权的代码和随附文档。第三方代码及另行标明许可的内容依各自条款使用。已依其他许可授予的权利继续按原许可适用。第三方许可和授权范围见 LICENSES/THIRD-PARTY.md。
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+在遵守下列条件的前提下，任何获得本软件或随附文档的人均可免费为非商业目的使用、复制、修改、合并、发布和分发本软件及其改编版本，包括源代码和编译产物，也可在相同条件下授权他人行使这些权利。软件的所有副本或实质性部分须保留上述版权声明和本许可全文。
 
-================================================================================
-附加使用限制（Additional Terms）
-================================================================================
+1. 禁止商业用途。
 
-上述 MIT 许可**附有以下限制**。行使本许可授予的任何权利，即以接受本限制为前提。
+   不得将本软件、衍生作品或编译产物用于任何商业目的，包括出售、出租、提供付费服务、集成到商业产品或付费服务，以及利用本软件获取经济收益。该限制也包括接受清华大学相关机构对以本软件为交付物的项目提供的资助。
 
-1. 严禁商业用途。
-   不得将本项目（含源代码、衍生作品、编译产物）用于任何商业目的，包括但不限于：
-   出售、出租、以本项目提供付费服务、将其集成进商业产品或需要付费才能使用的服务、
-   以本项目换取经济收益（含接受与清华大学有关的机构对以本项目为交付物的项目的资助）。
+2. 禁止攻击或滥用清华大学信息服务。
 
-2. 严禁用于对清华大学信息服务的攻击性访问。
-   不得将本项目用于对清华大学各类信息系统（信息门户、网络学堂、选课系统、体育场馆
-   预约、图书馆、校园卡、邮箱等）的攻击性、滥用性或破坏性访问，包括但不限于：
-   - 编写或运行抢课、占座、自动预约提交（体育场馆、图书馆座位、研讨间、公共空间等）
-     一类插件、脚本或衍生功能；
-   - 高频、批量、并发轰炸式请求，或任何规避校方风控、限流、验证码与身份校验的行为；
-   - 探测、扫描、越权访问校方系统，或对校方服务造成可用性影响；
-   - 以本项目为工具代他人实施上述行为。
+   不得利用本软件攻击、滥用或破坏清华大学各类信息系统，包括信息门户、网络学堂、选课系统、体育场馆预约、图书馆、校园卡和邮箱等。禁止行为包括但不限于以下各项。
 
-3. 违反即终止授权。
-   违反上述任一条，本许可授予的权利**立即自动终止**，使用者须停止使用并删除全部副本。
-   由此产生的一切后果（含校方处分与法律责任）由使用者自行承担。
+   - 编写或运行抢课、占座或自动提交预约的插件、脚本或衍生功能。预约场景包括体育场馆、图书馆座位、研讨间和公共空间等。
+   - 发出高频、批量或并发轰炸式请求，或规避校方风控、限流、验证码或身份校验。
+   - 探测、扫描或越权访问校方系统，或影响校方服务的可用性。
+   - 使用本软件代他人实施上述行为。
 
-关于第三方：本项目随包或参考使用的第三方组件适用其**自带许可**，不受本附加限制的
-扩张或缩减；尤其 `packages/info-lib`（thu-info-app / thu-info-lib）受上游 BSL 1.1 与
-THU Info 团队的**非商业用途**授权约束（截止 2036-12-31），LearnX 移植部分受其附加例外
-条件约束。详见 [LICENSES/THIRD-PARTY.md](./LICENSES/THIRD-PARTY.md)。
+3. 公开复用时注明来源。
 
-本项目为非官方的个人效率工具，与清华大学无关；所有数据均来自学校公开系统的网页接口，
-仅供个人学习与日常使用。
+   公开发布包含受本许可约束的 OneTHU 代码或其改编的项目时，须在 README、NOTICE 或其他公众可查阅的位置，简短注明 OneTHU 及实际复用代码所涉及的上游项目。可自由选择表述和位置。例如「本项目复用了 OneTHU 及其上游项目 THU Info 的部分代码」。第三方许可要求的版权声明和许可文本仍须按各自条款保留。
+
+4. 违反条款即终止授权。
+
+   违反本许可的条件时，本许可授予的权利立即终止。使用者须停止使用本许可涵盖的软件并删除其副本，并依法承担自身行为产生的责任。
+
+本软件按现状提供。在法律允许的范围内，作者和版权人不提供任何明示或默示保证，包括适销性、特定用途适用性和不侵权保证，也不对因本软件、使用本软件或与本软件有关的其他行为引起的任何索赔、损害或其他责任负责，无论依据合同、侵权或其他法律理论。
+
+OneTHU 是非官方项目，与清华大学无隶属或授权关系。
+
+English
+
+This license applies to code and accompanying documentation that the OneTHU project is authorized to license under these terms. Third-party code and material expressly offered under other licenses are governed by their respective terms. Rights already granted under other licenses continue under those licenses. See LICENSES/THIRD-PARTY.md for third-party licenses and grants.
+
+Subject to the conditions below, anyone who obtains the software or accompanying documentation may, free of charge and for noncommercial purposes, use, copy, modify, merge, publish and distribute the software and adaptations, in source or compiled form, and permit others to exercise those rights under the same conditions. All copies or substantial portions of the software must retain the copyright notice above and the full text of this license.
+
+1. No commercial use.
+
+   The software, derivative works and compiled artifacts may not be used for any commercial purpose, including sale, rental, provision of paid services, incorporation into commercial products or paid services, or obtaining economic benefit from the software. This also prohibits accepting funding from organizations associated with Tsinghua University for a project that delivers the software.
+
+2. No attacks on or abuse of Tsinghua University information services.
+
+   The software may not be used to attack, abuse or disrupt any Tsinghua University information system, including the information portal, learning platform, course enrollment, sports facility booking, library, campus card and email systems. Prohibited conduct includes the following.
+
+   - Creating or running plugins, scripts or derivative features for course sniping, seat hoarding or automated booking submissions. Booking includes sports facilities, library seats, study rooms and public spaces.
+   - Sending high-frequency, bulk or concurrent request floods, or circumventing university risk controls, rate limits, CAPTCHAs or identity checks.
+   - Probing, scanning or accessing university systems without authorization, or impairing the availability of university services.
+   - Using the software to carry out any of the above on behalf of others.
+
+3. Credit when publishing reused code.
+
+   When publicly releasing a project that incorporates OneTHU code covered by this license or adaptations of that code, briefly credit OneTHU and the upstream projects whose code is actually reused. A README, NOTICE or any other publicly accessible location is sufficient, and the wording is flexible. For example, “This project reuses parts of OneTHU and its upstream project THU Info.” Retain third-party copyright and license notices as required by their respective licenses.
+
+4. Termination on violation.
+
+   The rights granted by this license terminate immediately upon violation of its conditions. You must stop using the software covered by this license and delete your copies. You are responsible for the consequences of your own conduct as provided by applicable law.
+
+The software is provided as is. To the extent permitted by law, the authors and copyright holders make no express or implied warranties, including warranties of merchantability, fitness for a particular purpose and noninfringement. They are not liable for claims, damages or other liability arising from the software, its use or other dealings with it, whether in contract, tort or otherwise.
+
+OneTHU is an unofficial project and is neither affiliated with nor endorsed by Tsinghua University.
