@@ -21,7 +21,9 @@ Copyright (c) 2026 OneTHU contributors (smartThise / gjl25)
 
 1. 禁止商业用途。
 
-   不得将本软件、衍生作品或编译产物用于任何商业目的，包括出售、出租、提供付费服务、集成到商业产品或付费服务，以及利用本软件获取经济收益。该限制也包括接受清华大学相关机构对以本软件为交付物的项目提供的资助。
+   不得将本软件、衍生作品或编译产物用于任何商业目的，包括出售、出租、提供付费服务、集成到商业产品或付费服务，以及利用本软件获取经济收益。
+
+   接受清华大学相关机构资助的非商业项目可按本许可使用其涵盖的 OneTHU 代码。LearnX 代码及其衍生部分适用 LearnX 上游许可中的资助等条件。
 
 2. 禁止攻击或滥用清华大学信息服务。
 
@@ -52,7 +54,9 @@ Subject to the conditions below, anyone who obtains the software or accompanying
 
 1. No commercial use.
 
-   The software, derivative works and compiled artifacts may not be used for any commercial purpose, including sale, rental, provision of paid services, incorporation into commercial products or paid services, or obtaining economic benefit from the software. This also prohibits accepting funding from organizations associated with Tsinghua University for a project that delivers the software.
+   The software, derivative works and compiled artifacts may not be used for any commercial purpose, including sale, rental, provision of paid services, incorporation into commercial products or paid services, or obtaining economic benefit from the software.
+
+   Noncommercial projects funded by organizations associated with Tsinghua University may use OneTHU code covered by this license under its terms. LearnX code and portions derived from it are subject to the funding and other conditions of the upstream LearnX license.
 
 2. No attacks on or abuse of Tsinghua University information services.
 
