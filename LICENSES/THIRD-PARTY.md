@@ -19,7 +19,7 @@ OneTHU 在有权授权的代码上采用[自定义非商业许可](../LICENSE)�
   [v3.19.0](https://github.com/thu-info-community/thu-info-app/blob/v3.19.0/LICENSE) 为 **Business Source License 1.1**。
   两版的公开许可均无额外使用授权，各自在首发满四年后转为 MIT。
 - **分发授权**：THU Info 团队（孙迅，`UNIDY2002@outlook.com`）于 **2026-09-16** 邮件授权
-  OneTHU 在**非商业用途**下使用 THU Info 相关最新源代码进行**二次分发**，
+  OneTHU 使用 **THU Info 最新版相关源码**进行**非商业二次分发**，
   **授权截止 2036-12-31**。邮件原文存档于本目录
   [`AUTHOR-GRANT-THU-INFO-2026-09-16.eml`](./AUTHOR-GRANT-THU-INFO-2026-09-16.eml)，随仓库保管。
   > 授权原文（节选）：「我代表 THU Info 团队授权您的 OneTHU 在非商业用途的情况下使用
@@ -32,10 +32,6 @@ OneTHU 在有权授权的代码上采用[自定义非商业许可](../LICENSE)�
     原生重定向跟随，语义对齐上游 RN/okhttp）
   - `src/lib/core.ts`：剔除 OpenHarmony `rtn-network-utils` require 块（vite 无法静态解析）
   - `src/lib/cr.ts`：联合类型闭包收窄修复
-
-**v3.19.0 授权核对。** 邮件中的「相关最新源代码」未列出版本，也未明确写入后续发布版本。
-v3.19.0 发布晚于授权邮件，现有记录不足以确认该特别授权涵盖这部分移植。v3.19.0 的公开 BSL 1.1
-条款适用，包含复制、修改、再分发和非生产使用的授权。OneTHU 的特别授权以原文为准。
 
 ## 2. LearnX（<https://github.com/robertying/learnX>）
 
