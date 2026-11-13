@@ -247,6 +247,34 @@ test('campus gateway start fences its current owner inside the account mutation 
  assert.equal((await runtime.campusGateway.control({action:'status'})).running,false);
 });
 
+test('resident restart and same-account renewal restore the explicitly enabled campus gateway',async t=>{
+ const {runtime,dir}=await setup(t);
+ await runtime.start();
+ await runtime.setEnabled(false,{confirm:true});
+ const started=await runtime.campusGateway.control({action:'start',confirm:true});
+ await runtime.close();
+ const reopened=await createOneThu({dataDir:dir,fetch:async(raw:string)=>{
+  if(raw.includes('/wengine-vpn/cookie'))return new Response('XSRF-TOKEN=fixture;');
+  if(raw.includes('grjbxx'))return Response.json({object:{ryh:'12345678'}});
+  return new Response('<html><a href="/f/wlxt/index/course/student/?_csrf=fixture">courses</a></html>');
+ }});
+ t.after(()=>reopened.close());
+ await reopened.start();
+ const resumed=await reopened.campusGateway.control({action:'status'});
+ assert.equal(resumed.running,true);
+ assert.deepEqual(resumed.endpoint,started.endpoint);
+ assert.equal(resumed.pacUrl,started.pacUrl);
+ const saved=reopened.desktop.exportSession();
+ await reopened.auth.logout();
+ assert.equal((await reopened.campusGateway.control({action:'status'})).running,false);
+ await reopened.desktop.adoptSession({snapshot:saved.snapshot,expectedEpoch:reopened.desktop.status().epoch,reason:'login'});
+ assert.equal((await reopened.campusGateway.control({action:'status'})).running,true);
+ await reopened.campusGateway.control({action:'stop',confirm:true});
+ await reopened.setEnabled(true,{confirm:true});
+ assert.equal((await reopened.campusGateway.control({action:'status'})).running,false);
+ await reopened.close();
+});
+
 test('campus gateway survives execution policy changes but closes on logout and retirement',async t=>{
  const {runtime}=await setup(t);await runtime.auth.restore();
  const initial=runtime.desktop.exportSession(),snapshot=initial.snapshot;

@@ -251,12 +251,18 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
   controls('im.start','Start configured IM reception',tuple([string],0),([channel])=>gateway.start(channel),true,true);
   controls('im.stop','Stop IM reception and cancel its active requests',tuple([string],0),([channel])=>gateway.stop(channel),true,true);
   controls('im.remove','Permanently remove an IM binding and its reception configuration',tuple([string]),([channel])=>gateway.remove(channel,{confirm:true}),true,true);
-  async function resumeResident(){if(!retiring&&(enabled||appEnabled)&&resident&&runtime.session.state==='ready'){taskManager.start();if(enabled)await gateway.start();}}
+  async function resumeResident(){
+    if(retiring||!resident||runtime.session.state!=='ready')return;
+    // Campus browser access has its own explicit authorization and follows
+    // the same account through renewals and resident-process restarts.
+    await managedCampusGateway.resume().catch(()=>undefined);
+    if(enabled||appEnabled){taskManager.start();if(enabled)await gateway.start();}
+  }
   async function stopResident({keepCampusGateway=false}:{keepCampusGateway?:boolean}={}){
     policyEpoch++;for(const controller of controllers)controller.abort();
     // An OS proxy restoration failure remains visible in gateway status, but
     // must never prevent logout/account replacement from revoking the session.
-    if(!keepCampusGateway)await managedCampusGateway.control({action:'stop',confirm:true,revoke:true}).catch(()=>undefined);
+    if(!keepCampusGateway)await managedCampusGateway.suspend().catch(()=>undefined);
     await gateway.stop();await taskManager.stop();
   }
   const policy=()=>({enabled,appEnabled,automatic,configured,confirmationMode:confirmationMode(automatic)});

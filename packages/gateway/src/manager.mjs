@@ -135,6 +135,26 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
   const managementPort = () => management?.port;
   const isBypassed = host => bypassHosts().includes(host);
 
+  function accountKey() {
+    const key = session.accountKey?.();
+    return typeof key === 'string' && /^[a-f0-9]{64}$/.test(key) ? key : null;
+  }
+
+  async function rememberResume(mode) {
+    endpointHints ??= await readEndpointHints(directory);
+    const owner = accountKey();
+    if (mode && !owner) return;
+    const previous = endpointHints.resume;
+    if (mode === 'manual' && previous?.account === owner && previous.mode === 'system') return;
+    if (!mode && !previous) return;
+    const updated = { ...endpointHints };
+    if (mode) updated.resume = { mode, account: owner };
+    else delete updated.resume;
+    if (JSON.stringify(previous) === JSON.stringify(updated.resume)) return;
+    await writeEndpointHints(directory, updated);
+    endpointHints = updated;
+  }
+
   function getSites() {
     const hosts = new Set(effectiveOrigins().map(origin => new URL(origin).hostname));
     return { sites: [...hosts].map(host => ({ host, enabled: !isBypassed(host) })) };
@@ -239,14 +259,22 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
     if (action === 'status') return status();
     if (confirm !== true) fail('GATEWAY_CONFIRM_REQUIRED', 403);
     if (!['setup','start','stop','credentials','trust','untrust','system-enable','system-disable','open-browser'].includes(action)) fail('GATEWAY_ACTION_INVALID');
-    if (action === 'stop') await stop({ revoke: params.revoke === true });
+    if (action === 'stop') {
+      await rememberResume(null);
+      await stop({ revoke: params.revoke === true });
+    }
     else if (action === 'system-disable') {
       const restored = await (await existingPlatform()).disableProxy({ confirm: true });
       if (restored.failures?.length) fail('GATEWAY_PROXY_RESTORE_FAILED');
       await systemProxy?.close(); systemProxy = undefined;
       await Promise.all([...systemPacs.values()].map(item => item.close())); systemPacs.clear();
+      // Explicitly disabling system routing keeps a running manual gateway.
+      // Remove the prior system choice before recording that narrower mode.
+      await rememberResume(null);
+      if (proxy) await rememberResume('manual');
     }
     else if (action === 'untrust') {
+      await rememberResume(null);
       await stop(); await (await existingPlatform()).untrust({ confirm: true });
     } else {
       if (['start', 'open-browser', 'system-enable'].includes(action)) {
@@ -277,7 +305,10 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
         if (!proxy || !pac) fail('GATEWAY_NOT_RUNNING');
         if (['darwin', 'win32'].includes(hostPlatform) && typeof platform.prepareProxy === 'function') {
           const current = await status();
-          if (current.systemProxy.enabled && !current.systemProxy.recoveryRequired) return current;
+          if (current.systemProxy.enabled && !current.systemProxy.recoveryRequired) {
+            await rememberResume('system');
+            return current;
+          }
           if (current.systemProxy.recoveryRequired) fail('GATEWAY_PROXY_RECOVERY_REQUIRED');
           if (!current.certificate.trusted) fail('GATEWAY_CERTIFICATE_TRUST_REQUIRED');
           const plan = await platform.prepareProxy({ confirm: true });
@@ -356,14 +387,61 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
         browser.closed?.then(() => browsers.delete(browser), () => browsers.delete(browser));
       }
     }
+    if (action === 'start') await rememberResume('manual');
+    if (action === 'system-enable') await rememberResume('system');
     lastError = null;
     return status();
   }
 
+  async function resume() {
+    if (closed) fail('GATEWAY_CLOSED');
+    endpointHints ??= await readEndpointHints(directory);
+    const intent = endpointHints.resume;
+    const currentAccount = accountKey();
+    const current = session.status();
+    if (!intent || !currentAccount || intent.account !== currentAccount ||
+        !current.authenticated && current.state !== 'ready') return status();
+    const previous = await status();
+    if (intent.mode === 'system' && !previous.certificate.trusted) fail('GATEWAY_CERTIFICATE_TRUST_REQUIRED');
+    if (previous.systemProxy.settingsChanged || previous.systemProxy.settingsUnreadable) fail('GATEWAY_PROXY_SETTINGS_CHANGED');
+    if (previous.systemProxy.recoveryRequired) {
+      // A prior daemon may have left our exact PAC in the OS. Restore only
+      // journal-owned values before constructing a fresh coexistence plan.
+      const restored = await (await existingPlatform()).disableProxy({ confirm: true });
+      if (restored.failures?.length) fail('GATEWAY_PROXY_RESTORE_FAILED');
+      if (restored.conflicts?.length) fail('GATEWAY_PROXY_SETTINGS_CHANGED');
+      await systemProxy?.close(); systemProxy = undefined;
+      await Promise.all([...systemPacs.values()].map(item => item.close())); systemPacs.clear();
+    }
+    if (accountKey() !== currentAccount) fail('GATEWAY_SESSION_CHANGED');
+    await dispatch({ action: 'start', confirm: true });
+    if (intent.mode === 'system') {
+      if (accountKey() !== currentAccount) fail('GATEWAY_SESSION_CHANGED');
+      await dispatch({ action: 'system-enable', confirm: true });
+    }
+    return status();
+  }
+
+  function enqueue(work) {
+    const run = queue.then(work).catch(error => {
+      lastError = safeCode(error);
+      throw new GatewayError(lastError, error?.status ?? 500);
+    });
+    queue = run.catch(() => {});
+    return run;
+  }
+
   return {
     control(params) {
-      const run = queue.then(() => dispatch(params)).catch(error => { lastError = safeCode(error); throw new GatewayError(lastError, error?.status ?? 500); });
-      queue = run.catch(() => {}); return run;
+      return enqueue(() => dispatch(params));
+    },
+    resume() { return enqueue(resume); },
+    suspend() {
+      return enqueue(async () => {
+        if (closed) fail('GATEWAY_CLOSED');
+        await stop({ revoke: true });
+        return status();
+      });
     },
     close() {
       const run = queue.then(async () => {

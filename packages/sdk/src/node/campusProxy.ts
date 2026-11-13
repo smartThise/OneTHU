@@ -566,6 +566,7 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
   return {
     epoch:runtime.epoch,
     assertCurrent:current,
+    accountKey:owner,
     status:()=>{const value=runtime.status();return {authenticated:value.authenticated,state:value.state,epoch:value.epoch,account:value.account};},
     allowedOrigins(){refreshGrants();return [...origins];},
     authorizeTarget(input:string){refreshGrants();try{return runtime.status().authenticated&&grants.has(new URL(input).origin);}catch{return false;}},

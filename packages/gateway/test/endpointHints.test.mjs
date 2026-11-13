@@ -17,3 +17,14 @@ test('an endpoint cache symlink cannot redirect reads or overwrite another file'
  await assert.rejects(readEndpointHints(dir),{code:'GATEWAY_ENDPOINT_HINTS_INVALID'});
  await assert.rejects(writeEndpointHints(dir,{version:1,services:{'Wi-Fi':hint}}),{code:'GATEWAY_ENDPOINT_HINTS_INVALID'});
 });
+
+test('resume intent stores a bounded mode and an account digest without credentials',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'onethu-hints-resume-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const resume={mode:'system',account:'a'.repeat(64)};
+ await writeEndpointHints(dir,{version:1,services:{},resume});
+ assert.deepEqual((await readEndpointHints(dir)).resume,resume);
+ for(const invalid of [null,[],{}, {mode:'auto',account:'a'.repeat(64)}, {mode:'manual',account:'username'},
+   {mode:'system',account:'A'.repeat(64)}, {...resume,password:'secret'}]){
+  assert.throws(()=>validateEndpointHints({version:1,services:{},resume:invalid}),{code:'GATEWAY_ENDPOINT_HINTS_INVALID'});
+ }
+});

@@ -9,6 +9,7 @@ import vm from 'node:vm';
 import { createManagedGateway, createPacScript, DEFAULT_ALLOWED_ORIGINS } from '../src/manager.mjs';
 import { createCertificateAuthority } from '../src/certificates.mjs';
 import { GatewayError } from '../src/index.mjs';
+import { readEndpointHints } from '../src/endpointHints.mjs';
 
 async function fixture(t, options = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'onethu-manager-'));
@@ -80,6 +81,93 @@ test('restarting a managed proxy reuses its manual endpoint and exact cached PAC
  const second=await f.manager.control({action:'start',confirm:true});
  assert.deepEqual(second.endpoint,first.endpoint);assert.equal(second.pacUrl,first.pacUrl);
  assert.equal((await fetch(first.pacUrl)).status,200);
+});
+
+test('same-account suspension resumes the manual gateway and an explicit stop clears that intent',async t=>{
+ const f=await fixture(t);
+ f.session.accountKey=()=> 'a'.repeat(64);
+ const started=await f.manager.control({action:'start',confirm:true});
+ assert.deepEqual((await readEndpointHints(join(f.dir,'gateway'))).resume,{mode:'manual',account:'a'.repeat(64)});
+ await f.manager.suspend();
+ assert.equal((await f.manager.control({action:'status'})).running,false);
+ f.logout();
+ assert.equal((await f.manager.resume()).running,false);
+ f.session.status=()=>({authenticated:true,state:'ready'});
+ f.session.accountKey=()=> 'b'.repeat(64);
+ assert.equal((await f.manager.resume()).running,false);
+ f.session.accountKey=()=> 'a'.repeat(64);
+ const resumed=await f.manager.resume();
+ assert.equal(resumed.running,true);
+ assert.deepEqual(resumed.endpoint,started.endpoint);
+ assert.equal(resumed.pacUrl,started.pacUrl);
+ await f.manager.control({action:'stop',confirm:true});
+ assert.equal((await readEndpointHints(join(f.dir,'gateway'))).resume,undefined);
+ assert.equal((await f.manager.resume()).running,false);
+});
+
+test('daemon replacement resumes only an explicitly authorized same-account gateway',async t=>{
+ const f=await fixture(t);
+ f.session.accountKey=()=> 'a'.repeat(64);
+ const first=await f.manager.control({action:'start',confirm:true});
+ await f.manager.close();
+ const next=createManagedGateway({dataDir:f.dir,session:f.session,platformFactory:()=>f.platform,
+  allowedOrigins:['https://campus.example','http://campus.example']});
+ t.after(()=>next.close());
+ const resumed=await next.resume();
+ assert.equal(resumed.running,true);
+ assert.equal(resumed.pacUrl,first.pacUrl);
+ assert.deepEqual(resumed.endpoint,first.endpoint);
+ await next.control({action:'untrust',confirm:true});
+ assert.equal((await readEndpointHints(join(f.dir,'gateway'))).resume,undefined);
+ assert.equal((await next.resume()).running,false);
+});
+
+test('system intent survives daemon replacement, refuses outside proxy edits and never installs trust',async t=>{
+ const f=await fixture(t,{hostPlatform:'darwin',peerAuthorizerFactory:()=>async()=>true});
+ f.session.accountKey=()=> 'a'.repeat(64);
+ let enables=0,restores=0;
+ f.state.trusted=true;
+ f.platform.prepareProxy=async()=>({services:[{name:'Ethernet',fallback:{}}]});
+ f.platform.enableProxy=async({pacUrlsByService})=>{
+  enables++;
+  Object.assign(f.state,{proxyEnabled:true,recoveryRequired:true,pacUrlsByService});
+ };
+ const disable=f.platform.disableProxy;
+ f.platform.disableProxy=async()=>{restores++;return disable();};
+ await f.manager.control({action:'start',confirm:true});
+ const first=await f.manager.control({action:'system-enable',confirm:true});
+ await f.manager.control({action:'start',confirm:true});
+ assert.equal((await readEndpointHints(join(f.dir,'gateway'))).resume.mode,'system');
+ await f.manager.close();
+ // Simulate an unclean previous exit: the old owned PAC remains in the OS.
+ Object.assign(f.state,{proxyEnabled:true,recoveryRequired:true,pacUrlsByService:first.systemProxy.pacUrlsByService});
+ const next=createManagedGateway({dataDir:f.dir,session:f.session,platformFactory:()=>f.platform,
+  hostPlatform:'darwin',peerAuthorizerFactory:()=>async()=>true,
+  allowedOrigins:['https://campus.example','http://campus.example']});
+ t.after(()=>next.close());
+ f.state.trusted=false;
+ const beforeRestore=restores;
+ await assert.rejects(next.resume(),{code:'GATEWAY_CERTIFICATE_TRUST_REQUIRED'});
+ assert.equal(restores,beforeRestore);
+ f.state.trusted=true;
+ f.state.settingsChanged=true;
+ await assert.rejects(next.resume(),{code:'GATEWAY_PROXY_SETTINGS_CHANGED'});
+ assert.equal(restores,beforeRestore);
+ assert.equal(enables,1);
+ f.state.settingsChanged=false;
+ const resumed=await next.resume();
+ assert.equal(restores,beforeRestore+1);
+ assert.equal(enables,2);
+ assert.deepEqual(resumed.systemEndpoint,first.systemEndpoint);
+ assert.deepEqual(resumed.systemProxy.pacUrlsByService,first.systemProxy.pacUrlsByService);
+ await next.resume();
+ assert.equal(enables,2);
+ await next.control({action:'system-disable',confirm:true});
+ assert.deepEqual((await readEndpointHints(join(f.dir,'gateway'))).resume,{mode:'manual',account:'a'.repeat(64)});
+ const manual=await next.resume();
+ assert.equal(manual.running,true);
+ assert.equal(manual.systemProxy.enabled,false);
+ assert.equal(enables,2);
 });
 
 test('the local console toggles a whole site, preserves the original proxy and persists across restart',async t=>{

@@ -11,6 +11,9 @@ export function validateEndpointHints(value){
   const validate=hint=>{if(!hint||!port(hint.proxyPort)||!port(hint.pacPort)||hint.proxyPort===hint.pacPort||typeof hint.pacPath!=='string'||!/^\/campus-[a-f0-9]{36}\.pac$/.test(hint.pacPath))fail();};
   if(value.manual!==undefined)validate(value.manual);
   if(value.managementPort!==undefined&&!port(value.managementPort))fail();
+  if(value.resume!==undefined&&(!value.resume||typeof value.resume!=='object'||Array.isArray(value.resume)||
+    !['manual','system'].includes(value.resume.mode)||typeof value.resume.account!=='string'||
+    !/^[a-f0-9]{64}$/.test(value.resume.account)||Object.keys(value.resume).some(key=>!['mode','account'].includes(key))))fail();
   if(value.bypassHosts!==undefined&&(!Array.isArray(value.bypassHosts)||value.bypassHosts.length>256||
     value.bypassHosts.some(host=>typeof host!=='string'||host.length>253||!host.includes('.')||
       !host.split('.').every(label=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)))))fail();
