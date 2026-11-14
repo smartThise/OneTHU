@@ -363,6 +363,96 @@ test('Mac system activation uses a separate peer-authorized listener and per-ser
   assert.equal((await manager.control({ action: 'status' })).running, true);
 });
 
+test('a changed manual proxy is adopted automatically without replacing campus listeners or PAC URLs', { timeout: 5000 }, async t => {
+  const f = await fixture(t, { hostPlatform: 'darwin', peerAuthorizerFactory: () => async () => true, proxyPollIntervalMs: 20 });
+  f.session.accountKey = () => 'a'.repeat(64);
+  f.state.trusted = true;
+  let fallback = { https: { host: '127.0.0.1', port: 7897 } };
+  let refreshed;
+  const update = new Promise(resolve => { refreshed = resolve; });
+  f.platform.prepareProxy = async () => ({ services: [
+    { name: 'Ethernet', fallback }, { name: 'Wi-Fi', fallback: {} },
+  ] });
+  f.platform.enableProxy = async ({ refresh, pacUrlsByService }) => {
+    Object.assign(f.state, { proxyEnabled: true, settingsChanged: false, recoveryRequired: true, pacUrlsByService });
+    if (refresh) refreshed();
+  };
+  await f.manager.control({ action: 'start', confirm: true });
+  const before = await f.manager.control({ action: 'system-enable', confirm: true });
+  fallback = { https: { host: '127.0.0.1', port: 8999 } };
+  f.state.settingsChanged = true;
+  await update;
+  const after = await f.manager.control({ action: 'status' });
+  assert.equal(after.systemProxy.recoveryRequired, false);
+  assert.deepEqual(after.endpoint, before.endpoint);
+  assert.deepEqual(after.systemEndpoint, before.systemEndpoint);
+  assert.deepEqual(after.systemProxy.pacUrlsByService, before.systemProxy.pacUrlsByService);
+  const ethernet = await (await fetch(after.systemProxy.pacUrlsByService.Ethernet)).text();
+  const wifi = await (await fetch(after.systemProxy.pacUrlsByService['Wi-Fi'])).text();
+  const evaluate = (script, host) => {
+    const context = vm.createContext({});
+    vm.runInContext(script, context);
+    return context.FindProxyForURL('https://' + host + '/', host);
+  };
+  assert.equal(evaluate(ethernet, 'outside.example'), 'PROXY 127.0.0.1:8999');
+  assert.equal(evaluate(wifi, 'outside.example'), 'DIRECT');
+  assert.equal(evaluate(ethernet, 'campus.example'), 'PROXY 127.0.0.1:' + after.systemEndpoint.port);
+  fallback = {};
+  f.state.settingsChanged = true;
+  await f.manager.resume();
+  const withoutProxy = await (await fetch(after.systemProxy.pacUrlsByService.Ethernet)).text();
+  assert.equal(evaluate(withoutProxy, 'outside.example'), 'DIRECT');
+  assert.equal(evaluate(withoutProxy, 'campus.example'), 'PROXY 127.0.0.1:' + after.systemEndpoint.port);
+});
+
+test('an unsupported replacement PAC leaves existing listeners and fallback untouched', async t => {
+  const f = await fixture(t, { hostPlatform: 'darwin', peerAuthorizerFactory: () => async () => true });
+  f.session.accountKey = () => 'a'.repeat(64);
+  f.state.trusted = true;
+  let writes = 0;
+  f.platform.prepareProxy = async ({ refresh }) => {
+    if (refresh) throw new GatewayError('GATEWAY_EXISTING_PROXY_ENABLED');
+    return { services: [{ name: 'Ethernet', fallback: { https: { host: '127.0.0.1', port: 7897 } } }] };
+  };
+  f.platform.enableProxy = async ({ pacUrlsByService }) => {
+    writes++;
+    Object.assign(f.state, { proxyEnabled: true, recoveryRequired: true, pacUrlsByService });
+  };
+  await f.manager.control({ action: 'start', confirm: true });
+  const before = await f.manager.control({ action: 'system-enable', confirm: true });
+  f.state.settingsChanged = true;
+  await assert.rejects(f.manager.resume(), { code: 'GATEWAY_EXISTING_PROXY_ENABLED' });
+  const after = await f.manager.control({ action: 'status' });
+  assert.equal(writes, 1);
+  assert.deepEqual(after.systemEndpoint, before.systemEndpoint);
+  assert.deepEqual(after.systemProxy.pacUrlsByService, before.systemProxy.pacUrlsByService);
+  assert.match(await (await fetch(after.systemProxy.pacUrlsByService.Ethernet)).text(), /127\.0\.0\.1:7897/);
+});
+
+test('a partially applied proxy refresh keeps the new upstream available to its live PAC', async t => {
+  const f = await fixture(t, { hostPlatform: 'darwin', peerAuthorizerFactory: () => async () => true });
+  f.session.accountKey = () => 'a'.repeat(64);
+  f.state.trusted = true;
+  let fallback = { https: { host: '127.0.0.1', port: 7897 } };
+  f.platform.prepareProxy = async () => ({ services: [{ name: 'Ethernet', fallback }] });
+  f.platform.enableProxy = async ({ refresh, pacUrlsByService }) => {
+    Object.assign(f.state, { proxyEnabled: true, recoveryRequired: true, pacUrlsByService });
+    if (refresh) {
+      f.state.restorePending = true;
+      throw new GatewayError('GATEWAY_SYSTEM_PERMISSION_REQUIRED');
+    }
+  };
+  await f.manager.control({ action: 'start', confirm: true });
+  const before = await f.manager.control({ action: 'system-enable', confirm: true });
+  fallback = { https: { host: '127.0.0.1', port: 8999 } };
+  f.state.settingsChanged = true;
+  await assert.rejects(f.manager.resume(), { code: 'GATEWAY_SYSTEM_PERMISSION_REQUIRED' });
+  const after = await f.manager.control({ action: 'status' });
+  assert.deepEqual(after.systemEndpoint, before.systemEndpoint);
+  assert.equal(after.systemProxy.restorePending, true);
+  assert.match(await (await fetch(after.systemProxy.pacUrlsByService.Ethernet)).text(), /127\.0\.0\.1:8999/);
+});
+
 test('account revocation closes proxy and test browser even when OS recovery fails', async t => {
   let closed = 0;
   const { manager, platform, state } = await fixture(t, { browserFactory: async () => ({ close: async () => { closed++; } }) });

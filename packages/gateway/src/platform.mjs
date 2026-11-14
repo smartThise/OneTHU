@@ -218,6 +218,33 @@ try {
     });
     return { version: 1, platform: 'darwin', fingerprint: createHash('sha256').update(JSON.stringify(services)).digest('hex'), services: descriptors };
   }
+  function macRefreshPlan(state, services) {
+    if (!state.proxy) return { baseline: services, plan: macPlan(services) };
+    if (state.proxy.restorePending || state.proxy.entries.some(entry => entry.pending)) throw error('GATEWAY_PROXY_RECOVERY_REQUIRED');
+    const entries = new Map(state.proxy.entries.map(entry => [`${entry.service}\0${entry.kind}`, entry]));
+    const baseline = services.map(service => {
+      const groups = {};
+      const pacEntry = entries.get(`${service.name}\0pac`);
+      const ownedPac = pacEntry && service.groups.pac.url === pacEntry.owned.url;
+      if (service.discovery || service.groups.pac.enabled && !ownedPac) throw error('GATEWAY_EXISTING_PROXY_ENABLED');
+      // Proxy applications commonly switch off PAC and rewrite all three
+      // manual switches, including values already off in our owned state.
+      // In that case the complete current service is the new user baseline.
+      const replacedService = pacEntry && !service.groups.pac.enabled;
+      for (const kind of ['pac', 'web', 'secure', 'socks']) {
+        const current = service.groups[kind];
+        const entry = entries.get(`${service.name}\0${kind}`);
+        groups[kind] = entry && equal(current, entry.owned) && !(replacedService && kind !== 'pac')
+          ? { ...entry.before } : { ...current };
+      }
+      if (ownedPac && service.groups.pac.enabled) groups.pac = { ...pacEntry.before };
+      return { ...service, groups };
+    });
+    const plan = macPlan(baseline);
+    // Fence both the externally observed settings and our restoration journal.
+    plan.fingerprint = createHash('sha256').update(JSON.stringify({ services, entries: state.proxy.entries })).digest('hex');
+    return { baseline, plan };
+  }
   async function windowsProxyPreflight({ allowManual = false } = {}) {
     // The documented API reads the current user's connection configuration,
     // including WPAD that AutoConfigURL/ProxyEnable alone cannot represent.
@@ -265,6 +292,7 @@ try {
   async function apply(state, entry, desired, args) {
     const current = await readGroup(entry);
     if (!equal(current, entry.owned)) throw error('GATEWAY_PROXY_SETTINGS_CHANGED');
+    if (equal(current, desired)) return;
     entry.pending = { before: current, after: desired,
       ...(platform === 'win32' ? { intermediate: { ...current, AutoConfigURL: desired.AutoConfigURL } } : {}) };
     await save(state);
@@ -409,7 +437,12 @@ Notify-Proxy`, { expected: current, desired }), true);
       confirm(options);
       if (!['darwin','win32'].includes(platform)) throw error('GATEWAY_PLATFORM_UNSUPPORTED');
       return serialized(async () => {
-        if ((await readState()).proxy) throw error('GATEWAY_PROXY_RECOVERY_REQUIRED');
+        const state = await readState();
+        if (options.refresh) {
+          if (platform !== 'darwin') throw error('GATEWAY_PLATFORM_UNSUPPORTED');
+          return macRefreshPlan(state, await macSnapshot()).plan;
+        }
+        if (state.proxy) throw error('GATEWAY_PROXY_RECOVERY_REQUIRED');
         return platform === 'darwin' ? macPlan(await macSnapshot()) : windowsProxyPlan(await windowsProxyPreflight({allowManual:true}),await readGroup({kind:'windows'}));
       });
     },
@@ -460,19 +493,21 @@ finally { $store.Close() }`, { hash }), true);
     enableProxy(options = {}) {
       confirm(options);
       const composed = options.pacUrlsByService !== undefined;
+      if (options.refresh && (platform !== 'darwin' || !composed)) throw error('GATEWAY_PLATFORM_UNSUPPORTED');
       if (composed && (options.pacUrl !== undefined || !options.expectedPlan || typeof options.pacUrlsByService !== 'object' ||
           options.pacUrlsByService === null || Array.isArray(options.pacUrlsByService))) throw error('GATEWAY_PROXY_PLAN_INVALID');
       const urls = composed ? Object.fromEntries(Object.entries(options.pacUrlsByService).map(([name, value]) => [name, pacUrl(value)])) : null;
       const url = composed ? platform === 'win32' ? pacUrl(urls.CurrentUser) : null : pacUrl(options.pacUrl);
       return serialized(async () => {
         const state = await readState();
-        if (state.proxy) throw error('GATEWAY_PROXY_RECOVERY_REQUIRED');
+        if (state.proxy && !options.refresh) throw error('GATEWAY_PROXY_RECOVERY_REQUIRED');
         const entries = [];
         let coexistence = false;
         if (platform === 'darwin') {
           const services = await macSnapshot();
+          const refreshed = options.refresh ? macRefreshPlan(state, services) : null;
           if (composed) {
-            const plan = macPlan(services);
+            const plan = refreshed?.plan ?? macPlan(services);
             if (!equal(plan, options.expectedPlan) || !equal(Object.keys(urls).sort(), services.map(service => service.name).sort())) throw error('GATEWAY_PROXY_PLAN_CHANGED');
           }
           for (const service of services) {
@@ -480,8 +515,8 @@ finally { $store.Close() }`, { hash }), true);
             // Install PAC before disabling its preserved fallback proxies. The
             // reversed journal restores manual proxies before removing PAC.
             for (const kind of ['pac', 'web', 'secure', 'socks']) {
-              const before = service.groups[kind];
-              entries.push({ service: service.name, kind, before, owned: before });
+              const before = refreshed ? refreshed.baseline.find(item => item.name === service.name).groups[kind] : service.groups[kind];
+              entries.push({ service: service.name, kind, before, owned: service.groups[kind] });
               if (kind !== 'pac' && before.enabled) coexistence = true;
             }
           }

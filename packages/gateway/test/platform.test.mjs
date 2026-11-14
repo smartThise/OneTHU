@@ -187,6 +187,120 @@ test('status detects later proxy changes without mutating settings or recovery j
   assert.equal(f.state.calls.filter(call => call.args[0].startsWith('-set')).length, mutations);
 });
 
+test('macOS refresh keeps the PAC endpoint and adopts changed manual proxies as the restore baseline', async t => {
+  const f = await fixture(t); manualProxies(f);
+  await f.integration.enableProxy({ confirm: true, expectedPlan: await f.integration.prepareProxy({ confirm: true }), pacUrlsByService: serviceUrls });
+  const wifi = f.state.services['Wi-Fi'];
+  wifi.pac.enabled = false;
+  for (const kind of ['web', 'secure', 'socks']) wifi[kind] = { enabled: true, server: '127.0.0.1', port: '7898', authenticated: '0' };
+  wifi.bypass.push('new-private.example');
+  const changed = clone(wifi);
+  const before = f.state.calls.filter(call => call.args[0].startsWith('-set')).length;
+  const expectedPlan = await f.integration.prepareProxy({ confirm: true, refresh: true });
+  assert.equal(f.state.calls.filter(call => call.args[0].startsWith('-set')).length, before);
+  for (const kind of ['http', 'https', 'socks']) assert.deepEqual(expectedPlan.services[0].fallback[kind], { host: '127.0.0.1', port: 7898 });
+  assert.deepEqual(expectedPlan.services[0].fallback.bypass, changed.bypass);
+  await f.integration.enableProxy({ confirm: true, refresh: true, expectedPlan, pacUrlsByService: serviceUrls });
+  assert.deepEqual(wifi.pac, { enabled: true, url: serviceUrls['Wi-Fi'] });
+  for (const kind of ['web', 'secure', 'socks']) assert.equal(wifi[kind].enabled, false);
+  assert.equal((await f.integration.status()).settingsChanged, false);
+  const after = f.state.calls.filter(call => call.args[0].startsWith('-set')).length;
+  const repeated = await f.integration.prepareProxy({ confirm: true, refresh: true });
+  await f.integration.enableProxy({ confirm: true, refresh: true, expectedPlan: repeated, pacUrlsByService: serviceUrls });
+  assert.equal(f.state.calls.filter(call => call.args[0].startsWith('-set')).length, after);
+  assert.equal((await f.integration.disableProxy({ confirm: true })).restored, true);
+  assert.deepEqual(f.state.services['Wi-Fi'], changed);
+});
+
+test('macOS refresh recognizes proxy-off and individual protocol changes', async t => {
+  const f = await fixture(t); manualProxies(f);
+  await f.integration.enableProxy({ confirm: true, expectedPlan: await f.integration.prepareProxy({ confirm: true }), pacUrlsByService: serviceUrls });
+  const wifi = f.state.services['Wi-Fi'];
+  // A proxy-off action repeats the already-disabled manual flags and turns off PAC.
+  wifi.pac.enabled = false;
+  let expectedPlan = await f.integration.prepareProxy({ confirm: true, refresh: true });
+  for (const kind of ['http', 'https', 'socks']) assert.equal(expectedPlan.services[0].fallback[kind], null);
+  await f.integration.enableProxy({ confirm: true, refresh: true, expectedPlan, pacUrlsByService: serviceUrls });
+  // With our PAC still active, a changed HTTPS proxy leaves other protocol baselines intact.
+  wifi.secure = { enabled: true, server: '127.0.0.1', port: '7899', authenticated: '0' };
+  expectedPlan = await f.integration.prepareProxy({ confirm: true, refresh: true });
+  assert.deepEqual(expectedPlan.services[0].fallback.https, { host: '127.0.0.1', port: 7899 });
+  assert.equal(expectedPlan.services[0].fallback.http, null);
+  assert.equal(expectedPlan.services[0].fallback.socks, null);
+  await f.integration.enableProxy({ confirm: true, refresh: true, expectedPlan, pacUrlsByService: serviceUrls });
+  await f.integration.disableProxy({ confirm: true });
+  assert.equal(wifi.secure.enabled, true);
+  assert.equal(wifi.secure.port, '7899');
+  assert.equal(wifi.web.enabled, false);
+  assert.equal(wifi.socks.enabled, false);
+});
+
+test('macOS refresh checks the full observed snapshot again before any writes', async t => {
+  for (const edit of ['port', 'bypass', 'pac', 'plan']) {
+    const f = await fixture(t); manualProxies(f);
+    await f.integration.enableProxy({ confirm: true, expectedPlan: await f.integration.prepareProxy({ confirm: true }), pacUrlsByService: serviceUrls });
+    const expectedPlan = await f.integration.prepareProxy({ confirm: true, refresh: true });
+    if (edit === 'port') f.state.services['Wi-Fi'].web.port = '7900';
+    else if (edit === 'bypass') f.state.services['Wi-Fi'].bypass.push('changed.example');
+    else if (edit === 'pac') f.state.services['Wi-Fi'].pac.enabled = false;
+    else expectedPlan.services[0].fallback.http.port = 7900;
+    const journal = await readFile(join(f.directory, 'platform-state.json'), 'utf8');
+    const mutations = f.state.calls.filter(call => call.args[0].startsWith('-set')).length;
+    await assert.rejects(f.integration.enableProxy({ confirm: true, refresh: true, expectedPlan, pacUrlsByService: serviceUrls }), { code: 'GATEWAY_PROXY_PLAN_CHANGED' });
+    assert.equal(await readFile(join(f.directory, 'platform-state.json'), 'utf8'), journal);
+    assert.equal(f.state.calls.filter(call => call.args[0].startsWith('-set')).length, mutations);
+  }
+});
+
+test('macOS refresh preserves external PAC, discovery and unsupported authentication settings', async t => {
+  for (const edit of ['pac', 'discovery', 'authenticated']) {
+    const f = await fixture(t); manualProxies(f);
+    await f.integration.enableProxy({ confirm: true, expectedPlan: await f.integration.prepareProxy({ confirm: true }), pacUrlsByService: serviceUrls });
+    if (edit === 'pac') f.state.services['Wi-Fi'].pac = { enabled: true, url: 'https://other.example/config.pac' };
+    else if (edit === 'discovery') f.state.discovery = true;
+    else f.state.services['Wi-Fi'].web = { ...f.state.services['Wi-Fi'].web, enabled: true, authenticated: '1' };
+    const original = clone(f.state.services);
+    const journal = await readFile(join(f.directory, 'platform-state.json'), 'utf8');
+    const mutations = f.state.calls.filter(call => call.args[0].startsWith('-set')).length;
+    await assert.rejects(f.integration.prepareProxy({ confirm: true, refresh: true }), {
+      code: edit === 'authenticated' ? 'GATEWAY_AUTHENTICATED_PROXY_UNSUPPORTED' : 'GATEWAY_EXISTING_PROXY_ENABLED',
+    });
+    assert.deepEqual(f.state.services, original);
+    assert.equal(await readFile(join(f.directory, 'platform-state.json'), 'utf8'), journal);
+    assert.equal(f.state.calls.filter(call => call.args[0].startsWith('-set')).length, mutations);
+  }
+});
+
+test('an interrupted macOS refresh retains the new baseline and waits for recovery', async t => {
+  const f = await fixture(t); manualProxies(f);
+  await f.integration.enableProxy({ confirm: true, expectedPlan: await f.integration.prepareProxy({ confirm: true }), pacUrlsByService: serviceUrls });
+  const wifi = f.state.services['Wi-Fi'];
+  wifi.pac.enabled = false;
+  for (const kind of ['web', 'secure', 'socks']) wifi[kind] = { enabled: true, server: '127.0.0.1', port: '7900', authenticated: '0' };
+  const latest = clone(wifi);
+  const expectedPlan = await f.integration.prepareProxy({ confirm: true, refresh: true });
+  f.state.failAction = '-setsocksfirewallproxystate';
+  await assert.rejects(f.integration.enableProxy({ confirm: true, refresh: true, expectedPlan, pacUrlsByService: serviceUrls }), { code: 'GATEWAY_SYSTEM_PERMISSION_REQUIRED' });
+  assert.equal((await f.integration.status()).restorePending, true);
+  const mutations = f.state.calls.filter(call => call.args[0].startsWith('-set')).length;
+  await assert.rejects(f.integration.prepareProxy({ confirm: true, refresh: true }), { code: 'GATEWAY_PROXY_RECOVERY_REQUIRED' });
+  assert.equal(f.state.calls.filter(call => call.args[0].startsWith('-set')).length, mutations);
+  f.state.failAction = undefined;
+  assert.equal((await f.integration.disableProxy({ confirm: true })).restored, true);
+  assert.deepEqual(wifi, latest);
+});
+
+test('Windows refresh explicitly leaves its existing integration untouched', async t => {
+  const f = await fixture(t, 'win32');
+  await f.integration.enableProxy({ confirm: true, pacUrl: url });
+  const before = clone(f.state.win);
+  const journal = await readFile(join(f.directory, 'platform-state.json'), 'utf8');
+  await assert.rejects(f.integration.prepareProxy({ confirm: true, refresh: true }), { code: 'GATEWAY_PLATFORM_UNSUPPORTED' });
+  assert.throws(() => f.integration.enableProxy({ confirm: true, refresh: true, pacUrlsByService: { CurrentUser: url }, expectedPlan: {} }), { code: 'GATEWAY_PLATFORM_UNSUPPORTED' });
+  assert.deepEqual(f.state.win, before);
+  assert.equal(await readFile(join(f.directory, 'platform-state.json'), 'utf8'), journal);
+});
+
 test('status accepts pending journal states and reports unavailable service queries without writing', async t => {
   const f = await fixture(t);
   await f.integration.enableProxy({ confirm: true, pacUrl: url });

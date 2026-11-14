@@ -68,7 +68,7 @@ async function privateToken(directory) {
  * the network service's inherited proxy rules, or DIRECT when none apply. */
 async function servePac(origins, endpoint, fallback, options) {
   const path = options?.listener?.pacPath ?? `/campus-${randomBytes(18).toString('hex')}.pac`;
-  const scriptNow = () => createPacScript(origins(), endpoint, fallback, {
+  const scriptNow = () => createPacScript(origins(), endpoint, typeof fallback === 'function' ? fallback() : fallback, {
     ...options, managementPort: options.managementPort(),
   });
   scriptNow();
@@ -103,8 +103,9 @@ async function servePac(origins, endpoint, fallback, options) {
 export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAULT_ALLOWED_ORIGINS,
   certificateFactory = createCertificateAuthority, platformFactory = createPlatformIntegration,
   browserFactory = openGatewayBrowser, peerAuthorizerFactory,
-  hostPlatform = process.platform } = {}) {
+  hostPlatform = process.platform, proxyPollIntervalMs = 2000 } = {}) {
   if (typeof dataDir !== 'string' || !dataDir || !session || typeof session.status !== 'function') fail('GATEWAY_CONFIG_INVALID');
+  if (!Number.isFinite(proxyPollIntervalMs) || proxyPollIntervalMs < 20) fail('GATEWAY_CONFIG_INVALID');
   const origins = [...normalizeAllowedOrigins(withSecureCampusOrigins([...allowedOrigins]))]
     .filter(origin => !isCampusIdentityHost(new URL(origin).hostname));
   if (!origins.length) fail('GATEWAY_CONFIG_INVALID');
@@ -128,12 +129,64 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
   let authority, clientAuthority, platform, proxy, pac, management, token, endpointHints, lastError = null;
   let systemProxy;
   const systemPacs = new Map();
+  const systemRoutes = new Map();
   const browsers = new Set();
   let queue = Promise.resolve();
   let closed = false;
+  let proxyMonitor, monitorBusy = false, nextProxyCheck = 0;
   const bypassHosts = () => endpointHints?.bypassHosts ?? [];
   const managementPort = () => management?.port;
   const isBypassed = host => bypassHosts().includes(host);
+
+  function stopProxyMonitor() {
+    clearInterval(proxyMonitor);
+    proxyMonitor = undefined;
+  }
+
+  function startProxyMonitor() {
+    if (proxyMonitor || hostPlatform !== 'darwin') return;
+    proxyMonitor = setInterval(() => {
+      if (monitorBusy || closed || !systemProxy || Date.now() < nextProxyCheck) return;
+      monitorBusy = true;
+      void enqueue(reconcileSystemProxy).catch(() => {
+        nextProxyCheck = Date.now() + 10000;
+      }).finally(() => { monitorBusy = false; });
+    }, Math.max(20, proxyPollIntervalMs));
+    proxyMonitor.unref?.();
+  }
+
+  async function reconcileSystemProxy() {
+    const intent = endpointHints?.resume;
+    const account = session.status();
+    if (closed || !systemProxy || intent?.mode !== 'system' ||
+        intent.account !== accountKey() || !account.authenticated) return;
+    const current = await platform.status();
+    if (current.settingsUnreadable || current.restorePending) fail('GATEWAY_PROXY_RECOVERY_REQUIRED');
+    if (!current.settingsChanged) return;
+    const plan = await platform.prepareProxy({ confirm: true, refresh: true });
+    if (plan.services.length !== systemRoutes.size ||
+        plan.services.some(service => !systemRoutes.has(service.name))) fail('GATEWAY_NETWORK_SERVICES_CHANGED');
+    const previous = new Map();
+    for (const service of plan.services) {
+      const route = systemRoutes.get(service.name);
+      previous.set(service.name, route.fallback);
+      route.fallback = service.fallback;
+    }
+    try {
+      await platform.enableProxy({ confirm: true, refresh: true, expectedPlan: plan,
+        pacUrlsByService: Object.fromEntries([...systemPacs].map(([name, item]) => [name, item.url])) });
+    } catch (error) {
+      const after = await platform.status().catch(() => null);
+      // A partial OS write can leave our PAC active. Keep its newly selected
+      // upstream reachable until that transaction has been recovered.
+      if (after && !after.restorePending) {
+        for (const [name, fallback] of previous) systemRoutes.get(name).fallback = fallback;
+      }
+      throw error;
+    }
+    lastError = null;
+    nextProxyCheck = 0;
+  }
 
   function accountKey() {
     const key = session.accountKey?.();
@@ -225,6 +278,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
   }
 
   async function stop({ revoke = false } = {}) {
+    stopProxyMonitor();
     let restoreError;
     if (revoke) { await proxy?.close(); proxy = undefined; await systemProxy?.close(); systemProxy = undefined; }
     try {
@@ -241,6 +295,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
     if (!restoreError || revoke) {
       await proxy?.close(); proxy = undefined;
       await systemProxy?.close(); systemProxy = undefined;
+      systemRoutes.clear();
       // During forced account revocation keep PAC serving a refused local port
       // until the old OS settings are explicitly repaired; never direct-fallback.
       if (!restoreError) {
@@ -264,9 +319,11 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
       await stop({ revoke: params.revoke === true });
     }
     else if (action === 'system-disable') {
+      stopProxyMonitor();
       const restored = await (await existingPlatform()).disableProxy({ confirm: true });
       if (restored.failures?.length) fail('GATEWAY_PROXY_RESTORE_FAILED');
       await systemProxy?.close(); systemProxy = undefined;
+      systemRoutes.clear();
       await Promise.all([...systemPacs.values()].map(item => item.close())); systemPacs.clear();
       // Explicitly disabling system routing keeps a running manual gateway.
       // Remove the prior system choice before recording that narrower mode.
@@ -307,6 +364,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
           const current = await status();
           if (current.systemProxy.enabled && !current.systemProxy.recoveryRequired) {
             await rememberResume('system');
+            startProxyMonitor();
             return current;
           }
           if (current.systemProxy.recoveryRequired) fail('GATEWAY_PROXY_RECOVERY_REQUIRED');
@@ -335,10 +393,12 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
           try {
             systemProxy = next;
             for (const service of plan.services) {
-              const key = JSON.stringify(service.fallback);
+              const key = service.name;
               const hint=Object.hasOwn(endpointHints.services,service.name)?endpointHints.services[service.name]:undefined;
               let gateway = groups.get(key);
-              const passthrough = createCampusPassthrough(service.fallback);
+              const route = { fallback: service.fallback };
+              systemRoutes.set(service.name, route);
+              const passthrough = (target, options) => createCampusPassthrough(route.fallback)(target, options);
               const trustedClients = !!session.clientIdentity && !!passthrough;
               if (!gateway) {
                 const authorizeSocket = peerAuthorizerFactory();
@@ -358,7 +418,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
                 // proxies intact rather than routing the whole browser to 503.
                 await gateway.preflight();
               }
-              const servicePac=await servePac(effectiveOrigins, gateway.address(), service.fallback, { campusPassthrough: !!passthrough, trustedClients,listener:hint,bypassHosts,managementPort });
+              const servicePac=await servePac(effectiveOrigins, gateway.address(), () => route.fallback, { campusPassthrough: !!passthrough, trustedClients,listener:hint,bypassHosts,managementPort });
               systemPacs.set(service.name,servicePac);Object.defineProperty(nextHints,service.name,{value:{proxyPort:gateway.address().port,...servicePac.hint},enumerable:true});
             }
             endpointHints.services=nextHints;await writeEndpointHints(directory,endpointHints);
@@ -370,6 +430,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
             const state = await platform.status().catch(() => ({ recoveryRequired: true }));
             if (!state.recoveryRequired && !state.proxyEnabled) {
               await next.close(); systemProxy = undefined;
+              systemRoutes.clear();
               await Promise.all([...systemPacs.values()].map(item => item.close())); systemPacs.clear();
             }
             throw error;
@@ -388,7 +449,10 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
       }
     }
     if (action === 'start') await rememberResume('manual');
-    if (action === 'system-enable') await rememberResume('system');
+    if (action === 'system-enable') {
+      await rememberResume('system');
+      startProxyMonitor();
+    }
     lastError = null;
     return status();
   }
@@ -403,6 +467,10 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
         !current.authenticated && current.state !== 'ready') return status();
     const previous = await status();
     if (intent.mode === 'system' && !previous.certificate.trusted) fail('GATEWAY_CERTIFICATE_TRUST_REQUIRED');
+    if (systemProxy && previous.systemProxy.settingsChanged) {
+      await reconcileSystemProxy();
+      return status();
+    }
     if (previous.systemProxy.settingsChanged || previous.systemProxy.settingsUnreadable) fail('GATEWAY_PROXY_SETTINGS_CHANGED');
     if (previous.systemProxy.recoveryRequired) {
       // A prior daemon may have left our exact PAC in the OS. Restore only
@@ -411,6 +479,7 @@ export function createManagedGateway({ dataDir, session, allowedOrigins = DEFAUL
       if (restored.failures?.length) fail('GATEWAY_PROXY_RESTORE_FAILED');
       if (restored.conflicts?.length) fail('GATEWAY_PROXY_SETTINGS_CHANGED');
       await systemProxy?.close(); systemProxy = undefined;
+      systemRoutes.clear();
       await Promise.all([...systemPacs.values()].map(item => item.close())); systemPacs.clear();
     }
     if (accountKey() !== currentAccount) fail('GATEWAY_SESSION_CHANGED');
