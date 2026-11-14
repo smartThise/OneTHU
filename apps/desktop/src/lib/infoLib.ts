@@ -632,39 +632,36 @@ export async function libHydrateCredentials(): Promise<boolean> {
   return Boolean(h.userId && h.password);
 }
 
+let ensureSessionInflight: Promise<boolean> | null = null;
+
 export async function libEnsureSession(): Promise<boolean> {
-  // ① 对齐 info app：凭据 + 受信指纹先就位（否则重启后无从重登）
-  const hasCreds = await libHydrateCredentials();
-  // ② 权威探活 + 按需重登（info app 的 verifyAndReLogin 同源实现）：
-  //    取用户信息比对 ryh；只有明确过期才使用 helper 上的凭据重登。
-  //    比原来「webvpn 端点里有 XSRF-TOKEN 就算活」强：后者只证明网关发了票，
-  //    不证明 info 域会话是本人的活会话，会「假活」→ 后续 401 → 用户被踢。
-  if (hasCreds && loginCooldownLeftMs() <= 0) {
-    const relogged = await verifyAndReLogin(helper); // 返回 false = 会话还活着
-    if (relogged) void log("LIB-ENSURE 静默重登成功（verifyAndReLogin）");
-    return true;
-  }
-  // 探针走原生通道（Rust 仓=权威会话，重定向透明跟完）+ 现行 info 域。
-  const probe = await nativeFetch(
-    "https://webvpn.tsinghua.edu.cn/wengine-vpn/cookie?method=get&host=info.tsinghua.edu.cn&scheme=https&path=/f/info/gxfw_fg/common/index",
-    { method: "GET" },
-  );
-  if (probe.status !== 200) {
-    if (probe.status === 401) return false;
-    throw Object.assign(new Error(`University session probe failed (HTTP ${probe.status}).`), { status: probe.status });
-  }
-  const body = await probe.text();
-  if (/XSRF-TOKEN=/.test(body)) {
-    try {
-      http.jar.setFromResponse(new URL("https://webvpn.tsinghua.edu.cn/"), probe);
-    } catch {
-      /* ignore */
+  if (libLoginPending()) return false;
+  if (ensureSessionInflight) return ensureSessionInflight;
+  const owner = session.username || helper.userId;
+  if (!owner) return false;
+  ensureSessionInflight = (async () => {
+    const hasCreds = await libHydrateCredentials();
+    if ((session.username || helper.userId) !== owner || helper.userId !== owner) {
+      throw Object.assign(new Error("University session ownership changed."), { code: "AUTH_SESSION_CONFLICT" });
     }
-    return true;
-  }
-  // This read-only fallback has no verified credentials (or is cooling down).
-  // It cannot promote an old in-flight attempt into a new password submission.
-  return false;
+    try {
+      // A WebVPN CSRF cookie alone does not identify a signed-in account.
+      // Both paths verify the university's user record. The read-only path
+      // never submits credentials during a login cooldown or without a password.
+      const relogged = await verifyAndReLogin(helper, {
+        allowLogin: hasCreds && loginCooldownLeftMs() <= 0,
+      });
+      if ((session.username || helper.userId) !== owner || helper.userId !== owner) {
+        throw Object.assign(new Error("University session ownership changed."), { code: "AUTH_SESSION_CONFLICT" });
+      }
+      if (relogged) void log("LIB-ENSURE 静默重登成功（verifyAndReLogin）");
+      return true;
+    } catch (error) {
+      if ((error as { code?: string })?.code === "AUTH_SESSION_EXPIRED") return false;
+      throw error;
+    }
+  })().finally(() => { ensureSessionInflight = null; });
+  return ensureSessionInflight;
 }
 
 /** 二级课表（实验课）自实现：直连拉 portal3rd + 正则解析（本地验证过）。

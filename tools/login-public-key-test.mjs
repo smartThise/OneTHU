@@ -304,6 +304,25 @@ await check("only confirmed HTTP 401, login pages and explicit JSON expiry permi
     assert.equal(admissions, shape === "alive" ? 0 : 1, shape);
   }
 });
+await check("read-only verification checks the owner and never starts a login for expired sessions", async () => {
+  for (const expired of [false, true]) {
+    clearOutstandingLogin();
+    let posts = 0;
+    const h = helper();
+    setPlatformFetch(async (url, init) => {
+      if (init.method === "POST") posts++;
+      if (url.includes("/wengine-vpn/cookie")) return reply("XSRF-TOKEN=fixture-csrf;", url);
+      if (url.includes("/grjbxx")) return reply(expired ? '{"status":401}' : '{"object":{"ryh":"123456"}}', url);
+      throw Error("Read-only verification must not visit a login entry");
+    });
+    if (expired) {
+      await assert.rejects(verifyAndReLogin(h, {allowLogin: false}), {code: "AUTH_SESSION_EXPIRED"});
+    } else {
+      assert.equal(await verifyAndReLogin(h, {allowLogin: false}), false);
+    }
+    assert.equal(posts, 0);
+  }
+});
 await check("service HTTP 5xx stops at the failed operation before attempting roaming", async () => {
   for (const status of [500, 502, 503, 504]) {
     let requests = 0;

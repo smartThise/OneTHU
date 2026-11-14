@@ -66,31 +66,92 @@ export function installAuthWatchdog(): void {
   })();
 }
 
-/** 会话保活：10 分钟轻探针（wrapped info 落地页），死 → softRelogin。
- *  过期前续、死亡即刻重建——用户下一次点击永远踩在活会话上（THU Info
- *  「永不掉线」的另一半；光靠死了再救仍会有一时半会的长加载）。 */
-export function installKeepalive(): void {
-  setInterval(() => {
-    void (async () => {
-      try {
-        // lib 单管线：探活 + 死则内存凭据静默重登（受信凭据免 2FA）
-        const { libEnsureSession } = await import("./infoLib.js");
-        const { persist, session } = await import("./clients.js");
-        const ok = await libEnsureSession();
-        if (ok) {
-          session.state = "ready";
-          await persist().catch(() => undefined);
-        }
-      } catch { /* 静默：保活失败不影响前台 */ }
-      // GitLab 域巡检（2026-10-14「经常丢登录态」治理）：`_gitlab_session` 是
-      // git.tsinghua.edu.cn 的独立短命票，上一段只覆盖 webvpn/id 侧——长闲置后
-      // 下一次点进 GitLab 必撞 401 并触发整条漫游换票舞。随同一节拍顺手把 git 域
-      // 探一遍：死票在用户点击前静默换好（state/gitlab.ts 的单飞哨兵保证并行取数
-      // 与这里共享同一条恢复链，探针不确定/换票失败都静默落回原路）。
-      try {
-        const { gitlabEnsureSession } = await import("../state/gitlab.js");
-        await gitlabEnsureSession();
-      } catch { /* 静默：巡检失败不影响前台 */ }
+interface KeepaliveAccount {
+  username: string;
+  fingerprint: string;
+  state: string;
+}
+
+interface KeepalivePorts {
+  account: () => KeepaliveAccount;
+  loginPending: () => boolean;
+  ensure: () => Promise<boolean>;
+  persist: () => Promise<void>;
+  publish: () => Promise<void>;
+  now?: () => number;
+}
+
+/** One in-flight check serves timer and foreground events. Account changes
+ * retire its result before it can persist or publish another owner's cookies. */
+export function createSessionKeepalive(ports: KeepalivePorts): () => Promise<boolean> {
+  let inFlight: Promise<boolean> | null = null;
+  let lastAttempt: number | null = null;
+  const now = ports.now ?? Date.now;
+  return () => {
+    if (inFlight) return inFlight;
+    const before = { ...ports.account() };
+    if (before.state !== "ready" || !before.username || ports.loginPending()) return Promise.resolve(false);
+    const time = now();
+    if (lastAttempt !== null && time >= lastAttempt && time - lastAttempt < 15_000) return Promise.resolve(false);
+    lastAttempt = time;
+    const stillCurrent = () => {
+      const current = ports.account();
+      return current.state === "ready" && current.username === before.username
+        && current.fingerprint === before.fingerprint && !ports.loginPending();
+    };
+    const pending = (async () => {
+      if (!await ports.ensure() || !stillCurrent()) return false;
+      await ports.persist();
+      if (!stillCurrent()) return false;
+      await ports.publish();
+      return stillCurrent();
     })();
-  }, 10 * 60_000);
+    inFlight = pending;
+    const settled = () => { if (inFlight === pending) inFlight = null; };
+    void pending.then(settled, settled);
+    return pending;
+  };
+}
+
+let keepaliveInstalled = false;
+
+/** Recheck an active account every ten minutes and when the app returns to the
+ * foreground, including mobile WebViews whose background timers were paused. */
+export function installKeepalive(): void {
+  if (keepaliveInstalled) return;
+  keepaliveInstalled = true;
+  void Promise.all([import("./clients.js"), import("./infoLib.js")]).then(([clients, infoLib]) => {
+    const check = createSessionKeepalive({
+      account: () => clients.session,
+      loginPending: infoLib.libLoginPending,
+      ensure: async () => {
+        if (!await infoLib.libEnsureSession()) return false;
+        return clients.learn.resume();
+      },
+      persist: clients.persist,
+      publish: clients.publishUniversitySession,
+    });
+    let running: Promise<void> | null = null;
+    const tick = () => {
+      if (document.visibilityState === "hidden" || running) return;
+      running = (async () => {
+        try {
+          if (!await check()) return;
+          await clients.logLine("KEEPALIVE verified and published").catch(() => undefined);
+          const { gitlabEnsureSession } = await import("../state/gitlab.js");
+          await gitlabEnsureSession();
+        } catch (error) {
+          const value = (error as { code?: unknown })?.code;
+          const code = typeof value === "string" && /^[A-Z][A-Z0-9_]{1,80}$/.test(value) ? value : "RECOVERY_UNAVAILABLE";
+          await clients.logLine("KEEPALIVE " + code).catch(() => undefined);
+        }
+      })().finally(() => { running = null; });
+    };
+    document.addEventListener("visibilitychange", tick);
+    window.addEventListener("focus", tick);
+    window.addEventListener("pageshow", tick);
+    window.addEventListener("online", tick);
+    setInterval(tick, 10 * 60_000);
+    tick();
+  }).catch(() => { keepaliveInstalled = false; });
 }

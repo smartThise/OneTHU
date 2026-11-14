@@ -674,7 +674,7 @@ export const roam = async (helper: InfoHelper, policy: RoamingPolicy, payload: s
     }
 };
 
-export const verifyAndReLogin = async (helper: InfoHelper): Promise<boolean> => {
+export const verifyAndReLogin = async (helper: InfoHelper, options: {allowLogin?: boolean} = {}): Promise<boolean> => {
     if (outstandingLoginPromise) {
         await outstandingLoginPromise;
         return true;
@@ -702,6 +702,9 @@ export const verifyAndReLogin = async (helper: InfoHelper): Promise<boolean> => 
         // their original failure and never trigger a credential POST.
         const detail = e && typeof e === "object" ? e as {status?: number; code?: string} : {};
         if (detail.status !== 401 && detail.code !== "AUTH_SESSION_EXPIRED") throw e;
+    }
+    if (options.allowLogin === false) {
+        throw Object.assign(new IdAuthError("The university session requires sign-in."), {code: "AUTH_SESSION_EXPIRED"});
     }
     const {userId, password} = helper;
     await login(helper, userId, password);
