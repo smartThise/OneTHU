@@ -6,8 +6,10 @@ import { createClientIdentity } from '../src/node/clientIdentity.js';
 import { STU_ORIGIN, parseStuAuthEntry } from '@onethu/gateway/stu-auth';
 import { validateFetchMetadata } from '@onethu/gateway/policy';
 
-function entry(state='first') {
- const inner='/api/v2/authorize?response_type=code&client_id=RCHFIyPfkGKjXbzxalGZTD79Gl0&redirect_uri='+encodeURIComponent(STU_ORIGIN+'/csnova/oauth_authorized')+'&state='+encodeURIComponent(state);
+function entry(state='first',info9=false) {
+ const client=info9?'rDG79bwkxagzdBRUlkMRe6dAiM8':'RCHFIyPfkGKjXbzxalGZTD79Gl0';
+ const redirect=info9?'/info/api/auth/callback':'/csnova/oauth_authorized';
+ const inner='/api/v2/authorize?response_type=code&client_id='+client+'&redirect_uri='+encodeURIComponent(STU_ORIGIN+redirect)+'&state='+encodeURIComponent(state);
  return STU_ORIGIN+'/api/user/tsinghua-auth-redirect?returnto='+encodeURIComponent(inner);
 }
 function callback(url:string,ticket='official-ticket-123456') {
@@ -16,8 +18,8 @@ function callback(url:string,ticket='official-ticket-123456') {
 }
 const documentRequest={headers:{'sec-fetch-dest':'document',accept:'text/html'}};
 
-test('stu authentication preserves the OAuth transaction and stores the callback cookie in the shared jar',async t=>{
- const url=entry('space + percent%'),parsed=parseStuAuthEntry(url)!;
+for(const info9 of [false,true])test(`${info9?'Info9':'CSNova'} authentication preserves the OAuth transaction and stores the callback cookie in the shared jar`,async t=>{
+ const url=entry('space + percent%',info9),parsed=parseStuAuthEntry(url)!;
  const calls:string[]=[];
  const transport=createNodeTransport({epoch:()=>1,assertCurrent(){},fetch:async(input:any,init:any)=>{
   calls.push(input);
@@ -34,6 +36,34 @@ test('stu authentication preserves the OAuth transaction and stores the callback
  assert.equal(transport.jar.getCookies(new URL(STU_ORIGIN))[0]?.value,'official');
  assert.deepEqual(calls,[url,callback(url)]);
  await assert.rejects(proxy.request(callback(url),documentRequest),{code:'GATEWAY_AUTH_REQUIRED'});
+});
+
+test('Info9 login and application callback share the private session cookie and preserve upstream errors',async t=>{
+ const login=STU_ORIGIN+'/info/api/auth/login?next=%2Finfo%2F';
+ const authorize=STU_ORIGIN+parseStuAuthEntry(entry('fixture-info9',true))!.returnTo;
+ const applicationCallback=STU_ORIGIN+'/info/api/auth/callback?code=fixture-code&state=fixture-info9';
+ const calls:string[]=[];
+ const transport=createNodeTransport({epoch:()=>1,assertCurrent(){},fetch:async(input:any,init:any)=>{
+  calls.push(input);
+  const headers=new Headers(init.headers);
+  if(input===login)return new Response(null,{status:302,headers:{location:authorize,'set-cookie':'sessionid=fixture-info9-session; Path=/; Secure; HttpOnly'}});
+  assert.equal(headers.get('cookie'),'sessionid=fixture-info9-session');
+  if(input===authorize)return new Response(null,{status:302,headers:{location:applicationCallback}});
+  assert.equal(input,applicationCallback);
+  return Response.json({error:'internal error'});
+ }});
+ t.after(()=>transport.close());
+ const proxy=createCampusProxySession({fetch:transport.fetch,fetchCampusDirect:transport.fetch,http:{jar:transport.jar},epoch:()=>1,assertCurrent(){},status:()=>({authenticated:true})} as any,[STU_ORIGIN]);
+ const start=await proxy.request(login,documentRequest);
+ assert.equal(start.headers.get('location'),authorize);
+ assert.equal(start.headers.has('set-cookie'),false);
+ await start.body?.cancel();
+ const authorized=await proxy.request(authorize,documentRequest);
+ assert.equal(authorized.headers.get('location'),applicationCallback);
+ await authorized.body?.cancel();
+ const result=await proxy.request(applicationCallback,documentRequest);
+ assert.deepEqual(await result.json(),{error:'internal error'});
+ assert.deepEqual(calls,[login,authorize,applicationCallback]);
 });
 
 test('stu entry only accepts explicit document reads and a verified official identity redirect',async t=>{

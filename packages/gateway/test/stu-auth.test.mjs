@@ -7,6 +7,8 @@ const entryPath = '/api/user/tsinghua-auth-redirect';
 const callbackPath = '/api/user/tsinghua-auth-callback';
 const clientId = 'RCHFIyPfkGKjXbzxalGZTD79Gl0';
 const redirectUri = STU_ORIGIN + '/csnova/oauth_authorized';
+const info9ClientId = 'rDG79bwkxagzdBRUlkMRe6dAiM8';
+const info9RedirectUri = STU_ORIGIN + '/info/api/auth/callback';
 const authorization = new URLSearchParams({ response_type: 'code', client_id: clientId, redirect_uri: redirectUri, status: 'blank' });
 const returnTo = authorizePath + '?' + authorization;
 const makeEntry = value => STU_ORIGIN + entryPath + '?' + new URLSearchParams({ returnto: value });
@@ -48,7 +50,7 @@ test('opaque OAuth state, nonce and PKCE survive without reserialization', () =>
   assert.equal(validStuCallback(makeCallback(nested), input), true);
 });
 
-test('only the registered CSNova authorization endpoint and client are accepted', () => {
+test('only registered authorization endpoints and client/redirect pairs are accepted', () => {
   const invalid = [
     returnTo.replace(clientId, 'another-client'),
     returnTo.replace('response_type=code', 'response_type=token'),
@@ -66,6 +68,42 @@ test('only the registered CSNova authorization endpoint and client are accepted'
     returnTo + '&code_challenge=short&code_challenge_method=S256',
   ];
   for (const value of invalid) assert.equal(parseStuAuthEntry(makeEntry(value)), null, value);
+});
+
+test('Info9 retains its exact OAuth transaction through the shared school callback', () => {
+  const params = new URLSearchParams({
+    response_type: 'code', client_id: info9ClientId, redirect_uri: info9RedirectUri,
+    scope: 'all', state: 'info9+state/%25=fixture',
+  });
+  const nested = (authorizePath + '?' + params).replaceAll('%2F', '%2f');
+  const input = makeEntry(nested);
+  const parsed = parseStuAuthEntry(input);
+  assert.ok(parsed);
+  assert.equal(parsed.entry, input);
+  assert.equal(parsed.returnTo, nested);
+  assert.ok(parsed.identityUrl.endsWith(callbackPath + new URL(input).search));
+  const callback = makeCallback(nested);
+  assert.equal(validStuCallback(callback, input), true);
+  assert.equal(normalizeStuCallback(callback.replace('https:', 'http:'), input), callback);
+  assert.equal(validStuCallback(callback, entry), false);
+  assert.equal(validStuCallback(makeCallback(), input), false);
+  params.set('state', 'another-info9-tab');
+  assert.equal(validStuCallback(makeCallback(authorizePath + '?' + params), input), false);
+});
+
+test('registered clients cannot exchange redirect destinations or accept unknown clients', () => {
+  for (const [id, destination] of [
+    [clientId, info9RedirectUri],
+    [info9ClientId, redirectUri],
+    ['unknown-client', info9RedirectUri],
+    [info9ClientId, info9RedirectUri + '/'],
+    [info9ClientId, 'https://evil.example/info/api/auth/callback'],
+  ]) {
+    const params = new URLSearchParams({
+      response_type: 'code', client_id: id, redirect_uri: destination, scope: 'all', state: 'fixture',
+    });
+    assert.equal(parseStuAuthEntry(makeEntry(authorizePath + '?' + params)), null);
+  }
 });
 
 test('entry validation rejects extra parameters, alternate authorities and controls', () => {

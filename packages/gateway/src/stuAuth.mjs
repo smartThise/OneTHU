@@ -1,11 +1,13 @@
-/** The registered CSNova client. Parse copies; forward the original query. */
+/** Registered CSNova and Info9 clients. Parse copies; forward the original query. */
 export const STU_ORIGIN = 'https://stu.cs.tsinghua.edu.cn';
 
 const ENTRY_PATH = '/api/user/tsinghua-auth-redirect';
 const CALLBACK_PATH = '/api/user/tsinghua-auth-callback';
 const AUTHORIZE_PATH = '/api/v2/authorize';
-const CLIENT_ID = 'RCHFIyPfkGKjXbzxalGZTD79Gl0';
-const REDIRECT_URI = STU_ORIGIN + '/csnova/oauth_authorized';
+const REGISTERED_CLIENTS = new Map([
+  ['RCHFIyPfkGKjXbzxalGZTD79Gl0', STU_ORIGIN + '/csnova/oauth_authorized'],
+  ['rDG79bwkxagzdBRUlkMRe6dAiM8', STU_ORIGIN + '/info/api/auth/callback'],
+]);
 const IDENTITY_FORM = 'https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/084cc75356bf414dcfb0e6e259081f4f/0';
 const AUTHORIZE_KEYS = new Set([
   'response_type', 'client_id', 'redirect_uri', 'state', 'nonce', 'status',
@@ -45,7 +47,7 @@ function exactUrl(input, path) {
   } catch { return null; }
 }
 
-/** Validate only the registered local OAuth client; retain byte-exact search. */
+/** Validate registered local OAuth client/redirect pairs; retain byte-exact search. */
 export function parseStuAuthEntry(input) {
   const entry = exactUrl(input, ENTRY_PATH);
   if (!entry || !uniqueParams(entry.searchParams, new Set(['returnto']))) return null;
@@ -57,8 +59,8 @@ export function parseStuAuthEntry(input) {
       || authorize.href !== STU_ORIGIN + returnTo
       || !uniqueParams(authorize.searchParams, AUTHORIZE_KEYS)
       || authorize.searchParams.get('response_type') !== 'code'
-      || authorize.searchParams.get('client_id') !== CLIENT_ID
-      || authorize.searchParams.get('redirect_uri') !== REDIRECT_URI) return null;
+      || REGISTERED_CLIENTS.get(authorize.searchParams.get('client_id'))
+        !== authorize.searchParams.get('redirect_uri')) return null;
   const challenge = authorize.searchParams.get('code_challenge');
   const challengeMethod = authorize.searchParams.get('code_challenge_method');
   if (challenge !== null && !/^[A-Za-z0-9._~-]{43,128}$/.test(challenge)

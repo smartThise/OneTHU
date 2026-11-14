@@ -57,6 +57,7 @@ const CAMPUS_LANDINGS = new Map([
   [THESIS_ORIGIN + '/home/qh/index', 'thesis-home'],
   [THESIS_ORIGIN + '/qh/qhSearch/QbIndex', 'thesis-search'],
   [GITLAB_ORIGIN + '/', 'gitlab-home'],
+  ['https://stu.cs.tsinghua.edu.cn/info/', 'stu-info-home'],
 ]);
 const cloudFolderShare = target => target?.origin === 'https://cloud.tsinghua.edu.cn' && /^\/d\/[a-f0-9]{20}\/$/.test(target.pathname);
 

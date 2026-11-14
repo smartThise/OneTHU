@@ -8,6 +8,18 @@ const headers={'sec-fetch-site':'cross-site','sec-fetch-mode':'navigate','sec-fe
 const navigation={method:'GET',hasBody:false};
 const entry=info+'/f/info/route?id=ece02eecada569b9cae68be99461c98d';
 
+test('Info9 home admits only an exact user-initiated document navigation',()=>{
+ const href='https://stu.cs.tsinghua.edu.cn/info/';
+ const allowed=new Set(['https://stu.cs.tsinghua.edu.cn']);
+ assert.doesNotThrow(()=>validateFetchMetadata(headers,new URL(href),allowed,navigation));
+ assert.equal(campusLandingCategory(new URL(href)),'stu-info-home');
+ for(const suffix of ['?','?next=/info/','api/auth/callback?code=untrusted&state=untrusted']){
+  assert.throws(()=>validateFetchMetadata(headers,new URL(href+suffix),allowed,navigation));
+ }
+ assert.throws(()=>validateFetchMetadata({...headers,'sec-fetch-dest':'iframe'},new URL(href),allowed,navigation));
+ assert.throws(()=>validateFetchMetadata(headers,new URL(href),allowed,{method:'POST',hasBody:true}));
+});
+
 test('Info news article IDs admit only exact read-only top-level navigation',()=>{
  const base=info+'/f/info/xxfb_fg/xnzx/template/detail';
  const article=base+'?xxid=00112233445566778899aabbccddeeff';
