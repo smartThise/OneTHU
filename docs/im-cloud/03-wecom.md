@@ -1,67 +1,65 @@
 # 企业微信（WeCom）Bot 通道调研
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
+> 归档说明：本文记录当时的企业微信通道调研与技术评估；0.11 当前功能与使用指南请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
-
-> 最后更新：2026-10-09 ｜ 调研基线：企业微信开发者中心官方文档（developer.work.weixin.qq.com）
-> 结论先行：**官方 API 成熟、文件收发完备，是「组织内服务」的最稳通道；但它是企业域通道——用户必须进企微通讯录（或经微信插件），纯个人场景不适用。**
+> 最后更新：2026-11-18 01:30
+> 结论先行：**企业微信官方 API 成熟稳定、文件收发闭环完备，非常适合院系、实验室或社团等「组织内部服务」场景；由于该通道建立在企业通讯录体系之上（个人微信需先扫码关注「微信插件」互通），且接收消息依赖公网 Webhook 回调，在 OneTHU 纯桌面直连架构下暂缓默认接入。**
 
 ## 1. 接入路径
 
-- **自建应用**（OneTHU 场景的唯一现实选择）：在企业（可免费注册，个人可建「组织」无需营业执照，未认证企业有功能与人数限制——具体上限**待验证**）后台创建自建应用，得到 `corpid` + 应用 `secret`。清华场景可考虑以实验室/社团主体注册。
-- **第三方应用/代开发**：面向服务商，需要审核与上架流程，OneTHU 不适用。
-- **openclaw 生态**：腾讯企微团队官方维护外部插件 [`@wecom/wecom-openclaw-plugin`](https://docs.openclaw.ai/channels/wecom)，说明官方 API 能力足以支撑 agent bot 形态。
+- **企业自建应用**（贴合校园团队使用的路径）：在企业微信管理后台（支持个人免费注册创建组织，无需营业执照；未认证主体的具体人数与功能上限**待实测核对**）创建自建应用，即可获取 `corpid` 与应用 `secret`。在校园场景下，适合以课题组、实验室或学生社团为单位注册管理。
+- **第三方应用 / 代开发模式**：主要面向商业服务商跨企业分发，涉及服务商资质认证与应用上架审核，超出个人桌面工具的接入范围。
+- **openclaw 生态印证**：腾讯企业微信团队官方维护外部插件 [`@wecom/wecom-openclaw-plugin`](https://docs.openclaw.ai/channels/wecom)，验证了官方 API 对 AI Agent 交互形态的完整支撑能力。
 
 ## 2. 认证方式
 
 | 项 | 说明 |
 | --- | --- |
-| 取 token | `GET /gettoken?corpid=&corpsecret=` → `access_token`（**7200s 有效**，需缓存并提前刷新；每企业每 secret 有获取频率限制，重复获取会使旧 token 失效） |
-| 发消息 | `POST /message/send?access_token=`，指定 `touser/toparty/totag` + `agentid` |
-| 收消息 | **回调模式**：管理后台配置回调 URL + Token + EncodingAESKey；微信服务器 GET 验证 URL（echostr 解密回显）后，消息以 AES 加密 POST 推送，需解密（官方提供各语言加解密库）；响应须 5s 内（超时重试，共 3 次，**待验证**最新重试参数） |
-| 加解密 | AES-256-CBC（消息体）+ SHA1 签名（msg_signature 校验） |
+| 取 token | `GET /gettoken?corpid=&corpsecret=` → 返回 `access_token`（**有效期 7200s**，需本地缓存并提前刷新；单企业单 secret 设有调用频率上限，重复拉取会使旧 token 提前失效） |
+| 发消息 | `POST /message/send?access_token=`，指定目标 `touser` / `toparty` / `totag` 与应用 `agentid` |
+| 收消息 | **Webhook 回调模式**：在管理后台配置回调 URL、`Token` 与 `EncodingAESKey`；通过企业微信服务器的 GET URL 验证（解密回显 `echostr`）后，入站消息以 AES 加密 POST 方式推送（官方提供多语言加解密库）；服务端需在 5s 内返回响应（超时触发至多 3 次重试，最新重试间隔参数**待核实**） |
+| 加解密 | 消息体采用 AES-256-CBC 加密，配合 SHA1 `msg_signature` 签名校验 |
 
 ## 3. 消息能力
 
-- 应用消息类型：text / image / voice / video / file / textcard / news / mpnews / markdown / miniprogram / taskcard / template_card / update_taskcard 等（[发送应用消息](https://developer.work.weixin.qq.com/document/path/90236)）。
-- markdown 消息仅在企微客户端内渲染良好，微信插件侧降级为文本（**待验证**最新表现）。
-- **主动 vs 被动**：应用可随时主动推送（受频率限制）；被动回复也有 5s 内 HTTPS 响应的同步回复模式（`safe_duration` 内可多次？——企业微信应用消息无「48h 窗口」概念，这是与微信公众号客服消息的关键差异，主动推送权限更强）。
+- 应用消息类型涵盖：`text` / `image` / `voice` / `video` / `file` / `textcard` / `news` / `mpnews` / `markdown` / `miniprogram` / `taskcard` / `template_card` / `update_taskcard` 等（参见[发送应用消息](https://developer.work.weixin.qq.com/document/path/90236)）。
+- Markdown 消息在企业微信客户端内渲染完整，转发至个人微信插件侧时会自动降级为纯文本展示（最新客户端表现**待实测确认**）。
+- **主动推送与被动回复**：应用既可在回调 5 秒窗口内同步返回被动回复，也可随时调用发送接口主动推送消息（仅受常规频率配额约束，无微信公众号客服消息的 48 小时互动窗口限制，对长耗时 Agent 任务的异步结果回推更为友好）。
 
-## 4. 文件收发（硬需求）
+## 4. 文件收发能力
 
-- **发送**：先 `POST /media/upload`（[上传临时素材](https://developer.work.weixin.qq.com/document/path/90253)）得 `media_id`（类型 image/voice/video/file），再发对应消息。大小限制（官方长期值，以文档为准）：图片 10MB、语音 2MB（≤60s）、视频 10MB、普通文件 20MB；**media_id 有效期 3 天**。更大文件走异步上传临时素材接口（[文档 97126](https://developer.work.weixin.qq.com/document/path/97126)，**待验证**上限）或转云盘链接。
-- **接收**：用户发给应用的消息以回调推送（`msgtype: image/voice/video/file` 携带 `media_id`），`GET /media/get?access_token=&media_id=` 下载，同样受 3 天有效期约束——**收到即转存**是硬要求（OneTHU 管收到即传云盘，天然满足）。
+- **发送文件**：先调用 `POST /media/upload`（[上传临时素材](https://developer.work.weixin.qq.com/document/path/90253)）获取 `media_id`（支持 `image` / `voice` / `video` / `file`），再发送对应类型的应用消息。官方常规单文件上限为：图片 10MB、语音 2MB（≤60s）、视频 10MB、普通文件 20MB，且 **`media_id` 有效期为 3 天**；超大文件可改走异步上传临时素材接口（参见[文档 97126](https://developer.work.weixin.qq.com/document/path/97126)，具体上限**待验证**）或直接发送清华云盘分享链接。
+- **接收文件**：用户发送给应用的文件消息通过回调事件推送（`msgtype` 为 `image` / `voice` / `video` / `file`，携带 `media_id`），随后调用 `GET /media/get?access_token=&media_id=` 下载文件字节流，同样受 3 天有效期约束——OneTHU「收到附件立即转存清华云盘」的管线设计刚好满足这一时效要求。
 
 ## 5. 频率限制
 
-来源：官方[访问频率限制](https://developer.work.weixin.qq.com/document/path/17009)（数值经[文档镜像](https://wdk-docs.github.io/wework-docs/appendix/access-frequency-restriction/)交叉核对，以官方现值为准）：
+来源：官方[访问频率限制](https://developer.work.weixin.qq.com/document/path/17009)（数值已结合[文档镜像](https://wdk-docs.github.io/wework-docs/appendix/access-frequency-restriction/)交叉核对，实施时以官方最新文档为准）：
 
-- 基础：每企业单个接口 ≤1 万次/分、15 万次/小时；每 IP ≤2 万次/分。
-- 应用消息：每应用 ≤ 账号上限 × 200 人次/天；**每应用对同一成员 ≤30 条/分钟**（超出丢弃不报错）。
-- 群机器人 webhook：≤20 条/分钟（仅群内推送，不能收消息，不适合 agent 场景，一笔带过）。
-- 应用推送群消息（appchat）：每企业 2 万人次/分；成员群内 ≤200 条/分、1 万条/天。
+- 基础配额：每企业单个接口 ≤1 万次/分钟、15 万次/小时；单 IP ≤2 万次/分钟。
+- 应用消息：每应用每天上限为「企业账号上限 × 200 人次」；**单应用向同一成员发送 ≤30 条/分钟**（超限消息会被静默丢弃，需在客户端做好令牌桶限速）。
+- 群机器人 Webhook：≤20 条/分钟（仅支持单向往群内发送通知，无法接收用户消息，适用于纯告警推送场景）。
+- 应用群聊推送（`appchat`）：每企业 ≤2 万人次/分钟；每个成员在群内接收 ≤200 条/分钟、≤1 万条/天。
 
-## 6. 与个人微信互通（关键边界）
+## 6. 与个人微信互通边界
 
-- 企微应用可通过「**微信插件**」（原企业号，配置见[官方帮助](https://open.work.weixin.qq.com/help2/pc/18121)）触达**关注了该企业微信插件的个人微信用户**：企微应用消息可推到用户微信的「企业微信通知」会话；个人微信用户也可在该会话中回复，消息以回调形式到达应用（[如何接收微信插件消息](https://open.work.weixin.qq.com/help2/pc/18121)）。
-- 限制：微信插件侧的消息类型比企微内收敛（文件/图片可用，卡片类降级，**待验证**细节）；用户须先关注插件（扫码）；推送有频控（微信插件消息每人限制——具体条数**待验证**，历史上为每周/每月量级）。
-- 这意味着「学生用个人微信 ↔ OneTHU bot」在企微通道是**可行但要先关注插件**，体验是「企业微信通知」号而非普通好友。
+- 企业微信自建应用可通过「**微信插件**」（原企业号能力，配置流程见[官方帮助](https://open.work.weixin.qq.com/help2/pc/18121)）触达**已扫码关注该企业插件的个人微信用户**：应用发出的消息会送达个人微信内的「企业微信通知」会话；个人微信用户也可直接在该会话中回复文字或附件，消息经同一回调链路传回应用后台（参见[如何接收微信插件消息](https://open.work.weixin.qq.com/help2/pc/18121)）。
+- 体验边界：微信插件侧支持的消息形态较企业微信原生客户端精简（常规文本、图片与文件均可正常收发，部分交互式卡片会自动降级，细节**待实测确认**）；用户首次使用需扫码关注企业插件，且单用户接收插件推送设有频率上限（具体额度**待实测核对**）。
+- 由此可见，学生通过个人微信与企业微信应用交互在技术上完全可行，首次扫码关注后即可在微信「企业微信通知」入口中完成日常对话与文件投递。
 
-## 7. 合规与账号风险
+## 7. 合规与账号安全
 
-- 自建应用**无需平台审核**（企业内部可见即用）；对外服务、跨企业可见需上架审核。
-- 内容：企业微信对营销/骚扰有平台治理，正常助理型 bot 无虞。
-- 无个人号封号问题（不涉及逆向）。
-- 注意 secret 与 EncodingAESKey 的保管；access_token 泄漏等于应用控制权。
+- 企业自建应用在组织内部可见范围内**免平台审核即可启用**；仅对外跨企业提供服务时需走应用上架审核。
+- 内容规范：企业微信主要针对营销群发与骚扰行为进行治理，日常学习与办公助理场景完全合规。
+- 全程调用企业微信官方开放接口，账号与业务稳定性有充分保障。
+- 运维安全重点在于妥善保管应用 `secret` 与回调 `EncodingAESKey`，防止 `access_token` 泄露导致未授权调用。
 
 ## 8. SDK 生态
 
-- 官方：加解密库（各语言）+ API 无官方全家桶 SDK。
-- 社区：Python（`wechatpy` 维护放缓，**待验证**）、Rust（`wecom`/`wecom-rs` 等小 crate，覆盖度参差，建议直接 reqwest 手写——API 面小）、TS（`wecom-sdk`、`@wecom/openapi` 类包若干）。openclaw 生态的 `@wecom/wecom-openclaw-plugin`（TS）可作协议参考。
+- 官方提供各主流语言的回调加解密库，REST API 结构清晰直观，可直接封装调用。
+- 社区生态：Python 有 `wechatpy`（近年更新节奏放缓，**待核实**）；Rust 有 `wecom` / `wecom-rs` 等轻量 crate（由于核心接口精简，直接基于 `reqwest` 封装也很轻便）；TypeScript 社区有 `wecom-sdk`、`@wecom/openapi` 等包，同时可直接参考腾讯官方维护的 `@wecom/wecom-openclaw-plugin` 源码。
 
-## 9. 云端常驻（NAS Docker）适配
+## 9. 部署形态适配与架构结论
 
-- 回调模式**需要公网可达 URL**（HTTPS，域名备案建议但非硬性，**待验证**：企业微信回调不强制备案域名）。家庭网络场景需内网穿透/Cloudflare Tunnel/Lucky STUN 方案（用户已有 Lucky 使用经验）；或借 openclaw 插件的思路改走轮询？——企微**无官方长轮询/长连接收消息**，回调是唯一路径，穿透是硬前提。
-- 其余（token 刷新、media 上传下载）纯出站，Docker 友好。
-- 结论：**适合云端常驻，前提是解决回调公网入口**。适合度：中高。
-- **主案修订（2026-10-09）**：无后端形态（桌面 App 直连，见 [00-architecture.md](00-architecture.md)）下企微**出局**——桌面 App 不承载公网回调；至多保留「仅主动推送」的单向通知降级形态（P1 再评估），本篇其余内容作为通道事实调研留档。
+- 接收消息采用 Webhook 回调模式，**必须具备公网可达的 HTTPS 入口**（企业微信回调对域名备案的具体要求**待进一步核实**）。由于官方暂未提供纯出站的长连接或长轮询收消息接口，若部署在家庭 NAS 或内网容器环境中，需配合 Cloudflare Tunnel、Lucky STUN 等内网穿透方案暴露回调端点；其余接口（token 刷新、媒体上传下载）均为纯出站 HTTP 请求。
+- 在具备公网入口的云端或容器常驻场景下，企业微信整体适配成熟度较高。
+- **架构评估更新（2026-10-09）**：在 OneTHU 确立「纯桌面端直连、零后端网关」主案后（详见 [00-architecture.md](00-architecture.md)），本地桌面应用无法稳定提供公网 HTTPS 回调地址，因此企业微信双向对话通道暂不纳入首期实现；后续可在 P1 阶段按需评估仅调用出站接口的「单向通知推送」轻量模式，本文调研资料留档备查。

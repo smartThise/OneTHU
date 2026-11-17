@@ -1,5 +1,6 @@
 # OneTHU API reference
 
+
 [中文](../api-reference.md) · [System architecture](architecture.md)
 
 ## Select an interface
@@ -14,11 +15,11 @@
 | OH app tools | `app_services`, `app_call`, dedicated tools | Running app facade | App, mode and privacy consent |
 | OneTHU main window | Private `desktop.*`, `gateway.control` | Local protocol and owner/epoch checks | Private daemon/native bridge |
 
-Select signatures by caller, even when names match. Plugin `learn.courses` need not have the same parameters/results as the portable Learn operation. Independent runtimes do not automatically own GUI state; discover their actual operations first.
+Always check the signature for your specific caller environment, even when operation names match across layers: for example, the GUI plugin method `learn.courses` and the portable SDK `learn.courses` operation define their own parameter and return shapes. Standalone SDK runtimes operate independently of GUI frontend state, so call `app.list()` (or `onethu commands`) first to inspect the operations registered in that runtime.
 
 ## Plugin API
 
-[types.ts](../../apps/desktop/src/plugins/types.ts) generates the current **41 namespaces and 297 method entries**. [facade.ts](../../apps/desktop/src/plugins/facade.ts) implements host behavior and permission checks.
+[types.ts](../../apps/desktop/src/plugins/types.ts) defines the source of truth for the **41 namespaces and 297 method entries** currently in the plugin API, while [facade.ts](../../apps/desktop/src/plugins/facade.ts) implements the host handlers and permission gates.
 
 ```ts
 // The host loads the plugin and injects ctx.
@@ -26,13 +27,13 @@ const status = ctx.onethu.session.status();
 const username = ctx.onethu.session.username();
 ```
 
-Each declaration determines synchronous/Promise behavior. Manifest permissions combine with mode, platform, identity, ownership and server authorization. “Inspect facade” in the generated table means no direct literal gate was extracted; contextual checks still apply.
+Each method signature specifies whether it returns synchronously or via a `Promise`. At runtime, manifest permissions work alongside current app mode, platform capabilities, active account identity, resource ownership, and upstream service authorization. Where the generated reference table lists “Inspect facade,” `facade.ts` enforces dynamic or contextual checks rather than a single static permission string.
 
 - [Generated signatures](api-surface.md)
 - [Machine-readable snapshot](../api-surface.json)
 - [Manifests, sidecars and examples](plugin-development.md)
 
-Rust plugins request `onethu.call` with `params.ns`, `params.method` and positional `params.args`. The host returns the matching ID's result/error. Host RPC, MCP tools and SDK envelopes are separate contracts.
+Rust plugins invoke host methods by sending an `onethu.call` request with `params.ns`, `params.method`, and positional `params.args`, receiving the correlated result or error by request ID. Host plugin RPC, MCP tool invocations, and embedded SDK `CallRequest` envelopes each use their own dedicated wire format.
 
 ## SDK calls
 
@@ -47,11 +48,11 @@ const result = await app.call({
 });
 ```
 
-`CallRequest` accepts `operation`, optional `args`, `confirm` and `deadlineUnixMs`. Positional-array schemas come from `app.list()`. A trusted embedder supplies source, permission set, signal and `beforeWrite` in the second argument; external envelopes cannot assign those capabilities.
+`CallRequest` accepts an `operation` name along with optional positional `args`, `confirm`, and `deadlineUnixMs`, validated against the tuple schemas returned by `app.list()`. Host-level controls—caller `source`, granted permissions, `AbortSignal`, and `beforeWrite` hooks—are passed exclusively through the trusted second options argument, keeping caller privileges isolated from external request payloads.
 
-Operation descriptors include name, description, schema, permission, mutation, authentication and local-only metadata. Authentication/local configuration uses separate methods. A model cannot enable local policy using `confirm:true`.
+Each operation descriptor exposes its name, description, parameter schema, required permission, and metadata flags for mutation, authentication, and local-only access. Account sign-in and local policy changes go through dedicated host methods, while `confirm:true` in a call envelope applies strictly to per-request user confirmation.
 
-`app.auth.login` / `twoFactor` preserve one challenge; `restore` verifies saved state; `close` releases connections, executors and the profile lock. See [runtime state and guards](architecture/sdk-and-api.md).
+`app.auth.login` and `app.auth.twoFactor` maintain an active 2FA challenge within the session, `app.auth.restore` verifies persisted credentials on startup, and `app.close()` cleanly releases network connections, background executors, and the profile lock. See [runtime state and guards](architecture/sdk-and-api.md) for lifecycle details.
 
 ## CLI and local JSON-RPC
 
@@ -62,9 +63,9 @@ onethu call learn.courses --args '[]'
 onethu --desktop commands
 ```
 
-Default CLI uses its profile daemon. Explicit desktop/endpoint mode uses GUI services. The daemon has a random loopback port and private Bearer access record. The GUI service default is `http://127.0.0.1:8787`; it is not the daemon or Gateway port.
+By default, the CLI connects to its profile's background daemon over a dynamically assigned loopback port protected by a private Bearer access record. Passing `--desktop` (or an explicit endpoint) routes requests to the running GUI app's local service—`http://127.0.0.1:8787` by default, separate from both the CLI daemon's ephemeral port and the Gateway proxy listeners.
 
-Internal clients POST JSON-RPC to `/cli/v1`:
+Internal clients POST JSON-RPC requests to `/cli/v1`:
 
 ```json
 {
@@ -75,15 +76,15 @@ Internal clients POST JSON-RPC to `/cli/v1`:
 }
 ```
 
-Real clients handle discovery, credentials, cancellation and deadline. An envelope alone does not grant access. `service/list` discovers operations, and `service/call` executes one. Clients validate JSON-RPC version, ID and exclusive result/error.
+Authenticated local clients pair this JSON-RPC envelope with discovery, Bearer credentials, cancellation signals, and deadline budgets: `service/list` enumerates available operations, and `service/call` dispatches one. Responses follow strict JSON-RPC 2.0 framing, matching the request `id` and carrying either `result` or `error`.
 
-Public MCP supports `initialize`, `tools/list` and `tools/call`; its tools are `onethu_commands` and `onethu_call`. The optional SDK model assistant instead calls its discovery tool `onethu_catalog`. See [CLI architecture](architecture/cli-and-agents.md) and [usage](onethu-cli.md).
+The public MCP server supports `initialize`, `tools/list`, and `tools/call`, exposing `onethu_commands` for discovery and `onethu_call` for execution (while the built-in SDK model assistant uses `onethu_catalog` for discovery). See [CLI architecture](architecture/cli-and-agents.md) and [usage](onethu-cli.md).
 
 ## Private interfaces and authorization
 
-`desktop.*` handles main-window/session/Cookie/document/task handoff. `gateway.control` manages listeners, certificates, system settings, diagnostics and scoped ticket renewal. Authorized native/local control paths use them; public model directories exclude their credential payloads.
+`desktop.*` coordinates session state, Cookie mirrors, versioned documents, and scheduled-task handoff with the main window, while `gateway.control` manages proxy listeners, local certificates, system proxy settings, diagnostics, and scoped ticket renewal. Both namespaces are reserved for authenticated local control paths and excluded from public model tool directories.
 
-Account, source permission, mode/privacy consent and local execution policy all constrain calls. Tasks additionally hold manager-owned standing scope. External model tools cannot promote themselves to local configuration authority.
+Every call is governed jointly by the active account, caller-source permissions, user mode and privacy consent, and local execution policy. Scheduled tasks additionally carry a standing scope managed by the task scheduler, while local configuration changes remain restricted to trusted host interfaces.
 
 ## Size, time and completeness
 
@@ -98,15 +99,15 @@ Account, source permission, mode/privacy consent and local execution policy all 
 | Managed Gateway | 1 GiB upload, 4 GiB download, 180 seconds | Streaming/backpressure/cancellation; upstream may fail sooner |
 | Model context/tool result | Assistant-specific budget | Inspect truncation and remaining content |
 
-Sources: [CLI client](../../packages/cli/src/client.mjs), [daemon](../../packages/cli/src/daemon.mjs), [SDK dispatch](../../packages/sdk/src/index.ts), [Gateway manager](../../packages/gateway/src/manager.mjs). Individual operations may impose additional bounds.
+Sources: [CLI client](../../packages/cli/src/client.mjs), [daemon](../../packages/cli/src/daemon.mjs), [SDK dispatch](../../packages/sdk/src/index.ts), [Gateway manager](../../packages/gateway/src/manager.mjs). Individual operations may apply tighter domain-specific bounds.
 
-Ordinary SDK projections retain strings/arrays while removing secret fields and URL credentials. Errors have separate diagnostic-length bounds. Learn `complete`, staging `nextOffset` and export item status indicate continuation/partial results. Business completeness, transport size and model context are separate concerns.
+Public SDK projections preserve regular strings and arrays while stripping secret fields and authenticated URL parameters, and error payloads enforce separate diagnostic length caps. Callers should inspect domain-level pagination and status fields—such as Learn's `complete` flag, staging `nextOffset` cursors, and per-item export statuses—alongside transport payload limits and assistant context budgets.
 
 ## Errors and compatibility
 
-Schema, permission, account change, authentication, business denial, rate limiting and connection loss have distinct semantics. Reads may retry within budget; unknown writes require reconciliation. Returned page content is external data, with secrets removed from diagnostics and tool outputs.
+The runtime distinguishes schema validation errors, permission denials, account switches, authentication challenges, upstream business rejections, rate limits, and network drops so callers can handle each case cleanly. Read operations can retry within their remaining deadline budget, while timed-out writes reconcile upstream state before retrying. Returned page content is treated as external data, with credentials scrubbed from diagnostics and tool outputs.
 
-Plugin types, operation schemas, private desktop protocol, board documents and runtime artifacts have their own versions/migrations. Declaration, registration, authorization and physical-device acceptance are separate evidence.
+Plugin type definitions, SDK operation schemas, the private desktop protocol, board documents, and packaged runtime artifacts each version and migrate on their own schedule. Shipping a capability end-to-end spans four stages: type declaration, runtime registration, permission wiring, and verification on target devices.
 
 ## Maintenance
 
@@ -117,4 +118,4 @@ node tools/docs-catalog.mjs
 pnpm lint:docs
 ```
 
-Generated tables come from types/facade/extractor changes. Handwritten semantics live here and in architecture chapters. Count checks consume the JSON snapshot so interface additions do not leave verification fixtures behind.
+Regenerate the API surface tables whenever `types.ts`, `facade.ts`, or the extractor scripts change, and keep architectural notes here and in the architecture chapters. Automated count checks read directly from the JSON snapshot so test fixtures stay aligned as new methods land.

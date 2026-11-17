@@ -2,9 +2,9 @@
 
 [简体中文](README.md) · [Architecture and capability boundaries](../../docs/en/onethu-cli.md)
 
-OneTHU CLI is an independently running assistant for campus tasks. The command line handles queries, bookings and course archives; a resident process handles scheduled checks, downloads and notifications. MCP makes these services available to other agents. It requires **Node.js 20.19.x or 22.12+ (Node.js 22 LTS recommended)** and targets macOS and Windows. The independent process can continue working after the desktop app closes.
+OneTHU CLI is a standalone campus assistant for terminal and background workflows. Interactive commands handle queries, bookings, and course archives; a background daemon runs scheduled checks, downloads, and notifications; and an MCP server exposes these capabilities to external agents. It runs on macOS and Windows with **Node.js 20.19.x or 22.12+ (Node.js 22 LTS recommended)**, and its background process continues working after you close the desktop app.
 
-Version 0.11.4 provides a standalone CLI download and bundles the same runtime with the macOS and Windows apps. Android does not include a resident Node backend.
+Release 0.11.4 provides a standalone CLI download and shares the same runtime architecture across the macOS and Windows apps (on Android, OneTHU runs solely as a mobile client without a local Node backend).
 
 ## Build and install
 
@@ -18,7 +18,7 @@ node packages/cli/bin/onethu.mjs --help
 npm install --global ./onethu-cli-0.11.4.tgz
 ```
 
-The built package contains the SDK, runtime dependencies, plugin worker and license notices. The package itself can be installed offline; campus services still require network access. After building from source, you can also use the installation scripts:
+The packaged tarball bundles the SDK, runtime dependencies, plugin worker, and license notices for offline installation; calling campus services requires network access as usual. After building from source, you can also run the platform install scripts:
 
 ```sh
 # macOS
@@ -31,7 +31,7 @@ export PATH="$HOME/.local/bin:$PATH"
 powershell -NoProfile -ExecutionPolicy Bypass -File .\packages\cli\scripts\install-windows.ps1
 ```
 
-On macOS, the default installation directory is `~/.local/share/onethu-cli`, with a launcher in `~/.local/bin`. Use `ONETHU_CLI_HOME` and `ONETHU_CLI_BIN` to change these paths. On Windows, the package goes in `%LOCALAPPDATA%\OneTHU\cli` and the launcher in `%LOCALAPPDATA%\OneTHU\bin`; the latter is added to your user PATH. Open a new terminal to pick up the PATH change. Use `-Prefix 'D:\Tools\OneTHU'` to change the location, or `-NoPath` to leave PATH unchanged. Windows installation and autostart registration still require testing on a Windows device.
+On macOS, files install to `~/.local/share/onethu-cli` by default with a launcher in `~/.local/bin` (customizable via `ONETHU_CLI_HOME` and `ONETHU_CLI_BIN`). On Windows, the package installs to `%LOCALAPPDATA%\OneTHU\cli` and places the launcher in `%LOCALAPPDATA%\OneTHU\bin`, adding the `bin` directory to your user PATH—open a new terminal window to pick up the updated PATH, pass `-Prefix 'D:\Tools\OneTHU'` to choose another directory, or pass `-NoPath` to leave PATH untouched. On-device validation for Windows installation and autostart registration is scheduled for Windows hardware testing.
 
 ## Sign in and call services
 
@@ -47,15 +47,15 @@ onethu library records
 onethu auth logout --confirm
 ```
 
-The login prompt hides your password, then lets you select a university verification method and enter its code. The password stays in process memory and is excluded from the saved session. Only an explicit `--trust-device` requests a trusted browser from the university. Scripts without an interactive terminal can use `--username ID --password-stdin`. If two-factor verification is required, the CLI cancels that attempt and asks you to sign in interactively. Keep passwords out of command-line arguments.
+During sign-in, the terminal hides password input, then prompts you to pick a university verification method and enter its code. Your password stays in memory for the active login flow, while only session cookies and device identifiers are saved to disk. Pass `--trust-device` if you explicitly want to register a trusted browser with the university. Non-interactive scripts can pipe credentials via `--username ID --password-stdin` (avoid passing passwords in command-line arguments); if two-factor verification is triggered, the CLI ends the non-interactive attempt and asks you to sign in from an interactive terminal.
 
-Default data directories are `~/Library/Application Support/OneTHU CLI` on macOS and `%LOCALAPPDATA%\OneTHU CLI` on Windows. Other platforms use `$XDG_DATA_HOME/OneTHU CLI`, falling back to `~/.local/share/OneTHU CLI`. Use `--data-dir ABS_PATH` or `ONETHU_DATA_DIR` to select an isolated directory.
+Default data directories are `~/Library/Application Support/OneTHU CLI` on macOS, `%LOCALAPPDATA%\OneTHU CLI` on Windows, and `$XDG_DATA_HOME/OneTHU CLI` (falling back to `~/.local/share/OneTHU CLI`) on other platforms. Pass `--data-dir ABS_PATH` or set `ONETHU_DATA_DIR` to work inside an isolated directory.
 
-One resident runtime owns each data directory. The desktop app, OH and the default CLI share its session, device identity, execution policy, tasks and history. Signing in through either interface makes the same account available to the other. The desktop can install the optional background component; approved tasks then continue after the app closes. OH in-app services work independently of external CLI access. Use `--desktop` for services requiring the graphical app, or an explicit `--data-dir` for an isolated profile.
+Each data directory is managed by a single active runtime. By default, the desktop app, OH, and the CLI share the same local profile—reusing sessions, device identity, execution policy, scheduled tasks, and run history—so signing in from any interface makes the account available across the others. Installing the optional background component from the desktop app lets approved tasks keep running after the window closes, while OH's built-in services inside the app work independently of external CLI access. Pass `--desktop` for capabilities hosted in the graphical app, or `--data-dir` for a separate profile.
 
-Use `commands` for the current capability catalog and `schema` for argument definitions. Both `--args` and UTF-8 `--args-file` accept positional **JSON arrays**. Argument files are especially useful on Windows. Successful JSON goes to stdout; safe errors go to stderr. Queries do not call a model. Service calls have a 150-second upper bound; `--timeout MS` can shorten the client budget. Its default is 120000 ms, with an accepted range of 1–600000 ms; a larger value does not lift the service limit. `ONETHU_TIMEOUT_MS` sets the same client option.
+Run `commands` to inspect the active capability catalog and `schema` to view argument definitions. Both `--args` and UTF-8 `--args-file` take positional **JSON arrays** (argument files are especially convenient on Windows). Queries call campus services directly with zero LLM invocations, writing structured JSON to stdout and redacted error details to stderr. Client timeouts default to 120000 ms and accept 1–600000 ms via `--timeout MS` or `ONETHU_TIMEOUT_MS`, capped by the service's 150-second per-call upper bound.
 
-`--json` explicitly selects the default structured output. Help and version output are text. An incomplete `learn export` preserves its JSON report on stdout, writes a short error on stderr and exits with code 5. For other errors, inspect `error.code` on stderr: transport and operation exit-code categories differ between independent and desktop hosts.
+Structured JSON output is enabled by default (and can be selected explicitly with `--json`), while help and version flags print plain text. When `learn export` finishes with incomplete coverage, it writes its JSON report to stdout, logs a brief summary to stderr, and exits with code 5. For other failures, inspect `error.code` on stderr, as transport and operation exit-code categories differ between standalone and desktop hosts.
 
 ## Writes and automatic execution
 
@@ -66,11 +66,11 @@ onethu config automatic off --confirm
 onethu config enabled off --confirm
 ```
 
-By default, writes require `--confirm` from the local CLI. Once automatic execution is enabled, CLI, MCP and allowed model tools can perform operations within their permissions. MCP, IM and plugins cannot enable this local switch themselves. A `confirm:true` property in their arguments does not grant local-source privileges.
+Write operations require `--confirm` from the local CLI by default. Once automatic execution is enabled, the CLI, MCP clients, and permitted model tools can run operations within their granted permissions. Enabling this local switch and supplying local confirmation privileges are reserved for the local CLI and desktop UI; calls arriving from MCP, IM, or plugins always follow the active local policy regardless of any `confirm:true` field in their arguments.
 
-The desktop OH settings control the same OneTHU CLI execution policy as the background runtime. Turning automatic execution off invalidates relevant calls that have not yet been submitted; persistent tasks also follow the continuing scope approved when they were created. Cloud sync does not propagate authorization. A remote action may already have taken effect when a timeout occurs, so query its state before trying again. An unknown write result never triggers automatic replay.
+The OneTHU CLI settings in desktop OH manage this same local execution policy (authorization stays strictly on the current device outside cloud sync). Turning automatic execution off cancels unsubmitted write calls, while scheduled tasks continue to follow the specific scope approved when each task was created. Because a timed-out write request may already have succeeded upstream, OneTHU leaves timed-out writes unretried—check the current state before submitting the action again.
 
-`config enabled off` pauses the execution entry point and resident tasks; `config enabled on --confirm` restores it. Policy changes are visible in the desktop and CLI. Closing the window preserves approved tasks, while signing out or revoking execution authorization stops them.
+Running `config enabled off` pauses both the execution entry point and resident tasks; `config enabled on --confirm` resumes them. Policy changes appear immediately in both the desktop app and the CLI. Closing the app window leaves approved tasks running, while signing out or revoking execution authorization stops them.
 
 ## Scheduled checks, downloads and reminders
 
@@ -105,9 +105,9 @@ onethu tasks pause --args '["TASK_ID"]' --confirm
 onethu tasks resume --args '["TASK_ID"]' --confirm
 ```
 
-Checks compare course files, announcements, assignments and deadlines, remaining quiet when nothing changes. The first check establishes a baseline and reports the items it finds. Add `"outputDir":"/absolute/existing/directory"` to the template to download registered attachments. Create that directory first; on Windows, an example is `"D:\\Study\\Course Archive"`. Courses, the output directory and notification destinations form the continuing authorization scope. Updating a task requires renewed approval.
+Each check compares course files, announcements, assignments, and deadlines, staying quiet whenever nothing has changed. The initial run establishes a baseline and reports the items currently present. Add `"outputDir":"/absolute/existing/directory"` to download registered attachments into an existing folder (for example `"D:\\Study\\Course Archive"` on Windows). Selected courses, the output directory, and notification destinations together define the task's continuing authorization scope, so editing a task prompts for renewed approval.
 
-Three schedule types are supported:
+Three schedule formats are supported:
 
 ```json
 {"kind":"interval","everyMinutes":30}
@@ -115,9 +115,9 @@ Three schedule types are supported:
 {"kind":"once","runAt":"2026-10-26T12:00:00Z"}
 ```
 
-Other read-only services can use `{"kind":"operation","operation":"info.schedule","args":[],"channels":["inbox"]}`. This template does not accept general scheduled writes such as bookings or email sends. Checks use deterministic logic and incur no model usage.
+You can also schedule other read-only operations with `{"kind":"operation","operation":"info.schedule","args":[],"channels":["inbox"]}` (scheduled templates are scoped to read-only operations, keeping bookings and email sends interactive). All checks run deterministic local diff logic with zero model usage.
 
-`tasks.update` takes `["TASK_ID", completeTaskDefinition]`; `tasks.remove` takes `["TASK_ID"]`. Both require approval. Removing a task preserves downloaded files. Pausing cancels the current task and its downloads. Each independent data directory supports up to 50 tasks, with 30 execution records per task and at most 100 download attempts per run. Restarting performs one catch-up check for a missed period. Read steps have bounded retries; unknown outbound results retain records for inspection.
+`tasks.update` accepts `["TASK_ID", completeTaskDefinition]` and `tasks.remove` accepts `["TASK_ID"]`, with both requiring local approval. Removing a task keeps any already downloaded files on disk, while pausing cancels an in-progress run and its active downloads. Each profile supports up to 50 tasks, retaining the latest 30 run records per task and attempting up to 100 downloads per run. Restarting the daemon triggers a single catch-up check for any missed schedule window. Read steps retry within bounded limits, while outbound notifications with uncertain delivery outcomes keep an audit record for inspection.
 
 ```sh
 onethu daemon stop
@@ -126,13 +126,13 @@ onethu daemon install --confirm
 onethu daemon uninstall --confirm
 ```
 
-Desktop app packages omit Node/CLI. The optional platform ZIP includes Node; first connection transfers existing session, calendar and task records. Source/npm entry points need an installed Node.js runtime. macOS uses a user LaunchAgent; Windows uses a scheduled task for the current user. Checks cannot run while the computer is asleep, shut down or offline. Use `onethu daemon serve` for foreground troubleshooting. `stop` stops the current process; `uninstall` separately removes its autostart registration.
+Standard desktop installers ship without Node or the CLI; installing the optional platform ZIP brings a bundled Node runtime and migrates existing session, calendar, and task records on first connection (running from source or npm uses your installed Node.js). Login autostart registers a user LaunchAgent on macOS or a per-user Scheduled Task on Windows, running checks whenever the machine is awake and online. Use `onethu daemon serve` for foreground troubleshooting, `stop` to end the active daemon process, and `uninstall` to remove the login autostart entry.
 
-On macOS, running `daemon install --confirm` again can update this CLI/profile's existing autostart entry and select the bundled Node. Running tasks continue; the new launch path applies at the next operating-system login, as indicated by `reloadRequired` in the result.
+On macOS, running `daemon install --confirm` again updates the existing autostart entry for the current profile to point to the bundled Node runtime. Active tasks continue uninterrupted, and `reloadRequired` in the output indicates when the updated launch path will apply at the next macOS login.
 
 ## Notifications and IM
 
-The local `inbox` is available by default. Feishu, WeChat and HTTPS webhook destinations require configuration. Keep credential argument files in private locations and remove temporary copies appropriately after configuration.
+The local `inbox` channel is ready out of the box, while Feishu, WeChat, and HTTPS webhook destinations can be added via configuration. Store credential argument files in private directories and delete temporary copies once configured.
 
 Argument file for one-way Feishu notifications:
 
@@ -145,7 +145,7 @@ onethu notifications configure --args-file ./private-feishu.json --confirm
 onethu tasks channels
 ```
 
-Put the binding ID returned by `tasks.channels` in the task's `channels` list. Replacing the recipient invalidates the old ID; update the task to approve the new destination. External binding IDs also bind the Feishu application or webhook URL. Rotating credentials preserves the binding. Outbound WeChat requires an existing iLink `botToken`, `userId` and `contextToken`; when its context expires, the bound person needs to send a new message through the configured inbound gateway, or the context must be explicitly refreshed.
+Reference the binding ID returned by `tasks.channels` inside your task's `channels` array. Changing the recipient replaces the binding ID, so update the task afterward to approve the new destination. External binding IDs also lock in the Feishu app or webhook URL, while rotating credentials in place preserves the existing binding. Outbound WeChat notifications use an existing iLink `botToken`, `userId`, and `contextToken`; if that message context expires, ask the bound recipient to send a fresh message through the configured inbound gateway or refresh the context explicitly.
 
 Configuration file for two-way Feishu messaging:
 
@@ -162,19 +162,19 @@ onethu im start --confirm
 onethu im status
 ```
 
-Run `onethu daemon start` before enabling continuous reception. A temporary CLI command closes the IM gateway it owns when it exits; a separately started daemon keeps running.
+Start the background daemon with `onethu daemon start` before turning on continuous IM reception. A one-off CLI process closes any IM gateway it started upon exit, whereas an independently running daemon stays online.
 
-Only private text messages from the bound person are processed. `/status` and `/tasks` query state. `/pause TASK_ID`, `/resume TASK_ID` and `/check TASK_ID` manage tasks; these mutations require local automatic-execution authorization. Natural language goes to the configured model. Group chats, unknown senders and media messages are currently excluded.
+Inbound handling accepts private text messages from the bound sender only (ignoring group chats, unknown senders, and media attachments). `/status` and `/tasks` return status summaries; `/pause TASK_ID`, `/resume TASK_ID`, and `/check TASK_ID` manage tasks when local automatic execution is enabled; and free-form messages are routed to your configured model.
 
-Two-way WeChat uses `credentials:{botToken,baseUrl?,contextToken?}` and `binding:{account,senderId}`. The independent CLI uses existing binding credentials and currently has no QR-code login. `im.stop` pauses reception in the current process; restarting the daemon restores channels configured for its current account. `im.remove --args '["feishu"]' --confirm` permanently removes the binding.
+Two-way WeChat takes `credentials:{botToken,baseUrl?,contextToken?}` and `binding:{account,senderId}`, reusing existing binding credentials (QR-code pairing lives in the desktop app). `im.stop` pauses inbound reception in the active process, restarting the daemon restores channels configured for the current account, and `im.remove --args '["feishu"]' --confirm` permanently deletes a binding.
 
-Desktop task notifications transfer their outbound credentials and recipient binding through the private bridge. WeChat requires a valid message context from that recipient. Existing desktop inbound reception retains its current owner, so migration does not create a second inbound poller.
+Desktop task notifications hand off their outbound credentials and recipient bindings over the local private bridge (WeChat requires an active message context from that recipient). Active desktop inbound gateways remain with their existing host process so handoff avoids duplicate pollers.
 
-A successful send means the platform accepted the message, without proving that the recipient read it. Unknown deliveries are not automatically repeated. IM events are recorded durably before processing, so reconnecting or restarting does not re-execute an already received command.
+A successful send indicates that the messaging platform accepted the payload; deliveries with uncertain network outcomes are logged without automatic resend. Inbound IM events are persisted to disk before execution so reconnects and restarts run each received command at most once.
 
 ## Natural-language assistant
 
-`agent.configure` supports OpenAI-compatible APIs and local HTTP models. Example configuration file:
+`agent.configure` connects to OpenAI-compatible APIs as well as local loopback HTTP models. Example configuration file:
 
 ```json
 [{
@@ -192,9 +192,9 @@ onethu config automatic on --confirm
 onethu agent run --args '["Check assignments for this course every 30 minutes and remind me 24 hours before each deadline. First list my courses and confirm which one I mean."]'
 ```
 
-When `allowedOperations` is omitted, the model receives only read tools. Creating tasks requires both exposure of the relevant write tools and local automatic-execution authorization. User text and course data used in the answer are sent to the selected provider. API keys are stored in private local files protected by filesystem permissions, without additional encryption. Remote model endpoints require HTTPS; HTTP is allowed for loopback models. Redirects are refused.
+Omitting `allowedOperations` exposes read-only tools to the model; creating or updating tasks requires both exposing the corresponding write tools and enabling local automatic execution. Prompts and any course data referenced in the reply are sent to your chosen model endpoint, and API keys are stored in plaintext inside local files restricted by OS user permissions. Remote endpoints require HTTPS (loopback HTTP is supported for local models), and HTTP redirects are rejected.
 
-Defaults are at most 6 model turns, 12 tool calls and 120 seconds. Sessions are isolated by university account and conversation identity. Memory retains the last 20 user/assistant text messages with brief tool statuses, excluding raw tool bodies. Independent CLI login to MadModel is not built in; the SDK accepts an injected provider, while desktop OH retains its existing path.
+Each run defaults to a ceiling of 6 model turns, 12 tool calls, and 120 seconds. Conversation memory is isolated by university account and chat identity, keeping the latest 20 user/assistant text messages plus compact tool status summaries while omitting raw tool bodies. MadModel sign-in is provided in desktop OH (and via injected provider callbacks in the SDK), while the standalone CLI connects directly to OpenAI-compatible and local HTTP endpoints.
 
 ## Course archives and plugins
 
@@ -210,19 +210,19 @@ onethu plugins enable --args '["PLUGIN_ID"]' --confirm
 onethu plugins commands --args '["PLUGIN_ID"]'
 ```
 
-Exports save JSON/Markdown and original attachments in course directories with stable identifiers, preserving existing notes. Assignment details use read-only pages and include teacher attachments and your submitted attachments. `complete` describes the current request; `enumerationComplete` describes the source enumeration scope. The full homework enumeration boundary remains uncertain, so the command can preserve all content it obtained while returning exit code 5. Attachment failures are recorded individually. Cancellation cleans up unfinished files; byte-range resume is currently unavailable.
+Course exports write JSON/Markdown summaries alongside original attachments under stable per-course folder names, leaving any personal notes in those folders untouched. Assignment pages are fetched read-only and include both instructor attachments and your own submitted files. In the report, `complete` reflects whether the current export run finished all queued items, while `enumerationComplete` reflects upstream list coverage—if full historical homework enumeration remains uncertain upstream, the CLI saves everything it retrieved and exits with code 5. Individual attachment errors are logged per item, and cancelling cleans up partial downloads (downloads restart per file without byte-range resume).
 
-The default export is read-only planning: it reads course/resource lists and prints a JSON plan without creating files, directories or downloads. The semester defaults to the server's current semester. `--semester ID` selects another one, and `--course ID` selects a course within it. Obtain IDs with `onethu learn courses`. `--dry-run` takes precedence over `--confirm`.
+Running `learn export` without `--confirm` performs a read-only dry run: it fetches course and resource lists and prints the JSON export plan while leaving the filesystem untouched. The semester defaults to the university's current semester; pass `--semester ID` or `--course ID` (discoverable via `onethu learn courses`) to narrow the scope. Passing `--dry-run` always forces read-only planning even if `--confirm` is present.
 
-Each course is split into download batches of at most 500 references. Independent mode uses the local `--confirm`; desktop mode also asks for approval inside OneTHU for each batch. Failed or timed-out write batches are not automatically retried. A batch shares one request deadline. Its report records `timedOut`, `downloadBatches[].remaining` and `remainingResourceRefs`; later batches stop when a batch is incomplete. A later, separately confirmed export verifies successful local files before skipping them.
+Downloads are grouped into batches of up to 500 resource references per course, each sharing a single request deadline. Standalone mode confirms via `--confirm`, while desktop mode prompts inside OneTHU for each batch. If a batch times out or stops early, the report records `timedOut`, `downloadBatches[].remaining`, and `remainingResourceRefs`, pausing subsequent batches for that course rather than retrying automatically. Re-running a confirmed export later verifies existing local files before skipping them.
 
-Each course directory retains the official course name and a short stable digest of the semester/course IDs. `.onethu-export/<run-id>/` contains `content.json` with source HTML and metadata, `content.md` with readable text, and `manifest.json` with references, paths, SHA-256, sizes and failures. The root also gets a uniquely named `onethu-export-<run-id>.json` and `.md` summary. Original HTML is kept as data, without executing it or loading remote images in the Markdown conversion.
+Each course folder combines the official course title with a short stable digest of the semester and course IDs. Inside `.onethu-export/<run-id>/`, the exporter writes `content.json` (source HTML and metadata), `content.md` (clean readable Markdown), and `manifest.json` (references, paths, SHA-256 digests, file sizes, and any failures), plus top-level `onethu-export-<run-id>.json` and `.md` summaries. Source HTML is stored inertly as data, and Markdown conversion strips active scripts and remote image loads.
 
-Reuse requires matching resource references, metadata, actual file size and SHA-256. Missing, modified or corrupt files are downloaded under a fresh name, preserving existing content. This verifies local integrity: if the school replaces a file under the same ID without changing returned metadata, a saved manifest cannot detect that remote change. Choose a new output directory when you need to retrieve it again.
+Skipping an already downloaded file requires matching resource references, metadata, byte size, and SHA-256 hash; missing, modified, or corrupted local files are freshly downloaded under a new filename while preserving existing files. Because manifest checks validate local integrity against recorded metadata, export to a fresh output directory if you need to re-fetch an upstream file that was silently replaced under identical metadata.
 
-Paths follow Windows filename rules while retaining Unicode names. Symlinks and directory junctions are refused in the output path and reused files. On macOS, `/tmp` and `/var` commonly resolve through system symlinks; use a real directory such as Documents. Inspect per-course `issues`, resource statuses and remaining references before treating a partial archive as complete. Archives can include your own submitted work, so select what you intend to share before distributing the directory.
+Output paths enforce Windows-safe filename rules while preserving Unicode titles, and reject symlinks or directory junctions in both target folders and reused files (on macOS, choose a real path such as `Documents` rather than `/tmp` or `/var`, which traverse system symlinks). Check per-course `issues`, resource statuses, and `remainingResourceRefs` to confirm archive completeness. Because exports include your own assignment submissions, review folder contents before sharing an archive with others.
 
-Plugins accept local directories or ZIP files, undergo static inspection, and start disabled. JS workers and Rust JSON-RPC plugins are supported. Enabling a plugin executes trusted local code; child processes isolate lifecycle, without providing an operating-system sandbox. GUI/WASM-specific capabilities explicitly report incompatibility. Installation and configuration require a local source, so a model cannot install plugins itself. Only install and enable local packages you have reviewed.
+Plugins install from local directories or ZIP archives, undergo static inspection, and start disabled. Both JS workers and Rust JSON-RPC plugins are supported, running in child processes for lifecycle isolation with your local OS user permissions—install and enable only local packages you have reviewed. GUI- and WASM-specific plugin APIs return an explicit compatibility error in the CLI, and plugin installation and configuration remain restricted to local CLI confirmation.
 
 ## MCP and desktop mode
 
@@ -230,9 +230,9 @@ Plugins accept local directories or ZIP files, undergo static inspection, and st
 {"mcpServers":{"onethu":{"command":"node","args":["/absolute/path/to/cli/bin/onethu.mjs","mcp"]}}}
 ```
 
-Independent MCP exposes `onethu_commands` and `onethu_call`; call arguments look like `{"operation":"learn.courses","args":[]}`. Sign in and start the daemon first so other agents can share that runtime. Exiting MCP leaves a separately started daemon running. When a temporary MCP process owns its own runtime, that runtime closes with the process. stdout is reserved for protocol messages.
+Standalone MCP exposes `onethu_commands` and `onethu_call` (taking arguments such as `{"operation":"learn.courses","args":[]}`), reserving stdout strictly for MCP protocol frames. Sign in and run `onethu daemon start` beforehand so external agents can share that background runtime; exiting the MCP client leaves an independently started daemon running, whereas an ephemeral runtime started by MCP itself closes when the MCP process exits.
 
-On Windows, use the actual absolute entry-point path, for example `C:\\Projects\\OneTHU\\packages\\cli\\bin\\onethu.mjs` inside JSON. An absolute path avoids PATH propagation issues in graphical agent applications.
+On Windows, configure the full absolute path to `onethu.mjs` (for example `C:\\Projects\\OneTHU\\packages\\cli\\bin\\onethu.mjs`) in your MCP JSON so graphical agent hosts can launch it reliably regardless of user PATH inheritance.
 
 ```sh
 onethu --desktop status
@@ -240,9 +240,9 @@ onethu --desktop learn courses
 onethu --desktop mcp
 ```
 
-An updated desktop build needs Harness, OneTHU CLI and agent-service authorization enabled. Desktop mode uses a fixed loopback port; the independent daemon uses a private token and a random port. Each host keeps its own configuration. `--endpoint http://127.0.0.1:8787` or `ONETHU_ENDPOINT` also explicitly selects desktop mode.
+Using `--desktop` (or setting `--endpoint http://127.0.0.1:8787` / `ONETHU_ENDPOINT`) connects to a running OneTHU desktop app with Harness, OneTHU CLI, and agent-service authorization turned on. Desktop mode talks over a fixed loopback port, while the standalone daemon uses a per-profile random port and private token, with each host maintaining its own settings.
 
-Desktop endpoints accept only HTTP loopback origins using `127.0.0.1`, `localhost` or `[::1]`; `localhost` is pinned to `127.0.0.1`. The client does not use HTTP proxies or follow redirects. Desktop `status` describes the local service and its session, rather than probing every university endpoint. For HTTP 403, check the desktop service switch and OH authorization. For a connection failure, check that the intended host is running.
+Desktop mode connects exclusively over HTTP loopback (`127.0.0.1`, `localhost` pinned to `127.0.0.1`, or `[::1]`), bypassing HTTP proxies and refusing redirects. Running `status` in desktop mode reports the local service state and active session directly without polling upstream university endpoints. If you encounter HTTP 403, verify that the desktop service switch and OH authorization are enabled; if the connection is refused, confirm that the target host is running.
 
 ## Validation and remaining boundaries
 
@@ -252,13 +252,13 @@ pnpm --filter @onethu/cli test
 pnpm test:cli
 ```
 
-Fixtures cover login/2FA, stable device fingerprints, real CLI subprocesses, task persistence, cancellation, IM HTTP/WebSocket protocols, model tool loops and permissions. The daemon and installer have been checked in an isolated environment on macOS. Independent login to real university accounts, Windows ACL/autostart behavior, and live IM/model integrations still require acceptance testing. This work sent no real bookings, emails or IM messages.
+Offline test suites cover login and 2FA flows, stable device fingerprints, real CLI subprocesses, task persistence and cancellation, IM HTTP/WebSocket protocols, and model tool loops and permissions—all verified locally against synthetic fixtures with zero live bookings, emails, or IM messages sent. Daemon and installer workflows have been verified in an isolated macOS environment, while live standalone university sign-in, Windows ACLs and autostart registration, and live IM/model end-to-end runs are tracked for device acceptance testing.
 
-Mail, CalDAV, cloud storage and external assignments use independent configuration. `memory.*` only reads Markdown from the independent account directory; desktop data is not copied implicitly. Canvas operations and tab navigation remain GUI features. Final campus-visit form submission and actual sports bookings retain official interactive flows. Scheduled tasks currently have no quiet hours or dedicated deduplicated session-expiry notifications; failures appear in task history.
+Mail, CalDAV, cloud storage, and external assignment sources each use independent settings inside the CLI profile, and `memory.*` reads Markdown files directly from that profile's account folder. Whiteboard canvas editing and tab navigation belong to the desktop GUI, while campus-visit form submission and live sports court bookings use the university's interactive web flows. Scheduled tasks record session-expiry and check errors in task history (quiet hours and deduplicated session-expiry alerts are not yet built in).
 
-The [project license](LICENSE) contains additional terms. Dependency notices ship in `dist/sdk/THIRD_PARTY_NOTICES.txt`.
+See the [project license](LICENSE) for full terms and additional conditions; third-party dependency notices ship in `dist/sdk/THIRD_PARTY_NOTICES.txt`.
 
 
 ## Optional platform package (0.11.4-fix-2)
 
-Desktop app installers omit Node and CLI resources. Install or uninstall the optional component from full-mode onboarding or OH settings. The platform ZIP includes a verified Node runtime: extract it and run `./onethu` on macOS or `.\onethu.cmd` on Windows. Source/npm entry points still need Node. OH in the app works without CLI installation or external CLI access. The default terminal client prefers the running app catalog, then the resident account host. Calendar events and mailbox configuration share account records; uninstall preserves profile data and transfers jobs back to the app.
+Desktop app installers ship without bundled Node or CLI binaries; you can install or remove the optional CLI component anytime from full-mode onboarding or OH settings. The platform ZIP bundles a verified Node runtime—extract it and run `./onethu` on macOS or `.\onethu.cmd` on Windows (running from source or npm uses a system Node installation). Built-in OH features inside the desktop app work out of the box whether or not the external CLI is installed. By default, the terminal client connects first to a running desktop app catalog and otherwise falls back to the resident account host. Calendar events and mailbox settings share account storage, and uninstalling the optional component preserves profile data while handing scheduled jobs back to the desktop app.

@@ -1,17 +1,16 @@
 # Android 构建 / 模拟器验证 Runbook（2026-10-18）
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
 
+> 归档说明：本文记录 2026-10-18 当时的 Android 构建配置与模拟器实测步骤；0.11 当前功能与最新构建说明请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
 ## 环境
 
 - Android SDK/NDK：`/Volumes/OneTHUBuild/oh-android-sdk`（NDK 27.1.12297006）
 - JDK：17（`/usr/libexec/java_home -v 17`）
 - AVD：`onethu-demo`（android-35 google_apis arm64-v8a）
-- Gradle 工程：`apps/desktop/src-tauri/gen/android`（**软链到 `/Volumes/OneTHUBuild/onethu-android`**；Android 工程/构建缓存必须在 SSD，禁止再放内盘）
+- Gradle 工程：`apps/desktop/src-tauri/gen/android`（**软链到 `/Volumes/OneTHUBuild/onethu-android`**；Android 工程与构建缓存统一存放在外置 SSD，以节省内置磁盘空间）
 
-> 关键：`tauri android build` 默认不注入 NDK 的 linker/CC，Rust 会误用宿主 `cc` 链接 Android
-> 目标。必须显式导出以下环境变量（本 runbook 已实测）：
+> 提示：`tauri android build` 默认未自动注入 NDK 的 linker 与 CC，直接运行会导致 Rust 调用宿主机 `cc` 链接 Android 目标。构建前请先显式导出以下环境变量（均已在当次环境实测验证）：
 
 ```bash
 NDK=/Volumes/OneTHUBuild/oh-android-sdk/ndk/27.1.12297006
@@ -23,7 +22,7 @@ export CXX_aarch64_linux_android=$BIN/aarch64-linux-android34-clang++
 export AR_aarch64_linux_android=$BIN/llvm-ar
 ```
 
-## 只编译 Kotlin（最快抓 native 语法错误）
+## 只编译 Kotlin（快速排查原生层语法错误）
 
 ```bash
 cd apps/desktop/src-tauri/gen/android
@@ -54,31 +53,28 @@ $ADB exec-out screencap -p > /tmp/onethu-emulator.png
 
 ## 2026-10-18 实测结果
 
-- Kotlin 编译：`BUILD SUCCESSFUL`（插件 + app）。
-- debug APK：`BUILD SUCCESSFUL`，universal APK 277MB。
-- 模拟器安装成功，`MainActivity` 冷启动成功，进入登录页（截图 `docs/assets/android-emulator-login-2026-10-18.png`）。
-- 登录页按系统返回键 → App 进程退出、回桌面；无 `FATAL EXCEPTION`。
-- 模拟器没有 NFC 硬件，**无法验证 ReaderMode/HCE**；也未登录，无法验证暂存箱/云端 UI。
+- Kotlin 编译：插件与主工程均 `BUILD SUCCESSFUL`。
+- debug APK 打包：`BUILD SUCCESSFUL`，产出 universal APK（277MB）。
+- 模拟器安装与启动：APK 安装顺利，`MainActivity` 冷启动正常进入登录页（截图见 `docs/assets/android-emulator-login-2026-10-18.png`）。
+- 返回键行为：在登录页按下系统返回键可正常退出应用进程回到桌面，全程无 `FATAL EXCEPTION`。
+- 待真机补测项：由于模拟器无 NFC 硬件且当次未登录真实账号，ReaderMode/HCE 近场交互以及暂存箱、云端界面留待真机登录环境进一步验证。
 
 ## 内盘空间纪律（2026-10-18 教训）
 
-- Tauri/Gradle 构建曾把 Android 工程放在 `/Users/st/onethu-android`（内盘），加上模拟器 AVD，
-  一度把内盘写到只剩几百 MB；已删除并改软链到 `/Volumes/OneTHUBuild/onethu-android`。
-- 以后构建前确认 `apps/desktop/src-tauri/gen/android` 软链指向外置 SSD；模拟器 AVD 也应在 SSD。
-- 不要在 `~/` 下新建 Android/Gradle 工程目录。
+- 此前 Tauri/Gradle 构建目录曾放在内置磁盘 `/Users/st/onethu-android`，叠加模拟器 AVD 镜像后占用了大量内盘空间；现已清理并改由软链指向 `/Volumes/OneTHUBuild/onethu-android`。
+- 每次构建前请确认 `apps/desktop/src-tauri/gen/android` 软链指向外置 SSD，并将模拟器 AVD 镜像一并存放在外置盘。
+- 日常开发请将 Android 与 Gradle 工程目录统一建在外置盘，避免占用 `~/` 主目录空间。
 
 ## 已知限制
 
-- `tauri android build` 未自动设置 NDK linker，需按上面 env 导出；可考虑后续加脚本封装。
-- 生成的 `gen/schemas/*-schema.json` 会随权限/命令变化更新，需随提交。
-
+- `tauri android build` 暂需手动导出上方的 NDK 环境变量，后续可封装为脚本一键调用。
+- 生成的 `gen/schemas/*-schema.json` 会随权限或命令变更自动更新，改动后请一并纳入提交。
 
 ## 电脑上预览手机端
 
 - 开发模式入口：`http://127.0.0.1:5180/?phone-frame=1`
-- 可选参数：`device=15pro|15pm|se|pixel8|mini`、`land=1`、`fit=0`、
-  `scene=page-vault|namecard|settings|page-cloud|...`
+- 可选参数：`device=15pro|15pm|se|pixel8|mini`、`land=1`、`fit=0`、`scene=page-vault|namecard|settings|page-cloud|...`
 - 示例：
   - 暂存箱：`/?phone-frame=1&scene=page-vault`
   - 名片/组织：`/?phone-frame=1&scene=namecard`
-- 注意：DPR 用宿主屏幕、安全区不模拟；免登录预览场景会出现引导浮层，点「不再提示」即可。
+- 说明：桌面预览沿用宿主屏幕的 DPR，暂未模拟手机安全区；免登录预览场景首次打开若弹出引导浮层，点击「不再提示」即可关闭。

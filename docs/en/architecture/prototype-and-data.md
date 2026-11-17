@@ -1,34 +1,35 @@
 # Prototype and data model
 
+
 [中文](../../architecture/prototype-and-data.md) · [System overview](../architecture.md)
 
 ## Product objects and modes
 
-OneTHU presents the same campus entities through lists, search, calendars, boards and agent tools. Courses, assignments, notifications and files retain source identifiers. Views consume normalized data; navigation carries the entity context needed to reopen a specific destination.
+OneTHU surfaces the same core campus entities—courses, assignments, notifications, and files—across lists, unified search, calendars, whiteboards, and agent tools. Views consume normalized models that preserve upstream source IDs, and navigation passes enough entity context to reopen the exact item in its destination view.
 
-Minimal mode uses a fixed home, five primary entries, search and OH. Practical mode presents everyday services and simpler settings. Full mode enables boards, tabs, OneGO, organizations and extensions. Changing mode preserves stored account/workspace configuration while changing visible interaction and capability scope. Receiving, sharing and advanced tools also check mode, privacy consent and account.
+Minimal mode centers on a fixed home view, five primary shortcuts, search, and OH; Practical mode adds broader everyday campus services with streamlined settings; and Full mode unlocks freeform whiteboards, tabs, OneGO, organizations, and extensions. Switching modes adjusts the active UI and available features while keeping your underlying accounts, whiteboards, and workspace data intact. Incoming shares, collaboration actions, and agent tools also check the active mode, privacy consent, and signed-in account before running.
 
-Cloud and agent consent are persisted separately; revocation immediately affects in-flight work. Sources: [experienceMode](../../../apps/desktop/src/state/experienceMode.ts), [privacyConsent](../../../apps/desktop/src/state/privacyConsent.ts).
+Cloud-sync consent and agent consent are stored as independent settings, and revoking either immediately cancels any in-flight requests that depend on it. Sources: [experienceMode](../../../apps/desktop/src/state/experienceMode.ts), [privacyConsent](../../../apps/desktop/src/state/privacyConsent.ts).
 
 ## Page instances and workspaces
 
-`ExplorerTab` stores identity, page, parameters, title, workspace and access times. Home has a stable identity. Other tabs have independent routing contexts; normal navigation can reuse an instance, while duplication explicitly creates another. Two course tabs therefore retain separate route state.
+Each `ExplorerTab` tracks its tab ID, page route, route parameters, title, parent workspace, and recent access timestamps. Home uses a single persistent tab identity, while feature routes keep independent tab state: ordinary navigation reuses a matching tab when appropriate, whereas duplicating a tab opens a separate instance so two course pages can stay on different sub-views side by side.
 
-`ExplorerWorkspace` stores a tab snapshot and optional live grouping, color and icon. Settings/plugin/OH management uses overlays above tab content. OneGO bookmarks pages and workspaces; OneShot supplies primary shortcuts. They have different persisted objects.
+`ExplorerWorkspace` captures a saved tab set along with optional live tab-group sync, accent color, and icon. Settings, plugin panels, and OH management open as overlays above the active tab deck. OneGO stores bookmarked pages and workspaces, while OneShot manages the primary quick-launch bar through its own persisted model.
 
-Navigation from board widgets to assignments or tracing ultimately enters the same content shell as other entry points. The shell owns gutters, scrolling and safe areas; widgets supply entity parameters. Source: [explorer.ts](../../../apps/desktop/src/state/explorer.ts).
+Jumping from a whiteboard widget to an assignment or trace view enters the same shared content shell as sidebar or search navigation: the widget supplies the target entity parameters, and the shell handles gutters, scrolling, and safe-area padding. Source: [explorer.ts](../../../apps/desktop/src/state/explorer.ts).
 
 ## Atoms and deep links
 
-Atom references connect collectible, searchable, draggable and shareable objects to one resolver. Registered kinds include pages, widgets, entities and tabs. `AtomView` resolves title, icon, origin, opening behavior and optional live content.
+Atom references give bookmarks, search results, drag-and-drop items, and shared cards a unified lookup mechanism across pages, widgets, campus entities, and tabs. Given a reference, `AtomView` resolves its title, icon, source badge, open action, and optional live preview.
 
-A reference carries business identity and display metadata; service clients still retrieve current data. Learn course IDs, Rain Classroom classroom IDs, notification IDs and resource references retain their separate meanings. Legacy entity keys use delimiter encoding; tab parameters are sorted and encoded for stable keys.
+An atom reference stores stable business identifiers and display hints while service clients fetch live content on demand. Learn course IDs, Rain Classroom classroom IDs, notification IDs, and file `resourceRef` tokens each keep their own namespace; legacy entity keys use delimiter encoding, and tab references sort and encode route parameters for deterministic keys.
 
-Search combines registered entries, already-seen caches and explicit service searches. The atom picker does not enumerate every campus service for arbitrary input. Sources: [atoms.tsx](../../../apps/desktop/src/state/atoms.tsx), [favorites.ts](../../../apps/desktop/src/state/favorites.ts).
+Global search blends registered app features, locally cached items, and targeted campus-service queries, while the quick atom picker queries registered entries and already-loaded caches for instant responsiveness. Sources: [atoms.tsx](../../../apps/desktop/src/state/atoms.tsx), [favorites.ts](../../../apps/desktop/src/state/favorites.ts).
 
 ## Board documents and geometry
 
-`BoardDoc` owns version, board collection, active board and order. A `Board` identifies a system/user board and portrait/landscape layouts. `BoardItem` contains a widget specification, grid cell, optional pixel rectangle and manual-size/folding/pinning metadata.
+`BoardDoc` tracks schema version, the dictionary of boards, the active board ID, and display order. Each `Board` represents a system or user whiteboard with dedicated portrait and landscape layouts, and each `BoardItem` pairs a business `WidgetSpec` with grid coordinates, an optional freeform pixel rectangle, and manual-resize, collapse, or pin flags.
 
 ```text
 WidgetSpec: business content
@@ -37,19 +38,19 @@ Board: page and orientation
 BoardDoc: persisted workbench document
 ```
 
-The free layer uses pixel rectangles. Grid coordinates remain the plugin/OH contract and migration input; model transformations keep them synchronized. Reference canvas and column rules are centralized. Viewport changes interpret the same persisted coordinate system.
+On the canvas, the freeform layer renders pixel rectangles while keeping grid coordinates synchronized for plugin/OH APIs and layout migration. Centralized reference-canvas and column rules adapt the same persisted geometry cleanly across window sizes.
 
-A gesture updates temporary geometry and commits on release. Mobile edit mode authorizes geometry changes; ordinary browsing preserves scrolling and activation. Undo restores document history; reset restores a template. Content fitting distinguishes user sizing from automatic fitting.
+Dragging or resizing updates transient preview coordinates during the pointer gesture and commits once on release. On touch screens, layout edits require Edit mode so normal swipes scroll and open content smoothly. Undo steps through board history, Reset restores a default template, and auto-fit sizing stays distinct from manual user dimensions.
 
 Sources: [boardCore](../../../apps/desktop/src/state/boardCore.ts), [boardEdit](../../../apps/desktop/src/state/boardEdit.ts), [boardHistory](../../../apps/desktop/src/state/boardHistory.ts), [FreeBoard](../../../apps/desktop/src/components/FreeBoard.tsx).
 
 ## Staging, sharing and import
 
-Staging stores text, atom references and files. A committed drop consumes the gesture once; the source must not subsequently commit a move. Floating-button movement, click thresholds and drop feedback are interaction state, while contents belong to the staging model.
+Temporary staging boxes hold text snippets, atom references, and files. Dropping an item into staging completes the gesture once and leaves the source widget at its original board coordinates; floating-ball positioning, tap thresholds, and drop highlights stay in transient UI state separate from the box's persisted items.
 
-Online sharing stores supported contents in an authorized remote location and retrieves them using a short code. Reference validity, remote permissions and source availability are separate checks. Import creates destination content while preserving the current box. External text, files and skill instructions remain data.
+When sharing online, OneTHU uploads supported box items to an authorized cloud folder and generates a short retrieval code. Opening a code validates the reference format, remote access permissions, and upstream item availability at each step, then imports the items into a newly created box without overwriting existing local boxes. Shared text, files, and skill packages are always loaded purely as content data.
 
-NFC retains experimental support and an availability notice; short codes are the more stable path. See [sharing](../sharing-and-organizations.md), [application services](../oh-app-services.md), [vault.ts](../../../apps/desktop/src/state/vault.ts), [vaultShare.ts](../../../apps/desktop/src/state/vaultShare.ts), [vaultDrag.ts](../../../apps/desktop/src/components/vault/vaultDrag.ts).
+Experimental NFC tap-to-share is available on supported mobile hardware with an inline readiness prompt, while short codes provide universal cross-device sharing. See [sharing](../sharing-and-organizations.md), [application services](../oh-app-services.md), [vault.ts](../../../apps/desktop/src/state/vault.ts), [vaultShare.ts](../../../apps/desktop/src/state/vaultShare.ts), [vaultDrag.ts](../../../apps/desktop/src/components/vault/vaultDrag.ts).
 
 ## Storage and authority
 
@@ -63,16 +64,16 @@ NFC retains experimental support and an availability notice; short codes are the
 | Cards, friends, organizations | Owner-verified local/remote records | Cloud/GitLab authorization and conflict rules |
 | Model and IM credentials | Private account/device configuration | Public status projections |
 
-Unix private modes, Windows ACLs and profile locks protect runtime storage. They do not imply application-layer encryption for every value. Some SDK model configuration is stored in private local files; device and backup policy must reflect its sensitivity.
+Runtime directories rely on Unix private file permissions, Windows current-user ACLs, and exclusive profile locks. Because several SDK and model configuration files store credentials directly inside that protected local directory, disk permissions and backup exclusions should treat the profile folder as sensitive.
 
 ## Synchronization and reconciliation
 
-With an installed daemon, `sharedCalendar.ts` and private `desktop.data*` calls access authoritative calendar/configuration documents. Writes carry content versions and ownership checks. Mobile and uninstalled desktops use application storage; installation/uninstallation performs handoff.
+When the resident daemon is installed, `sharedCalendar.ts` and private `desktop.data*` RPCs read and write authoritative calendar and settings documents using content-version and account-owner checks. Mobile devices and desktops without the daemon persist directly in app storage, with install and uninstall flows migrating records cleanly between hosts.
 
-Compatible changes merge automatically. Mutually exclusive identity or organization configuration requires an explicit choice. Remote membership, repository ownership and active account must agree. File references locate resources; remote authorization still decides access.
+Non-overlapping edits merge automatically, while conflicting account identities or organization bindings prompt for an explicit user choice. Accessing shared organization resources checks that remote GitLab membership, repository ownership, and the active OneTHU account all match; saved file references point to remote locations, and live server permissions govern actual reads.
 
-A local organization index, remote membership, projects, announcements and files have different lifecycles. Creating a local index does not complete remote sharing. Two-real-account acceptance needs its own environment and evidence. See [organization behavior](../sharing-and-organizations.md).
+Local organization indexes, remote GitLab membership, projects, announcements, and linked cloud files each follow their own lifecycle: creating an organization initializes its local index first, and multi-member sharing activates once remote repository access is configured and verified across accounts. See [organization behavior](../sharing-and-organizations.md).
 
 ## Failure behavior
 
-Timeouts can preserve previously displayed data with its age/source. Stale caches cannot represent a new successful response after authentication or permission denial. Account changes revoke old requests and later commits. For uploads, messages or reservations with unknown results, query the remote outcome before retrying; local cancellation only prevents subsequent submissions.
+During transient network timeouts, views can continue displaying previously fetched data alongside its age and source indicator, whereas authentication expiry or permission revocation immediately clears stale success states. Switching accounts cancels in-flight requests and blocks late writes from the prior session. When an upload, outgoing message, or booking ends in an uncertain network state, check the remote service before retrying—local cancellation stops further client retries while the server resolves any request already received.

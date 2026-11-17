@@ -1,11 +1,12 @@
 # OneGUI · 组件目录与迁移台账
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
+
+> 归档说明：本文记录当时的组件目录与阶段性迁移台账；0.11 当前功能与使用说明请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
 
-> 由 `packages/gui/src/index.ts` 反解 + `tools/onegui-baseline.json` 台账生成（2026-10-14）。
-> 规则原文见 [10-contract.md](./10-contract.md)，总纲见 [00-plan.md](./00-plan.md)。
-> 画廊：`http://127.0.0.1:5180/?onegui-gallery=1`（可加 `&skin=glass&level=rich&scheme=dark&density=touch`）。
+> 本文根据 `packages/gui/src/index.ts` 导出清单与 `tools/onegui-baseline.json` 台账生成（2026-10-14）。
+> 组件设计准则见 [10-contract.md](./10-contract.md)，整体规划见 [00-plan.md](./00-plan.md)。
+> 画廊预览：`http://127.0.0.1:5180/?onegui-gallery=1`（可追加 `&skin=glass&level=rich&scheme=dark&density=touch`）。
 
 ## 1. 六轴（唯一调度源头）
 
@@ -19,8 +20,8 @@
 | platform | `desktop` / `mobile` | `data-og-platform` | `state/platform.ts` 唯一断点 |
 | accent | 主题色对象 / `null` | 内联 `--og-accent*` 一族 | 主题系统（含动态取色） |
 
-特殊要求的唯一出口：`director.defineScope(name, { "surface-1": "surface-2", radius: "lg" })` + `<Card scope=Badge>`；
-可选值域受 `SCOPE_TOKENS` 白名单约束（只能指向另一个语义令牌或枚举档位）。
+局部定制统一通过 `director.defineScope(name, { "surface-1": "surface-2", radius: "lg" })` 配合 `<Card scope=Badge>` 实现；
+可选值域受 `SCOPE_TOKENS` 白名单约束，仅支持映射到既有语义令牌或预设枚举档位。
 
 ## 2. 组件目录（66 个，全部在画廊登记）
 
@@ -94,7 +95,7 @@
 
 图标：`packages/gui/src/components/icons.tsx` —— 51 枚自绘线性图标整体平移（`ICONS` 注册表 + `FolderIcon`）。
 
-## 3. 迁移台账（护栏基线，只许下调）
+## 3. 迁移台账（护栏棘轮基线，单向下调）
 
 | 项 | 现状 | 目标 |
 |---|---:|---:|
@@ -105,20 +106,20 @@
 | 页面里手写的旧类名（card / empty / skeleton / error-note / section-head） | 170 / 62 / 7 / 5 / 3 处 | 0 |
 | `packages/ui`（旧令牌包） | tokens + base | 由 OneGUI 取代后删除 |
 
-跑法：`pnpm guard:onegui`（迁移一批后 `node tools/onegui-guard.mjs --write-baseline` 下调基线）。
+校验命令：`pnpm guard:onegui`（每完成一批迁移后运行 `node tools/onegui-guard.mjs --write-baseline` 收紧基线）。
 
 ## 4. 迁移顺序（每页 = 一次提交）
 
-1. ✅ 库：令牌 → 管线 → 布局 → 文本 → 面/卡 → 按钮 → 行/列表 → 表单 → 浮层 → 页面模式 → 展示件 → 图标 → 画廊 → 护栏
-2. 🔄 壳层：`AppShell` 等外框件已入库（桌面竖栏 + 手机底部条已截图验收）；
-   `Layout.tsx` 的八个旧原语（Card/Empty/SectionHead/ErrorNote/SkeletonRows/Switch/PageHead）已切成 OneGUI 适配层
-   —— 60/40/28/30/8/31 个调用点一刻之间改由 OneGUI 渲染。
-   `markSettingsRows()` / `focusSettingsTarget()` 改成**两族一起认**（.setting-row/.section-head 与 .og-settings-row/.og-section），
-   设置搜索与直达的 UX 不受影响。**还剩**：`Layout.tsx` 外框本体（竖栏/顶栏/标签条/抽屉/设置浮层/命令面板）换 AppShell。
-3. ⏳ 攻坚面：清华云盘（cloud-*）、网络学堂（作业/通知/富文本壳）、设置页 + 全部弹层
-4. ⏳ 其余页面：`pages/` 全量，逐页删旧 CSS
-5. ⏳ 清场：删 `apps/desktop/src/styles/*`、删 `packages/ui`、旧风格护栏由 `onegui-guard` 取代、`design-language.md` 重写为 OneGUI 手册
-6. ⏳ 验收：`pnpm guard` 全绿 + typecheck + 画廊矩阵截图 + 真机走查（亮/暗/皮肤/密度/手机）
+1. ✅ 组件库底座：按「令牌 → 管线 → 布局 → 文本 → 面/卡 → 按钮 → 行/列表 → 表单 → 浮层 → 页面模式 → 展示件 → 图标 → 画廊 → 护栏」顺序完成搭建。
+2. 🔄 壳层过渡：`AppShell` 等外框组件已入库（桌面竖栏与手机底部条已完成截图验收）；
+   `Layout.tsx` 中的八个旧原语（Card/Empty/SectionHead/ErrorNote/SkeletonRows/Switch/PageHead）已切换为 OneGUI 适配层，
+   一次性接管全仓 60/40/28/30/8/31 个调用点。
+   `markSettingsRows()` 与 `focusSettingsTarget()` 同步支持新旧两族类名（.setting-row/.section-head 与 .og-settings-row/.og-section），
+   保持设置搜索与直达体验平滑衔接。**待完成项**：将 `Layout.tsx` 外框本体（竖栏/顶栏/标签条/抽屉/设置浮层/命令面板）切换为 `AppShell`。
+3. ⏳ 重点页面攻坚：依次推进清华云盘（cloud-*）、网络学堂（作业/通知/富文本壳）、设置页与全部弹层。
+4. ⏳ 其余页面迁移：遍历 `pages/` 全量页面，完成一页即移除对应旧 CSS。
+5. ⏳ 收尾清理：删除 `apps/desktop/src/styles/*` 与 `packages/ui`，由 `onegui-guard` 接替旧版样式护栏，并将 `design-language.md` 重写为 OneGUI 手册。
+6. ⏳ 整体验收：`pnpm guard` 全部通过、typecheck 无误，并完成画廊矩阵截图与真机走查（覆盖亮/暗/皮肤/密度/手机）。
 
 ## 5. 验收证据
 

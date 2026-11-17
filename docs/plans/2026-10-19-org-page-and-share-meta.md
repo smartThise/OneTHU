@@ -1,7 +1,7 @@
 # 组织主页 + 分享口令改名/限定邮箱（2026-10-19 晚）
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
 
+> 归档说明：本文记录当时的设计方案与阶段性验收情况；0.11 当前功能与使用指南请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
 > 用户口径：
 > - 「口令应该可以改名，可以设定某个用户邮箱才有权限接收」；
@@ -11,107 +11,70 @@
 
 ## 一、分享口令（暂存箱）
 
-`state/vaultShare.ts` 的 payload 增加两个随码携带的字段：
+在 `state/vaultShare.ts` 的分享载荷中新增两个随口令同步的元数据字段：
 
 | 字段 | 含义 |
 | --- | --- |
-| `label` | 口令名（发送方命名，接收方可见） |
-| `allowEmail` | 限定接收邮箱；设置后只有该清华云盘账号能打开 |
+| `label` | 口令名称（由发送方自定义命名，接收方导入时直观可见） |
+| `allowEmail` | 指定接收人邮箱；设置后仅限已登录该清华云盘邮箱的账号打开 |
 
-- 台账 `state/vaultShareLog.ts` 每条记录增加 `label` / `allowEmail`；
-  「已发出的口令」面板（`components/vault/IssuedSharesCard.tsx`）新增
-  **改名**、**限定邮箱** 两个动作。
-- 改名/限定不换码：`updateShareMeta(code, patch)` 解出云清单 → 改字段 →
-  `VaultCloudAdapter.update(ref, payload)` 把 manifest 就地写回原分享目录
-  （整份读回来再写，避免丢 items）。旧版「内容写在码里」的本地长口令如实提示重新生成。
-- 接收端在 `importShareCodeAsCurrent` 两处强制校验：① 短码解码后；
-  ② 读到云清单后（云清单是权威，发送方后来改的限制也拦得住）。
-  身份 = 当前连接的清华云盘邮箱；缓存账号与 `allowEmail` 不符时先强制刷新账号再判。
-- 短码转发（`cloudExchange.resolveExchangeCode`）原来只带 name/cloud，
-  会把新字段丢掉；已补 label/allowEmail/expiresAt。
+- 本地分享台账 `state/vaultShareLog.ts` 为每条记录补充 `label` 与 `allowEmail` 字段；「已发出的口令」管理面板（`components/vault/IssuedSharesCard.tsx`）新增**改名**与**限定邮箱**两项操作。
+- 就地更新保持原口令编码不变：调用 `updateShareMeta(code, patch)` 解析云端清单 → 更新元数据字段 → 通过 `VaultCloudAdapter.update(ref, payload)` 先完整读取再将更新后的 `manifest.json` 写回原分享目录，完整保留原有条目列表。对于早期离线生成的内联长口令，界面会清晰提示重新生成新口令以启用云端权限控制。
+- 接收端在 `importShareCodeAsCurrent` 中设立双重校验：① 短码初步解码后立即核对；② 拉取到云端权威 `manifest.json` 后再次核对，确保发送方事后追加或修改的邮箱限制同样即时生效。接收方身份取自当前已连接的清华云盘账号邮箱；若本地缓存邮箱与 `allowEmail` 不一致，会先主动向云端刷新一次真实账号信息再作判定。
+- 补齐短码解析透传（`cloudExchange.resolveExchangeCode`），在原有的 `name` 与 `cloud` 之外一并携带 `label`、`allowEmail` 与 `expiresAt`。
 
-## 二、组织完整页面（page=org）
+## 二、组织完整主页（`page=org`）
 
-新增一级页 `page=org`（`navParams.orgId`；无 orgId 时是组织选择页），
-入口：通讯录「我的组织」列表行 / 名片夹里的组织卡 / 搜索「组织」。
+新增一级路由页面 `page=org`（接收 `navParams.orgId`，可从通讯录「我的组织」列表行、名片夹中的组织名片或全局搜索进入）。
 
-页面结构（`pages/Organization.tsx`）：
+主页采用多页签工作区结构（`pages/Organization.tsx`）：
 
-- **概览**：成员数/邮箱绑定数、负责人、资料库、GitLab 仓库、加入方式；
-  最近邀请口令（可改名/限定邮箱、二维码）；组织名片；删除组织（只删本地记录）。
-- **成员**：真实清华云盘邮箱（添加/编辑/按邮箱去重）；角色（负责人/成员/访客）；
-  「把资料库共享给全体成员」。
-- **资料库**：清华云盘**资料库（repo）**，不是组织页里的文件夹——
-  新建资料库（`seafile_create_repo`）、关联已有资料库、共享给成员邮箱
-  （`seafile_share_folder_to_user` 根目录）、复制 7 天分享链接、打开（云盘页 deep link
-  `navParams.cloudRepo`）、解除关联（不动云盘）。
-- **GitLab**：新建仓库（`POST /api/v4/projects`）、按 `group/project` 关联已有仓库
-  （`GET /api/v4/projects/:encoded`）、打开仓库（`navParams.gitlabProject`）、解除关联。
-  info-lib 新增 `getGitProjectByPath` / `createGitProject`（复用其 cookie+CSRF 写通道）。
-- **项目 / 公告**：沿用旧组织工作区能力，迁到整页 tab。
-- 邀请口令：可起名、可限定接收邮箱（`org.invite` 记录）；同一组织复用同一条短码，
-  改名称/邮箱只更新云 manifest（stable slot `org:<id>`）；接收方过邮箱校验才加入，
-  并以邮箱身份成为成员。
+- **概览**：集中展示成员总数与已绑定邮箱人数、负责人、已关联的云盘资料库与 GitLab 仓库、加入方式、最新邀请口令（支持改名、限定接收邮箱与展示二维码）、组织名片预览以及删除本地组织记录入口。
+- **成员**：管理成员真实的清华云盘邮箱（支持新增、编辑与按邮箱自动去重）及角色分工（负责人 / 成员 / 访客），提供「将资料库一键共享给全体成员」快捷操作。
+- **资料库**：直接绑定独立的清华云盘**资料库（repo）**——支持新建资料库（`seafile_create_repo`）、关联已有资料库、按成员邮箱开通资料库根目录共享（`seafile_share_folder_to_user`）、复制 7 天分享链接、通过云盘页深链接（`navParams.cloudRepo`）直达浏览，以及解除本地关联（云端原资料库完整保留）。
+- **GitLab**：支持新建代码仓库（`POST /api/v4/projects`）、按 `group/project` 路径关联既有仓库（`GET /api/v4/projects/:encoded`）、在应用内直达打开仓库（`navParams.gitlabProject`）及解除本地关联；`info-lib` 配套新增 `getGitProjectByPath` 与 `createGitProject`（复用既有 Cookie + CSRF 写入通道）。
+- **项目 / 公告**：完整承接原组织工作区的项目协作与公告板功能，升级为独立整页标签。
+- **组织邀请口令**：支持自定义名称与限定接收人邮箱（记录于 `org.invite`）；同一组织在有效期内复用固定短码，修改名称或限定邮箱时直接就地更新云端清单（固定槽位 `org:<id>`）；接收方通过云盘邮箱核验后自动以该邮箱身份加入组织成员列表。
 
-数据模型（`state/org.ts`）：`OrgMember.email`、`Org.libraries[]`、`Org.gitlabRepos[]`、
-`Org.invite`。旧存档迁移只补默认值（成员 `email: ""`、两个数组置空），不丢历史数据。
-旧的组织管理弹层 `OrganizationWorkspace.tsx` 退役；名片夹组织卡不再弹卡片详情，直接进组织页。
+数据模型（`state/org.ts`）新增 `OrgMember.email`、`Org.libraries[]`、`Org.gitlabRepos[]` 与 `Org.invite`；存量本地数据在加载时平滑补齐默认空值，历史记录完整保留。原先的弹窗式 `OrganizationWorkspace.tsx` 正式退役，在名片夹中点击组织卡片即可直接进入完整的组织主页。
 
 ## 三、测试与证据
 
-- `node tools/org-browser-test.mjs` → 21 条（假云盘：建组织→完整页→成员邮箱→
-  邀请限定/复用短码→资料库 repo+按邮箱共享→GitLab 入口→删除）。
-- `node tools/vault-browser-test.mjs` → 48 条（新增：口令改名后解码校验、
-  限定邮箱后他人被拒/本人可收）。
-- `node tools/namecard-browser-test.mjs` → 14 条（组织卡点击进入组织页）。
-- experience / short-share 49 / schedule / mobile-vault 14 / feedback-repairs 均绿；
-  `pnpm guard` 全绿（含 typecheck）。
-- 截图：`docs/onegui/experience-mode/org-page-{overview,libraries,phone,phone-overview}.png`。
+- `node tools/org-browser-test.mjs` → 21 条断言通过（基于模拟云盘串联测试：创建组织 → 进入完整主页 → 维护成员邮箱 → 限定邀请邮箱并复用短码 → 新建资料库并按邮箱共享 → GitLab 页签入口 → 删除组织）。
+- `node tools/vault-browser-test.mjs` → 48 条断言通过（新增口令改名后解码核验、限定接收邮箱后非目标账号拦截与目标账号正常导入）。
+- `node tools/namecard-browser-test.mjs` → 14 条断言通过（验证点击名片夹组织卡直达组织主页）。
+- `experience`、`short-share`（49 条）、`schedule`、`mobile-vault`（14 条）与 `feedback-repairs` 回归套件全部绿灯，全量 `pnpm guard`（含 `typecheck`）通过。
+- 归档截图：`docs/onegui/experience-mode/org-page-{overview,libraries,phone,phone-overview}.png`。
 
-## 四、已知边界
+## 四、阶段性范围说明
 
-- GitLab 的新建/关联需要 GitLab 会话（测试环境未登录，只验 UI 骨架）。
-- 云盘资料库共享需要云盘 token；未连接时页面给「去连接云盘」入口。
-- 口令「有效期」目前仍按生成时 7 天（台账可看），改有效期未做（要重新生成）。
+- GitLab 新建与关联操作依赖在线的校内 GitLab 登录会话（本地自动化环境重点验证前端表单与路由骨架）。
+- 云盘资料库创建与按成员共享依赖有效的云盘令牌，未连接时页面会自动展示「去连接云盘」引导按钮。
+- 暂存箱普通分享口令采用生成时设定的 7 天有效期（可在台账中随时查看；组织邀请口令的自定义有效期已在下方第五节补齐）。
 
 ## 五、2026-10-19 续：自动共享 / GitLab 组织 / 页内预览 / 口令有效期与删除
 
-### 自动共享（用户：「自动分享给成员 云盘 和 gitlab 呢」）
-- 新建/关联资料库 → 自动把资料库（repo 根目录）按成员邮箱共享（`seafile_share_folder_to_user`），
-  已共享过的不重复发；成员页仍有「同步云盘与 GitLab 权限」一键全量同步。
-- 新建/关联 GitLab 仓库、新增成员/改邮箱 → 自动按邮箱搜 GitLab 用户
-  （`GET /users?search=`）并加进 GitLab 组织与仓库（30 developer / 20 reporter），
-  已是成员（409/400）按成功算；搜不到的邮箱提示手动加。
+### 成员权限自动同步（云盘与 GitLab）
+- 新建或关联云盘资料库时，自动遍历当前组织成员邮箱开通资料库根目录共享（`seafile_share_folder_to_user`），已共享过的成员自动跳过避免重复请求；成员页同时保留「同步云盘与 GitLab 权限」一键全量对齐按钮。
+- 新建或关联 GitLab 仓库、新增成员或更新成员邮箱时，自动按邮箱检索校内 GitLab 用户（`GET /users?search=`）并加入对应的 GitLab Group 与仓库（成员授予 `30 developer`，访客授予 `20 reporter`；已在组内返回 `409/400` 时自动视为成功；未检索到对应账号的邮箱会提示手动邀请）。
 
-### 创建组织仓库 = 创建 GitLab 组织（用户：「不是创建仓库，而是直接创建一个 gitlab org
-自动关联/邀请所有用户」）
-- `Org.gitlabGroup`（id/name/path/webUrl）。「建 GitLab 组织与仓库」先 `POST /groups`
-  建组织（名称取组织名、path 自动 slug），邀请全体成员进组织，再把仓库建在该组织
-  命名空间下（`namespace_id`）；之后是「在组织下新建仓库」。
-- info-lib 新增 `createGroup` / `addGroupMember` / `searchUsers` / `addProjectMember`。
+### 一键创建 GitLab 组织并自动邀请成员
+- 数据模型新增 `Org.gitlabGroup`（`id / name / path / webUrl`）：首次点击「建 GitLab 组织与仓库」时，先调用 `POST /groups` 创建对应的 GitLab Group（默认沿用组织名称并自动生成 URL slug），自动邀请全体成员加入该 Group，随后在该 Group 命名空间（`namespace_id`）下创建首个项目仓库；后续继续添加时则直接显示「在组织下新建仓库」。
+- `info-lib` 配套新增 `createGroup`、`addGroupMember`、`searchUsers` 与 `addProjectMember`。
 
-### 页内预览（用户：「也可以直接预览组织云盘文件和组织项目」）
-- 资料库卡片「预览文件」：内联文件树（`openDir`，可进文件夹/刷新）+
-  文件预览弹层：文本直接渲染、图片 data URL、其他/超大给「下载到本机」
-  （`seafile_read_bytes`，内存读取不落盘）。
-- GitLab 仓库卡片「预览项目」：内联项目详情（描述/默认分支/可见性/star/
-  未关闭 Issue/最近活动）；两卡都补「浏览器打开」。
+### 页内直接预览云盘文件与 GitLab 项目
+- 资料库卡片新增「预览文件」：展开内联目录树（调用 `openDir`，支持逐级进入子文件夹与刷新）并配备文件预览弹层——纯文本直接排版渲染、图片转为 Data URL 即时展示，其他格式或大体积文件提供「下载到本机」按钮（基于 `seafile_read_bytes` 内存流读取）。
+- GitLab 仓库卡片新增「预览项目」：内联展示仓库简介、默认分支、可见性、Star 数、开启中的 Issue 数量与最近动态；云盘与 GitLab 卡片均附带「浏览器打开」外部直达按钮。
 
-### 入口收口（用户反馈「点上去莫名其妙的组织页面，啥也点不进去」）
-- 删除「组织」独立搜索原子与功能目录注册项：组织页必须带 orgId 从组织卡片/列表进入；
-- 载入标签页时丢弃无 orgId 的裸 org 标签；带 orgId 但组织已不存在时显示
-  「找不到这个组织」明确出口；独立落地页补「用邀请口令加入」。
+### 组织页入口收口（统一携带 `orgId` 进入）
+- 移除无上下文的独立「组织」搜索原子与功能目录入口，统一从通讯录组织列表或名片夹组织卡携带具体 `orgId` 进入。
+- 恢复持久化标签页时自动过滤缺少 `orgId` 的历史空白标签；若 `orgId` 对应的本地组织已被移除，页面展示清晰的「找不到这个组织」提示与返回出口，同时提供「用邀请口令加入」快捷入口。
 
-### 组织邀请口令：有效期可改、可删除（用户：「组织口令应该也可以改有效期！可以删除！」）
-- `publishExchangeCode(code, contentKey, slot, {expireDays, forceNew})`；
-  `uploadExchangeManifest(code, expireDays)` 不再硬编码 7 天（0 = 不过期）。
-- 云盘分享过期时间创建时定死：改有效期时撤销旧分享（`revokeShareSlot` 删分享 + 清槽位
-  + 清内容缓存）再重建，短码随之更新；有效期不变（2h 容差）继续复用同一条短码。
-- 组织页邀请表单加有效期（1/7/30 天、不过期），概览显示到期时间，
-  「删除口令」= 撤销云盘分享 + 清本地 invite/lastInviteCode。
+### 组织邀请口令：支持修改有效期与彻底删除
+- 扩展 `publishExchangeCode(code, contentKey, slot, { expireDays, forceNew })`，让 `uploadExchangeManifest(code, expireDays)` 支持灵活传入有效天数（传 `0` 代表长期有效）。
+- 由于云盘分享链接的到期时间在创建时由服务端绑定，修改邀请口令有效期时会自动先调用 `revokeShareSlot` 注销旧分享链接、清空槽位与内容缓存，再按新有效期重建分享并签发新短码；若有效期保持不变（2 小时容差内），则继续就地更新清单并复用原短码。
+- 组织主页邀请设置支持选择 `1 天 / 7 天 / 30 天 / 不过期`，概览页直观展示到期时间；点击「删除口令」会同步撤销云盘分享链接并清空本地 `invite` 与 `lastInviteCode` 记录。
 
-### 测试
-- org 28 条（新增：新库自动共享邮箱、云盘文件内联预览、改有效期换新码、删除口令
-  清记录且云盘 share 数 -1），namecard 14、experience、mobile-vault、feedback 等全绿；
-  `pnpm guard` 全绿。
-- 截图：`org-page-*`、`org-lib-preview-list/text.png`。
+### 补充回归验证
+- `org` 浏览器回归扩展至 28 条全部通过（新增新建资料库自动按成员邮箱共享、云盘文件页内目录与文本预览、修改有效期自动轮换新短码、删除口令同步清理本地记录与云端分享），`namecard`（14 条）、`experience`、`mobile-vault`、`feedback` 等套件及全量 `pnpm guard` 全部绿灯。
+- 新增归档截图：`org-page-*`、`org-lib-preview-list/text.png`。

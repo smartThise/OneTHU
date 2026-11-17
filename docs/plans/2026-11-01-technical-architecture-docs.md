@@ -1,20 +1,20 @@
 # OneTHU technical architecture documentation
 
-**Goal:** Describe the implemented prototype, data ownership, API contracts, SDK, CLI/agents, Gateway and OneGUI as one navigable technical reference.
 
-**Source baseline:** `web` at `7c2e9612`; release behavior and installed artifacts remain separately identified.
+**Goal:** Document the implemented prototype, data ownership model, API contracts, SDK, CLI/agents, Gateway, and OneGUI as a cohesive, navigable technical reference.
 
-1. Audit source owners, current references and generated catalogs.
-2. Rewrite the architecture overview and API reference; add subsystem chapters with source links, request/state diagrams, limits and failure handling.
-3. Provide equivalent English references and connect existing developer, CLI, design and documentation indexes.
-4. Regenerate plugin API/inventory, validate local links and examples, run prose checks. Preserve dated incident evidence and avoid network/account mutations.
-5. Commit documentation and doc-tool maintenance only. No app deployment or installer build.
+**Source baseline:** `web` branch at `7c2e9612`, keeping published release behavior and locally installed runtime artifacts clearly distinguished alongside the branch source.
 
+1. Audit source module owners, existing reference docs, and generated capability catalogs.
+2. Rewrite the architecture overview and API reference, adding dedicated subsystem chapters with source file links, request and state diagrams, operational limits, and failure-recovery paths.
+3. Author matching English reference chapters and cross-link the developer, CLI, design, and documentation indexes.
+4. Regenerate the plugin API reference and inventory, validate local links and JSON examples, and run documentation prose lints while preserving dated incident records and keeping local network and account state untouched.
+5. Commit documentation and doc-tooling updates only, with no application deployment or installer builds.
 
 ## Completed
 
-- Rewrote the system overview and API reference in Chinese/English; added five paired chapters for prototype/data, SDK, CLI/agents, Gateway and OneGUI. Fourteen technical reference pages now cover ownership, call/state diagrams, limits, policy, scheduling, recovery and actual platform acceptance.
-- Connected the doc indexes, developer/CLI/design guides and package references. Regenerated the public plugin surface: 41 namespaces / 297 methods, separately from the 161 reviewed static CLI catalog entries. Browser-doc verification now reads the generated method count.
-- Catalog generation identifies architecture/guides as current references and separates release notes and ADRs from historical plans. Preserved incident facts; prose fixes retained a quoted user instruction with a narrowly documented exemption.
-- Parsed/rendered 14 technical pages, checked local links and technical anchors, JSON fences, language peers and generated row counts. `pnpm lint:docs` checks 250 documents with 0 violations. CLI catalog check and documentation-tool syntax checks passed.
-- No application behavior, school account state, proxy settings, installed runtime or production website deployment changed.
+- Rewrote the system overview and API reference in both Chinese and English, and added five paired subsystem chapters covering prototype/data ownership, SDK, CLI/agents, Gateway, and OneGUI. Fourteen technical reference pages now document module ownership, call and state diagrams, resource limits, authorization policy, task scheduling, failure recovery, and verified platform behavior.
+- Connected the top-level documentation indexes, developer/CLI/design guides, and package READMEs. Regenerated the public plugin API surface (41 namespaces / 297 methods), documented alongside the 161 reviewed static CLI catalog entries, and updated browser-doc verification to read the generated method count directly.
+- Updated catalog generation so architecture docs and user guides appear as current references while release notes and ADRs are grouped cleanly beside historical plans. Dated incident facts remain intact, and prose lints retain a narrowly scoped exemption for a verbatim quoted user instruction.
+- Parsed and rendered all 14 technical reference pages, verifying local file links, heading anchors, JSON code fences, Chinese/English peer parity, and generated table row counts. `pnpm lint:docs` passed across all 250 documents with 0 violations, alongside the CLI catalog check and documentation-tooling syntax checks.
+- Application code, signed-in school sessions, system proxy settings, locally installed runtimes, and the production website remained untouched throughout this documentation pass.

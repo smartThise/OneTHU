@@ -1,5 +1,6 @@
 # CLI, agents and resident scheduling
 
+
 [中文](../../architecture/cli-and-agents.md) · [System overview](../architecture.md)
 
 ## Entrypoints and lifetimes
@@ -10,7 +11,7 @@
 | CLI `--desktop` | Running application services | Requires the app |
 | OH / Android Harness | App services, optionally installed daemon | App-owned execution follows platform lifecycle |
 
-CLI adapts commands, the daemon owns a resident runtime, `createOneThu` embeds it, and MCP adapts an agent protocol. With CLI installed, the desktop and default terminal share a profile's account, documents and tasks. Explicit `--data-dir` isolates an environment; `--desktop` or endpoint selects GUI services. Startup, recovery and installation failures are reported separately.
+The CLI parses terminal commands, the daemon hosts a resident Node runtime, `createOneThu` embeds the SDK directly, and MCP exposes the same service router to external agents. Once the CLI component is installed, the desktop app and the default terminal share the profile's account, synced documents, and scheduled tasks. Passing `--data-dir` isolates execution in a dedicated directory, while `--desktop` or an explicit endpoint routes requests to a running GUI instance. Startup, recovery, and installation errors each surface distinct diagnostics.
 
 ## Discovery and commands
 
@@ -21,9 +22,9 @@ onethu learn courses --args '[]'
 onethu call learn.homework --args-file ./arguments.json
 ```
 
-Arguments are positional JSON arrays. UTF-8 files avoid Windows shell-quoting problems. Success goes to stdout and safe errors to stderr. Clients validate response envelopes, IDs, sizes and deadlines. Queries call services directly; a model participates only through an explicit assistant path.
+Commands accept positional JSON argument arrays, and passing a UTF-8 file via `--args-file` avoids shell-quoting pitfalls on Windows. Normal output writes to `stdout` while redacted error details go to `stderr`. Clients verify response envelopes, request IDs, payload sizes, and deadlines. Standard service queries call the underlying campus clients directly; a language model runs only when you invoke an assistant workflow.
 
-`learn export` composes enumeration and downloads. File effects need confirmation. Completed files and per-item status survive partial failures. Sources: [cli.mjs](../../../packages/cli/src/cli.mjs), [export.mjs](../../../packages/cli/src/export.mjs), [usage](../onethu-cli.md).
+`learn export` combines resource enumeration with local file downloads after user confirmation. If an export fails partway through, already-downloaded files stay on disk alongside per-item status records. Sources: [cli.mjs](../../../packages/cli/src/cli.mjs), [export.mjs](../../../packages/cli/src/export.mjs), [usage](../onethu-cli.md).
 
 ## Local daemon protocol
 
@@ -35,35 +36,35 @@ CLI / MCP stdio
    → SDK and campus services
 ```
 
-A private access record stores port, random token and process metadata. The server requires loopback, POST, JSON and authorization, and rejects browser Origin. Clients refuse remote redirects. Profile locking establishes ownership; the access record provides discovery.
+A private access file records the active loopback port, a random bearer token, and process metadata. The local server accepts only authenticated `POST` requests with JSON bodies over loopback, rejects browser `Origin` headers, and clients follow loopback endpoints exclusively without remote redirects. Profile locks establish single-process ownership while the access file handles local discovery.
 
-Private `desktop.*` handoff checks protocol, owner and epoch. Session/document payloads and `gateway.control` remain outside public tool catalogs. Diagnostics retain safe state and error classes.
+Private `desktop.*` handoff calls verify protocol version, account owner, and session epoch. Session credentials, document payloads, and `gateway.control` travel only over private channels and stay out of public tool catalogs, while diagnostics record redacted state and error categories.
 
-Autostart uses a macOS LaunchAgent or current-user Windows scheduled task. `daemon stop` stops the process; `daemon uninstall --confirm` removes its autostart entry. Sleep, shutdown, offline periods and OS reclamation affect actual execution. Sources: [daemon.mjs](../../../packages/cli/src/daemon.mjs), [service.mjs](../../../packages/cli/src/service.mjs).
+Background autostart registers a user LaunchAgent on macOS or a current-user scheduled task on Windows. `daemon stop` shuts down the running process, and `daemon uninstall --confirm` removes the autostart registration. Actual task timing follows host availability across sleep, shutdown, offline periods, and OS process management. Sources: [daemon.mjs](../../../packages/cli/src/daemon.mjs), [service.mjs](../../../packages/cli/src/service.mjs).
 
 ## MCP and application tools
 
-Public MCP exposes `onethu_commands` for discovery and `onethu_call` for a positional operation. It does not accept password/2FA interaction or let JSON arguments enable automatic execution. Stdio framing/concurrency limits complement SDK authorization.
+Public MCP provides `onethu_commands` to browse available operations and `onethu_call` to invoke them with positional arguments. Interactive password or 2FA sign-in and automatic-execution grants are configured locally through the CLI or desktop app, complemented by `stdio` framing and concurrency bounds on top of SDK authorization.
 
-OH/Harness uses application tools such as `app_services`, `app_call` and dedicated GUI tools. A trusted main-window facade supplies contacts, organizations, Xiaoda, staging and workspace access. OH application consent is independent from the external CLI switch.
+Inside the app, OH and Harness call application tools such as `app_services`, `app_call`, and dedicated GUI tools. A trusted main-window facade provides access to contacts, organizations, Xiaoda, staging boxes, and workspaces. In-app OH consent is managed independently from the external CLI toggle.
 
-The optional Node assistant uses `onethu_catalog` and `onethu_call` as model tool names. Its discovery tool is distinct from public MCP's `onethu_commands`. Provider configuration, allowlisted operations, turns, tool count, time and context budgets bound the loop. Tool results are external data and subject to explicit context limits.
+The optional Node assistant uses `onethu_catalog` for discovery and `onethu_call` for execution, keeping its model-facing catalog separate from public MCP's `onethu_commands`. The tool loop stays bounded by provider settings, allowlisted operations, turn count, tool-call limits, timeouts, and context budgets, treating tool outputs as external data within strict size limits.
 
-The Node assistant can use an injected MadModel provider but does not perform independent school-model login. Desktop Harness model adapters and user-configured APIs belong to their host. Availability is evaluated for each configuration.
+You can pass an injected MadModel provider to the Node assistant, while interactive school-model login and user-configured API adapters live in the desktop Harness host. Each host checks provider availability against its own active configuration.
 
 ## Harness, plugins and skills
 
-Desktop Harness is a Rust sidecar making reverse `onethu.call` requests. Android embeds Harness core and returns bridge replies through the same permission facade. The main window owns execution; overlays do not independently start plugin/login runtimes.
+On desktop, Harness runs as a Rust sidecar that issues reverse `onethu.call` requests back to the host; on Android, Harness core is embedded directly and routes bridge replies through the same permission facade. The main window coordinates all plugin and login runtimes centrally, including actions triggered from overlays.
 
-JS plugins receive `OnethuApi`. Native plugins have local process privileges: host permission checks do not create an OS sandbox. Xiaoda skill discovery, import, enablement and execution are separate states. Bounded QuickJS supports synchronous computation; heavier filesystem/network/Python/Node skills are exported to an external environment.
+JavaScript plugins receive a scoped `OnethuApi`, whereas native plugins run as local user processes gated by host permission checks. Xiaoda skills progress through separate stages for plaza discovery, local import, enablement, and execution: lightweight synchronous logic runs inside the bounded QuickJS engine, while skills that need filesystem, network, Python, or Node support can be exported to run in an external desktop environment.
 
 Sources: [rust.ts](../../../apps/desktop/src/plugins/rust.ts), [loader.ts](../../../apps/desktop/src/plugins/loader.ts), [plugin protocol](../plugin-development.md), [assistant bounds](../../../packages/sdk/src/assistant/README.md).
 
 ## Tasks and standing authorization
 
-`createTaskManager(ports)` injects storage, clock, owner, dispatch and delivery so Node and app hosts share scheduling logic. One host owns scheduling at a time. Install/uninstall transfers approved tasks and records, including paused/error states.
+`createTaskManager(ports)` accepts injected storage, clock, owner, dispatch, and delivery ports so the Node daemon and GUI hosts share the exact same scheduler. A single host owns active scheduling at any moment, and installing or uninstalling the CLI component hands off approved tasks and run history—including paused and errored states—between the app and daemon.
 
-Task definitions contain name, interval/daily/once schedule and template. Approval binds account, operations, courses, output directory and recipients; updates/resume recheck that scope. Runtime grants are manager-owned objects rather than forgeable JSON fields.
+Each task definition specifies a name, an `interval`, `daily`, or `once` schedule, and an execution template. User approval locks in the target account, allowed operations, course list, output directory, and notification recipients; editing or resuming a task revalidates that scope, and runtime grants live as internal manager-owned objects in memory.
 
 ```mermaid
 flowchart LR
@@ -76,18 +77,18 @@ flowchart LR
   N --> S
 ```
 
-`school-watch` enumerates Learn courses, materials, assignments and announcements, compares identities/digests and computes deadline reminders. It does not need model inference. Agents and IM can request/discuss tasks; execution policy still controls approval.
+`school-watch` runs deterministically without model calls: it enumerates Learn courses, materials, assignments, and announcements, diffs resource digests, and calculates upcoming deadline reminders. Agents and IM channels can draft or query tasks, while local execution policy governs standing approval.
 
-`nextRun` advances interval schedules from now, interprets once schedules as absolute zoned timestamps, and uses real IANA timezone rules for daily local times. Timezones are validated. A minute-by-minute search handles missing civil/DST times, bounded to three days before a classified failure; fixed local offsets are not guessed.
+`nextRun` advances interval schedules from the current timestamp, treats `once` schedules as absolute zoned instants, and evaluates `daily` schedules against validated IANA timezone rules. If a civil or DST transition skips a local minute, a minute-by-minute scan searches up to three days ahead before reporting a typed scheduling error.
 
-One manager runs one task at a time to avoid bursts against a shared school session. Notification/download ledgers retain pending, completed and unknown outcomes. After interruption, pending effects become unknown and history records the interruption. Restart performs one recovery check rather than replaying every missed interval.
+Each manager executes one task at a time to keep traffic gentle on the shared campus session. Notification and download ledgers track `pending`, `completed`, and `unknown` states: if a run is interrupted, in-flight effects move to `unknown` and are logged in history, and restarting after downtime triggers a single catch-up check before resuming the regular schedule.
 
-Current bounds are 50 tasks, 30 history runs per task and up to 100 downloads per run. Transient reads attempt at most three times, with 1-second and 2-second waits. Authentication/account/permission/schema/cancellation failures end the step. Effect ledgers control duplicates. Arbitrary reservation/mail writes are not accepted as generic scheduled-operation templates.
+A profile supports up to 50 tasks, keeping the latest 30 run records per task and up to 100 downloads per run. Transient read failures retry up to three times with 1-second and 2-second backoffs, while authentication, account, permission, schema, or cancellation errors stop the step immediately. Effect ledgers prevent duplicate downloads and alerts, and scheduled `operation` templates stay scoped to read checks and approved resource downloads while reservations and outgoing mail remain interactive.
 
 Sources: [manager](../../../packages/sdk/src/tasks/index.ts), [schedule](../../../packages/sdk/src/tasks/schedule.ts), [watch](../../../packages/sdk/src/tasks/watch.ts), [scope validation](../../../packages/sdk/src/tasks/validation.ts), [GUI handoff](../../../apps/desktop/src/state/cliTasks.ts).
 
 ## IM and delivery
 
-Notification channels and conversational IM have separate configuration and lifecycles. Inbox, Feishu, WeChat and HTTPS webhook use configured account/device bindings. Recipients and credentials stay private; external delivery follows scope checks.
+Outbound notification channels and two-way conversational IM maintain independent configurations and lifecycles. The local inbox, Feishu, WeChat, and HTTPS webhooks each bind to a verified account and device scope, keeping recipient details and channel credentials private and validating scope before every external send.
 
-Conversation state, channel credentials and effect ledgers use distinct storage objects. Cancellation prevents subsequent tools/commits, while a service decides the outcome of an already-sent message. Quiet monitoring emits no repeated notification for unchanged, non-actionable state.
+Conversation history, channel credentials, and delivery ledgers live in separate storage records. Cancelling a run stops any further tool calls or state commits, while messages already handed to an external platform follow that service's delivery lifecycle. During quiet stretches when nothing has changed, monitoring stays silent until new updates or approaching deadlines appear.

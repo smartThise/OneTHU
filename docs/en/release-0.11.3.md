@@ -1,29 +1,30 @@
 # 0.11.3 sign-in and update fixes
 
+
 [中文](../release-0.11.3.md) · [English](release-0.11.3.md)
 
-OneTHU 0.11.3 · Revolution is available for macOS, Windows and Android. This update focuses on session recovery, device identity and access to updates from the sign-in screen. Existing production installations can upgrade in place and retain local data and preferences.
+OneTHU 0.11.3 · Revolution is out for macOS, Windows, and Android, bringing smoother recovery during campus network hiccups, steadier device identity, and direct access to app updates right from the sign-in screen. Existing installations can upgrade in place while keeping all local data and settings.
 
 ## Updates from the sign-in screen
 
-The sign-in screen can show release announcements. “Go to update” opens an independent dialog for reviewing the package, downloading it and confirming installation, without a university session. A manual “Check for updates” entry remains available on both sign-in and verification screens.
+Release announcements now appear directly on the sign-in screen, where **Go to update** opens a self-contained update dialog to review release notes, download the installer, and launch setup—even before signing in to a Tsinghua session. You can also trigger **Check for updates** manually from both the sign-in and two-factor verification screens.
 
-This works in all three experience modes and in Chinese and English. Automatic prompts wait while sign-in or verification is underway. Manually reviewing an update preserves entered credentials and verification codes. Announcements scroll independently; reminders can be postponed for one hour, one day or seven days.
+Update prompts work across Minimal, Practical, and Full modes in both Chinese and English. Automatic reminders stay out of the way while you are actively typing credentials or completing 2FA, and opening the update dialog manually preserves anything you have already entered on screen. Release notes scroll smoothly inside the dialog, with snooze options for one hour, one day, or seven days.
 
 ## Recovery during university service disruptions
 
-Session checks distinguish confirmed sign-out from gateway pages, rate limits, server failures and network errors. A saved account can retain its local view during a temporary service failure. Only confirmed sign-out starts authentication. A slow probe remains observable after the initial timeout, avoiding a parallel password sign-in.
+Session checks now separate genuine sign-outs from campus gateway landing pages, rate limits, upstream 5xx errors, and transient network drops—keeping your cached local workspace accessible during temporary campus outages and prompting for login only when the session has actually ended. If a session check runs slowly past the initial UI timeout, OneTHU continues tracking that in-flight probe rather than firing a duplicate password login alongside it.
 
-A short gateway page during login preparation now produces a specific retry message. Diagnostics include the failure category and stage while omitting passwords, verification codes, cookies and page bodies. Sign-in can be retried after university services recover.
+Encountering a brief gateway prompt during login preparation now surfaces a clear retry notice, and diagnostic logs record the exact failure stage and category while omitting passwords, verification codes, cookies, and HTML bodies so you can retry cleanly once campus services recover.
 
 ## Device identity and account ownership
 
-The installation fingerprint remains stable across concurrent calls, refreshes and recovery from local storage. A known account can reuse its session. Account changes, unknown ownership and sign-out enforce isolation. The university's session single-sign-on checkbox requires explicit consent; the existing trusted-device choice during verification remains available.
+Each installation keeps a stable device fingerprint across concurrent requests, refreshes, and local-storage recovery so returning sessions reconnect reliably while account switches, unverified ownership, and sign-outs remain strictly isolated. Both the university's single-sign-on session checkbox and the trusted-device option during 2FA remain explicit user choices.
 
-These changes reduce authentication requests caused by repeated recovery and changing device identities. Existing trusted-device records remain managed by the university. If the limit has been reached, use the university's official account-management page.
+Keeping a consistent fingerprint avoids burning extra authentication attempts or trusted-device slots during routine refreshes. Trusted-device registrations remain managed on Tsinghua's side—if your account reaches its device limit, you can clear older entries on the university's official account-management portal.
 
 ## Installers
 
-Android retains its production signing certificate and canonical logo, with versionCode 11012. GitHub Releases and the Tsinghua Cloud mirror provide platform installers and SHA-256 checksums.
+Android ships with `versionCode` 11012, signed with the production certificate and canonical app icon. Platform installers and SHA-256 checksums are available on GitHub Releases and the Tsinghua Cloud mirror.
 
 [Download](https://onethu.github.io/download.html?lang=en) · [0.11.2 release notes](release-0.11.2.md)

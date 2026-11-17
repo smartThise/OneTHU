@@ -1,14 +1,14 @@
 # OneGUI 前置盘点 01：现有 UI 表面清单与分裂度实测
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
+
+> 归档说明：本文保留当时的界面盘点与实测记录；0.11 当前功能与使用说明请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
 
-> 只读勘察，覆盖 `apps/desktop/src/components/**` 与 `apps/desktop/src/pages/**`。
-> 排除 `node_modules/`、`vendor/`、AppleDouble `._*`。所有数字来自 `grep -c` / `wc -l` / 一次性解析脚本，非估计值。
-> 证据格式 `file:line`；CSS 引文为**原文逐字**，未改写。
+> 勘察范围覆盖 `apps/desktop/src/components/**` 与 `apps/desktop/src/pages/**`（只读分析，排除 `node_modules/`、`vendor/` 与 AppleDouble `._*`）。
+> 文中各项统计均由 `grep -c`、`wc -l` 及一次性解析脚本实测得出；证据按 `file:line` 标注，CSS 引文保持**原文逐字**引用。
 > 代码量基线：`components/**` 21 837 行 / 79 个文件；`pages/**` 28 441 行 / 约 90 个文件；`styles/*.css` 12 661 行。
 > 令牌基线：`--r-sm/md/lg/pill` = 6/8/12/999px（`packages/ui/src/tokens.css:88-92`，`--r-lg: --md-sys-shape-corner-large` 见 `apps/desktop/src/state/theme.ts:314`）。
-> 关键事实：`packages/ui` **只有** `tokens.css` / `base.css` / `palette.css`，**零 React 组件**（`packages/ui/package.json` exports 只有两个 css）。
+> 当时状态：`packages/ui` 仅包含 `tokens.css` / `base.css` / `palette.css` 三个样式文件（`packages/ui/package.json` 的 exports 仅导出两个 CSS），尚未收录 React 组件。
 
 ---
 
@@ -38,7 +38,7 @@
 | `exthw/YktSubjectiveEditor.tsx` | 405 | In, Other | L | 富文本答题编辑器 |
 | `WidgetSizes.tsx` | 395 | Card, Prog | L | 尺寸档预览网格 |
 | `ExtHwLoginModal.tsx` | 382 | Modal, In, Btn, Tabs | L | 自带 `.ykt-*`；12 处色值 |
-| `ImSettingsSection.tsx` | 371 | Row(settings), Sw | L | 直接写 `.setting-row` DOM，不用组件 |
+| `ImSettingsSection.tsx` | 371 | Row(settings), Sw | L | 直接手写 `.setting-row` DOM 结构 |
 | `Collect.tsx` | 335 | Modal, Row, IBtn | S | `.collect-row` / `.collect-modal`；星标按钮 4 个导出变体 |
 | `OnboardingTourV3.tsx` | 329 | Modal, Tip | L | 引导层 |
 | `NotifySettingsSection.tsx` | 328 | Row(settings), Sel, Sw | L | 直接写 `.setting-row`，17 处内联 style |
@@ -101,7 +101,7 @@
 |---|---:|---|---|---|
 | `pages/learn/shared.tsx` | 595 | Row, Btn, Tip, Other | S\* | `HomeworkRow`(:388) `NoticeRow`(:487) `FileRow`(:536) `InfoRow`(:588) `BackButton`(:260) `HwRemindPop`(:295) `RichContent`(:154) — **学堂的行组件只在本目录复用** |
 | `pages/info/reportParts.tsx` | 171 | Card, Row | L | 报告卡件 |
-| `pages/info/tabStates.tsx` | 109 | Prog, Emp | S\* | Tab 加载/空态（不与 `Layout.Empty` 同源） |
+| `pages/info/tabStates.tsx` | 109 | Prog, Emp | S\* | Tab 加载与空态（独立于 `Layout.Empty` 实现） |
 | `pages/ScheduleAgenda.tsx` | 236 | Row, Card | L | **0 处 className，20 处内联 style** — 纯内联渲染的整页 |
 | `pages/info/newsSearch.tsx` | 177 | Row | L | **0 处 className，1 处内联 style** |
 | `components/exthw/*` | 1011 | Row, In, Other | L | 雨课堂专用件 |
@@ -125,7 +125,7 @@
 | 7 | `.balance-strip` / `.notice-strip` | `styles/global.css:6939` / `:6899` | `.balance-strip { display: flex; align-items: stretch; gap: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--md-sys-color-surface-container-lowest); }` ／ `.notice-strip { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--md-sys-color-surface-container-lowest); }` |
 | 8 | `.wg-card` / `.hw-card` | `styles/global.css:7555` / `:6706` | `.wg-card { border-radius: var(--md-sys-shape-corner-medium, 12px); background: var(--surface-2); overflow: hidden; }` ／ `.hw-card { … padding: 12px 14px 12px; border: 1px solid var(--border); border-radius: 16px; … box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08), 0 10px 28px rgba(0, 0, 0, 0.10); … }` |
 
-**结论**：7 种圆角（`--md-sys-shape-corner-large`=12px / `12px` 字面量 / `--md-sys-shape-corner-medium`=8px / `--r-lg` / 14px / 16px）、4 种描边写法（`--border` / `--border-soft` / `transparent` / 无）、2 种材质（`.card` 在 `:8355` 被覆写成 glass 渐变 + `backdrop-filter`；`.cloud-repo`/`.cloud-list`/`.gitlab-card` 始终是**实心** `--bg-soft`/`--surface`）。`.cloud-list` 甚至没有 `background`。
+**小结**：共出现 7 种圆角（`--md-sys-shape-corner-large`=12px / `12px` 字面量 / `--md-sys-shape-corner-medium`=8px / `--r-lg` / 14px / 16px）、4 种描边写法（`--border` / `--border-soft` / `transparent` / 无描边）以及 2 种材质（`.card` 在 `:8355` 覆写为 glass 渐变 + `backdrop-filter`；`.cloud-repo`、`.cloud-list`、`.gitlab-card` 保持**实心** `--bg-soft`/`--surface`，其中 `.cloud-list` 未设置 `background`）。
 
 ### 2.2 云盘 vs 学堂：卡片对比（点名）
 
@@ -141,7 +141,7 @@
 | 卡片面材质 | 无 background（只有描边）→ 透出页面底 | glass：`background: linear-gradient(180deg, var(--glass-tint-top), var(--glass-tint-bottom)), var(--glass-card-fill-2); backdrop-filter: var(--glass-panel-blur); border-color: var(--glass-border); box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-rim-top), inset 0 0 0 1px var(--glass-rim-hairline);`（`:8355`） |
 | 圆角 | `12px` 字面量 | `--md-sys-shape-corner-large`（=12px，但走 token，换主题会变） |
 
-> 同一产品里「同一种东西」（文件 / 通知列表）两套实现互不相干：云盘换主题圆角不动，学堂会动。
+> 同属文件与通知列表，两处各自维护一套独立样式：切换主题时学堂圆角随令牌联动，云盘圆角保持固定字面量。
 
 ### 2.3 列表行
 
@@ -220,12 +220,12 @@
 | 3 | `.board-sheet` / `.board-drawer` | `styles/global.css:7690` / `:7628` | `.board-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 75; … max-height: 72vh; padding: 16px; border-radius: var(--md-sys-shape-corner-large, 16px) var(--md-sys-shape-corner-large, 16px) 0 0; background: var(--surface-3); box-shadow: 0 -8px 24px var(--md-sys-color-scrim); }` ／ `.board-drawer { … z-index: 70; … padding: 16px; border-radius: var(--md-sys-shape-corner-large, 16px) … 0 0; background: var(--surface-3); box-shadow: 0 -8px 24px var(--md-sys-color-scrim); }`（**几乎逐字相同，仅 z-index 70 vs 75**） |
 | 4 | `.add-drawer` | `styles/global.css:7735` | `.add-drawer { position: fixed; left: 0; right: 0; bottom: var(--bottom-nav-h, 0px); height: 50vh; z-index: 55; display: flex; flex-direction: column; padding: 4px 16px calc(16px + var(--dock-clearance, 0px)); border-radius: 16px 16px 0 0; background: var(--md-sys-color-surface-container-lowest); box-shadow: 0 -8px 24px var(--md-sys-color-scrim); … }` |
 | 5 | `.ex-sheet` | `styles/explorer-ui.css:200` | `.ex-sheet { position: fixed; right: 20px; bottom: calc(var(--explorer-bar-h, 48px) + 16px); z-index: 1300; display: flex; flex-direction: column; width: min(470px, 46vw); max-height: min(74vh, 680px); border: 1px solid var(--border); border-radius: 14px; background: var(--md-sys-color-surface-container-lowest, var(--surface, #fff)); … box-shadow: var(--md-sys-elevation-2, 0 18px 50px rgba(0, 0, 0, 0.24)); … }` |
-| 6 | `.ohaa-panel`（附件动作表，**CSS 内嵌在 TSX**） | `apps/desktop/src/components/AttachActionsSheet.tsx:69` | `.ohaa-panel { width: 100%; max-width: 560px; max-height: 92vh; overflow: auto; background: var(--dsw-alias-bg-layer-1, #fff); color: var(--dsw-alias-label-primary, #1c1f24); border-radius: var(--dsw-radius-xl, 20px) var(--dsw-radius-xl, 20px) 0 …` — **用的是 DSH 的 `--dsw-*` 令牌，不是 OneTHU 的 `--md-sys-*`** |
+| 6 | `.ohaa-panel`（附件动作表，**CSS 内嵌在 TSX**） | `apps/desktop/src/components/AttachActionsSheet.tsx:69` | `.ohaa-panel { width: 100%; max-width: 560px; max-height: 92vh; overflow: auto; background: var(--dsw-alias-bg-layer-1, #fff); color: var(--dsw-alias-label-primary, #1c1f24); border-radius: var(--dsw-radius-xl, 20px) var(--dsw-radius-xl, 20px) 0 …` — **直接引用了 DSH 体系的 `--dsw-*` 令牌（OneTHU 主体系使用 `--md-sys-*`）** |
 | 7 | `.ohf-panel`（图片滤镜表） | `apps/desktop/src/components/ImageFilterSheet.tsx:53` | 同上结构，`border-radius: var(--dsw-radius-xl, 20px) …` |
 | 8 | `.tab-manage-panel`（**无 CSS**） | `apps/desktop/src/components/TabManageModal.tsx:83` | `<div className="tab-manage-panel" style={closing ? { ...panelStylePc, ...panelOut } : panelStylePc} …>` — 尺寸 / 圆角 / 背景全在内联对象里 |
 
-遮罩同样不统一：`.ex-sheet-mask { background: rgba(0, 0, 0, 0.18); }`（`explorer-ui.css:192`）、`.plg-form-overlay { background: rgba(0, 0, 0, .35); backdrop-filter: var(--glass-scrim-blur); }`（`global.css:6195`）、`lib/confirm.tsx:146/195/209` 三处**手写内联** `background: "rgba(0,0,0,.35)"` / `"rgba(0,0,0,.4)"`。
-**z-index 混乱**：CSS 内 **46 个**不同取值（0…10001），TSX 内联另有 **25 个**（9000 / 9001 / 9998 / 9999 / 2000 / 2110 …）。
+遮罩层写法同样分散：`.ex-sheet-mask { background: rgba(0, 0, 0, 0.18); }`（`explorer-ui.css:192`）、`.plg-form-overlay { background: rgba(0, 0, 0, .35); backdrop-filter: var(--glass-scrim-blur); }`（`global.css:6195`），而 `lib/confirm.tsx:146/195/209` 三处则手写内联 `background: "rgba(0,0,0,.35)"` 与 `"rgba(0,0,0,.4)"`。
+**z-index 层级分散**：CSS 文件内共有 **46 个**不同取值（0…10001），TSX 内联另有 **25 个**（9000 / 9001 / 9998 / 9999 / 2000 / 2110 …）。
 
 ### 2.9 空状态
 
@@ -270,7 +270,7 @@
 | `styles/glass-levels.css` | 112 | 6 | 0（只有 `:root` / `html` 令牌） |
 | **合计** | **12 661** | **2 519** | **1 403 个不同 CSS 类** |
 
-交叉核对：TSX 里字面 `className="..."` 用到的不同类名 **1 078** 个；**80 个类名在 TSX 里被用但任何 CSS 文件里都没有定义**（`ohaa-*` 20 个、`ohf-*` 10 个来自 CSS-in-TS；其余如 `.btn-sm`、`.card-warn`、`.hw-ignore-btn`、`.page`、`.dim` 等为纯漏网）。405 个 CSS 类名没有字面出现（动态拼接或死代码）。
+交叉核对：TSX 中字面 `className="..."` 共使用 **1 078** 个不同类名；其中 **80 个类名未出现在独立 CSS 文件中**（`ohaa-*` 20 个与 `ohf-*` 10 个来自 CSS-in-TS，其余如 `.btn-sm`、`.card-warn`、`.hw-ignore-btn`、`.page`、`.dim` 等缺少对应样式定义），另有 405 个 CSS 类名未见字面引用（来自动态拼接或历史残留）。
 
 **CSS-in-TS 共 6 个文件**：`components/AttachActionsSheet.tsx`（20 条规则）、`components/ImageFilterSheet.tsx`（11 条）、`pages/ThubookPage.tsx`（3 条）、`lib/clients.ts`（2 条）、`pages/info/LibraryTab.tsx`（1 条）、`pages/learn/Forum.tsx`。
 
@@ -317,7 +317,7 @@ Top 文件：
 
 高频字面量（重复说明这些值本应是令牌）：`#fff` 31、`#9aa1ac` 29、`#999` 25、`#e5484d` 15、`#1f2329` 14、`#6d7ff0` 10、`#eee` 9、`#ff9f1a` 9、`#ffffff` 9、`#f0f0f0` 8、`#c04848` 7、`#d33` 7、`#ccc` 7；`rgba(0,0,0,.45)` 8(+4 空白变体)、`rgba(0,0,0,.28)` 7、`rgba(0,0,0,.18)` 5、`rgba(0,0,0,.25)` 5。
 
-**令牌卫生缺陷**：`packages/ui/src/tokens.css:126-132` 里 `--surface` / `--surface-2` / `--surface-3` **各被定义两次**（`:126-128` 指向 `--glass-card-fill*`，`:130-132` 又改回 `--md-sys-color-surface-container-*`）——后者胜出，`:126-128` 是死代码。
+**令牌重复定义**：`packages/ui/src/tokens.css:126-132` 中 `--surface` / `--surface-2` / `--surface-3` 各声明了两次（`:126-128` 指向 `--glass-card-fill*`，`:130-132` 随即改回 `--md-sys-color-surface-container-*`），后一组声明覆盖了前一组，使 `:126-128` 未能生效。
 
 ---
 
@@ -429,15 +429,15 @@ Top 文件：
 **汇总**：需要经 OneGUI 重表达的视觉节点约 **2 559** 个（§5 表内 `className=` 合计），另有 **1 481** 处内联样式与 **462** 处裸色值需要先回收到令牌。
 
 **三大迁移热点**（按综合成本）：
-1. `pages/Settings.tsx` — 202 节点 / 98 内联 / 86 交互，且是 8 个 Section 组件手写 `.setting-row` 的总源头。
-2. `pages/Plugins.tsx` + `pages/GitLabPage.tsx` — 208 + 196 节点，`102` 个 `.plg-*` / `.gitlab-*` 私类，是全库最大的两族「私有设计系统」。
-3. `pages/zhjwxk/Courses.tsx` + `pages/Schedule.tsx` — 217 + 94 处内联样式，等于没有类名可迁移，必须先补抽象。
+1. `pages/Settings.tsx` — 202 节点 / 98 内联 / 86 交互，同时也是 8 个 Section 组件手写 `.setting-row` 的源头。
+2. `pages/Plugins.tsx` + `pages/GitLabPage.tsx` — 208 + 196 节点，共包含 `102` 个 `.plg-*` / `.gitlab-*` 私有类，构成全库规模最大的两套页内私有样式族。
+3. `pages/zhjwxk/Courses.tsx` + `pages/Schedule.tsx` — 分别含 217 处与 94 处内联样式，现有类名覆盖极少，迁移前需先提炼组件抽象。
 
 ---
 
 ## 附：可直接复用的既有资产（避免重造）
 
-- `components/Layout.tsx` 已有 7 个正确抽象（`Card` `Empty` `Switch` `SectionHead` `SkeletonRows` `PageHead` `SegmentedOverflow`），被 61 个文件 import；`Empty` 84 次、`Card` 55 次、`SkeletonRows` 37 次、`PageHead` 31 次、`ErrorNote` 30 次、`SectionHead` 25 次、`SegmentedOverflow` 12 次。OneGUI 应在此之上扩展而非另起。
-- `packages/ui` 已把令牌层做对（System → Compat 两级映射，`tokens.css:88-92`），但**不导出任何 React 组件**，桌面端只引它的 css（`apps/desktop/src/main.tsx:39,50`）。
-- `components/Icons.tsx` 51 个图标齐全（含 `FOLDER_ICONS` 表），可直接进库。
-- 玻璃材质收口在 `global.css:8151-8290` 与 `:8400+` 的少量覆写块，改材质只需动这两处——**前提是先消灭 §2.1 里不走玻璃的 6 个卡片类**。
+- `components/Layout.tsx` 已沉淀出 7 个基础抽象（`Card` `Empty` `Switch` `SectionHead` `SkeletonRows` `PageHead` `SegmentedOverflow`），被 61 个文件 import；调用频次分别为 `Empty` 84 次、`Card` 55 次、`SkeletonRows` 37 次、`PageHead` 31 次、`ErrorNote` 30 次、`SectionHead` 25 次、`SegmentedOverflow` 12 次。OneGUI 可直接在此基础上演进扩充。
+- `packages/ui` 已建立清晰的令牌分层（System → Compat 两级映射，`tokens.css:88-92`），当时仅提供 CSS 文件并由桌面端直接引入（`apps/desktop/src/main.tsx:39,50`），尚未包含 React 组件导出。
+- `components/Icons.tsx` 已收录完整的 51 个图标（含 `FOLDER_ICONS` 表），可直接迁入组件库。
+- 玻璃材质收口在 `global.css:8151-8290` 与 `:8400+` 的少量覆写块中；先将 §2.1 中仍用实心底色的 6 个卡片类统一接入后，调整材质即可只改动这两处。

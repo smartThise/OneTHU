@@ -1,12 +1,13 @@
 # Developer center
 
+
 [中文](../developers.md) · English
 
-Release and general development use `main` / `dev3`; this technical expansion is checked against the `web` prototype branch. Read the [architecture](architecture.md), [plugin guide](plugin-development.md), [generated API surface](api-surface.md) and [OH / Xiaoda guide](oh-and-xiaoda.md). The [contributor directory](contributors.md) is reproducibly derived from Git history.
+Day-to-day feature work and releases target `main` and `dev3`, while the expanded architecture docs align with the `web` prototype branch. Start with the [architecture](architecture.md), [plugin guide](plugin-development.md), [generated API surface](api-surface.md) and [OH / Xiaoda guide](oh-and-xiaoda.md). The [contributor directory](contributors.md) is generated reproducibly from Git history.
 
 ## Run locally
 
-Use Node.js 20.x (at least 20.19) or 22.12+ and pnpm. Native development also requires Rust stable and the platform-specific Tauri 2 prerequisites. Android additionally requires a JDK, Android SDK and NDK.
+Install Node.js 20.x (`>= 20.19`) or 22.12+ and `pnpm`. Building the native app requires Rust stable and the platform-specific Tauri 2 toolchain; Android builds also require a JDK, the Android SDK, and the NDK.
 
 ```bash
 git clone --recurse-submodules https://github.com/smartThise/OneTHU.git
@@ -18,7 +19,7 @@ pnpm install
 pnpm dev
 ```
 
-`pnpm dev` starts the Vite frontend only. A fixture-based browser preview does not validate native networking, files, credentials or skill IPC.
+`pnpm dev` runs the Vite frontend in the browser for quick UI work against local fixtures. To test native networking, filesystem access, credential storage, or skill IPC, launch a native Tauri or Android development build:
 
 ```bash
 # Native Tauri development; cross-platform entry for Windows
@@ -30,7 +31,7 @@ pnpm --filter @onethu/desktop tauri:build:dev
 pnpm --filter @onethu/desktop android:dev
 ```
 
-Install the [official Tauri prerequisites](https://v2.tauri.app/start/prerequisites/). The [detailed build reference](../dev-build.md) describes development variants, signing and paths. See [Android release investigation](../android-release-traps.md) for platform pitfalls; these detailed historical references are maintained in Chinese. Never commit signing keys, tokens or passwords.
+Set up the [official Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) first. For build flavors, signing setup, and output paths, see the [detailed build reference](../dev-build.md) and [Android release investigation](../android-release-traps.md) (both maintained in Chinese). Keep signing keys, tokens, and passwords strictly out of version control.
 
 ## Source and extension entry points
 
@@ -48,9 +49,9 @@ Install the [official Tauri prerequisites](https://v2.tauri.app/start/prerequisi
 | `plugins/OneTHU-Harness` | Rust agent submodule |
 | `tools` | Build, extraction, tests and fixture capture |
 
-Detailed flows: [prototype](architecture/prototype-and-data.md), [runtime](architecture/sdk-and-api.md), [CLI/agents](architecture/cli-and-agents.md), [Gateway](architecture/gateway.md), [OneGUI](architecture/onegui.md), and [API selection](api-reference.md).
+Deep dives by subsystem: [prototype](architecture/prototype-and-data.md), [runtime](architecture/sdk-and-api.md), [CLI/agents](architecture/cli-and-agents.md), [Gateway](architecture/gateway.md), [OneGUI](architecture/onegui.md), and [API selection](api-reference.md).
 
-Application plugins, OH tools, external MCP servers and Xiaoda skills have different execution models. QuickJS supports pure synchronous JavaScript only, with a 2-second limit, 32 MiB memory, 256 KiB stack, and 64 KiB code and I/O bounds. It has no network, files, processes, modules or async execution. Export heavier skills to a folder or ZIP and configure an external desktop agent. Desktop Rust sidecars do not automatically work on Android.
+App plugins, OH tools, external MCP servers, and Xiaoda skills each run in their own execution environment. The built-in QuickJS engine runs pure synchronous JavaScript—capped at 2 seconds, 32 MiB of memory, a 256 KiB stack, and 64 KiB of code and I/O—for self-contained computation. Skills that need networking, filesystem access, async modules, Python, or Node can be exported to a folder or ZIP archive and wired into an external desktop agent. Native desktop plugins run as Rust sidecar processes on macOS and Windows, while Android uses embedded native modules.
 
 ## Validate and contribute
 
@@ -63,6 +64,6 @@ python3 tools/contributors-report.py
 pnpm lint:docs
 ```
 
-Run checks relevant to the change. Run `pnpm i18n:handoff` after extracting new messages; translators should modify only the assigned handoff files. Check UI changes in a browser at portrait and landscape sizes, including scrolling, clicks, keyboard access and reduced motion. A successful build is not physical-device acceptance.
+Run the checks that cover your changes. After extracting new UI strings, run `pnpm i18n:handoff`, and keep translation edits scoped to the generated handoff files. Preview UI updates in both portrait and landscape viewports—verifying scroll bounds, click targets, keyboard navigation, and reduced-motion behavior—and test native changes on real desktop or mobile hardware alongside local builds.
 
-Use the [fixture capture workflow](screenshots.md) for public images. Keep passwords, private campus responses, tokens and QR codes out of screenshots, logs and fixtures. The [public developer page](https://onethu.github.io/en/developers.html) links the build, plugin, Harness, API, OneGUI and contributor resources. Read the [license](../../LICENSE), including its non-commercial and no-attack restrictions.
+Follow the [fixture capture workflow](screenshots.md) when recording public screenshots, keeping passwords, personal campus data, tokens, and QR codes out of images, logs, and fixtures. Visit the [public developer page](https://onethu.github.io/en/developers.html) for links to build guides, plugins, Harness, API docs, OneGUI, and contributor credits, and review the [license](../../LICENSE) for non-commercial and acceptable-use terms.

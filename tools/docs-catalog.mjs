@@ -14,7 +14,7 @@ function statusFor(path,en){
 }
 const paths=walk(root).sort((a,b)=>a.localeCompare(b,'en'));
 for(const en of [false,true]){
- const text=[`# ${en?'Documentation inventory and status':'文档全量清单与状态'}`,'',en?'[中文](../documentation-catalog.md) · English':'中文 · [English](en/documentation-catalog.md)','',en?'Current guides and generated API signatures take precedence over dated plans. Historical records preserve evidence, not release promises. Detailed historical engineering records retain their original language. Regenerate this directory with `node tools/docs-catalog.mjs`.':'现行指南与类型生成清单优先于旧计划。历史记录保留证据，不代表发布承诺；详细研究保持原文。通过 `node tools/docs-catalog.mjs` 重新生成目录。','','| '+(en?'Document | Status |':'文档 | 状态 |'),'|---|---|'];
+ const text=[`# ${en?'Documentation inventory and status':'文档全量清单与状态'}`,'',en?'[中文](../documentation-catalog.md) · English':'中文 · [English](en/documentation-catalog.md)','',en?'Current user and developer guides alongside generated API signatures reflect the active 0.11 behavior. Earlier design plans, audits, and verification notes are kept in their original language as engineering archives. Regenerate this index with `node tools/docs-catalog.mjs`.':'日常使用与开发请优先参考现行指南与自动生成的 API 清单；早期的设计草案、专题调研与阶段验收记录按原文归档备查。可通过 `node tools/docs-catalog.mjs` 重新生成本索引。','','| '+(en?'Document | Status |':'文档 | 状态 |'),'|---|---|'];
  for(const path of paths){if(path.endsWith('documentation-catalog.md'))continue;text.push(`| [${path}](${en?'../':''}${path}) | ${statusFor(path,en)} |`);}
  writeFileSync(join(root,en?'en/documentation-catalog.md':'documentation-catalog.md'),text.join('\n')+'\n');
 }

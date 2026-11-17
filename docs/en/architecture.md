@@ -1,14 +1,15 @@
 # OneTHU system architecture
 
+
 [中文](../architecture.md) · English
 
-Source baseline: branch `web`, commit `7c2e9612`, 2026-11-01. The declared product version is 0.11.4-fix-3. Branch implementations, the running dev backend and published installers have separate build and acceptance checkpoints. Release notes and artifact manifests determine what a particular installer contains.
+This architecture overview tracks branch `web` at commit `7c2e9612` (2026-11-01, product version 0.11.4-fix-3). Active development branches, local dev servers, and packaged installers ship on independent schedules; consult the release notes and artifact manifests for the exact capabilities included in a given installer.
 
 ## System purpose
 
-OneTHU combines campus service clients, a personal workbench and agent execution interfaces. React owns interaction and workspaces; campus clients interpret school endpoints and pages; the independent SDK supplies account-aware execution and scheduling; CLI and MCP expose operations to other programs. Gateway applies an authorized school session to supported browsers and clients. OneGUI provides their visual and interaction foundations.
+OneTHU brings together campus service clients, a customizable personal workbench, and programmable agent interfaces. React drives workspaces and interactive views on top of OneGUI's visual and motion foundations; campus client libraries communicate with university endpoints; the standalone SDK provides account-aware execution and background scheduling; CLI and MCP expose structured operations to external programs; and Gateway extends an authorized campus session to supported browsers and desktop clients.
 
-Accounts and services primarily interact between the device and school systems. Cloud storage, GitLab, mail, calendars, models and IM supply their own remote services. Local-client deployment therefore still has explicit data disclosures and authorizations. Campus capabilities depend on school permissions, session validity and availability.
+Campus traffic flows directly between the user's device and university systems, while integrations such as Tsinghua Cloud, GitLab, email, calendars, AI models, and IM bots connect to their respective remote services. Even as a local-first client, OneTHU provides explicit data-scope disclosures and authorization prompts whenever external services or agents participate, and available campus features follow the user's university permissions and live session state.
 
 ## Reading map
 
@@ -42,9 +43,9 @@ flowchart TB
   GW --> SCHOOL
 ```
 
-With the optional CLI component installed, the desktop app and default CLI can connect to the same profile's daemon. Android and desktops without that component use application-owned services and scheduling adapters. Portable logic and policy are shared; processes, transports and lifecycles belong to each host. Vite alone provides a frontend preview, while native networking, files, sessions and background execution require their hosts.
+When the optional CLI component is installed on desktop, both the GUI app and the default `onethu` CLI connect to a shared background daemon for that profile. Android builds—and desktop installations without the CLI component—use the app's built-in service and scheduling adapters instead. Portable domain logic and authorization policies are shared across both setups, while process management, network transports, and lifecycle hooks belong to each host. Running Vite standalone launches a mock-backed frontend preview, whereas live campus networking, local file access, persistent sessions, and background execution run inside the Tauri or Node hosts.
 
-OH application services require agent-service consent. External CLI/MCP access has its own switch. Mobile OH can use application services without installing desktop Node. Contacts, staging and some workspace features depend on GUI state; the independent SDK advertises only its registered operations.
+OH access to application services is gated by an explicit agent-service consent setting, and external CLI/MCP access has its own dedicated toggle. On mobile, OH invokes application services directly without requiring a desktop Node runtime. Features tied to live interface state—such as contacts, Vault staging, and certain workspace actions—run through the GUI host, while the standalone SDK advertises the portable operations registered in its own catalog.
 
 ## Source ownership
 
@@ -61,7 +62,7 @@ OH application services require agent-service consent. External CLI/MCP access h
 | `packages/ui` | Still-loaded legacy token compatibility | Migration to OneGUI recipes |
 | `plugins/OneTHU-Harness` | Rust OH loop and host calls | Desktop sidecar / Android embedding |
 
-`core` is a business-client library. The independent SDK adds runtime ownership and execution policy. Repository packages, plugin namespaces and CLI operation names describe different contracts.
+`packages/core` provides stateless protocol parsing and campus service clients, while `packages/sdk` layers runtime session ownership, storage, and execution policy on top. Workspace package names, GUI plugin namespaces, and CLI/SDK operation names each serve their respective integration layer.
 
 ## Implemented choices and costs
 
@@ -69,7 +70,7 @@ OH application services require agent-service consent. External CLI/MCP access h
 | --- | --- | --- |
 | Application services with optional CLI | Mobile/basic users keep direct services; advanced users gain residency | Strict document/task handoff between hosts; see the [ADR](../adr/2026-10-29-optional-cli-services.md) |
 | Transport-injected campus clients | Shared parsing/models with Rust, Node and WebVPN | Cookie, redirect and cancellation semantics must agree |
-| Plugin types and operation schemas | Separate GUI interaction from programmable services | Generators/adapters must maintain mappings; discover actual capabilities |
+| Plugin types and operation schemas | Separate GUI interaction from programmable services | Generators and adapters stay synchronized; callers query live catalogs |
 | Device-local session gateway | Authorized identity stays local while browsers reuse it | CA trust, provenance, recovery and platform acceptance |
 | Central semantic visual system | Composable themes, materials and states | Gradual legacy migration and real-viewport acceptance |
 
@@ -93,21 +94,21 @@ sequenceDiagram
   R-->>U: Public fields and completeness
 ```
 
-Authenticated identity, a usable business session and page CSRF are adjacent states. A login link or WebVPN guide is not a course response. Downloads resolve account-bound resource references; authenticated URLs remain inside the service layer.
+Completing SSO sign-in, establishing a service-specific session, and acquiring a page CSRF token are distinct steps in the request pipeline: if a campus endpoint returns an SSO redirect or a WebVPN landing page, the client raises an explicit session-preparation error so callers can distinguish expired sessions from genuinely empty course lists. Subsequent file downloads resolve short-lived, account-bound resource references while keeping raw authenticated URLs inside the service layer.
 
 ## Ownership and revocation
 
-School sessions belong to a device account runtime; Explorer and Board own view instances and layouts. Versioned account documents own shared calendars/configuration. Each call captures account/policy generation, cancellation and deadline. A single task manager owns active scheduling. Gateway separately owns its system-setting snapshot.
+Each layer maintains a clear single source of truth: the device account runtime owns university sessions, Explorer and Board manage view instances and layouts, versioned account documents store shared calendars and configuration, a single active task manager coordinates scheduled runs, and Gateway tracks its own system-proxy snapshot for clean restoration. Every call captures the active account epoch, policy revision, cancellation signal, and deadline on entry.
 
-GUI, Rust and Node can hold physical mirrors. Account identity, epoch, Cookie revision and document versions govern handoff; mirrors can update with a short delay. Installing/uninstalling CLI transfers documents and task ownership before activating the destination. A temporary backend failure must remain diagnosable and must not create a second scheduler or erase a valid native session.
+Because the GUI frontend, Rust native layer, and Node daemon hold local mirrors for responsiveness, handoffs reconcile state using account identity, session epoch, Cookie revision, and document version numbers. Installing or removing the optional CLI component migrates versioned documents and scheduler ownership before activating the target runtime. When a background daemon encounters a startup or IPC error, the host retains diagnostic context while preserving the valid native session and single-scheduler invariant.
 
 ## Extensions and lifecycle
 
-Plugin permissions and platform checks combine with operation schemas, mutation flags and local-configuration restrictions. Trusted adapters assign the source for model, MCP, plugin and IM calls. Final-write guards recheck account, authorization, cancellation and time. Already submitted remote effects require reconciliation.
+Extension calls pass through layered safeguards: manifest permissions and platform checks combine with operation tuple schemas, mutation flags, and local-only restrictions. Trusted host adapters assign the caller source for model, MCP, plugin, and IM requests, and pre-commit guards re-verify the active account, user authorization, cancellation state, and remaining deadline right before a write executes; if a timeout occurs after a write is submitted, the runtime reconciles upstream state before returning.
 
-Trusted-device labels use `OneTHU（device name）`; labels are independent of installation fingerprints. Name lookup does not register trust or rename historical school records. Native OS-name lookup is implemented in source and ships with a subsequent native build.
+When a user opts into trusting a device during 2FA, OneTHU registers the label `OneTHU（device name）` alongside a stable installation fingerprint. Reading the local device name populates that display label for new trust registrations while leaving historical university device records unchanged. Native OS device-name lookup is implemented in source and ships with packaged native builds.
 
-Production updates use installers and artifact/channel verification. Vite HMR serves development. Native code, optional CLI runtimes and plugins have separate platform, version and digest validation.
+Production updates flow through verified installers and release channels, while Vite HMR serves local frontend development. Native binaries, optional CLI runtimes, and plugins each validate target platform, version compatibility, and cryptographic digests independently.
 
 ## Acceptance boundaries
 
@@ -120,4 +121,4 @@ Production updates use installers and artifact/channel verification. Vite HMR se
 | Other Xingzai H5 services | Accepted separately by service |
 | Full organization collaboration across two accounts | Tracked separately from single-device fixtures |
 
-See the [live WeChat review](../reviews/2026-11-01-trusted-client-campus-gateway.md) and [platform guide](../guides/campus-gateway-mobile.md), maintained with detailed Chinese evidence. These checkpoints describe 2026-11-01; later changes require matching build and device evidence.
+See the [live WeChat review](../reviews/2026-11-01-trusted-client-campus-gateway.md) and [platform guide](../guides/campus-gateway-mobile.md), maintained in Chinese with full test logs. The table above reflects verification milestones as of 2026-11-01, with subsequent changes tracked alongside matching native builds and device runs.

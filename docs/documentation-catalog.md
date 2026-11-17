@@ -2,7 +2,7 @@
 
 中文 · [English](en/documentation-catalog.md)
 
-现行指南与类型生成清单优先于旧计划。历史记录保留证据，不代表发布承诺；详细研究保持原文。通过 `node tools/docs-catalog.mjs` 重新生成目录。
+日常使用与开发请优先参考现行指南与自动生成的 API 清单；早期的设计草案、专题调研与阶段验收记录按原文归档备查。可通过 `node tools/docs-catalog.mjs` 重新生成本索引。
 
 | 文档 | 状态 |
 |---|---|
@@ -241,6 +241,7 @@
 | [reviews/2026-11-01-network-webdav-recovery.md](reviews/2026-11-01-network-webdav-recovery.md) | 历史计划/研究/验收证据 |
 | [reviews/2026-11-01-trusted-client-campus-gateway.md](reviews/2026-11-01-trusted-client-campus-gateway.md) | 历史计划/研究/验收证据 |
 | [reviews/2026-11-01-wechat-mini-program-rea-completion.md](reviews/2026-11-01-wechat-mini-program-rea-completion.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-11-03-cloud-share-gateway.md](reviews/2026-11-03-cloud-share-gateway.md) | 历史计划/研究/验收证据 |
 | [reviews/schedule-layout-2026-10-20/README.md](reviews/schedule-layout-2026-10-20/README.md) | 历史计划/研究/验收证据 |
 | [schedule-and-sync.md](schedule-and-sync.md) | 现行说明/工程参考 |
 | [screenshots.md](screenshots.md) | 现行说明/工程参考 |

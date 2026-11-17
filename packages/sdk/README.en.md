@@ -2,9 +2,9 @@
 
 [简体中文](README.md)
 
-An independent Node.js runtime for OneTHU. CLI, MCP, plugins and assistant hosts share university sessions, services, authorization checks and scheduling. The desktop application does not need to be running.
+A standalone Node.js runtime for OneTHU. It provides shared university sessions, campus service clients, authorization guards, and task scheduling for the CLI, MCP servers, plugins, and personal assistant hosts—running independently of the desktop application.
 
-Requires **Node.js 20.19.x or 22.12+**. Public declarations pass strict NodeNext checks with TypeScript 5.9. This repository currently distributes locally built `.tgz` archives; this package has not been published to npm.
+Requires **Node.js 20.19.x or 22.12+**, with public declarations verified under TypeScript 5.9 strict NodeNext checks. The SDK is distributed directly from this repository as a locally built `.tgz` archive (unpublished on the public npm registry).
 
 ## Build and install
 
@@ -21,9 +21,9 @@ Install the resulting archive in another project:
 npm install /absolute/path/onethu-sdk-0.11.4.tgz
 ```
 
-The default output is `packages/sdk/artifacts/`. Runtime code, public declarations and license notices are included, without `workspace:*` dependencies. A `.sha256` file accompanies the archive. Use `node packages/sdk/scripts/pack.mjs --out /absolute/output` to select an output directory. Packing does not publish to npm.
+By default, archives and their companion `.sha256` checksum files are written to `packages/sdk/artifacts/`. Each tarball bundles runtime code, public declarations, and license notices with zero `workspace:*` dependencies, and stays local on disk. Pass `node packages/sdk/scripts/pack.mjs --out /absolute/output` to customize the output directory.
 
-Standard Node type dependencies are bundled, so installation needs no separate university SDK or workspace package. Run `node packages/sdk/scripts/test-pack.mjs /absolute/path/sdk.tgz` to perform an offline installation and check the runtime and public TypeScript API in a temporary consumer project.
+Standard Node type dependencies are bundled directly in the archive, so consumers can install it standalone without separate university SDKs or workspace packages. Run `node packages/sdk/scripts/test-pack.mjs /absolute/path/sdk.tgz` to verify offline installation, runtime imports, and the public TypeScript API in a temporary consumer project.
 
 ## Runtime lifecycle
 
@@ -44,17 +44,17 @@ try {
 }
 ```
 
-The profile is private to the OS user and exclusively locked while the runtime is active. Use one active runtime per process, call `close()` on exit, and use a separate private profile on each device.
+Each profile directory is restricted to the current OS user and held under an exclusive lock while the runtime is active. Keep a single active runtime per process, call `close()` before exiting, and give each device its own private profile directory.
 
 ## Login and two-factor authentication
 
-Obtain credentials through hidden terminal input or another secure input surface. Call `app.auth.login({ username, password })`. A `need-2fa` result contains the methods advertised by the university. Continue with `chooseMethod(type)`, `sendCode(type)` when applicable, and `verify(type, code)` on `app.auth.twoFactor`; `cancel()` ends the pending flow.
+Collect credentials through hidden terminal input or another secure input surface, then call `app.auth.login({ username, password })`. When two-factor verification is required, the `need-2fa` result lists the methods offered by the university; complete verification on `app.auth.twoFactor` via `chooseMethod(type)`, `sendCode(type)` (when applicable), and `verify(type, code)`, or call `cancel()` to abort the pending challenge.
 
-The interactive flow stays in one process. Passwords are kept in memory; established cookies and stable device identifiers are stored privately. A new process can restore an established session, but cannot resume an earlier process's password or unfinished challenge. Trusted-device registration is requested only with explicit `trustDevice: true`. Exclude passwords, cookies, verification codes and tokens from host logs.
+Interactive sign-in completes within a single process: passwords remain in memory only during login, while established session cookies and stable device identifiers are persisted in the private profile. Subsequent processes can restore an established session via `app.auth.restore()`, while any unfinished two-factor challenge or password stays scoped to the process that started it. Pass `trustDevice: true` when you explicitly want to register a trusted-device token with the university, and redact passwords, cookies, verification codes, and tokens from host logs.
 
 ## Discovery and authorization
 
-`app.list()` describes implemented operations, argument schemas, permissions and mutation flags. Treat it as the callable capability list.
+`app.list()` returns the active catalog of implemented operations along with their argument schemas, required permissions, and mutation flags—use it as the source of truth for callable capabilities.
 
 ```ts
 await app.call({ operation: 'learn.courses', args: [] });
@@ -65,19 +65,19 @@ await app.call({
 });
 ```
 
-Mutations require local confirmation by default. A local host may pass `confirm: true` after reviewing the operation with its user; model, MCP and plugin requests cannot use this flag to bypass local policy. Credentials, plugin installation, model settings and IM bindings are local configuration operations. `setAutomatic(true, { confirm: true })` explicitly enables automatic execution; the host should explain that choice first.
+Mutations require local confirmation by default. An interactive local host may pass `confirm: true` after reviewing the action with the user, whereas requests originating from models, MCP clients, or plugins always follow the active local policy. Managing credentials, installing plugins, updating model settings, and binding IM channels are reserved for local host configuration. Calling `setAutomatic(true, { confirm: true })` enables automatic write execution; hosts should explain the scope of this setting to the user beforehand.
 
-Calls accept `deadlineUnixMs`. The second argument can provide an abort `signal`, a permission set and a final `beforeWrite` guard. Account/policy changes and expired deadlines prevent further submission. Downloads return successful files and itemized failures; partial results are not a complete course archive.
+Every call accepts `deadlineUnixMs`, and the second argument supports an abort `signal`, a scoped permission set, and a final `beforeWrite` guard. Account switches, policy updates, or expired deadlines halt any unsubmitted write. Batch download operations return both saved files and itemized failure records—inspect per-item statuses and completeness flags to verify whether a course archive finished in full.
 
 ## Scope
 
-- University learning, portal, reservation, mail, CalDAV and course-selection reads reuse shared clients. Query `list()` for the available operations.
-- Mail/CalDAV, cloud and external-homework sessions are configured separately for the current account. External sources currently use imported sessions; upstream authentication requirements still apply.
-- `memory.*` reads Markdown only from this account's `accounts/<account SHA-256>/memory` directory. OH cloud memory and the desktop mirror remain separate.
-- Notifications, IM, tasks and plugins run in Node. Enabled native plugin code has the OS user's process privileges and requires explicit installation and enablement.
-- GUI navigation, boards and windows belong to the desktop host. The distributable package targets Node; workspace browser exports for shared modules remain available to desktop source builds.
-- Real university, Windows ACL and multi-account checks depend on release validation. Synthetic fixtures do not establish complete live-service or device coverage.
+- University learning, portal, reservation, mail, CalDAV, and course-selection reads share unified campus clients; inspect `list()` for the exact operations available.
+- Mail/CalDAV, cloud storage, and external homework sources maintain per-account credentials. External homework integrations currently import existing sessions while respecting upstream authentication rules.
+- `memory.*` reads Markdown notes from this profile's `accounts/<account SHA-256>/memory` directory, kept separate from OH cloud memory and desktop mirrors.
+- Notifications, IM channels, scheduled tasks, and plugins run in Node. Enabled native plugins execute with the current OS user's process privileges and require explicit local installation and activation.
+- GUI navigation, whiteboards, and native windows live in the desktop host. The standalone tarball targets Node, while browser-conditional workspace exports remain available to desktop source builds.
+- Automated tests run against synthetic local fixtures; live university services, Windows ACL enforcement, and multi-account workflows are verified during release acceptance testing.
 
 ## License
 
-Read the complete project [LICENSE](LICENSE), including its additional use conditions, and the provenance and dependency notices in `LICENSES/` and `dist/THIRD_PARTY_NOTICES.txt`. These files accompany the distribution.
+See the project [LICENSE](LICENSE) (including its additional use conditions) along with the provenance and third-party dependency notices in `LICENSES/` and `dist/THIRD_PARTY_NOTICES.txt`, all of which ship inside the packaged archive.

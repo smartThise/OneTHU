@@ -1,16 +1,16 @@
 # OH / OneFlow / OnePage / OH MCP 路由与操作审计（2026-10-18）
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
 
+> 归档说明：本文记录 2026-10-18 针对 OH、OneFlow、OnePage 与 OH MCP 的路由及操作审计与修复情况；0.11 当前功能与使用指南请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
-本次对四个子系统做只读审计并立即修补可确认的缺漏。审计基线 `13a71c52`；修复提交见文末。
+本轮对四个子系统进行了全面只读排查，并当场修复已确认的缺漏（审计基线 `13a71c52`）。
 
 ## 一、结论
 
-- 审计发现 **44 项缺口**（OH 23 项、OnePage/OneFlow 21 项），按 P0/P1/P2 分级。
-- 已修复：OH P0 1 项、OH P1 11 项、OnePage/OneFlow P0 1 项、P1 10 项，以及大部分低成本 P2。
-- 新增回归：`tools/oh-route-onepage-browser-test.mjs`（24 条断言）、MCP 入方向 Rust 单测 3 条、路由资产同步 60 行。
-- 全量 guard 仍只剩 8 处既有 UI 文案违规（Plugins/Courses/AttachActionsSheet/ExtHw/Notify），非本轮引入。
+- 共梳理出 **44 项缺口**（OH 23 项、OnePage/OneFlow 21 项），按 P0/P1/P2 优先级归类。
+- 本轮已修复：OH P0 1 项、OH P1 11 项、OnePage/OneFlow P0 1 项、P1 10 项，以及绝大部分改动直接的 P2 项。
+- 新增自动化回归：`tools/oh-route-onepage-browser-test.mjs`（24 条断言）、MCP 入方向 Rust 单元测试 3 条，并同步对齐路由资产 60 行。
+- 全量 guard 检查中其余模块（Plugins/Courses/AttachActionsSheet/ExtHw/Notify）既有的 8 处历史 UI 文案待办保持不变，留待文案专项统一清理。
 
 ## 二、OH：路由与操作
 
@@ -34,14 +34,14 @@
 | 条件行「小组件槽位」桌面端无落点 | 未声明 visible/landOn | 加 `visible` + `fallbackNote` |
 | 安装/管理主题行只高亮不动作 | 行无 go | 补 `go` 切插件市场/我的插件 + 主题筛选 |
 | 插件市场搜索/分类无行，我的插件/市场行恒切 mine | 未注册/go 写死 | 补两行；切换行按当前视图取反 |
-| `ext_wallpaper` 宣称支持 tab 档、`ext_voice` 宣称 neural、`ext_prefs` 宣称 voiceTarget | 描述与实现不符 | 描述收窄到真实能力；prefs 不再写废弃字段 |
+| `ext_wallpaper` 工具描述含 tab 档、`ext_voice` 含 neural、`ext_prefs` 含 voiceTarget | 工具说明超出当前已实现范围 | 描述对齐到现有真实能力；prefs 移除废弃字段写入 |
 | `mcp_status` 开关路径写成「设置 → 插件 → …」 | 入口层级已改 | 改为「设置浮层 → OneTHU Harness 段 → 高级配置」 |
 
-### 仍未做（明确记录）
+### 后续待办记录
 
-- board 标签仍不绑定 `boardId`：同时打开多块板会共用「当前板」；工作区快照里的 board 标签也恢复成当前板。修复需要扩展 `ExplorerTab.params` 类型与实例键，风险较高，留待专门批次。
-- OH 对白板组件的操作仍以 portrait 为主，未覆盖 resize/pin/fold/opacity 与 custom props。
-- 定时/事件流程的步骤白名单尚未限制高危门面方法（目前依赖插件权限门）。
+- board 标签与 `boardId` 独立实例绑定：同时打开多块板目前仍共用「当前板」，工作区快照里的 board 标签在恢复时也指向当前激活板。修复需要扩展 `ExplorerTab.params` 类型与实例键，留待专门批次推进。
+- OH 对白板组件的细粒度控制：目前以 portrait 预设切换为主，后续可继续补充 resize、pin、fold、opacity 与 custom props 操作。
+- 定时与事件流程的步骤白名单：当前复用插件权限门拦截，后续可为自动流程补充独立的高敏门面方法白名单。
 
 ## 三、OnePage：数据安全与操作
 
@@ -61,21 +61,21 @@
 
 ## 四、OneFlow：从可见到可执行
 
-- 手动运行不再只弹「去 OH 对话里说」：`registerFlowExecutor` 由 harness 注册执行器，OneGO 行直接 `runFlowNow`，结果/错误 toast。
-- `UserFlow` 增加 `enabled`、`lastError`；UI 有启用/停用、失败原因展示；OH 新增 `ext_flow_update`、`flowSetEnabled`，`ext_flow_list` 返回 enabled/lastError。
-- 调度器：cron 用持久化 `lastRun` 初始化（重启不立刻补跑）；app-start 启动只触发一次；hw/notice/grades 只在数据变化时触发。
-- 删除流程：UI 二次确认；门面校验存在性；Rust 不再对不存在 id 回「已删除」。
-- 创建流程：门面校验 trigger 与 steps 非空，返回 `{id}`，Rust 回显真实 id。
-- 执行器支持数组位置参数（`args:["schedule"]`）与对象单参数；旧对象步骤仍兼容。
+- 支持直接手动运行：由 harness 通过 `registerFlowExecutor` 注册执行器，在 OneGO 行点击即可直接调用 `runFlowNow`，并通过 toast 实时提示执行结果或错误信息。
+- 完善状态与错误可见性：`UserFlow` 新增 `enabled` 与 `lastError` 字段，界面提供启用/停用开关及失败原因展示；OH 同步新增 `ext_flow_update`、`flowSetEnabled`，并在 `ext_flow_list` 中返回 `enabled` 与 `lastError`。
+- 优化调度器触发时机：cron 基于持久化的 `lastRun` 初始化，重启后按正常周期等待下次执行；`app-start` 在每次应用启动时触发一次；`hw`、`notice`、`grades` 仅在对应数据发生实质变化时触发。
+- 严谨处理流程删除：界面层增加二次确认，门面层校验目标 ID 存在性，Rust 侧按真实校验结果返回删除状态。
+- 校验流程创建参数：门面层确保 `trigger` 与 `steps` 非空并返回 `{id}`，由 Rust 侧回显新建流程的真实 ID。
+- 兼容多种参数格式：执行器同时支持数组位置参数（`args:["schedule"]`）与单对象参数，平滑兼容旧版步骤结构。
 
 ## 五、OH MCP：入方向协议修复
 
-- **P0：入方向 MCP server 的 `initialize` / `tools/list` 只回裸 result（无 `jsonrpc`/`id`）**，标准客户端握手即失败。现统一 `{jsonrpc:"2.0",id,result|error}`。
-- `notifications/*` 视为通知：无响应体，HTTP 202（不再回 -32601 错误）。
-- `OPTIONS` 预检 204 + `Access-Control-Allow-Methods`，网页端 MCP 客户端可用。
-- 新增 3 条 Rust 单测：信封形状、通知无体/未知方法错误、confirm 工具被扣下。
-- 出方向：`parse_servers` 按 name 去重；UI 表单拒绝空名/重名（工具前缀 `mcp_<name>_` 会撞车）。
-- 新增检索行「连接外部 MCP 服务器」（`oh-mcp-client`），高级档有稳定锚点。
+- **P0：统一入方向 MCP server 响应信封**：`initialize` 与 `tools/list` 现统一返回完整的 `{jsonrpc:"2.0",id,result|error}` 结构，确保标准 MCP 客户端正常完成握手。
+- `notifications/*` 遵循单向通知语义：返回无响应体的 HTTP 202 状态码。
+- `OPTIONS` 预检请求返回 HTTP 204 及 `Access-Control-Allow-Methods` 响应头，支持网页端 MCP 客户端直接接入。
+- 新增 3 条 Rust 单元测试：覆盖响应信封结构、通知空响应与未知方法报错，以及需确认工具的拦截逻辑。
+- 出方向配置防重：`parse_servers` 按名称自动去重，UI 表单同步拦截空名称与重名配置，避免 `mcp_<name>_` 工具前缀冲突。
+- 新增检索行「连接外部 MCP 服务器」（`oh-mcp-client`），并在高级档设置中提供稳定跳转锚点。
 
 ## 六、验证
 
@@ -92,5 +92,4 @@
 
 ## 七、后续（已排队）
 
-新版本扩展（组织 / 万物暂存箱 / 分享口令 / 个人与组织名片 / NFC 碰一碰 / 通讯录 / 强制清华云盘）已存档在
-`docs/plans/2026-10-18-organization-vault-share.md`，按要求等本轮虫子收尾后再启动。
+下一阶段功能规划（组织 / 万物暂存箱 / 分享口令 / 个人与组织名片 / NFC 碰一碰 / 通讯录 / 清华云盘深度集成）已整理存档于 `docs/plans/2026-10-18-organization-vault-share.md`，待本轮缺陷修复收尾后按计划启动。

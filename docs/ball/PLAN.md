@@ -1,69 +1,44 @@
 # Ball 分支作战计划（OH 全面改造）
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
 
+> 归档说明：本文记录 `Ball` 分支（基于 `dev3` `7ce6cbe`）推进 OH 悬浮岛与全局悬浮球改造时的多智能体协作计划；0.11 当前功能与使用指南请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。历史 KWS 实验分支已归档至标签 `archive/dev-kws-20261010`（`2884240`）。
 
-> 单一口径文档：所有参与本轮的 agent 都读这一份。分支 `Ball`（内容 = `dev3`，`7ce6cbe`）。
-> KWS 已出局：归档 tag `archive/dev-kws-20261010`（2884240），远端 `dev-kws` 已删，勿复活。
+## 0. 协作约定
 
-## 0. 铁律（违反即回滚）
+1. **按职责边界修改文件**（见 §4 写域表），其余模块保持只读。
+2. **版本提交由 Lead 统一处理**：协作成员可自由使用只读的 `git log/diff/show/status/grep` 查阅上下文，将 `commit`、`checkout`、`reset`、`stash`、`push` 等写操作留给 Lead 集中执行。
+3. **共享工作区按需执行类型检查**：日常自检请直接运行只读的 `tsc --noEmit`；全仓构建（`pnpm build`、`tauri android build`、`gradle assemble*`、`cargo build`）统一由 Lead 串联执行，避免并发写入构建产物互相干扰。
+4. **复用现有依赖环境**：基于仓库当前已安装的依赖开发，如需新增 `pnpm`、`cargo` 依赖或下载 SDK 组件请先与 Lead 对齐。
+5. 新增文件同样需通过 `tsc` 类型检查，交付前请先运行 §5 的自检命令。
+6. 若排查时发现其他写域内的缺陷，请在交付报告中记录现象与定位线索，交由对应模块负责人或 Lead 跟进。
+7. **并发上限控制在全团队最多 Lead + 2 名协作成员同时运行**（2026-10-10 实测表明，并发过高容易触发模型配额 429 限流并中断任务）。排队顺序依次为：`ball-ui(task-1)` → `ball-tts(task-2)` → `ball-overlay-android(task-3)` → `ball-overlay-desktop(task-4)` → `ball-attach(task-5)` → `ball-action(task-6)`。前序任务交付后由 Lead 通过 `send_message` 唤醒下一位成员，未收到唤醒通知前请保持待命状态。
+8. 任务均由协作成员与 Lead 直接完成，避免在当前会话内额外派生子 agent（subagent）占用并发配额。
 
-1. **只改自己写域内的文件**（见 §4）。别人的文件只读。
-2. **不许跑 git 写操作**（不 commit / 不 checkout / 不 reset / 不 stash / 不 push）。提交由 Lead 统一做。
-   只读的 `git log/diff/show/status/grep` 随便用。
-3. **不许跑全仓构建**（`pnpm build`、`tauri android build`、`gradle assemble*`、`cargo build`）：共享工作区里
-   会互相踩。类型检查 `tsc --noEmit` 可以随便跑（只读）。需要真构建时找 Lead。
-4. **不装依赖**（不 `pnpm add`、不 `cargo add`、不下载 SDK）。
-5. 新文件也要能被 tsc 通过；交付前自己跑一遍 §5 的检查命令。
-6. 发现别人写域里的 bug：写进自己的报告，别动手改。
-7. **并发上限：全团队最多 Lead + 2 个 teammate 同时跑**（2026-10-10 实测：并发一高就把模型配额打成 429，
-   一批 agent 直接失败、连收尾消息都没有）。排队顺序：ball-ui(task-1) → ball-tts(task-2) →
-   ball-overlay-android(task-3) → ball-overlay-desktop(task-4) → ball-attach(task-5) → ball-action(task-6)。
-   由 Lead 在有人交付/空出后用 send_message 唤醒下一个；被唤醒前保持 inactive 不要自己抢跑。
-8. 不要派子 agent（subagent）——本会话的子 agent 并发同样吃配额，已连续失败多次；活由 teammate 与 Lead 干。
+## 1. 目标（2026-10-10 需求要点，共 8 条）
 
-## 1. 目标（用户 2026-10-10 原话要点，8 条）
+1. **应用内 OH 悬浮岛长按体验升级**：长按时悬浮岛**自然横向延展**，内部呈现**随音量起伏的点阵波纹**，上方覆盖**半透明雾化层**并实时显示**当前识别出的文字**。
+2. **长按松手即发送**：长按结束后，识别出的完整文本**直接作为一条新消息发送给 OH**，省去先填入输入框再手动发送的步骤。
+3. **单击悬浮岛交互调整**：将单击入口统一为一个操作按钮，显示文案「**点击输入，长按说话**」。
+4. **语音合成（TTS）全链路与设置**：补齐底层链路与前端控件，支持切换**静音 / 自动播报**，并在**设置页**新增音色、音效与语速调节。
+5. **全局悬浮球**（Android + 桌面）：可悬浮在**其他应用窗口上层**；桌面端支持自由拖拽定位，手机端松手后自动贴边吸附。单击悬浮球时，面板**流畅滑至屏幕底部**并展开**雾化**对话面板（最底部为「点击输入，长按说话」输入栏，上方约**半屏高度**展示可上下滚动、边缘渐入渐出的主对话流）；长按悬浮球时，球体延展滑入底部切换为**语音输入条**。**后台静默原则**：当 OneTHU 主窗口处于后台时，除校园卡充值、付款、体育场馆不可抗力确认及特定在线服务等确需用户本人操作的流程外，预约确认与常规交互全程在悬浮面板内闭环完成，保持主应用在后台静默运行。单击展开的雾化面板提供**本次关闭悬浮球**入口，关闭后如需再次启用可回到主应用 OH 对话界面重新开启。
+6. **OH 直接提交附件**：在**悬浮球展开面板**内提供拍照 / 相册 / 上传文件三个入口（可参考已落地的 IM Bot 附件实现）。
+7. **附件快捷动作**：选定附件后可直接执行**转存云盘 / 交作业（雨课堂 + 网络学堂）/ 发讨论区**等动作。
+8. **内置轻量图像修复滤镜**：提供几款简洁实用的文档与手写照片增强滤镜，方便上传手写作业照片后快速优化清晰度。
 
-1. **应用内 OH 悬浮岛长按优化**（现在丑）：长按时岛**自然变长**，内容变成**随音量跳动的点点波纹**，
-   上覆**一层雾状**，雾里显示**当前识别出的字**。
-2. 长按结束，识别文本**不进输入框**，**作为完整一条消息直接喂给 OH**。
-3. **单击悬浮岛**不再是「问点什么」输入框，改成一个按钮，文案「**点击输入，长按说话**」。
-4. **语音合成（TTS）**：补齐链路 + UI，可选**静音 / 自动播放**她合成的话；**设置页**新增音效/音色调节。
-5. **全局悬浮球**（Android + 桌面）：可浮在**其他应用上层**。桌面可拖任意位置，手机自动吸附边框；
-   单击 → 当前页面**流畅滑到底部**展开**雾状**对话面板（输入框在最底部，也是「点击输入，长按说话」，
-   上方约**半屏可滑动**的主对话消息、渐入渐出）；长按 → 伸展成条滑到底变**语音输入条**。
-   **红线：OneTHU 在后台时一律不跳回 app 本体**（只有充值/付钱这种必须用户亲自操作的除外；
-   预约确认不跳回；体育预约不可抗力、在线服务这类必须跳回的除外）。单击后雾状表面可**本次关闭悬浮球**，
-   重新开启需回本体 OH 对话界面点开。
-6. **OH 直接提交附件**：拍照 / 相册 / 上传三个入口，出现在**悬浮球打开后的位置**（IM Bot 附件已实现，可供参考）。
-7. 附件可直接选动作：**转存云盘 / 交作业（雨课堂 + 网络学堂）/ 发讨论区** 等。
-8. 内置**几种简单图像修复滤镜**（手写照片上传后简单编辑，别做复杂）。
+## 2. 代码现状梳理
 
-## 2. 现状（已核实，省你重新摸）
+- 应用内「OH 悬浮岛」位于 `apps/desktop/src/plugins/ChatDock.tsx`（1028 行，`ChatDock` 组件，由 **ball-ui** 负责维护）。关联模块包括：`state/island.ts`（岛文案 `ISLAND_DEFAULT_TEXT` / `computeIslandText`）、`lib/speech.ts`（Android 端语音识别 `speechAvailable/Start/Poll/Stop`）、`plugins/ChatDock.tsx:46` 的 `ohAsk(text)`（打开面板并直接发送消息，可直接承载需求 2），以及 `styles/global.css` 中「OH 悬浮岛带」的布局留白（第 5514、5607 行附近）。
+- `ChatDock` 现有语音状态机已定义 `voice: "off" | "arming" | "listening" | "sending"`、`voiceText`、`voiceFail`、`VOICE_HOLD_MS = 450` 与 `VOICE_FINAL_GRACE_MS = 320`；启动路径位于第 769 行附近（`speechAvailable()` → `speechStart()`）。
+- **TTS 为新建能力**（当前 `dev3` 分支尚无 TTS 实现）。设计时可查阅归档标签中的参考思路（请独立实现，避免直接复制历史 KWS 资产）：`git show archive/dev-kws-20261010:apps/desktop/src-tauri/plugins/onethu-voice/...`，其中包含 `SystemTts.kt`（系统 `TextToSpeech`，支持音高、音色与语速调节）、`TtsEngine.kt`（sherpa 神经语音档）与 `VoiceTts.kt`（双后端统一门面）。
+- Tauri 插件结构可参考 `apps/desktop/src-tauri/plugins/onethu-speech`（Rust 命令壳 + Kotlin 原生实现 + `permissions/*.toml`）。**插件全局注册（`Cargo.toml`、`src-tauri/src/lib.rs`、`capabilities`、`gen` 权限文件）统一由 Lead 集成**，各模块负责人专注编写各自插件目录内的实现。
+- Android 侧现有 `plugins/onethu-mobile`（含 `QrKeepAliveService`、`OnethuNotify`、`OnethuWidget`、`RomInfo`），系统级悬浮窗与 `WindowManager` 交互（需求 5 Android 侧）将在新建插件中从零构建。
+- 设置页位于 `apps/desktop/src/pages/Settings.tsx`（1851 行，采用 `NotifySettingsSection` / `WidgetSettingsSection` / `ImSettingsSection` + `SectionHead` 分区组件模式）。**`Settings.tsx` 与 `App.tsx` 由 Lead 统一挂载**，模块负责人只需新建 `components/VoiceSettingsSection.tsx` 等独立组件文件。
 
-- 应用内「OH 悬浮岛」= `apps/desktop/src/plugins/ChatDock.tsx`（1028 行，`ChatDock` 组件，**ball-ui 独占**）。
-  相关：`state/island.ts`（岛文案 `ISLAND_DEFAULT_TEXT`/`computeIslandText`）、`lib/speech.ts`（STT：
-  `speechAvailable/Start/Poll/Stop`，仅安卓有效）、`plugins/ChatDock.tsx:46` 的 `ohAsk(text)`（开面板并直接发送
-  ——需求 2 的现成通道）、`styles/global.css` 里「OH 悬浮岛带」的留白（5514/5607 行附近）。
-- ChatDock 现有语音态：`voice: "off" | "arming" | "listening" | "sending"`、`voiceText`、`voiceFail`、
-  `VOICE_HOLD_MS = 450`、`VOICE_FINAL_GRACE_MS = 320`；启动路径在 769 行附近（`speechAvailable()` → `speechStart()`）。
-- **dev3 完全没有 TTS**（全库 grep 零命中）→ 需求 4 是**新建**。参考实现（可读、勿直接拷 KWS 资产）：
-  `git show archive/dev-kws-20261010:apps/desktop/src-tauri/plugins/onethu-voice/...`——
-  `SystemTts.kt`（系统 TextToSpeech，音高/音色/语速真实生效）、`TtsEngine.kt`（sherpa 神经档）、
-  `VoiceTts.kt`（双后端门面）。
-- 插件先例：`apps/desktop/src-tauri/plugins/onethu-speech`（Rust 命令壳 + Kotlin 真实现 + permissions/*.toml）。
-  **插件注册（Cargo.toml、src-tauri/src/lib.rs、capabilities、gen 权限）一律由 Lead 做**，你只管自己插件的目录内容。
-- Android 侧已有：`plugins/onethu-mobile`（`QrKeepAliveService`、`OnethuNotify`、`OnethuWidget`、`RomInfo`），
-  **没有任何 overlay / WindowManager / 悬浮窗代码** → 需求 5 安卓侧是全新能力。
-- 设置页 = `apps/desktop/src/pages/Settings.tsx`（1851 行，分区组件模式：`NotifySettingsSection` /
-  `WidgetSettingsSection` / `ImSettingsSection` + `SectionHead`）。**Settings.tsx 与 App.tsx 由 Lead 挂载**，
-  你只新建 `components/VoiceSettingsSection.tsx` 这类独立文件。
-
-## 3. 架构契约（跨 agent 的接口，先按这个写，改契约先找 Lead）
+## 3. 架构契约（跨模块接口约定，如需调整请先联系 Lead）
 
 ### 3.1 全局悬浮球（需求 5）—— 统一前端面 + 两套原生后端
 
-- `apps/desktop/src/lib/overlay.ts`（**Lead 独占**）定义统一面：
+- `apps/desktop/src/lib/overlay.ts`（**Lead 维护**）定义统一接口面：
   ```ts
   export type OverlayMode = "hidden" | "ball" | "bar" | "panel";
   export function overlaySupported(): Promise<boolean>;
@@ -72,32 +47,22 @@
   export function overlaySetMode(m: OverlayMode): Promise<void>;
   export function onOverlayEvent(cb: (e: { type: "tap" | "hold" | "release" | "drag" | "closed" }) => void): Promise<() => void>;
   ```
-- 平台适配器：`lib/overlayAndroid.ts`（ball-overlay-android 独占）、`lib/overlayDesktop.ts`（ball-overlay-desktop 独占）。
-  两者都实现上面同名函数，`overlay.ts` 只做平台分发。
-- 前端浮层 UI（雾状面板/条/球）由 **Lead** 在 `components/GlobalOrb.tsx` 里做，两平台共用；
-  原生侧只负责：创建/销毁窗口或系统悬浮窗、把尺寸位置模式告诉前端、把触摸手势（tap/hold/drag/release）回传。
-- **红线落地方式**：悬浮窗内的对话走 `askOh()`（`im/oh.ts`）等纯前端通道，任何路径都**不得**调用
-  打开主窗口的 API（`WebviewWindow.show()`/`set_focus()`/`app.show()`/跳 Android Activity）。
+- 平台适配器：`lib/overlayAndroid.ts`（**ball-overlay-android** 负责）与 `lib/overlayDesktop.ts`（**ball-overlay-desktop** 负责）分别实现上述同名函数，`overlay.ts` 负责按运行平台分发。
+- 前端浮层 UI（雾化面板、语音条、悬浮球本体）由 **Lead** 在 `components/GlobalOrb.tsx` 中统一实现并跨双端复用；原生侧专注负责创建与销毁透明窗口或系统悬浮窗、同步窗口尺寸与位置模式，以及回传触摸手势事件（`tap` / `hold` / `drag` / `release`）。
+- **后台静默实现方式**：悬浮窗内的对话走 `askOh()`（`im/oh.ts`）等纯前端通道，全程保持主窗口隐藏状态，避免调用拉起主窗口的 API（如 `WebviewWindow.show()`、`set_focus()`、`app.show()` 或跳转 Android 主 `Activity`）。
 
 ### 3.2 TTS（需求 4）
 
-- Rust 命令面（Tauri 命令，前端 `lib/tts.ts` 包装）：`tts_supported`、`tts_prepare`、`tts_speak`
-  （`{text, speed, pitch, voice}`）、`tts_stop`、`tts_status`（`{ready, backend, state}`）、`tts_voices`、
-  `tts_set_backend`；事件 `onethu-tts://done {reason}`。
-- 偏好存储：`state/voicePrefs.ts`（localStorage，与仓库既有偏好存储风格一致）：
-  `{ autoSpeak: boolean; voiceName: string; pitch: number; rate: number; backend: "system" | "neural" }`。
-  **默认 `autoSpeak=false`（静音）**——用户要求「可以选择静音或者自动播放」。
-- ChatDock 侧接入由 ball-ui 负责：`import { speakReply } from "../lib/tts.js"`（ball-tts 导出）。
+- Rust 命令面（Tauri 命令，前端由 `lib/tts.ts` 封装）：`tts_supported`、`tts_prepare`、`tts_speak`（`{text, speed, pitch, voice}`）、`tts_stop`、`tts_status`（`{ready, backend, state}`）、`tts_voices`、`tts_set_backend`；完成事件为 `onethu-tts://done {reason}`。
+- 偏好存储：`state/voicePrefs.ts`（使用 `localStorage`，延续仓库既有偏好存储风格）：`{ autoSpeak: boolean; voiceName: string; pitch: number; rate: number; backend: "system" | "neural" }`。**默认 `autoSpeak=false`（静音）**，方便用户按需开启自动播报。
+- `ChatDock` 侧接入由 **ball-ui** 负责：`import { speakReply } from "../lib/tts.js"`（由 **ball-tts** 导出）。
 
 ### 3.3 附件（需求 6-8，wave 2）
 
-- `lib/attach.ts`：`pickCamera()/pickGallery()/pickFile(): Promise<AttachFile | null>`，
-  `AttachFile = { path: string; name: string; mime: string; size: number; previewUrl?: string }`；
-  `sendToOh(files: AttachFile[], text?: string): Promise<void>`。
-- `lib/attachActions.ts`：`saveToCloud(f)`、`submitHomework(f, ctx)`（`ctx.platform: "learn" | "ykt"`）、
-  `postDiscussion(f, ctx)`。wave 2 由 ball-attach 实现，Lead 出骨架。
+- `lib/attach.ts`：`pickCamera()/pickGallery()/pickFile(): Promise<AttachFile | null>`，`AttachFile = { path: string; name: string; mime: string; size: number; previewUrl?: string }`；`sendToOh(files: AttachFile[], text?: string): Promise<void>`。
+- `lib/attachActions.ts`：`saveToCloud(f)`、`submitHomework(f, ctx)`（`ctx.platform: "learn" | "ykt"`）、`postDiscussion(f, ctx)`。wave 2 由 **ball-attach** 实现，Lead 提供初始骨架。
 
-## 4. 写域表（唯一权威；重叠即停下找 Lead）
+## 4. 写域划分表（如需跨表协作请先联系 Lead）
 
 | 路径 | 归属 |
 |---|---|
@@ -109,7 +74,7 @@
 | `lib/overlay.ts`、`components/GlobalOrb.tsx` | **Lead** |
 | `lib/attach.ts`、`lib/imageFilters.ts`、`components/AttachTray.tsx`、`components/ImageFilterSheet.tsx` | **ball-attach**（已交付） |
 | `lib/attachActions.ts`、`components/AttachActionsSheet.tsx` | **ball-action**（已交付） |
-| `docs/im-cloud/**`、`docs/memory-cloud/**`、`plugins/OneTHU-Harness/**` | 别人（别碰） |
+| `docs/im-cloud/**`、`docs/memory-cloud/**`、`plugins/OneTHU-Harness/**` | 其他并行分支维护（保持只读） |
 
 ## 5. 自检命令（交付前必跑，只读）
 
@@ -117,21 +82,17 @@
 cd /Volumes/PortableSSD/Projects/thuapp/OneTHU
 ./node_modules/.bin/tsc --noEmit -p apps/desktop/tsconfig.json
 ```
-Kotlin / Rust 无法在本机单独快跑：写完后**逐行自查**语法与 API 拼写，并在报告里列出「需要 Lead 跑 gradle/cargo 验证的点」。
 
-## 6. 已知坑（都踩过）
+Kotlin 与 Rust 代码在共享工作区暂不单独执行构建：编写完成后请**逐行复核**语法与 API 签名，并在报告中列出需要 Lead 运行 Gradle 或 Cargo 验证的检查点。
 
-- **exFAT AppleDouble**：本仓库挂在 exFAT 上，新建/修改文件会生成 `._同名` 伴生文件，tauri 的 build.rs
-  扫 capabilities/permissions 时读到会炸（`stream did not contain valid UTF-8`）。新建目录/文件后
-  `find <你的目录> -name '._*' -delete`。
-- **write 工具在本仓 exFAT 上会 ENOTSUP**（原子重命名/硬链接不支持）→ 新文件用 bash heredoc 写。
-- **`invoke.getArgs().optString(key, default)`**（Kotlin 侧没有 `getString`）；Tauri Android 插件参数类要
-  `@InvokeArg`，否则 release 下 R8 报 `no Creators`。
-- **AudioRecord**：`acceptWaveform` 吃 `FloatArray`（-1..1）；阻塞 `read()` 在静默态会卡死线程；
-  荣耀/华为是「仅前台麦克风」，后台/锁屏会被静默且回前台不自愈。
-- **前台服务类型**：Android 14+ 每种 FGS 类型有额度限制（本仓库曾因 `dataSync` 超限崩溃）。
-- 荣耀真机：`adb -s 192.168.31.31:34751`（有两个 transport，必须 `-s`）；`adb logcat` 被华为滤掉，
-  取证靠 `dumpsys usagestats` / `cmd appops get <pkg> RECORD_AUDIO` / `dumpsys notification --noredact`。
+## 6. 常见环境与平台注意事项
+
+- **exFAT AppleDouble 伴生文件**：仓库挂载于 exFAT 分区时，新建或修改文件会生成 `._同名` 隐藏文件，Tauri 的 `build.rs` 扫描 `capabilities` 或 `permissions` 时读到该文件会报错（`stream did not contain valid UTF-8`）。新建目录或文件后请执行 `find <你的目录> -name '._*' -delete` 清理。
+- **exFAT 文件写入方式**：部分工具的原子重命名或硬链接在 exFAT 分区会返回 `ENOTSUP`，创建新文件时可使用 bash heredoc 写入。
+- **Tauri Android 参数读取**：Kotlin 侧读取可选字符串参数请使用 `invoke.getArgs().optString(key, default)`；自定义参数类需添加 `@InvokeArg` 注解，确保 Release 模式下经 R8 混淆后仍能正常反序列化（避免 `no Creators` 报错）。
+- **AudioRecord 采集细节**：`acceptWaveform` 接收 `FloatArray`（`-1..1`）；静音状态下阻塞式 `read()` 可能挂起线程，需做好非阻塞或超时处理；荣耀与华为机型采用「仅前台麦克风」策略，切入后台或锁屏会被系统静音，回到前台时需主动重建录音流。
+- **前台服务类型配额**：Android 14+ 对每种 FGS 类型设有运行额度限制（此前曾因 `dataSync` 超限触发崩溃），声明服务类型时需按实际用途精确匹配。
+- **荣耀真机调试**：存在双连接通道时需显式指定 `adb -s 192.168.31.31:34751`；若常规 `adb logcat` 被系统过滤，可通过 `dumpsys usagestats`、`cmd appops get <pkg> RECORD_AUDIO` 与 `dumpsys notification --noredact` 采集运行状态。
 
 ## 7. 报告格式（每个 agent 交付时用）
 

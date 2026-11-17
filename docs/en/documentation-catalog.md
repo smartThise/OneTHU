@@ -2,7 +2,7 @@
 
 [中文](../documentation-catalog.md) · English
 
-Current guides and generated API signatures take precedence over dated plans. Historical records preserve evidence, not release promises. Detailed historical engineering records retain their original language. Regenerate this directory with `node tools/docs-catalog.mjs`.
+Current user and developer guides alongside generated API signatures reflect the active 0.11 behavior. Earlier design plans, audits, and verification notes are kept in their original language as engineering archives. Regenerate this index with `node tools/docs-catalog.mjs`.
 
 | Document | Status |
 |---|---|
@@ -241,6 +241,7 @@ Current guides and generated API signatures take precedence over dated plans. Hi
 | [reviews/2026-11-01-network-webdav-recovery.md](../reviews/2026-11-01-network-webdav-recovery.md) | Historical evidence |
 | [reviews/2026-11-01-trusted-client-campus-gateway.md](../reviews/2026-11-01-trusted-client-campus-gateway.md) | Historical evidence |
 | [reviews/2026-11-01-wechat-mini-program-rea-completion.md](../reviews/2026-11-01-wechat-mini-program-rea-completion.md) | Historical evidence |
+| [reviews/2026-11-03-cloud-share-gateway.md](../reviews/2026-11-03-cloud-share-gateway.md) | Historical evidence |
 | [reviews/schedule-layout-2026-10-20/README.md](../reviews/schedule-layout-2026-10-20/README.md) | Historical evidence |
 | [schedule-and-sync.md](../schedule-and-sync.md) | Current reference |
 | [screenshots.md](../screenshots.md) | Current reference |

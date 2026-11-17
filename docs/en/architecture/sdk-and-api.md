@@ -1,22 +1,23 @@
 # SDK and service runtime
 
+
 [中文](../../architecture/sdk-and-api.md) · [System overview](../architecture.md)
 
 ## Libraries and runtime
 
-`packages/core` provides campus models, HTTP/Cookie handling, auth helpers and service clients with injected transports. `packages/info-lib` retains the university login, roaming and 2FA-hook pipeline. Host adapters connect these implementations to a controlled session.
+`packages/core` implements campus domain models, HTTP and Cookie jars, authentication helpers, and service clients over injected network transports. `packages/info-lib` provides the university SSO login, roaming, and 2FA-hook pipeline, and host adapters wire both libraries into a managed session runtime.
 
-`packages/sdk` adds Node session storage, registration, permissions, tasks, notifications, plugins and an optional assistant. Its entry point is `createOneThu`. The full runtime needs Node; selected Learn/task/policy modules have browser exports for workspace hosts.
+`packages/sdk` layers local Node session storage, operation registration, permission enforcement, scheduled tasks, notifications, plugins, and an optional assistant behind `createOneThu`. The full runtime targets Node.js, while portable subsets for Learn, task scheduling, and execution policy also export browser-compatible entry points for GUI hosts.
 
 Sources: [core](../../../packages/core/src/index.ts), [info-lib](../../../packages/info-lib/src/lib/core.ts), [SDK](../../../packages/sdk/src/index.ts), [portable Learn service](../../../packages/sdk/src/learn.ts).
 
 ## Profile ownership
 
-`createNodeSession` opens private storage and holds an exclusive profile lock. One Node process has one active session runtime. The default CLI reuses the daemon holding its profile; independent embedding uses an explicit private directory.
+`createNodeSession` opens a private profile directory under an exclusive lock so each Node process owns a single active session runtime. By default, CLI invocations connect to the resident daemon managing that profile, while standalone SDK embeddings pass a dedicated private `dataDir`.
 
-Persisted state includes stable fingerprint, account, cookies, trust factor and generation. The standalone SDK holds passwords in process memory. GUI remembered-password storage is separately managed by the native app and is excluded from public SDK/model results.
+On disk, the profile stores a stable device fingerprint, account identifier, session cookies, trusted-device token, and epoch counter. Standalone SDK logins hold the password only in process memory during authentication; optional remembered-password storage in the desktop or mobile app is managed separately by the native host and stays completely outside SDK and model outputs.
 
-Account rotation clears affected transports, preparation and resource caches and advances epoch. Unix private modes and protected current-user Windows DACLs protect files; reads validate paths, type, ownership and links. Sources: [session.ts](../../../packages/sdk/src/node/session.ts), [storage.ts](../../../packages/sdk/src/node/storage.ts).
+Switching accounts clears cached transports, service preparation state, and resource tables while advancing the session epoch. Profile storage uses Unix private file modes and current-user Windows DACLs, validating path ownership, file types, and symlinks on every read. Sources: [session.ts](../../../packages/sdk/src/node/session.ts), [storage.ts](../../../packages/sdk/src/node/storage.ts).
 
 ## Authentication and business preparation
 
@@ -33,11 +34,11 @@ stateDiagram-v2
   Ready --> Idle: logout or expiry
 ```
 
-Login returns `ready` or `need-2fa`; the same process retains the challenge. Method selection precedes its flow, and TOTP needs no code delivery. Trusted-device registration requires an explicit option; `OneTHU（device name）` labels reuse the existing fingerprint and trust token.
+`auth.login` resolves to `ready` or `need-2fa`, keeping any active challenge state inside the same process until verification finishes. Choosing a second-factor method triggers its verification flow (with TOTP codes verified directly without SMS/push delivery), and registering a trusted device is an explicit opt-in that reuses the profile's existing fingerprint and trust token under the `OneTHU（device name）` label.
 
-Learn additionally needs its business page and CSRF. `ensureLearnReady` deduplicates preparation for the same account/Cookie revision and publishes only a verified candidate's CSRF. Login links, gateway guides and unexpected HTML return classified failures rather than empty courses.
+Web Learning requires an additional business-session handshake and CSRF token. `ensureLearnReady` deduplicates concurrent preparation calls per account and Cookie revision, publishes the CSRF token only after verifying a real Learn page, and surfaces login redirects, gateway prompts, or unexpected HTML as typed errors.
 
-Rain Classroom has its own business session and classroom IDs. The GUI can privately hand valid account-bound state to the backend. University authentication alone does not establish a Rain Classroom session.
+Rain Classroom maintains its own independent session and classroom identifiers alongside university SSO; when signed in via the desktop app, valid account-bound Rain Classroom state can be handed privately to the resident runtime.
 
 ## Operation contract
 
@@ -54,24 +55,24 @@ interface ServiceOperation {
 }
 ```
 
-This excerpt shows contract roles; [types.ts](../../../packages/sdk/src/services/types.ts) is authoritative. Positional arrays follow tuple schemas, including optional arguments and extra-field restrictions. Static catalogs supply some descriptions/schemas; service factories and runtime controls determine actual registration.
+See [types.ts](../../../packages/sdk/src/services/types.ts) for the full type definitions. Operations take positional tuple arrays validated against schemas that cover optional trailing parameters and strict object keys. Shared static catalogs supply parameter schemas and descriptions, while each host's service factories determine which operations are registered at runtime.
 
-`app.list(source)` discovers registered operations visible to that source. GUI and independent runtimes can use similar names with different coverage. Contacts, staging and some board features require a running app. A static catalog entry alone does not prove an independently registered method.
+Call `app.list(source)` to inspect the operations actually active for a given caller. GUI and standalone hosts share naming conventions while registering capabilities suited to their environment—for instance, contacts, staging boxes, and interactive canvas actions require a running app.
 
 ## Dispatch and commit checks
 
-1. Validate envelope, name and schema.
-2. Assign source in the trusted adapter and check permissions / `localOnly`.
-3. Restore or verify identity; capture owner, epoch, policy revision and deadline.
-4. Evaluate local confirmation, automatic policy or a manager-owned task grant.
-5. Recheck through `beforeWrite` before committing effects.
-6. Recheck before return and project public fields.
+1. Validate request envelope, operation name, and argument tuple schema.
+2. Bind caller `source` inside the trusted transport adapter and verify permissions and `localOnly` rules.
+3. Restore or check session identity, capturing account owner, epoch, policy revision, and deadline.
+4. Check interactive confirmation, device auto-execution policy, or an internal manager-owned task grant.
+5. Reverify account and cancellation state via `beforeWrite` right before committing side effects.
+6. Reverify state before returning and strip internal fields through public output projection.
 
-Concurrent writes to the same operation have busy protection. Calendar/CalDAV/cloud document operations also use a data queue. Remote transaction consistency remains service-specific. External JSON cannot assign itself trusted local-configuration status.
+Per-operation busy locks serialize concurrent mutations, and calendar, CalDAV, and cloud-document writes run through a dedicated data queue, while remote atomicity follows each upstream campus or cloud service. Caller privilege levels come strictly from the local transport adapter.
 
 ## Embedding
 
-Use a distinct private profile for independent embedding. Connect through CLI/MCP when the desktop daemon already owns its default profile.
+Pass an isolated private directory when embedding the SDK in your own script, or talk to the desktop daemon over CLI/MCP when sharing the default user profile.
 
 ```ts
 import { createOneThu } from '@onethu/sdk';
@@ -88,22 +89,22 @@ try {
 }
 ```
 
-`app.start()` enables restoration and resident lifecycle. On-demand embedding must still close. Cleanup revokes requests and closes gateway, IM/assistant, tasks, plugins, storage and session ownership.
+Calling `app.start()` activates session restoration and resident background loops, and both resident and one-shot embeddings should call `app.close()` on exit to cancel active requests and shut down Gateway, IM/assistant loops, tasks, plugins, storage, and profile locks cleanly.
 
 ## Resources and completeness
 
-Learn enumerates course files, assignments, notifications and attachments into owner/epoch-bound `resourceRef` records. Downloads resolve references and validate output directories, filenames, addresses and response types. Notification and assignment attachments retain actual filenames/extensions; authenticated URLs stay internal.
+Learn queries index course files, assignments, announcements, and attachments into account- and epoch-bound `resourceRef` handles. Download calls resolve those handles after validating target directories, safe filenames, upstream hosts, and response MIME types—preserving real attachment filenames and extensions while keeping authenticated download URLs internal to the runtime.
 
-Callers inspect `complete`, per-item failures and continuation metadata. Successful files can survive a partial export. Public projections remove secret fields and URL credentials while retaining ordinary strings/arrays; transport size, business pagination and model context have separate limits. See [API limits](../api-reference.md#size-time-and-completeness).
+List and export responses include `complete`, per-item error entries, and continuation cursors so partial exports retain already-saved files cleanly. Output projection strips tokens, secrets, and embedded URL credentials while keeping regular data intact, with separate size bounds applied at the transport, service-pagination, and model-context layers. See [API limits](../api-reference.md#size-time-and-completeness).
 
 ## GUI handoff
 
-Private `desktop.*` calls carry protocol version, expected account and epoch. Cookie mirrors additionally use revision; account documents have content versions. The GUI supports interactive authentication and view state; the daemon owns shared services and resident tasks when installed. Ownership migrates explicitly during installation/uninstallation.
+Private `desktop.*` RPCs verify protocol version, expected account ID, and session epoch, pairing Cookie sync with revision numbers and shared account documents with optimistic content versions. Interactive sign-in and UI state live in the app, while an installed daemon hosts shared background services and scheduled tasks, migrating ownership explicitly on install and uninstall.
 
-Gateway controls and ticket renewal use private channels, outside public MCP catalogs. Proxy credentials, cookies and school tickets are not tool-discovery results. Sources: [sharedRuntime.ts](../../../apps/desktop/src/lib/sharedRuntime.ts), [daemon.mjs](../../../packages/cli/src/daemon.mjs).
+Gateway management, proxy credentials, session cookies, and university tickets travel solely over private local channels and stay excluded from public MCP tool discovery. Sources: [sharedRuntime.ts](../../../apps/desktop/src/lib/sharedRuntime.ts), [daemon.mjs](../../../packages/cli/src/daemon.mjs).
 
 ## Failure and recovery
 
-Missing sessions, account changes, revocation, 2FA, rate limits, schema failures and network timeouts require different responses. Startup/path/protocol failures remain diagnosable and do not justify discarding an otherwise valid native session. Reads can retry within budget; unknown writes require remote reconciliation.
+Unauthenticated states, account switches, revoked permissions, 2FA prompts, rate limits, schema errors, and network timeouts each map to distinct error codes so callers can respond appropriately. Local startup, path, or IPC hiccups report clear diagnostics while leaving any valid native session on disk untouched; transient read errors can retry within budget, while uncertain writes check remote state before resending.
 
-Public errors remove login HTML and credentials. School-supplied business details may remain external reasons; application-owned messages localize at render time. Returned text and instructions never change caller permissions.
+Public error payloads strip raw login HTML and credentials. Upstream messages from university servers stay tagged as external reasons while app-owned copy localizes at display time, and returned text or remote content is always treated purely as data under host permission rules.

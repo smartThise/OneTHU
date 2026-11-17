@@ -1,8 +1,9 @@
 # Experience modes
 
+
 [中文](../experience-modes.md) · English
 
-Switching modes changes visibility without deleting full-mode settings or data. Return to full mode to restore its configured whiteboards, tabs, OneGO and related content.
+Experience modes tailor how much of the workspace appears at once while keeping all of your Full-mode settings and data safely stored. Whenever you switch back to Full mode, your configured whiteboards, tabs, OneGO bookmarks, and extensions return right where you left them.
 
 | Capability | Minimal | Practical | Full |
 |---|---|---|---|
@@ -15,4 +16,4 @@ Switching modes changes visibility without deleting full-mode settings or data. 
 | OH with your own API, WeChat/Feishu links | Retained | Retained | Retained |
 | Full plugin management and Xiaoda skills | Hidden | Hidden | Available according to permissions |
 
-Assignment deadlines must remain visible in compact-mode schedules. Advanced incoming sharing is isolated from modes that hide those features. Mode changes are not data deletion or a remote permission grant. Full-mode guide lessons cover whiteboards, staging, codes, NFC, organizations and Xiaoda, after the shared search/OH introduction.
+Compact-mode schedules always keep upcoming assignment deadlines visible. Incoming shares that rely on Full-mode features stay safely tucked away while you work in Minimal or Practical mode, and remote permissions follow your explicit account and cloud-consent settings independently of the active UI mode. During onboarding, all three modes introduce search and OH first, and Full mode continues with walkthroughs for whiteboards, staging boxes, share codes, NFC, organizations, and Xiaoda.

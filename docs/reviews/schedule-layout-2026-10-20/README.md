@@ -1,27 +1,28 @@
 # 日程底栏遮挡与列表滚动验收
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../../README.md)；英文入口见 [English overview](../../en/index.md)。
+
+> 归档说明：本文记录当时的布局修复与阶段性验收情况；0.11 当前功能与使用指南请查阅 [文档入口](../../README.md)（[English overview](../../en/index.md)）。
 
 
-2026-10-20，`tools/schedule-layout-browser-test.mjs` 最终整套自然退出 `0`：**313 项通过、60 份实际几何与命中采样、24 张截图、0 个浏览器运行错误**。本目录保留统一 `report.json` 和三张关键截图；报告中的全部原始截图位于 `/tmp/onethu-schedule-layout-final-complete/`。
+2026-10-20，`tools/schedule-layout-browser-test.mjs` 完整跑通并自然退出 `0`：**313 项通过、60 份实际几何与命中采样、24 张截图、0 个浏览器运行错误**。本目录归档汇总 `report.json` 与三张关键对比截图；测试生成的全套原始截图保存在 `/tmp/onethu-schedule-layout-final-complete/`。
 
 ## 复现与修复效果
 
-旧 CSS 下，1280×600 极简模式的 23:59 作业已经渲染，块范围为 `y=542.96–596.66`，中心为 `(305.73, 569.81)`。实际可见日程工作区高 `539.97px`；中心虽位于滚动容器裁切范围，`document.elementFromPoint` 却命中底部 `ohx-slot`。因此问题是 OH 栏覆盖实际内容，而非隐藏的完整模式面板高度为零。旧版首轮脚本在课程标题计数断言停止，但在此之前已保存以上真实几何和命中结果；最终脚本已改为精确匹配课程标题。
+旧版 CSS 下，在 1280×600 视口的极简模式中，23:59 截止的作业卡片虽已渲染（纵向范围 `y=542.96–596.66`，中心坐标 `(305.73, 569.81)`），但可见日程工作区实际高度仅为 `539.97px`；尽管卡片中心仍在滚动容器的裁切范围内，`document.elementFromPoint` 实际命中的却是底部的 `ohx-slot` 栏，证实底部 OH 栏遮挡了日程底部内容。早期首轮脚本虽在课程标题计数断言处提前中止，但此前已完整采集上述几何与命中数据；最终版脚本已改为按课程标题精确匹配。
 
-修复后，同一视口/模式的作业范围为 `y=489.94–536.58`，日程裁切下边界为 `540px`，停在 OH 栏上方。作业中心命中自身，直接坐标点击打开准确的 23:59 截止详情。20 条同日作业列表真实滚动到底后，第 20 项全部位于裁切范围内，中心命中自身，点击或触摸可打开带“前往”的详情。
+修复后，同一视口与模式下该作业卡片的纵向范围上移至 `y=489.94–536.58`，日程工作区裁切下边界定格在 `540px`，稳妥停在底部 OH 栏上方。此时作业中心点直接命中卡片自身，通过真实坐标点击即可准确展开 23:59 截止详情。在包含同日 20 条未交作业的长列表中滚动到底部后，第 20 项完整落入可见裁切区且中心命中自身，点击或触摸均可正常打开带「前往」入口的详情面板。
 
-- `chromium-1280-simple-timeline-before.png`：旧版 OH 遮住晚间作业。
-- `chromium-1280-simple-timeline-after.png`：最终版晚间作业可见。
-- `webkit-390-practical-agenda-end.png`：最终版实用模式列表末项可滚达。
+- `chromium-1280-simple-timeline-before.png`：修复前底部 OH 栏遮住晚间作业。
+- `chromium-1280-simple-timeline-after.png`：修复后晚间作业完整露出并可点击。
+- `webkit-390-practical-agenda-end.png`：修复后实用模式长列表末项可正常滚动触达。
 
 ## 覆盖范围与输入方式
 
-矩阵为 Chromium、WebKit × 1280×600、390×844 × 完整、极简、实用模式，各组合独立冷启动。示例包含周二 08:00–09:35 课程和同日 23:59 未交作业；列表改为同日 20 条未交作业。同时验证从日程离开到首页后返回，以及极简→实用→极简切换。
+测试矩阵覆盖 Chromium、WebKit × 1280×600、390×844 × 完整、极简、实用三种模式，每个组合均独立冷启动验证。测试样例包含周二 08:00–09:35 的课程与同日 23:59 的未交作业，列表视图则加载同日 20 条未交作业；同时覆盖从日程页切回首页再返回，以及「极简 → 实用 → 极简」连续模式切换。
 
-测量针对实际可见 `.schedule-workspace`，逐层计算祖先滚动/裁切边界，并以 `document.elementFromPoint` 验证真实中心命中。晚间作业与列表末项均在测量成功后才使用坐标点击或触摸；没有对目标调用自动滚入视口，没有设置 `scrollTop`，也没有用 DOM `dispatchEvent` 代替操作。导航与示例数据发布使用生产状态接口，仅上游数据方法替换为本地示例，不请求学校服务或真实日历。
+几何测量直接读取当前可见的 `.schedule-workspace`，逐层折算祖先容器的滚动与裁切边界，并通过 `document.elementFromPoint` 核验中心点真实命中。晚间作业与列表末项均在几何校验通过后执行真实坐标点击或触摸操作，全程还原用户实际交互（零调用元素自动滚入视口、零手动改写 `scrollTop`、零合成 DOM `dispatchEvent`）。页面导航与测试数据注入均调用生产状态接口，仅将上游数据拉取方法替换为本地静态样例，离线独立运行。
 
-Chromium 390 使用手机视口与 CDP 可信触摸滑动、触摸点击。Playwright 的移动 WebKit 不提供滚轮/滑动支持，因此 WebKit 390 使用 `hasTouch=true` 的窄触摸视口、桌面后端真实滚轮和原生触摸点击；脚本确认生产 `is-phone` 布局已生效。该项是 WebKit 手机布局检查，**不是 iOS、原生 WKWebView 或实体手机验收**。
+Chromium 390 视口采用手机尺寸并配合 CDP 可信触摸事件完成滑动与点击。由于 Playwright 的移动版 WebKit 暂未提供滚轮与触摸滑动支持，WebKit 390 视口采用开启 `hasTouch=true` 的窄视口配合桌面后端真实滚轮与原生触摸点击，并由脚本确认生产环境的 `is-phone` 移动端响应式布局已生效；该组合用于验证 WebKit 引擎下的手机端响应式布局表现，iOS 原生 `WKWebView` 与实体手机触控体验可在真机上另行验证。
 
 ## 重跑
 
@@ -30,6 +31,6 @@ ONETHU_TEST_OUT=/tmp/onethu-schedule-layout-final-complete \
   node tools/schedule-layout-browser-test.mjs
 ```
 
-可通过 `SCHEDULE_LAYOUT_ENGINES`、`SCHEDULE_LAYOUT_MODES`、`SCHEDULE_LAYOUT_WIDTHS` 缩小矩阵。空值或非法选项会失败，不会报告零项通过。
+可通过环境变量 `SCHEDULE_LAYOUT_ENGINES`、`SCHEDULE_LAYOUT_MODES`、`SCHEDULE_LAYOUT_WIDTHS` 按需缩小执行矩阵；若传入空值或未定义的选项，脚本会直接报错退出，防止空跑误报通过。
 
 最终 `schedule.css` SHA-256：`4532a4a89b86ae4199c93cff1ed9fbd4c686917c1299c6e09f679b1ae19ee63b`。

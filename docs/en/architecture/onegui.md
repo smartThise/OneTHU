@@ -1,10 +1,11 @@
 # OneGUI visual and interaction architecture
 
+
 [中文](../../architecture/onegui.md) · [System overview](../architecture.md)
 
 ## Code and contracts
 
-`packages/gui` supplies tokens, CSS, React components and the style pipeline. `gui.css` orders the layers; `onethu.css` adds host recipes and compatibility aliases. `packages/ui` still supplies a legacy token entry. Existing page migration targets OneGUI semantics while preserving that compatibility boundary.
+`packages/gui` provides the design tokens, layered CSS, React components, and runtime style pipeline. `gui.css` establishes the cascade order, while `onethu.css` layers host-specific recipes and legacy compatibility aliases alongside the older token entry in `packages/ui`. Ongoing page migrations move views onto native OneGUI semantics while keeping that compatibility layer working smoothly.
 
 ```text
 reference.css: reference palette
@@ -19,52 +20,52 @@ Sources: [CSS entry](../../../packages/gui/src/gui.css), [components](../../../p
 
 ## Style pipeline
 
-`StyleDirector` resolves skin, scheme, density, motion, platform and theme, with skinLevel for material strength. Root attributes and CSS variables carry the resolved values. React hooks subscribe to axis snapshots. The host injects platform detection instead of each component guessing.
+`StyleDirector` resolves active `skin`, `scheme`, `density`, `motion`, `platform`, and `theme` axes—including `skinLevel` for material intensity—and writes the resulting attributes and CSS custom properties to the document root. React components subscribe to axis snapshots via hooks, and the host detects platform traits centrally so individual components share a consistent view of the device.
 
-Theme roles include surface/content/border, font, curvature and accent families. Scheme supports light/dark/system. Skin/material supports neutral/glass and levels. Density supports compact/comfortable/touch; motion supports full/reduced. Graphite is a default preset; wallpapers, themes, accents and materials remain configurable dimensions.
+Themes define surface, content, border, typography, corner-radius, and accent roles. `scheme` switches between light, dark, and system; `skin` selects neutral or glass materials across intensity levels; `density` adapts across compact, comfortable, and touch sizing; and `motion` toggles full or reduced choreography. Graphite ships as the default theme preset, while wallpapers, themes, accents, and material levels remain user-configurable.
 
-A theme transition removes previous roles and applies the complete next set. `defineScope` allows registered semantic overrides from permitted token families/enums. Dynamic geometry belongs to component/layout parameters rather than a second page-local style system.
+Switching themes clears prior role overrides cleanly before applying the new token set. Scoped subtrees can register targeted overrides from approved token families via `defineScope`, while runtime coordinates and dimensions flow through component and layout props to keep styling unified.
 
 Sources: [director](../../../packages/gui/src/pipeline/director.ts), [React bindings](../../../packages/gui/src/pipeline/react.tsx), [host bridge](../../../apps/desktop/src/lib/oneguiBridge.ts).
 
 ## Actions and contrast
 
-Primary action roles `--og-action / --og-action-on` are separate from theme accent. Selection, hover, press, disabled and focus states use shared semantics. Text, icons, loading and hit areas must remain distinguishable in light/dark themes.
+Primary action tokens (`--og-action` and `--og-action-on`) stay distinct from decorative theme accents, and interactive states—selection, hover, press, disabled, and focus—follow shared semantic rules so text, icons, spinners, and hit targets stay clear in both light and dark modes.
 
-The color pipeline supports compositing and contrast. The app also installs text contrast handling over the wallpaper/veil/surface/glass stack. Theme switching and dynamic materials must preserve readable content and semantic status colors. Sources: [color.ts](../../../packages/gui/src/pipeline/color.ts), [app entry](../../../apps/desktop/src/main.tsx).
+The color pipeline handles surface compositing and contrast math, paired with runtime text-contrast adaptation over wallpapers, veils, surfaces, and glass layers so foreground copy and status badges stay legible across custom backgrounds and theme changes. Sources: [color.ts](../../../packages/gui/src/pipeline/color.ts), [app entry](../../../apps/desktop/src/main.tsx).
 
 ## Glass and refraction
 
-Material roles control transparency, blur, edges and surface depth. Shells/capsules/overlays retain context, while inputs and sustained reading need stable surfaces. Reduced transparency/refraction must preserve function and legibility.
+Material tokens govern translucency, backdrop blur, specular edges, and elevation depth: floating shells, capsules, and overlays let background context show through, whereas text inputs and long-form reading views sit on calm, high-legibility surfaces. Enabling reduced transparency or reduced refraction falls back gracefully while keeping hierarchy and readability intact.
 
-The host registers structural refraction selectors with `installOneGUI`. Visibility, area, device and WebView budgets govern the implementation and blur fallback. Sampling/refresh follows lifecycle. Material rendering does not own overlay stacking or hit testing.
+At startup, the host registers structural refraction targets through `installOneGUI`. Viewport visibility, surface area, device capability, and WebView performance budgets determine when live refraction runs and when standard blur takes over, with sampling tied to window lifecycle while overlay z-order and pointer hit-testing stay in the layout layer.
 
 Sources: [refraction](../../../packages/gui/src/pipeline/refraction.ts), [glass skin](../../../packages/gui/src/skins/glass.css).
 
 ## Shells, overlays and scrolling
 
-The shared content boundary owns padding, available height and scrolling for tabs, board links, search and tool navigation. Sheets, pickers, OH, staging and fixed shortcuts have distinct layers/safe areas.
+A shared content shell manages horizontal gutters, available viewport height, and scroll behavior across tabs, whiteboard deep links, search results, and tool navigation. Bottom sheets, pickers, OH panels, staging boxes, and floating shortcuts each occupy dedicated z-layers and safe-area insets.
 
-Every scroll container needs a defined height and overflow policy. Shells reserve OneShot/system-bar space; drawers and lists must reach their last item. Overflowing segments keep an operable horizontal indicator. Selection uses both content and surface roles.
+Every scrollable view defines an explicit height constraint and overflow rule so drawers and lists scroll cleanly past floating OneShot or system bars to their final item. Horizontally scrolling segmented controls keep an accessible scroll indicator, and selected items combine both surface fill and foreground contrast tokens.
 
-Platform, touch capability and viewport width are separate inputs. A landscape tablet can use a wide layout while retaining touch editing rules. Width alone does not authorize dragging. Sources: [platform.ts](../../../apps/desktop/src/state/platform.ts), [FreeBoard](../../../apps/desktop/src/components/FreeBoard.tsx).
+Platform identity, touch input, and viewport width are tracked as independent signals—allowing a tablet in landscape to use a wide multi-column layout while keeping touch-specific edit-mode safeguards for whiteboard dragging. Sources: [platform.ts](../../../apps/desktop/src/state/platform.ts), [FreeBoard](../../../apps/desktop/src/components/FreeBoard.tsx).
 
 ## Dragging and editing
 
-Gestures distinguish press, threshold, pickup, movement, candidate target and committed drop. One gesture commits once; cancellation or successful collection consumes the source movement. Floating-button placement and content drops have separate state and immediate click feedback.
+Pointer gestures progress explicitly through press, movement threshold, pickup, live drag, drop-target highlight, and commit. Each gesture resolves to a single outcome: cancelling a drag or dropping an item into a collection box consumes the gesture cleanly without shifting the source item's position. Floating-button repositioning and content drag-and-drop track separate state machines so simple taps receive instant click feedback.
 
-Mobile board geometry changes require edit mode. Browsing retains reading and scrolling. Temporary transforms are separate from persisted documents, undo restores document history, and reset explicitly restores a template.
+On touch devices, rearranging or resizing whiteboard widgets requires entering edit mode so everyday browsing scrolls and opens content without accidental moves. Live drag transforms stay transient until release, Undo steps back through persisted document snapshots, and Reset restores the board's default template after confirmation.
 
 Sources: [model](../../../apps/desktop/src/state/boardCore.ts), [editing](../../../apps/desktop/src/state/boardEdit.ts), [floating controls](../../../apps/desktop/src/components/useFloatingButtonDrag.ts), [drop handling](../../../apps/desktop/src/components/vault/vaultDrag.ts).
 
 ## Localization and onboarding
 
-Application-owned strings resolve at display time. Errors retain localizable identity or an external reason. School text, names and service messages keep source semantics. OneGUI locale adaptation covers common controls; business UI uses the application dictionary.
+UI copy owned by the application resolves through the locale dictionary at render time, and structured errors carry either a localizable error key or the upstream message from a campus service. Course titles, personal names, and university announcements remain in their original source text. Core controls localize inside OneGUI while feature pages draw from the app dictionary.
 
-Onboarding selects mode-specific explanation/layout and uses real application captures with fictional data. Chinese and English media match their UI language. Pause/offscreen/background/reduced-motion states stop or reduce media/frame work. Public assets exclude real account data.
+Onboarding adapts its copy and layout to the chosen experience mode and showcases real UI recordings populated with fictional sample data, matching visual media to the active Chinese or English interface. Offscreen views, backgrounded windows, paused stages, and reduced-motion preferences suspend video playback and frame timers automatically, and all bundled media stays free of personal account data.
 
 ## Verification and extension
 
-`guard:onegui` and token/contrast/style/geometry guards validate structural contracts. Browser/device acceptance covers clicks, focus, scrolling, orientation, zoom and motion; source checks do not replace WebView results.
+`guard:onegui` alongside the token, contrast, style, and geometry linters verify structural rules in source code, complemented by interactive browser and WebView checks covering click targets, keyboard focus, scroll bounds, orientation changes, zoom, and motion.
 
-New components define semantic roles, variants, states and interaction before entering the library or host recipe. Business services/IDs stay in the app. See [design language](../design-language.md), [historical contract](../../onegui/10-contract.md) and [token entry map](../../tokens-map.md).
+New shared components specify their semantic roles, variants, states, and keyboard/pointer behavior before landing in `packages/gui` or host recipes, keeping campus-specific business logic and IDs inside the app layer. See [design language](../design-language.md), [historical contract](../../onegui/10-contract.md) and [token entry map](../../tokens-map.md).

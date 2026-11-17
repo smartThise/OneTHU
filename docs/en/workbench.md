@@ -1,13 +1,14 @@
 # Your workspace
 
+
 [中文](../workbench.md) · English
 
-Full mode uses a configurable home whiteboard, tabs, OneGO and OneShot. Minimal and practical mode do not display the full whiteboard editor.
+Full mode gives you a customizable home whiteboard alongside tabs, OneGO, and OneShot, whereas Minimal and Practical modes present streamlined task and service views on the home screen.
 
-Home templates provide a starting arrangement. The full-mode default includes the clock, greeting, primary function area and aligned task, course, news and campus-card widgets. Components can be moved, resized or removed. Zoom affects the canvas; wheel scrolling and access to both upper and lower content must remain available.
+Built-in templates help you get started right away: the default Full-mode layout arranges a clock, greeting, primary shortcuts, and aligned widgets for tasks, courses, campus news, and your student card. You can freely move, resize, or remove widgets, zoom the canvas in or out, and scroll smoothly from top to bottom with a mouse wheel or touch gesture.
 
-Enter editing for deliberate component adjustments. Long-press a supported source to lift it, then move or drop it onto a compatible target. A staging drop collects content rather than also changing the original widget position. See [staging](sharing-and-organizations.md).
+Switch into edit mode whenever you want to rearrange your layout. Press and hold any supported item to lift it and drop it onto a compatible target—dropping an item onto the staging box saves a copy while leaving your original widget right where it is. See [staging](sharing-and-organizations.md) for details.
 
-Tabs preserve page context. OneGO resembles a browser bookmark bar on desktop, with overflow items in a menu, per-item actions and reorderable entries. OneShot is the separate set of five clear shortcuts: Study, Reservations, Life, Information and Schedule. Its available customization follows mode policy and appearance/layout settings.
+Tabs keep each open page's scroll position and state alive as you switch tasks. On desktop, OneGO works like a browser bookmark bar with drag-to-reorder entries, per-item actions, and an overflow menu, while OneShot anchors five quick shortcuts along the bottom: Study, Reservations, Life, Information, and Schedule, customizable in Full mode and appearance settings.
 
-Graphite is the default visual theme. Color schemes, material and contrast are coordinated by OneGUI. Refresh, staging, whiteboard controls and OneShot should remain reachable without overlapping. Browser fixtures demonstrate layout; native behavior still needs platform acceptance.
+Graphite serves as the default visual theme, with colors, surface materials, and contrast managed across the app by OneGUI. Floating controls—refresh, the staging box, whiteboard tools, and OneShot—are spaced to stay clear of one another, with layouts verified in both browser previews and native desktop and mobile builds.

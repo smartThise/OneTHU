@@ -1,10 +1,11 @@
 # OneTHU documentation
 
 
+
 [0.11.4-fix-3 release notes](release-0.11.4-fix-3.md) · [CLI and resident runtime](onethu-cli.md)
 [中文](../README.md) · English
 
-This directory describes actual 0.11 modes and capabilities. Older plans and research remain in the full inventory, separate from current user instructions.
+Welcome to the OneTHU 0.11 documentation for users and developers. The guides below cover active 0.11 features, modes, and architecture, while earlier design proposals and research notes are archived in the full document catalog.
 
 ## User guides
 

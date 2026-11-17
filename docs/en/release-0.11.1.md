@@ -1,29 +1,30 @@
 # OneTHU 0.11.1 · Revolution maintenance update
 
+
 [中文](../release-0.11.1.md) · [English](release-0.11.1.md)
 
-This update restores secondary-registration courses and their synchronization on macOS, Windows and Android.
+OneTHU 0.11.1 restores secondary-registration courses and calendar synchronization across macOS, Windows, and Android.
 
-- Secondary timetables accept both Chinese and English week labels, including the school portal’s `week 4` format.
-- The weekly timeline automatically adds secondary courses once the academic calendar is ready.
-- The monthly agenda includes the same secondary courses, dates, session times and details.
-- A retry message appears when the secondary timetable refresh fails, while other courses remain visible.
-- System-calendar sync uses a new complete-semester cache validated against both course sources, preserving existing content on failure.
-- Android uses version 0.11.1 and versionCode 11009, with the existing production signing certificate and stacked logo.
+- Secondary timetables now parse both Chinese and English week labels, including the campus portal's `week 4` format.
+- The weekly timeline merges secondary courses automatically as soon as the academic calendar loads.
+- The monthly agenda displays secondary courses alongside their dates, session times, and room details.
+- If refreshing the secondary timetable fails, a clear retry prompt appears while keeping primary courses visible.
+- System-calendar sync validates a full-semester cache across both course sources and preserves your existing calendar entries if a refresh fails.
+- Android ships as version 0.11.1 (`versionCode` 11009) with the standard production signing certificate and stacked app icon.
 
-After upgrading, refresh in Schedule settings to reload courses. Update detection, GitHub downloads and the Tsinghua cloud mirror are updated with this release.
+After updating, tap Refresh in Schedule settings to pull your complete course list. In-app update checks, GitHub Releases, and the Tsinghua Cloud mirror all serve this build.
 
 ## Phone controls and layout
 
-- Phone navigation offers bottom OneShot shortcuts or a top-left button opening a vertical feature overlay: five entries in Minimal, all primary features in Full and Practical. Each mode saves its own setting; Full and Practical include the choice in onboarding.
-- Board editing retains the current zoom and layout, with clearer controls, Undo and confirmed Restore defaults.
-- Drag the vault toward an edge to dock and half-hide it. Tap once to open it, or drag inward for free placement. Transfers expand the target.
-- Android OH has a more prominent Collapse control.
-- Organization management and editing open above the settings overlay.
-- Update checks keep their loading text and spinner, use bounded source fallback, and support Cancel and Retry in all three modes.
+- Mobile navigation lets you choose between the bottom OneShot bar and a top-left menu button that opens a vertical feature drawer—showing five core shortcuts in Minimal mode and all primary features in Practical and Full modes. Each mode remembers its own preference, and Practical and Full modes let you pick during onboarding.
+- Entering whiteboard Edit mode preserves your current zoom level and layout, pairing clearer toolbars with Undo and a confirmed **Restore defaults** action.
+- Drag the floating temporary box toward a screen edge to dock and tuck it halfway offscreen; tap once to expand it, or drag inward to place it freely. Dragging items toward a docked box automatically pops it open.
+- Android OH features a clearer **Collapse** button.
+- Organization management and editing sheets now layer cleanly above the Settings overlay.
+- Software-update checks keep a steady loading label and spinner across mirror fallbacks, with **Cancel** and **Retry** available in all three experience modes.
 
 ## Revised installers · October 22
 
-Widget previews now use isolated, read-only data scopes. Sample courses, assignments and files remain within the preview while live searches and background refreshes use account data. All three installers include this fix.
+Whiteboard widget previews now run inside isolated, read-only data scopes so sample courses, assignments, and files stay strictly inside the preview while global search and background sync continue using your real account data. All three platform installers have been refreshed with this fix.
 
-If you already installed 0.11.1, download it again and install over your current version to retain data. Older clients compare version numbers and do not notify about same-version revisions. Android versionCode is now 11009.
+If you installed an earlier 0.11.1 build, download the October 22 installer and install it directly over your current app to keep all local settings and data—in-app update checks compare version numbers only, and Android's `versionCode` is now 11009.

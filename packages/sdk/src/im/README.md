@@ -20,55 +20,22 @@ await gateway.configure('feishu', {
 await gateway.start();
 ```
 
-`dispatch` receives `{eventId,channel,senderId,chatId,account,text,timestamp}`.
-Returning a nonempty string sends one reply. Alternatively, call `reply(text)`
-explicitly and return no string. Neither tokens nor platform context are supplied
-to the handler. `reply` returns the notification receipt, including unknown status.
+`dispatch` receives `{eventId,channel,senderId,chatId,account,text,timestamp}` — a clean event payload keeping credentials and platform tokens internal to the gateway. Return a non-empty string to send a single reply, or call `reply(text)` directly when managing replies yourself; `reply` returns the notification receipt, including `unknown` outcomes.
 
-WeChat configuration is
-`{credentials:{botToken,baseUrl?,contextToken?},binding:{account,senderId}}`.
-Only the current official iLink origin is accepted. An initial context is optional
-for receiving. A message from the bound sender refreshes the outbound context.
-The source token must already be bound; this module adds no QR login flow.
+WeChat configuration takes `{credentials:{botToken,baseUrl?,contextToken?},binding:{account,senderId}}`, using an already-bound token against the official iLink origin (initial QR login happens beforehand in the client). `contextToken` is optional when starting inbound polling, and each incoming message from the bound sender refreshes the outbound context automatically.
 
-Methods: `configure(channel,config,{confirm:true})`, `remove(channel,{confirm:true})`,
-`start(channel?)`, `stop(channel?)`, `status()` / `list()`, `close()`.
-Configuration is separate from starting a live gateway. Startup requires that the
-current logged-in account matches the explicitly bound school account. The first
-message never binds a new sender. Changing a binding requires local confirmation.
-Reconfiguration cancels the prior connection and in-flight handlers. `start()`
-skips bindings for other accounts; explicitly starting a mismatched channel fails.
-`stop()` applies to the current process; `remove()` permanently removes a binding.
+Lifecycle methods include `configure(channel,config,{confirm:true})`, `remove(channel,{confirm:true})`, `start(channel?)`, `stop(channel?)`, `status()` / `list()`, and `close()`. Senders are bound ahead of time via locally confirmed `configure` calls, and updating a binding cancels any active connection and in-flight handlers for that channel. `start()` brings up live connections once the active logged-in account matches the bound school account: calling `start()` with no argument skips bindings belonging to other accounts, while targeting a specific mismatched channel throws an error. `stop()` pauses polling in the current process, whereas `remove()` deletes the stored binding.
 
-Protocols:
+Transport protocols:
 
-- WeChat uses `getupdates`, the existing iLink headers, durable `get_updates_buf`,
-  and the App's `-14` one-hour suspension. It cancels pending long polls on stop.
-- Feishu uses `/callback/ws/endpoint`, the existing protobuf framing, ping/pong,
-  bounded multipart reassembly and ACKs after durable message admission. Exact
-  uint64 sequence/log IDs survive round trips. Node uses the `ws` package.
-- Both use exponential reconnect backoff. Endpoint redirects are refused. Feishu
-  WebSocket discoveries must use WSS on `feishu.cn` or its subdomains.
+- **WeChat** polls `getupdates` with the standard iLink headers, persists `get_updates_buf` across restarts, honors the `-14` one-hour session suspension, and aborts pending long polls on `stop()`.
+- **Feishu** connects via `/callback/ws/endpoint` (over Node's `ws` package) using protobuf framing, ping/pong heartbeats, bounded multipart reassembly, and post-admission ACKs, preserving exact `uint64` sequence and log IDs across round trips.
+- Both transports reconnect with exponential backoff, reject HTTP redirects, and require Feishu WebSocket endpoints to resolve to `wss://` on `feishu.cn` or its subdomains.
 
-Only prebound personal text chats are accepted. Group messages, other senders,
-bot echoes and unsupported media/rich message types are ignored. Event records
-are persisted before dispatch; repeated deliveries and restarts do not rerun
-claimed/finished/failed/cancelled events. A process crash during a handler leaves
-an unknown outcome; it is deliberately not replayed automatically.
+The gateway processes direct text messages from the bound personal chat and ignores group chats, other senders, bot echoes, and media or rich-text payloads. Incoming events are written to disk before `dispatch` runs so duplicate deliveries or restarts skip events that were already claimed, completed, failed, or cancelled; if the process crashes mid-handler, the event stays marked with an unknown outcome for manual inspection without re-running automatically.
 
-Handlers are serialized per channel with at most 64 admitted events waiting.
-The default handler budget is 120 seconds, capped at 150 seconds. An account
-change is checked on every admission/reply, with a one-second active-task check.
-Cancellation signals and the final `assertBound` check must reach actual remote
-writes; JavaScript handlers cannot be forcibly rolled back after a request.
+Events run sequentially per channel with a queue cap of 64 admitted items and a 120-second default timeout (up to 150 seconds). The gateway verifies the active school account on every admission and reply as well as once per second while a handler is running. Pass `signal` and `assertBound` all the way to final remote writes so account switches or cancellations stop outbound mutations before they are sent.
 
-The caller owns the enclosing SDK data-directory lock. Credentials and transport
-state are private local JSON under `dataDir/im`, using the notification store's
-permissions/ACL protections. Public status excludes credentials and targets.
-Optional `fetch`, `webSocketFactory`, `onStatus`, `handlerTimeoutMs`, `reconnectMs`
-and `pollTimeoutMs` are factory options for adapters and deterministic tests.
+The caller holds the enclosing SDK data-directory lock. Credentials and transport cursors live as private local JSON under `dataDir/im` with the same file-permission and ACL protections as the notification store, while `status()` / `list()` expose operational state with credentials and target IDs omitted. Factory options `fetch`, `webSocketFactory`, `onStatus`, `handlerTimeoutMs`, `reconnectMs`, and `pollTimeoutMs` let adapters and deterministic tests customize networking and timing.
 
-`node --test packages/sdk/test/im.test.mjs` runs real local HTTP/WebSocket fixtures
-for filtering, replies, durable cursor/dedup, cancellation, suspension, fragments,
-ACKs, reconnect and endpoint refusal. No real model/IM message has been sent.
-Windows and real-account live acceptance remain outstanding.
+Run `node --test packages/sdk/test/im.test.mjs` to exercise filtering, replies, durable cursors and deduplication, cancellation, `-14` suspension, multipart fragments, ACKs, reconnect backoff, and endpoint validation against local HTTP and WebSocket fixtures. End-to-end verification on Windows hosts and live Feishu/WeChat accounts can be performed separately in target environments.
