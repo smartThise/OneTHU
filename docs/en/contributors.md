@@ -1,8 +1,9 @@
 # Contributors
 
+
 [中文](../contributors.md) · English
 
-Snapshot of `dev3` history. **Major contributor** means more than **10,000 cumulative added source-code lines**, excluding merge duplication, generated/vendor code, localization dictionaries, fixtures and non-code files. GitHub identities are combined when resolvable. All authors and recorded coauthors remain listed; unresolvable aliases may remain separate. Line counts are not a measure of contribution quality.
+Compiled from reachable `dev3` Git history. **Major contributor** recognizes contributors with more than **10,000 cumulative added source-code lines** across non-merge commits (excluding generated or vendor code, localization dictionaries, test fixtures, and non-code files). Resolvable GitHub identities are merged automatically, and all commit authors and credited coauthors are included together. Line counts reflect code volume only—every contribution in design, testing, documentation, and issue reporting matters just as much.
 
 | Contributor | Added code lines | Non-merge commits | Role |
 |---|---:|---:|---|
@@ -20,4 +21,4 @@ Snapshot of `dev3` history. **Major contributor** means more than **10,000 cumul
 Source commit: `6f89b1387bacbf6da90de2335c61ed39448aaee5`
 Generated: 2026-10-21T05:31:26.358154+00:00
 
-Regenerate with `python3 tools/contributors-report.py`. Public output does not include author emails.
+Regenerate with `python3 tools/contributors-report.py` (emails are omitted for privacy).

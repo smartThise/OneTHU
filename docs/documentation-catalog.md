@@ -2,10 +2,11 @@
 
 中文 · [English](en/documentation-catalog.md)
 
-现行指南与类型生成清单优先于旧计划。历史记录保留证据，不代表发布承诺；详细研究保持原文。通过 `node tools/docs-catalog.mjs` 重新生成目录。
+日常使用与开发请优先参考现行指南与自动生成的 API 清单；早期的设计草案、专题调研与阶段验收记录按原文归档备查。可通过 `node tools/docs-catalog.mjs` 重新生成本索引。
 
 | 文档 | 状态 |
 |---|---|
+| [adr/2026-10-29-optional-cli-services.md](adr/2026-10-29-optional-cli-services.md) | 历史计划/研究/验收证据 |
 | [android-release-traps.md](android-release-traps.md) | 现行说明/工程参考 |
 | [anim-delight-handoff.md](anim-delight-handoff.md) | 历史计划/研究/验收证据 |
 | [api-reference.md](api-reference.md) | 现行说明/工程参考 |
@@ -29,8 +30,17 @@
 | [en/getting-started.md](en/getting-started.md) | 现行英文说明 |
 | [en/index.md](en/index.md) | 现行英文说明 |
 | [en/oh-and-xiaoda.md](en/oh-and-xiaoda.md) | 现行英文说明 |
+| [en/oh-app-services.md](en/oh-app-services.md) | 现行英文说明 |
+| [en/onethu-cli.md](en/onethu-cli.md) | 现行英文说明 |
 | [en/plugin-development.md](en/plugin-development.md) | 现行英文说明 |
 | [en/privacy-and-troubleshooting.md](en/privacy-and-troubleshooting.md) | 现行英文说明 |
+| [en/release-0.11.1.md](en/release-0.11.1.md) | 现行英文说明 |
+| [en/release-0.11.2.md](en/release-0.11.2.md) | 现行英文说明 |
+| [en/release-0.11.3.md](en/release-0.11.3.md) | 现行英文说明 |
+| [en/release-0.11.4-fix-1.md](en/release-0.11.4-fix-1.md) | 现行英文说明 |
+| [en/release-0.11.4-fix-2.md](en/release-0.11.4-fix-2.md) | 现行英文说明 |
+| [en/release-0.11.4-fix-3.md](en/release-0.11.4-fix-3.md) | 现行英文说明 |
+| [en/release-0.11.4.md](en/release-0.11.4.md) | 现行英文说明 |
 | [en/release-0.11.md](en/release-0.11.md) | 现行英文说明 |
 | [en/schedule-and-sync.md](en/schedule-and-sync.md) | 现行英文说明 |
 | [en/screenshots.md](en/screenshots.md) | 现行英文说明 |
@@ -59,6 +69,7 @@
 | [memory-cloud/03-sync-conflict.md](memory-cloud/03-sync-conflict.md) | 历史计划/研究/验收证据 |
 | [memory-cloud/README.md](memory-cloud/README.md) | 历史计划/研究/验收证据 |
 | [oh-and-xiaoda.md](oh-and-xiaoda.md) | 现行说明/工程参考 |
+| [oh-app-services.md](oh-app-services.md) | 历史计划/研究/验收证据 |
 | [onegui/00-plan.md](onegui/00-plan.md) | 历史计划/研究/验收证据 |
 | [onegui/01-ui-inventory.md](onegui/01-ui-inventory.md) | 历史计划/研究/验收证据 |
 | [onegui/02-style-pipeline.md](onegui/02-style-pipeline.md) | 历史计划/研究/验收证据 |
@@ -76,6 +87,7 @@
 | [onegui/onboarding-autoplay-2026-10-20/README.md](onegui/onboarding-autoplay-2026-10-20/README.md) | 历史计划/研究/验收证据 |
 | [onegui/onboarding-motion-2026-10-20/before/README.md](onegui/onboarding-motion-2026-10-20/before/README.md) | 历史计划/研究/验收证据 |
 | [onegui/onboarding-motion-2026-10-20/README.md](onegui/onboarding-motion-2026-10-20/README.md) | 历史计划/研究/验收证据 |
+| [onegui/onboarding-phone-model.md](onegui/onboarding-phone-model.md) | 历史计划/研究/验收证据 |
 | [onegui/private-sharing-2026-10-20/README.md](onegui/private-sharing-2026-10-20/README.md) | 历史计划/研究/验收证据 |
 | [onegui/short-share-codes/README.md](onegui/short-share-codes/README.md) | 历史计划/研究/验收证据 |
 | [onegui/theme-home/README.md](onegui/theme-home/README.md) | 历史计划/研究/验收证据 |
@@ -84,6 +96,7 @@
 | [onegui/vault-radar-2026-10-20/README.md](onegui/vault-radar-2026-10-20/README.md) | 历史计划/研究/验收证据 |
 | [onegui/vault-refinement-2026-10-20/README.md](onegui/vault-refinement-2026-10-20/README.md) | 历史计划/研究/验收证据 |
 | [onegui/workbench/README.md](onegui/workbench/README.md) | 历史计划/研究/验收证据 |
+| [onethu-cli.md](onethu-cli.md) | 历史计划/研究/验收证据 |
 | [plans/2026-10-17-onegui-exp.md](plans/2026-10-17-onegui-exp.md) | 历史计划/研究/验收证据 |
 | [plans/2026-10-17-onegui-workbench.md](plans/2026-10-17-onegui-workbench.md) | 历史计划/研究/验收证据 |
 | [plans/2026-10-17-theme-home-canvas.md](plans/2026-10-17-theme-home-canvas.md) | 历史计划/研究/验收证据 |
@@ -120,15 +133,43 @@
 | [plans/2026-10-21-home-first-open.md](plans/2026-10-21-home-first-open.md) | 历史计划/研究/验收证据 |
 | [plans/2026-10-21-localized-preview-media.md](plans/2026-10-21-localized-preview-media.md) | 历史计划/研究/验收证据 |
 | [plans/2026-10-21-login-public-key.md](plans/2026-10-21-login-public-key.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-21-login-two-factor-language.md](plans/2026-10-21-login-two-factor-language.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-21-mobile-board-edit.md](plans/2026-10-21-mobile-board-edit.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-21-mobile-shell-widgets.md](plans/2026-10-21-mobile-shell-widgets.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-21-permissions-prelude.md](plans/2026-10-21-permissions-prelude.md) | 历史计划/研究/验收证据 |
 | [plans/2026-10-21-profile-cloud-sync.md](plans/2026-10-21-profile-cloud-sync.md) | 历史计划/研究/验收证据 |
 | [plans/2026-10-21-public-site-docs.md](plans/2026-10-21-public-site-docs.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-21-release-0.11-revolution.md](plans/2026-10-21-release-0.11-revolution.md) | 历史计划/研究/验收证据 |
 | [plans/2026-10-21-windows-login-freeze.md](plans/2026-10-21-windows-login-freeze.md) | 历史计划/研究/验收证据 |
 | [plans/2026-10-21-xiaoda-oh-skills.md](plans/2026-10-21-xiaoda-oh-skills.md) | 历史计划/研究/验收证据 |
 | [plans/2026-10-21-xiaoda-onboarding.md](plans/2026-10-21-xiaoda-onboarding.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-22-mobile-repair-round3.md](plans/2026-10-22-mobile-repair-round3.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-22-preview-data-isolation.md](plans/2026-10-22-preview-data-isolation.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-22-release-0.11.2.md](plans/2026-10-22-release-0.11.2.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-24-onethu-cli.md](plans/2026-10-24-onethu-cli.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-24-standalone-cli-sdk.md](plans/2026-10-24-standalone-cli-sdk.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-25-cli-validation.md](plans/2026-10-25-cli-validation.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-25-unified-resident-runtime.md](plans/2026-10-25-unified-resident-runtime.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-26-oh-app-capabilities.md](plans/2026-10-26-oh-app-capabilities.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-26-pr58-integration.md](plans/2026-10-26-pr58-integration.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-26-release-0.11.4.md](plans/2026-10-26-release-0.11.4.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-26-yuketang-agent-access.md](plans/2026-10-26-yuketang-agent-access.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-27-release-0.11.4-fix-1.md](plans/2026-10-27-release-0.11.4-fix-1.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-27-session-recovery-repair.md](plans/2026-10-27-session-recovery-repair.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-29-fix-2-runtime.md](plans/2026-10-29-fix-2-runtime.md) | 历史计划/研究/验收证据 |
+| [plans/2026-10-29-nextthulearn-release.md](plans/2026-10-29-nextthulearn-release.md) | 历史计划/研究/验收证据 |
 | [plugin-development.md](plugin-development.md) | 现行说明/工程参考 |
 | [privacy-and-troubleshooting.md](privacy-and-troubleshooting.md) | 现行说明/工程参考 |
 | [README.md](README.md) | 现行说明/工程参考 |
+| [release-0.11.1.md](release-0.11.1.md) | 历史计划/研究/验收证据 |
+| [release-0.11.2.md](release-0.11.2.md) | 历史计划/研究/验收证据 |
+| [release-0.11.3.md](release-0.11.3.md) | 历史计划/研究/验收证据 |
+| [release-0.11.4-fix-1.md](release-0.11.4-fix-1.md) | 历史计划/研究/验收证据 |
+| [release-0.11.4-fix-2.md](release-0.11.4-fix-2.md) | 历史计划/研究/验收证据 |
+| [release-0.11.4-fix-3.md](release-0.11.4-fix-3.md) | 历史计划/研究/验收证据 |
+| [release-0.11.4.md](release-0.11.4.md) | 历史计划/研究/验收证据 |
 | [release-0.11.md](release-0.11.md) | 现行说明/工程参考 |
+| [reports/2026-10-29-fix-2-runtime-audit.md](reports/2026-10-29-fix-2-runtime-audit.md) | 历史计划/研究/验收证据 |
 | [research/2026-10-18-mobile-drag-nfc.md](research/2026-10-18-mobile-drag-nfc.md) | 历史计划/研究/验收证据 |
 | [research/2026-10-18-seafile-vault-capabilities.md](research/2026-10-18-seafile-vault-capabilities.md) | 历史计划/研究/验收证据 |
 | [reviews/2026-10-20-caldav-review.md](reviews/2026-10-20-caldav-review.md) | 历史计划/研究/验收证据 |
@@ -150,6 +191,30 @@
 | [reviews/2026-10-20-updater-audit.md](reviews/2026-10-20-updater-audit.md) | 历史计划/研究/验收证据 |
 | [reviews/2026-10-21-localized-preview-media.md](reviews/2026-10-21-localized-preview-media.md) | 历史计划/研究/验收证据 |
 | [reviews/2026-10-21-public-site-docs.md](reviews/2026-10-21-public-site-docs.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-22-android-session-wallpaper-tablet.md](reviews/2026-10-22-android-session-wallpaper-tablet.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-22-board-add-touch.md](reviews/2026-10-22-board-add-touch.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-22-desktop-oh-lifecycle.md](reviews/2026-10-22-desktop-oh-lifecycle.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-22-learning-glass.md](reviews/2026-10-22-learning-glass.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-22-mobile-navigation-correction.md](reviews/2026-10-22-mobile-navigation-correction.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-22-mobile-repair-round3.md](reviews/2026-10-22-mobile-repair-round3.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-22-news-language.md](reviews/2026-10-22-news-language.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-22-preview-data-isolation.md](reviews/2026-10-22-preview-data-isolation.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-22-release-0.11.1.md](reviews/2026-10-22-release-0.11.1.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-22-release-0.11.2.md](reviews/2026-10-22-release-0.11.2.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-22-secondary-schedule.md](reviews/2026-10-22-secondary-schedule.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-22-update-reminder.md](reviews/2026-10-22-update-reminder.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-23-auth-gateway-trust.md](reviews/2026-10-23-auth-gateway-trust.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-23-release-0.11.3.md](reviews/2026-10-23-release-0.11.3.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-26-cloud-autoconnect-recovery.md](reviews/2026-10-26-cloud-autoconnect-recovery.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-26-oh-app-capabilities.md](reviews/2026-10-26-oh-app-capabilities.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-26-pr58-integration.md](reviews/2026-10-26-pr58-integration.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-26-pr58-review.md](reviews/2026-10-26-pr58-review.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-26-rain-wechat-recovery.md](reviews/2026-10-26-rain-wechat-recovery.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-26-release-0.11.4.md](reviews/2026-10-26-release-0.11.4.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-26-yuketang-agent-access.md](reviews/2026-10-26-yuketang-agent-access.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-27-release-fix1.md](reviews/2026-10-27-release-fix1.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-27-session-recovery-repair.md](reviews/2026-10-27-session-recovery-repair.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-10-29-release-fix3.md](reviews/2026-10-29-release-fix3.md) | 历史计划/研究/验收证据 |
 | [reviews/schedule-layout-2026-10-20/README.md](reviews/schedule-layout-2026-10-20/README.md) | 历史计划/研究/验收证据 |
 | [schedule-and-sync.md](schedule-and-sync.md) | 现行说明/工程参考 |
 | [screenshots.md](screenshots.md) | 现行说明/工程参考 |

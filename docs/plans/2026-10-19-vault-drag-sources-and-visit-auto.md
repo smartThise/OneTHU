@@ -1,9 +1,9 @@
 # 暂存箱长按来源大补 + 文件自动缓存 + 日程可选入日程 + OH 自动报备（2026-10-19）
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
 
+> 归档说明：本文记录当时的设计方案与阶段性验收情况；0.11 当前功能与使用指南请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
-用户原话：
+本轮围绕暂存箱拖入体验与来访报备自动化集中补齐能力，用户原话反馈如下：
 - 「手机上怎么长按拖动没有雷达弹出」；
 - 「补充几个基础的应该被拖动放到暂存箱的东西：任意一个日程（时间块）；云盘里的任意一个文件夹和文件；
   课程里面通知、作业里任意具体的附件；新闻里的文件附件；任意一个 gitlab 项目；任意一个在标签页栏的
@@ -14,7 +14,7 @@
 
 ## 暂存箱长按来源
 
-新增 `lib/vaultCatch.ts`（统一构造 `data-vault-catch`）：
+新增 `lib/vaultCatch.ts`，统一构造 `data-vault-catch` 拖拽载荷：
 
 | 来源 | 文件 | 拖入后的行为 |
 | --- | --- | --- |
@@ -27,43 +27,31 @@
 | 桌面标签页 | `TabStrip.tsx` | 点开回到该页 |
 | 工作区 | `TabDrawer.tsx` / `OneGoSheet.tsx` | 点开恢复工作区 |
 
-- OneGUI `Row` / `Card` 现在会透传 `data-*`（`kit.tsx` 的 `pickDataAttrs`）——以前属性直接被组件吞掉；
-- 手机长按：`longPressSlop` 触摸放宽到 14px（手指抖动不再被当成滚动取消），并在长按期间吞掉
-  Android 原生 contextmenu（否则系统「复制/全选」菜单会掐断指针）。
+- OneGUI 的 `Row` 与 `Card` 组件现已支持透传 `data-*` 属性（通过 `kit.tsx` 的 `pickDataAttrs`），解决了此前自定义数据属性在组件封装层丢失的问题。
+- 手机端长按手势将触摸容差 `longPressSlop` 放宽至 14px，避免手指轻微晃动触发滚动取消；同时在长按期间屏蔽 Android 原生 contextmenu，防止系统「复制/全选」菜单中断指针事件。
 
 ## 文件自动缓存
 
-`lib/vaultRemote.ts`：
+`lib/vaultRemote.ts` 串联起文件下载与暂存箱云盘缓存链路：
 
-1. 云盘文件用 `seafile_download`；附件用 `downloadLearnUrl`；
-2. `read_file_base64` 读字节 → `crypto.subtle` 算 SHA-256 → 回写暂存箱条目
-   （`state/vault.updateVaultItem`，含 size/mime/hash/stagedPath）；
-3. `state/vaultCloud.cacheVaultFiles()` 把仍有 `stagedPath` 的条目上传到 OneTHU 资料库
-   `/Vault/cache` 并回写 `cloudPath`；
-4. 云盘未连接/浏览器预览时保留引用并提示「已加入暂存箱；缓存失败…」，不丢内容。
+1. 云盘文件调用 `seafile_download` 拉取，课程与新闻附件调用 `downloadLearnUrl` 下载；
+2. 通过 `read_file_base64` 读取文件字节并用 `crypto.subtle` 计算 SHA-256，随后经 `state/vault.updateVaultItem` 回写暂存箱条目元数据（含 size/mime/hash/stagedPath）；
+3. `state/vaultCloud.cacheVaultFiles()` 将带有 `stagedPath` 的条目上传至 OneTHU 资料库 `/Vault/cache` 目录，并回写 `cloudPath`；
+4. 若当前未连接云盘或处于纯浏览器预览环境，则保留原始引用并提示「已加入暂存箱；缓存失败…」，确保条目内容始终稳妥留存。
 
 ## 日程拖入后可加入我的日程
 
-`vaultCatchSchedule` 带 `startMs/endMs`（列表日程来自条目，周时间块来自当天日期）；
-`vaultRegistry` 打开日程快照时调用 `offerScheduleToCalendar()`：
-`confirmChoice("添加到我的日程？" / [添加到日程] [先留在暂存箱])`，选添加走
-`putLocalEvent`（缺省 09:00–10:00，可再编辑）。
+`vaultCatchSchedule` 附带 `startMs/endMs` 时间信息（列表视图取自条目时间，周视图时间块取自对应日期）；在 `vaultRegistry` 中点开日程快照时会调用 `offerScheduleToCalendar()`，弹出 `confirmChoice("添加到我的日程？" / [添加到日程] [先留在暂存箱])` 供用户选择。确认添加后调用 `putLocalEvent` 写入本地日程（缺省时段为 09:00–10:00，支持后续编辑）。
 
 ## 来访报备自动 + OH 可操作
 
-- `state/visitDraft.ts`：`requestVisitDraft(patch, { submit?: boolean })`，新增 `pendingSubmit` /
-  `peekVisitAutoSubmit()`；
-- `VisitTab`：消费草稿时若带 submit，自动勾选确认并置 `autoSubmit`；模型就绪后直接 `submit()`，
-  不再要求用户手点（默认仍只填草稿，保持可核对）；
-- `facade.visit.fill(patch, { submit: true })` 透传；
-- Rust Harness 新增工具 **`visit_fill`**（`plugins/OneTHU-Harness/core/src/tools.rs`）：
-  默认草稿，`submit: true` 时委托 `visit.fill` 自动提交；子模块已构建并推送
-  （`OneTHU-Harness` f7eb971）。
+- `state/visitDraft.ts`：`requestVisitDraft(patch, { submit?: boolean })` 新增 `pendingSubmit` 状态与 `peekVisitAutoSubmit()` 读取接口；
+- `VisitTab`：消费草稿时若带有 `submit` 标记，会自动勾选确认项并置位 `autoSubmit`，待页面模型就绪后直接执行 `submit()` 提交，无需手动补点（未传 `submit` 时默认仅填充草稿，方便人工核对）；
+- `facade.visit.fill(patch, { submit: true })` 完整透传自动提交参数；
+- Rust Harness 新增 **`visit_fill`** 工具（位于 `plugins/OneTHU-Harness/core/src/tools.rs`），默认填充草稿，传入 `submit: true` 时委托 `visit.fill` 完成自动提交；子模块已完成构建并推送（`OneTHU-Harness` `f7eb971`）。
 
 ## 测试
 
-- 新增 `tools/vault-catch-browser-test.mjs` 6 条：云盘/文件/标签页 `data-vault-catch`、
-  CDP 触摸长按 → 雷达浮出 → 拖入暂存箱计数 +1、无运行时错误；
-- 静态守卫扩：所有来源文件含 `data-vault-catch`、registry 含各 kind、文件缓存链路、
-  日程二选一、visitDraft/facade/VisitTab/Rust visit_fill；
-- `pnpm guard` 全绿。
+- 新增浏览器回归 `tools/vault-catch-browser-test.mjs` 共 6 条用例，覆盖云盘、文件与标签页的 `data-vault-catch` 挂载、CDP 触摸长按呼出雷达、拖入暂存箱计数递增以及运行期零报错；
+- 扩展静态守卫，核验全部来源文件的 `data-vault-catch` 声明、registry 各 kind 注册、文件缓存链路、日程弹窗二选一逻辑，以及 visitDraft/facade/VisitTab/Rust `visit_fill` 接线；
+- `pnpm guard` 全量通过。

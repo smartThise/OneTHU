@@ -1,9 +1,8 @@
 # @onethu/gui —— OneGUI
 
-**One GUI to rule them all.** OneTHU 的**唯一** UI 来源：令牌、风格管线、组件、页面模式、护栏。
+**One GUI to rule them all.** OneTHU 的**唯一** UI 来源：令牌、风格管线、组件、页面模式与质量护栏。
 
-数据层已经由 `@onethu/core`（OneTHU SDK）统一：任何校园服务都从同一条会话管线取数。
-这个包做同一件事，只是对象换成**外观**：任何界面都从同一条风格管线取样式。
+正如 `@onethu/core` 收拢校园客户端、`@onethu/sdk` 收拢独立服务运行时（详见[系统架构](../../docs/architecture.md)），`@onethu/gui` 在**视觉外观**层承担同样的统一职责：任何宿主界面都从同一条风格管线获取样式。
 
 ```
 令牌（唯一色值落地处）
@@ -15,10 +14,10 @@
 
 ## 铁律
 
-1. 应用代码里**不允许**出现颜色、间距、圆角、字号、阴影、动效时长、自造 class、inline style 样式。
-2. 组件只接受**意图**，不接受样式。任何"这次特殊"要么变成组件枚举变体，要么在管线里注册 scope。
-3. 皮肤不是另一套 CSS，而是**同一组语义令牌的另一种取值**；换皮肤组件零改动。
-4. 组件内只允许引用 `--og-*` 语义令牌；`--og-ref-*` 只有 `tokens/semantic.css` 能用。
+1. 应用代码专注结构与交互逻辑，所有颜色、间距、圆角、字号、阴影与动效时长均由 `@onethu/gui` 统一供给，业务侧保持零自造 class、零硬编码视觉值与零 inline style。
+2. 组件只接收**语义意图**（如 `tone`、`level`、`size`、`emphasis`）。遇到特殊视觉需求时，通过新增组件枚举变体或在风格管线中注册专用 scope 来承载。
+3. 每套皮肤都是**同一组语义令牌上的不同取值映射**，切换皮肤时组件代码零改动。
+4. 组件内部统一引用 `--og-*` 语义令牌；底层 `--og-ref-*` 参考色值仅供 `tokens/semantic.css` 消费。
 
 ## 用法
 
@@ -48,10 +47,10 @@ import { OneGUIProvider, Btn, Card, Row, SettingsList } from "@onethu/gui";
 
 ## exp 视觉体系（2026-10-17）
 
-参考色值只有 `src/tokens/reference.css` 一处。语义角色、结构刻度、材质公式、组件和宿主配方逐层消费，任何层不得再定义字面颜色。`pnpm guard:onegui` 包含调色板单源、scope、主题往返与语义对比度验证。
+全包字面色值统一收敛在 `src/tokens/reference.css` 一处，由语义角色、结构刻度、材质公式、组件与宿主配方逐层消费。运行 `pnpm guard:onegui` 会自动校验调色板单源约束、scope 边界、主题往返一致性与语义对比度。
 
-主操作读取 `--og-action / --og-action-on`，与主题强调色 `--og-accent-*` 分离。默认外观跟随明暗反转黑白动作；主题只改变强调标识。玻璃的四档仅改变材质透明度，输入与设置保持实面。
+主操作按钮读取 `--og-action / --og-action-on`，与主题强调色 `--og-accent-*` 解耦：默认外观下主操作随明暗模式在黑白之间翻转，主题色专用于强调标识；玻璃皮肤的四档强度仅调节背景材质透明度，输入与设置区域始终保持实色底面以保证可读性。
 
-OneTHU 宿主在 `gui.css` 后导入 `@onethu/gui/onethu.css`。该文件拥有兼容别名与壳层配方，应用只保留布局和行为。`og-device-*` 是该配方公开的开发取景框槽位，不允许应用另写同名样式。
+OneTHU 宿主在引入 `gui.css` 后继续加载 `@onethu/gui/onethu.css`，由该文件统一承载兼容别名与壳层配方，应用层仅保留布局与交互行为。其中 `og-device-*` 为该配方公开的开发取景框槽位，直接复用即可。
 
-详细角色、验收和迁移余量见 `docs/onegui/20-exp-system.md`。
+详细角色定义、验收标准与迁移进展见 `docs/onegui/20-exp-system.md`。

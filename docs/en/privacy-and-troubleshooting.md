@@ -1,27 +1,28 @@
 # Privacy and troubleshooting
 
+
 [中文](../privacy-and-troubleshooting.md) · English
 
-Account sessions, locally stored preferences, campus responses, cloud files and model requests have different storage and transmission paths. A unified interface does not imply a universal shared account or that every service is offline/local. Model providers receive the request content and attachments supplied to them.
+OneTHU brings campus services, cloud sync, and AI tools into one workspace while keeping each service's data path distinct: UI preferences stay local on your device, university sessions talk directly to Tsinghua servers, cloud libraries sync with Tsinghua Cloud or GitLab when enabled, and AI providers receive only the prompts and attachments you include in a turn.
 
-Public screenshots use isolated fictional fixtures. Never share passwords, cookies, tokens, QR codes, full authentication redirects or private campus records in an issue. Export diagnostics only after reviewing and redacting them.
+Public screenshots are captured entirely from fictional fixture data. When opening an issue or sharing feedback, always review and redact exported diagnostics first—keeping passwords, session cookies, tokens, QR codes, full SSO redirect URLs, and personal academic records private.
 
 ## Login problems
 
-Use the exact app version and platform when comparing failures. Public-key retrieval can fail because the authentication response is not the expected key, a session/challenge changed, the service is unavailable, or account trust factors require attention. Do not classify every such failure as a proxy issue. Preserve second-factor context and avoid repeated refreshes, resends or new fingerprint creation. An account-side trust-factor limit requires the appropriate account flow.
+When troubleshooting sign-in issues, note the exact OneTHU version and OS. Public-key lookup can fail if the campus server returns an HTML prompt instead of a key, a verification challenge expires, upstream services are under maintenance, or your account has reached its trusted-device limit—so check the specific error stage alongside any proxy settings. Stay within the same 2FA challenge flow while entering a code, and if your trusted-device list is full, manage registered devices on the official Tsinghua account portal.
 
-Windows interaction freezes are different from a pending network request: check whether buttons, input, refresh and second-factor fields respond. Proxy/TUN state is useful diagnostic context but not a sufficient explanation. Avoid including credential values in logs.
+On Windows, check whether a hang is an unresponsive UI or a slow network request by testing whether buttons, text fields, refresh controls, and 2FA inputs still react to clicks and typing; include VPN or TUN proxy settings as helpful context while keeping credentials out of logs.
 
-The sign-in rebuild fixes recognition of the university's title-only two-factor page. The `unexpected-page / credential-entry` classification alone does not reveal whether credentials were submitted. On Windows, press Win + R and open `%APPDATA%\app.onethu.desktop\logs`; collect the failure's AUTH-PHASE, AUTH-FAIL, ILIB and NATIVE-HOP lines from `onethu-debug.log`, without passwords, codes, cookies or page bodies. Chrome/79 in the summary is the application's configured User-Agent, not the actual WebView2 engine version.
+Recent sign-in updates properly detect Tsinghua's title-only 2FA prompt. Note that `unexpected-page / credential-entry` logs indicate which page shape appeared at that step independently of whether credentials were submitted. On Windows, press `Win + R`, open `%APPDATA%\app.onethu.desktop\logs`, and copy the relevant `AUTH-PHASE`, `AUTH-FAIL`, `ILIB`, and `NATIVE-HOP` lines from `onethu-debug.log` (omitting any passwords, codes, cookies, or HTML bodies). `Chrome/79` in log headers reflects OneTHU's configured compatibility User-Agent string while WebView2 runs the system's current browser runtime.
 
 ## Cloud ownership and conflicts
 
-An unknown library owner pauses automatic creation, deletion and synchronization. Confirm the correct account and current native/client behavior before resuming; do not create duplicate empty libraries. A delete control is destructive and should identify the actual target. Compatible changes merge; genuinely incompatible records require an understandable explicit choice.
+Whenever a cloud library's owner cannot be verified against the active account, OneTHU pauses automatic creation, deletion, and sync so you can confirm the signed-in account and avoid creating duplicate empty libraries. Delete prompts always name the exact target resource, compatible edits merge automatically, and conflicting records ask you to choose which version to keep.
 
-Organization permissions and cross-device membership need real remote verification. Fixture tests and a single account do not prove two-account propagation. Follow the separately retained live-test entry.
+To verify organization permissions and cross-device collaboration end-to-end, test with two real accounts against live remote repositories following the multi-account verification guide.
 
 ## Updates and recovery
 
-In-page refresh reloads service data; the floating force-refresh path has broader recovery behavior. Repeatedly forcing reload is not an authentication strategy. Vite development hot reload is not production hot update; this project does not promise dynamic native-code or production-patch delivery.
+In-page refresh reloads data for the current service, while the floating refresh button resets broader view state; if your session has expired, follow the sign-in prompt to re-authenticate cleanly. Production updates ship as full, signed installers—Vite hot reload applies only to local frontend development.
 
-For a report include version, OS, experience mode, steps, observed/expected result and redacted diagnostics. Schools, model providers, notification permissions and background restrictions can independently affect availability.
+Helpful bug reports include the app version, OS, active experience mode, reproduction steps, expected vs. actual behavior, and redacted log excerpts. Upstream campus outages, model-provider limits, OS notification settings, and mobile background-battery rules can also affect live behavior independently.

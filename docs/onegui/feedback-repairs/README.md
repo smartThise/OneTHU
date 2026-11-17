@@ -1,9 +1,10 @@
 # 反馈修复验收（2026-10-18）
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../../README.md)；英文入口见 [English overview](../../en/index.md)。
+
+> 归档说明：本文记录当时的设计方案与阶段性验收情况；0.11 当前功能与使用指南请查阅 [文档入口](../../README.md)（[English overview](../../en/index.md)）。
 
 
-用户 8 页 PDF 的 30 条反馈 + 长 Segment 指示条，逐项验收见 `docs/plans/2026-10-18-feedback-repairs.md`。
+针对用户 8 页 PDF 中的 30 条反馈与长 Segment 指示条完成集中修复，逐项验收记录见 `docs/plans/2026-10-18-feedback-repairs.md`。
 
 ## 怎么复跑
 
@@ -16,37 +17,33 @@ node tools/feedback-repairs-browser-test.mjs
 ONETHU_TEST_URL=http://127.0.0.1:5199 node tools/feedback-repairs-browser-test.mjs
 ```
 
-`report.json` 是逐项断言结果：`checks` 为通过数，`errors` 必须为空（浏览器预览没有 Tauri 桥，
-`reading 'invoke'` 一类的预览环境噪声已在该脚本里过滤，真机不存在）。
+`report.json` 记录逐项断言结果：`checks` 为通过项数，`errors` 应为空（纯浏览器预览环境未挂载 Tauri 原生桥，`reading 'invoke'` 等环境提示已由脚本过滤，桌面端运行无此提示）。
 
 ## 产物
 
 | 文件 | 说明 |
 | --- | --- |
-| `desktop-home.png` | 桌面首页：三栏（标签条/底栏/OneGO）不重叠、白板工具栏带文字 |
-| `vertical-rail.png` | 竖版标签栏 30 个标签：底部动作仍在屏内、OneGO 不被盖 |
+| `desktop-home.png` | 桌面首页：三栏（标签条/底栏/OneGO）互不重叠、白板工具栏带文字 |
+| `vertical-rail.png` | 竖版标签栏 30 个标签：底部操作仍在屏内、OneGO 完整可见 |
 | `oh-composer.png` | OH 面板底部 composer 可见、与胶囊共享草稿 |
 | `segments.png` | 长 Segment 拖动指示条 + Surface 内边距 + 按钮行高 + 胶囊几何 |
-| `home-390.png` / `home-320.png` | 手机两档：无横向溢出、白板工具/硬刷新钮互不遮挡 |
+| `home-390.png` / `home-320.png` | 手机两档：无横向溢出、白板工具与硬刷新按钮互不遮挡 |
 | `glass-blur.png` | glass 皮肤下设置浮层真模糊（backdrop-filter 生效） |
 | `wallpaper-ink.png` | 深色壁纸下前景标题自动转亮 |
 
-## 这一轮修的根因（不是逐条打补丁）
+## 本轮根因治理
 
-- **导航三栏**：底栏与顶栏都 fixed 在 `top:0`，z 高的底栏把标签条整个盖住 → 改成两行。
-- **`.og-surface` 漏 padding**：`pad` 属性全站失效（清小搭气泡、卡片全中）。
-- **backdrop root**：遮罩入场动画 `forwards` 留下永久 backdrop root，`backdrop-filter` 全失效 → 改 `backwards`。
-- **卡片点击**：`Card` 把 children 包进带 padding 的 `.og-card-body`，入口按钮只占内侧 → `stat-click/course-card` 走 flush。
-- **滚动条噪声**：组件卡体原本 `overflow:auto`，溢出 2px 就画拇指 → 静默滚动（保留滚动能力）。
-- **拖动裁切**：画布尺寸按落库 rect 算，拖动中不跟手 → 按实时 rect 算。
-- **壁纸前景色**：亮度采样被外层不透明画布“洗白” → 采样到 `.explorer-shell` 为止。
-- **取色开关与昼夜调度打架**（护栏回归）：`deactivateTheme/activateTheme` 会一并清掉 `followSystem`，
-  取色一进一出「跟随昼夜」就丢 → 新增 `detachAppliedTheme()`（只摘当前主题）与 `setFallbackTheme()`
-  （只切视觉，不动用户选择）。
+- **导航三栏排布**：底栏与顶栏原先都固定在 `top:0`，层级更高的底栏盖住了整条标签栏，现已改为上下两行排布。
+- **`.og-surface` 内边距恢复**：修复此前全站 `pad` 属性未生效的问题，清小搭气泡与各类卡片同步恢复正常内边距。
+- **backdrop root 修正**：遮罩入场动画原本使用 `forwards`，结束后残留 backdrop root 导致 `backdrop-filter` 失效，现已改为 `backwards`。
+- **卡片点击热区**：`Card` 默认将子元素包入带内边距的 `.og-card-body`，导致入口按钮点击区域缩水，`stat-click/course-card` 现改为 flush 铺满。
+- **滚动条视觉降噪**：组件卡体原先使用 `overflow:auto`，轻微溢出 2px 也会出现滚动条滑块，现改为保留滚动能力的隐藏式滚动条。
+- **拖动实时边界**：画布尺寸改按实时 rect 计算，取代原先仅按落库 rect 计算的做法，拖动卡片时画布边界实时跟随。
+- **壁纸前景色采样**：亮度采样截断到 `.explorer-shell` 为止，避免外层不透明画布冲淡壁纸采样结果。
+- **取色开关与昼夜调度解耦**（护栏回归）：此前 `deactivateTheme/activateTheme` 会一并清空 `followSystem`，进出动态取色后「跟随昼夜」设置随之丢失；现拆出 `detachAppliedTheme()`（仅卸下当前主题）与 `setFallbackTheme()`（仅切换视觉表现，保留用户偏好）。
 
-## 已知边界
+## 环境范围与后续安排
 
-- 浏览器预览没有 Tauri 命令与校园网服务：登录、OH 模型、清小搭技能接口只能验到“错误分流/交互反馈”，
-  真实联调走桌面端手测。
-- 清小搭技能广场与 OH 技能的互通（OH 侧技能注册 + 管理）是独立大活，用户已指示暂缓；本轮只补交互反馈。
-- 7 个 oneGUI 之前遗留的护栏仍红（类名已下线），与本轮反馈无关，已在基线复现，单独排期。
+- 纯浏览器预览环境未接入 Tauri 原生命令与校园网服务，因此登录、OH 模型与清小搭技能接口在浏览器侧重点验证错误分流与交互反馈，完整服务联调通过桌面端实测完成。
+- 清小搭技能广场与 OH 技能的互通（OH 侧技能注册与管理）作为独立专题推进，按计划暂缓，本轮先行补齐前端交互反馈。
+- 此前遗留的 7 项旧类名护栏报错已在基线复现，与本轮改动相互独立，后续单独排期清理。

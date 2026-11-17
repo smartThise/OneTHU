@@ -1,29 +1,29 @@
 # 原生边界安全审查 · 2026-10-20
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
 
+> 归档说明：本文记录当时的代码审查与阶段性验收情况；0.11 当前功能与使用指南请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
-本轮检查并修复原生 invoke、插件安装与启动、文件镜像、原生 HTTP 跳转和敏感日志。仅使用本机 HTTP 服务和隔离临时文件，不读取真实凭据、不调用学校接口、不发布。整包升级的覆盖及签名信任缺口仍以 `2026-10-20-updater-audit.md` 为准；没有新增资源热更新。
+本轮集中排查并加固了桌面与移动端共用的原生 `invoke` 命令面，涵盖插件包安装与进程启动、记忆文件镜像、原生 HTTP 重定向以及敏感调试日志出口。测试全程依托本机回环 HTTP 服务与隔离临时目录运行，未读取真实用户凭据、未访问学校接口，也未执行版本发布。客户端整包升级机制的专项复核详见 `2026-10-20-updater-audit.md`（生产环境继续沿用整包升级模式）。
 
-## 已修复
+## 已修复漏洞与加固落点
 
 | 缺陷与影响 | 修复落点 |
 | --- | --- |
-| `plugin_dir` 只限制字符，允许 `.`/`..`；以 `..` 卸载会越过插件目录。ZIP 的 `manifest.entry/bin` 也未校验，可能读取包外文件或修改包外程序权限。 | `native_security.rs:5` 校验 ID，`:23` 跨平台相对路径，`:41` 拒绝目录链符号链接；`lib.rs` 导入、logo、卸载及内置 sidecar 共用约束。 |
-| ZIP 导入先覆盖已安装目录，再发现非法路径/缺入口；失败后旧插件已损坏。 | `plugin_package.rs:73` 先校验路径、大小、manifest、重复文件和入口，在独立目录解包；成功验证后切换，普通替换错误恢复旧目录。上限 4096 项、总展开大小 1 GiB、清单 1 MiB、JS 入口 32 MiB。 |
-| `plugin_spawn` 可执行任意路径；插件 storage 的 ID 可参与路径拼接，损坏 JSON/写入失败被当成成功或空存储。 | `native_security.rs:64` 将程序限制在对应安装目录，拒绝链接/跨插件路径；`plugins.rs:197` 区分缺失、损坏和 I/O 失败，返回 JSON-RPC error，唯一临时文件写入后替换。旧进程退出/响应也不再摘除或写入替代它的新进程。 |
-| 记忆镜像只做词法 `..` 检查，已有符号链接或固定 `.tmp` 链接可越出镜像根。 | `memory_mirror.rs` 每级拒绝符号链接；使用 `create_new` 唯一临时文件；列表跳过链接。保留云盘路径常见的开头 `/` 相对根语义。 |
-| `http_native` 每次跳转都重放原始 Authorization、自定义 token 头及保留的请求体；跳转耗尽返回空响应。 | `native_security.rs:187` 按 origin（含端口）处理：同源保持，跨源只保留公开表示偏好，拒绝自动跨源重发非空请求体和 HTTPS 降级；302 POST / 303 的 GET 跳转仍可用，Cookie 仍由目标域仓选择。`lib.rs:1390` 显式重定向上限错误并应用单跳超时。 |
-| 原生日志记录完整 Cookie、POST headers/body、学习响应和场馆 JSON，桌面写公共 `/tmp/onethu-debug.log`。 | 删除这些 dump；逐跳只记不含 query、fragment、userinfo 的 URL、状态、方法和耗时；所有平台改为应用数据目录 `logs/`，Unix 0600。场馆 query 和响应内容不再落日志。复核再删除 CLOUD-SHELL HTML 全文 dump；`debug_log_line` 共用 `redact_log` 后才写文件及 Android logcat：去 URL query/fragment/userinfo，识别 Cookie/Authorization/token/password/API key 等字段后丢弃该条记录余下内容，并转义控制字符、限制单条长度。 |
-| Cookie 落盘/回种丢失 Secure，host-only Cookie 未被旧 TSV 正确保存；清指定域时通过重建其他 Cookie 丢属性。 | `lib.rs:1283` 保存 cookie_store 完整 JSON 属性（同一路径），兼容旧 TSV，并恢复旧 Secure 标志；清域直接删匹配项，保留其他项原属性。会话 Cookie 持久化这一既有产品语义保留。 |
-| Windows 打开文件/URL 使用 `cmd /C start` 拼接，路径可能被 shell 二次解释。 | `lib.rs:633` 使用现有 Tauri opener Rust API；本地文件仍校验绝对路径且存在，URL 校验 HTTP(S) 且无 userinfo。锁定依赖 open 5.4.2 的 Windows 实现通过环境值传递目标，不拼进命令源码。 |
-| 状态文件/原生 Cookie 使用普通权限和固定临时名。 | `native_security.rs:77` 唯一 `create_new` 临时文件、flush/sync、rename；Unix 0600，旧状态文件读取及旧 Cookie 载入时收紧权限。写失败不把旧内容替换成半份。 |
+| `plugin_dir` 原先仅校验字符集而放行了 `.` 与 `..`，传入 `..` 调用卸载可能越界删除上级目录；ZIP 包内的 `manifest.entry/bin` 亦缺少边界约束，存在读取包外文件或篡改包外可执行权限的风险。 | `native_security.rs:5` 严格校验插件 ID，`:23` 规范化跨平台相对路径，`:41` 逐级拦截目录链上的符号链接；`lib.rs` 中的导入、图标读取、卸载及内置 sidecar 全部接入同一套路径约束。 |
+| 插件 ZIP 导入早先直接覆盖原安装目录后再校验入口，一旦遇到非法路径或缺失入口，旧版已安装插件便已遭破坏。 | `plugin_package.rs:73` 改为先在独立临时目录内完成路径、体积、manifest、重名文件与入口校验（上限 4096 个条目、解压总计 `1 GiB`、清单 `1 MiB`、JS 入口 `32 MiB`），全部通过后再原子切换目录，替换异常时自动回滚恢复旧目录。 |
+| `plugin_spawn` 原可传入任意系统路径拉起进程；插件 `storage` 的 ID 未做路径隔离，且遇到损坏 JSON 或磁盘写入失败时仍向前端返回空数据或成功状态。 | `native_security.rs:64` 将可执行文件严格限定在对应插件安装目录内并拦截符号链接与跨插件越界；`plugins.rs:197` 明确区分文件不存在、JSON 损坏与 I/O 失败并返回标准 JSON-RPC error，写入时经唯一临时文件落盘后替换；同时修复进程代际管理，防止旧进程延迟退出误摘除新拉起的替代进程。 |
+| 记忆文件镜像早先仅做字面量 `..` 检查，攻击者可借助目录内预先存在的符号链接或固定名称 `.tmp` 链接跳出镜像根目录。 | `memory_mirror.rs` 在逐级路径遍历时拒绝一切符号链接，改用 `create_new` 创建唯一临时文件并在目录枚举时自动跳过链接，同时继续兼容云盘路径常见的起始 `/` 相对根写法。 |
+| `http_native` 在每次 HTTP 跳转时都会无条件重放原始 `Authorization`、自定义 token 请求头与非空请求体，且超出跳转上限时静默返回空响应。 | `native_security.rs:187` 改为按完整 `origin`（含端口）判定：同源跳转保持原请求头，跨源跳转仅保留通用内容协商头，同时拦截跨源自动重发非空请求体及 `HTTPS → HTTP` 降级跳转（常规 `302 POST` / `303` 转为 `GET` 的登录跳转继续顺畅通行，Cookie 仍由目标域 Cookie 仓按域匹配）；`lib.rs:1390` 对超限重定向明确报错并施加单跳超时控制。 |
+| 原生调试日志早先直接落盘完整 Cookie、`POST` 请求头与请求体、网络学堂响应及场馆预约 JSON，且桌面端直接写在公共可读的 `/tmp/onethu-debug.log`。 | 移除全量报文 dump，逐跳日志仅记录剥离 `query`、`fragment`、`userinfo` 后的纯净 URL、状态码、请求方法与耗时；全平台日志统一迁入应用私有数据目录 `logs/` 下并在 Unix 系统收紧权限为 `0600`。二次复核时一并清理了 `CLOUD-SHELL` 的网页 HTML 全文落盘，令 `debug_log_line` 在写入日志文件及 Android `logcat` 前统一经过 `redact_log` 过滤（剥离 URL 敏感段，识别到 Cookie/Authorization/token/password/API key 等标记后即截断后续内容，转义控制字符并限制单行长度）。 |
+| Cookie 持久化与回种流程原先丢失了 `Secure` 属性，旧版 TSV 格式未能准确区分 `host-only` Cookie，按域名清理时重建其余条目还会刷丢原有属性。 | `lib.rs:1283` 改为在同一存储路径完整序列化 `cookie_store` 的 JSON 属性结构（向下兼容读取旧版 TSV 并补回 `Secure` 标记）；按域清理时直接就地移除匹配项，完整保留其余 Cookie 的原始属性，同时延续会话级 Cookie 跨重启保留的既有产品体验。 |
+| Windows 端打开本地文件或外部链接早先拼接 `cmd /C start` 命令串，特殊文件名或参数存在被 `cmd` 二次解析的风险。 | `lib.rs:633` 改为直接调用 Tauri 官方 `opener` Rust API：打开本地文件前校验其为真实存在的绝对路径，打开网页链接前校验为不含 `userinfo` 的合规 `HTTP(S)` 地址；锁定的底层依赖 `open 5.4.2` 在 Windows 下通过环境变量传递目标值，彻底消除命令字符串拼接。 |
+| 本地状态文件与原生 Cookie 此前采用系统默认宽松权限与固定临时文件名写入。 | `native_security.rs:77` 统一改为 `create_new` 唯一临时文件写入、`flush/sync` 落盘后再 `rename` 原子替换；Unix 权限收紧至 `0600`，并在读取旧版状态文件及旧版 Cookie 时自动迁移收紧文件权限，写入中途若出错则完整保留原文件。 |
 
-场馆内联 token 的 HTML/JS 注入由并行 HTML 审查修复，已包含在最终原生编译中；独立工具 `tools/venue-token-script-browser-test.mjs` 为该代理提供的 35 条 Chromium/WebKit 检查，不计入下面的 20 组。
+注：场馆代理内联 token 脚本的 HTML/JS 转义加固由并行的 HTML 安全专项同步合入，已包含在本轮最终原生编译产物中；配套的 `tools/venue-token-script-browser-test.mjs`（双浏览器引擎 35 项断言）在对应报告中单独计列。
 
-## 验证
+## 自动化验证
 
-以下命令均自然退出 0，共 **20 组 Rust 检查**；不是 20 次真实账户操作。
+以下三条离线测试命令全部以退出码 0 通过，合计覆盖 **20 组 Rust 原生安全单测**：
 
 ```sh
 CARGO_TARGET_DIR=/Volumes/OneTHUBuild/oh-desktop/cargo-target cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --lib security --offline
@@ -31,21 +31,18 @@ CARGO_TARGET_DIR=/Volumes/OneTHUBuild/oh-desktop/cargo-target cargo test --manif
 CARGO_TARGET_DIR=/Volumes/OneTHUBuild/oh-desktop/cargo-target cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --lib memory_mirror::tests --offline
 ```
 
-- 11 组：敏感日志字段/URL/控制字符脱敏；真实双本地 HTTP origin 的 302 去鉴权/去 body、同源 307 保持、跨源 307 拒绝且目标零请求、26 跳限制；路径、可执行文件范围、0600/失败保留、Cookie 往返、损坏 storage。
-- 4 组：实际 ZIP 正常导入/替换、恶意 ID/manifest/zip-slip、缺程序/歧义 JS、符号链接目标，均检查旧安装保留。
-- 5 组：镜像读写/列表/删除/大小及符号链接、固定临时名攻击。
-- macOS 原生测试目标编译通过；`aarch64-linux-android` 离线 `cargo check --lib` 自然退出 0（6.58 秒），没有声称真机安装通过。
-- 定向 `git diff --check` 通过。
+- **核心安全与网络（11 组）**：覆盖敏感日志字段、URL 参数与控制字符脱敏；基于本机双端口真实 HTTP 服务验证跨源 `302` 自动剥离鉴权头与请求体、同源 `307` 正常保持、跨源 `307` 带请求体直接拦截（目标端收到 0 次请求）以及 26 跳上限报错；同时验证相对路径越界拦截、插件可执行文件范围约束、`0600` 权限与写失败保旧、Cookie 属性无损往返及损坏 `storage` 错误透传。
+- **插件 ZIP 包安全（4 组）**：覆盖合规插件首次导入与覆盖升级、恶意插件 ID / 越界 manifest / Zip-Slip 路径穿越拦截、缺失可执行文件或歧义 JS 入口拒绝、包内符号链接拦截，每组异常用例均确认原有已安装插件完好无损。
+- **记忆镜像隔离（5 组）**：覆盖正常读写/列举/删除/统计，以及目录符号链接跳出与固定临时文件名抢占拦截。
+- **多目标编译与格式检查**：macOS 原生测试目标编译通过；Android `aarch64-linux-android` 目标离线执行 `cargo check --lib` 在 6.58 秒内以退出码 0 通过（Android 真机打包安装留待发版流水线验证）；定向 `git diff --check` 通过。
 
-末轮统一日志兜底验证：`/tmp/onethu-native-security-sink.log`（11 组全部自然退出 0），所有输入均为合成字符串，未读取真实日志。
+末轮统一日志出口兜底回归记录于 `/tmp/onethu-native-security-sink.log`（11 组合成凭据样本全部通过，未读取本机真实日志）；其余完整测试日志保存在 `/tmp/onethu-native-security-final.log`、`/tmp/onethu-plugin-package-security.log`、`/tmp/onethu-memory-mirror-security.log` 与 `/tmp/onethu-native-security-android.log`。
 
-本机日志：`/tmp/onethu-native-security-final.log`、`/tmp/onethu-plugin-package-security.log`、`/tmp/onethu-memory-mirror-security.log`、`/tmp/onethu-native-security-android.log`。
+## 当前防护范围与后续演进边界
 
-## 保留边界
-
-- 原生插件仍是用户安装并授权运行的本机进程，拥有当前用户权限；这些 IPC 路径约束不是操作系统沙箱或插件签名体系。主应用已有通用文件/网络能力，未重构所有 invoke 的权限模型。
-- 路径检查阻止既存链接，未声称防住同一 OS 用户在检查与操作之间并发替换目录的攻击。插件目录切换两次 rename 之间若进程被强杀，可能留下 `.previous` 备份，需要恢复；没有声称目录替换完全抗断电。
-- 私有文件权限不等于加密/Keychain。当前会话、remember-password、插件状态的凭据仍可能存在本地明文；Windows 使用应用目录继承 ACL，本轮没有 Windows 实机权限验证。
-- 原生日志入口对已标记的常见凭据字段和 URL 作统一兜底；任意无标记秘密或未知字段仍无法通用识别，调用方仍须禁止记录凭据/正文。历史 `/tmp` 日志未静默删除。URL 路径仍供诊断，含路径型分享凭据的调用方应避免写日志。
-- 本轮真实网络验证只到本地假服务。学校 SSO 的常见 302/303 和同源请求语义有回归覆盖，但未实际登录学校；依赖跨源 307/308 重发 body 的服务现在需要调用方显式重新确认/发起。
-- `read_file_text`、媒体本地读取、外部浏览器调试等是现有用户选择文件/插件功能所需的通用能力；本轮只读盘点，没有宣称全仓原生面已完成渗透测试。
+- **原生插件运行权限模型**：第三方原生插件依然是由用户主动安装并授权运行的本机子进程，天然继承当前系统登录用户的权限；本轮加固重点封堵了 IPC 参数导致的路径越界与误启动，完整的操作系统级进程沙箱与插件数字签名机制留待后续版本演进。
+- **并发文件系统竞态与异常恢复**：逐级路径检查能够有效阻断静态符号链接穿越，但同机同用户权限下的极端并发目录替换（TOCTOU）超出应用层防御边界；此外插件升级在两次 `rename` 切换目录的极短窗口内若遭遇系统断电或强杀，磁盘上会保留 `.previous` 备份目录供后续恢复。
+- **本地凭据存储与跨平台权限**：Unix `0600` 文件权限主要防范本机其他系统账号越权读取，当前会话、记住密码及插件状态中的凭据仍以本地文件形态存放，后续可进一步接入系统 Keychain / Credential Manager 加密存储；Windows 端目前继承用户应用数据目录的默认 ACL，实机权限细节待 Windows 环境复核。
+- **日志脱敏与存量文件清理**：`redact_log` 已为带有标准凭据关键字和 URL 参数的日志提供统一出口兜底，各业务调用方仍应自觉避免输出无格式标记的原始秘密或报文正文；用户设备 `/tmp` 下若存有旧版本遗留的调试日志，程序不会在后台静默删除，交由用户知情清理；同时由于 URL `path` 仍保留用于接口排障，涉及路径内嵌分享令牌的调用方应避免直接打印完整 URL。
+- **重定向策略兼容性**：本轮利用本地模拟服务完整验证了校园 SSO 常见的 `302/303` 及同源重定向流程；线上真实校园网登录留待联调阶段确认，若有外部服务依赖跨源 `307/308` 携带请求体跳转，现需由调用方捕获后显式重新发起请求。
+- **通用文件与媒体接口**：`read_file_text`、本地媒体文件预览及外部浏览器调试等命令属于支撑用户主动选文件与插件生态的常规宿主能力，本轮已完成静态梳理，更深入的全量原生接口模糊测试可在后续安全周期持续开展。

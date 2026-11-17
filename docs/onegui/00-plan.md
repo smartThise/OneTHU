@@ -1,26 +1,27 @@
 # OneGUI · 从零重建统一 UI 体系（总纲）
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
+
+> 归档说明：本文记录当时的重构总纲与迁移计划；0.11 当前功能与使用说明请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
 
 > 2026-10-14 立项。用户定案：**整套 UI 完全重写**；**全新中性基准**，玻璃降为 OneGUI 内的一档皮肤（skin）；
-> 不做长期双轨。数据层已由 OneTHU SDK（`@onethu/core`）统一，本工程把**样式层**统一到同一种治理方式。
-> **UX 不变**：交互、键盘、拖拽、长按、滚动、退场相位保持原样，换的只是表达层。
+> 一步到位单轨推进。数据层已由 OneTHU SDK（`@onethu/core`）统一，本工程把**样式层**统一到同一种治理方式。
+> **UX 保持一致**：交互、键盘、拖拽、长按、滚动、退场相位维持既有体验，本次升级专注重构视觉表达层。
 > 组件目录与迁移台账见 [03-catalog.md](./03-catalog.md)，组件契约见 [10-contract.md](./10-contract.md)。
 
 ## 0. 铁律
 
 1. **唯一来源**：全部形状、颜色、间距、字阶、动效、层级只来自 `@onethu/gui`。
-   应用代码里不允许出现自己的颜色值、间距、圆角、字号、控件。
-2. **意图优先**：组件接收**意图**（`tone` / `level` / `size` / `emphasis` / `density`），不接收样式。
-   任何"这次特殊"都必须走**管线通道**（scope），不允许就地写样式。
+   应用层代码不再自定颜色值、间距、圆角、字号或裸控件。
+2. **意图优先**：组件只接收语义**意图**（`tone` / `level` / `size` / `emphasis` / `density`），告别直接传样式参数。
+   页面级局部定制统一走**管线通道**（scope），杜绝就地手写样式。
 3. **单一调度**：皮肤、明暗、密度、动效、强调色、平台六个轴由 `StyleDirector` 一处解析、一处落盘。
-   组件与页面只能**读**语义令牌，不能算颜色。
-4. **一个风格指挥**：皮肤不是"另一套 CSS"，而是对**同一组语义令牌**的另一种取值；换皮肤组件零改动。
+   组件与页面直接**读取**语义令牌，色彩推演全部交由管线完成。
+4. **一个风格指挥**：每套皮肤都是对**同一组语义令牌**的一组取值映射，无需另起一套 CSS；切换皮肤时组件代码零改动。
 5. **护栏即契约**：`tools/onegui-guard.mjs` 是唯一风格裁判（`pnpm guard:onegui`）。换血完成后，
-   旧的 40+ 风格护栏由它取代 —— 规则不是删掉，而是搬进库里。
-6. **行为不动**：只重写 UI 表达层；`state/`、`lib/`、`plugins/`、`im/`、`memory/`、`@onethu/core`
-   的数据流一行不改（除非它自己就是 UI 旁路）。
+   原先分散的 40+ 项风格护栏全部收拢进组件库与新护栏中统一接管。
+6. **行为稳定**：只重写 UI 表达层；`state/`、`lib/`、`plugins/`、`im/`、`memory/`、`@onethu/core`
+   的数据流保持原貌（仅清理其中的 UI 旁路代码）。
 
 ## 1. 分层
 
@@ -53,12 +54,12 @@ docs/onegui/                      本目录：总纲 / 契约 / 目录与台账 
 | platform | `desktop` / `mobile` | `data-og-platform` |
 | accent | 主题对象（一个色）→ 管线算出 soft/line/strong/on/quiet/ring | 内联 `--og-accent*` |
 
-## 3. 特殊要求怎么接入（不许旁路的唯一出口）
+## 3. 特殊需求接入路径（统一出口）
 
-1. 通用变体？→ 给组件加枚举 prop。
-2. 某页特有？→ `director.defineScope("cloud.fileCard", { "surface-1": "surface-2", radius: "lg" })`，组件写 `scope="cloud.fileCard"`。
-3. 新皮肤（玻璃、插件主题）？→ `registerSkin()` 给同一组语义令牌另一套取值。
-4. 三者都不许：页面里写 CSS / 内联色值 / 自造 class。
+1. 通用变体？→ 给组件补充枚举 prop。
+2. 某页特有？→ `director.defineScope("cloud.fileCard", { "surface-1": "surface-2", radius: "lg" })`，组件声明 `scope="cloud.fileCard"`。
+3. 新皮肤（玻璃、插件主题）？→ 通过 `registerSkin()` 为同一组语义令牌注册新一套取值。
+4. 页面层告别手写局部 CSS、内联色值与自造 class，所有定制均收敛于以上三条通道。
 
 ## 4. 迁移与删除清单（换血顺序 = 提交顺序）
 
@@ -75,7 +76,7 @@ docs/onegui/                      本目录：总纲 / 契约 / 目录与台账 
 
 - **画廊矩阵**：`?onegui-gallery=1`（可叠 `&skin=glass&level=rich&scheme=dark&density=touch`），
   headless Chrome 截图存档在 `docs/onegui/shots/`。
-- **像素证据**：真机/真窗口截图必须先断言窗口 owner（OneTHU ≠ DSH）。
+- **像素证据**：采集真机或桌面窗口截图前须先校验窗口归属（确认窗口 owner 为 OneTHU，避免误截其他应用窗口）。
 - **护栏**：应用零旁路样式、库内零字面色值/尺寸、令牌引用全部有定义、画廊登记全覆盖。
 
 ## 6. 提交规范

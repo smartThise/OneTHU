@@ -1,6 +1,7 @@
 # OneGUI · 独立样式全量清点（迁移工作单）
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
+
+> 归档说明：本文记录当时的独立样式清点与迁移进度；0.11 当前功能与使用指南请查阅 [文档首页](../README.md)（[English overview](../en/index.md)）。
 
 
 > 生成物：`node tools/onegui-audit.mjs`（2026-10-14）。**用户定案：所有可见对象必须来自 OneGUI 或它的派生，

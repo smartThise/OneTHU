@@ -2,7 +2,7 @@
 
 [中文](../architecture.md) · English
 
-The `dev3` source is authoritative. [Historical records](documentation-catalog.md) describe earlier decisions and are not evidence that a feature shipped.
+This overview covers the active OneTHU 0.11 architecture on `main` and `dev3`, while earlier design proposals and research notes remain archived in the [documentation catalog](documentation-catalog.md).
 
 ```text
 React pages / three experience shells / OH capsule
@@ -13,26 +13,26 @@ React pages / three experience shells / OH capsule
                          └── OneTHU Harness (Rust submodule)
 ```
 
-`apps/desktop` serves desktop and Android. A browser preview lacks some native capabilities. `packages/core` implements campus clients; `packages/gui` owns the visual and interaction system.
+`apps/desktop` powers the macOS, Windows, and Android apps—use the Vite browser preview for rapid UI work, and run inside the Tauri host whenever you need native networking, credentials, or local files. `packages/core` implements the campus service clients, while `packages/gui` serves as the single source of truth for visual tokens, themes, and components.
 
-## Identity and shared data
+## Authentication and shared state
 
-Campus clients reuse university sessions when possible. Cloud storage, GitLab, mail, calendars and model services may need separate configuration or authorization. Expired sessions and second-factor challenges are not generic retryable failures: preserve the challenge context and avoid new fingerprints, repeated verification and unbounded replays. An excessive number of trusted factors is an account-side condition.
+Campus clients share your university SSO session wherever supported, while cloud storage, GitLab, mail, calendars, and AI model services connect with their own credentials when enabled. During session renewal or two-factor verification, the sign-in pipeline preserves the active challenge context and device fingerprint so verification completes smoothly; if your university account reaches its trusted-device limit, you can free a slot in the official Tsinghua account portal.
 
-Shared service state feeds lists, schedules and home widgets. Mode switching changes visibility without deleting full-mode configuration. Assignment deadlines belong in all modes and should use the same available assignment data. Application-owned errors are localized at render time; external service details can remain in their original language.
+Fetched campus data flows into a shared state layer that drives lists, calendars, and home widgets alike. Assignment deadlines appear consistently across Minimal, Practical, and Full modes, and switching modes adjusts layout density while keeping your Full-mode whiteboards and settings intact. App-generated status and error messages localize dynamically at render time, while upstream notices from university servers stay in their original text for clarity.
 
-## Extensions and execution
+## Extensions and agent runtime
 
-`types.ts` defines the plugin surface and `facade.ts` injects host APIs and checks permissions. The [generated API reference](api-surface.md) currently lists 36 namespaces and 255 method entries; these are a source snapshot, not a permanent compatibility guarantee. Hiding a UI control is not a security boundary.
+Plugin contracts live in `types.ts`, with `facade.ts` injecting host APIs and enforcing permission checks on every call. The [generated API surface](api-surface.md) currently spans 41 namespaces and 297 method entries.
 
-OH communicates with its Harness submodule and authorized host tools. Minimal and practical modes retain search, your own API configuration and WeChat/Feishu links. Full plugin and advanced-tool access follows mode and permission policy. Xiaoda, its skill plaza and the local QuickJS runtime have separate trust and execution boundaries; see [OH and Xiaoda](oh-and-xiaoda.md).
+OH pairs with the standalone `OneTHU-Harness` Rust submodule to invoke authorized host tools: Minimal and Practical modes keep global search, custom model APIs, and WeChat/Feishu channels handy, while Full mode unlocks full plugin and workspace tools. See [OH and Xiaoda](oh-and-xiaoda.md) for how Xiaoda agents, the skill plaza, and the bounded QuickJS sandbox work together.
 
-## Staging and synchronization
+## Staging and collaboration
 
-A drag session distinguishes clicks, long-press pickup, free movement and a committed drop. Only explicitly integrated sources can be staged; see the [support list](sharing-and-organizations.md). Short sharing codes require online retrieval. NFC is currently unreliable; prefer short codes.
+A unified gesture pipeline coordinates taps, long-press pickup, freeform board layout, and drop-to-stage actions across explicitly integrated sources—see the [supported items guide](sharing-and-organizations.md). Staged items share across devices via online short codes, which we recommend for reliable everyday sharing.
 
-Cards, friends, organizations and files depend on confirmed account ownership and remote synchronization. Merge compatible changes automatically and require a choice for genuinely incompatible conflicts. Ownership failures must not create duplicate empty libraries. Organization permissions must agree across remote state, UI checks and operation results. Two-account live acceptance remains distinct from fixture tests.
+Cards, contacts, organizations, and shared files synchronize after verifying account ownership, merging compatible edits automatically and prompting when concurrent changes conflict, while keeping organization role checks aligned between the UI and remote storage.
 
-## Operational limits
+## Updates and diagnostics
 
-Vite development hot reload is separate from updates to an installed production app. The current product does not promise dynamic native-code or production-patch delivery. Platform differences, campus outages and model quotas must remain visible. See [privacy and troubleshooting](privacy-and-troubleshooting.md) and [public capture provenance](screenshots.md).
+Local development uses Vite hot reload, while installed production builds upgrade through verified release installers. See [privacy and troubleshooting](privacy-and-troubleshooting.md) for platform permissions and redacted diagnostics, and [screenshot provenance](screenshots.md) for how public sample captures are produced.

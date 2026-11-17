@@ -1,8 +1,6 @@
 # Headless plugin host
 
-This module operates inside the independently logged-in SDK. It neither requires
-the desktop app nor connects to its loopback service. The owner of the SDK data
-directory must hold its exclusive lock for the host's lifetime.
+`createPluginHost` runs local JS and native plugins directly inside a standalone logged-in SDK process, with the caller holding the exclusive SDK data-directory lock for the host's lifetime.
 
 ```js
 import { createPluginHost } from './plugins/index.mjs';
@@ -23,71 +21,20 @@ await plugins.uninstall('example.plugin', { confirm: true });
 await plugins.close();
 ```
 
-`resolveOperation` returns `{ permission, mutation?, supported?, guiOnly? }`.
-Unknown operations fail closed. Dispatch receives `{ pluginId, permissions,
-signal, confirm, beforeWrite }`; the shared SDK router still validates arguments, session
-generation and final-write authorization. A mutation needs a confirmed `call`.
-Activation has no school-write approval. `getSession` may be asynchronous.
-`call` and `enable` accept the initiating request's `signal` and `beforeWrite`.
-Carry that guard from the reverse dispatch into the SDK's final submission;
-an asynchronous plugin must retain its original account and policy generation.
-Aborting the initiating request stops the child and aborts its active SDK calls.
+`resolveOperation` describes each SDK operation as `{ permission, mutation?, supported?, guiOnly? }`, failing closed on unknown operations. Reverse `dispatch` calls receive `{ pluginId, permissions, signal, confirm, beforeWrite }`, and the shared SDK router validates arguments, session generation, and final write authorization (`getSession` may be synchronous or async). Mutating operations require `confirm: true` on `call`, while plugin activation runs with read-only permissions. Both `enable` and `call` accept the caller's `signal` and `beforeWrite` hook; forward `beforeWrite` through to final SDK submissions so async plugins stay bound to their originating account and policy generation, and aborting `signal` terminates the child process along with any in-flight SDK calls.
 
-Installation accepts an existing local directory or ZIP containing
-`manifest.json`. It never downloads, evaluates or launches a package. `inspect`
-returns the manifest, package digest, per-file hashes and capability report.
-Installed plugins start disabled. Installation, enabling and uninstalling need
-explicit `confirm: true`. Enabled status persists; calling an enabled plugin in
-a later SDK process starts it again. Listing plugins or commands never starts
-code. Call and activation deadlines default to 30 seconds, maximum 150 seconds;
-timeout or disabling kills the direct child and aborts its SDK call signal.
+`inspect` and `install` read local directories or `.zip` archives statically from `manifest.json` without executing plugin code, and `inspect` returns the parsed manifest, package digest, per-file SHA-256 hashes, and capability compatibility report. Installing, enabling, and uninstalling each require `{ confirm: true }`. Newly installed plugins start disabled; once enabled, that state persists across SDK restarts so subsequent `call` invocations spawn the plugin on demand, while listing plugins or commands reads metadata purely from disk. Activation and command calls default to a 30-second deadline (up to 150 seconds), and timeouts or `disable` calls terminate the child process and cancel its active SDK requests.
 
-JS plugins use the existing single-file ES module contract: exported `manifest`
-plus `default(ctx)`, `ctx.registerCommand`, `ctx.onethu.*`. The worker preserves
-synchronous `storage`, `settings` and session snapshot APIs. It flushes storage
-writes before reporting command completion. JS relative imports and browser/DOM
-globals are outside this single-file contract; bundle such modules into the
-entry file. A legacy JS-only plugin needs a JSON sidecar copied from its literal
-manifest and an `entry` field, for example `"entry": "plugin.js"`. Source is never
-evaluated to discover a manifest.
+**JavaScript plugins** follow the single-file ES module contract (`export const manifest`, `export default function (ctx)`, `ctx.registerCommand`, and `ctx.onethu.*`), running in a Node worker that provides synchronous `storage`, `settings`, and session-snapshot APIs and flushes storage writes before a command resolves. Bundle any helper modules into the single entry file ahead of time (Node workers run without browser/DOM globals or multi-file relative imports), and include a `manifest.json` sidecar with an `"entry"` field such as `"entry": "plugin.js"` so metadata can be read statically before activation.
 
-Rust/native plugins use the existing newline JSON-RPC protocol:
-`activate({settings,permissions})`, `run({command,input})`, and reverse
-`onethu.call({ns,method,args})`. The executable must match the host OS and CPU.
-`OH_MCP_PORT=0` prevents the existing Harness sidecar from independently opening
-its local MCP listener. Protocol compatibility does not imply all Harness GUI,
-model-provider or transport features are supplied by this SDK; each requested
-host operation must appear in the shared router's capability catalog.
+**Rust and native plugins** speak newline-delimited JSON-RPC (`activate({settings,permissions})`, `run({command,input})`, and reverse `onethu.call({ns,method,args})`) using a binary compiled for the host OS and CPU. The host sets `OH_MCP_PORT=0` so Harness sidecar binaries keep their standalone local MCP listener closed, and routes reverse `onethu.call` requests against the operations registered in the SDK router's capability catalog.
 
-GUI registration, themes, clipboard, native notifications, widgets and WebViews
-return an explicit unavailable capability. No existing OneTHU WASM plugin ABI is
-defined, so WASM manifests are inspectable/installable but cannot be enabled.
+Desktop-only capabilities—GUI panels, themes, clipboard, native notifications, widgets, and WebViews—report as unavailable in headless mode, and WASM packages can be inspected and installed while awaiting a future OneTHU WASM runtime ABI before enabling.
 
-JS and native plugins are **trusted local code**. A child process is not an OS
-sandbox: it can use the user's filesystem and network outside the SDK bridge.
-Manifest permissions govern SDK API access, not OS access. Inspect and approve
-code before enabling it. Session credentials are not forwarded to child
-environment variables. Opt-in `onEvent` diagnostic sinks can contain plugin or
-user data and should handle them accordingly.
+JS and native plugins run as **trusted local child processes** with standard user-level filesystem and network access; manifest permissions scope calls across the `onethu.*` SDK bridge, so review and approve plugin packages before enabling them. The host strips session credentials from child environment variables, and opt-in `onEvent` diagnostic callbacks should treat emitted payloads as potentially containing user or plugin data.
 
-Archives reject traversal, absolute/Windows-special paths, symlinks, case-folded
-duplicates, conflicting files/directories, invalid CRCs, encrypted entries and
-ZIP64. Limits: 4096 entries, 64 MiB per file/archive, 256 MiB total expanded data.
-Installed files are hashed again before a stopped plugin starts. Existing
-installations require explicit uninstall before replacement. Plugin storage is
-separate, capped at 4 MiB and written with private file permissions. Uninstall
-removes that plugin's storage. Supplied setting values remain in memory for the
-host's lifetime; secret defaults should not be embedded in manifests.
+ZIP extraction rejects path traversal, absolute or reserved Windows paths, symlinks, case-insensitive name collisions, file/directory conflicts, invalid CRCs, encrypted entries, and ZIP64 archives, enforcing caps of 4,096 entries, 64 MiB per file or archive, and 256 MiB total uncompressed size. The host re-verifies file hashes whenever starting a stopped plugin, and replacing an installed plugin requires uninstalling the previous version first. Per-plugin storage lives in an isolated private file capped at 4 MiB (removed on `uninstall`), while runtime setting overrides stay in memory for the host's lifetime—keep secret values out of static manifest defaults.
 
-Build requirement: bundle/copy `worker.mjs` beside the resulting runtime bundle.
-When `index.mjs` and `runtime.mjs` are bundled into `dist/index.mjs`, put the worker
-at `dist/worker.mjs`. The factory also accepts `workerUrl` for an explicit URL.
-The worker's imports use Node built-ins only.
+**Packaging note:** place `worker.mjs` alongside the bundled runtime (for example, `dist/worker.mjs` next to `dist/index.mjs`), or pass an explicit `workerUrl` to `createPluginHost`. `worker.mjs` depends only on Node built-in modules.
 
-Tests use self-authored fixture modules, adversarial local ZIPs and a native
-Rust fixture compiled with `rustc` and the standard library. They never fetch
-third-party code, submit school mutations or start model conversations.
-Windows process/installation behavior and real-account IM integration have not
-been tested on actual Windows devices or real Feishu/WeChat accounts. Local fixture
-results establish the tested protocol behavior; they do not establish those live
-environment results.
+The test suite exercises protocol handling, archive guards, permissions, and lifecycle management offline using local JS fixtures, malformed ZIP test cases, and a zero-dependency Rust fixture compiled with `rustc`. Windows process/installation behavior and live Feishu/WeChat workflows can be verified separately in those target environments.

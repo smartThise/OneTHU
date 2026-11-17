@@ -1,31 +1,31 @@
 # OneGUI theme, material and editable home canvas
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
 
+> 归档说明 / Archival note：本文记录当时的设计方案与阶段性验收情况；0.11 当前功能与使用指南请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
-Goal: repair theme injection, segment contrast and glass, then bring all home content into one persistent canvas.
+Goal: repair theme injection, segment contrast, and glass material layers, then unify all home screen elements onto a single persistent canvas.
 
 ## Decisions / ADR
 
-- Theme definitions are the source of palette values. The app converts legacy theme roles to OneGUI surface/content/line/font roles; the director applies and clears those roles together with the accent. Never sample the bridge's own CSS output for installed themes. Keep the historical ivory ID, rename its display name to 石墨.
-- Material is independent of palette. Blur/translucency belongs on shell chrome, standalone cards and overlay surfaces. Inputs, action buttons, segments and sticky notes retain readable opaque fills. Avoid nested blur and solid ancestor layers concealing wallpaper.
-- Segment selection paints the background and foreground on the same element. The animated legacy pill cannot determine text contrast.
-- The home canvas owns clock, large title, service area and four information widgets. Fresh/reset layouts use the requested composition. Existing layouts receive a one-time addition of former fixed chrome, preserving authored content; deleting a widget after migration never resurrects it.
-- Browsing and editing are separate interaction states. Inner carousel gestures work while browsing; moving/resizing requires editing and explicit handles. The zoom and edit/add tools live in a viewport toolbar above content but below dialogs and navigation overlays.
+- Theme definitions serve as the single source of palette values. The app maps legacy theme roles onto OneGUI surface, content, line, and font roles, and the theme director applies and clears them alongside the accent color directly from the theme definition rather than reading back computed bridge CSS. Keep the historical `ivory` ID while updating its display name to 石墨.
+- Material stays orthogonal to color palette. Blur and translucency apply to shell chrome, standalone cards, and overlay surfaces, while inputs, action buttons, segmented controls, and sticky notes keep solid, legible fills. Keeping ancestor layers transparent avoids nested blur and lets the wallpaper show through.
+- Segmented controls paint active background and foreground tokens on the selected button itself so text contrast stays reliable without depending on a separate animated pill layer.
+- The home canvas hosts the clock, large title, service shortcuts, and four information widgets in one workspace. Fresh or reset layouts start with this seven-item composition, while existing user boards run a one-time migration that adds the former fixed header items alongside authored cards—any widget deleted afterward stays removed.
+- Browsing and editing operate as distinct interaction states: inner carousel gestures work freely while browsing, whereas moving and resizing use explicit handles in edit mode. Zoom and edit/add controls sit in a viewport toolbar layered above canvas content and below dialogs and navigation overlays.
 
 ## Implementation
 
-1. Extend the director's theme input with controlled palette roles and full cleanup; map the current effective scheduled theme; repair settings/theme picker swatch layout.
-2. Apply material roles to visible surfaces and remove competing solid layers; bind every segment's active ink/fill atomically.
-3. Extract the tasks carousel for shared use and register today tasks, service area, clock and editable title.
-4. Seed the requested seven-item home layout and add idempotent preservation migration for existing boards.
-5. Add explicit edit mode, reliable drag handles, keyboard movement/resizing, practical size limits and viewport zoom/edit/add toolbar.
-6. Verify theme/scheme/material combinations, old-layout migration, note persistence, carousel interaction, drag/resize, toolbar scrolling and narrow screens. Run typecheck, build, relevant board and OneGUI checks. Capture desktop/mobile artifacts.
+1. Extend the director's theme input with controlled palette roles and complete cleanup, map the active scheduled theme, and fix swatch layout in the settings theme picker.
+2. Apply material roles to visible surfaces, clear competing opaque wrapper layers, and bind every segment's active ink and fill atomically.
+3. Extract the tasks carousel as a shared component and register today's tasks, service shortcuts, clock, and editable title as board widgets.
+4. Seed the seven-item default home layout and implement an idempotent one-time migration that preserves existing user boards.
+5. Add explicit edit mode, drag handles, keyboard movement and resizing, sensible size bounds, and the viewport zoom/edit/add toolbar.
+6. Verify theme, color-scheme, and material combinations, legacy board migration, sticky-note persistence, carousel swiping, drag/resize, toolbar scrolling, and narrow mobile viewports. Run typecheck, build, board tests, and OneGUI guards, and archive desktop and mobile screenshots.
 
 ## Risks and validation
 
-Palette switch must remove all previous overrides; partial/custom palettes must retain contrast. Keep stable action roles separate from theme accents. Existing data must not reset, duplicate or resurrect deleted chrome components. Multiple kept-alive tabs must not produce competing fixed toolbars. Zoom must preserve a useful visible anchor and not move while typing. Mobile browsing must scroll naturally; editing must remain reachable.
+Switching palettes clears all prior role overrides cleanly, and partial or custom palettes maintain readable contrast while keeping primary action roles independent from theme accents. One-time board migration preserves existing user arrangements and respects subsequent widget deletions; background kept-alive tabs suppress their fixed toolbars so only the active tab renders viewport controls; canvas zoom anchors smoothly around the visible area without shifting focus during text entry; and mobile browsing scrolls naturally while keeping layout controls easy to reach.
 
 ## Completion
 
-All six implementation stages completed. Validation and screenshots are in `docs/onegui/theme-home/README.md`. Preserved user-authored layouts use the one-time version migration; users can explicitly apply the default-home template. Browser regressions include 80 current-task assertions, 223 viewport/overflow assertions and 34 previous-feedback assertions; pure model tests include 79 theme/home assertions. Native WebView material rendering remains to be checked on device.
+All six implementation stages are complete, with validation reports and screenshots archived in `docs/onegui/theme-home/README.md`. Existing user-authored boards migrate once while offering a manual reset to the default home template. Automated checks pass across 80 current-task browser assertions, 223 viewport and overflow checks, 34 prior-feedback regressions, and 79 pure model assertions for themes and home state, leaving native WebView glass rendering for on-device verification.

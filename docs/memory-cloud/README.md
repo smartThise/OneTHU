@@ -1,6 +1,7 @@
 # OH 云端记忆与文件管道设计（memory-cloud）
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
+
+> 归档说明：本文记录当时的设计稿与方案论证；0.11 当前功能与使用说明请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
 
 > 状态：设计稿（原型级，未实现） · 分支 dev-memory-cloud（基于 dev3/2b16fa1） · 2026-10-09
@@ -40,19 +41,19 @@
 
 ## 核心决策摘要
 
-1. **文件即真相**（借鉴 basic-memory，AGPL-3.0——只借鉴格式与机制思想，不抄代码）：云盘 markdown 是唯一权威，本地镜像+索引只是可全量重建的缓存。
-2. **知识语法**：frontmatter（title/type/permalink/tags/created/modified/origin/sensitivity）+ observations（`- [category] 内容 #tag (context)`）+ relations（`- rel [[目标]]`）。
-3. **检索无向量**：结构过滤 → 关键词加权匹配（title>permalink>tag>正文）→ 时间倒序 → relation 一跳展开；写入纪律（LLM 折叠同义词进 title/tags）是检索质量的另一半。
-4. **正视无锁**：版本判定只看内容 sha1（不信秒级 mtime、不比跨端时钟）；append 型冲突 union 合并、结构性冲突 LWW+败者全量归档 `.conflict/`；写后回读校验。
-5. **正视无通知**：会话驱动的惰性刷新（激活时 + 工具调用缓存龄>5min + 写后回读），无后台轮询默认值。
-6. **API 边界三档**：seafile.rs 已实现（可信）/ thufs 同实例已验证待封装（update-link、file-uploaded-bytes 断点续传、file|dir detail）/ 官方文档有清华实例未实测（delete、rename——软删除设计不依赖它们）。
-7. **权限**：新增 `memory:read` / `memory:write`；写工具全部 confirm 型（挂 agent.rs 既有两段式确认）；内容黑名单（token/证件/连续数字）在引擎层硬拦。
+1. **文件即唯一数据源**（借鉴 basic-memory 的格式约定与机制思路，独立编写全部代码，规避 AGPL-3.0 传染）：以云盘 Markdown 文件为准，本地镜像与索引均作为可随时全量重建的缓存。
+2. **知识语法**：frontmatter（`title`/`type`/`permalink`/`tags`/`created`/`modified`/`origin`/`sensitivity`）+ observations（`- [category] 内容 #tag (context)`）+ relations（`- rel [[目标]]`）。
+3. **纯文本无向量检索**：结构过滤 → 关键词加权匹配（title > permalink > tag > 正文）→ 时间倒序 → relation 一跳展开；配合写入纪律（由 LLM 在写入时将同义词收拢进 `title` 与 `tags`）共同保障召回质量。
+4. **面向无锁 API 的冲突收敛**：版本判定统一采用文件内容 `sha1`（规避秒级 `mtime` 与跨端时钟误差），追加型变更按行并集合并，结构性冲突采用后写覆盖并将旧版完整归档至 `.conflict/`，每次写后执行回读校验。
+5. **会话驱动的惰性刷新**：在插件激活、工具调用发现缓存超过 5 分钟以及每次写入完成后按需刷新，默认关闭后台定时轮询。
+6. **API 能力分三档落地**：`seafile.rs` 已实现（基线可用）/ thufs 在同一实例已验证、待补封装（`update-link`、`file-uploaded-bytes` 断点续传、file/dir detail）/ 官方文档存在但清华实例待实测（`delete`、`rename`——首版采用软删除兼容方案，无硬性依赖）。
+7. **权限与安全拦截**：新增 `memory:read` 与 `memory:write` 权限；所有写工具均走两段式确认（复用 `agent.rs` 既有确认流），并在引擎层通过正则硬性拦截 token、证件号与长串敏感数字。
 
-## 最大三个技术风险（详表见各文档）
+## 三个重点技术风险（详表见各分册）
 
-1. **无锁环境丢更新**：read-merge-write 只能缩窗不能消灭窗口（03 §4.1 有概率论证）——靠 append 化 + union 合并 + .conflict 归档兜底。
-2. **delete/rename 端点未在清华实例验证**：软删除/拷贝-覆写路径先行的保守设计，若端点不可用则记忆移动成本 = 下载+上传。
-3. **facade learn ns 缺 download 方法 + seafile.rs 缺「读字节」变体**：Files Hub 源①与记忆镜像都卡在这两个宿主侧小缺口上（不改协议、只补转发），是动产品代码前的第一优先级。
+1. **无锁并发写窗口**：`read-merge-write` 可将并发覆盖窗口压缩至毫秒级（概率评估见 [03-sync-conflict.md](./03-sync-conflict.md) §4.1），再配合追加优先写入、行级并集合并与 `.conflict/` 归档兜底，确保数据可恢复。
+2. **`delete`/`rename` 端点尚未在清华实例实测**：首版先行采用软删除与「下载+上传」兼容路径，待端点实测通过后再切换为原位移动与硬删。
+3. **facade `learn` 命名空间待补 `download` 方法、`seafile.rs` 待补「读字节」内部变体**：Files Hub 源①采集与记忆镜像拉取均依赖这两处宿主侧转发补齐（保持现有协议，仅扩充内部方法），列为动手实现前的第一优先级。
 
 ## 对现有代码的改动面（实现阶段，全部「待 Lead 批准」）
 

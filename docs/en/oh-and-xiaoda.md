@@ -1,27 +1,28 @@
 # Search, OH, Harness and Xiaoda
 
+
 [中文](../oh-and-xiaoda.md) · English
 
 ## Different entry points
 
-Search finds integrated features, settings and content and opens the matching destination. It is available in every experience mode and does not require a language-model response.
+Search finds built-in features, settings, and campus items and jumps straight to the matching view. It runs locally in every experience mode with instant results, independent of any language model.
 
-OH is the conversational entry. In full mode, OneTHU Harness can use authorized host tools and plugins. Minimal and practical modes retain your own API configuration and WeChat/Feishu connections while hiding full-mode advanced management. A guide action opens actual search, OH or the applicable plugin/mode settings.
+OH is OneTHU's conversational assistant. In Full mode, OneTHU Harness can call authorized host tools and installed plugins; in Minimal and Practical modes, OH keeps your configured model API and WeChat/Feishu links working while hiding Full-mode extension panels. Interactive guide buttons open the live Search bar, OH panel, or relevant mode and plugin settings directly.
 
-Xiaoda is the university service with models, agents and a skill plaza. Its availability, login and quotas differ from an external model provider. Repeated 429 or timeouts should be diagnosed rather than multiplied by concurrent automatic retries. Check model, account, request lifecycle and the real error; do not assume a reply was delivered before completion.
+Xiaoda connects to Tsinghua's campus AI service—including school models, agents, and the skill plaza—with its own campus sign-in, availability, and usage quotas separate from external API providers. If you hit `429` rate limits or timeouts, check the selected model, account status, and error message before retrying so concurrent retries do not pile up, and wait for a turn to finish streaming to confirm the complete reply arrived.
 
 ## Skills
 
-Search plaza skills, inspect their files and compatibility, then import them locally. Imported skills are disabled until enabled, and local records are separated by account. A skill is not automatically a runnable application.
+From the skill plaza, you can browse community skills, inspect their source files and runtime needs, and import them into your account-scoped local library, where newly imported skills stay disabled until you turn them on.
 
-The built-in QuickJS runtime runs pure synchronous JavaScript on desktop and Android. Limits are 2 seconds, 32 MiB memory, 256 KiB stack, and 64 KiB code and I/O bounds. It provides no filesystem, network, process, package manager, modules or async execution. Python/Node dependencies, native tools, browsers and persistent services are incompatible with this runtime.
+For lightweight synchronous JavaScript, OneTHU includes an embedded QuickJS engine on both desktop and Android—bounded to 2 seconds, 32 MiB of memory, a 256 KiB stack, and 64 KiB of code and I/O—designed for self-contained pure computation.
 
-Export heavier skills to a folder on desktop or a ZIP on Android, then configure an external desktop agent and its dependencies. Export is not execution, installation of every dependency or a mobile sandbox escape.
+Skills that rely on Python or Node packages, filesystem or network access, native CLI tools, browsers, or long-running processes can be exported to a folder on desktop or a ZIP archive on Android, ready for you to install their dependencies and run them in an external desktop agent.
 
 ## Plugins, MCP and privacy
 
-The host’s [generated plugin surface](api-surface.md) lists 36 namespaces and 255 method entries. Platform, capability and permission checks still apply. A Rust desktop sidecar is not an Android executable.
+The host's [generated plugin surface](api-surface.md) spans 36 namespaces and 255 methods, each governed by platform support and runtime permission checks—for example, native Rust sidecars target desktop macOS and Windows, while Android uses embedded native modules.
 
-Publishing OH as an MCP server and connecting OH to another MCP server are opposite directions with different configuration. Review the actual setting rather than treating either as an unconditional connection. WeChat/Feishu integrations require their own setup.
+OH supports two independent MCP directions with separate settings: exposing OH as a local MCP server for external tools, or connecting OH as a client to external MCP servers. WeChat and Feishu messaging channels are also configured independently.
 
-A provider receives prompts and any content deliberately supplied to the request. Review attached files, tool permissions and remote service policy. [Privacy and diagnostics](privacy-and-troubleshooting.md) describes reporting and account boundaries.
+When you chat with a model provider, it receives your prompt along with any context or files attached to that turn, so review attached files, active tool permissions, and your provider's privacy policy before sending. See [Privacy and diagnostics](privacy-and-troubleshooting.md) for data handling and log redaction details.

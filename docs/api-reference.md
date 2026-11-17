@@ -2,24 +2,26 @@
 
 中文 · [English](en/api-surface.md)
 
-完整接口不再维护一份容易滞后的人工清单。请使用从实际 TypeScript 类型和门面提取的 [完整 API 面](api-surface.md)：当前快照为 **36 个命名空间、255 个方法入口**，签名、参数和直接权限门禁均在表中。
+为了保持文档与代码实时同步，完整的接口签名与权限声明直接由 TypeScript 类型与宿主门面自动生成，详见 [插件 API 完整清单](api-surface.md)（当前共包含 **41 个命名空间、297 个方法入口**）。
 
-## 真源与重新生成
+## 代码真源与更新方式
 
-- `apps/desktop/src/plugins/types.ts`：`OnethuApi` 类型、同步与异步签名。
-- `apps/desktop/src/plugins/facade.ts`：宿主实现、权限、服务和平台检查。
-- `docs/api-surface.json`：机器可读的同一份快照。
+- `apps/desktop/src/plugins/types.ts`：定义 `OnethuApi` 接口结构、参数与同步/异步返回类型。
+- `apps/desktop/src/plugins/facade.ts`：负责宿主能力注入、权限校验及服务与平台适配。
+- `docs/api-surface.json`：供工具与测试读取的结构化清单快照。
+
+修改接口后可通过以下命令重新生成文档：
 
 ```bash
 node tools/docs-api-surface.mjs
 ```
 
-JS 通过 `ctx.onethu.<namespace>.<method>(...)` 调用；Rust sidecar 使用宿主定义的 `onethu.call` 协议，参数按位置传递。完整协议和 manifest 见 [插件开发](plugin-development.md)。
+JavaScript 插件通过 `ctx.onethu.<namespace>.<method>(...)` 直接调用宿主能力；桌面 Rust sidecar 插件则通过 `onethu.call` 协议按位置传递参数，具体通信协议与 `manifest.json` 规范详见 [插件开发指南](plugin-development.md)。
 
-## 约定
+## 调用与权限约定
 
-以具体方法类型判断是否返回 Promise，不依赖一张旧例外列表。缺少权限时请求应拒绝；登录挑战、会话失效、服务限流和超时应分别处理，不能统一无限重试。学校返回对象需要沿调用链传递时不要自行拼造身份或预约对象。
+调用时请直接对照各方法的 TypeScript 返回类型区分同步调用与 `Promise` 异步调用。宿主门面会在执行前校验插件声明的权限；遇到登录二次验证、会话过期、校方限流或请求超时等情况时，建议按错误类型分类提示用户处理；传递学校业务对象（如课程、场馆或预约条目）时，请直接沿用上游查询返回的对象结构。
 
-自动表格标为「见门面实现」表示提取器没有识别到该路径上的直接字面量门禁，**不代表无权限限制**。部分能力由嵌套帮助函数、插件形态、模式或远端账户权限进一步约束。
+自动生成表格中标注「见门面实现」的方法，会在 `facade.ts` 内部结合运行时上下文、当前模式与远端账号权限完成动态校验。
 
-OH 工具、MCP、普通插件和清小搭技能运行环境不同。QuickJS 不提供宿主文件、网络或进程能力；重型 skill 导出给外部 Agent。账号与数据同步还需要通过真实服务验证，不能用夹具测试代替真实双账号联调。
+OH 工具、MCP 服务、应用插件与清小搭技能各自由对应的运行时承载：轻量纯同步计算可在内置 QuickJS 沙箱中直接执行，需要访问本地文件、网络或外部进程的复杂技能则支持一键导出至电脑端外部 Agent 运行。

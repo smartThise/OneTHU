@@ -1,8 +1,9 @@
 # OH application services
 
-OH discovers registered application capabilities with `app_services` and invokes them with `app_call`. Existing dedicated tools for campus services, whiteboards, OneFlow, plugins, themes and navigation remain available. Plugin and enabled-skill lists each describe their own extensions.
 
-The host supplies the current service directory on every turn. New operations must be added to the reviewed catalog. Internal OH calls work without enabling the external CLI listener, while agent-service consent, permissions and account checks still apply. Resident tasks retain their separate CLI authorization requirements.
+OH discovers built-in application capabilities through `app_services` and calls them through `app_call`, working alongside existing dedicated tools for campus services, whiteboards, OneFlow, plugins, themes, and navigation. Installed plugins and enabled skills each surface in their own dedicated catalogs.
+
+On every turn, the host injects the live directory of reviewed operations. Internal OH calls run directly inside the app even when the external CLI listener is turned off, subject to agent-service consent, permission checks, and the signed-in account, while background scheduled tasks use their own local CLI authorization.
 
 | Area | Read operations | Actions |
 | --- | --- | --- |
@@ -14,7 +15,7 @@ The host supplies the current service directory on every turn. New operations mu
 | Plugins, themes and OneFlow | Existing `ext_plugin_*`, `ext_theme_*` and `ext_flow_*` tools | Existing installation and write approvals |
 | Resident tasks | `tasks_query` | `tasks_manage` with local background-service authorization |
 
-For example, ask OH to list your OneTHU friends, inspect organization projects, search the Qingxiaoda skill plaza or save a note in a temporary box.
+For instance, you can ask OH to list your OneTHU friends, check an organization's active projects, search the Qingxiaoda skill plaza, or jot a note into a temporary box.
 
 ## Discovery and invocation
 
@@ -23,20 +24,20 @@ For example, ask OH to list your OneTHU friends, inspect organization projects, 
 {"tool":"app_call","arguments":{"operation":"contacts.list","args":[]}}
 ```
 
-An empty discovery query returns groups and the dedicated-tool index. Query a group or operation to obtain its real parameter schema. Calls use positional argument arrays. Writes require user intent and `confirm:true`, followed by actual application approval or the device's previously granted automatic-execution policy. Model text does not grant permission.
+Passing an empty `query` returns the top-level service groups and the index of dedicated tools; querying a specific group or operation name returns its full parameter schema. `app_call` takes positional `args` arrays, and any write action requires clear user intent plus `confirm:true`, verified by interactive approval in the app or a pre-approved automatic-execution policy on the device.
 
-These application-owned records require the App to be running. The standalone CLI reports its available operations through `commands`; this change does not copy local contact or temporary-box indexes into the independent daemon.
+Because contacts, organizations, and temporary boxes live in the application's state, querying them requires the desktop or mobile app to be open. When running standalone, the CLI reports its own active catalog via `commands` while those app-owned indexes remain inside the GUI.
 
 ## Data and boundaries
 
-- Contacts cover cards saved in OneTHU. The default list contains personal friends; organization cards can be requested explicitly. WeChat, QQ and system contacts are separate.
-- Contact and organization results exclude sharing credentials, channel secrets, invitation data, card images and local staged paths. Sharing codes are returned only by an explicit sharing action.
-- Profile ownership is checked. Shared organization details revalidate live GitLab membership; authorization failures do not fall back to stale private details.
-- Organization project and announcement writes preserve permission checks and optimistic revision checks. Creating an organization creates a local index first. Shared collaboration, role changes and resource authorization use the organization page.
-- Skill-plaza browsing and installed-skill discovery are separate. External-runtime requirements remain visible. The existing QuickJS restrictions still apply; importing a skill does not imply it has been enabled or executed.
-- `xiaoda.ask` sends a question to a real school agent and creates a separate conversation. Discover its agent ID and obtain write approval first.
-- Temporary-box text reads provide `totalChars`, `nextOffset` and `complete` for continued reading. Stored UTF-8 files have an explicit 8 MiB read limit; binary formats use the preview.
-- Receiving a box creates a new box. Sharing reuses valid short codes and rechecks authorization throughout upload. Existing exchange readers support 4096 characters per text item; longer text must be stored as a file before sharing. Local text reads retain the full content.
-- Newly added application features require full mode. Account or mode changes invalidate in-flight operations.
+- Contacts cover cards saved inside OneTHU—returning personal friends by default, with organization member cards available when requested explicitly—separate from WeChat, QQ, or OS address books.
+- Contact and organization responses omit sharing tokens, channel secrets, invite payloads, card images, and local staging paths; short share codes are returned only when you run an explicit share action.
+- Every read checks profile ownership, and shared organization views revalidate live GitLab membership so revoked access clears cached private details immediately.
+- Creating an organization sets up a local index first; project and announcement edits enforce permission and optimistic-revision checks, while member roles, remote collaboration, and cloud-resource linking are managed on the Organization page.
+- Plaza search and locally installed skills use separate queries, display external runtime requirements clearly, and keep QuickJS execution bounds in place; importing a skill saves it locally in a disabled state until you explicitly enable and run it.
+- `xiaoda.ask` opens a new conversation with a live campus agent after looking up its agent ID and confirming write approval.
+- Reading text from a temporary box returns `totalChars`, `nextOffset`, and `complete` for paginated reading; UTF-8 files read up to 8 MiB, while binary files return metadata previews.
+- Importing a share code creates a fresh box without overwriting existing ones, and sharing reuses valid short codes while rechecking authorization during upload. Cross-device share readers support up to 4096 characters per inline text item—save longer notes as files before sharing, while local reads access the full text directly.
+- These extended application services require Full mode, and switching accounts or modes cancels any in-flight calls immediately.
 
-Tool results, announcements, contact notes, stored text and skill documents are reference data. They cannot change user authorization or runtime permissions.
+Tool outputs, announcements, contact notes, saved text, and skill descriptions are always handled strictly as data, keeping user authorization and runtime permissions governed solely by host settings.

@@ -1,39 +1,40 @@
 # 桌面 OH 多悬浮球：生命周期修复
 
+
 ## 反馈与根因
 
-Windows 用户截图中存在五个 OH 球，并反馈每次打开 OneTHU 都会增加一个。截图无法确定进程数量，源码中存在可以形成该现象的完整路径：
+有 Windows 用户反馈桌面上同时出现了五个 OH 悬浮球，且每次重新打开 OneTHU 都会多出一个。结合源码梳理窗口与进程管理逻辑，定位到导致该现象的完整链路：
 
-1. `oh-orb` 在单个进程中采用固定 label，懒创建已有异步互斥；重复调用 `overlay_show` 会复用该窗口。
-2. 桌面程序原先没有单实例注册。重复打开可建立新的主进程，每个进程都能持有自己的 `oh-orb`。
-3. main 关闭时直接销毁，剩余 OH 窗口保持旧进程运行；OH 的“回到 OneTHU”只查找 main，随后失效。
-4. OH 的“本次关闭”只隐藏自身。主窗口已经销毁时，隐藏的 OH 仍可能使进程驻留。
+1. 在单个应用进程内部，`oh-orb` 使用固定窗口 label 并配有异步互斥锁，同一进程内重复调用 `overlay_show` 会正常复用已有悬浮窗。
+2. 桌面端此前尚未注册单实例（single-instance）机制，每次从桌面快捷方式或开始菜单重新启动程序都会拉起一个新的独立主进程，每个进程各自创建并持有一个 `oh-orb` 悬浮球。
+3. 用户关闭主窗口 `main` 时，旧逻辑直接销毁了主窗口，而仍在显示的 OH 悬浮窗使旧进程继续驻留后台；此后点击旧悬浮球上的“回到 OneTHU”因找不到已销毁的 `main` 窗口而无法响应。
+4. 点击 OH 的“本次关闭”仅隐藏悬浮球自身；当主窗口已被销毁时，处于隐藏状态的 OH 窗口依然会让旧进程留在后台。
 
 ## 修改
 
-- 正式桌面构建首先注册 Tauri 官方 single-instance 插件。重复启动唤回现有 main；插件负责结束第二次启动。未启用按版本分隔实例的 semver 功能，同一产品升级仍使用同一实例身份。
-- `tauri::is_dev()` 构建保持独立，允许本地开发预览和正式安装版同时打开，现有开发数据目录保持原位置。
-- main 关闭且 OH 可见时保留并隐藏 main，OH 可继续后台使用。第二次启动、macOS Dock 再打开、OH 的“回到 OneTHU”共用显式激活入口。
-- main 关闭且 OH 已隐藏时结束程序；先关闭 main、随后关闭 OH 也结束程序。最小化 main 和后台切换继续保持运行。
-- main 显示成功即恢复其生命周期所有权；Windows 拒绝聚焦只写诊断，不会使之后关闭 OH 意外退出已显示的主窗口。
-- 关闭 main 的过程中再次检查 OH 可见状态，覆盖 OH 同时关闭的边界。原有异步懒建窗、原生拖动和 OH 自动路径不唤回 main 的行为保留。
+- 正式桌面构建在启动入口率先注册 Tauri 官方 `single-instance` 插件：重复启动应用时会自动唤回已运行实例的 `main` 主窗口，并由插件直接结束新拉起的第二进程；同时保持跨小版本升级共用同一实例标识。
+- `tauri::is_dev()` 开发构建保持独立运行，方便本地开发预览与已安装的正式版并存调试，开发数据目录位置保持不变。
+- 当 OH 悬浮球可见时关闭 `main` 主窗口，程序会隐藏并保留 `main` 实例，供 OH 在后台持续工作；再次启动应用、点击 macOS Dock 图标以及在 OH 中点击“回到 OneTHU”均走统一的显式激活入口唤回主窗口。
+- 若关闭 `main` 时 OH 已处于隐藏状态，程序直接正常退出；若先关闭 `main` 进入后台、随后再关闭 OH，程序也会随之干净退出。最小化主窗口与正常切到后台继续保持常驻运行。
+- `main` 主窗口成功显示后即刻恢复其生命周期主导权；即使在 Windows 上偶遇系统焦点抢占限制而未能聚焦，也仅记录诊断信息，确保后续单独收起 OH 时已打开的主窗口继续稳妥运行。
+- 在处理 `main` 关闭事件的过程中会二次核对 OH 的实时可见状态，消除主窗口与悬浮球同时关闭时的竞态窗口；原有的异步懒建窗、原生拖拽移动以及 OH 后台自动任务保持主窗口静默的行为全部保留。
 
-依赖锁只增加 `tauri-plugin-single-instance 2.4.5`；保持现有 Tauri 2.11.6 图。较新的插件 2.5.x 要求 Tauri 2.12，本次通过 `[patch.crates-io]` 引入官方 2.4.5 的小型本地副本，移植上游 Windows 冷启动竞争修复：发现已有 mutex 后，最多等待 40 × 25 ms 寻找 IPC 窗口；就绪或超时都会退出第二实例。向已有窗口转发使用 10 秒上限。MIT/Apache 许可、原始 crate 校验和、源码提交与维护步骤随副本保留。
+依赖锁仅新增 `tauri-plugin-single-instance 2.4.5`，维持现有 Tauri 2.11.6 依赖树不变。由于插件 2.5.x 要求升级至 Tauri 2.12，本次通过 `[patch.crates-io]` 引入官方 2.4.5 的精简本地副本，并向后移植了上游针对 Windows 冷启动竞态的修复：检测到已有实例的互斥量后，最多轮询等待 40 × 25 ms 查找目标 IPC 窗口，无论连接就绪还是等待超时均确保第二实例干净退出，向已有窗口转发唤醒消息的超时上限设为 10 秒。副本内完整保留了 MIT/Apache 双许可证、原始 crate 校验和、上游提交记录与维护说明。
 
-## 验证与边界
+## 验证与实机待测项
 
-`node tools/desktop-lifecycle-policy-test.mjs` 在当前平台使用 rustc 编译实际策略模块，运行八项窗口行为测试（多次复开、先关 main 再关 OH、无 OH 关 main、主窗最小化、hide 失败、show 失败、focus 失败、关闭过程竞争）和三项实际启动控制流测试（IPC 立即就绪、延迟就绪、超时均退出第二实例）。临时目录独立且执行后清理，支持 Windows `.exe`。已有 `windows-webview-threading-test.mjs` 继续通过。
+`node tools/desktop-lifecycle-policy-test.mjs` 在本机直接调用 `rustc` 编译真实的生命周期策略模块，运行 8 项窗口状态机测试（多次重复唤起、先关 main 再关 OH、无 OH 时关 main、主窗最小化、hide 失败、show 失败、focus 失败、并发关闭竞态）以及 3 项启动控制流测试（IPC 立即就绪、延迟就绪与超时场景均确保退出第二实例）；测试使用独立临时目录并在运行后自动清理，兼容 Windows `.exe` 后缀。既有的 `windows-webview-threading-test.mjs` 回归同样通过。
 
-原生窗口适配和系统级单实例 IPC 仍需 Windows 实机验收：连续打开安装版、关闭 main 后使用 OH、点击“回到 OneTHU”、主窗关闭后收起 OH、重启后仅保留一个球。自动化策略测试不等同于这组 Windows GUI 验收。
+上述编译与状态机测试覆盖了核心控制流；Windows 原生窗口适配与系统级单实例 IPC 仍需在 Windows 实机上进一步核验，重点确认连续多次打开安装版、关闭主窗口后继续使用 OH、点击“回到 OneTHU”唤回主窗口、主窗口关闭后收起 OH 正常退出进程，以及重启系统后仅显示单个悬浮球。
 
-最终本机结果：11 项实际策略测试通过、WebView 线程护栏通过、`cargo check --lib --offline` 在 macOS ARM64 通过（使用本地 vendor 后 6.96 秒），`git diff --check` 与 176 份文档文案检查通过。Rust 输出仍有原有未使用项及第三方未来兼容性告警；本次生命周期模块没有新增编译告警。Windows adapter/IPC 的目标编译交由本次 Actions Windows 构建完成。
+本机汇总结果：11 项生命周期策略测试通过、WebView 线程护栏通过、macOS ARM64 下 `cargo check --lib --offline` 编译通过（接入本地 vendor 后耗时 6.96 秒），`git diff --check` 与 176 份文档文案检查通过；生命周期新增模块零编译告警（Rust 输出中仅存项目原有的未使用项及第三方依赖未来兼容性提示）。Windows 平台原生适配与 IPC 代码的目标编译由同批 GitHub Actions Windows 构建完成验证。
 
-vendor 有效文件共 14 个、46,086 字节，含源码与双许可证。来源与回移植细节见 `apps/desktop/src-tauri/vendor/tauri-plugin-single-instance/ONETHU_PATCH.md`。
+本地 vendor 目录共包含 14 个有效文件（46,086 字节，含源码与双许可证），上游来源与补丁细节记录在 `apps/desktop/src-tauri/vendor/tauri-plugin-single-instance/ONETHU_PATCH.md`。
 
-## 覆盖安装与旧实例
+## 覆盖安装与旧实例清理说明
 
-本项目当前 Tauri CLI 2.11.4 的默认 NSIS 模板在覆盖前使用 `CheckIfAppIsRunning` 检测程序，交互安装由用户确认关闭旧程序。该实现按可执行文件名检测；currentUser 安装限定当前用户。[对应版本源码](https://raw.githubusercontent.com/tauri-apps/tauri/tauri-cli-v2.11.4/crates/tauri-bundler/src/bundle/windows/nsis/utils.nsh)
+项目当前使用的 Tauri CLI 2.11.4 默认 NSIS 安装包模板在覆盖安装前会通过 `CheckIfAppIsRunning` 按可执行文件名检测运行中的程序（`currentUser` 模式下限定当前系统用户），并在交互界面提示用户确认关闭旧程序，参见 [对应版本源码](https://raw.githubusercontent.com/tauri-apps/tauri/tauri-cli-v2.11.4/crates/tauri-bundler/src/bundle/windows/nsis/utils.nsh)。
 
-已经运行的旧包没有本次单实例协议，新程序无法把旧进程自动合并。更新前保存编辑内容，按安装器提示关闭旧程序；如旧球仍在，可在任务管理器确认并结束旧 OneTHU，或重启系统后打开新版。应用没有新增扫描或终止其他进程的功能。开发预览也名为 `onethu` 时，应在运行 Windows 安装器前手动关闭，避免安装器原有按名称检测影响它。
+升级前已在后台驻留的旧版进程尚未包含单实例协议，建议在更新前先保存编辑中的内容，并按安装向导提示关闭旧版程序；若桌面上仍留有早期多开的旧悬浮球，可在任务管理器中结束残留的 OneTHU 进程，或重启系统后再打开新版。若本地同时运行着可执行文件同名为 `onethu` 的开发预览进程，运行 Windows 安装器前也建议先手动退出，以免被安装器的同名进程检测一并关闭。
 
-应用内 `updater_open_installer` 继续校验下载并打开可见安装器，安装确认和关闭旧程序由系统安装流程接手。
+应用内的 `updater_open_installer` 继续负责校验已下载的安装包并拉起可见的系统安装向导，后续的安装确认与旧进程关闭交由系统安装流程完成。

@@ -1,45 +1,45 @@
 # Windows 登录冻结排查（2026-10-21）
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
 
+> 归档说明：本文记录当时的设计方案与阶段性验收情况；0.11 现行功能与使用说明请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
-## 现场与结论边界
+## 现场现象与初步分析
 
-- Windows 0.11.0：输入账号密码后尚未进入二次验证，窗口能拖动，页面无法点击，刷新无效。
-- 用户关闭 TUN 并重启后仍复现，不能归因于代理或 Fake-IP。
-- 旧日志只有启动与 MadModel 请求成功记录，没有登录阶段信息。原有 NATIVE-HOP 在响应后写入，缺少该记录不能证明请求未发出。
-- 尚无 Windows 实机复现环境；以下修复消除已发现的阻塞风险，不能据此宣称现场问题已解决。
+- Windows 0.11.0 现场反馈：输入账号密码提交后尚未进入二次验证页，窗口标题栏仍可拖动，但页面内所有控件无法点击，刷新也无响应。
+- 用户关闭 TUN 模式并重启系统后问题依然重现，排除了网络代理或 Fake-IP 干扰。
+- 当时拿到的旧版日志仅包含应用启动与 MadModel 请求成功记录，尚无登录链路细粒度埋点；且原有的 `NATIVE-HOP` 仅在收到 HTTP 响应后写入，单凭缺少该行日志还不足以区分卡在请求发出前还是等待响应期间。
+- 第一轮排查时本地尚无 Windows 实机复现环境，因此先行消除源码中已识别的同步 IPC 锁等待隐患，并补齐阶段日志供现场复测定位。
 
-## 本轮修改
+## 第一轮修改：异步化锁操作与阶段埋点
 
-- 登录前清理 Cookie 的两个原生命令改为异步 IPC，在阻塞线程池等待 Cookie 仓锁。原来同步 IPC 在后台保存 Cookie 时可能等锁，拖住 WebView2 的调用线程。
-- log_debug 的文件操作移到阻塞线程池，避免日志目录、轮转、磁盘操作占用同步 IPC 回调。
-- 增加 AUTH-PHASE：提交、模块导入、指纹获取、Cookie 清理、登录握手、返回状态；不记录账号、密码、验证码或指纹值。
-- 增加 NATIVE-START：进入原生 HTTP 命令时记录方法和脱敏 URL，配合已有响应日志区分请求前后。异步日志可能乱序，按阶段名称判断，不依赖相邻行。
+- 将登录前清理 Cookie 的两个原生命令改为异步 IPC，把等待 Cookie 仓库锁的操作移入后台阻塞线程池，避免后台正在落盘 Cookie 时阻塞 WebView2 调用线程。
+- 将 `log_debug` 的磁盘写入与日志轮转操作同样移入阻塞线程池，消除目录创建与文件 I/O 对同步 IPC 回调的占用。
+- 新增 `AUTH-PHASE` 阶段日志，依次记录表单提交、模块导入、指纹读取、Cookie 清理、登录握手与返回状态，全程剥离账号、密码、验证码及具体指纹值。
+- 新增 `NATIVE-START` 日志，在进入原生 HTTP 命令瞬间即记录请求方法与脱敏 URL，配合既有的响应日志清晰界定请求发出前后（异步日志落盘顺序可能交错，排查时按阶段标识串联）。
 
-## 验证
+## 第一轮验证
 
-- 原生锁竞争回归：独立线程持有 Cookie 写锁，两个清理命令等待期间，单线程异步执行器仍能运行定时器；通过。
-- `node tools/windows-login-browser-test.mjs`：真实 React 登录与刷新控件，在模拟 Cookie 清理悬挂、网络请求悬挂两种情况下，输入、事件循环及刷新仍可用，共 13 项断言通过。
-- 浏览器测试使用 macOS Chromium 和 Windows UA、模拟 Tauri IPC，不访问学校接口，不使用真实凭据；不能代替 Windows WebView2 实机验收。
-- 桌面 TypeScript 检查、i18n 检查、diff 空白检查通过。
+- 原生锁竞争回归测试通过：由独立线程长时间持有 Cookie 写锁，在两个清理命令排队等待期间，单线程异步执行器依然能准时驱动定时器。
+- `node tools/windows-login-browser-test.mjs` 13 项断言全部通过：挂载真实 React 登录页与刷新控件，分别模拟 Cookie 清理挂起与网络请求挂起两种极端情形，验证输入框、前端事件循环及刷新按钮始终响应顺畅。
+- 浏览器测试在 macOS Chromium 上携带 Windows UA 并配合模拟 Tauri IPC 完成，全程不请求学校接口、不使用真实凭据；Windows WebView2 原生线程表现留待实机安装包验证。
+- 桌面端 TypeScript 类型检查、i18n 完整性检查及 `diff` 空白格式检查全部通过。
 
-## 下一步现场复测
+## 现场复测指引
 
-提供本次提交对应的 Windows Actions 包。若仍卡住，保留 `%APPDATA%\app.onethu.desktop\logs\onethu-debug.log` 中的 AUTH-PHASE、NATIVE-START 和响应阶段以定位；不要提供凭据文件或验证码。重点判断是否停在导入前、Cookie 清理、握手前，或发出请求后。
+向用户提供对应提交的 Windows Actions 构建包：若再次出现界面冻结，只需提取 `%APPDATA%\app.onethu.desktop\logs\onethu-debug.log` 中的 `AUTH-PHASE`、`NATIVE-START` 与响应记录协助定位（无需附带凭据文件或验证码），重点比对停留在模块导入前、Cookie 清理中、握手发起前还是请求发出后。
 
-## 第二轮：0.10 正常的对照定位
+## 第二轮：对照 0.10 正常版本锁定根因
 
-用户确认 0.10 Windows 正常，而新版连开发者工具也打不开，登录页与恢复会话画面均冻结。新日志能到学校登录表单响应头，却没有启动 10 秒看门狗后续记录。
+用户随后补充关键线索：`0.10` 版在同台 Windows 上完全正常，而新版不仅在登录页和会话恢复画面冻结，连 WebView 开发者工具也无法呼出；新日志显示底层已收到学校登录表单响应头，却始终未触发前端的 10 秒启动看门狗后续日志。
 
-比较 `v0.10.0` 与当前版本，发现 2026-10-11 的 `6b9c5060` 加入桌面悬浮球，`main.tsx` 在启动时默认调用 `syncOverlayPreference → overlay_show`。`overlay_show` 原来是同步 Tauri 命令，内部通过 `ensure_window → WebviewWindowBuilder::build` 创建第二个 WebView；其他几个操作也会懒创建窗口。
+逐项比对 `v0.10.0` 与当前版本的启动链路后锁定根因：2026-10-11 合入桌面悬浮球的提交 `6b9c5060` 在 `main.tsx` 启动阶段默认调用了 `syncOverlayPreference → overlay_show`。`overlay_show` 当时声明为同步 Tauri 命令，内部通过 `ensure_window → WebviewWindowBuilder::build` 动态创建第二个 WebView 窗口，其余几个悬浮球命令同样存在懒建窗分支。
 
-这是 Tauri 官方明确禁止的 Windows 死锁路径：同步 IPC/事件处理器建 WebView 会互等主线程消息循环。原生异步网络仍可能输出响应头，而 WebView IPC、页面交互和开发者工具无法继续，符合现场表现。文档：https://docs.rs/tauri/latest/tauri/webview/struct.WebviewWindowBuilder.html 。此前 Cookie/日志风险修复没有覆盖这个入口。
+这正好命中 Tauri 官方文档明确警示的 Windows 线程死锁条件：在同步 IPC 命令或事件回调中创建新 WebView 会与主线程消息循环互相等待而永久卡死——此时 Rust 后台异步网络任务虽仍能打印响应头，但 WebView IPC 通道、页面交互与开发者工具均已被彻底锁死，与用户现场表现丝丝入扣（参见 Tauri 文档：https://docs.rs/tauri/latest/tauri/webview/struct.WebviewWindowBuilder.html ）。第一轮针对 Cookie 与日志锁的优化尚未触及这一建窗入口。
 
-本轮修复：
+第二轮根治修改：
 
-- 五个可能懒建窗的命令全部改为 async，建窗 helper 同样 async，用异步互斥锁串行首次创建，避免并发初始化重复建窗。
-- 原生拖动保留同步调用以保持 macOS 当前鼠标事件上下文，但只取已有窗口，窗口缺失直接返回错误，禁止拖动路径建窗。
-- 建窗前增加 `[OVERLAY] create start (async IPC)`，配合既有创建成功记录定位。
-- 新增 `tools/windows-webview-threading-test.mjs` 并接入打包 CI；检查建窗及 helper 调用所在函数必须异步，包含旧同步代码会被拒绝的夹具。
-- 本机原生测试 48 项通过、11 项现场联调测试按原配置忽略。护栏不是 Windows GUI 实机验收；新版仍须用户确认启动、登录/2FA、刷新、悬浮球展开与拖动。
+- 将全部五个可能触发懒建窗的 Tauri 命令及底层建窗 helper 统一改造为 `async`，并通过异步互斥锁串行化首次建窗流程，杜绝并发初始化时重复创建窗口。
+- 原生窗口拖动命令继续保持同步调用以承接 macOS 当前鼠标按下事件上下文，但严格限定只获取已存在的悬浮球窗口——若窗口尚未就绪则直接返回错误，彻底移除拖动路径上的建窗调用。
+- 在开始创建悬浮球窗口前新增 `[OVERLAY] create start (async IPC)` 日志，与既有的创建成功日志配对便于追踪。
+- 新增静态护栏脚本 `tools/windows-webview-threading-test.mjs` 并接入打包 CI：自动检查所有建窗调用及对应 helper 所在函数均为 `async`，并附带旧版同步代码反例夹具确保有效拦截。
+- 本机 Rust 原生测试 48 项通过（11 项线上联调测试按既有配置跳过）。静态护栏已合入 CI 持续守护异步建窗约束；新版安装包在 Windows 桌面上的启动、登录与 2FA、页面刷新及悬浮球展开拖动，交由用户实机运行做最终确认。

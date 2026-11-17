@@ -1,19 +1,19 @@
 # 手机 UI / 拖放识别 / 动画 / NFC 调研（2026-10-18）
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
 
+> 归档说明：本文记录当时的技术调研与方案评估；0.11 当前功能与使用指南请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
-> 只读调研，基线 `ca2fadea`；Phase 1 暂存箱地基在调研期间提交（`35cef40f`）。用于计划文档 §7.5/§7.6 的手机基础层设计。
+> 本次只读调研基于 `ca2fadea`（调研期间同步提交了 Phase 1 暂存箱地基 `35cef40f`），结论用于计划文档 §7.5/§7.6 的手机基础层设计。
 
 ## 1. 现有交互骨架
 
-- 手机判定唯一来源：`state/platform.ts:46-53`（短边 <600），`main.tsx:27-31` 同步 `html.is-phone`，`?phone=1` 可强制。
-- 贴底抽屉：`PhoneSheet` + `useSheetDrag`（速度低通、0.6/0.94vh 两档吸附、档位记忆、安全区），TabDrawer/OneGo/OnePage 复用。
-- 底部安全区/底栏：`explorer-ui.css:780-786`；固定层 z：底栏 80、sheet 1290/1300/1310、OH 面板 9992/雾 9993。
-- 触感：`lib/haptics.ts`（5 档、老机型白名单）；长按可用 `haptic("longPress")`。
-- 320/390 回归：`layout-browser-test.mjs`、`usability-browser-test.mjs`、`phone-audit.mjs`、`phone-regression.mjs`。
+- **手机形态判定**：统一由 `state/platform.ts:46-53` 根据视口短边 `<600` 判定，`main.tsx:27-31` 负责同步 `html.is-phone` 类名，开发调试时可通过 `?phone=1` 强制开启。
+- **贴底抽屉**：由 `PhoneSheet` 与 `useSheetDrag` 配合实现，内置速度低通滤波、`0.6/0.94vh` 两档吸附、档位记忆与安全区适配，目前已在 TabDrawer、OneGo、OnePage 之间复用。
+- **底部安全区与层级**：样式定义在 `explorer-ui.css:780-786`；固定层 `z-index` 自下而上依次为底栏 `80`、sheet `1290/1300/1310`、OH 面板 `9992` 与背景雾化层 `9993`。
+- **触感反馈**：集中在 `lib/haptics.ts`，提供 5 档震动与老机型白名单，长按交互可直接调用 `haptic("longPress")`。
+- **320/390 视口回归**：由 `layout-browser-test.mjs`、`usability-browser-test.mjs`、`phone-audit.mjs`、`phone-regression.mjs` 四套脚本覆盖。
 
-## 2. 拖拽现状：四套自写 Pointer，无统一层
+## 2. 拖拽现状：四套独立 Pointer 实现
 
 | 面 | 阈值/机制 | 证据 |
 |---|---|---|
@@ -23,75 +23,75 @@
 | 抽屉把手 | 速度低通、0.4px/ms 甩动、两档吸附 | `PhoneSheet.tsx:23-29,37-102` |
 | 其它 | 作业轮播纵拖、组件尺寸轮播、白板画笔、图标取色、图片查看器、悬浮网窗口 | `HomeworkCarousel.tsx:236-288`、`WidgetSizes.tsx:277-365` 等 |
 
-结论：**全仓没有 HTML5 DnD、没有通用「可拖元素→对象引用」层、没有边缘自动滚动**；长按阈值三套（300/450/500ms）并存。
+盘点结论：**仓库内尚未引入 HTML5 DnD，缺少通用的「可拖元素 → 对象引用」提取层与边缘自动滚动能力**，且同时存在 300ms、450ms、500ms 三套长按时间阈值。
 
-## 3. 逐类可拖性（摘要）
+## 3. 逐类可拖性摘要
 
-- 可拖但需仲裁：白板卡片（桌面世界坐标、手机 stack 禁拖）、标签条/抽屉（已有长按武装）。
-- 只差点一下属性：搜索结果、邮件、新闻、课程/作业/通知/文件、体育/图书馆/研讨间等（都有 `CollectStar` 原子）——本轮已在 `CollectStar` 统一接 `data-vault-catch`。
-- 需新增对象类型/稳定 key：日程事件（无事件 atom）、设置行（routeId）、主题、壁纸、选课、插件、OnePage、邀请/名片。
-- 完全无入口：桌面 OS 拖入（无 `onDragDropEvent`）、剪贴板文件、Android `ACTION_SEND` 分享面板、文件 hash/上传通道。
-- 现成但零使用：`ContextMenu.tsx` 的全局 `data-ctx-atom` 兜基层；可复活为「长按→收进暂存箱」菜单。
+- **已有拖拽但需手势仲裁**：白板卡片（桌面端走世界坐标，手机端 stack 模式禁用拖动）、标签条与标签抽屉（已带长按武装逻辑）。
+- **仅需补齐标记属性**：搜索结果、邮件、新闻、课程/作业/通知/文件、体育/图书馆/研讨间等列表项均已挂载 `CollectStar` 原子组件，本轮已在 `CollectStar` 上统一接入 `data-vault-catch`。
+- **需新增对象类型与稳定 key**：日程事件（目前尚无事件级 atom）、设置行（`routeId`）、主题、壁纸、选课、插件、OnePage 以及邀请/名片。
+- **尚待建设系统入口**：桌面系统文件拖入（尚未监听 `onDragDropEvent`）、剪贴板文件读取、Android `ACTION_SEND` 系统分享接收，以及文件哈希与上传通道。
+- **现成基础设施可复用**：`ContextMenu.tsx` 预留了全局 `data-ctx-atom` 兜底识别层，可直接启用并接入「长按 → 收进暂存箱」菜单动作。
 
-## 4. 手势竞技场建议
+## 4. 手势竞技场设计建议
 
-优先级：系统返回/悬浮球 > 弹层/抽屉把手 > 已注册强语义拖（白板/标签/轮播）> 通用长按拖动 > 滚动/点击。
+手势响应优先级由高到低依次为：系统返回/悬浮球 > 弹层/抽屉把手 > 已注册的强语义拖拽（白板/标签/轮播）> 通用长按拖动 > 页面滚动/普通点击。
 
-- 通用长按 380–420ms、容差 8–10px；武装时 `haptic("longPress")` + scale 1.04；武装后移动即拖拽并取消菜单定时器。
-- 未武装时绝不吃滚动；武装后 document `touchmove` `passive:false` + preventDefault；不要全局改 `touch-action`。
-- 拖拽期间给 `<html>` 加 `is-catch-dragging`，底栏 `pointer-events:none`（避免 OH 胶囊 450ms 长按/点击抢事件）；落点自身 `pointer-events:auto`。
-- 边缘自动滚动：进入最近可滚祖先上下 60px 启动 rAF，4→14px/帧。
-- 返回键：拖拽中压入 `openOverlayFrame("vault-drag", cancel)`，Android 返回先取消手势。
-- 拖出系统边界：WebView 内不能跨应用拖拽；跨应用走分享面板/ACTION_SEND，不在首版承诺。
+- **长按武装与触发**：通用长按阈值设为 380–420ms，移动容差 8–10px；进入武装态时触发 `haptic("longPress")` 并将目标放大至 `scale 1.04`；武装后一旦发生位移即转入拖拽态，同时取消上下文菜单定时器。
+- **滚动与事件隔离**：未进入武装态前保持原生顺畅滚动；武装后在 `document` 层以 `passive:false` 监听 `touchmove` 并调用 `preventDefault`，保持常规元素的 `touch-action` 原样不动。
+- **底栏防误触**：拖拽期间为 `<html>` 挂载 `is-catch-dragging` 类名，将底栏设为 `pointer-events:none`（防止误触 OH 胶囊的 450ms 长按或点击），仅对暂存箱落点自身开启 `pointer-events:auto`。
+- **边缘自动滚动**：指尖进入最近可滚动祖先容器上下 60px 区域时启动 `rAF`，按每帧 4→14px 渐进滚动。
+- **返回键取消**：拖拽开始时压入 `openOverlayFrame("vault-drag", cancel)`，确保在 Android 上按系统返回键会优先取消当前手势。
+- **应用边界与分享协同**：受限于 WebView 容器边界，拖拽交互聚焦应用内部流转；跨应用传递后续通过系统分享面板（`ACTION_SEND`）承接，首版暂缓纳入。
 
 ## 5. 暂存箱落点挂载建议
 
-- **不要**塞进 `.ex-bbar` 三槽（胶囊已占中槽，320 会挤）。
-- 独立 fixed 层；常驻态右下小徽标，拖拽时展开为底部胶囊/环形落点；锚点与 FAB/OnePage 抽屉同族（`bottom: calc(var(--explorer-bar-h) + safe-area + gap + 8px)`）。
-- 层级：底栏 80 之上、sheet 1290 之下；OH 面板/设置浮层打开时隐藏或 `pointer-events:none`。
-- 距离 <120px 高亮、<64px 吸附；吸附 `haptic("tick/click")`，取消 `haptic("reject")`。
+- **避开底栏三槽**：`.ex-bbar` 中槽已放置胶囊组件，320px 窄屏下空间紧凑，暂存箱落点宜独立于底栏之外。
+- **独立浮动层**：采用独立的 `fixed` 定位层，常驻态收起为右下角小徽标，拖拽激活时展开为底部胶囊或环形落点，纵向锚点与 FAB 及 OnePage 抽屉对齐（`bottom: calc(var(--explorer-bar-h) + safe-area + gap + 8px)`）。
+- **层级与显隐**：置于底栏（`80`）之上、sheet（`1290`）之下；当 OH 面板或设置浮层打开时自动隐藏或设为 `pointer-events:none`。
+- **吸附与触感**：距离 `<120px` 时高亮提示，`<64px` 时触发吸附并播放 `haptic("tick/click")`，中途取消则播放 `haptic("reject")`。
 
 ## 6. 动效基础
 
-- 令牌：`styles/motion.css`（MD3 时长/曲线 + compat `--dur-1..4`、`--ease-*`、`--rise-*`、`--stagger`）；`docs/动效设计规范.md`。
-- 状态机：`useExitPhase`、`useExitHold`、`useSheetDrag`、`useNavIndicator`；keyframes `m-pop/m-spring-in/m-sheet-up/down/m-expand-in/m-breathe` 等。
-- reduced-motion：CSS 全量降级 + JS `prefersReducedMotion()`；触感白名单。
-- **已知问题**：`tools/motion-test.mjs` 当前红（四档时长接 MD3 var 后测试只匹配字面 ms；后续还有 CardTab 等护栏漂移）。做新动画前必须修该护栏，否则新动画没有把关。
-- 性能纪律：只动 transform/opacity；ghost 不要克隆子树/不要毛玻璃；长列表 >80–100 项需虚拟化（当前全仓无虚拟化）。
+- **设计令牌**：集中在 `styles/motion.css`（包含 MD3 时长/缓动曲线，以及兼容变量 `--dur-1..4`、`--ease-*`、`--rise-*`、`--stagger`），配套说明见 `docs/动效设计规范.md`。
+- **状态机与关键帧**：已有 `useExitPhase`、`useExitHold`、`useSheetDrag`、`useNavIndicator` 等状态钩子，以及 `m-pop/m-spring-in/m-sheet-up/down/m-expand-in/m-breathe` 等关键帧动画。
+- **减弱动态效果适配**：CSS 层已支持全量降级，JS 层提供 `prefersReducedMotion()` 检测并配合触感白名单。
+- **待修护栏问题**：`tools/motion-test.mjs` 当前报错——四档时长切换为引用 MD3 变量后，测试脚本仍只按字面 `ms` 匹配，外加 CardTab 等规则存在漂移。新增动画前需先把这道护栏修绿，确保新动效有自动化把关。
+- **性能约束**：动画仅操作 `transform` 与 `opacity`；拖拽浮影（ghost）使用轻量卡片渲染，避免深克隆 DOM 子树或叠加毛玻璃滤镜；超过 80–100 项的长列表后续需引入虚拟滚动（仓库目前尚无虚拟列表）。
 
-## 7. NFC 可行性
+## 7. NFC 可行性评估
 
-- 现状：**零代码/零权限**；`grep nfc` 全仓 0 命中。Android 插件 `minSdk=24`（HCE/ReaderMode 需 19+，满足）。
-- 插件架构已铺好：Kotlin `@Command` + 主 crate `run_mobile_plugin` + `#[cfg(desktop)]` 降级模板；Plugin 支持 `onNewIntent/onResume/onPause`。
-- 平台事实：Android Beam（P2P）自 Android 10 弃用、14 移除；两机「碰一碰」只能 **HCE 一机模拟 NDEF + 另一机 ReaderMode**，或 NFC 贴纸/二维码兜底。
-- 实现清单：
-  1. 插件清单加 `NFC` 权限 + `uses-feature required=false`。
-  2. Reader：`enableReaderMode`（A/B/F/V），`onResume` 开/`onPause` 关；读 NDEF 回 JS。
-  3. HCE：`HostApduService` + `apduservice.xml`（NDEF AID `D2760000850101`），回 NDEF 长度+内容+`9000`。
-  4. JS `lib/nfc.ts` 探测 Android；失败/无 NFC/关闭 → 二维码/口令/剪贴板降级；桌面只显示「手机端可用」。
-  5. 安全：NDEF 只接受 `ONV1.` 口令并校验 checksum，拒绝任意 URL 自动打开；口令长时不要整箱 NDEF，只传短 token/口令。
-- 风险：HCE 后台限制、两机握手 1–3s 超时、无硬件、读屏可达性。
+- **代码现状**：仓库内尚无 NFC 相关代码与权限配置（`grep nfc` 为 0 命中）。Android 插件当前 `minSdk=24`，满足 HCE 与 ReaderMode 所需的 API 19+ 要求。
+- **插件底座就绪**：Kotlin `@Command` 注解、主 crate 的 `run_mobile_plugin` 封装以及桌面端 `#[cfg(desktop)]` 降级模板均已打通，Plugin 生命周期也已支持 `onNewIntent/onResume/onPause`。
+- **平台能力选择**：Android Beam（P2P）自 Android 10 起弃用并在 Android 14 中移除，因此双机「碰一碰」需采用 **一端 HCE 模拟 NDEF 标签 + 另一端开启 ReaderMode 读取** 的方案，并辅以 NFC 贴纸或二维码兜底。
+- **实现清单**：
+  1. 在插件清单中声明 `NFC` 权限及 `uses-feature required=false`。
+  2. 接收端（Reader）：调用 `enableReaderMode`（覆盖 A/B/F/V 类标签），随 `onResume` 开启、`onPause` 关闭，读取 NDEF 后回调给 JS 层。
+  3. 发送端（HCE）：实现 `HostApduService` 并配置 `apduservice.xml`（注册标准 NDEF AID `D2760000850101`），按协议返回 NDEF 长度、载荷与状态码 `9000`。
+  4. 前端封装：在 `lib/nfc.ts` 中探测 Android 原生能力；遇到设备无硬件、NFC 未开启或握手失败时平滑切换至二维码、口令或剪贴板分享；桌面端仅提示「手机端可用」。
+  5. 安全校验：NDEF 解析器仅接收带校验和的 `ONV1.` 口令前缀，拦截任意外部 URL 的自动打开；分享内容较大时仅通过 NDEF 传递短 token/口令，具体数据走云端拉取。
+- **潜在风险**：需关注系统对后台 HCE 的限制、双机贴靠 1–3 秒内的握手超时处理、无 NFC 硬件机型降级以及读屏无障碍提示。
 
-## 8. 已知 P0 问题（做手机 UI 大改前先处理）
+## 8. 手机 UI 改造前需优先处理的 P0 项
 
-1. `tools/motion-test.mjs` 红（护栏失效）。
-2. 手机长按/滚动手势冲突（三套阈值）；需竞技场。
-3. Android 根返回命令 `plugin:onethu-mobile|mobile_exit` 不存在，真机退不出应用（`navStack.ts:149-165`）。
-4. 横竖屏判定不一致：`is-phone`（短边<600） vs `useExpanded`（宽≥840），844×390 会选桌面形态。
-5. 无边缘自动滚动/无跨应用拖拽，需要明确降级。
-6. 文件 hash/上传在主线程会卡 UI；需 worker/分片。
-7. 读屏/键盘用户：每个可拖元素必须有「收进暂存箱」菜单替代路径。
+1. 修复 `tools/motion-test.mjs` 护栏报错，恢复动效回归把关。
+2. 收敛移动端三套长按阈值，引入统一手势竞技场消除长按与滚动冲突。
+3. 补齐 Android 根级返回命令 `plugin:onethu-mobile|mobile_exit`，解决 `navStack.ts:149-165` 在真机根页面无法退出的问题。
+4. 统一横竖屏布局判定口径：当前 `is-phone` 看短边 `<600`，而 `useExpanded` 看宽度 `≥840`，导致 `844×390` 手机横屏时误入桌面布局。
+5. 补上拖拽边缘自动滚动，并为跨应用分享场景提供清晰的系统分享降级路径。
+6. 将大文件哈希计算与上传移至 Worker 或分片异步处理，避免阻塞主线程。
+7. 为每个可拖拽元素同步提供「收进暂存箱」上下文菜单项，保障读屏与键盘用户可达。
 
-## 9. 下一步（Phase 2+ 决策）
+## 9. 下一步实施计划（Phase 2+）
 
-1. 先修 motion 护栏与手机返回命令；统一 `is-phone/useExpanded`。
-2. 做 `lib/catch/`：`types` + `extract`（data-vault-catch/data-ctx-atom/data-set-id/data-item-id/选区/文件）+ `gesture`（400ms/8px 竞技场、边缘滚动、取消回弹）+ `registry`。
-3. 逐步接 6 个高价值面：首页卡片、OH 搜索结果、邮件、网络学堂行、设置行、文件；菜单兜底同步上线。
-4. 暂存箱 dock/sheet（复用 `useSheetDrag`）与名片/NFC 动效放到 P2/P3。
+1. 先修通 motion 护栏与手机根返回命令，对齐 `is-phone` 与 `useExpanded` 判定逻辑。
+2. 搭建 `lib/catch/` 模块：包含 `types`、`extract`（统一识别 `data-vault-catch`、`data-ctx-atom`、`data-set-id`、`data-item-id`、文本选区与文件）、`gesture`（400ms/8px 竞技场、边缘滚动、取消回弹）与 `registry`。
+3. 分批接入 6 个高频交互面：首页卡片、OH 搜索结果、邮件、网络学堂列表行、设置行与文件列表，同步上线上下文菜单兜底入口。
+4. 暂存箱 dock/sheet（复用 `useSheetDrag`）以及名片/NFC 交互动效安排在 P2/P3 阶段推进。
 
-## 进展（2026-10-18 深夜）
+## 进展记录（2026-10-18 深夜）
 
-- ✅ 动效护栏 motion-test 已转绿（142 断言）；TabHost 恢复 `useNavDirection`/`data-dir`，页面转场方向回来。
-- ✅ 手势阈值统一第一刀：`lib/gestureArena.ts`（400ms/8px/6px + 单所有者），暂存箱拖动已接入。
-- ✅ NFC 接收端 ReaderMode + 发送端 HCE 代码已落地（真机双机验证仍缺）。
-- ⏳ `mobile_exit` 仍缺；旧手势面（白板/标签条/胶囊）尚未全部接入 gestureArena。
+- ✅ 动效护栏 `motion-test` 已修复转绿（142 项断言通过）；TabHost 恢复 `useNavDirection`/`data-dir`，页面切换转场方向回归正常。
+- ✅ 手势统一完成首阶段落地：新增 `lib/gestureArena.ts`（统一 400ms/8px/6px 阈值与单所有者互斥锁），暂存箱拖拽已率先接入。
+- ✅ NFC 接收端 ReaderMode 与发送端 HCE 代码均已落地，后续待补双真机贴靠实测。
+- ⏳ `mobile_exit` 命令尚待补齐；白板、标签条与底部胶囊等既有手势面仍待分批迁入 `gestureArena`。

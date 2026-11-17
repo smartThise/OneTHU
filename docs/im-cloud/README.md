@@ -1,22 +1,22 @@
 # docs/im-cloud · IM Bot 通道调研与多通道接入架构（dev-im-cloud）
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
 
+> 归档说明：本文记录当时的通道调研与架构设计方案；0.11 当前功能与使用指南请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
-> 调研时间：2026-10-09（同日修订：无后端形态主案） ｜ 分支：`dev-im-cloud`（基于 dev3/2b16fa1） ｜ 性质：调研与设计文档，不含产品代码改动
-> 背景：为 OneTHU Harness（OH）设计 IM 多通道接入——用户在微信/飞书/企微/QQ/TG 里指挥 OH 干活，**IM 传入文件统一转存清华云盘**。**用户拍板：不要任何后端网关（NAS/服务器否决），桌面 App 直连承载通道。**
+> 调研时间：2026-10-09（同日确立无后端直连主案） ｜ 分支：`dev-im-cloud`（基于 dev3/2b16fa1） ｜ 文档性质：前期调研与架构设计
+> 背景：为 OneTHU Harness（OH）规划多平台 IM 通道接入方案，支持用户在微信、飞书、企业微信、QQ 或 Telegram 中直接与 OH 对话协作，并将 **IM 传入的文件统一转存至清华云盘**。**架构决策：采用纯本地直连架构（零后端服务器与 NAS 依赖），由桌面端 App 直接承载全部 IM 通道。**
 
 ## 阅读顺序
 
-| 文档 | 内容 | 一句话结论 |
+| 文档 | 内容 | 核心结论 |
 | --- | --- | --- |
-| [00-architecture.md](00-architecture.md) | **OH 多通道架构建议（无后端主案）**（推荐先读） | 桌面 App 宿主 TS 层直连承载通道（App 常驻=bot 在线）；P0 = 微信官方 iLink + 飞书长连接；文件「收到即转存云盘」（seafile.rs→Files Hub）；OH 侧改动仅 `agent.inject` 入站、出站零改动；原独立 Rust 网关方案降为附录 A 留档（用户已否决） |
-| [01-wechat.md](01-wechat.md) | 微信个人号 | 2026-03 起有**官方** iLink Bot 通道（腾讯开源 [openclaw-weixin](https://github.com/Tencent/openclaw-weixin)，扫码授权、长轮询、支持文件，仅单聊）；非官方方案（wechaty-pad/wcferry 等）封号风险高，一律不默认集成 |
-| [02-openclaw-architecture.md](02-openclaw-architecture.md) | openclaw 网关与渠道插件架构（附 zcode） | 精髓是「core 持策略 / 适配器持平台翻译」+ durable ingress + pairing；腾讯系三大平台官方均按其契约出货插件；zcode 的 `/bind` 与流式卡片值得抄 |
-| [03-wecom.md](03-wecom.md) | 企业微信 | 官方 API 成熟、文件 20MB/3 天闭环；回调模式需公网入口（穿透前提）；组织域通道，个人微信须经「微信插件」关注互通。**无后端主案下出局**（回调不可达），至多保留单向推送降级形态 |
-| [04-qq.md](04-qq.md) | QQ 官方 + 非官方 | 官方：**主动消息 2025-04-21 起停发**、文件类富媒体不开放、被动 5min×5 次窗口——只配弱通知；非官方（NapCat/Milky 系）功能全但持续被打压、冻结不可申诉，不默认 |
-| [05-feishu.md](05-feishu.md) | 飞书 | 能力最全：WS 长连接事件**免公网**、卡片交互、文件双向闭环、限频明确（同人/群 5 QPS）——桌面直连最友好，P0 通道 |
-| [06-telegram.md](06-telegram.md) | Telegram | API 最自由（30/s 全局、文件 20MB 入/50MB 出）；但大陆网络+合规双重约束，定位 P2 用户自选（自带代理） |
+| [00-architecture.md](00-architecture.md) | **OH 多通道架构建议（无后端主案）**（推荐先读） | 由桌面 App 宿主 TS 层直连承载通道（桌面端运行期间机器人保持在线）；首期（P0）接入微信官方 iLink 与飞书长连接；接收文件即刻经 `seafile.rs` 转存清华云盘并接入 Files Hub；OH 侧仅需新增 `agent.inject` 入站接口，出站复用现有输出流；早期独立 Rust 网关方案归入附录 A 备查 |
+| [01-wechat.md](01-wechat.md) | 微信个人号 | 2026-03 起开放**官方** iLink Bot 通道（腾讯开源 [openclaw-weixin](https://github.com/Tencent/openclaw-weixin)，支持扫码授权、长轮询与单聊文件收发）；非官方协议（wechaty-pad、wcferry 等）存在较高封号风险，产品内仅采用官方方案 |
+| [02-openclaw-architecture.md](02-openclaw-architecture.md) | openclaw 网关与渠道插件架构（附 zcode） | 核心设计在于「框架层统一管控策略、适配器专注平台协议转换」，配合持久化入站队列（durable ingress）与配对机制；腾讯系三大平台官方插件均遵循该契约；zcode 的 `/bind` 限时绑定与飞书流式卡片交互值得借鉴 |
+| [03-wecom.md](03-wecom.md) | 企业微信 | 官方 API 成熟，支持 20MB 以内文件收发（3 天有效期），面向组织内部成员，个人微信需先关注「微信插件」互通；因接收消息依赖公网 Webhook 回调，在纯桌面直连架构下暂缓接入，后续可视需求评估单向推送模式 |
+| [04-qq.md](04-qq.md) | QQ 官方 + 非官方 | 官方通道自 **2025-04-21 起停发主动消息**，暂未开放通用文件收发，群聊被动回复窗口为 5 分钟内最多 5 次，适合轻量被动问答；非官方方案（NapCat、Milky 系）虽功能齐全，但面临持续风控与冻结风险，产品默认不予集成 |
+| [05-feishu.md](05-feishu.md) | 飞书 | 综合能力最完备：支持 WebSocket 长连接订阅事件（**免公网入口**）、交互式卡片、双向通用文件收发，且限频规则清晰（单用户/单群 5 QPS），天然契合桌面直连，列为 P0 首选通道 |
+| [06-telegram.md](06-telegram.md) | Telegram | API 开放度最高（全局约 30 条/秒，文件入站 20MB / 出站 50MB），受限于境内网络连通性与合规要求，定位为 P2 用户自选通道（需自备代理环境） |
 
 ## 核心对比（详见 00 §5/§8）
 
@@ -29,8 +29,8 @@
 
 ## 决策摘要
 
-1. **无后端主案**：通道层跑在桌面 OneTHU App 宿主 TS 层（`apps/desktop/src/im/`），App 常驻=bot 在线、关机即离线（常驻性权衡见 00 §6，用户已接受；Android 受 DOZE/厂商后台限制不作通道载体）。
-2. **P0 双通道**：微信官方 iLink（学生覆盖，HTTP 长轮询纯出站）+ 飞书自建应用（能力标杆，WS 长连接免公网）。
-3. **OH 对接**：入站 `callRust → agent.inject`（唯一 harness 改动）；出站=run 回复原路发回（零改动）；附件经 seafile.rs 上云盘、与 Files Hub 汇合。
-4. **企微出局**（无后端形态回调不可达）；**QQ 官方**维持 P2 弱通知；**TG** P2 自选（大陆网络约束不变）。
-5. **不做**：非官方微信/QQ 协议默认集成（封号风险如实告知，见 01/04 风险节）。原「独立 Rust 网关 OneTHU-IM」方案见 00 附录 A（用户已否决，留档备查）。
+1. **桌面直连主案**：通道层运行于桌面端 OneTHU App 宿主 TS 层（`apps/desktop/src/im/`），桌面端运行期间机器人保持在线，退出或休眠后随之离线（常驻性与离线权衡见 00 §6；受限于移动端系统休眠与后台策略，通道能力集中在桌面端提供，Android 端专注于应用内直接对话）。
+2. **P0 双通道起步**：优先落地微信官方 iLink（兼顾校园用户覆盖面，采用纯出站 HTTP 长轮询）与飞书自建应用（作为全功能体验标杆，采用免公网 WebSocket 长连接）。
+3. **OH 轻量对接**：入站仅需通过 `callRust` 调用新增的 `agent.inject` 接口；出站直接复用现有运行流原路回传，OH 核心无需额外适配；收到的文件经 `seafile.rs` 自动上传至清华云盘并与 Files Hub 汇合。
+4. **其余通道分级**：企业微信因依赖公网回调在无后端架构下暂缓接入；QQ 官方通道与 Telegram（需用户自配代理）均列为 P2 备选扩展。
+5. **安全与合规边界**：坚持采用各平台官方开放接口，规避非官方微信/QQ 协议带来的账号封禁风险（详见 01、04 风险评估）。早期讨论的「独立 Rust 网关 OneTHU-IM」方案已归入 00 附录 A 留档备查。

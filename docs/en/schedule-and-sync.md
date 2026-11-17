@@ -1,13 +1,14 @@
 # Schedule and synchronization
 
+
 [中文](../schedule-and-sync.md) · English
 
-The schedule combines courses, available assignment deadlines, custom events and configured calendar data. Assignment visibility is not exclusive to full mode. Check the same week and data source when comparing modes.
+The schedule brings together your classes, assignment deadlines, custom events, and synced calendars in one view across Minimal, Practical, and Full modes. When comparing schedules across modes, make sure you are viewing the same week with the same connected sources.
 
-Use timeline or list views as appropriate. Lists must scroll to the final item with the bottom controls visible. Assignment actions open the assignment in a new tab; course actions can open the learning-platform course or its trace page, according to available data and mode navigation.
+You can switch between timeline and list views at any time. List view scrolls all the way past the final entry so nothing is hidden behind the bottom bar. Selecting an assignment opens its detail view in a new tab, while selecting a course takes you to its Web Learning page or course trace view depending on your active mode and available course data.
 
-External homework platforms, including Rain Classroom and supported OJ systems, require their own connection where applicable. A missing source is different from an empty assignment list. Do not assume an unavailable platform has no deadlines.
+External coursework platforms—such as Rain Classroom and supported OJ systems—appear on the schedule once you sign in to each source under Settings. If a platform is disconnected or its session has expired, reconnect it in Settings so its upcoming deadlines stay up to date.
 
-CalDAV and iCalendar integration deal with event synchronization/subscription. IMAP mail integration deals with messages; it is not a calendar-synchronization protocol. Check account/server configuration, TLS, authorization and collection settings for each service independently. Do not paste passwords into reports.
+Calendar sync uses CalDAV for two-way event synchronization and iCalendar URLs for read-only subscriptions, while IMAP connects your campus or personal mailbox separately for email. Each service has its own server, TLS, authorization, and folder or calendar settings—if you share logs when troubleshooting, redact any passwords or app tokens first.
 
-System reminders also depend on OS notification permission, background restrictions and configured lead times/quiet hours. Desktop and Android behavior can differ. A successful frontend test does not establish background delivery on a physical phone.
+Local notifications rely on your operating system's notification permissions, along with your configured lead times and quiet hours. On Android, delivery while the app is closed also requires allowing background activity and exact alarms in system battery settings, so it is worth testing a real reminder directly on your phone.

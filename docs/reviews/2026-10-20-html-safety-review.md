@@ -1,36 +1,36 @@
 # HTML 预览安全修复验收
 
-> 历史记录 / Historical record：本文保留当时的计划、研究或验收证据，不代表 0.11 当前能力全集。现行说明见 [文档入口](../README.md)；英文入口见 [English overview](../en/index.md)。
 
+> 归档说明：本文记录当时的代码审查与阶段性验收情况；0.11 当前功能与使用指南请查阅 [文档入口](../README.md)（[English overview](../en/index.md)）。
 
-本轮修复四处把外部内容放入应用 DOM 的入口：自定义白板组件、网络学堂富文本、DOCX 预览、THUBook 正文。原有正则过滤或仅去除颜色无法处理浏览器实际解析的事件属性和编码协议。
+本轮统一加固了应用内四处将外部内容渲染进 DOM 的入口：自定义白板组件、网络学堂富文本、DOCX 文档预览与 THUBook 正文。此前的正则替换或单纯去色处理难以覆盖浏览器 HTML 解析器支持的各类变体事件属性与编码协议，现已全面收敛至标准 DOM 清洗流程。
 
-## 修复前的真实反例
+## 修复前的可复现反例
 
-隔离 Chromium 页面运行原生产转换函数，再写入 `innerHTML`：
+在隔离的 Chromium 页面中运行原有的生产转换函数并将输出写入 `innerHTML` 时，可复现以下执行路径：
 
-- 自定义组件的未加引号 `onerror` 会执行。
-- 网络学堂富文本的 `onerror` 会执行。
-- DOCX 链接中 `java&#x09;script:` 会在真实点击后执行。
+- 自定义白板组件中未加引号的 `onerror` 属性会被触发执行。
+- 网络学堂富文本中的 `onerror` 属性会被触发执行。
+- DOCX 预览链接中的 `java&#x09;script:` 编码协议在真实点击后会触发执行。
 
-反例只设置本页无害标记，不读取账号、凭据或用户内容。记录见 [before.json](html-safety-2026-10-20/before.json)。
+上述复现用例仅在当前空白测试页内写入无害内存标记，全程未接触任何账号凭据或用户数据，详细记录见 [before.json](html-safety-2026-10-20/before.json)。
 
-## 实现
+## 修复实现
 
-四个入口统一调用 `sanitizeDisplayHtml`。它使用精确锁定的 DOMPurify 3.4.17 和 HTML profile，移除事件、危险协议、嵌套文档、表单及应用专用 `data-*` 标记。原有课程与手册去色逻辑继续生效。解析器不可用或抛错时输出转义文字，不回退成原始 HTML。
+四处入口现已统一收口至 `sanitizeDisplayHtml`：内部锁定调用 DOMPurify `3.4.17` 并启用标准 HTML profile，集中剥离内联事件属性、危险 URL 协议、嵌套文档容器、表单元素以及应用内部专用的 `data-*` 属性。课程公告与学生手册原有的去色排版逻辑继续保留；当底层解析器不可用或抛出异常时，函数会自动降级输出纯文本转义结果，杜绝原始未清洗 HTML 落入页面。
 
-版本来自实施时官方 npm registry；上游文档为 [DOMPurify](https://github.com/cure53/DOMPurify)。正常文本、强调、表格、安全链接和图片继续保留。图片仍遵循原预览网络行为，本次未加入远程图片代理。
+依赖包取自官方 npm registry 锁定版本（上游仓库见 [DOMPurify](https://github.com/cure53/DOMPurify)）。常规段落、强调样式、表格、合规链接与图片均正常保留；图片加载继续沿用既有的预览网络策略，本轮未额外引入远程图片代理。
 
-## 验收
+## 浏览器自动化验收
 
-`node tools/html-safety-browser-test.mjs` 在 Chromium 和 Playwright WebKit 自然退出 0，共 221 项断言。测试从源文件提取实际转换函数及富文本 `__html` 表达式，浏览器加载生产共用清洗模块，覆盖编码协议、事件、SVG、iframe、表单、元数据、正常内容及清洗失败退化。
+运行 `node tools/html-safety-browser-test.mjs`，在 Chromium 与 Playwright WebKit 双引擎下均以退出码 0 完成，累计通过 221 项断言。测试直接从业务源码提取真实转换函数与富文本 `__html` 表达式，并在真实浏览器环境中加载生产共用的清洗模块，全面验证了编码协议、事件处理器、内嵌 SVG、`iframe`、表单、自定义元数据、常规排版富文本以及解析异常时的纯文本降级表现。
 
-记录见 [report.json](html-safety-2026-10-20/report.json)。全部外网请求被阻止，无学校 API、邮件或原生能力调用。
+完整测试报告见 [report.json](html-safety-2026-10-20/report.json)。测试期间全程阻断外网连接，未发起任何学校 API、邮件或原生层调用。
 
-这组结果证明实际转换与浏览器 DOM 边界，不冒充完整应用操作、原生 WebView 或恶意文件解析器全量审计。应用级语言切换与草稿保持另行验收。
+本组用例重点验证生产转换函数与浏览器 DOM 解析边界的过滤效果；完整应用级业务交互、各平台原生 WebView 容器特性、上游文档解析器自身安全审计，以及多语言切换下的表单草稿保持均在各自专项中独立开展验收。
 
-## 场馆代理内联脚本
+## 场馆代理内联脚本加固
 
-原生 `venue_proxy` 曾把 SSO 字符串直接插入 JavaScript 双引号。现先用 `serde_json` 序列化，再转义 `<` 和 Unicode 行分隔符，防止引号逃逸或 HTML 的 `</script>` 提前结束脚本。
+原生侧 `venue_proxy` 早先将 SSO 字符串直接拼入 JavaScript 双引号字面量内。本轮改为先经 `serde_json` 标准序列化，再额外转义 `<` 与 Unicode 行分隔符，从源头阻断引号闭合逃逸或利用 `</script>` 提前截断脚本块的注入风险。
 
-`node tools/venue-token-script-browser-test.mjs` 提取并编译实际 Rust 插值块，在 Chromium 和 WebKit 解析生成的 HTML。8 组模拟字符串、35 项断言自然退出 0：均只产生原定的一个脚本，token 和 headers 的存储内容完整往返，没有额外代码执行。记录见 [venue-script.json](html-safety-2026-10-20/venue-script.json)。这项测试不读取真实 SSO，不调用场馆服务，也不代替原生主应用构建。
+运行 `node tools/venue-token-script-browser-test.mjs`，直接提取并编译真实的 Rust 插值代码段，将生成的 HTML 送入 Chromium 与 WebKit 实际解析。针对 8 组构造输入执行的 35 项断言全部以退出码 0 通过：页面始终只生成预期内的唯一脚本节点，`token` 与 `headers` 存储值无损往返，无任何越界脚本执行，结果归档于 [venue-script.json](html-safety-2026-10-20/venue-script.json)。该专项在本地离线环境专门检验脚本插值安全性，无需读取真实 SSO 凭据或请求场馆线上服务；原生主应用的整体构建则在总集成环节一并完成验证。

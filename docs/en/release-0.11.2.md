@@ -1,33 +1,34 @@
 # 0.11.2 maintenance update
 
+
 [中文](../release-0.11.2.md) · [English](release-0.11.2.md)
 
-This update improves Web Learning sessions, portable wallpaper backups, tablet editing, glass surfaces and desktop windows on macOS, Windows and Android. Upgrade directly from 0.11.1 while keeping existing data and settings.
+OneTHU 0.11.2 refines Web Learning session recovery, cross-device wallpaper backups, tablet whiteboard editing, glass materials, and desktop window behavior on macOS, Windows, and Android. You can install it directly over 0.11.1 with all local data and preferences preserved.
 
 ## Web Learning sessions
 
-Responses are classified as expired sessions, gateway failures, permission failures or rate limits. Concurrent requests share one recovery attempt. Assignment viewing and submission pages are read as a unit, with a retry message on failure and the last complete data retained. Diagnostics continue to omit passwords, tokens, cookies and page bodies.
+Web Learning responses now distinguish expired sessions, campus gateway prompts, permission errors, and rate limits, and concurrent requests coalesce around a single session-recovery attempt. Assignment details and submission state load together atomically—showing a retry banner while keeping your last complete snapshot visible if either request fails. Diagnostic logs continue to strip passwords, tokens, cookies, and page HTML.
 
 ## Wallpaper backup and restore
 
-New backups include image or video bytes, wallpaper-library metadata and built-in wallpaper references. Update both devices, upload from the source device, then restore on the other. Media is saved in the current device’s wallpaper directory; settings are applied after validation and saving complete.
+Cloud wallpaper backups now bundle custom image or video files alongside wallpaper-library metadata and built-in preset references. After updating both devices to 0.11.2, run a fresh backup from the device holding your original media and restore on the target device; OneTHU validates and saves the media into the local wallpaper folder before applying your settings.
 
-An old backup containing only source-device paths needs a fresh upload from the updated device that still holds the originals. Limits are 12 MiB per media item and 24 MiB per backup. Missing backups, permission failures and size limits have distinct messages, with the current wallpaper retained. Backup and restore use their existing manual controls and cloud authorization.
+If an older backup stored only local file paths from the source device, uploading once from the updated source device packages the media bytes for cross-device restore. Backups support up to 12 MiB per media file and 24 MiB total—reporting missing backups, cloud permission errors, and size limits with specific messages while leaving your current wallpaper untouched. Backup and restore continue using the manual controls and cloud consent in Settings.
 
 ## Tablets and glass surfaces
 
-Landscape tablets retain their wide layout and the editing toggle used on touch devices. Browsing supports scrolling and opening content; moving or resizing widgets requires Edit mode. Switching boards, orientation or mode resets editing access.
+Tablets in landscape keep their wide multi-column layout while adopting touch Edit mode for whiteboards: everyday browsing scrolls and opens items freely, while moving or resizing widgets requires tapping **Edit** first, resetting automatically when you switch whiteboards, rotate the screen, or change modes.
 
-Course filters, notification strips, assignment cards and detail headings share consistent glass surfaces. Theme, glass strength and automatic text contrast settings continue to apply.
+Course filter bars, notification banners, assignment cards, and detail headers now share cohesive glass styling, honoring your chosen theme, glass intensity, and automatic text-contrast settings.
 
 ## Desktop windows and update reminders
 
-Launching the desktop release again brings back its existing main window. Closing the main window while OH is visible hides it so OH can reopen it; closing both exits the app. Development previews run independently. On Windows, allow the installer to close old OneTHU processes during installation to clear lingering windows from older builds.
+Launching OneTHU again on desktop focuses the already-running main window instead of opening a second instance. Closing the main window while OH is open hides the main window in the background so OH can bring it right back; closing both exits the app cleanly (local `dev` previews still run independently). On Windows, let the installer close running OneTHU processes during setup to clear out any background windows from earlier releases.
 
-Minimal, Practical and Full modes share an update prompt with release details and a choice of reminder delay. Manual update checks remain available. Android retains its production signing certificate and canonical logo, with versionCode 11011.
+Minimal, Practical, and Full modes now share a unified update dialog with release notes and snooze options alongside manual update checks. Android ships with `versionCode` 11011, signed with the production certificate and canonical app icon.
 
 [Download](https://onethu.github.io/en/download.html) · [0.11.1 release notes](release-0.11.1.md) · [Technical review (Chinese)](../reviews/2026-10-22-android-session-wallpaper-tablet.md)
 
 ## Additional interaction fixes
 
-Update reminders support 1 hour, 1 day and 7 days, persist across restarts, and apply to a specific release. Go to update opens the shared software-update section in all three modes. Existing dialogs and onboarding finish before a reminder opens. News units use the portal’s Chinese or English names with separate caches. The phone widget confirmation button handles small touch movements and closes without rebuilding the widget catalog. Redundant slogans have been removed from the simple home screen.
+Update reminders can be snoozed for 1 hour, 1 day, or 7 days per release across restarts, wait politely until active dialogs or onboarding steps finish, and open the shared software-update panel from **Go to update** in every mode. Campus news channels now cache Chinese and English department names separately to match your interface language, the mobile widget-confirm button tolerates slight finger drift and closes smoothly without rebuilding the catalog, and extra taglines have been trimmed from the Minimal home view.

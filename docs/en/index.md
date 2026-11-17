@@ -1,10 +1,11 @@
 # OneTHU documentation
 
 
-[0.11.4 release notes](release-0.11.4.md) · [CLI and resident runtime](onethu-cli.md)
+
+[0.11.4-fix-3 release notes](release-0.11.4-fix-3.md) · [CLI and resident runtime](onethu-cli.md)
 [中文](../README.md) · English
 
-This directory describes actual 0.11 modes and capabilities. Older plans and research remain in the full inventory, separate from current user instructions.
+Welcome to the OneTHU 0.11 documentation for users and developers. The guides below cover active 0.11 features, modes, and architecture, while earlier design proposals and research notes are archived in the full document catalog.
 
 ## User guides
 
@@ -24,10 +25,10 @@ This directory describes actual 0.11 modes and capabilities. Older plans and res
 
 - [Developer center](developers.md)
 - [Contributors](contributors.md)
-- [Architecture](architecture.md)
+- [Architecture overview](architecture.md)
 - [Plugin development](plugin-development.md)
 - [OneTHU CLI and MCP](onethu-cli.md)
-- [API](api-surface.md)
+- [Generated API signatures](api-surface.md)
 - [OneGUI](design-language.md)
 - [Fixture capture provenance](screenshots.md)
 - [All documents and historical status](documentation-catalog.md)

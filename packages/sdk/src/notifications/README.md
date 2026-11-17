@@ -1,20 +1,14 @@
 # Node outbound notifications
 
-`createNotificationService({dataDir, fetch?, desktopSend?, timeoutMs?})` stores its
-files under `dataDir/notifications`. The caller holds the SDK data-directory lock.
-The default request timeout is 15 seconds, configurable from 50 ms to 60 seconds.
-No model, QR login, inbound polling or network request starts during construction.
+`createNotificationService({dataDir, fetch?, desktopSend?, timeoutMs?})` stores local state under `dataDir/notifications` (with the caller holding the SDK data-directory lock) and uses a 15-second default request timeout configurable between 50 ms and 60 seconds. Constructing the service is purely local—network requests run only when `send` or `sendTask` is called.
 
 Methods:
 
-- `configure(channel, config, {confirm:true,beforeWrite?})` and
-  `remove(channel,{confirm:true,beforeWrite?})`.
-- `list()` returns configuration/availability flags, without targets or credentials.
-- `send({channel,text,title?,idempotencyKey},{confirm:true,signal?,beforeWrite?,expectedTarget?})`.
-- `taskChannels()` returns `{id,channel,transport,available}` entries for configured
-  task destinations. `sendTask(id,{text,title?,idempotencyKey},options)` accepts the
-  same confirmation/cancellation/write guards as `send`.
-- `inbox({limit?:1..500,before?:timestamp})`, and `close()`.
+- `configure(channel, config, {confirm:true,beforeWrite?})` and `remove(channel,{confirm:true,beforeWrite?})` manage channel settings.
+- `list()` returns channel configuration and availability flags with credentials and target IDs omitted.
+- `send({channel,text,title?,idempotencyKey},{confirm:true,signal?,beforeWrite?,expectedTarget?})` dispatches a notification.
+- `taskChannels()` returns `{id,channel,transport,available}` entries for configured task destinations, and `sendTask(id,{text,title?,idempotencyKey},options)` sends to a pinned destination using the same confirmation, cancellation, and write guards as `send`.
+- `inbox({limit?:1..500,before?:timestamp})` reads local inbox items, and `close()` releases the service.
 
 Channel configuration:
 
@@ -25,65 +19,27 @@ Channel configuration:
 | `wechat` | `{botToken,userId,contextToken,baseUrl?}` from an existing iLink binding |
 | `webhook` | `{url,headers?}`; HTTPS only, redirects refused |
 
-Feishu uses the App's existing `tenant_access_token/internal` and
-`im/v1/messages?receive_id_type=chat_id` protocol. WeChat uses the existing iLink
-`sendmessage` envelope, context token, version and authentication headers. Its
-current allowlist contains `https://ilinkai.weixin.qq.com`. A missing or expired
-context must be refreshed by a new bound-user message or explicit configuration.
-Ret/errcode `-14` reports a suspended WeChat session. There is no automatic login.
+Feishu sends messages through `tenant_access_token/internal` and `im/v1/messages?receive_id_type=chat_id`. WeChat posts the iLink `sendmessage` envelope with its context token, client version, and auth headers to `https://ilinkai.weixin.qq.com`, using credentials from an already-logged-in binding; when a context token expires, a fresh message from the bound user or an updated `configure` call renews it, and `ret` / `errcode` `-14` surfaces a suspended WeChat session.
 
-An optional `desktopSend({channel,target,text,idempotencyKey,signal})` hook supports
-`{transport:'desktop',chatId}` or `{transport:'desktop',userId}` configurations.
-It can delegate to the existing App `channel.send`. A void return means `queued`;
-only `{accepted:true,messageId?}` means that the hook observed a provider receipt.
-The existing App's Feishu queue resolves early, so a void return must stay queued.
+Passing a `desktopSend({channel,target,text,idempotencyKey,signal})` hook enables `{transport:'desktop',chatId}` and `{transport:'desktop',userId}` channels that delegate delivery to the desktop app's `channel.send`. Returning `{accepted:true,messageId?}` records `accepted` once a provider receipt is observed, whereas a `void` return (such as when the desktop Feishu queue enqueues asynchronously) records `queued`.
 
-`send` returns a receipt with `status`, `channel`, `idempotencyKey`, `duplicate`,
-timestamps and optional safe error code/provider message ID. Status meanings:
+`send` returns a receipt containing `status`, `channel`, `idempotencyKey`, `duplicate`, timestamps, and any safe error code or provider message ID:
 
-- `accepted`: the provider returned a successful acknowledgement, without a read receipt.
-- `stored`: written to the local inbox.
-- `queued`: a desktop hook accepted it without a provider receipt.
-- `rejected`: the provider explicitly refused it.
-- `not_sent`: failure occurred before starting the message request.
-- `unknown`: the request might have reached the provider; its outcome is unknown.
+- `accepted`: acknowledged by the remote provider.
+- `stored`: saved to the local `inbox`.
+- `queued`: handed off to the `desktopSend` queue pending remote delivery.
+- `rejected`: refused by the remote provider.
+- `not_sent`: stopped before the outbound HTTP request began.
+- `unknown`: interrupted after dispatch started, leaving remote delivery uncertain.
 
-The ledger is flushed before dispatch. The same channel and idempotency key never
-cause another attempt, including after restart, rejection, timeout or a crash.
-Reusing a key with different text or a different configured target is an error.
-An interrupted `pending` entry is returned as `unknown`. A caller may request a
-new attempt using a new key only after making its own informed retry decision.
-There is no internal delivery retry, including for rate limits and HTTP 5xx.
+Each send writes to the local ledger before dispatching over the network and runs at most once per `(channel, idempotencyKey)`—even across restarts, provider rejections, rate limits, HTTP `5xx` responses, timeouts, or crashes. Replaying the same key with identical payload and target returns the recorded receipt (reporting `unknown` if a prior `pending` attempt was interrupted), while reusing a key with different text or a changed target throws an error. Callers that choose to retry generate a fresh `idempotencyKey`.
 
-The optional `beforeWrite` guard runs after token preparation and immediately
-before dispatch. `expectedTarget` is used by IM replies to refuse a changed
-recipient. SDK callers should preserve cancellation and account/policy guards.
+The optional `beforeWrite` hook runs right after token preparation and immediately before network dispatch, and `expectedTarget` lets IM reply flows verify that the recipient binding is unchanged. Pass the caller's `signal` and account/policy `beforeWrite` guard through to keep outbound writes aligned with the active session.
 
-Scheduled tasks use a fixed destination ID from the SDK's `tasks.channels`
-operation, rather than a channel name. `inbox` is always available with ID `inbox`.
-Other IDs have the form `wechat:<SHA-256>`, `feishu:<SHA-256>` or
-`webhook:<SHA-256>`. The hash binds the channel, transport and recipient, plus the
-Feishu application ID or webhook URL. It excludes API keys, bot tokens and
-rotating WeChat context tokens. The SDK supplies an account-specific data directory.
-No recipient identifiers, endpoint URLs or credentials appear in this listing.
+Scheduled tasks address destinations by fixed IDs returned from `tasks.channels` (stored inside an account-scoped SDK data directory): `inbox` uses `inbox`, and external channels use `wechat:<SHA-256>`, `feishu:<SHA-256>`, or `webhook:<SHA-256>`. The digest hashes the channel, transport, recipient, and Feishu `appId` or webhook URL—leaving out API secrets, bot tokens, and rotating WeChat context tokens so credential rotation keeps the ID stable while `taskChannels()` stays free of raw recipient IDs, URLs, and secrets.
 
-Save that ID in the task's `template.channels` when authorizing the task. Changing
-the recipient, application or webhook URL makes the old task fail with
-`TASK_NOTIFICATION_BINDING_CHANGED`; removing the destination does the same.
-Refresh the ID and explicitly update/re-authorize the task to use the new target.
-Bare external channel names fail with `TASK_NOTIFICATION_BINDING_REQUIRED`.
-Credential rotation preserves the binding. Comparison happens inside the same
-serialized section as configuration and dispatch, preventing a rebind race.
-Ordinary `notifications.send` continues to select the channel's current recipient.
+Store the destination ID in the task's `template.channels` when authorizing the task (passing a bare external channel name fails with `TASK_NOTIFICATION_BINDING_REQUIRED`). If the recipient, Feishu app, or webhook URL changes—or if the channel is removed—existing tasks fail safely with `TASK_NOTIFICATION_BINDING_CHANGED` until updated and re-authorized with the new ID. Binding checks run inside the same serialized section as `configure` and `send` to prevent rebind races, while direct `notifications.send` calls always route to the channel's current configuration.
 
-Configuration, ledger and inbox files are private local JSON, not encrypted.
-POSIX permissions are 0700/0600; Windows uses the current user's SID and `icacls`.
-Symlinks, hard-linked files and unsafe ownership/permissions fail closed. Provider
-response bodies, keys, tokens and URLs are excluded from diagnostic receipts.
-The configurable webhook endpoint is explicitly selected by the local operator;
-the SDK does not discover or download remote notification software.
+Configuration, ledger, and inbox files are stored as unencrypted private JSON protected by `0700` / `0600` modes on POSIX and per-user SID ACLs via `icacls` on Windows; symlinks, hard links, or permissive ownership cause operations to fail closed. Diagnostic receipts strip raw provider bodies, keys, tokens, and webhook URLs, and webhook delivery connects directly to the HTTPS endpoint configured by the local operator.
 
-Validation: `node --test packages/sdk/test/notifications.test.mjs` exercises real
-loopback HTTP transports, without sending any real Feishu/WeChat notification.
-Windows installation/ACL behavior and real-account IM delivery have not been
-accepted on actual Windows devices or real Feishu/WeChat accounts.
+Run `node --test packages/sdk/test/notifications.test.mjs` to validate delivery, idempotency, task bindings, and storage guards over local loopback HTTP servers. Windows `icacls` behavior and live Feishu/WeChat delivery can be verified separately on Windows hosts and real accounts.

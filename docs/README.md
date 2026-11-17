@@ -1,12 +1,12 @@
 # OneTHU 文档
 
-> 最后更新：2026-10-29 13:33
+> 最后更新：2026-11-18 01:30
 
 
 [0.11.4-fix-3 更新说明](release-0.11.4-fix-3.md) · [CLI 与常驻后台](onethu-cli.md)
 中文 · [English](en/index.md)
 
-本目录按 0.11 的实际模式与能力组织。旧研究与计划保留在全量清单中，不与现行使用说明混排。
+以下文档围绕 OneTHU 0.11 的现行功能与开发主题分类整理；早期研究与阶段性方案已统一归档至文末的全量文档清单，便于按需查阅。
 
 ## 使用指南
 
@@ -30,7 +30,7 @@
 - [系统架构](architecture.md)
 - [插件开发](plugin-development.md)
 - [OneTHU CLI 与 MCP](onethu-cli.md)
-- [API](api-surface.md)
+- [API 参考](api-reference.md) · [生成签名清单](api-surface.md)
 - [OneGUI](design-language.md)
 - [模拟素材来源](screenshots.md)
 - [全部文档与历史状态](documentation-catalog.md)
