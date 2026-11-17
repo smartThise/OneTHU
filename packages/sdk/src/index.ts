@@ -70,6 +70,13 @@ export async function createOneThu(options: Partial<NodeSessionOptions> & {dataD
       catch(error){
         signal?.throwIfAborted();
         const authenticationFailed=error instanceof AuthRequiredError||(error as {code?:string}).code==='CAMPUS_SERVICE_SSO_REQUIRED';
+        if(origin==='https://info.tsinghua.edu.cn'&&authenticationFailed){
+          if(!await clientIdentity.renewInfo(signal))throw error;
+          // The GUI acknowledges only after publishing a verified same-owner
+          // snapshot. Prove the adopted Info cookie again before retrying GET.
+          await runtime.ensureCampusService(origin,signal);
+          return;
+        }
         if(origin!=='https://zhjwxk.cic.tsinghua.edu.cn'||!authenticationFailed)throw error;
         if(!await clientIdentity.renewSelection(signal))throw error;
         // The GUI publishes only its verified selection cookie scopes through

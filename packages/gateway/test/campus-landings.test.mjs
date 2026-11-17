@@ -8,6 +8,16 @@ const headers={'sec-fetch-site':'cross-site','sec-fetch-mode':'navigate','sec-fe
 const navigation={method:'GET',hasBody:false};
 const entry=info+'/f/info/route?id=ece02eecada569b9cae68be99461c98d';
 
+test('Madmodel sign-in accepts only its exact user-initiated login landing',()=>{
+ const href='https://madmodel.cs.tsinghua.edu.cn/authLogin';
+ const allowed=new Set(['https://madmodel.cs.tsinghua.edu.cn']);
+ assert.doesNotThrow(()=>validateFetchMetadata(headers,new URL(href),allowed,navigation));
+ for(const suffix of ['?ticket=untrusted','?redirect=https://other.example/','/']){
+  assert.throws(()=>validateFetchMetadata(headers,new URL(href+suffix),allowed,navigation));
+ }
+ assert.throws(()=>validateFetchMetadata({...headers,'sec-fetch-dest':'iframe'},new URL(href),allowed,navigation));
+});
+
 test('Info9 home admits only an exact user-initiated document navigation',()=>{
  const href='https://stu.cs.tsinghua.edu.cn/info/';
  const allowed=new Set(['https://stu.cs.tsinghua.edu.cn']);

@@ -49,6 +49,13 @@ test('managed identity passthrough removes identity hosts from effective routes 
   for (const host of identities) assert.equal(ctx.FindProxyForURL(`https://${host}/`, host), 'DIRECT');
 });
 
+test('Madmodel remains a managed service before portal discovery and after account renewal', () => {
+  assert.ok(DEFAULT_ALLOWED_ORIGINS.includes('https://madmodel.cs.tsinghua.edu.cn'));
+  const pac = createPacScript(DEFAULT_ALLOWED_ORIGINS,{host:'127.0.0.1',port:55595});
+  const context={}; vm.createContext(context);vm.runInContext(pac,context);
+  assert.equal(context.FindProxyForURL('https://madmodel.cs.tsinghua.edu.cn/','madmodel.cs.tsinghua.edu.cn'),'PROXY 127.0.0.1:55595');
+});
+
 test('start, scoped PAC, authentication, status redaction, and stop form a complete lifecycle', async t => {
   const { manager, state } = await fixture(t);
   const status = await manager.control({ action: 'start', confirm: true });

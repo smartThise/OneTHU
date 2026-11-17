@@ -25,6 +25,21 @@ test('a verified keepalive persists and publishes the same account', async () =>
   assert.deepEqual(f.calls, ['ensure', 'persist', 'publish']);
 });
 
+test('gateway readiness waits for strict publication and propagates a failed handoff', async () => {
+  let release;
+  const pending = fixture({ publish: () => new Promise(resolve => { release = resolve; }) });
+  let acknowledged = false;
+  const checking = pending.check().then(value => { acknowledged = value; });
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(acknowledged, false);
+  release();
+  await checking;
+  assert.equal(acknowledged, true);
+  const failed = fixture({ publish: async () => { throw new Error('handoff unavailable'); } });
+  await assert.rejects(failed.check(), /handoff unavailable/);
+});
+
 test('timer and foreground events join one in-flight check', async () => {
   let complete;
   const f = fixture({ ensure: () => new Promise(resolve => { complete = resolve; }) });

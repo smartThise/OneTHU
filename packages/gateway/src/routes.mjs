@@ -1,4 +1,6 @@
 export const GITLAB_ORIGIN = 'https://git.tsinghua.edu.cn';
+export const MADMODEL_ORIGIN = 'https://madmodel.cs.tsinghua.edu.cn';
+export const MADMODEL_IDENTITY_URL = 'https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/d736f067a6705ab942df52f958a0f23b/0?/authLogin';
 
 /** HTTPS browser origins for legacy campus applications. The upstream scheme
  * follows the existing core URL catalog; WebVPN's wire connection stays TLS. */

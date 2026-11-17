@@ -12,9 +12,9 @@ import {SEAT_IDENTITY_URL,normalizeSeatCallback} from '@onethu/gateway/seat-auth
 import {THESIS_IDENTITY_URL,normalizeThesisCallback} from '@onethu/gateway/thesis-auth';
 
 type MiniProgram = 'xiaoda'|'visit';
-type Service = MiniProgram|'gitlab'|'madmodel'|'stu'|'cab'|'discover'|'myhome'|'seat'|'thesis'|'selection';
+type Service = MiniProgram|'gitlab'|'madmodel'|'stu'|'cab'|'discover'|'myhome'|'seat'|'thesis'|'selection'|'info';
 type Official = {ticket:string;html:string;url:string;status:number};
-type Renewal = Official | {gitlabCookie:string} | {madmodelTicket:string} | {stuCallback:string} | {cabCallback:string} | {discoverCallback:string} | {myhomeCallback:string} | {seatCallback:string} | {thesisCallback:string} | {selectionReady:true};
+type Renewal = Official | {gitlabCookie:string} | {madmodelTicket:string} | {stuCallback:string} | {cabCallback:string} | {discoverCallback:string} | {myhomeCallback:string} | {seatCallback:string} | {thesisCallback:string} | {selectionReady:true} | {infoReady:true};
 type Runtime = Pick<NodeSession,'epoch'|'assertCurrent'|'status'|'session'|'fetchCampusDirect'>;
 const fail = (code:string):never => { throw new GatewayError(code, 401); };
 
@@ -82,7 +82,7 @@ export function createClientIdentity(runtime:Runtime, {unborrowedFetch=campusDir
       };
       const abort=()=>{
         if(!release())return;
-        if((independent||service==='selection'&&row.waiters===0)&&pending.get(pendingKey)===row){
+        if((independent||(service==='selection'||service==='info')&&row.waiters===0)&&pending.get(pendingKey)===row){
           pending.delete(pendingKey);
           row.finish(null);
         }
@@ -94,7 +94,7 @@ export function createClientIdentity(runtime:Runtime, {unborrowedFetch=campusDir
     });
   }
   const desktop={
-    status(){prune();return (['xiaoda','visit','gitlab','madmodel','stu','cab','discover','myhome','seat','thesis','selection'] as const).map(service=>{
+    status(){prune();return (['xiaoda','visit','gitlab','madmodel','stu','cab','discover','myhome','seat','thesis','selection','info'] as const).map(service=>{
       const row=[...pending.values()].find(row=>row.service===service),result=results.get(service);
       return {service,state:row?(row.claimed?'renewing':'queued'):result&&result.epoch===runtime.epoch()&&result.owner===runtime.session.username?result.state:'idle',
         ...(result&&result.epoch===runtime.epoch()&&result.owner===runtime.session.username?{updatedAt:result.updatedAt}:{})};
@@ -105,13 +105,16 @@ export function createClientIdentity(runtime:Runtime, {unborrowedFetch=campusDir
       void renew(service,epoch,owner).catch(()=>undefined);return {queued:pending.has(service)};
     },
     pending(){prune();const row=[...pending.values()].find(row=>!row.claimed);if(!row)return null;row.claimed=true;return {id:row.id,service:row.service,entryMode:row.entryMode,...(row.entryUrl?{entryUrl:row.entryUrl}:{}),...(row.identityUrl?{identityUrl:row.identityUrl}:{})};},
-    complete(input:{id:string;ok:boolean;official?:Official;gitlabCookie?:string;madmodelTicket?:string;stuCallback?:string;cabCallback?:string;discoverCallback?:string;myhomeCallback?:string;seatCallback?:string;thesisCallback?:string;selectionReady?:boolean}){
+    complete(input:{id:string;ok:boolean;official?:Official;gitlabCookie?:string;madmodelTicket?:string;stuCallback?:string;cabCallback?:string;discoverCallback?:string;myhomeCallback?:string;seatCallback?:string;thesisCallback?:string;selectionReady?:boolean;infoReady?:boolean}){
       prune();if(!input||typeof input.id!=='string'||typeof input.ok!=='boolean')throw new Error('CLI_BRIDGE_INVALID');
       const row=[...pending.values()].find(row=>row.id===input.id&&row.claimed);if(!row)return {accepted:false};
       fence(row.epoch,row.owner);
       let result:Renewal|null=null;
       if(input.ok){
-        if(row.service==='selection'){
+        if(row.service==='info'){
+          if(input.infoReady!==true)throw new Error('CLI_BRIDGE_INVALID');
+          result={infoReady:true};
+        }else if(row.service==='selection'){
           if(input.selectionReady!==true)throw new Error('CLI_BRIDGE_INVALID');
           result={selectionReady:true};
         }else if(row.service==='gitlab'){
@@ -211,6 +214,12 @@ export function createClientIdentity(runtime:Runtime, {unborrowedFetch=campusDir
     fence(epoch,owner);
     return result!==null&&'selectionReady' in result&&result.selectionReady===true;
   }
+  async function renewInfo(signal?:AbortSignal){
+    const epoch=runtime.epoch(),owner=runtime.session.username;
+    const result=await renew('info',epoch,owner,signal);
+    fence(epoch,owner);
+    return result!==null&&'infoReady' in result&&result.infoReady===true;
+  }
   async function renewMadmodel(){
     const epoch=runtime.epoch(),owner=runtime.session.username;
     const result=await renew('madmodel',epoch,owner);
@@ -253,5 +262,5 @@ export function createClientIdentity(runtime:Runtime, {unborrowedFetch=campusDir
     fence(epoch,owner);
     return result&&'thesisCallback' in result?result.thesisCallback:null;
   }
-  return {request,passthrough,renewXiaoda,renewGitlab,renewSelection,renewMadmodel,renewStu,renewCab,renewDiscover,renewMyhome,renewSeat,renewThesis,isUnborrowed:(response:Response)=>unborrowedResponses.has(response),desktop,close(){for(const row of pending.values())row.finish(null);pending.clear();retryAt.clear();results.clear();}};
+  return {request,passthrough,renewXiaoda,renewGitlab,renewSelection,renewInfo,renewMadmodel,renewStu,renewCab,renewDiscover,renewMyhome,renewSeat,renewThesis,isUnborrowed:(response:Response)=>unborrowedResponses.has(response),desktop,close(){for(const row of pending.values())row.finish(null);pending.clear();retryAt.clear();results.clear();}};
 }

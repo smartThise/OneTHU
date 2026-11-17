@@ -8,7 +8,7 @@ import { GatewayError, normalizeAllowedOrigins, isCampusIdentityHost, originMemb
 import { createCertificateAuthority } from './certificates.mjs';
 import { createPlatformIntegration } from './platform.mjs';
 import { openGatewayBrowser } from './browser.mjs';
-import { GITLAB_ORIGIN, withSecureCampusOrigins } from './routes.mjs';
+import { GITLAB_ORIGIN, MADMODEL_ORIGIN, withSecureCampusOrigins } from './routes.mjs';
 import { STU_ORIGIN } from './stuAuth.mjs';
 import { DISCOVER_ORIGIN } from './discoverAuth.mjs';
 import { THESIS_ORIGIN } from './thesisAuth.mjs';
@@ -33,7 +33,7 @@ export const DEFAULT_ALLOWED_ORIGINS = Object.freeze([
   'https://dzpj.tsinghua.edu.cn', 'https://usereg.tsinghua.edu.cn',
   'https://app.cs.tsinghua.edu.cn', 'http://jxgl.cic.tsinghua.edu.cn',
   'http://yhdf.tsinghua.edu.cn', 'http://zzjl.graduate.tsinghua.edu.cn',
-  GITLAB_ORIGIN, STU_ORIGIN, 'https://lib.tsinghua.edu.cn', DISCOVER_ORIGIN, THESIS_ORIGIN, 'https://www.xiaoda.tsinghua.edu.cn',
+  GITLAB_ORIGIN, MADMODEL_ORIGIN, STU_ORIGIN, 'https://lib.tsinghua.edu.cn', DISCOVER_ORIGIN, THESIS_ORIGIN, 'https://www.xiaoda.tsinghua.edu.cn',
 ]);
 
 const fail = (code, status = 400) => { throw new GatewayError(code, status); };

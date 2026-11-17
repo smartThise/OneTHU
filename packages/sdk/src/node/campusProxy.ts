@@ -1,7 +1,7 @@
 /** Browser-facing adapter over the one live account transport; owns no jar. */
 import { PUBLIC_DIRECT_HOSTS, webvpnWrap, webvpnDecodeUrl } from '@onethu/core';
 import { GatewayError, normalizeAllowedOrigins, parseProxyTarget, sanitizeRequestHeaders, validateMethod, isInfoRouteLanding, isInfoNewsLanding } from '@onethu/gateway/policy';
-import { DEFAULT_UPSTREAM_ORIGINS, GITLAB_ORIGIN } from '@onethu/gateway/routes';
+import { DEFAULT_UPSTREAM_ORIGINS, GITLAB_ORIGIN, MADMODEL_ORIGIN as MADMODEL, MADMODEL_IDENTITY_URL } from '@onethu/gateway/routes';
 import type { NodeSession } from './session.js';
 import { unwrapWebvpnScripts } from './webvpnScripts.js';
 import { assertCampusBrowserTarget } from './campusProxyPolicy.js';
@@ -28,13 +28,26 @@ import { resolveThesisLogin } from './thesisAuth.js';
 const VPN = 'https://webvpn.tsinghua.edu.cn';
 const MAX_DOWNLOAD = 4 * 1024 ** 3;
 const LEARN='https://learn.tsinghua.edu.cn';
+const INFO='https://info.tsinghua.edu.cn';
 const INFO_ARCHIVE='https://info2021.tsinghua.edu.cn';
-const MADMODEL='https://madmodel.cs.tsinghua.edu.cn';
 const MADMODEL_PORTAL='19D04E39D96B36C494F2E48A1A4741FD';
+const MADMODEL_IDENTITY_ALIAS=MADMODEL+new URL(MADMODEL_IDENTITY_URL).pathname+new URL(MADMODEL_IDENTITY_URL).search;
 const SELECTION_PORTAL='a7298655396722ef78ba5b5fb0b5482a';
 const LEARN_DOCUMENT=/^\/f\/wlxt\/index\/course\/(?:student|teacher)(?:\/course)?\/?$/;
 const CSRF_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const fail = (code:string, status=403):never => { throw new GatewayError(code,status); };
+
+/** Cancelling one browser request leaves the shared service renewal running. */
+function awaitServiceRecovery(pending:Promise<void>,signal?:AbortSignal|null):Promise<void>{
+  if(!signal)return pending;
+  return new Promise((resolve,reject)=>{
+    const cleanup=()=>signal.removeEventListener('abort',abort);
+    const abort=()=>{cleanup();reject(new GatewayError('GATEWAY_CANCELLED',499));};
+    signal.addEventListener('abort',abort,{once:true});
+    void pending.then(()=>{cleanup();resolve();},error=>{cleanup();reject(error);});
+    if(signal.aborted)abort();
+  });
+}
 type Runtime = Pick<NodeSession,'fetch'|'epoch'|'assertCurrent'|'status'|'http'>
   & Partial<Pick<NodeSession,'session'|'persist'|'ensureCampusService'|'resolveCampusPortal'|'fetchCampusDirect'|'fetchWithoutSession'|'loadGatewayState'|'saveGatewayState'|'noteInfoSessionRequired'>>
   & {
@@ -166,6 +179,8 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
   const origins=normalizeAllowedOrigins([...allowedOrigins]) as Set<string>;
   const staticOrigins=new Set(origins);
   const grants=new Map<string,ServiceGrant>();
+  const madmodelGrant:ServiceGrant={url:MADMODEL+'/',origin:MADMODEL,upstreamOrigin:MADMODEL,transport:'direct'};
+  if(staticOrigins.has(MADMODEL))grants.set(MADMODEL,madmodelGrant);
   const stuGrant:ServiceGrant={url:STU_ORIGIN+'/',origin:STU_ORIGIN,upstreamOrigin:STU_ORIGIN,transport:'direct'};
   if(staticOrigins.has(STU_ORIGIN))grants.set(STU_ORIGIN,stuGrant);
   const discoverGrant:ServiceGrant={url:DISCOVER_ORIGIN+'/',origin:DISCOVER_ORIGIN,upstreamOrigin:DISCOVER_ORIGIN,transport:'direct'};
@@ -184,6 +199,7 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
     if(grantEpoch===runtime.epoch())return;
     for(const origin of grants.keys())if(!staticOrigins.has(origin))origins.delete(origin);
     grants.clear();grantEpoch=runtime.epoch();
+    if(staticOrigins.has(MADMODEL))grants.set(MADMODEL,madmodelGrant);
     if(staticOrigins.has(STU_ORIGIN))grants.set(STU_ORIGIN,stuGrant);
     if(staticOrigins.has(DISCOVER_ORIGIN))grants.set(DISCOVER_ORIGIN,discoverGrant);
     if(staticOrigins.has(THESIS_ORIGIN))grants.set(THESIS_ORIGIN,thesisGrant);
@@ -223,6 +239,11 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
     const entry=THESIS_ORIGIN+'/qh/thesis/toLogin/?loginto=tsinghua&beforepage=%2Fhome%2Fqh%2Findex';
     replacements.set(THESIS_IDENTITY_URL.toLowerCase(),entry);
     replacements.set(THESIS_IDENTITY_URL.replaceAll('/','\\/').toLowerCase(),entry.replaceAll('/','\\/'));
+  }
+  if(staticOrigins.has(MADMODEL)){
+    const login=MADMODEL+'/authLogin';
+    replacements.set(MADMODEL_IDENTITY_URL.toLowerCase(),login);
+    replacements.set(MADMODEL_IDENTITY_URL.replaceAll('/','\\/').toLowerCase(),login.replaceAll('/','\\/'));
   }
   function grant(result:ServiceGrant,persist=true,learned=false){
     refreshGrants();
@@ -297,6 +318,7 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
   }
   const mapUrl=(value:string,physical:string):string=>{
     const url=new URL(value,physical);
+    if(staticOrigins.has(MADMODEL)&&new URL(webvpnDecodeUrl(physical)??physical).origin===MADMODEL&&url.href===MADMODEL_IDENTITY_URL)return MADMODEL+'/authLogin';
     if(url.origin===VPN){
       for(const origin of origins){
         const prefix=webvpnWrap(upstreamOrigin(origin)).replace(/\/$/,'');
@@ -506,19 +528,24 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
     });
     browserAuthentication=operation;return operation;
   }
-  async function recoverService(origin:string,expected:number){
+  async function recoverService(origin:string,expected:number,signal?:AbortSignal|null){
     const prepare=runtime.ensureCampusService;
-    const code=origin===GITLAB_ORIGIN?'GATEWAY_IDENTITY_SESSION_REQUIRED':'GATEWAY_AUTH_REQUIRED';
+    const code=origin===GITLAB_ORIGIN||origin===INFO?'GATEWAY_IDENTITY_SESSION_REQUIRED':'GATEWAY_AUTH_REQUIRED';
     if(!prepare)return fail(code,401);
     const previous=recovering.get(origin);
     if(previous?.epoch===expected){
-      if(previous.pending){await previous.pending;current(expected);return;}
+      if(previous.pending){await awaitServiceRecovery(previous.pending,signal);current(expected);return;}
       if(Date.now()-previous.at<30_000)fail(code,401);
     }
     const state:{epoch:number;at:number;pending?:Promise<void>}={epoch:expected,at:Date.now()};
-    const promise=prepare(origin).then(()=>current(expected)).catch(()=>fail(code,401));
+    const bounded=origin===INFO?new AbortController():undefined;
+    const timeout=bounded?setTimeout(()=>bounded.abort(),25_000):undefined;
+    const promise=awaitServiceRecovery(prepare(origin,bounded?.signal),bounded?.signal)
+      .then(()=>current(expected)).catch(()=>{if(origin===INFO)current(expected);fail(code,401);});
     state.pending=promise;recovering.set(origin,state);
-    try{await promise;}finally{state.pending=undefined;}
+    const settled=()=>{if(timeout)clearTimeout(timeout);state.pending=undefined;};
+    void promise.then(settled,settled);
+    await awaitServiceRecovery(promise,signal);current(expected);
   }
   async function bootstrap(target:URL,expected:number,signal?:AbortSignal|null,publicCsrf=false){
     const check=()=>{current(expected);if(signal?.aborted)fail('GATEWAY_CANCELLED',499);};
@@ -672,10 +699,15 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
           location:'https://info.tsinghua.edu.cn/f/info/gxfw_fg/common/index','cache-control':'no-store',
         }});
       }
-      if(target.origin===MADMODEL&&target.pathname==='/'&&!target.search&&method==='GET'
+      const madmodelRenewal=target.origin===MADMODEL&&(
+        target.pathname==='/authLogin'&&!target.search||target.href===MADMODEL_IDENTITY_ALIAS);
+      if(madmodelRenewal&&(method!=='GET'||init.body!=null||new Headers(init.headers).get('sec-fetch-dest')!=='document'))fail('GATEWAY_AUTH_REQUIRED',401);
+      if(madmodelRenewal||target.origin===MADMODEL&&target.pathname==='/'&&!target.search&&method==='GET'
         &&new Headers(init.headers).get('sec-fetch-dest')==='document'&&browserPreparation.has(MADMODEL)){
         browserPreparation.delete(MADMODEL);
-        try{
+        const operation=browserAuthentication.catch(()=>undefined).then(async()=>{
+          try{
+          check();
           let prepared:CampusPortalResult;
           try{prepared=await portal(MADMODEL_PORTAL,expected);}
           catch(error){
@@ -697,7 +729,10 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
             headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','referrer-policy':'same-origin',
               'content-security-policy':"default-src 'none'; base-uri 'none'; frame-ancestors 'none'"},
           });
-        }catch(error){browserPreparation.add(MADMODEL);throw error;}
+          }catch(error){browserPreparation.add(MADMODEL);throw error;}
+        });
+        browserAuthentication=operation;
+        return operation;
       }
       if(target.origin==='https://info.tsinghua.edu.cn'&&target.pathname==='/b/yyfw/vyyfwxx/info/portal_fg/common/onlineAppRedirect'&&['GET','POST'].includes(method)&&target.searchParams.has('yyfwid')){
         if([...target.searchParams.keys()].some(key=>!['yyfwid','machine','_csrf'].includes(key))||target.searchParams.getAll('yyfwid').length!==1||target.searchParams.has('machine')&&target.searchParams.get('machine')!=='p')return fail('GATEWAY_SERVICE_TARGET_REJECTED');
@@ -758,6 +793,27 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
       if(!fetch)return fail('GATEWAY_SERVICE_UNSUPPORTED',502);
       let response=await fetch(physical,request);check();
       try {
+        const requiresInfoIdentity=(reply:Response)=>{
+          if(target.origin!==INFO||![301,302,303,307,308].includes(reply.status))return false;
+          const location=reply.headers.get('location');
+          if(!location)return false;
+          const next=new URL(location,physical);
+          const logical=new URL(next.origin===VPN?(webvpnDecodeUrl(next.href)??next.href):next.href);
+          return ['id.tsinghua.edu.cn','oauth.tsinghua.edu.cn'].includes(logical.hostname)
+            ||logical.origin===VPN&&/^\/(?:login(?:\/|$)|$)/.test(logical.pathname);
+        };
+        if(requiresInfoIdentity(response)){
+          runtime.noteInfoSessionRequired?.();
+          // Only a failed document GET may ask the account owner to renew.
+          // Keep its exact query and never replay a form or background request.
+          if(method!=='GET'||init.body!=null||incoming.get('sec-fetch-dest')!=='document'){
+            fail('GATEWAY_IDENTITY_SESSION_REQUIRED',401);
+          }
+          await response.body?.cancel();
+          await recoverService(INFO,expected,init.signal);check();
+          response=await fetch(physical,request);check();
+          if(requiresInfoIdentity(response))fail('GATEWAY_IDENTITY_SESSION_REQUIRED',401);
+        }
         if(learnEntry&&[301,302,303,307,308].includes(response.status)){
           const location=response.headers.get('location');
           await response.body?.cancel();
@@ -914,7 +970,13 @@ export function createCampusProxySession(runtime:Runtime, allowedOrigins:readonl
           const html=/\b(?:text\/html|application\/xhtml\+xml)\b/i.test(output.get('content-type')??'');
           const script=/^(?:(?:text|application)\/(?:x-)?(?:java|ecma)script|javascript\/x-javascript)(?:;|$)/i.test(output.get('content-type')??'');
           if(html||script)body=unwrapWebvpnScripts(body,html,check);
-          body=rewriteBytes(body,replacements,check,html,html&&method==='GET'&&target.origin===LEARN&&target.pathname==='/roam.php'&&response.status===200);
+          // Madmodel assembles its registered ID URL from an origin constant
+          // and a hashed application ID. Keep that computed URL on this
+          // service's exact renewal alias without changing other sites.
+          const responseReplacements=script&&target.origin===MADMODEL
+            ?new Map([...replacements,['https://id.tsinghua.edu.cn',MADMODEL]])
+            :replacements;
+          body=rewriteBytes(body,responseReplacements,check,html,html&&method==='GET'&&target.origin===LEARN&&target.pathname==='/roam.php'&&response.status===200);
           for(const header of ['content-length','etag','content-md5','digest','content-digest','repr-digest'])output.delete(header);
         }
         check();return new Response(body,{status:response.status,statusText:response.statusText,headers:output});

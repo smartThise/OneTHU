@@ -20,7 +20,7 @@ export function initCampusClientRuntime(){
         checkedAt=Date.now();
       }
       if(!available)return;
-      const row=await call<{id:string;service:'xiaoda'|'visit'|'gitlab'|'madmodel'|'stu'|'cab'|'discover'|'myhome'|'seat'|'thesis'|'selection';entryMode?:0|1|'default';entryUrl?:string;identityUrl?:string}|null>('client-pending');
+      const row=await call<{id:string;service:'xiaoda'|'visit'|'gitlab'|'madmodel'|'stu'|'cab'|'discover'|'myhome'|'seat'|'thesis'|'selection'|'info';entryMode?:0|1|'default';entryUrl?:string;identityUrl?:string}|null>('client-pending');
       if(!row)return;
       let ok=false;
       let result:Record<string,unknown>={};
@@ -61,6 +61,19 @@ export function initCampusClientRuntime(){
           const callback=await (await import('../lib/thesis.js')).thesisGatewayCallback();
           if(!callback)return;
           result={thesisCallback:callback};
+        }else if(row.service==='info'){
+          const clients=await import('../lib/clients.js');
+          const infoLib=await import('../lib/infoLib.js');
+          const {createSessionKeepalive}=await import('../lib/reload.js');
+          const prepare=createSessionKeepalive({
+            account:()=>session,
+            loginPending:infoLib.libLoginPending,
+            ensure:infoLib.libEnsureSession,
+            persist:clients.persist,
+            publish:clients.publishUniversitySessionForGateway,
+          });
+          if(!await prepare())return;
+          result={infoReady:true};
         }else if(row.service==='selection'){
           await (await import('./data.js')).prepareSelectionGatewaySession();
           result={selectionReady:true};

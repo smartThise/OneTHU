@@ -702,6 +702,7 @@ function publishNativeServiceSession(service:{name:'selection'|'university';iden
 export const publishSelectionSession=(state:{identityRenewed:boolean;cookies:CookieRecord[]})=>publishNativeServiceSession({name:'selection',identityRenewed:state.identityRenewed},state.cookies);
 export const publishSelectionSessionForGateway=(state:{identityRenewed:boolean;cookies:CookieRecord[]})=>publishNativeServiceSession({name:'selection',identityRenewed:state.identityRenewed},state.cookies,true);
 export const publishUniversitySession=()=>publishNativeServiceSession({name:'university',identityRenewed:true});
+export const publishUniversitySessionForGateway=()=>publishNativeServiceSession({name:'university',identityRenewed:true},undefined,true);
 
 async function adoptSuccessfulDesktopLogin(): Promise<void> {
   if (!usesSharedRuntime()) return;

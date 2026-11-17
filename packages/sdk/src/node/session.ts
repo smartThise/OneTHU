@@ -98,6 +98,16 @@ export async function createNodeSession(options:NodeSessionOptions) {
     const expected=epoch(),revision=cookieRevision,owner=session.username;
     const check=()=>{assertCurrent(expected);signal?.throwIfAborted();if(revision!==cookieRevision||session.username!==owner||session.state!=='ready')throw authError('AUTH_SESSION_CHANGED');};
     check();if(!owner)throw authError('SCHOOL_SESSION_REQUIRED');
+    if(origin==='https://info.tsinghua.edu.cn'){
+      const identity=await probeUniversityIdentity(
+        (url,init)=>transport.fetch(url,{...init,signal}),http.jar,check,
+      );
+      check();
+      if(identity!==owner)throw authError(identity?'AUTH_SESSION_CONFLICT':'CAMPUS_SERVICE_SSO_REQUIRED');
+      warnings.delete('CAMPUS_INFO_SESSION_REQUIRED');
+      await persist();check();
+      return;
+    }
     if(!['https://cab.lib.tsinghua.edu.cn','https://seat.lib.tsinghua.edu.cn','https://zhjwxk.cic.tsinghua.edu.cn','https://card.tsinghua.edu.cn'].includes(origin))throw authError('CAMPUS_SERVICE_UNSUPPORTED');
     const candidate=new InfoClient(http);
     candidate.setIdCredentials(()=>{check();return {username:owner,password:'',fingerprint:device.fingerprint,finger3:device.finger3};});

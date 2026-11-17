@@ -35,6 +35,22 @@ test('standalone restoration verifies account with a read-only probe and preserv
   const epoch=sdk.epoch();await sdk.close();assert.throws(()=>sdk.assertCurrent(epoch),{code:'AUTH_SESSION_CLOSED'});
   const raw=await readFile(path.join(dir,'session.json'),'utf8');assert.equal(raw.includes('password'),false);assert.equal(JSON.parse(raw).device.fingerprint,'b'.repeat(32));
 });
+
+test('Info service recovery proves the same account with GET and rejects expired or mismatched identities',async t=>{
+  const dir=await temporary(t);
+  const options={account:'12345678',expired:false};
+  const school=fakeSchool(options);
+  const sdk=await createNodeSession({dataDir:dir,fetch:school.fetch});
+  t.after(()=>sdk.close());
+  await sdk.restore();
+  await sdk.ensureCampusService('https://info.tsinghua.edu.cn');
+  options.expired=true;
+  await assert.rejects(sdk.ensureCampusService('https://info.tsinghua.edu.cn'),{code:'CAMPUS_SERVICE_SSO_REQUIRED'});
+  options.expired=false;options.account='87654321';
+  await assert.rejects(sdk.ensureCampusService('https://info.tsinghua.edu.cn'),{code:'AUTH_SESSION_CONFLICT'});
+  assert(school.calls.every(request=>request.method==='GET'));
+  assert.equal(sdk.session.username,'12345678');
+});
 test('browser service preparation uses only existing SSO confirmation and never passwords or account initialization',async t=>{
  for(const mode of ['confirm','password','uninitialized']){
   const dir=await temporary(t),school=fakeSchool(),requests:{path:string;method:string;body:string}[]=[];let confirmed=false;
